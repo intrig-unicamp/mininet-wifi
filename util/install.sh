@@ -134,7 +134,7 @@ function mn_deps {
     fi
 
     echo "Installing Mininet core"
-    pushd $MININET_DIR/mininet
+    pushd $MININET_DIR/mininet-wifi
     sudo make install
     popd
 }
