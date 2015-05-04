@@ -12,6 +12,8 @@ setup for testing, and can even be emulated with the Mininet package.
 """
 
 from mininet.util import irange, natural, naturalSeq
+from mininet.log import info
+from mininet.node import ( Node )
 
 class MultiGraph( object ):
     "Utility class to track nodes and edges - replaces networkx.MultiGraph"
@@ -144,6 +146,17 @@ class Topo( object ):
             opts = self.sopts
         result = self.addNode( name, isSwitch=True, **opts )
         return result
+    
+    def addBaseStation( self, name, **opts ):
+        """Convenience method: Add switch to graph.
+           name: switch name
+           opts: switch options
+           returns: switch name"""
+        
+        if not opts and self.sopts:
+            opts = self.sopts
+        result = self.addNode( name, isSwitch=True, **opts )
+        return result
 
     def addLink( self, node1, node2, port1=None, port2=None,
                  key=None, **opts ):
@@ -171,6 +184,12 @@ class Topo( object ):
         return self.g.node[ n ].get( 'isSwitch', False )
 
     def switches( self, sort=True ):
+        """Return switches.
+           sort: sort switches alphabetically
+           returns: dpids list of dpids"""
+        return [ n for n in self.nodes( sort ) if self.isSwitch( n ) ]
+    
+    def baseStations( self, sort=True ):
         """Return switches.
            sort: sort switches alphabetically
            returns: dpids list of dpids"""
@@ -292,14 +311,21 @@ class Topo( object ):
 
 class SingleSwitchTopo( Topo ):
     "Single switch connected to k hosts."
-
     def build( self, k=2, **_opts ):
-        "k: number of hosts"
-        self.k = k
-        switch = self.addSwitch( 's1' )
-        for h in irange( 1, k ):
-            host = self.addHost( 'h%s' % h )
-            self.addLink( host, switch )
+        if(Node.isWireless):
+            "k: number of hosts"
+            self.k = k
+            basestation = self.addBaseStation( 'bs1' )
+            for h in irange( 1, k ):
+                host = self.addHost( 'h%s' % h )
+                self.addLink( host, basestation )
+        else:
+            "k: number of hosts"
+            self.k = k
+            switch = self.addSwitch( 's1' )
+            for h in irange( 1, k ):
+                host = self.addHost( 'h%s' % h )
+                self.addLink( host, switch )
 
 
 class SingleSwitchReversedTopo( Topo ):
@@ -328,27 +354,52 @@ class LinearTopo( Topo ):
     "Linear topology of k switches, with n hosts per switch."
 
     def build( self, k=2, n=1, **_opts):
-        """k: number of switches
-           n: number of hosts per switch"""
-        self.k = k
-        self.n = n
-
-        if n == 1:
-            genHostName = lambda i, j: 'h%s' % i
+        
+        if(Node.isWireless):
+            """k: number of switches
+               n: number of hosts per switch"""
+            self.k = k
+            self.n = n
+           
+            if n == 1:
+                genHostName = lambda i, j: 'h%s' % i
+            else:
+                genHostName = lambda i, j: 'h%sbs%d' % ( j, i )
+    
+            lastBaseStation = None
+            for i in irange( 1, k ):
+                # Add baseStation
+                baseStation = self.addBaseStation( 'bs%s' % i )
+                # Add hosts to baseStation
+                for j in irange( 1, n ):
+                    host = self.addHost( genHostName( i, j ) )
+                    self.addLink( host, baseStation )
+                # Connect baseStation to previous
+                if lastBaseStation:
+                    self.addLink( baseStation, lastBaseStation )
+                lastBaseStation = baseStation
         else:
-            genHostName = lambda i, j: 'h%ss%d' % ( j, i )
-
-        lastSwitch = None
-        for i in irange( 1, k ):
-            # Add switch
-            switch = self.addSwitch( 's%s' % i )
-            # Add hosts to switch
-            for j in irange( 1, n ):
-                host = self.addHost( genHostName( i, j ) )
-                self.addLink( host, switch )
-            # Connect switch to previous
-            if lastSwitch:
-                self.addLink( switch, lastSwitch )
-            lastSwitch = switch
+            """k: number of switches
+               n: number of hosts per switch"""
+            self.k = k
+            self.n = n
+           
+            if n == 1:
+                genHostName = lambda i, j: 'h%s' % i
+            else:
+                genHostName = lambda i, j: 'h%ss%d' % ( j, i )
+    
+            lastSwitch = None
+            for i in irange( 1, k ):
+                # Add switch
+                switch = self.addSwitch( 's%s' % i )
+                # Add hosts to switch
+                for j in irange( 1, n ):
+                    host = self.addHost( genHostName( i, j ) )
+                    self.addLink( host, switch )
+                # Connect switch to previous
+                if lastSwitch:
+                    self.addLink( switch, lastSwitch )
+                lastSwitch = switch
 
 # pylint: enable=arguments-differ

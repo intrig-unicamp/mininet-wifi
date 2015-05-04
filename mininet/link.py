@@ -45,6 +45,7 @@ class Intf( object ):
         self.link = link
         self.mac = mac
         self.ip, self.prefixLen = None, None
+        self.isWireless = node.isWireless
         
         # if interface is lo, we know the ip is 127.0.0.1.
         # This saves an ifconfig command per node
@@ -507,15 +508,25 @@ class OVSLink( Link ):
     """Link that makes patch links between OVSSwitches
        Warning: in testing we have found that no more
        than ~64 OVS patch links should be used in row."""
-
+    
     def __init__( self, node1, node2, **kwargs ):
-        "See Link.__init__() for options"
-        self.isPatchLink = False
-        if ( isinstance( node1, mininet.node.OVSSwitch ) and
-             isinstance( node2, mininet.node.OVSSwitch ) ):
-            self.isPatchLink = True
-            kwargs.update( cls1=OVSIntf, cls2=OVSIntf )
-        Link.__init__( self, node1, node2, **kwargs )
+        
+        if (self.isWireless):            
+            "See Link.__init__() for options"
+            self.isPatchLink = False
+            if ( isinstance( node1, mininet.node.OVBaseStation ) and
+                 isinstance( node2, mininet.node.OVBaseStation ) ):
+                self.isPatchLink = True
+                kwargs.update( cls1=OVSIntf, cls2=OVSIntf )
+            Link.__init__( self, node1, node2, **kwargs )
+        else:
+            "See Link.__init__() for options"
+            self.isPatchLink = False
+            if ( isinstance( node1, mininet.node.OVSSwitch ) and
+                 isinstance( node2, mininet.node.OVSSwitch ) ):
+                self.isPatchLink = True
+                kwargs.update( cls1=OVSIntf, cls2=OVSIntf )
+            Link.__init__( self, node1, node2, **kwargs )
 
     def makeIntfPair( self, *args, **kwargs ):
         "Usually delegated to OVSSwitch"

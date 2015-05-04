@@ -5,7 +5,7 @@ from mininet.log import info
 
 class module( object ):
     
-    def __init__( self, wirelessRadios=2, enabled=True ):
+    def __init__( self, wirelessRadios=2, enabled=None ):
         self.wirelessRadios=wirelessRadios
         self.enabled=enabled
         
@@ -23,9 +23,3 @@ class module( object ):
         info( "*** Removing Wireless Module\n" )
         #os.system( 'rmmod mac80211_hwsim' )
         os.system( 'killall -9 hostapd' )
-
-       
-#    os.system("/etc/init.d/network-manager stop")
- #   os.system("sleep 3")
-   # os.system("wpa_supplicant -B -c/etc/wpa_supplicant/wpa_supplicant.conf -iwlan0")
-   # os.system("dhclient wlan0")

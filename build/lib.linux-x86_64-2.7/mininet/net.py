@@ -123,7 +123,7 @@ class Mininet( object ):
                   inNamespace=False,
                   autoSetMacs=False, autoStaticArp=False, autoPinCpus=False,
                   listenPort=None, waitConnected=False, 
-                  interfaceID=3, ssid="my_ssid", mode="g", channel="1", wirelessRadios=2):
+                  interfaceID=3, ssid="my_ssid", mode="g", channel="1", wirelessRadios=0):
         """Create Mininet object.
            topo: Topo (topology) object or None
            switch: default Switch class
@@ -143,6 +143,7 @@ class Mininet( object ):
                each additional switch in the net if inNamespace=False"""
         self.topo = topo
         self.switch = switch
+        self.baseStation = switch
         self.host = host
         self.controller = controller
         self.link = link
@@ -166,9 +167,11 @@ class Mininet( object ):
         self.mode = mode
         self.channel = channel
         self.wirelessRadios = wirelessRadios
+        self.isWireless = Node.isWireless
         
         self.hosts = []
         self.switches = []
+        self.baseStations = []
         self.controllers = []
         self.links = []
 
@@ -178,7 +181,9 @@ class Mininet( object ):
 
         Mininet.init()  # Initialize Mininet if necessary
         
-        module(self.wirelessRadios, True) #Initatilize WiFi Module
+        if (Node.isWireless==True or self.wirelessRadios!=0):
+            Node.isWireless=True
+            module(self.wirelessRadios, Node.isWireless) #Initatilize WiFi Module
 
         self.built = False
         if topo and build:
@@ -265,11 +270,10 @@ class Mininet( object ):
         h = cls( name, **defaults )      
         self.hosts.append( h )
         self.nameToNode[ name ] = h
-        
         os.system("iw phy phy%s set netns %s" % (self.nextIP, h.pid))
-        self.host.cmd(h,"ip link set dev wlan%s name wlan0" % (self.nextIP))
-        self.host.cmd(h,"ifconfig wlan0 up")
-        self.host.cmd(h,"ifconfig wlan0 10.0.0.%s/%s" % (self.nextIP, self.prefixLen))        
+        self.host.cmd(h,"ip link set dev wlan%s name %swlan0" % (self.nextIP, h))
+        self.host.cmd(h,"ifconfig %swlan0 up" % h)
+        self.host.cmd(h,"ifconfig %swlan0 10.1.1.%s/%s" % (h, self.nextIP, self.prefixLen))        
         #self.host.cmd(h,"iw wlan0 connect %s" % self.ssid)
         self.nextIP += 1
         #os.system("iw dev wlan2 interface add mesh2 type station")
@@ -289,13 +293,12 @@ class Mininet( object ):
                      'inNamespace': self.inNamespace }
         defaults.update( params )
         if not cls:
-            cls = self.switch
-        sw = cls( name, **defaults )
+            cls = self.baseStation
+        bs = cls( name, **defaults )
         if not self.inNamespace and self.listenPort:
             self.listenPort += 1
-        self.switches.append( sw )
-        self.nameToNode[ name ] = sw
-        
+        self.baseStations.append( bs )
+        self.nameToNode[ name ] = bs
         
         cmd = ("echo \"")
         if(self.interfaceID!=None):
@@ -312,12 +315,10 @@ class Mininet( object ):
         os.system(cmd)
         cmd = ("hostapd -B ap.conf")
         os.system(cmd)
-        return sw
-     
+        return bs
         #cmd = ("echo \"interface=wlan%s\ndriver=nl80211\nssid=name_of_network\nhw_mode=g\nchannel=1\nmacaddr_acl=0\nauth_algs=1\nignore_broadcast_ssid=0\" > ap.conf" % 3)
         #os.system(cmd)
-       
-
+     
     def addSwitch( self, name, cls=None, **params ):
         """Add switch.
            name: name of switch to add
@@ -399,14 +400,24 @@ class Mininet( object ):
         return self.nameToNode[ key ]
 
     def __iter__( self ):
-        "return iterator over node names"
-        for node in chain( self.hosts, self.switches, self.controllers ):
-            yield node.name
+        if(self.isWireless):
+            "return iterator over node names"
+            for node in chain( self.hosts, self.baseStations, self.controllers ):
+                yield node.name
+        else:
+            "return iterator over node names"
+            for node in chain( self.hosts, self.switches, self.controllers ):
+                yield node.name
 
     def __len__( self ):
-        "returns number of nodes in net"
-        return ( len( self.hosts ) + len( self.switches ) +
-                 len( self.controllers ) )
+        if(self.isWireless):
+            "returns number of nodes in net"
+            return ( len( self.hosts ) + len( self.baseStations ) +
+                     len( self.controllers ) )
+        else:
+            "returns number of nodes in net"
+            return ( len( self.hosts ) + len( self.switches ) +
+                     len( self.controllers ) )
 
     def __contains__( self, item ):
         "returns True if net contains named node"
@@ -432,31 +443,52 @@ class Mininet( object ):
 
     def addLink( self, node1, node2, port1=None, port2=None,
                  cls=None, **params ):
-        """"Add a link from node1 to node2
-            node1: source node (or name)
-            node2: dest node (or name)
-            port1: source port (optional)
-            port2: dest port (optional)
-            cls: link class (optional)
-            params: additional link params (optional)
-            returns: link object"""
         
-        # Accept node objects or names
-        node1 = node1 if not isinstance( node1, basestring ) else self[ node1 ]
-        node2 = node2 if not isinstance( node2, basestring ) else self[ node2 ]
-        options = dict( params )
-        # Port is optional
-        if port1 is not None:
-            options.setdefault( 'port1', port1 )
-        if port2 is not None:
-            options.setdefault( 'port2', port2 )
-        # Set default MAC - this should probably be in Link
-        options.setdefault( 'addr1', self.randMac() )
-        options.setdefault( 'addr2', self.randMac() )
-        cls = self.link if cls is None else cls
-        link = cls( node1, node2, **options )
-        self.links.append( link )
-        return link
+        if(Node.isWireless):
+            # Accept node objects or names
+            # Accept node objects or names
+            node1 = node1 if not isinstance( node1, basestring ) else self[ node1 ]
+            node2 = node2 if not isinstance( node2, basestring ) else self[ node2 ]
+            options = dict( params )
+            # Port is optional
+            if port1 is not None:
+                options.setdefault( 'port1', port1 )
+            if port2 is not None:
+                options.setdefault( 'port2', port2 )                
+            # Set default MAC - this should probably be in Link
+            options.setdefault( 'addr1', self.randMac() )
+            options.setdefault( 'addr2', self.randMac() )
+            cls = self.link if cls is None else cls
+            link = cls( node1, node2, **options )
+            self.links.append( link )
+            return link
+            
+        else:
+            """"Add a link from node1 to node2
+                node1: source node (or name)
+                node2: dest node (or name)
+                port1: source port (optional)
+                port2: dest port (optional)
+                cls: link class (optional)
+                params: additional link params (optional)
+                returns: link object"""
+            # Accept node objects or names
+            node1 = node1 if not isinstance( node1, basestring ) else self[ node1 ]
+            node2 = node2 if not isinstance( node2, basestring ) else self[ node2 ]
+            options = dict( params )
+            # Port is optional
+            if port1 is not None:
+                options.setdefault( 'port1', port1 )
+            if port2 is not None:
+                options.setdefault( 'port2', port2 )
+            # Set default MAC - this should probably be in Link
+            options.setdefault( 'addr1', self.randMac() )
+            options.setdefault( 'addr2', self.randMac() )
+            cls = self.link if cls is None else cls
+            link = cls( node1, node2, **options )
+            self.links.append( link )
+            return link
+    
 
     def configHosts( self ):
         "Configure a set of hosts."
@@ -509,26 +541,28 @@ class Mininet( object ):
             else:
                 self.addHost( hostName, **topo.nodeInfo( hostName ) )
                 info( hostName + ' ' )
-
-        for switchName in topo.switches():
-            if(Node.isWireless):
+        
+        if(Node.isWireless):
+            for baseStationName in topo.baseStations():
                 info( '\n*** Adding Access Point:\n' )
                 # A bit ugly: add batch parameter if appropriate
-                params = topo.nodeInfo( switchName)
-                cls = params.get( 'cls', self.switch )
+                params = topo.nodeInfo( baseStationName )
+                cls = params.get( 'cls', self.baseStation )
                 if hasattr( cls, 'batchStartup' ):
                     params.setdefault( 'batch', True )
-                self.addBaseStation( switchName, **params )
-                info( switchName + ' ' )
+                self.addBaseStation( baseStationName, **params )
+                info( baseStationName + ' ' )
                 
+                info( '\n*** Associating Stations:\n' )
                 #self.host.cmd(h,"iw wlan0 connect %s" % self.ssid)
                 for srcName, dstName, params in topo.links(
                         sort=True, withInfo=True ):
-                #    self.addLink( **params )
+                    self.addLink( **params )
                     info( '(%s, %s) ' % ( srcName, dstName ) )
-        
+                      
                 info( '\n' )
-            else:
+        else:
+            for switchName in topo.switches():
                 info( '\n*** Adding switches:\n' )
                 # A bit ugly: add batch parameter if appropriate
                 params = topo.nodeInfo( switchName)
@@ -574,6 +608,7 @@ class Mininet( object ):
         cleanUpScreens()
         self.terms += makeTerms( self.controllers, 'controller' )
         self.terms += makeTerms( self.switches, 'switch' )
+        self.terms += makeTerms( self.baseStations, 'basestation' )
         self.terms += makeTerms( self.hosts, 'host' )
 
     def stopXterms( self ):
@@ -590,28 +625,52 @@ class Mininet( object ):
                     src.setARP( ip=dst.IP(), mac=dst.MAC() )
 
     def start( self ):
-        "Start controller and switches."
-        if not self.built:
-            self.build()
-        info( '*** Starting controller\n' )
-        for controller in self.controllers:
-            info( controller.name + ' ')
-            controller.start()
-        info( '\n' )
-        info( '*** Starting %s switches\n' % len( self.switches ) )
-        for switch in self.switches:
-            info( switch.name + ' ')
-            switch.start( self.controllers )
-        started = {}
-        for swclass, switches in groupby(
-                sorted( self.switches, key=type ), type ):
-            switches = tuple( switches )
-            if hasattr( swclass, 'batchStartup' ):
-                success = swclass.batchStartup( switches )
-                started.update( { s: s for s in success } )
-        info( '\n' )
-        if self.waitConn:
-            self.waitConnected()
+        if(self.isWireless):
+            "Start controller and switches."
+            if not self.built:
+                self.build()
+            info( '*** Starting controller\n' )
+            for controller in self.controllers:
+                info( controller.name + ' ')
+                controller.start()
+            info( '\n' )
+            info( '*** Starting %s baseStations\n' % len( self.baseStations ) )
+            for baseStation in self.baseStations:
+                info( baseStation.name + ' ')
+                baseStation.start( self.controllers )
+            started = {}
+            for swclass, baseStations in groupby(
+                    sorted( self.baseStations, key=type ), type ):
+                baseStations = tuple( baseStations )
+                if hasattr( swclass, 'batchStartup' ):
+                    success = swclass.batchStartup( baseStations )
+                    started.update( { s: s for s in success } )
+            info( '\n' )
+            if self.waitConn:
+                self.waitConnected()
+        else:
+            "Start controller and switches."
+            if not self.built:
+                self.build()
+            info( '*** Starting controller\n' )
+            for controller in self.controllers:
+                info( controller.name + ' ')
+                controller.start()
+            info( '\n' )
+            info( '*** Starting %s switches\n' % len( self.switches ) )
+            for switch in self.switches:
+                info( switch.name + ' ')
+                switch.start( self.controllers )
+            started = {}
+            for swclass, switches in groupby(
+                    sorted( self.switches, key=type ), type ):
+                switches = tuple( switches )
+                if hasattr( swclass, 'batchStartup' ):
+                    success = swclass.batchStartup( switches )
+                    started.update( { s: s for s in success } )
+            info( '\n' )
+            if self.waitConn:
+                self.waitConnected()
 
     def stop( self ):
         "Stop the controller(s), switches and hosts"
@@ -628,25 +687,46 @@ class Mininet( object ):
             info( '.' )
             link.stop()
         info( '\n' )
-        info( '*** Stopping %i switches\n' % len( self.switches ) )
-        stopped = {}
-        for swclass, switches in groupby(
-                sorted( self.switches, key=type ), type ):
-            switches = tuple( switches )
-            if hasattr( swclass, 'batchShutdown' ):
-                success = swclass.batchShutdown( switches )
-                stopped.update( { s: s for s in success } )
-        for switch in self.switches:
-            info( switch.name + ' ' )
-            if switch not in stopped:
-                switch.stop()
-            switch.terminate()
-        info( '\n' )
-        info( '*** Stopping %i hosts\n' % len( self.hosts ) )
-        for host in self.hosts:
-            info( host.name + ' ' )
-            host.terminate()
-        info( '\n' )
+        if(self.isWireless):
+            info( '*** Stopping %i baseStations\n' % len( self.baseStations ) )
+            stopped = {}
+            for swclass, baseStations in groupby(
+                    sorted( self.switches, key=type ), type ):
+                switches = tuple( baseStations )
+                if hasattr( swclass, 'batchShutdown' ):
+                    success = swclass.batchShutdown( baseStations )
+                    stopped.update( { s: s for s in success } )
+            for baseStation in self.baseStations:
+                info( baseStation.name + ' ' )
+                if baseStation not in stopped:
+                    baseStation.stop()
+                baseStation.terminate()
+            info( '\n' )
+            info( '*** Stopping %i hosts\n' % len( self.hosts ) )
+            for host in self.hosts:
+                info( host.name + ' ' )
+                host.terminate()
+            info( '\n' )
+        else:
+            info( '*** Stopping %i switches\n' % len( self.switches ) )
+            stopped = {}
+            for swclass, switches in groupby(
+                    sorted( self.switches, key=type ), type ):
+                switches = tuple( switches )
+                if hasattr( swclass, 'batchShutdown' ):
+                    success = swclass.batchShutdown( switches )
+                    stopped.update( { s: s for s in success } )
+            for switch in self.switches:
+                info( switch.name + ' ' )
+                if switch not in stopped:
+                    switch.stop()
+                switch.terminate()
+            info( '\n' )
+            info( '*** Stopping %i hosts\n' % len( self.hosts ) )
+            for host in self.hosts:
+                info( host.name + ' ' )
+                host.terminate()
+            info( '\n' )
         
         module(0, False) #Stopping WiFi Module
         

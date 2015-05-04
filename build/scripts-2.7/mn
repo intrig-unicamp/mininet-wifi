@@ -15,6 +15,7 @@ from optparse import OptionParser
 import os
 import sys
 import time
+import pdb
 
 # Fix setuptools' evil madness, and open up (more?) security holes
 if 'PYTHONPATH' in os.environ:
@@ -27,7 +28,7 @@ from mininet.net import Mininet, MininetWithControlNet, VERSION
 from mininet.node import ( Node, Host, CPULimitedHost, Controller, OVSController,
                            Ryu, NOX, RemoteController, findController,
                            DefaultController, NullController,
-                           UserSwitch, OVSSwitch, OVSBridge,
+                           UserSwitch, OVSSwitch, OVBaseStation, OVSBridge,
                            IVSSwitch )
 from mininet.nodelib import LinuxBridge
 from mininet.link import Link, TCLink, OVSLink
@@ -36,6 +37,7 @@ from mininet.topo import ( SingleSwitchTopo, LinearTopo,
 from mininet.topolib import TreeTopo, TorusTopo
 from mininet.util import customClass, specialClass, splitArgs
 from mininet.util import buildTopo
+
 
 from functools import partial
 
@@ -61,6 +63,7 @@ SWITCHDEF = 'default'
 SWITCHES = { 'user': UserSwitch,
              'ovs': OVSSwitch,
              'ovsbr' : OVSBridge,
+             'ovbs' : OVBaseStation,
              # Keep ovsk for compatibility with 2.0
              'ovsk': OVSSwitch,
              'ivs': IVSSwitch,
@@ -122,7 +125,7 @@ def version( *_args ):
 
 class MininetRunner( object ):
     "Build, setup, and run Mininet."
-
+    
     def __init__( self ):
         "Init."
         self.options = None
@@ -193,7 +196,7 @@ class MininetRunner( object ):
 
         usage = ( '%prog [options]\n'
                   '(type %prog -h for details)' )
-
+        
         opts = OptionParser( description=desc, usage=usage )
         addDictOption( opts, SWITCHES, SWITCHDEF, 'switch' )
         addDictOption( opts, HOSTS, HOSTDEF, 'host' )
@@ -201,8 +204,10 @@ class MininetRunner( object ):
         addDictOption( opts, LINKS, LINKDEF, 'link' )
         addDictOption( opts, TOPOS, TOPODEF, 'topo' )
 
-        opts.add_option( '--wireless', '-w', type='int', 
-                         default=2, help='wireless configuration' )
+
+        opts.add_option( '--radios', '-w', type='int', 
+                         default=0, help='wireless configuration' )
+       
         opts.add_option( '--clean', '-c', action='store_true',
                          default=False, help='clean and exit' )
         opts.add_option( '--custom', action='callback',
@@ -291,9 +296,8 @@ class MininetRunner( object ):
             cleanup()
             exit()
 
-        if self.options.wireless:
+        if self.options.radios!=0:
             Node.isWireless=True
-            
             
         start = time.time()
 
@@ -331,7 +335,7 @@ class MininetRunner( object ):
         mac = self.options.mac
         arp = self.options.arp
         pin = self.options.pin
-        wirelessRadios = self.options.wireless
+        wirelessRadios = self.options.radios
         listenPort = None
         if not self.options.nolistenport:
             listenPort = self.options.listenport

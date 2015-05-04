@@ -530,10 +530,10 @@ function pox {
     git clone https://github.com/noxrepo/pox.git
 }
 
-
-function pox {
+# "Install" Hostapd
+function hostapd {
     echo "Installing hostapd..."
-    sudo apt-get update
+    sudo apt-get install hostapd
 }
 
 
@@ -686,6 +686,7 @@ function all {
     # NOX-classic is deprecated, but you can install it manually if desired.
     # nox
     pox
+    hostapd
     oftest
     cbench
     echo "Enjoy Mininet!"

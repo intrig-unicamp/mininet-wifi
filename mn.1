@@ -16,10 +16,10 @@ parametrized topologies, invoke the Mininet CLI, and run tests.
 show this help message and exit
 .TP
 \fB\-\-switch\fR=\fI\,SWITCH\/\fR
-default|ivs|lxbr|ovs|ovsbr|ovsk|user[,param=value...]
-ovs=OVSSwitch default=OVSSwitch ovsk=OVSSwitch
-lxbr=LinuxBridge user=UserSwitch ivs=IVSSwitch
-ovsbr=OVSBridge
+default|ivs|lxbr|ovbs|ovs|ovsbr|ovsk|user[,param=value
+\&...] ovs=OVSSwitch lxbr=LinuxBridge user=UserSwitch
+ivs=IVSSwitch default=OVSSwitch ovsk=OVSSwitch
+ovsbr=OVSBridge ovbs=OVBaseStation
 .TP
 \fB\-\-host\fR=\fI\,HOST\/\fR
 cfs|proc|rt[,param=value...]
@@ -42,7 +42,7 @@ linear|minimal|reversed|single|torus|tree[,param=value
 single=SingleSwitchTopo
 reversed=SingleSwitchReversedTopo minimal=MinimalTopo
 .TP
-\fB\-w\fR WIRELESS, \fB\-\-wireless\fR=\fI\,WIRELESS\/\fR
+\fB\-w\fR RADIOS, \fB\-\-radios\fR=\fI\,RADIOS\/\fR
 wireless configuration
 .TP
 \fB\-c\fR, \fB\-\-clean\fR
