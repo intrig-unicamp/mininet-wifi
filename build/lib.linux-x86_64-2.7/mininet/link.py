@@ -439,6 +439,18 @@ class Link( object ):
 
         # All we are is dust in the wind, and our two interfaces
         self.intf1, self.intf2 = intf1, intf2
+        
+        #self.isWireless=True
+        #info("%s" % intfName1[:3])
+            
+        #if (self.isWireless):
+         #   if(intfName1[:3]=="sta"):
+          #      self.cmd("node1")
+                
+                #node1.cmd(intfName1[:4],"%s iw %swlan0 connect %s" % "new_ssid" % (intfName1[:4], intfName1[:4]))
+            #else:
+                #node2.cmd(intfName1[:4],"%s iw %swlan0 connect %s" % "new_ssid" % (intfName1[:4], intfName1[:4]))
+    
     # pylint: enable=too-many-branches
 
     @staticmethod
@@ -451,10 +463,10 @@ class Link( object ):
         # Leave this as an instance method for now
         assert self
         
-        if (node.isWireless):
-            return node.name + '-wlan' + repr( n )
-        else:
-            return node.name + '-eth' + repr( n )
+        #if (node.isWireless):
+         #   return node.name + '-wlan' + repr( n )
+        #else:
+        return node.name + '-eth' + repr( n )
 
     @classmethod
     def makeIntfPair( cls, intfname1, intfname2, addr1=None, addr2=None,

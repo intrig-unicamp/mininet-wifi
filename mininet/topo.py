@@ -166,6 +166,8 @@ class Topo( object ):
            returns: link info key"""
         if not opts and self.lopts:
             opts = self.lopts
+            
+        
         port1, port2 = self.addPort( node1, node2, port1, port2 )
         opts = dict( opts )
         opts.update( node1=node1, node2=node2, port1=port1, port2=port2 )
@@ -315,10 +317,10 @@ class SingleSwitchTopo( Topo ):
         if(Node.isWireless):
             "k: number of hosts"
             self.k = k
-            basestation = self.addBaseStation( 'bs1' )
+            baseStation = self.addBaseStation( 'bs1' )
             for h in irange( 1, k ):
-                host = self.addHost( 'h%s' % h )
-                self.addLink( host, basestation )
+                host = self.addHost( 'sta%s' % h )
+                self.addLink( host, baseStation )
         else:
             "k: number of hosts"
             self.k = k
@@ -335,13 +337,22 @@ class SingleSwitchReversedTopo( Topo ):
        numberings."""
 
     def build( self, k=2 ):
-        "k: number of hosts"
-        self.k = k
-        switch = self.addSwitch( 's1' )
-        for h in irange( 1, k ):
-            host = self.addHost( 'h%s' % h )
-            self.addLink( host, switch,
-                          port1=0, port2=( k - h + 1 ) )
+        if(Node.isWireless):
+            "k: number of hosts"
+            self.k = k
+            switch = self.addSwitch( 'bs1' )
+            for h in irange( 1, k ):
+                host = self.addHost( 'sta%s' % h )
+                self.addLink( host, switch,
+                              port1=0, port2=( k - h + 1 ) )
+        else:
+            "k: number of hosts"
+            self.k = k
+            switch = self.addSwitch( 's1' )
+            for h in irange( 1, k ):
+                host = self.addHost( 'h%s' % h )
+                self.addLink( host, switch,
+                              port1=0, port2=( k - h + 1 ) )
 
 
 class MinimalTopo( SingleSwitchTopo ):
@@ -362,9 +373,9 @@ class LinearTopo( Topo ):
             self.n = n
            
             if n == 1:
-                genHostName = lambda i, j: 'h%s' % i
+                genHostName = lambda i, j: 'sta%s' % i
             else:
-                genHostName = lambda i, j: 'h%sbs%d' % ( j, i )
+                genHostName = lambda i, j: 'sta%sbs%d' % ( j, i )
     
             lastBaseStation = None
             for i in irange( 1, k ):

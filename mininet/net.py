@@ -160,7 +160,13 @@ class Mininet( object ):
         self.numCores = numCores()
         self.nextCore = 0  # next core for pinning hosts to CPUs
         self.listenPort = listenPort
-        self.waitConn = waitConnected
+        self.waitConn = waitConnected   
+        
+        self.wirelessdeviceControl = []     
+        self.wirelessifaceControl = []
+        self.nextIface = 1
+        self.baseStationName = []
+        self.stationName = []
         
         self.interfaceID = interfaceID
         self.ssid = ssid
@@ -252,7 +258,6 @@ class Mininet( object ):
            cls: custom host class/constructor (optional)
            params: parameters for host
            returns: added host"""
-        #Node.isWireless=True
         #Default IP and MAC addresses
         defaults = { 'ip': ipAdd( self.nextIP,
                                   ipBaseNum=self.ipBaseNum,
@@ -270,12 +275,16 @@ class Mininet( object ):
         h = cls( name, **defaults )      
         self.hosts.append( h )
         self.nameToNode[ name ] = h
-        os.system("iw phy phy%s set netns %s" % (self.nextIP, h.pid))
-        self.host.cmd(h,"ip link set dev wlan%s name %swlan0" % (self.nextIP, h))
+        self.wirelessifaceControl.append(self.nextIface)
+        self.wirelessdeviceControl.append(name)
+        self.stationName.append(name)
+        os.system("iw phy phy%s set netns %s" % (self.nextIface, h.pid))
+        self.host.cmd(h,"ip link set dev wlan%s name %s-wlan0" % (self.nextIface, h))
         self.host.cmd(h,"ifconfig %swlan0 up" % h)
         self.host.cmd(h,"ifconfig %swlan0 10.1.1.%s/%s" % (h, self.nextIP, self.prefixLen))        
-        #self.host.cmd(h,"iw wlan0 connect %s" % self.ssid)
-        self.nextIP += 1
+        self.host.cmd(h,"iw %swlan0 connect %s" % (h, "my_ssid"))
+        self.nextIP += 1        
+        self.nextIface+=1
         #os.system("iw dev wlan2 interface add mesh2 type station")
         #os.system("sleep 2")
         #os.system("sleep 2")
@@ -299,10 +308,13 @@ class Mininet( object ):
             self.listenPort += 1
         self.baseStations.append( bs )
         self.nameToNode[ name ] = bs
-        
+        self.wirelessifaceControl.append(self.nextIface)
+        self.wirelessdeviceControl.append(name)
+        self.baseStationName.append(name)
+      
         cmd = ("echo \"")
         if(self.interfaceID!=None):
-            cmd = cmd + ("interface=wlan%s" % self.interfaceID)
+            cmd = cmd + ("interface=wlan%s" % self.nextIface)
         cmd = cmd + ("\ndriver=nl80211")
         if(self.ssid!=None):
             cmd = cmd + ("\nssid=%s" % self.ssid)
@@ -315,6 +327,7 @@ class Mininet( object ):
         os.system(cmd)
         cmd = ("hostapd -B ap.conf")
         os.system(cmd)
+        self.nextIface+=1
         return bs
         #cmd = ("echo \"interface=wlan%s\ndriver=nl80211\nssid=name_of_network\nhw_mode=g\nchannel=1\nmacaddr_acl=0\nauth_algs=1\nignore_broadcast_ssid=0\" > ap.conf" % 3)
         #os.system(cmd)
@@ -445,10 +458,12 @@ class Mininet( object ):
                  cls=None, **params ):
         
         if(Node.isWireless):
+            #self.host.cmd(h,"iw wlan0 connect %s" % self.ssid)
             # Accept node objects or names
             # Accept node objects or names
             node1 = node1 if not isinstance( node1, basestring ) else self[ node1 ]
             node2 = node2 if not isinstance( node2, basestring ) else self[ node2 ]
+           
             options = dict( params )
             # Port is optional
             if port1 is not None:
@@ -460,6 +475,18 @@ class Mininet( object ):
             options.setdefault( 'addr2', self.randMac() )
             cls = self.link if cls is None else cls
             link = cls( node1, node2, **options )
+            
+            teste=str(node1)
+            
+            if(teste[:3]=="sta"):
+                #info("%s ---" % node1)
+                info("%s 000" % self.wirelessifaceControl)
+               # self.cmd(node1,"%s iw %swlan0 connect %s" % "new_ssid" % (node1, node1))
+                
+            #else:
+                #node2.cmd(intfName1[:4],"%s iw %swlan0 connect %s" % "new_ssid" % (intfName1[:4], intfName1[:4]))
+
+            
             self.links.append( link )
             return link
             
@@ -554,12 +581,10 @@ class Mininet( object ):
                 info( baseStationName + ' ' )
                 
                 info( '\n*** Associating Stations:\n' )
-                #self.host.cmd(h,"iw wlan0 connect %s" % self.ssid)
                 for srcName, dstName, params in topo.links(
                         sort=True, withInfo=True ):
                     self.addLink( **params )
                     info( '(%s, %s) ' % ( srcName, dstName ) )
-                      
                 info( '\n' )
         else:
             for switchName in topo.switches():
@@ -608,7 +633,7 @@ class Mininet( object ):
         cleanUpScreens()
         self.terms += makeTerms( self.controllers, 'controller' )
         self.terms += makeTerms( self.switches, 'switch' )
-        self.terms += makeTerms( self.baseStations, 'basestation' )
+        self.terms += makeTerms( self.baseStations, 'baseStation' )
         self.terms += makeTerms( self.hosts, 'host' )
 
     def stopXterms( self ):
@@ -688,11 +713,15 @@ class Mininet( object ):
             link.stop()
         info( '\n' )
         if(self.isWireless):
-            info( '*** Stopping %i baseStations\n' % len( self.baseStations ) )
+            info( '*** Stopping %i baseStations\n' % len( self.baseStations ) )            
             stopped = {}
+            
+            for n in range(len(self.wirelessdeviceControl)):
+                if (str(self.wirelessdeviceControl[n]) in self.baseStationName ):
+                    os.system("ifconfig wlan%s down" % str(n+1)) 
             for swclass, baseStations in groupby(
-                    sorted( self.switches, key=type ), type ):
-                switches = tuple( baseStations )
+                    sorted( self.baseStations, key=type ), type ):
+                baseStations = tuple( baseStations )
                 if hasattr( swclass, 'batchShutdown' ):
                     success = swclass.batchShutdown( baseStations )
                     stopped.update( { s: s for s in success } )

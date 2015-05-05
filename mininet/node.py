@@ -1027,6 +1027,7 @@ class OVBaseStation( BaseStation ):
         "Connect a data port"
         info(self)
         self.vsctl( 'add-port', self, intf )
+        
         self.cmd( 'ifconfig', intf, 'up' )
         self.TCReapply( intf )
 
@@ -1066,7 +1067,9 @@ class OVBaseStation( BaseStation ):
                 intf1, intf2 = intf.link.intf1, intf.link.intf2
                 peer = intf1 if intf1 != intf else intf2
                 opts += ' type=patch options:peer=%s' % peer
+        
         return '' if not opts else ' -- set Interface %s' % intf + opts
+    
 
     def bridgeOpts( self ):
         "Return OVS bridge options"
@@ -1088,8 +1091,7 @@ class OVBaseStation( BaseStation ):
             raise Exception(
                 'OVS kernel switch does not work in a namespace' )
         int( self.dpid, 16 )  # DPID must be a hex string
-        # Command to add interfaces
-        
+        # Command to add interfaces        
         intfs = ''.join( ' -- add-port %s %s' % ( self, intf ) +
                          self.intfOpts( intf )
                          for intf in self.intfList()
@@ -1122,7 +1124,8 @@ class OVBaseStation( BaseStation ):
         if not self.batch:
             for intf in self.intfList():
                 self.TCReapply( intf )
-            
+        
+        self.vsctl('-- add-port %s wlan%s' % (self, "1"))    
     # This should be ~ int( quietRun( 'getconf ARG_MAX' ) ),
     # but the real limit seems to be much lower
     argmax = 128000
@@ -1525,8 +1528,8 @@ class OVSSwitch( Switch ):
         # If necessary, restore TC config overwritten by OVS
         if not self.batch:
             for intf in self.intfList():
-                self.TCReapply( intf )
-
+                self.TCReapply( intf )        
+             
     # This should be ~ int( quietRun( 'getconf ARG_MAX' ) ),
     # but the real limit seems to be much lower
     argmax = 128000
