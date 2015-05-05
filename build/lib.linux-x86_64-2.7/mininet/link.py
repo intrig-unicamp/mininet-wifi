@@ -26,6 +26,7 @@ Link: basic link class for creating veth pairs
 
 from mininet.log import info, error, debug
 from mininet.util import makeIntfPair
+#from mininet.wireless import link
 import mininet.node
 import re
 #import pdb
@@ -439,18 +440,7 @@ class Link( object ):
 
         # All we are is dust in the wind, and our two interfaces
         self.intf1, self.intf2 = intf1, intf2
-        
-        #self.isWireless=True
-        #info("%s" % intfName1[:3])
-            
-        #if (self.isWireless):
-         #   if(intfName1[:3]=="sta"):
-          #      self.cmd("node1")
-                
-                #node1.cmd(intfName1[:4],"%s iw %swlan0 connect %s" % "new_ssid" % (intfName1[:4], intfName1[:4]))
-            #else:
-                #node2.cmd(intfName1[:4],"%s iw %swlan0 connect %s" % "new_ssid" % (intfName1[:4], intfName1[:4]))
-    
+               
     # pylint: enable=too-many-branches
 
     @staticmethod

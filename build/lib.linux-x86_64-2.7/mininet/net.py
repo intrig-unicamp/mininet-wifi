@@ -278,11 +278,18 @@ class Mininet( object ):
         self.wirelessifaceControl.append(self.nextIface)
         self.wirelessdeviceControl.append(name)
         self.stationName.append(name)
+        
         os.system("iw phy phy%s set netns %s" % (self.nextIface, h.pid))
         self.host.cmd(h,"ip link set dev wlan%s name %s-wlan0" % (self.nextIface, h))
-        self.host.cmd(h,"ifconfig %swlan0 up" % h)
-        self.host.cmd(h,"ifconfig %swlan0 10.1.1.%s/%s" % (h, self.nextIP, self.prefixLen))        
-        self.host.cmd(h,"iw %swlan0 connect %s" % (h, "my_ssid"))
+        self.host.cmd(h,"ifconfig %s-wlan0 up" % h)
+        self.host.cmd(h,"ifconfig %s-wlan0 10.1.1.%s/%s" % (h, self.nextIP, self.prefixLen)) 
+        
+        #callfun="start"
+        #intf=self.nextIface
+        #src=name        
+        #wlink(callfun, intf, src)
+               
+        #self.host.cmd(h,"iw %s-wlan0 connect %s" % (h, "my_ssid"))
         self.nextIP += 1        
         self.nextIface+=1
         #os.system("iw dev wlan2 interface add mesh2 type station")
@@ -475,19 +482,15 @@ class Mininet( object ):
             options.setdefault( 'addr2', self.randMac() )
             cls = self.link if cls is None else cls
             link = cls( node1, node2, **options )
+            self.links.append( link )
             
-            teste=str(node1)
-            
-            if(teste[:3]=="sta"):
-                #info("%s ---" % node1)
-                info("%s 000" % self.wirelessifaceControl)
-               # self.cmd(node1,"%s iw %swlan0 connect %s" % "new_ssid" % (node1, node1))
-                
+            #teste=str(node1)
+            #if(teste[:3]=="sta"):
+             #   cls = self.host
+             #   h = cls( teste )
+             #   self.host.cmdPrint(h, "iw dev %s-wlan0 connect %s" % (teste, self.ssid))
             #else:
                 #node2.cmd(intfName1[:4],"%s iw %swlan0 connect %s" % "new_ssid" % (intfName1[:4], intfName1[:4]))
-
-            
-            self.links.append( link )
             return link
             
         else:
@@ -583,8 +586,14 @@ class Mininet( object ):
                 info( '\n*** Associating Stations:\n' )
                 for srcName, dstName, params in topo.links(
                         sort=True, withInfo=True ):
+                    
+                    for host in self.hosts:
+                        for n in range(len(self.wirelessdeviceControl)):
+                            if(str(self.wirelessdeviceControl[n])==srcName):
+                                self.host.cmd(host, "iw dev %s-wlan0 connect %s" % (host, self.ssid))
+                    
                     self.addLink( **params )
-                    info( '(%s, %s) ' % ( srcName, dstName ) )
+                    info( '(%s, %s) ' % ( srcName, dstName ) )                    
                 info( '\n' )
         else:
             for switchName in topo.switches():
@@ -601,8 +610,7 @@ class Mininet( object ):
                 for srcName, dstName, params in topo.links(
                         sort=True, withInfo=True ):
                     self.addLink( **params )
-                    info( '(%s, %s) ' % ( srcName, dstName ) )
-        
+                    info( '(%s, %s) ' % ( srcName, dstName ) )        
                 info( '\n' )
 
     def configureControlNetwork( self ):
@@ -698,12 +706,14 @@ class Mininet( object ):
                 self.waitConnected()
 
     def stop( self ):
+        
         "Stop the controller(s), switches and hosts"
         info( '*** Stopping %i controllers\n' % len( self.controllers ) )
         for controller in self.controllers:
             info( controller.name + ' ' )
             controller.stop()
         info( '\n' )
+                
         if self.terms:
             info( '*** Stopping %i terms\n' % len( self.terms ) )
             self.stopXterms()
@@ -714,8 +724,7 @@ class Mininet( object ):
         info( '\n' )
         if(self.isWireless):
             info( '*** Stopping %i baseStations\n' % len( self.baseStations ) )            
-            stopped = {}
-            
+            stopped = {}            
             for n in range(len(self.wirelessdeviceControl)):
                 if (str(self.wirelessdeviceControl[n]) in self.baseStationName ):
                     os.system("ifconfig wlan%s down" % str(n+1)) 
@@ -731,10 +740,17 @@ class Mininet( object ):
                     baseStation.stop()
                 baseStation.terminate()
             info( '\n' )
-            info( '*** Stopping %i hosts\n' % len( self.hosts ) )
+            info( '*** Stopping %i hosts\n' % len( self.hosts ) )            
+
             for host in self.hosts:
+                for n in range(len(self.wirelessdeviceControl)):
+                    if(str(self.wirelessdeviceControl[n])==host.name):
+                        self.host.cmd(host, "ifconfig %s-wlan0 down" % (str(self.wirelessdeviceControl[n])))
+                        self.host.cmd(host, "ip link set dev %s-wlan0 name wlan%s" % (str(self.wirelessdeviceControl[n]), str(n+1)))
+
                 info( host.name + ' ' )
                 host.terminate()
+                
             info( '\n' )
         else:
             info( '*** Stopping %i switches\n' % len( self.switches ) )
@@ -923,22 +939,6 @@ class Mininet( object ):
         """Ping between all hosts.
            returns: ploss packet loss percentage"""
         return self.ping( timeout=timeout )
-
-    def wireless_message( self ):
-        """Ping between first two hosts, useful for testing.
-           returns: ploss packet loss percentage"""
-        #os.system("/etc/init.d/network-manager stop")
-        #os.system("ifconfig wlan0 up")
-        os.system("sleep 3")
-        #os.system("wpa_supplicant -B -c/etc/wpa_supplicant/wpa_supplicant.conf -iwlan0")
-        #os.system("sleep 3")
-        #os.system("wpa_supplicant -B -c/etc/wpa_supplicant/wpa_supplicant.conf -iwlan0")
-        #os.system("dhclient wlan0")
-        #os.system("sleep 3")
-	#os.system("ping -c 5 8.8.8.8")
-
-        #hosts = [ self.hosts[ 0 ], self.hosts[ 1 ] ]
-        #return self.ping( hosts=hosts )
 
     def pingPair( self ):
         """Ping between first two hosts, useful for testing.
