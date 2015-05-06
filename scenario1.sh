@@ -16,13 +16,15 @@ def topology():
 #    net = Mininet( wirelessRadios=4, controller=RemoteController, link=TCLink, switch=OVSKernelSwitch )
 
     print "*** Creating nodes"
+    bs3 = net.addBaseStation( 'bs3' )
     h1 = net.addStation( 'h1' )
     h2 = net.addStation( 'h2' )
-    bs3 = net.addBaseStation( 'bs3' )
+    h3 = net.addStation( 'h3' )
     c0 = net.addController('c0', controller=Controller, port=6633 )
 
     net.addLink(h1, bs3)
     net.addLink(h2, bs3)
+    net.addLink(h3, bs3)
 
     print "*** Starting network"
     net.build()

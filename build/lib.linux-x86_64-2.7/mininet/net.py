@@ -123,7 +123,7 @@ class Mininet( object ):
                   inNamespace=False,
                   autoSetMacs=False, autoStaticArp=False, autoPinCpus=False,
                   listenPort=None, waitConnected=False, 
-                  interfaceID=3, ssid="my_ssid", mode="g", channel="1", wirelessRadios=0):
+                  interfaceID=3, ssid="my_ssid", mode="g", channel="1", wirelessRadios=0, wIpBase='192.168.0.'):
         """Create Mininet object.
            topo: Topo (topology) object or None
            switch: default Switch class
@@ -167,13 +167,15 @@ class Mininet( object ):
         self.nextIface = 1
         self.baseStationName = []
         self.stationName = []
+        self.wIpBase = wIpBase
+        self.wprefixLen = 24
         
         self.interfaceID = interfaceID
         self.ssid = ssid
         self.mode = mode
         self.channel = channel
         self.wirelessRadios = wirelessRadios
-        self.isWireless = Node.isWireless
+        #self.isWireless = Node.isWireless
         
         self.hosts = []
         self.switches = []
@@ -190,6 +192,8 @@ class Mininet( object ):
         if (Node.isWireless==True or self.wirelessRadios!=0):
             Node.isWireless=True
             module(self.wirelessRadios, Node.isWireless) #Initatilize WiFi Module
+        
+        self.isWireless = Node.isWireless
 
         self.built = False
         if topo and build:
@@ -282,7 +286,7 @@ class Mininet( object ):
         os.system("iw phy phy%s set netns %s" % (self.nextIface, h.pid))
         self.host.cmd(h,"ip link set dev wlan%s name %s-wlan0" % (self.nextIface, h))
         self.host.cmd(h,"ifconfig %s-wlan0 up" % h)
-        self.host.cmd(h,"ifconfig %s-wlan0 10.1.1.%s/%s" % (h, self.nextIP, self.prefixLen)) 
+        self.host.cmd(h,"ifconfig %s-wlan0 %s%s/%s" % (h, self.wIpBase, self.nextIP, self.wprefixLen)) 
         
         #callfun="start"
         #intf=self.nextIface
@@ -470,7 +474,13 @@ class Mininet( object ):
             # Accept node objects or names
             node1 = node1 if not isinstance( node1, basestring ) else self[ node1 ]
             node2 = node2 if not isinstance( node2, basestring ) else self[ node2 ]
-           
+            
+            for host in self.hosts:
+                if (host == node1):
+                    self.host.cmd(host, "iw dev %s-wlan0 connect %s" % (host, self.ssid))
+                elif (host == node2):
+                    self.host.cmd(host, "iw dev %s-wlan0 connect %s" % (host, self.ssid))
+                    
             options = dict( params )
             # Port is optional
             if port1 is not None:
@@ -483,14 +493,6 @@ class Mininet( object ):
             cls = self.link if cls is None else cls
             link = cls( node1, node2, **options )
             self.links.append( link )
-            
-            #teste=str(node1)
-            #if(teste[:3]=="sta"):
-             #   cls = self.host
-             #   h = cls( teste )
-             #   self.host.cmdPrint(h, "iw dev %s-wlan0 connect %s" % (teste, self.ssid))
-            #else:
-                #node2.cmd(intfName1[:4],"%s iw %swlan0 connect %s" % "new_ssid" % (intfName1[:4], intfName1[:4]))
             return link
             
         else:
@@ -587,10 +589,10 @@ class Mininet( object ):
                 for srcName, dstName, params in topo.links(
                         sort=True, withInfo=True ):
                     
-                    for host in self.hosts:
-                        for n in range(len(self.wirelessdeviceControl)):
-                            if(str(self.wirelessdeviceControl[n])==srcName):
-                                self.host.cmd(host, "iw dev %s-wlan0 connect %s" % (host, self.ssid))
+                    #for host in self.hosts:
+                    #    for n in range(len(self.wirelessdeviceControl)):
+                    #        if(str(self.wirelessdeviceControl[n])==srcName):
+                    #            self.host.cmd(host, "iw dev %s-wlan0 connect %s" % (host, self.ssid))
                     
                     self.addLink( **params )
                     info( '(%s, %s) ' % ( srcName, dstName ) )                    
