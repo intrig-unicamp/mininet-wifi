@@ -91,7 +91,8 @@ import re
 import select
 import signal
 import random
-import pdb
+import subprocess
+
 
 from time import sleep
 from itertools import chain, groupby
@@ -169,6 +170,8 @@ class Mininet( object ):
         self.stationName = []
         self.wIpBase = wIpBase
         self.wprefixLen = 24
+        self.resultIface = ""
+        self.splitResultIface = ""
         
         self.interfaceID = interfaceID
         self.ssid = ssid
@@ -188,6 +191,9 @@ class Mininet( object ):
         self.terms = []  # list of spawned xterm processes
 
         Mininet.init()  # Initialize Mininet if necessary
+        
+        
+        
         
         if (Node.isWireless==True or self.wirelessRadios!=0):
             Node.isWireless=True
@@ -283,7 +289,14 @@ class Mininet( object ):
         self.wirelessdeviceControl.append(name)
         self.stationName.append(name)
         
-        os.system("iw phy phy%s set netns %s" % (self.nextIface, h.pid))
+        self.resultIface = (subprocess.check_output("find /sys/kernel/debug/ieee80211 -name hwsim | cut -d/ -f 6 | sort", shell=True))
+        self.splitResultIface = self.resultIface.split("\n")
+        #info("%s" % self.splitResultIface[0][3:])
+        #splitResultIface
+        #teste = os.system("find /sys/kernel/debug/ieee80211 -name hwsim | cut -d/ -f 6 | sort")
+        #info("%s=====" %  self.resultIface)
+        #os.system()
+        os.system("iw phy phy%s set netns %s" % (self.splitResultIface[self.nextIface-1][3:], h.pid))
         self.host.cmd(h,"ip link set dev wlan%s name %s-wlan0" % (self.nextIface, h))
         self.host.cmd(h,"ifconfig %s-wlan0 up" % h)
         self.host.cmd(h,"ifconfig %s-wlan0 %s%s/%s" % (h, self.wIpBase, self.nextIP, self.wprefixLen)) 

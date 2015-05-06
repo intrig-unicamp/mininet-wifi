@@ -22,7 +22,9 @@ class module( object ):
         
     def _stop_module(self):
         #info( "*** Removing Wireless Module\n" )
-        #os.system( 'rmmod mac80211_hwsim' )
+        os.system( 'rmmod mac80211_hwsim' )
+        #os.system( 'rmmod ath9k' )
+        #os.system( 'modprobe ath9k' )
         os.system( 'killall -9 hostapd' )
         
         
