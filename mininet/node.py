@@ -141,11 +141,7 @@ class Node( object ):
         # -s: pass $* to shell, and make process easy to find in ps
         # prompt is set to sentinel chr( 127 )
         #pdb.set_trace()
-        if(Node.isWireless):            
-            cmd = [ 'mnexec', opts, 'env', 'PS1=' + chr( 127 ),
-                    'bash', '--norc', '-is', 'mininet:' + self.name ]
-        else:
-            cmd = [ 'mnexec', opts, 'env', 'PS1=' + chr( 127 ),
+        cmd = [ 'mnexec', opts, 'env', 'PS1=' + chr( 127 ),
                     'bash', '--norc', '-is', 'mininet:' + self.name ]
         # Spawn a shell subprocess in a pseudo-tty, to disable buffering
         # in the subprocess and insulate it from signals (e.g. SIGINT)
@@ -878,11 +874,10 @@ class CPULimitedHost( Host ):
 class BaseStation( Node ):
     """A Switch is a Node that is running (or has execed?)
        an OpenFlow switch."""
-    info("BASETATION")
     portBase = 1  # Switches start with port 1 in OpenFlow
     dpidLen = 16  # digits in dpid passed to switch
 
-    def __init__( self, name, dpid=None, opts='', listenPort=None, **params):
+    def __init__( self, name, dpid=None, opts='', listenPort=None, ssid=None,wpa_passphrase=None, channel=None, mode=None, **params):
         """dpid: dpid hex string (or None to derive from name, e.g. s1 -> 1)
            opts: additional switch options
            listenPort: port to listen on for dpctl connections"""
@@ -890,6 +885,11 @@ class BaseStation( Node ):
         self.dpid = self.defaultDpid( dpid )
         self.opts = opts
         self.listenPort = listenPort
+        self.ssid = ssid
+        self.mode = mode
+        self.channel = channel
+        self.wpa_passphrase = wpa_passphrase
+        #info("%s-------" % self.ssid)
         if not self.inNamespace:
             self.controlIntf = Intf( 'lo', self, port=0 )
 
@@ -1125,7 +1125,9 @@ class OVBaseStation( BaseStation ):
             for intf in self.intfList():
                 self.TCReapply( intf )
         
-        #self.vsctl('-- add-port %s -wlan%s' % (self, "1"))    
+        #info("%s===" % intf)
+        self.vsctl('-- add-port %s wlan%s' % (self, "1"))
+        #self.vsctl('-- add-port bs4 wlan1')    
     # This should be ~ int( quietRun( 'getconf ARG_MAX' ) ),
     # but the real limit seems to be much lower
     argmax = 128000

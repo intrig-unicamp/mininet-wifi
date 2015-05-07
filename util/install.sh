@@ -536,6 +536,12 @@ function hostapd {
     sudo apt-get install hostapd
 }
 
+# "Install" iw
+function iw {
+    echo "Installing iw..."
+    sudo apt-get install iw
+}
+
 
 
 # Install OFtest
@@ -687,6 +693,7 @@ function all {
     # nox
     pox
     hostapd
+    iw
     oftest
     cbench
     echo "Enjoy Mininet!"
