@@ -51,6 +51,7 @@ mininet/examples/popenpoll.py
 mininet/examples/scratchnet.py
 mininet/examples/scratchnetuser.py
 mininet/examples/simpleperf.py
+mininet/examples/simplewifitopology.py
 mininet/examples/sshd.py
 mininet/examples/tree1024.py
 mininet/examples/treeping64.py

@@ -12,7 +12,6 @@ setup for testing, and can even be emulated with the Mininet package.
 """
 
 from mininet.util import irange, natural, naturalSeq
-from mininet.log import info
 from mininet.node import ( Node )
 
 class MultiGraph( object ):

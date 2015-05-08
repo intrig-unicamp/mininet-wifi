@@ -92,7 +92,10 @@ import select
 import signal
 import random
 import subprocess
-
+import socket
+import fcntl
+import struct
+import fileinput
 
 from time import sleep
 from itertools import chain, groupby
@@ -173,14 +176,15 @@ class Mininet( object ):
         self.wmm_enabled = wmm_enabled
         self.wirelessdeviceControl = []     
         self.wirelessifaceControl = []
-        self.nextIface = 1
+        self.nextIface = 0
+        self.nextWiphyIface = 0
+        self.countAP = 0 
         self.baseStationName = []
         self.stationName = []
         self.wIpBase = wIpBase
         self.wprefixLen = 24
         self.resultIface = ""
         self.splitResultIface = ""
-        self.countAP = 0        
         self.interfaceID = interfaceID
         self.ssid = ssid
         self.mode = mode
@@ -189,6 +193,11 @@ class Mininet( object ):
         self.apcommand = ""
         self.apcommandControll = True
         self.cmd=""
+        self.netManagerCommand = ""
+        self.storeMacAddress = []
+        self.printMac = False
+        self.phyInterfaces = []
+        
         #self.isWireless = Node.isWireless
         
         self.hosts = []
@@ -202,8 +211,11 @@ class Mininet( object ):
         Mininet.init()  # Initialize Mininet if necessary
                 
         if (Node.isWireless==True or self.wirelessRadios!=0):
+            self.phyInterfaces.append(subprocess.check_output("iwconfig 2>&1 | grep IEEE | awk '{print $1}'", shell=True))
             Node.isWireless=True
             module(self.wirelessRadios, Node.isWireless) #Initatilize WiFi Module
+            self.resultIface = (subprocess.check_output("find /sys/kernel/debug/ieee80211 -name hwsim | cut -d/ -f 6 | sort", shell=True))
+            self.splitResultIface = self.resultIface.split("\n")
         
         self.isWireless = Node.isWireless
 
@@ -295,14 +307,24 @@ class Mininet( object ):
         self.wirelessdeviceControl.append(name)
         self.stationName.append(name)
         
-        self.resultIface = (subprocess.check_output("find /sys/kernel/debug/ieee80211 -name hwsim | cut -d/ -f 6 | sort", shell=True))
-        self.splitResultIface = self.resultIface.split("\n")
-        os.system("iw phy phy%s set netns %s" % (self.splitResultIface[self.nextIface-1][3:], h.pid))
-        self.host.cmd(h,"ip link set dev wlan%s name %s-wlan0" % (self.nextIface, h))
+        print "kkkkkkkkkkkkk %s" % str(self.nextWiphyIface+len(self.phyInterfaces))
+       
+        
+        #ifconfig = commands.getoutput("ifconfig " + 'wlan1' + "| grep HWaddr | awk '{ print $5 }'")
+        
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        info = fcntl.ioctl(s.fileno(), 0x8927,  struct.pack('256s', 'wlan%s'[:15]) % str(self.nextWiphyIface+len(self.phyInterfaces)))
+        self.storeMacAddress.append(''.join(['%02x:' % ord(char) for char in info[18:24]])[:-1])
+        #s = 'wlan%s' % self.nextIface
+        #self.storeMacAddress.append(s)
+        
+        os.system("iw phy phy%s set netns %s" % (self.splitResultIface[self.nextWiphyIface][3:], h.pid))
+        self.host.cmd(h,"ip link set dev wlan%s name %s-wlan0" % ((self.nextIface+len(self.phyInterfaces)), h))
         self.host.cmd(h,"ifconfig %s-wlan0 up" % h)
         self.host.cmd(h,"ifconfig %s-wlan0 %s%s/%s" % (h, self.wIpBase, self.nextIP, self.wprefixLen)) 
         self.nextIP += 1        
         self.nextIface+=1
+        self.nextWiphyIface +=1        
         return h
 
 
@@ -353,7 +375,7 @@ class Mininet( object ):
             self.cmd = ("echo \"")
             """General Configurations"""             
             if(self.interfaceID!=None):
-                self.cmd = self.cmd + ("interface=wlan%s" % self.nextIface) # the interface used by the AP
+                self.cmd = self.cmd + ("interface=wlan%s" % (self.nextIface+len(self.phyInterfaces))) # the interface used by the AP
             """Not using at the moment"""
             #cmd = cmd + ("\ndriver=nl80211")
             if(self.mode!=None):
@@ -367,6 +389,9 @@ class Mininet( object ):
                 self.cmd = self.cmd + ("\ncountry_code=%s" % self.country_code) # the country code
             if(self.ieee80211d!=None):
                 self.cmd = self.cmd + ("\nieee80211d=%s" % self.ieee80211d) # limit the frequencies used to those allowed in the country
+            """Not using at the moment"""
+            #self.cmd = self.cmd + ("\nmacaddr_acl=0\nauth_algs=1\nignore_broadcast_ssid=0")
+                
             self.cmd = self.cmd + "\n"    
             """AP1"""    
             if(self.ssid!=None):
@@ -403,8 +428,15 @@ class Mininet( object ):
             self.countAP = len(self.baseStationName)
             self.apcommand = ""
         
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        info = fcntl.ioctl(s.fileno(), 0x8927,  struct.pack('256s', 'wlan%s'[:15]) % str(self.nextIface+len(self.phyInterfaces)))
+        self.storeMacAddress.append(''.join(['%02x:' % ord(char) for char in info[18:24]])[:-1])
+        #s = 'wlan%s' % self.nextIface
+        #self.storeMacAddress.append(s)
+        
         self.apcommand = self.apcommand + self.cmd
         self.nextIface+=1
+        self.nextWiphyIface +=1
         return bs
      
     def addSwitch( self, name, cls=None, **params ):
@@ -532,16 +564,14 @@ class Mininet( object ):
     def addLink( self, node1, node2, port1=None, port2=None,
                  cls=None, **params ):
         
-        if(self.apcommandControll):            
-            """Not using at the moment"""
-            #cmd = cmd + ("\nmacaddr_acl=0\nauth_algs=1\nignore_broadcast_ssid=0")
-            self.apcommand = self.apcommand + ("\" > ap.conf")
-            os.system(self.apcommand)
-            self.cmd = ("hostapd -B ap.conf")
-            os.system(self.cmd)
-            self.apcommandControll=False
-        
         if(Node.isWireless):
+            
+            if(self.apcommandControll):            
+                self.apcommand = self.apcommand + ("\" > ap.conf")
+                os.system(self.apcommand)
+                self.cmd = ("hostapd -B ap.conf")
+                os.system(self.cmd)
+                self.apcommandControll=False
             #self.host.cmd(h,"iw wlan0 connect %s" % self.ssid)
             # Accept node objects or names
             # Accept node objects or names
@@ -637,17 +667,13 @@ class Mininet( object ):
                     self.addController( cls )
                 else:
                     self.addController( 'c%d' % i, cls )
-
-        info( '*** Adding hosts:\n' )
-        for hostName in topo.hosts():
-            if(Node.isWireless):
-                self.addStation( hostName, **topo.nodeInfo( hostName ) )
-                info( hostName + ' ' )
-            else:
-                self.addHost( hostName, **topo.nodeInfo( hostName ) )
-                info( hostName + ' ' )
         
         if(Node.isWireless):
+            info( '*** Adding Stations:\n' )
+            for hostName in topo.hosts():
+                self.addStation( hostName, **topo.nodeInfo( hostName ) )
+                info( hostName + ' ' )
+                
             for baseStationName in topo.baseStations():
                 info( '\n*** Adding Access Point:\n' )
                 # A bit ugly: add batch parameter if appropriate
@@ -658,12 +684,25 @@ class Mininet( object ):
                 self.addBaseStation( baseStationName, **params )
                 info( baseStationName + ' ' )
                 info( '\n*** Associating Stations:\n' )
+                
+                if(self.apcommandControll):            
+                    self.apcommand = self.apcommand + ("\" > ap.conf")
+                    os.system(self.apcommand)
+                    self.cmd = ("hostapd -B ap.conf")
+                    os.system(self.cmd)
+                    self.apcommandControll=False
+                    
                 for srcName, dstName, params in topo.links(
                         sort=True, withInfo=True ):
                     self.addLink( **params )
                     info( '(%s, %s) ' % ( srcName, dstName ) )                    
                 info( '\n' )
         else:
+            for hostName in topo.hosts():
+                info( '*** Adding hosts:\n' )
+                self.addHost( hostName, **topo.nodeInfo( hostName ) )
+                info( hostName + ' ' )
+                
             for switchName in topo.switches():
                 info( '\n*** Adding switches:\n' )
                 # A bit ugly: add batch parameter if appropriate
@@ -726,6 +765,38 @@ class Mininet( object ):
 
     def start( self ):
         if(self.isWireless):
+           
+            unmatch = ""
+            if(os.path.exists('/etc/NetworkManager/NetworkManager.conf')):
+                if(os.path.isfile('/etc/NetworkManager/NetworkManager.conf')):
+                    self.resultIface = open('/etc/NetworkManager/NetworkManager.conf')
+                    lines=self.resultIface
+            else:
+                os.makedirs("/etc/NetworkManager/")
+                self.resultIface = open('NetworkManager.conf', 'w+')
+                lines=self.resultIface
+                
+            c=True
+            for n in lines:
+                if("unmanaged-devices" in n):
+                    unmatch = n
+                    echo = n
+                    echo.replace(" ", "")
+                    echo = echo[:-1]+";"
+                    c = False
+            if(c):
+                echo = "unmanaged-devices="
+                    
+            for n in range(len(self.storeMacAddress)): 
+                if self.storeMacAddress[n] not in unmatch:
+                    echo = echo + "mac:"
+                    echo = echo + self.storeMacAddress[n] + ";"
+                    self.printMac = True
+            
+            if(self.printMac):
+                for line in fileinput.input('/etc/NetworkManager/NetworkManager.conf', inplace=1): 
+                    print line.replace(unmatch, echo)
+            
             "Start controller and switches."
             if not self.built:
                 self.build()
@@ -815,7 +886,7 @@ class Mininet( object ):
             #            self.host.cmd(host, "ip link set dev %s-wlan0 name wlan%s" % (str(self.wirelessdeviceControl[n]), str(n+1)))
                 info( host.name + ' ' )
                 host.terminate()
-            #os.system("sudo rm ap.conf")
+            module(0, False) #Stopping WiFi Module
             info( '\n' )
         else:
             info( '*** Stopping %i switches\n' % len( self.switches ) )
@@ -838,7 +909,7 @@ class Mininet( object ):
                 host.terminate()
             info( '\n' )
         
-        module(0, False) #Stopping WiFi Module
+        
         
         info( '\n*** Done\n' )
 

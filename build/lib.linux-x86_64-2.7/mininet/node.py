@@ -1126,7 +1126,7 @@ class OVBaseStation( BaseStation ):
                 self.TCReapply( intf )
         
         #info("%s===" % intf)
-        self.vsctl('-- add-port %s wlan%s' % (self, "1"))
+        #self.vsctl('-- add-port %s wlan%s' % (self, "1"))
         #self.vsctl('-- add-port bs4 wlan1')    
     # This should be ~ int( quietRun( 'getconf ARG_MAX' ) ),
     # but the real limit seems to be much lower
