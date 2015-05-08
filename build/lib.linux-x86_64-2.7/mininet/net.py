@@ -809,7 +809,7 @@ class Mininet( object ):
                 info( controller.name + ' ')
                 controller.start()
             info( '\n' )
-            info( '*** Starting %s baseStations\n' % len( self.baseStations ) )
+            info( '*** Starting %s Access Points\n' % len( self.baseStations ) )
             for baseStation in self.baseStations:
                 info( baseStation.name + ' ')
                 baseStation.start( self.controllers )

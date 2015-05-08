@@ -4,7 +4,7 @@ from mininet.log import info
 
 class module( object ):
     
-    def __init__( self, wirelessRadios=2, enabled=None ):
+    def __init__( self, wirelessRadios=4, enabled=None ):
         self.wirelessRadios=wirelessRadios
         self.enabled=enabled
         

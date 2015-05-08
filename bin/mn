@@ -204,8 +204,11 @@ class MininetRunner( object ):
         addDictOption( opts, TOPOS, TOPODEF, 'topo' )
 
 
-        opts.add_option( '--radios', '-w', type='int', 
-                         default=0, help='wireless configuration' )
+        opts.add_option( '--radios', type='int', 
+                         default=0, help='starting k radios' )
+        
+        opts.add_option( '--wifi', '-w', action='store_true',
+                         default=False, help='activate wifi' )
         
         opts.add_option( '--channel', type='int', 
                          default=1, help='wireless configuration' )
@@ -307,6 +310,10 @@ class MininetRunner( object ):
         if self.options.radios!=0:
             Node.isWireless=True
    
+        if self.options.wifi:
+            Node.isWireless=True
+            self.options.radios = 4
+            
             
             
         start = time.time()
@@ -350,6 +357,7 @@ class MininetRunner( object ):
         mode = self.options.mode
         ssid = self.options.ssid
         wirelessRadios = self.options.radios
+        
         
         listenPort = None
         if not self.options.nolistenport:
