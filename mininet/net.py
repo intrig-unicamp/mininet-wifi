@@ -316,7 +316,10 @@ class Mininet( object ):
         #self.storeMacAddress.append(s)
         
         os.system("iw phy phy%s set netns %s" % (self.splitResultIface[self.nextWiphyIface][3:], h.pid))
-        self.host.cmd(h,"ip link set dev wlan%s name %s-wlan0" % ((self.nextIface+len(self.phyInterfaces)), h))
+        if(self.phyInterfaces[0][:4]!="wlan"):
+            self.host.cmd(h,"ip link set dev wlan%s name %s-wlan0" % ((self.nextIface), h))
+        else:
+            self.host.cmd(h,"ip link set dev wlan%s name %s-wlan0" % ((self.nextIface+len(self.phyInterfaces)), h))
         self.host.cmd(h,"ifconfig %s-wlan0 up" % h)
         self.host.cmd(h,"ifconfig %s-wlan0 %s%s/%s" % (h, self.wIpBase, self.nextIP, self.wprefixLen)) 
         self.nextIP += 1        

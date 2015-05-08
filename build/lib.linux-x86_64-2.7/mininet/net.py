@@ -307,9 +307,7 @@ class Mininet( object ):
         self.wirelessdeviceControl.append(name)
         self.stationName.append(name)
         
-        print "kkkkkkkkkkkkk %s" % str(self.nextWiphyIface+len(self.phyInterfaces))       
-        
-        #ifconfig = commands.getoutput("ifconfig " + 'wlan1' + "| grep HWaddr | awk '{ print $5 }'")
+       #ifconfig = commands.getoutput("ifconfig " + 'wlan1' + "| grep HWaddr | awk '{ print $5 }'")
         
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         info = fcntl.ioctl(s.fileno(), 0x8927,  struct.pack('256s', 'wlan%s'[:15]) % str(self.nextWiphyIface+len(self.phyInterfaces)))
@@ -318,7 +316,10 @@ class Mininet( object ):
         #self.storeMacAddress.append(s)
         
         os.system("iw phy phy%s set netns %s" % (self.splitResultIface[self.nextWiphyIface][3:], h.pid))
-        self.host.cmd(h,"ip link set dev wlan%s name %s-wlan0" % ((self.nextIface+len(self.phyInterfaces)), h))
+        if(self.phyInterfaces[0][:4]!="wlan"):
+            self.host.cmd(h,"ip link set dev wlan%s name %s-wlan0" % ((self.nextIface), h))
+        else:
+            self.host.cmd(h,"ip link set dev wlan%s name %s-wlan0" % ((self.nextIface+len(self.phyInterfaces)), h))
         self.host.cmd(h,"ifconfig %s-wlan0 up" % h)
         self.host.cmd(h,"ifconfig %s-wlan0 %s%s/%s" % (h, self.wIpBase, self.nextIP, self.wprefixLen)) 
         self.nextIP += 1        
