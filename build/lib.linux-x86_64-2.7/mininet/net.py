@@ -776,7 +776,8 @@ class Mininet( object ):
                     lines=self.resultIface
             else:
                 os.makedirs("/etc/NetworkManager/")
-                self.resultIface = open('NetworkManager.conf', 'w+')
+                os.system("touch /etc/NetworkManager/NetworkManager.conf")
+                self.resultIface = open('/etc/NetworkManager/NetworkManager.conf')
                 lines=self.resultIface
                 
             c=True
