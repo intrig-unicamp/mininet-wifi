@@ -307,8 +307,7 @@ class Mininet( object ):
         self.wirelessdeviceControl.append(name)
         self.stationName.append(name)
         
-        print "kkkkkkkkkkkkk %s" % str(self.nextWiphyIface+len(self.phyInterfaces))
-       
+        print "kkkkkkkkkkkkk %s" % str(self.nextWiphyIface+len(self.phyInterfaces))       
         
         #ifconfig = commands.getoutput("ifconfig " + 'wlan1' + "| grep HWaddr | awk '{ print $5 }'")
         
