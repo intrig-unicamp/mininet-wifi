@@ -375,7 +375,10 @@ class Mininet( object ):
             self.cmd = ("echo \"")
             """General Configurations"""             
             if(self.interfaceID!=None):
-                self.cmd = self.cmd + ("interface=wlan%s" % (self.nextIface+len(self.phyInterfaces))) # the interface used by the AP
+                if(self.phyInterfaces[0][:4]!="wlan"):
+                    self.cmd = self.cmd + ("interface=wlan%s" % (self.nextIface)) # the interface used by the AP
+                else:
+                    self.cmd = self.cmd + ("interface=wlan%s" % (self.nextIface+len(self.phyInterfaces))) # the interface used by the AP
             """Not using at the moment"""
             #cmd = cmd + ("\ndriver=nl80211")
             if(self.mode!=None):
