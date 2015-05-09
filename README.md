@@ -21,7 +21,8 @@ sudo mn --wifi --ssid=new_ssid
 It will start a simple topology with 2 stations and 1 access point. The stations also includes a physical ethernet interface.
 
 ###A Brief Demonstration
-https://www.youtube.com/watch?v=H46EPuJDJhc  
+Video 01: https://www.youtube.com/watch?v=_PtSmhf7Z8s  
+Video 02: https://www.youtube.com/watch?v=H46EPuJDJhc  
 You also may use the example file in /examples/simplewifitopology.py
 
 ###Team
