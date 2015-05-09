@@ -316,7 +316,7 @@ class SingleSwitchTopo( Topo ):
         if(Node.isWireless):
             "k: number of hosts"
             self.k = k
-            baseStation = self.addBaseStation( 'bs1' )
+            baseStation = self.addBaseStation( 'ap1' )
             for h in irange( 1, k ):
                 host = self.addHost( 'sta%s' % h )
                 self.addLink( host, baseStation )
@@ -339,7 +339,7 @@ class SingleSwitchReversedTopo( Topo ):
         if(Node.isWireless):
             "k: number of hosts"
             self.k = k
-            switch = self.addSwitch( 'bs1' )
+            switch = self.addSwitch( 'ap1' )
             for h in irange( 1, k ):
                 host = self.addHost( 'sta%s' % h )
                 self.addLink( host, switch,
@@ -374,12 +374,12 @@ class LinearTopo( Topo ):
             if n == 1:
                 genHostName = lambda i, j: 'sta%s' % i
             else:
-                genHostName = lambda i, j: 'sta%sbs%d' % ( j, i )
+                genHostName = lambda i, j: 'sta%sap%d' % ( j, i )
     
             lastBaseStation = None
             for i in irange( 1, k ):
                 # Add baseStation
-                baseStation = self.addBaseStation( 'bs%s' % i )
+                baseStation = self.addBaseStation( 'ap%s' % i )
                 # Add hosts to baseStation
                 for j in irange( 1, n ):
                     host = self.addHost( genHostName( i, j ) )

@@ -13,7 +13,7 @@ mininet/term.py
 mininet/topo.py
 mininet/topolib.py
 mininet/util.py
-mininet/wireless.py
+mininet/wifi.py
 mininet.egg-info/PKG-INFO
 mininet.egg-info/SOURCES.txt
 mininet.egg-info/dependency_links.txt

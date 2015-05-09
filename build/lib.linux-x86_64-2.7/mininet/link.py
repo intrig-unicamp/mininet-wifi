@@ -26,7 +26,7 @@ Link: basic link class for creating veth pairs
 
 from mininet.log import info, error, debug
 from mininet.util import makeIntfPair
-#from mininet.wireless import link
+#from mininet.wifi import link
 import mininet.node
 import re
 #import pdb

@@ -309,8 +309,9 @@ class MininetRunner( object ):
 
         if self.options.radios!=0:
             Node.isWireless=True
+            #wirelessRadios = self.options.radios
    
-        if self.options.wifi:
+        if self.options.wifi and self.options.radios==0:
             Node.isWireless=True
             self.options.radios = 4
             

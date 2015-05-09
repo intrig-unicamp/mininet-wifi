@@ -1,14 +1,9 @@
 ###About Mininet-WiFi
-Mininet-WiFi is a release of Mininet (http://mininet.org/) which allows the using of both WiFi Stations and BaseStations. More informations and details about this release will be available in soon on Intrig's GitHub profile (https://github.com/intrig-unicamp/).  
-
-
-###A Brief Demonstration
-https://www.youtube.com/watch?v=H46EPuJDJhc  
-You also may use the example file in /examples/simplewifitopology.py
+Mininet-WiFi is a release of Mininet (http://mininet.org/) which allows the using of both WiFi Stations and Access Points. More informations and details about this release will be available in soon. This release only add wifi features and you may work with Mininet like the oficial Mininet release (https://github.com/mininet/mininet). It is also allows work with OpenFlow using Bridges, but we are working to improve this issue.        
 
 ##Installation  
 ####Option 1: via install.sh  
-It is not work properly yet  
+It is not working properly yet.    
   
 ####Option 2: via apt  
 step 1: apt-get install mininet  
@@ -21,9 +16,13 @@ iw - apt-get install iw
 python-setuptools - apt-get install python-setuptools  
 hostapd - apt-get install hostapd  
 
-###Get Started  
-sudo mn --wifi --ssid=new_ssid    
-It will start a simple topology with 2 stations and 1 access point. The stations also includes a physical ethernet interface.  
+###Get Started
+sudo mn --wifi --ssid=new_ssid  
+It will start a simple topology with 2 stations and 1 access point. The stations also includes a physical ethernet interface.
+
+###A Brief Demonstration
+https://www.youtube.com/watch?v=H46EPuJDJhc  
+You also may use the example file in /examples/simplewifitopology.py
 
 ###Team
 Ramon dos Reis Fontes (ramonrf@dca.fee.unicamp.br)  

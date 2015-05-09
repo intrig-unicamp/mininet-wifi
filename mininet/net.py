@@ -92,9 +92,6 @@ import select
 import signal
 import random
 import subprocess
-import socket
-import fcntl
-import struct
 import fileinput
 
 from time import sleep
@@ -111,7 +108,7 @@ from mininet.util import ( quietRun, fixLimits, numCores, ensureRoot,
                            macColonHex, ipStr, ipParse, netParse, ipAdd,
                            waitListening )
 from mininet.term import cleanUpScreens, makeTerms
-from mininet.wireless import module
+from mininet.wifi import module, phyInterface
 from __builtin__ import True
 
 # Mininet version: should be consistent with README and LICENSE
@@ -308,12 +305,7 @@ class Mininet( object ):
         self.stationName.append(name)
         
        #ifconfig = commands.getoutput("ifconfig " + 'wlan1' + "| grep HWaddr | awk '{ print $5 }'")
-        
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        info = fcntl.ioctl(s.fileno(), 0x8927,  struct.pack('256s', 'wlan%s'[:15]) % str(self.nextWiphyIface+len(self.phyInterfaces)))
-        self.storeMacAddress.append(''.join(['%02x:' % ord(char) for char in info[18:24]])[:-1])
-        #s = 'wlan%s' % self.nextIface
-        #self.storeMacAddress.append(s)
+        self.storeMacAddress = (phyInterface.getMacAddress(phyInterface(self.nextWiphyIface+len(self.phyInterfaces), self.nextIface, self.phyInterfaces)))
         
         os.system("iw phy phy%s set netns %s" % (self.splitResultIface[self.nextWiphyIface][3:], h.pid))
         if(self.phyInterfaces[0][:4]!="wlan"):
@@ -324,7 +316,7 @@ class Mininet( object ):
         self.host.cmd(h,"ifconfig %s-wlan0 %s%s/%s" % (h, self.wIpBase, self.nextIP, self.wprefixLen)) 
         self.nextIP += 1        
         self.nextIface+=1
-        self.nextWiphyIface +=1        
+        self.nextWiphyIface +=1    
         return h
 
 
@@ -431,11 +423,7 @@ class Mininet( object ):
             self.countAP = len(self.baseStationName)
             self.apcommand = ""
         
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        info = fcntl.ioctl(s.fileno(), 0x8927,  struct.pack('256s', 'wlan%s'[:15]) % str(self.nextIface+len(self.phyInterfaces)))
-        self.storeMacAddress.append(''.join(['%02x:' % ord(char) for char in info[18:24]])[:-1])
-        #s = 'wlan%s' % self.nextIface
-        #self.storeMacAddress.append(s)
+        self.storeMacAddress = (phyInterface.getMacAddress(phyInterface(self.nextWiphyIface+len(self.phyInterfaces), self.nextIface, self.phyInterfaces)))
         
         self.apcommand = self.apcommand + self.cmd
         self.nextIface+=1
@@ -657,7 +645,6 @@ class Mininet( object ):
             pass
 
         info( '*** Creating network\n' )
-
         if not self.controllers and self.controller:
             # Add a default controller
             info( '*** Adding controller\n' )
@@ -686,8 +673,8 @@ class Mininet( object ):
                     params.setdefault( 'batch', True )
                 self.addBaseStation( baseStationName, **params )
                 info( baseStationName + ' ' )
-                info( '\n*** Associating Stations:\n' )
-                
+                               
+                info( '\n*** Associating Stations:\n' )                
                 if(self.apcommandControll):            
                     self.apcommand = self.apcommand + ("\" > ap.conf")
                     os.system(self.apcommand)
@@ -698,7 +685,8 @@ class Mininet( object ):
                 for srcName, dstName, params in topo.links(
                         sort=True, withInfo=True ):
                     self.addLink( **params )
-                    info( '(%s, %s) ' % ( srcName, dstName ) )                    
+                    info( '(%s, %s) ' % ( srcName, dstName ) )  
+                #os.system("ovs-vsctl add-port %s %s" % ("bs1", "wlan3"))                  
                 info( '\n' )
         else:
             for hostName in topo.hosts():
@@ -1232,7 +1220,7 @@ class Mininet( object ):
                     error( 'link dst status change failed: %s\n' % result )
 
     def interact( self ):
-        "Start network and run our simple CLI."
+        "Start network and run our simple CLI."        
         self.start()
         result = CLI( self )
         self.stop()

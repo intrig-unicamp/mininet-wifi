@@ -10,7 +10,7 @@ class module( object ):
         
         if (self.enabled==True):
             self._start_module(self.wirelessRadios)
-        elif(self.enabled==False):
+        else:
             self._stop_module()
         
     def _start_module(self, wirelessRadios):

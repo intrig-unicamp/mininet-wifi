@@ -41,7 +41,8 @@ from mininet.util import ( quietRun, dumpNodeConnections,
 
 class CLI( Cmd ):
     "Simple command-line interface to talk to nodes."
-
+    
+    
     prompt = 'mininet> '
 
     def __init__( self, mininet, stdin=sys.stdin, script=None ):
@@ -49,6 +50,7 @@ class CLI( Cmd ):
            mininet: Mininet network object
            stdin: standard input for CLI
            script: script to run in batch mode"""
+        
         self.mn = mininet
         # Local variable bindings for py command
         self.locals = { 'net': mininet }
@@ -57,9 +59,11 @@ class CLI( Cmd ):
         self.inPoller = poll()
         self.inPoller.register( stdin )
         self.inputFile = script
+        
+        
         Cmd.__init__( self )
         info( '*** Starting CLI:\n' )
-
+        
         if self.inputFile:
             self.do_source( self.inputFile )
             return
