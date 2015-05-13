@@ -123,7 +123,7 @@ class Mininet( object ):
                   inNamespace=False,
                   autoSetMacs=False, autoStaticArp=False, autoPinCpus=False,
                   listenPort=None, waitConnected=False, 
-                  interfaceID=3, ssid="my_ssid", mode="g", channel="1", wirelessRadios=0, wIpBase='192.168.0.', wmm_enabled="1",
+                  interfaceID=3, ssid="my_ssid", mode="g", channel="6", wirelessRadios=0, wIpBase='192.168.0.', wmm_enabled="1",
                   country_code=None, ieee80211d=None, rsn_pairwise=None, wpa_passphrase=None, wpa=None, auth_algs=None, wpa_key_mgmt=None ):
         """Create Mininet object.
            topo: Topo (topology) object or None
@@ -372,18 +372,18 @@ class Mininet( object ):
                 else:
                     self.cmd = self.cmd + ("interface=wlan%s" % (self.nextIface+len(self.phyInterfaces))) # the interface used by the AP
             """Not using at the moment"""
-            #cmd = cmd + ("\ndriver=nl80211")
+            #self.cmd = self.cmd + ("\ndriver=nl80211")
             if(self.mode!=None):
                 self.cmd = self.cmd + ("\nhw_mode=%s" % self.mode) # g simply means 2.4GHz
             if(self.channel!=None):
                 self.cmd = self.cmd + ("\nchannel=%s" % self.channel) # the channel to use 
-            self.cmd = self.cmd + ("\nieee80211n=1") # 802.11n support
-            if(self.wmm_enabled!=None):
-                self.cmd = self.cmd + ("\nwmm_enabled=%s" % self.wmm_enabled) # QoS support
-            if(self.country_code!=None):
-                self.cmd = self.cmd + ("\ncountry_code=%s" % self.country_code) # the country code
             if(self.ieee80211d!=None):
                 self.cmd = self.cmd + ("\nieee80211d=%s" % self.ieee80211d) # limit the frequencies used to those allowed in the country
+            if(self.country_code!=None):
+                self.cmd = self.cmd + ("\ncountry_code=%s" % self.country_code) # the country code
+            #self.cmd = self.cmd + ("\nieee80211n=1") # 802.11n support
+            if(self.wmm_enabled!=None):
+                self.cmd = self.cmd + ("\nwmm_enabled=%s" % self.wmm_enabled) # QoS support
             """Not using at the moment"""
             #self.cmd = self.cmd + ("\nmacaddr_acl=0\nauth_algs=1\nignore_broadcast_ssid=0")
                 
@@ -574,6 +574,14 @@ class Mininet( object ):
                     self.host.cmd(host, "iw dev %s-wlan0 connect %s" % (host, self.ssid))
                 elif (host == node2):
                     self.host.cmd(host, "iw dev %s-wlan0 connect %s" % (host, self.ssid))
+                    
+            #for host in self.hosts:
+            #    if (host == node1):
+            #        self.host.cmd(host, "iwconfig %s-wlan0 mode managed" % (host))
+            #        self.host.cmd(host, "iwconfig %s-wlan0 essid %s" % (host, self.ssid))
+            #    elif (host == node2):
+            #        self.host.cmd(host, "iwconfig %s-wlan0 mode managed" % (host))
+            #        self.host.cmd(host, "iwconfig %s-wlan0 essid %s" % (host, self.ssid))
                     
             options = dict( params )
             # Port is optional

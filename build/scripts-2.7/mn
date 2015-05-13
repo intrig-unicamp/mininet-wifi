@@ -211,13 +211,13 @@ class MininetRunner( object ):
                          default=False, help='activate wifi' )
         
         opts.add_option( '--channel', type='int', 
-                         default=1, help='wireless configuration' )
+                         default=1, help='wireless channel configuration' )
          
         opts.add_option( '--mode', type='string', 
-                         default="g", help='wireless configuration' )
+                         default="g", help='wireless mode configuration' )
         
         opts.add_option( '--ssid', type='string', 
-                         default="my_ssid", help='wireless configuration' )
+                         default="my_ssid", help='wireless ssid configuration' )
        
         opts.add_option( '--clean', '-c', action='store_true',
                          default=False, help='clean and exit' )
