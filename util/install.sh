@@ -165,7 +165,7 @@ function of {
     cd $BUILD_DIR/openflow
 
     # Patch controller to handle more than 16 switches
-    patch -p1 < $MININET_DIR/mininet-ifi/util/openflow-patches/controller.patch
+    patch -p1 < $MININET_DIR/mininet-wifi/util/openflow-patches/controller.patch
 
     # Resume the install:
     ./boot.sh
