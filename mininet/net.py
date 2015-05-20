@@ -313,7 +313,17 @@ class Mininet( object ):
         else:
             self.host.cmd(h,"ip link set dev wlan%s name %s-wlan0" % ((self.nextIface+len(self.phyInterfaces)), h))
         self.host.cmd(h,"ifconfig %s-wlan0 up" % h)
-        self.host.cmd(h,"ifconfig %s-wlan0 %s%s/%s" % (h, self.wIpBase, self.nextIP, self.wprefixLen)) 
+        self.host.cmd(h,"ifconfig %s-wlan0 %s%s/%s" % (h, self.wIpBase, self.nextIP, self.wprefixLen))
+        
+        if (self.mode=="a"):
+            self.host.cmd(h,"tc qdisc add dev %s-wlan0 root tbf rate 54mbit latency 10ms burst 1540" % (h)) 
+        elif(self.mode=="b"):
+            self.host.cmd(h,"tc qdisc add dev %s-wlan0 root tbf rate 11mbit latency 10ms burst 1540" % (h)) 
+        elif(self.mode=="g"):
+            self.host.cmd(h,"tc qdisc add dev %s-wlan0 root tbf rate 54mbit latency 10ms burst 1540" % (h)) 
+        elif(self.mode=="n"):
+            self.host.cmd(h,"tc qdisc add dev %s-wlan0 root tbf rate 600mbit latency 10ms burst 1540" % (h)) 
+            
         self.nextIP += 1        
         self.nextIface+=1
         self.nextWiphyIface +=1    
