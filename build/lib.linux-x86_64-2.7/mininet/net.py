@@ -112,7 +112,7 @@ from mininet.wifi import module, phyInterface
 from __builtin__ import True
 
 # Mininet version: should be consistent with README and LICENSE
-VERSION = "2.2.1"
+VERSION = "BetaVersion_0.1"
 
 class Mininet( object ):
     "Network emulation with hosts spawned in network namespaces."
