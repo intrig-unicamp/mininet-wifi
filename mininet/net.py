@@ -92,7 +92,6 @@ import select
 import signal
 import random
 import subprocess
-import fileinput
 
 from time import sleep
 from itertools import chain, groupby
@@ -108,7 +107,7 @@ from mininet.util import ( quietRun, fixLimits, numCores, ensureRoot,
                            macColonHex, ipStr, ipParse, netParse, ipAdd,
                            waitListening )
 from mininet.term import cleanUpScreens, makeTerms
-from mininet.wifi import module, phyInterface
+from mininet.wifi import startWiFi, module, phyInterface, accessPoint, station
 from __builtin__ import True
 
 # Mininet version: should be consistent with README and LICENSE
@@ -187,14 +186,12 @@ class Mininet( object ):
         self.mode = mode
         self.channel = channel
         self.wirelessRadios = wirelessRadios
-        self.apcommand = ""
-        self.apcommandControll = True
-        self.cmd=""
-        self.netManagerCommand = ""
-        self.storeMacAddress = []
-        self.printMac = False
-        self.phyInterfaces = []
         
+        self.apcommandControll = True
+        self.cmd=""        
+        self.storeMacAddress = []        
+        self.phyInterfaces = []
+        self.apcommand = ""
         #self.isWireless = Node.isWireless
         
         self.hosts = []
@@ -211,8 +208,7 @@ class Mininet( object ):
             self.phyInterfaces.append(subprocess.check_output("iwconfig 2>&1 | grep IEEE | awk '{print $1}'", shell=True))
             Node.isWireless=True
             module(self.wirelessRadios, Node.isWireless) #Initatilize WiFi Module
-            self.resultIface = (subprocess.check_output("find /sys/kernel/debug/ieee80211 -name hwsim | cut -d/ -f 6 | sort", shell=True))
-            self.splitResultIface = self.resultIface.split("\n")
+            self.splitResultIface = (subprocess.check_output("find /sys/kernel/debug/ieee80211 -name hwsim | cut -d/ -f 6 | sort", shell=True)).split("\n")
         
         self.isWireless = Node.isWireless
 
@@ -304,26 +300,12 @@ class Mininet( object ):
         self.wirelessdeviceControl.append(name)
         self.stationName.append(name)
         
-       #ifconfig = commands.getoutput("ifconfig " + 'wlan1' + "| grep HWaddr | awk '{ print $5 }'")
-        self.storeMacAddress = (phyInterface.getMacAddress(phyInterface(self.nextWiphyIface+len(self.phyInterfaces), self.nextIface, self.phyInterfaces)))
+        self.storeMacAddress = (phyInterface.getMacAddress(phyInterface(self.nextWiphyIface+len(self.phyInterfaces), 
+                                                                        self.nextIface, self.phyInterfaces)))
         
-        os.system("iw phy phy%s set netns %s" % (self.splitResultIface[self.nextWiphyIface][3:], h.pid))
-        if(self.phyInterfaces[0][:4]!="wlan"):
-            self.host.cmd(h,"ip link set dev wlan%s name %s-wlan0" % ((self.nextIface), h))
-        else:
-            self.host.cmd(h,"ip link set dev wlan%s name %s-wlan0" % ((self.nextIface+len(self.phyInterfaces)), h))
-        self.host.cmd(h,"ifconfig %s-wlan0 up" % h)
-        self.host.cmd(h,"ifconfig %s-wlan0 %s%s/%s" % (h, self.wIpBase, self.nextIP, self.wprefixLen))
-        
-        if (self.mode=="a"):
-            self.host.cmd(h,"tc qdisc add dev %s-wlan0 root tbf rate 54mbit latency 10ms burst 1540" % (h)) 
-        elif(self.mode=="b"):
-            self.host.cmd(h,"tc qdisc add dev %s-wlan0 root tbf rate 11mbit latency 10ms burst 1540" % (h)) 
-        elif(self.mode=="g"):
-            self.host.cmd(h,"tc qdisc add dev %s-wlan0 root tbf rate 54mbit latency 10ms burst 1540" % (h)) 
-        elif(self.mode=="n"):
-            self.host.cmd(h,"tc qdisc add dev %s-wlan0 root tbf rate 600mbit latency 10ms burst 1540" % (h)) 
-            
+        station.addStation(station(self.host,h,self.splitResultIface[self.nextWiphyIface][3:], h.pid, self.mode, 
+                                   self.nextIface, self.phyInterfaces, self.wIpBase, self.nextIP, self.wprefixLen))
+              
         self.nextIP += 1        
         self.nextIface+=1
         self.nextWiphyIface +=1    
@@ -373,69 +355,14 @@ class Mininet( object ):
         if(wpa_passphrase!="{}"):
             self.wpa_passphrase = wpa_passphrase
         
-        if(len(self.baseStationName)==1):
-            self.cmd = ("echo \"")
-            """General Configurations"""             
-            if(self.interfaceID!=None):
-                if(self.phyInterfaces[0][:4]!="wlan"):
-                    self.cmd = self.cmd + ("interface=wlan%s" % (self.nextIface)) # the interface used by the AP
-                else:
-                    self.cmd = self.cmd + ("interface=wlan%s" % (self.nextIface+len(self.phyInterfaces))) # the interface used by the AP
-            """Not using at the moment"""
-            #self.cmd = self.cmd + ("\ndriver=nl80211")
-            if(self.mode!=None):
-                self.cmd = self.cmd + ("\nhw_mode=%s" % self.mode) # g simply means 2.4GHz
-            if(self.channel!=None):
-                self.cmd = self.cmd + ("\nchannel=%s" % self.channel) # the channel to use 
-            if(self.ieee80211d!=None):
-                self.cmd = self.cmd + ("\nieee80211d=%s" % self.ieee80211d) # limit the frequencies used to those allowed in the country
-            if(self.country_code!=None):
-                self.cmd = self.cmd + ("\ncountry_code=%s" % self.country_code) # the country code
-            #self.cmd = self.cmd + ("\nieee80211n=1") # 802.11n support
-            if(self.wmm_enabled!=None):
-                self.cmd = self.cmd + ("\nwmm_enabled=%s" % self.wmm_enabled) # QoS support
-            """Not using at the moment"""
-            #self.cmd = self.cmd + ("\nmacaddr_acl=0\nauth_algs=1\nignore_broadcast_ssid=0")
-                
-            self.cmd = self.cmd + "\n"    
-            """AP1"""    
-            if(self.ssid!=None):
-                self.cmd = self.cmd + ("\nssid=%s" % self.ssid) # the name of the AP
-            if(self.auth_algs!=None):
-                self.cmd = self.cmd + ("\nauth_algs=%s" % self.auth_algs) # 1=wpa, 2=wep, 3=both
-            if(self.wpa!=None):
-                self.cmd = self.cmd + ("\nwpa=%s" % self.wpa) # WPA2 only
-            if(self.wpa_key_mgmt!=None):
-                self.cmd = self.cmd + ("\nwpa_key_mgmt=%s" % self.wpa_key_mgmt ) 
-            if(self.rsn_pairwise!=None):
-                self.cmd = self.cmd + ("\nrsn_pairwise=%s" % self.rsn_pairwise)  
-            if(self.wpa_passphrase!=None):
-                self.cmd = self.cmd + ("\nwpa_passphrase=%s" % self.wpa_passphrase)                  
+        self.apcommand = accessPoint.addAccessPoint(accessPoint(self.baseStationName, self.interfaceID, self.phyInterfaces, self.nextIface, 
+                                               self.mode, self.channel, self.ieee80211d, self.country_code, self.wmm_enabled,
+                                               self.ssid, self.auth_algs, self.wpa, self.wpa_key_mgmt, self.rsn_pairwise, self.wpa_passphrase, 
+                                               self.countAP))
+       
+        self.storeMacAddress = (phyInterface.getMacAddress(phyInterface(self.nextWiphyIface+len(self.phyInterfaces), 
+                                                                        self.nextIface, self.phyInterfaces)))
         
-        elif(len(self.baseStationName)>self.countAP and len(self.baseStationName) != 1):
-            """From AP2"""
-            self.cmd = self.apcommand
-            self.cmd = self.cmd + "\n"
-            self.cmd = self.cmd + ("\nbss=wlan%s" % self.nextIface) # the interface used by the AP
-            if(self.ssid!=None):
-                self.cmd = self.cmd + ("\nssid=teste3") # the name of the AP
-                #self.cmd = self.cmd + ("\nssid=%s" % self.ssid) # the name of the AP
-            if(self.auth_algs!=None):
-                self.cmd = self.cmd + ("\nauth_algs=%s" % self.auth_algs) # 1=wpa, 2=wep, 3=both
-            if(self.wpa!=None):
-                self.cmd = self.cmd + ("\nwpa=%s" % self.wpa) # WPA2 only
-            if(self.wpa_key_mgmt!=None):
-                self.cmd = self.cmd + ("\nwpa_key_mgmt=%s" % self.wpa_key_mgmt ) 
-            if(self.rsn_pairwise!=None):
-                self.cmd = self.cmd + ("\nrsn_pairwise=%s" % self.rsn_pairwise)  
-            if(self.wpa_passphrase!=None):
-                self.cmd = self.cmd + ("\nwpa_passphrase=%s" % self.wpa_passphrase)  
-            self.countAP = len(self.baseStationName)
-            self.apcommand = ""
-        
-        self.storeMacAddress = (phyInterface.getMacAddress(phyInterface(self.nextWiphyIface+len(self.phyInterfaces), self.nextIface, self.phyInterfaces)))
-        
-        self.apcommand = self.apcommand + self.cmd
         self.nextIface+=1
         self.nextWiphyIface +=1
         return bs
@@ -567,13 +494,12 @@ class Mininet( object ):
         
         if(Node.isWireless):
             
-            if(self.apcommandControll):            
+            if(self.apcommandControll):    
                 self.apcommand = self.apcommand + ("\" > ap.conf")
                 os.system(self.apcommand)
                 self.cmd = ("hostapd -B ap.conf")
                 os.system(self.cmd)
                 self.apcommandControll=False
-            #self.host.cmd(h,"iw wlan0 connect %s" % self.ssid)
             # Accept node objects or names
             # Accept node objects or names
             node1 = node1 if not isinstance( node1, basestring ) else self[ node1 ]
@@ -583,16 +509,8 @@ class Mininet( object ):
                 if (host == node1):
                     self.host.cmd(host, "iw dev %s-wlan0 connect %s" % (host, self.ssid))
                 elif (host == node2):
-                    self.host.cmd(host, "iw dev %s-wlan0 connect %s" % (host, self.ssid))
-                    
-            #for host in self.hosts:
-            #    if (host == node1):
-            #        self.host.cmd(host, "iwconfig %s-wlan0 mode managed" % (host))
-            #        self.host.cmd(host, "iwconfig %s-wlan0 essid %s" % (host, self.ssid))
-            #    elif (host == node2):
-            #        self.host.cmd(host, "iwconfig %s-wlan0 mode managed" % (host))
-            #        self.host.cmd(host, "iwconfig %s-wlan0 essid %s" % (host, self.ssid))
-                    
+                    self.host.cmd(host, "iw dev %s-wlan0 connect %s" % (host, self.ssid))                    
+                   
             options = dict( params )
             # Port is optional
             if port1 is not None:
@@ -775,37 +693,7 @@ class Mininet( object ):
     def start( self ):
         if(self.isWireless):
            
-            unmatch = ""
-            if(os.path.exists('/etc/NetworkManager/NetworkManager.conf')):
-                if(os.path.isfile('/etc/NetworkManager/NetworkManager.conf')):
-                    self.resultIface = open('/etc/NetworkManager/NetworkManager.conf')
-                    lines=self.resultIface
-            else:
-                os.makedirs("/etc/NetworkManager/")
-                os.system("touch /etc/NetworkManager/NetworkManager.conf")
-                self.resultIface = open('/etc/NetworkManager/NetworkManager.conf')
-                lines=self.resultIface
-                
-            c=True
-            for n in lines:
-                if("unmanaged-devices" in n):
-                    unmatch = n
-                    echo = n
-                    echo.replace(" ", "")
-                    echo = echo[:-1]+";"
-                    c = False
-            if(c):
-                echo = "unmanaged-devices="
-                    
-            for n in range(len(self.storeMacAddress)): 
-                if self.storeMacAddress[n] not in unmatch:
-                    echo = echo + "mac:"
-                    echo = echo + self.storeMacAddress[n] + ";"
-                    self.printMac = True
-            
-            if(self.printMac):
-                for line in fileinput.input('/etc/NetworkManager/NetworkManager.conf', inplace=1): 
-                    print line.replace(unmatch, echo)
+            startWiFi(self.storeMacAddress)
             
             "Start controller and switches."
             if not self.built:
@@ -918,9 +806,6 @@ class Mininet( object ):
                 info( host.name + ' ' )
                 host.terminate()
             info( '\n' )
-        
-        
-        
         info( '\n*** Done\n' )
 
     def run( self, test, *args, **kwargs ):
