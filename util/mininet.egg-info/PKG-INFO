@@ -1,0 +1,21 @@
+Metadata-Version: 1.1
+Name: mininet
+Version: 2.2.1
+Summary: Process-based OpenFlow emulator
+Home-page: UNKNOWN
+Author: Bob Lantz
+Author-email: rlantz@cs.stanford.edu
+License: BSD
+Description: 
+                Mininet is a network emulator which uses lightweight
+                virtualization to create virtual networks for rapid
+                prototyping of Software-Defined Network (SDN) designs
+                using OpenFlow. http://mininet.org
+                
+Keywords: networking emulator protocol Internet OpenFlow SDN
+Platform: UNKNOWN
+Classifier: License :: OSI Approved :: BSD License
+Classifier: Programming Language :: Python
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: Intended Audience :: Developers
+Classifier: Topic :: System :: Emulators

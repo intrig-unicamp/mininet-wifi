@@ -93,7 +93,8 @@ class phyInterface ( object ):
 
 class station ( object ):
     
-    def __init__(self, host, hostname, nextWiphyIface, hostPid, mode, nextIface, phyInterfaces, wIpBase, nextIP, wprefixLen):
+    def __init__(self, host, hostname, nextWiphyIface, hostPid, mode, 
+                 nextIface, phyInterfaces, wIpBase, nextIP, wprefixLen):
         
         self.nextWiphyIface = nextWiphyIface
         self.hostPid = hostPid 
@@ -129,7 +130,8 @@ class station ( object ):
             
 class accessPoint ( object ):
     
-    def __init__(self, baseStationName, interfaceID, phyInterfaces, nextIface, mode, channel, ieee80211d, country_code, wmm_enabled,
+    def __init__(self, baseStationName, interfaceID, phyInterfaces, nextIface, mode, channel, 
+                 ieee80211d, country_code, wmm_enabled,
                  ssid, auth_algs, wpa, wpa_key_mgmt, rsn_pairwise, wpa_passphrase, countAP):
         
         self.baseStationName = baseStationName

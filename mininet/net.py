@@ -111,7 +111,7 @@ from mininet.wifi import startWiFi, module, phyInterface, accessPoint, station
 from __builtin__ import True
 
 # Mininet version: should be consistent with README and LICENSE
-VERSION = "BetaVersion_0.1"
+VERSION = "BetaVersion_0.2"
 
 class Mininet( object ):
     "Network emulation with hosts spawned in network namespaces."
@@ -192,7 +192,6 @@ class Mininet( object ):
         self.storeMacAddress = []        
         self.phyInterfaces = []
         self.apcommand = ""
-        #self.isWireless = Node.isWireless
         
         self.hosts = []
         self.switches = []
@@ -208,7 +207,8 @@ class Mininet( object ):
             self.phyInterfaces.append(subprocess.check_output("iwconfig 2>&1 | grep IEEE | awk '{print $1}'", shell=True))
             Node.isWireless=True
             module(self.wirelessRadios, Node.isWireless) #Initatilize WiFi Module
-            self.splitResultIface = (subprocess.check_output("find /sys/kernel/debug/ieee80211 -name hwsim | cut -d/ -f 6 | sort", shell=True)).split("\n")
+            self.splitResultIface = (subprocess.check_output("find /sys/kernel/debug/ieee80211 -name hwsim | cut -d/ -f 6 | sort", 
+                                                             shell=True)).split("\n")
         
         self.isWireless = Node.isWireless
 
@@ -776,12 +776,8 @@ class Mininet( object ):
                     baseStation.stop()
                 baseStation.terminate()
             info( '\n' )
-            info( '*** Stopping %i hosts\n' % len( self.hosts ) )     
+            info( '*** Stopping %i stations\n' % len( self.hosts ) )     
             for host in self.hosts:
-            #    for n in range(len(self.wirelessdeviceControl)):
-            #        if(str(self.wirelessdeviceControl[n])==host.name):
-            #            self.host.cmd(host, "ifconfig %s-wlan0 down" % (str(self.wirelessdeviceControl[n])))
-            #            self.host.cmd(host, "ip link set dev %s-wlan0 name wlan%s" % (str(self.wirelessdeviceControl[n]), str(n+1)))
                 info( host.name + ' ' )
                 host.terminate()
             module(0, False) #Stopping WiFi Module
