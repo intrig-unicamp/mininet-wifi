@@ -13,6 +13,7 @@ nothing irreplaceable!
 from subprocess import ( Popen, PIPE, check_output as co,
                          CalledProcessError )
 import time
+import os
 
 from mininet.log import info
 from mininet.term import cleanUpScreens
@@ -79,7 +80,8 @@ class Cleanup( object ):
         info( "***  Removing WiFi module and Configurations\n" )
         sh( 'rmmod mac80211_hwsim' )
         sh( 'killall -9 hostapd' )
-        sh( 'rm ap.conf' )
+        if(os.path.exists('ap.conf')):
+            sh( 'rm ap.conf' )
 
         info( "***  Removing OVS datapaths\n" )
         dps = sh("ovs-vsctl --timeout=1 list-br").strip().splitlines()
@@ -117,9 +119,6 @@ class Cleanup( object ):
         # Call any additional cleanup code if necessary
         for callback in cls.callbacks:
             callback()
-
-	#info( "*** Removing Wireless Module\n" )
-       #	sh( 'rmmod mac80211_hwsim' )
 
         info( "*** Cleanup complete.\n" )
 

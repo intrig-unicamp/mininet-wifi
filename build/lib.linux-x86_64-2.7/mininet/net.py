@@ -122,7 +122,7 @@ class Mininet( object ):
                   inNamespace=False,
                   autoSetMacs=False, autoStaticArp=False, autoPinCpus=False,
                   listenPort=None, waitConnected=False, 
-                  interfaceID=3, ssid="my_ssid", mode="g", channel="6", wirelessRadios=0, wIpBase='192.168.0.', wmm_enabled="1",
+                  interfaceID=3, ssid="my-ssid", mode="g", channel="6", wirelessRadios=0, wIpBase='192.168.0.', wmm_enabled="1",
                   country_code=None, ieee80211d=None, rsn_pairwise=None, wpa_passphrase=None, wpa=None, auth_algs=None, wpa_key_mgmt=None ):
         """Create Mininet object.
            topo: Topo (topology) object or None
@@ -206,7 +206,7 @@ class Mininet( object ):
         if (Node.isWireless==True or self.wirelessRadios!=0):
             self.phyInterfaces.append(subprocess.check_output("iwconfig 2>&1 | grep IEEE | awk '{print $1}'", shell=True))
             Node.isWireless=True
-            module(self.wirelessRadios, Node.isWireless) #Initatilize WiFi Module
+            module._start_module(self.wirelessRadios) #Initatilize WiFi Module
             self.splitResultIface = (subprocess.check_output("find /sys/kernel/debug/ieee80211 -name hwsim | cut -d/ -f 6 | sort", 
                                                              shell=True)).split("\n")
         
@@ -494,14 +494,10 @@ class Mininet( object ):
         
         if(Node.isWireless):
             
-            if(self.apcommandControll):    
-                self.apcommand = self.apcommand + ("\" > ap.conf")
-                os.system(self.apcommand)
-                self.cmd = ("hostapd -B ap.conf")
-                os.system(self.cmd)
+            if(self.apcommandControll):     
+                accessPoint.APfile(self.apcommand)       
                 self.apcommandControll=False
-            # Accept node objects or names
-            # Accept node objects or names
+                
             node1 = node1 if not isinstance( node1, basestring ) else self[ node1 ]
             node2 = node2 if not isinstance( node2, basestring ) else self[ node2 ]
             
@@ -611,18 +607,14 @@ class Mininet( object ):
                 info( baseStationName + ' ' )
                                
                 info( '\n*** Associating Stations:\n' )                
-                if(self.apcommandControll):            
-                    self.apcommand = self.apcommand + ("\" > ap.conf")
-                    os.system(self.apcommand)
-                    self.cmd = ("hostapd -B ap.conf")
-                    os.system(self.cmd)
+                if(self.apcommandControll):     
+                    accessPoint.APfile(self.apcommand)       
                     self.apcommandControll=False
                     
                 for srcName, dstName, params in topo.links(
                         sort=True, withInfo=True ):
                     self.addLink( **params )
-                    info( '(%s, %s) ' % ( srcName, dstName ) )  
-                #os.system("ovs-vsctl add-port %s %s" % ("bs1", "wlan3"))                  
+                    info( '(%s, %s) ' % ( srcName, dstName ) )                 
                 info( '\n' )
         else:
             for hostName in topo.hosts():
@@ -780,7 +772,7 @@ class Mininet( object ):
             for host in self.hosts:
                 info( host.name + ' ' )
                 host.terminate()
-            module(0, False) #Stopping WiFi Module
+            module._stop_module() #Stopping WiFi Module
             info( '\n' )
         else:
             info( '*** Stopping %i switches\n' % len( self.switches ) )

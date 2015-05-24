@@ -1,3 +1,18 @@
+"""
+wifi setups for Mininet.
+
+startWiFi: 
+
+module:
+
+phyInterface:
+
+station:
+
+accessPoint:
+
+"""
+
 import os
 
 from mininet.log import info
@@ -51,19 +66,12 @@ class startWiFi ( object ):
 
 class module( object ):
     
-    def __init__( self, wirelessRadios=4, enabled=None ):
-        self.wirelessRadios=wirelessRadios
-        self.enabled=enabled
-        
-        if (self.enabled==True):
-            self._start_module(self.wirelessRadios)
-        else:
-            self._stop_module()
-        
+    @classmethod    
     def _start_module(self, wirelessRadios):
         info( "*** Enabling Wireless Module\n" )
         os.system( 'modprobe mac80211_hwsim radios=%s' % wirelessRadios )
         
+    @classmethod
     def _stop_module(self):
         #info( "*** Removing Wireless Module\n" )
         if(os.path.exists('ap.conf')):
@@ -89,9 +97,6 @@ class phyInterface ( object ):
         info = fcntl.ioctl(s.fileno(), 0x8927,  struct.pack('256s', 'wlan%s'[:15]) % str(self.nextIface+1))
         self.storeMacAddress.append(''.join(['%02x:' % ord(char) for char in info[18:24]])[:-1])
         return self.storeMacAddress
-        #s = 'wlan%s' % self.nextIface
-        #self.storeMacAddress.append(s)
-
 
 
 class station ( object ):
@@ -134,8 +139,8 @@ class station ( object ):
 class accessPoint ( object ):
     
     def __init__(self, baseStationName, interfaceID, phyInterfaces, nextIface, mode, channel, 
-                 ieee80211d, country_code, wmm_enabled,
-                 ssid, auth_algs, wpa, wpa_key_mgmt, rsn_pairwise, wpa_passphrase, countAP):
+                 ieee80211d, country_code, wmm_enabled, ssid, auth_algs, wpa, wpa_key_mgmt, 
+                 rsn_pairwise, wpa_passphrase, countAP):
         
         self.baseStationName = baseStationName
         self.interfaceID = interfaceID
@@ -219,5 +224,11 @@ class accessPoint ( object ):
         self.apcommand = self.apcommand + self.cmd
         return self.apcommand
         
-    
+    @classmethod   
+    def APfile(self, apcommand):
+        self.apcommand = apcommand + ("\" > ap.conf")
+        os.system(self.apcommand)
+        self.cmd = ("hostapd -B ap.conf")
+        os.system(self.cmd)
+        
         

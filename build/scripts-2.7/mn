@@ -217,7 +217,7 @@ class MininetRunner( object ):
                          default="g", help='wireless mode configuration' )
         
         opts.add_option( '--ssid', type='string', 
-                         default="my_ssid", help='wireless ssid configuration' )
+                         default="my-ssid", help='wireless ssid configuration' )
        
         opts.add_option( '--clean', '-c', action='store_true',
                          default=False, help='clean and exit' )
