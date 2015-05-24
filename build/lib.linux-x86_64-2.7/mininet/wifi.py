@@ -66,6 +66,9 @@ class module( object ):
         
     def _stop_module(self):
         #info( "*** Removing Wireless Module\n" )
+        if(os.path.exists('ap.conf')):
+            os.system( 'rm ap.conf' )
+            
         os.system( 'rmmod mac80211_hwsim' )
         os.system( 'killall -9 hostapd' )
 
