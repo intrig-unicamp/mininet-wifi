@@ -19,6 +19,7 @@ mininet.egg-info/SOURCES.txt
 mininet.egg-info/dependency_links.txt
 mininet.egg-info/requires.txt
 mininet.egg-info/top_level.txt
+mininet/examples/2AccessPoints.py
 mininet/examples/__init__.py
 mininet/examples/baresshd.py
 mininet/examples/bind.py

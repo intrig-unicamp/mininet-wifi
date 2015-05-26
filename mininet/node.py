@@ -127,6 +127,7 @@ class Node( object ):
     nAP=0
     phyInterfaces = []
     nextAP=0
+    ssid = {}
     
     @classmethod
     def fdToNode( cls, fd ):

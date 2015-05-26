@@ -375,6 +375,8 @@ class Mininet( object ):
         self.newapif.pop()
         self.newapif = sorted(self.newapif)
         
+        Node.ssid[name] = (self.ssid)
+        
         if(len(self.baseStationName)==1):
             self.cmd = ("echo \"")
             """General Configurations"""             
@@ -418,7 +420,7 @@ class Mininet( object ):
             self.cmd = self.cmd + "\n"
             self.cmd = self.cmd + ("\nbss=wlan%s" % str(self.nextIface+1)) # the interface used by the AP
             if(self.ssid!=None):
-                self.cmd = self.cmd + ("\nssid=teste3") # the name of the AP
+                self.cmd = self.cmd + ("\nssid=%s" % self.ssid ) # the name of the AP
                 #self.cmd = self.cmd + ("\nssid=%s" % self.ssid) # the name of the AP
             if(self.auth_algs!=None):
                 self.cmd = self.cmd + ("\nauth_algs=%s" % self.auth_algs) # 1=wpa, 2=wep, 3=both
@@ -605,9 +607,9 @@ class Mininet( object ):
             
             for host in self.hosts:
                 if (host == node1):
-                    self.host.cmd(host, "iw dev %s-wlan0 connect %s" % (host, self.ssid))
+                    self.host.cmd(host, "iw dev %s-wlan0 connect %s" % (host, Node.ssid[ str(node2) ]))
                 elif (host == node2):
-                    self.host.cmd(host, "iw dev %s-wlan0 connect %s" % (host, self.ssid))
+                    self.host.cmd(host, "iw dev %s-wlan0 connect %s" % (host, Node.ssid[ str(node1) ]))
             
             station.tcmode(self.host,host, self.mode)
                                    
