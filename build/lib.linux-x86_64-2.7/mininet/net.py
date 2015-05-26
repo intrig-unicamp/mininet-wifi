@@ -306,7 +306,7 @@ class Mininet( object ):
         
         self.splitResultIface = phyInterface.getPhyInterfaces()
         os.system('iw phy phy%s set netns %s' % ( self.splitResultIface[Node.nextWiphyIface][3:], h.pid ))
-        if(self.phyInterfaces[0][:4]!="wlan"):
+        if(len(self.phyInterfaces)==0):
             self.host.cmd(h,"ip link set dev wlan%s name %s-wlan0" % ((self.nextIface), h))
         else:
             self.host.cmd(h,"ip link set dev wlan%s name %s-wlan0" % ((self.nextIface+1), h))
@@ -314,6 +314,7 @@ class Mininet( object ):
         Node.storeMacAddress = self.storeMacAddress
         Node.nextWiphyIface = Node.nextWiphyIface+1
         
+        Node.isFirst = len(self.phyInterfaces)
         self.nextIP += 1        
         self.nextIface+=1
         return h
