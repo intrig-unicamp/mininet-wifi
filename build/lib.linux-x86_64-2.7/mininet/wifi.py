@@ -85,10 +85,9 @@ class module( object ):
 
 class phyInterface ( object ):
     
-    def __init__(self, wlanInterface, nextIface, phyInterfaces):
+    def __init__(self, wlanInterface, phyInterfaces):
         
         self.wlanInterface = wlanInterface
-        self.nextIface = nextIface 
         self.phyInterfaces = phyInterfaces 
         self.storeMacAddress=[]
         self.getMacAddress()
@@ -96,7 +95,7 @@ class phyInterface ( object ):
         
     def getMacAddress(self):
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        info = fcntl.ioctl(s.fileno(), 0x8927,  struct.pack('256s', 'wlan%s'[:15]) % str(self.nextIface+1))
+        info = fcntl.ioctl(s.fileno(), 0x8927,  struct.pack('256s', 'wlan%s'[:15]) % str(self.wlanInterface))
         self.storeMacAddress.append(''.join(['%02x:' % ord(char) for char in info[18:24]])[:-1])
         return self.storeMacAddress
     

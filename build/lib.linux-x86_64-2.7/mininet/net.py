@@ -302,8 +302,7 @@ class Mininet( object ):
         self.wirelessdeviceControl.append(name)
         self.stationName.append(name)
       
-        self.storeMacAddress=self.storeMacAddress+(phyInterface.getMacAddress(phyInterface(self.nextWiphyIface+len(self.phyInterfaces), 
-                                                                        self.nextIface, self.phyInterfaces)))
+        self.storeMacAddress=self.storeMacAddress+(phyInterface.getMacAddress(phyInterface(Node.nextWiphyIface+len(self.phyInterfaces), self.phyInterfaces)))
         
         self.splitResultIface = phyInterface.getPhyInterfaces()
         os.system('iw phy phy%s set netns %s' % ( self.splitResultIface[Node.nextWiphyIface][3:], h.pid ))
@@ -369,7 +368,7 @@ class Mininet( object ):
             """General Configurations"""             
             if(self.interfaceID!=None):
                 if(self.phyInterfaces[0][:4]!="wlan"):
-                    self.cmd = self.cmd + ("interface=wlan%s" % (self.nextIface)) # the interface used by the AP
+                    self.cmd = self.cmd + ("interface=wlan%s" % len(self.phyInterfaces)) # the interface used by the AP
                 else:
                     self.cmd = self.cmd + ("interface=wlan%s" % (self.nextIface+len(self.phyInterfaces))) # the interface used by the AP
                     
@@ -428,8 +427,7 @@ class Mininet( object ):
        
         Node.apIface = self.nextIface
         
-        self.storeMacAddress=self.storeMacAddress+(phyInterface.getMacAddress(phyInterface(self.nextWiphyIface+len(self.phyInterfaces), 
-                                                                        self.nextIface, self.phyInterfaces)))
+        self.storeMacAddress=self.storeMacAddress+(phyInterface.getMacAddress(phyInterface(Node.nextWiphyIface+len(self.phyInterfaces), self.phyInterfaces)))
         
         Node.storeMacAddress = self.storeMacAddress
         Node.nextWiphyIface = Node.nextWiphyIface+1
