@@ -207,7 +207,7 @@ class Mininet( object ):
         Mininet.init()  # Initialize Mininet if necessary
                 
         if (Node.isWireless==True or self.wirelessRadios!=0):
-            self.phyInterfaces.append(subprocess.check_output("iwconfig 2>&1 | grep IEEE | awk '{print $1}'", shell=True))
+            self.phyInterfaces.append(subprocess.check_output("iwconfig 2>&1 | grep IEEE | awk '{print $1}'", shell=True)).split("\n")
             Node.isWireless=True
             module._start_module(self.wirelessRadios) #Initatilize WiFi Module
                     
@@ -300,7 +300,6 @@ class Mininet( object ):
         self.wirelessdeviceControl.append(name)
         self.stationName.append(name)
       
-        
         self.storeMacAddress=self.storeMacAddress+(phyInterface.getMacAddress(phyInterface(self.nextWiphyIface+len(self.phyInterfaces), 
                                                                         self.nextIface, self.phyInterfaces)))
         
