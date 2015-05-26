@@ -204,7 +204,7 @@ class accessPoint ( object ):
             self.cmd = self.cmd + "\n"
             self.cmd = self.cmd + ("\nbss=wlan%s" % self.nextIface) # the interface used by the AP
             if(self.ssid!=None):
-                self.cmd = self.cmd + ("\nssid=teste3") # the name of the AP
+                self.cmd = self.cmd + ("\nssid=%s" % self.ssid ) # the name of the AP
                 #self.cmd = self.cmd + ("\nssid=%s" % self.ssid) # the name of the AP
             if(self.auth_algs!=None):
                 self.cmd = self.cmd + ("\nauth_algs=%s" % self.auth_algs) # 1=wpa, 2=wep, 3=both

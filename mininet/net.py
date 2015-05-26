@@ -112,7 +112,7 @@ from mininet.wifi import startWiFi, module, phyInterface, accessPoint, station
 from __builtin__ import True
 
 # Mininet version: should be consistent with README and LICENSE
-VERSION = "BetaVersion_0.3"
+VERSION = "BetaVersion_0.4"
 
 class Mininet( object ):
     "Network emulation with hosts spawned in network namespaces."
@@ -418,7 +418,7 @@ class Mininet( object ):
             """From AP2"""
             self.cmd = self.apcommand
             self.cmd = self.cmd + "\n"
-            self.cmd = self.cmd + ("\nbss=wlan%s" % str(self.nextIface+1)) # the interface used by the AP
+            self.cmd = self.cmd + ("\nbss=%s" % self.newapif[Node.nextAP]) # the interface used by the AP
             if(self.ssid!=None):
                 self.cmd = self.cmd + ("\nssid=%s" % self.ssid ) # the name of the AP
                 #self.cmd = self.cmd + ("\nssid=%s" % self.ssid) # the name of the AP
@@ -594,7 +594,6 @@ class Mininet( object ):
                     options.setdefault( 'port1', port1 )
                     options.setdefault( 'mode', self.mode )
                     options.setdefault( 'port2', Node.nextWiphyIface )
-                    
             
             # Set default MAC - this should probably be in Link
             options.setdefault( 'addr1', self.randMac() )
