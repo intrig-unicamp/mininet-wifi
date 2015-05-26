@@ -20,12 +20,17 @@ hostapd - apt-get install hostapd
 
 ###Get Started
 sudo mn --wifi --ssid=new_ssid  
-It will start a simple topology with 2 stations and 1 access point. The stations also includes a physical ethernet interface.
+It will start a simple topology with 2 stations and 1 access point. 
 
 ###A Brief Demonstration
 Video 01: https://www.youtube.com/watch?v=_PtSmhf7Z8s  
 Video 02: https://www.youtube.com/watch?v=H46EPuJDJhc  
-You also may use the example file in /examples/simplewifitopology.py
+  
+You also can use the examples file:   
+
+/examples/simplewifitopology.py  
+/examples/wifiStationsAndHosts.py  
+
 
 ###Team
 Ramon dos Reis Fontes (ramonrf@dca.fee.unicamp.br)  
