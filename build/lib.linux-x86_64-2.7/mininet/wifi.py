@@ -63,7 +63,7 @@ class startWiFi ( object ):
             
         if(self.printMac):
             for line in fileinput.input('/etc/NetworkManager/NetworkManager.conf', inplace=1): 
-                line.replace(unmatch, echo)
+                print line.replace(unmatch, echo)
     
 
 class module( object ):
@@ -103,6 +103,7 @@ class phyInterface ( object ):
     def getPhyInterfaces(self):
         phy = (subprocess.check_output("find /sys/kernel/debug/ieee80211 -name hwsim | cut -d/ -f 6 | sort", 
                                                              shell=True)).split("\n")
+        phy.pop()
         return phy
     
     @classmethod
