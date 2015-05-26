@@ -207,7 +207,10 @@ class Mininet( object ):
         Mininet.init()  # Initialize Mininet if necessary
                 
         if (Node.isWireless==True or self.wirelessRadios!=0):
-            self.phyInterfaces.append(subprocess.check_output("iwconfig 2>&1 | grep IEEE | awk '{print $1}'", shell=True)).split("\n")
+            self.phyInterfaces = (subprocess.check_output("iwconfig 2>&1 | grep IEEE | awk '{print $1}'",shell=True))
+            self.phyInterfaces = self.phyInterfaces.split("\n")
+            self.phyInterfaces.pop()
+            print len(self.phyInterfaces)
             Node.isWireless=True
             module._start_module(self.wirelessRadios) #Initatilize WiFi Module
                     
