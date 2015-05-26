@@ -210,6 +210,7 @@ class Mininet( object ):
             self.phyInterfaces = (subprocess.check_output("iwconfig 2>&1 | grep IEEE | awk '{print $1}'",shell=True))
             self.phyInterfaces = self.phyInterfaces.split("\n")
             self.phyInterfaces.pop()
+            Node.phyInterfaces = self.phyInterfaces
             Node.isWireless=True
             module._start_module(self.wirelessRadios) #Initatilize WiFi Module
                     
@@ -306,10 +307,9 @@ class Mininet( object ):
         
         self.splitResultIface = phyInterface.getPhyInterfaces()
         os.system('iw phy phy%s set netns %s' % ( self.splitResultIface[Node.nextWiphyIface][3:], h.pid ))
-        if(len(self.phyInterfaces)==0):
-            self.host.cmd(h,"ip link set dev wlan%s name %s-wlan0" % ((self.nextIface), h))
-        else:
-            self.host.cmd(h,"ip link set dev wlan%s name %s-wlan0" % ((self.nextIface+1), h))
+        
+        wif = self.host.cmd(h,"iwconfig 2>&1 | grep IEEE | awk '{print $1}'")
+        self.host.cmd(h,"ip link set dev %s name %s-wlan0" % (wif.strip(), h))
         
         Node.storeMacAddress = self.storeMacAddress
         Node.nextWiphyIface = Node.nextWiphyIface+1
@@ -363,18 +363,23 @@ class Mininet( object ):
         if(wpa_passphrase!="{}"):
             self.wpa_passphrase = wpa_passphrase
         
-        #self.apcommand = accessPoint.addAccessPoint(accessPoint(self.baseStationName, self.interfaceID, self.phyInterfaces, self.nextIface, 
-        #                                       self.mode, self.channel, self.ieee80211d, self.country_code, self.wmm_enabled,
-        #                                       self.ssid, self.auth_algs, self.wpa, self.wpa_key_mgmt, self.rsn_pairwise, self.wpa_passphrase, 
-        #                                       self.countAP))
+        
+        self.newapif=[]
+        self.apif = subprocess.check_output("iwconfig 2>&1 | grep IEEE | awk '{print $1}'",shell=True)
+        self.apif = self.apif.split("\n")
+        
+        for apif in self.apif:
+            if apif not in self.phyInterfaces:
+                self.newapif.append(apif)
+        
+        self.newapif.pop()
+        self.newapif = sorted(self.newapif)
+        
         if(len(self.baseStationName)==1):
             self.cmd = ("echo \"")
             """General Configurations"""             
             if(self.interfaceID!=None):
-                #if(self.phyInterfaces[0][:4]!="wlan"):
-                #    self.cmd = self.cmd + ("interface=wlan%s" % len(self.phyInterfaces)) # the interface used by the AP
-                #else:
-                self.cmd = self.cmd + ("interface=wlan%s" % (self.nextIface+len(self.phyInterfaces))) # the interface used by the AP
+                self.cmd = self.cmd + ("interface=%s" % self.newapif[Node.nextAP]) # the interface used by the AP
                     
             """Not using at the moment"""
             #self.cmd = self.cmd + ("\ndriver=nl80211")
@@ -436,13 +441,9 @@ class Mininet( object ):
         Node.storeMacAddress = self.storeMacAddress
         Node.nextWiphyIface = Node.nextWiphyIface+1
         
-        if(len(self.phyInterfaces)==0):
-            Node.wifaceAP.append(Node.nextWiphyIface-1)
-        else:
-            Node.wifaceAP.append(Node.nextWiphyIface)
-        
         self.nextIface+=1
         self.nextWiphyIface +=1
+        Node.nextAP+=1
         
         return bs
      
@@ -852,9 +853,6 @@ class Mininet( object ):
         if(self.isWireless):
             info( '*** Stopping %i baseStations\n' % len( self.baseStations ) )            
             stopped = {}            
-            for n in range(len(self.wirelessdeviceControl)):
-                if (str(self.wirelessdeviceControl[n]) in self.baseStationName ):
-                    os.system("ifconfig wlan%s down" % str(n+1)) 
             for swclass, baseStations in groupby(
                     sorted( self.baseStations, key=type ), type ):
                 baseStations = tuple( baseStations )

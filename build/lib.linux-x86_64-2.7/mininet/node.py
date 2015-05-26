@@ -57,11 +57,12 @@ import pty
 import re
 import signal
 import select
+import subprocess
 
 from subprocess import Popen, PIPE
 from time import sleep
 
-from mininet.wifi import phyInterface, startWiFi
+from mininet.wifi import startWiFi
 from mininet.log import info, error, warn, debug
 from mininet.util import ( quietRun, errRun, errFail, moveIntf, isShellBuiltin,
                            numCores, retry, mountCgroups )
@@ -123,8 +124,9 @@ class Node( object ):
     storeMacAddress=[]
     apIface = ""
     isCode = True
-    wifaceAP = []
     nAP=0
+    phyInterfaces = []
+    nextAP=0
     
     @classmethod
     def fdToNode( cls, fd ):
@@ -1225,10 +1227,20 @@ class OVSSwitch( Switch ):
             for intf in self.intfList():
                 self.TCReapply( intf )       
                
-        #os.system("iwconfig 2>&1 | grep IEEE | awk '{print $1}'")
+        self.newapif=[]
+        self.apif = subprocess.check_output("iwconfig 2>&1 | grep IEEE | awk '{print $1}'",shell=True)
+        self.apif = self.apif.split("\n")
+        
+        for apif in self.apif:
+            if apif not in Node.phyInterfaces:
+                self.newapif.append(apif)
+        
+        self.newapif.pop()
+        self.newapif = sorted(self.newapif)
+        
         if(Node.isCode==True):
             if(self.name[:2]=="ap"):
-                os.system("ovs-vsctl add-port %s wlan%s" % (self.name, (self.wifaceAP[self.nAP])))
+                os.system("ovs-vsctl add-port %s %s" % (self.name, (self.newapif[self.nAP])))
                 Node.nAP+=1
                 
         
