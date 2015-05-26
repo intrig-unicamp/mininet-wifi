@@ -125,7 +125,6 @@ class Node( object ):
     isCode = True
     wifaceAP = []
     nAP=0
-    isFirst=0
     
     @classmethod
     def fdToNode( cls, fd ):
@@ -1228,12 +1227,10 @@ class OVSSwitch( Switch ):
                
         #os.system("iwconfig 2>&1 | grep IEEE | awk '{print $1}'")
         if(Node.isCode==True):
-            if(self.name[:2]=="ap" and Node.isFirst!=0):
+            if(self.name[:2]=="ap"):
                 os.system("ovs-vsctl add-port %s wlan%s" % (self.name, (self.wifaceAP[self.nAP])))
                 Node.nAP+=1
-            else:
-                os.system("ovs-vsctl add-port %s wlan%s" % (self.name, (self.wifaceAP[self.nAP-1])))
-                Node.nAP+=1
+                
         
     # This should be ~ int( quietRun( 'getconf ARG_MAX' ) ),
     # but the real limit seems to be much lower

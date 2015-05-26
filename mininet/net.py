@@ -436,7 +436,10 @@ class Mininet( object ):
         Node.storeMacAddress = self.storeMacAddress
         Node.nextWiphyIface = Node.nextWiphyIface+1
         
-        Node.wifaceAP.append(Node.nextWiphyIface)
+        if(len(self.phyInterfaces)==0):
+            Node.wifaceAP.append(Node.nextWiphyIface-1)
+        else:
+            Node.wifaceAP.append(Node.nextWiphyIface)
         
         self.nextIface+=1
         self.nextWiphyIface +=1
