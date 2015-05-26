@@ -56,3 +56,4 @@ mininet/examples/sshd.py
 mininet/examples/tree1024.py
 mininet/examples/treeping64.py
 mininet/examples/vlanhost.py
+mininet/examples/wifiStationsAndHosts.py

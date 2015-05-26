@@ -27,7 +27,7 @@ from mininet.net import Mininet, MininetWithControlNet, VERSION
 from mininet.node import ( Node, Host, CPULimitedHost, Controller, OVSController,
                            Ryu, NOX, RemoteController, findController,
                            DefaultController, NullController,
-                           UserSwitch, OVSSwitch, OVBaseStation, OVSBridge,
+                           UserSwitch, OVSSwitch, OVSBridge,
                            IVSSwitch )
 from mininet.nodelib import LinuxBridge
 from mininet.link import Link, TCLink, OVSLink
@@ -62,7 +62,6 @@ SWITCHDEF = 'default'
 SWITCHES = { 'user': UserSwitch,
              'ovs': OVSSwitch,
              'ovsbr' : OVSBridge,
-             'ovbs' : OVBaseStation,
              # Keep ovsk for compatibility with 2.0
              'ovsk': OVSSwitch,
              'ivs': IVSSwitch,
@@ -313,7 +312,7 @@ class MininetRunner( object ):
    
         if self.options.wifi and self.options.radios==0:
             Node.isWireless=True
-            self.options.radios = 4
+            self.options.radios = 3
             
             
             

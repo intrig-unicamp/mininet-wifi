@@ -15,11 +15,13 @@ accessPoint:
 
 import os
 
-from mininet.log import info
 import socket
 import struct
 import fcntl
 import fileinput
+import subprocess
+
+from mininet.log import  info
 
 
 class startWiFi ( object ):
@@ -52,16 +54,16 @@ class startWiFi ( object ):
                 isNew = False
         if(isNew):
             echo = "unmanaged-devices="
-                
+        
         for n in range(len(self.storeMacAddress)): 
             if self.storeMacAddress[n] not in unmatch:
                 echo = echo + "mac:"
                 echo = echo + self.storeMacAddress[n] + ";"
                 self.printMac = True
-        
+            
         if(self.printMac):
             for line in fileinput.input('/etc/NetworkManager/NetworkManager.conf', inplace=1): 
-                print line.replace(unmatch, echo)
+                line.replace(unmatch, echo)
     
 
 class module( object ):
@@ -70,7 +72,7 @@ class module( object ):
     def _start_module(self, wirelessRadios):
         info( "*** Enabling Wireless Module\n" )
         os.system( 'modprobe mac80211_hwsim radios=%s' % wirelessRadios )
-        
+                
     @classmethod
     def _stop_module(self):
         #info( "*** Removing Wireless Module\n" )
@@ -79,7 +81,6 @@ class module( object ):
             
         os.system( 'rmmod mac80211_hwsim' )
         os.system( 'killall -9 hostapd' )
-
 
 
 class phyInterface ( object ):
@@ -91,40 +92,36 @@ class phyInterface ( object ):
         self.phyInterfaces = phyInterfaces 
         self.storeMacAddress=[]
         self.getMacAddress()
+        self.nextWiphyIface = 0
         
     def getMacAddress(self):
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         info = fcntl.ioctl(s.fileno(), 0x8927,  struct.pack('256s', 'wlan%s'[:15]) % str(self.nextIface+1))
         self.storeMacAddress.append(''.join(['%02x:' % ord(char) for char in info[18:24]])[:-1])
         return self.storeMacAddress
-
-
+    
+    @classmethod
+    def getPhyInterfaces(self):
+        phy = (subprocess.check_output("find /sys/kernel/debug/ieee80211 -name hwsim | cut -d/ -f 6 | sort", 
+                                                             shell=True)).split("\n")
+        return phy
+    
+    @classmethod
+    def phyInt(self):
+        nPhy = (subprocess.check_output("iwconfig 2>&1 | grep IEEE | awk '{print $1}'",shell=True)).split("\n")
+        return nPhy
+    
+ 
 class station ( object ):
     
-    def __init__(self, host, hostname, nextWiphyIface, hostPid, mode, 
-                 nextIface, phyInterfaces, wIpBase, nextIP, wprefixLen):
+    def __init__(self, host):
+        self.host = host
         
-        self.nextWiphyIface = nextWiphyIface
-        self.hostPid = hostPid 
-        self.hostname = hostname
+    @classmethod    
+    def tcmode(self, host, mode, hostname):
         self.host = host
         self.mode = mode
-        self.nextIface = nextIface
-        self.phyInterfaces = phyInterfaces
-        self.wIpBase = wIpBase
-        self.nextIP = nextIP
-        self.wprefixLen = wprefixLen        
-                  
-    def addStation(self):
-        os.system("iw phy phy%s set netns %s" % (self.nextWiphyIface, self.hostPid))
-                
-        if(self.phyInterfaces[0][:4]!="wlan"):
-            self.host.cmd(self.hostname,"ip link set dev wlan%s name %s-wlan0" % ((self.nextIface), self.hostname))
-        else:
-            self.host.cmd(self.hostname,"ip link set dev wlan%s name %s-wlan0" % ((self.nextIface+len(self.phyInterfaces)), self.hostname))
-        self.host.cmd(self.hostname,"ifconfig %s-wlan0 up" % self.hostname)
-        self.host.cmd(self.hostname,"ifconfig %s-wlan0 %s%s/%s" % (self.hostname, self.wIpBase, self.nextIP, self.wprefixLen))
-        
+        self.hostname = hostname
         if (self.mode=="a"):
             self.host.cmd(self.hostname,"tc qdisc add dev %s-wlan0 root tbf rate 54mbit latency 10ms burst 1540" % (self.hostname)) 
         elif(self.mode=="b"):
@@ -161,7 +158,7 @@ class accessPoint ( object ):
         self.apcommand = ""
         
     def addAccessPoint(self):
-        if(len(self.baseStationName)==1):
+        if(len(self.baseStationName)==1):            
             self.cmd = ("echo \"")
             """General Configurations"""             
             if(self.interfaceID!=None):
@@ -169,6 +166,7 @@ class accessPoint ( object ):
                     self.cmd = self.cmd + ("interface=wlan%s" % (self.nextIface)) # the interface used by the AP
                 else:
                     self.cmd = self.cmd + ("interface=wlan%s" % (self.nextIface+len(self.phyInterfaces))) # the interface used by the AP
+                    
             """Not using at the moment"""
             #self.cmd = self.cmd + ("\ndriver=nl80211")
             if(self.mode!=None):
@@ -223,6 +221,11 @@ class accessPoint ( object ):
         
         self.apcommand = self.apcommand + self.cmd
         return self.apcommand
+    
+    @classmethod
+    def apBridge(self, ap, iface):
+        os.system("ovs-vsctl add-port %s wlan%s" % (ap, iface))
+        #subprocess.check_output("iwconfig 2>&1 | grep IEEE | awk '{print $1}'",shell=True)
         
     @classmethod   
     def APfile(self, apcommand):
@@ -230,5 +233,4 @@ class accessPoint ( object ):
         os.system(self.apcommand)
         self.cmd = ("hostapd -B ap.conf")
         os.system(self.cmd)
-        
         

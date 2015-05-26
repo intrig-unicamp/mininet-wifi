@@ -178,39 +178,22 @@ def makeIntfPair( intf1, intf2, addr1=None, addr2=None, node1=None, node2=None,
     # Create new pair
     #pdb.set_trace()
     netns = 1 if not node2 else node2.pid
-    a=False
     
-    if(a):
-        if addr1 is None and addr2 is None:
-            cmdOutput = runCmd( 'ip link add name %s '
-                                'type veth peer name %s '
-                                'netns %s' % ( intf1, intf2, netns ) )
-        else:
-            cmdOutput = runCmd( 'ip link add name %s '
-                                'address %s '
-                                'type veth peer name %s '
-                                'address %s '
-                                'netns %s' %
-                                (  intf1, addr1, intf2, addr2, netns ) )
-        if cmdOutput:
-            raise Exception( "Error creating interface pair (%s,%s): %s " %
-                             ( intf1, intf2, cmdOutput ) )
+    if addr1 is None and addr2 is None:
+        cmdOutput = runCmd( 'ip link add name %s '
+                            'type veth peer name %s '
+                            'netns %s' % ( intf1, intf2, netns ) )
     else:
-        if addr1 is None and addr2 is None:
-            cmdOutput = runCmd( 'ip link add name %s '
-                                'type veth peer name %s '
-                                'netns %s' % ( intf1, intf2, netns ) )
-        else:
-            #iw phy phy6 set netns %s
-            cmdOutput = runCmd( 'ip link add name %s '
-                               'address %s '
-                               'type veth peer name %s '
-                               'address %s '
-                               'netns %s' %
-                               (  intf1, addr1, intf2, addr2, netns ) )
-        if cmdOutput:
-            raise Exception( "Error creating interface pair (%s,%s): %s " %
-                             ( intf1, intf2, cmdOutput ) )
+        #iw phy phy6 set netns %s
+        cmdOutput = runCmd( 'ip link add name %s '
+                           'address %s '
+                           'type veth peer name %s '
+                           'address %s '
+                           'netns %s' %
+                           (  intf1, addr1, intf2, addr2, netns ) )
+    if cmdOutput:
+        raise Exception( "Error creating interface pair (%s,%s): %s " %
+                         ( intf1, intf2, cmdOutput ) )
 
 def retry( retries, delaySecs, fn, *args, **keywords ):
     """Try something several times before giving up.
@@ -231,18 +214,25 @@ def moveIntfNoRetry( intf, dstNode, printError=False ):
        intf: string, interface
         dstNode: destination Node
         printError: if true, print error"""
-    intf = str( intf )
-    cmd = 'ip link set %s netns %s' % ( intf, dstNode.pid )
-    cmdOutput = quietRun( cmd )
+    if(dstNode.name[:3]=="sta"): 
+        #print intf[3:4]
+        #cmd = 'iw phy phy%s set netns %s' % ( wIface, dstNode.pid )
+        #cmdOutput = quietRun( cmd )
+        return True
+    
+    else:
+        intf = str( intf )
+        cmd = 'ip link set %s netns %s' % ( intf, dstNode.pid )
+        cmdOutput = quietRun( cmd )
     # If ip link set does not produce any output, then we can assume
     # that the link has been moved successfully.
-    if cmdOutput:
-        if printError:
-            error( '*** Error: moveIntf: ' + intf +
-                   ' not successfully moved to ' + dstNode.name + ':\n',
-                   cmdOutput )
-        return False
-    return True
+        if cmdOutput:
+            if printError:
+                error( '*** Error: moveIntf: ' + intf +
+                       ' not successfully moved to ' + dstNode.name + ':\n',
+                       cmdOutput )
+            return False
+        return True
 
 def moveIntf( intf, dstNode, printError=True,
               retries=3, delaySecs=0.001 ):
@@ -333,6 +323,18 @@ def ipAdd( i, prefixLen=8, ipBaseNum=0x0a000000 ):
     assert i <= imax, 'Not enough IP addresses in the subnet'
     mask = 0xffffffff ^ imax
     ipnum = ( ipBaseNum & mask ) + i
+    return ipStr( ipnum )
+
+def wipAdd( i, wprefixLen=8, wipBaseNum=0x0a000000 ):
+    """Return IP address string from ints
+       i: int to be added to ipbase
+       prefixLen: optional IP prefix length
+       wIpBase: option base IP address as int
+       returns IP address as string"""
+    imax = 0xffffffff >> wprefixLen
+    assert i <= imax, 'Not enough IP addresses in the subnet'
+    mask = 0xffffffff ^ imax
+    ipnum = ( wipBaseNum & mask ) + i
     return ipStr( ipnum )
 
 def ipParse( ip ):

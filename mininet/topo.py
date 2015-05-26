@@ -164,8 +164,7 @@ class Topo( object ):
            opts: link options (optional)
            returns: link info key"""
         if not opts and self.lopts:
-            opts = self.lopts
-            
+            opts = self.lopts            
         
         port1, port2 = self.addPort( node1, node2, port1, port2 )
         opts = dict( opts )
