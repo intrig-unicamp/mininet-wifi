@@ -1,5 +1,5 @@
 ###About Mininet-WiFi
-Mininet-WiFi is a release of Mininet (http://mininet.org/) which allows the using of both WiFi Stations and Access Points. More informations and details about this release will be available in soon. This release only add wifi features and you may work with Mininet like the oficial Mininet release (https://github.com/mininet/mininet). It is also allows work with OpenFlow using Bridges, but we are working to provide it automatically.        
+Mininet-WiFi is a release of Mininet (http://mininet.org/) which allows the using of both WiFi Stations and Access Points. This release only add wifi features and you can work with Mininet like the oficial Mininet release (https://github.com/mininet/mininet). More informations and details about this release will be available in soon.        
 
 ##Installation  
 ####Option 1: via install.sh  
@@ -32,12 +32,9 @@ Video 02: https://www.youtube.com/watch?v=H46EPuJDJhc
 /examples/wifiStationsAndHosts.py  
 /examples/2AccessPoints.py  
 
-
 ###Team
 Ramon dos Reis Fontes (ramonrf@dca.fee.unicamp.br)  
 Samira Afzal (samira@dca.fee.unicamp.br)  
-Samuel Henrique Bucke Brito (shbbrito@dca.fee.unicamp.br)  
-Mateus A. Silva Santos (msantos@dca.fee.unicamp.br)  
 Christian Rodolfo Esteve Rothenberg (chesteve@dca.fee.unicamp.br)  
 
 We are members of INTRIG (Information & Networking Technologies Research & Innovation Group) at University of Campinas - Unicamp, SP, Brazil.
