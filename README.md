@@ -13,11 +13,6 @@ step 2: git clone https://github.com/intrig-unicamp/mininet-wifi
 step 3: cd mininet-wifi  
 step 4: make install  
 
-####Some known dependencies  
-iw - apt-get install iw  
-python-setuptools - apt-get install python-setuptools  
-hostapd - apt-get install hostapd  
-
 ###Get Started
 sudo mn --wifi --ssid=new_ssid  
 It will start a simple topology with 2 stations and 1 access point. 
