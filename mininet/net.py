@@ -93,7 +93,6 @@ import signal
 import random
 import subprocess
 
-
 from time import sleep
 from itertools import chain, groupby
 from math import ceil
@@ -277,6 +276,7 @@ class Mininet( object ):
 
 
     def addStation( self, name, cls=None, **params ):
+        
         """Add host.
            name: name of host to add
            cls: custom host class/constructor (optional)
@@ -446,7 +446,7 @@ class Mininet( object ):
         self.nextIface+=1
         self.nextWiphyIface +=1
         Node.nextAP+=1
-        
+            
         return bs
      
     def addSwitch( self, name, cls=None, **params ):
@@ -573,6 +573,8 @@ class Mininet( object ):
 
     def addLink( self, node1, node2, port1=None, port2=None, 
                  cls=None, **params ):
+        
+              
         
         if((str(node1)[:3]=="sta" and str(node2)[:2]=="ap") or (str(node2)[:3]=="sta" and str(node1)[:2]=="ap")):
             
