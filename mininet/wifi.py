@@ -85,13 +85,11 @@ class module( object ):
 
 class phyInterface ( object ):
     
-    def __init__(self, wlanInterface, phyInterfaces):
+    def __init__(self, wlanInterface):
         
         self.wlanInterface = wlanInterface
-        self.phyInterfaces = phyInterfaces 
         self.storeMacAddress=[]
         self.getMacAddress()
-        self.nextWiphyIface = 0
         
     def getMacAddress(self):
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -113,24 +111,28 @@ class phyInterface ( object ):
     
  
 class station ( object ):
-    
-    def __init__(self, host):
-        self.host = host
         
     @classmethod    
-    def tcmode(self, host, mode, hostname):
-        self.host = host
+    def tcmode(self, newapif, mode):
+        self.newapif = newapif
         self.mode = mode
-        self.hostname = hostname
-        if (self.mode=="a"):
-            self.host.cmd(self.hostname,"tc qdisc add dev %s-wlan0 root tbf rate 54mbit latency 10ms burst 1540" % (self.hostname)) 
-        elif(self.mode=="b"):
-            self.host.cmd(self.hostname,"tc qdisc add dev %s-wlan0 root tbf rate 11mbit latency 10ms burst 1540" % (self.hostname)) 
-        elif(self.mode=="g"):
-            self.host.cmd(self.hostname,"tc qdisc add dev %s-wlan0 root tbf rate 54mbit latency 10ms burst 1540" % (self.hostname)) 
-        elif(self.mode=="n"):
-            self.host.cmd(self.hostname,"tc qdisc add dev %s-wlan0 root tbf rate 600mbit latency 10ms burst 1540" % (self.hostname))   
+        #if (self.mode=="a"):
+        #    self.host.cmd(self.hostname,"tc qdisc add dev %s-wlan0 root tbf rate 54mbit latency 10ms burst 1540" % (self.hostname)) 
+        #elif(self.mode=="b"):
+        #    self.host.cmd(self.hostname,"tc qdisc add dev %s-wlan0 root tbf rate 11mbit latency 10ms burst 1540" % (self.hostname)) 
+        #elif(self.mode=="g"):
+        #    self.host.cmd(self.hostname,"tc qdisc add dev %s-wlan0 root tbf rate 54mbit latency 10ms burst 1540" % (self.hostname)) 
+        #elif(self.mode=="n"):
+        #    self.host.cmd(self.hostname,"tc qdisc add dev %s-wlan0 root tbf rate 600mbit latency 10ms burst 1540" % (self.hostname))   
             
+        if (self.mode=="a"):
+            os.system("tc qdisc add dev %s root tbf rate 54mbit latency 10ms burst 1540" % (self.newapif)) 
+        elif(self.mode=="b"):
+            os.system("tc qdisc add dev %s root tbf rate 11mbit latency 10ms burst 1540" % (self.newapif)) 
+        elif(self.mode=="g"):
+            os.system("tc qdisc add dev %s root tbf rate 54mbit latency 10ms burst 1540" % (self.newapif)) 
+        elif(self.mode=="n"):
+            os.system("tc qdisc add dev %s root tbf rate 600mbit latency 10ms burst 1540" % (self.newapif))   
                         
             
 class accessPoint ( object ):
@@ -157,71 +159,6 @@ class accessPoint ( object ):
         self.countAP = countAP
         self.apcommand = ""
         
-    def addAccessPoint(self):
-        if(len(self.baseStationName)==1):            
-            self.cmd = ("echo \"")
-            """General Configurations"""             
-            if(self.interfaceID!=None):
-                if(self.phyInterfaces[0][:4]!="wlan"):
-                    self.cmd = self.cmd + ("interface=wlan%s" % (self.nextIface)) # the interface used by the AP
-                else:
-                    self.cmd = self.cmd + ("interface=wlan%s" % (self.nextIface+len(self.phyInterfaces))) # the interface used by the AP
-                    
-            """Not using at the moment"""
-            #self.cmd = self.cmd + ("\ndriver=nl80211")
-            if(self.mode!=None):
-                self.cmd = self.cmd + ("\nhw_mode=%s" % self.mode) # g simply means 2.4GHz
-            if(self.channel!=None):
-                self.cmd = self.cmd + ("\nchannel=%s" % self.channel) # the channel to use 
-            if(self.ieee80211d!=None):
-                self.cmd = self.cmd + ("\nieee80211d=%s" % self.ieee80211d) # limit the frequencies used to those allowed in the country
-            if(self.country_code!=None):
-                self.cmd = self.cmd + ("\ncountry_code=%s" % self.country_code) # the country code
-            #self.cmd = self.cmd + ("\nieee8021self.apcommand = ""1n=1") # 802.11n support
-            if(self.wmm_enabled!=None):
-                self.cmd = self.cmd + ("\nwmm_enabled=%s" % self.wmm_enabled) # QoS support
-            """Not using at the moment"""
-            #self.cmd = self.cmd + ("\nmacaddr_acl=0\nauth_algs=1\nignore_broadcast_ssid=0")
-                
-            self.cmd = self.cmd + "\n"    
-            """AP1"""    
-            if(self.ssid!=None):
-                self.cmd = self.cmd + ("\nssid=%s" % self.ssid) # the name of the AP
-            if(self.auth_algs!=None):
-                self.cmd = self.cmd + ("\nauth_algs=%s" % self.auth_algs) # 1=wpa, 2=wep, 3=both
-            if(self.wpa!=None):
-                self.cmd = self.cmd + ("\nwpa=%s" % self.wpa) # WPA2 only
-            if(self.wpa_key_mgmt!=None):
-                self.cmd = self.cmd + ("\nwpa_key_mgmt=%s" % self.wpa_key_mgmt ) 
-            if(self.rsn_pairwise!=None):
-                self.cmd = self.cmd + ("\nrsn_pairwise=%s" % self.rsn_pairwise)  
-            if(self.wpa_passphrase!=None):
-                self.cmd = self.cmd + ("\nwpa_passphrase=%s" % self.wpa_passphrase)                  
-        
-        elif(len(self.baseStationName)>self.countAP and len(self.baseStationName) != 1):
-            """From AP2"""
-            self.cmd = self.apcommand
-            self.cmd = self.cmd + "\n"
-            self.cmd = self.cmd + ("\nbss=wlan%s" % self.nextIface) # the interface used by the AP
-            if(self.ssid!=None):
-                self.cmd = self.cmd + ("\nssid=%s" % self.ssid ) # the name of the AP
-                #self.cmd = self.cmd + ("\nssid=%s" % self.ssid) # the name of the AP
-            if(self.auth_algs!=None):
-                self.cmd = self.cmd + ("\nauth_algs=%s" % self.auth_algs) # 1=wpa, 2=wep, 3=both
-            if(self.wpa!=None):
-                self.cmd = self.cmd + ("\nwpa=%s" % self.wpa) # WPA2 only
-            if(self.wpa_key_mgmt!=None):
-                self.cmd = self.cmd + ("\nwpa_key_mgmt=%s" % self.wpa_key_mgmt ) 
-            if(self.rsn_pairwise!=None):
-                self.cmd = self.cmd + ("\nrsn_pairwise=%s" % self.rsn_pairwise)  
-            if(self.wpa_passphrase!=None):
-                self.cmd = self.cmd + ("\nwpa_passphrase=%s" % self.wpa_passphrase)  
-            self.countAP = len(self.baseStationName)
-            self.apcommand = ""
-        
-        self.apcommand = self.apcommand + self.cmd
-        return self.apcommand
-    
     @classmethod
     def apBridge(self, ap, iface):
         os.system("ovs-vsctl add-port %s wlan%s" % (ap, iface))

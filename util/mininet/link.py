@@ -26,9 +26,11 @@ Link: basic link class for creating veth pairs
 
 from mininet.log import info, error, debug
 from mininet.util import makeIntfPair
-#from mininet.wifi import link
+#from mininet.wireless import link
 import mininet.node
 import re
+#import pdb
+
 class Intf( object ):
 
     "Basic interface object that can configure itself."
@@ -42,9 +44,10 @@ class Intf( object ):
         self.node = node
         self.name = name
         self.link = link
-        self.port = port
         self.mac = mac
         self.ip, self.prefixLen = None, None
+        self.isWireless = node.isWireless
+        
         # if interface is lo, we know the ip is 127.0.0.1.
         # This saves an ifconfig command per node
         if self.name == 'lo':
@@ -52,10 +55,9 @@ class Intf( object ):
         # Add to node (and move ourselves if necessary )        
         moveIntfFn = params.pop( 'moveIntfFn', None )
         if moveIntfFn:
-            node.addIntf( self, port=port, moveIntfFn=moveIntfFn)
+            node.addIntf( self, port=port, moveIntfFn=moveIntfFn )
         else:
             node.addIntf( self, port=port )
-        
         # Save params for future reference
         self.params = params
         self.config( **params )
@@ -65,14 +67,8 @@ class Intf( object ):
         return self.node.cmd( *args, **kwargs )
 
     def ifconfig( self, *args ):
-        if(self.name[:3]=="sta" or self.name[:2]=="ap"):
-            if(self.name[:3]=="sta"):
-                wif = self.cmd("iwconfig 2>&1 | grep IEEE | awk '{print $1}'")
-                self.cmd('ip link set dev %s name %s-wlan0' % (wif.strip(), self.name[:4]) )
-                return self.cmd( 'ifconfig %s-wlan0'% self.name[:4], *args )
-        else:
-            "Configure ourselves using ifconfig"
-            return self.cmd( 'ifconfig', self.name, *args )
+        "Configure ourselves using ifconfig"
+        return self.cmd( 'ifconfig', self.name, *args )
 
     def setIP( self, ipstr, prefixLen=None ):
         """Set our IP address"""
@@ -386,7 +382,7 @@ class Link( object ):
 
     # pylint: disable=too-many-branches
     def __init__( self, node1, node2, port1=None, port2=None,
-                  intfName1=None, intfName2=None, addr1=None, addr2=None, mode=None,
+                  intfName1=None, intfName2=None, addr1=None, addr2=None,
                   intf=Intf, cls1=None, cls2=None, params1=None,
                   params2=None, fast=True ):
         """Create veth link to another node, making two new interfaces.
@@ -418,9 +414,6 @@ class Link( object ):
             params1[ 'port' ] = node1.newPort()
         if 'port' not in params2:
             params2[ 'port' ] = node2.newPort()
-            
-        self.mode = mode
-        
         if not intfName1:
             intfName1 = self.intfName( node1, params1[ 'port' ] )
         if not intfName2:
@@ -428,14 +421,12 @@ class Link( object ):
 
         self.fast = fast
         if fast:
-            if( intfName1[:3] != "sta"):
-                params1.setdefault( 'moveIntfFn', self._ignore )
-                params2.setdefault( 'moveIntfFn', self._ignore )
-                self.makeIntfPair( intfName1, intfName2, addr1, addr2,
-                                   node1, node2, deleteIntfs=False )
+            params1.setdefault( 'moveIntfFn', self._ignore )
+            params2.setdefault( 'moveIntfFn', self._ignore )
+            self.makeIntfPair( intfName1, intfName2, addr1, addr2,
+                               node1, node2, deleteIntfs=False )
         else:
-            if( intfName1[:3] != "sta"):
-                self.makeIntfPair( intfName1, intfName2, addr1, addr2 )
+            self.makeIntfPair( intfName1, intfName2, addr1, addr2 )
 
         if not cls1:
             cls1 = intf
@@ -461,10 +452,11 @@ class Link( object ):
         "Construct a canonical interface name node-ethN for interface n."
         # Leave this as an instance method for now
         assert self
-        if (node.name[:3]=="sta"):
-            return node.name + '-wlan' + repr( n )
-        else:
-            return node.name + '-eth' + repr( n )
+        
+        #if (node.isWireless):
+         #   return node.name + '-wlan' + repr( n )
+        #else:
+        return node.name + '-eth' + repr( n )
 
     @classmethod
     def makeIntfPair( cls, intfname1, intfname2, addr1=None, addr2=None,
@@ -480,7 +472,6 @@ class Link( object ):
            to change link type)"""
         # Leave this as a class method for now
         assert cls
-        
         return makeIntfPair( intfname1, intfname2, addr1, addr2, node1, node2,
                              deleteIntfs=deleteIntfs )
 
@@ -521,13 +512,23 @@ class OVSLink( Link ):
        than ~64 OVS patch links should be used in row."""
     
     def __init__( self, node1, node2, **kwargs ):
-        "See Link.__init__() for options"
-        self.isPatchLink = False
-        if ( isinstance( node1, mininet.node.OVSSwitch ) and
-             isinstance( node2, mininet.node.OVSSwitch ) ):
-            self.isPatchLink = True
-            kwargs.update( cls1=OVSIntf, cls2=OVSIntf )
-        Link.__init__( self, node1, node2, **kwargs )
+        
+        if (self.isWireless):            
+            "See Link.__init__() for options"
+            self.isPatchLink = False
+            if ( isinstance( node1, mininet.node.OVBaseStation ) and
+                 isinstance( node2, mininet.node.OVBaseStation ) ):
+                self.isPatchLink = True
+                kwargs.update( cls1=OVSIntf, cls2=OVSIntf )
+            Link.__init__( self, node1, node2, **kwargs )
+        else:
+            "See Link.__init__() for options"
+            self.isPatchLink = False
+            if ( isinstance( node1, mininet.node.OVSSwitch ) and
+                 isinstance( node2, mininet.node.OVSSwitch ) ):
+                self.isPatchLink = True
+                kwargs.update( cls1=OVSIntf, cls2=OVSIntf )
+            Link.__init__( self, node1, node2, **kwargs )
 
     def makeIntfPair( self, *args, **kwargs ):
         "Usually delegated to OVSSwitch"

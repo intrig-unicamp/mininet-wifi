@@ -15,6 +15,7 @@ from optparse import OptionParser
 import os
 import sys
 import time
+import pdb
 
 # Fix setuptools' evil madness, and open up (more?) security holes
 if 'PYTHONPATH' in os.environ:
@@ -27,14 +28,15 @@ from mininet.net import Mininet, MininetWithControlNet, VERSION
 from mininet.node import ( Node, Host, CPULimitedHost, Controller, OVSController,
                            Ryu, NOX, RemoteController, findController,
                            DefaultController, NullController,
-                           UserSwitch, OVSSwitch, OVSBridge,
+                           UserSwitch, OVSSwitch, OVBaseStation, OVSBridge,
                            IVSSwitch )
 from mininet.nodelib import LinuxBridge
 from mininet.link import Link, TCLink, OVSLink
 from mininet.topo import ( SingleSwitchTopo, LinearTopo,
                            SingleSwitchReversedTopo, MinimalTopo )
 from mininet.topolib import TreeTopo, TorusTopo
-from mininet.util import customClass, specialClass, splitArgs, buildTopo
+from mininet.util import customClass, specialClass, splitArgs
+from mininet.util import buildTopo
 
 
 from functools import partial
@@ -61,6 +63,7 @@ SWITCHDEF = 'default'
 SWITCHES = { 'user': UserSwitch,
              'ovs': OVSSwitch,
              'ovsbr' : OVSBridge,
+             'ovbs' : OVBaseStation,
              # Keep ovsk for compatibility with 2.0
              'ovsk': OVSSwitch,
              'ivs': IVSSwitch,
@@ -202,27 +205,25 @@ class MininetRunner( object ):
         addDictOption( opts, TOPOS, TOPODEF, 'topo' )
 
 
-        opts.add_option( '--radios', type='int', 
-                         default=0, help='starting k radios' )
-        
-        opts.add_option( '--wifi', '-w', action='store_true',
-                         default=False, help='activate wifi' )
+        opts.add_option( '--radios', '-w', type='int', 
+                         default=0, help='wireless configuration' )
         
         opts.add_option( '--channel', type='int', 
-                         default=1, help='wireless channel configuration' )
+                         default=1, help='wireless configuration' )
          
         opts.add_option( '--mode', type='string', 
-                         default="g", help='wireless mode configuration' )
+                         default="g", help='wireless configuration' )
         
         opts.add_option( '--ssid', type='string', 
-                         default="my-ssid", help='wireless ssid configuration' )
+                         default="my_ssid", help='wireless configuration' )
        
         opts.add_option( '--clean', '-c', action='store_true',
                          default=False, help='clean and exit' )
         opts.add_option( '--custom', action='callback',
                          callback=self.custom,
                          type='string',
-                         help='read custom classes or params from .py file(s)' )
+                         help='read custom classes or params from .py file(s)'
+                         )
 
         opts.add_option( '--test', type='choice', choices=TESTS,
                          default=TESTS[ 0 ],
@@ -306,12 +307,7 @@ class MininetRunner( object ):
 
         if self.options.radios!=0:
             Node.isWireless=True
-            #wirelessRadios = self.options.radios
    
-        if self.options.wifi and self.options.radios==0:
-            Node.isWireless=True
-            self.options.radios = 3
-            
             
             
         start = time.time()
@@ -355,7 +351,6 @@ class MininetRunner( object ):
         mode = self.options.mode
         ssid = self.options.ssid
         wirelessRadios = self.options.radios
-        
         
         listenPort = None
         if not self.options.nolistenport:

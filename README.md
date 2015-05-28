@@ -30,6 +30,8 @@ Video 02: https://www.youtube.com/watch?v=H46EPuJDJhc
 ###Team
 Ramon dos Reis Fontes (ramonrf@dca.fee.unicamp.br)  
 Samira Afzal (samira@dca.fee.unicamp.br)  
+Samuel Henrique Bucke Brito (shbbrito@dca.fee.unicamp.br)  
+Mateus A. Silva Santos (msantos@dca.fee.unicamp.br)  
 Christian Rodolfo Esteve Rothenberg (chesteve@dca.fee.unicamp.br)  
 
 We are members of INTRIG (Information & Networking Technologies Research & Innovation Group) at University of Campinas - Unicamp, SP, Brazil.
