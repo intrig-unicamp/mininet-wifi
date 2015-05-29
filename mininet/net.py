@@ -111,7 +111,7 @@ from mininet.wifi import checkNM, module, phyInterface, accessPoint, station
 from __builtin__ import True
 
 # Mininet version: should be consistent with README and LICENSE
-VERSION = "BetaVersion_0.5"
+VERSION = "BetaVersion_0.6"
 
 class Mininet( object ):
     "Network emulation with hosts spawned in network namespaces."
