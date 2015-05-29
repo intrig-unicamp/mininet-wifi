@@ -189,7 +189,6 @@ def makeIntfPair( intf1, intf2, addr1=None, addr2=None, node1=None, node2=None,
                             'netns %s' % ( intf1, intf2, netns ) )
     else:
         if node2[:3]=="sta":
-            #os.system('iw phy phy%s set netns %s ' % (phyInterface.phy[str(node2)], netns))
             cmdOutput = runCmd( 'iw phy phy%s '
                                'set netns %s ' %
                                (  phyInterface.phy[str(node2)], netns ) )
