@@ -107,7 +107,7 @@ from mininet.util import ( quietRun, fixLimits, numCores, ensureRoot,
                            macColonHex, ipStr, ipParse, netParse, ipAdd,
                            wipAdd, waitListening )
 from mininet.term import cleanUpScreens, makeTerms
-from mininet.wifi import startWiFi, module, phyInterface, accessPoint, station
+from mininet.wifi import checkNM, module, phyInterface, accessPoint, station
 from __builtin__ import True
 
 # Mininet version: should be consistent with README and LICENSE
@@ -299,7 +299,7 @@ class Mininet( object ):
         self.wirelessdeviceControl.append(name)
         self.stationName.append(name)
       
-        self.storeMacAddress=self.storeMacAddress+(phyInterface.getMacAddress(phyInterface(Node.nextWiphyIface+len(self.phyInterfaces))))
+        self.storeMacAddress=self.storeMacAddress+(checkNM.getMacAddress((Node.nextWiphyIface+len(self.phyInterfaces))))
         
         self.splitResultIface = phyInterface.getPhyInterfaces()
         
@@ -433,7 +433,7 @@ class Mininet( object ):
        
         Node.apIface = self.nextIface
         
-        self.storeMacAddress=self.storeMacAddress+(phyInterface.getMacAddress(phyInterface(Node.nextWiphyIface+len(self.phyInterfaces))))
+        self.storeMacAddress=self.storeMacAddress+(checkNM.getMacAddress((Node.nextWiphyIface+len(self.phyInterfaces))))
         
         Node.storeMacAddress = self.storeMacAddress
         Node.nextWiphyIface = Node.nextWiphyIface+1
@@ -570,10 +570,10 @@ class Mininet( object ):
                  cls=None, **params ):
         
         if((str(node1)[:3]=="sta" and str(node2)[:2]=="ap") or (str(node2)[:3]=="sta" and str(node1)[:2]=="ap")):
-            if(self.apcommandControll):     
-                accessPoint.APfile(self.apcommand) 
+            if(self.apcommandControll):   
+                checkNM.checkNetworkManager(self.storeMacAddress)
+                checkNM.APfile(self.apcommand) 
                 self.apcommandControll=False
-                
                 
             node1 = node1 if not isinstance( node1, basestring ) else self[ node1 ]
             node2 = node2 if not isinstance( node2, basestring ) else self[ node2 ]
@@ -595,13 +595,13 @@ class Mininet( object ):
             
             cls = self.link if cls is None else cls
             link = cls( node1, node2, **options )
-                        
+            
             self.links.append( link )
-            for host in self.hosts:
-                if (host == node1):
-                    self.host.cmd(host, "iw dev %s-wlan0 connect %s" % (host, Node.ssid[ str(node2) ]))
-                elif (host == node2):
-                    self.host.cmd(host, "iw dev %s-wlan0 connect %s" % (host, Node.ssid[ str(node1) ]))
+            #for host in self.hosts:
+            #    if (host == node1):
+            #        self.host.cmd(host, "iw dev %s-wlan0 connect %s" % (host, Node.ssid[ str(node2) ]))
+            #    elif (host == node2):
+            #        self.host.cmd(host, "iw dev %s-wlan0 connect %s" % (host, Node.ssid[ str(node1) ]))
             
             return link
             
@@ -637,10 +637,7 @@ class Mininet( object ):
         "Configure a set of hosts."
         for host in self.hosts:
             info( host.name + ' ' )
-            if (host.name[:3]=="sta"):
-                intf = self.host.cmd(host, "iwconfig 2>&1 | grep IEEE | awk '{print $1}'")
-            else:
-                intf = host.defaultIntf()
+            intf = host.defaultIntf()
             if intf:
                 host.configDefault()
             else:
@@ -697,7 +694,7 @@ class Mininet( object ):
                 
                 info( '\n*** Associating Stations:\n' )                
                 if(self.apcommandControll):     
-                    accessPoint.APfile(self.apcommand)       
+                    checkNM.APfile(self.apcommand)       
                     self.apcommandControll=False
                  
                 #Node.nextWiphyIface=0  
@@ -749,6 +746,11 @@ class Mininet( object ):
         if self.autoStaticArp:
             self.staticArp()
         self.built = True
+        
+        for basestation in self.baseStations:        
+            for host in self.hosts:
+                self.host.cmd(host, "iw dev %s-wlan0 connect %s" % (host, Node.ssid[ str(basestation.name) ]))                    
+            
 
     def startTerms( self ):
         "Start a terminal for each node."
@@ -778,7 +780,7 @@ class Mininet( object ):
     def start( self ):
         if(self.isWireless):
             Node.isCode=False
-            startWiFi(self.storeMacAddress)
+            #checkNM(self.storeMacAddress)
             "Start controller and switches."
             if not self.built:
                 self.build()

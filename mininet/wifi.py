@@ -1,16 +1,6 @@
 """
 wifi setups for Mininet.
 
-startWiFi: 
-
-module:
-
-phyInterface:
-
-station:
-
-accessPoint:
-
 """
 
 import os
@@ -24,14 +14,11 @@ import subprocess
 from mininet.log import  info
 
 
-class startWiFi ( object ):
+class checkNM ( object ):
     
-    def __init__( self, storeMacAddress ):
-        self.storeMacAddress = storeMacAddress
-        self.checkNetworkManager()   
-        
-    
-    def checkNetworkManager(self):      
+    @classmethod 
+    def checkNetworkManager(self, storeMacAddress): 
+        self.storeMacAddress = storeMacAddress     
         self.printMac = False   
         unmatch = ""
         if(os.path.exists('/etc/NetworkManager/NetworkManager.conf')):
@@ -63,7 +50,26 @@ class startWiFi ( object ):
             
         if(self.printMac):
             for line in fileinput.input('/etc/NetworkManager/NetworkManager.conf', inplace=1): 
-                print line.replace(unmatch, echo)
+                if line.__contains__('unmanaged-devices'): 
+                    print line.replace(unmatch, echo)
+                else:
+                    print line.rstrip()
+                
+    @classmethod 
+    def getMacAddress(self, wlanInterface):
+        self.wlanInterface = wlanInterface
+        self.storeMacAddress=[]
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        info = fcntl.ioctl(s.fileno(), 0x8927,  struct.pack('256s', 'wlan%s'[:15]) % str(self.wlanInterface))
+        self.storeMacAddress.append(''.join(['%02x:' % ord(char) for char in info[18:24]])[:-1])
+        return self.storeMacAddress
+    
+    @classmethod   
+    def APfile(self, apcommand):
+        self.apcommand = apcommand + ("\" > ap.conf")
+        os.system(self.apcommand)
+        self.cmd = ("hostapd -B ap.conf")
+        os.system(self.cmd)
     
 
 class module( object ):
@@ -85,18 +91,6 @@ class module( object ):
 
 class phyInterface ( object ):
     
-    def __init__(self, wlanInterface):
-        
-        self.wlanInterface = wlanInterface
-        self.storeMacAddress=[]
-        self.getMacAddress()
-        
-    def getMacAddress(self):
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        info = fcntl.ioctl(s.fileno(), 0x8927,  struct.pack('256s', 'wlan%s'[:15]) % str(self.wlanInterface))
-        self.storeMacAddress.append(''.join(['%02x:' % ord(char) for char in info[18:24]])[:-1])
-        return self.storeMacAddress
-    
     @classmethod
     def getPhyInterfaces(self):
         phy = (subprocess.check_output("find /sys/kernel/debug/ieee80211 -name hwsim | cut -d/ -f 6 | sort", 
@@ -116,15 +110,6 @@ class station ( object ):
     def tcmode(self, newapif, mode):
         self.newapif = newapif
         self.mode = mode
-        #if (self.mode=="a"):
-        #    self.host.cmd(self.hostname,"tc qdisc add dev %s-wlan0 root tbf rate 54mbit latency 10ms burst 1540" % (self.hostname)) 
-        #elif(self.mode=="b"):
-        #    self.host.cmd(self.hostname,"tc qdisc add dev %s-wlan0 root tbf rate 11mbit latency 10ms burst 1540" % (self.hostname)) 
-        #elif(self.mode=="g"):
-        #    self.host.cmd(self.hostname,"tc qdisc add dev %s-wlan0 root tbf rate 54mbit latency 10ms burst 1540" % (self.hostname)) 
-        #elif(self.mode=="n"):
-        #    self.host.cmd(self.hostname,"tc qdisc add dev %s-wlan0 root tbf rate 600mbit latency 10ms burst 1540" % (self.hostname))   
-            
         if (self.mode=="a"):
             os.system("tc qdisc add dev %s root tbf rate 54mbit latency 10ms burst 1540" % (self.newapif)) 
         elif(self.mode=="b"):
@@ -164,10 +149,5 @@ class accessPoint ( object ):
         os.system("ovs-vsctl add-port %s wlan%s" % (ap, iface))
         #subprocess.check_output("iwconfig 2>&1 | grep IEEE | awk '{print $1}'",shell=True)
         
-    @classmethod   
-    def APfile(self, apcommand):
-        self.apcommand = apcommand + ("\" > ap.conf")
-        os.system(self.apcommand)
-        self.cmd = ("hostapd -B ap.conf")
-        os.system(self.cmd)
+    
         

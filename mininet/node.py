@@ -62,7 +62,7 @@ import subprocess
 from subprocess import Popen, PIPE
 from time import sleep
 
-from mininet.wifi import startWiFi
+from mininet.wifi import checkNM
 from mininet.log import info, error, warn, debug
 from mininet.util import ( quietRun, errRun, errFail, moveIntf, isShellBuiltin,
                            numCores, retry, mountCgroups )
@@ -435,7 +435,7 @@ class Node( object ):
            intf: interface
            port: port number (optional, typically OpenFlow port number)
            moveIntfFn: function to move interface (optional)"""
-        startWiFi(Node.storeMacAddress)
+        #checkNM.checkNetworkManager(Node.storeMacAddress)
         if port is None:
             port = self.newPort()
         self.intfs[ port ] = intf
