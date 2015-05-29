@@ -26,9 +26,10 @@ Link: basic link class for creating veth pairs
 
 from mininet.log import info, error, debug
 from mininet.util import makeIntfPair
-#from mininet.wifi import link
+from mininet.wifi import station
 import mininet.node
 import re
+
 class Intf( object ):
 
     "Basic interface object that can configure itself."
@@ -65,12 +66,13 @@ class Intf( object ):
         return self.node.cmd( *args, **kwargs )
 
     def ifconfig( self, *args ):
-        if(self.name[:3]=="sta" or self.name[:2]=="ap"):
-            if(self.name[:3]=="sta"):
-                wif = self.cmd("iwconfig 2>&1 | grep IEEE | awk '{print $1}'")
-                self.cmd('ip link set dev %s name %s-wlan0' % (wif.strip(), self.name[:4]) )
-                return self.cmd( 'ifconfig %s-wlan0'% self.name[:4], *args )
-        else:
+        if(self.name[:3]=="sta"):
+            wif = self.cmd("iwconfig 2>&1 | grep IEEE | awk '{print $1}'")
+            self.cmd('ip link set dev %s name %s-wlan0' % (wif.strip(), self.name[:4]) )
+            return self.cmd( 'ifconfig %s-wlan0'% self.name[:4], *args )
+            #if(self.name[:2]=="ap"):
+                #os.system( 'ifconfig', self.name, *args )
+        elif(station.isWiFi==False):
             "Configure ourselves using ifconfig"
             return self.cmd( 'ifconfig', self.name, *args )
 

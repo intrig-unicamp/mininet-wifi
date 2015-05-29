@@ -130,6 +130,7 @@ class Node( object ):
     ssid = {}
     phy = {}
     phyID = {}
+    isHost = False
     
     @classmethod
     def fdToNode( cls, fd ):

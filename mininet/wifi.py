@@ -118,6 +118,10 @@ class station ( object ):
             os.system("tc qdisc add dev %s root tbf rate 54mbit latency 10ms burst 1540" % (self.newapif)) 
         elif(self.mode=="n"):
             os.system("tc qdisc add dev %s root tbf rate 600mbit latency 10ms burst 1540" % (self.newapif))   
+    
+    @classmethod    
+    def isWiFi(self, isWiFi):
+        return isWiFi
                         
             
 class accessPoint ( object ):

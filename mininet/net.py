@@ -574,7 +574,7 @@ class Mininet( object ):
                 checkNM.checkNetworkManager(self.storeMacAddress)
                 checkNM.APfile(self.apcommand) 
                 self.apcommandControll=False
-                
+            
             node1 = node1 if not isinstance( node1, basestring ) else self[ node1 ]
             node2 = node2 if not isinstance( node2, basestring ) else self[ node2 ]
                    
@@ -595,14 +595,14 @@ class Mininet( object ):
             
             cls = self.link if cls is None else cls
             link = cls( node1, node2, **options )
-            
+                       
             #self.links.append( link )
             for host in self.hosts:
                 if (host == node1):
                     self.host.cmd(host, "iw dev %s-wlan0 connect %s" % (host, Node.ssid[ str(node2) ]))
                 elif (host == node2):
                     self.host.cmd(host, "iw dev %s-wlan0 connect %s" % (host, Node.ssid[ str(node1) ]))
-            
+            station.isWiFi=True
             return link
             
         else:
@@ -614,7 +614,6 @@ class Mininet( object ):
                 cls: link class (optional)
                 params: additional link params (optional)
                 returns: link object"""
-            
             # Accept node objects or names
             node1 = node1 if not isinstance( node1, basestring ) else self[ node1 ]
             node2 = node2 if not isinstance( node2, basestring ) else self[ node2 ]
@@ -630,6 +629,7 @@ class Mininet( object ):
             cls = self.link if cls is None else cls
             link = cls( node1, node2, **options )
             self.links.append( link )
+            station.isWiFi=False
             return link
     
 
@@ -746,7 +746,7 @@ class Mininet( object ):
         if self.autoStaticArp:
             self.staticArp()
         self.built = True
-        
+            
         #for basestation in self.baseStations:        
         #    for host in self.hosts:
         #        self.host.cmd(host, "iw dev %s-wlan0 connect %s" % (host, Node.ssid[ str(basestation.name) ]))          
