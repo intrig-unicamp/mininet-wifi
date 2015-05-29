@@ -596,7 +596,7 @@ class Mininet( object ):
             cls = self.link if cls is None else cls
             link = cls( node1, node2, **options )
             
-            self.links.append( link )
+            #self.links.append( link )
             for host in self.hosts:
                 if (host == node1):
                     self.host.cmd(host, "iw dev %s-wlan0 connect %s" % (host, Node.ssid[ str(node2) ]))
