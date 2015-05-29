@@ -150,7 +150,7 @@ class accessPoint ( object ):
         
     @classmethod
     def apBridge(self, ap, iface):
-        os.system("ovs-vsctl add-port %s wlan%s" % (ap, iface))
+        os.system("ovs-vsctl add-port %s %s" % (ap, iface))
         #subprocess.check_output("iwconfig 2>&1 | grep IEEE | awk '{print $1}'",shell=True)
         
     

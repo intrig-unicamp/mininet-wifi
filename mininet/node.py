@@ -62,7 +62,6 @@ import subprocess
 from subprocess import Popen, PIPE
 from time import sleep
 
-from mininet.wifi import checkNM
 from mininet.log import info, error, warn, debug
 from mininet.util import ( quietRun, errRun, errFail, moveIntf, isShellBuiltin,
                            numCores, retry, mountCgroups )
@@ -131,6 +130,7 @@ class Node( object ):
     phy = {}
     phyID = {}
     isHost = False
+    wIface = {}
     
     @classmethod
     def fdToNode( cls, fd ):

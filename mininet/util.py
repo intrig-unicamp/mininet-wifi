@@ -214,8 +214,12 @@ def moveIntfNoRetry( intf, dstNode, printError=False ):
        intf: string, interface
         dstNode: destination Node
         printError: if true, print error"""
-    if dstNode.name[:3]=="sta" or dstNode.name[:2]=="ap": 
+    print dstNode.name
+            
+    if dstNode.name[:3]=="sta": 
+    #if dstNode.name[:3]=="sta" or dstNode.name[:2]=="ap": 
         if dstNode.name[:3]=="sta":
+            print str(dstNode.name)
             cmd = 'iw phy phy%s set netns %s' % ( dstNode.phy[ str(dstNode.name) ], dstNode.pid )
             cmdOutput = quietRun( cmd )
             return True    

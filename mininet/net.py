@@ -304,7 +304,7 @@ class Mininet( object ):
         self.splitResultIface = phyInterface.getPhyInterfaces()
         
         Node.phy[name] = self.splitResultIface[Node.nextWiphyIface][3:]
-       
+        
         Node.storeMacAddress = self.storeMacAddress
         Node.nextWiphyIface = Node.nextWiphyIface+1
         
@@ -371,7 +371,7 @@ class Mininet( object ):
         self.newapif = sorted(self.newapif)
         
         Node.ssid[name] = self.ssid
-        
+        Node.wIface[name] = self.newapif[Node.nextAP]
         station.tcmode(self.newapif[Node.nextAP], self.mode)
         
         if(len(self.baseStationName)==1):
@@ -440,8 +440,7 @@ class Mininet( object ):
         
         self.nextIface+=1
         self.nextWiphyIface +=1
-        Node.nextAP+=1
-            
+        Node.nextAP+=1            
         return bs
      
     def addSwitch( self, name, cls=None, **params ):
@@ -578,8 +577,8 @@ class Mininet( object ):
             
             node1 = node1 if not isinstance( node1, basestring ) else self[ node1 ]
             node2 = node2 if not isinstance( node2, basestring ) else self[ node2 ]
-                   
             options = dict( params )
+            
             for host in self.hosts:
                 if (host == node1):
                     options.setdefault( 'port1', port1 )
@@ -589,6 +588,7 @@ class Mininet( object ):
                     options.setdefault( 'port1', port1 )
                     options.setdefault( 'mode', self.mode )
                     options.setdefault( 'port2', port2 )
+            
                 
             # Set default MAC - this should probably be in Link
             options.setdefault( 'addr1', self.randMac() )
@@ -627,6 +627,7 @@ class Mininet( object ):
             # Set default MAC - this should probably be in Link
             options.setdefault( 'addr1', self.randMac() )
             options.setdefault( 'addr2', self.randMac() )
+            
             cls = self.link if cls is None else cls
             link = cls( node1, node2, **options )
             self.links.append( link )
@@ -803,8 +804,8 @@ class Mininet( object ):
                     success = swclass.batchStartup( baseStations )
                     started.update( { s: s for s in success } )  
             if(Node.isCode==False):
-                for basestation in self.baseStations:        
-                    accessPoint.apBridge(basestation.name, Node.apIface+1)
+                for basestation in self.baseStations:
+                    accessPoint.apBridge(basestation.name, Node.wIface[basestation.name])
                     for host in self.hosts:
                         self.host.cmd(host, "iw dev %s-wlan0 connect %s" % (host, Node.ssid[ str(basestation.name) ]))                    
             
