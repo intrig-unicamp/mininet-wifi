@@ -597,11 +597,11 @@ class Mininet( object ):
             link = cls( node1, node2, **options )
             
             self.links.append( link )
-            #for host in self.hosts:
-            #    if (host == node1):
-            #        self.host.cmd(host, "iw dev %s-wlan0 connect %s" % (host, Node.ssid[ str(node2) ]))
-            #    elif (host == node2):
-            #        self.host.cmd(host, "iw dev %s-wlan0 connect %s" % (host, Node.ssid[ str(node1) ]))
+            for host in self.hosts:
+                if (host == node1):
+                    self.host.cmd(host, "iw dev %s-wlan0 connect %s" % (host, Node.ssid[ str(node2) ]))
+                elif (host == node2):
+                    self.host.cmd(host, "iw dev %s-wlan0 connect %s" % (host, Node.ssid[ str(node1) ]))
             
             return link
             
@@ -747,9 +747,11 @@ class Mininet( object ):
             self.staticArp()
         self.built = True
         
-        for basestation in self.baseStations:        
-            for host in self.hosts:
-                self.host.cmd(host, "iw dev %s-wlan0 connect %s" % (host, Node.ssid[ str(basestation.name) ]))                    
+        #for basestation in self.baseStations:        
+        #    for host in self.hosts:
+        #        self.host.cmd(host, "iw dev %s-wlan0 connect %s" % (host, Node.ssid[ str(basestation.name) ]))          
+        #        print "iw dev %s-wlan0 connect %s"% (host, Node.ssid[ str(basestation.name) ])
+        #        print basestation.name           
             
 
     def startTerms( self ):
