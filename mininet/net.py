@@ -570,6 +570,7 @@ class Mininet( object ):
                  cls=None, **params ):
         
         if((str(node1)[:3]=="sta" and str(node2)[:2]=="ap") or (str(node2)[:3]=="sta" and str(node1)[:2]=="ap")):
+            station.isWiFi=True
             if(self.apcommandControll):   
                 checkNM.checkNetworkManager(self.storeMacAddress)
                 checkNM.APfile(self.apcommand) 
@@ -602,10 +603,10 @@ class Mininet( object ):
                     self.host.cmd(host, "iw dev %s-wlan0 connect %s" % (host, Node.ssid[ str(node2) ]))
                 elif (host == node2):
                     self.host.cmd(host, "iw dev %s-wlan0 connect %s" % (host, Node.ssid[ str(node1) ]))
-            station.isWiFi=True
             return link
             
         else:
+            station.isWiFi=False
             """"Add a link from node1 to node2
                 node1: source node (or name)
                 node2: dest node (or name)
@@ -629,7 +630,6 @@ class Mininet( object ):
             cls = self.link if cls is None else cls
             link = cls( node1, node2, **options )
             self.links.append( link )
-            station.isWiFi=False
             return link
     
 
