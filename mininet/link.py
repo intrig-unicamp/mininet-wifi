@@ -483,7 +483,6 @@ class Link( object ):
            to change link type)"""
         # Leave this as a class method for now
         assert cls
-        
         return makeIntfPair( intfname1, intfname2, addr1, addr2, node1, node2,
                              deleteIntfs=deleteIntfs )
 

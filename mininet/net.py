@@ -298,7 +298,7 @@ class Mininet( object ):
         
         self.splitResultIface = phyInterface.getPhyInterfaces()
         
-        Node.phy[name] = self.splitResultIface[Node.nextWiphyIface][3:]
+        phyInterface.phy[name] = self.splitResultIface[Node.nextWiphyIface][3:]
         
         Node.storeMacAddress = self.storeMacAddress
         Node.nextWiphyIface = Node.nextWiphyIface+1
@@ -365,8 +365,10 @@ class Mininet( object ):
         
         Node.ssid[name] = self.ssid
         Node.wIface[name] = self.newapif[Node.nextAP]
-        station.tcmode(self.newapif[Node.nextAP], self.mode)
         
+        
+        station.tcmode(self.newapif[Node.nextAP], self.mode)        
+               
         if(len(self.baseStationName)==1):
             self.cmd = ("echo \"")
             """General Configurations"""             
@@ -580,14 +582,13 @@ class Mininet( object ):
                     options.setdefault( 'mode', self.mode )
                     options.setdefault( 'port2', port2 )
             
-                
             # Set default MAC - this should probably be in Link
             options.setdefault( 'addr1', self.randMac() )
             options.setdefault( 'addr2', self.randMac() )
             
             cls = self.link if cls is None else cls
             link = cls( node1, node2, **options )
-                       
+            
             #self.links.append( link )
             for host in self.hosts:
                 if (host == node1):

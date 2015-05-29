@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 """
-This example shows how to add work with WiFi on Mininet.
+This example shows how to work with WiFi on Mininet.
 """
 
 from mininet.net import Mininet

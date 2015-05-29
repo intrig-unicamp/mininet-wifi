@@ -91,6 +91,8 @@ class module( object ):
 
 class phyInterface ( object ):
     
+    phy = {}
+    
     @classmethod
     def getPhyInterfaces(self):
         phy = (subprocess.check_output("find /sys/kernel/debug/ieee80211 -name hwsim | cut -d/ -f 6 | sort", 
@@ -102,6 +104,8 @@ class phyInterface ( object ):
     def phyInt(self):
         nPhy = (subprocess.check_output("iwconfig 2>&1 | grep IEEE | awk '{print $1}'",shell=True)).split("\n")
         return nPhy
+    
+    
     
  
 class station ( object ):

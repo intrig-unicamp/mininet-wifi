@@ -126,7 +126,6 @@ class Node( object ):
     phyInterfaces = []
     nextAP=0
     ssid = {}
-    phy = {}
     phyID = {}
     isHost = False
     wIface = {}
