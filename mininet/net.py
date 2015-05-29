@@ -172,15 +172,12 @@ class Mininet( object ):
         self.wpa = wpa
         self.auth_algs = auth_algs
         self.wmm_enabled = wmm_enabled
-        self.wirelessdeviceControl = []     
-        self.wirelessifaceControl = []
         self.nextIface = 0
         self.nextWiphyIface = 0
         self.countAP = 0 
         self.baseStationName = []
         self.stationName = []
-        self.apIface = []
-        
+                
         self.wprefixLen = 24
         self.resultIface = ""
         self.interfaceID = interfaceID
@@ -295,8 +292,6 @@ class Mininet( object ):
         self.hosts.append( h )
         self.nameToNode[ name ] = h
         
-        self.wirelessifaceControl.append(self.nextIface)
-        self.wirelessdeviceControl.append(name)
         self.stationName.append(name)
       
         self.storeMacAddress=self.storeMacAddress+(checkNM.getMacAddress((Node.nextWiphyIface+len(self.phyInterfaces))))
@@ -338,8 +333,7 @@ class Mininet( object ):
             self.listenPort += 1
         self.baseStations.append( bs )
         self.nameToNode[ name ] = bs
-        self.wirelessifaceControl.append(self.nextIface)
-        self.wirelessdeviceControl.append(name)
+        
         self.baseStationName.append(name)      
       
         channel = ("%s" % params.pop('channel', {}))
@@ -356,8 +350,7 @@ class Mininet( object ):
             
         wpa_passphrase = ("%s" % params.pop('wpa_passphrase', {}))
         if(wpa_passphrase!="{}"):
-            self.wpa_passphrase = wpa_passphrase
-        
+            self.wpa_passphrase = wpa_passphrase        
         
         self.newapif=[]
         self.apif = subprocess.check_output("iwconfig 2>&1 | grep IEEE | awk '{print $1}'",shell=True)
@@ -431,8 +424,6 @@ class Mininet( object ):
             self.apcommand = ""        
         self.apcommand = self.apcommand + self.cmd
        
-        Node.apIface = self.nextIface
-        
         self.storeMacAddress=self.storeMacAddress+(checkNM.getMacAddress((Node.nextWiphyIface+len(self.phyInterfaces))))
         
         Node.storeMacAddress = self.storeMacAddress

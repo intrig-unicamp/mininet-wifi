@@ -184,7 +184,6 @@ def makeIntfPair( intf1, intf2, addr1=None, addr2=None, node1=None, node2=None,
                             'type veth peer name %s '
                             'netns %s' % ( intf1, intf2, netns ) )
     else:
-        #iw phy phy6 set netns %s
         cmdOutput = runCmd( 'ip link add name %s '
                            'address %s '
                            'type veth peer name %s '
@@ -214,15 +213,11 @@ def moveIntfNoRetry( intf, dstNode, printError=False ):
        intf: string, interface
         dstNode: destination Node
         printError: if true, print error"""
-   # print dstNode.name
-            
-    if dstNode.name[:3]=="sta": 
-    #if dstNode.name[:3]=="sta" or dstNode.name[:2]=="ap": 
-        if dstNode.name[:3]=="sta":
-            #print str(dstNode.name)
-            cmd = 'iw phy phy%s set netns %s' % ( dstNode.phy[ str(dstNode.name) ], dstNode.pid )
-            cmdOutput = quietRun( cmd )
-            return True    
+    if dstNode.name[:3]=="sta" or dstNode.name[:2]=="ap": 
+    #if dstNode.name[:3]=="sta":
+        cmd = 'iw phy phy%s set netns %s' % ( dstNode.phy[ str(dstNode.name) ], dstNode.pid )
+        cmdOutput = quietRun( cmd )
+        return True    
     else:
         intf = str( intf )
         cmd = 'ip link set %s netns %s' % ( intf, dstNode.pid )

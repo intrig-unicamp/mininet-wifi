@@ -111,7 +111,7 @@ class Node( object ):
         self.startShell()
         self.mountPrivateDirs()
         self.nextWiphyIface=0 
-        self.apIface = ""
+        
         
         
     # File descriptor to node mapping support
@@ -121,7 +121,6 @@ class Node( object ):
     isWireless=False
     nextWiphyIface=0 
     storeMacAddress=[]
-    apIface = ""
     isCode = True
     nAP=0
     phyInterfaces = []
