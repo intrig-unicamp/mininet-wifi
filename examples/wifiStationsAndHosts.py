@@ -26,8 +26,8 @@ def topology():
     print "*** Adding Link"
     net.addLink(sta1, ap1)
     net.addLink(sta2, ap1)
-    net.addLink(h3, ap1, 0, 1)
-    net.addLink(h4, ap1, 0, 2)
+    net.addLink(h3, ap1)
+    net.addLink(h4, ap1)
 
     print "*** Starting network"
     net.build()

@@ -23,13 +23,13 @@ h1----s1        sta1
 
 def topology():
     "Create a network."
-    net = Mininet( wirelessRadios=6, controller=Controller, link=TCLink, switch=OVSKernelSwitch )
+    net = Mininet( wirelessRadios=4, controller=Controller, link=TCLink, switch=OVSKernelSwitch )
 
     print "*** Creating nodes"
+    h1 = net.addHost( 'h1', ip='192.168.0.10' )
     ap1 = net.addBaseStation( 'ap1', ssid="ssid_1", mode="g", channel="5" )
     ap2 = net.addBaseStation( 'ap2', ssid="ssid_2" )
     sta1 = net.addStation( 'sta1', ip="192.168.0.100" )
-    h1 = net.addHost( 'h1', ip="192.168.0.1" )
     s1 = net.addSwitch( 's1' )
 
     c0 = net.addController('c0', controller=Controller, ip='127.0.0.1', port=6633 )

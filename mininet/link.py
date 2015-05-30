@@ -67,13 +67,14 @@ class Intf( object ):
         return self.node.cmd( *args, **kwargs )
 
     def ifconfig( self, *args ):
-        if(self.name[:3]=="sta"):
+        if(self.name[:3]=="sta" ):
             wif = self.cmd("iwconfig 2>&1 | grep IEEE | awk '{print $1}'")
             self.cmd('ip link set dev %s name %s-wlan0' % (wif.strip(), self.name[:4]) )
             return self.cmd( 'ifconfig %s-wlan0'% self.name[:4], *args )
             #if(self.name[:2]=="ap"):
                 #os.system( 'ifconfig', self.name, *args )
-        elif(station.isWiFi==False):
+        #elif(station.isWiFi==False):
+        else:
             "Configure ourselves using ifconfig"
             return self.cmd( 'ifconfig', self.name, *args )
 
@@ -146,7 +147,7 @@ class Intf( object ):
             cmdOutput = self.ifconfig( 'up' )
             # no output indicates success
             if cmdOutput:
-                error( "Error setting %s up: %s " % ( self.name, cmdOutput ) )
+                #error( "Error setting %s up: %s " % ( self.name, cmdOutput ) )
                 return False
             else:
                 return True
