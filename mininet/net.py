@@ -91,7 +91,6 @@ import re
 import select
 import signal
 import random
-import subprocess
 
 from time import sleep
 from itertools import chain, groupby
@@ -107,7 +106,7 @@ from mininet.util import ( quietRun, fixLimits, numCores, ensureRoot,
                            macColonHex, ipStr, ipParse, netParse, ipAdd,
                            wipAdd, waitListening )
 from mininet.term import cleanUpScreens, makeTerms
-from mininet.wifi import checkNM, module, phyInterface, accessPoint, station
+from mininet.wifi import checkNM, module, phyInterface, accessPoint, station, wlanIface
 from __builtin__ import True
 
 # Mininet version: should be consistent with README and LICENSE
@@ -203,10 +202,8 @@ class Mininet( object ):
         Mininet.init()  # Initialize Mininet if necessary
                 
         if (Node.isWireless==True or self.wirelessRadios!=0):
-            self.phyInterfaces = (subprocess.check_output("iwconfig 2>&1 | grep IEEE | awk '{print $1}'",shell=True))
-            self.phyInterfaces = self.phyInterfaces.split("\n")
-            self.phyInterfaces.pop()
-            Node.phyInterfaces = self.phyInterfaces
+            self.phyInterfaces = wlanIface.numberOfCurrentIfaces().split("\n")
+            Node.phyInterfaces = self.phyInterfaces.pop()
             Node.isWireless=True
             module._start_module(self.wirelessRadios) #Initatilize WiFi Module
                     
@@ -271,11 +268,9 @@ class Mininet( object ):
         self.nameToNode[ name ] = h
         return h
 
-
     def addStation( self, name, cls=None, **params ):
-        
-        """Add host.
-           name: name of host to add
+        """Add Station.
+           name: name of station to add
            cls: custom host class/constructor (optional)
            params: parameters for host
            returns: added host"""
@@ -311,8 +306,8 @@ class Mininet( object ):
 
 
     def addBaseStation( self, name, cls=None, **params ):
-        """Add switch.
-           name: name of switch to add
+        """Add BaseStation.
+           name: name of basestation to add
            cls: custom switch class/constructor (optional)
            returns: added switch
            side effect: increments listenPort ivar ."""
@@ -353,8 +348,8 @@ class Mininet( object ):
             self.wpa_passphrase = wpa_passphrase        
         
         self.newapif=[]
-        self.apif = subprocess.check_output("iwconfig 2>&1 | grep IEEE | awk '{print $1}'",shell=True)
-        self.apif = self.apif.split("\n")
+        """get AP iface"""
+        self.apif = accessPoint.getAPIface().split("\n")
         
         for apif in self.apif:
             if apif not in self.phyInterfaces:
@@ -363,9 +358,13 @@ class Mininet( object ):
         self.newapif.pop()
         self.newapif = sorted(self.newapif)
         
-        Node.ssid[name] = self.ssid
-        Node.wIface[name] = self.newapif[Node.nextAP]
+        """Change the name of AP iface"""
+        currentIface = self.newapif[Node.nextAP]
+        newIface = name        
+        self.newapif[Node.nextAP] = accessPoint.renameIface(currentIface, newIface)
         
+        Node.wIface[name] = self.newapif[Node.nextAP]
+        Node.ssid[name] = self.ssid
         
         station.tcmode(self.newapif[Node.nextAP], self.mode)        
                
@@ -374,7 +373,6 @@ class Mininet( object ):
             """General Configurations"""             
             if(self.interfaceID!=None):
                 self.cmd = self.cmd + ("interface=%s" % self.newapif[Node.nextAP]) # the interface used by the AP
-                    
             """Not using at the moment"""
             self.cmd = self.cmd + ("\ndriver=nl80211")
             if(self.ssid!=None):
@@ -425,15 +423,15 @@ class Mininet( object ):
             self.countAP = len(self.baseStationName)
             self.apcommand = ""        
         self.apcommand = self.apcommand + self.cmd
-       
-        self.storeMacAddress=self.storeMacAddress+(checkNM.getMacAddress((Node.nextWiphyIface+len(self.phyInterfaces))))
+        
+        self.storeMacAddress=self.storeMacAddress+(checkNM.getMacAddressAP((name)))
         
         Node.storeMacAddress = self.storeMacAddress
         Node.nextWiphyIface = Node.nextWiphyIface+1
         
         self.nextIface+=1
         self.nextWiphyIface +=1
-        Node.nextAP+=1            
+        Node.nextAP+=1        
         return bs
      
     def addSwitch( self, name, cls=None, **params ):
@@ -444,10 +442,14 @@ class Mininet( object ):
            side effect: increments listenPort ivar ."""
         defaults = { 'listenPort': self.listenPort,
                      'inNamespace': self.inNamespace }
+        
         defaults.update( params )
+        
         if not cls:
             cls = self.switch
+        
         sw = cls( name, **defaults )
+        
         if not self.inNamespace and self.listenPort:
             self.listenPort += 1
         self.switches.append( sw )
@@ -592,11 +594,15 @@ class Mininet( object ):
             #self.links.append( link )
             for host in self.hosts:
                 if (host == node1):
-                    self.host.cmd(host, "iw dev %s-wlan0 connect %s" % (host, Node.ssid[ str(node2) ]))
+                    ssid = Node.ssid[ str(node2) ]
+                    selfHost = self.host
+                    station.associate(selfHost, host, ssid, isNode1=True)
                 elif (host == node2):
-                    self.host.cmd(host, "iw dev %s-wlan0 connect %s" % (host, Node.ssid[ str(node1) ]))
+                    selfHost = self.host
+                    ssid = Node.ssid[ str(node1) ]
+                    station.associate(selfHost, host, ssid, isNode1=False)
             return link
-            
+                    
         else:
             station.isWiFi=False
             """"Add a link from node1 to node2
@@ -616,6 +622,7 @@ class Mininet( object ):
                 options.setdefault( 'port1', port1 )
             if port2 is not None:
                 options.setdefault( 'port2', port2 )
+            
             # Set default MAC - this should probably be in Link
             options.setdefault( 'addr1', self.randMac() )
             options.setdefault( 'addr2', self.randMac() )
@@ -625,7 +632,6 @@ class Mininet( object ):
             self.links.append( link )
             return link
     
-
     def configHosts( self ):
         "Configure a set of hosts."
         for host in self.hosts:
@@ -673,8 +679,7 @@ class Mininet( object ):
             info( '*** Adding Stations:\n' )
             for hostName in topo.hosts():
                 self.addStation( hostName, **topo.nodeInfo( hostName ) )
-                info( hostName + ' ' )
-                
+                info( hostName + ' ' )                
             for baseStationName in topo.baseStations():
                 info( '\n*** Adding Access Point:\n' )
                 # A bit ugly: add batch parameter if appropriate
@@ -689,16 +694,14 @@ class Mininet( object ):
                 if(self.apcommandControll):     
                     checkNM.APfile(self.apcommand)       
                     self.apcommandControll=False
-                 
-                #Node.nextWiphyIface=0  
                 for srcName, dstName, params in topo.links(
                         sort=True, withInfo=True ):
                     self.addLink( **params )  
                     info( '(%s, %s) ' % ( srcName, dstName ) )   
-                    #Node.nextWiphyIface+=1              
                 info( '\n' )
                 for host in self.hosts:
                     self.host.cmd(host, "iw dev %s-wlan0 connect %s" % (host, self.ssid))
+            
         else:
             for hostName in topo.hosts():
                 info( '*** Adding hosts:\n' )
@@ -746,7 +749,6 @@ class Mininet( object ):
         #        print "iw dev %s-wlan0 connect %s"% (host, Node.ssid[ str(basestation.name) ])
         #        print basestation.name           
             
-
     def startTerms( self ):
         "Start a terminal for each node."
         if 'DISPLAY' not in os.environ:
@@ -800,7 +802,6 @@ class Mininet( object ):
                     accessPoint.apBridge(basestation.name, Node.wIface[basestation.name])
                     for host in self.hosts:
                         self.host.cmd(host, "iw dev %s-wlan0 connect %s" % (host, Node.ssid[ str(basestation.name) ]))                    
-            
             info( '\n' )
             if self.waitConn:
                 self.waitConnected()
@@ -829,7 +830,6 @@ class Mininet( object ):
                 self.waitConnected()
 
     def stop( self ):
-        
         "Stop the controller(s), switches and hosts"
         info( '*** Stopping %i controllers\n' % len( self.controllers ) )
         for controller in self.controllers:
@@ -865,6 +865,20 @@ class Mininet( object ):
                 info( host.name + ' ' )
                 host.terminate()
             module._stop_module() #Stopping WiFi Module
+            info( '\n' )
+            info( '*** Stopping %i switches\n' % len( self.switches ) )
+            stopped = {}
+            for swclass, switches in groupby(
+                    sorted( self.switches, key=type ), type ):
+                switches = tuple( switches )
+                if hasattr( swclass, 'batchShutdown' ):
+                    success = swclass.batchShutdown( switches )
+                    stopped.update( { s: s for s in success } )
+            for switch in self.switches:
+                info( switch.name + ' ' )
+                if switch not in stopped:
+                    switch.stop()
+                switch.terminate()
             info( '\n' )
         else:
             info( '*** Stopping %i switches\n' % len( self.switches ) )
@@ -919,9 +933,6 @@ class Mininet( object ):
             # Return if non-blocking
             if not ready and timeoutms >= 0:
                 yield None, None
-
-    # XXX These test methods should be moved out of this class.
-    # Probably we should create a tests.py for them
 
     @staticmethod
     def _parsePing( pingOutput ):
@@ -1081,8 +1092,6 @@ class Mininet( object ):
             # was: raise Exception(...)
             error( 'could not parse iperf output: ' + iperfOutput )
             return ''
-
-    # XXX This should be cleaned up
 
     def iperf( self, hosts=None, l4Type='TCP', udpBw='10M', fmt=None,
                seconds=5, port=5001):

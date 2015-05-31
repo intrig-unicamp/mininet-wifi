@@ -57,8 +57,8 @@ import pty
 import re
 import signal
 import select
-import subprocess
 
+from mininet.wifi import phyInterface, accessPoint
 from subprocess import Popen, PIPE
 from time import sleep
 
@@ -97,7 +97,6 @@ class Node( object ):
 
         self.intfs = {}  # dict of port numbers to interfaces
         self.ports = {}  # dict of interfaces to port numbers
-                         # replace with Port objects, eventually ?
         self.nameToIntf = {}  # dict of interface names to Intfs
 
         # Make pylint happy
@@ -110,9 +109,6 @@ class Node( object ):
         # Start command interpreter shell
         self.startShell()
         self.mountPrivateDirs()
-        self.nextWiphyIface=0 
-        
-        
         
     # File descriptor to node mapping support
     # Class variables and methods
@@ -841,7 +837,6 @@ class CPULimitedHost( Host ):
         mountCgroups()
         cls.inited = True
 
-
 # Some important things to note:
 #
 # The "IP" address which setIP() assigns to the switch is not
@@ -861,7 +856,6 @@ class CPULimitedHost( Host ):
 # reported by ifconfig for a switch data port is essentially
 # meaningless. It is important to understand this if you
 # want to create a functional router using OpenFlow.
-
 
 class Switch( Node ):
     """A Switch is a Node that is running (or has execed?)
@@ -1062,7 +1056,6 @@ class OVSSwitch( Switch ):
         self.batch = batch
         self.commands = []  # saved commands for batch startup
         
-        
     @classmethod
     def setup( cls ):
         "Make sure Open vSwitch is installed and working"
@@ -1209,8 +1202,7 @@ class OVSSwitch( Switch ):
                 self.TCReapply( intf )       
                
         self.newapif=[]
-        self.apif = subprocess.check_output("iwconfig 2>&1 | grep IEEE | awk '{print $1}'",shell=True)
-        self.apif = self.apif.split("\n")
+        self.apif = phyInterface.phyInt()
         
         for apif in self.apif:
             if apif not in Node.phyInterfaces:
@@ -1221,9 +1213,10 @@ class OVSSwitch( Switch ):
         
         if(Node.isCode==True):
             if(self.name[:2]=="ap"):
-                os.system("ovs-vsctl add-port %s %s" % (self.name, (self.newapif[self.nAP])))
+                ap = self.name
+                iface = self.newapif[self.nAP]
+                accessPoint.apBridge(ap, iface)
                 Node.nAP+=1
-                
         
     # This should be ~ int( quietRun( 'getconf ARG_MAX' ) ),
     # but the real limit seems to be much lower

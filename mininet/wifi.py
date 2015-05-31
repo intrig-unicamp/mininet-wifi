@@ -4,7 +4,6 @@ wifi setups for Mininet.
 """
 
 import os
-
 import socket
 import struct
 import fcntl
@@ -12,7 +11,6 @@ import fileinput
 import subprocess
 
 from mininet.log import  info
-
 
 class checkNM ( object ):
     
@@ -64,6 +62,15 @@ class checkNM ( object ):
         self.storeMacAddress.append(''.join(['%02x:' % ord(char) for char in info[18:24]])[:-1])
         return self.storeMacAddress
     
+    @classmethod 
+    def getMacAddressAP(self, apName):
+        self.apName = apName
+        self.storeMacAddress=[]
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        info = fcntl.ioctl(s.fileno(), 0x8927,  struct.pack('256s', '%s-wlan0'[:15]) % str(self.apName))
+        self.storeMacAddress.append(''.join(['%02x:' % ord(char) for char in info[18:24]])[:-1])
+        return self.storeMacAddress
+    
     @classmethod   
     def APfile(self, apcommand):
         self.apcommand = apcommand + ("\" > ap.conf")
@@ -95,19 +102,17 @@ class phyInterface ( object ):
     
     @classmethod
     def getPhyInterfaces(self):
-        phy = (subprocess.check_output("find /sys/kernel/debug/ieee80211 -name hwsim | cut -d/ -f 6 | sort", 
-                                                             shell=True)).split("\n")
+        phy = subprocess.check_output("find /sys/kernel/debug/ieee80211 -name hwsim | cut -d/ -f 6 | sort", 
+                                                             shell=True).split("\n")
         phy.pop()
         return phy
     
     @classmethod
     def phyInt(self):
-        nPhy = (subprocess.check_output("iwconfig 2>&1 | grep IEEE | awk '{print $1}'",shell=True)).split("\n")
-        return nPhy
+        return subprocess.check_output("iwconfig 2>&1 | grep IEEE | awk '{print $1}'",shell=True).split("\n")
     
     
     
- 
 class station ( object ):
         
     @classmethod    
@@ -124,8 +129,24 @@ class station ( object ):
             os.system("tc qdisc add dev %s root tbf rate 600mbit latency 10ms burst 1540" % (self.newapif))   
     
     @classmethod    
-    def isWiFi(self, isWiFi):
+    def associate(self, selfHost, host, ssid, isNode1):
+        self.host = selfHost
+        self.ssid = ssid
+        self.isNode1 = isNode1
+        if self.isNode1:
+            self.host.cmd(host, "iw dev %s-wlan0 connect %s" % (host, self.ssid))
+        else:
+            self.host.cmd(host, "iw dev %s-wlan0 connect %s" % (host, self.ssid))
+    
+    @classmethod    
+    def isWifi(self, isWiFi):
         return isWiFi
+    
+class wlanIface ( object ):
+    
+    @classmethod    
+    def numberOfCurrentIfaces(self):
+        return subprocess.check_output("iwconfig 2>&1 | grep IEEE | awk '{print $1}'",shell=True)
                         
             
 class accessPoint ( object ):
@@ -155,7 +176,14 @@ class accessPoint ( object ):
     @classmethod
     def apBridge(self, ap, iface):
         os.system("ovs-vsctl add-port %s %s" % (ap, iface))
-        #subprocess.check_output("iwconfig 2>&1 | grep IEEE | awk '{print $1}'",shell=True)
         
+    @classmethod   
+    def renameIface(self, currentIface, newIface):
+        self.currentIface = currentIface
+        self.newIface = newIface+"-wlan0"
+        os.system("ip link set dev %s name %s" % (self.currentIface, self.newIface))
+        return self.newIface
     
-        
+    @classmethod   
+    def getAPIface(self):
+        return subprocess.check_output("iwconfig 2>&1 | grep IEEE | awk '{print $1}'",shell=True)
