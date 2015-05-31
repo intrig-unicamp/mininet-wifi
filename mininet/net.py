@@ -91,6 +91,7 @@ import re
 import select
 import signal
 import random
+import subprocess
 
 from time import sleep
 from itertools import chain, groupby
@@ -202,8 +203,10 @@ class Mininet( object ):
         Mininet.init()  # Initialize Mininet if necessary
                 
         if (Node.isWireless==True or self.wirelessRadios!=0):
-            self.phyInterfaces = wlanIface.numberOfCurrentIfaces().split("\n")
-            Node.phyInterfaces = self.phyInterfaces.pop()
+            self.phyInterfaces = (subprocess.check_output("iwconfig 2>&1 | grep IEEE | awk '{print $1}'",shell=True))
+            self.phyInterfaces = self.phyInterfaces.split("\n")
+            self.phyInterfaces.pop()
+            Node.phyInterfaces = self.phyInterfaces
             Node.isWireless=True
             module._start_module(self.wirelessRadios) #Initatilize WiFi Module
                     
@@ -348,8 +351,8 @@ class Mininet( object ):
             self.wpa_passphrase = wpa_passphrase        
         
         self.newapif=[]
-        """get AP iface"""
-        self.apif = accessPoint.getAPIface().split("\n")
+        self.apif = subprocess.check_output("iwconfig 2>&1 | grep IEEE | awk '{print $1}'",shell=True)
+        self.apif = self.apif.split("\n")
         
         for apif in self.apif:
             if apif not in self.phyInterfaces:
@@ -358,15 +361,9 @@ class Mininet( object ):
         self.newapif.pop()
         self.newapif = sorted(self.newapif)
         
-        #"""Change the name of AP iface"""
-        #currentIface = self.newapif[Node.nextAP]
-        #newIface = name        
-        #self.newapif[Node.nextAP] = accessPoint.renameIface(currentIface, newIface)
-        
-        Node.wIface[name] = self.newapif[Node.nextAP]
         Node.ssid[name] = self.ssid
         
-        station.tcmode(self.newapif[Node.nextAP], self.mode)        
+        station.tcmode(self.newapif[Node.nextAP], self.mode)
                
         if(len(self.baseStationName)==1):
             self.cmd = ("echo \"")
@@ -424,6 +421,7 @@ class Mininet( object ):
             self.apcommand = ""        
         self.apcommand = self.apcommand + self.cmd
         
+        Node.apIface = self.nextIface
         #self.storeMacAddress=self.storeMacAddress+(checkNM.getMacAddressAP((name)))
         self.storeMacAddress=self.storeMacAddress+(checkNM.getMacAddress((Node.nextWiphyIface+len(self.phyInterfaces))))
         
@@ -794,10 +792,10 @@ class Mininet( object ):
                     success = swclass.batchStartup( baseStations )
                     started.update( { s: s for s in success } )  
             if(Node.isCode==False):
-                for basestation in self.baseStations:
-                    accessPoint.apBridge(basestation.name, Node.wIface[basestation.name])
+                for basestation in self.baseStations:        
+                    accessPoint.apBridge(basestation.name, Node.apIface+1)
                     for host in self.hosts:
-                        self.host.cmd(host, "iw dev %s-wlan0 connect %s" % (host, Node.ssid[ str(basestation.name) ]))                    
+                        self.host.cmd(host, "iw dev %s-wlan0 connect %s" % (host, Node.ssid[ str(basestation.name) ]))                 
             info( '\n' )
             if self.waitConn:
                 self.waitConnected()

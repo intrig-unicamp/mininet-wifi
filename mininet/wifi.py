@@ -175,15 +175,15 @@ class accessPoint ( object ):
         
     @classmethod
     def apBridge(self, ap, iface):
-        os.system("ovs-vsctl add-port %s %s" % (ap, iface))
+        os.system("ovs-vsctl add-port %s wlan%s" % (ap, iface))
         
-    @classmethod   
-    def renameIface(self, currentIface, newIface):
-        self.currentIface = currentIface
+    #@classmethod   
+    #def renameIface(self, currentIface, newIface):
+    #    self.currentIface = currentIface
         #self.newIface = newIface+"-wlan0"
-        self.newIface = newIface
-        os.system("ip link set dev %s name %s" % (self.currentIface, self.newIface))
-        return self.newIface
+    #    self.newIface = newIface
+    #    os.system("ip link set dev %s name %s" % (self.currentIface, self.newIface))
+    #    return self.newIface
     
     @classmethod   
     def getAPIface(self):

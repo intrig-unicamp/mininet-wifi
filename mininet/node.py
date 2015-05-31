@@ -57,8 +57,9 @@ import pty
 import re
 import signal
 import select
+import subprocess
 
-from mininet.wifi import phyInterface, accessPoint
+#from mininet.wifi import phyInterface, accessPoint
 from subprocess import Popen, PIPE
 from time import sleep
 
@@ -117,6 +118,7 @@ class Node( object ):
     isWireless=False
     nextWiphyIface=0 
     storeMacAddress=[]
+    apIface = ""
     isCode = True
     nAP=0
     phyInterfaces = []
@@ -1202,7 +1204,8 @@ class OVSSwitch( Switch ):
                 self.TCReapply( intf )       
                
         self.newapif=[]
-        self.apif = phyInterface.phyInt()
+        self.apif = subprocess.check_output("iwconfig 2>&1 | grep IEEE | awk '{print $1}'",shell=True)
+        self.apif = self.apif.split("\n")
         
         for apif in self.apif:
             if apif not in Node.phyInterfaces:
@@ -1213,10 +1216,9 @@ class OVSSwitch( Switch ):
         
         if(Node.isCode==True):
             if(self.name[:2]=="ap"):
-                ap = self.name
-                iface = self.newapif[self.nAP]
-                accessPoint.apBridge(ap, iface)
+                os.system("ovs-vsctl add-port %s %s" % (self.name, (self.newapif[self.nAP])))
                 Node.nAP+=1
+        
         
     # This should be ~ int( quietRun( 'getconf ARG_MAX' ) ),
     # but the real limit seems to be much lower
