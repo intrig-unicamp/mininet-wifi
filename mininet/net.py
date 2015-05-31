@@ -358,10 +358,10 @@ class Mininet( object ):
         self.newapif.pop()
         self.newapif = sorted(self.newapif)
         
-        """Change the name of AP iface"""
-        currentIface = self.newapif[Node.nextAP]
-        newIface = name        
-        self.newapif[Node.nextAP] = accessPoint.renameIface(currentIface, newIface)
+        #"""Change the name of AP iface"""
+        #currentIface = self.newapif[Node.nextAP]
+        #newIface = name        
+        #self.newapif[Node.nextAP] = accessPoint.renameIface(currentIface, newIface)
         
         Node.wIface[name] = self.newapif[Node.nextAP]
         Node.ssid[name] = self.ssid

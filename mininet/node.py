@@ -1210,7 +1210,6 @@ class OVSSwitch( Switch ):
         
         self.newapif.pop()
         self.newapif = sorted(self.newapif)
-        print self.newapif
         
         if(Node.isCode==True):
             if(self.name[:2]=="ap"):
