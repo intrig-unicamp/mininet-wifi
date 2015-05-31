@@ -424,7 +424,8 @@ class Mininet( object ):
             self.apcommand = ""        
         self.apcommand = self.apcommand + self.cmd
         
-        self.storeMacAddress=self.storeMacAddress+(checkNM.getMacAddressAP((name)))
+        #self.storeMacAddress=self.storeMacAddress+(checkNM.getMacAddressAP((name)))
+        self.storeMacAddress=self.storeMacAddress+(checkNM.getMacAddress((Node.nextWiphyIface+len(self.phyInterfaces))))
         
         Node.storeMacAddress = self.storeMacAddress
         Node.nextWiphyIface = Node.nextWiphyIface+1
@@ -742,12 +743,7 @@ class Mininet( object ):
         if self.autoStaticArp:
             self.staticArp()
         self.built = True
-            
-        #for basestation in self.baseStations:        
-        #    for host in self.hosts:
-        #        self.host.cmd(host, "iw dev %s-wlan0 connect %s" % (host, Node.ssid[ str(basestation.name) ]))          
-        #        print "iw dev %s-wlan0 connect %s"% (host, Node.ssid[ str(basestation.name) ])
-        #        print basestation.name           
+         
             
     def startTerms( self ):
         "Start a terminal for each node."

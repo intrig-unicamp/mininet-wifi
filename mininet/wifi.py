@@ -62,14 +62,14 @@ class checkNM ( object ):
         self.storeMacAddress.append(''.join(['%02x:' % ord(char) for char in info[18:24]])[:-1])
         return self.storeMacAddress
     
-    @classmethod 
-    def getMacAddressAP(self, apName):
-        self.apName = apName
-        self.storeMacAddress=[]
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        info = fcntl.ioctl(s.fileno(), 0x8927,  struct.pack('256s', '%s-wlan0'[:15]) % str(self.apName))
-        self.storeMacAddress.append(''.join(['%02x:' % ord(char) for char in info[18:24]])[:-1])
-        return self.storeMacAddress
+    #@classmethod 
+    #def getMacAddressAP(self, apName):
+    #    self.apName = apName
+    #    self.storeMacAddress=[]
+    ##    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+     #   info = fcntl.ioctl(s.fileno(), 0x8927,  struct.pack('256s', '%s-wlan0'[:15]) % str(self.apName))
+     #   self.storeMacAddress.append(''.join(['%02x:' % ord(char) for char in info[18:24]])[:-1])
+     #   return self.storeMacAddress
     
     @classmethod   
     def APfile(self, apcommand):
@@ -180,7 +180,8 @@ class accessPoint ( object ):
     @classmethod   
     def renameIface(self, currentIface, newIface):
         self.currentIface = currentIface
-        self.newIface = newIface+"-wlan0"
+        #self.newIface = newIface+"-wlan0"
+        self.newIface = newIface
         os.system("ip link set dev %s name %s" % (self.currentIface, self.newIface))
         return self.newIface
     
