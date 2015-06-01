@@ -127,6 +127,7 @@ class Node( object ):
     phyID = {}
     isHost = False
     wIface = {}
+    linksWifi = []
     
     @classmethod
     def fdToNode( cls, fd ):
@@ -610,7 +611,6 @@ class Node( object ):
         return link( self, node )
 
     # Other methods
-
     def intfList( self ):
         "List of our interfaces sorted by port number"
         return [ self.intfs[ p ] for p in sorted( self.intfs.iterkeys() ) ]
@@ -1147,6 +1147,7 @@ class OVSSwitch( Switch ):
             if isinstance( intf, OVSIntf ):
                 intf1, intf2 = intf.link.intf1, intf.link.intf2
                 peer = intf1 if intf1 != intf else intf2
+                
                 opts += ' type=patch options:peer=%s' % peer
         return '' if not opts else ' -- set Interface %s' % intf + opts
 
@@ -1171,10 +1172,12 @@ class OVSSwitch( Switch ):
                 'OVS kernel switch does not work in a namespace' )
         int( self.dpid, 16 )  # DPID must be a hex string
         # Command to add interfaces
+        
         intfs = ''.join( ' -- add-port %s %s' % ( self, intf ) +
                          self.intfOpts( intf )
                          for intf in self.intfList() 
                          if self.ports[ intf ] and not intf.IP() )
+                
         # Command to create controller entries
         clist = [ ( self.name + c.name, '%s:%s:%d' %
                   ( c.protocol, c.IP(), c.port ) )

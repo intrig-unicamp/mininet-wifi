@@ -107,7 +107,7 @@ from mininet.util import ( quietRun, fixLimits, numCores, ensureRoot,
                            macColonHex, ipStr, ipParse, netParse, ipAdd,
                            wipAdd, waitListening )
 from mininet.term import cleanUpScreens, makeTerms
-from mininet.wifi import checkNM, module, phyInterface, accessPoint, station, wlanIface
+from mininet.wifi import checkNM, module, phyInterface, accessPoint, station
 from __builtin__ import True
 
 # Mininet version: should be consistent with README and LICENSE
@@ -563,26 +563,33 @@ class Mininet( object ):
                  cls=None, **params ):
         
         if((str(node1)[:3]=="sta" and str(node2)[:2]=="ap") or (str(node2)[:3]=="sta" and str(node1)[:2]=="ap")):
-            station.isWiFi=True
+            #station.isWiFi=True
             if(self.apcommandControll):   
                 checkNM.checkNetworkManager(self.storeMacAddress)
                 checkNM.APfile(self.apcommand) 
                 self.apcommandControll=False
             
+            if str(node2)[:2]=="ap":
+                Node.linksWifi.append(str(node2)[:4]+"-eth1")
+                #print Node.linksWifi
+            elif str(node1)[:2]=="ap":   
+                Node.linksWifi.append(str(node1)[:4]+"-eth1")
+                #print Node.linksWifi
+                
+                
             node1 = node1 if not isinstance( node1, basestring ) else self[ node1 ]
             node2 = node2 if not isinstance( node2, basestring ) else self[ node2 ]
             options = dict( params )
             
             for host in self.hosts:
                 if (host == node1):
-                    options.setdefault( 'port1', port1 )
-                    options.setdefault( 'port2', port2 )
+                    #options.setdefault( 'port1', port1 )
+                    #options.setdefault( 'port2', port2 )
                     options.setdefault( 'mode', self.mode )
                 elif (host == node2):
-                    options.setdefault( 'port1', port1 )
+                    #options.setdefault( 'port1', port1 )
                     options.setdefault( 'mode', self.mode )
-                    options.setdefault( 'port2', port2 )
-            
+                    #options.setdefault( 'port2', port2 )
             # Set default MAC - this should probably be in Link
             options.setdefault( 'addr1', self.randMac() )
             options.setdefault( 'addr2', self.randMac() )
@@ -603,7 +610,7 @@ class Mininet( object ):
             return link
                     
         else:
-            station.isWiFi=False
+            #station.isWiFi=False
             """"Add a link from node1 to node2
                 node1: source node (or name)
                 node2: dest node (or name)

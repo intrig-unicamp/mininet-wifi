@@ -52,6 +52,7 @@ class Intf( object ):
         # Add to node (and move ourselves if necessary )        
         moveIntfFn = params.pop( 'moveIntfFn', None )
         
+        #if self not in node.linksWifi:
         if moveIntfFn:
             node.addIntf( self, port=port, moveIntfFn=moveIntfFn)
         else:
@@ -423,33 +424,40 @@ class Link( object ):
             params2[ 'port' ] = node2.newPort()
             
         self.mode = mode
-        
         if not intfName1:
             intfName1 = self.intfName( node1, params1[ 'port' ] )
         if not intfName2:
             intfName2 = self.intfName( node2, params2[ 'port' ] )
-
+     
         self.fast = fast
-        if fast:
-            if( intfName1[:3] != "sta"):
+        if( intfName1[:3] != "sta"):
+            if fast:
                 params1.setdefault( 'moveIntfFn', self._ignore )
                 params2.setdefault( 'moveIntfFn', self._ignore )
                 self.makeIntfPair( intfName1, intfName2, addr1, addr2,
                                    node1, node2, deleteIntfs=False )
-        else:
-            if( intfName1[:3] != "sta"):
+            else:
                 self.makeIntfPair( intfName1, intfName2, addr1, addr2 )
-
+                
         if not cls1:
             cls1 = intf
         if not cls2:
             cls2 = intf
 
-        intf1 = cls1( name=intfName1, node=node1,
-                      link=self, mac=addr1, **params1  )
-        intf2 = cls2( name=intfName2, node=node2,
-                      link=self, mac=addr2, **params2 )
-
+        if((str(node1)[:3]=="sta" and str(node2)[:2]=="ap") or (str(node2)[:3]=="sta" and str(node1)[:2]=="ap")):
+            if str(node2)[:2]=="ap":
+                intf1 = cls1( name=intfName1, node=node1,
+                          link=self, mac=addr1, **params1  )
+                intf2 = None
+            elif str(node1)[:2]=="ap":
+                intf1 = None
+                intf2 = cls2( name=intfName2, node=node2,
+                              link=self, mac=addr2, **params2 )
+        else:
+            intf1 = cls1( name=intfName1, node=node1,
+                          link=self, mac=addr1, **params1  )
+            intf2 = cls2( name=intfName2, node=node2,
+                          link=self, mac=addr2, **params2 )
         # All we are is dust in the wind, and our two interfaces
         self.intf1, self.intf2 = intf1, intf2
                
