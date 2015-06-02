@@ -111,7 +111,7 @@ from mininet.wifi import checkNM, module, phyInterface, accessPoint, station
 from __builtin__ import True
 
 # Mininet version: should be consistent with README and LICENSE
-VERSION = "BetaVersion_0.6"
+VERSION = "BetaVersion_0.7"
 
 class Mininet( object ):
     "Network emulation with hosts spawned in network namespaces."
@@ -569,14 +569,6 @@ class Mininet( object ):
                 checkNM.APfile(self.apcommand) 
                 self.apcommandControll=False
             
-            if str(node2)[:2]=="ap":
-                Node.linksWifi.append(str(node2)[:4]+"-eth1")
-                #print Node.linksWifi
-            elif str(node1)[:2]=="ap":   
-                Node.linksWifi.append(str(node1)[:4]+"-eth1")
-                #print Node.linksWifi
-                
-                
             node1 = node1 if not isinstance( node1, basestring ) else self[ node1 ]
             node2 = node2 if not isinstance( node2, basestring ) else self[ node2 ]
             options = dict( params )

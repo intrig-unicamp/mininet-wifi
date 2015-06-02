@@ -127,7 +127,6 @@ class Node( object ):
     phyID = {}
     isHost = False
     wIface = {}
-    linksWifi = []
     
     @classmethod
     def fdToNode( cls, fd ):
