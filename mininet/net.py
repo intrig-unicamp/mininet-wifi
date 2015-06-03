@@ -111,7 +111,7 @@ from mininet.wifi import checkNM, module, phyInterface, accessPoint, station
 from __builtin__ import True
 
 # Mininet version: should be consistent with README and LICENSE
-VERSION = "BetaVersion_0.7"
+VERSION = "BetaVersion_0.8"
 
 class Mininet( object ):
     "Network emulation with hosts spawned in network namespaces."
@@ -354,12 +354,15 @@ class Mininet( object ):
         self.apif = subprocess.check_output("iwconfig 2>&1 | grep IEEE | awk '{print $1}'",shell=True)
         self.apif = self.apif.split("\n")
         
+        
+        
         for apif in self.apif:
             if apif not in self.phyInterfaces:
                 self.newapif.append(apif)
         
         self.newapif.pop()
         self.newapif = sorted(self.newapif)
+        self.newapif.sort(key=len, reverse=False)
         
         Node.ssid[name] = self.ssid
         

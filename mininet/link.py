@@ -71,11 +71,10 @@ class Intf( object ):
             wif = self.cmd("iwconfig 2>&1 | grep IEEE | awk '{print $1}'")
             if (len(self.name) == 10):
                 self.cmd('ip link set dev %s name %s-wlan0' % (wif.strip(), self.name[:4]) )
+                return self.cmd( 'ifconfig %s-wlan0'% self.name[:4], *args )
             elif (len(self.name) == 11):
                 self.cmd('ip link set dev %s name %s-wlan0' % (wif.strip(), self.name[:5]) )
-            return self.cmd( 'ifconfig %s-wlan0'% self.name[:4], *args )
-            #if(self.name[:2]=="ap"):
-                #os.system( 'ifconfig', self.name, *args )
+                return self.cmd( 'ifconfig %s-wlan0'% self.name[:5], *args )
         #elif(station.isWiFi==False):
         else:
             "Configure ourselves using ifconfig"
