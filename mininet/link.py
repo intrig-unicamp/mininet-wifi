@@ -69,7 +69,10 @@ class Intf( object ):
     def ifconfig( self, *args ):
         if(self.name[:3]=="sta" ):
             wif = self.cmd("iwconfig 2>&1 | grep IEEE | awk '{print $1}'")
-            self.cmd('ip link set dev %s name %s-wlan0' % (wif.strip(), self.name[:4]) )
+            if (len(self.name) == 10):
+                self.cmd('ip link set dev %s name %s-wlan0' % (wif.strip(), self.name[:4]) )
+            elif (len(self.name) == 11):
+                self.cmd('ip link set dev %s name %s-wlan0' % (wif.strip(), self.name[:5]) )
             return self.cmd( 'ifconfig %s-wlan0'% self.name[:4], *args )
             #if(self.name[:2]=="ap"):
                 #os.system( 'ifconfig', self.name, *args )
@@ -242,7 +245,7 @@ class TCIntf( Intf ):
         "Return tc commands to set bandwidth"
 
         cmds, parent = [], ' root '
-
+            
         if bw and ( bw < 0 or bw > self.bwParamMax ):
             error( 'Bandwidth limit', bw, 'is outside supported range 0..%d'
                    % self.bwParamMax, '- ignoring\n' )

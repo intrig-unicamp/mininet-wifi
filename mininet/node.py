@@ -987,7 +987,7 @@ class UserSwitch( Switch ):
 
             if res is None:  # link may not have TC parameters
                 return
-
+            
             # Re-add qdisc, root, and default classes user switch created, but
             # with new parent, as setup by Mininet's TCIntf
             parent = res['parent']
