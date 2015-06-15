@@ -58,7 +58,7 @@ class checkNM ( object ):
         self.wlanInterface = wlanInterface
         self.storeMacAddress=[]
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        info = fcntl.ioctl(s.fileno(), 0x8927,  struct.pack('256s', 'wlan%s'[:15]) % str(self.wlanInterface))
+        info = fcntl.ioctl(s.fileno(), 0x8927,  struct.pack('256s', '%s'[:15]) % str(self.wlanInterface))
         self.storeMacAddress.append(''.join(['%02x:' % ord(char) for char in info[18:24]])[:-1])
         return self.storeMacAddress
     

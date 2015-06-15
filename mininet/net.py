@@ -111,7 +111,7 @@ from mininet.wifi import checkNM, module, phyInterface, accessPoint, station
 from __builtin__ import True
 
 # Mininet version: should be consistent with README and LICENSE
-VERSION = "BetaVersion_0.8"
+VERSION = "BetaVersion_0.9"
 
 class Mininet( object ):
     "Network emulation with hosts spawned in network namespaces."
@@ -292,7 +292,19 @@ class Mininet( object ):
         
         self.stationName.append(name)
       
-        self.storeMacAddress=self.storeMacAddress+(checkNM.getMacAddress((Node.nextWiphyIface+len(self.phyInterfaces))))
+        self.newapif=[]
+        self.apif = subprocess.check_output("iwconfig 2>&1 | grep IEEE | awk '{print $1}'",shell=True)
+        self.apif = self.apif.split("\n")
+        
+        for apif in self.apif:
+            if apif not in self.phyInterfaces:
+                self.newapif.append(apif)
+        
+        self.newapif.pop()
+        self.newapif = sorted(self.newapif)
+        self.newapif.sort(key=len, reverse=False)
+      
+        self.storeMacAddress=self.storeMacAddress+(checkNM.getMacAddress(self.newapif[Node.nextAP]))
         
         self.splitResultIface = phyInterface.getPhyInterfaces()
         
@@ -353,7 +365,6 @@ class Mininet( object ):
         self.newapif=[]
         self.apif = subprocess.check_output("iwconfig 2>&1 | grep IEEE | awk '{print $1}'",shell=True)
         self.apif = self.apif.split("\n")
-        
         
         
         for apif in self.apif:
@@ -426,7 +437,7 @@ class Mininet( object ):
         
         Node.apIface = self.nextIface
         #self.storeMacAddress=self.storeMacAddress+(checkNM.getMacAddressAP((name)))
-        self.storeMacAddress=self.storeMacAddress+(checkNM.getMacAddress((Node.nextWiphyIface+len(self.phyInterfaces))))
+        self.storeMacAddress=self.storeMacAddress+(checkNM.getMacAddress(self.newapif[Node.nextAP]))
         
         Node.storeMacAddress = self.storeMacAddress
         Node.nextWiphyIface = Node.nextWiphyIface+1
