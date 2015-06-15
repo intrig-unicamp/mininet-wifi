@@ -311,7 +311,7 @@ class Mininet( object ):
         phyInterface.phy[name] = self.splitResultIface[Node.nextWiphyIface][3:]
         
         Node.storeMacAddress = self.storeMacAddress
-        Node.nextWiphyIface = Node.nextWiphyIface+1
+        Node.nextWiphyIface += 1
         
         Node.isFirst = len(self.phyInterfaces)
         self.nextIP += 1        
@@ -378,6 +378,8 @@ class Mininet( object ):
         Node.ssid[name] = self.ssid
         
         station.tcmode(self.newapif[Node.nextAP], self.mode)
+        
+        Node.apwlan[name] = self.newapif[Node.nextAP]
                
         if(len(self.baseStationName)==1):
             self.cmd = ("echo \"")
@@ -436,7 +438,7 @@ class Mininet( object ):
         self.apcommand = self.apcommand + self.cmd
         
         Node.apIface = self.nextIface
-        #self.storeMacAddress=self.storeMacAddress+(checkNM.getMacAddressAP((name)))
+        
         self.storeMacAddress=self.storeMacAddress+(checkNM.getMacAddress(self.newapif[Node.nextAP]))
         
         Node.storeMacAddress = self.storeMacAddress
@@ -806,9 +808,10 @@ class Mininet( object ):
                     started.update( { s: s for s in success } )  
             if(Node.isCode==False):
                 for basestation in self.baseStations:        
-                    accessPoint.apBridge(basestation.name, Node.apIface+1)
+                    accessPoint.apBridge(basestation.name, Node.apwlan[basestation.name])
                     for host in self.hosts:
                         self.host.cmd(host, "iw dev %s-wlan0 connect %s" % (host, Node.ssid[ str(basestation.name) ]))                 
+           
             info( '\n' )
             if self.waitConn:
                 self.waitConnected()

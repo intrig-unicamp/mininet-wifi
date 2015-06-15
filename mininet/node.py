@@ -117,6 +117,7 @@ class Node( object ):
     outToNode = {}  # mapping of output fds to nodes
     isWireless=False
     nextWiphyIface=0 
+    apwlan = {}
     storeMacAddress=[]
     apIface = ""
     isCode = True
