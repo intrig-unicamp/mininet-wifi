@@ -173,7 +173,6 @@ class Mininet( object ):
         self.auth_algs = auth_algs
         self.wmm_enabled = wmm_enabled
         self.nextIface = 0
-        self.nextWiphyIface = 0
         self.countAP = 0 
         self.baseStationName = []
         self.stationName = []
@@ -304,19 +303,17 @@ class Mininet( object ):
         self.newapif = sorted(self.newapif)
         self.newapif.sort(key=len, reverse=False)
       
-        self.storeMacAddress=self.storeMacAddress+(checkNM.getMacAddress(self.newapif[Node.nextAP]))
+        self.storeMacAddress=self.storeMacAddress+(checkNM.getMacAddress(self.newapif[self.nextIface]))
         
         self.splitResultIface = phyInterface.getPhyInterfaces()
         
-        phyInterface.phy[name] = self.splitResultIface[Node.nextWiphyIface][3:]
+        phyInterface.phy[name] = self.splitResultIface[self.nextIface][3:]
         
         Node.storeMacAddress = self.storeMacAddress
-        Node.nextWiphyIface += 1
         
         Node.isFirst = len(self.phyInterfaces)
         self.nextIP += 1        
         self.nextIface+=1
-        Node.nextAP+=1
         return h
 
 
@@ -377,15 +374,15 @@ class Mininet( object ):
         
         Node.ssid[name] = self.ssid
         
-        station.tcmode(self.newapif[Node.nextAP], self.mode)
+        station.tcmode(self.newapif[self.nextIface], self.mode)
         
-        Node.apwlan[name] = self.newapif[Node.nextAP]
+        Node.apwlan[name] = self.newapif[self.nextIface]
                
         if(len(self.baseStationName)==1):
             self.cmd = ("echo \"")
             """General Configurations"""             
             if(self.interfaceID!=None):
-                self.cmd = self.cmd + ("interface=%s" % self.newapif[Node.nextAP]) # the interface used by the AP
+                self.cmd = self.cmd + ("interface=%s" % self.newapif[self.nextIface]) # the interface used by the AP
             """Not using at the moment"""
             self.cmd = self.cmd + ("\ndriver=nl80211")
             if(self.ssid!=None):
@@ -419,7 +416,7 @@ class Mininet( object ):
             """From AP2"""
             self.cmd = self.apcommand
             self.cmd = self.cmd + "\n"
-            self.cmd = self.cmd + ("\nbss=%s" % self.newapif[Node.nextAP]) # the interface used by the AP
+            self.cmd = self.cmd + ("\nbss=%s" % self.newapif[self.nextIface]) # the interface used by the AP
             if(self.ssid!=None):
                 self.cmd = self.cmd + ("\nssid=%s" % self.ssid ) # the name of the AP
                 #self.cmd = self.cmd + ("\nssid=%s" % self.ssid) # the name of the AP
@@ -437,16 +434,9 @@ class Mininet( object ):
             self.apcommand = ""        
         self.apcommand = self.apcommand + self.cmd
         
-        Node.apIface = self.nextIface
-        
-        self.storeMacAddress=self.storeMacAddress+(checkNM.getMacAddress(self.newapif[Node.nextAP]))
-        
-        Node.storeMacAddress = self.storeMacAddress
-        Node.nextWiphyIface = Node.nextWiphyIface+1
+        self.storeMacAddress=self.storeMacAddress+(checkNM.getMacAddress(self.newapif[self.nextIface]))
         
         self.nextIface+=1
-        self.nextWiphyIface +=1
-        Node.nextAP+=1        
         return bs
      
     def addSwitch( self, name, cls=None, **params ):

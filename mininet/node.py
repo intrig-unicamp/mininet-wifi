@@ -116,14 +116,10 @@ class Node( object ):
     inToNode = {}  # mapping of input fds to nodes
     outToNode = {}  # mapping of output fds to nodes
     isWireless=False
-    nextWiphyIface=0 
     apwlan = {}
-    storeMacAddress=[]
-    apIface = ""
     isCode = True
     nAP=0
     phyInterfaces = []
-    nextAP=0
     ssid = {}
     phyID = {}
     isHost = False
@@ -433,7 +429,6 @@ class Node( object ):
            intf: interface
            port: port number (optional, typically OpenFlow port number)
            moveIntfFn: function to move interface (optional)"""
-        #checkNM.checkNetworkManager(Node.storeMacAddress)
         if port is None:
             port = self.newPort()
         self.intfs[ port ] = intf

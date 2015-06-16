@@ -200,10 +200,10 @@ class CLI( Cmd ):
         "Ping between all hosts."
         self.mn.pingAll( line )
 
-    def do_wireless( self, line ):
-        "Ping between all hosts."
+    #def do_wireless( self, line ):
+    #    "Ping between all hosts."
         #self.mn.pingAll( line )
-        self.mn.wireless_message( )
+    #    self.mn.wireless_message( )
 
     def do_pingpair( self, _line ):
         "Ping between first two hosts, useful for testing."
