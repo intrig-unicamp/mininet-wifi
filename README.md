@@ -2,7 +2,6 @@
 Mininet-WiFi is a fork of Mininet (http://mininet.org/) which allows the using of both WiFi Stations and Access Points. This release only add wifi features and you can work with Mininet like the oficial Mininet release (https://github.com/mininet/mininet). More informations and details about this release will be available in soon.        
 
 ##Installation  
-####Option 1: via install.sh  
 step 1: git clone https://github.com/intrig-unicamp/mininet-wifi  
 step 2: cd mininet-wifi  
 step 3: util/install.sh      
