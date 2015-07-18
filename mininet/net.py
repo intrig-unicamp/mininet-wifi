@@ -122,7 +122,7 @@ class Mininet( object ):
                   wipBase='192.168.0.0/24', inNamespace=False,
                   autoSetMacs=False, autoStaticArp=False, autoPinCpus=False,
                   listenPort=None, waitConnected=False, 
-                  interfaceID=3, ssid="my-ssid", mode="g", channel="6", wirelessRadios=0,  wmm_enabled="1",
+                  interfaceID=3, ssid="my-ssid", mode="g", channel="6", wirelessRadios=0,  wmm_enabled="1", waitTime=1,
                   country_code=None, ieee80211d=None, rsn_pairwise=None, wpa_passphrase=None, wpa=None, auth_algs=None, wpa_key_mgmt=None ):
         """Create Mininet object.
            topo: Topo (topology) object or None
@@ -177,6 +177,7 @@ class Mininet( object ):
         self.baseStationName = []
         self.stationName = []
                 
+        self.waitTime = waitTime
         self.wprefixLen = 24
         self.resultIface = ""
         self.interfaceID = interfaceID
@@ -569,7 +570,7 @@ class Mininet( object ):
         return macColonHex( random.randint(1, 2**48 - 1) & 0xfeffffffffff |
                             0x020000000000 )
 
-    def addHoc( self, node, ssid, cls=None, **params ):
+    def addHoc( self, node, ssid, mode, cls=None, **params ):
         
             if(self.apcommandControll):   
                 checkNM.checkNetworkManager(self.storeMacAddress)
@@ -591,12 +592,13 @@ class Mininet( object ):
             cls = self.link if cls is None else cls
             link = cls( node, node2, **options )
             
+            waitTime = self.waitTime
             #self.links.append( link )
             for host in self.hosts:
                 if (host == node):
                     #ssid = Node.ssid[ str(node) ]
                     selfHost = self.host
-                    station.adhoc(selfHost, host, ssid)
+                    station.adhoc(selfHost, host, ssid, mode, waitTime)
             return link
 
     def addLink( self, node1, node2, port1=None, port2=None, 

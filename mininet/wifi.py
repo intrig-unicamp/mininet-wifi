@@ -9,6 +9,7 @@ import struct
 import fcntl
 import fileinput
 import subprocess
+import time
 
 from mininet.log import  info
 
@@ -130,14 +131,19 @@ class station ( object ):
             self.host.cmd(host, "iw dev %s-wlan0 connect %s" % (host, self.ssid))
             
     @classmethod    
-    def adhoc(self, selfHost, host, ssid):
+    def adhoc(self, selfHost, host, ssid, mode, waitTime):
         self.host = selfHost
         self.ssid = ssid
+        self.mode = mode
+        if (self.mode=="g"):
+            self.host.cmd(host, "tc qdisc add dev %s-wlan0 root tbf rate 54mbit latency 10ms burst 1540" % (host)) 
         self.host.cmd(host, "iw dev %s-wlan0 set type ibss" % (host))
-        self.host.cmd(host, "ifconfig %s-wlan0 down" % (host))
-        self.host.cmd(host, "ifconfig %s-wlan0 up" % (host))
+        #self.host.cmd(host, "ifconfig %s-wlan0 down" % (host))
+        #self.host.cmd(host, "ifconfig %s-wlan0 up" % (host))
         self.host.cmd(host, "iw dev %s-wlan0 ibss join %s 2412" % (host, self.ssid))
-    
+        print "connecting %s ..." % host
+        time.sleep(waitTime)
+        
     @classmethod    
     def isWifi(self, isWiFi):
         return isWiFi
