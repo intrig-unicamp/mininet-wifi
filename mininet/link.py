@@ -455,6 +455,12 @@ class Link( object ):
                 intf1 = None
                 intf2 = cls2( name=intfName2, node=node2,
                               link=self, mac=addr2, **params2 )
+        elif((str(node1)[:3]=="sta" and str(node2)[:3]=="sta") or (str(node2)[:3]=="sta" and str(node1)[:3]=="sta")):
+            print "kkkkkkkkkkkkkkk"
+            intf1 = cls1( name=intfName1, node=node1,
+                          link=self, mac=addr1, **params1  )
+            intf2 = cls2( name=intfName2, node=node2,
+                          link=self, mac=addr2, **params2 )
         else:
             intf1 = cls1( name=intfName1, node=node1,
                           link=self, mac=addr1, **params1  )

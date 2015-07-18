@@ -17,6 +17,7 @@ Video 03: https://www.youtube.com/watch?v=WH6bSOKC7Lk
   
 ###You also can use the examples:   
 
+/examples/adhoc.py  
 /examples/simplewifitopology.py  
 /examples/wifiStationsAndHosts.py  
 /examples/2AccessPoints.py  

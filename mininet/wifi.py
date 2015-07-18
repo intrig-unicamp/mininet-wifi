@@ -128,6 +128,17 @@ class station ( object ):
             self.host.cmd(host, "iw dev %s-wlan0 connect %s" % (host, self.ssid))
         else:
             self.host.cmd(host, "iw dev %s-wlan0 connect %s" % (host, self.ssid))
+            
+    @classmethod    
+    def adhoc(self, selfHost, host, ssid, isNode1):
+        self.host = selfHost
+        self.ssid = ssid
+        self.isNode1 = isNode1
+        if self.isNode1:
+            self.host.cmd(host, "ifconfig %s-wlan0 down" % (host))
+            self.host.cmd(host, "iw dev %s-wlan0 set type ibss" % (host))
+            self.host.cmd(host, "ifconfig %s-wlan0 up" % (host))
+            self.host.cmd(host, "iw dev %s-wlan0 ibss join %s 2412" % (host, self.ssid))
     
     @classmethod    
     def isWifi(self, isWiFi):

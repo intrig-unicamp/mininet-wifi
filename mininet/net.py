@@ -111,7 +111,7 @@ from mininet.wifi import checkNM, module, phyInterface, accessPoint, station
 from __builtin__ import True
 
 # Mininet version: should be consistent with README and LICENSE
-VERSION = "BetaVersion_0.91"
+VERSION = "BetaVersion_0.92"
 
 class Mininet( object ):
     "Network emulation with hosts spawned in network namespaces."
@@ -280,7 +280,8 @@ class Mininet( object ):
         defaults = { 'ip': wipAdd( self.nextIP,
                                   wipBaseNum=self.wipBaseNum,
                                   wprefixLen=self.wprefixLen ) +
-                                  '/%s' % self.wprefixLen }
+                                  '/%s' % self.wprefixLen,
+                                  'ssid': self.ssid }
         
         defaults.update( params )        
         if not cls:
@@ -290,6 +291,10 @@ class Mininet( object ):
         self.nameToNode[ name ] = h
         
         self.stationName.append(name)
+        
+        ssid = ("%s" % params.pop('ssid', {}))
+        if(ssid!="{}"):
+            self.ssid = ssid
       
         self.newapif=[]
         self.apif = subprocess.check_output("iwconfig 2>&1 | grep IEEE | awk '{print $1}'",shell=True)
@@ -311,12 +316,12 @@ class Mininet( object ):
         phyInterface.phy[name] = self.splitResultIface[self.nextIface][3:]
         
         Node.storeMacAddress = self.storeMacAddress
+        Node.ssid[name] = self.ssid
         
         Node.isFirst = len(self.phyInterfaces)
         self.nextIP += 1        
         self.nextIface+=1
         return h
-
 
     def addBaseStation( self, name, cls=None, **params ):
         """Add BaseStation.
@@ -564,6 +569,36 @@ class Mininet( object ):
         return macColonHex( random.randint(1, 2**48 - 1) & 0xfeffffffffff |
                             0x020000000000 )
 
+    def addHoc( self, node, ssid, cls=None, **params ):
+        
+            if(self.apcommandControll):   
+                checkNM.checkNetworkManager(self.storeMacAddress)
+            
+            node2 = node
+            
+            node = node if not isinstance( node, basestring ) else self[ node ]
+            node2 = node2 if not isinstance( node2, basestring ) else self[ node2 ]
+            options = dict( params )
+            
+            for host in self.hosts:
+                if (host == node):
+                    options.setdefault( 'mode', self.mode )
+            
+            # Set default MAC - this should probably be in Link
+            options.setdefault( 'addr1', self.randMac() )
+            options.setdefault( 'addr2', self.randMac() )
+            
+            cls = self.link if cls is None else cls
+            link = cls( node, node2, **options )
+            
+            #self.links.append( link )
+            for host in self.hosts:
+                if (host == node):
+                    #ssid = Node.ssid[ str(node) ]
+                    selfHost = self.host
+                    station.adhoc(selfHost, host, ssid, isNode1=True)
+            return link
+
     def addLink( self, node1, node2, port1=None, port2=None, 
                  cls=None, **params ):
         
@@ -604,6 +639,40 @@ class Mininet( object ):
                     selfHost = self.host
                     ssid = Node.ssid[ str(node1) ]
                     station.associate(selfHost, host, ssid, isNode1=False)
+            return link
+        
+        elif((str(node1)[:3]=="sta" and str(node2)[:3]=="sta") or (str(node2)[:3]=="sta" and str(node1)[:3]=="sta")):
+            #station.isWiFi=True
+            if(self.apcommandControll):   
+                checkNM.checkNetworkManager(self.storeMacAddress)
+                
+            node1 = node1 if not isinstance( node1, basestring ) else self[ node1 ]
+            node2 = node2 if not isinstance( node2, basestring ) else self[ node2 ]
+            options = dict( params )
+            
+            for host in self.hosts:
+                if (host == node1):
+                    options.setdefault( 'mode', self.mode )
+                elif (host == node2):
+                    options.setdefault( 'mode', self.mode )
+           
+            # Set default MAC - this should probably be in Link
+            options.setdefault( 'addr1', self.randMac() )
+            options.setdefault( 'addr2', self.randMac() )
+            
+            cls = self.link if cls is None else cls
+            link = cls( node1, node2, **options )
+            
+            #self.links.append( link )
+            for host in self.hosts:
+                if (host == node1):
+                    ssid = Node.ssid[ str(node1) ]
+                    selfHost = self.host
+                    station.adhoc(selfHost, host, ssid, isNode1=True)
+                elif (host == node2):
+                    selfHost = self.host
+                    ssid = Node.ssid[ str(node2) ]
+                    station.adhoc(selfHost, host, ssid, isNode1=False)
             return link
                     
         else:

@@ -304,18 +304,16 @@ class MininetRunner( object ):
             cleanup()
             exit()
 
-        if self.options.radios!=0:
-            Node.isWireless=True
+        if self.options.radios != 0:
+            Node.isWireless = True
             #wirelessRadios = self.options.radios
    
-        if self.options.wifi and self.options.radios==0:
-            Node.isWireless=True
+        if self.options.wifi and self.options.radios == 0:
+            Node.isWireless = True
             self.options.radios = 3
             
             
-            
         start = time.time()
-
         #if(Node.isWireless==True):
         #    info( '*** Wirelessss\n' )
         #else:

@@ -1218,7 +1218,6 @@ class OVSSwitch( Switch ):
                 os.system("ovs-vsctl add-port %s %s" % (self.name, (self.newapif[self.nAP])))
                 Node.nAP+=1
         
-        
     # This should be ~ int( quietRun( 'getconf ARG_MAX' ) ),
     # but the real limit seems to be much lower
     argmax = 128000
