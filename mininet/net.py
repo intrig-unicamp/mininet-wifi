@@ -596,7 +596,7 @@ class Mininet( object ):
                 if (host == node):
                     #ssid = Node.ssid[ str(node) ]
                     selfHost = self.host
-                    station.adhoc(selfHost, host, ssid, isNode1=True)
+                    station.adhoc(selfHost, host, ssid)
             return link
 
     def addLink( self, node1, node2, port1=None, port2=None, 

@@ -21,9 +21,9 @@ def topology():
     sta3 = net.addStation( 'sta3' )
 
     print "*** Creating links"
-    net.addHoc(sta1, 'adhocNet')
-    net.addHoc(sta2, 'adhocNet')
-    net.addHoc(sta3, 'adhocNet')
+    net.addHoc(sta1, 'adhocNet') #node, ssid
+    net.addHoc(sta2, 'adhocNet') #node, ssid
+    net.addHoc(sta3, 'adhocNet') #node, ssid
 
     print "*** Starting network"
     net.build()
