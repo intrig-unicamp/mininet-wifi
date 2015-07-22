@@ -333,18 +333,6 @@ def ipAdd( i, prefixLen=8, ipBaseNum=0x0a000000 ):
     ipnum = ( ipBaseNum & mask ) + i
     return ipStr( ipnum )
 
-def wipAdd( i, wprefixLen=8, wipBaseNum=0x0a000000 ):
-    """Return IP address string from ints
-       i: int to be added to ipbase
-       prefixLen: optional IP prefix length
-       wIpBase: option base IP address as int
-       returns IP address as string"""
-    imax = 0xffffffff >> wprefixLen
-    assert i <= imax, 'Not enough IP addresses in the subnet'
-    mask = 0xffffffff ^ imax
-    ipnum = ( wipBaseNum & mask ) + i
-    return ipStr( ipnum )
-
 def ipParse( ip ):
     "Parse an IP address and return an unsigned int."
     args = [ int( arg ) for arg in ip.split( '.' ) ]

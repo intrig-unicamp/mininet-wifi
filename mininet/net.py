@@ -105,13 +105,13 @@ from mininet.nodelib import NAT
 from mininet.link import Link, Intf
 from mininet.util import ( quietRun, fixLimits, numCores, ensureRoot,
                            macColonHex, ipStr, ipParse, netParse, ipAdd,
-                           wipAdd, waitListening )
+                           waitListening )
 from mininet.term import cleanUpScreens, makeTerms
 from mininet.wifi import checkNM, module, phyInterface, accessPoint, station
 from __builtin__ import True
 
 # Mininet version: should be consistent with README and LICENSE
-VERSION = "BetaVersion_0.92"
+VERSION = "BetaVersion_0.93"
 
 class Mininet( object ):
     "Network emulation with hosts spawned in network namespaces."
@@ -119,8 +119,7 @@ class Mininet( object ):
     def __init__( self, topo=None, switch=OVSKernelSwitch, host=Host,
                   controller=DefaultController, link=Link, intf=Intf,
                   build=True, xterms=False, cleanup=False, ipBase='10.0.0.0/8',
-                  wipBase='192.168.0.0/24', inNamespace=False,
-                  autoSetMacs=False, autoStaticArp=False, autoPinCpus=False,
+                  inNamespace=False, autoSetMacs=False, autoStaticArp=False, autoPinCpus=False,
                   listenPort=None, waitConnected=False, 
                   interfaceID=3, ssid="my-ssid", mode="g", channel="6", wirelessRadios=0,  wmm_enabled="1", waitTime=1,
                   country_code=None, ieee80211d=None, rsn_pairwise=None, wpa_passphrase=None, wpa=None, auth_algs=None, wpa_key_mgmt=None ):
@@ -149,8 +148,6 @@ class Mininet( object ):
         self.link = link
         self.intf = intf
         self.ipBase = ipBase
-        self.wipBase = wipBase
-        self.wipBaseNum, self.wprefixLen = netParse( self.wipBase )
         self.ipBaseNum, self.prefixLen = netParse( self.ipBase )
         self.nextIP = 1  # start for address allocation
         self.inNamespace = inNamespace        
@@ -278,12 +275,17 @@ class Mininet( object ):
            params: parameters for host
            returns: added host"""
         #Default IP and MAC addresses
-        defaults = { 'ip': wipAdd( self.nextIP,
-                                  wipBaseNum=self.wipBaseNum,
-                                  wprefixLen=self.wprefixLen ) +
-                                  '/%s' % self.wprefixLen,
+        defaults = { 'ip': ipAdd( self.nextIP,
+                                  ipBaseNum=self.ipBaseNum,
+                                  prefixLen=self.prefixLen ) +
+                                  '/%s' % self.prefixLen,
                                   'ssid': self.ssid }
         
+        if self.autoSetMacs:
+            defaults[ 'mac' ] = macColonHex( self.nextIP )
+        if self.autoPinCpus:
+            defaults[ 'cores' ] = self.nextCore
+            self.nextCore = ( self.nextCore + 1 ) % self.numCores        
         defaults.update( params )        
         if not cls:
             cls = self.host
@@ -305,12 +307,19 @@ class Mininet( object ):
         for apif in self.apif:
             if apif not in self.phyInterfaces and apif!="":
                 self.newapif.append(apif)
-                
         
         self.newapif = sorted(self.newapif)
         self.newapif.sort(key=len, reverse=False)
-      
-        self.storeMacAddress=self.storeMacAddress+(checkNM.getMacAddress(self.newapif[self.nextIface]))
+       
+        if params=={}:
+            self.storeMacAddress = self.storeMacAddress+(checkNM.getMacAddress(self.newapif[self.nextIface]))
+        else:
+            try:
+                newMac=[]
+                newMac.append(defaults['mac'])
+                self.storeMacAddress = self.storeMacAddress+newMac
+            except:
+                self.storeMacAddress = self.storeMacAddress+(checkNM.getMacAddress(self.newapif[self.nextIface]))
         
         self.splitResultIface = phyInterface.getPhyInterfaces()
         
