@@ -32,6 +32,6 @@ Samuel Henrique Bucke Brito (shbbrito@dca.fee.unicamp.br)
 Mateus A. Silva Santos (msantos@dca.fee.unicamp.br)  
 Christian Rodolfo Esteve Rothenberg (chesteve@dca.fee.unicamp.br)  
 
-We are members of INTRIG (Information & Networking Technologies Research & Innovation Group) at University of Campinas - Unicamp, SP, Brazil.
+We are members of [INTRIG (Information & Networking Technologies Research & Innovation Group)](http://intrig.dca.fee.unicamp.br) at University of Campinas - Unicamp, SP, Brazil.
 
 
