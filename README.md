@@ -5,6 +5,9 @@ Mininet-WiFi is a fork of Mininet (http://mininet.org/) which allows the using o
 step 1: git clone https://github.com/intrig-unicamp/mininet-wifi  
 step 2: cd mininet-wifi  
 step 3: util/install.sh      
+
+##Download an Image  
+[Download](http://intrig.dca.fee.unicamp.br/index.php/projects/projects.html)    
   
 ###Get Started
 sudo mn --wifi --ssid=new_ssid  
