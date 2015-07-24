@@ -7,7 +7,7 @@ step 2: cd mininet-wifi
 step 3: util/install.sh      
 
 ##Download an Image  
-[Download](http://intrig.dca.fee.unicamp.br/index.php/projects/projects.html)    
+Download: [Virtual Disk (1.3GB)](http://intrig.dca.fee.unicamp.br/index.php/projects/projects.html)    
   
 ###Get Started
 sudo mn --wifi --ssid=new_ssid  
