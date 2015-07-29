@@ -208,8 +208,6 @@ class Mininet( object ):
             if(Node.wirelessRadios!=3):
                 self.wirelessRadios = Node.wirelessRadios
             
-            print self.wirelessRadios
-            
             module._start_module(self.wirelessRadios) #Initatilize WiFi Module
                     
         self.isWireless = Node.isWireless
@@ -714,6 +712,8 @@ class Mininet( object ):
         if(Node.isWireless):
             info( '*** Adding Station(s):\n' )
             for hostName in topo.hosts():
+                print "test"
+                print hostName
                 self.addStation( hostName, **topo.nodeInfo( hostName ) )
                 info( hostName + ' ' )                
             
