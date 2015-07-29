@@ -357,6 +357,7 @@ class SingleSwitchReversedTopo( Topo ):
 class MinimalTopo( SingleSwitchTopo ):
     "Minimal topology with two hosts and one switch"
     def build( self ):
+        Node.wirelessRadios = 3
         return SingleSwitchTopo.build( self, k=2 )
 
 

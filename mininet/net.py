@@ -204,7 +204,7 @@ class Mininet( object ):
             Node.phyInterfaces = self.phyInterfaces
             Node.isWireless=True
             
-            #useful to single and linear topo
+            #useful to minimal, single and linear topo
             if(Node.wirelessRadios!=3):
                 self.wirelessRadios = Node.wirelessRadios
                         
