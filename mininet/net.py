@@ -207,7 +207,9 @@ class Mininet( object ):
             #useful to minimal, single and linear topo
             if(Node.wirelessRadios!=3):
                 self.wirelessRadios = Node.wirelessRadios
-                        
+            
+            print self.wirelessRadios
+            
             module._start_module(self.wirelessRadios) #Initatilize WiFi Module
                     
         self.isWireless = Node.isWireless
