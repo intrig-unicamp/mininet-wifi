@@ -593,7 +593,9 @@ class Node( object ):
         self.setParam( r, 'setIP', ip=ip )
         self.setParam( r, 'setDefaultRoute', defaultRoute=defaultRoute )
         
-        if(mac!=None and self.isWireless==True):
+        #Necessary if the mac address has changed
+        host = str(self)
+        if(mac!=None and self.isWireless==True and host[:3]=='sta'):
             self.cmd("iw dev %s-wlan0 connect %s" % (self, self.associatedAP[self]))
         
         # This should be examined
