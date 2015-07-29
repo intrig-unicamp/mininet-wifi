@@ -111,7 +111,7 @@ from mininet.wifi import checkNM, module, phyInterface, accessPoint, station
 from __builtin__ import True
 
 # Mininet version: should be consistent with README and LICENSE
-VERSION = "BetaVersion_0.93"
+VERSION = "BetaVersion_0.94"
 
 class Mininet( object ):
     "Network emulation with hosts spawned in network namespaces."
@@ -187,7 +187,6 @@ class Mininet( object ):
         self.cmd=""        
         self.storeMacAddress = []        
         self.phyInterfaces = []
-        self.apcommand = ""
         
         self.hosts = []
         self.switches = []
@@ -391,62 +390,63 @@ class Mininet( object ):
         station.tcmode(self.newapif[self.nextIface], self.mode)
         
         Node.apwlan[name] = self.newapif[self.nextIface]
+        Node.firstAP[name] = True
+        #if(len(self.baseStationName)==1):
+        self.cmd = ("echo \'")
+        """General Configurations"""             
+        if(self.interfaceID!=None):
+            self.cmd = self.cmd + ("interface=%s" % self.newapif[self.nextIface]) # the interface used by the AP
+        """Not using at the moment"""
+        self.cmd = self.cmd + ("\ndriver=nl80211")
+        if(self.ssid!=None):
+            self.cmd = self.cmd + ("\nssid=%s" % self.ssid) # the name of the AP
+        if(self.mode!=None):
+            self.cmd = self.cmd + ("\nhw_mode=%s" % self.mode) # g simply means 2.4GHz
+        if(self.channel!=None):
+            self.cmd = self.cmd + ("\nchannel=%s" % self.channel) # the channel to use 
+        if(self.ieee80211d!=None):
+            self.cmd = self.cmd + ("\nieee80211d=%s" % self.ieee80211d) # limit the frequencies used to those allowed in the country
+        if(self.country_code!=None):
+            self.cmd = self.cmd + ("\ncountry_code=%s" % self.country_code) # the country code
+        #self.cmd = self.cmd + ("\nieee8021self.apcommand = ""1n=1") # 802.11n support
+        #if(self.wmm_enabled!=None):
+            #self.cmd = self.cmd + ("\nwmm_enabled=%s" % self.wmm_enabled) # QoS support
+        """Not using at the moment"""
+        #self.cmd = self.cmd + ("\nmacaddr_acl=0\nauth_algs=1\nignore_broadcast_ssid=0")
+        """AP1"""                
+        if(self.auth_algs!=None):
+            self.cmd = self.cmd + ("\nauth_algs=%s" % self.auth_algs) # 1=wpa, 2=wep, 3=both
+        if(self.wpa!=None):
+            self.cmd = self.cmd + ("\nwpa=%s" % self.wpa) # WPA2 only
+        if(self.wpa_key_mgmt!=None):
+            self.cmd = self.cmd + ("\nwpa_key_mgmt=%s" % self.wpa_key_mgmt ) 
+        if(self.rsn_pairwise!=None):
+            self.cmd = self.cmd + ("\nrsn_pairwise=%s" % self.rsn_pairwise)  
+        if(self.wpa_passphrase!=None):
+            self.cmd = self.cmd + ("\nwpa_passphrase=%s" % self.wpa_passphrase)                        
         
-        if(len(self.baseStationName)==1):
-            self.cmd = ("echo \'")
-            """General Configurations"""             
-            if(self.interfaceID!=None):
-                self.cmd = self.cmd + ("interface=%s" % self.newapif[self.nextIface]) # the interface used by the AP
-            """Not using at the moment"""
-            self.cmd = self.cmd + ("\ndriver=nl80211")
-            if(self.ssid!=None):
-                self.cmd = self.cmd + ("\nssid=%s" % self.ssid) # the name of the AP
-            if(self.mode!=None):
-                self.cmd = self.cmd + ("\nhw_mode=%s" % self.mode) # g simply means 2.4GHz
-            if(self.channel!=None):
-                self.cmd = self.cmd + ("\nchannel=%s" % self.channel) # the channel to use 
-            if(self.ieee80211d!=None):
-                self.cmd = self.cmd + ("\nieee80211d=%s" % self.ieee80211d) # limit the frequencies used to those allowed in the country
-            if(self.country_code!=None):
-                self.cmd = self.cmd + ("\ncountry_code=%s" % self.country_code) # the country code
-            #self.cmd = self.cmd + ("\nieee8021self.apcommand = ""1n=1") # 802.11n support
-            #if(self.wmm_enabled!=None):
-                #self.cmd = self.cmd + ("\nwmm_enabled=%s" % self.wmm_enabled) # QoS support
-            """Not using at the moment"""
-            #self.cmd = self.cmd + ("\nmacaddr_acl=0\nauth_algs=1\nignore_broadcast_ssid=0")
-            """AP1"""                
-            if(self.auth_algs!=None):
-                self.cmd = self.cmd + ("\nauth_algs=%s" % self.auth_algs) # 1=wpa, 2=wep, 3=both
-            if(self.wpa!=None):
-                self.cmd = self.cmd + ("\nwpa=%s" % self.wpa) # WPA2 only
-            if(self.wpa_key_mgmt!=None):
-                self.cmd = self.cmd + ("\nwpa_key_mgmt=%s" % self.wpa_key_mgmt ) 
-            if(self.rsn_pairwise!=None):
-                self.cmd = self.cmd + ("\nrsn_pairwise=%s" % self.rsn_pairwise)  
-            if(self.wpa_passphrase!=None):
-                self.cmd = self.cmd + ("\nwpa_passphrase=%s" % self.wpa_passphrase)                  
-        
-        elif(len(self.baseStationName)>self.countAP and len(self.baseStationName) != 1):
-            """From AP2"""
-            self.cmd = self.apcommand
+        #elif(len(self.baseStationName)>self.countAP and len(self.baseStationName) != 1):
+        #    """From AP2"""
+        #    self.cmd = self.apcommand
             #self.cmd = self.cmd + "\n"
-            self.cmd = self.cmd + ("\nbss=%s" % self.newapif[self.nextIface]) # the interface used by the AP
-            if(self.ssid!=None):
-                self.cmd = self.cmd + ("\nssid=%s" % self.ssid ) # the name of the AP
+        #    self.cmd = self.cmd + ("\nbss=%s" % self.newapif[self.nextIface]) # the interface used by the AP
+        #    if(self.ssid!=None):
+        #        self.cmd = self.cmd + ("\nssid=%s" % self.ssid ) # the name of the AP
                 #self.cmd = self.cmd + ("\nssid=%s" % self.ssid) # the name of the AP
-            if(self.auth_algs!=None):
-                self.cmd = self.cmd + ("\nauth_algs=%s" % self.auth_algs) # 1=wpa, 2=wep, 3=both
-            if(self.wpa!=None):
-                self.cmd = self.cmd + ("\nwpa=%s" % self.wpa) # WPA2 only
-            if(self.wpa_key_mgmt!=None):
-                self.cmd = self.cmd + ("\nwpa_key_mgmt=%s" % self.wpa_key_mgmt ) 
-            if(self.rsn_pairwise!=None):
-                self.cmd = self.cmd + ("\nrsn_pairwise=%s" % self.rsn_pairwise)  
-            if(self.wpa_passphrase!=None):
-                self.cmd = self.cmd + ("\nwpa_passphrase=%s" % self.wpa_passphrase)  
-            self.countAP = len(self.baseStationName)
-            self.apcommand = ""       
-        self.apcommand = self.apcommand + self.cmd
+        #    if(self.auth_algs!=None):
+        #        self.cmd = self.cmd + ("\nauth_algs=%s" % self.auth_algs) # 1=wpa, 2=wep, 3=both
+        #    if(self.wpa!=None):
+        #        self.cmd = self.cmd + ("\nwpa=%s" % self.wpa) # WPA2 only
+        #    if(self.wpa_key_mgmt!=None):
+        #        self.cmd = self.cmd + ("\nwpa_key_mgmt=%s" % self.wpa_key_mgmt ) 
+        #    if(self.rsn_pairwise!=None):
+        #        self.cmd = self.cmd + ("\nrsn_pairwise=%s" % self.rsn_pairwise)  
+        #    if(self.wpa_passphrase!=None):
+        #        self.cmd = self.cmd + ("\nwpa_passphrase=%s" % self.wpa_passphrase)  
+        #    self.countAP = len(self.baseStationName)
+        #    self.apcommand = ""       
+        checkNM.checkNetworkManager(self.storeMacAddress)
+        checkNM.APfile(self.cmd, str(self.newapif[self.nextIface])) 
         
         self.storeMacAddress=self.storeMacAddress+(checkNM.getMacAddress(self.newapif[self.nextIface]))
         
@@ -614,11 +614,6 @@ class Mininet( object ):
                  cls=None, **params ):
         
         if((str(node1)[:3]=="sta" and str(node2)[:2]=="ap") or (str(node2)[:3]=="sta" and str(node1)[:2]=="ap")):
-            #station.isWiFi=True
-            if(self.apcommandControll):   
-                checkNM.checkNetworkManager(self.storeMacAddress)
-                checkNM.APfile(self.apcommand) 
-                self.apcommandControll=False
             
             node1 = node1 if not isinstance( node1, basestring ) else self[ node1 ]
             node2 = node2 if not isinstance( node2, basestring ) else self[ node2 ]
@@ -774,10 +769,10 @@ class Mininet( object ):
                 self.addBaseStation( baseStationName, **params )
                 info( baseStationName + ' ' )
                 
-                info( '\n*** Associating Stations:\n' )                
-                if(self.apcommandControll):     
-                    checkNM.APfile(self.apcommand)       
-                    self.apcommandControll=False
+                info( '\n*** Associating Stations:\n' )     
+                #if(self.apcommandControll):     
+               # checkNM.APfile(self.apcommand, baseStationName)       
+                #    self.apcommandControll=False
                 for srcName, dstName, params in topo.links(
                         sort=True, withInfo=True ):
                     self.addLink( **params )  

@@ -117,6 +117,7 @@ class Node( object ):
     outToNode = {}  # mapping of output fds to nodes
     isWireless=False
     apwlan = {}
+    firstAP = {}
     isCode = True
     nAP=0
     phyInterfaces = []

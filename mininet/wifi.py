@@ -10,6 +10,7 @@ import fcntl
 import fileinput
 import subprocess
 import time
+import glob
 
 from mininet.log import  info
 
@@ -64,10 +65,10 @@ class checkNM ( object ):
         return self.storeMacAddress
     
     @classmethod   
-    def APfile(self, apcommand):
-        self.apcommand = apcommand + ("\' > ap.conf")        
+    def APfile(self, apcommand, ap):
+        self.apcommand = apcommand + ("\' > %s.conf" % ap)  
         os.system(self.apcommand)
-        self.cmd = ("hostapd -d -f apdebug.txt -B ap.conf")
+        self.cmd = ("hostapd -f apdebug.txt -B %s.conf" % ap)
         os.system(self.cmd)
     
 
@@ -81,9 +82,12 @@ class module( object ):
     @classmethod
     def _stop_module(self):
         #info( "*** Removing Wireless Module\n" )
-        if(os.path.exists('ap.conf')):
-            os.system( 'rm ap.conf' )
-            
+        if glob.glob("*.conf"):
+            os.system( 'rm *.conf' )
+        
+        if glob.glob("*.txt"):
+            os.system( 'rm *.txt' )
+       
         os.system( 'rmmod mac80211_hwsim' )
         os.system( 'killall -9 hostapd' )
 
