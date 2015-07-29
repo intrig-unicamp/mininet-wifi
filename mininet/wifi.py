@@ -65,9 +65,9 @@ class checkNM ( object ):
     
     @classmethod   
     def APfile(self, apcommand):
-        self.apcommand = apcommand + ("\" > ap.conf")
+        self.apcommand = apcommand + ("\' > ap.conf")        
         os.system(self.apcommand)
-        self.cmd = ("hostapd -B ap.conf")
+        self.cmd = ("hostapd -d -f apdebug.txt -B ap.conf")
         os.system(self.cmd)
     
 

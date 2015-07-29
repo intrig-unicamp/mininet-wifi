@@ -3,7 +3,6 @@
 """
 This example shows how work with different APs
 """
-
 from mininet.net import Mininet
 from mininet.node import  Controller, OVSKernelSwitch
 from mininet.cli import CLI
@@ -22,7 +21,6 @@ def topology():
     sta4 = net.addStation( 'sta4', ip="192.168.0.4" )
     ap1 = net.addBaseStation( 'ap1', ssid="ssid_1", mode="g", channel="5" )
     ap2 = net.addBaseStation( 'ap2', ssid="ssid_2" )
-
     c0 = net.addController('c0', controller=Controller, ip='127.0.0.1', port=6633 )
 
     print "*** Adding Link"

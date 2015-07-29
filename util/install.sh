@@ -2,6 +2,7 @@
 
 # Mininet install script for Ubuntu (and Debian Wheezy+)
 # Brandon Heller (brandonh@stanford.edu)
+# Modified by Ramon Fontes (ramonreisfontes@gmail.com)
 
 # Fail on error
 set -e
@@ -137,6 +138,12 @@ function mn_deps {
     pushd $MININET_DIR/mininet-wifi
     sudo make install
     popd
+}
+
+# Install Mininet-WiFi deps
+function wifi_deps {
+    echo "Installing Mininet-WiFi dependencies"
+    $install hostapd iw 
 }
 
 # Install Mininet developer dependencies
@@ -696,7 +703,7 @@ function all {
     iw
     oftest
     cbench
-    echo "Enjoy Mininet!"
+    echo "Enjoy Mininet-WiFi!"
 }
 
 # Restore disk space and remove sensitive files before shipping a VM.
@@ -760,6 +767,7 @@ function usage {
     printf -- ' -v: install Open (V)switch\n' >&2
     printf -- ' -V <version>: install a particular version of Open (V)switch on Ubuntu\n' >&2
     printf -- ' -w: install OpenFlow (W)ireshark dissector\n' >&2
+    printf -- ' -W: install Mininet-WiFi dependencies\n' >&2
     printf -- ' -y: install R(y)u Controller\n' >&2
     printf -- ' -x: install NO(X) Classic OpenFlow controller\n' >&2
     printf -- ' -0: (default) -0[fx] installs OpenFlow 1.0 versions\n' >&2
@@ -773,7 +781,7 @@ if [ $# -eq 0 ]
 then
     all
 else
-    while getopts 'abcdefhikmnprs:tvV:wxy03' OPTION
+    while getopts 'abcdefhikmnprs:tvV:wWxy03' OPTION
     do
       case $OPTION in
       a)    all;;
@@ -801,6 +809,7 @@ else
       V)    OVS_RELEASE=$OPTARG;
             ubuntuOvs;;
       w)    install_wireshark;;
+      W)    wifi_deps;;
       x)    case $OF_VERSION in
             1.0) nox;;
             1.3) nox13;;

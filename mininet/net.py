@@ -391,9 +391,9 @@ class Mininet( object ):
         station.tcmode(self.newapif[self.nextIface], self.mode)
         
         Node.apwlan[name] = self.newapif[self.nextIface]
-               
+        
         if(len(self.baseStationName)==1):
-            self.cmd = ("echo \"")
+            self.cmd = ("echo \'")
             """General Configurations"""             
             if(self.interfaceID!=None):
                 self.cmd = self.cmd + ("interface=%s" % self.newapif[self.nextIface]) # the interface used by the AP
@@ -429,7 +429,7 @@ class Mininet( object ):
         elif(len(self.baseStationName)>self.countAP and len(self.baseStationName) != 1):
             """From AP2"""
             self.cmd = self.apcommand
-            self.cmd = self.cmd + "\n"
+            #self.cmd = self.cmd + "\n"
             self.cmd = self.cmd + ("\nbss=%s" % self.newapif[self.nextIface]) # the interface used by the AP
             if(self.ssid!=None):
                 self.cmd = self.cmd + ("\nssid=%s" % self.ssid ) # the name of the AP
@@ -445,7 +445,7 @@ class Mininet( object ):
             if(self.wpa_passphrase!=None):
                 self.cmd = self.cmd + ("\nwpa_passphrase=%s" % self.wpa_passphrase)  
             self.countAP = len(self.baseStationName)
-            self.apcommand = ""        
+            self.apcommand = ""       
         self.apcommand = self.apcommand + self.cmd
         
         self.storeMacAddress=self.storeMacAddress+(checkNM.getMacAddress(self.newapif[self.nextIface]))
@@ -667,6 +667,8 @@ class Mininet( object ):
                 elif (host == node2):
                     options.setdefault( 'mode', self.mode )
            
+           
+            
             # Set default MAC - this should probably be in Link
             options.setdefault( 'addr1', self.randMac() )
             options.setdefault( 'addr2', self.randMac() )
@@ -705,7 +707,6 @@ class Mininet( object ):
                 options.setdefault( 'port1', port1 )
             if port2 is not None:
                 options.setdefault( 'port2', port2 )
-            
             # Set default MAC - this should probably be in Link
             options.setdefault( 'addr1', self.randMac() )
             options.setdefault( 'addr2', self.randMac() )
