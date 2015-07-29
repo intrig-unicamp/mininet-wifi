@@ -710,7 +710,6 @@ class Mininet( object ):
                     self.addController( 'c%d' % i, cls )
         
         if(Node.isWireless):
-            print self.wirelessRadios
             info( '*** Adding Station(s):\n' )
             for hostName in topo.hosts():
                 self.addStation( hostName, **topo.nodeInfo( hostName ) )
