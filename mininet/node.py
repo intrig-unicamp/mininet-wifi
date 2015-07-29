@@ -122,6 +122,7 @@ class Node( object ):
     nAP=0
     phyInterfaces = []
     ssid = {}
+    associatedAP = {}
     phyID = {}
     isHost = False
     wIface = {}
@@ -591,6 +592,10 @@ class Node( object ):
         self.setParam( r, 'setMAC', mac=mac )
         self.setParam( r, 'setIP', ip=ip )
         self.setParam( r, 'setDefaultRoute', defaultRoute=defaultRoute )
+        
+        if(mac!=None and self.isWireless==True):
+            self.cmd("iw dev %s-wlan0 connect %s" % (self, self.associatedAP[self]))
+        
         # This should be examined
         self.cmd( 'ifconfig lo ' + lo )
         return r

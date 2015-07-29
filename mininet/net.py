@@ -301,7 +301,6 @@ class Mininet( object ):
         self.apif = subprocess.check_output("iwconfig 2>&1 | grep IEEE | awk '{print $1}'",shell=True)
         self.apif = self.apif.split("\n")
         
-        
         for apif in self.apif:
             if apif not in self.phyInterfaces and apif!="":
                 self.newapif.append(apif)
@@ -400,7 +399,6 @@ class Mininet( object ):
         checkNM.APfile(self.cmd, str(self.newapif[self.nextIface])) 
         
         self.storeMacAddress=self.storeMacAddress+(checkNM.getMacAddress(self.newapif[self.nextIface]))
-        
         self.nextIface+=1
         return bs
      
@@ -590,10 +588,12 @@ class Mininet( object ):
                 if (host == node1):
                     ssid = Node.ssid[ str(node2) ]
                     selfHost = self.host
+                    Node.associatedAP[host] = ssid
                     station.associate(selfHost, host, ssid, isNode1=True)
                 elif (host == node2):
-                    selfHost = self.host
                     ssid = Node.ssid[ str(node1) ]
+                    selfHost = self.host
+                    Node.associatedAP[host] = ssid
                     station.associate(selfHost, host, ssid, isNode1=False)
             return link
         
@@ -868,7 +868,7 @@ class Mininet( object ):
             link.stop()
         info( '\n' )
         if(self.isWireless):
-            info( '*** Stopping %i baseStations\n' % len( self.baseStations ) )            
+            info( '*** Stopping %i baseStation(s)\n' % len( self.baseStations ) )            
             stopped = {}            
             for swclass, baseStations in groupby(
                     sorted( self.baseStations, key=type ), type ):
@@ -882,13 +882,13 @@ class Mininet( object ):
                     baseStation.stop()
                 baseStation.terminate()
             info( '\n' )
-            info( '*** Stopping %i stations\n' % len( self.hosts ) )     
+            info( '*** Stopping %i station(s)\n' % len( self.hosts ) )     
             for host in self.hosts:
                 info( host.name + ' ' )
                 host.terminate()
             module._stop_module() #Stopping WiFi Module
             info( '\n' )
-            info( '*** Stopping %i switches\n' % len( self.switches ) )
+            info( '*** Stopping %i switche(s)\n' % len( self.switches ) )
             stopped = {}
             for swclass, switches in groupby(
                     sorted( self.switches, key=type ), type ):
