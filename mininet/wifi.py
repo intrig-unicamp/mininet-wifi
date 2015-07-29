@@ -122,7 +122,9 @@ class station ( object ):
         elif(self.mode=="g"):
             os.system("tc qdisc add dev %s root tbf rate 54mbit latency 10ms burst 1540" % (self.newapif)) 
         elif(self.mode=="n"):
-            os.system("tc qdisc add dev %s root tbf rate 600mbit latency 10ms burst 1540" % (self.newapif))   
+            os.system("tc qdisc add dev %s root tbf rate 600mbit latency 10ms burst 1540" % (self.newapif))
+        elif(self.mode=="ac"):
+            os.system("tc qdisc add dev %s root tbf rate 6777mbit latency 10ms burst 1540" % (self.newapif))   
     
     @classmethod    
     def associate(self, selfHost, host, ssid, isNode1):
@@ -161,27 +163,63 @@ class wlanIface ( object ):
             
 class accessPoint ( object ):
     
-    def __init__(self, baseStationName, interfaceID, phyInterfaces, nextIface, mode, channel, 
-                 ieee80211d, country_code, wmm_enabled, ssid, auth_algs, wpa, wpa_key_mgmt, 
-                 rsn_pairwise, wpa_passphrase, countAP):
+    @classmethod
+    def start(self, interfaceID, nextIface, ssid, mode, channel, ieee80211d, 
+              country_code, auth_algs, wpa, wpa_key_mgmt, rsn_pairwise, wpa_passphrase):
+        self.cmd = ("echo \'")
+        """General Configurations"""             
+        if(interfaceID!=None):
+            self.cmd = self.cmd + ("interface=%s" % nextIface) # the interface used by the AP
+        """Not using at the moment"""
+        self.cmd = self.cmd + ("\ndriver=nl80211")
+        if(ssid!=None):
+            self.cmd = self.cmd + ("\nssid=%s" % ssid) # the name of the AP
+        if(mode!=None):
+            self.cmd = self.cmd + ("\nhw_mode=%s" % mode) # g simply means 2.4GHz
+        if(channel!=None):
+            self.cmd = self.cmd + ("\nchannel=%s" % channel) # the channel to use 
+        if(ieee80211d!=None):
+            self.cmd = self.cmd + ("\nieee80211d=%s" % ieee80211d) # limit the frequencies used to those allowed in the country
+        if(country_code!=None):
+            self.cmd = self.cmd + ("\ncountry_code=%s" % country_code) # the country code
+        #self.cmd = self.cmd + ("\nieee8021self.apcommand = ""1n=1") # 802.11n support
+        #if(self.wmm_enabled!=None):
+            #self.cmd = self.cmd + ("\nwmm_enabled=%s" % self.wmm_enabled) # QoS support
+        """Not using at the moment"""
+        #self.cmd = self.cmd + ("\nmacaddr_acl=0\nauth_algs=1\nignore_broadcast_ssid=0")
+        """AP1"""                
+        if(auth_algs!=None):
+            self.cmd = self.cmd + ("\nauth_algs=%s" % auth_algs) # 1=wpa, 2=wep, 3=both
+        if(wpa!=None):
+            self.cmd = self.cmd + ("\nwpa=%s" % wpa) # WPA2 only
+        if(wpa_key_mgmt!=None):
+            self.cmd = self.cmd + ("\nwpa_key_mgmt=%s" % wpa_key_mgmt ) 
+        if(rsn_pairwise!=None):
+            self.cmd = self.cmd + ("\nrsn_pairwise=%s" % rsn_pairwise)  
+        if(wpa_passphrase!=None):
+            self.cmd = self.cmd + ("\nwpa_passphrase=%s" % wpa_passphrase)                        
         
-        self.baseStationName = baseStationName
-        self.interfaceID = interfaceID
-        self.phyInterfaces = phyInterfaces
-        self.nextIface = nextIface
-        self.mode = mode
-        self.channel = channel
-        self.ieee80211d = ieee80211d
-        self.country_code = country_code
-        self.wmm_enabled = wmm_enabled
-        self.ssid = ssid
-        self.auth_algs = auth_algs
-        self.wpa = wpa
-        self.wpa_key_mgmt = wpa_key_mgmt
-        self.rsn_pairwise = rsn_pairwise
-        self.wpa_passphrase = wpa_passphrase
-        self.countAP = countAP
-        self.apcommand = ""
+        #elif(len(self.baseStationName)>self.countAP and len(self.baseStationName) != 1):
+        #    """From AP2"""
+        #    self.cmd = self.apcommand
+            #self.cmd = self.cmd + "\n"
+        #    self.cmd = self.cmd + ("\nbss=%s" % self.newapif[self.nextIface]) # the interface used by the AP
+        #    if(self.ssid!=None):
+        #        self.cmd = self.cmd + ("\nssid=%s" % self.ssid ) # the name of the AP
+                #self.cmd = self.cmd + ("\nssid=%s" % self.ssid) # the name of the AP
+        #    if(self.auth_algs!=None):
+        #        self.cmd = self.cmd + ("\nauth_algs=%s" % self.auth_algs) # 1=wpa, 2=wep, 3=both
+        #    if(self.wpa!=None):
+        #        self.cmd = self.cmd + ("\nwpa=%s" % self.wpa) # WPA2 only
+        #    if(self.wpa_key_mgmt!=None):
+        #        self.cmd = self.cmd + ("\nwpa_key_mgmt=%s" % self.wpa_key_mgmt ) 
+        #    if(self.rsn_pairwise!=None):
+        #        self.cmd = self.cmd + ("\nrsn_pairwise=%s" % self.rsn_pairwise)  
+        #    if(self.wpa_passphrase!=None):
+        #        self.cmd = self.cmd + ("\nwpa_passphrase=%s" % self.wpa_passphrase)  
+        #    self.countAP = len(self.baseStationName)
+        #    self.apcommand = ""
+        return self.cmd
         
     @classmethod
     def apBridge(self, ap, iface):

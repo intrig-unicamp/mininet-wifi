@@ -1,7 +1,6 @@
 #!/usr/bin/python
 
 from subprocess import check_output as co
-from sys import exit
 
 # Actually run bin/mn rather than importing via python path
 version = 'Mininet ' + co( 'PYTHONPATH=. bin/mn --version', shell=True )
