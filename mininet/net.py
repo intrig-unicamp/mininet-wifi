@@ -712,8 +712,6 @@ class Mininet( object ):
         if(Node.isWireless):
             info( '*** Adding Station(s):\n' )
             for hostName in topo.hosts():
-                print "test"
-                print hostName
                 self.addStation( hostName, **topo.nodeInfo( hostName ) )
                 info( hostName + ' ' )                
             
