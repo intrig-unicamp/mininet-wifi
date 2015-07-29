@@ -380,7 +380,7 @@ class LinearTopo( Topo ):
             lastBaseStation = None
             for i in irange( 1, k ):
                 # Add baseStation
-                baseStation = self.addBaseStation( 'ap%s' % i )
+                baseStation = self.addBaseStation( 'ap%s' % i, ssid='ssid_ap%s' % i )
                 # Add hosts to baseStation
                 for j in irange( 1, n ):
                     host = self.addHost( genHostName( i, j ) )

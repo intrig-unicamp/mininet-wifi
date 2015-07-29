@@ -143,7 +143,7 @@ function mn_deps {
 # Install Mininet-WiFi deps
 function wifi_deps {
     echo "Installing Mininet-WiFi dependencies"
-    $install hostapd iw 
+    $install hostapd iw wireless-tools
 }
 
 # Install Mininet developer dependencies
