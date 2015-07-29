@@ -126,6 +126,7 @@ class Node( object ):
     phyID = {}
     isHost = False
     wIface = {}
+    wirelessRadios = 3
     
     @classmethod
     def fdToNode( cls, fd ):

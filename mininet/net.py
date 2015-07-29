@@ -111,7 +111,7 @@ from mininet.wifi import checkNM, module, phyInterface, accessPoint, station
 from __builtin__ import True
 
 # Mininet version: should be consistent with README and LICENSE
-VERSION = "BetaVersion_0.94"
+VERSION = "BetaVersion_0.95"
 
 class Mininet( object ):
     "Network emulation with hosts spawned in network namespaces."
@@ -203,6 +203,11 @@ class Mininet( object ):
             self.phyInterfaces.pop()
             Node.phyInterfaces = self.phyInterfaces
             Node.isWireless=True
+            
+            #useful to single and linear topo
+            if(Node.wirelessRadios!=3):
+                self.wirelessRadios = Node.wirelessRadios
+                        
             module._start_module(self.wirelessRadios) #Initatilize WiFi Module
                     
         self.isWireless = Node.isWireless
@@ -705,12 +710,14 @@ class Mininet( object ):
                     self.addController( 'c%d' % i, cls )
         
         if(Node.isWireless):
+            print self.wirelessRadios
             info( '*** Adding Station(s):\n' )
             for hostName in topo.hosts():
                 self.addStation( hostName, **topo.nodeInfo( hostName ) )
                 info( hostName + ' ' )                
+            
+            info( '\n*** Adding Access Point(s):\n' )
             for baseStationName in topo.baseStations():
-                info( '\n*** Adding Access Point(s):\n' )
                 # A bit ugly: add batch parameter if appropriate
                 params = topo.nodeInfo( baseStationName )
                 cls = params.get( 'cls', self.baseStation )
@@ -719,22 +726,23 @@ class Mininet( object ):
                 self.addBaseStation( baseStationName, **params )
                 info( baseStationName + ' ' )
                 
-                info( '\n*** Associating Station(s):\n' )     
-                for srcName, dstName, params in topo.links(
-                        sort=True, withInfo=True ):
-                    self.addLink( **params )  
-                    info( '(%s, %s) ' % ( srcName, dstName ) )   
-                info( '\n' )
-                for host in self.hosts:
-                    self.host.cmd(host, "iw dev %s-wlan0 connect %s" % (host, self.ssid))            
+            info( '\n*** Associating Station(s):\n' )     
+            for srcName, dstName, params in topo.links(
+                    sort=True, withInfo=True ):
+                self.addLink( **params )  
+                info( '(%s, %s) ' % ( srcName, dstName ) )   
+            info( '\n' )
+            
+            for host in self.hosts:
+                self.host.cmd(host, "iw dev %s-wlan0 connect %s" % (host, self.ssid))            
         else:
+            info( '*** Adding hosts:\n' )
             for hostName in topo.hosts():
-                info( '*** Adding hosts:\n' )
                 self.addHost( hostName, **topo.nodeInfo( hostName ) )
                 info( hostName + ' ' )
-                
+            
+            info( '\n*** Adding switches:\n' )
             for switchName in topo.switches():
-                info( '\n*** Adding switches:\n' )
                 # A bit ugly: add batch parameter if appropriate
                 params = topo.nodeInfo( switchName)
                 cls = params.get( 'cls', self.switch )
@@ -742,12 +750,13 @@ class Mininet( object ):
                     params.setdefault( 'batch', True )
                 self.addSwitch( switchName, **params )
                 info( switchName + ' ' )
-                info( '\n*** Adding links:\n' )
-                for srcName, dstName, params in topo.links(
-                        sort=True, withInfo=True ):
-                    self.addLink( **params )
-                    info( '(%s, %s) ' % ( srcName, dstName ) )        
-                info( '\n' )
+            
+            info( '\n*** Adding links:\n' )
+            for srcName, dstName, params in topo.links(
+                    sort=True, withInfo=True ):
+                self.addLink( **params )
+                info( '(%s, %s) ' % ( srcName, dstName ) )        
+            info( '\n' )
 
     def configureControlNetwork( self ):
         "Control net config hook: override in subclass"

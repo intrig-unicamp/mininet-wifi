@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 """
-This example shows how work in adhoc mode
+This example shows how to work in adhoc mode
 
 sta1 <---> sta2 <---> sta3
 

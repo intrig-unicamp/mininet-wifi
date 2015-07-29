@@ -6,6 +6,14 @@ Mininet's Python API.
 
 ========================================================
 
+#### 2AccessPoints
+
+This example shows how to work with different APs.
+
+#### adhoc.py:
+
+This example shows how to work in adhoc mode.
+
 #### baresshd.py:
 
 This example uses Mininet's medium-level API to create an sshd
@@ -154,6 +162,10 @@ but scratchnet shows what is going on behind the scenes.
 
 A simple example of configuring network and CPU bandwidth limits.
 
+#### simplewifitopology.py:
+
+A simple example of how to work with WiFi on Mininet.
+
 #### sshd.py:
 
 This example shows how to run an `sshd` process in each host, allowing
@@ -176,4 +188,8 @@ connectivity using `ping`, for different switch/datapath types.
 #### vlanhost.py:
 
 An example of how to subclass Host to use a VLAN on its primary interface.
+
+#### wifiStationsAndHosts.py:
+
+This example shows how work with wireless and wired media.
 

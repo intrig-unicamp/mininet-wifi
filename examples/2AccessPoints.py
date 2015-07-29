@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 """
-This example shows how work with different APs
+This example shows how to work with different APs
 """
 from mininet.net import Mininet
 from mininet.node import  Controller, OVSKernelSwitch
