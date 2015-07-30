@@ -826,9 +826,9 @@ class Mininet( object ):
                 if hasattr( swclass, 'batchStartup' ):
                     success = swclass.batchStartup( baseStations )
                     started.update( { s: s for s in success } )  
-            #if(Node.isCode==False):
-            #    for basestation in self.baseStations:        
-            #        accessPoint.apBridge(basestation.name, Node.apwlan[basestation.name])
+            if(Node.isCode==False):
+                for basestation in self.baseStations:        
+                    accessPoint.apBridge(basestation.name, Node.apwlan[basestation.name])
             #        for host in self.hosts:
             #            self.host.cmd(host, "iw dev %s-wlan0 connect %s" % (host, Node.ssid[ str(basestation.name) ]))                 
            

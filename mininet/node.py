@@ -1221,7 +1221,7 @@ class OVSSwitch( Switch ):
         self.newapif.pop()
         self.newapif = sorted(self.newapif)
         self.newapif.sort(key=len, reverse=False)
-                
+        
         if(Node.isCode==True):
             if(self.name[:2]=="ap"):
                 os.system("ovs-vsctl add-port %s %s" % (self.name, (self.newapif[self.nAP])))
