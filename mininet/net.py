@@ -732,8 +732,8 @@ class Mininet( object ):
                 info( '(%s, %s) ' % ( srcName, dstName ) )   
             info( '\n' )
             
-            for host in self.hosts:
-                self.host.cmd(host, "iw dev %s-wlan0 connect %s" % (host, self.ssid))            
+           # for host in self.hosts:
+            #    self.host.cmd(host, "iw dev %s-wlan0 connect %s" % (host, self.ssid))            
         else:
             info( '*** Adding hosts:\n' )
             for hostName in topo.hosts():
@@ -826,11 +826,11 @@ class Mininet( object ):
                 if hasattr( swclass, 'batchStartup' ):
                     success = swclass.batchStartup( baseStations )
                     started.update( { s: s for s in success } )  
-            if(Node.isCode==False):
-                for basestation in self.baseStations:        
-                    accessPoint.apBridge(basestation.name, Node.apwlan[basestation.name])
-                    for host in self.hosts:
-                        self.host.cmd(host, "iw dev %s-wlan0 connect %s" % (host, Node.ssid[ str(basestation.name) ]))                 
+            #if(Node.isCode==False):
+            #    for basestation in self.baseStations:        
+            #        accessPoint.apBridge(basestation.name, Node.apwlan[basestation.name])
+            #        for host in self.hosts:
+            #            self.host.cmd(host, "iw dev %s-wlan0 connect %s" % (host, Node.ssid[ str(basestation.name) ]))                 
            
             info( '\n' )
             if self.waitConn:
