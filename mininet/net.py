@@ -92,6 +92,7 @@ import select
 import signal
 import random
 import subprocess
+import time
 
 from time import sleep
 from itertools import chain, groupby
@@ -122,7 +123,7 @@ class Mininet( object ):
                   inNamespace=False, autoSetMacs=False, autoStaticArp=False, autoPinCpus=False,
                   listenPort=None, waitConnected=False, 
                   interfaceID=3, ssid="my-ssid", mode="g", channel="6", wirelessRadios=0,  wmm_enabled="1", waitTime=1,
-                  country_code=None, ieee80211d=None, rsn_pairwise=None, wpa_passphrase=None, wpa=None, auth_algs=None, wpa_key_mgmt=None ):
+                  country_code=None, rsn_pairwise=None, wpa_passphrase=None, wpa=None, auth_algs=None, wpa_key_mgmt=None ):
         """Create Mininet object.
            topo: Topo (topology) object or None
            switch: default Switch class
@@ -163,7 +164,6 @@ class Mininet( object ):
         
         self.wpa_key_mgmt = wpa_key_mgmt
         self.country_code = country_code
-        self.ieee80211d = ieee80211d
         self.rsn_pairwise = rsn_pairwise
         self.wpa_passphrase = wpa_passphrase
         self.wpa = wpa
@@ -396,12 +396,16 @@ class Mininet( object ):
         Node.firstAP[name] = True
         
         self.cmd = accessPoint.start(self.interfaceID, self.newapif[self.nextIface], self.ssid, self.mode, 
-                                     self.channel, self.ieee80211d, self.country_code, self.auth_algs, 
+                                     self.channel, self.country_code, self.auth_algs, 
                                      self.wpa, self.wpa_key_mgmt, self.rsn_pairwise, self.wpa_passphrase)
                
         checkNM.checkNetworkManager(self.storeMacAddress)
         
         checkNM.APfile(self.cmd, str(self.newapif[self.nextIface])) 
+        
+        #Time to start mode N. It takes more time than the others.
+        if self.mode=="n":
+            time.sleep(1)
         
         self.storeMacAddress=self.storeMacAddress+(checkNM.getMacAddress(self.newapif[self.nextIface]))
         self.nextIface+=1

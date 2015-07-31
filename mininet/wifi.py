@@ -71,7 +71,7 @@ class checkNM ( object ):
         os.system(self.apcommand)
         self.cmd = ("hostapd -f apdebug.txt -B %s.conf" % ap)
         os.system(self.cmd)
-    
+        
 
 class module( object ):
     
@@ -164,7 +164,7 @@ class wlanIface ( object ):
 class accessPoint ( object ):
     
     @classmethod
-    def start(self, interfaceID, nextIface, ssid, mode, channel, ieee80211d, 
+    def start(self, interfaceID, nextIface, ssid, mode, channel, 
               country_code, auth_algs, wpa, wpa_key_mgmt, rsn_pairwise, wpa_passphrase):
         self.cmd = ("echo \'")
         """General Configurations"""             
@@ -174,20 +174,25 @@ class accessPoint ( object ):
         self.cmd = self.cmd + ("\ndriver=nl80211")
         if(ssid!=None):
             self.cmd = self.cmd + ("\nssid=%s" % ssid) # the name of the AP
-        if(mode!=None):
-            self.cmd = self.cmd + ("\nhw_mode=%s" % mode) # g simply means 2.4GHz
+        if(mode=="g" or mode=="n"):
+            self.cmd = self.cmd + ("\nhw_mode=g") 
+        elif (mode=="b"):
+            self.cmd = self.cmd + ("\nhw_mode=b") 
+        elif (mode=="a"):
+            self.cmd = self.cmd + ("\nhw_mode=a")
         if(channel!=None):
             self.cmd = self.cmd + ("\nchannel=%s" % channel) # the channel to use 
-        if(ieee80211d!=None):
-            self.cmd = self.cmd + ("\nieee80211d=%s" % ieee80211d) # limit the frequencies used to those allowed in the country
+        if(mode=="ac"):
+            self.cmd = self.cmd + ("\nwme_enabled=1") 
+            self.cmd = self.cmd + ("\nieee80211ac=1")
+        self.cmd = self.cmd + ("\nwme_enabled=1") 
+        self.cmd = self.cmd + ("\nieee80211n=1")
+        if(mode=="n"):
+            self.cmd = self.cmd + ("\nht_capab=[HT40+][SHORT-GI-40][DSSS_CCK-40]")
+        
+        #Not used yet!
         if(country_code!=None):
             self.cmd = self.cmd + ("\ncountry_code=%s" % country_code) # the country code
-        #self.cmd = self.cmd + ("\nieee8021self.apcommand = ""1n=1") # 802.11n support
-        #if(self.wmm_enabled!=None):
-            #self.cmd = self.cmd + ("\nwmm_enabled=%s" % self.wmm_enabled) # QoS support
-        """Not using at the moment"""
-        #self.cmd = self.cmd + ("\nmacaddr_acl=0\nauth_algs=1\nignore_broadcast_ssid=0")
-        """AP1"""                
         if(auth_algs!=None):
             self.cmd = self.cmd + ("\nauth_algs=%s" % auth_algs) # 1=wpa, 2=wep, 3=both
         if(wpa!=None):
