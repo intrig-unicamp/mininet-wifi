@@ -15,7 +15,7 @@ def topology():
     "Create a network."
     net = Mininet( wirelessRadios=3, waitTime=10 )
     #wirelessRadios = Number of STAs + APs
-    #waitTime = Time (sec) necessary to connect STAs in Ad-hoc mode (it depends of each machine) 
+    #waitTime = Time (sec) necessary to connect STAs in Ad-hoc mode (it depends of each machine)
 
     print "*** Creating nodes"
     sta1 = net.addStation( 'sta1' )

@@ -62,6 +62,7 @@ class checkNM ( object ):
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         info = fcntl.ioctl(s.fileno(), 0x8927,  struct.pack('256s', '%s'[:15]) % str(self.wlanInterface))
         self.storeMacAddress.append(''.join(['%02x:' % ord(char) for char in info[18:24]])[:-1])
+        #print (''.join(['%02x:' % ord(char) for char in info[18:24]])[:-1])
         return self.storeMacAddress
     
     @classmethod   
@@ -127,14 +128,13 @@ class station ( object ):
             os.system("tc qdisc add dev %s root tbf rate 6777mbit latency 10ms burst 1540" % (self.newapif))   
     
     @classmethod    
-    def associate(self, selfHost, host, ssid, isNode1):
+    def associate(self, selfHost, host, ssid):
         self.host = selfHost
         self.ssid = ssid
-        self.isNode1 = isNode1
-        if self.isNode1:
-            self.host.cmd(host, "iw dev %s-wlan0 connect %s" % (host, self.ssid))
-        else:
-            self.host.cmd(host, "iw dev %s-wlan0 connect %s" % (host, self.ssid))
+        self.host.cmd(host, "iw dev %s-wlan0 connect %s" % (host, self.ssid))
+        time.sleep(0.1)
+        #mac = subprocess.check_output("iw dev wlan6 station dump | grep 'Sta' | cut -c9-",shell=True)
+        #print str(mac[:17])
             
     @classmethod    
     def adhoc(self, selfHost, host, ssid, mode, waitTime):
@@ -144,7 +144,7 @@ class station ( object ):
         if (self.mode=="g"):
             self.host.cmd(host, "tc qdisc add dev %s-wlan0 root tbf rate 54mbit latency 10ms burst 1540" % (host)) 
         self.host.cmd(host, "iw dev %s-wlan0 set type ibss" % (host))
-        #self.host.cmd(host, "ifconfig %s-wlan0 down" % (host))
+        #self.host.cmdPrint(host, "ifconfig %s-wlan0 down" % (host))
         #self.host.cmd(host, "ifconfig %s-wlan0 up" % (host))
         self.host.cmd(host, "iw dev %s-wlan0 ibss join %s 2412" % (host, self.ssid))
         print "connecting %s ..." % host

@@ -535,8 +535,7 @@ class Mininet( object ):
 
     def addHoc( self, node, ssid, mode, cls=None, **params ):
         
-            checkNM.checkNetworkManager(self.storeMacAddress)
-            
+            checkNM.checkNetworkManager(self.storeMacAddress)            
             node2 = node
             
             node = node if not isinstance( node, basestring ) else self[ node ]
@@ -549,7 +548,7 @@ class Mininet( object ):
             
             # Set default MAC - this should probably be in Link
             options.setdefault( 'addr1', self.randMac() )
-            options.setdefault( 'addr2', self.randMac() )
+            #options.setdefault( 'addr2', self.randMac() )
             
             cls = self.link if cls is None else cls
             link = cls( node, node2, **options )
@@ -561,6 +560,7 @@ class Mininet( object ):
                     #ssid = Node.ssid[ str(node) ]
                     selfHost = self.host
                     station.adhoc(selfHost, host, ssid, mode, waitTime)
+            
             return link
 
     def addLink( self, node1, node2, port1=None, port2=None, 
@@ -594,14 +594,15 @@ class Mininet( object ):
                     ssid = Node.ssid[ str(node2) ]
                     selfHost = self.host
                     Node.associatedAP[host] = ssid
-                    station.associate(selfHost, host, ssid, isNode1=True)
+                    station.associate(selfHost, host, ssid)
                 elif (host == node2):
                     ssid = Node.ssid[ str(node1) ]
                     selfHost = self.host
                     Node.associatedAP[host] = ssid
-                    station.associate(selfHost, host, ssid, isNode1=False)
+                    station.associate(selfHost, host, ssid)
             return link
         
+        #Maybe not necessary
         elif(str(node1)[:3]=="sta" and str(node2)[:3]=="sta"):
            
             checkNM.checkNetworkManager(self.storeMacAddress)
@@ -622,17 +623,7 @@ class Mininet( object ):
             
             cls = self.link if cls is None else cls
             link = cls( node1, node2, **options )
-            
-            #self.links.append( link )
-            for host in self.hosts:
-                if (host == node1):
-                    ssid = Node.ssid[ str(node1) ]
-                    selfHost = self.host
-                    station.adhoc(selfHost, host, ssid, isNode1=True)
-                elif (host == node2):
-                    selfHost = self.host
-                    ssid = Node.ssid[ str(node2) ]
-                    station.adhoc(selfHost, host, ssid, isNode1=False)
+
             return link
                     
         else:
