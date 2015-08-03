@@ -2,7 +2,7 @@
 
 from mininet.topo import Topo
 from mininet.net import Mininet
-from mininet.node import ( Node )
+from mininet.node import Node 
 
 # The build() method is expected to do this:
 # pylint: disable=arguments-differ
@@ -14,12 +14,25 @@ class TreeTopo( Topo ):
         # Numbering:  h1..N, s1..M
         self.hostNum = 1
         self.switchNum = 1
-        #have to check
-        Node.wirelessRadios = depth*fanout*depth*fanout*depth*fanout*fanout*fanout
+        
+        if(Node.isWireless):
+            self.countNodes( depth, fanout )
         # Build topology
         self.addTree( depth, fanout )
         
-
+    def countNodes( self, depth, fanout ):
+        """Amount of Nodes"""
+        Node.wirelessRadios+=1
+        if(Node.isWireless):
+            isSwitch = depth > 0
+            if isSwitch:
+                self.switchNum += 1
+                for _ in range( fanout ):
+                    self.countNodes( depth - 1, fanout )
+            else:
+                self.hostNum += 1
+        
+    
     def addTree( self, depth, fanout ):
         """Add a subtree starting with node n.
            returns: last node added"""
@@ -32,7 +45,7 @@ class TreeTopo( Topo ):
                     child = self.addTree( depth - 1, fanout )
                     self.addLink( node, child )
             else:
-                node = self.addHost( 'sta%s' % self.hostNum )
+                node = self.addStation( 'sta%s' % self.hostNum )
                 self.hostNum += 1
             return node
         else:            

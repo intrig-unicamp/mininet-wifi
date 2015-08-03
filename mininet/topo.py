@@ -135,6 +135,15 @@ class Topo( object ):
         if not opts and self.hopts:
             opts = self.hopts
         return self.addNode( name, **opts )
+    
+    def addStation( self, name, **opts ):
+        """Convenience method: Add host to graph.
+           name: host name
+           opts: host options
+           returns: host name"""
+        if not opts and self.hopts:
+            opts = self.hopts
+        return self.addNode( name, **opts )
 
     def addSwitch( self, name, **opts ):
         """Convenience method: Add switch to graph.
