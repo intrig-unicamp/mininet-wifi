@@ -3,7 +3,7 @@
 
 Network topology creation.
 
-@author Brandon Heller (brandonh@stanford.edu)
+@author Brandon Heller (brandonh@stanford.edu) - Modified by Ramon Fontes (ramonrf@dca.fee.unicamp.br)
 
 This package includes code to represent network topologies.
 
@@ -196,10 +196,10 @@ class Topo( object ):
            sort: sort switches alphabetically
            returns: dpids list of dpids"""
         return [ n for n in self.nodes( sort ) if self.isSwitch( n ) ]
-    
+
     def baseStations( self, sort=True ):
-        """Return switches.
-           sort: sort switches alphabetically
+        """Return BaseStations.
+           sort: sort basestations alphabetically
            returns: dpids list of dpids"""
         return [ n for n in self.nodes( sort ) if self.isSwitch( n ) ]
 

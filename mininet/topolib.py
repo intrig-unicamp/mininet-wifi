@@ -39,7 +39,7 @@ class TreeTopo( Topo ):
         if(Node.isWireless):
             isSwitch = depth > 0
             if isSwitch:
-                node = self.addBaseStation( 'ap%s' % self.switchNum )
+                node = self.addBaseStation( 'ap%s' % self.switchNum , ssid='ssid_ap%s' % self.switchNum  )
                 self.switchNum += 1
                 for _ in range( fanout ):
                     child = self.addTree( depth - 1, fanout )
