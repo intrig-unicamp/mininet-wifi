@@ -96,12 +96,14 @@ class module( object ):
 class phyInterface ( object ):
     
     phy = {}
+    nextIface = 0
     
     @classmethod
     def getPhyInterfaces(self):
         phy = subprocess.check_output("find /sys/kernel/debug/ieee80211 -name hwsim | cut -d/ -f 6 | sort", 
                                                              shell=True).split("\n")
         phy.pop()
+        self.nextIface+=1
         return phy
     
     @classmethod
@@ -111,7 +113,9 @@ class phyInterface ( object ):
     
     
 class station ( object ):
-        
+    
+    nextWlan = {}
+    
     @classmethod    
     def tcmode(self, newapif, mode):
         self.newapif = newapif
@@ -137,23 +141,77 @@ class station ( object ):
         #print str(mac[:17])
             
     @classmethod    
-    def adhoc(self, selfHost, host, ssid, mode, waitTime):
+    def adhoc(self, selfHost, host, ssid, mode, waitTime, **params):
+        
         self.host = selfHost
         self.ssid = ssid
         self.mode = mode
-        if (self.mode=="g"):
-            self.host.cmd(host, "tc qdisc add dev %s-wlan0 root tbf rate 54mbit latency 10ms burst 1540" % (host)) 
-        self.host.cmd(host, "iw dev %s-wlan0 set type ibss" % (host))
-        #self.host.cmdPrint(host, "ifconfig %s-wlan0 down" % (host))
-        #self.host.cmd(host, "ifconfig %s-wlan0 up" % (host))
-        self.host.cmd(host, "iw dev %s-wlan0 ibss join %s 2412" % (host, self.ssid))
-        print "connecting %s ..." % host
-        time.sleep(waitTime)
+        
+        try:
+            options = dict( params )
+            self.interface = options[ 'interface' ]
+            if (self.mode=="a"):
+                self.host.cmd(host, "tc qdisc add dev %s-%s root tbf rate 54mbit latency 10ms burst 1540" % (host, self.interface)) 
+            elif (self.mode=="b"):
+                self.host.cmd(host, "tc qdisc add dev %s-%s root tbf rate 11mbit latency 10ms burst 1540" % (host, self.interface)) 
+            elif (self.mode=="g"):
+                self.host.cmd(host, "tc qdisc add dev %s-%s root tbf rate 54mbit latency 10ms burst 1540" % (host, self.interface)) 
+            elif (self.mode=="n"):
+                self.host.cmd(host, "tc qdisc add dev %s-%s root tbf rate 600mbit latency 10ms burst 1540" % (host, self.interface)) 
+            elif (self.mode=="ac"):
+                self.host.cmd(host, "tc qdisc add dev %s-%s root tbf rate 6777mbit latency 10ms burst 1540" % (host, self.interface)) 
+            self.host.cmd(host, "iw dev %s-%s set type ibss" % (host, self.interface))
+            #self.host.cmdPrint(host, "ifconfig %s-wlan0 down" % (host))
+            #self.host.cmd(host, "ifconfig %s-wlan0 up" % (host))
+            self.host.cmd(host, "iw dev %s-%s ibss join %s 2412" % (host, self.interface, self.ssid))
+            print "connecting %s ..." % host
+            time.sleep(waitTime)
+        except:
+            if (self.mode=="a"):
+                self.host.cmd(host, "tc qdisc add dev %s-wlan0 root tbf rate 54mbit latency 10ms burst 1540" % (host)) 
+            elif (self.mode=="b"):
+                self.host.cmd(host, "tc qdisc add dev %s-wlan0 root tbf rate 11mbit latency 10ms burst 1540" % (host)) 
+            elif (self.mode=="g"):
+                self.host.cmd(host, "tc qdisc add dev %s-wlan0 root tbf rate 54mbit latency 10ms burst 1540" % (host)) 
+            elif (self.mode=="n"):
+                self.host.cmd(host, "tc qdisc add dev %s-wlan0 root tbf rate 600mbit latency 10ms burst 1540" % (host)) 
+            elif (self.mode=="ac"):
+                self.host.cmd(host, "tc qdisc add dev %s-wlan0 root tbf rate 6777mbit latency 10ms burst 1540" % (host)) 
+            self.host.cmd(host, "iw dev %s-wlan0 set type ibss" % (host))
+            #self.host.cmdPrint(host, "ifconfig %s-wlan0 down" % (host))
+            #self.host.cmd(host, "ifconfig %s-wlan0 up" % (host))
+            self.host.cmd(host, "iw dev %s-wlan0 ibss join %s 2412" % (host, self.ssid))
+            print "connecting %s ..." % host
+            time.sleep(waitTime)
         
     @classmethod    
     def isWifi(self, isWiFi):
         return isWiFi
     
+    @classmethod    
+    def addIface(self, station):
+        phy = phyInterface.getPhyInterfaces()
+        phyInterface.phy[station] = phy[phyInterface.nextIface][3:]
+        os.system("iw phy phy%s set netns %s" % (phyInterface.phy[station], station.pid)) 
+        wif = station.cmd("iwconfig 2>&1 | grep IEEE | awk '{print $1}'").split("\n")
+        wif.pop()
+        for iface in wif:
+            if iface[:4]=="wlan":
+                try:
+                    self.nextWlan[station] += 1
+                except:
+                    self.nextWlan[station] = 1
+                netxWlan = self.nextWlan[station] 
+                self.renameIface(station, netxWlan, iface)
+                
+     
+    @classmethod    
+    def renameIface(self, station, nextWlan, iface):
+        station.cmd('ip link set dev %s name %s-wlan%s' % (iface[:5], station, nextWlan ))
+        station.cmd('ifconfig %s-wlan%s up' % (station, nextWlan))
+        
+        
+        
 class wlanIface ( object ):
     
     @classmethod    

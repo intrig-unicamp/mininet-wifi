@@ -112,7 +112,7 @@ from mininet.wifi import checkNM, module, phyInterface, accessPoint, station
 from __builtin__ import True
 
 # Mininet version: should be consistent with README and LICENSE
-VERSION = "BetaVersion_0.96"
+VERSION = "BetaVersion_0.97"
 
 class Mininet( object ):
     "Network emulation with hosts spawned in network namespaces."
@@ -122,7 +122,7 @@ class Mininet( object ):
                   build=True, xterms=False, cleanup=False, ipBase='10.0.0.0/8',
                   inNamespace=False, autoSetMacs=False, autoStaticArp=False, autoPinCpus=False,
                   listenPort=None, waitConnected=False, 
-                  interfaceID=3, ssid="my-ssid", mode="g", channel="6", wirelessRadios=0,  wmm_enabled="1", waitTime=1,
+                  interfaceID=3, ssid="my-ssid", mode="g", channel="6", wirelessRadios=0,  wmm_enabled="1", waitTime=5,
                   country_code=None, rsn_pairwise=None, wpa_passphrase=None, wpa=None, auth_algs=None, wpa_key_mgmt=None ):
         """Create Mininet object.
            topo: Topo (topology) object or None
@@ -348,7 +348,6 @@ class Mininet( object ):
                      'ssid': self.ssid,
                      'wpa_passphrase': self.wpa_passphrase                    
                      }
-        
         defaults.update( params )        
         
         if not cls:
@@ -563,7 +562,7 @@ class Mininet( object ):
                 if (host == node):
                     #ssid = Node.ssid[ str(node) ]
                     selfHost = self.host
-                    station.adhoc(selfHost, host, ssid, mode, waitTime)
+                    station.adhoc(selfHost, host, ssid, mode, waitTime, **params)
             
             return link
 
