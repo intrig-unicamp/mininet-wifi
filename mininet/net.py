@@ -103,7 +103,7 @@ from mininet.log import info, error, debug, output, warn
 from mininet.node import ( Node, Host, OVSKernelSwitch, DefaultController,
                            Controller )
 from mininet.nodelib import NAT
-from mininet.link import Link, Intf
+from mininet.link import Link, Intf, TCLink
 from mininet.util import ( quietRun, fixLimits, numCores, ensureRoot,
                            macColonHex, ipStr, ipParse, netParse, ipAdd,
                            waitListening )
@@ -192,7 +192,6 @@ class Mininet( object ):
         self.baseStations = []
         self.controllers = []
         self.links = []
-
         self.nameToNode = {}  # name to Node (Host/Switch) objects
         self.terms = []  # list of spawned xterm processes
         Mininet.init()  # Initialize Mininet if necessary
@@ -202,9 +201,9 @@ class Mininet( object ):
             self.phyInterfaces = self.phyInterfaces.split("\n")
             self.phyInterfaces.pop()
             Node.phyInterfaces = self.phyInterfaces
+            self.link = TCLink
             Node.isWireless=True
-            
-            #useful to minimal, single and linear topo
+            #useful to minimal, single, linear and tree topo
             if(Node.wirelessRadios!=3):
                 self.wirelessRadios = Node.wirelessRadios
             
@@ -388,8 +387,7 @@ class Mininet( object ):
         self.newapif.sort(key=len, reverse=False)
         
         Node.ssid[name] = self.ssid
-        
-        station.tcmode(self.newapif[self.nextIface], self.mode)
+        #station.tcmode(self.newapif[self.nextIface], self.mode)
         
         Node.apwlan[name] = self.newapif[self.nextIface]
         Node.firstAP[name] = True
@@ -398,9 +396,11 @@ class Mininet( object ):
                                      self.channel, self.country_code, self.auth_algs, 
                                      self.wpa, self.wpa_key_mgmt, self.rsn_pairwise, self.wpa_passphrase)
                
-        checkNM.checkNetworkManager(self.storeMacAddress)
-        
+        checkNM.checkNetworkManager(self.storeMacAddress)        
         checkNM.APfile(self.cmd, str(self.newapif[self.nextIface])) 
+        
+        #increment to wifi file
+        phyInterface.setNextIface()
         
         #Time to start mode N. It takes more time than the others.
         if self.mode=="n":
@@ -545,10 +545,22 @@ class Mininet( object ):
             node2 = node2 if not isinstance( node2, basestring ) else self[ node2 ]
             options = dict( params )
             
-            for host in self.hosts:
-                if (host == node):
-                    options.setdefault( 'mode', self.mode )
+            if (self.mode=="a"):
+                self.bw = 54
+            elif(self.mode=="b"):
+                self.bw = 11
+            elif(self.mode=="g"):
+                self.bw = 54 
+            elif(self.mode=="n"):
+                self.bw = 600
+            elif(self.mode=="ac"):
+                self.bw = 6777 
             
+            #for host in self.hosts:
+            #    if (host == node):
+            #        options.setdefault( 'bw', self.bw )
+            #        options.setdefault( 'use_hfsc', True )
+             
             # Set default MAC - this should probably be in Link
             options.setdefault( 'addr1', self.randMac() )
             #options.setdefault( 'addr2', self.randMac() )
@@ -575,15 +587,29 @@ class Mininet( object ):
             node2 = node2 if not isinstance( node2, basestring ) else self[ node2 ]
             options = dict( params )
             
+            if (self.mode=="a"):
+                self.bw = 54
+            elif(self.mode=="b"):
+                self.bw = 11
+            elif(self.mode=="g"):
+                self.bw = 54 
+            elif(self.mode=="n"):
+                self.bw = 600
+            elif(self.mode=="ac"):
+                self.bw = 6777 
+            
             for host in self.hosts:
                 if (host == node1):
                     #options.setdefault( 'port1', port1 )
-                    #options.setdefault( 'port2', port2 )
-                    options.setdefault( 'mode', self.mode )
+                    options.setdefault( 'bw', self.bw )
+                    options.setdefault( 'use_hfsc', True )
+               #     options.setdefault( 'mode', self.mode )
                 elif (host == node2):
                     #options.setdefault( 'port1', port1 )
-                    options.setdefault( 'mode', self.mode )
-                    #options.setdefault( 'port2', port2 )
+                    options.setdefault( 'bw', self.bw )
+                    options.setdefault( 'use_hfsc', True )
+                #    options.setdefault( 'mode', self.mode )
+                                
             # Set default MAC - this should probably be in Link
             options.setdefault( 'addr1', self.randMac() )
             options.setdefault( 'addr2', self.randMac() )
@@ -605,30 +631,6 @@ class Mininet( object ):
                     station.associate(selfHost, host, ssid)
             return link
         
-        #Maybe not necessary
-        elif(str(node1)[:3]=="sta" and str(node2)[:3]=="sta"):
-           
-            checkNM.checkNetworkManager(self.storeMacAddress)
-                
-            node1 = node1 if not isinstance( node1, basestring ) else self[ node1 ]
-            node2 = node2 if not isinstance( node2, basestring ) else self[ node2 ]
-            options = dict( params )
-            
-            for host in self.hosts:
-                if (host == node1):
-                    options.setdefault( 'mode', self.mode )
-                elif (host == node2):
-                    options.setdefault( 'mode', self.mode )
-           
-            # Set default MAC - this should probably be in Link
-            options.setdefault( 'addr1', self.randMac() )
-            options.setdefault( 'addr2', self.randMac() )
-            
-            cls = self.link if cls is None else cls
-            link = cls( node1, node2, **options )
-
-            return link
-                    
         else:
             #station.isWiFi=False
             """"Add a link from node1 to node2

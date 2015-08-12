@@ -97,25 +97,27 @@ class phyInterface ( object ):
     
     phy = {}
     nextIface = 0
+   
+    @classmethod 
+    def setNextIface(self):
+        self.nextIface+=1
     
     @classmethod
     def getPhyInterfaces(self):
         phy = subprocess.check_output("find /sys/kernel/debug/ieee80211 -name hwsim | cut -d/ -f 6 | sort", 
                                                              shell=True).split("\n")
         phy.pop()
-        self.nextIface+=1
+        self.setNextIface()
         return phy
     
     @classmethod
     def phyInt(self):
         return subprocess.check_output("iwconfig 2>&1 | grep IEEE | awk '{print $1}'",shell=True).split("\n")
     
-    
-    
+        
 class station ( object ):
     
-    nextWlan = {}
-    
+    nextWlan = {}    
     @classmethod    
     def tcmode(self, newapif, mode):
         self.newapif = newapif
@@ -146,7 +148,7 @@ class station ( object ):
         self.host = selfHost
         self.ssid = ssid
         self.mode = mode
-        
+                        
         try:
             options = dict( params )
             self.interface = options[ 'interface' ]
@@ -161,8 +163,6 @@ class station ( object ):
             elif (self.mode=="ac"):
                 self.host.cmd(host, "tc qdisc add dev %s-%s root tbf rate 6777mbit latency 10ms burst 1540" % (host, self.interface)) 
             self.host.cmd(host, "iw dev %s-%s set type ibss" % (host, self.interface))
-            #self.host.cmdPrint(host, "ifconfig %s-wlan0 down" % (host))
-            #self.host.cmd(host, "ifconfig %s-wlan0 up" % (host))
             self.host.cmd(host, "iw dev %s-%s ibss join %s 2412" % (host, self.interface, self.ssid))
             print "connecting %s ..." % host
             time.sleep(waitTime)
@@ -178,8 +178,6 @@ class station ( object ):
             elif (self.mode=="ac"):
                 self.host.cmd(host, "tc qdisc add dev %s-wlan0 root tbf rate 6777mbit latency 10ms burst 1540" % (host)) 
             self.host.cmd(host, "iw dev %s-wlan0 set type ibss" % (host))
-            #self.host.cmdPrint(host, "ifconfig %s-wlan0 down" % (host))
-            #self.host.cmd(host, "ifconfig %s-wlan0 up" % (host))
             self.host.cmd(host, "iw dev %s-wlan0 ibss join %s 2412" % (host, self.ssid))
             print "connecting %s ..." % host
             time.sleep(waitTime)
@@ -191,7 +189,7 @@ class station ( object ):
     @classmethod    
     def addIface(self, station):
         phy = phyInterface.getPhyInterfaces()
-        phyInterface.phy[station] = phy[phyInterface.nextIface][3:]
+        phyInterface.phy[station] = phy[phyInterface.nextIface-1][3:]
         os.system("iw phy phy%s set netns %s" % (phyInterface.phy[station], station.pid)) 
         wif = station.cmd("iwconfig 2>&1 | grep IEEE | awk '{print $1}'").split("\n")
         wif.pop()
@@ -208,8 +206,7 @@ class station ( object ):
     @classmethod    
     def renameIface(self, station, nextWlan, iface):
         station.cmd('ip link set dev %s name %s-wlan%s' % (iface[:5], station, nextWlan ))
-        station.cmd('ifconfig %s-wlan%s up' % (station, nextWlan))
-        
+        station.cmd('ifconfig %s-wlan%s up' % (station, nextWlan))        
         
         
 class wlanIface ( object ):

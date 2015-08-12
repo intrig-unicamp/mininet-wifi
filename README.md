@@ -14,7 +14,7 @@ Download: [Virtual Disk (1.3GB)](http://intrig.dca.fee.unicamp.br/index.php/proj
   
 ###Get Started
 sudo mn --wifi --ssid=new_ssid  
-It will start a simple topology with 2 stations and 1 access point. 
+It should start a simple topology with 2 stations and 1 access point. 
 
 ###A Brief Demonstration
 Video 01: https://www.youtube.com/watch?v=_PtSmhf7Z8s  

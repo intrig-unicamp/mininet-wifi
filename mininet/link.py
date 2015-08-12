@@ -242,9 +242,7 @@ class TCIntf( Intf ):
     def bwCmds( self, bw=None, speedup=0, use_hfsc=False, use_tbf=False,
                 latency_ms=None, enable_ecn=False, enable_red=False ):
         "Return tc commands to set bandwidth"
-
         cmds, parent = [], ' root '
-            
         if bw and ( bw < 0 or bw > self.bwParamMax ):
             error( 'Bandwidth limit', bw, 'is outside supported range 0..%d'
                    % self.bwParamMax, '- ignoring\n' )
@@ -392,7 +390,7 @@ class Link( object ):
 
     # pylint: disable=too-many-branches
     def __init__( self, node1, node2, port1=None, port2=None,
-                  intfName1=None, intfName2=None, addr1=None, addr2=None, mode=None,
+                  intfName1=None, intfName2=None, addr1=None, addr2=None,
                   intf=Intf, cls1=None, cls2=None, params1=None,
                   params2=None, fast=True ):
         """Create veth link to another node, making two new interfaces.
@@ -425,7 +423,6 @@ class Link( object ):
         if 'port' not in params2:
             params2[ 'port' ] = node2.newPort()
             
-        self.mode = mode
         if not intfName1:
             intfName1 = self.intfName( node1, params1[ 'port' ] )
         if not intfName2:
