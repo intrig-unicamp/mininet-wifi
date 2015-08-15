@@ -35,7 +35,9 @@ class checkNM ( object ):
                     echo = echo[:-1]+";"
                     isNew = False
             if(isNew):
-                echo = "unmanaged-devices="
+                os.system("echo '#' >> /etc/NetworkManager/NetworkManager.conf")
+                unmatch = "#"
+                echo = "[keyfile]\nunmanaged-devices="
             
             for n in range(len(self.storeMacAddress)): 
                 if self.storeMacAddress[n] not in unmatch:
@@ -45,10 +47,16 @@ class checkNM ( object ):
                 
             if(self.printMac):
                 for line in fileinput.input('/etc/NetworkManager/NetworkManager.conf', inplace=1): 
-                    if line.__contains__('unmanaged-devices'): 
-                        print line.replace(unmatch, echo)
+                    if(isNew):
+                        if line.__contains__('#'): 
+                            print line.replace(unmatch, echo)
+                        else:
+                            print line.rstrip()
                     else:
-                        print line.rstrip()
+                        if line.__contains__('unmanaged-devices'): 
+                            print line.replace(unmatch, echo)
+                        else:
+                            print line.rstrip()
              
     @classmethod 
     def getMacAddress(self, wlanInterface):
