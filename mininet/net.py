@@ -112,7 +112,7 @@ from mininet.wifi import checkNM, module, phyInterface, accessPoint, station
 from __builtin__ import True
 
 # Mininet version: should be consistent with README and LICENSE
-VERSION = "BetaVersion_0.97"
+VERSION = "BetaVersion_0.98"
 
 class Mininet( object ):
     "Network emulation with hosts spawned in network namespaces."
@@ -184,7 +184,6 @@ class Mininet( object ):
         self.wirelessRadios = wirelessRadios
         
         self.cmd=""        
-        self.storeMacAddress = []        
         self.phyInterfaces = []
         
         self.hosts = []
@@ -312,23 +311,10 @@ class Mininet( object ):
         self.newapif = sorted(self.newapif)
         self.newapif.sort(key=len, reverse=False)
        
-        if params=={}:
-            self.storeMacAddress = self.storeMacAddress+(checkNM.getMacAddress(self.newapif[self.nextIface]))
-        else:
-            try:
-                newMac=[]
-                newMac.append(defaults['mac'])
-                self.storeMacAddress = self.storeMacAddress+newMac
-            except:
-                self.storeMacAddress = self.storeMacAddress+(checkNM.getMacAddress(self.newapif[self.nextIface]))
-        
         self.splitResultIface = phyInterface.getPhyInterfaces()
-        
         phyInterface.phy[name] = self.splitResultIface[self.nextIface][3:]
         
-        Node.storeMacAddress = self.storeMacAddress
-        Node.ssid[name] = self.ssid
-        
+        Node.ssid[name] = self.ssid        
         Node.isFirst = len(self.phyInterfaces)
         self.nextIP += 1        
         self.nextIface+=1
@@ -385,10 +371,9 @@ class Mininet( object ):
         
         self.newapif = sorted(self.newapif)
         self.newapif.sort(key=len, reverse=False)
-        
+        checkNM.checkNetworkManager(checkNM.getMacAddress(self.newapif[self.nextIface]))           
         Node.ssid[name] = self.ssid
         #station.tcmode(self.newapif[self.nextIface], self.mode)
-        
         Node.apwlan[name] = self.newapif[self.nextIface]
         Node.firstAP[name] = True
         
@@ -396,7 +381,6 @@ class Mininet( object ):
                                      self.channel, self.country_code, self.auth_algs, 
                                      self.wpa, self.wpa_key_mgmt, self.rsn_pairwise, self.wpa_passphrase)
                
-        checkNM.checkNetworkManager(self.storeMacAddress)        
         checkNM.APfile(self.cmd, str(self.newapif[self.nextIface])) 
         
         #increment to wifi file
@@ -406,7 +390,6 @@ class Mininet( object ):
         if self.mode=="n":
             time.sleep(1)
         
-        self.storeMacAddress=self.storeMacAddress+(checkNM.getMacAddress(self.newapif[self.nextIface]))
         self.nextIface+=1
         return bs
      
@@ -538,7 +521,7 @@ class Mininet( object ):
 
     def addHoc( self, node, ssid, mode, cls=None, **params ):
         
-            checkNM.checkNetworkManager(self.storeMacAddress)            
+            #checkNM.checkNetworkManager(self.storeMacAddress)            
             node2 = node
             
             node = node if not isinstance( node, basestring ) else self[ node ]
@@ -727,7 +710,6 @@ class Mininet( object ):
                 self.addLink( **params )  
                 info( '(%s, %s) ' % ( srcName, dstName ) )   
             info( '\n' )
-            
            # for host in self.hosts:
             #    self.host.cmd(host, "iw dev %s-wlan0 connect %s" % (host, self.ssid))            
         else:
@@ -802,7 +784,6 @@ class Mininet( object ):
     def start( self ):
         if(self.isWireless):
             Node.isCode=False
-            #checkNM(self.storeMacAddress)
             "Start controller and switches."
             if not self.built:
                 self.build()

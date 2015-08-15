@@ -25,36 +25,31 @@ class checkNM ( object ):
             if(os.path.isfile('/etc/NetworkManager/NetworkManager.conf')):
                 self.resultIface = open('/etc/NetworkManager/NetworkManager.conf')
                 lines=self.resultIface
-        else:
-            os.makedirs("/etc/NetworkManager/")
-            os.system("touch /etc/NetworkManager/NetworkManager.conf")
-            self.resultIface = open('/etc/NetworkManager/NetworkManager.conf')
-            lines=self.resultIface
-            
-        isNew=True
-        for n in lines:
-            if("unmanaged-devices" in n):
-                unmatch = n
-                echo = n
-                echo.replace(" ", "")
-                echo = echo[:-1]+";"
-                isNew = False
-        if(isNew):
-            echo = "unmanaged-devices="
         
-        for n in range(len(self.storeMacAddress)): 
-            if self.storeMacAddress[n] not in unmatch:
-                echo = echo + "mac:"
-                echo = echo + self.storeMacAddress[n] + ";"
-                self.printMac = True
+            isNew=True
+            for n in lines:
+                if("unmanaged-devices" in n):
+                    unmatch = n
+                    echo = n
+                    echo.replace(" ", "")
+                    echo = echo[:-1]+";"
+                    isNew = False
+            if(isNew):
+                echo = "unmanaged-devices="
             
-        if(self.printMac):
-            for line in fileinput.input('/etc/NetworkManager/NetworkManager.conf', inplace=1): 
-                if line.__contains__('unmanaged-devices'): 
-                    print line.replace(unmatch, echo)
-                else:
-                    print line.rstrip()
+            for n in range(len(self.storeMacAddress)): 
+                if self.storeMacAddress[n] not in unmatch:
+                    echo = echo + "mac:"
+                    echo = echo + self.storeMacAddress[n] + ";"
+                    self.printMac = True
                 
+            if(self.printMac):
+                for line in fileinput.input('/etc/NetworkManager/NetworkManager.conf', inplace=1): 
+                    if line.__contains__('unmanaged-devices'): 
+                        print line.replace(unmatch, echo)
+                    else:
+                        print line.rstrip()
+             
     @classmethod 
     def getMacAddress(self, wlanInterface):
         self.wlanInterface = wlanInterface
@@ -118,20 +113,20 @@ class phyInterface ( object ):
 class station ( object ):
     
     nextWlan = {}    
-    @classmethod    
-    def tcmode(self, newapif, mode):
-        self.newapif = newapif
-        self.mode = mode
-        if (self.mode=="a"):
-            os.system("tc qdisc add dev %s root tbf rate 54mbit latency 10ms burst 1540" % (self.newapif)) 
-        elif(self.mode=="b"):
-            os.system("tc qdisc add dev %s root tbf rate 11mbit latency 10ms burst 1540" % (self.newapif)) 
-        elif(self.mode=="g"):
-            os.system("tc qdisc add dev %s root tbf rate 54mbit latency 10ms burst 1540" % (self.newapif)) 
-        elif(self.mode=="n"):
-            os.system("tc qdisc add dev %s root tbf rate 600mbit latency 10ms burst 1540" % (self.newapif))
-        elif(self.mode=="ac"):
-            os.system("tc qdisc add dev %s root tbf rate 6777mbit latency 10ms burst 1540" % (self.newapif))   
+   # @classmethod    
+   # def tcmode(self, newapif, mode):
+   #     self.newapif = newapif
+   #     self.mode = mode
+   #     if (self.mode=="a"):
+   #         os.system("tc qdisc add dev %s root tbf rate 54mbit latency 10ms burst 1540" % (self.newapif)) 
+   #     elif(self.mode=="b"):
+   #         os.system("tc qdisc add dev %s root tbf rate 11mbit latency 10ms burst 1540" % (self.newapif)) 
+   #     elif(self.mode=="g"):
+   #         os.system("tc qdisc add dev %s root tbf rate 54mbit latency 10ms burst 1540" % (self.newapif)) 
+   #     elif(self.mode=="n"):
+   #         os.system("tc qdisc add dev %s root tbf rate 600mbit latency 10ms burst 1540" % (self.newapif))
+   #     elif(self.mode=="ac"):
+   #         os.system("tc qdisc add dev %s root tbf rate 6777mbit latency 10ms burst 1540" % (self.newapif))   
     
     @classmethod    
     def associate(self, selfHost, host, ssid):
