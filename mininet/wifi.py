@@ -82,6 +82,7 @@ class module( object ):
     def _start_module(self, wirelessRadios):
         info( "*** Enabling Wireless Module\n" )
         os.system( 'modprobe mac80211_hwsim radios=%s' % wirelessRadios )
+        #os.system( 'insmod mac80211_hwsim.ko radios=%s' % wirelessRadios )
                 
     @classmethod
     def _stop_module(self):
@@ -93,6 +94,7 @@ class module( object ):
             os.system( 'rm *.txt' )
        
         os.system( 'rmmod mac80211_hwsim' )
+        #os.system( 'rmmod mac80211_hwsim.ko' )
         os.system( 'killall -9 hostapd' )
 
 
@@ -156,30 +158,30 @@ class station ( object ):
             options = dict( params )
             self.interface = options[ 'interface' ]
             if (self.mode=="a"):
-                self.host.cmd(host, "tc qdisc add dev %s-%s root tbf rate 54mbit latency 10ms burst 1540" % (host, self.interface)) 
+                self.host.cmd(host, "tc qdisc add dev %s-%s root htb rate 54mbit latency 10ms" % (host, self.interface)) 
             elif (self.mode=="b"):
-                self.host.cmd(host, "tc qdisc add dev %s-%s root tbf rate 11mbit latency 10ms burst 1540" % (host, self.interface)) 
+                self.host.cmd(host, "tc qdisc add dev %s-%s root htb rate 11mbit latency 10ms" % (host, self.interface)) 
             elif (self.mode=="g"):
-                self.host.cmd(host, "tc qdisc add dev %s-%s root tbf rate 54mbit latency 10ms burst 1540" % (host, self.interface)) 
+                self.host.cmd(host, "tc qdisc add dev %s-%s root htb rate 54mbit latency 10ms" % (host, self.interface)) 
             elif (self.mode=="n"):
-                self.host.cmd(host, "tc qdisc add dev %s-%s root tbf rate 600mbit latency 10ms burst 1540" % (host, self.interface)) 
+                self.host.cmd(host, "tc qdisc add dev %s-%s root htb rate 600mbit latency 10ms" % (host, self.interface)) 
             elif (self.mode=="ac"):
-                self.host.cmd(host, "tc qdisc add dev %s-%s root tbf rate 6777mbit latency 10ms burst 1540" % (host, self.interface)) 
+                self.host.cmd(host, "tc qdisc add dev %s-%s root htb rate 6777mbit latency 10ms" % (host, self.interface)) 
             self.host.cmd(host, "iw dev %s-%s set type ibss" % (host, self.interface))
             self.host.cmd(host, "iw dev %s-%s ibss join %s 2412" % (host, self.interface, self.ssid))
             print "connecting %s ..." % host
             time.sleep(waitTime)
         except:
             if (self.mode=="a"):
-                self.host.cmd(host, "tc qdisc add dev %s-wlan0 root tbf rate 54mbit latency 10ms burst 1540" % (host)) 
+                self.host.cmd(host, "tc qdisc add dev %s-wlan0 root htb rate 54mbit latency 10ms" % (host)) 
             elif (self.mode=="b"):
-                self.host.cmd(host, "tc qdisc add dev %s-wlan0 root tbf rate 11mbit latency 10ms burst 1540" % (host)) 
+                self.host.cmd(host, "tc qdisc add dev %s-wlan0 root htb rate 11mbit latency 10ms" % (host)) 
             elif (self.mode=="g"):
-                self.host.cmd(host, "tc qdisc add dev %s-wlan0 root tbf rate 54mbit latency 10ms burst 1540" % (host)) 
+                self.host.cmd(host, "tc qdisc add dev %s-wlan0 root htb rate 54mbit latency 10ms" % (host)) 
             elif (self.mode=="n"):
-                self.host.cmd(host, "tc qdisc add dev %s-wlan0 root tbf rate 600mbit latency 10ms burst 1540" % (host)) 
+                self.host.cmd(host, "tc qdisc add dev %s-wlan0 root htb rate 600mbit latency 10ms" % (host)) 
             elif (self.mode=="ac"):
-                self.host.cmd(host, "tc qdisc add dev %s-wlan0 root tbf rate 6777mbit latency 10ms burst 1540" % (host)) 
+                self.host.cmd(host, "tc qdisc add dev %s-wlan0 root htb rate 6777mbit latency 10ms" % (host)) 
             self.host.cmd(host, "iw dev %s-wlan0 set type ibss" % (host))
             self.host.cmd(host, "iw dev %s-wlan0 ibss join %s 2412" % (host, self.ssid))
             print "connecting %s ..." % host
