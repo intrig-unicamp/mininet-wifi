@@ -5,6 +5,8 @@
 author: Bob Lantz (rlantz@cs.stanford.edu)
 author: Brandon Heller (brandonh@stanford.edu)
 
+Modified by Ramon Fontes (ramonrf@dca.fee.unicamp.br)
+
 Mininet creates scalable OpenFlow test networks by using
 process-based virtualization and network namespaces.
 
@@ -108,11 +110,11 @@ from mininet.util import ( quietRun, fixLimits, numCores, ensureRoot,
                            macColonHex, ipStr, ipParse, netParse, ipAdd,
                            waitListening )
 from mininet.term import cleanUpScreens, makeTerms
-from mininet.wifi import checkNM, module, phyInterface, accessPoint, station
+from mininet.wifi import checkNM, module, phyInterface, accessPoint, station, wifiParameters
 from __builtin__ import True
 
 # Mininet version: should be consistent with README and LICENSE
-VERSION = "BetaVersion_0.98"
+VERSION = "1.0"
 
 class Mininet( object ):
     "Network emulation with hosts spawned in network namespaces."
@@ -178,14 +180,19 @@ class Mininet( object ):
         self.wprefixLen = 24
         self.resultIface = ""
         self.interfaceID = interfaceID
-        self.ssid = ssid
+        self.ssid = ssid        
         self.mode = mode
         self.channel = channel
         self.wirelessRadios = wirelessRadios
+        self.position = {}
+        self.pos_x = 0
+        self.pos_y = 0
+        self.pos_z = 0
         
         self.cmd=""        
         self.phyInterfaces = []
         
+        self.wifiNodes = []
         self.hosts = []
         self.switches = []
         self.baseStations = []
@@ -292,10 +299,21 @@ class Mininet( object ):
             cls = self.host
         h = cls( name, **defaults )      
         self.hosts.append( h )
-        self.nameToNode[ name ] = h
+        self.wifiNodes.append(h)
+        self.nameToNode[ name ] = h        
         
         self.stationName.append(name)
         
+        position = ("%s" % params.pop('position', {}))
+        if(position!="{}"):        
+            position =  position.split(',')
+            self.position[name] = position
+            self.pos_x = position[0]
+            self.pos_y = position[1]
+            self.pos_z = position[2]
+        else:
+            self.position[name] = 0
+            
         ssid = ("%s" % params.pop('ssid', {}))
         if(ssid!="{}"):
             self.ssid = ssid
@@ -341,9 +359,20 @@ class Mininet( object ):
         if not self.inNamespace and self.listenPort:
             self.listenPort += 1
         self.baseStations.append( bs )
+        self.wifiNodes.append(bs)
         self.nameToNode[ name ] = bs
         
-        self.baseStationName.append(name)      
+        self.baseStationName.append(name)     
+        
+        position = ("%s" % params.pop('position', {}))
+        if(position!="{}"):        
+            position =  position.split(',')
+            self.position[name] = position
+            self.pos_x = position[0]
+            self.pos_y = position[1]
+            self.pos_z = position[2]
+        else:
+            self.position[name] = 0
       
         channel = ("%s" % params.pop('channel', {}))
         if(channel!="{}"):
@@ -615,7 +644,6 @@ class Mininet( object ):
             return link
         
         else:
-            #station.isWiFi=False
             """"Add a link from node1 to node2
                 node1: source node (or name)
                 node2: dest node (or name)
@@ -1190,7 +1218,52 @@ class Mininet( object ):
                 cpu_fractions.append( pct )
         output( '*** Results: %s\n' % cpu_fractions )
         return cpu_fractions
+    
 
+    def noiseInfo(self, src):
+        if src[:2] == 'ap':
+            print 'cannot access ap info!'
+        else:
+            existSrc = False
+            for host in self.wifiNodes:
+                if src == str(host):
+                    existSrc = True
+                    wifiParameters.noise(host)
+            if existSrc == False:
+                print "%s does not exist!" % src
+    
+                
+    def positionInfo(self, src):
+        for host in self.wifiNodes:
+            if src == str(host) and self.position[src]!=0:
+                wifiParameters.position(host, self.position[src])
+        try:
+            if (self.position[src]==0):
+                print ("Position was not defined")
+        except:
+            print ("Station or Access Point does not exist!")
+                
+                        
+    def distanceInfo(self, src, dst):
+        existSrc = False
+        existDst = False
+        for host1 in self.wifiNodes:
+            if src == str(host1) and self.position[src]!=0:
+                existSrc = True
+                for host2 in self.wifiNodes:
+                    if dst == str(host2) and self.position[dst]!=0:
+                        existDst = True
+                        wifiParameters.distance(src, dst, self.position[src], self.position[dst])
+        try:               
+            if self.position[src]==0 or self.position[dst]==0:
+                print ("Position of (sta or ap) not defined or node does not exist!")
+            elif(existSrc==False and existDst==False):
+                print ("WiFi nodes %s and %s do not exist" % (src, dst))
+            elif(existSrc==True and existDst==False):
+                print ("WiFi node %s or %s does not exist" % (src, dst))
+        except:
+            print ("Station or Access Point does not exist!")
+        
     # BL: I think this can be rewritten now that we have
     # a real link class.
     def configLinkStatus( self, src, dst, status ):

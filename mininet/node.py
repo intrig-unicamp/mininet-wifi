@@ -127,7 +127,7 @@ class Node( object ):
     isHost = False
     wIface = {}
     wirelessRadios = 3
-    
+      
     @classmethod
     def fdToNode( cls, fd ):
         """Return node corresponding to given file descriptor.

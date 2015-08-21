@@ -1,6 +1,8 @@
 """
 wifi setups for Mininet-WiFi.
 
+author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
+
 """
 
 import os
@@ -12,10 +14,15 @@ import subprocess
 import time
 import glob
 
-from mininet.log import  info
+from mininet.log import info
+import numpy as np
+import scipy.spatial.distance as distance 
 
 class checkNM ( object ):
     
+    """
+    add mac address inside of /etc/NetworkManager/NetworkManager.conf    
+    """
     @classmethod 
     def checkNetworkManager(self, storeMacAddress): 
         self.storeMacAddress = storeMacAddress     
@@ -58,6 +65,10 @@ class checkNM ( object ):
                         else:
                             print line.rstrip()
              
+    
+    """
+    get Mac Address of any Interface   
+    """
     @classmethod 
     def getMacAddress(self, wlanInterface):
         self.wlanInterface = wlanInterface
@@ -68,6 +79,9 @@ class checkNM ( object ):
         #print (''.join(['%02x:' % ord(char) for char in info[18:24]])[:-1])
         return self.storeMacAddress
     
+    """
+    run an Access Point and create the file  
+    """
     @classmethod   
     def APfile(self, apcommand, ap):
         self.apcommand = apcommand + ("\' > %s.conf" % ap)  
@@ -78,15 +92,20 @@ class checkNM ( object ):
 
 class module( object ):
     
+    """
+    Start wireless Module 
+    """
     @classmethod    
     def _start_module(self, wirelessRadios):
         info( "*** Enabling Wireless Module\n" )
         os.system( 'modprobe mac80211_hwsim radios=%s' % wirelessRadios )
         #os.system( 'insmod mac80211_hwsim.ko radios=%s' % wirelessRadios )
-                
+     
+    """
+    Stop wireless Module 
+    """           
     @classmethod
     def _stop_module(self):
-        #info( "*** Removing Wireless Module\n" )
         if glob.glob("*.conf"):
             os.system( 'rm *.conf' )
         
@@ -102,11 +121,17 @@ class phyInterface ( object ):
     
     phy = {}
     nextIface = 0
-   
+    
+    """
+    Go to next Interface
+    """   
     @classmethod 
     def setNextIface(self):
         self.nextIface+=1
     
+    """
+    Get phy Interface
+    """   
     @classmethod
     def getPhyInterfaces(self):
         phy = subprocess.check_output("find /sys/kernel/debug/ieee80211 -name hwsim | cut -d/ -f 6 | sort", 
@@ -115,6 +140,9 @@ class phyInterface ( object ):
         self.setNextIface()
         return phy
     
+    """
+    get Wireless Interface
+    """   
     @classmethod
     def phyInt(self):
         return subprocess.check_output("iwconfig 2>&1 | grep IEEE | awk '{print $1}'",shell=True).split("\n")
@@ -138,6 +166,9 @@ class station ( object ):
    #     elif(self.mode=="ac"):
    #         os.system("tc qdisc add dev %s root tbf rate 6777mbit latency 10ms burst 1540" % (self.newapif))   
     
+    """
+    Station Associate to an Access Point
+    """   
     @classmethod    
     def associate(self, selfHost, host, ssid):
         self.host = selfHost
@@ -146,7 +177,10 @@ class station ( object ):
         time.sleep(0.1)
         #mac = subprocess.check_output("iw dev wlan6 station dump | grep 'Sta' | cut -c9-",shell=True)
         #print str(mac[:17])
-            
+          
+    """
+    Station Associate to another Station
+    """   
     @classmethod    
     def adhoc(self, selfHost, host, ssid, mode, waitTime, **params):
         
@@ -187,10 +221,9 @@ class station ( object ):
             print "connecting %s ..." % host
             time.sleep(waitTime)
         
-    @classmethod    
-    def isWifi(self, isWiFi):
-        return isWiFi
-    
+    """
+    Add phy Interface to Stations
+    """ 
     @classmethod    
     def addIface(self, station):
         phy = phyInterface.getPhyInterfaces()
@@ -206,23 +239,21 @@ class station ( object ):
                     self.nextWlan[station] = 1
                 netxWlan = self.nextWlan[station] 
                 self.renameIface(station, netxWlan, iface)
-                
      
+    """
+    Rename wireless interface if necessary
+    """
     @classmethod    
     def renameIface(self, station, nextWlan, iface):
         station.cmd('ip link set dev %s name %s-wlan%s' % (iface[:5], station, nextWlan ))
-        station.cmd('ifconfig %s-wlan%s up' % (station, nextWlan))        
-        
-        
-class wlanIface ( object ):
-    
-    @classmethod    
-    def numberOfCurrentIfaces(self):
-        return subprocess.check_output("iwconfig 2>&1 | grep IEEE | awk '{print $1}'",shell=True)
+        station.cmd('ifconfig %s-wlan%s up' % (station, nextWlan))    
                         
             
 class accessPoint ( object ):
     
+    """
+    Starts an Access Point
+    """
     @classmethod
     def start(self, interfaceID, nextIface, ssid, mode, channel, 
               country_code, auth_algs, wpa, wpa_key_mgmt, rsn_pairwise, wpa_passphrase):
@@ -290,6 +321,41 @@ class accessPoint ( object ):
     def apBridge(self, ap, iface):
         os.system("ovs-vsctl add-port %s %s" % (ap, iface))
         
+            
+class wifiParameters ( object ):
+    
+    @classmethod
+    def noise(self, host): 
+        self.host = host
+        print self.host.cmd('iw dev %s-wlan0 survey noise %d' % (host, int(str(self.host)[3:])+60))
+        
+    @classmethod 
+    def mobility(self):
+        
+        """
+        In development    
+        """
+        
+    @classmethod 
+    def distance(self, src, dst, pos_src, pos_dst):
+        """
+        In development    
+        """
+        
+        points = np.array([(pos_src[0], pos_src[1], pos_src[2]), (pos_dst[0], pos_dst[1], pos_dst[2])])
+        dist = distance.pdist(points)
+        print ("The distance between %s and %s is %.2f meters\n" % (src, dst, float(dist)))
+        
+        
     @classmethod   
-    def getAPIface(self):
-        return subprocess.check_output("iwconfig 2>&1 | grep IEEE | awk '{print $1}'",shell=True)
+    def position(self, src, position):
+        """
+        In development (x,y,z)   
+        """
+        self.pos_x = position[0]
+        self.pos_y = position[1]
+        self.pos_z = position[2]        
+        print "----------------\nPosition of %s\n----------------\nPosition X: %s\nPosition Y: %s\nPosition Z: %s\n" % (src, self.pos_x, self.pos_y, self.pos_z)
+        
+        
+        

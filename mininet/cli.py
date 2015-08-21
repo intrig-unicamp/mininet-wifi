@@ -269,6 +269,34 @@ class CLI( Cmd ):
         "Dump node info."
         for node in self.mn.values():
             output( '%s\n' % repr( node ) )
+    
+    def do_noise( self, line ):
+        "Noise node info."
+        args = line.split()
+        if len(args) != 1:
+            error( 'invalid number of args: noise [sta]\n' )
+        else:
+            self.mn.noiseInfo( *args )
+            
+    
+    def do_distance( self, line ):
+        "Distance between two nodes."
+        args = line.split()
+        if len(args) != 2:
+            error( 'invalid number of args: distance [sta or ap] [sta or ap]\n' )
+        elif len(args) == 2 and args[ 0 ] == args[ 1 ]:
+            error( 'invalid. Source and Destination are equals\n' )
+        else:
+            self.mn.distanceInfo( *args )
+            
+    def do_position( self, line ):
+        "Position node info."
+        args = line.split()
+        if len(args) != 1:
+            error( 'invalid number of args: position [sta ou ap]\n' )
+        else:
+            self.mn.positionInfo( *args )
+        
 
     def do_link( self, line ):
         """Bring link(s) between two nodes up or down.

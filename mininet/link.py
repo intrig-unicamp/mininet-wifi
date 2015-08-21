@@ -75,7 +75,6 @@ class Intf( object ):
             elif (len(self.name) == 11):
                 self.cmd('ip link set dev %s name %s-wlan0' % (wif.strip(), self.name[:5]) )
                 return self.cmd( 'ifconfig %s-wlan0'% self.name[:5], *args )
-        #elif(station.isWiFi==False):
         else:
             "Configure ourselves using ifconfig"
             return self.cmd( 'ifconfig', self.name, *args )

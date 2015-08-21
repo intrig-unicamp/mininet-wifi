@@ -143,7 +143,9 @@ function mn_deps {
 # Install Mininet-WiFi deps
 function wifi_deps {
     echo "Installing Mininet-WiFi dependencies"
-    $install hostapd iw wireless-tools
+    $install hostapd iw wireless-tools libnl-dev
+    cd iw
+    sudo make install
 }
 
 # Install Mininet developer dependencies
@@ -546,9 +548,10 @@ function hostapd {
 # "Install" iw
 function iw {
     echo "Installing iw..."
-    sudo apt-get install iw
+    sudo apt-get install iw libnl-dev
+    cd iw
+    sudo make install
 }
-
 
 
 # Install OFtest
