@@ -143,7 +143,7 @@ function mn_deps {
 # Install Mininet-WiFi deps
 function wifi_deps {
     echo "Installing Mininet-WiFi dependencies"
-    $install hostapd iw wireless-tools libnl-dev
+    $install hostapd iw wireless-tools python-numpy python-scipy pkg-config libnl-dev
     cd iw
     sudo make install
 }
