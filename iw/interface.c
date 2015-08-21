@@ -362,31 +362,13 @@ static int print_iface_handler(struct nl_msg *msg, void *arg)
 
 		struct nlattr *sinfo[NL80211_SURVEY_INFO_MAX + 1];
 
-        	static struct nla_policy survey_policy[NL80211_SURVEY_INFO_MAX + 1] = {
-		[NL80211_SURVEY_INFO_FREQUENCY] = { .type = NLA_U32 },
-		[NL80211_SURVEY_INFO_NOISE] = { .type = NLA_U8 },
-	};               
-		
+
 		nla_parse(sinfo, NL80211_SURVEY_INFO_MAX, genlmsg_attrdata(gnlh, 0),
                   genlmsg_attrlen(gnlh, 0), NULL);
-	//	printf( "aaaaaaaaaa %s", nla_get_u32(sinfo));
-
- 
-//			if (nla_parse_nested(sinfo, NL80211_SURVEY_INFO_MAX,
-///			     sinfo[NL80211_ATTR_SURVEY_INFO],
-//			     survey_policy)) {
-///		fprintf(stderr, "failed to parse nested attributes!\n");
-//		return NL_SKIP;
-//	}
-			printf("\tnoise:\t\t\t\t%d dBm\n", (int8_t)nla_get_u8(sinfo[NL80211_SURVEY_INFO_NOISE]));
-
-
-		printf( "aaaaaaaaaaaa" );
 
 			if (sinfo[NL80211_SURVEY_INFO_NOISE])
 			printf("\tnoise:\t\t\t\t%d dBm\n", (int8_t)nla_get_u8(sinfo[NL80211_SURVEY_INFO_NOISE]));
 
-			
 
 			if (tb_msg[NL80211_ATTR_CENTER_FREQ2])
 				printf(", center2: %d MHz",
