@@ -27,6 +27,8 @@ Video 03: https://www.youtube.com/watch?v=WH6bSOKC7Lk
 /examples/simplewifitopology.py  
 /examples/wifiStationsAndHosts.py  
 /examples/2AccessPoints.py  
+/examples/wifiPosition.py  
+
 
 ###Team
 Ramon dos Reis Fontes (ramonrf@dca.fee.unicamp.br)  
