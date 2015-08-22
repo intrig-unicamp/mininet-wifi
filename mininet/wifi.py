@@ -17,6 +17,7 @@ import glob
 from mininet.log import info
 import numpy as np
 import scipy.spatial.distance as distance 
+from netlink.util import Rate
 
 class checkNM ( object ):
     
@@ -76,7 +77,6 @@ class checkNM ( object ):
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         info = fcntl.ioctl(s.fileno(), 0x8927,  struct.pack('256s', '%s'[:15]) % str(self.wlanInterface))
         self.storeMacAddress.append(''.join(['%02x:' % ord(char) for char in info[18:24]])[:-1])
-        #print (''.join(['%02x:' % ord(char) for char in info[18:24]])[:-1])
         return self.storeMacAddress
     
     """
@@ -88,6 +88,101 @@ class checkNM ( object ):
         os.system(self.apcommand)
         self.cmd = ("hostapd -f apdebug.txt -B %s.conf" % ap)
         os.system(self.cmd)
+        
+        
+class association( object ):
+    
+    @classmethod    
+    def bw(self, mode):
+        
+        self.bandwidth = 0
+        if (mode=='a'):
+            self.bandwidth = 54
+        elif(mode=='b'):
+            self.bandwidth = 11
+        elif(mode=='g'):
+            self.bandwidth = 54 
+        elif(mode=='n'):
+            self.bandwidth = 600
+        elif(mode=='ac'):
+            self.bandwidth = 6777 
+            
+        return self.bandwidth
+    
+    @classmethod    
+    def checkDistance(self, mode, distance):
+        
+        doAssociation = True
+        
+        if (mode=='a' and distance > 33):
+            doAssociation = False
+        elif(mode=='b' and distance > 50):
+            doAssociation = False
+        elif(mode=='g' and distance > 33):
+            doAssociation = False
+        elif(mode=='n' and distance > 70):
+            doAssociation = False
+        elif(mode=='ac' and distance > 100):
+            doAssociation = False        
+        
+        return doAssociation
+    
+    
+    @classmethod    
+    def setAdhocParameters(self, selfHost, host, mode, newIface, **params):
+        
+        self.host = selfHost
+        self.mode = mode
+        rate = 0
+        latency = 10
+        
+        if newIface:            
+            if (self.mode=="a"):
+                rate = 54
+            elif (self.mode=="b"):
+                rate = 11
+            elif (self.mode=="g"):
+                rate = 54
+            elif (self.mode=="n"):
+                rate = 600
+            elif (self.mode=="ac"):
+                rate = 6777
+            self.host.cmd(host, "tc qdisc add dev %s-%s root htb rate %smbit latency %sms" % (host, self.interface, rate, latency)) 
+        else:
+            if (self.mode=="a"):
+                rate = 54
+            elif (self.mode=="b"):
+                rate = 11
+            elif (self.mode=="g"):
+                rate = 54
+            elif (self.mode=="n"):
+                rate = 600
+            elif (self.mode=="ac"):
+                rate = 6777
+            self.host.cmd(host, "tc qdisc add dev %s-wlan0 root htb rate %smbit latency %sms burst 15k" % (host, rate, latency))
+        
+    
+    @classmethod    
+    def setInfraParameters(self, host, mode, distance):
+        """
+            Set wifi Infrastrucure Parameters. Have to use models to loss, latency, bw...    
+        """
+        self.host = host
+        self.mode = mode
+        rate = 0
+        latency = 10 + distance
+        
+        if (self.mode=="a"):
+            rate = 54 - distance/2
+        elif (self.mode=="b"):
+            rate = 11 - distance/2
+        elif (self.mode=="g"):
+            rate = 54 - distance/2 
+        elif (self.mode=="n"):
+            rate = 600 - distance/2
+        elif (self.mode=="ac"):
+            rate = 6777 - distance/2
+        self.host.cmd("tc qdisc replace dev %s-wlan0 root tbf rate %.2fmbit latency %.2fms burst 15k" % (self.host, rate, latency))   
         
 
 class module( object ):
@@ -151,21 +246,7 @@ class phyInterface ( object ):
 class station ( object ):
     
     nextWlan = {}    
-   # @classmethod    
-   # def tcmode(self, newapif, mode):
-   #     self.newapif = newapif
-   #     self.mode = mode
-   #     if (self.mode=="a"):
-   #         os.system("tc qdisc add dev %s root tbf rate 54mbit latency 10ms burst 1540" % (self.newapif)) 
-   #     elif(self.mode=="b"):
-   #         os.system("tc qdisc add dev %s root tbf rate 11mbit latency 10ms burst 1540" % (self.newapif)) 
-   #     elif(self.mode=="g"):
-   #         os.system("tc qdisc add dev %s root tbf rate 54mbit latency 10ms burst 1540" % (self.newapif)) 
-   #     elif(self.mode=="n"):
-   #         os.system("tc qdisc add dev %s root tbf rate 600mbit latency 10ms burst 1540" % (self.newapif))
-   #     elif(self.mode=="ac"):
-   #         os.system("tc qdisc add dev %s root tbf rate 6777mbit latency 10ms burst 1540" % (self.newapif))   
-    
+  
     """
     Station Associate to an Access Point
     """   
@@ -175,11 +256,10 @@ class station ( object ):
         self.ssid = ssid
         self.host.cmd(host, "iw dev %s-wlan0 connect %s" % (host, self.ssid))
         time.sleep(0.1)
-        #mac = subprocess.check_output("iw dev wlan6 station dump | grep 'Sta' | cut -c9-",shell=True)
-        #print str(mac[:17])
+    
           
     """
-    Station Associate to another Station
+    Adhoc mode
     """   
     @classmethod    
     def adhoc(self, selfHost, host, ssid, mode, waitTime, **params):
@@ -187,35 +267,17 @@ class station ( object ):
         self.host = selfHost
         self.ssid = ssid
         self.mode = mode
-                        
-        try:
+        
+        try: # if new iface
             options = dict( params )
             self.interface = options[ 'interface' ]
-            if (self.mode=="a"):
-                self.host.cmd(host, "tc qdisc add dev %s-%s root htb rate 54mbit latency 10ms" % (host, self.interface)) 
-            elif (self.mode=="b"):
-                self.host.cmd(host, "tc qdisc add dev %s-%s root htb rate 11mbit latency 10ms" % (host, self.interface)) 
-            elif (self.mode=="g"):
-                self.host.cmd(host, "tc qdisc add dev %s-%s root htb rate 54mbit latency 10ms" % (host, self.interface)) 
-            elif (self.mode=="n"):
-                self.host.cmd(host, "tc qdisc add dev %s-%s root htb rate 600mbit latency 10ms" % (host, self.interface)) 
-            elif (self.mode=="ac"):
-                self.host.cmd(host, "tc qdisc add dev %s-%s root htb rate 6777mbit latency 10ms" % (host, self.interface)) 
+            association.setAdhocParameters(selfHost, host, mode, newIface=True, **params)
             self.host.cmd(host, "iw dev %s-%s set type ibss" % (host, self.interface))
             self.host.cmd(host, "iw dev %s-%s ibss join %s 2412" % (host, self.interface, self.ssid))
             print "connecting %s ..." % host
             time.sleep(waitTime)
-        except:
-            if (self.mode=="a"):
-                self.host.cmd(host, "tc qdisc add dev %s-wlan0 root htb rate 54mbit latency 10ms" % (host)) 
-            elif (self.mode=="b"):
-                self.host.cmd(host, "tc qdisc add dev %s-wlan0 root htb rate 11mbit latency 10ms" % (host)) 
-            elif (self.mode=="g"):
-                self.host.cmd(host, "tc qdisc add dev %s-wlan0 root htb rate 54mbit latency 10ms" % (host)) 
-            elif (self.mode=="n"):
-                self.host.cmd(host, "tc qdisc add dev %s-wlan0 root htb rate 600mbit latency 10ms" % (host)) 
-            elif (self.mode=="ac"):
-                self.host.cmd(host, "tc qdisc add dev %s-wlan0 root htb rate 6777mbit latency 10ms" % (host)) 
+        except: # if not
+            association.setAdhocParameters(selfHost, host, mode, newIface=False, **params)
             self.host.cmd(host, "iw dev %s-wlan0 set type ibss" % (host))
             self.host.cmd(host, "iw dev %s-wlan0 ibss join %s 2412" % (host, self.ssid))
             print "connecting %s ..." % host
@@ -249,8 +311,7 @@ class station ( object ):
         station.cmd('ifconfig %s-wlan%s up' % (station, nextWlan))    
                         
             
-class accessPoint ( object ):
-    
+class accessPoint ( object ):    
     """
     Starts an Access Point
     """
@@ -321,6 +382,23 @@ class accessPoint ( object ):
     def apBridge(self, ap, iface):
         os.system("ovs-vsctl add-port %s %s" % (ap, iface))
         
+        
+    @classmethod
+    def setBw(self, newapif, mode):
+        self.newapif = newapif
+        self.mode = mode
+        if (self.mode=="a"):
+            rate = 54
+        elif (self.mode=="b"):
+            rate = 11
+        elif (self.mode=="g"):
+            rate = 54
+        elif (self.mode=="n"):
+            rate = 600
+        elif (self.mode=="ac"):
+            rate = 6777
+        os.system("tc qdisc add dev %s root tbf rate %smbit latency 2ms burst 15k" % (self.newapif, rate))   
+        
             
 class wifiParameters ( object ):
     
@@ -331,19 +409,22 @@ class wifiParameters ( object ):
         
     @classmethod 
     def mobility(self):
-        
         """
         In development    
         """
         
     @classmethod 
-    def distance(self, src, dst, pos_src, pos_dst):
+    def getDistance(self, src, dst, pos_src, pos_dst):
         """
-        In development    
+        In development  
         """
-        
         points = np.array([(pos_src[0], pos_src[1], pos_src[2]), (pos_dst[0], pos_dst[1], pos_dst[2])])
         dist = distance.pdist(points)
+        return dist
+    
+    @classmethod 
+    def printDistance(self, src, dst, pos_src, pos_dst):
+        dist = self.getDistance(src, dst, pos_src, pos_dst)
         print ("The distance between %s and %s is %.2f meters\n" % (src, dst, float(dist)))
         
         

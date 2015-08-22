@@ -70,6 +70,7 @@ from mininet.moduledeps import moduleDeps, pathCheck, TUN
 from mininet.link import Link, Intf, TCIntf, OVSIntf
 from re import findall
 from distutils.version import StrictVersion
+from mininet.wifi import wifiParameters, association
 
 
 class Node( object ):
@@ -117,12 +118,12 @@ class Node( object ):
     outToNode = {}  # mapping of output fds to nodes
     isWireless=False
     apwlan = {}
-    firstAP = {}
     isCode = True
     nAP=0
     phyInterfaces = []
     ssid = {}
-    associatedAP = {}
+    doAssociation = {}
+    associatedSSID = {}
     phyID = {}
     isHost = False
     wIface = {}
@@ -596,8 +597,8 @@ class Node( object ):
         
         #Necessary if the mac address has changed
         host = str(self)
-        if(mac!=None and self.isWireless==True and host[:3]=='sta'):
-            self.cmd("iw dev %s-wlan0 connect %s" % (self, self.associatedAP[self]))
+        if(mac!=None and self.isWireless==True and host[:3]=='sta' and self.doAssociation[self] == True):
+            self.cmd("iw dev %s-wlan0 connect %s" % (self, self.associatedSSID[self]))
         
         # This should be examined
         self.cmd( 'ifconfig lo ' + lo )

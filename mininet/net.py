@@ -110,7 +110,7 @@ from mininet.util import ( quietRun, fixLimits, numCores, ensureRoot,
                            macColonHex, ipStr, ipParse, netParse, ipAdd,
                            waitListening )
 from mininet.term import cleanUpScreens, makeTerms
-from mininet.wifi import checkNM, module, phyInterface, accessPoint, station, wifiParameters
+from mininet.wifi import checkNM, module, phyInterface, accessPoint, station, wifiParameters, association
 from __builtin__ import True
 
 # Mininet version: should be consistent with README and LICENSE
@@ -335,8 +335,9 @@ class Mininet( object ):
         Node.ssid[name] = self.ssid        
         Node.isFirst = len(self.phyInterfaces)
         self.nextIP += 1        
-        self.nextIface+=1
+        self.nextIface += 1
         return h
+
 
     def addBaseStation( self, name, cls=None, **params ):
         """Add BaseStation.
@@ -402,10 +403,9 @@ class Mininet( object ):
         self.newapif.sort(key=len, reverse=False)
         checkNM.checkNetworkManager(checkNM.getMacAddress(self.newapif[self.nextIface]))           
         Node.ssid[name] = self.ssid
-        #station.tcmode(self.newapif[self.nextIface], self.mode)
+        accessPoint.setBw(self.newapif[self.nextIface], self.mode)
         Node.apwlan[name] = self.newapif[self.nextIface]
-        Node.firstAP[name] = True
-        
+       
         self.cmd = accessPoint.start(self.interfaceID, self.newapif[self.nextIface], self.ssid, self.mode, 
                                      self.channel, self.country_code, self.auth_algs, 
                                      self.wpa, self.wpa_key_mgmt, self.rsn_pairwise, self.wpa_passphrase)
@@ -550,41 +550,21 @@ class Mininet( object ):
 
     def addHoc( self, node, ssid, mode, cls=None, **params ):
         
-            #checkNM.checkNetworkManager(self.storeMacAddress)            
             node2 = node
             
             node = node if not isinstance( node, basestring ) else self[ node ]
             node2 = node2 if not isinstance( node2, basestring ) else self[ node2 ]
             options = dict( params )
             
-            if (self.mode=="a"):
-                self.bw = 54
-            elif(self.mode=="b"):
-                self.bw = 11
-            elif(self.mode=="g"):
-                self.bw = 54 
-            elif(self.mode=="n"):
-                self.bw = 600
-            elif(self.mode=="ac"):
-                self.bw = 6777 
-            
-            #for host in self.hosts:
-            #    if (host == node):
-            #        options.setdefault( 'bw', self.bw )
-            #        options.setdefault( 'use_hfsc', True )
-             
             # Set default MAC - this should probably be in Link
             options.setdefault( 'addr1', self.randMac() )
-            #options.setdefault( 'addr2', self.randMac() )
             
             cls = self.link if cls is None else cls
             link = cls( node, node2, **options )
             
             waitTime = self.waitTime
-            #self.links.append( link )
             for host in self.hosts:
                 if (host == node):
-                    #ssid = Node.ssid[ str(node) ]
                     selfHost = self.host
                     station.adhoc(selfHost, host, ssid, mode, waitTime, **params)
             
@@ -599,28 +579,15 @@ class Mininet( object ):
             node2 = node2 if not isinstance( node2, basestring ) else self[ node2 ]
             options = dict( params )
             
-            if (self.mode=="a"):
-                self.bw = 54
-            elif(self.mode=="b"):
-                self.bw = 11
-            elif(self.mode=="g"):
-                self.bw = 54 
-            elif(self.mode=="n"):
-                self.bw = 600
-            elif(self.mode=="ac"):
-                self.bw = 6777 
+            self.bw = association.bw(self.mode)
             
             for host in self.hosts:
                 if (host == node1):
-                    #options.setdefault( 'port1', port1 )
                     options.setdefault( 'bw', self.bw )
                     options.setdefault( 'use_hfsc', True )
-               #     options.setdefault( 'mode', self.mode )
                 elif (host == node2):
-                    #options.setdefault( 'port1', port1 )
                     options.setdefault( 'bw', self.bw )
                     options.setdefault( 'use_hfsc', True )
-                #    options.setdefault( 'mode', self.mode )
                                 
             # Set default MAC - this should probably be in Link
             options.setdefault( 'addr1', self.randMac() )
@@ -629,18 +596,26 @@ class Mininet( object ):
             cls = self.link if cls is None else cls
             link = cls( node1, node2, **options )
             
-            #self.links.append( link )
+            if self.position[str(node1)] !=0 and self.position[str(node2)] !=0:
+                distance = wifiParameters.getDistance(node1, node2, self.position[str(node1)], self.position[str(node2)])
+                doAssociation = association.checkDistance(self.mode, distance)
+            else:
+                doAssociation = True
+                distance = 0
+            
             for host in self.hosts:
                 if (host == node1):
-                    ssid = Node.ssid[ str(node2) ]
-                    selfHost = self.host
-                    Node.associatedAP[host] = ssid
-                    station.associate(selfHost, host, ssid)
+                    Node.doAssociation[host] = doAssociation
+                    if(doAssociation):
+                        Node.associatedSSID[host] = Node.ssid[ str(node2) ]
+                        station.associate(self.host, host, Node.ssid[ str(node2) ])
+                        association.setInfraParameters(host, self.mode, distance)
                 elif (host == node2):
-                    ssid = Node.ssid[ str(node1) ]
-                    selfHost = self.host
-                    Node.associatedAP[host] = ssid
-                    station.associate(selfHost, host, ssid)
+                    Node.doAssociation[host] = doAssociation
+                    if(doAssociation):
+                        Node.associatedSSID[host] = Node.ssid[ str(node1) ]
+                        station.associate(self.host, host, Node.ssid[ str(node1) ])
+                        association.setInfraParameters(host, self.mode, distance)
             return link
         
         else:
@@ -661,6 +636,7 @@ class Mininet( object ):
                 options.setdefault( 'port1', port1 )
             if port2 is not None:
                 options.setdefault( 'port2', port2 )
+            
             # Set default MAC - this should probably be in Link
             options.setdefault( 'addr1', self.randMac() )
             options.setdefault( 'addr2', self.randMac() )
@@ -738,8 +714,7 @@ class Mininet( object ):
                 self.addLink( **params )  
                 info( '(%s, %s) ' % ( srcName, dstName ) )   
             info( '\n' )
-           # for host in self.hosts:
-            #    self.host.cmd(host, "iw dev %s-wlan0 connect %s" % (host, self.ssid))            
+        
         else:
             info( '*** Adding hosts:\n' )
             for hostName in topo.hosts():
@@ -1253,7 +1228,7 @@ class Mininet( object ):
                 for host2 in self.wifiNodes:
                     if dst == str(host2) and self.position[dst]!=0:
                         existDst = True
-                        wifiParameters.distance(src, dst, self.position[src], self.position[dst])
+                        wifiParameters.printDistance(src, dst, self.position[src], self.position[dst])
         try:               
             if self.position[src]==0 or self.position[dst]==0:
                 print ("Position of (sta or ap) not defined or node does not exist!")

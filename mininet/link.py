@@ -248,7 +248,7 @@ class TCIntf( Intf ):
         elif bw is not None:
             # BL: this seems a bit brittle...
             if ( speedup > 0 and
-                 self.node.name[0:1] == 's' ):
+                self.node.name[0:1] == 's' ):
                 bw = speedup
             # This may not be correct - we should look more closely
             # at the semantics of burst (and cburst) to make sure we
