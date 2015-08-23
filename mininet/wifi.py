@@ -17,7 +17,7 @@ import glob
 from mininet.log import info
 import numpy as np
 import scipy.spatial.distance as distance 
-from netlink.util import Rate
+
 
 class checkNM ( object ):
     

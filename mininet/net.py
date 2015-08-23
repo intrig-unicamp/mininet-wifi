@@ -114,7 +114,7 @@ from mininet.wifi import checkNM, module, phyInterface, accessPoint, station, wi
 from __builtin__ import True
 
 # Mininet version: should be consistent with README and LICENSE
-VERSION = "1.0"
+VERSION = "1.0rc1"
 
 class Mininet( object ):
     "Network emulation with hosts spawned in network namespaces."
@@ -596,9 +596,11 @@ class Mininet( object ):
             cls = self.link if cls is None else cls
             link = cls( node1, node2, **options )
             
+            #If sta/ap have position defined
             if self.position[str(node1)] !=0 and self.position[str(node2)] !=0:
                 distance = wifiParameters.getDistance(node1, node2, self.position[str(node1)], self.position[str(node2)])
                 doAssociation = association.checkDistance(self.mode, distance)
+            #if not
             else:
                 doAssociation = True
                 distance = 0
