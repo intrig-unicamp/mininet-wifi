@@ -549,7 +549,7 @@ function hostapd {
 function iw {
     echo "Installing iw..."
     $install iw wireless-tools python-numpy python-scipy pkg-config libnl-dev
-    cd iw
+    cd mininet-wifi/iw
     sudo make install
 }
 
