@@ -6,8 +6,8 @@ Setting the position of Nodes (only for Stations and Access Points).
 """
 
 from mininet.net import Mininet
-from mininet.node import Controller, RemoteController, OVSKernelSwitch, UserSwitch
-from mininet.link import Link, TCLink
+from mininet.node import Controller,OVSKernelSwitch
+from mininet.link import TCLink
 from mininet.cli import CLI
 from mininet.log import setLogLevel
 

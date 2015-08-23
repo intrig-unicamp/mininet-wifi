@@ -70,8 +70,6 @@ from mininet.moduledeps import moduleDeps, pathCheck, TUN
 from mininet.link import Link, Intf, TCIntf, OVSIntf
 from re import findall
 from distutils.version import StrictVersion
-from mininet.wifi import wifiParameters, association
-
 
 class Node( object ):
     """A virtual network node is simply a shell in a network namespace.
