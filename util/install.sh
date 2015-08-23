@@ -548,7 +548,7 @@ function hostapd {
 # "Install" iw
 function iw {
     echo "Installing iw..."
-    install iw wireless-tools python-numpy python-scipy pkg-config libnl-dev
+    $install iw wireless-tools python-numpy python-scipy pkg-config libnl-dev
     cd iw
     sudo make install
 }

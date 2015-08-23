@@ -10,7 +10,7 @@ step 3: util/install.sh -Wnfv
 Download: [Virtual Disk (1.3GB)](http://intrig.dca.fee.unicamp.br/index.php/projects/projects.html)    
 
 ##Mininet-wifi on Docker  
-[Access Image (ramonfontes/mininet-wifi)](https://registry.hub.docker.com/u/ramonfontes/mininet-wifi/)      
+Image: [(ramonfontes/mininet-wifi)](https://registry.hub.docker.com/u/ramonfontes/mininet-wifi/)      
   
 ###Get Started
 sudo mn --wifi --ssid=new_ssid  
