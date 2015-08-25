@@ -29,6 +29,10 @@ Video 03: https://www.youtube.com/watch?v=WH6bSOKC7Lk
 /examples/2AccessPoints.py  
 /examples/wifiPosition.py  
 
+##Note
+Mininet-WiFi should work fine in any Ubuntu distribution from 14.04, but in some cases (only if you have problems when start it) you have to stop NetworkManager typing `stop network-manager`.
+
+
 
 ###Team
 Ramon dos Reis Fontes (ramonrf@dca.fee.unicamp.br)  
