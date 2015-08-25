@@ -366,7 +366,9 @@ class TCIntf( Intf ):
                   ( ['%d%% loss' % loss ] if loss is not None else [] ) +
                   ( [ 'ECN' ] if enable_ecn else [ 'RED' ]
                     if enable_red else [] ) )
-        info( '(' + ' '.join( stuff ) + ') ' )
+        #Print bw info
+        if str(self.node)[:3]!='sta':
+            info( '(' + ' '.join( stuff ) + ') ' )
 
         # Execute all the commands in our node
         debug("at map stage w/cmds: %s\n" % cmds)
