@@ -287,7 +287,7 @@ class CLI( Cmd ):
         elif len(args) == 2 and args[ 0 ] == args[ 1 ]:
             error( 'invalid. Source and Destination are equals\n' )
         else:
-            self.mn.distanceInfo( *args )
+            self.mn.getCurrentDistance( *args )
             
     def do_position( self, line ):
         "Position node info."
@@ -295,7 +295,7 @@ class CLI( Cmd ):
         if len(args) != 1:
             error( 'invalid number of args: position [sta ou ap]\n' )
         else:
-            self.mn.positionInfo( *args )
+            self.mn.getCurrentPosition( *args )
         
 
     def do_link( self, line ):

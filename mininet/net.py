@@ -95,6 +95,8 @@ import signal
 import random
 import subprocess
 import time
+import threading
+
 
 from time import sleep
 from itertools import chain, groupby
@@ -110,11 +112,11 @@ from mininet.util import ( quietRun, fixLimits, numCores, ensureRoot,
                            macColonHex, ipStr, ipParse, netParse, ipAdd,
                            waitListening )
 from mininet.term import cleanUpScreens, makeTerms
-from mininet.wifi import checkNM, module, phyInterface, accessPoint, station, wifiParameters, association
+from mininet.wifi import checkNM, module, phyInterface, accessPoint, station, wifiParameters, association, mobility
 from __builtin__ import True
 
 # Mininet version: should be consistent with README and LICENSE
-VERSION = "1.0rc1"
+VERSION = "1.0rc2"
 
 class Mininet( object ):
     "Network emulation with hosts spawned in network namespaces."
@@ -184,10 +186,15 @@ class Mininet( object ):
         self.mode = mode
         self.channel = channel
         self.wirelessRadios = wirelessRadios
-        self.position = {}
-        self.pos_x = 0
-        self.pos_y = 0
-        self.pos_z = 0
+        self.startPosition = {}
+        self.endPosition = {}
+        self.startTime = {}
+        self.endTime = {}
+        self.stpMobility = 0
+        self.strtMobility = 0
+        self.associatedAP = {}
+        self.currentPosition = {}
+        self.moveSta = {}
         
         self.cmd=""        
         self.phyInterfaces = []
@@ -307,12 +314,12 @@ class Mininet( object ):
         position = ("%s" % params.pop('position', {}))
         if(position!="{}"):        
             position =  position.split(',')
-            self.position[name] = position
+            self.startPosition[name] = position
             self.pos_x = position[0]
             self.pos_y = position[1]
             self.pos_z = position[2]
         else:
-            self.position[name] = 0
+            self.startPosition[name] = 0
             
         ssid = ("%s" % params.pop('ssid', {}))
         if(ssid!="{}"):
@@ -368,12 +375,12 @@ class Mininet( object ):
         position = ("%s" % params.pop('position', {}))
         if(position!="{}"):        
             position =  position.split(',')
-            self.position[name] = position
+            self.startPosition[name] = position
             self.pos_x = position[0]
             self.pos_y = position[1]
             self.pos_z = position[2]
         else:
-            self.position[name] = 0
+            self.startPosition[name] = 0
       
         channel = ("%s" % params.pop('channel', {}))
         if(channel!="{}"):
@@ -565,8 +572,7 @@ class Mininet( object ):
             waitTime = self.waitTime
             for host in self.hosts:
                 if (host == node):
-                    selfHost = self.host
-                    station.adhoc(selfHost, host, ssid, mode, waitTime, **params)
+                    station.adhoc(self.host, host, ssid, mode, waitTime, **params)
             
             return link
 
@@ -579,14 +585,16 @@ class Mininet( object ):
             node2 = node2 if not isinstance( node2, basestring ) else self[ node2 ]
             options = dict( params )
             
-            self.bw = association.bw(self.mode)
+            self.bw = association.set_bw(self.mode)
             
             for host in self.hosts:
                 if (host == node1):
                     options.setdefault( 'bw', self.bw )
+                    #options.setdefault( 'delay', 10 )
                     options.setdefault( 'use_hfsc', True )
                 elif (host == node2):
                     options.setdefault( 'bw', self.bw )
+                    #options.setdefault( 'delay', 10 )
                     options.setdefault( 'use_hfsc', True )
                                 
             # Set default MAC - this should probably be in Link
@@ -597,9 +605,9 @@ class Mininet( object ):
             link = cls( node1, node2, **options )
             
             #If sta/ap have position defined
-            if self.position[str(node1)] !=0 and self.position[str(node2)] !=0:
-                distance = wifiParameters.getDistance(node1, node2, self.position[str(node1)], self.position[str(node2)])
-                doAssociation = association.checkDistance(self.mode, distance)
+            if self.startPosition[str(node1)] !=0 and self.startPosition[str(node2)] !=0:
+                distance = mobility.getDistance(node1, node2, self.startPosition[str(node1)], self.startPosition[str(node2)])
+                doAssociation = association.getDistance(self.mode, distance)
             #if not
             else:
                 doAssociation = True
@@ -609,12 +617,14 @@ class Mininet( object ):
                 if (host == node1):
                     Node.doAssociation[host] = doAssociation
                     if(doAssociation):
+                        self.associatedAP[str(host)] = str(node2)
                         Node.associatedSSID[host] = Node.ssid[ str(node2) ]
                         station.associate(self.host, host, Node.ssid[ str(node2) ])
                         association.setInfraParameters(host, self.mode, distance)
                 elif (host == node2):
                     Node.doAssociation[host] = doAssociation
                     if(doAssociation):
+                        self.associatedAP[str(host)] = str(node1)
                         Node.associatedSSID[host] = Node.ssid[ str(node1) ]
                         station.associate(self.host, host, Node.ssid[ str(node1) ])
                         association.setInfraParameters(host, self.mode, distance)
@@ -1196,7 +1206,68 @@ class Mininet( object ):
         output( '*** Results: %s\n' % cpu_fractions )
         return cpu_fractions
     
-
+     
+    def mobility(self, *args, **kwargs):
+       
+        self.node = args[0]
+        self.stage = args[1]
+        self.speed = 0
+       
+        if 'position' in kwargs:
+            if(self.stage == 'stop'):
+                self.position = kwargs['position']
+                self.endPosition[args[0]] = self.position.split(',')
+            if(self.stage == 'start'):
+                self.position = kwargs['position']
+                self.startPosition[args[0]] = self.position.split(',')    
+        if 'time' in kwargs:
+            self.time = kwargs['time']
+        if 'speed' in kwargs:
+            self.speed = kwargs['speed'][:-2]
+        
+        if(self.stage == 'start'):
+            self.startTime[self.node] = self.time        
+        elif(self.stage == 'stop'):
+            self.endTime[self.node] = self.time 
+            diffTime = self.endTime[self.node] - self.startTime[self.node]
+            self.moveSta[self.node] = mobility.move(self.node, diffTime, self.speed, self.startPosition[self.node], self.endPosition[self.node])
+    
+    
+    def startMobility(self, start_time):
+        """
+           In development    
+        """ 
+        print "Mobility started at %s second(s)" % start_time
+    
+    
+    def stopMobility(self, stop_mobility):
+        self.stpMobility = stop_mobility
+        thread = threading.Thread(name='onGoingMobility', target=self.onGoingMobility)
+        thread.start()
+    
+        
+    def onGoingMobility(self):
+        t_end = time.time() + self.stpMobility
+        currentTime = time.time()
+        i=1
+        while time.time() < t_end:
+            if time.time() - currentTime == i:
+                for n in self.hosts:
+                    node = str(n)
+                    if node[:3]=='sta':
+                        if time.time() - currentTime >= self.startTime[node] and time.time() - currentTime <= self.endTime[node]:
+                            self.startPosition[node][0] = float(self.startPosition[node][0]) + float(self.moveSta[node][0])
+                            self.startPosition[node][1] = float(self.startPosition[node][1]) + float(self.moveSta[node][1])
+                            self.startPosition[node][2] = float(self.startPosition[node][2]) + float(self.moveSta[node][2])
+                            #currentPosition = '%.2f,%.2f,%.2f' % (self.startPosition[node][0], self.startPosition[node][1], self.startPosition[node][2])
+                            #self.currentPosition[node] = currentPosition.split(',')
+                            distance = mobility.getDistance(node, self.associatedAP[node], self.startPosition[node], self.startPosition[str(self.associatedAP[node])])
+                            association.setInfraParameters(n, self.mode, distance)
+                            #if node == 'sta2':
+                            #    print self.getCurrentPosition(node)
+                i+=1
+               
+    
     def noiseInfo(self, src):
         if src[:2] == 'ap':
             print 'cannot access ap info!'
@@ -1205,34 +1276,34 @@ class Mininet( object ):
             for host in self.wifiNodes:
                 if src == str(host):
                     existSrc = True
-                    wifiParameters.noise(host)
+                    wifiParameters.getNoiseInfo(host)
             if existSrc == False:
                 print "%s does not exist!" % src
     
-                
-    def positionInfo(self, src):
+    
+    def getCurrentPosition(self, src):
         for host in self.wifiNodes:
-            if src == str(host) and self.position[src]!=0:
-                wifiParameters.position(host, self.position[src])
+            if src == str(host) and self.startPosition[src]!=0:
+                mobility.printPosition(host, self.startPosition[src])
         try:
-            if (self.position[src]==0):
+            if (self.startPosition[src]==0):
                 print ("Position was not defined")
         except:
             print ("Station or Access Point does not exist!")
                 
                         
-    def distanceInfo(self, src, dst):
+    def getCurrentDistance(self, src, dst):
         existSrc = False
         existDst = False
         for host1 in self.wifiNodes:
-            if src == str(host1) and self.position[src]!=0:
+            if src == str(host1) and self.startPosition[src]!=0:
                 existSrc = True
                 for host2 in self.wifiNodes:
-                    if dst == str(host2) and self.position[dst]!=0:
+                    if dst == str(host2) and self.startPosition[dst]!=0:
                         existDst = True
-                        wifiParameters.printDistance(src, dst, self.position[src], self.position[dst])
+                        mobility.printDistance(src, dst, self.startPosition[src], self.startPosition[dst])
         try:               
-            if self.position[src]==0 or self.position[dst]==0:
+            if self.startPosition[src]==0 or self.startPosition[dst]==0:
                 print ("Position of (sta or ap) not defined or node does not exist!")
             elif(existSrc==False and existDst==False):
                 print ("WiFi nodes %s and %s do not exist" % (src, dst))

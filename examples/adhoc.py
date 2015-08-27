@@ -6,7 +6,6 @@ This example shows how to work in adhoc mode
 sta1 <---> sta2 <---> sta3
 
 """
-
 from mininet.net import Mininet
 from mininet.cli import CLI
 from mininet.log import setLogLevel

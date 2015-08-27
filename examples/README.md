@@ -189,6 +189,14 @@ connectivity using `ping`, for different switch/datapath types.
 
 An example of how to subclass Host to use a VLAN on its primary interface.
 
+#### wifiMobility.py:
+
+This example shows how work with Mobility. It has not a model implemented yet.
+
+#### wifiPosition.py:
+
+This example shows how to position STAs and APs.
+
 #### wifiStationsAndHosts.py:
 
 This example shows how work with wireless and wired media.
