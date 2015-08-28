@@ -342,7 +342,8 @@ class station ( object ):
         """
             Rename wireless interface if necessary
         """
-        station.cmd('ip link set dev %s name %s-wlan%s' % (iface[:5], station, nextWlan ))
+        iface = iface[:-1]
+        station.cmd('ip link set dev %s name %s-wlan%s' % (iface, station, nextWlan ))
         station.cmd('ifconfig %s-wlan%s up' % (station, nextWlan))    
                         
             
