@@ -75,6 +75,9 @@ class Intf( object ):
             elif (len(self.name) == 11):
                 self.cmd('ip link set dev %s name %s-wlan0' % (wif.strip(), self.name[:5]) )
                 return self.cmd( 'ifconfig %s-wlan0'% self.name[:5], *args )
+            elif (len(self.name) == 12):
+                self.cmd('ip link set dev %s name %s-wlan0' % (wif.strip(), self.name[:6]) )
+                return self.cmd( 'ifconfig %s-wlan0'% self.name[:6], *args )
         else:
             "Configure ourselves using ifconfig"
             return self.cmd( 'ifconfig', self.name, *args )
@@ -368,11 +371,7 @@ class TCIntf( Intf ):
         #Print bw info
         if str(self.node)[:3]!='sta':
             info( '(' + ' '.join( stuff ) + ') ' )
-<<<<<<< HEAD
         
-=======
-
->>>>>>> c5f79fdbcd510eeef4819a5963314914fca88fe4
         # Execute all the commands in our node
         debug("at map stage w/cmds: %s\n" % cmds)
         tcoutputs = [ self.tc(cmd) for cmd in cmds ]
