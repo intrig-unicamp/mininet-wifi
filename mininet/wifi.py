@@ -91,25 +91,6 @@ class checkNM ( object ):
 class association( object ):
     
     @classmethod    
-    def set_bw(self, mode):
-        """
-            set the Bandwidth  
-        """
-        self.bandwidth = 0
-        if (mode=='a'):
-            self.bandwidth = 54
-        elif(mode=='b'):
-            self.bandwidth = 11
-        elif(mode=='g'):
-            self.bandwidth = 54 
-        elif(mode=='n'):
-            self.bandwidth = 600
-        elif(mode=='ac'):
-            self.bandwidth = 6777 
-            
-        return self.bandwidth
-    
-    @classmethod    
     def getDistance(self, mode, distance):
         """
             Get Distance for association or not    
@@ -136,43 +117,20 @@ class association( object ):
             Set wifi AdHoc Parameters. Have to use models for loss, latency, bw...    
         """
         self.mode = mode
-        rate = 0
         latency = 10
-        newIface = False
+        #delay = 5 * distance
         
         try:
             options = dict( params )
             self.interface = options[ 'interface' ]
-            newIface = True
         except:
-            newIface = False
             self.host = selfhost
+            self.interface = 'wlan0'
         
-        if newIface:            
-            if (self.mode=="a"):
-                rate = 54
-            elif (self.mode=="b"):
-                rate = 11
-            elif (self.mode=="g"):
-                rate = 54
-            elif (self.mode=="n"):
-                rate = 600
-            elif (self.mode=="ac"):
-                rate = 6777
-            self.host.cmd(host, "tc qdisc add dev %s-%s root htb rate %smbit latency %sms" % (host, self.interface, rate, latency)) 
-        else:
-            if (self.mode=="a"):
-                rate = 54
-            elif (self.mode=="b"):
-                rate = 11
-            elif (self.mode=="g"):
-                rate = 54
-            elif (self.mode=="n"):
-                rate = 600
-            elif (self.mode=="ac"):
-                rate = 6777
-            self.host.cmd(host, "tc qdisc add dev %s-wlan0 root htb rate %smbit latency %sms burst 15k" % (host, rate, latency))
-            
+        bandwidth = wifiParameters.set_bw(mode)
+        #self.host.cmd(host, "tc qdisc replace dev %s-%s root netem rate %.2fmbit latency %.2fms delay %.2fms" % (host, self.interface, rate, latency, delay)) 
+        self.host.cmd(host, "tc qdisc add dev %s-%s root htb rate %smbit latency %sms" % (host, self.interface, bandwidth, latency)) 
+
     
     @classmethod    
     def setInfraParameters(self, host, mode, distance):
@@ -180,26 +138,27 @@ class association( object ):
             Set wifi Infrastrucure Parameters. Have to use models for loss, latency, bw...    
         """
         self.host = host
-        self.mode = mode
-        rate = 0
         latency = 10 + distance
         #loss = 0.01 + distance/10
         delay = 5 * distance
-        disassociate = False
         
-        if (self.mode=="a"):
-            rate = 54 - distance/2
-        elif (self.mode=="b"):
-            rate = 11 - distance/2
-        elif (self.mode=="g"):
-            rate = 54 - distance/2 
-        elif (self.mode=="n"):
-            rate = 600 - distance/2
-        elif (self.mode=="ac"):
-            rate = 6777 - distance/2
-        self.host.cmd("tc qdisc replace dev %s-wlan0 root netem rate %.2fmbit latency %.2fms delay %.2fms" % (self.host, rate, latency, delay)) 
+        bandwidth = wifiParameters.set_bw(mode) - distance/2        
+        self.host.cmd("tc qdisc replace dev %s-wlan0 root netem rate %.2fmbit latency %.2fms delay %.2fms" % (self.host, bandwidth, latency, delay)) 
         #self.host.cmd("tc qdisc replace dev %s-wlan0 root netem rate %.2fmbit loss %.1f%% latency %.2fms delay %.2fms" % (self.host, rate, loss, latency, delay)) 
         #self.host.cmd("tc qdisc replace dev %s-wlan0 root tbf rate %.2fmbit latency %.2fms burst 15k" % (self.host, rate, latency)) 
+        
+        disassociate = self.disassociate(mode, distance)
+
+        if disassociate:
+            self.host.cmd("iw dev %s-wlan0 disconnect" % (self.host))
+            
+            
+    @classmethod    
+    def disassociate(self, mode, distance):
+        """
+            Disassociate according the distance   
+        """
+        disassociate = False
         
         if (mode=='a' and distance > 33):
             disassociate = True
@@ -210,10 +169,10 @@ class association( object ):
         elif(mode=='n' and distance > 70):
             disassociate = True
         elif(mode=='ac' and distance > 100):
-            disassociate = True     
-        if disassociate:
-            self.host.cmd("iw dev %s-wlan0 disconnect" % (self.host))
-        
+            disassociate = True 
+            
+        return disassociate
+            
 
 class module( object ):
     
@@ -428,18 +387,8 @@ class accessPoint ( object ):
             Set bw to AP 
         """  
         self.newapif = newapif
-        self.mode = mode
-        if (self.mode=="a"):
-            rate = 54
-        elif (self.mode=="b"):
-            rate = 11
-        elif (self.mode=="g"):
-            rate = 54
-        elif (self.mode=="n"):
-            rate = 600
-        elif (self.mode=="ac"):
-            rate = 6777
-        os.system("tc qdisc add dev %s root tbf rate %smbit latency 2ms burst 15k" % (self.newapif, rate))   
+        bandwidth = wifiParameters.set_bw(mode)
+        os.system("tc qdisc add dev %s root tbf rate %smbit latency 2ms burst 15k" % (self.newapif, bandwidth))   
         
 
 class mobility ( object ):    
@@ -496,9 +445,28 @@ class wifiParameters ( object ):
         WiFi Parameters 
     """
     @classmethod
-    def getNoiseInfo(self, host): 
+    def printNoiseInfo(self, host): 
         """
-            Only get noise info **in development**
+            Get noise info **in development**
         """
-        self.host = host
-        print self.host.cmd('iw dev %s-wlan0 survey noise %d' % (host, int(str(self.host)[3:])+60))    
+        print self.host.cmd('iw dev %s-wlan0 survey noise %d' % (host, int(str(host)[3:])+60))    
+        
+    
+    @classmethod    
+    def set_bw(self, mode):
+        """
+            set the Bandwidth  
+        """
+        self.bandwidth = 0
+        if (mode=='a'):
+            self.bandwidth = 54
+        elif(mode=='b'):
+            self.bandwidth = 11
+        elif(mode=='g'):
+            self.bandwidth = 54 
+        elif(mode=='n'):
+            self.bandwidth = 600
+        elif(mode=='ac'):
+            self.bandwidth = 6777 
+            
+        return self.bandwidth
