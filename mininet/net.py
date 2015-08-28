@@ -607,7 +607,7 @@ class Mininet( object ):
             #If sta/ap have position defined
             if self.startPosition[str(node1)] !=0 and self.startPosition[str(node2)] !=0:
                 distance = mobility.getDistance(node1, node2, self.startPosition[str(node1)], self.startPosition[str(node2)])
-                doAssociation = association.getDistance(self.mode, distance)
+                doAssociation = association.doAssociation(self.mode, distance)
             #if not
             else:
                 doAssociation = True
