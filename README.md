@@ -21,7 +21,7 @@ Video 01: https://www.youtube.com/watch?v=_PtSmhf7Z8s
 Video 02: https://www.youtube.com/watch?v=H46EPuJDJhc  
 Video 03: https://www.youtube.com/watch?v=WH6bSOKC7Lk  
   
-###You can also use these examples:   
+###You also can use the examples:   
 
 /examples/2AccessPoints.py  
 /examples/adhoc.py  
@@ -31,8 +31,7 @@ Video 03: https://www.youtube.com/watch?v=WH6bSOKC7Lk
 /examples/wifiStationsAndHosts.py  
 
 ##Note
-Mininet-WiFi should work fine in any Ubuntu distribution from 14.04, but in some cases (only if you have problems when start it) you have to stop NetworkManager typing `stop network-manager`.
-
+Mininet-WiFi should work fine in any Ubuntu distribution from 14.04, but in some cases (only if you have problems when start it) you have to stop NetworkManager typing `stop network-manager`.  
 
 ###Team
 Ramon dos Reis Fontes (ramonrf@dca.fee.unicamp.br)  
