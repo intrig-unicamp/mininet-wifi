@@ -585,7 +585,7 @@ class Mininet( object ):
             node2 = node2 if not isinstance( node2, basestring ) else self[ node2 ]
             options = dict( params )
             
-            self.bw = association.set_bw(self.mode)
+            self.bw = wifiParameters.set_bw(self.mode)
             
             for host in self.hosts:
                 if (host == node1):
@@ -1276,7 +1276,7 @@ class Mininet( object ):
             for host in self.wifiNodes:
                 if src == str(host):
                     existSrc = True
-                    wifiParameters.getNoiseInfo(host)
+                    wifiParameters.printNoiseInfo(host)
             if existSrc == False:
                 print "%s does not exist!" % src
     
