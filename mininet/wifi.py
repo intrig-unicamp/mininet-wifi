@@ -14,6 +14,7 @@ import subprocess
 import time
 import glob
 import multiprocessing
+import threading
 
 from mininet.log import info
 import numpy as np
@@ -152,9 +153,9 @@ class association( object ):
         latency = 10 + distance
         #loss = 0.01 + distance/10
         delay = 5 * distance
-        bandwidth = wifiParameters.set_bw(mode) - distance/2        
+        bandwidth = wifiParameters.set_bw(mode) - distance/2    
         
-        self.host.cmd("tc qdisc replace dev %s-wlan0 root netem rate %.2fmbit latency %.2fms delay %.2fms" % (self.host, bandwidth, latency, delay)) 
+        self.host.pexec("tc qdisc replace dev %s-wlan0 root netem rate %.2fmbit latency %.2fms delay %.2fms" % (self.host, bandwidth, latency, delay)) 
         #self.host.cmd("tc qdisc replace dev %s-wlan0 root netem rate %.2fmbit loss %.1f%% latency %.2fms delay %.2fms" % (self.host, rate, loss, latency, delay)) 
         #self.host.cmd("tc qdisc replace dev %s-wlan0 root tbf rate %.2fmbit latency %.2fms burst 15k" % (self.host, rate, latency)) 
         

@@ -1249,23 +1249,26 @@ class Mininet( object ):
         t_end = time.time() + self.stpMobility
         currentTime = time.time()
         i=1
-        while time.time() < t_end:
-            if time.time() - currentTime == i:
-                for n in self.hosts:
-                    node = str(n)
-                    if node[:3]=='sta':
-                        if time.time() - currentTime >= self.startTime[node] and time.time() - currentTime <= self.endTime[node]:
-                            self.startPosition[node][0] = float(self.startPosition[node][0]) + float(self.moveSta[node][0])
-                            self.startPosition[node][1] = float(self.startPosition[node][1]) + float(self.moveSta[node][1])
-                            self.startPosition[node][2] = float(self.startPosition[node][2]) + float(self.moveSta[node][2])
-                            mobility.nodePosition = self.startPosition[node]
-                            #currentPosition = '%.2f,%.2f,%.2f' % (self.startPosition[node][0], self.startPosition[node][1], self.startPosition[node][2])
-                            #self.currentPosition[node] = currentPosition.split(',')
-                            distance = mobility.getDistance(node, self.associatedAP[node], self.startPosition[node], self.startPosition[str(self.associatedAP[node])])
-                            association.setInfraParameters(n, self.mode, distance)
-                            #if node == 'sta2':
-                            #    print self.getCurrentPosition(node)
-                i+=1
+        try:
+            while time.time() < t_end:
+                if time.time() - currentTime == i:
+                    for n in self.hosts:
+                        node = str(n)
+                        if node[:3]=='sta':
+                            if time.time() - currentTime >= self.startTime[node] and time.time() - currentTime <= self.endTime[node]:
+                                self.startPosition[node][0] = float(self.startPosition[node][0]) + float(self.moveSta[node][0])
+                                self.startPosition[node][1] = float(self.startPosition[node][1]) + float(self.moveSta[node][1])
+                                self.startPosition[node][2] = float(self.startPosition[node][2]) + float(self.moveSta[node][2])
+                                mobility.nodePosition = self.startPosition[node]
+                                #currentPosition = '%.2f,%.2f,%.2f' % (self.startPosition[node][0], self.startPosition[node][1], self.startPosition[node][2])
+                                #self.currentPosition[node] = currentPosition.split(',')
+                                distance = mobility.getDistance(node, self.associatedAP[node], self.startPosition[node], self.startPosition[str(self.associatedAP[node])])
+                                association.setInfraParameters(n, self.mode, distance)
+                                #if node == 'sta2':
+                                #    print self.getCurrentPosition(node)
+                    i+=1
+        except:
+            print 'The mobility process stopped!'
                    
     def noiseInfo(self, src):
         if src[:2] == 'ap':
