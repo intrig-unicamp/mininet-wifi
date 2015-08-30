@@ -13,6 +13,7 @@ import fileinput
 import subprocess
 import time
 import glob
+import multiprocessing
 
 from mininet.log import info
 import numpy as np
@@ -86,30 +87,40 @@ class checkNM ( object ):
         os.system(self.apcommand)
         self.cmd = ("hostapd -f apdebug.txt -B %s.conf" % ap)
         os.system(self.cmd)
+
+
+class module( object ):
+    """
+        Starts and Stop the module   
+    """        
+    #thread = threading.Thread()
+    thread = multiprocessing.Process()
+    
+    @classmethod    
+    def _start_module(self, wirelessRadios):
+        """
+             Start wireless Module 
+        """
+        info( "*** Enabling Wireless Module\n" )
+        os.system( 'modprobe mac80211_hwsim radios=%s' % wirelessRadios )
+     
+    @classmethod
+    def _stop_module(self):
+        """
+            Stop wireless Module 
+        """   
+        if glob.glob("*.conf"):
+            os.system( 'rm *.conf' )
+        
+        if glob.glob("*.txt"):
+            os.system( 'rm *.txt' )
+       
+        #self.thread.terminate()
+        os.system( 'rmmod mac80211_hwsim' )
+        os.system( 'killall -9 hostapd' )
         
         
 class association( object ):
-    
-    @classmethod    
-    def getDistance(self, mode, distance):
-        """
-            Get Distance for association or not    
-        """
-        doAssociation = True
-        
-        if (mode=='a' and distance > 33):
-            doAssociation = False
-        elif(mode=='b' and distance > 50):
-            doAssociation = False
-        elif(mode=='g' and distance > 33):
-            doAssociation = False
-        elif(mode=='n' and distance > 70):
-            doAssociation = False
-        elif(mode=='ac' and distance > 100):
-            doAssociation = False        
-        
-        return doAssociation
-    
     
     @classmethod    
     def setAdhocParameters(self, selfhost, host, mode, **params):
@@ -141,65 +152,38 @@ class association( object ):
         latency = 10 + distance
         #loss = 0.01 + distance/10
         delay = 5 * distance
-        
         bandwidth = wifiParameters.set_bw(mode) - distance/2        
+        
         self.host.cmd("tc qdisc replace dev %s-wlan0 root netem rate %.2fmbit latency %.2fms delay %.2fms" % (self.host, bandwidth, latency, delay)) 
         #self.host.cmd("tc qdisc replace dev %s-wlan0 root netem rate %.2fmbit loss %.1f%% latency %.2fms delay %.2fms" % (self.host, rate, loss, latency, delay)) 
         #self.host.cmd("tc qdisc replace dev %s-wlan0 root tbf rate %.2fmbit latency %.2fms burst 15k" % (self.host, rate, latency)) 
         
-        disassociate = self.disassociate(mode, distance)
+        associate = self.doAssociation(mode, distance)
 
-        if disassociate:
+        if associate == False:
             self.host.cmd("iw dev %s-wlan0 disconnect" % (self.host))
             
             
     @classmethod    
-    def disassociate(self, mode, distance):
+    def doAssociation(self, mode, distance):
         """
-            Disassociate according the distance   
+            Associate/Disassociate according the distance   
         """
-        disassociate = False
+        associate = True
         
         if (mode=='a' and distance > 33):
-            disassociate = True
+            associate = False
         elif(mode=='b' and distance > 50):
-            disassociate = True
+            associate = False
         elif(mode=='g' and distance > 33):
-            disassociate = True
+            associate = False
         elif(mode=='n' and distance > 70):
-            disassociate = True
+            associate = False
         elif(mode=='ac' and distance > 100):
-            disassociate = True 
+            associate = False 
             
-        return disassociate
+        return associate
             
-
-class module( object ):
-    
-    @classmethod    
-    def _start_module(self, wirelessRadios):
-        """
-             Start wireless Module 
-        """
-        info( "*** Enabling Wireless Module\n" )
-        os.system( 'modprobe mac80211_hwsim radios=%s' % wirelessRadios )
-        #os.system( 'insmod mac80211_hwsim.ko radios=%s' % wirelessRadios )
-     
-    @classmethod
-    def _stop_module(self):
-        """
-            Stop wireless Module 
-        """   
-        if glob.glob("*.conf"):
-            os.system( 'rm *.conf' )
-        
-        if glob.glob("*.txt"):
-            os.system( 'rm *.txt' )
-       
-        os.system( 'rmmod mac80211_hwsim' )
-        #os.system( 'rmmod mac80211_hwsim.ko' )
-        os.system( 'killall -9 hostapd' )
-
 
 class phyInterface ( object ):
     
@@ -244,8 +228,7 @@ class station ( object ):
         self.host = selfHost
         self.ssid = ssid
         self.host.cmd(host, "iw dev %s-wlan0 connect %s" % (host, self.ssid))
-        time.sleep(0.1)
-    
+        time.sleep(0.2)    
           
     @classmethod    
     def adhoc(self, selfhost, host, ssid, mode, waitTime, **params):
@@ -307,12 +290,13 @@ class station ( object ):
                         
             
 class accessPoint ( object ):    
-    """
-        Starts an Access Point
-    """
+
     @classmethod
     def start(self, interfaceID, nextIface, ssid, mode, channel, 
               country_code, auth_algs, wpa, wpa_key_mgmt, rsn_pairwise, wpa_passphrase):
+        """
+            Starts an Access Point
+        """
         self.cmd = ("echo \'")
         """General Configurations"""             
         if(interfaceID!=None):
@@ -394,7 +378,8 @@ class accessPoint ( object ):
 class mobility ( object ):    
     """
         Mobility 
-    """            
+    """          
+      
     @classmethod   
     def move(self, node, diffTime, speed, startposition, endposition):      
         """
@@ -436,8 +421,8 @@ class mobility ( object ):
         """
         self.pos_x = position[0]
         self.pos_y = position[1]
-        self.pos_z = position[2]        
-        print "----------------\nPosition of %s\n----------------\nPosition X: %.2f\nPosition Y: %.2f\nPosition Z: %.2f\n" % (src, self.pos_x, self.pos_y, self.pos_z)
+        self.pos_z = position[2]   
+        print "----------------\nPosition of %s\n----------------\nPosition X: %s\nPosition Y: %s\nPosition Z: %s\n" % (src, self.pos_x, self.pos_y, self.pos_z)
         
     
 class wifiParameters ( object ):

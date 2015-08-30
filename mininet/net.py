@@ -96,7 +96,7 @@ import random
 import subprocess
 import time
 import threading
-
+import multiprocessing
 
 from time import sleep
 from itertools import chain, groupby
@@ -821,8 +821,8 @@ class Mininet( object ):
             if(Node.isCode==False):
                 for basestation in self.baseStations:        
                     accessPoint.apBridge(basestation.name, Node.apwlan[basestation.name])
-            #        for host in self.hosts:
-            #            self.host.cmd(host, "iw dev %s-wlan0 connect %s" % (host, Node.ssid[ str(basestation.name) ]))                 
+                    #for host in self.hosts:
+                       # self.host.cmdPrint(host, "iw dev %s-wlan0 connect %s" % (host, Node.ssid[ str(basestation.name) ]))                 
            
             info( '\n' )
             if self.waitConn:
@@ -1205,8 +1205,7 @@ class Mininet( object ):
                 cpu_fractions.append( pct )
         output( '*** Results: %s\n' % cpu_fractions )
         return cpu_fractions
-    
-     
+         
     def mobility(self, *args, **kwargs):
        
         self.node = args[0]
@@ -1231,21 +1230,21 @@ class Mininet( object ):
             self.endTime[self.node] = self.time 
             diffTime = self.endTime[self.node] - self.startTime[self.node]
             self.moveSta[self.node] = mobility.move(self.node, diffTime, self.speed, self.startPosition[self.node], self.endPosition[self.node])
-    
-    
+        
     def startMobility(self, start_time):
         """
            In development    
         """ 
         print "Mobility started at %s second(s)" % start_time
-    
-    
+        
     def stopMobility(self, stop_mobility):
         self.stpMobility = stop_mobility
-        thread = threading.Thread(name='onGoingMobility', target=self.onGoingMobility)
-        thread.start()
-    
+        #module.thread = threading.Thread(name='onGoingMobility', target=self.onGoingMobility)
+        module.thread = multiprocessing.Process(name='onGoingMobility', target=self.onGoingMobility)
+        module.thread.daemon = True
+        module.thread.start()
         
+            
     def onGoingMobility(self):
         t_end = time.time() + self.stpMobility
         currentTime = time.time()
@@ -1259,6 +1258,7 @@ class Mininet( object ):
                             self.startPosition[node][0] = float(self.startPosition[node][0]) + float(self.moveSta[node][0])
                             self.startPosition[node][1] = float(self.startPosition[node][1]) + float(self.moveSta[node][1])
                             self.startPosition[node][2] = float(self.startPosition[node][2]) + float(self.moveSta[node][2])
+                            mobility.nodePosition = self.startPosition[node]
                             #currentPosition = '%.2f,%.2f,%.2f' % (self.startPosition[node][0], self.startPosition[node][1], self.startPosition[node][2])
                             #self.currentPosition[node] = currentPosition.split(',')
                             distance = mobility.getDistance(node, self.associatedAP[node], self.startPosition[node], self.startPosition[str(self.associatedAP[node])])
@@ -1266,8 +1266,7 @@ class Mininet( object ):
                             #if node == 'sta2':
                             #    print self.getCurrentPosition(node)
                 i+=1
-               
-    
+                   
     def noiseInfo(self, src):
         if src[:2] == 'ap':
             print 'cannot access ap info!'
