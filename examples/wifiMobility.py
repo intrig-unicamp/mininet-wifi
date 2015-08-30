@@ -36,7 +36,7 @@ def topology():
     net.startMobility(0)
     net.mobility('sta1', 'start', time=1, position='10.0,20.0,0.0')
     net.mobility('sta2', 'start', time=2, position='10.0,30.0,0.0')
-    net.mobility('sta1', 'stop', time=10, position='1.0,2.0,3.0')
+    net.mobility('sta1', 'stop', time=12, position='1.0,2.0,3.0')
     net.mobility('sta2', 'stop', time=22, position='25.0,21.0,31.0')
     net.stopMobility(23)
 
