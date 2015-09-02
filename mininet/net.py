@@ -1251,7 +1251,7 @@ class Mininet( object ):
         i=1
         try:
             while time.time() < t_end:
-                if time.time() - currentTime == i:
+                if time.time() - currentTime >= i:
                     for n in self.hosts:
                         node = str(n)
                         if node[:3]=='sta':
