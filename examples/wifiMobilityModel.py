@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 """
-Setting the position of Nodes (only for Stations and Access Points) and providing mobility.
+Setting the position of Nodes (only for Stations and Access Points) and providing mobility using mobility models.
 
 """
 
@@ -14,13 +14,16 @@ from mininet.log import setLogLevel
 def topology():
 
     "Create a network."
-    net = Mininet( wirelessRadios=3, controller=Controller, link=TCLink, switch=OVSKernelSwitch )
+    net = Mininet( wirelessRadios=5, controller=Controller, link=TCLink, switch=OVSKernelSwitch )
 
     print "*** Creating nodes"
     h1 = net.addHost( 'h1', mac='00:00:00:00:00:01', ip='10.0.0.1/8' )
     sta1 = net.addStation( 'sta1', mac='00:00:00:00:00:02', ip='10.0.0.2/8' )
     sta2 = net.addStation( 'sta2', mac='00:00:00:00:00:03', ip='10.0.0.3/8' )
-    ap1 = net.addBaseStation( 'ap1', ssid= 'new-ssid', mode= 'g', channel= '1', position='15,30,0' )
+    sta3 = net.addStation( 'sta3', mac='00:00:00:00:00:04', ip='10.0.0.4/8' )
+    ap1 = net.addBaseStation( 'ap1', ssid= 'new-ssid', mode= 'g', channel= '1', position='10,10,0' )
+    ap2 = net.addBaseStation( 'ap2', ssid= 'new-ssidd', mode= 'g', channel= '1', position='20,10,0' )
+    
     c1 = net.addController( 'c1', controller=Controller )
 
     """uncomment to plot graph"""
@@ -30,19 +33,18 @@ def topology():
     net.addLink(ap1, h1, 1, 0)
     net.addLink(ap1, sta1)
     net.addLink(ap1, sta2)
-
+    net.addLink(ap2, sta3)
+    
     print "*** Starting network"
     net.build()
     c1.start()
     ap1.start( [c1] )
-
-    net.startMobility(0)
-    net.mobility('sta1', 'start', time=1, position='10.0,20.0,0.0')
-    net.mobility('sta2', 'start', time=2, position='10.0,30.0,0.0')
-    net.mobility('sta1', 'stop', time=12, position='1.0,0.0,0.0')
-    net.mobility('sta2', 'stop', time=22, position='25.0,21.0,0.0')
-    net.stopMobility(23)
-
+    ap2.start( [c1] )
+    
+    
+    "*** Available models: RandomWalk, TruncatedLevyWalk, RandomDirection, RandomWaypoint, GaussMarkov ***"
+    net.startMobility(0, model='GaussMarkov', max_x=20, max_y=20, min_v=0.1, max_v=0.3)
+   
     print "*** Running CLI"
     CLI( net )
 

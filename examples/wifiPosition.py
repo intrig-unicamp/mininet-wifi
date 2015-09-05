@@ -14,7 +14,7 @@ from mininet.log import setLogLevel
 def topology():
 
     "Create a network."
-    net = Mininet( wirelessRadios=3, controller=Controller, link=TCLink, switch=OVSKernelSwitch )
+    net = Mininet( wirelessRadios=4, controller=Controller, link=TCLink, switch=OVSKernelSwitch )
 
     print "*** Creating nodes"
     h1 = net.addHost( 'h1', mac='00:00:00:00:00:01', ip='10.0.0.1/8' )
@@ -22,6 +22,9 @@ def topology():
     sta2 = net.addStation( 'sta2', mac='00:00:00:00:00:03', ip='10.0.0.3/8', position='10,30,0' )
     ap1 = net.addBaseStation( 'ap1', ssid= 'new-ssid', mode= 'g', channel= '1', position='15,30,0' )
     c1 = net.addController( 'c1', controller=Controller )
+
+    """uncomment to plot graph"""
+    #net.plotGraph(max_x=60, max_y=60)
 
     print "*** Creating links"
     net.addLink(ap1, h1, 1, 0)
@@ -32,7 +35,7 @@ def topology():
     net.build()
     c1.start()
     ap1.start( [c1] )
-
+    
     print "*** Running CLI"
     CLI( net )
 

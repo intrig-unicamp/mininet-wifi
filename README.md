@@ -27,6 +27,7 @@ Video 03: https://www.youtube.com/watch?v=WH6bSOKC7Lk
 /examples/adhoc.py  
 /examples/simplewifitopology.py  
 /examples/wifiMobility.py  
+/examples/wifiMobilityModel.py  
 /examples/wifiPosition.py  
 /examples/wifiStationsAndHosts.py  
 

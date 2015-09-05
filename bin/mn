@@ -416,6 +416,7 @@ class MininetRunner( object ):
         if self.options.post:
             cli( mn, script=self.options.post )
 
+
         mn.stop()
 
         elapsed = float( time.time() - start )

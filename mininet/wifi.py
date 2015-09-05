@@ -13,13 +13,19 @@ import fileinput
 import subprocess
 import time
 import glob
-import multiprocessing
-#import threading
+#import multiprocessing
+import threading
 
 from mininet.log import info
 import numpy as np
 import scipy.spatial.distance as distance 
+import matplotlib.patches as patches
 
+from mininet.mobility import gauss_markov, \
+    truncated_levy_walk, random_direction, random_waypoint, random_walk
+from mx.Misc.CommandLine import srange
+from reportlab.graphics.charts.textlabels import Label
+from reportlab.pdfbase.pdfdoc import TextAnnotation
 
 class checkNM ( object ):
     """
@@ -94,8 +100,8 @@ class module( object ):
     """
         Starts and Stop the module   
     """        
-    #thread = threading.Thread()
-    thread = multiprocessing.Process()
+    thread = threading.Thread()
+    #thread = multiprocessing.Process()
     
     @classmethod    
     def _start_module(self, wirelessRadios):
@@ -150,20 +156,19 @@ class association( object ):
             Set wifi Infrastrucure Parameters. Have to use models for loss, latency, bw...    
         """
         self.host = host
-        latency = 10 + distance
-        #loss = 0.01 + distance/10
-        delay = 5 * distance
-        bandwidth = wifiParameters.set_bw(mode) - distance/2    
+        latency = 5 + distance
+        loss = 0.01 + distance/10
+        delay = 2 * distance
+        bandwidth = wifiParameters.set_bw(mode) - distance/10    
         
-        self.host.pexec("tc qdisc replace dev %s-wlan0 root netem rate %.2fmbit latency %.2fms delay %.2fms" % (self.host, bandwidth, latency, delay)) 
+        self.host.pexec("tc qdisc replace dev %s-wlan0 root netem rate %.2fmbit loss %.1f%% latency %.2fms delay %.2fms" % (self.host, bandwidth, loss, latency, delay)) 
         #os.system('util/m %s tc qdisc replace dev %s-wlan0 root netem rate %.2fmbit latency %.2fms delay %.2fms' % (self.host, self.host, bandwidth, latency, delay))
-        #self.host.cmd("tc qdisc replace dev %s-wlan0 root netem rate %.2fmbit loss %.1f%% latency %.2fms delay %.2fms" % (self.host, rate, loss, latency, delay)) 
         #self.host.cmd("tc qdisc replace dev %s-wlan0 root tbf rate %.2fmbit latency %.2fms burst 15k" % (self.host, rate, latency)) 
         
         associate = self.doAssociation(mode, distance)
 
         if associate == False:
-            self.host.cmd("iw dev %s-wlan0 disconnect" % (self.host))
+            self.host.pexec("iw dev %s-wlan0 disconnect" % (self.host))
             
             
     @classmethod    
@@ -220,7 +225,13 @@ class phyInterface ( object ):
         
 class station ( object ):
     
-    nextWlan = {}    
+    nextWlan = {}   
+    staMode = {} 
+  
+    @classmethod    
+    def mode(self, sta, mode):
+        self.staMode[str(sta)] = mode
+        return
   
     @classmethod    
     def associate(self, selfHost, host, ssid):
@@ -293,12 +304,15 @@ class station ( object ):
             
 class accessPoint ( object ):    
 
+    apMode = {}
+    
     @classmethod
-    def start(self, interfaceID, nextIface, ssid, mode, channel, 
+    def start(self, bs, interfaceID, nextIface, ssid, mode, channel, 
               country_code, auth_algs, wpa, wpa_key_mgmt, rsn_pairwise, wpa_passphrase):
         """
             Starts an Access Point
         """
+        self.apMode[str(bs)] = mode
         self.cmd = ("echo \'")
         """General Configurations"""             
         if(interfaceID!=None):
@@ -380,8 +394,35 @@ class accessPoint ( object ):
 class mobility ( object ):    
     """
         Mobility 
-    """          
-      
+    """                
+    nodePosition = {}
+    nodesPlotted = []
+    plotGraph = False
+    no_moving = True
+    d = ''
+    s = ''
+    plotap = {}
+    plotsta = {}
+    cancelPlot = False
+    MAX_X = 50
+    MAX_Y = 50
+    
+    
+    @classmethod   
+    def range(self, mode):
+        if (mode=='a'):
+            self.distance = 33
+        elif(mode=='b'):
+            self.distance = 50
+        elif(mode=='g'):
+            self.distance = 33 
+        elif(mode=='n'):
+            self.distance = 70
+        elif(mode=='ac'):
+            self.distance = 100 
+            
+        return self.distance
+    
     @classmethod   
     def move(self, node, diffTime, speed, startposition, endposition):      
         """
@@ -395,13 +436,97 @@ class mobility ( object ):
         pos = '%.5f,%.5f,%.5f' % (pos_x/diffTime, pos_y/diffTime, pos_z/diffTime)
         pos = pos.split(',')
         return pos       
+    
+    @classmethod 
+    def plot(self, src, dst, pos_src, pos_dst):
+        MAX_X = self.MAX_X
+        MAX_Y = self.MAX_Y
         
+        import matplotlib.pyplot as plt
+        plt.ion()
+        ax = plt.subplot(111)
         
+        if self.no_moving:  
+            if str(dst)[:2] == 'ap' and str(dst) not in self.nodesPlotted:
+                self.plotap[str(dst)], = ax.plot(range(MAX_X), range(MAX_Y), linestyle='', marker='.', ms=12, mfc='blue')
+                ax.add_patch(
+                    patches.Circle((pos_dst[0], pos_dst[1]),
+                    self.range(accessPoint.apMode[str(dst)]), fill=True,  alpha=0.1
+                    )
+                )
+                self.plotap[str(dst)].set_data(pos_dst[0],pos_dst[1])
+                self.nodesPlotted.append(str(dst))
+                plt.text(int(pos_dst[0]), int(pos_dst[1]), str(dst))
+                
+            elif str(src)[:2] == 'ap' and str(src) not in self.nodesPlotted:
+                self.plotap[str(src)], = ax.plot(range(MAX_X), range(MAX_Y), linestyle='', marker='.', ms=12, mfc='blue')
+                ax.add_patch(
+                    patches.Circle((pos_src[0], pos_src[1]),
+                    self.range(accessPoint.apMode[str(src)]), fill=True,  alpha=0.1
+                    )
+                )
+                self.plotap[str(src)].set_data(pos_src[0],pos_src[1])
+                self.nodesPlotted.append(str(src))
+                plt.text(int(pos_src[0]), int(pos_src[1]), str(src)) 
+                
+            if str(dst)[:3] == 'sta' and str(dst) not in self.nodesPlotted:
+                self.plotsta[str(dst)], = ax.plot(range(MAX_X), range(MAX_Y), linestyle='', marker='.', ms=12, mfc='blue')
+                self.nodesPlotted.append(str(dst))
+                self.plotsta[str(dst)].set_data(pos_dst[0],pos_dst[1])
+                plt.text(int(pos_dst[0]), int(pos_dst[1]), str(dst))
+            
+            if str(src)[:3] == 'sta' and str(src) not in self.nodesPlotted:
+                self.plotsta[str(src)], = ax.plot(range(MAX_X), range(MAX_Y), linestyle='', marker='.', ms=12, mfc='blue')
+                self.nodesPlotted.append(str(src))
+                self.plotsta[str(src)].set_data(pos_src[0],pos_src[1])
+                plt.text(int(pos_src[0]), int(pos_src[1]), str(src)) 
+            plt.title("Mininet-WiFi Graph")
+            plt.show()
+        else:
+            if str(src)[:3] == 'sta' and str(src) not in self.nodesPlotted:
+                self.plotsta[str(src)], = ax.plot(range(MAX_X), range(MAX_Y), linestyle='', marker='.', ms=12, mfc='blue')
+                self.nodesPlotted.append(str(src))
+            if str(dst)[:3] == 'sta' and str(dst) not in self.nodesPlotted:
+                self.plotsta[str(dst)], = ax.plot(range(MAX_X), range(MAX_Y), linestyle='', marker='.', ms=12, mfc='blue')
+                self.nodesPlotted.append(str(dst))
+            
+            if str(dst)[:2] == 'ap' and str(dst) not in self.nodesPlotted:
+                self.plotap[str(dst)], = ax.plot(range(MAX_X), range(MAX_Y), linestyle='', marker='.', ms=12, mfc='blue')
+                
+                ax.add_patch(
+                    patches.Circle((pos_dst[0], pos_dst[1]),
+                    self.range(accessPoint.apMode[str(dst)]), fill=True,  alpha=0.1
+                    )
+                )
+                self.plotap[str(dst)].set_data(pos_dst[0],pos_dst[1])
+                self.nodesPlotted.append(str(dst))
+                plt.text(int(pos_dst[0]), int(pos_dst[1]), str(dst))
+                 
+            elif str(src)[:2] == 'ap' and str(src) not in self.nodesPlotted:
+                self.plotap[str(src)], = ax.plot(range(MAX_X), range(MAX_Y), linestyle='', marker='.', ms=12, mfc='blue')
+                ax.add_patch(
+                    patches.Circle((pos_src[0], pos_src[1]),
+                    self.range(accessPoint.apMode[str(src)]), fill=True,  alpha=0.1
+                    )
+                )
+                self.plotap[str(src)].set_data(pos_src[0],pos_src[1])
+                self.nodesPlotted.append(str(src))
+                plt.text(int(pos_src[0]), int(pos_src[1]), str(src)) 
+                
+            if str(src)[:2] != 'ap':
+                self.plotsta[str(src)].set_data(pos_src[0],pos_src[1])
+            if str(dst)[:2] != 'ap':
+                self.plotsta[str(dst)].set_data(pos_dst[0],pos_dst[1])
+            plt.title("Mininet-WiFi Graph")
+            plt.draw()
+            
     @classmethod 
     def getDistance(self, src, dst, pos_src, pos_dst):
         """
             Get the distance between two points  
         """
+        if self.plotGraph and self.cancelPlot==False:
+            self.plot(src, dst, pos_src, pos_dst)
         points = np.array([(pos_src[0], pos_src[1], pos_src[2]), (pos_dst[0], pos_dst[1], pos_dst[2])])
         dist = distance.pdist(points)
         return dist
@@ -412,8 +537,12 @@ class mobility ( object ):
         """
             Print the distance between two points
         """
-        dist = self.getDistance(src, dst, pos_src, pos_dst)
-        print ("The distance between %s and %s is %.2f meters\n" % (src, dst, float(dist)))
+        try:
+            dist = self.getDistance(src, dst, self.nodePosition[src], self.nodePosition[dst])
+            print ("The distance between %s and %s is %.2f meters\n" % (src, dst, float(dist)))
+        except:
+            dist = self.getDistance(src, dst, pos_src, pos_dst)
+            print ("The distance between %s and %s is %.2f meters\n" % (src, dst, float(dist)))
     
         
     @classmethod   
@@ -421,11 +550,127 @@ class mobility ( object ):
         """
             Print position of STAs and APs  
         """
-        self.pos_x = position[0]
-        self.pos_y = position[1]
-        self.pos_z = position[2]   
-        print "----------------\nPosition of %s\n----------------\nPosition X: %s\nPosition Y: %s\nPosition Z: %s\n" % (src, self.pos_x, self.pos_y, self.pos_z)
+        try:
+            self.pos_x = self.nodePosition[str(src)][0]
+            self.pos_y = self.nodePosition[str(src)][1]
+            self.pos_z = 0  
+            print "----------------\nPosition of %s\n----------------\nPosition X: %.2f\nPosition Y: %.2f\nPosition Z: %.2f\n" % (src, self.pos_x, self.pos_y, self.pos_z)
+        except:
+            self.pos_x = position[0]
+            self.pos_y = position[1]
+            self.pos_z = position[2]   
+            print "----------------\nPosition of %s\n----------------\nPosition X: %.2f\nPosition Y: %.2f\nPosition Z: %.2f\n" % (str(src), float(self.pos_x), float(self.pos_y), float(self.pos_z))
         
+        
+            
+    @classmethod   
+    def models(self, wifiNodes, associatedAP, startPosition, stationName, modelName,
+               max_x, max_y, min_v, max_v):
+        
+        self.modelName = modelName
+        
+        # set this to true if you want to plot node positions
+        DRAW = self.plotGraph
+        
+        self.cancelPlot = True
+        
+        # number of nodes
+        nr_nodes = stationName
+        
+        # simulation area (units)
+        MAX_X, MAX_Y = max_x, max_y
+        
+        # max and min velocity
+        MIN_V, MAX_V = min_v, max_v
+        
+        # max waiting time
+        MAX_WT = 100.
+        
+        if DRAW:
+            import matplotlib.pyplot as plt
+            plt.ion()
+            ax = plt.subplot(111)
+            line, = ax.plot(range(MAX_X), range(MAX_X), linestyle='', marker='.', ms=12, mfc='blue')
+                
+        np.random.seed(0xffff)
+        
+        if(self.modelName=='RandomWalk'):
+            ## Random Walk model
+            mob = random_walk(nr_nodes, dimensions=(MAX_X, MAX_Y))
+        elif(self.modelName=='TruncatedLevyWalk'):
+            ## Truncated Levy Walk model
+            mob = truncated_levy_walk(nr_nodes, dimensions=(MAX_X, MAX_Y))
+        elif(self.modelName=='RandomDirection'):
+            ## Random Direction model
+            mob = random_direction(nr_nodes, dimensions=(MAX_X, MAX_Y))
+        elif(self.modelName=='RandomWaypoint'):
+            ## Random Waypoint model
+            mob = random_waypoint(nr_nodes, dimensions=(MAX_X, MAX_Y), velocity=(MIN_V, MAX_V), wt_max=MAX_WT)
+        elif(self.modelName=='GaussMarkov'):
+            ## Gauss-Markov model
+            mob = gauss_markov(nr_nodes, dimensions=(MAX_X, MAX_Y), alpha=0.99)
+        else:
+            print 'Model not defined or wrong!'
+        
+        ## Reference Point Group model
+        #groups = [4 for _ in range(10)]
+        #nr_nodes = sum(groups)
+        #rpg = reference_point_group(groups, dimensions=(MAX_X, MAX_Y), aggregation=0.5)
+        
+        ## Time-variant Community Mobility Model
+        #groups = [4 for _ in range(10)]
+        #nr_nodes = sum(groups)
+        #tvcm = tvc(groups, dimensions=(MAX_X, MAX_Y), aggregation=[0.5,0.], epoch=[100,100])
+        oneTime = []
+                
+        if modelName!='':
+            try:
+                for xy in mob:
+                    if DRAW:
+                        line.set_data(xy[:,0],xy[:,1])
+                        for n in range (0,len(wifiNodes)):
+                            self.position = []
+                            if str(wifiNodes[n])[:2]=='ap' and str(wifiNodes[n]) not in oneTime:
+                                self.position.append(startPosition[str(wifiNodes[n])][0])
+                                self.position.append(startPosition[str(wifiNodes[n])][1])
+                                self.position.append(0)
+                                self.nodePosition[str(wifiNodes[n])] = self.position
+                                plt.plot([startPosition[str(wifiNodes[n])][0]], [startPosition[str(wifiNodes[n])][1]], 'ro')
+                                plt.text(int(startPosition[str(wifiNodes[n])][0]), int(startPosition[str(wifiNodes[n])][1]), str(wifiNodes[n]))
+                                ax.add_patch(
+                                    patches.Circle((startPosition[str(wifiNodes[n])][0], startPosition[str(wifiNodes[n])][1]),
+                                    self.range(accessPoint.apMode[str(str(wifiNodes[n]))]), fill=True,  alpha=0.1
+                                    )
+                                )
+                                oneTime.append(str(wifiNodes[n]))
+                            elif str(wifiNodes[n])[:2]!='ap':
+                                self.position.append(xy[n][0])
+                                self.position.append(xy[n][1])
+                                self.position.append(0)
+                                self.nodePosition[str(wifiNodes[n])] = self.position
+                                distance = self.getDistance(src = str(wifiNodes[n]), dst = associatedAP[str(wifiNodes[n])], pos_src = self.position, pos_dst=startPosition[str(associatedAP[str(wifiNodes[n])])])
+                                association.setInfraParameters(wifiNodes[n], station.staMode[str(wifiNodes[n])], distance)
+                        plt.title("Mininet-WiFi Graph")
+                        plt.draw()
+                    else:
+                        for n in range (0,len(wifiNodes)):
+                            self.position = []
+                            if str(wifiNodes[n])[:2]=='ap' and str(wifiNodes[n]) not in oneTime:
+                                self.position.append(startPosition[str(wifiNodes[n])][0])
+                                self.position.append(startPosition[str(wifiNodes[n])][1])
+                                self.position.append(0)
+                                self.nodePosition[str(wifiNodes[n])] = self.position
+                                oneTime.append(str(wifiNodes[n]))
+                            if str(wifiNodes[n])[:2]!='ap':
+                                self.position.append(xy[n][0])
+                                self.position.append(xy[n][1])
+                                self.position.append(0)
+                                self.nodePosition[str(wifiNodes[n])] = self.position
+                                distance = self.getDistance(src = str(wifiNodes[n]), dst = associatedAP[str(wifiNodes[n])], pos_src = self.position, pos_dst=startPosition[str(associatedAP[str(wifiNodes[n])])])
+                                association.setInfraParameters(wifiNodes[n], station.staMode[str(wifiNodes[n])], distance)
+            except:
+                print "Graphic Stopped!"  
+    
     
 class wifiParameters ( object ):
     """

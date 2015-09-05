@@ -95,8 +95,8 @@ import signal
 import random
 import subprocess
 import time
-#import threading
-import multiprocessing
+import threading
+#import multiprocessing
 
 from time import sleep
 from itertools import chain, groupby
@@ -116,7 +116,7 @@ from mininet.wifi import checkNM, module, phyInterface, accessPoint, station, wi
 from __builtin__ import True
 
 # Mininet version: should be consistent with README and LICENSE
-VERSION = "1.0rc2"
+VERSION = "1.1"
 
 class Mininet( object ):
     "Network emulation with hosts spawned in network namespaces."
@@ -192,6 +192,7 @@ class Mininet( object ):
         self.endTime = {}
         self.stpMobility = 0
         self.strtMobility = 0
+        self.model = ''
         self.associatedAP = {}
         self.currentPosition = {}
         self.moveSta = {}
@@ -199,6 +200,7 @@ class Mininet( object ):
         self.cmd=""        
         self.phyInterfaces = []
         
+        self.stations = []
         self.wifiNodes = []
         self.hosts = []
         self.switches = []
@@ -315,9 +317,6 @@ class Mininet( object ):
         if(position!="{}"):        
             position =  position.split(',')
             self.startPosition[name] = position
-            self.pos_x = position[0]
-            self.pos_y = position[1]
-            self.pos_z = position[2]
         else:
             self.startPosition[name] = 0
             
@@ -376,9 +375,6 @@ class Mininet( object ):
         if(position!="{}"):        
             position =  position.split(',')
             self.startPosition[name] = position
-            self.pos_x = position[0]
-            self.pos_y = position[1]
-            self.pos_z = position[2]
         else:
             self.startPosition[name] = 0
       
@@ -413,7 +409,7 @@ class Mininet( object ):
         accessPoint.setBw(self.newapif[self.nextIface], self.mode)
         Node.apwlan[name] = self.newapif[self.nextIface]
        
-        self.cmd = accessPoint.start(self.interfaceID, self.newapif[self.nextIface], self.ssid, self.mode, 
+        self.cmd = accessPoint.start(bs, self.interfaceID, self.newapif[self.nextIface], self.ssid, self.mode, 
                                      self.channel, self.country_code, self.auth_algs, 
                                      self.wpa, self.wpa_key_mgmt, self.rsn_pairwise, self.wpa_passphrase)
                
@@ -590,11 +586,9 @@ class Mininet( object ):
             for host in self.hosts:
                 if (host == node1):
                     options.setdefault( 'bw', self.bw )
-                    #options.setdefault( 'delay', 10 )
                     options.setdefault( 'use_hfsc', True )
                 elif (host == node2):
                     options.setdefault( 'bw', self.bw )
-                    #options.setdefault( 'delay', 10 )
                     options.setdefault( 'use_hfsc', True )
                                 
             # Set default MAC - this should probably be in Link
@@ -621,6 +615,7 @@ class Mininet( object ):
                         Node.associatedSSID[host] = Node.ssid[ str(node2) ]
                         station.associate(self.host, host, Node.ssid[ str(node2) ])
                         association.setInfraParameters(host, self.mode, distance)
+                        station.mode(host, self.mode)
                 elif (host == node2):
                     Node.doAssociation[host] = doAssociation
                     if(doAssociation):
@@ -628,6 +623,7 @@ class Mininet( object ):
                         Node.associatedSSID[host] = Node.ssid[ str(node1) ]
                         station.associate(self.host, host, Node.ssid[ str(node1) ])
                         association.setInfraParameters(host, self.mode, distance)
+                        station.mode(host, self.mode)
             return link
         
         else:
@@ -769,7 +765,6 @@ class Mininet( object ):
         if self.autoStaticArp:
             self.staticArp()
         self.built = True
-         
             
     def startTerms( self ):
         "Start a terminal for each node."
@@ -823,7 +818,6 @@ class Mininet( object ):
                     accessPoint.apBridge(basestation.name, Node.apwlan[basestation.name])
                     #for host in self.hosts:
                        # self.host.cmdPrint(host, "iw dev %s-wlan0 connect %s" % (host, Node.ssid[ str(basestation.name) ]))                 
-           
             info( '\n' )
             if self.waitConn:
                 self.waitConnected()
@@ -1207,7 +1201,9 @@ class Mininet( object ):
         return cpu_fractions
          
     def mobility(self, *args, **kwargs):
-       
+        """
+            Mobility Parameters.
+        """
         self.node = args[0]
         self.stage = args[1]
         self.speed = 0
@@ -1231,27 +1227,55 @@ class Mininet( object ):
             diffTime = self.endTime[self.node] - self.startTime[self.node]
             self.moveSta[self.node] = mobility.move(self.node, diffTime, self.speed, self.startPosition[self.node], self.endPosition[self.node])
         
-    def startMobility(self, start_time):
+    def startMobility(self, start_time, **kwargs):
         """
-           In development    
-        """ 
+            Start Mobility.
+        """
+        if 'model' in kwargs:
+            self.model = kwargs['model']
+        if 'max_x' in kwargs:
+            self.max_x = kwargs['max_x']
+        if 'max_y' in kwargs:
+            self.max_y = kwargs['max_y']
+        if 'min_v' in kwargs:
+            self.min_v = kwargs['min_v']
+        if 'max_v' in kwargs:
+            self.max_v = kwargs['max_v']
+     
+        mobility.no_moving = False
+        
+        if self.model != '':
+            wifiNodes = self.wifiNodes
+            associatedAP = self.associatedAP
+            module.thread = threading.Thread(name='mobilityModel', target=mobility.models, args=(wifiNodes,associatedAP,self.startPosition,len(self.stationName),self.model,self.max_x,self.max_y,self.min_v,self.max_v,))
+            #module.thread = multiprocessing.Process(name='mobilityModel', target=mobility.models, args=(wifiNodes,associatedAP,self.startPosition, len(self.stationName),self.model,self.max_x,self.max_y,self.min_v,self.max_v,))
+            module.thread.daemon = True
+            module.thread.start()
+
+        self.strtMobility = start_time
         print "Mobility started at %s second(s)" % start_time
         
     def stopMobility(self, stop_mobility):
+        """
+            Stop Mobility.
+        """
         self.stpMobility = stop_mobility
-        #module.thread = threading.Thread(name='onGoingMobility', target=self.onGoingMobility)
-        module.thread = multiprocessing.Process(name='onGoingMobility', target=self.onGoingMobility)
+        module.thread = threading.Thread(name='onGoingMobility', target=self.onGoingMobility)
+        #module.thread = multiprocessing.Process(name='onGoingMobility', target=self.onGoingMobility)
         module.thread.daemon = True
         module.thread.start()
-        
-            
+                
     def onGoingMobility(self):
+        """
+            ongoing Mobility.
+        """        
         t_end = time.time() + self.stpMobility
+        t_start = time.time() + self.strtMobility
         currentTime = time.time()
         i=1
         try:
-            while time.time() < t_end:
-                if time.time() - currentTime == i:
+            while time.time() < t_end and time.time() > t_start:
+                if time.time() - currentTime >= i:
                     for n in self.hosts:
                         node = str(n)
                         if node[:3]=='sta':
@@ -1270,6 +1294,15 @@ class Mininet( object ):
         except:
             print 'The mobility process stopped!'
                    
+    def plotGraph(self, **kwargs):
+        """ Plot Graph """
+        if 'max_x' in kwargs:
+            mobility.MAX_X = kwargs['max_x']
+        if 'max_y' in kwargs:
+            mobility.MAX_Y = kwargs['max_y']
+       
+        mobility.plotGraph = True
+        
     #def noiseInfo(self, src):
     #    if src[:2] == 'ap':
     #        print 'cannot access ap info!'
@@ -1282,32 +1315,37 @@ class Mininet( object ):
     #        if existSrc == False:
     #            print "%s does not exist!" % src
     
-    
     def getCurrentPosition(self, src):
+        """
+            Get Current Position.
+        """ 
         for host in self.wifiNodes:
-            if src == str(host) and self.startPosition[src]!=0:
+            if src == str(host): #and self.startPosition[src]!=0:
                 mobility.printPosition(host, self.startPosition[src])
-        try:
-            if (self.startPosition[src]==0):
-                print ("Position was not defined")
-        except:
-            print ("Station or Access Point does not exist!")
+        #try:
+        #    if (self.startPosition[src]==0):
+        #        print ("Position was not defined")
+        #except:
+        #    print ("Station or Access Point does not exist!")
                 
                         
     def getCurrentDistance(self, src, dst):
+        """
+            Get current Distance.
+        """ 
         existSrc = False
         existDst = False
         for host1 in self.wifiNodes:
-            if src == str(host1) and self.startPosition[src]!=0:
+            if src == str(host1):
                 existSrc = True
                 for host2 in self.wifiNodes:
-                    if dst == str(host2) and self.startPosition[dst]!=0:
+                    if dst == str(host2):
                         existDst = True
                         mobility.printDistance(src, dst, self.startPosition[src], self.startPosition[dst])
         try:               
-            if self.startPosition[src]==0 or self.startPosition[dst]==0:
-                print ("Position of (sta or ap) not defined or node does not exist!")
-            elif(existSrc==False and existDst==False):
+            #if self.startPosition[src]==0 or self.startPosition[dst]==0:
+             #   print ("Position of (sta or ap) not defined or node does not exist!")
+            if(existSrc==False and existDst==False):
                 print ("WiFi nodes %s and %s do not exist" % (src, dst))
             elif(existSrc==True and existDst==False):
                 print ("WiFi node %s or %s does not exist" % (src, dst))
