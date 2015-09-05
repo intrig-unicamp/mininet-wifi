@@ -191,7 +191,11 @@ An example of how to subclass Host to use a VLAN on its primary interface.
 
 #### wifiMobility.py:
 
-This example shows how work with Mobility. It has not a model implemented yet.
+This example shows how work with Mobility.  
+
+#### wifiMobilityModels.py:  
+
+This example shows how work with some Mobility Models.  
 
 #### wifiPosition.py:
 

@@ -22,7 +22,7 @@ Video 02: https://www.youtube.com/watch?v=_PtSmhf7Z8s
 Video 03: https://www.youtube.com/watch?v=H46EPuJDJhc  
 Video 04: https://www.youtube.com/watch?v=WH6bSOKC7Lk  
   
-###You also can use the examples:   
+###You also can use these examples:   
 
 /examples/2AccessPoints.py  
 /examples/adhoc.py  
