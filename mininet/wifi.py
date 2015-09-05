@@ -23,9 +23,6 @@ import matplotlib.patches as patches
 
 from mininet.mobility import gauss_markov, \
     truncated_levy_walk, random_direction, random_waypoint, random_walk
-from mx.Misc.CommandLine import srange
-from reportlab.graphics.charts.textlabels import Label
-from reportlab.pdfbase.pdfdoc import TextAnnotation
 
 class checkNM ( object ):
     """
