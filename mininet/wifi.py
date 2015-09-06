@@ -134,7 +134,6 @@ class association( object ):
         self.mode = mode
         latency = 10
         #delay = 5 * distance
-        
         try:
             options = dict( params )
             self.interface = options[ 'interface' ]
@@ -144,7 +143,7 @@ class association( object ):
         
         bandwidth = wifiParameters.set_bw(mode)
         #self.host.cmd(host, "tc qdisc replace dev %s-%s root netem rate %.2fmbit latency %.2fms delay %.2fms" % (host, self.interface, rate, latency, delay)) 
-        self.host.cmd(host, "tc qdisc add dev %s-%s root htb rate %smbit latency %sms" % (host, self.interface, bandwidth, latency)) 
+        self.host.cmd(host, "tc qdisc add dev %s-%s root tbf rate %smbit latency %sms burst 1540" % (host, self.interface, bandwidth, latency)) 
 
     
     @classmethod    
