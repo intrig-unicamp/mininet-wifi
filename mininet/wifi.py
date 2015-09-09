@@ -23,6 +23,7 @@ import matplotlib.patches as patches
 
 from mininet.mobility import gauss_markov, \
     truncated_levy_walk, random_direction, random_waypoint, random_walk
+from cvxopt.fftw import dst
 
 class checkNM ( object ):
     """
@@ -143,7 +144,7 @@ class association( object ):
         
         bandwidth = wifiParameters.set_bw(mode)
         #self.host.cmd(host, "tc qdisc replace dev %s-%s root netem rate %.2fmbit latency %.2fms delay %.2fms" % (host, self.interface, rate, latency, delay)) 
-        self.host.cmd(host, "tc qdisc add dev %s-%s root tbf rate %smbit latency %sms burst 1540" % (host, self.interface, bandwidth, latency)) 
+        self.host.c(host, "tc qdisc add dev %s-%s root tbf rate %smbit latency %sms burst 1540" % (host, self.interface, bandwidth, latency)) 
 
     
     @classmethod    
@@ -165,6 +166,7 @@ class association( object ):
 
         if associate == False:
             self.host.pexec("iw dev %s-wlan0 disconnect" % (self.host))
+            mobility.handover(self.host)
             
             
     @classmethod    
@@ -301,6 +303,9 @@ class station ( object ):
 class accessPoint ( object ):    
 
     apMode = {}
+    apName = []
+    apPosition = {}
+    apSSID = {}
     
     @classmethod
     def start(self, bs, interfaceID, nextIface, ssid, mode, channel, 
@@ -308,6 +313,8 @@ class accessPoint ( object ):
         """
             Starts an Access Point
         """
+        self.apName.append(bs)
+        self.apSSID[str(bs)] = ssid
         self.apMode[str(bs)] = mode
         self.cmd = ("echo \'")
         """General Configurations"""             
@@ -387,10 +394,16 @@ class accessPoint ( object ):
         os.system("tc qdisc add dev %s root tbf rate %smbit latency 2ms burst 15k" % (self.newapif, bandwidth))   
         
 
+    #@classmethod
+    #def position(self, ap, pos):
+    #    self.apPosition[ap] = pos
+        
+
 class mobility ( object ):    
     """
         Mobility 
-    """                
+    """          
+    nodesPosition = {}      
     nodePosition = {}
     nodesPlotted = []
     plotGraph = False
@@ -525,6 +538,8 @@ class mobility ( object ):
             self.plot(src, dst, pos_src, pos_dst)
         points = np.array([(pos_src[0], pos_src[1], pos_src[2]), (pos_dst[0], pos_dst[1], pos_dst[2])])
         dist = distance.pdist(points)
+        self.nodesPosition[src] = pos_src
+        self.nodesPosition[dst] = pos_dst
         return dist
     
     
@@ -557,7 +572,18 @@ class mobility ( object ):
             self.pos_z = position[2]   
             print "----------------\nPosition of %s\n----------------\nPosition X: %.2f\nPosition Y: %.2f\nPosition Z: %.2f\n" % (str(src), float(self.pos_x), float(self.pos_y), float(self.pos_z))
         
-        
+    
+    @classmethod   
+    def handover(self, host):
+        src = str(host)
+        for ap in accessPoint.apName:
+            dst = str(ap)
+            pos_dst = accessPoint.apPosition[dst]
+            pos_src = self.nodesPosition[src]
+            distance = float(self.getDistance(src, dst, pos_src, pos_dst))
+            if distance < 33:
+                host.pexec("iw dev %s-wlan0 connect %s" % (src, accessPoint.apSSID[dst]))
+                
             
     @classmethod   
     def models(self, wifiNodes, associatedAP, startPosition, stationName, modelName,

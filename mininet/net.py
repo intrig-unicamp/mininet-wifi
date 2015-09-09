@@ -375,6 +375,7 @@ class Mininet( object ):
         if(position!="{}"):        
             position =  position.split(',')
             self.startPosition[name] = position
+            accessPoint.apPosition[name] = position
         else:
             self.startPosition[name] = 0
       
@@ -408,6 +409,8 @@ class Mininet( object ):
         Node.ssid[name] = self.ssid
         accessPoint.setBw(self.newapif[self.nextIface], self.mode)
         Node.apwlan[name] = self.newapif[self.nextIface]
+        
+        
        
         self.cmd = accessPoint.start(bs, self.interfaceID, self.newapif[self.nextIface], self.ssid, self.mode, 
                                      self.channel, self.country_code, self.auth_algs, 
@@ -590,7 +593,7 @@ class Mininet( object ):
                 elif (host == node2):
                     options.setdefault( 'bw', self.bw )
                     options.setdefault( 'use_hfsc', True )
-                                
+                    
             # Set default MAC - this should probably be in Link
             options.setdefault( 'addr1', self.randMac() )
             options.setdefault( 'addr2', self.randMac() )
@@ -1344,7 +1347,7 @@ class Mininet( object ):
                         mobility.printDistance(src, dst, self.startPosition[src], self.startPosition[dst])
         try:               
             #if self.startPosition[src]==0 or self.startPosition[dst]==0:
-             #   print ("Position of (sta or ap) not defined or node does not exist!")
+            #   print ("Position of (sta or ap) not defined or node does not exist!")
             if(existSrc==False and existDst==False):
                 print ("WiFi nodes %s and %s do not exist" % (src, dst))
             elif(existSrc==True and existDst==False):
