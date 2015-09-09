@@ -23,7 +23,7 @@ import matplotlib.patches as patches
 
 from mininet.mobility import gauss_markov, \
     truncated_levy_walk, random_direction, random_waypoint, random_walk
-from cvxopt.fftw import dst
+from nose.util import src
 
 class checkNM ( object ):
     """
@@ -161,13 +161,9 @@ class association( object ):
         self.host.pexec("tc qdisc replace dev %s-wlan0 root netem rate %.2fmbit loss %.1f%% latency %.2fms delay %.2fms" % (self.host, bandwidth, loss, latency, delay)) 
         #os.system('util/m %s tc qdisc replace dev %s-wlan0 root netem rate %.2fmbit latency %.2fms delay %.2fms' % (self.host, self.host, bandwidth, latency, delay))
         #self.host.cmd("tc qdisc replace dev %s-wlan0 root tbf rate %.2fmbit latency %.2fms burst 15k" % (self.host, rate, latency)) 
-        
         associate = self.doAssociation(mode, distance)
-
         if associate == False:
-            self.host.pexec("iw dev %s-wlan0 disconnect" % (self.host))
             mobility.handover(self.host)
-            
             
     @classmethod    
     def doAssociation(self, mode, distance):
@@ -403,8 +399,7 @@ class mobility ( object ):
     """
         Mobility 
     """          
-    nodesPosition = {}      
-    nodePosition = {}
+    nodePosition = {}      
     nodesPlotted = []
     plotGraph = False
     no_moving = True
@@ -436,11 +431,13 @@ class mobility ( object ):
     def move(self, node, diffTime, speed, startposition, endposition):      
         """
             Moving nodes
-            diffTime: important to calculate the speed of moving  
+            diffTime: important to calculate the speed  
         """
         pos_x = float(endposition[0]) - float(startposition[0])
         pos_y = float(endposition[1]) - float(startposition[1])
         pos_z = float(endposition[2]) - float(startposition[2])
+        
+        self.nodePosition[node] = pos_x, pos_y, pos_z
         
         pos = '%.5f,%.5f,%.5f' % (pos_x/diffTime, pos_y/diffTime, pos_z/diffTime)
         pos = pos.split(',')
@@ -530,59 +527,53 @@ class mobility ( object ):
             plt.draw()
             
     @classmethod 
-    def getDistance(self, src, dst, pos_src, pos_dst):
+    def getDistance(self, src, dst):
         """
             Get the distance between two points  
         """
+        pos_src = self.nodePosition[str(src)]
+        pos_dst = self.nodePosition[str(dst)]
         if self.plotGraph and self.cancelPlot==False:
             self.plot(src, dst, pos_src, pos_dst)
         points = np.array([(pos_src[0], pos_src[1], pos_src[2]), (pos_dst[0], pos_dst[1], pos_dst[2])])
         dist = distance.pdist(points)
-        self.nodesPosition[src] = pos_src
-        self.nodesPosition[dst] = pos_dst
         return dist
     
-    
     @classmethod 
-    def printDistance(self, src, dst, pos_src, pos_dst):
+    def printDistance(self, src, dst):
         """
             Print the distance between two points
         """
-        try:
-            dist = self.getDistance(src, dst, self.nodePosition[src], self.nodePosition[dst])
-            print ("The distance between %s and %s is %.2f meters\n" % (src, dst, float(dist)))
-        except:
-            dist = self.getDistance(src, dst, pos_src, pos_dst)
-            print ("The distance between %s and %s is %.2f meters\n" % (src, dst, float(dist)))
-    
+        self.src = src
+        self.dst = dst
         
+        dist = self.getDistance(src, dst)
+        print ("The distance between %s and %s is %.2f meters\n" % (src, dst, float(dist)))
+    
     @classmethod   
-    def printPosition(self, src, position):
+    def printPosition(self, node):
         """
             Print position of STAs and APs  
         """
-        try:
-            self.pos_x = self.nodePosition[str(src)][0]
-            self.pos_y = self.nodePosition[str(src)][1]
-            self.pos_z = 0  
-            print "----------------\nPosition of %s\n----------------\nPosition X: %.2f\nPosition Y: %.2f\nPosition Z: %.2f\n" % (src, self.pos_x, self.pos_y, self.pos_z)
-        except:
-            self.pos_x = position[0]
-            self.pos_y = position[1]
-            self.pos_z = position[2]   
-            print "----------------\nPosition of %s\n----------------\nPosition X: %.2f\nPosition Y: %.2f\nPosition Z: %.2f\n" % (str(src), float(self.pos_x), float(self.pos_y), float(self.pos_z))
+        self.node = str(node)
         
-    
+        self.pos_x = self.nodePosition[self.node][0]
+        self.pos_y = self.nodePosition[self.node][1]
+        self.pos_z = self.nodePosition[self.node][2]   
+        print "----------------\nPosition of %s\n----------------\nPosition X: %.2f\nPosition Y: %.2f\nPosition Z: %.2f\n" % (self.node, float(self.pos_x), float(self.pos_y), float(self.pos_z))
+        
     @classmethod   
     def handover(self, host):
         src = str(host)
+        disassociate = True
         for ap in accessPoint.apName:
             dst = str(ap)
-            pos_dst = accessPoint.apPosition[dst]
-            pos_src = self.nodesPosition[src]
-            distance = float(self.getDistance(src, dst, pos_src, pos_dst))
+            distance = float(self.getDistance(src, dst))
             if distance < 33:
                 host.pexec("iw dev %s-wlan0 connect %s" % (src, accessPoint.apSSID[dst]))
+                disassociate = False
+            if disassociate:
+                host.pexec("iw dev %s-wlan0 disconnect" % (host))
                 
             
     @classmethod   
@@ -670,7 +661,7 @@ class mobility ( object ):
                                 self.position.append(xy[n][1])
                                 self.position.append(0)
                                 self.nodePosition[str(wifiNodes[n])] = self.position
-                                distance = self.getDistance(src = str(wifiNodes[n]), dst = associatedAP[str(wifiNodes[n])], pos_src = self.position, pos_dst=startPosition[str(associatedAP[str(wifiNodes[n])])])
+                                distance = self.getDistance(src = str(wifiNodes[n]), dst = associatedAP[str(wifiNodes[n])])
                                 association.setInfraParameters(wifiNodes[n], station.staMode[str(wifiNodes[n])], distance)
                         plt.title("Mininet-WiFi Graph")
                         plt.draw()
@@ -688,7 +679,7 @@ class mobility ( object ):
                                 self.position.append(xy[n][1])
                                 self.position.append(0)
                                 self.nodePosition[str(wifiNodes[n])] = self.position
-                                distance = self.getDistance(src = str(wifiNodes[n]), dst = associatedAP[str(wifiNodes[n])], pos_src = self.position, pos_dst=startPosition[str(associatedAP[str(wifiNodes[n])])])
+                                distance = self.getDistance(src = str(wifiNodes[n]), dst = associatedAP[str(wifiNodes[n])])
                                 association.setInfraParameters(wifiNodes[n], station.staMode[str(wifiNodes[n])], distance)
             except:
                 print "Graphic Stopped!"  

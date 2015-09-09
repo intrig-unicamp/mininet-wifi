@@ -315,10 +315,12 @@ class Mininet( object ):
         
         position = ("%s" % params.pop('position', {}))
         if(position!="{}"):        
-            position =  position.split(',')
+            position = position.split(',')
             self.startPosition[name] = position
+            mobility.nodePosition[name] = position
         else:
             self.startPosition[name] = 0
+            mobility.nodePosition[name] = 0
             
         ssid = ("%s" % params.pop('ssid', {}))
         if(ssid!="{}"):
@@ -375,8 +377,10 @@ class Mininet( object ):
         if(position!="{}"):        
             position =  position.split(',')
             self.startPosition[name] = position
+            mobility.nodePosition[name] = position
             accessPoint.apPosition[name] = position
         else:
+            mobility.nodePosition[name] = 0
             self.startPosition[name] = 0
       
         channel = ("%s" % params.pop('channel', {}))
@@ -603,7 +607,7 @@ class Mininet( object ):
             
             #If sta/ap have position defined
             if self.startPosition[str(node1)] !=0 and self.startPosition[str(node2)] !=0:
-                distance = mobility.getDistance(node1, node2, self.startPosition[str(node1)], self.startPosition[str(node2)])
+                distance = mobility.getDistance(node1, node2)
                 doAssociation = association.doAssociation(self.mode, distance)
             #if not
             else:
@@ -819,8 +823,6 @@ class Mininet( object ):
             if(Node.isCode==False):
                 for basestation in self.baseStations:        
                     accessPoint.apBridge(basestation.name, Node.apwlan[basestation.name])
-                    #for host in self.hosts:
-                       # self.host.cmdPrint(host, "iw dev %s-wlan0 connect %s" % (host, Node.ssid[ str(basestation.name) ]))                 
             info( '\n' )
             if self.waitConn:
                 self.waitConnected()
@@ -1286,13 +1288,9 @@ class Mininet( object ):
                                 self.startPosition[node][0] = float(self.startPosition[node][0]) + float(self.moveSta[node][0])
                                 self.startPosition[node][1] = float(self.startPosition[node][1]) + float(self.moveSta[node][1])
                                 self.startPosition[node][2] = float(self.startPosition[node][2]) + float(self.moveSta[node][2])
-                                mobility.nodePosition = self.startPosition[node]
-                                #currentPosition = '%.2f,%.2f,%.2f' % (self.startPosition[node][0], self.startPosition[node][1], self.startPosition[node][2])
-                                #self.currentPosition[node] = currentPosition.split(',')
-                                distance = mobility.getDistance(node, self.associatedAP[node], self.startPosition[node], self.startPosition[str(self.associatedAP[node])])
+                                mobility.nodePosition[node] = self.startPosition[node]
+                                distance = mobility.getDistance(node, self.associatedAP[node])
                                 association.setInfraParameters(n, self.mode, distance)
-                                #if node == 'sta2':
-                                #    print self.getCurrentPosition(node)
                     i+=1
         except:
             print 'The mobility process stopped!'
@@ -1318,13 +1316,13 @@ class Mininet( object ):
     #        if existSrc == False:
     #            print "%s does not exist!" % src
     
-    def getCurrentPosition(self, src):
+    def getCurrentPosition(self, node):
         """
             Get Current Position.
         """ 
         for host in self.wifiNodes:
-            if src == str(host): #and self.startPosition[src]!=0:
-                mobility.printPosition(host, self.startPosition[src])
+            if node == str(host): #and self.startPosition[src]!=0:
+                mobility.printPosition(node)
         #try:
         #    if (self.startPosition[src]==0):
         #        print ("Position was not defined")
@@ -1344,10 +1342,8 @@ class Mininet( object ):
                 for host2 in self.wifiNodes:
                     if dst == str(host2):
                         existDst = True
-                        mobility.printDistance(src, dst, self.startPosition[src], self.startPosition[dst])
+                        mobility.printDistance(src, dst)
         try:               
-            #if self.startPosition[src]==0 or self.startPosition[dst]==0:
-            #   print ("Position of (sta or ap) not defined or node does not exist!")
             if(existSrc==False and existDst==False):
                 print ("WiFi nodes %s and %s do not exist" % (src, dst))
             elif(existSrc==True and existDst==False):
