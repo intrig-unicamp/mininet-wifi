@@ -25,7 +25,7 @@ def topology():
     c1 = net.addController( 'c1', controller=Controller )
 
     """uncomment to plot graph"""
-    net.plotGraph(max_x=100, max_y=100)
+    #net.plotGraph(max_x=100, max_y=100)
 
     print "*** Creating links"
     net.addLink(ap1, h1, 1, 0)
