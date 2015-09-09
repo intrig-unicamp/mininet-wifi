@@ -12,6 +12,8 @@ Created on Jan 24, 2012
 @author: André Panisson
 @contact: panisson@gmail.com
 @organization: ISI Foundation, Torino, Italy
+@source: https://github.com/panisson/pymobility
+@copyright: http://dx.doi.org/10.5281/zenodo.9873
 '''
 import numpy as np
 from numpy.random import rand
