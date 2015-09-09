@@ -23,7 +23,6 @@ import matplotlib.patches as patches
 
 from mininet.mobility import gauss_markov, \
     truncated_levy_walk, random_direction, random_waypoint, random_walk
-from nose.util import src
 
 class checkNM ( object ):
     """
