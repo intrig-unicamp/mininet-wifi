@@ -26,6 +26,7 @@ Video 04: https://www.youtube.com/watch?v=WH6bSOKC7Lk
 
 /examples/2AccessPoints.py  
 /examples/adhoc.py  
+/examples/handover.py  
 /examples/simplewifitopology.py  
 /examples/wifiMobility.py  
 /examples/wifiMobilityModel.py  
