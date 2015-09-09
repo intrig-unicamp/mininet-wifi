@@ -568,7 +568,7 @@ class mobility ( object ):
         for ap in accessPoint.apName:
             dst = str(ap)
             distance = float(self.getDistance(src, dst))
-            if distance < 33:
+            if distance < self.range(accessPoint.apMode[dst]):
                 host.pexec("iw dev %s-wlan0 connect %s" % (src, accessPoint.apSSID[dst]))
                 disassociate = False
             if disassociate:
