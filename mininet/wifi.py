@@ -143,7 +143,7 @@ class association( object ):
         
         bandwidth = wifiParameters.set_bw(mode)
         #self.host.cmd(host, "tc qdisc replace dev %s-%s root netem rate %.2fmbit latency %.2fms delay %.2fms" % (host, self.interface, rate, latency, delay)) 
-        self.host.c(host, "tc qdisc add dev %s-%s root tbf rate %smbit latency %sms burst 1540" % (host, self.interface, bandwidth, latency)) 
+        selfhost("tc qdisc add dev %s-%s root tbf rate %smbit latency %sms burst 1540" % (host, self.interface, bandwidth, latency)) 
 
     
     @classmethod    
