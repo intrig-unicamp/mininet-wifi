@@ -151,10 +151,18 @@ class association( object ):
         """
             Set wifi Infrastrucure Parameters. Have to use models for loss, latency, bw...    
         """
+        seconds = 3
+        self.src = str(host)
+        try:
+            """Based on RandomPropagationDelayModel (ns3)"""
+            seconds = abs(mobility.speed[self.src])
+        except:
+            pass
         self.host = host
         latency = 5 + distance
         loss = 0.01 + distance/10
-        delay = 2 * distance
+        """"Based on RandomPropagationDelayModel (ns3)"""
+        delay = distance/seconds
         bandwidth = wifiParameters.set_bw(mode) - distance/10    
         
         self.host.pexec("tc qdisc replace dev %s-wlan0 root netem rate %.2fmbit loss %.1f%% latency %.2fms delay %.2fms" % (self.host, bandwidth, loss, latency, delay)) 
@@ -398,6 +406,7 @@ class mobility ( object ):
     """
         Mobility 
     """          
+    speed = {}
     nodePosition = {}      
     nodesPlotted = []
     plotGraph = False
@@ -437,6 +446,7 @@ class mobility ( object ):
         pos_z = float(endposition[2]) - float(startposition[2])
         
         self.nodePosition[node] = pos_x, pos_y, pos_z
+        self.speed[node] = ((pos_x + pos_y + pos_z)/diffTime) 
         
         pos = '%.5f,%.5f,%.5f' % (pos_x/diffTime, pos_y/diffTime, pos_z/diffTime)
         pos = pos.split(',')
