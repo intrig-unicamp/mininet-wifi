@@ -116,7 +116,7 @@ from mininet.wifi import checkNM, module, phyInterface, accessPoint, station, wi
 from __builtin__ import True
 
 # Mininet version: should be consistent with README and LICENSE
-VERSION = "1.1"
+VERSION = "1.2"
 
 class Mininet( object ):
     "Network emulation with hosts spawned in network namespaces."
@@ -126,7 +126,7 @@ class Mininet( object ):
                   build=True, xterms=False, cleanup=False, ipBase='10.0.0.0/8',
                   inNamespace=False, autoSetMacs=False, autoStaticArp=False, autoPinCpus=False,
                   listenPort=None, waitConnected=False, 
-                  interfaceID=3, ssid="my-ssid", mode="g", channel="6", wirelessRadios=0,  wmm_enabled="1", waitTime=5,
+                  interfaceID=3, ssid="my-ssid", mode="g", channel="6", wirelessRadios=0,  wmm_enabled="1",
                   country_code=None, rsn_pairwise=None, wpa_passphrase=None, wpa=None, auth_algs=None, wpa_key_mgmt=None ):
         """Create Mininet object.
            topo: Topo (topology) object or None
@@ -178,7 +178,6 @@ class Mininet( object ):
         self.baseStationName = []
         self.stationName = []
                 
-        self.waitTime = waitTime
         self.wprefixLen = 24
         self.resultIface = ""
         self.interfaceID = interfaceID
@@ -572,10 +571,9 @@ class Mininet( object ):
             cls = self.link if cls is None else cls
             link = cls( node, node2, **options )
             
-            waitTime = self.waitTime
             for host in self.hosts:
                 if (host == node):
-                    station.adhoc(self.host, host, ssid, mode, waitTime, **params)
+                    station.adhoc(host, ssid, mode, **params)
             
             return link
 
@@ -620,7 +618,7 @@ class Mininet( object ):
                     if(doAssociation):
                         self.associatedAP[str(host)] = str(node2)
                         Node.associatedSSID[host] = Node.ssid[ str(node2) ]
-                        station.associate(self.host, host, Node.ssid[ str(node2) ])
+                        station.associate(host, Node.ssid[ str(node2) ])
                         association.setInfraParameters(host, self.mode, distance)
                         station.mode(host, self.mode)
                 elif (host == node2):
@@ -628,7 +626,7 @@ class Mininet( object ):
                     if(doAssociation):
                         self.associatedAP[str(host)] = str(node1)
                         Node.associatedSSID[host] = Node.ssid[ str(node1) ]
-                        station.associate(self.host, host, Node.ssid[ str(node1) ])
+                        station.associate(host, Node.ssid[ str(node1) ])
                         association.setInfraParameters(host, self.mode, distance)
                         station.mode(host, self.mode)
             return link

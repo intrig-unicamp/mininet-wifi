@@ -21,7 +21,7 @@ def topology():
     ap1 = net.addBaseStation( 'ap1', ssid="simplewifi", mode="g", channel="5" )
     c0 = net.addController('c0', controller=Controller, ip='127.0.0.1', port=6633 )
 
-    print "*** Adding Link"
+    print "*** Associating Stations"
     net.addLink(sta1, ap1)
     net.addLink(sta2, ap1)
 

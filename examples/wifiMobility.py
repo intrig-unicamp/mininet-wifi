@@ -26,7 +26,7 @@ def topology():
     """uncomment to plot graph"""
     #net.plotGraph(max_x=60, max_y=60)
 
-    print "*** Creating links"
+    print "*** Associating Creating links"
     net.addLink(ap1, h1, 1, 0)
     net.addLink(ap1, sta1)
     net.addLink(ap1, sta2)

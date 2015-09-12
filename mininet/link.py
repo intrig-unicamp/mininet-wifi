@@ -272,7 +272,6 @@ class TCIntf( Intf ):
                           '%s class add dev %s parent 5:0 classid 5:1 htb ' +
                           'rate %fMbit burst 15k' % bw ]
             parent = ' parent 5:1 '
-            
             # ECN or RED
             if enable_ecn:
                 cmds += [ '%s qdisc add dev %s' + parent +

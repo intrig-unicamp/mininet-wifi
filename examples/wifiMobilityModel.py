@@ -20,26 +20,22 @@ def topology():
     h1 = net.addHost( 'h1', mac='00:00:00:00:00:01', ip='10.0.0.1/8' )
     sta1 = net.addStation( 'sta1', mac='00:00:00:00:00:02', ip='10.0.0.2/8' )
     sta2 = net.addStation( 'sta2', mac='00:00:00:00:00:03', ip='10.0.0.3/8' )
-    sta3 = net.addStation( 'sta3', mac='00:00:00:00:00:04', ip='10.0.0.4/8' )
     ap1 = net.addBaseStation( 'ap1', ssid= 'new-ssid', mode= 'g', channel= '1', position='10,10,0' )
-    ap2 = net.addBaseStation( 'ap2', ssid= 'new-ssidd', mode= 'g', channel= '1', position='20,10,0' )
     
     c1 = net.addController( 'c1', controller=Controller )
 
     """uncomment to plot graph"""
     #net.plotGraph(max_x=60, max_y=60)
 
-    print "*** Creating links"
+    print "*** Associating and Creating links"
     net.addLink(ap1, h1, 1, 0)
     net.addLink(ap1, sta1)
     net.addLink(ap1, sta2)
-    net.addLink(ap2, sta3)
     
     print "*** Starting network"
     net.build()
     c1.start()
     ap1.start( [c1] )
-    ap2.start( [c1] )
     
     
     "*** Available models: RandomWalk, TruncatedLevyWalk, RandomDirection, RandomWaypoint, GaussMarkov ***"
