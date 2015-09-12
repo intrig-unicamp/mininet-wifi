@@ -231,15 +231,17 @@ class station ( object ):
     staMode = {} 
     
     @classmethod    
-    def confirmAdhocAssociation(self, host, ssid):
+    def confirmAdhocAssociation(self, host, interface, ssid):
         associated = ''
-        while(associated == ''):
-            self.host.sendCmd("iw dev %s-wlan0 scan ssid %s" % (str(host), self.ssid))
+        self.host = host
+        while(associated == '' or len(associated) == 0):
+            self.host.sendCmd("iw dev %s scan ssid | grep %s" % (interface, ssid))
             associated = self.host.waitOutput()
     
     @classmethod    
     def confirmaInfraAssociation(self, host):
         associated = ''
+        self.host = host
         while(associated == '' or len(associated) == 16):
             host.sendCmd("iw dev %s-wlan0 link" % str(host))
             associated = self.host.waitOutput()
@@ -258,7 +260,6 @@ class station ( object ):
         self.ssid = ssid
         self.host.cmd("iw dev %s-wlan0 connect %s" % (host, self.ssid))
         self.confirmaInfraAssociation(self.host)
-        #time.sleep(0.2)    
           
     @classmethod    
     def adhoc(self, host, ssid, mode, **params):
@@ -279,17 +280,18 @@ class station ( object ):
         
         if hasIface: # if new iface
             association.setAdhocParameters(self.host, mode, **params)
-            self.host.cmdPrint("iw dev %s-wlan0 scan ssid %s" % (str(host), self.ssid))
             self.host.cmd("iw dev %s-%s set type ibss" % (str(host), self.interface))
             self.host.cmd("iw dev %s-%s ibss join %s 2412" % (str(host), self.interface, self.ssid))
             print "associating %s ..." % str(host)
-            self.confirmAdhocAssociation(self.host, self.ssid)
+            interface = '%s-%s' % (str(host), self.interface)
+            self.confirmAdhocAssociation(self.host, interface, self.ssid)
         else: # if not
             association.setAdhocParameters(self.host, mode, **params)
             self.host.cmd("iw dev %s-wlan0 set type ibss" % str(host))
             self.host.cmd("iw dev %s-wlan0 ibss join %s 2412" % (str(host), self.ssid))
             print "associating %s ..." % str(host)
-            self.confirmAdhocAssociation(self.host, self.ssid)
+            interface = '%s-wlan0' % str(host)
+            self.confirmAdhocAssociation(self.host, interface, self.ssid)
             
     @classmethod    
     def addIface(self, station):
