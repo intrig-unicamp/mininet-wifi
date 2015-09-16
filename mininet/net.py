@@ -116,7 +116,7 @@ from mininet.wifi import checkNM, module, phyInterface, accessPoint, station, wi
 from __builtin__ import True
 
 # Mininet version: should be consistent with README and LICENSE
-VERSION = "1.2"
+VERSION = "1.2r1"
 
 class Mininet( object ):
     "Network emulation with hosts spawned in network namespaces."
@@ -340,7 +340,6 @@ class Mininet( object ):
         phyInterface.phy[name] = self.splitResultIface[self.nextIface][3:]
         
         Node.ssid[name] = self.ssid        
-        Node.isFirst = len(self.phyInterfaces)
         self.nextIP += 1        
         self.nextIface += 1
         return h
@@ -420,6 +419,9 @@ class Mininet( object ):
                                      self.wpa, self.wpa_key_mgmt, self.rsn_pairwise, self.wpa_passphrase)
                
         checkNM.APfile(self.cmd, str(self.newapif[self.nextIface])) 
+        
+        self.splitResultIface = phyInterface.getPhyInterfaces()
+        accessPoint.apPhy.append('phy'+self.splitResultIface[self.nextIface][3:])
         
         #increment to wifi file
         phyInterface.setNextIface()
@@ -556,7 +558,7 @@ class Mininet( object ):
         "Return a random, non-multicast MAC address"
         return macColonHex( random.randint(1, 2**48 - 1) & 0xfeffffffffff |
                             0x020000000000 )
-
+    
     def addHoc( self, node, ssid, mode, cls=None, **params ):
         
             node2 = node
@@ -565,18 +567,38 @@ class Mininet( object ):
             node2 = node2 if not isinstance( node2, basestring ) else self[ node2 ]
             options = dict( params )
             
+            try:
+                self.interface = options[ 'interface' ]
+                for host in self.hosts:
+                    if (host == node):
+                        station.adhoc(host, ssid, mode, **params)
+            except:
+                if(str(node)[:3]=="sta"):
+                    try:
+                        station.nextWlan[str(node)] += 1
+                    except:    
+                        station.nextWlan[str(node)] = 0
+                
+                # Set default MAC - this should probably be in Link
+                options.setdefault( 'addr1', self.randMac() )
+                
+                cls = self.link if cls is None else cls
+                link = cls( node, node2, **options )
+                
+                for host in self.hosts:
+                    if (host == node):
+                        station.adhoc(host, ssid, mode, **params)
+                        
+                return link
+            
             # Set default MAC - this should probably be in Link
-            options.setdefault( 'addr1', self.randMac() )
+            #options.setdefault( 'addr1', self.randMac() )
             
-            cls = self.link if cls is None else cls
-            link = cls( node, node2, **options )
+            #cls = self.link if cls is None else cls
+            #link = cls( node, node2, **options )
             
-            for host in self.hosts:
-                if (host == node):
-                    station.adhoc(host, ssid, mode, **params)
+            #return link           
             
-            return link
-
     def addLink( self, node1, node2, port1=None, port2=None, 
                  cls=None, **params ):
         
@@ -587,6 +609,19 @@ class Mininet( object ):
             options = dict( params )
             
             self.bw = wifiParameters.set_bw(self.mode)
+            
+            if(str(node1)[:3]=="sta"):
+                station.staPhy.append('phy'+phyInterface.phy[str(node1)])
+                try:
+                    station.nextWlan[str(node1)] += 1
+                except:    
+                    station.nextWlan[str(node1)] = 0
+            elif(str(node2)[:3]=="sta"):
+                station.staPhy.append('phy'+phyInterface.phy[str(node2)])
+                try:
+                    station.nextWlan[str(node2)] += 1
+                except:    
+                    station.nextWlan[str(node2)] = 0
             
             for host in self.hosts:
                 if (host == node1):

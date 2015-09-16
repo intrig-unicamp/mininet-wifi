@@ -28,6 +28,7 @@ from mininet.log import info, error, debug
 from mininet.util import makeIntfPair
 import mininet.node
 import re
+from mininet.wifi import station
 
 class Intf( object ):
 
@@ -67,17 +68,10 @@ class Intf( object ):
         return self.node.cmd( *args, **kwargs )
 
     def ifconfig( self, *args ):
-        if(self.name[:3]=="sta" ):
+        if(str(self.name[:3])=="sta" ):
             wif = self.cmd("iwconfig 2>&1 | grep IEEE | awk '{print $1}'")
-            if (len(self.name) == 10):
-                self.cmd('ip link set dev %s name %s-wlan0' % (wif.strip(), self.name[:4]) )
-                return self.cmd( 'ifconfig %s-wlan0'% self.name[:4], *args )
-            elif (len(self.name) == 11):
-                self.cmd('ip link set dev %s name %s-wlan0' % (wif.strip(), self.name[:5]) )
-                return self.cmd( 'ifconfig %s-wlan0'% self.name[:5], *args )
-            elif (len(self.name) == 12):
-                self.cmd('ip link set dev %s name %s-wlan0' % (wif.strip(), self.name[:6]) )
-                return self.cmd( 'ifconfig %s-wlan0'% self.name[:6], *args )
+            self.cmd('ip link set dev %s name %s-wlan%s' % (wif.strip(), self.node, station.nextWlan[str(self.node)]) )
+            return self.cmd( 'ifconfig %s-wlan%s'% (self.node, station.nextWlan[str(self.node)]), *args )
         else:
             "Configure ourselves using ifconfig"
             return self.cmd( 'ifconfig', self.name, *args )

@@ -11,7 +11,6 @@ import struct
 import fcntl
 import fileinput
 import subprocess
-import time
 import glob
 #import multiprocessing
 import threading
@@ -160,13 +159,11 @@ class association( object ):
         except:
             pass
         self.host = host
-        latency = 5 + distance
-        loss = 0.01 + distance/10
-        """"Based on RandomPropagationDelayModel (ns3)"""
-        delay = distance/seconds
-        bandwidth = wifiParameters.set_bw(mode) - distance/10    
-        
-        self.host.pexec("tc qdisc replace dev %s-wlan0 root netem rate %.2fmbit loss %.1f%% latency %.2fms delay %.2fms" % (self.host, bandwidth, loss, latency, delay)) 
+        latency = wifiParameters.latency(distance)
+        loss = wifiParameters.loss(distance)
+        delay = wifiParameters.delay(distance, seconds)
+        bw = wifiParameters.set_bw(mode) - distance/10    
+        self.host.pexec("tc qdisc replace dev %s-wlan0 root netem rate %.2fmbit loss %.1f%% latency %.2fms delay %.2fms" % (self.host, bw, loss, latency, delay)) 
         #os.system('util/m %s tc qdisc replace dev %s-wlan0 root netem rate %.2fmbit latency %.2fms delay %.2fms' % (self.host, self.host, bandwidth, latency, delay))
         #self.host.cmd("tc qdisc replace dev %s-wlan0 root tbf rate %.2fmbit latency %.2fms burst 15k" % (self.host, rate, latency)) 
         associate = self.doAssociation(mode, distance)
@@ -228,7 +225,9 @@ class phyInterface ( object ):
 class station ( object ):
     
     nextWlan = {}   
-    staMode = {} 
+    staMode = {}
+    staPhy = []
+    nextIface = 0
     
     @classmethod    
     def confirmAdhocAssociation(self, host, interface, ssid):
@@ -270,7 +269,6 @@ class station ( object ):
         self.mode = mode
         self.host = host
         hasIface = False   
-        
         try:
             options = dict( params )
             self.interface = options[ 'interface' ]
@@ -294,23 +292,28 @@ class station ( object ):
             self.confirmAdhocAssociation(self.host, interface, self.ssid)
             
     @classmethod    
-    def addIface(self, station):
+    def addWlan(self, station):
         """
             Add phy Interface to Stations
         """ 
         phy = phyInterface.getPhyInterfaces()
-        phyInterface.phy[station] = phy[phyInterface.nextIface-1][3:]
+        for p in phy:
+            if p in accessPoint.apPhy or p in self.staPhy:
+                phy.remove(p)
+        phyInterface.phy[station] = phy[self.nextIface][3:]
+        self.nextIface +=1
         os.system("iw phy phy%s set netns %s" % (phyInterface.phy[station], station.pid)) 
         wif = station.cmd("iwconfig 2>&1 | grep IEEE | awk '{print $1}'").split("\n")
         wif.pop()
         for iface in wif:
             if iface[:4]=="wlan":
                 try:
-                    self.nextWlan[station] += 1
+                    self.nextWlan[str(station)] += 1
                 except:
-                    self.nextWlan[station] = 1
-                netxWlan = self.nextWlan[station] 
+                    self.nextWlan[str(station)] = 0
+                netxWlan = self.nextWlan[str(station)] 
                 self.renameIface(station, netxWlan, iface)
+                
      
     @classmethod    
     def renameIface(self, station, nextWlan, iface):
@@ -318,7 +321,7 @@ class station ( object ):
             Rename wireless interface if necessary
         """
         iface = iface[:-1]
-        station.cmd('ip link set dev %s name %s-wlan%s' % (iface, station, nextWlan ))
+        station.cmd('ip link set dev %s name %s-wlan%s' % (iface, station, nextWlan))
         station.cmd('ifconfig %s-wlan%s up' % (station, nextWlan))    
                         
             
@@ -328,6 +331,12 @@ class accessPoint ( object ):
     apName = []
     apPosition = {}
     apSSID = {}
+    apPhy = []
+    
+    @classmethod
+    def returnApMode(self):
+        print self.apMode
+        #return self.apMode[apname]
     
     @classmethod
     def start(self, bs, interfaceID, nextIface, ssid, mode, channel, 
@@ -335,6 +344,7 @@ class accessPoint ( object ):
         """
             Starts an Access Point
         """
+        
         self.apName.append(bs)
         self.apSSID[str(bs)] = ssid
         self.apMode[str(bs)] = mode
@@ -437,7 +447,6 @@ class mobility ( object ):
     cancelPlot = False
     MAX_X = 50
     MAX_Y = 50
-    
     
     @classmethod   
     def range(self, mode):
@@ -724,6 +733,31 @@ class wifiParameters ( object ):
         """
         print self.host.cmd('iw dev %s-wlan0 survey noise %d' % (host, int(str(host)[3:])+60))    
         
+    
+    @classmethod
+    def latency(self, distance):        
+        latency = 5 + distance
+        return latency
+        
+    @classmethod
+    def loss(self, distance):        
+        loss = 0.01 + distance/10
+        return loss
+    
+    @classmethod
+    def delay(self, distance, seconds):
+        """"Based on RandomPropagationDelayModel (ns3)"""
+        delay = distance/seconds
+        return delay
+        
+    @classmethod
+    def bw(self, distance, mode):
+        self.bw = self.set_bw(mode) - distance/10    
+        return self.bw
+    
+    #@classmethod
+    #def pathLoss(self):
+    #    pass
     
     @classmethod    
     def set_bw(self, mode):
