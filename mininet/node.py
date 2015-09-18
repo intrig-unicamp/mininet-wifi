@@ -115,15 +115,12 @@ class Node( object ):
     inToNode = {}  # mapping of input fds to nodes
     outToNode = {}  # mapping of output fds to nodes
     isWireless=False
-    apwlan = {}
     isCode = True
     nAP=0
     phyInterfaces = []
     ssid = {}
     doAssociation = {}
     associatedSSID = {}
-    phyID = {}
-    isHost = False
     wIface = {}
     wirelessRadios = 3
       

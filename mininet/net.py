@@ -112,11 +112,11 @@ from mininet.util import ( quietRun, fixLimits, numCores, ensureRoot,
                            macColonHex, ipStr, ipParse, netParse, ipAdd,
                            waitListening )
 from mininet.term import cleanUpScreens, makeTerms
-from mininet.wifi import checkNM, module, phyInterface, accessPoint, station, wifiParameters, association, mobility
+from mininet.wifi import checkNM, module, phyInt, accessPoint, station, wifiParameters, association, mobility
 from __builtin__ import True
 
 # Mininet version: should be consistent with README and LICENSE
-VERSION = "1.2r1"
+VERSION = "1.2r3"
 
 class Mininet( object ):
     "Network emulation with hosts spawned in network namespaces."
@@ -126,8 +126,7 @@ class Mininet( object ):
                   build=True, xterms=False, cleanup=False, ipBase='10.0.0.0/8',
                   inNamespace=False, autoSetMacs=False, autoStaticArp=False, autoPinCpus=False,
                   listenPort=None, waitConnected=False, 
-                  interfaceID=3, ssid="my-ssid", mode="g", channel="6", wirelessRadios=0,  wmm_enabled="1",
-                  country_code=None, rsn_pairwise=None, wpa_passphrase=None, wpa=None, auth_algs=None, wpa_key_mgmt=None ):
+                  interfaceID=3, ssid="my-ssid", mode="g", channel="6", wirelessRadios=0 ):
         """Create Mininet object.
            topo: Topo (topology) object or None
            switch: default Switch class
@@ -145,6 +144,8 @@ class Mininet( object ):
            autoPinCpus: pin hosts to (real) cores (requires CPULimitedHost)?
            listenPort: base listening port to open; will be incremented for
                each additional switch in the net if inNamespace=False"""
+        self.thread = threading.Thread()
+        
         self.topo = topo
         self.switch = switch
         self.baseStation = switch
@@ -166,18 +167,12 @@ class Mininet( object ):
         self.listenPort = listenPort
         self.waitConn = waitConnected   
         
-        self.wpa_key_mgmt = wpa_key_mgmt
-        self.country_code = country_code
-        self.rsn_pairwise = rsn_pairwise
-        self.wpa_passphrase = wpa_passphrase
-        self.wpa = wpa
-        self.auth_algs = auth_algs
-        self.wmm_enabled = wmm_enabled
+        
         self.nextIface = 0
-        self.countAP = 0 
-        self.baseStationName = []
         self.stationName = []
                 
+        self.apwlan = {}
+        self.apexists = []
         self.wprefixLen = 24
         self.resultIface = ""
         self.interfaceID = interfaceID
@@ -193,7 +188,6 @@ class Mininet( object ):
         self.strtMobility = 0
         self.model = ''
         self.associatedAP = {}
-        self.currentPosition = {}
         self.moveSta = {}
         
         self.cmd=""        
@@ -222,6 +216,9 @@ class Mininet( object ):
                 self.wirelessRadios = Node.wirelessRadios
             
             module._start_module(self.wirelessRadios) #Initatilize WiFi Module
+            phyInt.totalPhy = subprocess.check_output("find /sys/kernel/debug/ieee80211 -name hwsim | cut -d/ -f 6 | sort", 
+                                                             shell=True).split("\n")
+                                                        
                     
         self.isWireless = Node.isWireless
 
@@ -336,8 +333,8 @@ class Mininet( object ):
         self.newapif = sorted(self.newapif)
         self.newapif.sort(key=len, reverse=False)
        
-        self.splitResultIface = phyInterface.getPhyInterfaces()
-        phyInterface.phy[name] = self.splitResultIface[self.nextIface][3:]
+        self.splitResultIface = phyInt.getPhyInterfaces()
+        phyInt.phy[name] = self.splitResultIface[self.nextIface][3:]
         
         Node.ssid[name] = self.ssid        
         self.nextIP += 1        
@@ -355,8 +352,7 @@ class Mininet( object ):
                      'inNamespace': self.inNamespace, 
                      'channel': self.channel,
                      'mode': self.mode,
-                     'ssid': self.ssid,
-                     'wpa_passphrase': self.wpa_passphrase                    
+                     'ssid': self.ssid                 
                      }
         defaults.update( params )        
         
@@ -368,8 +364,6 @@ class Mininet( object ):
         self.baseStations.append( bs )
         self.wifiNodes.append(bs)
         self.nameToNode[ name ] = bs
-        
-        self.baseStationName.append(name)     
         
         position = ("%s" % params.pop('position', {}))
         if(position!="{}"):        
@@ -410,9 +404,15 @@ class Mininet( object ):
         checkNM.checkNetworkManager(checkNM.getMacAddress(self.newapif[self.nextIface]))           
         Node.ssid[name] = self.ssid
         accessPoint.setBw(self.newapif[self.nextIface], self.mode)
-        Node.apwlan[name] = self.newapif[self.nextIface]
+        self.apwlan[name] = self.newapif[self.nextIface]
         
-        
+        self.wpa_key_mgmt = None
+        self.country_code = None
+        self.rsn_pairwise = None
+        self.wpa_passphrase = None
+        self.wpa = None
+        self.auth_algs = None
+        self.wmm_enabled = None
        
         self.cmd = accessPoint.start(bs, self.interfaceID, self.newapif[self.nextIface], self.ssid, self.mode, 
                                      self.channel, self.country_code, self.auth_algs, 
@@ -420,11 +420,10 @@ class Mininet( object ):
                
         checkNM.APfile(self.cmd, str(self.newapif[self.nextIface])) 
         
-        self.splitResultIface = phyInterface.getPhyInterfaces()
-        accessPoint.apPhy.append('phy'+self.splitResultIface[self.nextIface][3:])
+        self.splitResultIface = phyInt.getPhyInterfaces()
         
         #increment to wifi file
-        phyInterface.setNextIface()
+        phyInt.setNextIface()
         
         #Time to start mode N. It takes more time than the others.
         if self.mode=="n":
@@ -566,6 +565,7 @@ class Mininet( object ):
             node = node if not isinstance( node, basestring ) else self[ node ]
             node2 = node2 if not isinstance( node2, basestring ) else self[ node2 ]
             options = dict( params )
+            station.currentPhy+=1
             
             try:
                 self.interface = options[ 'interface' ]
@@ -609,15 +609,23 @@ class Mininet( object ):
             options = dict( params )
             
             self.bw = wifiParameters.set_bw(self.mode)
+            if str(node1)[:2]=="ap" and node1 not in self.apexists or str(node2)[:2]=="ap" and node2 not in self.apexists:
+                station.currentPhy+=2
+                if str(node1)[:2]=="ap":
+                    self.apexists.append(node1) 
+                else:
+                    self.apexists.append(node2)
+            else:
+                station.currentPhy+=1
             
             if(str(node1)[:3]=="sta"):
-                station.staPhy.append('phy'+phyInterface.phy[str(node1)])
+                #station.staPhy.append('phy'+phyInterface.phy[str(node1)])
                 try:
                     station.nextWlan[str(node1)] += 1
                 except:    
                     station.nextWlan[str(node1)] = 0
             elif(str(node2)[:3]=="sta"):
-                station.staPhy.append('phy'+phyInterface.phy[str(node2)])
+                #station.staPhy.append('phy'+phyInterface.phy[str(node2)])
                 try:
                     station.nextWlan[str(node2)] += 1
                 except:    
@@ -855,7 +863,7 @@ class Mininet( object ):
                     started.update( { s: s for s in success } )  
             if(Node.isCode==False):
                 for basestation in self.baseStations:        
-                    accessPoint.apBridge(basestation.name, Node.apwlan[basestation.name])
+                    accessPoint.apBridge(basestation.name, self.apwlan[basestation.name])
             info( '\n' )
             if self.waitConn:
                 self.waitConnected()
@@ -884,6 +892,15 @@ class Mininet( object ):
                 self.waitConnected()
 
     def stop( self ):
+        "Stop plotting"
+        mobility.cancelPlot = True
+        mobility.plotGraph = False
+        mobility.DRAW = False
+        try:
+            mobility.closePlot()
+        except:
+            pass
+        
         "Stop the controller(s), switches and hosts"
         info( '*** Stopping %i controllers\n' % len( self.controllers ) )
         for controller in self.controllers:
@@ -1285,11 +1302,11 @@ class Mininet( object ):
         if self.model != '':
             wifiNodes = self.wifiNodes
             associatedAP = self.associatedAP
-            module.thread = threading.Thread(name='mobilityModel', target=mobility.models, args=(wifiNodes,associatedAP,self.startPosition,len(self.stationName),self.model,self.max_x,self.max_y,self.min_v,self.max_v,))
+            self.thread = threading.Thread(name='mobilityModel', target=mobility.models, args=(wifiNodes,associatedAP,self.startPosition,len(self.stationName),self.model,self.max_x,self.max_y,self.min_v,self.max_v,))
             #module.thread = multiprocessing.Process(name='mobilityModel', target=mobility.models, args=(wifiNodes,associatedAP,self.startPosition, len(self.stationName),self.model,self.max_x,self.max_y,self.min_v,self.max_v,))
-            module.thread.daemon = True
-            module.thread.start()
-
+            self.thread.daemon = True
+            self.thread.start()
+           
         self.strtMobility = start_time
         print "Mobility started at %s second(s)" % start_time
         
@@ -1298,10 +1315,10 @@ class Mininet( object ):
             Stop Mobility.
         """
         self.stpMobility = stop_mobility
-        module.thread = threading.Thread(name='onGoingMobility', target=self.onGoingMobility)
+        self.thread = threading.Thread(name='onGoingMobility', target=self.onGoingMobility)
         #module.thread = multiprocessing.Process(name='onGoingMobility', target=self.onGoingMobility)
-        module.thread.daemon = True
-        module.thread.start()
+        self.thread.daemon = True
+        self.thread.start()
                 
     def onGoingMobility(self):
         """

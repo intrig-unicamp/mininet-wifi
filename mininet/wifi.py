@@ -12,16 +12,17 @@ import fcntl
 import fileinput
 import subprocess
 import glob
-#import multiprocessing
-import threading
 
 from mininet.log import info
 import numpy as np
 import scipy.spatial.distance as distance 
 import matplotlib.patches as patches
+import matplotlib.pyplot as plt
+        
 
 from mininet.mobility import gauss_markov, \
     truncated_levy_walk, random_direction, random_waypoint, random_walk
+
 
 class checkNM ( object ):
     """
@@ -96,7 +97,7 @@ class module( object ):
     """
         Starts and Stop the module   
     """        
-    thread = threading.Thread()
+    
     #thread = multiprocessing.Process()
     
     @classmethod    
@@ -191,10 +192,11 @@ class association( object ):
         return associate
             
 
-class phyInterface ( object ):
+class phyInt ( object ):
     
     phy = {}
     nextIface = 0
+    totalPhy = []
     
     @classmethod 
     def setNextIface(self):
@@ -228,6 +230,7 @@ class station ( object ):
     staMode = {}
     staPhy = []
     nextIface = 0
+    currentPhy = 0
     
     @classmethod    
     def confirmAdhocAssociation(self, host, interface, ssid):
@@ -296,13 +299,8 @@ class station ( object ):
         """
             Add phy Interface to Stations
         """ 
-        phy = phyInterface.getPhyInterfaces()
-        for p in phy:
-            if p in accessPoint.apPhy or p in self.staPhy:
-                phy.remove(p)
-        phyInterface.phy[station] = phy[self.nextIface][3:]
-        self.nextIface +=1
-        os.system("iw phy phy%s set netns %s" % (phyInterface.phy[station], station.pid)) 
+        phyInt.phy[station] = phyInt.totalPhy[self.currentPhy][3:]
+        os.system("iw phy phy%s set netns %s" % (phyInt.phy[station], station.pid)) 
         wif = station.cmd("iwconfig 2>&1 | grep IEEE | awk '{print $1}'").split("\n")
         wif.pop()
         for iface in wif:
@@ -313,7 +311,7 @@ class station ( object ):
                     self.nextWlan[str(station)] = 0
                 netxWlan = self.nextWlan[str(station)] 
                 self.renameIface(station, netxWlan, iface)
-                
+        self.currentPhy+=1
      
     @classmethod    
     def renameIface(self, station, nextWlan, iface):
@@ -447,6 +445,11 @@ class mobility ( object ):
     cancelPlot = False
     MAX_X = 50
     MAX_Y = 50
+    DRAW = False
+    
+    @classmethod 
+    def closePlot(self):
+        plt.close()
     
     @classmethod   
     def range(self, mode):
@@ -485,7 +488,6 @@ class mobility ( object ):
         MAX_X = self.MAX_X
         MAX_Y = self.MAX_Y
         
-        import matplotlib.pyplot as plt
         plt.ion()
         ax = plt.subplot(111)
         
@@ -561,8 +563,8 @@ class mobility ( object ):
             if str(dst)[:2] != 'ap':
                 self.plotsta[str(dst)].set_data(pos_dst[0],pos_dst[1])
             plt.title("Mininet-WiFi Graph")
-            plt.draw()
-            
+            plt.draw()            
+        
     @classmethod 
     def getDistance(self, src, dst):
         """
@@ -611,7 +613,6 @@ class mobility ( object ):
                 disassociate = False
             if disassociate:
                 host.pexec("iw dev %s-wlan0 disconnect" % (host))
-                
             
     @classmethod   
     def models(self, wifiNodes, associatedAP, startPosition, stationName, modelName,
@@ -620,7 +621,7 @@ class mobility ( object ):
         self.modelName = modelName
         
         # set this to true if you want to plot node positions
-        DRAW = self.plotGraph
+        self.DRAW = self.plotGraph
         
         self.cancelPlot = True
         
@@ -636,8 +637,7 @@ class mobility ( object ):
         # max waiting time
         MAX_WT = 100.
         
-        if DRAW:
-            import matplotlib.pyplot as plt
+        if self.DRAW:
             plt.ion()
             ax = plt.subplot(111)
             line, = ax.plot(range(MAX_X), range(MAX_X), linestyle='', marker='.', ms=12, mfc='blue')
@@ -676,7 +676,7 @@ class mobility ( object ):
         if modelName!='':
             try:
                 for xy in mob:
-                    if DRAW:
+                    if self.DRAW:
                         line.set_data(xy[:,0],xy[:,1])
                         for n in range (0,len(wifiNodes)):
                             self.position = []

@@ -68,7 +68,7 @@ class Intf( object ):
         return self.node.cmd( *args, **kwargs )
 
     def ifconfig( self, *args ):
-        if(str(self.name[:3])=="sta" ):
+        if('w' in str(self.name)):
             wif = self.cmd("iwconfig 2>&1 | grep IEEE | awk '{print $1}'")
             self.cmd('ip link set dev %s name %s-wlan%s' % (wif.strip(), self.node, station.nextWlan[str(self.node)]) )
             return self.cmd( 'ifconfig %s-wlan%s'% (self.node, station.nextWlan[str(self.node)]), *args )
@@ -418,14 +418,20 @@ class Link( object ):
             params1[ 'port' ] = node1.newPort()
         if 'port' not in params2:
             params2[ 'port' ] = node2.newPort()
-            
+        
         if not intfName1:
-            intfName1 = self.intfName( node1, params1[ 'port' ] )
+            if(str(node1)[:3] == 'sta' and str(node2)[:2] == 'ap' or str(node2)[:3] == 'sta' and str(node1)[:2] == 'ap'):
+                intfName1 = self.wlanName( node1, params1[ 'port' ] )
+            else:
+                intfName1 = self.intfName( node1, params1[ 'port' ] )
         if not intfName2:
-            intfName2 = self.intfName( node2, params2[ 'port' ] )
-     
+            if(str(node1)[:3] == 'sta' and str(node2)[:2] == 'ap' or str(node2)[:3] == 'sta' and str(node1)[:2] == 'ap'):
+                intfName2 = self.wlanName( node2, params2[ 'port' ] )
+            else:
+                intfName2 = self.intfName( node2, params2[ 'port' ] )
+            
         self.fast = fast
-        if( intfName1[:3] != "sta"):
+        if('w' not in str(intfName1) and 'w' not in str(intfName2)):
             if fast:
                 params1.setdefault( 'moveIntfFn', self._ignore )
                 params2.setdefault( 'moveIntfFn', self._ignore )
@@ -433,7 +439,7 @@ class Link( object ):
                                    node1, node2, deleteIntfs=False )
             else:
                 self.makeIntfPair( intfName1, intfName2, addr1, addr2 )
-                
+        
         if not cls1:
             cls1 = intf
         if not cls2:
@@ -467,15 +473,18 @@ class Link( object ):
     def _ignore( *args, **kwargs ):
         "Ignore any arguments"
         pass
-
+    
+    def wlanName( self, node, n ):
+        "Construct a canonical interface name node-ethN for interface n."
+        # Leave this as an instance method for now
+        assert self
+        return node.name + '-wlan' + repr( n )
+    
     def intfName( self, node, n ):
         "Construct a canonical interface name node-ethN for interface n."
         # Leave this as an instance method for now
         assert self
-        if (node.name[:3]=="sta"):
-            return node.name + '-wlan' + repr( n )
-        else:
-            return node.name + '-eth' + repr( n )
+        return node.name + '-eth' + repr( n )
 
     @classmethod
     def makeIntfPair( cls, intfname1, intfname2, addr1=None, addr2=None,
