@@ -179,7 +179,6 @@ class Mininet( object ):
         self.endTime = {}
         self.start_time = 0 #start mobility time
         self.model = ''
-        self.associatedAP = {}
         self.moveSta = {}        
         self.wifiNodes = []
         self.hosts = []
@@ -277,8 +276,7 @@ class Mininet( object ):
         defaults = { 'ip': ipAdd( self.nextIP,
                                   ipBaseNum=self.ipBaseNum,
                                   prefixLen=self.prefixLen ) +
-                                  '/%s' % self.prefixLen,
-                                  'ssid': self.ssid }
+                                  '/%s' % self.prefixLen}
         
         if self.autoSetMacs:
             defaults[ 'mac' ] = macColonHex( self.nextIP )
@@ -303,11 +301,6 @@ class Mininet( object ):
             self.startPosition[name] = 0
             mobility.nodePosition[name] = 0
             
-        ssid = ("%s" % params.pop('ssid', {}))
-        if(ssid!="{}"):
-            self.ssid = ssid
-            
-        association.ssid[name] = self.ssid        
         self.nextIP += 1        
         return h
 
@@ -584,7 +577,7 @@ class Mininet( object ):
                 else:
                     sta = node2
                     ap = str(node1)
-                    
+                
                 phyInt.phy[str(sta)] = phyInt.totalPhy[phyInt.nextIface][3:]
                 phyInt.setNextIface()
                 try:
@@ -614,7 +607,7 @@ class Mininet( object ):
                 
                 station.doAssociation[str(sta)] = doAssociation
                 if(doAssociation):
-                    self.associatedAP[str(sta)] = ap
+                    station.associatedAP[str(sta)] = ap
                     station.associate(sta, association.ssid[ap])
                     association.setInfraParameters(sta, accessPoint.apMode[ap], distance)
             return link
@@ -653,11 +646,13 @@ class Mininet( object ):
             if(module.isCode==False):
                 info( host.name + ' ' )
             intf = host.defaultIntf()
+        
             if intf:
                 host.configDefault()
             else:
                 # Don't configure nonexistent intf
                 host.configDefault( ip=None, mac=None )
+            
         if(module.isCode==False):
             for baseStationName in self.baseStations:
                 info( baseStationName.name + ' ' )
@@ -1246,7 +1241,7 @@ class Mininet( object ):
         
         if self.model != '':
             wifiNodes = self.wifiNodes
-            associatedAP = self.associatedAP
+            associatedAP = station.associatedAP
             self.thread = threading.Thread(name='mobilityModel', target=mobility.models, args=(wifiNodes,associatedAP,self.startPosition,len(self.stationName),self.model,self.max_x,self.max_y,self.min_v,self.max_v,))
             #module.thread = multiprocessing.Process(name='mobilityModel', target=mobility.models, args=(wifiNodes,associatedAP,self.startPosition, len(self.stationName),self.model,self.max_x,self.max_y,self.min_v,self.max_v,))
             self.thread.daemon = True
@@ -1283,7 +1278,7 @@ class Mininet( object ):
                                 self.startPosition[node][1] = float(self.startPosition[node][1]) + float(self.moveSta[node][1])
                                 self.startPosition[node][2] = float(self.startPosition[node][2]) + float(self.moveSta[node][2])
                                 mobility.nodePosition[node] = self.startPosition[node]
-                                distance = mobility.getDistance(node, self.associatedAP[node])
+                                distance = mobility.getDistance(node, station.associatedAP[node])
                                 association.setInfraParameters(n, self.mode, distance)
                     i+=1
         except:

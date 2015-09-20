@@ -190,7 +190,7 @@ class association( object ):
         latency = wifiParameters.latency(distance)
         loss = wifiParameters.loss(distance)
         delay = wifiParameters.delay(distance, seconds)
-        bw = wifiParameters.bw(distance, mode)   
+        bw = wifiParameters.bw(distance, mode)  
         self.host.pexec("tc qdisc replace dev %s-wlan0 root netem rate %.2fmbit loss %.1f%% latency %.2fms delay %.2fms" % (sta, bw, loss, latency, delay)) 
         #os.system('util/m %s tc qdisc replace dev %s-wlan0 root netem rate %.2fmbit latency %.2fms delay %.2fms' % (self.host, self.host, bandwidth, latency, delay))
         #self.host.cmd("tc qdisc replace dev %s-wlan0 root tbf rate %.2fmbit latency %.2fms burst 15k" % (self.host, rate, latency)) 
@@ -231,8 +231,7 @@ class phyInt ( object ):
             Go to next Interface
         """   
         self.nextIface+=1
-     
-    
+         
     @classmethod
     def getPhy(self):
         """
@@ -259,6 +258,7 @@ class station ( object ):
     staPhy = []
     nextIface = 0
     currentPhy = 0
+    associatedAP = {}
     
     @classmethod    
     def confirmAdhocAssociation(self, host, interface, ssid):
@@ -358,14 +358,12 @@ class accessPoint ( object ):
     apPhy = []
     number = 0
     
-   
     @classmethod
     def start(self, bs, nextIface, ssid, mode, channel, 
               country_code, auth_algs, wpa, wpa_key_mgmt, rsn_pairwise, wpa_passphrase):
         """
             Starts an Access Point
         """
-        
         self.apName.append(bs)
         self.apSSID[str(bs)] = ssid
         self.apMode[str(bs)] = mode
@@ -435,7 +433,6 @@ class accessPoint ( object ):
         """  
         os.system("ovs-vsctl add-port %s %s" % (ap, iface))
         
-        
     @classmethod
     def setBw(self, newapif, mode):
         """
@@ -445,11 +442,9 @@ class accessPoint ( object ):
         bandwidth = wifiParameters.set_bw(mode)
         os.system("tc qdisc add dev %s root tbf rate %smbit latency 2ms burst 15k" % (self.newapif, bandwidth))   
         
-
     #@classmethod
     #def position(self, ap, pos):
     #    self.apPosition[ap] = pos
-        
 
 class mobility ( object ):    
     """

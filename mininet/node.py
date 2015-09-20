@@ -584,7 +584,8 @@ class Node( object ):
         #Necessary if the mac address has changed
         host = str(self)
         if(mac!=None and module.isWiFi==True and host[:3]=='sta' and station.doAssociation[host] == True):
-            self.cmd("iw dev %s-wlan0 connect %s" % (self, association.ssid[host]))
+            station.associate(self, association.ssid[station.associatedAP[str(host)]])
+            #self.cmd("iw dev %s-wlan0 connect %s" % (self, association.ssid[station.associatedAP[str(host)]]))
         
         # This should be examined
         self.cmd( 'ifconfig lo ' + lo )
@@ -594,7 +595,7 @@ class Node( object ):
         "Configure with default parameters"
         self.params.update( moreParams )
         self.config( **self.params )
-
+        
     # This is here for backward compatibility
     def linkTo( self, node, link=Link ):
         """(Deprecated) Link to another node
