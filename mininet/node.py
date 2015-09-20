@@ -70,6 +70,7 @@ from mininet.moduledeps import moduleDeps, pathCheck, TUN
 from mininet.link import Link, Intf, TCIntf, OVSIntf
 from re import findall
 from distutils.version import StrictVersion
+from wifi import station, association, module, accessPoint
 
 class Node( object ):
     """A virtual network node is simply a shell in a network namespace.
@@ -84,7 +85,6 @@ class Node( object ):
            privateDirs: list of private directory strings or tuples
            params: Node parameters (see config() for details)"""
 
-        
         # Make sure class actually works
         self.checkSetup()
 
@@ -114,15 +114,6 @@ class Node( object ):
     # Class variables and methods
     inToNode = {}  # mapping of input fds to nodes
     outToNode = {}  # mapping of output fds to nodes
-    isWireless=False
-    isCode = True
-    nAP=0
-    phyInterfaces = []
-    ssid = {}
-    doAssociation = {}
-    associatedSSID = {}
-    wIface = {}
-    wirelessRadios = 3
       
     @classmethod
     def fdToNode( cls, fd ):
@@ -592,8 +583,8 @@ class Node( object ):
         
         #Necessary if the mac address has changed
         host = str(self)
-        if(mac!=None and self.isWireless==True and host[:3]=='sta' and self.doAssociation[host] == True):
-            self.cmd("iw dev %s-wlan0 connect %s" % (self, self.associatedSSID[host]))
+        if(mac!=None and module.isWiFi==True and host[:3]=='sta' and station.doAssociation[host] == True):
+            self.cmd("iw dev %s-wlan0 connect %s" % (self, association.ssid[host]))
         
         # This should be examined
         self.cmd( 'ifconfig lo ' + lo )
@@ -1211,17 +1202,17 @@ class OVSSwitch( Switch ):
         self.apif = self.apif.split("\n")
         
         for apif in self.apif:
-            if apif not in Node.phyInterfaces:
+            if apif not in module.physicalWlan:
                 self.newapif.append(apif)
         
         self.newapif.pop()
         self.newapif = sorted(self.newapif)
         self.newapif.sort(key=len, reverse=False)
         
-        if(Node.isCode==True):
-            if(self.name[:2]=="ap"):
-                os.system("ovs-vsctl add-port %s %s" % (self.name, (self.newapif[self.nAP])))
-                Node.nAP+=1
+        if(module.isCode==True):
+            if('ap' in self.name):
+                os.system("ovs-vsctl add-port %s %s" % (self.name, (self.newapif[accessPoint.number])))
+                accessPoint.number+=1
         
     # This should be ~ int( quietRun( 'getconf ARG_MAX' ) ),
     # but the real limit seems to be much lower

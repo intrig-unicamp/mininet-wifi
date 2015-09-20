@@ -23,8 +23,9 @@ if 'PYTHONPATH' in os.environ:
 from mininet.clean import cleanup
 from mininet.cli import CLI
 from mininet.log import lg, LEVELS, info, debug, warn, error
+from mininet.wifi import module
 from mininet.net import Mininet, MininetWithControlNet, VERSION
-from mininet.node import ( Node, Host, CPULimitedHost, Controller, OVSController,
+from mininet.node import ( Host, CPULimitedHost, Controller, OVSController,
                            Ryu, NOX, RemoteController, findController,
                            DefaultController, NullController,
                            UserSwitch, OVSSwitch, OVSBridge,
@@ -304,11 +305,11 @@ class MininetRunner( object ):
             exit()
 
         if self.options.radios != 0:
-            Node.isWireless = True
+            module.isWiFi = True
             #wirelessRadios = self.options.radios
    
         if self.options.wifi and self.options.radios == 0:
-            Node.isWireless = True
+            module.isWiFi = True
             self.options.radios = 3
             
             

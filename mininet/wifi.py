@@ -25,6 +25,7 @@ from mininet.mobility import gauss_markov, \
 
 
 class checkNM ( object ):
+        
     """
         add mac address inside of /etc/NetworkManager/NetworkManager.conf    
     """
@@ -92,12 +93,36 @@ class checkNM ( object ):
         self.cmd = ("hostapd -f apdebug.txt -B %s.conf" % ap)
         os.system(self.cmd)
 
+class getWlan( object ):
+    
+    @classmethod    
+    def physical(self):
+        self.phyInterfaces = []        
+        self.phyInterfaces = (subprocess.check_output("iwconfig 2>&1 | grep IEEE | awk '{print $1}'",shell=True)).split('\n')
+        self.phyInterfaces.pop()
+        return self.phyInterfaces
+    
+    @classmethod    
+    def virtual(self):
+        self.newapif=[]
+        self.apif = subprocess.check_output("iwconfig 2>&1 | grep IEEE | awk '{print $1}'",shell=True).split('\n')
+        for apif in self.apif:
+            if apif not in module.physicalWlan and apif!="":
+                self.newapif.append(apif)
+        self.newapif = sorted(self.newapif)
+        self.newapif.sort(key=len, reverse=False)
+        return self.newapif
+
 class module( object ):
     """
         Starts and Stop the module   
     """            
+    wifiRadios = 3
+    isWiFi = False
+    physicalWlan = []
+    isCode = False
     #thread = multiprocessing.Process()
-    
+        
     @classmethod    
     def _start_module(self, wirelessRadios):
         """
@@ -123,6 +148,8 @@ class module( object ):
         
         
 class association( object ):
+    
+    ssid = {}
     
     @classmethod    
     def setAdhocParameters(self, host, mode, **params):
@@ -205,17 +232,17 @@ class phyInt ( object ):
         """   
         self.nextIface+=1
      
+    
     @classmethod
-    def getPhyInterfaces(self):
+    def getPhy(self):
         """
-            Get phy Interface
+            Get phy
         """ 
         phy = subprocess.check_output("find /sys/kernel/debug/ieee80211 -name hwsim | cut -d/ -f 6 | sort", 
                                                              shell=True).split("\n")
         phy.pop()
-        self.setNextIface()
         return phy
-    
+     
     @classmethod
     def phyInt(self):
         """
@@ -228,6 +255,7 @@ class station ( object ):
     
     nextWlan = {}   
     staMode = {}
+    doAssociation = {}
     staPhy = []
     nextIface = 0
     currentPhy = 0
@@ -326,9 +354,9 @@ class accessPoint ( object ):
     apChannel = {}
     apMode = {}
     apName = []
-    apPosition = {}
     apSSID = {}
     apPhy = []
+    number = 0
     
    
     @classmethod

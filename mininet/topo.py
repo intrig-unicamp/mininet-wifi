@@ -12,7 +12,7 @@ setup for testing, and can even be emulated with the Mininet package.
 """
 
 from mininet.util import irange, natural, naturalSeq
-from mininet.node import ( Node )
+from mininet.wifi import module
 
 class MultiGraph( object ):
     "Utility class to track nodes and edges - replaces networkx.MultiGraph"
@@ -320,8 +320,8 @@ class Topo( object ):
 class SingleSwitchTopo( Topo ):
     "Single switch connected to k hosts."
     def build( self, k=2, **_opts ):
-        if(Node.isWireless):
-            Node.wirelessRadios = k+1
+        if(module.isWiFi):
+            module.wifiRadios = k+1
             "k: number of hosts"
             self.k = k
             baseStation = self.addBaseStation( 'ap1' )
@@ -344,8 +344,8 @@ class SingleSwitchReversedTopo( Topo ):
        numberings."""
 
     def build( self, k=2 ):
-        if(Node.isWireless):
-            Node.wirelessRadios = k+1
+        if(module.isWiFi):
+            module.wifiRadios = k+1
             "k: number of hosts"
             self.k = k
             switch = self.addSwitch( 'ap1' )
@@ -366,7 +366,7 @@ class SingleSwitchReversedTopo( Topo ):
 class MinimalTopo( SingleSwitchTopo ):
     "Minimal topology with two hosts and one switch"
     def build( self ):
-        Node.wirelessRadios = 3
+        module.wifiRadios = 3
         return SingleSwitchTopo.build( self, k=2 )
 
 
@@ -375,12 +375,12 @@ class LinearTopo( Topo ):
 
     def build( self, k=2, n=1, **_opts):
         
-        if(Node.isWireless):
+        if(module.isWiFi):
             """k: number of switches
                n: number of hosts per switch"""
             self.k = k
             self.n = n
-            Node.wirelessRadios = k*2
+            module.wifiRadios = k*2
             if n == 1:
                 genHostName = lambda i, j: 'sta%s' % i
             else:
