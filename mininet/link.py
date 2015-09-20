@@ -420,12 +420,12 @@ class Link( object ):
             params2[ 'port' ] = node2.newPort()
         
         if not intfName1:
-            if(str(node1)[:3] == 'sta' and str(node2)[:2] == 'ap' or str(node2)[:3] == 'sta' and str(node1)[:2] == 'ap'):
+            if(str(node1)[:3] == 'sta' and str(node2)[:2] == 'ap' or str(node2)[:3] == 'sta' and str(node1)[:2] == 'ap' or str(node2)[:3] == 'sta' and str(node1)[:3] == 'sta'):
                 intfName1 = self.wlanName( node1, params1[ 'port' ] )
             else:
                 intfName1 = self.intfName( node1, params1[ 'port' ] )
         if not intfName2:
-            if(str(node1)[:3] == 'sta' and str(node2)[:2] == 'ap' or str(node2)[:3] == 'sta' and str(node1)[:2] == 'ap'):
+            if(str(node1)[:3] == 'sta' and str(node2)[:2] == 'ap' or str(node2)[:3] == 'sta' and str(node1)[:2] == 'ap' or str(node2)[:3] == 'sta' and str(node1)[:3] == 'sta'):
                 intfName2 = self.wlanName( node2, params2[ 'port' ] )
             else:
                 intfName2 = self.intfName( node2, params2[ 'port' ] )

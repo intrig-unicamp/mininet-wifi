@@ -92,12 +92,10 @@ class checkNM ( object ):
         self.cmd = ("hostapd -f apdebug.txt -B %s.conf" % ap)
         os.system(self.cmd)
 
-
 class module( object ):
     """
         Starts and Stop the module   
-    """        
-    
+    """            
     #thread = multiprocessing.Process()
     
     @classmethod    
@@ -148,23 +146,25 @@ class association( object ):
 
     
     @classmethod    
-    def setInfraParameters(self, host, mode, distance):
+    def setInfraParameters(self, sta, mode, distance):
         """
             Set wifi Infrastrucure Parameters. Have to use models for loss, latency, bw...    
         """
+        station.mode(str(sta), mode)
+            
         seconds = 3
-        self.src = str(host)
+        self.src = str(sta)
         try:
             """Based on RandomPropagationDelayModel (ns3)"""
             seconds = abs(mobility.speed[self.src])
         except:
             pass
-        self.host = host
+        self.host = sta
         latency = wifiParameters.latency(distance)
         loss = wifiParameters.loss(distance)
         delay = wifiParameters.delay(distance, seconds)
-        bw = wifiParameters.set_bw(mode) - distance/10    
-        self.host.pexec("tc qdisc replace dev %s-wlan0 root netem rate %.2fmbit loss %.1f%% latency %.2fms delay %.2fms" % (self.host, bw, loss, latency, delay)) 
+        bw = wifiParameters.bw(distance, mode)   
+        self.host.pexec("tc qdisc replace dev %s-wlan0 root netem rate %.2fmbit loss %.1f%% latency %.2fms delay %.2fms" % (sta, bw, loss, latency, delay)) 
         #os.system('util/m %s tc qdisc replace dev %s-wlan0 root netem rate %.2fmbit latency %.2fms delay %.2fms' % (self.host, self.host, bandwidth, latency, delay))
         #self.host.cmd("tc qdisc replace dev %s-wlan0 root tbf rate %.2fmbit latency %.2fms burst 15k" % (self.host, rate, latency)) 
         associate = self.doAssociation(mode, distance)
@@ -241,27 +241,25 @@ class station ( object ):
             associated = self.host.waitOutput()
     
     @classmethod    
-    def confirmaInfraAssociation(self, host):
+    def confirmInfraAssociation(self, host):
         associated = ''
         self.host = host
         while(associated == '' or len(associated) == 16):
-            host.sendCmd("iw dev %s-wlan0 link" % str(host))
+            self.host.sendCmd("iw dev %s-wlan0 link" % str(host))
             associated = self.host.waitOutput()
-    
+            
     @classmethod    
     def mode(self, sta, mode):
-        self.staMode[str(sta)] = mode
-        return
-  
+        self.staMode[sta] = mode
+    
     @classmethod    
-    def associate(self, host, ssid):
+    def associate(self, sta, ssid):
         """
             Station Associate to an Access Point
         """   
-        self.host = host
-        self.ssid = ssid
-        self.host.cmd("iw dev %s-wlan0 connect %s" % (host, self.ssid))
-        self.confirmaInfraAssociation(self.host)
+        self.host = sta
+        self.host.cmd("iw dev %s-wlan0 connect %s" % (sta, ssid))
+        self.confirmInfraAssociation(self.host)
           
     @classmethod    
     def adhoc(self, host, ssid, mode, **params):
@@ -325,19 +323,16 @@ class station ( object ):
             
 class accessPoint ( object ):    
 
+    apChannel = {}
     apMode = {}
     apName = []
     apPosition = {}
     apSSID = {}
     apPhy = []
     
+   
     @classmethod
-    def returnApMode(self):
-        print self.apMode
-        #return self.apMode[apname]
-    
-    @classmethod
-    def start(self, bs, interfaceID, nextIface, ssid, mode, channel, 
+    def start(self, bs, nextIface, ssid, mode, channel, 
               country_code, auth_algs, wpa, wpa_key_mgmt, rsn_pairwise, wpa_passphrase):
         """
             Starts an Access Point
@@ -348,8 +343,7 @@ class accessPoint ( object ):
         self.apMode[str(bs)] = mode
         self.cmd = ("echo \'")
         """General Configurations"""             
-        if(interfaceID!=None):
-            self.cmd = self.cmd + ("interface=%s" % nextIface) # the interface used by the AP
+        self.cmd = self.cmd + ("interface=%s" % nextIface) # the interface used by the AP
         """Not using at the moment"""
         self.cmd = self.cmd + ("\ndriver=nl80211")
         if(ssid!=None):
@@ -719,7 +713,7 @@ class mobility ( object ):
                                 distance = self.getDistance(src = str(wifiNodes[n]), dst = associatedAP[str(wifiNodes[n])])
                                 association.setInfraParameters(wifiNodes[n], station.staMode[str(wifiNodes[n])], distance)
             except:
-                print "Graphic Stopped!"  
+                print "Graph Stopped!"  
     
     
 class wifiParameters ( object ):
@@ -732,7 +726,6 @@ class wifiParameters ( object ):
             Get noise info **in development**
         """
         print self.host.cmd('iw dev %s-wlan0 survey noise %d' % (host, int(str(host)[3:])+60))    
-        
     
     @classmethod
     def latency(self, distance):        
@@ -752,8 +745,8 @@ class wifiParameters ( object ):
         
     @classmethod
     def bw(self, distance, mode):
-        self.bw = self.set_bw(mode) - distance/10    
-        return self.bw
+        bw = self.set_bw(mode) - distance/10    
+        return bw
     
     #@classmethod
     #def pathLoss(self):
@@ -762,7 +755,7 @@ class wifiParameters ( object ):
     @classmethod    
     def set_bw(self, mode):
         """
-            set the Bandwidth  
+            set the Bandwidth according Mode
         """
         self.bandwidth = 0
         if (mode=='a'):

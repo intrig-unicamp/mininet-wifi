@@ -1,6 +1,6 @@
 """
 
-    Mininet: A simple networking testbed for OpenFlow/SDN!
+    Mininet-WiFi: A simple networking testbed for Wireless OpenFlow/SDN!
 
 author: Bob Lantz (rlantz@cs.stanford.edu)
 author: Brandon Heller (brandonh@stanford.edu)
@@ -116,7 +116,7 @@ from mininet.wifi import checkNM, module, phyInt, accessPoint, station, wifiPara
 from __builtin__ import True
 
 # Mininet version: should be consistent with README and LICENSE
-VERSION = "1.2r3"
+VERSION = "1.2r4"
 
 class Mininet( object ):
     "Network emulation with hosts spawned in network namespaces."
@@ -126,7 +126,7 @@ class Mininet( object ):
                   build=True, xterms=False, cleanup=False, ipBase='10.0.0.0/8',
                   inNamespace=False, autoSetMacs=False, autoStaticArp=False, autoPinCpus=False,
                   listenPort=None, waitConnected=False, 
-                  interfaceID=3, ssid="my-ssid", mode="g", channel="6", wirelessRadios=0 ):
+                  ssid="my-ssid", mode="g", channel="6", wirelessRadios=0 ):
         """Create Mininet object.
            topo: Topo (topology) object or None
            switch: default Switch class
@@ -165,17 +165,12 @@ class Mininet( object ):
         self.numCores = numCores()
         self.nextCore = 0  # next core for pinning hosts to CPUs
         self.listenPort = listenPort
-        self.waitConn = waitConnected   
-        
+        self.waitConn = waitConnected           
         
         self.nextIface = 0
-        self.stationName = []
-                
+        self.stationName = []                
         self.apwlan = {}
         self.apexists = []
-        self.wprefixLen = 24
-        self.resultIface = ""
-        self.interfaceID = interfaceID
         self.ssid = ssid        
         self.mode = mode
         self.channel = channel
@@ -184,16 +179,11 @@ class Mininet( object ):
         self.endPosition = {}
         self.startTime = {}
         self.endTime = {}
-        self.stpMobility = 0
-        self.strtMobility = 0
+        self.start_time = 0 #start mobility time
         self.model = ''
         self.associatedAP = {}
-        self.moveSta = {}
-        
-        self.cmd=""        
-        self.phyInterfaces = []
-        
-        self.stations = []
+        self.moveSta = {}        
+        self.phyInterfaces = []        
         self.wifiNodes = []
         self.hosts = []
         self.switches = []
@@ -218,7 +208,17 @@ class Mininet( object ):
             module._start_module(self.wirelessRadios) #Initatilize WiFi Module
             phyInt.totalPhy = subprocess.check_output("find /sys/kernel/debug/ieee80211 -name hwsim | cut -d/ -f 6 | sort", 
                                                              shell=True).split("\n")
-                                                        
+            
+            self.newapif=[]
+            self.apif = subprocess.check_output("iwconfig 2>&1 | grep IEEE | awk '{print $1}'",shell=True)
+            self.apif = self.apif.split("\n")
+            
+            for apif in self.apif:
+                if apif not in self.phyInterfaces and apif!="":
+                    self.newapif.append(apif)
+            
+            self.newapif = sorted(self.newapif)
+            self.newapif.sort(key=len, reverse=False)
                     
         self.isWireless = Node.isWireless
 
@@ -322,23 +322,8 @@ class Mininet( object ):
         if(ssid!="{}"):
             self.ssid = ssid
       
-        self.newapif=[]
-        self.apif = subprocess.check_output("iwconfig 2>&1 | grep IEEE | awk '{print $1}'",shell=True)
-        self.apif = self.apif.split("\n")
-        
-        for apif in self.apif:
-            if apif not in self.phyInterfaces and apif!="":
-                self.newapif.append(apif)
-        
-        self.newapif = sorted(self.newapif)
-        self.newapif.sort(key=len, reverse=False)
-       
-        self.splitResultIface = phyInt.getPhyInterfaces()
-        phyInt.phy[name] = self.splitResultIface[self.nextIface][3:]
-        
         Node.ssid[name] = self.ssid        
         self.nextIP += 1        
-        self.nextIface += 1
         return h
 
 
@@ -365,6 +350,7 @@ class Mininet( object ):
         self.wifiNodes.append(bs)
         self.nameToNode[ name ] = bs
         
+        
         position = ("%s" % params.pop('position', {}))
         if(position!="{}"):        
             position =  position.split(',')
@@ -386,50 +372,15 @@ class Mininet( object ):
         ssid = ("%s" % params.pop('ssid', {}))
         if(ssid!="{}"):
             self.ssid = ssid
-            
+                          
         wpa_passphrase = ("%s" % params.pop('wpa_passphrase', {}))
         if(wpa_passphrase!="{}"):
             self.wpa_passphrase = wpa_passphrase        
         
-        self.newapif=[]
-        self.apif = subprocess.check_output("iwconfig 2>&1 | grep IEEE | awk '{print $1}'",shell=True)
-        self.apif = self.apif.split("\n")
-        
-        for apif in self.apif:
-            if apif not in self.phyInterfaces and apif!="":
-                self.newapif.append(apif)
-        
-        self.newapif = sorted(self.newapif)
-        self.newapif.sort(key=len, reverse=False)
-        checkNM.checkNetworkManager(checkNM.getMacAddress(self.newapif[self.nextIface]))           
         Node.ssid[name] = self.ssid
-        accessPoint.setBw(self.newapif[self.nextIface], self.mode)
-        self.apwlan[name] = self.newapif[self.nextIface]
-        
-        self.wpa_key_mgmt = None
-        self.country_code = None
-        self.rsn_pairwise = None
-        self.wpa_passphrase = None
-        self.wpa = None
-        self.auth_algs = None
-        self.wmm_enabled = None
-       
-        self.cmd = accessPoint.start(bs, self.interfaceID, self.newapif[self.nextIface], self.ssid, self.mode, 
-                                     self.channel, self.country_code, self.auth_algs, 
-                                     self.wpa, self.wpa_key_mgmt, self.rsn_pairwise, self.wpa_passphrase)
-               
-        checkNM.APfile(self.cmd, str(self.newapif[self.nextIface])) 
-        
-        self.splitResultIface = phyInt.getPhyInterfaces()
-        
-        #increment to wifi file
-        phyInt.setNextIface()
-        
-        #Time to start mode N. It takes more time than the others.
-        if self.mode=="n":
-            time.sleep(1)
-        
-        self.nextIface+=1
+        accessPoint.apMode[name] = self.mode
+        accessPoint.apChannel[name] = self.channel
+              
         return bs
      
     def addSwitch( self, name, cls=None, **params ):
@@ -562,6 +513,11 @@ class Mininet( object ):
         
             node2 = node
             
+            sta = str(node)
+            self.splitResultIface = phyInt.getPhyInterfaces()
+            phyInt.phy[sta] = self.splitResultIface[self.nextIface][3:]
+            self.nextIface += 1
+               
             node = node if not isinstance( node, basestring ) else self[ node ]
             node2 = node2 if not isinstance( node2, basestring ) else self[ node2 ]
             options = dict( params )
@@ -573,11 +529,12 @@ class Mininet( object ):
                     if (host == node):
                         station.adhoc(host, ssid, mode, **params)
             except:
-                if(str(node)[:3]=="sta"):
+                if('sta' in str(node)):
                     try:
-                        station.nextWlan[str(node)] += 1
+                        station.nextWlan[sta] += 1
                     except:    
-                        station.nextWlan[str(node)] = 0
+                        station.nextWlan[sta] = 0
+                
                 
                 # Set default MAC - this should probably be in Link
                 options.setdefault( 'addr1', self.randMac() )
@@ -590,15 +547,7 @@ class Mininet( object ):
                         station.adhoc(host, ssid, mode, **params)
                         
                 return link
-            
-            # Set default MAC - this should probably be in Link
-            #options.setdefault( 'addr1', self.randMac() )
-            
-            #cls = self.link if cls is None else cls
-            #link = cls( node, node2, **options )
-            
-            #return link           
-            
+   
     def addLink( self, node1, node2, port1=None, port2=None, 
                  cls=None, **params ):
         
@@ -609,35 +558,67 @@ class Mininet( object ):
             options = dict( params )
             
             self.bw = wifiParameters.set_bw(self.mode)
-            if str(node1)[:2]=="ap" and node1 not in self.apexists or str(node2)[:2]=="ap" and node2 not in self.apexists:
+            if 'ap' in str(node1) and str(node1) not in self.apexists or 'ap' in str(node2) and str(node2) not in self.apexists:
                 station.currentPhy+=2
-                if str(node1)[:2]=="ap":
-                    self.apexists.append(node1) 
+                
+                if 'ap' in str(node1):
+                    ap = str(node1)
                 else:
-                    self.apexists.append(node2)
+                    ap = str(node2)
+                    
+                self.ssid = Node.ssid[ap]
+                self.mode = accessPoint.apMode[ap]
+                self.channel = accessPoint.apChannel[ap]
+                
+                checkNM.checkNetworkManager(checkNM.getMacAddress(self.newapif[self.nextIface]))           
+                accessPoint.setBw(self.newapif[self.nextIface], self.mode)
+                self.apwlan[ap] = self.newapif[self.nextIface]
+                
+                self.wpa_key_mgmt = None
+                self.country_code = None
+                self.rsn_pairwise = None
+                self.wpa_passphrase = None
+                self.wpa = None
+                self.auth_algs = None
+                self.wmm_enabled = None
+                
+                self.cmd = accessPoint.start(ap, self.newapif[self.nextIface], self.ssid, self.mode, 
+                                             self.channel, self.country_code, self.auth_algs, 
+                                             self.wpa, self.wpa_key_mgmt, self.rsn_pairwise, self.wpa_passphrase)
+                       
+                checkNM.APfile(self.cmd, str(self.newapif[self.nextIface])) 
+                
+                self.splitResultIface = phyInt.getPhyInterfaces()
+                #increment to wifi file
+                phyInt.setNextIface()
+                
+                self.nextIface+=1
+                
+                if 'ap' in str(node1):
+                    self.apexists.append(str(node1)) 
+                else:
+                    self.apexists.append(str(node2))
             else:
                 station.currentPhy+=1
             
-            if(str(node1)[:3]=="sta"):
-                #station.staPhy.append('phy'+phyInterface.phy[str(node1)])
+            if ('sta' in str(node1) or 'sta' in str(node2)):
+                self.splitResultIface = phyInt.getPhyInterfaces()
+                
+                if 'sta' in str(node1):
+                    sta = str(node1)
+                    phyInt.phy[sta] = self.splitResultIface[self.nextIface][3:]
+                else:
+                    sta = str(node2)
+                    phyInt.phy[sta] = self.splitResultIface[self.nextIface][3:]
                 try:
-                    station.nextWlan[str(node1)] += 1
+                    station.nextWlan[sta] += 1
                 except:    
-                    station.nextWlan[str(node1)] = 0
-            elif(str(node2)[:3]=="sta"):
-                #station.staPhy.append('phy'+phyInterface.phy[str(node2)])
-                try:
-                    station.nextWlan[str(node2)] += 1
-                except:    
-                    station.nextWlan[str(node2)] = 0
-            
-            for host in self.hosts:
-                if (host == node1):
-                    options.setdefault( 'bw', self.bw )
-                    options.setdefault( 'use_hfsc', True )
-                elif (host == node2):
-                    options.setdefault( 'bw', self.bw )
-                    options.setdefault( 'use_hfsc', True )
+                    station.nextWlan[sta] = 0
+                
+                self.nextIface += 1
+                
+                options.setdefault( 'bw', self.bw )
+                options.setdefault( 'use_hfsc', True )
                     
             # Set default MAC - this should probably be in Link
             options.setdefault( 'addr1', self.randMac() )
@@ -646,32 +627,28 @@ class Mininet( object ):
             cls = self.link if cls is None else cls
             link = cls( node1, node2, **options )
             
-            #If sta/ap have position defined
+            #If sta/ap have defined position 
             if self.startPosition[str(node1)] !=0 and self.startPosition[str(node2)] !=0:
                 distance = mobility.getDistance(node1, node2)
                 doAssociation = association.doAssociation(self.mode, distance)
             #if not
             else:
                 doAssociation = True
-                distance = 0
+                distance = 0                
             
-            for host in self.hosts:
-                if (host == node1):
-                    Node.doAssociation[host] = doAssociation
-                    if(doAssociation):
-                        self.associatedAP[str(host)] = str(node2)
-                        Node.associatedSSID[host] = Node.ssid[ str(node2) ]
-                        station.associate(host, Node.ssid[ str(node2) ])
-                        association.setInfraParameters(host, self.mode, distance)
-                        station.mode(host, self.mode)
-                elif (host == node2):
-                    Node.doAssociation[host] = doAssociation
-                    if(doAssociation):
-                        self.associatedAP[str(host)] = str(node1)
-                        Node.associatedSSID[host] = Node.ssid[ str(node1) ]
-                        station.associate(host, Node.ssid[ str(node1) ])
-                        association.setInfraParameters(host, self.mode, distance)
-                        station.mode(host, self.mode)
+            if ('sta' in str(node1) or 'sta' in str(node2)):
+                if 'sta' in str(node1):
+                    sta = node1
+                    ap = str(node2)
+                else:
+                    sta = node2
+                    ap = str(node1)
+                Node.doAssociation[str(sta)] = doAssociation
+                if(doAssociation):
+                    self.associatedAP[str(sta)] = ap
+                    Node.associatedSSID[str(sta)] = Node.ssid[ap]
+                    station.associate(sta, Node.ssid[ap])
+                    association.setInfraParameters(sta, accessPoint.apMode[ap], distance)
             return link
         
         else:
@@ -1307,25 +1284,24 @@ class Mininet( object ):
             self.thread.daemon = True
             self.thread.start()
            
-        self.strtMobility = start_time
+        self.start_time = start_time
         print "Mobility started at %s second(s)" % start_time
         
-    def stopMobility(self, stop_mobility):
+    def stopMobility(self, stop_time):
         """
             Stop Mobility.
         """
-        self.stpMobility = stop_mobility
-        self.thread = threading.Thread(name='onGoingMobility', target=self.onGoingMobility)
+        self.thread = threading.Thread(name='onGoingMobility', target=self.onGoingMobility, args=(stop_time,))
         #module.thread = multiprocessing.Process(name='onGoingMobility', target=self.onGoingMobility)
         self.thread.daemon = True
         self.thread.start()
                 
-    def onGoingMobility(self):
+    def onGoingMobility(self, stop_time):
         """
             ongoing Mobility.
         """        
-        t_end = time.time() + self.stpMobility
-        t_start = time.time() + self.strtMobility
+        t_end = time.time() + stop_time
+        t_start = time.time() + self.start_time
         currentTime = time.time()
         i=1
         try:

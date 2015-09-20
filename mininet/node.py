@@ -592,8 +592,8 @@ class Node( object ):
         
         #Necessary if the mac address has changed
         host = str(self)
-        if(mac!=None and self.isWireless==True and host[:3]=='sta' and self.doAssociation[self] == True):
-            self.cmd("iw dev %s-wlan0 connect %s" % (self, self.associatedSSID[self]))
+        if(mac!=None and self.isWireless==True and host[:3]=='sta' and self.doAssociation[host] == True):
+            self.cmd("iw dev %s-wlan0 connect %s" % (self, self.associatedSSID[host]))
         
         # This should be examined
         self.cmd( 'ifconfig lo ' + lo )

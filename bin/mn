@@ -36,7 +36,6 @@ from mininet.topo import ( SingleSwitchTopo, LinearTopo,
 from mininet.topolib import TreeTopo, TorusTopo
 from mininet.util import customClass, specialClass, splitArgs, buildTopo
 
-
 from functools import partial
 
 # Experimental! cluster edition prototype
