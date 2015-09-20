@@ -306,7 +306,6 @@ class Mininet( object ):
         self.hosts.append( h )
         self.wifiNodes.append(h)
         self.nameToNode[ name ] = h        
-        
         self.stationName.append(name)
         
         position = ("%s" % params.pop('position', {}))
@@ -349,7 +348,6 @@ class Mininet( object ):
         self.baseStations.append( bs )
         self.wifiNodes.append(bs)
         self.nameToNode[ name ] = bs
-        
         
         position = ("%s" % params.pop('position', {}))
         if(position!="{}"):        
