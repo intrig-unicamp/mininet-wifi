@@ -420,12 +420,12 @@ class Link( object ):
             params2[ 'port' ] = node2.newPort()
         
         if not intfName1:
-            if(str(node1)[:3] == 'sta' and str(node2)[:2] == 'ap' or str(node2)[:3] == 'sta' and str(node1)[:2] == 'ap' or str(node2)[:3] == 'sta' and str(node1)[:3] == 'sta'):
+            if('sta' in str(node1) and 'ap' in str(node2) or 'sta' in str(node2) and 'ap' in str(node1) or 'sta' in str(node2) and 'sta' in str(node1)):
                 intfName1 = self.wlanName( node1, params1[ 'port' ] )
             else:
                 intfName1 = self.intfName( node1, params1[ 'port' ] )
         if not intfName2:
-            if(str(node1)[:3] == 'sta' and str(node2)[:2] == 'ap' or str(node2)[:3] == 'sta' and str(node1)[:2] == 'ap' or str(node2)[:3] == 'sta' and str(node1)[:3] == 'sta'):
+            if('sta' in str(node1) and 'ap' in str(node2) or 'sta' in str(node2) and 'ap' in str(node1) or 'sta' in str(node2) and 'sta' in str(node1)):
                 intfName2 = self.wlanName( node2, params2[ 'port' ] )
             else:
                 intfName2 = self.intfName( node2, params2[ 'port' ] )
@@ -445,16 +445,16 @@ class Link( object ):
         if not cls2:
             cls2 = intf
 
-        if((str(node1)[:3]=="sta" and str(node2)[:2]=="ap") or (str(node2)[:3]=="sta" and str(node1)[:2]=="ap")):
-            if str(node2)[:2]=="ap":
+        if(('sta' in str(node1) and 'ap' in str(node2)) or ('sta' in str(node2) and 'ap' in str(node1))):
+            if 'ap' in str(node2):
                 intf1 = cls1( name=intfName1, node=node1,
                           link=self, mac=addr1, **params1  )
                 intf2 = None
-            elif str(node1)[:2]=="ap":
+            elif 'ap' in str(node1):
                 intf1 = None
                 intf2 = cls2( name=intfName2, node=node2,
                               link=self, mac=addr2, **params2 )
-        elif((str(node1)[:3]=="sta" and str(node2)[:3]=="sta") or (str(node2)[:3]=="sta" and str(node1)[:3]=="sta")):
+        elif(('sta' in str(node1) and 'sta' in str(node2)) or ('sta' in str(node2) and 'sta' in str(node1))):
             intf1 = cls1( name=intfName1, node=node1,
                           link=self, mac=addr1, **params1  )
             intf2 = cls2( name=intfName2, node=node2,

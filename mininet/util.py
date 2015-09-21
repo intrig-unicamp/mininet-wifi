@@ -188,15 +188,15 @@ def makeIntfPair( intf1, intf2, addr1=None, addr2=None, node1=None, node2=None,
                             'type veth peer name %s '
                             'netns %s' % ( intf1, intf2, netns ) )
     else:
-        if node1[:3]=="sta" and node2[:2]=="ap":
+        if 'sta' in node1 and 'ap' in node2:
             cmdOutput = runCmd( 'iw phy phy%s '
                                'set netns %s ' %
                                (  phyInt.phy[str(node1)], netns ) )
-        elif node2[:3]=="sta" and node1[:2]=="ap":
+        elif 'sta' in node2 and 'ap' in node1:
             cmdOutput = runCmd( 'iw phy phy%s '
                                'set netns %s ' %
                                (  phyInt.phy[str(node2)], netns ) )
-        elif node2[:3]=="sta" and node1[:3]=="sta":
+        elif 'stan' in node2 and 'sta' in node1:
             cmdOutput = runCmd( 'iw phy phy%s '
                                'set netns %s ' %
                                (  phyInt.phy[str(node1)], netns ) )

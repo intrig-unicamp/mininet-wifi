@@ -12,7 +12,7 @@ from mininet.log import setLogLevel
 
 def topology():
     "Create a network."
-    net = Mininet( wirelessRadios=3 )
+    net = Mininet( )
     #wirelessRadios = Number of STAs + APs
 
     print "*** Creating nodes"

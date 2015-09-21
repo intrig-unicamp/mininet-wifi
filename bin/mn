@@ -306,17 +306,14 @@ class MininetRunner( object ):
 
         if self.options.radios != 0:
             module.isWiFi = True
-            #wirelessRadios = self.options.radios
-   
+              
         if self.options.wifi and self.options.radios == 0:
             module.isWiFi = True
             self.options.radios = 3
             
             
         start = time.time()
-        #if(Node.isWireless==True):
-        #    info( '*** Wirelessss\n' )
-        #else:
+       
         if not self.options.controller:
             # Update default based on available controllers
             CONTROLLERS[ 'default' ] = findController()
@@ -352,9 +349,7 @@ class MininetRunner( object ):
         channel = self.options.channel
         mode = self.options.mode
         ssid = self.options.ssid
-        wirelessRadios = self.options.radios
-        
-        
+       
         listenPort = None
         if not self.options.nolistenport:
             listenPort = self.options.listenport
@@ -379,7 +374,6 @@ class MininetRunner( object ):
                   link=link,
                   ipBase=ipBase,
                   inNamespace=inNamespace,
-                  wirelessRadios=wirelessRadios,
                   channel=channel,
                   mode=mode,
                   ssid=ssid,

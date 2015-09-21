@@ -13,7 +13,6 @@ import fileinput
 import subprocess
 import glob
 
-from mininet.log import info
 import numpy as np
 import scipy.spatial.distance as distance 
 import matplotlib.patches as patches
@@ -117,19 +116,18 @@ class module( object ):
     """
         Starts and Stop the module   
     """            
-    wifiRadios = 3
+    wifiRadios = 0
     isWiFi = False
     physicalWlan = []
     isCode = False
     #thread = multiprocessing.Process()
         
     @classmethod    
-    def _start_module(self, wirelessRadios):
+    def _start_module(self, wifiRadios):
         """
              Start wireless Module 
         """
-        info( "*** Enabling Wireless Module\n" )
-        os.system( 'modprobe mac80211_hwsim radios=%s' % wirelessRadios )
+        os.system( 'modprobe mac80211_hwsim radios=%s' % wifiRadios )
      
     @classmethod
     def _stop_module(self):

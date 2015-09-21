@@ -14,7 +14,7 @@ from mininet.log import setLogLevel
 def topology():
 
     "Create a network."
-    net = Mininet( wirelessRadios=3, controller=Controller, link=TCLink, switch=OVSKernelSwitch )
+    net = Mininet( controller=Controller, link=TCLink, switch=OVSKernelSwitch )
 
     print "*** Creating nodes"
     h1 = net.addHost( 'h1', mac='00:00:00:00:00:01', ip='10.0.0.1/8' )

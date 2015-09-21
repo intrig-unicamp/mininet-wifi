@@ -12,8 +12,7 @@ from mininet.link import TCLink
 
 def topology():
     "Create a network."
-    net = Mininet( wirelessRadios=3, controller=Controller, link=TCLink, switch=OVSKernelSwitch )
-    #wirelessRadios = Number of STAs + APs
+    net = Mininet( controller=Controller, link=TCLink, switch=OVSKernelSwitch )
 
     print "*** Creating nodes"
     sta1 = net.addStation( 'sta1' )

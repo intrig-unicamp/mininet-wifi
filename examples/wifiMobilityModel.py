@@ -14,14 +14,13 @@ from mininet.log import setLogLevel
 def topology():
 
     "Create a network."
-    net = Mininet( wirelessRadios=5, controller=Controller, link=TCLink, switch=OVSKernelSwitch )
+    net = Mininet( controller=Controller, link=TCLink, switch=OVSKernelSwitch )
 
     print "*** Creating nodes"
     h1 = net.addHost( 'h1', mac='00:00:00:00:00:01', ip='10.0.0.1/8' )
     sta1 = net.addStation( 'sta1', mac='00:00:00:00:00:02', ip='10.0.0.2/8' )
     sta2 = net.addStation( 'sta2', mac='00:00:00:00:00:03', ip='10.0.0.3/8' )
     ap1 = net.addBaseStation( 'ap1', ssid= 'new-ssid', mode= 'g', channel= '1', position='10,10,0' )
-    
     c1 = net.addController( 'c1', controller=Controller )
 
     """uncomment to plot graph"""
