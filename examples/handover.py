@@ -17,7 +17,6 @@ def topology():
     net = Mininet( controller=Controller, link=TCLink, switch=OVSKernelSwitch )
 
     print "*** Creating nodes"
-    h1 = net.addHost( 'h1', mac='00:00:00:00:00:01', ip='10.0.0.1/8' )
     sta1 = net.addStation( 'sta1', mac='00:00:00:00:00:02', ip='10.0.0.2/8' )
     sta2 = net.addStation( 'sta2', mac='00:00:00:00:00:03', ip='10.0.0.3/8' )
     ap1 = net.addBaseStation( 'ap1', ssid= 'new-ssid1', mode= 'g', channel= '1', position='15,50,0' )
@@ -29,7 +28,6 @@ def topology():
 
     print "*** Creating links"
     net.addLink(ap1, ap2)
-    net.addLink(ap1, h1)
     net.addLink(ap1, sta1)
     net.addLink(ap1, sta2)
 
