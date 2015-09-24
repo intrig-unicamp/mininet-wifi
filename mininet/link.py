@@ -362,7 +362,7 @@ class TCIntf( Intf ):
                   ( [ 'ECN' ] if enable_ecn else [ 'RED' ]
                     if enable_red else [] ) )
         #Print bw info
-        if str(self.node)[:3]!='sta':
+        if 'sta' not in str(self.node):
             info( '(' + ' '.join( stuff ) + ') ' )
         
         # Execute all the commands in our node

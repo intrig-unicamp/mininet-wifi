@@ -18,13 +18,10 @@ import scipy.spatial.distance as distance
 import matplotlib.patches as patches
 import matplotlib.pyplot as plt
         
-
 from mininet.mobility import gauss_markov, \
     truncated_levy_walk, random_direction, random_waypoint, random_walk
 
-
 class checkNM ( object ):
-        
     """
         add mac address inside of /etc/NetworkManager/NetworkManager.conf    
     """
@@ -161,8 +158,7 @@ class association( object ):
         try:
             options = dict( params )
             self.interface = options[ 'interface' ]
-        except:
-            
+        except:            
             self.interface = 'wlan0'
         
         bandwidth = wifiParameters.set_bw(mode)
@@ -265,6 +261,8 @@ class station ( object ):
         while(associated == '' or len(associated) == 0):
             self.host.sendCmd("iw dev %s scan ssid | grep %s" % (interface, ssid))
             associated = self.host.waitOutput()
+        wifiParameters.frequency(self.host, interface)
+        wifiParameters.tx_power(self.host, interface)
     
     @classmethod    
     def confirmInfraAssociation(self, host):
@@ -273,6 +271,8 @@ class station ( object ):
         while(associated == '' or len(associated) == 16):
             self.host.sendCmd("iw dev %s-wlan0 link" % str(host))
             associated = self.host.waitOutput()
+        wifiParameters.frequency(self.host, str(host)+'-wlan0')
+        wifiParameters.tx_power(self.host, str(host)+'-wlan0')
             
     @classmethod    
     def mode(self, sta, mode):
@@ -440,10 +440,6 @@ class accessPoint ( object ):
         bandwidth = wifiParameters.set_bw(mode)
         os.system("tc qdisc add dev %s root tbf rate %smbit latency 2ms burst 15k" % (self.newapif, bandwidth))   
         
-    #@classmethod
-    #def position(self, ap, pos):
-    #    self.apPosition[ap] = pos
-
 class mobility ( object ):    
     """
         Mobility 
@@ -507,7 +503,7 @@ class mobility ( object ):
         ax = plt.subplot(111)
         
         if self.no_moving:  
-            if str(dst)[:2] == 'ap' and str(dst) not in self.nodesPlotted:
+            if 'ap' in str(dst) and str(dst) not in self.nodesPlotted:
                 self.plotap[str(dst)], = ax.plot(range(MAX_X), range(MAX_Y), linestyle='', marker='.', ms=12, mfc='blue')
                 ax.add_patch(
                     patches.Circle((pos_dst[0], pos_dst[1]),
@@ -518,7 +514,7 @@ class mobility ( object ):
                 self.nodesPlotted.append(str(dst))
                 plt.text(int(pos_dst[0]), int(pos_dst[1]), str(dst))
                 
-            elif str(src)[:2] == 'ap' and str(src) not in self.nodesPlotted:
+            elif 'ap' in str(src) and str(src) not in self.nodesPlotted:
                 self.plotap[str(src)], = ax.plot(range(MAX_X), range(MAX_Y), linestyle='', marker='.', ms=12, mfc='blue')
                 ax.add_patch(
                     patches.Circle((pos_src[0], pos_src[1]),
@@ -529,13 +525,13 @@ class mobility ( object ):
                 self.nodesPlotted.append(str(src))
                 plt.text(int(pos_src[0]), int(pos_src[1]), str(src)) 
                 
-            if str(dst)[:3] == 'sta' and str(dst) not in self.nodesPlotted:
+            if 'sta' in str(dst) and str(dst) not in self.nodesPlotted:
                 self.plotsta[str(dst)], = ax.plot(range(MAX_X), range(MAX_Y), linestyle='', marker='.', ms=12, mfc='blue')
                 self.nodesPlotted.append(str(dst))
                 self.plotsta[str(dst)].set_data(pos_dst[0],pos_dst[1])
                 plt.text(int(pos_dst[0]), int(pos_dst[1]), str(dst))
             
-            if str(src)[:3] == 'sta' and str(src) not in self.nodesPlotted:
+            if 'sta' in str(src) and str(src) not in self.nodesPlotted:
                 self.plotsta[str(src)], = ax.plot(range(MAX_X), range(MAX_Y), linestyle='', marker='.', ms=12, mfc='blue')
                 self.nodesPlotted.append(str(src))
                 self.plotsta[str(src)].set_data(pos_src[0],pos_src[1])
@@ -543,14 +539,14 @@ class mobility ( object ):
             plt.title("Mininet-WiFi Graph")
             plt.show()
         else:
-            if str(src)[:3] == 'sta' and str(src) not in self.nodesPlotted:
+            if 'sta' in str(src) and str(src) not in self.nodesPlotted:
                 self.plotsta[str(src)], = ax.plot(range(MAX_X), range(MAX_Y), linestyle='', marker='.', ms=12, mfc='blue')
                 self.nodesPlotted.append(str(src))
-            if str(dst)[:3] == 'sta' and str(dst) not in self.nodesPlotted:
+            if 'sta' in str(dst) and str(dst) not in self.nodesPlotted:
                 self.plotsta[str(dst)], = ax.plot(range(MAX_X), range(MAX_Y), linestyle='', marker='.', ms=12, mfc='blue')
                 self.nodesPlotted.append(str(dst))
             
-            if str(dst)[:2] == 'ap' and str(dst) not in self.nodesPlotted:
+            if 'ao' in str(dst) and str(dst) not in self.nodesPlotted:
                 self.plotap[str(dst)], = ax.plot(range(MAX_X), range(MAX_Y), linestyle='', marker='.', ms=12, mfc='blue')
                 
                 ax.add_patch(
@@ -562,7 +558,7 @@ class mobility ( object ):
                 self.nodesPlotted.append(str(dst))
                 plt.text(int(pos_dst[0]), int(pos_dst[1]), str(dst))
                  
-            elif str(src)[:2] == 'ap' and str(src) not in self.nodesPlotted:
+            elif 'ap' in str(src) and str(src) not in self.nodesPlotted:
                 self.plotap[str(src)], = ax.plot(range(MAX_X), range(MAX_Y), linestyle='', marker='.', ms=12, mfc='blue')
                 ax.add_patch(
                     patches.Circle((pos_src[0], pos_src[1]),
@@ -573,9 +569,9 @@ class mobility ( object ):
                 self.nodesPlotted.append(str(src))
                 plt.text(int(pos_src[0]), int(pos_src[1]), str(src)) 
                 
-            if str(src)[:2] != 'ap':
+            if 'ap' in str(src):
                 self.plotsta[str(src)].set_data(pos_src[0],pos_src[1])
-            if str(dst)[:2] != 'ap':
+            if 'ap' in str(dst):
                 self.plotsta[str(dst)].set_data(pos_dst[0],pos_dst[1])
             plt.title("Mininet-WiFi Graph")
             plt.draw()            
@@ -695,7 +691,7 @@ class mobility ( object ):
                         line.set_data(xy[:,0],xy[:,1])
                         for n in range (0,len(wifiNodes)):
                             self.position = []
-                            if str(wifiNodes[n])[:2]=='ap' and str(wifiNodes[n]) not in oneTime:
+                            if 'ap' in str(wifiNodes[n]) and str(wifiNodes[n]) not in oneTime:
                                 self.position.append(startPosition[str(wifiNodes[n])][0])
                                 self.position.append(startPosition[str(wifiNodes[n])][1])
                                 self.position.append(0)
@@ -708,7 +704,7 @@ class mobility ( object ):
                                     )
                                 )
                                 oneTime.append(str(wifiNodes[n]))
-                            elif str(wifiNodes[n])[:2]!='ap':
+                            elif 'ap' not in str(wifiNodes[n]):
                                 self.position.append(xy[n][0])
                                 self.position.append(xy[n][1])
                                 self.position.append(0)
@@ -720,13 +716,13 @@ class mobility ( object ):
                     else:
                         for n in range (0,len(wifiNodes)):
                             self.position = []
-                            if str(wifiNodes[n])[:2]=='ap' and str(wifiNodes[n]) not in oneTime:
+                            if 'ap' in str(wifiNodes[n]) and str(wifiNodes[n]) not in oneTime:
                                 self.position.append(startPosition[str(wifiNodes[n])][0])
                                 self.position.append(startPosition[str(wifiNodes[n])][1])
                                 self.position.append(0)
                                 self.nodePosition[str(wifiNodes[n])] = self.position
                                 oneTime.append(str(wifiNodes[n]))
-                            if str(wifiNodes[n])[:2]!='ap':
+                            if 'ap' not in str(wifiNodes[n]):
                                 self.position.append(xy[n][0])
                                 self.position.append(xy[n][1])
                                 self.position.append(0)
@@ -741,12 +737,29 @@ class wifiParameters ( object ):
     """
         WiFi Parameters 
     """
+    freq = {}
+    txpower = {}
+    
     @classmethod
-    def printNoiseInfo(self, host): 
+    def frequency(self, sta, iface): 
         """
-            Get noise info **in development**
+            Get frequency info **in development**
         """
-        print self.host.cmd('iw dev %s-wlan0 survey noise %d' % (host, int(str(host)[3:])+60))    
+        self.freq[str(sta)] = sta.cmd('iwconfig %s | grep -o \'Frequency.*z\' | cut -f2- -d\':\''% iface) 
+    
+    @classmethod
+    def tx_power(self, sta, iface): 
+        """
+            Get tx_power info **in development**
+        """
+        self.txpower[str(sta)] = sta.cmd('iwconfig %s | grep -o \'Tx-Power.*\' | cut -f2- -d\'=\''% iface)
+    
+    #@classmethod
+    #def printNoiseInfo(self, host): 
+    #    """
+    #        Get noise info **in development**
+    #    """
+    #    print self.host.cmd('iw dev %s-wlan0 survey noise %d' % (host, int(str(host)[3:])+60))    
     
     @classmethod
     def latency(self, distance):        

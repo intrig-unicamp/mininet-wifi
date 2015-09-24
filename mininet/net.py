@@ -184,7 +184,6 @@ class Mininet( object ):
         self.wifiNodes = []
         self.hosts = []
         self.switches = []
-        self.baseStations = []
         self.controllers = []
         self.links = []
         self.nameToNode = {}  # name to Node (Host/Switch) objects
@@ -309,7 +308,6 @@ class Mininet( object ):
         bs = cls( name, **defaults )
         if not self.inNamespace and self.listenPort:
             self.listenPort += 1
-        self.baseStations.append( bs )
         self.wifiNodes.append(bs)
         self.nameToNode[ name ] = bs
         
@@ -334,10 +332,6 @@ class Mininet( object ):
         if(ssid!="{}"):
             self.ssid = ssid
                           
-        wpa_passphrase = ("%s" % params.pop('wpa_passphrase', {}))
-        if(wpa_passphrase!="{}"):
-            self.wpa_passphrase = wpa_passphrase        
-        
         association.ssid[name] = self.ssid
         accessPoint.apMode[name] = self.mode
         accessPoint.apChannel[name] = self.channel   
@@ -624,8 +618,7 @@ class Mininet( object ):
                 returns: link object"""
             
             #Only if AP
-            if 'ap' in str(node1) and 'ap' in str(node2):
-                
+            if 'ap' in str(node1) and 'ap' in str(node2):                
                 if self.firstAssociation:
                     module.physicalWlan = getWlan.physical()  #Get Phisical Wlan(s)
                     self.link = TCLink
@@ -700,7 +693,7 @@ class Mininet( object ):
             else:
                 # Don't configure nonexistent intf
                 host.configDefault( ip=None, mac=None )
-            
+           
             # You're low priority, dude!
             # BL: do we want to do this here or not?
             # May not make sense if we have CPU lmiting...
@@ -754,7 +747,7 @@ class Mininet( object ):
                 self.addSwitch( switchName, **params )
             info( switchName + ' ' )
             
-        info( '\n*** Adding links or Associating Station(s):\n' )
+        info( '\n*** Adding links and associating station(s):\n' )
         for srcName, dstName, params in topo.links(
                 sort=True, withInfo=True ):
             self.addLink( **params )
@@ -790,7 +783,6 @@ class Mininet( object ):
         cleanUpScreens()
         self.terms += makeTerms( self.controllers, 'controller' )
         self.terms += makeTerms( self.switches, 'switch' )
-        self.terms += makeTerms( self.baseStations, 'baseStation' )
         self.terms += makeTerms( self.hosts, 'host' )
 
     def stopXterms( self ):
@@ -825,7 +817,6 @@ class Mininet( object ):
                 os.system('ovs-vsctl add-br %s' % switch.name)
           
         started = {}
-        
         for swclass, switches in groupby(
                 sorted( self.switches, key=type ), type ):
             switches = tuple( switches )
@@ -833,6 +824,7 @@ class Mininet( object ):
                 success = swclass.batchStartup( switches )
                 started.update( { s: s for s in success } )
         
+        #It is necessary to make a bridge between ap and wlan interface
         for switch in self.switches:
             if 'ap' in switch.name:  
                 accessPoint.apBridge(switch.name, self.apwlan[switch.name])
@@ -1248,7 +1240,7 @@ class Mininet( object ):
                 if time.time() - currentTime >= i:
                     for n in self.hosts:
                         node = str(n)
-                        if node[:3]=='sta':
+                        if 'sta' in node:
                             if time.time() - currentTime >= self.startTime[node] and time.time() - currentTime <= self.endTime[node]:
                                 self.startPosition[node][0] = float(self.startPosition[node][0]) + float(self.moveSta[node][0])
                                 self.startPosition[node][1] = float(self.startPosition[node][1]) + float(self.moveSta[node][1])
