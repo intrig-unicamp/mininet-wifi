@@ -173,7 +173,7 @@ class Topo( object ):
            opts: link options (optional)
            returns: link info key"""
         if not opts and self.lopts:
-            opts = self.lopts            
+            opts = self.lopts       
         port1, port2 = self.addPort( node1, node2, port1, port2 )
         opts = dict( opts )
         opts.update( node1=node1, node2=node2, port1=port1, port2=port2 )
@@ -254,10 +254,16 @@ class Topo( object ):
         # New port: number of outlinks + base
         if sport is None:
             src_base = 1 if self.isSwitch( src ) else 0
-            sport = len( ports[ src ] ) + src_base
+            if 'ap' in src:
+                sport = None
+            else:
+                sport = len( ports[ src ] ) + src_base
         if dport is None:
             dst_base = 1 if self.isSwitch( dst ) else 0
-            dport = len( ports[ dst ] ) + dst_base
+            if 'ap' in dst:
+                dport = None
+            else:
+                dport = len( ports[ dst ] ) + dst_base
         ports[ src ][ sport ] = ( dst, dport )
         ports[ dst ][ dport ] = ( src, sport )
         return sport, dport

@@ -115,7 +115,7 @@ from mininet.wifi import checkNM, module, phyInt, accessPoint, station, wifiPara
 from __builtin__ import True
 
 # Mininet version: should be consistent with README and LICENSE
-VERSION = "1.2r5"
+VERSION = "1.2r6"
 
 class Mininet( object ):
     "Network emulation with hosts spawned in network namespaces."
@@ -340,7 +340,8 @@ class Mininet( object ):
         
         association.ssid[name] = self.ssid
         accessPoint.apMode[name] = self.mode
-        accessPoint.apChannel[name] = self.channel              
+        accessPoint.apChannel[name] = self.channel   
+        self.switches.append( bs )           
         return bs
      
     def addSwitch( self, name, cls=None, **params ):
@@ -428,24 +429,14 @@ class Mininet( object ):
         return self.nameToNode[ key ]
 
     def __iter__( self ):
-        if(module.isWiFi):
-            "return iterator over node names"
-            for node in chain( self.hosts, self.baseStations, self.controllers ):
-                yield node.name
-        else:
-            "return iterator over node names"
-            for node in chain( self.hosts, self.switches, self.controllers ):
-                yield node.name
+        "return iterator over node names"
+        for node in chain( self.hosts, self.switches, self.controllers ):
+            yield node.name
 
     def __len__( self ):
-        if(module.isWiFi):
-            "returns number of nodes in net"
-            return ( len( self.hosts ) + len( self.baseStations ) +
-                     len( self.controllers ) )
-        else:
-            "returns number of nodes in net"
-            return ( len( self.hosts ) + len( self.switches ) +
-                     len( self.controllers ) )
+        "returns number of nodes in net"
+        return ( len( self.hosts ) + len( self.switches ) +
+                 len( self.controllers ) )
 
     def __contains__( self, item ):
         "returns True if net contains named node"
@@ -541,13 +532,14 @@ class Mininet( object ):
             
             #Only if AP
             if 'ap' in str(node1) and str(node1) not in self.apexists or 'ap' in str(node2) and str(node2) not in self.apexists:
+        
                 station.currentPhy+=2
                 
                 if 'ap' in str(node1):
                     ap = str(node1)
                 else:
                     ap = str(node2)
-                    
+        
                 self.ssid = association.ssid[ap]
                 self.mode = accessPoint.apMode[ap]
                 self.channel = accessPoint.apChannel[ap]
@@ -701,19 +693,14 @@ class Mininet( object ):
     def configHosts( self ):
         "Configure a set of hosts."
         for host in self.hosts:
-            if(module.isCode==False):
-                info( host.name + ' ' )
+            #info( host.name + ' ' )
             intf = host.defaultIntf()
-        
             if intf:
                 host.configDefault()
             else:
                 # Don't configure nonexistent intf
                 host.configDefault( ip=None, mac=None )
             
-        if(module.isCode==False):
-            for baseStationName in self.baseStations:
-                info( baseStationName.name + ' ' )
             # You're low priority, dude!
             # BL: do we want to do this here or not?
             # May not make sense if we have CPU lmiting...
@@ -745,52 +732,34 @@ class Mininet( object ):
                     self.addController( cls )
                 else:
                     self.addController( 'c%d' % i, cls )
-        
-        if(module.isWiFi):
-            info( '*** Adding Station(s):\n' )
-            for hostName in topo.hosts():
+                    
+        info( '*** Adding hosts and stations:\n' )
+        for hostName in topo.hosts():
+            if 'sta' in str(hostName):
                 self.addStation( hostName, **topo.nodeInfo( hostName ) )
-                info( hostName + ' ' )                
-            
-            info( '\n*** Adding Access Point(s):\n' )
-            for baseStationName in topo.baseStations():
-                # A bit ugly: add batch parameter if appropriate
-                params = topo.nodeInfo( baseStationName )
-                cls = params.get( 'cls', self.baseStation )
-                if hasattr( cls, 'batchStartup' ):
-                    params.setdefault( 'batch', True )
-                self.addBaseStation( baseStationName, **params )
-                info( baseStationName + ' ' )
-                
-            info( '\n*** Associating Station(s):\n' )     
-            for srcName, dstName, params in topo.links(
-                    sort=True, withInfo=True ):
-                self.addLink( **params )  
-                info( '(%s, %s) ' % ( srcName, dstName ) )   
-            info( '\n' )
-        
-        else:
-            info( '*** Adding hosts:\n' )
-            for hostName in topo.hosts():
+            else:
                 self.addHost( hostName, **topo.nodeInfo( hostName ) )
-                info( hostName + ' ' )
-            
-            info( '\n*** Adding switches:\n' )
-            for switchName in topo.switches():
-                # A bit ugly: add batch parameter if appropriate
-                params = topo.nodeInfo( switchName)
-                cls = params.get( 'cls', self.switch )
-                if hasattr( cls, 'batchStartup' ):
-                    params.setdefault( 'batch', True )
+            info( hostName + ' ' )  
+        
+        info( '\n*** Adding switches and access point(s):\n' )
+        for switchName in topo.switches():
+            # A bit ugly: add batch parameter if appropriate
+            params = topo.nodeInfo( switchName)
+            cls = params.get( 'cls', self.switch )
+            if hasattr( cls, 'batchStartup' ):
+                params.setdefault( 'batch', True )
+            if 'ap' in str(switchName):
+                self.addBaseStation( switchName, **params )
+            else:    
                 self.addSwitch( switchName, **params )
-                info( switchName + ' ' )
+            info( switchName + ' ' )
             
-            info( '\n*** Adding links:\n' )
-            for srcName, dstName, params in topo.links(
-                    sort=True, withInfo=True ):
-                self.addLink( **params )
-                info( '(%s, %s) ' % ( srcName, dstName ) )        
-            info( '\n' )
+        info( '\n*** Adding links or Associating Station(s):\n' )
+        for srcName, dstName, params in topo.links(
+                sort=True, withInfo=True ):
+            self.addLink( **params )
+            info( '(%s, %s) ' % ( srcName, dstName ) )   
+        info( '\n' )
 
     def configureControlNetwork( self ):
         "Control net config hook: override in subclass"
@@ -838,56 +807,39 @@ class Mininet( object ):
                     src.setARP( ip=dst.IP(), mac=dst.MAC() )
 
     def start( self ):
-        if(module.isWiFi):
-            module.isCode=False
-            "Start controller and switches."
-            if not self.built:
-                self.build()
-            info( '*** Starting controller(s)\n' )
-            for controller in self.controllers:
-                info( controller.name + ' ')
-                controller.start()
-            info( '\n' )
-            info( '*** Starting %s Access Point(s)\n' % len( self.baseStations ) )
-            for basestation in self.baseStations:
-                info( basestation.name + ' ')
-                basestation.start( self.controllers )
-            started = {}
-            for swclass, baseStations in groupby(
-                    sorted( self.baseStations, key=type ), type ):
-                baseStations = tuple( baseStations )
-                if hasattr( swclass, 'batchStartup' ):
-                    success = swclass.batchStartup( baseStations )
-                    started.update( { s: s for s in success } )  
-            if(module.isCode==False):
-                for basestation in self.baseStations:        
-                    accessPoint.apBridge(basestation.name, self.apwlan[basestation.name])
-            info( '\n' )
-            if self.waitConn:
-                self.waitConnected()
-        else:
-            "Start controller and switches."
-            if not self.built:
-                self.build()
-            info( '*** Starting controller\n' )
-            for controller in self.controllers:
-                info( controller.name + ' ')
-                controller.start()
-            info( '\n' )
-            info( '*** Starting %s switches\n' % len( self.switches ) )
-            for switch in self.switches:
-                info( switch.name + ' ')
-                switch.start( self.controllers )
-            started = {}
-            for swclass, switches in groupby(
-                    sorted( self.switches, key=type ), type ):
-                switches = tuple( switches )
-                if hasattr( swclass, 'batchStartup' ):
-                    success = swclass.batchStartup( switches )
-                    started.update( { s: s for s in success } )
-            info( '\n' )
-            if self.waitConn:
-                self.waitConnected()
+        module.isCode = False
+        "Start controller and switches."
+        if not self.built:
+            self.build()
+        info( '*** Starting controller(s)\n' )
+        for controller in self.controllers:
+            info( controller.name + ' ')
+            controller.start()
+        info( '\n' )
+        
+        info( '*** Starting switches and access points\n' )
+        for switch in self.switches:
+            info( switch.name + ' ')
+            switch.start( self.controllers )
+            if 'ap' in switch.name:  
+                os.system('ovs-vsctl add-br %s' % switch.name)
+          
+        started = {}
+        
+        for swclass, switches in groupby(
+                sorted( self.switches, key=type ), type ):
+            switches = tuple( switches )
+            if hasattr( swclass, 'batchStartup' ):
+                success = swclass.batchStartup( switches )
+                started.update( { s: s for s in success } )
+        
+        for switch in self.switches:
+            if 'ap' in switch.name:  
+                accessPoint.apBridge(switch.name, self.apwlan[switch.name])
+        
+        info( '\n' )
+        if self.waitConn:
+            self.waitConnected()
 
     def stop( self ):
         "Stop plotting"
@@ -914,61 +866,27 @@ class Mininet( object ):
             info( '.' )
             link.stop()
         info( '\n' )
+        info( '*** Stopping switches and access points\n' )
+        stopped = {}
+        for swclass, switches in groupby(
+                sorted( self.switches, key=type ), type ):
+            switches = tuple( switches )
+            if hasattr( swclass, 'batchShutdown' ):
+                success = swclass.batchShutdown( switches )
+                stopped.update( { s: s for s in success } )
+        for switch in self.switches:
+            info( switch.name + ' ' )
+            if switch not in stopped:
+                switch.stop()
+            switch.terminate()
+        info( '\n' )
+        info( '*** Stopping hosts and stations\n' )
+        for host in self.hosts:
+            info( host.name + ' ' )
+            host.terminate()
+        info( '\n' )
         if(module.isWiFi):
-            info( '*** Stopping %i baseStation(s)\n' % len( self.baseStations ) )            
-            stopped = {}            
-            for swclass, baseStations in groupby(
-                    sorted( self.baseStations, key=type ), type ):
-                baseStations = tuple( baseStations )
-                if hasattr( swclass, 'batchShutdown' ):
-                    success = swclass.batchShutdown( baseStations )
-                    stopped.update( { s: s for s in success } )
-            for baseStation in self.baseStations:
-                info( baseStation.name + ' ' )
-                if baseStation not in stopped:
-                    baseStation.stop()
-                baseStation.terminate()
-            info( '\n' )
-            info( '*** Stopping %i station(s)\n' % len( self.hosts ) )     
-            for host in self.hosts:
-                info( host.name + ' ' )
-                host.terminate()
             module._stop_module() #Stopping WiFi Module
-            info( '\n' )
-            info( '*** Stopping %i switche(s)\n' % len( self.switches ) )
-            stopped = {}
-            for swclass, switches in groupby(
-                    sorted( self.switches, key=type ), type ):
-                switches = tuple( switches )
-                if hasattr( swclass, 'batchShutdown' ):
-                    success = swclass.batchShutdown( switches )
-                    stopped.update( { s: s for s in success } )
-            for switch in self.switches:
-                info( switch.name + ' ' )
-                if switch not in stopped:
-                    switch.stop()
-                switch.terminate()
-            info( '\n' )
-        else:
-            info( '*** Stopping %i switches\n' % len( self.switches ) )
-            stopped = {}
-            for swclass, switches in groupby(
-                    sorted( self.switches, key=type ), type ):
-                switches = tuple( switches )
-                if hasattr( swclass, 'batchShutdown' ):
-                    success = swclass.batchShutdown( switches )
-                    stopped.update( { s: s for s in success } )
-            for switch in self.switches:
-                info( switch.name + ' ' )
-                if switch not in stopped:
-                    switch.stop()
-                switch.terminate()
-            info( '\n' )
-            info( '*** Stopping %i hosts\n' % len( self.hosts ) )
-            for host in self.hosts:
-                info( host.name + ' ' )
-                host.terminate()
-            info( '\n' )
         info( '\n*** Done\n' )
 
     def run( self, test, *args, **kwargs ):

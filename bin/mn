@@ -311,7 +311,6 @@ class MininetRunner( object ):
             module.isWiFi = True
             self.options.radios = 3
             
-            
         start = time.time()
        
         if not self.options.controller:

@@ -24,7 +24,7 @@ def topology():
     c0 = net.addController('c0', controller=Controller, ip='127.0.0.1', port=6633 )
 
     print "*** Adding Link"
-    net.addLink(ap1, ap2)
+    net.addLink(ap1, ap2) #wired connection
     net.addLink(sta1, ap1)
     net.addLink(sta2, ap1)
     net.addLink(sta3, ap2)
