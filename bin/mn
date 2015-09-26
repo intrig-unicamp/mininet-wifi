@@ -306,10 +306,11 @@ class MininetRunner( object ):
 
         if self.options.radios != 0:
             module.isWiFi = True
+            module.wifiRadios = self.options.radios
               
         if self.options.wifi and self.options.radios == 0:
             module.isWiFi = True
-            self.options.radios = 3
+
             
         start = time.time()
        

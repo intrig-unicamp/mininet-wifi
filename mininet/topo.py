@@ -327,7 +327,6 @@ class SingleSwitchTopo( Topo ):
     "Single switch connected to k hosts."
     def build( self, k=2, **_opts ):
         if(module.isWiFi):
-            module.wifiRadios = k+1
             "k: number of hosts"
             self.k = k
             baseStation = self.addBaseStation( 'ap1' )
@@ -351,7 +350,6 @@ class SingleSwitchReversedTopo( Topo ):
 
     def build( self, k=2 ):
         if(module.isWiFi):
-            module.wifiRadios = k+1
             "k: number of hosts"
             self.k = k
             switch = self.addSwitch( 'ap1' )
@@ -372,7 +370,6 @@ class SingleSwitchReversedTopo( Topo ):
 class MinimalTopo( SingleSwitchTopo ):
     "Minimal topology with two hosts and one switch"
     def build( self ):
-        module.wifiRadios = 3
         return SingleSwitchTopo.build( self, k=2 )
 
 
@@ -386,7 +383,6 @@ class LinearTopo( Topo ):
                n: number of hosts per switch"""
             self.k = k
             self.n = n
-            module.wifiRadios = k*2
             if n == 1:
                 genHostName = lambda i, j: 'sta%s' % i
             else:

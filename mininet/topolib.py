@@ -22,7 +22,6 @@ class TreeTopo( Topo ):
         
     def countNodes( self, depth, fanout ):
         """Amount of Nodes"""
-        module.wifiRadios+=1
         if(module.isWiFi):
             isSwitch = depth > 0
             if isSwitch:
