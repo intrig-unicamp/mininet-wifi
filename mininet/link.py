@@ -69,6 +69,7 @@ class Intf( object ):
 
     def ifconfig( self, *args ):
         if('w' in str(self.name)):
+<<<<<<< HEAD
             if str(args[0][:1])!='u':
                 iface = 0
                 station.ifconfig(str(self.node))
@@ -91,6 +92,14 @@ class Intf( object ):
             "Configure ourselves using ifconfig"
             return self.cmd( 'ifconfig', self.name, *args )
             
+=======
+            wif = self.cmd("iwconfig 2>&1 | grep IEEE | awk '{print $1}'")
+            self.cmd('ip link set dev %s name %s-wlan%s' % (wif.strip(), self.node, station.nextWlan[str(self.node)]) )
+            return self.cmd( 'ifconfig %s-wlan%s'% (self.node, station.nextWlan[str(self.node)]), *args )
+        else:
+            "Configure ourselves using ifconfig"
+            return self.cmd( 'ifconfig', self.name, *args )
+>>>>>>> cb73d8b33278e9b3b89cb8b690dba6001d4fbb4e
 
     def setIP( self, ipstr, prefixLen=None ):
         """Set our IP address"""
@@ -297,7 +306,10 @@ class TCIntf( Intf ):
                           'burst 20 ' +
                           'bandwidth %fmbit probability 1' % bw ]
                 parent = ' parent 6: '
+<<<<<<< HEAD
         
+=======
+>>>>>>> cb73d8b33278e9b3b89cb8b690dba6001d4fbb4e
         return cmds, parent
 
     @staticmethod
@@ -446,7 +458,11 @@ class Link( object ):
                 intfName2 = self.wlanName( node2, params2[ 'port' ] )
             else:
                 intfName2 = self.intfName( node2, params2[ 'port' ] )
+<<<<<<< HEAD
         
+=======
+            
+>>>>>>> cb73d8b33278e9b3b89cb8b690dba6001d4fbb4e
         self.fast = fast
         if('w' not in str(intfName1) and 'w' not in str(intfName2)):
             if fast:
@@ -461,7 +477,11 @@ class Link( object ):
             cls1 = intf
         if not cls2:
             cls2 = intf
+<<<<<<< HEAD
         
+=======
+
+>>>>>>> cb73d8b33278e9b3b89cb8b690dba6001d4fbb4e
         if(('sta' in str(node1) and 'ap' in str(node2)) or ('sta' in str(node2) and 'ap' in str(node1))):
             if 'ap' in str(node2):
                 intf1 = cls1( name=intfName1, node=node1,
@@ -481,7 +501,10 @@ class Link( object ):
                           link=self, mac=addr1, **params1  )
             intf2 = cls2( name=intfName2, node=node2,
                           link=self, mac=addr2, **params2 )
+<<<<<<< HEAD
         
+=======
+>>>>>>> cb73d8b33278e9b3b89cb8b690dba6001d4fbb4e
         # All we are is dust in the wind, and our two interfaces
         self.intf1, self.intf2 = intf1, intf2
                
