@@ -117,10 +117,7 @@ class module( object ):
     isWiFi = False
     physicalWlan = []
     isCode = False
-<<<<<<< HEAD
     virtualWlan = []
-=======
->>>>>>> cb73d8b33278e9b3b89cb8b690dba6001d4fbb4e
     #thread = multiprocessing.Process()
         
     @classmethod    
@@ -141,7 +138,6 @@ class module( object ):
         if glob.glob("*.txt"):
             os.system( 'rm *.txt' )
        
-<<<<<<< HEAD
         os.system( 'rmmod mac80211_hwsim' )
         if accessPoint.exists:
             os.system( 'killall -9 hostapd' )
@@ -152,23 +148,13 @@ class module( object ):
         self.isWiFi=True
         self._start_module(module.wifiRadios) #Initatilize WiFi Module
         phyInt.totalPhy = phyInt.getPhy() #Get Phy Interfaces                    
-=======
-        #self.thread.terminate()
-        os.system( 'rmmod mac80211_hwsim' )
-        os.system( 'killall -9 hostapd' )
-        
->>>>>>> cb73d8b33278e9b3b89cb8b690dba6001d4fbb4e
         
 class association( object ):
     
     ssid = {}
     
     @classmethod    
-<<<<<<< HEAD
     def setAdhocParameters(self, host, iface, mode, **params):
-=======
-    def setAdhocParameters(self, host, mode, **params):
->>>>>>> cb73d8b33278e9b3b89cb8b690dba6001d4fbb4e
         """
             Set wifi AdHoc Parameters. Have to use models for loss, latency, bw...    
         """
@@ -176,21 +162,9 @@ class association( object ):
         latency = 10
         self.host = host
         #delay = 5 * distance
-<<<<<<< HEAD
         bandwidth = wifiParameters.set_bw(mode)
         #self.host.cmd(host, "tc qdisc replace dev %s-%s root netem rate %.2fmbit latency %.2fms delay %.2fms" % (host, self.interface, rate, latency, delay)) 
         self.host.cmd("tc qdisc add dev %s-%s root tbf rate %smbit latency %sms burst 1540" % (str(host), iface, bandwidth, latency)) 
-=======
-        try:
-            options = dict( params )
-            self.interface = options[ 'interface' ]
-        except:            
-            self.interface = 'wlan0'
-        
-        bandwidth = wifiParameters.set_bw(mode)
-        #self.host.cmd(host, "tc qdisc replace dev %s-%s root netem rate %.2fmbit latency %.2fms delay %.2fms" % (host, self.interface, rate, latency, delay)) 
-        self.host.cmd("tc qdisc add dev %s-%s root tbf rate %smbit latency %sms burst 1540" % (str(host), self.interface, bandwidth, latency)) 
->>>>>>> cb73d8b33278e9b3b89cb8b690dba6001d4fbb4e
 
     
     @classmethod    
@@ -198,7 +172,6 @@ class association( object ):
         """
             Set wifi Infrastrucure Parameters. Have to use models for loss, latency, bw...    
         """
-<<<<<<< HEAD
         for wlan in range(int(station.ifaceToAssociate[sta])+1):
             station.mode(str(sta), mode)
             seconds = 3
@@ -219,28 +192,6 @@ class association( object ):
             associate = self.doAssociation(mode, distance)
             if associate == False:
                 mobility.handover(self.host)
-=======
-        station.mode(str(sta), mode)
-            
-        seconds = 3
-        self.src = str(sta)
-        try:
-            """Based on RandomPropagationDelayModel (ns3)"""
-            seconds = abs(mobility.speed[self.src])
-        except:
-            pass
-        self.host = sta
-        latency = wifiParameters.latency(distance)
-        loss = wifiParameters.loss(distance)
-        delay = wifiParameters.delay(distance, seconds)
-        bw = wifiParameters.bw(distance, mode)  
-        self.host.pexec("tc qdisc replace dev %s-wlan0 root netem rate %.2fmbit loss %.1f%% latency %.2fms delay %.2fms" % (sta, bw, loss, latency, delay)) 
-        #os.system('util/m %s tc qdisc replace dev %s-wlan0 root netem rate %.2fmbit latency %.2fms delay %.2fms' % (self.host, self.host, bandwidth, latency, delay))
-        #self.host.cmd("tc qdisc replace dev %s-wlan0 root tbf rate %.2fmbit latency %.2fms burst 15k" % (self.host, rate, latency)) 
-        associate = self.doAssociation(mode, distance)
-        if associate == False:
-            mobility.handover(self.host)
->>>>>>> cb73d8b33278e9b3b89cb8b690dba6001d4fbb4e
             
     @classmethod    
     def doAssociation(self, mode, distance):
@@ -266,21 +217,8 @@ class association( object ):
 class phyInt ( object ):
     
     phy = {}
-<<<<<<< HEAD
     totalPhy = []
     
-=======
-    nextIface = 0
-    totalPhy = []
-    
-    @classmethod 
-    def setNextIface(self):
-        """
-            Go to next Interface
-        """   
-        self.nextIface+=1
-         
->>>>>>> cb73d8b33278e9b3b89cb8b690dba6001d4fbb4e
     @classmethod
     def getPhy(self):
         """
@@ -290,24 +228,12 @@ class phyInt ( object ):
                                                              shell=True).split("\n")
         phy.pop()
         return phy
-<<<<<<< HEAD
-=======
-     
-    @classmethod
-    def phyInt(self):
-        """
-            get Wireless Interface
-        """   
-        return subprocess.check_output("iwconfig 2>&1 | grep IEEE | awk '{print $1}'", shell=True).split("\n")
-    
->>>>>>> cb73d8b33278e9b3b89cb8b690dba6001d4fbb4e
         
 class station ( object ):
     
     nextWlan = {}   
     staMode = {}
     doAssociation = {}
-<<<<<<< HEAD
     associatedAP = {}
     addressingSta = {}
     ifaceToAssociate = {}
@@ -336,14 +262,6 @@ class station ( object ):
                     sta.cmd('ip link set dev %s name %s-wlan%s' % (wlan[module.virtualWlan.index(str(sta)) + j], str(sta), j))   
       
     @classmethod    
-=======
-    staPhy = []
-    nextIface = 0
-    currentPhy = 0
-    associatedAP = {}
-    
-    @classmethod    
->>>>>>> cb73d8b33278e9b3b89cb8b690dba6001d4fbb4e
     def confirmAdhocAssociation(self, host, interface, ssid):
         associated = ''
         self.host = host
@@ -354,7 +272,6 @@ class station ( object ):
         wifiParameters.tx_power(self.host, interface)
     
     @classmethod    
-<<<<<<< HEAD
     def confirmInfraAssociation(self, host, iface):
         associated = ''
         self.host = host
@@ -363,16 +280,6 @@ class station ( object ):
             associated = self.host.waitOutput()
         wifiParameters.frequency(self.host, str(host)+'-wlan%s' % iface)
         wifiParameters.tx_power(self.host, str(host)+'-wlan%s' % iface)
-=======
-    def confirmInfraAssociation(self, host):
-        associated = ''
-        self.host = host
-        while(associated == '' or len(associated) == 16):
-            self.host.sendCmd("iw dev %s-wlan0 link" % str(host))
-            associated = self.host.waitOutput()
-        wifiParameters.frequency(self.host, str(host)+'-wlan0')
-        wifiParameters.tx_power(self.host, str(host)+'-wlan0')
->>>>>>> cb73d8b33278e9b3b89cb8b690dba6001d4fbb4e
             
     @classmethod    
     def mode(self, sta, mode):
@@ -382,7 +289,6 @@ class station ( object ):
     def associate(self, sta, ssid):
         """
             Station Associate to an Access Point
-<<<<<<< HEAD
         """ 
         try:
             self.ifaceToAssociate[sta] += 1
@@ -415,49 +321,6 @@ class station ( object ):
     """        
     #@classmethod    
     def addWlan(self, station):
-=======
-        """   
-        self.host = sta
-        self.host.cmd("iw dev %s-wlan0 connect %s" % (sta, ssid))
-        self.confirmInfraAssociation(self.host)
-          
-    @classmethod    
-    def adhoc(self, host, ssid, mode, **params):
-        """
-            Adhoc mode
-        """   
-        self.ssid = ssid
-        self.mode = mode
-        self.host = host
-        hasIface = False   
-        try:
-            options = dict( params )
-            self.interface = options[ 'interface' ]
-            hasIface = True
-        except:
-            hasIface = False
-        
-        if hasIface: # if new iface
-            association.setAdhocParameters(self.host, mode, **params)
-            self.host.cmd("iw dev %s-%s set type ibss" % (str(host), self.interface))
-            self.host.cmd("iw dev %s-%s ibss join %s 2412" % (str(host), self.interface, self.ssid))
-            print "associating %s ..." % str(host)
-            interface = '%s-%s' % (str(host), self.interface)
-            self.confirmAdhocAssociation(self.host, interface, self.ssid)
-        else: # if not
-            association.setAdhocParameters(self.host, mode, **params)
-            self.host.cmd("iw dev %s-wlan0 set type ibss" % str(host))
-            self.host.cmd("iw dev %s-wlan0 ibss join %s 2412" % (str(host), self.ssid))
-            print "associating %s ..." % str(host)
-            interface = '%s-wlan0' % str(host)
-            self.confirmAdhocAssociation(self.host, interface, self.ssid)
-            
-    @classmethod    
-    def addWlan(self, station):
-        """
-            Add phy Interface to Stations
-        """ 
->>>>>>> cb73d8b33278e9b3b89cb8b690dba6001d4fbb4e
         phyInt.phy[station] = phyInt.totalPhy[self.currentPhy][3:]
         os.system("iw phy phy%s set netns %s" % (phyInt.phy[station], station.pid)) 
         wif = station.cmd("iwconfig 2>&1 | grep IEEE | awk '{print $1}'").split("\n")
@@ -469,16 +332,10 @@ class station ( object ):
                 except:
                     self.nextWlan[str(station)] = 0
                 netxWlan = self.nextWlan[str(station)] 
-<<<<<<< HEAD
                 phyInt.nextIface = phyInt.nextIface + 1
                 self.renameIface(station, netxWlan, iface)
         self.currentPhy+=1
      """
-=======
-                self.renameIface(station, netxWlan, iface)
-        self.currentPhy+=1
-     
->>>>>>> cb73d8b33278e9b3b89cb8b690dba6001d4fbb4e
     @classmethod    
     def renameIface(self, station, nextWlan, iface):
         """
@@ -497,10 +354,7 @@ class accessPoint ( object ):
     apSSID = {}
     apPhy = []
     number = 0
-<<<<<<< HEAD
     exists = False
-=======
->>>>>>> cb73d8b33278e9b3b89cb8b690dba6001d4fbb4e
     
     @classmethod
     def start(self, bs, nextIface, ssid, mode, channel, 
@@ -508,10 +362,7 @@ class accessPoint ( object ):
         """
             Starts an Access Point
         """
-<<<<<<< HEAD
         self.exists = True
-=======
->>>>>>> cb73d8b33278e9b3b89cb8b690dba6001d4fbb4e
         self.apName.append(bs)
         self.apSSID[str(bs)] = ssid
         self.apMode[str(bs)] = mode

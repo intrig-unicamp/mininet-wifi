@@ -13,10 +13,6 @@ from mininet.link import TCLink
 def topology():
     "Create a network."
     net = Mininet( controller=Controller, link=TCLink, switch=OVSKernelSwitch )
-<<<<<<< HEAD
-=======
-    #wirelessRadios = Number of STAs + APs
->>>>>>> cb73d8b33278e9b3b89cb8b690dba6001d4fbb4e
     
     print "*** Creating nodes"
     ap1 = net.addBaseStation( 'ap1', ssid="simplewifi", mode="g", channel="5" )

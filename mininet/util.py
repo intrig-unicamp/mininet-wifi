@@ -11,10 +11,6 @@ from fcntl import fcntl, F_GETFL, F_SETFL
 from os import O_NONBLOCK
 import os
 from functools import partial
-<<<<<<< HEAD
-=======
-from wifi import phyInt
->>>>>>> cb73d8b33278e9b3b89cb8b690dba6001d4fbb4e
 # Command execution support
 
 def run( cmd ):
@@ -192,25 +188,11 @@ def makeIntfPair( intf1, intf2, addr1=None, addr2=None, node1=None, node2=None,
                             'netns %s' % ( intf1, intf2, netns ) )
     else:
         if 'sta' in node1 and 'ap' in node2:
-<<<<<<< HEAD
             pass
         elif 'sta' in node2 and 'ap' in node1:
             pass
         elif 'sta' in node2 and 'sta' in node1:
             pass
-=======
-            cmdOutput = runCmd( 'iw phy phy%s '
-                               'set netns %s ' %
-                               (  phyInt.phy[str(node1)], netns ) )
-        elif 'sta' in node2 and 'ap' in node1:
-            cmdOutput = runCmd( 'iw phy phy%s '
-                               'set netns %s ' %
-                               (  phyInt.phy[str(node2)], netns ) )
-        elif 'stan' in node2 and 'sta' in node1:
-            cmdOutput = runCmd( 'iw phy phy%s '
-                               'set netns %s ' %
-                               (  phyInt.phy[str(node1)], netns ) )
->>>>>>> cb73d8b33278e9b3b89cb8b690dba6001d4fbb4e
         else:
             cmdOutput = runCmd( 'ip link add name %s '
                                'address %s '
@@ -243,11 +225,6 @@ def moveIntfNoRetry( intf, dstNode, printError=False ):
         printError: if true, print error"""
     if dstNode.name[:3]=="sta" or dstNode.name[:2]=="ap": 
         if dstNode.name[:3]=="sta":
-<<<<<<< HEAD
-=======
-            cmd = 'iw phy phy%s set netns %s' % ( phyInt.phy[ str(dstNode.name) ], dstNode.pid )
-            cmdOutput = quietRun( cmd )
->>>>>>> cb73d8b33278e9b3b89cb8b690dba6001d4fbb4e
             return True    
     else:
         intf = str( intf )
