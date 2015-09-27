@@ -57,6 +57,8 @@ import pty
 import re
 import signal
 import select
+import subprocess
+
 from subprocess import Popen, PIPE
 from time import sleep
 
@@ -67,12 +69,14 @@ from mininet.moduledeps import moduleDeps, pathCheck, TUN
 from mininet.link import Link, Intf, TCIntf, OVSIntf
 from re import findall
 from distutils.version import StrictVersion
+from wifi import station, association, module, accessPoint
 
 class Node( object ):
     """A virtual network node is simply a shell in a network namespace.
        We communicate with it using pipes."""
-
+    
     portBase = 0  # Nodes always start with eth0/port0, even in OF 1.0
+    
 
     def __init__( self, name, inNamespace=True, **params ):
         """name: name of node
@@ -92,7 +96,6 @@ class Node( object ):
 
         self.intfs = {}  # dict of port numbers to interfaces
         self.ports = {}  # dict of interfaces to port numbers
-                         # replace with Port objects, eventually ?
         self.nameToIntf = {}  # dict of interface names to Intfs
 
         # Make pylint happy
@@ -101,17 +104,16 @@ class Node( object ):
                 None, None, None, None, None, None, None, None )
         self.waiting = False
         self.readbuf = ''
-
+        
         # Start command interpreter shell
         self.startShell()
         self.mountPrivateDirs()
-
+        
     # File descriptor to node mapping support
     # Class variables and methods
-
     inToNode = {}  # mapping of input fds to nodes
     outToNode = {}  # mapping of output fds to nodes
-
+      
     @classmethod
     def fdToNode( cls, fd ):
         """Return node corresponding to given file descriptor.
@@ -122,6 +124,7 @@ class Node( object ):
 
     # Command support via shell process in namespace
     def startShell( self, mnopts=None ):
+        #pdb.set_trace()
         "Start a shell process for running commands"
         if self.shell:
             error( "%s: shell is already running\n" % self.name )
@@ -134,8 +137,9 @@ class Node( object ):
         # bash -i: force interactive
         # -s: pass $* to shell, and make process easy to find in ps
         # prompt is set to sentinel chr( 127 )
+        #pdb.set_trace()
         cmd = [ 'mnexec', opts, 'env', 'PS1=' + chr( 127 ),
-                'bash', '--norc', '-is', 'mininet:' + self.name ]
+                    'bash', '--norc', '-is', 'mininet:' + self.name ]
         # Spawn a shell subprocess in a pseudo-tty, to disable buffering
         # in the subprocess and insulate it from signals (e.g. SIGINT)
         # received by the parent
@@ -168,8 +172,6 @@ class Node( object ):
 
     def mountPrivateDirs( self ):
         "mount private directories"
-        # Avoid expanding a string into a list of chars
-        assert not isinstance( self.privateDirs, basestring )
         for directory in self.privateDirs:
             if isinstance( directory, tuple ):
                 # mount given private directory
@@ -422,13 +424,13 @@ class Node( object ):
         self.ports[ intf ] = port
         self.nameToIntf[ intf.name ] = intf
         debug( '\n' )
-        debug( 'added intf %s (%d) to node %s\n' % (
+        debug( 'added intf %s (%s) to node %s\n' % (
                 intf, port, self.name ) )
         if self.inNamespace:
             debug( 'moving', intf, 'into namespace for', self.name, '\n' )
             moveIntfFn( intf.name, self  )
-
-    def defaultIntf( self ):
+        
+    def defaultIntf( self ):        
         "Return interface for lowest port"
         ports = self.intfs.keys()
         if ports:
@@ -577,6 +579,16 @@ class Node( object ):
         self.setParam( r, 'setMAC', mac=mac )
         self.setParam( r, 'setIP', ip=ip )
         self.setParam( r, 'setDefaultRoute', defaultRoute=defaultRoute )
+        
+        if station.firstimelist:
+            station.ifaceToAssociate = {}
+            station.firstimelist = False
+        #Necessary if the mac address has changed
+        host = str(self)
+        if(mac!=None and module.isWiFi==True and 'sta' in host and station.doAssociation[host] == True):
+            station.associate(self, association.ssid[station.associatedAP[host]])
+            #self.cmd("iw dev %s-wlan0 connect %s" % (self, association.ssid[station.associatedAP[str(host)]]))
+        
         # This should be examined
         self.cmd( 'ifconfig lo ' + lo )
         return r
@@ -585,7 +597,7 @@ class Node( object ):
         "Configure with default parameters"
         self.params.update( moreParams )
         self.config( **self.params )
-
+        
     # This is here for backward compatibility
     def linkTo( self, node, link=Link ):
         """(Deprecated) Link to another node
@@ -593,7 +605,6 @@ class Node( object ):
         return link( self, node )
 
     # Other methods
-
     def intfList( self ):
         "List of our interfaces sorted by port number"
         return [ self.intfs[ p ] for p in sorted( self.intfs.iterkeys() ) ]
@@ -822,7 +833,6 @@ class CPULimitedHost( Host ):
         mountCgroups()
         cls.inited = True
 
-
 # Some important things to note:
 #
 # The "IP" address which setIP() assigns to the switch is not
@@ -846,10 +856,9 @@ class CPULimitedHost( Host ):
 class Switch( Node ):
     """A Switch is a Node that is running (or has execed?)
        an OpenFlow switch."""
-
     portBase = 1  # Switches start with port 1 in OpenFlow
     dpidLen = 16  # digits in dpid passed to switch
-
+    
     def __init__( self, name, dpid=None, opts='', listenPort=None, **params):
         """dpid: dpid hex string (or None to derive from name, e.g. s1 -> 1)
            opts: additional switch options
@@ -860,6 +869,7 @@ class Switch( Node ):
         self.listenPort = listenPort
         if not self.inNamespace:
             self.controlIntf = Intf( 'lo', self, port=0 )
+        
 
     def defaultDpid( self, dpid=None ):
         "Return correctly formatted dpid from dpid or switch name (s1 -> 1)"
@@ -972,7 +982,7 @@ class UserSwitch( Switch ):
 
             if res is None:  # link may not have TC parameters
                 return
-
+            
             # Re-add qdisc, root, and default classes user switch created, but
             # with new parent, as setup by Mininet's TCIntf
             parent = res['parent']
@@ -1041,7 +1051,7 @@ class OVSSwitch( Switch ):
         self._uuids = []  # controller UUIDs
         self.batch = batch
         self.commands = []  # saved commands for batch startup
-
+        
     @classmethod
     def setup( cls ):
         "Make sure Open vSwitch is installed and working"
@@ -1131,6 +1141,7 @@ class OVSSwitch( Switch ):
             if isinstance( intf, OVSIntf ):
                 intf1, intf2 = intf.link.intf1, intf.link.intf2
                 peer = intf1 if intf1 != intf else intf2
+                
                 opts += ' type=patch options:peer=%s' % peer
         return '' if not opts else ' -- set Interface %s' % intf + opts
 
@@ -1145,7 +1156,7 @@ class OVSSwitch( Switch ):
         if self.protocols and not self.isOldOVS():
             opts += ' protocols=%s' % self.protocols
         if self.stp and self.failMode == 'standalone':
-            opts += ' stp_enable=true'
+            opts += ' stp_enable=true' % self
         return opts
 
     def start( self, controllers ):
@@ -1157,8 +1168,9 @@ class OVSSwitch( Switch ):
         # Command to add interfaces
         intfs = ''.join( ' -- add-port %s %s' % ( self, intf ) +
                          self.intfOpts( intf )
-                         for intf in self.intfList()
+                         for intf in self.intfList() 
                          if self.ports[ intf ] and not intf.IP() )
+                
         # Command to create controller entries
         clist = [ ( self.name + c.name, '%s:%s:%d' %
                   ( c.protocol, c.IP(), c.port ) )
@@ -1185,8 +1197,25 @@ class OVSSwitch( Switch ):
         # If necessary, restore TC config overwritten by OVS
         if not self.batch:
             for intf in self.intfList():
-                self.TCReapply( intf )
-
+                self.TCReapply( intf )       
+               
+        self.newapif=[]
+        self.apif = subprocess.check_output("iwconfig 2>&1 | grep IEEE | awk '{print $1}'",shell=True)
+        self.apif = self.apif.split("\n")
+        
+        for apif in self.apif:
+            if apif not in module.physicalWlan:
+                self.newapif.append(apif)
+        
+        self.newapif.pop()
+        self.newapif = sorted(self.newapif)
+        self.newapif.sort(key=len, reverse=False)
+        
+        if(module.isCode==True):
+            if('ap' in self.name):
+                os.system("ovs-vsctl add-port %s %s" % (self.name, (self.newapif[accessPoint.number])))
+                accessPoint.number+=1
+        
     # This should be ~ int( quietRun( 'getconf ARG_MAX' ) ),
     # but the real limit seems to be much lower
     argmax = 128000
@@ -1250,7 +1279,7 @@ OVSKernelSwitch = OVSSwitch
 
 class OVSBridge( OVSSwitch ):
     "OVSBridge is an OVSSwitch in standalone/bridge mode"
-
+    
     def __init__( self, *args, **kwargs ):
         """stp: enable Spanning Tree Protocol (False)
            see OVSSwitch for other options"""
@@ -1346,7 +1375,7 @@ class Controller( Node ):
 
     def __init__( self, name, inNamespace=False, command='controller',
                   cargs='-v ptcp:%d', cdir=None, ip="127.0.0.1",
-                  port=6653, protocol='tcp', **params ):
+                  port=6633, protocol='tcp', **params ):
         self.command = command
         self.cargs = cargs
         self.cdir = cdir

@@ -1,0 +1,50 @@
+Configuration file: wlan3.conf
+Using interface wlan3 with hwaddr 02:00:00:00:02:00 and ssid "my-ssid"
+wlan3: interface state UNINITIALIZED->ENABLED
+wlan3: AP-ENABLED 
+Configuration file: wlan3.conf
+Using interface wlan3 with hwaddr 02:00:00:00:02:00 and ssid "my-ssid"
+wlan3: interface state UNINITIALIZED->ENABLED
+wlan3: AP-ENABLED 
+Configuration file: wlan3.conf
+Using interface wlan3 with hwaddr 02:00:00:00:02:00 and ssid "my-ssid"
+wlan3: interface state UNINITIALIZED->ENABLED
+wlan3: AP-ENABLED 
+wlan3: STA 02:00:00:00:00:00 IEEE 802.11: authenticated
+wlan3: STA 02:00:00:00:00:00 IEEE 802.11: associated (aid 1)
+wlan3: AP-STA-CONNECTED 02:00:00:00:00:00
+wlan3: STA 02:00:00:00:00:00 RADIUS: starting accounting session 55E8E3A9-00000000
+wlan3: STA 02:00:00:00:01:00 IEEE 802.11: authenticated
+wlan3: STA 02:00:00:00:01:00 IEEE 802.11: associated (aid 2)
+wlan3: AP-STA-CONNECTED 02:00:00:00:01:00
+wlan3: STA 02:00:00:00:01:00 RADIUS: starting accounting session 55E8E3A9-00000001
+wlan3: AP-STA-DISCONNECTED 02:00:00:00:00:00
+wlan3: AP-STA-DISCONNECTED 02:00:00:00:01:00
+Configuration file: wlan3.conf
+Using interface wlan3 with hwaddr 02:00:00:00:02:00 and ssid "my-ssid"
+wlan3: interface state UNINITIALIZED->ENABLED
+wlan3: AP-ENABLED 
+wlan3: STA 02:00:00:00:00:00 IEEE 802.11: authenticated
+wlan3: STA 02:00:00:00:00:00 IEEE 802.11: associated (aid 1)
+wlan3: AP-STA-CONNECTED 02:00:00:00:00:00
+wlan3: STA 02:00:00:00:00:00 RADIUS: starting accounting session 55E8E3E9-00000000
+wlan3: STA 02:00:00:00:01:00 IEEE 802.11: authenticated
+wlan3: STA 02:00:00:00:01:00 IEEE 802.11: associated (aid 2)
+wlan3: AP-STA-CONNECTED 02:00:00:00:01:00
+wlan3: STA 02:00:00:00:01:00 RADIUS: starting accounting session 55E8E3E9-00000001
+wlan3: AP-STA-DISCONNECTED 02:00:00:00:00:00
+wlan3: AP-STA-DISCONNECTED 02:00:00:00:01:00
+Configuration file: wlan3.conf
+Using interface wlan3 with hwaddr 02:00:00:00:02:00 and ssid "my-ssid"
+wlan3: interface state UNINITIALIZED->ENABLED
+wlan3: AP-ENABLED 
+wlan3: STA 02:00:00:00:00:00 IEEE 802.11: authenticated
+wlan3: STA 02:00:00:00:00:00 IEEE 802.11: associated (aid 1)
+wlan3: AP-STA-CONNECTED 02:00:00:00:00:00
+wlan3: STA 02:00:00:00:00:00 RADIUS: starting accounting session 55E8E3F2-00000000
+wlan3: STA 02:00:00:00:01:00 IEEE 802.11: authenticated
+wlan3: STA 02:00:00:00:01:00 IEEE 802.11: associated (aid 2)
+wlan3: AP-STA-CONNECTED 02:00:00:00:01:00
+wlan3: STA 02:00:00:00:01:00 RADIUS: starting accounting session 55E8E3F2-00000001
+wlan3: AP-STA-DISCONNECTED 02:00:00:00:00:00
+wlan3: AP-STA-DISCONNECTED 02:00:00:00:01:00

@@ -11,7 +11,6 @@ from fcntl import fcntl, F_GETFL, F_SETFL
 from os import O_NONBLOCK
 import os
 from functools import partial
-
 # Command execution support
 
 def run( cmd ):
@@ -177,18 +176,30 @@ def makeIntfPair( intf1, intf2, addr1=None, addr2=None, node1=None, node2=None,
         runCmd( 'ip link del ' + intf1 )
         runCmd2( 'ip link del ' + intf2 )
     # Create new pair
+    #pdb.set_trace()
     netns = 1 if not node2 else node2.pid
+    
+    node1=str(node1)
+    node2=str(node2)
+   
     if addr1 is None and addr2 is None:
         cmdOutput = runCmd( 'ip link add name %s '
                             'type veth peer name %s '
                             'netns %s' % ( intf1, intf2, netns ) )
     else:
-        cmdOutput = runCmd( 'ip link add name %s '
-                            'address %s '
-                            'type veth peer name %s '
-                            'address %s '
-                            'netns %s' %
-                            (  intf1, addr1, intf2, addr2, netns ) )
+        if 'sta' in node1 and 'ap' in node2:
+            pass
+        elif 'sta' in node2 and 'ap' in node1:
+            pass
+        elif 'sta' in node2 and 'sta' in node1:
+            pass
+        else:
+            cmdOutput = runCmd( 'ip link add name %s '
+                               'address %s '
+                               'type veth peer name %s '
+                               'address %s '
+                               'netns %s' %
+                               (  intf1, addr1, intf2, addr2, netns ) )
     if cmdOutput:
         raise Exception( "Error creating interface pair (%s,%s): %s " %
                          ( intf1, intf2, cmdOutput ) )
@@ -212,18 +223,22 @@ def moveIntfNoRetry( intf, dstNode, printError=False ):
        intf: string, interface
         dstNode: destination Node
         printError: if true, print error"""
-    intf = str( intf )
-    cmd = 'ip link set %s netns %s' % ( intf, dstNode.pid )
-    cmdOutput = quietRun( cmd )
+    if dstNode.name[:3]=="sta" or dstNode.name[:2]=="ap": 
+        if dstNode.name[:3]=="sta":
+            return True    
+    else:
+        intf = str( intf )
+        cmd = 'ip link set %s netns %s' % ( intf, dstNode.pid )
+        cmdOutput = quietRun( cmd )
     # If ip link set does not produce any output, then we can assume
     # that the link has been moved successfully.
-    if cmdOutput:
-        if printError:
-            error( '*** Error: moveIntf: ' + intf +
-                   ' not successfully moved to ' + dstNode.name + ':\n',
-                   cmdOutput )
-        return False
-    return True
+        if cmdOutput:
+            if printError:
+                error( '*** Error: moveIntf: ' + intf +
+                       ' not successfully moved to ' + dstNode.name + ':\n',
+                       cmdOutput )
+            return False
+        return True
 
 def moveIntf( intf, dstNode, printError=True,
               retries=3, delaySecs=0.001 ):
@@ -583,7 +598,6 @@ def buildTopo( topos, topoStr ):
 
 def ensureRoot():
     """Ensure that we are running as root.
-
     Probably we should only sudo when needed as per Big Switch's patch.
     """
     if os.getuid() != 0:

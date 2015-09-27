@@ -3,7 +3,7 @@
 
 Network topology creation.
 
-@author Brandon Heller (brandonh@stanford.edu)
+@author Brandon Heller (brandonh@stanford.edu) - Modified by Ramon Fontes (ramonrf@dca.fee.unicamp.br)
 
 This package includes code to represent network topologies.
 
@@ -12,6 +12,7 @@ setup for testing, and can even be emulated with the Mininet package.
 """
 
 from mininet.util import irange, natural, naturalSeq
+from mininet.wifi import module
 
 class MultiGraph( object ):
     "Utility class to track nodes and edges - replaces networkx.MultiGraph"
@@ -134,12 +135,32 @@ class Topo( object ):
         if not opts and self.hopts:
             opts = self.hopts
         return self.addNode( name, **opts )
+    
+    def addStation( self, name, **opts ):
+        """Convenience method: Add host to graph.
+           name: host name
+           opts: host options
+           returns: host name"""
+        if not opts and self.hopts:
+            opts = self.hopts
+        return self.addNode( name, **opts )
 
     def addSwitch( self, name, **opts ):
         """Convenience method: Add switch to graph.
            name: switch name
            opts: switch options
            returns: switch name"""
+        if not opts and self.sopts:
+            opts = self.sopts
+        result = self.addNode( name, isSwitch=True, **opts )
+        return result
+    
+    def addBaseStation( self, name, **opts ):
+        """Convenience method: Add switch to graph.
+           name: switch name
+           opts: switch options
+           returns: switch name"""
+        
         if not opts and self.sopts:
             opts = self.sopts
         result = self.addNode( name, isSwitch=True, **opts )
@@ -152,7 +173,7 @@ class Topo( object ):
            opts: link options (optional)
            returns: link info key"""
         if not opts and self.lopts:
-            opts = self.lopts
+            opts = self.lopts       
         port1, port2 = self.addPort( node1, node2, port1, port2 )
         opts = dict( opts )
         opts.update( node1=node1, node2=node2, port1=port1, port2=port2 )
@@ -173,6 +194,12 @@ class Topo( object ):
     def switches( self, sort=True ):
         """Return switches.
            sort: sort switches alphabetically
+           returns: dpids list of dpids"""
+        return [ n for n in self.nodes( sort ) if self.isSwitch( n ) ]
+
+    def baseStations( self, sort=True ):
+        """Return BaseStations.
+           sort: sort basestations alphabetically
            returns: dpids list of dpids"""
         return [ n for n in self.nodes( sort ) if self.isSwitch( n ) ]
 
@@ -227,10 +254,16 @@ class Topo( object ):
         # New port: number of outlinks + base
         if sport is None:
             src_base = 1 if self.isSwitch( src ) else 0
-            sport = len( ports[ src ] ) + src_base
+            if 'ap' in src:
+                sport = None
+            else:
+                sport = len( ports[ src ] ) + src_base
         if dport is None:
             dst_base = 1 if self.isSwitch( dst ) else 0
-            dport = len( ports[ dst ] ) + dst_base
+            if 'ap' in dst:
+                dport = None
+            else:
+                dport = len( ports[ dst ] ) + dst_base
         ports[ src ][ sport ] = ( dst, dport )
         ports[ dst ][ dport ] = ( src, sport )
         return sport, dport
@@ -292,14 +325,21 @@ class Topo( object ):
 
 class SingleSwitchTopo( Topo ):
     "Single switch connected to k hosts."
-
     def build( self, k=2, **_opts ):
-        "k: number of hosts"
-        self.k = k
-        switch = self.addSwitch( 's1' )
-        for h in irange( 1, k ):
-            host = self.addHost( 'h%s' % h )
-            self.addLink( host, switch )
+        if(module.isWiFi):
+            "k: number of hosts"
+            self.k = k
+            baseStation = self.addBaseStation( 'ap1' )
+            for h in irange( 1, k ):
+                host = self.addHost( 'sta%s' % h )
+                self.addLink( host, baseStation )
+        else:
+            "k: number of hosts"
+            self.k = k
+            switch = self.addSwitch( 's1' )
+            for h in irange( 1, k ):
+                host = self.addHost( 'h%s' % h )
+                self.addLink( host, switch )
 
 
 class SingleSwitchReversedTopo( Topo ):
@@ -309,13 +349,22 @@ class SingleSwitchReversedTopo( Topo ):
        numberings."""
 
     def build( self, k=2 ):
-        "k: number of hosts"
-        self.k = k
-        switch = self.addSwitch( 's1' )
-        for h in irange( 1, k ):
-            host = self.addHost( 'h%s' % h )
-            self.addLink( host, switch,
-                          port1=0, port2=( k - h + 1 ) )
+        if(module.isWiFi):
+            "k: number of hosts"
+            self.k = k
+            switch = self.addSwitch( 'ap1' )
+            for h in irange( 1, k ):
+                host = self.addHost( 'sta%s' % h )
+                self.addLink( host, switch,
+                              port1=0, port2=( k - h + 1 ) )
+        else:
+            "k: number of hosts"
+            self.k = k
+            switch = self.addSwitch( 's1' )
+            for h in irange( 1, k ):
+                host = self.addHost( 'h%s' % h )
+                self.addLink( host, switch,
+                              port1=0, port2=( k - h + 1 ) )
 
 
 class MinimalTopo( SingleSwitchTopo ):
@@ -328,27 +377,51 @@ class LinearTopo( Topo ):
     "Linear topology of k switches, with n hosts per switch."
 
     def build( self, k=2, n=1, **_opts):
-        """k: number of switches
-           n: number of hosts per switch"""
-        self.k = k
-        self.n = n
-
-        if n == 1:
-            genHostName = lambda i, j: 'h%s' % i
+        
+        if(module.isWiFi):
+            """k: number of switches
+               n: number of hosts per switch"""
+            self.k = k
+            self.n = n
+            if n == 1:
+                genHostName = lambda i, j: 'sta%s' % i
+            else:
+                genHostName = lambda i, j: 'sta%sap%d' % ( j, i )
+    
+            lastBaseStation = None
+            for i in irange( 1, k ):
+                # Add baseStation
+                baseStation = self.addBaseStation( 'ap%s' % i, ssid='ssid_ap%s' % i )
+                # Add hosts to baseStation
+                for j in irange( 1, n ):
+                    host = self.addHost( genHostName( i, j ) )
+                    self.addLink( host, baseStation )
+                # Connect baseStation to previous
+                if lastBaseStation:
+                    self.addLink( baseStation, lastBaseStation )
+                lastBaseStation = baseStation
         else:
-            genHostName = lambda i, j: 'h%ss%d' % ( j, i )
-
-        lastSwitch = None
-        for i in irange( 1, k ):
-            # Add switch
-            switch = self.addSwitch( 's%s' % i )
-            # Add hosts to switch
-            for j in irange( 1, n ):
-                host = self.addHost( genHostName( i, j ) )
-                self.addLink( host, switch )
-            # Connect switch to previous
-            if lastSwitch:
-                self.addLink( switch, lastSwitch )
-            lastSwitch = switch
+            """k: number of switches
+               n: number of hosts per switch"""
+            self.k = k
+            self.n = n
+           
+            if n == 1:
+                genHostName = lambda i, j: 'h%s' % i
+            else:
+                genHostName = lambda i, j: 'h%ss%d' % ( j, i )
+    
+            lastSwitch = None
+            for i in irange( 1, k ):
+                # Add switch
+                switch = self.addSwitch( 's%s' % i )
+                # Add hosts to switch
+                for j in irange( 1, n ):
+                    host = self.addHost( genHostName( i, j ) )
+                    self.addLink( host, switch )
+                # Connect switch to previous
+                if lastSwitch:
+                    self.addLink( switch, lastSwitch )
+                lastSwitch = switch
 
 # pylint: enable=arguments-differ

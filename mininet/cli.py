@@ -41,14 +41,16 @@ from mininet.util import ( quietRun, dumpNodeConnections,
 
 class CLI( Cmd ):
     "Simple command-line interface to talk to nodes."
-
-    prompt = 'mininet> '
+    
+    
+    prompt = 'mininet-wifi> '
 
     def __init__( self, mininet, stdin=sys.stdin, script=None ):
         """Start and run interactive or batch mode CLI
            mininet: Mininet network object
            stdin: standard input for CLI
            script: script to run in batch mode"""
+        
         self.mn = mininet
         # Local variable bindings for py command
         self.locals = { 'net': mininet }
@@ -57,9 +59,11 @@ class CLI( Cmd ):
         self.inPoller = poll()
         self.inPoller.register( stdin )
         self.inputFile = script
+        
+        
         Cmd.__init__( self )
         info( '*** Starting CLI:\n' )
-
+        
         if self.inputFile:
             self.do_source( self.inputFile )
             return
@@ -196,6 +200,11 @@ class CLI( Cmd ):
         "Ping between all hosts."
         self.mn.pingAll( line )
 
+    #def do_wireless( self, line ):
+    #    "Ping between all hosts."
+        #self.mn.pingAll( line )
+    #    self.mn.wireless_message( )
+
     def do_pingpair( self, _line ):
         "Ping between first two hosts, useful for testing."
         self.mn.pingPair()
@@ -260,6 +269,34 @@ class CLI( Cmd ):
         "Dump node info."
         for node in self.mn.values():
             output( '%s\n' % repr( node ) )
+    
+    #def do_noise( self, line ):
+    #    "Noise node info."
+    #    args = line.split()
+    #    if len(args) != 1:
+    #        error( 'invalid number of args: noise [sta]\n' )
+    #    else:
+    #        self.mn.noiseInfo( *args )
+            
+    
+    def do_distance( self, line ):
+        "Distance between two nodes."
+        args = line.split()
+        if len(args) != 2:
+            error( 'invalid number of args: distance [sta or ap] [sta or ap]\n' )
+        elif len(args) == 2 and args[ 0 ] == args[ 1 ]:
+            error( 'invalid. Source and Destination are equals\n' )
+        else:
+            self.mn.getCurrentDistance( *args )
+            
+    def do_position( self, line ):
+        "Position node info."
+        args = line.split()
+        if len(args) != 1:
+            error( 'invalid number of args: position [sta ou ap]\n' )
+        else:
+            self.mn.getCurrentPosition( *args )
+        
 
     def do_link( self, line ):
         """Bring link(s) between two nodes up or down.

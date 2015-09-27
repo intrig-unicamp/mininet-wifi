@@ -1,9 +1,11 @@
 """
 
-    Mininet: A simple networking testbed for OpenFlow/SDN!
+    Mininet-WiFi: A simple networking testbed for Wireless OpenFlow/SDN!
 
 author: Bob Lantz (rlantz@cs.stanford.edu)
 author: Brandon Heller (brandonh@stanford.edu)
+
+Modified by Ramon Fontes (ramonrf@dca.fee.unicamp.br)
 
 Mininet creates scalable OpenFlow test networks by using
 process-based virtualization and network namespaces.
@@ -42,7 +44,7 @@ In addition to a management interface, user mode switches also have
 several switch interfaces, halves of veth pairs whose other halves
 reside in the host nodes that the switches are connected to.
 
-Consistent, straightforward naming is important in order to easily
+Consistent, straightforward naming is important in addLinkorder to easily
 identify hosts, switches and controllers, both from the CLI and
 from program code. Interfaces are named to make it easy to identify
 which interfaces belong to which node.
@@ -91,6 +93,9 @@ import re
 import select
 import signal
 import random
+import time
+import threading
+#import multiprocessing
 
 from time import sleep
 from itertools import chain, groupby
@@ -101,14 +106,16 @@ from mininet.log import info, error, debug, output, warn
 from mininet.node import ( Node, Host, OVSKernelSwitch, DefaultController,
                            Controller )
 from mininet.nodelib import NAT
-from mininet.link import Link, Intf
+from mininet.link import Link, Intf, TCLink
 from mininet.util import ( quietRun, fixLimits, numCores, ensureRoot,
                            macColonHex, ipStr, ipParse, netParse, ipAdd,
                            waitListening )
 from mininet.term import cleanUpScreens, makeTerms
+from mininet.wifi import checkNM, module, accessPoint, station, wifiParameters, association, mobility, getWlan
+from __builtin__ import True
 
 # Mininet version: should be consistent with README and LICENSE
-VERSION = "2.2.1"
+VERSION = "1.2r6"
 
 class Mininet( object ):
     "Network emulation with hosts spawned in network namespaces."
@@ -116,9 +123,9 @@ class Mininet( object ):
     def __init__( self, topo=None, switch=OVSKernelSwitch, host=Host,
                   controller=DefaultController, link=Link, intf=Intf,
                   build=True, xterms=False, cleanup=False, ipBase='10.0.0.0/8',
-                  inNamespace=False,
-                  autoSetMacs=False, autoStaticArp=False, autoPinCpus=False,
-                  listenPort=None, waitConnected=False ):
+                  inNamespace=False, autoSetMacs=False, autoStaticArp=False, autoPinCpus=False,
+                  listenPort=None, waitConnected=False, 
+                  ssid="my-ssid", mode="g", channel="6" ):
         """Create Mininet object.
            topo: Topo (topology) object or None
            switch: default Switch class
@@ -136,8 +143,11 @@ class Mininet( object ):
            autoPinCpus: pin hosts to (real) cores (requires CPULimitedHost)?
            listenPort: base listening port to open; will be incremented for
                each additional switch in the net if inNamespace=False"""
+        self.thread = threading.Thread()
+        
         self.topo = topo
         self.switch = switch
+        self.baseStation = switch
         self.host = host
         self.controller = controller
         self.link = link
@@ -145,7 +155,7 @@ class Mininet( object ):
         self.ipBase = ipBase
         self.ipBaseNum, self.prefixLen = netParse( self.ipBase )
         self.nextIP = 1  # start for address allocation
-        self.inNamespace = inNamespace
+        self.inNamespace = inNamespace        
         self.xterms = xterms
         self.cleanup = cleanup
         self.autoSetMacs = autoSetMacs
@@ -154,19 +164,31 @@ class Mininet( object ):
         self.numCores = numCores()
         self.nextCore = 0  # next core for pinning hosts to CPUs
         self.listenPort = listenPort
-        self.waitConn = waitConnected
-
+        self.waitConn = waitConnected           
+        
+        self.newapif = []
+        self.firstAssociation = True
+        self.stationName = []                
+        self.apexists = []
+        self.ssid = ssid        
+        self.mode = mode
+        self.channel = channel
+        self.startPosition = {}
+        self.endPosition = {}
+        self.startTime = {}
+        self.endTime = {}
+        self.start_time = 0 #start mobility time
+        self.model = ''
+        self.moveSta = {}        
+        self.wifiNodes = []
         self.hosts = []
         self.switches = []
         self.controllers = []
         self.links = []
-
         self.nameToNode = {}  # name to Node (Host/Switch) objects
-
         self.terms = []  # list of spawned xterm processes
-
         Mininet.init()  # Initialize Mininet if necessary
-
+                
         self.built = False
         if topo and build:
             self.build()
@@ -206,8 +228,8 @@ class Mininet( object ):
            name: name of host to add
            cls: custom host class/constructor (optional)
            params: parameters for host
-           returns: added host"""
-        # Default IP and MAC addresses
+           returns: added host"""      
+        # Default IP and MAC addresses                
         defaults = { 'ip': ipAdd( self.nextIP,
                                   ipBaseNum=self.ipBaseNum,
                                   prefixLen=self.prefixLen ) +
@@ -221,11 +243,112 @@ class Mininet( object ):
         defaults.update( params )
         if not cls:
             cls = self.host
-        h = cls( name, **defaults )
+        h = cls( name, **defaults )      
         self.hosts.append( h )
         self.nameToNode[ name ] = h
         return h
 
+    def addStation( self, name, cls=None, **params ):
+        """Add Station.
+           name: name of station to add
+           cls: custom host class/constructor (optional)
+           params: parameters for host
+           returns: added host"""
+        #Default IP and MAC addresses
+        defaults = { 'ip': ipAdd( self.nextIP,
+                                  ipBaseNum=self.ipBaseNum,
+                                  prefixLen=self.prefixLen ) +
+                                  '/%s' % self.prefixLen}
+        
+        if self.autoSetMacs:
+            defaults[ 'mac' ] = macColonHex( self.nextIP )
+        if self.autoPinCpus:
+            defaults[ 'cores' ] = self.nextCore
+            self.nextCore = ( self.nextCore + 1 ) % self.numCores        
+        defaults.update( params )        
+        if not cls:
+            cls = self.host
+        h = cls( name, **defaults )      
+        self.hosts.append( h )
+        self.wifiNodes.append(h)
+        self.nameToNode[ name ] = h        
+        self.stationName.append(name)
+        
+        position = ("%s" % params.pop('position', {}))
+        if(position!="{}"):        
+            position = position.split(',')
+            self.startPosition[name] = position
+            mobility.nodePosition[name] = position
+        else:
+            self.startPosition[name] = 0
+            mobility.nodePosition[name] = 0
+        
+        wifi = ("%s" % params.pop('wifi', {}))
+        if(wifi!="{}"):        
+            module.wifiRadios = module.wifiRadios + int(wifi)
+            for n in range(int(wifi)):
+                module.virtualWlan.append(name)
+        else:
+            module.wifiRadios+=1
+            wifi = 1
+            module.virtualWlan.append(name)
+        station.wlans[name] = int(wifi)
+        
+        self.nextIP += 1        
+        return h
+
+    def addBaseStation( self, name, cls=None, **params ):
+        """Add BaseStation.
+           name: name of basestation to add
+           cls: custom switch class/constructor (optional)
+           returns: added switch
+           side effect: increments listenPort ivar ."""
+        defaults = { 'listenPort': self.listenPort,
+                     'inNamespace': self.inNamespace, 
+                     'channel': self.channel,
+                     'mode': self.mode,
+                     'ssid': self.ssid                 
+                     }
+        defaults.update( params )        
+        
+        if not cls:
+            cls = self.baseStation
+        bs = cls( name, **defaults )
+        if not self.inNamespace and self.listenPort:
+            self.listenPort += 1
+        self.wifiNodes.append(bs)
+        self.nameToNode[ name ] = bs
+        
+        position = ("%s" % params.pop('position', {}))
+        if(position!="{}"):        
+            position =  position.split(',')
+            self.startPosition[name] = position
+            mobility.nodePosition[name] = position
+        else:
+            mobility.nodePosition[name] = 0
+            self.startPosition[name] = 0
+      
+        channel = ("%s" % params.pop('channel', {}))
+        if(channel!="{}"):
+            self.channel = channel
+      
+        mode = ("%s" % params.pop('mode', {}))
+        if(mode!="{}"):
+            self.mode = mode
+                      
+        ssid = ("%s" % params.pop('ssid', {}))
+        if(ssid!="{}"):
+            self.ssid = ssid
+        
+        module.wifiRadios+=1
+        module.virtualWlan.append(name)
+        association.ssid[name] = self.ssid
+        accessPoint.apMode[name] = self.mode
+        accessPoint.apChannel[name] = self.channel   
+        self.switches.append( bs )           
+        
+        return bs
+     
     def addSwitch( self, name, cls=None, **params ):
         """Add switch.
            name: name of switch to add
@@ -234,10 +357,14 @@ class Mininet( object ):
            side effect: increments listenPort ivar ."""
         defaults = { 'listenPort': self.listenPort,
                      'inNamespace': self.inNamespace }
+        
         defaults.update( params )
+        
         if not cls:
             cls = self.switch
+        
         sw = cls( name, **defaults )
+        
         if not self.inNamespace and self.listenPort:
             self.listenPort += 1
         self.switches.append( sw )
@@ -337,53 +464,212 @@ class Mininet( object ):
         "Return a random, non-multicast MAC address"
         return macColonHex( random.randint(1, 2**48 - 1) & 0xfeffffffffff |
                             0x020000000000 )
-
-    def addLink( self, node1, node2, port1=None, port2=None,
+    
+    def addWlan (self, wifiRadios):
+        module.wifiRadios+=wifiRadios
+    
+    def addHoc( self, node, ssid, mode, cls=None, **params ):
+        
+            if self.firstAssociation:
+                module.startEnvironment()
+                self.link = TCLink
+                self.newapif = getWlan.virtual()  #Get Virtual Wlans      
+                self.firstAssociation = False
+                station.assingIface(self.hosts)
+        
+            node2 = node
+            
+            node = node if not isinstance( node, basestring ) else self[ node ]
+            node2 = node2 if not isinstance( node2, basestring ) else self[ node2 ]
+            options = dict( params )
+            
+            # Set default MAC - this should probably be in Link
+            options.setdefault( 'addr1', self.randMac() )
+            
+            cls = self.link if cls is None else cls
+            link = cls( node, node2, **options )
+            
+            for host in self.hosts:
+                if (host == node):
+                    station.adhoc(host, ssid, mode, **params)
+            
+            return link
+   
+    def addLink( self, node1, node2, port1=None, port2=None, 
                  cls=None, **params ):
-        """"Add a link from node1 to node2
-            node1: source node (or name)
-            node2: dest node (or name)
-            port1: source port (optional)
-            port2: dest port (optional)
-            cls: link class (optional)
-            params: additional link params (optional)
-            returns: link object"""
-        # Accept node objects or names
-        node1 = node1 if not isinstance( node1, basestring ) else self[ node1 ]
-        node2 = node2 if not isinstance( node2, basestring ) else self[ node2 ]
-        options = dict( params )
-        # Port is optional
-        if port1 is not None:
-            options.setdefault( 'port1', port1 )
-        if port2 is not None:
-            options.setdefault( 'port2', port2 )
-        if self.intf is not None:
-            options.setdefault( 'intf', self.intf )
-        # Set default MAC - this should probably be in Link
-        options.setdefault( 'addr1', self.randMac() )
-        options.setdefault( 'addr2', self.randMac() )
-        cls = self.link if cls is None else cls
-        link = cls( node1, node2, **options )
-        self.links.append( link )
-        return link
-
+        
+        #If AP and STA
+        if(('sta' in str(node1) and 'ap' in str(node2)) or ('sta' in str(node2) and 'ap' in str(node1))):
+            
+            if self.firstAssociation:
+                module.startEnvironment()
+                self.link = TCLink
+                self.newapif = getWlan.virtual()  #Get Virtual Wlans      
+                self.firstAssociation = False
+                station.assingIface(self.hosts)
+                
+            node1 = node1 if not isinstance( node1, basestring ) else self[ node1 ]
+            node2 = node2 if not isinstance( node2, basestring ) else self[ node2 ]
+            options = dict( params )
+            
+            #Only if AP
+            if 'ap' in str(node1) and str(node1) not in self.apexists or 'ap' in str(node2) and str(node2) not in self.apexists:
+        
+                if 'ap' in str(node1):
+                    ap = str(node1)
+                else:
+                    ap = str(node2)
+                
+                self.ssid = association.ssid[ap]
+                self.mode = accessPoint.apMode[ap]
+                self.channel = accessPoint.apChannel[ap]
+                
+                checkNM.checkNetworkManager(checkNM.getMacAddress(self.newapif[module.virtualWlan.index(ap)]))           
+                accessPoint.setBw(self.newapif[module.virtualWlan.index(ap)], self.mode)
+                
+                self.wpa_key_mgmt = None
+                self.country_code = None
+                self.rsn_pairwise = None
+                self.wpa_passphrase = None
+                self.wpa = None
+                self.auth_algs = None
+                self.wmm_enabled = None
+                interface = self.newapif[module.virtualWlan.index(ap)]
+                
+                self.cmd = accessPoint.start(ap, interface, self.ssid, self.mode, 
+                                             self.channel, self.country_code, self.auth_algs, 
+                                             self.wpa, self.wpa_key_mgmt, self.rsn_pairwise, self.wpa_passphrase)
+                       
+                checkNM.APfile(self.cmd, str(self.newapif[module.virtualWlan.index(ap)]))
+                
+                if 'ap' in str(node1):
+                    self.apexists.append(str(node1)) 
+                else:
+                    self.apexists.append(str(node2))
+            
+            if ('sta' in str(node1) or 'sta' in str(node2)):
+                if 'sta' in str(node1):
+                    sta = node1
+                    ap = str(node2)
+                else:
+                    sta = node2
+                    ap = str(node1)
+                
+                self.bw = wifiParameters.set_bw(self.mode)
+                options.setdefault( 'bw', self.bw )
+                options.setdefault( 'use_hfsc', True )
+                
+                # Set default MAC - this should probably be in Link
+                options.setdefault( 'addr1', self.randMac() )
+                options.setdefault( 'addr2', self.randMac() )
+                
+                cls = self.link if cls is None else cls
+                link = cls( node1, node2, **options )
+                
+                #If sta/ap have defined position 
+                if self.startPosition[str(node1)] !=0 and self.startPosition[str(node2)] !=0:
+                    distance = mobility.getDistance(node1, node2)
+                    doAssociation = association.doAssociation(self.mode, distance)
+                #if not
+                else:
+                    doAssociation = True
+                    distance = 0                
+        
+                station.doAssociation[str(sta)] = doAssociation
+                if(doAssociation):
+                    station.associatedAP[str(sta)] = ap
+                    station.associate(sta, association.ssid[ap])
+                    association.setInfraParameters(sta, accessPoint.apMode[ap], distance)
+                    
+            return link
+        
+        else:
+            """"Add a link from node1 to node2
+                node1: source node (or name)
+                node2: dest node (or name)
+                port1: source port (optional)
+                port2: dest port (optional)
+                cls: link class (optional)
+                params: additional link params (optional)
+                returns: link object"""
+            
+            #Only if AP
+            if 'ap' in str(node1) and 'ap' in str(node2):                
+                if self.firstAssociation:
+                    module.startEnvironment()
+                    self.link = TCLink
+                    self.newapif = getWlan.virtual()  #Get Virtual Wlans      
+                    station.assingIface(self.hosts)
+                    self.firstAssociation = False
+                    
+                listap = []
+                if str(node1) not in self.apexists:
+                    listap.append(str(node1))
+                    self.apexists.append(str(node1))
+                if str(node2) not in self.apexists:
+                    listap.append(str(node2))
+                    self.apexists.append(str(node2))
+                
+                for ap in listap:
+                    ssid = association.ssid[ap]
+                    mode = accessPoint.apMode[ap]
+                    channel = accessPoint.apChannel[ap]
+                    
+                    checkNM.checkNetworkManager(checkNM.getMacAddress(self.newapif[module.virtualWlan.index(ap)]))           
+                    accessPoint.setBw(self.newapif[module.virtualWlan.index(ap)], mode)
+                    
+                    wpa_key_mgmt = None
+                    country_code = None
+                    rsn_pairwise = None
+                    wpa_passphrase = None
+                    wpa = None
+                    auth_algs = None
+                    #wmm_enabled = None
+                    interface = self.newapif[module.virtualWlan.index(ap)]
+                    
+                    self.cmd = accessPoint.start(ap, interface, ssid, mode, 
+                                                 channel, country_code, auth_algs, 
+                                                 wpa, wpa_key_mgmt, rsn_pairwise, wpa_passphrase)
+                           
+                    checkNM.APfile(self.cmd, str(self.newapif[module.virtualWlan.index(ap)])) 
+                    
+            # Accept node objects or names
+            node1 = node1 if not isinstance( node1, basestring ) else self[ node1 ]
+            node2 = node2 if not isinstance( node2, basestring ) else self[ node2 ]
+            options = dict( params )
+            # Port is optional
+            if port1 is not None:
+                options.setdefault( 'port1', port1 )
+            if port2 is not None:
+                options.setdefault( 'port2', port2 )
+            
+            # Set default MAC - this should probably be in Link
+            options.setdefault( 'addr1', self.randMac() )
+            options.setdefault( 'addr2', self.randMac() )
+            
+            cls = self.link if cls is None else cls
+            link = cls( node1, node2, **options )
+            self.links.append( link )
+            return link
+    
     def configHosts( self ):
         "Configure a set of hosts."
         for host in self.hosts:
-            info( host.name + ' ' )
+            #info( host.name + ' ' )
             intf = host.defaultIntf()
             if intf:
                 host.configDefault()
             else:
                 # Don't configure nonexistent intf
                 host.configDefault( ip=None, mac=None )
+           
             # You're low priority, dude!
             # BL: do we want to do this here or not?
             # May not make sense if we have CPU lmiting...
             # quietRun( 'renice +18 -p ' + repr( host.pid ) )
             # This may not be the right place to do this, but
             # it needs to be done somewhere.
-        info( '\n' )
+        #info( '\n' )
 
     def buildFromTopo( self, topo=None ):
         """Build mininet from a topology object
@@ -396,7 +682,6 @@ class Mininet( object ):
             pass
 
         info( '*** Creating network\n' )
-
         if not self.controllers and self.controller:
             # Add a default controller
             info( '*** Adding controller\n' )
@@ -409,28 +694,33 @@ class Mininet( object ):
                     self.addController( cls )
                 else:
                     self.addController( 'c%d' % i, cls )
-
-        info( '*** Adding hosts:\n' )
+                    
+        info( '*** Adding hosts and stations:\n' )
         for hostName in topo.hosts():
-            self.addHost( hostName, **topo.nodeInfo( hostName ) )
-            info( hostName + ' ' )
-
-        info( '\n*** Adding switches:\n' )
+            if 'sta' in str(hostName):
+                self.addStation( hostName, **topo.nodeInfo( hostName ) )
+            else:
+                self.addHost( hostName, **topo.nodeInfo( hostName ) )
+            info( hostName + ' ' )  
+        
+        info( '\n*** Adding switches and access point(s):\n' )
         for switchName in topo.switches():
             # A bit ugly: add batch parameter if appropriate
             params = topo.nodeInfo( switchName)
             cls = params.get( 'cls', self.switch )
             if hasattr( cls, 'batchStartup' ):
                 params.setdefault( 'batch', True )
-            self.addSwitch( switchName, **params )
+            if 'ap' in str(switchName):
+                self.addBaseStation( switchName, **params )
+            else:    
+                self.addSwitch( switchName, **params )
             info( switchName + ' ' )
-
-        info( '\n*** Adding links:\n' )
+            
+        info( '\n*** Adding links and associating station(s):\n' )
         for srcName, dstName, params in topo.links(
                 sort=True, withInfo=True ):
             self.addLink( **params )
-            info( '(%s, %s) ' % ( srcName, dstName ) )
-
+            info( '(%s, %s) ' % ( srcName, dstName ) )   
         info( '\n' )
 
     def configureControlNetwork( self ):
@@ -439,19 +729,20 @@ class Mininet( object ):
                          'should be overriden in subclass', self )
 
     def build( self ):
+        module.isCode=True
         "Build mininet."
         if self.topo:
             self.buildFromTopo( self.topo )
         if self.inNamespace:
             self.configureControlNetwork()
-        info( '*** Configuring hosts\n' )
+            info( '*** Configuring hosts\n' )
         self.configHosts()
         if self.xterms:
             self.startTerms()
         if self.autoStaticArp:
             self.staticArp()
         self.built = True
-
+            
     def startTerms( self ):
         "Start a terminal for each node."
         if 'DISPLAY' not in os.environ:
@@ -477,18 +768,23 @@ class Mininet( object ):
                     src.setARP( ip=dst.IP(), mac=dst.MAC() )
 
     def start( self ):
+        module.isCode = False
         "Start controller and switches."
         if not self.built:
             self.build()
-        info( '*** Starting controller\n' )
+        info( '*** Starting controller(s)\n' )
         for controller in self.controllers:
             info( controller.name + ' ')
             controller.start()
         info( '\n' )
-        info( '*** Starting %s switches\n' % len( self.switches ) )
+        
+        info( '*** Starting switches and access points\n' )
         for switch in self.switches:
             info( switch.name + ' ')
             switch.start( self.controllers )
+            if 'ap' in switch.name:  
+                os.system('ovs-vsctl add-br %s' % switch.name)
+          
         started = {}
         for swclass, switches in groupby(
                 sorted( self.switches, key=type ), type ):
@@ -496,17 +792,34 @@ class Mininet( object ):
             if hasattr( swclass, 'batchStartup' ):
                 success = swclass.batchStartup( switches )
                 started.update( { s: s for s in success } )
+        
+        #It is necessary to make a bridge between ap and wlan interface
+        for switch in self.switches:
+            if 'ap' in switch.name:  
+                interface = self.newapif[module.virtualWlan.index(switch.name)]
+                accessPoint.apBridge(switch.name, interface)
+        
         info( '\n' )
         if self.waitConn:
             self.waitConnected()
 
     def stop( self ):
+        "Stop plotting"
+        mobility.cancelPlot = True
+        mobility.plotGraph = False
+        mobility.DRAW = False
+        try:
+            mobility.closePlot()
+        except:
+            pass
+        
         "Stop the controller(s), switches and hosts"
         info( '*** Stopping %i controllers\n' % len( self.controllers ) )
         for controller in self.controllers:
             info( controller.name + ' ' )
             controller.stop()
         info( '\n' )
+                
         if self.terms:
             info( '*** Stopping %i terms\n' % len( self.terms ) )
             self.stopXterms()
@@ -515,7 +828,7 @@ class Mininet( object ):
             info( '.' )
             link.stop()
         info( '\n' )
-        info( '*** Stopping %i switches\n' % len( self.switches ) )
+        info( '*** Stopping switches and access points\n' )
         stopped = {}
         for swclass, switches in groupby(
                 sorted( self.switches, key=type ), type ):
@@ -529,10 +842,13 @@ class Mininet( object ):
                 switch.stop()
             switch.terminate()
         info( '\n' )
-        info( '*** Stopping %i hosts\n' % len( self.hosts ) )
+        info( '*** Stopping hosts and stations\n' )
         for host in self.hosts:
             info( host.name + ' ' )
             host.terminate()
+        info( '\n' )
+        if(module.isWiFi):
+            module._stop_module() #Stopping WiFi Module
         info( '\n*** Done\n' )
 
     def run( self, test, *args, **kwargs ):
@@ -566,9 +882,6 @@ class Mininet( object ):
             # Return if non-blocking
             if not ready and timeoutms >= 0:
                 yield None, None
-
-    # XXX These test methods should be moved out of this class.
-    # Probably we should create a tests.py for them
 
     @staticmethod
     def _parsePing( pingOutput ):
@@ -729,8 +1042,6 @@ class Mininet( object ):
             error( 'could not parse iperf output: ' + iperfOutput )
             return ''
 
-    # XXX This should be cleaned up
-
     def iperf( self, hosts=None, l4Type='TCP', udpBw='10M', fmt=None,
                seconds=5, port=5001):
         """Run iperf between two hosts.
@@ -821,7 +1132,149 @@ class Mininet( object ):
                 cpu_fractions.append( pct )
         output( '*** Results: %s\n' % cpu_fractions )
         return cpu_fractions
-
+         
+    def mobility(self, *args, **kwargs):
+        """
+            Mobility Parameters.
+        """
+        self.node = args[0]
+        self.stage = args[1]
+        self.speed = 0
+       
+        if 'position' in kwargs:
+            if(self.stage == 'stop'):
+                self.position = kwargs['position']
+                self.endPosition[args[0]] = self.position.split(',')
+            if(self.stage == 'start'):
+                self.position = kwargs['position']
+                self.startPosition[args[0]] = self.position.split(',')    
+        if 'time' in kwargs:
+            self.time = kwargs['time']
+        if 'speed' in kwargs:
+            self.speed = kwargs['speed'][:-2]
+        
+        if(self.stage == 'start'):
+            self.startTime[self.node] = self.time        
+        elif(self.stage == 'stop'):
+            self.endTime[self.node] = self.time 
+            diffTime = self.endTime[self.node] - self.startTime[self.node]
+            self.moveSta[self.node] = mobility.move(self.node, diffTime, self.speed, self.startPosition[self.node], self.endPosition[self.node])
+        
+    def startMobility(self, start_time, **kwargs):
+        """
+            Start Mobility.
+        """
+        if 'model' in kwargs:
+            self.model = kwargs['model']
+        if 'max_x' in kwargs:
+            self.max_x = kwargs['max_x']
+        if 'max_y' in kwargs:
+            self.max_y = kwargs['max_y']
+        if 'min_v' in kwargs:
+            self.min_v = kwargs['min_v']
+        if 'max_v' in kwargs:
+            self.max_v = kwargs['max_v']
+     
+        mobility.no_moving = False
+        
+        if self.model != '':
+            wifiNodes = self.wifiNodes
+            associatedAP = station.associatedAP
+            self.thread = threading.Thread(name='mobilityModel', target=mobility.models, args=(wifiNodes,associatedAP,self.startPosition,len(self.stationName),self.model,self.max_x,self.max_y,self.min_v,self.max_v,))
+            #module.thread = multiprocessing.Process(name='mobilityModel', target=mobility.models, args=(wifiNodes,associatedAP,self.startPosition, len(self.stationName),self.model,self.max_x,self.max_y,self.min_v,self.max_v,))
+            self.thread.daemon = True
+            self.thread.start()
+           
+        self.start_time = start_time
+        print "Mobility started at %s second(s)" % start_time
+        
+    def stopMobility(self, stop_time):
+        """
+            Stop Mobility.
+        """
+        self.thread = threading.Thread(name='onGoingMobility', target=self.onGoingMobility, args=(stop_time,))
+        #module.thread = multiprocessing.Process(name='onGoingMobility', target=self.onGoingMobility)
+        self.thread.daemon = True
+        self.thread.start()
+                
+    def onGoingMobility(self, stop_time):
+        """
+            ongoing Mobility.
+        """        
+        t_end = time.time() + stop_time
+        t_start = time.time() + self.start_time
+        currentTime = time.time()
+        i=1
+        try:
+            while time.time() < t_end and time.time() > t_start:
+                if time.time() - currentTime >= i:
+                    for n in self.hosts:
+                        node = str(n)
+                        if 'sta' in node:
+                            if time.time() - currentTime >= self.startTime[node] and time.time() - currentTime <= self.endTime[node]:
+                                self.startPosition[node][0] = float(self.startPosition[node][0]) + float(self.moveSta[node][0])
+                                self.startPosition[node][1] = float(self.startPosition[node][1]) + float(self.moveSta[node][1])
+                                self.startPosition[node][2] = float(self.startPosition[node][2]) + float(self.moveSta[node][2])
+                                mobility.nodePosition[node] = self.startPosition[node]
+                                distance = mobility.getDistance(node, station.associatedAP[node])
+                                association.setInfraParameters(n, self.mode, distance)
+                    i+=1
+        except:
+            print 'The mobility process stopped!'
+                   
+    def plotGraph(self, **kwargs):
+        """ Plot Graph """
+        if 'max_x' in kwargs:
+            mobility.MAX_X = kwargs['max_x']
+        if 'max_y' in kwargs:
+            mobility.MAX_Y = kwargs['max_y']
+       
+        mobility.plotGraph = True
+        
+    #def noiseInfo(self, src):
+    #    if src[:2] == 'ap':
+    #        print 'cannot access ap info!'
+    #    else:
+    #        existSrc = False
+    #        for host in self.wifiNodes:
+    #            if src == str(host):
+    #                existSrc = True
+    #                wifiParameters.printNoiseInfo(host)
+    #        if existSrc == False:
+    #            print "%s does not exist!" % src
+    
+    def getCurrentPosition(self, node):
+        """
+            Get Current Position.
+        """ 
+        try:
+            for host in self.wifiNodes:
+                if node == str(host): #and self.startPosition[src]!=0:
+                    mobility.printPosition(node)
+        except:
+            print ("Position was not defined")
+                        
+    def getCurrentDistance(self, src, dst):
+        """
+            Get current Distance.
+        """ 
+        existSrc = False
+        existDst = False
+        for host1 in self.wifiNodes:
+            if src == str(host1):
+                existSrc = True
+                for host2 in self.wifiNodes:
+                    if dst == str(host2):
+                        existDst = True
+                        mobility.printDistance(src, dst)
+        try:               
+            if(existSrc==False and existDst==False):
+                print ("WiFi nodes %s and %s do not exist" % (src, dst))
+            elif(existSrc==True and existDst==False):
+                print ("WiFi node %s or %s does not exist" % (src, dst))
+        except:
+            print ("Station or Access Point does not exist!")
+        
     # BL: I think this can be rewritten now that we have
     # a real link class.
     def configLinkStatus( self, src, dst, status ):
@@ -850,7 +1303,7 @@ class Mininet( object ):
                     error( 'link dst status change failed: %s\n' % result )
 
     def interact( self ):
-        "Start network and run our simple CLI."
+        "Start network and run our simple CLI."        
         self.start()
         result = CLI( self )
         self.stop()

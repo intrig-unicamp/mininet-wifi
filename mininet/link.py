@@ -28,6 +28,7 @@ from mininet.log import info, error, debug
 from mininet.util import makeIntfPair
 import mininet.node
 import re
+from mininet.wifi import station
 
 class Intf( object ):
 
@@ -42,19 +43,22 @@ class Intf( object ):
         self.node = node
         self.name = name
         self.link = link
+        self.port = port
         self.mac = mac
         self.ip, self.prefixLen = None, None
-
         # if interface is lo, we know the ip is 127.0.0.1.
         # This saves an ifconfig command per node
         if self.name == 'lo':
             self.ip = '127.0.0.1'
-        # Add to node (and move ourselves if necessary )
+        # Add to node (and move ourselves if necessary )        
         moveIntfFn = params.pop( 'moveIntfFn', None )
+        
+        #if self not in node.linksWifi:
         if moveIntfFn:
-            node.addIntf( self, port=port, moveIntfFn=moveIntfFn )
+            node.addIntf( self, port=port, moveIntfFn=moveIntfFn)
         else:
             node.addIntf( self, port=port )
+        
         # Save params for future reference
         self.params = params
         self.config( **params )
@@ -64,8 +68,29 @@ class Intf( object ):
         return self.node.cmd( *args, **kwargs )
 
     def ifconfig( self, *args ):
-        "Configure ourselves using ifconfig"
-        return self.cmd( 'ifconfig', self.name, *args )
+        if('w' in str(self.name)):
+            if str(args[0][:1])!='u':
+                iface = 0
+                station.ifconfig(str(self.node))
+            else:
+                try:
+                    if self.node in station.apIface:
+                        station.nextIface[str(self.node)]+=1
+                        iface = station.nextIface[str(self.node)]
+                    else:
+                        iface = station.addressingSta[str(self.node)]
+                except:
+                    if self.node not in station.apIface:
+                        station.nextIface[str(self.node)]=0
+                        iface = 0
+                        station.apIface.append(self.node)
+                    else:
+                        iface = station.ifconfig(str(self.node))
+            return self.cmd( 'ifconfig %s-wlan%s'% (self.node, iface), *args )
+        else:
+            "Configure ourselves using ifconfig"
+            return self.cmd( 'ifconfig', self.name, *args )
+            
 
     def setIP( self, ipstr, prefixLen=None ):
         """Set our IP address"""
@@ -136,7 +161,7 @@ class Intf( object ):
             cmdOutput = self.ifconfig( 'up' )
             # no output indicates success
             if cmdOutput:
-                error( "Error setting %s up: %s " % ( self.name, cmdOutput ) )
+                #error( "Error setting %s up: %s " % ( self.name, cmdOutput ) )
                 return False
             else:
                 return True
@@ -229,16 +254,14 @@ class TCIntf( Intf ):
     def bwCmds( self, bw=None, speedup=0, use_hfsc=False, use_tbf=False,
                 latency_ms=None, enable_ecn=False, enable_red=False ):
         "Return tc commands to set bandwidth"
-
         cmds, parent = [], ' root '
-
         if bw and ( bw < 0 or bw > self.bwParamMax ):
             error( 'Bandwidth limit', bw, 'is outside supported range 0..%d'
                    % self.bwParamMax, '- ignoring\n' )
         elif bw is not None:
             # BL: this seems a bit brittle...
             if ( speedup > 0 and
-                 self.node.name[0:1] == 's' ):
+                self.node.name[0:1] == 's' ):
                 bw = speedup
             # This may not be correct - we should look more closely
             # at the semantics of burst (and cburst) to make sure we
@@ -259,7 +282,6 @@ class TCIntf( Intf ):
                           '%s class add dev %s parent 5:0 classid 5:1 htb ' +
                           'rate %fMbit burst 15k' % bw ]
             parent = ' parent 5:1 '
-
             # ECN or RED
             if enable_ecn:
                 cmds += [ '%s qdisc add dev %s' + parent +
@@ -275,6 +297,7 @@ class TCIntf( Intf ):
                           'burst 20 ' +
                           'bandwidth %fmbit probability 1' % bw ]
                 parent = ' parent 6: '
+        
         return cmds, parent
 
     @staticmethod
@@ -314,7 +337,7 @@ class TCIntf( Intf ):
                 latency_ms=None, enable_ecn=False, enable_red=False,
                 max_queue_size=None, **params ):
         "Configure the port and set its properties."
-
+        #pdb.set_trace()
         result = Intf.config( self, **params)
 
         # Disable GRO
@@ -333,7 +356,6 @@ class TCIntf( Intf ):
             cmds = [ '%s qdisc del dev %s root' ]
         else:
             cmds = []
-
         # Bandwidth limits via various methods
         bwcmds, parent = self.bwCmds( bw=bw, speedup=speedup,
                                       use_hfsc=use_hfsc, use_tbf=use_tbf,
@@ -348,7 +370,7 @@ class TCIntf( Intf ):
                                             max_queue_size=max_queue_size,
                                             parent=parent )
         cmds += delaycmds
-
+        
         # Ugly but functional: display configuration info
         stuff = ( ( [ '%.2fMbit' % bw ] if bw is not None else [] ) +
                   ( [ '%s delay' % delay ] if delay is not None else [] ) +
@@ -356,8 +378,10 @@ class TCIntf( Intf ):
                   ( ['%d%% loss' % loss ] if loss is not None else [] ) +
                   ( [ 'ECN' ] if enable_ecn else [ 'RED' ]
                     if enable_red else [] ) )
-        info( '(' + ' '.join( stuff ) + ') ' )
-
+        #Print bw info
+        if 'sta' not in str(self.node):
+            info( '(' + ' '.join( stuff ) + ') ' )
+        
         # Execute all the commands in our node
         debug("at map stage w/cmds: %s\n" % cmds)
         tcoutputs = [ self.tc(cmd) for cmd in cmds ]
@@ -368,7 +392,7 @@ class TCIntf( Intf ):
         debug( "outputs:", tcoutputs, '\n' )
         result[ 'tcoutputs'] = tcoutputs
         result[ 'parent' ] = parent
-
+        
         return result
 
 
@@ -411,39 +435,69 @@ class Link( object ):
             params1[ 'port' ] = node1.newPort()
         if 'port' not in params2:
             params2[ 'port' ] = node2.newPort()
+        
         if not intfName1:
-            intfName1 = self.intfName( node1, params1[ 'port' ] )
+            if('sta' in str(node1) and 'ap' in str(node2) or 'sta' in str(node2) and 'ap' in str(node1) or 'sta' in str(node2) and 'sta' in str(node1)):
+                intfName1 = self.wlanName( node1, params1[ 'port' ] )
+            else:
+                intfName1 = self.intfName( node1, params1[ 'port' ] )
         if not intfName2:
-            intfName2 = self.intfName( node2, params2[ 'port' ] )
-
+            if('sta' in str(node1) and 'ap' in str(node2) or 'sta' in str(node2) and 'ap' in str(node1) or 'sta' in str(node2) and 'sta' in str(node1)):
+                intfName2 = self.wlanName( node2, params2[ 'port' ] )
+            else:
+                intfName2 = self.intfName( node2, params2[ 'port' ] )
+        
         self.fast = fast
-        if fast:
-            params1.setdefault( 'moveIntfFn', self._ignore )
-            params2.setdefault( 'moveIntfFn', self._ignore )
-            self.makeIntfPair( intfName1, intfName2, addr1, addr2,
-                               node1, node2, deleteIntfs=False )
-        else:
-            self.makeIntfPair( intfName1, intfName2, addr1, addr2 )
-
+        if('w' not in str(intfName1) and 'w' not in str(intfName2)):
+            if fast:
+                params1.setdefault( 'moveIntfFn', self._ignore )
+                params2.setdefault( 'moveIntfFn', self._ignore )
+                self.makeIntfPair( intfName1, intfName2, addr1, addr2,
+                                   node1, node2, deleteIntfs=False )
+            else:
+                self.makeIntfPair( intfName1, intfName2, addr1, addr2 )
+        
         if not cls1:
             cls1 = intf
         if not cls2:
             cls2 = intf
-
-        intf1 = cls1( name=intfName1, node=node1,
-                      link=self, mac=addr1, **params1  )
-        intf2 = cls2( name=intfName2, node=node2,
-                      link=self, mac=addr2, **params2 )
-
+        
+        if(('sta' in str(node1) and 'ap' in str(node2)) or ('sta' in str(node2) and 'ap' in str(node1))):
+            if 'ap' in str(node2):
+                intf1 = cls1( name=intfName1, node=node1,
+                          link=self, mac=addr1, **params1  )
+                intf2 = None
+            elif 'ap' in str(node1):
+                intf1 = None
+                intf2 = cls2( name=intfName2, node=node2,
+                              link=self, mac=addr2, **params2 )
+        elif(('sta' in str(node1) and 'sta' in str(node2)) or ('sta' in str(node2) and 'sta' in str(node1))):
+            intf1 = cls1( name=intfName1, node=node1,
+                          link=self, mac=addr1, **params1  )
+            intf2 = cls2( name=intfName2, node=node2,
+                          link=self, mac=addr2, **params2 )
+        else:
+            intf1 = cls1( name=intfName1, node=node1,
+                          link=self, mac=addr1, **params1  )
+            intf2 = cls2( name=intfName2, node=node2,
+                          link=self, mac=addr2, **params2 )
+        
         # All we are is dust in the wind, and our two interfaces
         self.intf1, self.intf2 = intf1, intf2
+               
     # pylint: enable=too-many-branches
 
     @staticmethod
     def _ignore( *args, **kwargs ):
         "Ignore any arguments"
         pass
-
+    
+    def wlanName( self, node, n ):
+        "Construct a canonical interface name node-ethN for interface n."
+        # Leave this as an instance method for now
+        assert self
+        return node.name + '-wlan' + repr( n )
+    
     def intfName( self, node, n ):
         "Construct a canonical interface name node-ethN for interface n."
         # Leave this as an instance method for now
@@ -502,7 +556,7 @@ class OVSLink( Link ):
     """Link that makes patch links between OVSSwitches
        Warning: in testing we have found that no more
        than ~64 OVS patch links should be used in row."""
-
+    
     def __init__( self, node1, node2, **kwargs ):
         "See Link.__init__() for options"
         self.isPatchLink = False

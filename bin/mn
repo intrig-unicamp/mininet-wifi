@@ -2,7 +2,7 @@
 
 """
 Mininet runner
-author: Brandon Heller (brandonh@stanford.edu)
+author: Brandon Heller (brandonh@stanford.edu) - (Modified by Ramon Fontes (ramonrf@dca.fee.unicamp.br)
 
 To see options:
   sudo mn -h
@@ -23,6 +23,7 @@ if 'PYTHONPATH' in os.environ:
 from mininet.clean import cleanup
 from mininet.cli import CLI
 from mininet.log import lg, LEVELS, info, debug, warn, error
+from mininet.wifi import module
 from mininet.net import Mininet, MininetWithControlNet, VERSION
 from mininet.node import ( Host, CPULimitedHost, Controller, OVSController,
                            Ryu, NOX, RemoteController, findController,
@@ -34,8 +35,7 @@ from mininet.link import Link, TCLink, OVSLink
 from mininet.topo import ( SingleSwitchTopo, LinearTopo,
                            SingleSwitchReversedTopo, MinimalTopo )
 from mininet.topolib import TreeTopo, TorusTopo
-from mininet.util import customClass, specialClass, splitArgs
-from mininet.util import buildTopo
+from mininet.util import customClass, specialClass, splitArgs, buildTopo
 
 from functools import partial
 
@@ -122,7 +122,7 @@ def version( *_args ):
 
 class MininetRunner( object ):
     "Build, setup, and run Mininet."
-
+    
     def __init__( self ):
         "Init."
         self.options = None
@@ -158,7 +158,7 @@ class MininetRunner( object ):
 
     def setCustom( self, name, value ):
         "Set custom parameters for MininetRunner."
-        if name in ( 'topos', 'switches', 'hosts', 'controllers', 'links' ):
+        if name in ( 'topos', 'switches', 'hosts', 'controllers' ):
             # Update dictionaries
             param = name.upper()
             globals()[ param ].update( value )
@@ -193,7 +193,7 @@ class MininetRunner( object ):
 
         usage = ( '%prog [options]\n'
                   '(type %prog -h for details)' )
-
+        
         opts = OptionParser( description=desc, usage=usage )
         addDictOption( opts, SWITCHES, SWITCHDEF, 'switch' )
         addDictOption( opts, HOSTS, HOSTDEF, 'host' )
@@ -201,13 +201,28 @@ class MininetRunner( object ):
         addDictOption( opts, LINKS, LINKDEF, 'link' )
         addDictOption( opts, TOPOS, TOPODEF, 'topo' )
 
+
+        opts.add_option( '--radios', type='int', 
+                         default=0, help='starting k radios' )
+        
+        opts.add_option( '--wifi', '-w', action='store_true',
+                         default=False, help='activate wifi' )
+        
+        opts.add_option( '--channel', type='int', 
+                         default=1, help='wireless channel configuration' )
+         
+        opts.add_option( '--mode', type='string', 
+                         default="g", help='wireless mode configuration' )
+        
+        opts.add_option( '--ssid', type='string', 
+                         default="my-ssid", help='wireless ssid configuration' )
+       
         opts.add_option( '--clean', '-c', action='store_true',
                          default=False, help='clean and exit' )
         opts.add_option( '--custom', action='callback',
                          callback=self.custom,
                          type='string',
-                         help='read custom classes or params from .py file(s)'
-                         )
+                         help='read custom classes or params from .py file(s)' )
 
         opts.add_option( '--test', type='choice', choices=TESTS,
                          default=TESTS[ 0 ],
@@ -238,7 +253,7 @@ class MininetRunner( object ):
                          default=False, help="pin hosts to CPU cores "
                          "(requires --host cfs or --host rt)" )
         opts.add_option( '--nat', action='callback', callback=self.setNat,
-                         help="[option=val...] adds a NAT to the topology that"
+                         help="adds a NAT to the topology that"
                          " connects Mininet hosts to the physical network."
                          " Warning: This may route any traffic on the machine"
                          " that uses Mininet's"
@@ -289,8 +304,16 @@ class MininetRunner( object ):
             cleanup()
             exit()
 
-        start = time.time()
+        if self.options.radios != 0:
+            module.isWiFi = True
+            module.wifiRadios = self.options.radios
+              
+        if self.options.wifi and self.options.radios == 0:
+            module.isWiFi = True
 
+            
+        start = time.time()
+       
         if not self.options.controller:
             # Update default based on available controllers
             CONTROLLERS[ 'default' ] = findController()
@@ -322,6 +345,11 @@ class MininetRunner( object ):
         mac = self.options.mac
         arp = self.options.arp
         pin = self.options.pin
+                 
+        channel = self.options.channel
+        mode = self.options.mode
+        ssid = self.options.ssid
+       
         listenPort = None
         if not self.options.nolistenport:
             listenPort = self.options.listenport
@@ -346,6 +374,9 @@ class MininetRunner( object ):
                   link=link,
                   ipBase=ipBase,
                   inNamespace=inNamespace,
+                  channel=channel,
+                  mode=mode,
+                  ssid=ssid,
                   xterms=xterms, autoSetMacs=mac,
                   autoStaticArp=arp, autoPinCpus=pin,
                   listenPort=listenPort )
@@ -378,6 +409,7 @@ class MininetRunner( object ):
 
         if self.options.post:
             cli( mn, script=self.options.post )
+
 
         mn.stop()
 

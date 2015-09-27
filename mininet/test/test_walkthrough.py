@@ -2,7 +2,6 @@
 
 """
 Tests for the Mininet Walkthrough
-
 TODO: missing xterm test
 """
 

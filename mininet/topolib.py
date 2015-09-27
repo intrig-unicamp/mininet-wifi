@@ -2,6 +2,7 @@
 
 from mininet.topo import Topo
 from mininet.net import Mininet
+from mininet.wifi import module
 
 # The build() method is expected to do this:
 # pylint: disable=arguments-differ
@@ -13,23 +14,51 @@ class TreeTopo( Topo ):
         # Numbering:  h1..N, s1..M
         self.hostNum = 1
         self.switchNum = 1
+        
+        if(module.isWiFi):
+            self.countNodes( depth, fanout )
         # Build topology
         self.addTree( depth, fanout )
-
+        
+    def countNodes( self, depth, fanout ):
+        """Amount of Nodes"""
+        if(module.isWiFi):
+            isSwitch = depth > 0
+            if isSwitch:
+                self.switchNum += 1
+                for _ in range( fanout ):
+                    self.countNodes( depth - 1, fanout )
+            else:
+                self.hostNum += 1
+        
+    
     def addTree( self, depth, fanout ):
         """Add a subtree starting with node n.
            returns: last node added"""
-        isSwitch = depth > 0
-        if isSwitch:
-            node = self.addSwitch( 's%s' % self.switchNum )
-            self.switchNum += 1
-            for _ in range( fanout ):
-                child = self.addTree( depth - 1, fanout )
-                self.addLink( node, child )
-        else:
-            node = self.addHost( 'h%s' % self.hostNum )
-            self.hostNum += 1
-        return node
+        if(module.isWiFi):
+            isSwitch = depth > 0
+            if isSwitch:
+                node = self.addBaseStation( 'ap%s' % self.switchNum , ssid='ssid_ap%s' % self.switchNum  )
+                self.switchNum += 1
+                for _ in range( fanout ):
+                    child = self.addTree( depth - 1, fanout )
+                    self.addLink( node, child )
+            else:
+                node = self.addStation( 'sta%s' % self.hostNum )
+                self.hostNum += 1
+            return node
+        else:            
+            isSwitch = depth > 0
+            if isSwitch:
+                node = self.addSwitch( 's%s' % self.switchNum )
+                self.switchNum += 1
+                for _ in range( fanout ):
+                    child = self.addTree( depth - 1, fanout )
+                    self.addLink( node, child )
+            else:
+                node = self.addHost( 'h%s' % self.hostNum )
+                self.hostNum += 1
+            return node
 
 
 def TreeNet( depth=1, fanout=2, **kwargs ):
@@ -45,18 +74,10 @@ class TorusTopo( Topo ):
        without STP turned on! It can be used with STP, e.g.:
        # mn --topo torus,3,3 --switch lxbr,stp=1 --test pingall"""
 
-    def build( self, x, y, n=1 ):
-        """x: dimension of torus in x-direction
-           y: dimension of torus in y-direction
-           n: number of hosts per switch"""
+    def build( self, x, y ):
         if x < 3 or y < 3:
             raise Exception( 'Please use 3x3 or greater for compatibility '
                              'with 2.1' )
-        if n == 1:
-            genHostName = lambda loc, k: 'h%s' % ( loc )
-        else:
-            genHostName = lambda loc, k: 'h%sx%d' % ( loc, k )
-
         hosts, switches, dpid = {}, {}, 0
         # Create and wire interior
         for i in range( 0, x ):
@@ -65,10 +86,9 @@ class TorusTopo( Topo ):
                 # dpid cannot be zero for OVS
                 dpid = ( i + 1 ) * 256 + ( j + 1 )
                 switch = switches[ i, j ] = self.addSwitch(
-                    's' + loc, dpid='%x' % dpid )
-                for k in range( 0, n ):
-                    host = hosts[ i, j, k ] = self.addHost( genHostName( loc, k + 1 ) )
-                    self.addLink( host, switch )
+                    's' + loc, dpid='%016x' % dpid )
+                host = hosts[ i, j ] = self.addHost( 'h' + loc )
+                self.addLink( host, switch )
         # Connect switches
         for i in range( 0, x ):
             for j in range( 0, y ):

@@ -18,14 +18,14 @@ setup(
     name=distname,
     version=VERSION,
     description='Process-based OpenFlow emulator',
-    author='Bob Lantz',
-    author_email='rlantz@cs.stanford.edu',
+    author='Bob Lantz - Modified by Ramon Fontes',
+    author_email='rlantz@cs.stanford.edu - ramonrf@dca.fee.unicamp.br',
     packages=[ 'mininet', 'mininet.examples' ],
     long_description="""
-        Mininet is a network emulator which uses lightweight
+        Mininet-WiFi is a network emulator which uses lightweight
         virtualization to create virtual networks for rapid
-        prototyping of Software-Defined Network (SDN) designs
-        using OpenFlow. http://mininet.org
+        prototyping of Software-Defined Wireless Network (SDWN) designs
+        using OpenFlow. http://intrig.dca.fee.unicamp.br/index.php/projects/projects.html
         """,
     classifiers=[
           "License :: OSI Approved :: BSD License",

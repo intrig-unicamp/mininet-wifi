@@ -2,6 +2,7 @@
 
 # Mininet install script for Ubuntu (and Debian Wheezy+)
 # Brandon Heller (brandonh@stanford.edu)
+# Modified by Ramon Fontes (ramonreisfontes@gmail.com)
 
 # Fail on error
 set -e
@@ -134,9 +135,19 @@ function mn_deps {
     fi
 
     echo "Installing Mininet core"
-    pushd $MININET_DIR/mininet
+    pushd $MININET_DIR/mininet-wifi
     sudo make install
     popd
+}
+
+# Install Mininet-WiFi deps
+function wifi_deps {
+    echo "Installing Mininet-WiFi dependencies"
+    #$install hostapd iw wireless-tools python-numpy python-scipy pkg-config python-matplotlib libnl-dev
+    $install hostapd iw wireless-tools python-numpy python-scipy pkg-config python-matplotlib
+    #pushd $MININET_DIR/mininet-wifi/iw
+    #sudo make install
+    #popd
 }
 
 # Install Mininet developer dependencies
@@ -161,11 +172,11 @@ function of {
     else
         $install git-core autotools-dev pkg-config libc6-dev
     fi
-    git clone git://openflowswitch.org/openflow.git
+    git clone https://github.com/mininet/openflow
     cd $BUILD_DIR/openflow
 
     # Patch controller to handle more than 16 switches
-    patch -p1 < $MININET_DIR/mininet/util/openflow-patches/controller.patch
+    patch -p1 < $MININET_DIR/mininet-wifi/util/openflow-patches/controller.patch
 
     # Resume the install:
     ./boot.sh
@@ -234,7 +245,7 @@ function install_wireshark {
     # Copy coloring rules: OF is white-on-blue:
     echo "Optionally installing wireshark color filters"
     mkdir -p $HOME/.wireshark
-    cp -n $MININET_DIR/mininet/util/colorfilters $HOME/.wireshark
+    cp -n $MININET_DIR/mininet-wifi/util/colorfilters $HOME/.wireshark
 
     echo "Checking Wireshark version"
     WSVER=`wireshark -v | egrep -o '[0-9\.]+' | head -1`
@@ -468,9 +479,9 @@ function nox {
 
     # Apply patches
     git checkout -b tutorial-destiny
-    git am $MININET_DIR/mininet/util/nox-patches/*tutorial-port-nox-destiny*.patch
+    git am $MININET_DIR/mininet-wifi/util/nox-patches/*tutorial-port-nox-destiny*.patch
     if [ "$DIST" = "Ubuntu" ] && version_ge $RELEASE 12.04; then
-        git am $MININET_DIR/mininet/util/nox-patches/*nox-ubuntu12-hacks.patch
+        git am $MININET_DIR/mininet-wifi/util/nox-patches/*nox-ubuntu12-hacks.patch
     fi
 
     # Build
@@ -530,6 +541,23 @@ function pox {
     git clone https://github.com/noxrepo/pox.git
 }
 
+# "Install" Hostapd
+function hostapd {
+    echo "Installing hostapd..."
+    sudo apt-get install hostapd
+}
+
+# "Install" iw
+function iw {
+    echo "Installing iw..."
+    #$install iw wireless-tools python-numpy python-scipy pkg-config python-matplotlib libnl-dev
+    $install iw wireless-tools python-numpy python-scipy pkg-config python-matplotlib
+    #pushd $MININET_DIR/mininet-wifi/iw
+    #sudo make install
+    #popd
+}
+
+
 # Install OFtest
 function oftest {
     echo "Installing oftest..."
@@ -552,7 +580,7 @@ function cbench {
         $install libsnmp-dev libpcap-dev libconfig-dev
     fi
     cd $BUILD_DIR/
-    git clone git://gitosis.stanford.edu/oflops.git
+    git clone https://github.com/mininet/oflops
     cd oflops
     sh boot.sh || true # possible error in autoreconf, so run twice
     sh boot.sh
@@ -678,9 +706,11 @@ function all {
     # NOX-classic is deprecated, but you can install it manually if desired.
     # nox
     pox
+    hostapd
+    iw
     oftest
     cbench
-    echo "Enjoy Mininet!"
+    echo "Enjoy Mininet-WiFi!"
 }
 
 # Restore disk space and remove sensitive files before shipping a VM.
@@ -698,7 +728,7 @@ function vm_clean {
     sudo rm -f ~/.ssh/authorized_keys*
 
     # Remove Mininet files
-    #sudo rm -f /lib/modules/python2.5/site-packages/mininet*
+    #sudo rm -f /lib/modules/python2.5/site-packages/*
     #sudo rm -f /usr/bin/mnexec
 
     # Clear optional dev script for SSH keychain load on boot
@@ -744,6 +774,7 @@ function usage {
     printf -- ' -v: install Open (V)switch\n' >&2
     printf -- ' -V <version>: install a particular version of Open (V)switch on Ubuntu\n' >&2
     printf -- ' -w: install OpenFlow (W)ireshark dissector\n' >&2
+    printf -- ' -W: install Mininet-WiFi dependencies\n' >&2
     printf -- ' -y: install R(y)u Controller\n' >&2
     printf -- ' -x: install NO(X) Classic OpenFlow controller\n' >&2
     printf -- ' -0: (default) -0[fx] installs OpenFlow 1.0 versions\n' >&2
@@ -757,7 +788,7 @@ if [ $# -eq 0 ]
 then
     all
 else
-    while getopts 'abcdefhikmnprs:tvV:wxy03' OPTION
+    while getopts 'abcdefhikmnprs:tvV:wWxy03' OPTION
     do
       case $OPTION in
       a)    all;;
@@ -785,6 +816,7 @@ else
       V)    OVS_RELEASE=$OPTARG;
             ubuntuOvs;;
       w)    install_wireshark;;
+      W)    wifi_deps;;
       x)    case $OF_VERSION in
             1.0) nox;;
             1.3) nox13;;
