@@ -29,6 +29,7 @@ Video 04: https://www.youtube.com/watch?v=WH6bSOKC7Lk
 /examples/handover.py  
 /examples/multipleWlan.py  
 /examples/simplewifitopology.py  
+/examples/wifimesh.py  
 /examples/wifiMobility.py  
 /examples/wifiMobilityModel.py  
 /examples/wifiPosition.py  

@@ -154,7 +154,7 @@ class association( object ):
     ssid = {}
     
     @classmethod    
-    def setAdhocParameters(self, host, iface, mode, **params):
+    def setAdhocParameters(self, host, iface, mode):
         """
             Set wifi AdHoc Parameters. Have to use models for loss, latency, bw...    
         """
@@ -258,9 +258,20 @@ class station ( object ):
             if 'sta' in str(stations[i]):
                 for j in range(0,int(self.wlans[str(stations[i])])):
                     sta = stations[i]
+                    #os.system('iw phy %s interface add mp%s type mp mesh_id MeshNetwork' %  (phyInt.totalPhy[module.virtualWlan.index(str(sta)) + j], j))
                     os.system('iw phy %s set netns %s' % ( phyInt.totalPhy[module.virtualWlan.index(str(sta)) + j], sta.pid ))
                     sta.cmd('ip link set dev %s name %s-wlan%s' % (wlan[module.virtualWlan.index(str(sta)) + j], str(sta), j))   
       
+    @classmethod    
+    def confirmMeshAssociation(self, host, interface):
+        associated = ''
+        self.host = host
+        while(associated == '' or len(associated) == 11):
+            self.host.sendCmd('ifconfig mp0 | grep -o \'TX b.*\' | cut -f2- -d\':\'')
+            associated = self.host.waitOutput()
+        wifiParameters.frequency(self.host, interface)
+        wifiParameters.tx_power(self.host, interface)    
+    
     @classmethod    
     def confirmAdhocAssociation(self, host, interface, ssid):
         associated = ''
@@ -300,7 +311,7 @@ class station ( object ):
         self.confirmInfraAssociation(self.host, iface)
           
     @classmethod    
-    def adhoc(self, sta, ssid, mode, **params):
+    def adhoc(self, sta, ssid=None, mode=None, **params):
         """
             Adhoc mode
         """   
@@ -312,12 +323,36 @@ class station ( object ):
         self.ssid = ssid
         self.mode = mode
         self.host = sta
-        association.setAdhocParameters(self.host, iface, mode, **params)
+        association.setAdhocParameters(self.host, iface, mode)
         self.host.cmd("iw dev %s-wlan%s set type ibss" % (str(sta), iface))
         self.host.cmd("iw dev %s-wlan%s ibss join %s 2412" % (str(sta), iface, self.ssid))
         print "associating %s ..." % str(sta)
         interface = '%s-wlan%s' % (str(sta), iface)
         self.confirmAdhocAssociation(self.host, interface, self.ssid)
+        
+    @classmethod    
+    def addMesh(self, sta, ssid=None, mode=None, channel=None, 
+                ipaddress=None, **params):
+        """
+            Mesh mode
+        """   
+        try:
+            self.ifaceToAssociate[sta] += 1
+        except:    
+            self.ifaceToAssociate[sta] = 0
+        iface = self.ifaceToAssociate[sta]
+        self.ssid = ssid
+        self.mode = mode
+        self.host = sta
+        sta.cmd('iw dev %s-wlan%s interface add mp0 type mp' % (str(sta), iface))
+        sta.cmd('iw dev mp0 set %s' % channel)
+        sta.cmd('ifconfig mp0 192.168.10.%s up' % ipaddress)
+        sta.cmd('iw dev mp0 mesh join %s' % ssid)
+        association.setAdhocParameters(self.host, iface, mode)
+        print "associating %s ..." % str(sta)
+        interface = '%s-wlan%s' % (str(sta), iface)
+        self.confirmMeshAssociation(self.host, interface)        
+        
     """        
     #@classmethod    
     def addWlan(self, station):
@@ -357,18 +392,19 @@ class accessPoint ( object ):
     exists = False
     
     @classmethod
-    def start(self, bs, nextIface, ssid, mode, channel, 
-              country_code, auth_algs, wpa, wpa_key_mgmt, rsn_pairwise, wpa_passphrase):
+    def start(self, ap, interface=None, ssid=None, mode=None, channel=None, 
+              country_code=None, auth_algs=None, wpa=None, wpa_key_mgmt=None, 
+              rsn_pairwise=None, wpa_passphrase=None, **params):
         """
             Starts an Access Point
         """
         self.exists = True
-        self.apName.append(bs)
-        self.apSSID[str(bs)] = ssid
-        self.apMode[str(bs)] = mode
+        self.apName.append(ap)
+        self.apSSID[str(ap)] = ssid
+        self.apMode[str(ap)] = mode
         self.cmd = ("echo \'")
         """General Configurations"""             
-        self.cmd = self.cmd + ("interface=%s" % nextIface) # the interface used by the AP
+        self.cmd = self.cmd + ("interface=%s" % interface) # the interface used by the AP
         """Not using at the moment"""
         self.cmd = self.cmd + ("\ndriver=nl80211")
         if(ssid!=None):
