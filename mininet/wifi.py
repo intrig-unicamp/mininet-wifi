@@ -682,7 +682,7 @@ class mobility ( object ):
             mob = truncated_levy_walk(nr_nodes, dimensions=(MAX_X, MAX_Y))
         elif(self.modelName=='RandomDirection'):
             ## Random Direction model
-            mob = random_direction(nr_nodes, dimensions=(MAX_X, MAX_Y))
+            mob = random_direction(nr_nodes, dimensions=(MAX_X, MAX_Y), velocity=(MIN_V, MAX_V))
         elif(self.modelName=='RandomWaypoint'):
             ## Random Waypoint model
             mob = random_waypoint(nr_nodes, dimensions=(MAX_X, MAX_Y), velocity=(MIN_V, MAX_V), wt_max=MAX_WT)

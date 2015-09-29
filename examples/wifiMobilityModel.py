@@ -38,7 +38,7 @@ def topology():
     
     
     "*** Available models: RandomWalk, TruncatedLevyWalk, RandomDirection, RandomWaypoint, GaussMarkov ***"
-    net.startMobility(0, model='GaussMarkov', max_x=20, max_y=20, min_v=0.1, max_v=0.3)
+    net.startMobility(0, model='RandomDirection', max_x=20, max_y=20, min_v=0.1, max_v=0.2)
    
     print "*** Running CLI"
     CLI( net )
