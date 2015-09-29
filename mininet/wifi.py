@@ -20,6 +20,9 @@ import matplotlib.pyplot as plt
         
 from mininet.mobility import gauss_markov, \
     truncated_levy_walk, random_direction, random_waypoint, random_walk
+from duplicity.dup_temp import SrcIter
+from samba.dcerpc.drsuapi import DsRemoveDSServerRequest1
+from mx.DateTime.timegm import dst
 
 class checkNM ( object ):
     """
@@ -77,7 +80,7 @@ class checkNM ( object ):
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         info = fcntl.ioctl(s.fileno(), 0x8927,  struct.pack('256s', '%s'[:15]) % str(self.wlanInterface))
         self.storeMacAddress.append(''.join(['%02x:' % ord(char) for char in info[18:24]])[:-1])
-        return self.storeMacAddress
+        self.checkNetworkManager(self.storeMacAddress)
     
     @classmethod   
     def APfile(self, apcommand, ap):
@@ -94,14 +97,16 @@ class getWlan( object ):
     @classmethod    
     def physical(self):
         self.phyInterfaces = []        
-        self.phyInterfaces = (subprocess.check_output("iwconfig 2>&1 | grep IEEE | awk '{print $1}'",shell=True)).split('\n')
+        self.phyInterfaces = (subprocess.check_output("iwconfig 2>&1 | grep IEEE | awk '{print $1}'",
+                                                      shell=True)).split('\n')
         self.phyInterfaces.pop()
         return self.phyInterfaces
     
     @classmethod    
     def virtual(self):
         self.newapif=[]
-        self.apif = subprocess.check_output("iwconfig 2>&1 | grep IEEE | awk '{print $1}'",shell=True).split('\n')
+        self.apif = subprocess.check_output("iwconfig 2>&1 | grep IEEE | awk '{print $1}'",
+                                            shell=True).split('\n')
         for apif in self.apif:
             if apif not in module.physicalWlan and apif!="":
                 self.newapif.append(apif)
@@ -164,7 +169,8 @@ class association( object ):
         #delay = 5 * distance
         bandwidth = wifiParameters.set_bw(mode)
         #self.host.cmd(host, "tc qdisc replace dev %s-%s root netem rate %.2fmbit latency %.2fms delay %.2fms" % (host, self.interface, rate, latency, delay)) 
-        self.host.cmd("tc qdisc add dev %s-%s root tbf rate %smbit latency %sms burst 1540" % (str(host), iface, bandwidth, latency)) 
+        self.host.cmd("tc qdisc add dev %s-%s root tbf rate %smbit latency %sms burst 1540" % 
+                      (str(host), iface, bandwidth, latency)) 
 
     
     @classmethod    
@@ -186,7 +192,11 @@ class association( object ):
             loss = wifiParameters.loss(distance)
             delay = wifiParameters.delay(distance, seconds)
             bw = wifiParameters.bw(distance, mode)  
-            self.host.pexec("tc qdisc replace dev %s-wlan%s root netem rate %.2fmbit loss %.1f%% latency %.2fms delay %.2fms" % (sta, wlan, bw, loss, latency, delay)) 
+            self.host.pexec("tc qdisc replace dev %s-wlan%s \
+                root netem rate %.2fmbit \
+                loss %.1f%% \
+                latency %.2fms \
+                delay %.2fms" % (sta, wlan, bw, loss, latency, delay)) 
             #os.system('util/m %s tc qdisc replace dev %s-wlan0 root netem rate %.2fmbit latency %.2fms delay %.2fms' % (self.host, self.host, bandwidth, latency, delay))
             #self.host.cmd("tc qdisc replace dev %s-wlan0 root tbf rate %.2fmbit latency %.2fms burst 15k" % (self.host, rate, latency)) 
             associate = self.doAssociation(mode, distance)
@@ -258,14 +268,14 @@ class station ( object ):
             if 'sta' in str(stations[i]):
                 for j in range(0,int(self.wlans[str(stations[i])])):
                     sta = stations[i]
-                    #os.system('iw phy %s interface add mp%s type mp mesh_id MeshNetwork' %  (phyInt.totalPhy[module.virtualWlan.index(str(sta)) + j], j))
-                    os.system('iw phy %s set netns %s' % ( phyInt.totalPhy[module.virtualWlan.index(str(sta)) + j], sta.pid ))
-                    sta.cmd('ip link set dev %s name %s-wlan%s' % (wlan[module.virtualWlan.index(str(sta)) + j], str(sta), j))   
+                    vwlan = module.virtualWlan.index(str(sta))
+                    os.system('iw phy %s set netns %s' % ( phyInt.totalPhy[vwlan + j], sta.pid ))
+                    sta.cmd('ip link set dev %s name %s-wlan%s' % (wlan[vwlan + j], str(sta), j))   
       
     @classmethod    
-    def confirmMeshAssociation(self, host, interface):
+    def confirmMeshAssociation(self, sta, interface):
         associated = ''
-        self.host = host
+        self.host = sta
         while(associated == '' or len(associated) == 11):
             self.host.sendCmd('ifconfig mp0 | grep -o \'TX b.*\' | cut -f2- -d\':\'')
             associated = self.host.waitOutput()
@@ -273,9 +283,9 @@ class station ( object ):
         wifiParameters.tx_power(self.host, interface)    
     
     @classmethod    
-    def confirmAdhocAssociation(self, host, interface, ssid):
+    def confirmAdhocAssociation(self, sta, interface, ssid):
         associated = ''
-        self.host = host
+        self.host = sta
         while(associated == '' or len(associated) == 0):
             self.host.sendCmd("iw dev %s scan ssid | grep %s" % (interface, ssid))
             associated = self.host.waitOutput()
@@ -283,14 +293,14 @@ class station ( object ):
         wifiParameters.tx_power(self.host, interface)
     
     @classmethod    
-    def confirmInfraAssociation(self, host, iface):
+    def confirmInfraAssociation(self, sta, iface):
         associated = ''
-        self.host = host
+        self.host = sta
         while(associated == '' or len(associated) == 16):
-            self.host.sendCmd("iw dev %s-wlan%s link" % (str(host), iface))
+            self.host.sendCmd("iw dev %s-wlan%s link" % (str(sta), iface))
             associated = self.host.waitOutput()
-        wifiParameters.frequency(self.host, str(host)+'-wlan%s' % iface)
-        wifiParameters.tx_power(self.host, str(host)+'-wlan%s' % iface)
+        wifiParameters.frequency(self.host, str(sta)+'-wlan%s' % iface)
+        wifiParameters.tx_power(self.host, str(sta)+'-wlan%s' % iface)
             
     @classmethod    
     def mode(self, sta, mode):
@@ -352,34 +362,6 @@ class station ( object ):
         print "associating %s ..." % str(sta)
         interface = '%s-wlan%s' % (str(sta), iface)
         self.confirmMeshAssociation(self.host, interface)        
-        
-    """        
-    #@classmethod    
-    def addWlan(self, station):
-        phyInt.phy[station] = phyInt.totalPhy[self.currentPhy][3:]
-        os.system("iw phy phy%s set netns %s" % (phyInt.phy[station], station.pid)) 
-        wif = station.cmd("iwconfig 2>&1 | grep IEEE | awk '{print $1}'").split("\n")
-        wif.pop()
-        for iface in wif:
-            if iface[:4]=="wlan":
-                try:
-                    self.nextWlan[str(station)] += 1
-                except:
-                    self.nextWlan[str(station)] = 0
-                netxWlan = self.nextWlan[str(station)] 
-                phyInt.nextIface = phyInt.nextIface + 1
-                self.renameIface(station, netxWlan, iface)
-        self.currentPhy+=1
-     """
-    @classmethod    
-    def renameIface(self, station, nextWlan, iface):
-        """
-            Rename wireless interface if necessary
-        """
-        iface = iface[:-1]
-        station.cmd('ip link set dev %s name %s-wlan%s' % (iface, station, nextWlan))
-        station.cmd('ifconfig %s-wlan%s up' % (station, nextWlan))    
-                        
             
 class accessPoint ( object ):    
 
@@ -475,7 +457,8 @@ class accessPoint ( object ):
         """  
         self.newapif = newapif
         bandwidth = wifiParameters.set_bw(mode)
-        os.system("tc qdisc add dev %s root tbf rate %smbit latency 2ms burst 15k" % (self.newapif, bandwidth))   
+        os.system("tc qdisc add dev %s root tbf rate %smbit latency 2ms burst 15k" % \
+                  (self.newapif, bandwidth))   
         
 class mobility ( object ):    
     """
@@ -583,7 +566,7 @@ class mobility ( object ):
                 self.plotsta[str(dst)], = ax.plot(range(MAX_X), range(MAX_Y), linestyle='', marker='.', ms=12, mfc='blue')
                 self.nodesPlotted.append(str(dst))
             
-            if 'ao' in str(dst) and str(dst) not in self.nodesPlotted:
+            if 'ap' in str(dst) and str(dst) not in self.nodesPlotted:
                 self.plotap[str(dst)], = ax.plot(range(MAX_X), range(MAX_Y), linestyle='', marker='.', ms=12, mfc='blue')
                 
                 ax.add_patch(
@@ -604,11 +587,10 @@ class mobility ( object ):
                 )
                 self.plotap[str(src)].set_data(pos_src[0],pos_src[1])
                 self.nodesPlotted.append(str(src))
-                plt.text(int(pos_src[0]), int(pos_src[1]), str(src)) 
-                
-            if 'ap' in str(src):
+                plt.text(int(pos_src[0]), int(pos_src[1]), str(src))                 
+            if 'sta' in str(src):
                 self.plotsta[str(src)].set_data(pos_src[0],pos_src[1])
-            if 'ap' in str(dst):
+            if 'sta' in str(dst):
                 self.plotsta[str(dst)].set_data(pos_dst[0],pos_dst[1])
             plt.title("Mininet-WiFi Graph")
             plt.draw()            
@@ -647,7 +629,10 @@ class mobility ( object ):
         self.pos_x = self.nodePosition[self.node][0]
         self.pos_y = self.nodePosition[self.node][1]
         self.pos_z = self.nodePosition[self.node][2]   
-        print "----------------\nPosition of %s\n----------------\nPosition X: %.2f\nPosition Y: %.2f\nPosition Z: %.2f\n" % (self.node, float(self.pos_x), float(self.pos_y), float(self.pos_z))
+        print "----------------\nPosition of %s\n---------------- \
+        \nPosition X: %.2f \
+        \nPosition Y: %.2f \
+        \nPosition Z: %.2f\n" % (self.node, float(self.pos_x), float(self.pos_y), float(self.pos_z))
         
     @classmethod   
     def handover(self, host):
@@ -728,16 +713,19 @@ class mobility ( object ):
                         line.set_data(xy[:,0],xy[:,1])
                         for n in range (0,len(wifiNodes)):
                             self.position = []
-                            if 'ap' in str(wifiNodes[n]) and str(wifiNodes[n]) not in oneTime:
-                                self.position.append(startPosition[str(wifiNodes[n])][0])
-                                self.position.append(startPosition[str(wifiNodes[n])][1])
+                            wifiNode = str(wifiNodes[n])
+                            if 'ap' in wifiNode and wifiNode not in oneTime:
+                                self.position.append(startPosition[wifiNode][0])
+                                self.position.append(startPosition[wifiNode][1])
                                 self.position.append(0)
-                                self.nodePosition[str(wifiNodes[n])] = self.position
-                                plt.plot([startPosition[str(wifiNodes[n])][0]], [startPosition[str(wifiNodes[n])][1]], 'ro')
-                                plt.text(int(startPosition[str(wifiNodes[n])][0]), int(startPosition[str(wifiNodes[n])][1]), str(wifiNodes[n]))
+                                pos_zero = startPosition[wifiNode][0]
+                                pos_one = startPosition[wifiNode][1]
+                                self.nodePosition[wifiNode] = self.position
+                                plt.plot([pos_zero], [pos_one], 'ro')
+                                plt.text(int(pos_zero), int(pos_one), wifiNode)
                                 ax.add_patch(
-                                    patches.Circle((startPosition[str(wifiNodes[n])][0], startPosition[str(wifiNodes[n])][1]),
-                                    self.range(accessPoint.apMode[str(str(wifiNodes[n]))]), fill=True,  alpha=0.1
+                                    patches.Circle((pos_zero, pos_one),
+                                    self.range(accessPoint.apMode[wifiNode]), fill=True,  alpha=0.1
                                     )
                                 )
                                 oneTime.append(str(wifiNodes[n]))
@@ -745,27 +733,28 @@ class mobility ( object ):
                                 self.position.append(xy[n][0])
                                 self.position.append(xy[n][1])
                                 self.position.append(0)
-                                self.nodePosition[str(wifiNodes[n])] = self.position
-                                distance = self.getDistance(src = str(wifiNodes[n]), dst = associatedAP[str(wifiNodes[n])])
-                                association.setInfraParameters(wifiNodes[n], station.staMode[str(wifiNodes[n])], distance)
+                                self.nodePosition[wifiNode] = self.position
+                                distance = self.getDistance(src = wifiNode, dst = associatedAP[wifiNode])
+                                association.setInfraParameters(wifiNodes[n], station.staMode[wifiNode], distance)
                         plt.title("Mininet-WiFi Graph")
                         plt.draw()
                     else:
                         for n in range (0,len(wifiNodes)):
+                            wifiNode = str(wifiNodes[n])
                             self.position = []
-                            if 'ap' in str(wifiNodes[n]) and str(wifiNodes[n]) not in oneTime:
-                                self.position.append(startPosition[str(wifiNodes[n])][0])
-                                self.position.append(startPosition[str(wifiNodes[n])][1])
+                            if 'ap' in wifiNode and wifiNode not in oneTime:
+                                self.position.append(startPosition[wifiNode][0])
+                                self.position.append(startPosition[wifiNode][1])
                                 self.position.append(0)
-                                self.nodePosition[str(wifiNodes[n])] = self.position
-                                oneTime.append(str(wifiNodes[n]))
+                                self.nodePosition[wifiNode] = self.position
+                                oneTime.append(wifiNode)
                             if 'ap' not in str(wifiNodes[n]):
                                 self.position.append(xy[n][0])
                                 self.position.append(xy[n][1])
                                 self.position.append(0)
-                                self.nodePosition[str(wifiNodes[n])] = self.position
-                                distance = self.getDistance(src = str(wifiNodes[n]), dst = associatedAP[str(wifiNodes[n])])
-                                association.setInfraParameters(wifiNodes[n], station.staMode[str(wifiNodes[n])], distance)
+                                self.nodePosition[wifiNode] = self.position
+                                distance = self.getDistance(src = wifiNode, dst = associatedAP[wifiNode])
+                                association.setInfraParameters(wifiNodes[n], station.staMode[wifiNode], distance)
             except:
                 print "Graph Stopped!"  
     

@@ -552,11 +552,48 @@ class Mininet( object ):
         
         return link
    
+    def configureAP(self, ap):
+        
+        wifiparam = dict()
+        
+        ssid = association.ssid[ap]
+        mode = accessPoint.apMode[ap]
+        channel = accessPoint.apChannel[ap]        
+        interface = self.newapif[module.virtualWlan.index(ap)]
+        
+        checkNM.getMacAddress(interface)         
+        accessPoint.setBw(interface, mode)
+        
+        self.wpa_key_mgmt = None
+        self.country_code = None
+        self.rsn_pairwise = None
+        self.wpa_passphrase = None
+        self.wpa = None
+        self.auth_algs = None
+        self.wmm_enabled = None        
+        
+        wifiparam.setdefault( 'interface', interface )
+        wifiparam.setdefault( 'ssid', ssid )
+        wifiparam.setdefault( 'mode', mode )
+        wifiparam.setdefault( 'channel', channel )
+        wifiparam.setdefault( 'country_code', self.country_code )
+        wifiparam.setdefault( 'auth_algs', self.auth_algs )
+        wifiparam.setdefault( 'wpa', self.wpa )
+        wifiparam.setdefault( 'wpa_key_mgmt', self.wpa_key_mgmt )
+        wifiparam.setdefault( 'rsn_pairwise', self.rsn_pairwise )
+        wifiparam.setdefault( 'wpa_passphrase', self.wpa_passphrase )
+
+        cmd = accessPoint.start(ap, **wifiparam)
+               
+        checkNM.APfile(cmd, interface) 
+        
+   
     def addLink( self, node1, node2, port1=None, port2=None, 
                  cls=None, **params ):
         
         #If AP and STA
-        if(('sta' in str(node1) and 'ap' in str(node2)) or ('sta' in str(node2) and 'ap' in str(node1))):
+        if(('sta' in str(node1) and 'ap' in str(node2)) \
+            or ('sta' in str(node2) and 'ap' in str(node1))):
             
             if self.firstAssociation:
                 module.startEnvironment()
@@ -570,49 +607,19 @@ class Mininet( object ):
             options = dict( params )
             
             #Only if AP
-            if 'ap' in str(node1) and str(node1) not in self.apexists or 'ap' in str(node2) and str(node2) not in self.apexists:
+            if 'ap' in str(node1) and str(node1) not in self.apexists \
+                or 'ap' in str(node2) and str(node2) not in self.apexists:
         
                 if 'ap' in str(node1):
                     ap = str(node1)
-                else:
-                    ap = str(node2)
-                
-                self.ssid = association.ssid[ap]
-                self.mode = accessPoint.apMode[ap]
-                self.channel = accessPoint.apChannel[ap]
-                
-                checkNM.checkNetworkManager(checkNM.getMacAddress(self.newapif[module.virtualWlan.index(ap)]))           
-                accessPoint.setBw(self.newapif[module.virtualWlan.index(ap)], self.mode)
-                
-                self.wpa_key_mgmt = None
-                self.country_code = None
-                self.rsn_pairwise = None
-                self.wpa_passphrase = None
-                self.wpa = None
-                self.auth_algs = None
-                self.wmm_enabled = None
-                interface = self.newapif[module.virtualWlan.index(ap)]
-                
-                options.setdefault( 'interface', interface )
-                options.setdefault( 'ssid', self.ssid )
-                options.setdefault( 'mode', self.mode )
-                options.setdefault( 'channel', self.channel )
-                options.setdefault( 'country_code', self.country_code )
-                options.setdefault( 'auth_algs', self.auth_algs )
-                options.setdefault( 'wpa', self.wpa )
-                options.setdefault( 'wpa_key_mgmt', self.wpa_key_mgmt )
-                options.setdefault( 'rsn_pairwise', self.rsn_pairwise )
-                options.setdefault( 'wpa_passphrase', self.wpa_passphrase )
-                
-                self.cmd = accessPoint.start(ap, **options)
-                       
-                checkNM.APfile(self.cmd, str(self.newapif[module.virtualWlan.index(ap)]))
-                
-                if 'ap' in str(node1):
                     self.apexists.append(str(node1)) 
                 else:
+                    ap = str(node2)
                     self.apexists.append(str(node2))
-            
+                
+                #configure AP
+                self.configureAP(ap)
+                
             if ('sta' in str(node1) or 'sta' in str(node2)):
                 if 'sta' in str(node1):
                     sta = node1
@@ -677,38 +684,8 @@ class Mininet( object ):
                     self.apexists.append(str(node2))
                 
                 for ap in listap:
-                    options = dict( params )
-                    ssid = association.ssid[ap]
-                    mode = accessPoint.apMode[ap]
-                    channel = accessPoint.apChannel[ap]
-                    
-                    checkNM.checkNetworkManager(checkNM.getMacAddress(self.newapif[module.virtualWlan.index(ap)]))           
-                    accessPoint.setBw(self.newapif[module.virtualWlan.index(ap)], mode)
-                    
-                    self.wpa_key_mgmt = None
-                    self.country_code = None
-                    self.rsn_pairwise = None
-                    self.wpa_passphrase = None
-                    self.wpa = None
-                    self.auth_algs = None
-                    self.wmm_enabled = None
-                    
-                    interface = self.newapif[module.virtualWlan.index(ap)]
-                    
-                    options.setdefault( 'interface', interface )
-                    options.setdefault( 'ssid', ssid )
-                    options.setdefault( 'mode', mode )
-                    options.setdefault( 'channel', channel )
-                    options.setdefault( 'country_code', self.country_code )
-                    options.setdefault( 'auth_algs', self.auth_algs )
-                    options.setdefault( 'wpa', self.wpa )
-                    options.setdefault( 'wpa_key_mgmt', self.wpa_key_mgmt )
-                    options.setdefault( 'rsn_pairwise', self.rsn_pairwise )
-                    options.setdefault( 'wpa_passphrase', self.wpa_passphrase )
-            
-                    self.cmd = accessPoint.start(ap, **options)
-                           
-                    checkNM.APfile(self.cmd, str(self.newapif[module.virtualWlan.index(ap)])) 
+                    #configure AP
+                    self.configureAP(ap) 
                     
             # Accept node objects or names
             node1 = node1 if not isinstance( node1, basestring ) else self[ node1 ]
@@ -1327,7 +1304,7 @@ class Mininet( object ):
         """ 
         try:
             for host in self.wifiNodes:
-                if node == str(host): #and self.startPosition[src]!=0:
+                if node == str(host):
                     mobility.printPosition(node)
         except:
             print ("Position was not defined")
