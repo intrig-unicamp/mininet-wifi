@@ -20,9 +20,6 @@ import matplotlib.pyplot as plt
         
 from mininet.mobility import gauss_markov, \
     truncated_levy_walk, random_direction, random_waypoint, random_walk
-from duplicity.dup_temp import SrcIter
-from samba.dcerpc.drsuapi import DsRemoveDSServerRequest1
-from mx.DateTime.timegm import dst
 
 class checkNM ( object ):
     """
