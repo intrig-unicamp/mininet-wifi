@@ -12,6 +12,7 @@ import fcntl
 import fileinput
 import subprocess
 import glob
+import math
 
 import numpy as np
 import scipy.spatial.distance as distance 
@@ -768,15 +769,16 @@ class wifiParameters ( object ):
         """
             Get frequency info **in development**
         """
-        self.freq[str(sta)] = sta.cmd('iwconfig %s | grep -o \'Frequency.*z\' | cut -f2- -d\':\''% iface) 
+        self.freq[str(sta)] = float(sta.cmd('iwconfig %s | grep -o \'Frequency.*z\' | cut -f2- -d\':\' | cut -c1-5'
+                                            % iface)) 
     
     @classmethod
     def tx_power(self, sta, iface): 
         """
             Get tx_power info **in development**
         """
-        self.txpower[str(sta)] = sta.cmd('iwconfig %s | grep -o \'Tx-Power.*\' | cut -f2- -d\'=\''% iface)
-    
+        self.txpower[str(sta)] = int(sta.cmd('iwconfig %s | grep -o \'Tx-Power.*\' | cut -f2- -d\'=\' | cut -c1-3'
+                                         % iface))
     #@classmethod
     #def printNoiseInfo(self, host): 
     #    """
@@ -805,9 +807,26 @@ class wifiParameters ( object ):
         bw = self.set_bw(mode) - distance/10    
         return bw
     
-    #@classmethod
-    #def pathLoss(self):
-    #    pass
+    @classmethod
+    def pathLoss(self, exponent):
+        """(pathloss) is the path loss in decibels
+        (exponent) is the path loss exponent
+        (distance) is the distance between the transmitter and the receiver (meters)
+        and (constant) is a constant which accounts for system losses."""    
+        #pathloss = 10 * exponent * math.log10(distance) + constant
+        
+    @classmethod
+    def free_space_path_loss(self, sta):
+        """Formula: Free Space Path Loss
+        (distance) is the distance between the transmitter and the receiver (meters)
+        (frequency) signal frequency transmited(Hertz)
+        (constant) speed of light in a vacuum (metres per second)."""  
+        sta = str(sta)
+        constant = 3 * 10**8  
+        frequency = self.freq[sta] * 10**9 # Using 10^9 to convert to Hz 
+        distance = 1
+        fspl = ((4 * math.pi * distance * frequency)/constant)**2
+        return fspl
     
     @classmethod    
     def set_bw(self, mode):
