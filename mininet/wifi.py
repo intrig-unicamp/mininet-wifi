@@ -197,8 +197,11 @@ class association( object ):
                 delay %.2fms" % (sta, wlan, bw, loss, latency, delay)) 
             #os.system('util/m %s tc qdisc replace dev %s-wlan0 root netem rate %.2fmbit latency %.2fms delay %.2fms' % (self.host, self.host, bandwidth, latency, delay))
             #self.host.cmd("tc qdisc replace dev %s-wlan0 root tbf rate %.2fmbit latency %.2fms burst 15k" % (self.host, rate, latency)) 
-            associate = self.doAssociation(mode, distance)
-            if associate == False:
+            associated = self.doAssociation(mode, distance)
+            isAssociated = station.isAssociated(self.host, 0)
+            if len(isAssociated) == 16 and associated == True:
+                mobility.handover(self.host)
+            elif associated == False:
                 mobility.handover(self.host)
             
     @classmethod    
@@ -277,8 +280,9 @@ class station ( object ):
         while(associated == '' or len(associated) == 11):
             self.host.sendCmd('ifconfig mp0 | grep -o \'TX b.*\' | cut -f2- -d\':\'')
             associated = self.host.waitOutput()
-        wifiParameters.frequency(self.host, interface)
-        wifiParameters.tx_power(self.host, interface)    
+        wifiParameters.get_frequency(self.host, interface)
+        wifiParameters.get_tx_power(self.host, interface)    
+        wifiParameters.get_rsi(self.host, interface)    
     
     @classmethod    
     def confirmAdhocAssociation(self, sta, interface, ssid):
@@ -287,18 +291,25 @@ class station ( object ):
         while(associated == '' or len(associated) == 0):
             self.host.sendCmd("iw dev %s scan ssid | grep %s" % (interface, ssid))
             associated = self.host.waitOutput()
-        wifiParameters.frequency(self.host, interface)
-        wifiParameters.tx_power(self.host, interface)
+        wifiParameters.get_frequency(self.host, interface)
+        wifiParameters.get_tx_power(self.host, interface)
+        wifiParameters.get_rsi(self.host, interface)   
     
     @classmethod    
     def confirmInfraAssociation(self, sta, iface):
         associated = ''
-        self.host = sta
         while(associated == '' or len(associated) == 16):
-            self.host.sendCmd("iw dev %s-wlan%s link" % (str(sta), iface))
-            associated = self.host.waitOutput()
-        wifiParameters.frequency(self.host, str(sta)+'-wlan%s' % iface)
-        wifiParameters.tx_power(self.host, str(sta)+'-wlan%s' % iface)
+            associated = self.isAssociated(sta, iface)
+        interface = str(sta)+'-wlan%s' % iface
+        wifiParameters.get_frequency(self.host, interface)
+        wifiParameters.get_tx_power(self.host, interface)
+        wifiParameters.get_rsi(self.host, interface)   
+            
+    @classmethod    
+    def isAssociated(self, sta, iface):
+        self.host = sta
+        self.host.sendCmd("iw dev %s-wlan%s link" % (str(sta), iface))
+        return self.host.waitOutput()
             
     @classmethod    
     def mode(self, sta, mode):
@@ -639,10 +650,11 @@ class mobility ( object ):
         for ap in accessPoint.apName:
             dst = str(ap)
             distance = float(self.getDistance(src, dst))
+            associated = station.isAssociated(host, 0)
             if distance < self.range(accessPoint.apMode[dst]):
                 host.pexec("iw dev %s-wlan0 connect %s" % (src, accessPoint.apSSID[dst]))
                 disassociate = False
-            if disassociate:
+            elif disassociate and len(associated) != 16:
                 host.pexec("iw dev %s-wlan0 disconnect" % (host))
             
     @classmethod   
@@ -671,7 +683,7 @@ class mobility ( object ):
         if self.DRAW:
             plt.ion()
             ax = plt.subplot(111)
-            line, = ax.plot(range(MAX_X), range(MAX_X), linestyle='', marker='.', ms=12, mfc='blue')
+            line, = ax.plot(range(mobility.MAX_X), range(mobility.MAX_X), linestyle='', marker='.', ms=12, mfc='blue')
                 
         np.random.seed(0xffff)
         
@@ -763,9 +775,19 @@ class wifiParameters ( object ):
     """
     freq = {}
     txpower = {}
+    rsi = {}
+    
     
     @classmethod
-    def frequency(self, sta, iface): 
+    def get_rsi(self, sta, iface): 
+        """
+            Get rsi info **in development**
+        """
+        self.rsi[str(sta)] = float(sta.cmd('iwconfig %s | grep -o \'Signal.*\' | cut -f2- -d\'=\' | cut -c1-4'
+                                            % iface)) 
+    
+    @classmethod
+    def get_frequency(self, sta, iface): 
         """
             Get frequency info **in development**
         """
@@ -773,7 +795,7 @@ class wifiParameters ( object ):
                                             % iface)) 
     
     @classmethod
-    def tx_power(self, sta, iface): 
+    def get_tx_power(self, sta, iface): 
         """
             Get tx_power info **in development**
         """
@@ -808,13 +830,56 @@ class wifiParameters ( object ):
         return bw
     
     @classmethod
+    def max_pathLoss(self, sta):
+        """used to calculate the range."""  
+        sta = str(sta)
+        gains = 6
+        losses = 6
+        fademargin = 12
+        maxpathloss = self.txpower[sta] - self.rsi[sta] + gains - losses - fademargin
+        return maxpathloss
+        
+    @classmethod
+    def friis_propagation_loss_model(self):   
+        """
+            power_r = Reception Power (W)
+            power_t = Transmission Power (W)
+            gain_r = Reception gain (unit-less)
+            gain_t = Transmission gain (unit-less)
+            wavelength = wavelength (m) => C/f => (m/s and Hz)
+            distance = (m)
+            systemLoss = system loss (unit-less)
+        """
+        frequency = 2412
+        power_t = 20
+        gain_r = 6
+        gain_t = 6
+        systemLoss = 1.
+        wavelength = 299792458/frequency
+        power_r = (power_t * gain_t * gain_r * math.pow(wavelength,2)) / \
+                        math.pow((4 * math.pi * distance),2) * systemLoss
+        return power_r
+        
+    @classmethod
     def pathLoss(self, exponent):
         """(pathloss) is the path loss in decibels
         (exponent) is the path loss exponent
         (distance) is the distance between the transmitter and the receiver (meters)
         and (constant) is a constant which accounts for system losses."""    
         #pathloss = 10 * exponent * math.log10(distance) + constant
-        
+    
+    @classmethod
+    def free_space_loss(self, sta):
+        """Formula: Free Space Loss
+        (distance) is the distance between the transmitter and the receiver (km)
+        (frequency) signal frequency transmited(MegaHertz)."""  
+        sta = str(sta)
+        frequency = self.freq[sta]
+        distance=10
+        #32,44 is a constant and its value depends on the units for distance and frequency
+        fsl = 32,44 - 20 * math.log10(distance) + 20 * math.log10(frequency) #fsl in dB
+        return float('%.1f' % fsl)
+    
     @classmethod
     def free_space_path_loss(self, sta):
         """Formula: Free Space Path Loss
