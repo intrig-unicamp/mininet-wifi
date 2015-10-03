@@ -301,7 +301,7 @@ class Mininet( object ):
         else:
             self.mode = "g"
                 
-        wifi = ("%s" % params.pop('wifi', {}))
+        wifi = ("%s" % params.pop('wlans', {}))
         if(wifi!="{}"):        
             module.wifiRadios = module.wifiRadios + int(wifi)
             for n in range(int(wifi)):

@@ -16,7 +16,7 @@ def topology():
     net = Mininet( controller=Controller, link=TCLink, switch=OVSKernelSwitch )
 
     print "*** Creating nodes"
-    sta1 = net.addStation( 'sta1', wifi=3 ) # 3 wlan added
+    sta1 = net.addStation( 'sta1', wlans=3 ) # 3 wlan added
     sta2 = net.addStation( 'sta2' ) # 1 wlan added
     ap1 = net.addBaseStation( 'ap1', ssid="ssid_1", mode="g", channel="5" ) # 1 wlan added
     c0 = net.addController('c0', controller=Controller)
