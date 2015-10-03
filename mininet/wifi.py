@@ -1,5 +1,5 @@
 """
-wifi setups for Mininet-WiFi.
+wifi setups to Mininet-WiFi.
 
 author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
 
@@ -179,30 +179,26 @@ class association( object ):
         for wlan in range(int(station.ifaceToAssociate[sta])+1):
             station.mode(str(sta), mode)
             seconds = 3
-            self.src = str(sta)
             try:
                 """Based on RandomPropagationDelayModel (ns3)"""
-                seconds = abs(mobility.speed[self.src])
+                seconds = abs(mobility.speed[sta])
             except:
                 pass
-            self.host = sta
             latency = wifiParameters.latency(distance)
             loss = wifiParameters.loss(distance)
             delay = wifiParameters.delay(distance, seconds)
             bw = wifiParameters.bw(distance, mode)  
-            self.host.pexec("tc qdisc replace dev %s-wlan%s \
+            sta.pexec("tc qdisc replace dev %s-wlan%s \
                 root netem rate %.2fmbit \
                 loss %.1f%% \
                 latency %.2fms \
                 delay %.2fms" % (sta, wlan, bw, loss, latency, delay)) 
             #os.system('util/m %s tc qdisc replace dev %s-wlan0 root netem rate %.2fmbit latency %.2fms delay %.2fms' % (self.host, self.host, bandwidth, latency, delay))
             #self.host.cmd("tc qdisc replace dev %s-wlan0 root tbf rate %.2fmbit latency %.2fms burst 15k" % (self.host, rate, latency)) 
-            associated = self.doAssociation(mode, distance)
-            isAssociated = station.isAssociated(self.host, 0)
-            if len(isAssociated) == 16 and associated == True:
-                mobility.handover(self.host)
-            elif associated == False:
-                mobility.handover(self.host)
+            associated = self.doAssociation(mode, distance)            
+            isAssociated = station.isAssociated(sta, wlan)
+            if len(isAssociated[0]) == 15 and associated == True or associated == False:
+                mobility.handover(sta)
             
     @classmethod    
     def doAssociation(self, mode, distance):
@@ -276,40 +272,36 @@ class station ( object ):
     @classmethod    
     def confirmMeshAssociation(self, sta, interface):
         associated = ''
-        self.host = sta
         while(associated == '' or len(associated) == 11):
-            self.host.sendCmd('ifconfig mp0 | grep -o \'TX b.*\' | cut -f2- -d\':\'')
-            associated = self.host.waitOutput()
-        wifiParameters.get_frequency(self.host, interface)
-        wifiParameters.get_tx_power(self.host, interface)    
-        wifiParameters.get_rsi(self.host, interface)    
+            sta.sendCmd('ifconfig mp0 | grep -o \'TX b.*\' | cut -f2- -d\':\'')
+            associated = sta.waitOutput()
+        wifiParameters.get_frequency(sta, interface)
+        wifiParameters.get_tx_power(sta, interface)    
+        wifiParameters.get_rsi(sta, interface)    
     
     @classmethod    
     def confirmAdhocAssociation(self, sta, interface, ssid):
         associated = ''
-        self.host = sta
-        while(associated == '' or len(associated) == 0):
-            self.host.sendCmd("iw dev %s scan ssid | grep %s" % (interface, ssid))
-            associated = self.host.waitOutput()
-        wifiParameters.get_frequency(self.host, interface)
-        wifiParameters.get_tx_power(self.host, interface)
-        wifiParameters.get_rsi(self.host, interface)   
+        while(associated == '' or associated[0] == ''):
+            associated = sta.pexec("iw dev %s scan ssid | grep %s" % (interface, ssid))
+        wifiParameters.get_frequency(sta, interface)
+        wifiParameters.get_tx_power(sta, interface)
+        wifiParameters.get_rsi(sta, interface)   
     
     @classmethod    
     def confirmInfraAssociation(self, sta, iface):
         associated = ''
-        while(associated == '' or len(associated) == 16):
+        while(associated == '' or len(associated[0]) == 15):
             associated = self.isAssociated(sta, iface)
         interface = str(sta)+'-wlan%s' % iface
-        wifiParameters.get_frequency(self.host, interface)
-        wifiParameters.get_tx_power(self.host, interface)
-        wifiParameters.get_rsi(self.host, interface)   
+        wifiParameters.get_frequency(sta, interface)
+        wifiParameters.get_tx_power(sta, interface)
+        wifiParameters.get_rsi(sta, interface)   
             
     @classmethod    
     def isAssociated(self, sta, iface):
-        self.host = sta
-        self.host.sendCmd("iw dev %s-wlan%s link" % (str(sta), iface))
-        return self.host.waitOutput()
+        associated = sta.pexec("iw dev %s-wlan%s link" % (sta, iface))
+        return associated
             
     @classmethod    
     def mode(self, sta, mode):
@@ -318,16 +310,15 @@ class station ( object ):
     @classmethod    
     def associate(self, sta, ssid):
         """
-            Station Associate to an Access Point
+            Associate to an Access Point
         """ 
         try:
             self.ifaceToAssociate[sta] += 1
         except:    
             self.ifaceToAssociate[sta] = 0
         iface = self.ifaceToAssociate[sta]
-        self.host = sta
-        self.host.cmd("iw dev %s-wlan%s connect %s" % (sta, iface, ssid))
-        self.confirmInfraAssociation(self.host, iface)
+        sta.cmd("iw dev %s-wlan%s connect %s" % (sta, iface, ssid))
+        self.confirmInfraAssociation(sta, iface)
           
     @classmethod    
     def adhoc(self, sta, ssid=None, mode=None, **params):
@@ -477,15 +468,16 @@ class mobility ( object ):
     nodePosition = {}      
     nodesPlotted = []
     plotGraph = False
-    no_moving = True
     d = ''
     s = ''
     plotap = {}
     plotsta = {}
+    plottxt = {}
     cancelPlot = False
     MAX_X = 50
     MAX_Y = 50
     DRAW = False
+    seed = 10
     
     @classmethod 
     def closePlot(self):
@@ -531,78 +523,49 @@ class mobility ( object ):
         plt.ion()
         ax = plt.subplot(111)
         
-        if self.no_moving:  
-            if 'ap' in str(dst) and str(dst) not in self.nodesPlotted:
-                self.plotap[str(dst)], = ax.plot(range(MAX_X), range(MAX_Y), linestyle='', marker='.', ms=12, mfc='blue')
-                ax.add_patch(
-                    patches.Circle((pos_dst[0], pos_dst[1]),
-                    self.range(accessPoint.apMode[str(dst)]), fill=True,  alpha=0.1
-                    )
-                )
-                self.plotap[str(dst)].set_data(pos_dst[0],pos_dst[1])
-                self.nodesPlotted.append(str(dst))
-                plt.text(int(pos_dst[0]), int(pos_dst[1]), str(dst))
-                
-            elif 'ap' in str(src) and str(src) not in self.nodesPlotted:
-                self.plotap[str(src)], = ax.plot(range(MAX_X), range(MAX_Y), linestyle='', marker='.', ms=12, mfc='blue')
-                ax.add_patch(
-                    patches.Circle((pos_src[0], pos_src[1]),
-                    self.range(accessPoint.apMode[str(src)]), fill=True,  alpha=0.1
-                    )
-                )
-                self.plotap[str(src)].set_data(pos_src[0],pos_src[1])
-                self.nodesPlotted.append(str(src))
-                plt.text(int(pos_src[0]), int(pos_src[1]), str(src)) 
-                
-            if 'sta' in str(dst) and str(dst) not in self.nodesPlotted:
-                self.plotsta[str(dst)], = ax.plot(range(MAX_X), range(MAX_Y), linestyle='', marker='.', ms=12, mfc='blue')
-                self.nodesPlotted.append(str(dst))
-                self.plotsta[str(dst)].set_data(pos_dst[0],pos_dst[1])
-                plt.text(int(pos_dst[0]), int(pos_dst[1]), str(dst))
+        if 'sta' in str(dst) and str(dst) not in self.nodesPlotted:
+            node = str(dst)
+            self.plottxt[node] = ax.annotate(node, xy=(pos_dst[0],pos_dst[1]))
+            self.plotsta[node], = ax.plot(range(MAX_X), range(MAX_Y), linestyle='', marker='.', ms=12, mfc='blue')
+            self.nodesPlotted.append(node)
+            self.plotsta[node].set_data(pos_dst[0],pos_dst[1])
+        elif 'sta' in str(src) and str(src) not in self.nodesPlotted:
+            node = str(src)
+            self.plottxt[node] = ax.annotate(node, xy=(pos_src[0],pos_src[1]))
+            self.plotsta[node], = ax.plot(range(MAX_X), range(MAX_Y), linestyle='', marker='.', ms=12, mfc='blue')
+            self.nodesPlotted.append(node)
+            self.plotsta[node].set_data(pos_src[0],pos_src[1])
+        
+        if 'sta' in str(src):
+            self.plotsta[str(src)].set_data(pos_src[0],pos_src[1])
+            self.plottxt[str(src)].xytext = (pos_src[0],pos_src[1])
+        elif 'sta' in str(dst):
+            self.plotsta[str(dst)].set_data(pos_dst[0],pos_dst[1])
+            self.plottxt[str(dst)].xytext = (pos_dst[0],pos_dst[1])
+        
+        if 'ap' in str(dst) and str(dst) not in self.nodesPlotted:
+            ap = str(dst)
+            pos_0 = pos_dst[0]
+            pos_1 = pos_dst[1]
+        elif 'ap' in str(src) and str(src) not in self.nodesPlotted:
+            ap = str(src)
+            pos_0 = pos_src[0]
+            pos_1 = pos_src[1]
             
-            if 'sta' in str(src) and str(src) not in self.nodesPlotted:
-                self.plotsta[str(src)], = ax.plot(range(MAX_X), range(MAX_Y), linestyle='', marker='.', ms=12, mfc='blue')
-                self.nodesPlotted.append(str(src))
-                self.plotsta[str(src)].set_data(pos_src[0],pos_src[1])
-                plt.text(int(pos_src[0]), int(pos_src[1]), str(src)) 
-            plt.title("Mininet-WiFi Graph")
-            plt.show()
-        else:
-            if 'sta' in str(src) and str(src) not in self.nodesPlotted:
-                self.plotsta[str(src)], = ax.plot(range(MAX_X), range(MAX_Y), linestyle='', marker='.', ms=12, mfc='blue')
-                self.nodesPlotted.append(str(src))
-            if 'sta' in str(dst) and str(dst) not in self.nodesPlotted:
-                self.plotsta[str(dst)], = ax.plot(range(MAX_X), range(MAX_Y), linestyle='', marker='.', ms=12, mfc='blue')
-                self.nodesPlotted.append(str(dst))
+        if 'ap' in str(src) and str(src) not in self.nodesPlotted or 'ap' in str(dst) and str(dst) not in self.nodesPlotted:
+            self.plotap[ap], = ax.plot(range(MAX_X), range(MAX_Y), linestyle='', marker='.', ms=12, mfc='red')
             
-            if 'ap' in str(dst) and str(dst) not in self.nodesPlotted:
-                self.plotap[str(dst)], = ax.plot(range(MAX_X), range(MAX_Y), linestyle='', marker='.', ms=12, mfc='blue')
-                
-                ax.add_patch(
-                    patches.Circle((pos_dst[0], pos_dst[1]),
-                    self.range(accessPoint.apMode[str(dst)]), fill=True,  alpha=0.1
-                    )
+            ax.add_patch(
+                patches.Circle((pos_0, pos_1),
+                self.range(accessPoint.apMode[ap]), fill=True,  alpha=0.1
                 )
-                self.plotap[str(dst)].set_data(pos_dst[0],pos_dst[1])
-                self.nodesPlotted.append(str(dst))
-                plt.text(int(pos_dst[0]), int(pos_dst[1]), str(dst))
-                 
-            elif 'ap' in str(src) and str(src) not in self.nodesPlotted:
-                self.plotap[str(src)], = ax.plot(range(MAX_X), range(MAX_Y), linestyle='', marker='.', ms=12, mfc='blue')
-                ax.add_patch(
-                    patches.Circle((pos_src[0], pos_src[1]),
-                    self.range(accessPoint.apMode[str(src)]), fill=True,  alpha=0.1
-                    )
-                )
-                self.plotap[str(src)].set_data(pos_src[0],pos_src[1])
-                self.nodesPlotted.append(str(src))
-                plt.text(int(pos_src[0]), int(pos_src[1]), str(src))                 
-            if 'sta' in str(src):
-                self.plotsta[str(src)].set_data(pos_src[0],pos_src[1])
-            if 'sta' in str(dst):
-                self.plotsta[str(dst)].set_data(pos_dst[0],pos_dst[1])
-            plt.title("Mininet-WiFi Graph")
-            plt.draw()            
+            )
+            self.plotap[ap].set_data(pos_0, pos_1)
+            self.nodesPlotted.append(ap)
+            plt.text(int(pos_0), int(pos_1), ap)
+        
+        plt.title("Mininet-WiFi Graph")
+        plt.draw()            
         
     @classmethod 
     def getDistance(self, src, dst):
@@ -644,18 +607,18 @@ class mobility ( object ):
         \nPosition Z: %.2f\n" % (self.node, float(self.pos_x), float(self.pos_y), float(self.pos_z))
         
     @classmethod   
-    def handover(self, host):
-        src = str(host)
+    def handover(self, sta):
         disassociate = True
         for ap in accessPoint.apName:
-            dst = str(ap)
-            distance = float(self.getDistance(src, dst))
-            associated = station.isAssociated(host, 0)
-            if distance < self.range(accessPoint.apMode[dst]):
-                host.pexec("iw dev %s-wlan0 connect %s" % (src, accessPoint.apSSID[dst]))
-                disassociate = False
-            elif disassociate and len(associated) != 16:
-                host.pexec("iw dev %s-wlan0 disconnect" % (host))
+            distance = float(self.getDistance(sta, ap))
+            for wlan in range(int(station.ifaceToAssociate[sta])+1):
+                associated = station.isAssociated(sta, wlan)
+                if distance < self.range(accessPoint.apMode[ap]):
+                    sta.pexec("iw dev %s-wlan%s connect %s" % (sta, wlan, accessPoint.apSSID[ap]))
+                    station.associatedAP[str(sta)] = ap
+                    disassociate = False
+                elif disassociate and len(associated[0]) != 15:
+                    sta.pexec("iw dev %s-wlan%s disconnect" % (sta, wlan))                    
             
     @classmethod   
     def models(self, wifiNodes, associatedAP, startPosition, stationName, modelName,
@@ -684,8 +647,12 @@ class mobility ( object ):
             plt.ion()
             ax = plt.subplot(111)
             line, = ax.plot(range(mobility.MAX_X), range(mobility.MAX_X), linestyle='', marker='.', ms=12, mfc='blue')
-                
-        np.random.seed(0xffff)
+            self.plottxt = {}
+            for node in wifiNodes:
+                if 'sta' in str(node):
+                    self.plottxt[str(node)] = ax.annotate(str(node), xy=(0, 0))
+                               
+        np.random.seed(self.seed)
         
         if(self.modelName=='RandomWalk'):
             ## Random Walk model
@@ -743,6 +710,7 @@ class mobility ( object ):
                                 self.position.append(xy[n][0])
                                 self.position.append(xy[n][1])
                                 self.position.append(0)
+                                self.plottxt[wifiNode].xytext = (xy[n][0], xy[n][1])
                                 self.nodePosition[wifiNode] = self.position
                                 distance = self.getDistance(src = wifiNode, dst = associatedAP[wifiNode])
                                 association.setInfraParameters(wifiNodes[n], station.staMode[wifiNode], distance)
@@ -783,7 +751,7 @@ class wifiParameters ( object ):
         """
             Get rsi info **in development**
         """
-        self.rsi[str(sta)] = float(sta.cmd('iwconfig %s | grep -o \'Signal.*\' | cut -f2- -d\'=\' | cut -c1-4'
+        self.rsi[str(sta)] = (sta.cmd('iwconfig %s | grep -o \'Signal.*\' | cut -f2- -d\'=\' | cut -c1-4'
                                             % iface)) 
     
     @classmethod
@@ -791,8 +759,10 @@ class wifiParameters ( object ):
         """
             Get frequency info **in development**
         """
-        self.freq[str(sta)] = float(sta.cmd('iwconfig %s | grep -o \'Frequency.*z\' | cut -f2- -d\':\' | cut -c1-5'
-                                            % iface)) 
+        freq = sta.cmd('iwconfig %s | grep -o \'Frequency.*z\' | cut -f2- -d\':\' | cut -c1-5'
+                                            % iface)
+        if freq!='':
+            self.freq[str(sta)] = float(freq) 
     
     @classmethod
     def get_tx_power(self, sta, iface): 

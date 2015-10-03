@@ -23,9 +23,6 @@ def topology():
     ap2 = net.addBaseStation( 'ap2', ssid= 'new-ssid2', mode= 'g', channel= '6', position='25,30,0' )
     c1 = net.addController( 'c1', controller=Controller )
 
-    """uncomment to plot graph"""
-    #net.plotGraph(max_x=100, max_y=100)
-
     print "*** Creating links"
     net.addLink(ap1, ap2)
     net.addLink(ap1, sta1)
@@ -36,6 +33,9 @@ def topology():
     c1.start()
     ap1.start( [c1] )
     ap2.start( [c1] )
+
+    """uncomment to plot graph"""
+    #net.plotGraph(max_x=100, max_y=100)
 
     net.startMobility(0)
     net.mobility('sta1', 'start', time=1, position='10.0,45.0,0.0')

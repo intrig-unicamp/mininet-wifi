@@ -115,7 +115,7 @@ from mininet.wifi import checkNM, module, accessPoint, station, wifiParameters, 
 from __builtin__ import True
 
 # Mininet version: should be consistent with README and LICENSE
-VERSION = "1.4"
+VERSION = "1.4r1"
 
 class Mininet( object ):
     "Network emulation with hosts spawned in network namespaces."
@@ -166,6 +166,7 @@ class Mininet( object ):
         self.listenPort = listenPort
         self.waitConn = waitConnected       
         self.meshIP = 0    
+        self.sta_inMov = []
         
         self.newapif = []
         self.firstAssociation = True
@@ -282,7 +283,7 @@ class Mininet( object ):
             mobility.nodePosition[name] = position
         else:
             self.startPosition[name] = 0
-            mobility.nodePosition[name] = 0
+            mobility.nodePosition[name] = 0            
         
         channel = ("%s" % params.pop('channel', {}))
         if(channel!="{}"): 
@@ -858,15 +859,19 @@ class Mininet( object ):
         if self.waitConn:
             self.waitConnected()
 
+    def seed( self, seed ):
+        "Seed"
+        mobility.seed = seed
+
     def stop( self ):
         "Stop plotting"
         mobility.cancelPlot = True
         mobility.plotGraph = False
         mobility.DRAW = False
-        try:
-            mobility.closePlot()
-        except:
-            pass
+        #try:
+         #   mobility.closePlot()
+        #except:
+         #   pass
         
         "Stop the controller(s), switches and hosts"
         info( '*** Stopping %i controllers\n' % len( self.controllers ) )
@@ -1203,6 +1208,7 @@ class Mininet( object ):
             if(self.stage == 'start'):
                 self.position = kwargs['position']
                 self.startPosition[args[0]] = self.position.split(',')    
+                self.sta_inMov.append(self.node)
         if 'time' in kwargs:
             self.time = kwargs['time']
         if 'speed' in kwargs:
@@ -1230,8 +1236,6 @@ class Mininet( object ):
         if 'max_v' in kwargs:
             self.max_v = kwargs['max_v']
      
-        mobility.no_moving = False
-        
         if self.model != '':
             wifiNodes = self.wifiNodes
             associatedAP = station.associatedAP
@@ -1260,19 +1264,25 @@ class Mininet( object ):
         t_start = time.time() + self.start_time
         currentTime = time.time()
         i=1
+            
         try:
             while time.time() < t_end and time.time() > t_start:
                 if time.time() - currentTime >= i:
                     for n in self.hosts:
                         node = str(n)
                         if 'sta' in node:
-                            if time.time() - currentTime >= self.startTime[node] and time.time() - currentTime <= self.endTime[node]:
-                                self.startPosition[node][0] = float(self.startPosition[node][0]) + float(self.moveSta[node][0])
-                                self.startPosition[node][1] = float(self.startPosition[node][1]) + float(self.moveSta[node][1])
-                                self.startPosition[node][2] = float(self.startPosition[node][2]) + float(self.moveSta[node][2])
-                                mobility.nodePosition[node] = self.startPosition[node]
-                                distance = mobility.getDistance(node, station.associatedAP[node])
-                                association.setInfraParameters(n, self.mode, distance)
+                            if node in self.sta_inMov:
+                                if time.time() - currentTime >= self.startTime[node] and time.time() - currentTime <= self.endTime[node]:
+                                    self.startPosition[node][0] = float(self.startPosition[node][0]) + float(self.moveSta[node][0])
+                                    self.startPosition[node][1] = float(self.startPosition[node][1]) + float(self.moveSta[node][1])
+                                    self.startPosition[node][2] = float(self.startPosition[node][2]) + float(self.moveSta[node][2])
+                            else:
+                                self.startPosition[node][0] = float(self.startPosition[node][0])
+                                self.startPosition[node][1] = float(self.startPosition[node][1])
+                                self.startPosition[node][2] = float(self.startPosition[node][2])
+                            mobility.nodePosition[node] = self.startPosition[node]
+                            distance = mobility.getDistance(node, station.associatedAP[node])
+                            association.setInfraParameters(n, self.mode, distance)
                     i+=1
         except:
             print 'The mobility process stopped!'
@@ -1283,7 +1293,6 @@ class Mininet( object ):
             mobility.MAX_X = kwargs['max_x']
         if 'max_y' in kwargs:
             mobility.MAX_Y = kwargs['max_y']
-       
         mobility.plotGraph = True
         
     #def noiseInfo(self, src):
