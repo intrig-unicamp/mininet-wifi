@@ -586,7 +586,12 @@ class Node( object ):
         #Necessary if the mac address has changed
         host = str(self)
         if(mac!=None and module.isWiFi==True and 'sta' in host and station.doAssociation[host] == True):
-            station.associate(self, association.ssid[station.associatedAP[host]])
+            sta = self
+            ssid = association.ssid[station.associatedAP[host]]
+            ap = station.associatedAP[host]
+            wlan = 0
+            station.printCon = False
+            station.associate(sta, ssid, wlan, ap)
             #self.cmd("iw dev %s-wlan0 connect %s" % (self, association.ssid[station.associatedAP[str(host)]]))
         
         # This should be examined

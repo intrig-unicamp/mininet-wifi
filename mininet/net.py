@@ -115,7 +115,7 @@ from mininet.wifi import checkNM, module, accessPoint, station, wifiParameters, 
 from __builtin__ import True
 
 # Mininet version: should be consistent with README and LICENSE
-VERSION = "1.4r1"
+VERSION = "1.5"
 
 class Mininet( object ):
     "Network emulation with hosts spawned in network namespaces."
@@ -588,6 +588,37 @@ class Mininet( object ):
                
         checkNM.APfile(cmd, interface) 
         
+    
+    """    
+    def wds( self, ap1, ap2, cls=None, **params ):
+        
+        if('ap' in str(ap1) and 'ap' in str(ap2)):
+            
+            if self.firstAssociation:
+                module.startEnvironment()
+                self.link = TCLink
+                self.newapif = getWlan.virtual()  #Get Virtual Wlans      
+                self.firstAssociation = False
+                station.assingIface(self.hosts)
+                
+            node1 = ap1 if not isinstance( ap1, basestring ) else self[ ap1 ]
+            node2 = ap2 if not isinstance( ap2, basestring ) else self[ ap2 ]
+        
+            ap1 = str(node1)
+            self.apexists.append(ap1) 
+            ap2 = str(node2)
+            self.apexists.append(ap2)
+            
+            int1 = self.newapif[module.virtualWlan.index(ap1)]
+            int2 = self.newapif[module.virtualWlan.index(ap2)]
+            accessPoint.wds(ap1, int1, ap2, int2)
+            
+            #configure AP
+            self.configureAP(ap1)
+            self.configureAP(ap2)
+                
+            self.bw = wifiParameters.set_bw(self.mode)
+    """
    
     def addLink( self, node1, node2, port1=None, port2=None, 
                  cls=None, **params ):
@@ -602,6 +633,13 @@ class Mininet( object ):
                 self.newapif = getWlan.virtual()  #Get Virtual Wlans      
                 self.firstAssociation = False
                 station.assingIface(self.hosts)
+                
+                #Useful when stations have multiple interfaces
+                for x in range(len(self.stationName)):
+                    station.ifaceAssociatedToAp.append([])
+                    for z in range(0,station.wlans[self.stationName[x]]):
+                        station.ifaceAssociatedToAp[x].append(z)
+                    station.indexStaIface[self.stationName[x]] = x
                 
             node1 = node1 if not isinstance( node1, basestring ) else self[ node1 ]
             node2 = node2 if not isinstance( node2, basestring ) else self[ node2 ]
@@ -651,9 +689,14 @@ class Mininet( object ):
         
                 station.doAssociation[str(sta)] = doAssociation
                 if(doAssociation):
+                    ssid = association.ssid[ap]
+                    try:
+                        wlan = station.ifaceToAssociate[sta]
+                    except:
+                        wlan = 0
                     station.associatedAP[str(sta)] = ap
-                    station.associate(sta, association.ssid[ap])
-                    association.setInfraParameters(sta, accessPoint.apMode[ap], distance)
+                    station.associate(sta, ssid, wlan, ap)
+                    association.setInfraParameters(sta, ap, accessPoint.apMode[ap], distance, station.ifaceToAssociate[sta])
                     
             return link
         
@@ -675,6 +718,13 @@ class Mininet( object ):
                     self.newapif = getWlan.virtual()  #Get Virtual Wlans      
                     station.assingIface(self.hosts)
                     self.firstAssociation = False
+                    
+                    #Useful when stations have multiple interfaces
+                    for x in range(len(self.stationName)):
+                        station.ifaceAssociatedToAp.append([])
+                        for z in range(0,station.wlans[self.stationName[x]]):
+                            station.ifaceAssociatedToAp[x].append(z)
+                        station.indexStaIface[self.stationName[x]] = x
                     
                 listap = []
                 if str(node1) not in self.apexists:
@@ -731,7 +781,7 @@ class Mininet( object ):
         """Build mininet from a topology object
            At the end of this function, everything should be connected
            and up."""
-
+        station.printCon = False
         # Possibly we should clean up here and/or validate
         # the topo
         if self.cleanup:
@@ -1264,25 +1314,33 @@ class Mininet( object ):
         t_start = time.time() + self.start_time
         currentTime = time.time()
         i=1
-            
+        
+        #Useful when stations have multiple interfaces
+        for x in range(len(self.stationName)):
+            station.ifaceAssociatedToAp.append([])
+            for z in range(0,station.wlans[self.stationName[x]]):
+                station.ifaceAssociatedToAp[x].append(z)
+            station.indexStaIface[self.stationName[x]] = x
+        
         try:
             while time.time() < t_end and time.time() > t_start:
                 if time.time() - currentTime >= i:
                     for n in self.hosts:
-                        node = str(n)
-                        if 'sta' in node:
-                            if node in self.sta_inMov:
-                                if time.time() - currentTime >= self.startTime[node] and time.time() - currentTime <= self.endTime[node]:
-                                    self.startPosition[node][0] = float(self.startPosition[node][0]) + float(self.moveSta[node][0])
-                                    self.startPosition[node][1] = float(self.startPosition[node][1]) + float(self.moveSta[node][1])
-                                    self.startPosition[node][2] = float(self.startPosition[node][2]) + float(self.moveSta[node][2])
+                        sta = str(n)
+                        if 'sta' in sta:
+                            if sta in self.sta_inMov:
+                                if time.time() - currentTime >= self.startTime[sta] and time.time() - currentTime <= self.endTime[sta]:
+                                    self.startPosition[sta][0] = float(self.startPosition[sta][0]) + float(self.moveSta[sta][0])
+                                    self.startPosition[sta][1] = float(self.startPosition[sta][1]) + float(self.moveSta[sta][1])
+                                    self.startPosition[sta][2] = float(self.startPosition[sta][2]) + float(self.moveSta[sta][2])
                             else:
-                                self.startPosition[node][0] = float(self.startPosition[node][0])
-                                self.startPosition[node][1] = float(self.startPosition[node][1])
-                                self.startPosition[node][2] = float(self.startPosition[node][2])
-                            mobility.nodePosition[node] = self.startPosition[node]
-                            distance = mobility.getDistance(node, station.associatedAP[node])
-                            association.setInfraParameters(n, self.mode, distance)
+                                self.startPosition[sta][0] = float(self.startPosition[sta][0])
+                                self.startPosition[sta][1] = float(self.startPosition[sta][1])
+                                self.startPosition[sta][2] = float(self.startPosition[sta][2])
+                            mobility.nodePosition[sta] = self.startPosition[sta]
+                            ap = station.associatedAP[sta]
+                            distance = mobility.getDistance(sta, ap)
+                            association.setInfraParameters(n, ap, self.mode, distance, '')
                     i+=1
         except:
             print 'The mobility process stopped!'

@@ -172,33 +172,45 @@ class association( object ):
 
     
     @classmethod    
-    def setInfraParameters(self, sta, mode, distance):
+    def parameters(self, sta, ap, mode, distance, wlan):
+        """
+            Wifi Parameters   
+        """
+        station.mode(str(sta), mode)
+        seconds = 3
+        try:
+            """Based on RandomPropagationDelayModel (ns3)"""
+            seconds = abs(mobility.speed[sta])
+        except:
+            pass
+        
+        latency = wifiParameters.latency(distance)
+        loss = wifiParameters.loss(distance)
+        delay = wifiParameters.delay(distance, seconds)
+        bw = wifiParameters.bw(distance, mode)  
+        
+        sta.pexec("tc qdisc replace dev %s-wlan%s \
+            root netem rate %.2fmbit \
+            loss %.1f%% \
+            latency %.2fms \
+            delay %.2fms" % (sta, wlan, bw, loss, latency, delay)) 
+        #os.system('util/m %s tc qdisc replace dev %s-wlan0 root netem rate %.2fmbit latency %.2fms delay %.2fms' % (self.host, self.host, bandwidth, latency, delay))
+        #self.host.cmd("tc qdisc replace dev %s-wlan0 root tbf rate %.2fmbit latency %.2fms burst 15k" % (self.host, rate, latency)) 
+        associated = self.doAssociation(mode, distance)            
+        isAssociated = station.isAssociated(sta, wlan)
+        if len(isAssociated[0]) == 15 and associated == True or associated == False:
+            mobility.handover(sta, ap, wlan, distance)
+                
+    @classmethod    
+    def setInfraParameters(self, sta, ap, mode, distance, wlan):
         """
             Set wifi Infrastrucure Parameters. Have to use models for loss, latency, bw...    
         """
-        for wlan in range(int(station.ifaceToAssociate[sta])+1):
-            station.mode(str(sta), mode)
-            seconds = 3
-            try:
-                """Based on RandomPropagationDelayModel (ns3)"""
-                seconds = abs(mobility.speed[sta])
-            except:
-                pass
-            latency = wifiParameters.latency(distance)
-            loss = wifiParameters.loss(distance)
-            delay = wifiParameters.delay(distance, seconds)
-            bw = wifiParameters.bw(distance, mode)  
-            sta.pexec("tc qdisc replace dev %s-wlan%s \
-                root netem rate %.2fmbit \
-                loss %.1f%% \
-                latency %.2fms \
-                delay %.2fms" % (sta, wlan, bw, loss, latency, delay)) 
-            #os.system('util/m %s tc qdisc replace dev %s-wlan0 root netem rate %.2fmbit latency %.2fms delay %.2fms' % (self.host, self.host, bandwidth, latency, delay))
-            #self.host.cmd("tc qdisc replace dev %s-wlan0 root tbf rate %.2fmbit latency %.2fms burst 15k" % (self.host, rate, latency)) 
-            associated = self.doAssociation(mode, distance)            
-            isAssociated = station.isAssociated(sta, wlan)
-            if len(isAssociated[0]) == 15 and associated == True or associated == False:
-                mobility.handover(sta)
+        if wlan != '':
+            self.parameters(sta, ap, mode, distance, wlan)
+        else:
+            for wlan in range(int(station.wlans[str(sta)])):
+                self.parameters(sta, ap, mode, distance, wlan)
             
     @classmethod    
     def doAssociation(self, mode, distance):
@@ -246,9 +258,11 @@ class station ( object ):
     ifaceToAssociate = {}
     wlans = {}
     firstimelist = True
-    
+    ifaceAssociatedToAp = []
+    indexStaIface = {}
     apIface = []
-    nextIface = {}    
+    nextIface = {}  
+    printCon = True  
     
     @classmethod    
     def ifconfig(self, sta):
@@ -289,8 +303,10 @@ class station ( object ):
         wifiParameters.get_rsi(sta, interface)   
     
     @classmethod    
-    def confirmInfraAssociation(self, sta, iface):
+    def confirmInfraAssociation(self, sta, iface, ap):
         associated = ''
+        if self.printCon:
+            print "Associating %s to %s" % (sta, ap)
         while(associated == '' or len(associated[0]) == 15):
             associated = self.isAssociated(sta, iface)
         interface = str(sta)+'-wlan%s' % iface
@@ -308,7 +324,7 @@ class station ( object ):
         self.staMode[sta] = mode
     
     @classmethod    
-    def associate(self, sta, ssid):
+    def associate(self, sta, ssid, wlan, ap):
         """
             Associate to an Access Point
         """ 
@@ -318,7 +334,8 @@ class station ( object ):
             self.ifaceToAssociate[sta] = 0
         iface = self.ifaceToAssociate[sta]
         sta.cmd("iw dev %s-wlan%s connect %s" % (sta, iface, ssid))
-        self.confirmInfraAssociation(sta, iface)
+        station.ifaceAssociatedToAp[station.indexStaIface[str(sta)]][wlan] = ap
+        self.confirmInfraAssociation(sta, iface, ap)
           
     @classmethod    
     def adhoc(self, sta, ssid=None, mode=None, **params):
@@ -368,10 +385,23 @@ class accessPoint ( object ):
     apChannel = {}
     apMode = {}
     apName = []
-    apSSID = {}
-    apPhy = []
+    ssid = {}
     number = 0
     exists = False
+    
+    
+    @classmethod
+    def wds(self, ap1, int1, ap2, int2):
+        os.system('iw dev %s set 4addr off' % int1)
+        os.system('iw dev %s interface add wds.%s type managed 4addr on' % (int1, int1))
+        os.system('iw dev %s set 4addr off' % int2)
+        os.system('iw dev %s interface add wds.%s type managed 4addr on' % (int2, int2))
+        os.system('ifconfig wds.%s down' % int1)
+        os.system('ifconfig wds.%s down' % int2)
+        os.system('ip link set dev wds.wlan2 addr 02:00:00:00:00:00')
+        os.system('ip link set dev wds.wlan1 addr 02:00:00:00:01:00')
+        os.system('ifconfig wds.%s up' % int1)
+        os.system('ifconfig wds.%s up' % int2)
     
     @classmethod
     def start(self, ap, interface=None, ssid=None, mode=None, channel=None, 
@@ -382,7 +412,7 @@ class accessPoint ( object ):
         """
         self.exists = True
         self.apName.append(ap)
-        self.apSSID[str(ap)] = ssid
+        self.ssid[str(ap)] = ssid
         self.apMode[str(ap)] = mode
         self.cmd = ("echo \'")
         """General Configurations"""             
@@ -478,6 +508,7 @@ class mobility ( object ):
     MAX_Y = 50
     DRAW = False
     seed = 10
+    
     
     @classmethod 
     def closePlot(self):
@@ -607,18 +638,26 @@ class mobility ( object ):
         \nPosition Z: %.2f\n" % (self.node, float(self.pos_x), float(self.pos_y), float(self.pos_z))
         
     @classmethod   
-    def handover(self, sta):
+    def handover(self, sta, ap, wlan, distance):
         disassociate = True
-        for ap in accessPoint.apName:
-            distance = float(self.getDistance(sta, ap))
-            for wlan in range(int(station.ifaceToAssociate[sta])+1):
-                associated = station.isAssociated(sta, wlan)
-                if distance < self.range(accessPoint.apMode[ap]):
-                    sta.pexec("iw dev %s-wlan%s connect %s" % (sta, wlan, accessPoint.apSSID[ap]))
-                    station.associatedAP[str(sta)] = ap
-                    disassociate = False
-                elif disassociate and len(associated[0]) != 15:
-                    sta.pexec("iw dev %s-wlan%s disconnect" % (sta, wlan))                    
+        associated = station.isAssociated(sta, wlan)
+        
+        apalreadyconnected = False
+        for sublist in station.ifaceAssociatedToAp[station.indexStaIface[str(sta)]]:
+            if ap in str(sublist):
+                apalreadyconnected = True
+        
+        if distance < self.range(accessPoint.apMode[ap]):
+            if apalreadyconnected == False:
+                sta.pexec("iw dev %s-wlan%s connect %s" % (sta, wlan, accessPoint.ssid[ap]))
+                station.ifaceAssociatedToAp[station.indexStaIface[str(sta)]][wlan] = ap
+                station.associatedAP[str(sta)] = ap
+                disassociate = False
+        elif disassociate and len(associated[0]) != 15:
+            if apalreadyconnected == True:
+                sta.pexec("iw dev %s-wlan%s disconnect" % (sta, wlan))       
+                station.ifaceAssociatedToAp[station.indexStaIface[str(sta)]][wlan] = wlan  
+        
             
     @classmethod   
     def models(self, wifiNodes, associatedAP, startPosition, stationName, modelName,
@@ -712,8 +751,10 @@ class mobility ( object ):
                                 self.position.append(0)
                                 self.plottxt[wifiNode].xytext = (xy[n][0], xy[n][1])
                                 self.nodePosition[wifiNode] = self.position
-                                distance = self.getDistance(src = wifiNode, dst = associatedAP[wifiNode])
-                                association.setInfraParameters(wifiNodes[n], station.staMode[wifiNode], distance)
+                                for ap in accessPoint.apName:
+                                    sta = wifiNode
+                                    distance = self.getDistance(sta, ap)
+                                    association.setInfraParameters(wifiNodes[n], ap, station.staMode[sta], distance, '')
                         plt.title("Mininet-WiFi Graph")
                         plt.draw()
                     else:
@@ -731,12 +772,13 @@ class mobility ( object ):
                                 self.position.append(xy[n][1])
                                 self.position.append(0)
                                 self.nodePosition[wifiNode] = self.position
-                                distance = self.getDistance(src = wifiNode, dst = associatedAP[wifiNode])
-                                association.setInfraParameters(wifiNodes[n], station.staMode[wifiNode], distance)
+                                for ap in accessPoint.apName:
+                                    sta = wifiNode
+                                    distance = self.getDistance(wifiNode, ap)
+                                    association.setInfraParameters(wifiNodes[n], ap, station.staMode[sta], distance, '')
             except:
                 print "Graph Stopped!"  
-    
-    
+        
 class wifiParameters ( object ):
     """
         WiFi Parameters 
