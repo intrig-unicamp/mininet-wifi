@@ -651,7 +651,6 @@ class mobility ( object ):
             if apalreadyconnected == False:
                 sta.pexec("iw dev %s-wlan%s connect %s" % (sta, wlan, accessPoint.ssid[ap]))
                 station.ifaceAssociatedToAp[station.indexStaIface[str(sta)]][wlan] = ap
-                station.associatedAP[str(sta)] = ap
                 disassociate = False
         elif disassociate and len(associated[0]) != 15:
             if apalreadyconnected == True:

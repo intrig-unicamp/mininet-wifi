@@ -1338,9 +1338,9 @@ class Mininet( object ):
                                 self.startPosition[sta][1] = float(self.startPosition[sta][1])
                                 self.startPosition[sta][2] = float(self.startPosition[sta][2])
                             mobility.nodePosition[sta] = self.startPosition[sta]
-                            ap = station.associatedAP[sta]
-                            distance = mobility.getDistance(sta, ap)
-                            association.setInfraParameters(n, ap, self.mode, distance, '')
+                            for ap in accessPoint.apName:
+                                distance = mobility.getDistance(sta, ap)
+                                association.setInfraParameters(n, ap, self.mode, distance, '')
                     i+=1
         except:
             print 'The mobility process stopped!'
