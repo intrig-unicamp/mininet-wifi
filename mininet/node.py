@@ -580,20 +580,16 @@ class Node( object ):
         self.setParam( r, 'setIP', ip=ip )
         self.setParam( r, 'setDefaultRoute', defaultRoute=defaultRoute )
         
-        if station.firstimelist:
-            station.ifaceToAssociate = {}
-            station.firstimelist = False
         #Necessary if the mac address has changed
-        host = str(self)
-        if(mac!=None and module.isWiFi==True and 'sta' in host and station.doAssociation[host] == True):
+        sta = str(self)
+        if(mac!=None and module.isWiFi==True and 'sta' in sta and station.doAssociation[sta] == True):
             sta = self
-            ssid = association.ssid[station.associatedAP[host]]
-            ap = station.associatedAP[host]
-            wlan = 0
+            wlan = station.ifaceToAssociate[(sta)]
+            ap = station.ifaceAssociatedToAp[station.indexStaIface[str(sta)]][wlan]
+            ssid = association.ssid[ap]
             station.printCon = False
-            station.associate(sta, ssid, wlan, ap)
-            #self.cmd("iw dev %s-wlan0 connect %s" % (self, association.ssid[station.associatedAP[str(host)]]))
-        
+            station.cmd_associate(sta, ssid, wlan, ap)
+            
         # This should be examined
         self.cmd( 'ifconfig lo ' + lo )
         return r

@@ -32,7 +32,7 @@ def topology():
     c0.start()
     ap1.start( [c0] )
 
-    print "***Creating adhoc network"
+    print "***Addressing..."
     sta1.cmd('ifconfig sta1-wlan1 192.168.10.1')
     sta2.cmd('ifconfig sta2-wlan0 192.168.10.2')
 

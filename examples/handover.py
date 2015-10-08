@@ -38,10 +38,10 @@ def topology():
     #net.plotGraph(max_x=100, max_y=100)
 
     net.startMobility(0)
-    net.mobility('sta1', 'start', time=1, position='10.0,45.0,0.0')
-    net.mobility('sta2', 'start', time=2, position='10.0,40.0,0.0')
-    net.mobility('sta1', 'stop', time=12, position='15.0,10,0.0')
-    net.mobility('sta2', 'stop', time=22, position='25.0,25,0.0')
+    net.mobility('sta1', 'start', time=1, position='10,45,0')
+    net.mobility('sta2', 'start', time=2, position='10,40,0')
+    net.mobility('sta1', 'stop', time=12, position='15,10,0')
+    net.mobility('sta2', 'stop', time=22, position='25,25,0')
     net.stopMobility(23)
 
     print "*** Running CLI"

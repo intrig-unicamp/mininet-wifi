@@ -27,14 +27,6 @@ def topology():
     net.addLink(s1, ap3)
     net.addLink(ap1, sta1)
 
-    print "*** Starting network"
-    net.build()
-    c1.start()
-    ap1.start( [c1] )
-    ap2.start( [c1] )
-    ap3.start( [c1] )
-    s1.start( [c1] )
-
     sta1.cmd('modprobe bonding mode=3')
     sta1.cmd('ip link add bond0 type bond')
     sta1.cmd('ip link set bond0 address 02:01:02:03:04:08')
@@ -46,8 +38,18 @@ def topology():
     sta1.cmd('ip link set sta1-wlan1 master bond0')
     sta1.cmd('ip addr add 10.0.0.10/8 dev bond0')
     sta1.cmd('ip link set bond0 up')
+
+    print "*** Starting network"
+    net.build()
+    c1.start()
+    ap1.start( [c1] )
+    ap2.start( [c1] )
+    ap3.start( [c1] )
+    s1.start( [c1] )
+
     sta1.cmd('ip addr del 10.0.0.2/8 dev sta1-wlan0')
 
+    """seed"""
     net.seed(12)
 
     """uncomment to plot graph"""

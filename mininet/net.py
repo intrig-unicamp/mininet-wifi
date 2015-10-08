@@ -115,7 +115,7 @@ from mininet.wifi import checkNM, module, accessPoint, station, wifiParameters, 
 from __builtin__ import True
 
 # Mininet version: should be consistent with README and LICENSE
-VERSION = "1.5"
+VERSION = "1.5r1"
 
 class Mininet( object ):
     "Network emulation with hosts spawned in network namespaces."
@@ -281,6 +281,7 @@ class Mininet( object ):
             position = position.split(',')
             self.startPosition[name] = position
             mobility.nodePosition[name] = position
+            station.fixedPosition.append(name)
         else:
             self.startPosition[name] = 0
             mobility.nodePosition[name] = 0            
@@ -362,7 +363,9 @@ class Mininet( object ):
         module.virtualWlan.append(name)
         association.ssid[name] = self.ssid
         accessPoint.apMode[name] = self.mode
+        accessPoint.ssid[name] = self.ssid
         accessPoint.apChannel[name] = self.channel   
+        accessPoint.apName.append(name)
         self.switches.append( bs )           
         
         return bs
@@ -686,7 +689,7 @@ class Mininet( object ):
                 else:
                     doAssociation = True
                     distance = 0                
-        
+                
                 station.doAssociation[str(sta)] = doAssociation
                 if(doAssociation):
                     ssid = association.ssid[ap]
@@ -695,9 +698,8 @@ class Mininet( object ):
                     except:
                         wlan = 0
                     station.associatedAP[str(sta)] = ap
-                    station.associate(sta, ssid, wlan, ap)
-                    association.setInfraParameters(sta, ap, accessPoint.apMode[ap], distance, station.ifaceToAssociate[sta])
-                    
+                    station.associate(sta, ssid, ap)
+                    association.setInfraParameters(sta, ap, accessPoint.apMode[ap], distance, wlan)                    
             return link
         
         else:
@@ -711,7 +713,7 @@ class Mininet( object ):
                 returns: link object"""
             
             #Only if AP
-            if 'ap' in str(node1) and 'ap' in str(node2):                
+            if 'ap' in str(node1) and 'ap' in str(node2):   
                 if self.firstAssociation:
                     module.startEnvironment()
                     self.link = TCLink
@@ -725,19 +727,50 @@ class Mininet( object ):
                         for z in range(0,station.wlans[self.stationName[x]]):
                             station.ifaceAssociatedToAp[x].append(z)
                         station.indexStaIface[self.stationName[x]] = x
-                    
+                
+                
                 listap = []
                 if str(node1) not in self.apexists:
                     listap.append(str(node1))
-                    self.apexists.append(str(node1))
                 if str(node2) not in self.apexists:
                     listap.append(str(node2))
-                    self.apexists.append(str(node2))
-                
-                for ap in listap:
-                    #configure AP
-                    self.configureAP(ap) 
                     
+                for ap in listap:
+                    if ap not in self.apexists:
+                        #configure AP
+                        self.configureAP(ap) 
+                    
+                if str(node1) not in self.apexists:
+                    self.apexists.append(str(node1))
+                if str(node2) not in self.apexists:
+                    self.apexists.append(str(node2))
+                        
+            elif 'ap' in str(node1) and str(node1) not in self.apexists \
+                or 'ap' in str(node2) and str(node2) not in self.apexists: 
+                
+                if self.firstAssociation:
+                    module.startEnvironment()
+                    self.link = TCLink
+                    self.newapif = getWlan.virtual()  #Get Virtual Wlans      
+                    station.assingIface(self.hosts)
+                    self.firstAssociation = False
+                    
+                    #Useful when stations have multiple interfaces
+                    for x in range(len(self.stationName)):
+                        station.ifaceAssociatedToAp.append([])
+                        for z in range(0,station.wlans[self.stationName[x]]):
+                            station.ifaceAssociatedToAp[x].append(z)
+                        station.indexStaIface[self.stationName[x]] = x
+                        
+                
+                if 'ap' in str(node1):
+                    ap = str(node1)
+                    self.apexists.append(str(node1))
+                else:
+                    ap = str(node2)
+                    self.apexists.append(str(node2))
+                self.configureAP(ap) 
+                
             # Accept node objects or names
             node1 = node1 if not isinstance( node1, basestring ) else self[ node1 ]
             node2 = node2 if not isinstance( node2, basestring ) else self[ node2 ]
@@ -915,8 +948,8 @@ class Mininet( object ):
 
     def stop( self ):
         "Stop plotting"
-        mobility.cancelPlot = True
-        mobility.plotGraph = False
+        #mobility.cancelPlot = True
+        #mobility.plotGraph = False
         mobility.DRAW = False
         #try:
          #   mobility.closePlot()
@@ -1259,6 +1292,7 @@ class Mininet( object ):
                 self.position = kwargs['position']
                 self.startPosition[args[0]] = self.position.split(',')    
                 self.sta_inMov.append(self.node)
+                station.sta_inMoviment.append(self.node)
         if 'time' in kwargs:
             self.time = kwargs['time']
         if 'speed' in kwargs:
@@ -1288,8 +1322,14 @@ class Mininet( object ):
      
         if self.model != '':
             wifiNodes = self.wifiNodes
-            associatedAP = station.associatedAP
-            self.thread = threading.Thread(name='mobilityModel', target=mobility.models, args=(wifiNodes,associatedAP,self.startPosition,len(self.stationName),self.model,self.max_x,self.max_y,self.min_v,self.max_v,))
+           
+            staMov = []
+            for n in self.stationName:
+                if n not in station.fixedPosition:
+                    staMov.append(n)
+            
+            n_staMov = len(staMov)
+            self.thread = threading.Thread(name='mobilityModel', target=mobility.models, args=(wifiNodes,self.startPosition,n_staMov,self.model,self.max_x,self.max_y,self.min_v,self.max_v,))
             #module.thread = multiprocessing.Process(name='mobilityModel', target=mobility.models, args=(wifiNodes,associatedAP,self.startPosition, len(self.stationName),self.model,self.max_x,self.max_y,self.min_v,self.max_v,))
             self.thread.daemon = True
             self.thread.start()
@@ -1314,13 +1354,6 @@ class Mininet( object ):
         t_start = time.time() + self.start_time
         currentTime = time.time()
         i=1
-        
-        #Useful when stations have multiple interfaces
-        for x in range(len(self.stationName)):
-            station.ifaceAssociatedToAp.append([])
-            for z in range(0,station.wlans[self.stationName[x]]):
-                station.ifaceAssociatedToAp[x].append(z)
-            station.indexStaIface[self.stationName[x]] = x
         
         try:
             while time.time() < t_end and time.time() > t_start:
