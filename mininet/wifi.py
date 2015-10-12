@@ -300,9 +300,7 @@ class station ( object ):
     
     @classmethod    
     def associate(self, sta, ssid, ap):
-        """
-            Associate to an Access Point
-        """ 
+        """ Associate to an Access Point """ 
         try:
             self.ifaceToAssociate[sta] += 1
         except:    
@@ -320,9 +318,7 @@ class station ( object ):
           
     @classmethod    
     def adhoc(self, sta, ssid=None, mode=None, **params):
-        """
-            Adhoc mode
-        """   
+        """ Adhoc mode """   
         try:
             self.ifaceToAssociate[sta] += 1
         except:    
@@ -333,6 +329,7 @@ class station ( object ):
         self.host = sta
         association.setAdhocParameters(self.host, iface, mode)
         self.host.cmd("iw dev %s-wlan%s set type ibss" % (str(sta), iface))
+        self.host.cmd("ifconfig %s-wlan%s up" % (str(sta), iface))
         self.host.cmd("iw dev %s-wlan%s ibss join %s 2412" % (str(sta), iface, self.ssid))
         print "associating %s ..." % str(sta)
         interface = '%s-wlan%s' % (str(sta), iface)
@@ -341,9 +338,7 @@ class station ( object ):
     @classmethod    
     def addMesh(self, sta, ssid=None, mode=None, channel=None, 
                 ipaddress=None, **params):
-        """
-            Mesh mode
-        """   
+        """ Mesh mode """   
         try:
             self.ifaceToAssociate[sta] += 1
         except:    
