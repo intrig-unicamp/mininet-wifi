@@ -147,23 +147,18 @@ class module( object ):
 class association( object ):
     
     @classmethod    
-    def setAdhocParameters(self, host, iface, mode):
-        """
-            Set wifi AdHoc Parameters. Have to use models for loss, latency, bw...    
-        """
+    def setAdhocParameters(self, sta, iface, mode):
+        """ Set wifi AdHoc Parameters. Have to use models for loss, latency, bw... """
         self.mode = mode
         latency = 10
-        self.host = host
         #delay = 5 * distance
         bandwidth = wifiParameters.set_bw(mode)
-        self.host.cmd("tc qdisc add dev %s-%s root tbf rate %smbit latency %sms burst 1540" % 
-                      (str(host), iface, bandwidth, latency)) 
+        sta.cmd("tc qdisc add dev %s-%s root tbf rate %smbit latency %sms burst 1540" % 
+                      (str(sta), iface, bandwidth, latency)) 
 
     @classmethod    
     def parameters(self, sta, ap, mode, distance, wlan):
-        """
-            Wifi Parameters   
-        """
+        """ Wifi Parameters """
         station.mode(str(sta), mode)
         seconds = 3
         try:
@@ -218,9 +213,7 @@ class phyInt ( object ):
     
     @classmethod
     def getPhy(self):
-        """
-            Get phy
-        """ 
+        """ Get phy """ 
         phy = subprocess.check_output("find /sys/kernel/debug/ieee80211 -name hwsim | cut -d/ -f 6 | sort", 
                                                              shell=True).split("\n")
         phy.pop()
@@ -238,6 +231,7 @@ class station ( object ):
     nextIface = {}  
     printCon = True  
     fixedPosition = []
+    apIface = []
     
     @classmethod    
     def ifconfig(self, sta):
@@ -271,11 +265,12 @@ class station ( object ):
     @classmethod    
     def confirmAdhocAssociation(self, sta, interface, ssid):
         associated = ''
-        while(associated == '' or associated[0] == ''):
-            associated = sta.pexec("iw dev %s scan ssid | grep %s" % (interface, ssid))
+        while(associated == '' or len(associated) == 0):
+            sta.sendCmd("iw dev %s scan ssid | grep %s" % (interface, ssid))
+            associated = sta.waitOutput()
         wifiParameters.get_frequency(sta, interface)
         wifiParameters.get_tx_power(sta, interface)
-        wifiParameters.get_rsi(sta, interface)   
+        wifiParameters.get_rsi(sta, interface)  
     
     @classmethod    
     def confirmInfraAssociation(self, sta, wlan, ap):
@@ -306,8 +301,7 @@ class station ( object ):
         except:    
             self.ifaceToAssociate[sta] = 0
         wlan = self.ifaceToAssociate[sta]
-        self.cmd_associate(sta, ssid, wlan, ap)
-        
+        self.cmd_associate(sta, ssid, wlan, ap)        
         
     @classmethod    
     def cmd_associate(self, sta, ssid, wlan, ap):
@@ -315,7 +309,6 @@ class station ( object ):
         self.confirmInfraAssociation(sta, wlan, ap)
         station.ifaceAssociatedToAp[station.indexStaIface[str(sta)]][wlan] = ap 
     
-          
     @classmethod    
     def adhoc(self, sta, ssid=None, mode=None, **params):
         """ Adhoc mode """   
@@ -326,14 +319,12 @@ class station ( object ):
         iface = self.ifaceToAssociate[sta]
         self.ssid = ssid
         self.mode = mode
-        self.host = sta
-        association.setAdhocParameters(self.host, iface, mode)
-        self.host.cmd("iw dev %s-wlan%s set type ibss" % (str(sta), iface))
-        self.host.cmd("ifconfig %s-wlan%s up" % (str(sta), iface))
-        self.host.cmd("iw dev %s-wlan%s ibss join %s 2412" % (str(sta), iface, self.ssid))
+        association.setAdhocParameters(sta, iface, mode)
+        sta.cmd("iw dev %s-wlan%s set type ibss" % (str(sta), iface))
+        sta.cmd("iw dev %s-wlan%s ibss join %s 2412" % (str(sta), iface, self.ssid))
         print "associating %s ..." % str(sta)
         interface = '%s-wlan%s' % (str(sta), iface)
-        self.confirmAdhocAssociation(self.host, interface, self.ssid)
+        self.confirmAdhocAssociation(sta, interface, self.ssid)
         
     @classmethod    
     def addMesh(self, sta, ssid=None, mode=None, channel=None, 
@@ -382,9 +373,7 @@ class accessPoint ( object ):
     def start(self, ap, interface=None, ssid=None, mode=None, channel=None, 
               country_code=None, auth_algs=None, wpa=None, wpa_key_mgmt=None, 
               rsn_pairwise=None, wpa_passphrase=None, **params):
-        """
-            Starts an Access Point
-        """
+        """ Starts an Access Point """
         self.exists = True
         self.ssid[str(ap)] = ssid
         self.apMode[str(ap)] = mode
