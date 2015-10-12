@@ -23,7 +23,6 @@ def topology():
     ap1 = net.addBaseStation( 'ap1', ssid= 'new-ssid', mode= 'g', channel= '1', position='50,50,0' )
     c1 = net.addController( 'c1', controller=Controller )
 
-
     print "*** Associating and Creating links"
     net.addLink(ap1, h1)
     net.addLink(ap1, sta1)
@@ -38,9 +37,9 @@ def topology():
     #net.plotGraph(max_x=100, max_y=100)
 
     """Seed"""
-    net.seed(10) 
+    net.seed(20) 
 
-    "*** Available models: RandomWalk, TruncatedLevyWalk, RandomDirection, RandomWaypoint, GaussMarkov ***"
+    "*** Available models: RandomWalk, TruncatedLevyWalk, RandomDirection, RandomWayPoint, GaussMarkov ***"
     net.startMobility(0, model='RandomDirection', max_x=60, max_y=60, min_v=0.1, max_v=0.2)
    
     print "*** Running CLI"

@@ -69,7 +69,7 @@ from mininet.moduledeps import moduleDeps, pathCheck, TUN
 from mininet.link import Link, Intf, TCIntf, OVSIntf
 from re import findall
 from distutils.version import StrictVersion
-from wifi import station, association, module, accessPoint
+from wifi import station, module, accessPoint
 
 class Node( object ):
     """A virtual network node is simply a shell in a network namespace.
@@ -586,7 +586,7 @@ class Node( object ):
             sta = self
             wlan = station.ifaceToAssociate[(sta)]
             ap = station.ifaceAssociatedToAp[station.indexStaIface[str(sta)]][wlan]
-            ssid = association.ssid[ap]
+            ssid = accessPoint.ssid[ap]
             station.printCon = False
             station.cmd_associate(sta, ssid, wlan, ap)
             

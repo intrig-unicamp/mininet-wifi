@@ -287,6 +287,7 @@ class StochasticWalk(object):
             if b.size > 0:
                 xy[b,1] = 2*MAX_Y - xy[b,1]
                 cosintheta[b,1] = -cosintheta[b,1]
+                
         
         def wrap(xy):
             b = np.where(xy[:,0]<0)[0]
@@ -310,24 +311,24 @@ class StochasticWalk(object):
         xy = U(0, MAX_X, np.dstack((NODES,NODES))[0])
         fl = self.FL_DISTR(NODES)
         velocity = self.VELOCITY_DISTR(fl)
-        theta = U(0, 2*np.pi, NODES)
+        theta = U(0, 1.8*np.pi, NODES)
         cosintheta = np.dstack((np.cos(theta), np.sin(theta)))[0] * np.dstack((velocity,velocity))[0]
         wt = np.zeros(self.nr_nodes)
         
         if self.collect_fl_stats: self.fl_stats = list(fl)
         if  self.collect_wt_stats: self.wt_stats = list(wt)
-        
         while True:
     
             xy += cosintheta
             fl -= velocity
-            
+          
             # step back for nodes that surpassed fl
             arrived = np.where(np.logical_and(velocity>0., fl<=0.))[0]
+            
             if arrived.size > 0:
                 diff = fl.take(arrived) / velocity.take(arrived)
                 xy[arrived] += np.dstack((diff,diff))[0] * cosintheta[arrived]
-            
+                
             # apply border policy
             borderp(xy)
             
@@ -347,7 +348,7 @@ class StochasticWalk(object):
                 velocity[arrived] = self.VELOCITY_DISTR(fl[arrived])
                 v = velocity[arrived]
                 cosintheta[arrived] = np.dstack((v * np.cos(theta), v * np.sin(theta)))[0]
-    
+                          
             yield xy
 
 class RandomWalk(StochasticWalk):

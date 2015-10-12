@@ -74,18 +74,9 @@ class Intf( object ):
                 station.ifconfig(str(self.node))
             else:
                 try:
-                    if self.node in station.apIface:
-                        station.nextIface[str(self.node)]+=1
-                        iface = station.nextIface[str(self.node)]
-                    else:
-                        iface = station.addressingSta[str(self.node)]
+                    iface = station.addressingSta[str(self.node)]
                 except:
-                    if self.node not in station.apIface:
-                        station.nextIface[str(self.node)]=0
-                        iface = 0
-                        station.apIface.append(self.node)
-                    else:
-                        iface = station.ifconfig(str(self.node))
+                    iface = station.ifconfig(str(self.node))
             return self.cmd( 'ifconfig %s-wlan%s'% (self.node, iface), *args )
         else:
             "Configure ourselves using ifconfig"
