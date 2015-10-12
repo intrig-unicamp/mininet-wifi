@@ -1171,7 +1171,6 @@ class OVSSwitch( Switch ):
                          self.intfOpts( intf )
                          for intf in self.intfList() 
                          if self.ports[ intf ] and not intf.IP() )
-                
         # Command to create controller entries
         clist = [ ( self.name + c.name, '%s:%s:%d' %
                   ( c.protocol, c.IP(), c.port ) )

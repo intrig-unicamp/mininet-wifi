@@ -143,10 +143,9 @@ function mn_deps {
 # Install Mininet-WiFi deps
 function wifi_deps {
     echo "Installing Mininet-WiFi dependencies"
-    #$install hostapd iw wireless-tools python-numpy python-scipy pkg-config python-matplotlib libnl-dev
-    $install hostapd iw wireless-tools python-numpy python-scipy pkg-config python-matplotlib
-    #pushd $MININET_DIR/mininet-wifi/iw
-    #sudo make install
+    $install iw wireless-tools python-numpy python-scipy pkg-config python-matplotlib libnl-dev libssl-dev
+    pushd $MININET_DIR/mininet-wifi/hostapd/hostapd
+    sudo make && make install
     #popd
 }
 
@@ -541,19 +540,13 @@ function pox {
     git clone https://github.com/noxrepo/pox.git
 }
 
-# "Install" Hostapd
-function hostapd {
-    echo "Installing hostapd..."
-    sudo apt-get install hostapd
-}
 
 # "Install" iw
 function iw {
     echo "Installing iw..."
-    #$install iw wireless-tools python-numpy python-scipy pkg-config python-matplotlib libnl-dev
-    $install iw wireless-tools python-numpy python-scipy pkg-config python-matplotlib
-    #pushd $MININET_DIR/mininet-wifi/iw
-    #sudo make install
+    $install iw wireless-tools python-numpy python-scipy pkg-config python-matplotlib libnl-dev libssl-dev
+    pushd $MININET_DIR/mininet-wifi/hostapd/hostapd
+    sudo make && make install
     #popd
 }
 
@@ -706,7 +699,6 @@ function all {
     # NOX-classic is deprecated, but you can install it manually if desired.
     # nox
     pox
-    hostapd
     iw
     oftest
     cbench

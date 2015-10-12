@@ -21,7 +21,7 @@ def topology():
     h3 = net.addHost( 'h3', ip='192.168.0.3/24' )
     h4 = net.addHost( 'h4', ip='192.168.0.4/24' )
 
-    c0 = net.addController('c0', controller=Controller, ip='127.0.0.1', port=6633 )
+    c0 = net.addController('c0', controller=Controller, ip='127.0.0.1' )
 
     print "*** Adding Link"
     net.addLink(sta1, ap1)

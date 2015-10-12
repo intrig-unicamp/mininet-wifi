@@ -81,13 +81,12 @@ class checkNM ( object ):
     
     @classmethod   
     def APfile(self, apcommand, ap):
-        """
-            run an Access Point and create the file  
-        """
+        """ run an Access Point and create the config file  """
         apcommand = apcommand + ("\' > %s.conf" % ap)  
         os.system(apcommand)
-        cmd = ("hostapd -f apdebug.txt -B %s.conf" % ap)
-        os.system(cmd)
+        cmd = ("hostapd -B %s.conf" % ap)
+        subprocess.check_output(cmd, shell=True)
+        #os.system(cmd)
 
 class getWlan( object ):
     
@@ -396,7 +395,7 @@ class accessPoint ( object ):
             self.cmd = self.cmd + ("\nwme_enabled=1") 
             self.cmd = self.cmd + ("\nieee80211ac=1")
         self.cmd = self.cmd + ("\nwme_enabled=1") 
-        self.cmd = self.cmd + ("\nieee80211n=1")
+        #self.cmd = self.cmd + ("\nieee80211n=1")
         if(mode=="n"):
             self.cmd = self.cmd + ("\nht_capab=[HT40+][SHORT-GI-40][DSSS_CCK-40]")
         
