@@ -437,16 +437,12 @@ class accessPoint ( object ):
         
     @classmethod
     def apBridge(self, ap, iface):
-        """
-            AP Bridge
-        """  
+        """ AP Bridge """  
         os.system("ovs-vsctl add-port %s %s" % (ap, iface))
         
     @classmethod
     def setBw(self, newapif, mode):
-        """
-            Set bw to AP 
-        """  
+        """ Set bw to AP """  
         self.newapif = newapif
         bandwidth = wifiParameters.set_bw(mode)
         os.system("tc qdisc add dev %s root tbf rate %smbit latency 2ms burst 15k" % \
