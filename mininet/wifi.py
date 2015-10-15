@@ -620,7 +620,7 @@ class mobility ( object ):
             if ap in str(sublist):
                 apalreadyconnected = True
         
-        if apalreadyconnected==True and changeAP == True:
+        if apalreadyconnected==False and changeAP == True:
             sta.pexec("iw dev %s-wlan%s disconnect" % (sta, wlan))       
             sta.pexec("iw dev %s-wlan%s connect %s" % (sta, wlan, accessPoint.ssid[ap]))
             station.ifaceAssociatedToAp[station.indexStaIface[str(sta)]][wlan] = ap
@@ -709,7 +709,7 @@ class mobility ( object ):
         oneTime = []
                 
         if model!='':
-            #try:
+            try:
                 for xy in mob:
                     if self.DRAW:
                         line.set_data(xy[:,0],xy[:,1])
@@ -766,8 +766,8 @@ class mobility ( object ):
                                     for ap in accessPoint.apName:
                                         distance = self.getDistance(sta, ap)
                                         association.setInfraParameters(wifiNodes[n], ap, station.staMode[sta], distance, '')
-            #except:
-             #   print "Graph Stopped!"  
+            except:
+                print "Graph Stopped!"  
         
 class wifiParameters ( object ):
     """
