@@ -115,7 +115,7 @@ from mininet.wifi import checkNM, module, accessPoint, station, wifiParameters, 
 from __builtin__ import True
 
 # Mininet version: should be consistent with README and LICENSE
-VERSION = "1.5r3"
+VERSION = "1.5r5"
 
 class Mininet( object ):
     "Network emulation with hosts spawned in network namespaces."
@@ -590,7 +590,6 @@ class Mininet( object ):
                
         checkNM.APfile(cmd, interface) 
         
-    
     """    
     def wds( self, ap1, ap2, cls=None, **params ):
         
@@ -627,7 +626,7 @@ class Mininet( object ):
         for x in range(len(self.stationName)):
             station.ifaceAssociatedToAp.append([])
             for z in range(0,station.wlans[self.stationName[x]]):
-                station.ifaceAssociatedToAp[x].append(z)
+                station.ifaceAssociatedToAp[x].append('a')
             station.indexStaIface[self.stationName[x]] = x
     
     def addLink( self, node1, node2, port1=None, port2=None, 
@@ -1271,9 +1270,7 @@ class Mininet( object ):
         return cpu_fractions
          
     def mobility(self, *args, **kwargs):
-        """
-            Mobility Parameters.
-        """
+        """ Mobility Parameters """
         self.node = args[0]
         self.stage = args[1]
         self.speed = 0
@@ -1291,6 +1288,8 @@ class Mininet( object ):
         if 'speed' in kwargs:
             self.speed = kwargs['speed'][:-2]
         
+        mobility.ismobility = True
+        
         if(self.stage == 'start'):
             self.startTime[self.node] = self.time        
         elif(self.stage == 'stop'):
@@ -1299,30 +1298,33 @@ class Mininet( object ):
             self.moveSta[self.node] = mobility.move(self.node, diffTime, self.speed, self.startPosition[self.node], self.endPosition[self.node])
         
     def startMobility(self, start_time, **kwargs):
-        """
-            Start Mobility.
-        """
+        """ Starts Mobility """
+        mobilityparam = dict()      
+        #mobilityparam.setdefault( 'self', self )  
         if 'model' in kwargs:
+            mobilityparam.setdefault( 'model', kwargs['model'] )
             self.model = kwargs['model']
         if 'max_x' in kwargs:
-            self.max_x = kwargs['max_x']
+            mobilityparam.setdefault( 'max_x', kwargs['max_x'] )
         if 'max_y' in kwargs:
-            self.max_y = kwargs['max_y']
+            mobilityparam.setdefault( 'max_y', kwargs['max_y'] )
         if 'min_v' in kwargs:
-            self.min_v = kwargs['min_v']
+            mobilityparam.setdefault( 'min_v', kwargs['min_v'] )
         if 'max_v' in kwargs:
-            self.max_v = kwargs['max_v']
+            mobilityparam.setdefault( 'max_v', kwargs['max_v'] )
+        if 'aprange' in kwargs:
+            mobilityparam.setdefault( 'manual_aprange', kwargs['aprange'] )
+        mobilityparam.setdefault( 'startPosition', self.startPosition )
+        mobilityparam.setdefault( 'ismobility', True )
      
         if self.model != '':
-            wifiNodes = self.wifiNodes
-           
+            mobilityparam.setdefault( 'wifiNodes', self.wifiNodes )
             staMov = []
             for n in self.stationName:
                 if n not in station.fixedPosition:
                     staMov.append(n)
-            
-            n_staMov = len(staMov)
-            self.thread = threading.Thread(name='mobilityModel', target=mobility.models, args=(wifiNodes,self.startPosition,n_staMov,self.model,self.max_x,self.max_y,self.min_v,self.max_v,))
+            mobilityparam.setdefault( 'n_staMov', len(staMov) )
+            self.thread = threading.Thread(name='mobilityModel', target=mobility.models, kwargs=dict(mobilityparam,))
             #module.thread = multiprocessing.Process(name='mobilityModel', target=mobility.models, args=(wifiNodes,associatedAP,self.startPosition, len(self.stationName),self.model,self.max_x,self.max_y,self.min_v,self.max_v,))
             self.thread.daemon = True
             self.thread.start()

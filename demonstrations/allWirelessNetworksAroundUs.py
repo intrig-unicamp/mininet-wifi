@@ -5,6 +5,7 @@ from mininet.node import Controller,OVSKernelSwitch
 from mininet.link import TCLink
 from mininet.cli import CLI
 from mininet.log import setLogLevel
+import os
 
 def topology():
 
@@ -13,18 +14,18 @@ def topology():
 
     print "*** Creating nodes"
     h1 = net.addHost( 'h1', mac='00:00:00:00:00:01', ip='10.0.0.1/8' )
-    s1 = net.addSwitch( 's1', mac='00:00:00:00:00:10' )
-    sta1 = net.addStation( 'sta1', wlans=2, mac='00:00:00:00:00:02', ip='10.0.0.2/8' )
-    ap1 = net.addBaseStation( 'ap1', ssid= 'ssid_ap1', mode= 'g', channel= '1', position='30,25,0' )
-    ap2 = net.addBaseStation( 'ap2', ssid= 'ssid_ap2', mode= 'g', channel= '6', position='70,25,0' )
+    sta1 = net.addStation( 'sta1', wlans=2, ip='10.0.0.2/8' )
+    ap1 = net.addBaseStation( 'ap1', ssid= 'ssid_ap1', mode= 'g', channel= '6', position='70,25,0' )
+    ap2 = net.addBaseStation( 'ap2', ssid= 'ssid_ap2', mode= 'g', channel= '1', position='30,25,0' )
     ap3 = net.addBaseStation( 'ap3', ssid= 'ssid_ap3', mode= 'g', channel= '11', position='110,25,0' )
+    s4 = net.addSwitch( 's4', mac='00:00:00:00:00:10' )
     c1 = net.addController( 'c1', controller=Controller )
 
     print "*** Associating and Creating links"
-    net.addLink(s1, h1)
-    net.addLink(s1, ap1)
-    net.addLink(s1, ap2)
-    net.addLink(s1, ap3)
+    net.addLink(ap1, s4)
+    net.addLink(ap2, s4)
+    net.addLink(ap3, s4)
+    net.addLink(s4, h1)
     net.addLink(ap1, sta1)
 
     sta1.cmd('modprobe bonding mode=3')
@@ -42,12 +43,13 @@ def topology():
     print "*** Starting network"
     net.build()
     c1.start()
+    s4.start( [c1] )
     ap1.start( [c1] )
     ap2.start( [c1] )
     ap3.start( [c1] )
-    s1.start( [c1] )
 
     sta1.cmd('ip addr del 10.0.0.2/8 dev sta1-wlan0')
+    os.system('ovs-ofctl add-flow s4 hard_timeout=0,actions=normal')
 
     """seed"""
     net.seed(12)

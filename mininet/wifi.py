@@ -177,16 +177,40 @@ class association( object ):
             latency %.2fms \
             delay %.2fms" % (sta, wlan, bw, loss, latency, delay)) 
         
-        associated = self.doAssociation(mode, distance)            
-        isAssociated = station.isAssociated(sta, wlan)
-        if (len(isAssociated[0]) == 15 and associated == True) or associated == False:
-            mobility.handover(sta, ap, wlan, distance)
+        if ap == (station.ifaceAssociatedToAp[station.indexStaIface[str(sta)]][wlan]):
+            associated = self.doAssociation(mode, distance) 
+        else:
+            aps = 0
+            for n in range(0,len(station.ifaceAssociatedToAp[station.indexStaIface[str(sta)]])):
+                if 'ap' in station.ifaceAssociatedToAp[station.indexStaIface[str(sta)]][n]:
+                    aps+=1
+            if len(station.ifaceAssociatedToAp[station.indexStaIface[str(sta)]]) == aps:
+                associated = True
+            else:
+                associated = False
+            
+        isAssociated = station.isAssociated(sta, wlan)        
+            
+        if mobility.ismobility == True:
+            if accessPoint.manual_apRange!=-10:
+                changeAP = False
+                for apName in accessPoint.apName:
+                    if apName == (station.ifaceAssociatedToAp[station.indexStaIface[str(sta)]][wlan]):
+                        ref_Distance = mobility.getDistance(sta,apName)
+                        if ref_Distance > accessPoint.manual_apRange:
+                            changeAP = True
+            
+            if distance <= accessPoint.manual_apRange and changeAP == True: 
+                changeAP = True
+            else:
+                changeAP = False
                 
+            if (len(isAssociated[0]) == 15 and associated == True) or associated == False or changeAP == True:
+                mobility.handover(sta, ap, wlan, distance, changeAP)
+                    
     @classmethod    
     def setInfraParameters(self, sta, ap, mode, distance, wlan):
-        """
-            Set wifi Infrastrucure Parameters. Have to use models for loss, latency, bw...    
-        """
+        """ Set wifi Infrastrucure Parameters. Have to use models for loss, latency, bw.."""
         if wlan != '':
             self.parameters(sta, ap, mode, distance, wlan)
         else:
@@ -195,14 +219,12 @@ class association( object ):
             
     @classmethod    
     def doAssociation(self, mode, distance):
-        """
-            Associate/Disassociate according the distance   
-        """
+        """ Associate/Disassociate according the distance """
         associate = True
         
         if (distance > wifiParameters.get_range(mode)):
             associate = False
-            
+                    
         return associate
             
 class phyInt ( object ):
@@ -354,6 +376,7 @@ class accessPoint ( object ):
     ssid = {}
     number = 0
     exists = False   
+    manual_apRange = -10    
     
     @classmethod
     def wds(self, ap1, int1, ap2, int2):
@@ -463,8 +486,8 @@ class mobility ( object ):
     MAX_X = 50
     MAX_Y = 50
     DRAW = False
+    ismobility = False
     seed = 10
-    
     
     @classmethod 
     def closePlot(self):
@@ -556,9 +579,7 @@ class mobility ( object ):
         
     @classmethod 
     def getDistance(self, src, dst):
-        """
-            Get the distance between two points  
-        """
+        """ Get the distance between two points """
         pos_src = self.nodePosition[str(src)]
         pos_dst = self.nodePosition[str(dst)]
         if self.plotGraph and self.cancelPlot==False:
@@ -580,9 +601,7 @@ class mobility ( object ):
     
     @classmethod   
     def printPosition(self, node):
-        """
-            Print position of STAs and APs  
-        """
+        """ Print position of STAs and APs """
         self.node = str(node)
         
         self.pos_x = self.nodePosition[self.node][0]
@@ -594,28 +613,37 @@ class mobility ( object ):
         \nPosition Z: %.2f\n" % (self.node, float(self.pos_x), float(self.pos_y), float(self.pos_z))
         
     @classmethod   
-    def handover(self, sta, ap, wlan, distance):
+    def handover(self, sta, ap, wlan, distance, changeAP):
         apalreadyconnected = False
         
         for sublist in station.ifaceAssociatedToAp[station.indexStaIface[str(sta)]]:
             if ap in str(sublist):
                 apalreadyconnected = True
-       
-        if distance < self.range(accessPoint.apMode[ap]):
+        
+        if apalreadyconnected==True and changeAP == True:
+            sta.pexec("iw dev %s-wlan%s disconnect" % (sta, wlan))       
+            sta.pexec("iw dev %s-wlan%s connect %s" % (sta, wlan, accessPoint.ssid[ap]))
+            station.ifaceAssociatedToAp[station.indexStaIface[str(sta)]][wlan] = ap
+        elif distance < self.range(accessPoint.apMode[ap]):
             if apalreadyconnected == False:
-                sta.pexec("iw dev %s-wlan%s connect %s" % (sta, wlan, accessPoint.ssid[ap]))
-                station.ifaceAssociatedToAp[station.indexStaIface[str(sta)]][wlan] = ap
+                if ap not in station.ifaceAssociatedToAp[station.indexStaIface[str(sta)]]:
+                    if 'ap' not in station.ifaceAssociatedToAp[station.indexStaIface[str(sta)]][wlan]:
+                        sta.pexec("iw dev %s-wlan%s connect %s" % (sta, wlan, accessPoint.ssid[ap]))
+                        station.ifaceAssociatedToAp[station.indexStaIface[str(sta)]][wlan] = ap   
         elif distance > self.range(accessPoint.apMode[ap]):
-            if apalreadyconnected == True:
+            if apalreadyconnected == True and ap == station.ifaceAssociatedToAp[station.indexStaIface[str(sta)]][wlan]:
                 sta.pexec("iw dev %s-wlan%s disconnect" % (sta, wlan))       
-                station.ifaceAssociatedToAp[station.indexStaIface[str(sta)]][wlan] = wlan  
+                station.ifaceAssociatedToAp[station.indexStaIface[str(sta)]][wlan] = 'wlan'  
         
             
     @classmethod   
-    def models(self, wifiNodes, startPosition, stationName, modelName,
-               max_x, max_y, min_v, max_v):
+    def models(self, wifiNodes=None, startPosition=None, model=None,
+               max_x=None, max_y=None, min_v=None, max_v=None, 
+               manual_aprange=None, n_staMov=None, ismobility=None, **mobilityparam):
         
-        self.modelName = modelName
+        accessPoint.manual_apRange = manual_aprange
+        self.modelName = model
+        self.ismobility = ismobility
         
         # set this to true if you want to plot node positions
         self.DRAW = self.plotGraph
@@ -623,7 +651,7 @@ class mobility ( object ):
         self.cancelPlot = True
         
         # number of nodes
-        nr_nodes = stationName
+        nr_nodes = n_staMov
         
         # simulation area (units)
         MAX_X, MAX_Y = max_x, max_y
@@ -637,7 +665,7 @@ class mobility ( object ):
         if self.DRAW:
             plt.ion()
             ax = plt.subplot(111)
-            line, = ax.plot(range(mobility.MAX_X), range(mobility.MAX_X), linestyle='', marker='.', ms=12, mfc='blue')
+            line, = ax.plot(range(mobility.MAX_X), range(mobility.MAX_X), linestyle='', marker='.', ms=10, mfc='blue')
             self.plottxt = {}
             
             for node in wifiNodes:
@@ -680,8 +708,8 @@ class mobility ( object ):
         #tvcm = tvc(groups, dimensions=(MAX_X, MAX_Y), aggregation=[0.5,0.], epoch=[100,100])
         oneTime = []
                 
-        if modelName!='':
-            try:
+        if model!='':
+            #try:
                 for xy in mob:
                     if self.DRAW:
                         line.set_data(xy[:,0],xy[:,1])
@@ -738,8 +766,8 @@ class mobility ( object ):
                                     for ap in accessPoint.apName:
                                         distance = self.getDistance(sta, ap)
                                         association.setInfraParameters(wifiNodes[n], ap, station.staMode[sta], distance, '')
-            except:
-                print "Graph Stopped!"  
+            #except:
+             #   print "Graph Stopped!"  
         
 class wifiParameters ( object ):
     """
@@ -748,6 +776,7 @@ class wifiParameters ( object ):
     freq = {}
     txpower = {}
     rsi = {}
+    
     
     @classmethod
     def get_rsi(self, sta, iface): 
@@ -920,7 +949,8 @@ class wifiParameters ( object ):
             self.distance = 70
         elif(mode=='ac'):
             self.distance = 100 
-            
+        
+        self.distance = self.distance
         return self.distance
     
     @classmethod    
