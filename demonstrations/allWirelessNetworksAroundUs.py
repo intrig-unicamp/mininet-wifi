@@ -49,7 +49,7 @@ def topology():
     ap3.start( [c1] )
 
     sta1.cmd('ip addr del 10.0.0.2/8 dev sta1-wlan0')
-    os.system('ovs-ofctl add-flow s4 hard_timeout=0,actions=normal')
+    os.system('ovs-ofctl add-flow s4 actions=normal')
 
     """seed"""
     net.seed(12)

@@ -2,7 +2,6 @@
 
 """
 Setting the position of Nodes (only for Stations and Access Points).
-
 """
 
 from mininet.net import Mininet
@@ -17,7 +16,6 @@ def topology():
     net = Mininet( controller=Controller, link=TCLink, switch=OVSKernelSwitch )
 
     print "*** Creating nodes"
-    h1 = net.addHost( 'h1', mac='00:00:00:00:00:01', ip='10.0.0.1/8' )
     sta1 = net.addStation( 'sta1', mac='00:00:00:00:00:02', ip='10.0.0.2/8', position='10,20,0' )
     sta2 = net.addStation( 'sta2', mac='00:00:00:00:00:03', ip='10.0.0.3/8', position='10,30,0' )
     ap1 = net.addBaseStation( 'ap1', ssid= 'new-ssid', mode= 'g', channel= '1', position='15,30,0' )
@@ -27,7 +25,6 @@ def topology():
     #net.plotGraph(max_x=60, max_y=60)
 
     print "*** Creating links"
-    net.addLink(ap1, h1)
     net.addLink(ap1, sta1)
     net.addLink(ap1, sta2)
 

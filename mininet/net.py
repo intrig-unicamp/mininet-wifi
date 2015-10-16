@@ -115,7 +115,7 @@ from mininet.wifi import checkNM, module, accessPoint, station, wifiParameters, 
 from __builtin__ import True
 
 # Mininet version: should be consistent with README and LICENSE
-VERSION = "1.5r5"
+VERSION = "1.5r6"
 
 class Mininet( object ):
     "Network emulation with hosts spawned in network namespaces."
@@ -144,7 +144,6 @@ class Mininet( object ):
            listenPort: base listening port to open; will be incremented for
                each additional switch in the net if inNamespace=False"""
         self.thread = threading.Thread()
-        
         self.topo = topo
         self.switch = switch
         self.baseStation = switch
@@ -166,12 +165,10 @@ class Mininet( object ):
         self.listenPort = listenPort
         self.waitConn = waitConnected       
         self.meshIP = 0    
-        self.sta_inMov = []
-        
-        self.newapif = []
+        self.start_time = 0 #start mobility time
+        self.set_seed = 10
+        self.model = ''
         self.firstAssociation = True
-        self.stationName = []                
-        self.apexists = []
         self.ssid = ssid        
         self.mode = mode
         self.channel = channel
@@ -179,15 +176,18 @@ class Mininet( object ):
         self.endPosition = {}
         self.startTime = {}
         self.endTime = {}
-        self.start_time = 0 #start mobility time
-        self.model = ''
-        self.moveSta = {}        
+        self.moveSta = {}  
+        self.nameToNode = {}  # name to Node (Host/Switch) objects
+        self.newapif = []
+        self.stationName = []                
+        self.apexists = []
+        self.missingStations = []
+        self.sta_inMov = []
         self.wifiNodes = []
         self.hosts = []
         self.switches = []
         self.controllers = []
         self.links = []
-        self.nameToNode = {}  # name to Node (Host/Switch) objects
         self.terms = []  # list of spawned xterm processes
         Mininet.init()  # Initialize Mininet if necessary
                 
@@ -275,6 +275,7 @@ class Mininet( object ):
         self.wifiNodes.append(h)
         self.nameToNode[ name ] = h        
         self.stationName.append(name)
+        self.missingStations.append(h)
         
         position = ("%s" % params.pop('position', {}))
         if(position!="{}"):        
@@ -549,10 +550,11 @@ class Mininet( object ):
         cls = self.link if cls is None else cls
         link = cls( node, node2, **options )
         
-        for host in self.hosts:
-            if (host == node):
-                station.adhoc(host, **options)
-        
+        for sta in self.hosts:
+            if (sta == node):
+                station.adhoc(sta, **options)
+                if sta in self.missingStations:
+                    self.missingStations.remove(sta)
         return link
    
     def configureAP(self):
@@ -563,7 +565,9 @@ class Mininet( object ):
             ssid = accessPoint.ssid[ap]
             mode = accessPoint.apMode[ap]
             channel = accessPoint.apChannel[ap]        
-            interface = self.newapif[module.virtualWlan.index(ap)]
+            intf = self.newapif[module.virtualWlan.index(ap)]
+            newname = str(ap)+'-'+str(intf[:4])+str(0)
+            interface = accessPoint.rename(intf, newname)
                         
             checkNM.getMacAddress(interface)         
             accessPoint.setBw(interface, mode)
@@ -590,6 +594,25 @@ class Mininet( object ):
             cmd = accessPoint.start(ap, **wifiparam)                   
             checkNM.APfile(cmd, interface) 
         
+    def addMissingSTAs(self, sta, ap):
+               
+        options = dict( )
+        self.bw = wifiParameters.set_bw(self.mode)
+        options.setdefault( 'bw', self.bw )
+        options.setdefault( 'use_hfsc', True )
+        
+        # Set default MAC - this should probably be in Link
+        options.setdefault( 'addr1', self.randMac() )
+        options.setdefault( 'addr2', self.randMac() )
+        
+        cls = None
+        cls = self.link if cls is None else cls
+        cls( sta, ap, **options )
+        
+        #necessary if does not exist link between sta and other device
+        station.staMode[str(sta)] = 'g'
+        station.doAssociation[str(sta)] = False
+            
     """    
     def wds( self, ap1, ap2, cls=None, **params ):
         
@@ -661,8 +684,6 @@ class Mininet( object ):
                     ap = str(node2)
                     self.apexists.append(str(node2))
                 
-                
-                
             if ('sta' in str(node1) or 'sta' in str(node2)):
                 if 'sta' in str(node1):
                     sta = node1
@@ -670,6 +691,9 @@ class Mininet( object ):
                 else:
                     sta = node2
                     ap = str(node1)
+                
+                if sta in self.missingStations:
+                    self.missingStations.remove(sta)
                 
                 self.bw = wifiParameters.set_bw(self.mode)
                 options.setdefault( 'bw', self.bw )
@@ -855,6 +879,13 @@ class Mininet( object ):
 
     def build( self ):
         module.isCode=True
+        #useful if there no link between sta and any other device
+        for aps in self.wifiNodes:
+            if 'ap' in str(aps):
+                ap = aps
+        for s in self.missingStations:
+            self.addMissingSTAs(s, ap)
+        
         "Build mininet."
         if self.topo:
             self.buildFromTopo( self.topo )
@@ -930,17 +961,18 @@ class Mininet( object ):
 
     def seed( self, seed ):
         "Seed"
-        mobility.seed = seed
+        self.set_seed = seed
 
     def stop( self ):
         "Stop plotting"
-        #mobility.cancelPlot = True
-        #mobility.plotGraph = False
+        mobility.cancelPlot = True
+        mobility.plotGraph = False
         mobility.DRAW = False
-        #try:
-         #   mobility.closePlot()
-        #except:
-         #   pass
+        mobility.ismobility = False
+        try:
+            mobility.closePlot()
+        except:
+            pass
         
         "Stop the controller(s), switches and hosts"
         info( '*** Stopping %i controllers\n' % len( self.controllers ) )
@@ -1290,10 +1322,9 @@ class Mininet( object ):
             diffTime = self.endTime[self.node] - self.startTime[self.node]
             self.moveSta[self.node] = mobility.move(self.node, diffTime, self.speed, self.startPosition[self.node], self.endPosition[self.node])
         
-    def startMobility(self, start_time, **kwargs):
+    def startMobility(self, **kwargs):
         """ Starts Mobility """
         mobilityparam = dict()      
-        #mobilityparam.setdefault( 'self', self )  
         if 'model' in kwargs:
             mobilityparam.setdefault( 'model', kwargs['model'] )
             self.model = kwargs['model']
@@ -1307,8 +1338,12 @@ class Mininet( object ):
             mobilityparam.setdefault( 'max_v', kwargs['max_v'] )
         if 'aprange' in kwargs:
             mobilityparam.setdefault( 'manual_aprange', kwargs['aprange'] )
+        if 'llf' in kwargs: #Least Loaded First
+            mobilityparam.setdefault( 'llf', kwargs['llf'] )
+        
         mobilityparam.setdefault( 'startPosition', self.startPosition )
         mobilityparam.setdefault( 'ismobility', True )
+        mobilityparam.setdefault( 'seed', self.set_seed )
      
         if self.model != '':
             mobilityparam.setdefault( 'wifiNodes', self.wifiNodes )
@@ -1322,13 +1357,14 @@ class Mininet( object ):
             self.thread.daemon = True
             self.thread.start()
            
-        self.start_time = start_time
-        print "Mobility started at %s second(s)" % start_time
+        if 'startTime' in kwargs:
+            self.start_time = kwargs['startTime']
+        print "Mobility started at %s second(s)" % kwargs['startTime']
         
-    def stopMobility(self, stop_time):
-        """
-            Stop Mobility.
-        """
+    def stopMobility(self, **kwargs):
+        """ Stop Mobility """
+        if 'stopTime' in kwargs:
+            stop_time = kwargs['stopTime']
         self.thread = threading.Thread(name='onGoingMobility', target=self.onGoingMobility, args=(stop_time,))
         #module.thread = multiprocessing.Process(name='onGoingMobility', target=self.onGoingMobility)
         self.thread.daemon = True

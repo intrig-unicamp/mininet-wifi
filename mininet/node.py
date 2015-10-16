@@ -436,8 +436,9 @@ class Node( object ):
         if ports:
             return self.intfs[ min( ports ) ]
         else:
-            warn( '*** defaultIntf: warning:', self.name,
-                  'has no interfaces\n' )
+            if 'sta' not in self.name:
+                warn( '*** defaultIntf: warning:', self.name,
+                      'has no interfaces\n' )
 
     def intf( self, intf=None ):
         """Return our interface object with given string name,
@@ -589,7 +590,6 @@ class Node( object ):
             ssid = accessPoint.ssid[ap]
             station.printCon = False
             station.cmd_associate(sta, ssid, wlan, ap)
-            
         # This should be examined
         self.cmd( 'ifconfig lo ' + lo )
         return r
