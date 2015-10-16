@@ -521,9 +521,11 @@ class Mininet( object ):
         link = cls( node, node2, **options )
         
         
-        for host in self.hosts:
-            if (host == node):
-                station.addMesh(host, **options)
+        for sta in self.hosts:
+            if (sta == node):
+                station.addMesh(sta, **options)
+                if sta in self.missingStations:
+                    self.missingStations.remove(sta)
         
         return link    
     
