@@ -1,5 +1,7 @@
 #!/usr/bin/python
 
+"""This example is based on this video: https://www.youtube.com/watch?v=_C4H2gBdyQY"""
+
 from mininet.net import Mininet
 from mininet.node import Controller,OVSKernelSwitch
 from mininet.link import TCLink
@@ -58,7 +60,7 @@ def topology():
     net.plotGraph(max_x=140, max_y=140)
     
     "*** Available models: RandomWalk, TruncatedLevyWalk, RandomDirection, RandomWaypoint, GaussMarkov ***"
-    net.startMobility(0, model='RandomDirection', max_x=120, max_y=50, min_v=0.4, max_v=0.6)
+    net.startMobility(startTime=0, model='RandomDirection', max_x=120, max_y=50, min_v=0.4, max_v=0.6)
 
     print "*** Running CLI"
     CLI( net )
