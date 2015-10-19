@@ -520,7 +520,6 @@ class Mininet( object ):
         cls = self.link if cls is None else cls
         link = cls( node, node2, **options )
         
-        
         for sta in self.hosts:
             if (sta == node):
                 station.addMesh(sta, **options)
@@ -596,8 +595,8 @@ class Mininet( object ):
             cmd = accessPoint.start(ap, **wifiparam)                   
             checkNM.APfile(cmd, interface) 
         
-    def addMissingSTAs(self, sta, ap):
-               
+    def addMissingSTAs(self, sta):
+        
         options = dict( )
         self.bw = wifiParameters.set_bw(self.mode)
         options.setdefault( 'bw', self.bw )
@@ -609,7 +608,7 @@ class Mininet( object ):
         
         cls = None
         cls = self.link if cls is None else cls
-        cls( sta, ap, **options )
+        cls( sta, sta, **options )
         
         #necessary if does not exist link between sta and other device
         station.staMode[str(sta)] = 'g'
@@ -696,7 +695,6 @@ class Mininet( object ):
                 
                 if sta in self.missingStations:
                     self.missingStations.remove(sta)
-                
                 self.bw = wifiParameters.set_bw(self.mode)
                 options.setdefault( 'bw', self.bw )
                 options.setdefault( 'use_hfsc', True )
@@ -774,7 +772,6 @@ class Mininet( object ):
                     self.configureAP() #configure AP
                     #Useful when stations have multiple interfaces
                     self.activeMultipleWlans()
-                        
                 
                 if 'ap' in str(node1):
                     ap = str(node1)
@@ -788,12 +785,22 @@ class Mininet( object ):
             node2 = node2 if not isinstance( node2, basestring ) else self[ node2 ]
             options = dict( params )
             
+            if node1 in self.missingStations:
+                self.missingStations.remove(node1)
+                #necessary if does not exist link between sta and other device
+                station.staMode[str(node1)] = 'g'
+                station.doAssociation[str(node1)] = False
+            if node2 in self.missingStations:
+                self.missingStations.remove(node2)
+                #necessary if does not exist link between sta and other device
+                station.staMode[str(node2)] = 'g'
+                station.doAssociation[str(node2)] = False
+            
             # Port is optional
             if port1 is not None:
                 options.setdefault( 'port1', port1 )
             if port2 is not None:
                 options.setdefault( 'port2', port2 )
-            
             # Set default MAC - this should probably be in Link
             options.setdefault( 'addr1', self.randMac() )
             options.setdefault( 'addr2', self.randMac() )
@@ -882,11 +889,8 @@ class Mininet( object ):
     def build( self ):
         module.isCode=True
         #useful if there no link between sta and any other device
-        for aps in self.wifiNodes:
-            if 'ap' in str(aps):
-                ap = aps
         for s in self.missingStations:
-            self.addMissingSTAs(s, ap)
+            self.addMissingSTAs(s)
         
         "Build mininet."
         if self.topo:

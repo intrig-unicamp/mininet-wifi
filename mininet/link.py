@@ -431,11 +431,20 @@ class Link( object ):
             params1[ 'port' ] = port1
         if port2 is not None:
             params2[ 'port' ] = port2
+            
         if 'port' not in params1:
-            params1[ 'port' ] = node1.newPort()
+            if 'sta' in str(node1) and 'ap' in str(node2) or 'sta' in str(node1) and str(node2) == 'onlysta':
+                params1[ 'port' ] = node1.newWlanPort()
+                node2.newPort()
+            else:
+                params1[ 'port' ] = node1.newPort()
         if 'port' not in params2:
-            params2[ 'port' ] = node2.newPort()
-        
+            if 'sta' in str(node2) and 'ap' in str(node1) or 'sta' in str(node2) and str(node1) == 'onlysta':
+                params2[ 'port' ] = node2.newWlanPort()
+                node2.newPort()
+            else:
+                params2[ 'port' ] = node2.newPort()
+                
         if not intfName1:
             if('sta' in str(node1) and 'ap' in str(node2) or 'sta' in str(node2) and 'ap' in str(node1) or 'sta' in str(node2) and 'sta' in str(node1)):
                 intfName1 = self.wlanName( node1, params1[ 'port' ] )
@@ -456,7 +465,6 @@ class Link( object ):
                                    node1, node2, deleteIntfs=False )
             else:
                 self.makeIntfPair( intfName1, intfName2, addr1, addr2 )
-        
         if not cls1:
             cls1 = intf
         if not cls2:
