@@ -76,7 +76,7 @@ class Node( object ):
        We communicate with it using pipes."""
     
     portBase = 0  # Nodes always start with eth0/port0, even in OF 1.0
-    
+    portWlanBase = 0
 
     def __init__( self, name, inNamespace=True, **params ):
         """name: name of node
@@ -96,6 +96,7 @@ class Node( object ):
 
         self.intfs = {}  # dict of port numbers to interfaces
         self.ports = {}  # dict of interfaces to port numbers
+        self.wlanports = {}  # dict of wlan interfaces to port numbers
         self.nameToIntf = {}  # dict of interface names to Intfs
 
         # Make pylint happy
@@ -406,6 +407,12 @@ class Node( object ):
     # changing the canonical interface names. It's also tricky since
     # the real interfaces are created as veth pairs, so we can't
     # make a single interface at a time.
+
+    def newWlanPort( self ):
+        "Return the next port number to allocate."
+        if len( self.wlanports ) > 0:
+            return max( self.wlanports.values() ) + 1
+        return self.portWlanBase
 
     def newPort( self ):
         "Return the next port number to allocate."
