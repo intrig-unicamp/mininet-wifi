@@ -115,7 +115,7 @@ from mininet.wifi import checkNM, module, accessPoint, station, wifiParameters, 
 from __builtin__ import True
 
 # Mininet version: should be consistent with README and LICENSE
-VERSION = "1.5r6"
+VERSION = "1.5r7"
 
 class Mininet( object ):
     "Network emulation with hosts spawned in network namespaces."
@@ -313,7 +313,7 @@ class Mininet( object ):
             module.wifiRadios+=1
             wifi = 1
             module.virtualWlan.append(name)
-        station.wlans[name] = int(wifi)
+        sta.nWlans = int(wifi)
         
         self.nextIP += 1        
         return sta
@@ -610,7 +610,7 @@ class Mininet( object ):
         
         #necessary if does not exist link between sta and other device
         sta.mode = 'g'
-        station.doAssociation[str(sta)] = False
+        sta.associate = False
             
     """    
     def wds( self, ap1, ap2, cls=None, **params ):
@@ -646,7 +646,7 @@ class Mininet( object ):
     def activeMultipleWlans(self):
         """Useful when stations have multiple interfaces"""
         for st in self.stations:
-            for z in range(0,station.wlans[str(st)]):
+            for z in range(0, st.nWlans):
                 st.ifaceAssociatedToAp.append(str(z))
             
     def addLink( self, node1, node2, port1=None, port2=None, 
@@ -711,7 +711,7 @@ class Mininet( object ):
                     doAssociation = True
                     distance = 0                
                 
-                station.doAssociation[str(sta)] = doAssociation
+                sta.doAssociation = doAssociation
                 if(doAssociation):
                     try:
                         wlan = sta.ifaceToAssociate
@@ -783,12 +783,12 @@ class Mininet( object ):
                 self.missingStations.remove(node1)
                 #necessary if does not exist link between sta and other device
                 node1.mode = 'g'
-                station.doAssociation[str(node1)] = False
+                node1.associate = False
             if node2 in self.missingStations:
                 self.missingStations.remove(node2)
                 #necessary if does not exist link between sta and other device
                 node2.mode = 'g'
-                station.doAssociation[str(node2)] = False
+                node2.associate = False
             
             # Port is optional
             if port1 is not None:

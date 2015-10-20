@@ -183,9 +183,7 @@ class association( object ):
                 associated = True
             else:
                 associated = False
-            
-       # isAssociated = station.isAssociated(sta, wlan)        
-            
+        
         #Only if is a mobility topology
         if mobility.ismobility == True: 
             changeAP = False
@@ -194,23 +192,23 @@ class association( object ):
             """useful to llf (Least-loaded-first)"""
             if mobility.leastLoadFirst == True:
                 llf = False
-                for ap in accessPoint.name:
-                    if str(ap) == sta.ifaceAssociatedToAp[wlan]:
-                        accessPoint.numberOfAssociatedStations(str(ap))
-                        ref_llf = accessPoint.nAssociatedStations[str(ap)]
+                for apref in accessPoint.name:
+                    if str(apref) == sta.ifaceAssociatedToAp[wlan]:
+                        accessPoint.numberOfAssociatedStations(apref)
+                        ref_llf = apref.nAssociatedStations
                         llf = True
             
                 if llf == True:
                     accessPoint.numberOfAssociatedStations(ap)
-                    if accessPoint.nAssociatedStations[ap]+2 < ref_llf:
+                    if ap.nAssociatedStations+2 < ref_llf:
                         mobilityReason.setdefault( 'reason', 'llf' )
                         changeAP = True
             
             """useful to ssf (Strongest-signal-first)"""
             if accessPoint.manual_apRange!=-10:
-                for ap in accessPoint.name:
-                    if str(ap) == sta.ifaceAssociatedToAp[wlan]:
-                        ref_Distance = mobility.getDistance(sta,ap)
+                for apref in accessPoint.name:
+                    if str(apref) == sta.ifaceAssociatedToAp[wlan]:
+                        ref_Distance = mobility.getDistance(sta,apref)
                         if ref_Distance > accessPoint.manual_apRange:
                             changeAP = True
                 if distance <= accessPoint.manual_apRange and changeAP == True: 
@@ -222,7 +220,7 @@ class association( object ):
             #Go to handover    
             if associated == False or changeAP == True:
                 mobility.handover(sta, ap, wlan, distance, changeAP, **mobilityReason)
-
+                
                     
     @classmethod    
     def setInfraParameters(self, sta, ap, distance, wlan):
@@ -230,7 +228,7 @@ class association( object ):
         if wlan != '':
             self.parameters(sta, ap, distance, wlan)
         else:
-            for wlan in range(int(station.wlans[str(sta)])):
+            for wlan in range(0, sta.nWlans):
                 self.parameters(sta, ap, distance, wlan)
             
     @classmethod    
@@ -256,9 +254,7 @@ class phyInt ( object ):
         
 class station ( object ):
     
-    doAssociation = {}
     addressingSta = {}
-    wlans = {}
     indexStaIface = {}
     nextIface = {}  
     printCon = True  
@@ -276,13 +272,12 @@ class station ( object ):
     @classmethod    
     def assingIface(self, stations):
         wlan = getWlan.virtual()
-        for i, sta in enumerate(stations):
-            if 'sta' in str(stations[i]):
-                for j in range(0,int(self.wlans[str(stations[i])])):
-                    sta = stations[i]
+        for sta in stations:
+            if 'sta' in str(sta):
+                for i in range(0, sta.nWlans):
                     vwlan = module.virtualWlan.index(str(sta))
-                    os.system('iw phy %s set netns %s' % ( phyInt.totalPhy[vwlan + j], sta.pid ))
-                    sta.cmd('ip link set dev %s name %s-wlan%s' % (wlan[vwlan + j], str(sta), j))   
+                    os.system('iw phy %s set netns %s' % ( phyInt.totalPhy[vwlan + i], sta.pid ))
+                    sta.cmd('ip link set dev %s name %s-wlan%s' % (wlan[vwlan + i], str(sta), i))   
       
     @classmethod    
     def confirmMeshAssociation(self, sta, interface):
@@ -331,7 +326,7 @@ class station ( object ):
     @classmethod    
     def cmd_associate(self, sta, wlan, ap):
         sta.associatedAp = ap
-        sta.cmd("iw dev %s-wlan%s connect %s" % (sta, wlan, ap.ssid))
+        sta.cmdPrint("iw dev %s-wlan%s connect %s" % (sta, wlan, ap.ssid))
         self.confirmInfraAssociation(sta, wlan, ap)
         sta.ifaceAssociatedToAp[wlan] = str(ap) 
         
@@ -373,7 +368,6 @@ class accessPoint ( object ):
     number = 0
     exists = False   
     manual_apRange = -10   
-    nAssociatedStations = {}
     
     @classmethod
     def wds(self, ap1, int1, ap2, int2):
@@ -403,7 +397,7 @@ class accessPoint ( object ):
         proc = subprocess.Popen(cmd,stdout=subprocess.PIPE,shell=True)   
         (out, err) = proc.communicate()
         output = out.rstrip('\n')
-        self.nAssociatedStations[ap] = int(output)
+        ap.nAssociatedStations = int(output)
     
     @classmethod
     def start(self, ap, country_code=None, auth_algs=None, wpa=None, 
@@ -614,13 +608,12 @@ class mobility ( object ):
         
     @classmethod   
     def handover(self, sta, ap, wlan, distance, changeAP, reason=None, **params):
-       
         if distance < self.range(ap.mode): 
             if reason == 'llf' or reason == 'ssf':
                 sta.pexec("iw dev %s-wlan%s disconnect" % (sta, wlan))
                 sta.pexec("iw dev %s-wlan%s connect %s" % (sta, wlan, ap.ssid))
                 sta.ifaceAssociatedToAp[wlan] = str(ap)
-            if str(ap) not in sta.ifaceAssociatedToAp:
+            elif str(ap) not in sta.ifaceAssociatedToAp:
                 if 'ap' not in sta.ifaceAssociatedToAp[wlan]:
                     sta.pexec("iw dev %s-wlan%s connect %s" % (sta, wlan, ap.ssid))
                     sta.ifaceAssociatedToAp[wlan] = str(ap)   

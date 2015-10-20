@@ -99,6 +99,13 @@ class Node( object ):
         self.wlanports = {}  # dict of wlan interfaces to port numbers
         self.nameToIntf = {}  # dict of interface names to Intfs
         
+        #BaseStations Parameters
+        self.nAssociatedStations = 0
+        
+        #Stations Parameters
+        self.associate = False
+        self.nWlans = 0
+        
         # Station and BaseStation Parameters
         self.ssid = ''
         self.channel = ''
@@ -605,9 +612,8 @@ class Node( object ):
         self.setParam( r, 'setDefaultRoute', defaultRoute=defaultRoute )
         
         #Necessary if the mac address has changed
-        sta = str(self)
-        if(mac!=None and module.isWiFi==True and 'sta' in sta and station.doAssociation[sta] == True):
-            sta = self
+        sta = self
+        if(mac!=None and module.isWiFi==True and 'sta' in str(sta) and sta.associate == True):
             wlan = sta.ifaceToAssociate
             station.printCon = False
             station.cmd_associate(sta, wlan, sta.associatedAp)
