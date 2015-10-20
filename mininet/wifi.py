@@ -326,7 +326,7 @@ class station ( object ):
     @classmethod    
     def cmd_associate(self, sta, wlan, ap):
         sta.associatedAp = ap
-        sta.cmdPrint("iw dev %s-wlan%s connect %s" % (sta, wlan, ap.ssid))
+        sta.cmd("iw dev %s-wlan%s connect %s" % (sta, wlan, ap.ssid))
         self.confirmInfraAssociation(sta, wlan, ap)
         sta.ifaceAssociatedToAp[wlan] = str(ap) 
         
@@ -472,7 +472,6 @@ class accessPoint ( object ):
 class mobility ( object ):    
     """ Mobility """          
     speed = {}
-    nodePosition = {}      
     plotap = {}
     plotsta = {}
     plottxt = {}
@@ -514,7 +513,7 @@ class mobility ( object ):
         pos_y = float(endposition[1]) - float(startposition[1])
         pos_z = float(endposition[2]) - float(startposition[2])
         
-        self.nodePosition[node] = pos_x, pos_y, pos_z
+        node.position = pos_x, pos_y, pos_z
         self.speed[node] = ((pos_x + pos_y + pos_z)/diffTime) 
         
         pos = '%.5f,%.5f,%.5f' % (pos_x/diffTime, pos_y/diffTime, pos_z/diffTime)
@@ -576,8 +575,8 @@ class mobility ( object ):
     @classmethod 
     def getDistance(self, src, dst):
         """ Get the distance between two points """
-        pos_src = self.nodePosition[str(src)]
-        pos_dst = self.nodePosition[str(dst)]
+        pos_src = src.position
+        pos_dst = dst.position
         if self.plotGraph and self.cancelPlot==False:
             self.plot(src, dst, pos_src, pos_dst)
         points = np.array([(pos_src[0], pos_src[1], pos_src[2]), (pos_dst[0], pos_dst[1], pos_dst[2])])
@@ -598,9 +597,9 @@ class mobility ( object ):
         """ Print position of STAs and APs """
         self.node = str(node)
         
-        self.pos_x = self.nodePosition[self.node][0]
-        self.pos_y = self.nodePosition[self.node][1]
-        self.pos_z = self.nodePosition[self.node][2]   
+        self.pos_x = node.position[0]
+        self.pos_y = node.position[1]
+        self.pos_z = node.position[2]   
         print "----------------\nPosition of %s\n---------------- \
         \nPosition X: %.2f \
         \nPosition Y: %.2f \
@@ -662,9 +661,9 @@ class mobility ( object ):
                     self.plottxt[str(node)] = ax.annotate(str(node), xy=(0, 0))
                     
                 if str(node) in station.fixedPosition:
-                    self.plottxt[node] = ax.annotate(node, xy=(self.nodePosition[str(node)][0],self.nodePosition[str(node)][1]))
+                    self.plottxt[node] = ax.annotate(node, xy=(node.position[0], node.position[1]))
                     self.plotsta[node], = ax.plot(range(mobility.MAX_X), range(mobility.MAX_Y), linestyle='', marker='.', ms=12, mfc='blue')
-                    self.plotsta[node].set_data(self.nodePosition[str(node)][0],self.nodePosition[str(node)][1])
+                    self.plotsta[node].set_data(node.position[0], node.position[1])
                                
         if(self.modelName=='RandomWalk'):
             ## Random Walk model
@@ -711,7 +710,7 @@ class mobility ( object ):
                             self.position.append(pos_zero)
                             self.position.append(pos_one)
                             self.position.append(0)
-                            self.nodePosition[wifiNode] = self.position                            
+                            ap.position = self.position                            
                             if self.DRAW:
                                 plt.plot([pos_zero], [pos_one], 'ro')
                                 plt.text(int(pos_zero), int(pos_one), wifiNode)
@@ -728,7 +727,7 @@ class mobility ( object ):
                                 self.position.append(0)
                                 if self.DRAW:
                                     self.plottxt[wifiNode].xytext = (xy[n][0], xy[n][1])
-                                self.nodePosition[wifiNode] = self.position
+                                sta.position = self.position
                                 for ap in accessPoint.name:
                                     distance = self.getDistance(sta, ap)
                                     association.setInfraParameters(wifiNodes[n], ap, distance, '')

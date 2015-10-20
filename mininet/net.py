@@ -282,11 +282,11 @@ class Mininet( object ):
         if(position!="{}"):        
             position = position.split(',')
             self.startPosition[name] = position
-            mobility.nodePosition[name] = position
+            sta.position = position
             station.fixedPosition.append(sta)
         else:
             self.startPosition[name] = 0
-            mobility.nodePosition[name] = 0            
+            sta.position = 0            
         
         channel = ("%s" % params.pop('channel', {}))
         if(channel!="{}"): 
@@ -344,10 +344,10 @@ class Mininet( object ):
         if(position!="{}"):        
             position =  position.split(',')
             self.startPosition[name] = position
-            mobility.nodePosition[name] = position
+            bs.position = position
         else:
             self.startPosition[name] = 0
-            mobility.nodePosition[name] = 0            
+            bs.position = 0            
       
         channel = ("%s" % params.pop('channel', {}))
         if(channel!="{}"):
@@ -1312,15 +1312,19 @@ class Mininet( object ):
             self.time = kwargs['time']
         if 'speed' in kwargs:
             self.speed = kwargs['speed'][:-2]
-        
+            
+        for n in self.hosts:
+            if self.node == str(n):
+                self.node = n
+                        
         mobility.ismobility = True
         
         if(self.stage == 'start'):
-            self.startTime[self.node] = self.time        
+            self.startTime[str(self.node)] = self.time        
         elif(self.stage == 'stop'):
-            self.endTime[self.node] = self.time 
-            diffTime = self.endTime[self.node] - self.startTime[self.node]
-            self.moveSta[self.node] = mobility.move(self.node, diffTime, self.speed, self.startPosition[self.node], self.endPosition[self.node])
+            self.endTime[str(self.node)] = self.time 
+            diffTime = self.endTime[str(self.node)] - self.startTime[str(self.node)]
+            self.moveSta[str(self.node)] = mobility.move(self.node, diffTime, self.speed, self.startPosition[str(self.node)], self.endPosition[str(self.node)])
         
     def startMobility(self, **kwargs):
         """ Starts Mobility """
@@ -1384,7 +1388,7 @@ class Mininet( object ):
                         sta = str(n)
                         if 'sta' in sta:
                             if sta in self.sta_inMov:
-                                if time.time() - currentTime >= self.startTime[sta] and time.time() - currentTime <= self.endTime[sta]:
+                                if time.time() - currentTime >= self.startTime[str(sta)] and time.time() - currentTime <= self.endTime[str(sta)]:
                                     self.startPosition[sta][0] = float(self.startPosition[sta][0]) + float(self.moveSta[sta][0])
                                     self.startPosition[sta][1] = float(self.startPosition[sta][1]) + float(self.moveSta[sta][1])
                                     self.startPosition[sta][2] = float(self.startPosition[sta][2]) + float(self.moveSta[sta][2])
@@ -1392,7 +1396,7 @@ class Mininet( object ):
                                 self.startPosition[sta][0] = float(self.startPosition[sta][0])
                                 self.startPosition[sta][1] = float(self.startPosition[sta][1])
                                 self.startPosition[sta][2] = float(self.startPosition[sta][2])
-                            mobility.nodePosition[sta] = self.startPosition[sta]
+                            n.position = self.startPosition[sta]
                             for ap in self.accessPoints:
                                 distance = mobility.getDistance(n, ap)
                                 association.setInfraParameters(n, ap, distance, '')
@@ -1421,9 +1425,7 @@ class Mininet( object ):
     #            print "%s does not exist!" % src
     
     def getCurrentPosition(self, node):
-        """
-            Get Current Position.
-        """ 
+        """ Get Current Position """ 
         try:
             for host in self.wifiNodes:
                 if node == str(host):
@@ -1432,9 +1434,7 @@ class Mininet( object ):
             print ("Position was not defined")
                         
     def getCurrentDistance(self, src, dst):
-        """
-            Get current Distance.
-        """ 
+        """ Get current Distance """ 
         existSrc = False
         existDst = False
         for host1 in self.wifiNodes:
