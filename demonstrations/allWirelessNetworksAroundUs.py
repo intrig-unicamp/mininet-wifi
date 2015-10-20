@@ -28,7 +28,7 @@ def topology():
     net.addLink(ap2, s4)
     net.addLink(ap3, s4)
     net.addLink(s4, h1)
-    net.addLink(ap1, sta1)
+#    net.addLink(ap2, sta1)
 
     sta1.cmd('modprobe bonding mode=3')
     sta1.cmd('ip link add bond0 type bond')

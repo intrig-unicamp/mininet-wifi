@@ -179,13 +179,14 @@ class Mininet( object ):
         self.moveSta = {}  
         self.nameToNode = {}  # name to Node (Host/Switch) objects
         self.newapif = []
-        self.stationName = []                
         self.apexists = []
         self.missingStations = []
         self.sta_inMov = []
         self.wifiNodes = []
         self.hosts = []
         self.switches = []
+        self.stations = []
+        self.accessPoints = []
         self.controllers = []
         self.links = []
         self.terms = []  # list of spawned xterm processes
@@ -270,19 +271,19 @@ class Mininet( object ):
         defaults.update( params )        
         if not cls:
             cls = self.host
-        h = cls( name, **defaults )      
-        self.hosts.append( h )
-        self.wifiNodes.append(h)
-        self.nameToNode[ name ] = h        
-        self.stationName.append(name)
-        self.missingStations.append(h)
+        sta = cls( name, **defaults )      
+        self.hosts.append( sta )
+        self.stations.append(sta)
+        self.wifiNodes.append(sta)
+        self.nameToNode[ name ] = sta        
+        self.missingStations.append(sta)
         
         position = ("%s" % params.pop('position', {}))
         if(position!="{}"):        
             position = position.split(',')
             self.startPosition[name] = position
             mobility.nodePosition[name] = position
-            station.fixedPosition.append(name)
+            station.fixedPosition.append(sta)
         else:
             self.startPosition[name] = 0
             mobility.nodePosition[name] = 0            
@@ -291,17 +292,17 @@ class Mininet( object ):
         if(channel!="{}"): 
             channel = ("%s" % params.pop('channel', {}))
             if(channel!="{}"):
-                self.channel = channel
+                sta.channel = channel
         else:
-            self.channel = 1
+            sta.channel = 1
       
         mode = ("%s" % params.pop('mode', {}))
         if(mode!="{}"): 
             mode = ("%s" % params.pop('mode', {}))
             if(mode!="{}"):
-                self.mode = mode
+                sta.mode = mode
         else:
-            self.mode = "g"
+            sta.mode = "g"
                 
         wifi = ("%s" % params.pop('wlans', {}))
         if(wifi!="{}"):        
@@ -315,7 +316,7 @@ class Mininet( object ):
         station.wlans[name] = int(wifi)
         
         self.nextIP += 1        
-        return h
+        return sta
 
     def addBaseStation( self, name, cls=None, **params ):
         """Add BaseStation.
@@ -345,28 +346,32 @@ class Mininet( object ):
             self.startPosition[name] = position
             mobility.nodePosition[name] = position
         else:
-            mobility.nodePosition[name] = 0
             self.startPosition[name] = 0
+            mobility.nodePosition[name] = 0            
       
         channel = ("%s" % params.pop('channel', {}))
         if(channel!="{}"):
-            self.channel = channel
+            bs.channel = channel
+        else:
+            bs.channel = self.channel 
       
         mode = ("%s" % params.pop('mode', {}))
         if(mode!="{}"):
-            self.mode = mode
+            bs.mode = mode
+        else:
+            bs.mode = self.mode
                       
         ssid = ("%s" % params.pop('ssid', {}))
         if(ssid!="{}"):
-            self.ssid = ssid
+            bs.ssid = ssid
+        else:
+            bs.ssid = self.ssid
         
         module.wifiRadios+=1
         module.virtualWlan.append(name)
-        accessPoint.apMode[name] = self.mode
-        accessPoint.ssid[name] = self.ssid
-        accessPoint.apChannel[name] = self.channel   
-        accessPoint.apName.append(name)
-        self.switches.append( bs )           
+        accessPoint.name.append(bs)
+        self.switches.append( bs )          
+        self.accessPoints.append( bs ) 
         
         return bs
      
@@ -560,18 +565,15 @@ class Mininet( object ):
    
     def configureAP(self):
         
-        for ap in accessPoint.apName:
+        for ap in self.accessPoints:
             wifiparam = dict()
             
-            ssid = accessPoint.ssid[ap]
-            mode = accessPoint.apMode[ap]
-            channel = accessPoint.apChannel[ap]        
-            intf = self.newapif[module.virtualWlan.index(ap)]
+            intf = self.newapif[module.virtualWlan.index(str(ap))]
             newname = str(ap)+'-'+str(intf[:4])+str(0)
-            interface = accessPoint.rename(intf, newname)
+            ap.virtualWlan = accessPoint.rename(intf, newname)
                         
-            checkNM.getMacAddress(interface)         
-            accessPoint.setBw(interface, mode)
+            checkNM.getMacAddress(ap)         
+            accessPoint.setBw(ap)
             
             self.wpa_key_mgmt = None
             self.country_code = None
@@ -581,24 +583,20 @@ class Mininet( object ):
             self.auth_algs = None
             self.wmm_enabled = None        
             
-            wifiparam.setdefault( 'interface', interface )
-            wifiparam.setdefault( 'ssid', ssid )
-            wifiparam.setdefault( 'mode', mode )
-            wifiparam.setdefault( 'channel', channel )
             wifiparam.setdefault( 'country_code', self.country_code )
             wifiparam.setdefault( 'auth_algs', self.auth_algs )
             wifiparam.setdefault( 'wpa', self.wpa )
             wifiparam.setdefault( 'wpa_key_mgmt', self.wpa_key_mgmt )
             wifiparam.setdefault( 'rsn_pairwise', self.rsn_pairwise )
             wifiparam.setdefault( 'wpa_passphrase', self.wpa_passphrase )
-    
+           
             cmd = accessPoint.start(ap, **wifiparam)                   
-            checkNM.APfile(cmd, interface) 
+            checkNM.APfile(cmd, ap) 
         
     def addMissingSTAs(self, sta):
         
         options = dict( )
-        self.bw = wifiParameters.set_bw(self.mode)
+        self.bw = wifiParameters.set_bw(sta.mode)
         options.setdefault( 'bw', self.bw )
         options.setdefault( 'use_hfsc', True )
         
@@ -611,7 +609,7 @@ class Mininet( object ):
         cls( sta, sta, **options )
         
         #necessary if does not exist link between sta and other device
-        station.staMode[str(sta)] = 'g'
+        sta.mode = 'g'
         station.doAssociation[str(sta)] = False
             
     """    
@@ -647,12 +645,10 @@ class Mininet( object ):
     
     def activeMultipleWlans(self):
         """Useful when stations have multiple interfaces"""
-        for x in range(len(self.stationName)):
-            station.ifaceAssociatedToAp.append([])
-            for z in range(0,station.wlans[self.stationName[x]]):
-                station.ifaceAssociatedToAp[x].append('a')
-            station.indexStaIface[self.stationName[x]] = x
-    
+        for st in self.stations:
+            for z in range(0,station.wlans[str(st)]):
+                st.ifaceAssociatedToAp.append(str(z))
+            
     def addLink( self, node1, node2, port1=None, port2=None, 
                  cls=None, **params ):
         
@@ -679,19 +675,19 @@ class Mininet( object ):
                 or 'ap' in str(node2) and str(node2) not in self.apexists:
         
                 if 'ap' in str(node1):
-                    ap = str(node1)
+                    ap = node1
                     self.apexists.append(str(node1)) 
                 else:
-                    ap = str(node2)
+                    ap = node2
                     self.apexists.append(str(node2))
                 
             if ('sta' in str(node1) or 'sta' in str(node2)):
                 if 'sta' in str(node1):
                     sta = node1
-                    ap = str(node2)
+                    ap = node2
                 else:
                     sta = node2
-                    ap = str(node1)
+                    ap = node1
                 
                 if sta in self.missingStations:
                     self.missingStations.remove(sta)
@@ -717,14 +713,12 @@ class Mininet( object ):
                 
                 station.doAssociation[str(sta)] = doAssociation
                 if(doAssociation):
-                    ssid = accessPoint.ssid[ap]
                     try:
-                        wlan = station.ifaceToAssociate[sta]
+                        wlan = sta.ifaceToAssociate
                     except:
                         wlan = 0
-                    station.associate(sta, ssid, ap)
-                    mode = accessPoint.apMode[ap]
-                    association.setInfraParameters(sta, ap, mode, distance, wlan)                    
+                    station.associate(sta, ap)
+                    association.setInfraParameters(sta, ap, distance, wlan)                    
             return link
         
         else:
@@ -788,12 +782,12 @@ class Mininet( object ):
             if node1 in self.missingStations:
                 self.missingStations.remove(node1)
                 #necessary if does not exist link between sta and other device
-                station.staMode[str(node1)] = 'g'
+                node1.mode = 'g'
                 station.doAssociation[str(node1)] = False
             if node2 in self.missingStations:
                 self.missingStations.remove(node2)
                 #necessary if does not exist link between sta and other device
-                station.staMode[str(node2)] = 'g'
+                node2.mode = 'g'
                 station.doAssociation[str(node2)] = False
             
             # Port is optional
@@ -1354,12 +1348,11 @@ class Mininet( object ):
         if self.model != '':
             mobilityparam.setdefault( 'wifiNodes', self.wifiNodes )
             staMov = []
-            for n in self.stationName:
+            for n in self.stations:
                 if n not in station.fixedPosition:
                     staMov.append(n)
             mobilityparam.setdefault( 'n_staMov', len(staMov) )
             self.thread = threading.Thread(name='mobilityModel', target=mobility.models, kwargs=dict(mobilityparam,))
-            #module.thread = multiprocessing.Process(name='mobilityModel', target=mobility.models, args=(wifiNodes,associatedAP,self.startPosition, len(self.stationName),self.model,self.max_x,self.max_y,self.min_v,self.max_v,))
             self.thread.daemon = True
             self.thread.start()
            
@@ -1372,7 +1365,6 @@ class Mininet( object ):
         if 'stopTime' in kwargs:
             stop_time = kwargs['stopTime']
         self.thread = threading.Thread(name='onGoingMobility', target=self.onGoingMobility, args=(stop_time,))
-        #module.thread = multiprocessing.Process(name='onGoingMobility', target=self.onGoingMobility)
         self.thread.daemon = True
         self.thread.start()
                 
@@ -1401,9 +1393,9 @@ class Mininet( object ):
                                 self.startPosition[sta][1] = float(self.startPosition[sta][1])
                                 self.startPosition[sta][2] = float(self.startPosition[sta][2])
                             mobility.nodePosition[sta] = self.startPosition[sta]
-                            for ap in accessPoint.apName:
-                                distance = mobility.getDistance(sta, ap)
-                                association.setInfraParameters(n, ap, self.mode, distance, '')
+                            for ap in self.accessPoints:
+                                distance = mobility.getDistance(n, ap)
+                                association.setInfraParameters(n, ap, distance, '')
                     i+=1
         except:
             print 'Error! Mobility stopped!'
@@ -1435,7 +1427,7 @@ class Mininet( object ):
         try:
             for host in self.wifiNodes:
                 if node == str(host):
-                    mobility.printPosition(node)
+                    mobility.printPosition(host)
         except:
             print ("Position was not defined")
                         

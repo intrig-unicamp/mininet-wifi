@@ -98,6 +98,22 @@ class Node( object ):
         self.ports = {}  # dict of interfaces to port numbers
         self.wlanports = {}  # dict of wlan interfaces to port numbers
         self.nameToIntf = {}  # dict of interface names to Intfs
+        
+        # Station and BaseStation Parameters
+        self.ssid = ''
+        self.channel = ''
+        self.mode = ''
+        self.virtualWlan = ''
+        
+        # Station Parameters
+        self.associatedAp = ''
+        self.addressingSta = -1
+        self.ifaceToAssociate = -1
+        self.ifaceAssociatedToAp = []
+        
+        # Mobility Parameters
+        self.position = []
+        self.startPosition = []
 
         # Make pylint happy
         ( self.shell, self.execed, self.pid, self.stdin, self.stdout,
@@ -592,11 +608,9 @@ class Node( object ):
         sta = str(self)
         if(mac!=None and module.isWiFi==True and 'sta' in sta and station.doAssociation[sta] == True):
             sta = self
-            wlan = station.ifaceToAssociate[(sta)]
-            ap = station.ifaceAssociatedToAp[station.indexStaIface[str(sta)]][wlan]
-            ssid = accessPoint.ssid[ap]
+            wlan = sta.ifaceToAssociate
             station.printCon = False
-            station.cmd_associate(sta, ssid, wlan, ap)
+            station.cmd_associate(sta, wlan, sta.associatedAp)
         # This should be examined
         self.cmd( 'ifconfig lo ' + lo )
         return r
