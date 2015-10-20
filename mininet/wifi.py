@@ -566,7 +566,7 @@ class mobility ( object ):
                 )
             )
             self.plotap[ap].set_data(pos_0, pos_1)
-            self.nodesPlotted.append(ap)
+            self.nodesPlotted.append(str(ap))
             plt.text(int(pos_0), int(pos_1), ap)
         
         plt.title("Mininet-WiFi Graph")
@@ -595,15 +595,13 @@ class mobility ( object ):
     @classmethod   
     def printPosition(self, node):
         """ Print position of STAs and APs """
-        self.node = str(node)
-        
         self.pos_x = node.position[0]
         self.pos_y = node.position[1]
         self.pos_z = node.position[2]   
         print "----------------\nPosition of %s\n---------------- \
         \nPosition X: %.2f \
         \nPosition Y: %.2f \
-        \nPosition Z: %.2f\n" % (self.node, float(self.pos_x), float(self.pos_y), float(self.pos_z))
+        \nPosition Z: %.2f\n" % (str(node), float(self.pos_x), float(self.pos_y), float(self.pos_z))
         
     @classmethod   
     def handover(self, sta, ap, wlan, distance, changeAP, reason=None, **params):
@@ -619,7 +617,7 @@ class mobility ( object ):
         elif distance > self.range(ap.mode):
             if str(ap) == sta.ifaceAssociatedToAp[wlan]:
                 sta.pexec("iw dev %s-wlan%s disconnect" % (sta, wlan))       
-                sta.ifaceAssociatedToAp[wlan] = 'wlan'  
+                sta.ifaceAssociatedToAp[wlan] = 'NoAssociated'  
             
     @classmethod   
     def models(self, wifiNodes=None, startPosition=None, model=None,

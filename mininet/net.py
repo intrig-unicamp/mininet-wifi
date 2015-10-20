@@ -1373,9 +1373,7 @@ class Mininet( object ):
         self.thread.start()
                 
     def onGoingMobility(self, stop_time):
-        """
-            ongoing Mobility.
-        """        
+        """ ongoing Mobility """        
         t_end = time.time() + stop_time
         t_start = time.time() + self.start_time
         currentTime = time.time()
