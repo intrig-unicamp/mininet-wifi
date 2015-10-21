@@ -369,7 +369,7 @@ class Mininet( object ):
         
         module.wifiRadios+=1
         module.virtualWlan.append(name)
-        accessPoint.name.append(bs)
+        accessPoint.list.append(bs)
         self.switches.append( bs )          
         self.accessPoints.append( bs ) 
         
@@ -494,7 +494,7 @@ class Mininet( object ):
     def addWlan (self, wifiRadios):
         module.wifiRadios+=wifiRadios
     
-    def addMesh( self, node, ssid, cls=None ):
+    def addMesh( self, sta, ssid, cls=None ):
         
         if self.firstAssociation:
             module.startEnvironment()
@@ -503,21 +503,18 @@ class Mininet( object ):
             station.assingIface(self.hosts)
             self.firstAssociation = False
                 
-        node2 = node
+        node2 = sta
         
-        node = node if not isinstance( node, basestring ) else self[ node ]
+        node = sta if not isinstance( sta, basestring ) else self[ sta ]
         node2 = node2 if not isinstance( node2, basestring ) else self[ node2 ]
         options = dict( )
         
-        mode = 'g'
-        channel = '1'
-        ssid = 'new-ssid'
+        sta.mode = 'g'
+        sta.channel = '1'
+        sta.ssid = ssid
         self.meshIP+=1
         
         options.setdefault( 'ipaddress', self.meshIP )
-        options.setdefault( 'mode', mode )
-        options.setdefault( 'channel', channel )
-        options.setdefault( 'ssid', ssid )
         
         # Set default MAC - this should probably be in Link
         options.setdefault( 'addr1', self.randMac() )
@@ -533,7 +530,7 @@ class Mininet( object ):
         
         return link    
     
-    def addHoc( self, node, ssid, mode, cls=None ):
+    def addHoc( self, sta, ssid, mode, cls=None ):
         
         if self.firstAssociation:
             module.startEnvironment()
@@ -542,14 +539,14 @@ class Mininet( object ):
             station.assingIface(self.hosts)
             self.firstAssociation = False
             
-        node2 = node
+        node2 = sta
         
-        node = node if not isinstance( node, basestring ) else self[ node ]
+        node = sta if not isinstance( sta, basestring ) else self[ sta ]
         node2 = node2 if not isinstance( node2, basestring ) else self[ node2 ]
         options = dict( )
         
-        options.setdefault( 'mode', mode )
-        options.setdefault( 'ssid', ssid )
+        sta.mode = mode
+        sta.ssid = ssid
         # Set default MAC - this should probably be in Link
         options.setdefault( 'addr1', self.randMac() )
         
@@ -1382,11 +1379,11 @@ class Mininet( object ):
         try:
             while time.time() < t_end and time.time() > t_start:
                 if time.time() - currentTime >= i:
-                    for n in self.hosts:
-                        sta = str(n)
+                    for st in self.hosts:
+                        sta = str(st)
                         if 'sta' in sta:
                             if sta in self.sta_inMov:
-                                if time.time() - currentTime >= self.startTime[str(sta)] and time.time() - currentTime <= self.endTime[str(sta)]:
+                                if time.time() - currentTime >= self.startTime[sta] and time.time() - currentTime <= self.endTime[sta]:
                                     self.startPosition[sta][0] = float(self.startPosition[sta][0]) + float(self.moveSta[sta][0])
                                     self.startPosition[sta][1] = float(self.startPosition[sta][1]) + float(self.moveSta[sta][1])
                                     self.startPosition[sta][2] = float(self.startPosition[sta][2]) + float(self.moveSta[sta][2])
@@ -1394,10 +1391,10 @@ class Mininet( object ):
                                 self.startPosition[sta][0] = float(self.startPosition[sta][0])
                                 self.startPosition[sta][1] = float(self.startPosition[sta][1])
                                 self.startPosition[sta][2] = float(self.startPosition[sta][2])
-                            n.position = self.startPosition[sta]
+                            st.position = self.startPosition[sta]
                             for ap in self.accessPoints:
-                                distance = mobility.getDistance(n, ap)
-                                association.setInfraParameters(n, ap, distance, '')
+                                distance = mobility.getDistance(st, ap)
+                                association.setInfraParameters(st, ap, distance, '')
                     i+=1
         except:
             print 'Error! Mobility stopped!'

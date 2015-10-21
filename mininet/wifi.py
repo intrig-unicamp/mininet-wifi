@@ -192,7 +192,7 @@ class association( object ):
             """useful to llf (Least-loaded-first)"""
             if mobility.leastLoadFirst == True:
                 llf = False
-                for apref in accessPoint.name:
+                for apref in accessPoint.list:
                     if str(apref) == sta.ifaceAssociatedToAp[wlan]:
                         accessPoint.numberOfAssociatedStations(apref)
                         ref_llf = apref.nAssociatedStations
@@ -206,7 +206,7 @@ class association( object ):
             
             """useful to ssf (Strongest-signal-first)"""
             if accessPoint.manual_apRange!=-10:
-                for apref in accessPoint.name:
+                for apref in accessPoint.list:
                     if str(apref) == sta.ifaceAssociatedToAp[wlan]:
                         ref_Distance = mobility.getDistance(sta,apref)
                         if ref_Distance > accessPoint.manual_apRange:
@@ -256,7 +256,6 @@ class station ( object ):
     
     addressingSta = {}
     indexStaIface = {}
-    nextIface = {}  
     printCon = True  
     fixedPosition = []
     apIface = []
@@ -290,10 +289,10 @@ class station ( object ):
         wifiParameters.get_rsi(sta, interface)    
     
     @classmethod    
-    def confirmAdhocAssociation(self, sta, interface, ssid):
+    def confirmAdhocAssociation(self, sta, interface):
         associated = ''
         while(associated == '' or len(associated) == 0):
-            sta.sendCmd("iw dev %s scan ssid | grep %s" % (interface, ssid))
+            sta.sendCmd("iw dev %s scan ssid | grep %s" % (interface, sta.ssid))
             associated = sta.waitOutput()
         wifiParameters.get_frequency(sta, interface)
         wifiParameters.get_tx_power(sta, interface)
@@ -331,40 +330,34 @@ class station ( object ):
         sta.ifaceAssociatedToAp[wlan] = str(ap) 
         
     @classmethod    
-    def adhoc(self, sta, ssid=None, mode=None, **params):
+    def adhoc(self, sta, **params):
         """ Adhoc mode """   
         sta.ifaceToAssociate += 1
         iface = sta.ifaceToAssociate
-        self.ssid = ssid
-        self.mode = mode
-        association.setAdhocParameters(sta, iface, mode)
+        association.setAdhocParameters(sta, iface, sta.mode)
         sta.cmd("iw dev %s-wlan%s set type ibss" % (str(sta), iface))
-        sta.cmd("iw dev %s-wlan%s ibss join %s 2412" % (str(sta), iface, self.ssid))
+        sta.cmd("iw dev %s-wlan%s ibss join %s 2412" % (str(sta), iface, sta.ssid))
         print "associating %s ..." % str(sta)
         interface = '%s-wlan%s' % (str(sta), iface)
-        self.confirmAdhocAssociation(sta, interface, self.ssid)
+        self.confirmAdhocAssociation(sta, interface)
         
     @classmethod    
-    def addMesh(self, sta, ssid=None, mode=None, channel=None, 
-                ipaddress=None, **params):
+    def addMesh(self, sta, ipaddress=None, **params):
         """ Mesh mode """   
         sta.ifaceToAssociate += 1
         iface = sta.ifaceToAssociate
-        self.ssid = ssid
-        self.mode = mode
-        self.host = sta
         sta.cmd('iw dev %s-wlan%s interface add mp0 type mp' % (str(sta), iface))
-        sta.cmd('iw dev mp0 set %s' % channel)
+        sta.cmd('iw dev mp0 set %s' % sta.channel)
         sta.cmd('ifconfig mp0 192.168.10.%s up' % ipaddress)
-        sta.cmd('iw dev mp0 mesh join %s' % ssid)
-        association.setAdhocParameters(self.host, iface, mode)
+        sta.cmd('iw dev mp0 mesh join %s' % sta.ssid)
+        association.setAdhocParameters(sta, iface, sta.mode)
         print "associating %s ..." % str(sta)
         interface = '%s-wlan%s' % (str(sta), iface)
-        self.confirmMeshAssociation(self.host, interface)        
+        self.confirmMeshAssociation(sta, interface)        
             
 class accessPoint ( object ):    
 
-    name = []
+    list = []
     number = 0
     exists = False   
     manual_apRange = -10   
@@ -726,9 +719,9 @@ class mobility ( object ):
                                 if self.DRAW:
                                     self.plottxt[wifiNode].xytext = (xy[n][0], xy[n][1])
                                 sta.position = self.position
-                                for ap in accessPoint.name:
+                                for ap in accessPoint.list:
                                     distance = self.getDistance(sta, ap)
-                                    association.setInfraParameters(wifiNodes[n], ap, distance, '')
+                                    association.setInfraParameters(sta, ap, distance, '')
                     if self.DRAW:
                         plt.title("Mininet-WiFi Graph")
                         plt.draw()
@@ -739,15 +732,11 @@ class wifiParameters ( object ):
     """
         WiFi Parameters 
     """
-    freq = {}
-    txpower = {}
-    rsi = {}
-    
     
     @classmethod
     def get_rsi(self, sta, iface): 
         """ Get rsi info """
-        self.rsi[str(sta)] = (sta.cmd('iwconfig %s | grep -o \'Signal.*\' | cut -f2- -d\'=\' | cut -c1-4'
+        sta.rsi = (sta.cmd('iwconfig %s | grep -o \'Signal.*\' | cut -f2- -d\'=\' | cut -c1-4'
                                             % iface)) 
     
     @classmethod
@@ -756,12 +745,12 @@ class wifiParameters ( object ):
         freq = sta.cmd('iwconfig %s | grep -o \'Frequency.*z\' | cut -f2- -d\':\' | cut -c1-5'
                                             % iface)
         if freq!='':
-            self.freq[str(sta)] = float(freq) 
+            sta.frequency = float(freq) 
     
     @classmethod
     def get_tx_power(self, sta, iface): 
         """ Get tx_power info """
-        self.txpower[str(sta)] = int(sta.cmd('iwconfig %s | grep -o \'Tx-Power.*\' | cut -f2- -d\'=\' | cut -c1-3'
+        sta.txpower = int(sta.cmd('iwconfig %s | grep -o \'Tx-Power.*\' | cut -f2- -d\'=\' | cut -c1-3'
                                          % iface))
     #@classmethod
     #def printNoiseInfo(self, host): 
@@ -787,8 +776,7 @@ class wifiParameters ( object ):
     def delay(self, distance, seconds):
         """"Based on RandomPropagationDelayModel (ns3)"""
         delay = distance/seconds
-        return delay
-        
+        return delay        
     
     @classmethod
     def custom_step(self, mode):    
@@ -841,11 +829,10 @@ class wifiParameters ( object ):
     @classmethod
     def max_pathLoss(self, sta):
         """used to calculate the range."""  
-        sta = str(sta)
         gains = 6
         losses = 6
         fademargin = 12
-        maxpathloss = self.txpower[sta] - self.rsi[sta] + gains - losses - fademargin
+        maxpathloss = sta.txpower - sta.rsi + gains - losses - fademargin
         return maxpathloss
         
     @classmethod
@@ -882,8 +869,7 @@ class wifiParameters ( object ):
         """Formula: Free Space Loss
         (distance) is the distance between the transmitter and the receiver (km)
         (frequency) signal frequency transmited(MegaHertz)."""  
-        sta = str(sta)
-        frequency = self.freq[sta]
+        frequency = sta.frequency
         distance=10
         #32,44 is a constant and its value depends on the units for distance and frequency
         fsl = 32,44 - 20 * math.log10(distance) + 20 * math.log10(frequency) #fsl in dB
@@ -895,9 +881,8 @@ class wifiParameters ( object ):
         (distance) is the distance between the transmitter and the receiver (meters)
         (frequency) signal frequency transmited(Hertz)
         (constant) speed of light in a vacuum (metres per second)."""  
-        sta = str(sta)
         constant = 3 * 10**8  
-        frequency = self.freq[sta] * 10**9 # Using 10^9 to convert to Hz 
+        frequency = sta.frequency * 10**9 # Using 10^9 to convert to Hz 
         distance = 1
         fspl = ((4 * math.pi * distance * frequency)/constant)**2
         return fspl

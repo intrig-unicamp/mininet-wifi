@@ -75,13 +75,13 @@ class Intf( object ):
             else:
                 try:
                     if self.node in station.apIface:
-                        station.nextIface[str(self.node)]+=1
-                        iface = station.nextIface[str(self.node)]
+                        self.node.nextIface+=1
+                        iface = self.node.nextIface
                     else:
                         iface = station.addressingSta[str(self.node)]
                 except:
                     if self.node not in station.apIface:
-                        station.nextIface[str(self.node)]=0
+                        self.node.nextIface=0
                         iface = 0
                         station.apIface.append(self.node)
                     else:

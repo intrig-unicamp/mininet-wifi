@@ -105,6 +105,7 @@ class Node( object ):
         #Stations Parameters
         self.associate = False
         self.nWlans = 0
+        self.nextIface = 0
         
         # Station and BaseStation Parameters
         self.ssid = ''
@@ -114,9 +115,13 @@ class Node( object ):
         
         # Station Parameters
         self.associatedAp = ''
-        self.addressingSta = -1
+        self.addressingSta = 0
+        self.bringUpIface = 0
         self.ifaceToAssociate = -1
         self.ifaceAssociatedToAp = []
+        self.rsi = 0
+        self.frequency = 0
+        self.txpower = 0
         
         # Mobility Parameters
         self.position = []
