@@ -3,7 +3,12 @@
 """
 This example shows how to work in adhoc mode
 
-sta1 <---> sta2 <---> sta3
+It is a full mesh network
+
+     .sta3.
+    .      .
+   .        .
+sta1 ----- sta2
 
 """
 from mininet.net import Mininet
