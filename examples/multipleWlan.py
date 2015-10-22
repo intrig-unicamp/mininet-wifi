@@ -24,8 +24,8 @@ def topology():
     print "*** Associating..."
     net.addLink(ap1, sta1)
 
-    net.addHoc(sta1, 'adhoc1', 'g')
-    net.addHoc(sta2, 'adhoc1', 'g')
+    net.addHoc(sta1, ssid='adhoc1', mode='g')
+    net.addHoc(sta2, ssid='adhoc1', mode='g')
 
     print "*** Starting network"
     net.build()

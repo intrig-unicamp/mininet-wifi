@@ -75,8 +75,9 @@ class Intf( object ):
             else:
                 try:
                     if self.node in station.apIface:
-                        self.node.nextIface+=1
                         iface = self.node.nextIface
+                        self.node.nextIface+=1
+                        
                     else:
                         iface = station.addressingSta[str(self.node)]
                 except:
