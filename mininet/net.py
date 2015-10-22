@@ -290,17 +290,13 @@ class Mininet( object ):
         
         channel = ("%s" % params.pop('channel', {}))
         if(channel!="{}"): 
-            channel = ("%s" % params.pop('channel', {}))
-            if(channel!="{}"):
-                sta.channel = channel
+            sta.channel = channel
         else:
             sta.channel = 1
       
         mode = ("%s" % params.pop('mode', {}))
         if(mode!="{}"): 
-            mode = ("%s" % params.pop('mode', {}))
-            if(mode!="{}"):
-                sta.mode = mode
+            sta.mode = mode
         else:
             sta.mode = "g"
                 
@@ -494,7 +490,7 @@ class Mininet( object ):
     def addWlan (self, wifiRadios):
         module.wifiRadios+=wifiRadios
     
-    def addMesh( self, sta, ssid, cls=None ):
+    def addMesh( self, sta, cls=None, **params ):
         
         if self.firstAssociation:
             module.startEnvironment()
@@ -509,13 +505,27 @@ class Mininet( object ):
         node2 = node2 if not isinstance( node2, basestring ) else self[ node2 ]
         options = dict( )
         
-        sta.mode = 'g'
-        sta.channel = '1'
-        sta.ssid = ssid
+        channel = ("%s" % params.pop('channel', {}))
+        if(channel!="{}"): 
+            sta.channel = channel
+        else:
+            sta.channel = 1
+            
+        ssid = ("%s" % params.pop('ssid', {}))
+        if(ssid!="{}"):
+            sta.ssid = ssid
+        else:
+            sta.ssid = 'meshNetwork'
+            
+        mode = ("%s" % params.pop('mode', {}))
+        if(mode!="{}"):
+            sta.mode = mode
+        else:
+            sta.mode = 'g'
+        
         self.meshIP+=1
         
-        options.setdefault( 'ipaddress', self.meshIP )
-        
+        options.setdefault( 'ipaddress', self.meshIP )        
         # Set default MAC - this should probably be in Link
         options.setdefault( 'addr1', self.randMac() )
         
@@ -530,7 +540,7 @@ class Mininet( object ):
         
         return link    
     
-    def addHoc( self, sta, ssid, mode, cls=None ):
+    def addHoc( self, sta, cls=None, **params ):
         
         if self.firstAssociation:
             module.startEnvironment()
@@ -545,8 +555,24 @@ class Mininet( object ):
         node2 = node2 if not isinstance( node2, basestring ) else self[ node2 ]
         options = dict( )
         
-        sta.mode = mode
-        sta.ssid = ssid
+        channel = ("%s" % params.pop('channel', {}))
+        if(channel!="{}"): 
+            sta.channel = channel
+        else:
+            sta.channel = 1
+            
+        ssid = ("%s" % params.pop('ssid', {}))
+        if(ssid!="{}"):
+            sta.ssid = ssid
+        else:
+            sta.ssid = 'meshNetwork'
+            
+        mode = ("%s" % params.pop('mode', {}))
+        if(mode!="{}"):
+            sta.mode = mode
+        else:
+            sta.mode = 'g'
+        
         # Set default MAC - this should probably be in Link
         options.setdefault( 'addr1', self.randMac() )
         

@@ -279,10 +279,11 @@ class station ( object ):
                     sta.cmd('ip link set dev %s name %s-wlan%s' % (wlan[vwlan + i], str(sta), i))   
       
     @classmethod    
-    def confirmMeshAssociation(self, sta, interface):
+    def confirmMeshAssociation(self, sta, interface, mpID):
         associated = ''
         while(associated == '' or len(associated) == 11):
-            sta.sendCmd('ifconfig mp0 | grep -o \'TX b.*\' | cut -f2- -d\':\'')
+            cmd = 'ifconfig mp%s | grep -o \'TX b.*\' | cut -f2- -d\':\'' % mpID
+            sta.sendCmd(cmd)
             associated = sta.waitOutput()
         wifiParameters.get_frequency(sta, interface)
         wifiParameters.get_tx_power(sta, interface)    
@@ -342,18 +343,19 @@ class station ( object ):
         self.confirmAdhocAssociation(sta, interface)
         
     @classmethod    
-    def addMesh(self, sta, ipaddress=None, **params):
+    def addMesh(self, sta, wlan=None, ipaddress=None, **params):
         """ Mesh mode """   
         sta.ifaceToAssociate += 1
         iface = sta.ifaceToAssociate
-        sta.cmd('iw dev %s-wlan%s interface add mp0 type mp' % (str(sta), iface))
-        sta.cmd('iw dev mp0 set %s' % sta.channel)
-        sta.cmd('ifconfig mp0 192.168.10.%s up' % ipaddress)
-        sta.cmd('iw dev mp0 mesh join %s' % sta.ssid)
+        sta.cmd('iw dev %s-wlan%s interface add mp%s type mp' % (str(sta), iface, iface))
+        sta.cmd('iw dev mp%s set %s' % (iface, sta.channel))
+        sta.cmd('ifconfig mp%s 192.168.10.%s up' % (iface, ipaddress))
+        sta.cmd('iw dev mp%s mesh join %s' % (iface, sta.ssid))
         association.setAdhocParameters(sta, iface, sta.mode)
         print "associating %s ..." % str(sta)
         interface = '%s-wlan%s' % (str(sta), iface)
-        self.confirmMeshAssociation(sta, interface)        
+        mpID = iface
+        self.confirmMeshAssociation(sta, interface, mpID)        
             
 class accessPoint ( object ):    
 

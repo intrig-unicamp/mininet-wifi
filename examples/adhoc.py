@@ -13,7 +13,6 @@ from mininet.log import setLogLevel
 def topology():
     "Create a network."
     net = Mininet( )
-    #wirelessRadios = Number of STAs + APs
 
     print "*** Creating nodes"
     sta1 = net.addStation( 'sta1' )
@@ -21,9 +20,9 @@ def topology():
     sta3 = net.addStation( 'sta3' )
 
     print "*** Creating links"
-    net.addHoc(sta1, 'adhocNet', 'g') #node, ssid, mode
-    net.addHoc(sta2, 'adhocNet', 'g') #node, ssid, mode
-    net.addHoc(sta3, 'adhocNet', 'g') #node, ssid, mode
+    net.addHoc(sta1, ssid='adhocNet', mode='g')
+    net.addHoc(sta2, ssid='adhocNet', mode='g')
+    net.addHoc(sta3, ssid='adhocNet', mode='g')
 
     print "*** Starting network"
     net.build()
