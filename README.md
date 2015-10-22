@@ -7,7 +7,7 @@ step 2: $ cd mininet-wifi
 step 3: $ sudo util/install.sh -Wnfv      
 
 ##Download an Image  
-Download: [Virtual Disk (1.3GB)](http://intrig.dca.fee.unicamp.br/index.php/projects/projects.html)    
+Download: [Virtual Machine](http://intrig.dca.fee.unicamp.br/index.php/projects/projects.html)    
 
 ##Mininet-wifi on Docker  
 Image: [(ramonfontes/mininet-wifi)](https://registry.hub.docker.com/u/ramonfontes/mininet-wifi/)      
