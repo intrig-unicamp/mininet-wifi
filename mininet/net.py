@@ -273,7 +273,11 @@ class Mininet( object ):
             cls = self.host
         sta = cls( name, **defaults )      
         
-        if self.autoSetMacs:
+        mac = ("%s" % params.pop('mac', {}))
+        if(mac!="{}"):        
+            mac = mac.split(',')
+            sta.mac = str(mac[0])
+        elif self.autoSetMacs:
             sta.mac = defaults[ 'mac' ]
         
         self.hosts.append( sta )
@@ -636,7 +640,8 @@ class Mininet( object ):
         cls = self.link if cls is None else cls
         cls( sta, sta, **options )
         
-        station.setMac(sta)        
+        if sta.mac != '':
+            station.setMac(sta)        
         
         #necessary if does not exist link between sta and other device
         sta.mode = 'g'
@@ -721,7 +726,7 @@ class Mininet( object ):
                 
                 if sta in self.missingStations:
                     self.missingStations.remove(sta)
-                self.bw = wifiParameters.set_bw(self.mode)
+                self.bw = wifiParameters.set_bw(sta.mode)
                 options.setdefault( 'bw', self.bw )
                 options.setdefault( 'use_hfsc', True )
                 
@@ -732,12 +737,13 @@ class Mininet( object ):
                 cls = self.link if cls is None else cls
                 link = cls( node1, node2, **options )
                 
-                station.setMac(sta)        
+                if sta.mac != '':
+                    station.setMac(sta)        
                 
                 #If sta/ap have defined position 
                 if self.startPosition[str(node1)] !=0 and self.startPosition[str(node2)] !=0:
                     distance = mobility.getDistance(node1, node2)
-                    doAssociation = association.doAssociation(self.mode, distance)
+                    doAssociation = association.doAssociation(sta.mode, distance)
                 #if not
                 else:
                     doAssociation = True
