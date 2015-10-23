@@ -258,6 +258,7 @@ class station ( object ):
     indexStaIface = {}
     fixedPosition = []
     apIface = []
+    printCon = True
     
     @classmethod    
     def ifconfig(self, sta):
@@ -307,7 +308,8 @@ class station ( object ):
     @classmethod    
     def confirmInfraAssociation(self, sta, wlan, ap):
         associated = ''
-        print "Associating %s to %s" % (sta, ap)
+        if self.printCon:
+            print "Associating %s to %s" % (sta, ap)
         while(associated == '' or len(associated[0]) == 15):
             associated = self.isAssociated(sta, wlan)
         interface = str(sta)+'-wlan%s' % wlan
