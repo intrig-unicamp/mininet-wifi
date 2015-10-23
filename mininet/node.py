@@ -69,7 +69,7 @@ from mininet.moduledeps import moduleDeps, pathCheck, TUN
 from mininet.link import Link, Intf, TCIntf, OVSIntf
 from re import findall
 from distutils.version import StrictVersion
-from wifi import station, module, accessPoint
+from wifi import module, accessPoint
 
 class Node( object ):
     """A virtual network node is simply a shell in a network namespace.
@@ -122,6 +122,7 @@ class Node( object ):
         self.rsi = 0
         self.frequency = 0
         self.txpower = 0
+        self.mac=''
         
         # Mobility Parameters
         self.position = []
@@ -612,16 +613,11 @@ class Node( object ):
         # the superclass config method here as follows:
         # r = Parent.config( **_params )
         r = {}
-        self.setParam( r, 'setMAC', mac=mac )
+        if 'sta' not in str(self):
+            self.setParam( r, 'setMAC', mac=mac )
         self.setParam( r, 'setIP', ip=ip )
         self.setParam( r, 'setDefaultRoute', defaultRoute=defaultRoute )
         
-        #Necessary if the mac address has changed
-        sta = self
-        if(mac!=None and module.isWiFi==True and 'sta' in str(sta) and sta.associate == True):
-            wlan = sta.ifaceToAssociate
-            station.printCon = False
-            station.cmd_associate(sta, wlan, sta.associatedAp)
         # This should be examined
         self.cmd( 'ifconfig lo ' + lo )
         return r

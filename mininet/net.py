@@ -272,6 +272,10 @@ class Mininet( object ):
         if not cls:
             cls = self.host
         sta = cls( name, **defaults )      
+        
+        if self.autoSetMacs:
+            sta.mac = defaults[ 'mac' ]
+        
         self.hosts.append( sta )
         self.stations.append(sta)
         self.wifiNodes.append(sta)
@@ -632,6 +636,8 @@ class Mininet( object ):
         cls = self.link if cls is None else cls
         cls( sta, sta, **options )
         
+        station.setMac(sta)        
+        
         #necessary if does not exist link between sta and other device
         sta.mode = 'g'
         sta.associate = False
@@ -725,6 +731,8 @@ class Mininet( object ):
                 
                 cls = self.link if cls is None else cls
                 link = cls( node1, node2, **options )
+                
+                station.setMac(sta)        
                 
                 #If sta/ap have defined position 
                 if self.startPosition[str(node1)] !=0 and self.startPosition[str(node2)] !=0:
@@ -915,7 +923,7 @@ class Mininet( object ):
             self.buildFromTopo( self.topo )
         if self.inNamespace:
             self.configureControlNetwork()
-            info( '*** Configuring hosts\n' )
+            info( '*** Configuring hosts\n' )       
         self.configHosts()
         if self.xterms:
             self.startTerms()

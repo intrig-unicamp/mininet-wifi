@@ -76,8 +76,7 @@ class Intf( object ):
                 try:
                     if self.node in station.apIface:
                         iface = self.node.nextIface
-                        self.node.nextIface+=1
-                        
+                        self.node.nextIface+=1                        
                     else:
                         iface = station.addressingSta[str(self.node)]
                 except:
@@ -338,7 +337,6 @@ class TCIntf( Intf ):
                 latency_ms=None, enable_ecn=False, enable_red=False,
                 max_queue_size=None, **params ):
         "Configure the port and set its properties."
-        #pdb.set_trace()
         result = Intf.config( self, **params)
 
         # Disable GRO

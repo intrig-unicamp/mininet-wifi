@@ -256,7 +256,6 @@ class station ( object ):
     
     addressingSta = {}
     indexStaIface = {}
-    printCon = True  
     fixedPosition = []
     apIface = []
     
@@ -267,6 +266,12 @@ class station ( object ):
         except:
             self.addressingSta[sta] = 0
         return self.addressingSta[sta]  
+     
+    @classmethod   
+    def setMac(self, sta):
+        sta.cmd('ip link set %s-wlan0 down' % sta)
+        sta.cmd('ip link set %s-wlan0 address %s' % (sta, sta.mac))
+        sta.cmd('ip link set %s-wlan0 up' % sta) 
      
     @classmethod    
     def assingIface(self, stations):
@@ -302,8 +307,7 @@ class station ( object ):
     @classmethod    
     def confirmInfraAssociation(self, sta, wlan, ap):
         associated = ''
-        if self.printCon:
-            print "Associating %s to %s" % (sta, ap)
+        print "Associating %s to %s" % (sta, ap)
         while(associated == '' or len(associated[0]) == 15):
             associated = self.isAssociated(sta, wlan)
         interface = str(sta)+'-wlan%s' % wlan
@@ -364,7 +368,7 @@ class accessPoint ( object ):
     exists = False   
     manual_apRange = -10   
     
-    @classmethod
+    """
     def wds(self, ap1, int1, ap2, int2):
         os.system('iw dev %s set 4addr off' % int1)
         os.system('iw dev %s interface add wds.%s type managed 4addr on' % (int1, int1))
@@ -376,7 +380,8 @@ class accessPoint ( object ):
         os.system('ip link set dev wds.wlan1 addr 02:00:00:00:01:00')
         os.system('ifconfig wds.%s up' % int1)
         os.system('ifconfig wds.%s up' % int2)
-        
+    """
+    
     @classmethod
     def rename( self, intf, newname ):
         "Rename interface"
