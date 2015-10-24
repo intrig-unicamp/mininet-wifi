@@ -170,18 +170,21 @@ def makeIntfPair( intf1, intf2, addr1=None, addr2=None, node1=None, node2=None,
        raises Exception on failure"""
     if not runCmd:
         runCmd = quietRun if not node1 else node1.cmd
-        runCmd2 = quietRun if not node2 else node2.cmd
+        if (str(node2) != 'onlyOneDevice'):
+            runCmd2 = quietRun if not node2 else node2.cmd
     if deleteIntfs:
         # Delete any old interfaces with the same names
         runCmd( 'ip link del ' + intf1 )
         runCmd2( 'ip link del ' + intf2 )
-    # Create new pair
-    #pdb.set_trace()
-    netns = 1 if not node2 else node2.pid
+        
+    if (str(node2) != 'onlyOneDevice'):
+        # Create new pair
+        netns = 1 if not node2 else node2.pid
     
     node1=str(node1)
     node2=str(node2)
-   
+    
+    cmdOutput = ''
     if addr1 is None and addr2 is None:
         cmdOutput = runCmd( 'ip link add name %s '
                             'type veth peer name %s '
@@ -193,6 +196,8 @@ def makeIntfPair( intf1, intf2, addr1=None, addr2=None, node1=None, node2=None,
             pass
         elif 'sta' in node2 and 'sta' in node1:
             pass
+        elif 'sta' in node1 and 'onlyOneDevice' in node2:
+            pass
         else:
             cmdOutput = runCmd( 'ip link add name %s '
                                'address %s '
@@ -200,6 +205,7 @@ def makeIntfPair( intf1, intf2, addr1=None, addr2=None, node1=None, node2=None,
                                'address %s '
                                'netns %s' %
                                (  intf1, addr1, intf2, addr2, netns ) )
+    
     if cmdOutput:
         raise Exception( "Error creating interface pair (%s,%s): %s " %
                          ( intf1, intf2, cmdOutput ) )

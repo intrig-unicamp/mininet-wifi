@@ -434,29 +434,39 @@ class Link( object ):
             params2[ 'port' ] = port2
             
         if 'port' not in params1:
-            if 'sta' in str(node1) and 'ap' in str(node2) or 'sta' in str(node1) and str(node2) == 'onlysta':
+            if 'sta' in str(node1) and 'ap' in str(node2):
                 params1[ 'port' ] = node1.newWlanPort()
-                node2.newPort()
+                node1.newPort()
             else:
                 params1[ 'port' ] = node1.newPort()
         if 'port' not in params2:
-            if 'sta' in str(node2) and 'ap' in str(node1) or 'sta' in str(node2) and str(node1) == 'onlysta':
+            if 'sta' in str(node2) and 'ap' in str(node1):
                 params2[ 'port' ] = node2.newWlanPort()
                 node2.newPort()
             else:
-                params2[ 'port' ] = node2.newPort()
+                if (str(node2) != 'onlyOneDevice'):
+                    params2[ 'port' ] = node2.newPort()
+                else:
+                    params1[ 'port' ] = node1.newWlanPort()
                 
         if not intfName1:
-            if('sta' in str(node1) and 'ap' in str(node2) or 'sta' in str(node2) and 'ap' in str(node1) or 'sta' in str(node2) and 'sta' in str(node1)):
+            if('sta' in str(node1) and 'ap' in str(node2) \
+               or 'sta' in str(node2) and 'ap' in str(node1) \
+                  or 'sta' in str(node2) and 'sta' in str(node1)) \
+                     or 'sta' in str(node2) and 'onlyOneDevice' in str(node1):
                 intfName1 = self.wlanName( node1, params1[ 'port' ] )
             else:
                 intfName1 = self.intfName( node1, params1[ 'port' ] )
         if not intfName2:
-            if('sta' in str(node1) and 'ap' in str(node2) or 'sta' in str(node2) and 'ap' in str(node1) or 'sta' in str(node2) and 'sta' in str(node1)):
+            if('sta' in str(node1) and 'ap' in str(node2) \
+               or 'sta' in str(node2) and 'ap' in str(node1) \
+                  or 'sta' in str(node2) and 'sta' in str(node1)):
                 intfName2 = self.wlanName( node2, params2[ 'port' ] )
             else:
-                intfName2 = self.intfName( node2, params2[ 'port' ] )
-        
+                if (str(node2) != 'onlyOneDevice'):
+                    intfName2 = self.intfName( node2, params2[ 'port' ] )
+                else:
+                    intfName1 = self.wlanName( node1, params1[ 'port' ] )
         self.fast = fast
         if('w' not in str(intfName1) and 'w' not in str(intfName2)):
             if fast:
@@ -485,6 +495,10 @@ class Link( object ):
                           link=self, mac=addr1, **params1  )
             intf2 = cls2( name=intfName2, node=node2,
                           link=self, mac=addr2, **params2 )
+        elif(('sta' in str(node1) and 'onlyOneDevice' in str(node2))):
+            intf1 = cls1( name=intfName1, node=node1,
+                          link=self, mac=addr1, **params1  )
+            intf2 = None
         else:
             intf1 = cls1( name=intfName1, node=node1,
                           link=self, mac=addr1, **params1  )

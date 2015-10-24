@@ -557,10 +557,7 @@ class Mininet( object ):
             station.assingIface(self.hosts)
             self.firstAssociation = False
             
-        node2 = sta
-        
         node = sta if not isinstance( sta, basestring ) else self[ sta ]
-        node2 = node2 if not isinstance( node2, basestring ) else self[ node2 ]
         options = dict( )
         
         channel = ("%s" % params.pop('channel', {}))
@@ -585,7 +582,7 @@ class Mininet( object ):
         options.setdefault( 'addr1', self.randMac() )
         
         cls = self.link if cls is None else cls
-        link = cls( node, node2, **options )
+        link = cls( sta, 'onlyOneDevice', **options )
         
         for sta in self.hosts:
             if (sta == node):
@@ -634,11 +631,10 @@ class Mininet( object ):
         
         # Set default MAC - this should probably be in Link
         options.setdefault( 'addr1', self.randMac() )
-        options.setdefault( 'addr2', self.randMac() )
-        
+       
         cls = None
         cls = self.link if cls is None else cls
-        cls( sta, sta, **options )
+        cls( sta, 'onlyOneDevice', **options )
         
         if sta.mac != '':
             station.setMac(sta)        
@@ -817,14 +813,13 @@ class Mininet( object ):
             node2 = node2 if not isinstance( node2, basestring ) else self[ node2 ]
             options = dict( params )
             
+            #necessary if does not exist link between sta and other device
             if node1 in self.missingStations:
                 self.missingStations.remove(node1)
-                #necessary if does not exist link between sta and other device
                 node1.mode = 'g'
                 node1.associate = False
             if node2 in self.missingStations:
                 self.missingStations.remove(node2)
-                #necessary if does not exist link between sta and other device
                 node2.mode = 'g'
                 node2.associate = False
             
