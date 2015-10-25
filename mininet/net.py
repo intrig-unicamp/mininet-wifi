@@ -619,7 +619,7 @@ class Mininet( object ):
             wifiparam.setdefault( 'rsn_pairwise', self.rsn_pairwise )
             wifiparam.setdefault( 'wpa_passphrase', self.wpa_passphrase )
            
-            cmd = accessPoint.start(ap, **wifiparam)                   
+            cmd = accessPoint.start(ap, **wifiparam)   
             checkNM.APfile(cmd, ap) 
         
     def addMissingSTAs(self, sta):

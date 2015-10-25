@@ -13,6 +13,7 @@ import fileinput
 import subprocess
 import glob
 import math
+import time
 
 import numpy as np
 import scipy.spatial.distance as distance 
@@ -25,8 +26,7 @@ from mininet.mobility import gauss_markov, \
 class checkNM ( object ):
     """ add mac address inside of /etc/NetworkManager/NetworkManager.conf """
     @classmethod 
-    def checkNetworkManager(self, storeMacAddress): 
-        self.storeMacAddress = storeMacAddress     
+    def checkNetworkManager(self, mac):
         self.printMac = False   
         unmatch = ""
         if(os.path.exists('/etc/NetworkManager/NetworkManager.conf')):
@@ -47,12 +47,10 @@ class checkNM ( object ):
                 unmatch = "#"
                 echo = "[keyfile]\nunmanaged-devices="
             
-            for n in range(len(self.storeMacAddress)): 
-                if self.storeMacAddress[n] not in unmatch:
-                    echo = echo + "mac:"
-                    echo = echo + self.storeMacAddress[n] + ";"
-                    self.printMac = True
-                
+            if mac not in unmatch:
+                echo = echo + "mac:" + mac + ';'
+                self.printMac = True
+            
             if(self.printMac):
                 for line in fileinput.input('/etc/NetworkManager/NetworkManager.conf', inplace=1): 
                     if(isNew):
@@ -65,15 +63,16 @@ class checkNM ( object ):
                             print line.replace(unmatch, echo)
                         else:
                             print line.rstrip()
+                #necessary to add mac address before starting the ap
+                time.sleep(1.5)
              
     @classmethod 
     def getMacAddress(self, ap):
         """ get Mac Address of any Interface """
-        self.storeMacAddress=[]
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         info = fcntl.ioctl(s.fileno(), 0x8927,  struct.pack('256s', '%s'[:15]) % str(ap.virtualWlan))
-        self.storeMacAddress.append(''.join(['%02x:' % ord(char) for char in info[18:24]])[:-1])
-        self.checkNetworkManager(self.storeMacAddress)
+        mac = (''.join(['%02x:' % ord(char) for char in info[18:24]])[:-1])
+        self.checkNetworkManager(mac)
     
     @classmethod   
     def APfile(self, cmd, ap):
@@ -412,15 +411,20 @@ class accessPoint ( object ):
         """Not using at the moment"""
         self.cmd = self.cmd + ("\ndriver=nl80211")
         self.cmd = self.cmd + ("\nssid=%s" % ap.ssid) # the name of the AP
-        self.cmd = self.cmd + ("\nhw_mode=%s" % ap.mode) 
+        
+        if ap.mode == 'n' or ap.mode == 'ac'or ap.mode == 'a':
+            self.cmd = self.cmd + ("\nhw_mode=g") 
+        else:
+            self.cmd = self.cmd + ("\nhw_mode=%s" % ap.mode) 
         self.cmd = self.cmd + ("\nchannel=%s" % ap.channel) # the channel to use 
-        if(ap.mode=="ac"):
-            self.cmd = self.cmd + ("\nwme_enabled=1") 
-            self.cmd = self.cmd + ("\nieee80211ac=1")
+        #if(ap.mode=="ac" or ap.mode=='a'):
+         #   self.cmd = self.cmd + ("\nieee80211ac=1")
         self.cmd = self.cmd + ("\nwme_enabled=1") 
-        #self.cmd = self.cmd + ("\nieee80211n=1")
-        if(ap.mode=="n"):
-            self.cmd = self.cmd + ("\nht_capab=[HT40+][SHORT-GI-40][DSSS_CCK-40]")
+        self.cmd = self.cmd + ("\nwmm_enabled=1") 
+        #if(ap.mode=="n" or ap.mode=="a"):
+         #   self.cmd = self.cmd + ("\nieee80211n=1")
+        #if(ap.mode=="n"):
+         #   self.cmd = self.cmd + ("\nht_capab=[HT40+][SHORT-GI-40][DSSS_CCK-40]")
         
         #Not used yet!
         if(country_code!=None):
