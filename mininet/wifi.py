@@ -165,11 +165,15 @@ class association( object ):
         delay = wifiParameters.delay(distance, seconds)
         bw = wifiParameters.bw(distance, sta.mode)  
         
+        sta.pexec('tc class replace dev %s-wlan%s parent 5: classid 5:1 \
+            hfsc sc rate %.2fmbit ul rate %.2fmbit' % ( sta, wlan, bw, bw ))
         sta.pexec("tc qdisc replace dev %s-wlan%s \
-            root netem rate %.2fmbit \
+            parent 5:1 netem \
             loss %.1f%% \
             latency %.2fms \
-            delay %.2fms" % (sta, wlan, bw, loss, latency, delay)) 
+            delay %.2fms" % (sta, wlan, loss, latency, delay))     
+        #Reordering the packets    
+        sta.pexec('tc qdisc replace dev %s-wlan%s parent 5:1 pfifo limit 1000' % (sta, wlan))
         
         if str(ap) == sta.ifaceAssociatedToAp[wlan]:
             associated = self.doAssociation(sta.mode, distance) 
@@ -324,7 +328,6 @@ class station ( object ):
     @classmethod    
     def associate(self, sta, ap):
         """ Associate to an Access Point """ 
-        sta.ifaceToAssociate += 1
         wlan = sta.ifaceToAssociate
         self.cmd_associate(sta, wlan, ap)        
         

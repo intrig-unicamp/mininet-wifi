@@ -747,12 +747,10 @@ class Mininet( object ):
                 
                 sta.doAssociation = doAssociation
                 if(doAssociation):
-                    try:
-                        wlan = sta.ifaceToAssociate
-                    except:
-                        wlan = 0
+                    sta.ifaceToAssociate+=1
+                    wlan = sta.ifaceToAssociate
                     station.associate(sta, ap)
-                    association.setInfraParameters(sta, ap, distance, wlan)                    
+                    association.setInfraParameters(sta, ap, distance, wlan)   
             return link
         
         else:
