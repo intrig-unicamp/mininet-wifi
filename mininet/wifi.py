@@ -141,14 +141,17 @@ class module( object ):
 class association( object ):
     
     @classmethod    
-    def setAdhocParameters(self, sta, iface, mode):
+    def setAdhocParameters(self, sta, iface):
         """ Set wifi AdHoc Parameters. Have to use models for loss, latency, bw... """
-        self.mode = mode
         latency = 10
         #delay = 5 * distance
-        bandwidth = wifiParameters.set_bw(mode)
-        sta.pexec("tc qdisc add dev %s-%s root tbf rate %smbit latency %sms burst 1540" % 
-                      (sta, iface, bandwidth, latency)) 
+        bandwidth = wifiParameters.set_bw(sta.mode)
+        sta.pexec("tc qdisc replace dev %s-wlan%s \
+            root handle 3: netem rate %smbit \
+            latency %sms" % (sta, iface, bandwidth, latency))    
+        #Reordering packets    
+        sta.pexec('tc qdisc add dev %s-wlan%s parent 3:1 pfifo limit 1000' % (sta, iface))        
+
 
     @classmethod    
     def parameters(self, sta, ap, distance, wlan):
@@ -342,7 +345,7 @@ class station ( object ):
         """ Adhoc mode """   
         sta.ifaceToAssociate += 1
         iface = sta.ifaceToAssociate
-        association.setAdhocParameters(sta, iface, sta.mode)
+        association.setAdhocParameters(sta, iface)
         sta.cmd("iw dev %s-wlan%s set type ibss" % (str(sta), iface))
         sta.cmd("iw dev %s-wlan%s ibss join %s 2412" % (str(sta), iface, sta.ssid))
         print "associating %s ..." % str(sta)
@@ -358,7 +361,7 @@ class station ( object ):
         sta.cmd('iw dev mp%s set %s' % (iface, sta.channel))
         sta.cmd('ifconfig mp%s 192.168.10.%s up' % (iface, ipaddress))
         sta.cmd('iw dev mp%s mesh join %s' % (iface, sta.ssid))
-        association.setAdhocParameters(sta, iface, sta.mode)
+        association.setAdhocParameters(sta, iface)
         print "associating %s ..." % str(sta)
         interface = '%s-wlan%s' % (str(sta), iface)
         mpID = iface
