@@ -127,6 +127,11 @@ class Node( object ):
         # Mobility Parameters
         self.position = []
         self.startPosition = []
+        self.endPosition = []
+        self.moveSta = []
+        self.startTime = 0
+        self.endTime = 0      
+        self.speed = 0  
 
         # Make pylint happy
         ( self.shell, self.execed, self.pid, self.stdin, self.stdout,

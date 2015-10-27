@@ -172,11 +172,6 @@ class Mininet( object ):
         self.ssid = ssid        
         self.mode = mode
         self.channel = channel
-        self.startPosition = {}
-        self.endPosition = {}
-        self.startTime = {}
-        self.endTime = {}
-        self.moveSta = {}  
         self.nameToNode = {}  # name to Node (Host/Switch) objects
         self.newapif = []
         self.apexists = []
@@ -289,11 +284,11 @@ class Mininet( object ):
         position = ("%s" % params.pop('position', {}))
         if(position!="{}"):        
             position = position.split(',')
-            self.startPosition[name] = position
+            sta.startPosition = position
             sta.position = position
             station.fixedPosition.append(sta)
         else:
-            self.startPosition[name] = 0
+            sta.startPosition = 0
             sta.position = 0            
         
         channel = ("%s" % params.pop('channel', {}))
@@ -347,10 +342,10 @@ class Mininet( object ):
         position = ("%s" % params.pop('position', {}))
         if(position!="{}"):        
             position =  position.split(',')
-            self.startPosition[name] = position
+            bs.startPosition = position
             bs.position = position
         else:
-            self.startPosition[name] = 0
+            bs.startPosition = 0
             bs.position = 0            
       
         channel = ("%s" % params.pop('channel', {}))
@@ -728,17 +723,17 @@ class Mininet( object ):
                 
                 # Set default MAC - this should probably be in Link
                 options.setdefault( 'addr1', self.randMac() )
-                options.setdefault( 'addr2', self.randMac() )
+                #options.setdefault( 'addr2', self.randMac() )
                 
                 cls = self.link if cls is None else cls
-                link = cls( node1, node2, **options )
+                link = cls( sta, 'onlyOneDevice', **options )
                 
                 if sta.mac != '':
                     station.setMac(sta)        
                 
                 #If sta/ap have defined position 
-                if self.startPosition[str(node1)] !=0 and self.startPosition[str(node2)] !=0:
-                    distance = mobility.getDistance(node1, node2)
+                if sta.startPosition !=0 and ap.startPosition !=0:
+                    distance = mobility.getDistance(sta, ap)
                     doAssociation = association.doAssociation(sta.mode, distance)
                 #if not
                 else:
@@ -1331,31 +1326,31 @@ class Mininet( object ):
         self.stage = args[1]
         self.speed = 0
        
+        for n in self.stations:
+            if self.node == str(n):
+                sta = n            
+       
         if 'position' in kwargs:
             if(self.stage == 'stop'):
                 self.position = kwargs['position']
-                self.endPosition[args[0]] = self.position.split(',')
+                sta.endPosition = self.position.split(',')
             if(self.stage == 'start'):
                 self.position = kwargs['position']
-                self.startPosition[args[0]] = self.position.split(',')    
+                sta.startPosition = self.position.split(',')    
                 self.sta_inMov.append(self.node)
         if 'time' in kwargs:
             self.time = kwargs['time']
         if 'speed' in kwargs:
-            self.speed = kwargs['speed'][:-2]
+            sta.speed = kwargs['speed'][:-2]
             
-        for n in self.hosts:
-            if self.node == str(n):
-                self.node = n
-                        
         mobility.ismobility = True
         
         if(self.stage == 'start'):
-            self.startTime[str(self.node)] = self.time        
+            sta.startTime = self.time        
         elif(self.stage == 'stop'):
-            self.endTime[str(self.node)] = self.time 
-            diffTime = self.endTime[str(self.node)] - self.startTime[str(self.node)]
-            self.moveSta[str(self.node)] = mobility.move(self.node, diffTime, self.speed, self.startPosition[str(self.node)], self.endPosition[str(self.node)])
+            sta.endTime = self.time 
+            diffTime = sta.endTime - sta.startTime
+            sta.moveSta = mobility.move(sta, diffTime, sta.speed, sta.startPosition, sta.endPosition)
         
     def startMobility(self, **kwargs):
         """ Starts Mobility """
@@ -1376,7 +1371,6 @@ class Mininet( object ):
         if 'llf' in kwargs: #Least Loaded First
             mobilityparam.setdefault( 'llf', kwargs['llf'] )
         
-        mobilityparam.setdefault( 'startPosition', self.startPosition )
         mobilityparam.setdefault( 'ismobility', True )
         mobilityparam.setdefault( 'seed', self.set_seed )
      
@@ -1413,22 +1407,21 @@ class Mininet( object ):
         try:
             while time.time() < t_end and time.time() > t_start:
                 if time.time() - currentTime >= i:
-                    for st in self.hosts:
-                        sta = str(st)
-                        if 'sta' in sta:
-                            if sta in self.sta_inMov:
-                                if time.time() - currentTime >= self.startTime[sta] and time.time() - currentTime <= self.endTime[sta]:
-                                    self.startPosition[sta][0] = float(self.startPosition[sta][0]) + float(self.moveSta[sta][0])
-                                    self.startPosition[sta][1] = float(self.startPosition[sta][1]) + float(self.moveSta[sta][1])
-                                    self.startPosition[sta][2] = float(self.startPosition[sta][2]) + float(self.moveSta[sta][2])
+                    for sta in self.hosts:
+                        if 'sta' in str(sta):
+                            if str(sta) in self.sta_inMov:
+                                if time.time() - currentTime >= sta.startTime and time.time() - currentTime <= sta.endTime:
+                                    sta.startPosition[0] = float(sta.startPosition[0]) + float(sta.moveSta[0])
+                                    sta.startPosition[1] = float(sta.startPosition[1]) + float(sta.moveSta[1])
+                                    sta.startPosition[2] = float(sta.startPosition[2]) + float(sta.moveSta[2])
                             else:
-                                self.startPosition[sta][0] = float(self.startPosition[sta][0])
-                                self.startPosition[sta][1] = float(self.startPosition[sta][1])
-                                self.startPosition[sta][2] = float(self.startPosition[sta][2])
-                            st.position = self.startPosition[sta]
+                                sta.startPosition[0] = float(sta.startPosition[0])
+                                sta.startPosition[1] = float(sta.startPosition[1])
+                                sta.startPosition[2] = float(sta.startPosition[2])
+                            sta.position = sta.startPosition
                             for ap in self.accessPoints:
-                                distance = mobility.getDistance(st, ap)
-                                association.setInfraParameters(st, ap, distance, '')
+                                distance = mobility.getDistance(sta, ap)
+                                association.setInfraParameters(sta, ap, distance, '')
                     i+=1
         except:
             print 'Error! Mobility stopped!'
@@ -1441,18 +1434,6 @@ class Mininet( object ):
             mobility.MAX_Y = kwargs['max_y']
         mobility.plotGraph = True
         
-    #def noiseInfo(self, src):
-    #    if src[:2] == 'ap':
-    #        print 'cannot access ap info!'
-    #    else:
-    #        existSrc = False
-    #        for host in self.wifiNodes:
-    #            if src == str(host):
-    #                existSrc = True
-    #                wifiParameters.printNoiseInfo(host)
-    #        if existSrc == False:
-    #            print "%s does not exist!" % src
-    
     def getCurrentPosition(self, node):
         """ Get Current Position """ 
         try:

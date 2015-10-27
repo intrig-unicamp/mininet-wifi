@@ -147,8 +147,8 @@ class association( object ):
         latency = 10
         #delay = 5 * distance
         bandwidth = wifiParameters.set_bw(mode)
-        sta.cmd("tc qdisc add dev %s-%s root tbf rate %smbit latency %sms burst 1540" % 
-                      (str(sta), iface, bandwidth, latency)) 
+        sta.pexec("tc qdisc add dev %s-%s root tbf rate %smbit latency %sms burst 1540" % 
+                      (sta, iface, bandwidth, latency)) 
 
     @classmethod    
     def parameters(self, sta, ap, distance, wlan):
@@ -156,7 +156,7 @@ class association( object ):
         seconds = 3
         try:
             """Based on RandomPropagationDelayModel (ns3)"""
-            seconds = abs(mobility.speed[sta])
+            seconds = abs(sta.speed)
         except:
             pass
         
@@ -165,15 +165,14 @@ class association( object ):
         delay = wifiParameters.delay(distance, seconds)
         bw = wifiParameters.bw(distance, sta.mode)  
         
-        sta.pexec('tc class replace dev %s-wlan%s parent 5: classid 5:1 \
-            hfsc sc rate %.2fmbit ul rate %.2fmbit' % ( sta, wlan, bw, bw ))
         sta.pexec("tc qdisc replace dev %s-wlan%s \
-            parent 5:1 netem \
+            root netem rate %.2fmbit \
             loss %.1f%% \
             latency %.2fms \
-            delay %.2fms" % (sta, wlan, loss, latency, delay))     
-        #Reordering the packets    
+            delay %.2fms" % (sta, wlan, bw, loss, latency, delay))    
+        #Reordering packets    
         sta.pexec('tc qdisc replace dev %s-wlan%s parent 5:1 pfifo limit 1000' % (sta, wlan))
+        #sta.pexec('tc qdisc del dev %s-wlan%s root' % (sta, wlan))
         
         if str(ap) == sta.ifaceAssociatedToAp[wlan]:
             associated = self.doAssociation(sta.mode, distance) 
@@ -476,11 +475,10 @@ class accessPoint ( object ):
         """ Set bw to AP """  
         bandwidth = wifiParameters.set_bw(ap.mode)
         os.system("tc qdisc add dev %s root tbf rate %smbit latency 2ms burst 15k" % \
-                  (ap.virtualWlan, bandwidth))   
+                  (ap.virtualWlan, bandwidth))
         
 class mobility ( object ):    
     """ Mobility """          
-    speed = {}
     plotap = {}
     plotsta = {}
     plottxt = {}
@@ -513,7 +511,7 @@ class mobility ( object ):
         return self.distance
     
     @classmethod   
-    def move(self, node, diffTime, speed, startposition, endposition):      
+    def move(self, sta, diffTime, speed, startposition, endposition):      
         """
             Moving nodes
             diffTime: important to calculate the speed  
@@ -522,8 +520,8 @@ class mobility ( object ):
         pos_y = float(endposition[1]) - float(startposition[1])
         pos_z = float(endposition[2]) - float(startposition[2])
         
-        node.position = pos_x, pos_y, pos_z
-        self.speed[node] = ((pos_x + pos_y + pos_z)/diffTime) 
+        sta.position = pos_x, pos_y, pos_z
+        sta.speed = ((pos_x + pos_y + pos_z)/diffTime) 
         
         pos = '%.5f,%.5f,%.5f' % (pos_x/diffTime, pos_y/diffTime, pos_z/diffTime)
         pos = pos.split(',')
@@ -629,8 +627,7 @@ class mobility ( object ):
                 sta.ifaceAssociatedToAp[wlan] = 'NoAssociated'  
             
     @classmethod   
-    def models(self, wifiNodes=None, startPosition=None, model=None,
-               max_x=None, max_y=None, min_v=None, max_v=None, 
+    def models(self, wifiNodes=None, model=None, max_x=None, max_y=None, min_v=None, max_v=None, 
                manual_aprange=-10, n_staMov=None, ismobility=None, llf=False, seed=None,
                **mobilityparam):
         
@@ -712,8 +709,8 @@ class mobility ( object ):
                         ap = wifiNodes[n]
                         sta = wifiNodes[n]
                         if 'ap' in wifiNode and wifiNode not in oneTime:
-                            pos_zero = startPosition[wifiNode][0]
-                            pos_one = startPosition[wifiNode][1]
+                            pos_zero = ap.startPosition[0]
+                            pos_one = ap.startPosition[1]
                             self.position.append(pos_zero)
                             self.position.append(pos_one)
                             self.position.append(0)
@@ -791,6 +788,8 @@ class wifiParameters ( object ):
     @classmethod
     def delay(self, distance, seconds):
         """"Based on RandomPropagationDelayModel (ns3)"""
+        if seconds == 0:
+            seconds = 1
         delay = distance/seconds
         return delay        
     
