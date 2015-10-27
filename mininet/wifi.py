@@ -166,12 +166,12 @@ class association( object ):
         bw = wifiParameters.bw(distance, sta.mode)  
         
         sta.pexec("tc qdisc replace dev %s-wlan%s \
-            root netem rate %.2fmbit \
+            root handle 1: netem rate %.2fmbit \
             loss %.1f%% \
             latency %.2fms \
             delay %.2fms" % (sta, wlan, bw, loss, latency, delay))    
         #Reordering packets    
-        sta.pexec('tc qdisc replace dev %s-wlan%s parent 5:1 pfifo limit 1000' % (sta, wlan))
+        sta.pexec('tc qdisc replace dev %s-wlan%s parent 1:1 pfifo limit 1000' % (sta, wlan))
         #sta.pexec('tc qdisc del dev %s-wlan%s root' % (sta, wlan))
         
         if str(ap) == sta.ifaceAssociatedToAp[wlan]:
@@ -474,8 +474,15 @@ class accessPoint ( object ):
     def setBw(self, ap):
         """ Set bw to AP """  
         bandwidth = wifiParameters.set_bw(ap.mode)
-        os.system("tc qdisc add dev %s root tbf rate %smbit latency 2ms burst 15k" % \
-                  (ap.virtualWlan, bandwidth))
+        
+        os.system("tc qdisc replace dev %s \
+            root handle 2: netem rate %.2fmbit \
+            latency 2ms \
+            delay 1ms" % (ap.virtualWlan, bandwidth))    
+        #Reordering packets    
+        os.system('tc qdisc add dev %s parent 2:1 pfifo limit 1000' % (ap.virtualWlan))
+        #os.system("tc qdisc add dev %s root tbf rate %smbit latency 2ms burst 15k" % \
+                 #(ap.virtualWlan, bandwidth))
         
 class mobility ( object ):    
     """ Mobility """          
