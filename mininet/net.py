@@ -365,6 +365,12 @@ class Mininet( object ):
             bs.ssid = ssid
         else:
             bs.ssid = self.ssid
+            
+        self.range = ("%s" % params.pop('range', {}))
+        if(self.range!="{}"):
+            bs.range = int(self.range)
+        else:
+            bs.range = accessPoint.range(bs.mode)
         
         module.wifiRadios+=1
         module.virtualWlan.append(name)
@@ -585,8 +591,7 @@ class Mininet( object ):
                 if sta in self.missingStations:
                     self.missingStations.remove(sta)
         return link
-   
-   
+      
     def configureAP(self):
         
         for ap in self.accessPoints:
@@ -734,7 +739,7 @@ class Mininet( object ):
                 #If sta/ap have defined position 
                 if sta.startPosition !=0 and ap.startPosition !=0:
                     distance = mobility.getDistance(sta, ap)
-                    doAssociation = association.doAssociation(sta.mode, distance)
+                    doAssociation = association.doAssociation(sta.mode, ap, distance)
                 #if not
                 else:
                     doAssociation = True

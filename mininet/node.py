@@ -101,11 +101,7 @@ class Node( object ):
         
         #BaseStations Parameters
         self.nAssociatedStations = 0
-        
-        #Stations Parameters
-        self.associate = False
-        self.nWlans = 0
-        self.nextIface = 0
+        self.range = 0
         
         # Station and BaseStation Parameters
         self.ssid = ''
@@ -114,6 +110,9 @@ class Node( object ):
         self.virtualWlan = ''
         
         # Station Parameters
+        self.associate = False
+        self.nWlans = 0
+        self.nextIface = 0
         self.associatedAp = ''
         self.addressingSta = 0
         self.bringUpIface = 0
