@@ -110,8 +110,8 @@ class module( object ):
     wifiRadios = 0
     isWiFi = False
     physicalWlan = []
-    isCode = False
     virtualWlan = []
+    isCode = False
         
     @classmethod    
     def _start_module(self, wifiRadios):
@@ -289,6 +289,12 @@ class station ( object ):
                     os.system('iw phy %s set netns %s' % ( phyInt.totalPhy[vwlan + i], sta.pid ))
                     sta.cmd('ip link set dev %s name %s-wlan%s' % (wlan[vwlan + i], str(sta), i))   
       
+    @classmethod
+    def getWiFiParameters(self, sta, interface):
+        wifiParameters.get_frequency(sta, interface)
+        wifiParameters.get_tx_power(sta, interface)    
+        wifiParameters.get_rsi(sta, interface)  
+        
     @classmethod    
     def confirmMeshAssociation(self, sta, interface, mpID):
         associated = ''
@@ -296,9 +302,7 @@ class station ( object ):
             cmd = 'ifconfig mp%s | grep -o \'TX b.*\' | cut -f2- -d\':\'' % mpID
             sta.sendCmd(cmd)
             associated = sta.waitOutput()
-        wifiParameters.get_frequency(sta, interface)
-        wifiParameters.get_tx_power(sta, interface)    
-        wifiParameters.get_rsi(sta, interface)    
+        self.getWiFiParameters(sta, interface)   
     
     @classmethod    
     def confirmAdhocAssociation(self, sta, interface):
@@ -306,9 +310,7 @@ class station ( object ):
         while(associated == '' or len(associated) == 0):
             sta.sendCmd("iw dev %s scan ssid | grep %s" % (interface, sta.ssid))
             associated = sta.waitOutput()
-        wifiParameters.get_frequency(sta, interface)
-        wifiParameters.get_tx_power(sta, interface)
-        wifiParameters.get_rsi(sta, interface)  
+        self.getWiFiParameters(sta, interface) 
     
     @classmethod    
     def confirmInfraAssociation(self, sta, wlan, ap):
@@ -318,9 +320,7 @@ class station ( object ):
         while(associated == '' or len(associated[0]) == 15):
             associated = self.isAssociated(sta, wlan)
         interface = str(sta)+'-wlan%s' % wlan
-        wifiParameters.get_frequency(sta, interface)
-        wifiParameters.get_tx_power(sta, interface)
-        wifiParameters.get_rsi(sta, interface)   
+        self.getWiFiParameters(sta, interface)   
             
     @classmethod    
     def isAssociated(self, sta, iface):
@@ -346,8 +346,8 @@ class station ( object ):
         sta.ifaceToAssociate += 1
         iface = sta.ifaceToAssociate
         association.setAdhocParameters(sta, iface)
-        sta.cmd("iw dev %s-wlan%s set type ibss" % (str(sta), iface))
-        sta.cmd("iw dev %s-wlan%s ibss join %s 2412" % (str(sta), iface, sta.ssid))
+        sta.cmd("iw dev %s-wlan%s set type ibss" % (sta, iface))
+        sta.cmd("iw dev %s-wlan%s ibss join %s 2412" % (sta, iface, sta.ssid))
         print "associating %s ..." % str(sta)
         interface = '%s-wlan%s' % (str(sta), iface)
         self.confirmAdhocAssociation(sta, interface)
@@ -362,8 +362,8 @@ class station ( object ):
         sta.cmd('ifconfig mp%s 192.168.10.%s up' % (iface, ipaddress))
         sta.cmd('iw dev mp%s mesh join %s' % (iface, sta.ssid))
         association.setAdhocParameters(sta, iface)
-        print "associating %s ..." % str(sta)
-        interface = '%s-wlan%s' % (str(sta), iface)
+        print "associating %s ..." % sta
+        interface = '%s-wlan%s' % (sta, iface)
         mpID = iface
         self.confirmMeshAssociation(sta, interface, mpID)        
             
@@ -539,6 +539,10 @@ class mobility ( object ):
     
     @classmethod 
     def plot(self, src, dst, pos_src, pos_dst):
+        """
+            Plot Graph: Useful when the position is previously defined.
+                        Not useful for Mobility Models
+        """
         MAX_X = self.MAX_X
         MAX_Y = self.MAX_Y
         
@@ -628,6 +632,7 @@ class mobility ( object ):
                 sta.pexec("iw dev %s-wlan%s connect %s" % (sta, wlan, ap.ssid))
                 sta.ifaceAssociatedToAp[wlan] = str(ap)
             elif str(ap) not in sta.ifaceAssociatedToAp:
+                #Useful for stations with more than one wifi iface
                 if 'ap' not in sta.ifaceAssociatedToAp[wlan]:
                     sta.pexec("iw dev %s-wlan%s connect %s" % (sta, wlan, ap.ssid))
                     sta.ifaceAssociatedToAp[wlan] = str(ap)   
@@ -714,17 +719,13 @@ class mobility ( object ):
                     if self.DRAW:
                         line.set_data(xy[:,0],xy[:,1])
                     for n in range (0,len(wifiNodes)):
-                        self.position = []
                         wifiNode = str(wifiNodes[n])
                         ap = wifiNodes[n]
                         sta = wifiNodes[n]
                         if 'ap' in wifiNode and wifiNode not in oneTime:
                             pos_zero = ap.startPosition[0]
                             pos_one = ap.startPosition[1]
-                            self.position.append(pos_zero)
-                            self.position.append(pos_one)
-                            self.position.append(0)
-                            ap.position = self.position                            
+                            ap.position = pos_zero, pos_one, 0     
                             if self.DRAW:
                                 plt.plot([pos_zero], [pos_one], 'ro')
                                 plt.text(int(pos_zero), int(pos_one), wifiNode)
@@ -736,12 +737,11 @@ class mobility ( object ):
                             oneTime.append(str(wifiNodes[n]))
                         elif 'ap' not in str(wifiNodes[n]):
                             if wifiNode not in station.fixedPosition:
-                                self.position.append(xy[n][0])
-                                self.position.append(xy[n][1])
-                                self.position.append(0)
+                                pos_zero = xy[n][0]
+                                pos_one = xy[n][1]
                                 if self.DRAW:
-                                    self.plottxt[wifiNode].xytext = (xy[n][0], xy[n][1])
-                                sta.position = self.position
+                                    self.plottxt[wifiNode].xytext = (pos_zero, pos_one)
+                                sta.position = pos_zero, pos_one, 0
                                 for ap in accessPoint.list:
                                     distance = self.getDistance(sta, ap)
                                     association.setInfraParameters(sta, ap, distance, '')
