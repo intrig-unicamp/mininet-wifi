@@ -95,7 +95,6 @@ import signal
 import random
 import time
 import threading
-#import multiprocessing
 
 from time import sleep
 from itertools import chain, groupby
@@ -241,7 +240,8 @@ class Mininet( object ):
         defaults.update( params )
         if not cls:
             cls = self.host
-        h = cls( name, **defaults )      
+        h = cls( name, **defaults )  
+        h.type = 'host'    
         self.hosts.append( h )
         self.nameToNode[ name ] = h
         return h
@@ -280,6 +280,7 @@ class Mininet( object ):
         self.wifiNodes.append(sta)
         self.nameToNode[ name ] = sta        
         self.missingStations.append(sta)
+        sta.type = 'station'
         
         position = ("%s" % params.pop('position', {}))
         if(position!="{}"):        
@@ -338,6 +339,7 @@ class Mininet( object ):
             self.listenPort += 1
         self.wifiNodes.append(bs)
         self.nameToNode[ name ] = bs
+        bs.type = 'accessPoint'
         
         position = ("%s" % params.pop('position', {}))
         if(position!="{}"):        
@@ -395,6 +397,7 @@ class Mininet( object ):
             cls = self.switch
         
         sw = cls( name, **defaults )
+        sw.type = 'switch'
         
         if not self.inNamespace and self.listenPort:
             self.listenPort += 1
@@ -683,9 +686,14 @@ class Mininet( object ):
     def addLink( self, node1, node2, port1=None, port2=None, 
                  cls=None, **params ):
         
+        # Accept node objects or names
+        node1 = node1 if not isinstance( node1, basestring ) else self[ node1 ]
+        node2 = node2 if not isinstance( node2, basestring ) else self[ node2 ]
+        options = dict( params )
+        
         #If AP and STA
-        if(('sta' in str(node1) and 'ap' in str(node2)) \
-            or ('sta' in str(node2) and 'ap' in str(node1))):
+        if((node1.type =='station' and node2.type == 'accessPoint') \
+            or ( node2.type =='station' and node1.type == 'accessPoint')):
             
             if self.firstAssociation:
                 module.startEnvironment()
@@ -697,23 +705,19 @@ class Mininet( object ):
                 #Useful when stations have multiple interfaces
                 self.activeMultipleWlans()
                 
-            node1 = node1 if not isinstance( node1, basestring ) else self[ node1 ]
-            node2 = node2 if not isinstance( node2, basestring ) else self[ node2 ]
-            options = dict( params )
-            
             #Only if AP
-            if 'ap' in str(node1) and str(node1) not in self.apexists \
-                or 'ap' in str(node2) and str(node2) not in self.apexists:
+            if node1.type == 'accessPoint' and str(node1) not in self.apexists \
+                or node2.type == 'accessPoint' and str(node2) not in self.apexists:
         
-                if 'ap' in str(node1):
+                if node1.type == 'accessPoint':
                     ap = node1
                     self.apexists.append(str(node1)) 
                 else:
                     ap = node2
                     self.apexists.append(str(node2))
                 
-            if ('sta' in str(node1) or 'sta' in str(node2)):
-                if 'sta' in str(node1):
+            if (node1.type =='station' or node2.type =='station'):
+                if node1.type =='station':
                     sta = node1
                     ap = node2
                 else:
@@ -764,7 +768,7 @@ class Mininet( object ):
                 returns: link object"""
             
             #Only if AP
-            if 'ap' in str(node1) and 'ap' in str(node2):   
+            if node1.type == 'accessPoint'  and node2.type == 'accessPoint' :   
                 if self.firstAssociation:
                     module.startEnvironment()
                     self.link = TCLink
@@ -786,8 +790,8 @@ class Mininet( object ):
                 if str(node2) not in self.apexists:
                     self.apexists.append(str(node2))
                         
-            elif 'ap' in str(node1) and str(node1) not in self.apexists \
-                or 'ap' in str(node2) and str(node2) not in self.apexists: 
+            elif node1.type == 'accessPoint' and str(node1) not in self.apexists \
+                or node2.type == 'accessPoint' and str(node2) not in self.apexists: 
                 
                 if self.firstAssociation:
                     module.startEnvironment()
@@ -799,18 +803,13 @@ class Mininet( object ):
                     #Useful when stations have multiple interfaces
                     self.activeMultipleWlans()
                 
-                if 'ap' in str(node1):
+                if node1.type == 'accessPoint':
                     ap = str(node1)
                     self.apexists.append(str(node1))
                 else:
                     ap = str(node2)
                     self.apexists.append(str(node2))
                 
-            # Accept node objects or names
-            node1 = node1 if not isinstance( node1, basestring ) else self[ node1 ]
-            node2 = node2 if not isinstance( node2, basestring ) else self[ node2 ]
-            options = dict( params )
-            
             #necessary if does not exist link between sta and other device
             if node1 in self.missingStations:
                 self.missingStations.remove(node1)
@@ -1413,7 +1412,7 @@ class Mininet( object ):
             while time.time() < t_end and time.time() > t_start:
                 if time.time() - currentTime >= i:
                     for sta in self.hosts:
-                        if 'sta' in str(sta):
+                        if sta.type == 'station':
                             if str(sta) in self.sta_inMov:
                                 if time.time() - currentTime >= sta.startTime and time.time() - currentTime <= sta.endTime:
                                     sta.startPosition[0] = float(sta.startPosition[0]) + float(sta.moveSta[0])

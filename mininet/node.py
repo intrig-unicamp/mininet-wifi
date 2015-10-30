@@ -122,7 +122,9 @@ class Node( object ):
         self.frequency = 0
         self.txpower = 0
         self.mac=''
-        
+
+        self.type = ''
+                
         # Mobility Parameters
         self.position = []
         self.startPosition = []
@@ -476,7 +478,7 @@ class Node( object ):
         if ports:
             return self.intfs[ min( ports ) ]
         else:
-            if 'sta' not in self.name:
+            if 'station' != self.type:
                 warn( '*** defaultIntf: warning:', self.name,
                       'has no interfaces\n' )
 
@@ -617,7 +619,7 @@ class Node( object ):
         # the superclass config method here as follows:
         # r = Parent.config( **_params )
         r = {}
-        if 'sta' not in str(self):
+        if 'station' != self.type:
             self.setParam( r, 'setMAC', mac=mac )
         self.setParam( r, 'setIP', ip=ip )
         self.setParam( r, 'setDefaultRoute', defaultRoute=defaultRoute )
@@ -1244,7 +1246,7 @@ class OVSSwitch( Switch ):
         self.newapif.sort(key=len, reverse=False)
         
         if(module.isCode==True):
-            if('ap' in self.name):
+            if('accessPoint' == self.type):
                 os.system("ovs-vsctl add-port %s %s" % (self.name, (self.newapif[accessPoint.number])))
                 accessPoint.number+=1
         

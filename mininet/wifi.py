@@ -283,7 +283,7 @@ class station ( object ):
     def assingIface(self, stations):
         wlan = getWlan.virtual()
         for sta in stations:
-            if 'sta' in str(sta):
+            if sta.type == 'station':
                 for i in range(0, sta.nWlans):
                     vwlan = module.virtualWlan.index(str(sta))
                     os.system('iw phy %s set netns %s' % ( phyInt.totalPhy[vwlan + i], sta.pid ))
@@ -570,30 +570,30 @@ class mobility ( object ):
         plt.ion()
         ax = plt.subplot(111)
         
-        if 'sta' in str(dst) and str(dst) not in self.nodesPlotted:
+        if dst.type == 'station' and str(dst) not in self.nodesPlotted:
             sta = str(dst)
             position = pos_dst
             self.plotStation(sta, position, ax)
-        elif 'sta' in str(src) and str(src) not in self.nodesPlotted:
+        elif src.type == 'station' and str(src) not in self.nodesPlotted:
             sta = str(src)
             position = pos_src
             self.plotStation(sta, position, ax)
         
-        if 'sta' in str(src):
+        if  src.type == 'station':
             self.plotsta[str(src)].set_data(pos_src[0],pos_src[1])
             self.plottxt[str(src)].xytext = (pos_src[0],pos_src[1])
-        elif 'sta' in str(dst):
+        elif dst.type == 'station':
             self.plotsta[str(dst)].set_data(pos_dst[0],pos_dst[1])
             self.plottxt[str(dst)].xytext = (pos_dst[0],pos_dst[1])
              
-        if 'ap' in str(dst) and str(dst) not in self.nodesPlotted:
+        if dst.type == 'accessPoint' and str(dst) not in self.nodesPlotted:
             ap = dst
             position = pos_dst
-        elif 'ap' in str(src) and str(src) not in self.nodesPlotted:
+        elif src.type == 'accessPoint' and str(src) not in self.nodesPlotted:
             ap = src
             position = pos_src
             
-        if 'ap' in str(src) and str(src) not in self.nodesPlotted or 'ap' in str(dst) and str(dst) not in self.nodesPlotted:
+        if src.type == 'accessPoint' and str(src) not in self.nodesPlotted or dst.type == 'accessPoint'  and str(dst) not in self.nodesPlotted:
             self.plotAccessPoint(ap, position, ax)
         
         plt.title("Mininet-WiFi Graph")
@@ -682,7 +682,7 @@ class mobility ( object ):
             self.plottxt = {}
             
             for node in wifiNodes:
-                if 'sta' in str(node) and str(node) not in station.fixedPosition:
+                if node.type == 'station' and str(node) not in station.fixedPosition:
                     self.plottxt[str(node)] = ax.annotate(str(node), xy=(0, 0))
                     
                 if str(node) in station.fixedPosition:
@@ -726,30 +726,30 @@ class mobility ( object ):
                     if self.DRAW:
                         line.set_data(xy[:,0],xy[:,1])
                     for n in range (0,len(wifiNodes)):
-                        wifiNode = str(wifiNodes[n])
-                        ap = wifiNodes[n]
-                        sta = wifiNodes[n]
-                        if 'ap' in wifiNode and wifiNode not in oneTime:
+                        node = wifiNodes[n]
+                        if 'accessPoint' == node.type and str(node) not in oneTime:
+                            ap = node
                             pos_zero = ap.startPosition[0]
                             pos_one = ap.startPosition[1]
                             ap.position = pos_zero, pos_one, 0     
                             if self.DRAW:
                                 plt.plot([pos_zero], [pos_one], 'ro')
-                                plt.text(int(pos_zero), int(pos_one), wifiNode)
+                                plt.text(int(pos_zero), int(pos_one), str(node))
                                 ax.add_patch(
                                     patches.Circle((pos_zero, pos_one),
                                     ap.range, fill=True, alpha=0.1
                                     )
                                 )
                             oneTime.append(str(wifiNodes[n]))
-                        elif 'ap' not in str(wifiNodes[n]):
-                            if wifiNode not in station.fixedPosition:
+                        elif 'accessPoint' != node.type:
+                            if str(node) not in station.fixedPosition:
                                 pos_zero = xy[n][0]
                                 pos_one = xy[n][1]
                                 if self.DRAW:
-                                    self.plottxt[wifiNode].xytext = (pos_zero, pos_one)
-                                sta.position = pos_zero, pos_one, 0
+                                    self.plottxt[str(node)].xytext = (pos_zero, pos_one)
+                                node.position = pos_zero, pos_one, 0
                                 for ap in accessPoint.list:
+                                    sta = node
                                     distance = self.getDistance(sta, ap)
                                     association.setInfraParameters(sta, ap, distance, '')
                     if self.DRAW:
