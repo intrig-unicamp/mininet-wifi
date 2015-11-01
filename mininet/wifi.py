@@ -64,7 +64,7 @@ class checkNM ( object ):
                         else:
                             print line.rstrip()
                 #necessary to add mac address before starting the ap
-                time.sleep(1.5)
+                time.sleep(2)
              
     @classmethod 
     def getMacAddress(self, ap):
@@ -272,12 +272,22 @@ class station ( object ):
         except:
             self.addressingSta[sta] = 0
         return self.addressingSta[sta]  
+    
+    @classmethod       
+    def iwCommand(self, sta, wlan, *args):
+        command = 'iw dev %s-wlan%s ' % (sta, wlan)
+        sta.pexec(command + '%s' % args)
+    
+    @classmethod       
+    def ipLinkCommand(self, sta, wlan, *args):
+        command = 'ip link set %s-wlan%s' % (sta, wlan)
+        sta.pexec(command + '%s' % args)
      
     @classmethod   
     def setMac(self, sta):
-        sta.cmd('ip link set %s-wlan0 down' % sta)
-        sta.cmd('ip link set %s-wlan0 address %s' % (sta, sta.mac))
-        sta.cmd('ip link set %s-wlan0 up' % sta) 
+        self.ipLinkCommand(sta, 0, 'down')
+        self.ipLinkCommand(sta, 0, ('address %s' % sta.mac))
+        self.ipLinkCommand(sta, 0, 'up')
      
     @classmethod    
     def assingIface(self, stations):
@@ -287,7 +297,7 @@ class station ( object ):
                 for i in range(0, sta.nWlans):
                     vwlan = module.virtualWlan.index(str(sta))
                     os.system('iw phy %s set netns %s' % ( phyInt.totalPhy[vwlan + i], sta.pid ))
-                    sta.cmd('ip link set dev %s name %s-wlan%s' % (wlan[vwlan + i], str(sta), i))   
+                    sta.cmd('ip link set %s name %s-wlan%s' % (wlan[vwlan + i], str(sta), i))   
       
     @classmethod
     def getWiFiParameters(self, sta, interface):
@@ -336,7 +346,7 @@ class station ( object ):
     @classmethod    
     def cmd_associate(self, sta, wlan, ap):
         sta.associatedAp = ap
-        sta.cmd("iw dev %s-wlan%s connect %s" % (sta, wlan, ap.ssid))
+        self.iwCommand(sta, wlan, ('connect %s' % ap.ssid))
         self.confirmInfraAssociation(sta, wlan, ap)
         sta.ifaceAssociatedToAp[wlan] = str(ap) 
         
@@ -344,27 +354,27 @@ class station ( object ):
     def adhoc(self, sta, **params):
         """ Adhoc mode """   
         sta.ifaceToAssociate += 1
-        iface = sta.ifaceToAssociate
-        association.setAdhocParameters(sta, iface)
-        sta.cmd("iw dev %s-wlan%s set type ibss" % (sta, iface))
-        sta.cmd("iw dev %s-wlan%s ibss join %s 2412" % (sta, iface, sta.ssid))
+        wlan = sta.ifaceToAssociate
+        association.setAdhocParameters(sta, wlan)
+        self.iwCommand(sta, wlan, 'set type ibss')
+        self.iwCommand(sta, wlan, ('ibss join %s 2412' % sta.ssid))
         print "associating %s ..." % str(sta)
-        interface = '%s-wlan%s' % (str(sta), iface)
+        interface = '%s-wlan%s' % (str(sta), wlan)
         self.confirmAdhocAssociation(sta, interface)
         
     @classmethod    
-    def addMesh(self, sta, wlan=None, ipaddress=None, **params):
+    def addMesh(self, sta, ipaddress=None, **params):
         """ Mesh mode """   
         sta.ifaceToAssociate += 1
-        iface = sta.ifaceToAssociate
-        sta.cmd('iw dev %s-wlan%s interface add mp%s type mp' % (str(sta), iface, iface))
-        sta.cmd('iw dev mp%s set %s' % (iface, sta.channel))
-        sta.cmd('ifconfig mp%s 192.168.10.%s up' % (iface, ipaddress))
-        sta.cmd('iw dev mp%s mesh join %s' % (iface, sta.ssid))
-        association.setAdhocParameters(sta, iface)
+        wlan = sta.ifaceToAssociate
+        self.iwCommand(sta, wlan, ('interface add mp%s type mp' % wlan))
+        sta.cmd('iw dev mp%s set %s' % (wlan, sta.channel))
+        sta.cmd('ifconfig mp%s 192.168.10.%s up' % (wlan, ipaddress))
+        sta.cmd('iw dev mp%s mesh join %s' % (wlan, sta.ssid))
+        association.setAdhocParameters(sta, wlan)
         print "associating %s ..." % sta
-        interface = '%s-wlan%s' % (sta, iface)
-        mpID = iface
+        interface = '%s-wlan%s' % (sta, wlan)
+        mpID = wlan
         self.confirmMeshAssociation(sta, interface, mpID)        
             
 class accessPoint ( object ):    
@@ -629,22 +639,25 @@ class mobility ( object ):
         \nPosition X: %.2f \
         \nPosition Y: %.2f \
         \nPosition Z: %.2f\n" % (str(node), float(self.pos_x), float(self.pos_y), float(self.pos_z))
+    
+   
         
     @classmethod   
     def handover(self, sta, ap, wlan, distance, changeAP, reason=None, **params):
+        
         if distance < ap.range: 
             if reason == 'llf' or reason == 'ssf':
-                sta.pexec("iw dev %s-wlan%s disconnect" % (sta, wlan))
-                sta.pexec("iw dev %s-wlan%s connect %s" % (sta, wlan, ap.ssid))
+                station.iwCommand(sta, wlan, 'disconnect')
+                station.iwCommand(sta, wlan, ('connect %s' % ap.ssid))
                 sta.ifaceAssociatedToAp[wlan] = str(ap)
             elif str(ap) not in sta.ifaceAssociatedToAp:
                 #Useful for stations with more than one wifi iface
                 if 'ap' not in sta.ifaceAssociatedToAp[wlan]:
-                    sta.pexec("iw dev %s-wlan%s connect %s" % (sta, wlan, ap.ssid))
+                    station.iwCommand(sta, wlan, ('connect %s' % ap.ssid))
                     sta.ifaceAssociatedToAp[wlan] = str(ap)   
         elif distance > ap.range:
             if str(ap) == sta.ifaceAssociatedToAp[wlan]:
-                sta.pexec("iw dev %s-wlan%s disconnect" % (sta, wlan))       
+                station.iwCommand(sta, wlan, 'disconnect')
                 sta.ifaceAssociatedToAp[wlan] = 'NoAssociated'  
             
     @classmethod   
