@@ -353,7 +353,7 @@ class TCIntf( Intf ):
         cmds = []
         tcoutput = self.tc( '%s qdisc show dev %s' )
         if "priomap" not in tcoutput:
-            if 'station' != self.type:
+            if 'sta' not in str(self):
                 cmds = [ '%s qdisc del dev %s root' ]
         else:
             cmds = []
