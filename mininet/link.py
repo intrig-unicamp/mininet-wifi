@@ -28,7 +28,6 @@ from mininet.log import info, error, debug
 from mininet.util import makeIntfPair
 import mininet.node
 import re
-from mininet.wifi import station
 
 class Intf( object ):
 
@@ -45,6 +44,7 @@ class Intf( object ):
         self.link = link
         self.port = port
         self.mac = mac
+        self.iface = -1
         self.ip, self.prefixLen = None, None
         # if interface is lo, we know the ip is 127.0.0.1.
         # This saves an ifconfig command per node
@@ -68,30 +68,9 @@ class Intf( object ):
         return self.node.cmd( *args, **kwargs )
 
     def ifconfig( self, *args ):
-        if('w' in str(self.name)):
-            if str(args[0][:1])!='u':
-                iface = 0
-                station.ifconfig(str(self.node))
-            else:
-                try:
-                    if self.node in station.apIface:
-                        iface = self.node.nextIface
-                        self.node.nextIface+=1                        
-                    else:
-                        iface = station.addressingSta[str(self.node)]
-                except:
-                    if self.node not in station.apIface:
-                        self.node.nextIface=0
-                        iface = 0
-                        station.apIface.append(self.node)
-                    else:
-                        iface = station.ifconfig(str(self.node))
-            return self.cmd( 'ifconfig %s-wlan%s'% (self.node, iface), *args )
-        else:
-            "Configure ourselves using ifconfig"
-            return self.cmd( 'ifconfig', self.name, *args )
-            
-
+        "Configure ourselves using ifconfig"
+        return self.cmd( 'ifconfig', self.name, *args )
+   
     def setIP( self, ipstr, prefixLen=None ):
         """Set our IP address"""
         # This is a sign that we should perhaps rethink our prefix
@@ -442,8 +421,6 @@ class Link( object ):
         if 'port' not in params2:
             if (str(node2) != 'onlyOneDevice'):
                 params2[ 'port' ] = node2.newPort()
-            else:
-                params1[ 'port' ] = node1.newWlanPort()
                 
         if not intfName1:
             intfName1 = self.intfName( node1, params1[ 'port' ] )

@@ -258,20 +258,10 @@ class phyInt ( object ):
         return phy
         
 class station ( object ):
-    
-    addressingSta = {}
+
     indexStaIface = {}
     fixedPosition = []
-    apIface = []
     printCon = True
-    
-    @classmethod    
-    def ifconfig(self, sta):
-        try: 
-            self.addressingSta[sta]+=1
-        except:
-            self.addressingSta[sta] = 0
-        return self.addressingSta[sta]  
     
     @classmethod       
     def iwCommand(self, sta, wlan, *args):
@@ -528,8 +518,7 @@ class mobility ( object ):
     
     @classmethod 
     def closePlot(self):
-        plt.close()
-    
+        plt.close()    
     
     @classmethod   
     def move(self, sta, diffTime, speed, startposition, endposition):      
@@ -640,8 +629,6 @@ class mobility ( object ):
         \nPosition Y: %.2f \
         \nPosition Z: %.2f\n" % (str(node), float(self.pos_x), float(self.pos_y), float(self.pos_z))
     
-   
-        
     @classmethod   
     def handover(self, sta, ap, wlan, distance, changeAP, reason=None, **params):
         

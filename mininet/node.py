@@ -96,7 +96,7 @@ class Node( object ):
 
         self.intfs = {}  # dict of port numbers to interfaces
         self.ports = {}  # dict of interfaces to port numbers
-        self.wlanports = {}  # dict of wlan interfaces to port numbers
+        self.wlanports = -1  # dict of wlan interfaces to port numbers
         self.nameToIntf = {}  # dict of interface names to Intfs
         
         #BaseStations Parameters
@@ -445,9 +445,9 @@ class Node( object ):
 
     def newWlanPort( self ):
         "Return the next port number to allocate."
-        if len( self.wlanports ) > 0:
-            return max( self.wlanports.values() ) + 1
-        return self.portWlanBase
+        self.wlanports += 1
+        wlan = self.wlanports 
+        return wlan
 
     def newPort( self ):
         "Return the next port number to allocate."
