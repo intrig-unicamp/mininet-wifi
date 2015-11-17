@@ -67,21 +67,23 @@ class checkNM ( object ):
                 time.sleep(2)
              
     @classmethod 
-    def getMacAddress(self, ap):
+    def getMacAddress(self, ap, wlan):
         """ get Mac Address of any Interface """
+        iface = str(ap.virtualWlan) + str(wlan)
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        info = fcntl.ioctl(s.fileno(), 0x8927,  struct.pack('256s', '%s'[:15]) % str(ap.virtualWlan))
+        info = fcntl.ioctl(s.fileno(), 0x8927,  struct.pack('256s', '%s'[:15]) % iface)
         mac = (''.join(['%02x:' % ord(char) for char in info[18:24]])[:-1])
         self.checkNetworkManager(mac)
     
     @classmethod   
-    def APfile(self, cmd, ap):
+    def APfile(self, cmd, ap, wlan):
         """ run an Access Point and create the config file  """
-        apcommand = cmd + ("\' > %s.conf" % ap.virtualWlan)  
+        iface = str(ap.virtualWlan) + str(wlan)
+        apcommand = cmd + ("\' > %s.conf" % iface)  
         os.system(apcommand)
-        cmd = ("hostapd -B %s.conf" % ap.virtualWlan)
+        cmd = ("hostapd -B %s.conf" % iface)
         subprocess.check_output(cmd, shell=True)
-        #os.system(cmd)
+
 
 class getWlan( object ):
     
@@ -404,13 +406,13 @@ class accessPoint ( object ):
     """
     
     @classmethod
-    def rename( self, intf, newname ):
+    def rename( self, intf, newname, wlan ):
         "Rename interface"
+        newname = str(newname) + str(wlan)
         os.system('ifconfig %s down' % intf)
         os.system('ip link set %s name %s' % (intf, newname))
         os.system('ifconfig %s up' % newname)
-        return newname
-    
+            
     @classmethod
     def numberOfAssociatedStations( self, ap ):
         "Number of Associated Stations"
@@ -421,13 +423,14 @@ class accessPoint ( object ):
         ap.nAssociatedStations = int(output)
     
     @classmethod
-    def start(self, ap, country_code=None, auth_algs=None, wpa=None, 
+    def start(self, ap, country_code=None, auth_algs=None, wpa=None, iface=None,
               wpa_key_mgmt=None, rsn_pairwise=None, wpa_passphrase=None, **params):
         """ Starts an Access Point """
         self.exists = True
+        iface = str(ap.virtualWlan) + str(iface)
         self.cmd = ("echo \'")
         """General Configurations"""             
-        self.cmd = self.cmd + ("interface=%s" % ap.virtualWlan) # the interface used by the AP
+        self.cmd = self.cmd + ("interface=%s" % iface) # the interface used by the AP
         """Not using at the moment"""
         self.cmd = self.cmd + ("\ndriver=nl80211")
         self.cmd = self.cmd + ("\nssid=%s" % ap.ssid) # the name of the AP
@@ -438,13 +441,13 @@ class accessPoint ( object ):
             self.cmd = self.cmd + ("\nhw_mode=%s" % ap.mode) 
         self.cmd = self.cmd + ("\nchannel=%s" % ap.channel) # the channel to use 
         #if(ap.mode=="ac" or ap.mode=='a'):
-         #   self.cmd = self.cmd + ("\nieee80211ac=1")
+        #   self.cmd = self.cmd + ("\nieee80211ac=1")
         self.cmd = self.cmd + ("\nwme_enabled=1") 
         self.cmd = self.cmd + ("\nwmm_enabled=1") 
         #if(ap.mode=="n" or ap.mode=="a"):
-         #   self.cmd = self.cmd + ("\nieee80211n=1")
+        #   self.cmd = self.cmd + ("\nieee80211n=1")
         #if(ap.mode=="n"):
-         #   self.cmd = self.cmd + ("\nht_capab=[HT40+][SHORT-GI-40][DSSS_CCK-40]")
+        #   self.cmd = self.cmd + ("\nht_capab=[HT40+][SHORT-GI-40][DSSS_CCK-40]")
         
         #Not used yet!
         if(country_code!=None):
@@ -489,16 +492,16 @@ class accessPoint ( object ):
         os.system("ovs-vsctl add-port %s %s" % (ap, intf))
         
     @classmethod
-    def setBw(self, ap):
+    def setBw(self, ap, wlan):
         """ Set bw to AP """  
+        iface = str(ap.virtualWlan) + str(wlan)
         bandwidth = wifiParameters.set_bw(ap.mode)
-        
         os.system("tc qdisc replace dev %s \
             root handle 2: netem rate %.2fmbit \
             latency 1ms \
-            delay 0.1ms" % (ap.virtualWlan, bandwidth))    
+            delay 0.1ms" % (iface, bandwidth))    
         #Reordering packets    
-        os.system('tc qdisc add dev %s parent 2:1 pfifo limit 1000' % (ap.virtualWlan))
+        os.system('tc qdisc add dev %s parent 2:1 pfifo limit 1000' % iface)
         #os.system("tc qdisc add dev %s root tbf rate %smbit latency 2ms burst 15k" % \
                  #(ap.virtualWlan, bandwidth))
         
@@ -805,9 +808,10 @@ class wifiParameters ( object ):
     @classmethod
     def delay(self, distance, seconds):
         """"Based on RandomPropagationDelayModel (ns3)"""
-        if seconds == 0:
-            seconds = 1
-        delay = distance/seconds
+        if seconds != 0:
+            delay = distance/seconds
+        else:
+            delay = 1
         return delay        
     
     @classmethod
@@ -925,14 +929,14 @@ class wifiParameters ( object ):
         """ set maximum Bandwidth according Mode """
         self.bandwidth = 0
         if (mode=='a'):
-            self.bandwidth = 54
+            self.bandwidth = 20 # 54
         elif(mode=='b'):
-            self.bandwidth = 11
+            self.bandwidth = 6 #11
         elif(mode=='g'):
-            self.bandwidth = 54 
+            self.bandwidth = 20 #54
         elif(mode=='n'):
-            self.bandwidth = 600
+            self.bandwidth = 48 # 600
         elif(mode=='ac'):
-            self.bandwidth = 6777 
+            self.bandwidth = 90 #6777
             
         return self.bandwidth

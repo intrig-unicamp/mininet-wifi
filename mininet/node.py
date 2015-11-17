@@ -1247,8 +1247,10 @@ class OVSSwitch( Switch ):
         
         if(module.isCode==True):
             if('accessPoint' == self.type):
-                os.system("ovs-vsctl add-port %s %s" % (self.name, (self.newapif[accessPoint.number])))
-                accessPoint.number+=1
+                for iface in range(0, self.nWlans):
+                    port = str(self.name) + str('-wlan') + str(iface)
+                    os.system("ovs-vsctl add-port %s %s" % (self.name, port))
+                    accessPoint.number+=1
         
     # This should be ~ int( quietRun( 'getconf ARG_MAX' ) ),
     # but the real limit seems to be much lower

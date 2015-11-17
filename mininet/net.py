@@ -87,7 +87,6 @@ After all desired tests or activities have been completed, the stop()
 method may be called to shut down the network.
 
 """
-
 import os
 import re
 import select
@@ -114,7 +113,7 @@ from mininet.wifi import checkNM, module, accessPoint, station, wifiParameters, 
 from __builtin__ import True
 
 # Mininet version: should be consistent with README and LICENSE
-VERSION = "1.5r8"
+VERSION = "1.6"
 
 class Mininet( object ):
     "Network emulation with hosts spawned in network namespaces."
@@ -373,9 +372,18 @@ class Mininet( object ):
             bs.range = int(self.range)
         else:
             bs.range = accessPoint.range(bs.mode)
+            
+        wifi = ("%s" % params.pop('wlans', {}))
+        if(wifi!="{}"):        
+            module.wifiRadios = module.wifiRadios + int(wifi)
+            for n in range(int(wifi)):
+                module.virtualWlan.append(str(name)+str(n))
+        else:
+            module.wifiRadios+=1
+            wifi = 1
+            module.virtualWlan.append(str(name)+str(0))
+        bs.nWlans = int(wifi)
         
-        module.wifiRadios+=1
-        module.virtualWlan.append(name)
         accessPoint.list.append(bs)
         self.switches.append( bs )          
         self.accessPoints.append( bs ) 
@@ -505,17 +513,10 @@ class Mininet( object ):
     def addMesh( self, sta, cls=None, **params ):
         
         if self.firstAssociation:
-            module.startEnvironment()
-            self.link = TCLink
-            self.newapif = getWlan.virtual()  #Get Virtual Wlans      
-            station.assingIface(self.hosts)
-            self.firstAssociation = False
+            self.configureWifiNodes(False)
                 
-        node2 = sta
-        
         node = sta if not isinstance( sta, basestring ) else self[ sta ]
-        node2 = node2 if not isinstance( node2, basestring ) else self[ node2 ]
-        options = dict( )
+        options = dict()
         
         channel = ("%s" % params.pop('channel', {}))
         if(channel!="{}"): 
@@ -542,7 +543,7 @@ class Mininet( object ):
         options.setdefault( 'addr1', self.randMac() )
         
         cls = self.link if cls is None else cls
-        link = cls( node, node2, **options )
+        link = cls( node, 'onlyOneDevice', **options )
         
         for sta in self.hosts:
             if (sta == node):
@@ -555,11 +556,7 @@ class Mininet( object ):
     def addHoc( self, sta, cls=None, **params ):
         
         if self.firstAssociation:
-            module.startEnvironment()
-            self.link = TCLink
-            self.newapif = getWlan.virtual()  #Get Virtual Wlans      
-            station.assingIface(self.hosts)
-            self.firstAssociation = False
+            self.configureWifiNodes(False)
             
         node = sta if not isinstance( sta, basestring ) else self[ sta ]
         options = dict( )
@@ -598,33 +595,36 @@ class Mininet( object ):
     def configureAP(self):
         
         for ap in self.accessPoints:
-            wifiparam = dict()
+            ap.virtualWlan = str(ap)+'-'+str('wlan')
             
-            intf = self.newapif[module.virtualWlan.index(str(ap))]
-            newname = str(ap)+'-'+str(intf[:4])+str(0)
-            ap.virtualWlan = accessPoint.rename(intf, newname)
-                        
-            checkNM.getMacAddress(ap)         
-            accessPoint.setBw(ap)
-            
-            self.wpa_key_mgmt = None
-            self.country_code = None
-            self.rsn_pairwise = None
-            self.wpa_passphrase = None
-            self.wpa = None
-            self.auth_algs = None
-            self.wmm_enabled = None        
-            
-            wifiparam.setdefault( 'country_code', self.country_code )
-            wifiparam.setdefault( 'auth_algs', self.auth_algs )
-            wifiparam.setdefault( 'wpa', self.wpa )
-            wifiparam.setdefault( 'wpa_key_mgmt', self.wpa_key_mgmt )
-            wifiparam.setdefault( 'rsn_pairwise', self.rsn_pairwise )
-            wifiparam.setdefault( 'wpa_passphrase', self.wpa_passphrase )
-           
-            cmd = accessPoint.start(ap, **wifiparam)   
-            checkNM.APfile(cmd, ap) 
-        
+            for wlan in range(0,ap.nWlans):
+       
+                wifiparam = dict()
+                intf = self.newapif[module.virtualWlan.index(str(ap)+str(wlan))]
+                newname = str(ap)+'-'+str('wlan')
+                accessPoint.rename(intf, newname, wlan)
+                checkNM.getMacAddress(ap, wlan)         
+                accessPoint.setBw(ap, wlan)
+                
+                self.wpa_key_mgmt = None
+                self.country_code = None
+                self.rsn_pairwise = None
+                self.wpa_passphrase = None
+                self.wpa = None
+                self.auth_algs = None
+                self.wmm_enabled = None        
+                
+                wifiparam.setdefault( 'country_code', self.country_code )
+                wifiparam.setdefault( 'auth_algs', self.auth_algs )
+                wifiparam.setdefault( 'wpa', self.wpa )
+                wifiparam.setdefault( 'wpa_key_mgmt', self.wpa_key_mgmt )
+                wifiparam.setdefault( 'rsn_pairwise', self.rsn_pairwise )
+                wifiparam.setdefault( 'wpa_passphrase', self.wpa_passphrase )
+                wifiparam.setdefault( 'iface', wlan )
+               
+                cmd = accessPoint.start(ap, **wifiparam)   
+                checkNM.APfile(cmd, ap, wlan) 
+                 
     def addMissingSTAs(self, sta):
         
         options = dict( )
@@ -643,7 +643,6 @@ class Mininet( object ):
             station.setMac(sta)        
         
         #necessary if does not exist link between sta and other device
-        sta.mode = 'g'
         sta.associate = False
             
     """    
@@ -682,6 +681,18 @@ class Mininet( object ):
         for st in self.stations:
             for z in range(0, st.nWlans):
                 st.ifaceAssociatedToAp.append(str(z))
+                
+    def configureWifiNodes(self, hasAP=True):
+        module.startEnvironment()
+        self.link = TCLink
+        self.newapif = getWlan.virtual()  #Get Virtual Wlans      
+        self.firstAssociation = False
+        station.assingIface(self.hosts)
+        if hasAP:
+            self.configureAP() #configure AP
+            #Useful when stations have multiple interfaces
+            self.activeMultipleWlans()
+        
             
     def addLink( self, node1, node2, port1=None, port2=None, 
                  cls=None, **params ):
@@ -696,14 +707,7 @@ class Mininet( object ):
             or ( node2.type =='station' and node1.type == 'accessPoint')):
             
             if self.firstAssociation:
-                module.startEnvironment()
-                self.link = TCLink
-                self.newapif = getWlan.virtual()  #Get Virtual Wlans      
-                self.firstAssociation = False
-                station.assingIface(self.hosts)
-                self.configureAP() #configure AP
-                #Useful when stations have multiple interfaces
-                self.activeMultipleWlans()
+                self.configureWifiNodes(True)
                 
             #Only if AP
             if node1.type == 'accessPoint' and str(node1) not in self.apexists \
@@ -768,16 +772,9 @@ class Mininet( object ):
                 returns: link object"""
             
             #Only if AP
-            if node1.type == 'accessPoint'  and node2.type == 'accessPoint' :   
+            if node1.type == 'accessPoint' and node2.type == 'accessPoint' :   
                 if self.firstAssociation:
-                    module.startEnvironment()
-                    self.link = TCLink
-                    self.newapif = getWlan.virtual()  #Get Virtual Wlans      
-                    station.assingIface(self.hosts)
-                    self.firstAssociation = False
-                    self.configureAP() #configure AP
-                    #Useful when stations have multiple interfaces
-                    self.activeMultipleWlans()                
+                    self.configureWifiNodes(True)              
                 
                 listap = []
                 if str(node1) not in self.apexists:
@@ -794,14 +791,7 @@ class Mininet( object ):
                 or node2.type == 'accessPoint' and str(node2) not in self.apexists: 
                 
                 if self.firstAssociation:
-                    module.startEnvironment()
-                    self.link = TCLink
-                    self.newapif = getWlan.virtual()  #Get Virtual Wlans      
-                    station.assingIface(self.hosts)
-                    self.firstAssociation = False
-                    self.configureAP() #configure AP
-                    #Useful when stations have multiple interfaces
-                    self.activeMultipleWlans()
+                    self.configureWifiNodes(True)
                 
                 if node1.type == 'accessPoint':
                     ap = str(node1)
@@ -982,8 +972,9 @@ class Mininet( object ):
         #It is necessary to make a bridge between ap and wlan interface
         for switch in self.switches:
             if 'ap' in switch.name:  
-                interface = self.newapif[module.virtualWlan.index(switch.name)]
-                accessPoint.apBridge(switch.name, interface)
+                for iface in range(0, switch.nWlans):
+                    interface = self.newapif[module.virtualWlan.index(switch.name+str(iface))]
+                    accessPoint.apBridge(switch.name, interface)
         
         info( '\n' )
         if self.waitConn:
