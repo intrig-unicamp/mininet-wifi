@@ -169,6 +169,7 @@ class association( object ):
         loss = wifiParameters.loss(distance, sta.mode)
         delay = wifiParameters.delay(distance, seconds)
         bw = wifiParameters.bw(distance, sta, ap)  
+        wifiParameters.free_space_path_loss(sta, distance)
         
         sta.pexec("tc qdisc replace dev %s-wlan%s \
             root handle 1: netem rate %.2fmbit \
@@ -295,7 +296,7 @@ class station ( object ):
     def getWiFiParameters(self, sta, interface):
         wifiParameters.get_frequency(sta, interface)
         wifiParameters.get_tx_power(sta, interface)    
-        wifiParameters.get_rsi(sta, interface)  
+        wifiParameters.get_rsi(sta, interface)          
         
     @classmethod    
     def confirmMeshAssociation(self, sta, interface, mpID):
@@ -812,7 +813,19 @@ class wifiParameters ( object ):
             delay = distance/seconds
         else:
             delay = 1
-        return delay        
+        return delay  
+    
+    @classmethod
+    def signal_to_noise_ratio(self, sta):
+        """RSSI (Received Signal Strength Indicator): 
+                - Value between 0 and -120
+                - The closer this value to 0 (zero), stronger the signal
+           NOISE:
+                - value between 0 and -120
+                - The closer this value to -120, better."""  
+        #channelNoise = 1
+        #snr = sta.receivedPower - channelNoise      
+              
     
     @classmethod
     def custom_step(self, mode):    
@@ -830,7 +843,7 @@ class wifiParameters ( object ):
         return self.step
     
     @classmethod
-    def custom_bw_step(self, mode):    
+    def custom_bw(self, mode):    
         """ only useful for bw """
         self.bw_step = 0
         if (mode=='a' or mode=='g'):
@@ -849,27 +862,27 @@ class wifiParameters ( object ):
         mode = sta.mode
         signalRange = ap.range
         customStep = self.custom_step(mode)
-        custombwStep = self.custom_bw_step(mode)
+        custombw = self.custom_bw(mode)
         if distance != 0: 
-            bw = self.set_bw(mode)
+            bw = self.set_bw_node_moving(mode)
             for n in range(0,signalRange+1):
                 if n % customStep==0:
                     if n>=distance:
                         return bw
                     elif distance > signalRange:
                         return self.set_bw(mode)
-                    bw = bw - custombwStep                    
+                    bw = bw - custombw                    
         else:
             return self.set_bw(mode)        
 
-    @classmethod
+    """@classmethod
     def max_pathLoss(self, sta):
-        """used to calculate the range."""  
+        used to calculate the range.  
         gains = 6
         losses = 6
         fademargin = 12
         maxpathloss = sta.txpower - sta.rsi + gains - losses - fademargin
-        return maxpathloss
+        return maxpathloss"""
         
     @classmethod
     def friis_propagation_loss_model(self):   
@@ -891,42 +904,66 @@ class wifiParameters ( object ):
         power_r = (power_t * gain_t * gain_r * math.pow(wavelength,2)) / \
                         math.pow((4 * math.pi * distance),2) * systemLoss
         return power_r
-        
-    @classmethod
-    def pathLoss(self, exponent):
-        """(pathloss) is the path loss in decibels
-        (exponent) is the path loss exponent
-        (distance) is the distance between the transmitter and the receiver (meters)
-        and (constant) is a constant which accounts for system losses."""    
-        #pathloss = 10 * exponent * math.log10(distance) + constant
     
     @classmethod
-    def free_space_loss(self, sta):
+    def free_space_path_loss(self, sta, distance):
         """Formula: Free Space Loss
-        (distance) is the distance between the transmitter and the receiver (km)
+        (distance) is the distance between the transmitter and the receiver (m)
         (frequency) signal frequency transmited(MegaHertz)."""  
-        frequency = sta.frequency
-        distance=10
-        #32,44 is a constant and its value depends on the units for distance and frequency
-        fsl = 32,44 - 20 * math.log10(distance) + 20 * math.log10(frequency) #fsl in dB
-        return float('%.1f' % fsl)
+        f = (sta.frequency*10)**3 #Convert Ghz to Mhz
+        d = distance
+        try:
+            fspl = 20 * math.log10(d) + 20 * math.log10(f) - 27.55
+        except:
+            fspl = 1
+        sta.fspl = fspl
+        self.received_Power(sta)
     
     @classmethod
-    def free_space_path_loss(self, sta):
-        """Formula: Free Space Path Loss
+    def received_Power(self, sta):
+        """Received Power (dBm) = Tx Power (dBm) + Tx Antenna Gain (dBi) + Rx Antenna Gain (dBi) - FSPL (dB)"""
+        rp = sta.txpower - sta.fspl
+        sta.receivedPower = rp
+    
+    """@classmethod
+    def free_space_loss(self, sta, distance):
+        Formula: Free Space Path Loss
+           applicable to situations where only the electromagnetic wave is present
+           this formula does not include any component for antenna gains        
         (distance) is the distance between the transmitter and the receiver (meters)
         (frequency) signal frequency transmited(Hertz)
-        (constant) speed of light in a vacuum (metres per second)."""  
+        (constant) speed of light in a vacuum (metres per second).
         constant = 3 * 10**8  
         frequency = sta.frequency * 10**9 # Using 10^9 to convert to Hz 
-        distance = 1
-        fspl = ((4 * math.pi * distance * frequency)/constant)**2
-        return fspl
+        d = distance
+        try:
+            fspl = 10 * math.log10((4 * math.pi * d * frequency)/constant)**2
+        except:
+            fspl = 1
+        print fspl
+        sta.pathloss = fspl"""
     
+    
+    @classmethod    
+    def set_bw_node_moving(self, mode):
+        """ set maximum Bandwidth according Mode - Useful when there is mobility """
+        self.bandwidth = 0
+        if (mode=='a'):
+            self.bandwidth = 54
+        elif(mode=='b'):
+            self.bandwidth = 11
+        elif(mode=='g'):
+            self.bandwidth = 54
+        elif(mode=='n'):
+            self.bandwidth = 600
+        elif(mode=='ac'):
+            self.bandwidth = 6777
+            
+        return self.bandwidth
       
     @classmethod    
     def set_bw(self, mode):
-        """ set maximum Bandwidth according Mode """
+        """ set maximum Bandwidth according Mode - Useful when nodes are stopped"""
         self.bandwidth = 0
         if (mode=='a'):
             self.bandwidth = 20 # 54

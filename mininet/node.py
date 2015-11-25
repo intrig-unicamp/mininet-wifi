@@ -122,6 +122,8 @@ class Node( object ):
         self.frequency = 0
         self.txpower = 0
         self.mac=''
+        self.fspl = 0
+        self.receivedPower = 0
 
         self.type = ''
                 

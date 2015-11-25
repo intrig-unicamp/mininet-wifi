@@ -270,13 +270,14 @@ class CLI( Cmd ):
         for node in self.mn.values():
             output( '%s\n' % repr( node ) )
     
-    #def do_noise( self, line ):
-    #    "Noise node info."
-    #    args = line.split()
-    #    if len(args) != 1:
-    #        error( 'invalid number of args: noise [sta]\n' )
-    #    else:
-    #        self.mn.noiseInfo( *args )
+    
+    def do_info( self, line ):
+        "Noise node info."
+        args = line.split()
+        if len(args) != 1:
+            error( 'invalid number of args: info [device]\n' )
+        else:
+            self.mn.deviceInfo( *args )
             
     
     def do_distance( self, line ):

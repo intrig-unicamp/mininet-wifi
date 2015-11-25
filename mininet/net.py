@@ -113,7 +113,7 @@ from mininet.wifi import checkNM, module, accessPoint, station, wifiParameters, 
 from __builtin__ import True
 
 # Mininet version: should be consistent with README and LICENSE
-VERSION = "1.6"
+VERSION = "1.6r1"
 
 class Mininet( object ):
     "Network emulation with hosts spawned in network namespaces."
@@ -1437,6 +1437,19 @@ class Mininet( object ):
                     mobility.printPosition(host)
         except:
             print ("Position was not defined")
+                        
+    def deviceInfo(self, device):
+        """ Devices Info """         
+        for sta in self.stations:
+            if device == str(sta):
+                device = sta        
+        print "--------------------------------"
+        print "Frequency: %s GHz" % device.frequency
+        print "Tx-Power: %s dBm" % device.txpower
+        #print "Bit Rate: xxx dBm"
+        print "Signal level: %.2f dbm" % device.receivedPower
+        print "--------------------------------"
+        
                         
     def getCurrentDistance(self, src, dst):
         """ Get current Distance """ 
