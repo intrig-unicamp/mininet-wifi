@@ -606,6 +606,10 @@ class Mininet( object ):
                 checkNM.getMacAddress(ap, wlan)         
                 accessPoint.setBw(ap, wlan)
                 
+                iface = str(ap.virtualWlan) + str(wlan)
+                wifiParameters.get_frequency(ap, iface)
+                wifiParameters.get_tx_power(ap, iface)
+                
                 self.wpa_key_mgmt = None
                 self.country_code = None
                 self.rsn_pairwise = None
@@ -1442,13 +1446,21 @@ class Mininet( object ):
         """ Devices Info """         
         for sta in self.stations:
             if device == str(sta):
-                device = sta        
-        print "--------------------------------"
-        print "Frequency: %s GHz" % device.frequency
-        print "Tx-Power: %s dBm" % device.txpower
-        #print "Bit Rate: xxx dBm"
-        print "Signal level: %.2f dbm" % device.receivedPower
-        print "--------------------------------"
+                device = sta      
+        for ap in self.accessPoints:
+            if device == str(ap):
+                device = ap  
+        
+        try:
+            print "--------------------------------"
+            if device.type == 'station':
+                print "Frequency: %s GHz" % device.frequency
+                print "Signal level: %.2f dbm" % device.receivedPower
+            print "Tx-Power: %s dBm" % device.txpower
+            #print "Bit Rate: xxx dBm"
+            print "--------------------------------"
+        except:
+            print "Something is wrong."
         
                         
     def getCurrentDistance(self, src, dst):

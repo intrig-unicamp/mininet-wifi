@@ -291,12 +291,13 @@ class station ( object ):
                     vwlan = module.virtualWlan.index(str(sta))
                     os.system('iw phy %s set netns %s' % ( phyInt.totalPhy[vwlan + i], sta.pid ))
                     sta.cmd('ip link set %s name %s-wlan%s' % (wlan[vwlan + i], str(sta), i))   
+                    
       
     @classmethod
-    def getWiFiParameters(self, sta, interface):
-        wifiParameters.get_frequency(sta, interface)
-        wifiParameters.get_tx_power(sta, interface)    
-        wifiParameters.get_rsi(sta, interface)          
+    def getWiFiParameters(self, sta, iface):
+        wifiParameters.get_frequency(sta, iface)
+        wifiParameters.get_tx_power(sta, iface)    
+        #wifiParameters.get_rsi(sta, iface)          
         
     @classmethod    
     def confirmMeshAssociation(self, sta, interface, mpID):
@@ -322,8 +323,8 @@ class station ( object ):
             print "Associating %s to %s" % (sta, ap)
         while(associated == '' or len(associated[0]) == 15):
             associated = self.isAssociated(sta, wlan)
-        interface = str(sta)+'-wlan%s' % wlan
-        self.getWiFiParameters(sta, interface)   
+        iface = str(sta)+'-wlan%s' % wlan
+        self.getWiFiParameters(sta, iface) 
             
     @classmethod    
     def isAssociated(self, sta, iface):
@@ -774,18 +775,19 @@ class wifiParameters ( object ):
                                             % iface)) 
     
     @classmethod
-    def get_frequency(self, sta, iface): 
+    def get_frequency(self, device, iface): 
         """ Get frequency info **in development """
-        freq = sta.cmd('iwconfig %s | grep -o \'Frequency.*z\' | cut -f2- -d\':\' | cut -c1-5'
+        freq = device.cmd('iwconfig %s | grep -o \'Frequency.*z\' | cut -f2- -d\':\' | cut -c1-5'
                                             % iface)
         if freq!='':
-            sta.frequency = float(freq) 
+            device.frequency = float(freq) 
     
     @classmethod
-    def get_tx_power(self, sta, iface): 
+    def get_tx_power(self, device, iface): 
         """ Get tx_power info """
-        sta.txpower = int(sta.cmd('iwconfig %s | grep -o \'Tx-Power.*\' | cut -f2- -d\'=\' | cut -c1-3'
+        device.txpower = int(device.cmd('iwconfig %s | grep -o \'Tx-Power.*\' | cut -f2- -d\'=\' | cut -c1-3'
                                          % iface))
+        #sta.associatedAp
     #@classmethod
     #def printNoiseInfo(self, host): 
     #    """
@@ -885,25 +887,28 @@ class wifiParameters ( object ):
         return maxpathloss"""
         
     @classmethod
-    def friis_propagation_loss_model(self):   
+    def friis_propagation_loss_model(self, sta, distance):   
         """
             power_r = Reception Power (W)
             power_t = Transmission Power (W)
             gain_r = Reception gain (unit-less)
             gain_t = Transmission gain (unit-less)
-            wavelength = wavelength (m) => C/f => (m/s and Hz)
+            c = 3 * 10**8 
             distance = (m)
             systemLoss = system loss (unit-less)
         """
-        frequency = 2412
-        power_t = 20
-        gain_r = 6
-        gain_t = 6
-        systemLoss = 1.
-        wavelength = 299792458/frequency
-        power_r = (power_t * gain_t * gain_r * math.pow(wavelength,2)) / \
-                        math.pow((4 * math.pi * distance),2) * systemLoss
-        return power_r
+        d = distance
+        f = (sta.frequency*10)**3
+        ap = sta.associatedAp
+        power_t = ap.txpower
+        gain_r = 1
+        gain_t = 1
+        c = 3 * 10**8 
+        try:
+            power_r = (power_t * gain_t * gain_r * c**2) / math.pow((4 * math.pi * d * f),2)
+        except:
+            power_r = 1
+        sta.receivedPower = power_r
     
     @classmethod
     def free_space_path_loss(self, sta, distance):
@@ -913,16 +918,18 @@ class wifiParameters ( object ):
         f = (sta.frequency*10)**3 #Convert Ghz to Mhz
         d = distance
         try:
+            #fspl = 20 * math.log10(d) + 20 * math.log10(f) - 27.55 - Tx Antenna Gain (dBi) - Rx Antenna Gain (dBi)
             fspl = 20 * math.log10(d) + 20 * math.log10(f) - 27.55
         except:
             fspl = 1
         sta.fspl = fspl
         self.received_Power(sta)
-    
+            
     @classmethod
     def received_Power(self, sta):
         """Received Power (dBm) = Tx Power (dBm) + Tx Antenna Gain (dBi) + Rx Antenna Gain (dBi) - FSPL (dB)"""
-        rp = sta.txpower - sta.fspl
+        ap = sta.associatedAp
+        rp = ap.txpower - sta.fspl
         sta.receivedPower = rp
     
     """@classmethod
