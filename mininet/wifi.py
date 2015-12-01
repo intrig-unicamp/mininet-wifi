@@ -340,7 +340,7 @@ class station ( object ):
     @classmethod    
     def cmd_associate(self, sta, wlan, ap):
         sta.associatedAp = ap
-        if sta.passwd == '':
+        if sta.passwd == None:
             self.iwCommand(sta, wlan, ('connect %s' % ap.ssid))
         elif sta.encrypt == 'wpa' or sta.encrypt == 'wpa2':
             self.associate_wpa(sta, wlan, ap.ssid, sta.passwd)
