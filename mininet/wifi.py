@@ -114,6 +114,7 @@ class module( object ):
     physicalWlan = []
     virtualWlan = []
     isCode = False
+    wpa_supplicantIsRunning = False
         
     @classmethod    
     def _start_module(self, wifiRadios):
@@ -132,6 +133,8 @@ class module( object ):
         os.system( 'rmmod mac80211_hwsim' )
         if accessPoint.exists:
             os.system( 'killall -9 hostapd' )
+        if self.wpa_supplicantIsRunning:
+            os.system( 'pkill -f \'wpa_supplicant -B\'' )
         
     @classmethod
     def startEnvironment(self):
@@ -468,11 +471,13 @@ class accessPoint ( object ):
         #   self.cmd = self.cmd + ("\nht_capab=[HT40+][SHORT-GI-40][DSSS_CCK-40]")
         
         if encrypt == 'wpa':
+            module.wpa_supplicantIsRunning = True
             self.cmd = self.cmd + ("\nauth_algs=%s" % auth_algs)
             self.cmd = self.cmd + ("\nwpa=%s" % wpa)
             self.cmd = self.cmd + ("\nwpa_key_mgmt=%s" % wpa_key_mgmt ) 
             self.cmd = self.cmd + ("\nwpa_passphrase=%s" % wpa_passphrase)                        
         elif encrypt == 'wpa2':
+            module.wpa_supplicantIsRunning = True
             self.cmd = self.cmd + ("\nauth_algs=%s" % auth_algs)
             self.cmd = self.cmd + ("\nwpa=%s" % wpa)
             self.cmd = self.cmd + ("\nwpa_key_mgmt=%s" % wpa_key_mgmt ) 
@@ -748,7 +753,7 @@ class mobility ( object ):
         oneTime = []
                 
         if model!='':
-            #try:
+            try:
                 for xy in mob:
                     if self.DRAW:
                         line.set_data(xy[:,0],xy[:,1])
@@ -782,8 +787,8 @@ class mobility ( object ):
                     if self.DRAW:
                         plt.title("Mininet-WiFi Graph")
                         plt.draw()
-            #except:
-             #   print "Graph Stopped!"  
+            except:
+                print "Graph Stopped!"  
         
 class wifiParameters ( object ):
     """
