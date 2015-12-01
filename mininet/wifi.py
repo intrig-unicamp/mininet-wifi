@@ -748,7 +748,7 @@ class mobility ( object ):
         oneTime = []
                 
         if model!='':
-            try:
+            #try:
                 for xy in mob:
                     if self.DRAW:
                         line.set_data(xy[:,0],xy[:,1])
@@ -782,8 +782,8 @@ class mobility ( object ):
                     if self.DRAW:
                         plt.title("Mininet-WiFi Graph")
                         plt.draw()
-            except:
-                print "Graph Stopped!"  
+            #except:
+             #   print "Graph Stopped!"  
         
 class wifiParameters ( object ):
     """
@@ -950,9 +950,12 @@ class wifiParameters ( object ):
     @classmethod
     def received_Power(self, sta):
         """Received Power (dBm) = Tx Power (dBm) + Tx Antenna Gain (dBi) + Rx Antenna Gain (dBi) - FSPL (dB)"""
-        ap = sta.associatedAp
-        rp = ap.txpower - sta.fspl
-        sta.receivedPower = rp
+        try:
+            ap = sta.associatedAp
+            rp = ap.txpower - sta.fspl
+            sta.receivedPower = rp
+        except:
+            pass
     
     """@classmethod
     def free_space_loss(self, sta, distance):
