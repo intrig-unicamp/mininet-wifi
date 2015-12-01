@@ -340,9 +340,24 @@ class station ( object ):
     @classmethod    
     def cmd_associate(self, sta, wlan, ap):
         sta.associatedAp = ap
-        self.iwCommand(sta, wlan, ('connect %s' % ap.ssid))
+        if sta.passwd == '':
+            self.iwCommand(sta, wlan, ('connect %s' % ap.ssid))
+        elif sta.encrypt == 'wpa' or sta.encrypt == 'wpa2':
+            self.associate_wpa(sta, wlan, ap.ssid, sta.passwd)
+        elif sta.encrypt == 'wep':
+            self.associate_wep(sta, wlan, ap.ssid, sta.passwd)
         self.confirmInfraAssociation(sta, wlan, ap)
         sta.ifaceAssociatedToAp[wlan] = str(ap) 
+        
+    @classmethod    
+    def associate_wpa(self, sta, wlan, ssid, passwd):
+        sta.cmd("wpa_supplicant -B -D nl80211 -i %s-wlan%s -c <(wpa_passphrase \"%s\" \"%s\")" \
+                % (sta, wlan, ssid, passwd))
+    
+    @classmethod    
+    def associate_wep(self, sta, wlan, ssid, passwd):    
+        sta.cmd('iw dev %s-wlan%s connect %s key 0:%s' \
+                % (sta, wlan, ssid, passwd))
         
     @classmethod    
     def adhoc(self, sta, **params):
@@ -426,7 +441,8 @@ class accessPoint ( object ):
     
     @classmethod
     def start(self, ap, country_code=None, auth_algs=None, wpa=None, iface=None,
-              wpa_key_mgmt=None, rsn_pairwise=None, wpa_passphrase=None, **params):
+              wpa_key_mgmt=None, rsn_pairwise=None, wpa_passphrase=None, encrypt=None, 
+              wep_key0=None, **params):
         """ Starts an Access Point """
         self.exists = True
         iface = str(ap.virtualWlan) + str(iface)
@@ -451,19 +467,25 @@ class accessPoint ( object ):
         #if(ap.mode=="n"):
         #   self.cmd = self.cmd + ("\nht_capab=[HT40+][SHORT-GI-40][DSSS_CCK-40]")
         
+        if encrypt == 'wpa':
+            self.cmd = self.cmd + ("\nauth_algs=%s" % auth_algs)
+            self.cmd = self.cmd + ("\nwpa=%s" % wpa)
+            self.cmd = self.cmd + ("\nwpa_key_mgmt=%s" % wpa_key_mgmt ) 
+            self.cmd = self.cmd + ("\nwpa_passphrase=%s" % wpa_passphrase)                        
+        elif encrypt == 'wpa2':
+            self.cmd = self.cmd + ("\nauth_algs=%s" % auth_algs)
+            self.cmd = self.cmd + ("\nwpa=%s" % wpa)
+            self.cmd = self.cmd + ("\nwpa_key_mgmt=%s" % wpa_key_mgmt ) 
+            self.cmd = self.cmd + ("\nrsn_pairwise=%s" % rsn_pairwise)  
+            self.cmd = self.cmd + ("\nwpa_passphrase=%s" % wpa_passphrase)   
+        elif encrypt == 'wep':
+            self.cmd = self.cmd + ("\nauth_algs=%s" % auth_algs)
+            self.cmd = self.cmd + ("\nwep_default_key=%s" % 0) 
+            self.cmd = self.cmd + ("\nwep_key0=%s" % wep_key0)                         
+                
         #Not used yet!
         if(country_code!=None):
             self.cmd = self.cmd + ("\ncountry_code=%s" % country_code) # the country code
-        if(auth_algs!=None):
-            self.cmd = self.cmd + ("\nauth_algs=%s" % auth_algs) # 1=wpa, 2=wep, 3=both
-        if(wpa!=None):
-            self.cmd = self.cmd + ("\nwpa=%s" % wpa) # WPA2 only
-        if(wpa_key_mgmt!=None):
-            self.cmd = self.cmd + ("\nwpa_key_mgmt=%s" % wpa_key_mgmt ) 
-        if(rsn_pairwise!=None):
-            self.cmd = self.cmd + ("\nrsn_pairwise=%s" % rsn_pairwise)  
-        if(wpa_passphrase!=None):
-            self.cmd = self.cmd + ("\nwpa_passphrase=%s" % wpa_passphrase)                        
         
         #elif(len(self.baseStationName)>self.countAP and len(self.baseStationName) != 1):
         #    """From AP2"""

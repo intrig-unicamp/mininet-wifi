@@ -113,7 +113,7 @@ from mininet.wifi import checkNM, module, accessPoint, station, wifiParameters, 
 from __builtin__ import True
 
 # Mininet version: should be consistent with README and LICENSE
-VERSION = "1.6r1"
+VERSION = "1.6r2"
 
 class Mininet( object ):
     "Network emulation with hosts spawned in network namespaces."
@@ -302,6 +302,18 @@ class Mininet( object ):
             sta.mode = mode
         else:
             sta.mode = "g"
+            
+        passwd = ("%s" % params.pop('passwd', {}))
+        if(passwd!="{}"): 
+            sta.passwd = passwd
+        else:
+            sta.passwd = None
+            
+        encrypt = ("%s" % params.pop('encrypt', {}))
+        if(encrypt!="{}"): 
+            sta.encrypt = encrypt
+        else:
+            sta.encrypt = None
                 
         wifi = ("%s" % params.pop('wlans', {}))
         if(wifi!="{}"):        
@@ -366,6 +378,18 @@ class Mininet( object ):
             bs.ssid = ssid
         else:
             bs.ssid = self.ssid
+            
+        passwd = ("%s" % params.pop('passwd', {}))
+        if(passwd!="{}"):
+            bs.passwd = passwd
+        else:
+            bs.passwd = None
+            
+        encrypt = ("%s" % params.pop('encrypt', {}))
+        if(encrypt!="{}"):
+            bs.encrypt = encrypt
+        else:
+            bs.encrypt = None
             
         self.range = ("%s" % params.pop('range', {}))
         if(self.range!="{}"):
@@ -610,20 +634,38 @@ class Mininet( object ):
                 wifiParameters.get_frequency(ap, iface)
                 wifiParameters.get_tx_power(ap, iface)
                 
+                self.auth_algs = None
+                self.wpa = None
                 self.wpa_key_mgmt = None
-                self.country_code = None
                 self.rsn_pairwise = None
                 self.wpa_passphrase = None
-                self.wpa = None
-                self.auth_algs = None
-                self.wmm_enabled = None        
+                self.wep_key0 = None
+                self.country_code = None
+                self.wmm_enabled = None    
                 
+                if ap.encrypt == 'wpa':
+                    self.auth_algs = 1
+                    self.wpa = 1
+                    self.wpa_key_mgmt = 'WPA-PSK'
+                    self.wpa_passphrase = ap.passwd
+                elif ap.encrypt == 'wpa2':
+                    self.auth_algs = 1
+                    self.wpa = 2
+                    self.wpa_key_mgmt = 'WPA-PSK'
+                    self.rsn_pairwise = 'CCMP'
+                    self.wpa_passphrase = ap.passwd
+                elif ap.encrypt == 'wep':
+                    self.auth_algs = 2
+                    self.wep_key0 = ap.passwd
+                
+                wifiparam.setdefault( 'encrypt', ap.encrypt )    
                 wifiparam.setdefault( 'country_code', self.country_code )
                 wifiparam.setdefault( 'auth_algs', self.auth_algs )
                 wifiparam.setdefault( 'wpa', self.wpa )
                 wifiparam.setdefault( 'wpa_key_mgmt', self.wpa_key_mgmt )
                 wifiparam.setdefault( 'rsn_pairwise', self.rsn_pairwise )
                 wifiparam.setdefault( 'wpa_passphrase', self.wpa_passphrase )
+                wifiparam.setdefault( 'wep_key0', self.wep_key0 )
                 wifiparam.setdefault( 'iface', wlan )
                
                 cmd = accessPoint.start(ap, **wifiparam)   

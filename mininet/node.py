@@ -108,6 +108,8 @@ class Node( object ):
         self.channel = ''
         self.mode = ''
         self.virtualWlan = ''
+        self.passwd = ''
+        self.security = ''
         
         # Station Parameters
         self.associate = False
