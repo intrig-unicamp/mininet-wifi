@@ -109,11 +109,11 @@ from mininet.util import ( quietRun, fixLimits, numCores, ensureRoot,
                            macColonHex, ipStr, ipParse, netParse, ipAdd,
                            waitListening )
 from mininet.term import cleanUpScreens, makeTerms
-from mininet.wifi import checkNM, module, accessPoint, station, wifiParameters, association, mobility, getWlan
+from mininet.wifi import checkNM, module, accessPoint, station, wifiParameters, association, mobility, getWlan, deviceRange
 from __builtin__ import True
 
 # Mininet version: should be consistent with README and LICENSE
-VERSION = "1.6r2"
+VERSION = "1.6r3"
 
 class Mininet( object ):
     "Network emulation with hosts spawned in network namespaces."
@@ -308,6 +308,12 @@ class Mininet( object ):
             sta.passwd = passwd
         else:
             sta.passwd = None
+        
+        equipmentModel = ("%s" % params.pop('equipmentModel', {}))
+        if(equipmentModel!="{}"): 
+            sta.equipmentModel = equipmentModel
+        else:
+            sta.equipmentModel = None
             
         encrypt = ("%s" % params.pop('encrypt', {}))
         if(encrypt!="{}"): 
@@ -366,6 +372,12 @@ class Mininet( object ):
             bs.channel = channel
         else:
             bs.channel = self.channel 
+            
+        equipmentModel = ("%s" % params.pop('equipmentModel', {}))
+        if(equipmentModel!="{}"):
+            bs.equipmentModel = equipmentModel
+        else:
+            bs.equipmentModel = None
       
         mode = ("%s" % params.pop('mode', {}))
         if(mode!="{}"):
@@ -395,7 +407,10 @@ class Mininet( object ):
         if(self.range!="{}"):
             bs.range = int(self.range)
         else:
-            bs.range = accessPoint.range(bs.mode)
+            if bs.equipmentModel == None:
+                bs.range = accessPoint.range(bs.mode)
+            else:
+                deviceRange(bs.equipmentModel, bs)            
             
         wifi = ("%s" % params.pop('wlans', {}))
         if(wifi!="{}"):        
@@ -408,7 +423,7 @@ class Mininet( object ):
             module.virtualWlan.append(str(name)+str(0))
         bs.nWlans = int(wifi)
         
-        accessPoint.list.append(bs)
+        accessPoint.list.append( bs )
         self.switches.append( bs )          
         self.accessPoints.append( bs ) 
         
@@ -1484,6 +1499,9 @@ class Mininet( object ):
         except:
             print ("Position was not defined")
                         
+    def propagationModel(self, model):
+        wifiParameters.propagationModel = model                        
+    
     def deviceInfo(self, device):
         """ Devices Info """         
         for sta in self.stations:

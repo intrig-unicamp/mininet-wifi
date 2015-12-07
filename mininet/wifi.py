@@ -172,8 +172,8 @@ class association( object ):
         loss = wifiParameters.loss(distance, sta.mode)
         delay = wifiParameters.delay(distance, seconds)
         bw = wifiParameters.bw(distance, sta, ap)  
-        wifiParameters.free_space_path_loss(sta, distance)
-        
+        propagationModel(sta, distance)
+
         sta.pexec("tc qdisc replace dev %s-wlan%s \
             root handle 1: netem rate %.2fmbit \
             loss %.1f%% \
@@ -583,9 +583,10 @@ class mobility ( object ):
         plt.ion()
         self.plotap[ap], = ax.plot(range(self.MAX_X), range(self.MAX_Y), \
                                    linestyle='', marker='.', ms=12, mfc='red')
+        
         ax.add_patch(
             patches.Circle((position[0], position[1]),
-            accessPoint.range(ap.mode), fill=True,  alpha=0.1
+            ap.range, fill=True,  alpha=0.1
             )
         )
         self.plotap[ap].set_data(position[0], position[1])
@@ -791,10 +792,10 @@ class mobility ( object ):
                 print "Graph Stopped!"  
         
 class wifiParameters ( object ):
-    """
-        WiFi Parameters 
-    """
-    
+    """WiFi Parameters""" 
+       
+    propagationModel = ''
+   
     @classmethod
     def get_rsi(self, sta, iface): 
         """ Get rsi info """
@@ -812,8 +813,12 @@ class wifiParameters ( object ):
     @classmethod
     def get_tx_power(self, device, iface): 
         """ Get tx_power info """
-        device.txpower = int(device.cmd('iwconfig %s | grep -o \'Tx-Power.*\' | cut -f2- -d\'=\' | cut -c1-3'
-                                         % iface))
+        if device.equipmentModel == None:
+            device.txpower = int(device.cmd('iwconfig %s | grep -o \'Tx-Power.*\' | cut -f2- -d\'=\' | cut -c1-3'
+                                             % iface))
+        else:
+            deviceTxPower(device.equipmentModel, device)
+            
         #sta.associatedAp
     #@classmethod
     #def printNoiseInfo(self, host): 
@@ -854,8 +859,7 @@ class wifiParameters ( object ):
                 - The closer this value to -120, better."""  
         #channelNoise = 1
         #snr = sta.receivedPower - channelNoise      
-              
-    
+                  
     @classmethod
     def custom_step(self, mode):    
         """ only useful for bw """
@@ -893,93 +897,19 @@ class wifiParameters ( object ):
         customStep = self.custom_step(mode)
         custombw = self.custom_bw(mode)
         if distance != 0: 
-            bw = self.set_bw_node_moving(mode)
-            for n in range(0,signalRange+1):
-                if n % customStep==0:
-                    if n>=distance:
-                        return bw
-                    elif distance > signalRange:
-                        return self.set_bw(mode)
-                    bw = bw - custombw                    
+            if ap.equipmentModel == None:
+                bw = self.set_bw_node_moving(mode)
+                for n in range(0,signalRange+1):
+                    if n % customStep==0:
+                        if n>=distance:
+                            return bw
+                        elif distance > signalRange:
+                            return self.set_bw(mode)
+                        bw = bw - custombw 
+            elif ap.equipmentModel == 'DI524':
+                return deviceDataRate.DI524(sta)
         else:
             return self.set_bw(mode)        
-
-    """@classmethod
-    def max_pathLoss(self, sta):
-        used to calculate the range.  
-        gains = 6
-        losses = 6
-        fademargin = 12
-        maxpathloss = sta.txpower - sta.rsi + gains - losses - fademargin
-        return maxpathloss"""
-        
-    @classmethod
-    def friis_propagation_loss_model(self, sta, distance):   
-        """
-            power_r = Reception Power (W)
-            power_t = Transmission Power (W)
-            gain_r = Reception gain (unit-less)
-            gain_t = Transmission gain (unit-less)
-            c = 3 * 10**8 
-            distance = (m)
-            systemLoss = system loss (unit-less)
-        """
-        d = distance
-        f = (sta.frequency*10)**3
-        ap = sta.associatedAp
-        power_t = ap.txpower
-        gain_r = 1
-        gain_t = 1
-        c = 3 * 10**8 
-        try:
-            power_r = (power_t * gain_t * gain_r * c**2) / math.pow((4 * math.pi * d * f),2)
-        except:
-            power_r = 1
-        sta.receivedPower = power_r
-    
-    @classmethod
-    def free_space_path_loss(self, sta, distance):
-        """Formula: Free Space Loss
-        (distance) is the distance between the transmitter and the receiver (m)
-        (frequency) signal frequency transmited(MegaHertz)."""  
-        f = (sta.frequency*10)**3 #Convert Ghz to Mhz
-        d = distance
-        try:
-            #fspl = 20 * math.log10(d) + 20 * math.log10(f) - 27.55 - Tx Antenna Gain (dBi) - Rx Antenna Gain (dBi)
-            fspl = 20 * math.log10(d) + 20 * math.log10(f) - 27.55
-        except:
-            fspl = 1
-        sta.fspl = fspl
-        self.received_Power(sta)
-            
-    @classmethod
-    def received_Power(self, sta):
-        """Received Power (dBm) = Tx Power (dBm) + Tx Antenna Gain (dBi) + Rx Antenna Gain (dBi) - FSPL (dB)"""
-        try:
-            ap = sta.associatedAp
-            rp = ap.txpower - sta.fspl
-            sta.receivedPower = rp
-        except:
-            pass
-    
-    """@classmethod
-    def free_space_loss(self, sta, distance):
-        Formula: Free Space Path Loss
-           applicable to situations where only the electromagnetic wave is present
-           this formula does not include any component for antenna gains        
-        (distance) is the distance between the transmitter and the receiver (meters)
-        (frequency) signal frequency transmited(Hertz)
-        (constant) speed of light in a vacuum (metres per second).
-        constant = 3 * 10**8  
-        frequency = sta.frequency * 10**9 # Using 10^9 to convert to Hz 
-        d = distance
-        try:
-            fspl = 10 * math.log10((4 * math.pi * d * frequency)/constant)**2
-        except:
-            fspl = 1
-        print fspl
-        sta.pathloss = fspl"""
-    
     
     @classmethod    
     def set_bw_node_moving(self, mode):
@@ -1014,3 +944,132 @@ class wifiParameters ( object ):
             self.bandwidth = 90 #6777
             
         return self.bandwidth
+    
+    
+class propagationModel ( object ):
+    """
+        Propagation Models 
+    """        
+    def __init__( self, sta=None, distance=0 ):
+        self.model = wifiParameters.propagationModel
+        
+        if self.model in dir(self):
+            self.__getattribute__(self.model)(sta, distance)
+            
+    def freeSpacePathLoss(self, sta, distance):
+        """Formula: Free Space Loss
+        (distance) is the distance between the transmitter and the receiver (m)
+        (frequency) signal frequency transmited(MegaHertz)."""  
+        
+        f = (sta.frequency*10)**3 #Convert Ghz to Mhz
+        d = distance
+        
+        try:
+            #fspl = 20 * math.log10(d) + 20 * math.log10(f) - 27.55 - Tx Antenna Gain (dBi) - Rx Antenna Gain (dBi)
+            fspl = 20 * math.log10(d) + 20 * math.log10(f) - 27.55
+        except:
+            fspl = 1
+        sta.fspl = fspl
+        self.received_Power(sta)
+            
+    def friis_propagation_loss_model(self, sta, distance):   
+        """
+            power_r = Reception Power (W)
+            power_t = Transmission Power (W)
+            gain_r = Reception gain (unit-less)
+            gain_t = Transmission gain (unit-less)
+            c = 3 * 10**8 
+            distance = (m)
+            systemLoss = system loss (unit-less)
+        """
+        d = distance
+        f = (sta.frequency*10)**3
+        #ap = sta.associatedAp
+        power_t = sta.txpower
+        gain_r = 1
+        gain_t = 1
+        c = 3 * 10**8 
+        try:
+            power_r = (power_t * gain_t * gain_r * c**2) / math.pow((4 * math.pi * d * f),2)
+        except:
+            power_r = 1
+        sta.receivedPower = power_r
+            
+    def received_Power(self, sta):
+        """Received Power (dBm) = Tx Power (dBm) + Tx Antenna Gain (dBi) + Rx Antenna Gain (dBi) - FSPL (dB)"""
+        try:
+            ap = sta.associatedAp
+            sta.receivedPower = ap.txpower - sta.fspl
+        except:
+            pass
+        
+    """@classmethod
+    def max_pathLoss(self, sta):
+        used to calculate the range.  
+        gains = 6
+        losses = 6
+        fademargin = 12
+        maxpathloss = sta.txpower - sta.rsi + gains - losses - fademargin
+        return maxpathloss"""           
+    
+class deviceDataRate ( object ):
+    """ Data Rate for specific equipments """
+    
+    @classmethod    
+    def DI524(self, sta):
+        """D-Link AirPlus G DI-524
+           from http://www.dlink.com/-/media/Consumer_Products/DI/DI%20524/Manual/DI_524_Manual_EN_UK.pdf"""
+        rate = 0
+        if (sta.receivedPower >= -68):
+            rate = 48
+        elif (sta.receivedPower < -68 and sta.receivedPower >= -75):
+            rate = 36
+        elif (sta.receivedPower < -75 and sta.receivedPower >= -79):
+            rate = 24
+        elif (sta.receivedPower < -82 and sta.receivedPower >= -84):
+            rate = 18
+        elif (sta.receivedPower < -84 and sta.receivedPower >= -87):
+            rate = 9
+        elif (sta.receivedPower < -87 and sta.receivedPower >= -88):
+            rate = 6
+        elif (sta.receivedPower < -88 and sta.receivedPower >= -89):
+            rate = 1
+        return rate
+       
+class deviceRange ( object ):
+    """ Range for specific equipments """
+    
+    def __init__( self, model=None, ap=None ):
+        self.model = model
+        self.ap = ap        
+                
+        if self.model in dir(self):
+            ap.range = self.__getattribute__(self.model)(self.ap)
+    
+    def DI524(self, ap):
+        """ D-Link AirPlus G DI-524
+            from http://www.dlink.com/-/media/Consumer_Products/DI/DI%20524/Manual/DI_524_Manual_EN_UK.pdf
+            indoor = 100
+            outdoor = 200 """
+
+        distance = 100
+        return distance
+    
+class deviceTxPower ( object ):
+    """ TX Power for specific equipments """
+    
+    def __init__( self, model=None, ap=None ):
+        self.model = model
+        self.ap = ap
+        
+        if self.model in dir(self):
+            ap.txpower = self.__getattribute__(self.model)(self.ap)
+    
+    def DI524(self, ap):
+        """ D-Link AirPlus G DI-524
+            from http://www.dlink.com/-/media/Consumer_Products/DI/DI%20524/Manual/DI_524_Manual_EN_UK.pdf
+        """
+        txPower = 14
+        return txPower
+
+            
