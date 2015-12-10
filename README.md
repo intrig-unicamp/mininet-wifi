@@ -34,10 +34,10 @@ Video 05: https://www.youtube.com/watch?v=WH6bSOKC7Lk
 /examples/handover.py  
 /examples/multipleWlan.py  
 /examples/simplewifitopology.py  
-/examples/wifiAuthentication.py  
 /examples/wifimesh.py  
 /examples/wifiMobility.py  
 /examples/wifiMobilityModel.py  
+/examples/wifiPropagationModel.py  
 /examples/wifiPosition.py  
 /examples/wifiStationsAndHosts.py  
 
