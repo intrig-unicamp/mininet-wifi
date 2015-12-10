@@ -168,11 +168,11 @@ class association( object ):
         except:
             pass
         
+        propagationModel(sta, sta.associatedAp[wlan], distance, wlan)
         latency = wifiParameters.latency(distance)
         loss = wifiParameters.loss(distance, sta.mode)
         delay = wifiParameters.delay(distance, seconds)
-        bw = wifiParameters.bw(distance, sta, ap)  
-        propagationModel(sta, distance)
+        bw = wifiParameters.bw(distance, sta, ap, wlan)          
 
         sta.pexec("tc qdisc replace dev %s-wlan%s \
             root handle 1: netem rate %.2fmbit \
@@ -294,40 +294,42 @@ class station ( object ):
                     vwlan = module.virtualWlan.index(str(sta))
                     os.system('iw phy %s set netns %s' % ( phyInt.totalPhy[vwlan + i], sta.pid ))
                     sta.cmd('ip link set %s name %s-wlan%s' % (wlan[vwlan + i], str(sta), i))   
-                    
-      
+                    sta.frequency.append(0)
+                    sta.txpower.append(0)
+                    sta.receivedPower.append(0)
+                             
     @classmethod
-    def getWiFiParameters(self, sta, iface):
-        wifiParameters.get_frequency(sta, iface)
-        wifiParameters.get_tx_power(sta, iface)    
+    def getWiFiParameters(self, sta, iface, wlan):
+        wifiParameters.get_frequency(sta, iface, wlan)
+        wifiParameters.get_tx_power(sta, iface, wlan)    
         #wifiParameters.get_rsi(sta, iface)          
         
     @classmethod    
-    def confirmMeshAssociation(self, sta, interface, mpID):
+    def confirmMeshAssociation(self, sta, iface, mpID, wlan):
         associated = ''
         while(associated == '' or len(associated) == 11):
             cmd = 'ifconfig mp%s | grep -o \'TX b.*\' | cut -f2- -d\':\'' % mpID
             sta.sendCmd(cmd)
             associated = sta.waitOutput()
-        self.getWiFiParameters(sta, interface)   
+        self.getWiFiParameters(sta, iface, wlan)   
     
     @classmethod    
-    def confirmAdhocAssociation(self, sta, interface):
+    def confirmAdhocAssociation(self, sta, iface, wlan):
         associated = ''
         while(associated == '' or len(associated) == 0):
-            sta.sendCmd("iw dev %s scan ssid | grep %s" % (interface, sta.ssid))
+            sta.sendCmd("iw dev %s scan ssid | grep %s" % (iface, sta.ssid))
             associated = sta.waitOutput()
-        self.getWiFiParameters(sta, interface) 
+        self.getWiFiParameters(sta, iface, wlan) 
     
     @classmethod    
-    def confirmInfraAssociation(self, sta, wlan, ap):
+    def confirmInfraAssociation(self, sta, ap, wlan):
         associated = ''
         if self.printCon:
             print "Associating %s to %s" % (sta, ap)
         while(associated == '' or len(associated[0]) == 15):
             associated = self.isAssociated(sta, wlan)
         iface = str(sta)+'-wlan%s' % wlan
-        self.getWiFiParameters(sta, iface) 
+        self.getWiFiParameters(sta, iface, wlan) 
             
     @classmethod    
     def isAssociated(self, sta, iface):
@@ -342,14 +344,13 @@ class station ( object ):
         
     @classmethod    
     def cmd_associate(self, sta, wlan, ap):
-        sta.associatedAp = ap
         if sta.passwd == None:
             self.iwCommand(sta, wlan, ('connect %s' % ap.ssid))
         elif sta.encrypt == 'wpa' or sta.encrypt == 'wpa2':
             self.associate_wpa(sta, wlan, ap.ssid, sta.passwd)
         elif sta.encrypt == 'wep':
             self.associate_wep(sta, wlan, ap.ssid, sta.passwd)
-        self.confirmInfraAssociation(sta, wlan, ap)
+        self.confirmInfraAssociation(sta, ap, wlan)
         sta.ifaceAssociatedToAp[wlan] = str(ap) 
         
     @classmethod    
@@ -371,8 +372,8 @@ class station ( object ):
         self.iwCommand(sta, wlan, 'set type ibss')
         self.iwCommand(sta, wlan, ('ibss join %s 2412' % sta.ssid))
         print "associating %s ..." % str(sta)
-        interface = '%s-wlan%s' % (str(sta), wlan)
-        self.confirmAdhocAssociation(sta, interface)
+        iface = '%s-wlan%s' % (str(sta), wlan)
+        self.confirmAdhocAssociation(sta, iface, wlan)
         
     @classmethod    
     def addMesh(self, sta, ipaddress=None, **params):
@@ -385,9 +386,9 @@ class station ( object ):
         sta.cmd('iw dev mp%s mesh join %s' % (wlan, sta.ssid))
         association.setAdhocParameters(sta, wlan)
         print "associating %s ..." % sta
-        interface = '%s-wlan%s' % (sta, wlan)
+        iface = '%s-wlan%s' % (sta, wlan)
         mpID = wlan
-        self.confirmMeshAssociation(sta, interface, mpID)        
+        self.confirmMeshAssociation(sta, iface, mpID, wlan)        
             
 class accessPoint ( object ):    
 
@@ -645,9 +646,6 @@ class mobility ( object ):
     @classmethod 
     def printDistance(self, src, dst):
         """ Print the distance between two points """
-        self.src = src
-        self.dst = dst
-        
         dist = self.getDistance(src, dst)
         print ("The distance between %s and %s is %.2f meters\n" % (src, dst, float(dist)))
     
@@ -670,15 +668,24 @@ class mobility ( object ):
                 station.iwCommand(sta, wlan, 'disconnect')
                 station.iwCommand(sta, wlan, ('connect %s' % ap.ssid))
                 sta.ifaceAssociatedToAp[wlan] = str(ap)
+                sta.associatedAp[wlan] = ap
+                iface = str(sta)+'-wlan%s' % wlan
+                station.getWiFiParameters(sta, iface, wlan)
             elif str(ap) not in sta.ifaceAssociatedToAp:
                 #Useful for stations with more than one wifi iface
                 if 'ap' not in sta.ifaceAssociatedToAp[wlan]:
                     station.iwCommand(sta, wlan, ('connect %s' % ap.ssid))
                     sta.ifaceAssociatedToAp[wlan] = str(ap)   
+                    sta.associatedAp[wlan] = ap
+                    iface = str(sta)+'-wlan%s' % wlan
+                    station.getWiFiParameters(sta, iface, wlan)
         elif distance > ap.range:
             if str(ap) == sta.ifaceAssociatedToAp[wlan]:
                 station.iwCommand(sta, wlan, 'disconnect')
                 sta.ifaceAssociatedToAp[wlan] = 'NoAssociated'  
+                sta.associatedAp[wlan] = 'NoAssociated'
+                sta.txpower[wlan] = 0
+                sta.receivedPower[wlan] = 0
             
     @classmethod   
     def models(self, wifiNodes=None, model=None, max_x=None, max_y=None, min_v=None, max_v=None, 
@@ -754,7 +761,7 @@ class mobility ( object ):
         oneTime = []
                 
         if model!='':
-            try:
+            #try:
                 for xy in mob:
                     if self.DRAW:
                         line.set_data(xy[:,0],xy[:,1])
@@ -788,8 +795,8 @@ class mobility ( object ):
                     if self.DRAW:
                         plt.title("Mininet-WiFi Graph")
                         plt.draw()
-            except:
-                print "Graph Stopped!"  
+            #except:
+             #   print "Graph Stopped!"  
         
 class wifiParameters ( object ):
     """WiFi Parameters""" 
@@ -803,23 +810,22 @@ class wifiParameters ( object ):
                                             % iface)) 
     
     @classmethod
-    def get_frequency(self, device, iface): 
+    def get_frequency(self, device, iface, wlan): 
         """ Get frequency info **in development """
         freq = device.cmd('iwconfig %s | grep -o \'Frequency.*z\' | cut -f2- -d\':\' | cut -c1-5'
                                             % iface)
         if freq!='':
-            device.frequency = float(freq) 
+            device.frequency[wlan] = float(freq) 
     
     @classmethod
-    def get_tx_power(self, device, iface): 
+    def get_tx_power(self, device, iface, wlan): 
         """ Get tx_power info """
         if device.equipmentModel == None:
-            device.txpower = int(device.cmd('iwconfig %s | grep -o \'Tx-Power.*\' | cut -f2- -d\'=\' | cut -c1-3'
+            device.txpower[wlan] = int(device.cmd('iwconfig %s | grep -o \'Tx-Power.*\' | cut -f2- -d\'=\' | cut -c1-3'
                                              % iface))
         else:
             deviceTxPower(device.equipmentModel, device)
             
-        #sta.associatedAp
     #@classmethod
     #def printNoiseInfo(self, host): 
     #    """
@@ -891,7 +897,7 @@ class wifiParameters ( object ):
         return self.bw_step
     
     @classmethod
-    def bw(self, distance, sta, ap):
+    def bw(self, distance, sta, ap, wlan):
         mode = sta.mode
         signalRange = ap.range
         customStep = self.custom_step(mode)
@@ -907,7 +913,7 @@ class wifiParameters ( object ):
                             return self.set_bw(mode)
                         bw = bw - custombw 
             elif ap.equipmentModel == 'DI524':
-                return deviceDataRate.DI524(sta)
+                return deviceDataRate.DI524(sta, wlan)
         else:
             return self.set_bw(mode)        
     
@@ -950,56 +956,49 @@ class propagationModel ( object ):
     """
         Propagation Models 
     """        
-    def __init__( self, sta=None, distance=0 ):
+    def __init__( self, sta=None, ap=None, distance=0, wlan=None ):
         self.model = wifiParameters.propagationModel
         
         if self.model in dir(self):
-            self.__getattribute__(self.model)(sta, distance)
+            self.__getattribute__(self.model)(sta, ap, distance, wlan)
             
-    def freeSpacePathLoss(self, sta, distance):
+    def freeSpacePathLoss(self, sta, ap, distance, wlan):
         """Formula: Free Space Loss
         (distance) is the distance between the transmitter and the receiver (m)
-        (frequency) signal frequency transmited(MegaHertz)."""  
-        
-        f = (sta.frequency*10)**3 #Convert Ghz to Mhz
-        d = distance
+        (frequency) signal frequency transmited(MegaHertz)."""          
+        f = (sta.frequency[wlan] * 10)**3 #Convert Ghz to Mhz
+        d = distance        
+        gain_r = 1 # Rx Antenna Gain (dBi)
+        gain_t = 1 # Tx Antenna Gain (dBi)
         
         try:
-            #fspl = 20 * math.log10(d) + 20 * math.log10(f) - 27.55 - Tx Antenna Gain (dBi) - Rx Antenna Gain (dBi)
-            fspl = 20 * math.log10(d) + 20 * math.log10(f) - 27.55
+            fspl = 20 * math.log10(d) + 20 * math.log10(f) - 27.55 - gain_r - gain_t
         except:
             fspl = 1
         sta.fspl = fspl
-        self.received_Power(sta)
+        self.received_Power(sta, ap, wlan)
             
-    def friis_propagation_loss_model(self, sta, distance):   
-        """
+    def friisLoss(self, sta, ap, distance, wlan):   
+        """ ideal power received at an antenna from basic information about the transmission
             power_r = Reception Power (W)
             power_t = Transmission Power (W)
             gain_r = Reception gain (unit-less)
             gain_t = Transmission gain (unit-less)
-            c = 3 * 10**8 
-            distance = (m)
-            systemLoss = system loss (unit-less)
-        """
+            distance = (m) """
         d = distance
-        f = (sta.frequency*10)**3
-        #ap = sta.associatedAp
-        power_t = sta.txpower
-        gain_r = 1
-        gain_t = 1
-        c = 3 * 10**8 
+        f = (sta.frequency[wlan] * 10)**3
+        gain_r = 1 # Rx Antenna Gain (dBi)
+        gain_t = 1 # Tx Antenna Gain (dBi)
+        
         try:
-            power_r = (power_t * gain_t * gain_r * c**2) / math.pow((4 * math.pi * d * f),2)
+            sta.receivedPower[wlan] = ( ap.txpower * gain_t * gain_r ) - 27.55 - ( 20 * math.log10(d * f) ) 
         except:
-            power_r = 1
-        sta.receivedPower = power_r
+            sta.receivedPower[wlan] = 0
             
-    def received_Power(self, sta):
+    def received_Power(self, sta, ap, wlan):
         """Received Power (dBm) = Tx Power (dBm) + Tx Antenna Gain (dBi) + Rx Antenna Gain (dBi) - FSPL (dB)"""
         try:
-            ap = sta.associatedAp
-            sta.receivedPower = ap.txpower - sta.fspl
+            sta.receivedPower[wlan] = ap.txpower - sta.fspl
         except:
             pass
         
@@ -1016,23 +1015,23 @@ class deviceDataRate ( object ):
     """ Data Rate for specific equipments """
     
     @classmethod    
-    def DI524(self, sta):
+    def DI524(self, sta, wlan):
         """D-Link AirPlus G DI-524
            from http://www.dlink.com/-/media/Consumer_Products/DI/DI%20524/Manual/DI_524_Manual_EN_UK.pdf"""
         rate = 0
-        if (sta.receivedPower >= -68):
+        if (sta.receivedPower[wlan] >= -68):
             rate = 48
-        elif (sta.receivedPower < -68 and sta.receivedPower >= -75):
+        elif (sta.receivedPower[wlan] < -68 and sta.receivedPower[wlan] >= -75):
             rate = 36
-        elif (sta.receivedPower < -75 and sta.receivedPower >= -79):
+        elif (sta.receivedPower[wlan] < -75 and sta.receivedPower[wlan] >= -79):
             rate = 24
-        elif (sta.receivedPower < -82 and sta.receivedPower >= -84):
+        elif (sta.receivedPower[wlan] < -82 and sta.receivedPower[wlan] >= -84):
             rate = 18
-        elif (sta.receivedPower < -84 and sta.receivedPower >= -87):
+        elif (sta.receivedPower[wlan] < -84 and sta.receivedPower[wlan] >= -87):
             rate = 9
-        elif (sta.receivedPower < -87 and sta.receivedPower >= -88):
+        elif (sta.receivedPower[wlan] < -87 and sta.receivedPower[wlan] >= -88):
             rate = 6
-        elif (sta.receivedPower < -88 and sta.receivedPower >= -89):
+        elif (sta.receivedPower[wlan] < -88 and sta.receivedPower[wlan] >= -89):
             rate = 1
         return rate
        

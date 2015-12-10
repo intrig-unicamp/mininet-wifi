@@ -645,9 +645,11 @@ class Mininet( object ):
                 checkNM.getMacAddress(ap, wlan)         
                 accessPoint.setBw(ap, wlan)
                 
+                ap.frequency.append(str(wlan))
+                ap.txpower.append(str(wlan))
                 iface = str(ap.virtualWlan) + str(wlan)
-                wifiParameters.get_frequency(ap, iface)
-                wifiParameters.get_tx_power(ap, iface)
+                wifiParameters.get_frequency(ap, iface, wlan)
+                wifiParameters.get_tx_power(ap, iface, wlan)
                 
                 self.auth_algs = None
                 self.wpa = None
@@ -742,6 +744,9 @@ class Mininet( object ):
         for st in self.stations:
             for z in range(0, st.nWlans):
                 st.ifaceAssociatedToAp.append(str(z))
+                st.associatedAp.append(str(z))
+                st.frequency.append(0)
+                st.txpower.append(0)
                 
     def configureWifiNodes(self, hasAP=True):
         module.startEnvironment()
@@ -1510,17 +1515,23 @@ class Mininet( object ):
         for ap in self.accessPoints:
             if device == str(ap):
                 device = ap  
-        
-        try:
-            print "--------------------------------"
-            if device.type == 'station':
-                print "Frequency: %s GHz" % device.frequency
-                print "Signal level: %.2f dbm" % device.receivedPower
+        #try:
+        if device.type == 'station':
+            for wlan in range(sta.nWlans):
+                print "--------------------------------"                
+                print "Interface: %s-wlan%s" % (sta, wlan)
+                if 'ap' in str(sta.associatedAp[wlan]):
+                    print "Associated To: %s" % sta.associatedAp[wlan]
+                else:
+                    print "Associated To: %s" % None
+                print "Frequency: %s GHz" % device.frequency[wlan]
+                print "Signal level: %.2f dbm" % device.receivedPower[wlan]
+                print "Tx-Power: %s dBm" % device.txpower[wlan]
+        else:
             print "Tx-Power: %s dBm" % device.txpower
-            #print "Bit Rate: xxx dBm"
-            print "--------------------------------"
-        except:
-            print "Something is wrong."
+            #print "Bit Rate: xxx dBm"            
+        #except:
+         #   print "Something is wrong."
         
                         
     def getCurrentDistance(self, src, dst):
@@ -1529,16 +1540,18 @@ class Mininet( object ):
         existDst = False
         for host1 in self.wifiNodes:
             if src == str(host1):
+                src = host1
                 existSrc = True
                 for host2 in self.wifiNodes:
                     if dst == str(host2):
+                        dst = host2
                         existDst = True
                         mobility.printDistance(src, dst)
         try:               
             if(existSrc==False and existDst==False):
-                print ("WiFi nodes %s and %s do not exist" % (src, dst))
+                print ("nodes %s and %s do not exist" % (src, dst))
             elif(existSrc==True and existDst==False):
-                print ("WiFi node %s or %s does not exist" % (src, dst))
+                print ("node %s does not exist" % (dst))
         except:
             print ("Station or Access Point does not exist!")
         

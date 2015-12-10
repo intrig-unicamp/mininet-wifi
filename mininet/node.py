@@ -116,17 +116,17 @@ class Node( object ):
         self.associate = False
         self.nWlans = 0
         self.nextIface = 0
-        self.associatedAp = ''
+        self.associatedAp = []
         self.addressingSta = 0
         self.bringUpIface = 0
         self.ifaceToAssociate = -1
         self.ifaceAssociatedToAp = []
         self.rsi = 0
-        self.frequency = 0
-        self.txpower = 0
+        self.frequency = []
+        self.txpower = []
         self.mac=''
         self.fspl = 0
-        self.receivedPower = 0
+        self.receivedPower = []
 
         self.type = ''
                 
