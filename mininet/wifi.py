@@ -761,7 +761,7 @@ class mobility ( object ):
         oneTime = []
                 
         if model!='':
-            #try:
+            try:
                 for xy in mob:
                     if self.DRAW:
                         line.set_data(xy[:,0],xy[:,1])
@@ -795,8 +795,8 @@ class mobility ( object ):
                     if self.DRAW:
                         plt.title("Mininet-WiFi Graph")
                         plt.draw()
-            #except:
-             #   print "Graph Stopped!"  
+            except:
+                print "Graph Stopped!"  
         
 class wifiParameters ( object ):
     """WiFi Parameters""" 
@@ -812,19 +812,25 @@ class wifiParameters ( object ):
     @classmethod
     def get_frequency(self, device, iface, wlan): 
         """ Get frequency info **in development """
-        freq = device.cmd('iwconfig %s | grep -o \'Frequency.*z\' | cut -f2- -d\':\' | cut -c1-5'
-                                            % iface)
-        if freq!='':
-            device.frequency[wlan] = float(freq) 
+        try:
+            freq = device.cmd('iwconfig %s | grep -o \'Frequency.*z\' | cut -f2- -d\':\' | cut -c1-5'
+                                                % iface)
+            if freq!='':
+                device.frequency[wlan] = float(freq) 
+        except:
+            pass
     
     @classmethod
     def get_tx_power(self, device, iface, wlan): 
         """ Get tx_power info """
-        if device.equipmentModel == None:
-            device.txpower[wlan] = int(device.cmd('iwconfig %s | grep -o \'Tx-Power.*\' | cut -f2- -d\'=\' | cut -c1-3'
-                                             % iface))
-        else:
-            deviceTxPower(device.equipmentModel, device)
+        try:
+            if device.equipmentModel == None:
+                device.txpower[wlan] = int(device.cmd('iwconfig %s | grep -o \'Tx-Power.*\' | cut -f2- -d\'=\' | cut -c1-3'
+                                                 % iface))
+            else:
+                deviceTxPower(device.equipmentModel, device)
+        except:
+            pass
             
     #@classmethod
     #def printNoiseInfo(self, host): 
