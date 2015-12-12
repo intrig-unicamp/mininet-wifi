@@ -997,7 +997,7 @@ class propagationModel ( object ):
         gain_t = 1 # Tx Antenna Gain (dBi)
         
         try:
-            sta.receivedPower[wlan] = ( ap.txpower * gain_t * gain_r ) - 27.55 - ( 20 * math.log10(d * f) ) 
+            sta.receivedPower[wlan] = ( ap.txpower * gain_t * gain_r ) + 27.55 - ( 20 * math.log10(d * f) ) 
         except:
             sta.receivedPower[wlan] = 0
             
@@ -1025,20 +1025,21 @@ class deviceDataRate ( object ):
         """D-Link AirPlus G DI-524
            from http://www.dlink.com/-/media/Consumer_Products/DI/DI%20524/Manual/DI_524_Manual_EN_UK.pdf"""
         rate = 0
-        if (sta.receivedPower[wlan] >= -68):
-            rate = 48
-        elif (sta.receivedPower[wlan] < -68 and sta.receivedPower[wlan] >= -75):
-            rate = 36
-        elif (sta.receivedPower[wlan] < -75 and sta.receivedPower[wlan] >= -79):
-            rate = 24
-        elif (sta.receivedPower[wlan] < -82 and sta.receivedPower[wlan] >= -84):
-            rate = 18
-        elif (sta.receivedPower[wlan] < -84 and sta.receivedPower[wlan] >= -87):
-            rate = 9
-        elif (sta.receivedPower[wlan] < -87 and sta.receivedPower[wlan] >= -88):
-            rate = 6
-        elif (sta.receivedPower[wlan] < -88 and sta.receivedPower[wlan] >= -89):
-            rate = 1
+        if sta.receivedPower[wlan] != 0:
+            if (sta.receivedPower[wlan] >= -68):
+                rate = 48
+            elif (sta.receivedPower[wlan] < -68 and sta.receivedPower[wlan] >= -75):
+                rate = 36
+            elif (sta.receivedPower[wlan] < -75 and sta.receivedPower[wlan] >= -79):
+                rate = 24
+            elif (sta.receivedPower[wlan] < -79 and sta.receivedPower[wlan] >= -84):
+                rate = 18
+            elif (sta.receivedPower[wlan] < -84 and sta.receivedPower[wlan] >= -87):
+                rate = 9
+            elif (sta.receivedPower[wlan] < -87 and sta.receivedPower[wlan] >= -88):
+                rate = 6
+            elif (sta.receivedPower[wlan] < -88 and sta.receivedPower[wlan] >= -89):
+                rate = 1
         return rate
        
 class deviceRange ( object ):
