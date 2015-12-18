@@ -124,6 +124,7 @@ class Node( object ):
         self.rsi = 0
         self.frequency = []
         self.txpower = []
+        self.gain = []
         self.mac=''
         self.fspl = 0
         self.receivedPower = []

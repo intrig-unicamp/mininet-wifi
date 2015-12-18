@@ -198,41 +198,48 @@ class association( object ):
         #Only if is a mobility topology
         if mobility.ismobility == True: 
             changeAP = False
-            mobilityReason = dict ()      
+            accessControl = dict ()      
             
-            """useful to llf (Least-loaded-first)"""
-            if mobility.leastLoadFirst == True:
-                llf = False
-                for apref in accessPoint.list:
-                    if str(apref) == sta.ifaceAssociatedToAp[wlan]:
-                        accessPoint.numberOfAssociatedStations(apref)
-                        ref_llf = apref.nAssociatedStations
-                        llf = True
-            
-                if llf == True:
-                    accessPoint.numberOfAssociatedStations(ap)
-                    if ap.nAssociatedStations+2 < ref_llf:
-                        mobilityReason.setdefault( 'reason', 'llf' )
-                        changeAP = True
-            
-            """useful to ssf (Strongest-signal-first)"""
-            if accessPoint.manual_apRange!=-10:
-                for apref in accessPoint.list:
-                    if str(apref) == sta.ifaceAssociatedToAp[wlan]:
-                        ref_Distance = mobility.getDistance(sta,apref)
-                        if ref_Distance > accessPoint.manual_apRange:
-                            changeAP = True
-                if distance <= accessPoint.manual_apRange and changeAP == True: 
-                    mobilityReason.setdefault( 'reason', 'ssf' )
-                    changeAP = True
-                else:
-                    changeAP = False
+            """Access Control: mechanisms that optimize the use of the APs"""
+            if mobility.accessControl != '':
+                ac = mobility.accessControl
+                changeAP = self.accessControl(ap, sta, wlan, ac)
+                accessControl.setdefault( 'ac', ac )                
                     
             #Go to handover    
             if associated == False or changeAP == True:
-                mobility.handover(sta, ap, wlan, distance, changeAP, **mobilityReason)
-                
-                    
+                mobility.handover(sta, ap, wlan, distance, changeAP, **accessControl)
+    
+    @classmethod    
+    def accessControl(self, ap, sta, wlan, ac):
+        """Mechanisms that optimize the use of the APs"""
+        changeAP = False
+        
+        """useful to llf (Least-loaded-first)"""
+        if ac == "llf":
+            llf = False
+            for apref in accessPoint.list:
+                if str(apref) == sta.ifaceAssociatedToAp[wlan]:
+                    accessPoint.numberOfAssociatedStations(apref)
+                    ref_llf = apref.nAssociatedStations
+                    llf = True
+            
+            if llf == True:
+                accessPoint.numberOfAssociatedStations(ap)
+                if ap.nAssociatedStations+2 < ref_llf:
+                    changeAP = True
+        
+        """useful to ssf (Strongest-signal-first)"""
+        if ac == "ssf":
+            for apref in accessPoint.list:
+                if str(apref) == sta.ifaceAssociatedToAp[wlan]:
+                    #ref_Distance = mobility.getDistance(sta,apref)
+                    #if ref_Distance > accessPoint.manual_apRange:
+                    changeAP = True
+            #if distance <= accessPoint.manual_apRange and changeAP == True: 
+                #changeAP = True
+        return changeAP     
+                           
     @classmethod    
     def setInfraParameters(self, sta, ap, distance, wlan):
         """ Set wifi Infrastrucure Parameters. Have to use models for loss, latency, bw.."""
@@ -292,6 +299,7 @@ class station ( object ):
             if sta.type == 'station':
                 for i in range(0, sta.nWlans):
                     vwlan = module.virtualWlan.index(str(sta))
+                    #os.system('iw phy %s set rts 80' % phyInt.totalPhy[vwlan + i])
                     os.system('iw phy %s set netns %s' % ( phyInt.totalPhy[vwlan + i], sta.pid ))
                     sta.cmd('ip link set %s name %s-wlan%s' % (wlan[vwlan + i], str(sta), i))   
                     sta.frequency.append(0)
@@ -544,7 +552,7 @@ class mobility ( object ):
     plotGraph = False
     cancelPlot = False
     ismobility = False
-    leastLoadFirst = False
+    accessControl = False
     DRAW = False
     MAX_X = 50
     MAX_Y = 50
@@ -661,10 +669,10 @@ class mobility ( object ):
         \nPosition Z: %.2f\n" % (str(node), float(self.pos_x), float(self.pos_y), float(self.pos_z))
     
     @classmethod   
-    def handover(self, sta, ap, wlan, distance, changeAP, reason=None, **params):
+    def handover(self, sta, ap, wlan, distance, changeAP, ac=None, **params):
         
         if distance < ap.range: 
-            if reason == 'llf' or reason == 'ssf':
+            if ac == 'llf' or ac == 'ssf':
                 station.iwCommand(sta, wlan, 'disconnect')
                 station.iwCommand(sta, wlan, ('connect %s' % ap.ssid))
                 sta.ifaceAssociatedToAp[wlan] = str(ap)
@@ -689,13 +697,13 @@ class mobility ( object ):
             
     @classmethod   
     def models(self, wifiNodes=None, model=None, max_x=None, max_y=None, min_v=None, max_v=None, 
-               manual_aprange=-10, n_staMov=None, ismobility=None, llf=False, seed=None,
+               manual_aprange=-10, n_staMov=None, ismobility=None, AC=False, seed=None,
                **mobilityparam):
         
         accessPoint.manual_apRange = manual_aprange
         self.modelName = model
         self.ismobility = ismobility
-        self.leastLoadFirst = llf
+        self.accessControl = AC
         np.random.seed(seed)
         
         # set this to true if you want to plot node positions
@@ -761,43 +769,40 @@ class mobility ( object ):
         oneTime = []
                 
         if model!='':
-            try:
-                for xy in mob:
-                    if self.DRAW:
-                        line.set_data(xy[:,0],xy[:,1])
-                    for n in range (0,len(wifiNodes)):
-                        node = wifiNodes[n]
-                        if 'accessPoint' == node.type and str(node) not in oneTime:
-                            ap = node
-                            pos_zero = ap.startPosition[0]
-                            pos_one = ap.startPosition[1]
-                            ap.position = pos_zero, pos_one, 0     
-                            if self.DRAW:
-                                plt.plot([pos_zero], [pos_one], 'ro')
-                                plt.text(int(pos_zero), int(pos_one), str(node))
-                                ax.add_patch(
-                                    patches.Circle((pos_zero, pos_one),
-                                    ap.range, fill=True, alpha=0.1
-                                    )
+            for xy in mob:
+                if self.DRAW:
+                    line.set_data(xy[:,0],xy[:,1])
+                for n in range (0,len(wifiNodes)):
+                    node = wifiNodes[n]
+                    if 'accessPoint' == node.type and str(node) not in oneTime:
+                        ap = node
+                        pos_zero = ap.startPosition[0]
+                        pos_one = ap.startPosition[1]
+                        ap.position = pos_zero, pos_one, 0     
+                        if self.DRAW:
+                            plt.plot([pos_zero], [pos_one], 'ro')
+                            plt.text(int(pos_zero), int(pos_one), str(node))
+                            ax.add_patch(
+                                patches.Circle((pos_zero, pos_one),
+                                ap.range, fill=True, alpha=0.1
                                 )
-                            oneTime.append(str(wifiNodes[n]))
-                        elif 'accessPoint' != node.type:
-                            if str(node) not in station.fixedPosition:
-                                pos_zero = xy[n][0]
-                                pos_one = xy[n][1]
-                                if self.DRAW:
-                                    self.plottxt[str(node)].xytext = (pos_zero, pos_one)
-                                node.position = pos_zero, pos_one, 0
-                                for ap in accessPoint.list:
-                                    sta = node
-                                    distance = self.getDistance(sta, ap)
-                                    association.setInfraParameters(sta, ap, distance, '')
-                    if self.DRAW:
-                        plt.title("Mininet-WiFi Graph")
-                        plt.draw()
-            except:
-                print "Graph Stopped!"  
-        
+                            )
+                        oneTime.append(str(wifiNodes[n]))
+                    elif 'accessPoint' != node.type:
+                        if str(node) not in station.fixedPosition:
+                            pos_zero = xy[n][0]
+                            pos_one = xy[n][1]
+                            if self.DRAW:
+                                self.plottxt[str(node)].xytext = (pos_zero, pos_one)
+                            node.position = pos_zero, pos_one, 0
+                            for ap in accessPoint.list:
+                                sta = node
+                                distance = self.getDistance(sta, ap)
+                                association.setInfraParameters(sta, ap, distance, '')
+                if self.DRAW:
+                    plt.title("Mininet-WiFi Graph")
+                    plt.draw()
+         
 class wifiParameters ( object ):
     """WiFi Parameters""" 
        

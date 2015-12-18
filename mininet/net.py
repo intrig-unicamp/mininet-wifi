@@ -113,7 +113,7 @@ from mininet.wifi import checkNM, module, accessPoint, station, wifiParameters, 
 from __builtin__ import True
 
 # Mininet version: should be consistent with README and LICENSE
-VERSION = "1.6r3"
+VERSION = "1.6r4"
 
 class Mininet( object ):
     "Network emulation with hosts spawned in network namespaces."
@@ -1429,8 +1429,8 @@ class Mininet( object ):
             mobilityparam.setdefault( 'max_v', kwargs['max_v'] )
         if 'aprange' in kwargs:
             mobilityparam.setdefault( 'manual_aprange', kwargs['aprange'] )
-        if 'llf' in kwargs: #Least Loaded First
-            mobilityparam.setdefault( 'llf', kwargs['llf'] )
+        if 'AC' in kwargs: #Access Control
+            mobilityparam.setdefault( 'AC', kwargs['AC'] )
         
         mobilityparam.setdefault( 'ismobility', True )
         mobilityparam.setdefault( 'seed', self.set_seed )
