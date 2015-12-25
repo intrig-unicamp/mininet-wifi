@@ -19,7 +19,7 @@ import numpy as np
 import scipy.spatial.distance as distance 
 import matplotlib.patches as patches
 import matplotlib.pyplot as plt
-        
+
 from mininet.mobility import gauss_markov, \
     truncated_levy_walk, random_direction, random_waypoint, random_walk
 
@@ -172,8 +172,8 @@ class association( object ):
         latency = wifiParameters.latency(distance)
         loss = wifiParameters.loss(distance, sta.mode)
         delay = wifiParameters.delay(distance, seconds)
-        bw = wifiParameters.bw(distance, sta, ap, wlan)          
-
+        bw = wifiParameters.bw(distance, sta, ap, wlan)
+             
         sta.pexec("tc qdisc replace dev %s-wlan%s \
             root handle 1: netem rate %.2fmbit \
             loss %.1f%% \
@@ -198,7 +198,7 @@ class association( object ):
         #Only if is a mobility topology
         if mobility.ismobility == True: 
             changeAP = False
-            accessControl = dict ()      
+            accessControl = dict ()
             
             """Access Control: mechanisms that optimize the use of the APs"""
             if mobility.accessControl != '':
@@ -233,9 +233,11 @@ class association( object ):
         if ac == "ssf":
             for apref in accessPoint.list:
                 if str(apref) == sta.ifaceAssociatedToAp[wlan]:
-                    #ref_Distance = mobility.getDistance(sta,apref)
+                    accessPoint.numberOfAssociatedStations(apref)
+                    ref_Distance = mobility.getDistance(sta, apref)
                     #if ref_Distance > accessPoint.manual_apRange:
-                    changeAP = True
+                    if ref_Distance < distance:
+                        changeAP = True
             #if distance <= accessPoint.manual_apRange and changeAP == True: 
                 #changeAP = True
         return changeAP     
@@ -248,6 +250,7 @@ class association( object ):
         else:
             for wlan in range(0, sta.nWlans):
                 self.parameters(sta, ap, distance, wlan)
+                
             
     @classmethod    
     def doAssociation(self, mode, ap, distance):
@@ -338,6 +341,7 @@ class station ( object ):
             associated = self.isAssociated(sta, wlan)
         iface = str(sta)+'-wlan%s' % wlan
         self.getWiFiParameters(sta, iface, wlan) 
+        accessPoint.numberOfAssociatedStations(ap)
             
     @classmethod    
     def isAssociated(self, sta, iface):
@@ -694,6 +698,7 @@ class mobility ( object ):
                 sta.associatedAp[wlan] = 'NoAssociated'
                 sta.txpower[wlan] = 0
                 sta.receivedPower[wlan] = 0
+        accessPoint.numberOfAssociatedStations(ap)
             
     @classmethod   
     def models(self, wifiNodes=None, model=None, max_x=None, max_y=None, min_v=None, max_v=None, 
@@ -766,7 +771,7 @@ class mobility ( object ):
         #groups = [4 for _ in range(10)]
         #nr_nodes = sum(groups)
         #tvcm = tvc(groups, dimensions=(MAX_X, MAX_Y), aggregation=[0.5,0.], epoch=[100,100])
-        oneTime = []
+        once = []
                 
         if model!='':
             for xy in mob:
@@ -774,7 +779,7 @@ class mobility ( object ):
                     line.set_data(xy[:,0],xy[:,1])
                 for n in range (0,len(wifiNodes)):
                     node = wifiNodes[n]
-                    if 'accessPoint' == node.type and str(node) not in oneTime:
+                    if 'accessPoint' == node.type and str(node) not in once:
                         ap = node
                         pos_zero = ap.startPosition[0]
                         pos_one = ap.startPosition[1]
@@ -787,7 +792,7 @@ class mobility ( object ):
                                 ap.range, fill=True, alpha=0.1
                                 )
                             )
-                        oneTime.append(str(wifiNodes[n]))
+                        once.append(str(wifiNodes[n]))
                     elif 'accessPoint' != node.type:
                         if str(node) not in station.fixedPosition:
                             pos_zero = xy[n][0]
@@ -799,6 +804,7 @@ class mobility ( object ):
                                 sta = node
                                 distance = self.getDistance(sta, ap)
                                 association.setInfraParameters(sta, ap, distance, '')
+                                
                 if self.DRAW:
                     plt.title("Mininet-WiFi Graph")
                     plt.draw()
@@ -921,7 +927,7 @@ class wifiParameters ( object ):
                         if n>=distance:
                             return bw
                         elif distance > signalRange:
-                            return self.set_bw(mode)
+                            return 0
                         bw = bw - custombw 
             elif ap.equipmentModel == 'DI524':
                 return deviceDataRate.DI524(sta, wlan)
