@@ -1445,6 +1445,9 @@ class Mininet( object ):
             self.thread = threading.Thread(name='mobilityModel', target=mobility.models, kwargs=dict(mobilityparam,))
             self.thread.daemon = True
             self.thread.start()
+            
+        if self.mode == '':
+            mobility.accessControl = kwargs['AC']
            
         if 'startTime' in kwargs:
             self.start_time = kwargs['startTime']

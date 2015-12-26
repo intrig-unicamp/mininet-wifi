@@ -556,7 +556,7 @@ class mobility ( object ):
     plotGraph = False
     cancelPlot = False
     ismobility = False
-    accessControl = False
+    accessControl = None
     DRAW = False
     MAX_X = 50
     MAX_Y = 50
@@ -702,7 +702,7 @@ class mobility ( object ):
             
     @classmethod   
     def models(self, wifiNodes=None, model=None, max_x=None, max_y=None, min_v=None, max_v=None, 
-               manual_aprange=-10, n_staMov=None, ismobility=None, AC=False, seed=None,
+               manual_aprange=-10, n_staMov=None, ismobility=None, AC=None, seed=None,
                **mobilityparam):
         
         accessPoint.manual_apRange = manual_aprange
