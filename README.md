@@ -43,7 +43,7 @@ Video 05: https://www.youtube.com/watch?v=WH6bSOKC7Lk
 /examples/wifiStationsAndHosts.py  
 
 ##Note
-Mininet-WiFi should work fine in any Ubuntu distribution from 14.04, but in some cases (only if you have problems when start it) you have to stop NetworkManager typing `stop network-manager`.  
+Mininet-WiFi should work fine in any Ubuntu distribution from 14.04, but in some cases (only if you have problems when start it) you have to stop NetworkManager with `stop network-manager` (you can also use `sudo systemctl stop network-manager` or `sudo service network-manager stop`.    
 
 ###Team
 Ramon dos Reis Fontes (ramonrf@dca.fee.unicamp.br)  
