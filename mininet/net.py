@@ -1522,9 +1522,9 @@ class Mininet( object ):
         if device.type == 'station':
             for wlan in range(sta.nWlans):
                 print "--------------------------------"                
-                print "Interface: %s-wlan%s" % (sta, wlan)
-                if 'ap' in str(sta.associatedAp[wlan]):
-                    print "Associated To: %s" % sta.associatedAp[wlan]
+                print "Interface: %s-wlan%s" % (device, wlan)
+                if 'ap' in str(device.associatedAp[wlan]):
+                    print "Associated To: %s" % device.associatedAp[wlan]
                 else:
                     print "Associated To: %s" % None
                 print "Frequency: %s GHz" % device.frequency[wlan]
