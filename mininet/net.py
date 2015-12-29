@@ -1518,9 +1518,11 @@ class Mininet( object ):
         for ap in self.accessPoints:
             if device == str(ap):
                 device = ap  
-        #try:
         if device.type == 'station':
             for wlan in range(device.nWlans):
+                iface = str(device)+'-wlan%s' % wlan
+                wifiParameters.get_tx_power(device, iface, wlan)
+                wifiParameters.get_frequency(device, iface, wlan)
                 print "--------------------------------"                
                 print "Interface: %s-wlan%s" % (device, wlan)
                 if 'ap' in str(device.associatedAp[wlan]):
@@ -1532,10 +1534,7 @@ class Mininet( object ):
                 print "Tx-Power: %s dBm" % device.txpower[wlan]
         else:
             print "Tx-Power: %s dBm" % device.txpower
-            #print "Bit Rate: xxx dBm"            
-        #except:
-         #   print "Something is wrong."
-        
+       
                         
     def getCurrentDistance(self, src, dst):
         """ Get current Distance """ 

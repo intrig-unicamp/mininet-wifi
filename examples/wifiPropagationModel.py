@@ -31,12 +31,12 @@ def topology():
     ap1.start( [c1] )
     
     """uncomment to plot graph"""
-    #net.plotGraph(max_x=150, max_y=150)
+    net.plotGraph(max_x=150, max_y=150)
 
     """Seed"""
     net.seed(20) 
-    "*** Available models: freeSpacePathLoss, friisLoss ***"
-    net.propagationModel('freeSpacePathLoss')
+    "*** Available models: friisLoss ***"
+    net.propagationModel('friisLoss')
 
     "*** Available models: RandomWalk, TruncatedLevyWalk, RandomDirection, RandomWayPoint, GaussMarkov ***"
     net.startMobility(startTime=0, model='RandomDirection', max_x=160, max_y=160, min_v=0.1, max_v=0.2)

@@ -342,6 +342,7 @@ class station ( object ):
         iface = str(sta)+'-wlan%s' % wlan
         self.getWiFiParameters(sta, iface, wlan) 
         accessPoint.numberOfAssociatedStations(ap)
+        sta.associatedAp[wlan] = ap
             
     @classmethod    
     def isAssociated(self, sta, iface):
