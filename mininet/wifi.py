@@ -980,55 +980,45 @@ class propagationModel ( object ):
         if self.model in dir(self):
             self.__getattribute__(self.model)(sta, ap, distance, wlan)
             
-    def freeSpacePathLoss(self, sta, ap, distance, wlan):
-        """Formula: Free Space Loss
-        (distance) is the distance between the transmitter and the receiver (m)
-        (frequency) signal frequency transmited(MegaHertz)."""          
-        f = (sta.frequency[wlan] * 10)**3 #Convert Ghz to Mhz
-        d = distance        
-        gain_r = 1 # Rx Antenna Gain (dBi)
-        gain_t = 1 # Tx Antenna Gain (dBi)
+    def friisPropagationLossModel(self, sta, ap, distance, wlan):
+        """Equation:
+        (d) is the distance between the transmitter and the receiver (m)
+        (f) signal frequency transmited(Hz)
+        (c) speed of light in vacuum (m)"""          
+        f = (sta.frequency[wlan] * 10**9) #Convert Ghz to Hz
+        d = distance # distance 
+        c = 299792458.0 # speed of light in vacuum 
+        L = 1 #system loss
+        
+        lambda_ = c / f # lambda: wavelength (m)
+        numerator = lambda_**2
+        denominator = (4 * math.pi * d)**2 * L
         
         try:
-            fspl = 20 * math.log10(d) + 20 * math.log10(f) - 27.55 - gain_r - gain_t
+            sta.receivedPower[wlan] = ap.txpower + 10 * math.log10(numerator / denominator)
         except:
-            fspl = 1
-        sta.fspl = fspl
-        self.received_Power(sta, ap, wlan)
-            
-    def friisLoss(self, sta, ap, distance, wlan):   
-        """ ideal power received at an antenna from basic information about the transmission
-            power_r = Reception Power (W)
-            power_t = Transmission Power (W)
-            gain_r = Reception gain (unit-less)
-            gain_t = Transmission gain (unit-less)
-            distance = (m) """
-        d = distance
-        f = (sta.frequency[wlan] * 10)**3
-        gain_r = 1 # Rx Antenna Gain (dBi)
-        gain_t = 1 # Tx Antenna Gain (dBi)
+            sta.receivedPower[wlan] = 0
+
+        
+    def twoRayGroundPropagationLossModel(self, sta, ap, distance, wlan):
+        """Equation:"""
+        gT = ap.antennaGain[wlan] # Tx Antenna Gain (dBi)
+        gR = sta.antennaGain[wlan] # Rx Antenna Gain (dBi)
+        hT = ap.antennaHeight[wlan] # Tx antenna height (m)
+        hR = sta.antennaHeight[wlan] # Rx antenna height (m)
+        d = int(distance) # Distance (m)
+        L = 1 #system loss
         
         try:
-            sta.receivedPower[wlan] = ( ap.txpower * gain_t * gain_r ) + 27.55 - ( 20 * math.log10(d * f) ) 
+            sta.receivedPower[wlan] =  ap.txpower + 10 * math.log10(gT * gR * hT**2 * hR**2 / d**4 * L)
         except:
             sta.receivedPower[wlan] = 0
             
-    def received_Power(self, sta, ap, wlan):
-        """Received Power (dBm) = Tx Power (dBm) + Tx Antenna Gain (dBi) + Rx Antenna Gain (dBi) - FSPL (dB)"""
-        try:
-            sta.receivedPower[wlan] = ap.txpower - sta.fspl
-        except:
-            pass
+    def logDistancePropagationLossModel(self, sta, ap, distance, wlan):
+        """Equation:"""
         
-    """@classmethod
-    def max_pathLoss(self, sta):
-        used to calculate the range.  
-        gains = 6
-        losses = 6
-        fademargin = 12
-        maxpathloss = sta.txpower - sta.rsi + gains - losses - fademargin
-        return maxpathloss"""           
-    
+            
+
 class deviceDataRate ( object ):
     """ Data Rate for specific equipments """
     

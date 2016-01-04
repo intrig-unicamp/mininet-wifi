@@ -124,9 +124,9 @@ class Node( object ):
         self.rsi = 0
         self.frequency = []
         self.txpower = []
-        self.gain = []
+        self.antennaGain = []
+        self.antennaHeight = []
         self.mac=''
-        self.fspl = 0
         self.receivedPower = []
 
         self.type = ''

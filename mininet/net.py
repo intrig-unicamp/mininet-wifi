@@ -647,6 +647,8 @@ class Mininet( object ):
                 
                 ap.frequency.append(str(wlan))
                 ap.txpower.append(str(wlan))
+                ap.antennaHeight.append(0.1)
+                ap.antennaGain.append(1)
                 iface = str(ap.virtualWlan) + str(wlan)
                 wifiParameters.get_frequency(ap, iface, wlan)
                 wifiParameters.get_tx_power(ap, iface, wlan)
@@ -747,6 +749,8 @@ class Mininet( object ):
                 st.associatedAp.append(str(z))
                 st.frequency.append(0)
                 st.txpower.append(0)
+                st.antennaHeight.append(0.1)
+                st.antennaGain.append(1)
                 
     def configureWifiNodes(self, hasAP=True):
         module.startEnvironment()
