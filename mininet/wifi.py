@@ -168,31 +168,28 @@ class association( object ):
         except:
             pass
         
-        systemLoss = 1
-        
-        if sta.associatedAp[wlan] != 'NoAssociated':
+        if str(sta.associatedAp[wlan]) == str(ap):
+            systemLoss = 1
             propagationModel(sta, ap, distance, wlan, systemLoss)
-        else:
-            sta.receivedPower[wlan] = 0
-        latency = wifiParameters.latency(distance)
-        loss = wifiParameters.loss(distance, sta.mode)
-        delay = wifiParameters.delay(distance, seconds)
-        if sta.associatedAp[wlan] != 'NoAssociated':
-            if str(sta.associatedAp[wlan]) == str(ap):
-                bw = wifiParameters.bw(distance, sta, ap, wlan)
-                 
-                sta.pexec("tc qdisc replace dev %s-wlan%s \
-                    root handle 1: netem rate %.2fmbit \
-                    loss %.1f%% \
-                    latency %.2fms \
-                    delay %.2fms" % (sta, wlan, bw, loss, latency, delay))    
-                #Reordering packets    
-                sta.pexec('tc qdisc replace dev %s-wlan%s parent 1:1 pfifo limit 1000' % (sta, wlan))
-                #sta.pexec('tc qdisc del dev %s-wlan%s root' % (sta, wlan))
-        
-        if str(ap) == sta.ifaceAssociatedToAp[wlan]:
+            latency = wifiParameters.latency(distance)
+            loss = wifiParameters.loss(distance, sta.mode)
+            delay = wifiParameters.delay(distance, seconds)
+            bw = wifiParameters.bw(distance, sta, ap, wlan)
+             
+            sta.pexec("tc qdisc replace dev %s-wlan%s \
+                root handle 1: netem rate %.2fmbit \
+                loss %.1f%% \
+                latency %.2fms \
+                delay %.2fms" % (sta, wlan, bw, loss, latency, delay))    
+            #Reordering packets    
+            sta.pexec('tc qdisc replace dev %s-wlan%s parent 1:1 pfifo limit 1000' % (sta, wlan))
+            #sta.pexec('tc qdisc del dev %s-wlan%s root' % (sta, wlan))
+            
             associated = self.doAssociation(sta.mode, ap, distance) 
         else:
+            if sta.ifaceAssociatedToAp[wlan] == 'NoAssociated':
+                sta.receivedPower[wlan] = 0
+            
             aps = 0
             for n in range(0,len(sta.ifaceAssociatedToAp)):
                 if 'ap' in sta.ifaceAssociatedToAp[n]:
