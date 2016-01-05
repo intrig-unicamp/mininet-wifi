@@ -113,7 +113,7 @@ from mininet.wifi import checkNM, module, accessPoint, station, wifiParameters, 
 from __builtin__ import True
 
 # Mininet version: should be consistent with README and LICENSE
-VERSION = "1.6r4"
+VERSION = "1.6r5"
 
 class Mininet( object ):
     "Network emulation with hosts spawned in network namespaces."
@@ -1534,7 +1534,10 @@ class Mininet( object ):
                 else:
                     print "Associated To: %s" % None
                 print "Frequency: %s GHz" % device.frequency[wlan]
-                print "Signal level: %.2f dbm" % device.receivedPower[wlan]
+                if device.receivedPower[wlan] != 0:
+                    print "Signal level: %.2f dbm" % device.receivedPower[wlan]
+                else:
+                    print "Signal level: No Signal"
                 print "Tx-Power: %s dBm" % device.txpower[wlan]
         else:
             print "Tx-Power: %s dBm" % device.txpower

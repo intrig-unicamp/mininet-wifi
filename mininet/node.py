@@ -110,7 +110,7 @@ class Node( object ):
         self.virtualWlan = ''
         self.passwd = ''
         self.security = ''
-        self.equipmentModel = ''        
+        self.equipmentModel = ''  
         
         # Station Parameters
         self.associate = False

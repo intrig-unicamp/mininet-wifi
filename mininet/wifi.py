@@ -168,7 +168,12 @@ class association( object ):
         except:
             pass
         
-        propagationModel(sta, sta.associatedAp[wlan], distance, wlan)
+        systemLoss = 1
+        
+        if sta.associatedAp[wlan] != 'NoAssociated':
+            propagationModel(sta, ap, distance, wlan, systemLoss)
+        else:
+            sta.receivedPower[wlan] = 0
         latency = wifiParameters.latency(distance)
         loss = wifiParameters.loss(distance, sta.mode)
         delay = wifiParameters.delay(distance, seconds)
@@ -814,6 +819,7 @@ class wifiParameters ( object ):
     """WiFi Parameters""" 
        
     propagationModel = ''
+    rate = 0
    
     @classmethod
     def get_rsi(self, sta, iface): 
@@ -930,8 +936,12 @@ class wifiParameters ( object ):
                         elif distance > signalRange:
                             return 0
                         bw = bw - custombw 
-            elif ap.equipmentModel == 'DI524':
-                return deviceDataRate.DI524(sta, wlan)
+            else:
+                if sta.associatedAp[wlan] != 'NoAssociated':
+                    deviceDataRate(ap, sta, wlan)
+                else:
+                    self.rate = 0
+                return self.rate
         else:
             return self.set_bw(mode)        
     
@@ -971,24 +981,26 @@ class wifiParameters ( object ):
     
     
 class propagationModel ( object ):
-    """
-        Propagation Models 
-    """        
-    def __init__( self, sta=None, ap=None, distance=0, wlan=None ):
+    """ Propagation Models """
+            
+    def __init__( self, sta=None, ap=None, distance=0, wlan=None, systemLoss=1 ):
         self.model = wifiParameters.propagationModel
+        self.L = systemLoss
         
         if self.model in dir(self):
             self.__getattribute__(self.model)(sta, ap, distance, wlan)
             
     def friisPropagationLossModel(self, sta, ap, distance, wlan):
-        """Equation:
-        (d) is the distance between the transmitter and the receiver (m)
+        """Friis Propagation Loss Model:
         (f) signal frequency transmited(Hz)
-        (c) speed of light in vacuum (m)"""          
+        (d) is the distance between the transmitter and the receiver (m)
+        (c) speed of light in vacuum (m)
+        (L) """          
+        
         f = (sta.frequency[wlan] * 10**9) #Convert Ghz to Hz
         d = distance # distance 
         c = 299792458.0 # speed of light in vacuum 
-        L = 1 #system loss
+        L = self.L #system loss
         
         lambda_ = c / f # lambda: wavelength (m)
         numerator = lambda_**2
@@ -998,16 +1010,22 @@ class propagationModel ( object ):
             sta.receivedPower[wlan] = ap.txpower + 10 * math.log10(numerator / denominator)
         except:
             sta.receivedPower[wlan] = 0
-
         
     def twoRayGroundPropagationLossModel(self, sta, ap, distance, wlan):
-        """Equation:"""
+        """Two Ray Ground Propagation Loss Model:
+        (gT): Tx Antenna Gain
+        (gR): Rx Antenna Gain
+        (hT): Tx Antenna Height
+        (hR): Rx Antenna Height
+        (d): Distance
+        (L): System Loss"""
+       
         gT = ap.antennaGain[wlan] # Tx Antenna Gain (dBi)
         gR = sta.antennaGain[wlan] # Rx Antenna Gain (dBi)
         hT = ap.antennaHeight[wlan] # Tx antenna height (m)
         hR = sta.antennaHeight[wlan] # Rx antenna height (m)
         d = int(distance) # Distance (m)
-        L = 1 #system loss
+        L = self.L  #system loss
         
         try:
             sta.receivedPower[wlan] =  ap.txpower + 10 * math.log10(gT * gR * hT**2 * hR**2 / d**4 * L)
@@ -1015,34 +1033,94 @@ class propagationModel ( object ):
             sta.receivedPower[wlan] = 0
             
     def logDistancePropagationLossModel(self, sta, ap, distance, wlan):
-        """Equation:"""
-        
+        """NOT READY! Log Distance Propagation Loss Model:"""        
+        referenceDistance = 1
+        referenceLoss = 1
+        d = int(distance)
             
+        pathLossDb = 10 * math.log10(d / referenceDistance)
+        rxc = referenceLoss - pathLossDb
+        sta.receivedPower[wlan] = ap.txpower + rxc
+        
+    def okumuraHataPropagationLossModel(self, sta, ap, distance, wlan):
+        """Okumura Hata Propagation Loss Model:"""
+        
+    def jakesPropagationLossModel(self, sta, ap, distance, wlan):
+        """Jakes Propagation Loss Model:"""
+        
 
 class deviceDataRate ( object ):
     """ Data Rate for specific equipments """
     
-    @classmethod    
+    rate = 0
+    
+    def __init__( self, ap=None, sta=None, wlan=None ):
+            
+        if ap.equipmentModel in dir(self):
+            model = ap.equipmentModel
+            wifiParameters.rate = self.__getattribute__(model)(sta, wlan)
+    
     def DI524(self, sta, wlan):
         """D-Link AirPlus G DI-524
            from http://www.dlink.com/-/media/Consumer_Products/DI/DI%20524/Manual/DI_524_Manual_EN_UK.pdf"""
-        rate = 0
+       
         if sta.receivedPower[wlan] != 0:
             if (sta.receivedPower[wlan] >= -68):
-                rate = 48
+                self.rate = 48
             elif (sta.receivedPower[wlan] < -68 and sta.receivedPower[wlan] >= -75):
-                rate = 36
+                self.rate = 36
             elif (sta.receivedPower[wlan] < -75 and sta.receivedPower[wlan] >= -79):
-                rate = 24
+                self.rate = 24
             elif (sta.receivedPower[wlan] < -79 and sta.receivedPower[wlan] >= -84):
-                rate = 18
+                self.rate = 18
             elif (sta.receivedPower[wlan] < -84 and sta.receivedPower[wlan] >= -87):
-                rate = 9
+                self.rate = 9
             elif (sta.receivedPower[wlan] < -87 and sta.receivedPower[wlan] >= -88):
-                rate = 6
+                self.rate = 6
             elif (sta.receivedPower[wlan] < -88 and sta.receivedPower[wlan] >= -89):
-                rate = 1
-        return rate
+                self.rate = 1
+        return self.rate
+    
+    def TLWR740N(self, sta, wlan):
+        """TL-WR740N
+           from http://www.tp-link.com.br/products/details/cat-9_TL-WR740N.html#specificationsf"""
+        if sta.receivedPower[wlan] != 0:
+            if (sta.receivedPower[wlan] >= -68):
+                if sta.mode == 'n':
+                    self.rate = 130
+                elif sta.mode == 'g':
+                    self.rate = 54
+                elif sta.mode == 'b':
+                    self.rate = 11
+            elif (sta.receivedPower[wlan] < -68 and sta.receivedPower[wlan] >= -85):
+                self.rate = 11
+            elif (sta.receivedPower[wlan] < -85 and sta.receivedPower[wlan] >= -88):
+                self.rate = 6
+            elif (sta.receivedPower[wlan] < -88 and sta.receivedPower[wlan] >= -90):
+                self.rate = 1
+        return self.rate
+    
+    def WRT120N(self, sta, wlan):
+        """CISCO WRT120N
+           from http://downloads.linksys.com/downloads/datasheet/WRT120N_V10_DS_B-WEB.pdf"""
+        if sta.receivedPower[wlan] != 0:
+            if (sta.receivedPower[wlan] >= -65):
+                if sta.mode == 'n':
+                    self.rate = 150
+                elif sta.mode == 'g':
+                    self.rate = 54
+                elif sta.mode == 'b':
+                    self.rate = 11
+            elif (sta.receivedPower[wlan] < -65 and sta.receivedPower[wlan] >= -68):
+                if sta.mode == 'g':
+                    self.rate = 54
+                elif sta.mode == 'b':
+                    self.rate = 11
+            elif (sta.receivedPower[wlan] < -68 and sta.receivedPower[wlan] >= -85):
+                self.rate = 11
+            elif (sta.receivedPower[wlan] < -85 and sta.receivedPower[wlan] >= -90):
+                self.rate = 1
+        return self.rate
        
 class deviceRange ( object ):
     """ Range for specific equipments """
@@ -1063,6 +1141,21 @@ class deviceRange ( object ):
         distance = 100
         return distance
     
+    def TLWR740N(self, ap):
+        """TL-WR740N
+        NO REFERENCE!"""
+
+        distance = 50
+        return distance
+    
+    
+    def WRT120N(self, ap):
+        """ CISCO WRT120N
+        NO REFERENCE!"""
+
+        distance = 50
+        return distance
+    
 class deviceTxPower ( object ):
     """ TX Power for specific equipments """
     
@@ -1075,9 +1168,26 @@ class deviceTxPower ( object ):
     
     def DI524(self, ap):
         """ D-Link AirPlus G DI-524
-            from http://www.dlink.com/-/media/Consumer_Products/DI/DI%20524/Manual/DI_524_Manual_EN_UK.pdf
-        """
+            from http://www.dlink.com/-/media/Consumer_Products/DI/DI%20524/Manual/DI_524_Manual_EN_UK.pdf"""
         txPower = 14
+        return txPower
+    
+    def TLWR740N(self, ap):
+        """TL-WR740N
+        No REFERENCE!"""
+        txPower = 20
+        return txPower
+    
+    
+    def WRT120N(self, ap):
+        """CISCO WRT120N
+           from http://downloads.linksys.com/downloads/datasheet/WRT120N_V10_DS_B-WEB.pdf"""
+        if ap.mode == 'b':
+            txPower = 21
+        elif ap.mode == 'g':
+            txPower = 18
+        elif ap.mode == 'n':
+            txPower = 16
         return txPower
 
             
