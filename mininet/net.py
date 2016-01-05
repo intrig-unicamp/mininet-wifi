@@ -330,6 +330,7 @@ class Mininet( object ):
             module.wifiRadios+=1
             wifi = 1
             module.virtualWlan.append(name)
+            sta.receivedPower.append(-62)
         sta.nWlans = int(wifi)
         
         self.nextIP += 1        
@@ -746,7 +747,7 @@ class Mininet( object ):
         for st in self.stations:
             for z in range(0, st.nWlans):
                 st.ifaceAssociatedToAp.append(str(z))
-                st.associatedAp.append(str(z))
+                st.associatedAp.append('NoAssociated')
                 st.frequency.append(0)
                 st.txpower.append(0)
                 st.antennaHeight.append(0.1)
@@ -1516,31 +1517,34 @@ class Mininet( object ):
     
     def deviceInfo(self, device):
         """ Devices Info """         
-        for sta in self.stations:
-            if device == str(sta):
-                device = sta      
-        for ap in self.accessPoints:
-            if device == str(ap):
-                device = ap  
-        if device.type == 'station':
-            for wlan in range(device.nWlans):
-                iface = str(device)+'-wlan%s' % wlan
-                wifiParameters.get_tx_power(device, iface, wlan)
-                wifiParameters.get_frequency(device, iface, wlan)
-                print "--------------------------------"                
-                print "Interface: %s-wlan%s" % (device, wlan)
-                if 'ap' in str(device.associatedAp[wlan]):
-                    print "Associated To: %s" % device.associatedAp[wlan]
-                else:
-                    print "Associated To: %s" % None
-                print "Frequency: %s GHz" % device.frequency[wlan]
-                if device.receivedPower[wlan] != 0:
-                    print "Signal level: %.2f dbm" % device.receivedPower[wlan]
-                else:
-                    print "Signal level: No Signal"
-                print "Tx-Power: %s dBm" % device.txpower[wlan]
-        else:
-            print "Tx-Power: %s dBm" % device.txpower
+        try:
+            for sta in self.stations:
+                if device == str(sta):
+                    device = sta      
+            for ap in self.accessPoints:
+                if device == str(ap):
+                    device = ap  
+            if device.type == 'station':
+                for wlan in range(device.nWlans):
+                    iface = str(device)+'-wlan%s' % wlan
+                    wifiParameters.get_tx_power(device, iface, wlan)
+                    wifiParameters.get_frequency(device, iface, wlan)
+                    print "--------------------------------"                
+                    print "Interface: %s-wlan%s" % (device, wlan)
+                    if 'ap' in str(device.associatedAp[wlan]):
+                        print "Associated To: %s" % device.associatedAp[wlan]
+                    else:
+                        print "Associated To: %s" % None
+                    print "Frequency: %s GHz" % device.frequency[wlan]
+                    if device.receivedPower[wlan] != 0:
+                        print "Signal level: %.2f dbm" % device.receivedPower[wlan]
+                    else:
+                        print "Signal level: No Signal"
+                    print "Tx-Power: %s dBm" % device.txpower[wlan]
+            else:
+                print "Tx-Power: %s dBm" % device.txpower
+        except:
+            pass
        
                         
     def getCurrentDistance(self, src, dst):

@@ -177,16 +177,18 @@ class association( object ):
         latency = wifiParameters.latency(distance)
         loss = wifiParameters.loss(distance, sta.mode)
         delay = wifiParameters.delay(distance, seconds)
-        bw = wifiParameters.bw(distance, sta, ap, wlan)
-             
-        sta.pexec("tc qdisc replace dev %s-wlan%s \
-            root handle 1: netem rate %.2fmbit \
-            loss %.1f%% \
-            latency %.2fms \
-            delay %.2fms" % (sta, wlan, bw, loss, latency, delay))    
-        #Reordering packets    
-        sta.pexec('tc qdisc replace dev %s-wlan%s parent 1:1 pfifo limit 1000' % (sta, wlan))
-        #sta.pexec('tc qdisc del dev %s-wlan%s root' % (sta, wlan))
+        if sta.associatedAp[wlan] != 'NoAssociated':
+            if str(sta.associatedAp[wlan]) == str(ap):
+                bw = wifiParameters.bw(distance, sta, ap, wlan)
+                 
+                sta.pexec("tc qdisc replace dev %s-wlan%s \
+                    root handle 1: netem rate %.2fmbit \
+                    loss %.1f%% \
+                    latency %.2fms \
+                    delay %.2fms" % (sta, wlan, bw, loss, latency, delay))    
+                #Reordering packets    
+                sta.pexec('tc qdisc replace dev %s-wlan%s parent 1:1 pfifo limit 1000' % (sta, wlan))
+                #sta.pexec('tc qdisc del dev %s-wlan%s root' % (sta, wlan))
         
         if str(ap) == sta.ifaceAssociatedToAp[wlan]:
             associated = self.doAssociation(sta.mode, ap, distance) 
@@ -809,8 +811,7 @@ class mobility ( object ):
                             for ap in accessPoint.list:
                                 sta = node
                                 distance = self.getDistance(sta, ap)
-                                association.setInfraParameters(sta, ap, distance, '')
-                                
+                                association.setInfraParameters(sta, ap, distance, '')                                
                 if self.DRAW:
                     plt.title("Mininet-WiFi Graph")
                     plt.draw()
@@ -930,6 +931,7 @@ class wifiParameters ( object ):
             if ap.equipmentModel == None:
                 bw = self.set_bw_node_moving(mode)
                 for n in range(0,signalRange+1):
+                    sta.receivedPower[wlan] = -50 - distance
                     if n % customStep==0:
                         if n>=distance:
                             return bw
