@@ -777,7 +777,7 @@ class mobility ( object ):
         #nr_nodes = sum(groups)
         #tvcm = tvc(groups, dimensions=(MAX_X, MAX_Y), aggregation=[0.5,0.], epoch=[100,100])
         once = []
-                
+        
         if model!='':
             for xy in mob:
                 if self.DRAW:
@@ -994,12 +994,12 @@ class propagationModel ( object ):
         (f) signal frequency transmited(Hz)
         (d) is the distance between the transmitter and the receiver (m)
         (c) speed of light in vacuum (m)
-        (L) """          
+        (L) System loss"""          
         
         f = (sta.frequency[wlan] * 10**9) #Convert Ghz to Hz
-        d = distance # distance 
-        c = 299792458.0 # speed of light in vacuum 
-        L = self.L #system loss
+        d = distance 
+        c = 299792458.0 
+        L = self.L 
         
         lambda_ = c / f # lambda: wavelength (m)
         numerator = lambda_**2
@@ -1012,19 +1012,19 @@ class propagationModel ( object ):
         
     def twoRayGroundPropagationLossModel(self, sta, ap, distance, wlan):
         """Two Ray Ground Propagation Loss Model:
-        (gT): Tx Antenna Gain
-        (gR): Rx Antenna Gain
+        (gT): Tx Antenna Gain (dBi)
+        (gR): Rx Antenna Gain (dBi)
         (hT): Tx Antenna Height
         (hR): Rx Antenna Height
-        (d): Distance
-        (L): System Loss"""
+        (d) is the distance between the transmitter and the receiver (m)
+        (L): System loss"""
        
-        gT = ap.antennaGain[wlan] # Tx Antenna Gain (dBi)
-        gR = sta.antennaGain[wlan] # Rx Antenna Gain (dBi)
-        hT = ap.antennaHeight[wlan] # Tx antenna height (m)
-        hR = sta.antennaHeight[wlan] # Rx antenna height (m)
-        d = int(distance) # Distance (m)
-        L = self.L  #system loss
+        gT = ap.antennaGain[wlan] 
+        gR = sta.antennaGain[wlan]
+        hT = ap.antennaHeight[wlan]
+        hR = sta.antennaHeight[wlan]
+        d = int(distance)
+        L = self.L
         
         try:
             sta.receivedPower[wlan] =  ap.txpower + 10 * math.log10(gT * gR * hT**2 * hR**2 / d**4 * L)
@@ -1032,12 +1032,17 @@ class propagationModel ( object ):
             sta.receivedPower[wlan] = 0
             
     def logDistancePropagationLossModel(self, sta, ap, distance, wlan):
-        """NOT READY! Log Distance Propagation Loss Model:"""        
+        """Log Distance Propagation Loss Model:
+        referenceDistance (m): The distance at which the reference loss is calculated
+        referenceLoss (db): The reference loss at reference distance. Default for 1m is 46.6777
+        exponent: The exponent of the Path Loss propagation model, where 2 is for propagation in free space
+        (d) is the distance between the transmitter and the receiver (m)"""        
         referenceDistance = 1
-        referenceLoss = 1
+        referenceLoss = 46.6777
+        exponent = 2
         d = int(distance)
             
-        pathLossDb = 10 * math.log10(d / referenceDistance)
+        pathLossDb = 10 * exponent * math.log10(d / referenceDistance)
         rxc = referenceLoss - pathLossDb
         sta.receivedPower[wlan] = ap.txpower + rxc
         
@@ -1175,8 +1180,7 @@ class deviceTxPower ( object ):
         """TL-WR740N
         No REFERENCE!"""
         txPower = 20
-        return txPower
-    
+        return txPower    
     
     def WRT120N(self, ap):
         """CISCO WRT120N
