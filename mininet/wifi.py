@@ -12,18 +12,17 @@ import fcntl
 import fileinput
 import subprocess
 import glob
-import math
 import time
-
 import numpy as np
 import scipy.spatial.distance as distance 
 import matplotlib.patches as patches
 import matplotlib.pyplot as plt
 
-from mininet.mobility import gauss_markov, \
-    truncated_levy_walk, random_direction, random_waypoint, random_walk
+from mininet.wifiMobility import gauss_markov, \
+    truncated_levy_walk, random_direction, random_waypoint, random_walk, reference_point_group, tvc
     
 from mininet.wifiDevices import deviceDataRate, deviceTxPower
+from mininet.wifiPropagationModel import propagationModel
 
 class checkNM ( object ):
     """ add mac address inside of /etc/NetworkManager/NetworkManager.conf """
@@ -172,7 +171,8 @@ class association( object ):
         
         if str(sta.associatedAp[wlan]) == str(ap):
             systemLoss = 1
-            propagationModel(sta, ap, distance, wlan, systemLoss)
+            model = wifiParameters.propagationModel
+            propagationModel(sta, ap, distance, wlan, model, systemLoss)
             latency = wifiParameters.latency(distance)
             loss = wifiParameters.loss(distance, sta.mode)
             delay = wifiParameters.delay(distance, seconds)
@@ -769,20 +769,16 @@ class mobility ( object ):
         elif(self.modelName=='GaussMarkov'):
             ## Gauss-Markov model
             mob = gauss_markov(nr_nodes, dimensions=(MAX_X, MAX_Y), alpha=0.99)
+        elif(self.modelName=='ReferencePoint'):
+            ## Reference Point Group model
+            mob = reference_point_group(nr_nodes, dimensions=(MAX_X, MAX_Y), aggregation=0.5) 
+        elif(self.modelName=='TimeVariantCommunity'):
+            ## Time-variant Community Mobility Model
+            mob = tvc(nr_nodes, dimensions=(MAX_X, MAX_Y), aggregation=[0.5,0.], epoch=[100,100])         
         else:
             print 'Model not defined or wrong!'
         
-        ## Reference Point Group model
-        #groups = [4 for _ in range(10)]
-        #nr_nodes = sum(groups)
-        #rpg = reference_point_group(groups, dimensions=(MAX_X, MAX_Y), aggregation=0.5)
-        
-        ## Time-variant Community Mobility Model
-        #groups = [4 for _ in range(10)]
-        #nr_nodes = sum(groups)
-        #tvcm = tvc(groups, dimensions=(MAX_X, MAX_Y), aggregation=[0.5,0.], epoch=[100,100])
         once = []
-        
         if model!='':
             for xy in mob:
                 if self.DRAW:
@@ -983,78 +979,3 @@ class wifiParameters ( object ):
             self.bandwidth = 90 #6777
             
         return self.bandwidth
-    
-    
-class propagationModel ( object ):
-    """ Propagation Models """
-            
-    def __init__( self, sta=None, ap=None, distance=0, wlan=None, systemLoss=1 ):
-        self.model = wifiParameters.propagationModel
-        self.L = systemLoss
-        
-        if self.model in dir(self):
-            self.__getattribute__(self.model)(sta, ap, distance, wlan)
-            
-    def friisPropagationLossModel(self, sta, ap, distance, wlan):
-        """Friis Propagation Loss Model:
-        (f) signal frequency transmited(Hz)
-        (d) is the distance between the transmitter and the receiver (m)
-        (c) speed of light in vacuum (m)
-        (L) System loss"""          
-        
-        f = (sta.frequency[wlan] * 10**9) #Convert Ghz to Hz
-        d = distance 
-        c = 299792458.0 
-        L = self.L 
-        
-        lambda_ = c / f # lambda: wavelength (m)
-        numerator = lambda_**2
-        denominator = (4 * math.pi * d)**2 * L
-        
-        try:
-            sta.receivedPower[wlan] = ap.txpower + 10 * math.log10(numerator / denominator)
-        except:
-            sta.receivedPower[wlan] = 0
-        
-    def twoRayGroundPropagationLossModel(self, sta, ap, distance, wlan):
-        """Two Ray Ground Propagation Loss Model:
-        (gT): Tx Antenna Gain (dBi)
-        (gR): Rx Antenna Gain (dBi)
-        (hT): Tx Antenna Height
-        (hR): Rx Antenna Height
-        (d) is the distance between the transmitter and the receiver (m)
-        (L): System loss"""
-       
-        gT = ap.antennaGain[wlan] 
-        gR = sta.antennaGain[wlan]
-        hT = ap.antennaHeight[wlan]
-        hR = sta.antennaHeight[wlan]
-        d = int(distance)
-        L = self.L
-        
-        try:
-            sta.receivedPower[wlan] =  ap.txpower + 10 * math.log10(gT * gR * hT**2 * hR**2 / d**4 * L)
-        except:
-            sta.receivedPower[wlan] = 0
-            
-    def logDistancePropagationLossModel(self, sta, ap, distance, wlan):
-        """Log Distance Propagation Loss Model:
-        referenceDistance (m): The distance at which the reference loss is calculated
-        referenceLoss (db): The reference loss at reference distance. Default for 1m is 46.6777
-        exponent: The exponent of the Path Loss propagation model, where 2 is for propagation in free space
-        (d) is the distance between the transmitter and the receiver (m)"""        
-        referenceDistance = 1
-        referenceLoss = 46.6777
-        exponent = 2
-        d = int(distance)
-            
-        pathLossDb = 10 * exponent * math.log10(d / referenceDistance)
-        rxc = referenceLoss - pathLossDb
-        sta.receivedPower[wlan] = ap.txpower + rxc
-        
-    def okumuraHataPropagationLossModel(self, sta, ap, distance, wlan):
-        """Okumura Hata Propagation Loss Model:"""
-        
-    def jakesPropagationLossModel(self, sta, ap, distance, wlan):
-        """Jakes Propagation Loss Model:"""
-        
