@@ -35,7 +35,7 @@ def topology():
 
     """Seed"""
     net.seed(1) 
-    "*** Available models: friisPropagationLossModel, twoRayGroundPropagationLossModel ***"
+    "*** Available models: friisPropagationLossModel, twoRayGroundPropagationLossModel, logDistancePropagationLossModel ***"
     net.propagationModel('friisPropagationLossModel')
 
     "*** Available models: RandomWalk, TruncatedLevyWalk, RandomDirection, RandomWayPoint, GaussMarkov ***"
