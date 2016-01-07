@@ -109,7 +109,8 @@ from mininet.util import ( quietRun, fixLimits, numCores, ensureRoot,
                            macColonHex, ipStr, ipParse, netParse, ipAdd,
                            waitListening )
 from mininet.term import cleanUpScreens, makeTerms
-from mininet.wifi import checkNM, module, accessPoint, station, wifiParameters, association, mobility, getWlan, deviceRange
+from mininet.wifi import checkNM, module, accessPoint, station, wifiParameters, association, mobility, getWlan
+from mininet.wifiDevices import deviceRange
 from __builtin__ import True
 
 # Mininet version: should be consistent with README and LICENSE
