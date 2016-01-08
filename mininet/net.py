@@ -166,7 +166,6 @@ class Mininet( object ):
         self.meshIP = 0    
         self.start_time = 0 #start mobility time
         self.set_seed = 10
-        self.model = ''
         self.firstAssociation = True
         self.ssid = ssid        
         self.mode = mode
@@ -753,7 +752,7 @@ class Mininet( object ):
                 st.txpower.append(0)
                 st.antennaHeight.append(0.1)
                 st.antennaGain.append(1)
-                
+                                
     def configureWifiNodes(self, hasAP=True):
         module.startEnvironment()
         self.link = TCLink
@@ -1422,9 +1421,10 @@ class Mininet( object ):
     def startMobility(self, **kwargs):
         """ Starts Mobility """
         mobilityparam = dict()      
+        self.mobilityModel = ''
         if 'model' in kwargs:
             mobilityparam.setdefault( 'model', kwargs['model'] )
-            self.model = kwargs['model']
+            self.mobilityModel = kwargs['model']
         if 'max_x' in kwargs:
             mobilityparam.setdefault( 'max_x', kwargs['max_x'] )
         if 'max_y' in kwargs:
@@ -1441,7 +1441,7 @@ class Mininet( object ):
         mobilityparam.setdefault( 'ismobility', True )
         mobilityparam.setdefault( 'seed', self.set_seed )
      
-        if self.model != '':
+        if self.mobilityModel != '':
             mobilityparam.setdefault( 'wifiNodes', self.wifiNodes )
             staMov = []
             for n in self.stations:
@@ -1532,9 +1532,12 @@ class Mininet( object ):
                     wifiParameters.get_frequency(device, iface, wlan)
                     print "--------------------------------"                
                     print "Interface: %s-wlan%s" % (device, wlan)
-                    if 'ap' in str(device.associatedAp[wlan]):
-                        print "Associated To: %s" % device.associatedAp[wlan]
-                    else:
+                    try: # it is important when not infra
+                        if 'ap' in str(device.associatedAp[wlan]):
+                            print "Associated To: %s" % device.associatedAp[wlan]
+                        else:
+                            print "Associated To: %s" % None
+                    except:
                         print "Associated To: %s" % None
                     print "Frequency: %s GHz" % device.frequency[wlan]
                     if device.receivedPower[wlan] != 0:

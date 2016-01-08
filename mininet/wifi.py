@@ -328,7 +328,9 @@ class station ( object ):
             cmd = 'ifconfig mp%s | grep -o \'TX b.*\' | cut -f2- -d\':\'' % mpID
             sta.sendCmd(cmd)
             associated = sta.waitOutput()
-        self.getWiFiParameters(sta, iface, wlan)   
+        self.getWiFiParameters(sta, iface, wlan)  
+        sta.function.append('none')
+        sta.function[wlan] = 'mesh' 
     
     @classmethod    
     def confirmAdhocAssociation(self, sta, iface, wlan):
@@ -337,6 +339,8 @@ class station ( object ):
             sta.sendCmd("iw dev %s scan ssid | grep %s" % (iface, sta.ssid))
             associated = sta.waitOutput()
         self.getWiFiParameters(sta, iface, wlan) 
+        sta.function.append('none')
+        sta.function[wlan] = 'adhoc'
     
     @classmethod    
     def confirmInfraAssociation(self, sta, ap, wlan):
@@ -349,6 +353,8 @@ class station ( object ):
         self.getWiFiParameters(sta, iface, wlan) 
         accessPoint.numberOfAssociatedStations(ap)
         sta.associatedAp[wlan] = ap
+        sta.function.append('none')
+        sta.function[wlan] = 'infra'
             
     @classmethod    
     def isAssociated(self, sta, iface):
