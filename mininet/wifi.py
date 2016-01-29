@@ -174,10 +174,10 @@ class association( object ):
             model = wifiParameters.propagationModel
             propagationModel(sta, ap, distance, wlan, model, systemLoss)
             latency = wifiParameters.latency(distance)
-            loss = wifiParameters.loss(distance, sta.mode)
+            loss = wifiParameters.loss(distance, ap.mode)
             delay = wifiParameters.delay(distance, seconds)
             bw = wifiParameters.bw(distance, sta, ap, wlan)
-             
+            
             sta.pexec("tc qdisc replace dev %s-wlan%s \
                 root handle 1: netem rate %.2fmbit \
                 loss %.1f%% \
@@ -187,7 +187,7 @@ class association( object ):
             sta.pexec('tc qdisc replace dev %s-wlan%s parent 1:1 pfifo limit 1000' % (sta, wlan))
             #sta.pexec('tc qdisc del dev %s-wlan%s root' % (sta, wlan))
             
-            associated = self.doAssociation(sta.mode, ap, distance) 
+            associated = self.doAssociation(ap.mode, ap, distance) 
         else:
             if sta.ifaceAssociatedToAp[wlan] == 'NoAssociated':
                 sta.receivedPower[wlan] = 0
@@ -557,7 +557,7 @@ class accessPoint ( object ):
         os.system("tc qdisc replace dev %s \
             root handle 2: netem rate %.2fmbit \
             latency 1ms \
-            delay 0.1ms" % (iface, bandwidth))    
+            delay 0.1ms" % (iface, bandwidth))   
         #Reordering packets    
         os.system('tc qdisc add dev %s parent 2:1 pfifo limit 1000' % iface)
         #os.system("tc qdisc add dev %s root tbf rate %smbit latency 2ms burst 15k" % \
@@ -927,7 +927,7 @@ class wifiParameters ( object ):
     
     @classmethod
     def bw(self, distance, sta, ap, wlan):
-        mode = sta.mode
+        mode = ap.mode
         signalRange = ap.range
         customStep = self.custom_step(mode)
         custombw = self.custom_bw(mode)
@@ -983,5 +983,5 @@ class wifiParameters ( object ):
             self.bandwidth = 48 # 600
         elif(mode=='ac'):
             self.bandwidth = 90 #6777
-            
+       
         return self.bandwidth
