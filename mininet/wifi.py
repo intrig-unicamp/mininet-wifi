@@ -184,7 +184,7 @@ class association( object ):
                 latency %.2fms \
                 delay %.2fms" % (sta, wlan, bw, loss, latency, delay))    
             #Reordering packets    
-            sta.pexec('tc qdisc replace dev %s-wlan%s parent 1:1 pfifo limit 1000' % (sta, wlan))
+            sta.pexec('tc qdisc replace dev %s-wlan%s parent 1:1 pfifo limit 10000' % (sta, wlan))
             #sta.pexec('tc qdisc del dev %s-wlan%s root' % (sta, wlan))
             
             associated = self.doAssociation(ap.mode, ap, distance) 
@@ -553,13 +553,19 @@ class accessPoint ( object ):
     def setBw(self, ap, wlan):
         """ Set bw to AP """  
         iface = str(ap.virtualWlan) + str(wlan)
-        bandwidth = wifiParameters.set_bw(ap.mode)
+        
+        if ap.equipmentModel == None:
+            bw = wifiParameters.set_bw(ap.mode)
+        else: 
+            r = deviceDataRate(ap, None, wlan)
+            bw = r.rate
+        
         os.system("tc qdisc replace dev %s \
             root handle 2: netem rate %.2fmbit \
             latency 1ms \
-            delay 0.1ms" % (iface, bandwidth))   
+            delay 0.1ms" % (iface, bw))   
         #Reordering packets    
-        os.system('tc qdisc add dev %s parent 2:1 pfifo limit 1000' % iface)
+        os.system('tc qdisc add dev %s parent 2:1 pfifo limit 10000' % iface)
         #os.system("tc qdisc add dev %s root tbf rate %smbit latency 2ms burst 15k" % \
                  #(ap.virtualWlan, bandwidth))
         
@@ -942,6 +948,14 @@ class wifiParameters ( object ):
                         elif distance > signalRange:
                             return 0
                         bw = bw - custombw 
+            elif ap.equipmentModel != None and self.propagationModel == '':
+                sta.receivedPower[wlan] = -50 - distance
+                if sta.associatedAp[wlan] != 'NoAssociated':
+                    r = deviceDataRate(ap, sta, wlan)
+                    self.rate = r.rate
+                else:
+                    self.rate = 0
+                return self.rate
             else:
                 if sta.associatedAp[wlan] != 'NoAssociated':
                     r = deviceDataRate(ap, sta, wlan)

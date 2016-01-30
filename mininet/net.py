@@ -403,15 +403,16 @@ class Mininet( object ):
             bs.encrypt = encrypt
         else:
             bs.encrypt = None
-            
+        
+        ap = bs
         self.range = ("%s" % params.pop('range', {}))
         if(self.range!="{}"):
-            bs.range = int(self.range)
+            ap.range = int(self.range)
         else:
-            if bs.equipmentModel == None:
-                bs.range = accessPoint.range(bs.mode)
+            if ap.equipmentModel == None:
+                ap.range = accessPoint.range(bs.mode)
             else:
-                deviceRange(bs.equipmentModel, bs)            
+                deviceRange(ap)            
             
         wifi = ("%s" % params.pop('wlans', {}))
         if(wifi!="{}"):        
@@ -645,7 +646,7 @@ class Mininet( object ):
                 accessPoint.rename(intf, newname, wlan)
                 checkNM.getMacAddress(ap, wlan)         
                 accessPoint.setBw(ap, wlan)
-                
+               
                 ap.frequency.append(str(wlan))
                 ap.txpower.append(str(wlan))
                 ap.antennaHeight.append(0.1)

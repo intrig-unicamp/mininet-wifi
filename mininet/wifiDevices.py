@@ -11,14 +11,15 @@ class deviceDataRate ( object ):
     rate = 0
     
     def __init__( self, ap=None, sta=None, wlan=None ):
-            
+       
         if ap.equipmentModel in dir(self):
             model = ap.equipmentModel
-            self.__getattribute__(model)(sta, wlan)
+            self.__getattribute__(model)(ap, sta, wlan)
     
-    def DI524(self, sta, wlan):
+    def DI524(self, ap, sta, wlan):
         """D-Link AirPlus G DI-524
-           from http://www.dlink.com/-/media/Consumer_Products/DI/DI%20524/Manual/DI_524_Manual_EN_UK.pdf"""       
+           from http://www.dlink.com/-/media/Consumer_Products/DI/DI%20524/Manual/DI_524_Manual_EN_UK.pdf"""  
+        
         if sta.receivedPower[wlan] != 0:
             if (sta.receivedPower[wlan] >= -68):
                 self.rate = 48
@@ -36,40 +37,48 @@ class deviceDataRate ( object ):
                 self.rate = 1
         return self.rate
     
-    def TLWR740N(self, sta, wlan):
+    def TLWR740N(self, ap, sta, wlan):
         """TL-WR740N
            from http://www.tp-link.com.br/products/details/cat-9_TL-WR740N.html#specificationsf"""
-        if sta.receivedPower[wlan] != 0:
-            if (sta.receivedPower[wlan] >= -68):
-                if sta.mode == 'n':
-                    self.rate = 130
-                elif sta.mode == 'g':
-                    self.rate = 54
-                elif sta.mode == 'b':
+        try:
+            if sta.receivedPower[wlan] != 0:
+                if (sta.receivedPower[wlan] >= -68):
+                    if ap.mode == 'n':
+                        self.rate = 130
+                    elif ap.mode == 'g':
+                        self.rate = 54
+                    elif ap.mode == 'b':
+                        self.rate = 11
+                elif (sta.receivedPower[wlan] < -68 and sta.receivedPower[wlan] >= -85):
                     self.rate = 11
-            elif (sta.receivedPower[wlan] < -68 and sta.receivedPower[wlan] >= -85):
+                elif (sta.receivedPower[wlan] < -85 and sta.receivedPower[wlan] >= -88):
+                    self.rate = 6
+                elif (sta.receivedPower[wlan] < -88 and sta.receivedPower[wlan] >= -90):
+                    self.rate = 1
+        except:
+            if ap.mode == 'n':
+                self.rate = 130
+            elif ap.mode == 'g':
+                self.rate = 54
+            elif ap.mode == 'b':
                 self.rate = 11
-            elif (sta.receivedPower[wlan] < -85 and sta.receivedPower[wlan] >= -88):
-                self.rate = 6
-            elif (sta.receivedPower[wlan] < -88 and sta.receivedPower[wlan] >= -90):
-                self.rate = 1
         return self.rate
     
-    def WRT120N(self, sta, wlan):
+    def WRT120N(self, ap, sta, wlan):
         """CISCO WRT120N
            from http://downloads.linksys.com/downloads/datasheet/WRT120N_V10_DS_B-WEB.pdf"""
         if sta.receivedPower[wlan] != 0:
             if (sta.receivedPower[wlan] >= -65):
-                if sta.mode == 'n':
+                if ap.mode == 'n':
                     self.rate = 150
-                elif sta.mode == 'g':
+                elif ap.mode == 'g':
                     self.rate = 54
-                elif sta.mode == 'b':
+                elif ap.mode == 'b':
                     self.rate = 11
             elif (sta.receivedPower[wlan] < -65 and sta.receivedPower[wlan] >= -68):
-                if sta.mode == 'g':
+                if ap.mode == 'g':
                     self.rate = 54
-                elif sta.mode == 'b':
+                elif ap.mode == 'b':
                     self.rate = 11
             elif (sta.receivedPower[wlan] < -68 and sta.receivedPower[wlan] >= -85):
                 self.rate = 11
@@ -80,12 +89,12 @@ class deviceDataRate ( object ):
 class deviceRange ( object ):
     """ Range for specific equipments """
     
-    def __init__( self, model=None, ap=None ):
-        self.model = model
+    def __init__( self, ap=None ):
+        self.equipmentModel = ap.equipmentModel
         self.ap = ap        
                 
-        if self.model in dir(self):
-            ap.range = self.__getattribute__(self.model)(self.ap)
+        if self.equipmentModel in dir(self):
+            ap.range = self.__getattribute__(self.equipmentModel)(self.ap)
     
     def DI524(self, ap):
         """ D-Link AirPlus G DI-524
