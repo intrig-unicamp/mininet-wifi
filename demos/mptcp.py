@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-""" Multipath TCP """
+"""This example is based on this video: ................"""
 
 from mininet.net import Mininet
 from mininet.node import RemoteController, OVSKernelSwitch
@@ -13,12 +13,12 @@ from mininet.node import Node
 def topology():
 
     """
-          *ap2 (mode g)--h4.      .s7.
-         *                  .    .    .
-    sta1*                    s6--     s9--h10
-        *                   .    .    .
-         *                 .      .  .
-          *ap3 (mode n)--h5        s8
+          *ap2--h4.      .s7.
+         *         .    .    .
+    sta1*           s6--     s9--h10
+        *          .    .    .
+         *        .      .  .
+          *ap3--h5        s8
     """
  
 
@@ -26,9 +26,9 @@ def topology():
     net = Mininet( controller=RemoteController, link=TCLink, switch=OVSKernelSwitch )
 
     print "*** Creating nodes"
-    sta1 = net.addStation( 'sta1', wlans=2, ip='10.0.0.10/8', position='50,25,0' )
-    ap2 = net.addBaseStation( 'ap2', mac='00:00:00:00:00:02', protocols='OpenFlow10', ssid= 'ssid_ap2', mode= 'g', channel= '6', position='70,25,0' )
-    ap3 = net.addBaseStation( 'ap3', mac='00:00:00:00:00:03', protocols='OpenFlow10', ssid= 'ssid_ap3', mode= 'n', channel= '1', position='30,25,0' )
+    sta1 = net.addStation( 'sta1', wlans=2, ip='10.0.0.10/8', position='51,10,0' )
+    ap2 = net.addBaseStation( 'ap2', mac='00:00:00:00:00:02', equipmentModel='TLWR740N', protocols='OpenFlow10', ssid= 'ssid_ap2', mode= 'g', channel= '6', position='55,17,0' )
+    ap3 = net.addBaseStation( 'ap3', mac='00:00:00:00:00:03', equipmentModel='TLWR740N', protocols='OpenFlow10', ssid= 'ssid_ap3', mode= 'n', channel= '1', position='50,11,0' )
     h4 = net.addHost( 'h4', mac='00:00:00:00:00:04', ip='10.0.0.254/8' )
     h5 = net.addHost( 'h5', mac='00:00:00:00:00:05', ip='192.168.0.254/24' )
     s6 = net.addSwitch( 's6', mac='00:00:00:00:00:06', protocols='OpenFlow10' )
