@@ -324,10 +324,10 @@ class station ( object ):
     @classmethod    
     def confirmMeshAssociation(self, sta, iface, mpID, wlan):
         associated = ''
-        while(associated == '' or len(associated) == 11):
-            cmd = 'ifconfig mp%s | grep -o \'TX b.*\' | cut -f2- -d\':\'' % mpID
-            sta.sendCmd(cmd)
-            associated = sta.waitOutput()
+        #while(associated == '' or len(associated) == 11):
+        cmd = 'ifconfig mp%s | grep -o \'TX b.*\' | cut -f2- -d\':\'' % mpID
+        sta.sendCmd(cmd)
+        associated = sta.waitOutput()
         self.getWiFiParameters(sta, iface, wlan)  
         sta.function.append('none')
         sta.function[wlan] = 'mesh' 
@@ -565,7 +565,7 @@ class accessPoint ( object ):
             latency 1ms \
             delay 0.1ms" % (iface, bw))   
         #Reordering packets    
-        os.system('tc qdisc add dev %s parent 2:1 pfifo limit 10000' % iface)
+        os.system('tc qdisc add dev %s parent 2:1 pfifo limit 1000' % iface)
         #os.system("tc qdisc add dev %s root tbf rate %smbit latency 2ms burst 15k" % \
                  #(ap.virtualWlan, bandwidth))
         
