@@ -177,7 +177,7 @@ class association( object ):
             loss = wifiParameters.loss(distance, ap.mode)
             delay = wifiParameters.delay(distance, seconds)
             bw = wifiParameters.bw(distance, sta, ap, wlan)
-            
+            print 'kkkkkkkkkkkkk'
             sta.pexec("tc qdisc replace dev %s-wlan%s \
                 root handle 1: netem rate %.2fmbit \
                 loss %.1f%% \
@@ -323,11 +323,11 @@ class station ( object ):
         
     @classmethod    
     def confirmMeshAssociation(self, sta, iface, mpID, wlan):
-        associated = ''
+        #associated = ''
         #while(associated == '' or len(associated) == 11):
-        cmd = 'ifconfig mp%s | grep -o \'TX b.*\' | cut -f2- -d\':\'' % mpID
-        sta.sendCmd(cmd)
-        associated = sta.waitOutput()
+        #cmd = 'ifconfig mp%s | grep -o \'TX b.*\' | cut -f2- -d\':\'' % mpID
+        #sta.sendCmd(cmd)
+        #associated = sta.waitOutput()
         self.getWiFiParameters(sta, iface, wlan)  
     
     @classmethod    
@@ -395,21 +395,20 @@ class station ( object ):
         self.confirmAdhocAssociation(sta, iface, wlan)
         
     @classmethod    
-    def addMesh(self, sta, ipaddress=None, **params):
+    def addMesh(self, sta, **params):
         """ Mesh mode """   
         sta.ifaceToAssociate += 1
         wlan = sta.ifaceToAssociate
         self.iwCommand(sta, wlan, ('interface add %s-mp%s type mp' % (sta,wlan)))
         sta.cmd('iw dev %s-mp%s set %s' % (sta, wlan, sta.channel))
-        sta.cmd('ifconfig %s-mp%s 192.168.10.%s up' % (sta, wlan, ipaddress))
+        sta.cmd('ifconfig %s-mp%s up' % (sta, wlan))
         sta.cmd('iw dev %s-mp%s mesh join %s' % (sta, wlan, sta.ssid))
         association.setAdhocParameters(sta, wlan)
         print "associating %s ..." % sta
         iface = '%s-wlan%s' % (sta, wlan)
         mpID = wlan
-        self.confirmMeshAssociation(sta, iface, mpID, wlan)      
-     
-            
+        self.confirmMeshAssociation(sta, iface, mpID, wlan)     
+                 
 class accessPoint ( object ):    
 
     list = []

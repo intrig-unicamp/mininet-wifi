@@ -163,7 +163,6 @@ class Mininet( object ):
         self.nextCore = 0  # next core for pinning hosts to CPUs
         self.listenPort = listenPort
         self.waitConn = waitConnected       
-        self.meshIP = 0    
         self.start_time = 0 #start mobility time
         self.set_seed = 10
         self.firstAssociation = True
@@ -576,22 +575,20 @@ class Mininet( object ):
             sta.mode = mode
         else:
             sta.mode = 'g'
-        
-        self.meshIP+=1
-        
-        options.setdefault( 'ipaddress', self.meshIP )        
-        # Set default MAC - this should probably be in Link
-        options.setdefault( 'addr1', self.randMac() )
-        
-        cls = self.link if cls is None else cls
-        link = cls( node, 'mesh', **options )
-      
+            
         for sta in self.hosts:
             if (sta == node):
                 station.addMesh(sta, **options)
                 if sta in self.missingStations:
                     self.missingStations.remove(sta)
-                
+        
+        self.bw = wifiParameters.set_bw(sta.mode)
+        options.setdefault( 'bw', self.bw )
+        # Set default MAC - this should probably be in Link
+        options.setdefault( 'addr1', self.randMac() )
+        
+        cls = self.link if cls is None else cls
+        link = cls( node, 'mesh', **options )
         return link    
     
     def addHoc( self, sta, cls=None, **params ):
@@ -619,7 +616,9 @@ class Mininet( object ):
             sta.mode = mode
         else:
             sta.mode = 'g'
-        
+            
+        self.bw = wifiParameters.set_bw(sta.mode)
+        options.setdefault( 'bw', self.bw )
         # Set default MAC - this should probably be in Link
         options.setdefault( 'addr1', self.randMac() )
         
