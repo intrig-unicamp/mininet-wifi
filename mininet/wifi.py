@@ -177,7 +177,7 @@ class association( object ):
             loss = wifiParameters.loss(distance, ap.mode)
             delay = wifiParameters.delay(distance, seconds)
             bw = wifiParameters.bw(distance, sta, ap, wlan)
-            print 'kkkkkkkkkkkkk'
+            
             sta.pexec("tc qdisc replace dev %s-wlan%s \
                 root handle 1: netem rate %.2fmbit \
                 loss %.1f%% \
