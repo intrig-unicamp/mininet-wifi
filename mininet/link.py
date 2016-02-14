@@ -416,21 +416,28 @@ class Link( object ):
             if 'station' == node1.type and 'onlyOneDevice' in str(node2):
                 params1[ 'port' ] = node1.newWlanPort()
                 node1.newPort()
+            elif 'station' == node1.type and 'mesh' in str(node2):
+                params1[ 'port' ] = node1.newWlanPort()
+                node1.newPort()
             else:
                 params1[ 'port' ] = node1.newPort()
         if 'port' not in params2:
-            if (str(node2) != 'onlyOneDevice'):
+            if (str(node2) != 'onlyOneDevice' and str(node2) != 'mesh'):
                 params2[ 'port' ] = node2.newPort()
                 
         if not intfName1:
             intfName1 = self.intfName( node1, params1[ 'port' ] )
         if not intfName2:
-            if (str(node2) != 'onlyOneDevice'):
+            if (str(node2) != 'onlyOneDevice' and str(node2) != 'mesh'):
                 intfName2 = self.intfName( node2, params2[ 'port' ] )
-            else:
-                intfName1 = self.wlanName( node1, params1[ 'port' ] )
+            elif str(node2) == 'onlyOneDevice' :
+                ifacename = 'wlan'
+                intfName1 = self.wlanName( node1, ifacename, params1[ 'port' ] )
+            elif str(node2) == 'mesh' :
+                ifacename = 'mp'
+                intfName1 = self.wlanName( node1, ifacename, params1[ 'port' ] )
         self.fast = fast
-        if('w' not in str(intfName1) and 'w' not in str(intfName2)):
+        if('w' not in str(intfName1) and 'w' not in str(intfName2) and 'mp' not in str(intfName1) and 'mp' not in str(intfName2)):
             if fast:
                 params1.setdefault( 'moveIntfFn', self._ignore )
                 params2.setdefault( 'moveIntfFn', self._ignore )
@@ -443,7 +450,7 @@ class Link( object ):
         if not cls2:
             cls2 = intf
         
-        if(('station' == node1.type and 'onlyOneDevice' in str(node2))):
+        if('station' == node1.type and 'onlyOneDevice' in str(node2) or 'station' == node1.type and 'mesh' in str(node2)):
             intf1 = cls1( name=intfName1, node=node1,
                           link=self, mac=addr1, **params1  )
             intf2 = None
@@ -463,11 +470,11 @@ class Link( object ):
         "Ignore any arguments"
         pass
     
-    def wlanName( self, node, n ):
+    def wlanName( self, node, ifacename, n ):
         "Construct a canonical interface name node-ethN for interface n."
         # Leave this as an instance method for now
         assert self
-        return node.name + '-wlan' + repr( n )
+        return node.name + '-' + ifacename + repr( n )
     
     def intfName( self, node, n ):
         "Construct a canonical interface name node-ethN for interface n."

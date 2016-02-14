@@ -111,7 +111,6 @@ class Node( object ):
         self.passwd = ''
         self.security = ''
         self.equipmentModel = ''  
-        self.function = []
         
         # Station Parameters
         self.associate = False

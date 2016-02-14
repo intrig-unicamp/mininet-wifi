@@ -114,7 +114,7 @@ from mininet.wifiDevices import deviceRange
 from __builtin__ import True
 
 # Mininet version: should be consistent with README and LICENSE
-VERSION = "1.6r5"
+VERSION = "1.6r6"
 
 class Mininet( object ):
     "Network emulation with hosts spawned in network namespaces."
@@ -584,14 +584,14 @@ class Mininet( object ):
         options.setdefault( 'addr1', self.randMac() )
         
         cls = self.link if cls is None else cls
-        link = cls( node, 'onlyOneDevice', **options )
-        
+        link = cls( node, 'mesh', **options )
+      
         for sta in self.hosts:
             if (sta == node):
                 station.addMesh(sta, **options)
                 if sta in self.missingStations:
                     self.missingStations.remove(sta)
-        
+                
         return link    
     
     def addHoc( self, sta, cls=None, **params ):
@@ -612,7 +612,7 @@ class Mininet( object ):
         if(ssid!="{}"):
             sta.ssid = ssid
         else:
-            sta.ssid = 'meshNetwork'
+            sta.ssid = 'adhocNetwork'
             
         mode = ("%s" % params.pop('mode', {}))
         if(mode!="{}"):
@@ -906,7 +906,7 @@ class Mininet( object ):
             else:
                 # Don't configure nonexistent intf
                 host.configDefault( ip=None, mac=None )
-           
+            
             # You're low priority, dude!
             # BL: do we want to do this here or not?
             # May not make sense if we have CPU lmiting...
@@ -977,7 +977,7 @@ class Mininet( object ):
         #useful if there no link between sta and any other device
         for s in self.missingStations:
             self.addMissingSTAs(s)
-        
+                
         "Build mininet."
         if self.topo:
             self.buildFromTopo( self.topo )

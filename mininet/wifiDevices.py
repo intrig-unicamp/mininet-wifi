@@ -40,7 +40,7 @@ class deviceDataRate ( object ):
     def TLWR740N(self, ap, sta, wlan):
         """TL-WR740N
            from http://www.tp-link.com.br/products/details/cat-9_TL-WR740N.html#specificationsf"""
-        try:
+        try: # if Station
             if sta.receivedPower[wlan] != 0:
                 if (sta.receivedPower[wlan] >= -68):
                     if ap.mode == 'n':
@@ -55,7 +55,7 @@ class deviceDataRate ( object ):
                     self.rate = 6
                 elif (sta.receivedPower[wlan] < -88 and sta.receivedPower[wlan] >= -90):
                     self.rate = 1
-        except:
+        except: # if AP
             if ap.mode == 'n':
                 self.rate = 130
             elif ap.mode == 'g':
@@ -67,23 +67,31 @@ class deviceDataRate ( object ):
     def WRT120N(self, ap, sta, wlan):
         """CISCO WRT120N
            from http://downloads.linksys.com/downloads/datasheet/WRT120N_V10_DS_B-WEB.pdf"""
-        if sta.receivedPower[wlan] != 0:
-            if (sta.receivedPower[wlan] >= -65):
-                if ap.mode == 'n':
-                    self.rate = 150
-                elif ap.mode == 'g':
-                    self.rate = 54
-                elif ap.mode == 'b':
+        try: # if Station
+            if sta.receivedPower[wlan] != 0:
+                if (sta.receivedPower[wlan] >= -65):
+                    if ap.mode == 'n':
+                        self.rate = 150
+                    elif ap.mode == 'g':
+                        self.rate = 54
+                    elif ap.mode == 'b':
+                        self.rate = 11
+                elif (sta.receivedPower[wlan] < -65 and sta.receivedPower[wlan] >= -68):
+                    if ap.mode == 'g':
+                        self.rate = 54
+                    elif ap.mode == 'b':
+                        self.rate = 11
+                elif (sta.receivedPower[wlan] < -68 and sta.receivedPower[wlan] >= -85):
                     self.rate = 11
-            elif (sta.receivedPower[wlan] < -65 and sta.receivedPower[wlan] >= -68):
-                if ap.mode == 'g':
-                    self.rate = 54
-                elif ap.mode == 'b':
-                    self.rate = 11
-            elif (sta.receivedPower[wlan] < -68 and sta.receivedPower[wlan] >= -85):
+                elif (sta.receivedPower[wlan] < -85 and sta.receivedPower[wlan] >= -90):
+                    self.rate = 1
+        except: # if AP
+            if ap.mode == 'n':
+                self.rate = 150
+            elif ap.mode == 'g':
+                self.rate = 54
+            elif ap.mode == 'b':
                 self.rate = 11
-            elif (sta.receivedPower[wlan] < -85 and sta.receivedPower[wlan] >= -90):
-                self.rate = 1
         return self.rate
        
 class deviceRange ( object ):

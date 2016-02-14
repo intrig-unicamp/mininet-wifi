@@ -329,8 +329,6 @@ class station ( object ):
         sta.sendCmd(cmd)
         associated = sta.waitOutput()
         self.getWiFiParameters(sta, iface, wlan)  
-        sta.function.append('none')
-        sta.function[wlan] = 'mesh' 
     
     @classmethod    
     def confirmAdhocAssociation(self, sta, iface, wlan):
@@ -339,9 +337,7 @@ class station ( object ):
             sta.sendCmd("iw dev %s scan ssid | grep %s" % (iface, sta.ssid))
             associated = sta.waitOutput()
         self.getWiFiParameters(sta, iface, wlan) 
-        sta.function.append('none')
-        sta.function[wlan] = 'adhoc'
-    
+
     @classmethod    
     def confirmInfraAssociation(self, sta, ap, wlan):
         associated = ''
@@ -353,8 +349,6 @@ class station ( object ):
         self.getWiFiParameters(sta, iface, wlan) 
         accessPoint.numberOfAssociatedStations(ap)
         sta.associatedAp[wlan] = ap
-        sta.function.append('none')
-        sta.function[wlan] = 'infra'
             
     @classmethod    
     def isAssociated(self, sta, iface):
@@ -405,15 +399,16 @@ class station ( object ):
         """ Mesh mode """   
         sta.ifaceToAssociate += 1
         wlan = sta.ifaceToAssociate
-        self.iwCommand(sta, wlan, ('interface add mp%s type mp' % wlan))
-        sta.cmd('iw dev mp%s set %s' % (wlan, sta.channel))
-        sta.cmd('ifconfig mp%s 192.168.10.%s up' % (wlan, ipaddress))
-        sta.cmd('iw dev mp%s mesh join %s' % (wlan, sta.ssid))
+        self.iwCommand(sta, wlan, ('interface add %s-mp%s type mp' % (sta,wlan)))
+        sta.cmd('iw dev %s-mp%s set %s' % (sta, wlan, sta.channel))
+        sta.cmd('ifconfig %s-mp%s 192.168.10.%s up' % (sta, wlan, ipaddress))
+        sta.cmd('iw dev %s-mp%s mesh join %s' % (sta, wlan, sta.ssid))
         association.setAdhocParameters(sta, wlan)
         print "associating %s ..." % sta
         iface = '%s-wlan%s' % (sta, wlan)
         mpID = wlan
-        self.confirmMeshAssociation(sta, iface, mpID, wlan)        
+        self.confirmMeshAssociation(sta, iface, mpID, wlan)      
+     
             
 class accessPoint ( object ):    
 
