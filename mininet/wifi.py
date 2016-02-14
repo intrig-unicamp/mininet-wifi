@@ -147,18 +147,35 @@ class module( object ):
 class association( object ):
     
     @classmethod    
-    def setAdhocParameters(self, sta, iface):
+    def setAdhocParameters(self, sta, iface, ref_distance):
         """ Set wifi AdHoc Parameters. Have to use models for loss, latency, bw... """
-        latency = 2
-        #delay = 5 * distance
-        bandwidth = wifiParameters.set_bw(sta.mode)
-        sta.pexec("tc qdisc replace dev %s-wlan%s \
-            root handle 3: netem rate %smbit \
-            latency %sms" % (sta, iface, bandwidth, latency))    
+        if ref_distance != '':
+            seconds = 1
+            try:
+                """Based on RandomPropagationDelayModel (ns3)"""
+                seconds = abs(sta.speed)
+            except: 
+                pass
+            latency = wifiParameters.latency(ref_distance)
+            loss = wifiParameters.loss(ref_distance, sta.mode)
+            bandwidth = wifiParameters.set_bw(sta.mode)
+            delay = wifiParameters.delay(ref_distance, seconds)
+            bw = wifiParameters.bw(ref_distance, sta, None, 0)
+            sta.pexec("tc qdisc replace dev %s-wlan%s \
+                root handle 1: netem rate %.2fmbit \
+                loss %.1f%% \
+                latency %.2fms \
+                delay %.2fms" % (sta, iface, bw, loss, latency, delay))
+        else:
+            latency = 2
+            bandwidth = wifiParameters.set_bw(sta.mode)
+            sta.pexec("tc qdisc replace dev %s-wlan%s \
+                root handle 3: netem rate %smbit \
+                latency %sms" % (sta, iface, bandwidth, latency))    
         #Reordering packets    
         sta.pexec('tc qdisc add dev %s-wlan%s parent 3:1 pfifo limit 1000' % (sta, iface))        
 
-
+    
     @classmethod    
     def parameters(self, sta, ap, distance, wlan):
         """ Wifi Parameters """
@@ -387,7 +404,7 @@ class station ( object ):
         """ Adhoc mode """   
         sta.ifaceToAssociate += 1
         wlan = sta.ifaceToAssociate
-        association.setAdhocParameters(sta, wlan)
+        association.setAdhocParameters(sta, wlan, '')
         self.iwCommand(sta, wlan, 'set type ibss')
         self.iwCommand(sta, wlan, ('ibss join %s 2412' % sta.ssid))
         print "associating %s ..." % str(sta)
@@ -403,7 +420,7 @@ class station ( object ):
         sta.cmd('iw dev %s-mp%s set %s' % (sta, wlan, sta.channel))
         sta.cmd('ifconfig %s-mp%s up' % (sta, wlan))
         sta.cmd('iw dev %s-mp%s mesh join %s' % (sta, wlan, sta.ssid))
-        association.setAdhocParameters(sta, wlan)
+        association.setAdhocParameters(sta, wlan, '')
         print "associating %s ..." % sta
         iface = '%s-wlan%s' % (sta, wlan)
         mpID = wlan
@@ -569,8 +586,6 @@ class mobility ( object ):
     plotsta = {}
     plottxt = {}
     nodesPlotted = []
-    plotGraph = False
-    cancelPlot = False
     ismobility = False
     accessControl = None
     DRAW = False
@@ -623,29 +638,41 @@ class mobility ( object ):
         plt.text(int(position[0]), int(position[1]), ap)
 
     @classmethod 
-    def plot(self, src, dst, pos_src, pos_dst):
+    def plot(self, src, dst):
         """
             Plot Graph: Useful when the position is previously defined.
                         Not useful for Mobility Models
         """
         plt.ion()
         ax = plt.subplot(111)
+        pos_src = src.position
+        pos_dst = dst.position
         
-        if dst.type == 'station' and str(dst) not in self.nodesPlotted:
-            sta = str(dst)
-            position = pos_dst
-            self.plotStation(sta, position, ax)
-        elif src.type == 'station' and str(src) not in self.nodesPlotted:
+        if src.type == 'station' and dst.type == 'station' and str(src) not in self.nodesPlotted:
             sta = str(src)
             position = pos_src
             self.plotStation(sta, position, ax)
+        else:
+            if src.type != 'station' or dst.type != 'station':
+                if dst.type == 'station' and str(dst) not in self.nodesPlotted:
+                    sta = str(dst)
+                    position = pos_dst
+                    self.plotStation(sta, position, ax)
+                elif src.type == 'station' and str(src) not in self.nodesPlotted:
+                    sta = str(src)
+                    position = pos_src
+                    self.plotStation(sta, position, ax)
         
-        if  src.type == 'station':
+        if src.type == 'station' and dst.type == 'station':
             self.plotsta[str(src)].set_data(pos_src[0],pos_src[1])
             self.plottxt[str(src)].xytext = (pos_src[0],pos_src[1])
-        elif dst.type == 'station':
-            self.plotsta[str(dst)].set_data(pos_dst[0],pos_dst[1])
-            self.plottxt[str(dst)].xytext = (pos_dst[0],pos_dst[1])
+        else:
+            if  src.type == 'station':
+                self.plotsta[str(src)].set_data(pos_src[0],pos_src[1])
+                self.plottxt[str(src)].xytext = (pos_src[0],pos_src[1])
+            elif dst.type == 'station':
+                self.plotsta[str(dst)].set_data(pos_dst[0],pos_dst[1])
+                self.plottxt[str(dst)].xytext = (pos_dst[0],pos_dst[1])
              
         if dst.type == 'accessPoint' and str(dst) not in self.nodesPlotted:
             ap = dst
@@ -665,12 +692,11 @@ class mobility ( object ):
         """ Get the distance between two points """
         pos_src = src.position
         pos_dst = dst.position
-        if self.plotGraph and self.cancelPlot==False:
-            self.plot(src, dst, pos_src, pos_dst)
+        
         points = np.array([(pos_src[0], pos_src[1], pos_src[2]), (pos_dst[0], pos_dst[1], pos_dst[2])])
         dist = distance.pdist(points)
         return dist
-    
+  
     @classmethod 
     def printDistance(self, src, dst):
         """ Print the distance between two points """
@@ -718,7 +744,7 @@ class mobility ( object ):
             
     @classmethod   
     def models(self, wifiNodes=None, model=None, max_x=None, max_y=None, min_v=None, max_v=None, 
-               manual_aprange=-10, n_staMov=None, ismobility=None, AC=None, seed=None,
+               manual_aprange=-10, n_staMov=None, ismobility=None, AC=None, seed=None, plot=False,
                **mobilityparam):
         
         accessPoint.manual_apRange = manual_aprange
@@ -728,9 +754,7 @@ class mobility ( object ):
         np.random.seed(seed)
         
         # set this to true if you want to plot node positions
-        self.DRAW = self.plotGraph
-        
-        self.cancelPlot = True
+        self.DRAW = plot
         
         # number of nodes
         nr_nodes = n_staMov
@@ -927,38 +951,53 @@ class wifiParameters ( object ):
     
     @classmethod
     def bw(self, distance, sta, ap, wlan):
-        mode = ap.mode
-        signalRange = ap.range
-        customStep = self.custom_step(mode)
-        custombw = self.custom_bw(mode)
-        if distance != 0: 
-            if ap.equipmentModel == None:
-                bw = self.set_bw_node_moving(mode)
-                for n in range(0,signalRange+1):
-                    sta.receivedPower[wlan] = -50 - distance
-                    if n % customStep==0:
-                        if n>=distance:
-                            return bw
-                        elif distance > signalRange:
-                            return 0
-                        bw = bw - custombw 
-            elif ap.equipmentModel != None and self.propagationModel == '':
+        if ap == None:
+            mode = sta.mode
+            signalRange = accessPoint.range(mode)
+            customStep = self.custom_step(mode)
+            custombw = self.custom_bw(mode)
+            bw = self.set_bw_node_moving(mode)
+            for n in range(0,signalRange+1):
                 sta.receivedPower[wlan] = -50 - distance
-                if sta.associatedAp[wlan] != 'NoAssociated':
-                    r = deviceDataRate(ap, sta, wlan)
-                    self.rate = r.rate
-                else:
-                    self.rate = 0
-                return self.rate
-            else:
-                if sta.associatedAp[wlan] != 'NoAssociated':
-                    r = deviceDataRate(ap, sta, wlan)
-                    self.rate = r.rate
-                else:
-                    self.rate = 0
-                return self.rate
+                if n % customStep==0:
+                    if n>=distance:
+                        return bw
+                    elif distance > signalRange:
+                        return 0
+                    bw = bw - custombw
         else:
-            return self.set_bw(mode)        
+            mode = ap.mode
+            signalRange = ap.range
+            customStep = self.custom_step(mode)
+            custombw = self.custom_bw(mode)
+            if distance != 0: 
+                if ap.equipmentModel == None:
+                    bw = self.set_bw_node_moving(mode)
+                    for n in range(0,signalRange+1):
+                        sta.receivedPower[wlan] = -50 - distance
+                        if n % customStep==0:
+                            if n>=distance:
+                                return bw
+                            elif distance > signalRange:
+                                return 0
+                            bw = bw - custombw 
+                elif ap.equipmentModel != None and self.propagationModel == '':
+                    sta.receivedPower[wlan] = -50 - distance
+                    if sta.associatedAp[wlan] != 'NoAssociated':
+                        r = deviceDataRate(ap, sta, wlan)
+                        self.rate = r.rate
+                    else:
+                        self.rate = 0
+                    return self.rate
+                else:
+                    if sta.associatedAp[wlan] != 'NoAssociated':
+                        r = deviceDataRate(ap, sta, wlan)
+                        self.rate = r.rate
+                    else:
+                        self.rate = 0
+                    return self.rate
+            else:
+                return self.set_bw(mode)        
     
     @classmethod    
     def set_bw_node_moving(self, mode):

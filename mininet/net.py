@@ -166,6 +166,7 @@ class Mininet( object ):
         self.start_time = 0 #start mobility time
         self.set_seed = 10
         self.firstAssociation = True
+        self.plot = False
         self.ssid = ssid        
         self.mode = mode
         self.channel = channel
@@ -576,6 +577,10 @@ class Mininet( object ):
         else:
             sta.mode = 'g'
             
+        if self.plot:
+            src, dst = sta, sta
+            mobility.plot(src, dst)
+    
         for sta in self.hosts:
             if (sta == node):
                 station.addMesh(sta, **options)
@@ -589,6 +594,7 @@ class Mininet( object ):
         
         cls = self.link if cls is None else cls
         link = cls( node, 'mesh', **options )
+        
         return link    
     
     def addHoc( self, sta, cls=None, **params ):
@@ -625,11 +631,16 @@ class Mininet( object ):
         cls = self.link if cls is None else cls
         link = cls( sta, 'onlyOneDevice', **options )
         
+        if self.plot:
+            src, dst = sta, sta
+            mobility.plot(src, dst)
+        
         for sta in self.hosts:
             if (sta == node):
                 station.adhoc(sta, **options)
                 if sta in self.missingStations:
-                    self.missingStations.remove(sta)
+                    self.missingStations.remove(sta)        
+        
         return link
       
     def configureAP(self):
@@ -818,6 +829,9 @@ class Mininet( object ):
                 #If sta/ap have defined position 
                 if sta.startPosition !=0 and ap.startPosition !=0:
                     distance = mobility.getDistance(sta, ap)
+                    if self.plot:
+                        src, dst = sta, ap
+                        mobility.plot(src, dst)
                     doAssociation = association.doAssociation(sta.mode, ap, distance)
                 #if not
                 else:
@@ -1057,8 +1071,7 @@ class Mininet( object ):
 
     def stop( self ):
         "Stop plotting"
-        mobility.cancelPlot = True
-        mobility.plotGraph = False
+        self.plot = False
         mobility.DRAW = False
         mobility.ismobility = False
         try:
@@ -1440,6 +1453,7 @@ class Mininet( object ):
         
         mobilityparam.setdefault( 'ismobility', True )
         mobilityparam.setdefault( 'seed', self.set_seed )
+        mobilityparam.setdefault( 'plot', self.plot )
      
         if self.mobilityModel != '':
             mobilityparam.setdefault( 'wifiNodes', self.wifiNodes )
@@ -1473,24 +1487,35 @@ class Mininet( object ):
         t_start = time.time() + self.start_time
         currentTime = time.time()
         i=1
-        
+        ref_distance = 0
         try:
             while time.time() < t_end and time.time() > t_start:
                 if time.time() - currentTime >= i:
-                    for sta in self.hosts:
-                        if sta.type == 'station':
-                            if str(sta) in self.sta_inMov:
-                                if time.time() - currentTime >= sta.startTime and time.time() - currentTime <= sta.endTime:
-                                    sta.startPosition[0] = float(sta.startPosition[0]) + float(sta.moveSta[0])
-                                    sta.startPosition[1] = float(sta.startPosition[1]) + float(sta.moveSta[1])
-                                    sta.startPosition[2] = float(sta.startPosition[2]) + float(sta.moveSta[2])
-                            else:
-                                sta.startPosition[0] = float(sta.startPosition[0])
-                                sta.startPosition[1] = float(sta.startPosition[1])
-                                sta.startPosition[2] = float(sta.startPosition[2])
-                            sta.position = sta.startPosition
+                    for sta in self.stations:
+                        if str(sta) in self.sta_inMov:
+                            if time.time() - currentTime >= sta.startTime and time.time() - currentTime <= sta.endTime:
+                                sta.startPosition[0] = float(sta.startPosition[0]) + float(sta.moveSta[0])
+                                sta.startPosition[1] = float(sta.startPosition[1]) + float(sta.moveSta[1])
+                                sta.startPosition[2] = float(sta.startPosition[2]) + float(sta.moveSta[2])
+                        else:
+                            sta.startPosition[0] = float(sta.startPosition[0])
+                            sta.startPosition[1] = float(sta.startPosition[1])
+                            sta.startPosition[2] = float(sta.startPosition[2])
+                        sta.position = sta.startPosition
+                        if self.accessPoints == []:
+                            for ref_sta in self.stations:
+                                ref_distance = ref_distance + mobility.getDistance(sta, ref_sta)
+                                if self.plot:
+                                    src, dst = sta, ref_sta
+                                    mobility.plot(src, dst)
+                            ref_distance = ref_distance / len(self.stations)
+                            association.setAdhocParameters(sta, 0, ref_distance)
+                        else:
                             for ap in self.accessPoints:
                                 distance = mobility.getDistance(sta, ap)
+                                if self.plot:
+                                    src, dst = sta, ap
+                                    mobility.plot(src, dst)
                                 association.setInfraParameters(sta, ap, distance, '')
                     i+=1
         except:
@@ -1502,7 +1527,7 @@ class Mininet( object ):
             mobility.MAX_X = kwargs['max_x']
         if 'max_y' in kwargs:
             mobility.MAX_Y = kwargs['max_y']
-        mobility.plotGraph = True
+        self.plot = True
         
     def getCurrentPosition(self, node):
         """ Get Current Position """ 
@@ -1553,24 +1578,17 @@ class Mininet( object ):
                         
     def getCurrentDistance(self, src, dst):
         """ Get current Distance """ 
-        existSrc = False
-        existDst = False
-        for host1 in self.wifiNodes:
-            if src == str(host1):
-                src = host1
-                existSrc = True
-                for host2 in self.wifiNodes:
-                    if dst == str(host2):
-                        dst = host2
-                        existDst = True
-                        mobility.printDistance(src, dst)
-        try:               
-            if(existSrc==False and existDst==False):
-                print ("nodes %s and %s do not exist" % (src, dst))
-            elif(existSrc==True and existDst==False):
-                print ("node %s does not exist" % (dst))
+        try:
+            for host1 in self.wifiNodes:
+                if src == str(host1):
+                    src = host1
+                    for host2 in self.wifiNodes:
+                        if dst == str(host2):
+                            dst = host2
+                            mobility.printDistance(src, dst)
         except:
-            print ("Station or Access Point does not exist!")
+            print ("node %s or/and node %s does not exist or there is no position defined" % (dst, src))
+        
         
     # BL: I think this can be rewritten now that we have
     # a real link class.
