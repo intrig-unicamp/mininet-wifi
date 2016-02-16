@@ -218,7 +218,7 @@ class association( object ):
             else:
                 associated = False
         
-        #Only if is a mobility topology
+        #Only if is a mobility environment
         if mobility.ismobility == True: 
             changeAP = False
             accessControl = dict ()
@@ -425,6 +425,7 @@ class station ( object ):
         iface = '%s-wlan%s' % (sta, wlan)
         mpID = wlan
         self.confirmMeshAssociation(sta, iface, mpID, wlan)     
+
                  
 class accessPoint ( object ):    
 
@@ -432,21 +433,6 @@ class accessPoint ( object ):
     number = 0
     exists = False   
     manual_apRange = -10   
-    
-    @classmethod   
-    def range(self, mode):
-        if (mode=='a'):
-            self.distance = 33
-        elif(mode=='b'):
-            self.distance = 50
-        elif(mode=='g'):
-            self.distance = 33 
-        elif(mode=='n'):
-            self.distance = 70
-        elif(mode=='ac'):
-            self.distance = 100 
-            
-        return self.distance
     
     """
     def wds(self, ap1, int1, ap2, int2):
@@ -577,8 +563,7 @@ class accessPoint ( object ):
             delay 0.1ms" % (iface, bw))   
         #Reordering packets    
         os.system('tc qdisc add dev %s parent 2:1 pfifo limit 1000' % iface)
-        #os.system("tc qdisc add dev %s root tbf rate %smbit latency 2ms burst 15k" % \
-                 #(ap.virtualWlan, bandwidth))
+
                  
 class plot (object):
     """Plot Graph: Useful when the position is previously defined.
@@ -602,7 +587,7 @@ class plot (object):
    
         if node.type == 'station':
             color = 'blue'
-            mobility.plottxt[node] = ax.annotate(node, xy=(node.position[0], node.position[1]))
+            mobility.plttxt[node] = ax.annotate(node, xy=(node.position[0], node.position[1]))
         elif node.type == 'accessPoint':
             color = 'red'
             self.plotCircle(node, ax)
@@ -616,11 +601,11 @@ class plot (object):
     def plotUpdate(self, node):
         """Update Draw"""
         mobility.pltNode[node].set_data(node.position[0], node.position[1])
-        mobility.plottxt[node].xytext = (node.position[0], node.position[1])
+        mobility.plttxt[node].xytext = (node.position[0], node.position[1])
      
     def plotCircle(self, node, ax):
         """Plot Circle"""
-        ax.add_patch(
+        mobility.pltCircle[node] = ax.add_patch(
             patches.Circle((node.position[0], node.position[1]),
             node.range, fill=True, alpha=0.1
             )
@@ -642,7 +627,7 @@ class plot (object):
                     self.plotNode(src, ax)
         
         if src.type == 'station' and dst.type == 'station':
-            self.plotCircle(src, ax)
+            mobility.pltCircle[src].center = src.position[0], src.position[1]
             self.plotUpdate(src)            
         else:
             if  src.type == 'station':
@@ -669,7 +654,8 @@ class mobility ( object ):
     accessControl = None
     DRAW = False
     pltNode = {}
-    plottxt = {}
+    plttxt = {}
+    pltCircle = {}
     nodesPlotted = []
     MAX_X = 50
     MAX_Y = 50
@@ -847,6 +833,7 @@ class mobility ( object ):
                 if self.DRAW:
                     plt.title("Mininet-WiFi Graph")
                     plt.draw()
+                    
          
 class wifiParameters ( object ):
     """WiFi Parameters""" 
@@ -939,6 +926,24 @@ class wifiParameters ( object ):
         return self.step
     
     @classmethod
+    def range(self, node):
+        
+        mode = node.mode
+        
+        if (mode=='a'):
+            self.value = 33
+        elif(mode=='b'):
+            self.value = 50
+        elif(mode=='g'):
+            self.value = 33 
+        elif(mode=='n'):
+            self.value = 70
+        elif(mode=='ac'):
+            self.value = 100 
+            
+        return self.value   
+    
+    @classmethod
     def custom_bw(self, mode):    
         """ only useful for bw """
         self.bw_step = 0
@@ -957,7 +962,7 @@ class wifiParameters ( object ):
     def bw(self, distance, sta, ap, wlan):
         if ap == None:
             mode = sta.mode
-            signalRange = accessPoint.range(mode)
+            signalRange = sta.range
             customStep = self.custom_step(mode)
             custombw = self.custom_bw(mode)
             bw = self.set_bw_node_moving(mode)
