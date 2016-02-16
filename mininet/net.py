@@ -109,7 +109,7 @@ from mininet.util import ( quietRun, fixLimits, numCores, ensureRoot,
                            macColonHex, ipStr, ipParse, netParse, ipAdd,
                            waitListening )
 from mininet.term import cleanUpScreens, makeTerms
-from mininet.wifi import checkNM, module, accessPoint, station, wifiParameters, association, mobility, getWlan
+from mininet.wifi import checkNM, module, accessPoint, station, wifiParameters, association, mobility, getWlan, plot
 from mininet.wifiDevices import deviceRange
 from __builtin__ import True
 
@@ -579,7 +579,7 @@ class Mininet( object ):
             
         if self.plot:
             src, dst = sta, sta
-            mobility.plot(src, dst)
+            plot(src, dst)
     
         for sta in self.hosts:
             if (sta == node):
@@ -633,7 +633,7 @@ class Mininet( object ):
         
         if self.plot:
             src, dst = sta, sta
-            mobility.plot(src, dst)
+            plot(src, dst)
         
         for sta in self.hosts:
             if (sta == node):
@@ -831,7 +831,7 @@ class Mininet( object ):
                     distance = mobility.getDistance(sta, ap)
                     if self.plot:
                         src, dst = sta, ap
-                        mobility.plot(src, dst)
+                        plot(src, dst)
                     doAssociation = association.doAssociation(sta.mode, ap, distance)
                 #if not
                 else:
@@ -1075,7 +1075,7 @@ class Mininet( object ):
         mobility.DRAW = False
         mobility.ismobility = False
         try:
-            mobility.closePlot()
+            plot('', '', close=True)
         except:
             pass
         
@@ -1488,38 +1488,38 @@ class Mininet( object ):
         currentTime = time.time()
         i=1
         ref_distance = 0
-        try:
-            while time.time() < t_end and time.time() > t_start:
-                if time.time() - currentTime >= i:
-                    for sta in self.stations:
-                        if str(sta) in self.sta_inMov:
-                            if time.time() - currentTime >= sta.startTime and time.time() - currentTime <= sta.endTime:
-                                sta.startPosition[0] = float(sta.startPosition[0]) + float(sta.moveSta[0])
-                                sta.startPosition[1] = float(sta.startPosition[1]) + float(sta.moveSta[1])
-                                sta.startPosition[2] = float(sta.startPosition[2]) + float(sta.moveSta[2])
-                        else:
-                            sta.startPosition[0] = float(sta.startPosition[0])
-                            sta.startPosition[1] = float(sta.startPosition[1])
-                            sta.startPosition[2] = float(sta.startPosition[2])
-                        sta.position = sta.startPosition
-                        if self.accessPoints == []:
-                            for ref_sta in self.stations:
-                                ref_distance = ref_distance + mobility.getDistance(sta, ref_sta)
-                                if self.plot:
-                                    src, dst = sta, ref_sta
-                                    mobility.plot(src, dst)
-                            ref_distance = ref_distance / len(self.stations)
-                            association.setAdhocParameters(sta, 0, ref_distance)
-                        else:
-                            for ap in self.accessPoints:
-                                distance = mobility.getDistance(sta, ap)
-                                if self.plot:
-                                    src, dst = sta, ap
-                                    mobility.plot(src, dst)
-                                association.setInfraParameters(sta, ap, distance, '')
-                    i+=1
-        except:
-            print 'Error! Mobility stopped!'
+       # try:
+        while time.time() < t_end and time.time() > t_start:
+            if time.time() - currentTime >= i:
+                for sta in self.stations:
+                    if str(sta) in self.sta_inMov:
+                        if time.time() - currentTime >= sta.startTime and time.time() - currentTime <= sta.endTime:
+                            sta.startPosition[0] = float(sta.startPosition[0]) + float(sta.moveSta[0])
+                            sta.startPosition[1] = float(sta.startPosition[1]) + float(sta.moveSta[1])
+                            sta.startPosition[2] = float(sta.startPosition[2]) + float(sta.moveSta[2])
+                    else:
+                        sta.startPosition[0] = float(sta.startPosition[0])
+                        sta.startPosition[1] = float(sta.startPosition[1])
+                        sta.startPosition[2] = float(sta.startPosition[2])
+                    sta.position = sta.startPosition
+                    if self.accessPoints == []:
+                        for ref_sta in self.stations:
+                            ref_distance = ref_distance + mobility.getDistance(sta, ref_sta)
+                            if self.plot:
+                                src, dst = sta, ref_sta
+                                plot(src, dst)
+                        ref_distance = ref_distance / len(self.stations)
+                        association.setAdhocParameters(sta, 0, ref_distance)
+                    else:
+                        for ap in self.accessPoints:
+                            distance = mobility.getDistance(sta, ap)
+                            if self.plot:
+                                src, dst = sta, ap
+                                plot(src, dst)
+                            association.setInfraParameters(sta, ap, distance, '')
+                i+=1
+        #except:
+         #   print 'Error! Mobility stopped!'
                    
     def plotGraph(self, **kwargs):
         """ Plot Graph """

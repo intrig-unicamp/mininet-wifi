@@ -579,22 +579,100 @@ class accessPoint ( object ):
         os.system('tc qdisc add dev %s parent 2:1 pfifo limit 1000' % iface)
         #os.system("tc qdisc add dev %s root tbf rate %smbit latency 2ms burst 15k" % \
                  #(ap.virtualWlan, bandwidth))
+                 
+class plot (object):
+    """Plot Graph: Useful when the position is previously defined.
+                        Not useful for Mobility Models"""
+    
+    def __init__( self, src, dst, **params ):
+                    
+        close = (params.pop('close', {}))
+        if close == True:
+            self.closePlot()
+        else:    
+            self.startPlot(src, dst)
+           
+    def closePlot(self):
+        """Close"""
+        plt.close()  
+        
+    def plotNode(self, node, ax):
+        """Plot Node"""
+        plt.ion()
+   
+        if node.type == 'station':
+            color = 'blue'
+            mobility.plottxt[node] = ax.annotate(node, xy=(node.position[0], node.position[1]))
+        elif node.type == 'accessPoint':
+            color = 'red'
+            self.plotCircle(node, ax)
+            plt.text(int(node.position[0]), int(node.position[1]), node)  
+        
+        mobility.pltNode[node], = ax.plot(range(mobility.MAX_X), range(mobility.MAX_Y), \
+                                     linestyle='', marker='.', ms=12, mfc=color)
+        mobility.pltNode[node].set_data(node.position[0], node.position[1])
+        mobility.nodesPlotted.append(node)
+        
+    def plotUpdate(self, node):
+        """Update Draw"""
+        mobility.pltNode[node].set_data(node.position[0], node.position[1])
+        mobility.plottxt[node].xytext = (node.position[0], node.position[1])
+     
+    def plotCircle(self, node, ax):
+        """Plot Circle"""
+        ax.add_patch(
+            patches.Circle((node.position[0], node.position[1]),
+            node.range, fill=True, alpha=0.1
+            )
+        )
+        
+    def startPlot(self, src, dst):
+        """Start"""
+        plt.ion()
+        ax = plt.subplot(111)
+        
+        if src.type == 'station' and dst.type == 'station' and src not in mobility.nodesPlotted:
+            self.plotNode(src, ax)
+            self.plotCircle(src, ax)
+        else:
+            if src.type != 'station' or dst.type != 'station':
+                if dst.type == 'station' and dst not in mobility.nodesPlotted:
+                    self.plotNode(dst, ax)
+                elif src.type == 'station' and src not in mobility.nodesPlotted:
+                    self.plotNode(src, ax)
+        
+        if src.type == 'station' and dst.type == 'station':
+            self.plotCircle(src, ax)
+            self.plotUpdate(src)            
+        else:
+            if  src.type == 'station':
+                self.plotUpdate(src)
+            elif dst.type == 'station':
+                self.plotUpdate(dst)
+             
+        if dst.type == 'accessPoint' and dst not in mobility.nodesPlotted:
+            ap = dst
+        elif src.type == 'accessPoint' and src not in mobility.nodesPlotted:
+            ap = src
+            
+        if src.type == 'accessPoint' and src not in mobility.nodesPlotted \
+                        or dst.type == 'accessPoint' and dst not in mobility.nodesPlotted:
+            self.plotNode(ap, ax)
+        
+        plt.title("Mininet-WiFi Graph")
+        plt.draw()     
+        
         
 class mobility ( object ):    
     """ Mobility """          
-    plotap = {}
-    plotsta = {}
-    plottxt = {}
-    nodesPlotted = []
     ismobility = False
     accessControl = None
     DRAW = False
+    pltNode = {}
+    plottxt = {}
+    nodesPlotted = []
     MAX_X = 50
     MAX_Y = 50
-    
-    @classmethod 
-    def closePlot(self):
-        plt.close()    
     
     @classmethod   
     def move(self, sta, diffTime, speed, startposition, endposition):      
@@ -612,80 +690,6 @@ class mobility ( object ):
         pos = '%.5f,%.5f,%.5f' % (pos_x/diffTime, pos_y/diffTime, pos_z/diffTime)
         pos = pos.split(',')
         return pos       
-    
-    @classmethod 
-    def plotStation(self, sta, position, ax):
-        plt.ion()
-        self.plottxt[sta] = ax.annotate(sta, xy=(position[0],position[1]))
-        self.plotsta[sta], = ax.plot(range(self.MAX_X), range(self.MAX_Y), \
-                                     linestyle='', marker='.', ms=12, mfc='blue')
-        self.nodesPlotted.append(sta)
-        self.plotsta[sta].set_data(position[0],position[1])
-        
-    @classmethod 
-    def plotAccessPoint(self, ap, position, ax):
-        plt.ion()
-        self.plotap[ap], = ax.plot(range(self.MAX_X), range(self.MAX_Y), \
-                                   linestyle='', marker='.', ms=12, mfc='red')
-        
-        ax.add_patch(
-            patches.Circle((position[0], position[1]),
-            ap.range, fill=True,  alpha=0.1
-            )
-        )
-        self.plotap[ap].set_data(position[0], position[1])
-        self.nodesPlotted.append(str(ap))
-        plt.text(int(position[0]), int(position[1]), ap)
-
-    @classmethod 
-    def plot(self, src, dst):
-        """
-            Plot Graph: Useful when the position is previously defined.
-                        Not useful for Mobility Models
-        """
-        plt.ion()
-        ax = plt.subplot(111)
-        pos_src = src.position
-        pos_dst = dst.position
-        
-        if src.type == 'station' and dst.type == 'station' and str(src) not in self.nodesPlotted:
-            sta = str(src)
-            position = pos_src
-            self.plotStation(sta, position, ax)
-        else:
-            if src.type != 'station' or dst.type != 'station':
-                if dst.type == 'station' and str(dst) not in self.nodesPlotted:
-                    sta = str(dst)
-                    position = pos_dst
-                    self.plotStation(sta, position, ax)
-                elif src.type == 'station' and str(src) not in self.nodesPlotted:
-                    sta = str(src)
-                    position = pos_src
-                    self.plotStation(sta, position, ax)
-        
-        if src.type == 'station' and dst.type == 'station':
-            self.plotsta[str(src)].set_data(pos_src[0],pos_src[1])
-            self.plottxt[str(src)].xytext = (pos_src[0],pos_src[1])
-        else:
-            if  src.type == 'station':
-                self.plotsta[str(src)].set_data(pos_src[0],pos_src[1])
-                self.plottxt[str(src)].xytext = (pos_src[0],pos_src[1])
-            elif dst.type == 'station':
-                self.plotsta[str(dst)].set_data(pos_dst[0],pos_dst[1])
-                self.plottxt[str(dst)].xytext = (pos_dst[0],pos_dst[1])
-             
-        if dst.type == 'accessPoint' and str(dst) not in self.nodesPlotted:
-            ap = dst
-            position = pos_dst
-        elif src.type == 'accessPoint' and str(src) not in self.nodesPlotted:
-            ap = src
-            position = pos_src
-            
-        if src.type == 'accessPoint' and str(src) not in self.nodesPlotted or dst.type == 'accessPoint'  and str(dst) not in self.nodesPlotted:
-            self.plotAccessPoint(ap, position, ax)
-        
-        plt.title("Mininet-WiFi Graph")
-        plt.draw()            
         
     @classmethod 
     def getDistance(self, src, dst):
