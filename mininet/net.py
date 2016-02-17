@@ -167,6 +167,7 @@ class Mininet( object ):
         self.set_seed = 10
         self.firstAssociation = True
         self.plot = False
+        self.ifaceConfigured = False
         self.ssid = ssid        
         self.mode = mode
         self.channel = channel
@@ -404,15 +405,14 @@ class Mininet( object ):
         else:
             bs.encrypt = None
         
-        ap = bs
         self.range = ("%s" % params.pop('range', {}))
         if(self.range!="{}"):
-            ap.range = int(self.range)
+            bs.range = int(self.range)
         else:
-            if ap.equipmentModel == None:
-                ap.range = wifiParameters.range(bs)
+            if bs.equipmentModel == None:
+                bs.range = wifiParameters.range(bs)
             else:
-                deviceRange(ap)            
+                deviceRange(bs)            
             
         wifi = ("%s" % params.pop('wlans', {}))
         if(wifi!="{}"):        
@@ -770,15 +770,18 @@ class Mininet( object ):
                 st.antennaGain.append(1)
                                 
     def configureWifiNodes(self, hasAP=True):
-        module.startEnvironment()
-        self.link = TCLink
-        self.newapif = getWlan.virtual()  #Get Virtual Wlans      
-        self.firstAssociation = False
-        station.assingIface(self.hosts)
+        if self.ifaceConfigured == False:
+            module.startEnvironment()
+            self.link = TCLink
+            self.newapif = getWlan.virtual()  #Get Virtual Wlans      
+            station.assingIface(self.stations)
+            self.ifaceConfigured = True
         if hasAP:
             self.configureAP() #configure AP
             #Useful when stations have multiple interfaces
             self.activeMultipleWlans()
+            self.firstAssociation = False
+        
         
             
     def addLink( self, node1, node2, port1=None, port2=None, 

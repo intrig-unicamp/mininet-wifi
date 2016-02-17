@@ -322,15 +322,14 @@ class station ( object ):
     def assingIface(self, stations):
         wlan = getWlan.virtual()
         for sta in stations:
-            if sta.type == 'station':
-                for i in range(0, sta.nWlans):
-                    vwlan = module.virtualWlan.index(str(sta))
-                    #os.system('iw phy %s set rts 80' % phyInt.totalPhy[vwlan + i])
-                    os.system('iw phy %s set netns %s' % ( phyInt.totalPhy[vwlan + i], sta.pid ))
-                    sta.cmd('ip link set %s name %s-wlan%s' % (wlan[vwlan + i], str(sta), i))   
-                    sta.frequency.append(0)
-                    sta.txpower.append(0)
-                    sta.receivedPower.append(0)
+            for i in range(0, sta.nWlans):
+                vwlan = module.virtualWlan.index(str(sta))
+                #os.system('iw phy %s set rts 80' % phyInt.totalPhy[vwlan + i])
+                os.system('iw phy %s set netns %s' % ( phyInt.totalPhy[vwlan + i], sta.pid ))
+                sta.cmd('ip link set %s name %s-wlan%s' % (wlan[vwlan + i], str(sta), i))   
+                sta.frequency.append(0)
+                sta.txpower.append(0)
+                sta.receivedPower.append(0)
                              
     @classmethod
     def getWiFiParameters(self, sta, iface, wlan):
