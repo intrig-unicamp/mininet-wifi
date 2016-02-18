@@ -757,17 +757,6 @@ class Mininet( object ):
                 
             self.bw = wifiParameters.set_bw(self.mode)
     """
-    
-    def activeMultipleWlans(self):
-        """Useful when stations have multiple interfaces"""
-        for st in self.stations:
-            for z in range(0, st.nWlans):
-                st.ifaceAssociatedToAp.append(str(z))
-                st.associatedAp.append('NoAssociated')
-                st.frequency.append(0)
-                st.txpower.append(0)
-                st.antennaHeight.append(0.1)
-                st.antennaGain.append(1)
                                 
     def configureWifiNodes(self, hasAP=True):
         if self.ifaceConfigured == False:
@@ -778,10 +767,7 @@ class Mininet( object ):
             self.ifaceConfigured = True
         if hasAP:
             self.configureAP() #configure AP
-            #Useful when stations have multiple interfaces
-            self.activeMultipleWlans()
             self.firstAssociation = False
-        
         
             
     def addLink( self, node1, node2, port1=None, port2=None, 

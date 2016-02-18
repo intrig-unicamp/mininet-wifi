@@ -330,6 +330,10 @@ class station ( object ):
                 sta.frequency.append(0)
                 sta.txpower.append(0)
                 sta.receivedPower.append(0)
+                sta.ifaceAssociatedToAp.append(str(i))
+                sta.associatedAp.append('NoAssociated')
+                sta.antennaHeight.append(0.1)
+                sta.antennaGain.append(1)
                              
     @classmethod
     def getWiFiParameters(self, sta, iface, wlan):
