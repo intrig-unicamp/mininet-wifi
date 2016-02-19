@@ -1461,7 +1461,7 @@ class Mininet( object ):
             self.thread.start()
             
         if self.mode == '':
-            mobility.accessControl = kwargs['AC']
+            mobility.associationControl = kwargs['AC']
            
         if 'startTime' in kwargs:
             self.start_time = kwargs['startTime']

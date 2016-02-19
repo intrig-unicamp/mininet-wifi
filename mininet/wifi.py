@@ -221,20 +221,20 @@ class association( object ):
         #Only if is a mobility environment
         if mobility.ismobility == True: 
             changeAP = False
-            accessControl = dict ()
+            associationControl = dict ()
             
-            """Access Control: mechanisms that optimize the use of the APs"""
-            if mobility.accessControl != '':
-                ac = mobility.accessControl
-                changeAP = self.accessControl(ap, sta, wlan, ac)
-                accessControl.setdefault( 'ac', ac )                
+            """Association Control: mechanisms that optimize the use of the APs"""
+            if mobility.associationControl != '':
+                ac = mobility.associationControl
+                changeAP = self.associationControl(ap, sta, wlan, ac)
+                associationControl.setdefault( 'ac', ac )                
                     
             #Go to handover    
             if associated == False or changeAP == True:
-                mobility.handover(sta, ap, wlan, distance, changeAP, **accessControl)
+                mobility.handover(sta, ap, wlan, distance, changeAP, **associationControl)
     
     @classmethod    
-    def accessControl(self, ap, sta, wlan, ac):
+    def associationControl(self, ap, sta, wlan, ac):
         """Mechanisms that optimize the use of the APs"""
         changeAP = False
         
@@ -654,7 +654,7 @@ class plot (object):
 class mobility ( object ):    
     """ Mobility """          
     ismobility = False
-    accessControl = None
+    associationControl = None
     DRAW = False
     pltNode = {}
     plttxt = {}
@@ -743,7 +743,7 @@ class mobility ( object ):
         accessPoint.manual_apRange = manual_aprange
         self.modelName = model
         self.ismobility = ismobility
-        self.accessControl = AC
+        self.associationControl = AC
         np.random.seed(seed)
         
         # set this to true if you want to plot node positions
