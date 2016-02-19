@@ -207,7 +207,7 @@ class association( object ):
             associated = self.doAssociation(ap.mode, ap, distance) 
         else:
             if sta.ifaceAssociatedToAp[wlan] == 'NoAssociated':
-                sta.receivedPower[wlan] = 0
+                sta.rssi[wlan] = 0
             
             aps = 0
             for n in range(0,len(sta.ifaceAssociatedToAp)):
@@ -329,7 +329,7 @@ class station ( object ):
                 sta.cmd('ip link set %s name %s-wlan%s' % (wlan[vwlan + i], str(sta), i))   
                 sta.frequency.append(0)
                 sta.txpower.append(0)
-                sta.receivedPower.append(0)
+                sta.rssi.append(0)
                 sta.ifaceAssociatedToAp.append(str(i))
                 sta.associatedAp.append('NoAssociated')
                 sta.antennaHeight.append(0.1)
@@ -732,7 +732,7 @@ class mobility ( object ):
                 sta.ifaceAssociatedToAp[wlan] = 'NoAssociated'  
                 sta.associatedAp[wlan] = 'NoAssociated'
                 sta.txpower[wlan] = 0
-                sta.receivedPower[wlan] = 0
+                sta.rssi[wlan] = 0
         accessPoint.numberOfAssociatedStations(ap)
             
     @classmethod   
@@ -911,7 +911,7 @@ class wifiParameters ( object ):
                 - value between 0 and -120
                 - The closer this value to -120, better."""  
         #channelNoise = 1
-        #snr = sta.receivedPower - channelNoise      
+        #snr = sta.rssi - channelNoise      
                   
     @classmethod
     def custom_step(self, mode):    
@@ -970,7 +970,7 @@ class wifiParameters ( object ):
             custombw = self.custom_bw(mode)
             bw = self.set_bw_node_moving(mode)
             for n in range(0,signalRange+1):
-                sta.receivedPower[wlan] = -50 - distance
+                sta.rssi[wlan] = -50 - distance
                 if n % customStep==0:
                     if n>=distance:
                         return bw
@@ -986,7 +986,7 @@ class wifiParameters ( object ):
                 if ap.equipmentModel == None:
                     bw = self.set_bw_node_moving(mode)
                     for n in range(0,signalRange+1):
-                        sta.receivedPower[wlan] = -50 - distance
+                        sta.rssi[wlan] = -50 - distance
                         if n % customStep==0:
                             if n>=distance:
                                 return bw
@@ -994,7 +994,7 @@ class wifiParameters ( object ):
                                 return 0
                             bw = bw - custombw 
                 elif ap.equipmentModel != None and self.propagationModel == '':
-                    sta.receivedPower[wlan] = -50 - distance
+                    sta.rssi[wlan] = -50 - distance
                     if sta.associatedAp[wlan] != 'NoAssociated':
                         r = deviceDataRate(ap, sta, wlan)
                         self.rate = r.rate

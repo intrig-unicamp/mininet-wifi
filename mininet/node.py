@@ -121,13 +121,12 @@ class Node( object ):
         self.bringUpIface = 0
         self.ifaceToAssociate = -1
         self.ifaceAssociatedToAp = []
-        self.rsi = 0
         self.frequency = []
         self.txpower = []
         self.antennaGain = []
         self.antennaHeight = []
         self.mac=''
-        self.receivedPower = []
+        self.rssi = []
 
         self.type = ''
                 

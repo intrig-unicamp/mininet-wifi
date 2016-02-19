@@ -20,20 +20,20 @@ class deviceDataRate ( object ):
         """D-Link AirPlus G DI-524
            from http://www.dlink.com/-/media/Consumer_Products/DI/DI%20524/Manual/DI_524_Manual_EN_UK.pdf"""  
         
-        if sta.receivedPower[wlan] != 0:
-            if (sta.receivedPower[wlan] >= -68):
+        if sta.rssi[wlan] != 0:
+            if (sta.rssi[wlan] >= -68):
                 self.rate = 48
-            elif (sta.receivedPower[wlan] < -68 and sta.receivedPower[wlan] >= -75):
+            elif (sta.rssi[wlan] < -68 and sta.rssi[wlan] >= -75):
                 self.rate = 36
-            elif (sta.receivedPower[wlan] < -75 and sta.receivedPower[wlan] >= -79):
+            elif (sta.rssi[wlan] < -75 and sta.rssi[wlan] >= -79):
                 self.rate = 24
-            elif (sta.receivedPower[wlan] < -79 and sta.receivedPower[wlan] >= -84):
+            elif (sta.rssi[wlan] < -79 and sta.rssi[wlan] >= -84):
                 self.rate = 18
-            elif (sta.receivedPower[wlan] < -84 and sta.receivedPower[wlan] >= -87):
+            elif (sta.rssi[wlan] < -84 and sta.rssi[wlan] >= -87):
                 self.rate = 9
-            elif (sta.receivedPower[wlan] < -87 and sta.receivedPower[wlan] >= -88):
+            elif (sta.rssi[wlan] < -87 and sta.rssi[wlan] >= -88):
                 self.rate = 6
-            elif (sta.receivedPower[wlan] < -88 and sta.receivedPower[wlan] >= -89):
+            elif (sta.rssi[wlan] < -88 and sta.rssi[wlan] >= -89):
                 self.rate = 1
         return self.rate
     
@@ -41,19 +41,19 @@ class deviceDataRate ( object ):
         """TL-WR740N
            from http://www.tp-link.com.br/products/details/cat-9_TL-WR740N.html#specificationsf"""
         try: # if Station
-            if sta.receivedPower[wlan] != 0:
-                if (sta.receivedPower[wlan] >= -68):
+            if sta.rssi[wlan] != 0:
+                if (sta.rssi[wlan] >= -68):
                     if ap.mode == 'n':
                         self.rate = 130
                     elif ap.mode == 'g':
                         self.rate = 54
                     elif ap.mode == 'b':
                         self.rate = 11
-                elif (sta.receivedPower[wlan] < -68 and sta.receivedPower[wlan] >= -85):
+                elif (sta.rssi[wlan] < -68 and sta.rssi[wlan] >= -85):
                     self.rate = 11
-                elif (sta.receivedPower[wlan] < -85 and sta.receivedPower[wlan] >= -88):
+                elif (sta.rssi[wlan] < -85 and sta.rssi[wlan] >= -88):
                     self.rate = 6
-                elif (sta.receivedPower[wlan] < -88 and sta.receivedPower[wlan] >= -90):
+                elif (sta.rssi[wlan] < -88 and sta.rssi[wlan] >= -90):
                     self.rate = 1
         except: # if AP
             if ap.mode == 'n':
@@ -68,22 +68,22 @@ class deviceDataRate ( object ):
         """CISCO WRT120N
            from http://downloads.linksys.com/downloads/datasheet/WRT120N_V10_DS_B-WEB.pdf"""
         try: # if Station
-            if sta.receivedPower[wlan] != 0:
-                if (sta.receivedPower[wlan] >= -65):
+            if sta.rssi[wlan] != 0:
+                if (sta.rssi[wlan] >= -65):
                     if ap.mode == 'n':
                         self.rate = 150
                     elif ap.mode == 'g':
                         self.rate = 54
                     elif ap.mode == 'b':
                         self.rate = 11
-                elif (sta.receivedPower[wlan] < -65 and sta.receivedPower[wlan] >= -68):
+                elif (sta.rssi[wlan] < -65 and sta.rssi[wlan] >= -68):
                     if ap.mode == 'g':
                         self.rate = 54
                     elif ap.mode == 'b':
                         self.rate = 11
-                elif (sta.receivedPower[wlan] < -68 and sta.receivedPower[wlan] >= -85):
+                elif (sta.rssi[wlan] < -68 and sta.rssi[wlan] >= -85):
                     self.rate = 11
-                elif (sta.receivedPower[wlan] < -85 and sta.receivedPower[wlan] >= -90):
+                elif (sta.rssi[wlan] < -85 and sta.rssi[wlan] >= -90):
                     self.rate = 1
         except: # if AP
             if ap.mode == 'n':

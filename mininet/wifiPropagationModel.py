@@ -33,9 +33,9 @@ class propagationModel ( object ):
         denominator = (4 * math.pi * d)**2 * L
         
         try:
-            sta.receivedPower[wlan] = ap.txpower + 10 * math.log10(numerator / denominator)
+            sta.rssi[wlan] = ap.txpower + 10 * math.log10(numerator / denominator)
         except:
-            sta.receivedPower[wlan] = 0
+            sta.rssi[wlan] = 0
         
     def twoRayGroundPropagationLossModel(self, sta, ap, distance, wlan):
         """Two Ray Ground Propagation Loss Model:
@@ -54,9 +54,9 @@ class propagationModel ( object ):
         L = self.L
         
         try:
-            sta.receivedPower[wlan] =  ap.txpower + 10 * math.log10(gT * gR * hT**2 * hR**2 / d**4 * L)
+            sta.rssi[wlan] =  ap.txpower + 10 * math.log10(gT * gR * hT**2 * hR**2 / d**4 * L)
         except:
-            sta.receivedPower[wlan] = 0
+            sta.rssi[wlan] = 0
             
     def logDistancePropagationLossModel(self, sta, ap, distance, wlan):
         """Log Distance Propagation Loss Model:
@@ -71,7 +71,7 @@ class propagationModel ( object ):
         
         pathLossDb = 10 * exponent * math.log10(d / referenceDistance)
         rxc = referenceLoss - pathLossDb
-        sta.receivedPower[wlan] = ap.txpower + rxc
+        sta.rssi[wlan] = ap.txpower + rxc
         
     def okumuraHataPropagationLossModel(self, sta, ap, distance, wlan):
         """Okumura Hata Propagation Loss Model:"""

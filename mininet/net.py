@@ -331,7 +331,7 @@ class Mininet( object ):
             module.wifiRadios+=1
             wifi = 1
             module.virtualWlan.append(name)
-            sta.receivedPower.append(-62)
+            sta.rssi.append(-62)
         sta.nWlans = int(wifi)
         
         self.nextIP += 1        
@@ -1560,8 +1560,8 @@ class Mininet( object ):
                     except:
                         print "Associated To: %s" % None
                     print "Frequency: %s GHz" % device.frequency[wlan]
-                    if device.receivedPower[wlan] != 0:
-                        print "Signal level: %.2f dbm" % device.receivedPower[wlan]
+                    if device.rssi[wlan] != 0:
+                        print "Signal level: %.2f dbm" % device.rssi[wlan]
                     else:
                         print "Signal level: No Signal"
                     print "Tx-Power: %s dBm" % device.txpower[wlan]
