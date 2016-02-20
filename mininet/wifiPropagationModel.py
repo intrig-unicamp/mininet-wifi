@@ -70,7 +70,7 @@ class propagationModel ( object ):
         d = int(distance)
         
         pathLossDb = 10 * exponent * math.log10(d / referenceDistance)
-        rxc = referenceLoss - pathLossDb
+        rxc = - referenceLoss - pathLossDb
         sta.rssi[wlan] = ap.txpower + rxc
         
     def okumuraHataPropagationLossModel(self, sta, ap, distance, wlan):
