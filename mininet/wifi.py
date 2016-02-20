@@ -189,52 +189,54 @@ class association( object ):
         except:
             pass
         
-        if str(sta.associatedAp[wlan]) == str(ap):
-            systemLoss = 1
-            model = wifiParameters.propagationModel
-            propagationModel(sta, ap, distance, wlan, model, systemLoss)
-            latency = wifiParameters.latency(distance)
-            loss = wifiParameters.loss(distance, ap.mode)
-            delay = wifiParameters.delay(distance, seconds)
-            bw = wifiParameters.bw(distance, sta, ap, wlan)
-            
-            sta.pexec("tc qdisc replace dev %s-wlan%s \
-                root handle 1: netem rate %.2fmbit \
-                loss %.1f%% \
-                latency %.2fms \
-                delay %.2fms" % (sta, wlan, bw, loss, latency, delay))    
-            #Reordering packets    
-            sta.pexec('tc qdisc replace dev %s-wlan%s parent 1:1 pfifo limit 10000' % (sta, wlan))
-            #sta.pexec('tc qdisc del dev %s-wlan%s root' % (sta, wlan))
-            
-            associated = self.doAssociation(ap.mode, ap, distance) 
-        else:
-            if sta.associatedAp[wlan] == 'NoAssociated':
+        if str(ap) == sta.associatedAp[wlan]:
+            if distance > ap.range:                
+                station.iwCommand(sta, wlan, 'disconnect')
+                sta.associatedAp[wlan] = 'NoAssociated'
                 sta.rssi[wlan] = 0
-            
-            aps = 0
-            for n in range(0,len(sta.associatedAp)):
-                if 'ap' in sta.associatedAp[n]:
-                    aps+=1
-            if len(sta.associatedAp) == aps:
-                associated = True
+                accessPoint.numberOfAssociatedStations(ap)
             else:
-                associated = False
-        
-        #Only if is a mobility environment
-        if mobility.ismobility == True: 
-            changeAP = False
-            associationControl = dict ()
-            
-            """Association Control: mechanisms that optimize the use of the APs"""
-            if mobility.associationControl != '':
-                ac = mobility.associationControl
-                changeAP = self.associationControl(ap, sta, wlan, ac)
-                associationControl.setdefault( 'ac', ac )                
-                    
-            #Go to handover    
-            if associated == False or changeAP == True:
-                mobility.handover(sta, ap, wlan, distance, changeAP, **associationControl)
+                systemLoss = 1
+                model = wifiParameters.propagationModel
+                propagationModel(sta, ap, distance, wlan, model, systemLoss)
+                latency = wifiParameters.latency(distance)
+                loss = wifiParameters.loss(distance, ap.mode)
+                delay = wifiParameters.delay(distance, seconds)
+                bw = wifiParameters.bw(distance, sta, ap, wlan)
+                
+                sta.pexec("tc qdisc replace dev %s-wlan%s \
+                    root handle 1: netem rate %.2fmbit \
+                    loss %.1f%% \
+                    latency %.2fms \
+                    delay %.2fms" % (sta, wlan, bw, loss, latency, delay))    
+                #Reordering packets    
+                sta.pexec('tc qdisc replace dev %s-wlan%s parent 1:1 pfifo limit 10000' % (sta, wlan))
+                associated = self.doAssociation(ap.mode, ap, distance) 
+        else:            
+            if distance < ap.range:            
+                aps = 0
+                for n in range(0,len(sta.associatedAp)):
+                    if 'ap' in sta.associatedAp[n]:
+                        aps+=1
+                if len(sta.associatedAp) == aps:
+                    associated = True
+                else:
+                    associated = False
+        if str(ap) == sta.associatedAp[wlan] or distance < ap.range:
+            #Only if it is a mobility environment
+            if mobility.ismobility == True: 
+                changeAP = False
+                associationControl = dict ()
+                
+                """Association Control: mechanisms that optimize the use of the APs"""
+                if mobility.associationControl != '':
+                    ac = mobility.associationControl
+                    changeAP = self.associationControl(ap, sta, wlan, ac)
+                    associationControl.setdefault( 'ac', ac )                
+                        
+                #Go to handover    
+                if associated == False or changeAP == True:
+                    mobility.handover(sta, ap, wlan, distance, changeAP, **associationControl)
     
     @classmethod    
     def associationControl(self, ap, sta, wlan, ac):
@@ -275,8 +277,7 @@ class association( object ):
             self.parameters(sta, ap, distance, wlan)
         else:
             for wlan in range(0, sta.nWlans):
-                self.parameters(sta, ap, distance, wlan)
-                
+                self.parameters(sta, ap, distance, wlan)                
             
     @classmethod    
     def doAssociation(self, mode, ap, distance):
@@ -393,6 +394,7 @@ class station ( object ):
             self.associate_wep(sta, wlan, ap.ssid, sta.passwd)
         self.confirmInfraAssociation(sta, ap, wlan)
         sta.associatedAp[wlan] = str(ap) 
+        sta.rssi[wlan] = -62
         
     @classmethod    
     def associate_wpa(self, sta, wlan, ssid, passwd):
@@ -712,26 +714,19 @@ class mobility ( object ):
     @classmethod   
     def handover(self, sta, ap, wlan, distance, changeAP, ac=None, **params):
         
-        if distance < ap.range: 
-            if ac == 'llf' or ac == 'ssf':
-                station.iwCommand(sta, wlan, 'disconnect')
+        if ac == 'llf' or ac == 'ssf':
+            station.iwCommand(sta, wlan, 'disconnect')
+            station.iwCommand(sta, wlan, ('connect %s' % ap.ssid))
+            sta.associatedAp[wlan] = str(ap)
+            iface = str(sta)+'-wlan%s' % wlan
+            station.getWiFiParameters(sta, iface, wlan)
+        elif str(ap) not in sta.associatedAp:
+            #Useful for stations with more than one wifi iface
+            if 'ap' not in sta.associatedAp[wlan]:
                 station.iwCommand(sta, wlan, ('connect %s' % ap.ssid))
                 sta.associatedAp[wlan] = str(ap)
                 iface = str(sta)+'-wlan%s' % wlan
                 station.getWiFiParameters(sta, iface, wlan)
-            elif str(ap) not in sta.associatedAp:
-                #Useful for stations with more than one wifi iface
-                if 'ap' not in sta.associatedAp[wlan]:
-                    station.iwCommand(sta, wlan, ('connect %s' % ap.ssid))
-                    sta.associatedAp[wlan] = str(ap)
-                    iface = str(sta)+'-wlan%s' % wlan
-                    station.getWiFiParameters(sta, iface, wlan)
-        elif distance > ap.range:
-            if str(ap) == sta.associatedAp[wlan]:
-                station.iwCommand(sta, wlan, 'disconnect')
-                sta.associatedAp[wlan] = 'NoAssociated'
-                sta.txpower[wlan] = 0
-                sta.rssi[wlan] = 0
         accessPoint.numberOfAssociatedStations(ap)
             
     @classmethod   
@@ -842,11 +837,11 @@ class wifiParameters ( object ):
        
     propagationModel = ''
     rate = 0
+    wifiRadios = 0
     virtualWlan = []
     physicalWlan = []
     wpa_supplicantIsRunning = False
     isWiFi = False
-    wifiRadios = 0
     isCode = False
    
     @classmethod
@@ -877,13 +872,6 @@ class wifiParameters ( object ):
                 deviceTxPower(device.equipmentModel, device)
         except:
             pass
-            
-    #@classmethod
-    #def printNoiseInfo(self, host): 
-    #    """
-    #        Get noise info **in development**
-    #    """
-    #    print self.host.cmd('iw dev %s-wlan0 survey noise %d' % (host, int(str(host)[3:])+60))    
     
     @classmethod
     def latency(self, distance):        

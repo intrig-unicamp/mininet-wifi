@@ -331,7 +331,7 @@ class Mininet( object ):
             wifiParameters.wifiRadios+=1
             wifi = 1
             wifiParameters.virtualWlan.append(name)
-            sta.rssi.append(-62)
+            sta.rssi.append(0)
         sta.nWlans = int(wifi)
         
         self.nextIP += 1        
