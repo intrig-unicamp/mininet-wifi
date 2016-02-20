@@ -333,7 +333,6 @@ class station ( object ):
                 sta.cmd('ip link set %s name %s-wlan%s' % (wlan[vwlan + i], str(sta), i))   
                 sta.frequency.append(0)
                 sta.txpower.append(0)
-                sta.rssi.append(0)
                 sta.associatedAp.append('NoAssociated')
                 sta.antennaHeight.append(0.1)
                 sta.antennaGain.append(1)
