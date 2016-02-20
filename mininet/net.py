@@ -1562,6 +1562,8 @@ class Mininet( object ):
                     print "Tx-Power: %s dBm" % device.txpower[wlan]
             else:
                 print "Tx-Power: %s dBm" % device.txpower
+                print "SSID: %s" % device.ssid
+                print "Number of Associated Stations: %s" % device.nAssociatedStations
         except:
             pass
        
