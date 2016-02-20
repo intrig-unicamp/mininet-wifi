@@ -12,7 +12,7 @@ setup for testing, and can even be emulated with the Mininet package.
 """
 
 from mininet.util import irange, natural, naturalSeq
-from mininet.wifi import module
+from mininet.wifi import wifiParameters
 
 class MultiGraph( object ):
     "Utility class to track nodes and edges - replaces networkx.MultiGraph"
@@ -326,7 +326,7 @@ class Topo( object ):
 class SingleSwitchTopo( Topo ):
     "Single switch connected to k hosts."
     def build( self, k=2, **_opts ):
-        if(module.isWiFi):
+        if(wifiParameters.isWiFi):
             "k: number of hosts"
             self.k = k
             baseStation = self.addBaseStation( 'ap1' )
@@ -349,7 +349,7 @@ class SingleSwitchReversedTopo( Topo ):
        numberings."""
 
     def build( self, k=2 ):
-        if(module.isWiFi):
+        if(wifiParameters.isWiFi):
             "k: number of hosts"
             self.k = k
             switch = self.addSwitch( 'ap1' )
@@ -378,7 +378,7 @@ class LinearTopo( Topo ):
 
     def build( self, k=2, n=1, **_opts):
         
-        if(module.isWiFi):
+        if(wifiParameters.isWiFi):
             """k: number of switches
                n: number of hosts per switch"""
             self.k = k

@@ -324,13 +324,13 @@ class Mininet( object ):
                 
         wifi = ("%s" % params.pop('wlans', {}))
         if(wifi!="{}"):        
-            module.wifiRadios = module.wifiRadios + int(wifi)
+            wifiParameters.wifiRadios = wifiParameters.wifiRadios + int(wifi)
             for n in range(int(wifi)):
-                module.virtualWlan.append(name)
+                wifiParameters.virtualWlan.append(name)
         else:
-            module.wifiRadios+=1
+            wifiParameters.wifiRadios+=1
             wifi = 1
-            module.virtualWlan.append(name)
+            wifiParameters.virtualWlan.append(name)
             sta.rssi.append(-62)
         sta.nWlans = int(wifi)
         
@@ -416,13 +416,13 @@ class Mininet( object ):
             
         wifi = ("%s" % params.pop('wlans', {}))
         if(wifi!="{}"):        
-            module.wifiRadios = module.wifiRadios + int(wifi)
+            wifiParameters.wifiRadios = wifiParameters.wifiRadios + int(wifi)
             for n in range(int(wifi)):
-                module.virtualWlan.append(str(name)+str(n))
+                wifiParameters.virtualWlan.append(str(name)+str(n))
         else:
-            module.wifiRadios+=1
+            wifiParameters.wifiRadios+=1
             wifi = 1
-            module.virtualWlan.append(str(name)+str(0))
+            wifiParameters.virtualWlan.append(str(name)+str(0))
         bs.nWlans = int(wifi)
         
         accessPoint.list.append( bs )
@@ -548,9 +548,6 @@ class Mininet( object ):
         return macColonHex( random.randint(1, 2**48 - 1) & 0xfeffffffffff |
                             0x020000000000 )
     
-    def addWlan (self, wifiRadios):
-        module.wifiRadios+=wifiRadios
-    
     def addMesh( self, sta, cls=None, **params ):
         
         if self.firstAssociation:
@@ -649,14 +646,11 @@ class Mininet( object ):
         return link
       
     def configureAP(self):
-        
+        """Configure AP""" 
         for ap in self.accessPoints:
-            ap.virtualWlan = str(ap)+'-'+str('wlan')
-            
             for wlan in range(0,ap.nWlans):
-       
                 wifiparam = dict()
-                intf = self.newapif[module.virtualWlan.index(str(ap)+str(wlan))]
+                intf = self.newapif[wifiParameters.virtualWlan.index(str(ap)+str(wlan))]
                 newname = str(ap)+'-'+str('wlan')
                 accessPoint.rename(intf, newname, wlan)
                 checkNM.getMacAddress(ap, wlan)         
@@ -666,7 +660,7 @@ class Mininet( object ):
                 ap.txpower.append(str(wlan))
                 ap.antennaHeight.append(0.1)
                 ap.antennaGain.append(1)
-                iface = str(ap.virtualWlan) + str(wlan)
+                iface = str(ap) + '-wlan' + str(wlan)
                 wifiParameters.get_frequency(ap, iface, wlan)
                 wifiParameters.get_tx_power(ap, iface, wlan)
                 
@@ -760,7 +754,8 @@ class Mininet( object ):
                                 
     def configureWifiNodes(self, hasAP=True):
         if self.ifaceConfigured == False:
-            module.startEnvironment()
+            module(action = 'start', wifiRadios = wifiParameters.wifiRadios)
+            wifiParameters.isWiFi = True
             self.link = TCLink
             self.newapif = getWlan.virtual()  #Get Virtual Wlans      
             station.assingIface(self.stations)
@@ -980,7 +975,7 @@ class Mininet( object ):
                          'should be overriden in subclass', self )
 
     def build( self ):
-        module.isCode=True
+        wifiParameters.isCode=True
         #useful if there no link between sta and any other device
         for s in self.missingStations:
             self.addMissingSTAs(s)
@@ -1023,7 +1018,7 @@ class Mininet( object ):
                     src.setARP( ip=dst.IP(), mac=dst.MAC() )
 
     def start( self ):
-        module.isCode = False
+        wifiParameters.isCode = False
         "Start controller and switches."
         if not self.built:
             self.build()
@@ -1052,7 +1047,7 @@ class Mininet( object ):
         for switch in self.switches:
             if 'ap' in switch.name:  
                 for iface in range(0, switch.nWlans):
-                    interface = self.newapif[module.virtualWlan.index(switch.name+str(iface))]
+                    interface = self.newapif[wifiParameters.virtualWlan.index(switch.name+str(iface))]
                     accessPoint.apBridge(switch.name, interface)
         
         info( '\n' )
@@ -1107,8 +1102,8 @@ class Mininet( object ):
             info( host.name + ' ' )
             host.terminate()
         info( '\n' )
-        if(module.isWiFi):
-            module._stop_module() #Stopping WiFi Module
+        if(wifiParameters.isWiFi):
+            module(action = 'stop') #Stopping WiFi Module
         info( '\n*** Done\n' )
 
     def run( self, test, *args, **kwargs ):

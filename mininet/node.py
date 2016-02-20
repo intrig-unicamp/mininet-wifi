@@ -69,7 +69,7 @@ from mininet.moduledeps import moduleDeps, pathCheck, TUN
 from mininet.link import Link, Intf, TCIntf, OVSIntf
 from re import findall
 from distutils.version import StrictVersion
-from wifi import module, accessPoint
+from mininet.wifi import wifiParameters, accessPoint
 
 class Node( object ):
     """A virtual network node is simply a shell in a network namespace.
@@ -107,7 +107,6 @@ class Node( object ):
         self.ssid = ''
         self.channel = ''
         self.mode = ''
-        self.virtualWlan = ''
         self.passwd = ''
         self.security = ''
         self.equipmentModel = ''  
@@ -120,7 +119,6 @@ class Node( object ):
         self.addressingSta = 0
         self.bringUpIface = 0
         self.ifaceToAssociate = -1
-        self.ifaceAssociatedToAp = []
         self.frequency = []
         self.txpower = []
         self.antennaGain = []
@@ -1243,14 +1241,14 @@ class OVSSwitch( Switch ):
         self.apif = self.apif.split("\n")
         
         for apif in self.apif:
-            if apif not in module.physicalWlan:
+            if apif not in wifiParameters.physicalWlan:
                 self.newapif.append(apif)
         
         self.newapif.pop()
         self.newapif = sorted(self.newapif)
         self.newapif.sort(key=len, reverse=False)
         
-        if(module.isCode==True):
+        if(wifiParameters.isCode == True):
             if('accessPoint' == self.type):
                 for iface in range(0, self.nWlans):
                     port = str(self.name) + str('-wlan') + str(iface)

@@ -70,7 +70,7 @@ class checkNM ( object ):
     @classmethod 
     def getMacAddress(self, ap, wlan):
         """ get Mac Address of any Interface """
-        iface = str(ap.virtualWlan) + str(wlan)
+        iface = str(ap) + '-wlan' + str(wlan)
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         info = fcntl.ioctl(s.fileno(), 0x8927,  struct.pack('256s', '%s'[:15]) % iface)
         mac = (''.join(['%02x:' % ord(char) for char in info[18:24]])[:-1])
@@ -79,7 +79,7 @@ class checkNM ( object ):
     @classmethod   
     def APfile(self, cmd, ap, wlan):
         """ run an Access Point and create the config file  """
-        iface = str(ap.virtualWlan) + str(wlan)
+        iface = str(ap) + '-wlan' + str(wlan)
         apcommand = cmd + ("\' > %s.conf" % iface)  
         os.system(apcommand)
         cmd = ("hostapd -B %s.conf" % iface)
@@ -102,28 +102,31 @@ class getWlan( object ):
         self.apif = subprocess.check_output("iwconfig 2>&1 | grep IEEE | awk '{print $1}'",
                                             shell=True).split('\n')
         for apif in self.apif:
-            if apif not in module.physicalWlan and apif!="":
+            if apif not in wifiParameters.physicalWlan and apif!="":
                 self.newapif.append(apif)
         self.newapif = sorted(self.newapif)
         self.newapif.sort(key=len, reverse=False)
         return self.newapif
 
+
 class module( object ):
-    """ Starts and Stop the module """            
-    wifiRadios = 0
-    isWiFi = False
-    physicalWlan = []
-    virtualWlan = []
-    isCode = False
-    wpa_supplicantIsRunning = False
+    """ Start and Stop mac80211_hwsim module """     
+    
+    def __init__( self, **params ):
         
-    @classmethod    
-    def _start_module(self, wifiRadios):
+        action = (params.pop('action', {}))
+     
+        if action == 'start':
+            wifiRadios = (params.pop('wifiRadios', {}))
+            self.start(wifiRadios)
+        elif action == 'stop':    
+            self.stop()
+           
+    def loadModule(self, wifiRadios):
         """ Start wireless Module """
         os.system( 'modprobe mac80211_hwsim radios=%s' % wifiRadios )
      
-    @classmethod
-    def _stop_module(self):
+    def stop(self):
         """ Stop wireless Module """   
         if glob.glob("*.conf"):
             os.system( 'rm *.conf' )
@@ -134,15 +137,15 @@ class module( object ):
         os.system( 'rmmod mac80211_hwsim' )
         if accessPoint.exists:
             os.system( 'killall -9 hostapd' )
-        if self.wpa_supplicantIsRunning:
+        if wifiParameters.wpa_supplicantIsRunning:
             os.system( 'pkill -f \'wpa_supplicant -B\'' )
         
-    @classmethod
-    def startEnvironment(self):
-        self.physicalWlan = getWlan.physical()  #Get Phisical Wlan(s)
-        self.isWiFi=True
-        self._start_module(module.wifiRadios) #Initatilize WiFi Module
+    def start(self, wifiRadios):
+        """Starting environment"""
+        wifiParameters.physicalWlan = getWlan.physical()  #Get Phisical Wlan(s)
+        self.loadModule(wifiRadios) #Initatilize WiFi Module
         phyInt.totalPhy = phyInt.getPhy() #Get Phy Interfaces                    
+        
         
 class association( object ):
     
@@ -206,14 +209,14 @@ class association( object ):
             
             associated = self.doAssociation(ap.mode, ap, distance) 
         else:
-            if sta.ifaceAssociatedToAp[wlan] == 'NoAssociated':
+            if sta.associatedAp[wlan] == 'NoAssociated':
                 sta.rssi[wlan] = 0
             
             aps = 0
-            for n in range(0,len(sta.ifaceAssociatedToAp)):
-                if 'ap' in sta.ifaceAssociatedToAp[n]:
+            for n in range(0,len(sta.associatedAp)):
+                if 'ap' in sta.associatedAp[n]:
                     aps+=1
-            if len(sta.ifaceAssociatedToAp) == aps:
+            if len(sta.associatedAp) == aps:
                 associated = True
             else:
                 associated = False
@@ -242,7 +245,7 @@ class association( object ):
         if ac == "llf":
             llf = False
             for apref in accessPoint.list:
-                if str(apref) == sta.ifaceAssociatedToAp[wlan]:
+                if str(apref) == sta.associatedAp[wlan]:
                     accessPoint.numberOfAssociatedStations(apref)
                     ref_llf = apref.nAssociatedStations
                     llf = True
@@ -255,7 +258,7 @@ class association( object ):
         """useful to ssf (Strongest-signal-first)"""
         if ac == "ssf":
             for apref in accessPoint.list:
-                if str(apref) == sta.ifaceAssociatedToAp[wlan]:
+                if str(apref) == sta.associatedAp[wlan]:
                     accessPoint.numberOfAssociatedStations(apref)
                     ref_Distance = mobility.getDistance(sta, apref)
                     #if ref_Distance > accessPoint.manual_apRange:
@@ -323,14 +326,13 @@ class station ( object ):
         wlan = getWlan.virtual()
         for sta in stations:
             for i in range(0, sta.nWlans):
-                vwlan = module.virtualWlan.index(str(sta))
+                vwlan = wifiParameters.virtualWlan.index(str(sta))
                 #os.system('iw phy %s set rts 80' % phyInt.totalPhy[vwlan + i])
                 os.system('iw phy %s set netns %s' % ( phyInt.totalPhy[vwlan + i], sta.pid ))
                 sta.cmd('ip link set %s name %s-wlan%s' % (wlan[vwlan + i], str(sta), i))   
                 sta.frequency.append(0)
                 sta.txpower.append(0)
                 sta.rssi.append(0)
-                sta.ifaceAssociatedToAp.append(str(i))
                 sta.associatedAp.append('NoAssociated')
                 sta.antennaHeight.append(0.1)
                 sta.antennaGain.append(1)
@@ -368,7 +370,7 @@ class station ( object ):
         iface = str(sta)+'-wlan%s' % wlan
         self.getWiFiParameters(sta, iface, wlan) 
         accessPoint.numberOfAssociatedStations(ap)
-        sta.associatedAp[wlan] = ap
+        sta.associatedAp[wlan] = str(ap)
             
     @classmethod    
     def isAssociated(self, sta, iface):
@@ -390,7 +392,7 @@ class station ( object ):
         elif sta.encrypt == 'wep':
             self.associate_wep(sta, wlan, ap.ssid, sta.passwd)
         self.confirmInfraAssociation(sta, ap, wlan)
-        sta.ifaceAssociatedToAp[wlan] = str(ap) 
+        sta.associatedAp[wlan] = str(ap) 
         
     @classmethod    
     def associate_wpa(self, sta, wlan, ssid, passwd):
@@ -477,7 +479,7 @@ class accessPoint ( object ):
               wep_key0=None, **params):
         """ Starts an Access Point """
         self.exists = True
-        iface = str(ap.virtualWlan) + str(iface)
+        iface =  str(ap) + '-wlan' + str(iface)
         self.cmd = ("echo \'")
         """General Configurations"""             
         self.cmd = self.cmd + ("interface=%s" % iface) # the interface used by the AP
@@ -500,13 +502,13 @@ class accessPoint ( object ):
         #   self.cmd = self.cmd + ("\nht_capab=[HT40+][SHORT-GI-40][DSSS_CCK-40]")
         
         if encrypt == 'wpa':
-            module.wpa_supplicantIsRunning = True
+            wifiParameters.wpa_supplicantIsRunning = True
             self.cmd = self.cmd + ("\nauth_algs=%s" % auth_algs)
             self.cmd = self.cmd + ("\nwpa=%s" % wpa)
             self.cmd = self.cmd + ("\nwpa_key_mgmt=%s" % wpa_key_mgmt ) 
             self.cmd = self.cmd + ("\nwpa_passphrase=%s" % wpa_passphrase)                        
         elif encrypt == 'wpa2':
-            module.wpa_supplicantIsRunning = True
+            wifiParameters.wpa_supplicantIsRunning = True
             self.cmd = self.cmd + ("\nauth_algs=%s" % auth_algs)
             self.cmd = self.cmd + ("\nwpa=%s" % wpa)
             self.cmd = self.cmd + ("\nwpa_key_mgmt=%s" % wpa_key_mgmt ) 
@@ -552,7 +554,7 @@ class accessPoint ( object ):
     @classmethod
     def setBw(self, ap, wlan):
         """ Set bw to AP """  
-        iface = str(ap.virtualWlan) + str(wlan)
+        iface =  str(ap) + '-wlan' + str(wlan)
         
         if ap.equipmentModel == None:
             bw = wifiParameters.set_bw(ap.mode)
@@ -714,22 +716,19 @@ class mobility ( object ):
             if ac == 'llf' or ac == 'ssf':
                 station.iwCommand(sta, wlan, 'disconnect')
                 station.iwCommand(sta, wlan, ('connect %s' % ap.ssid))
-                sta.ifaceAssociatedToAp[wlan] = str(ap)
-                sta.associatedAp[wlan] = ap
+                sta.associatedAp[wlan] = str(ap)
                 iface = str(sta)+'-wlan%s' % wlan
                 station.getWiFiParameters(sta, iface, wlan)
-            elif str(ap) not in sta.ifaceAssociatedToAp:
+            elif str(ap) not in sta.associatedAp:
                 #Useful for stations with more than one wifi iface
-                if 'ap' not in sta.ifaceAssociatedToAp[wlan]:
+                if 'ap' not in sta.associatedAp[wlan]:
                     station.iwCommand(sta, wlan, ('connect %s' % ap.ssid))
-                    sta.ifaceAssociatedToAp[wlan] = str(ap)   
-                    sta.associatedAp[wlan] = ap
+                    sta.associatedAp[wlan] = str(ap)
                     iface = str(sta)+'-wlan%s' % wlan
                     station.getWiFiParameters(sta, iface, wlan)
         elif distance > ap.range:
-            if str(ap) == sta.ifaceAssociatedToAp[wlan]:
+            if str(ap) == sta.associatedAp[wlan]:
                 station.iwCommand(sta, wlan, 'disconnect')
-                sta.ifaceAssociatedToAp[wlan] = 'NoAssociated'  
                 sta.associatedAp[wlan] = 'NoAssociated'
                 sta.txpower[wlan] = 0
                 sta.rssi[wlan] = 0
@@ -843,6 +842,12 @@ class wifiParameters ( object ):
        
     propagationModel = ''
     rate = 0
+    virtualWlan = []
+    physicalWlan = []
+    wpa_supplicantIsRunning = False
+    isWiFi = False
+    wifiRadios = 0
+    isCode = False
    
     @classmethod
     def get_rsi(self, sta, iface): 
