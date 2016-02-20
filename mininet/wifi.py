@@ -558,11 +558,7 @@ class accessPoint ( object ):
         """ Set bw to AP """  
         iface =  str(ap) + '-wlan' + str(wlan)
         
-        if ap.equipmentModel == None:
-            bw = wifiParameters.set_bw(ap.mode)
-        else: 
-            r = deviceDataRate(ap, None, wlan)
-            bw = r.rate
+        bw = wifiParameters.set_bw(ap.mode)
         
         os.system("tc qdisc replace dev %s \
             root handle 2: netem rate %.2fmbit \
