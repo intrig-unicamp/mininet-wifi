@@ -416,6 +416,7 @@ class station ( object ):
         print "associating %s ..." % str(sta)
         iface = '%s-wlan%s' % (str(sta), wlan)
         self.confirmAdhocAssociation(sta, iface, wlan)
+        sta.rssi[wlan] = -62
         
     @classmethod    
     def addMesh(self, sta, **params):
@@ -430,7 +431,8 @@ class station ( object ):
         print "associating %s ..." % sta
         iface = '%s-wlan%s' % (sta, wlan)
         mpID = wlan
-        self.confirmMeshAssociation(sta, iface, mpID, wlan)     
+        self.confirmMeshAssociation(sta, iface, mpID, wlan)    
+        sta.rssi[wlan] = -62 
 
                  
 class accessPoint ( object ):    

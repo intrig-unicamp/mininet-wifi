@@ -588,7 +588,7 @@ class Mininet( object ):
                     self.missingStations.remove(sta)
         
         self.bw = wifiParameters.set_bw(sta.mode)
-        
+                
         options.setdefault( 'bw', self.bw )
         # Set default MAC - this should probably be in Link
         options.setdefault( 'addr1', self.randMac() )
