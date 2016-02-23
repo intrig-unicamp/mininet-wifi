@@ -324,11 +324,12 @@ class Mininet( object ):
                 
         wifi = ("%s" % params.pop('wlans', {}))
         if(wifi!="{}"):        
-            wifiParameters.wifiRadios = wifiParameters.wifiRadios + int(wifi)
+            wifiParameters.wifiRadios += int(wifi)
             for n in range(int(wifi)):
                 wifiParameters.virtualWlan.append(name)
+                sta.rssi.append(0)
         else:
-            wifiParameters.wifiRadios+=1
+            wifiParameters.wifiRadios += 1
             wifi = 1
             wifiParameters.virtualWlan.append(name)
             sta.rssi.append(0)
@@ -416,11 +417,11 @@ class Mininet( object ):
             
         wifi = ("%s" % params.pop('wlans', {}))
         if(wifi!="{}"):        
-            wifiParameters.wifiRadios = wifiParameters.wifiRadios + int(wifi)
+            wifiParameters.wifiRadios += int(wifi)
             for n in range(int(wifi)):
                 wifiParameters.virtualWlan.append(str(name)+str(n))
         else:
-            wifiParameters.wifiRadios+=1
+            wifiParameters.wifiRadios += 1
             wifi = 1
             wifiParameters.virtualWlan.append(str(name)+str(0))
         bs.nWlans = int(wifi)
@@ -826,7 +827,7 @@ class Mininet( object ):
                 else:
                     doAssociation = True
                     distance = 0                
-                
+                                
                 sta.doAssociation = doAssociation
                 if(doAssociation):
                     sta.ifaceToAssociate+=1
