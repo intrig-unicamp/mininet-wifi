@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 """
-Setup Propagation Models.
+   Example: Propagation Models
 """
 
 from mininet.net import Mininet
@@ -31,14 +31,15 @@ def topology():
     ap1.start( [c1] )
     
     """uncomment to plot graph"""
-    #net.plotGraph(max_x=150, max_y=150)
+    net.plotGraph(max_x=150, max_y=150)
 
     """Seed"""
     net.seed(1) 
-    "*** Available models: friisPropagationLossModel, twoRayGroundPropagationLossModel, logDistancePropagationLossModel ***"
+
+    "*** Available propagation models: friisPropagationLossModel, twoRayGroundPropagationLossModel, logDistancePropagationLossModel ***"
     net.propagationModel('friisPropagationLossModel')
 
-    "*** Available models: RandomWalk, TruncatedLevyWalk, RandomDirection, RandomWayPoint, GaussMarkov ***"
+    "*** Available mobility models: RandomWalk, TruncatedLevyWalk, RandomDirection, RandomWayPoint, GaussMarkov ***"
     net.startMobility(startTime=0, model='RandomDirection', max_x=160, max_y=160, min_v=0.1, max_v=0.2)
    
     print "*** Running CLI"
