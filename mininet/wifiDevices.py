@@ -97,12 +97,14 @@ class deviceDataRate ( object ):
 class deviceRange ( object ):
     """ Range for specific equipments """
     
+    range = 100
+    
     def __init__( self, ap=None ):
         self.equipmentModel = ap.equipmentModel
         self.ap = ap        
                 
         if self.equipmentModel in dir(self):
-            ap.range = self.__getattribute__(self.equipmentModel)(self.ap)
+            self.__getattribute__(self.equipmentModel)(self.ap)
     
     def DI524(self, ap):
         """ D-Link AirPlus G DI-524
@@ -110,55 +112,57 @@ class deviceRange ( object ):
             indoor = 100
             outdoor = 200 """
 
-        distance = 100
-        return distance
+        self.range = 100
+        return self.range
     
     def TLWR740N(self, ap):
         """TL-WR740N
         NO REFERENCE!"""
 
-        distance = 50
-        return distance
+        self.range = 50
+        return self.range
     
     
     def WRT120N(self, ap):
         """ CISCO WRT120N
         NO REFERENCE!"""
 
-        distance = 50
-        return distance
+        self.range = 50
+        return self.range
     
 class deviceTxPower ( object ):
     """ TX Power for specific equipments """
+    
+    txPower = 0
     
     def __init__( self, model=None, ap=None ):
         self.model = model
         self.ap = ap
         
         if self.model in dir(self):
-            ap.txpower = self.__getattribute__(self.model)(self.ap)
+            self.__getattribute__(self.model)(self.ap)
     
     def DI524(self, ap):
         """ D-Link AirPlus G DI-524
             from http://www.dlink.com/-/media/Consumer_Products/DI/DI%20524/Manual/DI_524_Manual_EN_UK.pdf"""
-        txPower = 14
-        return txPower
+        self.txPower = 14
+        return self.txPower
     
     def TLWR740N(self, ap):
         """TL-WR740N
         No REFERENCE!"""
-        txPower = 20
-        return txPower    
+        self.txPower = 20
+        return self.txPower    
     
     def WRT120N(self, ap):
         """CISCO WRT120N
            from http://downloads.linksys.com/downloads/datasheet/WRT120N_V10_DS_B-WEB.pdf"""
         if ap.mode == 'b':
-            txPower = 21
+            self.txPower = 21
         elif ap.mode == 'g':
-            txPower = 18
+            self.txPower = 18
         elif ap.mode == 'n':
-            txPower = 16
-        return txPower
+            self.txPower = 16
+        return self.txPower
 
             

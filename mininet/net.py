@@ -111,10 +111,11 @@ from mininet.util import ( quietRun, fixLimits, numCores, ensureRoot,
 from mininet.term import cleanUpScreens, makeTerms
 from mininet.wifi import checkNM, module, accessPoint, station, wifiParameters, association, mobility, getWlan, plot
 from mininet.wifiDevices import deviceRange
+from mininet.wifiPropagationModel import emulationEnvironment
 from __builtin__ import True
 
 # Mininet version: should be consistent with README and LICENSE
-VERSION = "1.6r6"
+VERSION = "1.6r7"
 
 class Mininet( object ):
     "Network emulation with hosts spawned in network namespaces."
@@ -413,7 +414,8 @@ class Mininet( object ):
             if bs.equipmentModel == None:
                 bs.range = wifiParameters.range(bs)
             else:
-                deviceRange(bs)            
+                value = deviceRange(bs)     
+                bs.range = value.range       
             
         wifi = ("%s" % params.pop('wlans', {}))
         if(wifi!="{}"):        
@@ -833,7 +835,7 @@ class Mininet( object ):
                     sta.ifaceToAssociate+=1
                     wlan = sta.ifaceToAssociate
                     station.associate(sta, ap)
-                    association.setInfraParameters(sta, ap, distance, wlan)   
+                    association.setInfraParameters(sta, ap, distance, wlan, **params)   
             return link
         
         else:
@@ -1422,7 +1424,7 @@ class Mininet( object ):
             sta.moveSta = mobility.move(sta, diffTime, sta.speed, sta.startPosition, sta.endPosition)
         
     def startMobility(self, **kwargs):
-        """ Starts Mobility """
+        """ Starting Mobility """
         mobilityparam = dict()      
         self.mobilityModel = ''
         if 'model' in kwargs:
@@ -1530,7 +1532,7 @@ class Mininet( object ):
             print ("Position was not defined")
                         
     def propagationModel(self, model):
-        wifiParameters.propagationModel = model                        
+        emulationEnvironment.propagationModel = model
     
     def deviceInfo(self, device):
         """ Devices Info """         

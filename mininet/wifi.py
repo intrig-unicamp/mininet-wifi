@@ -12,6 +12,7 @@ import fcntl
 import fileinput
 import subprocess
 import glob
+import math
 import time
 import numpy as np
 import scipy.spatial.distance as distance 
@@ -22,7 +23,8 @@ from mininet.wifiMobility import gauss_markov, \
     truncated_levy_walk, random_direction, random_waypoint, random_walk, reference_point_group, tvc
     
 from mininet.wifiDevices import deviceDataRate, deviceTxPower
-from mininet.wifiPropagationModel import propagationModel
+from mininet.wifiPropagationModel import propagationModel, emulationEnvironment
+
 
 class checkNM ( object ):
     """ add mac address inside of /etc/NetworkManager/NetworkManager.conf """
@@ -149,6 +151,9 @@ class module( object ):
         
 class association( object ):
     
+    systemLoss = 1
+    model = emulationEnvironment.propagationModel
+    
     @classmethod    
     def setAdhocParameters(self, sta, iface, ref_distance):
         """ Set wifi AdHoc Parameters. Have to use models for loss, latency, bw... """
@@ -180,7 +185,7 @@ class association( object ):
 
     
     @classmethod    
-    def parameters(self, sta, ap, distance, wlan):
+    def parameters(self, sta, ap, distance, wlan, **params):
         """ Wifi Parameters """
         seconds = 3
         try:
@@ -196,14 +201,18 @@ class association( object ):
                 sta.rssi[wlan] = 0
                 accessPoint.numberOfAssociatedStations(ap)
             else:
-                systemLoss = 1
-                model = wifiParameters.propagationModel
-                propagationModel(sta, ap, distance, wlan, model, systemLoss)
+                value = propagationModel(sta, ap, distance, wlan, self.model, self.systemLoss)
+                sta.rssi[wlan] = value.rssi
                 latency = wifiParameters.latency(distance)
-                loss = wifiParameters.loss(distance, ap.mode)
                 delay = wifiParameters.delay(distance, seconds)
                 bw = wifiParameters.bw(distance, sta, ap, wlan)
                 
+                l = ("%s" % params.pop('loss', {}))
+                if l != '{}':
+                    loss = float(l)
+                else:
+                    loss = wifiParameters.loss(distance, ap.mode)
+                    
                 sta.pexec("tc qdisc replace dev %s-wlan%s \
                     root handle 1: netem rate %.2fmbit \
                     loss %.1f%% \
@@ -245,39 +254,32 @@ class association( object ):
         
         """useful to llf (Least-loaded-first)"""
         if ac == "llf":
-            llf = False
-            for apref in accessPoint.list:
-                if str(apref) == sta.associatedAp[wlan]:
-                    accessPoint.numberOfAssociatedStations(apref)
-                    ref_llf = apref.nAssociatedStations
-                    llf = True
-            
-            if llf == True:
-                accessPoint.numberOfAssociatedStations(ap)
-                if ap.nAssociatedStations+2 < ref_llf:
-                    changeAP = True
+            apref = sta.associatedAp[wlan]
+            accessPoint.numberOfAssociatedStations(apref)
+            ref_llf = apref.nAssociatedStations
+            if ap.nAssociatedStations+2 < ref_llf:
+                changeAP = True
         
         """useful to ssf (Strongest-signal-first)"""
         if ac == "ssf":
-            for apref in accessPoint.list:
-                if str(apref) == sta.associatedAp[wlan]:
-                    accessPoint.numberOfAssociatedStations(apref)
-                    ref_Distance = mobility.getDistance(sta, apref)
-                    #if ref_Distance > accessPoint.manual_apRange:
-                    if ref_Distance < distance:
-                        changeAP = True
-            #if distance <= accessPoint.manual_apRange and changeAP == True: 
-                #changeAP = True
-        return changeAP     
+            apref = sta.associatedAp[wlan]
+            if self.model == '':
+                self.model = 'friisPropagationLossModel'
+            ref_Distance = mobility.getDistance(sta, ap)
+            distance = ref_Distance
+            refValue = propagationModel(sta, ap, distance, wlan, self.model, self.systemLoss)
+            if refValue.rssi > float(sta.rssi[wlan]+1):
+                changeAP = True
+        return changeAP      
                            
     @classmethod    
-    def setInfraParameters(self, sta, ap, distance, wlan):
+    def setInfraParameters(self, sta, ap, distance, wlan, **params):
         """ Set wifi Infrastrucure Parameters. Have to use models for loss, latency, bw.."""
         if wlan != '':
-            self.parameters(sta, ap, distance, wlan)
+            self.parameters(sta, ap, distance, wlan, **params)
         else:
             for wlan in range(0, sta.nWlans):
-                self.parameters(sta, ap, distance, wlan)                
+                self.parameters(sta, ap, distance, wlan, **params)                
             
     @classmethod    
     def doAssociation(self, mode, ap, distance):
@@ -324,13 +326,13 @@ class station ( object ):
      
     @classmethod    
     def assingIface(self, stations):
-        wlan = getWlan.virtual()
+        w = getWlan.virtual()
         for sta in stations:
             for i in range(0, sta.nWlans):
                 vwlan = wifiParameters.virtualWlan.index(str(sta))
                 #os.system('iw phy %s set rts 80' % phyInt.totalPhy[vwlan + i])
                 os.system('iw phy %s set netns %s' % ( phyInt.totalPhy[vwlan + i], sta.pid ))
-                sta.cmd('ip link set %s name %s-wlan%s' % (wlan[vwlan + i], str(sta), i))   
+                sta.cmd('ip link set %s name %s-wlan%s' % (w[vwlan + i], str(sta), i))  
                 sta.frequency.append(0)
                 sta.txpower.append(0)
                 sta.associatedAp.append('NoAssociated')
@@ -393,7 +395,6 @@ class station ( object ):
             self.associate_wep(sta, wlan, ap.ssid, sta.passwd)
         self.confirmInfraAssociation(sta, ap, wlan)
         sta.associatedAp[wlan] = str(ap) 
-        sta.rssi[wlan] = -62
         
     @classmethod    
     def associate_wpa(self, sta, wlan, ssid, passwd):
@@ -710,19 +711,19 @@ class mobility ( object ):
     
     @classmethod   
     def handover(self, sta, ap, wlan, distance, changeAP, ac=None, **params):
+        """handover"""
+        iface = str(sta)+'-wlan%s' % wlan
         
         if ac == 'llf' or ac == 'ssf':
             station.iwCommand(sta, wlan, 'disconnect')
             station.iwCommand(sta, wlan, ('connect %s' % ap.ssid))
             sta.associatedAp[wlan] = str(ap)
-            iface = str(sta)+'-wlan%s' % wlan
             station.getWiFiParameters(sta, iface, wlan)
         elif str(ap) not in sta.associatedAp:
             #Useful for stations with more than one wifi iface
             if 'ap' not in sta.associatedAp[wlan]:
                 station.iwCommand(sta, wlan, ('connect %s' % ap.ssid))
                 sta.associatedAp[wlan] = str(ap)
-                iface = str(sta)+'-wlan%s' % wlan
                 station.getWiFiParameters(sta, iface, wlan)
         accessPoint.numberOfAssociatedStations(ap)
             
@@ -832,7 +833,6 @@ class mobility ( object ):
 class wifiParameters ( object ):
     """WiFi Parameters""" 
        
-    propagationModel = ''
     rate = 0
     wifiRadios = 0
     virtualWlan = []
@@ -855,8 +855,10 @@ class wifiParameters ( object ):
                                                 % iface)
             if freq!='':
                 device.frequency[wlan] = float(freq) 
+            else:
+                device.frequency[wlan] = 2.412            
         except:
-            pass
+            device.frequency[wlan] = 2.412
     
     @classmethod
     def get_tx_power(self, device, iface, wlan): 
@@ -866,7 +868,8 @@ class wifiParameters ( object ):
                 device.txpower[wlan] = int(device.cmd('iwconfig %s | grep -o \'Tx-Power.*\' | cut -f2- -d\'=\' | cut -c1-3'
                                                  % iface))
             else:
-                deviceTxPower(device.equipmentModel, device)
+                value = deviceTxPower(device.equipmentModel, device)
+                device.txpower[wlan] = value.txPower
         except:
             pass
     
@@ -878,10 +881,10 @@ class wifiParameters ( object ):
     @classmethod
     def loss(self, distance, mode):  
         if distance!=0:
-            loss =  0.1 * distance
+            loss =  math.log10(distance * distance)
         else:
             loss = 0.1
-        return loss/10
+        return loss
     
     @classmethod
     def delay(self, distance, seconds):
@@ -892,17 +895,7 @@ class wifiParameters ( object ):
             delay = 1
         return delay  
     
-    @classmethod
-    def signal_to_noise_ratio(self, sta):
-        """RSSI (Received Signal Strength Indicator): 
-                - Value between 0 and -120
-                - The closer this value to 0 (zero), stronger the signal
-           NOISE:
-                - value between 0 and -120
-                - The closer this value to -120, better."""  
-        #channelNoise = 1
-        #snr = sta.rssi - channelNoise      
-                  
+
     @classmethod
     def custom_step(self, mode):    
         """ only useful for bw """
@@ -972,29 +965,28 @@ class wifiParameters ( object ):
             signalRange = ap.range
             customStep = self.custom_step(mode)
             custombw = self.custom_bw(mode)
+            model = emulationEnvironment.propagationModel
+            if model == '':
+                model = 'friisPropagationLossModel'
+            systemLoss = 1
             if distance != 0: 
                 if ap.equipmentModel == None:
                     bw = self.set_bw_node_moving(mode)
                     for n in range(0,signalRange+1):
-                        sta.rssi[wlan] = -50 - distance
+                        value = propagationModel(sta, ap, distance, wlan, model, systemLoss)
+                        sta.rssi[wlan] = value.rssi
                         if n % customStep==0:
                             if n>=distance:
                                 return bw
                             elif distance > signalRange:
                                 return 0
                             bw = bw - custombw 
-                elif ap.equipmentModel != None and self.propagationModel == '':
-                    sta.rssi[wlan] = -50 - distance
-                    if sta.associatedAp[wlan] != 'NoAssociated':
-                        r = deviceDataRate(ap, sta, wlan)
-                        self.rate = r.rate
-                    else:
-                        self.rate = 0
-                    return self.rate
                 else:
                     if sta.associatedAp[wlan] != 'NoAssociated':
                         r = deviceDataRate(ap, sta, wlan)
                         self.rate = r.rate
+                        value = propagationModel(sta, ap, distance, wlan, model, systemLoss)
+                        sta.rssi[wlan] = value.rssi
                     else:
                         self.rate = 0
                     return self.rate
@@ -1023,14 +1015,14 @@ class wifiParameters ( object ):
         """ set maximum Bandwidth according Mode - Useful when nodes are stopped"""
         self.bandwidth = 0
         if (mode=='a'):
-            self.bandwidth = 20 # 54
+            self.bandwidth = 20 
         elif(mode=='b'):
-            self.bandwidth = 6 #11
+            self.bandwidth = 6 
         elif(mode=='g'):
-            self.bandwidth = 20 #54
+            self.bandwidth = 20
         elif(mode=='n'):
-            self.bandwidth = 48 # 600
+            self.bandwidth = 48 
         elif(mode=='ac'):
-            self.bandwidth = 90 #6777
+            self.bandwidth = 90
        
         return self.bandwidth
