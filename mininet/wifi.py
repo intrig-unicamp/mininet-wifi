@@ -194,7 +194,7 @@ class association( object ):
         except:
             pass
         
-        if str(ap) == sta.associatedAp[wlan]:
+        if ap == sta.associatedAp[wlan]:
             if distance > ap.range:                
                 station.iwCommand(sta, wlan, 'disconnect')
                 sta.associatedAp[wlan] = 'NoAssociated'
@@ -225,13 +225,13 @@ class association( object ):
             if distance < ap.range:            
                 aps = 0
                 for n in range(0,len(sta.associatedAp)):
-                    if 'ap' in sta.associatedAp[n]:
+                    if 'ap' in str(sta.associatedAp[n]):
                         aps+=1
                 if len(sta.associatedAp) == aps:
                     associated = True
                 else:
                     associated = False
-        if str(ap) == sta.associatedAp[wlan] or distance < ap.range:
+        if ap == sta.associatedAp[wlan] or distance < ap.range:
             #Only if it is a mobility environment
             if mobility.ismobility == True: 
                 changeAP = False
@@ -255,14 +255,16 @@ class association( object ):
         """useful to llf (Least-loaded-first)"""
         if ac == "llf":
             apref = sta.associatedAp[wlan]
-            accessPoint.numberOfAssociatedStations(apref)
-            ref_llf = apref.nAssociatedStations
-            if ap.nAssociatedStations+2 < ref_llf:
+            if apref != 'NoAssociated':
+                accessPoint.numberOfAssociatedStations(apref)
+                ref_llf = apref.nAssociatedStations
+                if ap.nAssociatedStations+2 < ref_llf:
+                    changeAP = True
+            else:
                 changeAP = True
         
         """useful to ssf (Strongest-signal-first)"""
         if ac == "ssf":
-            apref = sta.associatedAp[wlan]
             if self.model == '':
                 self.model = 'friisPropagationLossModel'
             ref_Distance = mobility.getDistance(sta, ap)
@@ -310,8 +312,11 @@ class station ( object ):
     
     @classmethod       
     def iwCommand(self, sta, wlan, *args):
-        command = 'iw dev %s-wlan%s ' % (sta, wlan)
-        sta.pexec(command + '%s' % args)
+        try:
+            command = 'iw dev %s-wlan%s ' % (sta, wlan)
+            sta.pexec(command + '%s' % args)
+        except:
+            pass
     
     @classmethod       
     def ipLinkCommand(self, sta, wlan, *args):
@@ -372,7 +377,7 @@ class station ( object ):
         iface = str(sta)+'-wlan%s' % wlan
         self.getWiFiParameters(sta, iface, wlan) 
         accessPoint.numberOfAssociatedStations(ap)
-        sta.associatedAp[wlan] = str(ap)
+        sta.associatedAp[wlan] = ap
             
     @classmethod    
     def isAssociated(self, sta, iface):
@@ -394,7 +399,7 @@ class station ( object ):
         elif sta.encrypt == 'wep':
             self.associate_wep(sta, wlan, ap.ssid, sta.passwd)
         self.confirmInfraAssociation(sta, ap, wlan)
-        sta.associatedAp[wlan] = str(ap) 
+        sta.associatedAp[wlan] = ap 
         
     @classmethod    
     def associate_wpa(self, sta, wlan, ssid, passwd):
@@ -468,11 +473,11 @@ class accessPoint ( object ):
     @classmethod
     def numberOfAssociatedStations( self, ap ):
         "Number of Associated Stations"
-        cmd = 'iw dev %s-wlan0 station dump | grep Sta | grep -c ^' % ap     
-        proc = subprocess.Popen(cmd,stdout=subprocess.PIPE,shell=True)   
-        (out, err) = proc.communicate()
-        output = out.rstrip('\n')
         try:
+            cmd = 'iw dev %s-wlan0 station dump | grep Sta | grep -c ^' % ap     
+            proc = subprocess.Popen(cmd,stdout=subprocess.PIPE,shell=True)   
+            (out, err) = proc.communicate()
+            output = out.rstrip('\n')
             ap.nAssociatedStations = int(output)
         except:
             pass
@@ -717,13 +722,13 @@ class mobility ( object ):
         if ac == 'llf' or ac == 'ssf':
             station.iwCommand(sta, wlan, 'disconnect')
             station.iwCommand(sta, wlan, ('connect %s' % ap.ssid))
-            sta.associatedAp[wlan] = str(ap)
+            sta.associatedAp[wlan] = ap
             station.getWiFiParameters(sta, iface, wlan)
-        elif str(ap) not in sta.associatedAp:
+        elif ap not in sta.associatedAp:
             #Useful for stations with more than one wifi iface
-            if 'ap' not in sta.associatedAp[wlan]:
+            if 'ap' not in str(sta.associatedAp[wlan]):
                 station.iwCommand(sta, wlan, ('connect %s' % ap.ssid))
-                sta.associatedAp[wlan] = str(ap)
+                sta.associatedAp[wlan] = ap
                 station.getWiFiParameters(sta, iface, wlan)
         accessPoint.numberOfAssociatedStations(ap)
             
