@@ -900,22 +900,7 @@ class wifiParameters ( object ):
             delay = 1
         return delay  
     
-
-    @classmethod
-    def custom_step(self, mode):    
-        """ only useful for bw """
-        self.step = 0
-        if (mode=='a' or mode=='g'):
-            self.step = 3
-        elif(mode=='b'):
-            self.step = 5
-        elif(mode=='n'):
-            self.step = 5
-        elif(mode=='ac'):
-            self.step = 5
-            
-        return self.step
-    
+   
     @classmethod
     def range(self, node):
         
@@ -935,57 +920,26 @@ class wifiParameters ( object ):
         return self.value   
     
     @classmethod
-    def custom_bw(self, mode):    
-        """ only useful for bw """
-        self.bw_step = 0
-        if (mode=='a' or mode=='g'):
-            self.bw_step = 5
-        elif(mode=='b'):
-            self.bw_step = 1.1
-        elif(mode=='n'):
-            self.bw_step = 42
-        elif(mode=='ac'):
-            self.bw_step = 338
-            
-        return self.bw_step
-    
-    @classmethod
     def bw(self, distance, sta, ap, wlan):
         if ap == None:
             mode = sta.mode
-            signalRange = sta.range
-            customStep = self.custom_step(mode)
-            custombw = self.custom_bw(mode)
-            bw = self.set_bw_node_moving(mode)
-            for n in range(0,signalRange+1):
-                sta.rssi[wlan] = -50 - distance
-                if n % customStep==0:
-                    if n>=distance:
-                        return bw
-                    elif distance > signalRange:
-                        return 0
-                    bw = bw - custombw
+            custombw = self.set_bw_node_moving(mode)
+            sta.rssi[wlan] = -50 - distance
+            bw = custombw * (1.1 ** -distance)
+            return bw
         else:
             mode = ap.mode
-            signalRange = ap.range
-            customStep = self.custom_step(mode)
-            custombw = self.custom_bw(mode)
+            custombw = self.set_bw_node_moving(mode)
             model = emulationEnvironment.propagationModel
             if model == '':
                 model = 'friisPropagationLossModel'
             systemLoss = 1
             if distance != 0: 
                 if ap.equipmentModel == None:
-                    bw = self.set_bw_node_moving(mode)
-                    for n in range(0,signalRange+1):
-                        value = propagationModel(sta, ap, distance, wlan, model, systemLoss)
-                        sta.rssi[wlan] = value.rssi
-                        if n % customStep==0:
-                            if n>=distance:
-                                return bw
-                            elif distance > signalRange:
-                                return 0
-                            bw = bw - custombw 
+                    value = propagationModel(sta, ap, distance, wlan, model, systemLoss)
+                    sta.rssi[wlan] = value.rssi
+                    bw = custombw * (1.1 ** -distance)
+                    return bw
                 else:
                     if sta.associatedAp[wlan] != 'NoAssociated':
                         r = deviceDataRate(ap, sta, wlan)
