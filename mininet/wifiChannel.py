@@ -98,8 +98,9 @@ class interference ( object ):
                 if station != sta and sta.associatedAp[wlan] != 'NoAssociated':
                     dist = emulationEnvironment.getDistance(sta, station)
                     totalRange = sta.range + station.range
-                    n = (totalRange - dist)/10
-                    noise =+ n
+                    if dist < totalRange:
+                        n = (totalRange - dist)/10
+                        noise =+ n
             noisePower = 10*math.log10(abs(noise))
             signalPower = 10*math.log10(abs(sta.rssi[wlan]))
             sta.snr[wlan] = self.signalToNoiseRatio(signalPower, noisePower)
