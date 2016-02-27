@@ -23,7 +23,7 @@ if 'PYTHONPATH' in os.environ:
 from mininet.clean import cleanup
 from mininet.cli import CLI
 from mininet.log import lg, LEVELS, info, debug, warn, error
-from mininet.wifi import module
+from mininet.wifiEmulationEnvironment import emulationEnvironment
 from mininet.net import Mininet, MininetWithControlNet, VERSION
 from mininet.node import ( Host, CPULimitedHost, Controller, OVSController,
                            Ryu, NOX, RemoteController, findController,
@@ -305,12 +305,11 @@ class MininetRunner( object ):
             exit()
 
         if self.options.radios != 0:
-            module.isWiFi = True
-            module.wifiRadios = self.options.radios
+            emulationEnvironment.isWiFi = True
+            emulationEnvironment.wifiRadios = self.options.radios
               
         if self.options.wifi and self.options.radios == 0:
-            module.isWiFi = True
-
+            emulationEnvironment.isWiFi = True
             
         start = time.time()
        
