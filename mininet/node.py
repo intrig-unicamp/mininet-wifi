@@ -69,7 +69,8 @@ from mininet.moduledeps import moduleDeps, pathCheck, TUN
 from mininet.link import Link, Intf, TCIntf, OVSIntf
 from re import findall
 from distutils.version import StrictVersion
-from mininet.wifi import wifiParameters, accessPoint
+from mininet.wifi import accessPoint
+from mininet.wifiEmulationEnvironment import emulationEnvironment
 
 class Node( object ):
     """A virtual network node is simply a shell in a network namespace.
@@ -110,6 +111,9 @@ class Node( object ):
         self.passwd = ''
         self.security = ''
         self.equipmentModel = ''  
+        self.txgain = []
+        self.rxgain = []
+        self.snr = []
         
         # Station Parameters
         self.associate = False
@@ -136,6 +140,7 @@ class Node( object ):
         self.startTime = 0
         self.endTime = 0      
         self.speed = 0  
+        self.associatedStations = []
 
         # Make pylint happy
         ( self.shell, self.execed, self.pid, self.stdin, self.stdout,
@@ -393,7 +398,8 @@ class Node( object ):
             self.sendCmd( *args, **kwargs )
             return self.waitOutput( verbose )
         else:
-            warn( '(%s exited - ignoring cmd%s)\n' % ( self, args ) )
+            pass
+            #warn( '(%s exited - ignoring cmd%s)\n' % ( self, args ) )
 
     def cmdPrint( self, *args):
         """Call cmd and printing its output
@@ -1241,14 +1247,14 @@ class OVSSwitch( Switch ):
         self.apif = self.apif.split("\n")
         
         for apif in self.apif:
-            if apif not in wifiParameters.physicalWlan:
+            if apif not in emulationEnvironment.physicalWlan:
                 self.newapif.append(apif)
         
         self.newapif.pop()
         self.newapif = sorted(self.newapif)
         self.newapif.sort(key=len, reverse=False)
         
-        if(wifiParameters.isCode == True):
+        if(emulationEnvironment.isCode == True):
             if('accessPoint' == self.type):
                 for iface in range(0, self.nWlans):
                     port = str(self.name) + str('-wlan') + str(iface)

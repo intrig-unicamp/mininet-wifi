@@ -109,13 +109,14 @@ from mininet.util import ( quietRun, fixLimits, numCores, ensureRoot,
                            macColonHex, ipStr, ipParse, netParse, ipAdd,
                            waitListening )
 from mininet.term import cleanUpScreens, makeTerms
-from mininet.wifi import checkNM, module, accessPoint, station, wifiParameters, association, mobility, getWlan, plot
-from mininet.wifiDevices import deviceRange
-from mininet.wifiPropagationModel import emulationEnvironment
+from mininet.wifi import checkNM, module, accessPoint, station, association, mobility, getWlan, plot
+from mininet.wifiDevices import deviceRange, deviceDataRate
+from mininet.wifiEmulationEnvironment import emulationEnvironment
+from mininet.wifiParameters import wifiParameters
 from __builtin__ import True
 
 # Mininet version: should be consistent with README and LICENSE
-VERSION = "1.6r7"
+VERSION = "1.6r8"
 
 class Mininet( object ):
     "Network emulation with hosts spawned in network namespaces."
@@ -325,14 +326,14 @@ class Mininet( object ):
                 
         wifi = ("%s" % params.pop('wlans', {}))
         if(wifi!="{}"):        
-            wifiParameters.wifiRadios += int(wifi)
+            emulationEnvironment.wifiRadios += int(wifi)
             for n in range(int(wifi)):
-                wifiParameters.virtualWlan.append(name)
+                emulationEnvironment.virtualWlan.append(name)
                 sta.rssi.append(0)
         else:
-            wifiParameters.wifiRadios += 1
+            emulationEnvironment.wifiRadios += 1
             wifi = 1
-            wifiParameters.virtualWlan.append(name)
+            emulationEnvironment.virtualWlan.append(name)
             sta.rssi.append(0)
         sta.nWlans = int(wifi)
         
@@ -411,21 +412,18 @@ class Mininet( object ):
         if(self.range!="{}"):
             bs.range = int(self.range)
         else:
-            if bs.equipmentModel == None:
-                bs.range = wifiParameters.range(bs)
-            else:
-                value = deviceRange(bs)     
-                bs.range = value.range       
+            value = deviceRange(bs)     
+            bs.range = value.range       
             
         wifi = ("%s" % params.pop('wlans', {}))
         if(wifi!="{}"):        
-            wifiParameters.wifiRadios += int(wifi)
+            emulationEnvironment.wifiRadios += int(wifi)
             for n in range(int(wifi)):
-                wifiParameters.virtualWlan.append(str(name)+str(n))
+                emulationEnvironment.virtualWlan.append(str(name)+str(n))
         else:
-            wifiParameters.wifiRadios += 1
+            emulationEnvironment.wifiRadios += 1
             wifi = 1
-            wifiParameters.virtualWlan.append(str(name)+str(0))
+            emulationEnvironment.virtualWlan.append(str(name)+str(0))
         bs.nWlans = int(wifi)
         
         accessPoint.list.append( bs )
@@ -577,7 +575,8 @@ class Mininet( object ):
         else:
             sta.mode = 'g'
             
-        sta.range = wifiParameters.range(sta)
+        value = deviceRange(sta)
+        sta.range = value.range
                     
         if self.plot and sta.position != 0:
             src, dst = sta, sta
@@ -589,7 +588,8 @@ class Mininet( object ):
                 if sta in self.missingStations:
                     self.missingStations.remove(sta)
         
-        self.bw = wifiParameters.set_bw(sta.mode)
+        value = deviceDataRate(None, sta, None)
+        self.bw = value.rate
                 
         options.setdefault( 'bw', self.bw )
         # Set default MAC - this should probably be in Link
@@ -626,9 +626,11 @@ class Mininet( object ):
         else:
             sta.mode = 'g'
             
-        sta.range = wifiParameters.range(sta)
+        value = deviceRange(sta)
+        sta.range = value.range
             
-        self.bw = wifiParameters.set_bw(sta.mode)
+        value = deviceDataRate(None, sta, None)
+        self.bw = value.rate
         options.setdefault( 'bw', self.bw )
         # Set default MAC - this should probably be in Link
         options.setdefault( 'addr1', self.randMac() )
@@ -653,7 +655,7 @@ class Mininet( object ):
         for ap in self.accessPoints:
             for wlan in range(0,ap.nWlans):
                 wifiparam = dict()
-                intf = self.newapif[wifiParameters.virtualWlan.index(str(ap)+str(wlan))]
+                intf = self.newapif[emulationEnvironment.virtualWlan.index(str(ap)+str(wlan))]
                 newname = str(ap)+'-'+str('wlan')
                 accessPoint.rename(intf, newname, wlan)
                 checkNM.getMacAddress(ap, wlan)         
@@ -663,9 +665,8 @@ class Mininet( object ):
                 ap.txpower.append(str(wlan))
                 ap.antennaHeight.append(0.1)
                 ap.antennaGain.append(1)
-                iface = str(ap) + '-wlan' + str(wlan)
-                wifiParameters.get_frequency(ap, iface, wlan)
-                wifiParameters.get_tx_power(ap, iface, wlan)
+                wifiParameters(param='get_frequency', node=ap, wlan=wlan)
+                wifiParameters(param='get_tx_power', node=ap, wlan=wlan) 
                 
                 self.auth_algs = None
                 self.wpa = None
@@ -707,7 +708,8 @@ class Mininet( object ):
     def addMissingSTAs(self, sta):
         
         options = dict( )
-        self.bw = wifiParameters.set_bw(sta.mode)
+        value = deviceDataRate(None, sta, None)
+        self.bw = value.rate
         options.setdefault( 'bw', self.bw )
         options.setdefault( 'use_hfsc', True )
         
@@ -757,8 +759,8 @@ class Mininet( object ):
                                 
     def configureWifiNodes(self, hasAP=True):
         if self.ifaceConfigured == False:
-            module(action = 'start', wifiRadios = wifiParameters.wifiRadios)
-            wifiParameters.isWiFi = True
+            module(action = 'start', wifiRadios = emulationEnvironment.wifiRadios)
+            emulationEnvironment.isWiFi = True
             self.link = TCLink
             self.newapif = getWlan.virtual()  #Get Virtual Wlans      
             station.assingIface(self.stations)
@@ -804,7 +806,8 @@ class Mininet( object ):
                 
                 if sta in self.missingStations:
                     self.missingStations.remove(sta)
-                self.bw = wifiParameters.set_bw(sta.mode)
+                value = deviceDataRate(ap, sta, None)
+                self.bw = value.rate
                 options.setdefault( 'bw', self.bw )
                 options.setdefault( 'use_hfsc', True )
                 
@@ -820,7 +823,7 @@ class Mininet( object ):
                 
                 #If sta/ap have defined position 
                 if sta.startPosition !=0 and ap.startPosition !=0:
-                    distance = mobility.getDistance(sta, ap)
+                    distance = emulationEnvironment.getDistance(sta, ap)
                     if self.plot:
                         src, dst = sta, ap
                         plot(src, dst)
@@ -1050,7 +1053,7 @@ class Mininet( object ):
         for switch in self.switches:
             if 'ap' in switch.name:  
                 for iface in range(0, switch.nWlans):
-                    interface = self.newapif[wifiParameters.virtualWlan.index(switch.name+str(iface))]
+                    interface = self.newapif[emulationEnvironment.virtualWlan.index(switch.name+str(iface))]
                     accessPoint.apBridge(switch.name, interface)
         
         info( '\n' )
@@ -1105,7 +1108,7 @@ class Mininet( object ):
             info( host.name + ' ' )
             host.terminate()
         info( '\n' )
-        if(wifiParameters.isWiFi):
+        if(emulationEnvironment.isWiFi):
             module(action = 'stop') #Stopping WiFi Module
         info( '\n*** Done\n' )
 
@@ -1497,7 +1500,7 @@ class Mininet( object ):
                        
                         if self.accessPoints == []:
                             for ref_sta in self.stations:
-                                ref_distance = ref_distance + mobility.getDistance(sta, ref_sta)
+                                ref_distance = ref_distance + emulationEnvironment.getDistance(sta, ref_sta)
                                 if self.plot:
                                     src, dst = sta, ref_sta
                                     plot(src, dst)
@@ -1505,7 +1508,7 @@ class Mininet( object ):
                             association.setAdhocParameters(sta, 0, ref_distance)
                         else:
                             for ap in self.accessPoints:
-                                distance = mobility.getDistance(sta, ap)
+                                distance = emulationEnvironment.getDistance(sta, ap)
                                 if self.plot:
                                     src, dst = sta, ap
                                     plot(src, dst)
@@ -1545,9 +1548,8 @@ class Mininet( object ):
                     device = ap  
             if device.type == 'station':
                 for wlan in range(device.nWlans):
-                    iface = str(device)+'-wlan%s' % wlan
-                    wifiParameters.get_tx_power(device, iface, wlan)
-                    wifiParameters.get_frequency(device, iface, wlan)
+                    wifiParameters(param='get_frequency', node=device, wlan=wlan)
+                    wifiParameters(param='get_tx_power', node=device, wlan=wlan) 
                     print "--------------------------------"                
                     print "Interface: %s-wlan%s" % (device, wlan)
                     try: # it is important when not infra

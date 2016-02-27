@@ -10,11 +10,52 @@ class deviceDataRate ( object ):
     
     rate = 0
     
-    def __init__( self, ap=None, sta=None, wlan=None ):
-       
-        if ap.equipmentModel in dir(self):
+    def __init__( self, ap=None, sta=None, wlan=None, isMobility=False ):
+        
+        if ap == None:
+            node = sta
+        else:
+            node = ap
+        
+        if ap != None and ap.equipmentModel in dir(self) and sta != None and wlan !=None:
             model = ap.equipmentModel
             self.__getattribute__(model)(ap, sta, wlan)
+        elif(isMobility):
+            self.customDataRate_mobility(node)
+        else:
+            self.customDataRate_no_mobility(node)
+            
+    def customDataRate_mobility(self, node):
+        """Custom Maximum Data Rate - Useful when there is mobility"""
+        mode = node.mode
+        
+        if (mode=='a'):
+            self.rate = 54
+        elif(mode=='b'):
+            self.rate = 11
+        elif(mode=='g'):
+            self.rate = 54
+        elif(mode=='n'):
+            self.rate = 600
+        elif(mode=='ac'):
+            self.rate = 6777            
+        return self.rate
+    
+    def customDataRate_no_mobility(self, node):
+        """Custom Maximum Data Rate - Useful when there is no mobility"""
+        mode = node.mode
+        
+        if (mode=='a'):
+            self.rate = 20
+        elif(mode=='b'):
+            self.rate = 6
+        elif(mode=='g'):
+            self.rate = 20
+        elif(mode=='n'):
+            self.rate = 48
+        elif(mode=='ac'):
+            self.rate = 90            
+        return self.rate
     
     def DI524(self, ap, sta, wlan):
         """D-Link AirPlus G DI-524
@@ -94,6 +135,7 @@ class deviceDataRate ( object ):
                 self.rate = 11
         return self.rate
        
+       
 class deviceRange ( object ):
     """ Range for specific equipments """
     
@@ -101,10 +143,28 @@ class deviceRange ( object ):
     
     def __init__( self, ap=None ):
         self.equipmentModel = ap.equipmentModel
-        self.ap = ap        
+        self.node = ap        
                 
         if self.equipmentModel in dir(self):
-            self.__getattribute__(self.equipmentModel)(self.ap)
+            self.__getattribute__(self.equipmentModel)(self.node)
+        else:
+            self.customSignalRange(self.node)
+            
+    def customSignalRange(self, node):
+        """Custom Signal Range"""
+        mode = node.mode
+        
+        if (mode=='a'):
+            self.range = 33
+        elif(mode=='b'):
+            self.range = 50
+        elif(mode=='g'):
+            self.range = 33 
+        elif(mode=='n'):
+            self.range = 70
+        elif(mode=='ac'):
+            self.range = 100             
+        return self.range 
     
     def DI524(self, ap):
         """ D-Link AirPlus G DI-524
