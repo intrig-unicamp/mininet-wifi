@@ -23,7 +23,7 @@ class propagationModel ( object ):
         txpower = ap.txpower[wlan]
         #txgain = 24
         #rxgain = 24
-        self.rssi = txpower - modelValue
+        self.rssi = txpower + modelValue
         return self.rssi
     
     def friisPropagationLossModel(self, sta, ap, distance, wlan):
