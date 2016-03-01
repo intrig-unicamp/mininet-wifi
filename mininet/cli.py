@@ -69,7 +69,10 @@ class CLI( Cmd ):
             return
 
         self.initReadline()
-        self.run()
+        try:
+            self.run()
+        except:
+            pass
 
     readlineInited = False
 
