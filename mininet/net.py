@@ -109,10 +109,10 @@ from mininet.util import ( quietRun, fixLimits, numCores, ensureRoot,
                            macColonHex, ipStr, ipParse, netParse, ipAdd,
                            waitListening )
 from mininet.term import cleanUpScreens, makeTerms
-from mininet.wifi import checkNM, module, accessPoint, station, association, mobility, getWlan, plot
+from mininet.wifi import emulationEnvironment, module, accessPoint, station, association, mobility, getWlan, plot
 from mininet.wifiDevices import deviceRange, deviceDataRate
-from mininet.wifiEmulationEnvironment import emulationEnvironment
 from mininet.wifiParameters import wifiParameters
+from mininet.wifiMobilityModels import distance
 from __builtin__ import True
 
 # Mininet version: should be consistent with README and LICENSE
@@ -184,6 +184,7 @@ class Mininet( object ):
         self.stations = []
         self.accessPoints = []
         self.controllers = []
+        self.virtualWlan = []
         self.links = []
         self.terms = []  # list of spawned xterm processes
         Mininet.init()  # Initialize Mininet if necessary
@@ -328,12 +329,12 @@ class Mininet( object ):
         if(wifi!="{}"):        
             emulationEnvironment.wifiRadios += int(wifi)
             for n in range(int(wifi)):
-                emulationEnvironment.virtualWlan.append(name)
+                self.virtualWlan.append(name)
                 sta.rssi.append(0)
         else:
             emulationEnvironment.wifiRadios += 1
             wifi = 1
-            emulationEnvironment.virtualWlan.append(name)
+            self.virtualWlan.append(name)
             sta.rssi.append(0)
         sta.nWlans = int(wifi)
         
@@ -419,11 +420,11 @@ class Mininet( object ):
         if(wifi!="{}"):        
             emulationEnvironment.wifiRadios += int(wifi)
             for n in range(int(wifi)):
-                emulationEnvironment.virtualWlan.append(str(name)+str(n))
+                self.virtualWlan.append(str(name)+str(n))
         else:
             emulationEnvironment.wifiRadios += 1
             wifi = 1
-            emulationEnvironment.virtualWlan.append(str(name)+str(0))
+            self.virtualWlan.append(str(name)+str(0))
         bs.nWlans = int(wifi)
         
         accessPoint.list.append( bs )
@@ -655,10 +656,10 @@ class Mininet( object ):
         for ap in self.accessPoints:
             for wlan in range(0,ap.nWlans):
                 wifiparam = dict()
-                intf = self.newapif[emulationEnvironment.virtualWlan.index(str(ap)+str(wlan))]
+                intf = self.newapif[self.virtualWlan.index(str(ap)+str(wlan))]
                 newname = str(ap)+'-'+str('wlan')
                 accessPoint.rename(intf, newname, wlan)
-                checkNM.getMacAddress(ap, wlan)         
+                emulationEnvironment.getMacAddress(ap, wlan)         
                 accessPoint.setBw(ap, wlan)
                
                 ap.frequency.append(str(wlan))
@@ -703,7 +704,7 @@ class Mininet( object ):
                 wifiparam.setdefault( 'iface', wlan )
                
                 cmd = accessPoint.start(ap, **wifiparam)   
-                checkNM.APfile(cmd, ap, wlan) 
+                emulationEnvironment.APfile(cmd, ap, wlan) 
                  
     def addMissingSTAs(self, sta):
         
@@ -763,7 +764,7 @@ class Mininet( object ):
             emulationEnvironment.isWiFi = True
             self.link = TCLink
             self.newapif = getWlan.virtual()  #Get Virtual Wlans      
-            station.assingIface(self.stations)
+            station.assingIface(self.stations, self.virtualWlan)
             self.ifaceConfigured = True
         if hasAP:
             self.configureAP() #configure AP
@@ -823,22 +824,23 @@ class Mininet( object ):
                 
                 #If sta/ap have defined position 
                 if sta.startPosition !=0 and ap.startPosition !=0:
-                    distance = emulationEnvironment.getDistance(sta, ap)
+                    d = distance(sta, ap)
+                    dist = d.dist
                     if self.plot:
                         src, dst = sta, ap
                         plot(src, dst)
-                    doAssociation = association.doAssociation(sta.mode, ap, distance)
+                    doAssociation = association.doAssociation(ap, dist)
                 #if not
                 else:
                     doAssociation = True
-                    distance = 0                
+                    dist = 0                
                                 
                 sta.doAssociation = doAssociation
                 if(doAssociation):
                     sta.ifaceToAssociate+=1
                     wlan = sta.ifaceToAssociate
                     station.associate(sta, ap)
-                    association.setInfraParameters(sta, ap, distance, wlan, **params)   
+                    association.setInfraParameters(sta, ap, dist, wlan, **params)   
             return link
         
         else:
@@ -1053,7 +1055,7 @@ class Mininet( object ):
         for switch in self.switches:
             if 'ap' in switch.name:  
                 for iface in range(0, switch.nWlans):
-                    interface = self.newapif[emulationEnvironment.virtualWlan.index(switch.name+str(iface))]
+                    interface = self.newapif[self.virtualWlan.index(switch.name+str(iface))]
                     accessPoint.apBridge(switch.name, interface)
         
         info( '\n' )
@@ -1065,15 +1067,6 @@ class Mininet( object ):
         self.set_seed = seed
 
     def stop( self ):
-        "Stop plotting"
-        self.plot = False
-        mobility.DRAW = False
-        mobility.ismobility = False
-        try:
-            plot('', '', close=True)
-        except:
-            pass
-        
         "Stop the controller(s), switches and hosts"
         info( '*** Stopping %i controllers\n' % len( self.controllers ) )
         for controller in self.controllers:
@@ -1109,6 +1102,14 @@ class Mininet( object ):
             host.terminate()
         info( '\n' )
         if(emulationEnvironment.isWiFi):
+            "Stop plotting"
+            emulationEnvironment.ismobility = False
+            mobility.DRAW = False
+            self.plot = False
+            try:
+                plot('', '', close=True)
+            except:
+                pass
             module(action = 'stop') #Stopping WiFi Module
         info( '\n*** Done\n' )
 
@@ -1500,7 +1501,9 @@ class Mininet( object ):
                        
                         if self.accessPoints == []:
                             for ref_sta in self.stations:
-                                ref_distance = ref_distance + emulationEnvironment.getDistance(sta, ref_sta)
+                                d = distance(sta, ref_sta)
+                                dist = d.dist
+                                ref_distance = ref_distance + dist
                                 if self.plot:
                                     src, dst = sta, ref_sta
                                     plot(src, dst)
@@ -1508,11 +1511,12 @@ class Mininet( object ):
                             association.setAdhocParameters(sta, 0, ref_distance)
                         else:
                             for ap in self.accessPoints:
-                                distance = emulationEnvironment.getDistance(sta, ap)
+                                d = distance(sta, ap)
+                                dist = d.dist
                                 if self.plot:
                                     src, dst = sta, ap
                                     plot(src, dst)
-                                association.setInfraParameters(sta, ap, distance, '')
+                                association.setInfraParameters(sta, ap, dist, '')
                     i+=1
         except:
             print 'Error! Mobility stopped!'
@@ -1535,7 +1539,7 @@ class Mininet( object ):
             print ("Position was not defined")
                         
     def propagationModel(self, model):
-        emulationEnvironment.propagationModel = model
+        emulationEnvironment.propagation_Model = model
     
     def deviceInfo(self, device):
         """ Devices Info """         

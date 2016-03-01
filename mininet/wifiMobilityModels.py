@@ -8,6 +8,7 @@
 #
 '''
 Created on Jan 24, 2012
+Modified by Ramon Fontes (ramonrf@dca.fee.unicamp.br)
 
 @author: André Panisson
 @contact: panisson@gmail.com
@@ -15,6 +16,7 @@ Created on Jan 24, 2012
 @source: https://github.com/panisson/pymobility
 @copyright: http://dx.doi.org/10.5281/zenodo.9873
 '''
+from scipy.spatial.distance import pdist
 import numpy as np
 from numpy.random import rand
 
@@ -126,6 +128,24 @@ def init_random_waypoint(nr_nodes, max_x, max_y,
     speed[moving_idx] = initial_speed(speed_mean,speed_delta, moving_idx.shape)
 
     return x,y,x_waypoint,y_waypoint,speed,pause_time
+
+
+class distance(object):
+    
+    dist = 0
+    
+    def __init__( self, src=None, dst=None ):
+        
+        self.getDistance(src, dst)
+    
+    def getDistance(self, src, dst):
+        """ Get the distance between two points """
+        pos_src = src.position
+        pos_dst = dst.position
+        points = np.array([(pos_src[0], pos_src[1], pos_src[2]), (pos_dst[0], pos_dst[1], pos_dst[2])])
+        self.dist = pdist(points)
+        return self.dist
+
 
 class RandomWaypoint(object):
     

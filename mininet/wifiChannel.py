@@ -4,9 +4,9 @@ author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
 
 """
 
-from mininet.wifiEmulationEnvironment import emulationEnvironment
 from wifiDevices import deviceDataRate
 from wifiPropagationModels import propagationModel
+from wifiMobilityModels import distance
 import math
 
 
@@ -46,51 +46,42 @@ class channelParameters ( object ):
         return self.loss
     
     def bw(self, params):
-        sta = (params.pop('sta', {}))
+        node1 = (params.pop('sta', {}))
+        node2 = (params.pop('ap', {}))
         dist = (params.pop('dist', {}))
-        ap = (params.pop('ap', {}))
         wlan = (params.pop('wlan', {}))
-        if ap == None:
-            value = deviceDataRate(ap, sta, wlan, emulationEnvironment.ismobility)
-            custombw = value.rate
-            sta.rssi[wlan] = -50 - dist
+        propagModel = (params.pop('propagationModel', {}))
+        isMobility = (params.pop('isMobility', {}))
+        systemLoss = 1
+        self.rate = 0
+        model = propagModel
+        if model == '':
+            model = 'friisPropagationLossModel'
+        value = deviceDataRate(node1, node2, wlan, isMobility)
+        custombw = value.rate
+        interference(node1, node2, model, wlan) 
+        if node2 == None:
+            node1.rssi[wlan] = -50 - dist
             self.rate = custombw * (1.1 ** -dist)
-            return self.rate
         else:
-            value = deviceDataRate(ap, sta, wlan, emulationEnvironment.ismobility)
-            custombw = value.rate
-            model = emulationEnvironment.propagationModel
-            if model == '':
-                model = 'friisPropagationLossModel'
-            systemLoss = 1
             if dist != 0: 
-                if ap.equipmentModel == None:
-                    value = propagationModel(sta, ap, dist, wlan, model, systemLoss)
-                    sta.rssi[wlan] = value.rssi
+                value = propagationModel(node1, node2, dist, wlan, model, systemLoss)
+                node1.rssi[wlan] = value.rssi
+                if node2.equipmentModel == None:
                     self.rate = custombw * (1.1 ** -dist)
-                    return self.rate
-                else:
-                    if sta.associatedAp[wlan] != 'NoAssociated':
-                        value = deviceDataRate(ap, sta, wlan, emulationEnvironment.ismobility)
-                        self.rate = value.rate
-                        value = propagationModel(sta, ap, dist, wlan, model, systemLoss)
-                        sta.rssi[wlan] = value.rssi
-                    else:
-                        self.rate = 0
-                    return self.rate
-            else:
-                value = deviceDataRate(ap, sta, wlan, emulationEnvironment.ismobility)
-                self.rate = value.rate
-                return self.rate 
+        return self.rate 
     
   
 class interference ( object ):
     
-    def __init__( self, sta=None, ap=None, wlan=0 ):
-        self.calculate(sta, ap, wlan)
+    def __init__( self, node1=None, node2=None, propagation_Model=None, wlan=0 ):
+        self.calculate(node1, node2, wlan, propagation_Model)
     
-    def calculate (self, sta, ap, wlan):
+    def calculate (self, node1, node2, wlan, propagation_Model):
         """Calculate Interference"""
+        sta = node1
+        ap = node2
+        model = propagation_Model
         totalRange = 0
         noise = 0
         i=0
@@ -98,34 +89,37 @@ class interference ( object ):
         try:
             for station in ap.associatedStations:
                 if station != sta and sta.associatedAp[wlan] != 'NoAssociated':
-                    dist = emulationEnvironment.getDistance(sta, station)
+                    d = distance(sta, station)
+                    dist = d.dist
                     totalRange = sta.range + station.range
-                    model = emulationEnvironment.propagationModel
                     systemLoss = 1
                     if dist < totalRange:
                         value = propagationModel(sta, station, dist, wlan, model, systemLoss)
                         n =  value.rssi + signalPower
                         noise =+ n
                         i+=1
-            if i == 0:
-                noisePower = 1
-            else:
+            if i != 0:
                 noisePower = noise/i
             signalPower = sta.rssi[wlan]
-            sta.snr[wlan] = self.signalToNoiseRatio(signalPower, noisePower)
+            if i != 0:
+                sta.snr[wlan] = self.signalToNoiseRatio(signalPower, noisePower)
+            else:
+                sta.snr[wlan] = abs(signalPower)
         except:
             pass
             
     def signalToNoiseRatio(self, signalPower, noisePower):    
-        """Calculate SNR"""
+        """Calculating SNR"""
         snr =  signalPower - noisePower
         return snr
 
-    def maxChannelNoise(self, sta, ap, wlan, modelValue):    
-        snr = 25 #Depends of the equipment
-        max_channel_noise = self.rssi[wlan] - snr
+    def maxChannelNoise(self, node1, node2, wlan, modelValue):  
+        """Have to work"""  
+        #snr = 25 #Depends of the equipment
+        #max_channel_noise = self.rssi[wlan] - snr
         
-    def linkMargin(self, sta, ap, wlan, modelValue):    
-        receive_sensitivity = -72 #Depends of the equipment
-        link_margin = self.rssi[wlan] - receive_sensitivity
+    def linkMargin(self, node1, node2, wlan, modelValue):    
+        """Have to work"""
+        #receive_sensitivity = -72 #Depends of the equipment
+        #link_margin = self.rssi[wlan] - receive_sensitivity
     

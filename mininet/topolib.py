@@ -2,7 +2,7 @@
 
 from mininet.topo import Topo
 from mininet.net import Mininet
-from mininet.wifiEmulationEnvironment import emulationEnvironment
+from mininet.wifi import emulationEnvironment
 
 # The build() method is expected to do this:
 # pylint: disable=arguments-differ

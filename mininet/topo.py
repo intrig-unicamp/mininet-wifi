@@ -12,7 +12,7 @@ setup for testing, and can even be emulated with the Mininet package.
 """
 
 from mininet.util import irange, natural, naturalSeq
-from mininet.wifiEmulationEnvironment import emulationEnvironment
+from mininet.wifi import emulationEnvironment
 
 class MultiGraph( object ):
     "Utility class to track nodes and edges - replaces networkx.MultiGraph"

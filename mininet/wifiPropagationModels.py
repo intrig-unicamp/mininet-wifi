@@ -12,28 +12,28 @@ class propagationModel ( object ):
     
     rssi = -62
         
-    def __init__( self, sta=None, ap=None, distance=0, wlan=None, model=None, systemLoss=1 ):
+    def __init__( self, node1=None, node2=None, distance=0, wlan=None, model=None, systemLoss=1 ):
         self.model = model        
         self.systemLoss = systemLoss
         
         if self.model in dir(self):
-            self.__getattribute__(self.model)(sta, ap, distance, wlan)
+            self.__getattribute__(self.model)(node1, node2, distance, wlan)
             
-    def receivedPower(self, sta, ap, wlan, modelValue):    
-        txpower = ap.txpower[wlan]
+    def receivedPower(self, node1, node2, wlan, modelValue):    
+        txpower = node2.txpower[0]
         #txgain = 24
         #rxgain = 24
-        self.rssi = txpower + modelValue
+        self.rssi = txpower + modelValue        
         return self.rssi
     
-    def friisPropagationLossModel(self, sta, ap, distance, wlan):
+    def friisPropagationLossModel(self, node1, node2, distance, wlan):
         """Friis Propagation Loss Model:
         (f) signal frequency transmited(Hz)
         (d) is the distance between the transmitter and the receiver (m)
         (c) speed of light in vacuum (m)
         (L) System loss"""          
         
-        f = (sta.frequency[wlan] * 10**9) #Convert Ghz to Hz
+        f = (node1.frequency[wlan] * 10**9) #Convert Ghz to Hz
         d = distance 
         c = 299792458.0 
         L = self.systemLoss 
@@ -43,11 +43,11 @@ class propagationModel ( object ):
             numerator = lambda_**2
             denominator = (4 * math.pi * d)**2 * L
             modelValue = 10 * math.log10(numerator / denominator)
-            self.receivedPower(sta, ap, wlan, modelValue)
+            self.receivedPower(node1, node2, wlan, modelValue)
         except:
             return self.rssi
                 
-    def twoRayGroundPropagationLossModel(self, sta, ap, distance, wlan):
+    def twoRayGroundPropagationLossModel(self, node1, node2, distance, wlan):
         """Two Ray Ground Propagation Loss Model:
         (gT): Tx Antenna Gain (dBi)
         (gR): Rx Antenna Gain (dBi)
@@ -56,20 +56,20 @@ class propagationModel ( object ):
         (d) is the distance between the transmitter and the receiver (m)
         (L): System loss"""
        
-        gT = ap.antennaGain[wlan] 
-        gR = sta.antennaGain[wlan]
-        hT = ap.antennaHeight[wlan]
-        hR = sta.antennaHeight[wlan]
-        d = int(distance)
+        gT = node2.antennaGain[wlan] 
+        gR = node1.antennaGain[wlan]
+        hT = node2.antennaHeight[wlan]
+        hR = node1.antennaHeight[wlan]
+        d = distance
         L = self.L
         
         try:
-            self.rssi = ap.txpower[wlan] + 10 * math.log10(gT * gR * hT**2 * hR**2 / d**4 * L)
+            self.rssi = node2.txpower[wlan] + 10 * math.log10(gT * gR * hT**2 * hR**2 / d**4 * L)
             return self.rssi
         except:
             return self.rssi
             
-    def logDistancePropagationLossModel(self, sta, ap, distance, wlan):
+    def logDistancePropagationLossModel(self, node1, node2, distance, wlan):
         """Log Distance Propagation Loss Model:
         referenceDistance (m): The distance at which the reference loss is calculated
         referenceLoss (db): The reference loss at reference distance. Default for 1m is 46.6777
@@ -82,12 +82,12 @@ class propagationModel ( object ):
         
         pathLossDb = 10 * exponent * math.log10(d / referenceDistance)
         rxc = - referenceLoss - pathLossDb
-        self.rssi = ap.txpower[wlan] + rxc
+        self.rssi = node2.txpower[wlan] + rxc
         return self.rssi
         
-    def okumuraHataPropagationLossModel(self, sta, ap, distance, wlan):
+    def okumuraHataPropagationLossModel(self, node1, node2, distance, wlan):
         """Okumura Hata Propagation Loss Model:"""
         
-    def jakesPropagationLossModel(self, sta, ap, distance, wlan):
+    def jakesPropagationLossModel(self, node1, node2, distance, wlan):
         """Jakes Propagation Loss Model:"""
         

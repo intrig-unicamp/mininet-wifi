@@ -17,10 +17,10 @@ class wifiParameters ( object ):
         if param in dir(self):
             self.__getattribute__(param)(node, wlan)
     
-    def get_rsi(self, node, wlan): 
-        """ Get rsi info """
-        node.rsi = (node.cmd('iwconfig %s | grep -o \'Signal.*\' | cut -f2- -d\'=\' | cut -c1-4'
-                                            % self.iface)) 
+    #def get_rsi(self, node, wlan): 
+    #    """ Get rsi info """
+    #    node.rsi = (node.cmd('iwconfig %s | grep -o \'Signal.*\' | cut -f2- -d\'=\' | cut -c1-4'
+    #                                        % self.iface)) 
     
     def get_frequency(self, node, wlan): 
         """ Get frequency info **in development """
