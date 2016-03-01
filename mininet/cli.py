@@ -42,7 +42,6 @@ from mininet.util import ( quietRun, dumpNodeConnections,
 class CLI( Cmd ):
     "Simple command-line interface to talk to nodes."
     
-    
     prompt = 'mininet-wifi> '
 
     def __init__( self, mininet, stdin=sys.stdin, script=None ):

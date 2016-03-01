@@ -35,6 +35,7 @@ class emulationEnvironment ( object ):
     wpa_supplicantIsRunning = False
     isWiFi = False
     isCode = False
+    continue_ = True
     
     @classmethod 
     def checkNetworkManager(self, mac):
@@ -228,14 +229,14 @@ class association( object ):
                 else:
                     value = channelParameters(param = 'loss', dist = distance)
                     loss = value.loss
-                    
-                sta.pexec("tc qdisc replace dev %s-wlan%s \
+                if emulationEnvironment.continue_:
+                    sta.pexec("tc qdisc replace dev %s-wlan%s \
                     root handle 1: netem rate %.2fmbit \
                     loss %.1f%% \
                     latency %.2fms \
                     delay %.2fms" % (sta, wlan, bw, loss, latency, delay))    
-                #Reordering packets    
-                sta.pexec('tc qdisc replace dev %s-wlan%s parent 1:1 pfifo limit 1000' % (sta, wlan))
+                    #Reordering packets    
+                    sta.pexec('tc qdisc replace dev %s-wlan%s parent 1:1 pfifo limit 1000' % (sta, wlan))
         else:    
             if distance < ap.range:            
                 aps = 0

@@ -1103,13 +1103,15 @@ class Mininet( object ):
         info( '\n' )
         if(emulationEnvironment.isWiFi):
             "Stop plotting"
+            emulationEnvironment.continue_ = False
             emulationEnvironment.ismobility = False
             mobility.DRAW = False
-            self.plot = False
             try:
                 plot('', '', close=True)
             except:
                 pass
+            self.plot = False
+            
             module(action = 'stop') #Stopping WiFi Module
         info( '\n*** Done\n' )
 
