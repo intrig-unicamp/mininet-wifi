@@ -109,10 +109,11 @@ from mininet.util import ( quietRun, fixLimits, numCores, ensureRoot,
                            macColonHex, ipStr, ipParse, netParse, ipAdd,
                            waitListening )
 from mininet.term import cleanUpScreens, makeTerms
-from mininet.wifi import emulationEnvironment, module, accessPoint, station, association, mobility, getWlan, plot
+from mininet.wifi import emulationEnvironment, module, station, association, mobility, getWlan, plot
 from mininet.wifiDevices import deviceRange, deviceDataRate
 from mininet.wifiParameters import wifiParameters
 from mininet.wifiMobilityModels import distance
+from mininet.wifiAccessPoint import accessPoint
 from __builtin__ import True
 
 # Mininet version: should be consistent with README and LICENSE
@@ -168,7 +169,6 @@ class Mininet( object ):
         self.start_time = 0 #start mobility time
         self.set_seed = 10
         self.firstAssociation = True
-        self.plot = False
         self.ifaceConfigured = False
         self.ssid = ssid        
         self.mode = mode
@@ -427,7 +427,7 @@ class Mininet( object ):
             self.virtualWlan.append(str(name)+str(0))
         bs.nWlans = int(wifi)
         
-        accessPoint.list.append( bs )
+        emulationEnvironment.apList.append( bs )
         self.switches.append( bs )          
         self.accessPoints.append( bs ) 
         
@@ -577,9 +577,9 @@ class Mininet( object ):
             sta.mode = 'g'
             
         value = deviceRange(sta)
-        sta.range = value.range
+        sta.range = value.range-15
                     
-        if self.plot and sta.position != 0:
+        if mobility.DRAW and sta.position != 0:
             src, dst = sta, sta
             plot(src, dst)
     
@@ -628,7 +628,7 @@ class Mininet( object ):
             sta.mode = 'g'
             
         value = deviceRange(sta)
-        sta.range = value.range
+        sta.range = value.range-15
             
         value = deviceDataRate(None, sta, None)
         self.bw = value.rate
@@ -639,7 +639,7 @@ class Mininet( object ):
         cls = self.link if cls is None else cls
         link = cls( sta, 'onlyOneDevice', **options )
         
-        if self.plot and sta.position != 0:
+        if mobility.DRAW and sta.position != 0:
             src, dst = sta, sta
             plot(src, dst)
         
@@ -657,11 +657,7 @@ class Mininet( object ):
             for wlan in range(0,ap.nWlans):
                 wifiparam = dict()
                 intf = self.newapif[self.virtualWlan.index(str(ap)+str(wlan))]
-                newname = str(ap)+'-'+str('wlan')
-                accessPoint.rename(intf, newname, wlan)
-                emulationEnvironment.getMacAddress(ap, wlan)         
-                accessPoint.setBw(ap, wlan)
-               
+                
                 ap.frequency.append(str(wlan))
                 ap.txpower.append(str(wlan))
                 ap.antennaHeight.append(0.1)
@@ -701,10 +697,10 @@ class Mininet( object ):
                 wifiparam.setdefault( 'rsn_pairwise', self.rsn_pairwise )
                 wifiparam.setdefault( 'wpa_passphrase', self.wpa_passphrase )
                 wifiparam.setdefault( 'wep_key0', self.wep_key0 )
-                wifiparam.setdefault( 'iface', wlan )
+                wifiparam.setdefault( 'wlan', wlan )
+                wifiparam.setdefault( 'intf', intf )
                
-                cmd = accessPoint.start(ap, **wifiparam)   
-                emulationEnvironment.APfile(cmd, ap, wlan) 
+                accessPoint(ap, **wifiparam)       
                  
     def addMissingSTAs(self, sta):
         
@@ -826,21 +822,18 @@ class Mininet( object ):
                 if sta.startPosition !=0 and ap.startPosition !=0:
                     d = distance(sta, ap)
                     dist = d.dist
-                    if self.plot:
-                        src, dst = sta, ap
-                        plot(src, dst)
+                    if mobility.DRAW:
+                        plot(sta, ap)
                     doAssociation = association.doAssociation(ap, dist)
                 #if not
                 else:
                     doAssociation = True
-                    dist = 0                
                                 
                 sta.doAssociation = doAssociation
                 if(doAssociation):
                     sta.ifaceToAssociate+=1
-                    wlan = sta.ifaceToAssociate
                     station.associate(sta, ap)
-                    association.setInfraParameters(sta, ap, dist, wlan, **params)   
+                    association.setChannelParameters(sta, **params)   
             return link
         
         else:
@@ -983,7 +976,7 @@ class Mininet( object ):
                          'should be overriden in subclass', self )
 
     def build( self ):
-        wifiParameters.isCode=True
+        emulationEnvironment.isCode=True
         #useful if there no link between sta and any other device
         for s in self.missingStations:
             self.addMissingSTAs(s)
@@ -1026,7 +1019,7 @@ class Mininet( object ):
                     src.setARP( ip=dst.IP(), mac=dst.MAC() )
 
     def start( self ):
-        wifiParameters.isCode = False
+        emulationEnvironment.isCode = False
         "Start controller and switches."
         if not self.built:
             self.build()
@@ -1051,12 +1044,11 @@ class Mininet( object ):
                 success = swclass.batchStartup( switches )
                 started.update( { s: s for s in success } )
         
-        #It is necessary to make a bridge between ap and wlan interface
+        #It is necessary to create a bridge between ap and wlan interface
         for switch in self.switches:
             if 'ap' in switch.name:  
                 for iface in range(0, switch.nWlans):
-                    interface = self.newapif[self.virtualWlan.index(switch.name+str(iface))]
-                    accessPoint.apBridge(switch.name, interface)
+                    accessPoint.apBridge(switch.name, iface)
         
         info( '\n' )
         if self.waitConn:
@@ -1110,7 +1102,6 @@ class Mininet( object ):
                 plot('', '', close=True)
             except:
                 pass
-            self.plot = False
             
             module(action = 'stop') #Stopping WiFi Module
         info( '\n*** Done\n' )
@@ -1451,7 +1442,7 @@ class Mininet( object ):
         
         mobilityparam.setdefault( 'ismobility', True )
         mobilityparam.setdefault( 'seed', self.set_seed )
-        mobilityparam.setdefault( 'plot', self.plot )
+        mobilityparam.setdefault( 'plot', mobility.DRAW )
      
         if self.mobilityModel != '':
             mobilityparam.setdefault( 'wifiNodes', self.wifiNodes )
@@ -1485,7 +1476,7 @@ class Mininet( object ):
         t_start = time.time() + self.start_time
         currentTime = time.time()
         i=1
-        ref_distance = 0
+        once = True
         try:
             while time.time() < t_end and time.time() > t_start:
                 if time.time() - currentTime >= i:
@@ -1500,25 +1491,13 @@ class Mininet( object ):
                             sta.startPosition[1] = float(sta.startPosition[1])
                             sta.startPosition[2] = float(sta.startPosition[2])
                         sta.position = sta.startPosition
-                       
-                        if self.accessPoints == []:
-                            for ref_sta in self.stations:
-                                d = distance(sta, ref_sta)
-                                dist = d.dist
-                                ref_distance = ref_distance + dist
-                                if self.plot:
-                                    src, dst = sta, ref_sta
-                                    plot(src, dst)
-                            ref_distance = ref_distance / len(self.stations)
-                            association.setAdhocParameters(sta, 0, ref_distance)
-                        else:
-                            for ap in self.accessPoints:
-                                d = distance(sta, ap)
-                                dist = d.dist
-                                if self.plot:
-                                    src, dst = sta, ap
-                                    plot(src, dst)
-                                association.setInfraParameters(sta, ap, dist, '')
+                        association.setChannelParameters(sta) 
+                        if mobility.DRAW:
+                            plot(sta, sta)
+                    if mobility.DRAW and once == True:
+                        for ap in self.accessPoints:
+                            plot(sta, ap)
+                        once = False
                     i+=1
         except:
             print 'Error! Mobility stopped!'
@@ -1529,7 +1508,7 @@ class Mininet( object ):
             mobility.MAX_X = kwargs['max_x']
         if 'max_y' in kwargs:
             mobility.MAX_Y = kwargs['max_y']
-        self.plot = True
+        mobility.DRAW = True
         
     def getCurrentPosition(self, node):
         """ Get Current Position """ 

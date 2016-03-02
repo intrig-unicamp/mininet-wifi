@@ -10,54 +10,50 @@ from wifiMobilityModels import distance
 import math
 
 
+
 class channelParameters ( object ):
     """Channel Parameters""" 
     delay = 0
     loss = 0
     latency = 0
     rate = 0
+    propagModel=''
+    isMobility=True
     
-    def __init__( self, param=None, **params ):
+    def __init__( self, node1, node2, wlan, dist, time ):
         
-        if param in dir(self):
-            self.__getattribute__(param)(params)
+        self.delay = self.delay(dist, time)
+        self.latency = self.latency(dist)
+        self.loss = self.loss(dist)
+        self.bw = self.bw(node1, node2, dist, wlan)
+        self.tc(node1, wlan, self.bw, self.loss, self.latency, self.delay)
             
-    def delay(self, params):
+    def delay(self, dist, time):
         """"Based on RandomPropagationDelayModel"""
-        time = (params.pop('time', {}))
-        dist = (params.pop('dist', {}))
         if time != 0:
             self.delay = dist/time
         else:
             self.delay = dist/10
         return self.delay   
     
-    def latency(self, params):    
-        dist = (params.pop('dist', {}))    
+    def latency(self, dist):    
         self.latency = 2 + dist
         return self.latency
         
-    def loss(self, params):  
-        dist = (params.pop('dist', {}))
+    def loss(self, dist):  
         if dist!=0:
             self.loss =  math.log10(dist * dist)
         else:
             self.loss = 0.1
         return self.loss
     
-    def bw(self, params):
-        node1 = (params.pop('sta', {}))
-        node2 = (params.pop('ap', {}))
-        dist = (params.pop('dist', {}))
-        wlan = (params.pop('wlan', {}))
-        propagModel = (params.pop('propagationModel', {}))
-        isMobility = (params.pop('isMobility', {}))
+    def bw(self, node1, node2, dist, wlan):
         systemLoss = 1
         self.rate = 0
-        model = propagModel
+        model = self.propagModel
         if model == '':
             model = 'friisPropagationLossModel'
-        value = deviceDataRate(node1, node2, wlan, isMobility)
+        value = deviceDataRate(node1, node2, wlan, self.isMobility)
         custombw = value.rate
         interference(node1, node2, model, wlan) 
         if node2 == None:
@@ -69,8 +65,16 @@ class channelParameters ( object ):
                 node1.rssi[wlan] = value.rssi
                 if node2.equipmentModel == None:
                     self.rate = custombw * (1.1 ** -dist)
-        return self.rate 
+        return self.rate     
     
+    def tc(self, node, wlan, bw, loss, latency, delay):
+        node.pexec("tc qdisc replace dev %s-wlan%s \
+            root handle 3: netem rate %.2fmbit \
+            loss %.1f%% \
+            latency %.2fms \
+            delay %.2fms" % (node, wlan, bw, loss, latency, delay))   
+        #Reordering packets    
+        node.pexec('tc qdisc add dev %s-wlan%s parent 3:1 pfifo limit 1000' % (node, wlan))    
   
 class interference ( object ):
     

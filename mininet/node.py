@@ -69,7 +69,8 @@ from mininet.moduledeps import moduleDeps, pathCheck, TUN
 from mininet.link import Link, Intf, TCIntf, OVSIntf
 from re import findall
 from distutils.version import StrictVersion
-from mininet.wifi import accessPoint, emulationEnvironment
+from mininet.wifi import emulationEnvironment
+from mininet.wifiAccessPoint import accessPoint
 
 class Node( object ):
     """A virtual network node is simply a shell in a network namespace.
@@ -113,6 +114,7 @@ class Node( object ):
         self.txgain = []
         self.rxgain = []
         self.snr = []
+        self.func = []
         
         # Station Parameters
         self.associate = False
@@ -1256,9 +1258,7 @@ class OVSSwitch( Switch ):
         if(emulationEnvironment.isCode == True):
             if('accessPoint' == self.type):
                 for iface in range(0, self.nWlans):
-                    port = str(self.name) + str('-wlan') + str(iface)
-                    os.system("ovs-vsctl add-port %s %s" % (self.name, port))
-                    accessPoint.number+=1
+                    accessPoint.apBridge(self.name, iface)                  
         
     # This should be ~ int( quietRun( 'getconf ARG_MAX' ) ),
     # but the real limit seems to be much lower
