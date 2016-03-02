@@ -269,12 +269,12 @@ class station ( object ):
                 sta.antennaHeight.append(0.1)
                 sta.antennaGain.append(1)
                 self.list.append(sta)
+                
                              
     @classmethod
     def getWiFiParameters(self, sta, wlan):
         wifiParameters(param='get_frequency', node=sta, wlan=wlan)
         wifiParameters(param='get_tx_power', node=sta, wlan=wlan)   
-        #wifiParameters.get_rsi(sta, iface)          
         
     @classmethod    
     def confirmMeshAssociation(self, sta, iface, mpID, wlan):
@@ -511,14 +511,15 @@ class mobility ( object ):
         if ac == 'llf' or ac == 'ssf':
             station.iwCommand(sta, wlan, 'disconnect')
             station.iwCommand(sta, wlan, ('connect %s' % ap.ssid))
+            station.getWiFiParameters(sta, wlan)
             sta.associatedAp[wlan] = ap
         elif ap not in sta.associatedAp:
             #Useful for stations with more than one wifi iface
             if 'ap' not in str(sta.associatedAp[wlan]):
                 station.iwCommand(sta, wlan, ('connect %s' % ap.ssid))
+                station.getWiFiParameters(sta, wlan)
                 ap.associatedStations.append(sta)
-                sta.associatedAp[wlan] = ap
-        station.getWiFiParameters(sta, wlan)
+                sta.associatedAp[wlan] = ap        
         emulationEnvironment.numberOfAssociatedStations(ap)
             
     @classmethod   

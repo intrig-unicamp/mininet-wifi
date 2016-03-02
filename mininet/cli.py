@@ -68,11 +68,8 @@ class CLI( Cmd ):
             return
 
         self.initReadline()
-        try:
-            self.run()
-        except:
-            pass
-
+        self.run()
+       
     readlineInited = False
 
     @classmethod
