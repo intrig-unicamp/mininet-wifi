@@ -36,6 +36,7 @@ class emulationEnvironment ( object ):
     manual_apRange = -10
     wifiRadios = 0    
     
+    
     @classmethod
     def numberOfAssociatedStations( self, ap ):
         "Number of Associated Stations"
@@ -177,9 +178,12 @@ class association( object ):
                             totalRange = sta.range + ref_sta.range
                             if dist < totalRange:
                                 ref_distance = ref_distance + dist
-                                if sta.ssid == ref_sta.ssid:
+                                if sta.ssid[wlan] == ref_sta.ssid[wlan]:
                                     keepAssociated = True
-                                    i+=1
+                                i+=1
+                                #else:
+                                #    keepAssociated = True                                
+                                #    sta.ssid[wlan] = ref_sta.ssid[wlan]
                     if node.func[wlan] == 'mesh':
                         iface = 'mp'
                     else:
@@ -188,8 +192,9 @@ class association( object ):
                         sta.pexec('iw dev %s-%s%s mesh leave' % (sta, iface, wlan))
                         sta.isAssociated[wlan] = 'False'
                     elif keepAssociated == True and sta.isAssociated[wlan] != 'True':
-                        sta.pexec('iw dev %s-%s%s mesh join %s' % (sta, iface, wlan, sta.ssid))
+                        sta.pexec('iw dev %s-%s%s mesh join %s' % (sta, iface, wlan, sta.ssid[wlan]))
                         sta.isAssociated[wlan] = 'True'
+                    if sta.isAssociated[wlan] == 'True':
                         ref_distance = ref_distance / i
                         self.parameters(sta, None, ref_distance, wlan, **params)    
                 else:
@@ -256,6 +261,7 @@ class station ( object ):
     def iwCommand(self, sta, wlan, *args):
         command = 'iw dev %s-wlan%s ' % (sta, wlan)
         sta.pexec(command + '%s' % args)
+        
     
     @classmethod       
     def ipLinkCommand(self, sta, wlan, *args):
@@ -282,6 +288,7 @@ class station ( object ):
                 sta.snr.append(0)
                 sta.speed = 0
                 sta.isAssociated.append('')
+                sta.ssid.append('')
                 sta.func.append('none')
                 value = deviceRange(sta)
                 sta.range = value.range-15
@@ -309,7 +316,7 @@ class station ( object ):
     def confirmAdhocAssociation(self, sta, iface, wlan):
         associated = ''
         while(associated == '' or len(associated) == 0):
-            sta.sendCmd("iw dev %s scan ssid | grep %s" % (iface, sta.ssid))
+            sta.sendCmd("iw dev %s scan ssid | grep %s" % (iface, sta.ssid[wlan]))
             associated = sta.waitOutput()
         self.getWiFiParameters(sta, wlan) 
 
@@ -341,14 +348,16 @@ class station ( object ):
         ap = node2
         
         if sta.passwd == None:
-            self.iwCommand(node1, wlan, ('connect %s' % ap.ssid))
+            self.iwCommand(node1, wlan, ('connect %s' % ap.ssid[0]))
         elif sta.encrypt == 'wpa' or sta.encrypt == 'wpa2':
-            self.associate_wpa(sta, wlan, ap.ssid, sta.passwd)
+            self.associate_wpa(sta, wlan, ap.ssid[0], sta.passwd)
         elif sta.encrypt == 'wep':
-            self.associate_wep(sta, wlan, ap.ssid, sta.passwd)
+            self.associate_wep(sta, wlan, ap.ssid[0], sta.passwd)
         self.confirmInfraAssociation(sta, ap, wlan)
         sta.associatedAp[wlan] = ap 
         ap.associatedStations.append(sta)
+        sta.ssid[wlan] = ap.ssid[0]
+        sta.wlanToAssociate+=1
                 
     @classmethod    
     def associate_wpa(self, sta, wlan, ssid, passwd):
@@ -369,7 +378,7 @@ class station ( object ):
         sta.func[wlan] = 'adhoc'
         association.setChannelParameters(sta)
         self.iwCommand(sta, wlan, 'set type ibss')
-        self.iwCommand(sta, wlan, ('ibss join %s 2412' % sta.ssid))
+        self.iwCommand(sta, wlan, ('ibss join %s 2412' % sta.ssid[wlan]))
         print "associating %s ..." % sta
         iface = '%s-wlan%s' % (sta, wlan)
         self.confirmAdhocAssociation(sta, iface, wlan)
@@ -384,7 +393,7 @@ class station ( object ):
         self.iwCommand(sta, wlan, ('interface add %s-mp%s type mp' % (sta,wlan)))
         sta.cmd('iw dev %s-mp%s set %s' % (sta, wlan, sta.channel))
         sta.cmd('ifconfig %s-mp%s up' % (sta, wlan))
-        sta.cmd('iw dev %s-mp%s mesh join %s' % (sta, wlan, sta.ssid))
+        sta.cmd('iw dev %s-mp%s mesh join %s' % (sta, wlan, sta.ssid[wlan]))
         association.setChannelParameters(sta)
         print "associating %s ..." % sta
         iface = '%s-wlan%s' % (sta, wlan)
@@ -535,13 +544,13 @@ class mobility ( object ):
         """handover"""
         if ac == 'llf' or ac == 'ssf':
             station.iwCommand(sta, wlan, 'disconnect')
-            station.iwCommand(sta, wlan, ('connect %s' % ap.ssid))
+            station.iwCommand(sta, wlan, ('connect %s' % ap.ssid[0]))
             station.getWiFiParameters(sta, wlan)
             sta.associatedAp[wlan] = ap
         elif ap not in sta.associatedAp:
             #Useful for stations with more than one wifi iface
             if 'ap' not in str(sta.associatedAp[wlan]):
-                station.iwCommand(sta, wlan, ('connect %s' % ap.ssid))
+                station.iwCommand(sta, wlan, ('connect %s' % ap.ssid[0]))
                 station.getWiFiParameters(sta, wlan)
                 ap.associatedStations.append(sta)
                 sta.associatedAp[wlan] = ap        

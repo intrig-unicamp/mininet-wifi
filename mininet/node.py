@@ -105,7 +105,7 @@ class Node( object ):
         self.range = 0
         
         # Station and BaseStation Parameters
-        self.ssid = ''
+        self.ssid = []
         self.channel = ''
         self.mode = ''
         self.passwd = ''
@@ -130,6 +130,7 @@ class Node( object ):
         self.antennaHeight = []
         self.mac=''
         self.rssi = []
+        self.wlanToAssociate = 0
 
         self.type = ''
                 

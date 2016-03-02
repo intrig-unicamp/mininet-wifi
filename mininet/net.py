@@ -393,9 +393,9 @@ class Mininet( object ):
                       
         ssid = ("%s" % params.pop('ssid', {}))
         if(ssid!="{}"):
-            bs.ssid = ssid
+            bs.ssid.append(ssid)
         else:
-            bs.ssid = self.ssid
+            bs.ssid.append(self.ssid)
             
         passwd = ("%s" % params.pop('passwd', {}))
         if(passwd!="{}"):
@@ -566,9 +566,10 @@ class Mininet( object ):
             
         ssid = ("%s" % params.pop('ssid', {}))
         if(ssid!="{}"):
-            sta.ssid = ssid
+            sta.ssid[sta.wlanToAssociate] = ssid
         else:
-            sta.ssid = 'meshNetwork'
+            sta.ssid[sta.wlanToAssociate] = 'meshNetwork'
+        sta.wlanToAssociate+=1
             
         mode = ("%s" % params.pop('mode', {}))
         if(mode!="{}"):
@@ -617,9 +618,10 @@ class Mininet( object ):
             
         ssid = ("%s" % params.pop('ssid', {}))
         if(ssid!="{}"):
-            sta.ssid = ssid
+            sta.ssid[sta.wlanToAssociate] = ssid
         else:
-            sta.ssid = 'adhocNetwork'
+            sta.ssid[sta.wlanToAssociate] = 'adhocNetwork'
+        sta.wlanToAssociate+=1
             
         mode = ("%s" % params.pop('mode', {}))
         if(mode!="{}"):
@@ -1552,7 +1554,7 @@ class Mininet( object ):
                     print "Tx-Power: %s dBm" % device.txpower[wlan]
             else:
                 print "Tx-Power: %s dBm" % device.txpower
-                print "SSID: %s" % device.ssid
+                print "SSID: %s" % device.ssid[0]
                 print "Number of Associated Stations: %s" % device.nAssociatedStations
         except:
             pass

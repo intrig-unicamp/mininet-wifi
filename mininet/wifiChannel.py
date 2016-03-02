@@ -68,11 +68,16 @@ class channelParameters ( object ):
         return self.rate     
     
     def tc(self, node, wlan, bw, loss, latency, delay):
-        node.pexec("tc qdisc replace dev %s-wlan%s \
+        if node.func[wlan] == 'mesh':
+            iface = 'mp'
+        else:
+            iface = 'wlan'
+        
+        node.pexec("tc qdisc replace dev %s-%s%s \
             root handle 3: netem rate %.2fmbit \
             loss %.1f%% \
             latency %.2fms \
-            delay %.2fms" % (node, wlan, bw, loss, latency, delay))   
+            delay %.2fms" % (node, iface, wlan, bw, loss, latency, delay))   
         #Reordering packets    
         node.pexec('tc qdisc add dev %s-wlan%s parent 3:1 pfifo limit 1000' % (node, wlan))    
   

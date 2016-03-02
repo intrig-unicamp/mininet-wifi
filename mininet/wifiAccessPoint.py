@@ -39,7 +39,7 @@ class accessPoint( object ):
         self.cmd = ("echo \'")
         self.cmd = self.cmd + ("interface=%s-wlan%s" % (ap, wlan)) # the interface used by the AP
         self.cmd = self.cmd + ("\ndriver=nl80211")
-        self.cmd = self.cmd + ("\nssid=%s" % ap.ssid) # the name of the AP
+        self.cmd = self.cmd + ("\nssid=%s" % ap.ssid[0]) # the name of the AP
         
         if ap.mode == 'n' or ap.mode == 'ac'or ap.mode == 'a':
             self.cmd = self.cmd + ("\nhw_mode=g") 
