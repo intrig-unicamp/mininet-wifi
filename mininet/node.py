@@ -142,6 +142,7 @@ class Node( object ):
         self.endTime = 0      
         self.speed = 0  
         self.associatedStations = []
+        self.isAssociated = []
 
         # Make pylint happy
         ( self.shell, self.execed, self.pid, self.stdin, self.stdout,

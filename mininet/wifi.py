@@ -120,7 +120,8 @@ class association( object ):
         
         if node1.func[wlan] == 'adhoc' or node1.func[wlan] == 'mesh':
             if emulationEnvironment.continue_:
-                channelParameters(node1, None, wlan, dist, time)
+                sta = node1
+                channelParameters(sta, None, wlan, dist, time)
         else:
             if ap == sta.associatedAp[wlan]:
                 if dist > ap.range:                
@@ -163,16 +164,34 @@ class association( object ):
     def setChannelParameters(self, node, **params):
         """ Set wifi Infrastrucure Parameters. Have to use models for loss, latency, bw.."""
         try:
+            i=1
             for wlan in range(0,len(node.func)):
                 if node.func[wlan] == 'adhoc' or node.func[wlan] == 'mesh':
                     ref_distance = 0
+                    keepAssociated = False
+                    sta = node
                     for ref_sta in station.list:
                         if ref_sta != node:
-                            sta = node
                             d = distance(sta, ref_sta)
                             dist = d.dist
-                    ref_distance = ref_distance / len(self.stations)
-                    self.parameters(sta, None, ref_distance, wlan, **params)          
+                            totalRange = sta.range + ref_sta.range
+                            if dist < totalRange:
+                                ref_distance = ref_distance + dist
+                                if sta.ssid == ref_sta.ssid:
+                                    keepAssociated = True
+                                    i+=1
+                    if node.func[wlan] == 'mesh':
+                        iface = 'mp'
+                    else:
+                        iface = 'wlan'            
+                    if keepAssociated == False and sta.isAssociated[wlan] != 'False':
+                        sta.pexec('iw dev %s-%s%s mesh leave' % (sta, iface, wlan))
+                        sta.isAssociated[wlan] = 'False'
+                    elif keepAssociated == True and sta.isAssociated[wlan] != 'True':
+                        sta.pexec('iw dev %s-%s%s mesh join %s' % (sta, iface, wlan, sta.ssid))
+                        sta.isAssociated[wlan] = 'True'
+                        ref_distance = ref_distance / i
+                        self.parameters(sta, None, ref_distance, wlan, **params)    
                 else:
                     for ap in emulationEnvironment.apList:
                         sta = node
@@ -262,6 +281,7 @@ class station ( object ):
                 sta.txpower.append(0)
                 sta.snr.append(0)
                 sta.speed = 0
+                sta.isAssociated.append('')
                 sta.func.append('none')
                 value = deviceRange(sta)
                 sta.range = value.range-15
@@ -384,10 +404,12 @@ class plot (object):
         else:    
             self.startPlot(src, dst)
            
+    @classmethod
     def closePlot(self):
         """Close"""
         plt.close()  
-        
+    
+    @classmethod
     def plotNode(self, node, ax):
         """Plot Node"""
         plt.ion()
@@ -405,11 +427,13 @@ class plot (object):
         mobility.pltNode[node].set_data(node.position[0], node.position[1])
         mobility.nodesPlotted.append(node)
         
+    @classmethod
     def plotUpdate(self, node):
         """Update Draw"""
         mobility.pltNode[node].set_data(node.position[0], node.position[1])
         mobility.plttxt[node].xytext = (node.position[0], node.position[1])
      
+    @classmethod
     def plotCircle(self, node, ax, color):
         """Plot Circle"""
         mobility.pltCircle[node] = ax.add_patch(
@@ -417,7 +441,8 @@ class plot (object):
             node.range, fill=True, alpha=0.1, color=color
             )
         )
-        
+    
+    @classmethod
     def startPlot(self, src, dst):
         """Start"""
         plt.ion()
@@ -524,7 +549,7 @@ class mobility ( object ):
             
     @classmethod   
     def models(self, wifiNodes=None, model=None, max_x=None, max_y=None, min_v=None, max_v=None, 
-               manual_aprange=-10, n_staMov=None, ismobility=None, AC=None, seed=None, plot=False,
+               manual_aprange=-10, n_staMov=None, ismobility=None, AC=None, seed=None, draw=False,
                **mobilityparam):
         
         emulationEnvironment.manual_apRange = manual_aprange
@@ -534,7 +559,7 @@ class mobility ( object ):
         np.random.seed(seed)
         
         # set this to true if you want to plot node positions
-        self.DRAW = plot
+        self.DRAW = draw
         
         # number of nodes
         nr_nodes = n_staMov
@@ -548,22 +573,6 @@ class mobility ( object ):
         # max waiting time
         MAX_WT = 100.
         
-        if self.DRAW:
-            plt.ion()
-            ax = plt.subplot(111)
-            line, = ax.plot(range(mobility.MAX_X), range(mobility.MAX_X), linestyle='', marker='.', ms=10, mfc='blue')
-            self.plottxt = {}
-            
-            for node in wifiNodes:
-                if node.type == 'station' and str(node) not in station.fixedPosition:
-                    self.plottxt[str(node)] = ax.annotate(str(node), xy=(0, 0))
-                    
-                if str(node) in station.fixedPosition:
-                    self.plottxt[node] = ax.annotate(node, xy=(node.position[0], node.position[1]))
-                    self.plotsta[node], = ax.plot(range(mobility.MAX_X), range(mobility.MAX_Y), \
-                                                  linestyle='', marker='.', ms=12, mfc='green')
-                    self.plotsta[node].set_data(node.position[0], node.position[1])
-                               
         if(self.modelName=='RandomWalk'):
             ## Random Walk model
             mob = random_walk(nr_nodes, dimensions=(MAX_X, MAX_Y))
@@ -591,8 +600,6 @@ class mobility ( object ):
         once = []
         if model!='':
             for xy in mob:
-                if self.DRAW:
-                    line.set_data(xy[:,0],xy[:,1])
                 for n in range (0,len(wifiNodes)):
                     node = wifiNodes[n]
                     if 'accessPoint' == node.type and str(node) not in once:
@@ -601,21 +608,13 @@ class mobility ( object ):
                         pos_one = ap.startPosition[1]
                         ap.position = pos_zero, pos_one, 0     
                         if self.DRAW:
-                            plt.plot([pos_zero], [pos_one], 'ro')
-                            plt.text(int(pos_zero), int(pos_one), str(node))
-                            ax.add_patch(
-                                patches.Circle((pos_zero, pos_one),
-                                ap.range, fill=True, alpha=0.1, color='b'
-                                )
-                            )
+                            plot.startPlot(ap, ap)
                         once.append(str(wifiNodes[n]))
                     elif 'accessPoint' != node.type:
                         if str(node) not in station.fixedPosition:
-                            pos_zero = xy[n][0]
-                            pos_one = xy[n][1]
+                            node.position = xy[n][0], xy[n][1], 0
                             if self.DRAW:
-                                self.plottxt[str(node)].xytext = (pos_zero, pos_one)
-                            node.position = pos_zero, pos_one, 0
+                                plot.startPlot(node, node)
                             association.setChannelParameters(node)                         
                 if self.DRAW:
                     plt.title("Mininet-WiFi Graph")

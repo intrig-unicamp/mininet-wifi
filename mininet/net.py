@@ -1442,7 +1442,7 @@ class Mininet( object ):
         
         mobilityparam.setdefault( 'ismobility', True )
         mobilityparam.setdefault( 'seed', self.set_seed )
-        mobilityparam.setdefault( 'plot', mobility.DRAW )
+        mobilityparam.setdefault( 'draw', mobility.DRAW )
      
         if self.mobilityModel != '':
             mobilityparam.setdefault( 'wifiNodes', self.wifiNodes )
