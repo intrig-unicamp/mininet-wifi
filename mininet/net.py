@@ -92,7 +92,7 @@ import re
 import select
 import signal
 import random
-import time
+
 import threading
 
 from time import sleep
@@ -109,7 +109,9 @@ from mininet.util import ( quietRun, fixLimits, numCores, ensureRoot,
                            macColonHex, ipStr, ipParse, netParse, ipAdd,
                            waitListening )
 from mininet.term import cleanUpScreens, makeTerms
-from mininet.wifi import emulationEnvironment, module, station, association, mobility, getWlan, plot
+from mininet.wifi import module, station, mobility, getWlan
+from mininet.wifiPlot import plot
+from mininet.wifiEmulationEnvironment import emulationEnvironment
 from mininet.wifiDevices import deviceRange, deviceDataRate
 from mininet.wifiParameters import wifiParameters
 from mininet.wifiMobilityModels import distance
@@ -117,7 +119,7 @@ from mininet.wifiAccessPoint import accessPoint
 from __builtin__ import True
 
 # Mininet version: should be consistent with README and LICENSE
-VERSION = "1.6r8"
+VERSION = "1.7"
 
 class Mininet( object ):
     "Network emulation with hosts spawned in network namespaces."
@@ -166,7 +168,7 @@ class Mininet( object ):
         self.nextCore = 0  # next core for pinning hosts to CPUs
         self.listenPort = listenPort
         self.waitConn = waitConnected       
-        self.start_time = 0 #start mobility time
+        self.start_time = -1 #start mobility time
         self.set_seed = 10
         self.firstAssociation = True
         self.ifaceConfigured = False
@@ -177,7 +179,6 @@ class Mininet( object ):
         self.newapif = []
         self.apexists = []
         self.missingStations = []
-        self.sta_inMov = []
         self.wifiNodes = []
         self.hosts = []
         self.switches = []
@@ -324,18 +325,20 @@ class Mininet( object ):
             sta.encrypt = encrypt
         else:
             sta.encrypt = None
+            
+        self.range = ("%s" % params.pop('range', {}))
+        if(self.range!="{}"):
+            sta.range = int(self.range)
                 
         wifi = ("%s" % params.pop('wlans', {}))
         if(wifi!="{}"):        
             emulationEnvironment.wifiRadios += int(wifi)
             for n in range(int(wifi)):
-                self.virtualWlan.append(name)
-                sta.rssi.append(0)
+                self.virtualWlan.append(name)                
         else:
             emulationEnvironment.wifiRadios += 1
             wifi = 1
             self.virtualWlan.append(name)
-            sta.rssi.append(0)
         sta.nWlans = int(wifi)
         
         self.nextIP += 1        
@@ -579,10 +582,6 @@ class Mininet( object ):
             
         value = deviceRange(sta)
         sta.range = value.range-15
-                    
-        if mobility.DRAW and sta.position != 0:
-            src, dst = sta, sta
-            plot(src, dst)
     
         for sta in self.hosts:
             if (sta == node):
@@ -593,7 +592,7 @@ class Mininet( object ):
         value = deviceDataRate(None, sta, None)
         self.bw = value.rate
                 
-        options.setdefault( 'bw', self.bw )
+        #options.setdefault( 'bw', self.bw )
         # Set default MAC - this should probably be in Link
         options.setdefault( 'addr1', self.randMac() )
         
@@ -640,10 +639,6 @@ class Mininet( object ):
         
         cls = self.link if cls is None else cls
         link = cls( sta, 'onlyOneDevice', **options )
-        
-        if mobility.DRAW and sta.position != 0:
-            src, dst = sta, sta
-            plot(src, dst)
         
         for sta in self.hosts:
             if (sta == node):
@@ -824,18 +819,17 @@ class Mininet( object ):
                 if sta.startPosition !=0 and ap.startPosition !=0:
                     d = distance(sta, ap)
                     dist = d.dist
-                    if mobility.DRAW:
-                        plot(sta, ap)
-                    doAssociation = association.doAssociation(ap, dist)
+                    if dist > ap.range:
+                        doAssociation = False
+                    else:
+                        doAssociation = True
                 #if not
                 else:
                     doAssociation = True
                                 
-                sta.doAssociation = doAssociation
                 if(doAssociation):
                     sta.ifaceToAssociate+=1
                     station.associate(sta, ap)
-                    association.setChannelParameters(sta, **params)   
             return link
         
         else:
@@ -1097,16 +1091,18 @@ class Mininet( object ):
         info( '\n' )
         if(emulationEnvironment.isWiFi):
             "Stop plotting"
-            emulationEnvironment.continue_ = False
             emulationEnvironment.ismobility = False
             mobility.DRAW = False
+            emulationEnvironment.continue_ = False
             try:
-                plot('', '', close=True)
+                plot.closePlot()
             except:
                 pass
             
             module(action = 'stop') #Stopping WiFi Module
         info( '\n*** Done\n' )
+        os._exit(1)
+         
 
     def run( self, test, *args, **kwargs ):
         "Perform a complete start/test/stop cycle."
@@ -1407,7 +1403,6 @@ class Mininet( object ):
             if(self.stage == 'start'):
                 self.position = kwargs['position']
                 sta.startPosition = self.position.split(',')    
-                self.sta_inMov.append(self.node)
         if 'time' in kwargs:
             self.time = kwargs['time']
         if 'speed' in kwargs:
@@ -1437,8 +1432,6 @@ class Mininet( object ):
             mobilityparam.setdefault( 'min_v', kwargs['min_v'] )
         if 'max_v' in kwargs:
             mobilityparam.setdefault( 'max_v', kwargs['max_v'] )
-        if 'aprange' in kwargs:
-            mobilityparam.setdefault( 'manual_aprange', kwargs['aprange'] )
         if 'AC' in kwargs: #Access Control
             mobilityparam.setdefault( 'AC', kwargs['AC'] )
         
@@ -1447,14 +1440,22 @@ class Mininet( object ):
         mobilityparam.setdefault( 'draw', mobility.DRAW )
      
         if self.mobilityModel != '':
+            
+            for node in self.wifiNodes:
+                for wlan in range(0, node.nWlans):
+                    wifiParameters.getWiFiParameters(node, wlan)
+            
             mobilityparam.setdefault( 'wifiNodes', self.wifiNodes )
-            staMov = []
+            mobility.staMov = []
             for n in self.stations:
                 if n not in station.fixedPosition:
-                    staMov.append(n)
-            mobilityparam.setdefault( 'n_staMov', len(staMov) )
+                    mobility.staMov.append(n)
             self.thread = threading.Thread(name='mobilityModel', target=mobility.models, kwargs=dict(mobilityparam,))
-            self.thread.daemon = True
+            #self.thread.daemon = True
+            self.thread.start()
+            
+            self.thread = threading.Thread(name='wifiParameters', target=mobility.parameters)
+           # self.thread.daemon = True
             self.thread.start()
             
         if self.mode == '':
@@ -1468,42 +1469,15 @@ class Mininet( object ):
         """ Stop Mobility """
         if 'stopTime' in kwargs:
             stop_time = kwargs['stopTime']
-        self.thread = threading.Thread(name='onGoingMobility', target=self.onGoingMobility, args=(stop_time,))
+        
+        for node in self.wifiNodes:
+            for wlan in range(0, node.nWlans):
+                wifiParameters.getWiFiParameters(node, wlan)
+            
+        self.thread = threading.Thread(name='onGoingMobility', target=mobility.mobility_PositionDefined, args=(self.start_time, stop_time,))
         self.thread.daemon = True
         self.thread.start()
-                
-    def onGoingMobility(self, stop_time):
-        """ ongoing Mobility """        
-        t_end = time.time() + stop_time
-        t_start = time.time() + self.start_time
-        currentTime = time.time()
-        i=1
-        once = True
-        try:
-            while time.time() < t_end and time.time() > t_start:
-                if time.time() - currentTime >= i:
-                    for sta in self.stations:
-                        if str(sta) in self.sta_inMov:
-                            if time.time() - currentTime >= sta.startTime and time.time() - currentTime <= sta.endTime:
-                                sta.startPosition[0] = float(sta.startPosition[0]) + float(sta.moveSta[0])
-                                sta.startPosition[1] = float(sta.startPosition[1]) + float(sta.moveSta[1])
-                                sta.startPosition[2] = float(sta.startPosition[2]) + float(sta.moveSta[2])
-                        else:
-                            sta.startPosition[0] = float(sta.startPosition[0])
-                            sta.startPosition[1] = float(sta.startPosition[1])
-                            sta.startPosition[2] = float(sta.startPosition[2])
-                        sta.position = sta.startPosition
-                        association.setChannelParameters(sta) 
-                        if mobility.DRAW:
-                            plot(sta, sta)
-                    if mobility.DRAW and once == True:
-                        for ap in self.accessPoints:
-                            plot(sta, ap)
-                        once = False
-                    i+=1
-        except:
-            print 'Error! Mobility stopped!'
-                   
+                       
     def plotGraph(self, **kwargs):
         """ Plot Graph """
         if 'max_x' in kwargs:
@@ -1511,6 +1485,12 @@ class Mininet( object ):
         if 'max_y' in kwargs:
             mobility.MAX_Y = kwargs['max_y']
         mobility.DRAW = True
+       
+        if self.ifaceConfigured == False:
+            for node in self.wifiNodes:
+                plot.instantiateGraph()
+                plot.instantiateNode(node, mobility.MAX_X, mobility.MAX_Y)
+                plot.plotUpdate(node)                
         
     def getCurrentPosition(self, node):
         """ Get Current Position """ 

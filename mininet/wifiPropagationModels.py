@@ -12,21 +12,21 @@ class propagationModel ( object ):
     
     rssi = -62
         
-    def __init__( self, node1=None, node2=None, distance=0, wlan=None, model=None, systemLoss=1 ):
+    def __init__( self, node1=None, node2=None, dist=0, wlan=None, model=None, systemLoss=1 ):
         self.model = model        
         self.systemLoss = systemLoss
         
         if self.model in dir(self):
-            self.__getattribute__(self.model)(node1, node2, distance, wlan)
-            
+            self.__getattribute__(self.model)(node1, node2, dist, wlan)
+     
     def receivedPower(self, node1, node2, wlan, modelValue):    
         txpower = node2.txpower[0]
         #txgain = 24
         #rxgain = 24
-        self.rssi = txpower + modelValue        
+        self.rssi = txpower + modelValue   
         return self.rssi
     
-    def friisPropagationLossModel(self, node1, node2, distance, wlan):
+    def friisPropagationLossModel(self, node1, node2, dist, wlan):
         """Friis Propagation Loss Model:
         (f) signal frequency transmited(Hz)
         (d) is the distance between the transmitter and the receiver (m)
@@ -34,7 +34,7 @@ class propagationModel ( object ):
         (L) System loss"""          
         
         f = (node1.frequency[wlan] * 10**9) #Convert Ghz to Hz
-        d = distance 
+        d = dist 
         c = 299792458.0 
         L = self.systemLoss 
         

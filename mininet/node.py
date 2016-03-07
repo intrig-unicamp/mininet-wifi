@@ -69,7 +69,7 @@ from mininet.moduledeps import moduleDeps, pathCheck, TUN
 from mininet.link import Link, Intf, TCIntf, OVSIntf
 from re import findall
 from distutils.version import StrictVersion
-from mininet.wifi import emulationEnvironment
+from mininet.wifiEmulationEnvironment import emulationEnvironment
 from mininet.wifiAccessPoint import accessPoint
 
 class Node( object ):
@@ -131,7 +131,7 @@ class Node( object ):
         self.mac=''
         self.rssi = []
         self.wlanToAssociate = 0
-
+        self.meshMac = []
         self.type = ''
                 
         # Mobility Parameters
@@ -144,6 +144,7 @@ class Node( object ):
         self.speed = 0  
         self.associatedStations = []
         self.isAssociated = []
+        self.staAssociated = []
 
         # Make pylint happy
         ( self.shell, self.execed, self.pid, self.stdin, self.stdout,
@@ -446,7 +447,10 @@ class Node( object ):
         out, err = popen.communicate()
         exitcode = popen.wait()
         return out, err, exitcode
-
+    
+        # Warning: this can fail with large numbers of fds!
+        #out, err = popen.communicate()
+        #return out, err
     # Interface management, configuration, and routing
 
     # BL notes: This might be a bit redundant or over-complicated.

@@ -7,7 +7,7 @@ import fcntl
 import fileinput
 
 from mininet.wifiParameters import wifiParameters
-from mininet.wifi import emulationEnvironment
+from mininet.wifiEmulationEnvironment import emulationEnvironment
 from mininet.wifiDevices import deviceDataRate
 
 class accessPoint( object ):

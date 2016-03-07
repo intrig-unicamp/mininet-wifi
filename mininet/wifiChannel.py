@@ -9,10 +9,9 @@ from wifiPropagationModels import propagationModel
 from wifiMobilityModels import distance
 import math
 
-
-
 class channelParameters ( object ):
     """Channel Parameters""" 
+    
     delay = 0
     loss = 0
     latency = 0
@@ -20,13 +19,14 @@ class channelParameters ( object ):
     propagModel=''
     isMobility=True
     
-    def __init__( self, node1, node2, wlan, dist, time ):
+    def __init__( self, node1, node2, wlan, dist, staList, time ):
         
         self.delay = self.delay(dist, time)
         self.latency = self.latency(dist)
         self.loss = self.loss(dist)
-        self.bw = self.bw(node1, node2, dist, wlan)
+        self.bw = self.bw(node1, node2, dist, staList, wlan)
         self.tc(node1, wlan, self.bw, self.loss, self.latency, self.delay)
+        interference(node1, node2, self.propagModel, staList, wlan)
             
     def delay(self, dist, time):
         """"Based on RandomPropagationDelayModel"""
@@ -47,24 +47,23 @@ class channelParameters ( object ):
             self.loss = 0.1
         return self.loss
     
-    def bw(self, node1, node2, dist, wlan):
+    def bw(self, node1, node2, dist, staList, wlan):
         systemLoss = 1
         self.rate = 0
-        model = self.propagModel
-        if model == '':
-            model = 'friisPropagationLossModel'
+        if self.propagModel == '':
+            self.propagModel = 'friisPropagationLossModel'
         value = deviceDataRate(node1, node2, wlan, self.isMobility)
         custombw = value.rate
-        interference(node1, node2, model, wlan) 
         if node2 == None:
             node1.rssi[wlan] = -50 - dist
             self.rate = custombw * (1.1 ** -dist)
         else:
             if dist != 0: 
-                value = propagationModel(node1, node2, dist, wlan, model, systemLoss)
+                value = propagationModel(node1, node2, dist, wlan, self.propagModel, systemLoss)
                 node1.rssi[wlan] = value.rssi
                 if node2.equipmentModel == None:
                     self.rate = custombw * (1.1 ** -dist)
+         
         return self.rate     
     
     def tc(self, node, wlan, bw, loss, latency, delay):
@@ -79,15 +78,16 @@ class channelParameters ( object ):
             latency %.2fms \
             delay %.2fms" % (node, iface, wlan, bw, loss, latency, delay))   
         #Reordering packets    
-        node.pexec('tc qdisc add dev %s-wlan%s parent 3:1 pfifo limit 1000' % (node, wlan))    
-  
+        node.pexec('tc qdisc add dev %s-%s%s parent 3:1 pfifo limit 1000' % (node, iface, wlan))  
+        
 class interference ( object ):
+    """Calculate Interference"""
     
-    def __init__( self, node1=None, node2=None, propagation_Model=None, wlan=0 ):
-        self.calculate(node1, node2, wlan, propagation_Model)
+    def __init__( self, node1=None, node2=None, propagation_Model=None, staList=None, wlan=0 ):
+        self.calculate(node1, node2, propagation_Model, staList, wlan)
     
-    def calculate (self, node1, node2, wlan, propagation_Model):
-        """Calculate Interference"""
+    def calculate (self, node1, node2, propagation_Model, staList, wlan):
+        
         sta = node1
         ap = node2
         model = propagation_Model
@@ -95,7 +95,19 @@ class interference ( object ):
         noise = 0
         i=0
         signalPower = sta.rssi[wlan]
-        try:
+        if node2 == None:
+            for station in staList:
+                if station != sta and sta.isAssociated[wlan] == True:
+                    d = distance(sta, station)
+                    dist = d.dist
+                    totalRange = sta.range + station.range
+                    systemLoss = 1
+                    if dist < totalRange:
+                        value = propagationModel(sta, station, dist, wlan, model, systemLoss)
+                        n =  value.rssi + signalPower
+                        noise =+ n
+                        i+=1
+        else:
             for station in ap.associatedStations:
                 if station != sta and sta.associatedAp[wlan] != 'NoAssociated':
                     d = distance(sta, station)
@@ -107,15 +119,13 @@ class interference ( object ):
                         n =  value.rssi + signalPower
                         noise =+ n
                         i+=1
-            if i != 0:
-                noisePower = noise/i
-            signalPower = sta.rssi[wlan]
-            if i != 0:
-                sta.snr[wlan] = self.signalToNoiseRatio(signalPower, noisePower)
-            else:
-                sta.snr[wlan] = abs(signalPower)
-        except:
-            pass
+        if i != 0:
+            noisePower = noise/i
+        signalPower = sta.rssi[wlan]
+        if i != 0:
+            sta.snr[wlan] = self.signalToNoiseRatio(signalPower, noisePower)
+        else:
+            sta.snr[wlan] = abs(signalPower)
             
     def signalToNoiseRatio(self, signalPower, noisePower):    
         """Calculating SNR"""

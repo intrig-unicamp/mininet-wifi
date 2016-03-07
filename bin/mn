@@ -23,7 +23,7 @@ if 'PYTHONPATH' in os.environ:
 from mininet.clean import cleanup
 from mininet.cli import CLI
 from mininet.log import lg, LEVELS, info, debug, warn, error
-from mininet.wifi import emulationEnvironment
+from mininet.wifiEmulationEnvironment import emulationEnvironment
 from mininet.net import Mininet, MininetWithControlNet, VERSION
 from mininet.node import ( Host, CPULimitedHost, Controller, OVSController,
                            Ryu, NOX, RemoteController, findController,

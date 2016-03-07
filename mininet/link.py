@@ -400,6 +400,7 @@ class Link( object ):
         # This is a bit awkward; it seems that having everything in
         # params is more orthogonal, but being able to specify
         # in-line arguments is more convenient! So we support both.
+       
         if params1 is None:
             params1 = {}
         if params2 is None:
@@ -449,6 +450,8 @@ class Link( object ):
             cls1 = intf
         if not cls2:
             cls2 = intf
+        
+        
         
         if('station' == node1.type and 'onlyOneDevice' in str(node2) or 'station' == node1.type and 'mesh' in str(node2)):
             intf1 = cls1( name=intfName1, node=node1,
