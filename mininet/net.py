@@ -1101,7 +1101,7 @@ class Mininet( object ):
             
             module(action = 'stop') #Stopping WiFi Module
         info( '\n*** Done\n' )
-        os._exit(1)
+        #os._exit(1)
          
 
     def run( self, test, *args, **kwargs ):
@@ -1450,13 +1450,17 @@ class Mininet( object ):
             for n in self.stations:
                 if n not in station.fixedPosition:
                     mobility.staMov.append(n)
-            self.thread = threading.Thread(name='mobilityModel', target=mobility.models, kwargs=dict(mobilityparam,))
-            #self.thread.daemon = True
-            self.thread.start()
             
-            self.thread = threading.Thread(name='wifiParameters', target=mobility.parameters)
-           # self.thread.daemon = True
-            self.thread.start()
+            try:
+                self.thread = threading.Thread(name='mobilityModel', target=mobility.models, kwargs=dict(mobilityparam,))
+                self.thread.daemon = True
+                self.thread.start()
+                
+                self.thread = threading.Thread(name='wifiParameters', target=mobility.parameters)
+                self.thread.daemon = True
+                self.thread.start()
+            except:
+                pass
             
         if self.mode == '':
             mobility.associationControl = kwargs['AC']

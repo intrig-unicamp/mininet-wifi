@@ -423,14 +423,13 @@ class mobility ( object ):
             for xy in mob:                
                 for n in range (0,len(wifiNodes)):
                     node = wifiNodes[n]
-                    if self.DRAW:
-                        plot.pltNode[node].set_data(xy[:,0],xy[:,1])
                     if 'accessPoint' == node.type and node not in once:
                         ap = node
                         pos_zero = ap.startPosition[0]
                         pos_one = ap.startPosition[1]
                         ap.position = pos_zero, pos_one, 0  
                         if self.DRAW:
+                            plot.pltNode[node].set_data(pos_zero, pos_one)
                             plot.plotTxt(node)
                             plot.updateCircle(node)
                         once.append(wifiNodes[n])
@@ -438,6 +437,7 @@ class mobility ( object ):
                         if str(node) not in station.fixedPosition:
                             node.position = xy[n][0], xy[n][1], 0
                             if self.DRAW:
+                                plot.pltNode[node].set_data(xy[:,0],xy[:,1])
                                 plot.plotTxt(node)
                                 plot.updateCircle(node)
                         #self.parameters()
