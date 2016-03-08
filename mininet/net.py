@@ -1457,7 +1457,7 @@ class Mininet( object ):
                 self.thread.start()
                 
                 self.thread = threading.Thread(name='wifiParameters', target=mobility.parameters)
-                self.thread.daemon = True
+                #self.thread.daemon = True
                 self.thread.start()
             except:
                 pass
