@@ -332,7 +332,7 @@ class TCIntf( Intf ):
         cmds = []
         tcoutput = self.tc( '%s qdisc show dev %s' )
         if "priomap" not in tcoutput:
-            if 'sta' not in str(self):
+            if self.type != 'station':
                 cmds = [ '%s qdisc del dev %s root' ]
         else:
             cmds = []
@@ -359,7 +359,7 @@ class TCIntf( Intf ):
                   ( [ 'ECN' ] if enable_ecn else [ 'RED' ]
                     if enable_red else [] ) )
         #Print bw info
-        if 'sta' not in str(self.node):
+        if self.node.type != 'station':
             info( '(' + ' '.join( stuff ) + ') ' )
         
         # Execute all the commands in our node

@@ -10,7 +10,7 @@ class deviceDataRate ( object ):
     
     rate = 0
     
-    def __init__( self, node1=None, node2=None, wlan=None, isMobility=False ):
+    def __init__( self, node1=None, node2=None, wlan=None ):
         
         if node2 == None:
             node = node1
@@ -20,10 +20,8 @@ class deviceDataRate ( object ):
         if node2 != None and node2.equipmentModel in dir(self) and node1 != None and wlan !=None:
             model = node2.equipmentModel
             self.__getattribute__(model)(node1, node2, wlan)
-        elif(isMobility):
-            self.customDataRate_mobility(node)
-        else:
-            self.customDataRate_no_mobility(node)
+        self.customDataRate_mobility(node)
+        
             
     def customDataRate_mobility(self, node):
         """Custom Maximum Data Rate - Useful when there is mobility"""

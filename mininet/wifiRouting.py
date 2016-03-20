@@ -9,7 +9,6 @@ from mininet.wifiMobilityModels import distance
 
 class listNodes ( object ):
     
-    
     nodesX = []
     nodesY = []
     
@@ -64,76 +63,80 @@ class meshRouting ( object ):
     
     @classmethod   
     def customMeshRouting(self, node, wlan, stationList, **params):
-        associate = False
-        sta = node
-        controlMeshMac = []
-        miss_sta = []
-        command = ''
-        iface = 'mp'
        
-        for n in stationList:
-            miss_sta.append(n)
-        miss_sta.remove(node)
+        sta = node        
         
-        for ref_sta in miss_sta:
-            #To see...
-            if ref_sta.position != 0 and sta.position !=0:
-                d = distance(sta, ref_sta)
-                dist = d.dist
-            else:
-                dist = 1
-                    
-            totalRange = sta.range + ref_sta.range
-            if dist < totalRange:
-                if sta.ssid[wlan] == ref_sta.ssid[wlan]:
-                    associate = True
-        
-        """Mesh Join""" 
-        if associate == True and sta.isAssociated[wlan] == False:
-            sta.pexec('iw dev %s-%s%s mesh join %s' % (sta, iface, wlan, sta.ssid[wlan]))   
-            sta.isAssociated[wlan] = True
-        
-        """Adding all reached target paths"""
-        if associate:
-            sta.isAssociated[wlan] = True
-            exist = []
-            sta_ref = []
-            sta_ref.append(sta)
-            j = 0
-            exist.append(sta)
-            while j < len(stationList):
-                j+=1         
-                if sta_ref == []:
-                    break       
-                else:
-                    newsta = sta_ref[0]
-                
-                for x, y in zip(listNodes.nodesX, listNodes.nodesY):
-                    if x == sta and y not in exist:
-                        command = 'iw dev %s-%s%s mpath new %s next_hop %s' % (sta, iface, wlan, y.meshMac[wlan], y.meshMac[wlan])
-                        sta.pexec(command)
-                        exist.append(y)
-                        controlMeshMac.append(y.meshMac[wlan])
-                        sta_ref.append(y)
-                    elif x == newsta and y not in exist:
-                        command = 'iw dev %s-%s%s mpath new %s next_hop %s' % (sta, iface, wlan, y.meshMac[wlan], x.meshMac[wlan])
-                        sta.pexec(command)
-                        exist.append(y)
-                        controlMeshMac.append(y.meshMac[wlan])
-                        sta_ref.append(y)
-                if newsta in sta_ref:
-                    sta_ref.remove(newsta)
-        
-        """delete all unknown paths"""
-        if associate:
-            for y in stationList:
-                if y.meshMac[wlan] not in controlMeshMac:
-                    sta.pexec('iw dev %s-%s%s mpath del %s' % (sta, iface, wlan, y.meshMac[wlan]))
-        
-            #sta.cmd('%s' % (command[:-3]))
-            sta.isAssociated[wlan] = True
+        if wlan < sta.nWlans:
+            associate = False
+            controlMeshMac = []
+            command = ''
+            iface = 'mp'
+           
+            for ref_sta in stationList:
+                if ref_sta != sta:
+                    #To see...
+                    if ref_sta.position != 0 and sta.position !=0:
+                        d = distance(sta, ref_sta)
+                        dist = d.dist
+                    else:
+                        dist = 1
+                            
+                    totalRange = sta.range + ref_sta.range
+                    if dist < totalRange:
+                        for w in range(ref_sta.nWlans):
+                            if ref_sta.func[w] == 'mesh':
+                                if sta.ssid[wlan] == ref_sta.ssid[w]:                                
+                                    associate = True
             
-        """mesh leave"""
-        if associate == False:
-            sta.pexec('iw dev %s-%s%s mesh leave' % (sta, iface, wlan))
-            sta.isAssociated[wlan] = False
+            """Mesh Join""" 
+            if associate == True and sta.isAssociated[wlan] == False:
+                sta.pexec('iw dev %s-%s%s mesh join %s' % (sta, iface, wlan, sta.ssid[wlan]))   
+                sta.isAssociated[wlan] = True
+            
+            """Adding all reached target paths"""
+            if associate:
+                sta.isAssociated[wlan] = True
+                exist = []
+                sta_ref = []
+                sta_ref.append(sta)
+                j = 0
+                exist.append(sta)
+                while j < len(stationList):
+                    j+=1         
+                    if sta_ref == []:
+                        break       
+                    else:
+                        newsta = sta_ref[0]
+                    
+                    for x, y in zip(listNodes.nodesX, listNodes.nodesY):
+                        if x == sta and y not in exist:
+                            command = 'iw dev %s-%s%s mpath new %s next_hop %s' % (sta, iface, wlan, y.meshMac[wlan], y.meshMac[wlan])
+                            sta.pexec(command)
+                            exist.append(y)
+                            controlMeshMac.append(y.meshMac[wlan])
+                            sta_ref.append(y)
+                        elif x == newsta and y not in exist:
+                            command = 'iw dev %s-%s%s mpath new %s next_hop %s' % (sta, iface, wlan, y.meshMac[wlan], x.meshMac[wlan])
+                            sta.pexec(command)
+                            exist.append(y)
+                            controlMeshMac.append(y.meshMac[wlan])
+                            sta_ref.append(y)
+                    if newsta in sta_ref:
+                        sta_ref.remove(newsta)
+            
+            """delete all unknown paths"""
+            if associate:
+                for y in stationList:
+                    for w in range(y.nWlans):
+                        if y.meshMac[w] not in controlMeshMac:
+                            sta.pexec('iw dev %s-%s%s mpath del %s' % (sta, iface, wlan, y.meshMac[w]))
+            
+                #sta.cmd('%s' % (command[:-3]))
+                sta.isAssociated[wlan] = True
+                
+            """mesh leave"""
+            if associate == False:
+                sta.pexec('iw dev %s-%s%s mesh leave' % (sta, iface, wlan))
+                sta.isAssociated[wlan] = False
+                
+            

@@ -181,22 +181,19 @@ def makeIntfPair( intf1, intf2, addr1=None, addr2=None, node1=None, node2=None,
         # Create new pair
         netns = 1 if not node2 else node2.pid
     
-    node1=str(node1)
-    node2=str(node2)
-    
     cmdOutput = ''
     if addr1 is None and addr2 is None:
         cmdOutput = runCmd( 'ip link add name %s '
                             'type veth peer name %s '
                             'netns %s' % ( intf1, intf2, netns ) )
     else:
-        if 'sta' in node1 and 'ap' in node2:
+        if node1.type == 'station' and node2.type == 'accessPoint':
             pass
-        elif 'sta' in node2 and 'ap' in node1:
+        elif node2.type == 'station' and node1.type == 'accessPoint':
             pass
-        elif 'sta' in node2 and 'sta' in node1:
+        elif node1.type == 'station' and node2.type == 'station':
             pass
-        elif 'sta' in node1 and 'onlyOneDevice' in node2:
+        elif node1.type == 'station' and 'onlyOneDevice' in node2:
             pass
         else:
             cmdOutput = runCmd( 'ip link add name %s '
@@ -229,8 +226,8 @@ def moveIntfNoRetry( intf, dstNode, printError=False ):
        intf: string, interface
         dstNode: destination Node
         printError: if true, print error"""
-    if dstNode.name[:3]=="sta" or dstNode.name[:2]=="ap": 
-        if dstNode.name[:3]=="sta":
+    if dstNode.type == 'station' or dstNode.type=='accessPoint': 
+        if dstNode.type=='station':
             return True    
     else:
         intf = str( intf )

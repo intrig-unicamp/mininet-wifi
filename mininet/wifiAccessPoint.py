@@ -159,7 +159,7 @@ class accessPoint( object ):
         """ Set bw to AP """  
         iface =  str(ap) + '-wlan' + str(wlan)
         
-        value = deviceDataRate(ap, None, None, emulationEnvironment.ismobility)
+        value = deviceDataRate(ap, None, None)
         bw = value.rate
         
         ap.pexec("tc qdisc replace dev %s \

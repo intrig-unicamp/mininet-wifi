@@ -116,10 +116,11 @@ from mininet.wifiDevices import deviceRange, deviceDataRate
 from mininet.wifiParameters import wifiParameters
 from mininet.wifiMobilityModels import distance
 from mininet.wifiAccessPoint import accessPoint
+from mininet.vanet import vanet
 from __builtin__ import True
 
 # Mininet version: should be consistent with README and LICENSE
-VERSION = "1.7"
+VERSION = "1.8"
 
 class Mininet( object ):
     "Network emulation with hosts spawned in network namespaces."
@@ -170,8 +171,10 @@ class Mininet( object ):
         self.waitConn = waitConnected       
         self.start_time = -1 #start mobility time
         self.set_seed = 10
+        self.nroads = 0
         self.firstAssociation = True
         self.ifaceConfigured = False
+        self.isVanet = False
         self.ssid = ssid        
         self.mode = mode
         self.channel = channel
@@ -344,6 +347,114 @@ class Mininet( object ):
         self.nextIP += 1        
         return sta
 
+
+    def addVehicle( self, name, cls=None, **params ):
+        """Add Vehicle.
+           name: name of vehicle to add
+           cls: custom host class/constructor (optional)
+           params: parameters for host
+           returns: added host"""
+        #Default IP and MAC addresses
+        defaults = { 'ip': ipAdd( self.nextIP,
+                                  ipBaseNum=self.ipBaseNum,
+                                  prefixLen=self.prefixLen ) +
+                                  '/%s' % self.prefixLen}
+        
+        if self.autoSetMacs:
+            defaults[ 'mac' ] = macColonHex( self.nextIP )
+        if self.autoPinCpus:
+            defaults[ 'cores' ] = self.nextCore
+            self.nextCore = ( self.nextCore + 1 ) % self.numCores        
+        defaults.update( params )        
+        if not cls:
+            cls = self.host
+        sta = cls( name, **defaults )      
+        
+        mac = ("%s" % params.pop('mac', {}))
+        if(mac!="{}"):        
+            mac = mac.split(',')
+            sta.mac = str(mac[0])
+        elif self.autoSetMacs:
+            sta.mac = defaults[ 'mac' ]
+        
+        self.hosts.append( sta )
+        self.stations.append(sta)
+        self.wifiNodes.append(sta)
+        self.nameToNode[ name ] = sta        
+        self.missingStations.append(sta)
+        sta.type = 'station'
+        
+        position = ("%s" % params.pop('position', {}))
+        if(position!="{}"):        
+            position = position.split(',')
+            sta.startPosition = position
+            sta.position = position
+            station.fixedPosition.append(sta)
+        else:
+            sta.startPosition = 0
+            sta.position = 0         
+        
+        channel = ("%s" % params.pop('channel', {}))
+        if(channel!="{}"): 
+            sta.channel = channel
+        else:
+            sta.channel = 1
+            
+        max_speed = ("%s" % params.pop('max_speed', {}))
+        if(max_speed!="{}"): 
+            sta.max_speed = max_speed
+        else:
+            sta.max_speed = 10
+            
+        min_speed = ("%s" % params.pop('min_speed', {}))
+        if(min_speed!="{}"): 
+            sta.min_speed = min_speed
+        else:
+            sta.min_speed = 1
+      
+        mode = ("%s" % params.pop('mode', {}))
+        if(mode!="{}"): 
+            sta.mode = mode
+        else:
+            sta.mode = "g"
+            
+        passwd = ("%s" % params.pop('passwd', {}))
+        if(passwd!="{}"): 
+            sta.passwd = passwd
+        else:
+            sta.passwd = None
+        
+        equipmentModel = ("%s" % params.pop('equipmentModel', {}))
+        if(equipmentModel!="{}"): 
+            sta.equipmentModel = equipmentModel
+        else:
+            sta.equipmentModel = None
+            
+        encrypt = ("%s" % params.pop('encrypt', {}))
+        if(encrypt!="{}"): 
+            sta.encrypt = encrypt
+        else:
+            sta.encrypt = None
+            
+        self.range = ("%s" % params.pop('range', {}))
+        if(self.range!="{}"):
+            sta.range = int(self.range)
+                
+        wifi = ("%s" % params.pop('wlans', {}))
+        if(wifi!="{}"):        
+            emulationEnvironment.wifiRadios += int(wifi)
+            for n in range(int(wifi)):
+                self.virtualWlan.append(name)                
+        else:
+            emulationEnvironment.wifiRadios += 1
+            wifi = 1
+            self.virtualWlan.append(name)
+        sta.nWlans = int(wifi)
+        
+        self.nextIP += 1    
+        self.isVanet = True
+        return sta
+
     def addBaseStation( self, name, cls=None, **params ):
         """Add BaseStation.
            name: name of basestation to add
@@ -435,6 +546,8 @@ class Mininet( object ):
         self.accessPoints.append( bs ) 
         
         return bs
+    
+    
      
     def addSwitch( self, name, cls=None, **params ):
         """Add switch.
@@ -828,7 +941,6 @@ class Mininet( object ):
                     doAssociation = True
                                 
                 if(doAssociation):
-                    sta.ifaceToAssociate+=1
                     station.associate(sta, ap)
             return link
         
@@ -1029,7 +1141,7 @@ class Mininet( object ):
         for switch in self.switches:
             info( switch.name + ' ')
             switch.start( self.controllers )
-            if 'ap' in switch.name:  
+            if switch.type == 'accessPoint':
                 os.system('ovs-vsctl add-br %s' % switch.name)
           
         started = {}
@@ -1042,7 +1154,7 @@ class Mininet( object ):
         
         #It is necessary to create a bridge between ap and wlan interface
         for switch in self.switches:
-            if 'ap' in switch.name:  
+            if switch.type == 'accessPoint':  
                 for iface in range(0, switch.nWlans):
                     accessPoint.apBridge(switch.name, iface)
         
@@ -1053,6 +1165,10 @@ class Mininet( object ):
     def seed( self, seed ):
         "Seed"
         self.set_seed = seed
+        
+    def roads( self, nroads ):
+        "Seed"
+        self.nroads = nroads
 
     def stop( self ):
         "Stop the controller(s), switches and hosts"
@@ -1091,19 +1207,18 @@ class Mininet( object ):
         info( '\n' )
         if(emulationEnvironment.isWiFi):
             "Stop plotting"
-            emulationEnvironment.ismobility = False
-            mobility.DRAW = False
             emulationEnvironment.continue_ = False
+            mobility.DRAW = False
+            module(action = 'stop') #Stopping WiFi Module
+        
             try:
                 plot.closePlot()
             except:
                 pass
             
-            module(action = 'stop') #Stopping WiFi Module
         info( '\n*** Done\n' )
         #os._exit(1)
          
-
     def run( self, test, *args, **kwargs ):
         "Perform a complete start/test/stop cycle."
         self.start()
@@ -1408,8 +1523,6 @@ class Mininet( object ):
         if 'speed' in kwargs:
             sta.speed = kwargs['speed'][:-2]
             
-        mobility.ismobility = True
-        
         if(self.stage == 'start'):
             sta.startTime = self.time        
         elif(self.stage == 'stop'):
@@ -1434,39 +1547,34 @@ class Mininet( object ):
             mobilityparam.setdefault( 'max_v', kwargs['max_v'] )
         if 'AC' in kwargs: #Access Control
             mobilityparam.setdefault( 'AC', kwargs['AC'] )
-        
-        mobilityparam.setdefault( 'ismobility', True )
+        if self.mode == '':
+            mobility.associationControl = kwargs['AC']
+        if 'startTime' in kwargs:
+            self.start_time = kwargs['startTime']
+       
         mobilityparam.setdefault( 'seed', self.set_seed )
         mobilityparam.setdefault( 'draw', mobility.DRAW )
-     
-        if self.mobilityModel != '':
-            
-            for node in self.wifiNodes:
-                for wlan in range(0, node.nWlans):
-                    wifiParameters.getWiFiParameters(node, wlan)
-            
-            mobilityparam.setdefault( 'wifiNodes', self.wifiNodes )
+        mobilityparam.setdefault( 'nodes', self.wifiNodes )
+       
+        if self.mobilityModel != '' or self.isVanet:
             mobility.staMov = []
             for n in self.stations:
                 if n not in station.fixedPosition:
                     mobility.staMov.append(n)
             
-            try:
+            if self.isVanet == False:
                 self.thread = threading.Thread(name='mobilityModel', target=mobility.models, kwargs=dict(mobilityparam,))
                 self.thread.daemon = True
                 self.thread.start()
-                
-                self.thread = threading.Thread(name='wifiParameters', target=mobility.parameters)
-                #self.thread.daemon = True
+            else:
+                self.thread = threading.Thread(name='vanet', target=vanet, args=(self.stations, self.accessPoints, self.nroads, mobility.MAX_X, mobility.MAX_Y))
+                self.thread.daemon = True
                 self.thread.start()
-            except:
-                pass
             
-        if self.mode == '':
-            mobility.associationControl = kwargs['AC']
-           
-        if 'startTime' in kwargs:
-            self.start_time = kwargs['startTime']
+            self.thread = threading.Thread(name='wifiParameters', target=mobility.parameters)
+            #-self.thread.daemon = True
+            self.thread.start()
+            
         print "Mobility started at %s second(s)" % kwargs['startTime']
         
     def stopMobility(self, **kwargs):
@@ -1494,7 +1602,7 @@ class Mininet( object ):
             for node in self.wifiNodes:
                 plot.instantiateGraph()
                 plot.instantiateNode(node, mobility.MAX_X, mobility.MAX_Y)
-                plot.plotUpdate(node)                
+                plot.graphUpdate(node)                
         
     def getCurrentPosition(self, node):
         """ Get Current Position """ 
@@ -1555,8 +1663,7 @@ class Mininet( object ):
                             dst = host2
                             mobility.printDistance(src, dst)
         except:
-            print ("node %s or/and node %s does not exist or there is no position defined" % (dst, src))
-        
+            print ("node %s or/and node %s does not exist or there is no position defined" % (dst, src))        
         
     # BL: I think this can be rewritten now that we have
     # a real link class.

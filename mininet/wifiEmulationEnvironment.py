@@ -10,8 +10,8 @@ import subprocess
 class emulationEnvironment ( object ):
     
     propagation_Model = ''
-    ismobility = False
     wpa_supplicantIsRunning = False
+    associationControlMethod = False
     isWiFi = False
     isCode = False
     continue_ = True

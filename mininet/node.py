@@ -146,6 +146,9 @@ class Node( object ):
         self.isAssociated = []
         self.staAssociated = []
 
+        self.max_speed=0
+        self.min_speed=0
+
         # Make pylint happy
         ( self.shell, self.execed, self.pid, self.stdin, self.stdout,
             self.lastPid, self.lastCmd, self.pollOut ) = (

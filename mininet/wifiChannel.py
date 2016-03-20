@@ -17,7 +17,6 @@ class channelParameters ( object ):
     latency = 0
     rate = 0
     propagModel=''
-    isMobility=True
     
     def __init__( self, node1, node2, wlan, dist, staList, time ):
         
@@ -52,7 +51,7 @@ class channelParameters ( object ):
         self.rate = 0
         if self.propagModel == '':
             self.propagModel = 'friisPropagationLossModel'
-        value = deviceDataRate(node1, node2, wlan, self.isMobility)
+        value = deviceDataRate(node1, node2, wlan)
         custombw = value.rate
         if node2 == None:
             node1.rssi[wlan] = -50 - dist
