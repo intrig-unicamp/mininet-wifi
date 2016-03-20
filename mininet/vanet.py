@@ -11,6 +11,7 @@ from math import atan2
 from pylab import ginput as ginp
 from mininet.wifiPlot import plot
 from random import randrange
+import random
 
 import warnings
 import matplotlib.cbook
@@ -137,7 +138,7 @@ class vanet( object ):
         car_lines = []
         
         for n in range(0,len(cars)):
-            car_lines.append(self.road[n])
+            car_lines.append(random.choice(self.road))
         
         for n in range(0, len(self.totalRoads)):
             
