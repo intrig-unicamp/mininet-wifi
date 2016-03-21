@@ -813,27 +813,7 @@ class Mininet( object ):
                 wifiparam.setdefault( 'intf', intf )
                
                 accessPoint(ap, **wifiparam)       
-                 
-    def addMissingSTAs(self, sta):
-        
-        options = dict( )
-        value = deviceDataRate(None, sta, None)
-        self.bw = value.rate
-        options.setdefault( 'bw', self.bw )
-        options.setdefault( 'use_hfsc', True )
-        
-        # Set default MAC - this should probably be in Link
-        options.setdefault( 'addr1', self.randMac() )
-       
-        cls = None
-        cls = self.link if cls is None else cls
-        cls( sta, 'onlyOneDevice', **options )
-        
-        if sta.mac != '':
-            station.setMac(sta)        
-        
-        #necessary if does not exist link between sta and other device
-        sta.associate = False
+
             
     """    
     def wds( self, ap1, ap2, cls=None, **params ):
@@ -876,7 +856,7 @@ class Mininet( object ):
             self.ifaceConfigured = True
             self.configureAP() #configure AP
             self.firstAssociation = False
-        
+            
             
     def addLink( self, node1, node2, port1=None, port2=None, 
                  cls=None, **params ):
@@ -1073,6 +1053,7 @@ class Mininet( object ):
             info( switchName + ' ' )
             
         info( '\n*** Adding links and associating station(s):\n' )
+        self.firstAssociation = True
         for srcName, dstName, params in topo.links(
                 sort=True, withInfo=True ):
             self.addLink( **params )
@@ -1087,8 +1068,8 @@ class Mininet( object ):
     def build( self ):
         emulationEnvironment.isCode=True
         #useful if there no link between sta and any other device
-        if self.firstAssociation:
-            self.configureWifiNodes()
+      #  if self.firstAssociation:
+       #     self.configureWifiNodes()
                 
         "Build mininet."
         if self.topo:
