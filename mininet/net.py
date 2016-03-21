@@ -669,7 +669,8 @@ class Mininet( object ):
     def addMesh( self, sta, cls=None, **params ):
         
         if self.firstAssociation:
-            self.configureWifiNodes(False)
+            self.configureWifiNodes()
+        self.firstAssociation = False
                 
         node = sta if not isinstance( sta, basestring ) else self[ sta ]
         options = dict()
@@ -717,7 +718,8 @@ class Mininet( object ):
     def addHoc( self, sta, cls=None, **params ):
         
         if self.firstAssociation:
-            self.configureWifiNodes(False)
+            self.configureWifiNodes()
+        self.firstAssociation = False
             
         node = sta if not isinstance( sta, basestring ) else self[ sta ]
         options = dict( )
@@ -864,7 +866,7 @@ class Mininet( object ):
             self.bw = wifiParameters.set_bw(self.mode)
     """
                                 
-    def configureWifiNodes(self, hasAP=True):
+    def configureWifiNodes(self):
         if self.ifaceConfigured == False:
             module(action = 'start', wifiRadios = emulationEnvironment.wifiRadios)
             emulationEnvironment.isWiFi = True
@@ -872,7 +874,6 @@ class Mininet( object ):
             self.newapif = getWlan.virtual()  #Get Virtual Wlans      
             station.assingIface(self.stations, self.virtualWlan)
             self.ifaceConfigured = True
-        if hasAP:
             self.configureAP() #configure AP
             self.firstAssociation = False
         
@@ -890,7 +891,7 @@ class Mininet( object ):
             or ( node2.type =='station' and node1.type == 'accessPoint')):
             
             if self.firstAssociation:
-                self.configureWifiNodes(True)
+                self.configureWifiNodes()
                 
             #Only if AP
             if node1.type == 'accessPoint' and str(node1) not in self.apexists \
@@ -957,7 +958,7 @@ class Mininet( object ):
             #Only if AP
             if node1.type == 'accessPoint' and node2.type == 'accessPoint' :   
                 if self.firstAssociation:
-                    self.configureWifiNodes(True)              
+                    self.configureWifiNodes()              
                 
                 listap = []
                 if str(node1) not in self.apexists:
@@ -974,7 +975,7 @@ class Mininet( object ):
                 or node2.type == 'accessPoint' and str(node2) not in self.apexists: 
                 
                 if self.firstAssociation:
-                    self.configureWifiNodes(True)
+                    self.configureWifiNodes()
                 
                 if node1.type == 'accessPoint':
                     ap = str(node1)
@@ -1086,8 +1087,8 @@ class Mininet( object ):
     def build( self ):
         emulationEnvironment.isCode=True
         #useful if there no link between sta and any other device
-        for s in self.missingStations:
-            self.addMissingSTAs(s)
+        if self.firstAssociation:
+            self.configureWifiNodes()
                 
         "Build mininet."
         if self.topo:
@@ -1209,13 +1210,11 @@ class Mininet( object ):
             "Stop plotting"
             emulationEnvironment.continue_ = False
             mobility.DRAW = False
-            module(action = 'stop') #Stopping WiFi Module
-        
+            module(action = 'stop') #Stopping WiFi Module        
             try:
                 plot.closePlot()
             except:
-                pass
-            
+                pass            
         info( '\n*** Done\n' )
         #os._exit(1)
          
@@ -1652,8 +1651,7 @@ class Mininet( object ):
                 print "Number of Associated Stations: %s" % device.nAssociatedStations
         except:
             pass
-       
-                        
+                               
     def getCurrentDistance(self, src, dst):
         """ Get current Distance """ 
         try:

@@ -106,7 +106,6 @@ class station ( object ):
     def iwCommand(self, sta, wlan, *args):
         command = 'iw dev %s-wlan%s ' % (sta, wlan)
         sta.pexec(command + '%s' % args)
-        
     
     @classmethod       
     def ipLinkCommand(self, sta, wlan, *args):
@@ -125,9 +124,8 @@ class station ( object ):
         for sta in stations:
             for i in range(0, sta.nWlans):
                 vwlan = virtualWlan.index(str(sta))
-                #os.system('iw phy %s set rts 80' % phyInt.totalPhy[vwlan + i])
                 os.system('iw phy %s set netns %s' % ( emulationEnvironment.totalPhy[vwlan + i], sta.pid ))
-                sta.cmd('ip link set %s name %s-wlan%s' % (w[vwlan + i], str(sta), i))  
+                sta.cmd('ip link set %s name %s-wlan%s up' % (w[vwlan + i], str(sta), i))  
                 sta.frequency.append(0)
                 sta.txpower.append(0)
                 sta.snr.append(0)
@@ -237,13 +235,13 @@ class station ( object ):
         sta.cmd('iw dev %s-mp%s set %s' % (sta, wlan, sta.channel))
         sta.cmd('ifconfig %s-mp%s up' % (sta, wlan))
         sta.cmd('iw dev %s-mp%s mesh join %s' % (sta, wlan, sta.ssid[wlan]))
+        sta.cmd('ifconfig %s-wlan%s down' % (sta, wlan))
         print "associating %s ..." % sta
         iface = '%s-mp%s' % (sta, wlan)
         self.confirmMeshAssociation(sta, iface, wlan)    
         self.getMacAddress(sta, wlan)
         sta.isAssociated[wlan] = True
-    
-                 
+                     
         
 class mobility ( object ):    
     """ Mobility """          
@@ -303,7 +301,7 @@ class mobility ( object ):
             sta.associatedAp[wlan] = ap
         elif ap not in sta.associatedAp:
             #Useful for stations with more than one wifi iface
-            if str(sta.associatedAp[wlan]) == 'NoAssociated':
+            if sta.associatedAp[wlan] == 'NoAssociated':
                 station.iwCommand(sta, wlan, ('connect %s' % ap.ssid[0]))
                 #emulationEnvironment.getWiFiParameters(sta, wlan)
                 ap.associatedStations.append(sta)
@@ -490,15 +488,12 @@ class mobility ( object ):
                     #if emulationEnvironment.continue_:
                     channelParameters(node1, node2, wlan, dist, staList, time)
             else:    
-                if dist < ap.range:            
-                    aps = 0
-                    for n in range(0,len(sta.associatedAp)):
-                        if str(sta.associatedAp[n]) != 'NoAssociated':
-                            aps+=1
-                    if len(sta.associatedAp) == aps:
+                if dist < ap.range: 
+                    if ap.ssid not in sta.ssid and sta.associatedAp[wlan] != 'NoAssociated':
                         associated = True
                     else:
                         associated = False
+                       
             if ap == sta.associatedAp[wlan] or dist < ap.range:
                 #Only if it is a mobility environment
                 changeAP = False
