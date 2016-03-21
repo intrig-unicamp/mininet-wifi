@@ -1066,15 +1066,14 @@ class Mininet( object ):
                          'should be overriden in subclass', self )
 
     def build( self ):
-        emulationEnvironment.isCode=True
         #useful if there no link between sta and any other device
-      #  if self.firstAssociation:
-       #     self.configureWifiNodes()
-                
         "Build mininet."
         if self.topo:
             self.buildFromTopo( self.topo )
         if self.inNamespace:
+            emulationEnvironment.isCode=True
+            if self.firstAssociation:
+                self.configureWifiNodes()
             self.configureControlNetwork()
             info( '*** Configuring hosts\n' )       
         self.configHosts()
