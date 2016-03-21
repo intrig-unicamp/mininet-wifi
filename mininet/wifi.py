@@ -62,6 +62,7 @@ class module( object ):
            
     def loadModule(self, wifiRadios):
         """ Start wireless Module """
+        #os.system( 'insmod mac80211_hwsim.ko radios=%s' % wifiRadios )
         os.system( 'modprobe mac80211_hwsim radios=%s' % wifiRadios )
             
     def stop(self):
@@ -73,6 +74,7 @@ class module( object ):
             os.system( 'rm *.txt' )
         
         os.system( 'rmmod mac80211_hwsim' )
+        #os.system( 'rmmod mac80211_hwsim.ko' )
         if emulationEnvironment.apList!=[]:
             os.system( 'killall -9 hostapd' )
         if emulationEnvironment.wpa_supplicantIsRunning:
@@ -317,11 +319,12 @@ class mobility ( object ):
         i=1
         once = True
         
-        plot.instantiateGraph(self.MAX_X, self.MAX_Y)
-        for sta in station.list:
-            plot.instantiateAnnotate(sta)
-            plot.instantiateCircle(sta)
-            plot.instantiateNode(sta, self.MAX_X, self.MAX_Y)
+        if self.DRAW == True:
+            plot.instantiateGraph(self.MAX_X, self.MAX_Y)
+            for sta in station.list:
+                plot.instantiateAnnotate(sta)
+                plot.instantiateCircle(sta)
+                plot.instantiateNode(sta, self.MAX_X, self.MAX_Y)
         try:
             while time.time() < t_end and time.time() > t_initial:
                 if time.time() - currentTime >= i:

@@ -1600,8 +1600,10 @@ class Mininet( object ):
        
         if self.ifaceConfigured == False:
             for node in self.wifiNodes:
-                plot.instantiateGraph()
+                plot.instantiateGraph(mobility.MAX_X, mobility.MAX_Y)
                 plot.instantiateNode(node, mobility.MAX_X, mobility.MAX_Y)
+                plot.instantiateAnnotate(node)
+                plot.instantiateCircle(node)
                 plot.graphUpdate(node)                
         
     def getCurrentPosition(self, node):
