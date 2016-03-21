@@ -28,15 +28,13 @@ def topology():
     c1 = net.addController( 'c1', controller=Controller )
 
     print "*** Associating and Creating links"
-    net.addLink(bs1, car1)
-    net.addLink(bs2, car2)
-    net.addLink(bs1, bs2)
-    net.addLink(bs1, bs3)
     net.addMesh(car1, ssid='mesh')
     net.addMesh(car2, ssid='mesh')
     net.addMesh(car3, ssid='mesh')
     net.addMesh(car4, ssid='mesh')
     net.addMesh(car5, ssid='mesh')
+    net.addLink(bs1, bs2)
+    net.addLink(bs1, bs3)
        
     print "*** Starting network"
     net.build()
@@ -49,7 +47,7 @@ def topology():
     net.plotGraph(max_x=500, max_y=500)
 
     """Number of Roads"""
-    net.roads(6)
+    net.roads(4)
 
     """Seed"""
     net.seed(20) 
