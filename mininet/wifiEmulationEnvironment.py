@@ -15,11 +15,12 @@ class emulationEnvironment ( object ):
     isWiFi = False
     isCode = False
     continue_ = True
+    DRAW = False
+    meshRouting = ''
     physicalWlan = []
     apList = []
     staList = []
     wifiRadios = 0 
-    DRAW = False
     totalPhy = []
     
     

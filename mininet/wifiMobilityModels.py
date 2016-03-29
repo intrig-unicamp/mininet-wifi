@@ -185,15 +185,12 @@ class RandomWaypoint(object):
         wt_min = 0.
         
         if self.init_stationary:
-
             x, y, x_waypoint, y_waypoint, velocity, wt = \
                 init_random_waypoint(self.nr_nodes, MAX_X, MAX_Y, MIN_V, MAX_V, wt_min, 
                              (self.wt_max if self.wt_max is not None else 0.))
 
         else:
-
             NODES = np.arange(self.nr_nodes)
-            print NODES
             x = U(0, MAX_X, NODES)
             y = U(0, MAX_Y, NODES)
             x_waypoint = U(0, MAX_X, NODES)

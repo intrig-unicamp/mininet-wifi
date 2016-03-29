@@ -116,11 +116,15 @@ from mininet.wifiDevices import deviceRange, deviceDataRate
 from mininet.wifiParameters import wifiParameters
 from mininet.wifiMobilityModels import distance
 from mininet.wifiAccessPoint import accessPoint
+
+import sys
+sys.path.append(str(os.getcwd())+'/mininet/')
+from sumo.runner import sumo
 from mininet.vanet import vanet
 from __builtin__ import True
 
 # Mininet version: should be consistent with README and LICENSE
-VERSION = "1.8"
+VERSION = "1.8r1"
 
 class Mininet( object ):
     "Network emulation with hosts spawned in network namespaces."
@@ -192,7 +196,7 @@ class Mininet( object ):
         self.links = []
         self.terms = []  # list of spawned xterm processes
         Mininet.init()  # Initialize Mininet if necessary
-                
+       
         self.built = False
         if topo and build:
             self.build()
@@ -297,7 +301,7 @@ class Mininet( object ):
             station.fixedPosition.append(sta)
         else:
             sta.startPosition = 0
-            sta.position = 0         
+            sta.position = 0, 0, 0         
         
         channel = ("%s" % params.pop('channel', {}))
         if(channel!="{}"): 
@@ -392,7 +396,7 @@ class Mininet( object ):
             station.fixedPosition.append(sta)
         else:
             sta.startPosition = 0
-            sta.position = 0         
+            sta.position = 0, 0, 0         
         
         channel = ("%s" % params.pop('channel', {}))
         if(channel!="{}"): 
@@ -485,7 +489,7 @@ class Mininet( object ):
             bs.position = position
         else:
             bs.startPosition = 0
-            bs.position = 0            
+            bs.position = 0, 0, 0           
       
         channel = ("%s" % params.pop('channel', {}))
         if(channel!="{}"):
@@ -1550,9 +1554,7 @@ class Mininet( object ):
                 self.thread.daemon = True
                 self.thread.start()
             
-            self.thread = threading.Thread(name='wifiParameters', target=mobility.parameters)
-            #-self.thread.daemon = True
-            self.thread.start()
+            self.setWifiParameters()
             
         print "Mobility started at %s second(s)" % kwargs['startTime']
         
@@ -1568,7 +1570,24 @@ class Mininet( object ):
         self.thread = threading.Thread(name='onGoingMobility', target=mobility.mobility_PositionDefined, args=(self.start_time, stop_time,))
         self.thread.daemon = True
         self.thread.start()
-                       
+        
+    def setWifiParameters(self):
+        self.thread = threading.Thread(name='wifiParameters', target=mobility.parameters)
+        #-self.thread.daemon = True
+        self.thread.start()
+        
+    def useExternalProgram(self, program, **params):
+        config_file = ("%s" % params.pop('config_file', {}))
+        if program == 'sumo' or program == 'sumo-gui':
+            self.thread = threading.Thread(name='vanet', target=sumo, args=(self.stations,program, config_file))
+            self.thread.daemon = True
+            self.thread.start()
+            self.setWifiParameters()
+            
+    def meshRouting(self, routing):
+        if routing != '':
+            emulationEnvironment.meshRouting = routing
+                   
     def plotGraph(self, **kwargs):
         """ Plot Graph """
         if 'max_x' in kwargs:

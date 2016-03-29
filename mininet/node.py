@@ -133,6 +133,7 @@ class Node( object ):
         self.wlanToAssociate = 0
         self.meshMac = []
         self.type = ''
+        self.inRangeAPs = []
                 
         # Mobility Parameters
         self.position = []

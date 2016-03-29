@@ -20,7 +20,7 @@ from mininet.wifiDevices import deviceRange
 from mininet.wifiMobilityModels import distance
 from mininet.wifiAssociationControl import associationControl
 from mininet.wifiEmulationEnvironment import emulationEnvironment
-from mininet.wifiRouting import meshRouting, listNodes
+from mininet.wifiMeshRouting import listNodes, meshRouting
 from mininet.wifiParameters import wifiParameters
 from mininet.wifiPlot import plot
 
@@ -62,7 +62,7 @@ class module( object ):
            
     def loadModule(self, wifiRadios):
         """ Start wireless Module """
-        #os.system( 'insmod mac80211_hwsim.ko radios=%s' % wifiRadios )
+        #os.system( 'insmod /home/alpha/Dropbox/ComputerDir/codigo/linux-3.19.0/drivers/net/wireless/mac80211_hwsim.ko radios=%s' % wifiRadios )
         os.system( 'modprobe mac80211_hwsim radios=%s' % wifiRadios )
             
     def stop(self):
@@ -146,11 +146,6 @@ class station ( object ):
         
     @classmethod    
     def confirmMeshAssociation(self, sta, iface, wlan):
-        #associated = ''
-        #while(associated == '' or len(associated) == 11):
-        #cmd = 'ifconfig mp%s | grep -o \'TX b.*\' | cut -f2- -d\':\'' % wlan
-        #sta.sendCmd(cmd)
-        #associated = sta.waitOutput()
         wifiParameters.getWiFiParameters(sta, wlan)  
     
     @classmethod    
@@ -406,64 +401,71 @@ class mobility ( object ):
                 plot.instantiateCircle(node)
                 plot.instantiateNode(node, self.MAX_X, self.MAX_Y)
               
-        once = []  
-        if model!='':
-            for xy in mob:                
-                for n in range (0,len(nodes)):
-                    node = nodes[n]
-                    if 'accessPoint' == node.type and node not in once:
-                        ap = node
-                        pos_zero = ap.startPosition[0]
-                        pos_one = ap.startPosition[1]
-                        ap.position = pos_zero, pos_one, 0  
-                        if self.DRAW:
-                            plot.pltNode[node].set_data(pos_zero, pos_one)
-                            plot.drawTxt(node)
-                            plot.drawCircle(node)
-                        once.append(nodes[n])
-                    elif 'accessPoint' != node.type:
-                        if str(node) not in station.fixedPosition:
-                            node.position = xy[n][0], xy[n][1], 0
+        try:
+            once = []  
+            if model!='':
+                for xy in mob:                
+                    for n in range (0,len(nodes)):
+                        node = nodes[n]
+                        if 'accessPoint' == node.type and node not in once:
+                            ap = node
+                            pos_zero = ap.startPosition[0]
+                            pos_one = ap.startPosition[1]
+                            ap.position = pos_zero, pos_one, 0  
                             if self.DRAW:
-                                plot.pltNode[node].set_data(xy[:,0],xy[:,1])
+                                plot.pltNode[node].set_data(pos_zero, pos_one)
                                 plot.drawTxt(node)
                                 plot.drawCircle(node)
-                        #self.parameters()
-                if self.DRAW:
-                        plt.title("Mininet-WiFi Graph")
-                        plt.draw()   
+                            once.append(nodes[n])
+                        elif 'accessPoint' != node.type:
+                            if str(node) not in station.fixedPosition:
+                                node.position = xy[n][0], xy[n][1], 0
+                                if self.DRAW:
+                                    plot.pltNode[node].set_data(xy[:,0],xy[:,1])
+                                    plot.drawTxt(node)
+                                    plot.drawCircle(node)
+                            #self.parameters()
+                    if self.DRAW:
+                            plt.title("Mininet-WiFi Graph")
+                            plt.draw()   
+        except:
+            pass
                             
     
     @classmethod 
-    def nodeParameter(self, node, wlan):
-        
+    def nodeParameter(self, node, wlan):        
         for ap in emulationEnvironment.apList:
             sta = node
             d = distance(sta, ap)
             dist = d.dist
-            self.setChannelParameters(sta, ap, dist, wlan)  
+            if dist < ap.range:
+                if ap not in sta.inRangeAPs:
+                    sta.inRangeAPs.append(ap)
+                self.setChannelParameters(sta, ap, dist, wlan)  
+            else:
+                if ap in sta.inRangeAPs:
+                    sta.inRangeAPs.remove(ap)
                 
     @classmethod                
     def parameters(self):
         while emulationEnvironment.continue_:
             try:
-                for node in station.list:                
+                for node in station.list: 
                     for wlan in range(0, node.nWlans):
-                        if node.func[wlan] == 'mesh':
+                        if node.func[wlan] == 'mesh' or node.func[wlan] == 'adhoc':
                             dist = listNodes.pairingNodes(node, wlan, station.list)
-                            self.setChannelParameters(node, None, dist, wlan)
+                            channelParameters(node, None, wlan, dist, station.list, abs(node.speed))
                         else:
                             self.nodeParameter(node, wlan)
+                if emulationEnvironment.meshRouting == 'custom':
+                    for node in station.list:       
+                        for wlan in range(0, node.nWlans):
+                            if node.func[wlan] == 'mesh':
+                                """Mesh Routing"""                    
+                                meshRouting.customMeshRouting(node, wlan, station.list)    
+                    listNodes.clearList()
             except:
-                pass    
-        
-            for node in station.list:                
-                for wlan in range(0, node.nWlans):
-                    if node.func[wlan] == 'mesh':
-                        """Mesh Routing"""                    
-                        meshRouting.customMeshRouting(node, wlan, station.list)    
-            listNodes.clearList()
-                    
+                pass
     @classmethod    
     def setChannelParameters(self, node1, node2, dist, wlan):
         """ Wifi Parameters """
@@ -472,40 +474,39 @@ class mobility ( object ):
         associated = True
         time = abs(sta.speed)
         staList = station.list
-        
-        if node1.func[wlan] == 'adhoc' or node1.func[wlan] == 'mesh':
-            sta = node1
-            channelParameters(sta, None, wlan, dist, staList, time)
-        else:
-            if ap == sta.associatedAp[wlan]:
-                if dist > ap.range:                
-                    station.iwCommand(sta, wlan, 'disconnect')
-                    sta.associatedAp[wlan] = 'NoAssociated'
-                    sta.rssi[wlan] = 0
-                    sta.snr[wlan] = 0
-                    emulationEnvironment.numberOfAssociatedStations(ap)
+
+        if ap == sta.associatedAp[wlan]:
+            if dist > ap.range:                
+                station.iwCommand(sta, wlan, 'disconnect')
+                sta.associatedAp[wlan] = 'NoAssociated'
+                sta.rssi[wlan] = 0
+                sta.snr[wlan] = 0
+                emulationEnvironment.numberOfAssociatedStations(ap)
+            else:
+                #if emulationEnvironment.continue_:
+                channelParameters(sta, ap, wlan, dist, staList, time)
+        else:    
+            if dist < ap.range:            
+                aps = 0
+                for n in range(0,len(sta.associatedAp)):
+                    if str(sta.associatedAp[n]) != 'NoAssociated':
+                        aps+=1
+                if len(sta.associatedAp) == aps:
+                    associated = True
                 else:
-                    #if emulationEnvironment.continue_:
-                    channelParameters(node1, node2, wlan, dist, staList, time)
-            else:    
-                if dist < ap.range: 
-                    if ap.ssid not in sta.ssid and sta.associatedAp[wlan] != 'NoAssociated':
-                        associated = True
-                    else:
-                        associated = False
-                       
-            if ap == sta.associatedAp[wlan] or dist < ap.range:
-                #Only if it is a mobility environment
-                changeAP = False
-                association_Control = dict ()
-              
-                """Association Control: mechanisms that optimize the use of the APs"""
-                if emulationEnvironment.associationControlMethod != '':
-                    ac = emulationEnvironment.associationControlMethod
-                    value = associationControl(sta, ap, wlan, ac)
-                    changeAP = value.changeAP
-                    association_Control.setdefault( 'ac', ac )                
-               
-                #Go to handover    
-                if associated == False or changeAP == True:
-                    self.handover(sta, ap, wlan, dist, changeAP, **association_Control)
+                    associated = False
+        if ap == sta.associatedAp[wlan] or dist < ap.range:
+            #Only if it is a mobility environment
+            changeAP = False
+            association_Control = dict ()
+          
+            """Association Control: mechanisms that optimize the use of the APs"""
+            if emulationEnvironment.associationControlMethod != '':
+                ac = emulationEnvironment.associationControlMethod
+                value = associationControl(sta, ap, wlan, ac)
+                changeAP = value.changeAP
+                association_Control.setdefault( 'ac', ac )                
+           
+            #Go to handover    
+            if associated == False or changeAP == True:
+                self.handover(sta, ap, wlan, dist, changeAP, **association_Control)

@@ -19,7 +19,6 @@ class channelParameters ( object ):
     propagModel=''
     
     def __init__( self, node1, node2, wlan, dist, staList, time ):
-        
         self.delay = self.delay(dist, time)
         self.latency = self.latency(dist)
         self.loss = self.loss(dist)
@@ -78,6 +77,7 @@ class channelParameters ( object ):
             delay %.2fms" % (node, iface, wlan, bw, loss, latency, delay))   
         #Reordering packets    
         node.pexec('tc qdisc add dev %s-%s%s parent 3:1 pfifo limit 1000' % (node, iface, wlan))  
+        
         
 class interference ( object ):
     """Calculate Interference"""

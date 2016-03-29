@@ -51,11 +51,14 @@ class vanet( object ):
         
         plot.instantiateGraph(MAX_X, MAX_Y)    
         
-        self.display_grid(baseStations, nroads)
-        self.display_cars(cars)
-        
-        while emulationEnvironment.continue_:
-            [self.scatter,self.com_lines] = self.simulate_car_movement(self.scatter,self.com_lines)
+        try:
+            self.display_grid(baseStations, nroads)
+            self.display_cars(cars)
+            
+            while emulationEnvironment.continue_:
+                [self.scatter,self.com_lines] = self.simulate_car_movement(self.scatter,self.com_lines)
+        except:
+            pass
 
     def get_line(self, x1, y1, x2, y2):
         points = []
@@ -341,7 +344,7 @@ class vanet( object ):
                             plot.plotLine(line)
   
             plot.drawTxt(car)
-            plot.drawCircle(car)               
+            plot.drawCircle(car)   
           
         scatter = plot.plotScatter(points[0],points[1])        
         plot.plotDraw()
