@@ -20,7 +20,7 @@ def topology():
     for x in range(0,20):
         car.append(x)
     for x in range(0,20):
-        car[x] = net.addVehicle( 'car%s' % x, wlans=2, ip='10.0.0.%s/8' % x )
+        car[x] = net.addVehicle( 'car%s' % x, wlans=2, ip='10.0.0.%s/8' % (x+1) )
 	
     bs1 = net.addBaseStation( 'BS1', ssid= 'new-ssid1', mode= 'g', channel= '1' )
     bs2 = net.addBaseStation( 'BS2', ssid= 'new-ssid2', mode= 'g', channel= '6' )
