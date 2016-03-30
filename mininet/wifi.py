@@ -441,10 +441,11 @@ class mobility ( object ):
             if dist < ap.range:
                 if ap not in sta.inRangeAPs:
                     sta.inRangeAPs.append(ap)
-                self.setChannelParameters(sta, ap, dist, wlan)  
             else:
                 if ap in sta.inRangeAPs:
                     sta.inRangeAPs.remove(ap)
+            self.setChannelParameters(sta, ap, dist, wlan)  
+            
                 
     @classmethod                
     def parameters(self):
