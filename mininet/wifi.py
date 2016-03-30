@@ -438,7 +438,7 @@ class mobility ( object ):
             sta = node
             d = distance(sta, ap)
             dist = d.dist
-            if dist < ap.range:
+            if dist < ap.range + sta.range:
                 if ap not in sta.inRangeAPs:
                     sta.inRangeAPs.append(ap)
             else:
