@@ -20,7 +20,9 @@ setup(
     description='Process-based OpenFlow emulator',
     author='Bob Lantz - Modified by Ramon Fontes',
     author_email='rlantz@cs.stanford.edu - ramonrf@dca.fee.unicamp.br',
-    packages=[ 'mininet', 'mininet.examples' ],
+    packages=[ 'mininet', 'mininet.examples', 'mininet.sumo', 'mininet.sumo.sumolib', 'mininet.sumo.traci', 'mininet.sumo.data',
+              'mininet.sumo.sumolib.net', 'mininet.sumo.sumolib.output', 'mininet.sumo.sumolib.shapes' ],
+    package_data={'mininet.sumo.data': ['*.xml', '*.sumocfg']},
     long_description="""
         Mininet-WiFi is a network emulator which uses lightweight
         virtualization to create virtual networks for rapid
