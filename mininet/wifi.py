@@ -477,7 +477,7 @@ class mobility ( object ):
         staList = station.list
 
         if ap == sta.associatedAp[wlan]:
-            if dist > ap.range:                
+            if dist > ap.range + sta.range:                
                 station.iwCommand(sta, wlan, 'disconnect')
                 sta.associatedAp[wlan] = 'NoAssociated'
                 sta.rssi[wlan] = 0
@@ -487,7 +487,7 @@ class mobility ( object ):
                 #if emulationEnvironment.continue_:
                 channelParameters(sta, ap, wlan, dist, staList, time)
         else:    
-            if dist < ap.range:            
+            if dist < ap.range + sta.range:            
                 aps = 0
                 for n in range(0,len(sta.associatedAp)):
                     if str(sta.associatedAp[n]) != 'NoAssociated':
@@ -496,7 +496,7 @@ class mobility ( object ):
                     associated = True
                 else:
                     associated = False
-        if ap == sta.associatedAp[wlan] or dist < ap.range:
+        if ap == sta.associatedAp[wlan] or dist < (ap.range + sta.range):
             #Only if it is a mobility environment
             changeAP = False
             association_Control = dict ()
