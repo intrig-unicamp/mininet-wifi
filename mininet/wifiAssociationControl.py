@@ -25,9 +25,11 @@ class associationControl ( object ):
         elif ac == "ssf": #useful to ssf (Strongest-signal-first)
             if emulationEnvironment.propagation_Model == '':
                 emulationEnvironment.propagation_Model = 'friisPropagationLossModel'
+            
             d = distance(node1, node2)
             ref_Distance = d.dist
             refValue = propagationModel(node1, node2, ref_Distance, wlan, emulationEnvironment.propagation_Model, self.systemLoss)
+            #print refValue.rssi
             if refValue.rssi > float(node1.rssi[wlan]+1):
                 self.changeAP = True
         return self.changeAP  

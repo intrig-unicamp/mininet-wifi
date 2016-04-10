@@ -124,7 +124,7 @@ from mininet.vanet import vanet
 from __builtin__ import True
 
 # Mininet version: should be consistent with README and LICENSE
-VERSION = "1.8r1"
+VERSION = "1.8r2"
 
 class Mininet( object ):
     "Network emulation with hosts spawned in network namespaces."
@@ -775,11 +775,9 @@ class Mininet( object ):
                 intf = self.newapif[self.virtualWlan.index(str(ap)+str(wlan))]
                 
                 ap.frequency.append(str(wlan))
-                ap.txpower.append(str(wlan))
+                ap.txpower.append(wlan)
                 ap.antennaHeight.append(0.1)
                 ap.antennaGain.append(1)
-                wifiParameters(param='get_frequency', node=ap, wlan=wlan)
-                wifiParameters(param='get_tx_power', node=ap, wlan=wlan) 
                 
                 self.auth_algs = None
                 self.wpa = None
@@ -816,8 +814,10 @@ class Mininet( object ):
                 wifiparam.setdefault( 'wlan', wlan )
                 wifiparam.setdefault( 'intf', intf )
                
-                accessPoint(ap, **wifiparam)       
-
+                accessPoint(ap, **wifiparam)   
+                wifiParameters(param='get_frequency', node=ap, wlan=wlan)
+                wifiParameters(param='get_tx_power', node=ap, wlan=wlan) 
+                
             
     """    
     def wds( self, ap1, ap2, cls=None, **params ):
@@ -1627,8 +1627,6 @@ class Mininet( object ):
                     device = ap  
             if device.type == 'station':
                 for wlan in range(device.nWlans):
-                    wifiParameters(param='get_frequency', node=device, wlan=wlan)
-                    wifiParameters(param='get_tx_power', node=device, wlan=wlan) 
                     print "--------------------------------"                
                     print "Interface: %s-wlan%s" % (device, wlan)
                     try: # it is important when not infra

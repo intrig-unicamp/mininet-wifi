@@ -30,8 +30,10 @@ class plot (object):
     @classmethod
     def drawTxt(self, node):
         """drawTxt""" 
-        self.plttxt[node].xytext = node.position[0], node.position[1] 
-     
+        if hasattr(self.plttxt[node],'xyann'): self.plttxt[node].xyann=(node.position[0], node.position[1] ) # newer MPL versions (>=1.4)
+        else: self.plttxt[node].xytext=(node.position[0], node.position[1] )
+        #self.plttxt[node].xytext = node.position[0], node.position[1] 
+        
     @classmethod
     def drawCircle(self, node):
         """drawCircle""" 
@@ -40,8 +42,11 @@ class plot (object):
     @classmethod
     def graphUpdate(self, node):
         """Update Graph""" 
+        if hasattr(self.plttxt[node],'xyann'): self.plttxt[node].xyann=(node.position[0], node.position[1] ) # newer MPL versions (>=1.4)
+        else: self.plttxt[node].xytext=(node.position[0], node.position[1] )
+        #self.plttxt[node].xytext = node.position[0], node.position[1] 
+        
         self.pltNode[node].set_data(node.position[0], node.position[1])
-        self.plttxt[node].xytext = node.position[0], node.position[1] 
         self.pltCircle[node].center = node.position[0], node.position[1]
         plt.draw() 
         
@@ -118,5 +123,3 @@ class plot (object):
         """instantiateAnnotate"""
         ax = self.ax
         self.plttxt[node] = ax.annotate(node, xy=(0, 0))
-        
-       

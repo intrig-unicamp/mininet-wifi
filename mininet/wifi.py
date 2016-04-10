@@ -496,6 +496,8 @@ class mobility ( object ):
                     associated = True
                 else:
                     associated = False
+            else:
+                associated = False
         if ap == sta.associatedAp[wlan] or dist < (ap.range + sta.range):
             #Only if it is a mobility environment
             changeAP = False

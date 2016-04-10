@@ -25,7 +25,7 @@ class wifiParameters ( object ):
     def get_frequency(self, node, wlan): 
         """ Get frequency info **in development """
         try:
-            freq = node.pexec('iwconfig %s | grep -o \'Frequency.*z\' | cut -f2- -d\':\' | cut -c1-5'
+            freq = node.cmd('iwconfig %s | grep -o \'Frequency.*z\' | cut -f2- -d\':\' | cut -c1-5'
                                                 % self.iface)
             if freq!='':
                 node.frequency[wlan] = float(freq) 
@@ -38,7 +38,7 @@ class wifiParameters ( object ):
         """ Get tx_power info """
         try:
             if node.equipmentModel == None:
-                node.txpower[wlan] = int(node.pexec('iwconfig %s | grep -o \'Tx-Power.*\' | cut -f2- -d\'=\' | cut -c1-3'
+                node.txpower[wlan] = int(node.cmd('iwconfig %s | grep -o \'Tx-Power.*\' | cut -f2- -d\'=\' | cut -c1-3'
                                                  % self.iface))
             else:
                 value = deviceTxPower(node.equipmentModel, node)
