@@ -1072,10 +1072,10 @@ class Mininet( object ):
     def build( self ):
         #useful if there no link between sta and any other device
         "Build mininet."
+        emulationEnvironment.isCode=True
         if self.topo:
             self.buildFromTopo( self.topo )
         if self.inNamespace:
-            emulationEnvironment.isCode=True
             if self.firstAssociation:
                 self.configureWifiNodes()
             self.configureControlNetwork()
