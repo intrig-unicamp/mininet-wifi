@@ -1266,7 +1266,6 @@ class OVSSwitch( Switch ):
         self.newapif.sort(key=len, reverse=False)
         
         if(emulationEnvironment.isCode == True):
-            print "kkkkkkkkkkkk"
             if('accessPoint' == self.type):
                 for iface in range(0, self.nWlans):
                     accessPoint.apBridge(self.name, iface)                  
