@@ -162,12 +162,11 @@ class accessPoint( object ):
         value = deviceDataRate(ap, None, None)
         bw = value.rate
         
-        ap.pexec("tc qdisc replace dev %s \
-            root handle 2: netem rate %.2fmbit \
-            latency 1ms \
-            delay 0.1ms" % (iface, bw))   
+        ap.cmd("tc qdisc replace dev %s \
+            root handle 2: tbf rate %sMbit  burst 15000 latency 10ms" % (bw, iface))   
+        
         #Reordering packets    
-        ap.pexec('tc qdisc add dev %s parent 2:1 pfifo limit 1000' % iface)
+        ap.cmd('tc qdisc add dev %s parent 2:1 handle 10: pfifo limit 1000' % (iface))
         
     def APfile(self, cmd, ap, wlan):
         """ run an Access Point and create the config file  """
@@ -176,3 +175,4 @@ class accessPoint( object ):
         os.system(apcommand)
         cmd = ("hostapd -B %s.conf" % iface)
         subprocess.check_output(cmd, shell=True)
+        self.setBw(ap, wlan)
