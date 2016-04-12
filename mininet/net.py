@@ -1530,9 +1530,7 @@ class Mininet( object ):
         if 'max_v' in kwargs:
             mobilityparam.setdefault( 'max_v', kwargs['max_v'] )
         if 'AC' in kwargs: #Access Control
-            mobilityparam.setdefault( 'AC', kwargs['AC'] )
-        if self.mode == '':
-            mobility.associationControl = kwargs['AC']
+            emulationEnvironment.associationControlMethod = kwargs['AC']
         if 'startTime' in kwargs:
             self.start_time = kwargs['startTime']
        

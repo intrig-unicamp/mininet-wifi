@@ -239,7 +239,6 @@ class station ( object ):
         
 class mobility ( object ):    
     """ Mobility """          
-    associationControl = None
     DRAW = False   
     staMov = []
     
@@ -347,10 +346,9 @@ class mobility ( object ):
     
     @classmethod   
     def models(self, nodes=None, model=None, max_x=None, max_y=None, min_v=None, 
-               max_v=None, AC=None, seed=None, draw=False, **mobilityparam):
+               max_v=None, seed=None, draw=False, **mobilityparam):
         
         self.modelName = model
-        emulationEnvironment.associationControlMethod = AC
         np.random.seed(seed)
         
         # set this to true if you want to plot node positions
@@ -501,9 +499,9 @@ class mobility ( object ):
             #Only if it is a mobility environment
             changeAP = False
             association_Control = dict ()
-          
+            
             """Association Control: mechanisms that optimize the use of the APs"""
-            if emulationEnvironment.associationControlMethod != '':
+            if emulationEnvironment.associationControlMethod != False:
                 ac = emulationEnvironment.associationControlMethod
                 value = associationControl(sta, ap, wlan, ac)
                 changeAP = value.changeAP

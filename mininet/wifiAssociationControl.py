@@ -11,8 +11,7 @@ class associationControl ( object ):
         self.customAssociationControl(node1, node2, wlan, ac)
            
     def customAssociationControl(self, node1, node2, wlan, ac):
-        """Mechanisms that optimize the use of the APs"""
-        
+        """Mechanisms that optimize the use of the APs"""        
         if ac == "llf": #useful to llf (Least-loaded-first)
             apref = node1.associatedAp[wlan]
             if apref != 'NoAssociated':
