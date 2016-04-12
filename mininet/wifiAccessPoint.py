@@ -155,16 +155,13 @@ class accessPoint( object ):
         intf = str(ap)+'-'+'wlan'+str(iface)
         os.system("ovs-vsctl add-port %s %s" % (ap, intf))
        
-    def setBw(self, ap, wlan):
-        """ Set bw to AP """  
-        iface =  str(ap) + '-wlan' + str(wlan)
-        
+    def setBw(self, ap, iface):
+        """ Set bw to AP """ 
         value = deviceDataRate(ap, None, None)
         bw = value.rate
         
         ap.cmd("tc qdisc replace dev %s \
-            root handle 2: tbf rate %sMbit  burst 15000 latency 10ms" % (iface, bw))   
-        
+            root handle 2: tbf rate %sMbit burst 15000 latency 10ms" % (iface, bw))          
         #Reordering packets    
         ap.cmd('tc qdisc add dev %s parent 2:1 handle 10: pfifo limit 1000' % (iface))
         
@@ -175,4 +172,4 @@ class accessPoint( object ):
         os.system(apcommand)
         cmd = ("hostapd -B %s.conf" % iface)
         subprocess.check_output(cmd, shell=True)
-        self.setBw(ap, wlan)
+        self.setBw(ap, iface)

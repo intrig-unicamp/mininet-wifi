@@ -52,6 +52,7 @@ class channelParameters ( object ):
             self.propagModel = 'friisPropagationLossModel'
         value = deviceDataRate(node1, node2, wlan)
         custombw = value.rate
+        self.rate = value.rate
         if node2 == None:
             node1.rssi[wlan] = -50 - dist
             self.rate = custombw * (1.1 ** -dist)
@@ -71,12 +72,12 @@ class channelParameters ( object ):
             iface = 'wlan'
         
         node.pexec("tc qdisc replace dev %s-%s%s \
-            root handle 3: netem rate %.2fmbit \
+            root handle 2: netem rate %.2fmbit \
             loss %.1f%% \
             latency %.2fms \
             delay %.2fms" % (node, iface, wlan, bw, loss, latency, delay))   
         #Reordering packets    
-        node.pexec('tc qdisc add dev %s-%s%s parent 3:1 pfifo limit 1000' % (node, iface, wlan))  
+        #node.pexec('tc qdisc add dev %s-%s%s parent 2:1 pfifo limit 1000' % (node, iface, wlan))  
         
         
 class interference ( object ):

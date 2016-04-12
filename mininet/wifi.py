@@ -140,9 +140,7 @@ class station ( object ):
                 sta.associatedAp.append('NoAssociated')
                 sta.antennaHeight.append(0.1)
                 sta.antennaGain.append(1)
-            self.list.append(sta)
-                
-                             
+            self.list.append(sta)                            
         
     @classmethod    
     def confirmMeshAssociation(self, sta, iface, wlan):
@@ -433,7 +431,7 @@ class mobility ( object ):
                             
     
     @classmethod 
-    def nodeParameter(self, node, wlan):        
+    def nodeParameter(self, node, wlan):
         for ap in emulationEnvironment.apList:
             sta = node
             d = distance(sta, ap)

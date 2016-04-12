@@ -898,10 +898,11 @@ class Mininet( object ):
                 
                 if sta in self.missingStations:
                     self.missingStations.remove(sta)
+                    
                 value = deviceDataRate(ap, sta, None)
                 self.bw = value.rate
                 options.setdefault( 'bw', self.bw )
-                options.setdefault( 'use_hfsc', True )
+                options.setdefault( 'use_tbf', True )
                 
                 # Set default MAC - this should probably be in Link
                 options.setdefault( 'addr1', self.randMac() )
