@@ -135,8 +135,9 @@ class station ( object ):
                 sta.isAssociated.append('')
                 sta.ssid.append('')
                 sta.func.append('none')
-                value = deviceRange(sta)
-                sta.range = value.range-15
+                if sta.range == 0:
+                    value = deviceRange(sta)
+                    sta.range = value.range-15
                 sta.associatedAp.append('NoAssociated')
                 sta.antennaHeight.append(0.1)
                 sta.antennaGain.append(1)
