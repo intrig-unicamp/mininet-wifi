@@ -909,7 +909,6 @@ class Mininet( object ):
                 
                 # Set default MAC - this should probably be in Link
                 options.setdefault( 'addr1', self.randMac() )
-                #options.setdefault( 'addr2', self.randMac() )
                 
                 cls = self.link if cls is None else cls
                 link = cls( sta, 'onlyOneDevice', **options )
@@ -1081,8 +1080,15 @@ class Mininet( object ):
         if self.ifaceConfigured == True:
             for node in self.missingStations:
                 for wlan in range(0, node.nWlans):
+                    cls = None
+                    options = dict(  )
                     wifiParameters.getWiFiParameters(node, wlan)
                     mobility.nodeParameter(node, wlan)
+                    # Set default MAC - this should probably be in Link
+                    options.setdefault( 'use_tbf', True )
+                    options.setdefault( 'addr1', self.randMac() )
+                    cls = self.link if cls is None else cls
+                    cls( node, 'onlyOneDevice', **options )
         
         if self.topo:
             self.buildFromTopo( self.topo )
