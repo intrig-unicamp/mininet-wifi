@@ -336,6 +336,9 @@ class Mininet( object ):
         self.range = ("%s" % params.pop('range', {}))
         if(self.range!="{}"):
             sta.range = int(self.range)
+        else:
+            value = deviceRange(sta)     
+            sta.range = value.range - 15
                 
         wifi = ("%s" % params.pop('wlans', {}))
         if(wifi!="{}"):        

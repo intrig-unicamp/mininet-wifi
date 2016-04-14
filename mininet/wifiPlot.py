@@ -48,7 +48,7 @@ class plot (object):
         
         self.pltNode[node].set_data(node.position[0], node.position[1])
         self.pltCircle[node].center = node.position[0], node.position[1]
-        plt.draw() 
+        self.plotDraw()
         
     @classmethod
     def plotDraw(self):
