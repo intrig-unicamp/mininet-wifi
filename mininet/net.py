@@ -553,8 +553,6 @@ class Mininet( object ):
         self.accessPoints.append( bs ) 
         
         return bs
-    
-    
      
     def addSwitch( self, name, cls=None, **params ):
         """Add switch.

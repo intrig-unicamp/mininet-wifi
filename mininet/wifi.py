@@ -222,7 +222,9 @@ class station ( object ):
         sta.rssi[wlan] = -62 
         sta.func[wlan] = 'mesh'
         self.iwCommand(sta, wlan, ('interface add %s-mp%s type mp' % (sta,wlan)))
-        sta.cmd('iw dev %s-mp%s set %s' % (sta, wlan, sta.channel))
+        if sta.mac != '':
+            sta.cmd('ip link set %s-mp%s address %s' % (sta, wlan, sta.mac))
+        #sta.cmd('iw dev %s-mp%s set channel %s' % (sta, wlan, sta.channel))
         sta.cmd('ifconfig %s-mp%s up' % (sta, wlan))
         sta.cmd('iw dev %s-mp%s mesh join %s' % (sta, wlan, sta.ssid[wlan]))
         sta.cmd('ifconfig %s-wlan%s down' % (sta, wlan))
