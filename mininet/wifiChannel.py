@@ -22,7 +22,7 @@ class channelParameters ( object ):
         self.delay = self.delay(dist, time)
         self.latency = self.latency(dist)
         self.loss = self.loss(dist)
-        self.bw = self.bw(node1, node2, dist, staList, wlan)
+        self.bw = self.bw(node1, node2, dist, wlan)
         self.tc(node1, wlan, self.bw, self.loss, self.latency, self.delay)
         interference(node1, node2, self.propagModel, staList, wlan)
             
@@ -45,7 +45,7 @@ class channelParameters ( object ):
             self.loss = 0.1
         return self.loss
     
-    def bw(self, node1, node2, dist, staList, wlan):
+    def bw(self, node1, node2, dist, wlan):
         systemLoss = 1
         self.rate = 0
         if self.propagModel == '':

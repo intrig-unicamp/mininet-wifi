@@ -16,7 +16,6 @@ import time
 from mininet.wifiMobilityModels import gauss_markov, \
     truncated_levy_walk, random_direction, random_waypoint, random_walk, reference_point_group, tvc
 from mininet.wifiChannel import channelParameters    
-from mininet.wifiDevices import deviceRange
 from mininet.wifiMobilityModels import distance
 from mininet.wifiAssociationControl import associationControl
 from mininet.wifiEmulationEnvironment import emulationEnvironment
@@ -480,7 +479,7 @@ class mobility ( object ):
             else:
                 #if emulationEnvironment.continue_:
                 channelParameters(sta, ap, wlan, dist, staList, time)
-        else:    
+        else:   
             if dist < ap.range + sta.range:            
                 aps = 0
                 for n in range(0,len(sta.associatedAp)):
@@ -500,10 +499,13 @@ class mobility ( object ):
             """Association Control: mechanisms that optimize the use of the APs"""
             if emulationEnvironment.associationControlMethod != False:
                 ac = emulationEnvironment.associationControlMethod
-                value = associationControl(sta, ap, wlan, ac)
-                changeAP = value.changeAP
-                association_Control.setdefault( 'ac', ac )                
-           
+                try:
+                    value = associationControl(sta, ap, wlan, ac)
+                    changeAP = value.changeAP
+                    association_Control.setdefault( 'ac', ac )                
+                except:
+                    pass
             #Go to handover    
             if associated == False or changeAP == True:
                 self.handover(sta, ap, wlan, dist, changeAP, **association_Control)
+                channelParameters(sta, ap, wlan, dist, staList, time)

@@ -1077,6 +1077,13 @@ class Mininet( object ):
         #useful if there no link between sta and any other device
         "Build mininet."
         emulationEnvironment.isCode=True
+        
+        if self.ifaceConfigured == True:
+            for node in self.missingStations:
+                for wlan in range(0, node.nWlans):
+                    wifiParameters.getWiFiParameters(node, wlan)
+                    mobility.nodeParameter(node, wlan)
+        
         if self.topo:
             self.buildFromTopo( self.topo )
         if self.inNamespace:
@@ -1532,8 +1539,6 @@ class Mininet( object ):
             mobilityparam.setdefault( 'min_v', kwargs['min_v'] )
         if 'max_v' in kwargs:
             mobilityparam.setdefault( 'max_v', kwargs['max_v'] )
-        if 'AC' in kwargs: #Access Control
-            emulationEnvironment.associationControlMethod = kwargs['AC']
         if 'startTime' in kwargs:
             self.start_time = kwargs['startTime']
        
@@ -1617,6 +1622,9 @@ class Mininet( object ):
                         
     def propagationModel(self, model):
         emulationEnvironment.propagation_Model = model
+        
+    def associationControl(self, ac):
+        emulationEnvironment.associationControlMethod = ac
     
     def deviceInfo(self, device):
         """ Devices Info """         
