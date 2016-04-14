@@ -11,7 +11,6 @@ from mininet.cli import CLI
 from mininet.log import setLogLevel
 
 def topology():
-
     "Create a network."
     net = Mininet( controller=Controller, link=TCLink, switch=OVSKernelSwitch )
 
@@ -43,7 +42,10 @@ def topology():
     ap3.start( [c1] )
     
     """uncomment to plot graph"""
-    net.plotGraph(max_x=140, max_y=140)
+    net.plotGraph(max_x=120, max_y=120)
+
+    """association control"""
+    net.associationControl('ssf')
 
     """Seed"""
     net.seed(1) 
@@ -53,7 +55,7 @@ def topology():
 	*** Association Control (AC) - mechanism that optimizes the use of the APs:
                 llf (Least-Loaded-First)
                 ssf (Strongest-Signal-First)"""
-    net.startMobility(startTime=0, model='RandomWayPoint', max_x=140, max_y=140, min_v=0.7, max_v=0.9, AC='llf')
+    net.startMobility(startTime=0, model='RandomWayPoint', max_x=120, max_y=120, min_v=0.3, max_v=0.5)
    
     print "*** Running CLI"
     CLI( net )
