@@ -183,17 +183,17 @@ class Mininet( object ):
         self.mode = mode
         self.channel = channel
         self.nameToNode = {}  # name to Node (Host/Switch) objects
-        self.newapif = []
+        self.accessPoints = []
         self.apexists = []
-        self.missingStations = []
-        self.wifiNodes = []
+        self.controllers = []
         self.hosts = []
+        self.links = []
+        self.missingStations = []
+        self.newapif = []
+        self.wifiNodes = []
         self.switches = []
         self.stations = []
-        self.accessPoints = []
-        self.controllers = []
         self.virtualWlan = []
-        self.links = []
         self.terms = []  # list of spawned xterm processes
         Mininet.init()  # Initialize Mininet if necessary
        
@@ -1629,6 +1629,9 @@ class Mininet( object ):
         
     def associationControl(self, ac):
         emulationEnvironment.associationControlMethod = ac
+        
+    def loss(self, l):
+        emulationEnvironment.loss = l
     
     def deviceInfo(self, device):
         """ Devices Info """         

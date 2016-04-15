@@ -7,6 +7,7 @@ author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
 from wifiDevices import deviceDataRate
 from wifiPropagationModels import propagationModel
 from wifiMobilityModels import distance
+from wifiEmulationEnvironment import emulationEnvironment
 import math
 
 class channelParameters ( object ):
@@ -70,6 +71,9 @@ class channelParameters ( object ):
             iface = 'mp'
         else:
             iface = 'wlan'
+        
+        if emulationEnvironment.loss != 0:
+            loss = emulationEnvironment.loss
         
         node.pexec("tc qdisc replace dev %s-%s%s \
             root handle 2: netem rate %.2fmbit \

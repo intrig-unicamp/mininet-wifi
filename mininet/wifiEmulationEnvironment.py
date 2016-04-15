@@ -21,6 +21,7 @@ class emulationEnvironment ( object ):
     apList = []
     staList = []
     wifiRadios = 0 
+    loss = 0
     totalPhy = []
     
     
