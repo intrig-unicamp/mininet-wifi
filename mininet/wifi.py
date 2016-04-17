@@ -399,7 +399,8 @@ class mobility ( object ):
         try:
             once = []  
             if model!='':
-                for xy in mob:                
+                for xy in mob:              
+                    i = 0  
                     for n in range (0,len(nodes)):
                         node = nodes[n]
                         if 'accessPoint' == node.type and node not in once:
@@ -414,7 +415,9 @@ class mobility ( object ):
                             once.append(nodes[n])
                         elif 'accessPoint' != node.type:
                             if str(node) not in station.fixedPosition:
-                                node.position = xy[n][0], xy[n][1], 0
+                                node.position = xy[i][0], xy[i][1], 0
+                                i += 1
+                       
                                 if self.DRAW:
                                     plot.pltNode[node].set_data(xy[:,0],xy[:,1])
                                     plot.drawTxt(node)

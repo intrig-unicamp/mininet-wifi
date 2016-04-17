@@ -64,12 +64,18 @@ class meshRouting ( object ):
                                     associate = True
             
             """Mesh Join""" 
-            if associate == True and sta.isAssociated[wlan] == False:
+            if associate == True and sta.isAssociated[wlan] == False:                
+                sta.pexec('ifconfig %s-%s%s up' % (sta, iface, wlan))
                 sta.pexec('iw dev %s-%s%s mesh join %s' % (sta, iface, wlan, sta.ssid[wlan]))   
                 sta.isAssociated[wlan] = True
             
             """Adding all reached target paths"""
             if associate:
+                sta.pexec('ifconfig %s-%s%s up' % (sta, iface, wlan))
+            
+                for n in range (0, len(stationList)):
+                    sta.pexec('route del -net 10.0.0.0/8 gw 10.0.0.%s' % (n+1))
+                
                 sta.isAssociated[wlan] = True
                 exist = []
                 sta_ref = []
@@ -112,4 +118,10 @@ class meshRouting ( object ):
             """mesh leave"""
             if associate == False:
                 sta.pexec('iw dev %s-%s%s mesh leave' % (sta, iface, wlan))
+                sta.pexec('route add -net 10.0.0.0/8 dev %s-wlan1' % sta)
+                
+                sta.pexec('ifconfig %s-mp0 down' % sta)
                 sta.isAssociated[wlan] = False
+                
+                for n in range (0, len(stationList)):
+                    sta.pexec('route add -net 10.0.0.0/8 gw 10.0.0.%s' % (n+1))
