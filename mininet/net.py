@@ -673,12 +673,16 @@ class Mininet( object ):
     
     def addMesh( self, sta, cls=None, **params ):
         
+        options = { 'ip': ipAdd( self.nextIP,
+                                  ipBaseNum=self.ipBaseNum,
+                                  prefixLen=self.prefixLen ) +
+                                  '/%s' % self.prefixLen}
+        
+        node = sta if not isinstance( sta, basestring ) else self[ sta ]
+        
         if self.firstAssociation:
             self.configureWifiNodes()
         self.firstAssociation = False
-                
-        node = sta if not isinstance( sta, basestring ) else self[ sta ]
-        options = dict()
         
         channel = ("%s" % params.pop('channel', {}))
         if(channel!="{}"): 
@@ -710,7 +714,8 @@ class Mininet( object ):
         
         value = deviceDataRate(None, sta, None)
         self.bw = value.rate
-                
+        
+        options.update( params )        
         #options.setdefault( 'bw', self.bw )
         # Set default MAC - this should probably be in Link
         options.setdefault( 'addr1', self.randMac() )
@@ -722,12 +727,16 @@ class Mininet( object ):
     
     def addHoc( self, sta, cls=None, **params ):
         
+        options = { 'ip': ipAdd( self.nextIP,
+                                  ipBaseNum=self.ipBaseNum,
+                                  prefixLen=self.prefixLen ) +
+                                  '/%s' % self.prefixLen}
+        
         if self.firstAssociation:
             self.configureWifiNodes()
         self.firstAssociation = False
             
         node = sta if not isinstance( sta, basestring ) else self[ sta ]
-        options = dict( )
         
         channel = ("%s" % params.pop('channel', {}))
         if(channel!="{}"): 
