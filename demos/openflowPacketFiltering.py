@@ -4,7 +4,7 @@
 Author: Chih-Heng Ke, smallko@gmail.com
 
 This code serves as alternative if you want to filter OpenFlow Packets when
-transmitter and receives are associated to the same AP. 
+transmitter and receiver are associated to the same AP. 
 """
 
 from mininet.net import Mininet
