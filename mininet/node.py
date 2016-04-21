@@ -226,7 +226,27 @@ class Node( object ):
         self.waiting = False
         # +m: disable job control notification
         self.cmd( 'unset HISTFILE; stty -echo; set +m' )
-                      
+                     
+    @classmethod 
+    def calculateWiFiParameters(self, sta):
+        for wlan in range(sta.nWlans):
+            if sta.func[wlan] == 'mesh' or sta.func[wlan] == 'adhoc':
+                associate = False
+                for station in emulationEnvironment.staList:
+                    d = distance(sta, station)
+                    d = d.dist
+                    if d < sta.range + station.range:
+                        associate = True
+                if associate == False:
+                    sta.cmd('iw dev %s-mp%s mesh leave' % (sta, wlan))
+            else:
+                for n in range(2):
+                    for ap in emulationEnvironment.apList:
+                        d = distance(sta, ap)
+                        d = d.dist
+                        mobility.setChannelParameters(sta, ap, d, wlan)
+        mobility.getAPsInRange(sta)
+              
     def meshLeave(self, ssid):
         for key,val in self.params.items():
             if val == ssid:
@@ -237,28 +257,16 @@ class Node( object ):
         if emulationEnvironment.DRAW:
             plot.updateCircleRadius(self)
             plot.graphUpdate(self)
+        sta = self
+        self.calculateWiFiParameters(sta)
                     
     def moveStationTo(self, pos):
         pos = pos.split(',')
         self.position = int(pos[0]), int(pos[1]), int(pos[2])
         if emulationEnvironment.DRAW:
             plot.graphUpdate(self)
-        for wlan in range(self.nWlans):
-            if self.func[wlan] == 'mesh' or self.func[wlan] == 'adhoc':
-                associate = False
-                for sta in emulationEnvironment.staList:
-                    d = distance(self, sta)
-                    d = d.dist
-                    if d < self.range + sta.range:
-                        associate = True
-                if associate == False:
-                    self.cmd('iw dev %s-mp%s mesh leave' % (self, wlan))
-            else:
-                for ap in emulationEnvironment.apList:
-                    d = distance(self, ap)
-                    d = d.dist
-                    mobility.setChannelParameters(self, ap, d, wlan)
-        mobility.getAPsInRange(self)
+        sta = self
+        self.calculateWiFiParameters(sta)
                             
     def moveAssociationTo(self, iface, ap):
         wlan = int(iface[-1:])
