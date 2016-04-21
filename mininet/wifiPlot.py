@@ -102,6 +102,10 @@ class plot (object):
                                      linestyle='', marker='.', ms=10, mfc=color)
         
         self.nodesPlotted.append(node)
+        
+    @classmethod
+    def updateCircleRadius(self, node):
+        self.pltCircle[node].set_radius(node.range)
     
     @classmethod
     def instantiateCircle(self, node):

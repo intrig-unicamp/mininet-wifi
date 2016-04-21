@@ -124,7 +124,7 @@ from mininet.vanet import vanet
 from __builtin__ import True
 
 # Mininet version: should be consistent with README and LICENSE
-VERSION = "1.8r2"
+VERSION = "1.8r3"
 
 class Mininet( object ):
     "Network emulation with hosts spawned in network namespaces."
@@ -344,16 +344,17 @@ class Mininet( object ):
         if(wifi!="{}"):        
             emulationEnvironment.wifiRadios += int(wifi)
             for n in range(int(wifi)):
-                self.virtualWlan.append(name)                
+                self.virtualWlan.append(name)    
+                sta.func.append('none')            
         else:
             emulationEnvironment.wifiRadios += 1
             wifi = 1
+            sta.func.append('none')
             self.virtualWlan.append(name)
         sta.nWlans = int(wifi)
         
         self.nextIP += 1        
         return sta
-
 
     def addVehicle( self, name, cls=None, **params ):
         """Add Vehicle.
@@ -451,9 +452,11 @@ class Mininet( object ):
         if(wifi!="{}"):        
             emulationEnvironment.wifiRadios += int(wifi)
             for n in range(int(wifi)):
-                self.virtualWlan.append(name)                
+                self.virtualWlan.append(name)    
+                sta.func.append('none')            
         else:
             emulationEnvironment.wifiRadios += 1
+            sta.func.append('none')
             wifi = 1
             self.virtualWlan.append(name)
         sta.nWlans = int(wifi)
@@ -673,16 +676,26 @@ class Mininet( object ):
     
     def addMesh( self, sta, cls=None, **params ):
         
+        wlan = sta.wlanToAssociate
+        
+        sta.func[wlan] = 'mesh' 
+        
+        if self.firstAssociation:
+            self.configureWifiNodes()
+        self.firstAssociation = False
+        
         options = { 'ip': ipAdd( self.nextIP,
                                   ipBaseNum=self.ipBaseNum,
                                   prefixLen=self.prefixLen ) +
                                   '/%s' % self.prefixLen}
         
-        node = sta if not isinstance( sta, basestring ) else self[ sta ]
+        options.update( params ) 
+         
+        ip = ("%s" % params.pop('ip', {}))
+        if wlan == 0 and ip!="{}":
+            sta.params.update(options)
         
-        if self.firstAssociation:
-            self.configureWifiNodes()
-        self.firstAssociation = False
+        node = sta if not isinstance( sta, basestring ) else self[ sta ]
         
         channel = ("%s" % params.pop('channel', {}))
         if(channel!="{}"): 
@@ -690,13 +703,15 @@ class Mininet( object ):
         else:
             sta.channel = 1
             
-        ssid = ("%s" % params.pop('ssid', {}))
+        ssid = ("%s" % params['ssid'])
         if(ssid!="{}"):
-            sta.ssid[sta.wlanToAssociate] = ssid
+            sta.ssid[wlan] = ssid
         else:
-            sta.ssid[sta.wlanToAssociate] = 'meshNetwork'
+            sta.ssid[wlan] = 'meshNetwork'
+        sta.params['mp' + str(wlan)] = sta.ssid[wlan]
+        sta.params['isMesh'] = True
         sta.wlanToAssociate+=1
-            
+        
         mode = ("%s" % params.pop('mode', {}))
         if(mode!="{}"):
             sta.mode = mode
@@ -705,16 +720,22 @@ class Mininet( object ):
             
         value = deviceRange(sta)
         sta.range = value.range-15
-    
-        for sta in self.hosts:
-            if (sta == node):
-                station.addMesh(sta, **options)
-                if sta in self.missingStations:
-                    self.missingStations.remove(sta)
+        
+        for n in self.hosts:
+            if (n == node):
+                #station.addMesh(n, **options)
+                if n in self.missingStations:
+                    self.missingStations.remove(n)
         
         value = deviceDataRate(None, sta, None)
-        self.bw = value.rate
+        self.bw = value.rate        
         
+        #if mac!="{}":
+        #    mac = mac
+        #    del options['mac']
+        #else:
+        #    mac = self.randMac()
+        options['sta'] = sta
         options.update( params )        
         #options.setdefault( 'bw', self.bw )
         # Set default MAC - this should probably be in Link
@@ -726,15 +747,20 @@ class Mininet( object ):
         return link    
     
     def addHoc( self, sta, cls=None, **params ):
+        sta.func[sta.wlanToAssociate] = 'adhoc' 
+        if self.firstAssociation:
+            self.configureWifiNodes()
+        self.firstAssociation = False
         
         options = { 'ip': ipAdd( self.nextIP,
                                   ipBaseNum=self.ipBaseNum,
                                   prefixLen=self.prefixLen ) +
                                   '/%s' % self.prefixLen}
+        options.update( params )  
         
-        if self.firstAssociation:
-            self.configureWifiNodes()
-        self.firstAssociation = False
+        ip = ("%s" % params.pop('ip', {}))
+        if sta.wlanToAssociate == 0 and ip!="{}":
+            sta.params.update(options)
             
         node = sta if not isinstance( sta, basestring ) else self[ sta ]
         
@@ -762,6 +788,9 @@ class Mininet( object ):
             
         value = deviceDataRate(None, sta, None)
         self.bw = value.rate
+        
+        options['sta'] = sta
+        options.update( params )  
         options.setdefault( 'bw', self.bw )
         # Set default MAC - this should probably be in Link
         options.setdefault( 'addr1', self.randMac() )
@@ -771,7 +800,7 @@ class Mininet( object ):
         
         for sta in self.hosts:
             if (sta == node):
-                station.adhoc(sta, **options)
+                #station.adhoc(sta, **options)
                 if sta in self.missingStations:
                     self.missingStations.remove(sta)        
         
@@ -1012,7 +1041,6 @@ class Mininet( object ):
             else:
                 # Don't configure nonexistent intf
                 host.configDefault( ip=None, mac=None )
-            
             # You're low priority, dude!
             # BL: do we want to do this here or not?
             # May not make sense if we have CPU lmiting...
@@ -1025,7 +1053,7 @@ class Mininet( object ):
         """Build mininet from a topology object
            At the end of this function, everything should be connected
            and up."""
-        station.printCon = False
+        emulationEnvironment.printCon = False
         # Possibly we should clean up here and/or validate
         # the topo
         if self.cleanup:
@@ -1217,7 +1245,7 @@ class Mininet( object ):
         if(emulationEnvironment.isWiFi):
             "Stop plotting"
             emulationEnvironment.continue_ = False
-            mobility.DRAW = False
+            emulationEnvironment.DRAW = False
             module(action = 'stop') #Stopping WiFi Module        
             try:
                 plot.closePlot()
@@ -1556,7 +1584,7 @@ class Mininet( object ):
             self.start_time = kwargs['startTime']
        
         mobilityparam.setdefault( 'seed', self.set_seed )
-        mobilityparam.setdefault( 'draw', mobility.DRAW )
+        mobilityparam.setdefault( 'draw', emulationEnvironment.DRAW )
         mobilityparam.setdefault( 'nodes', self.wifiNodes )
        
         if self.mobilityModel != '' or self.isVanet:
@@ -1614,7 +1642,7 @@ class Mininet( object ):
             mobility.MAX_X = kwargs['max_x']
         if 'max_y' in kwargs:
             mobility.MAX_Y = kwargs['max_y']
-        mobility.DRAW = True
+        emulationEnvironment.DRAW = True
        
         if self.ifaceConfigured == False:
             for node in self.wifiNodes:

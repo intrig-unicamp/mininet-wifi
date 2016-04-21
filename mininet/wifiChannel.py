@@ -17,7 +17,6 @@ class channelParameters ( object ):
     loss = 0
     latency = 0
     rate = 0
-    propagModel=''
     
     def __init__( self, node1, node2, wlan, dist, staList, time ):
         self.delay = self.delay(dist, time)
@@ -25,7 +24,7 @@ class channelParameters ( object ):
         self.loss = self.loss(dist)
         self.bw = self.bw(node1, node2, dist, wlan)
         self.tc(node1, wlan, self.bw, self.loss, self.latency, self.delay)
-        interference(node1, node2, self.propagModel, staList, wlan)
+        interference(node1, node2, emulationEnvironment.propagation_Model, staList, wlan)
             
     def delay(self, dist, time):
         """"Based on RandomPropagationDelayModel"""
@@ -49,8 +48,8 @@ class channelParameters ( object ):
     def bw(self, node1, node2, dist, wlan):
         systemLoss = 1
         self.rate = 0
-        if self.propagModel == '':
-            self.propagModel = 'friisPropagationLossModel'
+        if emulationEnvironment.propagation_Model == '':
+            emulationEnvironment.propagation_Model = 'friisPropagationLossModel'
         value = deviceDataRate(node1, node2, wlan)
         custombw = value.rate
         self.rate = value.rate
@@ -59,11 +58,10 @@ class channelParameters ( object ):
             self.rate = custombw * (1.1 ** -dist)
         else:
             if dist != 0: 
-                value = propagationModel(node1, node2, dist, wlan, self.propagModel, systemLoss)
+                value = propagationModel(node1, node2, dist, wlan, emulationEnvironment.propagation_Model, systemLoss)
                 node1.rssi[wlan] = value.rssi
                 if node2.equipmentModel == None:
-                    self.rate = custombw * (1.1 ** -dist)
-         
+                    self.rate = custombw * (1.1 ** -dist)         
         return self.rate     
     
     def tc(self, node, wlan, bw, loss, latency, delay):

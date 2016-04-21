@@ -16,14 +16,15 @@ class emulationEnvironment ( object ):
     isCode = False
     continue_ = True
     DRAW = False
+    printCon = True
     meshRouting = ''
     physicalWlan = []
     apList = []
     staList = []
+    totalPhy = []
     wifiRadios = 0 
     loss = 0
-    totalPhy = []
-    
+    meshssidID = 0
     
     @classmethod
     def numberOfAssociatedStations( self, ap ):

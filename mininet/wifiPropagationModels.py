@@ -55,13 +55,13 @@ class propagationModel ( object ):
         (hR): Rx Antenna Height
         (d) is the distance between the transmitter and the receiver (m)
         (L): System loss"""
-       
+        
         gT = node2.antennaGain[wlan] 
         gR = node1.antennaGain[wlan]
         hT = node2.antennaHeight[wlan]
         hR = node1.antennaHeight[wlan]
         d = distance
-        L = self.L
+        L = self.systemLoss
         
         try:
             self.rssi = node2.txpower[wlan] + 10 * math.log10(gT * gR * hT**2 * hR**2 / d**4 * L)

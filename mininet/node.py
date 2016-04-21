@@ -71,6 +71,11 @@ from re import findall
 from distutils.version import StrictVersion
 from mininet.wifiEmulationEnvironment import emulationEnvironment
 from mininet.wifiAccessPoint import accessPoint
+from mininet.wifiPlot import plot
+from mininet.wifiMobilityModels import distance
+from mininet.wifiChannel import channelParameters
+from mininet.wifiParameters import wifiParameters
+from mininet.wifi import mobility
 
 class Node( object ):
     """A virtual network node is simply a shell in a network namespace.
@@ -221,7 +226,78 @@ class Node( object ):
         self.waiting = False
         # +m: disable job control notification
         self.cmd( 'unset HISTFILE; stty -echo; set +m' )
-
+                      
+    def meshLeave(self, ssid):
+        for key,val in self.params.items():
+            if val == ssid:
+                self.cmd('iw dev %s-%s mesh leave' % (self, key))
+                
+    def setRange(self, _range):
+        self.range = _range
+        if emulationEnvironment.DRAW:
+            plot.updateCircleRadius(self)
+            plot.graphUpdate(self)
+                    
+    def moveStationTo(self, pos):
+        pos = pos.split(',')
+        self.position = int(pos[0]), int(pos[1]), int(pos[2])
+        if emulationEnvironment.DRAW:
+            plot.graphUpdate(self)
+        for wlan in range(self.nWlans):
+            if self.func[wlan] == 'mesh' or self.func[wlan] == 'adhoc':
+                associate = False
+                for sta in emulationEnvironment.staList:
+                    d = distance(self, sta)
+                    d = d.dist
+                    if d < self.range + sta.range:
+                        associate = True
+                if associate == False:
+                    self.cmd('iw dev %s-mp%s mesh leave' % (self, wlan))
+            else:
+                for ap in emulationEnvironment.apList:
+                    d = distance(self, ap)
+                    d = d.dist
+                    mobility.setChannelParameters(self, ap, d, wlan)
+        mobility.getAPsInRange(self)
+                            
+    def moveAssociationTo(self, iface, ap):
+        wlan = int(iface[-1:])
+        for n in range(len(emulationEnvironment.apList)):
+            if ap == str(emulationEnvironment.apList[n]):
+                ap = emulationEnvironment.apList[n]
+                break
+        d = distance(self, ap)
+        d = d.dist
+        if d < self.range + ap.range:
+            if self.associatedAp[wlan] != ap:
+                if self.associatedAp[wlan] != 'none':
+                    self.cmd('iw dev %s disconnect' % iface)
+                self.cmd('iw dev %s connect %s' % (iface, ap.ssid[0]))
+                self.confirmInfraAssociation(self, ap, wlan)
+                channelParameters(self, ap, wlan, d, emulationEnvironment.staList, 0)
+            else:
+                print '%s is already connected! ' % ap
+            mobility.getAPsInRange(self)
+        else:
+            print "%s is out of range!" % (ap)
+   
+   
+    @classmethod 
+    def confirmInfraAssociation(self, sta, ap, wlan):
+        associated = ''
+        if emulationEnvironment.printCon:
+            print "Associating %s to %s" % (sta, ap)
+        while(associated == '' or len(associated[0]) == 15):
+            associated = self.isAssociated(sta, wlan)
+        wifiParameters.getWiFiParameters(sta, wlan) 
+        emulationEnvironment.numberOfAssociatedStations(ap)
+        sta.associatedAp[wlan] = ap
+        
+    @classmethod    
+    def isAssociated(self, sta, iface):
+        associated = sta.pexec("iw dev %s-wlan%s link" % (sta, iface))
+        return associated
+   
     def mountPrivateDirs( self ):
         "mount private directories"
         for directory in self.privateDirs:
@@ -639,7 +715,7 @@ class Node( object ):
         # the superclass config method here as follows:
         # r = Parent.config( **_params )
         r = {}
-        if 'station' != self.type:
+        if 'station' != self.type: # or 'isMesh' in self.params:
             self.setParam( r, 'setMAC', mac=mac )
         self.setParam( r, 'setIP', ip=ip )
         self.setParam( r, 'setDefaultRoute', defaultRoute=defaultRoute )
@@ -680,7 +756,6 @@ class Node( object ):
         return self.name
 
     # Automatic class setup support
-
     isSetup = False
 
     @classmethod
@@ -949,6 +1024,7 @@ class Switch( Node ):
             return self.controlIntf
         else:
             return Node.defaultIntf( self )
+  
 
     def sendCmd( self, *cmd, **kwargs ):
         """Send command to Node.
