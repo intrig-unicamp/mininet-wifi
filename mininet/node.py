@@ -246,7 +246,15 @@ class Node( object ):
                         d = d.dist
                         mobility.setChannelParameters(sta, ap, d, wlan)
         mobility.getAPsInRange(sta)
-              
+        
+    @classmethod 
+    def verifyingNodes(self, node):
+        if node in emulationEnvironment.staList:
+            self.calculateWiFiParameters(node)
+        elif node in emulationEnvironment.apList:
+            for sta in emulationEnvironment.staList:
+                self.calculateWiFiParameters(sta)
+    
     def meshLeave(self, ssid):
         for key,val in self.params.items():
             if val == ssid:
@@ -257,16 +265,16 @@ class Node( object ):
         if emulationEnvironment.DRAW:
             plot.updateCircleRadius(self)
             plot.graphUpdate(self)
-        sta = self
-        self.calculateWiFiParameters(sta)
+        node = self
+        self.verifyingNodes(node)
                     
     def moveStationTo(self, pos):
         pos = pos.split(',')
         self.position = int(pos[0]), int(pos[1]), int(pos[2])
         if emulationEnvironment.DRAW:
             plot.graphUpdate(self)
-        sta = self
-        self.calculateWiFiParameters(sta)
+        node = self
+        self.verifyingNodes(node)
                             
     def moveAssociationTo(self, iface, ap):
         wlan = int(iface[-1:])

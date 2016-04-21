@@ -114,6 +114,7 @@ class station ( object ):
     def assingIface(self, stations, virtualWlan):
         w = getWlan.virtual()
         for sta in stations:
+            emulationEnvironment.staList.append(sta)
             for i in range(0, sta.nWlans):
                 vwlan = virtualWlan.index(str(sta))
                 os.system('iw phy %s set netns %s' % ( emulationEnvironment.totalPhy[vwlan + i], sta.pid ))

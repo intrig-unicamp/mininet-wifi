@@ -353,6 +353,7 @@ class Mininet( object ):
             self.virtualWlan.append(name)
         sta.nWlans = int(wifi)
         
+        emulationEnvironment.staList.append( sta )
         self.nextIP += 1        
         return sta
 
