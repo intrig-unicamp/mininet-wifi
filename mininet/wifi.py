@@ -140,7 +140,8 @@ class station ( object ):
             print "Associating %s to %s" % (node1, node2)
         while(associated == '' or len(associated[0]) == 15):
             associated = self.isAssociated(node1, wlan)
-        wifiParameters.getWiFiParameters(node1, wlan) 
+        iface = str(node1)+'-wlan%s' % wlan
+        wifiParameters.getWiFiParameters(node1, wlan, iface) 
         emulationEnvironment.numberOfAssociatedStations(node2)
         node1.associatedAp[wlan] = node2
         mobility.getAPsInRange(node1)
@@ -390,10 +391,11 @@ class mobility ( object ):
     @classmethod 
     def nodeParameter(self, sta, wlan):
         for ap in emulationEnvironment.apList:
-            d = distance(sta, ap)
-            dist = d.dist
-            self.getAPsInRange(sta)
-            self.setChannelParameters(sta, ap, dist, wlan)  
+            if 'wlan' not in ap.params:
+                d = distance(sta, ap)
+                dist = d.dist
+                self.getAPsInRange(sta)
+                self.setChannelParameters(sta, ap, dist, wlan)  
             
                 
     @classmethod                

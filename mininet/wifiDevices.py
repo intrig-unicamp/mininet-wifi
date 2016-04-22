@@ -20,7 +20,8 @@ class deviceDataRate ( object ):
         if node2 != None and node2.equipmentModel in dir(self) and node1 != None and wlan !=None:
             model = node2.equipmentModel
             self.__getattribute__(model)(node1, node2, wlan)
-        self.customDataRate_mobility(node)
+        else:
+            self.customDataRate_mobility(node)
         
                     
     def customDataRate_mobility(self, node):
@@ -58,7 +59,6 @@ class deviceDataRate ( object ):
     def DI524(self, node1, node2, wlan):
         """D-Link AirPlus G DI-524
            from http://www.dlink.com/-/media/Consumer_Products/DI/DI%20524/Manual/DI_524_Manual_EN_UK.pdf"""  
-        
         if node1.rssi[wlan] != 0:
             if (node1.rssi[wlan] >= -68):
                 self.rate = 48

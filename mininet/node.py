@@ -305,7 +305,8 @@ class Node( object ):
             print "Associating %s to %s" % (sta, ap)
         while(associated == '' or len(associated[0]) == 15):
             associated = self.isAssociated(sta, wlan)
-        wifiParameters.getWiFiParameters(sta, wlan) 
+        iface = str(sta)+'-wlan%s' % wlan
+        wifiParameters.getWiFiParameters(sta, wlan, iface) 
         emulationEnvironment.numberOfAssociatedStations(ap)
         sta.associatedAp[wlan] = ap
         
@@ -1360,7 +1361,7 @@ class OVSSwitch( Switch ):
         if(emulationEnvironment.isCode == True):
             if('accessPoint' == self.type):
                 for iface in range(0, self.nWlans):
-                    accessPoint.apBridge(self.name, iface)                  
+                    accessPoint.apBridge(self, iface)                  
         
     # This should be ~ int( quietRun( 'getconf ARG_MAX' ) ),
     # but the real limit seems to be much lower

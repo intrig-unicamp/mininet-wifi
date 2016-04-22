@@ -243,7 +243,7 @@ class Intf( object ):
             
     @classmethod    
     def confirmMeshAssociation(self, sta, iface, wlan):
-        wifiParameters.getWiFiParameters(sta, wlan)  
+        wifiParameters.getWiFiParameters(sta, wlan, iface)  
     
     @classmethod    
     def confirmAdhocAssociation(self, sta, iface, wlan):
@@ -251,7 +251,7 @@ class Intf( object ):
         while(associated == '' or len(associated) == 0):
             sta.sendCmd("iw dev %s scan ssid | grep %s" % (iface, sta.ssid[wlan]))
             associated = sta.waitOutput()
-        wifiParameters.getWiFiParameters(sta, wlan)  
+        wifiParameters.getWiFiParameters(sta, wlan, iface)  
     
     def delete( self ):
         "Delete interface"

@@ -557,6 +557,93 @@ class Mininet( object ):
         self.accessPoints.append( bs ) 
         
         return bs
+    
+    def addPhysicalBaseStation( self, name, cls=None, **params ):
+        """Add BaseStation.
+           name: name of basestation to add
+           cls: custom switch class/constructor (optional)
+           returns: added switch
+           side effect: increments listenPort ivar ."""
+        defaults = { 'listenPort': self.listenPort,
+                     'inNamespace': self.inNamespace, 
+                     'channel': self.channel,
+                     'mode': self.mode,
+                     'ssid': self.ssid                 
+                     }
+        defaults.update( params )        
+        
+        if not cls:
+            cls = self.baseStation
+        bs = cls( name, **defaults )
+        if not self.inNamespace and self.listenPort:
+            self.listenPort += 1
+        self.wifiNodes.append(bs)
+        self.nameToNode[ name ] = bs
+        bs.type = 'accessPoint'
+        
+        wlan = ("%s" % params.pop('wlan', {}))
+        bs.params['wlan'] = wlan
+        
+        position = ("%s" % params.pop('position', {}))
+        if(position!="{}"):        
+            position =  position.split(',')
+            bs.startPosition = position
+            bs.position = position
+        else:
+            bs.startPosition = 0
+            bs.position = 0, 0, 0           
+      
+        channel = ("%s" % params.pop('channel', {}))
+        if(channel!="{}"):
+            bs.channel = channel
+        else:
+            bs.channel = self.channel 
+            
+        equipmentModel = ("%s" % params.pop('equipmentModel', {}))
+        if(equipmentModel!="{}"):
+            bs.equipmentModel = equipmentModel
+        else:
+            bs.equipmentModel = None
+      
+        mode = ("%s" % params.pop('mode', {}))
+        if(mode!="{}"):
+            bs.mode = mode
+        else:
+            bs.mode = self.mode
+                      
+        ssid = ("%s" % params.pop('ssid', {}))
+        if(ssid!="{}"):
+            bs.ssid.append(ssid)
+        else:
+            bs.ssid.append(self.ssid)
+            
+        passwd = ("%s" % params.pop('passwd', {}))
+        if(passwd!="{}"):
+            bs.passwd = passwd
+        else:
+            bs.passwd = None
+            
+        encrypt = ("%s" % params.pop('encrypt', {}))
+        if(encrypt!="{}"):
+            bs.encrypt = encrypt
+        else:
+            bs.encrypt = None
+        
+        self.range = ("%s" % params.pop('range', {}))
+        if(self.range!="{}"):
+            bs.range = int(self.range)
+        else:
+            value = deviceRange(bs)     
+            bs.range = value.range       
+        
+        self.virtualWlan.append(str(name)+str(0))
+        bs.nWlans = 1
+        
+        emulationEnvironment.apList.append( bs )
+        self.switches.append( bs )          
+        self.accessPoints.append( bs ) 
+        
+        return bs
      
     def addSwitch( self, name, cls=None, **params ):
         """Add switch.
@@ -812,8 +899,12 @@ class Mininet( object ):
         for ap in self.accessPoints:
             for wlan in range(0,ap.nWlans):
                 wifiparam = dict()
-                intf = self.newapif[self.virtualWlan.index(str(ap)+str(wlan))]
-                
+                if 'wlan' not in ap.params:
+                    intf = self.newapif[self.virtualWlan.index(str(ap)+str(wlan))]
+                    iface = str(ap)+'-wlan%s' % wlan
+                else:
+                    iface = ap.params.get('wlan')
+                    
                 ap.frequency.append(str(wlan))
                 ap.txpower.append(wlan)
                 ap.antennaHeight.append(0.1)
@@ -855,8 +946,8 @@ class Mininet( object ):
                 wifiparam.setdefault( 'intf', intf )
                
                 accessPoint(ap, **wifiparam)   
-                wifiParameters(param='get_frequency', node=ap, wlan=wlan)
-                wifiParameters(param='get_tx_power', node=ap, wlan=wlan) 
+                wifiParameters(param='get_frequency', node=ap, wlan=wlan, iface=iface)
+                wifiParameters(param='get_tx_power', node=ap, wlan=wlan, iface=iface) 
                 
             
     """    
@@ -1118,7 +1209,8 @@ class Mininet( object ):
                 for wlan in range(0, node.nWlans):
                     cls = None
                     options = dict(  )
-                    wifiParameters.getWiFiParameters(node, wlan)
+                    iface = str(node)+'-wlan%s' % wlan
+                    wifiParameters.getWiFiParameters(node, wlan, iface)
                     mobility.nodeParameter(node, wlan)
                     # Set default MAC - this should probably be in Link
                     options.setdefault( 'use_tbf', True )
@@ -1194,7 +1286,7 @@ class Mininet( object ):
         for switch in self.switches:
             if switch.type == 'accessPoint':  
                 for iface in range(0, switch.nWlans):
-                    accessPoint.apBridge(switch.name, iface)
+                    accessPoint.apBridge(switch, iface)
         
         info( '\n' )
         if self.waitConn:
@@ -1614,7 +1706,8 @@ class Mininet( object ):
         
         for node in self.wifiNodes:
             for wlan in range(0, node.nWlans):
-                wifiParameters.getWiFiParameters(node, wlan)
+                iface = str(node)+'-wlan%s' % wlan
+                wifiParameters.getWiFiParameters(node, wlan, iface)
             
         self.thread = threading.Thread(name='onGoingMobility', target=mobility.mobility_PositionDefined, args=(self.start_time, stop_time,))
         self.thread.daemon = True

@@ -15,9 +15,10 @@ class accessPoint( object ):
               wpa_key_mgmt=None, rsn_pairwise=None, wpa_passphrase=None, encrypt=None, 
               wep_key0=None, **params ):
 
-        newname = str(ap)+'-'+str('wlan')
-        self.renameIface(intf, newname, wlan )
-        self.getMacAddress(ap, wlan)
+        if 'wlan' not in ap.params:
+            newname = str(ap)+'-'+str('wlan')
+            self.renameIface(intf, newname, wlan )
+            self.getMacAddress(ap, wlan)
         self.start (ap, country_code, auth_algs, wpa, wlan,
               wpa_key_mgmt, rsn_pairwise, wpa_passphrase, encrypt, 
               wep_key0, **params)
@@ -36,7 +37,11 @@ class accessPoint( object ):
         """ Starts an Access Point """
         
         self.cmd = ("echo \'")
-        self.cmd = self.cmd + ("interface=%s-wlan%s" % (ap, wlan)) # the interface used by the AP
+        if 'wlan' not in ap.params:
+            self.cmd = self.cmd + ("interface=%s-wlan%s" % (ap, wlan)) # the interface used by the AP
+        else:
+            wlan = ap.params.get('wlan')
+            self.cmd = self.cmd + ("interface=%s" % wlan) # the interface used by the AP
         self.cmd = self.cmd + ("\ndriver=nl80211")
         self.cmd = self.cmd + ("\nssid=%s" % ap.ssid[0]) # the name of the AP
         
@@ -152,8 +157,12 @@ class accessPoint( object ):
     @classmethod
     def apBridge(self, ap, iface):
         """ AP Bridge """  
-        intf = str(ap)+'-'+'wlan'+str(iface)
-        os.system("ovs-vsctl add-port %s %s" % (ap, intf))
+        if 'wlan' not in ap.params:
+            intf = str(ap)+'-'+'wlan'+str(iface)
+            os.system("ovs-vsctl add-port %s %s" % (ap, intf))
+        else:
+            wlan = ap.params.get('wlan')
+            os.system("ovs-vsctl add-port %s %s" % (ap, wlan))
        
     def setBw(self, ap, iface):
         """ Set bw to AP """ 
@@ -167,9 +176,14 @@ class accessPoint( object ):
         
     def APfile(self, cmd, ap, wlan):
         """ run an Access Point and create the config file  """
-        iface = str(ap) + '-wlan' + str(wlan)
-        apcommand = cmd + ("\' > %s.conf" % iface)  
+        if 'wlan' not in ap.params:
+            wlan = str(ap) + '-wlan' + str(wlan)
+        else:
+            wlan = ap.params.get('wlan')
+            os.system('ifconfig %s down' % wlan)
+            os.system('ifconfig %s up' % wlan)
+        apcommand = cmd + ("\' > %s.conf" % wlan)  
         os.system(apcommand)
-        cmd = ("hostapd -B %s.conf" % iface)
+        cmd = ("hostapd -B %s.conf" % wlan)
         subprocess.check_output(cmd, shell=True)
-        self.setBw(ap, iface)
+        self.setBw(ap, wlan)
