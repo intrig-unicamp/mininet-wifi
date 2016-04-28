@@ -1029,20 +1029,21 @@ class Mininet( object ):
                 
                 if sta in self.missingStations:
                     self.missingStations.remove(sta)
+                
+                if sta.mac != '':
+                    station.setMac(sta) 
                     
                 value = deviceDataRate(ap, sta, None)
                 self.bw = value.rate
+                
                 options.setdefault( 'bw', self.bw )
                 options.setdefault( 'use_tbf', True )
                 
                 # Set default MAC - this should probably be in Link
-                options.setdefault( 'addr1', self.randMac() )
+                options.setdefault( 'addr1', sta.mac )
                 
                 cls = self.link if cls is None else cls
                 link = cls( sta, 'onlyOneDevice', **options )
-                
-                if sta.mac != '':
-                    station.setMac(sta)        
                 
                 #If sta/ap have defined position 
                 if sta.startPosition !=0 and ap.startPosition !=0:
@@ -1694,9 +1695,7 @@ class Mininet( object ):
                 self.thread = threading.Thread(name='vanet', target=vanet, args=(self.stations, self.accessPoints, self.nroads, mobility.MAX_X, mobility.MAX_Y))
                 self.thread.daemon = True
                 self.thread.start()
-            
-            self.setWifiParameters()
-            
+            self.setWifiParameters()            
         print "Mobility started at %s second(s)" % kwargs['startTime']
         
     def stopMobility(self, **kwargs):
@@ -1715,7 +1714,7 @@ class Mininet( object ):
         
     def setWifiParameters(self):
         self.thread = threading.Thread(name='wifiParameters', target=mobility.parameters)
-        #-self.thread.daemon = True
+        #self.thread.daemon = True
         self.thread.start()
         
     def useExternalProgram(self, program, **params):
@@ -1729,6 +1728,12 @@ class Mininet( object ):
     def meshRouting(self, routing):
         if routing != '':
             emulationEnvironment.meshRouting = routing
+                   
+    def printDistance(self, src, dst):
+        """ Print the distance between two points """
+        d = distance(src, dst)
+        dist = d.dist
+        print ("The distance between %s and %s is %.2f meters\n" % (src, dst, float(dist)))
                    
     def plotGraph(self, **kwargs):
         """ Plot Graph """
@@ -1751,9 +1756,19 @@ class Mininet( object ):
         try:
             for host in self.wifiNodes:
                 if node == str(host):
-                    mobility.printPosition(host)
+                    self.printPosition(host)
         except:
-            print ("Position was not defined")
+            print ("Position was not defined")            
+            
+    def printPosition(self, node):
+        """ Print position of STAs and APs """
+        self.pos_x = node.position[0]
+        self.pos_y = node.position[1]
+        self.pos_z = node.position[2]   
+        print "----------------\nPosition of %s\n---------------- \
+        \nPosition X: %.2f \
+        \nPosition Y: %.2f \
+        \nPosition Z: %.2f\n" % (str(node), float(self.pos_x), float(self.pos_y), float(self.pos_z))
                         
     def propagationModel(self, model):
         emulationEnvironment.propagation_Model = model
@@ -1791,7 +1806,7 @@ class Mininet( object ):
                         print "Signal level: No Signal"
                     print "Tx-Power: %s dBm" % device.txpower[wlan]
             else:
-                print "Tx-Power: %s dBm" % device.txpower
+                print "Tx-Power: %s dBm" % device.txpower[0]
                 print "SSID: %s" % device.ssid[0]
                 print "Number of Associated Stations: %s" % device.nAssociatedStations
         except:
@@ -1806,7 +1821,7 @@ class Mininet( object ):
                     for host2 in self.wifiNodes:
                         if dst == str(host2):
                             dst = host2
-                            mobility.printDistance(src, dst)
+                            self.printDistance(src, dst)
         except:
             print ("node %s or/and node %s does not exist or there is no position defined" % (dst, src))        
         

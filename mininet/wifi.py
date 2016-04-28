@@ -23,6 +23,7 @@ from mininet.wifiMeshRouting import listNodes, meshRouting
 from mininet.wifiParameters import wifiParameters
 from mininet.wifiPlot import plot
 
+
 class getWlan( object ):
     
     @classmethod    
@@ -61,7 +62,6 @@ class module( object ):
            
     def loadModule(self, wifiRadios):
         """ Start wireless Module """
-        #os.system( 'insmod /home/alpha/Dropbox/ComputerDir/codigo/linux-3.19.0/drivers/net/wireless/mac80211_hwsim.ko radios=%s' % wifiRadios )
         os.system( 'modprobe mac80211_hwsim radios=%s' % wifiRadios )
             
     def stop(self):
@@ -73,7 +73,7 @@ class module( object ):
             os.system( 'rm *.txt' )
         
         os.system( 'rmmod mac80211_hwsim' )
-        #os.system( 'rmmod mac80211_hwsim.ko' )
+      
         if emulationEnvironment.apList!=[]:
             os.system( 'killall -9 hostapd' )
         if emulationEnvironment.wpa_supplicantIsRunning:
@@ -85,30 +85,23 @@ class module( object ):
         self.loadModule(wifiRadios) #Initatilize WiFi Module
         emulationEnvironment.totalPhy = emulationEnvironment.getPhy() #Get Phy Interfaces                    
         
+        
 class station ( object ):
 
     list = []
     fixedPosition = []
-       
     _macMatchRegex = re.compile( r'..:..:..:..:..:..' )       
-    
-    
     
     @classmethod       
     def iwCommand(self, sta, wlan, *args):
         command = 'iw dev %s-wlan%s ' % (sta, wlan)
         sta.pexec(command + '%s' % args)
     
-    @classmethod       
-    def ipLinkCommand(self, sta, wlan, *args):
-        command = 'ip link set %s-wlan%s' % (sta, wlan)
-        sta.pexec(command + '%s' % args)
-     
     @classmethod   
     def setMac(self, sta):
-        self.ipLinkCommand(sta, 0, 'down')
-        self.ipLinkCommand(sta, 0, ('address %s' % sta.mac))
-        self.ipLinkCommand(sta, 0, 'up')
+        sta.pexec('ip link set %s-wlan0 down' % sta)
+        sta.pexec('ip link set %s-wlan0 address %s' % (sta, sta.mac))
+        sta.pexec('ip link set %s-wlan0 up' % sta)
      
     @classmethod    
     def assingIface(self, stations, virtualWlan):
@@ -130,8 +123,7 @@ class station ( object ):
                 sta.associatedAp.append('NoAssociated')
                 sta.antennaHeight.append(0.1)
                 sta.antennaGain.append(1)
-            self.list.append(sta)                            
-           
+            self.list.append(sta)                                       
 
     @classmethod    
     def confirmInfraAssociation(self, node1, node2, wlan):
@@ -214,24 +206,6 @@ class mobility ( object ):
     def nodeSpeed(self, sta, pos_x, pos_y, pos_z, diffTime):
         sta.speed = ((pos_x + pos_y + pos_z)/diffTime) 
   
-    @classmethod 
-    def printDistance(self, src, dst):
-        """ Print the distance between two points """
-        d = distance(src, dst)
-        dist = d.dist
-        print ("The distance between %s and %s is %.2f meters\n" % (src, dst, float(dist)))
-    
-    @classmethod   
-    def printPosition(self, node):
-        """ Print position of STAs and APs """
-        self.pos_x = node.position[0]
-        self.pos_y = node.position[1]
-        self.pos_z = node.position[2]   
-        print "----------------\nPosition of %s\n---------------- \
-        \nPosition X: %.2f \
-        \nPosition Y: %.2f \
-        \nPosition Z: %.2f\n" % (str(node), float(self.pos_x), float(self.pos_y), float(self.pos_z))
-    
     @classmethod   
     def handover(self, sta, ap, wlan, distance, changeAP, ac=None, **params):
         """handover"""
@@ -342,7 +316,8 @@ class mobility ( object ):
                 plot.instantiateAnnotate(node)
                 plot.instantiateCircle(node)
                 plot.instantiateNode(node, self.MAX_X, self.MAX_Y)
-              
+        
+        #Sometimes getting the error: Failed to connect to generic netlink.
         try:
             once = []  
             if model!='':
@@ -373,8 +348,7 @@ class mobility ( object ):
                             plt.title("Mininet-WiFi Graph")
                             plt.draw()   
         except:
-            pass
-               
+            pass               
     
     @classmethod 
     def getAPsInRange(self, sta):
@@ -396,8 +370,7 @@ class mobility ( object ):
                 dist = d.dist
                 self.getAPsInRange(sta)
                 self.setChannelParameters(sta, ap, dist, wlan)  
-            
-                
+                            
     @classmethod                
     def parameters(self):
         while emulationEnvironment.continue_:
@@ -418,6 +391,7 @@ class mobility ( object ):
                     listNodes.clearList()
             except:
                 pass
+    
     @classmethod    
     def setChannelParameters(self, node1, node2, dist, wlan):
         """ Wifi Parameters """
@@ -457,12 +431,11 @@ class mobility ( object ):
             """Association Control: mechanisms that optimize the use of the APs"""
             if emulationEnvironment.associationControlMethod != False:
                 ac = emulationEnvironment.associationControlMethod
-                try:
-                    value = associationControl(sta, ap, wlan, ac)
-                    changeAP = value.changeAP
-                    association_Control.setdefault( 'ac', ac )                
-                except:
-                    pass
+              
+                value = associationControl(sta, ap, wlan, ac)
+                changeAP = value.changeAP
+                association_Control.setdefault( 'ac', ac )                
+                
             #Go to handover    
             if associated == False or changeAP == True:
                 self.handover(sta, ap, wlan, dist, changeAP, **association_Control)
