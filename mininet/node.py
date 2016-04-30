@@ -1165,6 +1165,24 @@ class UserSwitch( Switch ):
             for intf in self.intfList():
                 if not intf.IP():
                     self.TCReapply( intf )
+                    
+        self.newapif=[]
+        self.apif = subprocess.check_output("iwconfig 2>&1 | grep IEEE | awk '{print $1}'",shell=True)
+        self.apif = self.apif.split("\n")
+        
+        for apif in self.apif:
+            if apif not in emulationEnvironment.physicalWlan:
+                self.newapif.append(apif)
+        
+        self.newapif.pop()
+        self.newapif = sorted(self.newapif)
+        self.newapif.sort(key=len, reverse=False)
+        
+        if(emulationEnvironment.isCode == True):
+            if('accessPoint' == self.type):
+                for iface in range(0, self.nWlans):
+                    accessPoint.apBridge(self, iface)
+                    
 
     def stop( self, deleteIntfs=True ):
         """Stop OpenFlow reference user datapath.
