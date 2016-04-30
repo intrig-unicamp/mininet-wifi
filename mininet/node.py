@@ -1165,7 +1165,7 @@ class UserSwitch( Switch ):
             for intf in self.intfList():
                 if not intf.IP():
                     self.TCReapply( intf )
-                    
+        
         self.newapif=[]
         self.apif = subprocess.check_output("iwconfig 2>&1 | grep IEEE | awk '{print $1}'",shell=True)
         self.apif = self.apif.split("\n")
@@ -1179,10 +1179,10 @@ class UserSwitch( Switch ):
         self.newapif.sort(key=len, reverse=False)
         
         if(emulationEnvironment.isCode == True):
+            os.system('ovs-vsctl add-br %s' % self)   
             if('accessPoint' == self.type):
                 for iface in range(0, self.nWlans):
-                    accessPoint.apBridge(self, iface)
-                    
+                    accessPoint.apBridge(self, iface)                    
 
     def stop( self, deleteIntfs=True ):
         """Stop OpenFlow reference user datapath.
@@ -1190,8 +1190,9 @@ class UserSwitch( Switch ):
         self.cmd( 'kill %ofdatapath' )
         self.cmd( 'kill %ofprotocol' )
         super( UserSwitch, self ).stop( deleteIntfs )
-
-
+        if self.type == 'accessPoint':
+            self.cmd( 'ovs-vsctl del-br', self )
+            
 class OVSSwitch( Switch ):
     "Open vSwitch switch. Depends on ovs-vsctl."
 
