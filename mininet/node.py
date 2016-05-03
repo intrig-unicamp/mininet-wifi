@@ -1151,7 +1151,7 @@ class UserSwitch( Switch ):
         ofdlog = '/tmp/' + self.name + '-ofd.log'
         ofplog = '/tmp/' + self.name + '-ofp.log'
         intfs = [ str( i ) for i in self.intfList() if not i.IP() ]
-        self.cmd( 'ofdatapath -i ' + ','.join( intfs ) +
+        self.cmdPrint( 'ofdatapath -i ' + ','.join( intfs ) +
                   ' punix:/tmp/' + self.name + ' -d %s ' % self.dpid +
                   self.dpopts +
                   ' 1> ' + ofdlog + ' 2> ' + ofdlog + ' &' )

@@ -189,6 +189,7 @@ class Mininet( object ):
         self.hosts = []
         self.links = []
         self.missingStations = []
+        self.missingWlanAP = []
         self.newapif = []
         self.wifiNodes = []
         self.switches = []
@@ -552,6 +553,7 @@ class Mininet( object ):
             self.virtualWlan.append(str(name)+str(0))
         bs.nWlans = int(wifi)
         
+        self.missingWlanAP.append(bs)
         emulationEnvironment.apList.append( bs )
         self.switches.append( bs )          
         self.accessPoints.append( bs ) 
@@ -639,6 +641,7 @@ class Mininet( object ):
         self.virtualWlan.append(str(name)+str(0))
         bs.nWlans = 1
         
+        self.missingWlanAP.append(bs)
         emulationEnvironment.apList.append( bs )
         self.switches.append( bs )          
         self.accessPoints.append( bs ) 
@@ -902,6 +905,7 @@ class Mininet( object ):
                 if 'wlan' not in ap.params:
                     intf = self.newapif[self.virtualWlan.index(str(ap)+str(wlan))]
                     iface = str(ap)+'-wlan%s' % wlan
+                    wifiparam.setdefault( 'intf', intf )
                 else:
                     iface = ap.params.get('wlan')
                     
@@ -942,10 +946,9 @@ class Mininet( object ):
                 wifiparam.setdefault( 'rsn_pairwise', self.rsn_pairwise )
                 wifiparam.setdefault( 'wpa_passphrase', self.wpa_passphrase )
                 wifiparam.setdefault( 'wep_key0', self.wep_key0 )
-                wifiparam.setdefault( 'wlan', wlan )
-                wifiparam.setdefault( 'intf', intf )
-               
+                wifiparam.setdefault( 'wlan', wlan )                               
                 accessPoint(ap, **wifiparam)   
+                
                 wifiParameters(param='get_frequency', node=ap, wlan=wlan, iface=iface)
                 wifiParameters(param='get_tx_power', node=ap, wlan=wlan, iface=iface) 
                 
@@ -1027,6 +1030,9 @@ class Mininet( object ):
                     sta = node2
                     ap = node1
                 
+                if ap in self.missingStations:
+                    self.self.missingWlanAP.remove(ap)
+                
                 if sta in self.missingStations:
                     self.missingStations.remove(sta)
                 
@@ -1043,7 +1049,7 @@ class Mininet( object ):
                 options.setdefault( 'addr1', sta.mac )
                 
                 cls = self.link if cls is None else cls
-                link = cls( sta, 'onlyOneDevice', **options )
+                link = cls( sta, ap, **options )
                 
                 #If sta/ap have defined position 
                 if sta.startPosition !=0 and ap.startPosition !=0:
@@ -1205,6 +1211,12 @@ class Mininet( object ):
         "Build mininet."
         emulationEnvironment.isCode=True
         
+        for switch in self.switches:
+            if switch in self.missingWlanAP:
+                cls = None
+                cls = self.link if cls is None else cls
+                cls( switch, 'alone' )
+        
         if self.ifaceConfigured == True:
             for node in self.missingStations:
                 for wlan in range(0, node.nWlans):
@@ -1221,9 +1233,9 @@ class Mininet( object ):
         
         if self.topo:
             self.buildFromTopo( self.topo )
+        if self.firstAssociation:
+            self.configureWifiNodes()
         if self.inNamespace:
-            if self.firstAssociation:
-                self.configureWifiNodes()
             self.configureControlNetwork()
             info( '*** Configuring hosts\n' )       
         self.configHosts()
@@ -1282,7 +1294,7 @@ class Mininet( object ):
             if hasattr( swclass, 'batchStartup' ):
                 success = swclass.batchStartup( switches )
                 started.update( { s: s for s in success } )
-        
+                
         #It is necessary to create a bridge between ap and wlan interface
         for switch in self.switches:
             if switch.type == 'accessPoint':  

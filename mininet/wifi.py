@@ -63,6 +63,7 @@ class module( object ):
     def loadModule(self, wifiRadios):
         """ Start wireless Module """
         os.system( 'modprobe mac80211_hwsim radios=%s' % wifiRadios )
+        time.sleep(2)
             
     def stop(self):
         """ Stop wireless Module """   
