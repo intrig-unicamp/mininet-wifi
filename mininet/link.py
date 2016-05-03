@@ -440,7 +440,7 @@ class Link( object ):
     def __init__( self, node1, node2, port1=None, port2=None,
                   intfName1=None, intfName2=None, addr1=None, addr2=None,
                   intf=Intf, cls1=None, cls2=None, params1=None,
-                  params2=None, fast=True ):
+                  params2=None, fast=True, phyIface=None ):
         """Create veth link to another node, making two new interfaces.
            node1: first node
            node2: second node
@@ -468,26 +468,64 @@ class Link( object ):
         if port2 is not None:
             params2[ 'port' ] = port2
             
+        phyIface = intfName1
+        
         if 'port' not in params1:
-            if 'station' == node1.type and 'onlyOneDevice' in str(node2) or 'station' == node1.type and 'mesh' in str(node2):
+            if 'station' == node1.type and 'alone' in str(node2) or 'station' == node1.type and 'mesh' in str(node2):
                 params1[ 'port' ] = node1.newWlanPort()
                 node1.newPort()
             elif 'station' == node1.type and 'accessPoint' == node2.type:
                 params1[ 'port' ] = node1.newWlanPort()
                 node1.newPort()
-                params2[ 'port' ] = node2.newWlanPort()
-                node2.newPort()
+            elif 'accessPoint' == node1.type and 'alone' == str(node2):
+                nodelen = int(node1.nWlans)
+                currentlen = node1.wlanports
+                if nodelen > currentlen+1:
+                    params1[ 'port' ] = node1.newWlanPort()
+                    node1.newPort()
+                else:
+                    params1[ 'port' ] = currentlen
+                ifacename = 'wlan'
+                intfName1 = self.wlanName( node1, ifacename, params1[ 'port' ] )
+                intf1 = cls1( name=intfName1, node=node1,
+                        link=self, mac=addr1, **params1 )
             else:
                 params1[ 'port' ] = node1.newPort()
         if 'port' not in params2:
-            if (str(node2) != 'onlyOneDevice' and str(node2) != 'mesh' and str(node2) != 'alone'):
+            if 'alone' not in str(node2) and 'mesh' not in str(node2):
+                if 'station' == node1.type and 'accessPoint' == node2.type:
+                    nodelen = int(node2.nWlans)
+                    currentlen = node2.wlanports
+                    if nodelen > currentlen+1:
+                        params2[ 'port' ] = node2.newWlanPort()
+                        node2.newPort()
+                    else:
+                        params2[ 'port' ] = currentlen
+                    ifacename = 'wlan'
+                    intfName2 = self.wlanName( node2, ifacename, params2[ 'port' ] )
+                    intf2 = cls2( name=intfName2, node=node2,
+                            link=self, mac=addr2, **params2 )
+                else:
+                    params2[ 'port' ] = node2.newPort()
+                    node2.newPort()
+            elif (str(node2) != 'alone' and str(node2) != 'mesh' and node2.type!='accessPoint'):
                 params2[ 'port' ] = node2.newPort()
-            elif str(node2) == 'alone':
-                params1[ 'port' ] = node1.newWlanPort()
-                node1.newPort()
+            elif str(node2) == 'alone' or str(node2) == 'mesh':
+                if phyIface != None:
+                    params1[ 'port' ] = node1.newPort()
+                    node1.newPort()
+                    intfName1 = phyIface
+                    intf1 = cls1( name=intfName1, node=node1,
+                        link=self, mac=addr1, **params1 )
+            else:
+                params2[ 'port' ] = node2.newPort()
+        
         if not intfName1:
-            if node1.type=='station':
+            if node1.type=='station' and str(node2) != 'mesh':
                 ifacename = 'wlan'
+                intfName1 = self.wlanName( node1, ifacename, params1[ 'port' ] )
+            elif node1.type=='station' and str(node2) == 'mesh':
+                ifacename = 'mp'
                 intfName1 = self.wlanName( node1, ifacename, params1[ 'port' ] )
             elif str(node2) == 'alone':
                 ifacename = 'wlan'
@@ -495,29 +533,22 @@ class Link( object ):
             else:
                 intfName1 = self.intfName( node1, params1[ 'port' ] )
         if not intfName2:
-            if str(node2) != 'alone':
-                if (str(node2) != 'onlyOneDevice' and str(node2) != 'mesh' and node2.type!='accessPoint'):
+            if str(node2) != 'alone'  and str(node2) != 'mesh':
+                if (node2.type!='accessPoint'):
                     intfName2 = self.intfName( node2, params2[ 'port' ] )
-                if 'mesh' not in str(node2):
-                    if node2.type=='accessPoint' and node1.type=='station':
-                        ifacename = 'wlan'
-                        intfName2 = self.wlanName( node2, ifacename, params2[ 'port' ] )
+                elif 'mesh' not in str(node2):
                     if node1.type=='accessPoint' and node2.type=='accessPoint':
-                        intfName2 = self.intfName( node2, params2[ 'port' ] )                
-                elif node1.type=='accessPoint' and node2.type=='accessPoint':
-                    intfName2 = self.intfName( node2, params2[ 'port' ] )
-                elif str(node2) == 'onlyOneDevice':
+                        intfName2 = self.intfName( node2, params2[ 'port' ] )    
+                    elif 'host' == node1.type and 'accessPoint' == node2.type:
+                        intfName2 = self.intfName( node2, params2[ 'port' ] )               
+                elif str(node2) == 'alone':
                     ifacename = 'wlan'
                     intfName1 = self.wlanName( node1, ifacename, params1[ 'port' ] )
-                elif str(node1) == 'onlyOneDevice' or node1.type=='accessPoint' :
-                    ifacename = 'wlan'
-                    intfName2 = self.wlanName( node2, ifacename, params2[ 'port' ] )
                 elif str(node2) == 'mesh' :
                     ifacename = 'mp'
                     intfName1 = self.wlanName( node1, ifacename, params1[ 'port' ] )
                 else:
                     intfName2 = self.intfName( node2, params2[ 'port' ] )
-        
         if str(node2) != 'alone':
             self.fast = fast
             if('w' not in str(intfName1) and 'w' not in str(intfName2) and 'mp' not in str(intfName1) and 'mp' not in str(intfName2)):
@@ -532,13 +563,23 @@ class Link( object ):
             cls1 = intf
         if not cls2:
             cls2 = intf
-        if('station' == node1.type and 'onlyOneDevice' in str(node2) or 'station' == node1.type and 'mesh' in str(node2) or str(node2)=='alone'):
+        if('station' == node1.type and 'alone' == str(node2) or 'station' == node1.type and 'mesh' in str(node2) \
+           or 'station' == node1.type and 'accessPoint' == node2.type):
             intf1 = cls1( name=intfName1, node=node1,
                           link=self, mac=addr1, **params1  )
-            intf2 = None
+            if 'alone' != str(node2) and 'mesh' != str(node2):
+                if 'accessPoint' == node2.type:
+                    pass
+                else:
+                    intf2 = None
+            else:
+                intf2 = None
+        elif 'accessPoint' == node1.type and 'alone' == str(node2):
+            intf2 = None        
         else:
             intf1 = cls1( name=intfName1, node=node1,
                           link=self, mac=addr1, **params1  )
+            
             intf2 = cls2( name=intfName2, node=node2,
                           link=self, mac=addr2, **params2 )
         # All we are is dust in the wind, and our two interfaces
@@ -554,7 +595,7 @@ class Link( object ):
         "Construct a canonical interface name node-ethN for interface n."
         # Leave this as an instance method for now
         assert self
-        if node.name in 'phy': #if physical Interface
+        if 'phy' in node.name: #if physical Interface
             return ifacename + repr( n )
         else:
             return node.name + '-' + ifacename + repr( n )

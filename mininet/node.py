@@ -145,9 +145,6 @@ class Node( object ):
         self.startPosition = []
         self.endPosition = []
         self.moveSta = []
-        self.startTime = 0
-        self.endTime = 0      
-        self.speed = 0  
         self.associatedStations = []
         self.isAssociated = []
         self.staAssociated = []
@@ -1151,7 +1148,7 @@ class UserSwitch( Switch ):
         ofdlog = '/tmp/' + self.name + '-ofd.log'
         ofplog = '/tmp/' + self.name + '-ofp.log'
         intfs = [ str( i ) for i in self.intfList() if not i.IP() ]
-        self.cmdPrint( 'ofdatapath -i ' + ','.join( intfs ) +
+        self.cmd( 'ofdatapath -i ' + ','.join( intfs ) +
                   ' punix:/tmp/' + self.name + ' -d %s ' % self.dpid +
                   self.dpopts +
                   ' 1> ' + ofdlog + ' 2> ' + ofdlog + ' &' )
@@ -1166,24 +1163,6 @@ class UserSwitch( Switch ):
                 if not intf.IP():
                     self.TCReapply( intf )
         
-        self.newapif=[]
-        self.apif = subprocess.check_output("iwconfig 2>&1 | grep IEEE | awk '{print $1}'",shell=True)
-        self.apif = self.apif.split("\n")
-        
-        for apif in self.apif:
-            if apif not in emulationEnvironment.physicalWlan:
-                self.newapif.append(apif)
-        
-        self.newapif.pop()
-        self.newapif = sorted(self.newapif)
-        self.newapif.sort(key=len, reverse=False)
-        
-        if(emulationEnvironment.isCode == True):
-            os.system('ovs-vsctl add-br %s' % self)   
-            if('accessPoint' == self.type):
-                for iface in range(0, self.nWlans):
-                    accessPoint.apBridge(self, iface)                    
-
     def stop( self, deleteIntfs=True ):
         """Stop OpenFlow reference user datapath.
            deleteIntfs: delete interfaces? (True)"""
@@ -1365,18 +1344,6 @@ class OVSSwitch( Switch ):
             for intf in self.intfList():
                 self.TCReapply( intf )       
                
-        self.newapif=[]
-        self.apif = subprocess.check_output("iwconfig 2>&1 | grep IEEE | awk '{print $1}'",shell=True)
-        self.apif = self.apif.split("\n")
-        
-        for apif in self.apif:
-            if apif not in emulationEnvironment.physicalWlan:
-                self.newapif.append(apif)
-        
-        self.newapif.pop()
-        self.newapif = sorted(self.newapif)
-        self.newapif.sort(key=len, reverse=False)
-        
         if(emulationEnvironment.isCode == True):
             if('accessPoint' == self.type):
                 for iface in range(0, self.nWlans):

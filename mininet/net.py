@@ -92,7 +92,7 @@ import re
 import select
 import signal
 import random
-
+import sys
 import threading
 
 from time import sleep
@@ -117,14 +117,13 @@ from mininet.wifiParameters import wifiParameters
 from mininet.wifiMobilityModels import distance
 from mininet.wifiAccessPoint import accessPoint
 
-import sys
 sys.path.append(str(os.getcwd())+'/mininet/')
 from sumo.runner import sumo
 from mininet.vanet import vanet
 from __builtin__ import True
 
 # Mininet version: should be consistent with README and LICENSE
-VERSION = "1.8r3"
+VERSION = "1.8r4"
 
 class Mininet( object ):
     "Network emulation with hosts spawned in network namespaces."
@@ -183,6 +182,8 @@ class Mininet( object ):
         self.mode = mode
         self.channel = channel
         self.nameToNode = {}  # name to Node (Host/Switch) objects
+        self.finalPosition = {}
+        self.initialPosition = {}
         self.accessPoints = []
         self.apexists = []
         self.controllers = []
@@ -190,11 +191,13 @@ class Mininet( object ):
         self.links = []
         self.missingStations = []
         self.missingWlanAP = []
+        self.missingDataPath = {}
         self.newapif = []
         self.wifiNodes = []
         self.switches = []
         self.stations = []
         self.virtualWlan = []
+        self.fixedPosition = []
         self.terms = []  # list of spawned xterm processes
         Mininet.init()  # Initialize Mininet if necessary
        
@@ -297,11 +300,9 @@ class Mininet( object ):
         position = ("%s" % params.pop('position', {}))
         if(position!="{}"):        
             position = position.split(',')
-            sta.startPosition = position
             sta.position = position
-            station.fixedPosition.append(sta)
+            self.fixedPosition.append(sta)
         else:
-            sta.startPosition = 0
             sta.position = 0, 0, 0         
         
         channel = ("%s" % params.pop('channel', {}))
@@ -397,11 +398,9 @@ class Mininet( object ):
         position = ("%s" % params.pop('position', {}))
         if(position!="{}"):        
             position = position.split(',')
-            sta.startPosition = position
             sta.position = position
-            station.fixedPosition.append(sta)
+            self.fixedPosition.append(sta)
         else:
-            sta.startPosition = 0
             sta.position = 0, 0, 0         
         
         channel = ("%s" % params.pop('channel', {}))
@@ -493,10 +492,8 @@ class Mininet( object ):
         position = ("%s" % params.pop('position', {}))
         if(position!="{}"):        
             position =  position.split(',')
-            bs.startPosition = position
             bs.position = position
         else:
-            bs.startPosition = 0
             bs.position = 0, 0, 0           
       
         channel = ("%s" % params.pop('channel', {}))
@@ -546,11 +543,11 @@ class Mininet( object ):
         if(wifi!="{}"):        
             emulationEnvironment.wifiRadios += int(wifi)
             for n in range(int(wifi)):
-                self.virtualWlan.append(str(name)+str(n))
+                self.virtualWlan.append(name+str(n))
         else:
             emulationEnvironment.wifiRadios += 1
             wifi = 1
-            self.virtualWlan.append(str(name)+str(0))
+            self.virtualWlan.append(name+str(0))
         bs.nWlans = int(wifi)
         
         self.missingWlanAP.append(bs)
@@ -589,10 +586,8 @@ class Mininet( object ):
         position = ("%s" % params.pop('position', {}))
         if(position!="{}"):        
             position =  position.split(',')
-            bs.startPosition = position
             bs.position = position
         else:
-            bs.startPosition = 0
             bs.position = 0, 0, 0           
       
         channel = ("%s" % params.pop('channel', {}))
@@ -638,7 +633,6 @@ class Mininet( object ):
             value = deviceRange(bs)     
             bs.range = value.range       
         
-        self.virtualWlan.append(str(name)+str(0))
         bs.nWlans = 1
         
         self.missingWlanAP.append(bs)
@@ -715,6 +709,9 @@ class Mininet( object ):
                 if host.inNamespace:
                     host.setDefaultRoute( 'via %s' % natIP )
         return nat
+
+    def addOfDataPath(self, node, iface):
+        self.missingDataPath[node] = iface
 
     # BL: We now have four ways to look up nodes
     # This may (should?) be cleaned up in the future.
@@ -887,7 +884,7 @@ class Mininet( object ):
         options.setdefault( 'addr1', self.randMac() )
         
         cls = self.link if cls is None else cls
-        link = cls( sta, 'onlyOneDevice', **options )
+        link = cls( sta, 'alone', **options )
         
         for sta in self.hosts:
             if (sta == node):
@@ -993,8 +990,7 @@ class Mininet( object ):
             station.assingIface(self.stations, self.virtualWlan)
             self.ifaceConfigured = True
             self.configureAP() #configure AP
-            self.firstAssociation = False
-            
+            self.firstAssociation = False            
             
     def addLink( self, node1, node2, port1=None, port2=None, 
                  cls=None, **params ):
@@ -1029,10 +1025,7 @@ class Mininet( object ):
                 else:
                     sta = node2
                     ap = node1
-                
-                if ap in self.missingStations:
-                    self.self.missingWlanAP.remove(ap)
-                
+               
                 if sta in self.missingStations:
                     self.missingStations.remove(sta)
                 
@@ -1049,10 +1042,10 @@ class Mininet( object ):
                 options.setdefault( 'addr1', sta.mac )
                 
                 cls = self.link if cls is None else cls
-                link = cls( sta, ap, **options )
+                link = cls( sta, 'alone', **options )
                 
                 #If sta/ap have defined position 
-                if sta.startPosition !=0 and ap.startPosition !=0:
+                if sta.position !=0 and ap.position !=0:
                     d = distance(sta, ap)
                     dist = d.dist
                     if dist > ap.range:
@@ -1201,6 +1194,12 @@ class Mininet( object ):
             info( '(%s, %s) ' % ( srcName, dstName ) )   
         info( '\n' )
 
+        for switch in self.switches:
+            if switch in self.missingWlanAP:
+                cls = None
+                cls = self.link if cls is None else cls
+                cls( switch, 'alone' )
+       
     def configureControlNetwork( self ):
         "Control net config hook: override in subclass"
         raise Exception( 'configureControlNetwork: '
@@ -1217,6 +1216,16 @@ class Mininet( object ):
                 cls = self.link if cls is None else cls
                 cls( switch, 'alone' )
         
+        for switch in self.missingDataPath:
+            for s in self.switches:
+                if str(s) == switch:
+                    Iface = self.missingDataPath[switch]
+                    cls = None
+                    options = dict(  )
+                    options.setdefault( 'intfName1', Iface )
+                    cls = self.link if cls is None else cls
+                    cls( s, 'alone', **options )                
+        
         if self.ifaceConfigured == True:
             for node in self.missingStations:
                 for wlan in range(0, node.nWlans):
@@ -1229,7 +1238,7 @@ class Mininet( object ):
                     options.setdefault( 'use_tbf', True )
                     options.setdefault( 'addr1', self.randMac() )
                     cls = self.link if cls is None else cls
-                    cls( node, 'onlyOneDevice', **options )
+                    cls( node, 'alone', **options )
         
         if self.topo:
             self.buildFromTopo( self.topo )
@@ -1646,30 +1655,28 @@ class Mininet( object ):
         """ Mobility Parameters """
         self.node = args[0]
         self.stage = args[1]
-        self.speed = 0
-       
+
         for n in self.stations:
             if self.node == str(n):
                 sta = n            
        
         if 'position' in kwargs:
             if(self.stage == 'stop'):
-                self.position = kwargs['position']
-                sta.endPosition = self.position.split(',')
+                finalPosition = kwargs['position']
+                self.finalPosition[sta] = finalPosition.split(',')
             if(self.stage == 'start'):
-                self.position = kwargs['position']
-                sta.startPosition = self.position.split(',')    
+                initialPosition = kwargs['position']
+                self.initialPosition[sta] = initialPosition.split(',')
+        
         if 'time' in kwargs:
             self.time = kwargs['time']
-        if 'speed' in kwargs:
-            sta.speed = kwargs['speed'][:-2]
-            
+                    
         if(self.stage == 'start'):
             sta.startTime = self.time        
         elif(self.stage == 'stop'):
             sta.endTime = self.time 
             diffTime = sta.endTime - sta.startTime
-            sta.moveSta = mobility.move(sta, diffTime, sta.speed, sta.startPosition, sta.endPosition)
+            mobility.moveFactor(sta, diffTime, self.initialPosition[sta], self.finalPosition[sta])
         
     def startMobility(self, **kwargs):
         """ Starting Mobility """
@@ -1694,10 +1701,12 @@ class Mininet( object ):
         mobilityparam.setdefault( 'nodes', self.wifiNodes )
        
         if self.mobilityModel != '' or self.isVanet:
-            mobility.staMov = []
+            self.staMov = []
             for n in self.stations:
-                if n not in station.fixedPosition:
-                    mobility.staMov.append(n)
+                if n not in self.fixedPosition:
+                    self.staMov.append(n)
+            
+            mobilityparam.setdefault( 'staMov', self.staMov )
             
             if self.isVanet == False:
                 self.thread = threading.Thread(name='mobilityModel', target=mobility.models, kwargs=dict(mobilityparam,))
@@ -1714,13 +1723,18 @@ class Mininet( object ):
         """ Stop Mobility """
         if 'stopTime' in kwargs:
             stop_time = kwargs['stopTime']
+            
+        self.staMov = []
+        for n in self.stations:
+            if n not in self.fixedPosition:
+                self.staMov.append(n)
         
         for node in self.wifiNodes:
             for wlan in range(0, node.nWlans):
                 iface = str(node)+'-wlan%s' % wlan
                 wifiParameters.getWiFiParameters(node, wlan, iface)
             
-        self.thread = threading.Thread(name='onGoingMobility', target=mobility.mobility_PositionDefined, args=(self.start_time, stop_time,))
+        self.thread = threading.Thread(name='onGoingMobility', target=mobility.mobility_PositionDefined, args=(self.start_time, stop_time, self.staMov))
         self.thread.daemon = True
         self.thread.start()
         

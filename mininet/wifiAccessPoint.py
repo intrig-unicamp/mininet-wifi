@@ -170,7 +170,7 @@ class accessPoint( object ):
         bw = value.rate
         
         ap.cmd("tc qdisc replace dev %s \
-            root handle 2: tbf rate %sMbit burst 15000 latency 10ms" % (iface, bw))          
+            root handle 2: tbf rate %sMbit burst 15000 latency 2ms" % (iface, bw))          
         #Reordering packets    
         ap.cmd('tc qdisc add dev %s parent 2:1 handle 10: pfifo limit 1000' % (iface))
         

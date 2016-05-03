@@ -61,8 +61,8 @@ class channelParameters ( object ):
                 value = propagationModel(node1, node2, dist, wlan, emulationEnvironment.propagation_Model, systemLoss)
                 node1.rssi[wlan] = value.rssi
                 if node2.equipmentModel == None:
-                    self.rate = custombw * (1.1 ** -dist)         
-        return self.rate     
+                    self.rate = custombw * (1.1 ** -dist)     
+        return self.rate - math.pow(self.loss,2)    
     
     def tc(self, node, wlan, bw, loss, latency, delay):
         if node.func[wlan] == 'mesh':

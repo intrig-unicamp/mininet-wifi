@@ -8,7 +8,6 @@ author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
 import os
 import subprocess
 import glob
-import re
 import matplotlib.pyplot as plt
 import numpy as np
 import time
@@ -88,15 +87,7 @@ class module( object ):
         
         
 class station ( object ):
-
-    list = []
-    fixedPosition = []
-    _macMatchRegex = re.compile( r'..:..:..:..:..:..' )       
-    
-    @classmethod       
-    def iwCommand(self, sta, wlan, *args):
-        command = 'iw dev %s-wlan%s ' % (sta, wlan)
-        sta.pexec(command + '%s' % args)
+    """Station Class"""
     
     @classmethod   
     def setMac(self, sta):
@@ -106,13 +97,12 @@ class station ( object ):
      
     @classmethod    
     def assingIface(self, stations, virtualWlan):
-        w = getWlan.virtual()
+        wlan = getWlan.virtual()
         for sta in stations:
-            emulationEnvironment.staList.append(sta)
             for i in range(0, sta.nWlans):
-                vwlan = virtualWlan.index(str(sta))
-                os.system('iw phy %s set netns %s' % ( emulationEnvironment.totalPhy[vwlan + i], sta.pid ))
-                sta.cmd('ip link set %s name %s-wlan%s up' % (w[vwlan + i], str(sta), i))  
+                w = virtualWlan.index(str(sta))
+                os.system('iw phy %s set netns %s' % ( emulationEnvironment.totalPhy[w + i], sta.pid ))
+                sta.cmd('ip link set %s name %s-wlan%s up' % (wlan[w + i], str(sta), i))  
                 sta.frequency.append(0)
                 sta.txpower.append(0)
                 sta.snr.append(0)
@@ -124,7 +114,6 @@ class station ( object ):
                 sta.associatedAp.append('NoAssociated')
                 sta.antennaHeight.append(0.1)
                 sta.antennaGain.append(1)
-            self.list.append(sta)                                       
 
     @classmethod    
     def confirmInfraAssociation(self, node1, node2, wlan):
@@ -155,9 +144,9 @@ class station ( object ):
     def cmd_associate(self, node1, node2, wlan):
         sta = node1
         ap = node2
-        
+                
         if sta.passwd == None:
-            self.iwCommand(node1, wlan, ('connect %s' % ap.ssid[0]))
+            sta.pexec('iw dev %s-wlan%s connect %s' % (sta, wlan, ap.ssid[0]))
         elif sta.encrypt == 'wpa' or sta.encrypt == 'wpa2':
             self.associate_wpa(sta, wlan, ap.ssid[0], sta.passwd)
         elif sta.encrypt == 'wep':
@@ -181,26 +170,32 @@ class station ( object ):
         
 class mobility ( object ):    
     """ Mobility """          
-    staMov = []
     
     MAX_X = 50
     MAX_Y = 50
+    moveFac = {}
+    initialPosition = {}
+    finalPosition = {}
     
     @classmethod   
-    def move(self, sta, diffTime, speed, startposition, endposition):      
+    def moveFactor(self, sta, diffTime, initialPosition, finalPosition):      
         """
             Moving nodes
             diffTime: important to calculate the speed  
         """
-        pos_x = float(endposition[0]) - float(startposition[0])
-        pos_y = float(endposition[1]) - float(startposition[1])
-        pos_z = float(endposition[2]) - float(startposition[2])
+        self.initialPosition[sta] = initialPosition
+        self.finalPosition[sta] = finalPosition
         
-        sta.position = pos_x, pos_y, pos_z
+        sta.position = initialPosition
+        pos_x = float(finalPosition[0]) - float(initialPosition[0])
+        pos_y = float(finalPosition[1]) - float(initialPosition[1])
+        pos_z = float(finalPosition[2]) - float(initialPosition[2])
+        
         self.nodeSpeed(sta, pos_x, pos_y, pos_z, diffTime) 
         
         pos = '%.5f,%.5f,%.5f' % (pos_x/diffTime, pos_y/diffTime, pos_z/diffTime)
         pos = pos.split(',')
+        self.moveFac[sta] = pos
         return pos    
     
     @classmethod 
@@ -211,71 +206,69 @@ class mobility ( object ):
     def handover(self, sta, ap, wlan, distance, changeAP, ac=None, **params):
         """handover"""
         if ac == 'llf' or ac == 'ssf':
-            station.iwCommand(sta, wlan, 'disconnect')
-            station.iwCommand(sta, wlan, ('connect %s' % ap.ssid[0]))
+            sta.pexec('iw dev %s-wlan%s disconnect' % (sta, wlan))
+            sta.pexec('iw dev %s-wlan%s connect %s' % (sta, wlan, ap.ssid[0]))
             #emulationEnvironment.getWiFiParameters(sta, wlan)
             sta.associatedAp[wlan] = ap
         elif ap not in sta.associatedAp:
             #Useful for stations with more than one wifi iface
             if sta.associatedAp[wlan] == 'NoAssociated':
-                station.iwCommand(sta, wlan, ('connect %s' % ap.ssid[0]))
+                sta.pexec('iw dev %s-wlan%s connect %s' % (sta, wlan, ap.ssid[0]))
                 #emulationEnvironment.getWiFiParameters(sta, wlan)
                 ap.associatedStations.append(sta)
                 sta.associatedAp[wlan] = ap        
         emulationEnvironment.numberOfAssociatedStations(ap)
+        
+    @classmethod 
+    def instatiateNodes(self, node):
+        plot.instantiateAnnotate(node)
+        plot.instantiateCircle(node)
+        plot.instantiateNode(node, self.MAX_X, self.MAX_Y)
+        plot.graphUpdate(node)  
             
     @classmethod 
-    def mobility_PositionDefined(self, initial_time, final_time):
+    def mobility_PositionDefined(self, initial_time, final_time, staMov):
         """ ongoing Mobility """        
         t_end = time.time() + final_time
         t_initial = time.time() + initial_time
         currentTime = time.time()
         i=1
-        once = True
         
         if emulationEnvironment.DRAW == True:
             plot.instantiateGraph(self.MAX_X, self.MAX_Y)
-            for sta in station.list:
-                plot.instantiateAnnotate(sta)
-                plot.instantiateCircle(sta)
-                plot.instantiateNode(sta, self.MAX_X, self.MAX_Y)
+            for sta in emulationEnvironment.staList:
+                self.instatiateNodes(sta)
+                if sta not in staMov:
+                    plot.pltNode[sta].set_data(sta.position[0],sta.position[1])
+                    plot.drawTxt(sta)
+                    plot.drawCircle(sta)   
+            for ap in emulationEnvironment.apList:
+                self.instatiateNodes(ap)  
         try:
             while time.time() < t_end and time.time() > t_initial:
                 if time.time() - currentTime >= i:
-                    for sta in station.list:
+                    for sta in emulationEnvironment.staList:
                         if time.time() - currentTime >= sta.startTime and time.time() - currentTime <= sta.endTime:
-                            sta.startPosition[0] = float(sta.startPosition[0]) + float(sta.moveSta[0])
-                            sta.startPosition[1] = float(sta.startPosition[1]) + float(sta.moveSta[1])
-                            sta.startPosition[2] = float(sta.startPosition[2]) + float(sta.moveSta[2])
-                        else:
-                            sta.startPosition[0] = float(sta.startPosition[0])
-                            sta.startPosition[1] = float(sta.startPosition[1])
-                            sta.startPosition[2] = float(sta.startPosition[2])
-                        sta.position = sta.startPosition
+                            sta.position[0] = float(sta.position[0]) + float(self.moveFac[sta][0])
+                            sta.position[1] = float(sta.position[1]) + float(self.moveFac[sta][1])
+                            sta.position[2] = float(sta.position[2]) + float(self.moveFac[sta][2])
                         for wlan in range(0, sta.nWlans):
                             self.nodeParameter(sta, wlan) 
                         if emulationEnvironment.DRAW:
                             plot.graphUpdate(sta)
-                    if emulationEnvironment.DRAW and once == True:
-                        for ap in emulationEnvironment.apList:
-                            plot.instantiateAnnotate(ap)
-                            plot.instantiateCircle(ap)
-                            plot.instantiateNode(ap, self.MAX_X, self.MAX_Y)
-                            plot.graphUpdate(ap)
-                        once = False
                     i+=1
         except:
             print 'Error! Mobility stopped!'        
     
     @classmethod   
     def models(self, nodes=None, model=None, max_x=None, max_y=None, min_v=None, 
-               max_v=None, seed=None, **mobilityparam):
+               max_v=None, seed=None, staMov=None, **mobilityparam):
         
         self.modelName = model
         np.random.seed(seed)
         
         # number of nodes
-        nr_nodes = len(self.staMov)
+        nr_nodes = len(staMov)
         
         # simulation area (units)
         MAX_X, MAX_Y = max_x, max_y
@@ -286,58 +279,41 @@ class mobility ( object ):
         # max waiting time
         MAX_WT = 100.
         
-        if(self.modelName=='RandomWalk'):
-            ## Random Walk model
-            mob = random_walk(nr_nodes, dimensions=(MAX_X, MAX_Y))
-        elif(self.modelName=='TruncatedLevyWalk'):
-            ## Truncated Levy Walk model
-            mob = truncated_levy_walk(nr_nodes, dimensions=(MAX_X, MAX_Y))
-        elif(self.modelName=='RandomDirection'):
-            ## Random Direction model
-            mob = random_direction(nr_nodes, dimensions=(MAX_X, MAX_Y), velocity=(MIN_V, MAX_V))
-        elif(self.modelName=='RandomWayPoint'):
-            ## Random Waypoint model
-            mob = random_waypoint(nr_nodes, dimensions=(MAX_X, MAX_Y), velocity=(MIN_V, MAX_V), wt_max=MAX_WT)
-        elif(self.modelName=='GaussMarkov'):
-            ## Gauss-Markov model
-            mob = gauss_markov(nr_nodes, dimensions=(MAX_X, MAX_Y), alpha=0.99)
-        elif(self.modelName=='ReferencePoint'):
-            ## Reference Point Group model
+        if(self.modelName=='RandomWalk'): ## Random Walk model            
+            mob = random_walk(nr_nodes, dimensions=(MAX_X, MAX_Y)) 
+        elif(self.modelName=='TruncatedLevyWalk'): ## Truncated Levy Walk model
+            mob = truncated_levy_walk(nr_nodes, dimensions=(MAX_X, MAX_Y)) 
+        elif(self.modelName=='RandomDirection'): ## Random Direction model            
+            mob = random_direction(nr_nodes, dimensions=(MAX_X, MAX_Y), velocity=(MIN_V, MAX_V)) 
+        elif(self.modelName=='RandomWayPoint'): ## Random Waypoint model           
+            mob = random_waypoint(nr_nodes, dimensions=(MAX_X, MAX_Y), velocity=(MIN_V, MAX_V), wt_max=MAX_WT) 
+        elif(self.modelName=='GaussMarkov'): ## Gauss-Markov model           
+            mob = gauss_markov(nr_nodes, dimensions=(MAX_X, MAX_Y), alpha=0.99) 
+        elif(self.modelName=='ReferencePoint'): ## Reference Point Group model           
             mob = reference_point_group(nr_nodes, dimensions=(MAX_X, MAX_Y), aggregation=0.5) 
-        elif(self.modelName=='TimeVariantCommunity'):
-            ## Time-variant Community Mobility Model
-            mob = tvc(nr_nodes, dimensions=(MAX_X, MAX_Y), aggregation=[0.5,0.], epoch=[100,100])         
+        elif(self.modelName=='TimeVariantCommunity'): ## Time-variant Community Mobility Model            
+            mob = tvc(nr_nodes, dimensions=(MAX_X, MAX_Y), aggregation=[0.5,0.], epoch=[100,100])        
         else:
             print 'Model not defined!'
 
         if emulationEnvironment.DRAW:
             plot.instantiateGraph(self.MAX_X, self.MAX_Y)
-           
             for node in nodes:
-                plot.instantiateAnnotate(node)
-                plot.instantiateCircle(node)
-                plot.instantiateNode(node, self.MAX_X, self.MAX_Y)
-        
+                self.instatiateNodes(node)
+                if node not in staMov or 'accessPoint' == node.type:
+                    plot.pltNode[node].set_data(node.position[0],node.position[1])
+                    plot.drawTxt(node)
+                    plot.drawCircle(node)       
+                            
         #Sometimes getting the error: Failed to connect to generic netlink.
         try:
-            once = []  
             if model!='':
                 for xy in mob:              
                     i = 0  
                     for n in range (0,len(nodes)):
                         node = nodes[n]
-                        if 'accessPoint' == node.type and node not in once:
-                            ap = node
-                            pos_zero = ap.startPosition[0]
-                            pos_one = ap.startPosition[1]
-                            ap.position = pos_zero, pos_one, 0  
-                            if emulationEnvironment.DRAW:
-                                plot.pltNode[node].set_data(pos_zero, pos_one)
-                                plot.drawTxt(node)
-                                plot.drawCircle(node)
-                            once.append(nodes[n])
-                        elif 'accessPoint' != node.type:
-                            if str(node) not in station.fixedPosition:
+                        if node in staMov:
+                            if 'station' == node.type:
                                 node.position = xy[i][0], xy[i][1], 0
                                 i += 1                       
                                 if emulationEnvironment.DRAW:
@@ -376,19 +352,19 @@ class mobility ( object ):
     def parameters(self):
         while emulationEnvironment.continue_:
             try:
-                for node in station.list: 
+                for node in emulationEnvironment.staList: 
                     for wlan in range(0, node.nWlans):
                         if node.func[wlan] == 'mesh' or node.func[wlan] == 'adhoc':
-                            dist = listNodes.pairingNodes(node, wlan, station.list)
-                            channelParameters(node, None, wlan, dist, station.list, abs(node.speed))
+                            dist = listNodes.pairingNodes(node, wlan, emulationEnvironment.staList)
+                            channelParameters(node, None, wlan, dist, emulationEnvironment.staList, abs(node.speed))
                         else:
                             self.nodeParameter(node, wlan)
                 if emulationEnvironment.meshRouting == 'custom':
-                    for node in station.list:       
+                    for node in emulationEnvironment.staList:       
                         for wlan in range(0, node.nWlans):
                             if node.func[wlan] == 'mesh':
                                 """Mesh Routing"""                    
-                                meshRouting.customMeshRouting(node, wlan, station.list)    
+                                meshRouting.customMeshRouting(node, wlan, emulationEnvironment.staList)    
                     listNodes.clearList()
             except:
                 pass
@@ -400,11 +376,11 @@ class mobility ( object ):
         ap = node2
         associated = True
         time = abs(sta.speed)
-        staList = station.list
+        staList = emulationEnvironment.staList
         
         if ap == sta.associatedAp[wlan]:
             if dist > ap.range + sta.range:  
-                station.iwCommand(sta, wlan, 'disconnect')
+                sta.pexec('iw dev %s-wlan%s disconnect' % (sta, wlan))
                 sta.associatedAp[wlan] = 'NoAssociated'
                 sta.rssi[wlan] = 0
                 sta.snr[wlan] = 0
@@ -431,8 +407,7 @@ class mobility ( object ):
             
             """Association Control: mechanisms that optimize the use of the APs"""
             if emulationEnvironment.associationControlMethod != False:
-                ac = emulationEnvironment.associationControlMethod
-              
+                ac = emulationEnvironment.associationControlMethod              
                 value = associationControl(sta, ap, wlan, ac)
                 changeAP = value.changeAP
                 association_Control.setdefault( 'ac', ac )                
