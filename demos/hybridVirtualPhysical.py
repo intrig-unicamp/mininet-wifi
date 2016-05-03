@@ -64,12 +64,12 @@ def topology():
 
     time.sleep(2)
     ap3.cmd('dpctl unix:/tmp/ap3 meter-mod cmd=add,flags=1,meter=1 drop:rate=1000')
-    ap3.cmd('dpctl unix:/tmp/ap3 meter-mod cmd=add,flags=1,meter=2 drop:rate=2000')
+    #ap3.cmd('dpctl unix:/tmp/ap3 meter-mod cmd=add,flags=1,meter=2 drop:rate=2000')
     #ap3.cmd('dpctl unix:/tmp/ap3 flow-mod table=0,cmd=add in_port=2,eth_type=0x800, meter:1 apply:output=4')
     #ap3.cmd('dpctl unix:/tmp/ap3 flow-mod table=0,cmd=add in_port=4, meter:1 apply:output=flood')
     """output=all,flood"""
-    ap3.cmd('dpctl unix:/tmp/ap3 flow-mod table=0,cmd=add in_port=4,eth_type=0x800,ip_dst=10.0.2.21, meter:1 apply:output=flood')
-    ap3.cmd('dpctl unix:/tmp/ap3 flow-mod table=0,cmd=add in_port=4,eth_type=0x800,ip_dst=10.0.2.25, meter:2 apply:output=flood')
+    ap3.cmd('dpctl unix:/tmp/ap3 flow-mod table=0,cmd=add in_port=4,eth_type=0x800,ip_dst=10.0.2.111, meter:1 apply:output=flood')
+    #ap3.cmd('dpctl unix:/tmp/ap3 flow-mod table=0,cmd=add in_port=4,eth_type=0x800,ip_dst=10.0.2.25, meter:2 apply:output=flood')
 
     sta11.cmd('ip route add default via 10.0.2.2')
     sta11.cmd('pushd /homt/alpha; python3 -m http.server 80 &')
