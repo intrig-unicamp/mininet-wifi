@@ -29,6 +29,7 @@ def topology():
     sta11 = net.addStation( 'sta11', ip='10.0.2.111', position='120,200,0')
     c1 = net.addController( 'c1', controller=RemoteController, port=6653 )
 
+
     print "*** Creating links"
     for station in sta:
         net.addMesh(station, ssid='meshNet')
@@ -70,6 +71,7 @@ def topology():
     ap3.cmd('dpctl unix:/tmp/ap3 flow-mod table=0,cmd=add in_port=4,eth_type=0x800,ip_dst=10.0.2.21, meter:1 apply:output=flood')
     ap3.cmd('dpctl unix:/tmp/ap3 flow-mod table=0,cmd=add in_port=4,eth_type=0x800,ip_dst=10.0.2.25, meter:2 apply:output=flood')
 
+    sta11.cmd('ip route add default via 10.0.2.2')
     sta11.cmd('pushd /homt/alpha; python3 -m http.server 80 &')
 
     ip = 101
@@ -82,10 +84,10 @@ def topology():
         station.cmd('iptables -t nat -A POSTROUTING -o %s-mp0 -j MASQUERADE' % station)
         station.cmd('sysctl -w net.ipv4.ip_forward=1')
 
-        if str(station) == 'sta1':
+        if str(station) == 'sta11':
             station.cmd('route add -net 192.168.0.0/24 dev %s-wlan1' % station)
 
-        if str(station) == 'sta1':
+        if str(station) == 'sta11':
             for n in sta:
                 station.pexec('route add -net 192.168.0.0/24 gw 192.168.0.%s' % ip)
         ip+=1
