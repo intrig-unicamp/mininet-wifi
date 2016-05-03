@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-   """Code created to be presented with the paper titled:
+"""Code created to be presented with the paper titled:
    "Rich Experimentation through Hybrid Physical-Virtual Software-Defined Wireless Networking Emulation" 
    authors: Ramon dos Reis Fontes and Christian Esteve Rothenberg"""
 
