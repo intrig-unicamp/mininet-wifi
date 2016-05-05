@@ -62,7 +62,10 @@ class channelParameters ( object ):
                 node1.rssi[wlan] = value.rssi
                 if node2.equipmentModel == None:
                     self.rate = custombw * (1.1 ** -dist)     
-        return self.rate - math.pow(self.loss,2)    
+        self.rate = self.rate - self.loss*2
+        if self.rate <= 0:
+            self.rate = 1
+        return self.rate  
     
     def tc(self, node, wlan, bw, loss, latency, delay):
         if node.func[wlan] == 'mesh':
