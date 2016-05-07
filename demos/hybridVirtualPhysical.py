@@ -8,6 +8,7 @@ from mininet.net import Mininet
 from mininet.node import RemoteController,OVSKernelSwitch, Controller, UserSwitch
 from mininet.link import TCLink
 from mininet.cli import CLI
+from mininet.node import Node
 from mininet.log import setLogLevel
 import os
 import time
@@ -21,14 +22,14 @@ def topology():
     print "*** Creating nodes"
     for n in range(10):
 	sta.append(n)
-	sta[n] = net.addStation( 'sta%s' % (n+1), wlans=2, mac='00:00:00:00:00:%s' % (n+1), ip='192.168.0.%s/8' % (n+1) )
-    phyap1 = net.addPhysicalBaseStation( 'phyap1', protocols='OpenFlow13', ssid= 'ap-ssid1', mode= 'g', channel= '1', position='50,115,0', wlan='wlan0' )
+	sta[n] = net.addStation( 'sta%s' % (n+1), wlans=2, mac='00:00:00:00:00:%s' % (n+1), ip='192.168.0.%s/24' % (n+1) )
+    phyap1 = net.addPhysicalBaseStation( 'phyap1', protocols='OpenFlow13', ssid= 'ap-ssid1', mode= 'g', channel= '1', position='50,115,0', wlan='wlan11' )
     ap2 = net.addBaseStation( 'ap2', protocols='OpenFlow13', ssid= 'ap-ssid2', mode= 'g', channel= '11', position='100,175,0' )
     ap3 = net.addBaseStation( 'ap3', protocols='OpenFlow13', ssid= 'ap-ssid3', mode= 'g', channel= '6', position='150,115,0' )
     ap4 = net.addBaseStation( 'ap4', protocols='OpenFlow13', ssid= 'ap-ssid4', mode= 'g', channel= '6', position='100,55,0' )
-    sta11 = net.addStation( 'sta11', ip='10.0.2.111', position='120,200,0')
+    sta11 = net.addStation( 'sta11', ip='10.0.0.111/8', position='120,200,0')
     c1 = net.addController( 'c1', controller=RemoteController, port=6653 )
-
+    root = Node( 'root', inNamespace=False )
 
     print "*** Creating links"
     for station in sta:
@@ -49,9 +50,11 @@ def topology():
     net.addLink(sta11, ap2)
     net.addLink(ap3, ap4)
     net.addLink(ap4, phyap1)
+    link = net.addLink( root, ap3 )
+    link.intf1.setIP( '10.254', 8 )
 
     """Adding datapath"""
-    net.addOfDataPath('ap3', 'enp0s3')
+    net.addOfDataPath('ap3', 'wlan0')
 
     print "*** Starting network"
     net.build()
@@ -63,33 +66,18 @@ def topology():
     ap4.start( [c1] )
 
     time.sleep(2)
-    ap3.cmd('dpctl unix:/tmp/ap3 meter-mod cmd=add,flags=1,meter=1 drop:rate=1000')
-    #ap3.cmd('dpctl unix:/tmp/ap3 meter-mod cmd=add,flags=1,meter=2 drop:rate=2000')
-    #ap3.cmd('dpctl unix:/tmp/ap3 flow-mod table=0,cmd=add in_port=2,eth_type=0x800, meter:1 apply:output=4')
-    #ap3.cmd('dpctl unix:/tmp/ap3 flow-mod table=0,cmd=add in_port=4, meter:1 apply:output=flood')
     """output=all,flood"""
-    ap3.cmd('dpctl unix:/tmp/ap3 flow-mod table=0,cmd=add in_port=4,eth_type=0x800,ip_dst=10.0.2.111, meter:1 apply:output=flood')
-    #ap3.cmd('dpctl unix:/tmp/ap3 flow-mod table=0,cmd=add in_port=4,eth_type=0x800,ip_dst=10.0.2.25, meter:2 apply:output=flood')
+    ap3.cmd('dpctl unix:/tmp/ap3 meter-mod cmd=add,flags=1,meter=1 drop:rate=100')
+    ap3.cmd('dpctl unix:/tmp/ap3 flow-mod table=0,cmd=add in_port=4,eth_type=0x800,ip_dst=10.0.0.100, meter:1 apply:output=flood')
 
-    sta11.cmd('ip route add default via 10.0.2.2')
+    startNAT( root )
+    sta11.cmd('ip route add default via 10.0.0.254')
     sta11.cmd('pushd /homt/alpha; python3 -m http.server 80 &')
 
-    ip = 101
+    ip = 201
     for station in sta:
-        station.cmd('ifconfig %s-wlan1 10.0.2.%s' % (station, ip))
-        station.cmd('ip route add default via 10.0.2.2')
-
-        station.cmd('iptables -A FORWARD -i %s-wlan1 -o %s-mp0 -j ACCEPT' % (station,station))
-        station.cmd('iptables -A FORWARD -i %s-mp0 -o %s-wlan1 -m state --state ESTABLISHED,RELATED -j ACCEPT' % (station, station))
-        station.cmd('iptables -t nat -A POSTROUTING -o %s-mp0 -j MASQUERADE' % station)
-        station.cmd('sysctl -w net.ipv4.ip_forward=1')
-
-        if str(station) == 'sta11':
-            station.cmd('route add -net 192.168.0.0/24 dev %s-wlan1' % station)
-
-        if str(station) == 'sta11':
-            for n in sta:
-                station.pexec('route add -net 192.168.0.0/24 gw 192.168.0.%s' % ip)
+        station.cmd('ifconfig %s-wlan1 10.0.0.%s/8' % (station, ip))
+        station.cmd('ip route add default via 10.0.0.254')
         ip+=1
 
     "*** Available models: RandomWalk, TruncatedLevyWalk, RandomDirection, RandomWayPoint, GaussMarkov, ReferencePoint, TimeVariantCommunity ***"
@@ -100,6 +88,34 @@ def topology():
 
     print "*** Stopping network"
     net.stop()
+
+def startNAT( root, inetIntf='wlan0', subnet='10.0/8', localIntf = None ):
+    """Start NAT/forwarding between Mininet and external network
+    root: node to access iptables from
+    inetIntf: interface for internet access
+    subnet: Mininet subnet (default 10.0/8)"""
+
+    # Identify the interface connecting to the mininet network
+    if localIntf == None:
+        localIntf =  root.defaultIntf()
+ 
+    # Flush any currently active rules
+    root.cmd( 'iptables -F' )
+    root.cmd( 'iptables -t nat -F' )
+
+    # Create default entries for unmatched traffic
+    root.cmd( 'iptables -P INPUT ACCEPT' )
+    root.cmd( 'iptables -P OUTPUT ACCEPT' )
+    root.cmd( 'iptables -P FORWARD DROP' )
+
+    # Configure NAT
+    root.cmd( 'iptables -I FORWARD -i', localIntf, '-d', subnet, '-j DROP' )
+    root.cmd( 'iptables -A FORWARD -i', localIntf, '-s', subnet, '-j ACCEPT' )
+    root.cmd( 'iptables -A FORWARD -i', inetIntf, '-d', subnet, '-j ACCEPT' )
+    root.cmdPrint( 'iptables -t nat -A POSTROUTING -o ', inetIntf, '-j MASQUERADE' )
+
+    # Instruct the kernel to perform forwarding
+    root.cmd( 'sysctl net.ipv4.ip_forward=1' )
 
 if __name__ == '__main__':
     setLogLevel( 'info' )
