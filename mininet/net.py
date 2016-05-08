@@ -192,7 +192,6 @@ class Mininet( object ):
         self.missingStations = []
         self.missingWlanAP = []
         self.missingDataPath = {}
-        self.connections = {}
         self.newapif = []
         self.wifiNodes = []
         self.switches = []
@@ -1086,7 +1085,10 @@ class Mininet( object ):
                     self.apexists.append(str(node1))
                 if str(node2) not in self.apexists:
                     self.apexists.append(str(node2))
-                self.connections[node1] = node2
+                conn = str(node2)
+                node1.connections[conn] = node2
+                conn = str(node1)
+                node2.connections[conn] = node1
                         
             elif node1.type == 'accessPoint' and str(node1) not in self.apexists \
                 or node2.type == 'accessPoint' and str(node2) not in self.apexists: 
@@ -1688,32 +1690,31 @@ class Mininet( object ):
         
     def startMobility(self, **kwargs):
         """ Starting Mobility """
-        mobilityparam = dict()      
         self.mobilityModel = ''
         if 'model' in kwargs:
+            mobilityparam = dict() 
             mobilityparam.setdefault( 'model', kwargs['model'] )
             self.mobilityModel = kwargs['model']
-        if 'max_x' in kwargs:
-            mobilityparam.setdefault( 'max_x', kwargs['max_x'] )
-        if 'max_y' in kwargs:
-            mobilityparam.setdefault( 'max_y', kwargs['max_y'] )
-        if 'min_v' in kwargs:
-            mobilityparam.setdefault( 'min_v', kwargs['min_v'] )
-        if 'max_v' in kwargs:
-            mobilityparam.setdefault( 'max_v', kwargs['max_v'] )
-        if 'startTime' in kwargs:
-            self.start_time = kwargs['startTime']
-       
-        mobilityparam.setdefault( 'seed', self.set_seed )
-        mobilityparam.setdefault( 'draw', emulationEnvironment.DRAW )
-        mobilityparam.setdefault( 'nodes', self.wifiNodes )
-       
-        if self.mobilityModel != '' or self.isVanet:
+            
+        if self.mobilityModel != '' or self.isVanet:      
+            if 'max_x' in kwargs:
+                mobilityparam.setdefault( 'max_x', kwargs['max_x'] )
+            if 'max_y' in kwargs:
+                mobilityparam.setdefault( 'max_y', kwargs['max_y'] )
+            if 'min_v' in kwargs:
+                mobilityparam.setdefault( 'min_v', kwargs['min_v'] )
+            if 'max_v' in kwargs:
+                mobilityparam.setdefault( 'max_v', kwargs['max_v'] )
+            if 'startTime' in kwargs:
+                self.start_time = kwargs['startTime']
+           
+            mobilityparam.setdefault( 'seed', self.set_seed )
+            mobilityparam.setdefault( 'nodes', self.wifiNodes )
+        
             self.staMov = []
             for n in self.stations:
                 if n not in self.fixedPosition:
-                    self.staMov.append(n)
-            
+                    self.staMov.append(n)            
             mobilityparam.setdefault( 'staMov', self.staMov )
             
             if self.isVanet == False:
@@ -1742,8 +1743,8 @@ class Mininet( object ):
                 iface = str(node)+'-wlan%s' % wlan
                 wifiParameters.getWiFiParameters(node, wlan, iface)
                 
-        debug( 'Starting mobility thread\n' )
-        self.thread = threading.Thread(name='onGoingMobility', target=mobility.mobility_PositionDefined, args=(self.start_time, stop_time, self.staMov))
+        debug( 'Starting mobility thread...\n' )
+        self.thread = threading.Thread(name='mobility', target=mobility.mobilityPositionDefined, args=(self.start_time, stop_time, self.staMov))
         self.thread.daemon = True
         self.thread.start()
         

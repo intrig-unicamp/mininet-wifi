@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import time
 
-from mininet.log import debug, info
+from mininet.log import debug
 from mininet.wifiMobilityModels import gauss_markov, \
     truncated_levy_walk, random_direction, random_waypoint, random_walk, reference_point_group, tvc
 from mininet.wifiChannel import channelParameters    
@@ -235,7 +235,7 @@ class mobility ( object ):
         plot.graphUpdate(node)  
             
     @classmethod 
-    def mobility_PositionDefined(self, initial_time, final_time, staMov):
+    def mobilityPositionDefined(self, initial_time, final_time, staMov):
         """ ongoing Mobility """        
         t_end = time.time() + final_time
         t_initial = time.time() + initial_time
@@ -243,6 +243,7 @@ class mobility ( object ):
         i=1
         
         if emulationEnvironment.DRAW == True:
+            debug('Enabling Graph...\n')
             plot.instantiateGraph(self.MAX_X, self.MAX_Y)
             for sta in emulationEnvironment.staList:
                 self.instatiateNodes(sta)
@@ -252,6 +253,10 @@ class mobility ( object ):
                     plot.drawCircle(sta)   
             for ap in emulationEnvironment.apList:
                 self.instatiateNodes(ap)  
+                for c in ap.connections:
+                    line = plot.plotLine2d([ap.connections[c].position[0],ap.position[0]], \
+                                           [ap.connections[c].position[1],ap.position[1]], 'b')
+                    plot.plotLine(line)
         try:
             while time.time() < t_end and time.time() > t_initial:
                 if time.time() - currentTime >= i:
@@ -305,13 +310,19 @@ class mobility ( object ):
             print 'Model not defined!'
 
         if emulationEnvironment.DRAW:
+            debug('Enabling Graph...\n')
             plot.instantiateGraph(self.MAX_X, self.MAX_Y)
             for node in nodes:
                 self.instatiateNodes(node)
                 if node not in staMov or 'accessPoint' == node.type:
                     plot.pltNode[node].set_data(node.position[0],node.position[1])
                     plot.drawTxt(node)
-                    plot.drawCircle(node)       
+                    plot.drawCircle(node)  
+                    if node.type == 'accessPoint': 
+                        for c in node.connections:
+                            line = plot.plotLine2d([node.connections[c].position[0],node.position[0]], \
+                                                   [node.connections[c].position[1],node.position[1]], 'b')
+                            plot.plotLine(line)    
                             
         #Sometimes getting the error: Failed to connect to generic netlink.
         try:

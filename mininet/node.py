@@ -119,7 +119,7 @@ class Node( object ):
         self.rxgain = []
         self.snr = []
         self.func = []
-        
+        self.connections = {}
         # Station Parameters
         self.associate = False
         self.nWlans = 0
