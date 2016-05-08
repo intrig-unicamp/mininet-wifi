@@ -116,6 +116,7 @@ from mininet.wifiDevices import deviceRange, deviceDataRate
 from mininet.wifiParameters import wifiParameters
 from mininet.wifiMobilityModels import distance
 from mininet.wifiAccessPoint import accessPoint
+from mininet.wifiReport import report
 
 sys.path.append(str(os.getcwd())+'/mininet/')
 from sumo.runner import sumo
@@ -908,7 +909,7 @@ class Mininet( object ):
                    
                 ap.frequency.append(str(wlan))
                 ap.txpower.append(wlan)
-                ap.antennaHeight.append(0.1)
+                ap.antennaHeight.append(2)
                 ap.antennaGain.append(1)
                 
                 self.auth_algs = None
@@ -1770,6 +1771,11 @@ class Mininet( object ):
         d = distance(src, dst)
         dist = d.dist
         print ("The distance between %s and %s is %.2f meters\n" % (src, dst, float(dist)))
+        
+    def report_(self, node, d ):
+        for host in self.wifiNodes:
+            if node == str(host):
+                report(host, d)
                    
     def plotGraph(self, **kwargs):
         """ Plot Graph """

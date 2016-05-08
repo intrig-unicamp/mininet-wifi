@@ -8,7 +8,7 @@ from wifiDevices import deviceDataRate
 from wifiPropagationModels import propagationModel
 from wifiMobilityModels import distance
 from wifiEmulationEnvironment import emulationEnvironment
-import math
+import math, os
 
 class channelParameters ( object ):
     """Channel Parameters""" 

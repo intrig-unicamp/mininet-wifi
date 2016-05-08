@@ -47,7 +47,7 @@ class propagationModel ( object ):
         except:
             return self.rssi
                 
-    def twoRayGroundPropagationLossModel(self, node1, node2, distance, wlan):
+    def twoRayGroundPropagationLossModel(self, node1, node2, dist, wlan):
         """Two Ray Ground Propagation Loss Model:
         (gT): Tx Antenna Gain (dBi)
         (gR): Rx Antenna Gain (dBi)
@@ -60,16 +60,17 @@ class propagationModel ( object ):
         gR = node1.antennaGain[wlan]
         hT = node2.antennaHeight[wlan]
         hR = node1.antennaHeight[wlan]
-        d = distance
+        d = dist
         L = self.systemLoss
         
         try:
-            self.rssi = node2.txpower[wlan] + 10 * math.log10(gT * gR * hT**2 * hR**2 / d**4 * L)
+            self.rssi = (node2.txpower[wlan] * gT * gR * hT**2 * hR**2) / (d**4 * L)
+            print self.rssi
             return self.rssi
         except:
             return self.rssi
             
-    def logDistancePropagationLossModel(self, node1, node2, distance, wlan):
+    def logDistancePropagationLossModel(self, node1, node2, dist, wlan):
         """Log Distance Propagation Loss Model:
         referenceDistance (m): The distance at which the reference loss is calculated
         referenceLoss (db): The reference loss at reference distance. Default for 1m is 46.6777
@@ -78,9 +79,9 @@ class propagationModel ( object ):
         referenceDistance = 1
         referenceLoss = 46.6777
         exponent = 2
-        d = int(distance)
-        
-        pathLossDb = 10 * exponent * math.log10(d / referenceDistance)
+        if dist == 0:
+            dist = 0.1
+        pathLossDb = 10 * exponent * math.log10(dist / referenceDistance)
         rxc = - referenceLoss - pathLossDb
         self.rssi = node2.txpower[wlan] + rxc
         return self.rssi

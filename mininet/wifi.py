@@ -120,7 +120,7 @@ class station ( object ):
                 sta.isAssociated.append('')
                 sta.ssid.append('')
                 sta.associatedAp.append('NoAssociated')
-                sta.antennaHeight.append(0.1)
+                sta.antennaHeight.append(2)
                 sta.antennaGain.append(1)
 
     @classmethod    
@@ -259,17 +259,18 @@ class mobility ( object ):
                     plot.plotLine(line)
         try:
             while time.time() < t_end and time.time() > t_initial:
-                if time.time() - currentTime >= i:
-                    for sta in emulationEnvironment.staList:
-                        if time.time() - currentTime >= sta.startTime and time.time() - currentTime <= sta.endTime:
-                            sta.position[0] = float(sta.position[0]) + float(self.moveFac[sta][0])
-                            sta.position[1] = float(sta.position[1]) + float(self.moveFac[sta][1])
-                            sta.position[2] = float(sta.position[2]) + float(self.moveFac[sta][2])
-                        for wlan in range(0, sta.nWlans):
-                            self.nodeParameter(sta, wlan) 
-                        if emulationEnvironment.DRAW:
-                            plot.graphUpdate(sta)
-                    i+=1
+                if emulationEnvironment.continue_:
+                    if time.time() - currentTime >= i:
+                        for sta in emulationEnvironment.staList:
+                            if time.time() - currentTime >= sta.startTime and time.time() - currentTime <= sta.endTime:
+                                sta.position[0] = float(sta.position[0]) + float(self.moveFac[sta][0])
+                                sta.position[1] = float(sta.position[1]) + float(self.moveFac[sta][1])
+                                sta.position[2] = float(sta.position[2]) + float(self.moveFac[sta][2])
+                            for wlan in range(0, sta.nWlans):
+                                self.nodeParameter(sta, wlan) 
+                            if emulationEnvironment.DRAW:
+                                plot.graphUpdate(sta)
+                        i+=1
         except:
             print 'Error! Mobility stopped!'        
     
