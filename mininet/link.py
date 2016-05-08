@@ -478,17 +478,18 @@ class Link( object ):
                 params1[ 'port' ] = node1.newWlanPort()
                 node1.newPort()
             elif 'accessPoint' == node1.type and 'alone' == str(node2):
-                nodelen = int(node1.nWlans)
-                currentlen = node1.wlanports
-                if nodelen > currentlen+1:
-                    params1[ 'port' ] = node1.newWlanPort()
-                    node1.newPort()
-                else:
-                    params1[ 'port' ] = currentlen
-                ifacename = 'wlan'
-                intfName1 = self.wlanName( node1, ifacename, params1[ 'port' ] )
-                intf1 = cls1( name=intfName1, node=node1,
-                        link=self, mac=addr1, **params1 )
+                if phyIface == None:
+                    nodelen = int(node1.nWlans)
+                    currentlen = node1.wlanports
+                    if nodelen > currentlen+1:
+                        params1[ 'port' ] = node1.newWlanPort()
+                        node1.newPort()
+                    else:
+                        params1[ 'port' ] = currentlen
+                    ifacename = 'wlan'
+                    intfName1 = self.wlanName( node1, ifacename, params1[ 'port' ] )
+                    intf1 = cls1( name=intfName1, node=node1,
+                            link=self, mac=addr1, **params1 )
             else:
                 params1[ 'port' ] = node1.newPort()
         if 'port' not in params2:
@@ -575,7 +576,7 @@ class Link( object ):
             else:
                 intf2 = None
         elif 'accessPoint' == node1.type and 'alone' == str(node2):
-            intf2 = None        
+            intf2 = None       
         else:
             intf1 = cls1( name=intfName1, node=node1,
                           link=self, mac=addr1, **params1  )

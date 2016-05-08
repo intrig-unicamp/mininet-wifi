@@ -37,7 +37,7 @@ class plot (object):
     @classmethod
     def drawCircle(self, node):
         """drawCircle""" 
-        self.pltCircle[node].center = node.position[0], node.position[1]
+        self.pltCircle[node].center = node.position[0], node.position[1]        
     
     @classmethod
     def graphUpdate(self, node):
@@ -87,12 +87,12 @@ class plot (object):
         self.ax.set_ylabel('meters')
         self.ax.set_xlim([0,MAX_X]) 
         self.ax.set_ylim([0,MAX_Y])
-        self.ax.grid(True)
+        self.ax.grid(True)        
         
     @classmethod
     def instantiateNode(self, node, MAX_X, MAX_Y):
         """instantiateNode"""
-        ax = self.ax
+        ax = self.ax       
         
         color = 'b'
         if node.type == 'station':

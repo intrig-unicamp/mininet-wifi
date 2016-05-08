@@ -13,10 +13,13 @@ nothing irreplaceable!
 from subprocess import ( Popen, PIPE, check_output as co,
                          CalledProcessError )
 import time
+import subprocess
 import os
+import glob
 
 from mininet.log import info
 from mininet.term import cleanUpScreens
+from mininet.wifiEmulationEnvironment import emulationEnvironment
 
 
 def sh( cmd ):
@@ -78,10 +81,22 @@ class Cleanup( object ):
                 sh( 'dpctl deldp ' + dp )
         
         info( "***  Removing WiFi module and Configurations\n" )
-        sh( 'rmmod mac80211_hwsim' )
-        sh( 'killall -9 hostapd' )
-        if(os.path.exists('ap.conf')):
-            sh( 'rm ap.conf' )
+        
+        try:
+            (subprocess.check_output("lsmod | grep mac80211_hwsim",
+                                                          shell=True))
+            sh( 'rmmod mac80211_hwsim' )
+        except:
+            pass
+        
+        h = sh('ps -aux | grep -ic hostpad')
+        if h >= 2:
+            sh('killall -9 hostapd')
+        if glob.glob("*.conf"):
+            os.system( 'rm *.conf' )
+        
+        if glob.glob("*.txt"):
+            os.system( 'rm *.txt' )
 
         info( "***  Removing OVS datapaths\n" )
         dps = sh("ovs-vsctl --timeout=1 list-br").strip().splitlines()

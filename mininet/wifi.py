@@ -12,6 +12,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import time
 
+from mininet.log import debug, info
 from mininet.wifiMobilityModels import gauss_markov, \
     truncated_levy_walk, random_direction, random_waypoint, random_walk, reference_point_group, tvc
 from mininet.wifiChannel import channelParameters    
@@ -62,7 +63,7 @@ class module( object ):
     def loadModule(self, wifiRadios):
         """ Start wireless Module """
         os.system( 'modprobe mac80211_hwsim radios=%s' % wifiRadios )
-        time.sleep(2)
+        debug( 'Loading %s virtual interfaces\n' % wifiRadios)
             
     def stop(self):
         """ Stop wireless Module """   
@@ -72,10 +73,17 @@ class module( object ):
         if glob.glob("*.txt"):
             os.system( 'rm *.txt' )
         
-        os.system( 'rmmod mac80211_hwsim' )
+        try:
+            subprocess.check_output("lsmod | grep mac80211_hwsim",
+                                                          shell=True)
+            os.system( 'rmmod mac80211_hwsim' )
+        except:
+            pass
       
-        if emulationEnvironment.apList!=[]:
-            os.system( 'killall -9 hostapd' )
+        h = subprocess.check_output("ps -aux | grep -ic hostpad",
+                                                          shell=True)
+        if h >= 2:
+            os.system('killall -9 hostapd')
         if emulationEnvironment.wpa_supplicantIsRunning:
             os.system( 'pkill -f \'wpa_supplicant -B\'' )
         

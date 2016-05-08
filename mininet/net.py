@@ -192,6 +192,7 @@ class Mininet( object ):
         self.missingStations = []
         self.missingWlanAP = []
         self.missingDataPath = {}
+        self.connections = {}
         self.newapif = []
         self.wifiNodes = []
         self.switches = []
@@ -905,7 +906,7 @@ class Mininet( object ):
                     wifiparam.setdefault( 'intf', intf )
                 else:
                     iface = ap.params.get('wlan')
-                    
+                   
                 ap.frequency.append(str(wlan))
                 ap.txpower.append(wlan)
                 ap.antennaHeight.append(0.1)
@@ -1085,6 +1086,7 @@ class Mininet( object ):
                     self.apexists.append(str(node1))
                 if str(node2) not in self.apexists:
                     self.apexists.append(str(node2))
+                self.connections[node1] = node2
                         
             elif node1.type == 'accessPoint' and str(node1) not in self.apexists \
                 or node2.type == 'accessPoint' and str(node2) not in self.apexists: 
@@ -1213,16 +1215,22 @@ class Mininet( object ):
         for switch in self.switches:
             if switch in self.missingWlanAP:
                 cls = None
-                cls = self.link if cls is None else cls
-                cls( switch, 'alone' )
+                cls = self.link if cls is None else cls               
+                if 'wlan' not in switch.params:
+                    cls( switch, 'alone' )
+                else:
+                    iface = switch.params.get('wlan')
+                    options = dict(  )
+                    options.setdefault( 'intfName1', iface )
+                    cls( switch, 'alone', **options )                                
         
         for switch in self.missingDataPath:
             for s in self.switches:
                 if str(s) == switch:
-                    Iface = self.missingDataPath[switch]
+                    iface = self.missingDataPath[switch]
                     cls = None
                     options = dict(  )
-                    options.setdefault( 'intfName1', Iface )
+                    options.setdefault( 'intfName1', iface )
                     cls = self.link if cls is None else cls
                     cls( s, 'alone', **options )                
         
@@ -1733,7 +1741,8 @@ class Mininet( object ):
             for wlan in range(0, node.nWlans):
                 iface = str(node)+'-wlan%s' % wlan
                 wifiParameters.getWiFiParameters(node, wlan, iface)
-            
+                
+        debug( 'Starting mobility thread\n' )
         self.thread = threading.Thread(name='onGoingMobility', target=mobility.mobility_PositionDefined, args=(self.start_time, stop_time, self.staMov))
         self.thread.daemon = True
         self.thread.start()
@@ -1769,13 +1778,14 @@ class Mininet( object ):
             mobility.MAX_Y = kwargs['max_y']
         emulationEnvironment.DRAW = True
        
-        if self.ifaceConfigured == False:
-            for node in self.wifiNodes:
-                plot.instantiateGraph(mobility.MAX_X, mobility.MAX_Y)
-                plot.instantiateNode(node, mobility.MAX_X, mobility.MAX_Y)
-                plot.instantiateAnnotate(node)
-                plot.instantiateCircle(node)
-                plot.graphUpdate(node)                
+        if self.isVanet == False:
+            if self.ifaceConfigured == False:
+                for node in self.wifiNodes:
+                    plot.instantiateGraph(mobility.MAX_X, mobility.MAX_Y)
+                    plot.instantiateNode(node, mobility.MAX_X, mobility.MAX_Y)
+                    plot.instantiateAnnotate(node)
+                    plot.instantiateCircle(node)
+                    plot.graphUpdate(node)                
         
     def getCurrentPosition(self, node):
         """ Get Current Position """ 

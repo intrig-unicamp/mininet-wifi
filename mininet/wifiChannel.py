@@ -80,13 +80,17 @@ class channelParameters ( object ):
             root handle 2: netem rate %.2fmbit \
             loss %.1f%% \
             latency %.2fms \
-            delay %.2fms" % (node, iface, wlan, bw, loss, latency, delay))   
+            delay %.2fms \
+            corrupt 0.1%%" % (node, iface, wlan, bw, loss, latency, delay))   
         #Reordering packets    
         #node.pexec('tc qdisc add dev %s-%s%s parent 2:1 pfifo limit 1000' % (node, iface, wlan))  
         
         
 class interference ( object ):
     """Calculate Interference"""
+    
+    i = 0
+    noise = 0
     
     def __init__( self, node1=None, node2=None, propagation_Model=None, staList=None, wlan=0 ):
         self.calculate(node1, node2, propagation_Model, staList, wlan)
@@ -96,44 +100,38 @@ class interference ( object ):
         sta = node1
         ap = node2
         model = propagation_Model
-        totalRange = 0
-        noise = 0
-        i=0
+        self.noise = 0
+        noisePower = 0
+        self.i=0
         signalPower = sta.rssi[wlan]
+        
         if node2 == None:
             for station in staList:
                 if station != sta and sta.isAssociated[wlan] == True:
-                    d = distance(sta, station)
-                    dist = d.dist
-                    totalRange = sta.range + station.range
-                    systemLoss = 1
-                    if dist < totalRange:
-                        value = propagationModel(sta, station, dist, wlan, model, systemLoss)
-                        n =  value.rssi + signalPower
-                        noise =+ n
-                        i+=1
+                    self.calculateNoise(sta, station, signalPower, wlan, model)
         else:
             for station in ap.associatedStations:
                 if station != sta and sta.associatedAp[wlan] != 'NoAssociated':
-                    d = distance(sta, station)
-                    dist = d.dist
-                    totalRange = sta.range + station.range
-                    systemLoss = 1
-                    if dist < totalRange:
-                        value = propagationModel(sta, station, dist, wlan, model, systemLoss)
-                        n =  value.rssi + signalPower
-                        noise =+ n
-                        i+=1
-        if i != 0:
-            noisePower = noise/i
+                    self.calculateNoise(sta, station, signalPower, wlan, model)
+                    
+        if self.noise != 0:
+            noisePower = self.noise/self.i
         signalPower = sta.rssi[wlan]
-        if i != 0:
-            sta.snr[wlan] = self.signalToNoiseRatio(signalPower, noisePower)
-        else:
-            sta.snr[wlan] = abs(signalPower)
+        sta.snr[wlan] = self.signalToNoiseRatio(signalPower, noisePower)
+            
+    def calculateNoise(self, sta, station, signalPower, wlan, model):
+        d = distance(sta, station)
+        dist = d.dist
+        totalRange = sta.range + station.range
+        systemLoss = 1
+        if dist < totalRange:
+            value = propagationModel(sta, station, dist, wlan, model, systemLoss)
+            n =  value.rssi + signalPower
+            self.noise =+ n
+            self.i+=1        
             
     def signalToNoiseRatio(self, signalPower, noisePower):    
-        """Calculating SNR"""
+        """Calculating SNR margin"""
         snr =  signalPower - noisePower
         return snr
 

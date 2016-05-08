@@ -57,7 +57,6 @@ import pty
 import re
 import signal
 import select
-import subprocess
 
 from subprocess import Popen, PIPE
 from time import sleep
@@ -137,7 +136,7 @@ class Node( object ):
         self.rssi = []
         self.wlanToAssociate = 0
         self.meshMac = []
-        self.type = ''
+        self.type = 'host'
         self.inRangeAPs = []
                 
         # Mobility Parameters
