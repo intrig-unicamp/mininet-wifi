@@ -33,7 +33,6 @@ class propagationModel ( object ):
         
         L = -27.56 + 10 * alpha * math.log10(dist) + 20 * math.log(node1.frequency[wlan])
         P = node2.txpower[wlan] * gR * gT * L
-        print P
     
     def friisPropagationLossModel(self, node1, node2, dist, wlan):
         """Friis Propagation Loss Model:
@@ -74,7 +73,6 @@ class propagationModel ( object ):
         
         try:
             self.rssi = (node2.txpower[wlan] * gT * gR * hT**2 * hR**2) / (d**4 * L)
-            print self.rssi
             return self.rssi
         except:
             return self.rssi
