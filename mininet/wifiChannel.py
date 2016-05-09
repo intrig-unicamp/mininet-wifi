@@ -8,7 +8,8 @@ from wifiDevices import deviceDataRate
 from wifiPropagationModels import propagationModel
 from wifiMobilityModels import distance
 from wifiEmulationEnvironment import emulationEnvironment
-import math, os
+import math
+import random
 
 class channelParameters ( object ):
     """Channel Parameters""" 
@@ -76,6 +77,8 @@ class channelParameters ( object ):
         if emulationEnvironment.loss != 0:
             loss = emulationEnvironment.loss
         
+        bw = random.uniform(bw-1, bw+1)
+        
         node.pexec("tc qdisc replace dev %s-%s%s \
             root handle 2: netem rate %.2fmbit \
             loss %.1f%% \
@@ -83,8 +86,7 @@ class channelParameters ( object ):
             delay %.2fms \
             corrupt 0.1%%" % (node, iface, wlan, bw, loss, latency, delay))   
         #Reordering packets    
-        #node.pexec('tc qdisc add dev %s-%s%s parent 2:1 pfifo limit 1000' % (node, iface, wlan))  
-        
+        #node.pexec('tc qdisc add dev %s-%s%s parent 2:1 pfifo limit 1000' % (node, iface, wlan))          
         
 class interference ( object ):
     """Calculate Interference"""
@@ -132,7 +134,7 @@ class interference ( object ):
             
     def signalToNoiseRatio(self, signalPower, noisePower):    
         """Calculating SNR margin"""
-        snr =  signalPower - noisePower
+        snr = signalPower - noisePower
         return snr
 
     def maxChannelNoise(self, node1, node2, wlan, modelValue):  

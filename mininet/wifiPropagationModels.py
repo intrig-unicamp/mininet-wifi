@@ -26,6 +26,15 @@ class propagationModel ( object ):
         self.rssi = txpower + modelValue   
         return self.rssi
     
+    def attenuation(self, node1, node2, dist, wlan):
+        alpha = 1
+        gT = node2.antennaGain[wlan] 
+        gR = node1.antennaGain[wlan]
+        
+        L = -27.56 + 10 * alpha * math.log10(dist) + 20 * math.log(node1.frequency[wlan])
+        P = node2.txpower[wlan] * gR * gT * L
+        print P
+    
     def friisPropagationLossModel(self, node1, node2, dist, wlan):
         """Friis Propagation Loss Model:
         (f) signal frequency transmited(Hz)

@@ -19,7 +19,6 @@ import glob
 
 from mininet.log import info
 from mininet.term import cleanUpScreens
-from mininet.wifiEmulationEnvironment import emulationEnvironment
 
 
 def sh( cmd ):
@@ -89,9 +88,12 @@ class Cleanup( object ):
         except:
             pass
         
-        h = sh('ps -aux | grep -ic hostpad')
-        if h >= 2:
-            sh('killall -9 hostapd')
+        try:
+            h = sh('ps -aux | grep -ic hostpad')
+            if h >= 2:
+                sh('killall -9 hostapd')
+        except:
+            pass
         if glob.glob("*.conf"):
             os.system( 'rm *.conf' )
         

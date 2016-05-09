@@ -79,11 +79,9 @@ class module( object ):
             os.system( 'rmmod mac80211_hwsim' )
         except:
             pass
-      
-        h = subprocess.check_output("ps -aux | grep -ic hostpad",
-                                                          shell=True)
-        if h >= 2:
-            os.system('killall -9 hostapd')
+        
+        if emulationEnvironment.apList!=[]:
+            os.system( 'killall -9 hostapd' )
         if emulationEnvironment.wpa_supplicantIsRunning:
             os.system( 'pkill -f \'wpa_supplicant -B\'' )
         
