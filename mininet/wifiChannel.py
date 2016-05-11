@@ -1,13 +1,12 @@
 """
-
 author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
-
 """
 
 from wifiDevices import deviceDataRate
 from wifiPropagationModels import propagationModel
-from wifiMobilityModels import distance
 from wifiEmulationEnvironment import emulationEnvironment
+from scipy.spatial.distance import pdist
+import numpy as np
 import math
 import random
 
@@ -18,14 +17,26 @@ class channelParameters ( object ):
     loss = 0
     latency = 0
     rate = 0
+    dist = 0
+    noise = 0
+    i = 0
     
     def __init__( self, node1, node2, wlan, dist, staList, time ):
+        self.calculateInterference(node1, node2, emulationEnvironment.propagation_Model, staList, wlan)
         self.delay = self.delay(dist, time)
         self.latency = self.latency(dist)
         self.loss = self.loss(dist)
         self.bw = self.bw(node1, node2, dist, wlan)
         self.tc(node1, wlan, self.bw, self.loss, self.latency, self.delay)
-        interference(node1, node2, emulationEnvironment.propagation_Model, staList, wlan)
+        
+    @classmethod
+    def getDistance(self, src, dst):
+        """ Get the distance between two nodes """
+        pos_src = src.position
+        pos_dst = dst.position
+        points = np.array([(pos_src[0], pos_src[1], pos_src[2]), (pos_dst[0], pos_dst[1], pos_dst[2])])
+        self.dist = pdist(points)
+        return self.dist
             
     def delay(self, dist, time):
         """"Based on RandomPropagationDelayModel"""
@@ -85,29 +96,15 @@ class channelParameters ( object ):
             latency %.2fms \
             delay %.2fms \
             corrupt 0.1%%" % (node, iface, wlan, bw, loss, latency, delay))   
-        #Reordering packets    
-        #node.pexec('tc qdisc add dev %s-%s%s parent 2:1 pfifo limit 1000' % (node, iface, wlan))          
         
-class interference ( object ):
-    """Calculate Interference"""
-    
-    i = 0
-    noise = 0
-    
-    def __init__( self, node1=None, node2=None, propagation_Model=None, staList=None, wlan=0 ):
-        self.calculate(node1, node2, propagation_Model, staList, wlan)
-    
-    def calculate (self, node1, node2, propagation_Model, staList, wlan):
-        
-        sta = node1
-        ap = node2
+    def calculateInterference (self, sta, ap, propagation_Model, staList, wlan):        
         model = propagation_Model
         self.noise = 0
         noisePower = 0
         self.i=0
         signalPower = sta.rssi[wlan]
         
-        if node2 == None:
+        if ap == None:
             for station in staList:
                 if station != sta and sta.isAssociated[wlan] == True:
                     self.calculateNoise(sta, station, signalPower, wlan, model)
@@ -115,15 +112,14 @@ class interference ( object ):
             for station in ap.associatedStations:
                 if station != sta and sta.associatedAp[wlan] != 'NoAssociated':
                     self.calculateNoise(sta, station, signalPower, wlan, model)
-                    
+        
         if self.noise != 0:
             noisePower = self.noise/self.i
         signalPower = sta.rssi[wlan]
         sta.snr[wlan] = self.signalToNoiseRatio(signalPower, noisePower)
             
     def calculateNoise(self, sta, station, signalPower, wlan, model):
-        d = distance(sta, station)
-        dist = d.dist
+        dist = self.getDistance(sta, station)
         totalRange = sta.range + station.range
         systemLoss = 1
         if dist < totalRange:

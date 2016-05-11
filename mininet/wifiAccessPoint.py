@@ -111,6 +111,7 @@ class accessPoint( object ):
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         info = fcntl.ioctl(s.fileno(), 0x8927,  struct.pack('256s', '%s'[:15]) % iface)
         mac = (''.join(['%02x:' % ord(char) for char in info[18:24]])[:-1])
+        ap.mac = mac
         self.checkNetworkManager(mac)
         
     def checkNetworkManager(self, mac):

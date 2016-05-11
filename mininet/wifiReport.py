@@ -5,7 +5,7 @@ author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
 
 """
 
-from mininet.wifiMobilityModels import distance
+from mininet.wifiChannel import channelParameters
 import os
 import threading
 
@@ -24,7 +24,6 @@ class report ( object ):
     def start(self, node, d):  
         while self.dist <= d:   
             ap = node.associatedAp[0]
-            d = distance(node, ap)
-            self.dist = d.dist
+            self.dist = channelParameters.getDistance(node, ap)
             os.system("echo %d %d >> data.text" % (self.dist, node.rssi[0]))
     

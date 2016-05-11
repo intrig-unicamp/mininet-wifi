@@ -54,7 +54,7 @@ class propagationModel ( object ):
             self.receivedPower(node1, node2, wlan, modelValue)
         except:
             return self.rssi
-                
+        
     def twoRayGroundPropagationLossModel(self, node1, node2, dist, wlan):
         """Two Ray Ground Propagation Loss Model:
         (gT): Tx Antenna Gain (dBi)

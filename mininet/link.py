@@ -232,6 +232,7 @@ class Intf( object ):
             iface = '%s-wlan%s' % (self.sta, wlan)
             print "associating %s to %s..." % (iface, ssid)
             self.confirmAdhocAssociation(self.sta, iface, wlan)     
+            self.sta.isAssociated[wlan] = True
             
     #Important to mesh networks
     @classmethod

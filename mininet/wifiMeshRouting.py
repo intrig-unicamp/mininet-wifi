@@ -3,7 +3,7 @@ author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
         ramonfontes.com
 """
 
-from mininet.wifiMobilityModels import distance
+from mininet.wifiChannel import channelParameters
 
 class listNodes ( object ):
     
@@ -24,8 +24,7 @@ class listNodes ( object ):
         
         for ref_sta in stationList:
             if ref_sta != sta:
-                d = distance(sta, ref_sta)
-                dist = d.dist
+                dist = channelParameters.getDistance(sta, ref_sta)
                 totalRange = sta.range + ref_sta.range
                 if dist < totalRange:
                     ref_distance = ref_distance + dist
@@ -53,8 +52,7 @@ class meshRouting ( object ):
            
             for ref_sta in stationList:
                 if ref_sta != sta:
-                    d = distance(sta, ref_sta)
-                    dist = d.dist
+                    dist = channelParameters.getDistance(sta, ref_sta)
                             
                     totalRange = sta.range + ref_sta.range
                     if dist < totalRange:
@@ -73,9 +71,6 @@ class meshRouting ( object ):
             if associate:
                 sta.pexec('ifconfig %s-%s%s up' % (sta, iface, wlan))
             
-                #for n in range (0, len(stationList)):
-                 #   sta.pexec('route del -net 10.0.0.0/8 gw 10.0.0.%s' % (n+1))
-                
                 sta.isAssociated[wlan] = True
                 exist = []
                 sta_ref = []
@@ -112,16 +107,11 @@ class meshRouting ( object ):
                         if y.meshMac[w] not in controlMeshMac:
                             sta.pexec('iw dev %s-%s%s mpath del %s' % (sta, iface, wlan, y.meshMac[w]))
             
-                #sta.cmd('%s' % (command[:-3]))
                 sta.isAssociated[wlan] = True
                 
             """mesh leave"""
             if associate == False:
                 sta.pexec('iw dev %s-%s%s mesh leave' % (sta, iface, wlan))
-                #sta.pexec('route add -net 10.0.0.0/8 dev %s-wlan1' % sta)
                 
                 sta.pexec('ifconfig %s-mp0 down' % sta)
                 sta.isAssociated[wlan] = False
-                
-                #for n in range (0, len(stationList)):
-                 #   sta.pexec('route add -net 10.0.0.0/8 gw 10.0.0.%s' % (n+1))

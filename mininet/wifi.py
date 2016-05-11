@@ -15,8 +15,7 @@ import time
 from mininet.log import debug
 from mininet.wifiMobilityModels import gauss_markov, \
     truncated_levy_walk, random_direction, random_waypoint, random_walk, reference_point_group, tvc
-from mininet.wifiChannel import channelParameters    
-from mininet.wifiMobilityModels import distance
+from mininet.wifiChannel import channelParameters
 from mininet.wifiAssociationControl import associationControl
 from mininet.wifiEmulationEnvironment import emulationEnvironment
 from mininet.wifiMeshRouting import listNodes, meshRouting
@@ -152,7 +151,8 @@ class station ( object ):
         ap = node2
                 
         if sta.passwd == None:
-            sta.pexec('iw dev %s-wlan%s connect %s' % (sta, wlan, ap.ssid[0]))
+            #sta.pexec('iw dev %s-wlan%s connect %s' % (sta, wlan, ap.ssid[0]))
+            sta.pexec('iwconfig %s-wlan%s essid %s ap %s' % (sta, wlan, ap.ssid[0], ap.mac))
         elif sta.encrypt == 'wpa' or sta.encrypt == 'wpa2':
             self.associate_wpa(sta, wlan, ap.ssid[0], sta.passwd)
         elif sta.encrypt == 'wep':
@@ -212,14 +212,16 @@ class mobility ( object ):
     def handover(self, sta, ap, wlan, distance, changeAP, ac=None, **params):
         """handover"""
         if ac == 'llf' or ac == 'ssf':
-            sta.pexec('iw dev %s-wlan%s disconnect' % (sta, wlan))
-            sta.pexec('iw dev %s-wlan%s connect %s' % (sta, wlan, ap.ssid[0]))
+            #sta.pexec('iw dev %s-wlan%s disconnect' % (sta, wlan))
+            #sta.pexec('iw dev %s-wlan%s connect %s' % (sta, wlan, ap.ssid[0]))
+            sta.pexec('iwconfig %s-wlan%s essid %s ap %s' % (sta, wlan, ap.ssid[0], ap.mac))
             #emulationEnvironment.getWiFiParameters(sta, wlan)
             sta.associatedAp[wlan] = ap
         elif ap not in sta.associatedAp:
             #Useful for stations with more than one wifi iface
             if sta.associatedAp[wlan] == 'NoAssociated':
-                sta.pexec('iw dev %s-wlan%s connect %s' % (sta, wlan, ap.ssid[0]))
+                #sta.pexec('iw dev %s-wlan%s connect %s' % (sta, wlan, ap.ssid[0]))
+                sta.pexec('iwconfig %s-wlan%s essid %s ap %s' % (sta, wlan, ap.ssid[0], ap.mac))
                 #emulationEnvironment.getWiFiParameters(sta, wlan)
                 ap.associatedStations.append(sta)
                 sta.associatedAp[wlan] = ap        
@@ -348,8 +350,7 @@ class mobility ( object ):
     @classmethod 
     def getAPsInRange(self, sta):
         for ap in emulationEnvironment.apList:
-            d = distance(sta, ap)
-            dist = d.dist          
+            dist = channelParameters.getDistance(sta, ap)
             if dist < ap.range + sta.range:
                 if ap not in sta.inRangeAPs:
                     sta.inRangeAPs.append(ap)
@@ -361,8 +362,7 @@ class mobility ( object ):
     def nodeParameter(self, sta, wlan):
         for ap in emulationEnvironment.apList:
             if 'wlan' not in ap.params:
-                d = distance(sta, ap)
-                dist = d.dist
+                dist = channelParameters.getDistance(sta, ap)
                 self.getAPsInRange(sta)
                 self.setChannelParameters(sta, ap, dist, wlan)  
                             
@@ -388,10 +388,8 @@ class mobility ( object ):
                 pass
     
     @classmethod    
-    def setChannelParameters(self, node1, node2, dist, wlan):
+    def setChannelParameters(self, sta, ap, dist, wlan):
         """ Wifi Parameters """
-        sta = node1
-        ap = node2
         associated = True
         time = abs(sta.speed)
         staList = emulationEnvironment.staList

@@ -1,6 +1,6 @@
-from wifiEmulationEnvironment import emulationEnvironment
-from mininet.wifiMobilityModels import distance
+from mininet.wifiEmulationEnvironment import emulationEnvironment
 from mininet.wifiPropagationModels import propagationModel
+from mininet.wifiChannel import channelParameters
 
 class associationControl ( object ):
     
@@ -24,10 +24,8 @@ class associationControl ( object ):
         elif ac == "ssf": #useful for ssf (Strongest-signal-first)
             if emulationEnvironment.propagation_Model == '':
                 emulationEnvironment.propagation_Model = 'friisPropagationLossModel'
-            
-            d = distance(node1, node2)
-            ref_Distance = d.dist
-            refValue = propagationModel(node1, node2, ref_Distance, wlan, emulationEnvironment.propagation_Model, self.systemLoss)
+            refDistance = channelParameters.getDistance(node1, node2)
+            refValue = propagationModel(node1, node2, refDistance, wlan, emulationEnvironment.propagation_Model, self.systemLoss)
             if refValue.rssi > float(node1.rssi[wlan] + 0.1):
                 self.changeAP = True
         return self.changeAP  

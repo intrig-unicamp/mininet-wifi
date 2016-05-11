@@ -114,9 +114,9 @@ from mininet.wifiPlot import plot
 from mininet.wifiEmulationEnvironment import emulationEnvironment
 from mininet.wifiDevices import deviceRange, deviceDataRate
 from mininet.wifiParameters import wifiParameters
-from mininet.wifiMobilityModels import distance
 from mininet.wifiAccessPoint import accessPoint
 from mininet.wifiReport import report
+from mininet.wifiChannel import channelParameters
 
 sys.path.append(str(os.getcwd())+'/mininet/')
 from sumo.runner import sumo
@@ -124,7 +124,7 @@ from mininet.vanet import vanet
 from __builtin__ import True
 
 # Mininet version: should be consistent with README and LICENSE
-VERSION = "1.8r4"
+VERSION = "1.8r5"
 
 class Mininet( object ):
     "Network emulation with hosts spawned in network namespaces."
@@ -765,8 +765,7 @@ class Mininet( object ):
     
     def addMesh( self, sta, cls=None, **params ):
         
-        wlan = sta.wlanToAssociate
-        
+        wlan = sta.wlanToAssociate        
         sta.func[wlan] = 'mesh' 
         
         if self.firstAssociation:
@@ -891,8 +890,7 @@ class Mininet( object ):
             if (sta == node):
                 #station.adhoc(sta, **options)
                 if sta in self.missingStations:
-                    self.missingStations.remove(sta)        
-        
+                    self.missingStations.remove(sta)       
         return link
       
     def configureAP(self):
@@ -1047,8 +1045,7 @@ class Mininet( object ):
                 
                 #If sta/ap have defined position 
                 if sta.position !=0 and ap.position !=0:
-                    d = distance(sta, ap)
-                    dist = d.dist
+                    dist = channelParameters.getDistance(sta, ap)
                     if dist > ap.range:
                         doAssociation = False
                     else:
@@ -1238,6 +1235,25 @@ class Mininet( object ):
                     cls( s, 'alone', **options )                
         
         if self.ifaceConfigured == True:
+            for sta in self.stations:
+                for wlan in range(0, sta.nWlans):
+                    if sta.func[wlan] == 'adhoc':
+                        iface = str(sta)+'-wlan%s' % wlan
+                        wifiParameters.getWiFiParameters(sta, wlan, iface)
+                        dist = 0
+                        i=0
+                        for ref in self.wifiNodes:
+                            if ref != sta:
+                                d = channelParameters.getDistance(sta, ref)
+                                dist += d
+                                i+=1
+                        if i == 0:
+                            dist = dist
+                        else:
+                            dist = dist/i
+                        channelParameters(sta, None, wlan, dist, self.stations, 0 )
+                        mobility.nodeParameter(sta, wlan)
+            
             for node in self.missingStations:
                 for wlan in range(0, node.nWlans):
                     cls = None
@@ -1370,13 +1386,13 @@ class Mininet( object ):
         info( '\n' )
         if(emulationEnvironment.isWiFi):
             "Stop plotting"
-            emulationEnvironment.continue_ = False
             emulationEnvironment.DRAW = False
-            module(action = 'stop') #Stopping WiFi Module        
             try:
                 plot.closePlot()
             except:
-                pass            
+                pass        
+            emulationEnvironment.continue_ = False
+            module(action = 'stop') #Stopping WiFi Module        
         info( '\n*** Done\n' )
         #os._exit(1)
          
@@ -1768,8 +1784,7 @@ class Mininet( object ):
                    
     def printDistance(self, src, dst):
         """ Print the distance between two points """
-        d = distance(src, dst)
-        dist = d.dist
+        dist = channelParameters.getDistance(src, dst)
         print ("The distance between %s and %s is %.2f meters\n" % (src, dst, float(dist)))
         
     def report_(self, node, d ):

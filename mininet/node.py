@@ -71,7 +71,6 @@ from distutils.version import StrictVersion
 from mininet.wifiEmulationEnvironment import emulationEnvironment
 from mininet.wifiAccessPoint import accessPoint
 from mininet.wifiPlot import plot
-from mininet.wifiMobilityModels import distance
 from mininet.wifiChannel import channelParameters
 from mininet.wifiParameters import wifiParameters
 from mininet.wifi import mobility
