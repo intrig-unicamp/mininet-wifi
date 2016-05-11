@@ -212,17 +212,15 @@ class mobility ( object ):
     def handover(self, sta, ap, wlan, distance, changeAP, ac=None, **params):
         """handover"""
         if ac == 'llf' or ac == 'ssf':
-            #sta.pexec('iw dev %s-wlan%s disconnect' % (sta, wlan))
+            sta.pexec('iw dev %s-wlan%s disconnect' % (sta, wlan))
             #sta.pexec('iw dev %s-wlan%s connect %s' % (sta, wlan, ap.ssid[0]))
             sta.pexec('iwconfig %s-wlan%s essid %s ap %s' % (sta, wlan, ap.ssid[0], ap.mac))
-            #emulationEnvironment.getWiFiParameters(sta, wlan)
             sta.associatedAp[wlan] = ap
         elif ap not in sta.associatedAp:
             #Useful for stations with more than one wifi iface
             if sta.associatedAp[wlan] == 'NoAssociated':
                 #sta.pexec('iw dev %s-wlan%s connect %s' % (sta, wlan, ap.ssid[0]))
                 sta.pexec('iwconfig %s-wlan%s essid %s ap %s' % (sta, wlan, ap.ssid[0], ap.mac))
-                #emulationEnvironment.getWiFiParameters(sta, wlan)
                 ap.associatedStations.append(sta)
                 sta.associatedAp[wlan] = ap        
         emulationEnvironment.numberOfAssociatedStations(ap)
