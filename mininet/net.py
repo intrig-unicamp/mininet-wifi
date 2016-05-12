@@ -1240,19 +1240,7 @@ class Mininet( object ):
                     if sta.func[wlan] == 'adhoc':
                         iface = str(sta)+'-wlan%s' % wlan
                         wifiParameters.getWiFiParameters(sta, wlan, iface)
-                        dist = 0
-                        i=0
-                        for ref in self.wifiNodes:
-                            if ref != sta:
-                                d = channelParameters.getDistance(sta, ref)
-                                dist += d
-                                i+=1
-                        if i == 0:
-                            dist = dist
-                        else:
-                            dist = dist/i
-                        channelParameters(sta, None, wlan, dist, self.stations, 0 )
-                        mobility.nodeParameter(sta, wlan)
+                        channelParameters(sta, None, wlan, 0, self.stations, 0 )
             
             for node in self.missingStations:
                 for wlan in range(0, node.nWlans):

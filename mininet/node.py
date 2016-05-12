@@ -228,8 +228,7 @@ class Node( object ):
             if sta.func[wlan] == 'mesh' or sta.func[wlan] == 'adhoc':
                 associate = False
                 for station in emulationEnvironment.staList:
-                    d = distance(sta, station)
-                    d = d.dist
+                    d = channelParameters.getDistance(sta, station)
                     if d < sta.range + station.range:
                         associate = True
                 if associate == False:
@@ -237,8 +236,7 @@ class Node( object ):
             else:
                 for n in range(2):
                     for ap in emulationEnvironment.apList:
-                        d = distance(sta, ap)
-                        d = d.dist
+                        d = channelParameters.getDistance(sta, ap)
                         mobility.setChannelParameters(sta, ap, d, wlan)
         mobility.getAPsInRange(sta)
         
@@ -277,8 +275,7 @@ class Node( object ):
             if ap == str(emulationEnvironment.apList[n]):
                 ap = emulationEnvironment.apList[n]
                 break
-        d = distance(self, ap)
-        d = d.dist
+        d = channelParameters.getDistance(self, ap)
         if d < self.range + ap.range:
             if self.associatedAp[wlan] != ap:
                 if self.associatedAp[wlan] != 'none':

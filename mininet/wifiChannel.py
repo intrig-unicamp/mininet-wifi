@@ -22,11 +22,12 @@ class channelParameters ( object ):
     i = 0
     
     def __init__( self, node1, node2, wlan, dist, staList, time ):
-        self.calculateInterference(node1, node2, emulationEnvironment.propagation_Model, staList, wlan)
-        self.delay = self.delay(dist, time)
-        self.latency = self.latency(dist)
-        self.loss = self.loss(dist)
-        self.bw = self.bw(node1, node2, dist, wlan)
+        self.dist = dist
+        self.calculateInterference(node1, node2, dist, emulationEnvironment.propagation_Model, staList, wlan)
+        self.delay = self.delay(self.dist, time)
+        self.latency = self.latency(self.dist)
+        self.loss = self.loss(self.dist)
+        self.bw = self.bw(node1, node2, self.dist, wlan)
         self.tc(node1, wlan, self.bw, self.loss, self.latency, self.delay)
         
     @classmethod
@@ -35,15 +36,15 @@ class channelParameters ( object ):
         pos_src = src.position
         pos_dst = dst.position
         points = np.array([(pos_src[0], pos_src[1], pos_src[2]), (pos_dst[0], pos_dst[1], pos_dst[2])])
-        self.dist = pdist(points)
-        return self.dist
+        dist = pdist(points)
+        return dist
             
     def delay(self, dist, time):
         """"Based on RandomPropagationDelayModel"""
         if time != 0:
             self.delay = dist/time
         else:
-            self.delay = dist/10
+            self.delay = dist/1.5
         return self.delay   
     
     def latency(self, dist):    
@@ -66,12 +67,14 @@ class channelParameters ( object ):
         custombw = value.rate
         self.rate = value.rate
         if node2 == None:
-            node1.rssi[wlan] = -50 - dist
-            self.rate = custombw * (1.1 ** -dist)
+            if self.i != 0:
+                dist = self.dist/self.i
+            node1.rssi[wlan] = -50 - float(dist)
+            self.rate = (custombw * (1.1 ** -dist))/5
         else:
             if dist != 0: 
                 value = propagationModel(node1, node2, dist, wlan, emulationEnvironment.propagation_Model, systemLoss)
-                node1.rssi[wlan] = value.rssi
+                node1.rssi[wlan] = random.uniform(value.rssi-1, value.rssi+1)
                 if node2.equipmentModel == None:
                     self.rate = custombw * (1.1 ** -dist)     
         self.rate = self.rate - self.loss*2
@@ -97,14 +100,15 @@ class channelParameters ( object ):
             delay %.2fms \
             corrupt 0.1%%" % (node, iface, wlan, bw, loss, latency, delay))   
         
-    def calculateInterference (self, sta, ap, propagation_Model, staList, wlan):        
+    def calculateInterference (self, sta, ap, dist, propagation_Model, staList, wlan):        
         model = propagation_Model
         self.noise = 0
         noisePower = 0
         self.i=0
-        signalPower = sta.rssi[wlan]
+        signalPower = sta.rssi[wlan]        
         
         if ap == None:
+            self.dist = 0
             for station in staList:
                 if station != sta and sta.isAssociated[wlan] == True:
                     self.calculateNoise(sta, station, signalPower, wlan, model)
@@ -115,18 +119,24 @@ class channelParameters ( object ):
         
         if self.noise != 0:
             noisePower = self.noise/self.i
-        signalPower = sta.rssi[wlan]
-        sta.snr[wlan] = self.signalToNoiseRatio(signalPower, noisePower)
+            self.dist = self.dist + dist
+            signalPower = sta.rssi[wlan]
+            snr = self.signalToNoiseRatio(signalPower, noisePower)
+            sta.snr[wlan] = random.uniform(snr-1, snr+1)
+        else:
+            sta.snr[wlan] = 0
             
     def calculateNoise(self, sta, station, signalPower, wlan, model):
         dist = self.getDistance(sta, station)
         totalRange = sta.range + station.range
         systemLoss = 1
         if dist < totalRange:
+            dist = totalRange - dist
             value = propagationModel(sta, station, dist, wlan, model, systemLoss)
             n =  value.rssi + signalPower
             self.noise =+ n
-            self.i+=1        
+            self.i+=1    
+            self.dist =+ dist   
             
     def signalToNoiseRatio(self, signalPower, noisePower):    
         """Calculating SNR margin"""
