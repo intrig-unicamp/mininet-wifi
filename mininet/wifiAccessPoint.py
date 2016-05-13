@@ -10,6 +10,8 @@ from mininet.wifiParameters import wifiParameters
 from mininet.wifiDevices import deviceDataRate
 
 class accessPoint( object ):
+    
+    wpa_supplicantIsRunning = False
 
     def __init__( self, ap, country_code=None, auth_algs=None, wpa=None, intf=None, wlan=None,
               wpa_key_mgmt=None, rsn_pairwise=None, wpa_passphrase=None, encrypt=None, 

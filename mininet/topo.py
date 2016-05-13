@@ -12,7 +12,6 @@ setup for testing, and can even be emulated with the Mininet package.
 """
 
 from mininet.util import irange, natural, naturalSeq
-from mininet.wifi import emulationEnvironment
 
 class MultiGraph( object ):
     "Utility class to track nodes and edges - replaces networkx.MultiGraph"
@@ -326,7 +325,8 @@ class Topo( object ):
 class SingleSwitchTopo( Topo ):
     "Single switch connected to k hosts."
     def build( self, k=2, **_opts ):
-        if(emulationEnvironment.isWiFi):
+        isWiFi = _opts.get('isWiFi')
+        if isWiFi:
             "k: number of hosts"
             self.k = k
             baseStation = self.addBaseStation( 'ap1' )
@@ -348,8 +348,9 @@ class SingleSwitchReversedTopo( Topo ):
        Useful to verify that Mininet properly handles custom port
        numberings."""
 
-    def build( self, k=2 ):
-        if(emulationEnvironment.isWiFi):
+    def build( self, k=2,  **_opts ):
+        isWiFi = _opts.get('isWiFi')
+        if isWiFi :
             "k: number of hosts"
             self.k = k
             switch = self.addSwitch( 'ap1' )
@@ -369,16 +370,16 @@ class SingleSwitchReversedTopo( Topo ):
 
 class MinimalTopo( SingleSwitchTopo ):
     "Minimal topology with two hosts and one switch"
-    def build( self ):
-        return SingleSwitchTopo.build( self, k=2 )
+    def build( self, isWiFi ):
+        return SingleSwitchTopo.build( self, k=2, isWiFi=isWiFi )
 
 
 class LinearTopo( Topo ):
     "Linear topology of k switches, with n hosts per switch."
 
     def build( self, k=2, n=1, **_opts):
-        
-        if(emulationEnvironment.isWiFi):
+        isWiFi = _opts.get('isWiFi')
+        if isWiFi:
             """k: number of switches
                n: number of hosts per switch"""
             self.k = k

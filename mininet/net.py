@@ -109,14 +109,17 @@ from mininet.util import ( quietRun, fixLimits, numCores, ensureRoot,
                            macColonHex, ipStr, ipParse, netParse, ipAdd,
                            waitListening )
 from mininet.term import cleanUpScreens, makeTerms
-from mininet.wifi import module, station, mobility, getWlan
-from mininet.wifiPlot import plot
-from mininet.wifiEmulationEnvironment import emulationEnvironment
-from mininet.wifiDevices import deviceRange, deviceDataRate
-from mininet.wifiParameters import wifiParameters
+from mininet.wifiAssociation import association
 from mininet.wifiAccessPoint import accessPoint
-from mininet.wifiReport import report
 from mininet.wifiChannel import channelParameters
+from mininet.wifiDevices import deviceRange, deviceDataRate
+from mininet.wifiMobility import mobility
+from mininet.wifiModule import module
+from mininet.wifiParameters import wifiParameters
+from mininet.wifiPlot import plot
+from mininet.wifiReport import report
+from mininet.wifiPropagationModels import propagationModel_
+from mininet.wifiMeshRouting import meshRouting
 
 sys.path.append(str(os.getcwd())+'/mininet/')
 from sumo.runner import sumo
@@ -129,8 +132,8 @@ VERSION = "1.8r5"
 class Mininet( object ):
     "Network emulation with hosts spawned in network namespaces."
 
-    def __init__( self, topo=None, switch=OVSKernelSwitch, host=Host,
-                  controller=DefaultController, link=Link, intf=Intf,
+    def __init__( self, topo=None, switch=OVSKernelSwitch, host=Host, isWiFi=False,
+                  controller=DefaultController, link=Link, intf=Intf, wifiRadios=0,
                   build=True, xterms=False, cleanup=False, ipBase='10.0.0.0/8',
                   inNamespace=False, autoSetMacs=False, autoStaticArp=False, autoPinCpus=False,
                   listenPort=None, waitConnected=False, 
@@ -200,8 +203,10 @@ class Mininet( object ):
         self.virtualWlan = []
         self.fixedPosition = []
         self.terms = []  # list of spawned xterm processes
+        self.isWiFi = isWiFi
+        self.wifiRadios = wifiRadios
         Mininet.init()  # Initialize Mininet if necessary
-       
+        
         self.built = False
         if topo and build:
             self.build()
@@ -345,18 +350,18 @@ class Mininet( object ):
                 
         wifi = ("%s" % params.pop('wlans', {}))
         if(wifi!="{}"):        
-            emulationEnvironment.wifiRadios += int(wifi)
+            self.wifiRadios += int(wifi)
             for n in range(int(wifi)):
                 self.virtualWlan.append(name)    
                 sta.func.append('none')            
         else:
-            emulationEnvironment.wifiRadios += 1
+            self.wifiRadios += 1
             wifi = 1
             sta.func.append('none')
             self.virtualWlan.append(name)
         sta.nWlans = int(wifi)
         
-        emulationEnvironment.staList.append( sta )
+        mobility.staList.append( sta )
         self.nextIP += 1        
         return sta
 
@@ -452,12 +457,12 @@ class Mininet( object ):
                 
         wifi = ("%s" % params.pop('wlans', {}))
         if(wifi!="{}"):        
-            emulationEnvironment.wifiRadios += int(wifi)
+            self.wifiRadios += int(wifi)
             for n in range(int(wifi)):
                 self.virtualWlan.append(name)    
                 sta.func.append('none')            
         else:
-            emulationEnvironment.wifiRadios += 1
+            self.wifiRadios += 1
             sta.func.append('none')
             wifi = 1
             self.virtualWlan.append(name)
@@ -542,17 +547,17 @@ class Mininet( object ):
             
         wifi = ("%s" % params.pop('wlans', {}))
         if(wifi!="{}"):        
-            emulationEnvironment.wifiRadios += int(wifi)
+            self.wifiRadios += int(wifi)
             for n in range(int(wifi)):
                 self.virtualWlan.append(name+str(n))
         else:
-            emulationEnvironment.wifiRadios += 1
+            self.wifiRadios += 1
             wifi = 1
             self.virtualWlan.append(name+str(0))
         bs.nWlans = int(wifi)
         
         self.missingWlanAP.append(bs)
-        emulationEnvironment.apList.append( bs )
+        mobility.apList.append( bs )
         self.switches.append( bs )          
         self.accessPoints.append( bs ) 
         
@@ -637,7 +642,7 @@ class Mininet( object ):
         bs.nWlans = 1
         
         self.missingWlanAP.append(bs)
-        emulationEnvironment.apList.append( bs )
+        mobility.apList.append( bs )
         self.switches.append( bs )          
         self.accessPoints.append( bs ) 
         
@@ -982,11 +987,11 @@ class Mininet( object ):
                                 
     def configureWifiNodes(self):
         if self.ifaceConfigured == False:
-            module(action = 'start', wifiRadios = emulationEnvironment.wifiRadios)
-            emulationEnvironment.isWiFi = True
+            physicalWlan, totalPhy = module.start(self.wifiRadios)
+            self.isWiFi = True
             self.link = TCLink
-            self.newapif = getWlan.virtual()  #Get Virtual Wlans      
-            station.assingIface(self.stations, self.virtualWlan)
+            self.newapif = module.getWlanIface(physicalWlan)  #Get Virtual Wlans      
+            module.assingIface(self.stations, self.virtualWlan, physicalWlan, totalPhy)
             self.ifaceConfigured = True
             self.configureAP() #configure AP
             self.firstAssociation = False            
@@ -1029,7 +1034,7 @@ class Mininet( object ):
                     self.missingStations.remove(sta)
                 
                 if sta.mac != '':
-                    station.setMac(sta) 
+                    Node.setMac(sta) 
                     
                 value = deviceDataRate(ap, sta, None)
                 self.bw = value.rate
@@ -1055,7 +1060,7 @@ class Mininet( object ):
                     doAssociation = True
                                 
                 if(doAssociation):
-                    station.associate(sta, ap)
+                    Node.associate(sta, ap)
             return link
         
         else:
@@ -1147,7 +1152,7 @@ class Mininet( object ):
         """Build mininet from a topology object
            At the end of this function, everything should be connected
            and up."""
-        emulationEnvironment.printCon = False
+        association.printCon = False
         # Possibly we should clean up here and/or validate
         # the topo
         if self.cleanup:
@@ -1210,7 +1215,7 @@ class Mininet( object ):
     def build( self ):
         #useful if there no link between sta and any other device
         "Build mininet."
-        emulationEnvironment.isCode=True
+        association.isCode=True
         
         for switch in self.switches:
             if switch in self.missingWlanAP:
@@ -1237,10 +1242,14 @@ class Mininet( object ):
         if self.ifaceConfigured == True:
             for sta in self.stations:
                 for wlan in range(0, sta.nWlans):
+                    iface = str(sta)+'-wlan%s' % wlan
+                    wifiParameters.getWiFiParameters(sta, wlan, iface)
                     if sta.func[wlan] == 'adhoc':
-                        iface = str(sta)+'-wlan%s' % wlan
-                        wifiParameters.getWiFiParameters(sta, wlan, iface)
                         channelParameters(sta, None, wlan, 0, self.stations, 0 )
+                    else:
+                        if sta.position != (0,0,0):
+                            dist = channelParameters.getDistance(sta, sta.associatedAp[wlan])
+                            channelParameters(sta, sta.associatedAp[wlan], wlan, dist, self.stations, 0 )
             
             for node in self.missingStations:
                 for wlan in range(0, node.nWlans):
@@ -1294,7 +1303,7 @@ class Mininet( object ):
                     src.setARP( ip=dst.IP(), mac=dst.MAC() )
 
     def start( self ):
-        emulationEnvironment.isCode = False
+        association.isCode = False
         "Start controller and switches."
         if not self.built:
             self.build()
@@ -1372,15 +1381,15 @@ class Mininet( object ):
             info( host.name + ' ' )
             host.terminate()
         info( '\n' )
-        if(emulationEnvironment.isWiFi):
+        if(self.isWiFi):
             "Stop plotting"
-            emulationEnvironment.DRAW = False
+            mobility.DRAW = False
             try:
                 plot.closePlot()
             except:
                 pass        
-            emulationEnvironment.continue_ = False
-            module(action = 'stop') #Stopping WiFi Module        
+            mobility.continue_ = False
+            module.stop() #Stopping WiFi Module        
         info( '\n*** Done\n' )
         #os._exit(1)
          
@@ -1768,7 +1777,7 @@ class Mininet( object ):
             
     def meshRouting(self, routing):
         if routing != '':
-            emulationEnvironment.meshRouting = routing
+            meshRouting.routing = routing
                    
     def printDistance(self, src, dst):
         """ Print the distance between two points """
@@ -1786,7 +1795,7 @@ class Mininet( object ):
             mobility.MAX_X = kwargs['max_x']
         if 'max_y' in kwargs:
             mobility.MAX_Y = kwargs['max_y']
-        emulationEnvironment.DRAW = True
+        mobility.DRAW = True
        
         if self.isVanet == False:
             if self.ifaceConfigured == False:
@@ -1816,14 +1825,13 @@ class Mininet( object ):
         \nPosition Y: %.2f \
         \nPosition Z: %.2f\n" % (str(node), float(self.pos_x), float(self.pos_y), float(self.pos_z))
                         
-    def propagationModel(self, model):
-        emulationEnvironment.propagation_Model = model
+    def propagationModel(self, model, exp=2, sl=1):
+        propagationModel_.model = model
+        propagationModel_.exp = exp
+        propagationModel_.sl = sl
         
     def associationControl(self, ac):
-        emulationEnvironment.associationControlMethod = ac
-        
-    def loss(self, l):
-        emulationEnvironment.loss = l
+        mobility.associationControlMethod = ac        
     
     def deviceInfo(self, device):
         """ Devices Info """         

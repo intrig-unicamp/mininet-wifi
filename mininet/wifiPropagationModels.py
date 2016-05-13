@@ -7,15 +7,15 @@ author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
 
 import math
 
-class propagationModel ( object ):
+class propagationModel_ ( object ):
     """ Propagation Models """
     
     rssi = -62
+    model = ''
+    exp = 0 #Exponent
+    sl = 2 #System Loss
         
-    def __init__( self, node1=None, node2=None, dist=0, wlan=None, model=None, systemLoss=1 ):
-        self.model = model        
-        self.systemLoss = systemLoss
-        
+    def __init__( self, node1=None, node2=None, dist=0, wlan=None ):
         if self.model in dir(self):
             self.__getattribute__(self.model)(node1, node2, dist, wlan)
      
@@ -40,20 +40,16 @@ class propagationModel ( object ):
         (d) is the distance between the transmitter and the receiver (m)
         (c) speed of light in vacuum (m)
         (L) System loss"""          
-        
         f = (node1.frequency[wlan] * 10**9) #Convert Ghz to Hz
         d = dist 
         c = 299792458.0 
-        L = self.systemLoss 
+        L = self.sl
         
-        try:
-            lambda_ = c / f # lambda: wavelength (m)
-            numerator = lambda_**2
-            denominator = (4 * math.pi * d)**2 * L
-            modelValue = 10 * math.log10(numerator / denominator)
-            self.receivedPower(node1, node2, wlan, modelValue)
-        except:
-            return self.rssi
+        lambda_ = c / f # lambda: wavelength (m)
+        numerator = lambda_**2
+        denominator = (4 * math.pi * d)**2 * L
+        modelValue = 10 * math.log10(numerator / denominator)
+        self.receivedPower(node1, node2, wlan, modelValue)
         
     def twoRayGroundPropagationLossModel(self, node1, node2, dist, wlan):
         """Two Ray Ground Propagation Loss Model:
@@ -85,10 +81,9 @@ class propagationModel ( object ):
         (d) is the distance between the transmitter and the receiver (m)"""        
         referenceDistance = 1
         referenceLoss = 46.6777
-        exponent = 2
         if dist == 0:
             dist = 0.1
-        pathLossDb = 10 * exponent * math.log10(dist / referenceDistance)
+        pathLossDb = 10 * self.exp * math.log10(dist / referenceDistance)
         rxc = - referenceLoss - pathLossDb
         self.rssi = node2.txpower[wlan] + rxc
         return self.rssi

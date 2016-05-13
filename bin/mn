@@ -23,7 +23,6 @@ if 'PYTHONPATH' in os.environ:
 from mininet.clean import cleanup
 from mininet.cli import CLI
 from mininet.log import lg, LEVELS, info, debug, warn, error
-from mininet.wifiEmulationEnvironment import emulationEnvironment
 from mininet.net import Mininet, MininetWithControlNet, VERSION
 from mininet.node import ( Host, CPULimitedHost, Controller, OVSController,
                            Ryu, NOX, RemoteController, findController,
@@ -304,13 +303,6 @@ class MininetRunner( object ):
             cleanup()
             exit()
 
-        if self.options.radios != 0:
-            emulationEnvironment.isWiFi = True
-            emulationEnvironment.wifiRadios = self.options.radios
-              
-        if self.options.wifi and self.options.radios == 0:
-            emulationEnvironment.isWiFi = True
-            
         start = time.time()
        
         if not self.options.controller:
@@ -328,17 +320,23 @@ class MininetRunner( object ):
                     raise Exception( "Could not find a default controller "
                                      "for switch %s" %
                                      self.options.switch )
-
-        topo = buildTopo( TOPOS, self.options.topo )
+        isWiFi = False
+        wifiRadios = 0
+        if self.options.radios != 0:
+            isWiFi = True
+            wifiRadios = self.options.radios              
+        if self.options.wifi and self.options.radios == 0:
+            isWiFi = True
+        
+        topo = buildTopo( TOPOS, self.options.topo, self.options.wifi )
         switch = customClass( SWITCHES, self.options.switch )
         host = customClass( HOSTS, self.options.host )
         controller = [ customClass( CONTROLLERS, c )
                        for c in self.options.controller ]
         link = customClass( LINKS, self.options.link )
-
         if self.validate:
             self.validate( self.options )
-
+        
         ipBase = self.options.ipbase
         xterms = self.options.xterms
         mac = self.options.mac
@@ -367,19 +365,22 @@ class MininetRunner( object ):
             host, switch, link = RemoteHost, RemoteOVSSwitch, RemoteLink
             Net = partial( MininetCluster, servers=servers,
                            placement=PLACEMENT[ self.options.placement ] )
-
+        
+        
         mn = Net( topo=topo,
                   switch=switch, host=host, controller=controller,
                   link=link,
                   ipBase=ipBase,
                   inNamespace=inNamespace,
+                  isWiFi=isWiFi,
+                  wifiRadios=wifiRadios,
                   channel=channel,
                   mode=mode,
                   ssid=ssid,
                   xterms=xterms, autoSetMacs=mac,
                   autoStaticArp=arp, autoPinCpus=pin,
                   listenPort=listenPort )
-
+        
         if self.options.ensure_value( 'nat', False ):
             nat = mn.addNAT( *self.options.nat_args,
                              **self.options.nat_kwargs )
@@ -408,7 +409,6 @@ class MininetRunner( object ):
 
         if self.options.post:
             cli( mn, script=self.options.post )
-
 
         mn.stop()
 

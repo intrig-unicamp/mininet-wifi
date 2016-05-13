@@ -1,10 +1,8 @@
-from mininet.wifiEmulationEnvironment import emulationEnvironment
-from mininet.wifiPropagationModels import propagationModel
+from mininet.wifiPropagationModels import propagationModel_
 from mininet.wifiChannel import channelParameters
 
 class associationControl ( object ):
     
-    systemLoss = 1    
     changeAP = False
     
     def __init__( self, node1, node2, wlan, ac ):
@@ -15,17 +13,16 @@ class associationControl ( object ):
         if ac == "llf": #useful for llf (Least-loaded-first)
             apref = node1.associatedAp[wlan]
             if apref != 'NoAssociated':
-                #accessPoint.numberOfAssociatedStations(apref)
                 ref_llf = apref.nAssociatedStations
                 if node2.nAssociatedStations+2 < ref_llf:
                     self.changeAP = True
             else:
                 self.changeAP = True
         elif ac == "ssf": #useful for ssf (Strongest-signal-first)
-            if emulationEnvironment.propagation_Model == '':
-                emulationEnvironment.propagation_Model = 'friisPropagationLossModel'
+            if propagationModel_.model == '':
+                propagationModel_.model = 'friisPropagationLossModel'
             refDistance = channelParameters.getDistance(node1, node2)
-            refValue = propagationModel(node1, node2, refDistance, wlan, emulationEnvironment.propagation_Model, self.systemLoss)
+            refValue = propagationModel_(node1, node2, refDistance, wlan)
             if refValue.rssi > float(node1.rssi[wlan] + 0.1):
                 self.changeAP = True
         return self.changeAP  

@@ -11,6 +11,7 @@ from fcntl import fcntl, F_GETFL, F_SETFL
 from os import O_NONBLOCK
 import os
 from functools import partial
+from test.test_support import args_from_interpreter_flags
 # Command execution support
 
 def run( cmd ):
@@ -590,11 +591,12 @@ def specialClass( cls, prepend=None, append=None,
     return CustomClass
 
 
-def buildTopo( topos, topoStr ):
+def buildTopo( topos, topoStr, isWiFi=False ):
     """Create topology from string with format (object, arg1, arg2,...).
     input topos is a dict of topo names to constructors, possibly w/args.
     """
     topo, args, kwargs = splitArgs( topoStr )
+    kwargs['isWiFi'] = isWiFi
     if topo not in topos:
         raise Exception( 'Invalid topo name %s' % topo )
     return topos[ topo ]( *args, **kwargs )

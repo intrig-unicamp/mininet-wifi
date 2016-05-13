@@ -12,10 +12,10 @@ from pylab import ginput as ginp
 from mininet.wifiPlot import plot
 from random import randrange
 import random
-
 import warnings
 import matplotlib.cbook
-from mininet.wifiEmulationEnvironment import emulationEnvironment
+
+from mininet.wifiMobility import mobility
 
 warnings.filterwarnings("ignore",category=matplotlib.cbook.mplDeprecation)
 
@@ -55,7 +55,7 @@ class vanet( object ):
             self.display_grid(baseStations, nroads)
             self.display_cars(cars)
             
-            while emulationEnvironment.continue_:
+            while mobility.continue_:
                 [self.scatter,self.com_lines] = self.simulate_car_movement(self.scatter,self.com_lines)
         except:
             pass

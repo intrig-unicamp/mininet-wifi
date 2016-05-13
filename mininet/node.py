@@ -68,12 +68,12 @@ from mininet.moduledeps import moduleDeps, pathCheck, TUN
 from mininet.link import Link, Intf, TCIntf, OVSIntf
 from re import findall
 from distutils.version import StrictVersion
-from mininet.wifiEmulationEnvironment import emulationEnvironment
 from mininet.wifiAccessPoint import accessPoint
-from mininet.wifiPlot import plot
+from mininet.wifiAssociation import association
+from mininet.wifiMobility import mobility
 from mininet.wifiChannel import channelParameters
+from mininet.wifiPlot import plot
 from mininet.wifiParameters import wifiParameters
-from mininet.wifi import mobility
 
 class Node( object ):
     """A virtual network node is simply a shell in a network namespace.
@@ -227,25 +227,24 @@ class Node( object ):
         for wlan in range(sta.nWlans):
             if sta.func[wlan] == 'mesh' or sta.func[wlan] == 'adhoc':
                 associate = False
-                for station in emulationEnvironment.staList:
+                for station in mobility.staList:
                     d = channelParameters.getDistance(sta, station)
                     if d < sta.range + station.range:
                         associate = True
                 if associate == False:
                     sta.cmd('iw dev %s-mp%s mesh leave' % (sta, wlan))
             else:
-                for n in range(2):
-                    for ap in emulationEnvironment.apList:
-                        d = channelParameters.getDistance(sta, ap)
-                        mobility.setChannelParameters(sta, ap, d, wlan)
+                for ap in mobility.apList:
+                    d = channelParameters.getDistance(sta, ap)
+                    mobility.setChannelParameters(sta, ap, d, wlan)
         mobility.getAPsInRange(sta)
         
     @classmethod 
     def verifyingNodes(self, node):
-        if node in emulationEnvironment.staList:
+        if node in mobility.staList:
             self.calculateWiFiParameters(node)
-        elif node in emulationEnvironment.apList:
-            for sta in emulationEnvironment.staList:
+        elif node in mobility.apList:
+            for sta in mobility.staList:
                 self.calculateWiFiParameters(sta)
     
     def meshLeave(self, ssid):
@@ -253,9 +252,22 @@ class Node( object ):
             if val == ssid:
                 self.cmd('iw dev %s-%s mesh leave' % (self, key))
                 
+    @classmethod   
+    def setMac(self, sta):
+        sta.pexec('ip link set %s-wlan0 down' % sta)
+        sta.pexec('ip link set %s-wlan0 address %s' % (sta, sta.mac))
+        sta.pexec('ip link set %s-wlan0 up' % sta)
+        
+    @classmethod    
+    def associate(self, sta, ap):
+        """ Associate to an Access Point """ 
+        sta.ifaceToAssociate += 1
+        wlan = sta.ifaceToAssociate
+        association.cmd_associate(sta, ap, wlan) 
+                
     def setRange(self, _range):
         self.range = _range
-        if emulationEnvironment.DRAW:
+        if mobility.DRAW:
             plot.updateCircleRadius(self)
             plot.graphUpdate(self)
         node = self
@@ -264,16 +276,16 @@ class Node( object ):
     def moveStationTo(self, pos):
         pos = pos.split(',')
         self.position = int(pos[0]), int(pos[1]), int(pos[2])
-        if emulationEnvironment.DRAW:
+        if mobility.DRAW:
             plot.graphUpdate(self)
         node = self
         self.verifyingNodes(node)
                             
     def moveAssociationTo(self, iface, ap):
         wlan = int(iface[-1:])
-        for n in range(len(emulationEnvironment.apList)):
-            if ap == str(emulationEnvironment.apList[n]):
-                ap = emulationEnvironment.apList[n]
+        for n in range(len(mobility.apList)):
+            if ap == str(mobility.apList[n]):
+                ap = mobility.apList[n]
                 break
         d = channelParameters.getDistance(self, ap)
         if d < self.range + ap.range:
@@ -282,7 +294,7 @@ class Node( object ):
                     self.cmd('iw dev %s disconnect' % iface)
                 self.cmd('iw dev %s connect %s' % (iface, ap.ssid[0]))
                 self.confirmInfraAssociation(self, ap, wlan)
-                channelParameters(self, ap, wlan, d, emulationEnvironment.staList, 0)
+                channelParameters(self, ap, wlan, d, mobility.staList, 0)
             else:
                 print '%s is already connected! ' % ap
             mobility.getAPsInRange(self)
@@ -293,13 +305,13 @@ class Node( object ):
     @classmethod 
     def confirmInfraAssociation(self, sta, ap, wlan):
         associated = ''
-        if emulationEnvironment.printCon:
+        if association.printCon:
             print "Associating %s to %s" % (sta, ap)
         while(associated == '' or len(associated[0]) == 15):
             associated = self.isAssociated(sta, wlan)
         iface = str(sta)+'-wlan%s' % wlan
         wifiParameters.getWiFiParameters(sta, wlan, iface) 
-        emulationEnvironment.numberOfAssociatedStations(ap)
+        mobility.numberOfAssociatedStations(ap)
         sta.associatedAp[wlan] = ap
         
     @classmethod    
@@ -1339,7 +1351,7 @@ class OVSSwitch( Switch ):
             for intf in self.intfList():
                 self.TCReapply( intf )       
                
-        if(emulationEnvironment.isCode == True):
+        if(association.isCode == True):
             if('accessPoint' == self.type):
                 for iface in range(0, self.nWlans):
                     accessPoint.apBridge(self, iface)                  

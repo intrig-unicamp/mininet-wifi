@@ -2,7 +2,6 @@
 
 from mininet.topo import Topo
 from mininet.net import Mininet
-from mininet.wifi import emulationEnvironment
 
 # The build() method is expected to do this:
 # pylint: disable=arguments-differ
@@ -10,55 +9,28 @@ from mininet.wifi import emulationEnvironment
 class TreeTopo( Topo ):
     "Topology for a tree network with a given depth and fanout."
 
-    def build( self, depth=1, fanout=2 ):
+    def build( self, depth=1, fanout=2, **_opts ):
         # Numbering:  h1..N, s1..M
         self.hostNum = 1
         self.switchNum = 1
         
-        if(emulationEnvironment.isWiFi):
-            self.countNodes( depth, fanout )
         # Build topology
         self.addTree( depth, fanout )
         
-    def countNodes( self, depth, fanout ):
-        """Amount of Nodes"""
-        if(emulationEnvironment.isWiFi):
-            isSwitch = depth > 0
-            if isSwitch:
-                self.switchNum += 1
-                for _ in range( fanout ):
-                    self.countNodes( depth - 1, fanout )
-            else:
-                self.hostNum += 1
-        
-    
-    def addTree( self, depth, fanout ):
+    def addTree( self, depth, fanout, isWiFi ):
         """Add a subtree starting with node n.
            returns: last node added"""
-        if(emulationEnvironment.isWiFi):
-            isSwitch = depth > 0
-            if isSwitch:
-                node = self.addBaseStation( 'ap%s' % self.switchNum , ssid='ssid_ap%s' % self.switchNum  )
-                self.switchNum += 1
-                for _ in range( fanout ):
-                    child = self.addTree( depth - 1, fanout )
-                    self.addLink( node, child )
-            else:
-                node = self.addStation( 'sta%s' % self.hostNum )
-                self.hostNum += 1
-            return node
-        else:            
-            isSwitch = depth > 0
-            if isSwitch:
-                node = self.addSwitch( 's%s' % self.switchNum )
-                self.switchNum += 1
-                for _ in range( fanout ):
-                    child = self.addTree( depth - 1, fanout )
-                    self.addLink( node, child )
-            else:
-                node = self.addHost( 'h%s' % self.hostNum )
-                self.hostNum += 1
-            return node
+        isSwitch = depth > 0
+        if isSwitch:
+            node = self.addSwitch( 's%s' % self.switchNum )
+            self.switchNum += 1
+            for _ in range( fanout ):
+                child = self.addTree( depth - 1, fanout )
+                self.addLink( node, child )
+        else:
+            node = self.addHost( 'h%s' % self.hostNum )
+            self.hostNum += 1
+        return node
 
 
 def TreeNet( depth=1, fanout=2, **kwargs ):
