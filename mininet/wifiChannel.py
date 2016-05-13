@@ -67,7 +67,8 @@ class channelParameters ( object ):
         if node2 == None:
             if self.i != 0:
                 dist = self.dist/self.i
-            node1.rssi[wlan] = -50 - float(dist)
+            value = propagationModel_(node1, node2, dist, wlan)
+            node1.rssi[wlan] = random.uniform(value.rssi-1, value.rssi+1)
             self.rate = (custombw * (1.1 ** -dist))/5
         else:
             if dist != 0: 

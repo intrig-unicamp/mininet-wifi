@@ -20,7 +20,10 @@ class propagationModel_ ( object ):
             self.__getattribute__(self.model)(node1, node2, dist, wlan)
      
     def receivedPower(self, node1, node2, wlan, modelValue):    
-        txpower = node2.txpower[0]
+        if node2 == None:
+            txpower = node1.txpower[wlan]
+        else:
+            txpower = node2.txpower[0]        
         #txgain = 24
         #rxgain = 24
         self.rssi = txpower + modelValue   

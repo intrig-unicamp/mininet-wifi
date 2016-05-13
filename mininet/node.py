@@ -231,6 +231,7 @@ class Node( object ):
                     d = channelParameters.getDistance(sta, station)
                     if d < sta.range + station.range:
                         associate = True
+                channelParameters(sta, None, wlan, 0, mobility.staList, 0)
                 if associate == False:
                     sta.cmd('iw dev %s-mp%s mesh leave' % (sta, wlan))
             else:
@@ -280,7 +281,13 @@ class Node( object ):
             plot.graphUpdate(self)
         node = self
         self.verifyingNodes(node)
-                            
+        
+    def setTxPower(self, iface, txpower):
+        wlan = int(iface[-1:])
+        self.pexec('iwconfig %s txpower %s' % (iface, txpower)) 
+        self.txpower[wlan] = txpower
+        self.verifyingNodes(self)
+                                   
     def moveAssociationTo(self, iface, ap):
         wlan = int(iface[-1:])
         for n in range(len(mobility.apList)):
