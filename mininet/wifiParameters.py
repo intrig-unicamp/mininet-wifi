@@ -37,7 +37,10 @@ class wifiParameters ( object ):
         """ Get tx_power info """
         try:
             if node.equipmentModel == None:
-                node.txpower[wlan] = int(node.cmd('iwconfig %s | grep -o \'Tx-Power.*\' | cut -f2- -d\'=\' | cut -c1-3'
+                if node.txpower[wlan] != 0:
+                    node.pexec('iwconfig %s-wlan%s txpower %s' % (node, wlan, node.txpower[wlan]))    
+                else:
+                    node.txpower[wlan] = int(node.cmd('iwconfig %s | grep -o \'Tx-Power.*\' | cut -f2- -d\'=\' | cut -c1-3'
                                                  % self.iface))
             else:
                 value = deviceTxPower(node.equipmentModel, node)

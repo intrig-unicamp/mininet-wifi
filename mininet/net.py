@@ -315,7 +315,7 @@ class Mininet( object ):
         if(channel!="{}"): 
             sta.channel = channel
         else:
-            sta.channel = 1
+            sta.channel = 1       
       
         mode = ("%s" % params.pop('mode', {}))
         if(mode!="{}"): 
@@ -353,13 +353,19 @@ class Mininet( object ):
             self.wifiRadios += int(wifi)
             for n in range(int(wifi)):
                 self.virtualWlan.append(name)    
-                sta.func.append('none')            
+                sta.func.append('none') 
+                sta.txpower.append(0)           
         else:
             self.wifiRadios += 1
             wifi = 1
             sta.func.append('none')
             self.virtualWlan.append(name)
+            sta.txpower.append(0)
         sta.nWlans = int(wifi)
+        
+        txpower = ("%s" % params.pop('txpower', {}))
+        if(txpower!="{}"):
+            sta.txpower[0] = int(txpower)
         
         mobility.staList.append( sta )
         self.nextIP += 1        
@@ -543,18 +549,24 @@ class Mininet( object ):
             bs.range = int(self.range)
         else:
             value = deviceRange(bs)     
-            bs.range = value.range       
-            
+            bs.range = value.range     
+                
         wifi = ("%s" % params.pop('wlans', {}))
         if(wifi!="{}"):        
             self.wifiRadios += int(wifi)
             for n in range(int(wifi)):
                 self.virtualWlan.append(name+str(n))
+                bs.txpower.append(0)
         else:
             self.wifiRadios += 1
             wifi = 1
             self.virtualWlan.append(name+str(0))
+            bs.txpower.append(0)
         bs.nWlans = int(wifi)
+        
+        txpower = ("%s" % params.pop('txpower', {}))
+        if(txpower!="{}"):
+            bs.txpower[0] = int(txpower)  
         
         self.missingWlanAP.append(bs)
         mobility.apList.append( bs )
@@ -911,7 +923,6 @@ class Mininet( object ):
                     iface = ap.params.get('wlan')
                    
                 ap.frequency.append(str(wlan))
-                ap.txpower.append(wlan)
                 ap.antennaHeight.append(2)
                 ap.antennaGain.append(1)
                 
@@ -1247,7 +1258,7 @@ class Mininet( object ):
                     if sta.func[wlan] == 'adhoc':
                         channelParameters(sta, None, wlan, 0, self.stations, 0 )
                     else:
-                        if sta.position != (0,0,0):
+                        if sta.position != (0,0,0) and sta.associatedAp[wlan] != 'NoAssociated':
                             dist = channelParameters.getDistance(sta, sta.associatedAp[wlan])
                             channelParameters(sta, sta.associatedAp[wlan], wlan, dist, self.stations, 0 )
             

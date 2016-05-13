@@ -72,7 +72,6 @@ class module( object ):
                 os.system('iw phy %s set netns %s' % ( totalPhy[w + i], sta.pid ))
                 sta.cmd('ip link set %s name %s-wlan%s up' % (wlan[w + i], str(sta), i))  
                 sta.frequency.append(0)
-                sta.txpower.append(0)
                 sta.snr.append(0)
                 sta.rssi.append(0)
                 sta.speed = 0

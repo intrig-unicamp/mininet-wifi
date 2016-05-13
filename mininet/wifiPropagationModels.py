@@ -20,7 +20,7 @@ class propagationModel_ ( object ):
             self.__getattribute__(self.model)(node1, node2, dist, wlan)
      
     def receivedPower(self, node1, node2, wlan, modelValue):    
-        txpower = node2.txpower[wlan]
+        txpower = node2.txpower[0]
         #txgain = 24
         #rxgain = 24
         self.rssi = txpower + modelValue   
@@ -28,11 +28,11 @@ class propagationModel_ ( object ):
     
     def attenuation(self, node1, node2, dist, wlan):
         alpha = 1
-        gT = node2.antennaGain[wlan] 
+        gT = node2.antennaGain[0] 
         gR = node1.antennaGain[wlan]
         
         L = -27.56 + 10 * alpha * math.log10(dist) + 20 * math.log(node1.frequency[wlan])
-        P = node2.txpower[wlan] * gR * gT * L
+        P = node2.txpower[0] * gR * gT * L
     
     def friisPropagationLossModel(self, node1, node2, dist, wlan):
         """Friis Propagation Loss Model:
@@ -60,15 +60,15 @@ class propagationModel_ ( object ):
         (d) is the distance between the transmitter and the receiver (m)
         (L): System loss"""
         
-        gT = node2.antennaGain[wlan] 
+        gT = node2.antennaGain[0] 
         gR = node1.antennaGain[wlan]
-        hT = node2.antennaHeight[wlan]
+        hT = node2.antennaHeight[0]
         hR = node1.antennaHeight[wlan]
         d = dist
         L = self.systemLoss
         
         try:
-            self.rssi = (node2.txpower[wlan] * gT * gR * hT**2 * hR**2) / (d**4 * L)
+            self.rssi = (node2.txpower[0] * gT * gR * hT**2 * hR**2) / (d**4 * L)
             return self.rssi
         except:
             return self.rssi
@@ -85,7 +85,7 @@ class propagationModel_ ( object ):
             dist = 0.1
         pathLossDb = 10 * self.exp * math.log10(dist / referenceDistance)
         rxc = - referenceLoss - pathLossDb
-        self.rssi = node2.txpower[wlan] + rxc
+        self.rssi = node2.txpower[0] + rxc
         return self.rssi
         
     def okumuraHataPropagationLossModel(self, node1, node2, distance, wlan):
