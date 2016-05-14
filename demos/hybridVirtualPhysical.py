@@ -112,7 +112,7 @@ def startNAT( root, inetIntf='wlan0', subnet='10.0/8', localIntf = None ):
     root.cmd( 'iptables -I FORWARD -i', localIntf, '-d', subnet, '-j DROP' )
     root.cmd( 'iptables -A FORWARD -i', localIntf, '-s', subnet, '-j ACCEPT' )
     root.cmd( 'iptables -A FORWARD -i', inetIntf, '-d', subnet, '-j ACCEPT' )
-    root.cmdPrint( 'iptables -t nat -A POSTROUTING -o ', inetIntf, '-j MASQUERADE' )
+    root.cmd( 'iptables -t nat -A POSTROUTING -o ', inetIntf, '-j MASQUERADE' )
 
     # Instruct the kernel to perform forwarding
     root.cmd( 'sysctl net.ipv4.ip_forward=1' )
