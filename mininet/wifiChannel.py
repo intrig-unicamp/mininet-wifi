@@ -22,7 +22,7 @@ class channelParameters ( object ):
     
     def __init__( self, node1, node2, wlan, dist, staList, time ):
         self.dist = dist
-        self.calculateInterference(node1, node2, dist, staList, wlan)
+        self.calculateInterference(node1, node2, dist, staList, wlan)        
         self.delay = self.delay(self.dist, time)
         self.latency = self.latency(self.dist)
         self.loss = self.loss(self.dist)
@@ -64,6 +64,7 @@ class channelParameters ( object ):
         value = deviceDataRate(node1, node2, wlan)
         custombw = value.rate
         self.rate = value.rate/2.5
+        #print node1
         if node2 == None:
             if self.i != 0:
                 dist = self.dist/self.i
@@ -103,7 +104,6 @@ class channelParameters ( object ):
         signalPower = sta.rssi[wlan]        
         
         if ap == None:
-            self.dist = 0
             for station in staList:
                 if station != sta and sta.isAssociated[wlan] == True:
                     self.calculateNoise(sta, station, signalPower, wlan)

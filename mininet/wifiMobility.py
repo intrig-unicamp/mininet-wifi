@@ -230,7 +230,8 @@ class mobility ( object ):
                     for wlan in range(0, node.nWlans):
                         if node.func[wlan] == 'mesh' or node.func[wlan] == 'adhoc':
                             dist = listNodes.pairingNodes(node, wlan, self.staList)
-                            channelParameters(node, None, wlan, dist, self.staList, abs(node.speed))
+                            if dist!=0:
+                                channelParameters(node, None, wlan, dist, self.staList, abs(node.speed))
                         else:
                             self.nodeParameter(node, wlan)
                 if meshRouting.routing == 'custom':

@@ -19,7 +19,7 @@ class propagationModel_ ( object ):
         if self.model in dir(self):
             self.__getattribute__(self.model)(node1, node2, dist, wlan)
      
-    def receivedPower(self, node1, node2, wlan, modelValue):    
+    def receivedPower(self, node1, node2, wlan, modelValue):
         if node2 == None:
             txpower = node1.txpower[wlan]
         else:
