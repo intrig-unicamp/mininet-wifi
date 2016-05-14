@@ -651,7 +651,14 @@ class Mininet( object ):
             value = deviceRange(bs)     
             bs.range = value.range       
         
+        self.wifiRadios += 1
+        self.virtualWlan.append(name+str(0))
+        bs.txpower.append(0)
         bs.nWlans = 1
+        
+        txpower = ("%s" % params.pop('txpower', {}))
+        if(txpower!="{}"):
+            bs.txpower[0] = int(txpower) 
         
         self.missingWlanAP.append(bs)
         mobility.apList.append( bs )
@@ -913,18 +920,20 @@ class Mininet( object ):
     def configureAP(self):
         """Configure AP""" 
         for ap in self.accessPoints:
-            for wlan in range(0,ap.nWlans):
+            i = 0
+            if 'wlan' in ap.params:
+                i = -1
+            for wlan in range(i,ap.nWlans):
                 wifiparam = dict()
                 if 'wlan' not in ap.params:
                     intf = self.newapif[self.virtualWlan.index(str(ap)+str(wlan))]
                     iface = str(ap)+'-wlan%s' % wlan
                     wifiparam.setdefault( 'intf', intf )
+                    ap.frequency.append(str(wlan))
+                    ap.antennaHeight.append(2)
+                    ap.antennaGain.append(1)
                 else:
                     iface = ap.params.get('wlan')
-                   
-                ap.frequency.append(str(wlan))
-                ap.antennaHeight.append(2)
-                ap.antennaGain.append(1)
                 
                 self.auth_algs = None
                 self.wpa = None
@@ -958,12 +967,21 @@ class Mininet( object ):
                 wifiparam.setdefault( 'rsn_pairwise', self.rsn_pairwise )
                 wifiparam.setdefault( 'wpa_passphrase', self.wpa_passphrase )
                 wifiparam.setdefault( 'wep_key0', self.wep_key0 )
-                wifiparam.setdefault( 'wlan', wlan )                               
+                if 'wlan' not in ap.params:
+                    wifiparam.setdefault( 'wlan', wlan )                               
                 accessPoint(ap, **wifiparam)   
                 
-                wifiParameters(param='get_frequency', node=ap, wlan=wlan, iface=iface)
-                wifiParameters(param='get_tx_power', node=ap, wlan=wlan, iface=iface) 
-                
+                if 'wlan' not in ap.params:
+                    wifiParameters(param='get_frequency', node=ap, wlan=wlan, iface=iface)
+                    wifiParameters(param='get_tx_power', node=ap, wlan=wlan, iface=iface) 
+                else:
+                    cls = None
+                    cls = self.link if cls is None else cls   
+                    iface = ap.params.get('wlan')
+                    options = dict(  )
+                    options.setdefault( 'intfName1', iface )
+                    cls( ap, 'alone', **options )
+                    ap.params.pop("wlan", None)
             
     """    
     def wds( self, ap1, ap2, cls=None, **params ):
@@ -1397,6 +1415,7 @@ class Mininet( object ):
             mobility.DRAW = False
             try:
                 plot.closePlot()
+                sleep( 2 )
             except:
                 pass        
             mobility.continue_ = False
