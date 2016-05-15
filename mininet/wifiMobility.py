@@ -113,23 +113,23 @@ class mobility ( object ):
                     line = plot.plotLine2d([ap.connections[c].params['position'][0],ap.params['position'][0]], \
                                            [ap.connections[c].params['position'][1],ap.params['position'][1]], 'b')
                     plot.plotLine(line)
-        #try:
-        while time.time() < t_end and time.time() > t_initial:
-            if self.continue_:
-                if time.time() - currentTime >= i:
-                    for sta in self.staList:
-                        if time.time() - currentTime >= sta.startTime and time.time() - currentTime <= sta.endTime:
-                            x = float(sta.params['position'][0]) + float(self.moveFac[sta][0])
-                            y = float(sta.params['position'][1]) + float(self.moveFac[sta][1])
-                            z = float(sta.params['position'][2]) + float(self.moveFac[sta][2])
-                            sta.params['position'] = x, y, z
-                        for wlan in range(0, sta.nWlans):
-                            self.nodeParameter(sta, wlan) 
-                        if self.DRAW:
-                            plot.graphUpdate(sta)
-                    i+=1
-        #except:
-           # print 'Error! Mobility stopped!'        
+        try:
+            while time.time() < t_end and time.time() > t_initial:
+                if self.continue_:
+                    if time.time() - currentTime >= i:
+                        for sta in self.staList:
+                            if time.time() - currentTime >= sta.startTime and time.time() - currentTime <= sta.endTime:
+                                x = float(sta.params['position'][0]) + float(self.moveFac[sta][0])
+                                y = float(sta.params['position'][1]) + float(self.moveFac[sta][1])
+                                z = float(sta.params['position'][2]) + float(self.moveFac[sta][2])
+                                sta.params['position'] = x, y, z
+                            for wlan in range(0, sta.nWlans):
+                                self.nodeParameter(sta, wlan) 
+                            if self.DRAW:
+                                plot.graphUpdate(sta)
+                        i+=1
+        except:
+            print 'Error! Mobility stopped!'        
     
     @classmethod   
     def models(self, nodes=None, model=None, max_x=None, max_y=None, min_v=None, 
