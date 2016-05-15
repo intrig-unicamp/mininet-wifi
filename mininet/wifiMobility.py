@@ -41,7 +41,7 @@ class mobility ( object ):
         self.initialPosition[sta] = initialPosition
         self.finalPosition[sta] = finalPosition
         
-        sta.position = initialPosition
+        sta.params['position'] = initialPosition
         pos_x = float(finalPosition[0]) - float(initialPosition[0])
         pos_y = float(finalPosition[1]) - float(initialPosition[1])
         pos_z = float(finalPosition[2]) - float(initialPosition[2])
@@ -104,31 +104,32 @@ class mobility ( object ):
             for sta in self.staList:
                 self.graphInstantiateNodes(sta)
                 if sta not in staMov:
-                    plot.pltNode[sta].set_data(sta.position[0],sta.position[1])
+                    plot.pltNode[sta].set_data(sta.params['position'][0],sta.params['position'][1])
                     plot.drawTxt(sta)
                     plot.drawCircle(sta)   
             for ap in mobility.apList:
                 self.graphInstantiateNodes(ap)  
                 for c in ap.connections:
-                    line = plot.plotLine2d([ap.connections[c].position[0],ap.position[0]], \
-                                           [ap.connections[c].position[1],ap.position[1]], 'b')
+                    line = plot.plotLine2d([ap.connections[c].params['position'][0],ap.params['position'][0]], \
+                                           [ap.connections[c].params['position'][1],ap.params['position'][1]], 'b')
                     plot.plotLine(line)
-        try:
-            while time.time() < t_end and time.time() > t_initial:
-                if self.continue_:
-                    if time.time() - currentTime >= i:
-                        for sta in self.staList:
-                            if time.time() - currentTime >= sta.startTime and time.time() - currentTime <= sta.endTime:
-                                sta.position[0] = float(sta.position[0]) + float(self.moveFac[sta][0])
-                                sta.position[1] = float(sta.position[1]) + float(self.moveFac[sta][1])
-                                sta.position[2] = float(sta.position[2]) + float(self.moveFac[sta][2])
-                            for wlan in range(0, sta.nWlans):
-                                self.nodeParameter(sta, wlan) 
-                            if self.DRAW:
-                                plot.graphUpdate(sta)
-                        i+=1
-        except:
-            print 'Error! Mobility stopped!'        
+        #try:
+        while time.time() < t_end and time.time() > t_initial:
+            if self.continue_:
+                if time.time() - currentTime >= i:
+                    for sta in self.staList:
+                        if time.time() - currentTime >= sta.startTime and time.time() - currentTime <= sta.endTime:
+                            x = float(sta.params['position'][0]) + float(self.moveFac[sta][0])
+                            y = float(sta.params['position'][1]) + float(self.moveFac[sta][1])
+                            z = float(sta.params['position'][2]) + float(self.moveFac[sta][2])
+                            sta.params['position'] = x, y, z
+                        for wlan in range(0, sta.nWlans):
+                            self.nodeParameter(sta, wlan) 
+                        if self.DRAW:
+                            plot.graphUpdate(sta)
+                    i+=1
+        #except:
+           # print 'Error! Mobility stopped!'        
     
     @classmethod   
     def models(self, nodes=None, model=None, max_x=None, max_y=None, min_v=None, 
@@ -172,13 +173,13 @@ class mobility ( object ):
             for node in nodes:
                 self.graphInstantiateNodes(node)
                 if node not in staMov or 'accessPoint' == node.type:
-                    plot.pltNode[node].set_data(node.position[0],node.position[1])
+                    plot.pltNode[node].set_data(node.params['position'][0],node.params['position'][1])
                     plot.drawTxt(node)
                     plot.drawCircle(node)  
                     if node.type == 'accessPoint': 
                         for c in node.connections:
-                            line = plot.plotLine2d([node.connections[c].position[0],node.position[0]], \
-                                                   [node.connections[c].position[1],node.position[1]], 'b')
+                            line = plot.plotLine2d([node.connections[c].params['position'][0],node.params['position'][0]], \
+                                                   [node.connections[c].params['position'][1],node.params['position'][1]], 'b')
                             plot.plotLine(line)
                             
         #Sometimes getting the error: Failed to connect to generic netlink.
@@ -190,7 +191,7 @@ class mobility ( object ):
                         node = nodes[n]
                         if node in staMov:
                             if 'station' == node.type:
-                                node.position = xy[i][0], xy[i][1], 0
+                                node.params['position'] = xy[i][0], xy[i][1], 0
                                 i += 1                       
                                 if self.DRAW:
                                     plot.pltNode[node].set_data(xy[:,0],xy[:,1])
@@ -255,8 +256,8 @@ class mobility ( object ):
             if dist > ap.range + sta.range:  
                 sta.pexec('iw dev %s-wlan%s disconnect' % (sta, wlan))
                 sta.associatedAp[wlan] = 'NoAssociated'
-                sta.rssi[wlan] = 0
-                sta.snr[wlan] = 0
+                sta.params['rssi'][wlan] = 0
+                sta.params['snr'][wlan] = 0
                 self.numberOfAssociatedStations(ap)
             else:
                 channelParameters(sta, ap, wlan, dist, staList, time)

@@ -21,9 +21,9 @@ class propagationModel_ ( object ):
      
     def receivedPower(self, node1, node2, wlan, modelValue):
         if node2 == None:
-            txpower = node1.txpower[wlan]
+            txpower = node1.params['txpower'][wlan]
         else:
-            txpower = node2.txpower[0]        
+            txpower = node2.params['txpower'][0]
         #txgain = 24
         #rxgain = 24
         self.rssi = txpower + modelValue   
@@ -34,8 +34,8 @@ class propagationModel_ ( object ):
         gT = node2.antennaGain[0] 
         gR = node1.antennaGain[wlan]
         
-        L = -27.56 + 10 * alpha * math.log10(dist) + 20 * math.log(node1.frequency[wlan])
-        P = node2.txpower[0] * gR * gT * L
+        L = -27.56 + 10 * alpha * math.log10(dist) + 20 * math.log(node1.params['frequency'][wlan])
+        P = node2.params['txpower'][0] * gR * gT * L
     
     def friisPropagationLossModel(self, node1, node2, dist, wlan):
         """Friis Propagation Loss Model:
@@ -43,7 +43,7 @@ class propagationModel_ ( object ):
         (d) is the distance between the transmitter and the receiver (m)
         (c) speed of light in vacuum (m)
         (L) System loss"""          
-        f = (node1.frequency[wlan] * 10**9) #Convert Ghz to Hz
+        f = (node1.params['frequency'][wlan] * 10**9) #Convert Ghz to Hz
         d = dist 
         c = 299792458.0 
         L = self.sl
@@ -63,15 +63,15 @@ class propagationModel_ ( object ):
         (d) is the distance between the transmitter and the receiver (m)
         (L): System loss"""
         
-        gT = node2.antennaGain[0] 
-        gR = node1.antennaGain[wlan]
-        hT = node2.antennaHeight[0]
-        hR = node1.antennaHeight[wlan]
+        gT = node2.params['antennaGain'][0] 
+        gR = node1.params['antennaGain'][wlan]
+        hT = node2.params['antennaHeight'][0]
+        hR = node1.params['antennaHeight'][wlan]
         d = dist
         L = self.systemLoss
         
         try:
-            self.rssi = (node2.txpower[0] * gT * gR * hT**2 * hR**2) / (d**4 * L)
+            self.rssi = (node2.params['txpower'][0] * gT * gR * hT**2 * hR**2) / (d**4 * L)
             return self.rssi
         except:
             return self.rssi
@@ -88,7 +88,7 @@ class propagationModel_ ( object ):
             dist = 0.1
         pathLossDb = 10 * self.exp * math.log10(dist / referenceDistance)
         rxc = - referenceLoss - pathLossDb
-        self.rssi = node2.txpower[0] + rxc
+        self.rssi = node2.params['txpower'][0] + rxc
         return self.rssi
         
     def okumuraHataPropagationLossModel(self, node1, node2, distance, wlan):

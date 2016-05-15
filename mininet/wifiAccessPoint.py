@@ -100,8 +100,7 @@ class accessPoint( object ):
         #        self.cmd = self.cmd + ("\nwpa_passphrase=%s" % self.wpa_passphrase)  
         #    self.countAP = len(self.baseStationName)
         #    self.apcommand = ""       
-        self.APfile(self.cmd, ap, wlan) 
-  
+        self.APfile(self.cmd, ap, wlan)   
   
     def getMacAddress(self, ap, wlan):
         """ get Mac Address of any Interface """

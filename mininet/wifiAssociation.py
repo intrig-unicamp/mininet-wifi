@@ -15,17 +15,17 @@ class association ( object ):
     isCode = False
     
     @classmethod 
-    def confirmInfraAssociation(self, node1, node2, wlan):
+    def confirmInfraAssociation(self, sta, ap, wlan):
         associated = ''
         if self.printCon:
-            print "Associating %s to %s" % (node1, node2)
+            print "Associating %s to %s" % (sta, ap)
         while(associated == '' or len(associated[0]) == 15):
-            associated = self.isAssociated(node1, wlan)
-        iface = str(node1)+'-wlan%s' % wlan
-        wifiParameters.getWiFiParameters(node1, wlan, iface) 
-        mobility.numberOfAssociatedStations(node2)
-        node1.associatedAp[wlan] = node2
-        mobility.getAPsInRange(node1)
+            associated = self.isAssociated(sta, wlan)
+        iface = sta.params['wlan'][wlan]
+        wifiParameters.getWiFiParameters(sta, wlan, iface) 
+        mobility.numberOfAssociatedStations(ap)
+        sta.associatedAp[wlan] = ap
+        mobility.getAPsInRange(sta)
             
     @classmethod    
     def isAssociated(self, sta, iface):

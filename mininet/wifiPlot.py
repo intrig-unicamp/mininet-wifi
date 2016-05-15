@@ -25,29 +25,29 @@ class plot (object):
     @classmethod
     def drawNode(self, node):
         """Update Draw"""
-        self.pltNode[node].set_data(node.position[0], node.position[1])
+        self.pltNode[node].set_data(node.params['position'][0], node.params['position'][1])
         
     @classmethod
     def drawTxt(self, node):
         """drawTxt""" 
-        if hasattr(self.plttxt[node],'xyann'): self.plttxt[node].xyann=(node.position[0], node.position[1] ) # newer MPL versions (>=1.4)
-        else: self.plttxt[node].xytext=(node.position[0], node.position[1] )
+        if hasattr(self.plttxt[node],'xyann'): self.plttxt[node].xyann=(node.params['position'][0], node.params['position'][1] ) # newer MPL versions (>=1.4)
+        else: self.plttxt[node].xytext=(node.params['position'][0], node.params['position'][1] )
         #self.plttxt[node].xytext = node.position[0], node.position[1] 
         
     @classmethod
     def drawCircle(self, node):
         """drawCircle""" 
-        self.pltCircle[node].center = node.position[0], node.position[1]        
+        self.pltCircle[node].center = node.params['position'][0], node.params['position'][1]        
     
     @classmethod
     def graphUpdate(self, node):
         """Update Graph""" 
-        if hasattr(self.plttxt[node],'xyann'): self.plttxt[node].xyann=(node.position[0], node.position[1] ) # newer MPL versions (>=1.4)
-        else: self.plttxt[node].xytext=(node.position[0], node.position[1] )
+        if hasattr(self.plttxt[node],'xyann'): self.plttxt[node].xyann=(node.params['position'][0], node.params['position'][1] ) # newer MPL versions (>=1.4)
+        else: self.plttxt[node].xytext=(node.params['position'][0], node.params['position'][1] )
         #self.plttxt[node].xytext = node.position[0], node.position[1] 
         
-        self.pltNode[node].set_data(node.position[0], node.position[1])
-        self.pltCircle[node].center = node.position[0], node.position[1]
+        self.pltNode[node].set_data(node.params['position'][0], node.params['position'][1])
+        self.pltCircle[node].center = node.params['position'][0], node.params['position'][1]
         plt.draw() 
         
     @classmethod

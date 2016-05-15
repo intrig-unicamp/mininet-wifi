@@ -21,8 +21,8 @@ class channelParameters ( object ):
     i = 0
     
     def __init__( self, node1, node2, wlan, dist, staList, time ):
-        self.dist = dist
-        self.calculateInterference(node1, node2, dist, staList, wlan)        
+        self.dist = dist        
+        self.calculateInterference(node1, node2, dist, staList, wlan)    
         self.delay = self.delay(self.dist, time)
         self.latency = self.latency(self.dist)
         self.loss = self.loss(self.dist)
@@ -32,8 +32,8 @@ class channelParameters ( object ):
     @classmethod
     def getDistance(self, src, dst):
         """ Get the distance between two nodes """
-        pos_src = src.position
-        pos_dst = dst.position
+        pos_src = src.params['position']
+        pos_dst = dst.params['position']
         points = np.array([(pos_src[0], pos_src[1], pos_src[2]), (pos_dst[0], pos_dst[1], pos_dst[2])])
         dist = pdist(points)
         return dist
@@ -64,17 +64,16 @@ class channelParameters ( object ):
         value = deviceDataRate(node1, node2, wlan)
         custombw = value.rate
         self.rate = value.rate/2.5
-        #print node1
         if node2 == None:
             if self.i != 0:
                 dist = self.dist/self.i
             value = propagationModel_(node1, node2, dist, wlan)
-            node1.rssi[wlan] = random.uniform(value.rssi-1, value.rssi+1)
+            node1.params['rssi'][wlan] = random.uniform(value.rssi-1, value.rssi+1)
             self.rate = (custombw * (1.1 ** -dist))/5
         else:
             if dist != 0: 
                 value = propagationModel_(node1, node2, dist, wlan)
-                node1.rssi[wlan] = random.uniform(value.rssi-1, value.rssi+1)
+                node1.params['rssi'][wlan] = random.uniform(value.rssi-1, value.rssi+1)
                 if node2.equipmentModel == None:
                     self.rate = custombw * (1.1 ** -dist)
         self.rate = self.rate - self.loss*3
@@ -101,7 +100,7 @@ class channelParameters ( object ):
         self.noise = 0
         noisePower = 0
         self.i=0
-        signalPower = sta.rssi[wlan]        
+        signalPower = sta.params['rssi'][wlan]    
         
         if ap == None:
             for station in staList:
@@ -111,15 +110,14 @@ class channelParameters ( object ):
             for station in ap.associatedStations:
                 if station != sta and sta.associatedAp[wlan] != 'NoAssociated':
                     self.calculateNoise(sta, station, signalPower, wlan)
-        
         if self.noise != 0:
             noisePower = self.noise/self.i
             self.dist = self.dist + dist
-            signalPower = sta.rssi[wlan]
+            signalPower = sta.params['rssi'][wlan]
             snr = self.signalToNoiseRatio(signalPower, noisePower)
-            sta.snr[wlan] = random.uniform(snr-1, snr+1)
+            sta.params['snr'][wlan] = random.uniform(snr-1, snr+1)
         else:
-            sta.snr[wlan] = 0
+            sta.params['snr'][wlan] = 0
             
     def calculateNoise(self, sta, station, signalPower, wlan):
         dist = self.getDistance(sta, station)

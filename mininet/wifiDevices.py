@@ -59,20 +59,20 @@ class deviceDataRate ( object ):
     def DI524(self, node1, node2, wlan):
         """D-Link AirPlus G DI-524
            from http://www.dlink.com/-/media/Consumer_Products/DI/DI%20524/Manual/DI_524_Manual_EN_UK.pdf"""  
-        if node1.rssi[wlan] != 0:
-            if (node1.rssi[wlan] >= -68):
+        if node1.params['rssi'][wlan] != 0:
+            if (node1.params['rssi'][wlan] >= -68):
                 self.rate = 48
-            elif (node1.rssi[wlan] < -68 and node1.rssi[wlan] >= -75):
+            elif (node1.params['rssi'][wlan] < -68 and node1.params['rssi'][wlan] >= -75):
                 self.rate = 36
-            elif (node1.rssi[wlan] < -75 and node1.rssi[wlan] >= -79):
+            elif (node1.params['rssi'][wlan] < -75 and node1.params['rssi'][wlan] >= -79):
                 self.rate = 24
-            elif (node1.rssi[wlan] < -79 and node1.rssi[wlan] >= -84):
+            elif (node1.params['rssi'][wlan] < -79 and node1.params['rssi'][wlan] >= -84):
                 self.rate = 18
-            elif (node1.rssi[wlan] < -84 and node1.rssi[wlan] >= -87):
+            elif (node1.params['rssi'][wlan] < -84 and node1.params['rssi'][wlan] >= -87):
                 self.rate = 9
-            elif (node1.rssi[wlan] < -87 and node1.rssi[wlan] >= -88):
+            elif (node1.params['rssi'][wlan] < -87 and node1.params['rssi'][wlan] >= -88):
                 self.rate = 6
-            elif (node1.rssi[wlan] < -88 and node1.rssi[wlan] >= -89):
+            elif (node1.params['rssi'][wlan] < -88 and node1.params['rssi'][wlan] >= -89):
                 self.rate = 1
         return self.rate
     
@@ -80,19 +80,19 @@ class deviceDataRate ( object ):
         """TL-WR740N
            from http://www.tp-link.com.br/products/details/cat-9_TL-WR740N.html#specificationsf"""
         try: # if Station
-            if node1.rssi[wlan] != 0:
-                if (node1.rssi[wlan] >= -68):
+            if node1.params['rssi'][wlan] != 0:
+                if (node1.params['rssi'][wlan] >= -68):
                     if node2.mode == 'n':
                         self.rate = 130
                     elif node2.mode == 'g':
                         self.rate = 54
                     elif node2.mode == 'b':
                         self.rate = 11
-                elif (node1.rssi[wlan] < -68 and node1.rssi[wlan] >= -85):
+                elif (node1.params['rssi'][wlan] < -68 and node1.params['rssi'][wlan] >= -85):
                     self.rate = 11
-                elif (node1.rssi[wlan] < -85 and node1.rssi[wlan] >= -88):
+                elif (node1.params['rssi'][wlan] < -85 and node1.params['rssi'][wlan] >= -88):
                     self.rate = 6
-                elif (node1.rssi[wlan] < -88 and node1.rssi[wlan] >= -90):
+                elif (node1.params['rssi'][wlan] < -88 and node1.params['rssi'][wlan] >= -90):
                     self.rate = 1
         except: # if AP
             if node2.mode == 'n':
@@ -107,22 +107,22 @@ class deviceDataRate ( object ):
         """CISCO WRT120N
            from http://downloads.linksys.com/downloads/datasheet/WRT120N_V10_DS_B-WEB.pdf"""
         try: # if Station
-            if node1.rssi[wlan] != 0:
-                if (node1.rssi[wlan] >= -65):
+            if node1.params['rssi'][wlan] != 0:
+                if (node1.params['rssi'][wlan] >= -65):
                     if node2.mode == 'n':
                         self.rate = 150
                     elif node2.mode == 'g':
                         self.rate = 54
                     elif node2.mode == 'b':
                         self.rate = 11
-                elif (node1.rssi[wlan] < -65 and node1.rssi[wlan] >= -68):
+                elif (node1.params['rssi'][wlan] < -65 and node1.params['rssi'][wlan] >= -68):
                     if node2.mode == 'g':
                         self.rate = 54
                     elif node2.mode == 'b':
                         self.rate = 11
-                elif (node1.rssi[wlan] < -68 and node1.rssi[wlan] >= -85):
+                elif (node1.params['rssi'][wlan] < -68 and node1.params['rssi'][wlan] >= -85):
                     self.rate = 11
-                elif (node1.rssi[wlan] < -85 and node1.rssi[wlan] >= -90):
+                elif (node1.params['rssi'][wlan] < -85 and node1.params['rssi'][wlan] >= -90):
                     self.rate = 1
         except: # if AP
             if node2.mode == 'n':

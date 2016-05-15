@@ -63,24 +63,24 @@ class module( object ):
         return phy
     
     @classmethod    
-    def assingIface(self, stations, virtualWlan, physicalWlan, totalPhy):
-        wlan = self.getWlanIface(physicalWlan)
+    def assingIface(self, stations, virtualWlan, physicalWlan, phyList):
+        wlanList = self.getWlanIface(physicalWlan)
         for sta in stations:
-            for i in range(0, sta.nWlans):
-                w = virtualWlan.index(str(sta))
-                os.system('iw phy %s set netns %s' % ( totalPhy[w + i], sta.pid ))
-                sta.cmd('ip link set %s name %s-wlan%s up' % (wlan[w + i], str(sta), i))  
-                sta.frequency.append(0)
-                sta.snr.append(0)
-                sta.rssi.append(0)
+            for wlan in range(0, len(sta.params['wlan'])):
+                i = virtualWlan.index(sta)
+                os.system('iw phy %s set netns %s' % ( phyList[i + wlan], sta.pid ))
+                sta.cmd('ip link set %s name %s up' % (wlanList[i + wlan], sta.params['wlan'][wlan]))  
+                sta.params['frequency'].append(0)
+                sta.params['rssi'].append(0)
+                sta.params['snr'].append(0)
+                sta.params['antennaHeight'].append(2)
+                sta.params['antennaGain'].append(1)
                 sta.speed = 0
                 sta.meshMac.append(0)
                 sta.isAssociated.append('')
                 sta.ssid.append('')
                 sta.associatedAp.append('NoAssociated')
-                sta.antennaHeight.append(2)
-                sta.antennaGain.append(1)
-            
+               
     @classmethod        
     def getWlanIface(self, physicalWlan):
         self.newapif=[]

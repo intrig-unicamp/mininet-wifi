@@ -116,7 +116,6 @@ class Node( object ):
         self.equipmentModel = ''  
         self.txgain = []
         self.rxgain = []
-        self.snr = []
         self.func = []
         self.connections = {}
         # Station Parameters
@@ -127,19 +126,13 @@ class Node( object ):
         self.addressingSta = 0
         self.bringUpIface = 0
         self.ifaceToAssociate = -1
-        self.frequency = []
-        self.txpower = []
-        self.antennaGain = []
-        self.antennaHeight = []
         self.mac=''
-        self.rssi = []
         self.wlanToAssociate = 0
         self.meshMac = []
         self.type = 'host'
         self.inRangeAPs = []
                 
         # Mobility Parameters
-        self.position = []
         self.startPosition = []
         self.endPosition = []
         self.moveSta = []
@@ -276,7 +269,7 @@ class Node( object ):
                     
     def moveStationTo(self, pos):
         pos = pos.split(',')
-        self.position = int(pos[0]), int(pos[1]), int(pos[2])
+        self.params['position'] = int(pos[0]), int(pos[1]), int(pos[2])
         if mobility.DRAW:
             plot.graphUpdate(self)
         node = self
@@ -285,7 +278,7 @@ class Node( object ):
     def setTxPower(self, iface, txpower):
         wlan = int(iface[-1:])
         self.pexec('iwconfig %s txpower %s' % (iface, txpower)) 
-        self.txpower[wlan] = txpower
+        self.params['txpower'][wlan] = txpower
         self.verifyingNodes(self)
                                    
     def moveAssociationTo(self, iface, ap):

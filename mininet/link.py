@@ -210,7 +210,7 @@ class Intf( object ):
         if self.sta.func[self.sta.ifaceToAssociate+1] == 'mesh':
             self.sta.ifaceToAssociate += 1
             wlan = self.sta.ifaceToAssociate
-            self.sta.rssi[wlan] = -62 
+            self.sta.params['rssi'][wlan] = -62 
             if self.sta.mac != '':
                 self.sta.cmd('ifconfig %s-mp%s down' % (self.sta, wlan))
                 self.sta.cmd('ip link set %s-mp%s address %s' % (self.sta, wlan, self.sta.mac))
@@ -218,6 +218,7 @@ class Intf( object ):
             self.sta.cmd('iw dev %s-mp%s mesh join %s' % (self.sta, wlan, ssid))
             self.sta.cmd('ifconfig %s-wlan%s down' % (self.sta, wlan))
             iface = '%s-mp%s' % (self.sta, wlan)
+            self.sta.params['wlan'][wlan] = iface
             print "associating %s to %s..." % (iface, ssid)
             self.confirmMeshAssociation(self.sta, iface, wlan)    
             self.getMacAddress(self.sta, iface, wlan)
@@ -225,7 +226,7 @@ class Intf( object ):
         elif self.sta.func[self.sta.ifaceToAssociate+1] == 'adhoc':
             self.sta.ifaceToAssociate += 1
             wlan = self.sta.ifaceToAssociate
-            self.sta.rssi[wlan] = -62
+            self.sta.params['rssi'][wlan] = -62
             self.sta.func[wlan] = 'adhoc'
             self.sta.cmd('iw dev %s-wlan%s set type ibss' % (self.sta, wlan))
             self.sta.cmd('iw dev %s-wlan%s ibss join %s 2412' % (self.sta, wlan, ssid))

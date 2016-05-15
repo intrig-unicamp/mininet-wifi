@@ -27,24 +27,24 @@ class wifiParameters ( object ):
             freq = node.cmd('iwconfig %s | grep -o \'Frequency.*z\' | cut -f2- -d\':\' | cut -c1-5'
                                                 % self.iface)
             if freq!='':
-                node.frequency[wlan] = float(freq) 
+                node.params['frequency'][wlan] = float(freq) 
             else:
-                node.frequency[wlan] = 2.412            
+                node.params['frequency'][wlan] = 2.412            
         except:
-            node.frequency[wlan] = 2.412
+            node.params['frequency'][wlan] = 2.412
     
     def get_tx_power(self, node, wlan): 
         """ Get tx_power info """
         try:
             if node.equipmentModel == None:
-                if node.txpower[wlan] != 0:
-                    node.pexec('iwconfig %s-wlan%s txpower %s' % (node, wlan, node.txpower[wlan]))    
+                if node.params['txpower'][wlan] != 0:
+                    node.pexec('iwconfig %s-wlan%s txpower %s' % (node, wlan, node.params['txpower'][wlan]))    
                 else:
-                    node.txpower[wlan] = int(node.cmd('iwconfig %s | grep -o \'Tx-Power.*\' | cut -f2- -d\'=\' | cut -c1-3'
+                    node.params['txpower'][wlan] = int(node.cmd('iwconfig %s | grep -o \'Tx-Power.*\' | cut -f2- -d\'=\' | cut -c1-3'
                                                  % self.iface))
             else:
                 value = deviceTxPower(node.equipmentModel, node)
-                node.txpower[wlan] = value.txPower
+                node.params['txpower'][wlan] = value.txPower
         except:
             pass
         
