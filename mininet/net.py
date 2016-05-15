@@ -1334,12 +1334,14 @@ class Mininet( object ):
                     options = dict(  )
                     iface = str(node)+'-wlan%s' % wlan
                     wifiParameters.getWiFiParameters(node, wlan, iface)
-                    mobility.nodeParameter(node, wlan)
+                    
                     # Set default MAC - this should probably be in Link
                     options.setdefault( 'use_tbf', True )
                     options.setdefault( 'addr1', self.randMac() )
                     cls = self.link if cls is None else cls
                     cls( node, 'alone', **options )
+                    if sta.position != (0,0,0) and sta.associatedAp[wlan] != 'NoAssociated':   
+                        mobility.nodeParameter(node, wlan)
         
         if self.topo:
             self.buildFromTopo( self.topo )
