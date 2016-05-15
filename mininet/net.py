@@ -1464,12 +1464,12 @@ class Mininet( object ):
         if(self.isWiFi):
             "Stop plotting"
             mobility.DRAW = False
+            mobility.continue_ = False
             try:
                 plot.closePlot()
                 sleep( 2 )
             except:
                 pass        
-            mobility.continue_ = False
             module.stop() #Stopping WiFi Module        
         info( '\n*** Done\n' )
         #os._exit(1)
@@ -1786,8 +1786,8 @@ class Mininet( object ):
     def startMobility(self, **kwargs):
         """ Starting Mobility """
         self.mobilityModel = ''
+        mobilityparam = dict() 
         if 'model' in kwargs:
-            mobilityparam = dict() 
             mobilityparam.setdefault( 'model', kwargs['model'] )
             self.mobilityModel = kwargs['model']
             

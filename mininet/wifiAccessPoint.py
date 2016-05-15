@@ -29,8 +29,7 @@ class accessPoint( object ):
         newname = str(newname) + str(wlan)
         os.system('ifconfig %s down' % intf)
         os.system('ip link set %s name %s' % (intf, newname))
-        os.system('ifconfig %s up' % newname)            
-    
+        os.system('ifconfig %s up' % newname)                
     
     def start(self, ap, country_code=None, auth_algs=None, wpa=None, wlan=None,
               wpa_key_mgmt=None, rsn_pairwise=None, wpa_passphrase=None, encrypt=None, 
