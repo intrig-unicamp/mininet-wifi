@@ -860,6 +860,7 @@ class Mininet( object ):
     
     def addHoc( self, sta, cls=None, **params ):
         sta.func[sta.wlanToAssociate] = 'adhoc' 
+        
         if self.firstAssociation:
             self.configureWifiNodes()
         self.firstAssociation = False
@@ -916,6 +917,53 @@ class Mininet( object ):
                 if sta in self.missingStations:
                     self.missingStations.remove(sta)       
         return link
+    
+    def wifiDirect( self, sta, cls=None, **params ):
+        
+        if self.firstAssociation:
+            self.configureWifiNodes()
+        self.firstAssociation = False
+        
+        options = { 'ip': ipAdd( self.nextIP,
+                                  ipBaseNum=self.ipBaseNum,
+                                  prefixLen=self.prefixLen ) +
+                                  '/%s' % self.prefixLen}
+        options.update( params )
+        
+        node = sta if not isinstance( sta, basestring ) else self[ sta ]
+        
+        cmd = ("echo \'")
+        cmd = cmd + 'ctrl_interface=/var/run/wpa_supplicant\
+            \nap_scan=1\
+            \np2p_go_ht40=1\
+            \ndevice_name=%s\
+            \ndevice_type=1-0050F204-1\
+            \np2p_no_group_iface=1'  % (sta)
+        apcommand = cmd + ("\' > %s_wifiDirect.conf" % sta)  
+        os.system(apcommand)
+        node.cmd('wpa_supplicant -B -Dnl80211 -i%s-wlan0 -d -c%s_wifiDirect.conf' % (sta,sta) )
+        
+        accessPoint.wpa_supplicantIsRunning = True
+        
+        value = deviceDataRate(None, node, None)
+        self.bw = value.rate
+        
+        options['sta'] = node
+        options.update( params )  
+        options.setdefault( 'bw', self.bw )
+        # Set default MAC - this should probably be in Link
+        options.setdefault( 'addr1', self.randMac() )
+        
+        cls = self.link if cls is None else cls
+        link = cls( node, 'alone', **options )
+        
+        for sta in self.hosts:
+            if (sta == node):
+                #station.adhoc(sta, **options)
+                if sta in self.missingStations:
+                    self.missingStations.remove(sta)       
+        return link
+        
       
     def configureAP(self):
         """Configure AP""" 

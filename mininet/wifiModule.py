@@ -37,7 +37,7 @@ class module( object ):
         if mobility.apList!=[]:
             os.system( 'killall -9 hostapd' )
         if accessPoint.wpa_supplicantIsRunning:
-            os.system( 'pkill -f \'wpa_supplicant -B\'' )
+            os.system( 'pkill -f \'wpa_supplicant -B -Dnl80211\'' )
             
     @classmethod    
     def start(self, wifiRadios):

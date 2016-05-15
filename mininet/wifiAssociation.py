@@ -49,7 +49,7 @@ class association ( object ):
     
     @classmethod 
     def associate_wpa(self, sta, wlan, ssid, passwd):
-        sta.cmd("wpa_supplicant -B -D nl80211 -i %s-wlan%s -c <(wpa_passphrase \"%s\" \"%s\")" \
+        sta.cmd("wpa_supplicant -B -Dnl80211 -i %s-wlan%s -c <(wpa_passphrase \"%s\" \"%s\")" \
                 % (sta, wlan, ssid, passwd))
     
     @classmethod 

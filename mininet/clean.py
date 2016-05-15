@@ -19,6 +19,7 @@ import glob
 
 from mininet.log import info
 from mininet.term import cleanUpScreens
+from mininet.wifiAccessPoint import accessPoint
 
 
 def sh( cmd ):
@@ -99,6 +100,13 @@ class Cleanup( object ):
         
         if glob.glob("*.txt"):
             os.system( 'rm *.txt' )
+        
+        try:
+            subprocess.check_output("ps -aux | grep wpa_supplicant",
+                                                          shell=True)
+            os.system( 'pkill -f \'wpa_supplicant -B -Dnl80211\'' )
+        except:
+            pass
 
         info( "***  Removing OVS datapaths\n" )
         dps = sh("ovs-vsctl --timeout=1 list-br").strip().splitlines()
