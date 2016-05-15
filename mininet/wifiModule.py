@@ -33,7 +33,6 @@ class module( object ):
             os.system( 'rmmod mac80211_hwsim' )
         except:
             pass
-        
         if mobility.apList!=[]:
             os.system( 'killall -9 hostapd' )
         if accessPoint.wpa_supplicantIsRunning:

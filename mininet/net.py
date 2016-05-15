@@ -997,12 +997,14 @@ class Mininet( object ):
                     self.wpa = 1
                     self.wpa_key_mgmt = 'WPA-PSK'
                     self.wpa_passphrase = ap.passwd
+                    accessPoint.wpa_supplicantIsRunning = True
                 elif ap.encrypt == 'wpa2':
                     self.auth_algs = 1
                     self.wpa = 2
                     self.wpa_key_mgmt = 'WPA-PSK'
                     self.rsn_pairwise = 'CCMP'
                     self.wpa_passphrase = ap.passwd
+                    accessPoint.wpa_supplicantIsRunning = True
                 elif ap.encrypt == 'wep':
                     self.auth_algs = 2
                     self.wep_key0 = ap.passwd
@@ -1333,8 +1335,7 @@ class Mininet( object ):
                     cls = None
                     options = dict(  )
                     iface = str(node)+'-wlan%s' % wlan
-                    wifiParameters.getWiFiParameters(node, wlan, iface)
-                    
+                    wifiParameters.getWiFiParameters(node, wlan, iface)                    
                     # Set default MAC - this should probably be in Link
                     options.setdefault( 'use_tbf', True )
                     options.setdefault( 'addr1', self.randMac() )

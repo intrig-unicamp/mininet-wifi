@@ -6,7 +6,6 @@ import struct
 import fcntl
 import fileinput
 
-from mininet.wifiParameters import wifiParameters
 from mininet.wifiDevices import deviceDataRate
 
 class accessPoint( object ):
@@ -63,13 +62,11 @@ class accessPoint( object ):
         #   self.cmd = self.cmd + ("\nht_capab=[HT40+][SHORT-GI-40][DSSS_CCK-40]")
         
         if encrypt == 'wpa':
-            wifiParameters.wpa_supplicantIsRunning = True
             self.cmd = self.cmd + ("\nauth_algs=%s" % auth_algs)
             self.cmd = self.cmd + ("\nwpa=%s" % wpa)
             self.cmd = self.cmd + ("\nwpa_key_mgmt=%s" % wpa_key_mgmt ) 
-            self.cmd = self.cmd + ("\nwpa_passphrase=%s" % wpa_passphrase)                        
+            self.cmd = self.cmd + ("\nwpa_passphrase=%s" % wpa_passphrase)        
         elif encrypt == 'wpa2':
-            wifiParameters.wpa_supplicantIsRunning = True
             self.cmd = self.cmd + ("\nauth_algs=%s" % auth_algs)
             self.cmd = self.cmd + ("\nwpa=%s" % wpa)
             self.cmd = self.cmd + ("\nwpa_key_mgmt=%s" % wpa_key_mgmt ) 
