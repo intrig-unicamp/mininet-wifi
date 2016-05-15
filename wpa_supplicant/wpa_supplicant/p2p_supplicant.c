@@ -89,7 +89,7 @@
 #define P2P_MAX_INITIAL_CONN_WAIT_GO_REINVOKE 15
 #endif /* P2P_MAX_INITIAL_CONN_WAIT_GO_REINVOKE */
 
-#define P2P_MGMT_DEVICE_PREFIX		"p2p-"
+#define P2P_MGMT_DEVICE_PREFIX		"p2p-dev-"
 
 /*
  * How many seconds to wait to re-attempt to move GOs, in case previous attempt
