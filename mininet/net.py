@@ -202,6 +202,7 @@ class Mininet( object ):
         self.stations = []
         self.virtualWlan = []
         self.fixedPosition = []
+        self.staMov = []
         self.terms = []  # list of spawned xterm processes
         self.isWiFi = isWiFi
         self.wifiRadios = wifiRadios
@@ -1799,6 +1800,7 @@ class Mininet( object ):
             if(self.stage == 'start'):
                 initialPosition = kwargs['position']
                 self.initialPosition[sta] = initialPosition.split(',')
+                self.staMov.append(sta)
         
         if 'time' in kwargs:
             self.time = kwargs['time']
@@ -1833,10 +1835,9 @@ class Mininet( object ):
             mobilityparam.setdefault( 'seed', self.set_seed )
             mobilityparam.setdefault( 'nodes', self.wifiNodes )
         
-            self.staMov = []
-            for n in self.stations:
-                if n not in self.fixedPosition:
-                    self.staMov.append(n)            
+            for sta in self.stations:
+                if sta not in self.fixedPosition:
+                    self.staMov.append(sta)  
             mobilityparam.setdefault( 'staMov', self.staMov )
             
             if self.isVanet == False:
@@ -1854,17 +1855,12 @@ class Mininet( object ):
         """ Stop Mobility """
         if 'stopTime' in kwargs:
             stop_time = kwargs['stopTime']
-            
-        self.staMov = []
-        for n in self.stations:
-            if n not in self.fixedPosition:
-                self.staMov.append(n)
         
         for node in self.wifiNodes:
             for wlan in range(0, node.nWlans):
                 iface = str(node)+'-wlan%s' % wlan
                 wifiParameters.getWiFiParameters(node, wlan, iface)
-                
+        
         debug( 'Starting mobility thread...\n' )
         self.thread = threading.Thread(name='mobility', target=mobility.mobilityPositionDefined, args=(self.start_time, stop_time, self.staMov))
         self.thread.daemon = True

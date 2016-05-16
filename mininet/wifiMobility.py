@@ -117,7 +117,7 @@ class mobility ( object ):
             while time.time() < t_end and time.time() > t_initial:
                 if self.continue_:
                     if time.time() - currentTime >= i:
-                        for sta in self.staList:
+                        for sta in staMov:
                             if time.time() - currentTime >= sta.startTime and time.time() - currentTime <= sta.endTime:
                                 x = float(sta.params['position'][0]) + float(self.moveFac[sta][0])
                                 y = float(sta.params['position'][1]) + float(self.moveFac[sta][1])
