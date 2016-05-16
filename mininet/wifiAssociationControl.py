@@ -23,6 +23,6 @@ class associationControl ( object ):
                 propagationModel_.model = 'friisPropagationLossModel'
             refDistance = channelParameters.getDistance(node1, node2)
             refValue = propagationModel_(node1, node2, refDistance, wlan)
-            if refValue.rssi > float(node1.rssi[wlan] + 0.1):
+            if refValue.rssi > float(node1.params['rssi'][wlan] + 0.1):
                 self.changeAP = True
         return self.changeAP  

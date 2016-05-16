@@ -25,5 +25,5 @@ class report ( object ):
         while self.dist <= d:   
             ap = node.associatedAp[0]
             self.dist = channelParameters.getDistance(node, ap)
-            os.system("echo %d %d >> data.text" % (self.dist, node.rssi[0]))
+            os.system("echo %d %d >> data.text" % (self.dist, node.params['rssi'][0]))
     
