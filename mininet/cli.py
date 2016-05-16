@@ -287,14 +287,6 @@ class CLI( Cmd ):
         else:
             self.mn.getCurrentDistance( *args )
             
-    def do_position( self, line ):
-        "Position node info."
-        args = line.split()
-        if len(args) != 1:
-            error( 'invalid number of args: position [sta or ap]\n' )
-        else:
-            self.mn.getCurrentPosition( *args )        
-
     def do_link( self, line ):
         """Bring link(s) between two nodes up or down.
            Usage: link node1 node2 [up/down]"""

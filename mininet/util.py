@@ -11,7 +11,6 @@ from fcntl import fcntl, F_GETFL, F_SETFL
 from os import O_NONBLOCK
 import os
 from functools import partial
-from test.test_support import args_from_interpreter_flags
 # Command execution support
 
 def run( cmd ):
