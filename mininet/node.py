@@ -271,7 +271,10 @@ class Node( object ):
         pos = pos.split(',')
         self.params['position'] = int(pos[0]), int(pos[1]), int(pos[2])
         if mobility.DRAW:
-            plot.graphUpdate(self)
+            try:
+                plot.graphUpdate(self)
+            except:
+                pass
         node = self
         self.verifyingNodes(node)
         
