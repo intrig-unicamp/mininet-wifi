@@ -288,6 +288,11 @@ class Mininet( object ):
         defaults['antennaGain'] = []
         defaults['antennaHeight'] = []
         defaults['wlan'] = []
+        defaults['speed'] = 0
+        defaults['txgain'] = []
+        defaults['rxgain'] = []
+        defaults['mode'] = []
+        defaults['channel'] = [] 
         
         if self.autoSetMacs:
             defaults[ 'mac' ] = macColonHex( self.nextIP )
@@ -323,15 +328,15 @@ class Mininet( object ):
         
         channel = ("%s" % params.pop('channel', {}))
         if(channel!="{}"): 
-            sta.channel = channel
+            sta.params['channel'] = channel
         else:
-            sta.channel = 1       
+            sta.params['channel'] = 1       
       
         mode = ("%s" % params.pop('mode', {}))
         if(mode!="{}"): 
-            sta.mode = mode
+            sta.params['mode'] = mode
         else:
-            sta.mode = "g"
+            sta.params['mode'] = "g"
             
         passwd = ("%s" % params.pop('passwd', {}))
         if(passwd!="{}"): 
@@ -429,9 +434,9 @@ class Mininet( object ):
         
         channel = ("%s" % params.pop('channel', {}))
         if(channel!="{}"): 
-            sta.channel = channel
+            sta.params['channel'] = channel
         else:
-            sta.channel = 1
+            sta.params['channel'] = 1
             
         max_speed = ("%s" % params.pop('max_speed', {}))
         if(max_speed!="{}"): 
@@ -447,9 +452,9 @@ class Mininet( object ):
       
         mode = ("%s" % params.pop('mode', {}))
         if(mode!="{}"): 
-            sta.mode = mode
+            sta.params['mode'] = mode
         else:
-            sta.mode = "g"
+            sta.params['mode'] = "g"
             
         passwd = ("%s" % params.pop('passwd', {}))
         if(passwd!="{}"): 
@@ -508,6 +513,10 @@ class Mininet( object ):
         defaults['frequency'] = []
         defaults['antennaGain'] = []
         defaults['antennaHeight'] = []   
+        defaults['txgain'] = []
+        defaults['rxgain'] = []
+        defaults['mode'] = []
+        defaults['channel'] = [] 
         #defaults['wlan'] = []     
         defaults.update( params )        
         
@@ -529,9 +538,9 @@ class Mininet( object ):
       
         channel = ("%s" % params.pop('channel', {}))
         if(channel!="{}"):
-            bs.channel = channel
+            bs.params['channel'] = channel
         else:
-            bs.channel = self.channel 
+            bs.params['channel'] = self.channel 
             
         equipmentModel = ("%s" % params.pop('equipmentModel', {}))
         if(equipmentModel!="{}"):
@@ -541,9 +550,9 @@ class Mininet( object ):
       
         mode = ("%s" % params.pop('mode', {}))
         if(mode!="{}"):
-            bs.mode = mode
+            bs.params['mode'] = mode
         else:
-            bs.mode = self.mode
+            bs.params['mode'] = self.mode
                       
         ssid = ("%s" % params.pop('ssid', {}))
         if(ssid!="{}"):
@@ -614,7 +623,11 @@ class Mininet( object ):
         defaults['position'] = []
         defaults['frequency'] = []
         defaults['antennaGain'] = []
-        defaults['antennaHeight'] = []        
+        defaults['antennaHeight'] = []   
+        defaults['txgain'] = []
+        defaults['rxgain'] = []     
+        defaults['mode'] = []
+        defaults['channel'] = [] 
         defaults.update( params )        
         
         if not cls:
@@ -638,9 +651,9 @@ class Mininet( object ):
       
         channel = ("%s" % params.pop('channel', {}))
         if(channel!="{}"):
-            bs.channel = channel
+            bs.params['channel'] = channel
         else:
-            bs.channel = self.channel 
+            bs.params['channel'] = self.channel 
             
         equipmentModel = ("%s" % params.pop('equipmentModel', {}))
         if(equipmentModel!="{}"):
@@ -650,9 +663,9 @@ class Mininet( object ):
       
         mode = ("%s" % params.pop('mode', {}))
         if(mode!="{}"):
-            bs.mode = mode
+            bs.params['mode'] = mode
         else:
-            bs.mode = self.mode
+            bs.params['mode'] = self.mode
                       
         ssid = ("%s" % params.pop('ssid', {}))
         if(ssid!="{}"):
@@ -727,6 +740,7 @@ class Mininet( object ):
         # Construct new controller if one is not given
         if isinstance( name, Controller ):
             controller_new = name
+            
             # Pylint thinks controller is a str()
             # pylint: disable=maybe-no-member
             name = controller_new.name
@@ -839,9 +853,9 @@ class Mininet( object ):
         
         channel = ("%s" % params.pop('channel', {}))
         if(channel!="{}"): 
-            sta.channel = channel
+            sta.params['channel'] = channel
         else:
-            sta.channel = 1
+            sta.params['channel'] = 1
             
         ssid = ("%s" % params['ssid'])
         if(ssid!="{}"):
@@ -854,9 +868,9 @@ class Mininet( object ):
         
         mode = ("%s" % params.pop('mode', {}))
         if(mode!="{}"):
-            sta.mode = mode
+            sta.params['mode'] = mode
         else:
-            sta.mode = 'g'
+            sta.params['mode'] = 'g'
             
         value = deviceRange(sta)
         sta.range = value.range-15
@@ -907,9 +921,9 @@ class Mininet( object ):
         
         channel = ("%s" % params.pop('channel', {}))
         if(channel!="{}"): 
-            sta.channel = channel
+            sta.params['channel'] = channel
         else:
-            sta.channel = 1
+            sta.params['channel'] = 1
             
         ssid = ("%s" % params.pop('ssid', {}))
         if(ssid!="{}"):
@@ -920,9 +934,9 @@ class Mininet( object ):
             
         mode = ("%s" % params.pop('mode', {}))
         if(mode!="{}"):
-            sta.mode = mode
+            sta.params['mode'] = mode
         else:
-            sta.mode = 'g'
+            sta.params['mode'] = 'g'
             
         value = deviceRange(sta)
         sta.range = value.range-15
@@ -1054,9 +1068,9 @@ class Mininet( object ):
                     wifiParameters(param='get_tx_power', node=ap, wlan=wlan, iface=iface) 
                 else:
                     cls = None
-                    cls = self.link if cls is None else cls   
+                    cls = self.link if cls is None else cls
                     iface = ap.params.get('wlan')
-                    options = dict(  )
+                    options = dict()
                     options.setdefault( 'intfName1', iface )
                     cls( ap, 'alone', **options )
                     ap.params.pop("wlan", None)
@@ -1216,11 +1230,11 @@ class Mininet( object ):
             #necessary if does not exist link between sta and other device
             if node1 in self.missingStations:
                 self.missingStations.remove(node1)
-                node1.mode = 'g'
+                node1.params['mode'] = 'g'
                 node1.associate = False
             if node2 in self.missingStations:
                 self.missingStations.remove(node2)
-                node2.mode = 'g'
+                node2.params['mode'] = 'g'
                 node2.associate = False
             
             # Port is optional

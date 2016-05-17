@@ -56,19 +56,20 @@ def initial_speed(speed_mean, speed_delta, shape=(1,)):
     u = rand(*shape)
     return pow(v1, u) / pow(v0, u - 1)
 
-def init_random_waypoint(nr_nodes, max_x, max_y,
+def init_random_waypoint(nodes, max_x, max_y,
                          speed_low, speed_high, pause_low, pause_high):
 
+    nr_nodes = len(nodes)
     x = np.empty(nr_nodes)
     y = np.empty(nr_nodes)
     x_waypoint = np.empty(nr_nodes)
     y_waypoint = np.empty(nr_nodes)
     speed = np.empty(nr_nodes)
+    for sta in nodes:
+        sta.params['speed'] = speed[nodes.index(sta)]
     pause_time = np.empty(nr_nodes)
-
     speed_low = float(speed_low)
     speed_high = float(speed_high)
-
     moving = np.ones(nr_nodes)
     speed_mean, speed_delta = (speed_low+speed_high)/2., (speed_high-speed_low)/2.
     pause_mean, pause_delta = (pause_low+pause_high)/2., (pause_high-pause_low)/2.
@@ -132,7 +133,7 @@ def init_random_waypoint(nr_nodes, max_x, max_y,
 
 class RandomWaypoint(object):
     
-    def __init__(self, nr_nodes, dimensions, velocity=(0.1, 1.), wt_max=None):
+    def __init__(self, nodes, dimensions, velocity=(0.1, 1.), wt_max=None):
         '''
         Random Waypoint model.
         
@@ -154,7 +155,7 @@ class RandomWaypoint(object):
             If wt_max is 0 or None, there is no pause time.
         '''
         
-        self.nr_nodes = nr_nodes
+        self.nr_nodes = nodes
         self.dimensions = dimensions
         self.velocity = velocity
         self.wt_max = wt_max
@@ -173,12 +174,12 @@ class RandomWaypoint(object):
                              (self.wt_max if self.wt_max is not None else 0.))
 
         else:
-            NODES = np.arange(self.nr_nodes)
+            NODES = np.arange(len(self.nr_nodes))
             x = U(0, MAX_X, NODES)
             y = U(0, MAX_Y, NODES)
             x_waypoint = U(0, MAX_X, NODES)
             y_waypoint = U(0, MAX_Y, NODES)
-            wt = np.zeros(self.nr_nodes)
+            wt = np.zeros(len(self.nr_nodes))
             velocity = U(MIN_V, MAX_V, NODES)
 
         theta = np.arctan2(y_waypoint - y, x_waypoint - x)
@@ -220,7 +221,7 @@ class RandomWaypoint(object):
 
 class StochasticWalk(object):
     
-    def __init__(self, nr_nodes, dimensions, FL_DISTR, VELOCITY_DISTR, WT_DISTR=None, border_policy='reflect'):
+    def __init__(self, nodes, dimensions, FL_DISTR, VELOCITY_DISTR, WT_DISTR=None, border_policy='reflect'):
         '''
         Base implementation for models with direction uniformly chosen from [0,pi]:
         random_direction, random_walk, truncated_levy_walk
@@ -263,7 +264,7 @@ class StochasticWalk(object):
         self.collect_wt_stats = False
         self.border_policy = border_policy
         self.dimensions = dimensions
-        self.nr_nodes = nr_nodes
+        self.nr_nodes = len(nodes)
         self.FL_DISTR = FL_DISTR
         self.VELOCITY_DISTR = VELOCITY_DISTR
         self.WT_DISTR = WT_DISTR
@@ -353,7 +354,7 @@ class StochasticWalk(object):
 
 class RandomWalk(StochasticWalk):
     
-    def __init__(self, nr_nodes, dimensions, velocity=1., distance=1., border_policy='reflect'):
+    def __init__(self, nodes, dimensions, velocity=1., distance=1., border_policy='reflect'):
         '''
         Random Walk mobility model.
         This model is based in the Stochastic Walk, but both the flight length and node velocity distributions are in fact constants,
@@ -385,17 +386,18 @@ class RandomWalk(StochasticWalk):
             # it is not possible to have a velocity larger than the distance
             raise Exception('Velocity must be <= Distance')
         
+        nr_nodes = len(nodes)
         fl = np.zeros(nr_nodes)+distance
         vel = np.zeros(nr_nodes)+velocity
        
         FL_DISTR = lambda SAMPLES: np.array(fl[:len(SAMPLES)])
         VELOCITY_DISTR = lambda FD: np.array(vel[:len(FD)])
         
-        StochasticWalk.__init__(self, nr_nodes, dimensions, FL_DISTR, VELOCITY_DISTR,border_policy=border_policy)
+        StochasticWalk.__init__(self, nodes, dimensions, FL_DISTR, VELOCITY_DISTR,border_policy=border_policy)
 
 class RandomDirection(StochasticWalk):
     
-    def __init__(self, nr_nodes, dimensions, wt_max=None, velocity=(0.1, 1.), border_policy='reflect'):
+    def __init__(self, nodes, dimensions, wt_max=None, velocity=(0.1, 1.), border_policy='reflect'):
         '''
         Random Direction mobility model.
         This model is based in the Stochastic Walk. The flight length is chosen from a uniform distribution, 
@@ -439,11 +441,11 @@ class RandomDirection(StochasticWalk):
             WT_DISTR = None
         VELOCITY_DISTR = lambda FD: U(MIN_V, MAX_V, FD)
         
-        StochasticWalk.__init__(self, nr_nodes, dimensions, FL_DISTR, VELOCITY_DISTR, WT_DISTR=WT_DISTR, border_policy=border_policy)
+        StochasticWalk.__init__(self, nodes, dimensions, FL_DISTR, VELOCITY_DISTR, WT_DISTR=WT_DISTR, border_policy=border_policy)
 
 class TruncatedLevyWalk(StochasticWalk):
     
-    def __init__(self, nr_nodes, dimensions, FL_EXP=-2.6, FL_MAX=50., WT_EXP=-1.8, WT_MAX=100., border_policy='reflect'):
+    def __init__(self, nodes, dimensions, FL_EXP=-2.6, FL_MAX=50., WT_EXP=-1.8, WT_MAX=100., border_policy='reflect'):
         '''
         Truncated Levy Walk mobility model, based on the following paper:
         Injong Rhee, Minsu Shin, Seongik Hong, Kyunghan Lee, and Song Chong. On the Levy-Walk Nature of Human Mobility. 
@@ -481,7 +483,7 @@ class TruncatedLevyWalk(StochasticWalk):
             If 'reflect', the node reflects off the border.
             If 'wrap', the node reappears at the opposite edge (as in a torus-shaped area).
         '''
-        
+        nr_nodes = len(nodes)
         FL_DISTR = lambda SAMPLES: P(FL_EXP, 1., FL_MAX, SAMPLES)
         if WT_EXP and WT_MAX:
             WT_DISTR = lambda SAMPLES: P(WT_EXP, 1., WT_MAX, SAMPLES)
@@ -489,11 +491,11 @@ class TruncatedLevyWalk(StochasticWalk):
             WT_DISTR = None
         VELOCITY_DISTR = lambda FD: np.sqrt(FD)/10.
         
-        StochasticWalk.__init__(self, nr_nodes, dimensions, FL_DISTR, VELOCITY_DISTR, WT_DISTR=WT_DISTR, border_policy=border_policy)
+        StochasticWalk.__init__(self, nodes, dimensions, FL_DISTR, VELOCITY_DISTR, WT_DISTR=WT_DISTR, border_policy=border_policy)
 
 class HeterogeneousTruncatedLevyWalk(StochasticWalk):
 
-    def __init__(self, nr_nodes, dimensions, WT_EXP=-1.8, WT_MAX=100., FL_EXP=-2.6, FL_MAX=50., border_policy='reflect'):
+    def __init__(self, nodes, dimensions, WT_EXP=-1.8, WT_MAX=100., FL_EXP=-2.6, FL_MAX=50., border_policy='reflect'):
         '''
         This is a variant of the Truncated Levy Walk mobility model.
         This model is based in the Stochastic Walk.
@@ -529,7 +531,7 @@ class HeterogeneousTruncatedLevyWalk(StochasticWalk):
             If 'reflect', the node reflects off the border.
             If 'wrap', the node reappears at the opposite edge (as in a torus-shaped area).
         '''
-        
+        nr_nodes = len(nodes)
         NODES = np.arange(nr_nodes)
         FL_MAX = P(-1.8, 10., FL_MAX, NODES)
         FL_MIN = FL_MAX/10.
@@ -558,7 +560,7 @@ def truncated_levy_walk(*args, **kwargs):
 def heterogeneous_truncated_levy_walk(*args, **kwargs):
     return iter(HeterogeneousTruncatedLevyWalk(*args, **kwargs))
 
-def gauss_markov(nr_nodes, dimensions, velocity_mean=1., alpha=1., variance=1.):
+def gauss_markov(nodes, dimensions, velocity_mean=1., alpha=1., variance=1.):
     '''
     Gauss-Markov Mobility Model, as proposed in 
     Camp, T., Boleng, J. & Davies, V. A survey of mobility models for ad hoc network research. 
@@ -583,7 +585,7 @@ def gauss_markov(nr_nodes, dimensions, velocity_mean=1., alpha=1., variance=1.):
       *variance*:
         The randomness variance
     '''
-    
+    nr_nodes = len(nodes)
     MAX_X, MAX_Y = dimensions
     NODES = np.arange(nr_nodes)
     x = U(0, MAX_X, NODES)
@@ -621,7 +623,7 @@ def gauss_markov(nr_nodes, dimensions, velocity_mean=1., alpha=1., variance=1.):
         
         yield np.dstack((x,y))[0]
         
-def reference_point_group(nr_nodes, dimensions, velocity=(0.1, 1.), aggregation=0.1):
+def reference_point_group(nodes, dimensions, velocity=(0.1, 1.), aggregation=0.1):
     '''
     Reference Point Group Mobility model, discussed in the following paper:
     
@@ -654,7 +656,7 @@ def reference_point_group(nr_nodes, dimensions, velocity=(0.1, 1.), aggregation=
         With a value of 0, the nodes are randomly distributed in the simulation area.
         With a value of 1, the nodes are close to the group center.
     '''
-    
+    nr_nodes = len(nodes)
     try:
         iter(nr_nodes)
     except TypeError:
@@ -749,7 +751,7 @@ def reference_point_group(nr_nodes, dimensions, velocity=(0.1, 1.), aggregation=
 
         yield np.dstack((x,y))[0]
         
-def tvc(nr_nodes, dimensions, velocity=(0.1, 1.), aggregation=[0.5,0.], epoch=[100,100]):
+def tvc(nodes, dimensions, velocity=(0.1, 1.), aggregation=[0.5,0.], epoch=[100,100]):
     '''
     Time-variant Community Mobility Model, discussed in the paper
     
@@ -789,6 +791,7 @@ def tvc(nr_nodes, dimensions, velocity=(0.1, 1.), aggregation=[0.5,0.], epoch=[1
       *epoch*:
         List of Integers, the number of steps each epoch stage lasts.
     '''
+    nr_nodes = len(nodes)
     if len(aggregation) != len(epoch):
         raise Exception("The parameters 'aggregation' and 'epoch' should be of same size")
     

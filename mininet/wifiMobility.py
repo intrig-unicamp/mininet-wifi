@@ -55,7 +55,7 @@ class mobility ( object ):
         
     @classmethod  
     def nodeSpeed(self, sta, pos_x, pos_y, pos_z, diffTime):
-        sta.speed = ((pos_x + pos_y + pos_z)/diffTime) 
+        sta.params['speed'] = ((pos_x + pos_y + pos_z)/diffTime) 
   
     @classmethod  
     def handover(self, sta, ap, wlan, distance, changeAP, ac=None, **params):
@@ -141,7 +141,7 @@ class mobility ( object ):
         np.random.seed(seed)
         
         # number of nodes
-        nr_nodes = len(staMov)
+        nr_nodes = staMov
         
         # simulation area (units)
         MAX_X, MAX_Y = max_x, max_y
@@ -168,7 +168,7 @@ class mobility ( object ):
             mob = tvc(nr_nodes, dimensions=(MAX_X, MAX_Y), aggregation=[0.5,0.], epoch=[100,100])        
         else:
             print 'Model not defined!'
-
+        
         if self.DRAW:
             debug('Enabling Graph...\n')
             plot.instantiateGraph(self.MAX_X, self.MAX_Y)
@@ -199,7 +199,6 @@ class mobility ( object ):
                                     plot.pltNode[node].set_data(xy[:,0],xy[:,1])
                                     plot.drawTxt(node)
                                     plot.drawCircle(node)
-                            #self.parameters()
                     if self.DRAW:
                             plt.title("Mininet-WiFi Graph")
                             plt.draw()   
@@ -234,7 +233,7 @@ class mobility ( object ):
                         if node.func[wlan] == 'mesh' or node.func[wlan] == 'adhoc':
                             dist = listNodes.pairingNodes(node, wlan, self.staList)
                             if dist!=0:
-                                channelParameters(node, None, wlan, dist, self.staList, abs(node.speed))
+                                channelParameters(node, None, wlan, dist, self.staList, abs(node.params['speed']))
                         else:
                             self.nodeParameter(node, wlan)
                 if meshRouting.routing == 'custom':
@@ -251,7 +250,7 @@ class mobility ( object ):
     def setChannelParameters(self, sta, ap, dist, wlan):
         """ Wifi Parameters """
         associated = True
-        time = abs(sta.speed)
+        time = abs(sta.params['speed'])
         staList = self.staList
         
         if ap == sta.associatedAp[wlan]:

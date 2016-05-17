@@ -46,11 +46,11 @@ class accessPoint( object ):
         self.cmd = self.cmd + ("\nssid=%s" % ap.ssid[0]) # the name of the AP
         
         
-        if ap.mode == 'n' or ap.mode == 'ac'or ap.mode == 'a':
+        if ap.params['mode'] == 'n' or ap.params['mode'] == 'ac'or ap.params['mode'] == 'a':
             self.cmd = self.cmd + ("\nhw_mode=g") 
         else:
-            self.cmd = self.cmd + ("\nhw_mode=%s" % ap.mode) 
-        self.cmd = self.cmd + ("\nchannel=%s" % ap.channel) # the channel to use 
+            self.cmd = self.cmd + ("\nhw_mode=%s" % ap.params['mode']) 
+        self.cmd = self.cmd + ("\nchannel=%s" % ap.params['channel']) # the channel to use 
         #if(ap.mode=="ac" or ap.mode=='a'):
         #   self.cmd = self.cmd + ("\nieee80211ac=1")
         self.cmd = self.cmd + ("\nwme_enabled=1") 

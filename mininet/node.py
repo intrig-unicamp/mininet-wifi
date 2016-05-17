@@ -109,13 +109,9 @@ class Node( object ):
         
         # Station and BaseStation Parameters
         self.ssid = []
-        self.channel = ''
-        self.mode = ''
         self.passwd = ''
         self.security = ''
         self.equipmentModel = ''  
-        self.txgain = []
-        self.rxgain = []
         self.func = []
         self.connections = {}
         # Station Parameters

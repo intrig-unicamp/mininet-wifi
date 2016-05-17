@@ -22,6 +22,7 @@ class channelParameters ( object ):
     
     def __init__( self, node1, node2, wlan, dist, staList, time ):
         self.dist = dist        
+       
         self.calculateInterference(node1, node2, dist, staList, wlan)    
         self.delay = self.delay(self.dist, time)
         self.latency = self.latency(self.dist)
@@ -81,22 +82,18 @@ class channelParameters ( object ):
             self.rate = 1
         return self.rate  
     
-    def tc(self, node, wlan, bw, loss, latency, delay):
-        if node.func[wlan] == 'mesh':
-            iface = 'mp'
-        else:
-            iface = 'wlan'
-
-        bw = random.uniform(bw-1, bw+1)
-        
-        node.pexec("tc qdisc replace dev %s-%s%s \
+    def tc(self, sta, wlan, bw, loss, latency, delay):
+        """Applying TC"""
+        bw = random.uniform(bw-1, bw+1)        
+        sta.pexec("tc qdisc replace dev %s \
             root handle 2: netem rate %.2fmbit \
             loss %.1f%% \
             latency %.2fms \
             delay %.2fms \
-            corrupt 0.1%%" % (node, iface, wlan, bw, loss, latency, delay))   
+            corrupt 0.1%%" % (sta.params['wlan'][wlan], bw, loss, latency, delay))   
         
-    def calculateInterference (self, sta, ap, dist, staList, wlan):        
+    def calculateInterference (self, sta, ap, dist, staList, wlan):      
+        """Calculating Interference"""
         self.noise = 0
         noisePower = 0
         self.i=0

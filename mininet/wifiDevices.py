@@ -26,7 +26,7 @@ class deviceDataRate ( object ):
                     
     def customDataRate_mobility(self, node):
         """Custom Maximum Data Rate - Useful when there is mobility"""
-        mode = node.mode
+        mode = node.params['mode']
         
         if (mode=='a'):
             self.rate = 54
@@ -42,7 +42,7 @@ class deviceDataRate ( object ):
     
     def customDataRate_no_mobility(self, node):
         """Custom Maximum Data Rate - Useful when there is no mobility"""
-        mode = node.mode
+        mode = node.params['mode']
         
         if (mode=='a'):
             self.rate = 20
@@ -79,14 +79,15 @@ class deviceDataRate ( object ):
     def TLWR740N(self, node1, node2, wlan):
         """TL-WR740N
            from http://www.tp-link.com.br/products/details/cat-9_TL-WR740N.html#specificationsf"""
+        mode = node2.params['mode']
         try: # if Station
             if node1.params['rssi'][wlan] != 0:
                 if (node1.params['rssi'][wlan] >= -68):
-                    if node2.mode == 'n':
+                    if mode == 'n':
                         self.rate = 130
-                    elif node2.mode == 'g':
+                    elif mode == 'g':
                         self.rate = 54
-                    elif node2.mode == 'b':
+                    elif mode == 'b':
                         self.rate = 11
                 elif (node1.params['rssi'][wlan] < -68 and node1.params['rssi'][wlan] >= -85):
                     self.rate = 11
@@ -95,30 +96,31 @@ class deviceDataRate ( object ):
                 elif (node1.params['rssi'][wlan] < -88 and node1.params['rssi'][wlan] >= -90):
                     self.rate = 1
         except: # if AP
-            if node2.mode == 'n':
+            if mode == 'n':
                 self.rate = 130
-            elif node2.mode == 'g':
+            elif mode == 'g':
                 self.rate = 54
-            elif node2.mode == 'b':
+            elif mode == 'b':
                 self.rate = 11
         return self.rate
     
     def WRT120N(self, node1, node2, wlan):
         """CISCO WRT120N
            from http://downloads.linksys.com/downloads/datasheet/WRT120N_V10_DS_B-WEB.pdf"""
+        mode = node2.params['mode']
         try: # if Station
             if node1.params['rssi'][wlan] != 0:
                 if (node1.params['rssi'][wlan] >= -65):
-                    if node2.mode == 'n':
+                    if mode == 'n':
                         self.rate = 150
-                    elif node2.mode == 'g':
+                    elif mode == 'g':
                         self.rate = 54
-                    elif node2.mode == 'b':
+                    elif mode == 'b':
                         self.rate = 11
                 elif (node1.params['rssi'][wlan] < -65 and node1.params['rssi'][wlan] >= -68):
-                    if node2.mode == 'g':
+                    if mode == 'g':
                         self.rate = 54
-                    elif node2.mode == 'b':
+                    elif mode == 'b':
                         self.rate = 11
                 elif (node1.params['rssi'][wlan] < -68 and node1.params['rssi'][wlan] >= -85):
                     self.rate = 11
@@ -150,7 +152,7 @@ class deviceRange ( object ):
             
     def customSignalRange(self, node):
         """Custom Signal Range"""
-        mode = node.mode
+        mode = node.params['mode']
         
         if (mode=='a'):
             self.range = 33
@@ -215,11 +217,11 @@ class deviceTxPower ( object ):
     def WRT120N(self, ap):
         """CISCO WRT120N
            from http://downloads.linksys.com/downloads/datasheet/WRT120N_V10_DS_B-WEB.pdf"""
-        if ap.mode == 'b':
+        if ap.params['mode'] == 'b':
             self.txPower = 21
-        elif ap.mode == 'g':
+        elif ap.params['mode'] == 'g':
             self.txPower = 18
-        elif ap.mode == 'n':
+        elif ap.params['mode'] == 'n':
             self.txPower = 16
         return self.txPower
 

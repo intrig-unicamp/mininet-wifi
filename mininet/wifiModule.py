@@ -69,13 +69,12 @@ class module( object ):
             for wlan in range(0, len(sta.params['wlan'])):
                 i = virtualWlan.index(sta)
                 os.system('iw phy %s set netns %s' % ( phyList[i + wlan], sta.pid ))
-                sta.cmd('ip link set %s name %s up' % (wlanList[i + wlan], sta.params['wlan'][wlan]))  
+                sta.cmd('ip link set %s name %s up' % ( wlanList[i + wlan], sta.params['wlan'][wlan] ))  
                 sta.params['frequency'].append(0)
                 sta.params['rssi'].append(0)
                 sta.params['snr'].append(0)
                 sta.params['antennaHeight'].append(2)
                 sta.params['antennaGain'].append(1)
-                sta.speed = 0
                 sta.meshMac.append(0)
                 sta.isAssociated.append('')
                 sta.ssid.append('')
