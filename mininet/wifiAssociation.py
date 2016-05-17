@@ -6,6 +6,7 @@ author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
 """
 from mininet.wifiParameters import wifiParameters
 from mininet.wifiMobility import mobility
+from mininet.log import debug
 
 
 class association ( object ):
@@ -36,7 +37,8 @@ class association ( object ):
     def cmd_associate(self, sta, ap, wlan):
         if sta.passwd == None:
             #sta.pexec('iw dev %s-wlan%s connect %s' % (sta, wlan, ap.ssid[0]))
-            sta.pexec('iwconfig %s-wlan%s essid %s ap %s' % (sta, wlan, ap.ssid[0], ap.mac))
+            debug ('\niwconfig %s essid %s ap %s' % (sta.params['wlan'][wlan], ap.ssid[0], ap.mac) )
+            sta.pexec('iwconfig %s essid %s ap %s' % (sta.params['wlan'][wlan], ap.ssid[0], ap.mac))
         elif sta.encrypt == 'wpa' or sta.encrypt == 'wpa2':
             self.associate_wpa(sta, wlan, ap.ssid[0], sta.passwd)
         elif sta.encrypt == 'wep':

@@ -60,16 +60,18 @@ class mobility ( object ):
     @classmethod  
     def handover(self, sta, ap, wlan, distance, changeAP, ac=None, **params):
         """handover"""
-        if ac == 'llf' or ac == 'ssf':
-            sta.pexec('iw dev %s-wlan%s disconnect' % (sta, wlan))
+        if ac == 'llf' or ac == 'ssf' and sta.associatedAp[wlan] != ap:
+            sta.pexec('iw dev %s disconnect' % sta.params['wlan'][wlan])
             #sta.pexec('iw dev %s-wlan%s connect %s' % (sta, wlan, ap.ssid[0]))
-            sta.pexec('iwconfig %s-wlan%s essid %s ap %s' % (sta, wlan, ap.ssid[0], ap.mac))
+            debug ('\niwconfig %s essid %s ap %s' % (sta.params['wlan'][wlan], ap.ssid[0], ap.mac))
+            sta.pexec('iwconfig %s essid %s ap %s' % (sta.params['wlan'][wlan], ap.ssid[0], ap.mac))
             sta.associatedAp[wlan] = ap
         elif ap not in sta.associatedAp:
             #Useful for stations with more than one wifi iface
             if sta.associatedAp[wlan] == 'NoAssociated':
                 #sta.pexec('iw dev %s-wlan%s connect %s' % (sta, wlan, ap.ssid[0]))
-                sta.pexec('iwconfig %s-wlan%s essid %s ap %s' % (sta, wlan, ap.ssid[0], ap.mac))
+                debug('\niwconfig %s essid %s ap %s' % (sta.params['wlan'][wlan], ap.ssid[0], ap.mac))
+                sta.pexec('iwconfig %s essid %s ap %s' % (sta.params['wlan'][wlan], ap.ssid[0], ap.mac))
                 ap.associatedStations.append(sta)
                 sta.associatedAp[wlan] = ap        
         self.numberOfAssociatedStations(ap)
@@ -254,7 +256,8 @@ class mobility ( object ):
         
         if ap == sta.associatedAp[wlan]:
             if dist > ap.range + sta.range:  
-                sta.pexec('iw dev %s-wlan%s disconnect' % (sta, wlan))
+                debug( '\niw dev %s disconnect' % sta.params['wlan'][wlan] )
+                sta.pexec('iw dev %s disconnect' % sta.params['wlan'][wlan])
                 sta.associatedAp[wlan] = 'NoAssociated'
                 sta.params['rssi'][wlan] = 0
                 sta.params['snr'][wlan] = 0
