@@ -7,7 +7,6 @@ author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
 import matplotlib.pyplot as plt
 import numpy as np
 import time
-import subprocess
 
 from mininet.log import debug
 from mininet.wifiMobilityModels import gauss_markov, \
@@ -60,21 +59,21 @@ class mobility ( object ):
     @classmethod  
     def handover(self, sta, ap, wlan, distance, changeAP, ac=None, **params):
         """handover"""
-        if ac == 'llf' or ac == 'ssf' and sta.associatedAp[wlan] != ap:
+        if ac == 'llf' or ac == 'ssf' and sta.params['associatedTo'][wlan] != ap:
+            if sta.params['associatedTo'][wlan] != '':
+                sta.params['associatedTo'][wlan].associatedStations.remove(sta)
             sta.pexec('iw dev %s disconnect' % sta.params['wlan'][wlan])
-            #sta.pexec('iw dev %s-wlan%s connect %s' % (sta, wlan, ap.ssid[0]))
             debug ('\niwconfig %s essid %s ap %s' % (sta.params['wlan'][wlan], ap.ssid[0], ap.mac))
             sta.pexec('iwconfig %s essid %s ap %s' % (sta.params['wlan'][wlan], ap.ssid[0], ap.mac))
-            sta.associatedAp[wlan] = ap
-        elif ap not in sta.associatedAp:
+            sta.params['associatedTo'][wlan] = ap
+            ap.associatedStations.append(sta)
+        elif ap not in sta.params['associatedTo']:
             #Useful for stations with more than one wifi iface
-            if sta.associatedAp[wlan] == 'NoAssociated':
-                #sta.pexec('iw dev %s-wlan%s connect %s' % (sta, wlan, ap.ssid[0]))
+            if sta.params['associatedTo'][wlan] == '':
                 debug('\niwconfig %s essid %s ap %s' % (sta.params['wlan'][wlan], ap.ssid[0], ap.mac))
                 sta.pexec('iwconfig %s essid %s ap %s' % (sta.params['wlan'][wlan], ap.ssid[0], ap.mac))
                 ap.associatedStations.append(sta)
-                sta.associatedAp[wlan] = ap        
-        self.numberOfAssociatedStations(ap)
+                sta.params['associatedTo'][wlan] = ap 
         
     @classmethod 
     def graphInstantiateNodes(self, node):
@@ -82,15 +81,6 @@ class mobility ( object ):
         plot.instantiateCircle(node)
         plot.instantiateNode(node, self.MAX_X, self.MAX_Y)
         plot.graphUpdate(node)  
-            
-    @classmethod
-    def numberOfAssociatedStations( self, ap ):
-        "Number of Associated Stations"
-        cmd = 'iw dev %s-wlan0 station dump | grep Sta | grep -c ^' % ap     
-        proc = subprocess.Popen("exec " + cmd, stdout=subprocess.PIPE,shell=True)   
-        (out, err) = proc.communicate()
-        output = out.rstrip('\n')
-        ap.nAssociatedStations = int(output)        
     
     @classmethod 
     def mobilityPositionDefined(self, initial_time, final_time, staMov):
@@ -210,11 +200,11 @@ class mobility ( object ):
         for ap in mobility.apList:
             dist = channelParameters.getDistance(sta, ap)
             if dist < ap.range + sta.range:
-                if ap not in sta.inRangeAPs:
-                    sta.inRangeAPs.append(ap)
+                if ap not in sta.params['apsInRange']:
+                    sta.params['apsInRange'].append(ap)
             else:
-                if ap in sta.inRangeAPs:
-                    sta.inRangeAPs.remove(ap)
+                if ap in sta.params['apsInRange']:
+                    sta.params['apsInRange'].remove(ap)
 
     @classmethod 
     def nodeParameter(self, sta, wlan):
@@ -253,29 +243,29 @@ class mobility ( object ):
         time = abs(sta.params['speed'])
         staList = self.staList
         
-        if ap == sta.associatedAp[wlan]:
+        if ap == sta.params['associatedTo'][wlan]:
             if dist > ap.range + sta.range:  
                 debug( '\niw dev %s disconnect' % sta.params['wlan'][wlan] )
                 sta.pexec('iw dev %s disconnect' % sta.params['wlan'][wlan])
-                sta.associatedAp[wlan] = 'NoAssociated'
+                sta.params['associatedTo'][wlan] = ''
                 sta.params['rssi'][wlan] = 0
                 sta.params['snr'][wlan] = 0
-                self.numberOfAssociatedStations(ap)
+                ap.associatedStations.remove(sta)
             else:
                 channelParameters(sta, ap, wlan, dist, staList, time)
         else:   
             if dist < ap.range + sta.range:            
                 aps = 0
-                for n in range(0,len(sta.associatedAp)):
-                    if str(sta.associatedAp[n]) != 'NoAssociated':
+                for n in range(0,len(sta.params['associatedTo'])):
+                    if str(sta.params['associatedTo'][n]) != '':
                         aps+=1
-                if len(sta.associatedAp) == aps:
+                if len(sta.params['associatedTo']) == aps:
                     associated = True
                 else:
                     associated = False
             else:
                 associated = False
-        if ap == sta.associatedAp[wlan] or dist < (ap.range + sta.range):
+        if ap == sta.params['associatedTo'][wlan] or dist < (ap.range + sta.range):
             #Only if it is a mobility environment
             changeAP = False
             association_Control = dict ()

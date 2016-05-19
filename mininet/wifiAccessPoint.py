@@ -58,8 +58,7 @@ class accessPoint( object ):
         #if(ap.mode=="n" or ap.mode=="a"):
         #   self.cmd = self.cmd + ("\nieee80211n=1")
         #if(ap.mode=="n"):
-        #   self.cmd = self.cmd + ("\nht_capab=[HT40+][SHORT-GI-40][DSSS_CCK-40]")
-        
+        #   self.cmd = self.cmd + ("\nht_capab=[HT40+][SHORT-GI-40][DSSS_CCK-40]")        
         if encrypt == 'wpa':
             self.cmd = self.cmd + ("\nauth_algs=%s" % auth_algs)
             self.cmd = self.cmd + ("\nwpa=%s" % wpa)
@@ -80,26 +79,14 @@ class accessPoint( object ):
         if(country_code!=None):
             self.cmd = self.cmd + ("\ncountry_code=%s" % country_code) # the country code
         
-        #elif(len(self.baseStationName)>self.countAP and len(self.baseStationName) != 1):
-        #    """From AP2"""
-        #    self.cmd = self.apcommand
-            #self.cmd = self.cmd + "\n"
-        #    self.cmd = self.cmd + ("\nbss=%s" % self.newapif[self.nextIface]) # the interface used by the AP
-        #    if(self.ssid!=None):
-        #        self.cmd = self.cmd + ("\nssid=%s" % self.ssid ) # the name of the AP
-                #self.cmd = self.cmd + ("\nssid=%s" % self.ssid) # the name of the AP
-        #    if(self.auth_algs!=None):
-        #        self.cmd = self.cmd + ("\nauth_algs=%s" % self.auth_algs) # 1=wpa, 2=wep, 3=both
-        #    if(self.wpa!=None):
-        #        self.cmd = self.cmd + ("\nwpa=%s" % self.wpa) # WPA2 only
-        #    if(self.wpa_key_mgmt!=None):
-        #        self.cmd = self.cmd + ("\nwpa_key_mgmt=%s" % self.wpa_key_mgmt ) 
-        #    if(self.rsn_pairwise!=None):
-        #        self.cmd = self.cmd + ("\nrsn_pairwise=%s" % self.rsn_pairwise)  
-        #    if(self.wpa_passphrase!=None):
-        #        self.cmd = self.cmd + ("\nwpa_passphrase=%s" % self.wpa_passphrase)  
-        #    self.countAP = len(self.baseStationName)
-        #    self.apcommand = ""       
+        if(ap.n_ssids) > 1:
+            i = 1
+            while (int(ap.n_ssids) > i):
+                self.cmd = self.cmd + ('\n')
+                self.cmd = self.cmd + ("\nbss=%s-wlan%s_%s" % (ap, wlan, i))
+                self.cmd = self.cmd + ("\nssid=%s_%s" % (ap.ssid[0], i))  
+                i += 1 
+            
         self.APfile(self.cmd, ap, wlan)   
   
     def getMacAddress(self, ap, wlan):

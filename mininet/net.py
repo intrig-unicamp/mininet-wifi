@@ -293,6 +293,8 @@ class Mininet( object ):
         defaults['rxgain'] = []
         defaults['mode'] = []
         defaults['channel'] = [] 
+        defaults['apsInRange'] = []
+        defaults['associatedTo'] = [] 
         
         if self.autoSetMacs:
             defaults[ 'mac' ] = macColonHex( self.nextIP )
@@ -369,21 +371,18 @@ class Mininet( object ):
             for n in range(int(wifi)):
                 self.virtualWlan.append(sta)    
                 sta.func.append('none') 
-                sta.params['txpower'].append(0)
+                if sta.params['txpower'] == []:
+                    sta.params['txpower'].append(0)
                 sta.params['wlan'].append(name+'-wlan'+str(n))
         else:
             self.wifiRadios += 1
             wifi = 1
             sta.func.append('none')
             self.virtualWlan.append(sta)
-            sta.params['txpower'].append(0)
+            if sta.params['txpower'] == []:
+                sta.params['txpower'].append(0)
             sta.params['wlan'].append(name+'-wlan0')
         sta.nWlans = int(wifi)
-        
-        txpower = ("%s" % params.pop('txpower', {}))
-        if(txpower!="{}"):
-            sta.params['txpower'][0] = int(txpower)
-        
         mobility.staList.append( sta )
         self.nextIP += 1        
         return sta
@@ -559,6 +558,12 @@ class Mininet( object ):
             bs.ssid.append(ssid)
         else:
             bs.ssid.append(self.ssid)
+            
+        n_ssids = ("%s" % params.pop('n_ssids', {}))
+        if(n_ssids!="{}"):
+            bs.n_ssids = int(n_ssids)
+        else:
+            bs.n_ssids = 1
             
         passwd = ("%s" % params.pop('passwd', {}))
         if(passwd!="{}"):
@@ -863,7 +868,6 @@ class Mininet( object ):
         else:
             sta.ssid[wlan] = 'meshNetwork'
         sta.params['mp' + str(wlan)] = sta.ssid[wlan]
-        sta.params['isMesh'] = True
         sta.wlanToAssociate+=1
         
         mode = ("%s" % params.pop('mode', {}))
@@ -1368,9 +1372,9 @@ class Mininet( object ):
                     if sta.params['position'] != (0,0,0) and sta.func[wlan] == 'adhoc':
                         channelParameters(sta, None, wlan, 0, self.stations, 0 )
                     else:
-                        if sta.params['position'] != (0,0,0) and sta.associatedAp[wlan] != 'NoAssociated':
-                            dist = channelParameters.getDistance(sta, sta.associatedAp[wlan])
-                            channelParameters(sta, sta.associatedAp[wlan], wlan, dist, self.stations, 0 )
+                        if sta.params['position'] != (0,0,0) and sta.params['associatedTo'][wlan] != '':
+                            dist = channelParameters.getDistance(sta, sta.params['associatedTo'][wlan])
+                            channelParameters(sta, sta.params['associatedTo'][wlan], wlan, dist, self.stations, 0 )
             
             for node in self.missingStations:
                 for wlan in range(0, node.nWlans):
@@ -1383,7 +1387,7 @@ class Mininet( object ):
                     options.setdefault( 'addr1', self.randMac() )
                     cls = self.link if cls is None else cls
                     cls( node, 'alone', **options )
-                    if sta.params['position'] != (0,0,0) and sta.associatedAp[wlan] != 'NoAssociated':   
+                    if sta.params['position'] != (0,0,0) and sta.params['associatedTo'][wlan] != '':   
                         mobility.nodeParameter(node, wlan)
         
         if self.topo:
@@ -1504,15 +1508,12 @@ class Mininet( object ):
             host.terminate()
         info( '\n' )
         if(self.isWiFi):
-            "Stop plotting"
+            "Stop Graph"
             mobility.DRAW = False
-            mobility.continue_ = False
-            try:
-                plot.closePlot()
-                sleep( 2 )
-            except:
-                pass        
-            module.stop() #Stopping WiFi Module        
+            mobility.continue_ = False   
+            plot.closePlot()
+            module.stop() #Stopping WiFi Module   
+                
         info( '\n*** Done\n' )
         #os._exit(1)
          
@@ -1583,7 +1584,7 @@ class Mininet( object ):
                     if timeout:
                         opts = '-W %s' % timeout
                     if dest.intfs:
-                        result = node.cmd( 'ping -c1 %s %s' %
+                        result = node.cmdPrint( 'ping -c1 %s %s' %
                                            (opts, dest.IP()) )
                         sent, received = self._parsePing( result )
                     else:
@@ -1965,8 +1966,8 @@ class Mininet( object ):
                     print "--------------------------------"                
                     print "Interface: %s-wlan%s" % (device, wlan)
                     try: # it is important when not infra
-                        if 'ap' in str(device.associatedAp[wlan]):
-                            print "Associated To: %s" % device.associatedAp[wlan]
+                        if 'ap' in str(device.params['associatedTo'][wlan]):
+                            print "Associated To: %s" % device.params['associatedTo'][wlan]
                         else:
                             print "Associated To: %s" % None
                     except:
@@ -1979,8 +1980,8 @@ class Mininet( object ):
                     print "Tx-Power: %s dBm" % device.params['txpower'][wlan]
             else:
                 print "Tx-Power: %s dBm" % device.params['txpower'][0]
-                print "SSID: %s" % device.params['rssi'][0]
-                print "Number of Associated Stations: %s" % device.nAssociatedStations
+                print "SSID: %s" % device.params['ssid']
+                print "Number of Associated Stations: %s" % len(device.associatedStations)
         except:
             pass
                                

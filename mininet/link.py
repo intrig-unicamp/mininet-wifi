@@ -222,7 +222,7 @@ class Intf( object ):
             print "associating %s to %s..." % (iface, ssid)
             self.confirmMeshAssociation(self.sta, iface, wlan)    
             self.getMacAddress(self.sta, iface, wlan)
-            self.sta.isAssociated[wlan] = True
+            self.sta.params['associatedTo'][wlan] = 'mesh'
         elif self.sta.func[self.sta.ifaceToAssociate+1] == 'adhoc':
             self.sta.ifaceToAssociate += 1
             wlan = self.sta.ifaceToAssociate
@@ -232,8 +232,8 @@ class Intf( object ):
             self.sta.cmd('iw dev %s-wlan%s ibss join %s 2412' % (self.sta, wlan, ssid))
             iface = '%s-wlan%s' % (self.sta, wlan)
             print "associating %s to %s..." % (iface, ssid)
-            self.confirmAdhocAssociation(self.sta, iface, wlan)     
-            self.sta.isAssociated[wlan] = True
+            self.confirmAdhocAssociation(self.sta, iface, wlan)   
+            self.sta.params['associatedTo'][wlan] = 'adhoc'  
             
     #Important to mesh networks
     @classmethod

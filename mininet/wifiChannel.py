@@ -44,7 +44,7 @@ class channelParameters ( object ):
         if time != 0:
             self.delay = dist/time
         else:
-            self.delay = dist/1.5
+            self.delay = dist/10
         return self.delay   
     
     def latency(self, dist):    
@@ -90,7 +90,9 @@ class channelParameters ( object ):
             loss %.1f%% \
             latency %.2fms \
             delay %.2fms \
-            corrupt 0.1%%" % (sta.params['wlan'][wlan], bw, loss, latency, delay))   
+            corrupt 0.1%%" % (sta.params['wlan'][wlan], bw, loss, latency, delay))
+        # Note: The command bellow seems to avoid failures in pexec when there are large numbers of fds!
+        sta.pexec('')   
         
     def calculateInterference (self, sta, ap, dist, staList, wlan):      
         """Calculating Interference"""
@@ -101,11 +103,11 @@ class channelParameters ( object ):
         
         if ap == None:
             for station in staList:
-                if station != sta and sta.isAssociated[wlan] == True:
+                if station != sta and sta.params['associatedTo'][wlan] != '':
                     self.calculateNoise(sta, station, signalPower, wlan)
         else:
             for station in ap.associatedStations:
-                if station != sta and sta.associatedAp[wlan] != 'NoAssociated':
+                if station != sta and sta.params['associatedTo'][wlan] != '':
                     self.calculateNoise(sta, station, signalPower, wlan)
         if self.noise != 0:
             noisePower = self.noise/self.i

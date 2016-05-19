@@ -20,7 +20,10 @@ class plot (object):
     @classmethod
     def closePlot(self):
         """Close"""
-        plt.close()  
+        try:
+            plt.close()
+        except:
+            pass
     
     @classmethod
     def drawNode(self, node):

@@ -24,19 +24,19 @@ class association ( object ):
             associated = self.isAssociated(sta, wlan)
         iface = sta.params['wlan'][wlan]
         wifiParameters.getWiFiParameters(sta, wlan, iface) 
-        mobility.numberOfAssociatedStations(ap)
-        sta.associatedAp[wlan] = ap
+        ap.associatedStations.append(sta)
+        sta.params['associatedTo'][wlan] = ap
         mobility.getAPsInRange(sta)
-            
+        sta.wlanToAssociate += 1
+                
     @classmethod    
     def isAssociated(self, sta, iface):
         associated = sta.pexec("iw dev %s-wlan%s link" % (sta, iface))
         return associated
             
     @classmethod 
-    def cmd_associate(self, sta, ap, wlan):
+    def associate_infra(self, sta, ap, wlan):
         if sta.passwd == None:
-            #sta.pexec('iw dev %s-wlan%s connect %s' % (sta, wlan, ap.ssid[0]))
             debug ('\niwconfig %s essid %s ap %s' % (sta.params['wlan'][wlan], ap.ssid[0], ap.mac) )
             sta.pexec('iwconfig %s essid %s ap %s' % (sta.params['wlan'][wlan], ap.ssid[0], ap.mac))
         elif sta.encrypt == 'wpa' or sta.encrypt == 'wpa2':
@@ -44,11 +44,7 @@ class association ( object ):
         elif sta.encrypt == 'wep':
             self.associate_wep(sta, wlan, ap.ssid[0], sta.passwd)
         self.confirmInfraAssociation(sta, ap, wlan)
-        sta.associatedAp[wlan] = ap 
-        ap.associatedStations.append(sta)
-        sta.ssid[wlan] = ap.ssid[0]
-        sta.wlanToAssociate += 1
-    
+        
     @classmethod 
     def associate_wpa(self, sta, wlan, ssid, passwd):
         sta.cmd("wpa_supplicant -B -Dnl80211 -i %s-wlan%s -c <(wpa_passphrase \"%s\" \"%s\")" \

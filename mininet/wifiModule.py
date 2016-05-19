@@ -75,10 +75,9 @@ class module( object ):
                 sta.params['snr'].append(0)
                 sta.params['antennaHeight'].append(2)
                 sta.params['antennaGain'].append(1)
+                sta.params['associatedTo'].append('')
                 sta.meshMac.append(0)
-                sta.isAssociated.append('')
                 sta.ssid.append('')
-                sta.associatedAp.append('NoAssociated')
                
     @classmethod        
     def getWlanIface(self, physicalWlan):

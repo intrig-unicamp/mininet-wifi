@@ -103,37 +103,30 @@ class Node( object ):
         self.wlanports = -1  # dict of wlan interfaces to port numbers
         self.nameToIntf = {}  # dict of interface names to Intfs
         
-        #BaseStations Parameters
-        self.nAssociatedStations = 0
-        self.range = 0
-        
         # Station and BaseStation Parameters
+        self.range = 0
         self.ssid = []
         self.passwd = ''
         self.security = ''
         self.equipmentModel = ''  
         self.func = []
         self.connections = {}
+        self.type = 'host'
+        self.n_ssids = 0
+        
         # Station Parameters
         self.associate = False
         self.nWlans = 0
-        self.nextIface = 0
-        self.associatedAp = []
-        self.addressingSta = 0
-        self.bringUpIface = 0
         self.ifaceToAssociate = -1
         self.mac=''
         self.wlanToAssociate = 0
-        self.meshMac = []
-        self.type = 'host'
-        self.inRangeAPs = []
+        self.meshMac = []        
                 
         # Mobility Parameters
         self.startPosition = []
         self.endPosition = []
         self.moveSta = []
         self.associatedStations = []
-        self.isAssociated = []
         self.staAssociated = []
 
         self.max_speed=0
@@ -253,7 +246,7 @@ class Node( object ):
         """ Associate to an Access Point """ 
         sta.ifaceToAssociate += 1
         wlan = sta.ifaceToAssociate
-        association.cmd_associate(sta, ap, wlan) 
+        association.associate_infra(sta, ap, wlan) 
                 
     def setRange(self, _range):
         self.range = _range
@@ -288,8 +281,8 @@ class Node( object ):
                 break
         d = channelParameters.getDistance(self, ap)
         if d < self.range + ap.range:
-            if self.associatedAp[wlan] != ap:
-                if self.associatedAp[wlan] != 'none':
+            if self.params['associatedTo'][wlan] != ap:
+                if self.params['associatedTo'][wlan] != 'none':
                     self.cmd('iw dev %s disconnect' % iface)
                 self.cmd('iw dev %s connect %s' % (iface, ap.ssid[0]))
                 self.confirmInfraAssociation(self, ap, wlan)
@@ -310,8 +303,8 @@ class Node( object ):
             associated = self.isAssociated(sta, wlan)
         iface = str(sta)+'-wlan%s' % wlan
         wifiParameters.getWiFiParameters(sta, wlan, iface) 
-        mobility.numberOfAssociatedStations(ap)
-        sta.associatedAp[wlan] = ap
+        ap.associatedStations.append(sta)
+        sta.params['associatedTo'][wlan] = ap
         
     @classmethod    
     def isAssociated(self, sta, iface):
