@@ -4,7 +4,6 @@ from sumolib.sumulib import checkBinary
 from traci import trace
 from fonction import initialisation,noChangeSaveTimeAndSpeed,changeSaveTimeAndSpeed,reroutage
 
-
 class sumo(object):
 	
 	def __init__( self, nodes, program, config_file ):
@@ -72,8 +71,8 @@ class sumo(object):
 						y2=trace.vehicle.getPosition(vehID2)[1]
 						
 						if int(vehID1) < len(nodes):
-							nodes[int(vehID1)].position = x1, y1, 0
-							nodes[int(vehID1)].range = 130
+							nodes[int(vehID1)].params['position'] = x1, y1, 0
+							nodes[int(vehID1)].params['range'] = 130
 		
 						if abs(x1-x2)>0 and abs(x1-x2)<20 and (Road1==OppositeRoad2 or Road2==OppositeRoad1):
 		
