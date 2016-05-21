@@ -96,18 +96,18 @@ class channelParameters ( object ):
     def tc(self, sta, wlan, bw, loss, latency, delay):
         """Applying TC"""
         bw = random.uniform(bw-1, bw+1)        
-        os.system("%s/util/m %s tc qdisc replace dev %s \
+        #os.system("%s/util/m %s tc qdisc replace dev %s \
+        #    root handle 2: netem rate %.2fmbit \
+        #    loss %.1f%% \
+        #    latency %.2fms \
+        #    delay %.2fms \
+        #    corrupt 0.1%%" % (self.mininetDir, sta, sta.params['wlan'][wlan], bw, loss, latency, delay))
+        sta.pexec("tc qdisc replace dev %s \
             root handle 2: netem rate %.2fmbit \
             loss %.1f%% \
             latency %.2fms \
             delay %.2fms \
-            corrupt 0.1%%" % (self.mininetDir, sta, sta.params['wlan'][wlan], bw, loss, latency, delay))
-        #sta.pexec("tc qdisc replace dev %s \
-         #   root handle 2: netem rate %.2fmbit \
-          #  loss %.1f%% \
-           # latency %.2fms \
-            #delay %.2fms \
-            #corrupt 0.1%%" % (sta.params['wlan'][wlan], bw, loss, latency, delay))
+            orrupt 0.1%%" % (sta.params['wlan'][wlan], bw, loss, latency, delay))
         
     def calculateInterference (self, sta, ap, dist, staList, wlan):      
         """Calculating Interference"""
