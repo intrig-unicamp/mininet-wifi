@@ -95,7 +95,7 @@ class channelParameters ( object ):
     
     def tc(self, sta, wlan, bw, loss, latency, delay):
         """Applying TC"""
-        bw = random.uniform(bw-1, bw+1)        
+        bw = abs(random.uniform(bw-0.5, bw+0.5))        
         #os.system("%s/util/m %s tc qdisc replace dev %s \
         #    root handle 2: netem rate %.2fmbit \
         #    loss %.1f%% \
