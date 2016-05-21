@@ -176,23 +176,27 @@ class mobility ( object ):
                                                    [node.connections[c].params['position'][1],node.params['position'][1]], 'b')
                             plot.plotLine(line)
                             
-        if model!='':
-            for xy in mob:              
-                i = 0  
-                for n in range (0,len(nodes)):
-                    node = nodes[n]
-                    if node in staMov:
-                        if 'station' == node.type:
-                            node.params['position'] = xy[i][0], xy[i][1], 0
-                            i += 1                       
-                            if self.DRAW:
-                                plot.pltNode[node].set_data(xy[:,0],xy[:,1])
-                                plot.drawTxt(node)
-                                plot.drawCircle(node)
-                if self.DRAW:
-                        plt.title("Mininet-WiFi Graph")
-                        plt.draw()   
-        
+        #Sometimes getting the error: Failed to connect to generic netlink.
+        try:
+            if model!='':
+                for xy in mob:              
+                    i = 0  
+                    for n in range (0,len(nodes)):
+                        node = nodes[n]
+                        if node in staMov:
+                            if 'station' == node.type:
+                                node.params['position'] = xy[i][0], xy[i][1], 0
+                                i += 1                       
+                                if self.DRAW:
+                                    plot.pltNode[node].set_data(xy[:,0],xy[:,1])
+                                    plot.drawTxt(node)
+                                    plot.drawCircle(node)
+                    if self.DRAW:
+                            plt.title("Mininet-WiFi Graph")
+                            plt.draw()   
+        except:
+            pass               
+    
     @classmethod 
     def getAPsInRange(self, sta):
         for ap in mobility.apList:
