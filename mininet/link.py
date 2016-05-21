@@ -27,8 +27,8 @@ Link: basic link class for creating veth pairs
 from mininet.log import info, error, debug
 from mininet.util import makeIntfPair
 import mininet.node
-from mininet.wifiParameters import wifiParameters
 import re
+from mininet.wifiChannel import channelParameters
 
 class Intf( object ):
 
@@ -220,7 +220,7 @@ class Intf( object ):
             iface = '%s-mp%s' % (self.sta, wlan)
             self.sta.params['wlan'][wlan] = iface
             print "associating %s to %s..." % (iface, ssid)
-            self.confirmMeshAssociation(self.sta, iface, wlan)    
+            self.confirmMeshAssociation(self.sta, wlan)    
             self.getMacAddress(self.sta, iface, wlan)
             self.sta.params['associatedTo'][wlan] = 'mesh'
         elif self.sta.func[self.sta.ifaceToAssociate+1] == 'adhoc':
@@ -244,16 +244,16 @@ class Intf( object ):
         sta.meshMac[wlan] = str(mac[0])
             
     @classmethod    
-    def confirmMeshAssociation(self, sta, iface, wlan):
-        wifiParameters.getWiFiParameters(sta, wlan, iface)  
-    
+    def confirmMeshAssociation(self, sta, wlan):
+        sta.params['frequency'][wlan] = channelParameters.frequency(sta, wlan)
+        
     @classmethod    
     def confirmAdhocAssociation(self, sta, iface, wlan):
         associated = ''
         while(associated == '' or len(associated) == 0):
             sta.sendCmd("iw dev %s scan ssid | grep %s" % (iface, sta.ssid[wlan]))
             associated = sta.waitOutput()
-        wifiParameters.getWiFiParameters(sta, wlan, iface)  
+        sta.params['frequency'][wlan] = channelParameters.frequency(sta, wlan)  
     
     def delete( self ):
         "Delete interface"
@@ -522,7 +522,7 @@ class Link( object ):
                         link=self, mac=addr1, **params1 )
             else:
                 params2[ 'port' ] = node2.newPort()
-        
+       
         if not intfName1:
             if node1.type=='station' and str(node2) != 'mesh':
                 ifacename = 'wlan'
@@ -598,7 +598,7 @@ class Link( object ):
         "Construct a canonical interface name node-ethN for interface n."
         # Leave this as an instance method for now
         assert self
-        if 'phy' in node.name: #if physical Interface
+        if 'phy' in node.name and 'wlan' in node.params: #if physical Interface
             return ifacename + repr( n )
         else:
             return node.name + '-' + ifacename + repr( n )

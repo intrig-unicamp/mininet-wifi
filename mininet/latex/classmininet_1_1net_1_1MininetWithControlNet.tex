@@ -1,0 +1,65 @@
+\hypertarget{classmininet_1_1net_1_1MininetWithControlNet}{\section{mininet.\-net.\-Mininet\-With\-Control\-Net Class Reference}
+\label{classmininet_1_1net_1_1MininetWithControlNet}\index{mininet.\-net.\-Mininet\-With\-Control\-Net@{mininet.\-net.\-Mininet\-With\-Control\-Net}}
+}
+Inheritance diagram for mininet.\-net.\-Mininet\-With\-Control\-Net\-:\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[height=3.000000cm]{classmininet_1_1net_1_1MininetWithControlNet}
+\end{center}
+\end{figure}
+\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\hypertarget{classmininet_1_1net_1_1MininetWithControlNet_ada8e763cc2bb869884a9aec47fed0a15}{def {\bfseries configure\-Control\-Network}}\label{classmininet_1_1net_1_1MininetWithControlNet_ada8e763cc2bb869884a9aec47fed0a15}
+
+\item 
+def \hyperlink{classmininet_1_1net_1_1MininetWithControlNet_a09954c5fd8df2f567db97839d2b03915}{configure\-Routed\-Control\-Network}
+\end{DoxyCompactItemize}
+\subsection*{Additional Inherited Members}
+
+
+\subsection{Detailed Description}
+\begin{DoxyVerb}Control network support:
+
+   Create an explicit control network. Currently this is only
+   used/usable with the user datapath.
+
+   Notes:
+
+   1. If the controller and switches are in the same (e.g. root)
+      namespace, they can just use the loopback connection.
+
+   2. If we can get unix domain sockets to work, we can use them
+      instead of an explicit control network.
+
+   3. Instead of routing, we could bridge or use 'in-band' control.
+
+   4. Even if we dispense with this in general, it could still be
+      useful for people who wish to simulate a separate control
+      network (since real networks may need one!)
+
+   5. Basically nobody ever used this code, so it has been moved
+      into its own class.
+
+   6. Ultimately we may wish to extend this to allow us to create a
+      control network which every node's control interface is
+      attached to.\end{DoxyVerb}
+ 
+
+\subsection{Member Function Documentation}
+\hypertarget{classmininet_1_1net_1_1MininetWithControlNet_a09954c5fd8df2f567db97839d2b03915}{\index{mininet\-::net\-::\-Mininet\-With\-Control\-Net@{mininet\-::net\-::\-Mininet\-With\-Control\-Net}!configure\-Routed\-Control\-Network@{configure\-Routed\-Control\-Network}}
+\index{configure\-Routed\-Control\-Network@{configure\-Routed\-Control\-Network}!mininet::net::MininetWithControlNet@{mininet\-::net\-::\-Mininet\-With\-Control\-Net}}
+\subsubsection[{configure\-Routed\-Control\-Network}]{\setlength{\rightskip}{0pt plus 5cm}def mininet.\-net.\-Mininet\-With\-Control\-Net.\-configure\-Routed\-Control\-Network (
+\begin{DoxyParamCaption}
+\item[{}]{self, }
+\item[{}]{ip = {\ttfamily '192.168.123.1'}, }
+\item[{}]{prefix\-Len = {\ttfamily 16}}
+\end{DoxyParamCaption}
+)}}\label{classmininet_1_1net_1_1MininetWithControlNet_a09954c5fd8df2f567db97839d2b03915}
+\begin{DoxyVerb}Configure a routed control network on controller and switches.
+   For use with the user datapath only right now.\end{DoxyVerb}
+ 
+
+The documentation for this class was generated from the following file\-:\begin{DoxyCompactItemize}
+\item 
+net.\-py\end{DoxyCompactItemize}

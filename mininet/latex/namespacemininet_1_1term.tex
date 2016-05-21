@@ -1,0 +1,71 @@
+\hypertarget{namespacemininet_1_1term}{\section{mininet.\-term Namespace Reference}
+\label{namespacemininet_1_1term}\index{mininet.\-term@{mininet.\-term}}
+}
+\subsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+def \hyperlink{namespacemininet_1_1term_a1d7f614c486348a1b0ae430941e9c597}{tunnel\-X11}
+\item 
+def \hyperlink{namespacemininet_1_1term_a95d48882130e9da57dd97cdaeadfd259}{make\-Term}
+\item 
+\hypertarget{namespacemininet_1_1term_a91cc8ddd130bacf9c9d9696d0a6e8079}{def {\bfseries run\-X11}}\label{namespacemininet_1_1term_a91cc8ddd130bacf9c9d9696d0a6e8079}
+
+\item 
+\hypertarget{namespacemininet_1_1term_a02db74d1352ce818782d9784915fcf03}{def {\bfseries clean\-Up\-Screens}}\label{namespacemininet_1_1term_a02db74d1352ce818782d9784915fcf03}
+
+\item 
+def \hyperlink{namespacemininet_1_1term_a9f7a8af31495e9133b89dc36e8c51ada}{make\-Terms}
+\end{DoxyCompactItemize}
+
+
+\subsection{Detailed Description}
+\begin{DoxyVerb}Terminal creation and cleanup.
+Utility functions to run a terminal (connected via socat(1)) on each host.
+
+Requires socat(1) and xterm(1).
+Optionally uses gnome-terminal.
+\end{DoxyVerb}
+ 
+
+\subsection{Function Documentation}
+\hypertarget{namespacemininet_1_1term_a95d48882130e9da57dd97cdaeadfd259}{\index{mininet\-::term@{mininet\-::term}!make\-Term@{make\-Term}}
+\index{make\-Term@{make\-Term}!mininet::term@{mininet\-::term}}
+\subsubsection[{make\-Term}]{\setlength{\rightskip}{0pt plus 5cm}def mininet.\-term.\-make\-Term (
+\begin{DoxyParamCaption}
+\item[{}]{node, }
+\item[{}]{title = {\ttfamily 'Node'}, }
+\item[{}]{term = {\ttfamily 'xterm'}, }
+\item[{}]{display = {\ttfamily None}, }
+\item[{}]{cmd = {\ttfamily 'bash'}}
+\end{DoxyParamCaption}
+)}}\label{namespacemininet_1_1term_a95d48882130e9da57dd97cdaeadfd259}
+\begin{DoxyVerb}Create an X11 tunnel to the node and start up a terminal.
+   node: Node object
+   title: base title
+   term: 'xterm' or 'gterm'
+   returns: two Popen objects, tunnel and terminal\end{DoxyVerb}
+ \hypertarget{namespacemininet_1_1term_a9f7a8af31495e9133b89dc36e8c51ada}{\index{mininet\-::term@{mininet\-::term}!make\-Terms@{make\-Terms}}
+\index{make\-Terms@{make\-Terms}!mininet::term@{mininet\-::term}}
+\subsubsection[{make\-Terms}]{\setlength{\rightskip}{0pt plus 5cm}def mininet.\-term.\-make\-Terms (
+\begin{DoxyParamCaption}
+\item[{}]{nodes, }
+\item[{}]{title = {\ttfamily 'Node'}, }
+\item[{}]{term = {\ttfamily 'xterm'}}
+\end{DoxyParamCaption}
+)}}\label{namespacemininet_1_1term_a9f7a8af31495e9133b89dc36e8c51ada}
+\begin{DoxyVerb}Create terminals.
+   nodes: list of Node objects
+   title: base title for each
+   returns: list of created tunnel/terminal processes\end{DoxyVerb}
+ \hypertarget{namespacemininet_1_1term_a1d7f614c486348a1b0ae430941e9c597}{\index{mininet\-::term@{mininet\-::term}!tunnel\-X11@{tunnel\-X11}}
+\index{tunnel\-X11@{tunnel\-X11}!mininet::term@{mininet\-::term}}
+\subsubsection[{tunnel\-X11}]{\setlength{\rightskip}{0pt plus 5cm}def mininet.\-term.\-tunnel\-X11 (
+\begin{DoxyParamCaption}
+\item[{}]{node, }
+\item[{}]{display = {\ttfamily None}}
+\end{DoxyParamCaption}
+)}}\label{namespacemininet_1_1term_a1d7f614c486348a1b0ae430941e9c597}
+\begin{DoxyVerb}Create an X11 tunnel from node:6000 to the root host
+   display: display on root host (optional)
+   returns: node $DISPLAY, Popen object for tunnel\end{DoxyVerb}
+ 

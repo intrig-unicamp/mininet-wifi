@@ -8,7 +8,6 @@ author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
 import matplotlib.patches as patches
 import matplotlib.pyplot as plt
 
-
 class plot (object):
     
     nodesPlotted = []

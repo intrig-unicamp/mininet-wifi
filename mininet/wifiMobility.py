@@ -64,14 +64,16 @@ class mobility ( object ):
                 sta.params['associatedTo'][wlan].associatedStations.remove(sta)
             sta.pexec('iw dev %s disconnect' % sta.params['wlan'][wlan])
             debug ('\niwconfig %s essid %s ap %s' % (sta.params['wlan'][wlan], ap.ssid[0], ap.mac))
-            sta.pexec('iwconfig %s essid %s ap %s' % (sta.params['wlan'][wlan], ap.ssid[0], ap.mac))
+            sta.pexec('iwconfig %s essid %s ap %s' % (sta.params['wlan'][wlan], ap.ssid[0], ap.mac))            
             sta.params['associatedTo'][wlan] = ap
+            sta.params['frequency'][wlan] = channelParameters.frequency(ap, 0)
             ap.associatedStations.append(sta)
         elif ap not in sta.params['associatedTo']:
             #Useful for stations with more than one wifi iface
             if sta.params['associatedTo'][wlan] == '':
                 debug('\niwconfig %s essid %s ap %s' % (sta.params['wlan'][wlan], ap.ssid[0], ap.mac))
                 sta.pexec('iwconfig %s essid %s ap %s' % (sta.params['wlan'][wlan], ap.ssid[0], ap.mac))
+                sta.params['frequency'][wlan] = channelParameters.frequency(ap, 0)
                 ap.associatedStations.append(sta)
                 sta.params['associatedTo'][wlan] = ap 
         
@@ -174,32 +176,28 @@ class mobility ( object ):
                                                    [node.connections[c].params['position'][1],node.params['position'][1]], 'b')
                             plot.plotLine(line)
                             
-        #Sometimes getting the error: Failed to connect to generic netlink.
-        try:
-            if model!='':
-                for xy in mob:              
-                    i = 0  
-                    for n in range (0,len(nodes)):
-                        node = nodes[n]
-                        if node in staMov:
-                            if 'station' == node.type:
-                                node.params['position'] = xy[i][0], xy[i][1], 0
-                                i += 1                       
-                                if self.DRAW:
-                                    plot.pltNode[node].set_data(xy[:,0],xy[:,1])
-                                    plot.drawTxt(node)
-                                    plot.drawCircle(node)
-                    if self.DRAW:
-                            plt.title("Mininet-WiFi Graph")
-                            plt.draw()   
-        except:
-            pass               
-    
+        if model!='':
+            for xy in mob:              
+                i = 0  
+                for n in range (0,len(nodes)):
+                    node = nodes[n]
+                    if node in staMov:
+                        if 'station' == node.type:
+                            node.params['position'] = xy[i][0], xy[i][1], 0
+                            i += 1                       
+                            if self.DRAW:
+                                plot.pltNode[node].set_data(xy[:,0],xy[:,1])
+                                plot.drawTxt(node)
+                                plot.drawCircle(node)
+                if self.DRAW:
+                        plt.title("Mininet-WiFi Graph")
+                        plt.draw()   
+        
     @classmethod 
     def getAPsInRange(self, sta):
         for ap in mobility.apList:
             dist = channelParameters.getDistance(sta, ap)
-            if dist < ap.range + sta.range:
+            if dist < ap.range:
                 if ap not in sta.params['apsInRange']:
                     sta.params['apsInRange'].append(ap)
             else:
@@ -209,32 +207,33 @@ class mobility ( object ):
     @classmethod 
     def nodeParameter(self, sta, wlan):
         for ap in mobility.apList:
-            if 'wlan' not in ap.params:
+            dist = channelParameters.getDistance(sta, ap)
+            if dist < ap.range:
                 dist = channelParameters.getDistance(sta, ap)
                 self.getAPsInRange(sta)
                 self.setChannelParameters(sta, ap, dist, wlan)  
-                            
+                    
     @classmethod                
     def parameters(self):
         while self.continue_:
-            try:
-                for node in self.staList: 
+            for node in self.staList: 
+                for wlan in range(0, node.nWlans):
+                    if node.func[wlan] != 'mesh' and node.func[wlan] != 'adhoc':
+                        self.nodeParameter(node, wlan)
+                    elif node.func[wlan] == 'mesh' :
+                        dist = listNodes.pairingNodes(node, wlan, self.staList)
+                        if dist!=0:
+                            channelParameters(node, None, wlan, dist, self.staList, 0)
+                    else:
+                        if dist!=0:
+                            channelParameters(node, None, wlan, dist, self.staList, 0)
+            if meshRouting.routing == 'custom':
+                for node in mobility.staList:       
                     for wlan in range(0, node.nWlans):
-                        if node.func[wlan] == 'mesh' or node.func[wlan] == 'adhoc':
-                            dist = listNodes.pairingNodes(node, wlan, self.staList)
-                            if dist!=0:
-                                channelParameters(node, None, wlan, dist, self.staList, abs(node.params['speed']))
-                        else:
-                            self.nodeParameter(node, wlan)
-                if meshRouting.routing == 'custom':
-                    for node in mobility.staList:       
-                        for wlan in range(0, node.nWlans):
-                            if node.func[wlan] == 'mesh':
-                                """Mesh Routing"""                    
-                                meshRouting.customMeshRouting(node, wlan, self.staList)    
-                    listNodes.clearList()
-            except:
-                pass
+                        if node.func[wlan] == 'mesh':
+                            """Mesh Routing"""                    
+                            meshRouting.customMeshRouting(node, wlan, self.staList)    
+                listNodes.clearList()       
     
     @classmethod    
     def setChannelParameters(self, sta, ap, dist, wlan):
@@ -242,9 +241,11 @@ class mobility ( object ):
         associated = True
         time = abs(sta.params['speed'])
         staList = self.staList
+        sta.params['frequency'][wlan] = channelParameters.frequency(ap, 0)
+        sta.params['channel'][wlan] = ap.params['channel'][0]
         
         if ap == sta.params['associatedTo'][wlan]:
-            if dist > ap.range + sta.range:  
+            if dist > ap.range:  
                 debug( '\niw dev %s disconnect' % sta.params['wlan'][wlan] )
                 sta.pexec('iw dev %s disconnect' % sta.params['wlan'][wlan])
                 sta.params['associatedTo'][wlan] = ''
@@ -252,9 +253,9 @@ class mobility ( object ):
                 sta.params['snr'][wlan] = 0
                 ap.associatedStations.remove(sta)
             else:
-                channelParameters(sta, ap, wlan, dist, staList, time)
+                channelParameters(sta, ap, wlan, dist, staList, 0)
         else:   
-            if dist < ap.range + sta.range:            
+            if dist < ap.range:            
                 aps = 0
                 for n in range(0,len(sta.params['associatedTo'])):
                     if str(sta.params['associatedTo'][n]) != '':
@@ -265,7 +266,7 @@ class mobility ( object ):
                     associated = False
             else:
                 associated = False
-        if ap == sta.params['associatedTo'][wlan] or dist < (ap.range + sta.range):
+        if ap == sta.params['associatedTo'][wlan] or dist < ap.range:
             #Only if it is a mobility environment
             changeAP = False
             association_Control = dict ()
@@ -276,8 +277,8 @@ class mobility ( object ):
                 value = associationControl(sta, ap, wlan, ac)
                 changeAP = value.changeAP
                 association_Control.setdefault( 'ac', ac )                
-                
+            
             #Go to handover    
             if associated == False or changeAP == True:
                 self.handover(sta, ap, wlan, dist, changeAP, **association_Control)
-                channelParameters(sta, ap, wlan, dist, staList, time)
+                channelParameters(sta, ap, wlan, dist, staList, 0)

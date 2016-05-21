@@ -19,8 +19,6 @@ import glob
 
 from mininet.log import info
 from mininet.term import cleanUpScreens
-from mininet.wifiAccessPoint import accessPoint
-
 
 def sh( cmd ):
     "Print a command and send it to the shell"

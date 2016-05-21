@@ -8,10 +8,12 @@ from scipy.spatial.distance import pdist
 import numpy as np
 import math
 import random
+import os
 
 class channelParameters ( object ):
     """Channel Parameters""" 
     
+    mininetDir = ''
     delay = 0
     loss = 0
     latency = 0
@@ -21,9 +23,8 @@ class channelParameters ( object ):
     i = 0
     
     def __init__( self, node1, node2, wlan, dist, staList, time ):
-        self.dist = dist        
-       
-        self.calculateInterference(node1, node2, dist, staList, wlan)    
+        self.dist = dist
+        #self.calculateInterference(node1, node2, dist, staList, wlan)    
         self.delay = self.delay(self.dist, time)
         self.latency = self.latency(self.dist)
         self.loss = self.loss(self.dist)
@@ -53,29 +54,39 @@ class channelParameters ( object ):
         
     def loss(self, dist):  
         if dist!=0:
-            self.loss =  math.log10(dist * dist)
+            self.loss =  abs(math.log10(dist * dist))
         else:
             self.loss = 0.1
         return self.loss
     
-    def bw(self, node1, node2, dist, wlan):
+    def bw(self, sta, ap, dist, wlan):
         self.rate = 0
         if propagationModel_.model == '':
             propagationModel_.model = 'friisPropagationLossModel'
-        value = deviceDataRate(node1, node2, wlan)
+        value = deviceDataRate(sta, ap, wlan)
         custombw = value.rate
         self.rate = value.rate/2.5
-        if node2 == None:
+        if ap == None:
+            gT = 0
+            hT = 0
+            pT = sta.params['txpower'][wlan]
+            gR = sta.params['antennaGain'][wlan]
+            hR = sta.params['antennaHeight'][wlan]            
             if self.i != 0:
                 dist = self.dist/self.i
-            value = propagationModel_(node1, node2, dist, wlan)
-            node1.params['rssi'][wlan] = random.uniform(value.rssi-1, value.rssi+1)
+            value = propagationModel_( sta, ap, dist, wlan, pT, gT, gR, hT, hR )
+            sta.params['rssi'][wlan] = value.rssi # random.uniform(value.rssi-1, value.rssi+1)
             self.rate = (custombw * (1.1 ** -dist))/5
         else:
-            if dist != 0: 
-                value = propagationModel_(node1, node2, dist, wlan)
-                node1.params['rssi'][wlan] = random.uniform(value.rssi-1, value.rssi+1)
-                if node2.equipmentModel == None:
+            if dist != 0 and sta.params['frequency'][wlan]!=0: 
+                pT = ap.params['txpower'][0]
+                gT = ap.params['antennaGain'][0]
+                hT = ap.params['antennaHeight'][0]
+                gR = sta.params['antennaGain'][wlan]
+                hR = sta.params['antennaHeight'][wlan]       
+                value = propagationModel_( sta, ap, dist, wlan, pT, gT, gR, hT, hR )
+                sta.params['rssi'][wlan] = value.rssi #random.uniform(value.rssi-1, value.rssi+1)
+                if ap.equipmentModel == None:
                     self.rate = custombw * (1.1 ** -dist)
         self.rate = self.rate - self.loss*3
         if self.rate <= 0:
@@ -85,14 +96,18 @@ class channelParameters ( object ):
     def tc(self, sta, wlan, bw, loss, latency, delay):
         """Applying TC"""
         bw = random.uniform(bw-1, bw+1)        
-        sta.pexec("tc qdisc replace dev %s \
+        os.system("%s/util/m %s tc qdisc replace dev %s \
             root handle 2: netem rate %.2fmbit \
             loss %.1f%% \
             latency %.2fms \
             delay %.2fms \
-            corrupt 0.1%%" % (sta.params['wlan'][wlan], bw, loss, latency, delay))
-        # Note: The command bellow seems to avoid failures in pexec when there are large numbers of fds!
-        sta.pexec('')   
+            corrupt 0.1%%" % (self.mininetDir, sta, sta.params['wlan'][wlan], bw, loss, latency, delay))
+        #sta.pexec("tc qdisc replace dev %s \
+         #   root handle 2: netem rate %.2fmbit \
+          #  loss %.1f%% \
+           # latency %.2fms \
+            #delay %.2fms \
+            #corrupt 0.1%%" % (sta.params['wlan'][wlan], bw, loss, latency, delay))
         
     def calculateInterference (self, sta, ap, dist, staList, wlan):      
         """Calculating Interference"""
@@ -127,6 +142,33 @@ class channelParameters ( object ):
             self.noise =+ n
             self.i+=1    
             self.dist =+ dist  
+            
+    @classmethod        
+    def frequency(self, node, wlan):
+        freq = 0
+        if node.params['channel'][wlan] == 1:
+            freq = 2.412
+        elif node.params['channel'][wlan] == 2:
+            freq = 2.417
+        elif node.params['channel'][wlan] == 3:
+            freq = 2.422
+        elif node.params['channel'][wlan] == 4:
+            freq = 2.427
+        elif node.params['channel'][wlan] == 5:
+            freq = 2.432
+        elif node.params['channel'][wlan] == 6:
+            freq = 2.437
+        elif node.params['channel'][wlan] == 7:
+            freq = 2.442
+        elif node.params['channel'][wlan] == 8:
+            freq = 2.447
+        elif node.params['channel'][wlan] == 9:
+            freq = 2.452
+        elif node.params['channel'][wlan] == 10:
+            freq = 2.457
+        elif node.params['channel'][wlan] == 11:
+            freq = 2.462
+        return freq
             
     def signalToNoiseRatio(self, signalPower, noisePower):    
         """Calculating SNR margin"""

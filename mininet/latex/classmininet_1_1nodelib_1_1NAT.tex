@@ -1,0 +1,86 @@
+\hypertarget{classmininet_1_1nodelib_1_1NAT}{\section{mininet.\-nodelib.\-N\-A\-T Class Reference}
+\label{classmininet_1_1nodelib_1_1NAT}\index{mininet.\-nodelib.\-N\-A\-T@{mininet.\-nodelib.\-N\-A\-T}}
+}
+Inheritance diagram for mininet.\-nodelib.\-N\-A\-T\-:\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[height=3.000000cm]{classmininet_1_1nodelib_1_1NAT}
+\end{center}
+\end{figure}
+\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+def \hyperlink{classmininet_1_1nodelib_1_1NAT_a54c64c441f6253d5052cf861eada67c7}{\-\_\-\-\_\-init\-\_\-\-\_\-}
+\item 
+def \hyperlink{classmininet_1_1nodelib_1_1NAT_a41b8cdfa25ae1333e98de36c9915075c}{config}
+\item 
+def \hyperlink{classmininet_1_1nodelib_1_1NAT_a13f8384350ff0d73902a5ed5c520a753}{get\-Gateway\-Intf}
+\item 
+def \hyperlink{classmininet_1_1nodelib_1_1NAT_ad5c247f368c06be11a87cc2ea8e5db82}{terminate}
+\end{DoxyCompactItemize}
+\subsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\hypertarget{classmininet_1_1nodelib_1_1NAT_af76b2d3545f5f0a3ede7534ba6a2d375}{{\bfseries inet\-Intf}}\label{classmininet_1_1nodelib_1_1NAT_af76b2d3545f5f0a3ede7534ba6a2d375}
+
+\item 
+\hypertarget{classmininet_1_1nodelib_1_1NAT_a66367861e1d6099e8ffabb2bcae0dda7}{{\bfseries subnet}}\label{classmininet_1_1nodelib_1_1NAT_a66367861e1d6099e8ffabb2bcae0dda7}
+
+\item 
+\hypertarget{classmininet_1_1nodelib_1_1NAT_a648889495d4ab3f64240cda2b1a8002d}{{\bfseries local\-Intf}}\label{classmininet_1_1nodelib_1_1NAT_a648889495d4ab3f64240cda2b1a8002d}
+
+\end{DoxyCompactItemize}
+\subsection*{Additional Inherited Members}
+
+
+\subsection{Constructor \& Destructor Documentation}
+\hypertarget{classmininet_1_1nodelib_1_1NAT_a54c64c441f6253d5052cf861eada67c7}{\index{mininet\-::nodelib\-::\-N\-A\-T@{mininet\-::nodelib\-::\-N\-A\-T}!\-\_\-\-\_\-init\-\_\-\-\_\-@{\-\_\-\-\_\-init\-\_\-\-\_\-}}
+\index{\-\_\-\-\_\-init\-\_\-\-\_\-@{\-\_\-\-\_\-init\-\_\-\-\_\-}!mininet::nodelib::NAT@{mininet\-::nodelib\-::\-N\-A\-T}}
+\subsubsection[{\-\_\-\-\_\-init\-\_\-\-\_\-}]{\setlength{\rightskip}{0pt plus 5cm}def mininet.\-nodelib.\-N\-A\-T.\-\_\-\-\_\-init\-\_\-\-\_\- (
+\begin{DoxyParamCaption}
+\item[{}]{self, }
+\item[{}]{name, }
+\item[{}]{inet\-Intf = {\ttfamily None}, }
+\item[{}]{subnet = {\ttfamily '10.0/8'}, }
+\item[{}]{local\-Intf = {\ttfamily None}, }
+\item[{}]{params}
+\end{DoxyParamCaption}
+)}}\label{classmininet_1_1nodelib_1_1NAT_a54c64c441f6253d5052cf861eada67c7}
+\begin{DoxyVerb}Start NAT/forwarding between Mininet and external network
+   inetIntf: interface for internet access
+   subnet: Mininet subnet (default 10.0/8)=\end{DoxyVerb}
+ 
+
+\subsection{Member Function Documentation}
+\hypertarget{classmininet_1_1nodelib_1_1NAT_a41b8cdfa25ae1333e98de36c9915075c}{\index{mininet\-::nodelib\-::\-N\-A\-T@{mininet\-::nodelib\-::\-N\-A\-T}!config@{config}}
+\index{config@{config}!mininet::nodelib::NAT@{mininet\-::nodelib\-::\-N\-A\-T}}
+\subsubsection[{config}]{\setlength{\rightskip}{0pt plus 5cm}def mininet.\-nodelib.\-N\-A\-T.\-config (
+\begin{DoxyParamCaption}
+\item[{}]{self, }
+\item[{}]{params}
+\end{DoxyParamCaption}
+)}}\label{classmininet_1_1nodelib_1_1NAT_a41b8cdfa25ae1333e98de36c9915075c}
+\begin{DoxyVerb}Configure the NAT and iptables\end{DoxyVerb}
+ \hypertarget{classmininet_1_1nodelib_1_1NAT_a13f8384350ff0d73902a5ed5c520a753}{\index{mininet\-::nodelib\-::\-N\-A\-T@{mininet\-::nodelib\-::\-N\-A\-T}!get\-Gateway\-Intf@{get\-Gateway\-Intf}}
+\index{get\-Gateway\-Intf@{get\-Gateway\-Intf}!mininet::nodelib::NAT@{mininet\-::nodelib\-::\-N\-A\-T}}
+\subsubsection[{get\-Gateway\-Intf}]{\setlength{\rightskip}{0pt plus 5cm}def mininet.\-nodelib.\-N\-A\-T.\-get\-Gateway\-Intf (
+\begin{DoxyParamCaption}
+\item[{}]{self, }
+\item[{}]{fallback = {\ttfamily 'eth0'}}
+\end{DoxyParamCaption}
+)}}\label{classmininet_1_1nodelib_1_1NAT_a13f8384350ff0d73902a5ed5c520a753}
+\begin{DoxyVerb}Return gateway interface name
+   fallback: default device to fall back to\end{DoxyVerb}
+ \hypertarget{classmininet_1_1nodelib_1_1NAT_ad5c247f368c06be11a87cc2ea8e5db82}{\index{mininet\-::nodelib\-::\-N\-A\-T@{mininet\-::nodelib\-::\-N\-A\-T}!terminate@{terminate}}
+\index{terminate@{terminate}!mininet::nodelib::NAT@{mininet\-::nodelib\-::\-N\-A\-T}}
+\subsubsection[{terminate}]{\setlength{\rightskip}{0pt plus 5cm}def mininet.\-nodelib.\-N\-A\-T.\-terminate (
+\begin{DoxyParamCaption}
+\item[{}]{self}
+\end{DoxyParamCaption}
+)}}\label{classmininet_1_1nodelib_1_1NAT_ad5c247f368c06be11a87cc2ea8e5db82}
+\begin{DoxyVerb}Stop NAT/forwarding between Mininet and external network\end{DoxyVerb}
+ 
+
+The documentation for this class was generated from the following file\-:\begin{DoxyCompactItemize}
+\item 
+nodelib.\-py\end{DoxyCompactItemize}

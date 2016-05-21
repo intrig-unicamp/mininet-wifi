@@ -1,0 +1,77 @@
+\hypertarget{classmininet_1_1log_1_1MininetLogger}{\section{mininet.\-log.\-Mininet\-Logger Class Reference}
+\label{classmininet_1_1log_1_1MininetLogger}\index{mininet.\-log.\-Mininet\-Logger@{mininet.\-log.\-Mininet\-Logger}}
+}
+Inheritance diagram for mininet.\-log.\-Mininet\-Logger\-:\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[height=2.000000cm]{classmininet_1_1log_1_1MininetLogger}
+\end{center}
+\end{figure}
+\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\hypertarget{classmininet_1_1log_1_1MininetLogger_a1f8cb5552a11a4694512e59d2b7834a7}{def {\bfseries \-\_\-\-\_\-init\-\_\-\-\_\-}}\label{classmininet_1_1log_1_1MininetLogger_a1f8cb5552a11a4694512e59d2b7834a7}
+
+\item 
+def \hyperlink{classmininet_1_1log_1_1MininetLogger_a5e32991d6a5bc1f11da8ef46a178bc9d}{set\-Log\-Level}
+\item 
+def \hyperlink{classmininet_1_1log_1_1MininetLogger_a2b0c766815f087c2b2462755e5174a72}{output}
+\end{DoxyCompactItemize}
+
+
+\subsection{Detailed Description}
+\begin{DoxyVerb}Mininet-specific logger
+   Enable each mininet .py file to with one import:
+
+   from mininet.log import [lg, info, error]
+
+   ...get a default logger that doesn't require one newline per logging
+   call.
+
+   Inherit from object to ensure that we have at least one new-style base
+   class, and can then use the __metaclass__ directive, to prevent this
+   error:
+
+   TypeError: Error when calling the metaclass bases
+   a new-style class can't have only classic bases
+
+   If Python2.5/logging/__init__.py defined Filterer as a new-style class,
+   via Filterer( object ): rather than Filterer, we wouldn't need this.
+
+   Use singleton pattern to ensure only one logger is ever created.\end{DoxyVerb}
+ 
+
+\subsection{Member Function Documentation}
+\hypertarget{classmininet_1_1log_1_1MininetLogger_a2b0c766815f087c2b2462755e5174a72}{\index{mininet\-::log\-::\-Mininet\-Logger@{mininet\-::log\-::\-Mininet\-Logger}!output@{output}}
+\index{output@{output}!mininet::log::MininetLogger@{mininet\-::log\-::\-Mininet\-Logger}}
+\subsubsection[{output}]{\setlength{\rightskip}{0pt plus 5cm}def mininet.\-log.\-Mininet\-Logger.\-output (
+\begin{DoxyParamCaption}
+\item[{}]{self, }
+\item[{}]{msg, }
+\item[{}]{args, }
+\item[{}]{kwargs}
+\end{DoxyParamCaption}
+)}}\label{classmininet_1_1log_1_1MininetLogger_a2b0c766815f087c2b2462755e5174a72}
+\begin{DoxyVerb}Log 'msg % args' with severity 'OUTPUT'.
+
+   To pass exception information, use the keyword argument exc_info
+   with a true value, e.g.
+
+   logger.warning("Houston, we have a %s", "cli output", exc_info=1)
+\end{DoxyVerb}
+ \hypertarget{classmininet_1_1log_1_1MininetLogger_a5e32991d6a5bc1f11da8ef46a178bc9d}{\index{mininet\-::log\-::\-Mininet\-Logger@{mininet\-::log\-::\-Mininet\-Logger}!set\-Log\-Level@{set\-Log\-Level}}
+\index{set\-Log\-Level@{set\-Log\-Level}!mininet::log::MininetLogger@{mininet\-::log\-::\-Mininet\-Logger}}
+\subsubsection[{set\-Log\-Level}]{\setlength{\rightskip}{0pt plus 5cm}def mininet.\-log.\-Mininet\-Logger.\-set\-Log\-Level (
+\begin{DoxyParamCaption}
+\item[{}]{self, }
+\item[{}]{levelname = {\ttfamily None}}
+\end{DoxyParamCaption}
+)}}\label{classmininet_1_1log_1_1MininetLogger_a5e32991d6a5bc1f11da8ef46a178bc9d}
+\begin{DoxyVerb}Setup loglevel.
+   Convenience function to support lowercase names.
+   levelName: level name from LEVELS\end{DoxyVerb}
+ 
+
+The documentation for this class was generated from the following file\-:\begin{DoxyCompactItemize}
+\item 
+log.\-py\end{DoxyCompactItemize}

@@ -109,13 +109,11 @@ from mininet.util import ( quietRun, fixLimits, numCores, ensureRoot,
                            macColonHex, ipStr, ipParse, netParse, ipAdd,
                            waitListening )
 from mininet.term import cleanUpScreens, makeTerms
-from mininet.wifiAssociation import association
 from mininet.wifiAccessPoint import accessPoint
 from mininet.wifiChannel import channelParameters
 from mininet.wifiDevices import deviceRange, deviceDataRate
 from mininet.wifiMobility import mobility
 from mininet.wifiModule import module
-from mininet.wifiParameters import wifiParameters
 from mininet.wifiPlot import plot
 from mininet.wifiReport import report
 from mininet.wifiPropagationModels import propagationModel_
@@ -127,7 +125,7 @@ from mininet.vanet import vanet
 from __builtin__ import True
 
 # Mininet version: should be consistent with README and LICENSE
-VERSION = "1.8r6"
+VERSION = "1.8r7"
 
 class Mininet( object ):
     "Network emulation with hosts spawned in network namespaces."
@@ -205,7 +203,10 @@ class Mininet( object ):
         self.staMov = []
         self.terms = []  # list of spawned xterm processes
         self.isWiFi = isWiFi
-        self.wifiRadios = wifiRadios
+        self.wifiRadios = wifiRadios        
+        for path in sys.path:
+            if 'mininet-wifi' in path:
+                channelParameters.mininetDir = path[:-8]
         Mininet.init()  # Initialize Mininet if necessary
         
         self.built = False
@@ -241,6 +242,130 @@ class Mininet( object ):
             else:
                 remaining.remove( switch )
         return not remaining
+    
+    def nodesParameters(self, node, params):
+        #position
+        position = ("%s" % params.pop('position', {}))
+        if(position!="{}"):        
+            position = position.split(',')
+            node.params['position'] = position
+            self.fixedPosition.append(node)
+        else:
+            node.params['position'] = 0, 0, 0        
+        
+        #Wifi Interfaces
+        wifi = ("%s" % params.pop('wlans', {}))
+        if(wifi!="{}"):        
+            self.wifiRadios += int(wifi)
+            for n in range(int(wifi)):
+                self.virtualWlan.append(node)    
+                node.params['frequency'].append(0)
+                if node.type != 'accessPoint':
+                    node.func.append('none') 
+                    node.params['wlan'].append(node.name+'-wlan'+str(n))                    
+        else:
+            self.wifiRadios += 1
+            wifi = 1
+            self.virtualWlan.append(node)
+            node.params['frequency'].append(0)
+            if node.type != 'accessPoint':
+                node.func.append('none')
+                node.params['wlan'].append(node.name+'-wlan0')
+                
+        #mode
+        mode = ("%s" % params.pop('mode', {}))
+        if(mode!="{}"):     
+            node.params['mode'] = []
+            for n in range(int(wifi)):
+                node.params['mode'].append(mode)
+        else:
+            for n in range(int(wifi)):
+                node.params['mode'].append('g')
+        
+        #antennaHeight
+        antennaHeight = ("%s" % params.pop('antennaHeight', {}))
+        if(antennaHeight!="{}"):     
+            node.params['antennaHeight'] = []
+            for n in range(int(wifi)):
+                node.params['antennaHeight'].append(int(antennaHeight))
+        else:
+            for n in range(int(wifi)):
+                node.params['antennaHeight'].append(1)
+        
+        #antennaGain
+        antennaGain = ("%s" % params.pop('antennaGain', {}))
+        if(antennaGain!="{}"):     
+            node.params['antennaGain'] = []
+            for n in range(int(wifi)):
+                node.params['antennaGain'].append(int(antennaGain))
+        else:
+            for n in range(int(wifi)):
+                node.params['antennaGain'].append(5)
+        
+        #txpower
+        txpower = ("%s" % params.pop('txpower', {}))
+        if(txpower!="{}"):     
+            node.params['txpower'] = []
+            for n in range(int(wifi)):
+                node.params['txpower'].append(int(txpower))
+        else:
+            for n in range(int(wifi)):
+                node.params['txpower'].append(14)
+        
+        #Channel
+        channel = ("%s" % params.pop('channel', {}))
+        if(channel!="{}"):     
+            node.params['channel'] = []
+            for n in range(int(wifi)):
+                node.params['channel'].append(int(channel))
+        else:
+            for n in range(int(wifi)):
+                node.params['channel'].append(1)
+        
+        #Range
+        self.range = ("%s" % params.pop('range', {}))
+        if(self.range!="{}"):
+            node.range = int(self.range)
+        else:            
+            if node.type == 'accessPoint': 
+                value = deviceRange(node)    
+                node.range = value.range  
+            else:
+                value = deviceRange(node)    
+                node.range = value.range - 15
+                
+        equipmentModel = ("%s" % params.pop('equipmentModel', {}))
+        if(equipmentModel!="{}"):
+            node.equipmentModel = equipmentModel
+        else:
+            node.equipmentModel = None
+            
+        passwd = ("%s" % params.pop('passwd', {}))
+        if(passwd!="{}"):
+            node.passwd = passwd
+        else:
+            node.passwd = None
+            
+        encrypt = ("%s" % params.pop('encrypt', {}))
+        if(encrypt!="{}"):
+            node.encrypt = encrypt
+        else:
+            node.encrypt = None 
+            
+        if node.type == 'accessPoint':           
+            ssid = ("%s" % params.pop('ssid', {}))
+            if(ssid!="{}"):
+                node.ssid.append(ssid)
+            else:
+                node.ssid.append(self.ssid)
+                
+            n_ssids = ("%s" % params.pop('n_ssids', {}))
+            if(n_ssids!="{}"):
+                node.n_ssids = int(n_ssids)
+            else:
+                node.n_ssids = 1
+                
+        return wifi 
 
     def addHost( self, name, cls=None, **params ):
         """Add host.
@@ -266,7 +391,7 @@ class Mininet( object ):
         h.type = 'host'    
         self.hosts.append( h )
         self.nameToNode[ name ] = h
-        return h
+        return h      
 
     def addStation( self, name, cls=None, **params ):
         """Add Station.
@@ -278,23 +403,21 @@ class Mininet( object ):
         defaults = { 'ip': ipAdd( self.nextIP,
                                   ipBaseNum=self.ipBaseNum,
                                   prefixLen=self.prefixLen ) +
-                                  '/%s' % self.prefixLen}
+                                  '/%s' % self.prefixLen}       
         
-        defaults['rssi'] = []
-        defaults['txpower'] = []
-        defaults['snr'] = []
-        defaults['position'] = []
-        defaults['frequency'] = []
         defaults['antennaGain'] = []
         defaults['antennaHeight'] = []
-        defaults['wlan'] = []
-        defaults['speed'] = 0
-        defaults['txgain'] = []
-        defaults['rxgain'] = []
-        defaults['mode'] = []
-        defaults['channel'] = [] 
         defaults['apsInRange'] = []
-        defaults['associatedTo'] = [] 
+        defaults['associatedTo'] = []
+        defaults['channel'] = []
+        defaults['frequency'] = []
+        defaults['mode'] = [] 
+        defaults['position'] = []
+        defaults['rssi'] = []
+        defaults['snr'] = []
+        defaults['speed'] = 0
+        defaults['txpower'] = []
+        defaults['wlan'] = []            
         
         if self.autoSetMacs:
             defaults[ 'mac' ] = macColonHex( self.nextIP )
@@ -319,69 +442,8 @@ class Mininet( object ):
         self.nameToNode[ name ] = sta        
         self.missingStations.append(sta)
         sta.type = 'station'
-        
-        position = ("%s" % params.pop('position', {}))
-        if(position!="{}"):        
-            position = position.split(',')
-            sta.params['position'] = position
-            self.fixedPosition.append(sta)
-        else:
-            sta.params['position'] = 0, 0, 0         
-        
-        channel = ("%s" % params.pop('channel', {}))
-        if(channel!="{}"): 
-            sta.params['channel'] = channel
-        else:
-            sta.params['channel'] = 1       
-      
-        mode = ("%s" % params.pop('mode', {}))
-        if(mode!="{}"): 
-            sta.params['mode'] = mode
-        else:
-            sta.params['mode'] = "g"
-            
-        passwd = ("%s" % params.pop('passwd', {}))
-        if(passwd!="{}"): 
-            sta.passwd = passwd
-        else:
-            sta.passwd = None
-        
-        equipmentModel = ("%s" % params.pop('equipmentModel', {}))
-        if(equipmentModel!="{}"): 
-            sta.equipmentModel = equipmentModel
-        else:
-            sta.equipmentModel = None
-            
-        encrypt = ("%s" % params.pop('encrypt', {}))
-        if(encrypt!="{}"): 
-            sta.encrypt = encrypt
-        else:
-            sta.encrypt = None
-            
-        self.range = ("%s" % params.pop('range', {}))
-        if(self.range!="{}"):
-            sta.range = int(self.range)
-        else:
-            value = deviceRange(sta)     
-            sta.range = value.range - 15
-                
-        wifi = ("%s" % params.pop('wlans', {}))
-        if(wifi!="{}"):        
-            self.wifiRadios += int(wifi)
-            for n in range(int(wifi)):
-                self.virtualWlan.append(sta)    
-                sta.func.append('none') 
-                if sta.params['txpower'] == []:
-                    sta.params['txpower'].append(0)
-                sta.params['wlan'].append(name+'-wlan'+str(n))
-        else:
-            self.wifiRadios += 1
-            wifi = 1
-            sta.func.append('none')
-            self.virtualWlan.append(sta)
-            if sta.params['txpower'] == []:
-                sta.params['txpower'].append(0)
-            sta.params['wlan'].append(name+'-wlan0')
+        wifi = self.nodesParameters(sta, params)
+              
         sta.nWlans = int(wifi)
         mobility.staList.append( sta )
         self.nextIP += 1        
@@ -399,6 +461,20 @@ class Mininet( object ):
                                   prefixLen=self.prefixLen ) +
                                   '/%s' % self.prefixLen}
         
+        defaults['antennaGain'] = []
+        defaults['antennaHeight'] = []
+        defaults['apsInRange'] = []
+        defaults['associatedTo'] = []
+        defaults['channel'] = []
+        defaults['frequency'] = []
+        defaults['mode'] = [] 
+        defaults['position'] = []
+        defaults['rssi'] = []
+        defaults['snr'] = []
+        defaults['speed'] = 0
+        defaults['txpower'] = []
+        defaults['wlan'] = []
+        
         if self.autoSetMacs:
             defaults[ 'mac' ] = macColonHex( self.nextIP )
         if self.autoPinCpus:
@@ -409,13 +485,6 @@ class Mininet( object ):
             cls = self.host
         sta = cls( name, **defaults )      
         
-        mac = ("%s" % params.pop('mac', {}))
-        if(mac!="{}"):        
-            mac = mac.split(',')
-            sta.mac = str(mac[0])
-        elif self.autoSetMacs:
-            sta.mac = defaults[ 'mac' ]
-        
         self.hosts.append( sta )
         self.stations.append(sta)
         self.wifiNodes.append(sta)
@@ -423,19 +492,7 @@ class Mininet( object ):
         self.missingStations.append(sta)
         sta.type = 'station'
         
-        position = ("%s" % params.pop('position', {}))
-        if(position!="{}"):        
-            position = position.split(',')
-            sta.params['position'] = position
-            self.fixedPosition.append(sta)
-        else:
-            sta.params['position'] = 0, 0, 0         
-        
-        channel = ("%s" % params.pop('channel', {}))
-        if(channel!="{}"): 
-            sta.params['channel'] = channel
-        else:
-            sta.params['channel'] = 1
+        wifi = self.nodesParameters(sta, params)
             
         max_speed = ("%s" % params.pop('max_speed', {}))
         if(max_speed!="{}"): 
@@ -449,47 +506,7 @@ class Mininet( object ):
         else:
             sta.min_speed = 1
       
-        mode = ("%s" % params.pop('mode', {}))
-        if(mode!="{}"): 
-            sta.params['mode'] = mode
-        else:
-            sta.params['mode'] = "g"
-            
-        passwd = ("%s" % params.pop('passwd', {}))
-        if(passwd!="{}"): 
-            sta.passwd = passwd
-        else:
-            sta.passwd = None
-        
-        equipmentModel = ("%s" % params.pop('equipmentModel', {}))
-        if(equipmentModel!="{}"): 
-            sta.equipmentModel = equipmentModel
-        else:
-            sta.equipmentModel = None
-            
-        encrypt = ("%s" % params.pop('encrypt', {}))
-        if(encrypt!="{}"): 
-            sta.encrypt = encrypt
-        else:
-            sta.encrypt = None
-            
-        self.range = ("%s" % params.pop('range', {}))
-        if(self.range!="{}"):
-            sta.range = int(self.range)
-                
-        wifi = ("%s" % params.pop('wlans', {}))
-        if(wifi!="{}"):        
-            self.wifiRadios += int(wifi)
-            for n in range(int(wifi)):
-                self.virtualWlan.append(sta)    
-                sta.func.append('none')            
-        else:
-            self.wifiRadios += 1
-            sta.func.append('none')
-            wifi = 1
-            self.virtualWlan.append(sta)
         sta.nWlans = int(wifi)
-        
         self.nextIP += 1    
         self.isVanet = True
         return sta
@@ -505,19 +522,17 @@ class Mininet( object ):
                      'channel': self.channel,
                      'mode': self.mode,
                      'ssid': self.ssid                 
-                     }
+                     }        
         
+        defaults['channel'] = []        
         defaults['txpower'] = []
         defaults['position'] = []
         defaults['frequency'] = []
         defaults['antennaGain'] = []
         defaults['antennaHeight'] = []   
-        defaults['txgain'] = []
-        defaults['rxgain'] = []
         defaults['mode'] = []
-        defaults['channel'] = [] 
         #defaults['wlan'] = []     
-        defaults.update( params )        
+        defaults.update( params )       
         
         if not cls:
             cls = self.baseStation
@@ -528,87 +543,12 @@ class Mininet( object ):
         self.nameToNode[ name ] = bs
         bs.type = 'accessPoint'
         
-        position = ("%s" % params.pop('position', {}))
-        if(position!="{}"):        
-            position =  position.split(',')
-            bs.params['position'] = position
-        else:
-            bs.params['position'] = 0, 0, 0           
-      
-        channel = ("%s" % params.pop('channel', {}))
-        if(channel!="{}"):
-            bs.params['channel'] = channel
-        else:
-            bs.params['channel'] = self.channel 
-            
-        equipmentModel = ("%s" % params.pop('equipmentModel', {}))
-        if(equipmentModel!="{}"):
-            bs.equipmentModel = equipmentModel
-        else:
-            bs.equipmentModel = None
-      
-        mode = ("%s" % params.pop('mode', {}))
-        if(mode!="{}"):
-            bs.params['mode'] = mode
-        else:
-            bs.params['mode'] = self.mode
-                      
-        ssid = ("%s" % params.pop('ssid', {}))
-        if(ssid!="{}"):
-            bs.ssid.append(ssid)
-        else:
-            bs.ssid.append(self.ssid)
-            
-        n_ssids = ("%s" % params.pop('n_ssids', {}))
-        if(n_ssids!="{}"):
-            bs.n_ssids = int(n_ssids)
-        else:
-            bs.n_ssids = 1
-            
-        passwd = ("%s" % params.pop('passwd', {}))
-        if(passwd!="{}"):
-            bs.passwd = passwd
-        else:
-            bs.passwd = None
-            
-        encrypt = ("%s" % params.pop('encrypt', {}))
-        if(encrypt!="{}"):
-            bs.encrypt = encrypt
-        else:
-            bs.encrypt = None
-        
-        self.range = ("%s" % params.pop('range', {}))
-        if(self.range!="{}"):
-            bs.range = int(self.range)
-        else:
-            value = deviceRange(bs)     
-            bs.range = value.range     
-                
-        wifi = ("%s" % params.pop('wlans', {}))
-        if(wifi!="{}"):        
-            self.wifiRadios += int(wifi)
-            for n in range(int(wifi)):
-                self.virtualWlan.append(bs)
-                bs.params['txpower'].append(0)
-                #bs.params['wlan'].append(name+'-wlan'+str(n))
-        else:
-            self.wifiRadios += 1
-            wifi = 1
-            self.virtualWlan.append(bs)
-            bs.params['txpower'].append(0)
-            #bs.params['wlan'].append(name+'-wlan0')
-        
-        bs.nWlans = int(wifi)
-        
-        txpower = ("%s" % params.pop('txpower', {}))
-        if(txpower!="{}"):
-            bs.params['txpower'][0] = int(txpower)  
-        
-        self.missingWlanAP.append(bs)
+        wifi = self.nodesParameters(bs, params)
+        bs.nWlans = int(wifi)     
+        self.missingWlanAP.append( bs )
         mobility.apList.append( bs )
         self.switches.append( bs )          
-        self.accessPoints.append( bs ) 
-        
+        self.accessPoints.append( bs )        
         return bs
     
     def addPhysicalBaseStation( self, name, cls=None, **params ):
@@ -629,8 +569,6 @@ class Mininet( object ):
         defaults['frequency'] = []
         defaults['antennaGain'] = []
         defaults['antennaHeight'] = []   
-        defaults['txgain'] = []
-        defaults['rxgain'] = []     
         defaults['mode'] = []
         defaults['channel'] = [] 
         defaults.update( params )        
@@ -647,64 +585,8 @@ class Mininet( object ):
         wlan = ("%s" % params.pop('wlan', {}))
         bs.params['wlan'] = wlan
         
-        position = ("%s" % params.pop('position', {}))
-        if(position!="{}"):        
-            position =  position.split(',')
-            bs.params['position'] = position
-        else:
-            bs.params['position'] = 0, 0, 0           
-      
-        channel = ("%s" % params.pop('channel', {}))
-        if(channel!="{}"):
-            bs.params['channel'] = channel
-        else:
-            bs.params['channel'] = self.channel 
-            
-        equipmentModel = ("%s" % params.pop('equipmentModel', {}))
-        if(equipmentModel!="{}"):
-            bs.equipmentModel = equipmentModel
-        else:
-            bs.equipmentModel = None
-      
-        mode = ("%s" % params.pop('mode', {}))
-        if(mode!="{}"):
-            bs.params['mode'] = mode
-        else:
-            bs.params['mode'] = self.mode
-                      
-        ssid = ("%s" % params.pop('ssid', {}))
-        if(ssid!="{}"):
-            bs.ssid.append(ssid)
-        else:
-            bs.ssid.append(self.ssid)
-            
-        passwd = ("%s" % params.pop('passwd', {}))
-        if(passwd!="{}"):
-            bs.passwd = passwd
-        else:
-            bs.passwd = None
-            
-        encrypt = ("%s" % params.pop('encrypt', {}))
-        if(encrypt!="{}"):
-            bs.encrypt = encrypt
-        else:
-            bs.encrypt = None
-        
-        self.range = ("%s" % params.pop('range', {}))
-        if(self.range!="{}"):
-            bs.range = int(self.range)
-        else:
-            value = deviceRange(bs)     
-            bs.range = value.range       
-        
-        self.wifiRadios += 1
-        self.virtualWlan.append(bs)
-        bs.params['txpower'].append(0)
+        wifi = self.nodesParameters(bs, params)    
         bs.nWlans = 1
-        
-        txpower = ("%s" % params.pop('txpower', {}))
-        if(txpower!="{}"):
-            bs.params['txpower'][0] = int(txpower) 
         
         self.missingWlanAP.append(bs)
         mobility.apList.append( bs )
@@ -857,25 +739,25 @@ class Mininet( object ):
         node = sta if not isinstance( sta, basestring ) else self[ sta ]
         
         channel = ("%s" % params.pop('channel', {}))
-        if(channel!="{}"): 
-            sta.params['channel'] = channel
+        if(channel!="{}"):             
+            sta.params['channel'][sta.wlanToAssociate] = channel
         else:
-            sta.params['channel'] = 1
-            
+            sta.params['channel'][sta.wlanToAssociate] = 1
+       
+        mode = ("%s" % params.pop('mode', {}))
+        if(mode!="{}"):
+            sta.params['mode'][sta.wlanToAssociate] = mode
+        else:
+            sta.params['mode'][sta.wlanToAssociate] = 'g'
+                        
         ssid = ("%s" % params['ssid'])
         if(ssid!="{}"):
             sta.ssid[wlan] = ssid
         else:
             sta.ssid[wlan] = 'meshNetwork'
         sta.params['mp' + str(wlan)] = sta.ssid[wlan]
-        sta.wlanToAssociate+=1
-        
-        mode = ("%s" % params.pop('mode', {}))
-        if(mode!="{}"):
-            sta.params['mode'] = mode
-        else:
-            sta.params['mode'] = 'g'
-            
+        sta.wlanToAssociate+=1        
+       
         value = deviceRange(sta)
         sta.range = value.range-15
         
@@ -924,10 +806,16 @@ class Mininet( object ):
         node = sta if not isinstance( sta, basestring ) else self[ sta ]
         
         channel = ("%s" % params.pop('channel', {}))
-        if(channel!="{}"): 
-            sta.params['channel'] = channel
+        if(channel!="{}"):             
+            sta.params['channel'][sta.wlanToAssociate] = channel
         else:
-            sta.params['channel'] = 1
+            sta.params['channel'][sta.wlanToAssociate] = 1
+            
+        mode = ("%s" % params.pop('mode', {}))
+        if(mode!="{}"):
+            sta.params['mode'][sta.wlanToAssociate] = mode
+        else:
+            sta.params['mode'][sta.wlanToAssociate] = 'g'
             
         ssid = ("%s" % params.pop('ssid', {}))
         if(ssid!="{}"):
@@ -935,12 +823,6 @@ class Mininet( object ):
         else:
             sta.ssid[sta.wlanToAssociate] = 'adhocNetwork'
         sta.wlanToAssociate+=1
-            
-        mode = ("%s" % params.pop('mode', {}))
-        if(mode!="{}"):
-            sta.params['mode'] = mode
-        else:
-            sta.params['mode'] = 'g'
             
         value = deviceRange(sta)
         sta.range = value.range-15
@@ -1008,8 +890,7 @@ class Mininet( object ):
                 #station.adhoc(sta, **options)
                 if sta in self.missingStations:
                     self.missingStations.remove(sta)       
-        return link
-        
+        return link        
       
     def configureAP(self):
         """Configure AP""" 
@@ -1023,9 +904,6 @@ class Mininet( object ):
                     intf = self.newapif[self.virtualWlan.index(ap)]
                     iface = str(ap)+'-wlan%s' % wlan
                     wifiparam.setdefault( 'intf', intf )
-                    ap.params['frequency'].append(wlan)
-                    ap.params['antennaHeight'].append(2)
-                    ap.params['antennaGain'].append(1)
                 else:
                     iface = ap.params.get('wlan')
                 
@@ -1068,8 +946,7 @@ class Mininet( object ):
                 accessPoint(ap, **wifiparam)   
                 
                 if 'wlan' not in ap.params:
-                    wifiParameters(param='get_frequency', node=ap, wlan=wlan, iface=iface)
-                    wifiParameters(param='get_tx_power', node=ap, wlan=wlan, iface=iface) 
+                    ap.params['frequency'][wlan] = channelParameters.frequency(ap, 0) 
                 else:
                     cls = None
                     cls = self.link if cls is None else cls
@@ -1234,11 +1111,11 @@ class Mininet( object ):
             #necessary if does not exist link between sta and other device
             if node1 in self.missingStations:
                 self.missingStations.remove(node1)
-                node1.params['mode'] = 'g'
+                node1.params['mode'][0] = 'g'
                 node1.associate = False
             if node2 in self.missingStations:
                 self.missingStations.remove(node2)
-                node2.params['mode'] = 'g'
+                node2.params['mode'][0] = 'g'
                 node2.associate = False
             
             # Port is optional
@@ -1277,7 +1154,7 @@ class Mininet( object ):
         """Build mininet from a topology object
            At the end of this function, everything should be connected
            and up."""
-        association.printCon = False
+        Node.printCon = False
         # Possibly we should clean up here and/or validate
         # the topo
         if self.cleanup:
@@ -1340,7 +1217,7 @@ class Mininet( object ):
     def build( self ):
         #useful if there no link between sta and any other device
         "Build mininet."
-        association.isCode=True
+        Node.isCode=True
         
         for switch in self.switches:
             if switch in self.missingWlanAP:
@@ -1366,9 +1243,9 @@ class Mininet( object ):
         
         if self.ifaceConfigured == True:
             for sta in self.stations:
+                mobility.getAPsInRange(sta)
                 for wlan in range(0, sta.nWlans):
                     iface = str(sta)+'-wlan%s' % wlan
-                    wifiParameters.getWiFiParameters(sta, wlan, iface)
                     if sta.params['position'] != (0,0,0) and sta.func[wlan] == 'adhoc':
                         channelParameters(sta, None, wlan, 0, self.stations, 0 )
                     else:
@@ -1377,17 +1254,17 @@ class Mininet( object ):
                             channelParameters(sta, sta.params['associatedTo'][wlan], wlan, dist, self.stations, 0 )
             
             for node in self.missingStations:
+                mobility.getAPsInRange(node)
                 for wlan in range(0, node.nWlans):
                     cls = None
                     options = dict(  )
                     iface = str(node)+'-wlan%s' % wlan
-                    wifiParameters.getWiFiParameters(node, wlan, iface)                    
                     # Set default MAC - this should probably be in Link
                     options.setdefault( 'use_tbf', True )
                     options.setdefault( 'addr1', self.randMac() )
                     cls = self.link if cls is None else cls
                     cls( node, 'alone', **options )
-                    if sta.params['position'] != (0,0,0) and sta.params['associatedTo'][wlan] != '':   
+                    if node.params['position'] != (0,0,0) and node.params['associatedTo'][wlan] != '':   
                         mobility.nodeParameter(node, wlan)
         
         if self.topo:
@@ -1401,7 +1278,7 @@ class Mininet( object ):
         if self.xterms:
             self.startTerms()
         if self.autoStaticArp:
-            self.staticArp()
+            self.staticArp()            
         self.built = True
             
     def startTerms( self ):
@@ -1429,7 +1306,7 @@ class Mininet( object ):
                     src.setARP( ip=dst.IP(), mac=dst.MAC() )
 
     def start( self ):
-        association.isCode = False
+        Node.isCode = False
         "Start controller and switches."
         if not self.built:
             self.build()
@@ -1502,6 +1379,8 @@ class Mininet( object ):
                 switch.stop()
             switch.terminate()
         info( '\n' )
+        mobility.continue_ = False 
+        sleep(1)
         info( '*** Stopping hosts and stations\n' )
         for host in self.hosts:
             info( host.name + ' ' )
@@ -1510,7 +1389,6 @@ class Mininet( object ):
         if(self.isWiFi):
             "Stop Graph"
             mobility.DRAW = False
-            mobility.continue_ = False   
             plot.closePlot()
             module.stop() #Stopping WiFi Module   
                 
@@ -1871,11 +1749,6 @@ class Mininet( object ):
         if 'stopTime' in kwargs:
             stop_time = kwargs['stopTime']
         
-        for node in self.wifiNodes:
-            for wlan in range(0, node.nWlans):
-                iface = str(node)+'-wlan%s' % wlan
-                wifiParameters.getWiFiParameters(node, wlan, iface)
-        
         debug( 'Starting mobility thread...\n' )
         self.thread = threading.Thread(name='mobility', target=mobility.mobilityPositionDefined, args=(self.start_time, stop_time, self.staMov))
         self.thread.daemon = True
@@ -1972,7 +1845,7 @@ class Mininet( object ):
                             print "Associated To: %s" % None
                     except:
                         print "Associated To: %s" % None
-                    print "Frequency: %s GHz" % device.params['frequency'][wlan]
+                    print "Frequency: %s GHz" % device.params['frequency'][0]
                     if device.params['rssi'][wlan] != 0:
                         print "Signal level: %.2f dbm" % device.params['rssi'][wlan]
                     else:

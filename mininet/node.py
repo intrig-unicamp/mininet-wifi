@@ -69,11 +69,9 @@ from mininet.link import Link, Intf, TCIntf, OVSIntf
 from re import findall
 from distutils.version import StrictVersion
 from mininet.wifiAccessPoint import accessPoint
-from mininet.wifiAssociation import association
 from mininet.wifiMobility import mobility
 from mininet.wifiChannel import channelParameters
 from mininet.wifiPlot import plot
-from mininet.wifiParameters import wifiParameters
 
 class Node( object ):
     """A virtual network node is simply a shell in a network namespace.
@@ -81,6 +79,8 @@ class Node( object ):
     
     portBase = 0  # Nodes always start with eth0/port0, even in OF 1.0
     portWlanBase = 0
+    printCon = True
+    isCode = False
 
     def __init__( self, name, inNamespace=True, **params ):
         """name: name of node
@@ -225,7 +225,7 @@ class Node( object ):
     @classmethod 
     def verifyingNodes(self, node):
         if node in mobility.staList:
-            self.calculateWiFiParameters(node)
+            self.calculate(node)
         elif node in mobility.apList:
             for sta in mobility.staList:
                 self.calculateWiFiParameters(sta)
@@ -246,7 +246,28 @@ class Node( object ):
         """ Associate to an Access Point """ 
         sta.ifaceToAssociate += 1
         wlan = sta.ifaceToAssociate
-        association.associate_infra(sta, ap, wlan) 
+        self.associate_infra(sta, ap, wlan) 
+        
+    @classmethod 
+    def associate_infra(self, sta, ap, wlan):
+        if sta.passwd == None:
+            debug ('\niwconfig %s essid %s ap %s' % (sta.params['wlan'][wlan], ap.ssid[0], ap.mac) )
+            sta.pexec('iwconfig %s essid %s ap %s' % (sta.params['wlan'][wlan], ap.ssid[0], ap.mac))
+        elif sta.encrypt == 'wpa' or sta.encrypt == 'wpa2':
+            self.associate_wpa(sta, wlan, ap.ssid[0], sta.passwd)
+        elif sta.encrypt == 'wep':
+            self.associate_wep(sta, wlan, ap.ssid[0], sta.passwd)
+        self.confirmInfraAssociation(sta, ap, wlan)
+        
+    @classmethod 
+    def associate_wpa(self, sta, wlan, ssid, passwd):
+        sta.cmd("wpa_supplicant -B -Dnl80211 -i %s-wlan%s -c <(wpa_passphrase \"%s\" \"%s\")" \
+                % (sta, wlan, ssid, passwd))
+    
+    @classmethod 
+    def associate_wep(self, sta, wlan, ssid, passwd):    
+        sta.cmd('iw dev %s-wlan%s connect %s key 0:%s' \
+                % (sta, wlan, ssid, passwd))
                 
     def setRange(self, _range):
         self.range = _range
@@ -291,18 +312,16 @@ class Node( object ):
                 print '%s is already connected! ' % ap
             mobility.getAPsInRange(self)
         else:
-            print "%s is out of range!" % (ap)
-   
+            print "%s is out of range!" % (ap)   
    
     @classmethod 
     def confirmInfraAssociation(self, sta, ap, wlan):
         associated = ''
-        if association.printCon:
+        if self.printCon:
             print "Associating %s to %s" % (sta, ap)
         while(associated == '' or len(associated[0]) == 15):
             associated = self.isAssociated(sta, wlan)
-        iface = str(sta)+'-wlan%s' % wlan
-        wifiParameters.getWiFiParameters(sta, wlan, iface) 
+        sta.params['frequency'][wlan] = channelParameters.frequency(ap, 0)
         ap.associatedStations.append(sta)
         sta.params['associatedTo'][wlan] = ap
         
@@ -1343,7 +1362,7 @@ class OVSSwitch( Switch ):
             for intf in self.intfList():
                 self.TCReapply( intf )       
                
-        if(association.isCode == True):
+        if(self.isCode == True):
             if('accessPoint' == self.type):
                 for iface in range(0, self.nWlans):
                     accessPoint.apBridge(self, iface)                  

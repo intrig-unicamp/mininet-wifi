@@ -128,7 +128,7 @@ class vanet( object ):
             bs_x = self.bss[baseStations[i]][0]
             bs_y = self.bss[baseStations[i]][1]
             self.scatter = plot.plotScatter(bs_x, bs_y) 
-            baseStations[i].position = bs_x, bs_y, 0
+            baseStations[i].params['position'] = bs_x, bs_y, 0
             plot.instantiateAnnotate(baseStations[i])
             plot.instantiateCircle(baseStations[i])
             plot.drawTxt(baseStations[i])
@@ -313,7 +313,7 @@ class vanet( object ):
             position_x = self.cars[car][0]
             position_y = self.cars[car][1]
             
-            car.position = position_x, position_y, 0
+            car.params['position'] = position_x, position_y, 0
             angle = self.cars[car][2]
            
             #calculate new position of the car

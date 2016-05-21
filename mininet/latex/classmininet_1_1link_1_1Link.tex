@@ -1,0 +1,115 @@
+\hypertarget{classmininet_1_1link_1_1Link}{\section{mininet.\-link.\-Link Class Reference}
+\label{classmininet_1_1link_1_1Link}\index{mininet.\-link.\-Link@{mininet.\-link.\-Link}}
+}
+Inheritance diagram for mininet.\-link.\-Link\-:\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[height=3.000000cm]{classmininet_1_1link_1_1Link}
+\end{center}
+\end{figure}
+\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+def \hyperlink{classmininet_1_1link_1_1Link_a05be53888b4da5ffc058c778659296f5}{\-\_\-\-\_\-init\-\_\-\-\_\-}
+\item 
+\hypertarget{classmininet_1_1link_1_1Link_a7cff25664aad51edfbfa64edfcd832dc}{def {\bfseries wlan\-Name}}\label{classmininet_1_1link_1_1Link_a7cff25664aad51edfbfa64edfcd832dc}
+
+\item 
+\hypertarget{classmininet_1_1link_1_1Link_aa3ea9cb1099157f8b8be624a7f2a7bdb}{def {\bfseries intf\-Name}}\label{classmininet_1_1link_1_1Link_aa3ea9cb1099157f8b8be624a7f2a7bdb}
+
+\item 
+def \hyperlink{classmininet_1_1link_1_1Link_ade37d7cffeff73830bec0129ac754622}{make\-Intf\-Pair}
+\item 
+\hypertarget{classmininet_1_1link_1_1Link_a032701855bcb981ae33e5b584d1526cb}{def {\bfseries delete}}\label{classmininet_1_1link_1_1Link_a032701855bcb981ae33e5b584d1526cb}
+
+\item 
+\hypertarget{classmininet_1_1link_1_1Link_a00831e1fab1e76169a3af3854f6c2a37}{def {\bfseries stop}}\label{classmininet_1_1link_1_1Link_a00831e1fab1e76169a3af3854f6c2a37}
+
+\item 
+\hypertarget{classmininet_1_1link_1_1Link_abbb76b51164c3f279cabc4316e63df34}{def {\bfseries status}}\label{classmininet_1_1link_1_1Link_abbb76b51164c3f279cabc4316e63df34}
+
+\item 
+\hypertarget{classmininet_1_1link_1_1Link_ad07f0cb915d250ff63cc6d7dc2f8510b}{def {\bfseries \-\_\-\-\_\-str\-\_\-\-\_\-}}\label{classmininet_1_1link_1_1Link_ad07f0cb915d250ff63cc6d7dc2f8510b}
+
+\end{DoxyCompactItemize}
+\subsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\hypertarget{classmininet_1_1link_1_1Link_ae397dc83ab5fec22531b7f0ac7b8bcd8}{{\bfseries fast}}\label{classmininet_1_1link_1_1Link_ae397dc83ab5fec22531b7f0ac7b8bcd8}
+
+\item 
+\hypertarget{classmininet_1_1link_1_1Link_a8de28a90dbe9aab0fcca9fcb4d3b0bd8}{{\bfseries intf2}}\label{classmininet_1_1link_1_1Link_a8de28a90dbe9aab0fcca9fcb4d3b0bd8}
+
+\end{DoxyCompactItemize}
+
+
+\subsection{Detailed Description}
+\begin{DoxyVerb}A basic link is just a veth pair.
+   Other types of links could be tunnels, link emulators, etc..\end{DoxyVerb}
+ 
+
+\subsection{Constructor \& Destructor Documentation}
+\hypertarget{classmininet_1_1link_1_1Link_a05be53888b4da5ffc058c778659296f5}{\index{mininet\-::link\-::\-Link@{mininet\-::link\-::\-Link}!\-\_\-\-\_\-init\-\_\-\-\_\-@{\-\_\-\-\_\-init\-\_\-\-\_\-}}
+\index{\-\_\-\-\_\-init\-\_\-\-\_\-@{\-\_\-\-\_\-init\-\_\-\-\_\-}!mininet::link::Link@{mininet\-::link\-::\-Link}}
+\subsubsection[{\-\_\-\-\_\-init\-\_\-\-\_\-}]{\setlength{\rightskip}{0pt plus 5cm}def mininet.\-link.\-Link.\-\_\-\-\_\-init\-\_\-\-\_\- (
+\begin{DoxyParamCaption}
+\item[{}]{self, }
+\item[{}]{node1, }
+\item[{}]{node2, }
+\item[{}]{port1 = {\ttfamily None}, }
+\item[{}]{port2 = {\ttfamily None}, }
+\item[{}]{intf\-Name1 = {\ttfamily None}, }
+\item[{}]{intf\-Name2 = {\ttfamily None}, }
+\item[{}]{addr1 = {\ttfamily None}, }
+\item[{}]{addr2 = {\ttfamily None}, }
+\item[{}]{intf = {\ttfamily {\bf Intf}}, }
+\item[{}]{cls1 = {\ttfamily None}, }
+\item[{}]{cls2 = {\ttfamily None}, }
+\item[{}]{params1 = {\ttfamily None}, }
+\item[{}]{params2 = {\ttfamily None}, }
+\item[{}]{fast = {\ttfamily True}, }
+\item[{}]{phy\-Iface = {\ttfamily None}}
+\end{DoxyParamCaption}
+)}}\label{classmininet_1_1link_1_1Link_a05be53888b4da5ffc058c778659296f5}
+\begin{DoxyVerb}Create veth link to another node, making two new interfaces.
+   node1: first node
+   node2: second node
+   port1: node1 port number (optional)
+   port2: node2 port number (optional)
+   intf: default interface class/constructor
+   cls1, cls2: optional interface-specific constructors
+   intfName1: node1 interface name (optional)
+   intfName2: node2  interface name (optional)
+   params1: parameters for interface 1
+   params2: parameters for interface 2\end{DoxyVerb}
+ 
+
+\subsection{Member Function Documentation}
+\hypertarget{classmininet_1_1link_1_1Link_ade37d7cffeff73830bec0129ac754622}{\index{mininet\-::link\-::\-Link@{mininet\-::link\-::\-Link}!make\-Intf\-Pair@{make\-Intf\-Pair}}
+\index{make\-Intf\-Pair@{make\-Intf\-Pair}!mininet::link::Link@{mininet\-::link\-::\-Link}}
+\subsubsection[{make\-Intf\-Pair}]{\setlength{\rightskip}{0pt plus 5cm}def mininet.\-link.\-Link.\-make\-Intf\-Pair (
+\begin{DoxyParamCaption}
+\item[{}]{cls, }
+\item[{}]{intfname1, }
+\item[{}]{intfname2, }
+\item[{}]{addr1 = {\ttfamily None}, }
+\item[{}]{addr2 = {\ttfamily None}, }
+\item[{}]{node1 = {\ttfamily None}, }
+\item[{}]{node2 = {\ttfamily None}, }
+\item[{}]{delete\-Intfs = {\ttfamily True}}
+\end{DoxyParamCaption}
+)}}\label{classmininet_1_1link_1_1Link_ade37d7cffeff73830bec0129ac754622}
+\begin{DoxyVerb}Create pair of interfaces
+   intfname1: name for interface 1
+   intfname2: name for interface 2
+   addr1: MAC address for interface 1 (optional)
+   addr2: MAC address for interface 2 (optional)
+   node1: home node for interface 1 (optional)
+   node2: home node for interface 2 (optional)
+   (override this method [and possibly delete()]
+   to change link type)\end{DoxyVerb}
+ 
+
+The documentation for this class was generated from the following file\-:\begin{DoxyCompactItemize}
+\item 
+link.\-py\end{DoxyCompactItemize}

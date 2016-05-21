@@ -1,0 +1,46 @@
+\hypertarget{namespacemininet_1_1link}{\section{mininet.\-link Namespace Reference}
+\label{namespacemininet_1_1link}\index{mininet.\-link@{mininet.\-link}}
+}
+\subsection*{Classes}
+\begin{DoxyCompactItemize}
+\item 
+class \hyperlink{classmininet_1_1link_1_1Intf}{Intf}
+\item 
+class \hyperlink{classmininet_1_1link_1_1TCIntf}{T\-C\-Intf}
+\item 
+class \hyperlink{classmininet_1_1link_1_1Link}{Link}
+\item 
+class \hyperlink{classmininet_1_1link_1_1OVSIntf}{O\-V\-S\-Intf}
+\item 
+class \hyperlink{classmininet_1_1link_1_1OVSLink}{O\-V\-S\-Link}
+\item 
+class \hyperlink{classmininet_1_1link_1_1TCLink}{T\-C\-Link}
+\end{DoxyCompactItemize}
+
+
+\subsection{Detailed Description}
+\begin{DoxyVerb}link.py: interface and link abstractions for mininet
+
+It seems useful to bundle functionality for interfaces into a single
+class.
+
+Also it seems useful to enable the possibility of multiple flavors of
+links, including:
+
+- simple veth pairs
+- tunneled links
+- patchable links (which can be disconnected and reconnected via a patchbay)
+- link simulators (e.g. wireless)
+
+Basic division of labor:
+
+  Nodes: know how to execute commands
+  Intfs: know how to configure themselves
+  Links: know how to connect nodes together
+
+Intf: basic interface object that can configure itself
+TCIntf: interface with bandwidth limiting and delay via tc
+
+Link: basic link class for creating veth pairs
+\end{DoxyVerb}
+ 

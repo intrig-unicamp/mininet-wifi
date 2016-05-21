@@ -1,0 +1,66 @@
+\hypertarget{classmininet_1_1wifiMobilityModels_1_1RandomDirection}{\section{mininet.\-wifi\-Mobility\-Models.\-Random\-Direction Class Reference}
+\label{classmininet_1_1wifiMobilityModels_1_1RandomDirection}\index{mininet.\-wifi\-Mobility\-Models.\-Random\-Direction@{mininet.\-wifi\-Mobility\-Models.\-Random\-Direction}}
+}
+Inheritance diagram for mininet.\-wifi\-Mobility\-Models.\-Random\-Direction\-:\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[height=3.000000cm]{classmininet_1_1wifiMobilityModels_1_1RandomDirection}
+\end{center}
+\end{figure}
+\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+def \hyperlink{classmininet_1_1wifiMobilityModels_1_1RandomDirection_af539c766498fe00c98abf6c2de913498}{\-\_\-\-\_\-init\-\_\-\-\_\-}
+\end{DoxyCompactItemize}
+\subsection*{Additional Inherited Members}
+
+
+\subsection{Constructor \& Destructor Documentation}
+\hypertarget{classmininet_1_1wifiMobilityModels_1_1RandomDirection_af539c766498fe00c98abf6c2de913498}{\index{mininet\-::wifi\-Mobility\-Models\-::\-Random\-Direction@{mininet\-::wifi\-Mobility\-Models\-::\-Random\-Direction}!\-\_\-\-\_\-init\-\_\-\-\_\-@{\-\_\-\-\_\-init\-\_\-\-\_\-}}
+\index{\-\_\-\-\_\-init\-\_\-\-\_\-@{\-\_\-\-\_\-init\-\_\-\-\_\-}!mininet::wifiMobilityModels::RandomDirection@{mininet\-::wifi\-Mobility\-Models\-::\-Random\-Direction}}
+\subsubsection[{\-\_\-\-\_\-init\-\_\-\-\_\-}]{\setlength{\rightskip}{0pt plus 5cm}def mininet.\-wifi\-Mobility\-Models.\-Random\-Direction.\-\_\-\-\_\-init\-\_\-\-\_\- (
+\begin{DoxyParamCaption}
+\item[{}]{self, }
+\item[{}]{nr\-\_\-nodes, }
+\item[{}]{dimensions, }
+\item[{}]{wt\-\_\-max = {\ttfamily None}, }
+\item[{}]{velocity = {\ttfamily (0.1,~1.}, }
+\item[{}]{border\-\_\-policy = {\ttfamily 'reflect'}}
+\end{DoxyParamCaption}
+)}}\label{classmininet_1_1wifiMobilityModels_1_1RandomDirection_af539c766498fe00c98abf6c2de913498}
+\begin{DoxyVerb}Random Direction mobility model.
+This model is based in the Stochastic Walk. The flight length is chosen from a uniform distribution, 
+with minimum 0 and maximum set to the maximum dimension value.
+The velocity is also chosen from a uniform distribution, with boundaries set by the *velocity* parameter.
+If wt_max is set, the waiting time is chosen from a uniform distribution with values between 0 and wt_max.
+If wt_max is not set, waiting time is set to None.
+
+Required arguments:
+
+  *nr_nodes*:
+    Integer, the number of nodes.
+  
+  *dimensions*:
+    Tuple of Integers, the x and y dimensions of the simulation area.
+  
+keyword arguments:
+
+  *wt_max*:
+    Double, maximum value for the waiting time distribution.
+    If wt_max is set, the waiting time is chosen from a uniform distribution with values between 0 and wt_max.
+    If wt_max is not set, the waiting time is set to None.
+    Default is None.
+  
+  *velocity*:
+    Tuple of Doubles, the minimum and maximum values for node velocity.
+    
+  *border_policy*:
+    String, either 'reflect' or 'wrap'. The policy that is used when the node arrives to the border.
+    If 'reflect', the node reflects off the border.
+    If 'wrap', the node reappears at the opposite edge (as in a torus-shaped area).
+\end{DoxyVerb}
+ 
+
+The documentation for this class was generated from the following file\-:\begin{DoxyCompactItemize}
+\item 
+wifi\-Mobility\-Models.\-py\end{DoxyCompactItemize}

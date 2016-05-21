@@ -46,11 +46,11 @@ class accessPoint( object ):
         self.cmd = self.cmd + ("\nssid=%s" % ap.ssid[0]) # the name of the AP
         
         
-        if ap.params['mode'] == 'n' or ap.params['mode'] == 'ac'or ap.params['mode'] == 'a':
+        if ap.params['mode'][0] == 'n' or ap.params['mode'][0] == 'ac'or ap.params['mode'][0] == 'a':
             self.cmd = self.cmd + ("\nhw_mode=g") 
         else:
-            self.cmd = self.cmd + ("\nhw_mode=%s" % ap.params['mode']) 
-        self.cmd = self.cmd + ("\nchannel=%s" % ap.params['channel']) # the channel to use 
+            self.cmd = self.cmd + ("\nhw_mode=%s" % ap.params['mode'][0]) 
+        self.cmd = self.cmd + ("\nchannel=%s" % ap.params['channel'][0]) # the channel to use 
         #if(ap.mode=="ac" or ap.mode=='a'):
         #   self.cmd = self.cmd + ("\nieee80211ac=1")
         self.cmd = self.cmd + ("\nwme_enabled=1") 
@@ -167,8 +167,8 @@ class accessPoint( object ):
             wlan = ap.params.get('wlan')
             os.system('ifconfig %s down' % wlan)
             os.system('ifconfig %s up' % wlan)
-        apcommand = cmd + ("\' > %s.conf" % wlan)  
-        os.system(apcommand)
+        content = cmd + ("\' > %s.conf" % wlan)  
+        os.system(content)
         cmd = ("hostapd -B %s.conf" % wlan)
         subprocess.check_output(cmd, shell=True)
         self.setBw(ap, wlan)

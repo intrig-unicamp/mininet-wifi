@@ -1,0 +1,103 @@
+\hypertarget{classmininet_1_1node_1_1UserSwitch}{\section{mininet.\-node.\-User\-Switch Class Reference}
+\label{classmininet_1_1node_1_1UserSwitch}\index{mininet.\-node.\-User\-Switch@{mininet.\-node.\-User\-Switch}}
+}
+Inheritance diagram for mininet.\-node.\-User\-Switch\-:\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[height=4.000000cm]{classmininet_1_1node_1_1UserSwitch}
+\end{center}
+\end{figure}
+\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+def \hyperlink{classmininet_1_1node_1_1UserSwitch_ac22742d054d03bfa9b62ce4acd305b51}{\-\_\-\-\_\-init\-\_\-\-\_\-}
+\item 
+\hypertarget{classmininet_1_1node_1_1UserSwitch_a3cbcdd424e0ddb14ff7705f6e470e883}{def {\bfseries setup}}\label{classmininet_1_1node_1_1UserSwitch_a3cbcdd424e0ddb14ff7705f6e470e883}
+
+\item 
+\hypertarget{classmininet_1_1node_1_1UserSwitch_ad33189e5046bd69654a229340a4dacca}{def {\bfseries dpctl}}\label{classmininet_1_1node_1_1UserSwitch_ad33189e5046bd69654a229340a4dacca}
+
+\item 
+\hypertarget{classmininet_1_1node_1_1UserSwitch_a06ee71c1851b5a6ec63012be4bb64606}{def {\bfseries connected}}\label{classmininet_1_1node_1_1UserSwitch_a06ee71c1851b5a6ec63012be4bb64606}
+
+\item 
+def \hyperlink{classmininet_1_1node_1_1UserSwitch_af5651c986ae4c50c04a12138da52b854}{start}
+\item 
+def \hyperlink{classmininet_1_1node_1_1UserSwitch_a5e07816289fa23921ab679b3eb019b6b}{stop}
+\end{DoxyCompactItemize}
+\subsection*{Static Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+def \hyperlink{classmininet_1_1node_1_1UserSwitch_aa1ff2eb96e96a859fc2824445d7f4a8e}{T\-C\-Reapply}
+\end{DoxyCompactItemize}
+\subsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\hypertarget{classmininet_1_1node_1_1UserSwitch_ae51f38317bcc709effce4661dfb04cef}{{\bfseries dpopts}}\label{classmininet_1_1node_1_1UserSwitch_ae51f38317bcc709effce4661dfb04cef}
+
+\item 
+\hypertarget{classmininet_1_1node_1_1UserSwitch_aac7fa7c7e58bab03d13abf27ab3fb1b9}{{\bfseries type}}\label{classmininet_1_1node_1_1UserSwitch_aac7fa7c7e58bab03d13abf27ab3fb1b9}
+
+\end{DoxyCompactItemize}
+\subsection*{Static Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\hypertarget{classmininet_1_1node_1_1UserSwitch_aba22c07b886451d022841316cbaa5ce8}{int {\bfseries dpid\-Len} = 12}\label{classmininet_1_1node_1_1UserSwitch_aba22c07b886451d022841316cbaa5ce8}
+
+\end{DoxyCompactItemize}
+
+
+\subsection{Constructor \& Destructor Documentation}
+\hypertarget{classmininet_1_1node_1_1UserSwitch_ac22742d054d03bfa9b62ce4acd305b51}{\index{mininet\-::node\-::\-User\-Switch@{mininet\-::node\-::\-User\-Switch}!\-\_\-\-\_\-init\-\_\-\-\_\-@{\-\_\-\-\_\-init\-\_\-\-\_\-}}
+\index{\-\_\-\-\_\-init\-\_\-\-\_\-@{\-\_\-\-\_\-init\-\_\-\-\_\-}!mininet::node::UserSwitch@{mininet\-::node\-::\-User\-Switch}}
+\subsubsection[{\-\_\-\-\_\-init\-\_\-\-\_\-}]{\setlength{\rightskip}{0pt plus 5cm}def mininet.\-node.\-User\-Switch.\-\_\-\-\_\-init\-\_\-\-\_\- (
+\begin{DoxyParamCaption}
+\item[{}]{self, }
+\item[{}]{name, }
+\item[{}]{dpopts = {\ttfamily '-\/-\/no-\/slicing'}, }
+\item[{}]{kwargs}
+\end{DoxyParamCaption}
+)}}\label{classmininet_1_1node_1_1UserSwitch_ac22742d054d03bfa9b62ce4acd305b51}
+\begin{DoxyVerb}Init.
+   name: name for the switch
+   dpopts: additional arguments to ofdatapath (--no-slicing)\end{DoxyVerb}
+ 
+
+\subsection{Member Function Documentation}
+\hypertarget{classmininet_1_1node_1_1UserSwitch_af5651c986ae4c50c04a12138da52b854}{\index{mininet\-::node\-::\-User\-Switch@{mininet\-::node\-::\-User\-Switch}!start@{start}}
+\index{start@{start}!mininet::node::UserSwitch@{mininet\-::node\-::\-User\-Switch}}
+\subsubsection[{start}]{\setlength{\rightskip}{0pt plus 5cm}def mininet.\-node.\-User\-Switch.\-start (
+\begin{DoxyParamCaption}
+\item[{}]{self, }
+\item[{}]{controllers}
+\end{DoxyParamCaption}
+)}}\label{classmininet_1_1node_1_1UserSwitch_af5651c986ae4c50c04a12138da52b854}
+\begin{DoxyVerb}Start OpenFlow reference user datapath.
+   Log to /tmp/sN-{ofd,ofp}.log.
+   controllers: list of controller objects\end{DoxyVerb}
+ \hypertarget{classmininet_1_1node_1_1UserSwitch_a5e07816289fa23921ab679b3eb019b6b}{\index{mininet\-::node\-::\-User\-Switch@{mininet\-::node\-::\-User\-Switch}!stop@{stop}}
+\index{stop@{stop}!mininet::node::UserSwitch@{mininet\-::node\-::\-User\-Switch}}
+\subsubsection[{stop}]{\setlength{\rightskip}{0pt plus 5cm}def mininet.\-node.\-User\-Switch.\-stop (
+\begin{DoxyParamCaption}
+\item[{}]{self, }
+\item[{}]{delete\-Intfs = {\ttfamily True}}
+\end{DoxyParamCaption}
+)}}\label{classmininet_1_1node_1_1UserSwitch_a5e07816289fa23921ab679b3eb019b6b}
+\begin{DoxyVerb}Stop OpenFlow reference user datapath.
+   deleteIntfs: delete interfaces? (True)\end{DoxyVerb}
+ \hypertarget{classmininet_1_1node_1_1UserSwitch_aa1ff2eb96e96a859fc2824445d7f4a8e}{\index{mininet\-::node\-::\-User\-Switch@{mininet\-::node\-::\-User\-Switch}!T\-C\-Reapply@{T\-C\-Reapply}}
+\index{T\-C\-Reapply@{T\-C\-Reapply}!mininet::node::UserSwitch@{mininet\-::node\-::\-User\-Switch}}
+\subsubsection[{T\-C\-Reapply}]{\setlength{\rightskip}{0pt plus 5cm}def mininet.\-node.\-User\-Switch.\-T\-C\-Reapply (
+\begin{DoxyParamCaption}
+\item[{}]{intf}
+\end{DoxyParamCaption}
+)\hspace{0.3cm}{\ttfamily [static]}}}\label{classmininet_1_1node_1_1UserSwitch_aa1ff2eb96e96a859fc2824445d7f4a8e}
+\begin{DoxyVerb}Unfortunately user switch and Mininet are fighting
+   over tc queuing disciplines. To resolve the conflict,
+   we re-create the user switch's configuration, but as a
+   leaf of the TCIntf-created configuration.\end{DoxyVerb}
+ 
+
+The documentation for this class was generated from the following file\-:\begin{DoxyCompactItemize}
+\item 
+node.\-py\end{DoxyCompactItemize}

@@ -19,7 +19,6 @@ from mininet.clean import cleanup
 # Number of hosts for each test
 N = 2
 
-
 class SingleSwitchOptionsTopo(Topo):
     "Single switch connected to n hosts."
     def __init__(self, n=2, hopts=None, lopts=None):

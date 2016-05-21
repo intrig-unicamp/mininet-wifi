@@ -15,9 +15,15 @@ class propagationModel_ ( object ):
     exp = 0 #Exponent
     sl = 1 #System Loss
         
-    def __init__( self, node1=None, node2=None, dist=0, wlan=None ):
+    def __init__( self, sta=None, ap=None, dist=0, wlan=None, pT=14, gT=5, gR=5, hT=1, hR=1 ):
+        """pT = Tx Power
+           gT = Tx Antenna Gain
+           gR = Rx Antenna Gain
+           hT = Tx Antenna Height
+           hR = Rx Antenna Height
+        """        
         if self.model in dir(self):
-            self.__getattribute__(self.model)(node1, node2, dist, wlan)
+            self.__getattribute__(self.model)(sta, ap, dist, wlan, pT, gT, gR, hT, hR)
      
     def attenuation(self, node1, node2, dist, wlan):
         alpha = 1
@@ -26,67 +32,58 @@ class propagationModel_ ( object ):
         
         L = -27.56 + 10 * alpha * math.log10(dist) + 20 * math.log(node1.params['frequency'][wlan])
         P = node2.params['txpower'][0] * gR * gT * L
-    
-    def friisPropagationLossModel(self, node1, node2, dist, wlan):
-        """Friis Propagation Loss Model:
+        
+    def pathLoss(self, sta, ap, dist, wlan):
+        """Path Loss Model:
         (f) signal frequency transmited(Hz)
         (d) is the distance between the transmitter and the receiver (m)
         (c) speed of light in vacuum (m)
         (L) System loss"""          
-        f = (node1.params['frequency'][wlan] * 10**9) #Convert Ghz to Hz
+        f = (sta.params['frequency'][wlan] * 10**9) #Convert Ghz to Hz
         d = dist 
         c = 299792458.0 
         L = self.sl     
-
+       
         lambda_ = c / f # lambda: wavelength (m)
-        numerator = lambda_**2 
-        denominator = (4 * math.pi * d)**2 * L
-        self.rssi = 10 * math.log10(numerator / denominator) 
+        denominator = lambda_**2 
+        numerator = (4 * math.pi * d)**2 * L
+        pathLoss_ = 10 * math.log10(numerator / denominator) 
+        return pathLoss_
+    
+    def friisPropagationLossModel(self, sta, ap, dist, wlan, pT, gT, gR, hT, hR):
+        """Friis Propagation Loss Model:
+        (f) signal frequency transmited(Hz)
+        (d) is the distance between the transmitter and the receiver (m)
+        (c) speed of light in vacuum (m)
+        (L) System loss"""   
+        pathLoss = self.pathLoss(sta, ap, dist, wlan)
+        self.rssi = pT + gT + gR - pathLoss - 27.55
         return self.rssi
         
-    def twoRayGroundPropagationLossModel(self, node1, node2, dist, wlan):
+    def twoRayGroundPropagationLossModel(self, sta, ap, dist, wlan, pT, gT, gR, hT, hR):
         """Two Ray Ground Propagation Loss Model:
         (gT): Tx Antenna Gain (dBi)
         (gR): Rx Antenna Gain (dBi)
         (hT): Tx Antenna Height
         (hR): Rx Antenna Height
         (d) is the distance between the transmitter and the receiver (m)
-        (L): System loss"""
-        
-        gT = node2.params['antennaGain'][0] 
-        gR = node1.params['antennaGain'][wlan]
-        hT = node2.params['antennaHeight'][0]
-        hR = node1.params['antennaHeight'][wlan]
+        (L): System loss"""        
         d = dist
         L = self.systemLoss
         
-        try:
-            self.rssi = (node2.params['txpower'][0] * gT * gR * hT**2 * hR**2) / (d**4 * L)
-            return self.rssi
-        except:
-            return self.rssi
+        self.rssi = ( pT * gT * gR * hT**2 * hR**2 ) / ( d**4 * L )        
+        return self.rssi
             
-    def logDistancePropagationLossModel(self, node1, node2, dist, wlan):
+    def logDistancePropagationLossModel(self, sta, ap, dist, wlan, pT, gT, gR, hT, hR):
         """Log Distance Propagation Loss Model:
         referenceDistance (m): The distance at which the reference loss is calculated
-        referenceLoss (db): The reference loss at reference distance. Default for 1m is 46.6777
         exponent: The exponent of the Path Loss propagation model, where 2 is for propagation in free space
-        (d) is the distance between the transmitter and the receiver (m)"""        
-        f = (node1.params['frequency'][wlan] * 10**9) #Convert Ghz to Hz
-        d = dist 
-        c = 299792458.0 
-        L = self.sl     
-
-        lambda_ = c / f # lambda: wavelength (m)
-        numerator = lambda_**2 
-        denominator = (4 * math.pi * d)**2 * L
-        pathLoss = 10 * math.log10(numerator / denominator)
+        (d) is the distance between the transmitter and the receiver (m)"""    
         referenceDistance = 1
-       
-        if dist == 0:
-            dist = 0.1
-        pathLossDb = 10 * self.exp * math.log10(dist / referenceDistance)
-        self.rssi =  pathLoss + pathLossDb
+        pathLoss = self.pathLoss(sta, ap, referenceDistance, wlan)
+        
+        pathLossDb = 10 * self.exp * math.log10(dist / referenceDistance)  
+        self.rssi = pT + gT + gR - ( pathLoss + pathLossDb ) - 27.55
         return self.rssi
         
     def okumuraHataPropagationLossModel(self, node1, node2, distance, wlan):

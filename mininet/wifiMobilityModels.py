@@ -65,8 +65,7 @@ def init_random_waypoint(nodes, max_x, max_y,
     x_waypoint = np.empty(nr_nodes)
     y_waypoint = np.empty(nr_nodes)
     speed = np.empty(nr_nodes)
-    for sta in nodes:
-        sta.params['speed'] = speed[nodes.index(sta)]
+
     pause_time = np.empty(nr_nodes)
     speed_low = float(speed_low)
     speed_high = float(speed_high)
@@ -483,7 +482,6 @@ class TruncatedLevyWalk(StochasticWalk):
             If 'reflect', the node reflects off the border.
             If 'wrap', the node reappears at the opposite edge (as in a torus-shaped area).
         '''
-        nr_nodes = len(nodes)
         FL_DISTR = lambda SAMPLES: P(FL_EXP, 1., FL_MAX, SAMPLES)
         if WT_EXP and WT_MAX:
             WT_DISTR = lambda SAMPLES: P(WT_EXP, 1., WT_MAX, SAMPLES)

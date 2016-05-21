@@ -1,0 +1,71 @@
+\hypertarget{classmininet_1_1wifiMobilityModels_1_1HeterogeneousTruncatedLevyWalk}{\section{mininet.\-wifi\-Mobility\-Models.\-Heterogeneous\-Truncated\-Levy\-Walk Class Reference}
+\label{classmininet_1_1wifiMobilityModels_1_1HeterogeneousTruncatedLevyWalk}\index{mininet.\-wifi\-Mobility\-Models.\-Heterogeneous\-Truncated\-Levy\-Walk@{mininet.\-wifi\-Mobility\-Models.\-Heterogeneous\-Truncated\-Levy\-Walk}}
+}
+Inheritance diagram for mininet.\-wifi\-Mobility\-Models.\-Heterogeneous\-Truncated\-Levy\-Walk\-:\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[height=3.000000cm]{classmininet_1_1wifiMobilityModels_1_1HeterogeneousTruncatedLevyWalk}
+\end{center}
+\end{figure}
+\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+def \hyperlink{classmininet_1_1wifiMobilityModels_1_1HeterogeneousTruncatedLevyWalk_ac62818e40549480321577341bc96efe4}{\-\_\-\-\_\-init\-\_\-\-\_\-}
+\end{DoxyCompactItemize}
+\subsection*{Additional Inherited Members}
+
+
+\subsection{Constructor \& Destructor Documentation}
+\hypertarget{classmininet_1_1wifiMobilityModels_1_1HeterogeneousTruncatedLevyWalk_ac62818e40549480321577341bc96efe4}{\index{mininet\-::wifi\-Mobility\-Models\-::\-Heterogeneous\-Truncated\-Levy\-Walk@{mininet\-::wifi\-Mobility\-Models\-::\-Heterogeneous\-Truncated\-Levy\-Walk}!\-\_\-\-\_\-init\-\_\-\-\_\-@{\-\_\-\-\_\-init\-\_\-\-\_\-}}
+\index{\-\_\-\-\_\-init\-\_\-\-\_\-@{\-\_\-\-\_\-init\-\_\-\-\_\-}!mininet::wifiMobilityModels::HeterogeneousTruncatedLevyWalk@{mininet\-::wifi\-Mobility\-Models\-::\-Heterogeneous\-Truncated\-Levy\-Walk}}
+\subsubsection[{\-\_\-\-\_\-init\-\_\-\-\_\-}]{\setlength{\rightskip}{0pt plus 5cm}def mininet.\-wifi\-Mobility\-Models.\-Heterogeneous\-Truncated\-Levy\-Walk.\-\_\-\-\_\-init\-\_\-\-\_\- (
+\begin{DoxyParamCaption}
+\item[{}]{self, }
+\item[{}]{nr\-\_\-nodes, }
+\item[{}]{dimensions, }
+\item[{}]{W\-T\-\_\-\-E\-X\-P = {\ttfamily -\/1.8}, }
+\item[{}]{W\-T\-\_\-\-M\-A\-X = {\ttfamily 100.}, }
+\item[{}]{F\-L\-\_\-\-E\-X\-P = {\ttfamily -\/2.6}, }
+\item[{}]{F\-L\-\_\-\-M\-A\-X = {\ttfamily 50.}, }
+\item[{}]{border\-\_\-policy = {\ttfamily 'reflect'}}
+\end{DoxyParamCaption}
+)}}\label{classmininet_1_1wifiMobilityModels_1_1HeterogeneousTruncatedLevyWalk_ac62818e40549480321577341bc96efe4}
+\begin{DoxyVerb}This is a variant of the Truncated Levy Walk mobility model.
+This model is based in the Stochastic Walk.
+The waiting time distribution is a truncated power law with exponent set to WT_EXP and truncated WT_MAX.
+The flight length is a uniform distribution, different for each node. These uniform distributions are 
+created by taking both min and max values from a power law with exponent set to FL_EXP and truncated FL_MAX.
+The node velocity is a function of the flight length.
+
+Required arguments:
+
+  *nr_nodes*:
+    Integer, the number of nodes.
+  
+  *dimensions*:
+    Tuple of Integers, the x and y dimensions of the simulation area.
+  
+keyword arguments:
+
+  *WT_EXP*:
+    Double, the exponent of the waiting time distribution. Default is -1.8
+    
+  *WT_MAX*:
+    Double, the maximum value of the waiting time distribution. Default is 100
+
+  *FL_EXP*:
+    Double, the exponent of the flight length distribution. Default is -2.6
+    
+  *FL_MAX*:
+    Double, the maximum value of the flight length distribution. Default is 50
+    
+  *border_policy*:
+    String, either 'reflect' or 'wrap'. The policy that is used when the node arrives to the border.
+    If 'reflect', the node reflects off the border.
+    If 'wrap', the node reappears at the opposite edge (as in a torus-shaped area).
+\end{DoxyVerb}
+ 
+
+The documentation for this class was generated from the following file\-:\begin{DoxyCompactItemize}
+\item 
+wifi\-Mobility\-Models.\-py\end{DoxyCompactItemize}
