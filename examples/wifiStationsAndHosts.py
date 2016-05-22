@@ -1,27 +1,26 @@
 #!/usr/bin/python
 
 """
-This example shows how work with wireless and wired media
+This example shows how to work with both wireless and wired medium
 """
 
 from mininet.net import Mininet
-from mininet.node import  Controller, OVSKernelSwitch
+from mininet.node import  Controller, OVSKernelSwitch, RemoteController, UserSwitch
 from mininet.cli import CLI
 from mininet.log import setLogLevel
 from mininet.link import TCLink
 
 def topology():
     "Create a network."
-    net = Mininet( controller=Controller, link=TCLink, switch=OVSKernelSwitch )
+    net = Mininet( controller=RemoteController, link=TCLink, switch=OVSKernelSwitch )
     
     print "*** Creating nodes"
-    ap1 = net.addBaseStation( 'ap1', ssid="simplewifi", mode="g", channel="5" )
+    ap1 = net.addBaseStation( 'ap1', ssid="ssid_ap1", mode="g", channel="5" )
     sta1 = net.addStation( 'sta1', ip='192.168.0.1/24' )
     sta2 = net.addStation( 'sta2', ip='192.168.0.2/24' )
     h3 = net.addHost( 'h3', ip='192.168.0.3/24' )
     h4 = net.addHost( 'h4', ip='192.168.0.4/24' )
-
-    c0 = net.addController('c0', controller=Controller, ip='127.0.0.1' )
+    c0 = net.addController('c0', controller=RemoteController, ip='127.0.0.1' )
 
     print "*** Adding Link"
     net.addLink(sta1, ap1)
@@ -43,5 +42,3 @@ def topology():
 if __name__ == '__main__':
     setLogLevel( 'info' )
     topology()
-
-
