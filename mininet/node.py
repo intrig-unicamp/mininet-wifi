@@ -224,7 +224,7 @@ class Node( object ):
     @classmethod 
     def verifyingNodes(self, node):
         if node in mobility.staList:
-            self.calculate(node)
+            self.calculateWiFiParameters(node)
         elif node in mobility.apList:
             for sta in mobility.staList:
                 self.calculateWiFiParameters(sta)
@@ -284,8 +284,8 @@ class Node( object ):
                 plot.graphUpdate(self)
             except:
                 pass
-        node = self
-        self.verifyingNodes(node)
+        self.verifyingNodes(self)
+        
         
     def setTxPower(self, iface, txpower):
         wlan = int(iface[-1:])
