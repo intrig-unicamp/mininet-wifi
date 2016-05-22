@@ -38,7 +38,7 @@ class channelParameters ( object ):
         pos_dst = dst.params['position']
         points = np.array([(pos_src[0], pos_src[1], pos_src[2]), (pos_dst[0], pos_dst[1], pos_dst[2])])
         dist = pdist(points)
-        return dist
+        return int(dist)
             
     def delay(self, dist, time):
         """"Based on RandomPropagationDelayModel"""
@@ -107,7 +107,7 @@ class channelParameters ( object ):
             loss %.1f%% \
             latency %.2fms \
             delay %.2fms \
-            orrupt 0.1%%" % (sta.params['wlan'][wlan], bw, loss, latency, delay))
+            corrupt 0.1%%" % (sta.params['wlan'][wlan], bw, loss, latency, delay))
         
     def calculateInterference (self, sta, ap, dist, staList, wlan):      
         """Calculating Interference"""

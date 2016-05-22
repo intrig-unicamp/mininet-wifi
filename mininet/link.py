@@ -77,8 +77,6 @@ class Intf( object ):
         """Set our IP address"""
         # This is a sign that we should perhaps rethink our prefix
         # mechanism and/or the way we specify IP addresses
-        print ipstr
-        print "sssssssssssss"
         if '/' in ipstr:
             self.ip, self.prefixLen = ipstr.split( '/' )
             return self.ifconfig( ipstr, 'up' )
@@ -213,9 +211,9 @@ class Intf( object ):
             self.sta.ifaceToAssociate += 1
             wlan = self.sta.ifaceToAssociate
             self.sta.params['rssi'][wlan] = -62 
-            if self.sta.mac != '':
+            if self.sta.params['mac'][wlan] != '':
                 self.sta.cmd('ifconfig %s-mp%s down' % (self.sta, wlan))
-                self.sta.cmd('ip link set %s-mp%s address %s' % (self.sta, wlan, self.sta.mac))
+                self.sta.cmd('ip link set %s-mp%s address %s' % (self.sta, wlan, self.sta.params['mac'][wlan]))
             self.sta.cmd('ifconfig %s-mp%s up' % (self.sta, wlan))
             self.sta.cmd('iw dev %s-mp%s mesh join %s' % (self.sta, wlan, ssid))
             self.sta.cmd('ifconfig %s-wlan%s down' % (self.sta, wlan))

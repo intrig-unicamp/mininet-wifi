@@ -63,16 +63,16 @@ class mobility ( object ):
             if sta.params['associatedTo'][wlan] != '':
                 sta.params['associatedTo'][wlan].associatedStations.remove(sta)
             sta.pexec('iw dev %s disconnect' % sta.params['wlan'][wlan])
-            debug ('\niwconfig %s essid %s ap %s' % (sta.params['wlan'][wlan], ap.ssid[0], ap.mac))
-            sta.pexec('iwconfig %s essid %s ap %s' % (sta.params['wlan'][wlan], ap.ssid[0], ap.mac))            
+            debug ('\niwconfig %s essid %s ap %s' % (sta.params['wlan'][wlan], ap.ssid[0], ap.params['mac']))
+            sta.pexec('iwconfig %s essid %s ap %s' % (sta.params['wlan'][wlan], ap.ssid[0], ap.params['mac']))            
             sta.params['associatedTo'][wlan] = ap
             sta.params['frequency'][wlan] = channelParameters.frequency(ap, 0)
             ap.associatedStations.append(sta)
         elif ap not in sta.params['associatedTo']:
             #Useful for stations with more than one wifi iface
             if sta.params['associatedTo'][wlan] == '':
-                debug('\niwconfig %s essid %s ap %s' % (sta.params['wlan'][wlan], ap.ssid[0], ap.mac))
-                sta.pexec('iwconfig %s essid %s ap %s' % (sta.params['wlan'][wlan], ap.ssid[0], ap.mac))
+                debug('\niwconfig %s essid %s ap %s' % (sta.params['wlan'][wlan], ap.ssid[0], ap.params['mac']))
+                sta.pexec('iwconfig %s essid %s ap %s' % (sta.params['wlan'][wlan], ap.ssid[0], ap.params['mac']))
                 sta.params['frequency'][wlan] = channelParameters.frequency(ap, 0)
                 ap.associatedStations.append(sta)
                 sta.params['associatedTo'][wlan] = ap 
@@ -212,10 +212,8 @@ class mobility ( object ):
     def nodeParameter(self, sta, wlan):
         for ap in mobility.apList:
             dist = channelParameters.getDistance(sta, ap)
-            if dist < ap.range:
-                dist = channelParameters.getDistance(sta, ap)
-                self.getAPsInRange(sta)
-                self.setChannelParameters(sta, ap, dist, wlan)  
+            self.getAPsInRange(sta)
+            self.setChannelParameters(sta, ap, dist, wlan)  
                     
     @classmethod                
     def parameters(self):
@@ -262,7 +260,7 @@ class mobility ( object ):
             if dist < ap.range:            
                 aps = 0
                 for n in range(0,len(sta.params['associatedTo'])):
-                    if str(sta.params['associatedTo'][n]) != '':
+                    if sta.params['associatedTo'][n] != '':
                         aps+=1
                 if len(sta.params['associatedTo']) == aps:
                     associated = True
