@@ -365,7 +365,7 @@ class Mininet( object ):
             else:
                 node.n_ssids = 1
                 
-        return wifi 
+        return int(wifi) 
 
     def addHost( self, name, cls=None, **params ):
         """Add host.
@@ -417,7 +417,8 @@ class Mininet( object ):
         defaults['snr'] = []
         defaults['speed'] = 0
         defaults['txpower'] = []
-        defaults['wlan'] = []            
+        defaults['wlan'] = []       
+        defaults['mac'] = []     
         
         if self.autoSetMacs:
             defaults[ 'mac' ] = macColonHex( self.nextIP )
@@ -429,13 +430,6 @@ class Mininet( object ):
             cls = self.host
         sta = cls( name, **defaults )      
         
-        mac = ("%s" % params.pop('mac', {}))
-        if(mac!="{}"):        
-            mac = mac.split(',')
-            sta.mac = str(mac[0])
-        elif self.autoSetMacs:
-            sta.mac = defaults[ 'mac' ]
-        
         self.hosts.append( sta )
         self.stations.append(sta)
         self.wifiNodes.append(sta)
@@ -443,6 +437,44 @@ class Mininet( object ):
         self.missingStations.append(sta)
         sta.type = 'station'
         wifi = self.nodesParameters(sta, params)
+        
+        mac = ("%s" % params.pop('mac', {}))
+        if(mac!="{}"):        
+            mac = mac.split(',')
+            sta.params['mac'] = []
+            for n in range(0, len(mac)):
+                sta.params['mac'].append('0')
+                sta.params['mac'][n] = mac[n] 
+        elif self.autoSetMacs:
+            for n in range(0, wifi):
+                sta.params['mac'].append('0')
+                sta.params['mac'][n] = defaults[ 'mac' ]
+        else:
+            for n in range(0, wifi):
+                sta.params['mac'].append('0')
+                
+        if len(sta.params['mac']) != wifi:
+            for n in range(0, (wifi-len(sta.params['mac']))):
+                sta.params['mac'].append('0')
+                
+        ip = ("%s" % params.pop('ip', {}))
+        if(ip!="{}"):        
+            ip = ip.split(',')
+            sta.params['ip'] = []
+            for n in range(0, len(ip)):
+                sta.params['ip'].append('0/0')
+                sta.params['ip'][n] = ip[n] 
+        elif self.autoSetMacs:
+            for n in range(0, wifi):
+                sta.params['ip'].append('0/0')
+                sta.params['ip'][n] = defaults[ 'ip' ]
+        else:
+            for n in range(0, wifi):
+                sta.params['ip'].append('0/0')
+                
+        if len(sta.params['ip']) != wifi:
+            for n in range(0, (wifi-len(sta.params['ip']))):
+                sta.params['ip'].append('0/0')
               
         sta.nWlans = int(wifi)
         mobility.staList.append( sta )
@@ -531,6 +563,7 @@ class Mininet( object ):
         defaults['antennaGain'] = []
         defaults['antennaHeight'] = []   
         defaults['mode'] = []
+        defaults['mac'] = []
         #defaults['wlan'] = []     
         defaults.update( params )       
         
@@ -1031,12 +1064,13 @@ class Mininet( object ):
                 else:
                     sta = node2
                     ap = node1
-               
+                
                 if sta in self.missingStations:
                     self.missingStations.remove(sta)
                 
-                if sta.mac != '':
-                    Node.setMac(sta) 
+                if sta.params['mac'][sta.ifaceToAssociate+1] != '':
+                    index = sta.ifaceToAssociate+1
+                    Node.setMac(sta, sta.params['wlan'][index], index) 
                     
                 value = deviceDataRate(ap, sta, None)
                 self.bw = value.rate
@@ -1045,8 +1079,8 @@ class Mininet( object ):
                 options.setdefault( 'use_tbf', True )
                 
                 # Set default MAC - this should probably be in Link
-                options.setdefault( 'addr1', sta.mac )
-                
+                options.setdefault( 'addr1', sta.params['mac'][sta.ifaceToAssociate+1] )
+                options.setdefault( 'ip', sta.params['ip'][sta.ifaceToAssociate+1] )
                 cls = self.link if cls is None else cls
                 link = cls( sta, 'alone', **options )
                 
@@ -1060,7 +1094,7 @@ class Mininet( object ):
                 #if not
                 else:
                     doAssociation = True
-                                
+                              
                 if(doAssociation):
                     Node.associate(sta, ap)
             return link
@@ -1245,7 +1279,6 @@ class Mininet( object ):
             for sta in self.stations:
                 mobility.getAPsInRange(sta)
                 for wlan in range(0, sta.nWlans):
-                    iface = str(sta)+'-wlan%s' % wlan
                     if sta.params['position'] != (0,0,0) and sta.func[wlan] == 'adhoc':
                         channelParameters(sta, None, wlan, 0, self.stations, 0 )
                     else:
@@ -1257,10 +1290,10 @@ class Mininet( object ):
                 mobility.getAPsInRange(node)
                 for wlan in range(0, node.nWlans):
                     cls = None
-                    options = dict(  )
-                    iface = str(node)+'-wlan%s' % wlan
+                    options = dict( )                    
                     # Set default MAC - this should probably be in Link
                     options.setdefault( 'use_tbf', True )
+                    options.setdefault( 'ip', sta.params['ip'][wlan] )
                     options.setdefault( 'addr1', self.randMac() )
                     cls = self.link if cls is None else cls
                     cls( node, 'alone', **options )

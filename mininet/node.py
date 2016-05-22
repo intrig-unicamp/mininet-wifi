@@ -118,7 +118,6 @@ class Node( object ):
         self.associate = False
         self.nWlans = 0
         self.ifaceToAssociate = -1
-        self.mac=''
         self.wlanToAssociate = 0
         self.meshMac = []        
                 
@@ -236,10 +235,10 @@ class Node( object ):
                 self.cmd('iw dev %s-%s mesh leave' % (self, key))
                 
     @classmethod   
-    def setMac(self, sta):
-        sta.pexec('ip link set %s-wlan0 down' % sta)
-        sta.pexec('ip link set %s-wlan0 address %s' % (sta, sta.mac))
-        sta.pexec('ip link set %s-wlan0 up' % sta)
+    def setMac(self, sta, iface, index):
+        sta.pexec('ip link set %s down' % (iface))
+        sta.pexec('ip link set %s address %s' % (iface, sta.params['mac'][index]))
+        sta.pexec('ip link set %s up' % (iface))
         
     @classmethod    
     def associate(self, sta, ap):
@@ -251,8 +250,8 @@ class Node( object ):
     @classmethod 
     def associate_infra(self, sta, ap, wlan):
         if sta.passwd == None:
-            debug ('\niwconfig %s essid %s ap %s' % (sta.params['wlan'][wlan], ap.ssid[0], ap.mac) )
-            sta.pexec('iwconfig %s essid %s ap %s' % (sta.params['wlan'][wlan], ap.ssid[0], ap.mac))
+            debug('\niwconfig %s essid %s ap %s' % (sta.params['wlan'][wlan], ap.ssid[0], ap.params['mac']))
+            sta.pexec('iwconfig %s essid %s ap %s' % (sta.params['wlan'][wlan], ap.ssid[0], ap.params['mac']))
         elif sta.encrypt == 'wpa' or sta.encrypt == 'wpa2':
             self.associate_wpa(sta, wlan, ap.ssid[0], sta.passwd)
         elif sta.encrypt == 'wep':
@@ -324,6 +323,7 @@ class Node( object ):
         sta.params['frequency'][wlan] = channelParameters.frequency(ap, 0)
         ap.associatedStations.append(sta)
         sta.params['associatedTo'][wlan] = ap
+        
         
     @classmethod    
     def isAssociated(self, sta, iface):
@@ -681,11 +681,13 @@ class Node( object ):
         self.cmd( 'ip route del default; ip route add default', params )
 
     # Convenience and configuration methods
-
     def setMAC( self, mac, intf=None ):
         """Set the MAC address for an interface.
            intf: intf or intf name
            mac: MAC address as string"""
+        if intf!=None:
+            wlan = int(intf[-1:])
+            self.params['mac'][wlan] = mac
         return self.intf( intf ).setMAC( mac )
 
     def setIP( self, ip, prefixLen=8, intf=None, **kwargs ):
@@ -694,6 +696,9 @@ class Node( object ):
            ip: IP address as a string
            prefixLen: prefix length, e.g. 8 for /8 or 16M addrs
            kwargs: any additional arguments for intf.setIP"""
+        if intf!=None:
+            wlan = int(intf[-1:])
+            self.params['ip'][wlan] = ip
         return self.intf( intf ).setIP( ip, prefixLen, **kwargs )
 
     def IP( self, intf=None ):

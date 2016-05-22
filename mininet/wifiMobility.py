@@ -250,7 +250,7 @@ class mobility ( object ):
         
         if ap == sta.params['associatedTo'][wlan]:
             if dist > ap.range:  
-                debug( '\niw dev %s disconnect' % sta.params['wlan'][wlan] )
+                debug('\niw dev %s disconnect' % sta.params['wlan'][wlan])
                 sta.pexec('iw dev %s disconnect' % sta.params['wlan'][wlan])
                 sta.params['associatedTo'][wlan] = ''
                 sta.params['rssi'][wlan] = 0
