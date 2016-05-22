@@ -469,8 +469,11 @@ class Mininet( object ):
                 sta.params['ip'].append('0/0')
                 sta.params['ip'][n] = defaults[ 'ip' ]
         else:
-            for n in range(0, wifi):
-                sta.params['ip'].append('0/0')
+            try:
+                for n in range(0, wifi):
+                    sta.params['ip'].append('0/0')
+            except:
+                pass
                 
         if len(sta.params['ip']) != wifi:
             for n in range(0, (wifi-len(sta.params['ip']))):
@@ -1080,7 +1083,7 @@ class Mininet( object ):
                 
                 # Set default MAC - this should probably be in Link
                 options.setdefault( 'addr1', sta.params['mac'][sta.ifaceToAssociate+1] )
-                options.setdefault( 'ip', sta.params['ip'][sta.ifaceToAssociate+1] )
+                #options.setdefault( 'ip', sta.params['ip'][sta.ifaceToAssociate+1] )
                 cls = self.link if cls is None else cls
                 link = cls( sta, 'alone', **options )
                 

@@ -77,6 +77,8 @@ class Intf( object ):
         """Set our IP address"""
         # This is a sign that we should perhaps rethink our prefix
         # mechanism and/or the way we specify IP addresses
+        print ipstr
+        print "sssssssssssss"
         if '/' in ipstr:
             self.ip, self.prefixLen = ipstr.split( '/' )
             return self.ifconfig( ipstr, 'up' )

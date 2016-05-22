@@ -19,7 +19,7 @@ class accessPoint( object ):
         if 'wlan' not in ap.params:
             newname = str(ap)+'-'+str('wlan')
             self.renameIface(intf, newname, wlan )
-            self.getMacAddress(ap, wlan)
+            ap.params['mac'] = self.getMacAddress(ap, wlan)
         self.start (ap, country_code, auth_algs, wpa, wlan,
               wpa_key_mgmt, rsn_pairwise, wpa_passphrase, encrypt, 
               wep_key0, **params)
@@ -95,8 +95,8 @@ class accessPoint( object ):
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         info = fcntl.ioctl(s.fileno(), 0x8927,  struct.pack('256s', '%s'[:15]) % iface)
         mac = (''.join(['%02x:' % ord(char) for char in info[18:24]])[:-1])
-        ap.params['mac'] = mac
         self.checkNetworkManager(mac)
+        return mac
         
     def checkNetworkManager(self, mac):
         """ add mac address inside of /etc/NetworkManager/NetworkManager.conf """
