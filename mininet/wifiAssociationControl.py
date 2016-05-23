@@ -5,8 +5,8 @@ class associationControl ( object ):
     
     changeAP = False
     
-    def __init__( self, node1, node2, wlan, ac ):
-        self.customAssociationControl(node1, node2, wlan, ac)
+    def __init__( self, sta, ap, wlan, ac ):
+        self.customAssociationControl(sta, ap, wlan, ac)
            
     def customAssociationControl(self, sta, ap, wlan, ac):
         """Mechanisms that optimize the use of the APs"""        

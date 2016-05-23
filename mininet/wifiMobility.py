@@ -56,7 +56,7 @@ class mobility ( object ):
         sta.params['speed'] = ((pos_x + pos_y + pos_z)/diffTime) 
   
     @classmethod  
-    def handover(self, sta, ap, wlan, distance, changeAP, ac=None, **params):
+    def handover(self, sta, ap, wlan, distance, changeAP, ac=None):
         """handover"""
         if ac == 'llf' or ac == 'ssf' and sta.params['associatedTo'][wlan] != ap:
             if sta.params['associatedTo'][wlan] != '':
@@ -241,10 +241,8 @@ class mobility ( object ):
         associated = True
         time = abs(sta.params['speed'])
         staList = self.staList
-        sta.params['frequency'][wlan] = channelParameters.frequency(ap, 0)
-        sta.params['channel'][wlan] = ap.params['channel'][0]
         
-        if ap == sta.params['associatedTo'][wlan]:
+        if ap == sta.params['associatedTo'][wlan]:            
             if dist > ap.range:  
                 debug('\niw dev %s disconnect' % sta.params['wlan'][wlan])
                 sta.pexec('iw dev %s disconnect' % sta.params['wlan'][wlan])
@@ -256,30 +254,26 @@ class mobility ( object ):
                 channelParameters(sta, ap, wlan, dist, staList, 0)
         else:  
             if dist < ap.range:  
-                aps = 0
-                for n in range(0,len(sta.params['associatedTo'])):
-                    if sta.params['associatedTo'][n] != '':
-                        aps+=1
-                if len(sta.params['associatedTo']) == aps:
-                    associated = True
-                else:
+                if sta.params['associatedTo'][wlan] == '':
                     associated = False
             else:
                 associated = False
         if ap == sta.params['associatedTo'][wlan] or dist < ap.range:
-            #Only if it is a mobility environment
             changeAP = False
-            association_Control = dict ()
+            ac = None
+            sta.params['frequency'][wlan] = channelParameters.frequency(ap, 0)
+            sta.params['channel'][wlan] = ap.params['channel'][0]
             
             """Association Control: mechanisms that optimize the use of the APs"""
             if self.associationControlMethod != False:
                 ac = self.associationControlMethod              
                 value = associationControl(sta, ap, wlan, ac)
                 changeAP = value.changeAP
-                association_Control.setdefault( 'ac', ac )                
-            
+                
             #Go to handover    
             if associated == False or changeAP == True:
-                self.handover(sta, ap, wlan, dist, changeAP, **association_Control)
+                self.handover(sta, ap, wlan, dist, changeAP, ac)
                 channelParameters(sta, ap, wlan, dist, staList, 0)
-        os.system('.')
+        else:
+            #have to verify this
+            os.system('.')

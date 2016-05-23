@@ -76,8 +76,7 @@ class channelParameters ( object ):
             value = propagationModel_( sta, ap, dist, wlan, pT, gT, gR, hT, hR )
             sta.params['rssi'][wlan] = value.rssi # random.uniform(value.rssi-1, value.rssi+1)
             self.rate = (custombw * (1.1 ** -dist))/5
-        else:
-            
+        else:            
             pT = ap.params['txpower'][0]
             gT = ap.params['antennaGain'][0]
             hT = ap.params['antennaHeight'][0]
@@ -138,9 +137,9 @@ class channelParameters ( object ):
         if dist < totalRange:
             value = propagationModel_(sta, station, dist, wlan)
             n =  value.rssi + signalPower
-            self.noise =+ n
+            self.noise += n
             self.i+=1    
-            self.dist =+ dist  
+            self.dist += dist  
             
     @classmethod        
     def frequency(self, node, wlan):

@@ -285,7 +285,7 @@ class vanet( object ):
     def findIntersection(self):
         #have to work on
         list1 = [list(a) for a in zip(self.interX[0], self.interY[0])]
-        list2= [list(a) for a in zip(self.interX[2], self.interY[2])]
+        list2 = [list(a) for a in zip(self.interX[2], self.interY[2])]
         
         first_tuple_list = [tuple(lst) for lst in list1]
         secnd_tuple_list = [tuple(lst) for lst in list2]
@@ -293,8 +293,7 @@ class vanet( object ):
         first_set = set(first_tuple_list)
         secnd_set = set(secnd_tuple_list)
         (element,) = first_set.intersection(secnd_set) 
-        print element[0]
-    
+        print element[0]    
     
     def simulate_car_movement(self,scatter,com_lines):
         #temporal variables
