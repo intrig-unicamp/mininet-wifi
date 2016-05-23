@@ -38,7 +38,7 @@ class channelParameters ( object ):
         pos_dst = dst.params['position']
         points = np.array([(pos_src[0], pos_src[1], pos_src[2]), (pos_dst[0], pos_dst[1], pos_dst[2])])
         dist = pdist(points)
-        return int(dist)
+        return float(dist)
             
     def delay(self, dist, time):
         """"Based on RandomPropagationDelayModel"""
