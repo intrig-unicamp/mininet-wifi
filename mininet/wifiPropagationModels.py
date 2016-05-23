@@ -26,12 +26,13 @@ class propagationModel_ ( object ):
             self.__getattribute__(self.model)(sta, ap, dist, wlan, pT, gT, gR, hT, hR)
      
     def attenuation(self, node1, node2, dist, wlan):
-        alpha = 1
-        gT = node2.antennaGain[0] 
-        gR = node1.antennaGain[wlan]
+        """have to work on"""
+        #alpha = 1
+        #gT = node2.antennaGain[0] 
+        #gR = node1.antennaGain[wlan]
         
-        L = -27.56 + 10 * alpha * math.log10(dist) + 20 * math.log(node1.params['frequency'][wlan])
-        P = node2.params['txpower'][0] * gR * gT * L
+        #L = -27.56 + 10 * alpha * math.log10(dist) + 20 * math.log(node1.params['frequency'][wlan])
+        #P = node2.params['txpower'][0] * gR * gT * L
         
     def pathLoss(self, sta, ap, dist, wlan):
         """Path Loss Model:

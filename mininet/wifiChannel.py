@@ -8,7 +8,6 @@ from scipy.spatial.distance import pdist
 import numpy as np
 import math
 import random
-import os
 
 class channelParameters ( object ):
     """Channel Parameters""" 
@@ -78,16 +77,16 @@ class channelParameters ( object ):
             sta.params['rssi'][wlan] = value.rssi # random.uniform(value.rssi-1, value.rssi+1)
             self.rate = (custombw * (1.1 ** -dist))/5
         else:
-            if dist != 0 and sta.params['frequency'][wlan]!=0: 
-                pT = ap.params['txpower'][0]
-                gT = ap.params['antennaGain'][0]
-                hT = ap.params['antennaHeight'][0]
-                gR = sta.params['antennaGain'][wlan]
-                hR = sta.params['antennaHeight'][wlan]       
-                value = propagationModel_( sta, ap, dist, wlan, pT, gT, gR, hT, hR )
-                sta.params['rssi'][wlan] = value.rssi #random.uniform(value.rssi-1, value.rssi+1)
-                if ap.equipmentModel == None:
-                    self.rate = custombw * (1.1 ** -dist)
+            
+            pT = ap.params['txpower'][0]
+            gT = ap.params['antennaGain'][0]
+            hT = ap.params['antennaHeight'][0]
+            gR = sta.params['antennaGain'][wlan]
+            hR = sta.params['antennaHeight'][wlan]       
+            value = propagationModel_( sta, ap, dist, wlan, pT, gT, gR, hT, hR )
+            sta.params['rssi'][wlan] = value.rssi #random.uniform(value.rssi-1, value.rssi+1)
+            if ap.equipmentModel == None:
+                self.rate = custombw * (1.1 ** -dist)
         self.rate = self.rate - self.loss*3
         if self.rate <= 0:
             self.rate = 1

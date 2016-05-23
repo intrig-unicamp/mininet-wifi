@@ -623,7 +623,7 @@ class Mininet( object ):
         wlan = ("%s" % params.pop('wlan', {}))
         bs.params['wlan'] = wlan
         
-        wifi = self.nodesParameters(bs, params)    
+        self.nodesParameters(bs, params)    
         bs.nWlans = 1
         
         self.missingWlanAP.append(bs)

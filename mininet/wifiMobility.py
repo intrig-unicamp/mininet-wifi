@@ -4,7 +4,6 @@ author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
         ramonfontes.com
 
 """
-import matplotlib.pyplot as plt
 import numpy as np
 import time
 
@@ -15,7 +14,7 @@ from mininet.wifiChannel import channelParameters
 from mininet.wifiAssociationControl import associationControl
 from mininet.wifiMeshRouting import listNodes, meshRouting
 from mininet.wifiPlot import plot
-
+import os
         
 class mobility ( object ):    
     """ Mobility """          
@@ -192,8 +191,7 @@ class mobility ( object ):
                                     plot.drawTxt(node)
                                     plot.drawCircle(node)
                     if self.DRAW:
-                            plt.title("Mininet-WiFi Graph")
-                            plt.draw()   
+                            plot.graphUpdate(node) 
         except:
             pass               
     
@@ -220,7 +218,7 @@ class mobility ( object ):
         while self.continue_:
             for node in self.staList: 
                 for wlan in range(0, node.nWlans):
-                    if node.func[wlan] != 'mesh' and node.func[wlan] != 'adhoc':
+                    if node.func[wlan] != 'mesh' and node.func[wlan] != 'adhoc':                        
                         self.nodeParameter(node, wlan)
                     elif node.func[wlan] == 'mesh' :
                         dist = listNodes.pairingNodes(node, wlan, self.staList)
@@ -256,8 +254,8 @@ class mobility ( object ):
                 ap.associatedStations.remove(sta)
             else:
                 channelParameters(sta, ap, wlan, dist, staList, 0)
-        else:   
-            if dist < ap.range:            
+        else:  
+            if dist < ap.range:  
                 aps = 0
                 for n in range(0,len(sta.params['associatedTo'])):
                     if sta.params['associatedTo'][n] != '':
@@ -284,3 +282,4 @@ class mobility ( object ):
             if associated == False or changeAP == True:
                 self.handover(sta, ap, wlan, dist, changeAP, **association_Control)
                 channelParameters(sta, ap, wlan, dist, staList, 0)
+        os.system('.')

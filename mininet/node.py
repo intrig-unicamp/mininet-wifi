@@ -322,8 +322,7 @@ class Node( object ):
             associated = self.isAssociated(sta, wlan)
         sta.params['frequency'][wlan] = channelParameters.frequency(ap, 0)
         ap.associatedStations.append(sta)
-        sta.params['associatedTo'][wlan] = ap
-        
+        sta.params['associatedTo'][wlan] = ap        
         
     @classmethod    
     def isAssociated(self, sta, iface):

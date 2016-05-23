@@ -554,7 +554,8 @@ class Link( object ):
                     intfName2 = self.intfName( node2, params2[ 'port' ] )
         if str(node2) != 'alone':
             self.fast = fast
-            if('w' not in str(intfName1) and 'w' not in str(intfName2) and 'mp' not in str(intfName1) and 'mp' not in str(intfName2)):
+            if('w' not in str(intfName1) and 'w' not in str(intfName2) and 'mp' not in str(intfName1) \
+                                                                    and 'mp' not in str(intfName2)):
                 if fast:
                     params1.setdefault( 'moveIntfFn', self._ignore )
                     params2.setdefault( 'moveIntfFn', self._ignore )
