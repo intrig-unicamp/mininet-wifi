@@ -14,10 +14,12 @@ from random import randrange
 import random
 import warnings
 import matplotlib.cbook
-
 from mininet.wifiMobility import mobility
 
-warnings.filterwarnings("ignore",category=matplotlib.cbook.mplDeprecation)
+try:
+    warnings.filterwarnings("ignore",category=matplotlib.cbook.mplDeprecation)
+except:
+    pass
 
 class vanet( object ):
 
