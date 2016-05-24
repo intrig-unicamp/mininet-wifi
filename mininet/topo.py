@@ -110,11 +110,13 @@ class Topo( object ):
         self.hopts = params.pop( 'hopts', {} )
         self.sopts = params.pop( 'sopts', {} )
         self.lopts = params.pop( 'lopts', {} )
+        self.isWiFi = params.pop( 'isWiFi', {} )
         # ports[src][dst][sport] is port on dst that connects to src
         self.ports = {}
-        self.build( *args, **params )
+        self.build( self.isWiFi, *args, **params )
+        
 
-    def build( self, *args, **params ):
+    def build( self, isWiFi, *args, **params ):
         "Override this method to build your topology."
         pass
 

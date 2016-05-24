@@ -595,7 +595,8 @@ def buildTopo( topos, topoStr, isWiFi=False ):
     input topos is a dict of topo names to constructors, possibly w/args.
     """
     topo, args, kwargs = splitArgs( topoStr )
-    kwargs['isWiFi'] = isWiFi
+    if isWiFi:
+        kwargs['isWiFi'] = isWiFi
     if topo not in topos:
         raise Exception( 'Invalid topo name %s' % topo )
     return topos[ topo ]( *args, **kwargs )
