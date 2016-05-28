@@ -170,5 +170,9 @@ class accessPoint( object ):
         content = cmd + ("\' > %s.conf" % wlan)  
         os.system(content)
         cmd = ("hostapd -B %s.conf" % wlan)
-        subprocess.check_output(cmd, shell=True)
+        try:
+            subprocess.check_output(cmd, shell=True)
+        except:
+            print 'error with hostapd'
+            exit( 1 )
         self.setBw(ap, wlan)
