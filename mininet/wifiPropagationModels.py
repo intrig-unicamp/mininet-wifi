@@ -41,13 +41,14 @@ class propagationModel_ ( object ):
         (c) speed of light in vacuum (m)
         (L) System loss"""          
         f = (sta.params['frequency'][wlan] * 10**9) #Convert Ghz to Hz
-        d = dist 
         c = 299792458.0 
         L = self.sl     
+        if dist == 0:
+            dist = 0.1
        
         lambda_ = c / f # lambda: wavelength (m)
         denominator = lambda_**2 
-        numerator = (4 * math.pi * d)**2 * L
+        numerator = (4 * math.pi * dist)**2 * L
         pathLoss_ = 10 * math.log10(numerator / denominator) 
         return pathLoss_
     
@@ -82,6 +83,8 @@ class propagationModel_ ( object ):
         (d) is the distance between the transmitter and the receiver (m)"""    
         referenceDistance = 1
         pathLoss = self.pathLoss(sta, ap, referenceDistance, wlan)
+        if dist == 0:
+            dist = 0.1
         
         pathLossDb = 10 * self.exp * math.log10(dist / referenceDistance)  
         self.rssi = pT + gT + gR - ( pathLoss + pathLossDb ) - 27.55
