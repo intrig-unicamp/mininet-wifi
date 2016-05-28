@@ -64,17 +64,21 @@ class module( object ):
     
     @classmethod    
     def assingIface(self, stations, virtualWlan, physicalWlan, phyList):
-        wlanList = self.getWlanIface(physicalWlan)
-        for sta in stations:
-            for wlan in range(0, len(sta.params['wlan'])):
-                i = virtualWlan.index(sta)
-                os.system('iw phy %s set netns %s' % ( phyList[i + wlan], sta.pid ))
-                sta.cmd('ip link set %s name %s up' % ( wlanList[i + wlan], sta.params['wlan'][wlan] ))  
-                sta.params['rssi'].append(0)
-                sta.params['snr'].append(0)                
-                sta.params['associatedTo'].append('')
-                sta.meshMac.append(0)
-                sta.ssid.append('')
+        try:
+            wlanList = self.getWlanIface(physicalWlan)
+            for sta in stations:
+                for wlan in range(0, len(sta.params['wlan'])):
+                    i = virtualWlan.index(sta)
+                    os.system('iw phy %s set netns %s' % ( phyList[i + wlan], sta.pid ))
+                    sta.cmd('ip link set %s name %s up' % ( wlanList[i + wlan], sta.params['wlan'][wlan] ))  
+                    sta.params['rssi'].append(0)
+                    sta.params['snr'].append(0)                
+                    sta.params['associatedTo'].append('')
+                    sta.meshMac.append(0)
+                    sta.ssid.append('')
+        except:
+            print "Please, run sudo mn -c before running your code."
+            exit( 1 )
                
     @classmethod        
     def getWlanIface(self, physicalWlan):
