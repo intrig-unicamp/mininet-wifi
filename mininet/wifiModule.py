@@ -40,7 +40,14 @@ class module( object ):
             
     @classmethod    
     def start(self, wifiRadios):
-        """Starting environment"""
+        """Starting environment"""        
+        try:
+            (subprocess.check_output("lsmod | grep mac80211_hwsim",
+                                                          shell=True))
+            os.system( 'rmmod mac80211_hwsim' )
+        except:
+            pass
+        
         physicalWlan = self.getWlanList()  #Get Phisical Wlan(s)
         self.loadModule(wifiRadios) #Initatilize WiFi Module
         totalPhy = self.getPhy() #Get Phy Interfaces  
