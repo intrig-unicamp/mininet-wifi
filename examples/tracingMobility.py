@@ -5,7 +5,7 @@ Tracing Mobility
 """
 
 from mininet.net import Mininet
-from mininet.node import Controller,OVSKernelSwitch, RemoteController
+from mininet.node import Controller,OVSKernelSwitch
 from mininet.link import TCLink
 from mininet.cli import CLI
 from mininet.log import setLogLevel
@@ -14,13 +14,13 @@ from mininet.wifiTracing import tracingMobility
 def topology():
 
     "Create a network."
-    net = Mininet( controller=RemoteController, link=TCLink, switch=OVSKernelSwitch )
+    net = Mininet( controller=Controller, link=TCLink, switch=OVSKernelSwitch )
 
     print "*** Creating nodes"
     sta1 = net.addStation( 'sta1', mac='00:00:00:00:00:02', ip='10.0.0.2/8', speed=1 )
     sta2 = net.addStation( 'sta2', mac='00:00:00:00:00:03', ip='10.0.0.3/8', speed=2 )
     ap1 = net.addBaseStation( 'ap1', ssid= 'new-ssid', mode= 'g', channel= '1', position='50,50,0' )
-    c1 = net.addController( 'c1', controller=RemoteController )
+    c1 = net.addController( 'c1', controller=Controller )
 
     print "*** Starting network"
     net.build()
