@@ -110,13 +110,13 @@ class Topo( object ):
         self.hopts = params.pop( 'hopts', {} )
         self.sopts = params.pop( 'sopts', {} )
         self.lopts = params.pop( 'lopts', {} )
-        self.isWiFi = params.pop( 'isWiFi', {} )
+        if 'isWiFi' not in params:
+            params['isWiFi'] = False
         # ports[src][dst][sport] is port on dst that connects to src
         self.ports = {}
-        self.build( self.isWiFi, *args, **params )
-        
-
-    def build( self, isWiFi, *args, **params ):
+        self.build( *args, **params )
+       
+    def build( self, *args, **params ):
         "Override this method to build your topology."
         pass
 
@@ -415,6 +415,7 @@ class LinearTopo( Topo ):
                 genHostName = lambda i, j: 'h%ss%d' % ( j, i )
     
             lastSwitch = None
+            
             for i in irange( 1, k ):
                 # Add switch
                 switch = self.addSwitch( 's%s' % i )
