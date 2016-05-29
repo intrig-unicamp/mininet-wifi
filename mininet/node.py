@@ -292,6 +292,9 @@ class Node( object ):
         self.pexec('iwconfig %s txpower %s' % (iface, txpower)) 
         self.params['txpower'][wlan] = txpower
         self.verifyingNodes(self)
+        
+    def associateTo(self, iface, ap):
+        self.moveAssociationTo(iface, ap)
                                    
     def moveAssociationTo(self, iface, ap):
         wlan = int(iface[-1:])
