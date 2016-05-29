@@ -14,7 +14,6 @@ from mininet.wifiChannel import channelParameters
 from mininet.wifiAssociationControl import associationControl
 from mininet.wifiMeshRouting import listNodes, meshRouting
 from mininet.wifiPlot import plot
-import os
         
 class mobility ( object ):    
     """ Mobility """          
@@ -121,6 +120,8 @@ class mobility ( object ):
                             if self.DRAW:
                                 plot.graphUpdate(sta)
                         i+=1
+                #have to verify this
+                time.sleep(1)
         except:
             print 'Error! Mobility stopped!'        
     
@@ -239,7 +240,7 @@ class mobility ( object ):
     def setChannelParameters(self, sta, ap, dist, wlan):
         """ Wifi Parameters """
         associated = True
-        time = abs(sta.params['speed'])
+        #time = abs(sta.params['speed'])
         staList = self.staList
         
         if ap == sta.params['associatedTo'][wlan]:            
@@ -276,4 +277,4 @@ class mobility ( object ):
                 channelParameters(sta, ap, wlan, dist, staList, 0)
         else:
             #have to verify this
-            os.system('.')
+            time.sleep(0.01)

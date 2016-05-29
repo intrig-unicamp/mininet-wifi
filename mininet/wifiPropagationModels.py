@@ -75,6 +75,18 @@ class propagationModel_ ( object ):
         
         self.rssi = ( pT * gT * gR * hT**2 * hR**2 ) / ( d**4 * L )        
         return self.rssi
+    
+    def youngModel(self, sta, ap, dist, wlan, pT, gT, gR, hT, hR):
+        """Log Distance Propagation Loss Model:
+        referenceDistance (m): The distance at which the reference loss is calculated
+        exponent: The exponent of the Path Loss propagation model, where 2 is for propagation in free space
+        (d) is the distance between the transmitter and the receiver (m)"""    
+        cf =  0.01075 #clutter factor
+        if dist == 0:
+            dist = 0.1
+        
+        self.rssi = dist**4 / (gT * gR) * (hT * hR)**2 * cf  
+        return self.rssi
             
     def logDistancePropagationLossModel(self, sta, ap, dist, wlan, pT, gT, gR, hT, hR):
         """Log Distance Propagation Loss Model:

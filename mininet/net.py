@@ -251,7 +251,14 @@ class Mininet( object ):
             node.params['position'] = position
             self.fixedPosition.append(node)
         else:
-            node.params['position'] = 0, 0, 0        
+            node.params['position'] = 0, 0, 0 
+            
+        #position
+        speed = ("%s" % params.pop('speed', {}))
+        if(speed!="{}"):        
+            node.params['speed'] = int(speed)
+        else:
+            node.params['speed'] = 0      
         
         #Wifi Interfaces
         wifi = ("%s" % params.pop('wlans', {}))
@@ -533,13 +540,13 @@ class Mininet( object ):
             
         max_speed = ("%s" % params.pop('max_speed', {}))
         if(max_speed!="{}"): 
-            sta.max_speed = max_speed
+            sta.max_speed = int(max_speed)
         else:
             sta.max_speed = 10
             
         min_speed = ("%s" % params.pop('min_speed', {}))
         if(min_speed!="{}"): 
-            sta.min_speed = min_speed
+            sta.min_speed = int(min_speed)
         else:
             sta.min_speed = 1
       
