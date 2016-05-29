@@ -1,3 +1,10 @@
+"""
+
+author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
+        ramonfontes.com
+
+"""
+
 import time
 from mininet.wifiMobility import mobility
 import threading
