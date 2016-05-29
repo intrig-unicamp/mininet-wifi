@@ -114,7 +114,6 @@ class Node( object ):
         self.type = 'host'
         self.n_ssids = 0
         self.trackingPos = []
-        self.currentTime = 0
         
         # Station Parameters
         self.associate = False

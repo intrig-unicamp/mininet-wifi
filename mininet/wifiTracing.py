@@ -33,14 +33,20 @@ class tracingMobility( object ):
         currentTime = time.time()
         staList = mobility.staList
         continue_ = True
+        nodeTime = {}
+        nodeCurrentTime = {}
+        for node in staList:
+            nodeCurrentTime[node] = 1/node.params['speed']
+            nodeTime[node] = float(1.0/node.params['speed'])
         while continue_:
             continue_ = False
+            time_ = time.time() - currentTime
             for node in staList:
                 continue_ = True
-                if time.time() - currentTime >= node.currentTime and len(node.trackingPos) != 0:
+                while time_>=nodeCurrentTime[node] and len(node.trackingPos) != 0:
                     node.moveStationTo(node.trackingPos[0])
                     del node.trackingPos[0]
-                    node.currentTime+=node.params['speed']
+                    nodeCurrentTime[node] += nodeTime[node]
                 if len(node.trackingPos) == 0:
                     staList.remove(node)            
             time.sleep(0.01)
