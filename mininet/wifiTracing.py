@@ -17,8 +17,7 @@ class tracingMobility( object ):
         self.thread = threading.Thread(name='tracingMobility', target=self.mobility)
         self.thread.daemon = True
         self.thread.start()
-    
-    
+        
     def plotGraph(self):
         nodeList = mobility.staList + mobility.apList
         for node in nodeList:

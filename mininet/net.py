@@ -1285,9 +1285,23 @@ class Mininet( object ):
                     options = dict(  )
                     options.setdefault( 'intfName1', iface )
                     cls = self.link if cls is None else cls
-                    cls( s, 'alone', **options )                
-        
-        if self.ifaceConfigured == True:
+                    cls( s, 'alone', **options )        
+                    
+        if self.ifaceConfigured == False:    
+            for node in self.missingStations:
+                mobility.getAPsInRange(node)
+                for wlan in range(0, node.nWlans):
+                    cls = None
+                    options = dict( )                    
+                    # Set default MAC - this should probably be in Link
+                    options.setdefault( 'use_tbf', True )
+                    options.setdefault( 'ip', node.params['ip'][wlan] )
+                    options.setdefault( 'addr1', self.randMac() )
+                    cls = self.link if cls is None else cls
+                    cls( node, 'alone', **options )
+                    if node.params['position'] != (0,0,0) and node.params['associatedTo'][wlan] != '':   
+                        mobility.nodeParameter(node, wlan)        
+        else:
             for sta in self.stations:
                 mobility.getAPsInRange(sta)
                 for wlan in range(0, sta.nWlans):
