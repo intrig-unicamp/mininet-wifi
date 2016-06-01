@@ -5,6 +5,7 @@ author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
 import glob
 import os
 import subprocess
+from time import sleep
 from mininet.log import debug
 from mininet.wifiMobility import mobility
 from mininet.wifiAccessPoint import accessPoint
@@ -17,6 +18,7 @@ class module( object ):
         """ Start wireless Module """
         os.system( 'modprobe mac80211_hwsim radios=%s' % wifiRadios )
         debug( 'Loading %s virtual interfaces\n' % wifiRadios)
+        sleep(1)
     
     @classmethod       
     def stop(self):
