@@ -148,6 +148,10 @@ class accessPoint( object ):
         else:
             wlan = ap.params.get('wlan')
             os.system("ovs-vsctl add-port %s %s" % (ap, wlan))
+        if(ap.n_ssids) > 1:
+            for n in range(1,ap.n_ssids):
+                intf = str(ap)+'-'+'wlan'+str(iface)
+                os.system("ovs-vsctl add-port %s %s-%s" % (ap, intf, n))
        
     def setBw(self, ap, iface):
         """ Set bw to AP """ 
@@ -173,6 +177,6 @@ class accessPoint( object ):
         try:
             subprocess.check_output(cmd, shell=True)
         except:
-            print 'error with hostapd'
+            print 'error with hostapd. Please, run sudo mn -c in order to fix it or check if hostapd is working properly in your machine.'
             exit( 1 )
         self.setBw(ap, wlan)
