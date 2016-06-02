@@ -5,10 +5,33 @@ author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
 import glob
 import os
 import subprocess
+import time
 from time import sleep
 from mininet.log import debug
 from mininet.wifiMobility import mobility
 from mininet.wifiAccessPoint import accessPoint
+from subprocess import ( Popen, PIPE, check_output as co,
+                         CalledProcessError )
+
+
+def sh( cmd ):
+    "Print a command and send it to the shell"
+    return Popen( [ '/bin/sh', '-c', cmd ], stdout=PIPE ).communicate()[ 0 ]
+      
+def killprocs( pattern ):
+    "Reliably terminate processes matching a pattern (including args)"
+    sh( 'pkill -9 -f %s' % pattern )
+    # Make sure they are gone
+    while True:
+        try:
+            pids = co( [ 'pgrep', '-f', pattern ] )
+        except CalledProcessError:
+            pids = ''
+        if pids:
+            sh( 'pkill -9 -f %s' % pattern )
+            time.sleep( .5 )
+        else:
+            break
 
 class module( object ):
     """ Start and Stop mac80211_hwsim module """ 
@@ -18,7 +41,7 @@ class module( object ):
         """ Start wireless Module """
         os.system( 'modprobe mac80211_hwsim radios=%s' % wifiRadios )
         debug( 'Loading %s virtual interfaces\n' % wifiRadios)
-        sleep(2)
+        sleep(.5)
     
     @classmethod       
     def stop(self):
@@ -36,13 +59,14 @@ class module( object ):
         except:
             pass
         if mobility.apList!=[]:
-            os.system( 'killall -9 hostapd' )
+            killprocs('hostapd')
         if accessPoint.wpa_supplicantIsRunning:
             os.system( 'pkill -f \'wpa_supplicant -B -Dnl80211\'' )
             
     @classmethod    
     def start(self, wifiRadios):
-        """Starting environment"""        
+        """Starting environment"""  
+        killprocs('hostapd')      
         try:
             (subprocess.check_output("lsmod | grep mac80211_hwsim",
                                                           shell=True))
