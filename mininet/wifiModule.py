@@ -18,7 +18,7 @@ class module( object ):
         """ Start wireless Module """
         os.system( 'modprobe mac80211_hwsim radios=%s' % wifiRadios )
         debug( 'Loading %s virtual interfaces\n' % wifiRadios)
-        sleep(1)
+        sleep(2)
     
     @classmethod       
     def stop(self):
