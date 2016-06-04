@@ -17,13 +17,13 @@ def topology():
 
     "Create a network."
     net = Mininet( controller=RemoteController, link=TCLink, switch=UserSwitch )
-    sta = []
+    staList = []
 
     print "*** Creating nodes"
     for n in range(10):
-	sta.append(n)
-	sta[n] = net.addStation( 'sta%s' % (n+1), wlans=2, mac='00:00:00:00:00:%s' % (n+1), ip='192.168.0.%s/24' % (n+1) )
-    phyap1 = net.addPhysicalBaseStation( 'phyap1', protocols='OpenFlow13', ssid= 'ap-ssid1', mode= 'g', channel= '1', position='50,115,0', wlan='wlan11' )
+	staList.append(n)
+	staList[n] = net.addStation( 'sta%s' % (n+1), wlans=2, mac='00:00:00:00:00:%s' % (n+1), ip='192.168.0.%s/24' % (n+1) )
+    phyap1 = net.addPhysicalBaseStation( 'phyap1', protocols='OpenFlow13', ssid= 'ap-ssid1', mode= 'g', channel= '1', position='50,115,0', phywlan='wlan11' )
     ap2 = net.addBaseStation( 'ap2', protocols='OpenFlow13', ssid= 'ap-ssid2', mode= 'g', channel= '11', position='100,175,0' )
     ap3 = net.addBaseStation( 'ap3', protocols='OpenFlow13', ssid= 'ap-ssid3', mode= 'g', channel= '6', position='150,115,0' )
     ap4 = net.addBaseStation( 'ap4', protocols='OpenFlow13', ssid= 'ap-ssid4', mode= 'g', channel= '6', position='100,55,0' )
@@ -32,8 +32,8 @@ def topology():
     root = Node( 'root', inNamespace=False )
 
     print "*** Creating links"
-    for station in sta:
-        net.addMesh(station, ssid='meshNet')
+    for sta in staList:
+        net.addMesh(sta, ssid='meshNet')
 
     """uncomment to plot graph"""
     net.plotGraph(max_x=240, max_y=240)
@@ -75,9 +75,9 @@ def topology():
     sta11.cmd('pushd /homt/alpha; python3 -m http.server 80 &')
 
     ip = 201
-    for station in sta:
-        station.cmd('ifconfig %s-wlan1 10.0.0.%s/8' % (station, ip))
-        station.cmd('ip route add default via 10.0.0.254')
+    for sta in staList:
+        sta.setIP('10.0.0.%s/8' % ip, intf="%s-wlan1" % sta)
+        sta.cmd('ip route add default via 10.0.0.254')
         ip+=1
 
     "*** Available models: RandomWalk, TruncatedLevyWalk, RandomDirection, RandomWayPoint, GaussMarkov, ReferencePoint, TimeVariantCommunity ***"
@@ -99,6 +99,9 @@ def startNAT( root, inetIntf='wlan0', subnet='10.0/8', localIntf = None ):
     if localIntf == None:
         localIntf =  root.defaultIntf()
  
+
+    #root.cmdPrint('ifconfig root-eth0')
+
     # Flush any currently active rules
     root.cmd( 'iptables -F' )
     root.cmd( 'iptables -t nat -F' )

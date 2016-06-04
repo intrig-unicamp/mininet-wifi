@@ -14,12 +14,12 @@ def topology():
     net = Mininet( controller=Controller, link=TCLink, switch=OVSKernelSwitch )
 
     print "*** Creating nodes"
+    sta1 = net.addStation( 'sta1', wlans=2, ip='10.0.0.2/8' )
     h1 = net.addHost( 'h1', mac='00:00:00:00:00:01', ip='10.0.0.1/8' )
     h2 = net.addHost( 'h2', mac='00:00:00:00:00:11', ip='10.0.0.11/8' )
-    sta1 = net.addStation( 'sta1', wlans=2, ip='10.0.0.2/8' )
-    ap1 = net.addBaseStation( 'ap1', ssid= 'ssid_ap1', mode= 'g', channel= '6', position='70,25,0' )
-    ap2 = net.addBaseStation( 'ap2', ssid= 'ssid_ap2', mode= 'g', channel= '1', position='30,25,0' )
-    ap3 = net.addBaseStation( 'ap3', ssid= 'ssid_ap3', mode= 'g', channel= '11', position='110,25,0' )
+    ap1 = net.addBaseStation( 'ap1', ssid='ssid_ap1', mode= 'g', channel=6, position='70,25,0' )
+    ap2 = net.addBaseStation( 'ap2', ssid='ssid_ap2', mode= 'g', channel=1, position='30,25,0' )
+    ap3 = net.addBaseStation( 'ap3', ssid='ssid_ap3', mode= 'g', channel=11, position='110,25,0' )
     s4 = net.addSwitch( 's4', mac='00:00:00:00:00:10' )
     c1 = net.addController( 'c1', controller=Controller )
 
