@@ -32,13 +32,14 @@ def topology():
     ap1.start( [c1] )
     
     """uncomment to plot graph"""
-    #net.plotGraph(max_x=100, max_y=100)
+    net.plotGraph(max_x=100, max_y=100)
 
     """Seed"""
     net.seed(20) 
 
     "*** Available models: RandomWalk, TruncatedLevyWalk, RandomDirection, RandomWayPoint, GaussMarkov, ReferencePoint, TimeVariantCommunity ***"
-    net.startMobility(startTime=0, model='RandomDirection', max_x=60, max_y=60, min_v=0.1, max_v=0.2)
+#    net.startMobility(startTime=0, model='RandomWalk', max_x=60, max_y=60, min_v=0.1, max_v=0.1)
+    net.startMobility(startTime=0, model='RandomDirection', max_x=60, max_y=60, min_v=0.1, max_v=0.1)
    
     print "*** Running CLI"
     CLI( net )

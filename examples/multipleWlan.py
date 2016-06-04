@@ -18,7 +18,7 @@ def topology():
     print "*** Creating nodes"
     sta1 = net.addStation( 'sta1', wlans=3 ) # 3 wlan added
     sta2 = net.addStation( 'sta2' ) # 1 wlan added
-    ap1 = net.addBaseStation( 'ap1', ssid="ssid_1", mode="g", channel="5" ) # 1 wlan added
+    ap1 = net.addBaseStation( 'ap1', ssid="ssid_1", mode="g", channel=5 ) # 1 wlan added
     c0 = net.addController('c0', controller=Controller)
 
     print "*** Associating..."
@@ -33,8 +33,8 @@ def topology():
     ap1.start( [c0] )
 
     print "***Addressing..."
-    sta1.cmd('ifconfig sta1-wlan1 192.168.10.1')
-    sta2.cmd('ifconfig sta2-wlan0 192.168.10.2')
+    sta1.setIP('192.168.10.1/24', intf="sta1-wlan1")
+    sta2.setIP('192.168.10.2/24', intf="sta2-wlan0")
 
     print "*** Running CLI"
     CLI( net )

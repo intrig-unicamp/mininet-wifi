@@ -30,7 +30,7 @@ if __name__ == '__main__':
     setLogLevel( 'info' )
 
     # try to get hw intf from the command line; by default, use eth1
-    intfName = sys.argv[ 1 ] if len( sys.argv ) > 1 else 'wlan1'
+    intfName = sys.argv[ 1 ] if len( sys.argv ) > 1 else 'eth0'
     info( '*** Connecting to hw intf: %s' % intfName )
 
     info( '*** Checking', intfName, '\n' )

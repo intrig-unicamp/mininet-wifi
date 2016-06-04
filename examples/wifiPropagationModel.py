@@ -37,10 +37,11 @@ def topology():
     net.seed(1) 
 
     "*** Available propagation models: friisPropagationLossModel, twoRayGroundPropagationLossModel, logDistancePropagationLossModel ***"
-    net.propagationModel('friisPropagationLossModel')
+    net.propagationModel('youngModel')
+#    net.propagationModel('logDistancePropagationLossModel')
 
     "*** Available mobility models: RandomWalk, TruncatedLevyWalk, RandomDirection, RandomWayPoint, GaussMarkov ***"
-    net.startMobility(startTime=0, model='RandomDirection', max_x=160, max_y=160, min_v=0.1, max_v=0.2)
+    net.startMobility(startTime=0, model='RandomWayPoint', max_x=160, max_y=160, min_v=0.1, max_v=0.2)
    
     print "*** Running CLI"
     CLI( net )

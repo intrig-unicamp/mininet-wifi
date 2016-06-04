@@ -15,7 +15,7 @@ from mininet.node import Node
 from mininet.topolib import TreeNet
 
 #################################
-def startNAT( root, inetIntf='eth0', subnet='10.0/8' ):
+def startNAT( root, inetIntf='wlan0', subnet='10.0/8' ):
     """Start NAT/forwarding between Mininet and external network
     root: node to access iptables from
     inetIntf: interface for internet access
@@ -79,7 +79,7 @@ def connectToInternet( network, switch='s1', rootip='10.254', subnet='10.0/8'):
     root = Node( 'root', inNamespace=False )
 
     # Prevent network-manager from interfering with our interface
-    fixNetworkManager( root, 'root-eth0' )
+    fixNetworkManager( root, 'root-wlan0' )
 
     # Create link between root NS and switch
     link = network.addLink( root, switch )
