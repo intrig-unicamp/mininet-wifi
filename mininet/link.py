@@ -195,7 +195,7 @@ class Intf( object ):
         # r = Parent.config( **params )
         self.sta = sta
         if sta != None:
-            wlan = self.sta.ifaceToAssociate+1
+            wlan = self.sta.ifaceToAssociate
             if self.sta.func[wlan] == 'mesh':
                 self.sta.cmd('iw dev %s-wlan%s interface add %s-mp%s type mp' % (self.sta, wlan, self.sta, wlan))
         r = {}
@@ -207,8 +207,7 @@ class Intf( object ):
         return r
     
     def ssid(self, ssid):
-        if self.sta.func[self.sta.ifaceToAssociate+1] == 'mesh':
-            self.sta.ifaceToAssociate += 1
+        if self.sta.func[self.sta.ifaceToAssociate] == 'mesh':
             wlan = self.sta.ifaceToAssociate
             self.sta.params['rssi'][wlan] = -62 
             if self.sta.params['mac'][wlan] != '':
@@ -223,8 +222,7 @@ class Intf( object ):
             self.confirmMeshAssociation(self.sta, wlan)    
             self.getMacAddress(self.sta, iface, wlan)
             self.sta.params['associatedTo'][wlan] = 'mesh'
-        elif self.sta.func[self.sta.ifaceToAssociate+1] == 'adhoc':
-            self.sta.ifaceToAssociate += 1
+        elif self.sta.func[self.sta.ifaceToAssociate] == 'adhoc':
             wlan = self.sta.ifaceToAssociate
             self.sta.params['rssi'][wlan] = -62
             self.sta.func[wlan] = 'adhoc'
@@ -481,7 +479,7 @@ class Link( object ):
                 node1.newPort()
             elif 'accessPoint' == node1.type and 'alone' == str(node2):
                 if phyIface == None:
-                    nodelen = int(node1.nWlans)
+                    nodelen = int(len(node1.params['wlan']))
                     currentlen = node1.wlanports
                     if nodelen > currentlen+1:
                         params1[ 'port' ] = node1.newWlanPort()
@@ -497,7 +495,7 @@ class Link( object ):
         if 'port' not in params2:
             if 'alone' not in str(node2) and 'mesh' not in str(node2):
                 if 'station' == node1.type and 'accessPoint' == node2.type:
-                    nodelen = int(node2.nWlans)
+                    nodelen = int(len(node2.params['wlan']))
                     currentlen = node2.wlanports
                     if nodelen > currentlen+1:
                         params2[ 'port' ] = node2.newWlanPort()
@@ -599,7 +597,7 @@ class Link( object ):
         "Construct a canonical interface name node-ethN for interface n."
         # Leave this as an instance method for now
         assert self
-        if 'phy' in node.name and 'wlan' in node.params: #if physical Interface
+        if 'phywlan' in node.params: #if physical Interface
             return ifacename + repr( n )
         else:
             return node.name + '-' + ifacename + repr( n )

@@ -105,7 +105,7 @@ class mobility ( object ):
                     line = plot.plotLine2d([ap.connections[c].params['position'][0],ap.params['position'][0]], \
                                            [ap.connections[c].params['position'][1],ap.params['position'][1]], 'b')
                     plot.plotLine(line)
-        #try:
+        try:
             while time.time() < t_end and time.time() > t_initial:
                 if self.continue_:
                     if time.time() - currentTime >= i:
@@ -115,16 +115,16 @@ class mobility ( object ):
                                 y = float(sta.params['position'][1]) + float(self.moveFac[sta][1])
                                 z = float(sta.params['position'][2]) + float(self.moveFac[sta][2])
                                 sta.params['position'] = x, y, z
-                            for wlan in range(0, sta.nWlans):
+                            for wlan in range(0, len(sta.params['wlan'])):
                                 self.nodeParameter(sta, wlan) 
                             if self.DRAW:
                                 time.sleep(0.01)
                                 plot.graphUpdate(sta)
                         i+=1
                 #have to verify this
-                time.sleep(1)
-        #except:
-         #   print 'Error! Mobility stopped!'        
+                time.sleep(0.01)
+        except:
+            print 'Error! Mobility stopped!'        
     
     @classmethod   
     def models(self, nodes=None, model=None, max_x=None, max_y=None, min_v=None, 
@@ -219,8 +219,9 @@ class mobility ( object ):
     @classmethod                
     def parameters(self):
         while self.continue_:
+            listNodes.ssid_ID = 0
             for node in self.staList: 
-                for wlan in range(0, node.nWlans):
+                for wlan in range(0, len(node.params['wlan'])):
                     if node.func[wlan] != 'mesh' and node.func[wlan] != 'adhoc':                        
                         self.nodeParameter(node, wlan)
                     elif node.func[wlan] == 'mesh' :
@@ -232,11 +233,13 @@ class mobility ( object ):
                             channelParameters(node, None, wlan, dist, self.staList, 0)
             if meshRouting.routing == 'custom':
                 for node in mobility.staList:       
-                    for wlan in range(0, node.nWlans):
+                    for wlan in range(0, len(node.params['wlan'])):
                         if node.func[wlan] == 'mesh':
                             """Mesh Routing"""                    
                             meshRouting.customMeshRouting(node, wlan, self.staList)    
-                listNodes.clearList()       
+                listNodes.clearList()  
+            #have to verify this
+            time.sleep(0.01)     
     
     @classmethod    
     def setChannelParameters(self, sta, ap, dist, wlan):

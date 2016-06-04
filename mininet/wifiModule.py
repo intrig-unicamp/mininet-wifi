@@ -106,7 +106,6 @@ class module( object ):
                     sta.cmd('ip link set %s name %s up' % ( wlanList[i + wlan], sta.params['wlan'][wlan] ))  
                     sta.params['rssi'].append(0)
                     sta.params['snr'].append(0)                
-                    sta.params['associatedTo'].append('')
                     sta.meshMac.append(0)
                     sta.ssid.append('')
         except:

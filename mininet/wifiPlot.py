@@ -54,7 +54,7 @@ class plot (object):
         
     @classmethod
     def plotDraw(self):
-        """plotDraw"""  
+        """plotDraw"""
         plt.draw() 
 
     @classmethod

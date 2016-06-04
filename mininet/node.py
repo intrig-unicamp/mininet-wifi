@@ -117,9 +117,7 @@ class Node( object ):
         
         # Station Parameters
         self.associate = False
-        self.nWlans = 0
-        self.ifaceToAssociate = -1
-        self.wlanToAssociate = 0
+        self.ifaceToAssociate = 0
         self.meshMac = []        
                 
         # Mobility Parameters
@@ -206,7 +204,7 @@ class Node( object ):
                      
     @classmethod 
     def calculateWiFiParameters(self, sta):
-        for wlan in range(sta.nWlans):
+        for wlan in range(len(sta.params['wlan'])):
             if sta.func[wlan] == 'mesh' or sta.func[wlan] == 'adhoc':
                 associate = False
                 for station in mobility.staList:
@@ -244,9 +242,9 @@ class Node( object ):
     @classmethod    
     def associate(self, sta, ap):
         """ Associate to an Access Point """ 
-        sta.ifaceToAssociate += 1
         wlan = sta.ifaceToAssociate
         self.associate_infra(sta, ap, wlan) 
+        sta.ifaceToAssociate += 1
         
     @classmethod 
     def associate_infra(self, sta, ap, wlan):
@@ -755,6 +753,9 @@ class Node( object ):
         # the superclass config method here as follows:
         # r = Parent.config( **_params )
         r = {}
+        
+        if len(ip)>1:
+            ip = ip[0]
         if 'station' != self.type: # or 'isMesh' in self.params:
             self.setParam( r, 'setMAC', mac=mac )
         self.setParam( r, 'setIP', ip=ip )
@@ -1372,7 +1373,7 @@ class OVSSwitch( Switch ):
                
         if(self.isCode == True):
             if('accessPoint' == self.type):
-                for iface in range(0, self.nWlans):
+                for iface in range(0, len(self.params['wlan'])):
                     accessPoint.apBridge(self, iface)                  
         
     # This should be ~ int( quietRun( 'getconf ARG_MAX' ) ),

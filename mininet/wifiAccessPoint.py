@@ -16,17 +16,16 @@ class accessPoint( object ):
               wpa_key_mgmt=None, rsn_pairwise=None, wpa_passphrase=None, encrypt=None, 
               wep_key0=None, **params ):
 
-        if 'wlan' not in ap.params:
-            newname = str(ap)+'-'+str('wlan')
-            self.renameIface(intf, newname, wlan )
+        if 'phywlan' not in ap.params:
+            self.renameIface( intf, ap.params['wlan'][wlan] )
             ap.params['mac'] = self.getMacAddress(ap, wlan)
+            
         self.start (ap, country_code, auth_algs, wpa, wlan,
               wpa_key_mgmt, rsn_pairwise, wpa_passphrase, encrypt, 
               wep_key0, **params)
 
-    def renameIface( self, intf, newname, wlan ):
+    def renameIface( self, intf, newname ):
         "Rename interface"
-        newname = str(newname) + str(wlan)
         os.system('ifconfig %s down' % intf)
         os.system('ip link set %s name %s' % (intf, newname))
         os.system('ifconfig %s up' % newname)                
@@ -37,10 +36,10 @@ class accessPoint( object ):
         """ Starts an Access Point """
         
         self.cmd = ("echo \'")
-        if 'wlan' not in ap.params:
-            self.cmd = self.cmd + ("interface=%s-wlan%s" % (ap, wlan)) # the interface used by the AP
+        if 'phywlan' not in ap.params:
+            self.cmd = self.cmd + ("interface=%s" % ap.params['wlan'][wlan]) # the interface used by the AP
         else:
-            wlan = ap.params.get('wlan')
+            wlan = ap.params.get('phywlan')
             self.cmd = self.cmd + ("interface=%s" % wlan) # the interface used by the AP
         self.cmd = self.cmd + ("\ndriver=nl80211")
         self.cmd = self.cmd + ("\nssid=%s" % ap.ssid[0]) # the name of the AP
@@ -91,9 +90,8 @@ class accessPoint( object ):
   
     def getMacAddress(self, ap, wlan):
         """ get Mac Address of any Interface """
-        iface = str(ap) + '-wlan' + str(wlan)
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        info = fcntl.ioctl(s.fileno(), 0x8927,  struct.pack('256s', '%s'[:15]) % iface)
+        info = fcntl.ioctl(s.fileno(), 0x8927,  struct.pack('256s', '%s'[:15]) % ap.params['wlan'][wlan])
         mac = (''.join(['%02x:' % ord(char) for char in info[18:24]])[:-1])
         self.checkNetworkManager(mac)
         return mac
@@ -140,18 +138,16 @@ class accessPoint( object ):
                 time.sleep(2)
           
     @classmethod
-    def apBridge(self, ap, iface):
+    def apBridge(self, ap, wlan):
         """ AP Bridge """  
-        if 'wlan' not in ap.params:
-            intf = str(ap)+'-'+'wlan'+str(iface)
-            os.system("ovs-vsctl add-port %s %s" % (ap, intf))
+        if 'phywlan' not in ap.params:
+            os.system("ovs-vsctl add-port %s %s" % (ap, ap.params['wlan'][wlan]))
         else:
-            wlan = ap.params.get('wlan')
+            wlan = ap.params.get('phywlan')
             os.system("ovs-vsctl add-port %s %s" % (ap, wlan))
         if(ap.n_ssids) > 1:
             for n in range(1,ap.n_ssids):
-                intf = str(ap)+'-'+'wlan'+str(iface)
-                os.system("ovs-vsctl add-port %s %s-%s" % (ap, intf, n))
+                os.system("ovs-vsctl add-port %s %s-%s" % (ap, ap.params['wlan'][wlan], n))
        
     def setBw(self, ap, iface):
         """ Set bw to AP """ 
@@ -165,18 +161,18 @@ class accessPoint( object ):
         
     def APfile(self, cmd, ap, wlan):
         """ run an Access Point and create the config file  """
-        if 'wlan' not in ap.params:
-            wlan = str(ap) + '-wlan' + str(wlan)
+        if 'phywlan' not in ap.params:
+            iface = ap.params['wlan'][wlan]
         else:
-            wlan = ap.params.get('wlan')
-            os.system('ifconfig %s down' % wlan)
-            os.system('ifconfig %s up' % wlan)
-        content = cmd + ("\' > %s.conf" % wlan)  
+            iface = ap.params.get('phywlan')
+            os.system('ifconfig %s down' % iface)
+            os.system('ifconfig %s up' % iface)
+        content = cmd + ("\' > %s.conf" % iface)  
         os.system(content)
-        cmd = ("hostapd -B %s.conf" % wlan)
+        cmd = ("hostapd -B %s.conf" % iface)
         try:
             subprocess.check_output(cmd, shell=True)
         except:
             print 'error with hostapd. Please, run sudo mn -c in order to fix it or check if hostapd is working properly in your machine.'
             exit( 1 )
-        self.setBw(ap, wlan)
+        self.setBw(ap, iface)
