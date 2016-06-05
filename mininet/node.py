@@ -754,8 +754,9 @@ class Node( object ):
         # r = Parent.config( **_params )
         r = {}
         
-        if len(ip)>1:
-            ip = ip[0]
+        if 'station' == self.type:
+            if len(ip)>1:
+                ip = ip[0]
         if 'station' != self.type: # or 'isMesh' in self.params:
             self.setParam( r, 'setMAC', mac=mac )
         self.setParam( r, 'setIP', ip=ip )
