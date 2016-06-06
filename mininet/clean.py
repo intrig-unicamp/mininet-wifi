@@ -83,7 +83,7 @@ class Cleanup( object ):
         try:
             (subprocess.check_output("lsmod | grep mac80211_hwsim",
                                                           shell=True))
-            sh( 'rmmod mac80211_hwsim' )
+            os.system( 'rmmod mac80211_hwsim' )
         except:
             pass
         
