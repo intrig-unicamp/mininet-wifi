@@ -41,7 +41,6 @@ class module( object ):
         """ Start wireless Module """
         os.system( 'modprobe mac80211_hwsim radios=%s' % wifiRadios )
         debug( 'Loading %s virtual interfaces\n' % wifiRadios)
-        sleep(.5)
     
     @classmethod       
     def stop(self):
@@ -76,7 +75,7 @@ class module( object ):
         
         physicalWlan = self.getWlanList()  #Get Phisical Wlan(s)
         self.loadModule(wifiRadios) #Initatilize WiFi Module
-        totalPhy = self.getPhy() #Get Phy Interfaces  
+        totalPhy = self.getPhy() #Get Phy Interfaces        
         return physicalWlan, totalPhy
         
     @classmethod
@@ -93,6 +92,7 @@ class module( object ):
         phy = subprocess.check_output("find /sys/kernel/debug/ieee80211 -name hwsim | cut -d/ -f 6 | sort", 
                                                              shell=True).split("\n")
         phy.pop()
+        phy.sort(key=len, reverse=False)
         return phy
     
     @classmethod    
