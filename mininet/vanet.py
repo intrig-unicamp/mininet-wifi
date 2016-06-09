@@ -24,7 +24,6 @@ except:
 class vanet( object ):
 
     #variables
-    COM_RANGE = 50 # communication range
     scatter = 0
 
     com_lines =[]  

@@ -125,7 +125,7 @@ from mininet.vanet import vanet
 from __builtin__ import True
 
 # Mininet version: should be consistent with README and LICENSE
-VERSION = "1.8r8"
+VERSION = "1.8r9"
 
 class Mininet( object ):
     "Network emulation with hosts spawned in network namespaces."
@@ -533,7 +533,7 @@ class Mininet( object ):
         self.missingStations.append(sta)
         sta.type = 'station'
         
-        self.nodesParameters(sta, params)
+        wifi = self.nodesParameters(sta, params)
             
         max_speed = ("%s" % params.pop('max_speed', {}))
         if(max_speed!="{}"): 
@@ -545,7 +545,46 @@ class Mininet( object ):
         if(min_speed!="{}"): 
             sta.min_speed = int(min_speed)
         else:
-            sta.min_speed = 1
+            sta.min_speed = 1            
+        
+        mac = ("%s" % params.pop('mac', {}))
+        if(mac!="{}"):        
+            mac = mac.split(',')
+            sta.params['mac'] = []
+            for n in range(len(sta.params['wlan'])):
+                sta.params['mac'].append('')
+                if len(mac) > n:
+                    sta.params['mac'][n] = mac[n] 
+        elif self.autoSetMacs:
+            for n in range(0, wifi):
+                sta.params['mac'].append('')
+                sta.params['mac'][n] = defaults[ 'mac' ]
+        else:
+            sta.params['mac'] = []
+            for n in range(0, wifi):
+                sta.params['mac'].append('')
+            
+        ip = ("%s" % params.pop('ip', {}))
+        if(ip!="{}"):        
+            ip = ip.split(',')
+            sta.params['ip'] = []
+            for n in range(len(sta.params['wlan'])):
+                sta.params['ip'].append('0/0')
+                if len(ip) > n:
+                    sta.params['ip'][n] = ip[n]
+        elif self.autoSetMacs:
+            for n in range(0, wifi):
+                sta.params['ip'].append('0')
+                sta.params['ip'][n] = defaults[ 'ip' ]
+        else:
+            try:
+                for n in range(0, wifi):
+                    sta.params['ip'].append('0/0')
+            except:
+                sta.params['ip'] = []
+                sta.params['ip'].append(defaults[ 'ip' ])
+                for n in range(1, wifi):
+                    sta.params['ip'].append('0/0')
       
         self.nextIP += 1    
         self.isVanet = True
@@ -656,7 +695,43 @@ class Mininet( object ):
             self.listenPort += 1
         self.switches.append( sw )
         self.nameToNode[ name ] = sw
-        return sw
+        return sw    
+    
+    def addWall( self, name, cls=None, **params ):
+        """Add switch.
+           name: name of switch to add
+           cls: custom switch class/constructor (optional)
+           returns: added switch
+           side effect: increments listenPort ivar ."""
+        defaults = { }
+        
+        defaults.update( params )
+        
+        if not cls:
+            cls = self.switch
+        
+        wall = cls( name, **defaults )
+        wall.type = 'wall'
+        mobility.wallList.append(wall)
+        
+        initPos = ("%s" % params.pop('initPos', {}))
+        if(initPos!="{}"):        
+            initPos = initPos.split(',')
+            wall.params['initPos'] = initPos
+            
+        finalPos = ("%s" % params.pop('finalPos', {}))
+        if(finalPos!="{}"):        
+            finalPos = finalPos.split(',')
+            wall.params['finalPos'] = finalPos
+        
+        width = ("%s" % params.pop('width', {}))
+        if(width!="{}"):
+            wall.params['width'] = width
+        else:
+            wall.params['width'] = 3
+        
+        self.nameToNode[ name ] = wall
+        return wall
 
     def addController( self, name='c0', controller=None, **params ):
         """Add controller.
@@ -1870,7 +1945,12 @@ class Mininet( object ):
                     plot.instantiateNode(node, mobility.MAX_X, mobility.MAX_Y)
                     plot.instantiateAnnotate(node)
                     plot.instantiateCircle(node)
-                    plot.graphUpdate(node)                
+                    plot.graphUpdate(node)
+                for wall in mobility.wallList:
+                    line = plot.plotLine2d([wall.params['initPos'][0],wall.params['finalPos'][0]], \
+                                               [wall.params['initPos'][1],wall.params['finalPos'][1]], 'r', wall.params['width'])
+                    plot.plotLine(line) 
+                    plot.graphUpdate(node)            
         
     def getCurrentPosition(self, node):
         """ Get Current Position """ 
