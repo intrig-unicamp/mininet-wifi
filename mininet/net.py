@@ -310,7 +310,7 @@ class Mininet( object ):
                 node.params['antennaGain'].append(int(antennaGain))
         else:
             for n in range(int(wifi)):
-                node.params['antennaGain'].append(5)
+                node.params['antennaGain'].append(1)
         
         #txpower
         txpower = ("%s" % params.pop('txpower', {}))
@@ -1971,10 +1971,13 @@ class Mininet( object ):
         \nPosition Y: %.2f \
         \nPosition Z: %.2f\n" % (str(node), float(self.pos_x), float(self.pos_y), float(self.pos_z))
                         
-    def propagationModel(self, model, exp=2, sl=1):
+    def propagationModel(self, model, exp=2, sL=1, lF=0, nFloors=0, gRandom=0):
         propagationModel_.model = model
         propagationModel_.exp = exp
-        propagationModel_.sl = sl
+        channelParameters.sl = sL #System Loss
+        channelParameters.lF = lF #Floor penetration loss factor
+        channelParameters.nFloors = nFloors #Number of floors
+        channelParameters.gRandom = gRandom #Gaussian random variable
         
     def associationControl(self, ac):
         mobility.associationControlMethod = ac        

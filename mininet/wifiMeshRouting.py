@@ -17,14 +17,14 @@ class listNodes ( object ):
         del self.nodesY[:]
         
     @classmethod   
-    def pairingNodes_(self, sta, wlan, stationList, **params):
+    def pairingNodes(self, sta, wlan, stationList, **params):
         """Pairing nodes"""
         i=1
         ref_distance = 0
         self.dist = 0
         self.ssid_ID+=1
         for ref_sta in stationList:
-            if ref_sta != sta:
+            if ref_sta != sta and ref_sta.func[wlan] == 'mesh' :
                 dist = channelParameters.getDistance(sta, ref_sta)
                 if dist != 0.0:
                     totalRange = sta.range + ref_sta.range
@@ -35,15 +35,24 @@ class listNodes ( object ):
                         ssid = sta.params['associatedTo'][wlan]
                         ref_ssid = ref_sta.params['associatedTo'][wlan]
                         if ssid != ref_ssid or ssid == sta.ssid[wlan] or ssid == '' or ref_ssid == '':
-                            sta.params['associatedTo'][wlan] = sta.ssid[wlan] + str(self.ssid_ID)
-                            ref_sta.params['associatedTo'][wlan] = sta.ssid[wlan] + str(self.ssid_ID)  
+                            if ref_sta.params['associatedTo'][wlan] != '' and ref_sta.params['associatedTo'][wlan] != ssid:
+                                sta.params['associatedTo'][wlan] = ref_sta.params['associatedTo'][wlan]
+                                sta.pexec('ifconfig %s up' % sta.params['wlan'][wlan])
+                                sta.pexec('iw dev %s mesh join %s' % (sta.params['wlan'][wlan], sta.params['associatedTo'][wlan]))
+                            else:
+                                if sta.params['associatedTo'][wlan] != sta.ssid[wlan] + str(self.ssid_ID): 
+                                    sta.params['associatedTo'][wlan] = sta.ssid[wlan] + str(self.ssid_ID)
+                                    sta.pexec('ifconfig %s up' % sta.params['wlan'][wlan])
+                                    sta.pexec('iw dev %s mesh join %s' % (sta.params['wlan'][wlan], sta.params['associatedTo'][wlan]))
+                                ref_sta.pexec('ifconfig %s up' % ref_sta.params['wlan'][wlan])
+                                ref_sta.params['associatedTo'][wlan] = sta.ssid[wlan] + str(self.ssid_ID)                   
+                                ref_sta.pexec('iw dev %s mesh join %s' % (ref_sta.params['wlan'][wlan], ref_sta.params['associatedTo'][wlan]))
                         i+=1
         self.dist = ref_distance / i
-        return self.dist
-    
+        return self.dist    
     
     @classmethod   
-    def pairingNodes(self, sta, wlan, stationList, **params):
+    def pairingNodes_(self, sta, wlan, stationList, **params):
         i=1
         ref_distance = 0
         self.dist = 0
@@ -59,8 +68,7 @@ class listNodes ( object ):
                         listNodes.nodesY.append(ref_sta)                                 
                     i+=1
         self.dist = ref_distance / i
-        return self.dist
-    
+        return self.dist    
     
 class meshRouting ( object ):   
     """Mesh Routing"""    
@@ -74,7 +82,7 @@ class meshRouting ( object ):
         command = ''
         
         for ref_sta in stationList:
-            if ref_sta != sta:
+            if ref_sta != sta and ref_sta.func[wlan] == 'mesh' :
                 dist = channelParameters.getDistance(sta, ref_sta)                            
                 totalRange = sta.range + ref_sta.range
                 if dist < totalRange:
@@ -83,16 +91,9 @@ class meshRouting ( object ):
                             if sta.params['associatedTo'][wlan] == ref_sta.params['associatedTo'][w]:                                
                                 associate = True
         
-        """Mesh Join""" 
-        if associate == True and sta.params['associatedTo'][wlan] == '':                
-            sta.pexec('ifconfig %s up' % sta.params['wlan'][wlan])
-            sta.pexec('iw dev %s mesh join %s' % (sta.params['wlan'][wlan], sta.params['associatedTo'][wlan]))   
-            sta.params['associatedTo'][wlan] = 'mesh'
-        
         """Adding all reached target paths"""
         if associate:
             sta.pexec('ifconfig %s up' % sta.params['wlan'][wlan])        
-            sta.params['associatedTo'][wlan] = 'mesh'
             exist = []
             sta_ref = []
             sta_ref.append(sta)
@@ -127,7 +128,6 @@ class meshRouting ( object ):
                 for w in range(len(y.params['wlan'])):
                     if y.meshMac[w] not in controlMeshMac:
                         sta.pexec('iw dev %s mpath del %s' % (sta.params['wlan'][wlan], y.meshMac[w]))        
-            sta.params['associatedTo'][wlan] = 'mesh'
             
         """mesh leave"""
         if associate == False:

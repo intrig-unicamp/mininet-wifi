@@ -17,19 +17,19 @@ class accessPoint( object ):
               wep_key0=None, **params ):
 
         if 'phywlan' not in ap.params:
-            self.renameIface( intf, ap.params['wlan'][wlan] )
+            self.renameIface( ap, intf, ap.params['wlan'][wlan] )
             ap.params['mac'] = self.getMacAddress(ap, wlan)
             
         self.start (ap, country_code, auth_algs, wpa, wlan,
               wpa_key_mgmt, rsn_pairwise, wpa_passphrase, encrypt, 
               wep_key0, **params)
 
-    def renameIface( self, intf, newname ):
+    def renameIface( self, ap, intf, newname ):
         "Rename interface"
-        os.system('ifconfig %s down' % intf)
-        os.system('ip link set %s name %s' % (intf, newname))
-        os.system('ifconfig %s up' % newname)                
-    
+        ap.pexec('ifconfig %s down' % intf)
+        ap.pexec('ip link set %s name %s' % (intf, newname))
+        ap.pexec('ifconfig %s up' % newname) 
+     
     def start(self, ap, country_code=None, auth_algs=None, wpa=None, wlan=None,
               wpa_key_mgmt=None, rsn_pairwise=None, wpa_passphrase=None, encrypt=None, 
               wep_key0=None, **params):
@@ -173,6 +173,6 @@ class accessPoint( object ):
         try:
             subprocess.check_output(cmd, shell=True)
         except:
-            print 'error with hostapd. Please, run sudo mn -c in order to fix it or check if hostapd is working properly in your machine.'
+            print ('error with hostapd. Please, run sudo mn -c in order to fix it or check if hostapd is working properly in your machine.')
             exit( 1 )
         self.setBw(ap, iface)

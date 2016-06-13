@@ -26,6 +26,7 @@ class mobility ( object ):
     associationControlMethod = False
     apList = []
     staList = []
+    wallList = []
     DRAW = False
     continue_ = True
     
@@ -98,13 +99,17 @@ class mobility ( object ):
                 if sta not in staMov:
                     plot.pltNode[sta].set_data(sta.params['position'][0],sta.params['position'][1])
                     plot.drawTxt(sta)
-                    plot.drawCircle(sta)   
+                    plot.drawCircle(sta)           
             for ap in mobility.apList:
                 self.graphInstantiateNodes(ap)  
                 for c in ap.connections:
                     line = plot.plotLine2d([ap.connections[c].params['position'][0],ap.params['position'][0]], \
                                            [ap.connections[c].params['position'][1],ap.params['position'][1]], 'b')
                     plot.plotLine(line)
+            for wall in mobility.wallList:
+                line = plot.plotLine2d([wall.params['initPos'][0],wall.params['finalPos'][0]], \
+                                           [wall.params['initPos'][1],wall.params['finalPos'][1]], 'r', 10)
+                plot.plotLine(line)
         try:
             while time.time() < t_end and time.time() > t_initial:
                 if self.continue_:
@@ -235,8 +240,11 @@ class mobility ( object ):
                 for node in mobility.staList:       
                     for wlan in range(0, len(node.params['wlan'])):
                         if node.func[wlan] == 'mesh':
-                            """Mesh Routing"""                    
-                            meshRouting.customMeshRouting(node, wlan, self.staList)    
+                            """Mesh Routing"""
+                            try:               
+                                meshRouting.customMeshRouting(node, wlan, self.staList)    
+                            except:
+                                pass
                 listNodes.clearList()  
             #have to verify this
             time.sleep(0.01)     

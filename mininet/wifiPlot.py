@@ -63,9 +63,9 @@ class plot (object):
         return plt.scatter(nodesx,nodesy, color = 'red', marker = 's')
     
     @classmethod
-    def plotLine2d(self, nodesx, nodesy, color=''):     
+    def plotLine2d(self, nodesx, nodesy, color='', lw=1):     
         """plotLine2d"""      
-        return plt.Line2D(nodesx, nodesy, color=color)
+        return plt.Line2D(nodesx, nodesy, color=color, lw=lw)
     
     @classmethod
     def plotLineTxt(self, x, y, i):    

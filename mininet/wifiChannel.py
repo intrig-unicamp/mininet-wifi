@@ -20,6 +20,10 @@ class channelParameters ( object ):
     dist = 0
     noise = 0
     i = 0
+    sl = 1 #System Loss
+    lF = 0 #Floor penetration loss factor
+    nFloors = 0 #Number of floors
+    gRandom = 0 #Gaussian random variable
     
     def __init__( self, node1, node2, wlan, dist, staList, time ):
         self.dist = dist
@@ -65,6 +69,9 @@ class channelParameters ( object ):
         value = deviceDataRate(sta, ap, wlan)
         custombw = value.rate
         self.rate = value.rate/2.5
+        lF = self.lF     
+        nFloors = self.nFloors
+        gRandom = self.gRandom
         if ap == None:
             gT = 0
             hT = 0
@@ -73,7 +80,7 @@ class channelParameters ( object ):
             hR = sta.params['antennaHeight'][wlan]            
             if self.i != 0:
                 dist = self.dist/self.i
-            value = propagationModel_( sta, ap, dist, wlan, pT, gT, gR, hT, hR )
+            value = propagationModel_( sta, ap, dist, wlan, pT, gT, gR, hT, hR, lF, nFloors, gRandom)
             sta.params['rssi'][wlan] = value.rssi # random.uniform(value.rssi-1, value.rssi+1)
             self.rate = (custombw * (1.1 ** -dist))/5
         else:            
@@ -82,7 +89,7 @@ class channelParameters ( object ):
             hT = ap.params['antennaHeight'][0]
             gR = sta.params['antennaGain'][wlan]
             hR = sta.params['antennaHeight'][wlan]       
-            value = propagationModel_( sta, ap, dist, wlan, pT, gT, gR, hT, hR )
+            value = propagationModel_( sta, ap, dist, wlan, pT, gT, gR, hT, hR, lF, nFloors, gRandom)
             sta.params['rssi'][wlan] = value.rssi #random.uniform(value.rssi-1, value.rssi+1)
             if ap.equipmentModel == None:
                 self.rate = custombw * (1.1 ** -dist)
