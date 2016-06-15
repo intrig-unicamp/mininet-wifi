@@ -43,7 +43,7 @@ class propagationModel_ ( object ):
         L = self.sl     
         if dist == 0:
             dist = 0.1
-        print self.sl
+        
         lambda_ = c / f # lambda: wavelength (m)
         denominator = lambda_**2 
         numerator = (4 * math.pi * dist)**2 * L
