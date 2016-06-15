@@ -18,7 +18,7 @@ class propagationModel_ ( object ):
     nFloors = 0 #Number of floors
     gRandom = 0 #Gaussian random variable
         
-    def __init__( self, sta=None, ap=None, dist=0, wlan=None, pT=14, gT=5, gR=5, hT=1, hR=1,
+    def __init__( self, sta=None, ap=None, dist=0, wlan=None, pT=14, gT=5, gR=5, hT=1, hR=1, sl=1,
                   lF=0, nFloors=0, gRandom=0 ):
         """pT = Tx Power
            gT = Tx Antenna Gain
@@ -27,6 +27,7 @@ class propagationModel_ ( object ):
            hR = Rx Antenna Height
         """        
         self.lF = lF
+        self.sl = sl
         self.nFloors = nFloors
         if self.model in dir(self):
             self.__getattribute__(self.model)(sta, ap, dist, wlan, pT, gT, gR, hT, hR)    
@@ -42,7 +43,7 @@ class propagationModel_ ( object ):
         L = self.sl     
         if dist == 0:
             dist = 0.1
-       
+        print self.sl
         lambda_ = c / f # lambda: wavelength (m)
         denominator = lambda_**2 
         numerator = (4 * math.pi * dist)**2 * L

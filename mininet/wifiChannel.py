@@ -70,6 +70,7 @@ class channelParameters ( object ):
         custombw = value.rate
         self.rate = value.rate/2.5
         lF = self.lF     
+        sl = self.sl
         nFloors = self.nFloors
         gRandom = self.gRandom
         if ap == None:
@@ -80,7 +81,7 @@ class channelParameters ( object ):
             hR = sta.params['antennaHeight'][wlan]            
             if self.i != 0:
                 dist = self.dist/self.i
-            value = propagationModel_( sta, ap, dist, wlan, pT, gT, gR, hT, hR, lF, nFloors, gRandom)
+            value = propagationModel_( sta, ap, dist, wlan, pT, gT, gR, hT, hR, sl, lF, nFloors, gRandom)
             sta.params['rssi'][wlan] = value.rssi # random.uniform(value.rssi-1, value.rssi+1)
             self.rate = (custombw * (1.1 ** -dist))/5
         else:            
@@ -89,7 +90,7 @@ class channelParameters ( object ):
             hT = ap.params['antennaHeight'][0]
             gR = sta.params['antennaGain'][wlan]
             hR = sta.params['antennaHeight'][wlan]       
-            value = propagationModel_( sta, ap, dist, wlan, pT, gT, gR, hT, hR, lF, nFloors, gRandom)
+            value = propagationModel_( sta, ap, dist, wlan, pT, gT, gR, hT, hR, sl, lF, nFloors, gRandom)
             sta.params['rssi'][wlan] = value.rssi #random.uniform(value.rssi-1, value.rssi+1)
             if ap.equipmentModel == None:
                 self.rate = custombw * (1.1 ** -dist)
