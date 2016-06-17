@@ -1,8 +1,7 @@
 #!/usr/bin/python
 
 """
-Setting the position of Nodes (only for Stations and Access Points) and providing mobility using mobility models.
-
+Replaying Bandwidth
 """
 
 from mininet.net import Mininet
@@ -10,6 +9,7 @@ from mininet.node import Controller,OVSKernelSwitch
 from mininet.link import TCLink
 from mininet.cli import CLI
 from mininet.log import setLogLevel
+from mininet.wifiReplaying import replayingThroughput
 
 def topology():
 
@@ -18,34 +18,40 @@ def topology():
 
     print "*** Creating nodes"
     sta1 = net.addStation( 'sta1', mac='00:00:00:00:00:02', ip='10.0.0.2/8' )
-    sta2 = net.addStation( 'sta2', mac='00:00:00:00:00:03', ip='10.0.0.3/8' )
     ap1 = net.addBaseStation( 'ap1', ssid= 'new-ssid', mode= 'g', channel= '1', position='50,50,0' )
     c1 = net.addController( 'c1', controller=Controller )
 
-    print "*** Associating and Creating links"
-    net.addLink(ap1, sta1)
-    net.addLink(ap1, sta2)
-    
     print "*** Starting network"
     net.build()
     c1.start()
     ap1.start( [c1] )
-    
+
     """uncomment to plot graph"""
     net.plotGraph(max_x=100, max_y=100)
 
-    """Seed"""
-    net.seed(20) 
+    getTrace(sta1, 'examples/replaying/replayingThroughput/throughputData.dat')
 
-    "*** Available models: RandomWalk, TruncatedLevyWalk, RandomDirection, RandomWayPoint, GaussMarkov, ReferencePoint, TimeVariantCommunity ***"
-#    net.startMobility(startTime=0, model='RandomWalk', max_x=60, max_y=60, min_v=0.1, max_v=0.1)
-    net.startMobility(startTime=0, model='RandomDirection', max_x=60, max_y=60, min_v=0.1, max_v=0.1)
-   
+    replayingThroughput()
+
     print "*** Running CLI"
     CLI( net )
 
     print "*** Stopping network"
     net.stop()
+
+def getTrace(sta, file):
+   
+    file = open(file, 'r')
+    raw_data = file.readlines()
+    file.close()
+   
+    sta.time = []
+    sta.throughput = []
+
+    for data in raw_data:
+        line = data.split()
+        sta.time.append(float(line[0])) #First Column = Time
+        sta.throughput.append(float(line[1])) #Second Column = Throughput
 
 if __name__ == '__main__':
     setLogLevel( 'info' )

@@ -23,7 +23,7 @@ def topology():
     c0 = net.addController('c0', controller=Controller, ip='127.0.0.1' )
 
     print "*** Adding Link"
-    net.addLink(sta1, ap1, bw=10, loss=20)
+    net.addLink(sta1, ap1)
     net.addLink(sta2, ap1)
     net.addLink(h3, ap1)
     net.addLink(h4, ap1)

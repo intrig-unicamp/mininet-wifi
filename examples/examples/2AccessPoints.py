@@ -4,14 +4,14 @@
 This example shows how to work with different APs
 """
 from mininet.net import Mininet
-from mininet.node import OVSKernelSwitch, Controller
+from mininet.node import OVSKernelSwitch, RemoteController
 from mininet.cli import CLI
 from mininet.log import setLogLevel
 from mininet.link import TCLink
 
 def topology():
     "Create a network."
-    net = Mininet( controller=Controller, link=TCLink, switch=OVSKernelSwitch )
+    net = Mininet( controller=RemoteController, link=TCLink, switch=OVSKernelSwitch )
 
     print "*** Creating nodes"
     sta1 = net.addStation( 'sta1', ip="192.168.0.1/24" )
@@ -20,7 +20,7 @@ def topology():
     sta4 = net.addStation( 'sta4', ip="192.168.0.4/24" )
     ap1 = net.addBaseStation( 'ap1', ssid="ssid_1", mode="g", channel="1" )
     ap2 = net.addBaseStation( 'ap2', ssid="ssid_2", mode="b", channel="6" )
-    c0 = net.addController('c0', controller=Controller, ip='127.0.0.1', port=6653 )
+    c0 = net.addController('c0', controller=RemoteController, ip='127.0.0.1', port=6653 )
 
     print "*** Adding Link"
     net.addLink(ap1, ap2) #wired connection

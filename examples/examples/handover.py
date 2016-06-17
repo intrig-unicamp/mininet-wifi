@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 """
-Setting the position of Nodes (only for Stations and Access Points) and providing mobility using mobility models.
+Handover example.
 
 """
 
@@ -19,28 +19,31 @@ def topology():
     print "*** Creating nodes"
     sta1 = net.addStation( 'sta1', mac='00:00:00:00:00:02', ip='10.0.0.2/8' )
     sta2 = net.addStation( 'sta2', mac='00:00:00:00:00:03', ip='10.0.0.3/8' )
-    ap1 = net.addBaseStation( 'ap1', ssid= 'new-ssid', mode= 'g', channel= '1', position='50,50,0' )
+    ap1 = net.addBaseStation( 'ap1', ssid= 'new-ssid1', mode= 'g', channel= '1', position='15,30,0' )
+    ap2 = net.addBaseStation( 'ap2', ssid= 'new-ssid2', mode= 'g', channel= '6', position='55,30,0' )
     c1 = net.addController( 'c1', controller=Controller )
 
-    print "*** Associating and Creating links"
+    print "*** Creating links"
+    net.addLink(ap1, ap2)
     net.addLink(ap1, sta1)
     net.addLink(ap1, sta2)
-    
+
     print "*** Starting network"
     net.build()
     c1.start()
     ap1.start( [c1] )
-    
+    ap2.start( [c1] )
+
     """uncomment to plot graph"""
     net.plotGraph(max_x=100, max_y=100)
 
-    """Seed"""
-    net.seed(20) 
+    net.startMobility(startTime=0)
+    net.mobility('sta1', 'start', time=1, position='10,30,0')
+    net.mobility('sta2', 'start', time=2, position='10,40,0')
+    net.mobility('sta1', 'stop', time=40, position='60,30,0')
+    net.mobility('sta2', 'stop', time=40, position='25,40,0')
+    net.stopMobility(stopTime=40)
 
-    "*** Available models: RandomWalk, TruncatedLevyWalk, RandomDirection, RandomWayPoint, GaussMarkov, ReferencePoint, TimeVariantCommunity ***"
-#    net.startMobility(startTime=0, model='RandomWalk', max_x=60, max_y=60, min_v=0.1, max_v=0.1)
-    net.startMobility(startTime=0, model='RandomDirection', max_x=60, max_y=60, min_v=0.1, max_v=0.1)
-   
     print "*** Running CLI"
     CLI( net )
 
