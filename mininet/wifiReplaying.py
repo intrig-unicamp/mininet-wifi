@@ -81,12 +81,23 @@ class replayingBandwidth( object ):
                 if time_ >= sta.time[0]:   
                     channelParameters.tc(sta, 0, sta.throughput[0], 1, 1, 1) 
                     pos = '%d, %d, %d' % (sta.throughput[0], sta.throughput[0], 0)
-                    sta.moveStationTo(pos)
+                    self.moveStationTo(sta, pos)
                     del sta.throughput[0]
                     del sta.time[0]
                 if len(sta.time) == 0:
                     staList.remove(sta)            
-            time.sleep(0.01)    
+            time.sleep(0.01)
+    
+    def moveStationTo(self, sta, pos):
+        x = pos[0]
+        y = pos[1]
+        sta.params['position'] = x, y, 0
+        #mobility.getAPsInRange(sta)
+        if mobility.DRAW:
+            try:
+                plot.graphUpdate(sta)
+            except:
+                pass
         
         
 class replayingRSSI( object ):
