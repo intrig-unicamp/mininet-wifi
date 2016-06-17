@@ -9,7 +9,7 @@ from mininet.node import Controller,OVSKernelSwitch
 from mininet.link import TCLink
 from mininet.cli import CLI
 from mininet.log import setLogLevel
-from mininet.wifiReplaying import replayingThroughput
+from mininet.wifiReplaying import replayingBandwidth
 
 def topology():
 
@@ -29,9 +29,9 @@ def topology():
     """uncomment to plot graph"""
     net.plotGraph(max_x=100, max_y=100)
 
-    getTrace(sta1, 'examples/replaying/replayingThroughput/throughputData.dat')
+    getTrace(sta1, 'examples/replaying/replayingBandwidth/throughputData.dat')
 
-    replayingThroughput()
+    replayingBandwidth()
 
     print "*** Running CLI"
     CLI( net )
