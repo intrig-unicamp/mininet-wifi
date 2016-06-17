@@ -125,7 +125,7 @@ from mininet.vanet import vanet
 from __builtin__ import True
 
 # Mininet version: should be consistent with README and LICENSE
-VERSION = "1.8r9"
+VERSION = "1.8r10"
 
 class Mininet( object ):
     "Network emulation with hosts spawned in network namespaces."
@@ -204,9 +204,6 @@ class Mininet( object ):
         self.terms = []  # list of spawned xterm processes
         self.isWiFi = isWiFi
         self.wifiRadios = wifiRadios        
-        for path in sys.path:
-            if 'mininet-wifi' in path:
-                channelParameters.mininetDir = path[:-8]
         Mininet.init()  # Initialize Mininet if necessary
         
         self.built = False
@@ -253,7 +250,7 @@ class Mininet( object ):
         else:
             node.params['position'] = 0, 0, 0 
             
-        #position
+        #speed
         speed = ("%s" % params.pop('speed', {}))
         if(speed!="{}"):        
             node.params['speed'] = int(speed)
@@ -1179,12 +1176,13 @@ class Mininet( object ):
                 link = cls( sta, 'alone', **options )
                 
                 #If sta/ap have defined position 
-                if sta.params['position'] !=0 and ap.params['position'] !=0:
-                    dist = channelParameters.getDistance(sta, ap)
-                    if dist > ap.range:
-                        doAssociation = False
-                    else:
-                        doAssociation = True
+                if sta.params['position'][0] != 0 or sta.params['position'][1] != 0:
+                    if ap.params['position'][0] !=0 or ap.params['position'][1] !=0:
+                        dist = channelParameters.getDistance(sta, ap)
+                        if dist > ap.range:
+                            doAssociation = False
+                        else:
+                            doAssociation = True
                 #if not
                 else:
                     doAssociation = True

@@ -53,7 +53,7 @@ class accessPoint( object ):
         #if(ap.mode=="ac" or ap.mode=='a'):
         #   self.cmd = self.cmd + ("\nieee80211ac=1")
         self.cmd = self.cmd + ("\nwme_enabled=1") 
-        self.cmd = self.cmd + ("\nwmm_enabled=1") 
+        self.cmd = self.cmd + ("\nwmm_enabled=1")
         #if(ap.mode=="n" or ap.mode=="a"):
         #   self.cmd = self.cmd + ("\nieee80211n=1")
         #if(ap.mode=="n"):

@@ -21,8 +21,7 @@ class deviceDataRate ( object ):
             model = node2.equipmentModel
             self.__getattribute__(model)(node1, node2, wlan)
         else:
-            self.customDataRate_mobility(node)
-        
+            self.customDataRate_mobility(node)        
                     
     def customDataRate_mobility(self, node, wlan=0):
         """Custom Maximum Data Rate - Useful when there is mobility"""

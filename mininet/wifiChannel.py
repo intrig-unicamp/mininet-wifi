@@ -12,9 +12,9 @@ import random
 class channelParameters ( object ):
     """Channel Parameters""" 
     
-    mininetDir = ''
     delay = 0
     loss = 0
+    bw = 0
     latency = 0
     rate = 0
     dist = 0
@@ -99,15 +99,11 @@ class channelParameters ( object ):
             self.rate = 1
         return self.rate  
     
+    @classmethod
     def tc(self, sta, wlan, bw, loss, latency, delay):
         """Applying TC"""
         bw = abs(random.uniform(bw-0.5, bw+0.5))        
-        #os.system("%s/util/m %s tc qdisc replace dev %s \
-        #    root handle 2: netem rate %.2fmbit \
-        #    loss %.1f%% \
-        #    latency %.2fms \
-        #    delay %.2fms \
-        #    corrupt 0.1%%" % (self.mininetDir, sta, sta.params['wlan'][wlan], bw, loss, latency, delay))
+        
         sta.pexec("tc qdisc replace dev %s \
             root handle 2: netem rate %.2fmbit \
             loss %.1f%% \
@@ -189,4 +185,4 @@ class channelParameters ( object ):
     def linkMargin(self, node1, node2, wlan, modelValue):    
         """Have to work"""
         #receive_sensitivity = -72 #Depends of the equipment
-        #link_margin = self.rssi[wlan] - receive_sensitivity  
+        #link_margin = self.rssi[wlan] - receive_sensitivity
