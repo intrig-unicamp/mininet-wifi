@@ -80,8 +80,8 @@ class replayingBandwidth( object ):
                 continue_ = True
                 if time_ >= sta.time[0]:   
                     channelParameters.tc(sta, 0, sta.throughput[0], 1, 1, 1) 
-                    pos = '%d, %d, %d' % (sta.throughput[0], sta.throughput[0], 0)
-                    self.moveStationTo(sta, pos)
+                    #pos = '%d, %d, %d' % (sta.throughput[0], sta.throughput[0], 0)
+                    #self.moveStationTo(sta, pos)
                     del sta.throughput[0]
                     del sta.time[0]
                 if len(sta.time) == 0:
