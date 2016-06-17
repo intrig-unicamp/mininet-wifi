@@ -58,12 +58,12 @@ class replayingMobility( object ):
             time.sleep(0.01)          
                         
             
-class replayingThroughput( object ):
-    """Replaying Throughput Traces"""
+class replayingBandwidth( object ):
+    """Replaying Bandwidth Traces"""
     
     def __init__( self, **params ):
        
-        self.thread = threading.Thread(name='replayingThroughput', target=self.throughput)
+        self.thread = threading.Thread(name='replayingBandwidth', target=self.throughput)
         self.thread.daemon = True
         self.thread.start()              
             
