@@ -72,7 +72,7 @@ class listNodes ( object ):
     
 class meshRouting ( object ):   
     """Mesh Routing"""    
-    routing = ''
+    routing = 'custom'
     
     @classmethod   
     def customMeshRouting(self, sta, wlan, stationList, **params):
