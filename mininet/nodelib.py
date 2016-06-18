@@ -1,14 +1,13 @@
 """
 Node Library for Mininet
-
 This contains additional Node types which you may find to be useful.
 """
 
 from mininet.node import Node, Switch
 from mininet.log import info, warn
 from mininet.moduledeps import pathCheck
+from mininet.util import quietRun
 
-import re
 
 class LinuxBridge( Switch ):
     "Linux Bridge (with optional spanning tree)"
@@ -59,23 +58,30 @@ class LinuxBridge( Switch ):
 
     @classmethod
     def setup( cls ):
-        "Make sure our class dependencies are available"
+        "Check dependencies and warn about firewalling"
         pathCheck( 'brctl', moduleName='bridge-utils' )
+        # Disable Linux bridge firewalling so that traffic can flow!
+        for table in 'arp', 'ip', 'ip6':
+            cmd = 'sysctl net.bridge.bridge-nf-call-%stables' % table
+            out = quietRun( cmd ).strip()
+            if out.endswith( '1' ):
+                warn( 'Warning: Linux bridge may not work with', out, '\n' )
 
 
 class NAT( Node ):
     "NAT: Provides connectivity to external network"
 
-    def __init__( self, name, inetIntf=None, subnet='10.0/8',
-                  localIntf=None, **params):
+    def __init__( self, name, subnet='10.0/8',
+                  localIntf=None, flush=False, **params):
         """Start NAT/forwarding between Mininet and external network
-           inetIntf: interface for internet access
-           subnet: Mininet subnet (default 10.0/8)="""
+           subnet: Mininet subnet (default 10.0/8)
+           flush: flush iptables before installing NAT rules"""
         super( NAT, self ).__init__( name, **params )
 
-        self.inetIntf = inetIntf if inetIntf else self.getGatewayIntf()
         self.subnet = subnet
         self.localIntf = localIntf
+        self.flush = flush
+        self.forwardState = self.cmd( 'sysctl -n net.ipv4.ip_forward' ).strip()
 
     def config( self, **params ):
         """Configure the NAT and iptables"""
@@ -84,27 +90,24 @@ class NAT( Node ):
         if not self.localIntf:
             self.localIntf = self.defaultIntf()
 
-        self.cmd( 'sysctl net.ipv4.ip_forward=0' )
+        if self.flush:
+            self.cmd( 'sysctl net.ipv4.ip_forward=0' )
+            self.cmd( 'iptables -F' )
+            self.cmd( 'iptables -t nat -F' )
+            # Create default entries for unmatched traffic
+            self.cmd( 'iptables -P INPUT ACCEPT' )
+            self.cmd( 'iptables -P OUTPUT ACCEPT' )
+            self.cmd( 'iptables -P FORWARD DROP' )
 
-        # Flush any currently active rules
-        # TODO: is this safe?
-        self.cmd( 'iptables -F' )
-        self.cmd( 'iptables -t nat -F' )
-
-        # Create default entries for unmatched traffic
-        self.cmd( 'iptables -P INPUT ACCEPT' )
-        self.cmd( 'iptables -P OUTPUT ACCEPT' )
-        self.cmd( 'iptables -P FORWARD DROP' )
-
-        # Configure NAT
+        # Install NAT rules
         self.cmd( 'iptables -I FORWARD',
                   '-i', self.localIntf, '-d', self.subnet, '-j DROP' )
         self.cmd( 'iptables -A FORWARD',
                   '-i', self.localIntf, '-s', self.subnet, '-j ACCEPT' )
         self.cmd( 'iptables -A FORWARD',
-                  '-i', self.inetIntf, '-d', self.subnet, '-j ACCEPT' )
+                  '-o', self.localIntf, '-d', self.subnet,'-j ACCEPT' )
         self.cmd( 'iptables -t nat -A POSTROUTING',
-                  '-o', self.inetIntf, '-s', self.subnet, '-j MASQUERADE' )
+                  '-s', self.subnet, "'!'", '-d', self.subnet, '-j MASQUERADE' )
 
         # Instruct the kernel to perform forwarding
         self.cmd( 'sysctl net.ipv4.ip_forward=1' )
@@ -123,26 +126,18 @@ class NAT( Node ):
         # hopefully this won't disconnect you
         self.cmd( 'service network-manager restart' )
 
-    def getGatewayIntf( self, fallback='eth0' ):
-        """Return gateway interface name
-           fallback: default device to fall back to"""
-        routes = self.cmd( 'ip route show' )
-        match = re.search( r'default via \S+ dev (\S+)', routes )
-        if match:
-            return match.group( 1 )
-        else:
-            warn( 'There is no default route set.',
-                  'Using', fallback, 'as gateway interface...\n' )
-            return fallback
-
     def terminate( self ):
-        """Stop NAT/forwarding between Mininet and external network"""
-        # Flush any currently active rules
-        # TODO: is this safe?
-        self.cmd( 'iptables -F' )
-        self.cmd( 'iptables -t nat -F' )
-
-        # Instruct the kernel to stop forwarding
-        self.cmd( 'sysctl net.ipv4.ip_forward=0' )
-
+        "Stop NAT/forwarding between Mininet and external network"
+        # Remote NAT rules
+        self.cmd( 'iptables -D FORWARD',
+                   '-i', self.localIntf, '-d', self.subnet, '-j DROP' )
+        self.cmd( 'iptables -D FORWARD',
+                  '-i', self.localIntf, '-s', self.subnet, '-j ACCEPT' )
+        self.cmd( 'iptables -D FORWARD',
+                  '-o', self.localIntf, '-d', self.subnet,'-j ACCEPT' )
+        self.cmd( 'iptables -t nat -D POSTROUTING',
+                  '-s', self.subnet, '\'!\'', '-d', self.subnet,
+                  '-j MASQUERADE' )
+        # Put the forwarding state back to what it was
+        self.cmd( 'sysctl net.ipv4.ip_forward=%s' % self.forwardState )
         super( NAT, self ).terminate()

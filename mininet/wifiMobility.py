@@ -237,7 +237,7 @@ class mobility ( object ):
                         if dist!=0:
                             channelParameters(node, None, wlan, dist, self.staList, 0)
             if meshRouting.routing == 'custom':
-                for node in mobility.staList:       
+                for node in mobility.staList:    
                     for wlan in range(0, len(node.params['wlan'])):
                         if node.func[wlan] == 'mesh':
                             """Mesh Routing"""

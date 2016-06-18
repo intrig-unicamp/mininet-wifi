@@ -80,7 +80,6 @@ class meshRouting ( object ):
         associate = False
         controlMeshMac = []
         command = ''
-        
         for ref_sta in stationList:
             if ref_sta != sta and ref_sta.func[wlan] == 'mesh' :
                 dist = channelParameters.getDistance(sta, ref_sta)                            

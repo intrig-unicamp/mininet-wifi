@@ -1885,6 +1885,7 @@ class Mininet( object ):
                 self.thread.daemon = True
                 self.thread.start()
             else:
+                mobility.staList = self.stations
                 self.thread = threading.Thread(name='vanet', target=vanet, args=(self.stations, self.accessPoints, self.nroads, mobility.MAX_X, mobility.MAX_Y))
                 self.thread.daemon = True
                 self.thread.start()
@@ -1909,7 +1910,8 @@ class Mininet( object ):
     def useExternalProgram(self, program, **params):
         config_file = ("%s" % params.pop('config_file', {}))
         if program == 'sumo' or program == 'sumo-gui':
-            self.thread = threading.Thread(name='vanet', target=sumo, args=(self.stations,program, config_file))
+            mobility.staList = self.stations
+            self.thread = threading.Thread(name='vanet', target=sumo, args=(self.stations, program, config_file))
             self.thread.daemon = True
             self.thread.start()
             self.setWifiParameters()

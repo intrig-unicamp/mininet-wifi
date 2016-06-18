@@ -48,7 +48,7 @@ class vanet( object ):
         [self.road.append(x) for x in range(0, nroads )]
         [self.points.append(x) for x in range(0, nroads )]
         [self.totalRoads.append(x) for x in range(0, nroads )]
-        [self.range.append(cars[x].range) for x in range(0, len(cars) )]
+        [self.range.append(cars[x].range) for x in range(0, len(cars) )]        
         
         plot.instantiateGraph(MAX_X, MAX_Y)    
         
