@@ -273,7 +273,7 @@ class Node( object ):
             plot.graphUpdate(self)
         node = self
         self.verifyingNodes(node)
-                    
+        
     def moveStationTo(self, pos):
         pos = pos.split(',')
         self.params['position'] = float(pos[0]), float(pos[1]), float(pos[2])
@@ -283,7 +283,16 @@ class Node( object ):
             except:
                 pass
         self.verifyingNodes(self)
-        
+                    
+    def setAntennaGain(self, iface, value):
+        wlan = int(iface[-1:])
+        self.params['antennaGain'][wlan] = int(value)
+        if mobility.DRAW:
+            try:
+                plot.graphUpdate(self)
+            except:
+                pass
+        self.verifyingNodes(self)        
         
     def setTxPower(self, iface, txpower):
         wlan = int(iface[-1:])
