@@ -276,7 +276,7 @@ class Node( object ):
                     
     def moveStationTo(self, pos):
         pos = pos.split(',')
-        self.params['position'] = int(pos[0]), int(pos[1]), int(pos[2])
+        self.params['position'] = float(pos[0]), float(pos[1]), float(pos[2])
         if mobility.DRAW:
             try:
                 plot.graphUpdate(self)
