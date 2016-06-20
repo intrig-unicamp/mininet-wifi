@@ -541,7 +541,9 @@ class Link( object ):
                     if node1.type=='accessPoint' and node2.type=='accessPoint':
                         intfName2 = self.intfName( node2, params2[ 'port' ] )    
                     elif 'host' == node1.type and 'accessPoint' == node2.type:
-                        intfName2 = self.intfName( node2, params2[ 'port' ] )               
+                        intfName2 = self.intfName( node2, params2[ 'port' ] )        
+                    else:
+                        intfName2 = self.intfName( node2, params2[ 'port' ] )       
                 elif str(node2) == 'alone':
                     ifacename = 'wlan'
                     intfName1 = self.wlanName( node1, ifacename, params1[ 'port' ] )
@@ -565,6 +567,7 @@ class Link( object ):
             cls1 = intf
         if not cls2:
             cls2 = intf
+            
         if('station' == node1.type and 'alone' == str(node2) or 'station' == node1.type and 'mesh' in str(node2) \
            or 'station' == node1.type and 'accessPoint' == node2.type):
             intf1 = cls1( name=intfName1, node=node1,
