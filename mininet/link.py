@@ -227,13 +227,9 @@ class Intf( object ):
             self.sta.params['rssi'][wlan] = -62
             self.sta.func[wlan] = 'adhoc'
             self.sta.cmd('iw dev %s-wlan%s set type ibss' % (self.sta, wlan))
-            self.sta.cmd('iw dev %s-wlan%s ibss join %s 2412' % (self.sta, wlan, ssid))
-            iface = '%s-wlan%s' % (self.sta, wlan)
-            print "associating %s to %s..." % (iface, ssid)
-            self.confirmAdhocAssociation(self.sta, iface, wlan)   
-            self.sta.params['associatedTo'][wlan] = 'ssid' 
+            self.sta.params['associatedTo'][wlan] = ssid 
             
-    #Important to mesh networks
+    #Important for mesh networks
     @classmethod
     def getMacAddress(self, sta, iface, wlan):
         """ get Mac Address of any Interface """
@@ -244,14 +240,6 @@ class Intf( object ):
     @classmethod    
     def confirmMeshAssociation(self, sta, wlan):
         sta.params['frequency'][wlan] = channelParameters.frequency(sta, wlan)
-        
-    @classmethod    
-    def confirmAdhocAssociation(self, sta, iface, wlan):
-        associated = ''
-        while(associated == '' or len(associated) == 0):
-            sta.sendCmd("iw dev %s scan ssid | grep %s" % (iface, sta.ssid[wlan]))
-            associated = sta.waitOutput()
-        sta.params['frequency'][wlan] = channelParameters.frequency(sta, wlan)  
     
     def delete( self ):
         "Delete interface"

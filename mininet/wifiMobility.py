@@ -227,7 +227,7 @@ class mobility ( object ):
             listNodes.ssid_ID = 0
             for node in self.staList: 
                 for wlan in range(0, len(node.params['wlan'])):
-                    if node.func[wlan] != 'mesh' and node.func[wlan] != 'adhoc':                        
+                    if node.func[wlan] != 'mesh' and node.func[wlan] != 'adhoc':    
                         self.nodeParameter(node, wlan)
                     elif node.func[wlan] == 'mesh' :
                         dist = listNodes.pairingNodes(node, wlan, self.staList)

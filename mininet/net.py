@@ -118,6 +118,7 @@ from mininet.wifiPlot import plot
 from mininet.wifiReport import report
 from mininet.wifiPropagationModels import propagationModel_
 from mininet.wifiMeshRouting import meshRouting
+from mininet.wifiAdHocConnectivity import pairingAdhocNodes
 
 sys.path.append(str(os.getcwd())+'/mininet/')
 from sumo.runner import sumo
@@ -307,7 +308,7 @@ class Mininet( object ):
                 node.params['antennaGain'].append(int(antennaGain))
         else:
             for n in range(int(wifi)):
-                node.params['antennaGain'].append(1)
+                node.params['antennaGain'].append(5)
         
         #txpower
         txpower = ("%s" % params.pop('txpower', {}))
@@ -919,15 +920,19 @@ class Mininet( object ):
         
         channel = ("%s" % params.pop('channel', {}))
         if(channel!="{}"):             
-            sta.params['channel'][wlan] = channel
+            if sta.params['channel'][wlan] == '':
+                sta.params['channel'][wlan] = int(channel)
         else:
-            sta.params['channel'][wlan] = 1
+            if sta.params['channel'][wlan] == '':
+                sta.params['channel'][wlan] = 1
             
         mode = ("%s" % params.pop('mode', {}))
         if(mode!="{}"):
-            sta.params['mode'][wlan] = mode
+            if sta.params['mode'][wlan] == '':
+                sta.params['mode'][wlan] = mode
         else:
-            sta.params['mode'][wlan] = 'g'
+            if sta.params['mode'][wlan] == '':
+                sta.params['mode'][wlan] = 'g'
             
         ssid = ("%s" % params.pop('ssid', {}))
         if(ssid!="{}"):
@@ -1386,10 +1391,14 @@ class Mininet( object ):
                         mobility.nodeParameter(node, wlan)        
         else:
             for sta in self.stations:
+                pairingAdhocNodes.ssid_ID += 1
                 mobility.getAPsInRange(sta)
                 for wlan in range(0, len(sta.params['wlan'])):
                     if sta.params['position'] != (0,0,0) and sta.func[wlan] == 'adhoc':
-                        channelParameters(sta, None, wlan, 0, self.stations, 0 )
+                        value = pairingAdhocNodes(sta, wlan, self.stations)
+                        dist = value.dist
+                        if dist!=0:
+                            channelParameters(sta, None, wlan, dist, self.stations, 0)                        
                     else:
                         if sta.params['position'] != (0,0,0) and sta.params['associatedTo'][wlan] != '':
                             dist = channelParameters.getDistance(sta, sta.params['associatedTo'][wlan])
