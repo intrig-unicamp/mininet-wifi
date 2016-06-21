@@ -43,24 +43,29 @@ class pairingAdhocNodes ( object ):
                             ref_ssid = ref_sta.params['associatedTo'][wlan]
                             i+=1
                             if ssid != ref_ssid or ssid == sta.ssid[wlan] or ssid == '' or ref_ssid == '':
-                                if ref_sta.params['associatedTo'][wlan] != '' and ref_sta.params['associatedTo'][wlan] != ssid and sta not in alreadyConn:
+                                if ref_sta.params['associatedTo'][wlan] != '' and \
+                                        ref_sta.params['associatedTo'][wlan] != ssid and sta not in alreadyConn:
                                     alreadyConn.append(sta)
                                     sta.params['associatedTo'][wlan] = ref_sta.params['associatedTo'][wlan]
-                                    sta.pexec('iw dev %s ibss join %s 2412' % (sta.params['wlan'][wlan], sta.params['associatedTo'][wlan]))
+                                    sta.pexec('iw dev %s ibss join %s 2412' % (sta.params['wlan'][wlan], \
+                                                                               sta.params['associatedTo'][wlan]))
                                     iface = sta.params['wlan']
                                     self.confirmAdhocAssociation(sta, iface, wlan)
                                 else:
-                                    if sta.params['associatedTo'][wlan] != sta.ssid[wlan] + str(self.ssid_ID) and sta not in alreadyConn: 
+                                    if sta.params['associatedTo'][wlan] != sta.ssid[wlan] + str(self.ssid_ID) and \
+                                                                                                sta not in alreadyConn: 
                                         alreadyConn.append(sta)
                                         sta.params['associatedTo'][wlan] = sta.ssid[wlan] + str(self.ssid_ID)
-                                        sta.pexec('iw dev %s ibss join %s 2412' % (sta.params['wlan'][wlan], sta.params['associatedTo'][wlan]))   
+                                        sta.pexec('iw dev %s ibss join %s 2412' % (sta.params['wlan'][wlan], \
+                                                                                   sta.params['associatedTo'][wlan]))   
                                         iface = sta.params['wlan'][wlan]
                                         print "associating %s to %s..." % (iface, sta.ssid[wlan] + str(self.ssid_ID))
                                         self.confirmAdhocAssociation(sta, iface, wlan)
                                     if ref_sta not in alreadyConn:
                                         alreadyConn.append(ref_sta)
                                         ref_sta.params['associatedTo'][wlan] = sta.ssid[wlan] + str(self.ssid_ID) 
-                                        ref_sta.pexec('iw dev %s ibss join %s 2412' % (ref_sta.params['wlan'][wlan], ref_sta.params['associatedTo'][wlan]))
+                                        ref_sta.pexec('iw dev %s ibss join %s 2412' % (ref_sta.params['wlan'][wlan], \
+                                                                                       ref_sta.params['associatedTo'][wlan]))
                                         iface = ref_sta.params['wlan'][wlan]
                                         print "associating %s to %s..." % (iface, sta.ssid[wlan] + str(self.ssid_ID))
                                         self.confirmAdhocAssociation(ref_sta, iface, wlan)
