@@ -334,13 +334,16 @@ class Mininet( object ):
         self.range = ("%s" % params.pop('range', {}))
         if(self.range!="{}"):
             node.range = int(self.range)
+            node.params['range'] = int(self.range)
         else:            
             if node.type == 'accessPoint': 
                 value = deviceRange(node)    
                 node.range = value.range  
+                node.params['range'] = value.range  
             else:
                 value = deviceRange(node)    
                 node.range = value.range - 15
+                node.params['range'] = value.range - 15
                 
         equipmentModel = ("%s" % params.pop('equipmentModel', {}))
         if(equipmentModel!="{}"):
@@ -852,16 +855,20 @@ class Mininet( object ):
         node = sta if not isinstance( sta, basestring ) else self[ sta ]
         
         channel = ("%s" % params.pop('channel', {}))
-        if(channel!="{}"):             
-            sta.params['channel'][wlan] = channel
+        if(channel!="{}"):          
+            if sta.params['channel'][wlan] == '':   
+                sta.params['channel'][wlan] = channel
         else:
-            sta.params['channel'][wlan] = 1
+            if sta.params['channel'][wlan] == '':
+                sta.params['channel'][wlan] = 1
        
         mode = ("%s" % params.pop('mode', {}))
         if(mode!="{}"):
-            sta.params['mode'][wlan] = mode
+            if sta.params['mode'][wlan] == '':
+                sta.params['mode'][wlan] = mode
         else:
-            sta.params['mode'][wlan] = 'g'
+            if sta.params['mode'][wlan] == '':
+                sta.params['mode'][wlan] = 'g'
                         
         ssid = ("%s" % params['ssid'])
         if(ssid!="{}"):
@@ -1403,6 +1410,12 @@ class Mininet( object ):
                         if sta.params['position'] != (0,0,0) and sta.params['associatedTo'][wlan] != '':
                             dist = channelParameters.getDistance(sta, sta.params['associatedTo'][wlan])
                             channelParameters(sta, sta.params['associatedTo'][wlan], wlan, dist, self.stations, 0 )
+                        elif sta.func[wlan] == 'adhoc' and sta.params['position'] == (0,0,0):
+                            iface = sta.params['wlan'][wlan]
+                            print "associating %s to %s..." % (iface, sta.ssid[wlan])
+                            sta.pexec('iw dev %s ibss join %s 2412' % (iface, \
+                                                                         sta.params['associatedTo'][wlan])) 
+                            self.confirmAdhocAssociation(sta, iface, wlan)
             
             #for node in self.missingStations:
             for sta in self.stations:
@@ -1435,6 +1448,13 @@ class Mininet( object ):
         if self.autoStaticArp:
             self.staticArp()            
         self.built = True
+        
+    def confirmAdhocAssociation(self, sta, iface, wlan):
+        associated = ''
+        while(associated == '' or len(associated) == 0):
+            sta.sendCmd("iw dev %s scan ssid | grep %s" % (iface, sta.ssid[wlan]))
+            associated = sta.waitOutput()
+        sta.params['frequency'][wlan] = channelParameters.frequency(sta, wlan) 
             
     def startTerms( self ):
         "Start a terminal for each node."
