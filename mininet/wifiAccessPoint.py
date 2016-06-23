@@ -44,7 +44,6 @@ class accessPoint( object ):
         self.cmd = self.cmd + ("\ndriver=nl80211")
         self.cmd = self.cmd + ("\nssid=%s" % ap.ssid[0]) # the name of the AP
         
-        
         if ap.params['mode'][0] == 'n' or ap.params['mode'][0] == 'ac'or ap.params['mode'][0] == 'a':
             self.cmd = self.cmd + ("\nhw_mode=g") 
         else:
@@ -77,6 +76,13 @@ class accessPoint( object ):
         #Not used yet!
         if(country_code!=None):
             self.cmd = self.cmd + ("\ncountry_code=%s" % country_code) # the country code
+            
+        config = ap.params['config']
+        if(config!=[]):
+            config = ap.params['config'].split(',')
+            ap.params.pop("config", None)
+            for conf in config:
+                self.cmd = self.cmd + "\n" + conf
         
         if(ap.n_ssids) > 1:
             i = 1

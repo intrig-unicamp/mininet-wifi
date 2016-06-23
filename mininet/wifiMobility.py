@@ -12,7 +12,7 @@ from mininet.wifiMobilityModels import gauss_markov, \
     truncated_levy_walk, random_direction, random_waypoint, random_walk, reference_point_group, tvc
 from mininet.wifiChannel import channelParameters
 from mininet.wifiAssociationControl import associationControl
-from mininet.wifiMeshRouting import pairingNodes, meshRouting
+from mininet.wifiMeshRouting import listNodes, meshRouting
 from mininet.wifiPlot import plot
         
 class mobility ( object ):    
@@ -224,28 +224,25 @@ class mobility ( object ):
     @classmethod                
     def parameters(self):
         while self.continue_:
-            pairingNodes.ssid_ID = 0
+            listNodes.ssid_ID = 0
             for node in self.staList: 
                 for wlan in range(0, len(node.params['wlan'])):
                     if node.func[wlan] != 'mesh' and node.func[wlan] != 'adhoc':    
                         self.nodeParameter(node, wlan)
                     elif node.func[wlan] == 'mesh' :
-                        dist = pairingNodes.pairing(node, wlan, self.staList)
+                        dist = listNodes.pairingNodes(node, wlan, self.staList)
                         if dist!=0:
                             channelParameters(node, None, wlan, dist, self.staList, 0)
                     else:
                         if dist!=0:
                             channelParameters(node, None, wlan, dist, self.staList, 0)
             if meshRouting.routing == 'custom':
-                for node in mobility.staList:    
+                for node in mobility.staList:       
                     for wlan in range(0, len(node.params['wlan'])):
                         if node.func[wlan] == 'mesh':
-                            """Mesh Routing"""
-                            try:               
-                                meshRouting(node, wlan, self.staList)    
-                            except:
-                                pass
-                pairingNodes.clearList()  
+                            """Mesh Routing"""                    
+                            meshRouting.customMeshRouting(node, wlan, self.staList)    
+                listNodes.clearList()   
             #have to verify this
             time.sleep(0.01)     
     

@@ -117,8 +117,8 @@ from mininet.wifiModule import module
 from mininet.wifiPlot import plot
 from mininet.wifiReport import report
 from mininet.wifiPropagationModels import propagationModel_
-from mininet.wifiMeshRouting import meshRouting
 from mininet.wifiAdHocConnectivity import pairingAdhocNodes
+from mininet.wifiMeshRouting import listNodes, meshRouting
 
 sys.path.append(str(os.getcwd())+'/mininet/')
 from sumo.runner import sumo
@@ -177,6 +177,7 @@ class Mininet( object ):
         self.waitConn = waitConnected       
         self.start_time = -1 #start mobility time
         self.set_seed = 10
+        self.routing = ''
         self.nroads = 0
         self.firstAssociation = True
         self.ifaceConfigured = False
@@ -612,7 +613,8 @@ class Mininet( object ):
         defaults['antennaHeight'] = []   
         defaults['mode'] = []
         defaults['mac'] = []
-        defaults['wlan'] = []     
+        defaults['wlan'] = []
+        defaults['config'] = []
         defaults.update( params )       
         
         if not cls:
@@ -873,10 +875,8 @@ class Mininet( object ):
         ssid = ("%s" % params['ssid'])
         if(ssid!="{}"):
             sta.ssid[wlan] = ssid
-            sta.params['associatedTo'][wlan] = ssid
         else:
             sta.ssid[wlan] = 'meshNetwork'
-            sta.params['associatedTo'][wlan] = 'meshNetwork'
         
         value = deviceRange(sta)
         sta.range = value.range-15
@@ -919,6 +919,10 @@ class Mininet( object ):
                                   '/%s' % self.prefixLen}
         options.update( params )  
         
+        sta.params['cell'] = []
+        for wlan in range(0,len(sta.params['wlan'])):
+            sta.params['cell'].append('')
+        
         ip = ("%s" % params.pop('ip', {}))
         if sta.ifaceToAssociate == 0 and ip!="{}":
             sta.params.update(options)
@@ -931,8 +935,8 @@ class Mininet( object ):
                 sta.params['channel'][wlan] = int(channel)
         else:
             if sta.params['channel'][wlan] == '':
-                sta.params['channel'][wlan] = 1
-            
+                sta.params['channel'][wlan] = 1     
+                   
         mode = ("%s" % params.pop('mode', {}))
         if(mode!="{}"):
             if sta.params['mode'][wlan] == '':
@@ -947,8 +951,7 @@ class Mininet( object ):
             sta.params['associatedTo'][wlan] = ssid
         else:
             sta.ssid[sta.ifaceToAssociate] = 'adhocNetwork'
-            sta.params['associatedTo'][wlan] = 'adhocNetwork'
-        
+            sta.params['associatedTo'][wlan] = 'adhocNetwork'        
             
         value = deviceRange(sta)
         sta.range = value.range-15
@@ -1381,7 +1384,7 @@ class Mininet( object ):
                     options.setdefault( 'intfName1', iface )
                     cls = self.link if cls is None else cls
                     cls( s, 'alone', **options )        
-                    
+        self.configHosts()                  
         if self.ifaceConfigured == False:    
             for node in self.missingStations:
                 mobility.getAPsInRange(node)
@@ -1405,7 +1408,11 @@ class Mininet( object ):
                         value = pairingAdhocNodes(sta, wlan, self.stations)
                         dist = value.dist
                         if dist!=0:
-                            channelParameters(sta, None, wlan, dist, self.stations, 0)                        
+                            channelParameters(sta, None, wlan, dist, self.stations, 0)
+                    elif sta.params['position'] != (0,0,0) and sta.func[wlan] == 'mesh':
+                        dist = listNodes.pairingNodes(sta, wlan, self.stations)
+                        if dist!=0:
+                            channelParameters(sta, None, wlan, dist, self.stations, 0)                                                                           
                     else:
                         if sta.params['position'] != (0,0,0) and sta.params['associatedTo'][wlan] != '':
                             dist = channelParameters.getDistance(sta, sta.params['associatedTo'][wlan])
@@ -1415,7 +1422,7 @@ class Mininet( object ):
                             print "associating %s to %s..." % (iface, sta.ssid[wlan])
                             sta.pexec('iw dev %s ibss join %s 2412' % (iface, \
                                                                          sta.params['associatedTo'][wlan])) 
-                            self.confirmAdhocAssociation(sta, iface, wlan)
+                            self.confirmAdhocAssociation(sta, iface, wlan)                            
             
             #for node in self.missingStations:
             for sta in self.stations:
@@ -1435,6 +1442,7 @@ class Mininet( object ):
                         if sta.params['mac'][wlan] == '':
                             sta.params['mac'][wlan] = self.getMacAddress(sta, wlan)
         
+        
         if self.topo:
             self.buildFromTopo( self.topo )
         if self.firstAssociation:
@@ -1442,7 +1450,7 @@ class Mininet( object ):
         if self.inNamespace:
             self.configureControlNetwork()
             info( '*** Configuring hosts\n' )       
-        self.configHosts()
+        self.configHosts()                
         if self.xterms:
             self.startTerms()
         if self.autoStaticArp:
@@ -1725,6 +1733,15 @@ class Mininet( object ):
             output( "rtt min/avg/max/mdev %0.3f/%0.3f/%0.3f/%0.3f ms\n" %
                     (rttmin, rttavg, rttmax, rttdev) )
         return all_outputs
+    
+    #def checkAdHocConn( self, node1, node2 ):
+    #    """Ping between all hosts.
+    #       returns: ploss packet loss percentage"""
+    #    
+    #    dist = channelParameters.getDistance(node1, node2)
+    #    totalRange = int(node1.params['range']) + int(node2.params['range'])
+    #    if dist < totalRange:            
+    #        return node1.cmdPrint('ping %s' % node2)
 
     def pingAll( self, timeout=None ):
         """Ping between all hosts.

@@ -194,15 +194,14 @@ class CLI( Cmd ):
             output( str( e ) + '\n' )
 
     # pylint: enable=broad-except,exec-used
+    
+    def do_checkAdHocConn( self, node1, node2 ):
+        "Ping between all hosts."
+        self.mn.pingAll( node1, node2 )
 
     def do_pingall( self, line ):
         "Ping between all hosts."
         self.mn.pingAll( line )
-
-    #def do_wireless( self, line ):
-    #    "Ping between all hosts."
-        #self.mn.pingAll( line )
-    #    self.mn.wireless_message( )
 
     def do_pingpair( self, _line ):
         "Ping between first two hosts, useful for testing."
