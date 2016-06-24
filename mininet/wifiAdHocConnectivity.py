@@ -2,26 +2,26 @@
 author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
         ramonfontes.com
 """
-
+ 
 from mininet.wifiChannel import channelParameters
-
+ 
 class pairingAdhocNodes ( object ):
-    
+     
     ssid_ID = 0
     dist = 0
-        
+         
     def __init__( self, sta, wlan, stationList ):
         """ init """
         self.pairing(sta, wlan, stationList)           
-    
+     
     def pairing(self, sta, wlan, stationList):
         """Pairing nodes"""
         i=1
         ref_distance = 0
-        self.dist = 0        
-  
+        self.dist = 0       
+   
         alreadyConn = []
-
+ 
         for ref_sta in stationList:
             if ref_sta != sta:
                 dist = channelParameters.getDistance(sta, ref_sta)
@@ -62,13 +62,13 @@ class pairingAdhocNodes ( object ):
                     if ref_sta.params['cell'][wlan] == sta.params['cell'][wlan]:
                         ref_sta.params['cell'][wlan] = ''
         self.ssid_ID+=1
-        
+         
         self.dist = ref_distance / i
         return self.dist
-    
+     
     #def confirmAdhocAssociation(self, sta, iface, wlan):
     #    associated = ''
     #    while(associated == '' or len(associated) == 0):
     #        sta.sendCmd("iw dev %s scan ssid | grep %s" % (iface, sta.ssid[wlan]))
     #        associated = sta.waitOutput()
-    #    sta.params['frequency'][wlan] = channelParameters.frequency(sta, wlan) 
+    #    sta.params['frequency'][wlan] = channelParameters.frequency(sta, wlan)

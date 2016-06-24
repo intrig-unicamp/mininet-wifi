@@ -1422,7 +1422,14 @@ class Mininet( object ):
                             print "associating %s to %s..." % (iface, sta.ssid[wlan])
                             sta.pexec('iw dev %s ibss join %s 2412' % (iface, \
                                                                          sta.params['associatedTo'][wlan])) 
-                            self.confirmAdhocAssociation(sta, iface, wlan)                            
+                            self.confirmAdhocAssociation(sta, iface, wlan)
+            if meshRouting.routing == 'custom':
+                for node in self.stations:       
+                    for wlan in range(0, len(node.params['wlan'])):
+                        if node.func[wlan] == 'mesh':
+                            """Mesh Routing"""
+                            meshRouting.customMeshRouting(node, wlan, self.stations)
+                listNodes.clearList()                
             
             #for node in self.missingStations:
             for sta in self.stations:

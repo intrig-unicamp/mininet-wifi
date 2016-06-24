@@ -214,7 +214,7 @@ class Intf( object ):
                 self.sta.cmd('ifconfig %s-mp%s down' % (self.sta, wlan))
                 self.sta.cmd('ip link set %s-mp%s address %s' % (self.sta, wlan, self.sta.params['mac'][wlan]))
             self.sta.cmd('ifconfig %s-mp%s up' % (self.sta, wlan))
-            self.sta.cmd('iw dev %s-mp%s mesh join %s' % (self.sta, wlan, ssid))
+            #self.sta.cmd('iw dev %s-mp%s mesh join %s' % (self.sta, wlan, ssid))
             self.sta.cmd('ifconfig %s-wlan%s down' % (self.sta, wlan))
             iface = '%s-mp%s' % (self.sta, wlan)
             self.sta.params['wlan'][wlan] = iface

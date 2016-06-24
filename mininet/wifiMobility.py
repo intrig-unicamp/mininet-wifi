@@ -240,9 +240,9 @@ class mobility ( object ):
                 for node in mobility.staList:       
                     for wlan in range(0, len(node.params['wlan'])):
                         if node.func[wlan] == 'mesh':
-                            """Mesh Routing"""                    
-                            meshRouting.customMeshRouting(node, wlan, self.staList)    
-                listNodes.clearList()   
+                            """Mesh Routing"""
+                            meshRouting.customMeshRouting(node, wlan, self.staList)
+                listNodes.clearList()
             #have to verify this
             time.sleep(0.01)     
     
