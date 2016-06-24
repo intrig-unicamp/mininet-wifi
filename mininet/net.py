@@ -332,18 +332,15 @@ class Mininet( object ):
                 node.params['channel'].append(1)
       
         #Range
-        self.range = ("%s" % params.pop('range', {}))
-        if(self.range!="{}"):
-            node.range = int(self.range)
-            node.params['range'] = int(self.range)
+        range_ = ("%s" % params.pop('range', {}))
+        if(range_!="{}"):
+            node.params['range'] = int(range_)
         else:            
             if node.type == 'accessPoint': 
                 value = deviceRange(node)    
-                node.range = value.range  
                 node.params['range'] = value.range  
             else:
                 value = deviceRange(node)    
-                node.range = value.range - 15
                 node.params['range'] = value.range - 15
                 
         equipmentModel = ("%s" % params.pop('equipmentModel', {}))
@@ -879,7 +876,6 @@ class Mininet( object ):
             sta.ssid[wlan] = 'meshNetwork'
         
         value = deviceRange(sta)
-        sta.range = value.range-15
         
         value = deviceDataRate(None, sta, None)
         self.bw = value.rate        
@@ -954,7 +950,6 @@ class Mininet( object ):
             sta.params['associatedTo'][wlan] = 'adhocNetwork'        
             
         value = deviceRange(sta)
-        sta.range = value.range-15
             
         value = deviceDataRate(None, sta, None)
         self.bw = value.rate
@@ -1194,7 +1189,7 @@ class Mininet( object ):
                 if sta.params['position'][0] != 0 or sta.params['position'][1] != 0:
                     if ap.params['position'][0] !=0 or ap.params['position'][1] !=0:
                         dist = channelParameters.getDistance(sta, ap)
-                        if dist > ap.range:
+                        if dist > ap.params['range']:
                             doAssociation = False
                         else:
                             doAssociation = True
@@ -1362,7 +1357,6 @@ class Mininet( object ):
         #useful if there no link between sta and any other device
         "Build mininet."
         Node.isCode=True
-        
         for switch in self.switches:
             if switch in self.missingWlanAP:
                 cls = None
@@ -1412,7 +1406,11 @@ class Mininet( object ):
                     elif sta.params['position'] != (0,0,0) and sta.func[wlan] == 'mesh':
                         dist = listNodes.pairingNodes(sta, wlan, self.stations)
                         if dist!=0:
-                            channelParameters(sta, None, wlan, dist, self.stations, 0)                                                                           
+                            channelParameters(sta, None, wlan, dist, self.stations, 0)
+                    elif sta.params['position'] == (0,0,0) and sta.func[wlan] == 'mesh':
+                        iface = sta.params['wlan'][wlan]
+                        print "associating %s to %s..." % (iface, sta.ssid[wlan])
+                        sta.pexec('iw dev %s mesh join %s' % (iface, sta.ssid[wlan]))                                                          
                     else:
                         if sta.params['position'] != (0,0,0) and sta.params['associatedTo'][wlan] != '':
                             dist = channelParameters.getDistance(sta, sta.params['associatedTo'][wlan])
@@ -1447,8 +1445,7 @@ class Mininet( object ):
                         if sta.params['position'] != (0,0,0) and sta.params['associatedTo'][wlan] != '':   
                             mobility.nodeParameter(sta, wlan)
                         if sta.params['mac'][wlan] == '':
-                            sta.params['mac'][wlan] = self.getMacAddress(sta, wlan)
-        
+                            sta.params['mac'][wlan] = self.getMacAddress(sta, wlan)        
         
         if self.topo:
             self.buildFromTopo( self.topo )

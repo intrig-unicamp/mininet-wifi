@@ -217,8 +217,7 @@ class Intf( object ):
             #self.sta.cmd('iw dev %s-mp%s mesh join %s' % (self.sta, wlan, ssid))
             self.sta.cmd('ifconfig %s-wlan%s down' % (self.sta, wlan))
             iface = '%s-mp%s' % (self.sta, wlan)
-            self.sta.params['wlan'][wlan] = iface
-            print "associating %s to %s..." % (iface, ssid)
+            self.sta.params['wlan'][wlan] = iface            
             self.confirmMeshAssociation(self.sta, wlan)    
             self.getMacAddress(self.sta, iface, wlan)
             #self.sta.params['associatedTo'][wlan] = ssid

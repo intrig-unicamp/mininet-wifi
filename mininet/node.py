@@ -104,7 +104,6 @@ class Node( object ):
         self.nameToIntf = {}  # dict of interface names to Intfs
         
         # Station and BaseStation Parameters
-        self.range = 0
         self.ssid = []
         self.passwd = ''
         self.security = ''
@@ -208,7 +207,7 @@ class Node( object ):
                 associate = False
                 for station in mobility.staList:
                     d = channelParameters.getDistance(sta, station)
-                    if d < sta.range + station.range:
+                    if d < int(sta.params['range']) + int(station.params['range']):
                         associate = True
                 channelParameters(sta, None, wlan, 0, mobility.staList, 0)
                 if associate == False:
@@ -267,12 +266,14 @@ class Node( object ):
                 % (sta, wlan, ssid, passwd))
                 
     def setRange(self, _range):
-        self.range = _range
-        if mobility.DRAW:
-            plot.updateCircleRadius(self)
-            plot.graphUpdate(self)
-        node = self
-        self.verifyingNodes(node)
+        self.params['range'] = _range
+        try:
+            if mobility.DRAW:
+                plot.updateCircleRadius(self)
+                plot.graphUpdate(self)
+        except:
+            pass
+        self.verifyingNodes(self)
         
     def moveStationTo(self, pos):
         pos = pos.split(',')
@@ -310,7 +311,7 @@ class Node( object ):
                 ap = mobility.apList[n]
                 break
         d = channelParameters.getDistance(self, ap)
-        if d < self.range + ap.range:
+        if d < int(self.params['range']) + int(ap.params['range']):
             if self.params['associatedTo'][wlan] != ap:
                 if self.params['associatedTo'][wlan] != 'none':
                     self.cmd('iw dev %s disconnect' % iface)

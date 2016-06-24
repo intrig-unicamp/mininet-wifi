@@ -107,7 +107,7 @@ class plot (object):
         
     @classmethod
     def updateCircleRadius(self, node):
-        self.pltCircle[node].set_radius(node.range)
+        self.pltCircle[node].set_radius(node.params['range'])
     
     @classmethod
     def instantiateCircle(self, node):
@@ -120,7 +120,7 @@ class plot (object):
         
         self.pltCircle[node] = ax.add_patch(
             patches.Circle((0, 0),
-            node.range, fill=True, alpha=0.1, color=color
+            node.params['range'], fill=True, alpha=0.1, color=color
             )
         )
         

@@ -207,7 +207,7 @@ class mobility ( object ):
     def getAPsInRange(self, sta):
         for ap in mobility.apList:
             dist = channelParameters.getDistance(sta, ap)
-            if dist < ap.range:
+            if dist < ap.params['range']:
                 if ap not in sta.params['apsInRange']:
                     sta.params['apsInRange'].append(ap)
             else:
@@ -254,7 +254,7 @@ class mobility ( object ):
         staList = self.staList
         
         if ap == sta.params['associatedTo'][wlan]:            
-            if dist > ap.range:  
+            if dist > ap.params['range']:  
                 debug('\niw dev %s disconnect' % sta.params['wlan'][wlan])
                 sta.pexec('iw dev %s disconnect' % sta.params['wlan'][wlan])
                 sta.params['associatedTo'][wlan] = ''
@@ -264,12 +264,12 @@ class mobility ( object ):
             else:
                 channelParameters(sta, ap, wlan, dist, staList, 0)
         else:  
-            if dist < ap.range:  
+            if dist < ap.params['range']:  
                 if sta.params['associatedTo'][wlan] == '':
                     associated = False
             else:
                 associated = False
-        if ap == sta.params['associatedTo'][wlan] or dist < ap.range:
+        if ap == sta.params['associatedTo'][wlan] or dist < ap.params['range']:
             changeAP = False
             ac = None
             sta.params['frequency'][wlan] = channelParameters.frequency(ap, 0)
