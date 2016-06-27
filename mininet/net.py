@@ -1407,6 +1407,7 @@ class Mininet( object ):
                         dist = listNodes.pairingNodes(sta, wlan, self.stations)
                         if dist!=0:
                             channelParameters(sta, None, wlan, dist, self.stations, 0)
+                        self.confirmMeshAssociation(sta, wlan)
                     elif sta.params['position'] == (0,0,0) and sta.func[wlan] == 'mesh':
                         iface = sta.params['wlan'][wlan]
                         print "associating %s to %s..." % (iface, sta.ssid[wlan])
@@ -1460,6 +1461,9 @@ class Mininet( object ):
         if self.autoStaticArp:
             self.staticArp()            
         self.built = True
+        
+    def confirmMeshAssociation(self, sta, wlan):
+        sleep (0.5) #Have to check it
         
     def confirmAdhocAssociation(self, sta, iface, wlan):
         associated = ''

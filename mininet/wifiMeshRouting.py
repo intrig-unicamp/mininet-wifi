@@ -29,7 +29,8 @@ class listNodes ( object ):
         cont = True
          
         list = []   
-        list.append(sta)
+        list.append(sta)        
+        currentSta = sta
          
         while cont:
             if len(par) != 0:
@@ -43,8 +44,9 @@ class listNodes ( object ):
                         if dist < totalRange:
                             cont= True
                             ref_distance = ref_distance + dist
-                            listNodes.nodesX.append(sta)
-                            listNodes.nodesY.append(ref_sta)  
+                            if currentSta == sta:
+                                listNodes.nodesX.append(sta)
+                                listNodes.nodesY.append(ref_sta)  
                             ssid = sta.params['associatedTo'][wlan]
                             ref_ssid = ref_sta.params['associatedTo'][wlan]
                             if ssid != ref_ssid or ssid == sta.ssid[wlan] or ssid == '' or ref_ssid == '':
@@ -58,7 +60,6 @@ class listNodes ( object ):
                                                                                                 sta not in alreadyConn: 
                                         alreadyConn.append(sta)
                                         sta.params['associatedTo'][wlan] = sta.ssid[wlan] + str(self.ssid_ID)
-                                        sta.pexec('ifconfig %s up' % sta.params['wlan'][wlan])
                                         sta.pexec('iw dev %s mesh join %s' % (sta.params['wlan'][wlan], sta.params['associatedTo'][wlan]))
                                 if ref_sta not in alreadyConn:
                                     alreadyConn.append(ref_sta)
@@ -88,7 +89,7 @@ class meshRouting ( object ):
         for ref_sta in stationList:
             if ref_sta != sta and ref_sta.func[wlan] == 'mesh' :
                 dist = channelParameters.getDistance(sta, ref_sta)                            
-                totalRange = sta.range + ref_sta.range
+                totalRange = int(sta.params['range']) + int(ref_sta.params['range'])
                 if dist < totalRange:
                     for w in range(len(ref_sta.params['wlan'])):
                         if ref_sta.func[w] == 'mesh':
@@ -108,7 +109,6 @@ class meshRouting ( object ):
                     break      
                 else:
                     newsta = sta_ref[0]
-                 
                 for x, y in zip(listNodes.nodesX, listNodes.nodesY):
                     if x == sta and y not in exist:
                         command = 'iw dev %s mpath new %s next_hop %s' % (sta.params['wlan'][wlan], y.meshMac[wlan], y.meshMac[wlan])
@@ -127,10 +127,11 @@ class meshRouting ( object ):
          
         """delete all unknown paths"""
         if associate:
-            for y in stationList:
-                for w in range(len(y.params['wlan'])):
-                    if y.meshMac[w] not in controlMeshMac:
-                        sta.pexec('iw dev %s mpath del %s' % (sta.params['wlan'][wlan], y.meshMac[w]))        
+            for ref_sta in stationList:
+                for w in range(len(ref_sta.params['wlan'])):
+                    if ref_sta != sta and ref_sta.func[w] == 'mesh' :
+                        if ref_sta.meshMac[w] not in controlMeshMac:
+                            sta.pexec('iw dev %s mpath del %s' % (sta.params['wlan'][wlan], ref_sta.meshMac[w]))        
              
         """mesh leave"""
         if associate == False:
