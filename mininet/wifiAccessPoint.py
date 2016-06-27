@@ -77,12 +77,13 @@ class accessPoint( object ):
         if(country_code!=None):
             self.cmd = self.cmd + ("\ncountry_code=%s" % country_code) # the country code
             
-        config = ap.params['config']
-        if(config!=[]):
-            config = ap.params['config'].split(',')
-            ap.params.pop("config", None)
-            for conf in config:
-                self.cmd = self.cmd + "\n" + conf
+        if 'config' in ap.params.keys():
+            config = ap.params['config']
+            if(config!=[]):
+                config = ap.params['config'].split(',')
+                ap.params.pop("config", None)
+                for conf in config:
+                    self.cmd = self.cmd + "\n" + conf
         
         if(ap.n_ssids) > 1:
             i = 1
