@@ -23,7 +23,7 @@ def topology():
     for n in range(10):
 	staList.append(n)
 	staList[n] = net.addStation( 'sta%s' % (n+1), wlans=2, mac='00:00:00:00:00:%s' % (n+1), ip='192.168.0.%s/24' % (n+1) )
-    phyap1 = net.addPhysicalBaseStation( 'phyap1', protocols='OpenFlow13', ssid= 'ap-ssid1', mode= 'g', channel= '1', position='50,115,0', phywlan='wlan11' )
+    phyap1 = net.addPhysicalBaseStation( 'phyap1', protocols='OpenFlow13', ssid= 'ap-ssid1', mode= 'g', channel= '1', position='50,115,0', phywlan='wlan1' )
     ap2 = net.addBaseStation( 'ap2', protocols='OpenFlow13', ssid= 'ap-ssid2', mode= 'g', channel= '11', position='100,175,0' )
     ap3 = net.addBaseStation( 'ap3', protocols='OpenFlow13', ssid= 'ap-ssid3', mode= 'g', channel= '6', position='150,115,0' )
     ap4 = net.addBaseStation( 'ap4', protocols='OpenFlow13', ssid= 'ap-ssid4', mode= 'g', channel= '6', position='100,55,0' )
@@ -99,9 +99,6 @@ def startNAT( root, inetIntf='wlan0', subnet='10.0/8', localIntf = None ):
     if localIntf == None:
         localIntf =  root.defaultIntf()
  
-
-    #root.cmdPrint('ifconfig root-eth0')
-
     # Flush any currently active rules
     root.cmd( 'iptables -F' )
     root.cmd( 'iptables -t nat -F' )
