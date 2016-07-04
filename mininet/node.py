@@ -642,7 +642,7 @@ class Node( object ):
         connections = []
         for intf in self.intfList():
             link = intf.link
-            if link:
+            if link and link.intf2 != None:
                 node1, node2 = link.intf1.node, link.intf2.node
                 if node1 == self and node2 == node:
                     connections += [ ( intf, link.intf2 ) ]
