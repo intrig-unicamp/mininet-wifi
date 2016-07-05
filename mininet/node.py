@@ -706,7 +706,7 @@ class Node( object ):
            ip: IP address as a string
            prefixLen: prefix length, e.g. 8 for /8 or 16M addrs
            kwargs: any additional arguments for intf.setIP"""
-        if intf != None and self.type == 'stations':
+        if intf != None and self.type == 'station':
             wlan = int(intf[-1:])
             self.params['ip'][wlan] = ip
         return self.intf( intf ).setIP( ip, prefixLen, **kwargs )
