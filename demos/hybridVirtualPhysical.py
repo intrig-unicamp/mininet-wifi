@@ -4,8 +4,19 @@
    "Rich Experimentation through Hybrid Physical-Virtual Software-Defined Wireless Networking Emulation" 
    authors: Ramon dos Reis Fontes and Christian Esteve Rothenberg"""
 
+"""Topology
+        
+             (2)ap2(3)
+            /         \
+          (3)          (2)
+wlan1(2)phyap1          ap3(4)wlan0
+          (4)          (3) 
+            \          /
+             (3)ap4(2)          """
+
+
 from mininet.net import Mininet
-from mininet.node import RemoteController,OVSKernelSwitch, Controller, UserSwitch
+from mininet.node import RemoteController, OVSKernelSwitch, UserSwitch
 from mininet.link import TCLink
 from mininet.cli import CLI
 from mininet.node import Node
@@ -18,6 +29,7 @@ def topology():
     "Create a network."
     net = Mininet( controller=RemoteController, link=TCLink, switch=UserSwitch )
     staList = []
+    internetIface = 'wlan0'
 
     print "*** Creating nodes"
     for n in range(10):
@@ -29,7 +41,7 @@ def topology():
     ap4 = net.addBaseStation( 'ap4', protocols='OpenFlow13', ssid= 'ap-ssid4', mode= 'g', channel= '6', position='100,55,0' )
     sta11 = net.addStation( 'sta11', ip='10.0.0.111/8', position='120,200,0')
     c1 = net.addController( 'c1', controller=RemoteController, port=6653 )
-    root = Node( 'root', inNamespace=False )
+    root = net.addHost( 'root', ip='10.0.0.254/8', inNamespace=False )
 
     print "*** Creating links"
     for sta in staList:
@@ -50,15 +62,12 @@ def topology():
     net.addLink(sta11, ap2)
     net.addLink(ap3, ap4)
     net.addLink(ap4, phyap1)
-    link = net.addLink( root, ap3 )
-    link.intf1.setIP( '10.254', 8 )
+    net.addLink(root, ap3)
 
-    """Adding datapath"""
-    net.addOfDataPath('ap3', 'wlan0')
+    startNAT(root, internetIface)
 
     print "*** Starting network"
     net.build()
-
     c1.start()
     phyap1.start( [c1] )
     ap2.start( [c1] )
@@ -70,9 +79,8 @@ def topology():
     ap3.cmd('dpctl unix:/tmp/ap3 meter-mod cmd=add,flags=1,meter=1 drop:rate=100')
     ap3.cmd('dpctl unix:/tmp/ap3 flow-mod table=0,cmd=add in_port=4,eth_type=0x800,ip_dst=10.0.0.100, meter:1 apply:output=flood')
 
-    startNAT( root )
     sta11.cmd('ip route add default via 10.0.0.254')
-    sta11.cmd('pushd /homt/alpha; python3 -m http.server 80 &')
+    sta11.cmd('pushd /home/fontes; python3 -m http.server 80 &')
 
     ip = 201
     for sta in staList:
@@ -89,7 +97,7 @@ def topology():
     print "*** Stopping network"
     net.stop()
 
-def startNAT( root, inetIntf='wlan0', subnet='10.0/8', localIntf = None ):
+def startNAT( root, inetIntf, subnet='10.0/8', localIntf = None ):
     """Start NAT/forwarding between Mininet and external network
     root: node to access iptables from
     inetIntf: interface for internet access
