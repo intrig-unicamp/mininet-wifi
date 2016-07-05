@@ -507,7 +507,7 @@ class Link( object ):
                         link=self, mac=addr1, **params1 )
             else:
                 params2[ 'port' ] = node2.newPort()
-       
+        
         if not intfName1:
             if node1.type=='station' and str(node2) != 'mesh':
                 ifacename = 'wlan'

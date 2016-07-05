@@ -195,7 +195,6 @@ class Mininet( object ):
         self.links = []
         self.missingStations = []
         self.missingWlanAP = []
-        self.missingDataPath = {}
         self.newapif = []
         self.wifiNodes = []
         self.switches = []
@@ -473,7 +472,7 @@ class Mininet( object ):
                     sta.params['ip'][n] = ip[n]
         elif self.autoSetMacs:
             for n in range(0, wifi):
-                sta.params['ip'].append('0')
+                sta.params['ip'].append('0/0')
                 sta.params['ip'][n] = defaults[ 'ip' ]
         else:
             try:
@@ -484,7 +483,6 @@ class Mininet( object ):
                 sta.params['ip'].append(defaults[ 'ip' ])
                 for n in range(1, wifi):
                     sta.params['ip'].append('0/0')
-        
         mobility.staList.append( sta )
         self.nextIP += 1        
         return sta
@@ -573,7 +571,7 @@ class Mininet( object ):
                     sta.params['ip'][n] = ip[n]
         elif self.autoSetMacs:
             for n in range(0, wifi):
-                sta.params['ip'].append('0')
+                sta.params['ip'].append('0/0')
                 sta.params['ip'][n] = defaults[ 'ip' ]
         else:
             try:
@@ -778,9 +776,6 @@ class Mininet( object ):
                 if host.inNamespace:
                     host.setDefaultRoute( 'via %s' % natIP )
         return nat
-
-    def addOfDataPath(self, node, iface):
-        self.missingDataPath[node] = iface
 
     # BL: We now have four ways to look up nodes
     # This may (should?) be cleaned up in the future.
@@ -1357,6 +1352,7 @@ class Mininet( object ):
         #useful if there no link between sta and any other device
         "Build mininet."
         Node.isCode=True
+        
         for switch in self.switches:
             if switch in self.missingWlanAP:
                 cls = None
@@ -1367,18 +1363,8 @@ class Mininet( object ):
                     iface = switch.params.get('phywlan')
                     options = dict(  )
                     options.setdefault( 'intfName1', iface )
-                    cls( switch, 'alone', **options )                                
-        
-        for switch in self.missingDataPath:
-            for s in self.switches:
-                if str(s) == switch:
-                    iface = self.missingDataPath[switch]
-                    cls = None
-                    options = dict(  )
-                    options.setdefault( 'intfName1', iface )
-                    cls = self.link if cls is None else cls
-                    cls( s, 'alone', **options )        
-        self.configHosts()                  
+                    cls( switch, 'alone', **options )        
+   
         if self.ifaceConfigured == False:    
             for node in self.missingStations:
                 mobility.getAPsInRange(node)
