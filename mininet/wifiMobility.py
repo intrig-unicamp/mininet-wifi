@@ -14,10 +14,10 @@ from mininet.wifiChannel import channelParameters
 from mininet.wifiAssociationControl import associationControl
 from mininet.wifiMeshRouting import listNodes, meshRouting
 from mininet.wifiPlot import plot
-        
-class mobility ( object ):    
-    """ Mobility """          
-    
+
+class mobility (object):
+    """ Mobility """
+
     MAX_X = 50
     MAX_Y = 50
     moveFac = {}
@@ -29,33 +29,33 @@ class mobility ( object ):
     wallList = []
     DRAW = False
     continue_ = True
-    
-    @classmethod   
-    def moveFactor(self, sta, diffTime, initialPosition, finalPosition):      
+
+    @classmethod
+    def moveFactor(self, sta, diffTime, initialPosition, finalPosition):
         """
             Moving nodes
             diffTime: important to calculate the speed  
         """
         self.initialPosition[sta] = initialPosition
         self.finalPosition[sta] = finalPosition
-        
+
         sta.params['position'] = initialPosition
         pos_x = float(finalPosition[0]) - float(initialPosition[0])
         pos_y = float(finalPosition[1]) - float(initialPosition[1])
         pos_z = float(finalPosition[2]) - float(initialPosition[2])
-        
-        self.nodeSpeed(sta, pos_x, pos_y, pos_z, diffTime) 
-        
-        pos = '%.5f,%.5f,%.5f' % (pos_x/diffTime, pos_y/diffTime, pos_z/diffTime)
+
+        self.nodeSpeed(sta, pos_x, pos_y, pos_z, diffTime)
+
+        pos = '%.5f,%.5f,%.5f' % (pos_x / diffTime, pos_y / diffTime, pos_z / diffTime)
         pos = pos.split(',')
         self.moveFac[sta] = pos
-        return pos    
-        
-    @classmethod  
+        return pos
+
+    @classmethod
     def nodeSpeed(self, sta, pos_x, pos_y, pos_z, diffTime):
-        sta.params['speed'] = ((pos_x + pos_y + pos_z)/diffTime) 
-  
-    @classmethod  
+        sta.params['speed'] = ((pos_x + pos_y + pos_z) / diffTime)
+
+    @classmethod
     def handover(self, sta, ap, wlan, distance, changeAP, ac=None):
         """handover"""
         if ac == 'llf' or ac == 'ssf' and sta.params['associatedTo'][wlan] != ap:
@@ -63,52 +63,52 @@ class mobility ( object ):
                 sta.params['associatedTo'][wlan].associatedStations.remove(sta)
             sta.pexec('iw dev %s disconnect' % sta.params['wlan'][wlan])
             debug ('\niwconfig %s essid %s ap %s' % (sta.params['wlan'][wlan], ap.ssid[0], ap.params['mac']))
-            sta.pexec('iwconfig %s essid %s ap %s' % (sta.params['wlan'][wlan], ap.ssid[0], ap.params['mac']))            
+            sta.pexec('iwconfig %s essid %s ap %s' % (sta.params['wlan'][wlan], ap.ssid[0], ap.params['mac']))
             sta.params['associatedTo'][wlan] = ap
             sta.params['frequency'][wlan] = channelParameters.frequency(ap, 0)
             ap.associatedStations.append(sta)
         elif ap not in sta.params['associatedTo']:
-            #Useful for stations with more than one wifi iface
+            # Useful for stations with more than one wifi iface
             if sta.params['associatedTo'][wlan] == '':
                 debug('\niwconfig %s essid %s ap %s' % (sta.params['wlan'][wlan], ap.ssid[0], ap.params['mac']))
                 sta.pexec('iwconfig %s essid %s ap %s' % (sta.params['wlan'][wlan], ap.ssid[0], ap.params['mac']))
                 sta.params['frequency'][wlan] = channelParameters.frequency(ap, 0)
                 ap.associatedStations.append(sta)
-                sta.params['associatedTo'][wlan] = ap 
-        
-    @classmethod 
+                sta.params['associatedTo'][wlan] = ap
+
+    @classmethod
     def graphInstantiateNodes(self, node):
         plot.instantiateAnnotate(node)
         plot.instantiateCircle(node)
         plot.instantiateNode(node, self.MAX_X, self.MAX_Y)
-        plot.graphUpdate(node)  
-    
-    @classmethod 
+        plot.graphUpdate(node)
+
+    @classmethod
     def mobilityPositionDefined(self, initial_time, final_time, staMov):
-        """ ongoing Mobility """        
+        """ ongoing Mobility """
         t_end = time.time() + final_time
         t_initial = time.time() + initial_time
         currentTime = time.time()
-        i=1
-        
+        i = 1
+
         if self.DRAW == True:
             debug('Enabling Graph...\n')
             plot.instantiateGraph(self.MAX_X, self.MAX_Y)
             for sta in self.staList:
                 self.graphInstantiateNodes(sta)
                 if sta not in staMov:
-                    plot.pltNode[sta].set_data(sta.params['position'][0],sta.params['position'][1])
+                    plot.pltNode[sta].set_data(sta.params['position'][0], sta.params['position'][1])
                     plot.drawTxt(sta)
-                    plot.drawCircle(sta)           
+                    plot.drawCircle(sta)
             for ap in mobility.apList:
-                self.graphInstantiateNodes(ap)  
+                self.graphInstantiateNodes(ap)
                 for c in ap.connections:
-                    line = plot.plotLine2d([ap.connections[c].params['position'][0],ap.params['position'][0]], \
-                                           [ap.connections[c].params['position'][1],ap.params['position'][1]], 'b')
+                    line = plot.plotLine2d([ap.connections[c].params['position'][0], ap.params['position'][0]], \
+                                           [ap.connections[c].params['position'][1], ap.params['position'][1]], 'b')
                     plot.plotLine(line)
             for wall in mobility.wallList:
-                line = plot.plotLine2d([wall.params['initPos'][0],wall.params['finalPos'][0]], \
-                                           [wall.params['initPos'][1],wall.params['finalPos'][1]], 'r', 10)
+                line = plot.plotLine2d([wall.params['initPos'][0], wall.params['finalPos'][0]], \
+                                           [wall.params['initPos'][1], wall.params['finalPos'][1]], 'r', 10)
                 plot.plotLine(line)
         try:
             while time.time() < t_end and time.time() > t_initial:
@@ -121,95 +121,95 @@ class mobility ( object ):
                                 z = float(sta.params['position'][2]) + float(self.moveFac[sta][2])
                                 sta.params['position'] = x, y, z
                             for wlan in range(0, len(sta.params['wlan'])):
-                                self.nodeParameter(sta, wlan) 
+                                self.nodeParameter(sta, wlan)
                             if self.DRAW:
-                                time.sleep(0.01)
+                                plot.graphPause()
                                 plot.graphUpdate(sta)
                         i+=1
-                #have to verify this
+                # have to verify this
                 time.sleep(0.01)
         except:
-            print 'Error! Mobility stopped!'        
-    
-    @classmethod   
-    def models(self, nodes=None, model=None, max_x=None, max_y=None, min_v=None, 
+            print 'Error! Mobility stopped!'
+
+    @classmethod
+    def models(self, nodes=None, model=None, max_x=None, max_y=None, min_v=None,
                max_v=None, seed=None, staMov=None, **mobilityparam):
-        
+
         self.modelName = model
         np.random.seed(seed)
-        
+
         # number of nodes
         nr_nodes = staMov
-        
+
         # simulation area (units)
         MAX_X, MAX_Y = max_x, max_y
-        
+
         # max and min velocity
         MIN_V, MAX_V = min_v, max_v
-        
+
         # max waiting time
         MAX_WT = 100.
-        
+
         for node in nodes:
             if node.max_x == 0:
                 node.max_x = MAX_X
             if node.max_y == 0:
                 node.max_y = MAX_Y
-        
-        if(self.modelName=='RandomWalk'): ## Random Walk model            
-            mob = random_walk(nr_nodes) 
-        elif(self.modelName=='TruncatedLevyWalk'): ## Truncated Levy Walk model
-            mob = truncated_levy_walk(nr_nodes) 
-        elif(self.modelName=='RandomDirection'): ## Random Direction model            
-            mob = random_direction(nr_nodes, dimensions=(MAX_X, MAX_Y), velocity=(MIN_V, MAX_V)) 
-        elif(self.modelName=='RandomWayPoint'): ## Random Waypoint model           
-            mob = random_waypoint(nr_nodes, dimensions=(MAX_X, MAX_Y), velocity=(MIN_V, MAX_V), wt_max=MAX_WT) 
-        elif(self.modelName=='GaussMarkov'): ## Gauss-Markov model           
-            mob = gauss_markov(nr_nodes, alpha=0.99) 
-        elif(self.modelName=='ReferencePoint'): ## Reference Point Group model           
-            mob = reference_point_group(nr_nodes, dimensions=(MAX_X, MAX_Y), aggregation=0.5) 
-        elif(self.modelName=='TimeVariantCommunity'): ## Time-variant Community Mobility Model            
-            mob = tvc(nr_nodes, dimensions=(MAX_X, MAX_Y), aggregation=[0.5,0.], epoch=[100,100])        
+
+        if(self.modelName == 'RandomWalk'):  # # Random Walk model
+            mob = random_walk(nr_nodes)
+        elif(self.modelName == 'TruncatedLevyWalk'):  # # Truncated Levy Walk model
+            mob = truncated_levy_walk(nr_nodes)
+        elif(self.modelName == 'RandomDirection'):  # # Random Direction model
+            mob = random_direction(nr_nodes, dimensions=(MAX_X, MAX_Y), velocity=(MIN_V, MAX_V))
+        elif(self.modelName == 'RandomWayPoint'):  # # Random Waypoint model
+            mob = random_waypoint(nr_nodes, dimensions=(MAX_X, MAX_Y), velocity=(MIN_V, MAX_V), wt_max=MAX_WT)
+        elif(self.modelName == 'GaussMarkov'):  # # Gauss-Markov model
+            mob = gauss_markov(nr_nodes, alpha=0.99)
+        elif(self.modelName == 'ReferencePoint'):  # # Reference Point Group model
+            mob = reference_point_group(nr_nodes, dimensions=(MAX_X, MAX_Y), aggregation=0.5)
+        elif(self.modelName == 'TimeVariantCommunity'):  # # Time-variant Community Mobility Model
+            mob = tvc(nr_nodes, dimensions=(MAX_X, MAX_Y), aggregation=[0.5, 0.], epoch=[100, 100])
         else:
             print 'Model not defined!'
-        
+
         if self.DRAW:
             debug('Enabling Graph...\n')
             plot.instantiateGraph(self.MAX_X, self.MAX_Y)
             for node in nodes:
                 self.graphInstantiateNodes(node)
                 if node not in staMov or 'accessPoint' == node.type:
-                    plot.pltNode[node].set_data(node.params['position'][0],node.params['position'][1])
+                    plot.pltNode[node].set_data(node.params['position'][0], node.params['position'][1])
                     plot.drawTxt(node)
-                    plot.drawCircle(node)  
-                    if node.type == 'accessPoint': 
+                    plot.drawCircle(node)
+                    if node.type == 'accessPoint':
                         for c in node.connections:
-                            line = plot.plotLine2d([node.connections[c].params['position'][0],node.params['position'][0]], \
-                                                   [node.connections[c].params['position'][1],node.params['position'][1]], 'b')
+                            line = plot.plotLine2d([node.connections[c].params['position'][0], node.params['position'][0]], \
+                                                   [node.connections[c].params['position'][1], node.params['position'][1]], 'b')
                             plot.plotLine(line)
-                            
-        #Sometimes getting the error: Failed to connect to generic netlink.
+
+        # Sometimes getting the error: Failed to connect to generic netlink.
         try:
-            if model!='':
-                for xy in mob:              
-                    i = 0  
-                    for n in range (0,len(nodes)):
+            if model != '':
+                for xy in mob:
+                    i = 0
+                    for n in range (0, len(nodes)):
                         node = nodes[n]
                         if node in staMov:
                             if 'station' == node.type:
                                 node.params['position'] = xy[i][0], xy[i][1], 0
-                                i += 1                       
+                                i += 1
                                 if self.DRAW:
-                                    plot.pltNode[node].set_data(xy[:,0],xy[:,1])
+                                    plot.pltNode[node].set_data(xy[:, 0], xy[:, 1])
                                     plot.drawTxt(node)
                                     plot.drawCircle(node)
                     if self.DRAW:
-                        time.sleep(0.01)
-                        plot.graphUpdate(node) 
+                        plot.graphPause()
+                        plot.graphUpdate(node)
         except:
-            pass               
-    
-    @classmethod 
+            pass
+
+    @classmethod
     def getAPsInRange(self, sta):
         for ap in mobility.apList:
             dist = channelParameters.getDistance(sta, ap)
@@ -220,30 +220,30 @@ class mobility ( object ):
                 if ap in sta.params['apsInRange']:
                     sta.params['apsInRange'].remove(ap)
 
-    @classmethod 
+    @classmethod
     def nodeParameter(self, sta, wlan):
         for ap in mobility.apList:
             dist = channelParameters.getDistance(sta, ap)
             self.getAPsInRange(sta)
-            self.setChannelParameters(sta, ap, dist, wlan)  
-                    
-    @classmethod                
+            self.setChannelParameters(sta, ap, dist, wlan)
+
+    @classmethod
     def parameters(self):
         while self.continue_:
             listNodes.ssid_ID = 0
-            for node in self.staList: 
+            for node in self.staList:
                 for wlan in range(0, len(node.params['wlan'])):
-                    if node.func[wlan] != 'mesh' and node.func[wlan] != 'adhoc':    
+                    if node.func[wlan] != 'mesh' and node.func[wlan] != 'adhoc':
                         self.nodeParameter(node, wlan)
                     elif node.func[wlan] == 'mesh' :
                         dist = listNodes.pairingNodes(node, wlan, self.staList)
-                        if dist!=0:
+                        if dist != 0:
                             channelParameters(node, None, wlan, dist, self.staList, 0)
                     else:
-                        if dist!=0:
+                        if dist != 0:
                             channelParameters(node, None, wlan, dist, self.staList, 0)
             if meshRouting.routing == 'custom':
-                for node in mobility.staList:       
+                for node in mobility.staList:
                     for wlan in range(0, len(node.params['wlan'])):
                         if node.func[wlan] == 'mesh':
                             """Mesh Routing"""
@@ -252,18 +252,18 @@ class mobility ( object ):
                             except:
                                 pass
                 listNodes.clearList()
-            #have to verify this
-            time.sleep(0.01)     
-    
-    @classmethod    
+            # have to verify this
+            time.sleep(0.01)
+
+    @classmethod
     def setChannelParameters(self, sta, ap, dist, wlan):
         """ Wifi Parameters """
         associated = True
-        #time = abs(sta.params['speed'])
+        # time = abs(sta.params['speed'])
         staList = self.staList
-        
-        if ap == sta.params['associatedTo'][wlan]:            
-            if dist > ap.params['range']:  
+
+        if ap == sta.params['associatedTo'][wlan]:
+            if dist > ap.params['range']:
                 debug('\niw dev %s disconnect' % sta.params['wlan'][wlan])
                 sta.pexec('iw dev %s disconnect' % sta.params['wlan'][wlan])
                 sta.params['associatedTo'][wlan] = ''
@@ -272,8 +272,8 @@ class mobility ( object ):
                 ap.associatedStations.remove(sta)
             else:
                 channelParameters(sta, ap, wlan, dist, staList, 0)
-        else:  
-            if dist < ap.params['range']:  
+        else:
+            if dist < ap.params['range']:
                 if sta.params['associatedTo'][wlan] == '':
                     associated = False
             else:
@@ -283,16 +283,16 @@ class mobility ( object ):
             ac = None
             sta.params['frequency'][wlan] = channelParameters.frequency(ap, 0)
             sta.params['channel'][wlan] = ap.params['channel'][0]
-            
+
             """Association Control: mechanisms that optimize the use of the APs"""
             if self.associationControlMethod != False:
-                ac = self.associationControlMethod              
+                ac = self.associationControlMethod
                 value = associationControl(sta, ap, wlan, ac)
                 changeAP = value.changeAP
-                
-            #Go to handover    
+
+            # Go to handover
             if associated == False or changeAP == True:
                 self.handover(sta, ap, wlan, dist, changeAP, ac)
                 channelParameters(sta, ap, wlan, dist, staList, 0)
-        #have to verify this
+        # have to verify this
         time.sleep(0.01)
