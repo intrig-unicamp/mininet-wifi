@@ -45,7 +45,6 @@ class Intf( object ):
         self.link = link
         self.port = port
         self.mac = mac
-        self.iface = -1
         self.sta = None
         self.ip, self.prefixLen = None, None
         # if interface is lo, we know the ip is 127.0.0.1.
@@ -633,7 +632,6 @@ class Link( object ):
     def __str__( self ):
         return '%s<->%s' % ( self.intf1, self.intf2 )
 
-
 class OVSIntf( Intf ):
     "Patch interface on an OVSSwitch"
 
@@ -644,7 +642,6 @@ class OVSIntf( Intf ):
             return
         else:
             raise Exception( 'OVSIntf cannot do ifconfig ' + cmd )
-
 
 class OVSLink( Link ):
     """Link that makes patch links between OVSSwitches
@@ -666,7 +663,6 @@ class OVSLink( Link ):
             return None, None
         else:
             return Link.makeIntfPair( *args, **kwargs )
-
 
 class TCLink( Link ):
     "Link with symmetric TC interfaces configured via opts"

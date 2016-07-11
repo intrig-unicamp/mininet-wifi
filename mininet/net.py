@@ -126,7 +126,7 @@ from mininet.vanet import vanet
 from __builtin__ import True
 
 # Mininet version: should be consistent with README and LICENSE
-VERSION = "1.8r10"
+VERSION = "1.8r11"
 
 class Mininet( object ):
     "Network emulation with hosts spawned in network namespaces."
@@ -256,7 +256,27 @@ class Mininet( object ):
         if(speed!="{}"):        
             node.params['speed'] = int(speed)
         else:
-            node.params['speed'] = 0      
+            node.params['speed'] = 0  
+            
+        #max_x
+        max_x = ("%s" % params.pop('max_x', {}))
+        if(max_x!="{}"):        
+            node.max_x = int(max_x)
+            
+        #max_y
+        max_y = ("%s" % params.pop('max_y', {}))
+        if(max_y!="{}"):        
+            node.max_y = int(max_y)
+        
+        #min_x
+        min_x = ("%s" % params.pop('min_x', {}))
+        if(min_x!="{}"):        
+            node.min_x = int(min_x)
+            
+        #min_y
+        min_y = ("%s" % params.pop('min_y', {}))
+        if(min_y!="{}"):        
+            node.min_y = int(min_y)
         
         #Wifi Interfaces
         wifi = ("%s" % params.pop('wlans', {}))
@@ -1419,8 +1439,8 @@ class Mininet( object ):
             #for node in self.missingStations:
             for sta in self.stations:
                 mobility.getAPsInRange(sta)
-                for wlan in range(len(sta.params['wlan'])):
-                    if sta.params['associatedTo'][wlan] == '':
+                for wlan in range(0,len(sta.params['wlan'])):
+                    if sta.params['associatedTo'][wlan] == '' and (sta.func[wlan] != 'mesh' and sta.func[wlan] != 'adhoc'):
                         cls = None
                         options = dict( )  
                         # Set default MAC - this should probably be in Link
@@ -1507,7 +1527,7 @@ class Mininet( object ):
             if hasattr( swclass, 'batchStartup' ):
                 success = swclass.batchStartup( switches )
                 started.update( { s: s for s in success } )
-                
+        
         #It is necessary to create a bridge between ap and wlan interface
         for switch in self.switches:
             if switch.type == 'accessPoint':  

@@ -59,7 +59,7 @@ def initial_speed(speed_mean, speed_delta, shape=(1,)):
 def init_random_waypoint(nodes, max_x, max_y,
                          speed_low, speed_high, pause_low, pause_high):
 
-    nr_nodes = len(nodes)
+    nr_nodes = nodes
     x = np.empty(nr_nodes)
     y = np.empty(nr_nodes)
     x_waypoint = np.empty(nr_nodes)
@@ -76,8 +76,7 @@ def init_random_waypoint(nodes, max_x, max_y,
     # steady-state pause probability for Random Waypoint
     q0 = pause_probability_init(pause_low, pause_high, speed_low, speed_high, max_x, max_y)
     
-    for i in range(nr_nodes):
-        
+    for i in range(nr_nodes):        
         while True:
             if rand() < q0:
                 moving[i] = 0.
@@ -154,7 +153,7 @@ class RandomWaypoint(object):
             If wt_max is 0 or None, there is no pause time.
         '''
         
-        self.nr_nodes = nodes
+        self.nr_nodes = len(nodes)
         self.dimensions = dimensions
         self.velocity = velocity
         self.wt_max = wt_max
@@ -171,14 +170,13 @@ class RandomWaypoint(object):
             x, y, x_waypoint, y_waypoint, velocity, wt = \
                 init_random_waypoint(self.nr_nodes, MAX_X, MAX_Y, MIN_V, MAX_V, wt_min, 
                              (self.wt_max if self.wt_max is not None else 0.))
-
         else:
-            NODES = np.arange(len(self.nr_nodes))
+            NODES = np.arange(self.nr_nodes)
             x = U(0, MAX_X, NODES)
             y = U(0, MAX_Y, NODES)
             x_waypoint = U(0, MAX_X, NODES)
             y_waypoint = U(0, MAX_Y, NODES)
-            wt = np.zeros(len(self.nr_nodes))
+            wt = np.zeros(self.nr_nodes)
             velocity = U(MIN_V, MAX_V, NODES)
 
         theta = np.arctan2(y_waypoint - y, x_waypoint - x)
@@ -220,7 +218,7 @@ class RandomWaypoint(object):
 
 class StochasticWalk(object):
     
-    def __init__(self, nodes, dimensions, FL_DISTR, VELOCITY_DISTR, WT_DISTR=None, border_policy='reflect'):
+    def __init__(self, nodes, FL_DISTR, VELOCITY_DISTR, WT_DISTR=None, border_policy='reflect'):
         '''
         Base implementation for models with direction uniformly chosen from [0,pi]:
         random_direction, random_walk, truncated_levy_walk
@@ -259,10 +257,11 @@ class StochasticWalk(object):
             If 'reflect', the node reflects off the border.
             If 'wrap', the node reappears at the opposite edge (as in a torus-shaped area).
         '''
+        self.b = [0]
+        self.nodes = nodes
         self.collect_fl_stats = False
         self.collect_wt_stats = False
         self.border_policy = border_policy
-        self.dimensions = dimensions
         self.nr_nodes = len(nodes)
         self.FL_DISTR = FL_DISTR
         self.VELOCITY_DISTR = VELOCITY_DISTR
@@ -271,33 +270,34 @@ class StochasticWalk(object):
     def __iter__(self):
         def reflect(xy):
             # node bounces on the margins
-            b = np.where(xy[:,0]<0)[0]
+            b = np.where(xy[:,0]<MIN_X)[0]
             if b.size > 0:
-                xy[b,0] = - xy[b,0]
+                xy[b,0] = 2*MIN_X[b] - xy[b,0]
                 cosintheta[b,0] = -cosintheta[b,0]
             b = np.where(xy[:,0]>MAX_X)[0]
             if b.size > 0:
-                xy[b,0] = 2*MAX_X - xy[b,0]
+                xy[b,0] = 2*MAX_X[b] - xy[b,0]
                 cosintheta[b,0] = -cosintheta[b,0]
-            b = np.where(xy[:,1]<0)[0]
+            b = np.where(xy[:,1]<MIN_Y)[0]
             if b.size > 0:
-                xy[b,1] = - xy[b,1]
+                xy[b,1] = 2*MIN_Y[b] - xy[b,1]
                 cosintheta[b,1] = -cosintheta[b,1]
             b = np.where(xy[:,1]>MAX_Y)[0]
             if b.size > 0:
-                xy[b,1] = 2*MAX_Y - xy[b,1]
-                cosintheta[b,1] = -cosintheta[b,1]
-                
+                xy[b,1] = 2*MAX_Y[b] - xy[b,1]
+                cosintheta[b,1] = -cosintheta[b,1]         
+            self.b = b       
         
         def wrap(xy):
-            b = np.where(xy[:,0]<0)[0]
-            if b.size > 0: xy[b,0] += MAX_X
+            b = np.where(xy[:,0]<MIN_X)[0]
+            if b.size > 0: xy[b,0] += MAX_X[b]
             b = np.where(xy[:,0]>MAX_X)[0]
-            if b.size > 0: xy[b,0] -= MAX_X
-            b = np.where(xy[:,1]<0)[0]
-            if b.size > 0: xy[b,1] += MAX_Y
+            if b.size > 0: xy[b,0] -= MAX_X[b]
+            b = np.where(xy[:,1]<MIN_Y)[0]
+            if b.size > 0: xy[b,1] += MAX_Y[b]
             b = np.where(xy[:,1]>MAX_Y)[0]
-            if b.size > 0: xy[b,1] -= MAX_Y
+            if b.size > 0: xy[b,1] -= MAX_Y[b]
+            self.b = b 
         
         if self.border_policy == 'reflect':
             borderp = reflect
@@ -306,9 +306,25 @@ class StochasticWalk(object):
         else:
             borderp = self.border_policy
         
-        MAX_X, MAX_Y = self.dimensions
         NODES = np.arange(self.nr_nodes)
-        xy = U(0, MAX_X, np.dstack((NODES,NODES))[0])
+        
+        max_x = U(0, 0, NODES)
+        max_y = U(0, 0, NODES)
+        min_x = U(0, 0, NODES)
+        min_y = U(0, 0, NODES)
+        
+        MAX_X = max_x
+        MAX_Y = max_y
+        MIN_X = min_x
+        MIN_Y = min_y
+        
+        for node in range(0,len(self.nodes)):
+            MAX_X[node] = self.nodes[node].max_x
+            MAX_Y[node] = self.nodes[node].max_y
+            MIN_X[node] = self.nodes[node].min_x
+            MIN_Y[node] = self.nodes[node].min_y
+        
+        xy = U(0, MAX_X[self.b], np.dstack((NODES,NODES))[0])
         fl = self.FL_DISTR(NODES)
         velocity = self.VELOCITY_DISTR(fl)
         theta = U(0, 1.8*np.pi, NODES)
@@ -353,7 +369,7 @@ class StochasticWalk(object):
 
 class RandomWalk(StochasticWalk):
     
-    def __init__(self, nodes, dimensions, velocity=1., distance=1., border_policy='reflect'):
+    def __init__(self, nodes, velocity=1., distance=1., border_policy='reflect'):
         '''
         Random Walk mobility model.
         This model is based in the Stochastic Walk, but both the flight length and node velocity distributions are in fact constants,
@@ -363,9 +379,6 @@ class RandomWalk(StochasticWalk):
         
           *nr_nodes*:
             Integer, the number of nodes.
-          
-          *dimensions*:
-            Tuple of Integers, the x and y dimensions of the simulation area.
           
         keyword arguments:
         
@@ -392,7 +405,7 @@ class RandomWalk(StochasticWalk):
         FL_DISTR = lambda SAMPLES: np.array(fl[:len(SAMPLES)])
         VELOCITY_DISTR = lambda FD: np.array(vel[:len(FD)])
         
-        StochasticWalk.__init__(self, nodes, dimensions, FL_DISTR, VELOCITY_DISTR,border_policy=border_policy)
+        StochasticWalk.__init__(self, nodes, FL_DISTR, VELOCITY_DISTR,border_policy=border_policy)
 
 class RandomDirection(StochasticWalk):
     
@@ -440,11 +453,11 @@ class RandomDirection(StochasticWalk):
             WT_DISTR = None
         VELOCITY_DISTR = lambda FD: U(MIN_V, MAX_V, FD)
         
-        StochasticWalk.__init__(self, nodes, dimensions, FL_DISTR, VELOCITY_DISTR, WT_DISTR=WT_DISTR, border_policy=border_policy)
+        StochasticWalk.__init__(self, nodes, FL_DISTR, VELOCITY_DISTR, WT_DISTR, border_policy)
 
 class TruncatedLevyWalk(StochasticWalk):
     
-    def __init__(self, nodes, dimensions, FL_EXP=-2.6, FL_MAX=50., WT_EXP=-1.8, WT_MAX=100., border_policy='reflect'):
+    def __init__(self, nodes, FL_EXP=-2.6, FL_MAX=50., WT_EXP=-1.8, WT_MAX=100., border_policy='reflect'):
         '''
         Truncated Levy Walk mobility model, based on the following paper:
         Injong Rhee, Minsu Shin, Seongik Hong, Kyunghan Lee, and Song Chong. On the Levy-Walk Nature of Human Mobility. 
@@ -459,9 +472,6 @@ class TruncatedLevyWalk(StochasticWalk):
         
           *nr_nodes*:
             Integer, the number of nodes.
-          
-          *dimensions*:
-            Tuple of Integers, the x and y dimensions of the simulation area.
           
         keyword arguments:
         
@@ -489,7 +499,7 @@ class TruncatedLevyWalk(StochasticWalk):
             WT_DISTR = None
         VELOCITY_DISTR = lambda FD: np.sqrt(FD)/10.
         
-        StochasticWalk.__init__(self, nodes, dimensions, FL_DISTR, VELOCITY_DISTR, WT_DISTR=WT_DISTR, border_policy=border_policy)
+        StochasticWalk.__init__(self, nodes, FL_DISTR, VELOCITY_DISTR, WT_DISTR, border_policy)
 
 class HeterogeneousTruncatedLevyWalk(StochasticWalk):
 
@@ -558,7 +568,7 @@ def truncated_levy_walk(*args, **kwargs):
 def heterogeneous_truncated_levy_walk(*args, **kwargs):
     return iter(HeterogeneousTruncatedLevyWalk(*args, **kwargs))
 
-def gauss_markov(nodes, dimensions, velocity_mean=1., alpha=1., variance=1.):
+def gauss_markov(nodes, velocity_mean=1., alpha=1., variance=1.):
     '''
     Gauss-Markov Mobility Model, as proposed in 
     Camp, T., Boleng, J. & Davies, V. A survey of mobility models for ad hoc network research. 
@@ -569,9 +579,6 @@ def gauss_markov(nodes, dimensions, velocity_mean=1., alpha=1., variance=1.):
       *nr_nodes*:
         Integer, the number of nodes.
       
-      *dimensions*:
-        Tuple of Integers, the x and y dimensions of the simulation area.
-        
     keyword arguments:
     
       *velocity_mean*:
@@ -584,14 +591,29 @@ def gauss_markov(nodes, dimensions, velocity_mean=1., alpha=1., variance=1.):
         The randomness variance
     '''
     nr_nodes = len(nodes)
-    MAX_X, MAX_Y = dimensions
     NODES = np.arange(nr_nodes)
-    x = U(0, MAX_X, NODES)
-    y = U(0, MAX_Y, NODES)
+    
+    max_x = U(0, 0, NODES)
+    max_y = U(0, 0, NODES)
+    min_x = U(0, 0, NODES)
+    min_y = U(0, 0, NODES)
+    
+    MAX_X = max_x
+    MAX_Y = max_y
+    MIN_X = min_x
+    MIN_Y = min_y
+    
+    for node in range(0,len(nodes)):
+        MAX_X[node] = nodes[node].max_x
+        MAX_Y[node] = nodes[node].max_y
+        MIN_X[node] = nodes[node].min_x
+        MIN_Y[node] = nodes[node].min_y
+    
+    x = U(MIN_X, MAX_X, NODES)
+    y = U(MIN_Y, MAX_Y, NODES)
     velocity =  np.zeros(nr_nodes)+velocity_mean
     theta = U(0, 2*np.pi, NODES)
     angle_mean = theta
-    
     alpha2 = 1.0 - alpha
     alpha3 = np.sqrt(1.0 - alpha * alpha) * variance
     
@@ -599,17 +621,16 @@ def gauss_markov(nodes, dimensions, velocity_mean=1., alpha=1., variance=1.):
 
         x = x + velocity * np.cos(theta)
         y = y + velocity * np.sin(theta)
-        
+  
         # node bounces on the margins
-        b = np.where(x<0)[0]
-        x[b] = - x[b]; theta[b] = np.pi-theta[b]; angle_mean[b] = np.pi-angle_mean[b]
+        b = np.where(x<MIN_X)[0]
+        x[b] = 2*MIN_X[b] - x[b]; theta[b] = np.pi-theta[b]; angle_mean[b] = np.pi-angle_mean[b]
         b = np.where(x>MAX_X)[0]
-        x[b] = 2*MAX_X - x[b]; theta[b] = np.pi-theta[b]; angle_mean[b] = np.pi-angle_mean[b]
-        b = np.where(y<0)[0]
-        y[b] = - y[b]; theta[b] = -theta[b]; angle_mean[b] = -angle_mean[b]
+        x[b] = 2*MAX_X[b] - x[b]; theta[b] = np.pi-theta[b]; angle_mean[b] = np.pi-angle_mean[b]
+        b = np.where(y<MIN_Y)[0]
+        y[b] = 2*MIN_Y[b] - y[b]; theta[b] = -theta[b]; angle_mean[b] = -angle_mean[b]
         b = np.where(y>MAX_Y)[0]
-        y[b] = 2*MAX_Y - y[b]; theta[b] = -theta[b]; angle_mean[b] = -angle_mean[b]
-        
+        y[b] = 2*MAX_Y[b] - y[b]; theta[b] = -theta[b]; angle_mean[b] = -angle_mean[b]
         # calculate new speed and direction based on the model
         velocity = (alpha * velocity +
                     alpha2 * velocity_mean +

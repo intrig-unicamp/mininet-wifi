@@ -127,6 +127,11 @@ class Node( object ):
 
         self.max_speed=0
         self.min_speed=0
+        
+        self.max_x = 0
+        self.max_y = 0
+        self.min_x = 0
+        self.min_y = 0
 
         # Make pylint happy
         ( self.shell, self.execed, self.pid, self.stdin, self.stdout,
@@ -1108,7 +1113,6 @@ class Switch( Node ):
         return '<%s %s: %s pid=%s> ' % (
             self.__class__.__name__, self.name, intfs, self.pid )
 
-
 class UserSwitch( Switch ):
     "User-space switch."
 
@@ -1443,9 +1447,7 @@ class OVSSwitch( Switch ):
             switch.shell = None
         return switches
 
-
 OVSKernelSwitch = OVSSwitch
-
 
 class OVSBridge( OVSSwitch ):
     "OVSBridge is an OVSSwitch in standalone/bridge mode"
@@ -1467,7 +1469,6 @@ class OVSBridge( OVSSwitch ):
             return 'STP_FORWARD' in status and not 'STP_LEARN' in status
         else:
             return True
-
 
 class IVSSwitch( Switch ):
     "Indigo Virtual Switch"
@@ -1537,7 +1538,6 @@ class IVSSwitch( Switch ):
             return "can't run dpctl without passive listening port"
         return self.cmd( 'ovs-ofctl ' + ' '.join( args ) +
                          ' tcp:127.0.0.1:%i' % self.listenPort )
-
 
 class Controller( Node ):
     """A Controller is a Node that is running (or has execed?) an
@@ -1674,7 +1674,6 @@ class Ryu( Controller ):
                              ' '.join( ryuArgs ),
                              cdir=ryuCoreDir,
                              **kwargs )
-
 
 class RemoteController( Controller ):
     "Controller running outside of Mininet's control."

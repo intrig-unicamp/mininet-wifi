@@ -150,16 +150,22 @@ class mobility ( object ):
         # max waiting time
         MAX_WT = 100.
         
+        for node in nodes:
+            if node.max_x == 0:
+                node.max_x = MAX_X
+            if node.max_y == 0:
+                node.max_y = MAX_Y
+        
         if(self.modelName=='RandomWalk'): ## Random Walk model            
-            mob = random_walk(nr_nodes, dimensions=(MAX_X, MAX_Y)) 
+            mob = random_walk(nr_nodes) 
         elif(self.modelName=='TruncatedLevyWalk'): ## Truncated Levy Walk model
-            mob = truncated_levy_walk(nr_nodes, dimensions=(MAX_X, MAX_Y)) 
+            mob = truncated_levy_walk(nr_nodes) 
         elif(self.modelName=='RandomDirection'): ## Random Direction model            
             mob = random_direction(nr_nodes, dimensions=(MAX_X, MAX_Y), velocity=(MIN_V, MAX_V)) 
         elif(self.modelName=='RandomWayPoint'): ## Random Waypoint model           
             mob = random_waypoint(nr_nodes, dimensions=(MAX_X, MAX_Y), velocity=(MIN_V, MAX_V), wt_max=MAX_WT) 
         elif(self.modelName=='GaussMarkov'): ## Gauss-Markov model           
-            mob = gauss_markov(nr_nodes, dimensions=(MAX_X, MAX_Y), alpha=0.99) 
+            mob = gauss_markov(nr_nodes, alpha=0.99) 
         elif(self.modelName=='ReferencePoint'): ## Reference Point Group model           
             mob = reference_point_group(nr_nodes, dimensions=(MAX_X, MAX_Y), aggregation=0.5) 
         elif(self.modelName=='TimeVariantCommunity'): ## Time-variant Community Mobility Model            
@@ -288,6 +294,5 @@ class mobility ( object ):
             if associated == False or changeAP == True:
                 self.handover(sta, ap, wlan, dist, changeAP, ac)
                 channelParameters(sta, ap, wlan, dist, staList, 0)
-        else:
-            #have to verify this
-            time.sleep(0.01)
+        #have to verify this
+        time.sleep(0.01)
