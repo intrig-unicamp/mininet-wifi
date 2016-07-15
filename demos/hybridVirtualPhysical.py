@@ -16,7 +16,7 @@ wlan1(2)phyap1          ap3(4)wlan0
 
 
 from mininet.net import Mininet
-from mininet.node import RemoteController, OVSKernelSwitch, UserSwitch
+from mininet.node import RemoteController, OVSKernelSwitch, UserSwitch, Controller
 from mininet.link import TCLink
 from mininet.cli import CLI
 from mininet.node import Node
@@ -29,18 +29,20 @@ def topology():
     "Create a network."
     net = Mininet( controller=RemoteController, link=TCLink, switch=UserSwitch )
     staList = []
-    internetIface = 'wlan0'
+    internetIface = 'eth0'
+    usbDongleIface = 'wlan0'
 
     print "*** Creating nodes"
     for n in range(10):
 	staList.append(n)
 	staList[n] = net.addStation( 'sta%s' % (n+1), wlans=2, mac='00:00:00:00:00:%s' % (n+1), ip='192.168.0.%s/24' % (n+1) )
-    phyap1 = net.addPhysicalBaseStation( 'phyap1', protocols='OpenFlow13', ssid= 'ap-ssid1', mode= 'g', channel= '1', position='50,115,0', phywlan='wlan1' )
-    ap2 = net.addBaseStation( 'ap2', protocols='OpenFlow13', ssid= 'ap-ssid2', mode= 'g', channel= '11', position='100,175,0' )
-    ap3 = net.addBaseStation( 'ap3', protocols='OpenFlow13', ssid= 'ap-ssid3', mode= 'g', channel= '6', position='150,115,0' )
-    ap4 = net.addBaseStation( 'ap4', protocols='OpenFlow13', ssid= 'ap-ssid4', mode= 'g', channel= '6', position='100,55,0' )
-    sta11 = net.addStation( 'sta11', ip='10.0.0.111/8', position='120,200,0')
-    c1 = net.addController( 'c1', controller=RemoteController, port=6653 )
+    phyap1 = net.addPhysicalBaseStation( 'sigcomm-2016', protocols='OpenFlow13', ssid='ap-ssid1', mode= 'g', channel= '1', position='50,115,0', phywlan=usbDongleIface )
+    ap2 = net.addBaseStation( 'ap2', protocols='OpenFlow13', ssid='ap-ssid2', mode= 'g', channel= '11', position='100,175,0' )
+    ap3 = net.addBaseStation( 'ap3', protocols='OpenFlow13', ssid='ap-ssid3', mode= 'g', channel= '6', position='150,115,0' )
+    ap4 = net.addBaseStation( 'ap4', protocols='OpenFlow13', ssid='ap-ssid4', mode= 'g', channel= '11', position='100,55,0' )
+    c5 = net.addController( 'c5', controller=RemoteController, port=6653 )
+    sta11 = net.addStation( 'sta11', ip='10.0.0.111/8', position='60,100,0')
+    h12 = net.addHost( 'h12', ip='10.0.0.109/8')
     root = net.addHost( 'root', ip='10.0.0.254/8', inNamespace=False )
 
     print "*** Creating links"
@@ -63,21 +65,26 @@ def topology():
     net.addLink(ap3, ap4)
     net.addLink(ap4, phyap1)
     net.addLink(root, ap3)
-
-    startNAT(root, internetIface)
+    net.addLink(phyap1, h12)
 
     print "*** Starting network"
     net.build()
-    c1.start()
-    phyap1.start( [c1] )
-    ap2.start( [c1] )
-    ap3.start( [c1] )
-    ap4.start( [c1] )
+    c5.start()
+    phyap1.start( [c5] )
+    ap2.start( [c5] )
+    ap3.start( [c5] )
+    ap4.start( [c5] )
 
     time.sleep(2)
     """output=all,flood"""
     ap3.cmd('dpctl unix:/tmp/ap3 meter-mod cmd=add,flags=1,meter=1 drop:rate=100')
-    ap3.cmd('dpctl unix:/tmp/ap3 flow-mod table=0,cmd=add in_port=4,eth_type=0x800,ip_dst=10.0.0.100, meter:1 apply:output=flood')
+    ap3.cmd('dpctl unix:/tmp/ap3 flow-mod table=0,cmd=add in_port=4,eth_type=0x800,ip_dst=10.0.0.100,meter:1 apply:output=flood')
+    phyap1.cmd('dpctl unix:/tmp/phyap1 flow-mod table=0,cmd=add in_port=2,ip_dst=10.0.0.109,eth_type=0x800,ip_proto=6,tcp_dst=80 apply:set_field=tcp_dst:80,set_field=ip_dst:10.0.0.111,output=5')
+    phyap1.cmd('dpctl unix:/tmp/phyap1 flow-mod table=0,cmd=add in_port=1,eth_type=0x800,ip_proto=6,tcp_src=80 apply:set_field=ip_src:10.0.0.109,output=2')
+
+    fixNetworkManager( root, 'root-eth0' )
+
+    startNAT(root, internetIface)
 
     sta11.cmd('ip route add default via 10.0.0.254')
     sta11.cmd('pushd /home/fontes; python3 -m http.server 80 &')
@@ -89,7 +96,7 @@ def topology():
         ip+=1
 
     "*** Available models: RandomWalk, TruncatedLevyWalk, RandomDirection, RandomWayPoint, GaussMarkov, ReferencePoint, TimeVariantCommunity ***"
-    net.startMobility(startTime=0, model='RandomWalk', max_x=200, max_y=220, min_v=0.1, max_v=0.2)
+    net.startMobility(startTime=0, model='RandomWalk', max_x=200, max_y=200, min_v=0.1, max_v=0.2)
 
     print "*** Running CLI"
     CLI( net )
@@ -124,6 +131,22 @@ def startNAT( root, inetIntf, subnet='10.0/8', localIntf = None ):
 
     # Instruct the kernel to perform forwarding
     root.cmd( 'sysctl net.ipv4.ip_forward=1' )
+
+def fixNetworkManager( root, intf ):
+    """Prevent network-manager from messing with our interface,
+       by specifying manual configuration in /etc/network/interfaces
+       root: a node in the root namespace (for running commands)
+       intf: interface name"""
+    cfile = '/etc/network/interfaces'
+    line = '\niface %s inet manual\n' % intf
+    config = open( cfile ).read()
+    if ( line ) not in config:
+        print '*** Adding', line.strip(), 'to', cfile
+        with open( cfile, 'a' ) as f:
+            f.write( line )
+    # Probably need to restart network-manager to be safe -
+    # hopefully this won't disconnect you
+    root.cmd( 'service network-manager restart' )
 
 if __name__ == '__main__':
     setLogLevel( 'info' )
