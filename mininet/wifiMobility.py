@@ -125,27 +125,18 @@ class mobility (object):
                             if self.DRAW:
                                 plot.graphPause()
                                 plot.graphUpdate(sta)
-                        i+=1
-                # have to verify this
-                time.sleep(0.01)
+                        i += 1
         except:
             print 'Error! Mobility stopped!'
 
     @classmethod
-    def models(self, nodes=None, model=None, max_x=None, max_y=None, min_v=None,
-               max_v=None, seed=None, staMov=None, **mobilityparam):
+    def models(self, nodes=None, model=None, min_v=None, max_v=None, seed=None,
+               staMov=None, **mobilityparam):
 
-        self.modelName = model
         np.random.seed(seed)
 
-        # number of nodes
-        nr_nodes = staMov
-
         # simulation area (units)
-        MAX_X, MAX_Y = max_x, max_y
-
-        # max and min velocity
-        MIN_V, MAX_V = min_v, max_v
+        MAX_X, MAX_Y = self.MAX_X, self.MAX_Y
 
         # max waiting time
         MAX_WT = 100.
@@ -155,23 +146,29 @@ class mobility (object):
                 node.max_x = MAX_X
             if node.max_y == 0:
                 node.max_y = MAX_Y
+            if node.max_v == 0:
+                node.max_v = max_v
+            if node.min_v == 0:
+                node.min_v = min_v
 
-        if(self.modelName == 'RandomWalk'):  # # Random Walk model
-            mob = random_walk(nr_nodes)
-        elif(self.modelName == 'TruncatedLevyWalk'):  # # Truncated Levy Walk model
-            mob = truncated_levy_walk(nr_nodes)
-        elif(self.modelName == 'RandomDirection'):  # # Random Direction model
-            mob = random_direction(nr_nodes, dimensions=(MAX_X, MAX_Y), velocity=(MIN_V, MAX_V))
-        elif(self.modelName == 'RandomWayPoint'):  # # Random Waypoint model
-            mob = random_waypoint(nr_nodes, dimensions=(MAX_X, MAX_Y), velocity=(MIN_V, MAX_V), wt_max=MAX_WT)
-        elif(self.modelName == 'GaussMarkov'):  # # Gauss-Markov model
-            mob = gauss_markov(nr_nodes, alpha=0.99)
-        elif(self.modelName == 'ReferencePoint'):  # # Reference Point Group model
-            mob = reference_point_group(nr_nodes, dimensions=(MAX_X, MAX_Y), aggregation=0.5)
-        elif(self.modelName == 'TimeVariantCommunity'):  # # Time-variant Community Mobility Model
-            mob = tvc(nr_nodes, dimensions=(MAX_X, MAX_Y), aggregation=[0.5, 0.], epoch=[100, 100])
+        debug('Chossing the mobility model %s' % model)
+
+        if(model == 'RandomWalk'):  # Random Walk model
+            mob = random_walk(staMov)
+        elif(model == 'TruncatedLevyWalk'):  # Truncated Levy Walk model
+            mob = truncated_levy_walk(staMov)
+        elif(model == 'RandomDirection'):  # Random Direction model
+            mob = random_direction(staMov, dimensions=(MAX_X, MAX_Y))
+        elif(model == 'RandomWayPoint'):  # Random Waypoint model
+            mob = random_waypoint(staMov, wt_max=MAX_WT)
+        elif(model == 'GaussMarkov'):  # Gauss-Markov model
+            mob = gauss_markov(staMov, alpha=0.99)
+        elif(model == 'ReferencePoint'):  # Reference Point Group model
+            mob = reference_point_group(staMov, dimensions=(MAX_X, MAX_Y), aggregation=0.5)
+        elif(model == 'TimeVariantCommunity'):  # Time-variant Community Mobility Model
+            mob = tvc(staMov, dimensions=(MAX_X, MAX_Y), aggregation=[0.5, 0.], epoch=[100, 100])
         else:
-            print 'Model not defined!'
+            raise Exception("'Model not defined!")
 
         if self.DRAW:
             debug('Enabling Graph...\n')
@@ -188,26 +185,22 @@ class mobility (object):
                                                    [node.connections[c].params['position'][1], node.params['position'][1]], 'b')
                             plot.plotLine(line)
 
-        # Sometimes getting the error: Failed to connect to generic netlink.
-        try:
-            if model != '':
-                for xy in mob:
-                    i = 0
-                    for n in range (0, len(nodes)):
-                        node = nodes[n]
-                        if node in staMov:
-                            if 'station' == node.type:
-                                node.params['position'] = xy[i][0], xy[i][1], 0
-                                i += 1
-                                if self.DRAW:
-                                    plot.pltNode[node].set_data(xy[:, 0], xy[:, 1])
-                                    plot.drawTxt(node)
-                                    plot.drawCircle(node)
-                    if self.DRAW:
-                        plot.graphPause()
-                        plot.graphUpdate(node)
-        except:
-            pass
+        for xy in mob:
+            i = 0
+            for n in range (0, len(nodes)):
+                node = nodes[n]
+                if node in staMov:
+                    if 'station' == node.type:
+                        node.params['position'] = xy[i][0], xy[i][1], 0
+                        i += 1
+                        if self.DRAW:
+                            plot.pltNode[node].set_data(xy[:, 0], xy[:, 1])
+                            plot.drawTxt(node)
+                            plot.drawCircle(node)
+            if self.DRAW:
+                plot.graphPause()
+                plot.graphUpdate(node)
+
 
     @classmethod
     def getAPsInRange(self, sta):

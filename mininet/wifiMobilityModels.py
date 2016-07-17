@@ -2,7 +2,7 @@
 #
 #  Copyright (C) 2008-2010 Istituto per l'Interscambio Scientifico I.S.I.
 #  You can contact us by email (isi@isi.it) or write to:
-#  ISI Foundation, Viale S. Severo 65, 10133 Torino, Italy. 
+#  ISI Foundation, Viale S. Severo 65, 10133 Torino, Italy.
 #
 #  This program was written by André Panisson <panisson@gmail.com>
 #
@@ -24,16 +24,16 @@ from numpy.random import rand
 U = lambda MIN, MAX, SAMPLES: rand(*SAMPLES.shape) * (MAX - MIN) + MIN
 
 # define a Truncated Power Law Distribution
-P = lambda ALPHA, MIN, MAX, SAMPLES: ((MAX ** (ALPHA+1.) - 1.) * rand(*SAMPLES.shape) + 1.) ** (1./(ALPHA+1.))
+P = lambda ALPHA, MIN, MAX, SAMPLES: ((MAX ** (ALPHA + 1.) - 1.) * rand(*SAMPLES.shape) + 1.) ** (1. / (ALPHA + 1.))
 
 # define an Exponential Distribution
-E = lambda SCALE, SAMPLES: -SCALE*np.log(rand(*SAMPLES.shape))
+E = lambda SCALE, SAMPLES:-SCALE * np.log(rand(*SAMPLES.shape))
 
 # *************** Palm state probability **********************
 def pause_probability_init(pause_low, pause_high, speed_low, speed_high, max_x, max_y):
-    alpha1 = ((pause_high+pause_low)*(speed_high-speed_low))/(2*np.log(speed_high/speed_low))
-    delta1 = np.sqrt((max_x*max_x) +(max_y*max_y))
-    return alpha1/(alpha1+delta1)
+    alpha1 = ((pause_high + pause_low) * (speed_high - speed_low)) / (2 * np.log(speed_high / speed_low))
+    delta1 = np.sqrt((max_x * max_x) + (max_y * max_y))
+    return alpha1 / (alpha1 + delta1)
 
 # *************** Palm residual ******************************
 def residual_time(mean, delta, shape=(1,)):
@@ -42,11 +42,11 @@ def residual_time(mean, delta, shape=(1,)):
     u = rand(*shape);
     residual = np.zeros(shape)
     if delta != 0.0:
-        case_1_u = u < (2.*t1/(t1+t2))
-        residual[case_1_u] = u[case_1_u]*(t1+t2)/2.
-        residual[np.logical_not(case_1_u)] = t2-np.sqrt((1.-u[np.logical_not(case_1_u)])*(t2*t2 - t1*t1))
+        case_1_u = u < (2.*t1 / (t1 + t2))
+        residual[case_1_u] = u[case_1_u] * (t1 + t2) / 2.
+        residual[np.logical_not(case_1_u)] = t2 - np.sqrt((1. - u[np.logical_not(case_1_u)]) * (t2 * t2 - t1 * t1))
     else:
-        residual=u*mean  
+        residual = u * mean
     return residual
 
 # *********** Initial speed ***************************
@@ -54,6 +54,7 @@ def initial_speed(speed_mean, speed_delta, shape=(1,)):
     v0 = speed_mean - speed_delta
     v1 = speed_mean + speed_delta
     u = rand(*shape)
+
     return pow(v1, u) / pow(v0, u - 1)
 
 def init_random_waypoint(nodes, max_x, max_y,
@@ -67,38 +68,41 @@ def init_random_waypoint(nodes, max_x, max_y,
     speed = np.empty(nr_nodes)
 
     pause_time = np.empty(nr_nodes)
-    speed_low = float(speed_low)
-    speed_high = float(speed_high)
+    speed_low = speed_low
+    speed_high = speed_high
     moving = np.ones(nr_nodes)
-    speed_mean, speed_delta = (speed_low+speed_high)/2., (speed_high-speed_low)/2.
-    pause_mean, pause_delta = (pause_low+pause_high)/2., (pause_high-pause_low)/2.
+    speed_mean, speed_delta = (speed_low + speed_high) / 2., (speed_high - speed_low) / 2.
+    pause_mean, pause_delta = (pause_low + pause_high) / 2., (pause_high - pause_low) / 2.
 
     # steady-state pause probability for Random Waypoint
     q0 = pause_probability_init(pause_low, pause_high, speed_low, speed_high, max_x, max_y)
-    
-    for i in range(nr_nodes):        
+
+    for i in range(nr_nodes):
         while True:
-            if rand() < q0:
-                moving[i] = 0.
+            if rand() < q0[i]:
+                #moving[i] = 0.
+                #speed_mean = np.delete(speed_mean, i)
+                #speed_delta = np.delete(speed_delta, i)
+
                 # M_0
-                x1 = rand()*max_x
-                x2 = rand()*max_x
+                x1 = rand() * max_x[i]
+                x2 = rand() * max_x[i]
                 # M_1
-                y1 = rand()*max_y
-                y2 = rand()*max_y
+                y1 = rand() * max_y[i]
+                y2 = rand() * max_y[i]
                 break
             else:
                 # M_0
-                x1 = rand()*max_x
-                x2 = rand()*max_x
+                x1 = rand() * max_x[i]
+                x2 = rand() * max_x[i]
                 # M_1
-                y1 = rand()*max_y
-                y2 = rand()*max_y
-                
-                #r is a ratio of the length of the randomly chosen path over
+                y1 = rand() * max_y[i]
+                y2 = rand() * max_y[i]
+
+                # r is a ratio of the length of the randomly chosen path over
                 # the length of a diagonal across the simulation area
                 # ||M_1 - M_0||
-                r = np.sqrt(((x2 - x1)*(x2 - x1) + (y2 - y1)*(y2 - y1))/(max_x*max_x + max_y*max_y))
+                r = np.sqrt(((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1)) / (max_x[i] * max_x[i] + max_y[i] * max_y[i]))
                 if rand() < r:
                     moving[i] = 1.
                     break
@@ -112,11 +116,11 @@ def init_random_waypoint(nodes, max_x, max_y,
     # steady-state positions
     # initially the node has traveled a proportion u2 of the path from (x1,y1) to (x2,y2)
     u2 = rand(*x.shape)
-    x[:] = u2*x + (1 - u2)*x_waypoint
-    y[:] = u2*y + (1 - u2)*y_waypoint
+    x[:] = u2 * x + (1 - u2) * x_waypoint
+    y[:] = u2 * y + (1 - u2) * y_waypoint
 
     # steady-state speed and pause time
-    paused_bool = moving==0.
+    paused_bool = moving == 0.
     paused_idx = np.where(paused_bool)[0]
     pause_time[paused_idx] = residual_time(pause_mean, pause_delta, paused_idx.shape)
     speed[paused_idx] = 0.0
@@ -124,14 +128,13 @@ def init_random_waypoint(nodes, max_x, max_y,
     moving_bool = np.logical_not(paused_bool)
     moving_idx = np.where(moving_bool)[0]
     pause_time[moving_idx] = 0.0
-    speed[moving_idx] = initial_speed(speed_mean,speed_delta, moving_idx.shape)
+    speed[moving_idx] = initial_speed(speed_mean, speed_delta, moving_idx.shape)
 
-    return x,y,x_waypoint,y_waypoint,speed,pause_time
-
+    return x, y, x_waypoint, y_waypoint, speed, pause_time
 
 class RandomWaypoint(object):
-    
-    def __init__(self, nodes, dimensions, velocity=(0.1, 1.), wt_max=None):
+
+    def __init__(self, nodes, wt_max=None):
         '''
         Random Waypoint model.
         
@@ -139,9 +142,6 @@ class RandomWaypoint(object):
         
           *nr_nodes*:
             Integer, the number of nodes.
-          
-          *dimensions*:
-            Tuple of Integers, the x and y dimensions of the simulation area.
           
         keyword arguments:
         
@@ -152,73 +152,99 @@ class RandomWaypoint(object):
             Integer, the maximum wait time for node pauses.
             If wt_max is 0 or None, there is no pause time.
         '''
-        
+        self.nodes = nodes
         self.nr_nodes = len(nodes)
-        self.dimensions = dimensions
-        self.velocity = velocity
         self.wt_max = wt_max
         self.init_stationary = True
-    
+
     def __iter__(self):
-        
-        MAX_X,MAX_Y = self.dimensions
-        MIN_V, MAX_V = self.velocity
-        
+
+        nr_nodes = len(self.nodes)
+        NODES = np.arange(nr_nodes)
+
+        max_v = U(0, 0, NODES)
+        min_v = U(0, 0, NODES)
+        max_x = U(0, 0, NODES)
+        max_y = U(0, 0, NODES)
+        min_x = U(0, 0, NODES)
+        min_y = U(0, 0, NODES)
+
+        MAX_X = max_x
+        MAX_Y = max_y
+        MIN_X = min_x
+        MIN_Y = min_y
+        MAX_V = max_v
+        MIN_V = min_v
+
+        for node in range(0, len(self.nodes)):
+            MAX_V[node] = self.nodes[node].max_v
+            MIN_V[node] = self.nodes[node].min_v
+            MAX_X[node] = self.nodes[node].max_x
+            MAX_Y[node] = self.nodes[node].max_y
+            MIN_X[node] = self.nodes[node].min_x
+            MIN_Y[node] = self.nodes[node].min_y
+
         wt_min = 0.
-        
+
         if self.init_stationary:
             x, y, x_waypoint, y_waypoint, velocity, wt = \
-                init_random_waypoint(self.nr_nodes, MAX_X, MAX_Y, MIN_V, MAX_V, wt_min, 
+                init_random_waypoint(self.nr_nodes, MAX_X, MAX_Y, MIN_V, MAX_V, wt_min,
                              (self.wt_max if self.wt_max is not None else 0.))
         else:
             NODES = np.arange(self.nr_nodes)
-            x = U(0, MAX_X, NODES)
-            y = U(0, MAX_Y, NODES)
-            x_waypoint = U(0, MAX_X, NODES)
-            y_waypoint = U(0, MAX_Y, NODES)
+            x = U(MIN_X, MAX_X, NODES)
+            y = U(MIN_Y, MAX_Y, NODES)
+            x_waypoint = U(MIN_X, MAX_X, NODES)
+            y_waypoint = U(MIN_Y, MAX_Y, NODES)
             wt = np.zeros(self.nr_nodes)
             velocity = U(MIN_V, MAX_V, NODES)
 
         theta = np.arctan2(y_waypoint - y, x_waypoint - x)
         costheta = np.cos(theta)
         sintheta = np.sin(theta)
-        
+
         while True:
             # update node position
             x += velocity * costheta
             y += velocity * sintheta
             # calculate distance to waypoint
-            d = np.sqrt(np.square(y_waypoint-y) + np.square(x_waypoint-x))
+            d = np.sqrt(np.square(y_waypoint - y) + np.square(x_waypoint - x))
             # update info for arrived nodes
-            arrived = np.where(np.logical_and(d<=velocity, wt<=0.))[0]
-            
+            arrived = np.where(np.logical_and(d <= velocity, wt <= 0.))[0]
+
             # step back for nodes that surpassed waypoint
             x[arrived] = x_waypoint[arrived]
             y[arrived] = y_waypoint[arrived]
-            
+
             if self.wt_max:
                 velocity[arrived] = 0.
                 wt[arrived] = U(0, self.wt_max, arrived)
                 # update info for paused nodes
-                wt[np.where(velocity==0.)[0]] -= 1.
+                wt[np.where(velocity == 0.)[0]] -= 1.
                 # update info for moving nodes
-                arrived = np.where(np.logical_and(velocity==0., wt<0.))[0]
-            
-            if arrived.size > 0:
-                x_waypoint[arrived] = U(0, MAX_X, arrived)
-                y_waypoint[arrived] = U(0, MAX_Y, arrived)
-                velocity[arrived] = U(MIN_V, MAX_V, arrived)
-                theta[arrived] = np.arctan2(y_waypoint[arrived] - y[arrived], x_waypoint[arrived] - x[arrived])
-                costheta[arrived] = np.cos(theta[arrived])
-                sintheta[arrived] = np.sin(theta[arrived])
+                arrived = np.where(np.logical_and(velocity == 0., wt < 0.))[0]
+
+            try:
+                if arrived.size > 0:
+                    wx = U(MIN_X, MAX_X, arrived)
+                    x_waypoint[arrived] = wx[arrived]
+                    wy = U(MIN_Y, MAX_Y, arrived)
+                    y_waypoint[arrived] = wy[arrived]
+                    v = U(MIN_V, MAX_V, arrived)
+                    velocity[arrived] = v[arrived]
+                    theta[arrived] = np.arctan2(y_waypoint[arrived] - y[arrived], x_waypoint[arrived] - x[arrived])
+                    costheta[arrived] = np.cos(theta[arrived])
+                    sintheta[arrived] = np.sin(theta[arrived])
+            except:
+                pass
             
             self.velocity = velocity
             self.wt = wt
-            yield np.dstack((x,y))[0]
+            yield np.dstack((x, y))[0]
 
 class StochasticWalk(object):
-    
-    def __init__(self, nodes, FL_DISTR, VELOCITY_DISTR, WT_DISTR=None, border_policy='reflect'):
+
+    def __init__(self, nodes, FL_DISTR, VELOCITY_DISTR, WT_DISTR=None, border_policy='reflect', model=None):
         '''
         Base implementation for models with direction uniformly chosen from [0,pi]:
         random_direction, random_walk, truncated_levy_walk
@@ -266,110 +292,115 @@ class StochasticWalk(object):
         self.FL_DISTR = FL_DISTR
         self.VELOCITY_DISTR = VELOCITY_DISTR
         self.WT_DISTR = WT_DISTR
-        
+        self.model = model
+
     def __iter__(self):
         def reflect(xy):
             # node bounces on the margins
-            b = np.where(xy[:,0]<MIN_X)[0]
+            b = np.where(xy[:, 0] < MIN_X)[0]
             if b.size > 0:
-                xy[b,0] = 2*MIN_X[b] - xy[b,0]
-                cosintheta[b,0] = -cosintheta[b,0]
-            b = np.where(xy[:,0]>MAX_X)[0]
+                xy[b, 0] = 2 * MIN_X[b] - xy[b, 0]
+                cosintheta[b, 0] = -cosintheta[b, 0]
+            b = np.where(xy[:, 0] > MAX_X)[0]
             if b.size > 0:
-                xy[b,0] = 2*MAX_X[b] - xy[b,0]
-                cosintheta[b,0] = -cosintheta[b,0]
-            b = np.where(xy[:,1]<MIN_Y)[0]
+                xy[b, 0] = 2 * MAX_X[b] - xy[b, 0]
+                cosintheta[b, 0] = -cosintheta[b, 0]
+            b = np.where(xy[:, 1] < MIN_Y)[0]
             if b.size > 0:
-                xy[b,1] = 2*MIN_Y[b] - xy[b,1]
-                cosintheta[b,1] = -cosintheta[b,1]
-            b = np.where(xy[:,1]>MAX_Y)[0]
+                xy[b, 1] = 2 * MIN_Y[b] - xy[b, 1]
+                cosintheta[b, 1] = -cosintheta[b, 1]
+            b = np.where(xy[:, 1] > MAX_Y)[0]
             if b.size > 0:
-                xy[b,1] = 2*MAX_Y[b] - xy[b,1]
-                cosintheta[b,1] = -cosintheta[b,1]         
-            self.b = b       
-        
+                xy[b, 1] = 2 * MAX_Y[b] - xy[b, 1]
+                cosintheta[b, 1] = -cosintheta[b, 1]
+            self.b = b
+
         def wrap(xy):
-            b = np.where(xy[:,0]<MIN_X)[0]
-            if b.size > 0: xy[b,0] += MAX_X[b]
-            b = np.where(xy[:,0]>MAX_X)[0]
-            if b.size > 0: xy[b,0] -= MAX_X[b]
-            b = np.where(xy[:,1]<MIN_Y)[0]
-            if b.size > 0: xy[b,1] += MAX_Y[b]
-            b = np.where(xy[:,1]>MAX_Y)[0]
-            if b.size > 0: xy[b,1] -= MAX_Y[b]
-            self.b = b 
-        
+            b = np.where(xy[:, 0] < MIN_X)[0]
+            if b.size > 0: xy[b, 0] += MAX_X[b]
+            b = np.where(xy[:, 0] > MAX_X)[0]
+            if b.size > 0: xy[b, 0] -= MAX_X[b]
+            b = np.where(xy[:, 1] < MIN_Y)[0]
+            if b.size > 0: xy[b, 1] += MAX_Y[b]
+            b = np.where(xy[:, 1] > MAX_Y)[0]
+            if b.size > 0: xy[b, 1] -= MAX_Y[b]
+            self.b = b
+
         if self.border_policy == 'reflect':
             borderp = reflect
         elif self.border_policy == 'wrap':
             borderp = wrap
         else:
             borderp = self.border_policy
-        
+
         NODES = np.arange(self.nr_nodes)
-        
+
         max_x = U(0, 0, NODES)
         max_y = U(0, 0, NODES)
         min_x = U(0, 0, NODES)
         min_y = U(0, 0, NODES)
-        
+
         MAX_X = max_x
         MAX_Y = max_y
         MIN_X = min_x
         MIN_Y = min_y
-        
-        for node in range(0,len(self.nodes)):
+
+        for node in range(0, len(self.nodes)):
             MAX_X[node] = self.nodes[node].max_x
             MAX_Y[node] = self.nodes[node].max_y
             MIN_X[node] = self.nodes[node].min_x
             MIN_Y[node] = self.nodes[node].min_y
-        
-        xy = U(0, MAX_X[self.b], np.dstack((NODES,NODES))[0])
+
+        xy = U(0, MAX_X[self.b], np.dstack((NODES, NODES))[0])
         fl = self.FL_DISTR(NODES)
         velocity = self.VELOCITY_DISTR(fl)
-        theta = U(0, 1.8*np.pi, NODES)
-        cosintheta = np.dstack((np.cos(theta), np.sin(theta)))[0] * np.dstack((velocity,velocity))[0]
+        theta = U(0, 1.8 * np.pi, NODES)
+        cosintheta = np.dstack((np.cos(theta), np.sin(theta)))[0] * np.dstack((velocity, velocity))[0]
         wt = np.zeros(self.nr_nodes)
-        
+
         if self.collect_fl_stats: self.fl_stats = list(fl)
-        if  self.collect_wt_stats: self.wt_stats = list(wt)
+        if self.collect_wt_stats: self.wt_stats = list(wt)
+
         while True:
-    
             xy += cosintheta
             fl -= velocity
-          
+
             # step back for nodes that surpassed fl
-            arrived = np.where(np.logical_and(velocity>0., fl<=0.))[0]
-            
+            arrived = np.where(np.logical_and(velocity > 0., fl <= 0.))[0]
+
             if arrived.size > 0:
                 diff = fl.take(arrived) / velocity.take(arrived)
-                xy[arrived] += np.dstack((diff,diff))[0] * cosintheta[arrived]
-                
+                xy[arrived] += np.dstack((diff, diff))[0] * cosintheta[arrived]
+
             # apply border policy
             borderp(xy)
-            
+
             if self.WT_DISTR:
                 velocity[arrived] = 0.
                 wt[arrived] = self.WT_DISTR(arrived)
                 if self.collect_wt_stats: self.wt_stats.extend(wt[arrived])
                 # update info for paused nodes
-                wt[np.where(velocity==0.)[0]] -= 1.
-                arrived = np.where(np.logical_and(velocity==0., wt<0.))[0]
-            
+                wt[np.where(velocity == 0.)[0]] -= 1.
+                arrived = np.where(np.logical_and(velocity == 0., wt < 0.))[0]
+
             # update info for moving nodes
             if arrived.size > 0:
-                theta = U(0, 2*np.pi, arrived)
+                theta = U(0, 2 * np.pi, arrived)
                 fl[arrived] = self.FL_DISTR(arrived)
                 if self.collect_fl_stats: self.fl_stats.extend(fl[arrived])
-                velocity[arrived] = self.VELOCITY_DISTR(fl[arrived])
+                if self.model == 'RandomDirection':
+                    velocity[arrived] = self.VELOCITY_DISTR(fl[arrived][0])[arrived]
+                elif self.model == 'TruncatedLevyWalk':
+                    velocity[arrived] = self.VELOCITY_DISTR(fl[arrived])
+                else:
+                    velocity[arrived] = self.VELOCITY_DISTR(fl[arrived])[arrived]
                 v = velocity[arrived]
                 cosintheta[arrived] = np.dstack((v * np.cos(theta), v * np.sin(theta)))[0]
-                          
             yield xy
 
 class RandomWalk(StochasticWalk):
-    
-    def __init__(self, nodes, velocity=1., distance=1., border_policy='reflect'):
+
+    def __init__(self, nodes, border_policy='reflect'):
         '''
         Random Walk mobility model.
         This model is based in the Stochastic Walk, but both the flight length and node velocity distributions are in fact constants,
@@ -393,23 +424,32 @@ class RandomWalk(StochasticWalk):
             If 'reflect', the node reflects off the border.
             If 'wrap', the node reappears at the opposite edge (as in a torus-shaped area).
         '''
-        if velocity>distance:
-            # In this implementation, each step is 1 second,
-            # it is not possible to have a velocity larger than the distance
-            raise Exception('Velocity must be <= Distance')
-        
         nr_nodes = len(nodes)
-        fl = np.zeros(nr_nodes)+distance
-        vel = np.zeros(nr_nodes)+velocity
-       
+        NODES = np.arange(nr_nodes)
+        VELOCITY = U(0, 0, NODES)
+        velocity = VELOCITY
+        distance = VELOCITY
+
+        for node in range(0, len(nodes)):
+            velocity[node] = nodes[node].constantVelocity
+            distance[node] = nodes[node].constantDistance
+
+            if velocity[node] > distance[node]:
+                # In this implementation, each step is 1 second,
+                # it is not possible to have a velocity larger than the distance
+                raise Exception('Velocity must be <= Distance')
+
+        fl = np.zeros(nr_nodes) + distance
+        vel = np.zeros(nr_nodes) + velocity
+
         FL_DISTR = lambda SAMPLES: np.array(fl[:len(SAMPLES)])
         VELOCITY_DISTR = lambda FD: np.array(vel[:len(FD)])
-        
-        StochasticWalk.__init__(self, nodes, FL_DISTR, VELOCITY_DISTR,border_policy=border_policy)
+
+        StochasticWalk.__init__(self, nodes, FL_DISTR, VELOCITY_DISTR, border_policy=border_policy)
 
 class RandomDirection(StochasticWalk):
-    
-    def __init__(self, nodes, dimensions, wt_max=None, velocity=(0.1, 1.), border_policy='reflect'):
+
+    def __init__(self, nodes, dimensions, wt_max=None, border_policy='reflect'):
         '''
         Random Direction mobility model.
         This model is based in the Stochastic Walk. The flight length is chosen from a uniform distribution, 
@@ -433,30 +473,38 @@ class RandomDirection(StochasticWalk):
             If wt_max is set, the waiting time is chosen from a uniform distribution with values between 0 and wt_max.
             If wt_max is not set, the waiting time is set to None.
             Default is None.
-          
-          *velocity*:
-            Tuple of Doubles, the minimum and maximum values for node velocity.
             
           *border_policy*:
             String, either 'reflect' or 'wrap'. The policy that is used when the node arrives to the border.
             If 'reflect', the node reflects off the border.
             If 'wrap', the node reappears at the opposite edge (as in a torus-shaped area).
         '''
-        
-        MIN_V, MAX_V = velocity
+        nr_nodes = len(nodes)
+        NODES = np.arange(nr_nodes)
+
+        max_v = U(0, 0, NODES)
+        min_v = U(0, 0, NODES)
+
+        MAX_V = max_v
+        MIN_V = min_v
+
+        for node in range(0, len(nodes)):
+            MAX_V[node] = nodes[node].max_v
+            MIN_V[node] = nodes[node].min_v
+
         FL_MAX = max(dimensions)
-        
+
         FL_DISTR = lambda SAMPLES: U(0, FL_MAX, SAMPLES)
         if wt_max:
             WT_DISTR = lambda SAMPLES: U(0, wt_max, SAMPLES)
         else:
             WT_DISTR = None
         VELOCITY_DISTR = lambda FD: U(MIN_V, MAX_V, FD)
-        
-        StochasticWalk.__init__(self, nodes, FL_DISTR, VELOCITY_DISTR, WT_DISTR, border_policy)
+
+        StochasticWalk.__init__(self, nodes, FL_DISTR, VELOCITY_DISTR, WT_DISTR, border_policy, model='RandomDirection')
 
 class TruncatedLevyWalk(StochasticWalk):
-    
+
     def __init__(self, nodes, FL_EXP=-2.6, FL_MAX=50., WT_EXP=-1.8, WT_MAX=100., border_policy='reflect'):
         '''
         Truncated Levy Walk mobility model, based on the following paper:
@@ -497,9 +545,9 @@ class TruncatedLevyWalk(StochasticWalk):
             WT_DISTR = lambda SAMPLES: P(WT_EXP, 1., WT_MAX, SAMPLES)
         else:
             WT_DISTR = None
-        VELOCITY_DISTR = lambda FD: np.sqrt(FD)/10.
-        
-        StochasticWalk.__init__(self, nodes, FL_DISTR, VELOCITY_DISTR, WT_DISTR, border_policy)
+        VELOCITY_DISTR = lambda FD: np.sqrt(FD) / 10.
+
+        StochasticWalk.__init__(self, nodes, FL_DISTR, VELOCITY_DISTR, WT_DISTR, border_policy, model='TruncatedLevyWalk')
 
 class HeterogeneousTruncatedLevyWalk(StochasticWalk):
 
@@ -542,14 +590,14 @@ class HeterogeneousTruncatedLevyWalk(StochasticWalk):
         nr_nodes = len(nodes)
         NODES = np.arange(nr_nodes)
         FL_MAX = P(-1.8, 10., FL_MAX, NODES)
-        FL_MIN = FL_MAX/10.
-        
+        FL_MIN = FL_MAX / 10.
+
         FL_DISTR = lambda SAMPLES: rand(len(SAMPLES)) * (FL_MAX[SAMPLES] - FL_MIN[SAMPLES]) + FL_MIN[SAMPLES]
         WT_DISTR = lambda SAMPLES: P(WT_EXP, 1., WT_MAX, SAMPLES)
-        VELOCITY_DISTR = lambda FD: np.sqrt(FD)/10.
-        
+        VELOCITY_DISTR = lambda FD: np.sqrt(FD) / 10.
+
         StochasticWalk.__init__(self, nr_nodes, dimensions, FL_DISTR, VELOCITY_DISTR, WT_DISTR=WT_DISTR, border_policy=border_policy)
-        
+
 def random_waypoint(*args, **kwargs):
     return iter(RandomWaypoint(*args, **kwargs))
 
@@ -592,56 +640,56 @@ def gauss_markov(nodes, velocity_mean=1., alpha=1., variance=1.):
     '''
     nr_nodes = len(nodes)
     NODES = np.arange(nr_nodes)
-    
+
     max_x = U(0, 0, NODES)
     max_y = U(0, 0, NODES)
     min_x = U(0, 0, NODES)
     min_y = U(0, 0, NODES)
-    
+
     MAX_X = max_x
     MAX_Y = max_y
     MIN_X = min_x
     MIN_Y = min_y
-    
-    for node in range(0,len(nodes)):
+
+    for node in range(0, len(nodes)):
         MAX_X[node] = nodes[node].max_x
         MAX_Y[node] = nodes[node].max_y
         MIN_X[node] = nodes[node].min_x
         MIN_Y[node] = nodes[node].min_y
-    
+
     x = U(MIN_X, MAX_X, NODES)
     y = U(MIN_Y, MAX_Y, NODES)
-    velocity =  np.zeros(nr_nodes)+velocity_mean
-    theta = U(0, 2*np.pi, NODES)
+    velocity = np.zeros(nr_nodes) + velocity_mean
+    theta = U(0, 2 * np.pi, NODES)
     angle_mean = theta
     alpha2 = 1.0 - alpha
     alpha3 = np.sqrt(1.0 - alpha * alpha) * variance
-    
+
     while True:
 
         x = x + velocity * np.cos(theta)
         y = y + velocity * np.sin(theta)
-  
+
         # node bounces on the margins
-        b = np.where(x<MIN_X)[0]
-        x[b] = 2*MIN_X[b] - x[b]; theta[b] = np.pi-theta[b]; angle_mean[b] = np.pi-angle_mean[b]
-        b = np.where(x>MAX_X)[0]
-        x[b] = 2*MAX_X[b] - x[b]; theta[b] = np.pi-theta[b]; angle_mean[b] = np.pi-angle_mean[b]
-        b = np.where(y<MIN_Y)[0]
-        y[b] = 2*MIN_Y[b] - y[b]; theta[b] = -theta[b]; angle_mean[b] = -angle_mean[b]
-        b = np.where(y>MAX_Y)[0]
-        y[b] = 2*MAX_Y[b] - y[b]; theta[b] = -theta[b]; angle_mean[b] = -angle_mean[b]
+        b = np.where(x < MIN_X)[0]
+        x[b] = 2 * MIN_X[b] - x[b]; theta[b] = np.pi - theta[b]; angle_mean[b] = np.pi - angle_mean[b]
+        b = np.where(x > MAX_X)[0]
+        x[b] = 2 * MAX_X[b] - x[b]; theta[b] = np.pi - theta[b]; angle_mean[b] = np.pi - angle_mean[b]
+        b = np.where(y < MIN_Y)[0]
+        y[b] = 2 * MIN_Y[b] - y[b]; theta[b] = -theta[b]; angle_mean[b] = -angle_mean[b]
+        b = np.where(y > MAX_Y)[0]
+        y[b] = 2 * MAX_Y[b] - y[b]; theta[b] = -theta[b]; angle_mean[b] = -angle_mean[b]
         # calculate new speed and direction based on the model
         velocity = (alpha * velocity +
                     alpha2 * velocity_mean +
                     alpha3 * np.random.normal(0.0, 1.0, nr_nodes))
-    
+
         theta = (alpha * theta +
                     alpha2 * angle_mean +
                     alpha3 * np.random.normal(0.0, 1.0, nr_nodes))
-        
-        yield np.dstack((x,y))[0]
-        
+
+        yield np.dstack((x, y))[0]
+
 def reference_point_group(nodes, dimensions, velocity=(0.1, 1.), aggregation=0.1):
     '''
     Reference Point Group Mobility model, discussed in the following paper:
@@ -680,97 +728,97 @@ def reference_point_group(nodes, dimensions, velocity=(0.1, 1.), aggregation=0.1
         iter(nr_nodes)
     except TypeError:
         nr_nodes = [nr_nodes]
-    
+
     NODES = np.arange(sum(nr_nodes))
-    
+
     groups = []
     prev = 0
-    for (i,n) in enumerate(nr_nodes):
-        groups.append(np.arange(prev,n+prev))
+    for (i, n) in enumerate(nr_nodes):
+        groups.append(np.arange(prev, n + prev))
         prev += n
-    
+
     g_ref = np.empty(sum(nr_nodes), dtype=np.int)
-    for (i,g) in enumerate(groups):
+    for (i, g) in enumerate(groups):
         for n in g:
             g_ref[n] = i
-    
+
     FL_MAX = max(dimensions)
-    MIN_V,MAX_V = velocity
+    MIN_V, MAX_V = velocity
     FL_DISTR = lambda SAMPLES: U(0, FL_MAX, SAMPLES)
     VELOCITY_DISTR = lambda FD: U(MIN_V, MAX_V, FD)
-    
+
     MAX_X, MAX_Y = dimensions
     x = U(0, MAX_X, NODES)
     y = U(0, MAX_Y, NODES)
     velocity = 1.
-    theta = U(0, 2*np.pi, NODES)
+    theta = U(0, 2 * np.pi, NODES)
     costheta = np.cos(theta)
     sintheta = np.sin(theta)
-    
+
     GROUPS = np.arange(len(groups))
     g_x = U(0, MAX_X, GROUPS)
     g_y = U(0, MAX_X, GROUPS)
     g_fl = FL_DISTR(GROUPS)
     g_velocity = VELOCITY_DISTR(g_fl)
-    g_theta = U(0, 2*np.pi, GROUPS)
+    g_theta = U(0, 2 * np.pi, GROUPS)
     g_costheta = np.cos(g_theta)
     g_sintheta = np.sin(g_theta)
-        
+
     while True:
 
         x = x + velocity * costheta
         y = y + velocity * sintheta
-        
+
         g_x = g_x + g_velocity * g_costheta
         g_y = g_y + g_velocity * g_sintheta
-        
-        for (i,g) in enumerate(groups):
-            
+
+        for (i, g) in enumerate(groups):
+
             # step to group direction + step to group center
             x_g = x[g]
             y_g = y[g]
             c_theta = np.arctan2(g_y[i] - y_g, g_x[i] - x_g)
-            
-            x[g] = x_g + g_velocity[i] * g_costheta[i] + aggregation*np.cos(c_theta)
-            y[g] = y_g + g_velocity[i] * g_sintheta[i] + aggregation*np.sin(c_theta)
-            
+
+            x[g] = x_g + g_velocity[i] * g_costheta[i] + aggregation * np.cos(c_theta)
+            y[g] = y_g + g_velocity[i] * g_sintheta[i] + aggregation * np.sin(c_theta)
+
         # node and group bounces on the margins
-        b = np.where(x<0)[0]
+        b = np.where(x < 0)[0]
         if b.size > 0:
-            x[b] = - x[b]; costheta[b] = -costheta[b]
+            x[b] = -x[b]; costheta[b] = -costheta[b]
             g_idx = np.unique(g_ref[b]); g_costheta[g_idx] = -g_costheta[g_idx]
-        b = np.where(x>MAX_X)[0]
+        b = np.where(x > MAX_X)[0]
         if b.size > 0:
-            x[b] = 2*MAX_X - x[b]; costheta[b] = -costheta[b]
+            x[b] = 2 * MAX_X - x[b]; costheta[b] = -costheta[b]
             g_idx = np.unique(g_ref[b]); g_costheta[g_idx] = -g_costheta[g_idx]
-        b = np.where(y<0)[0]
+        b = np.where(y < 0)[0]
         if b.size > 0:
-            y[b] = - y[b]; sintheta[b] = -sintheta[b]
+            y[b] = -y[b]; sintheta[b] = -sintheta[b]
             g_idx = np.unique(g_ref[b]); g_sintheta[g_idx] = -g_sintheta[g_idx]
-        b = np.where(y>MAX_Y)[0]
+        b = np.where(y > MAX_Y)[0]
         if b.size > 0:
-            y[b] = 2*MAX_Y - y[b]; sintheta[b] = -sintheta[b]
+            y[b] = 2 * MAX_Y - y[b]; sintheta[b] = -sintheta[b]
             g_idx = np.unique(g_ref[b]); g_sintheta[g_idx] = -g_sintheta[g_idx]
 
         # update info for nodes
-        theta = U(0, 2*np.pi, NODES)
+        theta = U(0, 2 * np.pi, NODES)
         costheta = np.cos(theta)
         sintheta = np.sin(theta)
-        
+
         # update info for arrived groups
         g_fl = g_fl - g_velocity
-        g_arrived = np.where(np.logical_and(g_velocity>0., g_fl<=0.))[0]
-        
+        g_arrived = np.where(np.logical_and(g_velocity > 0., g_fl <= 0.))[0]
+
         if g_arrived.size > 0:
-            g_theta = U(0, 2*np.pi, g_arrived)
+            g_theta = U(0, 2 * np.pi, g_arrived)
             g_costheta[g_arrived] = np.cos(g_theta)
             g_sintheta[g_arrived] = np.sin(g_theta)
             g_fl[g_arrived] = FL_DISTR(g_arrived)
             g_velocity[g_arrived] = VELOCITY_DISTR(g_fl[g_arrived])
 
-        yield np.dstack((x,y))[0]
-        
-def tvc(nodes, dimensions, velocity=(0.1, 1.), aggregation=[0.5,0.], epoch=[100,100]):
+        yield np.dstack((x, y))[0]
+
+def tvc(nodes, dimensions, velocity=(0.1, 1.), aggregation=[0.5, 0.], epoch=[100, 100]):
     '''
     Time-variant Community Mobility Model, discussed in the paper
     
@@ -813,125 +861,125 @@ def tvc(nodes, dimensions, velocity=(0.1, 1.), aggregation=[0.5,0.], epoch=[100,
     nr_nodes = len(nodes)
     if len(aggregation) != len(epoch):
         raise Exception("The parameters 'aggregation' and 'epoch' should be of same size")
-    
+
     try:
         iter(nr_nodes)
     except TypeError:
         nr_nodes = [nr_nodes]
-    
+
     NODES = np.arange(sum(nr_nodes))
-    
+
     epoch_total = sum(epoch)
-    
+
     def AGGREGATION(t):
         acc = 0
         for i in range(len(epoch)):
-            acc+=epoch[i]
-            if t%epoch_total <= acc: return aggregation[i]
+            acc += epoch[i]
+            if t % epoch_total <= acc: return aggregation[i]
         raise Exception("Something wrong here")
-    
+
     groups = []
     prev = 0
-    for (i,n) in enumerate(nr_nodes):
-        groups.append(np.arange(prev,n+prev))
+    for (i, n) in enumerate(nr_nodes):
+        groups.append(np.arange(prev, n + prev))
         prev += n
-    
+
     g_ref = np.empty(sum(nr_nodes), dtype=np.int)
-    for (i,g) in enumerate(groups):
+    for (i, g) in enumerate(groups):
         for n in g:
             g_ref[n] = i
-    
+
     FL_MAX = max(dimensions)
-    MIN_V,MAX_V = velocity
+    MIN_V, MAX_V = velocity
     FL_DISTR = lambda SAMPLES: U(0, FL_MAX, SAMPLES)
     VELOCITY_DISTR = lambda FD: U(MIN_V, MAX_V, FD)
-    
-    def wrap(x,y):
-        b = np.where(x<0)[0]
+
+    def wrap(x, y):
+        b = np.where(x < 0)[0]
         if b.size > 0:
             x[b] += MAX_X
-        b = np.where(x>MAX_X)[0]
+        b = np.where(x > MAX_X)[0]
         if b.size > 0:
             x[b] -= MAX_X
-        b = np.where(y<0)[0]
+        b = np.where(y < 0)[0]
         if b.size > 0:
             y[b] += MAX_Y
-        b = np.where(y>MAX_Y)[0]
+        b = np.where(y > MAX_Y)[0]
         if b.size > 0:
             y[b] -= MAX_Y
-    
+
     MAX_X, MAX_Y = dimensions
     x = U(0, MAX_X, NODES)
     y = U(0, MAX_Y, NODES)
     velocity = 1.
-    theta = U(0, 2*np.pi, NODES)
+    theta = U(0, 2 * np.pi, NODES)
     costheta = np.cos(theta)
     sintheta = np.sin(theta)
-    
+
     GROUPS = np.arange(len(groups))
     g_x = U(0, MAX_X, GROUPS)
     g_y = U(0, MAX_X, GROUPS)
     g_fl = FL_DISTR(GROUPS)
     g_velocity = VELOCITY_DISTR(g_fl)
-    g_theta = U(0, 2*np.pi, GROUPS)
+    g_theta = U(0, 2 * np.pi, GROUPS)
     g_costheta = np.cos(g_theta)
     g_sintheta = np.sin(g_theta)
-    
+
     t = 0
-        
+
     while True:
-        
+
         t += 1
         # get aggregation value for this step
         aggr = AGGREGATION(t)
 
         x = x + velocity * costheta
         y = y + velocity * sintheta
-        
+
         # move reference point only if nodes have to go there
         if aggr > 0:
-        
+
             g_x = g_x + g_velocity * g_costheta
             g_y = g_y + g_velocity * g_sintheta
-            
+
             # group wrap around when outside the margins (torus shaped area)
             wrap(g_x, g_y)
-            
+
             # update info for arrived groups
-            g_arrived = np.where(np.logical_and(g_velocity>0., g_fl<=0.))[0]
+            g_arrived = np.where(np.logical_and(g_velocity > 0., g_fl <= 0.))[0]
             g_fl = g_fl - g_velocity
-            
+
             if g_arrived.size > 0:
-                g_theta = U(0, 2*np.pi, g_arrived)
+                g_theta = U(0, 2 * np.pi, g_arrived)
                 g_costheta[g_arrived] = np.cos(g_theta)
                 g_sintheta[g_arrived] = np.sin(g_theta)
                 g_fl[g_arrived] = FL_DISTR(g_arrived)
                 g_velocity[g_arrived] = VELOCITY_DISTR(g_fl[g_arrived])
-            
+
             # update node position according to group center
-            for (i,g) in enumerate(groups):
-                
+            for (i, g) in enumerate(groups):
+
                 # step to group direction + step to reference point
                 x_g = x[g]
                 y_g = y[g]
-                
+
                 dy = g_y[i] - y_g
                 dx = g_x[i] - x_g
                 c_theta = np.arctan2(dy, dx)
-                
+
                 # invert angle if wrapping around
-                invert = np.where((np.abs(dy)>MAX_Y/2)!=(np.abs(dx)>MAX_X/2))[0]
+                invert = np.where((np.abs(dy) > MAX_Y / 2) != (np.abs(dx) > MAX_X / 2))[0]
                 c_theta[invert] = c_theta[invert] + np.pi
-                
-                x[g] = x_g + g_velocity[i] * g_costheta[i] + aggr*np.cos(c_theta)
-                y[g] = y_g + g_velocity[i] * g_sintheta[i] + aggr*np.sin(c_theta)
-            
+
+                x[g] = x_g + g_velocity[i] * g_costheta[i] + aggr * np.cos(c_theta)
+                y[g] = y_g + g_velocity[i] * g_sintheta[i] + aggr * np.sin(c_theta)
+
         # node wrap around when outside the margins (torus shaped area)
-        wrap(x,y)
-        
+        wrap(x, y)
+
         # update info for nodes
-        theta = U(0, 2*np.pi, NODES)
+        theta = U(0, 2 * np.pi, NODES)
         costheta = np.cos(theta)
         sintheta = np.sin(theta)
-        
-        yield np.dstack((x,y))[0]
+
+        yield np.dstack((x, y))[0]
