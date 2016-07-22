@@ -23,9 +23,9 @@ def topology():
     c1 = net.addController( 'c1', controller=Controller )
 
     print "*** Adding Link"
-    net.addLink(sta1, ap1)
-    net.addLink(sta2, ap1)
-
+    sta1.params['associatedTo'][0] = ap1
+    sta2.params['associatedTo'][0] = ap1
+    
     print "*** Starting network"
     net.build()
     c1.start()
