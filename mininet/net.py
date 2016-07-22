@@ -115,7 +115,6 @@ from mininet.wifiDevices import deviceRange, deviceDataRate
 from mininet.wifiMobility import mobility
 from mininet.wifiModule import module
 from mininet.wifiPlot import plot
-from mininet.wifiReport import report
 from mininet.wifiPropagationModels import propagationModel_
 from mininet.wifiAdHocConnectivity import pairingAdhocNodes
 from mininet.wifiMeshRouting import listNodes, meshRouting
@@ -1392,7 +1391,7 @@ class Mininet(object):
         # useful if there no link between sta and any other device
         "Build mininet."
         Node.isCode = True
-
+        
         for switch in self.switches:
             if switch in self.missingWlanAP:
                 cls = None
@@ -1404,7 +1403,7 @@ class Mininet(object):
                     options = dict()
                     options.setdefault('intfName1', iface)
                     cls(switch, 'alone', **options)
-
+        
         if self.ifaceConfigured == False:
             for node in self.missingStations:
                 mobility.getAPsInRange(node)
@@ -1473,14 +1472,13 @@ class Mininet(object):
                             mobility.nodeParameter(sta, wlan)
                         if sta.params['mac'][wlan] == '':
                             sta.params['mac'][wlan] = self.getMacAddress(sta, wlan)
-
         if self.topo:
             self.buildFromTopo(self.topo)
         if self.firstAssociation:
             self.configureWifiNodes()
         if self.inNamespace:
             self.configureControlNetwork()
-            info('*** Configuring hosts\n')
+            info('*** Configuring hosts\n')        
         self.configHosts()
         if self.xterms:
             self.startTerms()
@@ -2004,11 +2002,6 @@ class Mininet(object):
         """ Print the distance between two points """
         dist = channelParameters.getDistance(src, dst)
         print ("The distance between %s and %s is %.2f meters\n" % (src, dst, float(dist)))
-
-    def report_(self, node, d):
-        for host in self.wifiNodes:
-            if node == str(host):
-                report(host, d)
 
     def plotGraph(self, **kwargs):
         """ Plot Graph """
