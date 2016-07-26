@@ -468,7 +468,7 @@ CONFIG_AP=y
 # P2P (Wi-Fi Direct)
 # This can be used to enable P2P support in wpa_supplicant. See README-P2P for
 # more information on P2P operations.
-CONFIG_P2P=y
+#CONFIG_P2P=y
 
 # Enable TDLS support
 CONFIG_TDLS=y
