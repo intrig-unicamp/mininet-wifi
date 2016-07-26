@@ -2,6 +2,7 @@
 
 """
 WiFi Direct Example
+Attention: you have to open /wpa_supplicant/wpa_supplicant/defconf and uncomment CONFIG_P2P=y. Then, compile it again with make && make install.
 """
 
 from mininet.net import Mininet
