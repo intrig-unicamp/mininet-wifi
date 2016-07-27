@@ -14,7 +14,7 @@ def topology():
     net = Mininet( controller=Controller, link=TCLink, switch=OVSKernelSwitch )
 
     print "*** Creating nodes"
-    sta1 = net.addStation( 'sta1', wlans=2, ip='10.0.0.2/8' )
+    sta1 = net.addStation( 'sta1', wlans=2, ip='10.0.0.2/8', max_x=120, max_y=50, min_v=1.4, max_v=1.6 )
     h1 = net.addHost( 'h1', mac='00:00:00:00:00:01', ip='10.0.0.1/8' )
     h2 = net.addHost( 'h2', mac='00:00:00:00:00:11', ip='10.0.0.11/8' )
     ap1 = net.addBaseStation( 'ap1', ssid='ssid_ap1', mode= 'g', channel=6, position='70,25,0' )
@@ -60,7 +60,7 @@ def topology():
     net.plotGraph(max_x=140, max_y=140)
     
     "*** Available models: RandomWalk, TruncatedLevyWalk, RandomDirection, RandomWaypoint, GaussMarkov ***"
-    net.startMobility(startTime=0, model='RandomDirection', max_x=120, max_y=50, min_v=0.4, max_v=0.6)
+    net.startMobility(startTime=0, model='RandomDirection')
 
     print "*** Running CLI"
     CLI( net )
