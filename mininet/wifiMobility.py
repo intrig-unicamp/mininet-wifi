@@ -151,7 +151,7 @@ class mobility (object):
             if node.min_v == 0:
                 node.min_v = min_v
 
-        debug('Chossing the mobility model %s' % model)
+        debug('Setting the mobility model %s' % model)
 
         if(model == 'RandomWalk'):  # Random Walk model
             mob = random_walk(staMov)

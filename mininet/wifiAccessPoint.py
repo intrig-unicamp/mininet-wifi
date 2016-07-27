@@ -14,10 +14,14 @@ class accessPoint(object):
     def __init__(self, ap, country_code=None, auth_algs=None, wpa=None, intf=None, wlan=None,
               wpa_key_mgmt=None, rsn_pairwise=None, wpa_passphrase=None, encrypt=None,
               wep_key0=None, **params):
+        
+        ap.params['mac'] = []
+        for i in range(ap.n_ssids+1):
+            ap.params['mac'].append('')
 
         if 'phywlan' not in ap.params:
             self.renameIface(ap, intf, ap.params['wlan'][wlan])
-            ap.params['mac'] = self.getMacAddress(ap, wlan)
+            ap.params['mac'][wlan] = self.getMacAddress(ap, wlan)
 
         self.start (ap, country_code, auth_algs, wpa, wlan,
               wpa_key_mgmt, rsn_pairwise, wpa_passphrase, encrypt,
@@ -75,13 +79,14 @@ class accessPoint(object):
                 for conf in config:
                     self.cmd = self.cmd + "\n" + conf
 
-        if(ap.n_ssids) > 1:
-            i = 1
-            while (int(ap.n_ssids) > i):
+        if(ap.n_ssids) > 0:
+            for i in range(1, ap.n_ssids+1):
                 self.cmd = self.cmd + ('\n')
-                self.cmd = self.cmd + ("\nbss=%s-wlan%s_%s" % (ap, wlan, i))
-                self.cmd = self.cmd + ("\nssid=%s_%s" % (ap.ssid[0], i))
-                i += 1
+                self.cmd = self.cmd + ("\nbss=%s-wlan%s-%s" % (ap, wlan, i))
+                self.cmd = self.cmd + ("\nssid=%s-%s" % (ap.ssid[0], i))
+                ap.params['mac'][i] = ap.params['mac'][wlan][:-1] + str(i)
+                self.checkNetworkManager(ap.params['mac'][i])
+                ap.params['wlan'].append('%s-wlan%s-%s' % (ap, wlan, i))
 
         self.APfile(self.cmd, ap, wlan)
 
@@ -131,7 +136,7 @@ class accessPoint(object):
                             print line.replace(unmatch, echo)
                         else:
                             print line.rstrip()
-                os.system('service network-manager restart')
+                #os.system('service network-manager restart')
 
     @classmethod
     def apBridge(self, ap, wlan):
@@ -141,9 +146,6 @@ class accessPoint(object):
         else:
             wlan = ap.params.get('phywlan')
             os.system("ovs-vsctl add-port %s %s" % (ap, wlan))
-        if(ap.n_ssids) > 1:
-            for n in range(1, ap.n_ssids):
-                os.system("ovs-vsctl add-port %s %s-%s" % (ap, ap.params['wlan'][wlan], n))
 
     def setBw(self, ap, iface):
         """ Set bw to AP """
@@ -165,7 +167,7 @@ class accessPoint(object):
             os.system('ifconfig %s up' % iface)
         content = cmd + ("\' > %s.conf" % iface)
         os.system(content)
-        cmd = ("hostapd -B %s.conf" % iface)
+        cmd = ("hostapd -B %s.conf &" % iface)
         try:
             subprocess.check_output(cmd, shell=True)
         except:

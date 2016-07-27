@@ -125,7 +125,7 @@ from mininet.vanet import vanet
 from __builtin__ import True
 
 # Mininet version: should be consistent with README and LICENSE
-VERSION = "1.8r12"
+VERSION = "1.9"
 
 class Mininet(object):
     "Network emulation with hosts spawned in network namespaces."
@@ -276,22 +276,22 @@ class Mininet(object):
         min_y = ("%s" % params.pop('min_y', {}))
         if(min_y != "{}"):
             node.min_y = int(min_y)
-            
+
         # min_v
         min_v = ("%s" % params.pop('min_v', {}))
         if(min_v != "{}"):
-            node.min_v = int(min_v)
+            node.min_v = float(min_v)
 
         # max_v
         max_v = ("%s" % params.pop('max_v', {}))
         if(max_v != "{}"):
-            node.max_v = int(max_v)
-            
+            node.max_v = float(max_v)
+
         # constantVelocity
         constantVelocity = ("%s" % params.pop('constantVelocity', {}))
         if(constantVelocity != "{}"):
             node.constantVelocity = int(constantVelocity)
-            
+
         # constantDistance
         constantDistance = ("%s" % params.pop('constantDistance', {}))
         if(constantDistance != "{}"):
@@ -410,7 +410,7 @@ class Mininet(object):
             if(n_ssids != "{}"):
                 node.n_ssids = int(n_ssids)
             else:
-                node.n_ssids = 1
+                node.n_ssids = 0
 
         return int(wifi)
 
@@ -1010,6 +1010,9 @@ class Mininet(object):
 
     def wifiDirect(self, sta, cls=None, **params):
 
+        wlan = sta.ifaceToAssociate
+        sta.func[wlan] = 'wifiDirect'
+
         if self.firstAssociation:
             self.configureWifiNodes()
         self.firstAssociation = False
@@ -1391,7 +1394,6 @@ class Mininet(object):
         # useful if there no link between sta and any other device
         "Build mininet."
         Node.isCode = True
-        
         for switch in self.switches:
             if switch in self.missingWlanAP:
                 cls = None
@@ -1403,7 +1405,7 @@ class Mininet(object):
                     options = dict()
                     options.setdefault('intfName1', iface)
                     cls(switch, 'alone', **options)
-        
+
         if self.ifaceConfigured == False:
             for node in self.missingStations:
                 mobility.getAPsInRange(node)
@@ -1459,7 +1461,9 @@ class Mininet(object):
             for sta in self.stations:
                 mobility.getAPsInRange(sta)
                 for wlan in range(0, len(sta.params['wlan'])):
-                    if sta.params['associatedTo'][wlan] == '' and (sta.func[wlan] != 'mesh' and sta.func[wlan] != 'adhoc'):
+                    if sta.params['associatedTo'][wlan] == '' and \
+                                    (sta.func[wlan] != 'mesh' and sta.func[wlan] != 'adhoc') and \
+                                    sta.func[wlan] != 'wifiDirect':
                         cls = None
                         options = dict()
                         # Set default MAC - this should probably be in Link
@@ -1478,7 +1482,7 @@ class Mininet(object):
             self.configureWifiNodes()
         if self.inNamespace:
             self.configureControlNetwork()
-            info('*** Configuring hosts\n')        
+            info('*** Configuring hosts\n')
         self.configHosts()
         if self.xterms:
             self.startTerms()

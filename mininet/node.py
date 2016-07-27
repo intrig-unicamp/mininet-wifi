@@ -1193,6 +1193,12 @@ class UserSwitch(Switch):
         ofdlog = '/tmp/' + self.name + '-ofd.log'
         ofplog = '/tmp/' + self.name + '-ofp.log'
         intfs = [ str(i) for i in self.intfList() if not i.IP() ]
+
+        if self.n_ssids > 0:
+            iface = intfs[0]
+            for n in range(1, self.n_ssids + 1):
+                intfs.append(iface + str('-%s' % n))
+
         self.cmd('ofdatapath -i ' + ','.join(intfs) +
                   ' punix:/tmp/' + self.name + ' -d %s ' % self.dpid +
                   self.dpopts +
@@ -1211,11 +1217,12 @@ class UserSwitch(Switch):
     def stop(self, deleteIntfs=True):
         """Stop OpenFlow reference user datapath.
            deleteIntfs: delete interfaces? (True)"""
-        self.cmd('kill %ofdatapath')
-        self.cmd('kill %ofprotocol')
-        super(UserSwitch, self).stop(deleteIntfs)
-        if self.type == 'accessPoint':
-            self.cmd('ovs-vsctl del-br', self)
+        if self.type != 'accessPoint':
+            self.cmd('kill %ofdatapath')
+            self.cmd('kill %ofprotocol')
+            super(UserSwitch, self).stop(deleteIntfs)
+        # if self.type == 'accessPoint':
+        #    self.cmd('ovs-vsctl del-br', self.name)
 
 class OVSSwitch(Switch):
     "Open vSwitch switch. Depends on ovs-vsctl."

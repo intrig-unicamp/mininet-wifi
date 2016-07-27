@@ -402,7 +402,7 @@ class TCIntf(Intf):
         # Print bw info
         if self.node.type != 'station':
             info('(' + ' '.join(stuff) + ') ')
-        
+
         # Execute all the commands in our node
         debug("at map stage w/cmds: %s\n" % cmds)
         tcoutputs = [ self.tc(cmd) for cmd in cmds ]

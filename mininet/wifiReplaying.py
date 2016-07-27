@@ -8,6 +8,7 @@ author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
 import time
 import threading
 import random
+import os
 from pylab import math, cos, sin
 from mininet.wifiPlot import plot
 from mininet.wifiMobility import mobility
@@ -133,12 +134,14 @@ class replayingRSSI(object):
                         bw = self.calculateRate(sta, ap, dist)
                         channelParameters.tc(sta, 0, bw, 1, 1, 1)
                         sta.params['rssi'] = sta.rssi[0]
+                        if str(sta) == 'sta2':
+                            os.system("echo %s %s %.2f %d %.2f %.2f >> dataSTA2.text" % (sta, ap, dist, sta.params['rssi'], sta.params['position'][0], sta.params['position'][1]))
                     del sta.rssi[0]
                     del sta.time[0]
                 if len(sta.time) == 0:
                     staList.remove(sta)
             time.sleep(0.01)
-
+            
     def calculateDistance(self, sta, freq, signalLevel):
         """Based on Free Space Propagation Model"""
         dist = 10 ** ((27.55 - (20 * math.log10(freq)) + abs(signalLevel)) / 20)
