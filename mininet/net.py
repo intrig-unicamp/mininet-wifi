@@ -177,6 +177,7 @@ class Mininet(object):
         self.start_time = -1  # start mobility time
         self.set_seed = 10
         self.routing = ''
+        self.alternativeModule = ''
         self.nroads = 0
         self.firstAssociation = True
         self.ifaceConfigured = False
@@ -865,6 +866,10 @@ class Mininet(object):
         return macColonHex(random.randint(1, 2 ** 48 - 1) & 0xfeffffffffff |
                             0x020000000000)
 
+    def runAlternativeModule(self, moduleDir):
+        "Run an alternative module rather than mac80211_hwsim"
+        self.alternativeModule = moduleDir
+
     def addMesh(self, sta, cls=None, **params):
 
         wlan = sta.ifaceToAssociate
@@ -909,7 +914,7 @@ class Mininet(object):
         else:
             sta.ssid[wlan] = 'meshNetwork'
 
-        value = deviceRange(sta)
+        deviceRange(sta)
 
         value = deviceDataRate(None, sta, None)
         self.bw = value.rate
@@ -983,7 +988,7 @@ class Mininet(object):
             sta.ssid[sta.ifaceToAssociate] = 'adhocNetwork'
             sta.params['associatedTo'][wlan] = 'adhocNetwork'
 
-        value = deviceRange(sta)
+        deviceRange(sta)
 
         value = deviceDataRate(None, sta, None)
         self.bw = value.rate
@@ -1121,37 +1126,6 @@ class Mininet(object):
                     cls(ap, 'alone', **options)
                     ap.params.pop("phywlan", None)
 
-    """    
-    def wds( self, ap1, ap2, cls=None, **params ):
-        
-        if('ap' in str(ap1) and 'ap' in str(ap2)):
-            
-            if self.firstAssociation:
-                module.startEnvironment()
-                self.link = TCLink
-                self.newapif = getWlan.virtual()  #Get Virtual Wlans      
-                self.firstAssociation = False
-                station.assingIface(self.hosts)
-                
-            node1 = ap1 if not isinstance( ap1, basestring ) else self[ ap1 ]
-            node2 = ap2 if not isinstance( ap2, basestring ) else self[ ap2 ]
-        
-            ap1 = str(node1)
-            self.apexists.append(ap1) 
-            ap2 = str(node2)
-            self.apexists.append(ap2)
-            
-            int1 = self.newapif[module.virtualWlan.index(ap1)]
-            int2 = self.newapif[module.virtualWlan.index(ap2)]
-            accessPoint.wds(ap1, int1, ap2, int2)
-            
-            #configure AP
-            self.configureAP(ap1)
-            self.configureAP(ap2)
-                
-            self.bw = wifiParameters.set_bw(self.mode)
-    """
-
     def getMacAddress(self, sta, wlan):
         """ get Mac Address of any Interface """
         _macMatchRegex = re.compile(r'..:..:..:..:..:..')
@@ -1161,7 +1135,7 @@ class Mininet(object):
 
     def configureWifiNodes(self):
         if self.ifaceConfigured == False:
-            physicalWlan, phyList = module.start(self.wifiRadios)
+            physicalWlan, phyList = module.start(self.wifiRadios, self.alternativeModule)
             self.isWiFi = True
             self.link = TCLink
             self.newapif = module.getWlanIface(physicalWlan)  # Get Virtual Wlans

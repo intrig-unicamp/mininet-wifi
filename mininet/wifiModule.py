@@ -32,10 +32,14 @@ class module(object):
                 break
 
     @classmethod
-    def loadModule(self, wifiRadios):
+    def loadModule(self, wifiRadios, alternativeModule=''):
         """ Start wireless Module """
-        os.system('modprobe mac80211_hwsim radios=%s' % wifiRadios)
-        debug('Loading %s virtual interfaces\n' % wifiRadios)
+        if alternativeModule == '':
+            os.system('modprobe mac80211_hwsim radios=%s' % wifiRadios)
+            debug('Loading %s virtual interfaces\n' % wifiRadios)
+        else:
+            os.system('insmod %s radios=%s' % (alternativeModule, wifiRadios))
+            debug('Loading %s virtual interfaces\n' % wifiRadios)
 
     @classmethod
     def stop(self):
@@ -58,7 +62,7 @@ class module(object):
             os.system('pkill -f \'wpa_supplicant -B -Dnl80211\'')
 
     @classmethod
-    def start(self, wifiRadios):
+    def start(self, wifiRadios, alternativeModule=''):
         """Starting environment"""
         self.killprocs('hostapd')
         try:
@@ -69,7 +73,7 @@ class module(object):
             pass
 
         physicalWlan = self.getWlanList()  # Get Phisical Wlan(s)
-        self.loadModule(wifiRadios)  # Initatilize WiFi Module
+        self.loadModule(wifiRadios, alternativeModule)  # Initatilize WiFi Module
         totalPhy = self.getPhy()  # Get Phy Interfaces
         return physicalWlan, totalPhy
 
