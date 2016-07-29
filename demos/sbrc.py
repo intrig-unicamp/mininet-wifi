@@ -5,7 +5,7 @@
    authors: Ramon dos Reis Fontes and Christian Esteve Rothenberg"""
 
 from mininet.net import Mininet
-from mininet.node import RemoteController,OVSKernelSwitch, Controller
+from mininet.node import OVSKernelSwitch, Controller
 from mininet.link import TCLink
 from mininet.cli import CLI
 from mininet.node import Node
@@ -16,7 +16,7 @@ import time
 def topology():
 
     "Create a network."
-    net = Mininet( controller=RemoteController, link=TCLink, switch=OVSKernelSwitch )
+    net = Mininet( controller=Controller, link=TCLink, switch=OVSKernelSwitch )
     staList = []
 
     print "*** Creating nodes"
@@ -63,7 +63,7 @@ def topology():
         ip+=1
 
     "*** Available models: RandomWalk, TruncatedLevyWalk, RandomDirection, RandomWayPoint, GaussMarkov, ReferencePoint, TimeVariantCommunity ***"
-    net.startMobility(startTime=0, model='RandomWalk', max_x=200, max_y=220, min_v=0.1, max_v=0.2)
+    net.startMobility(startTime=0, model='RandomWalk', max_x=220, max_y=220, min_v=0.1, max_v=0.2)
 
     print "*** Running CLI"
     CLI( net )
