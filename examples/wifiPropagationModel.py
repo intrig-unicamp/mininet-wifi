@@ -31,17 +31,16 @@ def topology():
     ap1.start( [c1] )
     
     """uncomment to plot graph"""
-    net.plotGraph(max_x=150, max_y=150)
+    net.plotGraph(max_x=100, max_y=100)
 
     """Seed"""
     net.seed(1) 
 
     "*** Available propagation models: friisPropagationLossModel, twoRayGroundPropagationLossModel, logDistancePropagationLossModel ***"
- #   net.propagationModel('youngModel')
     net.propagationModel('friisPropagationLossModel', sL=2)
 
     "*** Available mobility models: RandomWalk, TruncatedLevyWalk, RandomDirection, RandomWayPoint, GaussMarkov ***"
-    net.startMobility(startTime=0, model='RandomWayPoint', max_x=160, max_y=160, min_v=0.1, max_v=0.2)
+    net.startMobility(startTime=0, model='RandomWayPoint', max_x=100, max_y=100, min_v=0.5, max_v=0.5)
    
     print "*** Running CLI"
     CLI( net )
