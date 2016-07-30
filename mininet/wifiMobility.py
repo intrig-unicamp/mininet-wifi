@@ -27,8 +27,11 @@ class mobility (object):
     apList = []
     staList = []
     wallList = []
+    staMov = []
+    dic = dict()
     DRAW = False
     continue_ = True
+    isMobility = False
 
     @classmethod
     def moveFactor(self, sta, diffTime, initialPosition, finalPosition):
@@ -77,39 +80,22 @@ class mobility (object):
                 sta.params['associatedTo'][wlan] = ap
 
     @classmethod
-    def graphInstantiateNodes(self, node):
-        plot.instantiateAnnotate(node)
-        plot.instantiateCircle(node)
-        plot.instantiateNode(node, self.MAX_X, self.MAX_Y)
-        plot.graphUpdate(node)
-
-    @classmethod
     def mobilityPositionDefined(self, initial_time, final_time, staMov):
         """ ongoing Mobility """
         t_end = time.time() + final_time
         t_initial = time.time() + initial_time
         currentTime = time.time()
         i = 1
+        nodes = self.staList + self.apList
+
+        dic = dict()
+        dic['max_x'] = self.MAX_X
+        dic['max_y'] = self.MAX_Y
 
         if self.DRAW == True:
-            debug('Enabling Graph...\n')
             plot.instantiateGraph(self.MAX_X, self.MAX_Y)
-            for sta in self.staList:
-                self.graphInstantiateNodes(sta)
-                if sta not in staMov:
-                    plot.pltNode[sta].set_data(sta.params['position'][0], sta.params['position'][1])
-                    plot.drawTxt(sta)
-                    plot.drawCircle(sta)
-            for ap in mobility.apList:
-                self.graphInstantiateNodes(ap)
-                for c in ap.connections:
-                    line = plot.plotLine2d([ap.connections[c].params['position'][0], ap.params['position'][0]], \
-                                           [ap.connections[c].params['position'][1], ap.params['position'][1]], 'b')
-                    plot.plotLine(line)
-            for wall in mobility.wallList:
-                line = plot.plotLine2d([wall.params['initPos'][0], wall.params['finalPos'][0]], \
-                                           [wall.params['initPos'][1], wall.params['finalPos'][1]], 'r', 10)
-                plot.plotLine(line)
+            plot.plotGraph(nodes, mobility.wallList, staMov, **dic)
+
         try:
             while time.time() < t_end and time.time() > t_initial:
                 if self.continue_:
@@ -137,6 +123,10 @@ class mobility (object):
 
         # simulation area (units)
         MAX_X, MAX_Y = self.MAX_X, self.MAX_Y
+
+        dic = dict()
+        dic['max_x'] = MAX_X
+        dic['max_y'] = MAX_Y
 
         # max waiting time
         MAX_WT = 100.
@@ -171,19 +161,8 @@ class mobility (object):
             raise Exception("'Model not defined!")
 
         if self.DRAW:
-            debug('Enabling Graph...\n')
             plot.instantiateGraph(self.MAX_X, self.MAX_Y)
-            for node in nodes:
-                self.graphInstantiateNodes(node)
-                if node not in staMov or 'accessPoint' == node.type:
-                    plot.pltNode[node].set_data(node.params['position'][0], node.params['position'][1])
-                    plot.drawTxt(node)
-                    plot.drawCircle(node)
-                    if node.type == 'accessPoint':
-                        for c in node.connections:
-                            line = plot.plotLine2d([node.connections[c].params['position'][0], node.params['position'][0]], \
-                                                   [node.connections[c].params['position'][1], node.params['position'][1]], 'b')
-                            plot.plotLine(line)
+            plot.plotGraph(nodes, mobility.wallList, staMov, **dic)
 
         for xy in mob:
             i = 0
@@ -200,7 +179,6 @@ class mobility (object):
             if self.DRAW:
                 plot.graphPause()
                 plot.graphUpdate(node)
-
 
     @classmethod
     def getAPsInRange(self, sta):

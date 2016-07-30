@@ -1276,7 +1276,7 @@ class Mininet(object):
             # Set default MAC - this should probably be in Link
             options.setdefault('addr1', self.randMac())
             options.setdefault('addr2', self.randMac())
-
+            
             cls = self.link if cls is None else cls
             link = cls(node1, node2, **options)
             self.links.append(link)
@@ -1897,6 +1897,7 @@ class Mininet(object):
                 initialPosition = kwargs['position']
                 self.initialPosition[sta] = initialPosition.split(',')
                 self.staMov.append(sta)
+                mobility.staMov.append(sta)
 
         if 'time' in kwargs:
             self.time = kwargs['time']
@@ -1912,6 +1913,8 @@ class Mininet(object):
         """ Starting Mobility """
         self.mobilityModel = ''
         mobilityparam = dict()
+        mobility.isMobility = True
+
         if 'model' in kwargs:
             mobilityparam.setdefault('model', kwargs['model'])
             self.mobilityModel = kwargs['model']
@@ -1934,6 +1937,7 @@ class Mininet(object):
             for sta in self.stations:
                 if sta not in self.fixedPosition:
                     self.staMov.append(sta)
+                    mobility.staMov.append(sta)
             mobilityparam.setdefault('staMov', self.staMov)
 
             if self.isVanet == False:
@@ -1983,25 +1987,12 @@ class Mininet(object):
 
     def plotGraph(self, **kwargs):
         """ Plot Graph """
+        mobility.DRAW = True
         if 'max_x' in kwargs:
             mobility.MAX_X = kwargs['max_x']
         if 'max_y' in kwargs:
             mobility.MAX_Y = kwargs['max_y']
-        mobility.DRAW = True
-
-        if self.isVanet == False:
-            if self.ifaceConfigured == False:
-                for node in self.wifiNodes:
-                    plot.instantiateGraph(mobility.MAX_X, mobility.MAX_Y)
-                    plot.instantiateNode(node, mobility.MAX_X, mobility.MAX_Y)
-                    plot.instantiateAnnotate(node)
-                    plot.instantiateCircle(node)
-                    plot.graphUpdate(node)
-                for wall in mobility.wallList:
-                    line = plot.plotLine2d([wall.params['initPos'][0], wall.params['finalPos'][0]], \
-                                               [wall.params['initPos'][1], wall.params['finalPos'][1]], 'r', wall.params['width'])
-                    plot.plotLine(line)
-                    plot.graphUpdate(node)
+        mobility.dic = kwargs
 
     def getCurrentPosition(self, node):
         """ Get Current Position """

@@ -7,6 +7,7 @@ author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
 
 import matplotlib.patches as patches
 import matplotlib.pyplot as plt
+from mininet.log import debug
 
 class plot (object):
 
@@ -50,12 +51,12 @@ class plot (object):
 
         self.pltNode[node].set_data(node.params['position'][0], node.params['position'][1])
         self.pltCircle[node].center = node.params['position'][0], node.params['position'][1]
-        plt.draw()
+        self.plotDraw()
 
     @classmethod
     def graphPause(self):
         """Pause"""
-        plt.pause(0.01)    
+        plt.pause(0.01)
 
     @classmethod
     def plotDraw(self):
@@ -107,7 +108,6 @@ class plot (object):
 
         self.pltNode[node], = ax.plot(range(MAX_X), range(MAX_Y), \
                                      linestyle='', marker='.', ms=10, mfc=color)
-
         self.nodesPlotted.append(node)
 
     @classmethod
@@ -134,3 +134,40 @@ class plot (object):
         """instantiateAnnotate"""
         ax = self.ax
         self.plttxt[node] = ax.annotate(node, xy=(0, 0))
+
+    @classmethod
+    def graphInstantiateNodes(self, node, MAX_X, MAX_Y):
+        plot.instantiateAnnotate(node)
+        plot.instantiateCircle(node)
+        plot.instantiateNode(node, MAX_X, MAX_Y)
+        plot.graphUpdate(node)
+
+    @classmethod
+    def plotGraph(self, wifiNodes=None, wallList=None, staMov=None, **kwargs):
+        """ Plot Graph """
+        if 'max_x' in kwargs:
+            MAX_X = kwargs['max_x']
+        if 'max_y' in kwargs:
+            MAX_Y = kwargs['max_y']
+
+        debug('Enabling Graph...\n')
+        for node in wifiNodes:
+            self.graphInstantiateNodes(node, MAX_X, MAX_Y)
+            if node not in staMov and 'accessPoint' == node.type:
+                self.pltNode[node].set_data(node.params['position'][0], node.params['position'][1])
+                self.drawTxt(node)
+                self.drawCircle(node)
+                for c in node.connections:
+                    line = plot.plotLine2d([node.connections[c].params['position'][0], node.params['position'][0]], \
+                                           [node.connections[c].params['position'][1], node.params['position'][1]], 'b')
+                    plot.plotLine(line)
+            else:
+                plot.pltNode[node].set_data(node.params['position'][0], node.params['position'][1])
+                plot.drawTxt(node)
+                plot.drawCircle(node)
+            self.graphUpdate(node)
+
+        for wall in wallList:
+            line = plot.plotLine2d([wall.params['initPos'][0], wall.params['finalPos'][0]], \
+                                       [wall.params['initPos'][1], wall.params['finalPos'][1]], 'r', wall.params['width'])
+            self.plotLine(line)
