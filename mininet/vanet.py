@@ -55,7 +55,7 @@ class vanet(object):
         try:
             self.display_grid(baseStations, nroads)
             self.display_cars(cars)
-    
+
             while mobility.continue_:
                 [self.scatter, self.com_lines] = self.simulate_car_movement(self.scatter, self.com_lines)
         except:
@@ -135,7 +135,6 @@ class vanet(object):
             plot.drawTxt(baseStations[i])
             plot.drawCircle(baseStations[i])
             plot.plotDraw()
-
 
     def display_cars(self, cars):
 

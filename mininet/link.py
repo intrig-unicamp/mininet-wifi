@@ -203,6 +203,7 @@ class Intf(object):
         self.setParam(r, 'isUp', up=up)
         self.setParam(r, 'ifconfig', ifconfig=ifconfig)
         self.setParam(r, 'ssid', ssid=ssid)
+        
         return r
 
     def ssid(self, ssid):
@@ -372,7 +373,7 @@ class TCIntf(Intf):
         # Clear existing configuration
         cmds = []
         tcoutput = self.tc('%s qdisc show dev %s')
-        if "priomap" not in tcoutput:
+        if "priomap" not in tcoutput and "qdisc noqueue" not in tcoutput:
             if self.node.type != 'station':
                 cmds = [ '%s qdisc del dev %s root' ]
         else:
@@ -402,7 +403,7 @@ class TCIntf(Intf):
         # Print bw info
         if self.node.type != 'station':
             info('(' + ' '.join(stuff) + ') ')
-
+        
         # Execute all the commands in our node
         debug("at map stage w/cmds: %s\n" % cmds)
         tcoutputs = [ self.tc(cmd) for cmd in cmds ]
@@ -413,7 +414,7 @@ class TCIntf(Intf):
         debug("outputs:", tcoutputs, '\n')
         result[ 'tcoutputs'] = tcoutputs
         result[ 'parent' ] = parent
-
+        
         return result
 
 
@@ -576,6 +577,7 @@ class Link(object):
         # All we are is dust in the wind, and our two interfaces
         self.intf1, self.intf2 = intf1, intf2
     # pylint: enable=too-many-branches
+    
 
     @staticmethod
     def _ignore(*args, **kwargs):

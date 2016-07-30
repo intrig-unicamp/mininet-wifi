@@ -34,6 +34,8 @@ import time
 import os
 import atexit
 
+from mininet.wifiPlot import plot
+from mininet.wifiMobility import mobility
 from mininet.log import info, output, error
 from mininet.term import makeTerms, runX11
 from mininet.util import (quietRun, dumpNodeConnections,
@@ -43,12 +45,18 @@ class CLI(Cmd):
     "Simple command-line interface to talk to nodes."
 
     prompt = 'mininet-wifi> '
-
+  
     def __init__(self, mininet, stdin=sys.stdin, script=None):
         """Start and run interactive or batch mode CLI
            mininet: Mininet network object
            stdin: standard input for CLI
            script: script to run in batch mode"""
+           
+        if mobility.isMobility == False and mobility.DRAW:
+            nodes = mobility.staList + mobility.apList
+            plot.instantiateGraph(mobility.MAX_X, mobility.MAX_Y)
+            plot.plotGraph(nodes, mobility.wallList, mobility.staMov, **mobility.dic)
+            plot.graphPause()
 
         self.mn = mininet
         # Local variable bindings for py command
@@ -58,7 +66,6 @@ class CLI(Cmd):
         self.inPoller = poll()
         self.inPoller.register(stdin)
         self.inputFile = script
-
 
         Cmd.__init__(self)
         info('*** Starting CLI:\n')

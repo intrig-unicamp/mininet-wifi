@@ -14,9 +14,9 @@ class accessPoint(object):
     def __init__(self, ap, country_code=None, auth_algs=None, wpa=None, intf=None, wlan=None,
               wpa_key_mgmt=None, rsn_pairwise=None, wpa_passphrase=None, encrypt=None,
               wep_key0=None, **params):
-        
+
         ap.params['mac'] = []
-        for i in range(ap.n_ssids+1):
+        for i in range(ap.n_ssids + 1):
             ap.params['mac'].append('')
 
         if 'phywlan' not in ap.params:
@@ -80,7 +80,7 @@ class accessPoint(object):
                     self.cmd = self.cmd + "\n" + conf
 
         if(ap.n_ssids) > 0:
-            for i in range(1, ap.n_ssids+1):
+            for i in range(1, ap.n_ssids + 1):
                 self.cmd = self.cmd + ('\n')
                 self.cmd = self.cmd + ("\nbss=%s-wlan%s-%s" % (ap, wlan, i))
                 self.cmd = self.cmd + ("\nssid=%s-%s" % (ap.ssid[0], i))
@@ -136,7 +136,7 @@ class accessPoint(object):
                             print line.replace(unmatch, echo)
                         else:
                             print line.rstrip()
-                #os.system('service network-manager restart')
+                # os.system('service network-manager restart')
 
     @classmethod
     def apBridge(self, ap, wlan):
