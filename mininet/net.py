@@ -1394,6 +1394,18 @@ class Mininet(object):
                     cls(node, 'alone', **options)
                     if node.params['position'] != (0, 0, 0) and node.params['associatedTo'][wlan] != '':
                         mobility.nodeParameter(node, wlan)
+                    elif node.params['position'] != (0, 0, 0) and node.params['associatedTo'][wlan] == '':
+                        if self.firstAssociation:
+                            self.configureWifiNodes()
+                        for ap in self.accessPoints:
+                            if node.params['associatedTo'][wlan] == '':
+                                dist = channelParameters.getDistance(node, ap)
+                                if dist > ap.params['range']:
+                                    doAssociation = False
+                                else:
+                                    doAssociation = True
+                                if(doAssociation):
+                                    Node.associate(node, ap)                        
         else:
             for sta in self.stations:
                 pairingAdhocNodes.ssid_ID += 1
@@ -1743,15 +1755,6 @@ class Mininet(object):
             output("rtt min/avg/max/mdev %0.3f/%0.3f/%0.3f/%0.3f ms\n" %
                     (rttmin, rttavg, rttmax, rttdev))
         return all_outputs
-
-    # def checkAdHocConn( self, node1, node2 ):
-    #    """Ping between all hosts.
-    #       returns: ploss packet loss percentage"""
-    #
-    #    dist = channelParameters.getDistance(node1, node2)
-    #    totalRange = int(node1.params['range']) + int(node2.params['range'])
-    #    if dist < totalRange:
-    #        return node1.cmdPrint('ping %s' % node2)
 
     def pingAll(self, timeout=None):
         """Ping between all hosts.
