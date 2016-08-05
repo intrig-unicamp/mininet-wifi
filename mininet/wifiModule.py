@@ -44,7 +44,7 @@ class module(object):
     @classmethod
     def stop(self):
         """ Stop wireless Module """
-        if glob.glob("*.conf"):
+        if glob.glob("*.apconf"):
             os.system('rm *.apconf')
 
         try:
