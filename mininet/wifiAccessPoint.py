@@ -165,9 +165,9 @@ class accessPoint(object):
             iface = ap.params.get('phywlan')
             os.system('ifconfig %s down' % iface)
             os.system('ifconfig %s up' % iface)
-        content = cmd + ("\' > %s.conf" % iface)
+        content = cmd + ("\' > %s.apconf" % iface)
         os.system(content)
-        cmd = ("hostapd -B %s.conf &" % iface)
+        cmd = ("hostapd -B %s.apconf &" % iface)
         try:
             subprocess.check_output(cmd, shell=True)
         except:

@@ -45,10 +45,7 @@ class module(object):
     def stop(self):
         """ Stop wireless Module """
         if glob.glob("*.conf"):
-            os.system('rm *.conf')
-
-        if glob.glob("*.txt"):
-            os.system('rm *.txt')
+            os.system('rm *.apconf')
 
         try:
             subprocess.check_output("lsmod | grep mac80211_hwsim",
