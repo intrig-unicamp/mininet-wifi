@@ -1,8 +1,14 @@
 """
-
 author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
         ramonfontes.com
-
+        
+        Implemented propagation models:
+            (Indoors):
+                Free-Space Propagation Model
+                Log-Distance Propagation Model
+                International Telecommunication Union (ITU) Propagation Model
+            (Outdoors):
+                Two-Ray-Ground Propagation Model
 """
 
 import math
@@ -15,11 +21,12 @@ class propagationModel_ (object):
     exp = 2  # Exponent
     sl = 1  # System Loss
     lF = 0  # Floor penetration loss factor
+    pL = 0  # Power Loss Coefficient
     nFloors = 0  # Number of floors
     gRandom = 0  # Gaussian random variable
 
     def __init__(self, sta=None, ap=None, dist=0, wlan=None, pT=14, gT=5, gR=5, hT=1, hR=1, sl=1,
-                  lF=0, nFloors=0, gRandom=0):
+                  lF=0, pL=0, nFloors=0, gRandom=0):
         """pT = Tx Power
            gT = Tx Antenna Gain
            gR = Rx Antenna Gain
@@ -28,6 +35,7 @@ class propagationModel_ (object):
         """
         self.lF = lF
         self.sl = sl
+        self.pL = pL
         self.nFloors = nFloors
         if self.model in dir(self):
             self.__getattribute__(self.model)(sta, ap, dist, wlan, pT, gT, gR, hT, hR)
@@ -48,6 +56,7 @@ class propagationModel_ (object):
         denominator = lambda_ ** 2
         numerator = (4 * math.pi * dist) ** 2 * L
         pathLoss_ = 10 * math.log10(numerator / denominator)
+
         return pathLoss_
 
     def friisPropagationLossModel(self, sta, ap, dist, wlan, pT, gT, gR, hT, hR):
@@ -58,6 +67,7 @@ class propagationModel_ (object):
         (L) System loss"""
         pathLoss = self.pathLoss(sta, ap, dist, wlan)
         self.rssi = pT + gT + gR - pathLoss
+        
         return self.rssi
 
     def twoRayGroundPropagationLossModel(self, sta, ap, dist, wlan, pT, gT, gR, hT, hR):
@@ -68,11 +78,13 @@ class propagationModel_ (object):
         (hR): Rx Antenna Height
         (d) is the distance between the transmitter and the receiver (m)
         (L): System loss"""
-        d = dist
+        if dist == 0:
+            dist = 0.1
         L = self.sl
 
-        pathLossDb = (pT * gT * gR * hT ** 2 * hR ** 2) / (d ** 4 * L)
+        pathLossDb = (pT * gT * gR * hT ** 2 * hR ** 2) / (dist ** 4 * L)
         self.rssi = pT + gT + gR - pathLossDb
+
         return self.rssi
 
     def logDistancePropagationLossModel(self, sta, ap, dist, wlan, pT, gT, gR, hT, hR):
@@ -87,6 +99,7 @@ class propagationModel_ (object):
 
         pathLossDb = 10 * self.exp * math.log10(dist / referenceDistance)
         self.rssi = pT + gT + gR - (pathLoss + pathLossDb)
+
         return self.rssi
 
     def logNormalShadowingPropagationLossModel(self, sta, ap, dist, wlan, pT, gT, gR, hT, hR):
@@ -103,12 +116,14 @@ class propagationModel_ (object):
 
         pathLossDb = 10 * self.exp * math.log10(dist / referenceDistance) + gRandom
         self.rssi = pT + gT + gR - (pathLoss + pathLossDb)
+
         return self.rssi
 
     def ITUPropagationLossModel(self, sta, ap, dist, wlan, pT, gT, gR, hT, hR):
         """International Telecommunication Union (ITU) Propagation Loss Model:"""
         f = sta.params['frequency'][wlan] * 10 ** 3  # Convert Ghz to Hz
         N = 28  # Power Loss Coefficient
+        pL = self.pL
         lF = self.lF  # Floor penetration loss factor
         nFloors = self.nFloors  # Number of Floors
         """Power Loss Coefficient Based on the Paper 
@@ -116,9 +131,14 @@ class propagationModel_ (object):
         from Theofilos Chrysikos, Giannis Georgopoulos and Stavros Kotsopoulos"""
         if dist > 16:
             N = 38
+        if dist == 0:
+            dist = 0.1
+        if pL != 0:
+            N = pL
 
         pathLossDb = 20 * math.log10(f) + N * math.log10(dist) + lF * nFloors - 28
         self.rssi = pT + gT + gR - pathLossDb
+
         return self.rssi
 
     def youngModel(self, sta, ap, dist, wlan, pT, gT, gR, hT, hR):
@@ -131,6 +151,7 @@ class propagationModel_ (object):
             dist = 0.1
 
         self.rssi = dist ** 4 / (gT * gR) * (hT * hR) ** 2 * cf
+
         return self.rssi
 
     def okumuraHataPropagationLossModel(self, node1, node2, distance, wlan):

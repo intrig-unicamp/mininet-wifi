@@ -134,7 +134,6 @@ class deviceDataRate (object):
                 self.rate = 11
         return self.rate
 
-
 class deviceRange (object):
     """ Range for specific equipments """
 
@@ -221,4 +220,3 @@ class deviceTxPower (object):
         elif ap.params['mode'][wlan] == 'n':
             self.txPower = 16
         return self.txPower
-

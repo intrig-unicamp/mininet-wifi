@@ -54,17 +54,20 @@ class listNodes (object):
                                         ref_sta.params['associatedTo'][wlan] != ssid and sta not in alreadyConn:
                                     alreadyConn.append(sta)
                                     sta.params['associatedTo'][wlan] = ref_sta.params['associatedTo'][wlan]
-                                    sta.pexec('iw dev %s mesh join %s' % (sta.params['wlan'][wlan], sta.params['associatedTo'][wlan]))
+                                    sta.pexec('iw dev %s mesh join %s' % (sta.params['wlan'][wlan], \
+                                                                          sta.params['associatedTo'][wlan]))
                                 else:
                                     if sta.params['associatedTo'][wlan] != sta.ssid[wlan] + str(self.ssid_ID) and \
                                                                                                 sta not in alreadyConn:
                                         alreadyConn.append(sta)
                                         sta.params['associatedTo'][wlan] = sta.ssid[wlan] + str(self.ssid_ID)
-                                        sta.pexec('iw dev %s mesh join %s' % (sta.params['wlan'][wlan], sta.params['associatedTo'][wlan]))
+                                        sta.pexec('iw dev %s mesh join %s' % (sta.params['wlan'][wlan], \
+                                                                              sta.params['associatedTo'][wlan]))
                                 if ref_sta not in alreadyConn:
                                     alreadyConn.append(ref_sta)
                                     ref_sta.params['associatedTo'][wlan] = sta.ssid[wlan] + str(self.ssid_ID)
-                                    ref_sta.pexec('iw dev %s mesh join %s' % (ref_sta.params['wlan'][wlan], ref_sta.params['associatedTo'][wlan]))
+                                    ref_sta.pexec('iw dev %s mesh join %s' % (ref_sta.params['wlan'][wlan], 
+                                                                              ref_sta.params['associatedTo'][wlan]))
                             if ref_sta not in list:
                                 par.append(ref_sta)
                                 list.append(ref_sta)
@@ -111,13 +114,15 @@ class meshRouting (object):
                     newsta = sta_ref[0]
                 for x, y in zip(listNodes.nodesX, listNodes.nodesY):
                     if x == sta and y not in exist:
-                        command = 'iw dev %s mpath new %s next_hop %s' % (sta.params['wlan'][wlan], y.meshMac[wlan], y.meshMac[wlan])
+                        command = 'iw dev %s mpath new %s next_hop %s' % (sta.params['wlan'][wlan], \
+                                                                          y.meshMac[wlan], y.meshMac[wlan])
                         sta.pexec(command)
                         exist.append(y)
                         controlMeshMac.append(y.meshMac[wlan])
                         sta_ref.append(y)
                     elif x == newsta and y not in exist:
-                        command = 'iw dev %s mpath new %s next_hop %s' % (sta.params['wlan'][wlan], y.meshMac[wlan], x.meshMac[wlan])
+                        command = 'iw dev %s mpath new %s next_hop %s' % (sta.params['wlan'][wlan], \
+                                                                          y.meshMac[wlan], x.meshMac[wlan])
                         sta.pexec(command)
                         exist.append(y)
                         controlMeshMac.append(y.meshMac[wlan])

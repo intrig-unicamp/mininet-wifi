@@ -2016,13 +2016,14 @@ class Mininet(object):
         \nPosition Y: %.2f \
         \nPosition Z: %.2f\n" % (str(node), float(self.pos_x), float(self.pos_y), float(self.pos_z))
 
-    def propagationModel(self, model, exp=2, sL=1, lF=0, nFloors=0, gRandom=0):
+    def propagationModel(self, model, exp=2, sL=1, lF=0, pL=0, nFloors=0, gRandom=0):
         propagationModel_.model = model
         propagationModel_.exp = exp
         channelParameters.sl = sL  # System Loss
         channelParameters.lF = lF  # Floor penetration loss factor
         channelParameters.nFloors = nFloors  # Number of floors
         channelParameters.gRandom = gRandom  # Gaussian random variable
+        channelParameters.pL = pL  # Power Loss Coefficient
 
     def associationControl(self, ac):
         mobility.associationControlMethod = ac

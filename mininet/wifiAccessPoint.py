@@ -171,6 +171,7 @@ class accessPoint(object):
         try:
             subprocess.check_output(cmd, shell=True)
         except:
-            print ('error with hostapd. Please, run sudo mn -c in order to fix it or check if hostapd is working properly in your machine.')
+            print ('error with hostapd. Please, run sudo mn -c in order to fix it or check if hostapd is\
+                                             working properly in your machine.')
             exit(1)
         self.setBw(ap, iface)

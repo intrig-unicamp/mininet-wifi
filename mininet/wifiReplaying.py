@@ -8,7 +8,6 @@ author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
 import time
 import threading
 import random
-import os
 from pylab import math, cos, sin
 from mininet.wifiPlot import plot
 from mininet.wifiMobility import mobility
@@ -25,7 +24,6 @@ def instantiateGraph():
             plot.instantiateCircle(node)
             plot.graphUpdate(node)
 
-
 class replayingMobility(object):
     """Replaying Mobility Traces"""
     def __init__(self, **params):
@@ -36,6 +34,7 @@ class replayingMobility(object):
 
     def mobility(self):
         if mobility.DRAW:
+            mobility.isMobility = True
             instantiateGraph()
         currentTime = time.time()
         staList = mobility.staList
@@ -107,6 +106,7 @@ class replayingRSSI(object):
 
     def __init__(self, **params):
 
+        mobility.isMobility = True
         self.thread = threading.Thread(name='replayingRSSI', target=self.rssi)
         self.thread.daemon = True
         self.thread.start()
@@ -125,27 +125,39 @@ class replayingRSSI(object):
             continue_ = False
             time_ = time.time() - currentTime
             for sta in staList:
-                continue_ = True
-                if time_ >= sta.time[0]:
-                    freq = sta.params['frequency'][0] * 1000  # freqency in MHz
-                    ap = sta.params['associatedTo'][0]  # get AP
-                    dist = self.calculateDistance(sta, freq, sta.rssi[0])
-                    if ap != '':
-                        self.moveStationTo(sta, ap, dist, ang[sta])
-                        bw = self.calculateRate(sta, ap, dist)
-                        channelParameters.tc(sta, 0, bw, 1, 1, 1)
-                        sta.params['rssi'] = sta.rssi[0]
-                        if str(sta) == 'sta2':
-                            os.system("echo %s %s %.2f %d %.2f %.2f >> dataSTA2.text" % (sta, ap, dist, sta.params['rssi'], sta.params['position'][0], sta.params['position'][1]))
-                    del sta.rssi[0]
-                    del sta.time[0]
-                if len(sta.time) == 0:
-                    staList.remove(sta)
+                if hasattr(sta, 'time'):
+                    continue_ = True
+                    if time_ >= sta.time[0]:
+                        ap = sta.params['associatedTo'][0]  # get AP
+                        sta.params['rssi'][0] = sta.rssi[0]
+                        if ap != '':
+                            dist = self.calculateDistance(sta, ap, sta.rssi[0])
+                            self.moveStationTo(sta, ap, dist, ang[sta])
+                            loss = channelParameters.loss(dist)
+                            latency = channelParameters.latency(dist)
+                            delay = channelParameters.delay(dist, 0)
+                            bw = channelParameters.bw(sta, ap, dist, 0, isReplay=True)
+                            channelParameters.tc(sta, 0, bw, loss, latency, delay)
+                        del sta.rssi[0]
+                        del sta.time[0]
+                    if len(sta.time) == 0:
+                        staList.remove(sta)
             time.sleep(0.01)
-            
-    def calculateDistance(self, sta, freq, signalLevel):
+
+    def calculateDistance(self, sta, ap, signalLevel):
         """Based on Free Space Propagation Model"""
-        dist = 10 ** ((27.55 - (20 * math.log10(freq)) + abs(signalLevel)) / 20)
+        f = sta.params['frequency'][0] * 10 ** 9  # Convert Ghz to Hz
+        pT = ap.params['txpower'][0]
+        gT = ap.params['antennaGain'][0]
+        gR = sta.params['antennaGain'][0]
+        c = 299792458.0
+        L = 2
+        gains = gR + gT + pT
+        lambda_ = float(c) / float(f)  # lambda: wavelength (m)
+        denominator = lambda_ ** 2
+        numerator = 10 ** (((abs(signalLevel - gains)) + 10 * math.log10(denominator)) / 10)
+        dist = (numerator ** (float(1) / float(2 * L))) / (4 * math.pi)
+
         return dist
 
     def moveStationTo(self, sta, ap, dist, ang):

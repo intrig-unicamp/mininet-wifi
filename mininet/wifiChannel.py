@@ -6,33 +6,33 @@ from wifiDevices import deviceDataRate
 from wifiPropagationModels import propagationModel_
 from scipy.spatial.distance import pdist
 import numpy as np
-import math
 import random
 
 class channelParameters (object):
     """Channel Parameters"""
 
-    delay = 0
-    loss = 0
-    bw = 0
-    latency = 0
+    delay_ = 0
+    loss_ = 0
+    bw_ = 0
+    latency_ = 0
     rate = 0
     dist = 0
     noise = 0
     i = 0
     sl = 1  # System Loss
     lF = 0  # Floor penetration loss factor
+    pL = 0  # Power Loss Coefficient
     nFloors = 0  # Number of floors
     gRandom = 0  # Gaussian random variable
 
     def __init__(self, node1, node2, wlan, dist, staList, time):
         self.dist = dist
         # self.calculateInterference(node1, node2, dist, staList, wlan)
-        self.delay = self.delay(self.dist, time)
-        self.latency = self.latency(self.dist)
-        self.loss = self.loss(self.dist)
-        self.bw = self.bw(node1, node2, self.dist, wlan)
-        self.tc(node1, wlan, self.bw, self.loss, self.latency, self.delay)
+        self.delay_ = self.delay(self.dist, time)
+        self.latency_ = self.latency(self.dist)
+        self.loss_ = self.loss(self.dist)
+        self.bw_ = self.bw(node1, node2, self.dist, wlan)
+        self.tc(node1, wlan, self.bw_, self.loss_, self.latency_, self.delay_)
 
     @classmethod
     def getDistance(self, src, dst):
@@ -43,26 +43,30 @@ class channelParameters (object):
         dist = pdist(points)
         return float(dist)
 
+    @classmethod
     def delay(self, dist, time):
         """"Based on RandomPropagationDelayModel"""
         if time != 0:
-            self.delay = dist / time
+            self.delay_ = dist / time
         else:
-            self.delay = dist / 10
-        return self.delay
+            self.delay_ = dist / 10
+        return self.delay_
 
+    @classmethod
     def latency(self, dist):
-        self.latency = 2 + dist
-        return self.latency
+        self.latency_ = 2 + dist
+        return self.latency_
 
+    @classmethod
     def loss(self, dist):
         if dist != 0:
-            self.loss = abs(math.log10(dist * dist))
+            self.loss_ = (dist * dist) / 10
         else:
-            self.loss = 0.1
-        return self.loss
+            self.loss_ = 0.1
+        return self.loss_
 
-    def bw(self, sta, ap, dist, wlan):
+    @classmethod
+    def bw(self, sta, ap, dist, wlan, isReplay = False):
         self.rate = 0
         if propagationModel_.model == '':
             propagationModel_.model = 'friisPropagationLossModel'
@@ -73,6 +77,7 @@ class channelParameters (object):
         sl = self.sl
         nFloors = self.nFloors
         gRandom = self.gRandom
+        pL = self.pL
         if ap == None:
             gT = 0
             hT = 0
@@ -81,7 +86,7 @@ class channelParameters (object):
             hR = sta.params['antennaHeight'][wlan]
             if self.i != 0:
                 dist = self.dist / self.i
-            value = propagationModel_(sta, ap, dist, wlan, pT, gT, gR, hT, hR, sl, lF, nFloors, gRandom)
+            value = propagationModel_(sta, ap, dist, wlan, pT, gT, gR, hT, hR, sl, lF, pL, nFloors, gRandom)
             sta.params['rssi'][wlan] = value.rssi  # random.uniform(value.rssi-1, value.rssi+1)
             self.rate = (custombw * (1.1 ** -dist)) / 5
         else:
@@ -90,11 +95,13 @@ class channelParameters (object):
             hT = ap.params['antennaHeight'][0]
             gR = sta.params['antennaGain'][wlan]
             hR = sta.params['antennaHeight'][wlan]
-            value = propagationModel_(sta, ap, dist, wlan, pT, gT, gR, hT, hR, sl, lF, nFloors, gRandom)
-            sta.params['rssi'][wlan] = value.rssi  # random.uniform(value.rssi-1, value.rssi+1)
+            if isReplay == False:
+                value = propagationModel_(sta, ap, dist, wlan, pT, gT, gR, hT, hR, sl, lF, pL, nFloors, gRandom)
+                sta.params['rssi'][wlan] = value.rssi  # random.uniform(value.rssi-1, value.rssi+1)
             if ap.equipmentModel == None:
                 self.rate = custombw * (1.1 ** -dist)
-        self.rate = self.rate - self.loss * 3
+        self.rate = self.rate - self.loss_ * 10 * (10 ** dist)
+        
         if self.rate <= 0:
             self.rate = 1
         return self.rate

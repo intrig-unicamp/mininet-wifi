@@ -33,7 +33,8 @@ class plot (object):
     @classmethod
     def drawTxt(self, node):
         """drawTxt"""
-        if hasattr(self.plttxt[node], 'xyann'): self.plttxt[node].xyann = (node.params['position'][0], node.params['position'][1])  # newer MPL versions (>=1.4)
+        if hasattr(self.plttxt[node], 'xyann'): self.plttxt[node].xyann = (node.params['position'][0], 
+                                                                           node.params['position'][1])  # newer MPL versions (>=1.4)
         else: self.plttxt[node].xytext = (node.params['position'][0], node.params['position'][1])
         # self.plttxt[node].xytext = node.position[0], node.position[1]
 
@@ -45,7 +46,8 @@ class plot (object):
     @classmethod
     def graphUpdate(self, node):
         """Update Graph"""
-        if hasattr(self.plttxt[node], 'xyann'): self.plttxt[node].xyann = (node.params['position'][0], node.params['position'][1])  # newer MPL versions (>=1.4)
+        if hasattr(self.plttxt[node], 'xyann'): self.plttxt[node].xyann = (node.params['position'][0], 
+                                                                           node.params['position'][1])  # newer MPL versions (>=1.4)
         else: self.plttxt[node].xytext = (node.params['position'][0], node.params['position'][1])
         # self.plttxt[node].xytext = node.position[0], node.position[1]
 
