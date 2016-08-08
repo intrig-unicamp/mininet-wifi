@@ -60,7 +60,7 @@ class channelParameters (object):
     @classmethod
     def loss(self, dist):
         if dist != 0:
-            self.loss_ = (dist * dist) / 10
+            self.loss_ = (dist * 2) / 100
         else:
             self.loss_ = 0.1
         return self.loss_
