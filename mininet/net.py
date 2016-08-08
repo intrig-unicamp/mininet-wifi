@@ -125,7 +125,7 @@ from mininet.vanet import vanet
 from __builtin__ import True
 
 # Mininet version: should be consistent with README and LICENSE
-VERSION = "1.9"
+VERSION = "1.9r1"
 
 class Mininet(object):
     "Network emulation with hosts spawned in network namespaces."

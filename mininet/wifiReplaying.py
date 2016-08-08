@@ -28,13 +28,13 @@ class replayingMobility(object):
     """Replaying Mobility Traces"""
     def __init__(self, **params):
 
+        mobility.isMobility = True
         self.thread = threading.Thread(name='replayingMobility', target=self.mobility)
         self.thread.daemon = True
         self.thread.start()
 
     def mobility(self):
-        if mobility.DRAW:
-            mobility.isMobility = True
+        if mobility.DRAW:            
             instantiateGraph()
         currentTime = time.time()
         staList = mobility.staList

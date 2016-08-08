@@ -132,8 +132,8 @@ class Node(object):
         self.max_y = 0
         self.min_x = 0
         self.min_y = 0
-        self.max_v = 3
-        self.min_v = 1
+        self.max_v = 0
+        self.min_v = 0
         self.constantVelocity = 1.0
         self.constantDistance = 1.0
 

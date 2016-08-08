@@ -116,7 +116,7 @@ class mobility (object):
             print 'Error! Mobility stopped!'
 
     @classmethod
-    def models(self, nodes=None, model=None, min_v=None, max_v=None, seed=None,
+    def models(self, nodes=None, model=None, min_v=0, max_v=0, seed=None,
                staMov=None, **mobilityparam):
 
         np.random.seed(seed)
