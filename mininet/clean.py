@@ -94,11 +94,8 @@ class Cleanup( object ):
         except:
             pass
         if glob.glob("*.conf"):
-            os.system( 'rm *.conf' )
-        
-        if glob.glob("*.txt"):
-            os.system( 'rm *.txt' )
-        
+            os.system( 'rm *.apconf' )
+
         try:
             subprocess.check_output("ps -aux | grep wpa_supplicant",
                                                           shell=True)
