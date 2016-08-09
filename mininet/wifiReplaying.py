@@ -151,12 +151,12 @@ class replayingRSSI(object):
         gT = ap.params['antennaGain'][0]
         gR = sta.params['antennaGain'][0]
         c = 299792458.0
-        L = 2
+        L = 2.0
         gains = gR + gT + pT
         lambda_ = float(c) / float(f)  # lambda: wavelength (m)
-        denominator = lambda_ ** 2
-        numerator = 10 ** (((abs(signalLevel - gains)) + 10 * math.log10(denominator)) / 10)
-        dist = (numerator ** (float(1) / float(2 * L))) / (4 * math.pi)
+        denominator = lambda_ ** 2.0
+        numerator = 10.0 ** (((abs(signalLevel - gains)) + 10.0 * math.log10(denominator)) / 10.0)
+        dist = (numerator ** (1.0 / 2.0 * L)) / (4.0 * math.pi)
 
         return dist
 
