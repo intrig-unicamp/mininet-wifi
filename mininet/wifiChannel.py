@@ -100,7 +100,7 @@ class channelParameters (object):
                 sta.params['rssi'][wlan] = value.rssi  # random.uniform(value.rssi-1, value.rssi+1)
             if ap.equipmentModel == None:
                 self.rate = custombw * (1.1 ** -dist)
-        self.rate = self.rate - self.loss_ * 10 * (10 ** dist)
+        self.rate = self.rate - dist ** 2/10 
         
         if self.rate <= 0:
             self.rate = 1
