@@ -9,6 +9,7 @@ import time
 import threading
 import random
 from pylab import math, cos, sin
+from mininet.log import info
 from mininet.wifiPlot import plot
 from mininet.wifiMobility import mobility
 from mininet.wifiChannel import channelParameters
@@ -34,7 +35,7 @@ class replayingMobility(object):
         self.thread.start()
 
     def mobility(self):
-        if mobility.DRAW:            
+        if mobility.DRAW:
             instantiateGraph()
         currentTime = time.time()
         staList = mobility.staList
@@ -56,7 +57,6 @@ class replayingMobility(object):
                 if len(node.position) == 0:
                     staList.remove(node)
             time.sleep(0.01)
-
 
 class replayingBandwidth(object):
     """Replaying Bandwidth Traces"""
@@ -85,9 +85,11 @@ class replayingBandwidth(object):
                         # self.moveStationTo(sta, pos)
                         del sta.throughput[0]
                         del sta.time[0]
-                    if len(sta.time) == 0:
+                        info('%s\n' % sta.time[0])
+                    if len(sta.time) == 1:
                         staList.remove(sta)
-            time.sleep(0.01)
+            # time.sleep(0.001)
+        info("\nReplaying Process Finished!")
 
     def moveStationTo(self, sta, pos):
         x = pos[0]
@@ -100,18 +102,16 @@ class replayingBandwidth(object):
             except:
                 pass
 
-
 class replayingRSSI(object):
     """Replaying RSSI Traces"""
 
-    def __init__(self, **params):
-
+    def __init__(self, propagationModel='friisPropagationLossModel'):
         mobility.isMobility = True
-        self.thread = threading.Thread(name='replayingRSSI', target=self.rssi)
+        self.thread = threading.Thread(name='replayingRSSI', target=self.rssi, args=(propagationModel,))
         self.thread.daemon = True
         self.thread.start()
 
-    def rssi(self):
+    def rssi(self, propagationModel=''):
         if mobility.DRAW:
             instantiateGraph()
         currentTime = time.time()
@@ -131,7 +131,7 @@ class replayingRSSI(object):
                         ap = sta.params['associatedTo'][0]  # get AP
                         sta.params['rssi'][0] = sta.rssi[0]
                         if ap != '':
-                            dist = self.calculateDistance(sta, ap, sta.rssi[0])
+                            dist = self.calculateDistance(sta, ap, sta.rssi[0], propagationModel)
                             self.moveStationTo(sta, ap, dist, ang[sta])
                             loss = channelParameters.loss(dist)
                             latency = channelParameters.latency(dist)
@@ -144,22 +144,6 @@ class replayingRSSI(object):
                         staList.remove(sta)
             time.sleep(0.01)
 
-    def calculateDistance(self, sta, ap, signalLevel):
-        """Based on Free Space Propagation Model"""
-        f = sta.params['frequency'][0] * 10 ** 9  # Convert Ghz to Hz
-        pT = ap.params['txpower'][0]
-        gT = ap.params['antennaGain'][0]
-        gR = sta.params['antennaGain'][0]
-        c = 299792458.0
-        L = 2.0
-        gains = gR + gT + pT
-        lambda_ = float(c) / float(f)  # lambda: wavelength (m)
-        denominator = lambda_ ** 2.0
-        numerator = 10.0 ** (((abs(signalLevel - gains)) + 10.0 * math.log10(denominator)) / 10.0)
-        dist = (numerator ** (1.0 / 2.0 * L)) / (4.0 * math.pi)
-
-        return dist
-
     def moveStationTo(self, sta, ap, dist, ang):
         x = dist * cos(ang) + int(ap.params['position'][0])
         y = dist * sin(ang) + int(ap.params['position'][1])
@@ -170,6 +154,7 @@ class replayingRSSI(object):
                 plot.graphUpdate(sta)
             except:
                 pass
+        # sta.verifyingNodes(sta)
 
     def calculateRate(self, sta, ap, dist):
         value = deviceDataRate(sta, ap, 0)
@@ -180,3 +165,65 @@ class replayingRSSI(object):
         if rate <= 0:
             rate = 1
         return rate
+
+    def calculateDistance (self, sta, ap, signalLevel, model=None):
+
+        pT = ap.params['txpower'][0]
+        gT = ap.params['antennaGain'][0]
+        gR = sta.params['antennaGain'][0]
+
+        if model in dir(self):
+            dist = self.__getattribute__(model)(sta, ap, pT, gT, gR, signalLevel)
+            return dist
+
+    def pathLoss(self, sta, ap, dist, wlan=0):
+        """Path Loss Model:
+        (f) signal frequency transmited(Hz)
+        (d) is the distance between the transmitter and the receiver (m)
+        (c) speed of light in vacuum (m)
+        (L) System loss"""
+        f = sta.params['frequency'][wlan] * 10 ** 9  # Convert Ghz to Hz
+        c = 299792458.0
+        L = 1
+        if dist == 0:
+            dist = 0.1
+        lambda_ = c / f  # lambda: wavelength (m)
+        denominator = lambda_ ** 2
+        numerator = (4 * math.pi * dist) ** 2 * L
+        pathLoss_ = 10 * math.log10(numerator / denominator)
+
+        return pathLoss_
+
+    def friisPropagationLossModel(self, sta, ap, pT, gT, gR, signalLevel):
+        """Based on Free Space Propagation Model"""
+        c = 299792458.0
+        L = 2.0
+        freq = sta.params['frequency'][0] * 10 ** 9  # Convert Ghz to Hz
+        gains = gR + gT + pT
+        lambda_ = float(c) / float(freq)  # lambda: wavelength (m)
+        numerator = 10.0 ** (abs(signalLevel - gains) / 10.0)
+        dist = (lambda_ / (4.0 * math.pi)) * ((numerator / L) ** (0.5))
+
+        return dist
+
+    def logDistancePropagationLossModel(self, sta, ap, pT, gT, gR, signalLevel):
+        """Based on Log Distance Propagation Loss Model"""
+        gains = gR + gT + pT
+        referenceDistance = 1
+        exp = 2
+        pathLossDb = self.pathLoss(sta, ap, referenceDistance)
+        rssi = gains - signalLevel - pathLossDb
+        dist = 10 ** ((rssi + 10 * exp * math.log10(referenceDistance)) / (10 * exp))
+
+        return dist
+
+    def ITUPropagationLossModel(self, sta, ap, pT, gT, gR, signalLevel):
+        """Based on International Telecommunication Union (ITU) Propagation Loss Model"""
+        N = 32.0  # Power Loss Coefficient
+        lF = 0  # Floor penetration loss factor
+        nFloors = 0  # Number of Floors
+        gains = pT + gT + gR
+        freq = sta.params['frequency'][0] * 10 ** 3
+        dist = 10.0 ** ((-20.0 * math.log10(freq) - lF * nFloors + 28.0 + abs(signalLevel - gains)) / N)
+
+        return dist
