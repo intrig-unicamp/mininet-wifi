@@ -143,12 +143,14 @@ function mn_deps {
 # Install Mininet-WiFi deps
 function wifi_deps {
     echo "Installing Mininet-WiFi dependencies"
-    $install iw wireless-tools python-numpy python-scipy pkg-config python-matplotlib libnl-3-dev libnl-genl-3-dev libssl-dev
+    $install wireless-tools python-numpy python-scipy pkg-config python-matplotlib libnl-3-dev libnl-genl-3-dev libssl-dev
     pushd $MININET_DIR/mininet-wifi/hostapd/hostapd
     cp defconfig .config
     sudo make && make install
     pushd $MININET_DIR/mininet-wifi/wpa_supplicant/wpa_supplicant
     cp defconfig .config
+    sudo make && make install
+    pushd $MININET_DIR/mininet-wifi/iw
     sudo make && make install
     #popd
 }
@@ -548,12 +550,14 @@ function pox {
 # "Install" iw
 function iw {
     echo "Installing iw..."
-    $install iw wireless-tools python-numpy python-scipy pkg-config python-matplotlib libnl-3-dev libnl-genl-3-dev libssl-dev
+    $install wireless-tools python-numpy python-scipy pkg-config python-matplotlib libnl-3-dev libnl-genl-3-dev libssl-dev
     pushd $MININET_DIR/mininet-wifi/hostapd/hostapd
     cp defconfig .config
     sudo make && make install
     pushd $MININET_DIR/mininet-wifi/wpa_supplicant/wpa_supplicant
     cp defconfig .config
+    sudo make && make install
+    pushd $MININET_DIR/mininet-wifi/iw
     sudo make && make install
     #popd
 }
