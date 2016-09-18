@@ -65,16 +65,16 @@ class mobility (object):
             if sta.params['associatedTo'][wlan] != '':
                 sta.params['associatedTo'][wlan].associatedStations.remove(sta)
             sta.pexec('iw dev %s disconnect' % sta.params['wlan'][wlan])
-            debug ('\niwconfig %s essid %s ap %s' % (sta.params['wlan'][wlan], ap.ssid[0], ap.params['mac']))
-            sta.pexec('iwconfig %s essid %s ap %s' % (sta.params['wlan'][wlan], ap.ssid[0], ap.params['mac']))
+            debug ('\niwconfig %s essid %s ap %s' % (sta.params['wlan'][wlan], ap.ssid[0], ap.params['mac'][wlan]))
+            sta.pexec('iwconfig %s essid %s ap %s' % (sta.params['wlan'][wlan], ap.ssid[0], ap.params['mac'][wlan]))
             sta.params['associatedTo'][wlan] = ap
             sta.params['frequency'][wlan] = channelParameters.frequency(ap, 0)
             ap.associatedStations.append(sta)
         elif ap not in sta.params['associatedTo']:
             # Useful for stations with more than one wifi iface
             if sta.params['associatedTo'][wlan] == '':
-                debug('\niwconfig %s essid %s ap %s' % (sta.params['wlan'][wlan], ap.ssid[0], ap.params['mac']))
-                sta.pexec('iwconfig %s essid %s ap %s' % (sta.params['wlan'][wlan], ap.ssid[0], ap.params['mac']))
+                debug('\niwconfig %s essid %s ap %s' % (sta.params['wlan'][wlan], ap.ssid[0], ap.params['mac'][wlan]))
+                sta.pexec('iwconfig %s essid %s ap %s' % (sta.params['wlan'][wlan], ap.ssid[0], ap.params['mac'][wlan]))
                 sta.params['frequency'][wlan] = channelParameters.frequency(ap, 0)
                 ap.associatedStations.append(sta)
                 sta.params['associatedTo'][wlan] = ap
