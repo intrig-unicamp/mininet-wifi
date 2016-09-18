@@ -6,7 +6,7 @@ import glob
 import os
 import subprocess
 import time
-from mininet.log import debug
+from mininet.log import debug, info
 from mininet.wifiMobility import mobility
 from mininet.wifiAccessPoint import accessPoint
 from subprocess import (check_output as co,
@@ -101,11 +101,13 @@ class module(object):
                     os.system('iw phy %s set netns %s' % (phyList[i + wlan], sta.pid))
                     sta.cmd('ip link set %s name %s up' % (wlanList[i + wlan], sta.params['wlan'][wlan]))
                     sta.params['rssi'].append(0)
-                    sta.params['snr'].append(0)
+                    sta.params['snr'].append(0)                    
                     sta.meshMac.append(0)
                     sta.ssid.append('')
+                    if sta.params['txpower'][wlan] != 20:
+                        sta.cmd('iwconfig %s txpower %s' % (sta.params['wlan'][wlan], sta.params['txpower'][wlan]))
         except:
-            print "Please, run sudo mn -c before running your code."
+            info( "Something is wrong. Please, run sudo mn -c before running your code.\n" )
             exit(1)
 
     @classmethod

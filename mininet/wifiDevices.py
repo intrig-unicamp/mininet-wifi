@@ -26,13 +26,13 @@ class deviceDataRate (object):
     def customDataRate_mobility(self, node, wlan=0):
         """Custom Maximum Data Rate - Useful when there is mobility"""
         mode = node.params['mode'][wlan]
-
+        
         if (mode == 'a'):
-            self.rate = 54
-        elif(mode == 'b'):
             self.rate = 11
+        elif(mode == 'b'):
+            self.rate = 3
         elif(mode == 'g'):
-            self.rate = 54
+            self.rate = 11
         elif(mode == 'n'):
             self.rate = 600
         elif(mode == 'ac'):

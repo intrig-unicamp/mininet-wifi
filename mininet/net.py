@@ -125,7 +125,7 @@ from mininet.vanet import vanet
 from __builtin__ import True
 
 # Mininet version: should be consistent with README and LICENSE
-VERSION = "1.9r1"
+VERSION = "1.9r2"
 
 class Mininet(object):
     "Network emulation with hosts spawned in network namespaces."
@@ -931,11 +931,15 @@ class Mininet(object):
         if sta.params['mac'][wlan] == '':
             sta.params['mac'][wlan] = self.getMacAddress(sta, wlan)
         sta.ifaceToAssociate += 1
-        for n in self.hosts:
+        for n in self.stations:
             if (n == node):
                 # station.addMesh(n, **options)
                 if n in self.missingStations:
                     self.missingStations.remove(n)
+                    
+        iface = sta.params['wlan'][wlan]
+        info( "associating %s to %s...\n" % (iface, sta.ssid[wlan]))
+        sta.pexec('iw dev %s mesh join %s' % (iface, sta.ssid[wlan]))
 
         return link
 
@@ -955,7 +959,7 @@ class Mininet(object):
         options.update(params)
 
         sta.params['cell'] = []
-        for wlan in range(0, len(sta.params['wlan'])):
+        for w in range(0, len(sta.params['wlan'])):
             sta.params['cell'].append('')
 
         ip = ("%s" % params.pop('ip', {}))
@@ -1005,11 +1009,17 @@ class Mininet(object):
         if sta.params['mac'][wlan] == '':
             sta.params['mac'][wlan] = self.getMacAddress(sta, wlan)
         sta.ifaceToAssociate += 1
-        for sta in self.hosts:
-            if (sta == node):
+        for station in self.stations:
+            if (station == node):
                 # station.adhoc(sta, **options)
-                if sta in self.missingStations:
+                if station in self.missingStations:
                     self.missingStations.remove(sta)
+        
+        iface = sta.params['wlan'][wlan]
+        info( "associating %s to %s...\n" % (iface, sta.ssid[wlan]))
+        sta.pexec('iw dev %s ibss join %s 2412' % (iface, \
+                                                     sta.params['associatedTo'][wlan]))
+        self.confirmAdhocAssociation(sta, iface, wlan)
 
         return link
 
@@ -1276,7 +1286,7 @@ class Mininet(object):
             # Set default MAC - this should probably be in Link
             options.setdefault('addr1', self.randMac())
             options.setdefault('addr2', self.randMac())
-            
+
             cls = self.link if cls is None else cls
             link = cls(node1, node2, **options)
             self.links.append(link)
@@ -1405,7 +1415,7 @@ class Mininet(object):
                                 else:
                                     doAssociation = True
                                 if(doAssociation):
-                                    Node.associate(node, ap)                        
+                                    Node.associate(node, ap)
         else:
             for sta in self.stations:
                 pairingAdhocNodes.ssid_ID += 1
@@ -1421,20 +1431,11 @@ class Mininet(object):
                         if dist != 0:
                             channelParameters(sta, None, wlan, dist, self.stations, 0)
                         self.confirmMeshAssociation(sta, wlan)
-                    elif sta.params['position'] == (0, 0, 0) and sta.func[wlan] == 'mesh':
-                        iface = sta.params['wlan'][wlan]
-                        print "associating %s to %s..." % (iface, sta.ssid[wlan])
-                        sta.pexec('iw dev %s mesh join %s' % (iface, sta.ssid[wlan]))
                     else:
                         if sta.params['position'] != (0, 0, 0) and sta.params['associatedTo'][wlan] != '':
                             dist = channelParameters.getDistance(sta, sta.params['associatedTo'][wlan])
                             channelParameters(sta, sta.params['associatedTo'][wlan], wlan, dist, self.stations, 0)
-                        elif sta.func[wlan] == 'adhoc' and sta.params['position'] == (0, 0, 0):
-                            iface = sta.params['wlan'][wlan]
-                            print "associating %s to %s..." % (iface, sta.ssid[wlan])
-                            sta.pexec('iw dev %s ibss join %s 2412' % (iface, \
-                                                                         sta.params['associatedTo'][wlan]))
-                            self.confirmAdhocAssociation(sta, iface, wlan)
+            
             if meshRouting.routing == 'custom':
                 for node in self.stations:
                     for wlan in range(0, len(node.params['wlan'])):
@@ -1551,7 +1552,7 @@ class Mininet(object):
         self.set_seed = seed
 
     def roads(self, nroads):
-        "Seed"
+        "Roads"
         self.nroads = nroads
 
     def stop(self):
@@ -1953,7 +1954,7 @@ class Mininet(object):
                 self.thread.daemon = True
                 self.thread.start()
             self.setWifiParameters()
-        print "Mobility started at %s second(s)" % kwargs['startTime']
+        info( "Mobility started at %s second(s)\n" % kwargs['startTime'])
 
     def stopMobility(self, **kwargs):
         """ Stop Mobility """
@@ -1986,7 +1987,7 @@ class Mininet(object):
     def printDistance(self, src, dst):
         """ Print the distance between two points """
         dist = channelParameters.getDistance(src, dst)
-        print ("The distance between %s and %s is %.2f meters\n" % (src, dst, float(dist)))
+        info ("The distance between %s and %s is %.2f meters\n" % (src, dst, float(dist)))
 
     def plotGraph(self, **kwargs):
         """ Plot Graph """
@@ -2004,7 +2005,7 @@ class Mininet(object):
                 if node == str(host):
                     self.printPosition(host)
         except:
-            print ("Position was not defined")
+            info ("Position was not defined\n")
 
     def printPosition(self, node):
         """ Print position of STAs and APs """

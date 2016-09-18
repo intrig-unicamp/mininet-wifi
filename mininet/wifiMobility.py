@@ -7,7 +7,7 @@ author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
 import numpy as np
 import time
 
-from mininet.log import debug
+from mininet.log import debug, info
 from mininet.wifiMobilityModels import gauss_markov, \
     truncated_levy_walk, random_direction, random_waypoint, random_walk, reference_point_group, tvc
 from mininet.wifiChannel import channelParameters
@@ -113,7 +113,7 @@ class mobility (object):
                                 plot.graphUpdate(sta)
                         i += 1
         except:
-            print 'Error! Mobility stopped!'
+            info( 'Error! Mobility stopped!\n' )
 
     @classmethod
     def models(self, nodes=None, model=None, min_v=0, max_v=0, seed=None,
@@ -158,7 +158,7 @@ class mobility (object):
         elif(model == 'TimeVariantCommunity'):  # Time-variant Community Mobility Model
             mob = tvc(staMov, dimensions=(MAX_X, MAX_Y), aggregation=[0.5, 0.], epoch=[100, 100])
         else:
-            raise Exception("'Model not defined!")
+            raise Exception("Model not defined!")
 
         if self.DRAW:
             plot.instantiateGraph(self.MAX_X, self.MAX_Y)
@@ -177,9 +177,9 @@ class mobility (object):
                             plot.drawTxt(node)
                             plot.drawCircle(node)
             if self.DRAW:
-                plot.graphPause()
                 plot.graphUpdate(node)
-
+                plot.graphPause()
+                
     @classmethod
     def getAPsInRange(self, sta):
         for ap in mobility.apList:
@@ -224,7 +224,7 @@ class mobility (object):
                                 pass
                 listNodes.clearList()
             # have to verify this
-            time.sleep(0.01)
+            #time.sleep(0.01)
 
     @classmethod
     def setChannelParameters(self, sta, ap, dist, wlan):

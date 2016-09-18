@@ -90,13 +90,13 @@ class meshRouting (object):
         controlMeshMac = []
         command = ''
         for ref_sta in stationList:
-            if ref_sta != sta and ref_sta.func[wlan] == 'mesh' :
-                dist = channelParameters.getDistance(sta, ref_sta)
-                totalRange = int(sta.params['range']) + int(ref_sta.params['range'])
-                if dist < totalRange:
-                    for w in range(len(ref_sta.params['wlan'])):
-                        if ref_sta.func[w] == 'mesh':
-                            if sta.params['associatedTo'][wlan] == ref_sta.params['associatedTo'][w]:
+            for ref_wlan in range(len(ref_sta.params['wlan'])):
+                if ref_sta != sta and ref_sta.func[ref_wlan] == 'mesh' :
+                    dist = channelParameters.getDistance(sta, ref_sta)
+                    totalRange = int(sta.params['range']) + int(ref_sta.params['range'])
+                    if dist < totalRange:
+                        if ref_sta.func[ref_wlan] == 'mesh':
+                            if sta.params['associatedTo'][wlan] == ref_sta.params['associatedTo'][ref_wlan]:
                                 associate = True
 
         """Adding all reached target paths"""
@@ -133,10 +133,10 @@ class meshRouting (object):
         """delete all unknown paths"""
         if associate:
             for ref_sta in stationList:
-                for w in range(len(ref_sta.params['wlan'])):
-                    if ref_sta != sta and ref_sta.func[w] == 'mesh' :
-                        if ref_sta.meshMac[w] not in controlMeshMac:
-                            sta.pexec('iw dev %s mpath del %s' % (sta.params['wlan'][wlan], ref_sta.meshMac[w]))
+                for ref_wlan in range(len(ref_sta.params['wlan'])):
+                    if ref_sta != sta and ref_sta.func[ref_wlan] == 'mesh' :
+                        if ref_sta.meshMac[ref_wlan] not in controlMeshMac:
+                            sta.pexec('iw dev %s mpath del %s' % (sta.params['wlan'][wlan], ref_sta.meshMac[ref_wlan]))
 
         """mesh leave"""
         if associate == False:

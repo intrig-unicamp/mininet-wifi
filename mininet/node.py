@@ -57,6 +57,7 @@ import pty
 import re
 import signal
 import select
+import time
 
 from subprocess import Popen, PIPE
 from time import sleep
@@ -327,7 +328,7 @@ class Node(object):
                 self.confirmInfraAssociation(self, ap, wlan)
                 channelParameters(self, ap, wlan, d, mobility.staList, 0)
             else:
-                print '%s is already connected! ' % ap
+                info ( '%s is already connected!\n' % ap )
             mobility.getAPsInRange(self)
         else:
             print "%s is out of range!" % (ap)
@@ -335,10 +336,15 @@ class Node(object):
     @classmethod
     def confirmInfraAssociation(self, sta, ap, wlan):
         associated = ''
+        currentTime = time.time()
         if self.printCon:
-            print "Associating %s to %s" % (sta, ap)
+            iface = sta.params['wlan'][wlan]
+            info( "Associating %s to %s\n" % (iface, ap) )
         while(associated == '' or len(associated[0]) == 15):
             associated = self.isAssociated(sta, wlan)
+            if time.time() >= currentTime + 5:
+                info( "Error during the association process\n" )
+                break
         sta.params['frequency'][wlan] = channelParameters.frequency(ap, 0)
         ap.associatedStations.append(sta)
         sta.params['associatedTo'][wlan] = ap

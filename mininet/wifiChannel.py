@@ -27,12 +27,13 @@ class channelParameters (object):
 
     def __init__(self, node1, node2, wlan, dist, staList, time):
         self.dist = dist
-        # self.calculateInterference(node1, node2, dist, staList, wlan)
-        self.delay_ = self.delay(self.dist, time)
-        self.latency_ = self.latency(self.dist)
-        self.loss_ = self.loss(self.dist)
-        self.bw_ = self.bw(node1, node2, self.dist, wlan)
-        self.tc(node1, wlan, self.bw_, self.loss_, self.latency_, self.delay_)
+        if dist >= 0.01:
+            # self.calculateInterference(node1, node2, dist, staList, wlan)
+            self.delay_ = self.delay(self.dist, time)
+            self.latency_ = self.latency(self.dist)
+            self.loss_ = self.loss(self.dist)
+            self.bw_ = self.bw(node1, node2, self.dist, wlan)
+            self.tc(node1, wlan, self.bw_, self.loss_, self.latency_, self.delay_)
 
     @classmethod
     def getDistance(self, src, dst):
@@ -49,7 +50,7 @@ class channelParameters (object):
         if time != 0:
             self.delay_ = dist / time
         else:
-            self.delay_ = dist / 10
+            self.delay_ = (dist / 10) + 1
         return self.delay_
 
     @classmethod
@@ -72,7 +73,7 @@ class channelParameters (object):
             propagationModel_.model = 'friisPropagationLossModel'
         value = deviceDataRate(sta, ap, wlan)
         custombw = value.rate
-        self.rate = value.rate / 2.5
+        self.rate = custombw / 2.5
         lF = self.lF
         sl = self.sl
         nFloors = self.nFloors
@@ -87,8 +88,7 @@ class channelParameters (object):
             if self.i != 0:
                 dist = self.dist / self.i
             value = propagationModel_(sta, ap, dist, wlan, pT, gT, gR, hT, hR, sl, lF, pL, nFloors, gRandom)
-            sta.params['rssi'][wlan] = value.rssi  # random.uniform(value.rssi-1, value.rssi+1)
-            self.rate = (custombw * (1.1 ** -dist)) / 5
+            sta.params['rssi'][wlan] = value.rssi
         else:
             pT = ap.params['txpower'][0]
             gT = ap.params['antennaGain'][0]
@@ -98,25 +98,22 @@ class channelParameters (object):
             if isReplay == False:
                 value = propagationModel_(sta, ap, dist, wlan, pT, gT, gR, hT, hR, sl, lF, pL, nFloors, gRandom)
                 sta.params['rssi'][wlan] = value.rssi  # random.uniform(value.rssi-1, value.rssi+1)
-            if ap.equipmentModel == None:
-                self.rate = custombw * (1.1 ** -dist)
-        self.rate = self.rate - dist ** 2/10 
+        self.rate = custombw * (1.1 ** -dist)
         
+        self.rate = abs(random.uniform(self.rate - 0.2, self.rate + 0.2))
         if self.rate <= 0:
-            self.rate = 1
+            self.rate = 0.1
         return self.rate
 
     @classmethod
     def tc(self, sta, wlan, bw, loss, latency, delay):
         """Applying TC"""
-        bw = abs(random.uniform(bw - 0.5, bw + 0.5))
-
         sta.pexec("tc qdisc replace dev %s \
-            root handle 2: netem rate %.2fmbit \
+            root handle 2: netem rate %.2fmbps \
             loss %.1f%% \
             latency %.2fms \
-            delay %.2fms \
-            corrupt 0.1%%" % (sta.params['wlan'][wlan], bw, loss, latency, delay))
+            delay %.2fms "  % (sta.params['wlan'][wlan], bw, loss, latency, delay))
+            #corrupt 0.1%%" % (sta.params['wlan'][wlan], bw, loss, latency, delay))
 
     def calculateInterference (self, sta, ap, dist, staList, wlan):
         """Calculating Interference"""

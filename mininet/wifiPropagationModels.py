@@ -51,12 +51,12 @@ class propagationModel_ (object):
         L = self.sl
         if dist == 0:
             dist = 0.1
-
+        
         lambda_ = c / f  # lambda: wavelength (m)
         denominator = lambda_ ** 2
         numerator = (4 * math.pi * dist) ** 2 * L
         pathLoss_ = 10 * math.log10(numerator / denominator)
-
+        
         return pathLoss_
 
     def friisPropagationLossModel(self, sta, ap, dist, wlan, pT, gT, gR, hT, hR):
@@ -121,11 +121,12 @@ class propagationModel_ (object):
 
     def ITUPropagationLossModel(self, sta, ap, dist, wlan, pT, gT, gR, hT, hR):
         """International Telecommunication Union (ITU) Propagation Loss Model:"""
-        f = sta.params['frequency'][wlan] * 10 ** 3  # Convert Ghz to Hz
+        f = sta.params['frequency'][wlan] * 10 ** 3
         N = 28  # Power Loss Coefficient
         pL = self.pL
         lF = self.lF  # Floor penetration loss factor
         nFloors = self.nFloors  # Number of Floors
+        gains = pT + gT + gR
         """Power Loss Coefficient Based on the Paper 
         Site-Specific Validation of ITU Indoor Path Loss Model at 2.4 GHz 
         from Theofilos Chrysikos, Giannis Georgopoulos and Stavros Kotsopoulos"""
@@ -135,10 +136,10 @@ class propagationModel_ (object):
             dist = 0.1
         if pL != 0:
             N = pL
-
+            
         pathLossDb = 20 * math.log10(f) + N * math.log10(dist) + lF * nFloors - 28
-        self.rssi = pT + gT + gR - pathLossDb
-
+        self.rssi = gains - pathLossDb
+        
         return self.rssi
 
     def youngModel(self, sta, ap, dist, wlan, pT, gT, gR, hT, hR):
