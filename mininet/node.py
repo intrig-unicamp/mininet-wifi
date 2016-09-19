@@ -342,8 +342,8 @@ class Node(object):
             info( "Associating %s to %s\n" % (iface, ap) )
         while(associated == '' or len(associated[0]) == 15):
             associated = self.isAssociated(sta, wlan)
-            if time.time() >= currentTime + 5:
-                info( "Error during the association process\n" )
+            if time.time() >= currentTime + 10:
+                #info( "Error during the association process\n" )
                 break
         sta.params['frequency'][wlan] = channelParameters.frequency(ap, 0)
         ap.associatedStations.append(sta)
