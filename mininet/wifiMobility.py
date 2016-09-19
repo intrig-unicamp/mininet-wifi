@@ -6,6 +6,7 @@ author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
 """
 import numpy as np
 import time
+import os
 
 from mininet.log import debug, info
 from mininet.wifiMobilityModels import gauss_markov, \
@@ -73,11 +74,20 @@ class mobility (object):
         elif ap not in sta.params['associatedTo']:
             # Useful for stations with more than one wifi iface
             if sta.params['associatedTo'][wlan] == '':
-                debug('\niwconfig %s essid %s ap %s' % (sta.params['wlan'][wlan], ap.ssid[0], ap.params['mac'][wlan]))
-                sta.pexec('iwconfig %s essid %s ap %s' % (sta.params['wlan'][wlan], ap.ssid[0], ap.params['mac'][wlan]))
+                if sta.encrypt == '':
+                    debug('\niwconfig %s essid %s ap %s' % (sta.params['wlan'][wlan], ap.ssid[0], ap.params['mac'][wlan]))
+                    sta.pexec('iwconfig %s essid %s ap %s' % (sta.params['wlan'][wlan], ap.ssid[0], ap.params['mac'][wlan]))
+                elif sta.encrypt == 'wpa' or sta.encrypt == 'wpa2':
+                    os.system( 'pkill -f \'wpa_supplicant -B -Dnl80211 -i %s-wlan%s\'' % (sta, wlan) )
+                    debug("\nwpa_supplicant -B -Dnl80211 -i %s-wlan%s -c <(wpa_passphrase \"%s\" \"%s\")\n" \
+                                                                                        % (sta, wlan, ap.ssid[0], sta.passwd))
+                    sta.cmd("wpa_supplicant -B -Dnl80211 -i %s-wlan%s -c <(wpa_passphrase \"%s\" \"%s\")" \
+                                                                                        % (sta, wlan, ap.ssid[0], sta.passwd))
                 sta.params['frequency'][wlan] = channelParameters.frequency(ap, 0)
                 ap.associatedStations.append(sta)
                 sta.params['associatedTo'][wlan] = ap
+                
+                    
 
     @classmethod
     def mobilityPositionDefined(self, initial_time, final_time, staMov):
