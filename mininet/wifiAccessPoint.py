@@ -36,7 +36,7 @@ class accessPoint(object):
     def start(self, ap, country_code=None, auth_algs=None, wpa=None, wlan=None,
               wpa_key_mgmt=None, rsn_pairwise=None, wpa_passphrase=None, encrypt=None,
               wep_key0=None, **params):
-        """ Starts an Access Point """
+        """ Starting Access Point """
 
         self.cmd = ("echo \'")
         if 'phywlan' not in ap.params:

@@ -83,6 +83,11 @@ class mobility (object):
                                                                                         % (sta, wlan, ap.ssid[0], sta.passwd))
                     sta.cmd("wpa_supplicant -B -Dnl80211 -i %s-wlan%s -c <(wpa_passphrase \"%s\" \"%s\")" \
                                                                                         % (sta, wlan, ap.ssid[0], sta.passwd))
+                elif sta.encrypt == 'wep':
+                    debug('iw dev %s-wlan%s connect %s key 0:%s' \
+                                                            % (sta, wlan, ap.ssid[0], sta.passwd))
+                    sta.cmd('iw dev %s-wlan%s connect %s key 0:%s' \
+                                                            % (sta, wlan, ap.ssid[0], sta.passwd))
                 sta.params['frequency'][wlan] = channelParameters.frequency(ap, 0)
                 ap.associatedStations.append(sta)
                 sta.params['associatedTo'][wlan] = ap
