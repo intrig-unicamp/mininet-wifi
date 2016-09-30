@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 """
-This example shows how to create multiple SSID at the same AP
+This example shows how to create multiple SSID at the same AP and ideas around SSID-based packet forwarding
 see: *n_ssids*
  
             --------
@@ -20,7 +20,7 @@ see: *n_ssids*
 """
 
 from mininet.net import Mininet
-from mininet.node import  RemoteController, UserSwitch
+from mininet.node import  Controller, UserSwitch
 from mininet.cli import CLI
 from mininet.log import setLogLevel
 from mininet.link import TCLink
@@ -28,7 +28,7 @@ import time
 
 def topology():
     "Create a network."
-    net = Mininet( controller=RemoteController, link=TCLink, switch=UserSwitch )
+    net = Mininet( controller=Controller, link=TCLink, switch=UserSwitch )
 
     print "*** Creating nodes"
     sta1 = net.addStation( 'sta1', position='10,60,0' )
@@ -37,7 +37,7 @@ def topology():
     sta4 = net.addStation( 'sta4', position='50,30,0' )
     sta5 = net.addStation( 'sta5', position='45,65,0' )
     ap1 = net.addBaseStation( 'ap1', ssid="ssid", mode="g", channel="1", n_ssids=4, position='30,40,0' )
-    c0 = net.addController('c0', controller=RemoteController, ip='127.0.0.1', port=6653 )
+    c0 = net.addController('c0', controller=Controller, ip='127.0.0.1', port=6653 )
 
     """uncomment to plot graph"""
     net.plotGraph(max_x=100, max_y=100)
@@ -53,11 +53,11 @@ def topology():
     sta4.setRange(15)
     sta5.setRange(15)
 
-    sta1.cmd('iwconfig sta1-wlan0 essid %s-1' % ap1.params['ssid'])
-    sta2.cmd('iwconfig sta2-wlan0 essid %s-2' % ap1.params['ssid'])
-    sta3.cmd('iwconfig sta3-wlan0 essid %s-2' % ap1.params['ssid'])
-    sta4.cmd('iwconfig sta4-wlan0 essid %s-3' % ap1.params['ssid'])
-    sta5.cmd('iwconfig sta5-wlan0 essid %s-4' % ap1.params['ssid'])
+    sta1.cmd('iwconfig sta1-wlan0 essid %s-1 ap %s' % (ap1.params['ssid'], ap1.params['mac'][1]))
+    sta2.cmd('iwconfig sta2-wlan0 essid %s-2 ap %s' % (ap1.params['ssid'], ap1.params['mac'][2]))
+    sta3.cmd('iwconfig sta3-wlan0 essid %s-2 ap %s' % (ap1.params['ssid'], ap1.params['mac'][2]))
+    sta4.cmd('iwconfig sta4-wlan0 essid %s-3 ap %s' % (ap1.params['ssid'], ap1.params['mac'][3]))
+    sta5.cmd('iwconfig sta5-wlan0 essid %s-4 ap %s' % (ap1.params['ssid'], ap1.params['mac'][4]))
 
     ap1.cmd('dpctl unix:/tmp/ap1 meter-mod cmd=add,flags=1,meter=1 drop:rate=100')
     ap1.cmd('dpctl unix:/tmp/ap1 meter-mod cmd=add,flags=1,meter=2 drop:rate=200')
