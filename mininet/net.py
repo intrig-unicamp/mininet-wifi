@@ -1195,6 +1195,8 @@ class Mininet(object):
                     index = sta.ifaceToAssociate
                     Node.setMac(sta, sta.params['wlan'][index], index)
 
+                sta.params['mode'][sta.ifaceToAssociate] = ap.params['mode'][0]
+                sta.params['channel'][sta.ifaceToAssociate] = ap.params['channel'][0]
                 value = deviceDataRate(ap, sta, None)
                 self.bw = value.rate
 
@@ -1219,7 +1221,7 @@ class Mininet(object):
                     doAssociation = True
 
                 if(doAssociation):
-                    Node.associate(sta, ap)
+                    Node.associate(sta, ap)                   
 
                 if sta.params['mac'][sta.ifaceToAssociate - 1] == '':
                     sta.params['mac'][sta.ifaceToAssociate - 1] = self.getMacAddress(sta, sta.ifaceToAssociate - 1)

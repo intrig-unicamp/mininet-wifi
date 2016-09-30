@@ -71,9 +71,7 @@ class channelParameters (object):
         self.rate = 0
         if propagationModel_.model == '':
             propagationModel_.model = 'friisPropagationLossModel'
-        value = deviceDataRate(sta, ap, wlan)
-        custombw = value.rate
-        self.rate = custombw / 2.5
+        
         lF = self.lF
         sl = self.sl
         nFloors = self.nFloors
@@ -98,9 +96,10 @@ class channelParameters (object):
             if isReplay == False:
                 value = propagationModel_(sta, ap, dist, wlan, pT, gT, gR, hT, hR, sl, lF, pL, nFloors, gRandom)
                 sta.params['rssi'][wlan] = value.rssi  # random.uniform(value.rssi-1, value.rssi+1)
+        value = deviceDataRate(sta, ap, wlan)
+        custombw = value.rate
         self.rate = custombw * (1.1 ** -dist)
-        
-        self.rate = abs(random.uniform(self.rate - 0.2, self.rate + 0.2))
+        #self.rate = abs(random.uniform(self.rate - 0.2, self.rate + 0.2))
         if self.rate <= 0:
             self.rate = 0.1
         return self.rate
