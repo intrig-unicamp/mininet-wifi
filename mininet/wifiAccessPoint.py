@@ -70,6 +70,9 @@ class accessPoint(object):
             self.cmd = self.cmd + ("\nauth_algs=%s" % auth_algs)
             self.cmd = self.cmd + ("\nwep_default_key=%s" % 0)
             self.cmd = self.cmd + ("\nwep_key0=%s" % wep_key0)
+            
+        self.cmd = self.cmd + '\nctrl_interface=/var/run/hostapd'
+        self.cmd = self.cmd + '\nctrl_interface_group=0'
 
         if 'config' in ap.params.keys():
             config = ap.params['config']
