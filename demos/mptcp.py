@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-"""This example is based on this video: ................"""
+"""MPTCP Demo"""
 
 from mininet.net import Mininet
 from mininet.node import RemoteController, OVSKernelSwitch
@@ -41,15 +41,15 @@ def topology():
     print "*** Associating and Creating links"
     net.addLink(ap2, sta1)
     net.addLink(ap3, sta1)
-    net.addLink(ap2, h4, bw=100)
-    net.addLink(ap3, h5, bw=100)
-    net.addLink(s6, h4, bw=100)
-    net.addLink(s6, h5, bw=100)
-    net.addLink(s6, s7, bw=100)
-    net.addLink(s6, s8, bw=100)
-    net.addLink(s7, s9, bw=100)
-    net.addLink(s8, s9, bw=100)
-    net.addLink(s9, h10, bw=100)
+    net.addLink(ap2, h4, bw=1000)
+    net.addLink(ap3, h5, bw=1000)
+    net.addLink(s6, h4, bw=1000)
+    net.addLink(s6, h5, bw=1000)
+    net.addLink(s6, s7, bw=1000)
+    net.addLink(s6, s8, bw=1000)
+    net.addLink(s7, s9, bw=1000)
+    net.addLink(s8, s9, bw=1000)
+    net.addLink(s9, h10, bw=1000)
 
     h4.cmd('ifconfig h4-eth1 192.168.1.1/24')
     h5.cmd('ifconfig h5-eth1 192.168.1.2/24')
