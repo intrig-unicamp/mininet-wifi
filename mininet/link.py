@@ -282,7 +282,7 @@ class TCIntf(Intf):
         elif bw is not None:
             # BL: this seems a bit brittle...
             if (speedup > 0 and
-                self.node.name[0:1] == 's'):
+                self.node.type == 'station'):
                 bw = speedup
             # This may not be correct - we should look more closely
             # at the semantics of burst (and cburst) to make sure we
@@ -292,9 +292,12 @@ class TCIntf(Intf):
                 cmds += [ '%s qdisc add dev %s root handle 5:0 hfsc default 1',
                           '%s class add dev %s parent 5:0 classid 5:1 hfsc sc '
                           + 'rate %fMbit ul rate %fMbit' % (bw, bw) ]
-            elif use_tbf:
+            elif use_tbf:                
                 if latency_ms is None:
-                    latency_ms = 15 * 8 / bw
+                    if self.node.type == 'station':
+                        latency_ms = 1
+                    else:
+                        latency_ms = 15 * 8 / bw
                 cmds += [ '%s qdisc add dev %s root handle 5: tbf ' +
                           'rate %fMbit burst 15000 latency %fms' %
                           (bw, latency_ms) ]
