@@ -170,17 +170,15 @@ def makeIntfPair(intf1, intf2, addr1=None, addr2=None, node1=None, node2=None,
        raises Exception on failure"""
     if not runCmd:
         runCmd = quietRun if not node1 else node1.cmd
-        if (str(node2) != 'onlyOneDevice'):
-            runCmd2 = quietRun if not node2 else node2.cmd
+        runCmd2 = quietRun if not node2 else node2.cmd
     if deleteIntfs:
         # Delete any old interfaces with the same names
         runCmd('ip link del ' + intf1)
         runCmd2('ip link del ' + intf2)
 
-    if (str(node2) != 'onlyOneDevice'):
-        # Create new pair
-        netns = 1 if not node2 else node2.pid
-
+    # Create new pair
+    netns = 1 if not node2 else node2.pid
+    
     cmdOutput = ''
     if addr1 is None and addr2 is None:
         cmdOutput = runCmd('ip link add name %s '
@@ -193,18 +191,16 @@ def makeIntfPair(intf1, intf2, addr1=None, addr2=None, node1=None, node2=None,
             pass
         elif node1.type == 'station' and node2.type == 'station':
             pass
-        elif node1.type == 'station' and 'onlyOneDevice' in node2:
-            pass
         else:
             cmdOutput = runCmd('ip link add name %s '
                                'address %s '
                                'type veth peer name %s '
                                'address %s '
-                               'netns %s' %
+                               'netns %s' % 
                                (intf1, addr1, intf2, addr2, netns))
 
     if cmdOutput:
-        raise Exception("Error creating interface pair (%s,%s): %s " %
+        raise Exception("Error creating interface pair (%s,%s): %s " % 
                          (intf1, intf2, cmdOutput))
 
 def retry(retries, delaySecs, fn, *args, **keywords):
@@ -226,8 +222,8 @@ def moveIntfNoRetry(intf, dstNode, printError=False):
        intf: string, interface
         dstNode: destination Node
         printError: if true, print error"""
-    if dstNode.type == 'station' or dstNode.type == 'accessPoint':
-        if dstNode.type == 'station':
+    if (dstNode.type == 'station' or dstNode.type == 'vehicle' or dstNode.type == 'accessPoint') and 'eth' not in str(intf):
+        if dstNode.type == 'station' or dstNode.type == 'vehicle':
             return True
     else:
         intf = str(intf)
@@ -237,7 +233,7 @@ def moveIntfNoRetry(intf, dstNode, printError=False):
     # that the link has been moved successfully.
         if cmdOutput:
             if printError:
-                error('*** Error: moveIntf: ' + intf +
+                error('*** Error: moveIntf: ' + intf + 
                        ' not successfully moved to ' + dstNode.name + ':\n',
                        cmdOutput)
             return False
@@ -549,7 +545,7 @@ def customClass(classes, argStr):
     cname, args, kwargs = splitArgs(argStr)
     cls = classes.get(cname, None)
     if not cls:
-        raise Exception("error: %s is unknown - please specify one of %s" %
+        raise Exception("error: %s is unknown - please specify one of %s" % 
                          (cname, classes.keys()))
     if not args and not kwargs:
         return cls
@@ -582,13 +578,12 @@ def specialClass(cls, prepend=None, append=None,
             newparams = defaults.copy()
             newparams.update(params)
             newparams.update(override)
-            cls.__init__(self, *(list(prepend) + list(args) +
+            cls.__init__(self, *(list(prepend) + list(args) + 
                                    list(append)),
                           **newparams)
 
     CustomClass.__name__ = '%s%s' % (cls.__name__, defaults)
     return CustomClass
-
 
 def buildTopo(topos, topoStr, isWiFi=False):
     """Create topology from string with format (object, arg1, arg2,...).

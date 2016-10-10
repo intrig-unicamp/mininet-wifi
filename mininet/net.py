@@ -125,7 +125,7 @@ from mininet.vanet import vanet
 from __builtin__ import True
 
 # Mininet version: should be consistent with README and LICENSE
-VERSION = "1.9r2"
+VERSION = "1.9r3"
 
 class Mininet(object):
     "Network emulation with hosts spawned in network namespaces."
@@ -199,6 +199,7 @@ class Mininet(object):
         self.wifiNodes = []
         self.switches = []
         self.stations = []
+        self.vehicles = []
         self.virtualWlan = []
         self.fixedPosition = []
         self.staMov = []
@@ -412,6 +413,12 @@ class Mininet(object):
                 node.n_ssids = int(n_ssids)
             else:
                 node.n_ssids = 0
+                
+            n_wep = ("%s" % params.pop('n_wep', {}))
+            if(n_wep != "{}"):
+                node.n_wep = int(n_wep)
+            else:
+                node.n_wep = 0
 
         return int(wifi)
 
@@ -424,7 +431,7 @@ class Mininet(object):
         # Default IP and MAC addresses
         defaults = { 'ip': ipAdd(self.nextIP,
                                   ipBaseNum=self.ipBaseNum,
-                                  prefixLen=self.prefixLen) +
+                                  prefixLen=self.prefixLen) + 
                                   '/%s' % self.prefixLen }
         if self.autoSetMacs:
             defaults[ 'mac' ] = macColonHex(self.nextIP)
@@ -450,7 +457,7 @@ class Mininet(object):
         # Default IP and MAC addresses
         defaults = { 'ip': ipAdd(self.nextIP,
                                   ipBaseNum=self.ipBaseNum,
-                                  prefixLen=self.prefixLen) +
+                                  prefixLen=self.prefixLen) + 
                                   '/%s' % self.prefixLen}
 
         defaults['antennaGain'] = []
@@ -526,17 +533,126 @@ class Mininet(object):
         mobility.staList.append(sta)
         self.nextIP += 1
         return sta
-
-    def addVehicle(self, name, cls=None, **params):
-        """Add Vehicle.
+        
+    #NOT SURE ABOUT THIS CLASSNAME
+    def addCar(self, name, cls=None, **params):
+        """Add Car.
            name: name of vehicle to add
            cls: custom host class/constructor (optional)
-           params: parameters for host
+           params: parameters for car
            returns: added host"""
         # Default IP and MAC addresses
         defaults = { 'ip': ipAdd(self.nextIP,
                                   ipBaseNum=self.ipBaseNum,
-                                  prefixLen=self.prefixLen) +
+                                  prefixLen=self.prefixLen) + 
+                                  '/%s' % self.prefixLen}
+
+        defaults['antennaGain'] = []
+        defaults['antennaHeight'] = []
+        defaults['apsInRange'] = []
+        defaults['associatedTo'] = []
+        defaults['channel'] = []
+        defaults['frequency'] = []
+        defaults['mode'] = []
+        defaults['position'] = []
+        defaults['rssi'] = []
+        defaults['snr'] = []
+        defaults['speed'] = 0
+        defaults['txpower'] = []
+        defaults['wlan'] = []
+
+        if self.autoSetMacs:
+            defaults[ 'mac' ] = macColonHex(self.nextIP)
+        if self.autoPinCpus:
+            defaults[ 'cores' ] = self.nextCore
+            self.nextCore = (self.nextCore + 1) % self.numCores
+        defaults.update(params)
+        if not cls:
+            cls = self.host
+        sta = cls(name, **defaults)
+        
+        self.hosts.append(sta)
+        self.stations.append(sta)
+        self.wifiNodes.append(sta)
+        self.nameToNode[ name ] = sta
+        self.missingStations.append(sta)        
+        wifi = self.nodesParameters(sta, params)
+
+        sta.type = 'vehicle'
+        l1 = self.addStation(name + 'STA')
+        
+        switchName = sta.name + 'SW'
+        switchMesh = self.addSwitch(switchName)
+        self.vehicles.append(switchMesh)
+        self.addLink(l1, switchMesh)        
+        self.addLink(sta, switchMesh)
+
+        max_speed = ("%s" % params.pop('max_speed', {}))
+        if(max_speed != "{}"):
+            sta.max_speed = int(max_speed)
+        else:
+            sta.max_speed = 10
+
+        min_speed = ("%s" % params.pop('min_speed', {}))
+        if(min_speed != "{}"):
+            sta.min_speed = int(min_speed)
+        else:
+            sta.min_speed = 1
+
+        mac = ("%s" % params.pop('mac', {}))
+        if(mac != "{}"):
+            mac = mac.split(',')
+            sta.params['mac'] = []
+            for n in range(len(sta.params['wlan'])):
+                sta.params['mac'].append('')
+                if len(mac) > n:
+                    sta.params['mac'][n] = mac[n]
+        elif self.autoSetMacs:
+            for n in range(0, wifi):
+                sta.params['mac'].append('')
+                sta.params['mac'][n] = defaults[ 'mac' ]
+        else:
+            sta.params['mac'] = []
+            for n in range(0, wifi):
+                sta.params['mac'].append('')
+
+        ip = ("%s" % params.pop('ip', {}))
+        if(ip != "{}"):
+            ip = ip.split(',')
+            sta.params['ip'] = []
+            for n in range(len(sta.params['wlan'])):
+                sta.params['ip'].append('0/0')
+                if len(ip) > n:
+                    sta.params['ip'][n] = ip[n]
+        elif self.autoSetMacs:
+            for n in range(0, wifi):
+                sta.params['ip'].append('0/0')
+                sta.params['ip'][n] = defaults[ 'ip' ]
+        else:
+            try:
+                for n in range(0, wifi):
+                    sta.params['ip'].append('0/0')
+            except:
+                sta.params['ip'] = []
+                sta.params['ip'].append(defaults[ 'ip' ])
+                for n in range(1, wifi):
+                    sta.params['ip'].append('0/0')
+
+        self.nextIP += 1
+        self.isVanet = True
+        return sta    
+
+    #NOT SURE ABOUT THIS CLASSNAME
+    def addVehicle(self, name, cls=None, **params):
+        """Add Vehicle.
+           name: name of vehicle to add
+           cls: custom host class/constructor (optional)
+           params: parameters for Vehicle
+           returns: added host"""
+        # Default IP and MAC addresses
+        defaults = { 'ip': ipAdd(self.nextIP,
+                                  ipBaseNum=self.ipBaseNum,
+                                  prefixLen=self.prefixLen) + 
                                   '/%s' % self.prefixLen}
 
         defaults['antennaGain'] = []
@@ -841,7 +957,7 @@ class Mininet(object):
 
     def __len__(self):
         "returns number of nodes in net"
-        return (len(self.hosts) + len(self.switches) +
+        return (len(self.hosts) + len(self.switches) + 
                  len(self.controllers))
 
     def __contains__(self, item):
@@ -863,7 +979,7 @@ class Mininet(object):
     @staticmethod
     def randMac():
         "Return a random, non-multicast MAC address"
-        return macColonHex(random.randint(1, 2 ** 48 - 1) & 0xfeffffffffff |
+        return macColonHex(random.randint(1, 2 ** 48 - 1) & 0xfeffffffffff | 
                             0x020000000000)
 
     def runAlternativeModule(self, moduleDir):
@@ -871,7 +987,7 @@ class Mininet(object):
         self.alternativeModule = moduleDir
 
     def addMesh(self, sta, cls=None, **params):
-
+        
         wlan = sta.ifaceToAssociate
         sta.func[wlan] = 'mesh'
 
@@ -881,7 +997,7 @@ class Mininet(object):
 
         options = { 'ip': ipAdd(self.nextIP,
                                   ipBaseNum=self.ipBaseNum,
-                                  prefixLen=self.prefixLen) +
+                                  prefixLen=self.prefixLen) + 
                                   '/%s' % self.prefixLen}
 
         options.update(params)
@@ -918,13 +1034,13 @@ class Mininet(object):
 
         value = deviceDataRate(None, sta, None)
         self.bw = value.rate
-
+        
         options['sta'] = sta
         options.update(params)
+        
         # options.setdefault( 'bw', self.bw )
         # Set default MAC - this should probably be in Link
-        options.setdefault('addr1', self.randMac())
-
+        options.setdefault('addr1', self.randMac())    
         cls = self.link if cls is None else cls
         link = cls(node, 'mesh', **options)
 
@@ -936,9 +1052,9 @@ class Mininet(object):
                 # station.addMesh(n, **options)
                 if n in self.missingStations:
                     self.missingStations.remove(n)
-                    
+                
         iface = sta.params['wlan'][wlan]
-        info( "associating %s to %s...\n" % (iface, sta.ssid[wlan]))
+        info("associating %s to %s...\n" % (iface, sta.ssid[wlan]))
         sta.pexec('iw dev %s mesh join %s' % (iface, sta.ssid[wlan]))
 
         return link
@@ -954,7 +1070,7 @@ class Mininet(object):
 
         options = { 'ip': ipAdd(self.nextIP,
                                   ipBaseNum=self.ipBaseNum,
-                                  prefixLen=self.prefixLen) +
+                                  prefixLen=self.prefixLen) + 
                                   '/%s' % self.prefixLen}
         options.update(params)
 
@@ -1016,7 +1132,7 @@ class Mininet(object):
                     self.missingStations.remove(sta)
         
         iface = sta.params['wlan'][wlan]
-        info( "associating %s to %s...\n" % (iface, sta.ssid[wlan]))
+        info("associating %s to %s...\n" % (iface, sta.ssid[wlan]))
         sta.pexec('iw dev %s ibss join %s 2412' % (iface, \
                                                      sta.params['associatedTo'][wlan]))
         self.confirmAdhocAssociation(sta, iface, wlan)
@@ -1034,7 +1150,7 @@ class Mininet(object):
 
         options = { 'ip': ipAdd(self.nextIP,
                                   ipBaseNum=self.ipBaseNum,
-                                  prefixLen=self.prefixLen) +
+                                  prefixLen=self.prefixLen) + 
                                   '/%s' % self.prefixLen}
         options.update(params)
 
@@ -1292,6 +1408,7 @@ class Mininet(object):
             cls = self.link if cls is None else cls
             link = cls(node1, node2, **options)
             self.links.append(link)
+            
             return link
 
     def configHosts(self):
@@ -1450,21 +1567,39 @@ class Mininet(object):
             for sta in self.stations:
                 mobility.getAPsInRange(sta)
                 for wlan in range(0, len(sta.params['wlan'])):
-                    if sta.params['associatedTo'][wlan] == '' and \
-                                    (sta.func[wlan] != 'mesh' and sta.func[wlan] != 'adhoc') and \
-                                    sta.func[wlan] != 'wifiDirect':
-                        cls = None
-                        options = dict()
-                        # Set default MAC - this should probably be in Link
-                        options.setdefault('use_tbf', True)
-                        options.setdefault('ip', sta.params['ip'][wlan])
-                        options.setdefault('addr1', self.randMac())
-                        cls = self.link if cls is None else cls
-                        cls(sta, 'alone', **options)
-                        if sta.params['position'] != (0, 0, 0) and sta.params['associatedTo'][wlan] != '':
-                            mobility.nodeParameter(sta, wlan)
-                        if sta.params['mac'][wlan] == '':
-                            sta.params['mac'][wlan] = self.getMacAddress(sta, wlan)
+                    if sta.type == 'vehicle':
+                        if wlan > 0:
+                            if sta.params['associatedTo'][wlan] == '' and \
+                                        (sta.func[wlan] != 'mesh' and sta.func[wlan] != 'adhoc') and \
+                                        sta.func[wlan] != 'wifiDirect':
+                                cls = None
+                                options = dict()
+                                # Set default MAC - this should probably be in Link
+                                options.setdefault('use_tbf', True)
+                                options.setdefault('ip', sta.params['ip'][wlan])
+                                options.setdefault('addr1', self.randMac())
+                                cls = self.link if cls is None else cls
+                                cls(sta, 'alone', **options)
+                                if sta.params['position'] != (0, 0, 0) and sta.params['associatedTo'][wlan] != '':
+                                    mobility.nodeParameter(sta, wlan)
+                                if sta.params['mac'][wlan] == '':
+                                    sta.params['mac'][wlan] = self.getMacAddress(sta, wlan)                        
+                    else:
+                        if sta.params['associatedTo'][wlan] == '' and \
+                                        (sta.func[wlan] != 'mesh' and sta.func[wlan] != 'adhoc') and \
+                                        sta.func[wlan] != 'wifiDirect':
+                            cls = None
+                            options = dict()
+                            # Set default MAC - this should probably be in Link
+                            options.setdefault('use_tbf', True)
+                            options.setdefault('ip', sta.params['ip'][wlan])
+                            options.setdefault('addr1', self.randMac())
+                            cls = self.link if cls is None else cls
+                            cls(sta, 'alone', **options)
+                            if sta.params['position'] != (0, 0, 0) and sta.params['associatedTo'][wlan] != '':
+                                mobility.nodeParameter(sta, wlan)
+                            if sta.params['mac'][wlan] == '':
+                                sta.params['mac'][wlan] = self.getMacAddress(sta, wlan)
         if self.topo:
             self.buildFromTopo(self.topo)
         if self.firstAssociation:
@@ -1645,7 +1780,7 @@ class Mininet(object):
         r = r'(\d+) packets transmitted, (\d+) received'
         m = re.search(r, pingOutput)
         if m is None:
-            error('*** Error: could not parse ping output: %s\n' %
+            error('*** Error: could not parse ping output: %s\n' % 
                    pingOutput)
             return 1, 0
         sent, received = int(m.group(1)), int(m.group(2))
@@ -1671,7 +1806,7 @@ class Mininet(object):
                     if timeout:
                         opts = '-W %s' % timeout
                     if dest.intfs:
-                        result = node.cmdPrint('ping -c1 %s %s' %
+                        result = node.cmdPrint('ping -c1 %s %s' % 
                                            (opts, dest.IP()))
                         sent, received = self._parsePing(result)
                     else:
@@ -1688,7 +1823,7 @@ class Mininet(object):
         if packets > 0:
             ploss = 100.0 * lost / packets
             received = packets - lost
-            output("*** Results: %i%% dropped (%d/%d received)\n" %
+            output("*** Results: %i%% dropped (%d/%d received)\n" % 
                     (ploss, received, packets))
         else:
             ploss = 0
@@ -1707,7 +1842,7 @@ class Mininet(object):
         r = r'(\d+) packets transmitted, (\d+) received'
         m = re.search(r, pingOutput)
         if m is None:
-            error('*** Error: could not parse ping output: %s\n' %
+            error('*** Error: could not parse ping output: %s\n' % 
                    pingOutput)
             return errorTuple
         sent, received = int(m.group(1)), int(m.group(2))
@@ -1717,7 +1852,7 @@ class Mininet(object):
         if m is None:
             if received == 0:
                 return errorTuple
-            error('*** Error: could not parse ping output: %s\n' %
+            error('*** Error: could not parse ping output: %s\n' % 
                    pingOutput)
             return errorTuple
         rttmin = float(m.group(1))
@@ -1755,7 +1890,7 @@ class Mininet(object):
             src, dest, ping_outputs = outputs
             sent, received, rttmin, rttavg, rttmax, rttdev = ping_outputs
             output(" %s->%s: %s/%s, " % (src, dest, sent, received))
-            output("rtt min/avg/max/mdev %0.3f/%0.3f/%0.3f/%0.3f ms\n" %
+            output("rtt min/avg/max/mdev %0.3f/%0.3f/%0.3f/%0.3f ms\n" % 
                     (rttmin, rttavg, rttmax, rttdev))
         return all_outputs
 
@@ -1828,7 +1963,7 @@ class Mininet(object):
             if not waitListening(client, server.IP(), port):
                 raise Exception('Could not connect to iperf on port %d'
                                  % port)
-        cliout = client.cmd(iperfArgs + '-t %d -c ' % seconds +
+        cliout = client.cmd(iperfArgs + '-t %d -c ' % seconds + 
                              server.IP() + ' ' + bwArgs)
         debug('Client output: %s\n' % cliout)
         server.sendInt()
@@ -1864,13 +1999,13 @@ class Mininet(object):
         # get the initial cpu time for each host
         for host in hosts:
             outputs[ host ] = []
-            with open('/sys/fs/cgroup/cpuacct/%s/cpuacct.usage' %
+            with open('/sys/fs/cgroup/cpuacct/%s/cpuacct.usage' % 
                        host, 'r') as f:
                 time[ host ] = float(f.read())
         for _ in range(duration):
             sleep(1)
             for host in hosts:
-                with open('/sys/fs/cgroup/cpuacct/%s/cpuacct.usage' %
+                with open('/sys/fs/cgroup/cpuacct/%s/cpuacct.usage' % 
                            host, 'r') as f:
                     readTime = float(f.read())
                 outputs[ host ].append(((readTime - time[ host ])
@@ -1956,7 +2091,7 @@ class Mininet(object):
                 self.thread.daemon = True
                 self.thread.start()
             self.setWifiParameters()
-        info( "Mobility started at %s second(s)\n" % kwargs['startTime'])
+        info("Mobility started at %s second(s)\n" % kwargs['startTime'])
 
     def stopMobility(self, **kwargs):
         """ Stop Mobility """

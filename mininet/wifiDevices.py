@@ -73,6 +73,7 @@ class deviceDataRate (object):
                 self.rate = 6
             elif (node1.params['rssi'][wlan] < -88 and node1.params['rssi'][wlan] >= -89):
                 self.rate = 1
+ 
         return self.rate
 
     def TLWR740N(self, node1, node2, wlan=0):
@@ -101,14 +102,13 @@ class deviceDataRate (object):
                 self.rate = 54
             elif mode == 'b':
                 self.rate = 11
-        print self.rate
+
         return self.rate
 
     def WRT120N(self, node1, node2, wlan=0):
         """CISCO WRT120N
            from http://downloads.linksys.com/downloads/datasheet/WRT120N_V10_DS_B-WEB.pdf"""
         mode = node2.params['mode'][0]
-        print node1.params['rssi'][wlan]
                     
         try:  # if Station
             if node1.params['rssi'][wlan] != 0:

@@ -97,15 +97,22 @@ class module(object):
             wlanList = self.getWlanIface(physicalWlan)
             for sta in stations:
                 for wlan in range(0, len(sta.params['wlan'])):
-                    i = virtualWlan.index(sta)
-                    os.system('iw phy %s set netns %s' % (phyList[i + wlan], sta.pid))
-                    sta.cmd('ip link set %s name %s up' % (wlanList[i + wlan], sta.params['wlan'][wlan]))
                     sta.params['rssi'].append(0)
                     sta.params['snr'].append(0)                    
                     sta.meshMac.append(0)
                     sta.ssid.append('')
-                    if sta.params['txpower'][wlan] != 20:
-                        sta.cmd('iwconfig %s txpower %s' % (sta.params['wlan'][wlan], sta.params['txpower'][wlan]))
+                    i = virtualWlan.index(sta)
+                    os.system('iw phy %s set netns %s' % (phyList[i + wlan], sta.pid))
+                    if 'car' in sta.name and sta.type == 'station':
+                        sta.cmd('ip link set %s name %s up' % (wlanList[i + wlan], sta.params['wlan'][wlan]))
+                        sta.cmd('iw dev %s-wlan%s interface add %s-mp%s type mp' % (sta, wlan, sta, wlan))
+                        sta.cmd('ifconfig %s-mp%s up' % (sta, wlan))
+                        sta.cmd('iw dev %s-mp%s mesh join %s' % (sta, wlan, 'ssid'))
+                        sta.func[wlan] = 'mesh'
+                    else:
+                        sta.cmd('ip link set %s name %s up' % (wlanList[i + wlan], sta.params['wlan'][wlan]))
+                        if sta.params['txpower'][wlan] != 20:
+                            sta.cmd('iwconfig %s txpower %s' % (sta.params['wlan'][wlan], sta.params['txpower'][wlan]))
         except:
             info( "Something is wrong. Please, run sudo mn -c before running your code.\n" )
             exit(1)

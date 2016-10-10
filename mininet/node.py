@@ -271,7 +271,7 @@ class Node(object):
 
     @classmethod
     def associate_wep(self, sta, wlan, ssid, passwd):
-        sta.cmd('iw dev %s-wlan%s connect %s key 0:%s' \
+        sta.cmd('iw dev %s-wlan%s connect %s key d:0:%s' \
                 % (sta, wlan, ssid, passwd))
 
     def setRange(self, _range):
@@ -630,7 +630,7 @@ class Node(object):
         if ports:
             return self.intfs[ min(ports) ]
         else:
-            if 'station' != self.type:
+            if 'station' != self.type and 'vehicle' != self.type:
                 warn('*** defaultIntf: warning:', self.name,
                       'has no interfaces\n')
 
@@ -720,7 +720,7 @@ class Node(object):
            ip: IP address as a string
            prefixLen: prefix length, e.g. 8 for /8 or 16M addrs
            kwargs: any additional arguments for intf.setIP"""
-        if intf != None and self.type == 'station':
+        if intf != None and (self.type == 'station' or self.type == 'vehicle'):
             wlan = int(intf[-1:])
             self.params['ip'][wlan] = ip
         return self.intf(intf).setIP(ip, prefixLen, **kwargs)
@@ -776,11 +776,10 @@ class Node(object):
         # the superclass config method here as follows:
         # r = Parent.config( **_params )
         r = {}
-
-        if 'station' == self.type:
+        if 'station' == self.type or 'vehicle' == self.type:
             if len(ip) > 1:
                 ip = ip[0]
-        if 'station' != self.type:  # or 'isMesh' in self.params:
+        if 'station' != self.type and 'vehicle' != self.type:  # or 'isMesh' in self.params:
             self.setParam(r, 'setMAC', mac=mac)
         self.setParam(r, 'setIP', ip=ip)
         self.setParam(r, 'setDefaultRoute', defaultRoute=defaultRoute)

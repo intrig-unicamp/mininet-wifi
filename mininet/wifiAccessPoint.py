@@ -69,7 +69,10 @@ class accessPoint(object):
         elif encrypt == 'wep':
             self.cmd = self.cmd + ("\nauth_algs=%s" % auth_algs)
             self.cmd = self.cmd + ("\nwep_default_key=%s" % 0)
-            self.cmd = self.cmd + ("\nwep_key0=%s" % wep_key0)
+            if len(wep_key0) == 10 or len(wep_key0) == 26 or len(wep_key0) == 32:
+                self.cmd = self.cmd + ("\nwep_key0=%s" % wep_key0)
+            elif len(wep_key0) == 5 or len(wep_key0) == 13 or len(wep_key0) == 16:
+                self.cmd = self.cmd + ("\nwep_key0=\"%s\"" % wep_key0)
             
         self.cmd = self.cmd + '\nctrl_interface=/var/run/hostapd'
         self.cmd = self.cmd + '\nctrl_interface_group=0'
@@ -87,6 +90,16 @@ class accessPoint(object):
                 self.cmd = self.cmd + ('\n')
                 self.cmd = self.cmd + ("\nbss=%s-wlan%s-%s" % (ap, wlan, i))
                 self.cmd = self.cmd + ("\nssid=%s-%s" % (ap.ssid[0], i))
+                if "n_wep" in dir(ap):
+                    if ap.n_wep >= i:
+                        self.cmd = self.cmd + ("\nauth_algs=%s" % auth_algs)
+                        self.cmd = self.cmd + ("\nwep_default_key=0")
+                        if len(wep_key0) == 10 or len(wep_key0) == 26 or len(wep_key0) == 32:
+                            self.cmd = self.cmd + ("\nwep_key0=%s" % wep_key0)
+                        elif len(wep_key0) == 5 or len(wep_key0) == 13 or len(wep_key0) == 16:
+                            self.cmd = self.cmd + ("\nwep_key0=\"%s\"" % wep_key0)
+                    
+                #self.cmd = self.cmd + ("\n")
                 ap.params['mac'][i] = ap.params['mac'][wlan][:-1] + str(i)
                 self.checkNetworkManager(ap.params['mac'][i])
                 ap.params['wlan'].append('%s-wlan%s-%s' % (ap, wlan, i))

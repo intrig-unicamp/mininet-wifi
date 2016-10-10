@@ -195,14 +195,19 @@ class Intf(object):
         self.sta = sta
         if sta != None:
             wlan = self.sta.ifaceToAssociate
-            if self.sta.func[wlan] == 'mesh':
+            if self.sta.func[wlan] == 'mesh' and self.sta.type != 'vehicle':
                 self.sta.cmd('iw dev %s-wlan%s interface add %s-mp%s type mp' % (self.sta, wlan, self.sta, wlan))
         r = {}
         self.setParam(r, 'setMAC', mac=mac)
         self.setParam(r, 'setIP', ip=ip)
         self.setParam(r, 'isUp', up=up)
         self.setParam(r, 'ifconfig', ifconfig=ifconfig)
-        self.setParam(r, 'ssid', ssid=ssid)
+        
+        if sta != None and self.sta.type == 'vehicle':
+            if wlan > 0:
+                self.setParam(r, 'ssid', ssid=ssid)
+        else:
+            self.setParam(r, 'ssid', ssid=ssid)
         
         return r
 
@@ -282,7 +287,7 @@ class TCIntf(Intf):
         elif bw is not None:
             # BL: this seems a bit brittle...
             if (speedup > 0 and
-                self.node.type == 'station'):
+                self.node.type == 'station' or self.node.type == 'vehicle'):
                 bw = speedup
             # This may not be correct - we should look more closely
             # at the semantics of burst (and cburst) to make sure we
@@ -294,7 +299,7 @@ class TCIntf(Intf):
                           + 'rate %fMbit ul rate %fMbit' % (bw, bw) ]
             elif use_tbf:                
                 if latency_ms is None:
-                    if self.node.type == 'station':
+                    if self.node.type == 'station' or self.node.type == 'vehicle':
                         latency_ms = 1
                     else:
                         latency_ms = 15 * 8 / bw
@@ -377,7 +382,7 @@ class TCIntf(Intf):
         cmds = []
         tcoutput = self.tc('%s qdisc show dev %s')
         if "priomap" not in tcoutput and "qdisc noqueue" not in tcoutput:
-            if self.node.type != 'station':
+            if self.node.type != 'station' and self.node.type != 'vehicle':
                 cmds = [ '%s qdisc del dev %s root' ]
         else:
             cmds = []
@@ -403,8 +408,9 @@ class TCIntf(Intf):
                   (['%5f%% loss' % loss ] if loss is not None else []) +
                   ([ 'ECN' ] if enable_ecn else [ 'RED' ]
                     if enable_red else []))
+
         # Print bw info
-        if self.node.type != 'station':
+        if self.node.type != 'station' and self.node.type != 'vehicle':
             info('(' + ' '.join(stuff) + ') ')
         
         # Execute all the commands in our node
@@ -459,9 +465,11 @@ class Link(object):
             params2[ 'port' ] = port2
 
         phyIface = intfName1
-
+        
         if 'port' not in params1:
-            if 'station' == node1.type and 'alone' in str(node2) or 'station' == node1.type and 'mesh' in str(node2):
+            if 'vehicle' == node1.type and ('alone' != str(node2) and node2.type != 'switch') \
+                or 'station' == node1.type and 'alone' == str(node2) \
+                or 'station' == node1.type and 'mesh' in str(node2):
                 params1[ 'port' ] = node1.newWlanPort()
                 node1.newPort()
             elif 'station' == node1.type and 'accessPoint' == node2.type:
@@ -483,7 +491,7 @@ class Link(object):
             else:
                 params1[ 'port' ] = node1.newPort()
         if 'port' not in params2:
-            if 'alone' not in str(node2) and 'mesh' not in str(node2):
+            if 'alone' != str(node2) and 'mesh' != str(node2):
                 if 'station' == node1.type and 'accessPoint' == node2.type:
                     nodelen = int(len(node2.params['wlan']))
                     currentlen = node2.wlanports
@@ -512,12 +520,17 @@ class Link(object):
                 params2[ 'port' ] = node2.newPort()
 
         if not intfName1:
-            if node1.type == 'station' and str(node2) != 'mesh':
+            if node1.type == 'station' and 'alone' != str(node2) and \
+            'mesh' != str(node2) and node2.type == 'switch':
+                intfName1 = self.intfName(node1, params1[ 'port' ])
+            elif node1.type == 'station' and str(node2) != 'mesh':
                 ifacename = 'wlan'
                 intfName1 = self.wlanName(node1, ifacename, params1[ 'port' ])
             elif node1.type == 'station' and str(node2) == 'mesh':
                 ifacename = 'mp'
                 intfName1 = self.wlanName(node1, ifacename, params1[ 'port' ])
+            elif 'vehicle' == node1.type and 'alone' != str(node2) and node2.type == 'switch':
+                intfName1 = self.intfName(node1, params1[ 'port' ])
             elif str(node2) == 'alone':
                 ifacename = 'wlan'
                 intfName1 = self.wlanName(node1, ifacename, params1[ 'port' ])
@@ -544,8 +557,11 @@ class Link(object):
                     intfName2 = self.intfName(node2, params2[ 'port' ])
         if str(node2) != 'alone':
             self.fast = fast
-            if('w' not in str(intfName1) and 'w' not in str(intfName2) and 'mp' not in str(intfName1) \
-                                                                    and 'mp' not in str(intfName2)):
+            if 'vehicle' == node1.type and node2.type == 'switch' \
+                or 'station' == node1.type and ('mesh' != str(node2) and node2.type == 'switch') \
+                or ('w' not in str(intfName1) and 'w' not in str(intfName2) \
+                and 'mp' not in str(intfName1) and 'mp' not in str(intfName2)):
+              
                 if fast:
                     params1.setdefault('moveIntfFn', self._ignore)
                     params2.setdefault('moveIntfFn', self._ignore)
@@ -557,26 +573,31 @@ class Link(object):
             cls1 = intf
         if not cls2:
             cls2 = intf
-
-        if('station' == node1.type and 'alone' == str(node2) or 'station' == node1.type and 'mesh' in str(node2) \
-           or 'station' == node1.type and 'accessPoint' == node2.type):
-            intf1 = cls1(name=intfName1, node=node1,
-                          link=self, mac=addr1, **params1)
-            if 'alone' != str(node2) and 'mesh' != str(node2):
-                if 'accessPoint' == node2.type:
-                    pass
+       
+        if ('vehicle' == node1.type and ('alone' != str(node2) and node2.type != 'switch') \
+            or 'vehicle' == node1.type and 'alone' == str(node2) \
+            or 'station' == node1.type and 'alone' == str(node2) \
+            or 'station' == node1.type and 'mesh' in str(node2) \
+            or 'station' == node1.type and 'accessPoint' == node2.type):
+            
+                intf1 = cls1(name=intfName1, node=node1,
+                              link=self, mac=addr1, **params1)
+                if 'alone' != str(node2) and 'mesh' != str(node2):
+                    if 'accessPoint' == node2.type:
+                        pass
+                    else:
+                        intf2 = None
                 else:
                     intf2 = None
-            else:
-                intf2 = None
         elif 'accessPoint' == node1.type and 'alone' == str(node2):
             intf2 = None
-        else:
+        else:            
             intf1 = cls1(name=intfName1, node=node1,
                           link=self, mac=addr1, **params1)
 
             intf2 = cls2(name=intfName2, node=node2,
                           link=self, mac=addr2, **params2)
+
         # All we are is dust in the wind, and our two interfaces
         self.intf1, self.intf2 = intf1, intf2
     # pylint: enable=too-many-branches
