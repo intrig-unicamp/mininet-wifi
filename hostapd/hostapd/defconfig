@@ -18,6 +18,9 @@ CONFIG_DRIVER_HOSTAP=y
 # Driver interface for drivers using the nl80211 kernel interface
 CONFIG_DRIVER_NL80211=y
 
+# QCA vendor extensions to nl80211
+#CONFIG_DRIVER_NL80211_QCA=y
+
 # driver_nl80211.c requires libnl. If you are compiling it yourself
 # you may need to point hostapd to your version of libnl.
 #
@@ -145,14 +148,14 @@ CONFIG_IPV6=y
 #CONFIG_DRIVER_RADIUS_ACL=y
 
 # IEEE 802.11n (High Throughput) support
-CONFIG_IEEE80211N=y
+#CONFIG_IEEE80211N=y
 
 # Wireless Network Management (IEEE Std 802.11v-2011)
 # Note: This is experimental and not complete implementation.
 #CONFIG_WNM=y
 
 # IEEE 802.11ac (Very High Throughput) support
-CONFIG_IEEE80211AC=y
+#CONFIG_IEEE80211AC=y
 
 # Remove debugging code that is printing out debug messages to stdout.
 # This can be used to reduce the size of the hostapd considerably if debugging
@@ -246,6 +249,9 @@ CONFIG_IEEE80211AC=y
 # Should we use epoll instead of select? Select is used by default.
 #CONFIG_ELOOP_EPOLL=y
 
+# Should we use kqueue instead of select? Select is used by default.
+#CONFIG_ELOOP_KQUEUE=y
+
 # Select TLS implementation
 # openssl = OpenSSL (default)
 # gnutls = GnuTLS
@@ -326,3 +332,14 @@ CONFIG_IEEE80211AC=y
 # http://wireless.kernel.org/en/users/Documentation/acs
 #
 #CONFIG_ACS=y
+
+# Multiband Operation support
+# These extentions facilitate efficient use of multiple frequency bands
+# available to the AP and the devices that may associate with it.
+#CONFIG_MBO=y
+
+# Client Taxonomy
+# Has the AP retain the Probe Request and (Re)Association Request frames from
+# a client, from which a signature can be produced which can identify the model
+# of client device like "Nexus 6P" or "iPhone 5s".
+#CONFIG_TAXONOMY=y
