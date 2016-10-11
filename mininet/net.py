@@ -200,6 +200,7 @@ class Mininet(object):
         self.switches = []
         self.stations = []
         self.vehicles = []
+        self.vehiclesSTA = []
         self.virtualWlan = []
         self.fixedPosition = []
         self.staMov = []
@@ -579,13 +580,14 @@ class Mininet(object):
         wifi = self.nodesParameters(sta, params)
 
         sta.type = 'vehicle'
-        l1 = self.addStation(name + 'STA')
+        carsta = self.addStation(name + 'STA')
+        self.vehiclesSTA.append(carsta)
         
         switchName = sta.name + 'SW'
-        switchMesh = self.addSwitch(switchName)
-        self.vehicles.append(switchMesh)
-        self.addLink(l1, switchMesh)        
-        self.addLink(sta, switchMesh)
+        carsw = self.addSwitch(switchName)
+        self.vehicles.append(carsw)
+        self.addLink(carsta, carsw)        
+        self.addLink(sta, carsw)
 
         max_speed = ("%s" % params.pop('max_speed', {}))
         if(max_speed != "{}"):

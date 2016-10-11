@@ -99,7 +99,7 @@ class accessPoint(object):
                         elif len(wep_key0) == 5 or len(wep_key0) == 13 or len(wep_key0) == 16:
                             self.cmd = self.cmd + ("\nwep_key0=\"%s\"" % wep_key0)
                     
-                #self.cmd = self.cmd + ("\n")
+                # self.cmd = self.cmd + ("\n")
                 ap.params['mac'][i] = ap.params['mac'][wlan][:-1] + str(i)
                 self.checkNetworkManager(ap.params['mac'][i])
                 ap.params['wlan'].append('%s-wlan%s-%s' % (ap, wlan, i))
@@ -174,7 +174,7 @@ class accessPoint(object):
         ap.cmd('tc qdisc add dev %s parent 2:1 handle 10: pfifo limit 1000' % (iface))
 
     def APfile(self, cmd, ap, wlan):
-        """ run an Access Point and create the config file  """
+        """ run an Access Point and create the config file """
         if 'phywlan' not in ap.params:
             iface = ap.params['wlan'][wlan]
         else:

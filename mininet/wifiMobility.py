@@ -74,7 +74,7 @@ class mobility (object):
         elif ap not in sta.params['associatedTo']:
             # Useful for stations with more than one wifi iface
             if sta.params['associatedTo'][wlan] == '':
-                if sta.encrypt == '':
+                if sta.encrypt == None:
                     debug('\niwconfig %s essid %s ap %s' % (sta.params['wlan'][wlan], ap.ssid[0], ap.params['mac'][wlan]))
                     sta.pexec('iwconfig %s essid %s ap %s' % (sta.params['wlan'][wlan], ap.ssid[0], ap.params['mac'][wlan]))
                 elif sta.encrypt == 'wpa' or sta.encrypt == 'wpa2':

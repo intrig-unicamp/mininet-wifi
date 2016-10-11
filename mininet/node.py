@@ -79,7 +79,6 @@ class Node(object):
        We communicate with it using pipes."""
 
     portBase = 0  # Nodes always start with eth0/port0, even in OF 1.0
-    portWlanBase = 0
     printCon = True
     isCode = False
 
@@ -124,7 +123,6 @@ class Node(object):
         self.endPosition = []
         self.moveSta = []
         self.associatedStations = []
-        self.staAssociated = []
 
         self.max_speed = 0
         self.min_speed = 0
