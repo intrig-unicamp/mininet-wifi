@@ -65,27 +65,20 @@ class mobility (object):
             if sta.params['associatedTo'][wlan] != '':
                 sta.params['associatedTo'][wlan].params['associatedStations'].remove(sta)
             sta.pexec('iw dev %s disconnect' % sta.params['wlan'][wlan])
-            debug ('\niwconfig %s essid %s ap %s' % (sta.params['wlan'][wlan], ap.params['ssid'][0], ap.params['mac'][wlan]))
-            sta.pexec('iwconfig %s essid %s ap %s' % (sta.params['wlan'][wlan], ap.params['ssid'][0], ap.params['mac'][wlan]))
+            sta.pexec('iwconfig %s essid %s ap %s' % (sta.params['wlan'][wlan], ap.params['ssid'][0], ap.params['mac'][0]))
             sta.params['associatedTo'][wlan] = ap
             sta.params['frequency'][wlan] = channelParameters.frequency(ap, 0)
             ap.params['associatedStations'].append(sta)
         elif ap not in sta.params['associatedTo']:
-            # Useful for stations with more than one wifi iface
             if sta.params['associatedTo'][wlan] == '':
                 if 'encrypt' not in ap.params:
-                    debug('\niwconfig %s essid %s ap %s' % (sta.params['wlan'][wlan], ap.params['ssid'][0], ap.params['mac'][wlan]))
-                    sta.pexec('iwconfig %s essid %s ap %s' % (sta.params['wlan'][wlan], ap.params['ssid'][0], ap.params['mac'][wlan]))
+                    sta.pexec('iwconfig %s essid %s ap %s' % (sta.params['wlan'][wlan], ap.params['ssid'][0], ap.params['mac'][0]))
                 else:
                     if ap.encrypt == 'wpa' or ap.encrypt == 'wpa2':
                         os.system('pkill -f \'wpa_supplicant -B -Dnl80211 -i %s\'' % sta.params['wlan'][wlan])
-                        debug("\nwpa_supplicant -B -Dnl80211 -i %s -c <(wpa_passphrase \"%s\" \"%s\")\n" \
-                                                             % (sta.params['wlan'][wlan], ap.params['ssid'][0], sta.params['passwd'][0]))
                         sta.cmd("wpa_supplicant -B -Dnl80211 -i %s -c <(wpa_passphrase \"%s\" \"%s\")" \
                                                              % (sta.params['wlan'][wlan], ap.params['ssid'][0], sta.params['passwd'][0]))
                     elif ap.encrypt == 'wep':
-                        debug('iw dev %s connect %s key d:0:%s' \
-                                                                % (sta.params['wlan'][wlan], ap.params['ssid'][0], sta.params['passwd'][0]))
                         sta.cmd('iw dev %s connect %s key d:0:%s' \
                                                             % (sta.params['wlan'][wlan], ap.params['ssid'][0], sta.params['passwd'][0]))
                 sta.params['frequency'][wlan] = channelParameters.frequency(ap, 0)
