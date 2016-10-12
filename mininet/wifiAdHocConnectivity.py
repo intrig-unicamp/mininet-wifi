@@ -33,25 +33,25 @@ class pairingAdhocNodes (object):
                         #ref_ssid = ref_sta.params['associatedTo'][wlan]
                         i += 1
                         sta.params['frequency'][wlan] = channelParameters.frequency(sta, wlan)
-                        if sta.ssid[wlan] == ref_sta.ssid[wlan]:
+                        if sta.params['ssid'][wlan] == ref_sta.params['ssid'][wlan]:
                             if sta.params['cell'][wlan] == '':
                                 alreadyConn.append(sta)
-                                sta.params['associatedTo'][wlan] = sta.ssid[wlan]
+                                sta.params['associatedTo'][wlan] = sta.params['ssid'][wlan]
                                 sta.params['cell'][wlan] = ('02:CA:FF:EE:BA:0%s' % self.ssid_ID)
                                 iface = sta.params['wlan'][wlan]
-                                print "associating %s to %s..." % (iface, sta.ssid[wlan])
+                                print "associating %s to %s..." % (iface, sta.params['ssid'][wlan])
                                 sta.pexec('iwconfig %s essid %s ap 02:CA:FF:EE:BA:0%s' % (sta.params['wlan'][wlan], sta.params['associatedTo'][wlan], self.ssid_ID))
                                 # sta.pexec('iw dev %s ibss join %s 2412' % (sta.params['wlan'][wlan], \
                                 #                                           sta.params['associatedTo'][wlan]))
                                 sta.params['frequency'][wlan] = channelParameters.frequency(sta, wlan)
                             if sta.params['cell'][wlan] != ref_sta.params['cell'][wlan]:
-                                if ref_sta.params['associatedTo'][wlan] == sta.ssid[wlan]:
+                                if ref_sta.params['associatedTo'][wlan] == sta.params['ssid'][wlan]:
                                     if ref_sta.params['cell'][wlan] == '' and sta in alreadyConn:
                                         alreadyConn.append(ref_sta)
                                         iface = ref_sta.params['wlan'][wlan]
-                                        ref_sta.params['associatedTo'][wlan] = sta.ssid[wlan]
+                                        ref_sta.params['associatedTo'][wlan] = sta.params['ssid'][wlan]
                                         ref_sta.params['cell'][wlan] = ('02:CA:FF:EE:BA:0%s' % self.ssid_ID)
-                                        print "associating %s to %s..." % (iface, sta.ssid[wlan])
+                                        print "associating %s to %s..." % (iface, sta.params['ssid'][wlan])
                                         ref_sta.pexec('iwconfig %s essid %s ap 02:CA:FF:EE:BA:0%s' % (ref_sta.params['wlan'][wlan], ref_sta.params['associatedTo'][wlan], self.ssid_ID))
                                         # ref_sta.pexec('iw dev %s ibss join %s 2412' % (ref_sta.params['wlan'][wlan], \
                                         #                                               ref_sta.params['associatedTo'][wlan]))

@@ -13,8 +13,8 @@ class associationControl (object):
         if ac == "llf":  # useful for llf (Least-loaded-first)
             apref = sta.params['associatedTo'][wlan]
             if apref != 'NoAssociated':
-                ref_llf = len(apref.associatedStations)
-                if len(ap.associatedStations) + 2 < ref_llf:
+                ref_llf = len(apref.params['associatedStations'])
+                if len(ap.params['associatedStations']) + 2 < ref_llf:
                     self.changeAP = True
             else:
                 self.changeAP = True

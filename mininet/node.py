@@ -58,6 +58,11 @@ import re
 import signal
 import select
 import time
+import subprocess
+import socket
+import struct
+import fcntl
+import fileinput
 
 from subprocess import Popen, PIPE
 from time import sleep
@@ -69,9 +74,9 @@ from mininet.moduledeps import moduleDeps, pathCheck, TUN
 from mininet.link import Link, Intf, TCIntf, OVSIntf
 from re import findall
 from distutils.version import StrictVersion
-from mininet.wifiAccessPoint import accessPoint
 from mininet.wifiMobility import mobility
 from mininet.wifiChannel import channelParameters
+from mininet.wifiDevices import deviceDataRate, deviceRange
 from mininet.wifiPlot import plot
 
 class Node(object):
@@ -104,37 +109,9 @@ class Node(object):
         self.nameToIntf = {}  # dict of interface names to Intfs
 
         # Station and BaseStation Parameters
-        self.ssid = []
-        self.passwd = ''
-        self.security = ''
-        self.equipmentModel = ''
         self.func = []
         self.connections = {}
-        self.type = 'host'
-        self.n_ssids = 0
-
-        # Station Parameters
-        self.associate = False
-        self.ifaceToAssociate = 0
-        self.meshMac = []
-
-        # Mobility Parameters
-        self.startPosition = []
-        self.endPosition = []
-        self.moveSta = []
-        self.associatedStations = []
-
-        self.max_speed = 0
-        self.min_speed = 0
-
-        self.max_x = 0
-        self.max_y = 0
-        self.min_x = 0
-        self.min_y = 0
-        self.max_v = 0
-        self.min_v = 0
-        self.constantVelocity = 1.0
-        self.constantDistance = 1.0
+        self.type = 'host'        
 
         # Make pylint happy
         (self.shell, self.execed, self.pid, self.stdin, self.stdout,
@@ -207,6 +184,239 @@ class Node(object):
         self.waiting = False
         # +m: disable job control notification
         self.cmd('unset HISTFILE; stty -echo; set +m')
+        
+    @classmethod
+    def addParameters(self, node, wifiRadios, autoSetMacs, params, defaults):
+        """adding parameters in wifinodes"""
+        
+        node.params['rssi'] = []
+        node.params['frequency'] = []
+        node.params['wlan'] = []
+        node.params['mac'] = []
+               
+        if node.type == 'station' or node.type == 'vehicle':
+            node.params['apsInRange'] = []
+            node.params['associatedTo'] = []
+            node.ifaceToAssociate = 0 
+            node.max_x = 0
+            node.max_y = 0
+            node.min_x = 0
+            node.min_y = 0
+            node.max_v = 0
+            node.min_v = 0
+            node.constantVelocity = 1.0
+            node.constantDistance = 1.0
+           
+        # config
+        if 'config' in params:
+            node.speed = params['config']   
+        
+        # speed
+        if 'speed' in params:
+            node.speed = int(params['speed'])
+
+        # max_x
+        if 'max_x' in params:
+            node.max_x = int(params['max_x'])
+
+        # max_y
+        if 'max_y' in params:
+            node.max_y = int(params['max_y'])
+
+        # min_x
+        if 'min_x' in params:
+            node.min_x = int(params['min_x'])
+
+        # min_y
+        if 'min_y' in params:
+            node.min_x = int(params['min_y'])
+
+        # min_v
+        if 'min_v' in params:
+            node.min_v = int(params['min_v'])
+
+        # max_v
+        if 'max_v' in params:
+            node.max_v = int(params['max_v'])
+
+        # constantVelocity
+        if 'constantVelocity' in params:
+            node.constantVelocity = int(params['constantVelocity'])
+
+        # constantDistance
+        if 'constantDistance' in params:
+            node.constantDistance = int(params['constantDistance'])
+            
+        # position
+        position = ("%s" % params.pop('position', {}))
+        if(position != "{}"):
+            position = position.split(',')
+            node.params['position'] = position
+
+        # Wifi Interfaces
+        wlans = ("%s" % params.pop('wlans', {}))
+        if(wlans != "{}"):
+            wlans = int(wlans)
+            wifiRadios += int(wlans)
+        else:
+            wlans = 1
+            wifiRadios += 1
+        for n in range(wlans):
+            node.params['frequency'].append(0)
+            if node.type != 'accessPoint':
+                node.func.append('none')
+                node.params['associatedTo'].append('')
+            node.params['wlan'].append(node.name + '-wlan' + str(n))
+            node.params.pop("wlans", None)
+                        
+        if node.type == 'station' or node.type == 'vehicle':
+            mac = ("%s" % params.pop('mac', {}))
+            if(mac != "{}"):
+                mac = mac.split(',')
+                node.params['mac'] = []
+                for n in range(len(node.params['wlan'])):
+                    node.params['mac'].append('')
+                    if len(mac) > n:
+                        node.params['mac'][n] = mac[n]
+            elif autoSetMacs:
+                for n in range(wlans):
+                    node.params['mac'].append('')
+                    node.params['mac'][n] = defaults[ 'mac' ]
+            else:
+                node.params['mac'] = []
+                for n in range(wlans):
+                    node.params['mac'].append('')
+    
+            ip = ("%s" % params.pop('ip', {}))
+            if(ip != "{}"):
+                ip = ip.split(',')
+                node.params['ip'] = []
+                for n in range(len(node.params['wlan'])):
+                    node.params['ip'].append('0/0')
+                    if len(ip) > n:
+                        node.params['ip'][n] = ip[n]
+            elif autoSetMacs:
+                for n in range(wlans):
+                    node.params['ip'].append('0/0')
+                    node.params['ip'][n] = defaults[ 'ip' ]
+            else:
+                try:
+                    for n in range(wlans):
+                        node.params['ip'].append('0/0')
+                except:
+                    node.params['ip'] = []
+                    node.params['ip'].append(defaults[ 'ip' ])
+                    for n in range(1, wlans):
+                        node.params['ip'].append('0/0')
+            
+            # max_speed
+            if 'max_speed' in params:
+                node.max_speed = int(params['max_speed'])
+            else:
+                node.max_speed = 10
+                
+            # min_speed
+            if 'min_speed' in params:
+                node.min_speed = int(params['min_speed'])
+            else:
+                node.min_speed = 1            
+
+        # mode
+        if 'mode' in params:
+            node.params['mode'] = []
+            for n in range(wlans):
+                node.params['mode'].append(params['mode'])
+        else:
+            node.params['mode'] = []
+            for n in range(wlans):
+                node.params['mode'].append('g')
+                
+        # antennaHeight
+        if 'antennaHeight' in params:
+            node.params['antennaHeight'] = []
+            for n in range(wlans):
+                node.params['antennaHeight'].append(int(params['antennaHeight']))
+        else:
+            node.params['antennaHeight'] = []
+            for n in range(wlans):
+                node.params['antennaHeight'].append(1)
+        
+        # antennaGain
+        if 'antennaGain' in params:
+            node.params['antennaGain'] = []
+            for n in range(wlans):
+                node.params['antennaGain'].append(int(params['antennaGain']))
+        else:
+            node.params['antennaGain'] = []
+            for n in range(wlans):
+                node.params['antennaGain'].append(5)
+  
+        # txpower
+        if 'txpower' in params:
+            node.params['txpower'] = []
+            for n in range(wlans):
+                node.params['txpower'].append(int(params['txpower']))
+        else:
+            node.params['txpower'] = []
+            for n in range(wlans):
+                node.params['txpower'].append(14)
+                
+        # Channel
+        if 'channel' in params:
+            node.params['channel'] = []
+            for n in range(wlans):
+                node.params['channel'].append(int(params['channel']))
+        else:
+            node.params['channel'] = []
+            for n in range(wlans):
+                node.params['channel'].append(1)
+        
+        equipmentModel = ("%s" % params.pop('equipmentModel', {}))
+        if(equipmentModel != "{}"):
+            node.equipmentModel = equipmentModel
+        
+        # Range
+        if 'range' in params:
+            node.params['range'] = int(params['range'])
+        else:
+            if node.type == 'accessPoint':
+                value = deviceRange(node)
+                node.params['range'] = value.range
+            else:
+                value = deviceRange(node)
+                node.params['range'] = value.range - 15
+
+        if node.type == 'accessPoint':
+            node.params['associatedStations'] = []
+            
+            passwd = ("%s" % params.pop('passwd', {}))
+            if(passwd != "{}"):
+                node.params['passwd'] = []
+                node.params['passwd'].append(passwd)
+                
+            encrypt = ("%s" % params.pop('encrypt', {}))
+            if(encrypt != "{}"):
+                node.params['encrypt'] = []
+                node.params['encrypt'].append(encrypt)
+            
+            ssid = ("%s" % params.pop('ssid', {}))
+            node.params['ssid'] = []
+            if(ssid != "{}"):
+                node.params['ssid'].append(ssid)
+            else:
+                node.params['ssid'].append(defaults[ 'ssid' ])
+            
+            n_ssids = ("%s" % params.pop('n_ssids', {}))
+            if(n_ssids != "{}"):
+                node.n_ssids = int(n_ssids)
+                
+            n_wep = ("%s" % params.pop('n_wep', {}))
+            if(n_wep != "{}"):
+                node.n_wep = int(n_wep)
+            else:
+                node.n_wep = 0
+                
+        return wifiRadios
 
     @classmethod
     def calculateWiFiParameters(self, sta):
@@ -254,23 +464,24 @@ class Node(object):
 
     @classmethod
     def associate_infra(self, sta, ap, wlan):
-        if sta.passwd == None:
-            sta.cmd('iwconfig %s essid %s ap %s' % (sta.params['wlan'][wlan], ap.ssid[0], ap.params['mac'][0]))
-        elif sta.encrypt == 'wpa' or sta.encrypt == 'wpa2':
-            self.associate_wpa(sta, wlan, ap.ssid[0], sta.passwd)
-        elif sta.encrypt == 'wep':
-            self.associate_wep(sta, wlan, ap.ssid[0], sta.passwd)
+        if 'encrypt' not in ap.params:
+            sta.cmd('iwconfig %s essid %s ap %s' % (sta.params['wlan'][wlan], ap.params['ssid'][0], ap.params['mac'][0]))
+        else:
+            if ap.params['encrypt'][0] == 'wpa' or ap.params['encrypt'][0] == 'wpa2':
+                self.associate_wpa(sta, ap, wlan)
+            elif ap.params['encrypt'][0] == 'wep':
+                self.associate_wep(sta, ap, wlan)
         self.confirmInfraAssociation(sta, ap, wlan)
 
     @classmethod
-    def associate_wpa(self, sta, wlan, ssid, passwd):
+    def associate_wpa(self, sta, ap, wlan):
         sta.cmd("wpa_supplicant -B -Dnl80211 -i %s-wlan%s -c <(wpa_passphrase \"%s\" \"%s\")" \
-                % (sta, wlan, ssid, passwd))
+                % (sta, wlan, ap.ssid[0], ap.params['passwd'][0]))
 
     @classmethod
-    def associate_wep(self, sta, wlan, ssid, passwd):
+    def associate_wep(self, sta, ap, wlan):
         sta.cmd('iw dev %s-wlan%s connect %s key d:0:%s' \
-                % (sta, wlan, ssid, passwd))
+                % (sta, wlan, ap.ssid[0], ap.params['passwd'][0]))
 
     def setRange(self, _range):
         self.params['range'] = _range
@@ -344,7 +555,7 @@ class Node(object):
                 #info( "Error during the association process\n" )
                 break
         sta.params['frequency'][wlan] = channelParameters.frequency(ap, 0)
-        ap.associatedStations.append(sta)
+        ap.params['associatedStations'].append(sta)
         sta.params['associatedTo'][wlan] = ap
 
     @classmethod
@@ -1118,7 +1329,209 @@ class Switch(Node):
                               for i in self.intfList() ]))
         return '<%s %s: %s pid=%s> ' % (
             self.__class__.__name__, self.name, intfs, self.pid)
+        
+class AccessPoint(Switch):
+    """An AccessPoint is a Switch equipped with wireless interface that is running (or has execed?)
+       an OpenFlow switch."""
 
+    @classmethod
+    def init_ (self, ap, country_code=None, auth_algs=None, wpa=None, intf=None, wlan=None,
+              wpa_key_mgmt=None, rsn_pairwise=None, wpa_passphrase=None,
+              wep_key0=None, **params):
+        
+        ap.params['mac'] = []
+        
+        if 'n_ssids' in ap.params.keys():
+            for i in range(ap.n_ssids + 1):
+                ap.params['mac'].append('')
+        else:
+            ap.params['mac'].append('')
+
+        if 'phywlan' not in ap.params:
+            self.renameIface(ap, intf, ap.params['wlan'][wlan])
+            ap.params['mac'][wlan] = self.getMacAddress(ap, wlan)
+            
+
+        self.start_(ap, country_code, auth_algs, wpa, wlan,
+              wpa_key_mgmt, rsn_pairwise, wpa_passphrase,
+              wep_key0, **params)
+        
+    @classmethod
+    def renameIface(self, ap, intf, newname):
+        "Rename interface"
+        ap.pexec('ifconfig %s down' % intf)
+        ap.pexec('ip link set %s name %s' % (intf, newname))
+        ap.pexec('ifconfig %s up' % newname)
+
+    @classmethod
+    def start_(self, ap, country_code=None, auth_algs=None, wpa=None, wlan=None,
+              wpa_key_mgmt=None, rsn_pairwise=None, wpa_passphrase=None,
+              wep_key0=None, **params):
+        """ Starting Access Point """
+
+        cmd = ("echo \'")
+        if 'phywlan' not in ap.params:
+            cmd = cmd + ("interface=%s" % ap.params['wlan'][wlan])  # the interface used by the AP
+        else:
+            wlan = ap.params.get('phywlan')
+            cmd = cmd + ("interface=%s" % wlan)  # the interface used by the AP
+        cmd = cmd + ("\ndriver=nl80211")
+        cmd = cmd + ("\nssid=%s" % ap.params['ssid'][0])  # the name of the AP
+
+        if ap.params['mode'][0] == 'n' or ap.params['mode'][0] == 'ac'or ap.params['mode'][0] == 'a':
+            cmd = cmd + ("\nhw_mode=g")
+        else:
+            cmd = cmd + ("\nhw_mode=%s" % ap.params['mode'][0])
+        cmd = cmd + ("\nchannel=%s" % ap.params['channel'][0])  # the channel to use
+        if 'phywlan' not in ap.params:
+            cmd = cmd + ("\nwme_enabled=1")
+            cmd = cmd + ("\nwmm_enabled=1")
+        if 'encrypt' in ap.params:
+            if ap.params['encrypt'][0] == 'wpa':
+                cmd = cmd + ("\nauth_algs=%s" % auth_algs)
+                cmd = cmd + ("\nwpa=%s" % wpa)
+                cmd = cmd + ("\nwpa_key_mgmt=%s" % wpa_key_mgmt)
+                cmd = cmd + ("\nwpa_passphrase=%s" % wpa_passphrase)
+            elif ap.params['encrypt'][0] == 'wpa2':
+                cmd = cmd + ("\nauth_algs=%s" % auth_algs)
+                cmd = cmd + ("\nwpa=%s" % wpa)
+                cmd = cmd + ("\nwpa_key_mgmt=%s" % wpa_key_mgmt)
+                cmd = cmd + ("\nrsn_pairwise=%s" % rsn_pairwise)
+                cmd = cmd + ("\nwpa_passphrase=%s" % wpa_passphrase)
+            elif ap.params['encrypt'][0] == 'wep':
+                cmd = cmd + ("\nauth_algs=%s" % auth_algs)
+                cmd = cmd + ("\nwep_default_key=%s" % 0)
+                if len(wep_key0) == 10 or len(wep_key0) == 26 or len(wep_key0) == 32:
+                    cmd = cmd + ("\nwep_key0=%s" % wep_key0)
+                elif len(wep_key0) == 5 or len(wep_key0) == 13 or len(wep_key0) == 16:
+                    cmd = cmd + ("\nwep_key0=\"%s\"" % wep_key0)
+            
+        cmd = cmd + '\nctrl_interface=/var/run/hostapd'
+        cmd = cmd + '\nctrl_interface_group=0'
+
+        if 'config' in ap.params.keys():
+            config = ap.params['config']
+            if(config != []):
+                config = ap.params['config'].split(',')
+                ap.params.pop("config", None)
+                for conf in config:
+                    cmd = cmd + "\n" + conf
+
+        if 'n_ssids' in ap.params.keys():
+            if(ap.n_ssids) > 0:
+                for i in range(1, ap.n_ssids + 1):
+                    ssid = str(ap.ssid[0]) + str(i)
+                    cmd = cmd + ('\n')
+                    cmd = cmd + ("\nbss=%s-wlan%s-%s" % (ap, wlan, i))
+                    cmd = cmd + ("\nssid=%s" % ssid)
+                    ap.params['ssid'].append(ssid)
+                    if "n_wep" in dir(ap):
+                        if ap.n_wep >= i:
+                            cmd = cmd + ("\nauth_algs=%s" % auth_algs)
+                            cmd = cmd + ("\nwep_default_key=0")
+                            if len(wep_key0) == 10 or len(wep_key0) == 26 or len(wep_key0) == 32:
+                                cmd = cmd + ("\nwep_key0=%s" % wep_key0)
+                            elif len(wep_key0) == 5 or len(wep_key0) == 13 or len(wep_key0) == 16:
+                                cmd = cmd + ("\nwep_key0=\"%s\"" % wep_key0)
+                            ap.params['passwd'].append(wep_key0)
+                            ap.params['encrypt'].append('wep')                        
+                    # cmd = cmd + ("\n")
+                    ap.params['mac'][i] = ap.params['mac'][wlan][:-1] + str(i)
+                    self.checkNetworkManager(ap.params['mac'][i])
+                    ap.params['wlan'].append('%s-wlan%s-%s' % (ap, wlan, i))
+
+        self.APfile(cmd, ap, wlan)
+
+    @classmethod
+    def getMacAddress(self, ap, wlan):
+        """ get Mac Address of any Interface """
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        info = fcntl.ioctl(s.fileno(), 0x8927, struct.pack('256s', '%s'[:15]) % ap.params['wlan'][wlan])
+        mac = (''.join(['%02x:' % ord(char) for char in info[18:24]])[:-1])
+        self.checkNetworkManager(mac)
+        return mac
+
+    @classmethod
+    def checkNetworkManager(self, mac):
+        """ add mac address inside of /etc/NetworkManager/NetworkManager.conf """
+        self.printMac = False
+        unmatch = ""
+        if(os.path.exists('/etc/NetworkManager/NetworkManager.conf')):
+            if(os.path.isfile('/etc/NetworkManager/NetworkManager.conf')):
+                self.resultIface = open('/etc/NetworkManager/NetworkManager.conf')
+                lines = self.resultIface
+
+            isNew = True
+            for n in lines:
+                if("unmanaged-devices" in n):
+                    unmatch = n
+                    echo = n
+                    echo.replace(" ", "")
+                    echo = echo[:-1] + ";"
+                    isNew = False
+            if(isNew):
+                os.system("echo '#' >> /etc/NetworkManager/NetworkManager.conf")
+                unmatch = "#"
+                echo = "[keyfile]\nunmanaged-devices="
+
+            if mac not in unmatch:
+                echo = echo + "mac:" + mac + ';'
+                self.printMac = True
+
+            if(self.printMac):
+                for line in fileinput.input('/etc/NetworkManager/NetworkManager.conf', inplace=1):
+                    if(isNew):
+                        if line.__contains__('#'):
+                            print line.replace(unmatch, echo)
+                        else:
+                            print line.rstrip()
+                    else:
+                        if line.__contains__('unmanaged-devices'):
+                            print line.replace(unmatch, echo)
+                        else:
+                            print line.rstrip()
+                # os.system('service network-manager restart')
+
+    @classmethod
+    def apBridge(self, ap, wlan):
+        """ AP Bridge """
+        if 'phywlan' not in ap.params:
+            os.system("ovs-vsctl add-port %s %s" % (ap, ap.params['wlan'][wlan]))
+        else:
+            wlan = ap.params.get('phywlan')
+            os.system("ovs-vsctl add-port %s %s" % (ap, wlan))
+
+    @classmethod
+    def setBw(self, ap, iface):
+        """ Set bw to AP """
+        value = deviceDataRate(ap, None, None)
+        bw = value.rate
+
+        ap.cmd("tc qdisc replace dev %s \
+            root handle 2: tbf rate %sMbit burst 15000 latency 2ms" % (iface, bw))
+        # Reordering packets
+        ap.cmd('tc qdisc add dev %s parent 2:1 handle 10: pfifo limit 1000' % (iface))
+
+    @classmethod
+    def APfile(self, cmd, ap, wlan):
+        """ run an Access Point and create the config file """
+        if 'phywlan' not in ap.params:
+            iface = ap.params['wlan'][wlan]
+        else:
+            iface = ap.params.get('phywlan')
+            os.system('ifconfig %s down' % iface)
+            os.system('ifconfig %s up' % iface)
+        content = cmd + ("\' > %s.apconf" % iface)
+        os.system(content)
+        cmd = ("hostapd -B %s.apconf &" % iface)
+        try:
+            subprocess.check_output(cmd, shell=True)
+        except:
+            print ('error with hostapd. Please, run sudo mn -c in order to fix it or check if hostapd is\
+                                             working properly in your machine.')
+            exit(1)
+        self.setBw(ap, iface)
+        
 class UserSwitch(Switch):
     "User-space switch."
 
@@ -1196,10 +1609,11 @@ class UserSwitch(Switch):
         ofplog = '/tmp/' + self.name + '-ofp.log'
         intfs = [ str(i) for i in self.intfList() if not i.IP() ]
 
-        if self.n_ssids > 0:
-            iface = intfs[0]
-            for n in range(1, self.n_ssids + 1):
-                intfs.append(iface + str('-%s' % n))
+        if 'n_ssids' in self.params.keys():
+            if self.n_ssids > 0:
+                iface = intfs[0]
+                for n in range(1, self.n_ssids + 1):
+                    intfs.append(iface + str('-%s' % n))
 
         self.cmd('ofdatapath -i ' + ','.join(intfs) +
                   ' punix:/tmp/' + self.name + ' -d %s ' % self.dpid +
@@ -1397,11 +1811,11 @@ class OVSSwitch(Switch):
         if not self.batch:
             for intf in self.intfList():
                 self.TCReapply(intf)
-
+                
         if(self.isCode == True):
             if('accessPoint' == self.type):
                 for iface in range(0, len(self.params['wlan'])):
-                    accessPoint.apBridge(self, iface)
+                    AccessPoint.apBridge(self, iface)
 
     # This should be ~ int( quietRun( 'getconf ARG_MAX' ) ),
     # but the real limit seems to be much lower

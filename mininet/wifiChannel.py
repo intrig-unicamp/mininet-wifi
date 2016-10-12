@@ -126,7 +126,7 @@ class channelParameters (object):
                 if station != sta and sta.params['associatedTo'][wlan] != '':
                     self.calculateNoise(sta, station, signalPower, wlan)
         else:
-            for station in ap.associatedStations:
+            for station in ap.params['associatedStations']:
                 if station != sta and sta.params['associatedTo'][wlan] != '':
                     self.calculateNoise(sta, station, signalPower, wlan)
         if self.noise != 0:

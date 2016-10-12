@@ -8,9 +8,8 @@ import subprocess
 import time
 from mininet.log import debug, info
 from mininet.wifiMobility import mobility
-from mininet.wifiAccessPoint import accessPoint
-from subprocess import (check_output as co,
-                         CalledProcessError)
+from subprocess import ( check_output as co,
+                         CalledProcessError )
 
 class module(object):
     """ Start and Stop mac80211_hwsim module """
@@ -55,8 +54,14 @@ class module(object):
             pass
         if mobility.apList != []:
             self.killprocs('hostapd')
-        if accessPoint.wpa_supplicantIsRunning:
-            os.system('pkill -f \'wpa_supplicant -B -Dnl80211\'')
+            
+        try:
+            h = subprocess.check_output("ps -aux | grep -ic \'wpa_supplicant -B -Dnl80211\'",
+                                                          shell=True)
+            if h >= 2:
+                os.system('pkill -f \'wpa_supplicant -B -Dnl80211\'')
+        except:
+            pass
 
     @classmethod
     def start(self, wifiRadios, alternativeModule=''):
@@ -92,27 +97,28 @@ class module(object):
         return phy
 
     @classmethod
-    def assingIface(self, stations, virtualWlan, physicalWlan, phyList):
+    def assignIface(self, wifiNodes, physicalWlan, phyList):
         try:
+            i = 0
             wlanList = self.getWlanIface(physicalWlan)
-            for sta in stations:
-                for wlan in range(0, len(sta.params['wlan'])):
-                    sta.params['rssi'].append(0)
-                    sta.params['snr'].append(0)                    
-                    sta.meshMac.append(0)
-                    sta.ssid.append('')
-                    i = virtualWlan.index(sta)
-                    os.system('iw phy %s set netns %s' % (phyList[i + wlan], sta.pid))
-                    if 'car' in sta.name and sta.type == 'station':
-                        sta.cmd('ip link set %s name %s up' % (wlanList[i + wlan], sta.params['wlan'][wlan]))
-                        sta.cmd('iw dev %s-wlan%s interface add %s-mp%s type mp' % (sta, wlan, sta, wlan))
-                        sta.cmd('ifconfig %s-mp%s up' % (sta, wlan))
-                        sta.cmd('iw dev %s-mp%s mesh join %s' % (sta, wlan, 'ssid'))
-                        sta.func[wlan] = 'mesh'
-                    else:
-                        sta.cmd('ip link set %s name %s up' % (wlanList[i + wlan], sta.params['wlan'][wlan]))
-                        if sta.params['txpower'][wlan] != 20:
-                            sta.cmd('iwconfig %s txpower %s' % (sta.params['wlan'][wlan], sta.params['txpower'][wlan]))
+            for sta in wifiNodes:
+                if 'station' == sta.type:
+                    for wlan in range(0, len(sta.params['wlan'])):
+                        sta.params['rssi'].append(0)
+                        os.system('iw phy %s set netns %s' % (phyList[i], sta.pid))
+                        if 'car' in sta.name and sta.type == 'station':
+                            sta.cmd('ip link set %s name %s up' % (wlanList[i], sta.params['wlan'][wlan]))
+                            sta.cmd('iw dev %s-wlan%s interface add %s-mp%s type mp' % (sta, wlan, sta, wlan))
+                            sta.cmd('ifconfig %s-mp%s up' % (sta, wlan))
+                            sta.cmd('iw dev %s-mp%s mesh join %s' % (sta, wlan, 'ssid'))
+                            sta.func[wlan] = 'mesh'
+                        else:
+                            sta.cmd('ip link set %s name %s up' % (wlanList[i], sta.params['wlan'][wlan]))
+                            if sta.params['txpower'][wlan] != 20:
+                                sta.cmd('iwconfig %s txpower %s' % (sta.params['wlan'][wlan], sta.params['txpower'][wlan]))
+                        i+=1
+                else:
+                    i+=1
         except:
             info( "Something is wrong. Please, run sudo mn -c before running your code.\n" )
             exit(1)

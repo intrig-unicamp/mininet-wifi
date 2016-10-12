@@ -17,9 +17,10 @@ class deviceDataRate (object):
         else:
             node = node2
 
-        if node2 != None and node2.equipmentModel in dir(self) and node1 != None and wlan != None:
-            model = node2.equipmentModel
-            self.__getattribute__(model)(node1, node2, wlan)
+        if node2 != None and 'equipmentModel' in node2.params.keys():
+            if  node2.equipmentModel in dir(self) and node1 != None and wlan != None:
+                model = node2.equipmentModel
+                self.__getattribute__(model)(node1, node2, wlan)
         else:
             self.customDataRate_mobility(node)
 
@@ -143,10 +144,10 @@ class deviceRange (object):
     range = 100
 
     def __init__(self, ap=None, wlan=0):
-        deviceModel = ap.equipmentModel
-
-        if deviceModel in dir(self):
-            self.__getattribute__(deviceModel)(ap, wlan)
+        
+        if 'equipmentModel' in ap.params.keys():        
+            if ap.equipmentModel in dir(self):
+                self.__getattribute__(ap.equipmentModel)(ap)
         else:
             self.customSignalRange(ap, wlan)
 

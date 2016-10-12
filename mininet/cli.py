@@ -53,9 +53,16 @@ class CLI(Cmd):
            script: script to run in batch mode"""
            
         if mobility.isMobility == False and mobility.DRAW:
+            
+            staMov = []
+            for sta in mobility.staList:
+                if 'position' not in sta.params:
+                    staMov.append(sta)
+                    sta.params['position'] = 0,0,0
+            
             nodes = mobility.staList + mobility.apList
             plot.instantiateGraph(mobility.MAX_X, mobility.MAX_Y)
-            plot.plotGraph(nodes, mobility.wallList, mobility.staMov, **mobility.dic)
+            plot.plotGraph(nodes, mobility.wallList, staMov, **mobility.dic)
             plot.graphPause()
 
         self.mn = mininet

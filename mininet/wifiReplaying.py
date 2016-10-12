@@ -242,7 +242,8 @@ class replayingRSSI(object):
         value = deviceDataRate(sta, ap, 0)
         custombw = value.rate
         rate = value.rate / 2.5
-        if ap.equipmentModel == None:
+        
+        if 'equipmentModel' not in ap.params.keys():
             rate = custombw * (1.1 ** -dist)
         if rate <= 0:
             rate = 1

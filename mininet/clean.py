@@ -97,9 +97,10 @@ class Cleanup( object ):
             os.system( 'rm *.apconf' )
 
         try:
-            subprocess.check_output("ps -aux | grep wpa_supplicant",
+            h = subprocess.check_output("ps -aux | grep -ic \'wpa_supplicant -B -Dnl80211\'",
                                                           shell=True)
-            os.system( 'pkill -f \'wpa_supplicant -B -Dnl80211\'' )
+            if h >= 2:
+                os.system('pkill -f \'wpa_supplicant -B -Dnl80211\'')
         except:
             pass
 

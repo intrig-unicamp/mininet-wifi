@@ -196,7 +196,7 @@ class Intf(object):
         if sta != None:
             wlan = self.sta.ifaceToAssociate
             if self.sta.func[wlan] == 'mesh' and self.sta.type != 'vehicle':
-                self.sta.cmd('iw dev %s-wlan%s interface add %s-mp%s type mp' % (self.sta, wlan, self.sta, wlan))
+                self.sta.cmd('iw dev %s interface add %s-mp%s type mp' % (self.sta.params['wlan'][wlan], self.sta, wlan))
         r = {}
         self.setParam(r, 'setMAC', mac=mac)
         self.setParam(r, 'setIP', ip=ip)
@@ -223,7 +223,7 @@ class Intf(object):
             self.sta.cmd('ifconfig %s-wlan%s down' % (self.sta, wlan))
             iface = '%s-mp%s' % (self.sta, wlan)
             self.sta.params['wlan'][wlan] = iface
-            self.confirmMeshAssociation(self.sta, wlan)
+            self.sta.params['frequency'][wlan] = channelParameters.frequency(self.sta, wlan)
             self.getMacAddress(self.sta, iface, wlan)
             # self.sta.params['associatedTo'][wlan] = ssid
         elif self.sta.func[self.sta.ifaceToAssociate] == 'adhoc':
@@ -240,10 +240,6 @@ class Intf(object):
         ifconfig = str(sta.pexec('ifconfig %s' % iface))
         mac = self._macMatchRegex.findall(ifconfig)
         sta.meshMac[wlan] = str(mac[0])
-
-    @classmethod
-    def confirmMeshAssociation(self, sta, wlan):
-        sta.params['frequency'][wlan] = channelParameters.frequency(sta, wlan)
 
     def delete(self):
         "Delete interface"
