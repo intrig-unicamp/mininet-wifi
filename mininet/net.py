@@ -1668,6 +1668,13 @@ class Mininet(object):
 
             mobilityparam.setdefault('seed', self.set_seed)
             mobilityparam.setdefault('nodes', self.wifiNodes)
+            
+            staMov = []
+            for sta in self.stations:
+                if 'position' not in sta.params:
+                    staMov.append(sta)
+                    sta.params['position'] = 0,0,0
+            mobilityparam.setdefault('staMov', staMov)
                     
             if self.isVanet == False:
                 self.thread = threading.Thread(name='mobilityModel', target=mobility.models, kwargs=dict(mobilityparam,))
@@ -1675,7 +1682,8 @@ class Mininet(object):
                 self.thread.start()
             else:
                 mobility.staList = self.stations
-                self.thread = threading.Thread(name='vanet', target=vanet, args=(self.stations, self.accessPoints, self.nroads, mobility.MAX_X, mobility.MAX_Y))
+                self.thread = threading.Thread(name='vanet', target=vanet, args=(self.stations, 
+                                                        self.accessPoints, self.nroads, mobility.MAX_X, mobility.MAX_Y))
                 self.thread.daemon = True
                 self.thread.start()
             self.setWifiParameters()

@@ -65,28 +65,29 @@ class mobility (object):
             if sta.params['associatedTo'][wlan] != '':
                 sta.params['associatedTo'][wlan].params['associatedStations'].remove(sta)
             sta.pexec('iw dev %s disconnect' % sta.params['wlan'][wlan])
-            debug ('\niwconfig %s essid %s ap %s' % (sta.params['wlan'][wlan], ap.ssid[0], ap.params['mac'][wlan]))
-            sta.pexec('iwconfig %s essid %s ap %s' % (sta.params['wlan'][wlan], ap.ssid[0], ap.params['mac'][wlan]))
+            debug ('\niwconfig %s essid %s ap %s' % (sta.params['wlan'][wlan], ap.params['ssid'][0], ap.params['mac'][wlan]))
+            sta.pexec('iwconfig %s essid %s ap %s' % (sta.params['wlan'][wlan], ap.params['ssid'][0], ap.params['mac'][wlan]))
             sta.params['associatedTo'][wlan] = ap
             sta.params['frequency'][wlan] = channelParameters.frequency(ap, 0)
             ap.params['associatedStations'].append(sta)
         elif ap not in sta.params['associatedTo']:
             # Useful for stations with more than one wifi iface
             if sta.params['associatedTo'][wlan] == '':
-                if sta.encrypt == None:
-                    debug('\niwconfig %s essid %s ap %s' % (sta.params['wlan'][wlan], ap.ssid[0], ap.params['mac'][wlan]))
-                    sta.pexec('iwconfig %s essid %s ap %s' % (sta.params['wlan'][wlan], ap.ssid[0], ap.params['mac'][wlan]))
-                elif sta.encrypt == 'wpa' or sta.encrypt == 'wpa2':
-                    os.system('pkill -f \'wpa_supplicant -B -Dnl80211 -i %s\'' % sta.params['wlan'][wlan])
-                    debug("\nwpa_supplicant -B -Dnl80211 -i %s -c <(wpa_passphrase \"%s\" \"%s\")\n" \
-                                                                                        % (sta.params['wlan'][wlan], ap.ssid[0], sta.passwd))
-                    sta.cmd("wpa_supplicant -B -Dnl80211 -i %s -c <(wpa_passphrase \"%s\" \"%s\")" \
-                                                                                        % (sta.params['wlan'][wlan], ap.ssid[0], sta.passwd))
-                elif sta.encrypt == 'wep':
-                    debug('iw dev %s connect %s key d:0:%s' \
-                                                            % (sta.params['wlan'][wlan], ap.ssid[0], sta.passwd))
-                    sta.cmd('iw dev %s connect %s key d:0:%s' \
-                                                            % (sta.params['wlan'][wlan], ap.ssid[0], sta.passwd))
+                if 'encrypt' not in ap.params:
+                    debug('\niwconfig %s essid %s ap %s' % (sta.params['wlan'][wlan], ap.params['ssid'][0], ap.params['mac'][wlan]))
+                    sta.pexec('iwconfig %s essid %s ap %s' % (sta.params['wlan'][wlan], ap.params['ssid'][0], ap.params['mac'][wlan]))
+                else:
+                    if ap.encrypt == 'wpa' or ap.encrypt == 'wpa2':
+                        os.system('pkill -f \'wpa_supplicant -B -Dnl80211 -i %s\'' % sta.params['wlan'][wlan])
+                        debug("\nwpa_supplicant -B -Dnl80211 -i %s -c <(wpa_passphrase \"%s\" \"%s\")\n" \
+                                                             % (sta.params['wlan'][wlan], ap.params['ssid'][0], sta.params['passwd'][0]))
+                        sta.cmd("wpa_supplicant -B -Dnl80211 -i %s -c <(wpa_passphrase \"%s\" \"%s\")" \
+                                                             % (sta.params['wlan'][wlan], ap.params['ssid'][0], sta.params['passwd'][0]))
+                    elif ap.encrypt == 'wep':
+                        debug('iw dev %s connect %s key d:0:%s' \
+                                                                % (sta.params['wlan'][wlan], ap.params['ssid'][0], sta.params['passwd'][0]))
+                        sta.cmd('iw dev %s connect %s key d:0:%s' \
+                                                            % (sta.params['wlan'][wlan], ap.params['ssid'][0], sta.params['passwd'][0]))
                 sta.params['frequency'][wlan] = channelParameters.frequency(ap, 0)
                 ap.params['associatedStations'].append(sta)
                 sta.params['associatedTo'][wlan] = ap                  
@@ -133,7 +134,7 @@ class mobility (object):
             info('Error! Mobility stopped!\n')
 
     @classmethod
-    def models(self, nodes=None, model=None, min_v=0, max_v=0, seed=None,
+    def models(self, nodes=None, model=None, staMov=None, min_v=0, max_v=0, seed=None,
                **mobilityparam):
 
         np.random.seed(seed)
@@ -144,12 +145,6 @@ class mobility (object):
         dic = dict()
         dic['max_x'] = MAX_X
         dic['max_y'] = MAX_Y
-
-        staMov = []
-        for sta in self.staList:
-            if 'position' not in sta.params:
-                staMov.append(sta)
-                sta.params['position'] = 0,0,0
 
         # max waiting time
         MAX_WT = 100.
