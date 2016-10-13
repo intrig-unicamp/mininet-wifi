@@ -104,7 +104,7 @@ from mininet.log import info, error, debug, output, warn
 from mininet.node import (Node, Host, OVSKernelSwitch, DefaultController,
                            Controller, AccessPoint)
 from mininet.nodelib import NAT
-from mininet.link import Link, Intf, TCLink
+from mininet.link import Link, Intf, TCLink, Association
 from mininet.util import (quietRun, fixLimits, numCores, ensureRoot,
                            macColonHex, ipStr, ipParse, netParse, ipAdd,
                            waitListening)
@@ -728,7 +728,8 @@ class Mininet(object):
         info("associating %s to %s...\n" % (iface, sta.params['ssid'][wlan]))
         sta.pexec('iw dev %s ibss join %s 2412' % (iface, \
                                                      sta.params['associatedTo'][wlan]))
-        self.confirmAdhocAssociation(sta, iface, wlan)
+        cls = Association
+        cls.confirmAdhocAssociation(sta, iface, wlan)
 
         return link
 
@@ -844,7 +845,7 @@ class Mininet(object):
                         ap.params.pop("phywlan", None)
                 i += 1
             else:
-                for wlan in range(0, len(node.params['wlan'])):
+                for wlan in range(len(node.params['wlan'])):
                     i += 1
 
     def getMacAddress(self, sta, wlan):
@@ -931,7 +932,8 @@ class Mininet(object):
                     doAssociation = True
 
                 if(doAssociation):
-                    Node.associate(sta, ap)                   
+                    cls = Association
+                    cls.associate(sta, ap)                  
 
                 if sta.params['mac'][sta.ifaceToAssociate - 1] == '':
                     sta.params['mac'][sta.ifaceToAssociate - 1] = self.getMacAddress(sta, sta.ifaceToAssociate - 1)
@@ -1027,7 +1029,8 @@ class Mininet(object):
         """Build mininet from a topology object
            At the end of this function, everything should be connected
            and up."""
-        Node.printCon = False
+        cls = Association
+        cls.printCon = False
         # Possibly we should clean up here and/or validate
         # the topo
         if self.cleanup:
@@ -1090,7 +1093,6 @@ class Mininet(object):
     def build(self):
         # useful if there no link between sta and any other device
         "Build mininet."
-        Node.isCode = True
         for switch in self.switches:
             if switch in self.missingWlanAP:
                 cls = None
@@ -1128,7 +1130,8 @@ class Mininet(object):
                                 else:
                                     doAssociation = True
                                 if(doAssociation):
-                                    Node.associate(node, ap)
+                                    cls = Association
+                                    cls.associate(node, ap)
         else:
             for sta in self.stations:
                 pairingAdhocNodes.ssid_ID += 1
@@ -1144,7 +1147,8 @@ class Mininet(object):
                         dist = listNodes.pairingNodes(sta, wlan, self.stations)
                         if dist != 0:
                             channelParameters(sta, None, wlan, dist, self.stations, 0)
-                        self.confirmMeshAssociation(sta, wlan)
+                        cls = Association
+                        cls.confirmMeshAssociation(sta, wlan)
                     else:
                         if 'position' in sta.params and sta.params['associatedTo'][wlan] != '':
                             dist = channelParameters.getDistance(sta, sta.params['associatedTo'][wlan])
@@ -1158,7 +1162,6 @@ class Mininet(object):
                             meshRouting.customMeshRouting(node, wlan, self.stations)
                 listNodes.clearList()
 
-            # for node in self.missingStations:
             for sta in self.stations:
                 if 'position' in sta.params:
                     mobility.getAPsInRange(sta)
@@ -1208,17 +1211,7 @@ class Mininet(object):
             self.startTerms()
         if self.autoStaticArp:
             self.staticArp()
-        self.built = True
-
-    def confirmMeshAssociation(self, sta, wlan):
-        sleep (0.5)  # Have to check it
-
-    def confirmAdhocAssociation(self, sta, iface, wlan):
-        associated = ''
-        while(associated == '' or len(associated) == 0):
-            sta.sendCmd("iw dev %s scan ssid | grep %s" % (iface, sta.params['ssid'][wlan]))
-            associated = sta.waitOutput()
-        sta.params['frequency'][wlan] = channelParameters.frequency(sta, wlan)
+        self.built = True   
 
     def startTerms(self):
         "Start a terminal for each node."
@@ -1245,7 +1238,6 @@ class Mininet(object):
                     src.setARP(ip=dst.IP(), mac=dst.MAC())
 
     def start(self):
-        Node.isCode = False
         "Start controller and switches."
         if not self.built:
             self.build()

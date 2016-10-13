@@ -57,7 +57,6 @@ import pty
 import re
 import signal
 import select
-import time
 import subprocess
 import socket
 import struct
@@ -71,7 +70,7 @@ from mininet.log import info, error, warn, debug
 from mininet.util import (quietRun, errRun, errFail, moveIntf, isShellBuiltin,
                            numCores, retry, mountCgroups)
 from mininet.moduledeps import moduleDeps, pathCheck, TUN
-from mininet.link import Link, Intf, TCIntf, OVSIntf
+from mininet.link import Link, Intf, TCIntf, OVSIntf, Association
 from re import findall
 from distutils.version import StrictVersion
 from mininet.wifiMobility import mobility
@@ -84,8 +83,6 @@ class Node(object):
        We communicate with it using pipes."""
 
     portBase = 0  # Nodes always start with eth0/port0, even in OF 1.0
-    printCon = True
-    isCode = False
 
     def __init__(self, name, inNamespace=True, **params):
         """name: name of node
@@ -455,34 +452,6 @@ class Node(object):
         sta.pexec('ip link set %s address %s' % (iface, sta.params['mac'][index]))
         sta.pexec('ip link set %s up' % (iface))
 
-    @classmethod
-    def associate(self, sta, ap):
-        """ Associate to an Access Point """
-        wlan = sta.ifaceToAssociate
-        self.associate_infra(sta, ap, wlan)
-        sta.ifaceToAssociate += 1
-
-    @classmethod
-    def associate_infra(self, sta, ap, wlan):
-        if 'encrypt' not in ap.params:
-            sta.cmd('iwconfig %s essid %s ap %s' % (sta.params['wlan'][wlan], ap.params['ssid'][0], ap.params['mac'][0]))
-        else:
-            if ap.params['encrypt'][0] == 'wpa' or ap.params['encrypt'][0] == 'wpa2':
-                self.associate_wpa(sta, ap, wlan)
-            elif ap.params['encrypt'][0] == 'wep':
-                self.associate_wep(sta, ap, wlan)
-        self.confirmInfraAssociation(sta, ap, wlan)
-
-    @classmethod
-    def associate_wpa(self, sta, ap, wlan):
-        sta.cmd("wpa_supplicant -B -Dnl80211 -i %s-wlan%s -c <(wpa_passphrase \"%s\" \"%s\")" \
-                % (sta, wlan, ap.ssid[0], ap.params['passwd'][0]))
-
-    @classmethod
-    def associate_wep(self, sta, ap, wlan):
-        sta.cmd('iw dev %s-wlan%s connect %s key d:0:%s' \
-                % (sta, wlan, ap.ssid[0], ap.params['passwd'][0]))
-
     def setRange(self, _range):
         self.params['range'] = _range
         try:
@@ -534,34 +503,14 @@ class Node(object):
                 if self.params['associatedTo'][wlan] != 'none':
                     self.cmd('iw dev %s disconnect' % iface)
                 self.cmd('iw dev %s connect %s' % (iface, ap.ssid[0]))
-                self.confirmInfraAssociation(self, ap, wlan)
+                cls = Association
+                cls.confirmInfraAssociation(self, ap, wlan)
                 channelParameters(self, ap, wlan, d, mobility.staList, 0)
             else:
                 info ( '%s is already connected!\n' % ap )
             mobility.getAPsInRange(self)
         else:
             print "%s is out of range!" % (ap)
-
-    @classmethod
-    def confirmInfraAssociation(self, sta, ap, wlan):
-        associated = ''
-        currentTime = time.time()
-        if self.printCon:
-            iface = sta.params['wlan'][wlan]
-            info( "Associating %s to %s\n" % (iface, ap) )
-        while(associated == '' or len(associated[0]) == 15):
-            associated = self.isAssociated(sta, wlan)
-            if time.time() >= currentTime + 10:
-                #info( "Error during the association process\n" )
-                break
-        sta.params['frequency'][wlan] = channelParameters.frequency(ap, 0)
-        ap.params['associatedStations'].append(sta)
-        sta.params['associatedTo'][wlan] = ap
-
-    @classmethod
-    def isAssociated(self, sta, iface):
-        associated = sta.pexec("iw dev %s-wlan%s link" % (sta, iface))
-        return associated
 
     def mountPrivateDirs(self):
         "mount private directories"
@@ -888,7 +837,7 @@ class Node(object):
                 info('.')
 
     # Routing support
-
+    
     def setARP(self, ip, mac):
         """Add an ARP entry.
            ip: IP address as string
@@ -1440,7 +1389,7 @@ class AccessPoint(Switch):
                     self.checkNetworkManager(ap.params['mac'][i])
                     ap.params['wlan'].append('%s-wlan%s-%s' % (ap, wlan, i))
 
-        self.APfile(cmd, ap, wlan)
+        self.APConfigFile(cmd, ap, wlan)
 
     @classmethod
     def getMacAddress(self, ap, wlan):
@@ -1513,7 +1462,7 @@ class AccessPoint(Switch):
         ap.cmd('tc qdisc add dev %s parent 2:1 handle 10: pfifo limit 1000' % (iface))
 
     @classmethod
-    def APfile(self, cmd, ap, wlan):
+    def APConfigFile(self, cmd, ap, wlan):
         """ run an Access Point and create the config file """
         if 'phywlan' not in ap.params:
             iface = ap.params['wlan'][wlan]
@@ -1812,9 +1761,11 @@ class OVSSwitch(Switch):
             for intf in self.intfList():
                 self.TCReapply(intf)
                 
-        if(self.isCode == True):
-            if('accessPoint' == self.type):
-                for iface in range(0, len(self.params['wlan'])):
+        if('accessPoint' == self.type):
+            for iface in range(0, len(self.params['wlan'])):
+                br = subprocess.check_output("ovs-vsctl list-br",
+                                                      shell=True)
+                if str(self) in br:
                     AccessPoint.apBridge(self, iface)
 
     # This should be ~ int( quietRun( 'getconf ARG_MAX' ) ),

@@ -194,8 +194,6 @@ class mobility (object):
     @classmethod
     def getAPsInRange(self, sta):
         for ap in mobility.apList:
-            if 'position' not in sta.params:
-                sta.params['position'] = 0,0,0
             dist = channelParameters.getDistance(sta, ap)
             if dist < ap.params['range']:
                 if ap not in sta.params['apsInRange']:

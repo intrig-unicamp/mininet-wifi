@@ -23,11 +23,12 @@ TCIntf: interface with bandwidth limiting and delay via tc
 
 Link: basic link class for creating veth pairs
 """
+import mininet.node
+import re
+from time import sleep, time
 
 from mininet.log import info, error, debug
 from mininet.util import makeIntfPair
-import mininet.node
-import re
 from mininet.wifiChannel import channelParameters
 
 class Intf(object):
@@ -698,3 +699,70 @@ class TCLink(Link):
                        addr1=addr1, addr2=addr2,
                        params1=params,
                        params2=params)
+        
+class Association(Link):        
+    
+    printCon = True
+    
+    @classmethod
+    def confirmMeshAssociation(self, sta, wlan):
+        sleep (0.5)  # Have to check it
+        
+    @classmethod    
+    def confirmAdhocAssociation(self, sta, iface, wlan):
+        associated = ''
+        while(associated == '' or len(associated) == 0):
+            sta.sendCmd("iw dev %s scan ssid | grep %s" % (iface, sta.params['ssid'][wlan]))
+            associated = sta.waitOutput()
+        sta.params['frequency'][wlan] = channelParameters.frequency(sta, wlan)
+        
+    @classmethod
+    def confirmInfraAssociation(self, sta, ap, wlan):
+        associated = ''
+        currentTime = time()
+        if self.printCon:
+            iface = sta.params['wlan'][wlan]
+            info( "Associating %s to %s\n" % (iface, ap) )
+        while(associated == '' or len(associated[0]) == 15):
+            associated = self.isAssociated(sta, wlan)
+            if time() >= currentTime + 10:
+                #info( "Error during the association process\n" )
+                break
+        sta.params['frequency'][wlan] = channelParameters.frequency(ap, 0)
+        ap.params['associatedStations'].append(sta)
+        sta.params['associatedTo'][wlan] = ap
+        
+    @classmethod
+    def isAssociated(self, sta, iface):
+        associated = sta.pexec("iw dev %s-wlan%s link" % (sta, iface))
+        return associated
+    
+    @classmethod
+    def associate(self, sta, ap):
+        """ Associate to an Access Point """
+        wlan = sta.ifaceToAssociate
+        self.associate_infra(sta, ap, wlan)
+        sta.ifaceToAssociate += 1
+
+    @classmethod
+    def associate_infra(self, sta, ap, wlan):
+        if 'encrypt' not in ap.params:
+            sta.cmd('iwconfig %s essid %s ap %s' % (sta.params['wlan'][wlan], ap.params['ssid'][0], ap.params['mac'][0]))
+        else:
+            if ap.params['encrypt'][0] == 'wpa' or ap.params['encrypt'][0] == 'wpa2':
+                self.associate_wpa(sta, ap, wlan)
+            elif ap.params['encrypt'][0] == 'wep':
+                self.associate_wep(sta, ap, wlan)
+        cls = Association
+        cls.confirmInfraAssociation(sta, ap, wlan)
+
+    @classmethod
+    def associate_wpa(self, sta, ap, wlan):
+        sta.cmd("wpa_supplicant -B -Dnl80211 -i %s-wlan%s -c <(wpa_passphrase \"%s\" \"%s\")" \
+                % (sta, wlan, ap.ssid[0], ap.params['passwd'][0]))
+
+    @classmethod
+    def associate_wep(self, sta, ap, wlan):
+        sta.cmd('iw dev %s-wlan%s connect %s key d:0:%s' \
+                % (sta, wlan, ap.ssid[0], ap.params['passwd'][0]))
+    
