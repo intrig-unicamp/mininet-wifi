@@ -718,16 +718,16 @@ class Association(Link):
         
     @classmethod
     def confirmInfraAssociation(self, sta, ap, wlan):
-        associated = ''
-        currentTime = time()
+        #associated = ''
+        #currentTime = time()
         if self.printCon:
             iface = sta.params['wlan'][wlan]
             info( "Associating %s to %s\n" % (iface, ap) )
-        while(associated == '' or len(associated[0]) == 15):
-            associated = self.isAssociated(sta, wlan)
-            if time() >= currentTime + 10:
+        #while(associated == '' or len(associated[0]) == 15):
+        #    associated = self.isAssociated(sta, wlan)
+        #    if time() >= currentTime + 10:
                 #info( "Error during the association process\n" )
-                break
+        #        break
         sta.params['frequency'][wlan] = channelParameters.frequency(ap, 0)
         ap.params['associatedStations'].append(sta)
         sta.params['associatedTo'][wlan] = ap
