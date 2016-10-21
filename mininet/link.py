@@ -25,7 +25,7 @@ Link: basic link class for creating veth pairs
 """
 import mininet.node
 import re
-from time import sleep, time
+from time import sleep
 
 from mininet.log import info, error, debug
 from mininet.util import makeIntfPair
@@ -520,7 +520,7 @@ class Link(object):
             if node1.type == 'station' and 'alone' != str(node2) and \
             'mesh' != str(node2) and node2.type == 'switch':
                 intfName1 = self.intfName(node1, params1[ 'port' ])
-            elif node1.type == 'station' and str(node2) != 'mesh':
+            elif node1.type == 'station' and 'alone' == str(node2):
                 ifacename = 'wlan'
                 intfName1 = self.wlanName(node1, ifacename, params1[ 'port' ])
             elif node1.type == 'station' and str(node2) == 'mesh':
