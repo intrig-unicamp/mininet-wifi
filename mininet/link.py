@@ -546,15 +546,11 @@ class LinkWireless(object):
                   intf=Intf, cls1=None, params1=None):
         """Create veth link to another node, making two new interfaces.
            node1: first node
-           node2: second node
            port1: node1 port number (optional)
-           port2: node2 port number (optional)
            intf: default interface class/constructor
-           cls1, cls2: optional interface-specific constructors
+           cls1: optional interface-specific constructors
            intfName1: node1 interface name (optional)
-           intfName2: node2  interface name (optional)
-           params1: parameters for interface 1
-           params2: parameters for interface 2"""
+           params1: parameters for interface 1"""
         # This is a bit awkward; it seems that having everything in
         # params is more orthogonal, but being able to specify
         # in-line arguments is more convenient! So we support both.
@@ -568,14 +564,12 @@ class LinkWireless(object):
         if 'port' not in params1:
             if 'vehicle' == node1.type or 'station' == node1.type:
                 params1[ 'port' ] = node1.newPort()
-                #node1.newPort()
             elif 'accessPoint' == node1.type:
                 if intfName1 == None:
                     nodelen = int(len(node1.params['wlan']))
                     currentlen = node1.wlanports
                     if nodelen > currentlen + 1:
                         params1[ 'port' ] = node1.newPort()
-                        #node1.newPort()
                     else:
                         params1[ 'port' ] = currentlen
                     ifacename = 'wlan'
