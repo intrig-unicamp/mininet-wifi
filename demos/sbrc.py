@@ -5,7 +5,7 @@
    authors: Ramon dos Reis Fontes and Christian Esteve Rothenberg"""
 
 from mininet.net import Mininet
-from mininet.node import OVSKernelSwitch, Controller
+from mininet.node import RemoteController,OVSKernelSwitch, Controller
 from mininet.link import TCLink
 from mininet.cli import CLI
 from mininet.node import Node
@@ -16,7 +16,7 @@ import time
 def topology():
 
     "Create a network."
-    net = Mininet( controller=Controller, link=TCLink, switch=OVSKernelSwitch )
+    net = Mininet( controller=RemoteController, link=TCLink, switch=OVSKernelSwitch )
     staList = []
 
     print "*** Creating nodes"
@@ -31,10 +31,6 @@ def topology():
     c1 = net.addController( 'c1', controller=Controller, port=6653 )
     root = Node( 'root', inNamespace=False )
 
-    print "*** Creating links"
-    for sta in staList:
-        net.addMesh(sta, ssid='meshNet')
-
     """uncomment to plot graph"""
     net.plotGraph(max_x=240, max_y=240)
 
@@ -45,6 +41,8 @@ def topology():
     net.seed(20)
 
     print "*** Associating and Creating links"
+    for sta in staList:
+        net.addMesh(sta, ssid='meshNet')
     net.addLink(phyap1, ap2)
     net.addLink(ap2, ap3)
     net.addLink(ap3, ap4)
@@ -63,7 +61,7 @@ def topology():
         ip+=1
 
     "*** Available models: RandomWalk, TruncatedLevyWalk, RandomDirection, RandomWayPoint, GaussMarkov, ReferencePoint, TimeVariantCommunity ***"
-    net.startMobility(startTime=0, model='RandomWalk', max_x=220, max_y=220, min_v=0.1, max_v=0.2)
+    net.startMobility(startTime=0, model='RandomWalk', max_x=200, max_y=220, min_v=0.1, max_v=0.2)
 
     print "*** Running CLI"
     CLI( net )
