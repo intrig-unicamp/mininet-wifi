@@ -7,6 +7,7 @@ import os
 import subprocess
 import time
 from mininet.log import debug, info
+from mininet.link import TCLinkWireless
 from mininet.wifiMobility import mobility
 from subprocess import ( check_output as co,
                          CalledProcessError )
@@ -114,6 +115,8 @@ class module(object):
                             sta.func[wlan] = 'mesh'
                         else:
                             sta.cmd('ip link set %s name %s up' % (wlanList[i], sta.params['wlan'][wlan]))
+                            cls = TCLinkWireless
+                            cls(sta)
                             if sta.params['txpower'][wlan] != 20:
                                 sta.cmd('iwconfig %s txpower %s' % (sta.params['wlan'][wlan], sta.params['txpower'][wlan]))
                         i+=1

@@ -104,7 +104,7 @@ from mininet.log import info, error, debug, output, warn
 from mininet.node import (Node, Host, OVSKernelSwitch, DefaultController,
                            Controller, AccessPoint)
 from mininet.nodelib import NAT
-from mininet.link import Link, Intf, TCLink, Association
+from mininet.link import Link, Intf, TCLink, TCLinkWireless, Association
 from mininet.util import (quietRun, fixLimits, numCores, ensureRoot,
                            macColonHex, ipStr, ipParse, netParse, ipAdd,
                            waitListening)
@@ -124,7 +124,7 @@ from mininet.vanet import vanet
 from __builtin__ import True
 
 # Mininet version: should be consistent with README and LICENSE
-VERSION = "1.9r4"
+VERSION = "1.9r5"
 
 class Mininet(object):
     "Network emulation with hosts spawned in network namespaces."
@@ -322,10 +322,10 @@ class Mininet(object):
         sta = cls(name, **defaults)
         
         self.hosts.append(sta)
-        self.stations.append(sta)
-        self.wifiNodes.append(sta)
+        # self.stations.append(sta)
+        # self.wifiNodes.append(sta)
         self.nameToNode[ name ] = sta
-        self.missingStations.append(sta)        
+        self.missingStations.append(sta)
         sta.type = 'vehicle'
         self.wifiRadios = sta.addParameters(sta, self.wifiRadios, self.autoSetMacs, params, defaults)
         
@@ -335,11 +335,11 @@ class Mininet(object):
         carsw = self.addSwitch(switchName)
         self.vehicles.append(carsw)
         
-        self.addLink(carsta, carsw)        
+        self.addLink(carsta, carsw)
         self.addLink(sta, carsw)
 
         self.nextIP += 1
-        self.isVanet = True
+        # self.isVanet = True
         return sta    
 
     # NOT SURE ABOUT THIS CLASSNAME
@@ -630,6 +630,9 @@ class Mininet(object):
                 sta.meshMac.append('')
                 sta.params['ssid'].append('')
                 
+        ip = ("%s" % params.pop('ip', {}))
+        if ip == "{}":
+            ip = options['ip']                
        
         ssid = ("%s" % params['ssid'])
         if(ssid != "{}"):
@@ -645,26 +648,19 @@ class Mininet(object):
         options['sta'] = sta
         options.update(params)
 
-        # options.setdefault( 'bw', self.bw )
         # Set default MAC - this should probably be in Link
-        options.setdefault('addr1', self.randMac())    
-        cls = self.link if cls is None else cls
-        link = cls(sta, 'mesh', **options)
-
+        options.setdefault('addr1', self.randMac())   
+        
         if sta.params['mac'][wlan] == '':
             sta.params['mac'][wlan] = self.getMacAddress(sta, wlan)
-        sta.ifaceToAssociate += 1
-        for n in self.stations:
-            if (n == sta):
-                # station.addMesh(n, **options)
-                if n in self.missingStations:
-                    self.missingStations.remove(n)
-                
-        iface = sta.params['wlan'][wlan]
-        info("associating %s to %s...\n" % (iface, sta.params['ssid'][wlan]))
-        sta.pexec('iw dev %s mesh join %s' % (iface, sta.params['ssid'][wlan]))
 
-        return link
+        if sta in self.missingStations:
+            self.missingStations.remove(n)
+                
+        cls = Association
+        cls.mesh(sta)
+        self.tc(sta, self.bw)
+        sta.ifaceToAssociate += 1
 
     def addHoc(self, sta, cls=None, **params):
 
@@ -688,11 +684,9 @@ class Mininet(object):
             sta.params['ssid'].append('')
             
         ip = ("%s" % params.pop('ip', {}))
-        if wlan == 0 and ip != "{}":
-            sta.params.update(options)
-
-        node = sta if not isinstance(sta, basestring) else self[ sta ]
-
+        if ip == "{}":
+            ip = options['ip']
+ 
         ssid = ("%s" % params.pop('ssid', {}))
         if(ssid != "{}"):
             sta.params['ssid'][wlan] = ssid
@@ -708,30 +702,19 @@ class Mininet(object):
 
         options['sta'] = sta
         options.update(params)
-        options.setdefault('bw', self.bw)
         # Set default MAC - this should probably be in Link
         options.setdefault('addr1', self.randMac())
-
-        cls = self.link if cls is None else cls
-        link = cls(sta, 'alone', **options)
-
+        
         if sta.params['mac'][wlan] == '':
             sta.params['mac'][wlan] = self.getMacAddress(sta, wlan)
-        sta.ifaceToAssociate += 1
-        for station in self.stations:
-            if (station == node):
-                # station.adhoc(sta, **options)
-                if station in self.missingStations:
-                    self.missingStations.remove(sta)
         
-        iface = sta.params['wlan'][wlan]
-        info("associating %s to %s...\n" % (iface, sta.params['ssid'][wlan]))
-        sta.pexec('iw dev %s ibss join %s 2412' % (iface, \
-                                                     sta.params['associatedTo'][wlan]))
+        if sta in self.missingStations:
+            self.missingStations.remove(sta)
+        
         cls = Association
-        cls.confirmAdhocAssociation(sta, iface, wlan)
-
-        return link
+        cls.adhoc(sta)
+        self.tc(sta, self.bw)
+        sta.ifaceToAssociate += 1
 
     def wifiDirect(self, sta, cls=None, **params):
 
@@ -748,8 +731,6 @@ class Mininet(object):
                                   '/%s' % self.prefixLen}
         options.update(params)
 
-        node = sta if not isinstance(sta, basestring) else self[ sta ]
-
         cmd = ("echo \'")
         cmd = cmd + 'ctrl_interface=/var/run/wpa_supplicant\
             \nap_scan=1\
@@ -759,34 +740,33 @@ class Mininet(object):
             \np2p_no_group_iface=1' % (sta)
         apcommand = cmd + ("\' > %s_wifiDirect.conf" % sta)
         os.system(apcommand)
-        node.cmd('wpa_supplicant -B -Dnl80211 -i%s-wlan0 -d -c%s_wifiDirect.conf' % (sta, sta))
+        sta.cmd('wpa_supplicant -B -Dnl80211 -i%s-wlan0 -d -c%s_wifiDirect.conf' % (sta, sta))
 
-        value = deviceDataRate(None, node, None)
+        value = deviceDataRate(None, sta, None)
         self.bw = value.rate
 
-        options['sta'] = node
+        options['sta'] = sta
         options.update(params)
-        options.setdefault('bw', self.bw)
         # Set default MAC - this should probably be in Link
         options.setdefault('addr1', self.randMac())
 
-        cls = self.link if cls is None else cls
-        link = cls(node, 'alone', **options)
-
-        for sta in self.hosts:
-            if (sta == node):
-                # station.adhoc(sta, **options)
-                if sta in self.missingStations:
-                    self.missingStations.remove(sta)
-        return link
+        if sta in self.missingStations:
+            self.missingStations.remove(sta)
+            
 
     def configureAP(self):
         """Configure AP"""
         i = 0
+        x = 0
         for node in self.wifiNodes:
             if 'accessPoint' == node.type:
-                ap = node                             
-                for wlan in range(len(ap.params['wlan'])):
+                ap = node                  
+                if 'phywlan' in ap.params:
+                    x = 1
+                self.missingWlanAP.remove(ap)           
+                for wlan in range(len(ap.params['wlan'])+x):
+                    if x == 1:
+                        wlan = 0
                     wifiparam = dict()
                     if 'phywlan' not in ap.params:
                         intf = self.newapif[i]
@@ -803,7 +783,7 @@ class Mininet(object):
                     self.wep_key0 = None
                     self.country_code = None
                     self.wmm_enabled = None
-    
+                    
                     if 'encrypt' in ap.params:
                         if ap.params['encrypt'][wlan] == 'wpa':
                             self.auth_algs = 1
@@ -829,20 +809,22 @@ class Mininet(object):
                     wifiparam.setdefault('wep_key0', self.wep_key0)
                     if 'phywlan' not in ap.params:
                         wifiparam.setdefault('wlan', wlan)
-                        
+                   
                     cls = AccessPoint
                     cls.init_(ap, **wifiparam)
-    
+                    
                     if 'phywlan' not in ap.params:
                         ap.params['frequency'][wlan] = channelParameters.frequency(ap, 0)
+                        cls = TCLinkWireless
+                        cls(ap)
+                        x = 0
                     else:
-                        cls = None
-                        cls = self.link if cls is None else cls
                         iface = ap.params.get('phywlan')
                         options = dict()
                         options.setdefault('intfName1', iface)
-                        cls(ap, 'alone', **options)
-                        ap.params.pop("phywlan", None)
+                        cls = TCLinkWireless
+                        cls(ap, **options)
+                        ap.params.pop("phywlan", None)        
                 i += 1
             else:
                 for wlan in range(len(node.params['wlan'])):
@@ -859,10 +841,10 @@ class Mininet(object):
         if self.ifaceConfigured == False:
             physicalWlan, phyList = module.start(self.wifiRadios, self.alternativeModule)
             self.isWiFi = True
-            self.link = TCLink
             self.newapif = module.getWlanIface(physicalWlan)  # Get Virtual Wlans
             module.assignIface(self.wifiNodes, physicalWlan, phyList)
             self.ifaceConfigured = True
+            self.link = TCLink
             self.configureAP()  # configure AP
             self.firstAssociation = False
 
@@ -875,8 +857,9 @@ class Mininet(object):
         options = dict(params)
 
         # If AP and STA
-        if((node1.type == 'station' and node2.type == 'accessPoint') \
-            or (node2.type == 'station' and node1.type == 'accessPoint')):
+        if(((node1.type == 'station' and node2.type == 'accessPoint') \
+            or (node2.type == 'station' and node1.type == 'accessPoint')) 
+            and 'link' not in options):
 
             if self.firstAssociation:
                 self.configureWifiNodes()
@@ -911,14 +894,12 @@ class Mininet(object):
                 sta.params['channel'][sta.ifaceToAssociate] = ap.params['channel'][0]
                 value = deviceDataRate(ap, sta, None)
                 self.bw = value.rate
-
-                options.setdefault('bw', self.bw)
-                options.setdefault('use_tbf', True)
-                # Set default MAC - this should probably be in Link
-                options.setdefault('addr1', sta.params['mac'][sta.ifaceToAssociate])
-                options.setdefault('ip', sta.params['ip'][sta.ifaceToAssociate])
-                cls = self.link if cls is None else cls
-                link = cls(sta, 'alone', **options)
+                
+                if sta.params['ip'][sta.ifaceToAssociate] != '0/0':
+                    sta.intfs[sta.ifaceToAssociate].setIP(sta.params['ip'][sta.ifaceToAssociate])
+                if sta.params['mac'][sta.ifaceToAssociate] != '':
+                    sta.intfs[sta.ifaceToAssociate].setMAC(sta.params['mac'][sta.ifaceToAssociate])
+                self.tc(sta, self.bw)
 
                 # If sta/ap have defined position
                 if 'position' in sta.params and 'position' in ap.params:
@@ -937,8 +918,6 @@ class Mininet(object):
 
                 if sta.params['mac'][sta.ifaceToAssociate - 1] == '':
                     sta.params['mac'][sta.ifaceToAssociate - 1] = self.getMacAddress(sta, sta.ifaceToAssociate - 1)
-            return link
-
         else:
             """"Add a link from node1 to node2
                 node1: source node (or name)
@@ -948,6 +927,9 @@ class Mininet(object):
                 cls: link class (optional)
                 params: additional link params (optional)
                 returns: link object"""
+
+            if 'link' in options:
+                options.pop('link', None)
 
             # Only if AP
             if node1.type == 'accessPoint' and node2.type == 'accessPoint' :
@@ -1006,6 +988,10 @@ class Mininet(object):
             self.links.append(link)
             
             return link
+
+    def tc(self, sta, bw):
+        sta.cmd('tc qdisc add dev %s root handle 5: tbf rate %fMbit burst 15000 latency %fms' %
+                          (sta.params['wlan'][sta.ifaceToAssociate], bw, 1))
 
     def configHosts(self):
         "Configure a set of hosts."
@@ -1079,12 +1065,6 @@ class Mininet(object):
             info('(%s, %s) ' % (srcName, dstName))
         info('\n')
 
-        for switch in self.switches:
-            if switch in self.missingWlanAP:
-                cls = None
-                cls = self.link if cls is None else cls
-                cls(switch, 'alone')
-
     def configureControlNetwork(self):
         "Control net config hook: override in subclass"
         raise Exception('configureControlNetwork: '
@@ -1093,33 +1073,14 @@ class Mininet(object):
     def build(self):
         # useful if there no link between sta and any other device
         "Build mininet."
-        for switch in self.switches:
-            if switch in self.missingWlanAP:
-                cls = None
-                cls = self.link if cls is None else cls
-                if 'phywlan' not in switch.params:
-                    cls(switch, 'alone')
-                else:
-                    iface = switch.params.get('phywlan')
-                    options = dict()
-                    options.setdefault('intfName1', iface)
-                    cls(switch, 'alone', **options)
-
         if self.ifaceConfigured == False:
             for node in self.missingStations:
-                mobility.getAPsInRange(node)
+                if 'position' in node.params:
+                    mobility.getAPsInRange(node)
                 for wlan in range(0, len(node.params['wlan'])):
-                    cls = None
-                    options = dict()
-                    # Set default MAC - this should probably be in Link
-                    options.setdefault('use_tbf', True)
-                    options.setdefault('ip', node.params['ip'][wlan])
-                    options.setdefault('addr1', self.randMac())
-                    cls = self.link if cls is None else cls
-                    cls(node, 'alone', **options)
                     if 'position' in node.params and node.params['associatedTo'][wlan] != '':
                         mobility.nodeParameter(node, wlan)
-                    elif 'position' in node.params['position'] and node.params['associatedTo'][wlan] == '':
+                    elif 'position' in node.params and node.params['associatedTo'][wlan] == '':
                         if self.firstAssociation:
                             self.configureWifiNodes()
                         for ap in self.accessPoints:
@@ -1161,7 +1122,7 @@ class Mininet(object):
                             """Mesh Routing"""
                             meshRouting.customMeshRouting(node, wlan, self.stations)
                 listNodes.clearList()
-
+            
             for sta in self.stations:
                 if 'position' in sta.params:
                     mobility.getAPsInRange(sta)
@@ -1171,14 +1132,6 @@ class Mininet(object):
                             if sta.params['associatedTo'][wlan] == '' and \
                                         (sta.func[wlan] != 'mesh' and sta.func[wlan] != 'adhoc') and \
                                         sta.func[wlan] != 'wifiDirect':
-                                cls = None
-                                options = dict()
-                                # Set default MAC - this should probably be in Link
-                                options.setdefault('use_tbf', True)
-                                options.setdefault('ip', sta.params['ip'][wlan])
-                                options.setdefault('addr1', self.randMac())
-                                cls = self.link if cls is None else cls
-                                cls(sta, 'alone', **options)
                                 if 'position' in sta.params and sta.params['associatedTo'][wlan] != '':
                                     mobility.nodeParameter(sta, wlan)
                                 if sta.params['mac'][wlan] == '':
@@ -1187,18 +1140,11 @@ class Mininet(object):
                         if sta.params['associatedTo'][wlan] == '' and \
                                         (sta.func[wlan] != 'mesh' and sta.func[wlan] != 'adhoc') and \
                                         sta.func[wlan] != 'wifiDirect':
-                            cls = None
-                            options = dict()
-                            # Set default MAC - this should probably be in Link
-                            options.setdefault('use_tbf', True)
-                            options.setdefault('ip', sta.params['ip'][wlan])
-                            options.setdefault('addr1', self.randMac())
-                            cls = self.link if cls is None else cls
-                            cls(sta, 'alone', **options)
                             if 'position' in sta.params and sta.params['associatedTo'][wlan] != '':
                                 mobility.nodeParameter(sta, wlan)
                             if sta.params['mac'][wlan] == '':
                                 sta.params['mac'][wlan] = self.getMacAddress(sta, wlan)
+        
         if self.topo:
             self.buildFromTopo(self.topo)
         if self.firstAssociation:
@@ -1251,8 +1197,6 @@ class Mininet(object):
         for switch in self.switches:
             info(switch.name + ' ')
             switch.start(self.controllers)
-            if switch.type == 'accessPoint':
-                os.system('ovs-vsctl add-br %s' % switch.name)
 
         started = {}
         for swclass, switches in groupby(
@@ -1261,13 +1205,6 @@ class Mininet(object):
             if hasattr(swclass, 'batchStartup'):
                 success = swclass.batchStartup(switches)
                 started.update({ s: s for s in success })
-
-        # It is necessary to create a bridge between ap and wlan interface
-        for switch in self.switches:
-            if switch.type == 'accessPoint':
-                for iface in range(0, len(switch.params['wlan'])):
-                    AccessPoint.apBridge(switch, iface)
-
         info('\n')
         if self.waitConn:
             self.waitConnected()
@@ -1647,10 +1584,10 @@ class Mininet(object):
             self.mobilityModel = kwargs['model']
 
         if self.mobilityModel != '' or self.isVanet:
-            if 'max_x' in kwargs:
-                mobility.MAX_X = kwargs['max_x']
-            if 'max_y' in kwargs:
-                mobility.MAX_Y = kwargs['max_y']
+            #if 'max_x' in kwargs:
+            #    mobility.MAX_X = kwargs['max_x']
+            #if 'max_y' in kwargs:
+            #    mobility.MAX_Y = kwargs['max_y']
             if 'min_v' in kwargs:
                 mobilityparam.setdefault('min_v', kwargs['min_v'])
             if 'max_v' in kwargs:
@@ -1665,7 +1602,7 @@ class Mininet(object):
             for sta in self.stations:
                 if 'position' not in sta.params:
                     staMov.append(sta)
-                    sta.params['position'] = 0,0,0
+                    sta.params['position'] = 0, 0, 0
             mobilityparam.setdefault('staMov', staMov)
                     
             if self.isVanet == False:
@@ -1674,7 +1611,7 @@ class Mininet(object):
                 self.thread.start()
             else:
                 mobility.staList = self.stations
-                self.thread = threading.Thread(name='vanet', target=vanet, args=(self.stations, 
+                self.thread = threading.Thread(name='vanet', target=vanet, args=(self.stations,
                                                         self.accessPoints, self.nroads, mobility.MAX_X, mobility.MAX_Y))
                 self.thread.daemon = True
                 self.thread.start()

@@ -185,19 +185,12 @@ def makeIntfPair(intf1, intf2, addr1=None, addr2=None, node1=None, node2=None,
                             'type veth peer name %s '
                             'netns %s' % (intf1, intf2, netns))
     else:
-        if node1.type == 'station' and node2.type == 'accessPoint':
-            pass
-        elif node2.type == 'station' and node1.type == 'accessPoint':
-            pass
-        elif node1.type == 'station' and node2.type == 'station':
-            pass
-        else:
-            cmdOutput = runCmd('ip link add name %s '
-                               'address %s '
-                               'type veth peer name %s '
-                               'address %s '
-                               'netns %s' % 
-                               (intf1, addr1, intf2, addr2, netns))
+        cmdOutput = runCmd('ip link add name %s '
+                           'address %s '
+                           'type veth peer name %s '
+                           'address %s '
+                           'netns %s' % 
+                           (intf1, addr1, intf2, addr2, netns))
 
     if cmdOutput:
         raise Exception("Error creating interface pair (%s,%s): %s " % 
@@ -229,8 +222,8 @@ def moveIntfNoRetry(intf, dstNode, printError=False):
         intf = str(intf)
         cmd = 'ip link set %s netns %s' % (intf, dstNode.pid)
         cmdOutput = quietRun(cmd)
-    # If ip link set does not produce any output, then we can assume
-    # that the link has been moved successfully.
+        # If ip link set does not produce any output, then we can assume
+        # that the link has been moved successfully.
         if cmdOutput:
             if printError:
                 error('*** Error: moveIntf: ' + intf + 

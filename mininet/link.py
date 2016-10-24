@@ -25,7 +25,7 @@ Link: basic link class for creating veth pairs
 """
 import mininet.node
 import re
-from time import sleep
+from time import sleep, time
 
 from mininet.log import info, error, debug
 from mininet.util import makeIntfPair
@@ -193,54 +193,13 @@ class Intf(object):
         # If we were overriding this method, we would call
         # the superclass config method here as follows:
         # r = Parent.config( **params )
-        self.sta = sta
-        if sta != None:
-            wlan = self.sta.ifaceToAssociate
-            if self.sta.func[wlan] == 'mesh' and self.sta.type != 'vehicle':
-                self.sta.cmd('iw dev %s interface add %s-mp%s type mp' % (self.sta.params['wlan'][wlan], self.sta, wlan))
         r = {}
         self.setParam(r, 'setMAC', mac=mac)
         self.setParam(r, 'setIP', ip=ip)
         self.setParam(r, 'isUp', up=up)
         self.setParam(r, 'ifconfig', ifconfig=ifconfig)
         
-        if sta != None and self.sta.type == 'vehicle':
-            if wlan > 0:
-                self.setParam(r, 'ssid', ssid=ssid)
-        else:
-            self.setParam(r, 'ssid', ssid=ssid)
-        
         return r
-
-    def ssid(self, ssid):
-        if self.sta.func[self.sta.ifaceToAssociate] == 'mesh':
-            wlan = self.sta.ifaceToAssociate
-            self.sta.params['rssi'][wlan] = -62
-            if self.sta.params['mac'][wlan] != '':
-                self.sta.cmd('ifconfig %s-mp%s down' % (self.sta, wlan))
-                self.sta.cmd('ip link set %s-mp%s address %s' % (self.sta, wlan, self.sta.params['mac'][wlan]))
-            self.sta.cmd('ifconfig %s-mp%s up' % (self.sta, wlan))
-            # self.sta.cmd('iw dev %s-mp%s mesh join %s' % (self.sta, wlan, ssid))
-            self.sta.cmd('ifconfig %s-wlan%s down' % (self.sta, wlan))
-            iface = '%s-mp%s' % (self.sta, wlan)
-            self.sta.params['wlan'][wlan] = iface
-            self.sta.params['frequency'][wlan] = channelParameters.frequency(self.sta, wlan)
-            self.getMacAddress(self.sta, iface, wlan)
-            # self.sta.params['associatedTo'][wlan] = ssid
-        elif self.sta.func[self.sta.ifaceToAssociate] == 'adhoc':
-            wlan = self.sta.ifaceToAssociate
-            self.sta.params['rssi'][wlan] = -62
-            self.sta.func[wlan] = 'adhoc'
-            self.sta.cmd('iw dev %s-wlan%s set type ibss' % (self.sta, wlan))
-            self.sta.params['associatedTo'][wlan] = ssid
-
-    # Important for mesh networks
-    @classmethod
-    def getMacAddress(self, sta, iface, wlan):
-        """ get Mac Address of any Interface """
-        ifconfig = str(sta.pexec('ifconfig %s' % iface))
-        mac = self._macMatchRegex.findall(ifconfig)
-        sta.meshMac[wlan] = str(mac[0])
 
     def delete(self):
         "Delete interface"
@@ -264,8 +223,7 @@ class Intf(object):
     def __str__(self):
         return self.name
 
-
-class TCIntf(Intf):
+class TCIntfWireless(Intf):
     """Interface customized by tc (traffic control) utility
        Allows specification of bandwidth limits (various methods)
        as well as delay, loss and max queue length"""
@@ -273,7 +231,7 @@ class TCIntf(Intf):
     # The parameters we use seem to work reasonably up to 1 Gb/sec
     # For higher data rates, we will probably need to change them.
     bwParamMax = 1000
-
+    
     def bwCmds(self, bw=None, speedup=0, use_hfsc=False, use_tbf=False,
                 latency_ms=None, enable_ecn=False, enable_red=False):
         "Return tc commands to set bandwidth"
@@ -323,7 +281,7 @@ class TCIntf(Intf):
                           'burst 20 ' +
                           'bandwidth %fmbit probability 1' % bw ]
                 parent = ' parent 6: '
-
+                
         return cmds, parent
 
     @staticmethod
@@ -424,16 +382,168 @@ class TCIntf(Intf):
         return result
 
 
-class Link(object):
+class TCIntf(Intf):
+    """Interface customized by tc (traffic control) utility
+       Allows specification of bandwidth limits (various methods)
+       as well as delay, loss and max queue length"""
+
+    # The parameters we use seem to work reasonably up to 1 Gb/sec
+    # For higher data rates, we will probably need to change them.
+    bwParamMax = 1000
+
+    def bwCmds(self, bw=None, speedup=0, use_hfsc=False, use_tbf=False,
+                latency_ms=None, enable_ecn=False, enable_red=False):
+        "Return tc commands to set bandwidth"
+        cmds, parent = [], ' root '
+        if bw and (bw < 0 or bw > self.bwParamMax):
+            error('Bandwidth limit', bw, 'is outside supported range 0..%d'
+                   % self.bwParamMax, '- ignoring\n')
+        elif bw is not None:
+            # BL: this seems a bit brittle...
+            if (speedup > 0):
+                bw = speedup
+            # This may not be correct - we should look more closely
+            # at the semantics of burst (and cburst) to make sure we
+            # are specifying the correct sizes. For now I have used
+            # the same settings we had in the mininet-hifi code.
+            if use_hfsc:
+                cmds += [ '%s qdisc add dev %s root handle 5:0 hfsc default 1',
+                          '%s class add dev %s parent 5:0 classid 5:1 hfsc sc '
+                          + 'rate %fMbit ul rate %fMbit' % (bw, bw) ]
+            elif use_tbf:                
+                if latency_ms is None:
+                    latency_ms = 15 * 8 / bw
+                cmds += [ '%s qdisc add dev %s root handle 5: tbf ' +
+                          'rate %fMbit burst 15000 latency %fms' %
+                          (bw, latency_ms) ]
+            else:
+                cmds += [ '%s qdisc add dev %s root handle 5:0 htb default 1',
+                          '%s class add dev %s parent 5:0 classid 5:1 htb ' +
+                          'rate %fMbit burst 15k' % bw ]
+            parent = ' parent 5:1 '
+            # ECN or RED
+            if enable_ecn:
+                cmds += [ '%s qdisc add dev %s' + parent +
+                          'handle 6: red limit 1000000 ' +
+                          'min 30000 max 35000 avpkt 1500 ' +
+                          'burst 20 ' +
+                          'bandwidth %fmbit probability 1 ecn' % bw ]
+                parent = ' parent 6: '
+            elif enable_red:
+                cmds += [ '%s qdisc add dev %s' + parent +
+                          'handle 6: red limit 1000000 ' +
+                          'min 30000 max 35000 avpkt 1500 ' +
+                          'burst 20 ' +
+                          'bandwidth %fmbit probability 1' % bw ]
+                parent = ' parent 6: '
+
+        return cmds, parent
+
+    @staticmethod
+    def delayCmds(parent, delay=None, jitter=None,
+                   loss=None, max_queue_size=None):
+        "Internal method: return tc commands for delay and loss"
+        cmds = []
+        if delay and delay < 0:
+            error('Negative delay', delay, '\n')
+        elif jitter and jitter < 0:
+            error('Negative jitter', jitter, '\n')
+        elif loss and (loss < 0 or loss > 100):
+            error('Bad loss percentage', loss, '%%\n')
+        else:
+            # Delay/jitter/loss/max queue size
+            netemargs = '%s%s%s%s' % (
+                'delay %s ' % delay if delay is not None else '',
+                '%s ' % jitter if jitter is not None else '',
+                'loss %.5f ' % loss if loss is not None else '',
+                'limit %d' % max_queue_size if max_queue_size is not None
+                else '')
+            if netemargs:
+                cmds = [ '%s qdisc add dev %s ' + parent +
+                         ' handle 10: netem ' +
+                         netemargs ]
+                parent = ' parent 10:1 '
+        return cmds, parent
+
+    def tc(self, cmd, tc='tc'):
+        "Execute tc command for our interface"
+        c = cmd % (tc, self)  # Add in tc command and our name
+        debug(" *** executing command: %s\n" % c)
+        return self.cmd(c)
+
+    def config(self, bw=None, delay=None, jitter=None, loss=None,
+                disable_gro=True, speedup=0, use_hfsc=False, use_tbf=False,
+                latency_ms=None, enable_ecn=False, enable_red=False,
+                max_queue_size=None, **params):
+        "Configure the port and set its properties."
+        result = Intf.config(self, **params)
+
+        # Disable GRO
+        if disable_gro:
+            self.cmd('ethtool -K %s gro off' % self)
+
+        # Optimization: return if nothing else to configure
+        # Question: what happens if we want to reset things?
+        if (bw is None and not delay and not loss
+             and max_queue_size is None):
+            return
+
+        # Clear existing configuration
+        cmds = []
+        tcoutput = self.tc('%s qdisc show dev %s')
+        if "priomap" not in tcoutput and "qdisc noqueue" not in tcoutput:
+            cmds = [ '%s qdisc del dev %s root' ]
+        else:
+            cmds = []
+        # Bandwidth limits via various methods
+        bwcmds, parent = self.bwCmds(bw=bw, speedup=speedup,
+                                      use_hfsc=use_hfsc, use_tbf=use_tbf,
+                                      latency_ms=latency_ms,
+                                      enable_ecn=enable_ecn,
+                                      enable_red=enable_red)
+        cmds += bwcmds
+
+        # Delay/jitter/loss/max_queue_size using netem
+        delaycmds, parent = self.delayCmds(delay=delay, jitter=jitter,
+                                            loss=loss,
+                                            max_queue_size=max_queue_size,
+                                            parent=parent)
+        cmds += delaycmds
+
+        # Ugly but functional: display configuration info
+        stuff = (([ '%.2fMbit' % bw ] if bw is not None else []) +
+                  ([ '%s delay' % delay ] if delay is not None else []) +
+                  ([ '%s jitter' % jitter ] if jitter is not None else []) +
+                  (['%5f%% loss' % loss ] if loss is not None else []) +
+                  ([ 'ECN' ] if enable_ecn else [ 'RED' ]
+                    if enable_red else []))
+
+        # Print bw info
+        info('(' + ' '.join(stuff) + ') ')
+        
+        # Execute all the commands in our node
+        debug("at map stage w/cmds: %s\n" % cmds)
+        tcoutputs = [ self.tc(cmd) for cmd in cmds ]
+        for output in tcoutputs:
+            if output != '':
+                error("*** Error: %s" % output)
+        debug("cmds:", cmds, '\n')
+        debug("outputs:", tcoutputs, '\n')
+        result[ 'tcoutputs'] = tcoutputs
+        result[ 'parent' ] = parent
+        
+        return result
+
+
+class LinkWireless(object):
 
     """A basic link is just a veth pair.
        Other types of links could be tunnels, link emulators, etc.."""
 
     # pylint: disable=too-many-branches
-    def __init__(self, node1, node2, port1=None, port2=None,
-                  intfName1=None, intfName2=None, addr1=None, addr2=None,
-                  intf=Intf, cls1=None, cls2=None, params1=None,
-                  params2=None, fast=True, phyIface=None):
+    def __init__(self, node1, port1=None, 
+                  intfName1=None, addr1=None,
+                  intf=Intf, cls1=None, params1=None):
         """Create veth link to another node, making two new interfaces.
            node1: first node
            node2: second node
@@ -451,154 +561,49 @@ class Link(object):
 
         if params1 is None:
             params1 = {}
-        if params2 is None:
-            params2 = {}
-        # Allow passing in params1=params2
-        if params2 is params1:
-            params2 = dict(params1)
+        
         if port1 is not None:
             params1[ 'port' ] = port1
-        if port2 is not None:
-            params2[ 'port' ] = port2
-
-        phyIface = intfName1
-        
+          
         if 'port' not in params1:
-            if 'vehicle' == node1.type and ('alone' != str(node2) and node2.type != 'switch') \
-                or 'station' == node1.type and 'alone' == str(node2) \
-                or 'station' == node1.type and 'mesh' in str(node2):
-                params1[ 'port' ] = node1.newWlanPort()
-                node1.newPort()
-            elif 'station' == node1.type and 'accessPoint' == node2.type:
-                params1[ 'port' ] = node1.newWlanPort()
-                node1.newPort()
-            elif 'accessPoint' == node1.type and 'alone' == str(node2):
-                if phyIface == None:
+            if 'vehicle' == node1.type or 'station' == node1.type:
+                params1[ 'port' ] = node1.newPort()
+                #node1.newPort()
+            elif 'accessPoint' == node1.type:
+                if intfName1 == None:
                     nodelen = int(len(node1.params['wlan']))
                     currentlen = node1.wlanports
                     if nodelen > currentlen + 1:
-                        params1[ 'port' ] = node1.newWlanPort()
-                        node1.newPort()
+                        params1[ 'port' ] = node1.newPort()
+                        #node1.newPort()
                     else:
                         params1[ 'port' ] = currentlen
                     ifacename = 'wlan'
                     intfName1 = self.wlanName(node1, ifacename, params1[ 'port' ])
                     intf1 = cls1(name=intfName1, node=node1,
                             link=self, mac=addr1, **params1)
-            else:
-                params1[ 'port' ] = node1.newPort()
-        if 'port' not in params2:
-            if 'alone' != str(node2) and 'mesh' != str(node2):
-                if 'station' == node1.type and 'accessPoint' == node2.type:
-                    nodelen = int(len(node2.params['wlan']))
-                    currentlen = node2.wlanports
-                    if nodelen > currentlen + 1:
-                        params2[ 'port' ] = node2.newWlanPort()
-                        node2.newPort()
-                    else:
-                        params2[ 'port' ] = currentlen
-                    ifacename = 'wlan'
-                    intfName2 = self.wlanName(node2, ifacename, params2[ 'port' ])
-                    intf2 = cls2(name=intfName2, node=node2,
-                            link=self, mac=addr2, **params2)
+                    intf2 = None
                 else:
-                    params2[ 'port' ] = node2.newPort()
-                    node2.newPort()
-            elif (str(node2) != 'alone' and str(node2) != 'mesh' and node2.type != 'accessPoint'):
-                params2[ 'port' ] = node2.newPort()
-            elif str(node2) == 'alone' or str(node2) == 'mesh':
-                if phyIface != None:
                     params1[ 'port' ] = node1.newPort()
                     node1.newPort()
-                    intfName1 = phyIface
                     intf1 = cls1(name=intfName1, node=node1,
                         link=self, mac=addr1, **params1)
-            else:
-                params2[ 'port' ] = node2.newPort()
+                    intf2 = None
 
         if not intfName1:
-            if node1.type == 'station' and 'alone' != str(node2) and \
-            'mesh' != str(node2) and node2.type == 'switch':
-                intfName1 = self.intfName(node1, params1[ 'port' ])
-            elif node1.type == 'station' and 'alone' == str(node2):
-                ifacename = 'wlan'
-                intfName1 = self.wlanName(node1, ifacename, params1[ 'port' ])
-            elif node1.type == 'station' and str(node2) == 'mesh':
-                ifacename = 'mp'
-                intfName1 = self.wlanName(node1, ifacename, params1[ 'port' ])
-            elif 'vehicle' == node1.type and 'alone' != str(node2) and node2.type == 'switch':
-                intfName1 = self.intfName(node1, params1[ 'port' ])
-            elif str(node2) == 'alone':
-                ifacename = 'wlan'
-                intfName1 = self.wlanName(node1, ifacename, params1[ 'port' ])
-            else:
-                intfName1 = self.intfName(node1, params1[ 'port' ])
-        if not intfName2:
-            if str(node2) != 'alone'  and str(node2) != 'mesh':
-                if (node2.type != 'accessPoint'):
-                    intfName2 = self.intfName(node2, params2[ 'port' ])
-                elif 'mesh' not in str(node2):
-                    if node1.type == 'accessPoint' and node2.type == 'accessPoint':
-                        intfName2 = self.intfName(node2, params2[ 'port' ])
-                    elif 'host' == node1.type and 'accessPoint' == node2.type:
-                        intfName2 = self.intfName(node2, params2[ 'port' ])
-                    else:
-                        intfName2 = self.intfName(node2, params2[ 'port' ])
-                elif str(node2) == 'alone':
-                    ifacename = 'wlan'
-                    intfName1 = self.wlanName(node1, ifacename, params1[ 'port' ])
-                elif str(node2) == 'mesh' :
-                    ifacename = 'mp'
-                    intfName1 = self.wlanName(node1, ifacename, params1[ 'port' ])
-                else:
-                    intfName2 = self.intfName(node2, params2[ 'port' ])
-        if str(node2) != 'alone':
-            self.fast = fast
-            if 'vehicle' == node1.type and node2.type == 'switch' \
-                or 'station' == node1.type and ('mesh' != str(node2) and node2.type == 'switch') \
-                or ('w' not in str(intfName1) and 'w' not in str(intfName2) \
-                and 'mp' not in str(intfName1) and 'mp' not in str(intfName2)):
-              
-                if fast:
-                    params1.setdefault('moveIntfFn', self._ignore)
-                    params2.setdefault('moveIntfFn', self._ignore)
-                    self.makeIntfPair(intfName1, intfName2, addr1, addr2,
-                                       node1, node2, deleteIntfs=False)
-                else:
-                    self.makeIntfPair(intfName1, intfName2, addr1, addr2)
+            ifacename = 'wlan'
+            intfName1 = self.wlanName(node1, ifacename, node1.newWlanPort())
+           
         if not cls1:
             cls1 = intf
-        if not cls2:
-            cls2 = intf
        
-        if ('vehicle' == node1.type and ('alone' != str(node2) and node2.type != 'switch') \
-            or 'vehicle' == node1.type and 'alone' == str(node2) \
-            or 'station' == node1.type and 'alone' == str(node2) \
-            or 'station' == node1.type and 'mesh' in str(node2) \
-            or 'station' == node1.type and 'accessPoint' == node2.type):
-            
+        if ('vehicle' == node1.type or 'station' == node1.type):            
                 intf1 = cls1(name=intfName1, node=node1,
                               link=self, mac=addr1, **params1)
-                if 'alone' != str(node2) and 'mesh' != str(node2):
-                    if 'accessPoint' == node2.type:
-                        pass
-                    else:
-                        intf2 = None
-                else:
-                    intf2 = None
-        elif 'accessPoint' == node1.type and 'alone' == str(node2):
-            intf2 = None
-        else:            
-            intf1 = cls1(name=intfName1, node=node1,
-                          link=self, mac=addr1, **params1)
-
-            intf2 = cls2(name=intfName2, node=node2,
-                          link=self, mac=addr2, **params2)
-
+                intf2 = None
         # All we are is dust in the wind, and our two interfaces
         self.intf1, self.intf2 = intf1, intf2
-    # pylint: enable=too-many-branches
-    
+    # pylint: enable=too-many-branches    
 
     @staticmethod
     def _ignore(*args, **kwargs):
@@ -613,29 +618,6 @@ class Link(object):
             return ifacename + repr(n)
         else:
             return node.name + '-' + ifacename + repr(n)
-
-    def intfName(self, node, n):
-        "Construct a canonical interface name node-ethN for interface n."
-        # Leave this as an instance method for now
-        assert self
-        return node.name + '-eth' + repr(n)
-
-    @classmethod
-    def makeIntfPair(cls, intfname1, intfname2, addr1=None, addr2=None,
-                      node1=None, node2=None, deleteIntfs=True):
-        """Create pair of interfaces
-           intfname1: name for interface 1
-           intfname2: name for interface 2
-           addr1: MAC address for interface 1 (optional)
-           addr2: MAC address for interface 2 (optional)
-           node1: home node for interface 1 (optional)
-           node2: home node for interface 2 (optional)
-           (override this method [and possibly delete()]
-           to change link type)"""
-        # Leave this as a class method for now
-        assert cls
-        return makeIntfPair(intfname1, intfname2, addr1, addr2, node1, node2,
-                             deleteIntfs=deleteIntfs)
 
     def delete(self):
         "Delete this link"
@@ -654,6 +636,121 @@ class Link(object):
 
     def __str__(self):
         return '%s<->%s' % (self.intf1, self.intf2)
+
+
+class Link( object ):
+
+    """A basic link is just a veth pair.
+       Other types of links could be tunnels, link emulators, etc.."""
+
+    # pylint: disable=too-many-branches
+    def __init__( self, node1, node2, port1=None, port2=None,
+                  intfName1=None, intfName2=None, addr1=None, addr2=None,
+                  intf=Intf, cls1=None, cls2=None, params1=None,
+                  params2=None, fast=True ):
+        """Create veth link to another node, making two new interfaces.
+           node1: first node
+           node2: second node
+           port1: node1 port number (optional)
+           port2: node2 port number (optional)
+           intf: default interface class/constructor
+           cls1, cls2: optional interface-specific constructors
+           intfName1: node1 interface name (optional)
+           intfName2: node2  interface name (optional)
+           params1: parameters for interface 1
+           params2: parameters for interface 2"""
+        # This is a bit awkward; it seems that having everything in
+        # params is more orthogonal, but being able to specify
+        # in-line arguments is more convenient! So we support both.
+        if params1 is None:
+            params1 = {}
+        if params2 is None:
+            params2 = {}
+        # Allow passing in params1=params2
+        if params2 is params1:
+            params2 = dict( params1 )
+        if port1 is not None:
+            params1[ 'port' ] = port1
+        if port2 is not None:
+            params2[ 'port' ] = port2
+        if 'port' not in params1:
+            params1[ 'port' ] = node1.newPort()
+        if 'port' not in params2:
+            params2[ 'port' ] = node2.newPort()
+        if not intfName1:
+            intfName1 = self.intfName( node1, params1[ 'port' ] )
+        if not intfName2:
+            intfName2 = self.intfName( node2, params2[ 'port' ] )
+
+        self.fast = fast
+        if fast:
+            params1.setdefault( 'moveIntfFn', self._ignore )
+            params2.setdefault( 'moveIntfFn', self._ignore )
+            self.makeIntfPair( intfName1, intfName2, addr1, addr2,
+                               node1, node2, deleteIntfs=False )
+        else:
+            self.makeIntfPair( intfName1, intfName2, addr1, addr2 )
+
+        if not cls1:
+            cls1 = intf
+        if not cls2:
+            cls2 = intf
+
+        intf1 = cls1( name=intfName1, node=node1,
+                      link=self, mac=addr1, **params1  )
+        intf2 = cls2( name=intfName2, node=node2,
+                      link=self, mac=addr2, **params2 )
+
+        # All we are is dust in the wind, and our two interfaces
+        self.intf1, self.intf2 = intf1, intf2
+    # pylint: enable=too-many-branches
+
+    @staticmethod
+    def _ignore( *args, **kwargs ):
+        "Ignore any arguments"
+        pass
+
+    def intfName( self, node, n ):
+        "Construct a canonical interface name node-ethN for interface n."
+        # Leave this as an instance method for now
+        assert self
+        return node.name + '-eth' + repr( n )
+
+    @classmethod
+    def makeIntfPair( cls, intfname1, intfname2, addr1=None, addr2=None,
+                      node1=None, node2=None, deleteIntfs=True ):
+        """Create pair of interfaces
+           intfname1: name for interface 1
+           intfname2: name for interface 2
+           addr1: MAC address for interface 1 (optional)
+           addr2: MAC address for interface 2 (optional)
+           node1: home node for interface 1 (optional)
+           node2: home node for interface 2 (optional)
+           (override this method [and possibly delete()]
+           to change link type)"""
+        # Leave this as a class method for now
+        assert cls
+        return makeIntfPair( intfname1, intfname2, addr1, addr2, node1, node2,
+                             deleteIntfs=deleteIntfs )
+
+    def delete( self ):
+        "Delete this link"
+        self.intf1.delete()
+        self.intf1 = None
+        self.intf2.delete()
+        self.intf2 = None
+
+    def stop( self ):
+        "Override to stop and clean up link as needed"
+        self.delete()
+
+    def status( self ):
+        "Return link status as a string"
+        return "(%s %s)" % ( self.intf1.status(), self.intf2.status() )
+
+    def __str__( self ):
+        return '%s<->%s' % ( self.intf1, self.intf2 )
+
 
 class OVSIntf(Intf):
     "Patch interface on an OVSSwitch"
@@ -700,6 +797,17 @@ class TCLink(Link):
                        params1=params,
                        params2=params)
         
+class TCLinkWireless(LinkWireless):
+    "Link with symmetric TC interfaces configured via opts"
+    def __init__(self, node1, port1=None, port2=None,
+                  intfName1=None, intfName2=None,
+                  addr1=None, addr2=None, **params):
+        LinkWireless.__init__(self, node1, port1=port1,
+                       intfName1=intfName1,
+                       cls1=TCIntfWireless,
+                       addr1=addr1,
+                       params1=params)
+        
 class Association(Link):        
     
     printCon = True
@@ -707,6 +815,52 @@ class Association(Link):
     @classmethod
     def confirmMeshAssociation(self, sta, wlan):
         sleep (0.5)  # Have to check it
+    
+    @classmethod    
+    def adhoc(self, sta):
+        wlan = sta.ifaceToAssociate
+        iface = sta.params['wlan'][wlan]
+        sta.params['rssi'][wlan] = -62
+        sta.func[wlan] = 'adhoc'
+        sta.intfs[wlan].setIP(sta.params['ip'][wlan])
+        sta.cmd('iw dev %s-wlan%s set type ibss' % (sta, wlan))
+        sta.params['associatedTo'][wlan] = sta.params['ssid'][wlan]
+        info("associating %s to %s...\n" % (iface, sta.params['ssid'][wlan]))
+        sta.pexec('iw dev %s ibss join %s 2412' % (iface, \
+                                                     sta.params['associatedTo'][wlan]))
+        self.confirmAdhocAssociation(sta, iface, wlan)
+        
+    @classmethod    
+    def mesh(self, sta):
+        wlan = sta.ifaceToAssociate
+        sta.params['rssi'][wlan] = -62
+        if sta.params['mac'][wlan] != '':
+            sta.cmd('iw dev %s interface add %s-mp%s type mp' % (sta.params['wlan'][wlan], sta, wlan))
+            sta.cmd('ifconfig %s-mp%s down' % (sta, wlan))
+            sta.cmd('ip link set %s-mp%s address %s' % (sta, wlan, sta.params['mac'][wlan]))
+        sta.cmd('ifconfig %s down' % sta.params['wlan'][wlan])
+        iface = '%s-mp%s' % (sta, wlan)
+       
+        sta.params['wlan'][wlan] = iface
+        sta.params['frequency'][wlan] = channelParameters.frequency(sta, wlan)
+        self.getMacAddress(sta, iface, wlan)
+
+        sta.intfs[wlan] = sta.params['wlan'][wlan]
+        cls = TCLinkWireless
+        cls(sta, port1=wlan, intfName1 = sta.params['wlan'][wlan])
+        
+        sta.cmd('ifconfig %s %s up' % (sta.params['wlan'][wlan], sta.params['ip'][wlan]))
+        info("associating %s to %s...\n" % (iface, sta.params['ssid'][wlan]))
+        sta.cmd('iw dev %s mesh join %s' % (iface, sta.params['ssid'][wlan]))
+        
+    _macMatchRegex = re.compile(r'..:..:..:..:..:..')
+    
+    @classmethod
+    def getMacAddress(self, sta, iface, wlan):
+        """ get Mac Address of any Interface """
+        ifconfig = str(sta.pexec('ifconfig %s' % iface))
+        mac = self._macMatchRegex.findall(ifconfig)
+        sta.meshMac[wlan] = str(mac[0])
         
     @classmethod    
     def confirmAdhocAssociation(self, sta, iface, wlan):
@@ -718,16 +872,17 @@ class Association(Link):
         
     @classmethod
     def confirmInfraAssociation(self, sta, ap, wlan):
-        #associated = ''
-        #currentTime = time()
         if self.printCon:
             iface = sta.params['wlan'][wlan]
             info( "Associating %s to %s\n" % (iface, ap) )
-        #while(associated == '' or len(associated[0]) == 15):
-        #    associated = self.isAssociated(sta, wlan)
-        #    if time() >= currentTime + 10:
-                #info( "Error during the association process\n" )
-        #        break
+        if 'encrypt' in ap.params:
+            associated = ''
+            currentTime = time()
+            while(associated == '' or len(associated[0]) == 15):
+                associated = self.isAssociated(sta, wlan)
+                if time() >= currentTime + 10:
+                    info( "Error during the association process\n" )
+                    break
         sta.params['frequency'][wlan] = channelParameters.frequency(ap, 0)
         ap.params['associatedStations'].append(sta)
         sta.params['associatedTo'][wlan] = ap
@@ -759,10 +914,10 @@ class Association(Link):
     @classmethod
     def associate_wpa(self, sta, ap, wlan):
         sta.cmd("wpa_supplicant -B -Dnl80211 -i %s-wlan%s -c <(wpa_passphrase \"%s\" \"%s\")" \
-                % (sta, wlan, ap.ssid[0], ap.params['passwd'][0]))
+                % (sta, wlan, ap.params['ssid'][0], ap.params['passwd'][0]))
 
     @classmethod
     def associate_wep(self, sta, ap, wlan):
         sta.cmd('iw dev %s-wlan%s connect %s key d:0:%s' \
-                % (sta, wlan, ap.ssid[0], ap.params['passwd'][0]))
+                % (sta, wlan, ap.params['ssid'][0], ap.params['passwd'][0]))
     

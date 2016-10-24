@@ -263,7 +263,10 @@ class Node(object):
             if node.type != 'accessPoint':
                 node.func.append('none')
                 node.params['associatedTo'].append('')
-            node.params['wlan'].append(node.name + '-wlan' + str(n))
+            if node.type == 'accessPoint':
+                node.params['wlan'].append(node.name + '-wlan' + str(n+1))
+            else:
+                node.params['wlan'].append(node.name + '-wlan' + str(n))
             node.params.pop("wlans", None)
                         
         if node.type == 'station' or node.type == 'vehicle':
@@ -756,8 +759,7 @@ class Node(object):
     def newWlanPort(self):
         "Return the next port number to allocate."
         self.wlanports += 1
-        wlan = self.wlanports
-        return wlan
+        return self.wlanports
 
     def newPort(self):
         "Return the next port number to allocate."
@@ -881,6 +883,7 @@ class Node(object):
         if intf != None and (self.type == 'station' or self.type == 'vehicle'):
             wlan = int(intf[-1:])
             self.params['ip'][wlan] = ip
+        
         return self.intf(intf).setIP(ip, prefixLen, **kwargs)
 
     def IP(self, intf=None):
@@ -1299,7 +1302,6 @@ class AccessPoint(Switch):
         if 'phywlan' not in ap.params:
             self.renameIface(ap, intf, ap.params['wlan'][wlan])
             ap.params['mac'][wlan] = self.getMacAddress(ap, wlan)
-            
 
         self.start_(ap, country_code, auth_algs, wpa, wlan,
               wpa_key_mgmt, rsn_pairwise, wpa_passphrase,
@@ -1761,12 +1763,12 @@ class OVSSwitch(Switch):
             for intf in self.intfList():
                 self.TCReapply(intf)
                 
-        if('accessPoint' == self.type):
-            for iface in range(0, len(self.params['wlan'])):
-                br = subprocess.check_output("ovs-vsctl list-br",
-                                                      shell=True)
-                if str(self) in br:
-                    AccessPoint.apBridge(self, iface)
+        #if('accessPoint' == self.type):
+         #   for iface in range(0, len(self.params['wlan'])):
+          #      br = subprocess.check_output("ovs-vsctl list-br",
+           #                                           shell=True)
+            #    if str(self) in br:
+             #       AccessPoint.apBridge(self, iface)
 
     # This should be ~ int( quietRun( 'getconf ARG_MAX' ) ),
     # but the real limit seems to be much lower
