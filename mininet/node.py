@@ -190,6 +190,17 @@ class Node(object):
         node.params['frequency'] = []
         node.params['wlan'] = []
         node.params['mac'] = []
+        
+        passwd = ("%s" % params.pop('passwd', {}))
+        if(passwd != "{}"):
+            passwd = passwd.split(',')
+            node.params['passwd'] = []
+                        
+        encrypt = ("%s" % params.pop('encrypt', {}))
+        if(encrypt != "{}"):
+            encrypt = encrypt.split(',')
+            node.params['encrypt'] = []
+            
                
         if node.type == 'station' or node.type == 'vehicle':
             node.params['apsInRange'] = []
@@ -268,6 +279,16 @@ class Node(object):
             else:
                 node.params['wlan'].append(node.name + '-wlan' + str(n))
             node.params.pop("wlans", None)
+            if(passwd != "{}"):
+                if len(passwd) == 1:
+                    node.params['passwd'].append(passwd[0])
+                else:
+                    node.params['passwd'].append(passwd[n])
+            if(encrypt != "{}"):
+                if len(encrypt) == 1:
+                    node.params['encrypt'].append(encrypt[0])
+                else:
+                    node.params['encrypt'].append(encrypt[n])
                         
         if node.type == 'station' or node.type == 'vehicle':
             mac = ("%s" % params.pop('mac', {}))
@@ -388,16 +409,6 @@ class Node(object):
 
         if node.type == 'accessPoint':
             node.params['associatedStations'] = []
-            
-            passwd = ("%s" % params.pop('passwd', {}))
-            if(passwd != "{}"):
-                node.params['passwd'] = []
-                node.params['passwd'].append(passwd)
-                
-            encrypt = ("%s" % params.pop('encrypt', {}))
-            if(encrypt != "{}"):
-                node.params['encrypt'] = []
-                node.params['encrypt'].append(encrypt)
             
             ssid = ("%s" % params.pop('ssid', {}))
             node.params['ssid'] = []
@@ -1371,7 +1382,7 @@ class AccessPoint(Switch):
         if 'n_ssids' in ap.params.keys():
             if(ap.n_ssids) > 0:
                 for i in range(1, ap.n_ssids + 1):
-                    ssid = str(ap.ssid[0]) + str(i)
+                    ssid = str(ap.params['ssid'][0]) + str(i)
                     cmd = cmd + ('\n')
                     cmd = cmd + ("\nbss=%s-wlan%s-%s" % (ap, wlan, i))
                     cmd = cmd + ("\nssid=%s" % ssid)

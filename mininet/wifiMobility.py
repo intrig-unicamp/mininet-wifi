@@ -74,13 +74,15 @@ class mobility (object):
                 if 'encrypt' not in ap.params:
                     sta.pexec('iwconfig %s essid %s ap %s' % (sta.params['wlan'][wlan], ap.params['ssid'][0], ap.params['mac'][0]))
                 else:
-                    if ap.encrypt == 'wpa' or ap.encrypt == 'wpa2':
+                    if ap.params['encrypt'][0] == 'wpa' or ap.params['encrypt'][0] == 'wpa2':
                         os.system('pkill -f \'wpa_supplicant -B -Dnl80211 -i %s\'' % sta.params['wlan'][wlan])
                         sta.cmd("wpa_supplicant -B -Dnl80211 -i %s -c <(wpa_passphrase \"%s\" \"%s\")" \
-                                                             % (sta.params['wlan'][wlan], ap.params['ssid'][0], sta.params['passwd'][0]))
-                    elif ap.encrypt == 'wep':
-                        sta.cmd('iw dev %s connect %s key d:0:%s' \
-                                                            % (sta.params['wlan'][wlan], ap.params['ssid'][0], sta.params['passwd'][0]))
+                                                             % (sta.params['wlan'][wlan], ap.params['ssid'][0], sta.params['passwd'][wlan]))
+                    elif ap.params['encrypt'][0] == 'wep':
+                        debug('\niw dev %s connect %s key d:0:%s' \
+                                                            % (sta.params['wlan'][wlan], ap.params['ssid'][0], sta.params['passwd'][wlan]))
+                        sta.pexec('iw dev %s connect %s key d:0:%s' \
+                                                            % (sta.params['wlan'][wlan], ap.params['ssid'][0], sta.params['passwd'][wlan]))
                 sta.params['frequency'][wlan] = channelParameters.frequency(ap, 0)
                 ap.params['associatedStations'].append(sta)
                 sta.params['associatedTo'][wlan] = ap                  
