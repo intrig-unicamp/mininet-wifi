@@ -817,6 +817,9 @@ class Mininet(object):
                         ap.params['frequency'][wlan] = channelParameters.frequency(ap, 0)
                         cls = TCLinkWireless
                         cls(ap)
+                        if len(ap.params['ssid'])>1:
+                            for i in range(1, len(ap.params['ssid'])):
+                                cls(ap, intfName1 = ap.params['wlan'][i])
                         x = 0
                     else:
                         iface = ap.params.get('phywlan')
