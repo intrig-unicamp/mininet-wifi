@@ -107,6 +107,8 @@ class plot (object):
         color = 'b'
         if node.type == 'station':
             color = 'g'
+        elif node.type == 'vehicle':
+            color = 'r'
 
         self.pltNode[node], = ax.plot(range(MAX_X), range(MAX_Y), \
                                      linestyle='', marker='.', ms=10, mfc=color)
@@ -124,6 +126,8 @@ class plot (object):
         color = 'b'
         if node.type == 'station':
             color = 'g'
+        elif node.type == 'vehicle':
+            color = 'r'
 
         self.pltCircle[node] = ax.add_patch(
             patches.Circle((0, 0),

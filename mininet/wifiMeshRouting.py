@@ -37,6 +37,10 @@ class listNodes (object):
                 sta = par[0]
                 par.pop(0)
             for ref_sta in stationList:
+                if ref_sta.type == 'vehicle':
+                    car = ref_sta
+                    ref_sta = ref_sta.params['carsta']
+                    ref_sta.params['position'] = car.params['position']
                 if ref_sta != sta and ref_sta.func[wlan] == 'mesh' :
                     dist = channelParameters.getDistance(sta, ref_sta)
                     if dist != 0.0:
@@ -90,6 +94,10 @@ class meshRouting (object):
         controlMeshMac = []
         command = ''
         for ref_sta in stationList:
+            if ref_sta.type == 'vehicle':
+                car = ref_sta
+                ref_sta = ref_sta.params['carsta']
+                ref_sta.params['position'] = car.params['position']
             for ref_wlan in range(len(ref_sta.params['wlan'])):
                 if ref_sta != sta and ref_sta.func[ref_wlan] == 'mesh' and 'position' in sta.params:
                     dist = channelParameters.getDistance(sta, ref_sta)
@@ -137,6 +145,9 @@ class meshRouting (object):
             for ref_sta in stationList:
                 for ref_wlan in range(len(ref_sta.params['wlan'])):
                     if ref_sta != sta and ref_sta.func[ref_wlan] == 'mesh' :
+                        if ref_sta.type == 'vehicle':
+                            ref_wlan = 0
+                            ref_sta = ref_sta.params['carsta']
                         if ref_sta.meshMac[ref_wlan] not in controlMeshMac:
                             sta.pexec('iw dev %s mpath del %s' % (sta.params['wlan'][wlan], ref_sta.meshMac[ref_wlan]))
 

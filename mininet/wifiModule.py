@@ -103,7 +103,7 @@ class module(object):
             i = 0
             wlanList = self.getWlanIface(physicalWlan)
             for sta in wifiNodes:
-                if 'station' == sta.type:
+                if sta.type == 'station' or sta.type == 'vehicle':
                     for wlan in range(0, len(sta.params['wlan'])):
                         sta.params['rssi'].append(0)
                         os.system('iw phy %s set netns %s' % (phyList[i], sta.pid))

@@ -74,15 +74,19 @@ class mobility (object):
                 if 'encrypt' not in ap.params:
                     sta.pexec('iwconfig %s essid %s ap %s' % (sta.params['wlan'][wlan], ap.params['ssid'][0], ap.params['mac'][0]))
                 else:
+                    if 'passwd' not in sta.params:
+                        passwd = ap.params['passwd'][0]
+                    else:
+                        passwd = sta.params['passwd'][wlan]
                     if ap.params['encrypt'][0] == 'wpa' or ap.params['encrypt'][0] == 'wpa2':
                         os.system('pkill -f \'wpa_supplicant -B -Dnl80211 -i %s\'' % sta.params['wlan'][wlan])
                         sta.cmd("wpa_supplicant -B -Dnl80211 -i %s -c <(wpa_passphrase \"%s\" \"%s\")" \
-                                                             % (sta.params['wlan'][wlan], ap.params['ssid'][0], sta.params['passwd'][wlan]))
+                                                             % (sta.params['wlan'][wlan], ap.params['ssid'][0], passwd))
                     elif ap.params['encrypt'][0] == 'wep':
                         debug('\niw dev %s connect %s key d:0:%s' \
-                                                            % (sta.params['wlan'][wlan], ap.params['ssid'][0], sta.params['passwd'][wlan]))
+                                                            % (sta.params['wlan'][wlan], ap.params['ssid'][0], passwd))
                         sta.pexec('iw dev %s connect %s key d:0:%s' \
-                                                            % (sta.params['wlan'][wlan], ap.params['ssid'][0], sta.params['passwd'][wlan]))
+                                                            % (sta.params['wlan'][wlan], ap.params['ssid'][0], passwd))
                 sta.params['frequency'][wlan] = channelParameters.frequency(ap, 0)
                 ap.params['associatedStations'].append(sta)
                 sta.params['associatedTo'][wlan] = ap                  
@@ -182,7 +186,7 @@ class mobility (object):
             for n in range (0, len(nodes)):
                 node = nodes[n]
                 if node in staMov:
-                    if 'station' == node.type:
+                    if 'station' == node.type or 'vehicle' == node.type:
                         node.params['position'] = xy[i][0], xy[i][1], 0
                         i += 1
                         if self.DRAW:
@@ -220,6 +224,9 @@ class mobility (object):
                     if node.func[wlan] != 'mesh' and node.func[wlan] != 'adhoc':
                         self.nodeParameter(node, wlan)
                     elif node.func[wlan] == 'mesh' :
+                        if node.type == 'vehicle':
+                            node = node.params['carsta']
+                            wlan = 0
                         dist = listNodes.pairingNodes(node, wlan, self.staList)
                         if dist != 0:
                             channelParameters(node, None, wlan, dist, self.staList, 0)
@@ -231,6 +238,9 @@ class mobility (object):
                     for wlan in range(0, len(node.params['wlan'])):
                         if node.func[wlan] == 'mesh':
                             """Mesh Routing"""
+                            if node.type == 'vehicle':
+                                node = node.params['carsta']
+                                wlan = 0
                             try:
                                 meshRouting.customMeshRouting(node, wlan, self.staList)
                             except:
@@ -245,7 +255,6 @@ class mobility (object):
         associated = True
         # time = abs(sta.params['speed'])
         staList = self.staList
-
         if ap == sta.params['associatedTo'][wlan]:
             if dist > ap.params['range']:
                 debug('\niw dev %s disconnect' % sta.params['wlan'][wlan])

@@ -155,6 +155,7 @@ class Mininet(object):
         self.topo = topo
         self.switch = switch        
         self.host = host
+        self.car = []
         self.controller = controller
         self.link = link
         self.intf = intf
@@ -319,28 +320,33 @@ class Mininet(object):
         defaults.update(params)
         if not cls:
             cls = self.host
-        sta = cls(name, **defaults)
+        car = cls(name, **defaults)
         
-        self.hosts.append(sta)
+        self.hosts.append(car)
         # self.stations.append(sta)
         # self.wifiNodes.append(sta)
-        self.nameToNode[ name ] = sta
-        self.missingStations.append(sta)
-        sta.type = 'vehicle'
-        self.wifiRadios = sta.addParameters(sta, self.wifiRadios, self.autoSetMacs, params, defaults)
+        self.nameToNode[ name ] = car
+        self.missingStations.append(car)
+        car.type = 'vehicle'
+        self.wifiRadios = car.addParameters(car, self.wifiRadios, self.autoSetMacs, params, defaults)
         
         carsta = self.addStation(name + 'STA')
+        #carsta.type = 'mesh'
+        car.params['carsta'] = carsta
         self.vehiclesSTA.append(carsta)
-        switchName = sta.name + 'SW'
+        switchName = car.name + 'SW'
         carsw = self.addSwitch(switchName)
         self.vehicles.append(carsw)
+        self.car.append(car)
+        self.wifiNodes.append(car)
         
+        car.func.append('')
+        car.func[1] = 'mesh'
         self.addLink(carsta, carsw)
-        self.addLink(sta, carsw)
+        self.addLink(car, carsw)
 
         self.nextIP += 1
-        # self.isVanet = True
-        return sta    
+        return car    
 
     # NOT SURE ABOUT THIS CLASSNAME
     def addVehicle(self, name, cls=None, **params):
@@ -655,7 +661,7 @@ class Mininet(object):
             sta.params['mac'][wlan] = self.getMacAddress(sta, wlan)
 
         if sta in self.missingStations:
-            self.missingStations.remove(n)
+            self.missingStations.remove(sta)
                 
         cls = Association
         cls.mesh(sta)
@@ -752,7 +758,6 @@ class Mininet(object):
 
         if sta in self.missingStations:
             self.missingStations.remove(sta)
-            
 
     def configureAP(self):
         """Configure AP"""
@@ -1075,6 +1080,15 @@ class Mininet(object):
 
     def build(self):
         # useful if there no link between sta and any other device
+        for car in self.car:
+            self.addMesh(car.params['carsta'], ssid='mesh-ssid')  
+            self.wifiNodes.remove(car.params['carsta'])     
+            self.stations.remove(car.params['carsta'])
+            self.stations.append(car)
+            mobility.staList.remove(car.params['carsta'])
+            mobility.staList.append(car)         
+            car.params['wlan'].append(0)   
+        
         "Build mininet."
         if self.ifaceConfigured == False:
             for node in self.missingStations:
@@ -1123,31 +1137,33 @@ class Mininet(object):
                     for wlan in range(0, len(node.params['wlan'])):
                         if node.func[wlan] == 'mesh':
                             """Mesh Routing"""
-                            meshRouting.customMeshRouting(node, wlan, self.stations)
+                            if node.type != 'vehicle':
+                                meshRouting.customMeshRouting(node, wlan, self.stations)
                 listNodes.clearList()
             
             for sta in self.stations:
-                if 'position' in sta.params:
-                    mobility.getAPsInRange(sta)
-                for wlan in range(0, len(sta.params['wlan'])):
-                    if sta.type == 'vehicle':
-                        if wlan > 0:
+                if sta.type != 'vehicle':
+                    if 'position' in sta.params:
+                        mobility.getAPsInRange(sta)
+                    for wlan in range(0, len(sta.params['wlan'])):
+                        if sta.type == 'vehicle':
+                            if wlan > 0:
+                                if sta.params['associatedTo'][wlan] == '' and \
+                                            (sta.func[wlan] != 'mesh' and sta.func[wlan] != 'adhoc') and \
+                                            sta.func[wlan] != 'wifiDirect':
+                                    if 'position' in sta.params and sta.params['associatedTo'][wlan] != '':
+                                        mobility.nodeParameter(sta, wlan)
+                                    if sta.params['mac'][wlan] == '':
+                                        sta.params['mac'][wlan] = self.getMacAddress(sta, wlan)                        
+                        else:
                             if sta.params['associatedTo'][wlan] == '' and \
-                                        (sta.func[wlan] != 'mesh' and sta.func[wlan] != 'adhoc') and \
-                                        sta.func[wlan] != 'wifiDirect':
+                                            (sta.func[wlan] != 'mesh' and sta.func[wlan] != 'adhoc') and \
+                                            sta.func[wlan] != 'wifiDirect':
                                 if 'position' in sta.params and sta.params['associatedTo'][wlan] != '':
                                     mobility.nodeParameter(sta, wlan)
                                 if sta.params['mac'][wlan] == '':
-                                    sta.params['mac'][wlan] = self.getMacAddress(sta, wlan)                        
-                    else:
-                        if sta.params['associatedTo'][wlan] == '' and \
-                                        (sta.func[wlan] != 'mesh' and sta.func[wlan] != 'adhoc') and \
-                                        sta.func[wlan] != 'wifiDirect':
-                            if 'position' in sta.params and sta.params['associatedTo'][wlan] != '':
-                                mobility.nodeParameter(sta, wlan)
-                            if sta.params['mac'][wlan] == '':
-                                sta.params['mac'][wlan] = self.getMacAddress(sta, wlan)
-        
+                                    sta.params['mac'][wlan] = self.getMacAddress(sta, wlan)
+            
         if self.topo:
             self.buildFromTopo(self.topo)
         if self.firstAssociation:

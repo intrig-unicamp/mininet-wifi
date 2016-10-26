@@ -1370,7 +1370,7 @@ class AccessPoint(Switch):
             elif ap.params['encrypt'][0] == 'wep':
                 cmd = cmd + ("\nauth_algs=%s" % auth_algs)
                 cmd = cmd + ("\nwep_default_key=%s" % 0)
-                cmd = cmd + self.verifyKey(wep_key0)
+                cmd = cmd + self.verifyWepKey(wep_key0)
             
         cmd = cmd + '\nctrl_interface=/var/run/hostapd'
         cmd = cmd + '\nctrl_interface_group=0'
@@ -1393,20 +1393,20 @@ class AccessPoint(Switch):
                 if (ap.params['encrypt'][i] == 'wep'):
                     cmd = cmd + ("\nauth_algs=%s" % auth_algs)
                     cmd = cmd + ("\nwep_default_key=0")
-                    cmd = cmd + self.verifyKey(wep_key0)
+                    cmd = cmd + self.verifyWepKey(wep_key0)
                 ap.params['mac'][i] = ap.params['mac'][wlan][:-1] + str(i)
                 self.checkNetworkManager(ap.params['mac'][i])                
 
         self.APConfigFile(cmd, ap, wlan)
     
     @classmethod    
-    def verifyKey(self, wep_key0):
+    def verifyWepKey(self, wep_key0):
         if len(wep_key0) == 10 or len(wep_key0) == 26 or len(wep_key0) == 32:
             cmd = ("\nwep_key0=%s" % wep_key0)
         elif len(wep_key0) == 5 or len(wep_key0) == 13 or len(wep_key0) == 16:
             cmd = ("\nwep_key0=\"%s\"" % wep_key0)
         else:
-            info( "Wep Key is wrong!" )
+            info("Warning! Wep Key is wrong!\n")
             exit(1)
         return cmd
 
