@@ -24,16 +24,19 @@ class channelParameters (object):
     pL = 0  # Power Loss Coefficient
     nFloors = 0  # Number of floors
     gRandom = 0  # Gaussian random variable
+    equationLoss = '(dist * 2) / 100'
+    equationDelay = '(dist / 10) + 1'
+    equationLatency = '2 + dist'
+    equationBw = 'custombw * (1.1 ** -dist)'
 
     def __init__(self, node1, node2, wlan, dist, staList, time):
         self.dist = dist
-        if dist >= 0.01:
-            # self.calculateInterference(node1, node2, dist, staList, wlan)
-            self.delay_ = self.delay(self.dist, time)
-            self.latency_ = self.latency(self.dist)
-            self.loss_ = self.loss(self.dist)
-            self.bw_ = self.bw(node1, node2, self.dist, wlan)
-            self.tc(node1, wlan, self.bw_, self.loss_, self.latency_, self.delay_)
+        # self.calculateInterference(node1, node2, dist, staList, wlan)
+        self.delay_ = self.delay(self.dist, time)
+        self.latency_ = self.latency(self.dist)
+        self.loss_ = self.loss(self.dist)
+        self.bw_ = self.bw(node1, node2, self.dist, wlan)
+        self.tc(node1, wlan, self.bw_, self.loss_, self.latency_, self.delay_)
 
     @classmethod
     def getDistance(self, src, dst):
@@ -47,28 +50,21 @@ class channelParameters (object):
     @classmethod
     def delay(self, dist, time):
         """"Based on RandomPropagationDelayModel"""
-        if time != 0:
-            self.delay_ = dist / time
-        else:
-            self.delay_ = (dist / 10) + 1
+        self.delay_ = eval(self.equationDelay)
         return self.delay_
 
     @classmethod
     def latency(self, dist):
-        self.latency_ = 2 + dist
+        self.latency_ = eval(self.equationLatency)
         return self.latency_
 
     @classmethod
     def loss(self, dist):
-        if dist != 0:
-            self.loss_ = (dist * 2) / 100
-        else:
-            self.loss_ = 0.1
+        self.loss_ = eval(self.equationLoss)
         return self.loss_
 
     @classmethod
     def bw(self, sta, ap, dist, wlan, isReplay = False):
-        self.rate = 0
         if propagationModel_.model == '':
             propagationModel_.model = 'friisPropagationLossModel'
         
@@ -98,8 +94,7 @@ class channelParameters (object):
                 sta.params['rssi'][wlan] = value.rssi  # random.uniform(value.rssi-1, value.rssi+1)
         value = deviceDataRate(sta, ap, wlan)
         custombw = value.rate
-        self.rate = custombw * (1.1 ** -dist)
-        #self.rate = abs(random.uniform(self.rate - 0.2, self.rate + 0.2))
+        self.rate = eval(self.equationBw)
         if self.rate <= 0:
             self.rate = 0.1
         return self.rate

@@ -19,11 +19,7 @@ from mininet.wifiPlot import plot
 class mobility (object):
     """ Mobility """
 
-    MAX_X = 50
-    MAX_Y = 50
     moveFac = {}
-    initialPosition = {}
-    finalPosition = {}
     associationControlMethod = False
     apList = []
     staList = []
@@ -34,13 +30,12 @@ class mobility (object):
     isMobility = False
 
     @classmethod
-    def moveFactor(self, sta, diffTime, initialPosition, finalPosition):
+    def moveFactor(self, sta, diffTime):
         """
-            Moving nodes
             diffTime: important to calculate the speed  
         """
-        self.initialPosition[sta] = initialPosition
-        self.finalPosition[sta] = finalPosition
+        initialPosition = sta.params['initialPosition']
+        finalPosition = sta.params['finalPosition']
 
         sta.params['position'] = initialPosition
         pos_x = float(finalPosition[0]) - float(initialPosition[0])
@@ -48,10 +43,10 @@ class mobility (object):
         pos_z = float(finalPosition[2]) - float(initialPosition[2])
 
         self.nodeSpeed(sta, pos_x, pos_y, pos_z, diffTime)
-
         pos = '%.5f,%.5f,%.5f' % (pos_x / diffTime, pos_y / diffTime, pos_z / diffTime)
         pos = pos.split(',')
         self.moveFac[sta] = pos
+
         return pos
 
     @classmethod
@@ -66,9 +61,9 @@ class mobility (object):
                 sta.params['associatedTo'][wlan].params['associatedStations'].remove(sta)
             sta.pexec('iw dev %s disconnect' % sta.params['wlan'][wlan])
             sta.pexec('iwconfig %s essid %s ap %s' % (sta.params['wlan'][wlan], ap.params['ssid'][0], ap.params['mac'][0]))
-            sta.params['associatedTo'][wlan] = ap
             sta.params['frequency'][wlan] = channelParameters.frequency(ap, 0)
             ap.params['associatedStations'].append(sta)
+            sta.params['associatedTo'][wlan] = ap 
         elif ap not in sta.params['associatedTo']:
             if sta.params['associatedTo'][wlan] == '':
                 if 'encrypt' not in ap.params:
@@ -82,36 +77,41 @@ class mobility (object):
                         os.system('pkill -f \'wpa_supplicant -B -Dnl80211 -i %s\'' % sta.params['wlan'][wlan])
                         sta.cmd("wpa_supplicant -B -Dnl80211 -i %s -c <(wpa_passphrase \"%s\" \"%s\")" \
                                                              % (sta.params['wlan'][wlan], ap.params['ssid'][0], passwd))
+                        
                     elif ap.params['encrypt'][0] == 'wep':
-                        debug('\niw dev %s connect %s key d:0:%s' \
-                                                            % (sta.params['wlan'][wlan], ap.params['ssid'][0], passwd))
                         sta.pexec('iw dev %s connect %s key d:0:%s' \
                                                             % (sta.params['wlan'][wlan], ap.params['ssid'][0], passwd))
                 sta.params['frequency'][wlan] = channelParameters.frequency(ap, 0)
                 ap.params['associatedStations'].append(sta)
-                sta.params['associatedTo'][wlan] = ap                  
+                sta.params['associatedTo'][wlan] = ap        
 
     @classmethod
-    def mobilityPositionDefined(self, initial_time, final_time):
+    def mobilityPositionDefined(self, init_time=0, final_time=0, stations=None, aps=None, walls=None, MAX_X=0, MAX_Y=0):
         """ ongoing Mobility """
         t_end = time.time() + final_time
-        t_initial = time.time() + initial_time
+        t_initial = time.time() + init_time
         currentTime = time.time()
         i = 1
+        
+        self.wallList = walls
+        self.staList = stations
+        self.apList = aps
         nodes = self.staList + self.apList
 
+        #useful for creating line between source and destination
         dic = dict()
-        dic['max_x'] = self.MAX_X
-        dic['max_y'] = self.MAX_Y
+        dic['max_x'] = MAX_X
+        dic['max_y'] = MAX_Y
         
+        #if there is finalPosition, there is mobility.
         staMov = []
         for sta in self.staList:
-            if sta in self.finalPosition:
+            if 'finalPosition' in sta.params:
                 staMov.append(sta)
 
         if self.DRAW == True:
-            plot.instantiateGraph(self.MAX_X, self.MAX_Y)
-            plot.plotGraph(nodes, mobility.wallList, staMov, **dic)
+            plot.instantiateGraph(MAX_X, MAX_Y)
+            plot.plotGraph(nodes, self.wallList, staMov, **dic)
 
         try:
             while time.time() < t_end and time.time() > t_initial:
@@ -133,13 +133,14 @@ class mobility (object):
             info('Error! Mobility stopped!\n')
 
     @classmethod
-    def models(self, nodes=None, model=None, staMov=None, min_v=0, max_v=0, seed=None,
-               **mobilityparam):
+    def models(self, nodes=None, model=None, staMov=None, min_v=0, max_v=0, seed=None, stations=None, aps=None,
+               walls=None, MAX_X=0, MAX_Y=0, **mobilityparam):
 
         np.random.seed(seed)
-
-        # simulation area (units)
-        MAX_X, MAX_Y = self.MAX_X, self.MAX_Y
+        
+        self.staList = stations
+        self.apList = aps
+        self.wallList = walls
 
         dic = dict()
         dic['max_x'] = MAX_X
@@ -157,6 +158,12 @@ class mobility (object):
                 sta.max_v = max_v
             if sta.min_v == 0:
                 sta.min_v = min_v
+        
+        staMovList = []
+        for node in nodes:
+            if node in staMov:
+                if 'station' == node.type or 'vehicle' == node.type:          
+                    staMovList.append(node)
 
         debug('Configuring the mobility model %s' % model)
 
@@ -178,28 +185,25 @@ class mobility (object):
             raise Exception("Model not defined!")
 
         if self.DRAW:
-            plot.instantiateGraph(self.MAX_X, self.MAX_Y)
-            plot.plotGraph(nodes, mobility.wallList, staMov, **dic)
+            plot.instantiateGraph(MAX_X, MAX_Y)
+            plot.plotGraph(nodes, self.wallList, staMov, **dic)
 
         for xy in mob:
             i = 0
-            for n in range (0, len(nodes)):
-                node = nodes[n]
-                if node in staMov:
-                    if 'station' == node.type or 'vehicle' == node.type:
-                        node.params['position'] = xy[i][0], xy[i][1], 0
-                        i += 1
-                        if self.DRAW:
-                            plot.pltNode[node].set_data(xy[:, 0], xy[:, 1])
-                            plot.drawTxt(node)
-                            plot.drawCircle(node)
+            for node in staMovList:
+                node.params['position'] = xy[i][0], xy[i][1], 0
+                i += 1
+                if self.DRAW:
+                    plot.pltNode[node].set_data(xy[:, 0], xy[:, 1])
+                    plot.drawTxt(node)
+                    plot.drawCircle(node)
             if self.DRAW:
                 plot.graphUpdate(node)
                 plot.graphPause()
                 
     @classmethod
     def getAPsInRange(self, sta):
-        for ap in mobility.apList:
+        for ap in self.apList:
             dist = channelParameters.getDistance(sta, ap)
             if dist < ap.params['range']:
                 if ap not in sta.params['apsInRange']:
@@ -210,7 +214,7 @@ class mobility (object):
 
     @classmethod
     def nodeParameter(self, sta, wlan):
-        for ap in mobility.apList:
+        for ap in self.apList:
             dist = channelParameters.getDistance(sta, ap)
             self.getAPsInRange(sta)
             self.setChannelParameters(sta, ap, dist, wlan)
@@ -228,10 +232,10 @@ class mobility (object):
                             node = node.params['carsta']
                             wlan = 0
                         dist = listNodes.pairingNodes(node, wlan, self.staList)
-                        if dist != 0:
+                        if dist >= 0.01:
                             channelParameters(node, None, wlan, dist, self.staList, 0)
                     else:
-                        if dist != 0:
+                        if dist >= 0.01:
                             channelParameters(node, None, wlan, dist, self.staList, 0)
             if meshRouting.routing == 'custom':
                 for node in mobility.staList:
@@ -257,13 +261,13 @@ class mobility (object):
         staList = self.staList
         if ap == sta.params['associatedTo'][wlan]:
             if dist > ap.params['range']:
-                debug('\niw dev %s disconnect' % sta.params['wlan'][wlan])
                 sta.pexec('iw dev %s disconnect' % sta.params['wlan'][wlan])
                 sta.params['associatedTo'][wlan] = ''
                 sta.params['rssi'][wlan] = 0
                 ap.params['associatedStations'].remove(sta)
             else:
-                channelParameters(sta, ap, wlan, dist, staList, 0)
+                if dist >= 0.01:
+                    channelParameters(sta, ap, wlan, dist, staList, 0)
         else:
             if dist < ap.params['range']:
                 if sta.params['associatedTo'][wlan] == '':
@@ -285,6 +289,7 @@ class mobility (object):
             # Go to handover
             if associated == False or changeAP == True:
                 self.handover(sta, ap, wlan, dist, changeAP, ac)
-                channelParameters(sta, ap, wlan, dist, staList, 0)
+                if dist >= 0.01:
+                    channelParameters(sta, ap, wlan, dist, staList, 0)
         # have to verify this
         time.sleep(0.01)

@@ -907,11 +907,19 @@ class Association(Link):
 
     @classmethod
     def associate_wpa(self, sta, ap, wlan):
+        if 'passwd' not in sta.params:
+            passwd = ap.params['passwd'][0]
+        else:
+            passwd = sta.params['passwd'][wlan]
         sta.cmd("wpa_supplicant -B -Dnl80211 -i %s-wlan%s -c <(wpa_passphrase \"%s\" \"%s\")" \
-                % (sta, wlan, ap.params['ssid'][0], ap.params['passwd'][0]))
+                % (sta, wlan, ap.params['ssid'][0], passwd))
 
     @classmethod
     def associate_wep(self, sta, ap, wlan):
-        sta.cmd('iw dev %s-wlan%s connect %s key d:0:%s' \
-                % (sta, wlan, ap.params['ssid'][0], ap.params['passwd'][0]))
+        if 'passwd' not in sta.params:
+            passwd = ap.params['passwd'][0]
+        else:
+            passwd = sta.params['passwd'][wlan]
+        sta.pexec('iw dev %s-wlan%s connect %s key d:0:%s' \
+                % (sta, wlan, ap.params['ssid'][0], passwd))
     

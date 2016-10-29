@@ -45,6 +45,9 @@ class vanet(object):
 
     def __init__(self, cars, baseStations, nroads, MAX_X, MAX_Y):
 
+        mobility.staList = cars
+        mobility.MAX_X = MAX_X
+        mobility.MAX_Y = MAX_Y
         [self.road.append(x) for x in range(0, nroads)]
         [self.points.append(x) for x in range(0, nroads)]
         [self.totalRoads.append(x) for x in range(0, nroads)]
