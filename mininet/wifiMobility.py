@@ -28,6 +28,8 @@ class mobility (object):
     DRAW = False
     continue_ = True
     isMobility = False
+    MAX_X = 0
+    MAX_Y = 0
 
     @classmethod
     def moveFactor(self, sta, diffTime):
@@ -97,6 +99,11 @@ class mobility (object):
         self.staList = stations
         self.apList = aps
         nodes = self.staList + self.apList
+
+        if mobility.MAX_X != 0:
+            MAX_X = mobility.MAX_X
+        if mobility.MAX_Y != 0:
+            MAX_Y = mobility.MAX_Y
 
         #useful for creating line between source and destination
         dic = dict()

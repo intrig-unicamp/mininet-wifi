@@ -1365,7 +1365,7 @@ class AccessPoint(Switch):
                 cmd = cmd + ("\nauth_algs=%s" % auth_algs)
                 cmd = cmd + ("\nwpa=%s" % wpa)
                 cmd = cmd + ("\nwpa_key_mgmt=%s" % wpa_key_mgmt)
-                cmd = cmd + ("\nrsn_pairwise=%s" % rsn_pairwise)
+                #cmd = cmd + ("\nrsn_pairwise=%s" % rsn_pairwise)
                 cmd = cmd + ("\nwpa_passphrase=%s" % wpa_passphrase)
             elif ap.params['encrypt'][0] == 'wep':
                 cmd = cmd + ("\nauth_algs=%s" % auth_algs)

@@ -61,6 +61,7 @@ class CLI(Cmd):
                     sta.params['position'] = 0,0,0
             
             nodes = mobility.staList + mobility.apList
+            print nodes
             plot.instantiateGraph(mobility.MAX_X, mobility.MAX_Y)
             plot.plotGraph(nodes, mobility.wallList, staMov, **mobility.dic)
             plot.graphPause()
