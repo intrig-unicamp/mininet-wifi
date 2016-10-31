@@ -1624,12 +1624,8 @@ class Mininet(object):
         mobility.DRAW = True
         if 'max_x' in kwargs:
             self.MAX_X = kwargs['max_x']
-            mobility.MAX_X = self.MAX_X
-            mobility.staList = self.stations
-            mobility.apList = self.accessPoints
         if 'max_y' in kwargs:
             self.MAX_Y = kwargs['max_y']
-            mobility.MAX_Y = self.MAX_Y
         mobility.dic = kwargs
 
     def getCurrentPosition(self, node):
