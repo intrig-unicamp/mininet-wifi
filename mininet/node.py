@@ -237,7 +237,7 @@ class Node(object):
 
         # min_y
         if 'min_y' in params:
-            node.min_x = int(params['min_y'])
+            node.min_y = int(params['min_y'])
 
         # min_v
         if 'min_v' in params:
