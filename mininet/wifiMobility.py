@@ -236,10 +236,10 @@ class mobility (object):
                             wlan = 0
                         dist = listNodes.pairingNodes(node, wlan, self.staList)
                         if dist >= 0.01:
-                            channelParameters(node, None, wlan, dist, self.staList, 0)
+                            channelParameters(node, None, wlan, dist, self.staList)
                     else:
                         if dist >= 0.01:
-                            channelParameters(node, None, wlan, dist, self.staList, 0)
+                            channelParameters(node, None, wlan, dist, self.staList)
             if meshRouting.routing == 'custom':
                 for node in mobility.staList:
                     for wlan in range(0, len(node.params['wlan'])):
@@ -270,7 +270,7 @@ class mobility (object):
                 ap.params['associatedStations'].remove(sta)
             else:
                 if dist >= 0.01:
-                    channelParameters(sta, ap, wlan, dist, staList, 0)
+                    channelParameters(sta, ap, wlan, dist, staList)
         else:
             if dist < ap.params['range']:
                 if sta.params['associatedTo'][wlan] == '':
@@ -293,6 +293,6 @@ class mobility (object):
             if associated == False or changeAP == True:
                 self.handover(sta, ap, wlan, dist, changeAP, ac)
                 if dist >= 0.01:
-                    channelParameters(sta, ap, wlan, dist, staList, 0)
+                    channelParameters(sta, ap, wlan, dist, staList)
         # have to verify this
         time.sleep(0.01)

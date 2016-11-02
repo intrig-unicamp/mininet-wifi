@@ -660,7 +660,7 @@ class Mininet(object):
             self.missingStations.remove(sta)
                 
         cls = Association
-        cls.mesh(sta)
+        cls.mesh(sta, self.stations)
         self.tc(sta, self.bw)
         sta.ifaceToAssociate += 1
 
@@ -1082,17 +1082,17 @@ class Mininet(object):
                         value = pairingAdhocNodes(sta, wlan, self.stations)
                         dist = value.dist
                         if dist >= 0.01:
-                            channelParameters(sta, None, wlan, dist, self.stations, 0)
+                            channelParameters(sta, None, wlan, dist, self.stations)
                     elif 'position' in sta.params and sta.func[wlan] == 'mesh':
                         dist = listNodes.pairingNodes(sta, wlan, self.stations)
                         if dist >= 0.01:
-                            channelParameters(sta, None, wlan, dist, self.stations, 0)
+                            channelParameters(sta, None, wlan, dist, self.stations)
                         cls = Association
                         cls.confirmMeshAssociation(sta, wlan)
                     elif 'position' in sta.params and sta.params['associatedTo'][wlan] != '':
                         dist = channelParameters.getDistance(sta, sta.params['associatedTo'][wlan])
                         if dist >= 0.01:
-                            channelParameters(sta, sta.params['associatedTo'][wlan], wlan, dist, self.stations, 0)
+                            channelParameters(sta, sta.params['associatedTo'][wlan], wlan, dist, self.stations)
             
             if meshRouting.routing == 'custom':
                 for node in self.stations:

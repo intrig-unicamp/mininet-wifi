@@ -447,7 +447,7 @@ class Node(object):
                     d = channelParameters.getDistance(sta, station)
                     if d < int(sta.params['range']) + int(station.params['range']):
                         associate = True
-                channelParameters(sta, None, wlan, 0, mobility.staList, 0)
+                channelParameters(sta, None, wlan, 0, mobility.staList)
                 if associate == False:
                     sta.cmd('iw dev %s-mp%s mesh leave' % (sta, wlan))
             else:
@@ -528,7 +528,7 @@ class Node(object):
                 self.cmd('iw dev %s connect %s' % (iface, ap.ssid[0]))
                 cls = Association
                 cls.confirmInfraAssociation(self, ap, wlan)
-                channelParameters(self, ap, wlan, d, mobility.staList, 0)
+                channelParameters(self, ap, wlan, d, mobility.staList)
             else:
                 info ('%s is already connected!\n' % ap)
             mobility.getAPsInRange(self)

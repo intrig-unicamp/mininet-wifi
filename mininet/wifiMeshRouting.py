@@ -4,6 +4,7 @@ author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
 """
 
 from mininet.wifiChannel import channelParameters
+from mininet.log import debug
 
 class listNodes (object):
 
@@ -43,11 +44,11 @@ class listNodes (object):
                     ref_sta.params['position'] = car.params['position']
                 if ref_sta != sta and ref_sta.func[wlan] == 'mesh' :
                     dist = channelParameters.getDistance(sta, ref_sta)
-                    if dist != 0.0:
-                        totalRange = int(sta.params['range']) + int(ref_sta.params['range'])
-                        if dist < totalRange:
+                    if dist >= 0.1:
+                        totalRange = int(sta.params['range'])
+                        if dist <= totalRange:
                             cont = True
-                            ref_distance = ref_distance + dist
+                            ref_distance = dist
                             if currentSta == sta:
                                 listNodes.nodesX.append(sta)
                                 listNodes.nodesY.append(ref_sta)
@@ -58,6 +59,8 @@ class listNodes (object):
                                         ref_sta.params['associatedTo'][wlan] != ssid and sta not in alreadyConn:
                                     alreadyConn.append(sta)
                                     sta.params['associatedTo'][wlan] = ref_sta.params['associatedTo'][wlan]
+                                    debug('\niw dev %s mesh join %s' % (sta.params['wlan'][wlan], \
+                                                                          sta.params['associatedTo'][wlan]))
                                     sta.pexec('iw dev %s mesh join %s' % (sta.params['wlan'][wlan], \
                                                                           sta.params['associatedTo'][wlan]))
                                 else:
@@ -65,11 +68,15 @@ class listNodes (object):
                                                                                                 sta not in alreadyConn:
                                         alreadyConn.append(sta)
                                         sta.params['associatedTo'][wlan] = sta.params['ssid'][wlan] + str(self.ssid_ID)
+                                        debug('\niw dev %s mesh join %s' % (sta.params['wlan'][wlan], \
+                                                                              sta.params['associatedTo'][wlan]))
                                         sta.pexec('iw dev %s mesh join %s' % (sta.params['wlan'][wlan], \
                                                                               sta.params['associatedTo'][wlan]))
                                 if ref_sta not in alreadyConn:
                                     alreadyConn.append(ref_sta)
                                     ref_sta.params['associatedTo'][wlan] = sta.params['ssid'][wlan] + str(self.ssid_ID)
+                                    debug('\niw dev %s mesh join %s' % (ref_sta.params['wlan'][wlan], 
+                                                                              ref_sta.params['associatedTo'][wlan]))
                                     ref_sta.pexec('iw dev %s mesh join %s' % (ref_sta.params['wlan'][wlan], 
                                                                               ref_sta.params['associatedTo'][wlan]))
                             if ref_sta not in list:
@@ -101,8 +108,8 @@ class meshRouting (object):
             for ref_wlan in range(len(ref_sta.params['wlan'])):
                 if ref_sta != sta and ref_sta.func[ref_wlan] == 'mesh' and 'position' in sta.params:
                     dist = channelParameters.getDistance(sta, ref_sta)
-                    totalRange = int(sta.params['range']) + int(ref_sta.params['range'])
-                    if dist < totalRange:
+                    totalRange = int(sta.params['range'])
+                    if dist <= totalRange:
                         if ref_sta.func[ref_wlan] == 'mesh':
                             if sta.params['associatedTo'][wlan] == ref_sta.params['associatedTo'][ref_wlan]:
                                 associate = True
@@ -126,6 +133,7 @@ class meshRouting (object):
                     if x == sta and y not in exist:
                         command = 'iw dev %s mpath new %s next_hop %s' % (sta.params['wlan'][wlan], \
                                                                           y.meshMac[wlan], y.meshMac[wlan])
+                        debug('\n'+command)
                         sta.pexec(command)
                         exist.append(y)
                         controlMeshMac.append(y.meshMac[wlan])
@@ -133,6 +141,7 @@ class meshRouting (object):
                     elif x == newsta and y not in exist:
                         command = 'iw dev %s mpath new %s next_hop %s' % (sta.params['wlan'][wlan], \
                                                                           y.meshMac[wlan], x.meshMac[wlan])
+                        debug('\n'+command)
                         sta.pexec(command)
                         exist.append(y)
                         controlMeshMac.append(y.meshMac[wlan])
@@ -153,5 +162,6 @@ class meshRouting (object):
 
         """mesh leave"""
         if associate == False:
+            debug('\niw dev %s mesh leave' % sta.params['wlan'][wlan])
             sta.pexec('iw dev %s mesh leave' % sta.params['wlan'][wlan])
             sta.params['associatedTo'][wlan] = ''

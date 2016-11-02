@@ -29,10 +29,10 @@ class channelParameters (object):
     equationLatency = '2 + dist'
     equationBw = 'custombw * (1.1 ** -dist)'
 
-    def __init__(self, node1, node2, wlan, dist, staList, time):
+    def __init__(self, node1, node2, wlan, dist, staList):
         self.dist = dist
         # self.calculateInterference(node1, node2, dist, staList, wlan)
-        self.delay_ = self.delay(self.dist, time)
+        self.delay_ = self.delay(self.dist)
         self.latency_ = self.latency(self.dist)
         self.loss_ = self.loss(self.dist)
         self.bw_ = self.bw(node1, node2, self.dist, wlan)
@@ -48,7 +48,7 @@ class channelParameters (object):
         return float(dist)
 
     @classmethod
-    def delay(self, dist, time):
+    def delay(self, dist):
         """"Based on RandomPropagationDelayModel"""
         self.delay_ = eval(self.equationDelay)
         return self.delay_

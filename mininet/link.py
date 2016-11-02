@@ -825,7 +825,7 @@ class Association(Link):
         self.confirmAdhocAssociation(sta, iface, wlan)
         
     @classmethod    
-    def mesh(self, sta):
+    def mesh(self, sta, stations):
         wlan = sta.ifaceToAssociate
         sta.params['rssi'][wlan] = -62
         if sta.params['mac'][wlan] != '':
@@ -844,8 +844,21 @@ class Association(Link):
         cls(sta, port1=wlan, intfName1 = sta.params['wlan'][wlan])
         
         sta.cmd('ifconfig %s %s up' % (sta.params['wlan'][wlan], sta.params['ip'][wlan]))
-        info("associating %s to %s...\n" % (iface, sta.params['ssid'][wlan]))
-        sta.cmd('iw dev %s mesh join %s' % (iface, sta.params['ssid'][wlan]))
+        if 'position' in sta.params:
+            self.meshAssociation(sta, stations, wlan)
+        else:
+            info("associating %s to %s...\n" % (sta.params['wlan'][wlan], sta.params['ssid'][wlan]))
+            sta.cmd('iw dev %s mesh join %s' % (sta.params['wlan'][wlan], sta.params['ssid'][wlan]))
+        
+    @classmethod    
+    def meshAssociation(self, sta, stations, wlan):
+        for station in stations:
+            if station != sta:
+                dist = channelParameters.getDistance(sta, station)
+                if dist <= int(station.params['range']):
+                    info("associating %s to %s...\n" % (sta.params['wlan'][wlan], sta.params['ssid'][wlan]))
+                    sta.cmd('iw dev %s mesh join %s' % (sta.params['wlan'][wlan], sta.params['ssid'][wlan]))
+                    break
         
     _macMatchRegex = re.compile(r'..:..:..:..:..:..')
     
@@ -888,7 +901,7 @@ class Association(Link):
     
     @classmethod
     def associate(self, sta, ap):
-        """ Associate to an Access Point """
+        """ Associate to Access Point """
         wlan = sta.ifaceToAssociate
         self.associate_infra(sta, ap, wlan)
         sta.ifaceToAssociate += 1
