@@ -46,6 +46,9 @@ class listNodes (object):
                     dist = channelParameters.getDistance(sta, ref_sta)
                     if dist >= 0.1:
                         totalRange = int(sta.params['range'])
+                        ref_totalRange = int(ref_sta.params['range'])
+                        if ref_totalRange > totalRange:
+                            totalRange = ref_totalRange
                         if dist <= totalRange:
                             cont = True
                             ref_distance = dist
@@ -109,6 +112,9 @@ class meshRouting (object):
                 if ref_sta != sta and ref_sta.func[ref_wlan] == 'mesh' and 'position' in sta.params:
                     dist = channelParameters.getDistance(sta, ref_sta)
                     totalRange = int(sta.params['range'])
+                    ref_totalRange = int(ref_sta.params['range'])
+                    if ref_totalRange > totalRange:
+                        totalRange = ref_totalRange
                     if dist <= totalRange:
                         if ref_sta.func[ref_wlan] == 'mesh':
                             if sta.params['associatedTo'][wlan] == ref_sta.params['associatedTo'][ref_wlan]:
@@ -130,6 +136,7 @@ class meshRouting (object):
                 else:
                     newsta = sta_ref[0]
                 for x, y in zip(listNodes.nodesX, listNodes.nodesY):
+                    print sta
                     if x == sta and y not in exist:
                         command = 'iw dev %s mpath new %s next_hop %s' % (sta.params['wlan'][wlan], \
                                                                           y.meshMac[wlan], y.meshMac[wlan])
