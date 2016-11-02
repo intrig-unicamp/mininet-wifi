@@ -88,7 +88,8 @@ class mobility (object):
                 sta.params['associatedTo'][wlan] = ap        
 
     @classmethod
-    def mobilityPositionDefined(self, init_time=0, final_time=0, stations=None, aps=None, walls=None, MAX_X=0, MAX_Y=0):
+    def mobilityPositionDefined(self, init_time=0, final_time=0, stations=None, aps=None, walls=None, 
+                                dstConn=None, srcConn=None, MAX_X=0, MAX_Y=0):
         """ ongoing Mobility """
         t_end = time.time() + final_time
         t_initial = time.time() + init_time
@@ -113,7 +114,7 @@ class mobility (object):
 
         if self.DRAW == True:
             plot.instantiateGraph(MAX_X, MAX_Y)
-            plot.plotGraph(nodes, self.wallList, staMov, **dic)
+            plot.plotGraph(nodes, self.wallList, staMov, srcConn, dstConn, **dic)
 
         try:
             while time.time() < t_end and time.time() > t_initial:
@@ -136,7 +137,7 @@ class mobility (object):
 
     @classmethod
     def models(self, nodes=None, model=None, staMov=None, min_v=0, max_v=0, seed=None, stations=None, aps=None,
-               walls=None, MAX_X=0, MAX_Y=0, **mobilityparam):
+               dstConn=None, srcConn=None, walls=None, MAX_X=0, MAX_Y=0, **mobilityparam):
 
         np.random.seed(seed)
         
@@ -188,7 +189,7 @@ class mobility (object):
 
         if self.DRAW:
             plot.instantiateGraph(MAX_X, MAX_Y)
-            plot.plotGraph(nodes, self.wallList, staMov, **dic)
+            plot.plotGraph(nodes, self.wallList, staMov, srcConn, dstConn, **dic)
 
         for xy in mob:
             i = 0

@@ -107,7 +107,6 @@ class Node(object):
 
         # Station and BaseStation Parameters
         self.func = []
-        self.connections = {}
         self.type = 'host'        
 
         # Make pylint happy

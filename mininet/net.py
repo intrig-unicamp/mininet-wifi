@@ -195,6 +195,9 @@ class Mininet(object):
         self.stations = []
         self.vehicles = []
         self.vehiclesSTA = []
+        self.plotNodes = []
+        self.srcConn = []
+        self.dstConn = []
         self.walls = []
         self.terms = []  # list of spawned xterm processes
         self.isWiFi = isWiFi
@@ -925,14 +928,13 @@ class Mininet(object):
                 if self.firstAssociation:
                     self.configureWifiNodes()
 
-                conn = str(node2)
-                node1.connections[conn] = node2
-                conn = str(node1)
-                node2.connections[conn] = node1
-
             elif node1.type == 'accessPoint' or node2.type == 'accessPoint':
                 if self.firstAssociation:
                     self.configureWifiNodes()
+                    
+            if 'position' in node1.params and 'position' in node2.params:
+                self.srcConn.append(node1)
+                self.dstConn.append(node2)
 
             # necessary if does not exist link between sta and other device
             if node1 in self.missingStations:
@@ -1551,13 +1553,16 @@ class Mininet(object):
             if 'startTime' in kwargs:
                 self.init_time = kwargs['startTime']
 
+            nodes = self.wifiNodes + self.plotNodes
             mobilityparam.setdefault('seed', self.set_seed)
-            mobilityparam.setdefault('nodes', self.wifiNodes)
+            mobilityparam.setdefault('nodes', nodes)
             mobilityparam.setdefault('stations', self.stations)
             mobilityparam.setdefault('aps', self.accessPoints)
             mobilityparam.setdefault('walls', self.walls)
             mobilityparam.setdefault('MAX_X', self.MAX_X)
             mobilityparam.setdefault('MAX_Y', self.MAX_Y)
+            mobilityparam.setdefault('dstConn', self.dstConn)
+            mobilityparam.setdefault('srcConn', self.srcConn)
             
             staMov = []
             for sta in self.stations:
@@ -1591,6 +1596,8 @@ class Mininet(object):
         mobilityparam.setdefault('walls', self.walls)
         mobilityparam.setdefault('MAX_X', self.MAX_X)
         mobilityparam.setdefault('MAX_Y', self.MAX_Y)
+        mobilityparam.setdefault('dstConn', self.dstConn)
+        mobilityparam.setdefault('srcConn', self.srcConn)
 
         debug('Starting mobility thread...\n')
         self.thread = threading.Thread(name='mobility', target=mobility.mobilityPositionDefined, kwargs=dict(mobilityparam,))
@@ -1618,6 +1625,11 @@ class Mininet(object):
         """ Print the distance between two points """
         dist = channelParameters.getDistance(src, dst)
         info ("The distance between %s and %s is %.2f meters\n" % (src, dst, float(dist)))
+
+    def plotHost(self, host, position):
+        host.params['position'] = position.split(',')
+        host.params['range'] = 0
+        self.plotNodes.append(host)
 
     def plotGraph(self, **kwargs):
         """ Plot Graph """

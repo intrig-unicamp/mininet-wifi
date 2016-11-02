@@ -149,31 +149,28 @@ class plot (object):
         plot.graphUpdate(node)
 
     @classmethod
-    def plotGraph(self, wifiNodes=None, wallList=None, staMov=None, **kwargs):
+    def plotGraph(self, wifiNodes=None, wallList=None, staMov=None, srcConn=None, dstConn=None, **kwargs):
         """ Plot Graph """
         if 'max_x' in kwargs:
             MAX_X = kwargs['max_x']
         if 'max_y' in kwargs:
             MAX_Y = kwargs['max_y']
 
-        debug('Enabling Graph...\n')
+        debug('Enabling Graph...\n')           
         for node in wifiNodes:
             self.graphInstantiateNodes(node, MAX_X, MAX_Y)
-            if node not in staMov and 'accessPoint' == node.type:
-                self.pltNode[node].set_data(node.params['position'][0], node.params['position'][1])
-                self.drawTxt(node)
-                self.drawCircle(node)
-                for c in node.connections:
-                    line = plot.plotLine2d([node.connections[c].params['position'][0], node.params['position'][0]], \
-                                           [node.connections[c].params['position'][1], node.params['position'][1]], 'b')
-                    plot.plotLine(line)
-            else:
-                plot.pltNode[node].set_data(node.params['position'][0], node.params['position'][1])
-                plot.drawTxt(node)
-                plot.drawCircle(node)
+            plot.pltNode[node].set_data(node.params['position'][0], node.params['position'][1])
+            plot.drawTxt(node)
+            plot.drawCircle(node)
             self.graphUpdate(node)
+        
+        if srcConn!=None:
+            for c in range(0, len(srcConn)):
+                line = self.plotLine2d([srcConn[c].params['position'][0], dstConn[c].params['position'][0]], \
+                                       [srcConn[c].params['position'][1], dstConn[c].params['position'][1]], 'b')
+                plot.plotLine(line)
 
         for wall in wallList:
-            line = plot.plotLine2d([wall.params['initPos'][0], wall.params['finalPos'][0]], \
+            line = self.plotLine2d([wall.params['initPos'][0], wall.params['finalPos'][0]], \
                                        [wall.params['initPos'][1], wall.params['finalPos'][1]], 'r', wall.params['width'])
             self.plotLine(line)
