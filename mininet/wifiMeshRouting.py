@@ -136,7 +136,6 @@ class meshRouting (object):
                 else:
                     newsta = sta_ref[0]
                 for x, y in zip(listNodes.nodesX, listNodes.nodesY):
-                    print sta
                     if x == sta and y not in exist:
                         command = 'iw dev %s mpath new %s next_hop %s' % (sta.params['wlan'][wlan], \
                                                                           y.meshMac[wlan], y.meshMac[wlan])
