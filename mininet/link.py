@@ -845,9 +845,13 @@ class Association(Link):
         
         sta.cmd('ifconfig %s %s up' % (sta.params['wlan'][wlan], sta.params['ip'][wlan]))
         if 'position' not in sta.params:
-            info("associating %s to %s...\n" % (sta.params['wlan'][wlan], sta.params['ssid'][wlan]))
-            sta.cmd('iw dev %s mesh join %s' % (sta.params['wlan'][wlan], sta.params['ssid'][wlan]))
-        
+            self.meshAssociation(sta, wlan)
+    
+    @classmethod
+    def meshAssociation(self, sta, wlan):
+        info("associating %s to %s...\n" % (sta.params['wlan'][wlan], sta.params['ssid'][wlan]))
+        sta.pexec('iw dev %s mesh join %s' % (sta.params['wlan'][wlan], sta.params['ssid'][wlan]))
+    
     _macMatchRegex = re.compile(r'..:..:..:..:..:..')
     
     @classmethod
