@@ -11,6 +11,7 @@ class listNodes (object):
     nodesX = []
     nodesY = []
     ssid_ID = 0
+    list = []
 
     @classmethod
     def clearList(self):
@@ -29,8 +30,8 @@ class listNodes (object):
         alreadyConn = []
         cont = True
 
-        list = []
-        list.append(sta)
+        self.list = []
+        self.list.append(sta)
         currentSta = sta
 
         while cont:
@@ -82,9 +83,9 @@ class listNodes (object):
                                                                               ref_sta.params['associatedTo'][wlan]))
                                     ref_sta.pexec('iw dev %s mesh join %s' % (ref_sta.params['wlan'][wlan], 
                                                                               ref_sta.params['associatedTo'][wlan]))
-                            if ref_sta not in list:
+                            if ref_sta not in self.list:
                                 par.append(ref_sta)
-                                list.append(ref_sta)
+                                self.list.append(ref_sta)
                             i += 1
             if len(par) == 0:
                 cont = False
@@ -97,7 +98,20 @@ class meshRouting (object):
     """Mesh Routing"""
     routing = ''
 
-    @classmethod
+
+    def __init__(self, stationList):
+        
+        for node in stationList:
+            for wlan in range(0, len(node.params['wlan'])):
+                if node.func[wlan] == 'mesh':
+                    """Mesh Routing"""
+                    if node.type == 'vehicle':
+                        node = node.params['carsta']
+                        wlan = 0
+                    self.customMeshRouting(node, wlan, stationList)
+        listNodes.clearList()
+        listNodes.ssid_ID = 0
+
     def customMeshRouting(self, sta, wlan, stationList, **params):
         """Custom Mesh Routing"""
         associate = False

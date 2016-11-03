@@ -1095,13 +1095,7 @@ class Mininet(object):
                             channelParameters(sta, sta.params['associatedTo'][wlan], wlan, dist, self.stations)
             
             if meshRouting.routing == 'custom':
-                for node in self.stations:
-                    for wlan in range(0, len(node.params['wlan'])):
-                        if node.func[wlan] == 'mesh':
-                            """Mesh Routing"""
-                            if node.type != 'vehicle':
-                                meshRouting.customMeshRouting(node, wlan, self.stations)
-                listNodes.clearList()
+                meshRouting(self.stations)
             
         if self.topo:
             self.buildFromTopo(self.topo)

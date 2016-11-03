@@ -844,21 +844,9 @@ class Association(Link):
         cls(sta, port1=wlan, intfName1 = sta.params['wlan'][wlan])
         
         sta.cmd('ifconfig %s %s up' % (sta.params['wlan'][wlan], sta.params['ip'][wlan]))
-        if 'position' in sta.params:
-            self.meshAssociation(sta, stations, wlan)
-        else:
+        if 'position' not in sta.params:
             info("associating %s to %s...\n" % (sta.params['wlan'][wlan], sta.params['ssid'][wlan]))
             sta.cmd('iw dev %s mesh join %s' % (sta.params['wlan'][wlan], sta.params['ssid'][wlan]))
-        
-    @classmethod    
-    def meshAssociation(self, sta, stations, wlan):
-        for station in stations:
-            if station != sta:
-                dist = channelParameters.getDistance(sta, station)
-                if dist <= int(station.params['range']):
-                    info("associating %s to %s...\n" % (sta.params['wlan'][wlan], sta.params['ssid'][wlan]))
-                    sta.cmd('iw dev %s mesh join %s' % (sta.params['wlan'][wlan], sta.params['ssid'][wlan]))
-                    break
         
     _macMatchRegex = re.compile(r'..:..:..:..:..:..')
     

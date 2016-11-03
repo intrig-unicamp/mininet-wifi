@@ -225,12 +225,9 @@ class mobility (object):
     @classmethod
     def parameters(self):
         while self.continue_:
-            listNodes.ssid_ID = 0
             for node in self.staList:
                 for wlan in range(0, len(node.params['wlan'])):
-                    if node.func[wlan] != 'mesh' and node.func[wlan] != 'adhoc':
-                        self.nodeParameter(node, wlan)
-                    elif node.func[wlan] == 'mesh' :
+                    if node.func[wlan] == 'mesh' or node.func[wlan] == 'adhoc':
                         if node.type == 'vehicle':
                             node = node.params['carsta']
                             wlan = 0
@@ -238,27 +235,15 @@ class mobility (object):
                         if dist >= 0.01:
                             channelParameters(node, None, wlan, dist, self.staList)
                     else:
-                        if dist >= 0.01:
-                            channelParameters(node, None, wlan, dist, self.staList)
+                        self.nodeParameter(node, wlan)
             if meshRouting.routing == 'custom':
-                for node in mobility.staList:
-                    for wlan in range(0, len(node.params['wlan'])):
-                        if node.func[wlan] == 'mesh':
-                            """Mesh Routing"""
-                            if node.type == 'vehicle':
-                                node = node.params['carsta']
-                                wlan = 0
-                            try:
-                                meshRouting.customMeshRouting(node, wlan, self.staList)
-                            except:
-                                pass
-                listNodes.clearList()
+                meshRouting(self.staList)
             # have to verify this
             # time.sleep(0.01)
 
     @classmethod
     def setChannelParameters(self, sta, ap, dist, wlan):
-        """ Wifi Parameters """
+        """ Channel Parameters """
         associated = True
         # time = abs(sta.params['speed'])
         staList = self.staList
