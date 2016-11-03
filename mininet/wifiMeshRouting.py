@@ -60,15 +60,15 @@ class listNodes (object):
                                     if ref_ssid != '' and ref_ssid != ssid:
                                         alreadyConn.append(sta)
                                         sta.params['associatedTo'][wlan] = ref_sta.params['associatedTo'][wlan]
-                                        self.meshAssociate(sta, wlan)
+                                        self.meshAssociation(sta, wlan)
                                     elif ssid != sta.params['ssid'][wlan] + str(self.ssid_ID):
                                         alreadyConn.append(sta)
                                         sta.params['associatedTo'][wlan] = sta.params['ssid'][wlan] + str(self.ssid_ID)
-                                        self.meshAssociate(sta, wlan)
+                                        self.meshAssociation(sta, wlan)
                                 if ref_sta not in alreadyConn:
                                     alreadyConn.append(ref_sta)
                                     ref_sta.params['associatedTo'][wlan] = sta.params['ssid'][wlan] + str(self.ssid_ID)
-                                    self.meshAssociate(ref_sta, wlan)
+                                    self.meshAssociation(ref_sta, wlan)
                             if ref_sta not in self.list:
                                 par.append(ref_sta)
                                 self.list.append(ref_sta)
@@ -82,8 +82,8 @@ class listNodes (object):
     
     @classmethod
     def meshAssociation(self, sta, wlan):
-        debug("associating %s to %s...\n" % (sta.params['wlan'][wlan], sta.params['ssid'][wlan]))
-        sta.pexec('iw dev %s mesh join %s' % (sta.params['wlan'][wlan], sta.params['ssid'][wlan]))
+        debug("associating %s to %s...\n" % (sta.params['wlan'][wlan], sta.params['associatedTo'][wlan]))
+        sta.pexec('iw dev %s mesh join %s' % (sta.params['wlan'][wlan], sta.params['associatedTo'][wlan]))
 
 
 class meshRouting (object):
