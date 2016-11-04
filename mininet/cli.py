@@ -60,6 +60,10 @@ class CLI(Cmd):
                     staMov.append(sta)
                     sta.params['position'] = 0,0,0
             
+            if mobility.apList == []:
+                mobility.apList = mininet.accessPoints
+            if mobility.staList == []: 
+                mobility.staList = mininet.stations
             nodes = mininet.stations + mininet.accessPoints
             plot.instantiateGraph(mininet.MAX_X, mininet.MAX_Y)
             plot.plotGraph(nodes, mininet.walls, staMov, **mobility.dic)

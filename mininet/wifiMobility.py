@@ -69,6 +69,7 @@ class mobility (object):
         elif ap not in sta.params['associatedTo']:
             if sta.params['associatedTo'][wlan] == '':
                 if 'encrypt' not in ap.params:
+                    debug('\niwconfig %s essid %s ap %s' % (sta.params['wlan'][wlan], ap.params['ssid'][0], ap.params['mac'][0]))
                     sta.pexec('iwconfig %s essid %s ap %s' % (sta.params['wlan'][wlan], ap.params['ssid'][0], ap.params['mac'][0]))
                 else:
                     if 'passwd' not in sta.params:

@@ -489,10 +489,7 @@ class Node(object):
         pos = pos.split(',')
         self.params['position'] = float(pos[0]), float(pos[1]), float(pos[2])
         if mobility.DRAW:
-            try:
-                plot.graphUpdate(self)
-            except:
-                pass
+            plot.graphUpdate(self)
         self.verifyingNodes(self)
 
     def setAntennaGain(self, iface, value):
