@@ -56,6 +56,7 @@ class mobility (object):
     @classmethod
     def handover(self, sta, ap, wlan, dist):
         """handover"""
+        associated = True        
         if ap == sta.params['associatedTo'][wlan]:
             if dist > ap.params['range']:
                 sta.pexec('iw dev %s disconnect' % sta.params['wlan'][wlan])
@@ -65,9 +66,11 @@ class mobility (object):
             else:
                 if dist >= 0.01:
                     channelParameters(sta, ap, wlan, dist, self.staList)
-        else:
-            if dist > ap.params['range']:
-                sta.params['associatedTo'][wlan] = ''
+        if dist < ap.params['range']:        
+            if sta.params['associatedTo'][wlan] == '':        
+                associated = False        
+            else:        
+                associated = False
         if ap == sta.params['associatedTo'][wlan] or dist < ap.params['range']:
             changeAP = False
             self.updateParams(sta, ap, wlan)
@@ -79,16 +82,18 @@ class mobility (object):
                 changeAP = value.changeAP
 
             # Go to handover
-            if sta.params['associatedTo'][wlan] == '' or changeAP == True:
-                if 'encrypt' not in ap.params:
-                    self.associate_infra(sta, ap, wlan)
-                else:
-                    if ap.params['encrypt'][0] == 'wpa' or ap.params['encrypt'][0] == 'wpa2':
-                        self.associate_wpa(sta, ap, wlan)
-                    elif ap.params['encrypt'][0] == 'wep':
-                        self.associate_wep(sta, ap, wlan)
-                if dist >= 0.01:
-                    channelParameters(sta, ap, wlan, dist, self.staList)
+            if associated == False or changeAP == True:
+                if ap not in sta.params['associatedTo']:
+                    if sta.params['associatedTo'][wlan] == '':
+                        if 'encrypt' not in ap.params:
+                            self.associate_infra(sta, ap, wlan)
+                        else:
+                            if ap.params['encrypt'][0] == 'wpa' or ap.params['encrypt'][0] == 'wpa2':
+                                self.associate_wpa(sta, ap, wlan)
+                            elif ap.params['encrypt'][0] == 'wep':
+                                self.associate_wep(sta, ap, wlan)
+                        if dist >= 0.01:
+                            channelParameters(sta, ap, wlan, dist, self.staList)
         # have to verify this
         time.sleep(0.01)
     
