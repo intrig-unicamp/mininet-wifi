@@ -57,43 +57,44 @@ class mobility (object):
     def handover(self, sta, ap, wlan, dist):
         """handover"""
         associated = True        
-        if ap == sta.params['associatedTo'][wlan]:
-            if dist > ap.params['range']:
+        
+        if dist > ap.params['range']:
+            if ap == sta.params['associatedTo'][wlan]:
                 sta.pexec('iw dev %s disconnect' % sta.params['wlan'][wlan])
                 sta.params['associatedTo'][wlan] = ''
                 sta.params['rssi'][wlan] = 0
                 ap.params['associatedStations'].remove(sta)
-            else:
-                if dist >= 0.01:
-                    channelParameters(sta, ap, wlan, dist, self.staList)
-        if dist < ap.params['range']:        
+        else:
+            if dist >= 0.01:
+                self.updateParams(sta, ap, wlan)
+                channelParameters(sta, ap, wlan, dist, self.staList)
+            
             if sta.params['associatedTo'][wlan] == '':        
                 associated = False        
             else:        
                 associated = False
-        if ap == sta.params['associatedTo'][wlan] or dist < ap.params['range']:
-            changeAP = False
-            self.updateParams(sta, ap, wlan)
-
-            """Association Control: mechanisms that optimize the use of the APs"""
-            if self.associationControlMethod != False:
-                ac = self.associationControlMethod
-                value = associationControl(sta, ap, wlan, ac)
-                changeAP = value.changeAP
-
-            # Go to handover
-            if associated == False or changeAP == True:
-                if ap not in sta.params['associatedTo']:
-                    if sta.params['associatedTo'][wlan] == '':
-                        if 'encrypt' not in ap.params:
-                            self.associate_infra(sta, ap, wlan)
-                        else:
-                            if ap.params['encrypt'][0] == 'wpa' or ap.params['encrypt'][0] == 'wpa2':
-                                self.associate_wpa(sta, ap, wlan)
-                            elif ap.params['encrypt'][0] == 'wep':
-                                self.associate_wep(sta, ap, wlan)
-                        if dist >= 0.01:
-                            channelParameters(sta, ap, wlan, dist, self.staList)
+    
+            if ap == sta.params['associatedTo'][wlan] or dist <= ap.params['range']:
+                changeAP = False
+                """Association Control: mechanisms that optimize the use of the APs"""
+                if self.associationControlMethod != False:
+                    ac = self.associationControlMethod
+                    value = associationControl(sta, ap, wlan, ac)
+                    changeAP = value.changeAP
+    
+                # Go to handover
+                if associated == False or changeAP == True:
+                    if ap not in sta.params['associatedTo']:
+                        if sta.params['associatedTo'][wlan] == '':
+                            if 'encrypt' not in ap.params:
+                                self.associate_infra(sta, ap, wlan)
+                            else:
+                                if ap.params['encrypt'][0] == 'wpa' or ap.params['encrypt'][0] == 'wpa2':
+                                    self.associate_wpa(sta, ap, wlan)
+                                elif ap.params['encrypt'][0] == 'wep':
+                                    self.associate_wep(sta, ap, wlan)
+                            if dist >= 0.01:
+                                channelParameters(sta, ap, wlan, dist, self.staList)
         # have to verify this
         time.sleep(0.01)
     
