@@ -452,8 +452,8 @@ class Node(object):
                     sta.cmd('iw dev %s-mp%s mesh leave' % (sta, wlan))
             else:
                 for ap in mobility.apList:
-                    d = channelParameters.getDistance(sta, ap)
-                    mobility.setChannelParameters(sta, ap, d, wlan)
+                    dist = channelParameters.getDistance(sta, ap)
+                    mobility.handover(sta, ap, wlan, dist)
         mobility.getAPsInRange(sta)
 
     @classmethod
