@@ -114,7 +114,7 @@ from mininet.wifiDevices import deviceRange, deviceDataRate
 from mininet.wifiMobility import mobility
 from mininet.wifiModule import module
 from mininet.wifiPlot import plot
-from mininet.wifiPropagationModels import propagationModel_
+from mininet.wifiPropagationModels import propagationModel
 from mininet.wifiAdHocConnectivity import pairingAdhocNodes
 from mininet.wifiMeshRouting import listNodes, meshRouting
 
@@ -1620,10 +1620,10 @@ class Mininet(object):
         dist = channelParameters.getDistance(src, dst)
         info ("The distance between %s and %s is %.2f meters\n" % (src, dst, float(dist)))
 
-    def plotHost(self, host, position):
-        host.params['position'] = position.split(',')
-        host.params['range'] = 0
-        self.plotNodes.append(host)
+    def plotHost(self, node, position):
+        node.params['position'] = position.split(',')
+        node.params['range'] = 0
+        self.plotNodes.append(node)
 
     def plotGraph(self, **kwargs):
         """ Plot Graph """
@@ -1665,8 +1665,8 @@ class Mininet(object):
             channelParameters.equationLoss = params['loss']
 
     def propagationModel(self, model, exp=2, sL=1, lF=0, pL=0, nFloors=0, gRandom=0):
-        propagationModel_.model = model
-        propagationModel_.exp = exp
+        propagationModel.model = model
+        propagationModel.exp = exp
         channelParameters.sl = sL  # System Loss
         channelParameters.lF = lF  # Floor penetration loss factor
         channelParameters.nFloors = nFloors  # Number of floors

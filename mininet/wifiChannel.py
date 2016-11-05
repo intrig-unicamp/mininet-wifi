@@ -3,7 +3,7 @@ author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
 """
 
 from wifiDevices import deviceDataRate
-from wifiPropagationModels import propagationModel_
+from wifiPropagationModels import propagationModel
 from scipy.spatial.distance import pdist
 import numpy as np
 import random
@@ -65,9 +65,6 @@ class channelParameters (object):
 
     @classmethod
     def bw(self, sta, ap, dist, wlan, isReplay = False):
-        if propagationModel_.model == '':
-            propagationModel_.model = 'friisPropagationLossModel'
-        
         lF = self.lF
         sl = self.sl
         nFloors = self.nFloors
@@ -81,7 +78,7 @@ class channelParameters (object):
             hR = sta.params['antennaHeight'][wlan]
             if self.i != 0:
                 dist = self.dist / self.i
-            value = propagationModel_(sta, ap, dist, wlan, pT, gT, gR, hT, hR, sl, lF, pL, nFloors, gRandom)
+            value = propagationModel(sta, ap, dist, wlan, pT, gT, gR, hT, hR, sl, lF, pL, nFloors, gRandom)
             sta.params['rssi'][wlan] = value.rssi
         else:
             pT = ap.params['txpower'][0]
@@ -90,7 +87,7 @@ class channelParameters (object):
             gR = sta.params['antennaGain'][wlan]
             hR = sta.params['antennaHeight'][wlan]
             if isReplay == False:
-                value = propagationModel_(sta, ap, dist, wlan, pT, gT, gR, hT, hR, sl, lF, pL, nFloors, gRandom)
+                value = propagationModel(sta, ap, dist, wlan, pT, gT, gR, hT, hR, sl, lF, pL, nFloors, gRandom)
                 sta.params['rssi'][wlan] = value.rssi  # random.uniform(value.rssi-1, value.rssi+1)
         value = deviceDataRate(sta, ap, wlan)
         custombw = value.rate
@@ -137,7 +134,7 @@ class channelParameters (object):
         dist = self.getDistance(sta, station)
         totalRange = sta.range + station.range
         if dist < totalRange:
-            value = propagationModel_(sta, station, dist, wlan)
+            value = propagationModel(sta, station, dist, wlan)
             n = value.rssi + signalPower
             self.noise += n
             self.i += 1

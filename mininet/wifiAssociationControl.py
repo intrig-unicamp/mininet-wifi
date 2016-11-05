@@ -1,4 +1,4 @@
-from mininet.wifiPropagationModels import propagationModel_
+from mininet.wifiPropagationModels import propagationModel
 from mininet.wifiChannel import channelParameters
 
 class associationControl (object):
@@ -19,10 +19,8 @@ class associationControl (object):
             else:
                 self.changeAP = True
         elif ac == "ssf":  # useful for ssf (Strongest-signal-first)
-            if propagationModel_.model == '':
-                propagationModel_.model = 'friisPropagationLossModel'
             refDistance = channelParameters.getDistance(sta, ap)
-            refValue = propagationModel_(sta, ap, refDistance, wlan)
+            refValue = propagationModel(sta, ap, refDistance, wlan)
             if refValue.rssi > float(sta.params['rssi'][wlan] + 1):
                 self.changeAP = True
         return self.changeAP

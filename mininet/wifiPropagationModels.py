@@ -13,7 +13,7 @@ author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
 
 import math
 
-class propagationModel_ (object):
+class propagationModel (object):
     """ Propagation Models """
 
     rssi = -62
@@ -37,6 +37,8 @@ class propagationModel_ (object):
         self.sl = sl
         self.pL = pL
         self.nFloors = nFloors
+        if self.model == '':
+            self.model = 'friisPropagationLossModel'
         if self.model in dir(self):
             self.__getattribute__(self.model)(sta, ap, dist, wlan, pT, gT, gR, hT, hR)
 

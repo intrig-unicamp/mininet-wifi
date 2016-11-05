@@ -49,44 +49,87 @@ class mobility (object):
         pos = pos.split(',')
         self.moveFac[sta] = pos
 
-        return pos
-
     @classmethod
     def nodeSpeed(self, sta, pos_x, pos_y, pos_z, diffTime):
         sta.params['speed'] = abs(((pos_x + pos_y + pos_z) / diffTime))
 
     @classmethod
-    def handover(self, sta, ap, wlan, distance, changeAP, ac=None):
+    def handover(self, sta, ap, wlan, dist):
         """handover"""
-        if ac == 'llf' or ac == 'ssf' and sta.params['associatedTo'][wlan] != ap:
-            if sta.params['associatedTo'][wlan] != '':
-                sta.params['associatedTo'][wlan].params['associatedStations'].remove(sta)
-            sta.pexec('iw dev %s disconnect' % sta.params['wlan'][wlan])
-            sta.pexec('iwconfig %s essid %s ap %s' % (sta.params['wlan'][wlan], ap.params['ssid'][0], ap.params['mac'][0]))
-            sta.params['frequency'][wlan] = channelParameters.frequency(ap, 0)
-            ap.params['associatedStations'].append(sta)
-            sta.params['associatedTo'][wlan] = ap 
-        elif ap not in sta.params['associatedTo']:
-            if sta.params['associatedTo'][wlan] == '':
+        if ap == sta.params['associatedTo'][wlan]:
+            if dist > ap.params['range']:
+                sta.pexec('iw dev %s disconnect' % sta.params['wlan'][wlan])
+                sta.params['associatedTo'][wlan] = ''
+                sta.params['rssi'][wlan] = 0
+                ap.params['associatedStations'].remove(sta)
+            else:
+                if dist >= 0.01:
+                    channelParameters(sta, ap, wlan, dist, self.staList)
+        else:
+            if dist > ap.params['range']:
+                sta.params['associatedTo'][wlan] = ''
+        if ap == sta.params['associatedTo'][wlan] or dist < ap.params['range']:
+            changeAP = False
+            self.updateParams(sta, ap, wlan)
+
+            """Association Control: mechanisms that optimize the use of the APs"""
+            if self.associationControlMethod != False:
+                ac = self.associationControlMethod
+                value = associationControl(sta, ap, wlan, ac)
+                changeAP = value.changeAP
+
+            # Go to handover
+            if sta.params['associatedTo'][wlan] == '' or changeAP == True:
                 if 'encrypt' not in ap.params:
-                    debug('\niwconfig %s essid %s ap %s' % (sta.params['wlan'][wlan], ap.params['ssid'][0], ap.params['mac'][0]))
-                    sta.pexec('iwconfig %s essid %s ap %s' % (sta.params['wlan'][wlan], ap.params['ssid'][0], ap.params['mac'][0]))
+                    self.associate_infra(sta, ap, wlan)
                 else:
-                    if 'passwd' not in sta.params:
-                        passwd = ap.params['passwd'][0]
-                    else:
-                        passwd = sta.params['passwd'][wlan]
                     if ap.params['encrypt'][0] == 'wpa' or ap.params['encrypt'][0] == 'wpa2':
-                        os.system('pkill -f \'wpa_supplicant -B -Dnl80211 -i %s\'' % sta.params['wlan'][wlan])
-                        sta.cmd("wpa_supplicant -B -Dnl80211 -i %s -c <(wpa_passphrase \"%s\" \"%s\")" \
-                                                             % (sta.params['wlan'][wlan], ap.params['ssid'][0], passwd))
-                        
+                        self.associate_wpa(sta, ap, wlan)
                     elif ap.params['encrypt'][0] == 'wep':
-                        sta.pexec('iw dev %s connect %s key d:0:%s' \
-                                                            % (sta.params['wlan'][wlan], ap.params['ssid'][0], passwd))
-                sta.params['frequency'][wlan] = channelParameters.frequency(ap, 0)
-                ap.params['associatedStations'].append(sta)
-                sta.params['associatedTo'][wlan] = ap        
+                        self.associate_wep(sta, ap, wlan)
+                if dist >= 0.01:
+                    channelParameters(sta, ap, wlan, dist, self.staList)
+        # have to verify this
+        time.sleep(0.01)
+    
+    @classmethod
+    def verifyPasswd(self, sta, ap, wlan):
+        if 'passwd' not in sta.params:
+            passwd = ap.params['passwd'][0]
+        else:
+            passwd = sta.params['passwd'][wlan]
+        return passwd
+    
+    @classmethod     
+    def updateParams(self, sta, ap, wlan):
+        sta.params['frequency'][wlan] = channelParameters.frequency(ap, 0)
+        sta.params['channel'][wlan] = ap.params['channel'][0]
+    
+    @classmethod     
+    def updateAssociation(self, sta, ap, wlan):
+        self.updateParams(sta, ap, wlan)
+        sta.params['associatedTo'][wlan] = ap 
+        ap.params['associatedStations'].append(sta)        
+            
+    @classmethod
+    def associate_wep(self, sta, ap, wlan):
+        passwd = self.verifyPasswd(sta, ap, wlan)
+        sta.pexec('iw dev %s connect %s key d:0:%s' % (sta.params['wlan'][wlan], ap.params['ssid'][0], passwd))
+        self.updateAssociation(sta, ap, wlan)
+        
+    @classmethod
+    def associate_infra(self, sta, ap, wlan):
+        debug('\niwconfig %s essid %s ap %s' % (sta.params['wlan'][wlan], ap.params['ssid'][0], ap.params['mac'][0]))
+        sta.pexec('iwconfig %s essid %s ap %s' % (sta.params['wlan'][wlan], ap.params['ssid'][0], ap.params['mac'][0]))
+        self.updateAssociation(sta, ap, wlan)
+        
+    @classmethod
+    def associate_wpa(self, sta, ap, wlan):
+        passwd = self.verifyPasswd(sta, ap, wlan)
+        os.system('pkill -f \'wpa_supplicant -B -Dnl80211 -i %s\'' % sta.params['wlan'][wlan])
+        sta.cmd("wpa_supplicant -B -Dnl80211 -i %s -c <(wpa_passphrase \"%s\" \"%s\")" \
+                                             % (sta.params['wlan'][wlan], ap.params['ssid'][0], passwd))
+        self.updateAssociation(sta, ap, wlan)
 
     @classmethod
     def mobilityPositionDefined(self, init_time=0, final_time=0, stations=None, aps=None, walls=None, 
@@ -221,7 +264,7 @@ class mobility (object):
         for ap in self.apList:
             dist = channelParameters.getDistance(sta, ap)
             self.getAPsInRange(sta)
-            self.setChannelParameters(sta, ap, dist, wlan)
+            self.handover(sta, ap, wlan, dist)
 
     @classmethod
     def parameters(self):
@@ -240,45 +283,4 @@ class mobility (object):
             if meshRouting.routing == 'custom':
                 meshRouting(self.staList)
             # have to verify this
-            # time.sleep(0.01)
-
-    @classmethod
-    def setChannelParameters(self, sta, ap, dist, wlan):
-        """ Channel Parameters """
-        associated = True
-        # time = abs(sta.params['speed'])
-        staList = self.staList
-        if ap == sta.params['associatedTo'][wlan]:
-            if dist > ap.params['range']:
-                sta.pexec('iw dev %s disconnect' % sta.params['wlan'][wlan])
-                sta.params['associatedTo'][wlan] = ''
-                sta.params['rssi'][wlan] = 0
-                ap.params['associatedStations'].remove(sta)
-            else:
-                if dist >= 0.01:
-                    channelParameters(sta, ap, wlan, dist, staList)
-        else:
-            if dist < ap.params['range']:
-                if sta.params['associatedTo'][wlan] == '':
-                    associated = False
-            else:
-                associated = False
-        if ap == sta.params['associatedTo'][wlan] or dist < ap.params['range']:
-            changeAP = False
-            ac = None
-            sta.params['frequency'][wlan] = channelParameters.frequency(ap, 0)
-            sta.params['channel'][wlan] = ap.params['channel'][0]
-
-            """Association Control: mechanisms that optimize the use of the APs"""
-            if self.associationControlMethod != False:
-                ac = self.associationControlMethod
-                value = associationControl(sta, ap, wlan, ac)
-                changeAP = value.changeAP
-
-            # Go to handover
-            if associated == False or changeAP == True:
-                self.handover(sta, ap, wlan, dist, changeAP, ac)
-                if dist >= 0.01:
-                    channelParameters(sta, ap, wlan, dist, staList)
-        # have to verify this
-        time.sleep(0.01)
+            # time.sleep(0.01)    
