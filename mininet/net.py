@@ -1547,9 +1547,15 @@ class Mininet(object):
             if 'startTime' in kwargs:
                 self.init_time = kwargs['startTime']
 
-            nodes = self.wifiNodes + self.plotNodes
+            staMov = []
+            for sta in self.stations:
+                if 'position' not in sta.params:
+                    staMov.append(sta)
+                    sta.params['position'] = 0, 0, 0
+                    
+            mobilityparam.setdefault('staMov', staMov)
             mobilityparam.setdefault('seed', self.set_seed)
-            mobilityparam.setdefault('nodes', nodes)
+            mobilityparam.setdefault('plotNodes', self.plotNodes)
             mobilityparam.setdefault('stations', self.stations)
             mobilityparam.setdefault('aps', self.accessPoints)
             mobilityparam.setdefault('walls', self.walls)
@@ -1558,13 +1564,6 @@ class Mininet(object):
             mobilityparam.setdefault('dstConn', self.dstConn)
             mobilityparam.setdefault('srcConn', self.srcConn)
             
-            staMov = []
-            for sta in self.stations:
-                if 'position' not in sta.params:
-                    staMov.append(sta)
-                    sta.params['position'] = 0, 0, 0
-            mobilityparam.setdefault('staMov', staMov)
-                    
             if self.isVanet == False:
                 self.thread = threading.Thread(name='mobilityModel', target=mobility.models, kwargs=dict(mobilityparam,))
                 self.thread.daemon = True
@@ -1582,9 +1581,17 @@ class Mininet(object):
         if 'stopTime' in kwargs:
             final_time = kwargs['stopTime']
             
+        # if there is finalPosition, there is mobility.
+        staMov = []
+        for sta in self.stations:
+            if 'finalPosition' in sta.params:
+                staMov.append(sta)
+            
         mobilityparam = dict()
+        mobilityparam.setdefault('staMov', staMov)
         mobilityparam.setdefault('init_time', self.init_time)
         mobilityparam.setdefault('final_time', final_time)
+        mobilityparam.setdefault('plotnodes', self.plotNodes)
         mobilityparam.setdefault('stations', self.stations)
         mobilityparam.setdefault('aps', self.accessPoints)
         mobilityparam.setdefault('walls', self.walls)
@@ -1594,7 +1601,7 @@ class Mininet(object):
         mobilityparam.setdefault('srcConn', self.srcConn)
 
         debug('Starting mobility thread...\n')
-        self.thread = threading.Thread(name='mobility', target=mobility.mobilityPositionDefined, kwargs=dict(mobilityparam,))
+        self.thread = threading.Thread(name='mobility', target=mobility.positionDefined, kwargs=dict(mobilityparam,))
         self.thread.daemon = True
         self.thread.start()
 

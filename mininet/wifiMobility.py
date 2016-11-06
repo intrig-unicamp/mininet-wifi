@@ -138,29 +138,22 @@ class mobility (object):
         self.updateAssociation(sta, ap, wlan)
 
     @classmethod
-    def mobilityPositionDefined(self, init_time=0, final_time=0, stations=None, aps=None, walls=None, 
-                                dstConn=None, srcConn=None, MAX_X=0, MAX_Y=0):
+    def positionDefined(self, init_time=0, final_time=0, stations=None, aps=None, walls=None, staMov=None,
+                                dstConn=None, srcConn=None, plotnodes=None, MAX_X=0, MAX_Y=0):
         """ ongoing Mobility """
         t_end = time.time() + final_time
         t_initial = time.time() + init_time
         currentTime = time.time()
         i = 1
         
-        self.wallList = walls
         self.staList = stations
         self.apList = aps
-        nodes = self.staList + self.apList
+        self.wallList = walls
+        nodes = self.staList + self.apList + plotnodes
 
-        #useful for creating line between source and destination
         dic = dict()
         dic['max_x'] = MAX_X
         dic['max_y'] = MAX_Y
-        
-        #if there is finalPosition, there is mobility.
-        staMov = []
-        for sta in self.staList:
-            if 'finalPosition' in sta.params:
-                staMov.append(sta)
 
         if self.DRAW == True:
             plot.instantiateGraph(MAX_X, MAX_Y)
@@ -186,14 +179,15 @@ class mobility (object):
             info('Error! Mobility stopped!\n')
 
     @classmethod
-    def models(self, nodes=None, model=None, staMov=None, min_v=0, max_v=0, seed=None, stations=None, aps=None,
-               dstConn=None, srcConn=None, walls=None, MAX_X=0, MAX_Y=0, **mobilityparam):
+    def models(self, model=None, staMov=None, min_v=0, max_v=0, seed=None, stations=None, aps=None,
+               dstConn=None, srcConn=None, walls=None, plotNodes=None, MAX_X=0, MAX_Y=0):
 
         np.random.seed(seed)
         
         self.staList = stations
         self.apList = aps
         self.wallList = walls
+        nodes = self.staList + self.apList + plotNodes
 
         dic = dict()
         dic['max_x'] = MAX_X
@@ -211,12 +205,6 @@ class mobility (object):
                 sta.max_v = max_v
             if sta.min_v == 0:
                 sta.min_v = min_v
-        
-        staMovList = []
-        for node in nodes:
-            if node in staMov:
-                if 'station' == node.type or 'vehicle' == node.type:          
-                    staMovList.append(node)
 
         debug('Configuring the mobility model %s' % model)
 
@@ -243,7 +231,7 @@ class mobility (object):
 
         for xy in mob:
             i = 0
-            for node in staMovList:
+            for node in staMov:
                 node.params['position'] = xy[i][0], xy[i][1], 0
                 i += 1
                 if self.DRAW:
