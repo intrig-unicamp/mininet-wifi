@@ -11,7 +11,7 @@ import os
 from mininet.log import debug, info
 from mininet.wifiMobilityModels import gauss_markov, \
     truncated_levy_walk, random_direction, random_waypoint, random_walk, reference_point_group, tvc
-from mininet.wifiChannel import channelParameters
+from mininet.wifiChannel import channelParams, setAdhocChannelParams, setInfraChannelParams
 from mininet.wifiAssociationControl import associationControl
 from mininet.wifiMeshRouting import listNodes, meshRouting
 from mininet.wifiPlot import plot
@@ -65,9 +65,9 @@ class mobility (object):
                 sta.params['rssi'][wlan] = 0
                 ap.params['associatedStations'].remove(sta)
         else:
-            if dist >= 0.01:
+            if dist >= 0.01 and sta.params['associatedTo'][wlan] == ap:
                 self.updateParams(sta, ap, wlan)
-                channelParameters(sta, ap, wlan, dist, self.staList)
+                setInfraChannelParams(sta, ap, wlan, dist, self.staList)
             
             if sta.params['associatedTo'][wlan] == '':        
                 associated = False        
@@ -77,7 +77,7 @@ class mobility (object):
             if ap == sta.params['associatedTo'][wlan] or dist <= ap.params['range']:
                 changeAP = False
                 """Association Control: mechanisms that optimize the use of the APs"""
-                if self.associationControlMethod != False:
+                if self.associationControlMethod != False and sta.params['associatedTo'][wlan] != '':
                     ac = self.associationControlMethod
                     value = associationControl(sta, ap, wlan, ac)
                     changeAP = value.changeAP
@@ -85,7 +85,7 @@ class mobility (object):
                 # Go to handover
                 if associated == False or changeAP == True:
                     if ap not in sta.params['associatedTo']:
-                        if sta.params['associatedTo'][wlan] == '':
+                        if sta.params['associatedTo'][wlan] == '' or changeAP == True:
                             if 'encrypt' not in ap.params:
                                 self.associate_infra(sta, ap, wlan)
                             else:
@@ -93,8 +93,8 @@ class mobility (object):
                                     self.associate_wpa(sta, ap, wlan)
                                 elif ap.params['encrypt'][0] == 'wep':
                                     self.associate_wep(sta, ap, wlan)
-                            if dist >= 0.01:
-                                channelParameters(sta, ap, wlan, dist, self.staList)
+                            if dist >= 0.01 and sta.params['associatedTo'][wlan] != '':
+                                setInfraChannelParams(sta, ap, wlan, dist, self.staList)
         # have to verify this
         time.sleep(0.01)
     
@@ -108,7 +108,7 @@ class mobility (object):
     
     @classmethod     
     def updateParams(self, sta, ap, wlan):
-        sta.params['frequency'][wlan] = channelParameters.frequency(ap, 0)
+        sta.params['frequency'][wlan] = channelParams.frequency(ap, 0)
         sta.params['channel'][wlan] = ap.params['channel'][0]
     
     @classmethod     
@@ -245,7 +245,7 @@ class mobility (object):
     @classmethod
     def getAPsInRange(self, sta):
         for ap in self.apList:
-            dist = channelParameters.getDistance(sta, ap)
+            dist = channelParams.getDistance(sta, ap)
             if dist < ap.params['range']:
                 if ap not in sta.params['apsInRange']:
                     sta.params['apsInRange'].append(ap)
@@ -256,7 +256,7 @@ class mobility (object):
     @classmethod
     def nodeParameter(self, sta, wlan):
         for ap in self.apList:
-            dist = channelParameters.getDistance(sta, ap)
+            dist = channelParams.getDistance(sta, ap)
             self.getAPsInRange(sta)
             self.handover(sta, ap, wlan, dist)
 
@@ -271,7 +271,7 @@ class mobility (object):
                             wlan = 0
                         dist = listNodes.pairingNodes(node, wlan, self.staList)
                         if dist >= 0.01:
-                            channelParameters(node, None, wlan, dist, self.staList)
+                            setAdhocChannelParams(node, wlan, dist, self.staList)
                     else:
                         self.nodeParameter(node, wlan)
             if meshRouting.routing == 'custom':

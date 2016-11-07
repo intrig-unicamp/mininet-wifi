@@ -8,17 +8,11 @@ from scipy.spatial.distance import pdist
 import numpy as np
 import random
 
-class channelParameters (object):
-    """Channel Parameters"""
 
-    delay_ = 0
-    loss_ = 0
-    bw_ = 0
-    latency_ = 0
-    rate = 0
+class channelParams (object):
+
     dist = 0
     noise = 0
-    i = 0
     sl = 1  # System Loss
     lF = 0  # Floor penetration loss factor
     pL = 0  # Power Loss Coefficient
@@ -28,74 +22,28 @@ class channelParameters (object):
     equationDelay = '(dist / 10) + 1'
     equationLatency = '2 + dist'
     equationBw = 'custombw * (1.1 ** -dist)'
-
-    def __init__(self, node1, node2, wlan, dist, staList):
-        self.dist = dist
-        # self.calculateInterference(node1, node2, dist, staList, wlan)
-        self.delay_ = self.delay(self.dist)
-        self.latency_ = self.latency(self.dist)
-        self.loss_ = self.loss(self.dist)
-        self.bw_ = self.bw(node1, node2, self.dist, wlan)
-        self.tc(node1, wlan, self.bw_, self.loss_, self.latency_, self.delay_)
-
+    
     @classmethod
     def getDistance(self, src, dst):
         """ Get the distance between two nodes """
         pos_src = src.params['position']
         pos_dst = dst.params['position']
         points = np.array([(pos_src[0], pos_src[1], pos_src[2]), (pos_dst[0], pos_dst[1], pos_dst[2])])
-        dist = pdist(points)
-        return float(dist)
+        return float(pdist(points))
 
     @classmethod
     def delay(self, dist):
         """"Based on RandomPropagationDelayModel"""
-        self.delay_ = eval(self.equationDelay)
-        return self.delay_
+        return eval(self.equationDelay)
 
     @classmethod
     def latency(self, dist):
-        self.latency_ = eval(self.equationLatency)
-        return self.latency_
+        return eval(self.equationLatency)
 
     @classmethod
     def loss(self, dist):
-        self.loss_ = eval(self.equationLoss)
-        return self.loss_
-
-    @classmethod
-    def bw(self, sta, ap, dist, wlan, isReplay = False):
-        lF = self.lF
-        sl = self.sl
-        nFloors = self.nFloors
-        gRandom = self.gRandom
-        pL = self.pL
-        if ap == None:
-            gT = 0
-            hT = 0
-            pT = sta.params['txpower'][wlan]
-            gR = sta.params['antennaGain'][wlan]
-            hR = sta.params['antennaHeight'][wlan]
-            if self.i != 0:
-                dist = self.dist / self.i
-            value = propagationModel(sta, ap, dist, wlan, pT, gT, gR, hT, hR, sl, lF, pL, nFloors, gRandom)
-            sta.params['rssi'][wlan] = value.rssi
-        else:
-            pT = ap.params['txpower'][0]
-            gT = ap.params['antennaGain'][0]
-            hT = ap.params['antennaHeight'][0]
-            gR = sta.params['antennaGain'][wlan]
-            hR = sta.params['antennaHeight'][wlan]
-            if isReplay == False:
-                value = propagationModel(sta, ap, dist, wlan, pT, gT, gR, hT, hR, sl, lF, pL, nFloors, gRandom)
-                sta.params['rssi'][wlan] = value.rssi  # random.uniform(value.rssi-1, value.rssi+1)
-        value = deviceDataRate(sta, ap, wlan)
-        custombw = value.rate
-        self.rate = eval(self.equationBw)
-        if self.rate <= 0:
-            self.rate = 0.1
-        return self.rate
-
+        return eval(self.equationLoss)
+    
     @classmethod
     def tc(self, sta, wlan, bw, loss, latency, delay):
         """Applying TC"""
@@ -181,3 +129,78 @@ class channelParameters (object):
         """Have to work"""
         # receive_sensitivity = -72 #Depends of the equipment
         # link_margin = self.rssi[wlan] - receive_sensitivity
+
+class setAdhocChannelParams (object):
+    """Set Adhoc Channel Parameters"""
+    
+    dist = 0
+    i = 0
+
+    def __init__(self, node1, wlan, dist, staList):
+        self.dist = dist
+        # self.calculateInterference(node1, node2, dist, staList, wlan)
+        delay_ = channelParams.delay(self.dist)
+        latency_ = channelParams.latency(self.dist)
+        loss_ = channelParams.loss(self.dist)
+        bw_ = self.bw(node1, self.dist, wlan)
+        channelParams.tc(node1, wlan, bw_, loss_, latency_, delay_)
+
+    @classmethod
+    def bw(self, sta, dist, wlan):
+        lF = channelParams.lF
+        sl = channelParams.sl
+        nFloors = channelParams.nFloors
+        gRandom = channelParams.gRandom
+        pL = channelParams.pL
+  
+        gT = 0
+        hT = 0
+        pT = sta.params['txpower'][wlan]
+        gR = sta.params['antennaGain'][wlan]
+        hR = sta.params['antennaHeight'][wlan]
+        if self.i != 0:
+            dist = self.dist / self.i
+        value = propagationModel(sta, None, dist, wlan, pT, gT, gR, hT, hR, sl, lF, pL, nFloors, gRandom)
+        sta.params['rssi'][wlan] = value.rssi
+
+        value = deviceDataRate(sta, None, wlan)
+        custombw = value.rate
+        rate = eval(channelParams.equationBw)
+        if rate <= 0:
+            rate = 0.1
+        return rate
+
+class setInfraChannelParams (object):
+    """Set Infra Channel Parameters"""
+
+    def __init__(self, sta, ap, wlan, dist, staList):
+        # self.calculateInterference(node1, node2, dist, staList, wlan)
+        delay_ = channelParams.delay(dist)
+        latency_ = channelParams.latency(dist)
+        loss_ = channelParams.loss(dist)
+        bw_ = self.bw(sta, ap, dist, wlan)
+        channelParams.tc(sta, wlan, bw_, loss_, latency_, delay_)
+
+    @classmethod
+    def bw(self, sta, ap, dist, wlan):
+        lF = channelParams.lF
+        sl = channelParams.sl
+        nFloors = channelParams.nFloors
+        gRandom = channelParams.gRandom
+        pL = channelParams.pL
+
+        pT = ap.params['txpower'][0]
+        gT = ap.params['antennaGain'][0]
+        hT = ap.params['antennaHeight'][0]
+        gR = sta.params['antennaGain'][wlan]
+        hR = sta.params['antennaHeight'][wlan]
+
+        value = propagationModel(sta, ap, dist, wlan, pT, gT, gR, hT, hR, sl, lF, pL, nFloors, gRandom)
+        sta.params['rssi'][wlan] = value.rssi  # random.uniform(value.rssi-1, value.rssi+1)
+        
+        value = deviceDataRate(sta, ap, wlan)
+        custombw = value.rate
+        rate = eval(channelParams.equationBw)
+        if rate <= 0:
+            rate = 0.1
+        return rate

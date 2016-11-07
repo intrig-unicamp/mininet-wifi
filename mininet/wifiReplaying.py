@@ -12,7 +12,7 @@ from pylab import math, cos, sin
 from mininet.log import info
 from mininet.wifiPlot import plot
 from mininet.wifiMobility import mobility
-from mininet.wifiChannel import channelParameters
+from mininet.wifiChannel import channelParams, setInfraChannelParams
 from mininet.wifiDevices import deviceDataRate
 
 
@@ -57,6 +57,14 @@ class replayingMobility(object):
                 if len(node.position) == 0:
                     staList.remove(node)
             time.sleep(0.01)
+            
+    @classmethod
+    def addNode(self, node):
+        if node.type == 'station':
+            node.params['position'] = node.position[0]
+            mobility.staList.append(node)
+        elif (node.type == 'accessPoint'):
+            mobility.apList.append(node)
 
 class replayingBandwidth(object):
     """Replaying Bandwidth Traces"""
@@ -80,7 +88,7 @@ class replayingBandwidth(object):
                 if hasattr(sta, 'time'):
                     continue_ = True
                     if time_ >= sta.time[0]:
-                        channelParameters.tc(sta, 0, sta.throughput[0], 0, 0, 0)
+                        channelParams.tc(sta, 0, sta.throughput[0], 0, 0, 0)
                         # pos = '%d, %d, %d' % (sta.throughput[0], sta.throughput[0], 0)
                         # self.moveStationTo(sta, pos)
                         del sta.throughput[0]
@@ -106,7 +114,6 @@ class replayingBandwidth(object):
 class replayingNetworkBehavior(object):
     """Replaying RSSI Traces"""
     
-    
     def __init__(self, **kwargs):
         """
             Replaying Network Behavior
@@ -123,7 +130,7 @@ class replayingNetworkBehavior(object):
         currentTime = time.time()
         staList = mobility.staList
         for sta in staList:
-            sta.params['frequency'][0] = channelParameters.frequency(sta, 0)
+            sta.params['frequency'][0] = channelParams.frequency(sta, 0)
         continue_ = True
         while continue_:
             continue_ = False
@@ -138,7 +145,7 @@ class replayingNetworkBehavior(object):
                             loss = sta.loss[0]
                             delay = sta.delay[0]
                             latency = sta.latency[0]
-                            channelParameters.tc(sta, 0, bw, loss, latency, delay)
+                            channelParams.tc(sta, 0, bw, loss, latency, delay)
                         del sta.bw[0]
                         del sta.loss[0]
                         del sta.delay[0]
@@ -149,6 +156,12 @@ class replayingNetworkBehavior(object):
             time.sleep(0.01)
         info('Replaying process has finished!')
 
+    @classmethod
+    def addNode(self, node):
+        if node.type == 'station':
+            mobility.staList.append(node)
+        elif (node.type == 'accessPoint'):
+            mobility.apList.append(node)
 
 class replayingRSSI(object):
     """Replaying RSSI Traces"""
@@ -188,7 +201,7 @@ class replayingRSSI(object):
         ang = {}
         for sta in staList:
             ang[sta] = random.uniform(0, 360)
-            sta.params['frequency'][0] = channelParameters.frequency(sta, 0)
+            sta.params['frequency'][0] = channelParams.frequency(sta, 0)
         continue_ = True
         while continue_:
             continue_ = False
@@ -202,24 +215,7 @@ class replayingRSSI(object):
                         if ap != '':
                             dist = self.calculateDistance(sta, ap, sta.rssi[0], propagationModel, n)
                             self.moveStationTo(sta, ap, dist, ang[sta])
-                            loss = channelParameters.loss(dist)
-                            latency = channelParameters.latency(dist)
-                            delay = channelParameters.delay(dist, 0)
-                            bw = channelParameters.bw(sta, ap, dist, 0, isReplay=True)
-                            if self.print_bw or self.print_delay or self.print_distance or \
-                                                            self.print_latency or self.print_loss:
-                                info('station %s:\n' % sta)
-                                if self.print_distance:
-                                    info('  distance(m) to %s: %s\n' % (ap, dist))
-                                if self.print_loss:
-                                    info('  loss: %s\n' % loss)
-                                if self.print_latency:
-                                    info('  latency(ms): %s\n' % latency)
-                                if self.print_delay:
-                                    info('  delay(ms): %s\n' % delay)
-                                if self.print_bw:
-                                    info('  bandwidth(Mbps): %s\n' % bw)
-                            channelParameters.tc(sta, 0, bw, loss, latency, delay)
+                            setInfraChannelParams(sta, ap, dist, 0)
                         del sta.rssi[0]
                         del sta.time[0]
                     if len(sta.time) == 0:

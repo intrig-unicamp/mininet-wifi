@@ -74,7 +74,7 @@ from mininet.link import Link, Intf, TCIntf, OVSIntf, Association
 from re import findall
 from distutils.version import StrictVersion
 from mininet.wifiMobility import mobility
-from mininet.wifiChannel import channelParameters
+from mininet.wifiChannel import channelParams, setAdhocChannelParams, setInfraChannelParams
 from mininet.wifiDevices import deviceDataRate, deviceRange
 from mininet.wifiPlot import plot
 
@@ -444,15 +444,15 @@ class Node(object):
             if sta.func[wlan] == 'mesh' or sta.func[wlan] == 'adhoc':
                 associate = False
                 for station in mobility.staList:
-                    d = channelParameters.getDistance(sta, station)
-                    if d < int(sta.params['range']) + int(station.params['range']):
+                    dist = channelParams.getDistance(sta, station)
+                    if dist < int(sta.params['range']) + int(station.params['range']):
                         associate = True
-                channelParameters(sta, None, wlan, 0, mobility.staList)
+                setAdhocChannelParams(sta, wlan, 0, mobility.staList)
                 if associate == False:
                     sta.cmd('iw dev %s-mp%s mesh leave' % (sta, wlan))
             else:
                 for ap in mobility.apList:
-                    dist = channelParameters.getDistance(sta, ap)
+                    dist = channelParams.getDistance(sta, ap)
                     mobility.handover(sta, ap, wlan, dist)
         mobility.getAPsInRange(sta)
 
@@ -517,7 +517,7 @@ class Node(object):
             if ap == str(mobility.apList[n]):
                 ap = mobility.apList[n]
                 break
-        d = channelParameters.getDistance(self, ap)
+        d = channelParams.getDistance(self, ap)
         if d < int(self.params['range']) + int(ap.params['range']):
             if self.params['associatedTo'][wlan] != ap:
                 if self.params['associatedTo'][wlan] != 'none':
@@ -525,7 +525,7 @@ class Node(object):
                 self.cmd('iw dev %s connect %s' % (iface, ap.ssid[0]))
                 cls = Association
                 cls.confirmInfraAssociation(self, ap, wlan)
-                channelParameters(self, ap, wlan, d, mobility.staList)
+                setInfraChannelParams(self, ap, wlan, d, mobility.staList)
             else:
                 info ('%s is already connected!\n' % ap)
             mobility.getAPsInRange(self)
@@ -1382,14 +1382,15 @@ class AccessPoint(Switch):
         if(len(ap.params['ssid'])) > 1:
             for i in range(1, len(ap.params['ssid'])):
                 ap.params['wlan'].append('%s-%s' % (ap.params['wlan'][0], i))
-                ssid = str(ap.params['ssid'][i])
+                ssid = ap.params['ssid'][i]
                 cmd = cmd + ('\n')
                 cmd = cmd + ("\nbss=%s" % ap.params['wlan'][i])
                 cmd = cmd + ("\nssid=%s" % ssid)
-                if (ap.params['encrypt'][i] == 'wep'):
-                    cmd = cmd + ("\nauth_algs=%s" % auth_algs)
-                    cmd = cmd + ("\nwep_default_key=0")
-                    cmd = cmd + self.verifyWepKey(wep_key0)
+                if 'encrypt' in ap.params:
+                    if (ap.params['encrypt'][i] == 'wep'):
+                        cmd = cmd + ("\nauth_algs=%s" % auth_algs)
+                        cmd = cmd + ("\nwep_default_key=0")
+                        cmd = cmd + self.verifyWepKey(wep_key0)
                 ap.params['mac'][i] = ap.params['mac'][wlan][:-1] + str(i)
                 self.checkNetworkManager(ap.params['mac'][i])                
 
@@ -1573,7 +1574,7 @@ class UserSwitch(Switch):
         ofplog = '/tmp/' + self.name + '-ofp.log'
         intfs = [ str(i) for i in self.intfList() if not i.IP() ]
 
-        if self.len(self.params['ssid']) > 1:
+        if len(self.params['ssid']) > 1:
             iface = intfs[0]
             for n in range(1, len(self.params['ssid'])):
                 intfs.append(iface + str('-%s' % n))

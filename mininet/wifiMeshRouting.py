@@ -3,7 +3,7 @@ author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
         ramonfontes.com
 """
 
-from mininet.wifiChannel import channelParameters
+from mininet.wifiChannel import channelParams
 from mininet.log import debug
 
 class listNodes (object):
@@ -41,7 +41,7 @@ class listNodes (object):
                     ref_sta = ref_sta.params['carsta']
                     ref_sta.params['position'] = car.params['position']
                 if ref_sta != sta and ref_sta.func[wlan] == 'mesh' :
-                    dist = channelParameters.getDistance(sta, ref_sta)
+                    dist = channelParams.getDistance(sta, ref_sta)
                     if dist >= 0.1:
                         totalRange = int(sta.params['range'])
                         ref_totalRange = int(ref_sta.params['range'])
@@ -115,7 +115,7 @@ class meshRouting (object):
                 ref_sta.params['position'] = car.params['position']
             for ref_wlan in range(len(ref_sta.params['wlan'])):
                 if ref_sta != sta and ref_sta.func[ref_wlan] == 'mesh' and 'position' in sta.params:
-                    dist = channelParameters.getDistance(sta, ref_sta)
+                    dist = channelParams.getDistance(sta, ref_sta)
                     totalRange = int(sta.params['range'])
                     ref_totalRange = int(ref_sta.params['range'])
                     if ref_totalRange > totalRange:

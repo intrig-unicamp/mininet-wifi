@@ -29,7 +29,7 @@ from time import sleep, time
 
 from mininet.log import info, error, debug
 from mininet.util import makeIntfPair
-from mininet.wifiChannel import channelParameters
+from mininet.wifiChannel import channelParams
 
 class Intf(object):
 
@@ -836,7 +836,7 @@ class Association(Link):
         iface = '%s-mp%s' % (sta, wlan)
        
         sta.params['wlan'][wlan] = iface
-        sta.params['frequency'][wlan] = channelParameters.frequency(sta, wlan)
+        sta.params['frequency'][wlan] = channelParams.frequency(sta, wlan)
         self.getMacAddress(sta, iface, wlan)
 
         sta.intfs[wlan] = sta.params['wlan'][wlan]
@@ -867,7 +867,7 @@ class Association(Link):
         while(associated == '' or len(associated) == 0):
             sta.sendCmd("iw dev %s scan ssid | grep %s" % (iface, sta.params['ssid'][wlan]))
             associated = sta.waitOutput()
-        sta.params['frequency'][wlan] = channelParameters.frequency(sta, wlan)
+        sta.params['frequency'][wlan] = channelParams.frequency(sta, wlan)
         
     @classmethod
     def confirmInfraAssociation(self, sta, ap, wlan):
@@ -882,7 +882,7 @@ class Association(Link):
                 if time() >= currentTime + 10:
                     info( "Error during the association process\n" )
                     break
-        sta.params['frequency'][wlan] = channelParameters.frequency(ap, 0)
+        sta.params['frequency'][wlan] = channelParams.frequency(ap, 0)
         ap.params['associatedStations'].append(sta)
         sta.params['associatedTo'][wlan] = ap
         
