@@ -20,9 +20,6 @@ def topology():
     sta1 = net.addStation( 'sta1', ip='192.168.0.1/24', txpower=15, position='10,10,0' )
     sta2 = net.addStation( 'sta2', ip='192.168.0.2/24', txpower=15, position='11.36,10,0' )
 
-    """uncomment to plot graph"""
-    net.plotGraph(max_x=100, max_y=100)
-
     print "*** Adding Link"
     net.addLink(sta1, ap1)
     net.addLink(sta2, ap1)
