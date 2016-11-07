@@ -36,6 +36,8 @@ def topology():
     getTrace(sta1, 'clientTrace.txt')
     getTrace(sta2, 'serverTrace.txt')
 
+    replayingNetworkBehavior.addNode(sta1)
+    replayingNetworkBehavior.addNode(sta2)
     replayingNetworkBehavior()
 
     print "*** Running CLI"
@@ -62,8 +64,8 @@ def getTrace(sta, file):
         sta.bw.append(((float(line[1]))/1000000)/2) #Second Column = BW
         #sta.loss.append(1) #Second Column = LOSS
         sta.loss.append(float(line[2])) #second Column = LOSS
-        sta.delay.append(float(line[4])) #Second Column = DELAY
         sta.latency.append(float(line[3])) #Second Column = LATENCY
+        sta.delay.append(float(line[4])) #Second Column = DELAY
 
 if __name__ == '__main__':
     setLogLevel( 'info' )

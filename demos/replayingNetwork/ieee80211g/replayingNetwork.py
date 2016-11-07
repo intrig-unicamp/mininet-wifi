@@ -22,16 +22,6 @@ def topology():
     ap3 = net.addBaseStation( 'ap3', range=20, ssid='ap-ssid3', mode= 'g', channel= '1', position='50,50,0' )
     c4 = net.addController( 'c4', controller=Controller, port=6653 )
 
-#    """uncomment to plot graph"""
- #   net.plotGraph(max_x=100, max_y=100)
-
-    print "*** Adding Link"
-#    net.addLink(sta1, ap3)
- #   net.addLink(sta2, ap3)
-
- #   sta1.params['associatedTo'][0] = ap3
-  #  sta2.params['associatedTo'][0] = ap3
-
     print "*** Starting network"
     net.build()
     c4.start()
@@ -46,6 +36,8 @@ def topology():
     getTrace(sta1, 'clientTrace.txt')
     getTrace(sta2, 'serverTrace.txt')
 
+    replayingNetworkBehavior.addNode(sta1)
+    replayingNetworkBehavior.addNode(sta2)
     replayingNetworkBehavior()
 
     #sta1.cmd('tcpdump -i mon0 -s 0 -vvv -w client.pcap &&')
