@@ -16,7 +16,9 @@
 			"control:  show control frames\n"\
 			"otherbss: show frames from other BSSes\n"\
 			"cook:     use cooked mode\n"\
-			"active:   use active mode (ACK incoming unicast packets)"
+			"active:   use active mode (ACK incoming unicast packets)\n"\
+			"mumimo-groupid <GROUP_ID>: use MUMIMO according to a group id\n"\
+			"mumimo-follow-mac <MAC_ADDRESS>: use MUMIMO according to a MAC address"
 
 SECTION(interface);
 
@@ -29,6 +31,55 @@ static char *mntr_flags[NL80211_MNTR_FLAG_MAX + 1] = {
 	"cook",
 	"active",
 };
+
+static int parse_mumimo_options(int *_argc, char ***_argv, struct nl_msg *msg)
+{
+	uint8_t mumimo_group[VHT_MUMIMO_GROUP_LEN];
+	unsigned char mac_addr[ETH_ALEN];
+	char **argv = *_argv;
+	int argc = *_argc;
+	int i;
+	unsigned int val;
+
+	if (strcmp(*argv, "mumimo-groupid") == 0) {
+		argc--;
+		argv++;
+		if (!argc || strlen(*argv) != VHT_MUMIMO_GROUP_LEN*2) {
+			fprintf(stderr, "Invalid groupID: %s\n", *argv);
+			return 1;
+		}
+
+		for (i = 0; i < VHT_MUMIMO_GROUP_LEN; i++) {
+			if (sscanf((*argv) + i*2, "%2x", &val) != 1) {
+				fprintf(stderr, "Failed reading groupID\n");
+				return 1;
+			}
+			mumimo_group[i] = val;
+		}
+
+		NLA_PUT(msg,
+			NL80211_ATTR_MU_MIMO_GROUP_DATA,
+			VHT_MUMIMO_GROUP_LEN,
+			mumimo_group);
+		argc--;
+		argv++;
+	} else if (strcmp(*argv, "mumimo-follow-mac") == 0) {
+		argc--;
+		argv++;
+		if (!argc || mac_addr_a2n(mac_addr, *argv)) {
+			fprintf(stderr, "Invalid MAC address\n");
+			return 1;
+		}
+		NLA_PUT(msg, NL80211_ATTR_MU_MIMO_FOLLOW_MAC_ADDR,
+			ETH_ALEN, mac_addr);
+		argc--;
+		argv++;
+	}
+ nla_put_failure:
+	*_argc = argc;
+	*_argv = argv;
+	return 0;
+}
 
 static int parse_mntr_flags(int *_argc, char ***_argv,
 			    struct nl_msg *msg)
@@ -45,6 +96,15 @@ static int parse_mntr_flags(int *_argc, char ***_argv,
 
 	while (argc) {
 		int ok = 0;
+
+		/* parse MU-MIMO options */
+		err = parse_mumimo_options(&argc, &argv, msg);
+		if (err)
+			goto out;
+		else if (!argc)
+			break;
+
+		/* parse monitor flags */
 		for (flag = __NL80211_MNTR_FLAG_INVALID;
 		     flag <= NL80211_MNTR_FLAG_MAX; flag++) {
 			if (strcmp(*argv, mntr_flags[flag]) == 0) {
@@ -142,6 +202,9 @@ static int get_if_type(int *argc, char ***argv, enum nl80211_iftype *type,
 		return 0;
 	} else if (strcmp(tpstr, "__p2pgo") == 0) {
 		*type = NL80211_IFTYPE_P2P_GO;
+		return 0;
+	} else if (strcmp(tpstr, "__nan") == 0) {
+		*type = NL80211_IFTYPE_NAN;
 		return 0;
 	}
 
@@ -295,6 +358,10 @@ char *channel_width_name(enum nl80211_chan_width width)
 		return "80+80 MHz";
 	case NL80211_CHAN_WIDTH_160:
 		return "160 MHz";
+	case NL80211_CHAN_WIDTH_5:
+		return "5 MHz";
+	case NL80211_CHAN_WIDTH_10:
+		return "10 MHz";
 	default:
 		return "unknown";
 	}
@@ -401,6 +468,8 @@ static int handle_interface_set(struct nl80211_state *state,
 	switch (parse_mntr_flags(&argc, &argv, msg)) {
 	case 0:
 		return 0;
+	case 1:
+		return 1;
 	case -ENOMEM:
 		fprintf(stderr, "failed to allocate flags\n");
 		return 2;

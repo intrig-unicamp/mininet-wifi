@@ -2158,6 +2158,17 @@ COMMAND(scan, trigger, "[freq <freq>*] [ies <hex as 00:11:..>] [meshid <meshid>]
 	 "SSIDs (or wildcard if not given) unless passive scanning is requested.");
 
 
+static int handle_scan_abort(struct nl80211_state *state,
+			     struct nl_msg *msg,
+			     int argc, char **argv,
+			     enum id_input id)
+{
+	return 0;
+}
+COMMAND(scan, abort, "",
+	NL80211_CMD_ABORT_SCAN, 0, CIB_NETDEV, handle_scan_abort,
+	"Abort ongoing scan");
+
 static int handle_start_sched_scan(struct nl80211_state *state,
 				   struct nl_msg *msg,
 				   int argc, char **argv, enum id_input id)

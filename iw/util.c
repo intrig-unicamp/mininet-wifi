@@ -134,6 +134,7 @@ static const char *ifmodes[NL80211_IFTYPE_MAX + 1] = {
 	"P2P-GO",
 	"P2P-device",
 	"outside context of a BSS",
+	"NAN",
 };
 
 static char modebuf[100];
@@ -264,6 +265,12 @@ static const char *commands[NL80211_CMD_MAX + 1] = {
 	[NL80211_CMD_TDLS_CANCEL_CHANNEL_SWITCH] = "tdls_cancel_channel_switch",
 	[NL80211_CMD_WIPHY_REG_CHANGE] = "wiphy_reg_change",
 	[NL80211_CMD_ABORT_SCAN] = "abort_scan",
+	[NL80211_CMD_START_NAN] = "start_nan",
+	[NL80211_CMD_STOP_NAN] = "stop_nan",
+	[NL80211_CMD_ADD_NAN_FUNCTION] = "add_nan_function",
+	[NL80211_CMD_DEL_NAN_FUNCTION] = "del_nan_function",
+	[NL80211_CMD_CHANGE_NAN_CONFIG] = "change_nan_config",
+	[NL80211_CMD_NAN_MATCH] = "nan_match",
 };
 
 static char cmdbuf[100];
@@ -346,7 +353,7 @@ static int hex2num(char digit)
 	return tolower(digit) - 'a' + 10;
 }
 
-static int hex2byte(char *hex)
+static int hex2byte(const char *hex)
 {
 	int d1, d2;
 
@@ -359,7 +366,7 @@ static int hex2byte(char *hex)
 	return (d1 << 4) | d2;
 }
 
-static char *hex2bin(char *hex, char *buf)
+static char *hex2bin(const char *hex, char *buf)
 {
 	char *result = buf;
 	int d;

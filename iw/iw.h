@@ -12,6 +12,7 @@
 #include "ieee80211.h"
 
 #define ETH_ALEN 6
+#define VHT_MUMIMO_GROUP_LEN 24
 
 /* libnl 1.x compatibility code */
 #if !defined(CONFIG_LIBNL20) && !defined(CONFIG_LIBNL30)

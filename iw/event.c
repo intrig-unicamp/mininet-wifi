@@ -500,7 +500,9 @@ static int print_event(struct nl_msg *msg, void *arg)
 		break;
 	case NL80211_CMD_CONNECT:
 		status = 0;
-		if (!tb[NL80211_ATTR_STATUS_CODE])
+		if (tb[NL80211_ATTR_TIMED_OUT])
+			printf("timed out");
+		else if (!tb[NL80211_ATTR_STATUS_CODE])
 			printf("unknown connect status");
 		else if (nla_get_u16(tb[NL80211_ATTR_STATUS_CODE]) == 0)
 			printf("connected");

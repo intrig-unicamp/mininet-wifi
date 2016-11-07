@@ -31,11 +31,21 @@ static char *cipher_name(__u32 c)
 	case 0x000fac02:
 		return "TKIP (00-0f-ac:2)";
 	case 0x000fac04:
-		return "CCMP (00-0f-ac:4)";
+		return "CCMP-128 (00-0f-ac:4)";
 	case 0x000fac06:
 		return "CMAC (00-0f-ac:6)";
 	case 0x000fac08:
-		return "GCMP (00-0f-ac:8)";
+		return "GCMP-128 (00-0f-ac:8)";
+	case 0x000fac09:
+		return "GCMP-256 (00-0f-ac:9)";
+	case 0x000fac0a:
+		return "CCMP-256 (00-0f-ac:10)";
+	case 0x000fac0b:
+		return "GMAC-128 (00-0f-ac:11)";
+	case 0x000fac0c:
+		return "GMAC-256 (00-0f-ac:12)";
+	case 0x000fac0d:
+		return "CMAC-256 (00-0f-ac:13)";
 	case 0x00147201:
 		return "WPI-SMS4 (00-14-72:1)";
 	default:
@@ -44,20 +54,6 @@ static char *cipher_name(__u32 c)
 			(c >> 8) & 0xff, c & 0xff);
 
 		return buf;
-	}
-}
-
-static char *dfs_state_name(enum nl80211_dfs_state state)
-{
-	switch (state) {
-	case NL80211_DFS_USABLE:
-		return "usable";
-	case NL80211_DFS_AVAILABLE:
-		return "available";
-	case NL80211_DFS_UNAVAILABLE:
-		return "unavailable";
-	default:
-		return "unknown";
 	}
 }
 
@@ -198,22 +194,6 @@ next:
 					if (open)
 						printf(")");
 					printf("\n");
-
-					if (!tb_freq[NL80211_FREQUENCY_ATTR_DISABLED] && tb_freq[NL80211_FREQUENCY_ATTR_DFS_STATE]) {
-						enum nl80211_dfs_state state = nla_get_u32(tb_freq[NL80211_FREQUENCY_ATTR_DFS_STATE]);
-						unsigned long time;
-
-						printf("\t\t\t  DFS state: %s", dfs_state_name(state));
-						if (tb_freq[NL80211_FREQUENCY_ATTR_DFS_TIME]) {
-							time = nla_get_u32(tb_freq[NL80211_FREQUENCY_ATTR_DFS_TIME]);
-							printf(" (for %lu sec)", time/1000);
-						}
-						printf("\n");
-						if (tb_freq[NL80211_FREQUENCY_ATTR_DFS_CAC_TIME])
-							printf("\t\t\t  DFS CAC time: %u ms\n",
-							       nla_get_u32(tb_freq[NL80211_FREQUENCY_ATTR_DFS_CAC_TIME]));
-					}
-
 				}
 			}
 

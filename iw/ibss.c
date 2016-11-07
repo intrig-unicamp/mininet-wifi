@@ -1,15 +1,6 @@
-#ifndef _POSIX_SOURCE
-#define _POSIX_SOURCE
-#endif
 #include <errno.h>
 #include <string.h>
 #include <strings.h>
-
-#include <netlink/genl/genl.h>
-#include <netlink/genl/family.h>
-#include <netlink/genl/ctrl.h>
-#include <netlink/msg.h>
-#include <netlink/attr.h>
 
 #include "nl80211.h"
 #include "iw.h"
