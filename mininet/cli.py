@@ -54,10 +54,8 @@ class CLI(Cmd):
            
         if mobility.isMobility == False and mobility.DRAW:
             
-            staMov = []
-            for sta in mobility.staList:
+            for sta in mininet.stations:
                 if 'position' not in sta.params:
-                    staMov.append(sta)
                     sta.params['position'] = 0,0,0
             
             if mobility.apList == []:
@@ -66,7 +64,7 @@ class CLI(Cmd):
                 mobility.staList = mininet.stations
             nodes = mininet.stations + mininet.accessPoints
             plot.instantiateGraph(mininet.MAX_X, mininet.MAX_Y)
-            plot.plotGraph(nodes, mininet.walls, staMov, **mobility.dic)
+            plot.plotGraph(nodes, [], [], **mobility.dic)
             plot.graphPause()
 
         self.mn = mininet

@@ -58,7 +58,7 @@ class plot (object):
     @classmethod
     def graphPause(self):
         """Pause"""
-        plt.pause(0.01)
+        plt.pause(0.001)
 
     @classmethod
     def plotDraw(self):
@@ -149,7 +149,7 @@ class plot (object):
         plot.graphUpdate(node)
 
     @classmethod
-    def plotGraph(self, wifiNodes=None, wallList=None, staMov=None, srcConn=None, dstConn=None, **kwargs):
+    def plotGraph(self, wifiNodes=[], srcConn=[], dstConn=[], **kwargs):
         """ Plot Graph """
         if 'max_x' in kwargs:
             MAX_X = kwargs['max_x']
@@ -164,13 +164,12 @@ class plot (object):
             plot.drawCircle(node)
             self.graphUpdate(node)
         
-        if srcConn!=None:
-            for c in range(0, len(srcConn)):
-                line = self.plotLine2d([srcConn[c].params['position'][0], dstConn[c].params['position'][0]], \
-                                       [srcConn[c].params['position'][1], dstConn[c].params['position'][1]], 'b')
-                plot.plotLine(line)
+        for c in range(0, len(srcConn)):
+            line = self.plotLine2d([srcConn[c].params['position'][0], dstConn[c].params['position'][0]], \
+                                   [srcConn[c].params['position'][1], dstConn[c].params['position'][1]], 'b')
+            plot.plotLine(line)
 
-        for wall in wallList:
-            line = self.plotLine2d([wall.params['initPos'][0], wall.params['finalPos'][0]], \
-                                       [wall.params['initPos'][1], wall.params['finalPos'][1]], 'r', wall.params['width'])
-            self.plotLine(line)
+        #for wall in wallList:
+        #    line = self.plotLine2d([wall.params['initPos'][0], wall.params['finalPos'][0]], \
+        #                               [wall.params['initPos'][1], wall.params['finalPos'][1]], 'r', wall.params['width'])
+        #    self.plotLine(line)

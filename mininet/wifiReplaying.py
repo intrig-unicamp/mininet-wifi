@@ -16,29 +16,30 @@ from mininet.wifiChannel import channelParams, setInfraChannelParams
 from mininet.wifiDevices import deviceDataRate
 
 
-def instantiateGraph():
-        nodeList = mobility.staList + mobility.apList
-        for node in nodeList:
-            plot.instantiateGraph(mobility.MAX_X, mobility.MAX_Y)
-            plot.instantiateNode(node, mobility.MAX_X, mobility.MAX_Y)
-            plot.instantiateAnnotate(node)
-            plot.instantiateCircle(node)
-            plot.graphUpdate(node)
+def instantiateGraph(mininet):
+        dic = dict()
+        dic['max_x'] = mininet.MAX_X
+        dic['max_y'] = mininet.MAX_Y
+        nodes = mininet.stations + mininet.accessPoints
+        for node in nodes:
+            replayingMobility.addNode(node)    
+        plot.instantiateGraph(mininet.MAX_X, mininet.MAX_Y)
+        plot.plotGraph(nodes, [], [], **dic)
 
 class replayingMobility(object):
     """Replaying Mobility Traces"""
-    def __init__(self, **params):
+    def __init__(self, mininet):
 
         mobility.isMobility = True
-        self.thread = threading.Thread(name='replayingMobility', target=self.mobility)
+        self.thread = threading.Thread(name='replayingMobility', target=self.mobility, args=(mininet,))
         self.thread.daemon = True
         self.thread.start()
 
-    def mobility(self):
+    def mobility(self, mininet):
         if mobility.DRAW:
-            instantiateGraph()
+            instantiateGraph(mininet)
         currentTime = time.time()
-        staList = mobility.staList
+        staList = mininet.stations
         continue_ = True
         nodeTime = {}
         nodeCurrentTime = {}
@@ -56,7 +57,6 @@ class replayingMobility(object):
                     nodeCurrentTime[node] += nodeTime[node]
                 if len(node.position) == 0:
                     staList.remove(node)
-            time.sleep(0.01)
             
     @classmethod
     def addNode(self, node):

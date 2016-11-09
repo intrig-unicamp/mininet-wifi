@@ -157,7 +157,7 @@ class mobility (object):
 
         if self.DRAW == True:
             plot.instantiateGraph(MAX_X, MAX_Y)
-            plot.plotGraph(nodes, self.wallList, staMov, srcConn, dstConn, **dic)
+            plot.plotGraph(nodes, srcConn, dstConn, **dic)
 
         try:
             while time.time() < t_end and time.time() > t_initial:
@@ -227,7 +227,8 @@ class mobility (object):
 
         if self.DRAW:
             plot.instantiateGraph(MAX_X, MAX_Y)
-            plot.plotGraph(nodes, self.wallList, staMov, srcConn, dstConn, **dic)
+            plot.plotGraph(nodes, srcConn, dstConn, **dic)
+            plot.graphPause()
 
         for xy in mob:
             i = 0
@@ -238,8 +239,8 @@ class mobility (object):
                     plot.pltNode[node].set_data(xy[:, 0], xy[:, 1])
                     plot.drawTxt(node)
                     plot.drawCircle(node)
+                    plot.graphUpdate(node)
             if self.DRAW:
-                plot.graphUpdate(node)
                 plot.graphPause()
                 
     @classmethod

@@ -18,7 +18,7 @@ class channelParams (object):
     pL = 0  # Power Loss Coefficient
     nFloors = 0  # Number of floors
     gRandom = 0  # Gaussian random variable
-    equationLoss = '(dist * 2) / 100'
+    equationLoss = '(dist * 2) / 1000'
     equationDelay = '(dist / 10) + 1'
     equationLatency = '2 + dist'
     equationBw = 'custombw * (1.1 ** -dist)'
