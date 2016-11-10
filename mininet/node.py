@@ -1575,10 +1575,11 @@ class UserSwitch(Switch):
         ofplog = '/tmp/' + self.name + '-ofp.log'
         intfs = [ str(i) for i in self.intfList() if not i.IP() ]
 
-        if len(self.params['ssid']) > 1:
-            iface = intfs[0]
-            for n in range(1, len(self.params['ssid'])):
-                intfs.append(iface + str('-%s' % n))
+        if 'ssid' in self.params:
+            if len(self.params['ssid']) > 1:
+                iface = intfs[0]
+                for n in range(1, len(self.params['ssid'])):
+                    intfs.append(iface + str('-%s' % n))
 
         self.cmd('ofdatapath -i ' + ','.join(intfs) + 
                   ' punix:/tmp/' + self.name + ' -d %s ' % self.dpid + 

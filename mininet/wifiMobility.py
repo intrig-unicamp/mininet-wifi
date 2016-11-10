@@ -30,6 +30,7 @@ class mobility (object):
     isMobility = False
     MAX_X = 0
     MAX_Y = 0
+    continuePlot = 'plot.graphPause()'
 
     @classmethod
     def moveFactor(self, sta, diffTime):
@@ -95,8 +96,7 @@ class mobility (object):
                                     self.associate_wep(sta, ap, wlan)
                             if dist >= 0.01 and sta.params['associatedTo'][wlan] != '':
                                 setInfraChannelParams(sta, ap, wlan, dist, self.staList)
-        # have to verify this
-        time.sleep(0.01)
+        
     
     @classmethod
     def verifyPasswd(self, sta, ap, wlan):
@@ -161,20 +161,19 @@ class mobility (object):
 
         try:
             while time.time() < t_end and time.time() > t_initial:
-                if self.continue_:
-                    if time.time() - currentTime >= i:
-                        for sta in staMov:
-                            if time.time() - currentTime >= sta.startTime and time.time() - currentTime <= sta.endTime:
-                                x = float(sta.params['position'][0]) + float(self.moveFac[sta][0])
-                                y = float(sta.params['position'][1]) + float(self.moveFac[sta][1])
-                                z = float(sta.params['position'][2]) + float(self.moveFac[sta][2])
-                                sta.params['position'] = x, y, z
-                            for wlan in range(0, len(sta.params['wlan'])):
-                                self.nodeParameter(sta, wlan)
-                            if self.DRAW:
-                                plot.graphPause()
-                                plot.graphUpdate(sta)
-                        i += 1
+                if time.time() - currentTime >= i:
+                    for sta in staMov:
+                        if time.time() - currentTime >= sta.startTime and time.time() - currentTime <= sta.endTime:
+                            x = float(sta.params['position'][0]) + float(self.moveFac[sta][0])
+                            y = float(sta.params['position'][1]) + float(self.moveFac[sta][1])
+                            z = float(sta.params['position'][2]) + float(self.moveFac[sta][2])
+                            sta.params['position'] = x, y, z
+                        for wlan in range(0, len(sta.params['wlan'])):
+                            self.nodeParameter(sta, wlan)
+                        if self.DRAW:
+                            eval(self.continuePlot)
+                            plot.graphUpdate(sta)
+                    i += 1
         except:
             info('Error! Mobility stopped!\n')
 
@@ -206,42 +205,57 @@ class mobility (object):
             if sta.min_v == 0:
                 sta.min_v = min_v
 
-        debug('Configuring the mobility model %s' % model)
-
-        if(model == 'RandomWalk'):  # Random Walk model
-            mob = random_walk(staMov)
-        elif(model == 'TruncatedLevyWalk'):  # Truncated Levy Walk model
-            mob = truncated_levy_walk(staMov)
-        elif(model == 'RandomDirection'):  # Random Direction model
-            mob = random_direction(staMov, dimensions=(MAX_X, MAX_Y))
-        elif(model == 'RandomWayPoint'):  # Random Waypoint model
-            mob = random_waypoint(staMov, wt_max=MAX_WT)
-        elif(model == 'GaussMarkov'):  # Gauss-Markov model
-            mob = gauss_markov(staMov, alpha=0.99)
-        elif(model == 'ReferencePoint'):  # Reference Point Group model
-            mob = reference_point_group(staMov, dimensions=(MAX_X, MAX_Y), aggregation=0.5)
-        elif(model == 'TimeVariantCommunity'):  # Time-variant Community Mobility Model
-            mob = tvc(staMov, dimensions=(MAX_X, MAX_Y), aggregation=[0.5, 0.], epoch=[100, 100])
-        else:
-            raise Exception("Model not defined!")
-
         if self.DRAW:
             plot.instantiateGraph(MAX_X, MAX_Y)
             plot.plotGraph(nodes, srcConn, dstConn, **dic)
             plot.graphPause()
 
+        if staMov != None:            
+            debug('Configuring the mobility model %s' % model)
+    
+            if(model == 'RandomWalk'):  # Random Walk model
+                mob = random_walk(staMov)
+            elif(model == 'TruncatedLevyWalk'):  # Truncated Levy Walk model
+                mob = truncated_levy_walk(staMov)
+            elif(model == 'RandomDirection'):  # Random Direction model
+                mob = random_direction(staMov, dimensions=(MAX_X, MAX_Y))
+            elif(model == 'RandomWayPoint'):  # Random Waypoint model
+                mob = random_waypoint(staMov, wt_max=MAX_WT)
+            elif(model == 'GaussMarkov'):  # Gauss-Markov model
+                mob = gauss_markov(staMov, alpha=0.99)
+            elif(model == 'ReferencePoint'):  # Reference Point Group model
+                mob = reference_point_group(staMov, dimensions=(MAX_X, MAX_Y), aggregation=0.5)
+            elif(model == 'TimeVariantCommunity'):  # Time-variant Community Mobility Model
+                mob = tvc(staMov, dimensions=(MAX_X, MAX_Y), aggregation=[0.5, 0.], epoch=[100, 100])
+            else:
+                raise Exception("Model not defined!")
+            
+            if self.DRAW:
+                self.startMobilityModelGraph(mob, staMov)
+            else:
+                self.startMobilityModelNoGraph(mob, staMov)
+    
+    @classmethod
+    def startMobilityModelGraph(self, mob, nodes):
         for xy in mob:
             i = 0
-            for node in staMov:
+            for node in nodes:
                 node.params['position'] = xy[i][0], xy[i][1], 0
                 i += 1
-                if self.DRAW:
-                    plot.pltNode[node].set_data(xy[:, 0], xy[:, 1])
-                    plot.drawTxt(node)
-                    plot.drawCircle(node)
-                    plot.graphUpdate(node)
-            if self.DRAW:
-                plot.graphPause()
+                plot.pltNode[node].set_data(xy[:, 0], xy[:, 1])
+                plot.drawTxt(node)
+                plot.drawCircle(node)
+                plot.graphUpdate(node)
+            eval(self.continuePlot)
+                
+    @classmethod    
+    def startMobilityModelNoGraph(self, mob, nodes):
+        for xy in mob:
+            i = 0
+            for node in nodes:
+                node.params['position'] = xy[i][0], xy[i][1], 0
+                i += 1
+            time.sleep(0.5)
                 
     @classmethod
     def getAPsInRange(self, sta):
@@ -278,4 +292,4 @@ class mobility (object):
             if meshRouting.routing == 'custom':
                 meshRouting(self.staList)
             # have to verify this
-            # time.sleep(0.01)    
+            time.sleep(0.001)

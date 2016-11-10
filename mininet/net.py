@@ -333,7 +333,7 @@ class Mininet(object):
         self.wifiRadios = car.addParameters(car, self.wifiRadios, self.autoSetMacs, params, defaults)
         
         carsta = self.addStation(name + 'STA')
-        #carsta.type = 'mesh'
+        # carsta.type = 'mesh'
         car.params['carsta'] = carsta
         self.vehiclesSTA.append(carsta)
         switchName = car.name + 'SW'
@@ -764,7 +764,7 @@ class Mininet(object):
                 ap = node                  
                 if 'phywlan' in ap.params:
                     x = 1
-                for wlan in range(len(ap.params['wlan'])+x):
+                for wlan in range(len(ap.params['wlan']) + x):
                     if x == 1:
                         wlan = 0
                     wifiparam = dict()
@@ -817,9 +817,9 @@ class Mininet(object):
                         ap.params['frequency'][wlan] = channelParams.frequency(ap, 0)
                         cls = TCLinkWireless
                         cls(ap)
-                        if len(ap.params['ssid'])>1:
+                        if len(ap.params['ssid']) > 1:
                             for i in range(1, len(ap.params['ssid'])):
-                                cls(ap, intfName1 = ap.params['wlan'][i])
+                                cls(ap, intfName1=ap.params['wlan'][i])
                         x = 0
                     else:
                         iface = ap.params.get('phywlan')
@@ -962,7 +962,7 @@ class Mininet(object):
             return link
 
     def tc(self, sta, bw):
-        sta.cmd('tc qdisc add dev %s root handle 5: tbf rate %fMbit burst 15000 latency %fms' %
+        sta.cmd('tc qdisc add dev %s root handle 5: tbf rate %fMbit burst 15000 latency %fms' % 
                           (sta.params['wlan'][sta.ifaceToAssociate], bw, 1))
 
     def configHosts(self):
@@ -1207,9 +1207,10 @@ class Mininet(object):
         info('\n')
         if(self.isWiFi):
             "Stop Graph"
+            mobility.continuePlot = 'exit()'
             mobility.continue_ = False
             mobility.DRAW = False
-            sleep(2)
+            sleep(1)
             plot.closePlot()
             module.stop()  # Stopping WiFi Module
 

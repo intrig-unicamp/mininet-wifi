@@ -57,7 +57,7 @@ def initial_speed(speed_mean, speed_delta, shape=(1,)):
 
     return pow(v1, u) / pow(v0, u - 1)
 
-def init_random_waypoint(nodes, max_x, max_y,
+def init_random_waypoint(nodes, min_x, min_y, max_x, max_y,
                          speed_low, speed_high, pause_low, pause_high):
 
     nr_nodes = nodes
@@ -83,7 +83,6 @@ def init_random_waypoint(nodes, max_x, max_y,
                 #moving[i] = 0.
                 #speed_mean = np.delete(speed_mean, i)
                 #speed_delta = np.delete(speed_delta, i)
-
                 # M_0
                 x1 = rand() * max_x[i]
                 x2 = rand() * max_x[i]
@@ -184,20 +183,20 @@ class RandomWaypoint(object):
             MIN_X[node] = self.nodes[node].min_x
             MIN_Y[node] = self.nodes[node].min_y
 
-        wt_min = 0.
+        #wt_min = 0.
 
-        if self.init_stationary:
-            x, y, x_waypoint, y_waypoint, velocity, wt = \
-                init_random_waypoint(self.nr_nodes, MAX_X, MAX_Y, MIN_V, MAX_V, wt_min,
-                             (self.wt_max if self.wt_max is not None else 0.))
-        else:
-            NODES = np.arange(self.nr_nodes)
-            x = U(MIN_X, MAX_X, NODES)
-            y = U(MIN_Y, MAX_Y, NODES)
-            x_waypoint = U(MIN_X, MAX_X, NODES)
-            y_waypoint = U(MIN_Y, MAX_Y, NODES)
-            wt = np.zeros(self.nr_nodes)
-            velocity = U(MIN_V, MAX_V, NODES)
+        #if self.init_stationary:
+        #    x, y, x_waypoint, y_waypoint, velocity, wt = \
+        #        init_random_waypoint(self.nr_nodes, MIN_X, MIN_Y, MAX_X, MAX_Y, MIN_V, MAX_V, wt_min,
+        #                     (self.wt_max if self.wt_max is not None else 0.))
+        #else:
+        NODES = np.arange(self.nr_nodes)
+        x = U(MIN_X, MAX_X, NODES)
+        y = U(MIN_Y, MAX_Y, NODES)
+        x_waypoint = U(MIN_X, MAX_X, NODES)
+        y_waypoint = U(MIN_Y, MAX_Y, NODES)
+        wt = np.zeros(self.nr_nodes)
+        velocity = U(MIN_V, MAX_V, NODES)
 
         theta = np.arctan2(y_waypoint - y, x_waypoint - x)
         costheta = np.cos(theta)
