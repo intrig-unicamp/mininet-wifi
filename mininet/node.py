@@ -1466,15 +1466,32 @@ class AccessPoint(Switch):
         else:
             wlan = ap.params.get('phywlan')
             os.system("ovs-vsctl add-port %s %s" % (ap, wlan))
+            
+    @classmethod
+    def customDataRate(self, node, wlan):
+        """Custom Maximum Data Rate - Useful when there is mobility"""
+        mode = node.params['mode'][wlan]
+        
+        if (mode == 'a'):
+            self.rate = 54
+        elif(mode == 'b'):
+            self.rate = 11
+        elif(mode == 'g'):
+            self.rate = 54
+        elif(mode == 'n'):
+            self.rate = 600
+        elif(mode == 'ac'):
+            self.rate = 6777
+        return self.rate
 
     @classmethod
-    def setBw(self, ap, iface):
+    def setBw(self, ap, wlan, iface):
         """ Set bw to AP """
-        value = deviceDataRate(ap, None, None)
-        bw = value.rate
+        value = self.customDataRate(ap, wlan)
+        bw = value
 
         ap.cmd("tc qdisc replace dev %s \
-            root handle 2: tbf rate %sMbit burst 15000 latency 2ms" % (iface, bw))
+            root handle 2: tbf rate %sMbit burst 15000 latency 1ms" % (iface, bw))
         # Reordering packets
         ap.cmd('tc qdisc add dev %s parent 2:1 handle 10: pfifo limit 1000' % (iface))
 
@@ -1496,7 +1513,7 @@ class AccessPoint(Switch):
             print ('error with hostapd. Please, run sudo mn -c in order to fix it or check if hostapd is\
                                              working properly in your machine.')
             exit(1)
-        self.setBw(ap, iface)
+        self.setBw(ap, wlan, iface)
         
 class UserSwitch(Switch):
     "User-space switch."
