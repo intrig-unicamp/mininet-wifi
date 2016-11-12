@@ -17,7 +17,6 @@
     </report>
     <traci_server>
     	<processing>
-        	<lanechange.allow-swap value="True"/>
         	<time-to-teleport value="100"/>
     	</processing>
          <remote-port value="8813"/>
