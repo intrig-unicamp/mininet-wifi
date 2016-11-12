@@ -11,9 +11,9 @@ from math import atan2
 from pylab import ginput as ginp
 from mininet.wifiPlot import plot
 from random import randrange
-import random
 import warnings
 import matplotlib.cbook
+import threading
 from mininet.wifiMobility import mobility
 
 try:
@@ -43,9 +43,10 @@ class vanet(object):
 
     time_per_iteraiton = 100 * math.pow(10, -3)
 
-    def __init__(self, cars, baseStations, nroads, MAX_X, MAX_Y):
+    def __init__(self, cars, baseStations, nroads, srcConn, dstConn, MAX_X, MAX_Y):
 
         mobility.staList = cars
+        mobility.apList = baseStations
         mobility.MAX_X = MAX_X
         mobility.MAX_Y = MAX_Y
         [self.road.append(x) for x in range(0, nroads)]
@@ -56,13 +57,17 @@ class vanet(object):
         plot.instantiateGraph(MAX_X, MAX_Y)
 
         try:
-            self.display_grid(baseStations, nroads)
+            self.display_grid(baseStations, srcConn, dstConn, nroads)
             self.display_cars(cars)
-
+            self.setWifiParameters()
             while mobility.continue_:
                 [self.scatter, self.com_lines] = self.simulate_car_movement(self.scatter, self.com_lines)
         except:
             pass
+        
+    def setWifiParameters(self):
+        thread = threading.Thread(name='wifiParameters', target=mobility.parameters)
+        thread.start()
 
     def get_line(self, x1, y1, x2, y2):
         points = []
@@ -98,9 +103,9 @@ class vanet(object):
             points.reverse()
         return points
 
-    def display_grid(self, baseStations, nroads):
+    def display_grid(self, baseStations, srcConn, dstConn, nroads):
 
-        for n in range(0, nroads):
+        for n in range(nroads):
             if n == 0:
                 p = ginp(2)
                 self.points[n] = p
@@ -125,26 +130,30 @@ class vanet(object):
 
             self.road[n] = plot.plotLine2d(x1, y1, color='g')  # Create a line object with the x y values of the points in a line
             plot.plotLine(self.road[n])
-            # plot.plotDraw()
 
-        for i in range(len(baseStations)):
-            self.bss[baseStations[i]] = ginp(1)[0]
-            bs_x = self.bss[baseStations[i]][0]
-            bs_y = self.bss[baseStations[i]][1]
+        for bs in baseStations:
+            self.bss[bs] = ginp(1)[0]
+            bs_x = self.bss[bs][0]
+            bs_y = self.bss[bs][1]
             self.scatter = plot.plotScatter(bs_x, bs_y)
-            baseStations[i].params['position'] = bs_x, bs_y, 0
-            plot.instantiateAnnotate(baseStations[i])
-            plot.instantiateCircle(baseStations[i])
-            plot.drawTxt(baseStations[i])
-            plot.drawCircle(baseStations[i])
+            bs.params['position'] = bs_x, bs_y, 0
+            plot.instantiateAnnotate(bs)
+            plot.instantiateCircle(bs)
+            plot.drawTxt(bs)
+            plot.drawCircle(bs)
             plot.plotDraw()
+
+        for c in range(0, len(srcConn)):
+            line = plot.plotLine2d([srcConn[c].params['position'][0], dstConn[c].params['position'][0]], \
+                                   [srcConn[c].params['position'][1], dstConn[c].params['position'][1]], 'b', ls='dashed')
+            plot.plotLine(line)
 
     def display_cars(self, cars):
 
         car_lines = []
 
         for n in range(0, len(cars)):
-            car_lines.append(random.choice(self.road))
+            car_lines.append(self.road[n])
 
         for n in range(0, len(self.totalRoads)):
 
@@ -163,10 +172,10 @@ class vanet(object):
         points = [[], []]
 
         # get X cars in the graph
-        for n in range(0, len(cars)):
+        for car in cars:
 
-            random_index = randrange(0, len(car_lines))
-            self.currentRoad[cars[n]] = random_index
+            random_index = randrange(len(car_lines))
+            car.currentRoad = int(random_index)
             car_line = car_lines[random_index]
             point = car_line.get_xydata()[0]  # first point in the graph
 
@@ -174,28 +183,29 @@ class vanet(object):
             line_data = car_line.get_data()
             ang = self.calculateAngle(line_data)
 
-            self.cars[cars[n]] = self.carProperties(point, ang, x_min, x_max)
+            self.cars[car] = self.carProperties(point, ang, x_min, x_max, y_min, y_max)
 
             # for the even cars shift angle to negative
             # so that it goes in opposite direction from car1
-            i = self.cars.keys().index(cars[n])
+            i = self.cars.keys().index(car)
             if i % 2 == 0:
                 ang = ang + math.pi
                 point = car_line.get_xydata()[-1]  # for this car get the last point as positions
 
             x_min, x_max = self.lineX(line_data)
+            y_min, y_max = self.lineY(line_data)
 
-            self.initial[cars[n]] = self.carPoint(point)
+            self.initial[car] = self.carPoint(point)
 
             # add scatter
             points[0].append(point[0])
             points[1].append(point[1])
 
-            self.speed(cars[n])  # Get Speed
+            self.speed(car)  # Get Speed
 
             # Useful to Graph
-            plot.instantiateCircle(cars[n])
-            plot.instantiateAnnotate(cars[n])
+            plot.instantiateCircle(car)
+            plot.instantiateAnnotate(car)
 
         # plot the cars
         self.scatter = plot.plotScatter(points[0], points[1])
@@ -226,13 +236,15 @@ class vanet(object):
         ang = atan2(ydiff, xdiff)
         return ang
 
-    def carProperties(self, point, ang, x_min, x_max):
+    def carProperties(self, point, ang, x_min, x_max, y_min, y_max):
         temp = []
         temp.append(point[0])
         temp.append(point[1])
         temp.append(ang)
         temp.append(x_min)
         temp.append(x_max)
+        temp.append(y_min)
+        temp.append(y_max)
         return temp
 
     def carPoint(self, point):
@@ -253,8 +265,9 @@ class vanet(object):
             point = list(line.get_xydata()[-1])  # for this car get the last point as positions
 
         x_min, x_max = self.lineX(line_data)
+        y_min, y_max = self.lineY(line_data)
 
-        self.cars[car] = self.carProperties(point, ang, x_min, x_max)
+        self.cars[car] = self.carProperties(point, ang, x_min, x_max, y_min, y_max)
         self.initial[car] = self.carPoint(point)
 
     def repeat (self, car):
@@ -264,25 +277,25 @@ class vanet(object):
 
         if i % 2 == 0:
             for n in reversed(self.totalRoads):
-                if n < self.currentRoad[car]:
-                    self.line_properties(self.road[n], car)  # get properties of each line in a path
-                    self.currentRoad[car] = n
+                if n < car.currentRoad:
+                    car.currentRoad = n
+                    self.line_properties(self.road[car.currentRoad], car)  # get properties of each line in a path
                     lastRoad = False
                     break
             if lastRoad:
-                self.line_properties(self.road[len(self.totalRoads) - 1], car)
-                self.currentRoad[car] = len(self.totalRoads) - 1
+                car.currentRoad = len(self.totalRoads) - 1
+                self.line_properties(self.road[car.currentRoad], car)                
         else:
             for n in (self.totalRoads):
-                if n > self.currentRoad[car]:
-                    self.line_properties(self.road[n], car)  # get properties of each line in a path
-                    self.currentRoad[car] = n
+                if n > car.currentRoad:
+                    car.currentRoad = n
+                    self.line_properties(self.road[car.currentRoad], car)  # get properties of each line in a path
                     lastRoad = False
                     break
             if lastRoad:
-                self.line_properties(self.road[0], car)
-                self.currentRoad[car] = 0
-
+                car.currentRoad = 0
+                self.line_properties(self.road[car.currentRoad], car)
+                
     def findIntersection(self):
         # have to work on
         list1 = [list(a) for a in zip(self.interX[0], self.interY[0])]
@@ -322,9 +335,8 @@ class vanet(object):
             position_x = position_x + velocity * cos(angle) * self.time_per_iteraiton
             position_y = position_y + velocity * sin(angle) * self.time_per_iteraiton
 
-            # check if car gets out of the line
-            # no need to check for y coordinates as car follows the line
-            if position_x < self.cars[car][3] or position_x > self.cars[car][4]:
+            if (position_x < self.cars[car][3] or position_x > self.cars[car][4]) \
+                or (position_y < self.cars[car][5] or position_y > self.cars[car][6]):
                 self.repeat(car)
                 points[0].append(self.initial[car][0])
                 points[1].append(self.initial[car][1])
@@ -340,13 +352,18 @@ class vanet(object):
                     else:
                         # compute to see if vehicle is in range
                         inside = math.pow((nodes[node][0] - position_x), 2) + math.pow((nodes[node][1] - position_y), 2)
-                        if inside <= math.pow(node.params['range'] + 30, 2):
-                            line = plot.plotLine2d([position_x, nodes[node][0]], [position_y, nodes[node][1]], color='r')
+                        if inside <= math.pow(node.params['range'], 2):
+                            if node.type == 'accessPoint':
+                                color = 'black'
+                            else:
+                                color = 'r'
+                            line = plot.plotLine2d([position_x, nodes[node][0]], [position_y, nodes[node][1]], color=color)
                             com_lines.append(line)
                             plot.plotLine(line)
 
             plot.drawTxt(car)
             plot.drawCircle(car)
+        eval(mobility.continuePlot)
 
         scatter = plot.plotScatter(points[0], points[1])
         plot.plotDraw()

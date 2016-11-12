@@ -124,7 +124,7 @@ from mininet.vanet import vanet
 from __builtin__ import True
 
 # Mininet version: should be consistent with README and LICENSE
-VERSION = "1.9r5"
+VERSION = "1.9r6"
 
 class Mininet(object):
     "Network emulation with hosts spawned in network namespaces."
@@ -276,7 +276,9 @@ class Mininet(object):
         defaults = { 'ip': ipAdd(self.nextIP,
                                   ipBaseNum=self.ipBaseNum,
                                   prefixLen=self.prefixLen) + 
-                                  '/%s' % self.prefixLen}
+                                  '/%s' % self.prefixLen,
+                     'channel': self.channel,
+                     'mode': self.mode}
        
         if self.autoSetMacs:
             defaults[ 'mac' ] = macColonHex(self.nextIP)
@@ -312,7 +314,10 @@ class Mininet(object):
         defaults = { 'ip': ipAdd(self.nextIP,
                                   ipBaseNum=self.ipBaseNum,
                                   prefixLen=self.prefixLen) + 
-                                  '/%s' % self.prefixLen}
+                                  '/%s' % self.prefixLen,
+                     'channel': self.channel,
+                     'mode': self.mode,
+                     'ssid': self.ssid}
 
         if self.autoSetMacs:
             defaults[ 'mac' ] = macColonHex(self.nextIP)
@@ -323,8 +328,8 @@ class Mininet(object):
         if not cls:
             cls = self.host
         car = cls(name, **defaults)
-        
         self.hosts.append(car)
+        
         # self.stations.append(sta)
         # self.wifiNodes.append(sta)
         self.nameToNode[ name ] = car
@@ -333,11 +338,12 @@ class Mininet(object):
         self.wifiRadios = car.addParameters(car, self.wifiRadios, self.autoSetMacs, params, defaults)
         
         carsta = self.addStation(name + 'STA')
+        carsta.params['range'] = car.params['range']
         # carsta.type = 'mesh'
         car.params['carsta'] = carsta
         self.vehiclesSTA.append(carsta)
         switchName = car.name + 'SW'
-        carsw = self.addSwitch(switchName)
+        carsw = self.addSwitch(switchName, inband=True)
         self.vehicles.append(carsw)
         self.car.append(car)
         self.wifiNodes.append(car)
@@ -361,7 +367,10 @@ class Mininet(object):
         defaults = { 'ip': ipAdd(self.nextIP,
                                   ipBaseNum=self.ipBaseNum,
                                   prefixLen=self.prefixLen) + 
-                                  '/%s' % self.prefixLen}
+                                  '/%s' % self.prefixLen,
+                     'channel': self.channel,
+                     'mode': self.mode,
+                     'ssid': self.ssid}
 
         if self.autoSetMacs:
             defaults[ 'mac' ] = macColonHex(self.nextIP)
@@ -373,6 +382,7 @@ class Mininet(object):
             cls = self.host
         sta = cls(name, **defaults)
         
+        sta.params['position'] = 0,0,0
         self.hosts.append(sta)
         self.stations.append(sta)
         self.wifiNodes.append(sta)
@@ -381,6 +391,8 @@ class Mininet(object):
         sta.type = 'station'
         
         self.wifiRadios = sta.addParameters(sta, self.wifiRadios, self.autoSetMacs, params, defaults)
+        sta.params['frequency'][0] = channelParams.frequency(sta, 0)
+        sta.params['frequency'][1] = channelParams.frequency(sta, 1)
         self.nextIP += 1
         self.isVanet = True
 
@@ -932,7 +944,8 @@ class Mininet(object):
                 if self.firstAssociation:
                     self.configureWifiNodes()
                     
-            if 'position' in node1.params and 'position' in node2.params:
+            if 'position' in node1.params and 'position' in node2.params or \
+            ('RSU' in node1.name and 'RSU' in node2.name):
                 self.srcConn.append(node1)
                 self.dstConn.append(node2)
 
@@ -1073,29 +1086,30 @@ class Mininet(object):
                                     cls = Association
                                     cls.associate(node, ap)
         else:
-            for sta in self.stations:
-                pairingAdhocNodes.ssid_ID += 1
-                if 'position' in sta.params:
-                    mobility.getAPsInRange(sta)
-                for wlan in range(0, len(sta.params['wlan'])):
-                    if 'position' in sta.params and sta.func[wlan] == 'adhoc':
-                        value = pairingAdhocNodes(sta, wlan, self.stations)
-                        dist = value.dist
-                        if dist >= 0.01:
-                            setAdhocChannelParams(sta, wlan, dist, self.stations)
-                    elif 'position' in sta.params and sta.func[wlan] == 'mesh':
-                        dist = listNodes.pairingNodes(sta, wlan, self.stations)
-                        if dist >= 0.01:
-                            setAdhocChannelParams(sta, wlan, dist, self.stations)
-                        cls = Association
-                        cls.confirmMeshAssociation(sta, wlan)
-                    elif 'position' in sta.params and sta.params['associatedTo'][wlan] != '':
-                        dist = channelParams.getDistance(sta, sta.params['associatedTo'][wlan])
-                        if dist >= 0.01:
-                            setInfraChannelParams(sta, sta.params['associatedTo'][wlan], wlan, dist, self.stations)
-            
-            if meshRouting.routing == 'custom':
-                meshRouting(self.stations)
+            if self.isVanet == False:
+                for sta in self.stations:
+                    pairingAdhocNodes.ssid_ID += 1
+                    if 'position' in sta.params:
+                        mobility.getAPsInRange(sta)
+                    for wlan in range(0, len(sta.params['wlan'])):
+                        if 'position' in sta.params and sta.func[wlan] == 'adhoc':
+                            value = pairingAdhocNodes(sta, wlan, self.stations)
+                            dist = value.dist
+                            if dist >= 0.01:
+                                setAdhocChannelParams(sta, wlan, dist, self.stations)
+                        elif 'position' in sta.params and sta.func[wlan] == 'mesh':
+                            dist = listNodes.pairingNodes(sta, wlan, self.stations)
+                            if dist >= 0.01:
+                                setAdhocChannelParams(sta, wlan, dist, self.stations)
+                            cls = Association
+                            cls.confirmMeshAssociation(sta, wlan)
+                        elif 'position' in sta.params and sta.params['associatedTo'][wlan] != '':
+                            dist = channelParams.getDistance(sta, sta.params['associatedTo'][wlan])
+                            if dist >= 0.01:
+                                setInfraChannelParams(sta, sta.params['associatedTo'][wlan], wlan, dist, self.stations)
+                
+                if meshRouting.routing == 'custom':
+                    meshRouting(self.stations)
             
         if self.topo:
             self.buildFromTopo(self.topo)
@@ -1167,6 +1181,7 @@ class Mininet(object):
 
     def roads(self, nroads):
         "Roads"
+        self.isVanet = True
         self.nroads = nroads
 
     def stop(self):
@@ -1553,7 +1568,7 @@ class Mininet(object):
                 if 'position' not in sta.params:
                     staMov.append(sta)
                     sta.params['position'] = 0, 0, 0
-                    
+
             mobilityparam.setdefault('staMov', staMov)
             mobilityparam.setdefault('seed', self.set_seed)
             mobilityparam.setdefault('plotNodes', self.plotNodes)
@@ -1569,12 +1584,13 @@ class Mininet(object):
                 self.thread = threading.Thread(name='mobilityModel', target=mobility.models, kwargs=dict(mobilityparam,))
                 self.thread.daemon = True
                 self.thread.start()
+                self.setWifiParameters()
             else:
                 self.thread = threading.Thread(name='vanet', target=vanet, args=(self.stations,
-                                                        self.accessPoints, self.nroads, self.MAX_X, self.MAX_Y))
+                                                        self.accessPoints, self.nroads, self.srcConn, self.dstConn, self.MAX_X, self.MAX_Y))
                 self.thread.daemon = True
                 self.thread.start()
-            self.setWifiParameters()
+            
         info("Mobility started at %s second(s)\n" % kwargs['startTime'])
 
     def stopMobility(self, **kwargs):
@@ -1608,16 +1624,18 @@ class Mininet(object):
 
     def setWifiParameters(self):
         self.thread = threading.Thread(name='wifiParameters', target=mobility.parameters)
-        # self.thread.daemon = True
         self.thread.start()
 
     def useExternalProgram(self, program, **params):
         config_file = ("%s" % params.pop('config_file', {}))
+        self.isVanet = True
+        for car in self.car:
+            car.params['position'] = 0,0,0
         if program == 'sumo' or program == 'sumo-gui':
-            self.thread = threading.Thread(name='vanet', target=sumo, args=(self.stations, program, config_file))
+            self.thread = threading.Thread(name='vanet', target=sumo, args=(self.stations, self.accessPoints, program, config_file))
             self.thread.daemon = True
             self.thread.start()
-            self.setWifiParameters()
+            #self.setWifiParameters()
 
     def meshRouting(self, routing):
         if routing != '':

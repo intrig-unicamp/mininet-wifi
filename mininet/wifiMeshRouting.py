@@ -40,6 +40,7 @@ class listNodes (object):
                     car = ref_sta
                     ref_sta = ref_sta.params['carsta']
                     ref_sta.params['position'] = car.params['position']
+                    ref_sta.params['range'] = car.params['range']
                 if ref_sta != sta and ref_sta.func[wlan] == 'mesh' :
                     dist = channelParams.getDistance(sta, ref_sta)
                     if dist >= 0.1:
@@ -110,9 +111,7 @@ class meshRouting (object):
         command = ''
         for ref_sta in stationList:
             if ref_sta.type == 'vehicle':
-                car = ref_sta
                 ref_sta = ref_sta.params['carsta']
-                ref_sta.params['position'] = car.params['position']
             for ref_wlan in range(len(ref_sta.params['wlan'])):
                 if ref_sta != sta and ref_sta.func[ref_wlan] == 'mesh' and 'position' in sta.params:
                     dist = channelParams.getDistance(sta, ref_sta)

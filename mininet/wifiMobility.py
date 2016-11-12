@@ -24,7 +24,6 @@ class mobility (object):
     apList = []
     staList = []
     wallList = []
-    dic = dict()
     DRAW = False
     continue_ = True
     isMobility = False
@@ -154,7 +153,7 @@ class mobility (object):
         dic = dict()
         dic['max_x'] = MAX_X
         dic['max_y'] = MAX_Y
-
+        
         if self.DRAW == True:
             plot.instantiateGraph(MAX_X, MAX_Y)
             plot.plotGraph(nodes, srcConn, dstConn, **dic)

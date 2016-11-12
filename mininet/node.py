@@ -75,7 +75,7 @@ from re import findall
 from distutils.version import StrictVersion
 from mininet.wifiMobility import mobility
 from mininet.wifiChannel import channelParams, setAdhocChannelParams, setInfraChannelParams
-from mininet.wifiDevices import deviceDataRate, deviceRange
+from mininet.wifiDevices import deviceRange
 from mininet.wifiPlot import plot
 
 class Node(object):
@@ -350,7 +350,7 @@ class Node(object):
         else:
             node.params['mode'] = []
             for n in range(wlans):
-                node.params['mode'].append('g')
+                node.params['mode'].append(defaults['mode'])
                 
         # antennaHeight
         if 'antennaHeight' in params:

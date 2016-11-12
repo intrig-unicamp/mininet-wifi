@@ -71,9 +71,9 @@ class plot (object):
         return plt.scatter(nodesx, nodesy, color='red', marker='s')
 
     @classmethod
-    def plotLine2d(self, nodesx, nodesy, color='', lw=1):
+    def plotLine2d(self, nodesx, nodesy, color='', ls='-', lw=1):
         """plotLine2d"""
-        return plt.Line2D(nodesx, nodesy, color=color, lw=lw)
+        return plt.Line2D(nodesx, nodesy, color=color, ls=ls, lw=lw)
 
     @classmethod
     def plotLineTxt(self, x, y, i):
@@ -167,7 +167,7 @@ class plot (object):
         for c in range(0, len(srcConn)):
             line = self.plotLine2d([srcConn[c].params['position'][0], dstConn[c].params['position'][0]], \
                                    [srcConn[c].params['position'][1], dstConn[c].params['position'][1]], 'b')
-            plot.plotLine(line)
+            self.plotLine(line)
 
         #for wall in wallList:
         #    line = self.plotLine2d([wall.params['initPos'][0], wall.params['finalPos'][0]], \
