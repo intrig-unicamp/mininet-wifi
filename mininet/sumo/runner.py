@@ -1,26 +1,40 @@
-import subprocess, sys
+import sys
 import os
+import threading
 from sumolib.sumulib import checkBinary
 from traci import trace
 from fonction import initialisation,noChangeSaveTimeAndSpeed,changeSaveTimeAndSpeed,reroutage
+from mininet.wifiMobility import mobility
 
 class sumo(object):
 	
-	def __init__( self, nodes, program, config_file ):
-		try:
-			self.start(nodes, program, config_file)
+	def __init__( self, stations, baseStations, program, config_file ):
+		try:			
+			mobility.staList = stations
+			mobility.apList = baseStations
+			self.start(stations, baseStations, program, config_file)
 		except:
 			pass
 		
-	def start( self, nodes, program, config_file ):
+	def setWifiParameters(self):
+		thread = threading.Thread(name='wifiParameters', target=mobility.parameters)
+		thread.start()
+		
+	def start( self, stations, baseStations, program, config_file ):
 
 		PORT = 8813
 		sumoBinary = checkBinary(program)
 		myfile = (os.path.join( os.path.dirname(__file__), "data/%s" % config_file))
 		sumoConfig = myfile
 		
+		for node in baseStations:
+			ap = node
+			break
+		
 		if not trace.isEmbedded():
-			subprocess.Popen(' %s -c  %s' % (sumoBinary,sumoConfig),shell=True, stdout=sys.stdout)
+			#This is not working with subprocess.
+			ap.cmd(' %s -c %s &' % (sumoBinary, sumoConfig))
+			#subprocess.Popen(' %s -c  %s' % (sumoBinary,sumoConfig), shell=True, stdout=sys.stdout)
 			trace.init(PORT)
 			
 		step=0
@@ -31,7 +45,8 @@ class sumo(object):
 		time=[]
 		speed=[]
 		ListVehInteract=[]
-		
+		self.setWifiParameters()
+
 		#while len(ListVeh) < len(nodes):
 		while True:
 			trace.simulationStep()
@@ -70,9 +85,9 @@ class sumo(object):
 						x2=trace.vehicle.getPosition(vehID2)[0]
 						y2=trace.vehicle.getPosition(vehID2)[1]
 						
-						if int(vehID1) < len(nodes):
-							nodes[int(vehID1)].params['position'] = x1, y1, 0
-							nodes[int(vehID1)].params['range'] = 130
+						if int(vehID1) < len(stations):
+							stations[int(vehID1)].params['position'] = x1, y1, 0
+							stations[int(vehID1)].params['range'] = 130
 		
 						if abs(x1-x2)>0 and abs(x1-x2)<20 and (Road1==OppositeRoad2 or Road2==OppositeRoad1):
 		
