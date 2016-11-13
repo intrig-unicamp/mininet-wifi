@@ -17,9 +17,9 @@ def topology():
     sta1 = net.addStation( 'sta1', wlans=2, ip='10.0.0.2/8', max_x=120, max_y=50, min_v=1.4, max_v=1.6 )
     h1 = net.addHost( 'h1', mac='00:00:00:00:00:01', ip='10.0.0.1/8' )
     h2 = net.addHost( 'h2', mac='00:00:00:00:00:11', ip='10.0.0.11/8' )
-    ap1 = net.addBaseStation( 'ap1', ssid='ssid_ap1', mode= 'g', channel=6, position='70,25,0' )
-    ap2 = net.addBaseStation( 'ap2', ssid='ssid_ap2', mode= 'g', channel=1, position='30,25,0' )
-    ap3 = net.addBaseStation( 'ap3', ssid='ssid_ap3', mode= 'g', channel=11, position='110,25,0' )
+    ap1 = net.addAccessPoint( 'ap1', ssid='ssid_ap1', mode= 'g', channel=6, position='70,25,0' )
+    ap2 = net.addAccessPoint( 'ap2', ssid='ssid_ap2', mode= 'g', channel=1, position='30,25,0' )
+    ap3 = net.addAccessPoint( 'ap3', ssid='ssid_ap3', mode= 'g', channel=11, position='110,25,0' )
     s4 = net.addSwitch( 's4', mac='00:00:00:00:00:10' )
     c1 = net.addController( 'c1', controller=Controller )
 

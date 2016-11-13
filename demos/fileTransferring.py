@@ -29,7 +29,7 @@ def topology():
     print "*** Creating nodes"
     sta1 = net.addStation( 'sta1', mac='00:00:00:00:00:01', ip='192.168.0.1/24', position='47.28,50,0' )
     sta2 = net.addStation( 'sta2', mac='00:00:00:00:00:02', ip='192.168.0.2/24', position='54.08,50,0' )
-    ap3 = net.addBaseStation( 'ap3', ssid='ap-ssid3', mode= 'b', channel= '1', position='50,50,0' )
+    ap3 = net.addAccessPoint( 'ap3', ssid='ap-ssid3', mode= 'b', channel= '1', position='50,50,0' )
     c4 = net.addController( 'c4', controller=Controller, port=6653 )
 
     """uncomment to plot graph"""
