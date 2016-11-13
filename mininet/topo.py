@@ -156,7 +156,7 @@ class Topo(object):
         result = self.addNode(name, isSwitch=True, **opts)
         return result
 
-    def addBaseStation(self, name, **opts):
+    def addAccessPoint(self, name, **opts):
         """Convenience method: Add switch to graph.
            name: switch name
            opts: switch options
@@ -198,9 +198,9 @@ class Topo(object):
            returns: dpids list of dpids"""
         return [ n for n in self.nodes(sort) if self.isSwitch(n) ]
 
-    def baseStations(self, sort=True):
-        """Return BaseStations.
-           sort: sort basestations alphabetically
+    def accessPoints(self, sort=True):
+        """Return AccessPoints.
+           sort: sort accesspoints alphabetically
            returns: dpids list of dpids"""
         return [ n for n in self.nodes(sort) if self.isSwitch(n) ]
 
@@ -331,10 +331,10 @@ class SingleSwitchTopo(Topo):
         if isWiFi:
             "k: number of hosts"
             self.k = k
-            baseStation = self.addBaseStation('ap1')
+            accessPoint = self.addAccessPoint('ap1')
             for h in irange(1, k):
                 host = self.addHost('sta%s' % h)
-                self.addLink(host, baseStation)
+                self.addLink(host, accessPoint)
         else:
             "k: number of hosts"
             self.k = k
@@ -391,18 +391,18 @@ class LinearTopo(Topo):
             else:
                 genHostName = lambda i, j: 'sta%sap%d' % (j, i)
 
-            lastBaseStation = None
+            lastAccessPoint = None
             for i in irange(1, k):
-                # Add baseStation
-                baseStation = self.addBaseStation('ap%s' % i, ssid='ssid_ap%s' % i)
-                # Add hosts to baseStation
+                # Add accessPoint
+                accessPoint = self.addAccessPoint('ap%s' % i, ssid='ssid_ap%s' % i)
+                # Add hosts to accessPoint
                 for j in irange(1, n):
                     host = self.addHost(genHostName(i, j))
-                    self.addLink(host, baseStation)
-                # Connect baseStation to previous
-                if lastBaseStation:
-                    self.addLink(baseStation, lastBaseStation)
-                lastBaseStation = baseStation
+                    self.addLink(host, accessPoint)
+                # Connect accessPoint to previous
+                if lastAccessPoint:
+                    self.addLink(accessPoint, lastAccessPoint)
+                lastAccessPoint = accessPoint
         else:
             """k: number of switches
                n: number of hosts per switch"""

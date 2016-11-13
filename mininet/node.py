@@ -105,7 +105,6 @@ class Node(object):
         self.wlanports = -1  # dict of wlan interfaces to port numbers
         self.nameToIntf = {}  # dict of interface names to Intfs
 
-        # Station and BaseStation Parameters
         self.func = []
         self.type = 'host'        
 
@@ -1017,6 +1016,14 @@ class Node(object):
 
 class Host(Node):
     "A host is simply a Node"
+    pass
+
+class Station(Node):
+    "A station is simply a Node"
+    pass
+
+class Car(Node):
+    "A car is simply a Node"
     pass
 
 class CPULimitedHost(Host):

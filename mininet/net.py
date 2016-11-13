@@ -101,7 +101,7 @@ from math import ceil
 
 from mininet.cli import CLI
 from mininet.log import info, error, debug, output, warn
-from mininet.node import (Node, Host, OVSKernelSwitch, DefaultController,
+from mininet.node import (Node, Host, Station, Car, OVSKernelSwitch, DefaultController,
                            Controller, AccessPoint)
 from mininet.nodelib import NAT
 from mininet.link import Link, Intf, TCLink, TCLinkWireless, Association
@@ -155,7 +155,6 @@ class Mininet(object):
         self.topo = topo
         self.switch = switch        
         self.host = host
-        self.car = []
         self.controller = controller
         self.link = link
         self.intf = intf
@@ -189,8 +188,8 @@ class Mininet(object):
         self.hosts = []
         self.links = []
         self.missingStations = []
+        self.cars = []
         self.newapif = []
-        self.wifiNodes = []
         self.switches = []
         self.stations = []
         self.vehicles = []
@@ -285,21 +284,19 @@ class Mininet(object):
         if self.autoPinCpus:
             defaults[ 'cores' ] = self.nextCore
             self.nextCore = (self.nextCore + 1) % self.numCores
+        self.nextIP += 1
         defaults.update(params)
-        if not cls:
-            cls = self.host
+        
+        cls = Station
         sta = cls(name, **defaults)   
           
         self.hosts.append(sta)
         self.stations.append(sta)
-        self.wifiNodes.append(sta)
         self.nameToNode[ name ] = sta
         self.missingStations.append(sta)
         sta.type = 'station'
         
         self.wifiRadios = sta.addParameters(sta, self.wifiRadios, self.autoSetMacs, params, defaults)
-
-        self.nextIP += 1
 
         return sta
         
@@ -325,13 +322,12 @@ class Mininet(object):
             defaults[ 'cores' ] = self.nextCore
             self.nextCore = (self.nextCore + 1) % self.numCores
         defaults.update(params)
-        if not cls:
-            cls = self.host
+        
+        self.nextIP += 1
+        cls = Car
         car = cls(name, **defaults)
         self.hosts.append(car)
         
-        # self.stations.append(sta)
-        # self.wifiNodes.append(sta)
         self.nameToNode[ name ] = car
         self.missingStations.append(car)
         car.type = 'vehicle'
@@ -339,70 +335,26 @@ class Mininet(object):
         
         carsta = self.addStation(name + 'STA')
         carsta.params['range'] = car.params['range']
-        # carsta.type = 'mesh'
+   
         car.params['carsta'] = carsta
         self.vehiclesSTA.append(carsta)
         switchName = car.name + 'SW'
         carsw = self.addSwitch(switchName, inband=True)
         self.vehicles.append(carsw)
-        self.car.append(car)
-        self.wifiNodes.append(car)
+        self.cars.append(car)
         
         car.func.append('')
         car.func[1] = 'mesh'
         self.addLink(carsta, carsw)
         self.addLink(car, carsw)
-
-        self.nextIP += 1
+        
         return car    
 
-    # NOT SURE ABOUT THIS CLASSNAME
-    def addVehicle(self, name, cls=None, **params):
-        """Add Vehicle.
-           name: name of vehicle to add
-           cls: custom host class/constructor (optional)
-           params: parameters for Vehicle
-           returns: added Vehicle"""
-        # Default IP and MAC addresses
-        defaults = { 'ip': ipAdd(self.nextIP,
-                                  ipBaseNum=self.ipBaseNum,
-                                  prefixLen=self.prefixLen) + 
-                                  '/%s' % self.prefixLen,
-                     'channel': self.channel,
-                     'mode': self.mode,
-                     'ssid': self.ssid}
-
-        if self.autoSetMacs:
-            defaults[ 'mac' ] = macColonHex(self.nextIP)
-        if self.autoPinCpus:
-            defaults[ 'cores' ] = self.nextCore
-            self.nextCore = (self.nextCore + 1) % self.numCores
-        defaults.update(params)
-        if not cls:
-            cls = self.host
-        sta = cls(name, **defaults)
-        
-        sta.params['position'] = 0,0,0
-        self.hosts.append(sta)
-        self.stations.append(sta)
-        self.wifiNodes.append(sta)
-        self.nameToNode[ name ] = sta
-        self.missingStations.append(sta)
-        sta.type = 'station'
-        
-        self.wifiRadios = sta.addParameters(sta, self.wifiRadios, self.autoSetMacs, params, defaults)
-        sta.params['frequency'][0] = channelParams.frequency(sta, 0)
-        sta.params['frequency'][1] = channelParams.frequency(sta, 1)
-        self.nextIP += 1
-        self.isVanet = True
-
-        return sta
-
-    def addBaseStation(self, name, cls=None, **params):
-        """Add BaseStation.
-           name: name of basestation to add
+    def addAccessPoint(self, name, cls=None, **params):
+        """Add AccessPoint.
+           name: name of accesspoint to add
            cls: custom switch class/constructor (optional)
-           returns: added basestation
+           returns: added acesspoint
            side effect: increments listenPort ivar ."""
         defaults = { 'listenPort': self.listenPort,
                      'inNamespace': self.inNamespace,
@@ -415,17 +367,17 @@ class Mininet(object):
 
         if not cls:
             cls = self.switch
-        bs = cls(name, **defaults)
+        ap = cls(name, **defaults)
         if not self.inNamespace and self.listenPort:
             self.listenPort += 1
-        self.wifiNodes.append(bs)
-        self.nameToNode[ name ] = bs
-        bs.type = 'accessPoint'
+  
+        self.nameToNode[ name ] = ap
+        ap.type = 'accessPoint'
         
-        self.wifiRadios = bs.addParameters(bs, self.wifiRadios, self.autoSetMacs, params, defaults)
-        self.switches.append(bs)
-        self.accessPoints.append(bs)        
-        return bs
+        self.wifiRadios = ap.addParameters(ap, self.wifiRadios, self.autoSetMacs, params, defaults)
+        self.switches.append(ap)
+        self.accessPoints.append(ap)        
+        return ap
 
     def addPhysicalBaseStation(self, name, cls=None, **params):
         """Add BaseStation.
@@ -447,7 +399,7 @@ class Mininet(object):
         bs = cls(name, **defaults)
         if not self.inNamespace and self.listenPort:
             self.listenPort += 1
-        self.wifiNodes.append(bs)
+        
         self.nameToNode[ name ] = bs
         bs.type = 'accessPoint'
 
@@ -771,7 +723,8 @@ class Mininet(object):
         """Configure AP"""
         i = 0
         x = 0
-        for node in self.wifiNodes:
+        wifiNodes = self.stations + self.cars + self.accessPoints
+        for node in wifiNodes:
             if 'accessPoint' == node.type:
                 ap = node                  
                 if 'phywlan' in ap.params:
@@ -857,7 +810,8 @@ class Mininet(object):
             physicalWlan, phyList = module.start(self.wifiRadios, self.alternativeModule)
             self.isWiFi = True
             self.newapif = module.getWlanIface(physicalWlan)  # Get Virtual Wlans
-            module.assignIface(self.wifiNodes, physicalWlan, phyList)
+            wifiNodes = self.stations + self.cars + self.accessPoints
+            module.assignIface(wifiNodes, physicalWlan, phyList)
             self.ifaceConfigured = True
             self.link = TCLink
             self.configureAP()  # configure AP
@@ -1037,7 +991,7 @@ class Mininet(object):
             if hasattr(cls, 'batchStartup'):
                 params.setdefault('batch', True)
             if 'ap' in str(switchName):
-                self.addBaseStation(switchName, **params)
+                self.addAccessPoint(switchName, **params)
             else:
                 self.addSwitch(switchName, **params)
             info(switchName + ' ')
@@ -1057,9 +1011,8 @@ class Mininet(object):
 
     def build(self):
         # useful if there no link between sta and any other device
-        for car in self.car:
-            self.addMesh(car.params['carsta'], ssid='mesh-ssid')  
-            self.wifiNodes.remove(car.params['carsta'])     
+        for car in self.cars:
+            self.addMesh(car.params['carsta'], ssid='mesh-ssid')
             self.stations.remove(car.params['carsta'])
             self.stations.append(car)      
             car.params['wlan'].append(0)   
@@ -1629,7 +1582,7 @@ class Mininet(object):
     def useExternalProgram(self, program, **params):
         config_file = ("%s" % params.pop('config_file', {}))
         self.isVanet = True
-        for car in self.car:
+        for car in self.cars:
             car.params['position'] = 0,0,0
         if program == 'sumo' or program == 'sumo-gui':
             self.thread = threading.Thread(name='vanet', target=sumo, args=(self.stations, self.accessPoints, program, config_file))
@@ -1663,7 +1616,8 @@ class Mininet(object):
     def getCurrentPosition(self, node):
         """ Get Current Position """
         try:
-            for host in self.wifiNodes:
+            wifiNodes = self.stations + self.cars + self.accessPoints
+            for host in wifiNodes:
                 if node == str(host):
                     self.printPosition(host)
         except:
@@ -1745,10 +1699,11 @@ class Mininet(object):
     def getCurrentDistance(self, src, dst):
         """ Get current Distance """
         try:
-            for host1 in self.wifiNodes:
+            wifiNodes = self.stations + self.cars + self.accessPoints
+            for host1 in wifiNodes:
                 if src == str(host1):
                     src = host1
-                    for host2 in self.wifiNodes:
+                    for host2 in wifiNodes:
                         if dst == str(host2):
                             dst = host2
                             self.printDistance(src, dst)

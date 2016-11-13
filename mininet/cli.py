@@ -64,7 +64,7 @@ class CLI(Cmd):
                 mobility.staList = mininet.stations
             nodes = mininet.stations + mininet.accessPoints
             plot.instantiateGraph(mininet.MAX_X, mininet.MAX_Y)
-            plot.plotGraph(nodes, [], [], **mobility.dic)
+            plot.plotGraph(nodes, [], [])
             plot.graphPause()
 
         self.mn = mininet
