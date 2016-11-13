@@ -29,26 +29,26 @@ def topology():
         max= random.randint(11,30)
         car[x] = net.addCar('car%s' % (x+1), wlans=1, ip='10.0.0.%s/8' % (x + 1), min_speed=min, max_speed=max, range=50)
 
-    bs1 = net.addBaseStation( 'RSU1', ssid= 'RSU1', mode= 'g', channel= '1', range=100 )
-    bs2 = net.addBaseStation( 'RSU2', ssid= 'RSU2', mode= 'g', channel= '6', range=100 )
-    bs3 = net.addBaseStation( 'RSU3', ssid= 'RSU3', mode= 'g', channel= '11', range=100 )
-    bs4 = net.addBaseStation( 'RSU4', ssid= 'RSU4', mode= 'g', channel= '11', range=100 )
+    rsu11 = net.addBaseStation( 'RSU11', ssid= 'RSU11', mode= 'g', channel= '1', range=100 )
+    rsu12 = net.addBaseStation( 'RSU12', ssid= 'RSU12', mode= 'g', channel= '6', range=100 )
+    rsu13 = net.addBaseStation( 'RSU13', ssid= 'RSU13', mode= 'g', channel= '11', range=100 )
+    rsu14 = net.addBaseStation( 'RSU14', ssid= 'RSU14', mode= 'g', channel= '11', range=100 )
     c1 = net.addController( 'c1', controller=Controller )
 
     net.meshRouting('custom') 
 
     print "*** Associating and Creating links"
-    net.addLink(bs1, bs2)
-    net.addLink(bs1, bs3)
-    net.addLink(bs1, bs4)
+    net.addLink(rsu11, rsu12)
+    net.addLink(rsu11, rsu13)
+    net.addLink(rsu11, rsu14)
 
     print "*** Starting network"
     net.build()
     c1.start()
-    bs1.start( [c1] )
-    bs2.start( [c1] )
-    bs3.start( [c1] )
-    bs4.start( [c1] )
+    rsu11.start( [c1] )
+    rsu12.start( [c1] )
+    rsu13.start( [c1] )
+    rsu14.start( [c1] )
     i = 201
     for sw in net.vehicles:
         sw.start([c1])

@@ -17,7 +17,7 @@ def topology():
     print "*** Creating nodes"
     sta1 = net.addStation( 'sta1' )
     sta2 = net.addStation( 'sta2' )
-    ap1 = net.addBaseStation( 'ap1', ssid="simplewifi", mode="g", channel="5" )
+    ap1 = net.addAccessPoint( 'ap1', ssid="simplewifi", mode="g", channel="5" )
     c0 = net.addController('c0', controller=Controller, ip='127.0.0.1', port=6633 )
 
     print "*** Associating Stations"

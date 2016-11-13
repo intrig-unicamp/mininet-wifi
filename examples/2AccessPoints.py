@@ -18,8 +18,8 @@ def topology():
     sta2 = net.addStation( 'sta2', ip="192.168.0.2/24" )
     sta3 = net.addStation( 'sta3', ip="192.168.0.3/24" )
     sta4 = net.addStation( 'sta4', ip="192.168.0.4/24" )
-    ap1 = net.addBaseStation( 'ap1', ssid="ssid_1", mode="g", channel="1" )
-    ap2 = net.addBaseStation( 'ap2', ssid="ssid_2", mode="b", channel="6" )
+    ap1 = net.addAccessPoint( 'ap1', ssid="ssid_1", mode="g", channel="1" )
+    ap2 = net.addAccessPoint( 'ap2', ssid="ssid_2", mode="b", channel="6" )
     c0 = net.addController('c0', controller=Controller, ip='127.0.0.1', port=6653 )
 
     print "*** Adding Link"

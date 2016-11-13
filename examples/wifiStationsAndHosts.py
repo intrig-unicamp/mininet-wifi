@@ -15,7 +15,7 @@ def topology():
     net = Mininet( controller=Controller, link=TCLink, switch=OVSKernelSwitch )
     
     print "*** Creating nodes"
-    ap1 = net.addBaseStation( 'ap1', ssid="ssid_ap1", mode="g", channel="5" )
+    ap1 = net.addAccessPoint( 'ap1', ssid="ssid_ap1", mode="g", channel="5" )
     sta1 = net.addStation( 'sta1', ip='192.168.0.1/24' )
     sta2 = net.addStation( 'sta2', ip='192.168.0.2/24' )
     h3 = net.addHost( 'h3', ip='192.168.0.3/24' )

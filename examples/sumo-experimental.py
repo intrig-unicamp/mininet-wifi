@@ -22,7 +22,7 @@
    192.168.0.1/24            192.168.0.3/24
          .                        .
          .                        .
-         ...........BS1............
+         ...........RSU1............
                   (infra)
 """
 
@@ -55,19 +55,19 @@ def topology():
     for x in range(0, 10):
         car[x] = net.addCar('car%s' % (x), wlans=1, ip='10.0.0.%s/8' % (x + 1), mode='b', max_x=40, max_y=40, range=1000)
 
-    bs11 = net.addBaseStation('bs11', ssid='bs11', mode='g', channel='1', position='3500,2500,0', range=500)
-    bs21 = net.addBaseStation('bs21', ssid='bs21', mode='g', channel='6', position='3000,2500,0', range=500)
-    bs31 = net.addBaseStation('bs31', ssid='bs31', mode='g', channel='11', position='2500,3000,0', range=500)
-    bs41 = net.addBaseStation('bs41', ssid='bs41', mode='g', channel='11', position='4000,3000,0', range=500)
-    bs51 = net.addBaseStation('bs51', ssid='bs51', mode='g', channel='11', position='4500,3000,0', range=500)
+    rsu10 = net.addAccessPoint('rsu10', ssid='rsu10', mode='g', channel='1', position='3500,2500,0', range=500)
+    rsu11 = net.addAccessPoint('rsu11', ssid='rsu11', mode='g', channel='6', position='3000,2500,0', range=500)
+    rsu12 = net.addAccessPoint('rsu12', ssid='rsu12', mode='g', channel='11', position='2500,3000,0', range=500)
+    rsu13 = net.addAccessPoint('rsu13', ssid='rsu13', mode='g', channel='11', position='4000,3000,0', range=500)
+    rsu14 = net.addAccessPoint('rsu14', ssid='rsu14', mode='g', channel='11', position='4500,3000,0', range=500)
     c1 = net.addController('c1', controller=Controller, ip='127.0.0.1', port=6633)
- 
+
     net.meshRouting('custom') 
 
-    net.addLink(bs11,bs21)
-    net.addLink(bs21,bs31)
-    net.addLink(bs31,bs41)
-    net.addLink(bs41,bs51)
+    net.addLink(rsu10,rsu11)
+    net.addLink(rsu11,rsu12)
+    net.addLink(rsu13,rsu14)
+    net.addLink(rsu14,rsu15)
 
     """Available Options: sumo, sumo-gui"""
     #Put your sumocfg file in /mininet/sumo/data
@@ -76,11 +76,11 @@ def topology():
     print "*** Starting network"
     net.build()
     c1.start()
-    bs11.start([c1])
-    bs21.start([c1])
-    bs31.start([c1])
-    bs41.start([c1])
-    bs51.start([c1])
+    rsu10.start([c1])
+    rsu11.start([c1])
+    rsu12.start([c1])
+    rsu13.start([c1])
+    rsu14.start([c1])
     i = 201
     for sw in net.vehicles:
         sw.start([c1])
