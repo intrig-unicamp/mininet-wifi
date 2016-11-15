@@ -772,8 +772,7 @@ class Mininet(object):
                     wifiparam.setdefault('rsn_pairwise', self.rsn_pairwise)
                     wifiparam.setdefault('wpa_passphrase', self.wpa_passphrase)
                     wifiparam.setdefault('wep_key0', self.wep_key0)
-                    if 'phywlan' not in ap.params:
-                        wifiparam.setdefault('wlan', wlan)
+                    wifiparam.setdefault('wlan', wlan)
                    
                     cls = AccessPoint
                     cls.init_(ap, **wifiparam)

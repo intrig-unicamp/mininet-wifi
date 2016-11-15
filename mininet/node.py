@@ -1346,8 +1346,7 @@ class AccessPoint(Switch):
         if 'phywlan' not in ap.params:
             cmd = cmd + ("interface=%s" % ap.params['wlan'][wlan])  # the interface used by the AP
         else:
-            wlan = ap.params.get('phywlan')
-            cmd = cmd + ("interface=%s" % wlan)  # the interface used by the AP
+            cmd = cmd + ("interface=%s" % ap.params.get('phywlan'))  # the interface used by the AP
         cmd = cmd + ("\ndriver=nl80211")
         cmd = cmd + ("\nssid=%s" % ap.params['ssid'][0])  # the name of the AP
 
