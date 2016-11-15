@@ -171,7 +171,7 @@ class Mininet(object):
         self.nextCore = 0  # next core for pinning hosts to CPUs
         self.listenPort = listenPort
         self.waitConn = waitConnected
-        self.init_time = -1  # start mobility time
+        self.init_time = 0  # start mobility time
         self.set_seed = 10
         self.routing = ''
         self.alternativeModule = ''
@@ -1177,7 +1177,7 @@ class Mininet(object):
             "Stop Graph"
             mobility.continuePlot = 'exit()'
             mobility.continue_ = False
-            mobility.DRAW = False
+            #mobility.DRAW = False
             sleep(1)
             plot.closePlot()
             module.stop()  # Stopping WiFi Module

@@ -11,10 +11,6 @@ from mininet.log import debug
 
 class plot (object):
 
-    nodesPlotted = []
-    pltCircle = {}
-    pltNode = {}
-    plttxt = {}
     ax = None
 
     @classmethod
@@ -26,33 +22,26 @@ class plot (object):
             pass
 
     @classmethod
-    def drawNode(self, node):
-        """Update Draw"""
-        self.pltNode[node].set_data(node.params['position'][0], node.params['position'][1])
-
-    @classmethod
-    def drawTxt(self, node):
-        """drawTxt"""
-        if hasattr(self.plttxt[node], 'xyann'): self.plttxt[node].xyann = (node.params['position'][0], 
+    def text(self, node):
+        """draw text"""
+        if hasattr(node.plttxt, 'xyann'): node.plttxt.xyann = (node.params['position'][0], 
                                                                            node.params['position'][1])  # newer MPL versions (>=1.4)
-        else: self.plttxt[node].xytext = (node.params['position'][0], node.params['position'][1])
-        # self.plttxt[node].xytext = node.position[0], node.position[1]
+        else: node.plttxt.xytext = (node.params['position'][0], node.params['position'][1])
 
     @classmethod
-    def drawCircle(self, node):
+    def circle(self, node):
         """drawCircle"""
-        self.pltCircle[node].center = node.params['position'][0], node.params['position'][1]
+        node.pltCircle.center = node.params['position'][0], node.params['position'][1]
 
     @classmethod
     def graphUpdate(self, node):
         """Update Graph"""
-        if hasattr(self.plttxt[node], 'xyann'): self.plttxt[node].xyann = (node.params['position'][0], 
+        if hasattr(node.plttxt, 'xyann'): node.plttxt.xyann = (node.params['position'][0], 
                                                                            node.params['position'][1])  # newer MPL versions (>=1.4)
         else: self.plttxt[node].xytext = (node.params['position'][0], node.params['position'][1])
-        # self.plttxt[node].xytext = node.position[0], node.position[1]
 
-        self.pltNode[node].set_data(node.params['position'][0], node.params['position'][1])
-        self.pltCircle[node].center = node.params['position'][0], node.params['position'][1]
+        node.pltNode.set_data(node.params['position'][0], node.params['position'][1])
+        node.pltCircle.center = node.params['position'][0], node.params['position'][1]
         self.plotDraw()
 
     @classmethod
@@ -110,13 +99,12 @@ class plot (object):
         elif node.type == 'vehicle':
             color = 'r'
 
-        self.pltNode[node], = ax.plot(range(MAX_X), range(MAX_Y), \
+        node.pltNode, = ax.plot(range(MAX_X), range(MAX_Y), \
                                      linestyle='', marker='.', ms=10, mfc=color)
-        self.nodesPlotted.append(node)
 
     @classmethod
     def updateCircleRadius(self, node):
-        self.pltCircle[node].set_radius(node.params['range'])
+        node.pltCircle.set_radius(node.params['range'])
 
     @classmethod
     def instantiateCircle(self, node):
@@ -129,7 +117,7 @@ class plot (object):
         elif node.type == 'vehicle':
             color = 'r'
 
-        self.pltCircle[node] = ax.add_patch(
+        node.pltCircle = ax.add_patch(
             patches.Circle((0, 0),
             node.params['range'], fill=True, alpha=0.1, color=color
             )
@@ -139,29 +127,25 @@ class plot (object):
     def instantiateAnnotate(self, node):
         """instantiateAnnotate"""
         ax = self.ax
-        self.plttxt[node] = ax.annotate(node, xy=(0, 0))
+        node.plttxt = ax.annotate(node, xy=(0, 0))
 
     @classmethod
     def graphInstantiateNodes(self, node, MAX_X, MAX_Y):
-        plot.instantiateAnnotate(node)
-        plot.instantiateCircle(node)
-        plot.instantiateNode(node, MAX_X, MAX_Y)
-        plot.graphUpdate(node)
+        self.instantiateAnnotate(node)
+        self.instantiateCircle(node)
+        self.instantiateNode(node, MAX_X, MAX_Y)
+        self.graphUpdate(node)
 
     @classmethod
-    def plotGraph(self, wifiNodes=[], srcConn=[], dstConn=[], **kwargs):
+    def plotGraph(self, wifiNodes=[], srcConn=[], dstConn=[], MAX_X=0, MAX_Y=0):
         """ Plot Graph """
-        if 'max_x' in kwargs:
-            MAX_X = kwargs['max_x']
-        if 'max_y' in kwargs:
-            MAX_Y = kwargs['max_y']
 
         debug('Enabling Graph...\n')           
         for node in wifiNodes:
             self.graphInstantiateNodes(node, MAX_X, MAX_Y)
-            plot.pltNode[node].set_data(node.params['position'][0], node.params['position'][1])
-            plot.drawTxt(node)
-            plot.drawCircle(node)
+            node.pltNode.set_data(node.params['position'][0], node.params['position'][1])
+            self.text(node)
+            self.circle(node)
             self.graphUpdate(node)
         
         for c in range(0, len(srcConn)):

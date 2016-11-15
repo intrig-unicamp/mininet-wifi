@@ -96,7 +96,6 @@ class mobility (object):
                             if dist >= 0.01 and sta.params['associatedTo'][wlan] != '':
                                 setInfraChannelParams(sta, ap, wlan, dist, self.staList)
         
-    
     @classmethod
     def verifyPasswd(self, sta, ap, wlan):
         if 'passwd' not in sta.params:
@@ -150,13 +149,9 @@ class mobility (object):
         self.wallList = walls
         nodes = self.staList + self.apList + plotnodes
 
-        dic = dict()
-        dic['max_x'] = MAX_X
-        dic['max_y'] = MAX_Y
-        
         if self.DRAW == True:
             plot.instantiateGraph(MAX_X, MAX_Y)
-            plot.plotGraph(nodes, srcConn, dstConn, **dic)
+            plot.plotGraph(nodes, srcConn, dstConn, MAX_X, MAX_Y)
 
         try:
             while time.time() < t_end and time.time() > t_initial:
@@ -187,10 +182,6 @@ class mobility (object):
         self.wallList = walls
         nodes = self.staList + self.apList + plotNodes
 
-        dic = dict()
-        dic['max_x'] = MAX_X
-        dic['max_y'] = MAX_Y
-
         # max waiting time
         MAX_WT = 100.
 
@@ -206,7 +197,7 @@ class mobility (object):
 
         if self.DRAW:
             plot.instantiateGraph(MAX_X, MAX_Y)
-            plot.plotGraph(nodes, srcConn, dstConn, **dic)
+            plot.plotGraph(nodes, srcConn, dstConn, MAX_X, MAX_Y)
             plot.graphPause()
 
         if staMov != None:            
@@ -241,9 +232,6 @@ class mobility (object):
             for node in nodes:
                 node.params['position'] = xy[i][0], xy[i][1], 0
                 i += 1
-                plot.pltNode[node].set_data(xy[:, 0], xy[:, 1])
-                plot.drawTxt(node)
-                plot.drawCircle(node)
                 plot.graphUpdate(node)
             eval(self.continuePlot)
                 
