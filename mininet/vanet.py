@@ -139,8 +139,8 @@ class vanet(object):
             bs.params['position'] = bs_x, bs_y, 0
             plot.instantiateAnnotate(bs)
             plot.instantiateCircle(bs)
-            plot.drawTxt(bs)
-            plot.drawCircle(bs)
+            plot.text(bs)
+            plot.circle(bs)
             plot.plotDraw()
 
         for c in range(0, len(srcConn)):
@@ -361,8 +361,8 @@ class vanet(object):
                             com_lines.append(line)
                             plot.plotLine(line)
 
-            plot.drawTxt(car)
-            plot.drawCircle(car)
+            plot.text(car)
+            plot.circle(car)
         eval(mobility.continuePlot)
 
         scatter = plot.plotScatter(points[0], points[1])
