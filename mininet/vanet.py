@@ -31,15 +31,9 @@ class vanet(object):
     road = []
     points = []
     totalRoads = []
-    range = []
 
-    bss = {}
-    currentRoad = {}
     interX = {}
     interY = {}
-    velo = {}
-    initial = {}
-    cars = {}
 
     time_per_iteraiton = 100 * math.pow(10, -3)
 
@@ -52,16 +46,16 @@ class vanet(object):
         [self.road.append(x) for x in range(0, nroads)]
         [self.points.append(x) for x in range(0, nroads)]
         [self.totalRoads.append(x) for x in range(0, nroads)]
-        [self.range.append(cars[x].params['range']) for x in range(0, len(cars))]
 
         plot.instantiateGraph(MAX_X, MAX_Y)
 
         try:
             self.display_grid(baseStations, srcConn, dstConn, nroads)
             self.display_cars(cars)
+            plot.plotGraph(cars, [], [], MAX_X, MAX_Y)
             self.setWifiParameters()
             while mobility.continue_:
-                [self.scatter, self.com_lines] = self.simulate_car_movement(self.scatter, self.com_lines)
+                [self.scatter, self.com_lines] = self.simulate_car_movement(cars, baseStations, self.scatter, self.com_lines)
         except:
             pass
         
@@ -132,9 +126,9 @@ class vanet(object):
             plot.plotLine(self.road[n])
 
         for bs in baseStations:
-            self.bss[bs] = ginp(1)[0]
-            bs_x = self.bss[bs][0]
-            bs_y = self.bss[bs][1]
+            bs.properties = ginp(1)[0]
+            bs_x = bs.properties[0]
+            bs_y = bs.properties[1]
             self.scatter = plot.plotScatter(bs_x, bs_y)
             bs.params['position'] = bs_x, bs_y, 0
             plot.instantiateAnnotate(bs)
@@ -172,8 +166,9 @@ class vanet(object):
         points = [[], []]
 
         # get X cars in the graph
+        i = 0
         for car in cars:
-
+            i += 1
             random_index = randrange(len(car_lines))
             car.currentRoad = int(random_index)
             car_line = car_lines[random_index]
@@ -183,11 +178,11 @@ class vanet(object):
             line_data = car_line.get_data()
             ang = self.calculateAngle(line_data)
 
-            self.cars[car] = self.carProperties(point, ang, x_min, x_max, y_min, y_max)
+            car.properties = self.carProperties(point, ang, x_min, x_max, y_min, y_max)
 
             # for the even cars shift angle to negative
             # so that it goes in opposite direction from car1
-            i = self.cars.keys().index(car)
+            car.i = i
             if i % 2 == 0:
                 ang = ang + math.pi
                 point = car_line.get_xydata()[-1]  # for this car get the last point as positions
@@ -195,7 +190,7 @@ class vanet(object):
             x_min, x_max = self.lineX(line_data)
             y_min, y_max = self.lineY(line_data)
 
-            self.initial[car] = self.carPoint(point)
+            car.initial = self.carPoint(point)
 
             # add scatter
             points[0].append(point[0])
@@ -204,8 +199,8 @@ class vanet(object):
             self.speed(car)  # Get Speed
 
             # Useful to Graph
-            plot.instantiateCircle(car)
-            plot.instantiateAnnotate(car)
+            # plot.instantiateCircle(car)
+            # plot.instantiateAnnotate(car)
 
         # plot the cars
         self.scatter = plot.plotScatter(points[0], points[1])
@@ -223,11 +218,7 @@ class vanet(object):
         return y_min, y_max
 
     def speed(self, car):
-        i = self.cars.keys().index(car)
-        if i % 2 == 0:
-            self.velo[car] = car.max_speed, car.min_speed
-        else:
-            self.velo[car] = car.max_speed, car.min_speed
+        car.speed = car.max_speed, car.min_speed
 
     def calculateAngle(self, line_data):
         """Calculate Angle"""
@@ -255,27 +246,25 @@ class vanet(object):
 
     def line_properties(self, line, car):
 
-        i = self.cars.keys().index(car)
         line_data = line.get_data()  # Get the x and y values of the points in the line
         ang = self.calculateAngle(line_data)  # Get angle
         point = list(line.get_xydata()[0])  # first point in the graph
 
-        if i % 2 == 0:
+        if car.i % 2 == 0:
             ang = ang + math.pi
             point = list(line.get_xydata()[-1])  # for this car get the last point as positions
 
         x_min, x_max = self.lineX(line_data)
         y_min, y_max = self.lineY(line_data)
 
-        self.cars[car] = self.carProperties(point, ang, x_min, x_max, y_min, y_max)
-        self.initial[car] = self.carPoint(point)
+        car.properties = self.carProperties(point, ang, x_min, x_max, y_min, y_max)
+        car.initial = self.carPoint(point)
 
     def repeat (self, car):
         # Check if it is the last mile
         lastRoad = True
-        i = self.cars.keys().index(car)
-
-        if i % 2 == 0:
+       
+        if car.i % 2 == 0:
             for n in reversed(self.totalRoads):
                 if n < car.currentRoad:
                     car.currentRoad = n
@@ -309,60 +298,58 @@ class vanet(object):
         (element,) = first_set.intersection(secnd_set)
         print element[0]
 
-    def simulate_car_movement(self, scatter, com_lines):
+    def simulate_car_movement(self, cars, baseStations, scatter, com_lines):
         # temporal variables
         points = [[], []]
         scatter.remove()
 
-        nodes = dict(self.cars.items() + self.bss.items())
+        nodes = cars + baseStations
 
-        # print initial
         while com_lines:
             com_lines[0].remove()
             del(com_lines[0])
 
         # iterate over each car
-        for car in self.cars:
+        for car in cars:
             # get all the properties of the car
-            velocity = round(np.random.uniform(self.velo[car][0], self.velo[car][1]))
-            position_x = self.cars[car][0]
-            position_y = self.cars[car][1]
+            velocity = round(np.random.uniform(car.speed[0], car.speed[1]))
+            position_x = car.properties[0]
+            position_y = car.properties[1]
 
             car.params['position'] = position_x, position_y, 0
-            angle = self.cars[car][2]
+            angle = car.properties[2]
 
             # calculate new position of the car
             position_x = position_x + velocity * cos(angle) * self.time_per_iteraiton
             position_y = position_y + velocity * sin(angle) * self.time_per_iteraiton
 
-            if (position_x < self.cars[car][3] or position_x > self.cars[car][4]) \
-                or (position_y < self.cars[car][5] or position_y > self.cars[car][6]):
+            if (position_x < car.properties[3] or position_x > car.properties[4]) \
+                or (position_y < car.properties[5] or position_y > car.properties[6]):
                 self.repeat(car)
-                points[0].append(self.initial[car][0])
-                points[1].append(self.initial[car][1])
+                points[0].append(car.initial[0])
+                points[1].append(car.initial[1])
             else:
-                self.cars[car][0] = position_x
-                self.cars[car][1] = position_y
+                car.properties[0] = position_x
+                car.properties[1] = position_y
                 points[0].append(position_x)
                 points[1].append(position_y)
 
                 for node in nodes:
-                    if nodes[node] == nodes[car]:
+                    if nodes == car:
                         continue
                     else:
                         # compute to see if vehicle is in range
-                        inside = math.pow((nodes[node][0] - position_x), 2) + math.pow((nodes[node][1] - position_y), 2)
+                        inside = math.pow((node.properties[0] - position_x), 2) + math.pow((node.properties[1] - position_y), 2)
                         if inside <= math.pow(node.params['range'], 2):
                             if node.type == 'accessPoint':
                                 color = 'black'
                             else:
                                 color = 'r'
-                            line = plot.plotLine2d([position_x, nodes[node][0]], [position_y, nodes[node][1]], color=color)
+                            line = plot.plotLine2d([position_x, node.properties[0]], [position_y, node.properties[1]], color=color)
                             com_lines.append(line)
                             plot.plotLine(line)
 
-            plot.text(car)
-            plot.circle(car)
+            plot.graphUpdate(car)
         eval(mobility.continuePlot)
 
         scatter = plot.plotScatter(points[0], points[1])
