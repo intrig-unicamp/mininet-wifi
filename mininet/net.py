@@ -1044,7 +1044,7 @@ class Mininet(object):
                     if 'position' in sta.params:
                         mobility.getAPsInRange(sta)
                     for wlan in range(0, len(sta.params['wlan'])):
-                        if 'position' in sta.params and sta.func[wlan] == 'adhoc':
+                        if 'position' in sta.params and sta.func[wlan] == 'adhoc' and sta.params['associatedTo'][wlan] == '':
                             value = pairingAdhocNodes(sta, wlan, self.stations)
                             dist = value.dist
                             if dist >= 0.01:
@@ -1055,7 +1055,7 @@ class Mininet(object):
                                 setAdhocChannelParams(sta, wlan, dist, self.stations)
                             cls = Association
                             cls.confirmMeshAssociation(sta, wlan)
-                        elif 'position' in sta.params and sta.params['associatedTo'][wlan] != '':
+                        elif 'position' in sta.params and sta.params['associatedTo'][wlan] != '' and sta.func[wlan] != 'adhoc':
                             dist = channelParams.getDistance(sta, sta.params['associatedTo'][wlan])
                             if dist >= 0.01:
                                 setInfraChannelParams(sta, sta.params['associatedTo'][wlan], wlan, dist, self.stations)

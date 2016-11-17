@@ -4,6 +4,7 @@ author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
 """
 
 from mininet.wifiChannel import channelParams
+from mininet.log import debug
 
 class pairingAdhocNodes (object):
 
@@ -38,7 +39,10 @@ class pairingAdhocNodes (object):
                                     sta.params['cell'][wlan] = ('02:CA:FF:EE:BA:0%s' % self.ssid_ID)
                                     iface = sta.params['wlan'][wlan]
                                     print "associating %s to %s..." % (iface, sta.params['ssid'][wlan])
-                                    sta.pexec('iwconfig %s essid %s ap 02:CA:FF:EE:BA:0%s' % (sta.params['wlan'][wlan], sta.params['associatedTo'][wlan], self.ssid_ID))
+                                    debug('iwconfig %s essid %s ap 02:CA:FF:EE:BA:0%s' % \
+                                          (sta.params['wlan'][wlan], sta.params['associatedTo'][wlan], self.ssid_ID))
+                                    sta.pexec('iwconfig %s essid %s ap 02:CA:FF:EE:BA:0%s' % \
+                                          (sta.params['wlan'][wlan], sta.params['associatedTo'][wlan], self.ssid_ID))
                                     sta.params['frequency'][wlan] = channelParams.frequency(sta, wlan)
                                 if sta.params['cell'][wlan] != sta_ref.params['cell'][wlan_ref]:
                                     if sta_ref.params['associatedTo'][wlan_ref] == sta.params['ssid'][wlan]:
@@ -48,7 +52,10 @@ class pairingAdhocNodes (object):
                                             sta_ref.params['associatedTo'][wlan_ref] = sta.params['ssid'][wlan]
                                             sta_ref.params['cell'][wlan_ref] = ('02:CA:FF:EE:BA:0%s' % self.ssid_ID)
                                             print "associating %s to %s..." % (iface, sta.params['ssid'][wlan])
-                                            sta_ref.pexec('iwconfig %s essid %s ap 02:CA:FF:EE:BA:0%s' % (sta_ref.params['wlan'][wlan_ref], sta_ref.params['associatedTo'][wlan_ref], self.ssid_ID))
+                                            debug('iwconfig %s essid %s ap 02:CA:FF:EE:BA:0%s' % \
+                                                          (sta_ref.params['wlan'][wlan_ref], sta_ref.params['associatedTo'][wlan_ref], self.ssid_ID))
+                                            sta_ref.pexec('iwconfig %s essid %s ap 02:CA:FF:EE:BA:0%s' % \
+                                                          (sta_ref.params['wlan'][wlan_ref], sta_ref.params['associatedTo'][wlan_ref], self.ssid_ID))
                                             sta_ref.params['frequency'][wlan_ref] = channelParams.frequency(sta_ref, wlan_ref)
         if alreadyConn != [] and len(alreadyConn) != 1:
             for sta_ref in stationList:
@@ -59,10 +66,3 @@ class pairingAdhocNodes (object):
 
         self.dist = ref_distance / i
         return self.dist
-
-    # def confirmAdhocAssociation(self, sta, iface, wlan):
-    #    associated = ''
-    #    while(associated == '' or len(associated) == 0):
-    #        sta.sendCmd("iw dev %s scan ssid | grep %s" % (iface, sta.ssid[wlan]))
-    #        associated = sta.waitOutput()
-    #    sta.params['frequency'][wlan] = channelParameters.frequency(sta, wlan)
