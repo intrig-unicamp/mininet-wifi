@@ -38,7 +38,7 @@ class plot (object):
         """Update Graph"""
         if hasattr(node.plttxt, 'xyann'): node.plttxt.xyann = (node.params['position'][0], 
                                                                            node.params['position'][1])  # newer MPL versions (>=1.4)
-        else: self.plttxt[node].xytext = (node.params['position'][0], node.params['position'][1])
+        else: node.plttxt.xytext = (node.params['position'][0], node.params['position'][1])
 
         node.pltNode.set_data(node.params['position'][0], node.params['position'][1])
         node.pltCircle.center = node.params['position'][0], node.params['position'][1]
