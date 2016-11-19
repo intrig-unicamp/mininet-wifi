@@ -17,19 +17,18 @@ from mininet.wifiDevices import deviceDataRate
 
 
 def instantiateGraph(mininet):
-        dic = dict()
-        dic['max_x'] = mininet.MAX_X
-        dic['max_y'] = mininet.MAX_Y
+        MAX_X = mininet.MAX_X
+        MAX_Y = mininet.MAX_Y
         nodes = mininet.stations + mininet.accessPoints
         for node in nodes:
             replayingMobility.addNode(node)    
-        plot.instantiateGraph(mininet.MAX_X, mininet.MAX_Y)
-        plot.plotGraph(nodes, [], [], **dic)
+        plot.instantiateGraph(MAX_X, MAX_Y)
+        plot.plotGraph(nodes, [], [], MAX_X, MAX_Y)
 
 class replayingMobility(object):
     """Replaying Mobility Traces"""
+    
     def __init__(self, mininet):
-
         mobility.isMobility = True
         self.thread = threading.Thread(name='replayingMobility', target=self.mobility, args=(mininet,))
         self.thread.daemon = True
@@ -41,27 +40,29 @@ class replayingMobility(object):
         currentTime = time.time()
         staList = mininet.stations
         continue_ = True
-        nodeTime = {}
-        nodeCurrentTime = {}
+        stations = []
         for node in staList:
-            nodeCurrentTime[node] = 1 / node.params['speed']
-            nodeTime[node] = float(1.0 / node.params['speed'])
+            if 'speed' in node.params:
+                stations.append(node)
+                node.currentTime = 1 / node.params['speed']
+                node.time = float(1.0 / node.params['speed'])
         while continue_:
             continue_ = False
             time_ = time.time() - currentTime
-            for node in staList:
+            for node in stations:
                 continue_ = True
-                while time_ >= nodeCurrentTime[node] and len(node.position) != 0:
+                while time_ >= node.currentTime and len(node.position) != 0:
                     node.moveStationTo(node.position[0])
                     del node.position[0]
-                    nodeCurrentTime[node] += nodeTime[node]
+                    node.currentTime += node.time
                 if len(node.position) == 0:
-                    staList.remove(node)
+                    stations.remove(node)
             
     @classmethod
     def addNode(self, node):
         if node.type == 'station':
-            node.params['position'] = node.position[0]
+            if hasattr(node, 'position'):
+                node.params['position'] = node.position[0]
             mobility.staList.append(node)
         elif (node.type == 'accessPoint'):
             mobility.apList.append(node)
@@ -70,7 +71,6 @@ class replayingBandwidth(object):
     """Replaying Bandwidth Traces"""
 
     def __init__(self, **params):
-
         self.thread = threading.Thread(name='replayingBandwidth', target=self.throughput)
         self.thread.daemon = True
         self.thread.start()
