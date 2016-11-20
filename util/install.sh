@@ -693,6 +693,18 @@ function modprobe {
     set -o nounset
 }
 
+# Script for installing wmediumd from git to /usr/bin/wmediumd
+function wmediumd {
+    echo "Installing wmediumd dependencies into $BUILD_DIR/wmediumd"
+    cd $BUILD_DIR
+    $install git make libevent-dev libconfig-dev libnl-3-dev
+    git clone https://github.com/bcopeland/wmediumd.git
+    pushd $BUILD_DIR/wmediumd
+    sudo make
+    popd
+    sudo cp $BUILD_DIR/wmediumd/wmediumd/wmediumd /usr/bin/wmediumd
+}
+
 function all {
     if [ "$DIST" = "Fedora" ]; then
         printf "\nFedora 18+ support (still work in progress):\n"
@@ -719,6 +731,7 @@ function all {
     iw
     oftest
     cbench
+    wmediumd
     echo "Enjoy Mininet-WiFi!"
 }
 
@@ -756,7 +769,7 @@ function vm_clean {
 }
 
 function usage {
-    printf '\nUsage: %s [-abcdfhikmnprtvVwxy03]\n\n' $(basename $0) >&2
+    printf '\nUsage: %s [-abcdfhiklmnprtvVwxy03]\n\n' $(basename $0) >&2
 
     printf 'This install script attempts to install useful packages\n' >&2
     printf 'for Mininet. It should (hopefully) work on Ubuntu 11.10+\n' >&2
@@ -774,6 +787,7 @@ function usage {
     printf -- ' -h: print this (H)elp message\n' >&2
     printf -- ' -i: install (I)ndigo Virtual Switch\n' >&2
     printf -- ' -k: install new (K)ernel\n' >&2
+    printf -- ' -l: insta(L)l wmediumd\n' >&2
     printf -- ' -m: install Open vSwitch kernel (M)odule from source dir\n' >&2
     printf -- ' -n: install Mini(N)et dependencies + core files\n' >&2
     printf -- ' -p: install (P)OX OpenFlow Controller\n' >&2
@@ -784,8 +798,8 @@ function usage {
     printf -- ' -V <version>: install a particular version of Open (V)switch on Ubuntu\n' >&2
     printf -- ' -w: install OpenFlow (W)ireshark dissector\n' >&2
     printf -- ' -W: install Mininet-WiFi dependencies\n' >&2
-    printf -- ' -y: install R(y)u Controller\n' >&2
     printf -- ' -x: install NO(X) Classic OpenFlow controller\n' >&2
+    printf -- ' -y: install R(y)u Controller\n' >&2
     printf -- ' -0: (default) -0[fx] installs OpenFlow 1.0 versions\n' >&2
     printf -- ' -3: -3[fx] installs OpenFlow 1.3 versions\n' >&2
     exit 2
@@ -797,7 +811,7 @@ if [ $# -eq 0 ]
 then
     all
 else
-    while getopts 'abcdefhikmnprs:tvV:wWxy03' OPTION
+    while getopts 'abcdefhiklmnprs:tvV:wWxy03' OPTION
     do
       case $OPTION in
       a)    all;;
@@ -813,6 +827,7 @@ else
       h)    usage;;
       i)    ivs;;
       k)    kernel;;
+      l)    wmediumd;;
       m)    modprobe;;
       n)    mn_deps;;
       p)    pox;;
