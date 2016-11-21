@@ -616,9 +616,6 @@ class Mininet(object):
 
         # Set default MAC - this should probably be in Link
         options.setdefault('addr1', self.randMac())   
-        
-        if sta.params['mac'][wlan] == '':
-            sta.params['mac'][wlan] = self.getMacAddress(sta, wlan)
 
         if sta in self.missingStations:
             self.missingStations.remove(sta)
@@ -670,9 +667,6 @@ class Mininet(object):
         options.update(params)
         # Set default MAC - this should probably be in Link
         options.setdefault('addr1', self.randMac())
-        
-        if sta.params['mac'][wlan] == '':
-            sta.params['mac'][wlan] = self.getMacAddress(sta, wlan)
         
         if sta in self.missingStations:
             self.missingStations.remove(sta)
@@ -797,13 +791,6 @@ class Mininet(object):
                 for wlan in range(len(node.params['wlan'])):
                     i += 1
 
-    def getMacAddress(self, sta, wlan):
-        """ get Mac Address of any Interface """
-        _macMatchRegex = re.compile(r'..:..:..:..:..:..')
-        ifconfig = str(sta.pexec('ifconfig %s' % sta.params['wlan'][wlan]))
-        mac = _macMatchRegex.findall(ifconfig)
-        return mac[0]
-
     def configureWifiNodes(self):
         if self.ifaceConfigured == False:
             physicalWlan, phyList = module.start(self.wifiRadios, self.alternativeModule)
@@ -872,9 +859,6 @@ class Mininet(object):
                 if(doAssociation):
                     cls = Association
                     cls.associate(sta, ap)                  
-
-                if sta.params['mac'][sta.ifaceToAssociate - 1] == '':
-                    sta.params['mac'][sta.ifaceToAssociate - 1] = self.getMacAddress(sta, sta.ifaceToAssociate - 1)
         else:
             """"Add a link from node1 to node2
                 node1: source node (or name)
@@ -1176,7 +1160,7 @@ class Mininet(object):
             "Stop Graph"
             mobility.continuePlot = 'exit()'
             mobility.continue_ = False
-            #mobility.DRAW = False
+            # mobility.DRAW = False
             sleep(1)
             plot.closePlot()
             module.stop()  # Stopping WiFi Module
@@ -1582,12 +1566,12 @@ class Mininet(object):
         config_file = ("%s" % params.pop('config_file', {}))
         self.isVanet = True
         for car in self.cars:
-            car.params['position'] = 0,0,0
+            car.params['position'] = 0, 0, 0
         if program == 'sumo' or program == 'sumo-gui':
             self.thread = threading.Thread(name='vanet', target=sumo, args=(self.stations, self.accessPoints, program, config_file))
             self.thread.daemon = True
             self.thread.start()
-            #self.setWifiParameters()
+            # self.setWifiParameters()
 
     def meshRouting(self, routing):
         if routing != '':

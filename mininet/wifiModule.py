@@ -4,6 +4,7 @@ author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
 
 import glob
 import os
+import re
 import subprocess
 import time
 from mininet.log import debug, info
@@ -96,6 +97,15 @@ class module(object):
         phy.pop()
         phy.sort(key=len, reverse=False)
         return phy
+    
+    @classmethod
+    def getMacAddress(self, sta, wlan):
+        """ get Mac Address of any Interface """
+        _macMatchRegex = re.compile(r'..:..:..:..:..:..')
+        debug('ifconfig %s' % sta.params['wlan'][wlan])
+        ifconfig = str(sta.pexec('ifconfig %s' % sta.params['wlan'][wlan]))
+        mac = _macMatchRegex.findall(ifconfig)
+        return mac[0]
 
     @classmethod
     def assignIface(self, wifiNodes, physicalWlan, phyList):
@@ -119,6 +129,7 @@ class module(object):
                             cls(sta)
                             if sta.params['txpower'][wlan] != 20:
                                 sta.cmd('iwconfig %s txpower %s' % (sta.params['wlan'][wlan], sta.params['txpower'][wlan]))
+                        sta.params['mac'][wlan] = self.getMacAddress(sta, wlan)
                         i+=1
                 else:
                     i+=1
