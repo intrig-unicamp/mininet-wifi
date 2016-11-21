@@ -44,7 +44,7 @@ def topology():
     net.addHoc(sta3, ssid='adNet')
 
     print "*** Starting network"
-    net.build()
+    net.start()
 
     print "*** Running CLI"
     CLI(net)

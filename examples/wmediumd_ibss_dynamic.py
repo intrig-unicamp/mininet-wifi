@@ -29,7 +29,7 @@ def topology():
     net.addHoc(sta3, ssid='adNet')
 
     print "*** Starting network"
-    net.build()
+    net.start()
 
     print "*** Configure wmediumd"
     sta1wlan0 = DynamicWmediumdIntfRef(sta1, sta1.defaultIntf())
