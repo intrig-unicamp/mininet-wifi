@@ -169,7 +169,7 @@ class mobility (object):
                             plot.graphUpdate(sta)
                     i += 1
         except:
-            info('Error! Mobility stopped!\n')
+            pass
 
     @classmethod
     def models(self, model=None, staMov=None, min_v=0, max_v=0, seed=None, stations=None, aps=None,
