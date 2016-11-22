@@ -710,81 +710,75 @@ class Mininet(object):
 
     def configureAP(self):
         """Configure AP"""
-        i = 0
         x = 0
-        wifiNodes = self.stations + self.cars + self.accessPoints
-        for node in wifiNodes:
-            if 'accessPoint' == node.type:
-                ap = node                  
-                if 'phywlan' in ap.params:
-                    x = 1
-                for wlan in range(len(ap.params['wlan']) + x):
-                    if x == 1:
-                        wlan = 0
-                    wifiparam = dict()
-                    if 'phywlan' not in ap.params:
-                        intf = module.wlan_list[i]
-                        iface = ap.params['wlan'][wlan]
-                        wifiparam.setdefault('intf', intf)
-                    else:
-                        iface = ap.params.get('phywlan')
-    
-                    self.auth_algs = None
-                    self.wpa = None
-                    self.wpa_key_mgmt = None
-                    self.rsn_pairwise = None
-                    self.wpa_passphrase = None
-                    self.wep_key0 = None
-                    self.country_code = None
-                    self.wmm_enabled = None
-                    
-                    if 'encrypt' in ap.params:
-                        if ap.params['encrypt'][wlan] == 'wpa':
-                            self.auth_algs = 1
-                            self.wpa = 1
-                            self.wpa_key_mgmt = 'WPA-PSK'
-                            self.wpa_passphrase = ap.params['passwd'][0]
-                        elif ap.params['encrypt'][wlan] == 'wpa2':
-                            self.auth_algs = 1
-                            self.wpa = 2
-                            self.wpa_key_mgmt = 'WPA-PSK'
-                            self.rsn_pairwise = 'CCMP'
-                            self.wpa_passphrase = ap.params['passwd'][0]
-                        elif ap.params['encrypt'][wlan] == 'wep':
-                            self.auth_algs = 2
-                            self.wep_key0 = ap.params['passwd'][0]
-    
-                    wifiparam.setdefault('country_code', self.country_code)
-                    wifiparam.setdefault('auth_algs', self.auth_algs)
-                    wifiparam.setdefault('wpa', self.wpa)
-                    wifiparam.setdefault('wpa_key_mgmt', self.wpa_key_mgmt)
-                    wifiparam.setdefault('rsn_pairwise', self.rsn_pairwise)
-                    wifiparam.setdefault('wpa_passphrase', self.wpa_passphrase)
-                    wifiparam.setdefault('wep_key0', self.wep_key0)
-                    wifiparam.setdefault('wlan', wlan)
-                   
-                    cls = AccessPoint
-                    cls.init_(ap, **wifiparam)
-                    
-                    if 'phywlan' not in ap.params:
-                        ap.params['frequency'][wlan] = channelParams.frequency(ap, 0)
-                        cls = TCLinkWireless
-                        cls(ap)
-                        if len(ap.params['ssid']) > 1:
-                            for i in range(1, len(ap.params['ssid'])):
-                                cls(ap, intfName1=ap.params['wlan'][i])
-                        x = 0
-                    else:
-                        iface = ap.params.get('phywlan')
-                        options = dict()
-                        options.setdefault('intfName1', iface)
-                        cls = TCLinkWireless
-                        cls(ap, **options)
-                        ap.params.pop("phywlan", None)        
-                i += 1
-            else:
-                for wlan in range(len(node.params['wlan'])):
-                    i += 1
+        for ap in self.accessPoints:
+            if 'phywlan' in ap.params:
+                x = 1
+            for wlan in range(len(ap.params['wlan']) + x):
+                if x == 1:
+                    wlan = 0
+                wifiparam = dict()
+                if 'phywlan' not in ap.params:
+                    intf = module.wlan_list[0]
+                    module.wlan_list.pop(0)
+                    iface = ap.params['wlan'][wlan]
+                    wifiparam.setdefault('intf', intf)
+                else:
+                    iface = ap.params.get('phywlan')
+
+                self.auth_algs = None
+                self.wpa = None
+                self.wpa_key_mgmt = None
+                self.rsn_pairwise = None
+                self.wpa_passphrase = None
+                self.wep_key0 = None
+                self.country_code = None
+                self.wmm_enabled = None
+                
+                if 'encrypt' in ap.params:
+                    if ap.params['encrypt'][wlan] == 'wpa':
+                        self.auth_algs = 1
+                        self.wpa = 1
+                        self.wpa_key_mgmt = 'WPA-PSK'
+                        self.wpa_passphrase = ap.params['passwd'][0]
+                    elif ap.params['encrypt'][wlan] == 'wpa2':
+                        self.auth_algs = 1
+                        self.wpa = 2
+                        self.wpa_key_mgmt = 'WPA-PSK'
+                        self.rsn_pairwise = 'CCMP'
+                        self.wpa_passphrase = ap.params['passwd'][0]
+                    elif ap.params['encrypt'][wlan] == 'wep':
+                        self.auth_algs = 2
+                        self.wep_key0 = ap.params['passwd'][0]
+
+                wifiparam.setdefault('country_code', self.country_code)
+                wifiparam.setdefault('auth_algs', self.auth_algs)
+                wifiparam.setdefault('wpa', self.wpa)
+                wifiparam.setdefault('wpa_key_mgmt', self.wpa_key_mgmt)
+                wifiparam.setdefault('rsn_pairwise', self.rsn_pairwise)
+                wifiparam.setdefault('wpa_passphrase', self.wpa_passphrase)
+                wifiparam.setdefault('wep_key0', self.wep_key0)
+                wifiparam.setdefault('wlan', wlan)
+               
+                cls = AccessPoint
+                cls.init_(ap, **wifiparam)
+                
+                if 'phywlan' not in ap.params:
+                    ap.params['frequency'][wlan] = channelParams.frequency(ap, 0)
+                    cls = TCLinkWireless
+                    cls(ap)
+                    if len(ap.params['ssid']) > 1:
+                        for i in range(1, len(ap.params['ssid'])):
+                            cls(ap, intfName1=ap.params['wlan'][i])
+                    x = 0
+                else:
+                    iface = ap.params.get('phywlan')
+                    options = dict()
+                    options.setdefault('intfName1', iface)
+                    cls = TCLinkWireless
+                    cls(ap, **options)
+                    ap.params.pop("phywlan", None)  
+
 
     def configureWifiNodes(self):
         nodes = self.stations + self.cars + self.accessPoints
@@ -792,9 +786,18 @@ class Mininet(object):
         self.configureAP()  # configure AP
         self.isWiFi = True
         self.ifaceConfigured = True
+        
 
     def addLink(self, node1, node2, port1=None, port2=None,
                  cls=None, **params):
+        """"Add a link from node1 to node2
+            node1: source node (or name)
+            node2: dest node (or name)
+            port1: source port (optional)
+            port2: dest port (optional)
+            cls: link class (optional)
+            params: additional link params (optional)
+            returns: link object"""
 
         # Accept node objects or names
         node1 = node1 if not isinstance(node1, basestring) else self[ node1 ]
@@ -850,15 +853,6 @@ class Mininet(object):
                     cls = Association
                     cls.associate(sta, ap)                  
         else:
-            """"Add a link from node1 to node2
-                node1: source node (or name)
-                node2: dest node (or name)
-                port1: source port (optional)
-                port2: dest port (optional)
-                cls: link class (optional)
-                params: additional link params (optional)
-                returns: link object"""
-
             if 'link' in options:
                 options.pop('link', None)
 

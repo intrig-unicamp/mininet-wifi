@@ -119,20 +119,19 @@ class module(object):
     @classmethod
     def assignIface(self, wifiNodes, physicalWlan_list, phy_list):
         try:
-            i = 0
             self.wlan_list = self.getWlanIface(physicalWlan_list)
             for sta in wifiNodes:
                 if sta.type == 'station' or sta.type == 'vehicle':
                     for wlan in range(0, len(sta.params['wlan'])):
-                        os.system('iw phy %s set netns %s' % (phy_list[i], sta.pid))
+                        os.system('iw phy %s set netns %s' % (phy_list[0], sta.pid))
                         if 'car' in sta.name and sta.type == 'station':
-                            sta.cmd('ip link set %s name %s up' % (self.wlan_list[i], sta.params['wlan'][wlan]))
+                            sta.cmd('ip link set %s name %s up' % (self.wlan_list[0], sta.params['wlan'][wlan]))
                             sta.cmd('iw dev %s-wlan%s interface add %s-mp%s type mp' % (sta, wlan, sta, wlan))
                             sta.cmd('ifconfig %s-mp%s up' % (sta, wlan))
                             sta.cmd('iw dev %s-mp%s mesh join %s' % (sta, wlan, 'ssid'))
                             sta.func[wlan] = 'mesh'
                         else:
-                            sta.cmd('ip link set %s name %s up' % (self.wlan_list[i], sta.params['wlan'][wlan]))
+                            sta.cmd('ip link set %s name %s up' % (self.wlan_list[0], sta.params['wlan'][wlan]))
                             cls = TCLinkWireless
                             cls(sta)
                             if sta.params['txpower'][wlan] != 20:
@@ -141,9 +140,8 @@ class module(object):
                             sta.params['mac'][wlan] = self.getMacAddress(sta, wlan)
                         else:
                             self.setMacAddress(sta, wlan)
-                        i+=1
-                else:
-                    i+=1
+                        self.wlan_list.pop(0)
+                        phy_list.pop(0)
         except:
             info( "Something is wrong. Please, run sudo mn -c before running your code.\n" )
             exit(1)
