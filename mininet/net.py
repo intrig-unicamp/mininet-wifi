@@ -302,7 +302,7 @@ class Mininet(object):
     def addCar(self, name, cls=None, **params):
         """Add Car.
            name: name of vehicle to add
-           cls: custom host class/constructor (optional)
+           cls: custom host class/constructor
            params: parameters for car
            returns: added car"""
         # Default IP and MAC addresses
@@ -434,11 +434,7 @@ class Mininet(object):
 
     # Still in development
     def addWall(self, name, cls=None, **params):
-        """Add wal.
-           name: name of wall to add
-           cls: custom switch class/constructor (optional)
-           returns: added wall"""
-           
+        """in development"""           
         defaults = {}
         defaults.update(params)
 
@@ -568,7 +564,10 @@ class Mininet(object):
         self.alternativeModule = moduleDir
 
     def addMesh(self, sta, cls=None, **params):
-        
+        """Change a interface to work as a mesh
+           sta: name of the station
+           cls: custom association class/constructor
+           params: parameters for station"""
         wlan = sta.ifaceToAssociate
         sta.func[wlan] = 'mesh'
               
@@ -623,7 +622,10 @@ class Mininet(object):
         sta.ifaceToAssociate += 1
 
     def addHoc(self, sta, cls=None, **params):
-
+        """Change a interface to work as adhoc
+           sta: name of the station
+           cls: custom association class/constructor
+           params: parameters for station"""
         wlan = sta.ifaceToAssociate
         sta.func[wlan] = 'adhoc'
 
@@ -673,7 +675,10 @@ class Mininet(object):
         sta.ifaceToAssociate += 1
 
     def wifiDirect(self, sta, cls=None, **params):
-
+        """Change a interface to work as wifidirect
+           sta: name of the station
+           cls: custom association class/constructor
+           params: parameters for station"""
         wlan = sta.ifaceToAssociate
         sta.func[wlan] = 'wifiDirect'
 
@@ -781,9 +786,14 @@ class Mininet(object):
 
 
     def configureWifiNodes(self):
+        """nodes: all nodes
+           module.start: start mac80211_hwsim module
+           self.configureAP(): configure the AP
+           self.isWiFi: defines the topology to work with mininet-wifi
+           self.ifaceConfigured: all interfaces for all nodes were configured"""
         nodes = self.stations + self.cars + self.accessPoints
         module.start(nodes, self.nRadios, self.alternativeModule)
-        self.configureAP()  # configure AP
+        self.configureAP()  
         self.isWiFi = True
         self.ifaceConfigured = True
         
@@ -798,7 +808,6 @@ class Mininet(object):
             cls: link class (optional)
             params: additional link params (optional)
             returns: link object"""
-
         # Accept node objects or names
         node1 = node1 if not isinstance(node1, basestring) else self[ node1 ]
         node2 = node2 if not isinstance(node2, basestring) else self[ node2 ]
@@ -1506,7 +1515,7 @@ class Mininet(object):
                 self.setWifiParameters()
             else:
                 self.thread = threading.Thread(name='vanet', target=vanet, args=(self.stations,
-                                                        self.accessPoints, self.nroads, self.srcConn, self.dstConn, self.MAX_X, self.MAX_Y))
+                                    self.accessPoints, self.nroads, self.srcConn, self.dstConn, self.MAX_X, self.MAX_Y))
                 self.thread.daemon = True
                 self.thread.start()
             

@@ -36,7 +36,7 @@ class module(object):
 
     @classmethod
     def loadModule(self, wifiRadios, alternativeModule=''):
-        """ Start wireless Module """
+        """ Load wireless Module """
         if alternativeModule == '':
             os.system('modprobe mac80211_hwsim radios=%s' % wifiRadios)
             debug('Loading %s virtual interfaces\n' % wifiRadios)
@@ -85,6 +85,7 @@ class module(object):
 
     @classmethod
     def getPhysicalWlan(self):
+        """Get the list of physical wlans that already exists in the machine"""
         self.wlans = []
         self.wlans = (subprocess.check_output("iwconfig 2>&1 | grep IEEE | awk '{print $1}'",
                                                       shell=True)).split('\n')
@@ -93,7 +94,7 @@ class module(object):
 
     @classmethod
     def getPhy(self):
-        """ Get phy """
+        """ Get all phys after starting the wireless module """
         phy = subprocess.check_output("find /sys/kernel/debug/ieee80211 -name hwsim | cut -d/ -f 6 | sort",
                                                              shell=True).split("\n")
         phy.pop()
@@ -111,6 +112,7 @@ class module(object):
     
     @classmethod
     def setMacAddress(self, sta, wlan):
+        """Define a mac address when the interface already exists in the station"""
         sta.pexec('ip link set %s down' % sta.params['wlan'][wlan])
         debug('ip link set %s address %s\n' % (sta.params['wlan'][wlan], sta.params['mac'][wlan]))
         sta.pexec('ip link set %s address %s' % (sta.params['wlan'][wlan], sta.params['mac'][wlan]))
@@ -118,6 +120,7 @@ class module(object):
 
     @classmethod
     def assignIface(self, wifiNodes, physicalWlan_list, phy_list):
+        """Assign virtual interfaces for all nodes"""
         try:
             self.wlan_list = self.getWlanIface(physicalWlan_list)
             for sta in wifiNodes:
@@ -148,11 +151,12 @@ class module(object):
 
     @classmethod
     def getWlanIface(self, physicalWlan):
+        """Build a new wlan list removing the physical wlan"""
         wlan_list = []
         iface_list = subprocess.check_output("iwconfig 2>&1 | grep IEEE | awk '{print $1}'",
                                             shell=True).split('\n')
         for iface in iface_list:
-            if iface not in physicalWlan and iface != "":
+            if iface not in physicalWlan:
                 wlan_list.append(iface)
         wlan_list = sorted(wlan_list)
         wlan_list.sort(key=len, reverse=False)
