@@ -964,7 +964,7 @@ class Mininet(object):
             info(switchName + ' ')
 
         info('\n*** Adding links and associating station(s):\n')
-        self.ifaceConfigured == False
+        self.ifaceConfigured = False
         for srcName, dstName, params in topo.links(
                 sort=True, withInfo=True):
             self.addLink(**params)
