@@ -286,6 +286,7 @@ class Node(object):
                 node.params['wlan'].append(node.name + '-wlan' + str(n + 1))
             else:
                 node.params['wlan'].append(node.name + '-wlan' + str(n))
+                node.params['rssi'].append(0)
             node.params.pop("wlans", None)
             
                         

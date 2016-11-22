@@ -106,6 +106,13 @@ class module(object):
         ifconfig = str(sta.pexec('ifconfig %s' % sta.params['wlan'][wlan]))
         mac = _macMatchRegex.findall(ifconfig)
         return mac[0]
+    
+    @classmethod
+    def setMacAddress(self, sta, wlan):
+        sta.pexec('ip link set %s down' % sta.params['wlan'][wlan])
+        debug('ip link set %s address %s\n' % (sta.params['wlan'][wlan], sta.params['mac'][wlan]))
+        sta.pexec('ip link set %s address %s' % (sta.params['wlan'][wlan], sta.params['mac'][wlan]))
+        sta.pexec('ip link set %s up' % sta.params['wlan'][wlan])
 
     @classmethod
     def assignIface(self, wifiNodes, physicalWlan, phyList):
@@ -115,7 +122,6 @@ class module(object):
             for sta in wifiNodes:
                 if sta.type == 'station' or sta.type == 'vehicle':
                     for wlan in range(0, len(sta.params['wlan'])):
-                        sta.params['rssi'].append(0)
                         os.system('iw phy %s set netns %s' % (phyList[i], sta.pid))
                         if 'car' in sta.name and sta.type == 'station':
                             sta.cmd('ip link set %s name %s up' % (wlanList[i], sta.params['wlan'][wlan]))
@@ -129,7 +135,10 @@ class module(object):
                             cls(sta)
                             if sta.params['txpower'][wlan] != 20:
                                 sta.cmd('iwconfig %s txpower %s' % (sta.params['wlan'][wlan], sta.params['txpower'][wlan]))
-                        sta.params['mac'][wlan] = self.getMacAddress(sta, wlan)
+                        if sta.params['mac'][wlan] == '':
+                            sta.params['mac'][wlan] = self.getMacAddress(sta, wlan)
+                        else:
+                            self.setMacAddress(sta, wlan)
                         i+=1
                 else:
                     i+=1
