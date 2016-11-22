@@ -6,7 +6,9 @@ author: Patrick Grosse (patrick.grosse@uni-muenster.de)
 
 import os
 import tempfile
-from mininet.log import info, debug
+
+from link import Intf
+from mininet.log import info
 from wifiModule import module
 
 
@@ -34,7 +36,7 @@ class WmediumdConn(object):
         :param auto_add_links: If true, it will add all missing links pairs with the default_auto_snr as SNR
         :param default_auto_snr: The default SNR
 
-        :type intfrefs: list of StaticWmediumdIntfRef
+        :type intfrefs: list of WmediumdIntfRef
         :type links: list of WmediumdLink
         """
         cls.intfrefs = intfrefs
@@ -45,7 +47,7 @@ class WmediumdConn(object):
         cls.is_initialized = True
 
     @classmethod
-    def intercept_module_loading(cls):
+    def connect_wmediumd_on_startup(cls):
         """
         This method can be called before initializing the Mininet net
         to prevent the stations from reaching each other from the beginning.
@@ -55,18 +57,20 @@ class WmediumdConn(object):
         if not cls.is_initialized:
             raise Exception("Use set_wmediumd_data first to set the required data")
 
-        @classmethod
-        def intercepted_loading(other_cls, wifiRadios, alternativeModule=''):
-            if alternativeModule != '':
-                raise Exception("alternativeModule is not supported by wmediumd")
-            os.system('modprobe mac80211_hwsim radios=%s' % wifiRadios)
-            debug('Loading %s virtual interfaces\n' % wifiRadios)
-            cls.connect_wmediumd()
+        if cls.is_connected:
+            raise Exception('wmediumd is already initialized')
 
-        module.loadModule = intercepted_loading
+        orig_ifaceassign = module.assignIface
+
+        @classmethod
+        def intercepted_assign(other_cls, wifiNodes, physicalWlan, phyList):
+            orig_ifaceassign(wifiNodes, physicalWlan, phyList)
+            cls.connect_wmediumd_after_startup()
+
+        module.assignIface = intercepted_assign
 
     @classmethod
-    def connect_wmediumd(cls):
+    def connect_wmediumd_after_startup(cls):
         """
         This method can be called after initializing the Mininet net
         to prevent the stations from reaching each other.
@@ -167,19 +171,93 @@ class WmediumdLink(object):
         """
         Describes a link between two interfaces using the SNR
 
-        :param sta1intfref: Instance of StaticWmediumdIntfRef
-        :param sta2intfref: Instance of StaticWmediumdIntfRef
+        :param sta1intfref: Instance of WmediumdIntfRef
+        :param sta2intfref: Instance of WmediumdIntfRef
         :param snr: Signal Noise Ratio as int
 
-        :type sta1intfref: StaticWmediumdIntfRef
-        :type sta2intfref: StaticWmediumdIntfRef
+        :type sta1intfref: WmediumdIntfRef
+        :type sta2intfref: WmediumdIntfRef
         """
         self.sta1intfref = sta1intfref
         self.sta2intfref = sta2intfref
         self.snr = snr
 
 
-class StaticWmediumdIntfRef(object):
+class WmediumdIntfRef(object):
+    def get_station_name(self):
+        """
+        Get the name of the station
+
+        :rtype: str
+        """
+        pass
+
+    def get_intf_name(self):
+        """
+        Get the interface name
+
+        :rtype: str
+        """
+        pass
+
+    def get_intf_mac(self):
+        """
+        Get the MAC address of the interface
+
+        :rtype: str
+        """
+        pass
+
+    def identifier(self):
+        """
+        Identifier used in dicts
+
+        :return: str
+        """
+        return self.get_station_name() + "." + self.get_intf_name()
+
+
+class DynamicWmediumdIntfRef(WmediumdIntfRef):
+    def __init__(self, sta, intf=None):
+        """
+        An unambiguous reference to an interface of a station
+
+        :param sta: Mininet-Wifi station
+        :param intf: Mininet interface or name of Mininet interface. If None, the default interface will be used
+
+        :type sta: Station
+        :type intf: (Intf, str, None)
+        """
+        self.__sta = sta
+        self.__intf = intf
+
+    def get_station_name(self):
+        return self.__sta.name
+
+    def get_intf_name(self):
+        if isinstance(self.__intf, Intf):
+            return self.__intf.name
+        elif not self.__intf:
+            return self.__sta.params['wlan'][0]
+        elif isinstance(self.__intf, str):
+            return self.__intf
+        elif isinstance(self.__intf, int):
+            return self.__sta.params['wlan'][self.__intf]
+
+    def get_intf_mac(self):
+        intf_name = self.get_intf_name()
+        index = 0
+        found = False
+        for wlan_intf in self.__sta.params['wlan']:
+            if wlan_intf == intf_name:
+                found = True
+                break
+            index += 1
+        if found:
+            return self.__sta.params['mac'][index]
+
+
+class StaticWmediumdIntfRef(WmediumdIntfRef):
     def __init__(self, staname, intfname, intfmac):
         """
         An unambiguous reference to an interface of a station
@@ -197,69 +275,11 @@ class StaticWmediumdIntfRef(object):
         self.__intfmac = intfmac
 
     def get_station_name(self):
-        """
-        Get the name of the station
-
-        :rtype: str
-        """
         return self.__staname
 
     def get_intf_name(self):
-        """
-        Get the interface name
-
-        :rtype: str
-        """
         return self.__intfname
 
     def get_intf_mac(self):
-        """
-        Get the MAC address of the interface
-
-        :rtype: str
-        """
         return self.__intfmac
 
-    def identifier(self):
-        """
-        Identifier used in dicts
-
-        :return: str
-        """
-        return self.get_station_name() + "." + self.get_intf_name()
-
-
-class DynamicWmediumdIntfRef(StaticWmediumdIntfRef):
-    def __init__(self, sta, intf):
-        """
-        An unambiguous reference to an interface of a station
-
-        :param sta: Mininet-Wifi station
-        :param intf: Mininet interface
-
-        :type sta: Station
-        :type intf: Intf
-        """
-        super(DynamicWmediumdIntfRef, self).__init__('', '', '')
-        self.__sta = sta
-        self.__intf = intf
-        self.__cachedmac = None
-
-    def get_station_name(self):
-        return self.__sta.name
-
-    def get_intf_name(self):
-        return self.__intf.name
-
-    def get_intf_mac(self):
-        """
-        Gets the MAC address of an interface of a station through ifconfig
-
-        :return: The MAC address
-        :rtype: str
-        """
-        if not self.__cachedmac:
-            output = self.__sta.cmd(['ifconfig', self.__intf.name, '|', 'grep', '-o', '-E',
-                                     '\'([[:xdigit:]]{1,2}:){5}[[:xdigit:]]{1,2}\''])
-            self.__cachedmac = output.strip()
-        return self.__cachedmac

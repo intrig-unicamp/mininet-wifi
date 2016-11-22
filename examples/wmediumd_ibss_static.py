@@ -3,6 +3,8 @@
 """
 This example shows how to use the wmediumd connector to prevent mac80211_hwsim stations reaching each other
 
+The standard case should be covered in wmediumd_ibss_dynamic_intercept.py
+
 author: Patrick Grosse (patrick.grosse@uni-muenster.de)
 """
 
@@ -31,7 +33,7 @@ def topology():
         WmediumdLink(sta3wlan0, sta2wlan0, 15)]
     WmediumdConn.set_wmediumd_data(intfrefs, links)
 
-    WmediumdConn.intercept_module_loading()
+    WmediumdConn.connect_wmediumd_on_startup()
 
     print "*** Creating nodes"
     sta1 = net.addStation('sta1')
@@ -59,3 +61,4 @@ def topology():
 if __name__ == '__main__':
     setLogLevel('info')
     topology()
+
