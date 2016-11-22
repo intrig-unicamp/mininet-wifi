@@ -1,7 +1,9 @@
 #!/usr/bin/python
 
 """
-This example shows how to use the wmediumd connector to prevent mac80211_hwsim radios reaching each other
+This example shows how to use the wmediumd connector to prevent mac80211_hwsim stations reaching each other
+
+The standard case should be covered in wmediumd_ibss_dynamic_intercept.py
 
 author: Patrick Grosse (patrick.grosse@uni-muenster.de)
 """
@@ -9,7 +11,7 @@ author: Patrick Grosse (patrick.grosse@uni-muenster.de)
 from mininet.net import Mininet
 from mininet.cli import CLI
 from mininet.log import setLogLevel
-from mininet.wmediumdConnector import WmediumdConn, WmediumdIntfRef, WmediumdLink
+from mininet.wmediumdConnector import WmediumdConn, DynamicWmediumdIntfRef, WmediumdLink
 
 
 def topology():
@@ -29,12 +31,12 @@ def topology():
     net.addHoc(sta3, ssid='adNet')
 
     print "*** Starting network"
-    net.build()
+    net.start()
 
     print "*** Configure wmediumd"
-    sta1wlan0 = WmediumdIntfRef(sta1, sta1.defaultIntf())
-    sta2wlan0 = WmediumdIntfRef(sta2, sta2.defaultIntf())
-    sta3wlan0 = WmediumdIntfRef(sta3, sta3.defaultIntf())
+    sta1wlan0 = DynamicWmediumdIntfRef(sta1, sta1.defaultIntf())
+    sta2wlan0 = DynamicWmediumdIntfRef(sta2, sta2.defaultIntf())
+    sta3wlan0 = DynamicWmediumdIntfRef(sta3, sta3.defaultIntf())
 
     intfrefs = [sta1wlan0, sta2wlan0, sta3wlan0]
     links = [
@@ -42,8 +44,9 @@ def topology():
         WmediumdLink(sta2wlan0, sta1wlan0, 15),
         WmediumdLink(sta2wlan0, sta3wlan0, 15),
         WmediumdLink(sta3wlan0, sta2wlan0, 15)]
+    WmediumdConn.set_wmediumd_data(intfrefs, links)
 
-    WmediumdConn.connect_wmediumd(intfrefs, links)
+    WmediumdConn.connect_wmediumd_after_startup()
 
     print "*** Running CLI"
     CLI(net)
@@ -58,3 +61,4 @@ def topology():
 if __name__ == '__main__':
     setLogLevel('info')
     topology()
+
