@@ -16,6 +16,8 @@ from subprocess import ( check_output as co,
 class module(object):
     """ Start and Stop mac80211_hwsim module """
 
+    wlan_list = []
+
     @classmethod
     def killprocs(self, pattern):
         "Reliably terminate processes matching a pattern (including args)"
@@ -66,7 +68,7 @@ class module(object):
             pass
 
     @classmethod
-    def start(self, wifiRadios, alternativeModule=''):
+    def start(self, nodes, wifiRadios, alternativeModule=''):
         """Starting environment"""
         self.killprocs('hostapd')
         try:
@@ -76,13 +78,13 @@ class module(object):
         except:
             pass
 
-        physicalWlan = self.getWlanList()  # Get Phisical Wlan(s)
+        physicalWlan_list = self.getPhysicalWlan()  # Get Phisical Wlan(s)
         self.loadModule(wifiRadios, alternativeModule)  # Initatilize WiFi Module
-        totalPhy = self.getPhy()  # Get Phy Interfaces
-        return physicalWlan, totalPhy
+        phy_list = self.getPhy()  # Get Phy Interfaces
+        module.assignIface(nodes, physicalWlan_list, phy_list)
 
     @classmethod
-    def getWlanList(self):
+    def getPhysicalWlan(self):
         self.wlans = []
         self.wlans = (subprocess.check_output("iwconfig 2>&1 | grep IEEE | awk '{print $1}'",
                                                       shell=True)).split('\n')
@@ -115,22 +117,22 @@ class module(object):
         sta.pexec('ip link set %s up' % sta.params['wlan'][wlan])
 
     @classmethod
-    def assignIface(self, wifiNodes, physicalWlan, phyList):
+    def assignIface(self, wifiNodes, physicalWlan_list, phy_list):
         try:
             i = 0
-            wlanList = self.getWlanIface(physicalWlan)
+            self.wlan_list = self.getWlanIface(physicalWlan_list)
             for sta in wifiNodes:
                 if sta.type == 'station' or sta.type == 'vehicle':
                     for wlan in range(0, len(sta.params['wlan'])):
-                        os.system('iw phy %s set netns %s' % (phyList[i], sta.pid))
+                        os.system('iw phy %s set netns %s' % (phy_list[i], sta.pid))
                         if 'car' in sta.name and sta.type == 'station':
-                            sta.cmd('ip link set %s name %s up' % (wlanList[i], sta.params['wlan'][wlan]))
+                            sta.cmd('ip link set %s name %s up' % (self.wlan_list[i], sta.params['wlan'][wlan]))
                             sta.cmd('iw dev %s-wlan%s interface add %s-mp%s type mp' % (sta, wlan, sta, wlan))
                             sta.cmd('ifconfig %s-mp%s up' % (sta, wlan))
                             sta.cmd('iw dev %s-mp%s mesh join %s' % (sta, wlan, 'ssid'))
                             sta.func[wlan] = 'mesh'
                         else:
-                            sta.cmd('ip link set %s name %s up' % (wlanList[i], sta.params['wlan'][wlan]))
+                            sta.cmd('ip link set %s name %s up' % (self.wlan_list[i], sta.params['wlan'][wlan]))
                             cls = TCLinkWireless
                             cls(sta)
                             if sta.params['txpower'][wlan] != 20:
@@ -148,12 +150,12 @@ class module(object):
 
     @classmethod
     def getWlanIface(self, physicalWlan):
-        self.newapif = []
-        self.apif = subprocess.check_output("iwconfig 2>&1 | grep IEEE | awk '{print $1}'",
+        wlan_list = []
+        iface_list = subprocess.check_output("iwconfig 2>&1 | grep IEEE | awk '{print $1}'",
                                             shell=True).split('\n')
-        for apif in self.apif:
-            if apif not in physicalWlan and apif != "":
-                self.newapif.append(apif)
-        self.newapif = sorted(self.newapif)
-        self.newapif.sort(key=len, reverse=False)
-        return self.newapif
+        for iface in iface_list:
+            if iface not in physicalWlan and iface != "":
+                wlan_list.append(iface)
+        wlan_list = sorted(wlan_list)
+        wlan_list.sort(key=len, reverse=False)
+        return wlan_list

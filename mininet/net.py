@@ -176,7 +176,6 @@ class Mininet(object):
         self.routing = ''
         self.alternativeModule = ''
         self.nroads = 0
-        self.firstAssociation = True
         self.ifaceConfigured = False
         self.isVanet = False
         self.ssid = ssid
@@ -189,7 +188,6 @@ class Mininet(object):
         self.links = []
         self.missingStations = []
         self.cars = []
-        self.newapif = []
         self.switches = []
         self.stations = []
         self.vehicles = []
@@ -200,7 +198,7 @@ class Mininet(object):
         self.walls = []
         self.terms = []  # list of spawned xterm processes
         self.isWiFi = isWiFi
-        self.wifiRadios = wifiRadios
+        self.nRadios = wifiRadios
         self.MAX_X = 0
         self.MAX_Y = 0
         Mininet.init()  # Initialize Mininet if necessary
@@ -296,7 +294,7 @@ class Mininet(object):
         self.missingStations.append(sta)
         sta.type = 'station'
         
-        self.wifiRadios = sta.addParameters(sta, self.wifiRadios, self.autoSetMacs, params, defaults)
+        self.nRadios = sta.addParameters(sta, self.nRadios, self.autoSetMacs, params, defaults)
 
         return sta
         
@@ -331,7 +329,7 @@ class Mininet(object):
         self.nameToNode[ name ] = car
         self.missingStations.append(car)
         car.type = 'vehicle'
-        self.wifiRadios = car.addParameters(car, self.wifiRadios, self.autoSetMacs, params, defaults)
+        self.nRadios = car.addParameters(car, self.nRadios, self.autoSetMacs, params, defaults)
         
         carsta = self.addStation(name + 'STA')
         carsta.params['range'] = car.params['range']
@@ -374,7 +372,7 @@ class Mininet(object):
         self.nameToNode[ name ] = ap
         ap.type = 'accessPoint'
         
-        self.wifiRadios = ap.addParameters(ap, self.wifiRadios, self.autoSetMacs, params, defaults)
+        self.nRadios = ap.addParameters(ap, self.nRadios, self.autoSetMacs, params, defaults)
         self.switches.append(ap)
         self.accessPoints.append(ap)        
         return ap
@@ -408,7 +406,7 @@ class Mininet(object):
         self.switches.append(bs)
         self.accessPoints.append(bs)
 
-        self.wifiRadios = bs.addParameters(bs, self.wifiRadios, self.autoSetMacs, params, defaults)                
+        self.nRadios = bs.addParameters(bs, self.nRadios, self.autoSetMacs, params, defaults)                
         return bs
 
     def addSwitch(self, name, cls=None, **params):
@@ -574,9 +572,8 @@ class Mininet(object):
         wlan = sta.ifaceToAssociate
         sta.func[wlan] = 'mesh'
               
-        if self.firstAssociation:
+        if self.ifaceConfigured == False:
             self.configureWifiNodes()
-        self.firstAssociation = False
 
         options = { 'ip': ipAdd(self.nextIP,
                                   ipBaseNum=self.ipBaseNum,
@@ -630,9 +627,8 @@ class Mininet(object):
         wlan = sta.ifaceToAssociate
         sta.func[wlan] = 'adhoc'
 
-        if self.firstAssociation:
+        if self.ifaceConfigured == False:
             self.configureWifiNodes()
-        self.firstAssociation = False
 
         options = { 'ip': ipAdd(self.nextIP,
                                   ipBaseNum=self.ipBaseNum,
@@ -681,9 +677,8 @@ class Mininet(object):
         wlan = sta.ifaceToAssociate
         sta.func[wlan] = 'wifiDirect'
 
-        if self.firstAssociation:
+        if self.ifaceConfigured == False:
             self.configureWifiNodes()
-        self.firstAssociation = False
 
         options = { 'ip': ipAdd(self.nextIP,
                                   ipBaseNum=self.ipBaseNum,
@@ -728,7 +723,7 @@ class Mininet(object):
                         wlan = 0
                     wifiparam = dict()
                     if 'phywlan' not in ap.params:
-                        intf = self.newapif[i]
+                        intf = module.wlan_list[i]
                         iface = ap.params['wlan'][wlan]
                         wifiparam.setdefault('intf', intf)
                     else:
@@ -792,16 +787,11 @@ class Mininet(object):
                     i += 1
 
     def configureWifiNodes(self):
-        if self.ifaceConfigured == False:
-            physicalWlan, phyList = module.start(self.wifiRadios, self.alternativeModule)
-            self.isWiFi = True
-            self.newapif = module.getWlanIface(physicalWlan)  # Get Virtual Wlans
-            wifiNodes = self.stations + self.cars + self.accessPoints
-            module.assignIface(wifiNodes, physicalWlan, phyList)
-            self.ifaceConfigured = True
-            self.link = TCLink
-            self.configureAP()  # configure AP
-            self.firstAssociation = False
+        nodes = self.stations + self.cars + self.accessPoints
+        module.start(nodes, self.nRadios, self.alternativeModule)
+        self.configureAP()  # configure AP
+        self.isWiFi = True
+        self.ifaceConfigured = True
 
     def addLink(self, node1, node2, port1=None, port2=None,
                  cls=None, **params):
@@ -816,7 +806,7 @@ class Mininet(object):
             or (node2.type == 'station' and node1.type == 'accessPoint')) 
             and 'link' not in options):
 
-            if self.firstAssociation:
+            if self.ifaceConfigured == False:
                 self.configureWifiNodes()
 
             if (node1.type == 'station' or node2.type == 'station'):
@@ -874,11 +864,11 @@ class Mininet(object):
 
             # Only if AP
             if node1.type == 'accessPoint' and node2.type == 'accessPoint' :
-                if self.firstAssociation:
+                if self.ifaceConfigured == False:
                     self.configureWifiNodes()
 
             elif node1.type == 'accessPoint' or node2.type == 'accessPoint':
-                if self.firstAssociation:
+                if self.ifaceConfigured == False:
                     self.configureWifiNodes()
                     
             if 'position' in node1.params and 'position' in node2.params or \
@@ -980,7 +970,7 @@ class Mininet(object):
             info(switchName + ' ')
 
         info('\n*** Adding links and associating station(s):\n')
-        self.firstAssociation = True
+        self.ifaceConfigured == False
         for srcName, dstName, params in topo.links(
                 sort=True, withInfo=True):
             self.addLink(**params)
@@ -1009,8 +999,7 @@ class Mininet(object):
                     if 'position' in node.params and node.params['associatedTo'][wlan] != '':
                         mobility.nodeParameter(node, wlan)
                     elif 'position' in node.params and node.params['associatedTo'][wlan] == '':
-                        if self.firstAssociation:
-                            self.configureWifiNodes()
+                        self.configureWifiNodes()
                         for ap in self.accessPoints:
                             if node.params['associatedTo'][wlan] == '':
                                 dist = channelParams.getDistance(node, ap)
@@ -1049,7 +1038,7 @@ class Mininet(object):
             
         if self.topo:
             self.buildFromTopo(self.topo)
-        if self.firstAssociation:
+        if self.ifaceConfigured == False:
             self.configureWifiNodes()
         if self.inNamespace:
             self.configureControlNetwork()
