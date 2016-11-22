@@ -105,7 +105,7 @@ class module(object):
     def getMacAddress(self, sta, wlan):
         """ get Mac Address of any Interface """
         _macMatchRegex = re.compile(r'..:..:..:..:..:..')
-        debug('ifconfig %s' % sta.params['wlan'][wlan])
+        debug('Get Mac Address: ifconfig %s\n' % sta.params['wlan'][wlan])
         ifconfig = str(sta.pexec('ifconfig %s' % sta.params['wlan'][wlan]))
         mac = _macMatchRegex.findall(ifconfig)
         return mac[0]
@@ -114,7 +114,7 @@ class module(object):
     def setMacAddress(self, sta, wlan):
         """Define a mac address when the interface already exists in the station"""
         sta.pexec('ip link set %s down' % sta.params['wlan'][wlan])
-        debug('ip link set %s address %s\n' % (sta.params['wlan'][wlan], sta.params['mac'][wlan]))
+        debug('Set Mac Address: ip link set %s address %s\n' % (sta.params['wlan'][wlan], sta.params['mac'][wlan]))
         sta.pexec('ip link set %s address %s' % (sta.params['wlan'][wlan], sta.params['mac'][wlan]))
         sta.pexec('ip link set %s up' % sta.params['wlan'][wlan])
 
@@ -125,6 +125,7 @@ class module(object):
             self.wlan_list = self.getWlanIface(physicalWlan_list)
             for sta in wifiNodes:
                 if sta.type == 'station' or sta.type == 'vehicle':
+                
                     for wlan in range(0, len(sta.params['wlan'])):
                         os.system('iw phy %s set netns %s' % (phy_list[0], sta.pid))
                         if 'car' in sta.name and sta.type == 'station':
@@ -145,6 +146,8 @@ class module(object):
                             self.setMacAddress(sta, wlan)
                         self.wlan_list.pop(0)
                         phy_list.pop(0)
+                        
+         
         except:
             info( "Something is wrong. Please, run sudo mn -c before running your code.\n" )
             exit(1)
@@ -156,7 +159,7 @@ class module(object):
         iface_list = subprocess.check_output("iwconfig 2>&1 | grep IEEE | awk '{print $1}'",
                                             shell=True).split('\n')
         for iface in iface_list:
-            if iface not in physicalWlan:
+            if iface not in physicalWlan and iface != '':
                 wlan_list.append(iface)
         wlan_list = sorted(wlan_list)
         wlan_list.sort(key=len, reverse=False)
