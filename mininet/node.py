@@ -70,7 +70,7 @@ from mininet.log import info, error, warn, debug
 from mininet.util import (quietRun, errRun, errFail, moveIntf, isShellBuiltin,
                            numCores, retry, mountCgroups)
 from mininet.moduledeps import moduleDeps, pathCheck, TUN
-from mininet.link import Link, Intf, TCIntf, OVSIntf, Association
+from mininet.link import Link, Intf, TCIntf, OVSIntf
 from re import findall
 from distutils.version import StrictVersion
 from mininet.wifiMobility import mobility
@@ -513,25 +513,35 @@ class Node(object):
         self.moveAssociationTo(iface, ap)
 
     def moveAssociationTo(self, iface, ap):
-        wlan = int(iface[-1:])
-        for n in range(len(mobility.apList)):
-            if ap == str(mobility.apList[n]):
-                ap = mobility.apList[n]
+        sta = self
+        for idx, wlan in enumerate(sta.params['wlan']):
+            if wlan == iface:
+                wlan = idx
                 break
-        d = channelParams.getDistance(self, ap)
-        if d < int(self.params['range']) + int(ap.params['range']):
-            if self.params['associatedTo'][wlan] != ap:
-                if self.params['associatedTo'][wlan] != 'none':
-                    self.cmd('iw dev %s disconnect' % iface)
-                self.cmd('iw dev %s connect %s' % (iface, ap.ssid[0]))
-                cls = Association
-                cls.confirmInfraAssociation(self, ap, wlan)
-                setInfraChannelParams(self, ap, wlan, d, mobility.staList)
-            else:
-                info ('%s is already connected!\n' % ap)
-            mobility.getAPsInRange(self)
-        else:
-            print "%s is out of range!" % (ap)
+        for ap_ref in mobility.apList:
+            if ap == ap_ref:
+                if ('position' in sta.params and 'position' in ap.params):
+                    d = channelParams.getDistance(sta, ap)
+                else:
+                    d = 100000
+                if (d < ap.params['range']) or ('position' not in sta.params and 'position' not in ap.params):
+                    if sta.params['associatedTo'][wlan] != ap:
+                        if sta.params['associatedTo'][wlan] != '':
+                            sta.cmd('iw dev %s disconnect' % iface)
+                        if 'encrypt' not in ap.params:
+                            sta.cmd('iwconfig %s essid %s ap %s' % (sta.params['wlan'][wlan], ap.params['ssid'][0], ap.params['mac'][0]))
+                        else:
+                            if ap.params['encrypt'][0] == 'wpa' or ap.params['encrypt'][0] == 'wpa2':
+                                sta.associate_wpa(sta, ap, wlan)
+                            elif ap.params['encrypt'][0] == 'wep':
+                                sta.associate_wep(sta, ap, wlan)
+                        setInfraChannelParams(sta, ap, wlan, d, mobility.staList)
+                        mobility.updateAssociation(sta, ap, wlan)
+                    else:
+                        info ('%s is already connected!\n' % ap)
+                    mobility.getAPsInRange(sta)
+                else:
+                    print "%s is out of range!" % (ap)
 
     def mountPrivateDirs(self):
         "mount private directories"
