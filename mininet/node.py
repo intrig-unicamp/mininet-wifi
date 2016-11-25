@@ -1475,7 +1475,7 @@ class AccessPoint(Switch):
                             print line.replace(unmatch, echo)
                         else:
                             print line.rstrip()
-                os.system('service network-manager restart')
+                #os.system('service network-manager restart')
 
     @classmethod
     def apBridge(self, ap, wlan):
