@@ -8,13 +8,13 @@ import numpy as np
 import time
 import os
 
-from mininet.log import debug, info
+from mininet.log import debug
 from mininet.wifiMobilityModels import gauss_markov, \
     truncated_levy_walk, random_direction, random_waypoint, random_walk, reference_point_group, tvc
 from mininet.wifiChannel import channelParams, setAdhocChannelParams, setInfraChannelParams
 from mininet.wifiAssociationControl import associationControl
 from mininet.wifiMeshRouting import listNodes, meshRouting
-from mininet.wifiPlot import plot
+from mininet.wifiPlot import plot2d, plot3d
 
 class mobility (object):
     """ Mobility """
@@ -29,7 +29,9 @@ class mobility (object):
     isMobility = False
     MAX_X = 0
     MAX_Y = 0
-    continuePlot = 'plot.graphPause()'
+    MAX_Z = 0
+    is3d = False
+    continuePlot = 'plot2d.graphPause()'
 
     @classmethod
     def moveFactor(self, sta, diffTime):
@@ -82,7 +84,6 @@ class mobility (object):
                     value = associationControl(sta, ap, wlan, ac)
                     changeAP = value.changeAP
     
-                # Go to handover
                 if associated == False or changeAP == True:
                     if ap not in sta.params['associatedTo']:
                         if sta.params['associatedTo'][wlan] == '' or changeAP == True:
@@ -136,9 +137,9 @@ class mobility (object):
         self.updateAssociation(sta, ap, wlan)
 
     @classmethod
-    def positionDefined(self, init_time=0, final_time=0, stations=None, aps=None, walls=None, staMov=None,
-                                dstConn=None, srcConn=None, plotnodes=None, MAX_X=0, MAX_Y=0):
-        """ ongoing Mobility """
+    def definedPosition(self, init_time=0, final_time=0, stations=None, aps=None, walls=None, staMov=None,
+                                dstConn=None, srcConn=None, plotnodes=None, MAX_X=0, MAX_Y=0, MAX_Z=0):
+        """ Defined Position """
         t_end = time.time() + final_time
         t_initial = time.time() + init_time
         currentTime = time.time()
@@ -150,8 +151,14 @@ class mobility (object):
         nodes = self.staList + self.apList + plotnodes
 
         if self.DRAW == True:
-            plot.instantiateGraph(MAX_X, MAX_Y)
-            plot.plotGraph(nodes, srcConn, dstConn, MAX_X, MAX_Y)
+            if self.is3d:
+                plot = plot3d
+                plot.instantiateGraph(MAX_X, MAX_Y, MAX_Z)
+                plot.graphInstantiateNodes(nodes)
+            else:
+                plot = plot2d
+                plot.instantiateGraph(MAX_X, MAX_Y)
+                plot.plotGraph(nodes, srcConn, dstConn, MAX_X, MAX_Y)
 
         try:
             while time.time() < t_end and time.time() > t_initial:
@@ -196,9 +203,9 @@ class mobility (object):
                 sta.min_v = min_v
 
         if self.DRAW:
-            plot.instantiateGraph(MAX_X, MAX_Y)
-            plot.plotGraph(nodes, srcConn, dstConn, MAX_X, MAX_Y)
-            plot.graphPause()
+            plot2d.instantiateGraph(MAX_X, MAX_Y)
+            plot2d.plotGraph(nodes, srcConn, dstConn, MAX_X, MAX_Y)
+            plot2d.graphPause()
 
         if staMov != None:            
             debug('Configuring the mobility model %s' % model)
@@ -232,7 +239,7 @@ class mobility (object):
             for node in nodes:
                 node.params['position'] = xy[i][0], xy[i][1], 0
                 i += 1
-                plot.graphUpdate(node)
+                plot2d.graphUpdate(node)
             eval(self.continuePlot)
                 
     @classmethod    

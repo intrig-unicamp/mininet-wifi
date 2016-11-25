@@ -10,18 +10,24 @@ Modified by Ramon Fontes (ramonrf@dca.fee.unicamp.br)
 Mininet creates scalable OpenFlow test networks by using
 process-based virtualization and network namespaces.
 
-Simulated hosts are created as processes in separate network
+Simulated hosts/stations are created as processes in separate network
 namespaces. This allows a complete OpenFlow network to be simulated on
 top of a single Linux kernel.
 
 Each host has:
 
 A virtual console (pipes to a shell)
-A virtual interfaces (half of a veth pair)
+A virtual interface (half of a veth pair)
 A parent shell (and possibly some child processes) in a namespace
 
 Hosts have a network interface which is configured via ifconfig/ip
 link/etc.
+
+Each station has:
+
+A virtual console (pipes to a shell)
+A virtual wireless interface (half of a veth pair)
+A parent shell (and possibly some child processes) in a namespace
 
 This version supports both the kernel and user space datapaths
 from the OpenFlow reference implementation (openflowswitch.org)
@@ -104,7 +110,7 @@ from mininet.log import info, error, debug, output, warn
 from mininet.node import (Node, Host, Station, Car, OVSKernelSwitch, DefaultController,
                            Controller, AccessPoint)
 from mininet.nodelib import NAT
-from mininet.link import Link, Intf, TCLink, TCLinkWireless, Association
+from mininet.link import Link, Intf, TCLinkWireless, Association
 from mininet.util import (quietRun, fixLimits, numCores, ensureRoot,
                            macColonHex, ipStr, ipParse, netParse, ipAdd,
                            waitListening)
@@ -113,7 +119,7 @@ from mininet.wifiChannel import channelParams, setInfraChannelParams, setAdhocCh
 from mininet.wifiDevices import deviceRange, deviceDataRate
 from mininet.wifiMobility import mobility
 from mininet.wifiModule import module
-from mininet.wifiPlot import plot
+from mininet.wifiPlot import plot2d, plot3d
 from mininet.wifiPropagationModels import propagationModel
 from mininet.wifiAdHocConnectivity import pairingAdhocNodes
 from mininet.wifiMeshRouting import listNodes, meshRouting
@@ -124,12 +130,12 @@ from mininet.vanet import vanet
 from __builtin__ import True
 
 # Mininet version: should be consistent with README and LICENSE
-VERSION = "1.9r6"
+VERSION = "1.9r7"
 
 class Mininet(object):
     "Network emulation with hosts spawned in network namespaces."
 
-    def __init__(self, topo=None, switch=OVSKernelSwitch, host=Host, isWiFi=False,
+    def __init__(self, topo=None, switch=OVSKernelSwitch, car=Car, station=Station, host=Host, isWiFi=False,
                   controller=DefaultController, link=Link, intf=Intf, wifiRadios=0,
                   build=True, xterms=False, cleanup=False, ipBase='10.0.0.0/8',
                   inNamespace=False, autoSetMacs=False, autoStaticArp=False, autoPinCpus=False,
@@ -155,6 +161,8 @@ class Mininet(object):
         self.topo = topo
         self.switch = switch        
         self.host = host
+        self.station = station
+        self.car = car
         self.controller = controller
         self.link = link
         self.intf = intf
@@ -176,7 +184,6 @@ class Mininet(object):
         self.routing = ''
         self.alternativeModule = ''
         self.nroads = 0
-        self.ifaceConfigured = False
         self.isVanet = False
         self.ssid = ssid
         self.mode = mode
@@ -186,7 +193,6 @@ class Mininet(object):
         self.controllers = []
         self.hosts = []
         self.links = []
-        self.missingStations = []
         self.cars = []
         self.switches = []
         self.stations = []
@@ -201,6 +207,9 @@ class Mininet(object):
         self.nRadios = wifiRadios
         self.MAX_X = 0
         self.MAX_Y = 0
+        self.MAX_Z = 0
+        self.is3d = False
+        self.justKeepingBackwardsCompatibility = True
         Mininet.init()  # Initialize Mininet if necessary
 
         self.built = False
@@ -285,20 +294,18 @@ class Mininet(object):
         self.nextIP += 1
         defaults.update(params)
         
-        cls = Station
+        if not cls:
+            cls = self.station
         sta = cls(name, **defaults)   
+        sta.type = 'station'
           
         self.hosts.append(sta)
         self.stations.append(sta)
-        self.nameToNode[ name ] = sta
-        self.missingStations.append(sta)
-        sta.type = 'station'
+        self.nameToNode[ name ] = sta 
         
         self.nRadios = sta.addParameters(sta, self.nRadios, self.autoSetMacs, params, defaults)
-
         return sta
         
-    # NOT SURE ABOUT THIS CLASSNAME
     def addCar(self, name, cls=None, **params):
         """Add Car.
            name: name of vehicle to add
@@ -322,12 +329,12 @@ class Mininet(object):
         defaults.update(params)
         
         self.nextIP += 1
-        cls = Car
+        if not cls:
+            cls = self.car
         car = cls(name, **defaults)
         self.hosts.append(car)
         
         self.nameToNode[ name ] = car
-        self.missingStations.append(car)
         car.type = 'vehicle'
         self.nRadios = car.addParameters(car, self.nRadios, self.autoSetMacs, params, defaults)
         
@@ -344,8 +351,7 @@ class Mininet(object):
         car.func.append('')
         car.func[1] = 'mesh'
         self.addLink(carsta, carsw)
-        self.addLink(car, carsw)
-        
+        self.addLink(car, carsw)        
         return car    
 
     def addAccessPoint(self, name, cls=None, **params):
@@ -570,8 +576,8 @@ class Mininet(object):
            params: parameters for station"""
         wlan = sta.ifaceToAssociate
         sta.func[wlan] = 'mesh'
-              
-        if self.ifaceConfigured == False:
+        
+        if self.justKeepingBackwardsCompatibility:
             self.configureWifiNodes()
 
         options = { 'ip': ipAdd(self.nextIP,
@@ -612,9 +618,6 @@ class Mininet(object):
 
         # Set default MAC - this should probably be in Link
         options.setdefault('addr1', self.randMac())   
-
-        if sta in self.missingStations:
-            self.missingStations.remove(sta)
                 
         cls = Association
         cls.mesh(sta, self.stations)
@@ -628,8 +631,8 @@ class Mininet(object):
            params: parameters for station"""
         wlan = sta.ifaceToAssociate
         sta.func[wlan] = 'adhoc'
-
-        if self.ifaceConfigured == False:
+        
+        if self.justKeepingBackwardsCompatibility:
             self.configureWifiNodes()
 
         options = { 'ip': ipAdd(self.nextIP,
@@ -666,9 +669,6 @@ class Mininet(object):
         # Set default MAC - this should probably be in Link
         options.setdefault('addr1', self.randMac())
         
-        if sta in self.missingStations:
-            self.missingStations.remove(sta)
-        
         cls = Association
         cls.adhoc(sta)
         self.tc(sta, self.bw)
@@ -681,8 +681,8 @@ class Mininet(object):
            params: parameters for station"""
         wlan = sta.ifaceToAssociate
         sta.func[wlan] = 'wifiDirect'
-
-        if self.ifaceConfigured == False:
+        
+        if self.justKeepingBackwardsCompatibility:
             self.configureWifiNodes()
 
         options = { 'ip': ipAdd(self.nextIP,
@@ -710,8 +710,6 @@ class Mininet(object):
         # Set default MAC - this should probably be in Link
         options.setdefault('addr1', self.randMac())
 
-        if sta in self.missingStations:
-            self.missingStations.remove(sta)
 
     def configureAP(self):
         """Configure AP"""
@@ -795,9 +793,15 @@ class Mininet(object):
         module.start(nodes, self.nRadios, self.alternativeModule)
         self.configureAP()  
         self.isWiFi = True
-        self.ifaceConfigured = True
+        self.justKeepingBackwardsCompatibility = False
         
-
+        # useful if there no link between sta and any other device
+        for car in self.cars:
+            self.addMesh(car.params['carsta'], ssid='mesh-ssid')
+            self.stations.remove(car.params['carsta'])
+            self.stations.append(car)      
+            car.params['wlan'].append(0)
+        
     def addLink(self, node1, node2, port1=None, port2=None,
                  cls=None, **params):
         """"Add a link from node1 to node2
@@ -817,8 +821,8 @@ class Mininet(object):
         if(((node1.type == 'station' and node2.type == 'accessPoint') \
             or (node2.type == 'station' and node1.type == 'accessPoint')) 
             and 'link' not in options):
-
-            if self.ifaceConfigured == False:
+            
+            if self.justKeepingBackwardsCompatibility:
                 self.configureWifiNodes()
 
             if (node1.type == 'station' or node2.type == 'station'):
@@ -828,23 +832,21 @@ class Mininet(object):
                 else:
                     sta = node2
                     ap = node1
+                
+                wlan = sta.ifaceToAssociate
+                
+                if sta.params['mac'][wlan] != '':
+                    Node.setMac(sta, sta.params['wlan'][wlan], wlan)
 
-                if sta in self.missingStations:
-                    self.missingStations.remove(sta)
-
-                if sta.params['mac'][sta.ifaceToAssociate] != '':
-                    index = sta.ifaceToAssociate
-                    Node.setMac(sta, sta.params['wlan'][index], index)
-
-                sta.params['mode'][sta.ifaceToAssociate] = ap.params['mode'][0]
-                sta.params['channel'][sta.ifaceToAssociate] = ap.params['channel'][0]
+                sta.params['mode'][wlan] = ap.params['mode'][0]
+                sta.params['channel'][wlan] = ap.params['channel'][0]
                 value = deviceDataRate(ap, sta, None)
                 self.bw = value.rate
                 
-                if sta.params['ip'][sta.ifaceToAssociate] != '0/0':
-                    sta.intfs[sta.ifaceToAssociate].setIP(sta.params['ip'][sta.ifaceToAssociate])
-                if sta.params['mac'][sta.ifaceToAssociate] != '':
-                    sta.intfs[sta.ifaceToAssociate].setMAC(sta.params['mac'][sta.ifaceToAssociate])
+                if sta.params['ip'][wlan] != '0/0':
+                    sta.intfs[wlan].setIP(sta.params['ip'][wlan])
+                if sta.params['mac'][wlan] != '':
+                    sta.intfs[wlan].setMAC(sta.params['mac'][wlan])
                 self.tc(sta, self.bw)
 
                 # If sta/ap have defined position
@@ -853,41 +855,29 @@ class Mininet(object):
                     if dist > ap.params['range']:
                         doAssociation = False
                     else:
-                        doAssociation = True
-                # if not
+                        doAssociation = True                        
                 else:
                     doAssociation = True
 
                 if(doAssociation):
                     cls = Association
-                    cls.associate(sta, ap)                  
+                    cls.associate(sta, ap)  
+                    if 'position' in sta.params and 'position' in ap.params:
+                        setInfraChannelParams(sta, ap, wlan, dist, self.stations)                
         else:
             if 'link' in options:
                 options.pop('link', None)
-
-            # Only if AP
-            if node1.type == 'accessPoint' and node2.type == 'accessPoint' :
-                if self.ifaceConfigured == False:
+                
+            if (node1.type == 'accessPoint' and node2.type == 'accessPoint') or \
+                (node1.type == 'accessPoint' or node2.type == 'accessPoint'):
+                if self.justKeepingBackwardsCompatibility:
                     self.configureWifiNodes()
-
-            elif node1.type == 'accessPoint' or node2.type == 'accessPoint':
-                if self.ifaceConfigured == False:
-                    self.configureWifiNodes()
+            
                     
             if 'position' in node1.params and 'position' in node2.params or \
             ('RSU' in node1.name and 'RSU' in node2.name):
                 self.srcConn.append(node1)
                 self.dstConn.append(node2)
-
-            # necessary if does not exist link between sta and other device
-            if node1 in self.missingStations:
-                self.missingStations.remove(node1)
-                node1.params['mode'][0] = 'g'
-                node1.associate = False
-            if node2 in self.missingStations:
-                self.missingStations.remove(node2)
-                node2.params['mode'][0] = 'g'
-                node2.associate = False
 
             # Port is optional
             if port1 is not None:
@@ -972,8 +962,11 @@ class Mininet(object):
                 self.addSwitch(switchName, **params)
             info(switchName + ' ')
 
+        info('\n*** Configuring wifi nodes:\n')
+        if self.isWiFi:
+            self.configureWifiNodes()
+
         info('\n*** Adding links and associating station(s):\n')
-        self.ifaceConfigured = False
         for srcName, dstName, params in topo.links(
                 sort=True, withInfo=True):
             self.addLink(**params)
@@ -985,64 +978,63 @@ class Mininet(object):
         raise Exception('configureControlNetwork: '
                          'should be overriden in subclass', self)
 
-    def build(self):
-        # useful if there no link between sta and any other device
-        for car in self.cars:
-            self.addMesh(car.params['carsta'], ssid='mesh-ssid')
-            self.stations.remove(car.params['carsta'])
-            self.stations.append(car)      
-            car.params['wlan'].append(0)   
+    def getAPsInRange(self, sta):
+        for ap in self.accessPoints:
+            dist = channelParams.getDistance(sta, ap)
+            if dist < ap.params['range']:
+                if ap not in sta.params['apsInRange']:
+                    sta.params['apsInRange'].append(ap)
+            else:
+                if ap in sta.params['apsInRange']:
+                    sta.params['apsInRange'].remove(ap)
         
-        "Build mininet."
-        if self.ifaceConfigured == False:
-            for node in self.missingStations:
-                if 'position' in node.params:
-                    mobility.getAPsInRange(node)
-                for wlan in range(0, len(node.params['wlan'])):
-                    if 'position' in node.params and node.params['associatedTo'][wlan] != '':
-                        mobility.nodeParameter(node, wlan)
-                    elif 'position' in node.params and node.params['associatedTo'][wlan] == '':
-                        self.configureWifiNodes()
+    def autoAssociation(self):
+        """This is useful to make the users' life easier"""
+        if self.isVanet == False:
+            for sta in self.stations:
+                pairingAdhocNodes.ssid_ID += 1
+                if 'position' in sta.params:
+                    self.getAPsInRange(sta)
+                for wlan in range(0, len(sta.params['wlan'])):
+                    if 'position' in sta.params and sta.func[wlan] == 'adhoc' and sta.params['associatedTo'][wlan] == '':
+                        value = pairingAdhocNodes(sta, wlan, self.stations)
+                        dist = value.dist
+                        if dist >= 0.01:
+                            setAdhocChannelParams(sta, wlan, dist, self.stations)
+                    elif 'position' in sta.params and sta.func[wlan] == 'mesh':
+                        dist = listNodes.pairingNodes(sta, wlan, self.stations)
+                        if dist >= 0.01:
+                            setAdhocChannelParams(sta, wlan, dist, self.stations)
+                        cls = Association
+                        cls.confirmMeshAssociation(sta, wlan)
+                    elif 'position' in sta.params and sta.params['associatedTo'][wlan] != '' and sta.func[wlan] != 'adhoc':
+                        dist = channelParams.getDistance(sta, sta.params['associatedTo'][wlan])
+                        if dist >= 0.01:
+                            setInfraChannelParams(sta, sta.params['associatedTo'][wlan], wlan, dist, self.stations)
+                    else:
                         for ap in self.accessPoints:
-                            if node.params['associatedTo'][wlan] == '':
-                                dist = channelParams.getDistance(node, ap)
-                                if dist > ap.params['range']:
-                                    doAssociation = False
-                                else:
-                                    doAssociation = True
-                                if(doAssociation):
-                                    cls = Association
-                                    cls.associate(node, ap)
-        else:
-            if self.isVanet == False:
-                for sta in self.stations:
-                    pairingAdhocNodes.ssid_ID += 1
-                    if 'position' in sta.params:
-                        mobility.getAPsInRange(sta)
-                    for wlan in range(0, len(sta.params['wlan'])):
-                        if 'position' in sta.params and sta.func[wlan] == 'adhoc' and sta.params['associatedTo'][wlan] == '':
-                            value = pairingAdhocNodes(sta, wlan, self.stations)
-                            dist = value.dist
-                            if dist >= 0.01:
-                                setAdhocChannelParams(sta, wlan, dist, self.stations)
-                        elif 'position' in sta.params and sta.func[wlan] == 'mesh':
-                            dist = listNodes.pairingNodes(sta, wlan, self.stations)
-                            if dist >= 0.01:
-                                setAdhocChannelParams(sta, wlan, dist, self.stations)
-                            cls = Association
-                            cls.confirmMeshAssociation(sta, wlan)
-                        elif 'position' in sta.params and sta.params['associatedTo'][wlan] != '' and sta.func[wlan] != 'adhoc':
-                            dist = channelParams.getDistance(sta, sta.params['associatedTo'][wlan])
-                            if dist >= 0.01:
-                                setInfraChannelParams(sta, sta.params['associatedTo'][wlan], wlan, dist, self.stations)
-                
+                            if sta.params['associatedTo'][wlan] == '':
+                                if 'position' in sta.params and 'position' in ap.params:
+                                    dist = channelParams.getDistance(sta, ap)
+                                    if dist > ap.params['range']:
+                                        doAssociation = False
+                                    else:
+                                        doAssociation = True
+                                    if(doAssociation):
+                                        cls = Association
+                                        cls.associate(sta, ap)
+                                        if dist >= 0.01:
+                                            setInfraChannelParams(sta, sta.params['associatedTo'][wlan], wlan, dist, self.stations)
+                    
                 if meshRouting.routing == 'custom':
                     meshRouting(self.stations)
-            
+
+    def build(self):
+        "Build mininet."    
+        if self.isWiFi and self.justKeepingBackwardsCompatibility:
+            self.configureWifiNodes()      
         if self.topo:
             self.buildFromTopo(self.topo)
-        if self.ifaceConfigured == False:
-            self.configureWifiNodes()
         if self.inNamespace:
             self.configureControlNetwork()
             info('*** Configuring hosts\n')
@@ -1154,11 +1146,13 @@ class Mininet(object):
             mobility.continue_ = False
             # mobility.DRAW = False
             sleep(1)
-            plot.closePlot()
+            if self.is3d:
+                plot3d.closePlot()
+            else:
+                plot2d.closePlot()
             module.stop()  # Stopping WiFi Module
 
         info('\n*** Done\n')
-        # os._exit(1)
 
     def run(self, test, *args, **kwargs):
         "Perform a complete start/test/stop cycle."
@@ -1542,11 +1536,12 @@ class Mininet(object):
         mobilityparam.setdefault('walls', self.walls)
         mobilityparam.setdefault('MAX_X', self.MAX_X)
         mobilityparam.setdefault('MAX_Y', self.MAX_Y)
+        mobilityparam.setdefault('MAX_Z', self.MAX_Z)
         mobilityparam.setdefault('dstConn', self.dstConn)
         mobilityparam.setdefault('srcConn', self.srcConn)
 
         debug('Starting mobility thread...\n')
-        self.thread = threading.Thread(name='mobility', target=mobility.positionDefined, kwargs=dict(mobilityparam,))
+        self.thread = threading.Thread(name='mobility', target=mobility.definedPosition, kwargs=dict(mobilityparam,))
         self.thread.daemon = True
         self.thread.start()
 
@@ -1579,14 +1574,16 @@ class Mininet(object):
         node.params['range'] = 0
         self.plotNodes.append(node)
 
-    def plotGraph(self, **kwargs):
+    def plotGraph(self, max_x=0, max_y=0, max_z=0):
         """ Plot Graph """
         mobility.DRAW = True
-        if 'max_x' in kwargs:
-            self.MAX_X = kwargs['max_x']
-        if 'max_y' in kwargs:
-            self.MAX_Y = kwargs['max_y']
-        mobility.dic = kwargs
+        self.MAX_X = max_x
+        self.MAX_Y = max_y
+        if max_z != 0:
+            self.MAX_Z = max_z
+            self.is3d = True
+            mobility.is3d = self.is3d
+            mobility.continuePlot = 'plot3d.graphPause()'
 
     def getCurrentPosition(self, node):
         """ Get Current Position """
@@ -1597,19 +1594,9 @@ class Mininet(object):
                     self.printPosition(host)
         except:
             info ("Position was not defined\n")
-
-    def printPosition(self, node):
-        """ Print position of STAs and APs """
-        self.pos_x = node.position[0]
-        self.pos_y = node.position[1]
-        self.pos_z = node.position[2]
-        print "----------------\nPosition of %s\n---------------- \
-        \nPosition X: %.2f \
-        \nPosition Y: %.2f \
-        \nPosition Z: %.2f\n" % (str(node), float(self.pos_x), float(self.pos_y), float(self.pos_z))
         
     def setChannelEquation(self, **params):
-        
+        """ Set Channel Equation """
         if 'bw' in params:
             channelParams.equationBw = params['bw']
         if 'delay' in params:
@@ -1620,6 +1607,7 @@ class Mininet(object):
             channelParams.equationLoss = params['loss']
 
     def propagationModel(self, model, exp=2, sL=1, lF=0, pL=0, nFloors=0, gRandom=0):
+        """ Attributes for Propagation Model """
         propagationModel.model = model
         propagationModel.exp = exp
         channelParams.sl = sL  # System Loss
@@ -1636,6 +1624,7 @@ class Mininet(object):
                 mobility.apList.append(ap)
 
     def associationControl(self, ac):
+        """Defines an association control"""
         mobility.associationControlMethod = ac
 
     def deviceInfo(self, device):

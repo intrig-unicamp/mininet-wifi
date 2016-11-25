@@ -76,7 +76,7 @@ from distutils.version import StrictVersion
 from mininet.wifiMobility import mobility
 from mininet.wifiChannel import channelParams, setAdhocChannelParams, setInfraChannelParams
 from mininet.wifiDevices import deviceRange
-from mininet.wifiPlot import plot
+from mininet.wifiPlot import plot2d, plot3d
 
 class Node(object):
     """A virtual network node is simply a shell in a network namespace.
@@ -479,18 +479,20 @@ class Node(object):
         self.params['range'] = _range
         try:
             if mobility.DRAW:
-                plot.updateCircleRadius(self)
-                plot.graphUpdate(self)
+                plot2d.updateCircleRadius(self)
+                plot2d.graphUpdate(self)
         except:
             pass
         self.verifyingNodes(self)
 
-    def moveStationTo(self, pos):
+    def moveNodeTo(self, pos):
         pos = pos.split(',')
         self.params['position'] = float(pos[0]), float(pos[1]), float(pos[2])
-        if mobility.DRAW:
-            plot.graphUpdate(self)
-            plot.graphPause()
+        if mobility.DRAW and mobility.is3d == False:
+            plot2d.graphUpdate(self)
+            plot2d.graphPause()
+        elif mobility.DRAW and mobility.is3d == True:
+            plot3d.graphUpdate(self)            
         self.verifyingNodes(self)
 
     def setAntennaGain(self, iface, value):
@@ -498,7 +500,7 @@ class Node(object):
         self.params['antennaGain'][wlan] = int(value)
         if mobility.DRAW:
             try:
-                plot.graphUpdate(self)
+                plot2d.graphUpdate(self)
             except:
                 pass
         self.verifyingNodes(self)
@@ -1410,7 +1412,7 @@ class AccessPoint(Switch):
                         cmd = cmd + ("\nwep_default_key=0")
                         cmd = cmd + self.verifyWepKey(wep_key0)
                 ap.params['mac'][i] = ap.params['mac'][wlan][:-1] + str(i)
-                self.checkNetworkManager(ap.params['mac'][i])                
+                #self.checkNetworkManager(ap.params['mac'][i])                
 
         self.APConfigFile(cmd, ap, wlan)
     
@@ -1473,7 +1475,7 @@ class AccessPoint(Switch):
                             print line.replace(unmatch, echo)
                         else:
                             print line.rstrip()
-                # os.system('service network-manager restart')
+                os.system('service network-manager restart')
 
     @classmethod
     def apBridge(self, ap, wlan):

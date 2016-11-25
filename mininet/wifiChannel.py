@@ -201,6 +201,6 @@ class setInfraChannelParams (object):
         value = deviceDataRate(sta, ap, wlan)
         custombw = value.rate
         rate = eval(channelParams.equationBw)
-        if rate <= 0:
+        if rate <= 0.0:
             rate = 0.1
         return rate

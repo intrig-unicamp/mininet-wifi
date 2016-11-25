@@ -4,7 +4,7 @@ author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
 """
 
 from mininet.wifiChannel import channelParams
-from mininet.log import debug
+from mininet.log import debug, info
 
 class pairingAdhocNodes (object):
 
@@ -38,7 +38,7 @@ class pairingAdhocNodes (object):
                                     sta.params['associatedTo'][wlan] = sta.params['ssid'][wlan]
                                     sta.params['cell'][wlan] = ('02:CA:FF:EE:BA:0%s' % self.ssid_ID)
                                     iface = sta.params['wlan'][wlan]
-                                    print "associating %s to %s..." % (iface, sta.params['ssid'][wlan])
+                                    info("\nassociating %s to %s..." % (iface, sta.params['ssid'][wlan]))
                                     debug('iwconfig %s essid %s ap 02:CA:FF:EE:BA:0%s' % \
                                           (sta.params['wlan'][wlan], sta.params['associatedTo'][wlan], self.ssid_ID))
                                     sta.pexec('iwconfig %s essid %s ap 02:CA:FF:EE:BA:0%s' % \
@@ -51,7 +51,7 @@ class pairingAdhocNodes (object):
                                             iface = sta_ref.params['wlan'][wlan_ref]
                                             sta_ref.params['associatedTo'][wlan_ref] = sta.params['ssid'][wlan]
                                             sta_ref.params['cell'][wlan_ref] = ('02:CA:FF:EE:BA:0%s' % self.ssid_ID)
-                                            print "associating %s to %s..." % (iface, sta.params['ssid'][wlan])
+                                            info("\nassociating %s to %s..." % (iface, sta.params['ssid'][wlan]))
                                             debug('iwconfig %s essid %s ap 02:CA:FF:EE:BA:0%s' % \
                                                           (sta_ref.params['wlan'][wlan_ref], sta_ref.params['associatedTo'][wlan_ref], self.ssid_ID))
                                             sta_ref.pexec('iwconfig %s essid %s ap 02:CA:FF:EE:BA:0%s' % \

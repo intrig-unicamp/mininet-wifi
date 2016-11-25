@@ -9,7 +9,7 @@ from __future__ import division
 from pylab import math, cos, sin, np
 from math import atan2
 from pylab import ginput as ginp
-from mininet.wifiPlot import plot
+from mininet.wifiPlot import plot2d, plot3d
 from random import randrange
 import warnings
 import matplotlib.cbook
@@ -46,13 +46,12 @@ class vanet(object):
         [self.road.append(x) for x in range(0, nroads)]
         [self.points.append(x) for x in range(0, nroads)]
         [self.totalRoads.append(x) for x in range(0, nroads)]
-
-        plot.instantiateGraph(MAX_X, MAX_Y)
+        plot2d.instantiateGraph(MAX_X, MAX_Y)
 
         try:
             self.display_grid(baseStations, srcConn, dstConn, nroads)
             self.display_cars(cars)
-            plot.plotGraph(cars, [], [], MAX_X, MAX_Y)
+            plot2d.plotGraph(cars, [], [], MAX_X, MAX_Y)
             self.setWifiParameters()
             while mobility.continue_:
                 [self.scatter, self.com_lines] = self.simulate_car_movement(cars, baseStations, self.scatter, self.com_lines)
@@ -122,25 +121,25 @@ class vanet(object):
             self.interX[n] = x1
             self.interY[n] = y1
 
-            self.road[n] = plot.plotLine2d(x1, y1, color='g')  # Create a line object with the x y values of the points in a line
-            plot.plotLine(self.road[n])
+            self.road[n] = plot2d.plotLine2d(x1, y1, color='g')  # Create a line object with the x y values of the points in a line
+            plot2d.plotLine(self.road[n])
 
         for bs in baseStations:
             bs.properties = ginp(1)[0]
             bs_x = bs.properties[0]
             bs_y = bs.properties[1]
-            self.scatter = plot.plotScatter(bs_x, bs_y)
+            self.scatter = plot2d.plotScatter(bs_x, bs_y)
             bs.params['position'] = bs_x, bs_y, 0
-            plot.instantiateAnnotate(bs)
-            plot.instantiateCircle(bs)
-            plot.text(bs)
-            plot.circle(bs)
-            plot.plotDraw()
+            plot2d.instantiateAnnotate(bs)
+            plot2d.instantiateCircle(bs)
+            plot2d.text(bs)
+            plot2d.circle(bs)
+            plot2d.plotDraw()
 
         for c in range(0, len(srcConn)):
-            line = plot.plotLine2d([srcConn[c].params['position'][0], dstConn[c].params['position'][0]], \
+            line = plot2d.plotLine2d([srcConn[c].params['position'][0], dstConn[c].params['position'][0]], \
                                    [srcConn[c].params['position'][1], dstConn[c].params['position'][1]], 'b', ls='dashed')
-            plot.plotLine(line)
+            plot2d.plotLine(line)
 
     def display_cars(self, cars):
 
@@ -160,7 +159,7 @@ class vanet(object):
             locX = (x_max - x_min) / 2 + x_min
             locY = (y_max - y_min) / 2 + y_min
 
-            plot.plotLineTxt(locX, locY, n + 1)
+            plot2d.plotLineTxt(locX, locY, n + 1)
 
         # temporal variable to hold values of cars
         points = [[], []]
@@ -198,12 +197,8 @@ class vanet(object):
 
             self.speed(car)  # Get Speed
 
-            # Useful to Graph
-            # plot.instantiateCircle(car)
-            # plot.instantiateAnnotate(car)
-
-        # plot the cars
-        self.scatter = plot.plotScatter(points[0], points[1])
+        # plot cars
+        self.scatter = plot2d.plotScatter(points[0], points[1])
 
     def lineX(self, line_data):
         """ get the minimum and maximums of the line"""
@@ -345,14 +340,14 @@ class vanet(object):
                                 color = 'black'
                             else:
                                 color = 'r'
-                            line = plot.plotLine2d([position_x, node.properties[0]], [position_y, node.properties[1]], color=color)
+                            line = plot2d.plotLine2d([position_x, node.properties[0]], [position_y, node.properties[1]], color=color)
                             com_lines.append(line)
-                            plot.plotLine(line)
+                            plot2d.plotLine(line)
 
-            plot.graphUpdate(car)
+            plot2d.graphUpdate(car)
         eval(mobility.continuePlot)
 
-        scatter = plot.plotScatter(points[0], points[1])
-        plot.plotDraw()
+        scatter = plot2d.plotScatter(points[0], points[1])
+        plot2d.plotDraw()
 
         return [scatter, com_lines]

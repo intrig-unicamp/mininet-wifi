@@ -9,8 +9,10 @@ class associationControl (object):
         self.customAssociationControl(sta, ap, wlan, ac)
 
     def customAssociationControl(self, sta, ap, wlan, ac):
-        """Mechanisms that optimize the use of the APs"""
-        if ac == "llf":  # useful for llf (Least-loaded-first)
+        """Mechanisms that optimize the use of the APs
+        llf: Least-loaded-first
+        ssf: Strongest-signal-first"""
+        if ac == "llf":
             apref = sta.params['associatedTo'][wlan]
             if apref != 'NoAssociated':
                 ref_llf = len(apref.params['associatedStations'])
@@ -18,7 +20,7 @@ class associationControl (object):
                     self.changeAP = True
             else:
                 self.changeAP = True
-        elif ac == "ssf":  # useful for ssf (Strongest-signal-first)
+        elif ac == "ssf":
             refDistance = channelParams.getDistance(sta, ap)
             refValue = propagationModel(sta, ap, refDistance, wlan)
             if refValue.rssi > float(sta.params['rssi'][wlan] + 1):

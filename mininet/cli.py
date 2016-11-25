@@ -34,7 +34,7 @@ import time
 import os
 import atexit
 
-from mininet.wifiPlot import plot
+from mininet.wifiPlot import plot2d, plot3d
 from mininet.wifiMobility import mobility
 from mininet.log import info, output, error
 from mininet.term import makeTerms, runX11
@@ -63,9 +63,14 @@ class CLI(Cmd):
             if mobility.staList == []: 
                 mobility.staList = mininet.stations
             nodes = mininet.stations + mininet.accessPoints
-            plot.instantiateGraph(mininet.MAX_X, mininet.MAX_Y)
-            plot.plotGraph(nodes, [], [], mininet.MAX_X, mininet.MAX_Y)
-            plot.graphPause()
+            
+            if mininet.is3d:
+                plot3d.instantiateGraph(mininet.MAX_X, mininet.MAX_Y, mininet.MAX_Z)
+                plot3d.graphInstantiateNodes(nodes)
+            else:
+                plot2d.instantiateGraph(mininet.MAX_X, mininet.MAX_Y)
+                plot2d.plotGraph(nodes, [], [], mininet.MAX_X, mininet.MAX_Y)
+                plot2d.graphPause()
 
         self.mn = mininet
         # Local variable bindings for py command
