@@ -30,17 +30,20 @@ def topology():
     ap3 = net.addAccessPoint( 'ap3', ssid= 'new-ssid3', mode= 'g', channel= '1', position='90,50,0' )
     c1 = net.addController( 'c1', controller=Controller )
 
+    print "*** Configuring wifi nodes"
+    net.configureWifiNodes()
+
     print "*** Associating and Creating links"
     net.addLink(ap1, ap2)
     net.addLink(ap2, ap3)
-    
+
     print "*** Starting network"
     net.build()
     c1.start()
     ap1.start( [c1] )
     ap2.start( [c1] )
     ap3.start( [c1] )
-    
+
     """uncomment to plot graph"""
     net.plotGraph(max_x=120, max_y=120)
 
@@ -56,7 +59,7 @@ def topology():
                 llf (Least-Loaded-First)
                 ssf (Strongest-Signal-First)"""
     net.startMobility(startTime=0, model='RandomWayPoint', max_x=120, max_y=120, min_v=0.3, max_v=0.5)
-   
+
     print "*** Running CLI"
     CLI( net )
 

@@ -21,10 +21,13 @@ def topology():
     ap1 = net.addAccessPoint( 'ap1', ssid= 'new-ssid', equipmentModel='DI524', mode='g', channel='1', position='50,50,0' )
     c1 = net.addController( 'c1', controller=Controller )
 
+    print "*** Configuring wifi nodes"
+    net.configureWifiNodes()
+
     print "*** Associating and Creating links"
     net.addLink(ap1, sta1)
     net.addLink(ap1, sta2)
-    
+
     print "*** Starting network"
     net.build()
     c1.start()

@@ -23,6 +23,9 @@ def topology():
     ap2 = net.addAccessPoint( 'ap2', ssid= 'new-ssid2', mode= 'g', channel= '6', position='55,30,0' )
     c1 = net.addController( 'c1', controller=Controller )
 
+    print "*** Configuring wifi nodes"
+    net.configureWifiNodes()
+
     print "*** Creating links"
     net.addLink(ap1, ap2)
     net.addLink(ap1, sta1)

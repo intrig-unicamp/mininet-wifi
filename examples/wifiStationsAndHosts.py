@@ -13,7 +13,7 @@ from mininet.link import TCLink
 def topology():
     "Create a network."
     net = Mininet( controller=Controller, link=TCLink, switch=OVSKernelSwitch )
-    
+
     print "*** Creating nodes"
     ap1 = net.addAccessPoint( 'ap1', ssid="ssid_ap1", mode="g", channel="5" )
     sta1 = net.addStation( 'sta1', ip='192.168.0.1/24' )
@@ -21,6 +21,9 @@ def topology():
     h3 = net.addHost( 'h3', ip='192.168.0.3/24' )
     h4 = net.addHost( 'h4', ip='192.168.0.4/24' )
     c0 = net.addController('c0', controller=Controller, ip='127.0.0.1' )
+
+    print "*** Configuring wifi nodes"
+    net.configureWifiNodes()
 
     print "*** Adding Link"
     net.addLink(sta1, ap1, bw=10, loss=20)

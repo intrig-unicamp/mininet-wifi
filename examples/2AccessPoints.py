@@ -22,6 +22,9 @@ def topology():
     ap2 = net.addAccessPoint( 'ap2', ssid="ssid_2", mode="b", channel="6" )
     c0 = net.addController('c0', controller=Controller, ip='127.0.0.1', port=6653 )
 
+    print "*** Configuring wifi nodes"
+    net.configureWifiNodes()
+
     print "*** Adding Link"
     net.addLink(ap1, ap2) #wired connection
     net.addLink(sta1, ap1)

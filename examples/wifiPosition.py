@@ -22,6 +22,9 @@ def topology():
     c1 = net.addController( 'c1', controller=Controller )
     h1 = net.addHost ( 'h1' )
 
+    print "*** Configuring wifi nodes"
+    net.configureWifiNodes()
+
     print "*** Creating links"
     net.addLink(ap1, h1)
     net.addLink(ap1, sta1)

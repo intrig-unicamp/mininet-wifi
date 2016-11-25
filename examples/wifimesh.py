@@ -24,6 +24,9 @@ def topology():
     sta2 = net.addStation( 'sta2' )
     sta3 = net.addStation( 'sta3' )
 
+    print "*** Configuring wifi nodes"
+    net.configureWifiNodes()
+
     print "*** Creating links"
     net.addMesh(sta1, ssid='meshNet')
     net.addMesh(sta2, ssid='meshNet') 

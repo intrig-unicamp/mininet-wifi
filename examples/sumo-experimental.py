@@ -62,12 +62,15 @@ def topology():
     rsu14 = net.addAccessPoint('rsu14', ssid='rsu14', mode='g', channel='11', position='4500,3000,0', range=500)
     c1 = net.addController('c1', controller=Controller, ip='127.0.0.1', port=6633)
 
+    print "*** Configuring wifi nodes"
+    net.configureWifiNodes()
+
     net.meshRouting('custom') 
 
     net.addLink(rsu10,rsu11)
     net.addLink(rsu11,rsu12)
+    net.addLink(rsu12,rsu13)
     net.addLink(rsu13,rsu14)
-    net.addLink(rsu14,rsu15)
 
     """Available Options: sumo, sumo-gui"""
     #Put your sumocfg file in /mininet/sumo/data
