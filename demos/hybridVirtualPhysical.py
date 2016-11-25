@@ -45,6 +45,9 @@ def topology():
     h12 = net.addHost( 'h12', ip='10.0.0.109/8')
     root = net.addHost( 'root', ip='10.0.0.254/8', inNamespace=False )
 
+    print "*** Configuring wifi nodes"
+    net.configureWifiNodes()
+
     print "*** Creating links"
     for sta in staList:
         net.addMesh(sta, ssid='meshNet')

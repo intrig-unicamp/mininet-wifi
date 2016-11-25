@@ -38,6 +38,9 @@ def topology():
     h10 = net.addHost( 'h10', mac='00:00:00:00:00:10', ip='192.168.1.254/24' )
     c11 = net.addController( 'c11', controller=RemoteController, ip='127.0.0.1' )
 
+    print "*** Configuring wifi nodes"
+    net.configureWifiNodes()
+
     print "*** Associating and Creating links"
     net.addLink(ap2, sta1)
     net.addLink(ap3, sta1)

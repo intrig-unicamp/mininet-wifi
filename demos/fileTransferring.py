@@ -32,6 +32,9 @@ def topology():
     ap3 = net.addAccessPoint( 'ap3', ssid='ap-ssid3', mode= 'b', channel= '1', position='50,50,0' )
     c4 = net.addController( 'c4', controller=Controller, port=6653 )
 
+    print "*** Configuring wifi nodes"
+    net.configureWifiNodes()
+
     """uncomment to plot graph"""
     net.plotGraph(max_x=100, max_y=100)
 

@@ -25,6 +25,9 @@ def topology():
     sta4 = net.addStation( 'sta4', wlans=1, mac='00:02:00:00:00:04', ip='10.0.0.4/8' )
     c5 = net.addController( 'c5', ip='127.0.0.1', port=6633 )
     h7 = net.addHost( 'h7', mac='00:00:00:00:00:07', ip='10.0.0.7/8' )
+
+    print "*** Configuring wifi nodes"
+    net.configureWifiNodes()
     
     print "*** Creating links"
     net.addLink(sta4, ap1)

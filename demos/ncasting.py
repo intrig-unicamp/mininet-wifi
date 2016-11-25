@@ -33,8 +33,10 @@ def topology():
     sta3 = net.addStation( 'sta3', ip="192.168.0.100/24", wlans=2 )
     h4 = net.addHost( 'h4', ip="192.168.0.1/24", mac="00:00:00:00:00:04" )
     s5 = net.addSwitch( 's5' )
-
     c0 = net.addController('c0', controller=RemoteController, ip='127.0.0.1', port=6653 )
+
+    print "*** Configuring wifi nodes"
+    net.configureWifiNodes()
 
     print "*** Adding Link"
     net.addLink(h4, s5, bw=1000)

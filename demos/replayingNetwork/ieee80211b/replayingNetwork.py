@@ -22,6 +22,9 @@ def topology():
     ap3 = net.addBaseStation( 'ap3', range=20, ssid='ap-ssid3', mode= 'b', channel= '1', position='50,50,0' )
     c4 = net.addController( 'c4', controller=Controller, port=6653 )
 
+    print "*** Configuring wifi nodes"
+    net.configureWifiNodes()
+
     print "*** Starting network"
     net.build()
     c4.start()

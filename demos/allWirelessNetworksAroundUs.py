@@ -23,6 +23,9 @@ def topology():
     s4 = net.addSwitch( 's4', mac='00:00:00:00:00:10' )
     c1 = net.addController( 'c1', controller=Controller )
 
+    print "*** Configuring wifi nodes"
+    net.configureWifiNodes()
+
     print "*** Associating and Creating links"
     net.addLink(ap1, s4)
     net.addLink(ap2, s4)

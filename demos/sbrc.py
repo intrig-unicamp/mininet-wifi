@@ -31,6 +31,9 @@ def topology():
     c1 = net.addController( 'c1', controller=Controller, port=6653 )
     root = Node( 'root', inNamespace=False )
 
+    print "*** Configuring wifi nodes"
+    net.configureWifiNodes()
+
     """uncomment to plot graph"""
     net.plotGraph(max_x=240, max_y=240)
 
