@@ -177,7 +177,7 @@ function of {
     else
         $install git-core autotools-dev pkg-config libc6-dev
     fi
-    git clone https://github.com/mininet/openflow
+    git clone --depth=1 https://github.com/mininet/openflow
     cd $BUILD_DIR/openflow
 
     # Patch controller to handle more than 16 switches
@@ -199,11 +199,13 @@ function of13 {
         unzip libpcre3-dev flex bison libboost-dev
 
     if [ ! -d "ofsoftswitch13" ]; then
-        git clone https://github.com/CPqD/ofsoftswitch13.git
         if [[ -n "$OF13_SWITCH_REV" ]]; then
+            git clone https://github.com/CPqD/ofsoftswitch13.git
             cd ofsoftswitch13
             git checkout ${OF13_SWITCH_REV}
             cd ..
+        else
+            git clone --depth=1 https://github.com/CPqD/ofsoftswitch13.git
         fi
     fi
 
@@ -261,7 +263,7 @@ function install_wireshark {
 
     echo "Cloning LoxiGen and building openflow.lua dissector"
     cd $BUILD_DIR
-    git clone https://github.com/floodlight/loxigen.git
+    git clone --depth=1 https://github.com/floodlight/loxigen.git
     cd loxigen
     make wireshark
 
@@ -424,7 +426,7 @@ function ivs {
 
     # Install IVS from source
     cd $BUILD_DIR
-    git clone git://github.com/floodlight/ivs $IVS_SRC --recursive
+    git clone --depth=1 --recursive git://github.com/floodlight/ivs $IVS_SRC
     cd $IVS_SRC
     make
     sudo make install
@@ -452,7 +454,7 @@ function ryu {
     fi
     # fetch RYU
     cd $BUILD_DIR/
-    git clone git://github.com/osrg/ryu.git ryu
+    git clone --depth=1 git://github.com/osrg/ryu.git ryu
     cd ryu
 
     # install ryu
@@ -548,7 +550,7 @@ function nox13 {
 function pox {
     echo "Installing POX into $BUILD_DIR/pox..."
     cd $BUILD_DIR
-    git clone https://github.com/noxrepo/pox.git
+    git clone --depth=1 https://github.com/noxrepo/pox.git
 }
 
 
@@ -590,7 +592,7 @@ function cbench {
         $install libsnmp-dev libpcap-dev libconfig-dev
     fi
     cd $BUILD_DIR/
-    git clone https://github.com/mininet/oflops
+    git clone --depth=1 https://github.com/mininet/oflops
     cd oflops
     sh boot.sh || true # possible error in autoreconf, so run twice
     sh boot.sh
@@ -698,7 +700,7 @@ function wmediumd {
     echo "Installing wmediumd sources into $BUILD_DIR/wmediumd"
     cd $BUILD_DIR
     $install tmux git make libevent-dev libconfig-dev libnl-3-dev
-    git clone https://github.com/bcopeland/wmediumd.git
+    git clone --depth=1 https://github.com/bcopeland/wmediumd.git
     pushd $BUILD_DIR/wmediumd
     sudo make
     popd
