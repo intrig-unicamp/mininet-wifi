@@ -68,7 +68,7 @@ class module(object):
             pass
 
     @classmethod
-    def start(self, nodes, wifiRadios, alternativeModule=''):
+    def start(self, nodes, wifiRadios, alternativeModule='', inNamespace=False):
         """Starting environment"""
         self.killprocs('hostapd')
         try:
@@ -81,7 +81,7 @@ class module(object):
         physicalWlan_list = self.getPhysicalWlan()  # Get Phisical Wlan(s)
         self.loadModule(wifiRadios, alternativeModule)  # Initatilize WiFi Module
         phy_list = self.getPhy()  # Get Phy Interfaces
-        module.assignIface(nodes, physicalWlan_list, phy_list)
+        module.assignIface(nodes, physicalWlan_list, phy_list, inNamespace)
 
     @classmethod
     def getPhysicalWlan(self):
@@ -119,13 +119,12 @@ class module(object):
         sta.pexec('ip link set %s up' % sta.params['wlan'][wlan])
 
     @classmethod
-    def assignIface(self, wifiNodes, physicalWlan_list, phy_list):
+    def assignIface(self, nodes, physicalWlan_list, phy_list, innamespace):
         """Assign virtual interfaces for all nodes"""
         try:
             self.wlan_list = self.getWlanIface(physicalWlan_list)
-            for sta in wifiNodes:
-                if sta.type == 'station' or sta.type == 'vehicle':
-                
+            for sta in nodes:
+                if (sta.type == 'station' or sta.type == 'vehicle') or innamespace:                
                     for wlan in range(0, len(sta.params['wlan'])):
                         os.system('iw phy %s set netns %s' % (phy_list[0], sta.pid))
                         if 'car' in sta.name and sta.type == 'station':
@@ -136,14 +135,16 @@ class module(object):
                             sta.func[wlan] = 'mesh'
                         else:
                             sta.cmd('ip link set %s name %s up' % (self.wlan_list[0], sta.params['wlan'][wlan]))
-                            cls = TCLinkWireless
-                            cls(sta)
-                            if sta.params['txpower'][wlan] != 20:
-                                sta.cmd('iwconfig %s txpower %s' % (sta.params['wlan'][wlan], sta.params['txpower'][wlan]))
-                        if sta.params['mac'][wlan] == '':
-                            sta.params['mac'][wlan] = self.getMacAddress(sta, wlan)
-                        else:
-                            self.setMacAddress(sta, wlan)
+                            if sta.type != 'accessPoint':
+                                cls = TCLinkWireless
+                                cls(sta)
+                                if sta.params['txpower'][wlan] != 20:
+                                    sta.cmd('iwconfig %s txpower %s' % (sta.params['wlan'][wlan], sta.params['txpower'][wlan]))
+                        if sta.type != 'accessPoint':
+                            if sta.params['mac'][wlan] == '':
+                                sta.params['mac'][wlan] = self.getMacAddress(sta, wlan)
+                            else:
+                                self.setMacAddress(sta, wlan)
                         self.wlan_list.pop(0)
                         phy_list.pop(0)
                         

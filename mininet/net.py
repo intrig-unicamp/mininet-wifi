@@ -721,13 +721,14 @@ class Mininet(object):
                 if x == 1:
                     wlan = 0
                 wifiparam = dict()
-                if 'phywlan' not in ap.params:
-                    intf = module.wlan_list[0]
-                    module.wlan_list.pop(0)
-                    iface = ap.params['wlan'][wlan]
-                    wifiparam.setdefault('intf', intf)
-                else:
-                    iface = ap.params.get('phywlan')
+                if self.inNamespace == False:
+                    if 'phywlan' not in ap.params:
+                        intf = module.wlan_list[0]
+                        module.wlan_list.pop(0)
+                        iface = ap.params['wlan'][wlan]
+                        wifiparam.setdefault('intf', intf)
+                    else:
+                        iface = ap.params.get('phywlan')
 
                 self.auth_algs = None
                 self.wpa = None
@@ -762,7 +763,10 @@ class Mininet(object):
                 wifiparam.setdefault('wpa_passphrase', self.wpa_passphrase)
                 wifiparam.setdefault('wep_key0', self.wep_key0)
                 wifiparam.setdefault('wlan', wlan)
-               
+                
+                if self.inNamespace:
+                    ap.params['innamespace'] = True
+                    
                 cls = AccessPoint
                 cls.init_(ap, **wifiparam)
                 
@@ -790,7 +794,7 @@ class Mininet(object):
            self.isWiFi: defines the topology to work with mininet-wifi
            self.ifaceConfigured: all interfaces for all nodes were configured"""
         nodes = self.stations + self.cars + self.accessPoints
-        module.start(nodes, self.nRadios, self.alternativeModule)
+        module.start(nodes, self.nRadios, self.alternativeModule, self.inNamespace)
         self.configureAP()  
         self.isWiFi = True
         self.justKeepingBackwardsCompatibility = False
@@ -962,7 +966,7 @@ class Mininet(object):
                 self.addSwitch(switchName, **params)
             info(switchName + ' ')
 
-        info('\n*** Configuring wifi nodes:\n')
+        info('\n*** Configuring wifi nodes...')
         if self.isWiFi:
             self.configureWifiNodes()
 
@@ -1079,7 +1083,7 @@ class Mininet(object):
             controller.start()
         info('\n')
 
-        info('*** Starting switches and access points\n')
+        info('*** Starting switches and/or access points\n')
         for switch in self.switches:
             info(switch.name + ' ')
             switch.start(self.controllers)
@@ -1120,7 +1124,7 @@ class Mininet(object):
             info('.')
             link.stop()
         info('\n')
-        info('*** Stopping switches and access points\n')
+        info('*** Stopping switches and/or access points\n')
         stopped = {}
         for swclass, switches in groupby(
                 sorted(self.switches, key=type), type):
@@ -1135,7 +1139,7 @@ class Mininet(object):
             switch.terminate()
         info('\n')
 
-        info('*** Stopping hosts and stations\n')
+        info('*** Stopping hosts and/or stations\n')
         for host in self.hosts:
             info(host.name + ' ')
             host.terminate()
@@ -1438,27 +1442,23 @@ class Mininet(object):
 
     def mobility(self, *args, **kwargs):
         """ Mobility Parameters """
-        self.node = args[0]
-        self.stage = args[1]
-
-        for n in self.stations:
-            if self.node == str(n):
-                sta = n
+        sta = args[0]
+        stage = args[1]
 
         if 'position' in kwargs:
-            if(self.stage == 'stop'):
+            if(stage == 'stop'):
                 finalPosition = kwargs['position']
                 sta.params['finalPosition'] = finalPosition.split(',')
-            if(self.stage == 'start'):
+            if(stage == 'start'):
                 initialPosition = kwargs['position']
                 sta.params['initialPosition'] = initialPosition.split(',')
  
         if 'time' in kwargs:
             self.time = kwargs['time']
 
-        if(self.stage == 'start'):
+        if(stage == 'start'):
             sta.startTime = self.time
-        elif(self.stage == 'stop'):
+        elif(stage == 'stop'):
             sta.endTime = self.time
             diffTime = sta.endTime - sta.startTime
             mobility.moveFactor(sta, diffTime)
@@ -1544,6 +1544,8 @@ class Mininet(object):
         self.thread = threading.Thread(name='mobility', target=mobility.definedPosition, kwargs=dict(mobilityparam,))
         self.thread.daemon = True
         self.thread.start()
+        
+        self.setWifiParameters()
 
     def setWifiParameters(self):
         self.thread = threading.Thread(name='wifiParameters', target=mobility.parameters)

@@ -1431,8 +1431,11 @@ class AccessPoint(Switch):
     def getMacAddress(self, ap, wlan):
         """ get Mac Address of any Interface """
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        info = fcntl.ioctl(s.fileno(), 0x8927, struct.pack('256s', '%s'[:15]) % ap.params['wlan'][wlan])
-        mac = (''.join(['%02x:' % ord(char) for char in info[18:24]])[:-1])
+        if 'innamespace' in ap.params:
+            mac = ''
+        else:
+            info = fcntl.ioctl(s.fileno(), 0x8927, struct.pack('256s', '%s'[:15]) % ap.params['wlan'][wlan])
+            mac = (''.join(['%02x:' % ord(char) for char in info[18:24]])[:-1])
         self.checkNetworkManager(mac)
         return mac
 
@@ -1476,15 +1479,6 @@ class AccessPoint(Switch):
                         else:
                             print line.rstrip()
                 #os.system('service network-manager restart')
-
-    @classmethod
-    def apBridge(self, ap, wlan):
-        """ AP Bridge """
-        if 'phywlan' not in ap.params:
-            os.system("ovs-vsctl add-port %s %s" % (ap, ap.params['wlan'][wlan]))
-        else:
-            wlan = ap.params.get('phywlan')
-            os.system("ovs-vsctl add-port %s %s" % (ap, wlan))
             
     @classmethod
     def customDataRate(self, node, wlan):
@@ -1521,13 +1515,16 @@ class AccessPoint(Switch):
             iface = ap.params['wlan'][wlan]
         else:
             iface = ap.params.get('phywlan')
-            os.system('ifconfig %s down' % iface)
-            os.system('ifconfig %s up' % iface)
+            ap.cmd('ifconfig %s down' % iface)
+            ap.cmd('ifconfig %s up' % iface)
         content = cmd + ("\' > %s.apconf" % iface)
-        os.system(content)
-        cmd = ("hostapd -B %s.apconf &" % iface)
+        ap.cmd(content)
+        cmd = ("hostapd -B %s.apconf" % iface)
         try:
-            subprocess.check_output(cmd, shell=True)
+            if 'innamespace' in ap.params:
+                ap.cmdPrint(cmd)
+            else:
+                subprocess.check_output(cmd, shell=True)
         except:
             print ('error with hostapd. Please, run sudo mn -c in order to fix it or check if hostapd is\
                                              working properly in your machine.')
