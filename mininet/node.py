@@ -1522,9 +1522,9 @@ class AccessPoint(Switch):
         cmd = ("hostapd -B %s.apconf" % iface)
         try:
             if 'innamespace' in ap.params:
-                ap.cmdPrint(cmd)
+                ap.cmd(cmd)
             else:
-                subprocess.check_output(cmd, shell=True)
+                subprocess.check_output(cmd+' &', shell=True)
         except:
             print ('error with hostapd. Please, run sudo mn -c in order to fix it or check if hostapd is\
                                              working properly in your machine.')
