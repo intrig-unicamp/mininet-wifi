@@ -6,6 +6,7 @@ author: Patrick Grosse (patrick.grosse@uni-muenster.de)
 
 import os
 import tempfile
+import subprocess
 
 from link import Intf
 from mininet.log import info
@@ -17,6 +18,7 @@ class WmediumdConn(object):
     intfrefs = None
     links = None
     executable = None
+    parameters = None
     auto_add_links = None
     default_auto_snr = None
 
@@ -25,7 +27,7 @@ class WmediumdConn(object):
     wmd_config_name = None
 
     @classmethod
-    def set_wmediumd_data(cls, intfrefs, links, executable='wmediumd', auto_add_links=True,
+    def set_wmediumd_data(cls, intfrefs, links, executable='wmediumd', parameters='-l 5', auto_add_links=True,
                           default_auto_snr=0):
         """
         Set the data for the wmediumd daemon
@@ -33,6 +35,7 @@ class WmediumdConn(object):
         :param intfrefs: A list of all WmediumdIntfRef that should be managed in wmediumd
         :param links: A list of WmediumdLink
         :param executable: The wmediumd executable
+        :param parameters: Parameters to pass to the wmediumd executable
         :param auto_add_links: If true, it will add all missing links pairs with the default_auto_snr as SNR
         :param default_auto_snr: The default SNR
 
@@ -42,6 +45,7 @@ class WmediumdConn(object):
         cls.intfrefs = intfrefs
         cls.links = links
         cls.executable = executable
+        cls.parameters = parameters
         cls.auto_add_links = auto_add_links
         cls.default_auto_snr = default_auto_snr
         cls.is_initialized = True
@@ -146,8 +150,10 @@ class WmediumdConn(object):
         wmd_config.close()
 
         # Start wmediumd using the created config
-        os.system('tmux new -s mnwmd -d')
-        os.system('tmux send-keys -t mnwmd \'%s -c %s\' C-m' % (cls.executable, cls.wmd_config_name))
+        cls.kill_tmux_session()
+        cls.__run_subprocess_no_output(['tmux', 'new', '-s', 'mnwmd', '-d'])
+        wmediumd_start_cmd = '%s %s -c %s' % (cls.executable, cls.parameters, cls.wmd_config_name)
+        cls.__run_subprocess_no_output(['tmux', 'send-keys', '-t', 'mnwmd', wmediumd_start_cmd, 'C-m'])
         cls.is_connected = True
 
     @classmethod
@@ -160,10 +166,19 @@ class WmediumdConn(object):
                 os.remove(cls.wmd_config_name)
             except OSError:
                 pass
-            os.system('tmux kill-session -t mnwmd')
+            cls.kill_tmux_session()
             cls.is_connected = False
         else:
             raise Exception('wmediumd is not initialized')
+
+    @classmethod
+    def kill_tmux_session(cls):
+        cls.__run_subprocess_no_output(['tmux', 'kill-session', '-t', 'mnwmd'])
+
+    @classmethod
+    def __run_subprocess_no_output(cls, command):
+        with open(os.devnull, 'wb') as devnull:
+            subprocess.call(command, stdout=devnull, stderr=subprocess.STDOUT)
 
 
 class WmediumdLink(object):
@@ -282,4 +297,3 @@ class StaticWmediumdIntfRef(WmediumdIntfRef):
 
     def get_intf_mac(self):
         return self.__intfmac
-

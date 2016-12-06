@@ -137,6 +137,9 @@ class Cleanup( object ):
         killprocs( '.ssh/mn')
         sh( 'rm -f ~/.ssh/mn/*' )
 
+        info( "*** Killing wmediumd tmux session\n" )
+        sh( 'tmux kill-session -t mnwmd &> /dev/null' )
+
         # Call any additional cleanup code if necessary
         for callback in cls.callbacks:
             callback()
