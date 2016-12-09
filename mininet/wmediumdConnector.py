@@ -48,7 +48,7 @@ class WmediumdConn(object):
         :type links: list of WmediumdLink
         """
         if parameters is None:
-            parameters = ['-l', '5']
+            parameters = ['-l', '4']
         cls.intfrefs = intfrefs
         cls.links = links
         cls.executable = executable
