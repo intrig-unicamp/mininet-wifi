@@ -699,12 +699,11 @@ function modprobe {
 function wmediumd {
     echo "Installing wmediumd sources into $BUILD_DIR/wmediumd"
     cd $BUILD_DIR
-    $install tmux git make libevent-dev libconfig-dev libnl-3-dev
-    git clone --depth=1 https://github.com/bcopeland/wmediumd.git
+    $install git make libevent-dev libconfig-dev libnl-3-dev
+    git clone --depth=1 -b mininet-wifi https://github.com/patgrosse/wmediumd.git
     pushd $BUILD_DIR/wmediumd
-    sudo make
+    sudo make install
     popd
-    sudo cp $BUILD_DIR/wmediumd/wmediumd/wmediumd /usr/bin/wmediumd
 }
 
 function all {

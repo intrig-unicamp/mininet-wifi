@@ -6,6 +6,11 @@ author: Patrick Grosse (patrick.grosse@uni-muenster.de)
 
 import os
 import tempfile
+import subprocess
+
+import signal
+
+import time
 
 from link import Intf
 from mininet.log import info
@@ -17,15 +22,17 @@ class WmediumdConn(object):
     intfrefs = None
     links = None
     executable = None
+    parameters = None
     auto_add_links = None
     default_auto_snr = None
 
     is_connected = False
     wmd_process = None
     wmd_config_name = None
+    wmd_logfile = None
 
     @classmethod
-    def set_wmediumd_data(cls, intfrefs, links, executable='wmediumd', auto_add_links=True,
+    def set_wmediumd_data(cls, intfrefs, links, executable='wmediumd', parameters=None, auto_add_links=True,
                           default_auto_snr=0):
         """
         Set the data for the wmediumd daemon
@@ -33,15 +40,19 @@ class WmediumdConn(object):
         :param intfrefs: A list of all WmediumdIntfRef that should be managed in wmediumd
         :param links: A list of WmediumdLink
         :param executable: The wmediumd executable
+        :param parameters: Parameters to pass to the wmediumd executable
         :param auto_add_links: If true, it will add all missing links pairs with the default_auto_snr as SNR
         :param default_auto_snr: The default SNR
 
         :type intfrefs: list of WmediumdIntfRef
         :type links: list of WmediumdLink
         """
+        if parameters is None:
+            parameters = ['-l', '4']
         cls.intfrefs = intfrefs
         cls.links = links
         cls.executable = executable
+        cls.parameters = parameters
         cls.auto_add_links = auto_add_links
         cls.default_auto_snr = default_auto_snr
         cls.is_initialized = True
@@ -146,8 +157,11 @@ class WmediumdConn(object):
         wmd_config.close()
 
         # Start wmediumd using the created config
-        os.system('tmux new -s mnwmd -d')
-        os.system('tmux send-keys -t mnwmd \'%s -c %s\' C-m' % (cls.executable, cls.wmd_config_name))
+        cls.wmd_logfile = tempfile.NamedTemporaryFile(prefix='mn_wmd_log_', suffix='.log')
+        cmdline = [cls.executable, "-c", cls.wmd_config_name]
+        cmdline[1:1] = cls.parameters
+        cls.wmd_process = subprocess.Popen(cmdline, shell=False, stdout=cls.wmd_logfile,
+                                           stderr=subprocess.STDOUT, preexec_fn=prevent_sig_passtrough)
         cls.is_connected = True
 
     @classmethod
@@ -156,14 +170,29 @@ class WmediumdConn(object):
         Kill the wmediumd process if running and delete the config
         """
         if cls.is_connected:
+            cls.kill_wmediumd()
+            try:
+                cls.wmd_logfile.close()
+            except OSError:
+                pass
             try:
                 os.remove(cls.wmd_config_name)
             except OSError:
                 pass
-            os.system('tmux kill-session -t mnwmd')
             cls.is_connected = False
         else:
             raise Exception('wmediumd is not initialized')
+
+    @classmethod
+    def kill_wmediumd(cls):
+        try:
+            # SIGINT to allow closing resources
+            cls.wmd_process.send_signal(signal.SIGINT)
+            time.sleep(0.5)
+            # SIGKILL in case it did not finish
+            cls.wmd_process.send_signal(signal.SIGKILL)
+        except OSError:
+            pass
 
 
 class WmediumdLink(object):
@@ -283,3 +312,9 @@ class StaticWmediumdIntfRef(WmediumdIntfRef):
     def get_intf_mac(self):
         return self.__intfmac
 
+
+def prevent_sig_passtrough():
+    """
+    preexec_fn for Popen to prevent signals being passed through
+    """
+    os.setpgrp()
