@@ -152,12 +152,13 @@ class WmediumdConn(object):
             configstr += '\n\t\t(%d, %d, %d)' % (
                 mappedintfrefs[id1], mappedintfrefs[id2],
                 mappedlink.snr)
-        configstr += '\n\t);\n}'
+        configstr += '\n\t);\n};'
         wmd_config.write(configstr)
         wmd_config.close()
 
         # Start wmediumd using the created config
         cls.wmd_logfile = tempfile.NamedTemporaryFile(prefix='mn_wmd_log_', suffix='.log')
+        info("Name of wmediumd log: %s\n" % cls.wmd_logfile.name)
         cmdline = [cls.executable, "-c", cls.wmd_config_name]
         cmdline[1:1] = cls.parameters
         cls.wmd_process = subprocess.Popen(cmdline, shell=False, stdout=cls.wmd_logfile,
@@ -181,7 +182,7 @@ class WmediumdConn(object):
                 pass
             cls.is_connected = False
         else:
-            raise Exception('wmediumd is not initialized')
+            raise Exception('wmediumd is not started')
 
     @classmethod
     def kill_wmediumd(cls):
