@@ -141,9 +141,10 @@ class module(object):
         """Assign virtual interfaces for all nodes"""
         try:
             self.wlan_list = self.getWlanIface(physicalWlan_list)
-            debug('\nmodprobe ifb numifbs=%s' % len(self.wlan_list))
-            os.system('modprobe ifb numifbs=%s' % len(self.wlan_list))
-            ifbID = 0
+            if ifb:
+                debug('\nmodprobe ifb numifbs=%s' % len(self.wlan_list))
+                os.system('modprobe ifb numifbs=%s' % len(self.wlan_list))
+                ifbID = 0
             for sta in nodes:
                 if (sta.type == 'station' or sta.type == 'vehicle') or innamespace:    
                     sta.ifb = []            
