@@ -88,6 +88,13 @@ class Cleanup( object ):
             pass
         
         try:
+            (subprocess.check_output("lsmod | grep ifb",
+                                                          shell=True))
+            os.system( 'rmmod ifb' )
+        except:
+            pass
+        
+        try:
             h = sh('ps -aux | grep -ic hostpad')
             if h >= 2:
                 sh('killall -9 hostapd')
