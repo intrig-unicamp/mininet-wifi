@@ -74,7 +74,7 @@ class WmediumdConn(object):
         orig_ifaceassign = module.assignIface
 
         @classmethod
-        def intercepted_assign(other_cls, wifiNodes, physicalWlan, phyList, inNamespace=False):
+        def intercepted_assign(other_cls, wifiNodes, physicalWlan, phyList, inNamespace=False, **params):
             orig_ifaceassign(wifiNodes, physicalWlan, phyList, inNamespace)
             cls.connect_wmediumd_after_startup()
 

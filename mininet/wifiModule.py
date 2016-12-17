@@ -76,7 +76,7 @@ class module(object):
             pass
 
     @classmethod
-    def start(self, nodes, wifiRadios, alternativeModule='', inNamespace=False, ifb=False):
+    def start(self, nodes, wifiRadios, alternativeModule='', inNamespace=False, **params):
         """Starting environment"""
         self.killprocs('hostapd')
         try:
@@ -89,7 +89,7 @@ class module(object):
         physicalWlan_list = self.getPhysicalWlan()  # Get Phisical Wlan(s)
         self.loadModule(wifiRadios, alternativeModule)  # Initatilize WiFi Module
         phy_list = self.getPhy()  # Get Phy Interfaces
-        module.assignIface(nodes, physicalWlan_list, phy_list, inNamespace, ifb)
+        module.assignIface(nodes, physicalWlan_list, phy_list, inNamespace, **params)
 
     @classmethod
     def getPhysicalWlan(self):
@@ -137,8 +137,12 @@ class module(object):
         node.ifb.append(ifbID)
 
     @classmethod
-    def assignIface(self, nodes, physicalWlan_list, phy_list, innamespace, ifb):
+    def assignIface(self, nodes, physicalWlan_list, phy_list, innamespace, **params):
         """Assign virtual interfaces for all nodes"""
+        if 'ifb' in params:
+            ifb = params['ifb']
+        else:
+            ifb = False
         try:
             self.wlan_list = self.getWlanIface(physicalWlan_list)
             if ifb:

@@ -789,8 +789,10 @@ class Mininet(object):
            self.configureAP(): configure the AP
            self.isWiFi: defines the topology to work with mininet-wifi
            self.ifaceConfigured: all interfaces for all nodes were configured"""
+        params = {}
+        params['ifb'] = self.ifb
         nodes = self.stations + self.cars + self.accessPoints
-        module.start(nodes, self.nRadios, self.alternativeModule, self.inNamespace, self.ifb)
+        module.start(nodes, self.nRadios, self.alternativeModule, self.inNamespace, **params)
         self.configureAP()  
         self.isWiFi = True
         self.justKeepingBackwardsCompatibility = False
