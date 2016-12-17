@@ -62,14 +62,14 @@ class CLI(Cmd):
                 mobility.apList = mininet.accessPoints
             if mobility.staList == []: 
                 mobility.staList = mininet.stations
-            nodes = mininet.stations + mininet.accessPoints
+            nodes = mininet.stations + mininet.accessPoints + mininet.plotNodes
             
             if mininet.is3d:
                 plot3d.instantiateGraph(mininet.MAX_X, mininet.MAX_Y, mininet.MAX_Z)
                 plot3d.graphInstantiateNodes(nodes)
             else:
                 plot2d.instantiateGraph(mininet.MAX_X, mininet.MAX_Y)
-                plot2d.plotGraph(nodes, [], [], mininet.MAX_X, mininet.MAX_Y)
+                plot2d.plotGraph(nodes, mininet.srcConn, mininet.dstConn, mininet.MAX_X, mininet.MAX_Y)
                 plot2d.graphPause()
 
         self.mn = mininet
@@ -288,14 +288,6 @@ class CLI(Cmd):
         "Dump node info."
         for node in self.mn.values():
             output('%s\n' % repr(node))
-
-    def do_info(self, line):
-        "Noise node info."
-        args = line.split()
-        if len(args) != 1:
-            error('invalid number of args: info [device]\n')
-        else:
-            self.mn.deviceInfo(*args)
 
     def do_distance(self, line):
         "Distance between two nodes."
