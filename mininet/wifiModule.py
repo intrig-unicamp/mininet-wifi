@@ -137,7 +137,7 @@ class module(object):
                             sta.cmd('ip link set %s name %s up' % (self.wlan_list[0], sta.params['wlan'][wlan]))
                             if sta.type != 'accessPoint':
                                 cls = TCLinkWireless
-                                cls(sta)
+                                cls(sta, intfName1=sta.params['wlan'][wlan])
                                 if sta.params['txpower'][wlan] != 20:
                                     sta.cmd('iwconfig %s txpower %s' % (sta.params['wlan'][wlan], sta.params['txpower'][wlan]))
                         if sta.type != 'accessPoint':
