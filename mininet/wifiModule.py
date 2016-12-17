@@ -10,8 +10,8 @@ import time
 from mininet.log import debug, info
 from mininet.link import TCLinkWireless
 from mininet.wifiMobility import mobility
-from subprocess import ( check_output as co,
-                         CalledProcessError )
+from subprocess import (check_output as co,
+                         CalledProcessError)
 
 class module(object):
     """ Start and Stop mac80211_hwsim module """
@@ -56,6 +56,14 @@ class module(object):
             os.system('rmmod mac80211_hwsim')
         except:
             pass
+        
+        try:
+            (subprocess.check_output("lsmod | grep ifb",
+                                                          shell=True))
+            os.system('rmmod ifb')
+        except:
+            pass
+        
         if mobility.apList != []:
             self.killprocs('hostapd')
             
@@ -119,22 +127,37 @@ class module(object):
         sta.pexec('ip link set %s up' % sta.params['wlan'][wlan])
 
     @classmethod
+    def ifbSupport(self, node, wlan, ifbID):
+        """Support to Intermediate Functional Block (IFB) Devices"""
+        os.system('ip link set dev ifb%s netns %s' % (ifbID, node.pid))
+        node.cmd('ifconfig ifb%s up' % ifbID)                        
+        node.cmd('tc qdisc add dev %s handle ffff: ingress' % node.params['wlan'][wlan])
+        node.cmd('tc filter add dev %s parent ffff: protocol ip u32 \
+                                match u32 0 0 action mirred egress redirect dev ifb%s' % (node.params['wlan'][wlan], ifbID))
+        node.ifb.append(ifbID)
+
+    @classmethod
     def assignIface(self, nodes, physicalWlan_list, phy_list, innamespace):
         """Assign virtual interfaces for all nodes"""
         try:
             self.wlan_list = self.getWlanIface(physicalWlan_list)
+            debug('\nmodprobe ifb numifbs=%s' % len(self.wlan_list))
+            os.system('modprobe ifb numifbs=%s' % len(self.wlan_list))
+            ifbID = 0
             for sta in nodes:
-                if (sta.type == 'station' or sta.type == 'vehicle') or innamespace:                
+                if (sta.type == 'station' or sta.type == 'vehicle') or innamespace:    
+                    sta.ifb = []            
                     for wlan in range(0, len(sta.params['wlan'])):
                         os.system('iw phy %s set netns %s' % (phy_list[0], sta.pid))
+                        sta.cmd('ip link set %s name %s up' % (self.wlan_list[0], sta.params['wlan'][wlan]))
+                        self.ifbSupport(sta, wlan, ifbID)  # Adding Support to IFB
+                        ifbID += 1
                         if 'car' in sta.name and sta.type == 'station':
-                            sta.cmd('ip link set %s name %s up' % (self.wlan_list[0], sta.params['wlan'][wlan]))
                             sta.cmd('iw dev %s-wlan%s interface add %s-mp%s type mp' % (sta, wlan, sta, wlan))
                             sta.cmd('ifconfig %s-mp%s up' % (sta, wlan))
                             sta.cmd('iw dev %s-mp%s mesh join %s' % (sta, wlan, 'ssid'))
                             sta.func[wlan] = 'mesh'
                         else:
-                            sta.cmd('ip link set %s name %s up' % (self.wlan_list[0], sta.params['wlan'][wlan]))
                             if sta.type != 'accessPoint':
                                 cls = TCLinkWireless
                                 cls(sta, intfName1=sta.params['wlan'][wlan])
@@ -147,10 +170,8 @@ class module(object):
                                 self.setMacAddress(sta, wlan)
                         self.wlan_list.pop(0)
                         phy_list.pop(0)
-                        
-         
         except:
-            info( "Something is wrong. Please, run sudo mn -c before running your code.\n" )
+            info("Something is wrong. Please, run sudo mn -c before running your code.\n")
             exit(1)
 
     @classmethod
