@@ -817,7 +817,7 @@ class Association(Link):
         sta.params['rssi'][wlan] = -62
         sta.func[wlan] = 'adhoc'
         sta.intfs[wlan].setIP(sta.params['ip'][wlan])
-        sta.cmd('iw dev %s-wlan%s set type ibss' % (sta, wlan))
+        sta.cmd('iw dev %s set type ibss' % iface)
         sta.params['associatedTo'][wlan] = sta.params['ssid'][wlan]
         info("associating %s to %s...\n" % (iface, sta.params['ssid'][wlan]))
         sta.pexec('iw dev %s ibss join %s 2412' % (iface, \
