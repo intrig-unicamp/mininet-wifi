@@ -76,7 +76,7 @@ class module(object):
             pass
 
     @classmethod
-    def start(self, nodes, wifiRadios, alternativeModule='', inNamespace=False):
+    def start(self, nodes, wifiRadios, alternativeModule='', inNamespace=False, ifb=False):
         """Starting environment"""
         self.killprocs('hostapd')
         try:
@@ -89,7 +89,7 @@ class module(object):
         physicalWlan_list = self.getPhysicalWlan()  # Get Phisical Wlan(s)
         self.loadModule(wifiRadios, alternativeModule)  # Initatilize WiFi Module
         phy_list = self.getPhy()  # Get Phy Interfaces
-        module.assignIface(nodes, physicalWlan_list, phy_list, inNamespace)
+        module.assignIface(nodes, physicalWlan_list, phy_list, inNamespace, ifb)
 
     @classmethod
     def getPhysicalWlan(self):
@@ -137,7 +137,7 @@ class module(object):
         node.ifb.append(ifbID)
 
     @classmethod
-    def assignIface(self, nodes, physicalWlan_list, phy_list, innamespace):
+    def assignIface(self, nodes, physicalWlan_list, phy_list, innamespace, ifb):
         """Assign virtual interfaces for all nodes"""
         try:
             self.wlan_list = self.getWlanIface(physicalWlan_list)
@@ -150,8 +150,9 @@ class module(object):
                     for wlan in range(0, len(sta.params['wlan'])):
                         os.system('iw phy %s set netns %s' % (phy_list[0], sta.pid))
                         sta.cmd('ip link set %s name %s up' % (self.wlan_list[0], sta.params['wlan'][wlan]))
-                        self.ifbSupport(sta, wlan, ifbID)  # Adding Support to IFB
-                        ifbID += 1
+                        if ifb:
+                            self.ifbSupport(sta, wlan, ifbID)  # Adding Support to IFB
+                            ifbID += 1
                         if 'car' in sta.name and sta.type == 'station':
                             sta.cmd('iw dev %s-wlan%s interface add %s-mp%s type mp' % (sta, wlan, sta, wlan))
                             sta.cmd('ifconfig %s-mp%s up' % (sta, wlan))

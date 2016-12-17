@@ -209,6 +209,7 @@ class Mininet(object):
         self.MAX_Y = 0
         self.MAX_Z = 0
         self.is3d = False
+        self.ifb = False
         self.justKeepingBackwardsCompatibility = True
         Mininet.init()  # Initialize Mininet if necessary
 
@@ -777,6 +778,10 @@ class Mininet(object):
                     cls(ap, **options)
                     ap.params.pop("phywlan", None)  
 
+    def useIFB(self):
+        """Support to Intermediate Functional Block (IFB) Devices"""
+        self.ifb = True
+        channelParams.ifb = True
 
     def configureWifiNodes(self):
         """nodes: all nodes
@@ -785,7 +790,7 @@ class Mininet(object):
            self.isWiFi: defines the topology to work with mininet-wifi
            self.ifaceConfigured: all interfaces for all nodes were configured"""
         nodes = self.stations + self.cars + self.accessPoints
-        module.start(nodes, self.nRadios, self.alternativeModule, self.inNamespace)
+        module.start(nodes, self.nRadios, self.alternativeModule, self.inNamespace, self.ifb)
         self.configureAP()  
         self.isWiFi = True
         self.justKeepingBackwardsCompatibility = False

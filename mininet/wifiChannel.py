@@ -23,6 +23,7 @@ class channelParams (object):
     equationDelay = '(dist / 10) + 1'
     equationLatency = '2 + dist'
     equationBw = 'custombw * (1.1 ** -dist)'
+    ifb = False
     
     @classmethod
     def getDistance(self, src, dst):
@@ -48,11 +49,12 @@ class channelParams (object):
     @classmethod
     def tc(self, sta, wlan, bw, loss, latency, delay):
         """Applying TC"""
-        sta.pexec("tc qdisc replace dev ifb%s \
-            root handle 2: netem rate %.2fmbps \
-            loss %.1f%% \
-            latency %.2fms \
-            delay %.2fms " % (sta.ifb[wlan], bw, loss, latency, delay))
+        if self.ifb:
+            sta.pexec("tc qdisc replace dev ifb%s \
+                root handle 2: netem rate %.2fmbps \
+                loss %.1f%% \
+                latency %.2fms \
+                delay %.2fms " % (sta.ifb[wlan], bw, loss, latency, delay))
         debug("\ntc qdisc replace dev %s \
             root handle 2: netem rate %.2fmbps \
             loss %.1f%% \
