@@ -576,9 +576,6 @@ class Mininet(object):
            params: parameters for station"""
         wlan = sta.ifaceToAssociate
         sta.func[wlan] = 'mesh'
-        
-        if self.justKeepingBackwardsCompatibility:
-            self.configureWifiNodes()
 
         options = { 'ip': ipAdd(self.nextIP,
                                   ipBaseNum=self.ipBaseNum,
@@ -632,9 +629,6 @@ class Mininet(object):
         wlan = sta.ifaceToAssociate
         sta.func[wlan] = 'adhoc'
         
-        if self.justKeepingBackwardsCompatibility:
-            self.configureWifiNodes()
-
         options = { 'ip': ipAdd(self.nextIP,
                                   ipBaseNum=self.ipBaseNum,
                                   prefixLen=self.prefixLen) + 
@@ -681,9 +675,6 @@ class Mininet(object):
            params: parameters for station"""
         wlan = sta.ifaceToAssociate
         sta.func[wlan] = 'wifiDirect'
-        
-        if self.justKeepingBackwardsCompatibility:
-            self.configureWifiNodes()
 
         options = { 'ip': ipAdd(self.nextIP,
                                   ipBaseNum=self.ipBaseNum,
@@ -822,15 +813,13 @@ class Mininet(object):
         options = dict(params)
 
         # If AP and STA
-        if(((node1.type == 'station' and node2.type == 'accessPoint') \
-            or (node2.type == 'station' and node1.type == 'accessPoint')) 
+        if((((node1.type == 'station' or node1.type == 'vehicle') and node2.type == 'accessPoint') \
+            or ((node2.type == 'station' or node2.type == 'vehicle') and node1.type == 'accessPoint')) 
             and 'link' not in options):
-            
-            if self.justKeepingBackwardsCompatibility:
-                self.configureWifiNodes()
 
-            if (node1.type == 'station' or node2.type == 'station'):
-                if node1.type == 'station':
+            if (node1.type == 'station' or node2.type == 'station' or 
+                                node1.type == 'vehicle' or node2.type == 'vehicle'):
+                if node1.type == 'station' or node1.type == 'vehicle':
                     sta = node1
                     ap = node2
                 else:
@@ -871,15 +860,8 @@ class Mininet(object):
         else:
             if 'link' in options:
                 options.pop('link', None)
-                
-            if (node1.type == 'accessPoint' and node2.type == 'accessPoint') or \
-                (node1.type == 'accessPoint' or node2.type == 'accessPoint'):
-                if self.justKeepingBackwardsCompatibility:
-                    self.configureWifiNodes()
             
-                    
-            if 'position' in node1.params and 'position' in node2.params or \
-            ('RSU' in node1.name and 'RSU' in node2.name):
+            if 'position' in node1.params and 'position' in node2.params:
                 self.srcConn.append(node1)
                 self.dstConn.append(node2)
 
@@ -966,8 +948,8 @@ class Mininet(object):
                 self.addSwitch(switchName, **params)
             info(switchName + ' ')
 
-        info('\n*** Configuring wifi nodes...')
         if self.isWiFi:
+            info('\n*** Configuring wifi nodes...\n')
             self.configureWifiNodes()
 
         info('\n*** Adding links and associating station(s):\n')
@@ -1034,9 +1016,7 @@ class Mininet(object):
                     meshRouting(self.stations)
 
     def build(self):
-        "Build mininet."    
-        if self.isWiFi and self.justKeepingBackwardsCompatibility:
-            self.configureWifiNodes()      
+        "Build mininet."     
         if self.topo:
             self.buildFromTopo(self.topo)
         if self.inNamespace:
@@ -1571,7 +1551,7 @@ class Mininet(object):
         dist = channelParams.getDistance(src, dst)
         info ("The distance between %s and %s is %.2f meters\n" % (src, dst, float(dist)))
 
-    def plotHost(self, node, position):
+    def plotNode(self, node, position):
         node.params['position'] = position.split(',')
         node.params['range'] = 0
         self.plotNodes.append(node)
@@ -1628,39 +1608,6 @@ class Mininet(object):
     def associationControl(self, ac):
         """Defines an association control"""
         mobility.associationControlMethod = ac
-
-    def deviceInfo(self, device):
-        """ Devices Info """
-        try:
-            for sta in self.stations:
-                if device == str(sta):
-                    device = sta
-            for ap in self.accessPoints:
-                if device == str(ap):
-                    device = ap
-            if device.type == 'station':
-                for wlan in range(len(device.params['wlan'])):
-                    print "--------------------------------"
-                    print "Interface: %s" % device.params['wlan'][wlan]
-                    try:  # it is important when not infra
-                        if 'ap' in str(device.params['associatedTo'][wlan]):
-                            print "Associated To: %s" % device.params['associatedTo'][wlan]
-                        else:
-                            print "Associated To: %s" % None
-                    except:
-                        print "Associated To: %s" % None
-                    print "Frequency: %s GHz" % device.params['frequency'][0]
-                    if device.params['rssi'][wlan] != 0:
-                        print "Signal level: %.2f dbm" % device.params['rssi'][wlan]
-                    else:
-                        print "Signal level: No Signal"
-                    print "Tx-Power: %s dBm" % device.params['txpower'][wlan]
-            else:
-                print "Tx-Power: %s dBm" % device.params['txpower'][0]
-                print "SSID: %s" % device.params['ssid']
-                print "Number of Associated Stations: %s" % len(device.params['associatedStations'])
-        except:
-            pass
 
     def getCurrentDistance(self, src, dst):
         """ Get current Distance """
