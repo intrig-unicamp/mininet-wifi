@@ -19,7 +19,6 @@ from mininet.wifiPlot import plot2d, plot3d
 class mobility (object):
     """ Mobility """
 
-    moveFac = {}
     associationControlMethod = False
     apList = []
     staList = []
@@ -32,6 +31,7 @@ class mobility (object):
     MAX_Z = 0
     is3d = False
     continuePlot = 'plot2d.graphPause()'
+    continueParams = 'time.sleep(0.001)'
 
     @classmethod
     def moveFactor(self, sta, diffTime):
@@ -49,7 +49,7 @@ class mobility (object):
         self.nodeSpeed(sta, pos_x, pos_y, pos_z, diffTime)
         pos = '%.5f,%.5f,%.5f' % (pos_x / diffTime, pos_y / diffTime, pos_z / diffTime)
         pos = pos.split(',')
-        self.moveFac[sta] = pos
+        sta.moveFac = pos
 
     @classmethod
     def nodeSpeed(self, sta, pos_x, pos_y, pos_z, diffTime):
@@ -165,16 +165,15 @@ class mobility (object):
                 if time.time() - currentTime >= i:
                     for sta in staMov:
                         if time.time() - currentTime >= sta.startTime and time.time() - currentTime <= sta.endTime:
-                            x = float(sta.params['position'][0]) + float(self.moveFac[sta][0])
-                            y = float(sta.params['position'][1]) + float(self.moveFac[sta][1])
-                            z = float(sta.params['position'][2]) + float(self.moveFac[sta][2])
+                            x = '%.5f' % (float(sta.params['position'][0]) + float(sta.moveFac[0]))
+                            y = '%.5f' % (float(sta.params['position'][1]) + float(sta.moveFac[1]))
+                            z = '%.5f' % (float(sta.params['position'][2]) + float(sta.moveFac[2]))
                             sta.params['position'] = x, y, z
-                        for wlan in range(0, len(sta.params['wlan'])):
-                            self.nodeParameter(sta, wlan)
                         if self.DRAW:
                             eval(self.continuePlot)
                             plot.graphUpdate(sta)
                     i += 1
+            self.continue_ = False
         except:
             pass
 
@@ -237,7 +236,7 @@ class mobility (object):
         for xy in mob:
             i = 0
             for node in nodes:
-                node.params['position'] = xy[i][0], xy[i][1], 0
+                node.params['position'] = '%.5f' % xy[i][0], '%.5f' % xy[i][1], 0.0
                 i += 1
                 plot2d.graphUpdate(node)
             eval(self.continuePlot)
@@ -247,7 +246,7 @@ class mobility (object):
         for xy in mob:
             i = 0
             for node in nodes:
-                node.params['position'] = xy[i][0], xy[i][1], 0
+                node.params['position'] = '%.5f' % xy[i][0], '%.5f' % xy[i][1], 0.0
                 i += 1
             time.sleep(0.5)
                 
@@ -263,7 +262,7 @@ class mobility (object):
                     sta.params['apsInRange'].remove(ap)
 
     @classmethod
-    def nodeParameter(self, sta, wlan):
+    def handoverCheck(self, sta, wlan):
         for ap in self.apList:
             dist = channelParams.getDistance(sta, ap)
             self.getAPsInRange(sta)
@@ -282,8 +281,8 @@ class mobility (object):
                         if dist >= 0.01:
                             setAdhocChannelParams(node, wlan, dist, self.staList)
                     else:
-                        self.nodeParameter(node, wlan)
+                        self.handoverCheck(node, wlan)
             if meshRouting.routing == 'custom':
                 meshRouting(self.staList)
             # have to verify this
-            time.sleep(0.001)
+            eval(self.continueParams)
