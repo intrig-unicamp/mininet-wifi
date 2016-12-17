@@ -6,6 +6,7 @@ from wifiDevices import deviceDataRate
 from wifiPropagationModels import propagationModel
 from scipy.spatial.distance import pdist
 import numpy as np
+from mininet.log import debug
 import random
 
 
@@ -47,12 +48,22 @@ class channelParams (object):
     @classmethod
     def tc(self, sta, wlan, bw, loss, latency, delay):
         """Applying TC"""
+        sta.pexec("tc qdisc replace dev ifb%s \
+            root handle 2: netem rate %.2fmbps \
+            loss %.1f%% \
+            latency %.2fms \
+            delay %.2fms " % (sta.ifb[wlan], bw, loss, latency, delay))
+        debug("\ntc qdisc replace dev %s \
+            root handle 2: netem rate %.2fmbps \
+            loss %.1f%% \
+            latency %.2fms \
+            delay %.2fms " % (sta.params['wlan'][wlan], bw, loss, latency, delay))
         sta.pexec("tc qdisc replace dev %s \
             root handle 2: netem rate %.2fmbps \
             loss %.1f%% \
             latency %.2fms \
-            delay %.2fms "  % (sta.params['wlan'][wlan], bw, loss, latency, delay))
-            #corrupt 0.1%%" % (sta.params['wlan'][wlan], bw, loss, latency, delay))
+            delay %.2fms " % (sta.params['wlan'][wlan], bw, loss, latency, delay))
+            # corrupt 0.1%%" % (sta.params['wlan'][wlan], bw, loss, latency, delay))
 
     def calculateInterference (self, sta, ap, dist, staList, wlan):
         """Calculating Interference"""
