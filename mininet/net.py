@@ -653,6 +653,12 @@ class Mininet(object):
         else:
             sta.params['ssid'][wlan] = 'adhocNetwork'
             sta.params['associatedTo'][wlan] = 'adhocNetwork'
+            
+        cell = ("%s" % params.pop('cell', {}))
+        if(cell != "{}"):
+            sta.params['cell'][wlan] = cell
+        else:
+            sta.params['cell'][wlan] = 'FE:4C:6A:B5:A9:7E'
 
         deviceRange(sta)
 
