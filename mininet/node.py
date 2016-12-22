@@ -57,7 +57,6 @@ import pty
 import re
 import signal
 import select
-import subprocess
 import socket
 import struct
 import fcntl
@@ -1431,7 +1430,7 @@ class AccessPoint(Switch):
     def getMacAddress(self, ap, wlan):
         """ get Mac Address of any Interface """
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        if 'innamespace' in ap.params:
+        if 'inNamespace' in ap.params:
             mac = ''
         else:
             info = fcntl.ioctl(s.fileno(), 0x8927, struct.pack('256s', '%s'[:15]) % ap.params['wlan'][wlan])

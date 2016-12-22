@@ -73,10 +73,10 @@ class module(object):
             if h >= 2:
                 os.system('pkill -f \'wpa_supplicant -B -Dnl80211\'')
         except:
-            pass
+            pass 
 
     @classmethod
-    def start(self, nodes, wifiRadios, alternativeModule='', inNamespace=False, **params):
+    def start(self, nodes, wifiRadios, alternativeModule='', **params):
         """Starting environment"""
         self.killprocs('hostapd')
         try:
@@ -89,7 +89,7 @@ class module(object):
         physicalWlan_list = self.getPhysicalWlan()  # Get Phisical Wlan(s)
         self.loadModule(wifiRadios, alternativeModule)  # Initatilize WiFi Module
         phy_list = self.getPhy()  # Get Phy Interfaces
-        module.assignIface(nodes, physicalWlan_list, phy_list, inNamespace, **params)
+        module.assignIface(nodes, physicalWlan_list, phy_list, **params)
 
     @classmethod
     def getPhysicalWlan(self):
@@ -137,7 +137,7 @@ class module(object):
         node.ifb.append(ifbID)
 
     @classmethod
-    def assignIface(self, nodes, physicalWlan_list, phy_list, innamespace, **params):
+    def assignIface(self, nodes, physicalWlan_list, phy_list, **params):
         """Assign virtual interfaces for all nodes"""
         if 'ifb' in params:
             ifb = params['ifb']
@@ -149,31 +149,31 @@ class module(object):
                 debug('\nmodprobe ifb numifbs=%s' % len(self.wlan_list))
                 os.system('modprobe ifb numifbs=%s' % len(self.wlan_list))
                 ifbID = 0
-            for sta in nodes:
-                if (sta.type == 'station' or sta.type == 'vehicle') or innamespace:    
-                    sta.ifb = []            
-                    for wlan in range(0, len(sta.params['wlan'])):
-                        os.system('iw phy %s set netns %s' % (phy_list[0], sta.pid))
-                        sta.cmd('ip link set %s name %s up' % (self.wlan_list[0], sta.params['wlan'][wlan]))
+            for node in nodes:
+                if (node.type == 'station' or node.type == 'vehicle') or 'inNamespace' in node.params:    
+                    node.ifb = []            
+                    for wlan in range(0, len(node.params['wlan'])):
+                        os.system('iw phy %s set netns %s' % (phy_list[0], node.pid))
+                        node.cmd('ip link set %s name %s up' % (self.wlan_list[0], node.params['wlan'][wlan]))
                         if ifb:
-                            self.ifbSupport(sta, wlan, ifbID)  # Adding Support to IFB
+                            self.ifbSupport(node, wlan, ifbID)  # Adding Support to IFB
                             ifbID += 1
-                        if 'car' in sta.name and sta.type == 'station':
-                            sta.cmd('iw dev %s-wlan%s interface add %s-mp%s type mp' % (sta, wlan, sta, wlan))
-                            sta.cmd('ifconfig %s-mp%s up' % (sta, wlan))
-                            sta.cmd('iw dev %s-mp%s mesh join %s' % (sta, wlan, 'ssid'))
-                            sta.func[wlan] = 'mesh'
+                        if 'car' in node.name and node.type == 'station':
+                            node.cmd('iw dev %s-wlan%s interface add %s-mp%s type mp' % (node, wlan, node, wlan))
+                            node.cmd('ifconfig %s-mp%s up' % (node, wlan))
+                            node.cmd('iw dev %s-mp%s mesh join %s' % (node, wlan, 'ssid'))
+                            node.func[wlan] = 'mesh'
                         else:
-                            if sta.type != 'accessPoint':
+                            if node.type != 'accessPoint':
                                 cls = TCLinkWireless
-                                cls(sta, intfName1=sta.params['wlan'][wlan])
-                                if sta.params['txpower'][wlan] != 20:
-                                    sta.cmd('iwconfig %s txpower %s' % (sta.params['wlan'][wlan], sta.params['txpower'][wlan]))
-                        if sta.type != 'accessPoint':
-                            if sta.params['mac'][wlan] == '':
-                                sta.params['mac'][wlan] = self.getMacAddress(sta, wlan)
+                                cls(node, intfName1=node.params['wlan'][wlan])
+                                if node.params['txpower'][wlan] != 20:
+                                    node.cmd('iwconfig %s txpower %s' % (node.params['wlan'][wlan], node.params['txpower'][wlan]))
+                        if node.type != 'accessPoint':
+                            if node.params['mac'][wlan] == '':
+                                node.params['mac'][wlan] = self.getMacAddress(node, wlan)
                             else:
-                                self.setMacAddress(sta, wlan)
+                                self.setMacAddress(node, wlan)
                         self.wlan_list.pop(0)
                         phy_list.pop(0)
         except:

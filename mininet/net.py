@@ -369,13 +369,15 @@ class Mininet(object):
                      }
 
         defaults.update(params)
-
         if not cls:
             cls = self.switch
         ap = cls(name, **defaults)
         if not self.inNamespace and self.listenPort:
             self.listenPort += 1
-  
+        
+        if self.inNamespace or ('inNamespace' in params and params['inNamespace'] == True):
+            ap.params['inNamespace'] = True
+        
         self.nameToNode[ name ] = ap
         ap.type = 'accessPoint'
         
@@ -719,7 +721,7 @@ class Mininet(object):
                 if x == 1:
                     wlan = 0
                 wifiparam = dict()
-                if self.inNamespace == False:
+                if 'inNamespace' not in ap.params:
                     if 'phywlan' not in ap.params:
                         intf = module.wlan_list[0]
                         module.wlan_list.pop(0)
@@ -761,9 +763,6 @@ class Mininet(object):
                 wifiparam.setdefault('wpa_passphrase', self.wpa_passphrase)
                 wifiparam.setdefault('wep_key0', self.wep_key0)
                 wifiparam.setdefault('wlan', wlan)
-                
-                if self.inNamespace:
-                    ap.params['innamespace'] = True
                     
                 cls = AccessPoint
                 cls.init_(ap, **wifiparam)
@@ -798,7 +797,7 @@ class Mininet(object):
         params = {}
         params['ifb'] = self.ifb
         nodes = self.stations + self.cars + self.accessPoints
-        module.start(nodes, self.nRadios, self.alternativeModule, self.inNamespace, **params)
+        module.start(nodes, self.nRadios, self.alternativeModule, **params)
         self.configureAP()  
         self.isWiFi = True
         self.justKeepingBackwardsCompatibility = False
@@ -1034,7 +1033,7 @@ class Mininet(object):
             self.buildFromTopo(self.topo)
         if self.inNamespace:
             self.configureControlNetwork()
-            info('*** Configuring hosts\n')
+        info('*** Configuring hosts\n')
         self.configHosts()
         if self.xterms:
             self.startTerms()
