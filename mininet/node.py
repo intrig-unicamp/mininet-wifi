@@ -1425,13 +1425,19 @@ class AccessPoint(Switch):
             info("Warning! Wep Key is wrong!\n")
             exit(1)
         return cmd
-
+       
+    _macMatchRegex = re.compile(r'..:..:..:..:..:..')
+    
     @classmethod
     def getMacAddress(self, ap, wlan):
         """ get Mac Address of any Interface """
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         if 'inNamespace' in ap.params:
-            mac = ''
+            ifconfig = str(ap.pexec('ifconfig %s' % ap.params['wlan'][wlan]))
+            mac = self._macMatchRegex.findall(ifconfig)
+            mac = mac[0]
+            if 'ip' in ap.params:
+                ap.cmdPrint('ifconfig %s %s' % (ap.params['wlan'][wlan], ap.params['ip']))
         else:
             info = fcntl.ioctl(s.fileno(), 0x8927, struct.pack('256s', '%s'[:15]) % ap.params['wlan'][wlan])
             mac = (''.join(['%02x:' % ord(char) for char in info[18:24]])[:-1])
