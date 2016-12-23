@@ -30,7 +30,7 @@ from mininet.node import ( Host, CPULimitedHost, Controller, OVSController,
                            UserSwitch, OVSSwitch, OVSBridge,
                            IVSSwitch )
 from mininet.nodelib import LinuxBridge
-from mininet.link import Link, TCLink, OVSLink
+from mininet.link import Link, TCLink, TCULink, OVSLink
 from mininet.topo import ( SingleSwitchTopo, LinearTopo,
                            SingleSwitchReversedTopo, MinimalTopo )
 from mininet.topolib import TreeTopo, TorusTopo
@@ -78,11 +78,11 @@ CONTROLLERS = { 'ref': Controller,
                 'nox': NOX,
                 'remote': RemoteController,
                 'ryu': Ryu,
-                'default': DefaultController,  # Note: replaced below
+                'default': DefaultController,  # Note: overridden below
                 'none': NullController }
 
 LINKDEF = 'default'
-LINKS = { 'default': Link,
+LINKS = { 'default': Link, # Note: overridden below
           'tc': TCLink,
           'ovs': OVSLink }
 
@@ -295,66 +295,74 @@ class MininetRunner( object ):
     def begin( self ):
         "Create and run mininet."
 
-        if self.options.cluster:
-            servers = self.options.cluster.split( ',' )
+        opts = self.options
+
+        if opts.cluster:
+            servers = opts.cluster.split( ',' )
             for server in servers:
                 ClusterCleanup.add( server )
 
-        if self.options.clean:
+        if opts.clean:
             cleanup()
             exit()
 
         start = time.time()
        
-        if not self.options.controller:
+        if not opts.controller:
             # Update default based on available controllers
             CONTROLLERS[ 'default' ] = findController()
-            self.options.controller = [ 'default' ]
+            opts.controller = [ 'default' ]
             if not CONTROLLERS[ 'default' ]:
-                self.options.controller = [ 'none' ]
-                if self.options.switch == 'default':
+                opts.controller = [ 'none' ]
+                if opts.switch == 'default':
                     info( '*** No default OpenFlow controller found '
                           'for default switch!\n' )
                     info( '*** Falling back to OVS Bridge\n' )
-                    self.options.switch = 'ovsbr'
-                elif self.options.switch not in ( 'ovsbr', 'lxbr' ):
+                    opts.switch = 'ovsbr'
+                elif opts.switch not in ( 'ovsbr', 'lxbr' ):
                     raise Exception( "Could not find a default controller "
                                      "for switch %s" %
-                                     self.options.switch )
+                                     opts.switch )
         isWiFi = False
         wifiRadios = 0
-        if self.options.radios != 0:
+        if opts.radios != 0:
             isWiFi = True
-            wifiRadios = self.options.radios              
-        if self.options.wifi and self.options.radios == 0:
+            wifiRadios = opts.radios              
+        if opts.wifi and opts.radios == 0:
             isWiFi = True
         
-        topo = buildTopo( TOPOS, self.options.topo, self.options.wifi )
-        switch = customClass( SWITCHES, self.options.switch )
-        host = customClass( HOSTS, self.options.host )
+        topo = buildTopo( TOPOS, opts.topo, opts.wifi )
+        switch = customClass( SWITCHES, opts.switch )
+        host = customClass( HOSTS, opts.host )
         controller = [ customClass( CONTROLLERS, c )
-                       for c in self.options.controller ]
-        link = customClass( LINKS, self.options.link )
-        if self.validate:
-            self.validate( self.options )
+                       for c in opts.controller ]
         
-        ipBase = self.options.ipbase
-        xterms = self.options.xterms
-        mac = self.options.mac
-        arp = self.options.arp
-        pin = self.options.pin
+        if opts.switch == 'user' and opts.link == 'default':
+            debug( '*** Using TCULink with UserSwitch\n' )
+            # Use link configured correctly for UserSwitch
+            opts.link = 'tcu'               
+        
+        link = customClass( LINKS, opts.link )
+        if self.validate:
+            self.validate( opts )
+        
+        ipBase = opts.ipbase
+        xterms = opts.xterms
+        mac = opts.mac
+        arp = opts.arp
+        pin = opts.pin
                  
-        channel = self.options.channel
-        mode = self.options.mode
-        ssid = self.options.ssid
+        channel = opts.channel
+        mode = opts.mode
+        ssid = opts.ssid
        
         listenPort = None
-        if not self.options.nolistenport:
-            listenPort = self.options.listenport
+        if not opts.nolistenport:
+            listenPort = opts.listenport
 
         # Handle inNamespace, cluster options
-        inNamespace = self.options.innamespace
-        cluster = self.options.cluster
+        inNamespace = opts.innamespace
+        cluster = opts.cluster
         if inNamespace and cluster:
             print "Please specify --innamespace OR --cluster"
             exit()
@@ -365,7 +373,7 @@ class MininetRunner( object ):
                   '*** Using RemoteHost, RemoteOVSSwitch, RemoteLink\n' )
             host, switch, link = RemoteHost, RemoteOVSSwitch, RemoteLink
             Net = partial( MininetCluster, servers=servers,
-                           placement=PLACEMENT[ self.options.placement ] )
+                           placement=PLACEMENT[ opts.placement ] )
         
         
         mn = Net( topo=topo,
@@ -382,19 +390,19 @@ class MininetRunner( object ):
                   autoStaticArp=arp, autoPinCpus=pin,
                   listenPort=listenPort )
         
-        if self.options.ensure_value( 'nat', False ):
-            nat = mn.addNAT( *self.options.nat_args,
-                             **self.options.nat_kwargs )
+        if opts.ensure_value( 'nat', False ):
+            nat = mn.addNAT( *opts.nat_args,
+                             **opts.nat_kwargs )
             nat.configDefault()
 
-        if self.options.pre:
-            cli( mn, script=self.options.pre )
+        if opts.pre:
+            cli( mn, script=opts.pre )
 
         mn.start()
 
-        if not self.options.tests:
+        if not opts.tests:
             cli( mn )
-        for test in self.options.tests:
+        for test in opts.tests:
             test = TESTS.get( test, test )
             if callable( test ):  # user added TESTMAP={'mytest': testfn}
                 test( mn )
@@ -411,8 +419,8 @@ class MininetRunner( object ):
                 mn.waitConnected()
                 getattr( mn, test )()
 
-        if self.options.post:
-            cli( mn, script=self.options.post )
+        if opts.post:
+            cli( mn, script=opts.post )
 
         mn.stop()
 
