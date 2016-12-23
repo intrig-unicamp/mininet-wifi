@@ -1335,7 +1335,10 @@ class AccessPoint(Switch):
 
         if 'phywlan' not in ap.params:
             self.renameIface(ap, intf, ap.params['wlan'][wlan])
-            ap.params['mac'][wlan] = self.getMacAddress(ap, wlan)
+            ap.params['mac'][wlan] = self.getMacAddr(ap, wlan)
+            self.checkNetworkManager(ap.params['mac'][wlan])
+            if 'inNamespace' in ap.params and 'ip' in ap.params:
+                self.setIPAddr(ap, wlan)
 
         self.start_(ap, country_code, auth_algs, wpa, wlan,
               wpa_key_mgmt, rsn_pairwise, wpa_passphrase,
@@ -1380,7 +1383,7 @@ class AccessPoint(Switch):
                 cmd = cmd + ("\nauth_algs=%s" % auth_algs)
                 cmd = cmd + ("\nwpa=%s" % wpa)
                 cmd = cmd + ("\nwpa_key_mgmt=%s" % wpa_key_mgmt)
-                #cmd = cmd + ("\nrsn_pairwise=%s" % rsn_pairwise)
+                # cmd = cmd + ("\nrsn_pairwise=%s" % rsn_pairwise)
                 cmd = cmd + ("\nwpa_passphrase=%s" % wpa_passphrase)
             elif ap.params['encrypt'][0] == 'wep':
                 cmd = cmd + ("\nauth_algs=%s" % auth_algs)
@@ -1411,8 +1414,7 @@ class AccessPoint(Switch):
                         cmd = cmd + ("\nwep_default_key=0")
                         cmd = cmd + self.verifyWepKey(wep_key0)
                 ap.params['mac'][i] = ap.params['mac'][wlan][:-1] + str(i)
-                #self.checkNetworkManager(ap.params['mac'][i])                
-
+                # self.checkNetworkManager(ap.params['mac'][i])
         self.APConfigFile(cmd, ap, wlan)
     
     @classmethod    
@@ -1429,14 +1431,15 @@ class AccessPoint(Switch):
     _macMatchRegex = re.compile(r'..:..:..:..:..:..')
     
     @classmethod
-    def getMacAddress(self, ap, wlan):
+    def setIPAddr(self, ap, wlan):
+        ap.cmd('ifconfig %s %s' % (ap.params['wlan'][wlan], ap.params['ip']))
+    
+    @classmethod
+    def getMacAddr(self, ap, wlan):
         """ get Mac Address of any Interface """
         ifconfig = str(ap.pexec('ifconfig %s' % ap.params['wlan'][wlan]))
         mac = self._macMatchRegex.findall(ifconfig)
         mac = mac[0]
-        self.checkNetworkManager(mac)
-        if 'inNamespace' in ap.params and 'ip' in ap.params:
-            ap.cmd('ifconfig %s %s' % (ap.params['wlan'][wlan], ap.params['ip']))
         return mac
 
     @classmethod
@@ -1478,7 +1481,7 @@ class AccessPoint(Switch):
                             print line.replace(unmatch, echo)
                         else:
                             print line.rstrip()
-                #os.system('service network-manager restart')
+                # os.system('service network-manager restart')
             
     @classmethod
     def customDataRate(self, node, wlan):
