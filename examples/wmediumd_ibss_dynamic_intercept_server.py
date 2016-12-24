@@ -40,6 +40,9 @@ def topology():
 
     WmediumdConn.connect_wmediumd_on_startup()
 
+    print "*** Configuring wifi nodes"
+    net.configureWifiNodes()
+
     print "*** Creating links"
     net.addHoc(sta1, ssid='adNet')
     net.addHoc(sta2, ssid='adNet')
