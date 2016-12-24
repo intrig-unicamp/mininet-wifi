@@ -272,6 +272,24 @@ class Mininet(object):
         self.hosts.append(h)
         self.nameToNode[ name ] = h
         return h
+    
+    def delNode(self, node, nodes=None):
+        """Delete node
+           node: node to delete
+           nodes: optional list to delete from (e.g. self.hosts)"""
+        if nodes is None:
+            nodes = (self.hosts if node in self.hosts else
+                      (self.switches if node in self.switches else
+                        (self.controllers if node in self.controllers else
+                          [])))
+        node.stop(deleteIntfs=True)
+        node.terminate()
+        nodes.remove(node)
+        del self.nameToNode[ node.name ]
+ 
+    def delHost(self, host):
+        "Delete a host"
+        self.delNode(host, nodes=self.hosts)
 
     def addStation(self, name, cls=None, **params):
         """Add Station.
@@ -441,6 +459,10 @@ class Mininet(object):
         self.nameToNode[ name ] = sw
         return sw
 
+    def delSwitch( self, switch ):
+        "Delete a switch"
+        self.delNode( switch, nodes=self.switches )
+
     # Still in development
     def addWall(self, name, cls=None, **params):
         """in development"""           
@@ -494,6 +516,12 @@ class Mininet(object):
             self.controllers.append(controller_new)
             self.nameToNode[ name ] = controller_new
         return controller_new
+    
+    def delController( self, controller ):
+        """Delete a controller
+           Warning - does not reconfigure switches, so they
+           may still attempt to connect to it!"""
+        self.delNode( controller )
 
     def addNAT(self, name='nat0', connect=True, inNamespace=False,
                 **params):
@@ -533,8 +561,12 @@ class Mininet(object):
 
     # Even more convenient syntax for node lookup and iteration
     def __getitem__(self, key):
-        """net [ name ] operator: Return node(s) with given name(s)"""
+        "net[ name ] operator: Return node with given name"
         return self.nameToNode[ key ]
+    
+    def __delitem__( self, key ):
+        "del net[ name ] operator - delete node with given name"
+        self.delNode( self.nameToNode[ key ] )
 
     def __iter__(self):
         "return iterator over node names"
@@ -889,8 +921,31 @@ class Mininet(object):
             cls = self.link if cls is None else cls
             link = cls(node1, node2, **options)
             self.links.append(link)
-            
             return link
+        
+    def delLink( self, link ):
+        "Remove a link from this network"
+        link.delete()
+        self.links.remove( link )
+
+    def linksBetween( self, node1, node2 ):
+        "Return Links between node1 and node2"
+        return [ link for link in self.links
+                 if ( node1, node2 ) in (
+                    ( link.intf1.node, link.intf2.node ),
+                    ( link.intf2.node, link.intf1.node ) ) ]
+
+    def delLinkBetween( self, node1, node2, index=0, allLinks=False ):
+        """Delete link(s) between node1 and node2
+           index: index of link to delete if multiple links (0)
+           allLinks: ignore index and delete all such links (False)
+           returns: deleted link(s)"""
+        links = self.linksBetween( node1, node2 )
+        if not allLinks:
+            links = [ links[ index ] ]
+        for link in links:
+            self.delLink( link )
+        return links
 
     def tc(self, sta, bw):
         sta.cmd('tc qdisc add dev %s root handle 5: tbf rate %fMbit burst 15000 latency %fms' % 
@@ -1647,10 +1702,8 @@ class Mininet(object):
         elif dst not in self.nameToNode:
             error('dst not in network: %s\n' % dst)
         else:
-            if isinstance(src, basestring):
-                src = self.nameToNode[ src ]
-            if isinstance(dst, basestring):
-                dst = self.nameToNode[ dst ]
+            src = self.nameToNode[ src ]
+            dst = self.nameToNode[ dst ]
             connections = src.connectionsTo(dst)
             if len(connections) == 0:
                 error('src and dst not connected: %s %s\n' % (src, dst))

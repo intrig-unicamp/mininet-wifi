@@ -208,6 +208,8 @@ class Intf(object):
         # if self.node.inNamespace:
         # Link may have been dumped into root NS
         # quietRun( 'ip link del ' + self.name )
+        self.node.delIntf(self)
+        self.link = None
 
     def status(self):
         "Return intf status as a string"
@@ -641,9 +643,9 @@ class LinkWireless(object):
     def delete(self):
         "Delete this link"
         self.intf1.delete()
-        # We only need to delete one side, though this doesn't seem to
-        # cost us much and might help subclasses.
-        # self.intf2.delete()
+        self.intf1 = None
+        self.intf2.delete()
+        self.intf2 = None
 
     def stop(self):
         "Override to stop and clean up link as needed"
@@ -828,7 +830,7 @@ class TCLinkWireless(LinkWireless):
                        params1=params)
         
         
-class TCULink( TCLink ):
+class TCULink(TCLink):
     """TCLink with default settings optimized for UserSwitch
        (txo=rxo=0/False).  Unfortunately with recent Linux kernels,
        enabling TX and RX checksum offload on veth pairs doesn't work
@@ -838,9 +840,9 @@ class TCULink( TCLink ):
        to cope with this somehow, but it is likely to be an issue with
        many software Ethernet bridges."""
 
-    def __init__( self, *args, **kwargs ):
-        kwargs.update( txo=False, rxo=False )
-        TCLink.__init__( self, *args, **kwargs )
+    def __init__(self, *args, **kwargs):
+        kwargs.update(txo=False, rxo=False)
+        TCLink.__init__(self, *args, **kwargs)
         
 class Association(Link):        
     
