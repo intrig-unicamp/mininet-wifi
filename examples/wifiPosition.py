@@ -16,11 +16,11 @@ def topology():
     net = Mininet( controller=Controller, link=TCLink, switch=OVSKernelSwitch )
 
     print "*** Creating nodes"
-    sta1 = net.addStation( 'sta1', mac='00:00:00:00:00:02', ip='10.0.0.2/8', position='10,20,0' )
-    sta2 = net.addStation( 'sta2', mac='00:00:00:00:00:03', ip='10.0.0.3/8', position='10,30,0' )
+    sta1 = net.addStation( 'sta1', mac='00:00:00:00:00:02', ip='10.0.0.1/8', position='10,20,0' )
+    sta2 = net.addStation( 'sta2', mac='00:00:00:00:00:03', ip='10.0.0.2/8', position='10,30,0' )
     ap1 = net.addAccessPoint( 'ap1', ssid= 'new-ssid', mode= 'g', channel= '1', position='15,30,0' )
     c1 = net.addController( 'c1', controller=Controller )
-    h1 = net.addHost ( 'h1' )
+    h1 = net.addHost ( 'h1', ip='10.0.0.3/8' )
 
     print "*** Configuring wifi nodes"
     net.configureWifiNodes()

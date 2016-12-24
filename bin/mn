@@ -18,31 +18,31 @@ import time
 
 # Fix setuptools' evil madness, and open up (more?) security holes
 if 'PYTHONPATH' in os.environ:
-    sys.path = os.environ[ 'PYTHONPATH' ].split( ':' ) + sys.path
+    sys.path = os.environ[ 'PYTHONPATH' ].split(':') + sys.path
 
 from mininet.clean import cleanup
 from mininet.cli import CLI
 from mininet.log import lg, LEVELS, info, debug, warn, error
 from mininet.net import Mininet, MininetWithControlNet, VERSION
-from mininet.node import ( Host, CPULimitedHost, Controller, OVSController,
+from mininet.node import (Host, CPULimitedHost, Controller, OVSController,
                            Ryu, NOX, RemoteController, findController,
                            DefaultController, NullController,
                            UserSwitch, OVSSwitch, OVSBridge,
-                           IVSSwitch )
+                           IVSSwitch)
 from mininet.nodelib import LinuxBridge
-from mininet.link import Link, TCLink, OVSLink
-from mininet.topo import ( SingleSwitchTopo, LinearTopo,
-                           SingleSwitchReversedTopo, MinimalTopo )
+from mininet.link import Link, TCLink, TCULink, OVSLink
+from mininet.topo import (SingleSwitchTopo, LinearTopo,
+                           SingleSwitchReversedTopo, MinimalTopo)
 from mininet.topolib import TreeTopo, TorusTopo
 from mininet.util import customClass, specialClass, splitArgs, buildTopo
 
 from functools import partial
 
 # Experimental! cluster edition prototype
-from mininet.examples.cluster import ( MininetCluster, RemoteHost,
+from mininet.examples.cluster import (MininetCluster, RemoteHost,
                                        RemoteOVSSwitch, RemoteLink,
                                        SwitchBinPlacer, RandomPlacer,
-                                       ClusterCleanup )
+                                       ClusterCleanup)
 from mininet.examples.clustercli import ClusterCLI
 
 PLACEMENT = { 'block': SwitchBinPlacer, 'random': RandomPlacer }
@@ -68,8 +68,8 @@ SWITCHES = { 'user': UserSwitch,
 
 HOSTDEF = 'proc'
 HOSTS = { 'proc': Host,
-          'rt': specialClass( CPULimitedHost, defaults=dict( sched='rt' ) ),
-          'cfs': specialClass( CPULimitedHost, defaults=dict( sched='cfs' ) ) }
+          'rt': specialClass(CPULimitedHost, defaults=dict(sched='rt')),
+          'cfs': specialClass(CPULimitedHost, defaults=dict(sched='cfs')) }
 
 CONTROLLERDEF = 'default'
 
@@ -78,12 +78,13 @@ CONTROLLERS = { 'ref': Controller,
                 'nox': NOX,
                 'remote': RemoteController,
                 'ryu': Ryu,
-                'default': DefaultController,  # Note: replaced below
+                'default': DefaultController,  # Note: overridden below
                 'none': NullController }
 
 LINKDEF = 'default'
-LINKS = { 'default': Link,
+LINKS = { 'default': Link,  # Note: overridden below
           'tc': TCLink,
+          'tcu': TCULink,
           'ovs': OVSLink }
 
 
@@ -97,32 +98,32 @@ TESTS = { 'pingall': 'pingAll',
                 'iperfUDP': 'iperfUdp' }
 
 
-def addDictOption( opts, choicesDict, default, name, **kwargs ):
+def addDictOption(opts, choicesDict, default, name, **kwargs):
     """Convenience function to add choices dicts to OptionParser.
        opts: OptionParser instance
        choicesDict: dictionary of valid choices, must include default
        default: default choice key
        name: long option name
        kwargs: additional arguments to add_option"""
-    helpStr = ( '|'.join( sorted( choicesDict.keys() ) ) +
-                '[,param=value...]' )
-    helpList = [ '%s=%s' % ( k, v.__name__ )
+    helpStr = ('|'.join(sorted(choicesDict.keys())) + 
+                '[,param=value...]')
+    helpList = [ '%s=%s' % (k, v.__name__)
                  for k, v in choicesDict.items() ]
-    helpStr += ' ' + ( ' '.join( helpList ) )
-    params = dict( type='string', default=default, help=helpStr )
-    params.update( **kwargs )
-    opts.add_option( '--' + name, **params )
+    helpStr += ' ' + (' '.join(helpList))
+    params = dict(type='string', default=default, help=helpStr)
+    params.update(**kwargs)
+    opts.add_option('--' + name, **params)
 
-def version( *_args ):
+def version(*_args):
     "Print Mininet version and exit"
     print "%s" % VERSION
     exit()
 
 
-class MininetRunner( object ):
+class MininetRunner(object):
     "Build, setup, and run Mininet."
     
-    def __init__( self ):
+    def __init__(self):
         "Init."
         self.options = None
         self.args = None  # May be used someday for more CLI scripts
@@ -132,36 +133,36 @@ class MininetRunner( object ):
         self.setup()
         self.begin()
 
-    def custom( self, _option, _opt_str, value, _parser ):
+    def custom(self, _option, _opt_str, value, _parser):
         """Parse custom file and add params.
            option: option e.g. --custom
            opt_str: option string e.g. --custom
            value: the value the follows the option
            parser: option parser instance"""
         files = []
-        if os.path.isfile( value ):
+        if os.path.isfile(value):
             # Accept any single file (including those with commas)
-            files.append( value )
+            files.append(value)
         else:
             # Accept a comma-separated list of filenames
             files += value.split(',')
 
         for fileName in files:
             customs = {}
-            if os.path.isfile( fileName ):
-                execfile( fileName, customs, customs )
+            if os.path.isfile(fileName):
+                execfile(fileName, customs, customs)
                 for name, val in customs.iteritems():
-                    self.setCustom( name, val )
+                    self.setCustom(name, val)
             else:
-                raise Exception( 'could not find custom file: %s' % fileName )
+                raise Exception('could not find custom file: %s' % fileName)
 
-    def setCustom( self, name, value ):
+    def setCustom(self, name, value):
         "Set custom parameters for MininetRunner."
-        if name in ( 'topos', 'switches', 'hosts', 'controllers', 'links'
-                     'testnames', 'tests' ):
+        if name in ('topos', 'switches', 'hosts', 'controllers', 'links'
+                     'testnames', 'tests'):
             # Update dictionaries
             param = name.upper()
-            globals()[ param ].update( value )
+            globals()[ param ].update(value)
         elif name == 'validate':
             # Add custom validate function
             self.validate = value
@@ -169,107 +170,107 @@ class MininetRunner( object ):
             # Add or modify global variable or class
             globals()[ name ] = value
 
-    def setNat( self, _option, opt_str, value, parser ):
+    def setNat(self, _option, opt_str, value, parser):
         "Set NAT option(s)"
         assert self  # satisfy pylint
         parser.values.nat = True
         # first arg, first char != '-'
         if parser.rargs and parser.rargs[ 0 ][ 0 ] != '-':
-            value = parser.rargs.pop( 0 )
-            _, args, kwargs = splitArgs( opt_str + ',' + value )
+            value = parser.rargs.pop(0)
+            _, args, kwargs = splitArgs(opt_str + ',' + value)
             parser.values.nat_args = args
             parser.values.nat_kwargs = kwargs
         else:
             parser.values.nat_args = []
             parser.values.nat_kwargs = {}
 
-    def parseArgs( self ):
+    def parseArgs(self):
         """Parse command-line args and return options object.
            returns: opts parse options dict"""
 
-        desc = ( "The %prog utility creates Mininet network from the\n"
+        desc = ("The %prog utility creates Mininet network from the\n"
                  "command line. It can create parametrized topologies,\n"
-                 "invoke the Mininet CLI, and run tests." )
+                 "invoke the Mininet CLI, and run tests.")
 
-        usage = ( '%prog [options]\n'
-                  '(type %prog -h for details)' )
+        usage = ('%prog [options]\n'
+                  '(type %prog -h for details)')
         
-        opts = OptionParser( description=desc, usage=usage )
-        addDictOption( opts, SWITCHES, SWITCHDEF, 'switch' )
-        addDictOption( opts, HOSTS, HOSTDEF, 'host' )
-        addDictOption( opts, CONTROLLERS, [], 'controller', action='append' )
-        addDictOption( opts, LINKS, LINKDEF, 'link' )
-        addDictOption( opts, TOPOS, TOPODEF, 'topo' )
+        opts = OptionParser(description=desc, usage=usage)
+        addDictOption(opts, SWITCHES, SWITCHDEF, 'switch')
+        addDictOption(opts, HOSTS, HOSTDEF, 'host')
+        addDictOption(opts, CONTROLLERS, [], 'controller', action='append')
+        addDictOption(opts, LINKS, LINKDEF, 'link')
+        addDictOption(opts, TOPOS, TOPODEF, 'topo')
 
 
-        opts.add_option( '--radios', type='int', 
-                         default=0, help='starting k radios' )
+        opts.add_option('--radios', type='int',
+                         default=0, help='starting k radios')
         
-        opts.add_option( '--wifi', '-w', action='store_true',
-                         default=False, help='activate wifi' )
+        opts.add_option('--wifi', '-w', action='store_true',
+                         default=False, help='activate wifi')
         
-        opts.add_option( '--channel', type='int', 
-                         default=1, help='wireless channel configuration' )
+        opts.add_option('--channel', type='int',
+                         default=1, help='wireless channel configuration')
          
-        opts.add_option( '--mode', type='string', 
-                         default="g", help='wireless mode configuration' )
+        opts.add_option('--mode', type='string',
+                         default="g", help='wireless mode configuration')
         
-        opts.add_option( '--ssid', type='string', 
-                         default="my-ssid", help='wireless ssid configuration' )
+        opts.add_option('--ssid', type='string',
+                         default="my-ssid", help='wireless ssid configuration')
        
-        opts.add_option( '--clean', '-c', action='store_true',
-                         default=False, help='clean and exit' )
-        opts.add_option( '--custom', action='callback',
+        opts.add_option('--clean', '-c', action='store_true',
+                         default=False, help='clean and exit')
+        opts.add_option('--custom', action='callback',
                          callback=self.custom,
                          type='string',
-                         help='read custom classes or params from .py file(s)' )
+                         help='read custom classes or params from .py file(s)')
         
         testList = TESTNAMES + TESTS.keys()
-        opts.add_option( '--test', default=[], action='append',
-                          dest='tests', help='|'.join( testList ) )
-        opts.add_option( '--xterms', '-x', action='store_true',
-                         default=False, help='spawn xterms for each node' )
-        opts.add_option( '--ipbase', '-i', type='string', default='10.0.0.0/8',
-                         help='base IP address for hosts' )
-        opts.add_option( '--mac', action='store_true',
-                         default=False, help='automatically set host MACs' )
-        opts.add_option( '--arp', action='store_true',
-                         default=False, help='set all-pairs ARP entries' )
-        opts.add_option( '--verbosity', '-v', type='choice',
-                         choices=LEVELS.keys(), default = 'info',
-                         help = '|'.join( LEVELS.keys() )  )
-        opts.add_option( '--innamespace', action='store_true',
-                         default=False, help='sw and ctrl in namespace?' )
-        opts.add_option( '--listenport', type='int', default=6634,
-                         help='base port for passive switch listening' )
-        opts.add_option( '--nolistenport', action='store_true',
-                         default=False, help="don't use passive listening " +
+        opts.add_option('--test', default=[], action='append',
+                          dest='tests', help='|'.join(testList))
+        opts.add_option('--xterms', '-x', action='store_true',
+                         default=False, help='spawn xterms for each node')
+        opts.add_option('--ipbase', '-i', type='string', default='10.0.0.0/8',
+                         help='base IP address for hosts')
+        opts.add_option('--mac', action='store_true',
+                         default=False, help='automatically set host MACs')
+        opts.add_option('--arp', action='store_true',
+                         default=False, help='set all-pairs ARP entries')
+        opts.add_option('--verbosity', '-v', type='choice',
+                         choices=LEVELS.keys(), default='info',
+                         help='|'.join(LEVELS.keys()))
+        opts.add_option('--innamespace', action='store_true',
+                         default=False, help='sw and ctrl in namespace?')
+        opts.add_option('--listenport', type='int', default=6634,
+                         help='base port for passive switch listening')
+        opts.add_option('--nolistenport', action='store_true',
+                         default=False, help="don't use passive listening " + 
                          "port")
-        opts.add_option( '--pre', type='string', default=None,
-                         help='CLI script to run before tests' )
-        opts.add_option( '--post', type='string', default=None,
-                         help='CLI script to run after tests' )
-        opts.add_option( '--pin', action='store_true',
+        opts.add_option('--pre', type='string', default=None,
+                         help='CLI script to run before tests')
+        opts.add_option('--post', type='string', default=None,
+                         help='CLI script to run after tests')
+        opts.add_option('--pin', action='store_true',
                          default=False, help="pin hosts to CPU cores "
-                         "(requires --host cfs or --host rt)" )
-        opts.add_option( '--nat', action='callback', callback=self.setNat,
+                         "(requires --host cfs or --host rt)")
+        opts.add_option('--nat', action='callback', callback=self.setNat,
                          help="adds a NAT to the topology that"
                          " connects Mininet hosts to the physical network."
                          " Warning: This may route any traffic on the machine"
                          " that uses Mininet's"
                          " IP subnet into the Mininet network."
                          " If you need to change"
-                         " Mininet's IP subnet, see the --ipbase option." )
-        opts.add_option( '--version', action='callback', callback=version,
-                         help='prints the version and exits' )
-        opts.add_option( '--cluster', type='string', default=None,
+                         " Mininet's IP subnet, see the --ipbase option.")
+        opts.add_option('--version', action='callback', callback=version,
+                         help='prints the version and exits')
+        opts.add_option('--cluster', type='string', default=None,
                          metavar='server1,server2...',
-                         help=( 'run on multiple servers (experimental!)' ) )
-        opts.add_option( '--placement', type='choice',
+                         help=('run on multiple servers (experimental!)'))
+        opts.add_option('--placement', type='choice',
                          choices=PLACEMENT.keys(), default='block',
                          metavar='block|random',
-                         help=( 'node placement for --cluster '
-                                '(experimental!) ' ) )
+                         help=('node placement for --cluster '
+                                '(experimental!) '))
 
         self.options, self.args = opts.parse_args()
 
@@ -278,97 +279,106 @@ class MininetRunner( object ):
             opts.print_help()
             exit()
 
-    def setup( self ):
+    def setup(self):
         "Setup and validate environment."
 
         # set logging verbosity
         if LEVELS[self.options.verbosity] > LEVELS['output']:
-            print ( '*** WARNING: selected verbosity level (%s) will hide CLI '
+            print ('*** WARNING: selected verbosity level (%s) will hide CLI '
                     'output!\n'
                     'Please restart Mininet with -v [debug, info, output].'
-                    % self.options.verbosity )
-        lg.setLogLevel( self.options.verbosity )
+                    % self.options.verbosity)
+        lg.setLogLevel(self.options.verbosity)
 
     # Maybe we'll reorganize this someday...
     # pylint: disable=too-many-branches,too-many-statements
 
-    def begin( self ):
+    def begin(self):
         "Create and run mininet."
 
-        if self.options.cluster:
-            servers = self.options.cluster.split( ',' )
-            for server in servers:
-                ClusterCleanup.add( server )
+        opts = self.options
 
-        if self.options.clean:
+        if opts.cluster:
+            servers = opts.cluster.split(',')
+            for server in servers:
+                ClusterCleanup.add(server)
+
+        if opts.clean:
             cleanup()
             exit()
 
         start = time.time()
        
-        if not self.options.controller:
+        if not opts.controller:
             # Update default based on available controllers
             CONTROLLERS[ 'default' ] = findController()
-            self.options.controller = [ 'default' ]
+            opts.controller = [ 'default' ]
             if not CONTROLLERS[ 'default' ]:
-                self.options.controller = [ 'none' ]
-                if self.options.switch == 'default':
-                    info( '*** No default OpenFlow controller found '
-                          'for default switch!\n' )
-                    info( '*** Falling back to OVS Bridge\n' )
-                    self.options.switch = 'ovsbr'
-                elif self.options.switch not in ( 'ovsbr', 'lxbr' ):
-                    raise Exception( "Could not find a default controller "
-                                     "for switch %s" %
-                                     self.options.switch )
+                opts.controller = [ 'none' ]
+                if opts.switch == 'default':
+                    info('*** No default OpenFlow controller found '
+                          'for default switch!\n')
+                    info('*** Falling back to OVS Bridge\n')
+                    opts.switch = 'ovsbr'
+                elif opts.switch not in ('ovsbr', 'lxbr'):
+                    raise Exception("Could not find a default controller "
+                                     "for switch %s" % 
+                                     opts.switch)
         isWiFi = False
         wifiRadios = 0
-        if self.options.radios != 0:
+        if opts.radios != 0:
             isWiFi = True
-            wifiRadios = self.options.radios              
-        if self.options.wifi and self.options.radios == 0:
+            wifiRadios = opts.radios              
+        if opts.wifi and opts.radios == 0:
             isWiFi = True
         
-        topo = buildTopo( TOPOS, self.options.topo, self.options.wifi )
-        switch = customClass( SWITCHES, self.options.switch )
-        host = customClass( HOSTS, self.options.host )
-        controller = [ customClass( CONTROLLERS, c )
-                       for c in self.options.controller ]
-        link = customClass( LINKS, self.options.link )
+        topo = buildTopo(TOPOS, opts.topo, opts.wifi)
+        switch = customClass(SWITCHES, opts.switch)
+        host = customClass(HOSTS, opts.host)
+        controller = [ customClass(CONTROLLERS, c)
+                       for c in opts.controller ]
+        
+        if opts.switch == 'user' and opts.link == 'default':
+            debug('*** Using TCULink with UserSwitch\n')
+            # Use link configured correctly for UserSwitch
+            opts.link = 'tcu'               
+        
+        link = customClass(LINKS, opts.link)
+        
         if self.validate:
-            self.validate( self.options )
+            self.validate(opts)
         
-        ipBase = self.options.ipbase
-        xterms = self.options.xterms
-        mac = self.options.mac
-        arp = self.options.arp
-        pin = self.options.pin
+        ipBase = opts.ipbase
+        xterms = opts.xterms
+        mac = opts.mac
+        arp = opts.arp
+        pin = opts.pin
                  
-        channel = self.options.channel
-        mode = self.options.mode
-        ssid = self.options.ssid
+        channel = opts.channel
+        mode = opts.mode
+        ssid = opts.ssid
        
         listenPort = None
-        if not self.options.nolistenport:
-            listenPort = self.options.listenport
+        if not opts.nolistenport:
+            listenPort = opts.listenport
 
         # Handle inNamespace, cluster options
-        inNamespace = self.options.innamespace
-        cluster = self.options.cluster
+        inNamespace = opts.innamespace
+        cluster = opts.cluster
         if inNamespace and cluster:
             print "Please specify --innamespace OR --cluster"
             exit()
         Net = MininetWithControlNet if inNamespace else Mininet
         cli = ClusterCLI if cluster else CLI
         if cluster:
-            warn( '*** WARNING: Experimental cluster mode!\n'
-                  '*** Using RemoteHost, RemoteOVSSwitch, RemoteLink\n' )
+            warn('*** WARNING: Experimental cluster mode!\n'
+                  '*** Using RemoteHost, RemoteOVSSwitch, RemoteLink\n')
             host, switch, link = RemoteHost, RemoteOVSSwitch, RemoteLink
-            Net = partial( MininetCluster, servers=servers,
-                           placement=PLACEMENT[ self.options.placement ] )
+            Net = partial(MininetCluster, servers=servers,
+                           placement=PLACEMENT[ opts.placement ])
         
         
-        mn = Net( topo=topo,
+        mn = Net(topo=topo,
                   switch=switch, host=host, controller=controller,
                   link=link,
                   ipBase=ipBase,
@@ -380,24 +390,24 @@ class MininetRunner( object ):
                   ssid=ssid,
                   xterms=xterms, autoSetMacs=mac,
                   autoStaticArp=arp, autoPinCpus=pin,
-                  listenPort=listenPort )
+                  listenPort=listenPort)
         
-        if self.options.ensure_value( 'nat', False ):
-            nat = mn.addNAT( *self.options.nat_args,
-                             **self.options.nat_kwargs )
+        if opts.ensure_value('nat', False):
+            nat = mn.addNAT(*opts.nat_args,
+                             **opts.nat_kwargs)
             nat.configDefault()
 
-        if self.options.pre:
-            cli( mn, script=self.options.pre )
+        if opts.pre:
+            cli(mn, script=opts.pre)
 
         mn.start()
 
-        if not self.options.tests:
-            cli( mn )
-        for test in self.options.tests:
-            test = TESTS.get( test, test )
-            if callable( test ):  # user added TESTMAP={'mytest': testfn}
-                test( mn )
+        if not opts.tests:
+            cli(mn)
+        for test in opts.tests:
+            test = TESTS.get(test, test)
+            if callable(test):  # user added TESTMAP={'mytest': testfn}
+                test(mn)
             elif test == 'none':
                 pass
             elif test == 'all':
@@ -406,36 +416,36 @@ class MininetRunner( object ):
                 mn.ping()
                 mn.iperf()
             elif test == 'cli':
-                cli( mn )
+                cli(mn)
             elif test != 'build':
                 mn.waitConnected()
-                getattr( mn, test )()
+                getattr(mn, test)()
 
-        if self.options.post:
-            cli( mn, script=self.options.post )
+        if opts.post:
+            cli(mn, script=opts.post)
 
         mn.stop()
 
-        elapsed = float( time.time() - start )
-        info( 'completed in %0.3f seconds\n' % elapsed )
+        elapsed = float(time.time() - start)
+        info('completed in %0.3f seconds\n' % elapsed)
 
 
 if __name__ == "__main__":
     try:
         MininetRunner()
     except KeyboardInterrupt:
-        info( "\n\nKeyboard Interrupt. Shutting down and cleaning up...\n\n")
+        info("\n\nKeyboard Interrupt. Shutting down and cleaning up...\n\n")
         cleanup()
     except Exception:
         # Print exception
         type_, val_, trace_ = sys.exc_info()
-        errorMsg = ( "-"*80 + "\n" +
-                     "Caught exception. Cleaning up...\n\n" +
-                     "%s: %s\n" % ( type_.__name__, val_ ) +
-                     "-"*80 + "\n" )
-        error( errorMsg )
+        errorMsg = ("-"*80 + "\n" + 
+                     "Caught exception. Cleaning up...\n\n" + 
+                     "%s: %s\n" % (type_.__name__, val_) + 
+                     "-"*80 + "\n")
+        error(errorMsg)
         # Print stack trace to debug log
         import traceback
         stackTrace = traceback.format_exc()
-        debug( stackTrace + "\n" )
+        debug(stackTrace + "\n")
         cleanup()

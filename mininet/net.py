@@ -209,6 +209,7 @@ class Mininet(object):
         self.MAX_Y = 0
         self.MAX_Z = 0
         self.is3d = False
+        self.ifb = False
         self.justKeepingBackwardsCompatibility = True
         Mininet.init()  # Initialize Mininet if necessary
 
@@ -271,6 +272,24 @@ class Mininet(object):
         self.hosts.append(h)
         self.nameToNode[ name ] = h
         return h
+    
+    def delNode(self, node, nodes=None):
+        """Delete node
+           node: node to delete
+           nodes: optional list to delete from (e.g. self.hosts)"""
+        if nodes is None:
+            nodes = (self.hosts if node in self.hosts else
+                      (self.switches if node in self.switches else
+                        (self.controllers if node in self.controllers else
+                          [])))
+        node.stop(deleteIntfs=True)
+        node.terminate()
+        nodes.remove(node)
+        del self.nameToNode[ node.name ]
+ 
+    def delHost(self, host):
+        "Delete a host"
+        self.delNode(host, nodes=self.hosts)
 
     def addStation(self, name, cls=None, **params):
         """Add Station.
@@ -368,13 +387,15 @@ class Mininet(object):
                      }
 
         defaults.update(params)
-
         if not cls:
             cls = self.switch
         ap = cls(name, **defaults)
         if not self.inNamespace and self.listenPort:
             self.listenPort += 1
-  
+        
+        if self.inNamespace or ('inNamespace' in params and params['inNamespace'] == True):
+            ap.params['inNamespace'] = True
+        
         self.nameToNode[ name ] = ap
         ap.type = 'accessPoint'
         
@@ -438,6 +459,10 @@ class Mininet(object):
         self.nameToNode[ name ] = sw
         return sw
 
+    def delSwitch( self, switch ):
+        "Delete a switch"
+        self.delNode( switch, nodes=self.switches )
+
     # Still in development
     def addWall(self, name, cls=None, **params):
         """in development"""           
@@ -491,6 +516,12 @@ class Mininet(object):
             self.controllers.append(controller_new)
             self.nameToNode[ name ] = controller_new
         return controller_new
+    
+    def delController( self, controller ):
+        """Delete a controller
+           Warning - does not reconfigure switches, so they
+           may still attempt to connect to it!"""
+        self.delNode( controller )
 
     def addNAT(self, name='nat0', connect=True, inNamespace=False,
                 **params):
@@ -530,8 +561,12 @@ class Mininet(object):
 
     # Even more convenient syntax for node lookup and iteration
     def __getitem__(self, key):
-        """net [ name ] operator: Return node(s) with given name(s)"""
+        "net[ name ] operator: Return node with given name"
         return self.nameToNode[ key ]
+    
+    def __delitem__( self, key ):
+        "del net[ name ] operator - delete node with given name"
+        self.delNode( self.nameToNode[ key ] )
 
     def __iter__(self):
         "return iterator over node names"
@@ -576,9 +611,6 @@ class Mininet(object):
            params: parameters for station"""
         wlan = sta.ifaceToAssociate
         sta.func[wlan] = 'mesh'
-        
-        if self.justKeepingBackwardsCompatibility:
-            self.configureWifiNodes()
 
         options = { 'ip': ipAdd(self.nextIP,
                                   ipBaseNum=self.ipBaseNum,
@@ -632,9 +664,6 @@ class Mininet(object):
         wlan = sta.ifaceToAssociate
         sta.func[wlan] = 'adhoc'
         
-        if self.justKeepingBackwardsCompatibility:
-            self.configureWifiNodes()
-
         options = { 'ip': ipAdd(self.nextIP,
                                   ipBaseNum=self.ipBaseNum,
                                   prefixLen=self.prefixLen) + 
@@ -658,6 +687,12 @@ class Mininet(object):
         else:
             sta.params['ssid'][wlan] = 'adhocNetwork'
             sta.params['associatedTo'][wlan] = 'adhocNetwork'
+            
+        cell = ("%s" % params.pop('cell', {}))
+        if(cell != "{}"):
+            sta.params['cell'][wlan] = cell
+        else:
+            sta.params['cell'][wlan] = 'FE:4C:6A:B5:A9:7E'
 
         deviceRange(sta)
 
@@ -681,9 +716,6 @@ class Mininet(object):
            params: parameters for station"""
         wlan = sta.ifaceToAssociate
         sta.func[wlan] = 'wifiDirect'
-        
-        if self.justKeepingBackwardsCompatibility:
-            self.configureWifiNodes()
 
         options = { 'ip': ipAdd(self.nextIP,
                                   ipBaseNum=self.ipBaseNum,
@@ -721,7 +753,7 @@ class Mininet(object):
                 if x == 1:
                     wlan = 0
                 wifiparam = dict()
-                if self.inNamespace == False:
+                if 'inNamespace' not in ap.params:
                     if 'phywlan' not in ap.params:
                         intf = module.wlan_list[0]
                         module.wlan_list.pop(0)
@@ -763,9 +795,6 @@ class Mininet(object):
                 wifiparam.setdefault('wpa_passphrase', self.wpa_passphrase)
                 wifiparam.setdefault('wep_key0', self.wep_key0)
                 wifiparam.setdefault('wlan', wlan)
-                
-                if self.inNamespace:
-                    ap.params['innamespace'] = True
                     
                 cls = AccessPoint
                 cls.init_(ap, **wifiparam)
@@ -786,6 +815,10 @@ class Mininet(object):
                     cls(ap, **options)
                     ap.params.pop("phywlan", None)  
 
+    def useIFB(self):
+        """Support to Intermediate Functional Block (IFB) Devices"""
+        self.ifb = True
+        channelParams.ifb = True
 
     def configureWifiNodes(self):
         """nodes: all nodes
@@ -793,8 +826,10 @@ class Mininet(object):
            self.configureAP(): configure the AP
            self.isWiFi: defines the topology to work with mininet-wifi
            self.ifaceConfigured: all interfaces for all nodes were configured"""
+        params = {}
+        params['ifb'] = self.ifb
         nodes = self.stations + self.cars + self.accessPoints
-        module.start(nodes, self.nRadios, self.alternativeModule, self.inNamespace)
+        module.start(nodes, self.nRadios, self.alternativeModule, **params)
         self.configureAP()  
         self.isWiFi = True
         self.justKeepingBackwardsCompatibility = False
@@ -822,15 +857,13 @@ class Mininet(object):
         options = dict(params)
 
         # If AP and STA
-        if(((node1.type == 'station' and node2.type == 'accessPoint') \
-            or (node2.type == 'station' and node1.type == 'accessPoint')) 
+        if((((node1.type == 'station' or node1.type == 'vehicle') and node2.type == 'accessPoint') \
+            or ((node2.type == 'station' or node2.type == 'vehicle') and node1.type == 'accessPoint')) 
             and 'link' not in options):
-            
-            if self.justKeepingBackwardsCompatibility:
-                self.configureWifiNodes()
 
-            if (node1.type == 'station' or node2.type == 'station'):
-                if node1.type == 'station':
+            if (node1.type == 'station' or node2.type == 'station' or 
+                                node1.type == 'vehicle' or node2.type == 'vehicle'):
+                if node1.type == 'station' or node1.type == 'vehicle':
                     sta = node1
                     ap = node2
                 else:
@@ -871,15 +904,8 @@ class Mininet(object):
         else:
             if 'link' in options:
                 options.pop('link', None)
-                
-            if (node1.type == 'accessPoint' and node2.type == 'accessPoint') or \
-                (node1.type == 'accessPoint' or node2.type == 'accessPoint'):
-                if self.justKeepingBackwardsCompatibility:
-                    self.configureWifiNodes()
             
-                    
-            if 'position' in node1.params and 'position' in node2.params or \
-            ('RSU' in node1.name and 'RSU' in node2.name):
+            if 'position' in node1.params and 'position' in node2.params:
                 self.srcConn.append(node1)
                 self.dstConn.append(node2)
 
@@ -895,8 +921,31 @@ class Mininet(object):
             cls = self.link if cls is None else cls
             link = cls(node1, node2, **options)
             self.links.append(link)
-            
             return link
+        
+    def delLink( self, link ):
+        "Remove a link from this network"
+        link.delete()
+        self.links.remove( link )
+
+    def linksBetween( self, node1, node2 ):
+        "Return Links between node1 and node2"
+        return [ link for link in self.links
+                 if ( node1, node2 ) in (
+                    ( link.intf1.node, link.intf2.node ),
+                    ( link.intf2.node, link.intf1.node ) ) ]
+
+    def delLinkBetween( self, node1, node2, index=0, allLinks=False ):
+        """Delete link(s) between node1 and node2
+           index: index of link to delete if multiple links (0)
+           allLinks: ignore index and delete all such links (False)
+           returns: deleted link(s)"""
+        links = self.linksBetween( node1, node2 )
+        if not allLinks:
+            links = [ links[ index ] ]
+        for link in links:
+            self.delLink( link )
+        return links
 
     def tc(self, sta, bw):
         sta.cmd('tc qdisc add dev %s root handle 5: tbf rate %fMbit burst 15000 latency %fms' % 
@@ -966,8 +1015,8 @@ class Mininet(object):
                 self.addSwitch(switchName, **params)
             info(switchName + ' ')
 
-        info('\n*** Configuring wifi nodes...')
         if self.isWiFi:
+            info('\n*** Configuring wifi nodes...\n')
             self.configureWifiNodes()
 
         info('\n*** Adding links and associating station(s):\n')
@@ -1034,14 +1083,12 @@ class Mininet(object):
                     meshRouting(self.stations)
 
     def build(self):
-        "Build mininet."    
-        if self.isWiFi and self.justKeepingBackwardsCompatibility:
-            self.configureWifiNodes()      
+        "Build mininet."     
         if self.topo:
             self.buildFromTopo(self.topo)
         if self.inNamespace:
             self.configureControlNetwork()
-            info('*** Configuring hosts\n')
+        info('*** Configuring hosts\n')
         self.configHosts()
         if self.xterms:
             self.startTerms()
@@ -1571,7 +1618,7 @@ class Mininet(object):
         dist = channelParams.getDistance(src, dst)
         info ("The distance between %s and %s is %.2f meters\n" % (src, dst, float(dist)))
 
-    def plotHost(self, node, position):
+    def plotNode(self, node, position):
         node.params['position'] = position.split(',')
         node.params['range'] = 0
         self.plotNodes.append(node)
@@ -1629,39 +1676,6 @@ class Mininet(object):
         """Defines an association control"""
         mobility.associationControlMethod = ac
 
-    def deviceInfo(self, device):
-        """ Devices Info """
-        try:
-            for sta in self.stations:
-                if device == str(sta):
-                    device = sta
-            for ap in self.accessPoints:
-                if device == str(ap):
-                    device = ap
-            if device.type == 'station':
-                for wlan in range(len(device.params['wlan'])):
-                    print "--------------------------------"
-                    print "Interface: %s" % device.params['wlan'][wlan]
-                    try:  # it is important when not infra
-                        if 'ap' in str(device.params['associatedTo'][wlan]):
-                            print "Associated To: %s" % device.params['associatedTo'][wlan]
-                        else:
-                            print "Associated To: %s" % None
-                    except:
-                        print "Associated To: %s" % None
-                    print "Frequency: %s GHz" % device.params['frequency'][0]
-                    if device.params['rssi'][wlan] != 0:
-                        print "Signal level: %.2f dbm" % device.params['rssi'][wlan]
-                    else:
-                        print "Signal level: No Signal"
-                    print "Tx-Power: %s dBm" % device.params['txpower'][wlan]
-            else:
-                print "Tx-Power: %s dBm" % device.params['txpower'][0]
-                print "SSID: %s" % device.params['ssid']
-                print "Number of Associated Stations: %s" % len(device.params['associatedStations'])
-        except:
-            pass
-
     def getCurrentDistance(self, src, dst):
         """ Get current Distance """
         try:
@@ -1688,10 +1702,8 @@ class Mininet(object):
         elif dst not in self.nameToNode:
             error('dst not in network: %s\n' % dst)
         else:
-            if isinstance(src, basestring):
-                src = self.nameToNode[ src ]
-            if isinstance(dst, basestring):
-                dst = self.nameToNode[ dst ]
+            src = self.nameToNode[ src ]
+            dst = self.nameToNode[ dst ]
             connections = src.connectionsTo(dst)
             if len(connections) == 0:
                 error('src and dst not connected: %s %s\n' % (src, dst))

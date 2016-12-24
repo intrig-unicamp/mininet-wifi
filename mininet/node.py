@@ -57,10 +57,6 @@ import pty
 import re
 import signal
 import select
-import subprocess
-import socket
-import struct
-import fcntl
 import fileinput
 
 from subprocess import Popen, PIPE
@@ -813,6 +809,15 @@ class Node(object):
         if self.inNamespace:
             debug('moving', intf, 'into namespace for', self.name, '\n')
             moveIntfFn(intf.name, self)
+            
+    def delIntf(self, intf):
+        """Remove interface from Node's known interfaces
+           Note: to fully delete interface, call intf.delete() instead"""
+        port = self.ports.get(intf)
+        if port is not None:
+            del self.intfs[ port ]
+            del self.ports[ intf ]
+            del self.nameToIntf[ intf.name ]
 
     def defaultIntf(self):
         "Return interface for lowest port"
@@ -1336,7 +1341,10 @@ class AccessPoint(Switch):
 
         if 'phywlan' not in ap.params:
             self.renameIface(ap, intf, ap.params['wlan'][wlan])
-            ap.params['mac'][wlan] = self.getMacAddress(ap, wlan)
+            ap.params['mac'][wlan] = self.getMacAddr(ap, wlan)
+            self.checkNetworkManager(ap.params['mac'][wlan])
+            if 'inNamespace' in ap.params and 'ip' in ap.params:
+                self.setIPAddr(ap, wlan)
 
         self.start_(ap, country_code, auth_algs, wpa, wlan,
               wpa_key_mgmt, rsn_pairwise, wpa_passphrase,
@@ -1381,7 +1389,7 @@ class AccessPoint(Switch):
                 cmd = cmd + ("\nauth_algs=%s" % auth_algs)
                 cmd = cmd + ("\nwpa=%s" % wpa)
                 cmd = cmd + ("\nwpa_key_mgmt=%s" % wpa_key_mgmt)
-                #cmd = cmd + ("\nrsn_pairwise=%s" % rsn_pairwise)
+                # cmd = cmd + ("\nrsn_pairwise=%s" % rsn_pairwise)
                 cmd = cmd + ("\nwpa_passphrase=%s" % wpa_passphrase)
             elif ap.params['encrypt'][0] == 'wep':
                 cmd = cmd + ("\nauth_algs=%s" % auth_algs)
@@ -1412,8 +1420,7 @@ class AccessPoint(Switch):
                         cmd = cmd + ("\nwep_default_key=0")
                         cmd = cmd + self.verifyWepKey(wep_key0)
                 ap.params['mac'][i] = ap.params['mac'][wlan][:-1] + str(i)
-                #self.checkNetworkManager(ap.params['mac'][i])                
-
+                # self.checkNetworkManager(ap.params['mac'][i])
         self.APConfigFile(cmd, ap, wlan)
     
     @classmethod    
@@ -1426,17 +1433,19 @@ class AccessPoint(Switch):
             info("Warning! Wep Key is wrong!\n")
             exit(1)
         return cmd
-
+       
+    _macMatchRegex = re.compile(r'..:..:..:..:..:..')
+    
     @classmethod
-    def getMacAddress(self, ap, wlan):
+    def setIPAddr(self, ap, wlan):
+        ap.cmd('ifconfig %s %s' % (ap.params['wlan'][wlan], ap.params['ip']))
+    
+    @classmethod
+    def getMacAddr(self, ap, wlan):
         """ get Mac Address of any Interface """
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        if 'innamespace' in ap.params:
-            mac = ''
-        else:
-            info = fcntl.ioctl(s.fileno(), 0x8927, struct.pack('256s', '%s'[:15]) % ap.params['wlan'][wlan])
-            mac = (''.join(['%02x:' % ord(char) for char in info[18:24]])[:-1])
-        self.checkNetworkManager(mac)
+        ifconfig = str(ap.pexec('ifconfig %s' % ap.params['wlan'][wlan]))
+        mac = self._macMatchRegex.findall(ifconfig)
+        mac = mac[0]
         return mac
 
     @classmethod
@@ -1478,7 +1487,7 @@ class AccessPoint(Switch):
                             print line.replace(unmatch, echo)
                         else:
                             print line.rstrip()
-                #os.system('service network-manager restart')
+                # os.system('service network-manager restart')
             
     @classmethod
     def customDataRate(self, node, wlan):

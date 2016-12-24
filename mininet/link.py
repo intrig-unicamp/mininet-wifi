@@ -91,8 +91,8 @@ class Intf(object):
         """Set the MAC address for an interface.
            macstr: MAC address as string"""
         self.mac = macstr
-        return (self.ifconfig('down') +
-                 self.ifconfig('hw', 'ether', macstr) +
+        return (self.ifconfig('down') + 
+                 self.ifconfig('hw', 'ether', macstr) + 
                  self.ifconfig('up'))
 
     _ipMatchRegex = re.compile(r'\d+\.\d+\.\d+\.\d+')
@@ -208,6 +208,8 @@ class Intf(object):
         # if self.node.inNamespace:
         # Link may have been dumped into root NS
         # quietRun( 'ip link del ' + self.name )
+        self.node.delIntf(self)
+        self.link = None
 
     def status(self):
         "Return intf status as a string"
@@ -258,27 +260,27 @@ class TCIntfWireless(Intf):
                         latency_ms = 1
                     else:
                         latency_ms = 15 * 8 / bw
-                cmds += [ '%s qdisc add dev %s root handle 5: tbf ' +
-                          'rate %fMbit burst 15000 latency %fms' %
+                cmds += [ '%s qdisc add dev %s root handle 5: tbf ' + 
+                          'rate %fMbit burst 15000 latency %fms' % 
                           (bw, latency_ms) ]
             else:
                 cmds += [ '%s qdisc add dev %s root handle 5:0 htb default 1',
-                          '%s class add dev %s parent 5:0 classid 5:1 htb ' +
+                          '%s class add dev %s parent 5:0 classid 5:1 htb ' + 
                           'rate %fMbit burst 15k' % bw ]
             parent = ' parent 5:1 '
             # ECN or RED
             if enable_ecn:
-                cmds += [ '%s qdisc add dev %s' + parent +
-                          'handle 6: red limit 1000000 ' +
-                          'min 30000 max 35000 avpkt 1500 ' +
-                          'burst 20 ' +
+                cmds += [ '%s qdisc add dev %s' + parent + 
+                          'handle 6: red limit 1000000 ' + 
+                          'min 30000 max 35000 avpkt 1500 ' + 
+                          'burst 20 ' + 
                           'bandwidth %fmbit probability 1 ecn' % bw ]
                 parent = ' parent 6: '
             elif enable_red:
-                cmds += [ '%s qdisc add dev %s' + parent +
-                          'handle 6: red limit 1000000 ' +
-                          'min 30000 max 35000 avpkt 1500 ' +
-                          'burst 20 ' +
+                cmds += [ '%s qdisc add dev %s' + parent + 
+                          'handle 6: red limit 1000000 ' + 
+                          'min 30000 max 35000 avpkt 1500 ' + 
+                          'burst 20 ' + 
                           'bandwidth %fmbit probability 1' % bw ]
                 parent = ' parent 6: '
                 
@@ -304,8 +306,8 @@ class TCIntfWireless(Intf):
                 'limit %d' % max_queue_size if max_queue_size is not None
                 else '')
             if netemargs:
-                cmds = [ '%s qdisc add dev %s ' + parent +
-                         ' handle 10: netem ' +
+                cmds = [ '%s qdisc add dev %s ' + parent + 
+                         ' handle 10: netem ' + 
                          netemargs ]
                 parent = ' parent 10:1 '
         return cmds, parent
@@ -317,15 +319,40 @@ class TCIntfWireless(Intf):
         return self.cmd(c)
 
     def config(self, bw=None, delay=None, jitter=None, loss=None,
-                disable_gro=True, speedup=0, use_hfsc=False, use_tbf=False,
+                gro=False, txo=True, rxo=True,
+                speedup=0, use_hfsc=False, use_tbf=False,
                 latency_ms=None, enable_ecn=False, enable_red=False,
                 max_queue_size=None, **params):
-        "Configure the port and set its properties."
+        """Configure the port and set its properties.
+            bw: bandwidth in b/s (e.g. '10m')
+            delay: transmit delay (e.g. '1ms' )
+            jitter: jitter (e.g. '1ms')
+            loss: loss (e.g. '1%' )
+            gro: enable GRO (False)
+            txo: enable transmit checksum offload (True)
+            rxo: enable receive checksum offload (True)
+            speedup: experimental switch-side bw option
+            use_hfsc: use HFSC scheduling
+            use_tbf: use TBF scheduling
+            latency_ms: TBF latency parameter
+            enable_ecn: enable ECN (False)
+            enable_red: enable RED (False)
+            max_queue_size: queue limit parameter for netem"""
+        
+        # Support old names for parameters
+        gro = not params.pop('disable_gro', not gro)
+        
         result = Intf.config(self, **params)
 
-        # Disable GRO
-        if disable_gro:
-            self.cmd('ethtool -K %s gro off' % self)
+        def on(isOn):
+            "Helper method: bool -> 'on'/'off'"
+            return 'on' if isOn else 'off'
+ 
+        # Set offload parameters with ethool
+        self.cmd('ethtool -K', self,
+                  'gro', on(gro),
+                  'tx', on(txo),
+                  'rx', on(rxo))
 
         # Optimization: return if nothing else to configure
         # Question: what happens if we want to reset things?
@@ -357,10 +384,10 @@ class TCIntfWireless(Intf):
         cmds += delaycmds
 
         # Ugly but functional: display configuration info
-        stuff = (([ '%.2fMbit' % bw ] if bw is not None else []) +
-                  ([ '%s delay' % delay ] if delay is not None else []) +
-                  ([ '%s jitter' % jitter ] if jitter is not None else []) +
-                  (['%5f%% loss' % loss ] if loss is not None else []) +
+        stuff = (([ '%.2fMbit' % bw ] if bw is not None else []) + 
+                  ([ '%s delay' % delay ] if delay is not None else []) + 
+                  ([ '%s jitter' % jitter ] if jitter is not None else []) + 
+                  (['%5f%% loss' % loss ] if loss is not None else []) + 
                   ([ 'ECN' ] if enable_ecn else [ 'RED' ]
                     if enable_red else []))
 
@@ -413,27 +440,27 @@ class TCIntf(Intf):
             elif use_tbf:                
                 if latency_ms is None:
                     latency_ms = 15 * 8 / bw
-                cmds += [ '%s qdisc add dev %s root handle 5: tbf ' +
-                          'rate %fMbit burst 15000 latency %fms' %
+                cmds += [ '%s qdisc add dev %s root handle 5: tbf ' + 
+                          'rate %fMbit burst 15000 latency %fms' % 
                           (bw, latency_ms) ]
             else:
                 cmds += [ '%s qdisc add dev %s root handle 5:0 htb default 1',
-                          '%s class add dev %s parent 5:0 classid 5:1 htb ' +
+                          '%s class add dev %s parent 5:0 classid 5:1 htb ' + 
                           'rate %fMbit burst 15k' % bw ]
             parent = ' parent 5:1 '
             # ECN or RED
             if enable_ecn:
-                cmds += [ '%s qdisc add dev %s' + parent +
-                          'handle 6: red limit 1000000 ' +
-                          'min 30000 max 35000 avpkt 1500 ' +
-                          'burst 20 ' +
+                cmds += [ '%s qdisc add dev %s' + parent + 
+                          'handle 6: red limit 1000000 ' + 
+                          'min 30000 max 35000 avpkt 1500 ' + 
+                          'burst 20 ' + 
                           'bandwidth %fmbit probability 1 ecn' % bw ]
                 parent = ' parent 6: '
             elif enable_red:
-                cmds += [ '%s qdisc add dev %s' + parent +
-                          'handle 6: red limit 1000000 ' +
-                          'min 30000 max 35000 avpkt 1500 ' +
-                          'burst 20 ' +
+                cmds += [ '%s qdisc add dev %s' + parent + 
+                          'handle 6: red limit 1000000 ' + 
+                          'min 30000 max 35000 avpkt 1500 ' + 
+                          'burst 20 ' + 
                           'bandwidth %fmbit probability 1' % bw ]
                 parent = ' parent 6: '
 
@@ -459,8 +486,8 @@ class TCIntf(Intf):
                 'limit %d' % max_queue_size if max_queue_size is not None
                 else '')
             if netemargs:
-                cmds = [ '%s qdisc add dev %s ' + parent +
-                         ' handle 10: netem ' +
+                cmds = [ '%s qdisc add dev %s ' + parent + 
+                         ' handle 10: netem ' + 
                          netemargs ]
                 parent = ' parent 10:1 '
         return cmds, parent
@@ -511,10 +538,10 @@ class TCIntf(Intf):
         cmds += delaycmds
 
         # Ugly but functional: display configuration info
-        stuff = (([ '%.2fMbit' % bw ] if bw is not None else []) +
-                  ([ '%s delay' % delay ] if delay is not None else []) +
-                  ([ '%s jitter' % jitter ] if jitter is not None else []) +
-                  (['%5f%% loss' % loss ] if loss is not None else []) +
+        stuff = (([ '%.2fMbit' % bw ] if bw is not None else []) + 
+                  ([ '%s delay' % delay ] if delay is not None else []) + 
+                  ([ '%s jitter' % jitter ] if jitter is not None else []) + 
+                  (['%5f%% loss' % loss ] if loss is not None else []) + 
                   ([ 'ECN' ] if enable_ecn else [ 'RED' ]
                     if enable_red else []))
 
@@ -541,7 +568,7 @@ class LinkWireless(object):
        Other types of links could be tunnels, link emulators, etc.."""
 
     # pylint: disable=too-many-branches
-    def __init__(self, node1, port1=None, 
+    def __init__(self, node1, port1=None,
                   intfName1=None, addr1=None,
                   intf=Intf, cls1=None, params1=None):
         """Create veth link to another node, making two new interfaces.
@@ -616,9 +643,9 @@ class LinkWireless(object):
     def delete(self):
         "Delete this link"
         self.intf1.delete()
-        # We only need to delete one side, though this doesn't seem to
-        # cost us much and might help subclasses.
-        # self.intf2.delete()
+        self.intf1 = None
+        self.intf2.delete()
+        self.intf2 = None
 
     def stop(self):
         "Override to stop and clean up link as needed"
@@ -632,16 +659,16 @@ class LinkWireless(object):
         return '%s<->%s' % (self.intf1, self.intf2)
 
 
-class Link( object ):
+class Link(object):
 
     """A basic link is just a veth pair.
        Other types of links could be tunnels, link emulators, etc.."""
 
     # pylint: disable=too-many-branches
-    def __init__( self, node1, node2, port1=None, port2=None,
+    def __init__(self, node1, node2, port1=None, port2=None,
                   intfName1=None, intfName2=None, addr1=None, addr2=None,
                   intf=Intf, cls1=None, cls2=None, params1=None,
-                  params2=None, fast=True ):
+                  params2=None, fast=True):
         """Create veth link to another node, making two new interfaces.
            node1: first node
            node2: second node
@@ -662,7 +689,7 @@ class Link( object ):
             params2 = {}
         # Allow passing in params1=params2
         if params2 is params1:
-            params2 = dict( params1 )
+            params2 = dict(params1)
         if port1 is not None:
             params1[ 'port' ] = port1
         if port2 is not None:
@@ -672,47 +699,47 @@ class Link( object ):
         if 'port' not in params2:
             params2[ 'port' ] = node2.newPort()
         if not intfName1:
-            intfName1 = self.intfName( node1, params1[ 'port' ] )
+            intfName1 = self.intfName(node1, params1[ 'port' ])
         if not intfName2:
-            intfName2 = self.intfName( node2, params2[ 'port' ] )
+            intfName2 = self.intfName(node2, params2[ 'port' ])
 
         self.fast = fast
         if fast:
-            params1.setdefault( 'moveIntfFn', self._ignore )
-            params2.setdefault( 'moveIntfFn', self._ignore )
-            self.makeIntfPair( intfName1, intfName2, addr1, addr2,
-                               node1, node2, deleteIntfs=False )
+            params1.setdefault('moveIntfFn', self._ignore)
+            params2.setdefault('moveIntfFn', self._ignore)
+            self.makeIntfPair(intfName1, intfName2, addr1, addr2,
+                               node1, node2, deleteIntfs=False)
         else:
-            self.makeIntfPair( intfName1, intfName2, addr1, addr2 )
+            self.makeIntfPair(intfName1, intfName2, addr1, addr2)
 
         if not cls1:
             cls1 = intf
         if not cls2:
             cls2 = intf
 
-        intf1 = cls1( name=intfName1, node=node1,
-                      link=self, mac=addr1, **params1  )
-        intf2 = cls2( name=intfName2, node=node2,
-                      link=self, mac=addr2, **params2 )
+        intf1 = cls1(name=intfName1, node=node1,
+                      link=self, mac=addr1, **params1)
+        intf2 = cls2(name=intfName2, node=node2,
+                      link=self, mac=addr2, **params2)
 
         # All we are is dust in the wind, and our two interfaces
         self.intf1, self.intf2 = intf1, intf2
     # pylint: enable=too-many-branches
 
     @staticmethod
-    def _ignore( *args, **kwargs ):
+    def _ignore(*args, **kwargs):
         "Ignore any arguments"
         pass
 
-    def intfName( self, node, n ):
+    def intfName(self, node, n):
         "Construct a canonical interface name node-ethN for interface n."
         # Leave this as an instance method for now
         assert self
-        return node.name + '-eth' + repr( n )
+        return node.name + '-eth' + repr(n)
 
     @classmethod
-    def makeIntfPair( cls, intfname1, intfname2, addr1=None, addr2=None,
-                      node1=None, node2=None, deleteIntfs=True ):
+    def makeIntfPair(cls, intfname1, intfname2, addr1=None, addr2=None,
+                      node1=None, node2=None, deleteIntfs=True):
         """Create pair of interfaces
            intfname1: name for interface 1
            intfname2: name for interface 2
@@ -724,26 +751,26 @@ class Link( object ):
            to change link type)"""
         # Leave this as a class method for now
         assert cls
-        return makeIntfPair( intfname1, intfname2, addr1, addr2, node1, node2,
-                             deleteIntfs=deleteIntfs )
+        return makeIntfPair(intfname1, intfname2, addr1, addr2, node1, node2,
+                             deleteIntfs=deleteIntfs)
 
-    def delete( self ):
+    def delete(self):
         "Delete this link"
         self.intf1.delete()
         self.intf1 = None
         self.intf2.delete()
         self.intf2 = None
 
-    def stop( self ):
+    def stop(self):
         "Override to stop and clean up link as needed"
         self.delete()
 
-    def status( self ):
+    def status(self):
         "Return link status as a string"
-        return "(%s %s)" % ( self.intf1.status(), self.intf2.status() )
+        return "(%s %s)" % (self.intf1.status(), self.intf2.status())
 
-    def __str__( self ):
-        return '%s<->%s' % ( self.intf1, self.intf2 )
+    def __str__(self):
+        return '%s<->%s' % (self.intf1, self.intf2)
 
 
 class OVSIntf(Intf):
@@ -802,6 +829,21 @@ class TCLinkWireless(LinkWireless):
                        addr1=addr1,
                        params1=params)
         
+        
+class TCULink(TCLink):
+    """TCLink with default settings optimized for UserSwitch
+       (txo=rxo=0/False).  Unfortunately with recent Linux kernels,
+       enabling TX and RX checksum offload on veth pairs doesn't work
+       well with UserSwitch: either it gets terrible performance or
+       TCP packets with bad checksums are generated, forwarded, and
+       *dropped* due to having bad checksums! OVS and LinuxBridge seem
+       to cope with this somehow, but it is likely to be an issue with
+       many software Ethernet bridges."""
+
+    def __init__(self, *args, **kwargs):
+        kwargs.update(txo=False, rxo=False)
+        TCLink.__init__(self, *args, **kwargs)
+        
 class Association(Link):        
     
     printCon = True
@@ -817,12 +859,12 @@ class Association(Link):
         sta.params['rssi'][wlan] = -62
         sta.func[wlan] = 'adhoc'
         sta.intfs[wlan].setIP(sta.params['ip'][wlan])
-        sta.cmd('iw dev %s-wlan%s set type ibss' % (sta, wlan))
+        sta.cmd('iw dev %s set type ibss' % iface)
         sta.params['associatedTo'][wlan] = sta.params['ssid'][wlan]
         info("associating %s to %s...\n" % (iface, sta.params['ssid'][wlan]))
-        sta.pexec('iw dev %s ibss join %s 2412' % (iface, \
+        sta.pexec('iwconfig %s channel %s essid %s mode ad-hoc' % (iface, sta.params['channel'][wlan], \
                                                      sta.params['associatedTo'][wlan]))
-        self.confirmAdhocAssociation(sta, iface, wlan)
+        sta.pexec('iwconfig %s ap %s' % (iface, sta.params['cell'][wlan]))
         
     @classmethod    
     def mesh(self, sta, stations):
@@ -841,7 +883,7 @@ class Association(Link):
 
         sta.intfs[wlan] = sta.params['wlan'][wlan]
         cls = TCLinkWireless
-        cls(sta, port1=wlan, intfName1 = sta.params['wlan'][wlan])
+        cls(sta, port1=wlan, intfName1=sta.params['wlan'][wlan])
         
         sta.cmd('ifconfig %s %s up' % (sta.params['wlan'][wlan], sta.params['ip'][wlan]))
         if 'position' not in sta.params:
@@ -861,26 +903,18 @@ class Association(Link):
         mac = self._macMatchRegex.findall(ifconfig)
         sta.meshMac[wlan] = str(mac[0])
         
-    @classmethod    
-    def confirmAdhocAssociation(self, sta, iface, wlan):
-        associated = ''
-        while(associated == '' or len(associated) == 0):
-            sta.sendCmd("iw dev %s scan ssid | grep %s" % (iface, sta.params['ssid'][wlan]))
-            associated = sta.waitOutput()
-        sta.params['frequency'][wlan] = channelParams.frequency(sta, wlan)
-        
     @classmethod
     def confirmInfraAssociation(self, sta, ap, wlan):
         if self.printCon:
             iface = sta.params['wlan'][wlan]
-            info( "Associating %s to %s\n" % (iface, ap) )
+            info("Associating %s to %s\n" % (iface, ap))
         if 'encrypt' in ap.params:
             associated = ''
             currentTime = time()
             while(associated == '' or len(associated[0]) == 15):
                 associated = self.isAssociated(sta, wlan)
                 if time() >= currentTime + 10:
-                    info( "Error during the association process\n" )
+                    info("Error during the association process\n")
                     break
         sta.params['frequency'][wlan] = channelParams.frequency(ap, 0)
         ap.params['associatedStations'].append(sta)

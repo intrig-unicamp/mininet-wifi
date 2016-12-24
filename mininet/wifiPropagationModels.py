@@ -68,7 +68,7 @@ class propagationModel (object):
         (c) speed of light in vacuum (m)
         (L) System loss"""
         pathLoss = self.pathLoss(sta, ap, dist, wlan)
-        self.rssi = pT + gT + gR - pathLoss
+        self.rssi = '%.2f' % (pT + gT + gR - pathLoss)
         
         return self.rssi
 
@@ -100,7 +100,7 @@ class propagationModel (object):
             dist = 0.1
 
         pathLossDb = 10 * self.exp * math.log10(dist / referenceDistance)
-        self.rssi = pT + gT + gR - (pathLoss + pathLossDb)
+        self.rssi = '%.2f' % (pT + gT + gR - (pathLoss + pathLossDb))
 
         return self.rssi
 
@@ -117,7 +117,7 @@ class propagationModel (object):
             dist = 0.1
 
         pathLossDb = 10 * self.exp * math.log10(dist / referenceDistance) + gRandom
-        self.rssi = pT + gT + gR - (pathLoss + pathLossDb)
+        self.rssi = '%.2f' % (pT + gT + gR - (pathLoss + pathLossDb))
 
         return self.rssi
 
@@ -140,7 +140,7 @@ class propagationModel (object):
             N = pL
             
         pathLossDb = 20 * math.log10(f) + N * math.log10(dist) + lF * nFloors - 28
-        self.rssi = gains - pathLossDb
+        self.rssi = '%.2f' % (gains - pathLossDb)
         
         return self.rssi
 
@@ -153,7 +153,7 @@ class propagationModel (object):
         if dist == 0:
             dist = 0.1
 
-        self.rssi = dist ** 4 / (gT * gR) * (hT * hR) ** 2 * cf
+        self.rssi = '%.2f' % (dist ** 4 / (gT * gR) * (hT * hR) ** 2 * cf)
 
         return self.rssi
 

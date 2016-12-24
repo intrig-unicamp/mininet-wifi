@@ -10,7 +10,7 @@ import threading
 import random
 from pylab import math, cos, sin
 from mininet.log import info
-from mininet.wifiPlot import plot
+from mininet.wifiPlot import plot2d, plot3d
 from mininet.wifiMobility import mobility
 from mininet.wifiChannel import channelParams, setInfraChannelParams
 from mininet.wifiDevices import deviceDataRate
@@ -22,8 +22,8 @@ def instantiateGraph(mininet):
         nodes = mininet.stations + mininet.accessPoints
         for node in nodes:
             replayingMobility.addNode(node)    
-        plot.instantiateGraph(MAX_X, MAX_Y)
-        plot.plotGraph(nodes, [], [], MAX_X, MAX_Y)
+        plot2d.instantiateGraph(MAX_X, MAX_Y)
+        plot2d.plotGraph(nodes, [], [], MAX_X, MAX_Y)
 
 class replayingMobility(object):
     """Replaying Mobility Traces"""
@@ -106,7 +106,7 @@ class replayingBandwidth(object):
         # mobility.getAPsInRange(sta)
         if mobility.DRAW:
             try:
-                plot.graphUpdate(sta)
+                plot2d.graphUpdate(sta)
             except:
                 pass
 
@@ -229,7 +229,7 @@ class replayingRSSI(object):
         mobility.getAPsInRange(sta)
         if mobility.DRAW:
             try:
-                plot.graphUpdate(sta)
+                plot2d.graphUpdate(sta)
             except:
                 pass
         # sta.verifyingNodes(sta)
