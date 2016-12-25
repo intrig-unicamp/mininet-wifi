@@ -3,6 +3,7 @@ author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
         ramonfontes.com
 """
 
+from mininet.wmediumdConnector import WmediumdServerConn, WmediumdLink
 from mininet.wifiChannel import channelParams
 from mininet.log import debug, info
 

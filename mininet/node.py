@@ -181,6 +181,7 @@ class Node(object):
         """adding parameters in wifinodes"""
         
         node.params['rssi'] = []
+        node.params['snr'] = []
         node.params['frequency'] = []
         node.params['wlan'] = []
         node.params['mac'] = []
@@ -283,6 +284,7 @@ class Node(object):
             else:
                 node.params['wlan'].append(node.name + '-wlan' + str(n))
                 node.params['rssi'].append(0)
+                node.params['snr'].append(0)
             node.params.pop("wlans", None)
             
                         

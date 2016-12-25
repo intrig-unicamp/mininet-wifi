@@ -5,14 +5,14 @@ author: Patrick Grosse (patrick.grosse@uni-muenster.de)
 """
 
 import os
+import socket
 import tempfile
 import subprocess
-
 import signal
-
 import time
+import struct
 
-from link import Intf
+#from link import Intf
 from mininet.log import info
 from wifiModule import module
 
@@ -32,7 +32,8 @@ class WmediumdConn(object):
     wmd_logfile = None
 
     @classmethod
-    def set_wmediumd_data(cls, intfrefs, links, executable='wmediumd', parameters=None, auto_add_links=True,
+    def set_wmediumd_data(cls, intfrefs, links, executable='wmediumd', with_server=False, parameters=None,
+                          auto_add_links=True,
                           default_auto_snr=0):
         """
         Set the data for the wmediumd daemon
@@ -40,6 +41,7 @@ class WmediumdConn(object):
         :param intfrefs: A list of all WmediumdIntfRef that should be managed in wmediumd
         :param links: A list of WmediumdLink
         :param executable: The wmediumd executable
+        :param with_server: True if the wmediumd server should be started
         :param parameters: Parameters to pass to the wmediumd executable
         :param auto_add_links: If true, it will add all missing links pairs with the default_auto_snr as SNR
         :param default_auto_snr: The default SNR
@@ -49,6 +51,8 @@ class WmediumdConn(object):
         """
         if parameters is None:
             parameters = ['-l', '4']
+        if with_server:
+            parameters.append('-s')
         cls.intfrefs = intfrefs
         cls.links = links
         cls.executable = executable
@@ -265,9 +269,9 @@ class DynamicWmediumdIntfRef(WmediumdIntfRef):
         return self.__sta.name
 
     def get_intf_name(self):
-        if isinstance(self.__intf, Intf):
-            return self.__intf.name
-        elif not self.__intf:
+        #if isinstance(self.__intf, Intf):
+        #    return self.__intf.name
+        if not self.__intf:
             return self.__sta.params['wlan'][0]
         elif isinstance(self.__intf, str):
             return self.__intf
@@ -319,3 +323,61 @@ def prevent_sig_passtrough():
     preexec_fn for Popen to prevent signals being passed through
     """
     os.setpgrp()
+
+
+class WmediumdServerConn(object):
+    __mac_struct_fmt = '6s'
+    __snr_update_request_struct = struct.Struct('!' + __mac_struct_fmt + __mac_struct_fmt + 'B')
+    __snr_update_response_struct = struct.Struct(__snr_update_request_struct.format + 'B')
+    sock = None
+    connected = False
+
+    @classmethod
+    def connect(cls, uds_address='/tmp/wserver_soc'):
+        # type: (str) -> None
+        """
+        Connect to the wmediumd server
+        :param uds_address: The UNIX domain socket
+        """
+        if cls.connected:
+            raise Exception("Already connected to wmediumd server")
+        cls.sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        print '*** Connecting to wmediumd server %s' % uds_address
+        cls.sock.connect(uds_address)
+        cls.connected = True
+
+    @classmethod
+    def disconnect(cls):
+        # type: () -> None
+        """
+        Disconnect from the wmediumd server
+        """
+        if not cls.connected:
+            raise Exception("Not yet connected to wmediumd server")
+        cls.sock.close()
+        cls.connected = False
+
+    @classmethod
+    def send_update(cls, link):
+        # type: (WmediumdLink) -> int
+        """
+        Send an update to the wmediumd server
+        :param link: The WmediumdLink to update
+        :return: 0 for success, 1 if the interface was not found, 2 the SNR is invalid
+        """
+        cls.sock.send(cls.__create_update_request(link))
+        return cls.sock.recv(cls.__snr_update_response_struct.size)
+
+    @classmethod
+    def __create_update_request(cls, link):
+        # type: (WmediumdLink) -> str
+        mac_from = link.sta1intfref.get_intf_mac().replace(':', '').decode('hex')
+        mac_to = link.sta2intfref.get_intf_mac().replace(':', '').decode('hex')
+        snr = link.snr
+        return cls.__snr_update_request_struct.pack(mac_from, mac_to, snr)
+
+    @classmethod
+    def __parse_update_response(cls, recv_bytes):
+        # type: (str) -> int
+        tup = cls.__snr_update_response_struct.unpack(recv_bytes)
+        return tup[-1]
