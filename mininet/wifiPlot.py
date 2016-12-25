@@ -237,7 +237,6 @@ class plot2d (object):
             node.pltNode.set_data(node.params['position'][0], node.params['position'][1])
             self.text(node)
             self.circle(node)
-            self.graphUpdate(node)
         
         for c in range(0, len(srcConn)):
             line = self.plotLine2d([srcConn[c].params['position'][0], dstConn[c].params['position'][0]], \
