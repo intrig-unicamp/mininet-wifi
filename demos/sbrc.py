@@ -35,7 +35,7 @@ def topology():
     net.configureWifiNodes()
 
     """uncomment to plot graph"""
-    net.plotGraph(max_x=240, max_y=240)
+    net.plotGraph(max_x=220, max_y=220)
 
     """Routing"""
     net.meshRouting('custom')
@@ -64,7 +64,7 @@ def topology():
         ip+=1
 
     "*** Available models: RandomWalk, TruncatedLevyWalk, RandomDirection, RandomWayPoint, GaussMarkov, ReferencePoint, TimeVariantCommunity ***"
-    net.startMobility(startTime=0, model='RandomWalk', max_x=200, max_y=220, min_v=0.1, max_v=0.2)
+    net.startMobility(startTime=0, model='RandomWalk', max_x=220, max_y=220, min_v=0.1, max_v=0.2)
 
     print "*** Running CLI"
     CLI( net )
