@@ -39,7 +39,7 @@ class vanet(object):
 
     def __init__(self, cars, baseStations, nroads, srcConn, dstConn, MAX_X, MAX_Y):
 
-        mobility.staList = cars
+        mobility.stations = cars
         mobility.apList = baseStations
         mobility.MAX_X = MAX_X
         mobility.MAX_Y = MAX_Y

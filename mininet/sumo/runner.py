@@ -8,11 +8,11 @@ from mininet.wifiMobility import mobility
 
 class sumo(object):
 	
-	def __init__( self, stations, baseStations, program, config_file ):
+	def __init__( self, stations, accessPoints, program, config_file ):
 		try:			
-			mobility.staList = stations
-			mobility.apList = baseStations
-			self.start(stations, baseStations, program, config_file)
+			mobility.stations = stations
+			mobility.accessPoints = accessPoints
+			self.start(stations, accessPoints, program, config_file)
 		except:
 			pass
 		

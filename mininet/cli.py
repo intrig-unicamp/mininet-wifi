@@ -58,10 +58,10 @@ class CLI(Cmd):
                 if 'position' not in sta.params:
                     sta.params['position'] = 0,0,0
             
-            if mobility.apList == []:
-                mobility.apList = mininet.accessPoints
-            if mobility.staList == []: 
-                mobility.staList = mininet.stations
+            if mobility.accessPoints == []:
+                mobility.accessPoints = mininet.accessPoints
+            if mobility.stations == []: 
+                mobility.stations = mininet.stations
             nodes = mininet.stations + mininet.accessPoints + mininet.plotNodes
             
             if mininet.is3d:
