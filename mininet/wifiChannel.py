@@ -149,39 +149,59 @@ class setAdhocChannelParams (object):
     dist = 0
     i = 0
 
-    def __init__(self, node1, wlan, dist, staList):
+    def __init__(self, sta, wlan, dist, staList):
         self.dist = dist
         # self.calculateInterference(node1, node2, dist, staList, wlan)
         delay_ = channelParams.delay(self.dist)
         latency_ = channelParams.latency(self.dist)
         loss_ = channelParams.loss(self.dist)
-        bw_ = self.bw(node1, self.dist, wlan)
-        channelParams.tc(node1, wlan, bw_, loss_, latency_, delay_)
-
+        bw_ = self.bw(sta, self.dist, wlan)
+        dist = self.getDistance(dist)
+        self.setRSSI(sta, wlan, dist) 
+        self.setSNR(sta, wlan)
+        channelParams.tc(sta, wlan, bw_, loss_, latency_, delay_)
+        
+    @classmethod
+    def getDistance(self, ref_dist):
+        """get Distance"""
+        dist = ref_dist
+        if self.i != 0:
+            dist = self.dist / self.i
+        return dist
+    
     @classmethod
     def bw(self, sta, dist, wlan):
+        """set BW"""
+        value = deviceDataRate(sta, None, wlan)
+        custombw = value.rate
+        rate = eval(channelParams.equationBw)
+        
+        if rate <= 0:
+            rate = 0.1
+        return rate
+    
+    @classmethod
+    def setRSSI(self, sta, wlan, dist):
+        """set RSSI"""
         lF = channelParams.lF
         sl = channelParams.sl
         nFloors = channelParams.nFloors
         gRandom = channelParams.gRandom
         pL = channelParams.pL
-  
         gT = 0
         hT = 0
         pT = sta.params['txpower'][wlan]
         gR = sta.params['antennaGain'][wlan]
         hR = sta.params['antennaHeight'][wlan]
-        if self.i != 0:
-            dist = self.dist / self.i
+        
         value = propagationModel(sta, None, dist, wlan, pT, gT, gR, hT, hR, sl, lF, pL, nFloors, gRandom)
-        sta.params['rssi'][wlan] = value.rssi
-
-        value = deviceDataRate(sta, None, wlan)
-        custombw = value.rate
-        rate = eval(channelParams.equationBw)
-        if rate <= 0:
-            rate = 0.1
-        return rate
+        sta.params['rssi'][wlan] = float(value.rssi)
+        
+    @classmethod
+    def setSNR(self, sta, wlan):
+        """set SNR"""
+        sta.params['snr'][wlan] = float('%.2f' % (sta.params['rssi'][wlan] - (-90.0)))
+        
 
 class setInfraChannelParams (object):
     """Set Infra Channel Parameters"""
@@ -192,28 +212,39 @@ class setInfraChannelParams (object):
         latency_ = channelParams.latency(dist)
         loss_ = channelParams.loss(dist)
         bw_ = self.bw(sta, ap, dist, wlan)
+        self.setRSSI(sta, ap, wlan, dist) 
+        self.setSNR(sta, wlan)
         channelParams.tc(sta, wlan, bw_, loss_, latency_, delay_)
 
     @classmethod
     def bw(self, sta, ap, dist, wlan):
+        """set BW"""
+        value = deviceDataRate(sta, ap, wlan)
+        custombw = value.rate
+        rate = eval(channelParams.equationBw)
+       
+        if rate <= 0.0:
+            rate = 0.1
+        return rate
+    
+    @classmethod
+    def setRSSI(self, sta, ap, wlan, dist):
+        """set RSSI"""
         lF = channelParams.lF
         sl = channelParams.sl
         nFloors = channelParams.nFloors
         gRandom = channelParams.gRandom
         pL = channelParams.pL
-
-        pT = ap.params['txpower'][0]
-        gT = ap.params['antennaGain'][0]
-        hT = ap.params['antennaHeight'][0]
+        gT = 0
+        hT = 0
+        pT = sta.params['txpower'][wlan]
         gR = sta.params['antennaGain'][wlan]
         hR = sta.params['antennaHeight'][wlan]
-
-        value = propagationModel(sta, ap, dist, wlan, pT, gT, gR, hT, hR, sl, lF, pL, nFloors, gRandom)
-        sta.params['rssi'][wlan] = value.rssi  # random.uniform(value.rssi-1, value.rssi+1)
         
-        value = deviceDataRate(sta, ap, wlan)
-        custombw = value.rate
-        rate = eval(channelParams.equationBw)
-        if rate <= 0.0:
-            rate = 0.1
-        return rate
+        value = propagationModel(sta, ap, dist, wlan, pT, gT, gR, hT, hR, sl, lF, pL, nFloors, gRandom)
+        sta.params['rssi'][wlan] = float(value.rssi)  # random.uniform(value.rssi-1, value.rssi+1)
+        
+    @classmethod
+    def setSNR(self, sta, wlan):
+        """set SNR"""
+        sta.params['snr'][wlan] = float('%.2f' % (sta.params['rssi'][wlan] - (-90.0)))
