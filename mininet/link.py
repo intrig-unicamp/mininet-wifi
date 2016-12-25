@@ -857,6 +857,7 @@ class Association(Link):
         wlan = sta.ifaceToAssociate
         iface = sta.params['wlan'][wlan]
         sta.params['rssi'][wlan] = -62
+        sta.params['snr'][wlan] = -62 - (-90.0)
         sta.func[wlan] = 'adhoc'
         sta.intfs[wlan].setIP(sta.params['ip'][wlan])
         sta.cmd('iw dev %s set type ibss' % iface)
@@ -870,6 +871,7 @@ class Association(Link):
     def mesh(self, sta, stations):
         wlan = sta.ifaceToAssociate
         sta.params['rssi'][wlan] = -62
+        sta.params['snr'][wlan] = -62 - (-90.0)
         if sta.params['mac'][wlan] != '':
             sta.cmd('iw dev %s interface add %s-mp%s type mp' % (sta.params['wlan'][wlan], sta, wlan))
             sta.cmd('ifconfig %s-mp%s down' % (sta, wlan))
