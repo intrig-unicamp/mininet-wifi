@@ -20,8 +20,8 @@ class mobility (object):
     """ Mobility """
 
     associationControlMethod = False
-    apList = []
-    staList = []
+    accessPoints = []
+    stations = []
     wallList = []
     DRAW = False
     continue_ = True
@@ -69,7 +69,7 @@ class mobility (object):
         else:
             if dist >= 0.01 and sta.params['associatedTo'][wlan] == ap:
                 self.updateParams(sta, ap, wlan)
-                setInfraChannelParams(sta, ap, wlan, dist, self.staList)
+                setInfraChannelParams(sta, ap, wlan, dist, self.stations)
             
             if sta.params['associatedTo'][wlan] == '':        
                 associated = False        
@@ -95,7 +95,7 @@ class mobility (object):
                                 elif ap.params['encrypt'][0] == 'wep':
                                     self.associate_wep(sta, ap, wlan)
                             if dist >= 0.01 and sta.params['associatedTo'][wlan] != '':
-                                setInfraChannelParams(sta, ap, wlan, dist, self.staList)
+                                setInfraChannelParams(sta, ap, wlan, dist, self.stations)
         
     @classmethod
     def verifyPasswd(self, sta, ap, wlan):
@@ -145,10 +145,10 @@ class mobility (object):
         currentTime = time.time()
         i = 1
         
-        self.staList = stations
-        self.apList = aps
+        self.stations = stations
+        self.accessPoints = aps
         self.wallList = walls
-        nodes = self.staList + self.apList + plotnodes
+        nodes = self.stations + self.accessPoints + plotnodes
 
         if self.DRAW == True:
             if self.is3d:
@@ -183,15 +183,15 @@ class mobility (object):
 
         np.random.seed(seed)
         
-        self.staList = stations
-        self.apList = aps
+        self.stations = stations
+        self.accessPoints = aps
         self.wallList = walls
-        nodes = self.staList + self.apList + plotNodes
+        nodes = self.stations + self.accessPoints + plotNodes
 
         # max waiting time
         MAX_WT = 100.
 
-        for sta in self.staList:
+        for sta in self.stations:
             if sta.max_x == 0:
                 sta.max_x = MAX_X
             if sta.max_y == 0:
@@ -252,7 +252,7 @@ class mobility (object):
                 
     @classmethod
     def getAPsInRange(self, sta):
-        for ap in self.apList:
+        for ap in self.accessPoints:
             dist = channelParams.getDistance(sta, ap)
             if dist < ap.params['range']:
                 if ap not in sta.params['apsInRange']:
@@ -263,7 +263,7 @@ class mobility (object):
 
     @classmethod
     def handoverCheck(self, sta, wlan):
-        for ap in self.apList:
+        for ap in self.accessPoints:
             dist = channelParams.getDistance(sta, ap)
             self.getAPsInRange(sta)
             self.handover(sta, ap, wlan, dist)
@@ -271,18 +271,18 @@ class mobility (object):
     @classmethod
     def parameters(self):
         while self.continue_:
-            for node in self.staList:
+            for node in self.stations:
                 for wlan in range(0, len(node.params['wlan'])):
                     if node.func[wlan] == 'mesh' or node.func[wlan] == 'adhoc':
                         if node.type == 'vehicle':
                             node = node.params['carsta']
                             wlan = 0
-                        dist = listNodes.pairingNodes(node, wlan, self.staList)
+                        dist = listNodes.pairingNodes(node, wlan, self.stations)
                         if dist >= 0.01:
-                            setAdhocChannelParams(node, wlan, dist, self.staList)
+                            setAdhocChannelParams(node, wlan, dist, self.stations)
                     else:
                         self.handoverCheck(node, wlan)
             if meshRouting.routing == 'custom':
-                meshRouting(self.staList)
+                meshRouting(self.stations)
             # have to verify this
             eval(self.continueParams)

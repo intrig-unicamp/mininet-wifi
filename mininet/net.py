@@ -459,9 +459,9 @@ class Mininet(object):
         self.nameToNode[ name ] = sw
         return sw
 
-    def delSwitch( self, switch ):
+    def delSwitch(self, switch):
         "Delete a switch"
-        self.delNode( switch, nodes=self.switches )
+        self.delNode(switch, nodes=self.switches)
 
     # Still in development
     def addWall(self, name, cls=None, **params):
@@ -517,11 +517,11 @@ class Mininet(object):
             self.nameToNode[ name ] = controller_new
         return controller_new
     
-    def delController( self, controller ):
+    def delController(self, controller):
         """Delete a controller
            Warning - does not reconfigure switches, so they
            may still attempt to connect to it!"""
-        self.delNode( controller )
+        self.delNode(controller)
 
     def addNAT(self, name='nat0', connect=True, inNamespace=False,
                 **params):
@@ -564,9 +564,9 @@ class Mininet(object):
         "net[ name ] operator: Return node with given name"
         return self.nameToNode[ key ]
     
-    def __delitem__( self, key ):
+    def __delitem__(self, key):
         "del net[ name ] operator - delete node with given name"
-        self.delNode( self.nameToNode[ key ] )
+        self.delNode(self.nameToNode[ key ])
 
     def __iter__(self):
         "return iterator over node names"
@@ -820,6 +820,17 @@ class Mininet(object):
         self.ifb = True
         channelParams.ifb = True
 
+    def configureLinkWireless(self):
+        nodes = self.stations + self.cars
+        for node in nodes:
+            for wlan in range(0, len(node.params['wlan'])):
+                if 'car' in node.name and node.type == 'station':
+                    pass
+                else:
+                    cls = TCLinkWireless
+                    cls(node, intfName1=node.params['wlan'][wlan])
+
+
     def configureWifiNodes(self):
         """nodes: all nodes
            module.start: start mac80211_hwsim module
@@ -829,7 +840,8 @@ class Mininet(object):
         params = {}
         params['ifb'] = self.ifb
         nodes = self.stations + self.cars + self.accessPoints
-        module.start(nodes, self.nRadios, self.alternativeModule, **params)
+        self.configureLinkWireless() 
+        module.start(nodes, self.nRadios, self.alternativeModule, **params)               
         self.configureAP()  
         self.isWiFi = True
         self.justKeepingBackwardsCompatibility = False
@@ -923,28 +935,28 @@ class Mininet(object):
             self.links.append(link)
             return link
         
-    def delLink( self, link ):
+    def delLink(self, link):
         "Remove a link from this network"
         link.delete()
-        self.links.remove( link )
+        self.links.remove(link)
 
-    def linksBetween( self, node1, node2 ):
+    def linksBetween(self, node1, node2):
         "Return Links between node1 and node2"
         return [ link for link in self.links
-                 if ( node1, node2 ) in (
-                    ( link.intf1.node, link.intf2.node ),
-                    ( link.intf2.node, link.intf1.node ) ) ]
+                 if (node1, node2) in (
+                    (link.intf1.node, link.intf2.node),
+                    (link.intf2.node, link.intf1.node)) ]
 
-    def delLinkBetween( self, node1, node2, index=0, allLinks=False ):
+    def delLinkBetween(self, node1, node2, index=0, allLinks=False):
         """Delete link(s) between node1 and node2
            index: index of link to delete if multiple links (0)
            allLinks: ignore index and delete all such links (False)
            returns: deleted link(s)"""
-        links = self.linksBetween( node1, node2 )
+        links = self.linksBetween(node1, node2)
         if not allLinks:
             links = [ links[ index ] ]
         for link in links:
-            self.delLink( link )
+            self.delLink(link)
         return links
 
     def tc(self, sta, bw):
@@ -1666,11 +1678,11 @@ class Mininet(object):
         channelParams.pL = pL  # Power Loss Coefficient
         
         for sta in self.stations:
-            if 'position' in sta.params and sta not in mobility.staList:
-                mobility.staList.append(sta)
+            if 'position' in sta.params and sta not in mobility.stations:
+                mobility.stations.append(sta)
         for ap in self.accessPoints:
-            if 'position' in ap.params and ap not in mobility.apList:
-                mobility.apList.append(ap)
+            if 'position' in ap.params and ap not in mobility.accessPoints:
+                mobility.accessPoints.append(ap)
 
     def associationControl(self, ac):
         """Defines an association control"""

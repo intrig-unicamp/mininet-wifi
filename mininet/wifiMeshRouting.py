@@ -4,7 +4,8 @@ author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
 """
 
 from mininet.wifiChannel import channelParams
-from mininet.log import debug
+from mininet.wmediumdConnector import WmediumdServerConn, WmediumdLink
+from mininet.log import debug 
 
 class listNodes (object):
 
@@ -19,7 +20,7 @@ class listNodes (object):
         del self.nodesY[:]
 
     @classmethod
-    def pairingNodes(self, sta, wlan, stationList, **params):
+    def pairingNodes(self, sta, wlan, stations, **params):
         """Pairing nodes"""
         i = 1
         ref_distance = 0
@@ -35,7 +36,7 @@ class listNodes (object):
             if len(par) != 0:
                 sta = par[0]
                 par.pop(0)
-            for ref_sta in stationList:
+            for ref_sta in stations:
                 if ref_sta.type == 'vehicle':
                     car = ref_sta
                     ref_sta = ref_sta.params['carsta']
@@ -91,25 +92,25 @@ class meshRouting (object):
     """Mesh Routing"""
     routing = ''
 
-    def __init__(self, stationList):
+    def __init__(self, stations):
         
-        for node in stationList:
+        for node in stations:
             for wlan in range(0, len(node.params['wlan'])):
                 if node.func[wlan] == 'mesh':
                     """Mesh Routing"""
                     if node.type == 'vehicle':
                         node = node.params['carsta']
                         wlan = 0
-                    self.customMeshRouting(node, wlan, stationList)
+                    self.customMeshRouting(node, wlan, stations)
         listNodes.clearList()
         listNodes.ssid_ID = 0
 
-    def customMeshRouting(self, sta, wlan, stationList, **params):
+    def customMeshRouting(self, sta, wlan, stations):
         """Custom Mesh Routing"""
         associate = False
         controlMeshMac = []
         command = ''
-        for ref_sta in stationList:
+        for ref_sta in stations:
             if ref_sta.type == 'vehicle':
                 ref_sta = ref_sta.params['carsta']
             for ref_wlan in range(len(ref_sta.params['wlan'])):
@@ -133,7 +134,7 @@ class meshRouting (object):
             sta_ref.append(sta)
             j = 0
             exist.append(sta)
-            while j < len(stationList):
+            while j < len(stations):
                 j += 1
                 if sta_ref == []:
                     break
@@ -141,27 +142,33 @@ class meshRouting (object):
                     newsta = sta_ref[0]
                 for x, y in zip(listNodes.nodesX, listNodes.nodesY):
                     if x == sta and y not in exist:
-                        command = 'iw dev %s mpath new %s next_hop %s' % (sta.params['wlan'][wlan], \
-                                                                          y.meshMac[wlan], y.meshMac[wlan])
-                        debug('\n'+command)
-                        sta.pexec(command)
+                        if WmediumdServerConn.connected:
+                            WmediumdServerConn.send_update(WmediumdLink(sta.wmediumdIface, y.wmediumdIface, sta.params['snr'][wlan]))                            
+                        else:
+                            command = 'iw dev %s mpath new %s next_hop %s' % (sta.params['wlan'][wlan], \
+                                                                              y.meshMac[wlan], y.meshMac[wlan])
+                            debug('\n'+command)
+                            sta.pexec(command)
                         exist.append(y)
                         controlMeshMac.append(y.meshMac[wlan])
                         sta_ref.append(y)
                     elif x == newsta and y not in exist:
-                        command = 'iw dev %s mpath new %s next_hop %s' % (sta.params['wlan'][wlan], \
-                                                                          y.meshMac[wlan], x.meshMac[wlan])
-                        debug('\n'+command)
-                        sta.pexec(command)
+                        if self.wmediumd_is_activated:
+                            pass
+                        else:
+                            command = 'iw dev %s mpath new %s next_hop %s' % (sta.params['wlan'][wlan], \
+                                                                              y.meshMac[wlan], x.meshMac[wlan])
+                            debug('\n'+command)
+                            sta.pexec(command)
                         exist.append(y)
                         controlMeshMac.append(y.meshMac[wlan])
                         sta_ref.append(y)
                 if newsta in sta_ref:
                     sta_ref.remove(newsta)
 
-        """delete all unknown paths"""
+        """delete unknown paths"""
         if associate:
-            for ref_sta in stationList:
+            for ref_sta in stations:
                 for ref_wlan in range(len(ref_sta.params['wlan'])):
                     if ref_sta != sta and ref_sta.func[ref_wlan] == 'mesh' :
                         if ref_sta.type == 'vehicle':

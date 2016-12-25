@@ -6,34 +6,14 @@ import glob
 import os
 import re
 import subprocess
-import time
 from mininet.log import debug, info
-from mininet.link import TCLinkWireless
-from mininet.wifiMobility import mobility
-from subprocess import (check_output as co,
-                         CalledProcessError)
+#from mininet.link import TCLinkWireless
 
 class module(object):
     """ Start and Stop mac80211_hwsim module """
 
     wlan_list = []
-
-    @classmethod
-    def killprocs(self, pattern):
-        "Reliably terminate processes matching a pattern (including args)"
-        os.system('pkill -9 -f %s' % pattern)
-        # Make sure they are gone
-        while True:
-            try:
-                pids = co([ 'pgrep', '-f', pattern ])
-            except CalledProcessError:
-                pids = ''
-            if pids:
-                os.system('pkill -9 -f %s' % pattern)
-                time.sleep(.5)
-            else:
-                break
-
+    
     @classmethod
     def loadModule(self, wifiRadios, alternativeModule=''):
         """ Load wireless Module """
@@ -64,8 +44,13 @@ class module(object):
         except:
             pass
         
-        if mobility.apList != []:
-            self.killprocs('hostapd')
+        try:
+            h = subprocess.check_output("ps -aux | grep -ic \'hostapd\'",
+                                                          shell=True)
+            if h >= 2:
+                os.system('pkill -f \'hostapd\'')
+        except:
+            pass 
             
         try:
             h = subprocess.check_output("ps -aux | grep -ic \'wpa_supplicant -B -Dnl80211\'",
@@ -78,7 +63,13 @@ class module(object):
     @classmethod
     def start(self, nodes, wifiRadios, alternativeModule='', **params):
         """Starting environment"""
-        self.killprocs('hostapd')
+        try:
+            h = subprocess.check_output("ps -aux | grep -ic \'hostapd\'",
+                                                          shell=True)
+            if h >= 2:
+                os.system('pkill -f \'hostapd\'')
+        except:
+            pass 
         try:
             (subprocess.check_output("lsmod | grep mac80211_hwsim",
                                                           shell=True))
@@ -165,8 +156,6 @@ class module(object):
                             node.func[wlan] = 'mesh'
                         else:
                             if node.type != 'accessPoint':
-                                cls = TCLinkWireless
-                                cls(node, intfName1=node.params['wlan'][wlan])
                                 if node.params['txpower'][wlan] != 20:
                                     node.cmd('iwconfig %s txpower %s' % (node.params['wlan'][wlan], node.params['txpower'][wlan]))
                         if node.type != 'accessPoint':
