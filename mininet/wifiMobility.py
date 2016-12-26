@@ -14,6 +14,7 @@ from mininet.wifiMobilityModels import gauss_markov, \
 from mininet.wifiChannel import channelParams, setAdhocChannelParams, setInfraChannelParams
 from mininet.wifiAssociationControl import associationControl
 from mininet.wifiMeshRouting import listNodes, meshRouting
+from mininet.wmediumdConnector import WmediumdServerConn
 from mininet.wifiPlot import plot2d, plot3d
 
 class mobility (object):
@@ -278,8 +279,8 @@ class mobility (object):
                             node = node.params['carsta']
                             wlan = 0
                         dist = listNodes.pairingNodes(node, wlan, self.stations)
-                        if dist >= 0.01:
-                            setAdhocChannelParams(node, wlan, dist, self.stations)
+                        if WmediumdServerConn.connected == False and dist >= 0.01:
+                            setAdhocChannelParams(node, wlan, dist)
                     else:
                         self.handoverCheck(node, wlan)
             if meshRouting.routing == 'custom':

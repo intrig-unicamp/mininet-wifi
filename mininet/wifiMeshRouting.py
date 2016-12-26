@@ -5,6 +5,7 @@ author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
 
 from mininet.wifiChannel import channelParams
 from mininet.wmediumdConnector import WmediumdServerConn, WmediumdLink
+from mininet.wifiChannel import setAdhocChannelParams
 from mininet.log import debug 
 
 class listNodes (object):
@@ -124,6 +125,8 @@ class meshRouting (object):
                         if ref_sta.func[ref_wlan] == 'mesh':
                             if sta.params['associatedTo'][wlan] == ref_sta.params['associatedTo'][ref_wlan]:
                                 associate = True
+                                if WmediumdServerConn.connected == True:
+                                    setAdhocChannelParams(sta, wlan, dist)
                 elif 'position' not in sta.params:
                     associate = True
 
@@ -153,7 +156,7 @@ class meshRouting (object):
                         controlMeshMac.append(y.meshMac[wlan])
                         sta_ref.append(y)
                     elif x == newsta and y not in exist:
-                        if self.wmediumd_is_activated:
+                        if WmediumdServerConn.connected:
                             pass
                         else:
                             command = 'iw dev %s mpath new %s next_hop %s' % (sta.params['wlan'][wlan], \
