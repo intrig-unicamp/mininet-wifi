@@ -13,8 +13,12 @@ Mininet-WiFi is a fork of Mininet (http://mininet.org/) which allows the using o
 step 1: $ sudo apt-get install git  
 step 2: $ git clone https://github.com/intrig-unicamp/mininet-wifi  
 step 3: $ cd mininet-wifi  
-step 4: $ sudo util/install.sh -Wnfv      
-
+step 4: $ sudo util/install.sh -Wnfv -W: wireless dependencies   
+                                     -n: mininet-wifi dependencies    
+                                     -f: OpenFlow   
+                                     -v: OpenvSwitch   
+                                     -l: wmediumd (optional)   
+   
 ##Note
 Mininet-WiFi should work fine in any Ubuntu distribution from 14.04, but in some cases (only if you have problems when start it) you have to stop NetworkManager with `stop network-manager` (you can also use `sudo systemctl stop network-manager` or `sudo service network-manager stop`).    
 
