@@ -4,7 +4,6 @@ author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
 
 import glob
 import os
-import re
 import subprocess
 from mininet.log import debug, info
 
@@ -100,32 +99,10 @@ class module(object):
         return phy
     
     @classmethod
-    def getMacAddress(self, sta, wlan):
-        """ get Mac Address of any Interface """
-        _macMatchRegex = re.compile(r'..:..:..:..:..:..')
-        debug('Get Mac Address: ifconfig %s\n' % sta.params['wlan'][wlan])
-        ifconfig = str(sta.pexec('ifconfig %s' % sta.params['wlan'][wlan]))
-        mac = _macMatchRegex.findall(ifconfig)
-        return mac[0]
+    def loadIFB(self, wlans):
+        debug('\nLoading IFB: modprobe ifb numifbs=%s' % wlans)
+        os.system('modprobe ifb numifbs=%s' % wlans)
     
-    @classmethod
-    def setMacAddress(self, sta, wlan):
-        """Define a mac address when the interface already exists in the station"""
-        sta.pexec('ip link set %s down' % sta.params['wlan'][wlan])
-        debug('Set Mac Address: ip link set %s address %s\n' % (sta.params['wlan'][wlan], sta.params['mac'][wlan]))
-        sta.pexec('ip link set %s address %s' % (sta.params['wlan'][wlan], sta.params['mac'][wlan]))
-        sta.pexec('ip link set %s up' % sta.params['wlan'][wlan])
-
-    @classmethod
-    def ifbSupport(self, node, wlan, ifbID):
-        """Support to Intermediate Functional Block (IFB) Devices"""
-        os.system('ip link set dev ifb%s netns %s' % (ifbID, node.pid))
-        node.cmd('ifconfig ifb%s up' % ifbID)                        
-        node.cmd('tc qdisc add dev %s handle ffff: ingress' % node.params['wlan'][wlan])
-        node.cmd('tc filter add dev %s parent ffff: protocol ip u32 \
-                                match u32 0 0 action mirred egress redirect dev ifb%s' % (node.params['wlan'][wlan], ifbID))
-        node.ifb.append(ifbID)
-
     @classmethod
     def assignIface(self, nodes, physicalWlan_list, phy_list, **params):
         """Assign virtual interfaces for all nodes"""
@@ -136,8 +113,7 @@ class module(object):
         try:
             self.wlan_list = self.getWlanIface(physicalWlan_list)
             if ifb:
-                debug('\nmodprobe ifb numifbs=%s' % len(self.wlan_list))
-                os.system('modprobe ifb numifbs=%s' % len(self.wlan_list))
+                self.loadIFB(len(self.wlan_list))
                 ifbID = 0
             for node in nodes:
                 if (node.type == 'station' or node.type == 'vehicle') or 'inNamespace' in node.params:    
@@ -146,7 +122,7 @@ class module(object):
                         os.system('iw phy %s set netns %s' % (phy_list[0], node.pid))
                         node.cmd('ip link set %s name %s up' % (self.wlan_list[0], node.params['wlan'][wlan]))
                         if ifb:
-                            self.ifbSupport(node, wlan, ifbID)  # Adding Support to IFB
+                            node.ifbSupport(wlan, ifbID)  # Adding Support to IFB
                             ifbID += 1
                         if 'car' in node.name and node.type == 'station':
                             node.cmd('iw dev %s-wlan%s interface add %s-mp%s type mp' % (node, wlan, node, wlan))
@@ -156,12 +132,15 @@ class module(object):
                         else:
                             if node.type != 'accessPoint':
                                 if node.params['txpower'][wlan] != 20:
-                                    node.cmd('iwconfig %s txpower %s' % (node.params['wlan'][wlan], node.params['txpower'][wlan]))
+                                    node.setTxPower(node.params['wlan'][wlan], node.params['txpower'][wlan])
                         if node.type != 'accessPoint':
                             if node.params['mac'][wlan] == '':
-                                node.params['mac'][wlan] = self.getMacAddress(node, wlan)
+                                iface = node.params['wlan'][wlan]
+                                node.params['mac'][wlan] = node.getMAC(iface)
                             else:
-                                self.setMacAddress(node, wlan)
+                                iface = node.params['wlan'][wlan]
+                                mac = node.params['mac'][wlan]
+                                node.setMAC(mac, iface)
                         self.wlan_list.pop(0)
                         phy_list.pop(0)
         except:
