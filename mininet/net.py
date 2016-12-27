@@ -115,7 +115,7 @@ from mininet.util import (quietRun, fixLimits, numCores, ensureRoot,
                            macColonHex, ipStr, ipParse, netParse, ipAdd,
                            waitListening)
 from mininet.term import cleanUpScreens, makeTerms
-from mininet.wifiChannel import channelParams, setInfraChannelParams, setAdhocChannelParams
+from mininet.wifiChannel import setChannelParams
 from mininet.wifiDevices import deviceRange, deviceDataRate
 from mininet.wifiMobility import mobility
 from mininet.wifiModule import module
@@ -800,7 +800,7 @@ class Mininet(object):
                 cls.init_(ap, **wifiparam)
                 
                 if 'phywlan' not in ap.params:
-                    ap.params['frequency'][wlan] = channelParams.frequency(ap, 0)
+                    ap.params['frequency'][wlan] = setChannelParams.frequency(ap, 0)
                     cls = TCLinkWireless
                     cls(ap)
                     if len(ap.params['ssid']) > 1:
@@ -818,7 +818,7 @@ class Mininet(object):
     def useIFB(self):
         """Support to Intermediate Functional Block (IFB) Devices"""
         self.ifb = True
-        channelParams.ifb = True
+        setChannelParams.ifb = True
 
     def configureLinkWireless(self):
         nodes = self.stations + self.cars
@@ -894,7 +894,7 @@ class Mininet(object):
 
                 # If sta/ap have defined position
                 if 'position' in sta.params and 'position' in ap.params:
-                    dist = channelParams.getDistance(sta, ap)
+                    dist = setChannelParams.getDistance(sta, ap)
                     if dist > ap.params['range']:
                         doAssociation = False
                     else:
@@ -906,7 +906,7 @@ class Mininet(object):
                     cls = Association
                     cls.associate(sta, ap)  
                     if 'position' in sta.params and 'position' in ap.params:
-                        setInfraChannelParams(sta, ap, wlan, dist)                
+                        setChannelParams(sta, ap, wlan, dist)                
         else:
             if 'link' in options:
                 options.pop('link', None)
@@ -1039,7 +1039,7 @@ class Mininet(object):
 
     def getAPsInRange(self, sta):
         for ap in self.accessPoints:
-            dist = channelParams.getDistance(sta, ap)
+            dist = setChannelParams.getDistance(sta, ap)
             if dist < ap.params['range']:
                 if ap not in sta.params['apsInRange']:
                     sta.params['apsInRange'].append(ap)
@@ -1059,22 +1059,23 @@ class Mininet(object):
                         value = pairingAdhocNodes(sta, wlan, self.stations)
                         dist = value.dist
                         if dist >= 0.01:
-                            setAdhocChannelParams(sta, wlan, dist, self.stations)
+                            setChannelParams(sta=sta, wlan=wlan, dist=dist)
                     elif 'position' in sta.params and sta.func[wlan] == 'mesh':
                         dist = listNodes.pairingNodes(sta, wlan, self.stations)
                         if dist >= 0.01:
-                            setAdhocChannelParams(sta, wlan, dist, self.stations)
+                            setChannelParams(sta=sta, wlan=wlan, dist=dist)
                         cls = Association
                         cls.confirmMeshAssociation(sta, wlan)
                     elif 'position' in sta.params and sta.params['associatedTo'][wlan] != '' and sta.func[wlan] != 'adhoc':
-                        dist = channelParams.getDistance(sta, sta.params['associatedTo'][wlan])
+                        dist = setChannelParams.getDistance(sta, sta.params['associatedTo'][wlan])
                         if dist >= 0.01:
-                            setInfraChannelParams(sta, sta.params['associatedTo'][wlan], wlan, dist)
+                            ap = sta.params['associatedTo'][wlan]
+                            setChannelParams(sta, ap, wlan, dist)
                     else:
                         for ap in self.accessPoints:
                             if sta.params['associatedTo'][wlan] == '':
                                 if 'position' in sta.params and 'position' in ap.params:
-                                    dist = channelParams.getDistance(sta, ap)
+                                    dist = setChannelParams.getDistance(sta, ap)
                                     if dist > ap.params['range']:
                                         doAssociation = False
                                     else:
@@ -1083,7 +1084,8 @@ class Mininet(object):
                                         cls = Association
                                         cls.associate(sta, ap)
                                         if dist >= 0.01:
-                                            setInfraChannelParams(sta, sta.params['associatedTo'][wlan], wlan, dist, self.stations)
+                                            ap = sta.params['associatedTo'][wlan]
+                                            setChannelParams(sta, ap, wlan, dist)
                     
                 if meshRouting.routing == 'custom':
                     meshRouting(self.stations)
@@ -1621,7 +1623,7 @@ class Mininet(object):
 
     def printDistance(self, src, dst):
         """ Print the distance between two points """
-        dist = channelParams.getDistance(src, dst)
+        dist = setChannelParams.getDistance(src, dst)
         info ("The distance between %s and %s is %.2f meters\n" % (src, dst, float(dist)))
 
     def plotNode(self, node, position):
@@ -1653,23 +1655,23 @@ class Mininet(object):
     def setChannelEquation(self, **params):
         """ Set Channel Equation """
         if 'bw' in params:
-            channelParams.equationBw = params['bw']
+            setChannelParams.equationBw = params['bw']
         if 'delay' in params:
-            channelParams.equationDelay = params['delay']
+            setChannelParams.equationDelay = params['delay']
         if 'latency' in params:
-            channelParams.equationLatency = params['latency']
+            setChannelParams.equationLatency = params['latency']
         if 'loss' in params:
-            channelParams.equationLoss = params['loss']
+            setChannelParams.equationLoss = params['loss']
 
     def propagationModel(self, model, exp=2, sL=1, lF=0, pL=0, nFloors=0, gRandom=0):
         """ Attributes for Propagation Model """
         propagationModel.model = model
         propagationModel.exp = exp
-        channelParams.sl = sL  # System Loss
-        channelParams.lF = lF  # Floor penetration loss factor
-        channelParams.nFloors = nFloors  # Number of floors
-        channelParams.gRandom = gRandom  # Gaussian random variable
-        channelParams.pL = pL  # Power Loss Coefficient
+        setChannelParams.sl = sL  # System Loss
+        setChannelParams.lF = lF  # Floor penetration loss factor
+        setChannelParams.nFloors = nFloors  # Number of floors
+        setChannelParams.gRandom = gRandom  # Gaussian random variable
+        setChannelParams.pL = pL  # Power Loss Coefficient
         
         for sta in self.stations:
             if 'position' in sta.params and sta not in mobility.stations:

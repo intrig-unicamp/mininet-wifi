@@ -70,7 +70,7 @@ from mininet.link import Link, Intf, TCIntf, OVSIntf
 from re import findall
 from distutils.version import StrictVersion
 from mininet.wifiMobility import mobility
-from mininet.wifiChannel import channelParams, setAdhocChannelParams, setInfraChannelParams
+from mininet.wifiChannel import setChannelParams
 from mininet.wifiDevices import deviceRange
 from mininet.wifiPlot import plot2d, plot3d
 
@@ -442,15 +442,15 @@ class Node(object):
             if sta.func[wlan] == 'mesh' or sta.func[wlan] == 'adhoc':
                 associate = False
                 for station in mobility.stations:
-                    dist = channelParams.getDistance(sta, station)
+                    dist = setChannelParams.getDistance(sta, station)
                     if dist < int(sta.params['range']) + int(station.params['range']):
                         associate = True
-                setAdhocChannelParams(sta, wlan, 0, mobility.stations)
+                setChannelParams(sta=sta, wlan=wlan, dist=0)
                 if associate == False:
                     sta.cmd('iw dev %s-mp%s mesh leave' % (sta, wlan))
             else:
                 for ap in mobility.accessPoints:
-                    dist = channelParams.getDistance(sta, ap)
+                    dist = setChannelParams.getDistance(sta, ap)
                     mobility.handover(sta, ap, wlan, dist)
         mobility.getAPsInRange(sta)
 
@@ -532,7 +532,7 @@ class Node(object):
         for ap_ref in mobility.accessPoints:
             if ap == ap_ref:
                 if ('position' in sta.params and 'position' in ap.params):
-                    d = channelParams.getDistance(sta, ap)
+                    d = setChannelParams.getDistance(sta, ap)
                 else:
                     d = 100000
                 if (d < ap.params['range']) or ('position' not in sta.params and 'position' not in ap.params):
@@ -546,7 +546,7 @@ class Node(object):
                                 sta.associate_wpa(sta, ap, wlan)
                             elif ap.params['encrypt'][0] == 'wep':
                                 sta.associate_wep(sta, ap, wlan)
-                        setInfraChannelParams(sta, ap, wlan, d)
+                        setChannelParams(sta, ap, wlan, d)
                         mobility.updateAssociation(sta, ap, wlan)
                     else:
                         info ('%s is already connected!\n' % ap)
