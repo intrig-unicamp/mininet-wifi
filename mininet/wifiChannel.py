@@ -149,7 +149,7 @@ class setAdhocChannelParams (object):
     dist = 0
     i = 0
 
-    def __init__(self, sta, wlan, dist, staList):
+    def __init__(self, sta, wlan, dist):
         self.dist = dist
         # self.calculateInterference(node1, node2, dist, staList, wlan)
         delay_ = channelParams.delay(self.dist)
@@ -172,7 +172,7 @@ class setAdhocChannelParams (object):
     @classmethod
     def bw(self, sta, dist, wlan):
         """set BW"""
-        value = deviceDataRate(sta, None, wlan)
+        value = deviceDataRate(sta=sta, wlan=wlan)
         custombw = value.rate
         rate = eval(channelParams.equationBw)
         
@@ -206,7 +206,7 @@ class setAdhocChannelParams (object):
 class setInfraChannelParams (object):
     """Set Infra Channel Parameters"""
 
-    def __init__(self, sta, ap, wlan, dist, staList):
+    def __init__(self, sta, ap, wlan, dist):
         # self.calculateInterference(node1, node2, dist, staList, wlan)
         delay_ = channelParams.delay(dist)
         latency_ = channelParams.latency(dist)
