@@ -265,7 +265,7 @@ class Node(object):
             wlans = 1
             wifiRadios += 1
         for n in range(wlans):
-            node.params['frequency'].append(0)
+            node.params['frequency'].append(2.412)
             if node.type != 'accessPoint':
                 node.func.append('none')
                 node.params['associatedTo'].append('')
@@ -1388,7 +1388,7 @@ class AccessPoint(Switch):
             cmd = cmd + ("\nhw_mode=g")
         else:
             cmd = cmd + ("\nhw_mode=%s" % ap.params['mode'][0])
-        cmd = cmd + ("\nchannel=%s" % ap.params['channel'][0])  # the channel to use
+        cmd = cmd + ("\nchannel=%s" % ap.params['channel'][0])
         if 'phywlan' not in ap.params:
             cmd = cmd + ("\nwme_enabled=1")
             cmd = cmd + ("\nwmm_enabled=1")
