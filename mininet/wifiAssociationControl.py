@@ -1,5 +1,5 @@
 from mininet.wifiPropagationModels import propagationModel
-from mininet.wifiChannel import channelParams
+from mininet.wifiChannel import setChannelParams
 
 class associationControl (object):
 
@@ -21,7 +21,7 @@ class associationControl (object):
             else:
                 self.changeAP = True
         elif ac == "ssf":
-            refDistance = channelParams.getDistance(sta, ap)
+            refDistance = setChannelParams.getDistance(sta, ap)
             refValue = propagationModel(sta, ap, refDistance, wlan)
             if refValue.rssi > float(sta.params['rssi'][wlan] + 1):
                 self.changeAP = True
