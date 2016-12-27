@@ -8,13 +8,17 @@ import subprocess
 from mininet.log import debug, info
 
 class module(object):
-    """ Start and Stop mac80211_hwsim module """
+    """ wireless module """
 
     wlan_list = []
     
     @classmethod
     def loadModule(self, wifiRadios, alternativeModule=''):
-        """ Load wireless Module """
+        """ Load WiFi Module 
+        
+        :param wifiRadios: number of wifi radios
+        :param alternativeModule: dir of a mac80211_hwsim alternative module
+        """
         if alternativeModule == '':
             os.system('modprobe mac80211_hwsim radios=%s' % wifiRadios)
             debug('Loading %s virtual interfaces\n' % wifiRadios)
@@ -60,7 +64,14 @@ class module(object):
 
     @classmethod
     def start(self, nodes, wifiRadios, alternativeModule='', **params):
-        """Starting environment"""
+        """Starts environment
+        
+        :param nodes: list of wireless nodes
+        :param wifiRadios: number of wifi radios
+        :param alternativeModule: dir of a mac80211_hwsim alternative module
+        :param **params: ifb -  Intermediate Functional Block device
+        """
+        """kill hostapd and mac80211_hwsim if they are already running"""
         try:
             h = subprocess.check_output("ps -aux | grep -ic \'hostapd\'",
                                                           shell=True)
@@ -75,14 +86,14 @@ class module(object):
         except:
             pass
 
-        physicalWlan_list = self.getPhysicalWlan()  # Get Phisical Wlan(s)
+        physicalWlans = self.getPhysicalWlan()  # Gets Phisical Wlan(s)
         self.loadModule(wifiRadios, alternativeModule)  # Initatilize WiFi Module
-        phy_list = self.getPhy()  # Get Phy Interfaces
-        module.assignIface(nodes, physicalWlan_list, phy_list, **params)
+        phys = self.getPhy()  # Get Phy Interfaces
+        module.assignIface(nodes, physicalWlans, phys, **params) # iface assign
 
     @classmethod
     def getPhysicalWlan(self):
-        """Get the list of physical wlans that already exists in the machine"""
+        """Gets the list of physical wlans that already exist"""
         self.wlans = []
         self.wlans = (subprocess.check_output("iwconfig 2>&1 | grep IEEE | awk '{print $1}'",
                                                       shell=True)).split('\n')
@@ -91,7 +102,7 @@ class module(object):
 
     @classmethod
     def getPhy(self):
-        """ Get all phys after starting the wireless module """
+        """Gets all phys after starting the wireless module"""
         phy = subprocess.check_output("find /sys/kernel/debug/ieee80211 -name hwsim | cut -d/ -f 6 | sort",
                                                              shell=True).split("\n")
         phy.pop()
@@ -100,18 +111,28 @@ class module(object):
     
     @classmethod
     def loadIFB(self, wlans):
+        """ Loads IFB
+        
+        :param wlans: Number of wireless interfaces
+        """
         debug('\nLoading IFB: modprobe ifb numifbs=%s' % wlans)
         os.system('modprobe ifb numifbs=%s' % wlans)
     
     @classmethod
-    def assignIface(self, nodes, physicalWlan_list, phy_list, **params):
-        """Assign virtual interfaces for all nodes"""
+    def assignIface(self, nodes, physicalWlans, phys, **params):
+        """Assign virtual interfaces for all nodes
+        
+        :param nodes: list of wireless nodes
+        :param physicalWlans: list of Physical Wlans
+        :param phys: list of phys
+        :param **params: ifb -  Intermediate Functional Block device
+        """
         if 'ifb' in params:
             ifb = params['ifb']
         else:
             ifb = False
         try:
-            self.wlan_list = self.getWlanIface(physicalWlan_list)
+            self.wlan_list = self.getWlanIface(physicalWlans)
             if ifb:
                 self.loadIFB(len(self.wlan_list))
                 ifbID = 0
@@ -119,7 +140,7 @@ class module(object):
                 if (node.type == 'station' or node.type == 'vehicle') or 'inNamespace' in node.params:    
                     node.ifb = []            
                     for wlan in range(0, len(node.params['wlan'])):
-                        os.system('iw phy %s set netns %s' % (phy_list[0], node.pid))
+                        os.system('iw phy %s set netns %s' % (phys[0], node.pid))
                         node.cmd('ip link set %s name %s up' % (self.wlan_list[0], node.params['wlan'][wlan]))
                         if ifb:
                             node.ifbSupport(wlan, ifbID)  # Adding Support to IFB
@@ -134,22 +155,24 @@ class module(object):
                                 if node.params['txpower'][wlan] != 20:
                                     node.setTxPower(node.params['wlan'][wlan], node.params['txpower'][wlan])
                         if node.type != 'accessPoint':
+                            iface = node.params['wlan'][wlan]
                             if node.params['mac'][wlan] == '':
-                                iface = node.params['wlan'][wlan]
                                 node.params['mac'][wlan] = node.getMAC(iface)
                             else:
-                                iface = node.params['wlan'][wlan]
                                 mac = node.params['mac'][wlan]
                                 node.setMAC(mac, iface)
                         self.wlan_list.pop(0)
-                        phy_list.pop(0)
+                        phys.pop(0)
         except:
             info("Something is wrong. Please, run sudo mn -c before running your code.\n")
             exit(1)
 
     @classmethod
     def getWlanIface(self, physicalWlan):
-        """Build a new wlan list removing the physical wlan"""
+        """Build a new wlan list removing the physical wlan
+        
+        :param physicalWlans: list of Physical Wlans
+        """
         wlan_list = []
         iface_list = subprocess.check_output("iwconfig 2>&1 | grep IEEE | awk '{print $1}'",
                                             shell=True).split('\n')

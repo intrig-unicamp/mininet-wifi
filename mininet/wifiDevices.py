@@ -11,6 +11,12 @@ class deviceDataRate (object):
     rate = 0
 
     def __init__(self, sta=None, ap=None, wlan=0):
+        
+        """         
+        :param sta: station
+        :param ap: accessPoint
+        :param wlan: wlan ID
+        """
 
         if ap != None and 'equipmentModel' in ap.params.keys():
             if  ap.equipmentModel in dir(self) and sta != None:
@@ -142,6 +148,11 @@ class deviceRange (object):
 
     def __init__(self, ap=None, wlan=0):
         
+        """         
+        :param ap: accessPoint
+        :param wlan: wlan ID
+        """
+        
         if 'equipmentModel' in ap.params.keys():        
             if ap.equipmentModel in dir(self):
                 self.__getattribute__(ap.equipmentModel)(ap)
@@ -194,6 +205,12 @@ class deviceTxPower (object):
     txPower = 0
 
     def __init__(self, model=None, ap=None, wlan=0):
+        
+        """         
+        :param model: device model
+        :param ap: accessPoint
+        :param wlan: wlan ID
+        """
 
         if model in dir(self):
             self.__getattribute__(model)(ap, wlan)
