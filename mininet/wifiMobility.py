@@ -11,7 +11,7 @@ import os
 from mininet.log import debug
 from mininet.wifiMobilityModels import gauss_markov, \
     truncated_levy_walk, random_direction, random_waypoint, random_walk, reference_point_group, tvc
-from mininet.wifiChannel import channelParams, setAdhocChannelParams, setInfraChannelParams
+from mininet.wifiChannel import setChannelParams
 from mininet.wifiAssociationControl import associationControl
 from mininet.wifiMeshRouting import listNodes, meshRouting
 from mininet.wmediumdConnector import WmediumdServerConn
@@ -70,7 +70,7 @@ class mobility (object):
         else:
             if dist >= 0.01 and sta.params['associatedTo'][wlan] == ap:
                 self.updateParams(sta, ap, wlan)
-                setInfraChannelParams(sta, ap, wlan, dist)
+                setChannelParams(sta, ap, wlan, dist)
             
             if sta.params['associatedTo'][wlan] == '':        
                 associated = False        
@@ -96,7 +96,7 @@ class mobility (object):
                                 elif ap.params['encrypt'][0] == 'wep':
                                     self.associate_wep(sta, ap, wlan)
                             if dist >= 0.01 and sta.params['associatedTo'][wlan] != '':
-                                setInfraChannelParams(sta, ap, wlan, dist)
+                                setChannelParams(sta, ap, wlan, dist)
         
     @classmethod
     def verifyPasswd(self, sta, ap, wlan):
@@ -108,7 +108,7 @@ class mobility (object):
     
     @classmethod     
     def updateParams(self, sta, ap, wlan):
-        sta.params['frequency'][wlan] = channelParams.frequency(ap, 0)
+        sta.params['frequency'][wlan] = setChannelParams.frequency(ap, 0)
         sta.params['channel'][wlan] = ap.params['channel'][0]
     
     @classmethod     
@@ -254,7 +254,7 @@ class mobility (object):
     @classmethod
     def getAPsInRange(self, sta):
         for ap in self.accessPoints:
-            dist = channelParams.getDistance(sta, ap)
+            dist = setChannelParams.getDistance(sta, ap)
             if dist < ap.params['range']:
                 if ap not in sta.params['apsInRange']:
                     sta.params['apsInRange'].append(ap)
@@ -265,24 +265,24 @@ class mobility (object):
     @classmethod
     def handoverCheck(self, sta, wlan):
         for ap in self.accessPoints:
-            dist = channelParams.getDistance(sta, ap)
+            dist = setChannelParams.getDistance(sta, ap)
             self.getAPsInRange(sta)
             self.handover(sta, ap, wlan, dist)
 
     @classmethod
     def parameters(self):
         while self.continue_:
-            for node in self.stations:
-                for wlan in range(0, len(node.params['wlan'])):
-                    if node.func[wlan] == 'mesh' or node.func[wlan] == 'adhoc':
-                        if node.type == 'vehicle':
-                            node = node.params['carsta']
+            for sta in self.stations:
+                for wlan in range(0, len(sta.params['wlan'])):
+                    if sta.func[wlan] == 'mesh' or sta.func[wlan] == 'adhoc':
+                        if sta.type == 'vehicle':
+                            node = sta.params['carsta']
                             wlan = 0
                         dist = listNodes.pairingNodes(node, wlan, self.stations)
                         if WmediumdServerConn.connected == False and dist >= 0.01:
-                            setAdhocChannelParams(node, wlan, dist)
+                            setChannelParams(sta=sta, wlan=wlan, dist=dist)
                     else:
-                        self.handoverCheck(node, wlan)
+                        self.handoverCheck(sta, wlan)
             if meshRouting.routing == 'custom':
                 meshRouting(self.stations)
             # have to verify this
