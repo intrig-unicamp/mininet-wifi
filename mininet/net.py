@@ -642,7 +642,7 @@ class Mininet(object):
 
         deviceRange(sta)
 
-        value = deviceDataRate(None, sta, None)
+        value = deviceDataRate(sta=sta, wlan=wlan)
         self.bw = value.rate
         
         options['sta'] = sta
@@ -696,7 +696,7 @@ class Mininet(object):
 
         deviceRange(sta)
 
-        value = deviceDataRate(None, sta, None)
+        value = deviceDataRate(sta=sta, wlan=wlan)
         self.bw = value.rate
 
         options['sta'] = sta
@@ -734,7 +734,7 @@ class Mininet(object):
         os.system(apcommand)
         sta.cmd('wpa_supplicant -B -Dnl80211 -i%s-wlan0 -d -c%s_wifiDirect.conf' % (sta, sta))
 
-        value = deviceDataRate(None, sta, None)
+        value = deviceDataRate(sta=sta, wlan=wlan)
         self.bw = value.rate
 
         options['sta'] = sta
@@ -838,7 +838,8 @@ class Mininet(object):
            self.isWiFi: defines the topology to work with mininet-wifi
            self.ifaceConfigured: all interfaces for all nodes were configured"""
         params = {}
-        params['ifb'] = self.ifb
+        if self.ifb:
+            params['ifb'] = self.ifb
         nodes = self.stations + self.cars + self.accessPoints
         self.configureLinkWireless() 
         module.start(nodes, self.nRadios, self.alternativeModule, **params)               
@@ -883,19 +884,12 @@ class Mininet(object):
                     ap = node1
                 
                 wlan = sta.ifaceToAssociate
-                
-                if sta.params['mac'][wlan] != '':
-                    Node.setMac(sta, sta.params['wlan'][wlan], wlan)
 
                 sta.params['mode'][wlan] = ap.params['mode'][0]
                 sta.params['channel'][wlan] = ap.params['channel'][0]
-                value = deviceDataRate(ap, sta, None)
+                value = deviceDataRate(sta, ap, wlan)
                 self.bw = value.rate
                 
-                if sta.params['ip'][wlan] != '0/0':
-                    sta.intfs[wlan].setIP(sta.params['ip'][wlan])
-                if sta.params['mac'][wlan] != '':
-                    sta.intfs[wlan].setMAC(sta.params['mac'][wlan])
                 self.tc(sta, self.bw)
 
                 # If sta/ap have defined position
@@ -912,7 +906,7 @@ class Mininet(object):
                     cls = Association
                     cls.associate(sta, ap)  
                     if 'position' in sta.params and 'position' in ap.params:
-                        setInfraChannelParams(sta, ap, wlan, dist, self.stations)                
+                        setInfraChannelParams(sta, ap, wlan, dist)                
         else:
             if 'link' in options:
                 options.pop('link', None)
@@ -1075,7 +1069,7 @@ class Mininet(object):
                     elif 'position' in sta.params and sta.params['associatedTo'][wlan] != '' and sta.func[wlan] != 'adhoc':
                         dist = channelParams.getDistance(sta, sta.params['associatedTo'][wlan])
                         if dist >= 0.01:
-                            setInfraChannelParams(sta, sta.params['associatedTo'][wlan], wlan, dist, self.stations)
+                            setInfraChannelParams(sta, sta.params['associatedTo'][wlan], wlan, dist)
                     else:
                         for ap in self.accessPoints:
                             if sta.params['associatedTo'][wlan] == '':

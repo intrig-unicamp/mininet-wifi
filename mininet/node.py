@@ -466,12 +466,23 @@ class Node(object):
         for key, val in self.params.items():
             if val == ssid:
                 self.cmd('iw dev %s-%s mesh leave' % (self, key))
-
-    @classmethod
-    def setMac(self, sta, iface, index):
-        sta.pexec('ip link set %s down' % (iface))
-        sta.pexec('ip link set %s address %s' % (iface, sta.params['mac'][index]))
-        sta.pexec('ip link set %s up' % (iface))
+                
+    def getMAC(self, iface):
+        """ get Mac Address of any Interface """
+        _macMatchRegex = re.compile(r'..:..:..:..:..:..')
+        debug('Get Mac Address: ifconfig %s\n' % iface)
+        ifconfig = str(self.pexec('ifconfig %s' % iface))
+        mac = _macMatchRegex.findall(ifconfig)
+        return mac[0]
+                
+    def ifbSupport(self, wlan, ifbID):
+        """Support to Intermediate Functional Block (IFB) Devices"""
+        os.system('ip link set dev ifb%s netns %s' % (ifbID, self.pid))
+        self.cmd('ifconfig ifb%s up' % ifbID)                        
+        self.cmd('tc qdisc add dev %s handle ffff: ingress' % self.params['wlan'][wlan])
+        self.cmd('tc filter add dev %s parent ffff: protocol ip u32 \
+                                match u32 0 0 action mirred egress redirect dev ifb%s' % (self.params['wlan'][wlan], ifbID))
+        self.ifb.append(ifbID)
 
     def setRange(self, _range):
         self.params['range'] = _range
@@ -535,7 +546,7 @@ class Node(object):
                                 sta.associate_wpa(sta, ap, wlan)
                             elif ap.params['encrypt'][0] == 'wep':
                                 sta.associate_wep(sta, ap, wlan)
-                        setInfraChannelParams(sta, ap, wlan, d, mobility.accessPoints)
+                        setInfraChannelParams(sta, ap, wlan, d)
                         mobility.updateAssociation(sta, ap, wlan)
                     else:
                         info ('%s is already connected!\n' % ap)
@@ -1343,7 +1354,7 @@ class AccessPoint(Switch):
 
         if 'phywlan' not in ap.params:
             self.renameIface(ap, intf, ap.params['wlan'][wlan])
-            ap.params['mac'][wlan] = self.getMacAddr(ap, wlan)
+            ap.params['mac'][wlan] = self.getMac(ap, ap.params['wlan'][wlan])
             self.checkNetworkManager(ap.params['mac'][wlan])
             if 'inNamespace' in ap.params and 'ip' in ap.params:
                 self.setIPAddr(ap, wlan)
@@ -1443,12 +1454,11 @@ class AccessPoint(Switch):
         ap.cmd('ifconfig %s %s' % (ap.params['wlan'][wlan], ap.params['ip']))
     
     @classmethod
-    def getMacAddr(self, ap, wlan):
+    def getMac(self, ap, iface):
         """ get Mac Address of any Interface """
-        ifconfig = str(ap.pexec('ifconfig %s' % ap.params['wlan'][wlan]))
+        ifconfig = str(ap.pexec('ifconfig %s' % iface))
         mac = self._macMatchRegex.findall(ifconfig)
-        mac = mac[0]
-        return mac
+        return mac[0]
 
     @classmethod
     def checkNetworkManager(self, mac):

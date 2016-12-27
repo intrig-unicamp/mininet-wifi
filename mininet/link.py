@@ -937,7 +937,8 @@ class Association(Link):
     @classmethod
     def associate_infra(self, sta, ap, wlan):
         if 'encrypt' not in ap.params:
-            sta.cmd('iwconfig %s essid %s ap %s' % (sta.params['wlan'][wlan], ap.params['ssid'][0], ap.params['mac'][0]))
+            sta.cmd('iwconfig %s essid %s ap %s' % (sta.params['wlan'][wlan], ap.params['ssid'][0], \
+                                                    ap.params['mac'][0]))
         else:
             if ap.params['encrypt'][0] == 'wpa' or ap.params['encrypt'][0] == 'wpa2':
                 self.associate_wpa(sta, ap, wlan)
