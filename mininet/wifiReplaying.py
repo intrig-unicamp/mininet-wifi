@@ -12,7 +12,7 @@ from pylab import math, cos, sin
 from mininet.log import info
 from mininet.wifiPlot import plot2d, plot3d
 from mininet.wifiMobility import mobility
-from mininet.wifiChannel import channelParams, setInfraChannelParams
+from mininet.wifiChannel import setChannelParams
 from mininet.wifiDevices import deviceDataRate
 
 
@@ -63,9 +63,9 @@ class replayingMobility(object):
         if node.type == 'station':
             if hasattr(node, 'position'):
                 node.params['position'] = node.position[0]
-            mobility.staList.append(node)
+            mobility.stations.append(node)
         elif (node.type == 'accessPoint'):
-            mobility.apList.append(node)
+            mobility.accessPoints.append(node)
 
 class replayingBandwidth(object):
     """Replaying Bandwidth Traces"""
@@ -79,7 +79,7 @@ class replayingBandwidth(object):
         # if mobility.DRAW:
         #    plotGraph()
         currentTime = time.time()
-        staList = mobility.staList
+        staList = mobility.stations
         continue_ = True
         while continue_:
             continue_ = False
@@ -88,7 +88,7 @@ class replayingBandwidth(object):
                 if hasattr(sta, 'time'):
                     continue_ = True
                     if time_ >= sta.time[0]:
-                        channelParams.tc(sta, 0, sta.throughput[0], 0, 0, 0)
+                        setChannelParams.tc(sta, 0, sta.throughput[0], 0, 0, 0)
                         # pos = '%d, %d, %d' % (sta.throughput[0], sta.throughput[0], 0)
                         # self.moveStationTo(sta, pos)
                         del sta.throughput[0]
@@ -128,9 +128,9 @@ class replayingNetworkBehavior(object):
         time.sleep(20)
         info('\nReplaying process has been started')
         currentTime = time.time()
-        staList = mobility.staList
+        staList = mobility.stations
         for sta in staList:
-            sta.params['frequency'][0] = channelParams.frequency(sta, 0)
+            sta.params['frequency'][0] = setChannelParams.frequency(sta, 0)
         continue_ = True
         while continue_:
             continue_ = False
@@ -145,7 +145,7 @@ class replayingNetworkBehavior(object):
                             loss = sta.loss[0]
                             delay = sta.delay[0]
                             latency = sta.latency[0]
-                            channelParams.tc(sta, 0, bw, loss, latency, delay)
+                            setChannelParams.tc(sta, 0, bw, loss, latency, delay)
                         del sta.bw[0]
                         del sta.loss[0]
                         del sta.delay[0]
@@ -159,9 +159,9 @@ class replayingNetworkBehavior(object):
     @classmethod
     def addNode(self, node):
         if node.type == 'station':
-            mobility.staList.append(node)
+            mobility.stations.append(node)
         elif (node.type == 'accessPoint'):
-            mobility.apList.append(node)
+            mobility.accessPoints.append(node)
 
 class replayingRSSI(object):
     """Replaying RSSI Traces"""
@@ -197,11 +197,11 @@ class replayingRSSI(object):
         if mobility.DRAW:
             instantiateGraph()
         currentTime = time.time()
-        staList = mobility.staList
+        staList = mobility.stations
         ang = {}
         for sta in staList:
             ang[sta] = random.uniform(0, 360)
-            sta.params['frequency'][0] = channelParams.frequency(sta, 0)
+            sta.params['frequency'][0] = setChannelParams.frequency(sta, 0)
         continue_ = True
         while continue_:
             continue_ = False
@@ -215,7 +215,7 @@ class replayingRSSI(object):
                         if ap != '':
                             dist = self.calculateDistance(sta, ap, sta.rssi[0], propagationModel, n)
                             self.moveStationTo(sta, ap, dist, ang[sta])
-                            setInfraChannelParams(sta, ap, dist, 0)
+                            setChannelParams(sta, ap, dist, 0)
                         del sta.rssi[0]
                         del sta.time[0]
                     if len(sta.time) == 0:
