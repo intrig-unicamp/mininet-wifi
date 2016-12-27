@@ -10,7 +10,7 @@ from mininet.log import debug
 import random
 
 
-class channelParams (object):
+class setChannelParams (object):
 
     dist = 0
     noise = 0
@@ -25,30 +25,118 @@ class channelParams (object):
     equationBw = 'custombw * (1.1 ** -dist)'
     ifb = False
     
+    def __init__(self, sta=None, ap=None, wlan=0, dist=0):
+        """"
+        
+        :param sta: station
+        :param ap: access point
+        :param wlan: wlan ID
+        :param dist: distance between source and destination
+        """
+        
+        # self.calculateInterference(node1, node2, dist, staList, wlan)
+        delay_ = self.setDelay(dist)
+        latency_ = self.setLatency(dist)
+        loss_ = self.setLoss(dist)
+        bw_ = self.setBW(sta=sta, ap=ap, dist=dist, wlan=wlan)
+        self.setRSSI(sta, ap, wlan, dist) 
+        self.setSNR(sta, wlan)
+        self.tc(sta, wlan, bw_, loss_, latency_, delay_)    
+    
     @classmethod
     def getDistance(self, src, dst):
-        """ Get the distance between two nodes """
+        """ Get the distance between two nodes 
+        
+        :param src: source node
+        :param dst: destination node
+        """
         pos_src = src.params['position']
         pos_dst = dst.params['position']
         points = np.array([(pos_src[0], pos_src[1], pos_src[2]), (pos_dst[0], pos_dst[1], pos_dst[2])])
         return float(pdist(points))
 
     @classmethod
-    def delay(self, dist):
-        """"Based on RandomPropagationDelayModel"""
+    def setDelay(self, dist):
+        """"Based on RandomPropagationDelayModel
+        
+        :param dist: distance between source and destination
+        """
         return eval(self.equationDelay)
 
     @classmethod
-    def latency(self, dist):
+    def setLatency(self, dist):
+        """
+        :param dist: distance between source and destination
+        """
         return eval(self.equationLatency)
 
     @classmethod
-    def loss(self, dist):
+    def setLoss(self, dist):
+        """
+        :param dist: distance between source and destination
+        """
         return eval(self.equationLoss)
     
     @classmethod
+    def setBW(self, sta=None, ap=None, wlan=0, dist=0):
+        """set BW
+
+        :param sta: station
+        :param ap: access point
+        :param wlan: wlan ID
+        :param dist: distance between source and destination
+        """
+        value = deviceDataRate(sta, ap, wlan)
+        custombw = value.rate
+        rate = eval(self.equationBw)
+       
+        if rate <= 0.0:
+            rate = 0.1
+        return rate
+    
+    @classmethod
+    def setRSSI(self, sta=None, ap=None, wlan=0, dist=0):
+        """set RSSI
+        
+        :param sta: station
+        :param ap: access point
+        :param wlan: wlan ID
+        :param dist: distance
+        """
+        lF = self.lF
+        sl = self.sl
+        nFloors = self.nFloors
+        gRandom = self.gRandom
+        pL = self.pL
+        gT = 0
+        hT = 0
+        pT = sta.params['txpower'][wlan]
+        gR = sta.params['antennaGain'][wlan]
+        hR = sta.params['antennaHeight'][wlan]
+        
+        value = propagationModel(sta, ap, dist, wlan, pT, gT, gR, hT, hR, sl, lF, pL, nFloors, gRandom)
+        sta.params['rssi'][wlan] = float(value.rssi)  # random.uniform(value.rssi-1, value.rssi+1)
+        
+    @classmethod
+    def setSNR(self, sta, wlan):
+        """set SNR
+        
+        :param sta: station
+        :param wlan: wlan ID
+        """
+        sta.params['snr'][wlan] = float('%.2f' % (sta.params['rssi'][wlan] - (-90.0)))
+    
+    @classmethod
     def tc(self, sta, wlan, bw, loss, latency, delay):
-        """Applying TC"""
+        """Applies TC
+        
+        :param sta: station
+        :param wlan: wlan ID
+        :param bw: bandwidth (mbps)
+        :param loss: loss (%)
+        :param latency: latency (ms)
+        :param delay: delay (ms)
+        """
         if self.ifb:
             sta.pexec("tc qdisc replace dev ifb%s \
                 root handle 2: netem rate %.2fmbps \
@@ -103,6 +191,12 @@ class channelParams (object):
 
     @classmethod
     def frequency(self, node, wlan):
+        """Gets frequency based on channel number
+        
+        :param node: node
+        :param wlan: wlan ID
+        """
+        
         freq = 0
         if node.params['channel'][wlan] == 1:
             freq = 2.412
@@ -132,119 +226,3 @@ class channelParams (object):
         """Calculating SNR margin"""
         snr = signalPower - noisePower
         return snr
-
-    def maxChannelNoise(self, node1, node2, wlan, modelValue):
-        """Have to work"""
-        # snr = 25 #Depends of the equipment
-        # max_channel_noise = self.rssi[wlan] - snr
-
-    def linkMargin(self, node1, node2, wlan, modelValue):
-        """Have to work"""
-        # receive_sensitivity = -72 #Depends of the equipment
-        # link_margin = self.rssi[wlan] - receive_sensitivity
-
-class setAdhocChannelParams (object):
-    """Set Adhoc Channel Parameters"""
-    
-    dist = 0
-    i = 0
-
-    def __init__(self, sta, wlan, dist):
-        self.dist = dist
-        # self.calculateInterference(node1, node2, dist, staList, wlan)
-        delay_ = channelParams.delay(self.dist)
-        latency_ = channelParams.latency(self.dist)
-        loss_ = channelParams.loss(self.dist)
-        bw_ = self.bw(sta, self.dist, wlan)
-        dist = self.getDistance(dist)
-        self.setRSSI(sta, wlan, dist) 
-        self.setSNR(sta, wlan)
-        channelParams.tc(sta, wlan, bw_, loss_, latency_, delay_)
-        
-    @classmethod
-    def getDistance(self, ref_dist):
-        """get Distance"""
-        dist = ref_dist
-        if self.i != 0:
-            dist = self.dist / self.i
-        return dist
-    
-    @classmethod
-    def bw(self, sta, dist, wlan):
-        """set BW"""
-        value = deviceDataRate(sta=sta, wlan=wlan)
-        custombw = value.rate
-        rate = eval(channelParams.equationBw)
-        
-        if rate <= 0:
-            rate = 0.1
-        return rate
-    
-    @classmethod
-    def setRSSI(self, sta, wlan, dist):
-        """set RSSI"""
-        lF = channelParams.lF
-        sl = channelParams.sl
-        nFloors = channelParams.nFloors
-        gRandom = channelParams.gRandom
-        pL = channelParams.pL
-        gT = 0
-        hT = 0
-        pT = sta.params['txpower'][wlan]
-        gR = sta.params['antennaGain'][wlan]
-        hR = sta.params['antennaHeight'][wlan]
-        
-        value = propagationModel(sta, None, dist, wlan, pT, gT, gR, hT, hR, sl, lF, pL, nFloors, gRandom)
-        sta.params['rssi'][wlan] = float(value.rssi)
-        
-    @classmethod
-    def setSNR(self, sta, wlan):
-        """set SNR"""
-        sta.params['snr'][wlan] = float('%.2f' % (sta.params['rssi'][wlan] - (-90.0)))
-        
-
-class setInfraChannelParams (object):
-    """Set Infra Channel Parameters"""
-
-    def __init__(self, sta, ap, wlan, dist):
-        # self.calculateInterference(node1, node2, dist, staList, wlan)
-        delay_ = channelParams.delay(dist)
-        latency_ = channelParams.latency(dist)
-        loss_ = channelParams.loss(dist)
-        bw_ = self.bw(sta, ap, dist, wlan)
-        self.setRSSI(sta, ap, wlan, dist) 
-        self.setSNR(sta, wlan)
-        channelParams.tc(sta, wlan, bw_, loss_, latency_, delay_)
-
-    @classmethod
-    def bw(self, sta, ap, dist, wlan):
-        """set BW"""
-        value = deviceDataRate(sta, ap, wlan)
-        custombw = value.rate
-        rate = eval(channelParams.equationBw)
-       
-        if rate <= 0.0:
-            rate = 0.1
-        return rate
-    
-    @classmethod
-    def setRSSI(self, sta, ap, wlan, dist):
-        """set RSSI"""
-        lF = channelParams.lF
-        sl = channelParams.sl
-        nFloors = channelParams.nFloors
-        gRandom = channelParams.gRandom
-        pL = channelParams.pL
-        gT = 0
-        hT = 0
-        pT = sta.params['txpower'][wlan]
-        gR = sta.params['antennaGain'][wlan]
-        hR = sta.params['antennaHeight'][wlan]
-        
-        value = propagationModel(sta, ap, dist, wlan, pT, gT, gR, hT, hR, sl, lF, pL, nFloors, gRandom)
-        sta.params['rssi'][wlan] = float(value.rssi)  # random.uniform(value.rssi-1, value.rssi+1)
-        
-    @classmethod
-    def setSNR(self, sta, wlan):
-        """set SNR"""
-        sta.params['snr'][wlan] = float('%.2f' % (sta.params['rssi'][wlan] - (-90.0)))
