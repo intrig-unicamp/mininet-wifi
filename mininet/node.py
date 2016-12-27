@@ -441,25 +441,25 @@ class Node(object):
         for wlan in range(len(sta.params['wlan'])):
             if sta.func[wlan] == 'mesh' or sta.func[wlan] == 'adhoc':
                 associate = False
-                for station in mobility.staList:
+                for station in mobility.stations:
                     dist = channelParams.getDistance(sta, station)
                     if dist < int(sta.params['range']) + int(station.params['range']):
                         associate = True
-                setAdhocChannelParams(sta, wlan, 0, mobility.staList)
+                setAdhocChannelParams(sta, wlan, 0, mobility.stations)
                 if associate == False:
                     sta.cmd('iw dev %s-mp%s mesh leave' % (sta, wlan))
             else:
-                for ap in mobility.apList:
+                for ap in mobility.accessPoints:
                     dist = channelParams.getDistance(sta, ap)
                     mobility.handover(sta, ap, wlan, dist)
         mobility.getAPsInRange(sta)
 
     @classmethod
     def verifyingNodes(self, node):
-        if node in mobility.staList:
+        if node in mobility.stations:
             self.calculateWiFiParameters(node)
-        elif node in mobility.apList:
-            for sta in mobility.staList:
+        elif node in mobility.accessPoints:
+            for sta in mobility.stations:
                 self.calculateWiFiParameters(sta)
 
     def meshLeave(self, ssid):
@@ -518,7 +518,7 @@ class Node(object):
             if wlan == iface:
                 wlan = idx
                 break
-        for ap_ref in mobility.apList:
+        for ap_ref in mobility.accessPoints:
             if ap == ap_ref:
                 if ('position' in sta.params and 'position' in ap.params):
                     d = channelParams.getDistance(sta, ap)
@@ -535,7 +535,7 @@ class Node(object):
                                 sta.associate_wpa(sta, ap, wlan)
                             elif ap.params['encrypt'][0] == 'wep':
                                 sta.associate_wep(sta, ap, wlan)
-                        setInfraChannelParams(sta, ap, wlan, d, mobility.staList)
+                        setInfraChannelParams(sta, ap, wlan, d, mobility.accessPoints)
                         mobility.updateAssociation(sta, ap, wlan)
                     else:
                         info ('%s is already connected!\n' % ap)
