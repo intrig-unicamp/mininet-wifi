@@ -10,24 +10,21 @@ class deviceDataRate (object):
 
     rate = 0
 
-    def __init__(self, node1=None, node2=None, wlan=None):
+    def __init__(self, sta=None, ap=None, wlan=0):
 
-        if node2 == None:
-            node = node1
-        else:
-            node = node2
+        if ap != None and 'equipmentModel' in ap.params.keys():
+            if  ap.equipmentModel in dir(self) and sta != None:
+                model = ap.equipmentModel
+                self.__getattribute__(model)(sta, ap, wlan)
+        elif ap != None:
+            self.customDataRate_mobility(ap, wlan)
+        elif sta != None:
+            self.customDataRate_mobility(sta, wlan)
 
-        if node2 != None and 'equipmentModel' in node2.params.keys():
-            if  node2.equipmentModel in dir(self) and node1 != None and wlan != None:
-                model = node2.equipmentModel
-                self.__getattribute__(model)(node1, node2, wlan)
-        else:
-            self.customDataRate_mobility(node)
-
-    def customDataRate_mobility(self, node, wlan=0):
+    def customDataRate_mobility(self, node, wlan):
         """Custom Maximum Data Rate - Useful when there is mobility"""
         mode = node.params['mode'][wlan]
-        
+
         if (mode == 'a'):
             self.rate = 11
         elif(mode == 'b'):
@@ -40,7 +37,7 @@ class deviceDataRate (object):
             self.rate = 6777
         return self.rate
 
-    def customDataRate_no_mobility(self, node, wlan=0):
+    def customDataRate_no_mobility(self, node, wlan):
         """Custom Maximum Data Rate - Useful when there is no mobility"""
         mode = node.params['mode'][wlan]
 
@@ -56,7 +53,7 @@ class deviceDataRate (object):
             self.rate = 90
         return self.rate
 
-    def DI524(self, node1, node2, wlan=0):
+    def DI524(self, node1, node2, wlan):
         """D-Link AirPlus G DI-524
            from http://www.dlink.com/-/media/Consumer_Products/DI/DI%20524/Manual/DI_524_Manual_EN_UK.pdf"""
         if node1.params['rssi'][wlan] != 0:
@@ -77,7 +74,7 @@ class deviceDataRate (object):
  
         return self.rate
 
-    def TLWR740N(self, node1, node2, wlan=0):
+    def TLWR740N(self, node1, node2, wlan):
         """TL-WR740N
            from http://www.tp-link.com.br/products/details/cat-9_TL-WR740N.html#specificationsf"""
         mode = node1.params['mode'][wlan]
@@ -106,7 +103,7 @@ class deviceDataRate (object):
 
         return self.rate
 
-    def WRT120N(self, node1, node2, wlan=0):
+    def WRT120N(self, node1, node2, wlan):
         """CISCO WRT120N
            from http://downloads.linksys.com/downloads/datasheet/WRT120N_V10_DS_B-WEB.pdf"""
         mode = node2.params['mode'][0]
@@ -183,7 +180,6 @@ class deviceRange (object):
 
         self.range = 50
         return self.range
-
 
     def WRT120N(self, ap):
         """ CISCO WRT120N
