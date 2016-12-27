@@ -70,7 +70,7 @@ class mobility (object):
         else:
             if dist >= 0.01 and sta.params['associatedTo'][wlan] == ap:
                 self.updateParams(sta, ap, wlan)
-                setInfraChannelParams(sta, ap, wlan, dist, self.stations)
+                setInfraChannelParams(sta, ap, wlan, dist)
             
             if sta.params['associatedTo'][wlan] == '':        
                 associated = False        
@@ -96,7 +96,7 @@ class mobility (object):
                                 elif ap.params['encrypt'][0] == 'wep':
                                     self.associate_wep(sta, ap, wlan)
                             if dist >= 0.01 and sta.params['associatedTo'][wlan] != '':
-                                setInfraChannelParams(sta, ap, wlan, dist, self.stations)
+                                setInfraChannelParams(sta, ap, wlan, dist)
         
     @classmethod
     def verifyPasswd(self, sta, ap, wlan):
