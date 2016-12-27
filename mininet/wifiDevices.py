@@ -23,7 +23,7 @@ class deviceDataRate (object):
                 model = ap.equipmentModel
                 self.__getattribute__(model)(sta, ap, wlan)
         elif ap != None:
-            self.customDataRate_mobility(ap, wlan)
+            self.customDataRate_mobility(ap, 0)
         elif sta != None:
             self.customDataRate_mobility(sta, wlan)
 
