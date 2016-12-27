@@ -1038,6 +1038,11 @@ class Mininet(object):
                          'should be overriden in subclass', self)
 
     def getAPsInRange(self, sta):
+        """ 
+        Gets all APs in range of the station. It's not used when there is no position defined
+        
+        :param sta: station
+        """
         for ap in self.accessPoints:
             dist = setChannelParams.getDistance(sta, ap)
             if dist < ap.params['range']:
@@ -1496,7 +1501,10 @@ class Mininet(object):
         return cpu_fractions
 
     def mobility(self, *args, **kwargs):
-        """ Mobility Parameters """
+        """ 
+        Mobility Parameters 
+        """
+        
         sta = args[0]
         stage = args[1]
 
@@ -1519,7 +1527,10 @@ class Mininet(object):
             mobility.moveFactor(sta, diffTime)
 
     def startMobility(self, **kwargs):
-        """ Starting Mobility """
+        """
+        Starts Mobility 
+        """
+        
         self.mobilityModel = ''
         mobilityparam = dict()
         mobility.isMobility = True
@@ -1571,7 +1582,10 @@ class Mininet(object):
         info("Mobility started at %s second(s)\n" % kwargs['startTime'])
 
     def stopMobility(self, **kwargs):
-        """ Stop Mobility """
+        """ 
+        Stops Mobility 
+        """
+        
         if 'stopTime' in kwargs:
             final_time = kwargs['stopTime']
             
@@ -1585,7 +1599,7 @@ class Mininet(object):
         mobilityparam.setdefault('staMov', staMov)
         mobilityparam.setdefault('init_time', self.init_time)
         mobilityparam.setdefault('final_time', final_time)
-        mobilityparam.setdefault('plotnodes', self.plotNodes)
+        mobilityparam.setdefault('plotNodes', self.plotNodes)
         mobilityparam.setdefault('stations', self.stations)
         mobilityparam.setdefault('aps', self.accessPoints)
         mobilityparam.setdefault('walls', self.walls)
@@ -1603,10 +1617,19 @@ class Mininet(object):
         self.setWifiParameters()
 
     def setWifiParameters(self):
+        """
+        Opens a thread for wifi parameters
+        """
         self.thread = threading.Thread(name='wifiParameters', target=mobility.parameters)
         self.thread.start()
 
     def useExternalProgram(self, program, **params):
+        """
+        Opens an external program
+        
+        :params program: any program (useful for SUMO)
+        :params **params config_file: file configuration
+        """
         config_file = ("%s" % params.pop('config_file', {}))
         self.isVanet = True
         for car in self.cars:
@@ -1618,21 +1641,43 @@ class Mininet(object):
             # self.setWifiParameters()
 
     def meshRouting(self, routing):
+        """
+        Defined the mesh routing
+        
+        :params routing: the mesh routing (default: custom)
+        """
         if routing != '':
             meshRouting.routing = routing
 
     def printDistance(self, src, dst):
-        """ Print the distance between two points """
+        """ 
+        Prints the distance between two points
+        
+        :params src: source node
+        :params dst: destination node
+        """
         dist = setChannelParams.getDistance(src, dst)
         info ("The distance between %s and %s is %.2f meters\n" % (src, dst, float(dist)))
 
     def plotNode(self, node, position):
+        """ 
+        Useful for plotting switches and hosts 
+        
+        :params node: the node
+        :params position: position of the node (x,y,z)
+        """
         node.params['position'] = position.split(',')
         node.params['range'] = 0
         self.plotNodes.append(node)
 
     def plotGraph(self, max_x=0, max_y=0, max_z=0):
-        """ Plot Graph """
+        """ 
+        Plots Graph 
+        
+        :params max_x: maximum X
+        :params max_y: maximum Y
+        :params max_z: maximum Z
+        """
         mobility.DRAW = True
         self.MAX_X = max_x
         self.MAX_Y = max_y
@@ -1643,7 +1688,11 @@ class Mininet(object):
             mobility.continuePlot = 'plot3d.graphPause()'
 
     def getCurrentPosition(self, node):
-        """ Get Current Position """
+        """ 
+        Gets Current Position of a node
+        
+        :params node: a node
+        """
         try:
             wifiNodes = self.stations + self.cars + self.accessPoints
             for host in wifiNodes:
@@ -1653,7 +1702,14 @@ class Mininet(object):
             info ("Position was not defined\n")
         
     def setChannelEquation(self, **params):
-        """ Set Channel Equation """
+        """ 
+        Set Channel Equation. The user may change the equation defined in wifiChannel.py by any other.
+        
+        :params bw: bandwidth (mbps)
+        :params delay: delay (ms)
+        :params latency: latency (ms)
+        :params loss: loss (%)
+        """
         if 'bw' in params:
             setChannelParams.equationBw = params['bw']
         if 'delay' in params:
@@ -1664,14 +1720,24 @@ class Mininet(object):
             setChannelParams.equationLoss = params['loss']
 
     def propagationModel(self, model, exp=2, sL=1, lF=0, pL=0, nFloors=0, gRandom=0):
-        """ Attributes for Propagation Model """
+        """ 
+        Attributes for Propagation Model 
+        
+        :params model: propagation model
+        :params exp: exponent
+        :params sL: system Loss
+        :params lF: floor penetration loss factor
+        :params pL: power Loss Coefficient
+        :params nFloors: number of floors
+        :params gRandom: gaussian random variable
+        """
         propagationModel.model = model
         propagationModel.exp = exp
-        setChannelParams.sl = sL  # System Loss
-        setChannelParams.lF = lF  # Floor penetration loss factor
-        setChannelParams.nFloors = nFloors  # Number of floors
-        setChannelParams.gRandom = gRandom  # Gaussian random variable
-        setChannelParams.pL = pL  # Power Loss Coefficient
+        setChannelParams.sl = sL 
+        setChannelParams.lF = lF
+        setChannelParams.nFloors = nFloors 
+        setChannelParams.gRandom = gRandom
+        setChannelParams.pL = pL
         
         for sta in self.stations:
             if 'position' in sta.params and sta not in mobility.stations:
@@ -1681,11 +1747,20 @@ class Mininet(object):
                 mobility.accessPoints.append(ap)
 
     def associationControl(self, ac):
-        """Defines an association control"""
+        """
+        Defines an association control
+        
+        :params ac: the association control
+        """
         mobility.associationControlMethod = ac
 
     def getCurrentDistance(self, src, dst):
-        """ Get current Distance """
+        """ 
+        Gets the distance between two nodes
+        
+        :params src: source node
+        :params dst: destination node
+        """
         try:
             wifiNodes = self.stations + self.cars + self.accessPoints
             for host1 in wifiNodes:

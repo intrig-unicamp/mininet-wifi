@@ -37,7 +37,8 @@ class mobility (object):
     @classmethod
     def moveFactor(self, sta, diffTime):
         """
-            diffTime: important to calculate the speed  
+        :param sta: station
+        :param diffTime: difference between start and stop time. Useful for calculating the speed
         """
         initialPosition = sta.params['initialPosition']
         finalPosition = sta.params['finalPosition']
@@ -48,17 +49,33 @@ class mobility (object):
         pos_z = float(finalPosition[2]) - float(initialPosition[2])
 
         self.nodeSpeed(sta, pos_x, pos_y, pos_z, diffTime)
-        pos = '%.5f,%.5f,%.5f' % (pos_x / diffTime, pos_y / diffTime, pos_z / diffTime)
+        pos = '%.2f,%.2f,%.2f' % (pos_x / diffTime, pos_y / diffTime, pos_z / diffTime)
         pos = pos.split(',')
         sta.moveFac = pos
 
     @classmethod
     def nodeSpeed(self, sta, pos_x, pos_y, pos_z, diffTime):
+        """
+        Calculates the speed
+        
+        :param sta: station
+        :param pos_x: Position x
+        :param pos_y: Position y
+        :param pos_z: Position z
+        :param diffTime: difference between start and stop time. Useful for calculating the speed
+        """
         sta.params['speed'] = abs(((pos_x + pos_y + pos_z) / diffTime))
 
     @classmethod
     def handover(self, sta, ap, wlan, dist):
-        """handover"""
+        """
+        handover
+        
+        :param sta: station
+        :param ap: access point
+        :param wlan: wlan ID
+        :param dist: distance between source and destination   
+        """
         associated = True        
         
         if dist > ap.params['range']:
@@ -100,6 +117,13 @@ class mobility (object):
         
     @classmethod
     def verifyPasswd(self, sta, ap, wlan):
+        """ 
+        Verifies if the password is previously set or not
+        
+        :param sta: station
+        :param ap: access point
+        :param wlan: wlan ID
+        """
         if 'passwd' not in sta.params:
             passwd = ap.params['passwd'][0]
         else:
@@ -108,39 +132,89 @@ class mobility (object):
     
     @classmethod     
     def updateParams(self, sta, ap, wlan):
+        """ 
+        Updates values for frequency and channel
+        
+        :param sta: station
+        :param ap: access point
+        :param wlan: wlan ID
+        """
         sta.params['frequency'][wlan] = setChannelParams.frequency(ap, 0)
         sta.params['channel'][wlan] = ap.params['channel'][0]
     
     @classmethod     
     def updateAssociation(self, sta, ap, wlan):
+        """ 
+        Updates attributes regarding the association
+        
+        :param sta: station
+        :param ap: access point
+        :param wlan: wlan ID
+        """
         self.updateParams(sta, ap, wlan)
         sta.params['associatedTo'][wlan] = ap 
         ap.params['associatedStations'].append(sta)        
             
     @classmethod
     def associate_wep(self, sta, ap, wlan):
+        """ 
+        Does association if WEP
+        
+        :param sta: station
+        :param ap: access point
+        :param wlan: wlan ID
+        """
         passwd = self.verifyPasswd(sta, ap, wlan)
         sta.pexec('iw dev %s connect %s key d:0:%s' % (sta.params['wlan'][wlan], ap.params['ssid'][0], passwd))
         self.updateAssociation(sta, ap, wlan)
         
     @classmethod
-    def associate_infra(self, sta, ap, wlan):
-        debug('\niwconfig %s essid %s ap %s' % (sta.params['wlan'][wlan], ap.params['ssid'][0], ap.params['mac'][0]))
-        sta.pexec('iwconfig %s essid %s ap %s' % (sta.params['wlan'][wlan], ap.params['ssid'][0], ap.params['mac'][0]))
-        self.updateAssociation(sta, ap, wlan)
-        
-    @classmethod
     def associate_wpa(self, sta, ap, wlan):
+        """ 
+        Does association if WPA
+        
+        :param sta: station
+        :param ap: access point
+        :param wlan: wlan ID
+        """
         passwd = self.verifyPasswd(sta, ap, wlan)
         os.system('pkill -f \'wpa_supplicant -B -Dnl80211 -i %s\'' % sta.params['wlan'][wlan])
         sta.cmd("wpa_supplicant -B -Dnl80211 -i %s -c <(wpa_passphrase \"%s\" \"%s\")" \
                                              % (sta.params['wlan'][wlan], ap.params['ssid'][0], passwd))
+        self.updateAssociation(sta, ap, wlan)    
+    
+    @classmethod
+    def associate_infra(self, sta, ap, wlan):
+        """ 
+        Does association if INFRA
+        
+        :param sta: station
+        :param ap: access point
+        :param wlan: wlan ID
+        """
+        debug('\niwconfig %s essid %s ap %s' % (sta.params['wlan'][wlan], ap.params['ssid'][0], ap.params['mac'][0]))
+        sta.pexec('iwconfig %s essid %s ap %s' % (sta.params['wlan'][wlan], ap.params['ssid'][0], ap.params['mac'][0]))
         self.updateAssociation(sta, ap, wlan)
 
     @classmethod
     def definedPosition(self, init_time=0, final_time=0, stations=None, aps=None, walls=None, staMov=None,
-                                dstConn=None, srcConn=None, plotnodes=None, MAX_X=0, MAX_Y=0, MAX_Z=0):
-        """ Defined Position """
+                                dstConn=None, srcConn=None, plotNodes=None, MAX_X=0, MAX_Y=0, MAX_Z=0):
+        """ 
+        Used when the position of each node is previously defined
+        
+        :param init_time: time when the mobility starts
+        :param final_time: time when the mobility stops
+        :param stations: list of stations
+        :param aps: list of access points
+        :param walls: list of walls (not used yet)
+        :param staMov: list of nodes with mobility
+        :param srcConn: list of connections for source nodes
+        :param dstConn: list of connections for destination nodes
+        :param plotnodes: list of nodes to be plotted (including hosts and switches)
+        :param MAX_X: Maximum value for X
+        :param MAX_Y: Maximum value for Y
+        :param MAX_Z: Maximum value for Z
+        """
         t_end = time.time() + final_time
         t_initial = time.time() + init_time
         currentTime = time.time()
@@ -149,7 +223,7 @@ class mobility (object):
         self.stations = stations
         self.accessPoints = aps
         self.wallList = walls
-        nodes = self.stations + self.accessPoints + plotnodes
+        nodes = self.stations + self.accessPoints + plotNodes
 
         if self.DRAW == True:
             if self.is3d:
@@ -179,8 +253,25 @@ class mobility (object):
             pass
 
     @classmethod
-    def models(self, model=None, staMov=None, min_v=0, max_v=0, seed=None, stations=None, aps=None,
+    def models(self, stations=None, aps=None, model=None, staMov=None, min_v=0, max_v=0, seed=None, 
                dstConn=None, srcConn=None, walls=None, plotNodes=None, MAX_X=0, MAX_Y=0):
+        """ 
+        Used when a mobility model is applied
+        
+        :param stations: list of stations
+        :param aps: list of access points
+        :param model: mobility model
+        :param staMov: list of nodes with mobility
+        :param min_v: minimum velocity
+        :param max_v: maximum velocity
+        :param speed: speed
+        :param srcConn:  list of connections for source nodes
+        :param dstConn:  list of connections for destination nodes
+        :param walls: list of walls (not used yet)
+        :param plotNodes: list of nodes to be plotted (including hosts and switches)
+        :param MAX_X: Maximum value for X
+        :param MAX_Y: Maximum value for Y
+        """
 
         np.random.seed(seed)
         
@@ -234,6 +325,12 @@ class mobility (object):
     
     @classmethod
     def startMobilityModelGraph(self, mob, nodes):
+        """ 
+        Useful for plotting graphs
+        
+        :param mob: mobility params
+        :param nodes: list of nodes
+        """
         for xy in mob:
             i = 0
             for node in nodes:
@@ -244,6 +341,12 @@ class mobility (object):
                 
     @classmethod    
     def startMobilityModelNoGraph(self, mob, nodes):
+        """ 
+        Useful when graph is not required
+        
+        :param mob: mobility params
+        :param nodes: list of nodes
+        """
         for xy in mob:
             i = 0
             for node in nodes:
@@ -253,6 +356,11 @@ class mobility (object):
                 
     @classmethod
     def getAPsInRange(self, sta):
+        """ 
+        Gets all APs in range of the station. It's not used when there is no position defined
+        
+        :param sta: station
+        """
         for ap in self.accessPoints:
             dist = setChannelParams.getDistance(sta, ap)
             if dist < ap.params['range']:
@@ -264,6 +372,12 @@ class mobility (object):
 
     @classmethod
     def handoverCheck(self, sta, wlan):
+        """ 
+        Does handover
+        
+        :param sta: station
+        :param wlan: wlan ID
+        """
         for ap in self.accessPoints:
             dist = setChannelParams.getDistance(sta, ap)
             self.getAPsInRange(sta)
@@ -271,6 +385,9 @@ class mobility (object):
 
     @classmethod
     def parameters(self):
+        """ 
+        Applies channel params and handover
+        """
         while self.continue_:
             for sta in self.stations:
                 for wlan in range(0, len(sta.params['wlan'])):
