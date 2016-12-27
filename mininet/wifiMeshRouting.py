@@ -3,9 +3,8 @@ author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
         ramonfontes.com
 """
 
-from mininet.wifiChannel import channelParams
+from mininet.wifiChannel import setChannelParams
 from mininet.wmediumdConnector import WmediumdServerConn, WmediumdLink
-from mininet.wifiChannel import setAdhocChannelParams
 from mininet.log import debug 
 
 class listNodes (object):
@@ -44,7 +43,7 @@ class listNodes (object):
                     ref_sta.params['position'] = car.params['position']
                     ref_sta.params['range'] = car.params['range']
                 if ref_sta != sta and ref_sta.func[wlan] == 'mesh' :
-                    dist = channelParams.getDistance(sta, ref_sta)
+                    dist = setChannelParams.getDistance(sta, ref_sta)
                     if dist >= 0.1:
                         totalRange = int(sta.params['range'])
                         ref_totalRange = int(ref_sta.params['range'])
@@ -116,7 +115,7 @@ class meshRouting (object):
                 ref_sta = ref_sta.params['carsta']
             for ref_wlan in range(len(ref_sta.params['wlan'])):
                 if ref_sta != sta and ref_sta.func[ref_wlan] == 'mesh' and 'position' in sta.params:
-                    dist = channelParams.getDistance(sta, ref_sta)
+                    dist = setChannelParams.getDistance(sta, ref_sta)
                     totalRange = int(sta.params['range'])
                     ref_totalRange = int(ref_sta.params['range'])
                     if ref_totalRange > totalRange:
@@ -126,7 +125,7 @@ class meshRouting (object):
                             if sta.params['associatedTo'][wlan] == ref_sta.params['associatedTo'][ref_wlan]:
                                 associate = True
                                 if WmediumdServerConn.connected == True:
-                                    setAdhocChannelParams(sta, wlan, dist)
+                                    setChannelParams(sta=sta, wlan=wlan, dist=dist)
                 elif 'position' not in sta.params:
                     associate = True
 
