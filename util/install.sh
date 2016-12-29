@@ -699,7 +699,7 @@ function modprobe {
 function wmediumd {
     echo "Installing wmediumd sources into $BUILD_DIR/wmediumd"
     cd $BUILD_DIR
-    $install git make libevent-dev libconfig-dev libnl-3-dev
+    $install git make libevent-dev libconfig-dev libnl-3-dev libnl-genl-3-dev
     git clone --depth=1 -b mininet-wifi https://github.com/patgrosse/wmediumd.git
     pushd $BUILD_DIR/wmediumd
     sudo make install
