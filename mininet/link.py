@@ -848,10 +848,6 @@ class Association(Link):
     
     printCon = True
     
-    @classmethod
-    def confirmMeshAssociation(self, sta, wlan):
-        sleep (0.5)  # Have to check it
-    
     @classmethod    
     def adhoc(self, sta):
         wlan = sta.ifaceToAssociate
