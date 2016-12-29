@@ -70,6 +70,7 @@ from mininet.link import Link, Intf, TCIntf, OVSIntf
 from re import findall
 from distutils.version import StrictVersion
 from mininet.wifiMobility import mobility
+from mininet.wifiMeshRouting import listNodes, meshRouting
 from mininet.wifiChannel import setChannelParams
 from mininet.wifiDevices import deviceRange
 from mininet.wifiPlot import plot2d, plot3d
@@ -440,18 +441,16 @@ class Node(object):
     def calculateWiFiParameters(self, sta):
         for wlan in range(len(sta.params['wlan'])):
             if sta.func[wlan] == 'mesh' or sta.func[wlan] == 'adhoc':
-                associate = False
                 for station in mobility.stations:
-                    dist = setChannelParams.getDistance(sta, station)
-                    if dist < int(sta.params['range']) + int(station.params['range']):
-                        associate = True
-                setChannelParams(sta=sta, wlan=wlan, dist=0)
-                if associate == False:
-                    sta.cmd('iw dev %s-mp%s mesh leave' % (sta, wlan))
+                    dist = listNodes.pairingNodes(station, wlan, mobility.stations)
+                    if dist >= 0.01:
+                        setChannelParams(sta=station, wlan=wlan, dist=dist)
             else:
                 for ap in mobility.accessPoints:
                     dist = setChannelParams.getDistance(sta, ap)
                     mobility.handover(sta, ap, wlan, dist)
+        if meshRouting.routing == 'custom':
+            meshRouting(mobility.stations)
         mobility.getAPsInRange(sta)
 
     @classmethod

@@ -210,7 +210,6 @@ class Mininet(object):
         self.MAX_Z = 0
         self.is3d = False
         self.ifb = False
-        self.justKeepingBackwardsCompatibility = True
         Mininet.init()  # Initialize Mininet if necessary
 
         self.built = False
@@ -845,7 +844,6 @@ class Mininet(object):
         module.start(nodes, self.nRadios, self.alternativeModule, **params)               
         self.configureAP()  
         self.isWiFi = True
-        self.justKeepingBackwardsCompatibility = False
         
         # useful if there no link between sta and any other device
         for car in self.cars:
@@ -1069,8 +1067,6 @@ class Mininet(object):
                         dist = listNodes.pairingNodes(sta, wlan, self.stations)
                         if dist >= 0.01:
                             setChannelParams(sta=sta, wlan=wlan, dist=dist)
-                        cls = Association
-                        cls.confirmMeshAssociation(sta, wlan)
                     elif 'position' in sta.params and sta.params['associatedTo'][wlan] != '' and sta.func[wlan] != 'adhoc':
                         dist = setChannelParams.getDistance(sta, sta.params['associatedTo'][wlan])
                         if dist >= 0.01:
