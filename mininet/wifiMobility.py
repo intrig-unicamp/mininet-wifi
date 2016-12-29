@@ -1,4 +1,5 @@
 """
+Provides support to mobility
 
 author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
         ramonfontes.com
@@ -139,6 +140,7 @@ class mobility (object):
         :param ap: access point
         :param wlan: wlan ID
         """
+
         sta.params['frequency'][wlan] = setChannelParams.frequency(ap, 0)
         sta.params['channel'][wlan] = ap.params['channel'][0]
     
@@ -253,7 +255,7 @@ class mobility (object):
             pass
 
     @classmethod
-    def models(self, stations=None, aps=None, model=None, staMov=None, min_v=0, max_v=0, seed=None, 
+    def models(self, stations=None, aps=None, model=None, staMov=None, min_v=0, max_v=0, seed=None,
                dstConn=None, srcConn=None, walls=None, plotNodes=None, MAX_X=0, MAX_Y=0):
         """ 
         Used when a mobility model is applied
@@ -316,7 +318,7 @@ class mobility (object):
             elif(model == 'TimeVariantCommunity'):  # Time-variant Community Mobility Model
                 mob = tvc(staMov, dimensions=(MAX_X, MAX_Y), aggregation=[0.5, 0.], epoch=[100, 100])
             else:
-                raise Exception("Model not defined!")
+                raise Exception("Mobility Model not defined or doesn't exist!")
             
             if self.DRAW:
                 self.startMobilityModelGraph(mob, staMov)
@@ -393,9 +395,9 @@ class mobility (object):
                 for wlan in range(0, len(sta.params['wlan'])):
                     if sta.func[wlan] == 'mesh' or sta.func[wlan] == 'adhoc':
                         if sta.type == 'vehicle':
-                            node = sta.params['carsta']
+                            sta = sta.params['carsta']
                             wlan = 0
-                        dist = listNodes.pairingNodes(node, wlan, self.stations)
+                        dist = listNodes.pairingNodes(sta, wlan, self.stations)
                         if WmediumdServerConn.connected == False and dist >= 0.01:
                             setChannelParams(sta=sta, wlan=wlan, dist=dist)
                     else:
