@@ -146,10 +146,12 @@ function wifi_deps {
     $install wireless-tools python-numpy python-scipy pkg-config python-matplotlib libnl-3-dev libnl-genl-3-dev libssl-dev
     pushd $MININET_DIR/mininet-wifi
     git submodule update --init --recursive
-    pushd $MININET_DIR/mininet-wifi/hostapd/hostapd
+    pushd $MININET_DIR/mininet-wifi/
+    patch -p0 < $MININET_DIR/mininet-wifi/util/hostap-patches/config.patch
+    pushd $MININET_DIR/mininet-wifi/hostap/hostapd
     cp defconfig .config
     sudo make && make install
-    pushd $MININET_DIR/mininet-wifi/wpa_supplicant/wpa_supplicant
+    pushd $MININET_DIR/mininet-wifi/hostap/wpa_supplicant
     cp defconfig .config
     sudo make && make install
     pushd $MININET_DIR/mininet-wifi/iw
@@ -562,10 +564,12 @@ function iw {
     $install wireless-tools python-numpy python-scipy pkg-config python-matplotlib libnl-3-dev libnl-genl-3-dev libssl-dev
     pushd $MININET_DIR/mininet-wifi
     git submodule update --init --recursive
-    pushd $MININET_DIR/mininet-wifi/hostapd/hostapd
+    pushd $MININET_DIR/mininet-wifi/
+    patch -p0 < $MININET_DIR/mininet-wifi/util/hostap-patches/config.patch
+    pushd $MININET_DIR/mininet-wifi/hostap/hostapd
     cp defconfig .config
     sudo make && make install
-    pushd $MININET_DIR/mininet-wifi/wpa_supplicant/wpa_supplicant
+    pushd $MININET_DIR/mininet-wifi/hostap/wpa_supplicant
     cp defconfig .config
     sudo make && make install
     pushd $MININET_DIR/mininet-wifi/iw

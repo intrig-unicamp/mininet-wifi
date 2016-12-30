@@ -1,0 +1,35 @@
+diff --git hostapd/defconfig hostapd/defconfig
+index 4659dd1..5412f96 100644
+--- hostapd/defconfig
++++ hostapd/defconfig
+@@ -31,7 +31,7 @@ CONFIG_DRIVER_NL80211=y
+ #CONFIG_LIBNL20=y
+ 
+ # Use libnl 3.2 libraries (if this is selected, CONFIG_LIBNL20 is ignored)
+-#CONFIG_LIBNL32=y
++CONFIG_LIBNL32=y
+ 
+ 
+ # Driver interface for FreeBSD net80211 layer (e.g., Atheros driver)
+@@ -148,7 +148,7 @@ CONFIG_IPV6=y
+ #CONFIG_DRIVER_RADIUS_ACL=y
+ 
+ # IEEE 802.11n (High Throughput) support
+-#CONFIG_IEEE80211N=y
++CONFIG_IEEE80211N=y
+ 
+ # Wireless Network Management (IEEE Std 802.11v-2011)
+ # Note: This is experimental and not complete implementation.
+diff --git wpa_supplicant/defconfig wpa_supplicant/defconfig
+index 1d05198..a5f2fdc 100644
+--- wpa_supplicant/defconfig
++++ wpa_supplicant/defconfig
+@@ -44,7 +44,7 @@ CONFIG_DRIVER_NL80211=y
+ #CONFIG_LIBNL20=y
+ 
+ # Use libnl 3.2 libraries (if this is selected, CONFIG_LIBNL20 is ignored)
+-#CONFIG_LIBNL32=y
++CONFIG_LIBNL32=y
+ 
+ 
+ # Driver interface for FreeBSD net80211 layer (e.g., Atheros driver)
