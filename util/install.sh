@@ -146,7 +146,7 @@ function wifi_deps {
     $install wireless-tools python-numpy python-scipy pkg-config python-matplotlib libnl-3-dev libnl-genl-3-dev libssl-dev
     pushd $MININET_DIR/mininet-wifi
     git submodule update --init --recursive
-    pushd $MININET_DIR/mininet-wifi/
+    pushd $MININET_DIR/mininet-wifi/hostap
     patch -p0 < $MININET_DIR/mininet-wifi/util/hostap-patches/config.patch
     pushd $MININET_DIR/mininet-wifi/hostap/hostapd
     cp defconfig .config
@@ -564,7 +564,7 @@ function iw {
     $install wireless-tools python-numpy python-scipy pkg-config python-matplotlib libnl-3-dev libnl-genl-3-dev libssl-dev
     pushd $MININET_DIR/mininet-wifi
     git submodule update --init --recursive
-    pushd $MININET_DIR/mininet-wifi/
+    pushd $MININET_DIR/mininet-wifi/hostap
     patch -p0 < $MININET_DIR/mininet-wifi/util/hostap-patches/config.patch
     pushd $MININET_DIR/mininet-wifi/hostap/hostapd
     cp defconfig .config
