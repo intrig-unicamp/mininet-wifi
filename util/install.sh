@@ -558,6 +558,8 @@ function pox {
 function iw {
     echo "Installing iw..."
     $install wireless-tools python-numpy python-scipy pkg-config python-matplotlib libnl-3-dev libnl-genl-3-dev libssl-dev
+    pushd $MININET_DIR/mininet-wifi
+    git submodule update --init --recursive
     pushd $MININET_DIR/mininet-wifi/hostapd/hostapd
     cp defconfig .config
     sudo make && make install
