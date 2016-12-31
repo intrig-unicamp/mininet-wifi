@@ -143,12 +143,8 @@ function mn_deps {
 # Install Mininet-WiFi deps
 function wifi_deps {
     echo "Installing Mininet-WiFi dependencies"
-    $install wireless-tools python-numpy python-scipy pkg-config python-matplotlib libnl-3-dev libnl-genl-3-dev libssl-dev
-    pushd $MININET_DIR/mininet-wifi
-    git submodule update --init --recursive
-    pushd $MININET_DIR/mininet-wifi/hostap
-    patch -p0 < $MININET_DIR/mininet-wifi/util/hostap-patches/config.patch
-    pushd $MININET_DIR/mininet-wifi/hostap/hostapd
+    $install wireless-tools python-numpy python-scipy pkg-config python-matplotlib libnl-3-dev libnl-genl-3-dev libssl-dev git make libevent-dev
+    pushd $MININET_DIR/mininet-wifi/hostapd/hostapd
     cp defconfig .config
     sudo make && make install
     pushd $MININET_DIR/mininet-wifi/hostap/wpa_supplicant
@@ -156,6 +152,10 @@ function wifi_deps {
     sudo make && make install
     pushd $MININET_DIR/mininet-wifi/iw
     sudo make && make install
+    cd $BUILD_DIR
+    git clone --depth=1 https://github.com/patgrosse/mac80211_hwsim_mgmt.git
+    pushd $BUILD_DIR/mac80211_hwsim_mgmt
+    sudo make install
     #popd
 }
 
