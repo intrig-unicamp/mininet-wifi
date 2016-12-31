@@ -36,11 +36,12 @@ class module(object):
         self.prefix = ""
         while not numokay:
             self.prefix = "mn%02ds" % num
+            numokay = True
             for phy in phys:
                 if phy.startswith(self.prefix):
                     num += 1
-                    continue
-            numokay = True
+                    numokay = False
+                    break
         for i in range(0, wifiRadios):
             p = subprocess.Popen(["hwsim_mgmt", "-c", "-n", self.prefix + ("%02d" % i)], stdin=subprocess.PIPE,
                                  stdout=subprocess.PIPE,
