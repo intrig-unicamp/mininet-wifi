@@ -180,7 +180,8 @@ class mobility (object):
         :param wlan: wlan ID
         """
         passwd = self.verifyPasswd(sta, ap, wlan)
-        os.system('pkill -f \'wpa_supplicant -B -Dnl80211 -i %s\'' % sta.params['wlan'][wlan])
+        confname = "mn%d_%s_wifiDirect.conf" % (os.getpid(), sta.name)
+        os.system('pkill -f \'wpa_supplicant -B -Dnl80211 -c%s\'' % confname)
         sta.cmd("wpa_supplicant -B -Dnl80211 -i %s -c <(wpa_passphrase \"%s\" \"%s\")" \
                                              % (sta.params['wlan'][wlan], ap.params['ssid'][0], passwd))
         self.updateAssociation(sta, ap, wlan)    

@@ -92,10 +92,11 @@ class module(object):
             pass 
             
         try:
-            h = subprocess.check_output("ps -aux | grep -ic \'wpa_supplicant -B -Dnl80211\'",
+            confnames = "mn%d" % os.getpid()
+            h = subprocess.check_output("ps -aux | grep -ic \'wpa_supplicant -B -Dnl80211 -c%s\'" % confnames,
                                                           shell=True)
             if h >= 2:
-                os.system('pkill -f \'wpa_supplicant -B -Dnl80211\'')
+                os.system('pkill -f \'wpa_supplicant -B -Dnl80211 -c%s\'' % confnames)
         except:
             pass
 
