@@ -1,3 +1,6 @@
 [submodule "iw"]
 	path = iw
 	url = git://git.kernel.org/pub/scm/linux/kernel/git/jberg/iw.git
+[submodule "hostap"]
+	path = hostap
+	url = git://w1.fi/hostap.git
