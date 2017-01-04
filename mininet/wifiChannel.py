@@ -22,7 +22,7 @@ class setChannelParams (object):
     equationLoss = '(dist * 2) / 1000'
     equationDelay = '(dist / 10) + 1'
     equationLatency = '2 + dist'
-    equationBw = 'custombw * (1.1 ** -dist)'
+    equationBw = '(custombw * (1.1 ** -dist))*8'
     ifb = False
     
     def __init__(self, sta=None, ap=None, wlan=0, dist=0):
@@ -139,17 +139,17 @@ class setChannelParams (object):
         """
         if self.ifb:
             sta.pexec("tc qdisc replace dev ifb%s \
-                root handle 2: netem rate %.2fmbps \
+                root handle 2: netem rate %.2fmbit \
                 loss %.1f%% \
                 latency %.2fms \
                 delay %.2fms " % (sta.ifb[wlan], bw, loss, latency, delay))
         debug("\ntc qdisc replace dev %s \
-            root handle 2: netem rate %.2fmbps \
+            root handle 2: netem rate %.2fmbit \
             loss %.1f%% \
             latency %.2fms \
             delay %.2fms " % (sta.params['wlan'][wlan], bw, loss, latency, delay))
         sta.pexec("tc qdisc replace dev %s \
-            root handle 2: netem rate %.2fmbps \
+            root handle 2: netem rate %.2fmbit \
             loss %.1f%% \
             latency %.2fms \
             delay %.2fms " % (sta.params['wlan'][wlan], bw, loss, latency, delay))
