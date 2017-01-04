@@ -22,7 +22,7 @@ class setChannelParams (object):
     equationLoss = '(dist * 2) / 1000'
     equationDelay = '(dist / 10) + 1'
     equationLatency = '2 + dist'
-    equationBw = '(custombw * (1.1 ** -dist))*8'
+    equationBw = 'custombw * (1.1 ** -dist)'
     ifb = False
     
     def __init__(self, sta=None, ap=None, wlan=0, dist=0):
