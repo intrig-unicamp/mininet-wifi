@@ -49,12 +49,12 @@ class module(object):
             output, err_out = p.communicate()
             if p.returncode == 0:
                 m = re.search("ID (\d+)", output)
-                debug("Created mac80211_hwsim device with ID %d" % m.group(1))
+                debug("\nCreated mac80211_hwsim device with ID %s" % m.group(1))
                 self.hwsim_ids.append(m.group(1))
             else:
-                error("Error on creating mac80211_hwsim device with name %s" % (self.prefix + ("%02d" % i)))
-                error("Output: %s" % output)
-                error("Error: %s" % err_out)
+                error("\nError on creating mac80211_hwsim device with name %s" % (self.prefix + ("%02d" % i)))
+                error("\nOutput: %s" % output)
+                error("\nError: %s" % err_out)
 
     @classmethod
     def stop(self):
@@ -70,11 +70,11 @@ class module(object):
             output, err_out = p.communicate()
             if p.returncode == 0:
                 m = re.search("ID (\d+)", output)
-                debug("Deleted mac80211_hwsim device with ID %d" % m.group(1))
+                debug("\nDeleted mac80211_hwsim device with ID %s" % m.group(1))
             else:
-                error("Error on deleting mac80211_hwsim device with ID %d" % hwsim_id)
-                error("Output: %s" % output)
-                error("Error: %s" % err_out)
+                error("\nError on deleting mac80211_hwsim device with ID %d" % hwsim_id)
+                error("\nOutput: %s" % output)
+                error("\nError: %s" % err_out)
 
         try:
             (subprocess.check_output("lsmod | grep ifb",
