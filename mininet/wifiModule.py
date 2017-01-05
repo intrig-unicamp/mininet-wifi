@@ -6,7 +6,7 @@ import glob
 import os
 import subprocess
 import re
-from mininet.log import debug, info
+from mininet.log import debug, error, info
 
 class module(object):
     """ wireless module """
@@ -46,15 +46,15 @@ class module(object):
             p = subprocess.Popen(["hwsim_mgmt", "-c", "-n", self.prefix + ("%02d" % i)], stdin=subprocess.PIPE,
                                  stdout=subprocess.PIPE,
                                  stderr=subprocess.PIPE, bufsize=-1)
-            output, error = p.communicate()
+            output, err_out = p.communicate()
             if p.returncode == 0:
                 m = re.search("ID (\d+)", output)
-                print "Created mac80211_hwsim device with ID", m.group(1)
+                debug("Created mac80211_hwsim device with ID %d" % m.group(1))
                 self.hwsim_ids.append(m.group(1))
             else:
-                print "Error on creating mac80211_hwsim device with name", self.prefix + ("%02d" % i)
-                print "Output:", output
-                print "Error:", error
+                error("Error on creating mac80211_hwsim device with name %s" % (self.prefix + ("%02d" % i)))
+                error("Output: %s" % output)
+                error("Error: %s" % err_out)
 
     @classmethod
     def stop(self):
@@ -67,14 +67,14 @@ class module(object):
         for hwsim_id in self.hwsim_ids:
             p = subprocess.Popen(["hwsim_mgmt", "-d", hwsim_id], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                                  stderr=subprocess.PIPE, bufsize=-1)
-            output, error = p.communicate()
+            output, err_out = p.communicate()
             if p.returncode == 0:
                 m = re.search("ID (\d+)", output)
-                print "Deleted mac80211_hwsim device with ID", m.group(1)
+                debug("Deleted mac80211_hwsim device with ID %d" % m.group(1))
             else:
-                print "Error on deleting mac80211_hwsim device with ID", hwsim_id
-                print "Output:", output
-                print "Error:", error
+                error("Error on deleting mac80211_hwsim device with ID %d" % hwsim_id)
+                error("Output: %s" % output)
+                error("Error: %s" % err_out)
 
         try:
             (subprocess.check_output("lsmod | grep ifb",
