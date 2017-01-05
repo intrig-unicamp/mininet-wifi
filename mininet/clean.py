@@ -100,8 +100,11 @@ class Cleanup(object):
                 sh('killall -9 hostapd')
         except:
             pass
-        if glob.glob("*.conf"):
+
+        if glob.glob("*.apconf"):
             os.system('rm *.apconf')
+	if glob.glob("*wifiDirect.conf"):
+            os.system('rm *wifiDirect.conf')
 
         try:
             h = subprocess.check_output("ps -aux | grep -ic \'wpa_supplicant -B -Dnl80211\'",
