@@ -323,13 +323,15 @@ def prevent_sig_passtrough():
 
 class WmediumdServerConn(object):
     __mac_struct_fmt = '6s'
-    __snr_update_request_struct = struct.Struct('!' + __mac_struct_fmt + __mac_struct_fmt + 'B')
-    __snr_update_response_struct = struct.Struct(__snr_update_request_struct.format + 'B')
+    __snr_update_request_fmt = __mac_struct_fmt + __mac_struct_fmt + 'B'
+    __snr_update_response_fmt = __snr_update_request_fmt + 'B'
+    __snr_update_request_struct = struct.Struct('!B' + __snr_update_request_fmt)
+    __snr_update_response_struct = struct.Struct('!BB' + __snr_update_response_fmt)
     sock = None
     connected = False
 
     @classmethod
-    def connect(cls, uds_address='/tmp/wserver_soc'):
+    def connect(cls, uds_address='/var/run/wmediumd.sock'):
         # type: (str) -> None
         """
         Connect to the wmediumd server
@@ -359,21 +361,38 @@ class WmediumdServerConn(object):
         """
         Send an update to the wmediumd server
         :param link: The WmediumdLink to update
-        :return: 0 for success, 1 if the interface was not found, 2 the SNR is invalid
+        :return: A WUPDATE_* constant
         """
         cls.sock.send(cls.__create_update_request(link))
-        return cls.sock.recv(cls.__snr_update_response_struct.size)
+        recvd_data = cls.sock.recv(cls.__snr_update_response_struct.size)
+        return cls.__parse_update_response(recvd_data)
 
     @classmethod
     def __create_update_request(cls, link):
         # type: (WmediumdLink) -> str
+        msgtype = WmediumdConstants.WSERVER_UPDATE_REQUEST_TYPE
         mac_from = link.sta1intfref.get_intf_mac().replace(':', '').decode('hex')
         mac_to = link.sta2intfref.get_intf_mac().replace(':', '').decode('hex')
         snr = link.snr
-        return cls.__snr_update_request_struct.pack(mac_from, mac_to, snr)
+        return cls.__snr_update_request_struct.pack(msgtype, mac_from, mac_to, snr)
 
     @classmethod
     def __parse_update_response(cls, recv_bytes):
         # type: (str) -> int
         tup = cls.__snr_update_response_struct.unpack(recv_bytes)
-        return tup[-1]
+        return tup[5]
+
+
+class WmediumdConstants:
+    WSERVER_SHUTDOWN_REQUEST_TYPE = 0
+    WSERVER_UPDATE_REQUEST_TYPE = 1
+    WSERVER_UPDATE_RESPONSE_TYPE = 2
+    WSERVER_DEL_BY_MAC_REQUEST_TYPE = 3
+    WSERVER_DEL_BY_MAC_RESPONSE_TYPE = 4
+    WSERVER_DEL_BY_ID_REQUEST_TYPE = 5
+    WSERVER_DEL_BY_ID_RESPONSE_TYPE = 6
+    WSERVER_ADD_REQUEST_TYPE = 7
+    WSERVER_ADD_RESPONSE_TYPE = 8
+
+    WUPDATE_SUCCESS = 0
+    WUPDATE_INTF_NOTFOUND = 1
