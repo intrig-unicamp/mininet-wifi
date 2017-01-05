@@ -87,7 +87,7 @@ class module(object):
             h = subprocess.check_output("ps -aux | grep -ic \'hostapd\'",
                                                           shell=True)
             if h >= 2:
-                os.system('pkill -f \'hostapd\' -B mn%d' % os.getpid())
+                os.system('pkill -f \'hostapd -B mn%d\'' % os.getpid())
         except:
             pass 
             
