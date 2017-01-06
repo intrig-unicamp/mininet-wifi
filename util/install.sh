@@ -430,7 +430,7 @@ function ivs {
 
     # Install IVS from source
     cd $BUILD_DIR
-    git clone --depth=1 --recursive git://github.com/floodlight/ivs $IVS_SRC
+    git clone --depth=1 --recursive https://github.com/floodlight/ivs.git $IVS_SRC
     cd $IVS_SRC
     make
     sudo make install
@@ -458,7 +458,7 @@ function ryu {
     fi
     # fetch RYU
     cd $BUILD_DIR/
-    git clone --depth=1 git://github.com/osrg/ryu.git ryu
+    git clone --depth=1 https://github.com/osrg/ryu.git ryu
     cd ryu
 
     # install ryu
@@ -587,7 +587,7 @@ function oftest {
 
     # Install oftest:
     cd $BUILD_DIR/
-    git clone git://github.com/floodlight/oftest
+    git clone https://github.com/floodlight/oftest.git
 }
 
 # Install cbench
