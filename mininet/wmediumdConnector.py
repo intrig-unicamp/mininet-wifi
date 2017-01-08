@@ -12,11 +12,106 @@ import subprocess
 import signal
 import time
 import struct
+import stat
 
-from mininet.log import info
+from mininet.log import info, error
 from wifiModule import module
 
-class WmediumdConn(object):
+
+class WmediumdConstants:
+    WSERVER_SHUTDOWN_REQUEST_TYPE = 0
+    WSERVER_UPDATE_REQUEST_TYPE = 1
+    WSERVER_UPDATE_RESPONSE_TYPE = 2
+    WSERVER_DEL_BY_MAC_REQUEST_TYPE = 3
+    WSERVER_DEL_BY_MAC_RESPONSE_TYPE = 4
+    WSERVER_DEL_BY_ID_REQUEST_TYPE = 5
+    WSERVER_DEL_BY_ID_RESPONSE_TYPE = 6
+    WSERVER_ADD_REQUEST_TYPE = 7
+    WSERVER_ADD_RESPONSE_TYPE = 8
+
+    WUPDATE_SUCCESS = 0
+    WUPDATE_INTF_NOTFOUND = 1
+    WUPDATE_INTF_DUPLICATE = 2
+
+    SOCKET_PATH = '/var/run/wmediumd.sock'
+
+
+class WmediumdException(Exception):
+    pass
+
+
+class WmediumdConnector(object):
+    __LOG_PREFIX = "wmediumd:"
+
+    is_connected = False
+    registered_interfaces = []
+
+    @classmethod
+    def connect(cls, uds_address=WmediumdConstants.SOCKET_PATH):
+        is_started = False
+        h = int(subprocess.check_output("pgrep -x \'wmediumd\' | wc -l",
+                                        shell=True))
+        if h > 0:
+            if os.path.exists(uds_address) and stat.S_ISSOCK(os.stat(uds_address).st_mode):
+                is_started = True
+            else:
+                raise WmediumdException("wmediumd is already started but without server")
+        if not is_started:
+            WmediumdStarter.initialize(parameters=['-l', '5'])
+            WmediumdStarter.start_managed()
+            time.sleep(1)
+        WmediumdServerConn.connect(uds_address)
+        cls.is_connected = True
+
+    @classmethod
+    def disconnect(cls):
+        if not cls.is_connected:
+            raise WmediumdException("WmediumdConnector is not connected to wmediumd")
+        for mac in cls.registered_interfaces:
+            cls.unregister_interface(mac)
+        cls.is_connected = False
+
+    @classmethod
+    def register_interface(cls, mac):
+        # type: (str) -> int
+        """
+
+        :type mac: str
+        :rtype int
+        """
+        info("\n%s Registering interface with mac %s" % (cls.__LOG_PREFIX, mac))
+        ret, sta_id = WmediumdServerConn.send_add(mac)
+        if ret != WmediumdConstants.WUPDATE_SUCCESS:
+            raise WmediumdException("Received error code from wmediumd: code %d" % ret)
+        return sta_id
+
+    @classmethod
+    def unregister_interface(cls, mac):
+        # type: (str) -> None
+        """
+
+        :type mac: str
+        """
+        info("\n%s Unregistering interface with mac %s" % (cls.__LOG_PREFIX, mac))
+        ret = WmediumdServerConn.send_del_by_mac(mac)
+        if ret != WmediumdConstants.WUPDATE_SUCCESS:
+            raise WmediumdException("Received error code from wmediumd: code %d" % ret)
+
+    @classmethod
+    def update_link(cls, link):
+        # type: (WmediumdLink) -> None
+        """
+
+        :type link: WmediumdLink
+        """
+        ret = WmediumdServerConn.send_update(link)
+        if ret != WmediumdConstants.WUPDATE_SUCCESS:
+            raise WmediumdException("Received error code from wmediumd: code %d" % ret)
+
+
+class WmediumdStarter(object):
+    is_managed = False
+
     is_initialized = False
     intfrefs = None
     links = None
@@ -31,9 +126,8 @@ class WmediumdConn(object):
     wmd_logfile = None
 
     @classmethod
-    def set_wmediumd_data(cls, intfrefs, links, executable='wmediumd', with_server=False, parameters=None,
-                          auto_add_links=True,
-                          default_auto_snr=-10):
+    def initialize(cls, intfrefs=None, links=None, executable='wmediumd', with_server=True, parameters=None,
+                          auto_add_links=True, default_auto_snr=-10):
         """
         Set the data for the wmediumd daemon
 
@@ -48,6 +142,10 @@ class WmediumdConn(object):
         :type intfrefs: list of WmediumdIntfRef
         :type links: list of WmediumdLink
         """
+        if intfrefs is None:
+            intfrefs = []
+        if links is None:
+            links = []
         if parameters is None:
             parameters = ['-l', '4']
         if with_server:
@@ -66,13 +164,13 @@ class WmediumdConn(object):
         This method can be called before initializing the Mininet net
         to prevent the stations from reaching each other from the beginning.
 
-        Alternative: Call connect_wmediumd() when the net is built
+        Alternative: Call connect_wmediumd_after_startup() when the net is built
         """
         if not cls.is_initialized:
-            raise Exception("Use set_wmediumd_data first to set the required data")
+            raise WmediumdException("Use WmediumdStarter.initialize() first to set the required data")
 
         if cls.is_connected:
-            raise Exception('wmediumd is already initialized')
+            raise WmediumdException("WmediumdStarter is already connected")
 
         orig_ifaceassign = module.assignIface
 
@@ -95,10 +193,10 @@ class WmediumdConn(object):
         Alternative: Call intercept_module_loading() before the net is built
         """
         if not cls.is_initialized:
-            raise Exception("Use set_wmediumd_data first to set the required data")
+            raise WmediumdException("Use WmediumdStarter.initialize first to set the required data")
 
         if cls.is_connected:
-            raise Exception('wmediumd is already initialized')
+            raise WmediumdException("WmediumdStarter is already connected")
 
         mappedintfrefs = {}
         mappedlinks = {}
@@ -117,10 +215,10 @@ class WmediumdConn(object):
                     if link.sta2intfref.get_station_name() == intfref.get_station_name():
                         found2 = True
             if not found1:
-                raise Exception('%s is not part of the managed interfaces' % link.sta1intfref.identifier())
+                raise WmediumdException('%s is not part of the managed interfaces' % link.sta1intfref.identifier())
                 pass
             if not found2:
-                raise Exception('%s is not part of the managed interfaces' % link.sta2intfref.identifier())
+                raise WmediumdException('%s is not part of the managed interfaces' % link.sta2intfref.identifier())
 
         # Auto add links
         if cls.auto_add_links:
@@ -161,19 +259,35 @@ class WmediumdConn(object):
 
         # Start wmediumd using the created config
         per_data_file = pkg_resources.resource_filename('mininet', 'data/signal_table_ieee80211ax')
-        cls.wmd_logfile = tempfile.NamedTemporaryFile(prefix='mn_wmd_log_', suffix='.log')
-        info("Name of wmediumd log: %s\n" % cls.wmd_logfile.name)
         cmdline = [cls.executable, "-c", cls.wmd_config_name, "-x", per_data_file]
         cmdline[1:1] = cls.parameters
+        cls.wmd_logfile = tempfile.NamedTemporaryFile(prefix='mn_wmd_log_', suffix='.log', delete=not cls.is_managed)
+        info("Name of wmediumd log: %s\n" % cls.wmd_logfile.name)
+        if cls.is_managed:
+            cmdline[0:0] = ["nohup"]
         cls.wmd_process = subprocess.Popen(cmdline, shell=False, stdout=cls.wmd_logfile,
-                                           stderr=subprocess.STDOUT, preexec_fn=prevent_sig_passtrough)
+                                           stderr=subprocess.STDOUT, preexec_fn=os.setpgrp)
         cls.is_connected = True
 
     @classmethod
-    def disconnect_wmediumd(cls):
+    def start_managed(cls):
+        """
+        Start the connector in managed mode, which means disconnect and kill won't work,
+        the process is kept running after the python process has finished
+        """
+        cls.is_managed = True
+        if not cls.is_initialized:
+            cls.initialize()
+        cls.connect_wmediumd_after_startup()
+
+    @classmethod
+    def close(cls):
         """
         Kill the wmediumd process if running and delete the config
         """
+        if cls.is_managed:
+            error("\nCannot close WmediumdStarter in managed mode")
+            return
         if cls.is_connected:
             cls.kill_wmediumd()
             try:
@@ -186,10 +300,14 @@ class WmediumdConn(object):
                 pass
             cls.is_connected = False
         else:
-            raise Exception('wmediumd is not started')
+            raise WmediumdException('WmediumdStarter is not connected to wmediumd')
 
     @classmethod
     def kill_wmediumd(cls):
+        if cls.is_managed:
+            return
+        if not cls.is_connected:
+            raise WmediumdException('WmediumdStarter is not connected to wmediumd')
         try:
             # SIGINT to allow closing resources
             cls.wmd_process.send_signal(signal.SIGINT)
@@ -198,6 +316,19 @@ class WmediumdConn(object):
             cls.wmd_process.send_signal(signal.SIGKILL)
         except OSError:
             pass
+
+
+# backwards compatibility
+class WmediumdConn(WmediumdStarter):
+    @classmethod
+    def set_wmediumd_data(cls, intfrefs=None, links=None, executable='wmediumd', with_server=True, parameters=None,
+                          auto_add_links=True, default_auto_snr=0):
+        cls.initialize(intfrefs, links, executable, with_server, parameters,
+                       auto_add_links, default_auto_snr)
+
+    @classmethod
+    def disconnect_wmediumd(cls):
+        cls.close()
 
 
 class WmediumdLink(object):
@@ -211,6 +342,7 @@ class WmediumdLink(object):
 
         :type sta1intfref: WmediumdIntfRef
         :type sta2intfref: WmediumdIntfRef
+        :type snr: int
         """
         self.sta1intfref = sta1intfref
         self.sta2intfref = sta2intfref
@@ -316,31 +448,41 @@ class StaticWmediumdIntfRef(WmediumdIntfRef):
         return self.__intfmac
 
 
-def prevent_sig_passtrough():
-    """
-    preexec_fn for Popen to prevent signals being passed through
-    """
-    os.setpgrp()
-
-
 class WmediumdServerConn(object):
     __mac_struct_fmt = '6s'
+
     __snr_update_request_fmt = __mac_struct_fmt + __mac_struct_fmt + 'B'
     __snr_update_response_fmt = __snr_update_request_fmt + 'B'
     __snr_update_request_struct = struct.Struct('!B' + __snr_update_request_fmt)
     __snr_update_response_struct = struct.Struct('!BB' + __snr_update_response_fmt)
+
+    __station_del_by_mac_request_fmt = __mac_struct_fmt
+    __station_del_by_mac_response_fmt = __station_del_by_mac_request_fmt + 'B'
+    __station_del_by_mac_request_struct = struct.Struct('!B' + __station_del_by_mac_request_fmt)
+    __station_del_by_mac_response_struct = struct.Struct('!BB' + __station_del_by_mac_response_fmt)
+
+    __station_del_by_id_request_fmt = 'B'
+    __station_del_by_id_response_fmt = __station_del_by_id_request_fmt + 'B'
+    __station_del_by_id_request_struct = struct.Struct('!B' + __station_del_by_id_request_fmt)
+    __station_del_by_id_response_struct = struct.Struct('!BB' + __station_del_by_id_response_fmt)
+
+    __station_add_request_fmt = __mac_struct_fmt
+    __station_add_response_fmt = __station_add_request_fmt + 'BB'
+    __station_add_request_struct = struct.Struct('!B' + __station_add_request_fmt)
+    __station_add_response_struct = struct.Struct('!BB' + __station_add_response_fmt)
+
     sock = None
     connected = False
 
     @classmethod
-    def connect(cls, uds_address='/var/run/wmediumd.sock'):
+    def connect(cls, uds_address=WmediumdConstants.SOCKET_PATH):
         # type: (str) -> None
         """
         Connect to the wmediumd server
         :param uds_address: The UNIX domain socket
         """
         if cls.connected:
-            raise Exception("Already connected to wmediumd server")
+            raise WmediumdException("Already connected to wmediumd server")
         cls.sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         print '*** Connecting to wmediumd server %s' % uds_address
         cls.sock.connect(uds_address)
@@ -353,7 +495,7 @@ class WmediumdServerConn(object):
         Disconnect from the wmediumd server
         """
         if not cls.connected:
-            raise Exception("Not yet connected to wmediumd server")
+            raise WmediumdException("Not yet connected to wmediumd server")
         cls.sock.close()
         cls.connected = False
 
@@ -366,8 +508,45 @@ class WmediumdServerConn(object):
         :return: A WUPDATE_* constant
         """
         cls.sock.send(cls.__create_update_request(link))
-        recvd_data = cls.sock.recv(cls.__snr_update_response_struct.size)
-        return cls.__parse_update_response(recvd_data)
+        return cls.__parse_response(WmediumdConstants.WSERVER_UPDATE_RESPONSE_TYPE,
+                                    cls.__snr_update_response_struct)[-1]
+
+    @classmethod
+    def send_del_by_mac(cls, mac):
+        # type: (str) -> int
+        """
+        Send an update to the wmediumd server
+        :param mac: The mac address of the interface to be deleted
+        :return: A WUPDATE_* constant
+        """
+        cls.sock.send(cls.__create_station_del_by_mac_request(mac))
+        return cls.__parse_response(WmediumdConstants.WSERVER_DEL_BY_MAC_RESPONSE_TYPE,
+                                    cls.__station_del_by_mac_response_struct)[-1]
+
+    @classmethod
+    def send_del_by_id(cls, sta_id):
+        # type: (int) -> int
+        """
+        Send an update to the wmediumd server
+        :param sta_id: The wmediumd index of the station
+        :return: A WUPDATE_* constant
+        """
+        cls.sock.send(cls.__create_station_del_by_id_request(sta_id))
+        return cls.__parse_response(WmediumdConstants.WSERVER_DEL_BY_ID_RESPONSE_TYPE,
+                                    cls.__station_del_by_id_response_struct)[-1]
+
+    @classmethod
+    def send_add(cls, mac):
+        # type: (str) -> (int, int)
+        """
+        Send an update to the wmediumd server
+        :param mac: The mac address of the new interface
+        :return: A WUPDATE_* constant and on success at the second position the index
+        """
+        cls.sock.send(cls.__create_station_add_request(mac))
+        resp = cls.__parse_response(WmediumdConstants.WSERVER_ADD_RESPONSE_TYPE,
+                                    cls.__station_add_response_struct)
+        return resp[-1], resp[-2]
 
     @classmethod
     def __create_update_request(cls, link):
@@ -379,22 +558,31 @@ class WmediumdServerConn(object):
         return cls.__snr_update_request_struct.pack(msgtype, mac_from, mac_to, snr)
 
     @classmethod
-    def __parse_update_response(cls, recv_bytes):
-        # type: (str) -> int
-        tup = cls.__snr_update_response_struct.unpack(recv_bytes)
-        return tup[5]
+    def __create_station_del_by_mac_request(cls, mac):
+        # type: (str) -> str
+        msgtype = WmediumdConstants.WSERVER_DEL_BY_MAC_REQUEST_TYPE
+        macparsed = mac.replace(':', '').decode('hex')
+        return cls.__station_del_by_mac_request_struct.pack(msgtype, macparsed)
 
+    @classmethod
+    def __create_station_del_by_id_request(cls, sta_id):
+        # type: (int) -> str
+        msgtype = WmediumdConstants.WSERVER_DEL_BY_ID_REQUEST_TYPE
+        return cls.__station_del_by_id_request_struct.pack(msgtype, sta_id)
 
-class WmediumdConstants:
-    WSERVER_SHUTDOWN_REQUEST_TYPE = 0
-    WSERVER_UPDATE_REQUEST_TYPE = 1
-    WSERVER_UPDATE_RESPONSE_TYPE = 2
-    WSERVER_DEL_BY_MAC_REQUEST_TYPE = 3
-    WSERVER_DEL_BY_MAC_RESPONSE_TYPE = 4
-    WSERVER_DEL_BY_ID_REQUEST_TYPE = 5
-    WSERVER_DEL_BY_ID_RESPONSE_TYPE = 6
-    WSERVER_ADD_REQUEST_TYPE = 7
-    WSERVER_ADD_RESPONSE_TYPE = 8
+    @classmethod
+    def __create_station_add_request(cls, mac):
+        # type: (str) -> str
+        msgtype = WmediumdConstants.WSERVER_ADD_REQUEST_TYPE
+        macparsed = mac.replace(':', '').decode('hex')
+        return cls.__station_add_request_struct.pack(msgtype, macparsed)
 
-    WUPDATE_SUCCESS = 0
-    WUPDATE_INTF_NOTFOUND = 1
+    @classmethod
+    def __parse_response(cls, expected_type, resp_struct):
+        # type: (int, struct.Struct) -> tuple
+        recvd_data = cls.sock.recv(resp_struct.size)
+        recvd_bytes = bytearray(recvd_data)
+        if recvd_bytes[0] != expected_type:
+            raise WmediumdException(
+                "Received response of unknown type %d, expected %d" % (recvd_bytes[0], expected_type))
+        return resp_struct.unpack(recvd_data)
