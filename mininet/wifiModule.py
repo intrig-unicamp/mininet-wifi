@@ -31,6 +31,8 @@ class module(object):
         """ Stop wireless Module """
         if glob.glob("*.apconf"):
             os.system('rm *.apconf')
+        if glob.glob("*wifiDirect.conf"):
+            os.system('rm *wifiDirect.conf')
 
         try:
             subprocess.check_output("lsmod | grep mac80211_hwsim",
