@@ -33,7 +33,7 @@ class WmediumdConn(object):
     @classmethod
     def set_wmediumd_data(cls, intfrefs, links, executable='wmediumd', with_server=False, parameters=None,
                           auto_add_links=True,
-                          default_auto_snr=0):
+                          default_auto_snr=-10):
         """
         Set the data for the wmediumd daemon
 
