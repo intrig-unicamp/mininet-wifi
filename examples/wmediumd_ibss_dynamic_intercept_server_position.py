@@ -34,10 +34,10 @@ def topology():
 
     intfrefs = [sta1.wmediumdIface, sta2.wmediumdIface, sta3.wmediumdIface]
     links = [
-        WmediumdLink(sta1wlan0, sta2wlan0, 15),
-        WmediumdLink(sta2wlan0, sta1wlan0, 15),
-        WmediumdLink(sta2wlan0, sta3wlan0, 15),
-        WmediumdLink(sta3wlan0, sta2wlan0, 15)]
+        WmediumdLink(sta1.wmediumdIface, sta2.wmediumdIface, 15),
+        WmediumdLink(sta2.wmediumdIface, sta1.wmediumdIface, 15),
+        WmediumdLink(sta2.wmediumdIface, sta3.wmediumdIface, 15),
+        WmediumdLink(sta3.wmediumdIface, sta2.wmediumdIface, 15)]
     WmediumdConn.set_wmediumd_data(intfrefs, links, with_server=True)
 
     WmediumdConn.connect_wmediumd_on_startup()
