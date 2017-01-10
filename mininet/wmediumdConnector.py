@@ -5,6 +5,7 @@ author: Patrick Grosse (patrick.grosse@uni-muenster.de)
 """
 
 import os
+import pkg_resources
 import socket
 import tempfile
 import subprocess
@@ -159,9 +160,10 @@ class WmediumdConn(object):
         wmd_config.close()
 
         # Start wmediumd using the created config
+        per_data_file = pkg_resources.resource_filename('mininet', 'data/signal_table_ieee80211ax')
         cls.wmd_logfile = tempfile.NamedTemporaryFile(prefix='mn_wmd_log_', suffix='.log')
         info("Name of wmediumd log: %s\n" % cls.wmd_logfile.name)
-        cmdline = [cls.executable, "-c", cls.wmd_config_name]
+        cmdline = [cls.executable, "-c", cls.wmd_config_name, "-x", per_data_file]
         cmdline[1:1] = cls.parameters
         cls.wmd_process = subprocess.Popen(cmdline, shell=False, stdout=cls.wmd_logfile,
                                            stderr=subprocess.STDOUT, preexec_fn=prevent_sig_passtrough)
