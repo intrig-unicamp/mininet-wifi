@@ -102,6 +102,12 @@ class module(object):
             os.system('pkill -f \'wpa_supplicant -B -Dnl80211 -P %s\'' % pidfiles)
         except:
             pass
+        
+        try:
+            info("*** Killing wmediumd\n")
+            os.system('pkill wmediumd')
+        except:
+            pass
 
     @classmethod
     def start(self, nodes, wifiRadios, alternativeModule='', **params):
