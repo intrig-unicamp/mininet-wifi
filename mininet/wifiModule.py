@@ -77,6 +77,13 @@ class module(object):
                 error("\nError: %s" % err_out)
 
         try:
+            subprocess.check_output("lsmod | grep mac80211_hwsim",
+                                                          shell=True)
+            os.system('rmmod mac80211_hwsim')
+        except:
+            pass
+
+        try:
             (subprocess.check_output("lsmod | grep ifb",
                                                           shell=True))
             os.system('rmmod ifb')
