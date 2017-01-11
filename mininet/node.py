@@ -1537,9 +1537,10 @@ class AccessPoint(Switch):
             iface = ap.params.get('phywlan')
             ap.cmd('ifconfig %s down' % iface)
             ap.cmd('ifconfig %s up' % iface)
-        content = cmd + ("\' > %s.apconf" % iface)
+        apconfname = "mn%d_%s.apconf" % (os.getpid(), iface)
+        content = cmd + ("\' > %s" % apconfname)
         ap.cmd(content)
-        cmd = ("hostapd -B %s.apconf" % iface)
+        cmd = ("hostapd -B %s" % apconfname)
         try:
             ap.cmd(cmd)
         except:

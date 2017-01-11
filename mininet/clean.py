@@ -103,14 +103,11 @@ class Cleanup(object):
 
         if glob.glob("*.apconf"):
             os.system('rm *.apconf')
-	if glob.glob("*wifiDirect.conf"):
+        if glob.glob("*wifiDirect.conf"):
             os.system('rm *wifiDirect.conf')
 
         try:
-            h = subprocess.check_output("ps -aux | grep -ic \'wpa_supplicant -B -Dnl80211\'",
-                                                          shell=True)
-            if h >= 2:
-                os.system('pkill -f \'wpa_supplicant -B -Dnl80211\'')
+            os.system('pkill -f \'wpa_supplicant -B -Dnl80211\'')
         except:
             pass
 

@@ -729,9 +729,10 @@ class Mininet(object):
             \ndevice_name=%s\
             \ndevice_type=1-0050F204-1\
             \np2p_no_group_iface=1' % (sta)
-        apcommand = cmd + ("\' > %s_wifiDirect.conf" % sta)
-        os.system(apcommand)
-        sta.cmd('wpa_supplicant -B -Dnl80211 -i%s-wlan0 -d -c%s_wifiDirect.conf' % (sta, sta))
+        confname = "mn%d_%s_wifiDirect.conf" % (os.getpid(), sta)
+        cmd = cmd + ("\' > %s" % confname)
+        os.system(cmd)
+        sta.cmd('wpa_supplicant -B -Dnl80211 -c%s -i%s-wlan0 -d' % (confname, sta))
 
         value = deviceDataRate(sta=sta, wlan=wlan)
         self.bw = value.rate

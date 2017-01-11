@@ -5,13 +5,16 @@ author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
 import glob
 import os
 import subprocess
-from mininet.log import debug, info
+import re
+from mininet.log import debug, error, info
 
 class module(object):
     """ wireless module """
 
     wlan_list = []
-    
+    hwsim_ids = []
+    prefix = ""
+
     @classmethod
     def loadModule(self, wifiRadios, alternativeModule=''):
         """ Load WiFi Module 
@@ -20,11 +23,38 @@ class module(object):
         :param alternativeModule: dir of a mac80211_hwsim alternative module
         """
         if alternativeModule == '':
-            os.system('modprobe mac80211_hwsim radios=%s' % wifiRadios)
-            debug('Loading %s virtual interfaces\n' % wifiRadios)
+            os.system('modprobe mac80211_hwsim radios=0')
         else:
-            os.system('insmod %s radios=%s' % (alternativeModule, wifiRadios))
-            debug('Loading %s virtual interfaces\n' % wifiRadios)
+            os.system('insmod %s radios=0' % alternativeModule)
+
+        debug('Loading %s virtual interfaces\n' % wifiRadios)
+        # generate prefix
+        phys = subprocess.check_output("find /sys/kernel/debug/ieee80211 -name hwsim | cut -d/ -f 6 | sort",
+                                       shell=True).split("\n")
+        num = 0
+        numokay = False
+        self.prefix = ""
+        while not numokay:
+            self.prefix = "mn%02ds" % num
+            numokay = True
+            for phy in phys:
+                if phy.startswith(self.prefix):
+                    num += 1
+                    numokay = False
+                    break
+        for i in range(0, wifiRadios):
+            p = subprocess.Popen(["hwsim_mgmt", "-c", "-n", self.prefix + ("%02d" % i)], stdin=subprocess.PIPE,
+                                 stdout=subprocess.PIPE,
+                                 stderr=subprocess.PIPE, bufsize=-1)
+            output, err_out = p.communicate()
+            if p.returncode == 0:
+                m = re.search("ID (\d+)", output)
+                debug("\nCreated mac80211_hwsim device with ID %s" % m.group(1))
+                self.hwsim_ids.append(m.group(1))
+            else:
+                error("\nError on creating mac80211_hwsim device with name %s" % (self.prefix + ("%02d" % i)))
+                error("\nOutput: %s" % output)
+                error("\nError: %s" % err_out)
 
     @classmethod
     def stop(self):
@@ -34,13 +64,18 @@ class module(object):
         if glob.glob("*wifiDirect.conf"):
             os.system('rm *wifiDirect.conf')
 
-        try:
-            subprocess.check_output("lsmod | grep mac80211_hwsim",
-                                                          shell=True)
-            os.system('rmmod mac80211_hwsim')
-        except:
-            pass
-        
+        for hwsim_id in self.hwsim_ids:
+            p = subprocess.Popen(["hwsim_mgmt", "-d", hwsim_id], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                                 stderr=subprocess.PIPE, bufsize=-1)
+            output, err_out = p.communicate()
+            if p.returncode == 0:
+                m = re.search("ID (\d+)", output)
+                debug("\nDeleted mac80211_hwsim device with ID %s" % m.group(1))
+            else:
+                error("\nError on deleting mac80211_hwsim device with ID %d" % hwsim_id)
+                error("\nOutput: %s" % output)
+                error("\nError: %s" % err_out)
+
         try:
             (subprocess.check_output("lsmod | grep ifb",
                                                           shell=True))
@@ -52,17 +87,21 @@ class module(object):
             h = subprocess.check_output("ps -aux | grep -ic \'hostapd\'",
                                                           shell=True)
             if h >= 2:
-                os.system('pkill -f \'hostapd\'')
+                os.system('pkill -f \'hostapd -B mn%d\'' % os.getpid())
         except:
             pass 
             
         try:
-            h = subprocess.check_output("ps -aux | grep -ic \'wpa_supplicant -B -Dnl80211\'",
-                                                          shell=True)
-            if h >= 2:
-                os.system('pkill -f \'wpa_supplicant -B -Dnl80211\'')
+            confnames = "mn%d_" % os.getpid()
+            os.system('pkill -f \'wpa_supplicant -B -Dnl80211 -c%s\'' % confnames)
         except:
-            pass 
+            pass
+
+        try:
+            pidfiles = "mn%d_" % os.getpid()
+            os.system('pkill -f \'wpa_supplicant -B -Dnl80211 -P %s\'' % pidfiles)
+        except:
+            pass
 
     @classmethod
     def start(self, nodes, wifiRadios, alternativeModule='', **params):
@@ -73,22 +112,16 @@ class module(object):
         :param alternativeModule: dir of a mac80211_hwsim alternative module
         :param **params: ifb -  Intermediate Functional Block device
         """
-        """kill hostapd and mac80211_hwsim if they are already running"""
+        """kill hostapd if it is already running"""
         try:
             h = subprocess.check_output("ps -aux | grep -ic \'hostapd\'",
                                                           shell=True)
             if h >= 2:
                 os.system('pkill -f \'hostapd\'')
         except:
-            pass 
-        try:
-            (subprocess.check_output("lsmod | grep mac80211_hwsim",
-                                                          shell=True))
-            os.system('rmmod mac80211_hwsim')
-        except:
             pass
 
-        physicalWlans = self.getPhysicalWlan()  # Gets Phisical Wlan(s)
+        physicalWlans = self.getPhysicalWlan()  # Gets Physical Wlan(s)
         self.loadModule(wifiRadios, alternativeModule)  # Initatilize WiFi Module
         phys = self.getPhy()  # Get Phy Interfaces
         module.assignIface(nodes, physicalWlans, phys, **params) # iface assign
@@ -105,8 +138,9 @@ class module(object):
     @classmethod
     def getPhy(self):
         """Gets all phys after starting the wireless module"""
-        phy = subprocess.check_output("find /sys/kernel/debug/ieee80211 -name hwsim | cut -d/ -f 6 | sort",
-                                                             shell=True).split("\n")
+        phy = subprocess.check_output(
+            "find /sys/kernel/debug/ieee80211 -regex \".*/%s.*/hwsim\" | cut -d/ -f 6 | sort" % self.prefix,
+            shell=True).split("\n")
         phy.pop()
         phy.sort(key=len, reverse=False)
         return phy

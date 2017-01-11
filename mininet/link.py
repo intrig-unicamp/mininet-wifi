@@ -23,6 +23,8 @@ TCIntf: interface with bandwidth limiting and delay via tc
 
 Link: basic link class for creating veth pairs
 """
+import os
+
 import re
 from time import time
 
@@ -950,8 +952,9 @@ class Association(Link):
             passwd = ap.params['passwd'][0]
         else:
             passwd = sta.params['passwd'][wlan]
-        sta.cmd("wpa_supplicant -B -Dnl80211 -i %s-wlan%s -c <(wpa_passphrase \"%s\" \"%s\")" \
-                % (sta, wlan, ap.params['ssid'][0], passwd))
+        pidfile = "mn%d_%s_%s_wpa.pid" % (os.getpid(), sta.name, wlan)
+        sta.cmd("wpa_supplicant -B -Dnl80211 -P %s -i %s-wlan%s -c <(wpa_passphrase \"%s\" \"%s\")"
+                % (pidfile, sta, wlan, ap.params['ssid'][0], passwd))
 
     @classmethod
     def associate_wep(self, sta, ap, wlan):
