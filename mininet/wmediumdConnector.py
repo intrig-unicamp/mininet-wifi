@@ -14,7 +14,7 @@ import time
 import struct
 import stat
 
-from mininet.log import info, error
+from mininet.log import info, error, debug
 from wifiModule import module
 
 
@@ -34,20 +34,30 @@ class WmediumdConstants:
     WUPDATE_INTF_DUPLICATE = 2
 
     SOCKET_PATH = '/var/run/wmediumd.sock'
+    LOG_PREFIX = 'wmediumd:'
 
 
 class WmediumdException(Exception):
     pass
 
 
-class WmediumdConnector(object):
-    __LOG_PREFIX = "wmediumd:"
-
+class WmediumdManager(object):
     is_connected = False
     registered_interfaces = []
 
     @classmethod
     def connect(cls, uds_address=WmediumdConstants.SOCKET_PATH):
+        # type: (str) -> None
+        """
+        Connect to the wmediumd server and set Mininet-WiFi parameters to managed
+
+        :param uds_address: The Unix Domain socket path
+        :type uds_address str
+        """
+        h = int(subprocess.check_output("lsmod | grep 'mac80211_hwsim' | wc -l",
+                                        shell=True))
+        if h == 0:
+            os.system('modprobe mac80211_hwsim radios=0')
         is_started = False
         h = int(subprocess.check_output("pgrep -x \'wmediumd\' | wc -l",
                                         shell=True))
@@ -61,52 +71,21 @@ class WmediumdConnector(object):
             WmediumdStarter.start_managed()
             time.sleep(1)
         WmediumdServerConn.connect(uds_address)
+        module.externally_managed = True
         cls.is_connected = True
 
     @classmethod
     def disconnect(cls):
+        # type: () -> None
+        """
+        Disconnect from the wmediumd server and unregister all registered interfaces
+        """
         if not cls.is_connected:
             raise WmediumdException("WmediumdConnector is not connected to wmediumd")
         for mac in cls.registered_interfaces:
-            cls.unregister_interface(mac)
+            WmediumdServerConn.unregister_interface(mac)
+        WmediumdServerConn.disconnect()
         cls.is_connected = False
-
-    @classmethod
-    def register_interface(cls, mac):
-        # type: (str) -> int
-        """
-
-        :type mac: str
-        :rtype int
-        """
-        info("\n%s Registering interface with mac %s" % (cls.__LOG_PREFIX, mac))
-        ret, sta_id = WmediumdServerConn.send_add(mac)
-        if ret != WmediumdConstants.WUPDATE_SUCCESS:
-            raise WmediumdException("Received error code from wmediumd: code %d" % ret)
-        return sta_id
-
-    @classmethod
-    def unregister_interface(cls, mac):
-        # type: (str) -> None
-        """
-
-        :type mac: str
-        """
-        info("\n%s Unregistering interface with mac %s" % (cls.__LOG_PREFIX, mac))
-        ret = WmediumdServerConn.send_del_by_mac(mac)
-        if ret != WmediumdConstants.WUPDATE_SUCCESS:
-            raise WmediumdException("Received error code from wmediumd: code %d" % ret)
-
-    @classmethod
-    def update_link(cls, link):
-        # type: (WmediumdLink) -> None
-        """
-
-        :type link: WmediumdLink
-        """
-        ret = WmediumdServerConn.send_update(link)
-        if ret != WmediumdConstants.WUPDATE_SUCCESS:
-            raise WmediumdException("Received error code from wmediumd: code %d" % ret)
 
 
 class WmediumdStarter(object):
@@ -503,6 +482,50 @@ class WmediumdServerConn(object):
         cls.connected = False
 
     @classmethod
+    def register_interface(cls, mac):
+        # type: (str) -> int
+        """
+        Register a new interface at wmediumd
+        :param mac The mac address of the interface
+        :return The wmediumd station index
+
+        :type mac: str
+        :rtype int
+        """
+        info("\n%s Registering interface with mac %s" % (WmediumdConstants.LOG_PREFIX, mac))
+        ret, sta_id = WmediumdServerConn.send_add(mac)
+        if ret != WmediumdConstants.WUPDATE_SUCCESS:
+            raise WmediumdException("Received error code from wmediumd: code %d" % ret)
+        return sta_id
+
+    @classmethod
+    def unregister_interface(cls, mac):
+        # type: (str) -> None
+        """
+        Unregister a station at wmediumd
+        :param mac The mac address of the interface
+
+        :type mac: str
+        """
+        info("\n%s Unregistering interface with mac %s" % (WmediumdConstants.LOG_PREFIX, mac))
+        ret = WmediumdServerConn.send_del_by_mac(mac)
+        if ret != WmediumdConstants.WUPDATE_SUCCESS:
+            raise WmediumdException("Received error code from wmediumd: code %d" % ret)
+
+    @classmethod
+    def update_link(cls, link):
+        # type: (WmediumdLink) -> None
+        """
+        Update the SNR of a connection at wmediumd
+        :param link The link to update
+
+        :type link: WmediumdLink
+        """
+        ret = WmediumdServerConn.send_update(link)
+        if ret != WmediumdConstants.WUPDATE_SUCCESS:
+            raise WmediumdException("Received error code from wmediumd: code %d" % ret)
+
+    @classmethod
     def send_update(cls, link):
         # type: (WmediumdLink) -> int
         """
@@ -510,6 +533,8 @@ class WmediumdServerConn(object):
         :param link: The WmediumdLink to update
         :return: A WUPDATE_* constant
         """
+        debug("\n%s Updating SNR from interface %s to interface %s to value %d" % (
+            WmediumdConstants.LOG_PREFIX, link.sta1intfref.get_intf_mac(), link.sta2intfref.get_intf_mac(), link.snr))
         cls.sock.send(cls.__create_update_request(link))
         return cls.__parse_response(WmediumdConstants.WSERVER_UPDATE_RESPONSE_TYPE,
                                     cls.__snr_update_response_struct)[-1]

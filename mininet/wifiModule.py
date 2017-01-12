@@ -14,6 +14,7 @@ class module(object):
     wlan_list = []
     hwsim_ids = []
     prefix = ""
+    externally_managed = False
 
     @classmethod
     def loadModule(self, wifiRadios, alternativeModule=''):
@@ -22,10 +23,11 @@ class module(object):
         :param wifiRadios: number of wifi radios
         :param alternativeModule: dir of a mac80211_hwsim alternative module
         """
-        if alternativeModule == '':
-            os.system('modprobe mac80211_hwsim radios=0')
-        else:
-            os.system('insmod %s radios=0' % alternativeModule)
+        if not self.externally_managed:
+            if alternativeModule == '':
+                os.system('modprobe mac80211_hwsim radios=0')
+            else:
+                os.system('insmod %s radios=0' % alternativeModule)
 
         debug('Loading %s virtual interfaces\n' % wifiRadios)
         # generate prefix
@@ -81,12 +83,13 @@ class module(object):
                 error("\nOutput: %s" % output)
                 error("\nError: %s" % err_out)
 
-        try:
-            subprocess.check_output("lsmod | grep mac80211_hwsim",
-                                                          shell=True)
-            os.system('rmmod mac80211_hwsim')
-        except:
-            pass
+        if not self.externally_managed:
+            try:
+                subprocess.check_output("lsmod | grep mac80211_hwsim",
+                                                              shell=True)
+                os.system('rmmod mac80211_hwsim')
+            except:
+                pass
 
         try:
             (subprocess.check_output("lsmod | grep ifb",
@@ -114,12 +117,13 @@ class module(object):
             os.system('pkill -f \'wpa_supplicant -B -Dnl80211 -P %s\'' % pidfiles)
         except:
             pass
-        
-        try:
-            info("*** Killing wmediumd\n")
-            os.system('pkill wmediumd')
-        except:
-            pass
+
+        if not self.externally_managed:
+            try:
+                info("*** Killing wmediumd\n")
+                os.system('pkill wmediumd')
+            except:
+                pass
 
     @classmethod
     def start(self, nodes, wifiRadios, alternativeModule='', **params):
