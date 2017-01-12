@@ -42,19 +42,24 @@ class module(object):
                     num += 1
                     numokay = False
                     break
-        for i in range(0, wifiRadios):
-            p = subprocess.Popen(["hwsim_mgmt", "-c", "-n", self.prefix + ("%02d" % i)], stdin=subprocess.PIPE,
-                                 stdout=subprocess.PIPE,
-                                 stderr=subprocess.PIPE, bufsize=-1)
-            output, err_out = p.communicate()
-            if p.returncode == 0:
-                m = re.search("ID (\d+)", output)
-                debug("\nCreated mac80211_hwsim device with ID %s" % m.group(1))
-                self.hwsim_ids.append(m.group(1))
-            else:
-                error("\nError on creating mac80211_hwsim device with name %s" % (self.prefix + ("%02d" % i)))
-                error("\nOutput: %s" % output)
-                error("\nError: %s" % err_out)
+        
+        try:
+            for i in range(0, wifiRadios):
+                p = subprocess.Popen(["hwsim_mgmt", "-c", "-n", self.prefix + ("%02d" % i)], stdin=subprocess.PIPE,
+                                     stdout=subprocess.PIPE,
+                                     stderr=subprocess.PIPE, bufsize=-1)
+                output, err_out = p.communicate()
+                if p.returncode == 0:
+                    m = re.search("ID (\d+)", output)
+                    debug("\nCreated mac80211_hwsim device with ID %s" % m.group(1))
+                    self.hwsim_ids.append(m.group(1))
+                else:
+                    error("\nError on creating mac80211_hwsim device with name %s" % (self.prefix + ("%02d" % i)))
+                    error("\nOutput: %s" % output)
+                    error("\nError: %s" % err_out)
+        except:
+            print "Warning! If you already had Mininet-WiFi installed, please run util/install.sh -W. \
+                                                                    A new API for mac80211_hwsim has been created."
 
     @classmethod
     def stop(self):
