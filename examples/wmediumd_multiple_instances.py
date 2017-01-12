@@ -31,6 +31,9 @@ def topology():
     sta2 = net.addStation('sta2')
     sta3 = net.addStation('sta3')
 
+    print "*** Configuring wifi nodes"
+    net.configureWifiNodes()
+
     print "*** Configure wmediumd"
     # This should be done right after the station has been initialized
     sta1wlan0 = DynamicWmediumdIntfRef(sta1)
@@ -44,8 +47,11 @@ def topology():
         WmediumdLink(sta2wlan0, sta3wlan0, 15),
         WmediumdLink(sta3wlan0, sta2wlan0, 15)]
 
-    print "*** Configuring wifi nodes"
-    net.configureWifiNodes()
+    for intfref in intfrefs:
+        WmediumdServerConn.register_interface(intfref.get_intf_mac())
+
+    for link in links:
+        WmediumdServerConn.update_link(link)
 
     print "*** Creating links"
     net.addHoc(sta1, ssid='adNet')
@@ -53,12 +59,6 @@ def topology():
     net.addHoc(sta3, ssid='adNet')
 
     print "*** Starting network"
-    for intfref in intfrefs:
-        WmediumdServerConn.register_interface(intfref.get_intf_mac())
-
-    for link in links:
-        WmediumdServerConn.update_link(link)
-
     net.start()
 
     print "*** Running CLI"
