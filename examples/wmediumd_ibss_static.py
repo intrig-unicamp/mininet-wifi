@@ -3,7 +3,7 @@
 """
 This example shows how to use the wmediumd connector to prevent mac80211_hwsim stations reaching each other
 
-The standard case should be covered in wmediumd_ibss_dynamic_intercept.py
+The standard case should be covered in wmediumd_ibss_dynamic.py
 
 author: Patrick Grosse (patrick.grosse@uni-muenster.de)
 """

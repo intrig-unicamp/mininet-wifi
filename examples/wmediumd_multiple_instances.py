@@ -3,7 +3,10 @@
 """
 This example shows how to use the wmediumd connector to prevent mac80211_hwsim stations reaching each other
 
-This is the standard example of using wmediumd with Mininet-Wifi
+This example is capable of being run multiple times without interfering with the other instance.
+The kernel mod mac80211_hwsim is started only once, as well as wmediumd. mac80211_hwsim is managed over
+mac80211_hwsim_mgmt after it has been started. wmediumd includes a unix socket server which allows the management with
+external tools like Mininet-WiFi.
 
 author: Patrick Grosse (patrick.grosse@uni-muenster.de)
 """
@@ -11,11 +14,14 @@ author: Patrick Grosse (patrick.grosse@uni-muenster.de)
 from mininet.net import Mininet
 from mininet.cli import CLI
 from mininet.log import setLogLevel
-from mininet.wmediumdConnector import DynamicWmediumdIntfRef, WmediumdLink, WmediumdConnector
+from mininet.wmediumdConnector import DynamicWmediumdIntfRef, WmediumdLink, WmediumdManager, WmediumdServerConn
 
 
 def topology():
     """Create a network. sta1 <--> sta2 <--> sta3"""
+
+    print "*** Connect wmediumd manager"
+    WmediumdManager.connect()
 
     print "*** Network creation"
     net = Mininet()
@@ -47,21 +53,19 @@ def topology():
     net.addHoc(sta3, ssid='adNet')
 
     print "*** Starting network"
-    WmediumdConnector.connect()
     for intfref in intfrefs:
-        WmediumdConnector.register_interface(intfref.get_intf_mac())
+        WmediumdServerConn.register_interface(intfref.get_intf_mac())
 
     for link in links:
-        WmediumdConnector.update_link(link)
+        WmediumdServerConn.update_link(link)
 
     net.start()
 
     print "*** Running CLI"
     CLI(net)
 
-    print "*** Stopping wmediumd"
-    for intfref in intfrefs:
-        WmediumdConnector.unregister_interface(intfref.get_intf_mac())
+    print "*** Disconnecting wmediumd manager"
+    WmediumdManager.disconnect()
 
     print "*** Stopping network"
     net.stop()
