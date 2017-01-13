@@ -11,7 +11,7 @@ author: Patrick Grosse (patrick.grosse@uni-muenster.de)
 from mininet.cli import CLI
 from mininet.log import setLogLevel
 from mininet.net import Mininet
-from mininet.wmediumdConnector import WmediumdConn, WmediumdLink, StaticWmediumdIntfRef
+from mininet.wmediumdConnector import WmediumdStarter, WmediumdLink, WmediumdIntfRef
 
 
 def topology():
@@ -21,9 +21,9 @@ def topology():
     net = Mininet()
 
     print "*** Configure wmediumd"
-    sta1wlan0 = StaticWmediumdIntfRef('sta1', 'sta1-wlan0', '02:00:00:00:00:00')
-    sta2wlan0 = StaticWmediumdIntfRef('sta2', 'sta2-wlan0', '02:00:00:00:01:00')
-    sta3wlan0 = StaticWmediumdIntfRef('sta3', 'sta3-wlan0', '02:00:00:00:02:00')
+    sta1wlan0 = WmediumdIntfRef('sta1', 'sta1-wlan0', '02:00:00:00:00:00')
+    sta2wlan0 = WmediumdIntfRef('sta2', 'sta2-wlan0', '02:00:00:00:01:00')
+    sta3wlan0 = WmediumdIntfRef('sta3', 'sta3-wlan0', '02:00:00:00:02:00')
 
     intfrefs = [sta1wlan0, sta2wlan0, sta3wlan0]
     links = [
@@ -31,9 +31,7 @@ def topology():
         WmediumdLink(sta2wlan0, sta1wlan0, 15),
         WmediumdLink(sta2wlan0, sta3wlan0, 15),
         WmediumdLink(sta3wlan0, sta2wlan0, 15)]
-    WmediumdConn.set_wmediumd_data(intfrefs, links)
-
-    WmediumdConn.connect_wmediumd_on_startup()
+    WmediumdStarter.initialize(intfrefs, links)
 
     print "*** Creating nodes"
     sta1 = net.addStation('sta1')
@@ -42,6 +40,9 @@ def topology():
 
     print "*** Configuring wifi nodes"
     net.configureWifiNodes()
+
+    print "*** Start wmediumd"
+    WmediumdStarter.start()
 
     print "*** Creating links"
     net.addHoc(sta1, ssid='adNet')
@@ -55,7 +56,7 @@ def topology():
     CLI(net)
 
     print "*** Stopping wmediumd"
-    WmediumdConn.disconnect_wmediumd()
+    WmediumdStarter.stop()
 
     print "*** Stopping network"
     net.stop()
@@ -64,4 +65,3 @@ def topology():
 if __name__ == '__main__':
     setLogLevel('info')
     topology()
-

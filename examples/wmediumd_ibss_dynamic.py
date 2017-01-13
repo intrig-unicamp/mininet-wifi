@@ -8,10 +8,10 @@ This is the standard example of using wmediumd with Mininet-Wifi
 author: Patrick Grosse (patrick.grosse@uni-muenster.de)
 """
 
-from mininet.net import Mininet
 from mininet.cli import CLI
 from mininet.log import setLogLevel
-from mininet.wmediumdConnector import WmediumdConn, DynamicWmediumdIntfRef, WmediumdLink
+from mininet.net import Mininet
+from mininet.wmediumdConnector import DynamicWmediumdIntfRef, WmediumdLink, WmediumdStarter
 
 
 def topology():
@@ -37,12 +37,13 @@ def topology():
         WmediumdLink(sta2wlan0, sta1wlan0, 15),
         WmediumdLink(sta2wlan0, sta3wlan0, 15),
         WmediumdLink(sta3wlan0, sta2wlan0, 15)]
-    WmediumdConn.set_wmediumd_data(intfrefs, links)
-
-    WmediumdConn.connect_wmediumd_on_startup()
+    WmediumdStarter.initialize(intfrefs, links)
 
     print "*** Configuring wifi nodes"
     net.configureWifiNodes()
+
+    print "*** Start wmediumd"
+    WmediumdStarter.start()
 
     print "*** Creating links"
     net.addHoc(sta1, ssid='adNet')
@@ -56,7 +57,7 @@ def topology():
     CLI(net)
 
     print "*** Stopping wmediumd"
-    WmediumdConn.disconnect_wmediumd()
+    WmediumdStarter.stop()
 
     print "*** Stopping network"
     net.stop()
@@ -65,4 +66,3 @@ def topology():
 if __name__ == '__main__':
     setLogLevel('info')
     topology()
-
