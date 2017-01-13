@@ -1,7 +1,8 @@
 #!/usr/bin/python
 
 """
-This example shows how to use the wmediumd connector to prevent mac80211_hwsim stations reaching each other (with Mobility)
+This example shows how to use the wmediumd connector to prevent mac80211_hwsim stations reaching each other
+(with Mobility)
 
 It starts the wmediumd and 'disables' the connection from sta1 to sta2
 
@@ -9,10 +10,10 @@ authors: Patrick Grosse (patrick.grosse@uni-muenster.de)
          Ramon Fontes (ramonrf@dca.fee.unicamp.br)
 """
 
+from mininet.cli import CLI
 from mininet.log import setLogLevel
 from mininet.net import Mininet
-from mininet.wmediumdConnector import WmediumdConn, DynamicWmediumdIntfRef, WmediumdLink, WmediumdServerConn
-from mininet.cli import CLI
+from mininet.wmediumdConnector import WmediumdStarter, DynamicWmediumdIntfRef, WmediumdLink, WmediumdServerConn
 
 
 def topology():
@@ -38,12 +39,13 @@ def topology():
         WmediumdLink(sta2.wmediumdIface, sta1.wmediumdIface, 15),
         WmediumdLink(sta2.wmediumdIface, sta3.wmediumdIface, 15),
         WmediumdLink(sta3.wmediumdIface, sta2.wmediumdIface, 15)]
-    WmediumdConn.set_wmediumd_data(intfrefs, links, with_server=True)
-
-    WmediumdConn.connect_wmediumd_on_startup()
+    WmediumdStarter.initialize(intfrefs, links, with_server=True)
 
     print "*** Configuring wifi nodes"
     net.configureWifiNodes()
+
+    print "*** Start wmediumd"
+    WmediumdStarter.start()
 
     net.plotGraph(max_x=240, max_y=240)
 
@@ -68,14 +70,15 @@ def topology():
     print "*** Update wmediumd"
     WmediumdServerConn.connect()
 
-    CLI( net )
+    CLI(net)
 
     print "*** Stopping network"
     net.stop()
 
     print "*** Stopping wmediumd"
     WmediumdServerConn.disconnect()
-    WmediumdConn.disconnect_wmediumd()
+    WmediumdStarter.stop()
+
 
 if __name__ == '__main__':
     setLogLevel('info')

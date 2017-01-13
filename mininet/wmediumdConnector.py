@@ -15,10 +15,13 @@ import struct
 import stat
 
 from mininet.log import info, error, debug
-from wifiModule import module
 
 
 class WmediumdConstants:
+    def __init__(self):
+        raise Exception("WmediumdConstants cannot be initialized")
+        pass
+
     WSERVER_SHUTDOWN_REQUEST_TYPE = 0
     WSERVER_UPDATE_REQUEST_TYPE = 1
     WSERVER_UPDATE_RESPONSE_TYPE = 2
@@ -71,8 +74,11 @@ class WmediumdManager(object):
             WmediumdStarter.start_managed()
             time.sleep(1)
         WmediumdServerConn.connect(uds_address)
-        module.externally_managed = True
         cls.is_connected = True
+
+        # Mininet specific
+        from wifiModule import module
+        module.externally_managed = True
 
     @classmethod
     def disconnect(cls):
@@ -83,9 +89,47 @@ class WmediumdManager(object):
         if not cls.is_connected:
             raise WmediumdException("WmediumdConnector is not connected to wmediumd")
         for mac in cls.registered_interfaces:
-            WmediumdServerConn.unregister_interface(mac)
+            cls.unregister_interface(mac)
         WmediumdServerConn.disconnect()
         cls.is_connected = False
+
+    @classmethod
+    def register_interface(cls, mac):
+        # type: (str) -> int
+        """
+        Register a new interface at wmediumd
+        :param mac The mac address of the interface
+        :return The wmediumd station index
+
+        :type mac: str
+        :rtype int
+        """
+        ret = WmediumdServerConn.register_interface(mac)
+        cls.registered_interfaces.append(mac)
+        return ret
+
+    @classmethod
+    def unregister_interface(cls, mac):
+        # type: (str) -> None
+        """
+        Unregister a station at wmediumd
+        :param mac The mac address of the interface
+
+        :type mac: str
+        """
+        WmediumdServerConn.unregister_interface(mac)
+        cls.registered_interfaces.remove(mac)
+
+    @classmethod
+    def update_link(cls, link):
+        # type: (WmediumdLink) -> None
+        """
+        Update the SNR of a connection at wmediumd
+        :param link The link to update
+
+        :type link: WmediumdLink
+        """
+        WmediumdServerConn.update_link(link)
 
 
 class WmediumdStarter(object):
@@ -138,38 +182,12 @@ class WmediumdStarter(object):
         cls.is_initialized = True
 
     @classmethod
-    def connect_wmediumd_on_startup(cls):
+    def start(cls):
         """
-        This method can be called before initializing the Mininet net
-        to prevent the stations from reaching each other from the beginning.
+        Start wmediumd, this method should be called right after Mininet.configureWifiNodes()
 
-        Alternative: Call connect_wmediumd_after_startup() when the net is built
-        """
-        if not cls.is_initialized:
-            raise WmediumdException("Use WmediumdStarter.initialize() first to set the required data")
-
-        if cls.is_connected:
-            raise WmediumdException("WmediumdStarter is already connected")
-
-        orig_ifaceassign = module.assignIface
-
-        @classmethod
-        def intercepted_assign(other_cls, wifiNodes, physicalWlan, phyList, **params):
-            orig_ifaceassign(wifiNodes, physicalWlan, phyList, **params)
-            cls.connect_wmediumd_after_startup()
-
-        module.assignIface = intercepted_assign
-
-    @classmethod
-    def connect_wmediumd_after_startup(cls):
-        """
-        This method can be called after initializing the Mininet net
-        to prevent the stations from reaching each other.
-
-        The stations can reach each other before this method is called and
+        Notice: The stations can reach each other before this method is called and
         some scripts may use some kind of a cache (eg. iw station dump)
-
-        Alternative: Call intercept_module_loading() before the net is built
         """
         if not cls.is_initialized:
             raise WmediumdException("Use WmediumdStarter.initialize first to set the required data")
@@ -257,10 +275,10 @@ class WmediumdStarter(object):
         cls.is_managed = True
         if not cls.is_initialized:
             cls.initialize()
-        cls.connect_wmediumd_after_startup()
+        cls.start()
 
     @classmethod
-    def close(cls):
+    def stop(cls):
         """
         Kill the wmediumd process if running and delete the config
         """
@@ -297,19 +315,6 @@ class WmediumdStarter(object):
             pass
 
 
-# backwards compatibility
-class WmediumdConn(WmediumdStarter):
-    @classmethod
-    def set_wmediumd_data(cls, intfrefs=None, links=None, executable='wmediumd', with_server=True, parameters=None,
-                          auto_add_links=True, default_auto_snr=0):
-        cls.initialize(intfrefs, links, executable, with_server, parameters,
-                       auto_add_links, default_auto_snr)
-
-    @classmethod
-    def disconnect_wmediumd(cls):
-        cls.close()
-
-
 class WmediumdLink(object):
     def __init__(self, sta1intfref, sta2intfref, snr=10):
         """
@@ -328,14 +333,30 @@ class WmediumdLink(object):
         self.snr = snr
 
 
-class WmediumdIntfRef(object):
+class WmediumdIntfRef:
+    def __init__(self, staname, intfname, intfmac):
+        """
+        An unambiguous reference to an interface of a station
+
+        :param staname: Station name
+        :param intfname: Interface name
+        :param intfmac: Interface MAC address
+
+        :type staname: str
+        :type intfname: str
+        :type intfmac: str
+        """
+        self.__staname = staname
+        self.__intfname = intfname
+        self.__intfmac = intfmac
+
     def get_station_name(self):
         """
         Get the name of the station
 
         :rtype: str
         """
-        pass
+        return self.__staname
 
     def get_intf_name(self):
         """
@@ -343,7 +364,7 @@ class WmediumdIntfRef(object):
 
         :rtype: str
         """
-        pass
+        return self.__intfname
 
     def get_intf_mac(self):
         """
@@ -351,13 +372,13 @@ class WmediumdIntfRef(object):
 
         :rtype: str
         """
-        pass
+        return self.__intfmac
 
     def identifier(self):
         """
         Identifier used in dicts
 
-        :return: str
+        :rtype: str
         """
         return self.get_station_name() + "." + self.get_intf_name()
 
@@ -371,8 +392,9 @@ class DynamicWmediumdIntfRef(WmediumdIntfRef):
         :param intf: Mininet interface or name of Mininet interface. If None, the default interface will be used
 
         :type sta: Station
-        :type intf: (Intf, str, None)
+        :type intf: Union [Intf, str, None]
         """
+        WmediumdIntfRef.__init__(self, "", "", "")
         self.__sta = sta
         self.__intf = intf
 
@@ -398,33 +420,6 @@ class DynamicWmediumdIntfRef(WmediumdIntfRef):
             index += 1
         if found:
             return self.__sta.params['mac'][index]
-
-
-class StaticWmediumdIntfRef(WmediumdIntfRef):
-    def __init__(self, staname, intfname, intfmac):
-        """
-        An unambiguous reference to an interface of a station
-
-        :param staname: Station name
-        :param intfname: Interface name
-        :param intfmac: Interface MAC address
-
-        :type staname: str
-        :type intfname: str
-        :type intfmac: str
-        """
-        self.__staname = staname
-        self.__intfname = intfname
-        self.__intfmac = intfmac
-
-    def get_station_name(self):
-        return self.__staname
-
-    def get_intf_name(self):
-        return self.__intfname
-
-    def get_intf_mac(self):
-        return self.__intfmac
 
 
 class WmediumdServerConn(object):

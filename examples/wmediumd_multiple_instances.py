@@ -14,7 +14,7 @@ author: Patrick Grosse (patrick.grosse@uni-muenster.de)
 from mininet.net import Mininet
 from mininet.cli import CLI
 from mininet.log import setLogLevel
-from mininet.wmediumdConnector import DynamicWmediumdIntfRef, WmediumdLink, WmediumdManager, WmediumdServerConn
+from mininet.wmediumdConnector import DynamicWmediumdIntfRef, WmediumdLink, WmediumdManager
 
 
 def topology():
@@ -48,10 +48,10 @@ def topology():
         WmediumdLink(sta3wlan0, sta2wlan0, 15)]
 
     for intfref in intfrefs:
-        WmediumdServerConn.register_interface(intfref.get_intf_mac())
+        WmediumdManager.register_interface(intfref.get_intf_mac())
 
     for link in links:
-        WmediumdServerConn.update_link(link)
+        WmediumdManager.update_link(link)
 
     print "*** Creating links"
     net.addHoc(sta1, ssid='adNet')
