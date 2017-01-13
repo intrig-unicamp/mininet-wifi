@@ -89,9 +89,47 @@ class WmediumdManager(object):
         if not cls.is_connected:
             raise WmediumdException("WmediumdConnector is not connected to wmediumd")
         for mac in cls.registered_interfaces:
-            WmediumdServerConn.unregister_interface(mac)
+            cls.unregister_interface(mac)
         WmediumdServerConn.disconnect()
         cls.is_connected = False
+
+    @classmethod
+    def register_interface(cls, mac):
+        # type: (str) -> int
+        """
+        Register a new interface at wmediumd
+        :param mac The mac address of the interface
+        :return The wmediumd station index
+
+        :type mac: str
+        :rtype int
+        """
+        ret = WmediumdServerConn.register_interface(mac)
+        cls.registered_interfaces.append(mac)
+        return ret
+
+    @classmethod
+    def unregister_interface(cls, mac):
+        # type: (str) -> None
+        """
+        Unregister a station at wmediumd
+        :param mac The mac address of the interface
+
+        :type mac: str
+        """
+        WmediumdServerConn.unregister_interface(mac)
+        cls.registered_interfaces.remove(mac)
+
+    @classmethod
+    def update_link(cls, link):
+        # type: (WmediumdLink) -> None
+        """
+        Update the SNR of a connection at wmediumd
+        :param link The link to update
+
+        :type link: WmediumdLink
+        """
+        WmediumdServerConn.update_link(link)
 
 
 class WmediumdStarter(object):
