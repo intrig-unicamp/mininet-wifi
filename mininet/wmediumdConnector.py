@@ -88,7 +88,8 @@ class WmediumdManager(object):
         """
         if not cls.is_connected:
             raise WmediumdException("WmediumdConnector is not connected to wmediumd")
-        for mac in cls.registered_interfaces:
+        registered_interfaces = cls.registered_interfaces[:]
+        for mac in registered_interfaces:
             cls.unregister_interface(mac)
         WmediumdServerConn.disconnect()
         cls.is_connected = False
@@ -423,30 +424,30 @@ class DynamicWmediumdIntfRef(WmediumdIntfRef):
 
 
 class WmediumdServerConn(object):
-    __mac_struct_fmt = '6s2s'  # padding
-    __mac_padding = "\0\0"
+    __mac_struct_fmt = '6s'
 
-    __snr_update_request_fmt = __mac_struct_fmt + __mac_struct_fmt + 'i'
-    __snr_update_response_fmt = __snr_update_request_fmt + 'i'
-    __snr_update_request_struct = struct.Struct('!i' + __snr_update_request_fmt)
-    __snr_update_response_struct = struct.Struct('!ii' + __snr_update_response_fmt)
+    __base_struct_fmt = 'B'
+    __base_struct = struct.Struct('!' + __base_struct_fmt)
 
-    __station_del_by_mac_request_fmt = __mac_struct_fmt
-    __station_del_by_mac_response_fmt = __station_del_by_mac_request_fmt + 'i'
-    __station_del_by_mac_request_struct = struct.Struct('!i' + __station_del_by_mac_request_fmt)
-    __station_del_by_mac_response_struct = struct.Struct('!ii' + __station_del_by_mac_response_fmt)
+    __snr_update_request_fmt = __base_struct_fmt + __mac_struct_fmt + __mac_struct_fmt + 'i'
+    __snr_update_response_fmt = __base_struct_fmt + __snr_update_request_fmt + 'B'
+    __snr_update_request_struct = struct.Struct('!' + __snr_update_request_fmt)
+    __snr_update_response_struct = struct.Struct('!' + __snr_update_response_fmt)
 
-    __station_del_by_id_request_fmt = 'i'
-    __station_del_by_id_response_fmt = __station_del_by_id_request_fmt + 'i'
-    __station_del_by_id_request_struct = struct.Struct('!i' + __station_del_by_id_request_fmt)
-    __station_del_by_id_response_struct = struct.Struct('!ii' + __station_del_by_id_response_fmt)
+    __station_del_by_mac_request_fmt = __base_struct_fmt + __mac_struct_fmt
+    __station_del_by_mac_response_fmt = __base_struct_fmt + __station_del_by_mac_request_fmt + 'B'
+    __station_del_by_mac_request_struct = struct.Struct('!' + __station_del_by_mac_request_fmt)
+    __station_del_by_mac_response_struct = struct.Struct('!' + __station_del_by_mac_response_fmt)
 
-    __station_add_request_fmt = __mac_struct_fmt
-    __station_add_response_fmt = __station_add_request_fmt + 'ii'
-    __station_add_request_struct = struct.Struct('!i' + __station_add_request_fmt)
-    __station_add_response_struct = struct.Struct('!ii' + __station_add_response_fmt)
+    __station_del_by_id_request_fmt = __base_struct_fmt + 'i'
+    __station_del_by_id_response_fmt = __base_struct_fmt + __station_del_by_id_request_fmt + 'B'
+    __station_del_by_id_request_struct = struct.Struct('!' + __station_del_by_id_request_fmt)
+    __station_del_by_id_response_struct = struct.Struct('!' + __station_del_by_id_response_fmt)
 
-    __base_type_struct = struct.Struct('!i')
+    __station_add_request_fmt = __base_struct_fmt + __mac_struct_fmt
+    __station_add_response_fmt = __base_struct_fmt + __station_add_request_fmt + 'iB'
+    __station_add_request_struct = struct.Struct('!' + __station_add_request_fmt)
+    __station_add_response_struct = struct.Struct('!' + __station_add_response_fmt)
 
     sock = None
     connected = False
@@ -578,15 +579,14 @@ class WmediumdServerConn(object):
         mac_from = link.sta1intfref.get_intf_mac().replace(':', '').decode('hex')
         mac_to = link.sta2intfref.get_intf_mac().replace(':', '').decode('hex')
         snr = link.snr
-        return cls.__snr_update_request_struct.pack(msgtype, mac_from, cls.__mac_padding, mac_to, cls.__mac_padding,
-                                                    snr)
+        return cls.__snr_update_request_struct.pack(msgtype, mac_from, mac_to, snr)
 
     @classmethod
     def __create_station_del_by_mac_request(cls, mac):
         # type: (str) -> str
         msgtype = WmediumdConstants.WSERVER_DEL_BY_MAC_REQUEST_TYPE
         macparsed = mac.replace(':', '').decode('hex')
-        return cls.__station_del_by_mac_request_struct.pack(msgtype, macparsed, cls.__mac_padding)
+        return cls.__station_del_by_mac_request_struct.pack(msgtype, macparsed)
 
     @classmethod
     def __create_station_del_by_id_request(cls, sta_id):
@@ -599,13 +599,13 @@ class WmediumdServerConn(object):
         # type: (str) -> str
         msgtype = WmediumdConstants.WSERVER_ADD_REQUEST_TYPE
         macparsed = mac.replace(':', '').decode('hex')
-        return cls.__station_add_request_struct.pack(msgtype, macparsed, cls.__mac_padding)
+        return cls.__station_add_request_struct.pack(msgtype, macparsed)
 
     @classmethod
     def __parse_response(cls, expected_type, resp_struct):
         # type: (int, struct.Struct) -> tuple
         recvd_data = cls.sock.recv(resp_struct.size)
-        recvd_type = cls.__base_type_struct.unpack(recvd_data[0:4])[0]
+        recvd_type = cls.__base_struct.unpack(recvd_data[0])[0]
         if recvd_type != expected_type:
             raise WmediumdException(
                 "Received response of unknown type %d, expected %d" % (recvd_type, expected_type))
