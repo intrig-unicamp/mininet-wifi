@@ -181,8 +181,6 @@ class Node(object):
     def addParameters(self, node, wifiRadios, autoSetMacs, params, defaults):
         """adding parameters in wifinodes"""
         
-        node.params['rssi'] = []
-        node.params['snr'] = []
         node.params['frequency'] = []
         node.params['wlan'] = []
         node.params['mac'] = []
@@ -201,6 +199,8 @@ class Node(object):
         if node.type == 'station' or node.type == 'vehicle':
             node.params['apsInRange'] = {}
             node.params['associatedTo'] = []
+            node.params['rssi'] = []
+            node.params['snr'] = []
             node.ifaceToAssociate = 0 
             node.max_x = 0
             node.max_y = 0
@@ -408,6 +408,7 @@ class Node(object):
 
         if node.type == 'accessPoint':
             node.params['associatedStations'] = {}
+            node.params['stationsInRange'] = {}
             
             ssid = ("%s" % params.pop('ssid', {}))
             ssid = ssid.split(',')
