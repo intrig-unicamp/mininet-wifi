@@ -107,7 +107,7 @@ from math import ceil
 
 from mininet.cli import CLI
 from mininet.log import info, error, debug, output, warn
-from mininet.node import (Node, Host, Station, Car, OVSKernelSwitch, DefaultController,
+from mininet.node import (Node, Host, Station, Car, OVSKernelSwitch, UserSwitch, OVSAP, UserAP, DefaultController,
                            Controller, AccessPoint)
 from mininet.nodelib import NAT
 from mininet.link import Link, Intf, TCLinkWireless, Association
@@ -386,9 +386,15 @@ class Mininet(object):
                      }
 
         defaults.update(params)
+        
         if not cls:
             cls = self.switch
+        if cls == OVSKernelSwitch:
+            cls = OVSAP
+        elif cls == UserSwitch:
+            cls = UserAP    
         ap = cls(name, **defaults)
+
         if not self.inNamespace and self.listenPort:
             self.listenPort += 1
         
@@ -1047,7 +1053,15 @@ class Mininet(object):
             dist = setChannelParams.getDistance(sta, ap)
             if dist < ap.params['range']:
                 for wlan in range(0, len(sta.params['wlan'])):
-                    rssi.append(setChannelParams.setRSSI(sta, ap, wlan, dist))
+                    if sta.params['rssi'][wlan] == 0:
+                        self.updateParams(sta, ap, wlan)
+                    rssi_ = setChannelParams.setRSSI(sta, ap, wlan, dist)
+                    snr_ = setChannelParams.setSNR(sta, wlan)
+                    rssi.append(rssi_)
+                    if ap == sta.params['associatedTo'][wlan]:
+                        sta.params['rssi'][wlan] = rssi_
+                        sta.params['snr'][wlan] = snr_
+                        ap.params['associatedStations'][sta] = sta.params['rssi'][wlan]
                 sta.params['apsInRange'][ap] = rssi
             else:
                 if ap in sta.params['apsInRange']:
