@@ -1043,13 +1043,15 @@ class Mininet(object):
         :param sta: station
         """
         for ap in self.accessPoints:
+            rssi = []
             dist = setChannelParams.getDistance(sta, ap)
             if dist < ap.params['range']:
-                if ap not in sta.params['apsInRange']:
-                    sta.params['apsInRange'].append(ap)
+                for wlan in range(0, len(sta.params['wlan'])):
+                    rssi.append(setChannelParams.setRSSI(sta, ap, wlan, dist))
+                sta.params['apsInRange'][ap] = rssi
             else:
                 if ap in sta.params['apsInRange']:
-                    sta.params['apsInRange'].remove(ap)
+                    sta.params['apsInRange'].pop(ap, None)
         
     def autoAssociation(self):
         """This is useful to make the users' life easier"""

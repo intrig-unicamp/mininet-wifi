@@ -39,8 +39,8 @@ class setChannelParams (object):
         latency_ = self.setLatency(dist)
         loss_ = self.setLoss(dist)
         bw_ = self.setBW(sta=sta, ap=ap, dist=dist, wlan=wlan)
-        self.setRSSI(sta, ap, wlan, dist) 
-        self.setSNR(sta, wlan)
+        #sta.params['rssi'][wlan] = self.setRSSI(sta, ap, wlan, dist) 
+        #sta.params['snr'][wlan] = self.setSNR(sta, wlan)
         self.tc(sta, wlan, bw_, loss_, latency_, delay_)    
     
     @classmethod
@@ -93,7 +93,7 @@ class setChannelParams (object):
         if rate <= 0.0:
             rate = 0.1
         return rate
-    
+        
     @classmethod
     def setRSSI(self, sta=None, ap=None, wlan=0, dist=0):
         """set RSSI
@@ -115,7 +115,7 @@ class setChannelParams (object):
         hR = sta.params['antennaHeight'][wlan]
         
         value = propagationModel(sta, ap, dist, wlan, pT, gT, gR, hT, hR, sl, lF, pL, nFloors, gRandom)
-        sta.params['rssi'][wlan] = float(value.rssi)  # random.uniform(value.rssi-1, value.rssi+1)
+        return float(value.rssi)  # random.uniform(value.rssi-1, value.rssi+1)
         
     @classmethod
     def setSNR(self, sta, wlan):
@@ -124,7 +124,7 @@ class setChannelParams (object):
         :param sta: station
         :param wlan: wlan ID
         """
-        sta.params['snr'][wlan] = float('%.2f' % (sta.params['rssi'][wlan] - (-90.0)))
+        return float('%.2f' % (sta.params['rssi'][wlan] - (-90.0)))
     
     @classmethod
     def tc(self, sta, wlan, bw, loss, latency, delay):
