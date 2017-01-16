@@ -25,7 +25,7 @@ class propagationModel (object):
     nFloors = 0  # Number of floors
     gRandom = 0  # Gaussian random variable
 
-    def __init__(self, sta=None, ap=None, dist=0, wlan=None, pT=14, gT=5, gR=5, hT=1, hR=1, sl=1,
+    def __init__(self, sta=None, ap=None, dist=0, wlan=0, pT=14, gT=5, gR=5, hT=1, hR=1, sl=1,
                   lF=0, pL=0, nFloors=0, gRandom=0):
         """pT = Tx Power
            gT = Tx Antenna Gain

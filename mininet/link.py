@@ -24,7 +24,6 @@ TCIntf: interface with bandwidth limiting and delay via tc
 Link: basic link class for creating veth pairs
 """
 import os
-
 import re
 from time import time
 
@@ -918,7 +917,7 @@ class Association(Link):
                     info("Error during the association process\n")
                     break
         sta.params['frequency'][wlan] = setChannelParams.frequency(ap, 0)
-        ap.params['associatedStations'].append(sta)
+        ap.params['associatedStations'][sta] = sta.params['rssi'][wlan]
         sta.params['associatedTo'][wlan] = ap
         
     @classmethod

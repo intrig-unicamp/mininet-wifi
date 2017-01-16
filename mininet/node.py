@@ -199,7 +199,7 @@ class Node(object):
             
                
         if node.type == 'station' or node.type == 'vehicle':
-            node.params['apsInRange'] = []
+            node.params['apsInRange'] = {}
             node.params['associatedTo'] = []
             node.ifaceToAssociate = 0 
             node.max_x = 0
@@ -407,7 +407,7 @@ class Node(object):
                 node.params['range'] = value.range - 15
 
         if node.type == 'accessPoint':
-            node.params['associatedStations'] = []
+            node.params['associatedStations'] = {}
             
             ssid = ("%s" % params.pop('ssid', {}))
             ssid = ssid.split(',')
