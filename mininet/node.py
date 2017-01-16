@@ -1460,10 +1460,6 @@ class AccessPoint(AP):
         ap.pexec('ifconfig %s down' % intf)
         ap.pexec('ip link set %s name %s' % (intf, newname))
         ap.pexec('ifconfig %s up' % newname)
-        
-        
-    def start(self, controllers):
-        print controllers
     
     @classmethod
     def start_(self, ap, country_code=None, auth_algs=None, wpa=None, wlan=None,
