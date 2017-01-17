@@ -1041,6 +1041,19 @@ class Mininet(object):
         "Control net config hook: override in subclass"
         raise Exception('configureControlNetwork: '
                          'should be overriden in subclass', self)
+        
+    @classmethod     
+    def updateParams(self, sta, ap, wlan):
+        """ 
+        Updates values for frequency and channel
+        
+        :param sta: station
+        :param ap: access point
+        :param wlan: wlan ID
+        """
+
+        sta.params['frequency'][wlan] = setChannelParams.frequency(ap, 0)
+        sta.params['channel'][wlan] = ap.params['channel'][0]
 
     def getAPsInRange(self, sta):
         """ 
