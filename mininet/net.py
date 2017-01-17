@@ -1071,14 +1071,16 @@ class Mininet(object):
                     rssi_ = setChannelParams.setRSSI(sta, ap, wlan, dist)
                     snr_ = setChannelParams.setSNR(sta, wlan)
                     rssi.append(rssi_)
-                    if ap == sta.params['associatedTo'][wlan]:
-                        sta.params['rssi'][wlan] = rssi_
-                        sta.params['snr'][wlan] = snr_
-                        ap.params['associatedStations'][sta] = sta.params['rssi'][wlan]
+                    #if ap == sta.params['associatedTo'][wlan]:
+                    sta.params['rssi'][wlan] = rssi_
+                    sta.params['snr'][wlan] = snr_
+                    ap.params['associatedStations'][sta] = sta.params['rssi'][wlan]
                 sta.params['apsInRange'][ap] = rssi
+                ap.params['stationsInRange'][sta] = rssi
             else:
                 if ap in sta.params['apsInRange']:
                     sta.params['apsInRange'].pop(ap, None)
+                    ap.params['stationsInRange'].pop(sta, None)
         
     def autoAssociation(self):
         """This is useful to make the users' life easier"""
