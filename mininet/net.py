@@ -1069,11 +1069,11 @@ class Mininet(object):
                     if sta.params['rssi'][wlan] == 0:
                         self.updateParams(sta, ap, wlan)
                     rssi_ = setChannelParams.setRSSI(sta, ap, wlan, dist)
+                    sta.params['rssi'][wlan] = rssi_
                     snr_ = setChannelParams.setSNR(sta, wlan)
+                    sta.params['snr'][wlan] = snr_
                     rssi.append(rssi_)
                     #if ap == sta.params['associatedTo'][wlan]:
-                    sta.params['rssi'][wlan] = rssi_
-                    sta.params['snr'][wlan] = snr_
                     ap.params['associatedStations'][sta] = sta.params['rssi'][wlan]
                 sta.params['apsInRange'][ap] = rssi
                 ap.params['stationsInRange'][sta] = rssi
