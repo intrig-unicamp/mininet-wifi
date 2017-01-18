@@ -3,7 +3,10 @@
 """
 Demo for VANETs. It still has to be customized.. 
 
-The file vanet-script.sh is required.
+Requirements:
+---------------
+wmediumd
+vanet-script.sh
 """
 
 from mininet.net import Mininet
