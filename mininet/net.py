@@ -847,8 +847,8 @@ class Mininet(object):
         if self.ifb:
             params['ifb'] = self.ifb
         nodes = self.stations + self.cars + self.accessPoints
-        self.configureLinkWireless() 
         module.start(nodes, self.nRadios, self.alternativeModule, **params)               
+        self.configureLinkWireless() 
         self.configureAP()  
         self.isWiFi = True
         
