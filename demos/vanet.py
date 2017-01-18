@@ -2,6 +2,8 @@
 
 """
 Demo for VANETs. It still has to be customized.. 
+
+The file vanet-script.sh is required.
 """
 
 from mininet.net import Mininet
@@ -9,7 +11,7 @@ from mininet.node import Controller,OVSKernelSwitch, RemoteController
 from mininet.link import TCLink
 from mininet.cli import CLI
 from mininet.log import setLogLevel
-from mininet.wmediumdConnector import WmediumdConn, DynamicWmediumdIntfRef, WmediumdLink
+from mininet.wmediumdConnector import WmediumdStarter, DynamicWmediumdIntfRef, WmediumdLink
 
 
 class InbandController( RemoteController ):
@@ -92,8 +94,9 @@ def topology():
             j+=2
 
     h1.cmd('ifconfig h1-eth0 200.0.10.2')
+    h1.cmd('ifconfig h1-eth0:0 200.1.10.2')
     net.vehiclesSTA[3].cmd('ifconfig car3STA-eth1 200.0.10.1')
-    net.vehiclesSTA[0].cmd('ip route add 200.0.10.0/24 via 10.0.0.4')
+    net.vehiclesSTA[0].cmd('ifconfig car0STA-eth0 200.1.10.50')
 
     car[0].cmd('modprobe bonding mode=3')
     car[0].cmd('ip link add bond0 type bond')
@@ -109,6 +112,23 @@ def topology():
     car[0].cmd('ip link set car0-wlan1 master bond0')
     car[0].cmd('ip addr add 200.0.10.100/24 dev bond0')
     car[0].cmd('ip link set bond0 up')
+
+    car[0].cmd('ifconfig bond0:0 200.1.10.100')
+    car[3].cmd('ifconfig car3-wlan0 200.1.10.150')
+
+    h1.cmd('ip route add 192.168.1.8 via 200.1.10.150')
+    h1.cmd('ip route add 10.0.0.1 via 200.1.10.150')
+    h1.cmd('ip route add 200.1.10.100 via 200.1.10.150')
+
+    net.vehiclesSTA[3].cmd('ip route add 200.1.10.2 via 192.168.1.7')
+    net.vehiclesSTA[3].cmd('ip route add 200.1.10.100 via 10.0.0.1')
+    net.vehiclesSTA[0].cmd('ip route add 200.1.10.2 via 10.0.0.4')
+
+    car[0].cmd('ip route add 10.0.0.4 via 200.1.10.50')
+    car[0].cmd('ip route add 192.168.1.7 via 200.1.10.50')
+    car[0].cmd('ip route add 200.1.10.2 via 200.1.10.50')
+    car[3].cmd('ip route add 200.1.10.100 via 192.168.1.8')
+
 
     """uncomment to plot graph"""
     net.plotGraph(max_x=250, max_y=250)
@@ -132,15 +152,15 @@ def topology():
         WmediumdLink(sta3wlan0, sta2wlan0, 15),
         WmediumdLink(sta3wlan0, sta4wlan0, 15),
         WmediumdLink(sta4wlan0, sta3wlan0, 15)]
-    WmediumdConn.set_wmediumd_data(intfrefs, links)
+    WmediumdStarter.initialize(intfrefs, links)
 
-    WmediumdConn.connect_wmediumd_after_startup()
+    WmediumdStarter.start()
 
     print "*** Running CLI"
     CLI(net)
 
     print "*** Stopping wmediumd"
-    WmediumdConn.disconnect_wmediumd()
+    WmediumdStarter.stop()
 
     print "*** Stopping network"
     net.stop()
