@@ -247,9 +247,9 @@ class mobility (object):
                 if time.time() - currentTime >= i:
                     for sta in staMov:
                         if time.time() - currentTime >= sta.startTime and time.time() - currentTime <= sta.endTime:
-                            x = '%.5f' % (float(sta.params['position'][0]) + float(sta.moveFac[0]))
-                            y = '%.5f' % (float(sta.params['position'][1]) + float(sta.moveFac[1]))
-                            z = '%.5f' % (float(sta.params['position'][2]) + float(sta.moveFac[2]))
+                            x = '%.2f' % (float(sta.params['position'][0]) + float(sta.moveFac[0]))
+                            y = '%.2f' % (float(sta.params['position'][1]) + float(sta.moveFac[1]))
+                            z = '%.2f' % (float(sta.params['position'][2]) + float(sta.moveFac[2]))
                             sta.params['position'] = x, y, z
                         if self.DRAW:
                             eval(self.continuePlot)
@@ -341,7 +341,7 @@ class mobility (object):
         for xy in mob:
             i = 0
             for node in nodes:
-                node.params['position'] = '%.5f' % xy[i][0], '%.5f' % xy[i][1], 0.0
+                node.params['position'] = '%.2f' % xy[i][0], '%.2f' % xy[i][1], 0.0
                 i += 1
                 plot2d.graphUpdate(node)
             eval(self.continuePlot)
@@ -357,35 +357,38 @@ class mobility (object):
         for xy in mob:
             i = 0
             for node in nodes:
-                node.params['position'] = '%.5f' % xy[i][0], '%.5f' % xy[i][1], 0.0
+                node.params['position'] = '%.2f' % xy[i][0], '%.2f' % xy[i][1], 0.0
                 i += 1
             time.sleep(0.5)
                 
     @classmethod
     def getAPsInRange(self, sta):
         """ 
-        Gets all APs in range of the station. It's not used when there is no position defined
+        Gets all APs in range of the station. It's not used when there is no position defined.
+        It's also useful for setting parameters, such as rssi, snr, among others.
         
         :param sta: station
         """
         for ap in self.accessPoints:
             rssi = []
             dist = setChannelParams.getDistance(sta, ap)
-            if dist < ap.params['range']:
+            if dist <= ap.params['range']:
                 for wlan in range(0, len(sta.params['wlan'])):
                     if sta.params['rssi'][wlan] == 0:
                         self.updateParams(sta, ap, wlan)
                     rssi_ = setChannelParams.setRSSI(sta, ap, wlan, dist)
-                    snr_ = setChannelParams.setSNR(sta, wlan)
                     rssi.append(rssi_)
                     if ap == sta.params['associatedTo'][wlan]:
                         sta.params['rssi'][wlan] = rssi_
+                        snr_ = setChannelParams.setSNR(sta, wlan)
                         sta.params['snr'][wlan] = snr_
                         ap.params['associatedStations'][sta] = sta.params['rssi'][wlan]
                 sta.params['apsInRange'][ap] = rssi
+                ap.params['stationsInRange'][sta] = rssi
             else:
                 if ap in sta.params['apsInRange']:
                     sta.params['apsInRange'].pop(ap, None)
+                    ap.params['stationsInRange'].pop(sta, None)
 
     @classmethod
     def handoverCheck(self, sta, wlan):
@@ -400,7 +403,6 @@ class mobility (object):
             self.handover(sta, ap, wlan, dist)
         self.getAPsInRange(sta)
             
-
     @classmethod
     def parameters(self):
         """ 

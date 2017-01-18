@@ -447,12 +447,9 @@ class Node(object):
                     if dist >= 0.01:
                         setChannelParams(sta=station, wlan=wlan, dist=dist)
             else:
-                for ap in mobility.accessPoints:
-                    dist = setChannelParams.getDistance(sta, ap)
-                    mobility.handover(sta, ap, wlan, dist)
+                mobility.handoverCheck(sta, wlan)
         if meshRouting.routing == 'custom':
             meshRouting(mobility.stations)
-        mobility.getAPsInRange(sta)
 
     @classmethod
     def verifyingNodes(self, node):
