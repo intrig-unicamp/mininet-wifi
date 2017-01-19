@@ -243,7 +243,7 @@ class mobility (object):
                     plot.instantiateGraph(MAX_X, MAX_Y)
                     plot.plotGraph(nodes, srcConn, dstConn, MAX_X, MAX_Y)
         except:
-            info('This OS does not support GUI. Running without GUI.\n')
+            info('Warning: This OS does not support GUI. Running without GUI.\n')
             self.DRAW = False
 
         try:
@@ -310,7 +310,7 @@ class mobility (object):
                 plot2d.plotGraph(nodes, srcConn, dstConn, MAX_X, MAX_Y)
                 plot2d.graphPause()
         except:
-            info('This OS does not support GUI. Running without GUI.\n')
+            info('Warning: This OS does not support GUI. Running without GUI.\n')
             self.DRAW = False
 
         if staMov != None:            
