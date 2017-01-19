@@ -851,7 +851,10 @@ class Association(Link):
     printCon = True
     
     @classmethod    
-    def adhoc(self, sta):
+    def configureAdhoc(self, sta):
+        """
+        Configure Wireless Ad Hoc
+        """
         wlan = sta.ifaceToAssociate
         iface = sta.params['wlan'][wlan]
         sta.params['rssi'][wlan] = -62
@@ -866,7 +869,10 @@ class Association(Link):
         sta.pexec('iwconfig %s ap %s' % (iface, sta.params['cell'][wlan]))
         
     @classmethod    
-    def mesh(self, sta, stations):
+    def configureMesh(self, sta, stations):
+        """
+        Configure Wireless Mesh Interface
+        """
         wlan = sta.ifaceToAssociate
         sta.params['rssi'][wlan] = -62
         sta.params['snr'][wlan] = -62 - (-90.0)
@@ -891,6 +897,9 @@ class Association(Link):
     
     @classmethod
     def meshAssociation(self, sta, wlan):
+        """
+        Performs Mesh Association
+        """
         info("associating %s to %s...\n" % (sta.params['wlan'][wlan], sta.params['ssid'][wlan]))
         sta.pexec('iw dev %s mesh join %s' % (sta.params['wlan'][wlan], sta.params['ssid'][wlan]))
     
@@ -905,6 +914,14 @@ class Association(Link):
         
     @classmethod
     def confirmInfraAssociation(self, sta, ap, wlan):
+        """ 
+        Confirm association when station associates to AP
+        
+        :param sta: station
+        :param ap: access point
+        :param wlan: wlan ID
+        """
+        
         if self.printCon:
             iface = sta.params['wlan'][wlan]
             info("Associating %s to %s\n" % (iface, ap))
@@ -917,11 +934,56 @@ class Association(Link):
                     info("Error during the association process\n")
                     break
         sta.params['frequency'][wlan] = setChannelParams.frequency(ap, 0)
-        ap.params['associatedStations'][sta] = sta.params['rssi'][wlan]
-        sta.params['associatedTo'][wlan] = ap
+        if 'position' in sta.params:
+            self.configureWirelessLink(sta, ap, wlan)
+        
+    @classmethod
+    def configureWirelessLink(self, sta, ap, wlan):
+        """ 
+        Updates RSSI, SNR, and Others...
+        
+        :param sta: station
+        :param ap: access point
+        :param wlan: wlan ID
+        """
+        
+        rssi = []
+        dist = setChannelParams.getDistance(sta, ap)
+        if dist <= ap.params['range']:
+            for wlan in range(0, len(sta.params['wlan'])):
+                if sta.params['rssi'][wlan] == 0:
+                    self.updateParams(sta, ap, wlan)
+                rssi_ = setChannelParams.setRSSI(sta, ap, wlan, dist)
+                rssi.append(rssi_)
+                #if ap == sta.params['associatedTo'][wlan]:
+                sta.params['rssi'][wlan] = rssi_
+                snr_ = setChannelParams.setSNR(sta, wlan)
+                sta.params['snr'][wlan] = snr_
+                ap.params['associatedStations'][sta] = sta.params['rssi'][wlan]
+                sta.params['associatedTo'][wlan] = ap 
+            sta.params['apsInRange'][ap] = rssi
+            ap.params['stationsInRange'][sta] = rssi
+        else:
+            if ap in sta.params['apsInRange']:
+                sta.params['apsInRange'].pop(ap, None)
+                ap.params['stationsInRange'].pop(sta, None)
+                
+    @classmethod     
+    def updateParams(self, sta, ap, wlan):
+        """ 
+        Updates values for frequency and channel
+        
+        :param sta: station
+        :param ap: access point
+        :param wlan: wlan ID
+        """
+
+        sta.params['frequency'][wlan] = setChannelParams.frequency(ap, 0)
+        sta.params['channel'][wlan] = ap.params['channel'][0]
         
     @classmethod
     def isAssociated(self, sta, iface):
+        """ Check if station is already associated to the Access Point """
         associated = sta.pexec("iw dev %s-wlan%s link" % (sta, iface))
         return associated
     
@@ -934,6 +996,7 @@ class Association(Link):
 
     @classmethod
     def associate_infra(self, sta, ap, wlan):
+        """ Association when INFRA """
         if 'encrypt' not in ap.params:
             sta.cmd('iwconfig %s essid %s ap %s' % (sta.params['wlan'][wlan], ap.params['ssid'][0], \
                                                     ap.params['mac'][0]))
@@ -947,6 +1010,7 @@ class Association(Link):
 
     @classmethod
     def associate_wpa(self, sta, ap, wlan):
+        """ Association when WPA """
         if 'passwd' not in sta.params:
             passwd = ap.params['passwd'][0]
         else:
@@ -957,6 +1021,7 @@ class Association(Link):
 
     @classmethod
     def associate_wep(self, sta, ap, wlan):
+        """ Association when WEP """
         if 'passwd' not in sta.params:
             passwd = ap.params['passwd'][0]
         else:
