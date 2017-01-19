@@ -610,10 +610,14 @@ class Mininet(object):
         self.alternativeModule = moduleDir
 
     def addMesh(self, sta, cls=None, **params):
-        """Change a interface to work as a mesh
-           sta: name of the station
-           cls: custom association class/constructor
-           params: parameters for station"""
+        """
+        Configure wireless mesh
+        
+        sta: name of the station
+        cls: custom association class/constructor
+        params: parameters for station
+        """
+        
         wlan = sta.ifaceToAssociate
         sta.func[wlan] = 'mesh'
 
@@ -657,15 +661,20 @@ class Mininet(object):
         options.setdefault('addr1', self.randMac())   
                 
         cls = Association
-        cls.mesh(sta, self.stations)
+        cls.configureMesh(sta, self.stations)
         self.tc(sta, self.bw)
         sta.ifaceToAssociate += 1
 
     def addHoc(self, sta, cls=None, **params):
-        """Change a interface to work as adhoc
-           sta: name of the station
-           cls: custom association class/constructor
-           params: parameters for station"""
+        """
+        Configure AdHoc
+        
+        sta: name of the station
+        cls: custom association class/constructor
+        params: parameters for station
+           
+        """
+        
         wlan = sta.ifaceToAssociate
         sta.func[wlan] = 'adhoc'
         
@@ -710,15 +719,19 @@ class Mininet(object):
         options.setdefault('addr1', self.randMac())
         
         cls = Association
-        cls.adhoc(sta)
+        cls.configureAdhoc(sta)
         self.tc(sta, self.bw)
         sta.ifaceToAssociate += 1
 
     def wifiDirect(self, sta, cls=None, **params):
-        """Change a interface to work as wifidirect
-           sta: name of the station
-           cls: custom association class/constructor
-           params: parameters for station"""
+        """
+        Configure wifidirect
+        
+        sta: name of the station
+        cls: custom association class/constructor
+        params: parameters for station
+        """
+        
         wlan = sta.ifaceToAssociate
         sta.func[wlan] = 'wifiDirect'
 
@@ -751,6 +764,7 @@ class Mininet(object):
 
     def configureAP(self):
         """Configure AP"""
+        
         x = 0
         for ap in self.accessPoints:
             if 'phywlan' in ap.params:
@@ -823,10 +837,13 @@ class Mininet(object):
 
     def useIFB(self):
         """Support to Intermediate Functional Block (IFB) Devices"""
+        
         self.ifb = True
         setChannelParams.ifb = True
 
-    def configureLinkWireless(self):
+    def configureWirelessLink(self):
+        """Configure Wireless Link"""
+        
         nodes = self.stations + self.cars
         for node in nodes:
             for wlan in range(0, len(node.params['wlan'])):
@@ -854,17 +871,16 @@ class Mininet(object):
 
 
     def configureWifiNodes(self):
-        """nodes: all nodes
-           module.start: start mac80211_hwsim module
-           self.configureAP(): configure the AP
-           self.isWiFi: defines the topology to work with mininet-wifi
-           self.ifaceConfigured: all interfaces for all nodes were configured"""
+        """
+        Configure Wireless Nodes
+        """
+        
         params = {}
         if self.ifb:
             params['ifb'] = self.ifb
         nodes = self.stations + self.cars + self.accessPoints
         module.start(nodes, self.nRadios, self.alternativeModule, **params)               
-        self.configureLinkWireless() 
+        self.configureWirelessLink() 
         self.configureAP()  
         self.isWiFi = True
         

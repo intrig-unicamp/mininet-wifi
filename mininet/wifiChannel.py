@@ -188,6 +188,11 @@ class setChannelParams (object):
             self.noise += n
             self.i += 1
             self.dist += dist
+            
+    def signalToNoiseRatio(self, signalPower, noisePower):
+        """Calculating SNR margin"""
+        snr = signalPower - noisePower
+        return snr
 
     @classmethod
     def frequency(self, node, wlan):
@@ -222,7 +227,4 @@ class setChannelParams (object):
             freq = 2.462
         return freq
 
-    def signalToNoiseRatio(self, signalPower, noisePower):
-        """Calculating SNR margin"""
-        snr = signalPower - noisePower
-        return snr
+    
