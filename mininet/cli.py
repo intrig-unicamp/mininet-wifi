@@ -64,13 +64,17 @@ class CLI(Cmd):
                 mobility.stations = mininet.stations
             nodes = mininet.stations + mininet.accessPoints + mininet.plotNodes
             
-            if mininet.is3d:
-                plot3d.instantiateGraph(mininet.MAX_X, mininet.MAX_Y, mininet.MAX_Z)
-                plot3d.graphInstantiateNodes(nodes)
-            else:
-                plot2d.instantiateGraph(mininet.MAX_X, mininet.MAX_Y)
-                plot2d.plotGraph(nodes, mininet.srcConn, mininet.dstConn, mininet.MAX_X, mininet.MAX_Y)
-                plot2d.graphPause()
+            try:
+                if mininet.is3d:
+                    plot3d.instantiateGraph(mininet.MAX_X, mininet.MAX_Y, mininet.MAX_Z)
+                    plot3d.graphInstantiateNodes(nodes)
+                else:
+                    plot2d.instantiateGraph(mininet.MAX_X, mininet.MAX_Y)
+                    plot2d.plotGraph(nodes, mininet.srcConn, mininet.dstConn, mininet.MAX_X, mininet.MAX_Y)
+                    plot2d.graphPause()
+            except:
+                info('Warning: This OS does not support GUI. Running without GUI.\n')
+                mobility.DRAW = False
 
         self.mn = mininet
         # Local variable bindings for py command
