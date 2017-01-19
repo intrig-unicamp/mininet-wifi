@@ -24,55 +24,53 @@ class module(object):
         :param alternativeModule: dir of a mac80211_hwsim alternative module
         """
         
-        output_ = os.system('modprobe mac80211_hwsim radios=0 >/dev/null 2>&1')
-                
+        output_ = 0
+        
+        debug('Loading %s virtual interfaces\n' % wifiRadios)
         if not self.externally_managed:
-            if output_ == 0:            
-                if alternativeModule == '':
-                    os.system('modprobe mac80211_hwsim radios=0')
-                else:
-                    os.system('insmod %s radios=0' % alternativeModule)
+            if alternativeModule == '':
+                output_ = os.system('modprobe mac80211_hwsim radios=0 >/dev/null 2>&1')
+            else:
+                output_ = os.system('insmod %s radios=0 >/dev/null 2>&1' % alternativeModule)
+            
+            if output_ == 0:
+                # generate prefix
+                phys = subprocess.check_output("find /sys/kernel/debug/ieee80211 -name hwsim | cut -d/ -f 6 | sort",
+                                               shell=True).split("\n")
+                num = 0
+                numokay = False
+                self.prefix = ""
+                while not numokay:
+                    self.prefix = "mn%02ds" % num
+                    numokay = True
+                    for phy in phys:
+                        if phy.startswith(self.prefix):
+                            num += 1
+                            numokay = False
+                            break
+    
+                try:
+                    for i in range(0, wifiRadios):
+                        p = subprocess.Popen(["hwsim_mgmt", "-c", "-n", self.prefix + ("%02d" % i)], stdin=subprocess.PIPE,
+                                             stdout=subprocess.PIPE,
+                                             stderr=subprocess.PIPE, bufsize=-1)
+                        output, err_out = p.communicate()
+                        if p.returncode == 0:
+                            m = re.search("ID (\d+)", output)
+                            debug("\nCreated mac80211_hwsim device with ID %s" % m.group(1))
+                            self.hwsim_ids.append(m.group(1))
+                        else:
+                            error("\nError on creating mac80211_hwsim device with name %s" % (self.prefix + ("%02d" % i)))
+                            error("\nOutput: %s" % output)
+                            error("\nError: %s" % err_out)
+                except:
+                    print "Warning! If you already had Mininet-WiFi installed, please run util/install.sh -W \
+                                            and then make install. A new API for mac80211_hwsim has been created."
             else:
                 if alternativeModule == '':
                     os.system('modprobe mac80211_hwsim radios=%s' % wifiRadios)
                 else:
                     os.system('insmod %s radios=%s' % (alternativeModule, wifiRadios))
-
-        debug('Loading %s virtual interfaces\n' % wifiRadios)
-        
-        if output_ == 0:
-            # generate prefix
-            phys = subprocess.check_output("find /sys/kernel/debug/ieee80211 -name hwsim | cut -d/ -f 6 | sort",
-                                           shell=True).split("\n")
-            num = 0
-            numokay = False
-            self.prefix = ""
-            while not numokay:
-                self.prefix = "mn%02ds" % num
-                numokay = True
-                for phy in phys:
-                    if phy.startswith(self.prefix):
-                        num += 1
-                        numokay = False
-                        break
-
-            try:
-                for i in range(0, wifiRadios):
-                    p = subprocess.Popen(["hwsim_mgmt", "-c", "-n", self.prefix + ("%02d" % i)], stdin=subprocess.PIPE,
-                                         stdout=subprocess.PIPE,
-                                         stderr=subprocess.PIPE, bufsize=-1)
-                    output, err_out = p.communicate()
-                    if p.returncode == 0:
-                        m = re.search("ID (\d+)", output)
-                        debug("\nCreated mac80211_hwsim device with ID %s" % m.group(1))
-                        self.hwsim_ids.append(m.group(1))
-                    else:
-                        error("\nError on creating mac80211_hwsim device with name %s" % (self.prefix + ("%02d" % i)))
-                        error("\nOutput: %s" % output)
-                        error("\nError: %s" % err_out)
-            except:
-                print "Warning! If you already had Mininet-WiFi installed, please run util/install.sh -W \
-                                        and then make install. A new API for mac80211_hwsim has been created."
 
     @classmethod
     def stop(self):
