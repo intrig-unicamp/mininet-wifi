@@ -23,44 +23,55 @@ class module(object):
         :param wifiRadios: number of wifi radios
         :param alternativeModule: dir of a mac80211_hwsim alternative module
         """
+        
+        output_ = os.system('modprobe mac80211_hwsim radios=0 >/dev/null 2>&1')
+                
         if not self.externally_managed:
-            if alternativeModule == '':
-                os.system('modprobe mac80211_hwsim radios=0')
+            if output_ == 0:            
+                if alternativeModule == '':
+                    os.system('modprobe mac80211_hwsim radios=0')
+                else:
+                    os.system('insmod %s radios=0' % alternativeModule)
             else:
-                os.system('insmod %s radios=0' % alternativeModule)
+                if alternativeModule == '':
+                    os.system('modprobe mac80211_hwsim radios=%s' % wifiRadios)
+                else:
+                    os.system('insmod %s radios=%s' % (alternativeModule, wifiRadios))
 
         debug('Loading %s virtual interfaces\n' % wifiRadios)
-        # generate prefix
-        phys = subprocess.check_output("find /sys/kernel/debug/ieee80211 -name hwsim | cut -d/ -f 6 | sort",
-                                       shell=True).split("\n")
-        num = 0
-        numokay = False
-        self.prefix = ""
-        while not numokay:
-            self.prefix = "mn%02ds" % num
-            numokay = True
-            for phy in phys:
-                if phy.startswith(self.prefix):
-                    num += 1
-                    numokay = False
-                    break
         
-        try:
-            for i in range(0, wifiRadios):
-                p = subprocess.Popen(["hwsim_mgmt", "-c", "-n", self.prefix + ("%02d" % i)], stdin=subprocess.PIPE,
-                                     stdout=subprocess.PIPE,
-                                     stderr=subprocess.PIPE, bufsize=-1)
-                output, err_out = p.communicate()
-                if p.returncode == 0:
-                    m = re.search("ID (\d+)", output)
-                    debug("\nCreated mac80211_hwsim device with ID %s" % m.group(1))
-                    self.hwsim_ids.append(m.group(1))
-                else:
-                    error("\nError on creating mac80211_hwsim device with name %s" % (self.prefix + ("%02d" % i)))
-                    error("\nOutput: %s" % output)
-                    error("\nError: %s" % err_out)
-        except:
-            print "Warning! If you already had Mininet-WiFi installed, please run util/install.sh -W \
+        if output_ == 0:
+            # generate prefix
+            phys = subprocess.check_output("find /sys/kernel/debug/ieee80211 -name hwsim | cut -d/ -f 6 | sort",
+                                           shell=True).split("\n")
+            num = 0
+            numokay = False
+            self.prefix = ""
+            while not numokay:
+                self.prefix = "mn%02ds" % num
+                numokay = True
+                for phy in phys:
+                    if phy.startswith(self.prefix):
+                        num += 1
+                        numokay = False
+                        break
+
+            try:
+                for i in range(0, wifiRadios):
+                    p = subprocess.Popen(["hwsim_mgmt", "-c", "-n", self.prefix + ("%02d" % i)], stdin=subprocess.PIPE,
+                                         stdout=subprocess.PIPE,
+                                         stderr=subprocess.PIPE, bufsize=-1)
+                    output, err_out = p.communicate()
+                    if p.returncode == 0:
+                        m = re.search("ID (\d+)", output)
+                        debug("\nCreated mac80211_hwsim device with ID %s" % m.group(1))
+                        self.hwsim_ids.append(m.group(1))
+                    else:
+                        error("\nError on creating mac80211_hwsim device with name %s" % (self.prefix + ("%02d" % i)))
+                        error("\nOutput: %s" % output)
+                        error("\nError: %s" % err_out)
+            except:
+                print "Warning! If you already had Mininet-WiFi installed, please run util/install.sh -W \
                                         and then make install. A new API for mac80211_hwsim has been created."
 
     @classmethod
@@ -146,7 +157,7 @@ class module(object):
         physicalWlans = self.getPhysicalWlan()  # Gets Physical Wlan(s)
         self.loadModule(wifiRadios, alternativeModule)  # Initatilize WiFi Module
         phys = self.getPhy()  # Get Phy Interfaces
-        module.assignIface(nodes, physicalWlans, phys, **params) # iface assign
+        module.assignIface(nodes, physicalWlans, phys, **params)  # iface assign
 
     @classmethod
     def getPhysicalWlan(self):
@@ -203,22 +214,6 @@ class module(object):
                         if ifb:
                             node.ifbSupport(wlan, ifbID)  # Adding Support to IFB
                             ifbID += 1
-                        if 'car' in node.name and node.type == 'station':
-                            node.cmd('iw dev %s-wlan%s interface add %s-mp%s type mp' % (node, wlan, node, wlan))
-                            node.cmd('ifconfig %s-mp%s up' % (node, wlan))
-                            node.cmd('iw dev %s-mp%s mesh join %s' % (node, wlan, 'ssid'))
-                            node.func[wlan] = 'mesh'
-                        else:
-                            if node.type != 'accessPoint':
-                                if node.params['txpower'][wlan] != 20:
-                                    node.setTxPower(node.params['wlan'][wlan], node.params['txpower'][wlan])
-                        if node.type != 'accessPoint':
-                            iface = node.params['wlan'][wlan]
-                            if node.params['mac'][wlan] == '':
-                                node.params['mac'][wlan] = node.getMAC(iface)
-                            else:
-                                mac = node.params['mac'][wlan]
-                                node.setMAC(mac, iface)
                         self.wlan_list.pop(0)
                         phys.pop(0)
         except:

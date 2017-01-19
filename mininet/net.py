@@ -835,6 +835,22 @@ class Mininet(object):
                 else:
                     cls = TCLinkWireless
                     cls(node, intfName1=node.params['wlan'][wlan])
+                    if 'car' in node.name and node.type == 'station':
+                            node.cmd('iw dev %s-wlan%s interface add %s-mp%s type mp' % (node, wlan, node, wlan))
+                            node.cmd('ifconfig %s-mp%s up' % (node, wlan))
+                            node.cmd('iw dev %s-mp%s mesh join %s' % (node, wlan, 'ssid'))
+                            node.func[wlan] = 'mesh'
+                    else:
+                        if node.type != 'accessPoint':
+                            if node.params['txpower'][wlan] != 20:
+                                node.setTxPower(node.params['wlan'][wlan], node.params['txpower'][wlan])
+                    if node.type != 'accessPoint':
+                        iface = node.params['wlan'][wlan]
+                        if node.params['mac'][wlan] == '':
+                            node.params['mac'][wlan] = node.getMAC(iface)
+                        else:
+                            mac = node.params['mac'][wlan]
+                            node.setMAC(mac, iface)
 
 
     def configureWifiNodes(self):
