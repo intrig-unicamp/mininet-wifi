@@ -9,7 +9,7 @@ import numpy as np
 import time
 import os
 
-from mininet.log import debug
+from mininet.log import debug, info
 from mininet.wifiMobilityModels import gauss_markov, \
     truncated_levy_walk, random_direction, random_waypoint, random_walk, reference_point_group, tvc
 from mininet.wifiChannel import setChannelParams
@@ -232,15 +232,19 @@ class mobility (object):
         self.wallList = walls
         nodes = self.stations + self.accessPoints + plotNodes
 
-        if self.DRAW == True:
-            if self.is3d:
-                plot = plot3d
-                plot.instantiateGraph(MAX_X, MAX_Y, MAX_Z)
-                plot.graphInstantiateNodes(nodes)
-            else:
-                plot = plot2d
-                plot.instantiateGraph(MAX_X, MAX_Y)
-                plot.plotGraph(nodes, srcConn, dstConn, MAX_X, MAX_Y)
+        try:
+            if self.DRAW == True:
+                if self.is3d:
+                    plot = plot3d
+                    plot.instantiateGraph(MAX_X, MAX_Y, MAX_Z)
+                    plot.graphInstantiateNodes(nodes)
+                else:
+                    plot = plot2d
+                    plot.instantiateGraph(MAX_X, MAX_Y)
+                    plot.plotGraph(nodes, srcConn, dstConn, MAX_X, MAX_Y)
+        except:
+            info('You OS does not support GUI. Running without GUI.')
+            self.DRAW = False
 
         try:
             while time.time() < t_end and time.time() > t_initial:
@@ -300,10 +304,14 @@ class mobility (object):
             if sta.min_v == 0:
                 sta.min_v = min_v
 
-        if self.DRAW:
-            plot2d.instantiateGraph(MAX_X, MAX_Y)
-            plot2d.plotGraph(nodes, srcConn, dstConn, MAX_X, MAX_Y)
-            plot2d.graphPause()
+        try:
+            if self.DRAW:
+                plot2d.instantiateGraph(MAX_X, MAX_Y)
+                plot2d.plotGraph(nodes, srcConn, dstConn, MAX_X, MAX_Y)
+                plot2d.graphPause()
+        except:
+            info('You OS does not support GUI. Running without GUI.')
+            self.DRAW = False
 
         if staMov != None:            
             debug('Configuring the mobility model %s' % model)
