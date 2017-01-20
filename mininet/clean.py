@@ -95,7 +95,7 @@ class Cleanup(object):
             pass
         
         try:
-            h = sh('ps -aux | grep -ic hostpad')
+            h = sh('ps -aux | grep -ic hostapd')
             if h >= 2:
                 sh('killall -9 hostapd')
         except:
