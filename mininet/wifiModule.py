@@ -88,7 +88,7 @@ class module(object):
                 m = re.search("ID (\d+)", output)
                 debug("\nDeleted mac80211_hwsim device with ID %s" % m.group(1))
             else:
-                error("\nError on deleting mac80211_hwsim device with ID %d" % hwsim_id)
+                error("\nError on deleting mac80211_hwsim device with ID %s" % hwsim_id)
                 error("\nOutput: %s" % output)
                 error("\nError: %s" % err_out)
 
