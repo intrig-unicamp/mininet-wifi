@@ -2,11 +2,6 @@
 
 """
 Demo for VANETs. It still has to be customized.. 
-
-Requirements:
----------------
-wmediumd
-vanet-script.sh
 """
 
 from mininet.net import Mininet
@@ -155,19 +150,19 @@ def topology():
         WmediumdLink(sta3wlan0, sta2wlan0, 15),
         WmediumdLink(sta3wlan0, sta4wlan0, 15),
         WmediumdLink(sta4wlan0, sta3wlan0, 15)]
-    WmediumdStarter.initialize(intfrefs, links)
+    #WmediumdStarter.initialize(intfrefs, links)
 
-    WmediumdStarter.start()
+    #WmediumdStarter.start()
 
     print "*** Running CLI"
     CLI(net)
 
     print "*** Stopping wmediumd"
-    WmediumdStarter.stop()
+    #WmediumdStarter.stop()
 
     print "*** Stopping network"
     net.stop()
 
 if __name__ == '__main__':
-    setLogLevel( 'info' )
+    setLogLevel( 'debug' )
     topology()
