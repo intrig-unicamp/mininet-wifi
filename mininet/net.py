@@ -136,7 +136,7 @@ class Mininet(object):
     "Network emulation with hosts spawned in network namespaces."
 
     def __init__(self, topo=None, switch=OVSKernelSwitch, car=Car, station=Station, host=Host, isWiFi=False,
-                  controller=DefaultController, link=Link, intf=Intf, wifiRadios=0,
+                  controller=DefaultController, link=Link, intf=Intf,
                   build=True, xterms=False, cleanup=False, ipBase='10.0.0.0/8',
                   inNamespace=False, autoSetMacs=False, autoStaticArp=False, autoPinCpus=False,
                   listenPort=None, waitConnected=False, ssid="new-ssid", mode="g", channel="6"):
@@ -204,7 +204,7 @@ class Mininet(object):
         self.walls = []
         self.terms = []  # list of spawned xterm processes
         self.isWiFi = isWiFi
-        self.nRadios = wifiRadios
+        self.nRadios = 0
         self.MAX_X = 0
         self.MAX_Y = 0
         self.MAX_Z = 0
@@ -317,6 +317,45 @@ class Mininet(object):
         sta = cls(name, **defaults)   
         sta.type = 'station'
           
+        self.hosts.append(sta)
+        self.stations.append(sta)
+        self.nameToNode[ name ] = sta 
+        
+        self.nRadios = sta.addParameters(sta, self.nRadios, self.autoSetMacs, params, defaults)
+        return sta
+    
+    def addAPAdhoc(self, name, cls=None, **params):
+        """Add Station with AP capabilities.
+           name: name of station ap to add
+           cls: custom host class/constructor (optional)
+           params: parameters for station
+           returns: added station"""
+        # Default IP and MAC addresses
+        defaults = { 'ip': ipAdd(self.nextIP,
+                                  ipBaseNum=self.ipBaseNum,
+                                  prefixLen=self.prefixLen) + 
+                                  '/%s' % self.prefixLen,
+                     'channel': self.channel,
+                     'mode': self.mode}
+       
+        if self.autoSetMacs:
+            defaults[ 'mac' ] = macColonHex(self.nextIP)
+        if self.autoPinCpus:
+            defaults[ 'cores' ] = self.nextCore
+            self.nextCore = (self.nextCore + 1) % self.numCores
+        self.nextIP += 1
+        defaults.update(params)
+        
+        if not cls:
+            cls = self.station
+        sta = cls(name, **defaults)   
+        sta.type = 'station'
+        
+        if 'ssid' in params:
+            sta.params['ssid'] = []
+            sta.params['ssid'].append('')
+            sta.params['ssid'][0] = params['ssid']
+        
         self.hosts.append(sta)
         self.stations.append(sta)
         self.nameToNode[ name ] = sta 
@@ -762,79 +801,86 @@ class Mininet(object):
         options.setdefault('addr1', self.randMac())
 
 
-    def configureAP(self):
+    def configureAP(self, node, wlanID=0):
         """Configure AP"""
         
-        x = 0
-        for ap in self.accessPoints:
-            if 'phywlan' in ap.params:
-                x = 1
-            for wlan in range(len(ap.params['wlan']) + x):
-                if x == 1:
-                    wlan = 0
-                wifiparam = dict()
-                if 'inNamespace' not in ap.params:
-                    if 'phywlan' not in ap.params:
+        if 'phywlan' in node.params:
+                wlanID = 1
+        for wlan in range(len(node.params['wlan']) + wlanID):
+            if wlanID == 1:
+                wlan = 0
+            wifiparam = dict()
+            if 'inNamespace' not in node.params:
+                if 'phywlan' not in node.params:
+                    if node.type != 'station':
                         intf = module.wlan_list[0]
                         module.wlan_list.pop(0)
-                        iface = ap.params['wlan'][wlan]
+                        # iface = node.params['wlan'][wlan]
                         wifiparam.setdefault('intf', intf)
-                    else:
-                        iface = ap.params.get('phywlan')
-
-                self.auth_algs = None
-                self.wpa = None
-                self.wpa_key_mgmt = None
-                self.rsn_pairwise = None
-                self.wpa_passphrase = None
-                self.wep_key0 = None
-                self.country_code = None
-                self.wmm_enabled = None
-                
-                if 'encrypt' in ap.params:
-                    if ap.params['encrypt'][wlan] == 'wpa':
-                        self.auth_algs = 1
-                        self.wpa = 1
-                        self.wpa_key_mgmt = 'WPA-PSK'
-                        self.wpa_passphrase = ap.params['passwd'][0]
-                    elif ap.params['encrypt'][wlan] == 'wpa2':
-                        self.auth_algs = 1
-                        self.wpa = 2
-                        self.wpa_key_mgmt = 'WPA-PSK'
-                        self.rsn_pairwise = 'CCMP'
-                        self.wpa_passphrase = ap.params['passwd'][0]
-                    elif ap.params['encrypt'][wlan] == 'wep':
-                        self.auth_algs = 2
-                        self.wep_key0 = ap.params['passwd'][0]
-
-                wifiparam.setdefault('country_code', self.country_code)
-                wifiparam.setdefault('auth_algs', self.auth_algs)
-                wifiparam.setdefault('wpa', self.wpa)
-                wifiparam.setdefault('wpa_key_mgmt', self.wpa_key_mgmt)
-                wifiparam.setdefault('rsn_pairwise', self.rsn_pairwise)
-                wifiparam.setdefault('wpa_passphrase', self.wpa_passphrase)
-                wifiparam.setdefault('wep_key0', self.wep_key0)
-                wifiparam.setdefault('wlan', wlan)
-                    
-                cls = AccessPoint
-                cls.init_(ap, **wifiparam)
-                
-                if 'phywlan' not in ap.params:
-                    ap.params['frequency'][wlan] = setChannelParams.frequency(ap, 0)
-                    cls = TCLinkWireless
-                    cls(ap)
-                    if len(ap.params['ssid']) > 1:
-                        for i in range(1, len(ap.params['ssid'])):
-                            cls(ap, intfName1=ap.params['wlan'][i])
-                    x = 0
+                    iface = node.params['wlan'][wlan]
+                        
                 else:
-                    iface = ap.params.get('phywlan')
-                    options = dict()
-                    options.setdefault('intfName1', iface)
-                    cls = TCLinkWireless
-                    cls(ap, **options)
-                    ap.params.pop("phywlan", None)  
+                    iface = node.params.get('phywlan')
 
+            self.auth_algs = None
+            self.wpa = None
+            self.wpa_key_mgmt = None
+            self.rsn_pairwise = None
+            self.wpa_passphrase = None
+            self.wep_key0 = None
+            self.country_code = None
+            self.wmm_enabled = None
+            
+            if 'encrypt' in node.params:
+                if node.params['encrypt'][wlan] == 'wpa':
+                    self.auth_algs = 1
+                    self.wpa = 1
+                    self.wpa_key_mgmt = 'WPA-PSK'
+                    self.wpa_passphrase = node.params['passwd'][0]
+                elif node.params['encrypt'][wlan] == 'wpa2':
+                    self.auth_algs = 1
+                    self.wpa = 2
+                    self.wpa_key_mgmt = 'WPA-PSK'
+                    self.rsn_pairwise = 'CCMP'
+                    self.wpa_passphrase = node.params['passwd'][0]
+                elif node.params['encrypt'][wlan] == 'wep':
+                    self.auth_algs = 2
+                    self.wep_key0 = node.params['passwd'][0]
+
+            wifiparam.setdefault('country_code', self.country_code)
+            wifiparam.setdefault('auth_algs', self.auth_algs)
+            wifiparam.setdefault('wpa', self.wpa)
+            wifiparam.setdefault('wpa_key_mgmt', self.wpa_key_mgmt)
+            wifiparam.setdefault('rsn_pairwise', self.rsn_pairwise)
+            wifiparam.setdefault('wpa_passphrase', self.wpa_passphrase)
+            wifiparam.setdefault('wep_key0', self.wep_key0)
+            wifiparam.setdefault('wlan', wlan)
+                
+            cls = AccessPoint
+            cls.init_(node, **wifiparam)
+            
+            if 'phywlan' not in node.params:
+                node.params['frequency'][wlan] = setChannelParams.frequency(node, 0)
+                cls = TCLinkWireless
+                cls(node)
+                if len(node.params['ssid']) > 1:
+                    for i in range(1, len(node.params['ssid'])):
+                        cls(node, intfName1=node.params['wlan'][i])
+                wlanID = 0
+            else:
+                iface = node.params.get('phywlan')
+                options = dict()
+                options.setdefault('intfName1', iface)
+                cls = TCLinkWireless
+                cls(node, **options)
+                node.params.pop("phywlan", None)
+                    
+    def configureAPs(self):
+        """Configure All APs"""
+        
+        for node in self.accessPoints:
+            self.configureAP(node)
+              
     def useIFB(self):
         """Support to Intermediate Functional Block (IFB) Devices"""
         
@@ -868,6 +914,8 @@ class Mininet(object):
                         else:
                             mac = node.params['mac'][wlan]
                             node.setMAC(mac, iface)
+                        if 'ssid' in node.params:
+                            self.configureAP(node)
 
 
     def configureWifiNodes(self):
@@ -881,7 +929,7 @@ class Mininet(object):
         nodes = self.stations + self.cars + self.accessPoints
         module.start(nodes, self.nRadios, self.alternativeModule, **params)               
         self.configureWirelessLink() 
-        self.configureAP()  
+        self.configureAPs()  
         self.isWiFi = True
         
         # useful if there no link between sta and any other device
@@ -1105,7 +1153,7 @@ class Mininet(object):
                     snr_ = setChannelParams.setSNR(sta, wlan)
                     sta.params['snr'][wlan] = snr_
                     rssi.append(rssi_)
-                    #if ap == sta.params['associatedTo'][wlan]:
+                    # if ap == sta.params['associatedTo'][wlan]:
                     ap.params['associatedStations'][sta] = sta.params['rssi'][wlan]
                 sta.params['apsInRange'][ap] = rssi
                 ap.params['stationsInRange'][sta] = rssi
