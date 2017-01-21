@@ -320,6 +320,17 @@ class testWalkthrough( unittest.TestCase ):
         p.expect( self.prompt )
         p.sendline( 'exit' )
         p.wait()
+        
+    def testVanet( self ):
+        "Start Mininet-WiFi with Vanet, then test ping"
+        p = pexpect.spawn(
+            'python demos/vanet.py' )
+        sleep(10)
+        p.sendline( 'car0 ping -c 1 car3' )
+        p.expect( '1 packets transmitted, 1 received' )
+        p.expect( self.prompt )
+        p.sendline( 'exit' )
+        p.wait()
 
     #def testStaticMAC( self ):
     #    "Verify that MACs are set to easy to read numbers"
