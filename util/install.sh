@@ -40,6 +40,7 @@ if [ "$DIST" = "Ubuntu" ] || [ "$DIST" = "Debian" ]; then
     install='sudo apt-get -y install'
     remove='sudo apt-get -y remove'
     pkginst='sudo dpkg -i'
+    update='sudo apt-get'
     # Prereqs for this script
     if ! which lsb_release &> /dev/null; then
         $install lsb-release
@@ -50,6 +51,7 @@ if [ "$DIST" = "Fedora" ]; then
     install='sudo yum -y install'
     remove='sudo yum -y erase'
     pkginst='sudo rpm -ivh'
+    update='sudo yum'
     # Prereqs for this script
     if ! which lsb_release &> /dev/null; then
         $install redhat-lsb-core
@@ -102,7 +104,7 @@ OF13_SWITCH_REV=${OF13_SWITCH_REV:-""}
 
 function kernel {
     echo "Install Mininet-compatible kernel if necessary"
-    sudo apt-get update
+    $update update
     if ! $install linux-image-$KERNEL_NAME; then
         echo "Could not install linux-image-$KERNEL_NAME"
         echo "Skipping - assuming installed kernel is OK."
@@ -124,14 +126,18 @@ function kernel_clean {
 # Install Mininet deps
 function mn_deps {
     echo "Installing Mininet dependencies"
-    if [ "$DIST" = "Fedora" ]; then
+    if [ "$DIST" = "Fedora" -o "$DIST" = "RedHatEnterpriseServer" ]; then
         $install gcc make socat psmisc xterm openssh-clients iperf \
             iproute telnet python-setuptools libcgroup-tools \
-            ethtool help2man pyflakes pylint python-pep8
+            ethtool help2man pyflakes pylint python-pep8 python-pexpect
+	elif [ "$DIST" = "SUSE LINUX"  ]; then
+		$install gcc make socat psmisc xterm openssh iperf \
+			iproute telnet python-setuptools libcgroup-tools \
+			ethtool help2man python-pyflakes python3-pylint python-pep8 python-pexpect
     else
         $install gcc make socat psmisc xterm ssh iperf iproute telnet \
             python-setuptools cgroup-bin ethtool help2man \
-            pyflakes pylint pep8
+            pyflakes pylint pep8 python-pexpect
     fi
 
     echo "Installing Mininet core"
