@@ -93,13 +93,8 @@ class Cleanup(object):
             os.system('rmmod ifb')
         except:
             pass
-        
-        try:
-            h = sh('ps -aux | grep -ic hostapd')
-            if h >= 2:
-                sh('killall -9 hostapd')
-        except:
-            pass
+
+        killprocs('hostapd')
 
         if glob.glob("*.apconf"):
             os.system('rm *.apconf')
