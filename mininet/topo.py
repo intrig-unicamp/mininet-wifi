@@ -110,8 +110,7 @@ class Topo(object):
         self.hopts = params.pop('hopts', {})
         self.sopts = params.pop('sopts', {})
         self.lopts = params.pop('lopts', {})
-        if 'isWiFi' not in params:
-            params['isWiFi'] = False
+
         # ports[src][dst][sport] is port on dst that connects to src
         self.ports = {}
         self.build(*args, **params)
@@ -327,22 +326,22 @@ class Topo(object):
 class SingleSwitchTopo(Topo):
     "Single switch connected to k hosts."
     def build(self, k=2, **_opts):
-        isWiFi = _opts.get('isWiFi')
-        if isWiFi:
-            "k: number of hosts"
-            self.k = k
-            accessPoint = self.addAccessPoint('ap1')
-            for h in irange(1, k):
-                host = self.addHost('sta%s' % h)
-                self.addLink(host, accessPoint)
-        else:
-            "k: number of hosts"
-            self.k = k
-            switch = self.addSwitch('s1')
-            for h in irange(1, k):
-                host = self.addHost('h%s' % h)
-                self.addLink(host, switch)
-
+        "k: number of hosts"
+        self.k = k
+        switch = self.addSwitch('s1')
+        for h in irange(1, k):
+            host = self.addHost('h%s' % h)
+            self.addLink(host, switch)
+                
+class SingleAPTopo(Topo):
+    "Single ap connected to k stations."
+    def build(self, k=2, **_opts):
+        "k: number of stations"
+        self.k = k
+        accessPoint = self.addAccessPoint('ap1')
+        for h in irange(1, k):
+            host = self.addHost('sta%s' % h)
+            self.addLink(host, accessPoint)
 
 class SingleSwitchReversedTopo(Topo):
     """Single switch connected to k hosts, with reversed ports.
@@ -372,60 +371,66 @@ class SingleSwitchReversedTopo(Topo):
 
 class MinimalTopo(SingleSwitchTopo):
     "Minimal topology with two hosts and one switch"
-    def build(self, isWiFi):
-        return SingleSwitchTopo.build(self, k=2, isWiFi=isWiFi)
-
+    def build(self):
+        return SingleSwitchTopo.build(self, k=2)
+        
+class MinimalWirelessTopo(SingleAPTopo):
+    "Minimal wireless topology with two stations and one ap"
+    def build(self):
+        return SingleAPTopo.build(self, k=2)
 
 class LinearTopo(Topo):
     "Linear topology of k switches, with n hosts per switch."
 
     def build(self, k=2, n=1, **_opts):
-        isWiFi = _opts.get('isWiFi')
-        if isWiFi:
-            """k: number of switches
-               n: number of hosts per switch"""
-            self.k = k
-            self.n = n
-            if n == 1:
-                genHostName = lambda i, j: 'sta%s' % i
-            else:
-                genHostName = lambda i, j: 'sta%sap%d' % (j, i)
+        """k: number of switches
+           n: number of hosts per switch"""
+        self.k = k
+        self.n = n
 
-            lastAccessPoint = None
-            for i in irange(1, k):
-                # Add accessPoint
-                accessPoint = self.addAccessPoint('ap%s' % i, ssid='ssid_ap%s' % i)
-                # Add hosts to accessPoint
-                for j in irange(1, n):
-                    host = self.addHost(genHostName(i, j))
-                    self.addLink(host, accessPoint)
-                # Connect accessPoint to previous
-                if lastAccessPoint:
-                    self.addLink(accessPoint, lastAccessPoint)
-                lastAccessPoint = accessPoint
+        if n == 1:
+            genHostName = lambda i, j: 'h%s' % i
         else:
-            """k: number of switches
-               n: number of hosts per switch"""
-            self.k = k
-            self.n = n
+            genHostName = lambda i, j: 'h%ss%d' % (j, i)
 
-            if n == 1:
-                genHostName = lambda i, j: 'h%s' % i
-            else:
-                genHostName = lambda i, j: 'h%ss%d' % (j, i)
+        lastSwitch = None
 
-            lastSwitch = None
+        for i in irange(1, k):
+            # Add switch
+            switch = self.addSwitch('s%s' % i)
+            # Add hosts to switch
+            for j in irange(1, n):
+                host = self.addHost(genHostName(i, j))
+                self.addLink(host, switch)
+            # Connect switch to previous
+            if lastSwitch:
+                self.addLink(switch, lastSwitch)
+            lastSwitch = switch
+                
+class LinearWirelessTopo(Topo):
+    "Linear Wireless topology of k aps, with n stations per ap."
 
-            for i in irange(1, k):
-                # Add switch
-                switch = self.addSwitch('s%s' % i)
-                # Add hosts to switch
-                for j in irange(1, n):
-                    host = self.addHost(genHostName(i, j))
-                    self.addLink(host, switch)
-                # Connect switch to previous
-                if lastSwitch:
-                    self.addLink(switch, lastSwitch)
-                lastSwitch = switch
+    def build(self, k=2, n=1, **_opts):
+        """k: number of switches
+           n: number of hosts per switch"""
+        self.k = k
+        self.n = n
+        if n == 1:
+            genHostName = lambda i, j: 'sta%s' % i
+        else:
+            genHostName = lambda i, j: 'sta%sap%d' % (j, i)
+
+        lastAccessPoint = None
+        for i in irange(1, k):
+            # Add accessPoint
+            accessPoint = self.addAccessPoint('ap%s' % i, ssid='ssid_ap%s' % i)
+            # Add hosts to accessPoint
+            for j in irange(1, n):
+                host = self.addHost(genHostName(i, j))
+                self.addLink(host, accessPoint)
+            # Connect accessPoint to previous
+            if lastAccessPoint:
+                self.addLink(accessPoint, lastAccessPoint)
+            lastAccessPoint = accessPoint
 
 # pylint: enable=arguments-differ

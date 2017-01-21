@@ -579,13 +579,11 @@ def specialClass(cls, prepend=None, append=None,
     CustomClass.__name__ = '%s%s' % (cls.__name__, defaults)
     return CustomClass
 
-def buildTopo(topos, topoStr, isWiFi=False):
+def buildTopo(topos, topoStr):
     """Create topology from string with format (object, arg1, arg2,...).
     input topos is a dict of topo names to constructors, possibly w/args.
     """
     topo, args, kwargs = splitArgs(topoStr)
-    if isWiFi:
-        kwargs['isWiFi'] = isWiFi
     if topo not in topos:
         raise Exception('Invalid topo name %s' % topo)
     return topos[ topo ](*args, **kwargs)
