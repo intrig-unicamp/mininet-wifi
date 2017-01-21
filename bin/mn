@@ -31,8 +31,8 @@ from mininet.node import (Host, CPULimitedHost, Controller, OVSController,
                            IVSSwitch)
 from mininet.nodelib import LinuxBridge
 from mininet.link import Link, TCLink, TCULink, OVSLink
-from mininet.topo import (SingleSwitchTopo, LinearTopo,
-                           SingleSwitchReversedTopo, MinimalTopo)
+from mininet.topo import (SingleSwitchTopo, SingleAPTopo, LinearTopo, LinearWirelessTopo,
+                           SingleSwitchReversedTopo, MinimalTopo, MinimalWirelessTopo)
 from mininet.topolib import TreeTopo, TorusTopo
 from mininet.util import customClass, specialClass, splitArgs, buildTopo
 
@@ -324,15 +324,13 @@ class MininetRunner(object):
                     raise Exception("Could not find a default controller "
                                      "for switch %s" % 
                                      opts.switch)
-        isWiFi = False
-        wifiRadios = 0
-        if opts.radios != 0:
-            isWiFi = True
-            wifiRadios = opts.radios              
-        if opts.wifi and opts.radios == 0:
-            isWiFi = True
-        
-        topo = buildTopo(TOPOS, opts.topo, opts.wifi)
+
+        if opts.wifi:
+            TOPOS['single'] = SingleAPTopo
+            TOPOS['linear'] = LinearWirelessTopo
+            TOPOS['minimal'] = MinimalWirelessTopo
+
+        topo = buildTopo(TOPOS, opts.topo)
         switch = customClass(SWITCHES, opts.switch)
         host = customClass(HOSTS, opts.host)
         controller = [ customClass(CONTROLLERS, c)
@@ -383,8 +381,7 @@ class MininetRunner(object):
                   link=link,
                   ipBase=ipBase,
                   inNamespace=inNamespace,
-                  isWiFi=isWiFi,
-                  wifiRadios=wifiRadios,
+                  isWiFi=opts.wifi,
                   channel=channel,
                   mode=mode,
                   ssid=ssid,
