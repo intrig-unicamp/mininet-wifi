@@ -162,6 +162,7 @@ class Mininet(object):
         self.switch = switch        
         self.host = host
         self.station = station
+	self.accesspoint= accesspoint
         self.car = car
         self.controller = controller
         self.link = link
@@ -427,7 +428,7 @@ class Mininet(object):
         defaults.update(params)
         
         if not cls:
-            cls = self.switch
+            cls = self.accesspoint
         if cls == OVSKernelSwitch:
             cls = OVSAP
         elif cls == UserSwitch:
