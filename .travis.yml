@@ -12,7 +12,7 @@ install:
 script:
 - sudo mn --wifi --test pingall
 - sudo python mininet/test/runner.py -v -quick
-- sudo python examples/test/runner.py -v -quick
+#- sudo python examples/test/runner.py -v -quick
 
 notifications:
   email:
