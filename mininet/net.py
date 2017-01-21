@@ -893,29 +893,26 @@ class Mininet(object):
         nodes = self.stations + self.cars
         for node in nodes:
             for wlan in range(0, len(node.params['wlan'])):
+                cls = TCLinkWireless
+                cls(node, intfName1=node.params['wlan'][wlan])
                 if 'car' in node.name and node.type == 'station':
-                    pass
+                        node.cmd('iw dev %s-wlan%s interface add %s-mp%s type mp' % (node, wlan, node, wlan))
+                        node.cmd('ifconfig %s-mp%s up' % (node, wlan))
+                        node.cmd('iw dev %s-mp%s mesh join %s' % (node, wlan, 'ssid'))
+                        node.func[wlan] = 'mesh'
                 else:
-                    cls = TCLinkWireless
-                    cls(node, intfName1=node.params['wlan'][wlan])
-                    if 'car' in node.name and node.type == 'station':
-                            node.cmd('iw dev %s-wlan%s interface add %s-mp%s type mp' % (node, wlan, node, wlan))
-                            node.cmd('ifconfig %s-mp%s up' % (node, wlan))
-                            node.cmd('iw dev %s-mp%s mesh join %s' % (node, wlan, 'ssid'))
-                            node.func[wlan] = 'mesh'
-                    else:
-                        if node.type != 'accessPoint':
-                            if node.params['txpower'][wlan] != 20:
-                                node.setTxPower(node.params['wlan'][wlan], node.params['txpower'][wlan])
                     if node.type != 'accessPoint':
-                        iface = node.params['wlan'][wlan]
-                        if node.params['mac'][wlan] == '':
-                            node.params['mac'][wlan] = node.getMAC(iface)
-                        else:
-                            mac = node.params['mac'][wlan]
-                            node.setMAC(mac, iface)
-                        if 'ssid' in node.params:
-                            self.configureAP(node)
+                        if node.params['txpower'][wlan] != 20:
+                            node.setTxPower(node.params['wlan'][wlan], node.params['txpower'][wlan])
+                if node.type != 'accessPoint':
+                    iface = node.params['wlan'][wlan]
+                    if node.params['mac'][wlan] == '':
+                        node.params['mac'][wlan] = node.getMAC(iface)
+                    else:
+                        mac = node.params['mac'][wlan]
+                        node.setMAC(mac, iface)
+                    if 'ssid' in node.params and node.type != 'vehicle':
+                        self.configureAP(node)
 
 
     def configureWifiNodes(self):
@@ -938,6 +935,14 @@ class Mininet(object):
             self.stations.remove(car.params['carsta'])
             self.stations.append(car)      
             car.params['wlan'].append(0)
+            car.params['rssi'].append(0)
+            car.params['snr'].append(0)
+            car.params['channel'].append(0)
+            car.params['txpower'].append(0)
+            car.params['antennaGain'].append(0)
+            car.params['antennaHeight'].append(0)
+            car.params['associatedTo'].append(0)
+            car.params['frequency'].append(0)
         
     def addLink(self, node1, node2, port1=None, port2=None,
                  cls=None, **params):
