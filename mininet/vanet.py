@@ -37,10 +37,10 @@ class vanet(object):
 
     time_per_iteraiton = 100 * math.pow(10, -3)
 
-    def __init__(self, cars, baseStations, nroads, srcConn, dstConn, MAX_X, MAX_Y):
+    def __init__(self, cars, accessPoints, nroads, srcConn, dstConn, MAX_X, MAX_Y):
 
         mobility.stations = cars
-        mobility.apList = baseStations
+        mobility.accessPoints = accessPoints
         mobility.MAX_X = MAX_X
         mobility.MAX_Y = MAX_Y
         [self.road.append(x) for x in range(0, nroads)]
@@ -49,12 +49,12 @@ class vanet(object):
         plot2d.instantiateGraph(MAX_X, MAX_Y)
 
         try:
-            self.display_grid(baseStations, srcConn, dstConn, nroads)
+            self.display_grid(accessPoints, srcConn, dstConn, nroads)
             self.display_cars(cars)
             plot2d.plotGraph(cars, [], [], MAX_X, MAX_Y)
             self.setWifiParameters()
             while mobility.continue_:
-                [self.scatter, self.com_lines] = self.simulate_car_movement(cars, baseStations, self.scatter, self.com_lines)
+                [self.scatter, self.com_lines] = self.simulate_car_movement(cars, accessPoints, self.scatter, self.com_lines)
         except:
             pass
         
