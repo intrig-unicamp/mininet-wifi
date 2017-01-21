@@ -7,10 +7,10 @@ before_install:
 - sudo apt-get install -qq vlan
 
 install:
-- sudo util/install.sh -fnvw
+- sudo util/install.sh -Wnfvw
 
 script:
-- sudo mn --test pingall
+- sudo mn --wifi --test pingall
 - sudo python mininet/test/runner.py -v -quick
 - sudo python examples/test/runner.py -v -quick
 
