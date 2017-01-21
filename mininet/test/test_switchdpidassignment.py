@@ -7,91 +7,91 @@ import unittest
 import sys
 
 from mininet.net import Mininet
-from mininet.node import Host, Controller
-from mininet.node import ( UserSwitch, OVSSwitch, IVSSwitch )
+from mininet.node import Station, Controller
+from mininet.node import (UserSwitch, OVSSwitch, IVSSwitch)
 from mininet.topo import Topo
 from mininet.log import setLogLevel
 from mininet.util import quietRun
 from mininet.clean import cleanup
 
 
-class TestSwitchDpidAssignmentOVS( unittest.TestCase ):
+class TestSwitchDpidAssignmentOVS(unittest.TestCase):
     "Verify Switch dpid assignment."
 
     switchClass = OVSSwitch  # overridden in subclasses
 
-    def tearDown( self ):
+    def tearDown(self):
         "Clean up if necessary"
         # satisfy pylint
         assert self
-        if sys.exc_info != ( None, None, None ):
+        if sys.exc_info != (None, None, None):
             cleanup()
 
-    def testDefaultDpid( self ):
+    def testDefaultDpid(self):
         """Verify that the default dpid is assigned using a valid provided
         canonical switchname if no dpid is passed in switch creation."""
-        switch = Mininet( Topo(),
+        ap = Mininet(Topo(),
                           self.switchClass,
-                          Host, Controller ).addSwitch( 's1' )
-        self.assertEqual( switch.defaultDpid(), switch.dpid )
+                          Station, Controller, isWiFi=True).addAccessPoint('ap1')
+        self.assertEqual(ap.defaultDpid(), ap.dpid)
 
-    def dpidFrom( self, num ):
+    def dpidFrom(self, num):
         "Compute default dpid from number"
-        fmt = ( '%0' + str( self.switchClass.dpidLen ) + 'x' )
+        fmt = ('%0' + str(self.switchClass.dpidLen) + 'x')
         return fmt % num
 
-    def testActualDpidAssignment( self ):
+    def testActualDpidAssignment(self):
         """Verify that Switch dpid is the actual dpid assigned if dpid is
-        passed in switch creation."""
-        dpid = self.dpidFrom( 0xABCD )
-        switch = Mininet( Topo(), self.switchClass,
-                          Host, Controller ).addSwitch(
-                            's1', dpid=dpid )
-        self.assertEqual( switch.dpid, dpid )
+        passed in ap creation."""
+        dpid = self.dpidFrom(0xABCD)
+        ap = Mininet(Topo(), self.switchClass,
+                          Station, Controller, isWiFi=True).addAccessPoint(
+                            'ap1', dpid=dpid)
+        self.assertEqual(ap.dpid, dpid)
 
-    def testDefaultDpidAssignmentFailure( self ):
+    def testDefaultDpidAssignmentFailure(self):
         """Verify that Default dpid assignment raises an Exception if the
-        name of the switch does not contin a digit. Also verify the
+        name of the ap does not contain a digit. Also verify the
         exception message."""
-        with self.assertRaises( Exception ) as raises_cm:
-            Mininet( Topo(), self.switchClass,
-                     Host, Controller ).addSwitch( 'A' )
+        with self.assertRaises(Exception) as raises_cm:
+            Mininet(Topo(), self.switchClass,
+                     Station, Controller, isWiFi=True).addAccessPoint('A')
         self.assertEqual(raises_cm.exception.message, 'Unable to derive '
                          'default datapath ID - please either specify a dpid '
                          'or use a canonical switch name such as s23.')
 
-    def testDefaultDpidLen( self ):
+    def testDefaultDpidLen(self):
         """Verify that Default dpid length is 16 characters consisting of
         16 - len(hex of first string of contiguous digits passed in switch
         name) 0's followed by hex of first string of contiguous digits passed
         in switch name."""
-        switch = Mininet( Topo(), self.switchClass,
-                          Host, Controller ).addSwitch( 's123' )
+        ap = Mininet(Topo(), self.switchClass,
+                          Station, Controller, isWiFi=True).addAccessPoint('ap123')
 
-        self.assertEqual( switch.dpid, self.dpidFrom( 123 ) )
+        self.assertEqual(ap.dpid, self.dpidFrom(123))
 
-class OVSUser( OVSSwitch):
+class OVSUser(OVSSwitch):
     "OVS User Switch convenience class"
-    def __init__( self, *args, **kwargs ):
-        kwargs.update( datapath='user' )
-        OVSSwitch.__init__( self, *args, **kwargs )
+    def __init__(self, *args, **kwargs):
+        kwargs.update(datapath='user')
+        OVSSwitch.__init__(self, *args, **kwargs)
 
-class testSwitchOVSUser( TestSwitchDpidAssignmentOVS ):
+class testSwitchOVSUser(TestSwitchDpidAssignmentOVS):
     "Test dpid assignnment of OVS User Switch."
     switchClass = OVSUser
 
-@unittest.skipUnless( quietRun( 'which ivs-ctl' ),
-                      'IVS switch is not installed' )
-class testSwitchIVS( TestSwitchDpidAssignmentOVS ):
+@unittest.skipUnless(quietRun('which ivs-ctl'),
+                      'IVS switch is not installed')
+class testSwitchIVS(TestSwitchDpidAssignmentOVS):
     "Test dpid assignment of IVS switch."
     switchClass = IVSSwitch
 
-@unittest.skipUnless( quietRun( 'which ofprotocol' ),
-                      'Reference user switch is not installed' )
-class testSwitchUserspace( TestSwitchDpidAssignmentOVS ):
+@unittest.skipUnless(quietRun('which ofprotocol'),
+                      'Reference user switch is not installed')
+class testSwitchUserspace(TestSwitchDpidAssignmentOVS):
     "Test dpid assignment of Userspace switch."
     switchClass = UserSwitch
 
 if __name__ == '__main__':
-    setLogLevel( 'warning' )
+    setLogLevel('warning')
     unittest.main()
