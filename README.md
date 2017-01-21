@@ -1,7 +1,10 @@
 ![](https://github.com/ramonfontes/miscellaneous/blob/master/mininet-wifi/mininet-wifi-logo.png)
 
 ###About Mininet-WiFi
-Mininet-WiFi is a fork of Mininet (http://mininet.org/) which allows the using of both WiFi Stations and Access Points. Mininet-WiFi only add wifi features and you can work with it like you were working with Mininet.          
+Mininet-WiFi is a fork of Mininet (http://mininet.org/) which allows the using of both WiFi Stations and Access Points. Mininet-WiFi only add wifi features and you can work with it like you were working with Mininet.   
+
+[![Build Status](https://travis-ci.org/intrig-unicamp/mininet-wifi.svg?branch=master)](https://travis-ci.org/intrig-unicamp/mininet-wifi)
+
 
 ###User Manual  
 [Access the User Manual](https://www.dropbox.com/s/jgkhsdrz736e4q2/mininet-wifi-draft-manual.pdf?dl=0)
