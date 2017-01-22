@@ -136,7 +136,7 @@ class Mininet(object):
     "Network emulation with hosts spawned in network namespaces."
 
     def __init__(self, topo=None, switch=OVSKernelSwitch, car=Car, station=Station, host=Host, isWiFi=False,
-                  controller=DefaultController,accesspoint=OVSAP, link=Link, intf=Intf,
+                  controller=DefaultController,accessPoint=OVSAP, link=Link, intf=Intf,
                   build=True, xterms=False, cleanup=False, ipBase='10.0.0.0/8',
                   inNamespace=False, autoSetMacs=False, autoStaticArp=False, autoPinCpus=False,
                   listenPort=None, waitConnected=False, ssid="new-ssid", mode="g", channel="6"):
@@ -162,7 +162,7 @@ class Mininet(object):
         self.switch = switch        
         self.host = host
         self.station = station
-	self.accessPoint= accessPoint
+	self.accesspoint = accessPoint
         self.car = car
         self.controller = controller
         self.link = link
