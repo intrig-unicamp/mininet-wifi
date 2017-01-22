@@ -15,6 +15,7 @@ class module(object):
     hwsim_ids = []
     prefix = ""
     externally_managed = False
+    devices_created_dynamically = False
 
     @classmethod
     def loadModule(self, wifiRadios, alternativeModule=''):
@@ -23,9 +24,6 @@ class module(object):
         :param wifiRadios: number of wifi radios
         :param alternativeModule: dir of a mac80211_hwsim alternative module
         """
-        
-        output_ = 0
-        
         debug('Loading %s virtual interfaces\n' % wifiRadios)
         if not self.externally_managed:
             if alternativeModule == '':
@@ -34,43 +32,51 @@ class module(object):
                 output_ = os.system('insmod %s radios=0 >/dev/null 2>&1' % alternativeModule)
             
             if output_ == 0:
-                # generate prefix
-                phys = subprocess.check_output("find /sys/kernel/debug/ieee80211 -name hwsim | cut -d/ -f 6 | sort",
-                                               shell=True).split("\n")
-                num = 0
-                numokay = False
-                self.prefix = ""
-                while not numokay:
-                    self.prefix = "mn%02ds" % num
-                    numokay = True
-                    for phy in phys:
-                        if phy.startswith(self.prefix):
-                            num += 1
-                            numokay = False
-                            break
-    
-                try:
-                    for i in range(0, wifiRadios):
-                        p = subprocess.Popen(["hwsim_mgmt", "-c", "-n", self.prefix + ("%02d" % i)], stdin=subprocess.PIPE,
-                                             stdout=subprocess.PIPE,
-                                             stderr=subprocess.PIPE, bufsize=-1)
-                        output, err_out = p.communicate()
-                        if p.returncode == 0:
-                            m = re.search("ID (\d+)", output)
-                            debug("\nCreated mac80211_hwsim device with ID %s" % m.group(1))
-                            self.hwsim_ids.append(m.group(1))
-                        else:
-                            error("\nError on creating mac80211_hwsim device with name %s" % (self.prefix + ("%02d" % i)))
-                            error("\nOutput: %s" % output)
-                            error("\nError: %s" % err_out)
-                except:
-                    print "Warning! If you already had Mininet-WiFi installed, please run util/install.sh -W \
-                                            and then make install. A new API for mac80211_hwsim has been created."
+                self.devices_created_dynamically = True
+                self.__create_hwsim_mgmt_devices(wifiRadios)
             else:
+                self.devices_created_dynamically = False
                 if alternativeModule == '':
                     os.system('modprobe mac80211_hwsim radios=%s' % wifiRadios)
                 else:
                     os.system('insmod %s radios=%s' % (alternativeModule, wifiRadios))
+        else:
+            self.devices_created_dynamically = True
+            self.__create_hwsim_mgmt_devices(wifiRadios)
+
+    @classmethod
+    def __create_hwsim_mgmt_devices(cls, wifi_radios):
+        # generate prefix
+        phys = subprocess.check_output("find /sys/kernel/debug/ieee80211 -name hwsim | cut -d/ -f 6 | sort",
+                                       shell=True).split("\n")
+        num = 0
+        numokay = False
+        cls.prefix = ""
+        while not numokay:
+            cls.prefix = "mn%02ds" % num
+            numokay = True
+            for phy in phys:
+                if phy.startswith(cls.prefix):
+                    num += 1
+                    numokay = False
+                    break
+        try:
+            for i in range(0, wifi_radios):
+                p = subprocess.Popen(["hwsim_mgmt", "-c", "-n", cls.prefix + ("%02d" % i)], stdin=subprocess.PIPE,
+                                     stdout=subprocess.PIPE,
+                                     stderr=subprocess.PIPE, bufsize=-1)
+                output, err_out = p.communicate()
+                if p.returncode == 0:
+                    m = re.search("ID (\d+)", output)
+                    debug("\nCreated mac80211_hwsim device with ID %s" % m.group(1))
+                    cls.hwsim_ids.append(m.group(1))
+                else:
+                    error("\nError on creating mac80211_hwsim device with name %s" % (cls.prefix + ("%02d" % i)))
+                    error("\nOutput: %s" % output)
+                    error("\nError: %s" % err_out)
+        except:
+            print "Warning! If you already had Mininet-WiFi installed, please run util/install.sh -W \
+                                    and then make install. A new API for mac80211_hwsim has been created."
 
     @classmethod
     def stop(self):
@@ -80,19 +86,19 @@ class module(object):
         if glob.glob("*wifiDirect.conf"):
             os.system('rm *wifiDirect.conf')
 
-        for hwsim_id in self.hwsim_ids:
-            p = subprocess.Popen(["hwsim_mgmt", "-d", hwsim_id], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-                                 stderr=subprocess.PIPE, bufsize=-1)
-            output, err_out = p.communicate()
-            if p.returncode == 0:
-                m = re.search("ID (\d+)", output)
-                debug("\nDeleted mac80211_hwsim device with ID %s" % m.group(1))
-            else:
-                error("\nError on deleting mac80211_hwsim device with ID %s" % hwsim_id)
-                error("\nOutput: %s" % output)
-                error("\nError: %s" % err_out)
-
-        if not self.externally_managed:
+        if self.devices_created_dynamically:
+            for hwsim_id in self.hwsim_ids:
+                p = subprocess.Popen(["hwsim_mgmt", "-d", hwsim_id], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                                     stderr=subprocess.PIPE, bufsize=-1)
+                output, err_out = p.communicate()
+                if p.returncode == 0:
+                    m = re.search("ID (\d+)", output)
+                    debug("\nDeleted mac80211_hwsim device with ID %s" % m.group(1))
+                else:
+                    error("\nError on deleting mac80211_hwsim device with ID %s" % hwsim_id)
+                    error("\nOutput: %s" % output)
+                    error("\nError: %s" % err_out)
+        else:
             try:
                 subprocess.check_output("lsmod | grep mac80211_hwsim",
                                                               shell=True)
@@ -169,9 +175,13 @@ class module(object):
     @classmethod
     def getPhy(self):
         """Gets all phys after starting the wireless module"""
-        phy = subprocess.check_output(
-            "find /sys/kernel/debug/ieee80211 -regex \".*/%s.*/hwsim\" | cut -d/ -f 6 | sort" % self.prefix,
-            shell=True).split("\n")
+        if self.devices_created_dynamically:
+            phy = subprocess.check_output(
+                "find /sys/kernel/debug/ieee80211 -regex \".*/%s.*/hwsim\" | cut -d/ -f 6 | sort" % self.prefix,
+                shell=True).split("\n")
+        else:
+            phy = subprocess.check_output("find /sys/kernel/debug/ieee80211 -name hwsim | cut -d/ -f 6 | sort",
+                                          shell=True).split("\n")
         phy.pop()
         phy.sort(key=len, reverse=False)
         return phy
