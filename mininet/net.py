@@ -162,7 +162,7 @@ class Mininet(object):
         self.switch = switch        
         self.host = host
         self.station = station
-	self.accesspoint= accesspoint
+	self.accessPoint= accessPoint
         self.car = car
         self.controller = controller
         self.link = link
