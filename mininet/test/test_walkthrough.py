@@ -364,7 +364,7 @@ class testWalkthrough( unittest.TestCase ):
         "Start Mininet-WiFi with multiple instances, then test ping"
         p = pexpect.spawn(
             'python examples/wmediumd_multiple_instances.py' )
-        sleep(3)
+        sleep(5)
         p.sendline( 'sta1 ping -c 1 sta2' )
         p.expect( '1 packets transmitted, 1 received' )
         p.expect( self.prompt )
@@ -373,17 +373,17 @@ class testWalkthrough( unittest.TestCase ):
         p.expect( self.prompt )
         p.sendline( 'exit' )
         p.wait()
-        p = pexpect.spawn(
-            'python examples/wmediumd_multiple_instances.py' )
-        sleep(3)
-        p.sendline( 'sta1 ping -c 1 sta2' )
-        p.expect( '1 packets transmitted, 1 received' )
-        p.expect( self.prompt )
-        p.sendline( 'sta1 ifconfig' )
-        p.expect( 'ether 02:00:00:00:03:00' )
-        p.expect( self.prompt )
-        p.sendline( 'exit' )
-        p.wait()
+        #p = pexpect.spawn(
+        #    'python examples/wmediumd_multiple_instances.py' )
+        #sleep(3)
+        #p.sendline( 'sta1 ping -c 1 sta2' )
+        #p.expect( '1 packets transmitted, 1 received' )
+        #p.expect( self.prompt )
+        #p.sendline( 'sta1 ifconfig' )
+        #p.expect( 'ether 02:00:00:00:03:00' )
+        #p.expect( self.prompt )
+        #p.sendline( 'exit' )
+        #p.wait()
         os.system('rmmod mac80211_hwsim' )
         
     def testDynamicMAC( self ):
