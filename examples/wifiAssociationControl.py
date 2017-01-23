@@ -25,9 +25,9 @@ def topology():
     sta8 = net.addStation( 'sta8', mac='00:00:00:00:00:09', ip='10.0.0.9/8' )
     sta9 = net.addStation( 'sta9', mac='00:00:00:00:00:10', ip='10.0.0.10/8' )
     sta10 = net.addStation( 'sta10', mac='00:00:00:00:00:11', ip='10.0.0.11/8' )
-    ap1 = net.addAccessPoint( 'ap1', ssid= 'new-ssid1', mode= 'g', channel= '1', position='50,50,0' )
-    ap2 = net.addAccessPoint( 'ap2', ssid= 'new-ssid2', mode= 'g', channel= '1', position='70,50,0', range=30 ) #range: set the AP range
-    ap3 = net.addAccessPoint( 'ap3', ssid= 'new-ssid3', mode= 'g', channel= '1', position='90,50,0' )
+    ap1 = net.addAccessPoint( 'ap1', ssid= 'ssid-ap1', mode= 'g', channel= '1', position='50,50,0' )
+    ap2 = net.addAccessPoint( 'ap2', ssid= 'ssid-ap2', mode= 'g', channel= '6', position='70,50,0', range=30 ) #range: set the AP range
+    ap3 = net.addAccessPoint( 'ap3', ssid= 'ssid-ap3', mode= 'g', channel= '11', position='90,50,0' )
     c1 = net.addController( 'c1', controller=Controller )
 
     print "*** Configuring wifi nodes"
