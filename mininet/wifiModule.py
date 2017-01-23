@@ -33,10 +33,8 @@ class module(object):
                 output_ = os.system('insmod %s radios=0 >/dev/null 2>&1' % alternativeModule)
             
             if output_ == 0:
-                self.devices_created_dynamically = True
                 self.__create_hwsim_mgmt_devices(wifiRadios)
             else:
-                self.devices_created_dynamically = False
                 if alternativeModule == '':
                     os.system('modprobe mac80211_hwsim radios=%s' % wifiRadios)
                 else:
@@ -205,7 +203,9 @@ class module(object):
         :param phys: list of phys
         :param **params: ifb -  Intermediate Functional Block device
         """
-        self.logging_to_file("/tmp/mininet-mac80211_hwsim.log")
+        
+        log_filename = '/tmp/mininetwifi-mac80211_hwsim.log'
+        self.logging_to_file("%s" % log_filename)
         
         if 'ifb' in params:
             ifb = params['ifb']
@@ -230,7 +230,7 @@ class module(object):
         except:
             logging.exception("Warning:")
             info("Warning! Error when loading mac80211_hwsim. Please run sudo 'mn -c' before running your code.\n")
-            info("Further information available at /tmp/mininet-mac80211_hwsim.log.\n")
+            info("Further information available at %s.\n" % log_filename)
             exit(1)
         
             
