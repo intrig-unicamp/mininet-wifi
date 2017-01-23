@@ -310,6 +310,23 @@ class testWalkthrough( unittest.TestCase ):
         p.sendline( 'exit' )
         p.wait()
         
+    def testmultipleWlan( self ):
+        "Start Mininet-WiFi with multiple WLAN"
+        p = pexpect.spawn(
+            'python examples/multipleWlan.py' )
+        sleep(3)
+        p.sendline( 'sta1 ifconfig sta1-wlan0' )
+        p.expect( 'sta1-wlan0' )
+        p.expect( self.prompt )
+        p.sendline( 'sta1 ifconfig sta1-wlan1' )
+        p.expect( 'sta1-wlan1' )
+        p.expect( self.prompt )
+        p.sendline( 'sta1 ifconfig sta1-wlan2' )
+        p.expect( 'sta1-wlan2' )
+        p.expect( self.prompt )
+        p.sendline( 'exit' )
+        p.wait()
+        
     def testPosition( self ):
         "Start Mininet-WiFi when the position is statically defined, then test ping"
         p = pexpect.spawn(
