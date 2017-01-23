@@ -107,7 +107,7 @@ from math import ceil
 
 from mininet.cli import CLI
 from mininet.log import info, error, debug, output, warn
-from mininet.node import (Node, Host, Station, Car, OVSKernelSwitch, UserSwitch, OVSAP, UserAP, DefaultController,
+from mininet.node import (Node, Host, Station, Car, OVSKernelSwitch, OVSKernelAP, DefaultController,
                            Controller, AccessPoint)
 from mininet.nodelib import NAT
 from mininet.link import Link, Intf, TCLinkWireless, Association
@@ -135,8 +135,8 @@ VERSION = "1.9r7"
 class Mininet(object):
     "Network emulation with hosts spawned in network namespaces."
 
-    def __init__(self, topo=None, switch=OVSKernelSwitch, car=Car, station=Station, host=Host, isWiFi=False,
-                  controller=DefaultController,accessPoint=OVSAP, link=Link, intf=Intf,
+    def __init__(self, topo=None, switch=OVSKernelSwitch, accessPoint=OVSKernelAP, host=Host, station=Station, 
+                  car=Car, controller=DefaultController, isWiFi=False, link=Link, intf=Intf,
                   build=True, xterms=False, cleanup=False, ipBase='10.0.0.0/8',
                   inNamespace=False, autoSetMacs=False, autoStaticArp=False, autoPinCpus=False,
                   listenPort=None, waitConnected=False, ssid="new-ssid", mode="g", channel="6"):
@@ -162,7 +162,7 @@ class Mininet(object):
         self.switch = switch        
         self.host = host
         self.station = station
-	self.accesspoint = accessPoint
+        self.accessPoint = accessPoint
         self.car = car
         self.controller = controller
         self.link = link
@@ -428,11 +428,7 @@ class Mininet(object):
         defaults.update(params)
         
         if not cls:
-            cls = self.accesspoint
-        if cls == OVSKernelSwitch:
-            cls = OVSAP
-        elif cls == UserSwitch:
-            cls = UserAP    
+            cls = self.accessPoint   
         ap = cls(name, **defaults)
 
         if not self.inNamespace and self.listenPort:
