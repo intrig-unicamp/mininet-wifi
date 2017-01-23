@@ -16,7 +16,7 @@ wlan1(2)phyap1          ap3(4)wlan0
 
 
 from mininet.net import Mininet
-from mininet.node import RemoteController, OVSKernelSwitch, UserSwitch, Controller
+from mininet.node import RemoteController, OVSKernelSwitch, UserAP, Controller
 from mininet.link import TCLink
 from mininet.cli import CLI
 from mininet.node import Node
@@ -27,10 +27,10 @@ import time
 def topology():
 
     "Create a network."
-    net = Mininet( controller=RemoteController, link=TCLink, switch=UserSwitch )
+    net = Mininet( controller=RemoteController, link=TCLink, accessPoint=UserAP )
     staList = []
     internetIface = 'eth0'
-    usbDongleIface = 'wlan0'
+    usbDongleIface = 'wlan11'
 
     print "*** Creating nodes"
     for n in range(10):
