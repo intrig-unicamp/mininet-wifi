@@ -6,14 +6,14 @@ Attention: you have to open /wpa_supplicant/wpa_supplicant/defconf and uncomment
 """
 
 from mininet.net import Mininet
-from mininet.node import  Controller, OVSKernelSwitch
+from mininet.node import  Controller
 from mininet.cli import CLI
 from mininet.log import setLogLevel
 from mininet.link import TCLink
 
 def topology():
     "Create a network."
-    net = Mininet( controller=Controller, link=TCLink, switch=OVSKernelSwitch )
+    net = Mininet( controller=Controller, link=TCLink )
 
     print "*** Creating nodes"
     sta1 = net.addStation( 'sta1', ip='10.0.0.1/8' )

@@ -5,14 +5,14 @@ This example shows how to work with both wireless and wired medium
 """
 
 from mininet.net import Mininet
-from mininet.node import  Controller, OVSKernelSwitch, RemoteController, UserSwitch
+from mininet.node import  Controller, OVSKernelAP
 from mininet.cli import CLI
 from mininet.log import setLogLevel
 from mininet.link import TCLink
 
 def topology():
     "Create a network."
-    net = Mininet( controller=Controller, link=TCLink, switch=OVSKernelSwitch )
+    net = Mininet( controller=Controller, link=TCLink, accessPoint=OVSKernelAP )
 
     print "*** Creating nodes"
     ap1 = net.addAccessPoint( 'ap1', ssid="ssid_ap1", mode="g", channel="5" )

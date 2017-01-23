@@ -4,14 +4,14 @@
 This example shows how to work with different APs
 """
 from mininet.net import Mininet
-from mininet.node import OVSKernelSwitch, Controller
+from mininet.node import OVSKernelAP, Controller
 from mininet.cli import CLI
 from mininet.log import setLogLevel
 from mininet.link import TCLink
 
 def topology():
     "Create a network."
-    net = Mininet( controller=Controller, link=TCLink, switch=OVSKernelSwitch )
+    net = Mininet( controller=Controller, link=TCLink, accessPoint=OVSKernelAP )
 
     print "*** Creating nodes"
     sta1 = net.addStation( 'sta1', ip="192.168.0.1/24" )

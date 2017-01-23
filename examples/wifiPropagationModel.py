@@ -5,7 +5,7 @@
 """
 
 from mininet.net import Mininet
-from mininet.node import Controller,OVSKernelSwitch
+from mininet.node import Controller, OVSKernelAP
 from mininet.link import TCLink
 from mininet.cli import CLI
 from mininet.log import setLogLevel
@@ -13,7 +13,7 @@ from mininet.log import setLogLevel
 def topology():
 
     "Create a network."
-    net = Mininet( controller=Controller, link=TCLink, switch=OVSKernelSwitch )
+    net = Mininet( controller=Controller, link=TCLink, accessPoint=OVSKernelAP )
 
     print "*** Creating nodes"
     sta1 = net.addStation( 'sta1' )

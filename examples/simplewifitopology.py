@@ -5,14 +5,14 @@ This example shows how to work with WiFi on Mininet.
 """
 
 from mininet.net import Mininet
-from mininet.node import  Controller, OVSKernelSwitch
+from mininet.node import  Controller, OVSKernelAP
 from mininet.cli import CLI
 from mininet.log import setLogLevel
 from mininet.link import TCLink
 
 def topology():
     "Create a network."
-    net = Mininet( controller=Controller, link=TCLink, switch=OVSKernelSwitch )
+    net = Mininet( controller=Controller, link=TCLink, accessPoint=OVSKernelAP )
 
     print "*** Creating nodes"
     sta1 = net.addStation( 'sta1' )
