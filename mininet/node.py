@@ -2310,6 +2310,8 @@ class OVSSwitch(Switch):
         return switches
 
 OVSKernelSwitch = OVSSwitch
+OVSKernelAP = OVSAP
+
 
 class OVSBridge(OVSSwitch):
     "OVSBridge is an OVSSwitch in standalone/bridge mode"
