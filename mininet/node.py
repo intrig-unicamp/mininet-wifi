@@ -196,7 +196,7 @@ class Node(object):
             node.params['encrypt'] = []
             
                
-        if node.type == 'station' or node.type == 'vehicle':
+        if (node.type == 'station' or node.type == 'vehicle'):
             node.params['apsInRange'] = {}
             node.params['associatedTo'] = []
             node.params['rssi'] = []
@@ -270,18 +270,24 @@ class Node(object):
             if node.type != 'accessPoint':
                 node.func.append('none')
                 node.params['associatedTo'].append('')
-                if(passwd != "{}"):
-                    if len(passwd) == 1:
-                        node.params['passwd'].append(passwd[0])
-                    else:
-                        node.params['passwd'].append(passwd[n])
-                if(encrypt != "{}"):
-                    if len(encrypt) == 1:
-                        node.params['encrypt'].append(encrypt[0])
-                    else:
-                        node.params['encrypt'].append(encrypt[n])
-            if node.type == 'accessPoint':
-                node.params['wlan'].append(node.name + '-wlan' + str(n + 1))
+                if 'ssid' not in node.params:
+                    if(passwd != "{}"):
+                        if len(passwd) == 1:
+                            node.params['passwd'].append(passwd[0])
+                        else:
+                            node.params['passwd'].append(passwd[n])
+                    if(encrypt != "{}"):
+                        if len(encrypt) == 1:
+                            node.params['encrypt'].append(encrypt[0])
+                        else:
+                            node.params['encrypt'].append(encrypt[n])
+            if 'ssid' in node.params:
+                if node.type == 'accessPoint':
+                    node.params['wlan'].append(node.name + '-wlan' + str(n + 1))
+                else:
+                    node.params['wlan'].append(node.name + '-wlan' + str(n))
+                    node.params['rssi'].append(0)
+                    node.params['snr'].append(0)
             else:
                 node.params['wlan'].append(node.name + '-wlan' + str(n))
                 node.params['rssi'].append(0)
@@ -399,42 +405,43 @@ class Node(object):
         if 'range' in params:
             node.params['range'] = int(params['range'])
         else:
-            if node.type == 'accessPoint':
+            if node.type == 'accessPoint' or 'ssid' in node.params:
                 value = deviceRange(node)
                 node.params['range'] = value.range
             else:
                 value = deviceRange(node)
                 node.params['range'] = value.range - 15
 
-        if node.type == 'accessPoint':
+        if node.type == 'accessPoint' or 'ssid' in node.params:
             node.params['associatedStations'] = {}
             node.params['stationsInRange'] = {}
             
-            ssid = ("%s" % params.pop('ssid', {}))
-            ssid = ssid.split(',')
-            node.params['ssid'] = []
-            if(ssid[0] != "{}"):
-                if len(ssid) == 1:
-                    node.params['ssid'].append(ssid[0])
-                    if(encrypt != "{}"):
-                        node.params['encrypt'].append(encrypt[0])
-                    if(passwd != "{}"):
-                        node.params['passwd'].append(passwd[0])
-                else:
-                    for n in range(len(ssid)):
-                        node.params['ssid'].append(ssid[n])
-                        if(passwd != "{}"):
-                            if len(passwd) == 1:
-                                node.params['passwd'].append(passwd[0])
-                            else:
-                                node.params['passwd'].append(passwd[n])
+            if node.type == 'accessPoint':
+                ssid = ("%s" % params.pop('ssid', {}))
+                ssid = ssid.split(',')
+                node.params['ssid'] = []
+                if(ssid[0] != "{}"):
+                    if len(ssid) == 1:
+                        node.params['ssid'].append(ssid[0])
                         if(encrypt != "{}"):
-                            if len(encrypt) == 1:
-                                node.params['encrypt'].append(encrypt[0])
-                            else:
-                                node.params['encrypt'].append(encrypt[n])
-            else:
-                node.params['ssid'].append(defaults[ 'ssid' ])
+                            node.params['encrypt'].append(encrypt[0])
+                        if(passwd != "{}"):
+                            node.params['passwd'].append(passwd[0])
+                    else:
+                        for n in range(len(ssid)):
+                            node.params['ssid'].append(ssid[n])
+                            if(passwd != "{}"):
+                                if len(passwd) == 1:
+                                    node.params['passwd'].append(passwd[0])
+                                else:
+                                    node.params['passwd'].append(passwd[n])
+                            if(encrypt != "{}"):
+                                if len(encrypt) == 1:
+                                    node.params['encrypt'].append(encrypt[0])
+                                else:
+                                    node.params['encrypt'].append(encrypt[n])
+                else:
+                    node.params['ssid'].append(defaults[ 'ssid' ])
                 
         return wifiRadios
 
@@ -467,9 +474,10 @@ class Node(object):
     def getMAC(self, iface):
         """ get Mac Address of any Interface """
         _macMatchRegex = re.compile(r'..:..:..:..:..:..')
-        debug('Get Mac Address: ifconfig %s\n' % iface)
+        debug('getting mac address of %s\n' % iface)
         ifconfig = str(self.pexec('ifconfig %s' % iface))
         mac = _macMatchRegex.findall(ifconfig)
+        debug('%s\n' % mac[0])
         return mac[0]
                 
     def ifbSupport(self, wlan, ifbID):

@@ -898,7 +898,7 @@ class Mininet(object):
                         node.cmd('iw dev %s-mp%s mesh join %s' % (node, wlan, 'ssid'))
                         node.func[wlan] = 'mesh'
                 else:
-                    if node.type != 'accessPoint':
+                    if 'ssid' not in node.params:
                         if node.params['txpower'][wlan] != 20:
                             node.setTxPower(node.params['wlan'][wlan], node.params['txpower'][wlan])
                 if node.type != 'accessPoint':
@@ -957,13 +957,13 @@ class Mininet(object):
         options = dict(params)
 
         # If AP and STA
-        if((((node1.type == 'station' or node1.type == 'vehicle') and node2.type == 'accessPoint') \
-            or ((node2.type == 'station' or node2.type == 'vehicle') and node1.type == 'accessPoint')) 
+        if((((node1.type == 'station' or node1.type == 'vehicle') and 'ssid' in node2.params) \
+            or ((node2.type == 'station' or node2.type == 'vehicle') and ('ssid' in node1.params)))
             and 'link' not in options):
 
             if (node1.type == 'station' or node2.type == 'station' or 
                                 node1.type == 'vehicle' or node2.type == 'vehicle'):
-                if node1.type == 'station' or node1.type == 'vehicle':
+                if (node1.type == 'station' or node1.type == 'vehicle') and 'ssid' in node2.params:
                     sta = node1
                     ap = node2
                 else:
