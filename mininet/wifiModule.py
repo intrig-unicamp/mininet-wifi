@@ -6,6 +6,7 @@ import glob
 import os
 import subprocess
 import re
+import logging
 from mininet.log import debug, error, info
 
 class module(object):
@@ -204,6 +205,8 @@ class module(object):
         :param phys: list of phys
         :param **params: ifb -  Intermediate Functional Block device
         """
+        self.logging_to_file("/tmp/mininet-mac80211_hwsim.log")
+        
         if 'ifb' in params:
             ifb = params['ifb']
         else:
@@ -225,10 +228,19 @@ class module(object):
                         self.wlan_list.pop(0)
                         phys.pop(0)
         except:
-            info("Warning! Error when loading mac80211_hwsim.\n \
-                        Please run sudo 'mn -c' before running your code or\n \
-                        contact us if the problem persists.")
+            logging.exception("Warning:")
+            info("Warning! Error when loading mac80211_hwsim. Please run sudo 'mn -c' before running your code.\n")
+            info("Further information available at /tmp/mininet-mac80211_hwsim.log.\n")
             exit(1)
+        
+            
+    @classmethod
+    def logging_to_file(self, filename):
+        logging.basicConfig( filename=filename,
+                             filemode='a',
+                             level=logging.DEBUG,
+                             format= '%(asctime)s - %(levelname)s - %(message)s',
+                           )
 
     @classmethod
     def getWlanIface(self, physicalWlan):
