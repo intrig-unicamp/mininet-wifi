@@ -225,7 +225,9 @@ class module(object):
                         self.wlan_list.pop(0)
                         phys.pop(0)
         except:
-            info("Something is wrong. Please, run sudo mn -c before running your code.\n")
+            info("Warning! Error when loading mac80211_hwsim.\n \
+                        Please run sudo 'mn -c' before running your code or\n \
+                        contact us if the problem persists.")
             exit(1)
 
     @classmethod
