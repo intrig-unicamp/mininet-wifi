@@ -72,7 +72,6 @@ class sumo(object):
 				ListVisited=ChangeSaveTimeAndSpeed[3]
 				ListTravelTime=ChangeSaveTimeAndSpeed[4]
 		
-		
 			for vehID2 in trace.vehicle.getIDList():
 				for vehID1 in trace.vehicle.getIDList():
 					Road1=trace.vehicle.getRoadID(vehID1)
@@ -90,19 +89,13 @@ class sumo(object):
 							stations[int(vehID1)].params['range'] = 130
 		
 						if abs(x1-x2)>0 and abs(x1-x2)<20 and (Road1==OppositeRoad2 or Road2==OppositeRoad1):
-		
 							ListVehInteract.append((vehID2,vehID1))
-		
 							Route2=trace.vehicle.getRoute(vehID2)
 							Route1=trace.vehicle.getRoute(vehID1)
-		
 							Index2=Route2.index(trace.vehicle.getRoadID(vehID2))
 							Index1=Route1.index(trace.vehicle.getRoadID(vehID1))
-		
 							VisitedEdge2=ListVisited[ListVeh.index(vehID2)][0:len(ListVisited[ListVeh.index(vehID2)])-1]
-		
 							reroutage(VisitedEdge2,ListTravelTime,vehID1,vehID2,ListVeh)
-			
 			step=step+1
 		trace.close()
 		sys.stdout.flush()
