@@ -281,7 +281,7 @@ class testWalkthrough( unittest.TestCase ):
         "Start Mininet-WiFi with wireless mesh, then test ping"
         p = pexpect.spawn(
             'python examples/wifimesh.py' )
-        sleep(3)
+        sleep(2)
         p.sendline( 'sta1 ping -c 1 sta2' )
         p.expect( '1 packets transmitted, 1 received' )
         p.expect( self.prompt )
@@ -343,9 +343,32 @@ class testWalkthrough( unittest.TestCase ):
         p = pexpect.spawn(
             'python demos/vanet.py' )
         sleep(10)
-        p.sendline( 'car0 ping -c 1 car3' )
+        p.sendline( 'car0 ping -c 1 10.0.0.4' )
         p.expect( '1 packets transmitted, 1 received' )
         p.expect( self.prompt )
+        p.sendline( 'exit' )
+        p.wait()
+        
+    def testWmediumdStatic( self ):
+        "Start Mininet-WiFi with wmediumd, then test ping"
+        p = pexpect.spawn(
+            'python examples/wmediumd_ibss_static.py' )
+        sleep(3)
+        p.sendline( 'sta1 ping -c 1 sta2' )
+        p.expect( '1 packets transmitted, 1 received' )
+        p.expect( self.prompt )
+        p.sendline( 'exit' )
+        p.wait()
+        
+    def testDynamicMAC( self ):
+        "Verify that MACs are set correctly"
+        p = pexpect.spawn( 'mn --wifi' )
+        sleep(3)
+        p.expect( self.prompt )
+        for i in range( 1, 3 ):
+            p.sendline( 'sta%d ifconfig' % i )
+            p.expect( '02:00:00:00:0%d:00' % (i-1) )
+            p.expect( self.prompt )
         p.sendline( 'exit' )
         p.wait()
 
