@@ -74,8 +74,7 @@ Things to do:
 - hifi support (e.g. delay compensation)
 """
 
-
-from mininet.node import Node, Host, OVSSwitch, Controller
+from mininet.node import Node, Host, OVSSwitch, OVSAP, Controller
 from mininet.link import Link, Intf
 from mininet.net import Mininet
 from mininet.topo import LinearTopo
@@ -104,7 +103,7 @@ def findUser():
             # Logged-in user (if we have a tty)
             ( quietRun( 'who am i' ).split() or [ False ] )[ 0 ] or
             # Give up and return effective user
-            quietRun( 'whoami' ).strip() )
+            quietRun( 'whoami' ) )
 
 
 class ClusterCleanup( object ):
@@ -239,7 +238,7 @@ class RemoteMixin( object ):
            args: string or list of strings
            returns: stdout and stderr"""
         popen = self.rpopen( *cmd, **opts )
-        # info( 'RCMD: POPEN:', popen, '\n' )
+        # print 'RCMD: POPEN:', popen
         # These loops are tricky to get right.
         # Once the process exits, we can read
         # EOF twice if necessary.
@@ -287,8 +286,8 @@ class RemoteMixin( object ):
         return super( RemoteMixin, self).popen( *args, tt=False, **kwargs )
 
     def addIntf( self, *args, **kwargs ):
-        # "Override: use RemoteLink.moveIntf"
-        # kwargs.update( moveIntfFn=RemoteLink.moveIntf )
+        "Override: use RemoteLink.moveIntf"
+        kwargs.update( moveIntfFn=RemoteLink.moveIntf )
         return super( RemoteMixin, self).addIntf( *args, **kwargs )
 
 
@@ -301,6 +300,50 @@ class RemoteHost( RemoteNode ):
     "A RemoteHost is simply a RemoteNode"
     pass
 
+
+class RemoteOVSAP( RemoteMixin, OVSAP ):
+    "Remote instance of Open vSwitch"
+
+    OVSVersions = {}
+
+    def __init__( self, *args, **kwargs ):
+        # No batch startup yet
+        kwargs.update( batch=True )
+        super( RemoteOVSAP, self ).__init__( *args, **kwargs )
+
+    def isOldOVS( self ):
+        "Is remote ap using an old OVS version?"
+        cls = type( self )
+        if self.server not in cls.OVSVersions:
+            # pylint: disable=not-callable
+            vers = self.cmd( 'ovs-vsctl --version' )
+            # pylint: enable=not-callable
+            cls.OVSVersions[ self.server ] = re.findall(
+                r'\d+\.\d+', vers )[ 0 ]
+        return ( StrictVersion( cls.OVSVersions[ self.server ] ) <
+                 StrictVersion( '1.10' ) )
+
+    @classmethod
+    def batchStartup( cls, aps, **_kwargs ):
+        "Start up aps in per-server batches"
+        key = attrgetter( 'server' )
+        for server, apGroup in groupby( sorted( aps, key=key ), key ):
+            info( '(%s)' % server )
+            group = tuple( apGroup )
+            ap = group[ 0 ]
+            OVSAP.batchStartup( group, run=ap.cmd )
+        return aps
+
+    @classmethod
+    def batchShutdown( cls, aps, **_kwargs ):
+        "Stop aps in per-server batches"
+        key = attrgetter( 'server' )
+        for server, apGroup in groupby( sorted( aps, key=key ), key ):
+            info( '(%s)' % server )
+            group = tuple( apGroup )
+            ap = group[ 0 ]
+            OVSAP.batchShutdown( group, run=ap.rcmd )
+        return aps
 
 class RemoteOVSSwitch( RemoteMixin, OVSSwitch ):
     "Remote instance of Open vSwitch"
@@ -401,23 +444,25 @@ class RemoteLink( Link ):
             printError: if true, print error"""
         intf = str( intf )
         cmd = 'ip link set %s netns %s' % ( intf, node.pid )
-        result = node.rcmd( cmd )
-        if result:
-            raise Exception('error executing command %s' % cmd)
+        node.rcmd( cmd )
+        links = node.cmd( 'ip link show' )
+        if not ' %s:' % intf in links:
+            if printError:
+                error( '*** Error: RemoteLink.moveIntf: ' + intf +
+                       ' not successfully moved to ' + node.name + '\n' )
+            return False
         return True
 
     def makeTunnel( self, node1, node2, intfname1, intfname2,
                     addr1=None, addr2=None ):
         "Make a tunnel across switches on different servers"
         # We should never try to create a tunnel to ourselves!
-        assert node1.server != node2.server
+        assert node1.server != 'localhost' or node2.server != 'localhost'
         # And we can't ssh into this server remotely as 'localhost',
         # so try again swappping node1 and node2
         if node2.server == 'localhost':
             return self.makeTunnel( node2, node1, intfname2, intfname1,
                                     addr2, addr1 )
-        debug( '\n*** Make SSH tunnel ' + node1.server + ':' + intfname1 +
-               ' == ' + node2.server + ':' + intfname2 )
         # 1. Create tap interfaces
         for node in node1, node2:
             # For now we are hard-wiring tap9, which we will rename
@@ -471,87 +516,6 @@ class RemoteLink( Link ):
             status = "OK"
         result = "%s %s" % ( Link.status( self ), status )
         return result
-
-
-class RemoteSSHLink( RemoteLink ):
-    def __init__(self, node1, node2, **kwargs):
-        RemoteLink.__init__( self, node1, node2, **kwargs )
-
-
-GRE_KEY = 0
-class RemoteGRELink( RemoteLink ):
-    def __init__(self, node1, node2, **kwargs):
-        RemoteLink.__init__( self, node1, node2, **kwargs )
-
-    def stop( self ):
-        "Stop this link"
-        if self.tunnel:
-            self.intf1.delete()
-            self.intf2.delete()
-        else:
-            Link.stop( self )
-        self.tunnel = None
-
-    def makeIntfPair( self, intfname1, intfname2, addr1=None, addr2=None,
-                      node1=None, node2=None, deleteIntfs=True   ):
-        """Create pair of interfaces
-            intfname1: name of interface 1
-            intfname2: name of interface 2
-            (override this method [and possibly delete()]
-            to change link type)"""
-        node1 = self.node1 if node1 is None else node1
-        node2 = self.node2 if node2 is None else node2
-        server1 = getattr( node1, 'server', 'localhost' )
-        server2 = getattr( node2, 'server', 'localhost' )
-        if server1 == server2:
-            # Link within same server
-            Link.makeIntfPair( intfname1, intfname2, addr1, addr2,
-                               node1, node2, deleteIntfs=deleteIntfs )
-            # Need to reduce the MTU of all emulated hosts to 1450 for GRE
-            # tunneling, otherwise packets larger than 1400 bytes cannot be
-            # successfully transmitted through the tunnel.
-            node1.cmd('ip link set dev %s mtu 1450' % intfname1)
-            node2.cmd('ip link set dev %s mtu 1450' % intfname2)
-        else:
-            # Otherwise, make a tunnel
-            self.makeTunnel( node1, node2, intfname1, intfname2, addr1, addr2 )
-            self.tunnel = 1
-
-    def makeTunnel(self, node1, node2, intfname1, intfname2,
-                       addr1=None, addr2=None):
-        "Make a tunnel across switches on different servers"
-        # We should never try to create a tunnel to ourselves!
-        assert node1.server != node2.server
-        if node2.server == 'localhost':
-            return self.makeTunnel( node2, node1, intfname2, intfname1,
-                                    addr2, addr1 )
-        IP1, IP2 = node1.serverIP, node2.serverIP
-        # GRE tunnel needs to be set up with the IP of the local interface
-        # that connects the remote node, NOT '127.0.0.1' of localhost
-        if node1.server == 'localhost':
-            output = quietRun('ip route get %s' % node2.serverIP)
-            IP1 = output.split(' src ')[1].split()[0]
-        debug( '\n*** Make GRE tunnel ' + node1.server + ':' + intfname1 +
-               ' == ' + node2.server + ':' + intfname2 )
-        tun1 = 'local ' + IP1 + ' remote ' + IP2
-        tun2 = 'local ' + IP2 + ' remote ' + IP1
-        global GRE_KEY
-        GRE_KEY += 1
-        for (node, intfname, addr, tun) in [(node1, intfname1, addr1, tun1),
-                                            (node2, intfname2, addr2, tun2)]:
-            node.rcmd('ip link delete ' + intfname)
-            result = node.rcmd('ip link add name ' + intfname + ' type gretap '
-                               + tun + ' ttl 64 key ' + str(GRE_KEY))
-            if result:
-                raise Exception('error creating gretap on %s: %s'
-                                % (node, result))
-            if addr:
-                node.rcmd('ip link set %s address %s' % (intfname, addr))
-
-            node.rcmd('ip link set dev %s up' % intfname)
-            node.rcmd('ip link set dev %s mtu 1450' % intfname)
-            if not self.moveIntf(intfname, node):
-                raise Exception('interface move failed on node %s' % node)
 
 
 # Some simple placement algorithms for MininetCluster
@@ -855,11 +819,11 @@ class MininetCluster( Mininet ):
         Mininet.buildFromTopo( self, *args, **kwargs )
 
 
-def testNsTunnels( remote='ubuntu2', link=RemoteGRELink ):
+def testNsTunnels():
     "Test tunnels between nodes in namespaces"
-    net = Mininet( host=RemoteHost, link=link )
-    h1 = net.addHost( 'h1')
-    h2 = net.addHost( 'h2', server=remote )
+    net = Mininet( host=RemoteHost, link=RemoteLink )
+    h1 = net.addHost( 'h1' )
+    h2 = net.addHost( 'h2', server='ubuntu2' )
     net.addLink( h1, h2 )
     net.start()
     net.pingAll()
@@ -870,29 +834,30 @@ def testNsTunnels( remote='ubuntu2', link=RemoteGRELink ):
 # This shows how node options may be used to manage
 # cluster placement using the net.add*() API
 
-def testRemoteNet( remote='ubuntu2', link=RemoteGRELink ):
+def testRemoteNet( remote='ubuntu2' ):
     "Test remote Node classes"
-    info( '*** Remote Node Test\n' )
-    net = Mininet( host=RemoteHost, switch=RemoteOVSSwitch, link=link )
+    print '*** Remote Node Test'
+    net = Mininet( host=RemoteHost, switch=RemoteOVSSwitch,
+                   link=RemoteLink )
     c0 = net.addController( 'c0' )
     # Make sure controller knows its non-loopback address
     Intf( 'eth0', node=c0 ).updateIP()
-    info( "*** Creating local h1\n" )
+    print "*** Creating local h1"
     h1 = net.addHost( 'h1' )
-    info( "*** Creating remote h2\n" )
+    print "*** Creating remote h2"
     h2 = net.addHost( 'h2', server=remote )
-    info( "*** Creating local s1\n" )
+    print "*** Creating local s1"
     s1 = net.addSwitch( 's1' )
-    info( "*** Creating remote s2\n" )
+    print "*** Creating remote s2"
     s2 = net.addSwitch( 's2', server=remote )
-    info( "*** Adding links\n" )
+    print "*** Adding links"
     net.addLink( h1, s1 )
     net.addLink( s1, s2 )
     net.addLink( h2, s2 )
     net.start()
-    info( 'Mininet is running on', quietRun( 'hostname' ).strip(), '\n' )
+    print 'Mininet is running on', quietRun( 'hostname' ).strip()
     for node in c0, h1, h2, s1, s2:
-        info( 'Node', node, 'is running on', node.cmd( 'hostname' ).strip(), '\n' )
+        print 'Node', node, 'is running on', node.cmd( 'hostname' ).strip()
     net.pingAll()
     CLI( net )
     net.stop()
@@ -930,11 +895,11 @@ def ClusterController( *args, **kwargs):
     Intf( 'eth0', node=controller ).updateIP()
     return controller
 
-def testRemoteTopo( link=RemoteGRELink ):
+def testRemoteTopo():
     "Test remote Node classes using Mininet()/Topo() API"
     topo = LinearTopo( 2 )
     net = Mininet( topo=topo, host=HostPlacer, switch=SwitchPlacer,
-                   link=link, controller=ClusterController )
+                   link=RemoteLink, controller=ClusterController )
     net.start()
     net.pingAll()
     net.stop()
@@ -944,17 +909,18 @@ def testRemoteTopo( link=RemoteGRELink ):
 # do random switch placement rather than completely random
 # host placement.
 
-def testRemoteSwitches( remote='ubuntu2', link=RemoteGRELink ):
+def testRemoteSwitches():
     "Test with local hosts and remote switches"
-    servers = [ 'localhost', remote]
+    servers = [ 'localhost', 'ubuntu2']
     topo = TreeTopo( depth=4, fanout=2 )
-    net = MininetCluster( topo=topo, servers=servers, link=link,
+    net = MininetCluster( topo=topo, servers=servers,
                           placement=RoundRobinPlacer )
     net.start()
     net.pingAll()
     net.stop()
 
 
+#
 # For testing and demo purposes it would be nice to draw the
 # network graph and color it based on server.
 
@@ -962,36 +928,31 @@ def testRemoteSwitches( remote='ubuntu2', link=RemoteGRELink ):
 # functions, for maximum ease of use. MininetCluster() also
 # pre-flights and multiplexes server connections.
 
-def testMininetCluster( remote='ubuntu2', link=RemoteGRELink ):
+def testMininetCluster():
     "Test MininetCluster()"
-    servers = [ 'localhost', remote ]
+    servers = [ 'localhost', 'ubuntu2' ]
     topo = TreeTopo( depth=3, fanout=3 )
-    net = MininetCluster( topo=topo, servers=servers, link=link,
+    net = MininetCluster( topo=topo, servers=servers,
                           placement=SwitchBinPlacer )
     net.start()
     net.pingAll()
     net.stop()
 
-def signalTest( remote='ubuntu2'):
+def signalTest():
     "Make sure hosts are robust to signals"
-    h = RemoteHost( 'h0', server=remote )
+    h = RemoteHost( 'h0', server='ubuntu1' )
     h.shell.send_signal( SIGINT )
     h.shell.poll()
     if h.shell.returncode is None:
-        info( 'signalTest: SUCCESS: ', h, 'has not exited after SIGINT', '\n' )
+        print 'OK: ', h, 'has not exited'
     else:
-        info( 'signalTest: FAILURE:', h, 'exited with code',
-              h.shell.returncode, '\n' )
+        print 'FAILURE:', h, 'exited with code', h.shell.returncode
     h.stop()
-
 
 if __name__ == '__main__':
     setLogLevel( 'info' )
-    remoteServer = 'ubuntu2'
-    remoteLink = RemoteSSHLink
-    testRemoteTopo(link=remoteLink)
-    testNsTunnels( remote=remoteServer, link=remoteLink )
-    testRemoteNet( remote=remoteServer, link=remoteLink)
-    testMininetCluster( remote=remoteServer, link=remoteLink)
-    testRemoteSwitches( remote=remoteServer, link=remoteLink)
-    signalTest( remote=remoteServer )
+    # testRemoteTopo()
+    # testRemoteNet()
+    # testMininetCluster()
+    # testRemoteSwitches()
+    signalTest()
