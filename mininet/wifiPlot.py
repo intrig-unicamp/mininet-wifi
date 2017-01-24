@@ -45,7 +45,7 @@ class plot3d (object):
         u = np.linspace(0, 2 * np.pi, resolution)
         v = np.linspace(0, np.pi, resolution)
         
-        r = 2
+        r = 1
            
         x = r * np.outer(np.cos(u), np.sin(v)) + x
         y = r * np.outer(np.sin(u), np.sin(v)) + y
