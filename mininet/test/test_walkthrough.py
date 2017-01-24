@@ -15,27 +15,27 @@ from distutils.version import StrictVersion
 
 def tsharkVersion():
     "Return tshark version"
-    versionStr = quietRun( 'tshark -v' )
-    versionMatch = re.findall( r'TShark \d+.\d+.\d+', versionStr )[0]
+    versionStr = quietRun('tshark -v')
+    versionMatch = re.findall(r'TShark \d+.\d+.\d+', versionStr)[0]
     return versionMatch.split()[ 1 ]
 
 # pylint doesn't understand pexpect.match, unfortunately!
 # pylint:disable=maybe-no-member
 
-class testWalkthrough( unittest.TestCase ):
+class testWalkthrough(unittest.TestCase):
     "Test Mininet walkthrough"
 
     prompt = 'mininet-wifi>'
 
     # PART 1
-    def testHelp( self ):
+    def testHelp(self):
         "Check the usage message"
-        p = pexpect.spawn( 'mn --wifi -h' )
+        p = pexpect.spawn('mn --wifi -h')
         sleep(3)
-        index = p.expect( [ 'Usage: mn', pexpect.EOF ] )
-        self.assertEqual( index, 0 )
+        index = p.expect([ 'Usage: mn', pexpect.EOF ])
+        self.assertEqual(index, 0)
 
-    #def testWireshark( self ):
+    # def testWireshark( self ):
     #    "Use tshark to test the of dissector"
         # Satisfy pylint
     #    assert self
@@ -50,7 +50,7 @@ class testWalkthrough( unittest.TestCase ):
     #    tshark.expect( [ '74 Hello', '74 of_hello', '74 Type: OFPT_HELLO' ] )
     #    tshark.sendintr()
 
-    #def testBasic( self ):
+    # def testBasic( self ):
     #    "Test basic CLI commands (help, nodes, net, dump)"
     #    p = pexpect.spawn( 'mn --wifi' )
     #    sleep(3)
@@ -90,7 +90,7 @@ class testWalkthrough( unittest.TestCase ):
     #    p.sendline( 'exit' )
     #    p.wait()
 
-    #def testHostCommands( self ):
+    # def testHostCommands( self ):
     #    "Test ifconfig and ps on sta1 and ap1"
     #    p = pexpect.spawn( 'mn --wifi' )
     #    sleep(3)
@@ -137,37 +137,37 @@ class testWalkthrough( unittest.TestCase ):
     #    p.sendline( 'exit' )
     #    p.wait()
 
-    def testConnectivity( self ):
+    def testConnectivity(self):
         "Test ping and pingall"
-        p = pexpect.spawn( 'mn --wifi' )
-        p.expect( self.prompt )
+        p = pexpect.spawn('mn --wifi')
+        p.expect(self.prompt)
         sleep(3)
-        p.sendline( 'sta1 ping -c 1 sta2' )
-        p.expect( '1 packets transmitted, 1 received' )
-        p.expect( self.prompt )
-        p.sendline( 'pingall' )
-        p.expect( '0% dropped' )
-        p.expect( self.prompt )
-        p.sendline( 'exit' )
+        p.sendline('sta1 ping -c 1 sta2')
+        p.expect('1 packets transmitted, 1 received')
+        p.expect(self.prompt)
+        p.sendline('pingall')
+        p.expect('0% dropped')
+        p.expect(self.prompt)
+        p.sendline('exit')
         p.wait()
 
-    def testSimpleHTTP( self ):
+    def testSimpleHTTP(self):
         "Start an HTTP server on sta1 and wget from sta2"
-        p = pexpect.spawn( 'mn --wifi' )
-        p.expect( self.prompt )
+        p = pexpect.spawn('mn --wifi')
+        p.expect(self.prompt)
         sleep(3)
-        p.sendline( 'sta1 python -m SimpleHTTPServer 80 &' )
-        p.expect( self.prompt )
-        p.sendline( ' sta2 wget -O - sta1' )
-        p.expect( '200 OK' )
-        p.expect( self.prompt )
-        p.sendline( 'sta1 kill %python' )
-        p.expect( self.prompt )
-        p.sendline( 'exit' )
+        p.sendline('sta1 python -m SimpleHTTPServer 80 &')
+        p.expect(self.prompt)
+        p.sendline(' sta2 wget -O - sta1')
+        p.expect('200 OK')
+        p.expect(self.prompt)
+        p.sendline('sta1 kill %python')
+        p.expect(self.prompt)
+        p.sendline('exit')
         p.wait()
 
     # PART 2
-    #def testRegressionRun( self ):
+    # def testRegressionRun( self ):
     #    "Test pingpair (0% drop) and iperf (bw > 0) regression tests"
         # test pingpair
     #    p = pexpect.spawn( 'mn --wifi --test pingpair' )
@@ -182,7 +182,7 @@ class testWalkthrough( unittest.TestCase ):
     #    self.assertTrue( bw > 0 )
     #    p.expect( pexpect.EOF )
 
-    #def testTopoChange( self ):
+    # def testTopoChange( self ):
     #    "Test pingall on single,3 and linear,4 topos"
         # testing single,3
     #    p = pexpect.spawn( 'mn --wifi --test pingall --topo single,3' )
@@ -203,7 +203,7 @@ class testWalkthrough( unittest.TestCase ):
     #    self.assertEqual( sent, received, 'Dropped packets in linear,4')
     #    p.expect( pexpect.EOF )
 
-    #def testLinkChange( self ):
+    # def testLinkChange( self ):
     #    "Test TCLink bw and delay"
     #    p = pexpect.spawn( 'mn --wifi --link tc,bw=10,delay=10ms' )
         # test bw
@@ -226,141 +226,149 @@ class testWalkthrough( unittest.TestCase ):
     #    p.sendline( 'exit' )
     #    p.wait()
 
-    def testVerbosity( self ):
+    def testVerbosity(self):
         "Test debug and output verbosity"
         # test output
-        p = pexpect.spawn( 'mn --wifi -v output' )
-        p.expect( self.prompt )
+        p = pexpect.spawn('mn --wifi -v output')
+        p.expect(self.prompt)
         sleep(3)
-        self.assertEqual( len( p.before ), 0, 'Too much output for "output"' )
-        p.sendline( 'exit' )
+        self.assertEqual(len(p.before), 0, 'Too much output for "output"')
+        p.sendline('exit')
         p.wait()
         # test debug
-        p = pexpect.spawn( 'mn --wifi -v debug --test none' )
+        p = pexpect.spawn('mn --wifi -v debug --test none')
         sleep(3)
-        p.expect( pexpect.EOF )
-        lines = p.before.split( '\n' )
-        self.assertTrue( len( lines ) > 70, "Debug output is too short" )
+        p.expect(pexpect.EOF)
+        lines = p.before.split('\n')
+        self.assertTrue(len(lines) > 70, "Debug output is too short")
 
-    def testCustomTopo( self ):
+    def testCustomTopo(self):
         "Start Mininet using a custom topo, then run pingall"
         # Satisfy pylint
         assert self
-        custom = os.path.dirname( os.path.realpath( __file__ ) )
-        custom = os.path.join( custom, '../../custom/topo-2sw-2host.py' )
-        custom = os.path.normpath( custom )
+        custom = os.path.dirname(os.path.realpath(__file__))
+        custom = os.path.join(custom, '../../custom/topo-2sw-2host.py')
+        custom = os.path.normpath(custom)
         p = pexpect.spawn(
-            'mn --wifi --custom %s --topo mytopo --test pingall' % custom )
+            'mn --wifi --custom %s --topo mytopo --test pingall' % custom)
         sleep(3)
-        p.expect( '0% dropped' )
-        p.expect( pexpect.EOF )
+        p.expect('0% dropped')
+        p.expect(pexpect.EOF)
         
-    def testMobility( self ):
+    def testMobility(self):
         "Start Mininet-WiFi using mobility, then test ping"
         p = pexpect.spawn(
-            'python examples/wifiMobility.py' )
+            'python examples/wifiMobility.py')
         sleep(3)
-        p.sendline( 'sta1 ping -c 1 sta2' )
-        p.expect( '1 packets transmitted, 1 received' )
-        p.expect( self.prompt )
-        p.sendline( 'exit' )
+        p.sendline('sta1 ping -c 1 sta2')
+        p.expect('1 packets transmitted, 1 received')
+        p.expect(self.prompt)
+        p.sendline('exit')
         p.wait()
         
-    def testPropagationModel( self ):
-        "Start Mininet-WiFi using a propagation model, then test ping"
+    def testPropagationModel(self):
+        "Start Mininet-WiFi using a propagation model, then test ping and rssi"
         p = pexpect.spawn(
-            'python examples/wifiPropagationModel.py' )
+            'python examples/wifiPropagationModel.py')
         sleep(3)
-        p.sendline( 'sta1 ping -c 1 sta2' )
-        p.expect( '1 packets transmitted, 1 received' )
-        p.expect( self.prompt )
-        p.sendline( 'exit' )
-        p.wait()
+        p.sendline('sta1 ping -c 1 sta2')
+        p.expect('1 packets transmitted, 1 received')
+        p.expect(self.prompt)
+        p.sendline('py sta1.params[\'rssi\'][0]')
+        p.expect(self.prompt)
+        a = p.before
+        sleep(1)
+        p.sendline('py sta1.params[\'rssi\'][0]')
+        p.expect(self.prompt)
+        b = p.before
+        if a != b:
+            p.sendline('exit')
+            p.wait()
         
-    def testMesh( self ):
+    def testMesh(self):
         "Start Mininet-WiFi with wireless mesh, then test ping"
         p = pexpect.spawn(
-            'python examples/wifimesh.py' )
+            'python examples/wifimesh.py')
         sleep(2)
-        p.sendline( 'sta1 ping -c 1 sta2' )
-        p.expect( '1 packets transmitted, 1 received' )
-        p.expect( self.prompt )
-        p.sendline( 'exit' )
+        p.sendline('sta1 ping -c 1 sta2')
+        p.expect('1 packets transmitted, 1 received')
+        p.expect(self.prompt)
+        p.sendline('exit')
         p.wait()
         
-    def testAdhoc( self ):
+    def testAdhoc(self):
         "Start Mininet-WiFi with wireless adhoc, then test ping"
         p = pexpect.spawn(
-            'python examples/adhoc.py' )
+            'python examples/adhoc.py')
         sleep(3)
-        p.sendline( 'sta1 ping -c 1 sta2' )
-        p.expect( '1 packets transmitted, 1 received' )
-        p.expect( self.prompt )
-        p.sendline( 'exit' )
+        p.sendline('sta1 ping -c 1 sta2')
+        p.expect('1 packets transmitted, 1 received')
+        p.expect(self.prompt)
+        p.sendline('exit')
         p.wait()
         
-    def testAuthentication( self ):
+    def testAuthentication(self):
         "Start Mininet-WiFi using WPA, then test ping"
         p = pexpect.spawn(
-            'python examples/wifiAuthentication.py' )
+            'python examples/wifiAuthentication.py')
         sleep(3)
-        p.sendline( 'sta1 ping -c 1 sta2' )
-        p.expect( '1 packets transmitted, 1 received' )
-        p.expect( self.prompt )
-        p.sendline( 'exit' )
+        p.sendline('sta1 ping -c 1 sta2')
+        p.expect('1 packets transmitted, 1 received')
+        p.expect(self.prompt)
+        p.sendline('exit')
         p.wait()
         
-    def testmultipleWlan( self ):
+    def testmultipleWlan(self):
         "Start Mininet-WiFi with multiple WLAN"
         p = pexpect.spawn(
-            'python examples/multipleWlan.py' )
+            'python examples/multipleWlan.py')
         sleep(3)
-        p.sendline( 'sta1 ifconfig sta1-wlan0' )
-        p.expect( 'sta1-wlan0' )
-        p.expect( self.prompt )
-        p.sendline( 'sta1 ifconfig sta1-wlan1' )
-        p.expect( 'sta1-wlan1' )
-        p.expect( self.prompt )
-        p.sendline( 'sta1 ifconfig sta1-wlan2' )
-        p.expect( 'sta1-wlan2' )
-        p.expect( self.prompt )
-        p.sendline( 'exit' )
+        p.sendline('sta1 ifconfig sta1-wlan0')
+        p.expect('sta1-wlan0')
+        p.expect(self.prompt)
+        p.sendline('sta1 ifconfig sta1-wlan1')
+        p.expect('sta1-wlan1')
+        p.expect(self.prompt)
+        p.sendline('sta1 ifconfig sta1-wlan2')
+        p.expect('sta1-wlan2')
+        p.expect(self.prompt)
+        p.sendline('exit')
         p.wait()
         
-    def testPosition( self ):
+    def testPosition(self):
         "Start Mininet-WiFi when the position is statically defined, then test ping"
         p = pexpect.spawn(
-            'python examples/wifiPosition.py' )
+            'python examples/wifiPosition.py')
         sleep(3)
-        p.sendline( 'sta1 ping -c 1 sta2' )
-        p.expect( '1 packets transmitted, 1 received' )
-        p.expect( self.prompt )
-        p.sendline( 'exit' )
+        p.sendline('sta1 ping -c 1 sta2')
+        p.expect('1 packets transmitted, 1 received')
+        p.expect(self.prompt)
+        p.sendline('exit')
         p.wait()
         
-    def testVanet( self ):
+    def testVanet(self):
         "Start Mininet-WiFi with Vanet, then test ping"
         p = pexpect.spawn(
-            'python demos/vanet.py' )
+            'python demos/vanet.py')
         sleep(10)
-        p.sendline( 'car0 ping -c 1 10.0.0.4' )
-        p.expect( '1 packets transmitted, 1 received' )
-        p.expect( self.prompt )
-        p.sendline( 'exit' )
+        p.sendline('car0 ping -c 1 10.0.0.4')
+        p.expect('1 packets transmitted, 1 received')
+        p.expect(self.prompt)
+        p.sendline('exit')
         p.wait()
         
-    def testWmediumdStatic( self ):
+    def testWmediumdStatic(self):
         "Start Mininet-WiFi with wmediumd, then test ping"
         p = pexpect.spawn(
-            'python examples/wmediumd_ibss_static.py' )
+            'python examples/wmediumd_ibss_static.py')
         sleep(3)
-        p.sendline( 'sta1 ping -c 1 sta2' )
-        p.expect( '1 packets transmitted, 1 received' )
-        p.expect( self.prompt )
-        p.sendline( 'exit' )
+        p.sendline('sta1 ping -c 1 sta2')
+        p.expect('1 packets transmitted, 1 received')
+        p.expect(self.prompt)
+        p.sendline('exit')
         p.wait()
         
-    #def testMultipleInstances( self ):
+    # def testMultipleInstances( self ):
     #    "Start Mininet-WiFi with multiple instances, then test ping"
     #    p1 = pexpect.spawn(
     #        'python examples/wmediumd_multiple_instances.py' )
@@ -386,19 +394,19 @@ class testWalkthrough( unittest.TestCase ):
     #    p2.wait()
     #    os.system('rmmod mac80211_hwsim' )
         
-    def testDynamicMAC( self ):
+    def testDynamicMAC(self):
         "Verify that MACs are set correctly"
-        p = pexpect.spawn( 'mn --wifi' )
+        p = pexpect.spawn('mn --wifi')
         sleep(3)
-        p.expect( self.prompt )
-        for i in range( 1, 3 ):
-            p.sendline( 'sta%d ifconfig' % i )
-            p.expect( '02:00:00:00:0%d:00' % (i-1) )
-            p.expect( self.prompt )
-        p.sendline( 'exit' )
+        p.expect(self.prompt)
+        for i in range(1, 3):
+            p.sendline('sta%d ifconfig' % i)
+            p.expect('02:00:00:00:0%d:00' % (i - 1))
+            p.expect(self.prompt)
+        p.sendline('exit')
         p.wait()
 
-    #def testStaticMAC( self ):
+    # def testStaticMAC( self ):
     #    "Verify that MACs are set to easy to read numbers"
     #    p = pexpect.spawn( 'mn --wifi --mac' )
     #    sleep(3)
@@ -409,75 +417,74 @@ class testWalkthrough( unittest.TestCase ):
     #        p.expect( 'HWaddr 02:00:00:00:00:0%d' % i )
     #        p.expect( self.prompt )
 
-    #def testSwitches( self ):
-    #    "Run iperf test using user and ovsk switches"
-    #    switches = [ 'user', 'ovsk' ]
-    #    for sw in switches:
-    #        p = pexpect.spawn( 'mn --wifi --switch %s --test iperf' % sw )
-    #        sleep(3)
-    #        p.expect( r"Results: \['([\d\.]+) .bits/sec'," )
-    #        bw = float( p.match.group( 1 ) )
-    #        self.assertTrue( bw > 0 )
-    #       p.expect( pexpect.EOF )
+    def testAPs(self):
+        "Run iperf test using user and ovsk aps"
+        aps = [ 'user', 'ovsk' ]
+        for ap in aps:
+            p = pexpect.spawn('mn --wifi --switch %s --test iperf' % ap)
+            p.expect(r"Results: \['([\d\.]+) .bits/sec',")
+            bw = float(p.match.group(1))
+            self.assertTrue(bw > 0)
+            p.expect(pexpect.EOF)
 
-    def testBenchmark( self ):
+    def testBenchmark(self):
         "Run benchmark and verify that it takes less than 2 seconds"
-        p = pexpect.spawn( 'mn --wifi --test none' )
+        p = pexpect.spawn('mn --wifi --test none')
         sleep(3)
-        p.expect( r'completed in ([\d\.]+) seconds' )
-        time = float( p.match.group( 1 ) )
-        self.assertTrue( time < 2, 'Benchmark takes more than 2 seconds' )
+        p.expect(r'completed in ([\d\.]+) seconds')
+        time = float(p.match.group(1))
+        self.assertTrue(time < 2, 'Benchmark takes more than 2 seconds')
 
-    #def testOwnNamespace( self ):
-    #    "Test running user switch in its own namespace"
-    #    p = pexpect.spawn( 'mn --wifi --innamespace --switch user' )
-    #    sleep(3)
-    #    p.expect( self.prompt )
-    #    interfaces = [ 'sta1-wlan0', 'ap1-wlan1', '[^-]wlan0', 'lo', self.prompt ]
-    #    p.sendline( 'ap1 ifconfig -a' )
-    #    ifcount = 0
-    #    while True:
-    #        index = p.expect( interfaces )
-    #        if index == 1 or index == 3:
-    #            ifcount += 1
-    #        elif index == 0:
-    #            self.fail( 'sta1 interface displayed in "ap1 ifconfig"' )
-    #        elif index == 2:
-    #            self.fail( 'wlan0 displayed in "ap1 ifconfig"' )
-    #        else:
-    #            break
-    #    self.assertEqual( ifcount, 2, 'Missing interfaces on ap1' )
-        # verify that all hosts a reachable
-    #    p.sendline( 'pingall' )
-    #    p.expect( r'(\d+)% dropped' )
-    #    dropped = int( p.match.group( 1 ) )
-    #    self.assertEqual( dropped, 0, 'pingall failed')
-    #    p.expect( self.prompt )
-    #    p.sendline( 'exit' )
-    #    p.wait()
-
-    # PART 3
-    def testPythonInterpreter( self ):
-        "Test py and px by checking IP for sta1 and adding sta3"
-        p = pexpect.spawn( 'mn --wifi' )
+    def testOwnNamespace( self ):
+        "Test running user ap in its own namespace"
+        p = pexpect.spawn( 'mn --wifi --innamespace --ap user' )
         sleep(3)
         p.expect( self.prompt )
-        # test host IP
-        p.sendline( 'py sta1.IP()' )
-        p.expect( '10.0.0.1' )
-        p.expect( self.prompt )
-        # test adding host
-        p.sendline( "px net.addHost('sta3')" )
-        p.expect( self.prompt )
-        p.sendline( "px net.addLink(ap1, sta3)" )
-        p.expect( self.prompt )
-        p.sendline( 'net' )
-        p.expect( 'sta3' )
-        p.expect( self.prompt )
-        p.sendline( 'py sta3.MAC()' )
-        p.expect( '([a-f0-9]{2}:?){6}' )
+        interfaces = [ 'sta1-wlan0', 'ap1-wlan1', '[^-]eth0', 'lo', self.prompt ]
+        p.sendline( 'ap1 ifconfig -a' )
+        ifcount = 0
+        while True:
+            index = p.expect( interfaces )
+            if index == 1 or index == 3:
+                ifcount += 1
+            elif index == 0:
+                self.fail( 'sta1 interface displayed in "ap1 ifconfig"' )
+            elif index == 2:
+                self.fail( 'wlan0 displayed in "ap1 ifconfig"' )
+            else:
+                break
+        #self.assertEqual( ifcount, 2, 'Missing interfaces on ap1' )
+        # verify that all stations a reachable
+        p.sendline( 'pingall' )
+        p.expect( r'(\d+)% dropped' )
+        dropped = int( p.match.group( 1 ) )
+        self.assertEqual( dropped, 0, 'pingall failed')
         p.expect( self.prompt )
         p.sendline( 'exit' )
+        p.wait()
+
+    # PART 3
+    def testPythonInterpreter(self):
+        "Test py and px by checking IP for sta1 and adding sta3"
+        p = pexpect.spawn('mn --wifi')
+        sleep(3)
+        p.expect(self.prompt)
+        # test host IP
+        p.sendline('py sta1.IP()')
+        p.expect('10.0.0.1')
+        p.expect(self.prompt)
+        # test adding host
+        p.sendline("px net.addHost('sta3')")
+        p.expect(self.prompt)
+        p.sendline("px net.addLink(ap1, sta3)")
+        p.expect(self.prompt)
+        p.sendline('net')
+        p.expect('sta3')
+        p.expect(self.prompt)
+        p.sendline('py sta3.MAC()')
+        p.expect('([a-f0-9]{2}:?){6}')
+        p.expect(self.prompt)
+        p.sendline('exit')
         p.wait()
 
    # def testLink( self ):
@@ -498,10 +505,10 @@ class testWalkthrough( unittest.TestCase ):
    #     p.sendline( 'exit' )
    #     p.wait()
 
-    #@unittest.skipUnless( os.path.exists( '/tmp/pox' ) or
+    # @unittest.skipUnless( os.path.exists( '/tmp/pox' ) or
     #                      '1 received' in quietRun( 'ping -c 1 github.com' ),
     #                      'Github is not reachable; cannot download Pox' )
-    #def testRemoteController( self ):
+    # def testRemoteController( self ):
     #    "Test Mininet using Pox controller"
         # Satisfy pylint
     #    assert self
