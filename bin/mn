@@ -27,7 +27,7 @@ from mininet.net import Mininet, MininetWithControlNet, VERSION
 from mininet.node import (Host, CPULimitedHost, Controller, OVSController,
                            Ryu, NOX, RemoteController, findController,
                            DefaultController, NullController,
-                           UserSwitch, OVSSwitch, OVSBridge,
+                           UserSwitch, UserAP, OVSSwitch, OVSAP, OVSBridge,
                            IVSSwitch)
 from mininet.nodelib import LinuxBridge
 from mininet.link import Link, TCLink, TCULink, OVSLink
@@ -40,7 +40,7 @@ from functools import partial
 
 # Experimental! cluster edition prototype
 from mininet.examples.cluster import (MininetCluster, RemoteHost,
-                                       RemoteOVSSwitch, RemoteLink,
+                                       RemoteOVSSwitch, RemoteOVSAP, RemoteLink,
                                        SwitchBinPlacer, RandomPlacer,
                                        ClusterCleanup)
 from mininet.examples.clustercli import ClusterCLI
@@ -65,6 +65,16 @@ SWITCHES = { 'user': UserSwitch,
              'ivs': IVSSwitch,
              'lxbr': LinuxBridge,
              'default': OVSSwitch }
+
+APDEF = 'default'
+APS = { 'user': UserAP,
+             'ovs': OVSAP,
+             'ovsbr' : OVSBridge,
+             # Keep ovsk for compatibility with 2.0
+             'ovsk': OVSAP,
+             'ivs': IVSSwitch,
+             'lxbr': LinuxBridge,
+             'default': OVSAP }
 
 HOSTDEF = 'proc'
 HOSTS = { 'proc': Host,
@@ -158,7 +168,7 @@ class MininetRunner(object):
 
     def setCustom(self, name, value):
         "Set custom parameters for MininetRunner."
-        if name in ('topos', 'switches', 'hosts', 'controllers', 'links'
+        if name in ('topos', 'switches', 'aps', 'hosts', 'controllers', 'links'
                      'testnames', 'tests'):
             # Update dictionaries
             param = name.upper()
@@ -197,6 +207,7 @@ class MininetRunner(object):
         
         opts = OptionParser(description=desc, usage=usage)
         addDictOption(opts, SWITCHES, SWITCHDEF, 'switch')
+        addDictOption(opts, APS, APDEF, 'ap')
         addDictOption(opts, HOSTS, HOSTDEF, 'host')
         addDictOption(opts, CONTROLLERS, [], 'controller', action='append')
         addDictOption(opts, LINKS, LINKDEF, 'link')
@@ -324,6 +335,15 @@ class MininetRunner(object):
                     raise Exception("Could not find a default controller "
                                      "for switch %s" % 
                                      opts.switch)
+                if opts.ap == 'default':
+                    info('*** No default OpenFlow controller found '
+                          'for default ap!\n')
+                    info('*** Falling back to OVS Bridge\n')
+                    opts.ap = 'ovsbr'
+                elif opts.ap not in ('ovsbr', 'lxbr'):
+                    raise Exception("Could not find a default controller "
+                                     "for ap %s" % 
+                                     opts.ap)
 
         if opts.wifi:
             TOPOS['single'] = SingleAPTopo
@@ -332,6 +352,7 @@ class MininetRunner(object):
 
         topo = buildTopo(TOPOS, opts.topo)
         switch = customClass(SWITCHES, opts.switch)
+        ap = customClass(APS, opts.ap)
         host = customClass(HOSTS, opts.host)
         controller = [ customClass(CONTROLLERS, c)
                        for c in opts.controller ]
@@ -339,7 +360,11 @@ class MininetRunner(object):
         if opts.switch == 'user' and opts.link == 'default':
             debug('*** Using TCULink with UserSwitch\n')
             # Use link configured correctly for UserSwitch
-            opts.link = 'tcu'               
+            opts.link = 'tcu'     
+        elif opts.ap == 'user' and opts.link == 'default':
+            debug('*** Using TCULink with UserAP\n')
+            # Use link configured correctly for UserAP
+            opts.link = 'tcu'          
         
         link = customClass(LINKS, opts.link)
         
@@ -371,13 +396,13 @@ class MininetRunner(object):
         if cluster:
             warn('*** WARNING: Experimental cluster mode!\n'
                   '*** Using RemoteHost, RemoteOVSSwitch, RemoteLink\n')
-            host, switch, link = RemoteHost, RemoteOVSSwitch, RemoteLink
+            host, switch, ap, link = RemoteHost, RemoteOVSSwitch, RemoteOVSAP, RemoteLink
             Net = partial(MininetCluster, servers=servers,
                            placement=PLACEMENT[ opts.placement ])
         
         
         mn = Net(topo=topo,
-                  switch=switch, host=host, controller=controller,
+                  switch=switch, accessPoint=ap, host=host, controller=controller,
                   link=link,
                   ipBase=ipBase,
                   inNamespace=inNamespace,
