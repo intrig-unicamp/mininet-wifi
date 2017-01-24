@@ -267,8 +267,8 @@ class Node(object):
             wifiRadios += 1
         for n in range(wlans):
             node.params['frequency'].append(2.412)
+            node.func.append('none')
             if node.type != 'accessPoint':
-                node.func.append('none')
                 node.params['associatedTo'].append('')
                 if 'ssid' not in node.params:
                     if(passwd != "{}"):
@@ -281,13 +281,8 @@ class Node(object):
                             node.params['encrypt'].append(encrypt[0])
                         else:
                             node.params['encrypt'].append(encrypt[n])
-            if 'ssid' in node.params:
-                if node.type == 'accessPoint':
-                    node.params['wlan'].append(node.name + '-wlan' + str(n + 1))
-                else:
-                    node.params['wlan'].append(node.name + '-wlan' + str(n))
-                    node.params['rssi'].append(0)
-                    node.params['snr'].append(0)
+            if node.type == 'accessPoint':
+                node.params['wlan'].append(node.name + '-wlan' + str(n + 1))
             else:
                 node.params['wlan'].append(node.name + '-wlan' + str(n))
                 node.params['rssi'].append(0)
@@ -405,7 +400,7 @@ class Node(object):
         if 'range' in params:
             node.params['range'] = int(params['range'])
         else:
-            if node.type == 'accessPoint' or 'ssid' in node.params:
+            if node.type == 'accessPoint' or node.func[0] == 'ap':
                 value = deviceRange(node)
                 node.params['range'] = value.range
             else:
@@ -493,8 +488,11 @@ class Node(object):
         self.params['range'] = _range
         try:
             if mobility.DRAW:
-                plot2d.updateCircleRadius(self)
-                plot2d.graphUpdate(self)
+                if mobility.is3d: 
+                    plot3d.graphUpdate(self)
+                else:
+                    plot2d.updateCircleRadius(self)
+                    plot2d.graphUpdate(self)
         except:
             pass
         self.verifyingNodes(self)

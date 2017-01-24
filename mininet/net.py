@@ -362,6 +362,7 @@ class Mininet(object):
         self.nameToNode[ name ] = sta 
         
         self.nRadios = sta.addParameters(sta, self.nRadios, self.autoSetMacs, params, defaults)
+        sta.func[0] = 'ap'
         return sta
         
     def addCar(self, name, cls=None, **params):
@@ -406,7 +407,6 @@ class Mininet(object):
         self.vehicles.append(carsw)
         self.cars.append(car)
         
-        car.func.append('')
         car.func[1] = 'mesh'
         self.addLink(carsta, carsw)
         self.addLink(car, carsw)        
@@ -983,39 +983,37 @@ class Mininet(object):
             or ((node2.type == 'station' or node2.type == 'vehicle') and ('ssid' in node1.params)))
             and 'link' not in options):
 
-            if (node1.type == 'station' or node2.type == 'station' or 
-                                node1.type == 'vehicle' or node2.type == 'vehicle'):
-                if (node1.type == 'station' or node1.type == 'vehicle') and 'ssid' in node2.params:
-                    sta = node1
-                    ap = node2
+            if (node1.type == 'station' or node1.type == 'vehicle') and 'ssid' in node2.params:
+                sta = node1
+                ap = node2
+            else:
+                sta = node2
+                ap = node1
+            
+            wlan = sta.ifaceToAssociate
+
+            sta.params['mode'][wlan] = ap.params['mode'][0]
+            sta.params['channel'][wlan] = ap.params['channel'][0]
+            value = deviceDataRate(sta, ap, wlan)
+            self.bw = value.rate
+            
+            self.tc(sta, self.bw)
+
+            # If sta/ap have defined position
+            if 'position' in sta.params and 'position' in ap.params:
+                dist = setChannelParams.getDistance(sta, ap)
+                if dist > ap.params['range']:
+                    doAssociation = False
                 else:
-                    sta = node2
-                    ap = node1
-                
-                wlan = sta.ifaceToAssociate
+                    doAssociation = True                        
+            else:
+                doAssociation = True
 
-                sta.params['mode'][wlan] = ap.params['mode'][0]
-                sta.params['channel'][wlan] = ap.params['channel'][0]
-                value = deviceDataRate(sta, ap, wlan)
-                self.bw = value.rate
-                
-                self.tc(sta, self.bw)
-
-                # If sta/ap have defined position
+            if(doAssociation):
+                cls = Association
+                cls.associate(sta, ap)  
                 if 'position' in sta.params and 'position' in ap.params:
-                    dist = setChannelParams.getDistance(sta, ap)
-                    if dist > ap.params['range']:
-                        doAssociation = False
-                    else:
-                        doAssociation = True                        
-                else:
-                    doAssociation = True
-
-                if(doAssociation):
-                    cls = Association
-                    cls.associate(sta, ap)  
-                    if 'position' in sta.params and 'position' in ap.params:
-                        setChannelParams(sta, ap, wlan, dist)                
+                    setChannelParams(sta, ap, wlan, dist)                
         else:
             if 'link' in options:
                 options.pop('link', None)
