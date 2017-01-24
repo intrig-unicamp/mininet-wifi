@@ -1747,6 +1747,12 @@ class UserAP(AP):
            deleteIntfs: delete interfaces? (True)"""
         # if self.type == 'accessPoint':
         #    self.cmd('ovs-vsctl del-br', self.name)
+        
+    def renameIface(self, intf, newname):
+        "Rename interface"
+        self.pexec('ifconfig %s down' % intf)
+        self.pexec('ip link set %s name %s' % (intf, newname))
+        self.pexec('ifconfig %s up' % newname)
 
 class OVSAP(AP):
     "Open vSwitch AP. Depends on ovs-vsctl."
