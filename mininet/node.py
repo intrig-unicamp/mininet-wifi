@@ -1438,34 +1438,16 @@ class AP(Node):
 class AccessPoint(AP):
     """An AccessPoint is a Switch equipped with wireless interface that is running (or has execed?)
        an OpenFlow switch."""
-
-    @classmethod
-    def init_ (self, ap, country_code=None, auth_algs=None, wpa=None, intf=None, wlan=None,
+       
+    writeMacAddress = False
+    
+    def __init__ (self, ap, country_code=None, auth_algs=None, wpa=None, wlan=None,
               wpa_key_mgmt=None, rsn_pairwise=None, wpa_passphrase=None,
               wep_key0=None, **params):
-        
-        ap.params['mac'] = []
-        
-        for i in range(len(ap.params['ssid'])):
-            ap.params['mac'].append('')
-
-        if 'phywlan' not in ap.params:
-            self.renameIface(ap, intf, ap.params['wlan'][wlan])
-            ap.params['mac'][wlan] = self.getMac(ap, ap.params['wlan'][wlan])
-            self.checkNetworkManager(ap.params['mac'][wlan])
-            if 'inNamespace' in ap.params and 'ip' in ap.params:
-                self.setIPAddr(ap, wlan)
 
         self.start_(ap, country_code, auth_algs, wpa, wlan,
               wpa_key_mgmt, rsn_pairwise, wpa_passphrase,
               wep_key0, **params)
-        
-    @classmethod
-    def renameIface(self, ap, intf, newname):
-        "Rename interface"
-        ap.pexec('ifconfig %s down' % intf)
-        ap.pexec('ip link set %s name %s' % (intf, newname))
-        ap.pexec('ifconfig %s up' % newname)
     
     @classmethod
     def start_(self, ap, country_code=None, auth_algs=None, wpa=None, wlan=None,
@@ -1558,9 +1540,23 @@ class AccessPoint(AP):
         return mac[0]
 
     @classmethod
+    def verifyNetworkManager(self, ap, wlan):
+        ap.params['mac'] = []
+        
+        for i in range(len(ap.params['ssid'])):
+            ap.params['mac'].append('')
+        if 'phywlan' not in ap.params:
+            ap.params['mac'][wlan] = self.getMac(ap, ap.params['wlan'][wlan])
+            self.checkNetworkManager(ap.params['mac'][wlan])
+            if 'inNamespace' in ap.params and 'ip' in ap.params:
+                self.setIPAddr(ap, wlan)
+        
+    
+
+    @classmethod
     def checkNetworkManager(self, mac):
-        """ add mac address inside of /etc/NetworkManager/NetworkManager.conf """
-        self.printMac = False
+        """ add mac address into /etc/NetworkManager/NetworkManager.conf """
+        writeMacAddress = False
         unmatch = ""
         if(os.path.exists('/etc/NetworkManager/NetworkManager.conf')):
             if(os.path.isfile('/etc/NetworkManager/NetworkManager.conf')):
@@ -1582,9 +1578,9 @@ class AccessPoint(AP):
 
             if mac not in unmatch:
                 echo = echo + "mac:" + mac + ';'
-                self.printMac = True
+                writeMacAddress = True
 
-            if(self.printMac):
+            if(writeMacAddress):
                 for line in fileinput.input('/etc/NetworkManager/NetworkManager.conf', inplace=1):
                     if(isNew):
                         if line.__contains__('#'):
@@ -1596,7 +1592,8 @@ class AccessPoint(AP):
                             print line.replace(unmatch, echo)
                         else:
                             print line.rstrip()
-                # os.system('service network-manager restart')
+        if self.writeMacAddress == False:
+            self.writeMacAddress = writeMacAddress
             
     @classmethod
     def customDataRate(self, node, wlan):
@@ -1980,6 +1977,12 @@ class OVSAP(AP):
         for switch in switches:
             switch.shell = None
         return switches
+    
+    def renameIface(self, intf, newname):
+        "Rename interface"
+        self.pexec('ifconfig %s down' % intf)
+        self.pexec('ip link set %s name %s' % (intf, newname))
+        self.pexec('ifconfig %s up' % newname)
         
 class UserSwitch(Switch):
     "User-space switch."
