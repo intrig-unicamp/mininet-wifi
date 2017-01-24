@@ -135,7 +135,7 @@ VERSION = "1.9r7"
 class Mininet(object):
     "Network emulation with hosts spawned in network namespaces."
 
-    def __init__(self, topo=None, switch=OVSKernelSwitch, accessPoint=OVSKernelAP, host=Host, station=Station, 
+    def __init__(self, topo=None, switch=OVSKernelSwitch, accessPoint=OVSKernelAP, host=Host, station=Station,
                   car=Car, controller=DefaultController, isWiFi=False, link=Link, intf=Intf,
                   build=True, xterms=False, cleanup=False, ipBase='10.0.0.0/8',
                   inNamespace=False, autoSetMacs=False, autoStaticArp=False, autoPinCpus=False,
@@ -802,20 +802,14 @@ class Mininet(object):
         """Configure AP"""
         
         if 'phywlan' in node.params:
-                wlanID = 1
+            wlanID = 1
         for wlan in range(len(node.params['wlan']) + wlanID):
             if wlanID == 1:
                 wlan = 0
             wifiparam = dict()
             if 'inNamespace' not in node.params:
                 if 'phywlan' not in node.params:
-                    if node.type != 'station':
-                        intf = module.wlan_list[0]
-                        module.wlan_list.pop(0)
-                        # iface = node.params['wlan'][wlan]
-                        wifiparam.setdefault('intf', intf)
                     iface = node.params['wlan'][wlan]
-                        
                 else:
                     iface = node.params.get('phywlan')
 
@@ -854,7 +848,7 @@ class Mininet(object):
             wifiparam.setdefault('wlan', wlan)
                 
             cls = AccessPoint
-            cls.init_(node, **wifiparam)
+            cls(node, **wifiparam)
             
             if 'phywlan' not in node.params:
                 node.params['frequency'][wlan] = setChannelParams.frequency(node, 0)
@@ -871,9 +865,36 @@ class Mininet(object):
                 cls = TCLinkWireless
                 cls(node, **options)
                 node.params.pop("phywlan", None)
+                
+    def verifyNetworkManager(self, node, wlanID=0):
+        """First verify if the mac address of the ap is included at NetworkManager.conf"""
+        if 'phywlan' in node.params:
+            wlanID = 1
+        for wlan in range(len(node.params['wlan']) + wlanID):
+            if wlanID == 1:
+                wlan = 0
+            if 'inNamespace' not in node.params:
+                if 'phywlan' not in node.params:
+                    if node.type != 'station':
+                        intf = module.wlan_list[0]
+                        module.wlan_list.pop(0)
+                        node.renameIface(intf, node.params['wlan'][wlan])
+            AccessPoint.verifyNetworkManager(node, wlan)
+                    
+    def restartNetworkManager(self):
+        """Restart network manager if the mac address of the AP is not included at 
+        /etc/NetworkManager/NetworkManager.conf"""
+        if AccessPoint.writeMacAddress:
+            info('The Mac Address of AP(s) is(are) being added at /etc/NetworkManager/NetworkManager.conf\n')
+            info('Restarting network-manager...\n')
+            os.system('service network-manager restart')
+        AccessPoint.writeMacAddress = False
                     
     def configureAPs(self):
         """Configure All APs"""
+        for node in self.accessPoints:                
+            self.verifyNetworkManager(node)
+        self.restartNetworkManager()
         
         for node in self.accessPoints:
             self.configureAP(node)
@@ -909,8 +930,9 @@ class Mininet(object):
                         mac = node.params['mac'][wlan]
                         node.setMAC(mac, iface)
                     if 'ssid' in node.params and node.type != 'vehicle':
+                        self.verifyNetworkManager(node)
+                        self.restartNetworkManager()
                         self.configureAP(node)
-
 
     def configureWifiNodes(self):
         """
