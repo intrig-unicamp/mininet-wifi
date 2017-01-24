@@ -9,6 +9,7 @@ import matplotlib.patches as patches
 import matplotlib.pyplot as plt
 from mininet.log import debug
 from mpl_toolkits.mplot3d import Axes3D
+import numpy as np
 
 class plot3d (object):
     
@@ -35,17 +36,22 @@ class plot3d (object):
 
     @classmethod
     def instantiateNode(self, node):
+        """Instantiate Node"""
         x = float(node.params['position'][0])
         y = float(node.params['position'][1])
         z = float(node.params['position'][2])
         
-        color = 'b'
-        if node.type == 'station':
-            color = 'g'
-        elif node.type == 'vehicle':
-            color = 'r'
-            
-        node.pltNode = self.ax.scatter(x, y, z, c=color, marker='o')
+        resolution = 40
+        u = np.linspace(0, 2 * np.pi, resolution)
+        v = np.linspace(0, np.pi, resolution)
+        
+        r = 2
+           
+        x = r * np.outer(np.cos(u), np.sin(v)) + x
+        y = r * np.outer(np.sin(u), np.sin(v)) + y
+        z = r * np.outer(np.ones(np.size(u)), np.cos(v)) + z
+
+        node.pltNode = self.ax.plot_surface(x, y, z, alpha=0.2, edgecolor='none', color='black')
 
     @classmethod
     def graphInstantiateNodes(self, nodes):
@@ -64,13 +70,14 @@ class plot3d (object):
     @classmethod
     def graphUpdate(self, node):
         """Graph Update"""
-        x = [float("{0:.5f}".format(float(node.params['position'][0])))]
-        y = [float("{0:.5f}".format(float(node.params['position'][1])))]
-        z = [float("{0:.5f}".format(float(node.params['position'][2])))]
-
-        node.pltNode._offsets3d = x,y,z
-        node.pltCircle._offsets3d = x,y,z
-        node.plttxt._position3d = x[0], y[0], z[0]
+        
+        node.pltNode.remove()
+        node.pltCircle.remove()
+        node.plttxt.remove()
+        
+        self.instantiateCircle(node)
+        self.instantiateNode(node)
+        self.instantiateAnnotate(node)
         self.plotDraw()  
         
     @classmethod
@@ -88,7 +95,8 @@ class plot3d (object):
         
     @classmethod
     def instantiateCircle(self, node):
-    
+        """Instantiate Circle"""
+        
         x = float(node.params['position'][0])
         y = float(node.params['position'][1])
         z = float(node.params['position'][2])
@@ -99,8 +107,18 @@ class plot3d (object):
         elif node.type == 'vehicle':
             color = 'r'
         
-        s = node.params['range'] * 500            
-        node.pltCircle = self.ax.scatter(x, y, z, c=color, marker='o', s=s, alpha=0.2)
+        resolution = 100
+        u = np.linspace(0, 2 * np.pi, resolution)
+        v = np.linspace(0, np.pi, resolution)
+        
+        r = node.params['range']
+           
+        x = r * np.outer(np.cos(u), np.sin(v)) + x
+        y = r * np.outer(np.sin(u), np.sin(v)) + y
+        z = r * np.outer(np.ones(np.size(u)), np.cos(v)) + z
+
+        node.pltCircle = self.ax.plot_surface(x, y, z, alpha=0.2, edgecolor='none', color=color)
+        
 
 class plot2d (object):
 
@@ -117,7 +135,7 @@ class plot2d (object):
     @classmethod
     def text(self, node):
         """draw text"""
-        if hasattr(node.plttxt, 'xyann'): node.plttxt.xyann = (node.params['position'][0], 
+        if hasattr(node.plttxt, 'xyann'): node.plttxt.xyann = (node.params['position'][0],
                                         node.params['position'][1])  # newer MPL versions (>=1.4)
         else: node.plttxt.xytext = (node.params['position'][0], node.params['position'][1])
 
@@ -129,7 +147,7 @@ class plot2d (object):
     @classmethod
     def graphUpdate(self, node):
         """Graph Update"""
-        if hasattr(node.plttxt, 'xyann'): node.plttxt.xyann = (node.params['position'][0], 
+        if hasattr(node.plttxt, 'xyann'): node.plttxt.xyann = (node.params['position'][0],
                                         node.params['position'][1])  # newer MPL versions (>=1.4)
         else: node.plttxt.xytext = (node.params['position'][0], node.params['position'][1])
 
@@ -243,7 +261,7 @@ class plot2d (object):
                                    [srcConn[c].params['position'][1], dstConn[c].params['position'][1]], 'b')
             self.plotLine(line)
 
-        #for wall in wallList:
+        # for wall in wallList:
         #    line = self.plotLine2d([wall.params['initPos'][0], wall.params['finalPos'][0]], \
         #                               [wall.params['initPos'][1], wall.params['finalPos'][1]], 'r', wall.params['width'])
         #    self.plotLine(line)
