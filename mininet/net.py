@@ -885,7 +885,7 @@ class Mininet(object):
         """Restart network manager if the mac address of the AP is not included at 
         /etc/NetworkManager/NetworkManager.conf"""
         if AccessPoint.writeMacAddress:
-            info('The Mac Address of AP(s) is(are) being added at /etc/NetworkManager/NetworkManager.conf\n')
+            info('Mac Address(es) of AP(s) is(are) being added at /etc/NetworkManager/NetworkManager.conf\n')
             info('Restarting network-manager...\n')
             os.system('service network-manager restart')
         AccessPoint.writeMacAddress = False
@@ -1541,7 +1541,7 @@ class Mininet(object):
             error('could not parse iperf output: ' + iperfOutput)
             return ''
 
-    def iperf(self, hosts=None, l4Type='TCP', udpBw='10M', fmt=None,
+    def iperf( self, hosts=None, l4Type='TCP', udpBw='10M', fmt=None,
                seconds=5, port=5001):
         """Run iperf between two hosts.
            hosts: list of hosts; if None, uses first and last hosts
@@ -1555,35 +1555,49 @@ class Mininet(object):
            the actual transmission rate; on an unloaded system, server
            rate should be much closer to the actual receive rate"""
         hosts = hosts or [ self.hosts[ 0 ], self.hosts[ -1 ] ]
-        assert len(hosts) == 2
+        assert len( hosts ) == 2
         client, server = hosts
-        output('*** Iperf: testing', l4Type, 'bandwidth between',
-                client, 'and', server, '\n')
-        server.cmd('killall -9 iperf')
+        
+        conn1 = 0
+        conn2 = 0
+        if client.type == 'station' or server.type == 'station':
+            while conn1 == 0:
+                conn1 = int(client.cmd('iwconfig %s-wlan0 | grep -ic \'Link Quality\'' % client))
+            while conn2 == 0:
+                conn2 = int(server.cmd('iwconfig %s-wlan0 | grep -ic \'Link Quality\'' % server))
+        output( '*** Iperf: testing', l4Type, 'bandwidth between',
+                client, 'and', server, '\n' )
+        server.cmd( 'killall -9 iperf' )
         iperfArgs = 'iperf -p %d ' % port
         bwArgs = ''
         if l4Type == 'UDP':
             iperfArgs += '-u '
             bwArgs = '-b ' + udpBw + ' '
         elif l4Type != 'TCP':
-            raise Exception('Unexpected l4 type: %s' % l4Type)
+            raise Exception( 'Unexpected l4 type: %s' % l4Type )
         if fmt:
             iperfArgs += '-f %s ' % fmt
-        server.sendCmd(iperfArgs + '-s')
+        server.sendCmd( iperfArgs + '-s' )
         if l4Type == 'TCP':
-            if not waitListening(client, server.IP(), port):
-                raise Exception('Could not connect to iperf on port %d'
-                                 % port)
-        cliout = client.cmd(iperfArgs + '-t %d -c ' % seconds + 
-                             server.IP() + ' ' + bwArgs)
-        debug('Client output: %s\n' % cliout)
+            if not waitListening( client, server.IP(), port ):
+                raise Exception( 'Could not connect to iperf on port %d'
+                                 % port )
+        cliout = client.cmd( iperfArgs + '-t %d -c ' % seconds +
+                             server.IP() + ' ' + bwArgs )
+        debug( 'Client output: %s\n' % cliout )
+        servout = ''
+        # We want the last *b/sec from the iperf server output
+        # for TCP, there are two fo them because of waitListening
+        count = 2 if l4Type == 'TCP' else 1
+        while len( re.findall( '/sec', servout ) ) < count:
+            servout += server.monitor( timeoutms=5000 )
         server.sendInt()
-        servout = server.waitOutput()
-        debug('Server output: %s\n' % servout)
-        result = [ self._parseIperf(servout), self._parseIperf(cliout) ]
+        servout += server.waitOutput()
+        debug( 'Server output: %s\n' % servout )
+        result = [ self._parseIperf( servout ), self._parseIperf( cliout ) ]
         if l4Type == 'UDP':
-            result.insert(0, udpBw)
-        output('*** Results: %s\n' % result)
+            result.insert( 0, udpBw )
+        output( '*** Results: %s\n' % result )
         return result
 
     def runCpuLimitTest(self, cpu, duration=5):
