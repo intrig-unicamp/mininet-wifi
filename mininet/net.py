@@ -211,6 +211,7 @@ class Mininet(object):
         self.MAX_Z = 0
         self.is3d = False
         self.ifb = False
+        self.alreadyPlotted = False
         Mininet.init()  # Initialize Mininet if necessary
 
         self.built = False
@@ -407,7 +408,7 @@ class Mininet(object):
         self.vehicles.append(carsw)
         self.cars.append(car)
         
-        car.func[1] = 'mesh'
+        car.func.append('mesh')
         self.addLink(carsta, carsw)
         self.addLink(car, carsw)        
         return car    
@@ -960,7 +961,7 @@ class Mininet(object):
             car.params['txpower'].append(0)
             car.params['antennaGain'].append(0)
             car.params['antennaHeight'].append(0)
-            car.params['associatedTo'].append(0)
+            car.params['associatedTo'].append('')
             car.params['frequency'].append(0)
         
     def addLink(self, node1, node2, port1=None, port2=None,
@@ -1830,6 +1831,37 @@ class Mininet(object):
             self.is3d = True
             mobility.is3d = self.is3d
             mobility.continuePlot = 'plot3d.graphPause()'
+            
+    def startGraph(self):
+        self.alreadyPlotted = True
+        if mobility.isMobility == False and mobility.DRAW:
+            for sta in self.stations:
+                if sta.func[0] == 'ap':
+                    self.accessPoints.append(sta)
+                    self.stations.remove(sta)
+            
+            for sta in self.stations:
+                if 'position' not in sta.params:
+                    sta.params['position'] = 0,0,0
+            
+            if mobility.accessPoints == []:
+                mobility.accessPoints = self.accessPoints
+            if mobility.stations == []: 
+                mobility.stations = self.stations
+            
+            nodes = self.stations + self.accessPoints + self.plotNodes
+            
+            try:
+                if self.is3d:
+                    plot3d.instantiateGraph(self.MAX_X, self.MAX_Y, self.MAX_Z)
+                    plot3d.graphInstantiateNodes(nodes)
+                else:
+                    plot2d.instantiateGraph(self.MAX_X, self.MAX_Y)
+                    plot2d.plotGraph(nodes, self.srcConn, self.dstConn, self.MAX_X, self.MAX_Y)
+                    plot2d.graphPause()
+            except:
+                info('Warning: This OS does not support GUI. Running without GUI.\n')
+                mobility.DRAW = False
 
     def getCurrentPosition(self, node):
         """ 
