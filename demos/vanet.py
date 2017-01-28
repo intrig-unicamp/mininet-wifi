@@ -1,27 +1,120 @@
-#!/usr/bin/python
+# !/usr/bin/python
 
 """
-Demo for VANETs. It still has to be customized.. 
+This code illustrates a single case about Vehicular Ad-Hoc Networks. 
+More detail about VANET implementation can be found at the paper titled
+From Theory to Experimental Evaluation: Resource Management in Software-Defined Vehicular Networks
+url: ...
+Video clip available at:
 """
+
+import os
+import time
+import matplotlib.pyplot as plt
 
 from mininet.net import Mininet
-from mininet.node import Controller,OVSKernelSwitch, RemoteController
+from mininet.node import Controller, OVSKernelSwitch, OVSKernelAP
 from mininet.link import TCLink
-from mininet.cli import CLI
 from mininet.log import setLogLevel
-from mininet.wmediumdConnector import WmediumdStarter, DynamicWmediumdIntfRef, WmediumdLink
+from mininet.cli import CLI
 
+core_pkt = 'core-pkt.vanetdata'
+core_throughput = 'core-throughput.vanetdata'
+c0_pkt = 'c0-pkt.vanetdata'
+c0_throughput = 'c0-throughput.vanetdata'
 
-class InbandController( RemoteController ):
+def graphic():
 
-    def checkListening( self ):
-        "Overridden to do nothing."
-        return
+    f1 = open('./' + core_pkt, 'r')
+    eth0 = f1.readlines()
+    f1.close()
+
+    f11 = open('./' + core_throughput, 'r')
+    eth01 = f11.readlines()
+    f11.close()
+
+    f2 = open('./' + c0_pkt, 'r')
+    wlan0 = f2.readlines()
+    f2.close()
+
+    f21 = open('./' + c0_throughput, 'r')
+    wlan01 = f21.readlines()
+    f21.close()
+
+    # initialize some variable to be lists:
+    l1 = []
+    l2 = []
+    t = []
+    ll1 = []
+    ll2 = []
+    
+    t1 = []
+    t2 = []
+    tt1 = []
+    tt2 = []
+    
+    # scan the rows of the file stored in lines, and put the values into some variables:
+    i = 0
+    for x in eth0:    
+        p = x.split()
+        l1.append(int(p[0]))
+        if len(l1) > 1:
+            ll1.append(l1[i] - l1[i - 1])
+        i += 1
+    
+    i = 0
+    for x in eth01:    
+        p = x.split()
+        t1.append(int(p[0]))
+        if len(t1) > 1:
+            tt1.append(t1[i] - t1[i - 1])
+        i += 1
+    
+    i = 0
+    for x in wlan0:    
+        p = x.split()
+        l2.append(int(p[0]))
+        if len(l2) > 1:
+            ll2.append(l2[i] - l2[i - 1])
+        i += 1
+    
+    i = 0
+    for x in wlan01:    
+        p = x.split()
+        t2.append(int(p[0]))
+        if len(t2) > 1:
+            tt2.append(t2[i] - t2[i - 1])
+        i += 1
+    
+    i = 0
+    for x in range(len(ll1)):    
+        t.append(i)
+        i = i + 0.5
+    
+    fig, ax1 = plt.subplots()
+    ax2 = ax1.twinx()
+    
+    ax1.plot(t, ll1, color='red', label='Received Data (client)', ls="--", markevery=7, linewidth=1)
+    ax1.plot(t, ll2, color='black', label='Transmited Data (server)', markevery=7, linewidth=1)
+    ax2.plot(t, tt1, color='red', label='Throughput (client)', ls="-.", markevery=7, linewidth=1)
+    ax2.plot(t, tt2, color='black', label='Throughput (server)', ls=':', markevery=7, linewidth=1)
+    ax1.legend(loc=2, borderaxespad=0., fontsize=12)
+    ax2.legend(loc=1, borderaxespad=0., fontsize=12)
+    
+    ax2.set_yscale('log')
+
+    ax1.set_ylabel("# Packets (unit)", fontsize=18)
+    ax1.set_xlabel("Time (seconds)", fontsize=18)
+    ax2.set_ylabel("Throughput (bytes/sec)", fontsize=18)
+
+    plt.show()
 
 def topology():
+    
+    timeTask = 30
 
     "Create a network."
-    net = Mininet( controller=Controller, link=TCLink, switch=OVSKernelSwitch )
+    net = Mininet(controller=Controller, link=TCLink, switch=OVSKernelSwitch, accessPoint=OVSKernelAP)
 
     print "*** Creating nodes"
     car = []
@@ -31,70 +124,71 @@ def topology():
         stas.append(x)
     for x in range(0, 4):
         car[x] = net.addCar('car%s' % (x), wlans=2, ip='10.0.0.%s/8' % (x + 1), \
-        mac='00:00:00:00:00:0%s' % x, mode='b', position='%d,%d,0' % ((150-(x*20)),(100-(x*20))) )
+        mac='00:00:00:00:00:0%s' % x, mode='b', position='%d,%d,0' % ((120 - (x * 20)), (100 - (x * 0))))
 
-    rs1 = net.addAccessPoint( 'rs1', ssid='ssid1', mode= 'g', channel= '1', position='60,50,0' )
-    rs2 = net.addAccessPoint( 'rs2', ssid='ssid2', mode= 'g', channel= '6', position='160,100,0' )
-    bs3 = net.addAccessPoint( 'bs3', ssid='ssid3', mode= 'g', channel= '6', position='150,120,0', range=70 )
-    c1 = net.addController( 'c1', controller=Controller )
-    h1 = net.addHost ( 'h1' )
-    s10 = net.addSwitch ( 's10' )
+    eNodeB1 = net.addAccessPoint('eNodeB1', ssid='eNodeB1', dpid='1000000000000', mode='g', channel='1', position='80,75,0')
+    eNodeB2 = net.addAccessPoint('eNodeB2', ssid='eNodeB2', dpid='2000000000000', mode='g', channel='6', position='160,75,0')
+    rsu13 = net.addAccessPoint('rsu13', ssid='rsu13', dpid='3000000000000', mode='g', channel='11', position='140,100,0', range=70)
+    c1 = net.addController('c1', controller=Controller)
+    h1 = net.addHost ('h1')
+    core = net.addSwitch ('core', dpid='4000000000000')
 
+    net.plotNode(h1, position='125,230,0')
+    net.plotNode(core, position='125,200,0')
+    
     print "*** Configuring wifi nodes"
-    net.configureWifiNodes()
+    net.configureWifiNodes()  
 
     print "*** Creating links"
-    net.addLink(rs1, s10)
-    net.addLink(rs2, s10)
-    net.addLink(bs3, s10)
-    net.addLink(s10, h1)
-    net.addLink(bs3, car[0])
-    net.addLink(rs2, car[0])
-    net.addLink(rs1, car[3])
+    net.addLink(eNodeB1, core)
+    net.addLink(eNodeB2, core)
+    net.addLink(rsu13, core)
+    net.addLink(core, h1)
+    net.addLink(rsu13, car[0])
+    net.addLink(eNodeB2, car[0])
+    net.addLink(eNodeB1, car[3])
 
     print "*** Starting network"
     net.build()
     c1.start()
-    rs1.start( [c1] )
-    rs2.start( [c1] )
-    bs3.start( [c1] )
-    s10.start( [c1] )
+    eNodeB1.start([c1])
+    eNodeB2.start([c1])
+    rsu13.start([c1])
+    core.start([c1])
 
-    i = 201
     for sw in net.vehicles:
         sw.start([c1])
 
     i = 1
     j = 2
     for c in car:
-        c.cmd('ifconfig %s-wlan0 192.168.0.%s/24 up' % (c,i))
-        c.cmd('ifconfig %s-eth0 192.168.1.%s/24 up' % (c,i))
+        c.cmd('ifconfig %s-wlan0 192.168.0.%s/24 up' % (c, i))
+        c.cmd('ifconfig %s-eth0 192.168.1.%s/24 up' % (c, i))
         c.cmd('ip route add 10.0.0.0/8 via 192.168.1.%s' % j)
-        i+=2
-        j+=2
+        i += 2
+        j += 2
 
     i = 1
     j = 2
     for v in net.vehiclesSTA:
         v.cmd('ifconfig %s-eth0 192.168.1.%s/24 up' % (v, j))
-        v.cmd('ifconfig %s-mp0 10.0.0.%s/24 up' % (v,i))
+        v.cmd('ifconfig %s-mp0 10.0.0.%s/24 up' % (v, i))
         v.cmd('echo 1 > /proc/sys/net/ipv4/ip_forward')
-        i+=1
-        j+=2
+        i += 1
+        j += 2
 
     for v1 in net.vehiclesSTA:
         i = 1
         j = 1
         for v2 in net.vehiclesSTA:
             if v1 != v2:
-                v1.cmd('route add -host 192.168.1.%s gw 10.0.0.%s' % (j,i))
-            i+=1
-            j+=2
+                v1.cmd('route add -host 192.168.1.%s gw 10.0.0.%s' % (j, i))
+            i += 1
+            j += 2
 
     h1.cmd('ifconfig h1-eth0 200.0.10.2')
-    h1.cmd('ifconfig h1-eth0:0 200.1.10.2')
     net.vehiclesSTA[3].cmd('ifconfig car3STA-eth1 200.0.10.1')
-    net.vehiclesSTA[0].cmd('ifconfig car0STA-eth0 200.1.10.50')
+    net.vehiclesSTA[0].cmd('ifconfig car0STA-eth0 200.0.10.50')
 
     car[0].cmd('modprobe bonding mode=3')
     car[0].cmd('ip link add bond0 type bond')
@@ -111,58 +205,124 @@ def topology():
     car[0].cmd('ip addr add 200.0.10.100/24 dev bond0')
     car[0].cmd('ip link set bond0 up')
 
-    car[0].cmd('ifconfig bond0:0 200.1.10.100')
-    car[3].cmd('ifconfig car3-wlan0 200.1.10.150')
+    car[3].cmd('ifconfig car3-wlan0 200.0.10.150')
 
-    h1.cmd('ip route add 192.168.1.8 via 200.1.10.150')
-    h1.cmd('ip route add 10.0.0.1 via 200.1.10.150')
-    h1.cmd('ip route add 200.1.10.100 via 200.1.10.150')
+    h1.cmd('ip route add 192.168.1.8 via 200.0.10.150')
+    h1.cmd('ip route add 10.0.0.1 via 200.0.10.150')
 
-    net.vehiclesSTA[3].cmd('ip route add 200.1.10.2 via 192.168.1.7')
-    net.vehiclesSTA[3].cmd('ip route add 200.1.10.100 via 10.0.0.1')
-    net.vehiclesSTA[0].cmd('ip route add 200.1.10.2 via 10.0.0.4')
+    net.vehiclesSTA[3].cmd('ip route add 200.0.10.2 via 192.168.1.7')
+    net.vehiclesSTA[3].cmd('ip route add 200.0.10.100 via 10.0.0.1')
+    net.vehiclesSTA[0].cmd('ip route add 200.0.10.2 via 10.0.0.4')
 
-    car[0].cmd('ip route add 10.0.0.4 via 200.1.10.50')
-    car[0].cmd('ip route add 192.168.1.7 via 200.1.10.50')
-    car[0].cmd('ip route add 200.1.10.2 via 200.1.10.50')
-    car[3].cmd('ip route add 200.1.10.100 via 192.168.1.8')
-
+    car[0].cmd('ip route add 10.0.0.4 via 200.0.10.50')
+    car[0].cmd('ip route add 192.168.1.7 via 200.0.10.50')
+    car[0].cmd('ip route add 200.0.10.2 via 200.0.10.50')
+    car[3].cmd('ip route add 200.0.10.100 via 192.168.1.8')
 
     """uncomment to plot graph"""
     net.plotGraph(max_x=250, max_y=250)
 
-    mp1 = net.vehiclesSTA[0]
-    mp2 = net.vehiclesSTA[1]
-    mp3 = net.vehiclesSTA[2]
-    mp4 = net.vehiclesSTA[3]
+    net.startGraph()
 
-    print "*** Configure wmediumd"
-    sta1wlan0 = DynamicWmediumdIntfRef(mp1)
-    sta2wlan0 = DynamicWmediumdIntfRef(mp2)
-    sta3wlan0 = DynamicWmediumdIntfRef(mp3)
-    sta4wlan0 = DynamicWmediumdIntfRef(mp4)
+    os.system('rm *.vanetdata')
 
-    intfrefs = [sta1wlan0, sta2wlan0, sta3wlan0, sta4wlan0]
-    links = [
-        WmediumdLink(sta1wlan0, sta2wlan0, 15),
-        WmediumdLink(sta2wlan0, sta1wlan0, 15),
-        WmediumdLink(sta2wlan0, sta3wlan0, 15),
-        WmediumdLink(sta3wlan0, sta2wlan0, 15),
-        WmediumdLink(sta3wlan0, sta4wlan0, 15),
-        WmediumdLink(sta4wlan0, sta3wlan0, 15)]
-    #WmediumdStarter.initialize(intfrefs, links)
+    os.system('xterm -hold -title "car0" -e "util/m car0 ping 200.0.10.2" &')
 
-    #WmediumdStarter.start()
+    os.system('ovs-ofctl mod-flows core in_port=1,actions=drop')
+    os.system('ovs-ofctl mod-flows core in_port=2,actions=drop')
+    os.system('ovs-ofctl mod-flows core in_port=3,actions=drop')
+
+    time.sleep(2)
+
+    print "applying first rule"
+    os.system('ovs-ofctl mod-flows core in_port=1,actions=output:4')
+    os.system('ovs-ofctl mod-flows core in_port=2,actions=drop')
+    os.system('ovs-ofctl mod-flows core in_port=3,actions=drop')
+
+    car[0].cmd('ip route add 200.0.10.2 via 200.0.10.50')
+    h1.cmd('ip route add 200.0.10.100 via 200.0.10.150')
+
+    timeout = time.time() + timeTask
+    currentTime = time.time()
+    i = 1
+    while True:
+        if time.time() > timeout:
+            break;
+        if time.time() - currentTime >= i:
+            car[0].cmd('ifconfig bond0 | grep \"TX packets\" | awk -F\' \' \'{print $3}\' >> %s' % c0_pkt)
+            core.cmd('ifconfig core-eth4 | grep \"TX packets\" | awk -F\' \' \'{print $3}\' >> %s' % core_pkt)
+            car[0].cmd('ifconfig bond0 | grep \"bytes\" | awk -F\' \' \'NR==2{print $5}\' >> %s' % c0_throughput)
+            core.cmd('ifconfig core-eth4 | grep \"bytes\" | awk -F\' \' \'NR==2{print $5}\' >> %s' % core_throughput)
+            i += 1
+
+    print "Moving nodes"    
+    car[0].moveNodeTo('150,100,0')
+    car[1].moveNodeTo('120,100,0')
+    car[2].moveNodeTo('90,100,0')
+    car[3].moveNodeTo('70,100,0')
+
+    time.sleep(4)
+
+    print "applying second rule"
+    os.system('ovs-ofctl mod-flows core in_port=1,actions=drop')
+    os.system('ovs-ofctl mod-flows core in_port=2,actions=output:4')
+    os.system('ovs-ofctl mod-flows core in_port=3,actions=output:4')
+
+    car[0].cmd('ip route del 200.0.10.2 via 200.0.10.50')
+    h1.cmd('ip route del 200.0.10.100 via 200.0.10.150')
+
+    timeout = time.time() + timeTask
+    currentTime = time.time()
+    i = 1
+    while True:
+        if time.time() > timeout:
+            break;
+        if time.time() - currentTime >= i:
+            car[0].cmd('ifconfig bond0 | grep \"TX packets\" | awk -F\' \' \'{print $3}\' >> %s' % c0_pkt)
+            core.cmd('ifconfig core-eth4 | grep \"TX packets\" | awk -F\' \' \'{print $3}\' >> %s' % core_pkt)
+            car[0].cmd('ifconfig bond0 | grep \"bytes\" | awk -F\' \' \'NR==2{print $5}\' >> %s' % c0_throughput)
+            core.cmd('ifconfig core-eth4 | grep \"bytes\" | awk -F\' \' \'NR==2{print $5}\' >> %s' % core_throughput)
+            i += 1
+
+    print "Moving nodes"
+    car[0].moveNodeTo('190,100,0')
+    car[1].moveNodeTo('150,100,0')
+    car[2].moveNodeTo('120,100,0')
+    car[3].moveNodeTo('90,100,0')
+
+    time.sleep(4)
+
+    print "applying third rule"
+    os.system('ovs-ofctl mod-flows core in_port=1,actions=drop')
+    os.system('ovs-ofctl mod-flows core in_port=2,actions=drop')
+    os.system('ovs-ofctl mod-flows core in_port=3,actions=output:4')
+
+    timeout = time.time() + timeTask
+    currentTime = time.time()
+    i = 1
+    while True:
+        if time.time() > timeout:
+            break;
+        if time.time() - currentTime >= i:
+            car[0].cmd('ifconfig bond0 | grep \"TX packets\" | awk -F\' \' \'{print $3}\' >> %s' % c0_pkt)
+            core.cmd('ifconfig core-eth4 | grep \"TX packets\" | awk -F\' \' \'{print $3}\' >> %s' % core_pkt)
+            car[0].cmd('ifconfig bond0 | grep \"bytes\" | awk -F\' \' \'NR==2{print $5}\' >> %s' % c0_throughput)
+            core.cmd('ifconfig core-eth4 | grep \"bytes\" | awk -F\' \' \'NR==2{print $5}\' >> %s' % core_throughput)
+            i += 1
+
+    print "*** Generating graphic"
+    graphic()
+
+    os.system('pkill xterm')
 
     print "*** Running CLI"
     CLI(net)
 
-    print "*** Stopping wmediumd"
-    #WmediumdStarter.stop()
-
+    os.system('rm *.vanetdata')
+    
     print "*** Stopping network"
     net.stop()
 
 if __name__ == '__main__':
-    setLogLevel( 'info' )
+    setLogLevel('info')
     topology()
