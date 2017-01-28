@@ -346,17 +346,6 @@ class testWalkthrough(unittest.TestCase):
         p.sendline('exit')
         p.wait()
         
-    def testVanet(self):
-        "Start Mininet-WiFi with Vanet, then test ping"
-        p = pexpect.spawn(
-            'python demos/vanet.py')
-        sleep(10)
-        p.sendline('car0 ping -c 1 10.0.0.4')
-        p.expect('1 packets transmitted, 1 received')
-        p.expect(self.prompt)
-        p.sendline('exit')
-        p.wait()
-        
     def testWmediumdStatic(self):
         "Start Mininet-WiFi with wmediumd, then test ping"
         p = pexpect.spawn(
