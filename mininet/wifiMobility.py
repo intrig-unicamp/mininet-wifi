@@ -78,7 +78,6 @@ class mobility (object):
         :param dist: distance between source and destination   
         """
         associated = True        
-        
         if dist > ap.params['range']:
             if ap == sta.params['associatedTo'][wlan]:
                 sta.pexec('iw dev %s disconnect' % sta.params['wlan'][wlan])
@@ -416,19 +415,19 @@ class mobility (object):
         """ 
         Applies channel params and handover
         """
-        while self.continue_:
-            for sta in self.stations:
-                for wlan in range(0, len(sta.params['wlan'])):
-                    if sta.func[wlan] == 'mesh' or sta.func[wlan] == 'adhoc':
-                        if sta.type == 'vehicle':
-                            sta = sta.params['carsta']
-                            wlan = 0
-                        dist = listNodes.pairingNodes(sta, wlan, self.stations)
-                        if WmediumdServerConn.connected == False and dist >= 0.01:
-                            setChannelParams(sta=sta, wlan=wlan, dist=dist)
-                    else:
-                        self.handoverCheck(sta, wlan)
-            if meshRouting.routing == 'custom':
-                meshRouting(self.stations)
-            # have to verify this
-            eval(self.continueParams)
+        #while self.continue_:
+        for sta in self.stations:
+            for wlan in range(0, len(sta.params['wlan'])):
+                if sta.func[wlan] == 'mesh' or sta.func[wlan] == 'adhoc':
+                    if sta.type == 'vehicle':
+                        sta = sta.params['carsta']
+                        wlan = 0
+                    dist = listNodes.pairingNodes(sta, wlan, self.stations)
+                    if WmediumdServerConn.connected == False and dist >= 0.01:
+                        setChannelParams(sta=sta, wlan=wlan, dist=dist)
+                else:
+                    self.handoverCheck(sta, wlan)
+        if meshRouting.routing == 'custom':
+            meshRouting(self.stations)
+        # have to verify this
+        eval(self.continueParams)

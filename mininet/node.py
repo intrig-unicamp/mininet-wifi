@@ -440,27 +440,6 @@ class Node(object):
                 
         return wifiRadios
 
-    @classmethod
-    def calculateWiFiParameters(self, sta):
-        for wlan in range(len(sta.params['wlan'])):
-            if sta.func[wlan] == 'mesh' or sta.func[wlan] == 'adhoc':
-                for station in mobility.stations:
-                    dist = listNodes.pairingNodes(station, wlan, mobility.stations)
-                    if dist >= 0.01:
-                        setChannelParams(sta=station, wlan=wlan, dist=dist)
-            else:
-                mobility.handoverCheck(sta, wlan)
-        if meshRouting.routing == 'custom':
-            meshRouting(mobility.stations)
-
-    @classmethod
-    def verifyingNodes(self, node):
-        if node in mobility.stations:
-            self.calculateWiFiParameters(node)
-        elif node in mobility.accessPoints:
-            for sta in mobility.stations:
-                self.calculateWiFiParameters(sta)
-
     def meshLeave(self, ssid):
         for key, val in self.params.items():
             if val == ssid:
@@ -486,16 +465,19 @@ class Node(object):
 
     def setRange(self, _range):
         self.params['range'] = _range
+        print _range
         try:
             if mobility.DRAW:
                 if mobility.is3d: 
                     plot3d.graphUpdate(self)
+                    plot3d.graphPause()
                 else:
                     plot2d.updateCircleRadius(self)
                     plot2d.graphUpdate(self)
+                    plot2d.graphPause()
         except:
             pass
-        self.verifyingNodes(self)
+        mobility.parameters()
 
     def moveNodeTo(self, pos):
         pos = pos.split(',')
@@ -505,7 +487,7 @@ class Node(object):
             plot2d.graphPause()
         elif mobility.DRAW and mobility.is3d == True:
             plot3d.graphUpdate(self)            
-        self.verifyingNodes(self)
+        mobility.parameters()
 
     def setAntennaGain(self, iface, value):
         wlan = int(iface[-1:])
@@ -515,13 +497,13 @@ class Node(object):
                 plot2d.graphUpdate(self)
             except:
                 pass
-        self.verifyingNodes(self)
+        mobility.parameters()
 
     def setTxPower(self, iface, txpower):
         wlan = int(iface[-1:])
         self.pexec('iwconfig %s txpower %s' % (iface, txpower))
         self.params['txpower'][wlan] = txpower
-        self.verifyingNodes(self)
+        mobility.parameters()
 
     def associateTo(self, iface, ap):
         self.moveAssociationTo(iface, ap)
