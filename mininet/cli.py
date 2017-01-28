@@ -52,7 +52,12 @@ class CLI(Cmd):
            stdin: standard input for CLI
            script: script to run in batch mode"""
            
-        if mobility.isMobility == False and mobility.DRAW:
+        if mobility.isMobility == False and mobility.DRAW and mininet.alreadyPlotted == False:
+            
+            for sta in mininet.stations:
+                if sta.func[0] == 'ap':
+                    mininet.accessPoints.append(sta)
+                    mininet.stations.remove(sta)
             
             for sta in mininet.stations:
                 if 'position' not in sta.params:
@@ -62,6 +67,7 @@ class CLI(Cmd):
                 mobility.accessPoints = mininet.accessPoints
             if mobility.stations == []: 
                 mobility.stations = mininet.stations
+            
             nodes = mininet.stations + mininet.accessPoints + mininet.plotNodes
             
             try:
