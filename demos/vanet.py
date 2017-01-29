@@ -108,10 +108,11 @@ def graphic():
     ax2.set_ylabel("Throughput (bytes/sec)", fontsize=18)
 
     plt.show()
+    #plt.savefig("graphic.eps")
 
 def topology():
     
-    timeTask = 30
+    timeTask = 20
 
     "Create a network."
     net = Mininet(controller=Controller, link=TCLink, switch=OVSKernelSwitch, accessPoint=OVSKernelAP)
@@ -126,14 +127,14 @@ def topology():
         car[x] = net.addCar('car%s' % (x), wlans=2, ip='10.0.0.%s/8' % (x + 1), \
         mac='00:00:00:00:00:0%s' % x, mode='b', position='%d,%d,0' % ((120 - (x * 20)), (100 - (x * 0))))
 
-    eNodeB1 = net.addAccessPoint('eNodeB1', ssid='eNodeB1', dpid='1000000000000', mode='g', channel='1', position='80,75,0')
-    eNodeB2 = net.addAccessPoint('eNodeB2', ssid='eNodeB2', dpid='2000000000000', mode='g', channel='6', position='160,75,0')
-    rsu13 = net.addAccessPoint('rsu13', ssid='rsu13', dpid='3000000000000', mode='g', channel='11', position='140,100,0', range=70)
+    eNodeB1 = net.addAccessPoint('eNodeB1', ssid='eNodeB1', dpid='1000000000000000', mode='g', channel='1', position='80,75,0')
+    eNodeB2 = net.addAccessPoint('eNodeB2', ssid='eNodeB2', dpid='2000000000000000', mode='g', channel='6', position='160,75,0')
+    rsu1 = net.addAccessPoint('rsu1', ssid='rsu1', dpid='3000000000000000', mode='g', channel='11', position='140,100,0', range=70)
     c1 = net.addController('c1', controller=Controller)
-    h1 = net.addHost ('h1')
-    core = net.addSwitch ('core', dpid='4000000000000')
+    server = net.addHost ('server')
+    core = net.addSwitch ('core', dpid='4000000000000000')
 
-    net.plotNode(h1, position='125,230,0')
+    net.plotNode(server, position='125,230,0')
     net.plotNode(core, position='125,200,0')
     
     print "*** Configuring wifi nodes"
@@ -142,9 +143,9 @@ def topology():
     print "*** Creating links"
     net.addLink(eNodeB1, core)
     net.addLink(eNodeB2, core)
-    net.addLink(rsu13, core)
-    net.addLink(core, h1)
-    net.addLink(rsu13, car[0])
+    net.addLink(rsu1, core)
+    net.addLink(core, server)
+    net.addLink(rsu1, car[0])
     net.addLink(eNodeB2, car[0])
     net.addLink(eNodeB1, car[3])
 
@@ -153,7 +154,7 @@ def topology():
     c1.start()
     eNodeB1.start([c1])
     eNodeB2.start([c1])
-    rsu13.start([c1])
+    rsu1.start([c1])
     core.start([c1])
 
     for sw in net.vehicles:
@@ -186,7 +187,7 @@ def topology():
             i += 1
             j += 2
 
-    h1.cmd('ifconfig h1-eth0 200.0.10.2')
+    server.cmd('ifconfig server-eth0 200.0.10.2')
     net.vehiclesSTA[3].cmd('ifconfig car3STA-eth1 200.0.10.1')
     net.vehiclesSTA[0].cmd('ifconfig car0STA-eth0 200.0.10.50')
 
@@ -207,8 +208,8 @@ def topology():
 
     car[3].cmd('ifconfig car3-wlan0 200.0.10.150')
 
-    h1.cmd('ip route add 192.168.1.8 via 200.0.10.150')
-    h1.cmd('ip route add 10.0.0.1 via 200.0.10.150')
+    server.cmd('ip route add 192.168.1.8 via 200.0.10.150')
+    server.cmd('ip route add 10.0.0.1 via 200.0.10.150')
 
     net.vehiclesSTA[3].cmd('ip route add 200.0.10.2 via 192.168.1.7')
     net.vehiclesSTA[3].cmd('ip route add 200.0.10.100 via 10.0.0.1')
@@ -226,7 +227,9 @@ def topology():
 
     os.system('rm *.vanetdata')
 
-    os.system('xterm -hold -title "car0" -e "util/m car0 ping 200.0.10.2" &')
+    #os.system('xterm -hold -title "car0" -e "util/m car0 ping 200.0.10.2" &')
+    car[0].cmdPrint("cvlc -vvv v4l2:///dev/video0 --mtu 1000 --sout \'#transcode{vcodec=mp4v,vb=800,scale=1,acodec=mpga,ab=128,channels=1}: duplicate{dst=display,dst=rtp{sdp=rtsp://200.0.10.100:8080/helmet.sdp}\' &")
+    server.cmdPrint("cvlc rtsp://200.0.10.100:8080/helmet.sdp &")
 
     os.system('ovs-ofctl mod-flows core in_port=1,actions=drop')
     os.system('ovs-ofctl mod-flows core in_port=2,actions=drop')
@@ -236,11 +239,15 @@ def topology():
 
     print "applying first rule"
     os.system('ovs-ofctl mod-flows core in_port=1,actions=output:4')
+    os.system('ovs-ofctl mod-flows core in_port=4,actions=output:1')
     os.system('ovs-ofctl mod-flows core in_port=2,actions=drop')
     os.system('ovs-ofctl mod-flows core in_port=3,actions=drop')
+    os.system('ovs-ofctl del-flows eNodeB1')
+    os.system('ovs-ofctl del-flows eNodeB2')
+    os.system('ovs-ofctl del-flows rsu1')
 
     car[0].cmd('ip route add 200.0.10.2 via 200.0.10.50')
-    h1.cmd('ip route add 200.0.10.100 via 200.0.10.150')
+    server.cmd('ip route add 200.0.10.100 via 200.0.10.150')
 
     timeout = time.time() + timeTask
     currentTime = time.time()
@@ -253,7 +260,8 @@ def topology():
             core.cmd('ifconfig core-eth4 | grep \"TX packets\" | awk -F\' \' \'{print $3}\' >> %s' % core_pkt)
             car[0].cmd('ifconfig bond0 | grep \"bytes\" | awk -F\' \' \'NR==2{print $5}\' >> %s' % c0_throughput)
             core.cmd('ifconfig core-eth4 | grep \"bytes\" | awk -F\' \' \'NR==2{print $5}\' >> %s' % core_throughput)
-            i += 1
+            os.system('ovs-ofctl dump-flows core')
+            i += 0.5
 
     print "Moving nodes"    
     car[0].moveNodeTo('150,100,0')
@@ -261,15 +269,19 @@ def topology():
     car[2].moveNodeTo('90,100,0')
     car[3].moveNodeTo('70,100,0')
 
-    time.sleep(4)
+    time.sleep(3)
 
     print "applying second rule"
     os.system('ovs-ofctl mod-flows core in_port=1,actions=drop')
     os.system('ovs-ofctl mod-flows core in_port=2,actions=output:4')
     os.system('ovs-ofctl mod-flows core in_port=3,actions=output:4')
+    os.system('ovs-ofctl mod-flows core in_port=4,actions=output:2,3')
+    os.system('ovs-ofctl del-flows eNodeB1')
+    os.system('ovs-ofctl del-flows eNodeB2')
+    os.system('ovs-ofctl del-flows rsu1')
 
     car[0].cmd('ip route del 200.0.10.2 via 200.0.10.50')
-    h1.cmd('ip route del 200.0.10.100 via 200.0.10.150')
+    server.cmd('ip route del 200.0.10.100 via 200.0.10.150')
 
     timeout = time.time() + timeTask
     currentTime = time.time()
@@ -282,7 +294,8 @@ def topology():
             core.cmd('ifconfig core-eth4 | grep \"TX packets\" | awk -F\' \' \'{print $3}\' >> %s' % core_pkt)
             car[0].cmd('ifconfig bond0 | grep \"bytes\" | awk -F\' \' \'NR==2{print $5}\' >> %s' % c0_throughput)
             core.cmd('ifconfig core-eth4 | grep \"bytes\" | awk -F\' \' \'NR==2{print $5}\' >> %s' % core_throughput)
-            i += 1
+            i += 0.5
+            os.system('ovs-ofctl dump-flows core')
 
     print "Moving nodes"
     car[0].moveNodeTo('190,100,0')
@@ -290,12 +303,16 @@ def topology():
     car[2].moveNodeTo('120,100,0')
     car[3].moveNodeTo('90,100,0')
 
-    time.sleep(4)
+    time.sleep(2)
 
     print "applying third rule"
     os.system('ovs-ofctl mod-flows core in_port=1,actions=drop')
     os.system('ovs-ofctl mod-flows core in_port=2,actions=drop')
     os.system('ovs-ofctl mod-flows core in_port=3,actions=output:4')
+    os.system('ovs-ofctl mod-flows core in_port=4,actions=output:3')
+    os.system('ovs-ofctl del-flows eNodeB1')
+    os.system('ovs-ofctl del-flows eNodeB2')
+    os.system('ovs-ofctl del-flows rsu1')
 
     timeout = time.time() + timeTask
     currentTime = time.time()
@@ -308,7 +325,8 @@ def topology():
             core.cmd('ifconfig core-eth4 | grep \"TX packets\" | awk -F\' \' \'{print $3}\' >> %s' % core_pkt)
             car[0].cmd('ifconfig bond0 | grep \"bytes\" | awk -F\' \' \'NR==2{print $5}\' >> %s' % c0_throughput)
             core.cmd('ifconfig core-eth4 | grep \"bytes\" | awk -F\' \' \'NR==2{print $5}\' >> %s' % core_throughput)
-            i += 1
+            os.system('ovs-ofctl dump-flows core')
+            i += 0.5
 
     print "*** Generating graphic"
     graphic()
@@ -318,7 +336,7 @@ def topology():
     print "*** Running CLI"
     CLI(net)
 
-    os.system('rm *.vanetdata')
+    #os.system('rm *.vanetdata')
     
     print "*** Stopping network"
     net.stop()
