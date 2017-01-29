@@ -127,9 +127,9 @@ def topology():
         car[x] = net.addCar('car%s' % (x), wlans=2, ip='10.0.0.%s/8' % (x + 1), \
         mac='00:00:00:00:00:0%s' % x, mode='b', position='%d,%d,0' % ((120 - (x * 20)), (100 - (x * 0))))
 
-    eNodeB1 = net.addAccessPoint('eNodeB1', ssid='eNodeB1', dpid='1000000000000000', mode='g', channel='1', position='80,75,0')
-    eNodeB2 = net.addAccessPoint('eNodeB2', ssid='eNodeB2', dpid='2000000000000000', mode='g', channel='6', position='160,75,0')
-    rsu1 = net.addAccessPoint('rsu1', ssid='rsu1', dpid='3000000000000000', mode='g', channel='11', position='140,100,0', range=70)
+    rsu1 = net.addAccessPoint('rsu1', ssid='rsu1', dpid='1000000000000000', mode='g', channel='1', position='80,75,0')
+    rsu2 = net.addAccessPoint('rsu2', ssid='rsu2', dpid='2000000000000000', mode='g', channel='6', position='160,75,0')
+    eNodeB1 = net.addAccessPoint('eNodeB1', ssid='eNodeB1', dpid='3000000000000000', mode='ac', channel='11', position='140,100,0', range=70)
     c1 = net.addController('c1', controller=Controller)
     client = net.addHost ('client')
     core = net.addSwitch ('core', dpid='4000000000000000')
@@ -141,20 +141,20 @@ def topology():
     net.configureWifiNodes()  
 
     print "*** Creating links"
-    net.addLink(eNodeB1, core)
-    net.addLink(eNodeB2, core)
     net.addLink(rsu1, core)
+    net.addLink(rsu2, core)
+    net.addLink(eNodeB1, core)
     net.addLink(core, client)
-    net.addLink(rsu1, car[0])
-    net.addLink(eNodeB2, car[0])
-    net.addLink(eNodeB1, car[3])
+    net.addLink(eNodeB1, car[0])
+    net.addLink(rsu2, car[0])
+    net.addLink(rsu1, car[3])
 
     print "*** Starting network"
     net.build()
     c1.start()
-    eNodeB1.start([c1])
-    eNodeB2.start([c1])
     rsu1.start([c1])
+    rsu2.start([c1])
+    eNodeB1.start([c1])
     core.start([c1])
 
     for sw in net.vehicles:
@@ -242,9 +242,9 @@ def topology():
     os.system('ovs-ofctl mod-flows core in_port=4,actions=output:1')
     os.system('ovs-ofctl mod-flows core in_port=2,actions=drop')
     os.system('ovs-ofctl mod-flows core in_port=3,actions=drop')
-    os.system('ovs-ofctl del-flows eNodeB1')
-    os.system('ovs-ofctl del-flows eNodeB2')
     os.system('ovs-ofctl del-flows rsu1')
+    os.system('ovs-ofctl del-flows rsu2')
+    os.system('ovs-ofctl del-flows eNodeB1')
 
     car[0].cmd('ip route add 200.0.10.2 via 200.0.10.50')
     client.cmd('ip route add 200.0.10.100 via 200.0.10.150')
@@ -268,16 +268,16 @@ def topology():
     car[2].moveNodeTo('90,100,0')
     car[3].moveNodeTo('70,100,0')
 
-    time.sleep(3)
+    #time.sleep(3)
 
     print "applying second rule"
     os.system('ovs-ofctl mod-flows core in_port=1,actions=drop')
     os.system('ovs-ofctl mod-flows core in_port=2,actions=output:4')
     os.system('ovs-ofctl mod-flows core in_port=3,actions=output:4')
     os.system('ovs-ofctl mod-flows core in_port=4,actions=output:2,3')
-    os.system('ovs-ofctl del-flows eNodeB1')
-    os.system('ovs-ofctl del-flows eNodeB2')
     os.system('ovs-ofctl del-flows rsu1')
+    os.system('ovs-ofctl del-flows rsu2')
+    os.system('ovs-ofctl del-flows eNodeB1')
 
     car[0].cmd('ip route del 200.0.10.2 via 200.0.10.50')
     client.cmd('ip route del 200.0.10.100 via 200.0.10.150')
@@ -301,16 +301,16 @@ def topology():
     car[2].moveNodeTo('120,100,0')
     car[3].moveNodeTo('90,100,0')
 
-    time.sleep(2)
+    #time.sleep(2)
 
     print "applying third rule"
     os.system('ovs-ofctl mod-flows core in_port=1,actions=drop')
     os.system('ovs-ofctl mod-flows core in_port=2,actions=drop')
     os.system('ovs-ofctl mod-flows core in_port=3,actions=output:4')
     os.system('ovs-ofctl mod-flows core in_port=4,actions=output:3')
-    os.system('ovs-ofctl del-flows eNodeB1')
-    os.system('ovs-ofctl del-flows eNodeB2')
     os.system('ovs-ofctl del-flows rsu1')
+    os.system('ovs-ofctl del-flows rsu2')
+    os.system('ovs-ofctl del-flows eNodeB1')
 
     timeout = time.time() + timeTask
     currentTime = time.time()
