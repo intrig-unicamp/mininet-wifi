@@ -1,7 +1,7 @@
 # !/usr/bin/python
 
 """
-This code illustrates a single case about Vehicular Ad-Hoc Networks. 
+This code illustrates a single case about Vehicular Ad-Hoc Networks.
 More detail about VANET implementation can be found at the paper titled
 From Theory to Experimental Evaluation: Resource Management in Software-Defined Vehicular Networks
 url: ...
@@ -15,13 +15,15 @@ import matplotlib.pyplot as plt
 from mininet.net import Mininet
 from mininet.node import Controller, OVSKernelSwitch, OVSKernelAP
 from mininet.link import TCLink
-from mininet.log import setLogLevel
+from mininet.log import setLogLevel, debug
 from mininet.cli import CLI
 
 switch_pkt = 'switch-pkt.vanetdata'
 switch_throughput = 'switch-throughput.vanetdata'
 c0_pkt = 'c0-pkt.vanetdata'
 c0_throughput = 'c0-throughput.vanetdata'
+value_=0
+timeTask = 20
 
 def graphic():
 
@@ -47,60 +49,60 @@ def graphic():
     t = []
     ll1 = []
     ll2 = []
-    
+
     t1 = []
     t2 = []
     tt1 = []
     tt2 = []
-    
+
     # scan the rows of the file stored in lines, and put the values into some variables:
     i = 0
-    for x in eth0:    
-        p = x.split(':')
-        l1.append(int(p[1]))
+    for x in eth0:
+        p = x.split()
+        l1.append(int(p[0]))
         if len(l1) > 1:
             ll1.append(l1[i] - l1[i - 1])
         i += 1
-    
+
     i = 0
-    for x in eth01:    
-        p = x.split(':')
-        t1.append(int(p[1]))
+    for x in eth01:
+        p = x.split()
+        t1.append(int(p[0]))
         if len(t1) > 1:
             tt1.append(t1[i] - t1[i - 1])
         i += 1
-    
+
     i = 0
-    for x in wlan0:    
-        p = x.split(':')
-        l2.append(int(p[1]))
+    for x in wlan0:
+        p = x.split()
+        l2.append(int(p[0]))
         if len(l2) > 1:
             ll2.append(l2[i] - l2[i - 1])
         i += 1
-    
+
     i = 0
-    for x in wlan01:    
-        p = x.split(':')
-        t2.append(int(p[1]))
+    for x in wlan01:
+        p = x.split()
+        t2.append(int(p[0]))
         if len(t2) > 1:
             tt2.append(t2[i] - t2[i - 1])
         i += 1
-    
+
     i = 0
-    for x in range(len(ll1)):    
+    for x in range(len(ll1)):
         t.append(i)
         i = i + 0.5
-    
+
     fig, ax1 = plt.subplots()
     ax2 = ax1.twinx()
-    
+
     ax1.plot(t, ll1, color='red', label='Received Data (client)', ls="--", markevery=7, linewidth=1)
     ax1.plot(t, ll2, color='black', label='Transmited Data (server)', markevery=7, linewidth=1)
     ax2.plot(t, tt1, color='red', label='Throughput (client)', ls="-.", markevery=7, linewidth=1)
     ax2.plot(t, tt2, color='black', label='Throughput (server)', ls=':', markevery=7, linewidth=1)
     ax1.legend(loc=2, borderaxespad=0., fontsize=12)
     ax2.legend(loc=1, borderaxespad=0., fontsize=12)
-    
+
     ax2.set_yscale('log')
 
     ax1.set_ylabel("# Packets (unit)", fontsize=18)
@@ -110,10 +112,186 @@ def graphic():
     plt.show()
     #plt.savefig("graphic.eps")
 
-def topology():
-    
-    timeTask = 20
+def apply_experiment_k44(car,client,switch):
+    print "applying first rule"
+    os.system('ovs-ofctl mod-flows switch in_port=1,actions=output:4')
+    os.system('ovs-ofctl mod-flows switch in_port=4,actions=output:1')
+    os.system('ovs-ofctl mod-flows switch in_port=2,actions=drop')
+    os.system('ovs-ofctl mod-flows switch in_port=3,actions=drop')
+    os.system('ovs-ofctl del-flows rsu1')
+    os.system('ovs-ofctl del-flows rsu2')
+    os.system('ovs-ofctl del-flows eNodeB1')
 
+    car[0].cmd('ip route add 200.0.10.2 via 200.0.10.50')
+    client.cmd('ip route add 200.0.10.100 via 200.0.10.150')
+
+    timeout = time.time() + timeTask
+    currentTime = time.time()
+    i = 1
+    while True:
+        if time.time() > timeout:
+            break;
+        if time.time() - currentTime >= i:
+            car[0].cmd('ifconfig bond0 | grep \"TX packets\" | awk  \'{print $2}\' | awk \'{split($0,a,":"); print a[2]}\' >> %s' % c0_pkt)
+            switch.cmd('ifconfig switch-eth4 | grep \"TX packets\" | awk \'{print $2}\' | awk \'{split($0,a,":"); print a[2]}\' >> %s' % switch_pkt)
+            car[0].cmd('ifconfig bond0 | grep \"bytes\" | awk \'{print $2}\' | awk \'{split($0,a,":"); print a[2]}\' >> %s' % c0_throughput)
+            switch.cmd('ifconfig switch-eth4 | grep \"bytes\" | awk  \'{print $2}\' | awk \'{split($0,a,":"); print a[2]}\' >> %s' % switch_throughput)
+            i += 0.5
+
+    print "Moving nodes"
+    car[0].moveNodeTo('150,100,0')
+    car[1].moveNodeTo('120,100,0')
+    car[2].moveNodeTo('90,100,0')
+    car[3].moveNodeTo('70,100,0')
+
+    #time.sleep(3)
+
+    print "applying second rule"
+    os.system('ovs-ofctl mod-flows switch in_port=1,actions=drop')
+    os.system('ovs-ofctl mod-flows switch in_port=2,actions=output:4')
+    os.system('ovs-ofctl mod-flows switch in_port=3,actions=output:4')
+    os.system('ovs-ofctl mod-flows switch in_port=4,actions=output:2,3')
+    os.system('ovs-ofctl del-flows rsu1')
+    os.system('ovs-ofctl del-flows rsu2')
+    os.system('ovs-ofctl del-flows eNodeB1')
+
+    car[0].cmd('ip route del 200.0.10.2 via 200.0.10.50')
+    client.cmd('ip route del 200.0.10.100 via 200.0.10.150')
+
+    timeout = time.time() + timeTask
+    currentTime = time.time()
+    i = 1
+    while True:
+        if time.time() > timeout:
+            break;
+        if time.time() - currentTime >= i:
+
+            car[0].cmd('ifconfig bond0 | grep \"TX packets\" | awk  \'{print $2}\' | awk \'{split($0,a,":"); print a[2]}\' >> %s' % c0_pkt)
+            switch.cmd('ifconfig switch-eth4 | grep \"TX packets\" | awk \'{print $2}\' | awk \'{split($0,a,":"); print a[2]}\' >> %s' % switch_pkt)
+            car[0].cmd('ifconfig bond0 | grep \"bytes\" | awk \'{print $2}\' | awk \'{split($0,a,":"); print a[2]}\' >> %s' % c0_throughput)
+            switch.cmd('ifconfig switch-eth4 | grep \"bytes\" | awk  \'{print $2}\' | awk \'{split($0,a,":"); print a[2]}\' >> %s' % switch_throughput)
+            i += 0.5
+
+    print "Moving nodes"
+    car[0].moveNodeTo('190,100,0')
+    car[1].moveNodeTo('150,100,0')
+    car[2].moveNodeTo('120,100,0')
+    car[3].moveNodeTo('90,100,0')
+
+    #time.sleep(2)
+
+    print "applying third rule"
+    os.system('ovs-ofctl mod-flows switch in_port=1,actions=drop')
+    os.system('ovs-ofctl mod-flows switch in_port=2,actions=drop')
+    os.system('ovs-ofctl mod-flows switch in_port=3,actions=output:4')
+    os.system('ovs-ofctl mod-flows switch in_port=4,actions=output:3')
+    os.system('ovs-ofctl del-flows rsu1')
+    os.system('ovs-ofctl del-flows rsu2')
+    os.system('ovs-ofctl del-flows eNodeB1')
+
+    timeout = time.time() + timeTask
+    currentTime = time.time()
+    i = 1
+    while True:
+        if time.time() > timeout:
+            break;
+        if time.time() - currentTime >= i:
+            car[0].cmd('ifconfig bond0 | grep \"TX packets\" | awk  \'{print $2}\' | awk \'{split($0,a,":"); print a[2]}\' >> %s' % c0_pkt)
+            switch.cmd('ifconfig switch-eth4 | grep \"TX packets\" | awk \'{print $2}\' | awk \'{split($0,a,":"); print a[2]}\' >> %s' % switch_pkt)
+            car[0].cmd('ifconfig bond0 | grep \"bytes\" | awk \'{print $2}\' | awk \'{split($0,a,":"); print a[2]}\' >> %s' % c0_throughput)
+            switch.cmd('ifconfig switch-eth4 | grep \"bytes\" | awk  \'{print $2}\' | awk \'{split($0,a,":"); print a[2]}\' >> %s' % switch_throughput)
+            i += 0.5
+
+def apply_experiment_k46(car,client,switch):
+    print "applying first rule"
+    os.system('ovs-ofctl mod-flows switch in_port=1,actions=output:4')
+    os.system('ovs-ofctl mod-flows switch in_port=4,actions=output:1')
+    os.system('ovs-ofctl mod-flows switch in_port=2,actions=drop')
+    os.system('ovs-ofctl mod-flows switch in_port=3,actions=drop')
+    os.system('ovs-ofctl del-flows eNodeB1')
+    os.system('ovs-ofctl del-flows eNodeB2')
+    os.system('ovs-ofctl del-flows rsu1')
+
+    car[0].cmd('ip route add 200.0.10.2 via 200.0.10.50')
+    client.cmd('ip route add 200.0.10.100 via 200.0.10.150')
+
+    timeout = time.time() + timeTask
+    currentTime = time.time()
+    i = 1
+    while True:
+        if time.time() > timeout:
+            break;
+        if time.time() - currentTime >= i:
+            car[0].cmd('ifconfig bond0 | grep \"TX packets\" | awk -F\' \' \'{print $3}\' >> %s' % c0_pkt)
+            switch.cmd('ifconfig switch-eth4 | grep \"TX packets\" | awk -F\' \' \'{print $3}\' >> %s' % switch_pkt)
+            car[0].cmd('ifconfig bond0 | grep \"bytes\" | awk -F\' \' \'NR==2{print $5}\' >> %s' % c0_throughput)
+            switch.cmd('ifconfig switch-eth4 | grep \"bytes\" | awk -F\' \' \'NR==2{print $5}\' >> %s' % switch_throughput)
+            i += 0.5
+
+    print "Moving nodes"
+    car[0].moveNodeTo('150,100,0')
+    car[1].moveNodeTo('120,100,0')
+    car[2].moveNodeTo('90,100,0')
+    car[3].moveNodeTo('70,100,0')
+
+    #time.sleep(3)
+
+    print "applying second rule"
+    os.system('ovs-ofctl mod-flows switch in_port=1,actions=drop')
+    os.system('ovs-ofctl mod-flows switch in_port=2,actions=output:4')
+    os.system('ovs-ofctl mod-flows switch in_port=4,actions=output:2,3')
+    os.system('ovs-ofctl mod-flows switch in_port=3,actions=output:4')
+    os.system('ovs-ofctl del-flows eNodeB1')
+    os.system('ovs-ofctl del-flows eNodeB2')
+    os.system('ovs-ofctl del-flows rsu1')
+
+    car[0].cmd('ip route del 200.0.10.2 via 200.0.10.50')
+    client.cmd('ip route del 200.0.10.100 via 200.0.10.150')
+
+    timeout = time.time() + timeTask
+    currentTime = time.time()
+    i = 1
+    while True:
+        if time.time() > timeout:
+            break;
+        if time.time() - currentTime >= i:
+            car[0].cmd('ifconfig bond0 | grep \"TX packets\" | awk -F\' \' \'{print $3}\' >> %s' % c0_pkt)
+            switch.cmd('ifconfig switch-eth4 | grep \"TX packets\" | awk -F\' \' \'{print $3}\' >> %s' % switch_pkt)
+            car[0].cmd('ifconfig bond0 | grep \"bytes\" | awk -F\' \' \'NR==2{print $5}\' >> %s' % c0_throughput)
+            switch.cmd('ifconfig switch-eth4 | grep \"bytes\" | awk -F\' \' \'NR==2{print $5}\' >> %s' % switch_throughput)
+            i += 0.5
+
+    print "Moving nodes"
+    car[0].moveNodeTo('190,100,0')
+    car[1].moveNodeTo('150,100,0')
+    car[2].moveNodeTo('120,100,0')
+    car[3].moveNodeTo('90,100,0')
+
+    #time.sleep(2)
+
+    print "applying third rule"
+    os.system('ovs-ofctl mod-flows switch in_port=1,actions=drop')
+    os.system('ovs-ofctl mod-flows switch in_port=3,actions=drop')
+    os.system('ovs-ofctl mod-flows switch in_port=2,actions=output:4')
+    os.system('ovs-ofctl mod-flows switch in_port=4,actions=output:2')
+    os.system('ovs-ofctl del-flows eNodeB1')
+    os.system('ovs-ofctl del-flows eNodeB2')
+    os.system('ovs-ofctl del-flows rsu1')
+
+    timeout = time.time() + timeTask
+    currentTime = time.time()
+    i = 1
+    while True:
+        if time.time() > timeout:
+            break;
+        if time.time() - currentTime >= i:
+            car[0].cmd('ifconfig bond0 | grep \"TX packets\" | awk -F\' \' \'{print $3}\' >> %s' % c0_pkt)
+            switch.cmd('ifconfig switch-eth4 | grep \"TX packets\" | awk -F\' \' \'{print $3}\' >> %s' % switch_pkt)
+            car[0].cmd('ifconfig bond0 | grep \"bytes\" | awk -F\' \' \'NR==2{print $5}\' >> %s' % c0_throughput)
+            switch.cmd('ifconfig switch-eth4 | grep \"bytes\" | awk -F\' \' \'NR==2{print $5}\' >> %s' % switch_throughput)
+            i += 0.5
+
+def topology():
     "Create a network."
     net = Mininet(controller=Controller, link=TCLink, switch=OVSKernelSwitch, accessPoint=OVSKernelAP)
 
@@ -127,34 +305,34 @@ def topology():
         car[x] = net.addCar('car%s' % (x), wlans=2, ip='10.0.0.%s/8' % (x + 1), \
         mac='00:00:00:00:00:0%s' % x, mode='b', position='%d,%d,0' % ((120 - (x * 20)), (100 - (x * 0))))
 
-    eNodeB1 = net.addAccessPoint('eNodeB1', ssid='eNodeB1', dpid='1000000000000000', mode='ac', channel='1', position='80,75,0', range=70)
-    eNodeB2 = net.addAccessPoint('eNodeB2', ssid='eNodeB2', dpid='2000000000000000', mode='ac', channel='6', position='180,75,0', range=70)
-    rsu1 = net.addAccessPoint('rsu1', ssid='rsu1', dpid='3000000000000000', mode='g', channel='11', position='140,120,0')
+    rsu1 = net.addAccessPoint('rsu1', ssid='rsu1', dpid='1000000000000000', mode='g', channel='1', position='80,75,0')
+    rsu2 = net.addAccessPoint('rsu2', ssid='rsu2', dpid='2000000000000000', mode='g', channel='6', position='160,75,0')
+    eNodeB1 = net.addAccessPoint('eNodeB1', ssid='eNodeB1', dpid='3000000000000000', mode='ac', channel='11', position='140,100,0', range=70)
     c1 = net.addController('c1', controller=Controller)
     client = net.addHost ('client')
     switch = net.addSwitch ('switch', dpid='4000000000000000')
 
     net.plotNode(client, position='125,230,0')
     net.plotNode(switch, position='125,200,0')
-    
+
     print "*** Configuring wifi nodes"
-    net.configureWifiNodes()  
+    net.configureWifiNodes()
 
     print "*** Creating links"
-    net.addLink(eNodeB1, switch)
-    net.addLink(eNodeB2, switch)
     net.addLink(rsu1, switch)
+    net.addLink(rsu2, switch)
+    net.addLink(eNodeB1, switch)
     net.addLink(switch, client)
-    net.addLink(rsu1, car[0])
-    net.addLink(eNodeB2, car[0])
-    net.addLink(eNodeB1, car[3])
+    net.addLink(eNodeB1, car[0])
+    net.addLink(rsu2, car[0])
+    net.addLink(rsu1, car[3])
 
     print "*** Starting network"
     net.build()
     c1.start()
-    eNodeB1.start([c1])
-    eNodeB2.start([c1])
     rsu1.start([c1])
+    rsu2.start([c1])
+    eNodeB1.start([c1])
     switch.start([c1])
 
     for sw in net.vehicles:
@@ -228,102 +406,30 @@ def topology():
     os.system('rm *.vanetdata')
 
     #os.system('xterm -hold -title "car0" -e "util/m car0 ping 200.0.10.2" &')
+
     car[0].cmdPrint("cvlc -vvv v4l2:///dev/video0 --mtu 1000 --sout \'#transcode{vcodec=mp4v,vb=800,scale=1,acodec=mpga,ab=128,channels=1}: duplicate{dst=display,dst=rtp{sdp=rtsp://200.0.10.100:8080/helmet.sdp}\' &")
+    #time.sleep(3)
     client.cmdPrint("cvlc rtsp://200.0.10.100:8080/helmet.sdp &")
 
+
     os.system('ovs-ofctl mod-flows switch in_port=1,actions=drop')
     os.system('ovs-ofctl mod-flows switch in_port=2,actions=drop')
     os.system('ovs-ofctl mod-flows switch in_port=3,actions=drop')
 
-    time.sleep(2)
+    time.sleep(3)
 
-    print "applying first rule"
-    os.system('ovs-ofctl mod-flows switch in_port=1,actions=output:4')
-    os.system('ovs-ofctl mod-flows switch in_port=4,actions=output:1')
-    os.system('ovs-ofctl mod-flows switch in_port=2,actions=drop')
-    os.system('ovs-ofctl mod-flows switch in_port=3,actions=drop')
-    os.system('ovs-ofctl del-flows eNodeB1')
-    os.system('ovs-ofctl del-flows eNodeB2')
-    os.system('ovs-ofctl del-flows rsu1')
+    value_=os.system('ifconfig lo | grep \"TX packets\" | awk  \'{print $2}\' | awk \'{split($0,a,":"); print a[2]}\'')
+    print("the value is : %s" %value_)
+    try:
+        int(value_)
+        debug('calling experiment for kernel 4.4')
+        apply_experiment_k44(car,client,switch);
+        #kernel 4.4
+    except ValueError:
+        debug('calling experiment for kernel 4.6')
+        apply_experiment_k46(car,client,switch);
+        #kernel 4.6
 
-    car[0].cmd('ip route add 200.0.10.2 via 200.0.10.50')
-    client.cmd('ip route add 200.0.10.100 via 200.0.10.150')
-
-    timeout = time.time() + timeTask
-    currentTime = time.time()
-    i = 1
-    while True:
-        if time.time() > timeout:
-            break;
-        if time.time() - currentTime >= i:
-            car[0].cmd('ifconfig bond0 | grep \"TX packets\" | awk \'{print $2}\' >> %s' % c0_pkt)
-            switch.cmd('ifconfig switch-eth4 | grep \"TX packets\" | awk \'{print $2}\' >> %s' % switch_pkt)
-            car[0].cmd('ifconfig bond0 | grep \"bytes\" | awk \'{print $2}\' >> %s' % c0_throughput)
-            switch.cmd('ifconfig switch-eth4 | grep \"bytes\" | awk \'{print $2}\' >> %s' % switch_throughput)
-            i += 0.5
-
-    print "Moving nodes"    
-    car[0].moveNodeTo('150,100,0')
-    car[1].moveNodeTo('120,100,0')
-    car[2].moveNodeTo('90,100,0')
-    car[3].moveNodeTo('70,100,0')
-
-    #time.sleep(3)
-
-    print "applying second rule"
-    os.system('ovs-ofctl mod-flows switch in_port=1,actions=drop')
-    os.system('ovs-ofctl mod-flows switch in_port=2,actions=output:4')
-    os.system('ovs-ofctl mod-flows switch in_port=4,actions=output:2,3')
-    os.system('ovs-ofctl mod-flows switch in_port=3,actions=output:4')
-    os.system('ovs-ofctl del-flows eNodeB1')
-    os.system('ovs-ofctl del-flows eNodeB2')
-    os.system('ovs-ofctl del-flows rsu1')
-
-    car[0].cmd('ip route del 200.0.10.2 via 200.0.10.50')
-    client.cmd('ip route del 200.0.10.100 via 200.0.10.150')
-
-    timeout = time.time() + timeTask
-    currentTime = time.time()
-    i = 1
-    while True:
-        if time.time() > timeout:
-            break;
-        if time.time() - currentTime >= i:
-            car[0].cmd('ifconfig bond0 | grep \"TX packets\" | awk \'{print $2}\' >> %s' % c0_pkt)
-            switch.cmd('ifconfig switch-eth4 | grep \"TX packets\" | awk \'{print $2}\' >> %s' % switch_pkt)
-            car[0].cmd('ifconfig bond0 | grep \"bytes\" | awk \'{print $2}\' >> %s' % c0_throughput)
-            switch.cmd('ifconfig switch-eth4 | grep \"bytes\" | awk \'{print $2}\' >> %s' % switch_throughput)
-            i += 0.5
-
-    print "Moving nodes"
-    car[0].moveNodeTo('190,100,0')
-    car[1].moveNodeTo('150,100,0')
-    car[2].moveNodeTo('120,100,0')
-    car[3].moveNodeTo('90,100,0')
-
-    #time.sleep(2)
-
-    print "applying third rule"
-    os.system('ovs-ofctl mod-flows switch in_port=1,actions=drop')
-    os.system('ovs-ofctl mod-flows switch in_port=3,actions=drop')
-    os.system('ovs-ofctl mod-flows switch in_port=2,actions=output:4')
-    os.system('ovs-ofctl mod-flows switch in_port=4,actions=output:2')
-    os.system('ovs-ofctl del-flows eNodeB1')
-    os.system('ovs-ofctl del-flows eNodeB2')
-    os.system('ovs-ofctl del-flows rsu1')
-
-    timeout = time.time() + timeTask
-    currentTime = time.time()
-    i = 1
-    while True:
-        if time.time() > timeout:
-            break;
-        if time.time() - currentTime >= i:
-            car[0].cmd('ifconfig bond0 | grep \"TX packets\" | awk \'{print $2}\' >> %s' % c0_pkt)
-            switch.cmd('ifconfig switch-eth4 | grep \"TX packets\" | awk \'{print $2}\' >> %s' % switch_pkt)
-            car[0].cmd('ifconfig bond0 | grep \"bytes\" | awk \'{print $2}\' >> %s' % c0_throughput)
-            switch.cmd('ifconfig switch-eth4 | grep \"bytes\" | awk \'{print $2}\' >> %s' % switch_throughput)
-            i += 0.5
 
     print "*** Generating graphic"
     graphic()
@@ -334,7 +440,7 @@ def topology():
     CLI(net)
 
     #os.system('rm *.vanetdata')
-    
+
     print "*** Stopping network"
     net.stop()
 
