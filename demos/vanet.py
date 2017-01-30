@@ -56,32 +56,32 @@ def graphic():
     # scan the rows of the file stored in lines, and put the values into some variables:
     i = 0
     for x in eth0:    
-        p = x.split()
-        l1.append(int(p[0]))
+        p = x.split(':')
+        l1.append(int(p[1]))
         if len(l1) > 1:
             ll1.append(l1[i] - l1[i - 1])
         i += 1
     
     i = 0
     for x in eth01:    
-        p = x.split()
-        t1.append(int(p[0]))
+        p = x.split(':')
+        t1.append(int(p[1]))
         if len(t1) > 1:
             tt1.append(t1[i] - t1[i - 1])
         i += 1
     
     i = 0
     for x in wlan0:    
-        p = x.split()
-        l2.append(int(p[0]))
+        p = x.split(':')
+        l2.append(int(p[1]))
         if len(l2) > 1:
             ll2.append(l2[i] - l2[i - 1])
         i += 1
     
     i = 0
     for x in wlan01:    
-        p = x.split()
-        t2.append(int(p[0]))
+        p = x.split(':')
+        t2.append(int(p[1]))
         if len(t2) > 1:
             tt2.append(t2[i] - t2[i - 1])
         i += 1
@@ -256,10 +256,10 @@ def topology():
         if time.time() > timeout:
             break;
         if time.time() - currentTime >= i:
-            car[0].cmd('ifconfig bond0 | grep \"TX packets\" | awk -F\' \' \'{print $3}\' >> %s' % c0_pkt)
-            switch.cmd('ifconfig switch-eth4 | grep \"TX packets\" | awk -F\' \' \'{print $3}\' >> %s' % switch_pkt)
-            car[0].cmd('ifconfig bond0 | grep \"bytes\" | awk -F\' \' \'NR==2{print $5}\' >> %s' % c0_throughput)
-            switch.cmd('ifconfig switch-eth4 | grep \"bytes\" | awk -F\' \' \'NR==2{print $5}\' >> %s' % switch_throughput)
+            car[0].cmd('ifconfig bond0 | grep \"TX packets\" | awk \'{print $2}\' >> %s' % c0_pkt)
+            switch.cmd('ifconfig switch-eth4 | grep \"TX packets\" | awk \'{print $2}\' >> %s' % switch_pkt)
+            car[0].cmd('ifconfig bond0 | grep \"bytes\" | awk \'{print $2}\' >> %s' % c0_throughput)
+            switch.cmd('ifconfig switch-eth4 | grep \"bytes\" | awk \'{print $2}\' >> %s' % switch_throughput)
             i += 0.5
 
     print "Moving nodes"    
@@ -289,10 +289,10 @@ def topology():
         if time.time() > timeout:
             break;
         if time.time() - currentTime >= i:
-            car[0].cmd('ifconfig bond0 | grep \"TX packets\" | awk -F\' \' \'{print $3}\' >> %s' % c0_pkt)
-            switch.cmd('ifconfig switch-eth4 | grep \"TX packets\" | awk -F\' \' \'{print $3}\' >> %s' % switch_pkt)
-            car[0].cmd('ifconfig bond0 | grep \"bytes\" | awk -F\' \' \'NR==2{print $5}\' >> %s' % c0_throughput)
-            switch.cmd('ifconfig switch-eth4 | grep \"bytes\" | awk -F\' \' \'NR==2{print $5}\' >> %s' % switch_throughput)
+            car[0].cmd('ifconfig bond0 | grep \"TX packets\" | awk \'{print $2}\' >> %s' % c0_pkt)
+            switch.cmd('ifconfig switch-eth4 | grep \"TX packets\" | awk \'{print $2}\' >> %s' % switch_pkt)
+            car[0].cmd('ifconfig bond0 | grep \"bytes\" | awk \'{print $2}\' >> %s' % c0_throughput)
+            switch.cmd('ifconfig switch-eth4 | grep \"bytes\" | awk \'{print $2}\' >> %s' % switch_throughput)
             i += 0.5
 
     print "Moving nodes"
@@ -319,10 +319,10 @@ def topology():
         if time.time() > timeout:
             break;
         if time.time() - currentTime >= i:
-            car[0].cmd('ifconfig bond0 | grep \"TX packets\" | awk -F\' \' \'{print $3}\' >> %s' % c0_pkt)
-            switch.cmd('ifconfig switch-eth4 | grep \"TX packets\" | awk -F\' \' \'{print $3}\' >> %s' % switch_pkt)
-            car[0].cmd('ifconfig bond0 | grep \"bytes\" | awk -F\' \' \'NR==2{print $5}\' >> %s' % c0_throughput)
-            switch.cmd('ifconfig switch-eth4 | grep \"bytes\" | awk -F\' \' \'NR==2{print $5}\' >> %s' % switch_throughput)
+            car[0].cmd('ifconfig bond0 | grep \"TX packets\" | awk \'{print $2}\' >> %s' % c0_pkt)
+            switch.cmd('ifconfig switch-eth4 | grep \"TX packets\" | awk \'{print $2}\' >> %s' % switch_pkt)
+            car[0].cmd('ifconfig bond0 | grep \"bytes\" | awk \'{print $2}\' >> %s' % c0_throughput)
+            switch.cmd('ifconfig switch-eth4 | grep \"bytes\" | awk \'{print $2}\' >> %s' % switch_throughput)
             i += 0.5
 
     print "*** Generating graphic"
