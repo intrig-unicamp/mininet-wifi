@@ -32,24 +32,29 @@ class plot3d (object):
     @classmethod
     def instantiateAnnotate(self, node):
         """instantiateAnnotate"""
-        node.plttxt = self.ax.text(float(node.params['position'][0]), float(node.params['position'][1]), float(node.params['position'][2]), node.name)
+        
+        x = '%.2f' % float(node.params['position'][0])
+        y = '%.2f' % float(node.params['position'][1])
+        z = '%.2f' % float(node.params['position'][2])
+        
+        node.plttxt = self.ax.text(float(x), float(y), float(z), node.name)
 
     @classmethod
     def instantiateNode(self, node):
         """Instantiate Node"""
-        x = float(node.params['position'][0])
-        y = float(node.params['position'][1])
-        z = float(node.params['position'][2])
+        x = '%.2f' % float(node.params['position'][0])
+        y = '%.2f' % float(node.params['position'][1])
+        z = '%.2f' % float(node.params['position'][2])
         
         resolution = 40
         u = np.linspace(0, 2 * np.pi, resolution)
         v = np.linspace(0, np.pi, resolution)
         
         r = 1
-           
-        x = r * np.outer(np.cos(u), np.sin(v)) + x
-        y = r * np.outer(np.sin(u), np.sin(v)) + y
-        z = r * np.outer(np.ones(np.size(u)), np.cos(v)) + z
+
+        x = r * np.outer(np.cos(u), np.sin(v)) + float(x)
+        y = r * np.outer(np.sin(u), np.sin(v)) + float(y)
+        z = r * np.outer(np.ones(np.size(u)), np.cos(v)) + float(z)
 
         node.pltNode = self.ax.plot_surface(x, y, z, alpha=0.2, edgecolor='none', color='black')
 
@@ -97,9 +102,9 @@ class plot3d (object):
     def instantiateCircle(self, node):
         """Instantiate Circle"""
         
-        x = float(node.params['position'][0])
-        y = float(node.params['position'][1])
-        z = float(node.params['position'][2])
+        x = '%.2f' % float(node.params['position'][0])
+        y = '%.2f' % float(node.params['position'][1])
+        z = '%.2f' % float(node.params['position'][2])
         
         color = 'b'
         if node.type == 'station':
@@ -113,9 +118,9 @@ class plot3d (object):
         
         r = node.params['range']
            
-        x = r * np.outer(np.cos(u), np.sin(v)) + x
-        y = r * np.outer(np.sin(u), np.sin(v)) + y
-        z = r * np.outer(np.ones(np.size(u)), np.cos(v)) + z
+        x = r * np.outer(np.cos(u), np.sin(v)) + float(x)
+        y = r * np.outer(np.sin(u), np.sin(v)) + float(y)
+        z = r * np.outer(np.ones(np.size(u)), np.cos(v)) + float(z)
 
         node.pltCircle = self.ax.plot_surface(x, y, z, alpha=0.2, edgecolor='none', color=color)
         
@@ -135,24 +140,31 @@ class plot2d (object):
     @classmethod
     def text(self, node):
         """draw text"""
-        if hasattr(node.plttxt, 'xyann'): node.plttxt.xyann = (node.params['position'][0],
-                                        node.params['position'][1])  # newer MPL versions (>=1.4)
-        else: node.plttxt.xytext = (node.params['position'][0], node.params['position'][1])
+        x = '%.2f' % float(node.params['position'][0])
+        y = '%.2f' % float(node.params['position'][1])
+        
+        if hasattr(node.plttxt, 'xyann'): node.plttxt.xyann = (x, y)  # newer MPL versions (>=1.4)
+        else: node.plttxt.xytext = (x, y)
 
     @classmethod
     def circle(self, node):
         """drawCircle"""
-        node.pltCircle.center = node.params['position'][0], node.params['position'][1]
+        x = '%.2f' % float(node.params['position'][0])
+        y = '%.2f' % float(node.params['position'][1])
+        
+        node.pltCircle.center = x, y
 
     @classmethod
     def graphUpdate(self, node):
         """Graph Update"""
-        if hasattr(node.plttxt, 'xyann'): node.plttxt.xyann = (node.params['position'][0],
-                                        node.params['position'][1])  # newer MPL versions (>=1.4)
-        else: node.plttxt.xytext = (node.params['position'][0], node.params['position'][1])
+        x = '%.2f' % float(node.params['position'][0])
+        y = '%.2f' % float(node.params['position'][1])
+        
+        if hasattr(node.plttxt, 'xyann'): node.plttxt.xyann = (x, y)  # newer MPL versions (>=1.4)
+        else: node.plttxt.xytext = (x, y)
 
-        node.pltNode.set_data(node.params['position'][0], node.params['position'][1])
-        node.pltCircle.center = node.params['position'][0], node.params['position'][1]
+        node.pltNode.set_data(x, y)
+        node.pltCircle.center = x, y
         self.plotDraw()
 
     @classmethod
@@ -251,14 +263,20 @@ class plot2d (object):
         """ Plot Graph """
         debug('Enabling Graph...\n')           
         for node in wifiNodes:
+            x = '%.2f' % float(node.params['position'][0])
+            y = '%.2f' % float(node.params['position'][1])
             self.graphInstantiateNodes(node, MAX_X, MAX_Y)
-            node.pltNode.set_data(node.params['position'][0], node.params['position'][1])
+            node.pltNode.set_data(x, y)
             self.text(node)
             self.circle(node)
         
         for c in range(0, len(srcConn)):
-            line = self.plotLine2d([srcConn[c].params['position'][0], dstConn[c].params['position'][0]], \
-                                   [srcConn[c].params['position'][1], dstConn[c].params['position'][1]], 'b')
+            src_x = '%.2f' % float(srcConn[c].params['position'][0])
+            src_y = '%.2f' % float(srcConn[c].params['position'][1])
+            dst_x = '%.2f' % float(dstConn[c].params['position'][0])
+            dst_y = '%.2f' % float(dstConn[c].params['position'][1])
+            line = self.plotLine2d([src_x, dst_x], \
+                                   [src_y, dst_y], 'b')
             self.plotLine(line)
 
         # for wall in wallList:
