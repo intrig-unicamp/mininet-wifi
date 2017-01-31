@@ -26,36 +26,37 @@ c0_throughput = 'c0-throughput.vanetdata'
 def graphic():
 
     f1 = open('./' + switch_pkt, 'r')
-    eth0 = f1.readlines()
+    s_pkt = f1.readlines()
     f1.close()
 
     f11 = open('./' + switch_throughput, 'r')
-    eth01 = f11.readlines()
+    s_throughput = f11.readlines()
     f11.close()
 
     f2 = open('./' + c0_pkt, 'r')
-    wlan0 = f2.readlines()
+    c_pkt = f2.readlines()
     f2.close()
 
     f21 = open('./' + c0_throughput, 'r')
-    wlan01 = f21.readlines()
+    c_throughput = f21.readlines()
     f21.close()
 
     # initialize some variable to be lists:
+    time_ = []
+    
     l1 = []
     l2 = []
-    t = []
-    ll1 = []
-    ll2 = []
-    
     t1 = []
     t2 = []
+        
+    ll1 = []
+    ll2 = []
     tt1 = []
     tt2 = []
     
     # scan the rows of the file stored in lines, and put the values into some variables:
     i = 0
-    for x in eth0:    
+    for x in s_pkt:    
         p = x.split()
         l1.append(int(p[0]))
         if len(l1) > 1:
@@ -63,7 +64,7 @@ def graphic():
         i += 1
     
     i = 0
-    for x in eth01:    
+    for x in s_throughput:    
         p = x.split()
         t1.append(int(p[0]))
         if len(t1) > 1:
@@ -71,7 +72,7 @@ def graphic():
         i += 1
     
     i = 0
-    for x in wlan0:    
+    for x in c_pkt:    
         p = x.split()
         l2.append(int(p[0]))
         if len(l2) > 1:
@@ -79,7 +80,7 @@ def graphic():
         i += 1
     
     i = 0
-    for x in wlan01:    
+    for x in c_throughput:    
         p = x.split()
         t2.append(int(p[0]))
         if len(t2) > 1:
@@ -88,19 +89,19 @@ def graphic():
     
     i = 0
     for x in range(len(ll1)):    
-        t.append(i)
+        time_.append(i)
         i = i + 0.5
     
     fig, ax1 = plt.subplots()
     ax2 = ax1.twinx()
     
-    ax1.plot(t, ll1, color='red', label='Received Data (client)', ls="--", markevery=7, linewidth=1)
-    ax1.plot(t, ll2, color='black', label='Transmited Data (server)', markevery=7, linewidth=1)
-    ax2.plot(t, tt1, color='red', label='Throughput (client)', ls="-.", markevery=7, linewidth=1)
-    ax2.plot(t, tt2, color='black', label='Throughput (server)', ls=':', markevery=7, linewidth=1)
+    ax1.plot(time_, ll1, color='red', label='Received Data (client)', ls="--", markevery=7, linewidth=1)
+    ax1.plot(time_, ll2, color='black', label='Transmited Data (server)', markevery=7, linewidth=1)
+    ax2.plot(time_, tt1, color='red', label='Throughput (client)', ls="-.", markevery=7, linewidth=1)
+    ax2.plot(time_, tt2, color='black', label='Throughput (server)', ls=':', markevery=7, linewidth=1)
     ax1.legend(loc=2, borderaxespad=0., fontsize=12)
     ax2.legend(loc=1, borderaxespad=0., fontsize=12)
-    
+
     ax2.set_yscale('log')
 
     ax1.set_ylabel("# Packets (unit)", fontsize=18)
@@ -108,11 +109,11 @@ def graphic():
     ax2.set_ylabel("Throughput (bytes/sec)", fontsize=18)
 
     plt.show()
-    #plt.savefig("graphic.eps")
+    plt.savefig("graphic.eps")
 
 def topology():
-    
-    timeTask = 20
+
+    taskTime = 20
 
     "Create a network."
     net = Mininet(controller=Controller, link=TCLink, switch=OVSKernelSwitch, accessPoint=OVSKernelAP)
@@ -127,8 +128,8 @@ def topology():
         car[x] = net.addCar('car%s' % (x), wlans=2, ip='10.0.0.%s/8' % (x + 1), \
         mac='00:00:00:00:00:0%s' % x, mode='b', position='%d,%d,0' % ((120 - (x * 20)), (100 - (x * 0))))
 
-    eNodeB1 = net.addAccessPoint('eNodeB1', ssid='eNodeB1', dpid='1000000000000000', mode='ac', channel='1', position='80,75,0', range=70)
-    eNodeB2 = net.addAccessPoint('eNodeB2', ssid='eNodeB2', dpid='2000000000000000', mode='ac', channel='6', position='180,75,0', range=70)
+    eNodeB1 = net.addAccessPoint('eNodeB1', ssid='eNodeB1', dpid='1000000000000000', mode='ac', channel='1', position='80,75,0')
+    eNodeB2 = net.addAccessPoint('eNodeB2', ssid='eNodeB2', dpid='2000000000000000', mode='ac', channel='6', position='180,75,0')
     rsu1 = net.addAccessPoint('rsu1', ssid='rsu1', dpid='3000000000000000', mode='g', channel='11', position='140,120,0')
     c1 = net.addController('c1', controller=Controller)
     client = net.addHost ('client')
@@ -136,7 +137,7 @@ def topology():
 
     net.plotNode(client, position='125,230,0')
     net.plotNode(switch, position='125,200,0')
-    
+
     print "*** Configuring wifi nodes"
     net.configureWifiNodes()  
 
@@ -228,7 +229,8 @@ def topology():
     os.system('rm *.vanetdata')
 
     #os.system('xterm -hold -title "car0" -e "util/m car0 ping 200.0.10.2" &')
-    car[0].cmdPrint("cvlc -vvv v4l2:///dev/video0 --mtu 1000 --sout \'#transcode{vcodec=mp4v,vb=800,scale=1,acodec=mpga,ab=128,channels=1}: duplicate{dst=display,dst=rtp{sdp=rtsp://200.0.10.100:8080/helmet.sdp}\' &")
+    car[0].cmdPrint("cvlc -vvv v4l2:///dev/video0 --mtu 1000 --sout \'#transcode{vcodec=mp4v,vb=800,scale=1,\
+                acodec=mpga,ab=128,channels=1}: duplicate{dst=display,dst=rtp{sdp=rtsp://200.0.10.100:8080/helmet.sdp}\' &")
     client.cmdPrint("cvlc rtsp://200.0.10.100:8080/helmet.sdp &")
 
     os.system('ovs-ofctl mod-flows switch in_port=1,actions=drop')
@@ -249,17 +251,17 @@ def topology():
     car[0].cmd('ip route add 200.0.10.2 via 200.0.10.50')
     client.cmd('ip route add 200.0.10.100 via 200.0.10.150')
 
-    timeout = time.time() + timeTask
+    timeout = time.time() + taskTime
     currentTime = time.time()
-    i = 1
+    i = 0
     while True:
         if time.time() > timeout:
             break;
         if time.time() - currentTime >= i:
             car[0].cmd('ifconfig bond0 | grep \"TX packets\" | awk -F\' \' \'{print $3}\' >> %s' % c0_pkt)
-            switch.cmd('ifconfig switch-eth4 | grep \"TX packets\" | awk -F\' \' \'{print $3}\' >> %s' % switch_pkt)
+            client.cmd('ifconfig client-eth0 | grep \"RX packets\" | awk -F\' \' \'{print $3}\' >> %s' % switch_pkt)
             car[0].cmd('ifconfig bond0 | grep \"bytes\" | awk -F\' \' \'NR==2{print $5}\' >> %s' % c0_throughput)
-            switch.cmd('ifconfig switch-eth4 | grep \"bytes\" | awk -F\' \' \'NR==2{print $5}\' >> %s' % switch_throughput)
+            client.cmd('ifconfig client-eth0 | grep \"bytes\" | awk -F\' \' \'NR==1{print $5}\' >> %s' % switch_throughput)
             i += 0.5
 
     print "Moving nodes"    
@@ -282,17 +284,17 @@ def topology():
     car[0].cmd('ip route del 200.0.10.2 via 200.0.10.50')
     client.cmd('ip route del 200.0.10.100 via 200.0.10.150')
 
-    timeout = time.time() + timeTask
+    timeout = time.time() + taskTime
     currentTime = time.time()
-    i = 1
+    i = 0
     while True:
         if time.time() > timeout:
             break;
         if time.time() - currentTime >= i:
             car[0].cmd('ifconfig bond0 | grep \"TX packets\" | awk -F\' \' \'{print $3}\' >> %s' % c0_pkt)
-            switch.cmd('ifconfig switch-eth4 | grep \"TX packets\" | awk -F\' \' \'{print $3}\' >> %s' % switch_pkt)
+            client.cmd('ifconfig client-eth0 | grep \"RX packets\" | awk -F\' \' \'{print $3}\' >> %s' % switch_pkt)
             car[0].cmd('ifconfig bond0 | grep \"bytes\" | awk -F\' \' \'NR==2{print $5}\' >> %s' % c0_throughput)
-            switch.cmd('ifconfig switch-eth4 | grep \"bytes\" | awk -F\' \' \'NR==2{print $5}\' >> %s' % switch_throughput)
+            client.cmd('ifconfig client-eth0 | grep \"bytes\" | awk -F\' \' \'NR==1{print $5}\' >> %s' % switch_throughput)
             i += 0.5
 
     print "Moving nodes"
@@ -312,17 +314,17 @@ def topology():
     os.system('ovs-ofctl del-flows eNodeB2')
     os.system('ovs-ofctl del-flows rsu1')
 
-    timeout = time.time() + timeTask
+    timeout = time.time() + taskTime
     currentTime = time.time()
-    i = 1
+    i = 0
     while True:
         if time.time() > timeout:
             break;
         if time.time() - currentTime >= i:
             car[0].cmd('ifconfig bond0 | grep \"TX packets\" | awk -F\' \' \'{print $3}\' >> %s' % c0_pkt)
-            switch.cmd('ifconfig switch-eth4 | grep \"TX packets\" | awk -F\' \' \'{print $3}\' >> %s' % switch_pkt)
+            client.cmd('ifconfig client-eth0 | grep \"RX packets\" | awk -F\' \' \'{print $3}\' >> %s' % switch_pkt)
             car[0].cmd('ifconfig bond0 | grep \"bytes\" | awk -F\' \' \'NR==2{print $5}\' >> %s' % c0_throughput)
-            switch.cmd('ifconfig switch-eth4 | grep \"bytes\" | awk -F\' \' \'NR==2{print $5}\' >> %s' % switch_throughput)
+            client.cmd('ifconfig client-eth0 | grep \"bytes\" | awk -F\' \' \'NR==1{print $5}\' >> %s' % switch_throughput)
             i += 0.5
 
     print "*** Generating graphic"
