@@ -318,6 +318,21 @@ class testWalkthrough(unittest.TestCase):
         p.sendline('exit')
         p.wait()
         
+    def testHandover(self):
+        "Start Mininet-WiFi with handover, then test handover"
+        p = pexpect.spawn(
+            'python examples/handover.py')
+        sleep(3)
+        p.sendline('sta1 iwconfig')
+        p.expect('ssid-ap1')
+        p.expect(self.prompt)
+        sleep(30)
+        p.sendline('sta1 iwconfig')
+        p.expect('ssid-ap2')
+        p.expect(self.prompt)
+        p.sendline('exit')
+        p.wait()
+        
     def testmultipleWlan(self):
         "Start Mininet-WiFi with multiple WLAN"
         p = pexpect.spawn(
