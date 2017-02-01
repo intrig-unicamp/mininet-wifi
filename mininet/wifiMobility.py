@@ -411,11 +411,11 @@ class mobility (object):
         self.getAPsInRange(sta)
             
     @classmethod
-    def parameters(self):
+    def parameters_(self):
         """ 
+        have to check it!
         Applies channel params and handover
         """
-        #while self.continue_:
         for sta in self.stations:
             for wlan in range(0, len(sta.params['wlan'])):
                 if sta.func[wlan] == 'mesh' or sta.func[wlan] == 'adhoc':
@@ -430,4 +430,26 @@ class mobility (object):
         if meshRouting.routing == 'custom':
             meshRouting(self.stations)
         # have to verify this
-        eval(self.continueParams)
+        eval(self.continueParams)        
+    
+    @classmethod
+    def parameters(self):
+        """ 
+        Applies channel params and handover
+        """
+        while self.continue_:
+            for sta in self.stations:
+                for wlan in range(0, len(sta.params['wlan'])):
+                    if sta.func[wlan] == 'mesh' or sta.func[wlan] == 'adhoc':
+                        if sta.type == 'vehicle':
+                            sta = sta.params['carsta']
+                            wlan = 0
+                        dist = listNodes.pairingNodes(sta, wlan, self.stations)
+                        if WmediumdServerConn.connected == False and dist >= 0.01:
+                            setChannelParams(sta=sta, wlan=wlan, dist=dist)
+                    else:
+                        self.handoverCheck(sta, wlan)
+            if meshRouting.routing == 'custom':
+                meshRouting(self.stations)
+            # have to verify this
+            eval(self.continueParams)

@@ -477,7 +477,7 @@ class Node(object):
                     plot2d.graphPause()
         except:
             pass
-        mobility.parameters()
+        mobility.parameters_()
 
     def moveNodeTo(self, pos):
         pos = pos.split(',')
@@ -487,7 +487,7 @@ class Node(object):
             plot2d.graphPause()
         elif mobility.DRAW and mobility.is3d == True:
             plot3d.graphUpdate(self)            
-        mobility.parameters()
+        mobility.parameters_()
 
     def setAntennaGain(self, iface, value):
         wlan = int(iface[-1:])
@@ -497,13 +497,13 @@ class Node(object):
                 plot2d.graphUpdate(self)
             except:
                 pass
-        mobility.parameters()
+        mobility.parameters_()
 
     def setTxPower(self, iface, txpower):
         wlan = int(iface[-1:])
         self.pexec('iwconfig %s txpower %s' % (iface, txpower))
         self.params['txpower'][wlan] = txpower
-        mobility.parameters()
+        mobility.parameters_()
 
     def associateTo(self, iface, ap):
         self.moveAssociationTo(iface, ap)
