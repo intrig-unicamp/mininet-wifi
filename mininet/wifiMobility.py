@@ -90,7 +90,30 @@ class mobility (object):
             snr_ = setChannelParams.setSNR(sta, wlan)
             sta.params['snr'][wlan] = snr_
             if sta not in ap.params['associatedStations']:
-                ap.params['associatedStations'].append(sta)                
+                ap.params['associatedStations'].append(sta)    
+                
+    @classmethod
+    def handoverCheck(self, sta, wlan):
+        """ 
+        handover check
+        
+        :param sta: station
+        :param wlan: wlan ID
+        """
+        
+        for ap in self.accessPoints:
+            dist = setChannelParams.getDistance(sta, ap)
+            if dist > ap.params['range']:
+                self.apOutOfRange(sta, ap, wlan, dist)
+                if ap in sta.params['apsInRange']:
+                    sta.params['apsInRange'].remove(ap)
+                    ap.params['stationsInRange'].remove(sta)
+            
+        for ap in self.accessPoints:
+            dist = setChannelParams.getDistance(sta, ap)
+            if dist <= ap.params['range']:
+                self.handover(sta, ap, wlan, dist)
+                self.apInRange(sta, ap, wlan, dist)            
         
     @classmethod
     def handover(self, sta, ap, wlan, dist):
@@ -105,24 +128,23 @@ class mobility (object):
         changeAP = False
         
         """Association Control: mechanisms that optimize the use of the APs"""
-        if self.associationControlMethod != False and sta.params['associatedTo'][wlan] != '':
+        if self.associationControlMethod != False and sta.params['associatedTo'][wlan] != ap:
             ac = self.associationControlMethod
             value = associationControl(sta, ap, wlan, ac)
             changeAP = value.changeAP
 
         if sta.params['associatedTo'][wlan] == '' or changeAP == True:
             if ap not in sta.params['associatedTo']:
-                if sta.params['associatedTo'][wlan] == '' or changeAP == True:
-                    if 'encrypt' not in ap.params:
-                        self.associate_infra(sta, ap, wlan)
-                    else:
-                        if ap.params['encrypt'][0] == 'wpa' or ap.params['encrypt'][0] == 'wpa2':
-                            self.associate_wpa(sta, ap, wlan)
-                        elif ap.params['encrypt'][0] == 'wep':
-                            self.associate_wep(sta, ap, wlan)
-                    if dist >= 0.01 and sta.params['associatedTo'][wlan] != '':
-                        self.updateParams(sta, ap, wlan)
-                        setChannelParams(sta, ap, wlan, dist)
+                if 'encrypt' not in ap.params:
+                    self.associate_infra(sta, ap, wlan)
+                else:
+                    if ap.params['encrypt'][0] == 'wpa' or ap.params['encrypt'][0] == 'wpa2':
+                        self.associate_wpa(sta, ap, wlan)
+                    elif ap.params['encrypt'][0] == 'wep':
+                        self.associate_wep(sta, ap, wlan)
+                if dist >= 0.01 and sta.params['associatedTo'][wlan] != '':
+                    self.updateParams(sta, ap, wlan)
+                    setChannelParams(sta, ap, wlan, dist)
         
     @classmethod
     def verifyPasswd(self, sta, ap, wlan):
@@ -371,29 +393,6 @@ class mobility (object):
                 node.params['position'] = '%.2f' % xy[i][0], '%.2f' % xy[i][1], 0.0
                 i += 1
             time.sleep(0.5)
-
-    @classmethod
-    def handoverCheck(self, sta, wlan):
-        """ 
-        handover
-        
-        :param sta: station
-        :param wlan: wlan ID
-        """
-        
-        for ap in self.accessPoints:
-            dist = setChannelParams.getDistance(sta, ap)
-            if dist > ap.params['range']:
-                self.apOutOfRange(sta, ap, wlan, dist)
-                if ap in sta.params['apsInRange']:
-                    sta.params['apsInRange'].remove(ap)
-                    ap.params['stationsInRange'].remove(sta)
-            
-        for ap in self.accessPoints:
-            dist = setChannelParams.getDistance(sta, ap)
-            if dist <= ap.params['range']:
-                self.handover(sta, ap, wlan, dist)
-                self.apInRange(sta, ap, wlan, dist)
             
     @classmethod
     def parameters_(self):
