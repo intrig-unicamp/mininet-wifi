@@ -226,7 +226,7 @@ class replayingRSSI(object):
         x = dist * cos(ang) + int(ap.params['position'][0])
         y = dist * sin(ang) + int(ap.params['position'][1])
         sta.params['position'] = x, y, 0
-        mobility.getAPsInRange(sta)
+        mobility.parameters_()
         if mobility.DRAW:
             try:
                 plot2d.graphUpdate(sta)

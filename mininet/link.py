@@ -947,7 +947,6 @@ class Association(Link):
         :param wlan: wlan ID
         """
         
-        rssi = []
         dist = setChannelParams.getDistance(sta, ap)
         if dist <= ap.params['range']:
             for wlan in range(0, len(sta.params['wlan'])):
@@ -956,18 +955,12 @@ class Association(Link):
                 if sta.params['associatedTo'][wlan] == '' and ap not in sta.params['associatedTo']:
                     sta.params['associatedTo'][wlan] = ap 
                     rssi_ = setChannelParams.setRSSI(sta, ap, wlan, dist)
-                    rssi.append(rssi_)
-                    #if ap == sta.params['associatedTo'][wlan]:
                     sta.params['rssi'][wlan] = rssi_
                     snr_ = setChannelParams.setSNR(sta, wlan)
                     sta.params['snr'][wlan] = snr_
-                    ap.params['associatedStations'][sta] = sta.params['rssi'][wlan]
-            sta.params['apsInRange'][ap] = rssi
-            ap.params['stationsInRange'][sta] = rssi
-        else:
-            if ap in sta.params['apsInRange']:
-                sta.params['apsInRange'].pop(ap, None)
-                ap.params['stationsInRange'].pop(sta, None)
+                    ap.params['associatedStations'].append(sta)
+                sta.params['apsInRange'].append(ap)
+                ap.params['stationsInRange'].append(sta)
                 
     @classmethod     
     def updateParams(self, sta, ap, wlan):

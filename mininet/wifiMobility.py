@@ -66,7 +66,32 @@ class mobility (object):
         :param diffTime: difference between start and stop time. Useful for calculating the speed
         """
         sta.params['speed'] = abs(((pos_x + pos_y + pos_z) / diffTime))
-
+        
+    @classmethod
+    def apOutOfRange(self, sta, ap, wlan, dist):
+        if ap == sta.params['associatedTo'][wlan]:
+            debug('iw dev %s disconnect' % sta.params['wlan'][wlan])
+            sta.pexec('iw dev %s disconnect' % sta.params['wlan'][wlan])
+            sta.params['associatedTo'][wlan] = ''
+            sta.params['rssi'][wlan] = 0
+            sta.params['snr'][wlan] = 0
+            sta.params['channel'][wlan] = 0
+            sta.params['frequency'][wlan] = 0
+            ap.params['associatedStations'].remove(sta)
+            
+    @classmethod
+    def apInRange(self, sta, ap, wlan, dist):
+        if ap not in sta.params['apsInRange']:
+            sta.params['apsInRange'].append(ap)
+            ap.params['stationsInRange'].append(sta)
+        if ap == sta.params['associatedTo'][wlan]:
+            rssi_ = setChannelParams.setRSSI(sta, ap, wlan, dist)
+            sta.params['rssi'][wlan] = rssi_
+            snr_ = setChannelParams.setSNR(sta, wlan)
+            sta.params['snr'][wlan] = snr_
+            if sta not in ap.params['associatedStations']:
+                ap.params['associatedStations'].append(sta)                
+        
     @classmethod
     def handover(self, sta, ap, wlan, dist):
         """
@@ -77,47 +102,27 @@ class mobility (object):
         :param wlan: wlan ID
         :param dist: distance between source and destination   
         """
-        associated = True        
-        if dist > ap.params['range']:
-            if ap == sta.params['associatedTo'][wlan]:
-                sta.pexec('iw dev %s disconnect' % sta.params['wlan'][wlan])
-                sta.params['associatedTo'][wlan] = ''
-                sta.params['rssi'][wlan] = 0
-                sta.params['snr'][wlan] = 0
-                sta.params['channel'][wlan] = 0
-                sta.params['frequency'][wlan] = 0
-                ap.params['associatedStations'].pop(sta, None)
-        else:
-            if dist >= 0.01 and sta.params['associatedTo'][wlan] == ap:
-                self.updateParams(sta, ap, wlan)
-                setChannelParams(sta, ap, wlan, dist)
-            
-            if sta.params['associatedTo'][wlan] == '':        
-                associated = False        
-            else:        
-                associated = False
-    
-            if ap == sta.params['associatedTo'][wlan] or dist <= ap.params['range']:
-                changeAP = False
-                """Association Control: mechanisms that optimize the use of the APs"""
-                if self.associationControlMethod != False and sta.params['associatedTo'][wlan] != '':
-                    ac = self.associationControlMethod
-                    value = associationControl(sta, ap, wlan, ac)
-                    changeAP = value.changeAP
-    
-                if associated == False or changeAP == True:
-                    if ap not in sta.params['associatedTo']:
-                        if sta.params['associatedTo'][wlan] == '' or changeAP == True:
-                            if 'encrypt' not in ap.params:
-                                self.associate_infra(sta, ap, wlan)
-                            else:
-                                if ap.params['encrypt'][0] == 'wpa' or ap.params['encrypt'][0] == 'wpa2':
-                                    self.associate_wpa(sta, ap, wlan)
-                                elif ap.params['encrypt'][0] == 'wep':
-                                    self.associate_wep(sta, ap, wlan)
-                            if dist >= 0.01 and sta.params['associatedTo'][wlan] != '':
-                                self.updateParams(sta, ap, wlan)
-                                setChannelParams(sta, ap, wlan, dist)
+        changeAP = False
+        
+        """Association Control: mechanisms that optimize the use of the APs"""
+        if self.associationControlMethod != False and sta.params['associatedTo'][wlan] != '':
+            ac = self.associationControlMethod
+            value = associationControl(sta, ap, wlan, ac)
+            changeAP = value.changeAP
+
+        if sta.params['associatedTo'][wlan] == '' or changeAP == True:
+            if ap not in sta.params['associatedTo']:
+                if sta.params['associatedTo'][wlan] == '' or changeAP == True:
+                    if 'encrypt' not in ap.params:
+                        self.associate_infra(sta, ap, wlan)
+                    else:
+                        if ap.params['encrypt'][0] == 'wpa' or ap.params['encrypt'][0] == 'wpa2':
+                            self.associate_wpa(sta, ap, wlan)
+                        elif ap.params['encrypt'][0] == 'wep':
+                            self.associate_wep(sta, ap, wlan)
+                    if dist >= 0.01 and sta.params['associatedTo'][wlan] != '':
+                        self.updateParams(sta, ap, wlan)
+                        setChannelParams(sta, ap, wlan, dist)
         
     @classmethod
     def verifyPasswd(self, sta, ap, wlan):
@@ -157,8 +162,7 @@ class mobility (object):
         :param wlan: wlan ID
         """
         self.updateParams(sta, ap, wlan)
-        sta.params['associatedTo'][wlan] = ap 
-        ap.params['associatedStations'][sta] = sta.params['rssi'][wlan]      
+        sta.params['associatedTo'][wlan] = ap
             
     @classmethod
     def associate_wep(self, sta, ap, wlan):
@@ -367,48 +371,29 @@ class mobility (object):
                 node.params['position'] = '%.2f' % xy[i][0], '%.2f' % xy[i][1], 0.0
                 i += 1
             time.sleep(0.5)
-                
-    @classmethod
-    def getAPsInRange(self, sta):
-        """ 
-        Gets all APs in range of the station. It's not used when there is no position defined.
-        It's also useful for setting parameters, such as rssi, snr, among others.
-        
-        :param sta: station
-        """
-        for ap in self.accessPoints:
-            rssi = []
-            dist = setChannelParams.getDistance(sta, ap)
-            if dist <= ap.params['range']:
-                for wlan in range(0, len(sta.params['wlan'])):
-                    if sta.params['rssi'][wlan] == 0:
-                        self.updateParams(sta, ap, wlan)
-                    rssi_ = setChannelParams.setRSSI(sta, ap, wlan, dist)
-                    rssi.append(rssi_)
-                    if ap == sta.params['associatedTo'][wlan]:
-                        sta.params['rssi'][wlan] = rssi_
-                        snr_ = setChannelParams.setSNR(sta, wlan)
-                        sta.params['snr'][wlan] = snr_
-                        ap.params['associatedStations'][sta] = sta.params['rssi'][wlan]
-                sta.params['apsInRange'][ap] = rssi
-                ap.params['stationsInRange'][sta] = rssi
-            else:
-                if ap in sta.params['apsInRange']:
-                    sta.params['apsInRange'].pop(ap, None)
-                    ap.params['stationsInRange'].pop(sta, None)
 
     @classmethod
     def handoverCheck(self, sta, wlan):
         """ 
-        Does handover
+        handover
         
         :param sta: station
         :param wlan: wlan ID
         """
+        
         for ap in self.accessPoints:
             dist = setChannelParams.getDistance(sta, ap)
-            self.handover(sta, ap, wlan, dist)
-        self.getAPsInRange(sta)
+            if dist > ap.params['range']:
+                self.apOutOfRange(sta, ap, wlan, dist)
+                if ap in sta.params['apsInRange']:
+                    sta.params['apsInRange'].remove(ap)
+                    ap.params['stationsInRange'].remove(sta)
+            
+        for ap in self.accessPoints:
+            dist = setChannelParams.getDistance(sta, ap)
+            if dist <= ap.params['range']:
+                self.handover(sta, ap, wlan, dist)
+                self.apInRange(sta, ap, wlan, dist)
             
     @classmethod
     def parameters_(self):

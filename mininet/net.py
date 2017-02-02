@@ -1160,12 +1160,10 @@ class Mininet(object):
 
     def getAPsInRange(self, sta):
         """ 
-        Gets all APs in range of the station. It's not used when there is no position defined
         
         :param sta: station
         """
         for ap in self.accessPoints:
-            rssi = []
             dist = setChannelParams.getDistance(sta, ap)
             if dist < ap.params['range']:
                 for wlan in range(0, len(sta.params['wlan'])):
@@ -1175,15 +1173,9 @@ class Mininet(object):
                     sta.params['rssi'][wlan] = rssi_
                     snr_ = setChannelParams.setSNR(sta, wlan)
                     sta.params['snr'][wlan] = snr_
-                    rssi.append(rssi_)
-                    # if ap == sta.params['associatedTo'][wlan]:
-                    ap.params['associatedStations'][sta] = sta.params['rssi'][wlan]
-                sta.params['apsInRange'][ap] = rssi
-                ap.params['stationsInRange'][sta] = rssi
-            else:
-                if ap in sta.params['apsInRange']:
-                    sta.params['apsInRange'].pop(ap, None)
-                    ap.params['stationsInRange'].pop(sta, None)
+                    ap.params['associatedStations'].append(sta)
+                    sta.params['apsInRange'].append(ap)
+                    ap.params['stationsInRange'].append(sta)
         
     def autoAssociation(self):
         """This is useful to make the users' life easier"""

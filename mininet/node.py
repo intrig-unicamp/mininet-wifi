@@ -197,7 +197,7 @@ class Node(object):
             
                
         if (node.type == 'station' or node.type == 'vehicle'):
-            node.params['apsInRange'] = {}
+            node.params['apsInRange'] = []
             node.params['associatedTo'] = []
             node.params['rssi'] = []
             node.params['snr'] = []
@@ -408,8 +408,8 @@ class Node(object):
                 node.params['range'] = value.range - 15
 
         if node.type == 'accessPoint' or 'ssid' in node.params:
-            node.params['associatedStations'] = {}
-            node.params['stationsInRange'] = {}
+            node.params['associatedStations'] = []
+            node.params['stationsInRange'] = []
             
             if node.type == 'accessPoint':
                 ssid = ("%s" % params.pop('ssid', {}))
@@ -535,7 +535,7 @@ class Node(object):
                         mobility.updateAssociation(sta, ap, wlan)
                     else:
                         info ('%s is already connected!\n' % ap)
-                    mobility.getAPsInRange(sta)
+                    mobility.parameters_()
                 else:
                     print "%s is out of range!" % (ap)
                     
