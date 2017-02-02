@@ -142,7 +142,7 @@ class mobility (object):
                         self.associate_wpa(sta, ap, wlan)
                     elif ap.params['encrypt'][0] == 'wep':
                         self.associate_wep(sta, ap, wlan)
-                if dist >= 0.01 and sta.params['associatedTo'][wlan] != '':
+                if dist >= 0.01:
                     self.updateParams(sta, ap, wlan)
                     setChannelParams(sta, ap, wlan, dist)
         
