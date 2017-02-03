@@ -89,6 +89,8 @@ class mobility (object):
             sta.params['rssi'][wlan] = rssi_
             snr_ = setChannelParams.setSNR(sta, wlan)
             sta.params['snr'][wlan] = snr_
+            if dist >= 0.01:
+                setChannelParams(sta, ap, wlan, dist)
             if sta not in ap.params['associatedStations']:
                 ap.params['associatedStations'].append(sta)    
                 
@@ -142,9 +144,6 @@ class mobility (object):
                         self.associate_wpa(sta, ap, wlan)
                     elif ap.params['encrypt'][0] == 'wep':
                         self.associate_wep(sta, ap, wlan)
-                if dist >= 0.01:
-                    self.updateParams(sta, ap, wlan)
-                    setChannelParams(sta, ap, wlan, dist)
         
     @classmethod
     def verifyPasswd(self, sta, ap, wlan):
