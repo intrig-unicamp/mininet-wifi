@@ -409,7 +409,7 @@ class Node(object):
 
         if node.type == 'accessPoint' or 'ssid' in node.params:
             node.params['associatedStations'] = []
-            node.params['stationsInRange'] = []
+            node.params['stationsInRange'] = {}
             
             if node.type == 'accessPoint':
                 ssid = ("%s" % params.pop('ssid', {}))

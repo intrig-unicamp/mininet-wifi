@@ -77,13 +77,21 @@ class mobility (object):
             sta.params['snr'][wlan] = 0
             sta.params['channel'][wlan] = 0
             sta.params['frequency'][wlan] = 0
+        if sta in ap.params['associatedStations']:
             ap.params['associatedStations'].remove(sta)
+        if ap in sta.params['apsInRange']:
+            sta.params['apsInRange'].remove(ap)
+            ap.params['stationsInRange'].pop(sta, None)
             
     @classmethod
     def apInRange(self, sta, ap, wlan, dist):
         if ap not in sta.params['apsInRange']:
             sta.params['apsInRange'].append(ap)
-            ap.params['stationsInRange'].append(sta)
+            rssi_ = setChannelParams.setRSSI(sta, ap, wlan, dist)
+            ap.params['stationsInRange'][sta] = rssi_
+        else:
+            rssi_ = setChannelParams.setRSSI(sta, ap, wlan, dist)
+            ap.params['stationsInRange'][sta] = rssi_
         if ap == sta.params['associatedTo'][wlan]:
             rssi_ = setChannelParams.setRSSI(sta, ap, wlan, dist)
             sta.params['rssi'][wlan] = rssi_
@@ -92,7 +100,7 @@ class mobility (object):
             if dist >= 0.01:
                 setChannelParams(sta, ap, wlan, dist)
             if sta not in ap.params['associatedStations']:
-                ap.params['associatedStations'].append(sta)    
+                ap.params['associatedStations'].append(sta)   
                 
     @classmethod
     def handoverCheck(self, sta, wlan):
@@ -106,10 +114,7 @@ class mobility (object):
         for ap in self.accessPoints:
             dist = setChannelParams.getDistance(sta, ap)
             if dist > ap.params['range']:
-                self.apOutOfRange(sta, ap, wlan, dist)
-                if ap in sta.params['apsInRange']:
-                    sta.params['apsInRange'].remove(ap)
-                    ap.params['stationsInRange'].remove(sta)
+                self.apOutOfRange(sta, ap, wlan, dist)                   
             
         for ap in self.accessPoints:
             dist = setChannelParams.getDistance(sta, ap)
@@ -182,6 +187,8 @@ class mobility (object):
         :param ap: access point
         :param wlan: wlan ID
         """
+        if sta.params['associatedTo'][wlan] != '' and sta in sta.params['associatedTo'][wlan].params['associatedStations']:
+            sta.params['associatedTo'][wlan].params['associatedStations'].remove(sta)
         self.updateParams(sta, ap, wlan)
         sta.params['associatedTo'][wlan] = ap
             

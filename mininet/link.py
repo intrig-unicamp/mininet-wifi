@@ -959,8 +959,8 @@ class Association(Link):
                     snr_ = setChannelParams.setSNR(sta, wlan)
                     sta.params['snr'][wlan] = snr_
                     ap.params['associatedStations'].append(sta)
-                sta.params['apsInRange'].append(ap)
-                ap.params['stationsInRange'].append(sta)
+            sta.params['apsInRange'].append(ap)
+            ap.params['stationsInRange'][sta] = rssi_
                 
     @classmethod     
     def updateParams(self, sta, ap, wlan):
