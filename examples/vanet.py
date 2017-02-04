@@ -35,6 +35,9 @@ def topology():
     rsu14 = net.addAccessPoint( 'RSU14', ssid= 'RSU14', mode= 'g', channel= '11', range=100 )
     c1 = net.addController( 'c1', controller=Controller )
 
+    print "*** Configuring wifi nodes"
+    net.configureWifiNodes()
+
     net.meshRouting('custom') 
 
     print "*** Associating and Creating links"
