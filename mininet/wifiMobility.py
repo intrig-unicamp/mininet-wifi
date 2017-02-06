@@ -65,7 +65,7 @@ class mobility (object):
         :param pos_z: Position z
         :param diffTime: difference between start and stop time. Useful for calculating the speed
         """
-        sta.params['speed'] = abs(((pos_x + pos_y + pos_z) / diffTime))
+        sta.params['speed'] = '%.2f' % abs(((pos_x + pos_y + pos_z) / diffTime))
         
     @classmethod
     def apOutOfRange(self, sta, ap, wlan, dist):
