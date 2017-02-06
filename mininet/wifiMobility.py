@@ -26,7 +26,6 @@ class mobility (object):
     stations = []
     wallList = []
     DRAW = False
-    continue_ = True
     isMobility = False
     MAX_X = 0
     MAX_Y = 0
@@ -69,6 +68,14 @@ class mobility (object):
         
     @classmethod
     def apOutOfRange(self, sta, ap, wlan, dist):
+        """
+        When ap is out of range
+        
+        :param sta: station
+        :param ap: access point
+        :param wlan: wlan ID
+        :param dist: distance between source and destination  
+        """ 
         if ap == sta.params['associatedTo'][wlan]:
             debug('iw dev %s disconnect' % sta.params['wlan'][wlan])
             sta.pexec('iw dev %s disconnect' % sta.params['wlan'][wlan])
@@ -85,6 +92,14 @@ class mobility (object):
             
     @classmethod
     def apInRange(self, sta, ap, wlan, dist):
+        """
+        When ap is in range
+        
+        :param sta: station
+        :param ap: access point
+        :param wlan: wlan ID
+        :param dist: distance between source and destination  
+        """ 
         if ap not in sta.params['apsInRange']:
             sta.params['apsInRange'].append(ap)
             rssi_ = setChannelParams.setRSSI(sta, ap, wlan, dist)
@@ -272,13 +287,15 @@ class mobility (object):
                 else:
                     plot = plot2d
                     plot.instantiateGraph(MAX_X, MAX_Y)
-                    plot.plotGraph(nodes, srcConn, dstConn, MAX_X, MAX_Y)
+                    plot.plotGraph(nodes, srcConn, dstConn)
         except:
             info('Warning: This OS does not support GUI. Running without GUI.\n')
             self.DRAW = False
 
         try:
-            while time.time() < t_end and time.time() > t_initial:
+            while True:
+                if time.time() > t_end or time.time() < t_initial:
+                    break
                 if time.time() - currentTime >= i:
                     for sta in staMov:
                         if time.time() - currentTime >= sta.startTime and time.time() - currentTime <= sta.endTime:
@@ -290,7 +307,6 @@ class mobility (object):
                             eval(self.continuePlot)
                             plot.graphUpdate(sta)
                     i += 1
-            self.continue_ = False
         except:
             pass
 
@@ -338,7 +354,7 @@ class mobility (object):
         try:
             if self.DRAW:
                 plot2d.instantiateGraph(MAX_X, MAX_Y)
-                plot2d.plotGraph(nodes, srcConn, dstConn, MAX_X, MAX_Y)
+                plot2d.plotGraph(nodes, srcConn, dstConn)
                 plot2d.graphPause()
         except:
             info('Warning: This OS does not support GUI. Running without GUI.\n')
@@ -427,7 +443,7 @@ class mobility (object):
         """ 
         Applies channel params and handover
         """
-        while self.continue_:
+        while True:
             for sta in self.stations:
                 for wlan in range(0, len(sta.params['wlan'])):
                     if sta.func[wlan] == 'mesh' or sta.func[wlan] == 'adhoc':

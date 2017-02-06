@@ -1344,9 +1344,8 @@ class Mininet(object):
         if(self.isWiFi):
             "Stop Graph"
             mobility.continuePlot = 'exit()'
-            mobility.continue_ = False
-            # mobility.DRAW = False
-            sleep(1)
+            mobility.continueParams = 'exit()'
+            sleep(2)
             if self.is3d:
                 plot3d.closePlot()
             else:
@@ -1863,7 +1862,7 @@ class Mininet(object):
                     plot3d.graphInstantiateNodes(nodes)
                 else:
                     plot2d.instantiateGraph(self.MAX_X, self.MAX_Y)
-                    plot2d.plotGraph(nodes, self.srcConn, self.dstConn, self.MAX_X, self.MAX_Y)
+                    plot2d.plotGraph(nodes, self.srcConn, self.dstConn)
                     plot2d.graphPause()
             except:
                 info('Warning: This OS does not support GUI. Running without GUI.\n')

@@ -212,7 +212,7 @@ class plot2d (object):
         self.ax.grid(True)
         
     @classmethod
-    def instantiateNode(self, node, MAX_X, MAX_Y):
+    def instantiateNode(self, node):
         """instantiateNode"""
         ax = self.ax
 
@@ -222,8 +222,7 @@ class plot2d (object):
         elif node.type == 'vehicle':
             color = 'r'
 
-        node.pltNode, = ax.plot(range(MAX_X), range(MAX_Y), \
-                                     linestyle='', marker='.', ms=10, mfc=color)
+        node.pltNode, = ax.plot(1,1,linestyle='', marker='.', ms=10, mfc=color)
 
     @classmethod
     def instantiateCircle(self, node):
@@ -252,20 +251,20 @@ class plot2d (object):
         node.pltCircle.set_radius(node.params['range'])
 
     @classmethod
-    def graphInstantiateNodes(self, node, MAX_X, MAX_Y):
+    def graphInstantiateNodes(self, node):
         self.instantiateAnnotate(node)
         self.instantiateCircle(node)
-        self.instantiateNode(node, MAX_X, MAX_Y)
+        self.instantiateNode(node)
         self.graphUpdate(node)
 
     @classmethod
-    def plotGraph(self, wifiNodes=[], srcConn=[], dstConn=[], MAX_X=0, MAX_Y=0):
+    def plotGraph(self, wifiNodes=[], srcConn=[], dstConn=[]):
         """ Plot Graph """
         debug('Enabling Graph...\n')           
         for node in wifiNodes:
             x = '%.2f' % float(node.params['position'][0])
             y = '%.2f' % float(node.params['position'][1])
-            self.graphInstantiateNodes(node, MAX_X, MAX_Y)
+            self.graphInstantiateNodes(node)
             node.pltNode.set_data(x, y)
             self.text(node)
             self.circle(node)
@@ -276,10 +275,5 @@ class plot2d (object):
             dst_x = '%.2f' % float(dstConn[c].params['position'][0])
             dst_y = '%.2f' % float(dstConn[c].params['position'][1])
             line = self.plotLine2d([src_x, dst_x], \
-                                   [src_y, dst_y], 'b')
+                                   [src_y, dst_y], 'b')            
             self.plotLine(line)
-
-        # for wall in wallList:
-        #    line = self.plotLine2d([wall.params['initPos'][0], wall.params['finalPos'][0]], \
-        #                               [wall.params['initPos'][1], wall.params['finalPos'][1]], 'r', wall.params['width'])
-        #    self.plotLine(line)

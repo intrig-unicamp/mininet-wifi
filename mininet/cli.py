@@ -72,7 +72,7 @@ class CLI(Cmd):
                     plot3d.graphInstantiateNodes(nodes)
                 else:
                     plot2d.instantiateGraph(mininet.MAX_X, mininet.MAX_Y)
-                    plot2d.plotGraph(nodes, mininet.srcConn, mininet.dstConn, mininet.MAX_X, mininet.MAX_Y)
+                    plot2d.plotGraph(nodes, mininet.srcConn, mininet.dstConn)
                     plot2d.graphPause()
             except:
                 info('Warning: This OS does not support GUI. Running without GUI.\n')

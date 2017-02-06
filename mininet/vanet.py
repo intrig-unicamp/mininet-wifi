@@ -51,10 +51,11 @@ class vanet(object):
         try:
             self.display_grid(accessPoints, srcConn, dstConn, nroads)
             self.display_cars(cars)
-            plot2d.plotGraph(cars, [], [], MAX_X, MAX_Y)
+            plot2d.plotGraph(cars, [], [])
             self.setWifiParameters()
-            while mobility.continue_:
+            while True:
                 [self.scatter, self.com_lines] = self.simulate_car_movement(cars, accessPoints, self.scatter, self.com_lines)
+                mobility.continueParams
         except:
             pass
         
