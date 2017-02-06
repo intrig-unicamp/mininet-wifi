@@ -51,18 +51,9 @@ class CLI(Cmd):
            mininet: Mininet network object
            stdin: standard input for CLI
            script: script to run in batch mode"""
-        isApAdhoc = []
+
         if mobility.isMobility == False and mobility.DRAW and mininet.alreadyPlotted == False:
-            for sta in mininet.stations:
-                if sta.func[0] == 'ap':
-                    mininet.accessPoints.append(sta)
-                    isApAdhoc.append(sta)
-            
-            for ap in isApAdhoc:
-                mininet.stations.remove(ap)
-                ap.params.pop('rssi', None)
-                ap.params.pop('snr', None)
-                ap.params.pop('apsInRange', None)
+            mininet.checkAPAdhoc()
             
             for sta in mininet.stations:
                 if 'position' not in sta.params:

@@ -1176,10 +1176,24 @@ class Mininet(object):
                     ap.params['associatedStations'].append(sta)
                 sta.params['apsInRange'].append(ap)
                 ap.params['stationsInRange'][sta] = rssi_
+                
+    def checkAPAdhoc(self):
+        isApAdhoc = []
+        for sta in self.stations:
+            if sta.func[0] == 'ap':
+                self.accessPoints.append(sta)
+                isApAdhoc.append(sta)
+        
+        for ap in isApAdhoc:
+            self.stations.remove(ap)
+            ap.params.pop('rssi', None)
+            ap.params.pop('snr', None)
+            ap.params.pop('apsInRange', None)
         
     def autoAssociation(self):
         """This is useful to make the users' life easier"""
         if self.isVanet == False:
+            self.checkAPAdhoc()
             for sta in self.stations:
                 pairingAdhocNodes.ssid_ID += 1
                 if 'position' in sta.params:
