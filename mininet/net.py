@@ -1169,13 +1169,17 @@ class Mininet(object):
                 for wlan in range(0, len(sta.params['wlan'])):
                     if sta.params['rssi'][wlan] == 0:
                         self.updateParams(sta, ap, wlan)
-                    rssi_ = setChannelParams.setRSSI(sta, ap, wlan, dist)
-                    sta.params['rssi'][wlan] = rssi_
-                    snr_ = setChannelParams.setSNR(sta, wlan)
-                    sta.params['snr'][wlan] = snr_
-                    ap.params['associatedStations'].append(sta)
-                sta.params['apsInRange'].append(ap)
-                ap.params['stationsInRange'][sta] = rssi_
+                    if sta.params['associatedTo'][wlan] == '' and ap not in sta.params['associatedTo']:
+                        sta.params['associatedTo'][wlan] = ap 
+                        rssi_ = setChannelParams.setRSSI(sta, ap, wlan, dist)
+                        sta.params['rssi'][wlan] = rssi_
+                        snr_ = setChannelParams.setSNR(sta, wlan)
+                        sta.params['snr'][wlan] = snr_
+                        if sta not in ap.params['associatedStations']:
+                            ap.params['associatedStations'].append(sta)
+                if ap not in sta.params['apsInRange']:
+                    sta.params['apsInRange'].append(ap)
+                    ap.params['stationsInRange'][sta] = rssi_
                 
     def checkAPAdhoc(self):
         isApAdhoc = []
@@ -1189,6 +1193,7 @@ class Mininet(object):
             ap.params.pop('rssi', None)
             ap.params.pop('snr', None)
             ap.params.pop('apsInRange', None)
+            ap.params.pop('associatedTo', None)
         
     def autoAssociation(self):
         """This is useful to make the users' life easier"""
