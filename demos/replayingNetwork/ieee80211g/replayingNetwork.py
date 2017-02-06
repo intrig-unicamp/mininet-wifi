@@ -41,7 +41,7 @@ def topology():
 
     replayingNetworkBehavior.addNode(sta1)
     replayingNetworkBehavior.addNode(sta2)
-    replayingNetworkBehavior()
+    replayingNetworkBehavior(net)
 
     #sta1.cmd('tcpdump -i mon0 -s 0 -vvv -w client.pcap &&')
     #sta2.cmd('tcpdump -i mon0 -s 0 -vvv -w server.pcap &&')
@@ -54,6 +54,8 @@ def topology():
     #sta1.cmd('iperf -c ' + sta2.IP() + ' -i 0.5 -t 60 | awk \'t=120{if(NR>=7 && NR<=25) print $8; else if(NR>=26 && NR<=t+6) print $7}\' > replay1.dat')
     #sta2.cmd('iperf -c ' + sta1.IP() + ' -i 0.5 -t 60 | awk \'t=120{if(NR>=7 && NR<=25) print $8; else if(NR>=26 && NR<=t+6) print $7}\' > replay2.dat &')
 
+    net.autoAssociation()
+ 
     print "*** Running CLI"
     CLI( net )
 

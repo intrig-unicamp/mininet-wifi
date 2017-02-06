@@ -15,15 +15,14 @@ from mininet.wifiMobility import mobility
 from mininet.wifiChannel import setChannelParams
 from mininet.wifiDevices import deviceDataRate
 
-
 def instantiateGraph(mininet):
         MAX_X = mininet.MAX_X
         MAX_Y = mininet.MAX_Y
         nodes = mininet.stations + mininet.accessPoints
         for node in nodes:
-            replayingMobility.addNode(node)    
+            replayingMobility.addNode(node)   
         plot2d.instantiateGraph(MAX_X, MAX_Y)
-        plot2d.plotGraph(nodes, [], [], MAX_X, MAX_Y)
+        plot2d.plotGraph(nodes, [], [])
 
 class replayingMobility(object):
     """Replaying Mobility Traces"""
@@ -39,18 +38,17 @@ class replayingMobility(object):
             instantiateGraph(mininet)
         currentTime = time.time()
         staList = mininet.stations
-        continue_ = True
         stations = []
         for node in staList:
             if 'speed' in node.params:
                 stations.append(node)
                 node.currentTime = 1 / node.params['speed']
                 node.time = float(1.0 / node.params['speed'])
-        while continue_:
-            continue_ = False
+        while True:
             time_ = time.time() - currentTime
+            if len(stations) == 0:
+                break
             for node in stations:
-                continue_ = True
                 while time_ >= node.currentTime and len(node.position) != 0:
                     node.moveStationTo(node.position[0])
                     del node.position[0]
@@ -70,23 +68,20 @@ class replayingMobility(object):
 class replayingBandwidth(object):
     """Replaying Bandwidth Traces"""
 
-    def __init__(self, **params):
-        self.thread = threading.Thread(name='replayingBandwidth', target=self.throughput)
+    def __init__(self, mininet, **params):
+        self.thread = threading.Thread(name='replayingBandwidth', target=self.throughput, args=(mininet,))
         self.thread.daemon = True
         self.thread.start()
 
-    def throughput(self):
-        # if mobility.DRAW:
-        #    plotGraph()
+    def throughput(self, mininet):
         currentTime = time.time()
-        staList = mobility.stations
-        continue_ = True
-        while continue_:
-            continue_ = False
+        stations = mininet.stations
+        while True:
+            if len(stations) == 0:
+                break
             time_ = time.time() - currentTime
-            for sta in staList:
+            for sta in stations:
                 if hasattr(sta, 'time'):
-                    continue_ = True
                     if time_ >= sta.time[0]:
                         setChannelParams.tc(sta, 0, sta.throughput[0], 0, 0, 0)
                         # pos = '%d, %d, %d' % (sta.throughput[0], sta.throughput[0], 0)
@@ -95,7 +90,7 @@ class replayingBandwidth(object):
                         del sta.time[0]
                         info('%s\n' % sta.time[0])
                     if len(sta.time) == 1:
-                        staList.remove(sta)
+                        stations.remove(sta)
             # time.sleep(0.001)
         info("\nReplaying Process Finished!")
 
@@ -114,33 +109,31 @@ class replayingBandwidth(object):
 class replayingNetworkBehavior(object):
     """Replaying RSSI Traces"""
     
-    def __init__(self, **kwargs):
+    def __init__(self, mininet, **kwargs):
         """
             Replaying Network Behavior
         """        
-        #mobility.isMobility = True
-        self.thread = threading.Thread( name='replayingRSSI', target=self.behavior )
+        self.thread = threading.Thread( name='replayingRSSI', target=self.behavior, args=(mininet,) )
         self.thread.daemon = True
         self.thread.start()
 
-    def behavior(self):
-        info('\nReplaying process starting in 20 seconds')
-        time.sleep(20)
-        info('\nReplaying process has been started')
+    def behavior(self, mininet):
+        seconds = 5
+        info('Replaying process starting in %s seconds\n' % seconds)
+        time.sleep(seconds)
+        info('Replaying process has been started\n')
         currentTime = time.time()
-        staList = mobility.stations
-        for sta in staList:
+        stations = mininet.stations
+        for sta in stations:
             sta.params['frequency'][0] = setChannelParams.frequency(sta, 0)
-        continue_ = True
-        while continue_:
-            continue_ = False
+        while True:
+            if len(stations) == 0:
+                break
             time_ = time.time() - currentTime
-            for sta in staList:
+            for sta in stations:
                 if hasattr(sta, 'time'):
-                    continue_ = True
                     if time_ >= sta.time[0]:
-                        ap = sta.params['associatedTo'][0]  # get AP
-                        if ap != '':
+                        if sta.params['associatedTo'][0] != '':
                             bw = sta.bw[0]
                             loss = sta.loss[0]
                             delay = sta.delay[0]
@@ -152,8 +145,8 @@ class replayingNetworkBehavior(object):
                         del sta.latency[0]
                         del sta.time[0]
                     if len(sta.time) == 0:
-                        staList.remove(sta)
-            time.sleep(0.01)
+                        stations.remove(sta)
+            time.sleep(0.001)
         info('Replaying process has finished!')
 
     @classmethod
@@ -172,7 +165,7 @@ class replayingRSSI(object):
     print_latency = False
     print_distance = False
     
-    def __init__(self, propagationModel='friisPropagationLossModel', n=32, **kwargs):
+    def __init__(self, mininet, propagationModel='friisPropagationLossModel', n=32, **kwargs):
         """
             propagationModel = Propagation Model
             n: Power Loss Coefficient
@@ -189,42 +182,43 @@ class replayingRSSI(object):
             self.print_distance = True
         
         mobility.isMobility = True
-        self.thread = threading.Thread(name='replayingRSSI', target=self.rssi, args=(propagationModel, n))
+        self.thread = threading.Thread(name='replayingRSSI', target=self.rssi, args=(mininet, propagationModel, n))
         self.thread.daemon = True
         self.thread.start()
 
-    def rssi(self, propagationModel='', n=0):
-        if mobility.DRAW:
-            instantiateGraph()
+    def rssi(self, mininet, propagationModel='', n=0):
+        #if mobility.DRAW:
+        #    instantiateGraph(mininet)
         currentTime = time.time()
-        staList = mobility.stations
+        staList = mininet.stations
         ang = {}
         for sta in staList:
             ang[sta] = random.uniform(0, 360)
             sta.params['frequency'][0] = setChannelParams.frequency(sta, 0)
-        continue_ = True
-        while continue_:
-            continue_ = False
+        while True:
+            if len(staList) == 0:
+                break
             time_ = time.time() - currentTime
             for sta in staList:
                 if hasattr(sta, 'time'):
-                    continue_ = True
                     if time_ >= sta.time[0]:
                         ap = sta.params['associatedTo'][0]  # get AP
                         sta.params['rssi'][0] = sta.rssi[0]
                         if ap != '':
-                            dist = self.calculateDistance(sta, ap, sta.rssi[0], propagationModel, n)
-                            self.moveStationTo(sta, ap, dist, ang[sta])
-                            setChannelParams(sta, ap, dist, 0)
+                            rssi = sta.rssi[0]
+                            dist = int('%d' % self.calculateDistance(sta, ap, rssi, propagationModel, n))
+                            self.moveNodeTo(sta, ap, dist, ang[sta])
+                            setChannelParams(sta, ap, 0, dist)
                         del sta.rssi[0]
                         del sta.time[0]
                     if len(sta.time) == 0:
                         staList.remove(sta)
             time.sleep(0.01)
 
-    def moveStationTo(self, sta, ap, dist, ang):
-        x = dist * cos(ang) + int(ap.params['position'][0])
-        y = dist * sin(ang) + int(ap.params['position'][1])
+    def moveNodeTo(self, sta, ap, dist, ang):
+
+        x = float('%.2f' %  (dist * cos(ang) + int(ap.params['position'][0])))
+        y = float('%.2f' %  (dist * sin(ang) + int(ap.params['position'][1])))
         sta.params['position'] = x, y, 0
         mobility.parameters_()
         if mobility.DRAW:
@@ -245,14 +239,13 @@ class replayingRSSI(object):
             rate = 1
         return rate
 
-    def calculateDistance (self, sta, ap, signalLevel, model=None, n=32.0):
+    def calculateDistance (self, sta, ap, rssi, propagationModel, n=32.0):
 
         pT = ap.params['txpower'][0]
         gT = ap.params['antennaGain'][0]
         gR = sta.params['antennaGain'][0]
-
-        if model in dir(self):
-            dist = self.__getattribute__(model)(sta, ap, pT, gT, gR, signalLevel, n)
+        if propagationModel in dir(self):
+            dist = self.__getattribute__(propagationModel)(sta, ap, pT, gT, gR, rssi, n)
             return dist
 
     def pathLoss(self, sta, ap, dist, wlan=0):

@@ -41,7 +41,9 @@ def topology():
 
     replayingNetworkBehavior.addNode(sta1)
     replayingNetworkBehavior.addNode(sta2)
-    replayingNetworkBehavior()
+    replayingNetworkBehavior(net)
+   
+    net.autoAssociation()
 
     print "*** Running CLI"
     CLI( net )
