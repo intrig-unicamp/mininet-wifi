@@ -432,12 +432,12 @@ class testWalkthrough(unittest.TestCase):
             p.expect(pexpect.EOF)
 
     def testBenchmark(self):
-        "Run benchmark and verify that it takes less than 2 seconds"
+        "Run benchmark and verify that it takes less than 4 seconds"
         p = pexpect.spawn('mn --wifi --test none')
         sleep(3)
         p.expect(r'completed in ([\d\.]+) seconds')
         time = float(p.match.group(1))
-        self.assertTrue(time < 2, 'Benchmark takes more than 2 seconds')
+        self.assertTrue(time < 4, 'Benchmark takes more than 4 seconds')
 
     def testOwnNamespace( self ):
         "Test running user ap in its own namespace"
