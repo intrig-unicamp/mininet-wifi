@@ -621,7 +621,7 @@ class LinkWireless(object):
         if ('vehicle' == node1.type or 'station' == node1.type):            
                 intf1 = cls1(name=intfName1, node=node1,
                               link=self, mac=addr1, **params1)
-                intf2 = None
+                intf2 = 'wireless'
         # All we are is dust in the wind, and our two interfaces
         self.intf1, self.intf2 = intf1, intf2
     # pylint: enable=too-many-branches    
@@ -934,8 +934,7 @@ class Association(Link):
                     info("Error during the association process\n")
                     break
         sta.params['frequency'][wlan] = setChannelParams.frequency(ap, 0)
-        if 'position' in sta.params:
-            self.configureWirelessLink(sta, ap, wlan)
+        
         
     @classmethod
     def configureWirelessLink(self, sta, ap, wlan):
@@ -954,12 +953,16 @@ class Association(Link):
                     self.updateParams(sta, ap, wlan)
                 if sta.params['associatedTo'][wlan] == '' and ap not in sta.params['associatedTo']:
                     sta.params['associatedTo'][wlan] = ap 
-                    rssi_ = setChannelParams.setRSSI(sta, ap, wlan, dist)
-                    sta.params['rssi'][wlan] = rssi_
-                    snr_ = setChannelParams.setSNR(sta, wlan)
-                    sta.params['snr'][wlan] = snr_
+                    cls = Association
+                    cls.associate_infra(sta, ap, wlan)
+                    if dist >= 0.01:
+                        setChannelParams(sta, ap, wlan, dist)
                     if sta not in ap.params['associatedStations']:
                         ap.params['associatedStations'].append(sta)
+                rssi_ = setChannelParams.setRSSI(sta, ap, wlan, dist)
+                sta.params['rssi'][wlan] = rssi_
+                snr_ = setChannelParams.setSNR(sta, wlan)
+                sta.params['snr'][wlan] = snr_
             if ap not in sta.params['apsInRange']:
                 sta.params['apsInRange'].append(ap)
                 ap.params['stationsInRange'][sta] = rssi_
@@ -987,7 +990,10 @@ class Association(Link):
     def associate(self, sta, ap):
         """ Associate to Access Point """
         wlan = sta.ifaceToAssociate
-        self.associate_infra(sta, ap, wlan)
+        if 'position' in sta.params:
+            self.configureWirelessLink(sta, ap, wlan)
+        else:
+            self.associate_infra(sta, ap, wlan)
         sta.ifaceToAssociate += 1
 
     @classmethod

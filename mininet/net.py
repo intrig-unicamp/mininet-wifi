@@ -851,21 +851,22 @@ class Mininet(object):
             cls = AccessPoint
             cls(node, **wifiparam)
             
-            if 'phywlan' not in node.params:
-                node.params['frequency'][wlan] = setChannelParams.frequency(node, 0)
-                cls = TCLinkWireless
-                cls(node)
-                if len(node.params['ssid']) > 1:
-                    for i in range(1, len(node.params['ssid'])):
-                        cls(node, intfName1=node.params['wlan'][i])
-                wlanID = 0
-            else:
-                iface = node.params.get('phywlan')
-                options = dict()
-                options.setdefault('intfName1', iface)
-                cls = TCLinkWireless
-                cls(node, **options)
-                node.params.pop("phywlan", None)
+            if node.type != 'station':
+                if 'phywlan' not in node.params:
+                    node.params['frequency'][wlan] = setChannelParams.frequency(node, 0)
+                    cls = TCLinkWireless
+                    cls(node)
+                    if len(node.params['ssid']) > 1:
+                        for i in range(1, len(node.params['ssid'])):
+                            cls(node, intfName1=node.params['wlan'][i])
+                    wlanID = 0
+                else:
+                    iface = node.params.get('phywlan')
+                    options = dict()
+                    options.setdefault('intfName1', iface)
+                    cls = TCLinkWireless
+                    cls(node, **options)
+                    node.params.pop("phywlan", None)
                 
     def verifyNetworkManager(self, node, wlanID=0):
         """First verify if the mac address of the ap is included at NetworkManager.conf"""
@@ -1164,22 +1165,12 @@ class Mininet(object):
         :param sta: station
         """
         for ap in self.accessPoints:
-            dist = setChannelParams.getDistance(sta, ap)
-            if dist < ap.params['range']:
-                for wlan in range(0, len(sta.params['wlan'])):
-                    if sta.params['rssi'][wlan] == 0:
-                        self.updateParams(sta, ap, wlan)
-                    if sta.params['associatedTo'][wlan] == '' and ap not in sta.params['associatedTo']:
-                        sta.params['associatedTo'][wlan] = ap 
-                        rssi_ = setChannelParams.setRSSI(sta, ap, wlan, dist)
-                        sta.params['rssi'][wlan] = rssi_
-                        snr_ = setChannelParams.setSNR(sta, wlan)
-                        sta.params['snr'][wlan] = snr_
-                        if sta not in ap.params['associatedStations']:
-                            ap.params['associatedStations'].append(sta)
-                if ap not in sta.params['apsInRange']:
-                    sta.params['apsInRange'].append(ap)
-                    ap.params['stationsInRange'][sta] = rssi_
+            if 'position' in ap.params:
+                dist = setChannelParams.getDistance(sta, ap)
+                if dist < ap.params['range']:
+                    for wlan in range(0, len(sta.params['wlan'])):
+                        cls = Association
+                        cls.configureWirelessLink(sta, ap, wlan)
                 
     def checkAPAdhoc(self):
         isApAdhoc = []
@@ -1212,28 +1203,7 @@ class Mininet(object):
                     elif 'position' in sta.params and sta.func[wlan] == 'mesh':
                         dist = listNodes.pairingNodes(sta, wlan, self.stations)
                         if dist >= 0.01:
-                            setChannelParams(sta=sta, wlan=wlan, dist=dist)
-                    elif 'position' in sta.params and sta.params['associatedTo'][wlan] != '' and sta.func[wlan] != 'adhoc':
-                        dist = setChannelParams.getDistance(sta, sta.params['associatedTo'][wlan])
-                        if dist >= 0.01:
-                            ap = sta.params['associatedTo'][wlan]
-                            setChannelParams(sta, ap, wlan, dist)
-                    else:
-                        for ap in self.accessPoints:
-                            if sta.params['associatedTo'][wlan] == '':
-                                if 'position' in sta.params and 'position' in ap.params:
-                                    dist = setChannelParams.getDistance(sta, ap)
-                                    if dist > ap.params['range']:
-                                        doAssociation = False
-                                    else:
-                                        doAssociation = True
-                                    if(doAssociation):
-                                        cls = Association
-                                        cls.associate(sta, ap)
-                                        if dist >= 0.01:
-                                            ap = sta.params['associatedTo'][wlan]
-                                            setChannelParams(sta, ap, wlan, dist)
-                    
+                            setChannelParams(sta=sta, wlan=wlan, dist=dist)                   
                 if meshRouting.routing == 'custom':
                     meshRouting(self.stations)
 
