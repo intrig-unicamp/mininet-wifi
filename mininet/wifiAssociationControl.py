@@ -1,6 +1,4 @@
-from mininet.wifiPropagationModels import propagationModel
 from mininet.wifiChannel import setChannelParams
-import time
 
 class associationControl (object):
 
@@ -18,6 +16,7 @@ class associationControl (object):
             if apref != '':
                 ref_llf = len(apref.params['associatedStations'])
                 if len(ap.params['associatedStations']) + 2 < ref_llf:
+                    sta.pexec('iw dev %s disconnect' % sta.params['wlan'][wlan])
                     self.changeAP = True
             else:
                 self.changeAP = True
@@ -25,5 +24,6 @@ class associationControl (object):
             refDistance = setChannelParams.getDistance(sta, ap)
             refRSSI = setChannelParams.setRSSI(sta, ap, wlan, refDistance)
             if float(refRSSI) > float(sta.params['rssi'][wlan] + 0.1):
+                sta.pexec('iw dev %s disconnect' % sta.params['wlan'][wlan])
                 self.changeAP = True
         return self.changeAP

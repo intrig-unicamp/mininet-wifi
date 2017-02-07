@@ -209,6 +209,7 @@ class Mininet(object):
         self.MAX_X = 0
         self.MAX_Y = 0
         self.MAX_Z = 0
+        self.associationControlMethod = ''
         self.is3d = False
         self.ifb = False
         self.alreadyPlotted = False
@@ -1658,6 +1659,9 @@ class Mininet(object):
         self.mobilityModel = ''
         mobilityparam = dict()
         mobility.isMobility = True
+        
+        if 'AC' in kwargs:
+            self.associationControlMethod = kwargs['AC']
 
         if 'model' in kwargs:
             mobilityparam.setdefault('model', kwargs['model'])
@@ -1691,6 +1695,7 @@ class Mininet(object):
             mobilityparam.setdefault('MAX_Y', self.MAX_Y)
             mobilityparam.setdefault('dstConn', self.dstConn)
             mobilityparam.setdefault('srcConn', self.srcConn)
+            mobilityparam.setdefault('AC', self.associationControlMethod)
             
             if self.isVanet == False:
                 self.thread = threading.Thread(name='mobilityModel', target=mobility.models, kwargs=dict(mobilityparam,))
@@ -1732,6 +1737,7 @@ class Mininet(object):
         mobilityparam.setdefault('MAX_Z', self.MAX_Z)
         mobilityparam.setdefault('dstConn', self.dstConn)
         mobilityparam.setdefault('srcConn', self.srcConn)
+        mobilityparam.setdefault('AC', self.associationControlMethod)
 
         debug('Starting mobility thread...\n')
         self.thread = threading.Thread(name='mobility', target=mobility.definedPosition, kwargs=dict(mobilityparam,))

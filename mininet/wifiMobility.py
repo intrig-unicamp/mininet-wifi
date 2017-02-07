@@ -251,7 +251,7 @@ class mobility (object):
 
     @classmethod
     def definedPosition(self, init_time=0, final_time=0, stations=None, aps=None, walls=None, staMov=None,
-                                dstConn=None, srcConn=None, plotNodes=None, MAX_X=0, MAX_Y=0, MAX_Z=0):
+                                dstConn=None, srcConn=None, plotNodes=None, MAX_X=0, MAX_Y=0, MAX_Z=0, AC=''):
         """ 
         Used when the position of each node is previously defined
         
@@ -267,7 +267,9 @@ class mobility (object):
         :param MAX_X: Maximum value for X
         :param MAX_Y: Maximum value for Y
         :param MAX_Z: Maximum value for Z
+        :param AC: Association Control Method
         """
+        self.associationControlMethod = AC
         t_end = time.time() + final_time
         t_initial = time.time() + init_time
         currentTime = time.time()
