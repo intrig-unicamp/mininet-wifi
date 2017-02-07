@@ -909,7 +909,7 @@ class Mininet(object):
 
     def configureWirelessLink(self):
         """Configure Wireless Link"""
-        
+        self.checkAPAdhoc()
         nodes = self.stations + self.cars
         for node in nodes:
             for wlan in range(0, len(node.params['wlan'])):
@@ -1189,7 +1189,6 @@ class Mininet(object):
     def autoAssociation(self):
         """This is useful to make the users' life easier"""
         if self.isVanet == False:
-            self.checkAPAdhoc()
             for sta in self.stations:
                 pairingAdhocNodes.ssid_ID += 1
                 if 'position' in sta.params:
