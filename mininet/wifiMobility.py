@@ -21,7 +21,7 @@ from mininet.wifiPlot import plot2d, plot3d
 class mobility (object):
     """ Mobility """
 
-    associationControlMethod = False
+    associationControlMethod = ''
     accessPoints = []
     stations = []
     wallList = []
@@ -83,7 +83,7 @@ class mobility (object):
             sta.params['rssi'][wlan] = 0
             sta.params['snr'][wlan] = 0
             sta.params['channel'][wlan] = 0
-            sta.params['frequency'][wlan] = 0
+            # sta.params['frequency'][wlan] = 0
         if sta in ap.params['associatedStations']:
             ap.params['associatedStations'].remove(sta)
         if ap in sta.params['apsInRange']:
@@ -134,8 +134,9 @@ class mobility (object):
         for ap in self.accessPoints:
             dist = setChannelParams.getDistance(sta, ap)
             if dist <= ap.params['range']:
+                self.apInRange(sta, ap, wlan, dist) 
                 self.handover(sta, ap, wlan, dist)
-                self.apInRange(sta, ap, wlan, dist)            
+                           
         
     @classmethod
     def handover(self, sta, ap, wlan, dist):
@@ -150,7 +151,7 @@ class mobility (object):
         changeAP = False
         
         """Association Control: mechanisms that optimize the use of the APs"""
-        if self.associationControlMethod != False and sta.params['associatedTo'][wlan] != ap:
+        if self.associationControlMethod != '' and sta.params['associatedTo'][wlan] != ap:
             ac = self.associationControlMethod
             value = associationControl(sta, ap, wlan, ac)
             changeAP = value.changeAP

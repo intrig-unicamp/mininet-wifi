@@ -137,6 +137,7 @@ class setChannelParams (object):
         :param latency: latency (ms)
         :param delay: delay (ms)
         """
+        
         if self.ifb:
             sta.pexec("tc qdisc replace dev ifb%s \
                 root handle 2: netem rate %.2fmbit \
