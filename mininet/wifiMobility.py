@@ -134,8 +134,8 @@ class mobility (object):
         for ap in self.accessPoints:
             dist = setChannelParams.getDistance(sta, ap)
             if dist <= ap.params['range']:
-                self.apInRange(sta, ap, wlan, dist) 
                 self.handover(sta, ap, wlan, dist)
+                self.apInRange(sta, ap, wlan, dist) 
                            
         
     @classmethod
