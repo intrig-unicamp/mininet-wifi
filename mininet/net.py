@@ -852,22 +852,21 @@ class Mininet(object):
             cls = AccessPoint
             cls(node, **wifiparam)
             
-            if node.type != 'station':
-                if 'phywlan' not in node.params:
-                    node.params['frequency'][wlan] = setChannelParams.frequency(node, 0)
-                    cls = TCLinkWireless
-                    cls(node)
-                    if len(node.params['ssid']) > 1:
-                        for i in range(1, len(node.params['ssid'])):
-                            cls(node, intfName1=node.params['wlan'][i])
-                    wlanID = 0
-                else:
-                    iface = node.params.get('phywlan')
-                    options = dict()
-                    options.setdefault('intfName1', iface)
-                    cls = TCLinkWireless
-                    cls(node, **options)
-                    node.params.pop("phywlan", None)
+            if 'phywlan' not in node.params:
+                node.params['frequency'][wlan] = setChannelParams.frequency(node, 0)
+                cls = TCLinkWireless
+                cls(node)
+                if len(node.params['ssid']) > 1:
+                    for i in range(1, len(node.params['ssid'])):
+                        cls(node, intfName1=node.params['wlan'][i])
+                wlanID = 0
+            else:
+                iface = node.params.get('phywlan')
+                options = dict()
+                options.setdefault('intfName1', iface)
+                cls = TCLinkWireless
+                cls(node, **options)
+                node.params.pop("phywlan", None)
                 
     def verifyNetworkManager(self, node, wlanID=0):
         """First verify if the mac address of the ap is included at NetworkManager.conf"""
