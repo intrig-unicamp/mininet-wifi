@@ -994,6 +994,8 @@ class Association(Link):
             self.configureWirelessLink(sta, ap, wlan)
         else:
             self.associate_infra(sta, ap, wlan)
+            sta.params['associatedTo'][wlan] = ap
+            ap.params['associatedStations'].append(sta)
         sta.ifaceToAssociate += 1
 
     @classmethod
