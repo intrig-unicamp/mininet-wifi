@@ -853,13 +853,14 @@ class Mininet(object):
             cls(node, **wifiparam)
             
             if 'phywlan' not in node.params:
-                node.params['frequency'][wlan] = setChannelParams.frequency(node, 0)
-                cls = TCLinkWireless
-                cls(node)
-                if len(node.params['ssid']) > 1:
-                    for i in range(1, len(node.params['ssid'])):
-                        cls(node, intfName1=node.params['wlan'][i])
-                wlanID = 0
+                if node.func[0] != 'ap':
+                    node.params['frequency'][wlan] = setChannelParams.frequency(node, 0)
+                    cls = TCLinkWireless
+                    cls(node)
+                    if len(node.params['ssid']) > 1:
+                        for i in range(1, len(node.params['ssid'])):
+                            cls(node, intfName1=node.params['wlan'][i])
+                    wlanID = 0
             else:
                 iface = node.params.get('phywlan')
                 options = dict()
@@ -906,6 +907,16 @@ class Mininet(object):
         
         self.ifb = True
         setChannelParams.ifb = True
+        
+    def configureMacAddr(self, node):
+        """Configure Mac Address"""
+        for wlan in range(0, len(node.params['wlan'])):
+            iface = node.params['wlan'][wlan]
+            if node.params['mac'][wlan] == '':
+                node.params['mac'][wlan] = node.getMAC(iface)
+            else:
+                mac = node.params['mac'][wlan]
+                node.setMAC(mac, iface)
 
     def configureWirelessLink(self):
         """Configure Wireless Link"""
@@ -924,14 +935,8 @@ class Mininet(object):
                     if 'ssid' not in node.params:
                         if node.params['txpower'][wlan] != 20:
                             node.setTxPower(node.params['wlan'][wlan], node.params['txpower'][wlan])
-                if node.type != 'accessPoint':
-                    iface = node.params['wlan'][wlan]
-                    if node.params['mac'][wlan] == '':
-                        node.params['mac'][wlan] = node.getMAC(iface)
-                    else:
-                        mac = node.params['mac'][wlan]
-                        node.setMAC(mac, iface)
-
+            self.configureMacAddr(node)
+                
     def configureWifiNodes(self):
         """
         Configure Wireless Nodes
