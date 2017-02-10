@@ -909,8 +909,8 @@ class Mininet(object):
 
     def configureWirelessLink(self):
         """Configure Wireless Link"""
-        self.checkAPAdhoc()
         nodes = self.stations + self.cars
+        self.checkAPAdhoc()
         for node in nodes:
             for wlan in range(0, len(node.params['wlan'])):
                 cls = TCLinkWireless
@@ -931,10 +931,6 @@ class Mininet(object):
                     else:
                         mac = node.params['mac'][wlan]
                         node.setMAC(mac, iface)
-                    if 'ssid' in node.params and node.type != 'vehicle':
-                        self.verifyNetworkManager(node)
-                        self.restartNetworkManager()
-                        self.configureAP(node)
 
     def configureWifiNodes(self):
         """
