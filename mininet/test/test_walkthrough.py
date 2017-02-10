@@ -421,6 +421,9 @@ class testWalkthrough(unittest.TestCase):
         p.sendline('py sta2.params[\'apsInRange\']')
         p.expect('Station ap2: ap2-wlan0:10.0.0.12')   
         p.expect(self.prompt)
+        p.sendline('net')
+        p.expect('ap1 ap1-wlan0:wireless ap1-eth1:ap2-eth1')
+        p.expect(self.prompt)
         stations = [ 'Station sta1: sta1-wlan0:10.0.0.1', self.prompt ]
         p.sendline('py ap1.params[\'associatedStations\']')
         p.expect(stations) 
