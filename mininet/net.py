@@ -130,7 +130,7 @@ from mininet.vanet import vanet
 from __builtin__ import True
 
 # Mininet version: should be consistent with README and LICENSE
-VERSION = "1.9r7"
+VERSION = "2.0"
 
 class Mininet(object):
     "Network emulation with hosts spawned in network namespaces."
@@ -1933,6 +1933,33 @@ class Mininet(object):
         except:
             print ("node %s or/and node %s does not exist or there is no position defined" % (dst, src))
 
+    
+    def configWirelessLinkStatus(self, src, dst, status):
+        if status == 'down':
+            if self.nameToNode[ src ].type == 'station':
+                sta = self.nameToNode[ src ]
+                ap = self.nameToNode[ dst ]
+            else:
+                sta = self.nameToNode[ dst ]
+                ap = self.nameToNode[ src ]
+            for wlan in range(0, len(sta.params['wlan'])):
+                if sta.params['associatedTo'][wlan] != '':
+                    sta.cmd('iw dev %s disconnect' % sta.params['wlan'][wlan])
+                    sta.params['associatedTo'][wlan] = ''
+                    ap.params['associatedStations'].remove(sta)
+        else:
+            if self.nameToNode[ src ].type == 'station':
+                sta = self.nameToNode[ src ]
+                ap = self.nameToNode[ dst ]
+            else:
+                sta = self.nameToNode[ dst ]
+                ap = self.nameToNode[ src ]
+            for wlan in range(0, len(sta.params['wlan'])):
+                if sta.params['associatedTo'][wlan] == '':
+                    sta.pexec('iwconfig %s essid %s ap %s' % (sta.params['wlan'][wlan], ap.params['ssid'][0], ap.params['mac'][0]))
+                    sta.params['associatedTo'][wlan] = ap
+                    ap.params['associatedStations'].append(sta)
+
     # BL: I think this can be rewritten now that we have
     # a real link class.
     def configLinkStatus(self, src, dst, status):
@@ -1944,6 +1971,9 @@ class Mininet(object):
             error('src not in network: %s\n' % src)
         elif dst not in self.nameToNode:
             error('dst not in network: %s\n' % dst)
+        if self.nameToNode[ src ].type == 'station' and self.nameToNode[ dst ].type == 'accessPoint' or \
+            self.nameToNode[ src ].type == 'accessPoint' and self.nameToNode[ dst ].type == 'station': 
+            self.configWirelessLinkStatus(src, dst, status)            
         else:
             src = self.nameToNode[ src ]
             dst = self.nameToNode[ dst ]
