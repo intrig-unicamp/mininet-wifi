@@ -315,7 +315,7 @@ class mobility (object):
 
     @classmethod
     def models(self, stations=None, aps=None, model=None, staMov=None, min_v=0, max_v=0, seed=None,
-               dstConn=None, srcConn=None, walls=None, plotNodes=None, MAX_X=0, MAX_Y=0):
+               dstConn=None, srcConn=None, walls=None, plotNodes=None, MAX_X=0, MAX_Y=0, AC=''):
         """ 
         Used when a mobility model is applied
         
