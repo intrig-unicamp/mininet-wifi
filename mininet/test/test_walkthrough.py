@@ -397,6 +397,81 @@ class testWalkthrough(unittest.TestCase):
         p2.sendline('exit')
         p2.wait()
         os.system('rmmod mac80211_hwsim')
+    
+    def testWirelessParams(self):
+        """Start Mininet-WiFi with apadhoc, then do an extensive test"""
+        p = pexpect.spawn(
+            'python examples/apadhoc.py')
+        sleep(5)
+        p.sendline('sta1 iwconfig')
+        p.expect('02:00:00:00:02:00')
+        p.expect(self.prompt)
+        p.sendline('sta2 iwconfig')
+        p.expect('02:00:00:00:03:00')
+        p.expect(self.prompt)
+        p.sendline('py sta1.params[\'associatedTo\']')
+        p.expect('Station ap1: ap1-wlan0:10.0.0.11')
+        p.expect(self.prompt)
+        p.sendline('py sta1.params[\'apsInRange\']')
+        p.expect('Station ap1: ap1-wlan0:10.0.0.11')
+        p.expect(self.prompt)
+        p.sendline('py sta2.params[\'associatedTo\']')
+        p.expect('Station ap2: ap2-wlan0:10.0.0.12')
+        p.expect(self.prompt)
+        p.sendline('py sta2.params[\'apsInRange\']')
+        p.expect('Station ap2: ap2-wlan0:10.0.0.12')   
+        p.expect(self.prompt)
+        stations = [ 'Station sta1: sta1-wlan0:10.0.0.1', self.prompt ]
+        p.sendline('py ap1.params[\'associatedStations\']')
+        p.expect(stations) 
+        p.sendline('py ap1.params[\'stationsInRange\']')
+        p.expect(stations)
+        stations = [ 'Station sta2: sta2-wlan0:10.0.0.2', self.prompt ]
+        p.sendline('py ap2.params[\'associatedStations\']')
+        p.expect(stations) 
+        p.sendline('py ap2.params[\'stationsInRange\']')
+        p.expect(stations)
+        p.sendline('py sta1.moveNodeTo(\'80,40,0\')')
+        sleep(3)
+        p.sendline('py sta1.params[\'associatedTo\']')
+        p.expect('Station ap2: ap2-wlan0:10.0.0.12')
+        p.expect(self.prompt)
+        p.sendline('py sta1.params[\'apsInRange\']')
+        p.expect('Station ap2: ap2-wlan0:10.0.0.12')   
+        p.expect(self.prompt)
+        p.sendline('py sta1.params[\'rssi\']')
+        p.expect('-47.21')   
+        p.expect(self.prompt)
+        stations = [ 'Station sta1: sta1-wlan0:10.0.0.1', 'Station sta2: sta2-wlan0:10.0.0.2', self.prompt ]
+        p.sendline('py ap2.params[\'associatedStations\']')
+        p.expect(stations) 
+        p.sendline('py ap2.params[\'stationsInRange\']')
+        p.expect(stations)   
+        stations = [ self.prompt ]
+        p.sendline('py ap1.params[\'associatedStations\']')
+        p.expect(stations) 
+        p.sendline('py ap1.params[\'stationsInRange\']')
+        p.expect(stations)   
+        p.sendline('exit')
+        p.wait()
+        p = pexpect.spawn(
+            'python examples/apadhoc.py -m')
+        sleep(5)
+        p.sendline('py sta1.params[\'associatedTo\']')
+        p.expect('Station ap2: ap2-wlan0:10.0.0.12')
+        p.expect(self.prompt)
+        accessPoints = [ 'Station ap1: ap1-wlan0:10.0.0.11', 'Station ap2: ap2-wlan0:10.0.0.12', self.prompt ]
+        p.sendline('py sta1.params[\'apsInRange\']')
+        p.expect(accessPoints)   
+        stations = [ 'Station sta1: sta1-wlan0:10.0.0.1', 'Station sta2: sta2-wlan0:10.0.0.2', self.prompt ]
+        p.sendline('py ap1.params[\'stationsInRange\']')
+        p.expect(stations) 
+        p.sendline('py ap2.params[\'stationsInRange\']')
+        p.expect(stations) 
+        p.sendline('py ap2.params[\'associatedStations\']')
+        p.expect(stations) 
+        p.sendline('exit')
+        p.wait()
         
     def testDynamicMAC(self):
         "Verify that MACs are set correctly"
@@ -491,23 +566,24 @@ class testWalkthrough(unittest.TestCase):
         p.sendline('exit')
         p.wait()
 
-   # def testLink( self ):
-   #     "Test link CLI command using ping"
-   #     p = pexpect.spawn( 'mn --wifi' )
-   #     sleep(3)
-   #     p.expect( self.prompt )
-   #     p.sendline( 'link ap1 sta1 down' )
-   #     p.expect( self.prompt )
-   #     p.sendline( 'sta1 ping -c 1 sta2' )
-   #     p.expect( 'unreachable' )
-   #     p.expect( self.prompt )
-   #     p.sendline( 'link ap1 sta1 up' )
-   #     p.expect( self.prompt )
-   #     p.sendline( 'sta1 ping -c 1 sta2' )
-   #     p.expect( '0% packet loss' )
-   #     p.expect( self.prompt )
-   #     p.sendline( 'exit' )
-   #     p.wait()
+    def testLink( self ):
+        "Test link CLI command using ping"
+        p = pexpect.spawn( 'mn --wifi' )
+        sleep(3)
+        p.expect( self.prompt )
+        p.sendline( 'link ap1 sta1 down' )
+        p.expect( self.prompt )
+        p.sendline( 'sta1 ping -c 1 sta2' )
+        p.expect( '100% packet loss' )
+        p.expect( self.prompt )
+        p.sendline( 'link ap1 sta1 up' )
+        p.expect( self.prompt )
+        sleep(2)
+        p.sendline( 'sta1 ping -c 1 sta2' )
+        p.expect( '0% packet loss' )
+        p.expect( self.prompt )
+        p.sendline( 'exit' )
+        p.wait()
 
     # @unittest.skipUnless( os.path.exists( '/tmp/pox' ) or
     #                      '1 received' in quietRun( 'ping -c 1 github.com' ),
