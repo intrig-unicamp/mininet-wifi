@@ -456,7 +456,7 @@ class testWalkthrough(unittest.TestCase):
         p.wait()
         p = pexpect.spawn(
             'python examples/apadhoc.py -m')
-        sleep(5)
+        sleep(10)
         p.sendline('py sta1.params[\'associatedTo\']')
         p.expect('Station ap2: ap2-wlan0:10.0.0.12')
         p.expect(self.prompt)
