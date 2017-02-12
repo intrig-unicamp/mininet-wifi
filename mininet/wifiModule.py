@@ -32,10 +32,12 @@ class module(object):
             else:
                 output_ = os.system('insmod %s radios=0 >/dev/null 2>&1' % alternativeModule)
             
-            """output_ is different of zero in Kernel 3.13.0-24. radios=0 doesn't work in such kernel version"""
+            """output_ is different of zero in Kernel 3.13.x. radios=0 doesn't work in such kernel version"""
             if output_ == 0:
                 self.__create_hwsim_mgmt_devices(wifiRadios)
             else:
+                if wifiRadios == 0:
+                    wifiRadios = 1 #Useful for tests in Kernels like Kernel 3.13.x
                 if alternativeModule == '':
                     os.system('modprobe mac80211_hwsim radios=%s' % wifiRadios)
                 else:
