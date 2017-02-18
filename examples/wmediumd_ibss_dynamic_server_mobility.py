@@ -4,7 +4,7 @@
 This example shows how to use the wmediumd connector to prevent mac80211_hwsim stations reaching each other
 (with Mobility)
 
-It starts the wmediumd and 'disables' the connection from sta1 to sta2
+It starts wmediumd and 'disables' the connection from sta1 to sta2
 
 authors: Patrick Grosse (patrick.grosse@uni-muenster.de)
          Ramon Fontes (ramonrf@dca.fee.unicamp.br)
@@ -13,7 +13,7 @@ authors: Patrick Grosse (patrick.grosse@uni-muenster.de)
 from mininet.cli import CLI
 from mininet.log import setLogLevel
 from mininet.net import Mininet
-from mininet.wmediumdConnector import WmediumdStarter, DynamicWmediumdIntfRef, WmediumdLink, WmediumdServerConn
+from mininet.wmediumdConnector import WmediumdStarter, DynamicWmediumdIntfRef, WmediumdSNRLink, WmediumdServerConn
 
 
 def topology():
@@ -35,10 +35,10 @@ def topology():
 
     intfrefs = [sta1.wmediumdIface, sta2.wmediumdIface, sta3.wmediumdIface]
     links = [
-        WmediumdLink(sta1.wmediumdIface, sta2.wmediumdIface, 15),
-        WmediumdLink(sta2.wmediumdIface, sta1.wmediumdIface, 15),
-        WmediumdLink(sta2.wmediumdIface, sta3.wmediumdIface, 15),
-        WmediumdLink(sta3.wmediumdIface, sta2.wmediumdIface, 15)]
+        WmediumdSNRLink(sta1.wmediumdIface, sta2.wmediumdIface, 15),
+        WmediumdSNRLink(sta2.wmediumdIface, sta1.wmediumdIface, 15),
+        WmediumdSNRLink(sta2.wmediumdIface, sta3.wmediumdIface, 15),
+        WmediumdSNRLink(sta3.wmediumdIface, sta2.wmediumdIface, 15)]
     WmediumdStarter.initialize(intfrefs, links, with_server=True)
 
     print "*** Configuring wifi nodes"

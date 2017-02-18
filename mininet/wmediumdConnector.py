@@ -3,7 +3,7 @@ Helps starting the wmediumd service
 
 author: Patrick Grosse (patrick.grosse@uni-muenster.de)
 """
-
+import ctypes
 import os
 import pkg_resources
 import socket
@@ -23,14 +23,16 @@ class WmediumdConstants:
         pass
 
     WSERVER_SHUTDOWN_REQUEST_TYPE = 0
-    WSERVER_UPDATE_REQUEST_TYPE = 1
-    WSERVER_UPDATE_RESPONSE_TYPE = 2
+    WSERVER_SNR_UPDATE_REQUEST_TYPE = 1
+    WSERVER_SNR_UPDATE_RESPONSE_TYPE = 2
     WSERVER_DEL_BY_MAC_REQUEST_TYPE = 3
     WSERVER_DEL_BY_MAC_RESPONSE_TYPE = 4
     WSERVER_DEL_BY_ID_REQUEST_TYPE = 5
     WSERVER_DEL_BY_ID_RESPONSE_TYPE = 6
     WSERVER_ADD_REQUEST_TYPE = 7
     WSERVER_ADD_RESPONSE_TYPE = 8
+    WSERVER_ERRPROB_UPDATE_REQUEST_TYPE = 9
+    WSERVER_ERRPROB_UPDATE_RESPONSE_TYPE = 10
 
     WUPDATE_SUCCESS = 0
     WUPDATE_INTF_NOTFOUND = 1
@@ -122,15 +124,26 @@ class WmediumdManager(object):
         cls.registered_interfaces.remove(mac)
 
     @classmethod
-    def update_link(cls, link):
-        # type: (WmediumdLink) -> None
+    def update_link_snr(cls, link):
+        # type: (WmediumdSNRLink) -> None
         """
         Update the SNR of a connection at wmediumd
         :param link The link to update
 
         :type link: WmediumdLink
         """
-        WmediumdServerConn.update_link(link)
+        WmediumdServerConn.update_link_snr(link)
+
+    @classmethod
+    def update_link_errprob(cls, link):
+        # type: (WmediumdERRPROBLink) -> None
+        """
+        Update the error probability of a connection at wmediumd
+        :param link The link to update
+
+        :type link: WmediumdLink
+        """
+        WmediumdServerConn.update_link_errprob(link)
 
 
 class WmediumdStarter(object):
@@ -148,10 +161,12 @@ class WmediumdStarter(object):
     wmd_process = None
     wmd_config_name = None
     wmd_logfile = None
+    default_auto_errprob = 0.0
+    use_errprob = False
 
     @classmethod
     def initialize(cls, intfrefs=None, links=None, executable='wmediumd', with_server=True, parameters=None,
-                   auto_add_links=True, default_auto_snr=-10):
+                   auto_add_links=True, default_auto_snr=-10, default_auto_errprob=1.0, use_errprob=False):
         """
         Set the data for the wmediumd daemon
 
@@ -162,6 +177,8 @@ class WmediumdStarter(object):
         :param parameters: Parameters to pass to the wmediumd executable
         :param auto_add_links: If true, it will add all missing links pairs with the default_auto_snr as SNR
         :param default_auto_snr: The default SNR
+        :param default_auto_errprob: The default error probability
+        :param use_errprob: If error probabilities should be used instead of SNR
 
         :type intfrefs: list of WmediumdIntfRef
         :type links: list of WmediumdLink
@@ -180,6 +197,8 @@ class WmediumdStarter(object):
         cls.parameters = parameters
         cls.auto_add_links = auto_add_links
         cls.default_auto_snr = default_auto_snr
+        cls.default_auto_errprob = default_auto_errprob
+        cls.use_errprob = use_errprob
         cls.is_initialized = True
 
     @classmethod
@@ -224,13 +243,17 @@ class WmediumdStarter(object):
                 for intfref2 in cls.intfrefs:
                     if intfref1 != intfref2:
                         link_id = intfref1.identifier() + '/' + intfref2.identifier()
-                        mappedlinks.setdefault(link_id, WmediumdLink(intfref1, intfref2, cls.default_auto_snr))
+                        if cls.use_errprob:
+                            mappedlinks.setdefault(link_id,
+                                                   WmediumdERRPROBLink(intfref1, intfref2, cls.default_auto_errprob))
+                        else:
+                            mappedlinks.setdefault(link_id, WmediumdSNRLink(intfref1, intfref2, cls.default_auto_snr))
 
         # Create wmediumd config
         wmd_config = tempfile.NamedTemporaryFile(prefix='mn_wmd_config_', suffix='.cfg', delete=False)
         cls.wmd_config_name = wmd_config.name
         info("Name of wmediumd config: %s\n" % cls.wmd_config_name)
-        configstr = 'ifaces :\n{\n\tids = ['
+        configstr = 'ifaces:\n{\n\tids = ['
         intfref_id = 0
         for intfref in cls.intfrefs:
             if intfref_id != 0:
@@ -239,7 +262,12 @@ class WmediumdStarter(object):
             configstr += '"%s"' % grepped_mac
             mappedintfrefs[intfref.identifier()] = intfref_id
             intfref_id += 1
-        configstr += '];\n\tlinks = ('
+        configstr += '];\n};model:\n{\n\ttype = "'
+        if cls.use_errprob:
+            configstr += 'prob'
+        else:
+            configstr += 'snr'
+        configstr += '";\n\tdefault_prob = 1.0;\n\tlinks = ('
         first_link = True
         for mappedlink in mappedlinks.itervalues():
             id1 = mappedlink.sta1intfref.identifier()
@@ -248,16 +276,24 @@ class WmediumdStarter(object):
                 first_link = False
             else:
                 configstr += ','
-            configstr += '\n\t\t(%d, %d, %d)' % (
-                mappedintfrefs[id1], mappedintfrefs[id2],
-                mappedlink.snr)
+            if cls.use_errprob:
+                configstr += '\n\t\t(%d, %d, %f)' % (
+                    mappedintfrefs[id1], mappedintfrefs[id2],
+                    mappedlink.errprob)
+            else:
+                configstr += '\n\t\t(%d, %d, %d)' % (
+                    mappedintfrefs[id1], mappedintfrefs[id2],
+                    mappedlink.snr)
         configstr += '\n\t);\n};'
         wmd_config.write(configstr)
         wmd_config.close()
 
         # Start wmediumd using the created config
-        per_data_file = pkg_resources.resource_filename('mininet', 'data/signal_table_ieee80211ax')
-        cmdline = [cls.executable, "-c", cls.wmd_config_name, "-x", per_data_file]
+        cmdline = [cls.executable, "-c", cls.wmd_config_name]
+        if not cls.use_errprob:
+            cmdline.append("-x")
+            per_data_file = pkg_resources.resource_filename('mininet', 'data/signal_table_ieee80211ax')
+            cmdline.append(per_data_file)
         cmdline[1:1] = cls.parameters
         cls.wmd_logfile = tempfile.NamedTemporaryFile(prefix='mn_wmd_log_', suffix='.log', delete=not cls.is_managed)
         info("Name of wmediumd log: %s\n" % cls.wmd_logfile.name)
@@ -316,7 +352,7 @@ class WmediumdStarter(object):
             pass
 
 
-class WmediumdLink(object):
+class WmediumdSNRLink(object):
     def __init__(self, sta1intfref, sta2intfref, snr=10):
         """
         Describes a link between two interfaces using the SNR
@@ -332,6 +368,24 @@ class WmediumdLink(object):
         self.sta1intfref = sta1intfref
         self.sta2intfref = sta2intfref
         self.snr = snr
+
+
+class WmediumdERRPROBLink(object):
+    def __init__(self, sta1intfref, sta2intfref, errprob=0.2):
+        """
+        Describes a link between two interfaces using the error probability
+
+        :param sta1intfref: Instance of WmediumdIntfRef
+        :param sta2intfref: Instance of WmediumdIntfRef
+        :param errprob: The error probability in the range [0.0;1.0]
+
+        :type sta1intfref: WmediumdIntfRef
+        :type sta2intfref: WmediumdIntfRef
+        :type errprob: float
+        """
+        self.sta1intfref = sta1intfref
+        self.sta2intfref = sta2intfref
+        self.errprob = errprob
 
 
 class WmediumdIntfRef:
@@ -434,6 +488,11 @@ class WmediumdServerConn(object):
     __snr_update_request_struct = struct.Struct('!' + __snr_update_request_fmt)
     __snr_update_response_struct = struct.Struct('!' + __snr_update_response_fmt)
 
+    __errprob_update_request_fmt = __base_struct_fmt + __mac_struct_fmt + __mac_struct_fmt + 'i'
+    __errprob_update_response_fmt = __base_struct_fmt + __errprob_update_request_fmt + 'B'
+    __errprob_update_request_struct = struct.Struct('!' + __errprob_update_request_fmt)
+    __errprob_update_response_struct = struct.Struct('!' + __errprob_update_response_fmt)
+
     __station_del_by_mac_request_fmt = __base_struct_fmt + __mac_struct_fmt
     __station_del_by_mac_response_fmt = __base_struct_fmt + __station_del_by_mac_request_fmt + 'B'
     __station_del_by_mac_request_struct = struct.Struct('!' + __station_del_by_mac_request_fmt)
@@ -509,21 +568,34 @@ class WmediumdServerConn(object):
             raise WmediumdException("Received error code from wmediumd: code %d" % ret)
 
     @classmethod
-    def update_link(cls, link):
-        # type: (WmediumdLink) -> None
+    def update_link_snr(cls, link):
+        # type: (WmediumdSNRLink) -> None
         """
         Update the SNR of a connection at wmediumd
         :param link The link to update
 
         :type link: WmediumdLink
         """
-        ret = WmediumdServerConn.send_update(link)
+        ret = WmediumdServerConn.send_snr_update(link)
         if ret != WmediumdConstants.WUPDATE_SUCCESS:
             raise WmediumdException("Received error code from wmediumd: code %d" % ret)
 
     @classmethod
-    def send_update(cls, link):
-        # type: (WmediumdLink) -> int
+    def update_link_errprob(cls, link):
+        # type: (WmediumdERRPROBLink) -> None
+        """
+        Update the ERRPROB of a connection at wmediumd
+        :param link The link to update
+
+        :type link: WmediumdLink
+        """
+        ret = WmediumdServerConn.send_errprob_update(link)
+        if ret != WmediumdConstants.WUPDATE_SUCCESS:
+            raise WmediumdException("Received error code from wmediumd: code %d" % ret)
+
+    @classmethod
+    def send_snr_update(cls, link):
+        # type: (WmediumdSNRLink) -> int
         """
         Send an update to the wmediumd server
         :param link: The WmediumdLink to update
@@ -531,9 +603,24 @@ class WmediumdServerConn(object):
         """
         debug("\n%s Updating SNR from interface %s to interface %s to value %d" % (
             WmediumdConstants.LOG_PREFIX, link.sta1intfref.get_intf_mac(), link.sta2intfref.get_intf_mac(), link.snr))
-        cls.sock.send(cls.__create_update_request(link))
-        return cls.__parse_response(WmediumdConstants.WSERVER_UPDATE_RESPONSE_TYPE,
+        cls.sock.send(cls.__create_snr_update_request(link))
+        return cls.__parse_response(WmediumdConstants.WSERVER_SNR_UPDATE_RESPONSE_TYPE,
                                     cls.__snr_update_response_struct)[-1]
+
+    @classmethod
+    def send_errprob_update(cls, link):
+        # type: (WmediumdERRPROBLink) -> int
+        """
+        Send an update to the wmediumd server
+        :param link: The WmediumdLink to update
+        :return: A WUPDATE_* constant
+        """
+        debug("\n%s Updating ERRPROB from interface %s to interface %s to value %f" % (
+            WmediumdConstants.LOG_PREFIX, link.sta1intfref.get_intf_mac(), link.sta2intfref.get_intf_mac(),
+            link.errprob))
+        cls.sock.send(cls.__create_errprob_update_request(link))
+        return cls.__parse_response(WmediumdConstants.WSERVER_ERRPROB_UPDATE_RESPONSE_TYPE,
+                                    cls.__errprob_update_response_struct)[-1]
 
     @classmethod
     def send_del_by_mac(cls, mac):
@@ -573,13 +660,26 @@ class WmediumdServerConn(object):
         return resp[-1], resp[-2]
 
     @classmethod
-    def __create_update_request(cls, link):
-        # type: (WmediumdLink) -> str
-        msgtype = WmediumdConstants.WSERVER_UPDATE_REQUEST_TYPE
+    def __create_snr_update_request(cls, link):
+        # type: (WmediumdSNRLink) -> str
+        msgtype = WmediumdConstants.WSERVER_SNR_UPDATE_REQUEST_TYPE
         mac_from = link.sta1intfref.get_intf_mac().replace(':', '').decode('hex')
         mac_to = link.sta2intfref.get_intf_mac().replace(':', '').decode('hex')
         snr = link.snr
         return cls.__snr_update_request_struct.pack(msgtype, mac_from, mac_to, snr)
+
+    @classmethod
+    def __create_errprob_update_request(cls, link):
+        # type: (WmediumdERRPROBLink) -> str
+        msgtype = WmediumdConstants.WSERVER_ERRPROB_UPDATE_REQUEST_TYPE
+        mac_from = link.sta1intfref.get_intf_mac().replace(':', '').decode('hex')
+        mac_to = link.sta2intfref.get_intf_mac().replace(':', '').decode('hex')
+        shift_amount = 31
+        one_shifted = ctypes.c_int32(1 << 31).value
+        beforecomma = int(link.errprob)
+        aftercomma = int(((link.errprob - beforecomma) * one_shifted))
+        errprob = (beforecomma << shift_amount) + aftercomma
+        return cls.__errprob_update_request_struct.pack(msgtype, mac_from, mac_to, errprob)
 
     @classmethod
     def __create_station_del_by_mac_request(cls, mac):

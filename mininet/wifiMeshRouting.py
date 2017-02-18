@@ -4,7 +4,7 @@ author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
 """
 
 from mininet.wifiChannel import setChannelParams
-from mininet.wmediumdConnector import WmediumdServerConn, WmediumdLink
+from mininet.wmediumdConnector import WmediumdServerConn, WmediumdSNRLink
 from mininet.log import debug 
 
 class listNodes (object):
@@ -145,7 +145,7 @@ class meshRouting (object):
                 for x, y in zip(listNodes.nodesX, listNodes.nodesY):
                     if x == sta and y not in exist:
                         if WmediumdServerConn.connected:
-                            WmediumdServerConn.send_update(WmediumdLink(sta.wmediumdIface, y.wmediumdIface, sta.params['snr'][wlan]))                            
+                            WmediumdServerConn.send_snr_update(WmediumdSNRLink(sta.wmediumdIface, y.wmediumdIface, sta.params['snr'][wlan]))
                         else:
                             command = 'iw dev %s mpath new %s next_hop %s' % (sta.params['wlan'][wlan], \
                                                                               y.meshMac[wlan], y.meshMac[wlan])
