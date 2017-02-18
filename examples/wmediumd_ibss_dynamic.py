@@ -11,7 +11,7 @@ author: Patrick Grosse (patrick.grosse@uni-muenster.de)
 from mininet.cli import CLI
 from mininet.log import setLogLevel
 from mininet.net import Mininet
-from mininet.wmediumdConnector import DynamicWmediumdIntfRef, WmediumdLink, WmediumdStarter
+from mininet.wmediumdConnector import DynamicWmediumdIntfRef, WmediumdSNRLink, WmediumdStarter
 
 
 def topology():
@@ -33,10 +33,10 @@ def topology():
 
     intfrefs = [sta1wlan0, sta2wlan0, sta3wlan0]
     links = [
-        WmediumdLink(sta1wlan0, sta2wlan0, 15),
-        WmediumdLink(sta2wlan0, sta1wlan0, 15),
-        WmediumdLink(sta2wlan0, sta3wlan0, 15),
-        WmediumdLink(sta3wlan0, sta2wlan0, 15)]
+        WmediumdSNRLink(sta1wlan0, sta2wlan0, 15),
+        WmediumdSNRLink(sta2wlan0, sta1wlan0, 15),
+        WmediumdSNRLink(sta2wlan0, sta3wlan0, 15),
+        WmediumdSNRLink(sta3wlan0, sta2wlan0, 15)]
     WmediumdStarter.initialize(intfrefs, links)
 
     print "*** Configuring wifi nodes"

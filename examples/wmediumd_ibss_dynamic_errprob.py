@@ -3,25 +3,19 @@
 """
 This example shows how to use the wmediumd connector to prevent mac80211_hwsim stations reaching each other
 
-This example is capable of being run multiple times without interfering with the other instance.
-The kernel mod mac80211_hwsim is started only once, as well as wmediumd. mac80211_hwsim is managed over
-mac80211_hwsim_mgmt after it has been started. wmediumd includes a unix socket server which allows the management with
-external tools like Mininet-WiFi.
+The standard case should be covered in wmediumd_ibss_dynamic.py
 
 author: Patrick Grosse (patrick.grosse@uni-muenster.de)
 """
 
-from mininet.net import Mininet
 from mininet.cli import CLI
 from mininet.log import setLogLevel
-from mininet.wmediumdConnector import DynamicWmediumdIntfRef, WmediumdSNRLink, WmediumdManager
+from mininet.net import Mininet
+from mininet.wmediumdConnector import DynamicWmediumdIntfRef, WmediumdERRPROBLink, WmediumdStarter
 
 
 def topology():
     """Create a network. sta1 <--> sta2 <--> sta3"""
-
-    print "*** Connect wmediumd manager"
-    WmediumdManager.connect()
 
     print "*** Network creation"
     net = Mininet()
@@ -31,9 +25,6 @@ def topology():
     sta2 = net.addStation('sta2')
     sta3 = net.addStation('sta3')
 
-    print "*** Configuring wifi nodes"
-    net.configureWifiNodes()
-
     print "*** Configure wmediumd"
     # This should be done right after the station has been initialized
     sta1wlan0 = DynamicWmediumdIntfRef(sta1)
@@ -42,16 +33,17 @@ def topology():
 
     intfrefs = [sta1wlan0, sta2wlan0, sta3wlan0]
     links = [
-        WmediumdSNRLink(sta1wlan0, sta2wlan0, 15),
-        WmediumdSNRLink(sta2wlan0, sta1wlan0, 15),
-        WmediumdSNRLink(sta2wlan0, sta3wlan0, 15),
-        WmediumdSNRLink(sta3wlan0, sta2wlan0, 15)]
+        WmediumdERRPROBLink(sta1wlan0, sta2wlan0, 0.2),
+        WmediumdERRPROBLink(sta2wlan0, sta1wlan0, 0.2),
+        WmediumdERRPROBLink(sta2wlan0, sta3wlan0, 0.1),
+        WmediumdERRPROBLink(sta3wlan0, sta2wlan0, 0.1)]
+    WmediumdStarter.initialize(intfrefs, links, use_errprob=True)
 
-    for intfref in intfrefs:
-        WmediumdManager.register_interface(intfref.get_intf_mac())
+    print "*** Configuring wifi nodes"
+    net.configureWifiNodes()
 
-    for link in links:
-        WmediumdManager.update_link_snr(link)
+    print "*** Start wmediumd"
+    WmediumdStarter.start()
 
     print "*** Creating links"
     net.addHoc(sta1, ssid='adNet')
@@ -64,8 +56,8 @@ def topology():
     print "*** Running CLI"
     CLI(net)
 
-    print "*** Disconnecting wmediumd manager"
-    WmediumdManager.disconnect()
+    print "*** Stopping wmediumd"
+    WmediumdStarter.stop()
 
     print "*** Stopping network"
     net.stop()
