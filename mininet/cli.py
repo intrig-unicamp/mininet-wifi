@@ -222,10 +222,6 @@ class CLI(Cmd):
 
     # pylint: enable=broad-except,exec-used
 
-    def do_checkAdHocConn(self, node1, node2):
-        "Ping between all hosts."
-        self.mn.pingAll(node1, node2)
-
     def do_pingall(self, line):
         "Ping between all hosts."
         self.mn.pingAll(line)
