@@ -70,7 +70,6 @@ from mininet.link import Link, Intf, TCIntf, OVSIntf
 from re import findall
 from distutils.version import StrictVersion
 from mininet.wifiMobility import mobility
-from mininet.wifiMeshRouting import listNodes, meshRouting
 from mininet.wifiChannel import setChannelParams
 from mininet.wifiDevices import deviceRange
 from mininet.wifiPlot import plot2d, plot3d
@@ -1434,8 +1433,8 @@ class AccessPoint(AP):
               wpa_key_mgmt=None, rsn_pairwise=None, wpa_passphrase=None,
               wep_key0=None, **params):
         """ Starting Access Point """
-
         cmd = ("echo \'")
+        
         if 'phywlan' not in ap.params:
             cmd = cmd + ("interface=%s" % ap.params['wlan'][wlan])  # the interface used by the AP
         else:
@@ -1451,6 +1450,7 @@ class AccessPoint(AP):
         if 'phywlan' not in ap.params:
             cmd = cmd + ("\nwme_enabled=1")
             cmd = cmd + ("\nwmm_enabled=1")
+        
         if 'encrypt' in ap.params:
             if ap.params['encrypt'][0] == 'wpa':
                 cmd = cmd + ("\nauth_algs=%s" % auth_algs)
@@ -1530,8 +1530,6 @@ class AccessPoint(AP):
             self.checkNetworkManager(ap.params['mac'][wlan])
             if 'inNamespace' in ap.params and 'ip' in ap.params:
                 self.setIPAddr(ap, wlan)
-        
-    
 
     @classmethod
     def checkNetworkManager(self, mac):
