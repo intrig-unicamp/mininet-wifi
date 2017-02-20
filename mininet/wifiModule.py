@@ -87,6 +87,8 @@ class module(object):
             os.system('rm *.apconf')
         if glob.glob("*wifiDirect.conf"):
             os.system('rm *wifiDirect.conf')
+        if glob.glob("*.nodeParams"):
+            os.system('rm *.nodeParams')
 
         if self.devices_created_dynamically:
             for hwsim_id in self.hwsim_ids:

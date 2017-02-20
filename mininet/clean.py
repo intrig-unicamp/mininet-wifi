@@ -100,6 +100,8 @@ class Cleanup(object):
             os.system('rm *.apconf')
         if glob.glob("*wifiDirect.conf"):
             os.system('rm *wifiDirect.conf')
+        if glob.glob("*.nodeParams"):
+            os.system('rm *.nodeParams')
 
         try:
             os.system('pkill -f \'wpa_supplicant -B -Dnl80211\'')
