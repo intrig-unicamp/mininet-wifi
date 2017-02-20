@@ -112,10 +112,10 @@ class mobility (object):
             sta.params['rssi'][wlan] = rssi_
             snr_ = setChannelParams.setSNR(sta, wlan)
             sta.params['snr'][wlan] = snr_
-            if dist >= 0.01:
-                setChannelParams(sta, ap, wlan, dist)
             if sta not in ap.params['associatedStations']:
-                ap.params['associatedStations'].append(sta)   
+                ap.params['associatedStations'].append(sta)  
+            if dist >= 0.01:
+                setChannelParams(sta, ap, wlan, dist) 
                 
     @classmethod
     def handoverCheck(self, sta, wlan):
