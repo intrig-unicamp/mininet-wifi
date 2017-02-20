@@ -966,6 +966,7 @@ class Association(Link):
             if ap not in sta.params['apsInRange']:
                 sta.params['apsInRange'].append(ap)
                 ap.params['stationsInRange'][sta] = rssi_
+            setChannelParams.recordParams(sta, ap)
                 
     @classmethod     
     def updateParams(self, sta, ap, wlan):
@@ -1032,4 +1033,3 @@ class Association(Link):
             passwd = sta.params['passwd'][wlan]
         sta.pexec('iw dev %s-wlan%s connect %s key d:0:%s' \
                 % (sta, wlan, ap.params['ssid'][0], passwd))
-    
