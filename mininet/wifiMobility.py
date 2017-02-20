@@ -207,6 +207,7 @@ class mobility (object):
         """
         if sta.params['associatedTo'][wlan] != '' and sta in sta.params['associatedTo'][wlan].params['associatedStations']:
             sta.params['associatedTo'][wlan].params['associatedStations'].remove(sta)
+            setChannelParams.recordParams(sta, sta.params['associatedTo'][wlan])
         self.updateParams(sta, ap, wlan)
         sta.params['associatedTo'][wlan] = ap
             
