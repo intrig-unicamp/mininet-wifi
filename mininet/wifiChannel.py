@@ -8,6 +8,7 @@ from scipy.spatial.distance import pdist
 import numpy as np
 from mininet.log import debug
 import random
+import os
 
 
 class setChannelParams (object):
@@ -24,6 +25,7 @@ class setChannelParams (object):
     equationLatency = '2 + dist'
     equationBw = 'custombw * (1.1 ** -dist)'
     ifb = False
+    recordNodeParams = False
     
     def __init__(self, sta=None, ap=None, wlan=0, dist=0):
         """"
@@ -41,7 +43,9 @@ class setChannelParams (object):
         bw_ = self.setBW(sta=sta, ap=ap, dist=dist, wlan=wlan)
         #sta.params['rssi'][wlan] = self.setRSSI(sta, ap, wlan, dist) 
         #sta.params['snr'][wlan] = self.setSNR(sta, wlan)
-        self.tc(sta, wlan, bw_, loss_, latency_, delay_)    
+        self.tc(sta, wlan, bw_, loss_, latency_, delay_)
+        if self.recordNodeParams:
+            self.writeParams(sta, ap)
     
     @classmethod
     def getDistance(self, src, dst):
@@ -125,6 +129,16 @@ class setChannelParams (object):
         :param wlan: wlan ID
         """
         return float('%.2f' % (sta.params['rssi'][wlan] - (-90.0)))
+    
+    @classmethod
+    def recordParams(self, sta, ap):
+        """ Records node params to a file
+        
+        :param sta: station
+        :param ap: access point
+        """
+        os.system('echo \'%s\' > %s.nodeParams' % (sta.params, sta.name))
+        os.system('echo \'%s\' > %s.nodeParams' % (ap.params, ap.name))
     
     @classmethod
     def tc(self, sta, wlan, bw, loss, latency, delay):
@@ -227,5 +241,3 @@ class setChannelParams (object):
         elif node.params['channel'][wlan] == 11:
             freq = 2.462
         return freq
-
-    
