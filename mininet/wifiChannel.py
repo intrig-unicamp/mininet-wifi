@@ -45,7 +45,7 @@ class setChannelParams (object):
         #sta.params['snr'][wlan] = self.setSNR(sta, wlan)
         self.tc(sta, wlan, bw_, loss_, latency_, delay_)
         if self.recordNodeParams:
-            self.writeParams(sta, ap)
+            self.recordParams(sta, ap)
     
     @classmethod
     def getDistance(self, src, dst):
