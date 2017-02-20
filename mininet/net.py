@@ -908,9 +908,6 @@ class Mininet(object):
         self.ifb = True
         setChannelParams.ifb = True
         
-    def recordNodeParams(self):
-        setChannelParams.recordNodeParams = True
-        
     def configureMacAddr(self, node):
         """Configure Mac Address"""
         for wlan in range(0, len(node.params['wlan'])):

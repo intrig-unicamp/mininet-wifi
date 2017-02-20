@@ -25,7 +25,6 @@ class setChannelParams (object):
     equationLatency = '2 + dist'
     equationBw = 'custombw * (1.1 ** -dist)'
     ifb = False
-    recordNodeParams = False
     
     def __init__(self, sta=None, ap=None, wlan=0, dist=0):
         """"
@@ -44,8 +43,6 @@ class setChannelParams (object):
         #sta.params['rssi'][wlan] = self.setRSSI(sta, ap, wlan, dist) 
         #sta.params['snr'][wlan] = self.setSNR(sta, wlan)
         self.tc(sta, wlan, bw_, loss_, latency_, delay_)
-        if self.recordNodeParams:
-            self.recordParams(sta, ap)
     
     @classmethod
     def getDistance(self, src, dst):
@@ -137,8 +134,10 @@ class setChannelParams (object):
         :param sta: station
         :param ap: access point
         """
-        os.system('echo \'%s\' > %s.nodeParams' % (sta.params, sta.name))
-        os.system('echo \'%s\' > %s.nodeParams' % (ap.params, ap.name))
+        if sta != None and 'recordNodeParams' in sta.params:
+            os.system('echo \'%s\' > %s.nodeParams' % (sta.params, sta.name))
+        if ap != None and 'recordNodeParams' in ap.params:
+            os.system('echo \'%s\' > %s.nodeParams' % (ap.params, ap.name))
     
     @classmethod
     def tc(self, sta, wlan, bw, loss, latency, delay):

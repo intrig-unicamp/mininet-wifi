@@ -89,6 +89,7 @@ class mobility (object):
         if ap in sta.params['apsInRange']:
             sta.params['apsInRange'].remove(ap)
             ap.params['stationsInRange'].pop(sta, None)
+        setChannelParams.recordParams(sta, ap)
             
     @classmethod
     def apInRange(self, sta, ap, wlan, dist):
@@ -116,6 +117,7 @@ class mobility (object):
                 ap.params['associatedStations'].append(sta)  
             if dist >= 0.01:
                 setChannelParams(sta, ap, wlan, dist) 
+        setChannelParams.recordParams(sta, ap)
                 
     @classmethod
     def handoverCheck(self, sta, wlan):
