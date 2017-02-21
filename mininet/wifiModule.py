@@ -85,6 +85,8 @@ class module(object):
         """ Stop wireless Module """
         if glob.glob("*.apconf"):
             os.system('rm *.apconf')
+        if glob.glob("*.staconf"):
+            os.system('rm *.staconf')
         if glob.glob("*wifiDirect.conf"):
             os.system('rm *wifiDirect.conf')
         if glob.glob("*.nodeParams"):
