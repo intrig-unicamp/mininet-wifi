@@ -17,6 +17,7 @@ from mininet.wifiAssociationControl import associationControl
 from mininet.wifiMeshRouting import listNodes, meshRouting
 from mininet.wmediumdConnector import WmediumdServerConn
 from mininet.wifiPlot import plot2d, plot3d
+from mininet.link import Association
 
 class mobility (object):
     """ Mobility """
@@ -143,8 +144,7 @@ class mobility (object):
             if dist <= ap.params['range']:
                 self.handover(sta, ap, wlan, dist)
                 self.apInRange(sta, ap, wlan, dist) 
-                           
-        
+                                   
     @classmethod
     def handover(self, sta, ap, wlan, dist):
         """
@@ -165,28 +165,15 @@ class mobility (object):
 
         if sta.params['associatedTo'][wlan] == '' or changeAP == True:
             if ap not in sta.params['associatedTo']:
+                cls = Association
                 if 'encrypt' not in ap.params:
-                    self.associate_infra(sta, ap, wlan)
+                    cls.associate_noEncrypt(sta, ap, wlan)
                 else:
                     if ap.params['encrypt'][0] == 'wpa' or ap.params['encrypt'][0] == 'wpa2':
-                        self.associate_wpa(sta, ap, wlan)
+                        cls.associate_wpa(sta, ap, wlan)
                     elif ap.params['encrypt'][0] == 'wep':
-                        self.associate_wep(sta, ap, wlan)
-        
-    @classmethod
-    def verifyPasswd(self, sta, ap, wlan):
-        """ 
-        Verifies if the password is previously set or not
-        
-        :param sta: station
-        :param ap: access point
-        :param wlan: wlan ID
-        """
-        if 'passwd' not in sta.params:
-            passwd = ap.params['passwd'][0]
-        else:
-            passwd = sta.params['passwd'][wlan]
-        return passwd
+                        cls.associate_wep(sta, ap, wlan)
+                self.updateAssociation(sta, ap, wlan)
     
     @classmethod     
     def updateParams(self, sta, ap, wlan):
@@ -215,85 +202,7 @@ class mobility (object):
             setChannelParams.recordParams(sta, sta.params['associatedTo'][wlan])
         self.updateParams(sta, ap, wlan)
         sta.params['associatedTo'][wlan] = ap
-            
-    @classmethod
-    def associate_wep(self, sta, ap, wlan):
-        """ 
-        Association when WEP
-        
-        :param sta: station
-        :param ap: access point
-        :param wlan: wlan ID
-        """
-        passwd = self.verifyPasswd(sta, ap, wlan)
-        sta.pexec('iw dev %s connect %s key d:0:%s' % (sta.params['wlan'][wlan], ap.params['ssid'][0], passwd))
-        self.updateAssociation(sta, ap, wlan)
-        
-    @classmethod
-    def wpaFile(self, sta, ap, wlan):
-        """ 
-        It creates a wpa config file
-        
-        :param sta: station
-        :param ap: access point
-        :param wlan: wlan ID
-        """
-        if 'passwd' not in sta.params:
-            passwd = ap.params['passwd'][0]
-        else:
-            passwd = sta.params['passwd'][wlan]
-            
-        content = ('ctrl_interface=/var/run/wpa_supplicant\n' \
-        'network={\n' \
-                '   ssid=\"%s\"\n' \
-                '   psk=\"%s\"\n' \
-                '   key_mgmt=%s\n' \
-                '   proto=%s\n' \
-                '   pairwise=%s') % \
-        (ap.params['ssid'][0], passwd, ap.wpa_key_mgmt, ap.params['encrypt'][0].upper(), ap.rsn_pairwise)
-        
-        if 'config' in sta.params.keys():
-            config = sta.params['config']
-            if(config != []):
-                config = sta.params['config'].split(',')
-                sta.params.pop("config", None)
-                for conf in config:
-                    content = content + "\n   " + conf
-        content = content + '\n}'
-        
-        fileName = str(sta) + '.staconf'
-        os.system('echo \'%s\' > %s' % (content, fileName)) 
-        
-    @classmethod
-    def associate_wpa(self, sta, ap, wlan):
-        """ 
-        Association when WPA
-        
-        :param sta: station
-        :param ap: access point
-        :param wlan: wlan ID
-        """
-        pidfile = "mn%d_%s_%s_wpa.pid" % (os.getpid(), sta.name, wlan)
-        self.wpaFile(sta, ap, wlan)
-        debug("wpa_supplicant -B -Dnl80211 -P %s -i %s -c %s.staconf"
-                % (pidfile, sta.params['wlan'][wlan], sta))
-        sta.pexec("wpa_supplicant -B -Dnl80211 -P %s -i %s -c %s.staconf"
-                % (pidfile, sta.params['wlan'][wlan], sta))
-        self.updateAssociation(sta, ap, wlan)    
     
-    @classmethod
-    def associate_infra(self, sta, ap, wlan):
-        """ 
-        Infra association
-        
-        :param sta: station
-        :param ap: access point
-        :param wlan: wlan ID
-        """
-        debug('\niwconfig %s essid %s ap %s' % (sta.params['wlan'][wlan], ap.params['ssid'][0], ap.params['mac'][0]))
-        sta.pexec('iwconfig %s essid %s ap %s' % (sta.params['wlan'][wlan], ap.params['ssid'][0], ap.params['mac'][0]))
-        self.updateAssociation(sta, ap, wlan)
-
     @classmethod
     def definedPosition(self, init_time=0, final_time=0, stations=None, aps=None, walls=None, staMov=None,
                                 dstConn=None, srcConn=None, plotNodes=None, MAX_X=0, MAX_Y=0, MAX_Z=0, AC=''):

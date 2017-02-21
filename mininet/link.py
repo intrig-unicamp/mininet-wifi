@@ -967,6 +967,18 @@ class Association(Link):
             sta.params['associatedTo'][wlan] = ap
             ap.params['associatedStations'].append(sta)
         sta.ifaceToAssociate += 1
+        
+    @classmethod
+    def associate_noEncrypt(self, sta, ap, wlan):
+        """ 
+        Association when there is no encrypt
+        
+        :param sta: station
+        :param ap: access point
+        :param wlan: wlan ID
+        """
+        sta.pexec('iwconfig %s essid %s ap %s' % (sta.params['wlan'][wlan], ap.params['ssid'][0], \
+                                                    ap.params['mac'][0]))        
 
     @classmethod
     def associate_infra(self, sta, ap, wlan):
@@ -978,8 +990,7 @@ class Association(Link):
         :param wlan: wlan ID
         """
         if 'encrypt' not in ap.params:
-            sta.cmd('iwconfig %s essid %s ap %s' % (sta.params['wlan'][wlan], ap.params['ssid'][0], \
-                                                    ap.params['mac'][0]))
+            self.associate_noEncrypt(sta, ap, wlan)
         else:
             if ap.params['encrypt'][0] == 'wpa' or ap.params['encrypt'][0] == 'wpa2':
                 self.associate_wpa(sta, ap, wlan)
@@ -1054,5 +1065,5 @@ class Association(Link):
             passwd = ap.params['passwd'][0]
         else:
             passwd = sta.params['passwd'][wlan]
-        sta.pexec('iw dev %s-wlan%s connect %s key d:0:%s' \
-                % (sta, wlan, ap.params['ssid'][0], passwd))
+        sta.pexec('iw dev %s connect %s key d:0:%s' \
+                % (sta.params['wlan'][wlan], ap.params['ssid'][0], passwd))
