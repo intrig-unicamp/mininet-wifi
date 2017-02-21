@@ -326,7 +326,7 @@ class testWalkthrough(unittest.TestCase):
         p.sendline('sta1 iwconfig')
         p.expect('ssid-ap1')
         p.expect(self.prompt)
-        sleep(30)
+        sleep(15)
         p.sendline('sta1 iwconfig')
         p.expect('ssid-ap2')
         p.expect(self.prompt)
