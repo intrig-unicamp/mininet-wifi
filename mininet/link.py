@@ -25,7 +25,6 @@ Link: basic link class for creating veth pairs
 """
 import os
 import re
-from time import time
 
 from mininet.log import info, error, debug
 from mininet.util import makeIntfPair
@@ -913,30 +912,6 @@ class Association(Link):
         sta.meshMac[wlan] = str(mac[0])
         
     @classmethod
-    def confirmInfraAssociation(self, sta, ap, wlan):
-        """ 
-        Confirm association when station associates to AP
-        
-        :param sta: station
-        :param ap: access point
-        :param wlan: wlan ID
-        """
-        
-        if self.printCon:
-            iface = sta.params['wlan'][wlan]
-            info("Associating %s to %s\n" % (iface, ap))
-        if 'encrypt' in ap.params:
-            associated = ''
-            currentTime = time()
-            while(associated == '' or len(associated[0]) == 15):
-                associated = self.isAssociated(sta, wlan)
-                if time() >= currentTime + 10:
-                    info("Error during the association process\n")
-                    break
-        sta.params['frequency'][wlan] = setChannelParams.frequency(ap, 0)
-        
-        
-    @classmethod
     def configureWirelessLink(self, sta, ap, wlan):
         """ 
         Updates RSSI, SNR, and Others...
@@ -980,12 +955,6 @@ class Association(Link):
 
         sta.params['frequency'][wlan] = setChannelParams.frequency(ap, 0)
         sta.params['channel'][wlan] = ap.params['channel'][0]
-        
-    @classmethod
-    def isAssociated(self, sta, iface):
-        """ Check if station is already associated to the Access Point """
-        associated = sta.pexec("iw dev %s-wlan%s link" % (sta, iface))
-        return associated
     
     @classmethod
     def associate(self, sta, ap):
@@ -1001,7 +970,13 @@ class Association(Link):
 
     @classmethod
     def associate_infra(self, sta, ap, wlan):
-        """ Association when INFRA """
+        """ 
+        Association when infra
+        
+        :param sta: station
+        :param ap: access point
+        :param wlan: wlan ID
+        """
         if 'encrypt' not in ap.params:
             sta.cmd('iwconfig %s essid %s ap %s' % (sta.params['wlan'][wlan], ap.params['ssid'][0], \
                                                     ap.params['mac'][0]))
@@ -1010,23 +985,71 @@ class Association(Link):
                 self.associate_wpa(sta, ap, wlan)
             elif ap.params['encrypt'][0] == 'wep':
                 self.associate_wep(sta, ap, wlan)
-        cls = Association
-        cls.confirmInfraAssociation(sta, ap, wlan)
-
+        if self.printCon:
+            iface = sta.params['wlan'][wlan]
+            info("Associating %s to %s\n" % (iface, ap))
+        sta.params['frequency'][wlan] = setChannelParams.frequency(ap, 0)
+        
     @classmethod
-    def associate_wpa(self, sta, ap, wlan):
-        """ Association when WPA """
+    def wpaFile(self, sta, ap, wlan):
+        """ 
+        It creates a wpa config file
+        
+        :param sta: station
+        :param ap: access point
+        :param wlan: wlan ID
+        """
         if 'passwd' not in sta.params:
             passwd = ap.params['passwd'][0]
         else:
             passwd = sta.params['passwd'][wlan]
+            
+        content = ('ctrl_interface=/var/run/wpa_supplicant\n' \
+        'network={\n' \
+                '   ssid=\"%s\"\n' \
+                '   psk=\"%s\"\n' \
+                '   key_mgmt=%s\n' \
+                '   proto=%s\n' \
+                '   pairwise=%s') % \
+        (ap.params['ssid'][0], passwd, ap.wpa_key_mgmt, ap.params['encrypt'][0].upper(), ap.rsn_pairwise)
+        
+        if 'config' in sta.params.keys():
+            config = sta.params['config']
+            if(config != []):
+                config = sta.params['config'].split(',')
+                sta.params.pop("config", None)
+                for conf in config:
+                    content = content + "\n   " + conf
+        content = content + '\n}'
+        
+        fileName = str(sta) + '.staconf'
+        os.system('echo \'%s\' > %s' % (content, fileName))  
+
+    @classmethod
+    def associate_wpa(self, sta, ap, wlan):
+        """ 
+        Association when WPA
+        
+        :param sta: station
+        :param ap: access point
+        :param wlan: wlan ID
+        """
         pidfile = "mn%d_%s_%s_wpa.pid" % (os.getpid(), sta.name, wlan)
-        sta.cmd("wpa_supplicant -B -Dnl80211 -P %s -i %s-wlan%s -c <(wpa_passphrase \"%s\" \"%s\")"
-                % (pidfile, sta, wlan, ap.params['ssid'][0], passwd))
+        self.wpaFile(sta, ap, wlan)
+        debug("wpa_supplicant -B -Dnl80211 -P %s -i %s -c %s.staconf"
+                % (pidfile, sta.params['wlan'][wlan], sta))
+        sta.pexec("wpa_supplicant -B -Dnl80211 -P %s -i %s -c %s.staconf"
+                % (pidfile, sta.params['wlan'][wlan], sta))
 
     @classmethod
     def associate_wep(self, sta, ap, wlan):
-        """ Association when WEP """
+        """ 
+        Association when WEP
+        
+        :param sta: station
+        :param ap: access point
+        :param wlan: wlan ID
+        """
         if 'passwd' not in sta.params:
             passwd = ap.params['passwd'][0]
         else:

@@ -130,7 +130,7 @@ from mininet.vanet import vanet
 from __builtin__ import True
 
 # Mininet version: should be consistent with README and LICENSE
-VERSION = "2.0"
+VERSION = "2.0r1"
 
 class Mininet(object):
     "Network emulation with hosts spawned in network namespaces."
@@ -815,38 +815,25 @@ class Mininet(object):
                 else:
                     iface = node.params.get('phywlan')
 
-            self.auth_algs = None
-            self.wpa = None
-            self.wpa_key_mgmt = None
-            self.rsn_pairwise = None
-            self.wpa_passphrase = None
-            self.wep_key0 = None
-            self.country_code = None
             self.wmm_enabled = None
             
             if 'encrypt' in node.params:
                 if node.params['encrypt'][wlan] == 'wpa':
-                    self.auth_algs = 1
-                    self.wpa = 1
-                    self.wpa_key_mgmt = 'WPA-PSK'
-                    self.wpa_passphrase = node.params['passwd'][0]
+                    node.auth_algs = 1
+                    node.wpa = 1
+                    node.wpa_key_mgmt = 'WPA-EAP'
+                    node.rsn_pairwise = 'TKIP CCMP'
+                    node.wpa_passphrase = node.params['passwd'][0]
                 elif node.params['encrypt'][wlan] == 'wpa2':
-                    self.auth_algs = 1
-                    self.wpa = 2
-                    self.wpa_key_mgmt = 'WPA-PSK'
-                    self.rsn_pairwise = 'CCMP'
-                    self.wpa_passphrase = node.params['passwd'][0]
+                    node.auth_algs = 1
+                    node.wpa = 2
+                    node.wpa_key_mgmt = 'WPA-PSK'
+                    node.rsn_pairwise = 'CCMP'
+                    node.wpa_passphrase = node.params['passwd'][0]
                 elif node.params['encrypt'][wlan] == 'wep':
-                    self.auth_algs = 2
-                    self.wep_key0 = node.params['passwd'][0]
+                    node.auth_algs = 2
+                    node.wep_key0 = node.params['passwd'][0]
 
-            wifiparam.setdefault('country_code', self.country_code)
-            wifiparam.setdefault('auth_algs', self.auth_algs)
-            wifiparam.setdefault('wpa', self.wpa)
-            wifiparam.setdefault('wpa_key_mgmt', self.wpa_key_mgmt)
-            wifiparam.setdefault('rsn_pairwise', self.rsn_pairwise)
-            wifiparam.setdefault('wpa_passphrase', self.wpa_passphrase)
-            wifiparam.setdefault('wep_key0', self.wep_key0)
             wifiparam.setdefault('wlan', wlan)
                 
             cls = AccessPoint
@@ -868,6 +855,7 @@ class Mininet(object):
                 cls = TCLinkWireless
                 cls(node, **options)
                 node.params.pop("phywlan", None)
+            setChannelParams.recordParams(None, node)
                 
     def verifyNetworkManager(self, node, wlanID=0):
         """First verify if the mac address of the ap is included at NetworkManager.conf"""

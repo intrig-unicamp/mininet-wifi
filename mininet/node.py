@@ -1420,18 +1420,12 @@ class AccessPoint(AP):
        
     writeMacAddress = False
     
-    def __init__ (self, ap, country_code=None, auth_algs=None, wpa=None, wlan=None,
-              wpa_key_mgmt=None, rsn_pairwise=None, wpa_passphrase=None,
-              wep_key0=None, **params):
+    def __init__ (self, ap, wlan=None, **params):
 
-        self.start_(ap, country_code, auth_algs, wpa, wlan,
-              wpa_key_mgmt, rsn_pairwise, wpa_passphrase,
-              wep_key0, **params)
+        self.start_(ap, wlan, **params)
     
     @classmethod
-    def start_(self, ap, country_code=None, auth_algs=None, wpa=None, wlan=None,
-              wpa_key_mgmt=None, rsn_pairwise=None, wpa_passphrase=None,
-              wep_key0=None, **params):
+    def start_(self, ap, wlan=None, **params):
         """ Starting Access Point """
         cmd = ("echo \'")
         
@@ -1453,24 +1447,21 @@ class AccessPoint(AP):
         
         if 'encrypt' in ap.params:
             if ap.params['encrypt'][0] == 'wpa':
-                cmd = cmd + ("\nauth_algs=%s" % auth_algs)
-                cmd = cmd + ("\nwpa=%s" % wpa)
-                cmd = cmd + ("\nwpa_key_mgmt=%s" % wpa_key_mgmt)
-                cmd = cmd + ("\nwpa_passphrase=%s" % wpa_passphrase)
+                cmd = cmd + ("\nauth_algs=%s" % ap.auth_algs)
+                cmd = cmd + ("\nwpa=%s" % ap.wpa)
+                cmd = cmd + ("\nwpa_key_mgmt=%s" % ap.wpa_key_mgmt)
+                cmd = cmd + ("\nwpa_passphrase=%s" % ap.wpa_passphrase)
             elif ap.params['encrypt'][0] == 'wpa2':
-                cmd = cmd + ("\nauth_algs=%s" % auth_algs)
-                cmd = cmd + ("\nwpa=%s" % wpa)
-                cmd = cmd + ("\nwpa_key_mgmt=%s" % wpa_key_mgmt)
-                # cmd = cmd + ("\nrsn_pairwise=%s" % rsn_pairwise)
-                cmd = cmd + ("\nwpa_passphrase=%s" % wpa_passphrase)
+                cmd = cmd + ("\nauth_algs=%s" % ap.auth_algs)
+                cmd = cmd + ("\nwpa=%s" % ap.wpa)
+                cmd = cmd + ("\nwpa_key_mgmt=%s" % ap.wpa_key_mgmt)
+                cmd = cmd + ("\nrsn_pairwise=%s" % ap.rsn_pairwise)
+                cmd = cmd + ("\nwpa_passphrase=%s" % ap.wpa_passphrase)
             elif ap.params['encrypt'][0] == 'wep':
-                cmd = cmd + ("\nauth_algs=%s" % auth_algs)
+                cmd = cmd + ("\nauth_algs=%s" % ap.auth_algs)
                 cmd = cmd + ("\nwep_default_key=%s" % 0)
-                cmd = cmd + self.verifyWepKey(wep_key0)
+                cmd = cmd + self.verifyWepKey(ap.wep_key0)
             
-        cmd = cmd + '\nctrl_interface=/var/run/hostapd'
-        cmd = cmd + '\nctrl_interface_group=0'
-
         if 'config' in ap.params.keys():
             config = ap.params['config']
             if(config != []):
@@ -1488,9 +1479,9 @@ class AccessPoint(AP):
                 cmd = cmd + ("\nssid=%s" % ssid)
                 if 'encrypt' in ap.params:
                     if (ap.params['encrypt'][i] == 'wep'):
-                        cmd = cmd + ("\nauth_algs=%s" % auth_algs)
+                        cmd = cmd + ("\nauth_algs=%s" % ap.auth_algs)
                         cmd = cmd + ("\nwep_default_key=0")
-                        cmd = cmd + self.verifyWepKey(wep_key0)
+                        cmd = cmd + self.verifyWepKey(ap.wep_key0)
                 ap.params['mac'][i] = ap.params['mac'][wlan][:-1] + str(i)
                 # self.checkNetworkManager(ap.params['mac'][i])
         self.APConfigFile(cmd, ap, wlan)

@@ -78,6 +78,11 @@ class mobility (object):
         """ 
         if ap == sta.params['associatedTo'][wlan]:
             debug('iw dev %s disconnect' % sta.params['wlan'][wlan])
+            if 'encrypt' in ap.params:
+                if ap.params['encrypt'][0] == 'wpa' or ap.params['encrypt'][0] == 'wpa2':
+                    os.system('rm %s.staconf' % sta)
+                    pidfile = "mn%d_%s_%s_wpa.pid" % (os.getpid(), sta.name, wlan)
+                    os.system('pkill -f \'wpa_supplicant -B -Dnl80211 -P %s -i %s\'' % (pidfile, sta.params['wlan'][wlan]))
             sta.pexec('iw dev %s disconnect' % sta.params['wlan'][wlan])
             sta.params['associatedTo'][wlan] = ''
             sta.params['rssi'][wlan] = 0
@@ -214,7 +219,7 @@ class mobility (object):
     @classmethod
     def associate_wep(self, sta, ap, wlan):
         """ 
-        Does association if WEP
+        Association when WEP
         
         :param sta: station
         :param ap: access point
@@ -225,25 +230,61 @@ class mobility (object):
         self.updateAssociation(sta, ap, wlan)
         
     @classmethod
-    def associate_wpa(self, sta, ap, wlan):
+    def wpaFile(self, sta, ap, wlan):
         """ 
-        Does association if WPA
+        It creates a wpa config file
         
         :param sta: station
         :param ap: access point
         :param wlan: wlan ID
         """
-        passwd = self.verifyPasswd(sta, ap, wlan)
+        if 'passwd' not in sta.params:
+            passwd = ap.params['passwd'][0]
+        else:
+            passwd = sta.params['passwd'][wlan]
+            
+        content = ('ctrl_interface=/var/run/wpa_supplicant\n' \
+        'network={\n' \
+                '   ssid=\"%s\"\n' \
+                '   psk=\"%s\"\n' \
+                '   key_mgmt=%s\n' \
+                '   proto=%s\n' \
+                '   pairwise=%s') % \
+        (ap.params['ssid'][0], passwd, ap.wpa_key_mgmt, ap.params['encrypt'][0].upper(), ap.rsn_pairwise)
+        
+        if 'config' in sta.params.keys():
+            config = sta.params['config']
+            if(config != []):
+                config = sta.params['config'].split(',')
+                sta.params.pop("config", None)
+                for conf in config:
+                    content = content + "\n   " + conf
+        content = content + '\n}'
+        
+        fileName = str(sta) + '.staconf'
+        os.system('echo \'%s\' > %s' % (content, fileName)) 
+        
+    @classmethod
+    def associate_wpa(self, sta, ap, wlan):
+        """ 
+        Association when WPA
+        
+        :param sta: station
+        :param ap: access point
+        :param wlan: wlan ID
+        """
         pidfile = "mn%d_%s_%s_wpa.pid" % (os.getpid(), sta.name, wlan)
-        os.system('pkill -f \'wpa_supplicant -B -Dnl80211 -P %s -i %s\'' % (pidfile, sta.params['wlan'][wlan]))
-        sta.cmd("wpa_supplicant -B -Dnl80211 -P %s -i %s -c <(wpa_passphrase \"%s\" \"%s\")"
-                % (pidfile, sta.params['wlan'][wlan], ap.params['ssid'][0], passwd))
+        self.wpaFile(sta, ap, wlan)
+        debug("wpa_supplicant -B -Dnl80211 -P %s -i %s -c %s.staconf"
+                % (pidfile, sta.params['wlan'][wlan], sta))
+        sta.pexec("wpa_supplicant -B -Dnl80211 -P %s -i %s -c %s.staconf"
+                % (pidfile, sta.params['wlan'][wlan], sta))
         self.updateAssociation(sta, ap, wlan)    
     
     @classmethod
     def associate_infra(self, sta, ap, wlan):
         """ 
-        Does association if INFRA
+        Infra association
         
         :param sta: station
         :param ap: access point
