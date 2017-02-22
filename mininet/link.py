@@ -1010,28 +1010,32 @@ class Association(Link):
         :param ap: access point
         :param wlan: wlan ID
         """
+        if 'config' in sta.params:
+            print sta.params['config']
+        
         if 'passwd' not in sta.params:
             passwd = ap.params['passwd'][0]
         else:
             passwd = sta.params['passwd'][wlan]
             
-        content = ('ctrl_interface=/var/run/wpa_supplicant\n' \
-        'network={\n' \
-                '   ssid=\"%s\"\n' \
-                '   psk=\"%s\"\n' \
-                '   key_mgmt=%s\n' \
-                '   proto=%s\n' \
-                '   pairwise=%s') % \
-        (ap.params['ssid'][0], passwd, ap.wpa_key_mgmt, ap.params['encrypt'][0].upper(), ap.rsn_pairwise)
-        
-        if 'config' in sta.params.keys():
+        content = 'ctrl_interface=/var/run/wpa_supplicant\nnetwork={\n'
+                
+        if 'config' in sta.params:
             config = sta.params['config']
             if(config != []):
                 config = sta.params['config'].split(',')
                 sta.params.pop("config", None)
                 for conf in config:
-                    content = content + "\n   " + conf
-        content = content + '\n}'
+                    content = content + "   " + conf + "\n"
+        else:
+            content = (content + '   ssid=\"%s\"\n' \
+                    '   psk=\"%s\"\n' \
+                    '   key_mgmt=%s\n' \
+                    '   proto=%s\n' \
+                    '   pairwise=%s\n') % \
+            (ap.params['ssid'][0], passwd, ap.wpa_key_mgmt, ap.params['encrypt'][0].upper(), ap.rsn_pairwise)
+        
+        content = content + '}'
         
         fileName = str(sta) + '.staconf'
         os.system('echo \'%s\' > %s' % (content, fileName))  

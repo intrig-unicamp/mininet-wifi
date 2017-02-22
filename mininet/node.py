@@ -210,10 +210,6 @@ class Node(object):
             node.constantVelocity = 1.0
             node.constantDistance = 1.0
            
-        # config
-        if 'config' in params:
-            node.speed = params['config']   
-        
         # speed
         if 'speed' in params:
             node.speed = int(params['speed'])
@@ -1441,49 +1437,57 @@ class AccessPoint(AP):
         else:
             cmd = cmd + ("\nhw_mode=%s" % ap.params['mode'][0])
         cmd = cmd + ("\nchannel=%s" % ap.params['channel'][0])
-        if 'phywlan' not in ap.params:
-            cmd = cmd + ("\nwme_enabled=1")
-            cmd = cmd + ("\nwmm_enabled=1")
         
-        if 'encrypt' in ap.params:
-            if ap.params['encrypt'][0] == 'wpa':
-                cmd = cmd + ("\nauth_algs=%s" % ap.auth_algs)
-                cmd = cmd + ("\nwpa=%s" % ap.wpa)
-                cmd = cmd + ("\nwpa_key_mgmt=%s" % ap.wpa_key_mgmt)
-                cmd = cmd + ("\nwpa_passphrase=%s" % ap.wpa_passphrase)
-            elif ap.params['encrypt'][0] == 'wpa2':
-                cmd = cmd + ("\nauth_algs=%s" % ap.auth_algs)
-                cmd = cmd + ("\nwpa=%s" % ap.wpa)
-                cmd = cmd + ("\nwpa_key_mgmt=%s" % ap.wpa_key_mgmt)
-                cmd = cmd + ("\nrsn_pairwise=%s" % ap.rsn_pairwise)
-                cmd = cmd + ("\nwpa_passphrase=%s" % ap.wpa_passphrase)
-            elif ap.params['encrypt'][0] == 'wep':
-                cmd = cmd + ("\nauth_algs=%s" % ap.auth_algs)
-                cmd = cmd + ("\nwep_default_key=%s" % 0)
-                cmd = cmd + self.verifyWepKey(ap.wep_key0)
-            
-        if 'config' in ap.params.keys():
+        if 'config' in ap.params:
             config = ap.params['config']
             if(config != []):
                 config = ap.params['config'].split(',')
                 ap.params.pop("config", None)
                 for conf in config:
                     cmd = cmd + "\n" + conf
-
-        if(len(ap.params['ssid'])) > 1:
-            for i in range(1, len(ap.params['ssid'])):
-                ap.params['wlan'].append('%s-%s' % (ap.params['wlan'][0], i))
-                ssid = ap.params['ssid'][i]
-                cmd = cmd + ('\n')
-                cmd = cmd + ("\nbss=%s" % ap.params['wlan'][i])
-                cmd = cmd + ("\nssid=%s" % ssid)
-                if 'encrypt' in ap.params:
-                    if (ap.params['encrypt'][i] == 'wep'):
-                        cmd = cmd + ("\nauth_algs=%s" % ap.auth_algs)
-                        cmd = cmd + ("\nwep_default_key=0")
-                        cmd = cmd + self.verifyWepKey(ap.wep_key0)
-                ap.params['mac'][i] = ap.params['mac'][wlan][:-1] + str(i)
-                # self.checkNetworkManager(ap.params['mac'][i])
+        else:
+            if 'phywlan' not in ap.params:
+                cmd = cmd + ("\nwme_enabled=1")
+                cmd = cmd + ("\nwmm_enabled=1")
+            
+            if 'encrypt' in ap.params:
+                if ap.params['encrypt'][0] == 'wpa':
+                    cmd = cmd + ("\nauth_algs=%s" % ap.auth_algs)
+                    cmd = cmd + ("\nwpa=%s" % ap.wpa)
+                    cmd = cmd + ("\nwpa_key_mgmt=%s" % ap.wpa_key_mgmt)
+                    cmd = cmd + ("\nwpa_passphrase=%s" % ap.wpa_passphrase)
+                elif ap.params['encrypt'][0] == 'wpa2':
+                    cmd = cmd + ("\nauth_algs=%s" % ap.auth_algs)
+                    cmd = cmd + ("\nwpa=%s" % ap.wpa)
+                    cmd = cmd + ("\nwpa_key_mgmt=%s" % ap.wpa_key_mgmt)
+                    cmd = cmd + ("\nrsn_pairwise=%s" % ap.rsn_pairwise)
+                    cmd = cmd + ("\nwpa_passphrase=%s" % ap.wpa_passphrase)
+                elif ap.params['encrypt'][0] == 'wep':
+                    cmd = cmd + ("\nauth_algs=%s" % ap.auth_algs)
+                    cmd = cmd + ("\nwep_default_key=%s" % 0)
+                    cmd = cmd + self.verifyWepKey(ap.wep_key0)
+                
+            if 'config' in ap.params:
+                config = ap.params['config']
+                if(config != []):
+                    config = ap.params['config'].split(',')
+                    ap.params.pop("config", None)
+                    for conf in config:
+                        cmd = cmd + "\n" + conf
+    
+            if(len(ap.params['ssid'])) > 1:
+                for i in range(1, len(ap.params['ssid'])):
+                    ap.params['wlan'].append('%s-%s' % (ap.params['wlan'][0], i))
+                    ssid = ap.params['ssid'][i]
+                    cmd = cmd + ('\n')
+                    cmd = cmd + ("\nbss=%s" % ap.params['wlan'][i])
+                    cmd = cmd + ("\nssid=%s" % ssid)
+                    if 'encrypt' in ap.params:
+                        if (ap.params['encrypt'][i] == 'wep'):
+                            cmd = cmd + ("\nauth_algs=%s" % ap.auth_algs)
+                            cmd = cmd + ("\nwep_default_key=0")
+                            cmd = cmd + self.verifyWepKey(ap.wep_key0)
+                    ap.params['mac'][i] = ap.params['mac'][wlan][:-1] + str(i)
         self.APConfigFile(cmd, ap, wlan)
     
     @classmethod    
