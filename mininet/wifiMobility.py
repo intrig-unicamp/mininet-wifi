@@ -176,19 +176,6 @@ class mobility (object):
                 self.updateAssociation(sta, ap, wlan)
     
     @classmethod     
-    def updateParams(self, sta, ap, wlan):
-        """ 
-        Updates values for frequency and channel
-        
-        :param sta: station
-        :param ap: access point
-        :param wlan: wlan ID
-        """
-
-        sta.params['frequency'][wlan] = setChannelParams.frequency(ap, 0)
-        sta.params['channel'][wlan] = ap.params['channel'][0]
-    
-    @classmethod     
     def updateAssociation(self, sta, ap, wlan):
         """ 
         Updates attributes regarding the association
@@ -200,7 +187,8 @@ class mobility (object):
         if sta.params['associatedTo'][wlan] != '' and sta in sta.params['associatedTo'][wlan].params['associatedStations']:
             sta.params['associatedTo'][wlan].params['associatedStations'].remove(sta)
             setChannelParams.recordParams(sta, sta.params['associatedTo'][wlan])
-        self.updateParams(sta, ap, wlan)
+        cls = Association
+        cls.updateParams(sta, ap, wlan)
         sta.params['associatedTo'][wlan] = ap
     
     @classmethod
