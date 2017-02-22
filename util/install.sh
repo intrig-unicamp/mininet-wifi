@@ -157,7 +157,7 @@ function wifi_deps {
     pushd $MININET_DIR/mininet-wifi/hostap/hostapd
     cp defconfig .config
     sudo make && make install
-    patch -p0 < $MININET_DIR/mininet-wifi/util/wpa_supplicant-patches/config.patch
+    #patch -p0 < $MININET_DIR/mininet-wifi/util/wpa_supplicant-patches/config.patch
     pushd $MININET_DIR/mininet-wifi/hostap/wpa_supplicant
     cp defconfig .config
     sudo make && make install
