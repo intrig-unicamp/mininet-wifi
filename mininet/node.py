@@ -195,7 +195,8 @@ class Node(object):
             node.params['encrypt'] = []
             
                
-        if (node.type == 'station' or node.type == 'vehicle'):
+        if (node.type == 'station' or node.type == 'vehicle' or 
+            'link' in params and params['link'] == 'mesh'):
             node.params['apsInRange'] = []
             node.params['associatedTo'] = []
             node.params['rssi'] = []
@@ -278,6 +279,9 @@ class Node(object):
                             node.params['encrypt'].append(encrypt[n])
             if node.type == 'accessPoint':
                 node.params['wlan'].append(node.name + '-wlan' + str(n + 1))
+                if 'link' in params and params['link'] == 'mesh':
+                    node.params['rssi'].append(0)
+                    node.params['snr'].append(0)
             else:
                 node.params['wlan'].append(node.name + '-wlan' + str(n))
                 node.params['rssi'].append(0)
@@ -285,7 +289,8 @@ class Node(object):
             node.params.pop("wlans", None)
             
                         
-        if node.type == 'station' or node.type == 'vehicle':
+        if (node.type == 'station' or node.type == 'vehicle' or 
+            'link' in params and params['link'] == 'mesh'):
             mac = ("%s" % params.pop('mac', {}))
             if(mac != "{}"):
                 mac = mac.split(',')

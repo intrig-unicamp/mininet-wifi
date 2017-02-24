@@ -664,7 +664,7 @@ class LinkWireless(object):
         if not cls1:
             cls1 = intf
        
-        if ('vehicle' == node1.type or 'station' == node1.type):            
+        if ('vehicle' == node1.type or 'station' == node1.type or 'link' in node1.params):            
                 intf1 = cls1(name=intfName1, node=node1,
                               link=self, mac=addr1, **params1)
                 intf2 = 'wireless'
@@ -915,31 +915,35 @@ class Association(Link):
         sta.pexec('iwconfig %s ap %s' % (iface, sta.params['cell'][wlan]))
         
     @classmethod    
-    def configureMesh(self, sta, stations):
+    def configureMesh(self, node, wlan, stations):
         """
         Configure Wireless Mesh Interface
         """
-        wlan = sta.ifaceToAssociate
-        sta.params['rssi'][wlan] = -62
-        sta.params['snr'][wlan] = -62 - (-90.0)
-        if sta.params['mac'][wlan] != '':
-            sta.cmd('iw dev %s interface add %s-mp%s type mp' % (sta.params['wlan'][wlan], sta, wlan))
-            sta.cmd('ifconfig %s-mp%s down' % (sta, wlan))
-            sta.cmd('ip link set %s-mp%s address %s' % (sta, wlan, sta.params['mac'][wlan]))
-        sta.cmd('ifconfig %s down' % sta.params['wlan'][wlan])
-        iface = '%s-mp%s' % (sta, wlan)
+        node.params['rssi'][wlan] = -62
+        node.params['snr'][wlan] = -62 - (-90.0)
+        if node.params['mac'][wlan] != '':
+            node.cmd('iw dev %s interface add %s-mp%s type mp' % (node.params['wlan'][wlan], node, wlan))
+            node.cmd('ifconfig %s-mp%s down' % (node, wlan))
+            node.cmd('ip link set %s-mp%s address %s' % (node, wlan, node.params['mac'][wlan]))
+        node.cmd('ifconfig %s down' % node.params['wlan'][wlan])
+        iface = '%s-mp%s' % (node, wlan)
        
-        sta.params['wlan'][wlan] = iface
-        sta.params['frequency'][wlan] = setChannelParams.frequency(sta, wlan)
-        self.getMacAddress(sta, iface, wlan)
+        node.params['wlan'][wlan] = iface
+        node.params['frequency'][wlan] = setChannelParams.frequency(node, wlan)
+        self.getMacAddress(node, iface, wlan)
 
-        sta.intfs[wlan] = sta.params['wlan'][wlan]
+        node.intfs[wlan] = node.params['wlan'][wlan]
         cls = TCLinkWireless
-        cls(sta, port1=wlan, intfName1=sta.params['wlan'][wlan])
+        cls(node, port1=wlan, intfName1=node.params['wlan'][wlan])
         
-        sta.cmd('ifconfig %s %s up' % (sta.params['wlan'][wlan], sta.params['ip'][wlan]))
-        if 'position' not in sta.params:
-            self.meshAssociation(sta, wlan)
+        node.cmd('ifconfig %s %s up' % (node.params['wlan'][wlan], node.params['ip'][wlan]))
+        if 'position' not in node.params:
+            self.meshAssociation(node, wlan)
+            
+        if 'link' in node.params and node.params['link'] == 'mesh':
+            cls = TCLinkWireless
+            intf = '%s-mp%s' % (node, wlan)
+            cls(node, intfName1=intf)
     
     @classmethod
     def meshAssociation(self, sta, wlan):

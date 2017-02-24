@@ -431,7 +431,7 @@ class Mininet(object):
         
         if not cls:
             cls = self.accessPoint   
-        ap = cls(name, **defaults)
+        ap = cls(name, **defaults)            
 
         if not self.inNamespace and self.listenPort:
             self.listenPort += 1
@@ -647,17 +647,19 @@ class Mininet(object):
         "Run an alternative module rather than mac80211_hwsim"
         self.alternativeModule = moduleDir
 
-    def addMesh(self, sta, cls=None, **params):
+    def addMesh(self, node, cls=None, **params):
         """
         Configure wireless mesh
         
-        sta: name of the station
+        node: name of the node
         cls: custom association class/constructor
-        params: parameters for station
+        params: parameters for node
         """
-        
-        wlan = sta.ifaceToAssociate
-        sta.func[wlan] = 'mesh'
+        if node.type == 'station':
+            wlan = node.ifaceToAssociate
+        else:
+            wlan = 0
+        node.func[wlan] = 'mesh'
 
         options = { 'ip': ipAdd(self.nextIP,
                                   ipBaseNum=self.ipBaseNum,
@@ -666,16 +668,16 @@ class Mininet(object):
 
         options.update(params)
 
-        sta.params['ssid'] = []
-        if hasattr(sta, 'meshMac'):
-            for n in range(len(sta.params['wlan'])): 
-                sta.meshMac.append('')
-                sta.params['ssid'].append('')
+        node.params['ssid'] = []
+        if hasattr(node, 'meshMac'):
+            for n in range(len(node.params['wlan'])): 
+                node.meshMac.append('')
+                node.params['ssid'].append('')
         else:
-            sta.meshMac = []
-            for n in range(len(sta.params['wlan'])):
-                sta.meshMac.append('')
-                sta.params['ssid'].append('')
+            node.meshMac = []
+            for n in range(len(node.params['wlan'])):
+                node.meshMac.append('')
+                node.params['ssid'].append('')
                 
         ip = ("%s" % params.pop('ip', {}))
         if ip == "{}":
@@ -683,25 +685,25 @@ class Mininet(object):
        
         ssid = ("%s" % params['ssid'])
         if(ssid != "{}"):
-            sta.params['ssid'][wlan] = ssid
+            node.params['ssid'][wlan] = ssid
         else:
-            sta.params['ssid'][wlan] = 'meshNetwork'
+            node.params['ssid'][wlan] = 'meshNetwork'
 
-        deviceRange(sta)
+        deviceRange(node)
 
-        value = deviceDataRate(sta=sta, wlan=wlan)
+        value = deviceDataRate(sta=node, wlan=wlan)
         self.bw = value.rate
         
-        options['sta'] = sta
+        options['node'] = node
         options.update(params)
 
         # Set default MAC - this should probably be in Link
         options.setdefault('addr1', self.randMac())   
                 
         cls = Association
-        cls.configureMesh(sta, self.stations)
-        self.tc(sta, self.bw)
-        sta.ifaceToAssociate += 1
+        cls.configureMesh(node, wlan, self.stations)
+        self.tc(node, self.bw)
+        node.ifaceToAssociate += 1
 
     def addHoc(self, sta, cls=None, **params):
         """
@@ -888,7 +890,8 @@ class Mininet(object):
         self.restartNetworkManager()
         
         for node in self.accessPoints:
-            self.configureAP(node)
+            if 'link' not in node.params:
+                self.configureAP(node)
               
     def useIFB(self):
         """Support to Intermediate Functional Block (IFB) Devices"""
