@@ -1009,15 +1009,13 @@ class Association(Link):
         :param sta: station
         :param ap: access point
         :param wlan: wlan ID
-        """
-        if 'config' in sta.params:
-            print sta.params['config']
-        
-        if 'passwd' not in sta.params:
-            passwd = ap.params['passwd'][0]
-        else:
-            passwd = sta.params['passwd'][wlan]
-            
+        """ 
+        if 'config' not in ap.params:
+            if 'passwd' not in sta.params:
+                passwd = ap.params['passwd'][0]
+            else:
+                passwd = sta.params['passwd'][wlan]
+                
         content = 'ctrl_interface=/var/run/wpa_supplicant\nnetwork={\n'
                 
         if 'config' in sta.params:
@@ -1051,7 +1049,7 @@ class Association(Link):
         """
         pidfile = "mn%d_%s_%s_wpa.pid" % (os.getpid(), sta.name, wlan)
         self.wpaFile(sta, ap, wlan)
-        debug("wpa_supplicant -B -Dnl80211 -P %s -i %s -c %s.staconf"
+        debug("wpa_supplicant -B -Dnl80211 -P %s -i %s -c %s.staconf\n"
                 % (pidfile, sta.params['wlan'][wlan], sta))
         sta.pexec("wpa_supplicant -B -Dnl80211 -P %s -i %s -c %s.staconf"
                 % (pidfile, sta.params['wlan'][wlan], sta))

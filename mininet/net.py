@@ -817,7 +817,7 @@ class Mininet(object):
 
             self.wmm_enabled = None
             
-            if 'encrypt' in node.params:
+            if 'encrypt' in node.params and 'config' not in node.params:
                 if node.params['encrypt'][wlan] == 'wpa':
                     node.auth_algs = 1
                     node.wpa = 1

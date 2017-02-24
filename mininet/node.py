@@ -406,6 +406,18 @@ class Node(object):
             node.params['associatedStations'] = []
             node.params['stationsInRange'] = {}
             
+            if 'config' in node.params:
+                config = node.params['config']
+                if(config != []):
+                    config = node.params['config'].split(',')
+                    for conf in config:
+                        if 'wpa=' in conf or 'wpe=' in conf:
+                            node.params['encrypt'] = []
+                        if 'wpa=' in conf:
+                            node.params['encrypt'].append('wpa')
+                        if 'wpe=' in conf:
+                            node.params['encrypt'].append('wpe')
+               
             if node.type == 'accessPoint':
                 ssid = ("%s" % params.pop('ssid', {}))
                 ssid = ssid.split(',')
@@ -1442,7 +1454,7 @@ class AccessPoint(AP):
             config = ap.params['config']
             if(config != []):
                 config = ap.params['config'].split(',')
-                ap.params.pop("config", None)
+                #ap.params.pop("config", None)
                 for conf in config:
                     cmd = cmd + "\n" + conf
         else:
