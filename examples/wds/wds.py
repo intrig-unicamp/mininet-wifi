@@ -2,7 +2,7 @@
 
 """
 This example shows how you can configure WDS between 2 Access Points
-Please whatch this sample video:
+Please whatch this sample video: https://www.youtube.com/watch?v=a27qWHO8JDM
 
 That video will guide you to enable WDS in mac80211_hwsim.
 """
