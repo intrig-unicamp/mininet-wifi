@@ -110,7 +110,7 @@ from mininet.log import info, error, debug, output, warn
 from mininet.node import (Node, Host, Station, Car, OVSKernelSwitch, OVSKernelAP, DefaultController,
                            Controller, AccessPoint)
 from mininet.nodelib import NAT
-from mininet.link import Link, Intf, TCLinkWireless, Association
+from mininet.link import Link, Intf, TCLinkWireless, Association, WDSLink
 from mininet.util import (quietRun, fixLimits, numCores, ensureRoot,
                            macColonHex, ipStr, ipParse, netParse, ipAdd,
                            waitListening)
@@ -1004,7 +1004,24 @@ class Mininet(object):
                 cls = Association
                 cls.associate(sta, ap)  
                 if 'position' in sta.params and 'position' in ap.params:
-                    setChannelParams(sta, ap, wlan, dist)                
+                    setChannelParams(sta, ap, wlan, dist)   
+        elif (node1.type == 'accessPoint' and node2.type == 'accessPoint' and 'link' in options and options['link'] == 'wds'):
+            # If sta/ap have defined position
+            if 'position' in node1.params and 'position' in node2.params:
+                self.srcConn.append(node1)
+                self.dstConn.append(node2)
+            
+                dist = setChannelParams.getDistance(node1, node2)
+                if dist > node1.params['range']:
+                    doAssociation = False
+                else:
+                    doAssociation = True                        
+            else:
+                doAssociation = True
+
+            if(doAssociation):
+                cls = WDSLink
+                cls(node1, node2)              
         else:
             if 'link' in options:
                 options.pop('link', None)

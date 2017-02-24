@@ -559,7 +559,54 @@ class TCIntf(Intf):
         result[ 'parent' ] = parent
         
         return result
+    
+class WDSLink(object):
 
+    # pylint: disable=too-many-branches
+    def __init__(self, node1, node2, intf=Intf):
+        """Create WDS link to another node.
+           node1: first node
+           node2: second node
+           intf: default interface class/constructor
+           """
+ 
+        self.createWDSIface(node1)
+        self.createWDSIface(node2)
+        self.setWDSPeer(node1, node2)
+        self.bringWDSIfaceUP(node1)
+        self.bringWDSIfaceUP(node2)
+       
+        params1 = {}
+        params2 = {}
+
+        params1[ 'port' ] = node1.newPort()
+        params2[ 'port' ] = node2.newPort()
+        
+        cls = intf
+        
+        intfName1 = '%s-wds' % node1.name
+        intfName2 = '%s-wds' % node2.name
+
+        node1.setBw(node1, 0, intfName1)
+        node2.setBw(node2, 0, intfName2)
+        
+        intf1 = cls(name=intfName1, node=node1,
+                              link=self, **params1)
+        intf2 = cls(name=intfName2, node=node2,
+                              link=self, **params2)
+        # All we are is dust in the wind, and our two interfaces
+        self.intf1, self.intf2 = intf1, intf2
+    
+    def bringWDSIfaceUP(self, node):
+        node.cmd('ifconfig %s-wds up' % node.name)
+    
+    def setWDSPeer(self, node1, node2):
+        node1.cmd('iw dev %s-wds set peer %s' % (node1.name, node2.params['mac'][0]))
+        node2.cmd('iw dev %s-wds set peer %s' % (node2.name, node1.params['mac'][0]))
+        
+    def createWDSIface(self, node):
+        node.cmd('iw dev %s interface add %s-wds type wds' % (node.params['wlan'][0], node.name))
+    
 
 class LinkWireless(object):
 

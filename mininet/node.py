@@ -405,6 +405,7 @@ class Node(object):
         if node.type == 'accessPoint' or 'ssid' in node.params:
             node.params['associatedStations'] = []
             node.params['stationsInRange'] = {}
+            node.wds = False
             
             if 'config' in node.params:
                 config = node.params['config']
@@ -446,6 +447,34 @@ class Node(object):
                     node.params['ssid'].append(defaults[ 'ssid' ])
                 
         return wifiRadios
+    
+    @classmethod
+    def setBw(self, node, wlan, iface):
+        """ Set bw to AP """
+        value = self.customDataRate(node, wlan)
+        bw = value
+
+        node.cmd("tc qdisc replace dev %s \
+            root handle 2: tbf rate %sMbit burst 15000 latency 1ms" % (iface, bw))
+        # Reordering packets
+        node.cmd('tc qdisc add dev %s parent 2:1 handle 10: pfifo limit 1000' % (iface))
+        
+    @classmethod
+    def customDataRate(self, node, wlan):
+        """Custom Maximum Data Rate - Useful when there is mobility"""
+        mode = node.params['mode'][wlan]
+        
+        if (mode == 'a'):
+            self.rate = 54
+        elif(mode == 'b'):
+            self.rate = 11
+        elif(mode == 'g'):
+            self.rate = 54
+        elif(mode == 'n'):
+            self.rate = 600
+        elif(mode == 'ac'):
+            self.rate = 6777
+        return self.rate
 
     def meshLeave(self, ssid):
         for key, val in self.params.items():
@@ -1454,7 +1483,7 @@ class AccessPoint(AP):
             config = ap.params['config']
             if(config != []):
                 config = ap.params['config'].split(',')
-                #ap.params.pop("config", None)
+                # ap.params.pop("config", None)
                 for conf in config:
                     cmd = cmd + "\n" + conf
         else:
@@ -1478,7 +1507,7 @@ class AccessPoint(AP):
                     cmd = cmd + ("\nauth_algs=%s" % ap.auth_algs)
                     cmd = cmd + ("\nwep_default_key=%s" % 0)
                     cmd = cmd + self.verifyWepKey(ap.wep_key0)
-                
+             
             if 'config' in ap.params:
                 config = ap.params['config']
                 if(config != []):
@@ -1579,7 +1608,47 @@ class AccessPoint(AP):
                             print line.rstrip()
         if self.writeMacAddress == False:
             self.writeMacAddress = writeMacAddress
-            
+
+    @classmethod
+    def APConfigFile(self, cmd, ap, wlan):
+        """ run an Access Point and create the config file """
+        if 'phywlan' not in ap.params:
+            iface = ap.params['wlan'][wlan]
+        else:
+            iface = ap.params.get('phywlan')
+            ap.cmd('ifconfig %s down' % iface)
+            ap.cmd('ifconfig %s up' % iface)
+        apconfname = "mn%d_%s.apconf" % (os.getpid(), iface)
+        content = cmd + ("\' > %s" % apconfname)
+        ap.cmd(content)
+        cmd = ("hostapd -B %s" % apconfname)
+        try:
+            ap.cmd(cmd)
+        except:
+            print ('error with hostapd. Please, run sudo mn -c in order to fix it or check if hostapd is\
+                                             working properly in your machine.')
+            exit(1)
+        ap.setBw(ap, wlan, iface)
+        
+class UserAP(AP):
+    "User-space AP."
+
+    dpidLen = 12
+
+    def __init__(self, name, dpopts='--no-slicing', **kwargs):
+        """Init.
+           name: name for the switch
+           dpopts: additional arguments to ofdatapath (--no-slicing)"""
+        AP.__init__(self, name, **kwargs)
+        pathCheck('ofdatapath', 'ofprotocol',
+                   moduleName='the OpenFlow reference user switch' + 
+                              '(openflow.org)')
+        if self.listenPort:
+            self.opts += ' --listen=ptcp:%i ' % self.listenPort
+        else:
+            self.opts += ' --listen=punix:/tmp/%s.listen' % self.name
+        self.dpopts = dpopts
+
     @classmethod
     def customDataRate(self, node, wlan):
         """Custom Maximum Data Rate - Useful when there is mobility"""
@@ -1607,46 +1676,6 @@ class AccessPoint(AP):
             root handle 2: tbf rate %sMbit burst 15000 latency 1ms" % (iface, bw))
         # Reordering packets
         ap.cmd('tc qdisc add dev %s parent 2:1 handle 10: pfifo limit 1000' % (iface))
-
-    @classmethod
-    def APConfigFile(self, cmd, ap, wlan):
-        """ run an Access Point and create the config file """
-        if 'phywlan' not in ap.params:
-            iface = ap.params['wlan'][wlan]
-        else:
-            iface = ap.params.get('phywlan')
-            ap.cmd('ifconfig %s down' % iface)
-            ap.cmd('ifconfig %s up' % iface)
-        apconfname = "mn%d_%s.apconf" % (os.getpid(), iface)
-        content = cmd + ("\' > %s" % apconfname)
-        ap.cmd(content)
-        cmd = ("hostapd -B %s" % apconfname)
-        try:
-            ap.cmd(cmd)
-        except:
-            print ('error with hostapd. Please, run sudo mn -c in order to fix it or check if hostapd is\
-                                             working properly in your machine.')
-            exit(1)
-        self.setBw(ap, wlan, iface)
-        
-class UserAP(AP):
-    "User-space AP."
-
-    dpidLen = 12
-
-    def __init__(self, name, dpopts='--no-slicing', **kwargs):
-        """Init.
-           name: name for the switch
-           dpopts: additional arguments to ofdatapath (--no-slicing)"""
-        AP.__init__(self, name, **kwargs)
-        pathCheck('ofdatapath', 'ofprotocol',
-                   moduleName='the OpenFlow reference user switch' + 
-                              '(openflow.org)')
-        if self.listenPort:
-            self.opts += ' --listen=ptcp:%i ' % self.listenPort
-        else:
-            self.opts += ' --listen=punix:/tmp/%s.listen' % self.name
-        self.dpopts = dpopts
 
     @classmethod
     def setup(cls):
@@ -1766,6 +1795,34 @@ class OVSAP(AP):
         self.commands = []  # saved commands for batch startup
 
     @classmethod
+    def setBw(self, ap, wlan, iface):
+        """ Set bw to AP """
+        value = self.customDataRate(ap, wlan)
+        bw = value
+
+        ap.cmd("tc qdisc replace dev %s \
+            root handle 2: tbf rate %sMbit burst 15000 latency 1ms" % (iface, bw))
+        # Reordering packets
+        ap.cmd('tc qdisc add dev %s parent 2:1 handle 10: pfifo limit 1000' % (iface))
+        
+    @classmethod
+    def customDataRate(self, node, wlan):
+        """Custom Maximum Data Rate - Useful when there is mobility"""
+        mode = node.params['mode'][wlan]
+        
+        if (mode == 'a'):
+            self.rate = 54
+        elif(mode == 'b'):
+            self.rate = 11
+        elif(mode == 'g'):
+            self.rate = 54
+        elif(mode == 'n'):
+            self.rate = 600
+        elif(mode == 'ac'):
+            self.rate = 6777
+        return self.rate
+
+    @classmethod
     def setup(cls):
         "Make sure Open vSwitch is installed and working"
         pathCheck('ovs-vsctl',
@@ -1871,18 +1928,20 @@ class OVSAP(AP):
         if self.stp and self.failMode == 'standalone':
             opts += ' stp_enable=true' % self
         return opts
-
+    
     def start(self, controllers):
         "Start up a new OVS OpenFlow switch using ovs-vsctl"
         if self.inNamespace:
             raise Exception(
                 'OVS kernel switch does not work in a namespace')
+
         int(self.dpid, 16)  # DPID must be a hex string
         # Command to add interfaces
         intfs = ''.join(' -- add-port %s %s' % (self, intf) + 
                          self.intfOpts(intf)
                          for intf in self.intfList()
                          if self.ports[ intf ] and not intf.IP())
+        
         # Command to create controller entries
         clist = [ (self.name + c.name, '%s:%s:%d' % 
                   (c.protocol, c.IP(), c.port))
@@ -1910,8 +1969,7 @@ class OVSAP(AP):
         if not self.batch:
             for intf in self.intfList():
                 self.TCReapply(intf)
-
-
+                
     # This should be ~ int( quietRun( 'getconf ARG_MAX' ) ),
     # but the real limit seems to be much lower
     argmax = 128000
