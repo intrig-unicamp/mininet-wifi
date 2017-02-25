@@ -374,32 +374,28 @@ class mobility (object):
             time.sleep(0.5)
             
     @classmethod
-    def parameters_(self):
+    def parameters_(self, node):
         """ 
         have to check it!
         Applies channel params and handover
         """
-        nodes = self.stations + self.accessPoints
-        
-        meshNodes = []
-        for node in nodes:
-            for wlan in range(0, len(node.params['wlan'])):
-                if node.func[wlan] == 'mesh' or node.func[wlan] == 'adhoc':
-                    meshNodes.append(node)
-        
-        for node in nodes:
-            for wlan in range(0, len(node.params['wlan'])):
-                if node.func[wlan] == 'mesh' or node.func[wlan] == 'adhoc':
-                    if node.type == 'vehicle':
-                        node = node.params['carsta']
-                        wlan = 0
-                    dist = listNodes.pairingNodes(node, wlan, meshNodes)
-                    if WmediumdServerConn.connected == False and dist >= 0.01:
-                        setChannelParams(sta=node, wlan=wlan, dist=dist)
-                else:
-                    self.handoverCheck(node, wlan)
+        nodes = self.stations   
+        for node_ in self.accessPoints:
+            if 'link' in node_.params and node_.params['link'] == 'mesh':
+                nodes.append(node_)
+                
+        for wlan in range(0, len(node.params['wlan'])):
+            if node.func[wlan] == 'mesh' or node.func[wlan] == 'adhoc':
+                if node.type == 'vehicle':
+                    node = node.params['carsta']
+                    wlan = 0
+                dist = listNodes.pairingNodes(node, wlan, nodes)
+                if WmediumdServerConn.connected == False and dist >= 0.01:
+                    setChannelParams(sta=node, wlan=wlan, dist=dist)
+            else:
+                self.handoverCheck(node, wlan)
         if meshRouting.routing == 'custom':
-            meshRouting(meshNodes)
+            meshRouting(nodes)
         # have to verify this
         eval(self.continueParams)        
     

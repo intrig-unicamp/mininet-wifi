@@ -507,7 +507,6 @@ class Node(object):
 
     def setRange(self, _range):
         self.params['range'] = _range
-        print _range
         try:
             if mobility.DRAW:
                 if mobility.is3d: 
@@ -519,7 +518,7 @@ class Node(object):
                     plot2d.graphPause()
         except:
             pass
-        mobility.parameters_()
+        mobility.parameters_(self)
 
     def moveNodeTo(self, pos):
         pos = pos.split(',')
@@ -529,7 +528,7 @@ class Node(object):
             plot2d.graphPause()
         elif mobility.DRAW and mobility.is3d == True:
             plot3d.graphUpdate(self)            
-        mobility.parameters_()
+        mobility.parameters_(self)
 
     def setAntennaGain(self, iface, value):
         wlan = int(iface[-1:])
@@ -539,13 +538,13 @@ class Node(object):
                 plot2d.graphUpdate(self)
             except:
                 pass
-        mobility.parameters_()
+        mobility.parameters_(self)
 
     def setTxPower(self, iface, txpower):
         wlan = int(iface[-1:])
         self.pexec('iwconfig %s txpower %s' % (iface, txpower))
         self.params['txpower'][wlan] = txpower
-        mobility.parameters_()
+        mobility.parameters_(self)
 
     def associateTo(self, iface, ap):
         self.moveAssociationTo(iface, ap)
@@ -577,7 +576,7 @@ class Node(object):
                         mobility.updateAssociation(sta, ap, wlan)
                     else:
                         info ('%s is already connected!\n' % ap)
-                    mobility.parameters_()
+                    mobility.parameters_(self)
                 else:
                     print "%s is out of range!" % (ap)
                     
