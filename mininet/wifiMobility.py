@@ -160,7 +160,8 @@ class mobility (object):
         changeAP = False
         
         """Association Control: mechanisms that optimize the use of the APs"""
-        if self.associationControlMethod != '' and sta.params['associatedTo'][wlan] != ap:
+        if self.associationControlMethod != '' and sta.params['associatedTo'][wlan] != ap \
+            and sta.params['associatedTo'][wlan] != '':
             ac = self.associationControlMethod
             value = associationControl(sta, ap, wlan, ac)
             changeAP = value.changeAP
