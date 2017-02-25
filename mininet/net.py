@@ -803,8 +803,7 @@ class Mininet(object):
 
 
     def configureAP(self, node, wlanID=0):
-        """Configure AP"""
-        
+        """Configure AP"""        
         if 'phywlan' in node.params:
             wlanID = 1
         for wlan in range(len(node.params['wlan']) + wlanID):
@@ -894,8 +893,7 @@ class Mininet(object):
                 self.configureAP(node)
               
     def useIFB(self):
-        """Support to Intermediate Functional Block (IFB) Devices"""
-        
+        """Support to Intermediate Functional Block (IFB) Devices"""        
         self.ifb = True
         setChannelParams.ifb = True
         
@@ -929,10 +927,7 @@ class Mininet(object):
             self.configureMacAddr(node)
                 
     def configureWifiNodes(self):
-        """
-        Configure Wireless Nodes
-        """
-        
+        """Configure Wireless Nodes"""        
         params = {}
         if self.ifb:
             params['ifb'] = self.ifb
@@ -1196,24 +1191,31 @@ class Mininet(object):
             ap.params.pop('associatedTo', None)
         
     def autoAssociation(self):
-        """This is useful to make the users' life easier"""
+        """This is useful to make the users' life easier"""        
+        ap = []
+        for node in self.accessPoints:
+            if 'link' in node.params:
+                ap.append(node)
+        
+        nodes = self.stations + ap
+        
         if self.isVanet == False:
-            for sta in self.stations:
+            for node in nodes:
                 pairingAdhocNodes.ssid_ID += 1
-                if 'position' in sta.params:
-                    self.getAPsInRange(sta)
-                for wlan in range(0, len(sta.params['wlan'])):
-                    if 'position' in sta.params and sta.func[wlan] == 'adhoc' and sta.params['associatedTo'][wlan] == '':
-                        value = pairingAdhocNodes(sta, wlan, self.stations)
+                if 'position' in node.params and 'link' not in node.params:
+                    self.getAPsInRange(node)
+                for wlan in range(0, len(node.params['wlan'])):
+                    if 'position' in node.params and node.func[wlan] == 'adhoc' and node.params['associatedTo'][wlan] == '':
+                        value = pairingAdhocNodes(node, wlan, nodes)
                         dist = value.dist
                         if dist >= 0.01:
-                            setChannelParams(sta=sta, wlan=wlan, dist=dist)
-                    elif 'position' in sta.params and sta.func[wlan] == 'mesh':
-                        dist = listNodes.pairingNodes(sta, wlan, self.stations)
+                            setChannelParams(sta=node, wlan=wlan, dist=dist)
+                    elif 'position' in node.params and node.func[wlan] == 'mesh':
+                        dist = listNodes.pairingNodes(node, wlan, nodes)
                         if dist >= 0.01:
-                            setChannelParams(sta=sta, wlan=wlan, dist=dist)                   
+                            setChannelParams(sta=node, wlan=wlan, dist=dist)                   
                 if meshRouting.routing == 'custom':
-                    meshRouting(self.stations)
+                    meshRouting(nodes)
 
     def build(self):
         "Build mininet."     
@@ -1719,10 +1721,7 @@ class Mininet(object):
         info("Mobility started at %s second(s)\n" % kwargs['startTime'])
 
     def stopMobility(self, **kwargs):
-        """ 
-        Stops Mobility 
-        """
-        
+        """Stops Mobility"""        
         if 'stopTime' in kwargs:
             final_time = kwargs['stopTime']
             
@@ -1833,16 +1832,21 @@ class Mininet(object):
                     self.accessPoints.append(sta)
                     self.stations.remove(sta)
             
-            for sta in self.stations:
-                if 'position' not in sta.params:
-                    sta.params['position'] = 0,0,0
-            
             if mobility.accessPoints == []:
                 mobility.accessPoints = self.accessPoints
             if mobility.stations == []: 
                 mobility.stations = self.stations
             
-            nodes = self.stations + self.accessPoints + self.plotNodes
+            nodes = []
+            nodes = self.plotNodes
+            
+            for ap in self.accessPoints:
+                if 'position' in ap.params:
+                    nodes.append(ap)
+                    
+            for sta in self.stations:
+                if 'position' in sta.params:
+                    nodes.append(sta)
             
             try:
                 if self.is3d:

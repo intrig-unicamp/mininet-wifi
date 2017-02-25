@@ -944,6 +944,7 @@ class Association(Link):
             cls = TCLinkWireless
             intf = '%s-mp%s' % (node, wlan)
             cls(node, intfName1=intf)
+            node.setBw(node, wlan, intf)
     
     @classmethod
     def meshAssociation(self, sta, wlan):

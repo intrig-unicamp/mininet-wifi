@@ -20,7 +20,7 @@ class listNodes (object):
         del self.nodesY[:]
 
     @classmethod
-    def pairingNodes(self, sta, wlan, stations, **params):
+    def pairingNodes(self, sta, wlan, nodes, **params):
         """Pairing nodes"""
         i = 1
         ref_distance = 0
@@ -36,7 +36,7 @@ class listNodes (object):
             if len(par) != 0:
                 sta = par[0]
                 par.pop(0)
-            for ref_sta in stations:
+            for ref_sta in nodes:
                 if ref_sta.type == 'vehicle':
                     car = ref_sta
                     ref_sta = ref_sta.params['carsta']

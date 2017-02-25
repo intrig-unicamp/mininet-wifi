@@ -25,7 +25,9 @@ class mobility (object):
     associationControlMethod = ''
     accessPoints = []
     stations = []
-    wallList = []
+    mobilityNodes = []
+    staticNodes = []
+    plotNodes = []
     DRAW = False
     isMobility = False
     MAX_X = 0
@@ -219,37 +221,48 @@ class mobility (object):
         
         self.stations = stations
         self.accessPoints = aps
-        self.wallList = walls
+        
         nodes = self.stations + self.accessPoints + plotNodes
+        
+        for node in nodes:
+            if 'position' in node.params and 'initialPosition' not in node.params:
+                self.staticNodes.append(node)
+            if 'initialPosition' in node.params:
+                node.params['position'] = node.params['initialPosition']
+                node.params.pop("initialPosition", None)
+                node.params.pop("finalPosition", None)
+                self.mobilityNodes.append(node)
+                
+        self.plotNodes = self.mobilityNodes + self.staticNodes
 
         try:
             if self.DRAW == True:
                 if self.is3d:
                     plot = plot3d
                     plot.instantiateGraph(MAX_X, MAX_Y, MAX_Z)
-                    plot.graphInstantiateNodes(nodes)
+                    plot.graphInstantiateNodes(self.plotNodes)
                 else:
                     plot = plot2d
                     plot.instantiateGraph(MAX_X, MAX_Y)
-                    plot.plotGraph(nodes, srcConn, dstConn)
+                    plot.plotGraph(self.plotNodes, srcConn, dstConn)
         except:
             info('Warning: This OS does not support GUI. Running without GUI.\n')
             self.DRAW = False
-
+        
         try:
             while True:
                 if time.time() > t_end or time.time() < t_initial:
                     break
                 if time.time() - currentTime >= i:
-                    for sta in staMov:
-                        if time.time() - currentTime >= sta.startTime and time.time() - currentTime <= sta.endTime:
-                            x = '%.2f' % (float(sta.params['position'][0]) + float(sta.moveFac[0]))
-                            y = '%.2f' % (float(sta.params['position'][1]) + float(sta.moveFac[1]))
-                            z = '%.2f' % (float(sta.params['position'][2]) + float(sta.moveFac[2]))
-                            sta.params['position'] = x, y, z
+                    for node in self.mobilityNodes:
+                        if time.time() - currentTime >= node.startTime and time.time() - currentTime <= node.endTime:
+                            x = '%.2f' % (float(node.params['position'][0]) + float(node.moveFac[0]))
+                            y = '%.2f' % (float(node.params['position'][1]) + float(node.moveFac[1]))
+                            z = '%.2f' % (float(node.params['position'][2]) + float(node.moveFac[2]))
+                            node.params['position'] = x, y, z
                         if self.DRAW:
                             eval(self.continuePlot)
-                            plot.graphUpdate(sta)
+                            plot.graphUpdate(node)
                     i += 1
         except:
             pass
@@ -366,19 +379,27 @@ class mobility (object):
         have to check it!
         Applies channel params and handover
         """
-        for sta in self.stations:
-            for wlan in range(0, len(sta.params['wlan'])):
-                if sta.func[wlan] == 'mesh' or sta.func[wlan] == 'adhoc':
-                    if sta.type == 'vehicle':
-                        sta = sta.params['carsta']
+        nodes = self.stations + self.accessPoints
+        
+        meshNodes = []
+        for node in nodes:
+            for wlan in range(0, len(node.params['wlan'])):
+                if node.func[wlan] == 'mesh' or node.func[wlan] == 'adhoc':
+                    meshNodes.append(node)
+        
+        for node in nodes:
+            for wlan in range(0, len(node.params['wlan'])):
+                if node.func[wlan] == 'mesh' or node.func[wlan] == 'adhoc':
+                    if node.type == 'vehicle':
+                        node = node.params['carsta']
                         wlan = 0
-                    dist = listNodes.pairingNodes(sta, wlan, self.stations)
+                    dist = listNodes.pairingNodes(node, wlan, meshNodes)
                     if WmediumdServerConn.connected == False and dist >= 0.01:
-                        setChannelParams(sta=sta, wlan=wlan, dist=dist)
+                        setChannelParams(sta=node, wlan=wlan, dist=dist)
                 else:
-                    self.handoverCheck(sta, wlan)
+                    self.handoverCheck(node, wlan)
         if meshRouting.routing == 'custom':
-            meshRouting(self.stations)
+            meshRouting(meshNodes)
         # have to verify this
         eval(self.continueParams)        
     
@@ -387,19 +408,25 @@ class mobility (object):
         """ 
         Applies channel params and handover
         """
+        meshNodes = []
+        for node in self.mobilityNodes:
+            for wlan in range(0, len(node.params['wlan'])):
+                if node.func[wlan] == 'mesh' or node.func[wlan] == 'adhoc':
+                    meshNodes.append(node)
+        
         while True:
-            for sta in self.stations:
-                for wlan in range(0, len(sta.params['wlan'])):
-                    if sta.func[wlan] == 'mesh' or sta.func[wlan] == 'adhoc':
-                        if sta.type == 'vehicle':
-                            sta = sta.params['carsta']
+            for node in self.mobilityNodes:
+                for wlan in range(0, len(node.params['wlan'])):
+                    if node.func[wlan] == 'mesh' or node.func[wlan] == 'adhoc':
+                        if node.type == 'vehicle':
+                            node = node.params['carsta']
                             wlan = 0
-                        dist = listNodes.pairingNodes(sta, wlan, self.stations)
+                        dist = listNodes.pairingNodes(node, wlan, meshNodes)
                         if WmediumdServerConn.connected == False and dist >= 0.01:
-                            setChannelParams(sta=sta, wlan=wlan, dist=dist)
+                            setChannelParams(sta=node, wlan=wlan, dist=dist)
                     else:
-                        self.handoverCheck(sta, wlan)
+                        self.handoverCheck(node, wlan)
             if meshRouting.routing == 'custom':
-                meshRouting(self.stations)
+                meshRouting(meshNodes)
             # have to verify this
             eval(self.continueParams)

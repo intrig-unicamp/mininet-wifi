@@ -282,6 +282,7 @@ class Node(object):
                 if 'link' in params and params['link'] == 'mesh':
                     node.params['rssi'].append(0)
                     node.params['snr'].append(0)
+                    node.params['associatedTo'].append('')
             else:
                 node.params['wlan'].append(node.name + '-wlan' + str(n))
                 node.params['rssi'].append(0)
@@ -458,11 +459,11 @@ class Node(object):
         """ Set bw to AP """
         value = self.customDataRate(node, wlan)
         bw = value
-
         node.cmd("tc qdisc replace dev %s \
             root handle 2: tbf rate %sMbit burst 15000 latency 1ms" % (iface, bw))
         # Reordering packets
         node.cmd('tc qdisc add dev %s parent 2:1 handle 10: pfifo limit 1000' % (iface))
+        
         
     @classmethod
     def customDataRate(self, node, wlan):

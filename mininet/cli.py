@@ -52,20 +52,28 @@ class CLI(Cmd):
            stdin: standard input for CLI
            script: script to run in batch mode"""
 
+        if mobility.isMobility == False and mininet.isWiFi == True:
+            mininet.autoAssociation()
+
         if mobility.isMobility == False and mobility.DRAW and mininet.alreadyPlotted == False:
             mininet.checkAPAdhoc()
-            
-            for sta in mininet.stations:
-                if 'position' not in sta.params:
-                    sta.params['position'] = 0,0,0
             
             if mobility.accessPoints == []:
                 mobility.accessPoints = mininet.accessPoints
             if mobility.stations == []: 
                 mobility.stations = mininet.stations
             
-            nodes = mininet.stations + mininet.accessPoints + mininet.plotNodes
+            nodes = []
+            nodes = mininet.plotNodes
             
+            for ap in mininet.accessPoints:
+                if 'position' in ap.params:
+                    nodes.append(ap)
+                    
+            for sta in mininet.stations:
+                if 'position' in sta.params:
+                    nodes.append(sta)
+                    
             try:
                 if mininet.is3d:
                     plot3d.instantiateGraph(mininet.MAX_X, mininet.MAX_Y, mininet.MAX_Z)
