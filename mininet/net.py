@@ -876,7 +876,7 @@ class Mininet(object):
     def restartNetworkManager(self):
         """Restart network manager if the mac address of the AP is not included at 
         /etc/NetworkManager/NetworkManager.conf"""
-        nm_is_running = os.system('service network-manager status | grep -ic running')
+        nm_is_running = os.system('service network-manager status | grep -ic running >/dev/null 2>&1')
         if AccessPoint.writeMacAddress and nm_is_running != 0:
             info('Mac Address(es) of AP(s) is(are) being added into /etc/NetworkManager/NetworkManager.conf\n')
             info('Restarting network-manager...\n')
