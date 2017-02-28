@@ -183,6 +183,7 @@ class Node(object):
         node.params['frequency'] = []
         node.params['wlan'] = []
         node.params['mac'] = []
+        node.phyID = []
         
         passwd = ("%s" % params.pop('passwd', {}))
         if(passwd != "{}"):
@@ -264,6 +265,7 @@ class Node(object):
         for n in range(wlans):
             node.params['frequency'].append(2.412)
             node.func.append('none')
+            node.phyID.append(0)
             if node.type != 'accessPoint':
                 node.params['associatedTo'].append('')
                 if 'ssid' not in node.params:

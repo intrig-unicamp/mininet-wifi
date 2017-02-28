@@ -139,7 +139,7 @@ class Mininet(object):
                   car=Car, controller=DefaultController, isWiFi=False, link=Link, intf=Intf,
                   build=True, xterms=False, cleanup=False, ipBase='10.0.0.0/8',
                   inNamespace=False, autoSetMacs=False, autoStaticArp=False, autoPinCpus=False,
-                  listenPort=None, waitConnected=False, ssid="new-ssid", mode="g", channel="6"):
+                  listenPort=None, waitConnected=False, ssid="new-ssid", mode="g", channel="6", rec_rssi = False):
         """Create Mininet object.
            topo: Topo (topology) object or None
            switch: default Switch class
@@ -213,6 +213,7 @@ class Mininet(object):
         self.is3d = False
         self.ifb = False
         self.alreadyPlotted = False
+        self.rec_rssi = rec_rssi
         Mininet.init()  # Initialize Mininet if necessary
 
         self.built = False
@@ -892,6 +893,8 @@ class Mininet(object):
         for node in self.accessPoints:
             if 'link' not in node.params:
                 self.configureAP(node)
+                node.phyID = module.phyID
+                module.phyID += 1
               
     def useIFB(self):
         """Support to Intermediate Functional Block (IFB) Devices"""        
@@ -1176,6 +1179,8 @@ class Mininet(object):
                     for wlan in range(0, len(sta.params['wlan'])):
                         cls = Association
                         cls.configureWirelessLink(sta, ap, wlan)
+                        if self.rec_rssi:
+                            os.system('hwsim_mgmt -k %s %s >/dev/null 2>&1' % (sta.phyID[wlan], abs(int(sta.params['rssi'][wlan]))))
                 
     def checkAPAdhoc(self):
         isApAdhoc = []
@@ -1707,6 +1712,7 @@ class Mininet(object):
             mobilityparam.setdefault('dstConn', self.dstConn)
             mobilityparam.setdefault('srcConn', self.srcConn)
             mobilityparam.setdefault('AC', self.associationControlMethod)
+            mobilityparam.setdefault('rec_rssi', self.rec_rssi)
             
             if self.isVanet == False:
                 self.thread = threading.Thread(name='mobilityModel', target=mobility.models, kwargs=dict(mobilityparam,))
@@ -1746,6 +1752,7 @@ class Mininet(object):
         mobilityparam.setdefault('dstConn', self.dstConn)
         mobilityparam.setdefault('srcConn', self.srcConn)
         mobilityparam.setdefault('AC', self.associationControlMethod)
+        mobilityparam.setdefault('rec_rssi', self.rec_rssi)        
 
         debug('Starting mobility thread...\n')
         self.thread = threading.Thread(name='mobility', target=mobility.definedPosition, kwargs=dict(mobilityparam,))

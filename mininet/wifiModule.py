@@ -17,6 +17,7 @@ class module(object):
     prefix = ""
     externally_managed = False
     devices_created_dynamically = False
+    phyID = 0
 
     @classmethod
     def loadModule(self, wifiRadios, alternativeModule=''):
@@ -227,6 +228,8 @@ class module(object):
                 if (node.type == 'station' or node.type == 'vehicle') or 'inNamespace' in node.params:    
                     node.ifb = []            
                     for wlan in range(0, len(node.params['wlan'])):
+                        node.phyID[wlan] = self.phyID
+                        self.phyID+=1
                         os.system('iw phy %s set netns %s' % (phys[0], node.pid))
                         node.cmd('ip link set %s name %s up' % (self.wlan_list[0], node.params['wlan'][wlan]))
                         if ifb:
