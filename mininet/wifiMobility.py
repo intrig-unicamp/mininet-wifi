@@ -295,6 +295,7 @@ class mobility (object):
         self.accessPoints = aps
         self.wallList = walls
         nodes = self.stations + self.accessPoints + plotNodes
+        self.mobilityNodes = self.stations
 
         # max waiting time
         MAX_WT = 100.
