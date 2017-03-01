@@ -290,7 +290,6 @@ class Node(object):
                 node.params['rssi'].append(0)
                 node.params['snr'].append(0)
             node.params.pop("wlans", None)
-            
                         
         if (node.type == 'station' or node.type == 'vehicle' or 
             'link' in params and params['link'] == 'mesh'):
@@ -303,6 +302,7 @@ class Node(object):
                     if len(mac) > n:
                         node.params['mac'][n] = mac[n]
             elif autoSetMacs:
+                node.params['mac'] = []
                 for n in range(wlans):
                     node.params['mac'].append('')
                     node.params['mac'][n] = defaults[ 'mac' ]
@@ -320,6 +320,7 @@ class Node(object):
                     if len(ip) > n:
                         node.params['ip'][n] = ip[n]
             elif autoSetMacs:
+                node.params['ip'] = []
                 for n in range(wlans):
                     node.params['ip'].append('0/0')
                     node.params['ip'][n] = defaults[ 'ip' ]
