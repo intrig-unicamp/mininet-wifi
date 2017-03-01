@@ -326,7 +326,7 @@ class testWalkthrough(unittest.TestCase):
         p.sendline('sta1 iwconfig')
         p.expect('ssid-ap1')
         p.expect(self.prompt)
-        sleep(15)
+        sleep(13)
         p.sendline('sta1 iwconfig')
         p.expect('ssid-ap2')
         p.expect(self.prompt)
@@ -488,16 +488,17 @@ class testWalkthrough(unittest.TestCase):
         p.sendline('exit')
         p.wait()
 
-    # def testStaticMAC( self ):
-    #    "Verify that MACs are set to easy to read numbers"
-    #    p = pexpect.spawn( 'mn --wifi --mac' )
-    #    sleep(3)
-    #    p.expect( self.prompt )
-    #    sleep(3)
-    #    for i in range( 1, 3 ):
-    #        p.sendline( 'sta%d ifconfig' % i )
-    #        p.expect( 'HWaddr 02:00:00:00:00:0%d' % i )
-    #        p.expect( self.prompt )
+    def testAStaticMAC(self):
+        "Verify that MACs are set to easy to read numbers"
+        p = pexpect.spawn('mn --wifi --mac')
+        sleep(3)
+        p.expect(self.prompt)
+        for i in range(1, 3):
+            p.sendline('sta%d ifconfig' % i)
+            p.expect('00:00:00:00:00:0%d' % i)
+            p.expect(self.prompt)
+        p.sendline('exit')
+        p.wait()
 
     def testAPs(self):
         "Run iperf test using user and ovsk aps"
@@ -517,32 +518,32 @@ class testWalkthrough(unittest.TestCase):
         time = float(p.match.group(1))
         self.assertTrue(time < 4, 'Benchmark takes more than 4 seconds')
 
-    def testOwnNamespace( self ):
+    def testOwnNamespace(self):
         "Test running user ap in its own namespace"
-        p = pexpect.spawn( 'mn --wifi --innamespace --ap user' )
+        p = pexpect.spawn('mn --wifi --innamespace --ap user')
         sleep(3)
-        p.expect( self.prompt )
+        p.expect(self.prompt)
         interfaces = [ 'sta1-wlan0', 'ap1-wlan1', '[^-]eth0', 'lo', self.prompt ]
-        p.sendline( 'ap1 ifconfig -a' )
+        p.sendline('ap1 ifconfig -a')
         ifcount = 0
         while True:
-            index = p.expect( interfaces )
+            index = p.expect(interfaces)
             if index == 1 or index == 3:
                 ifcount += 1
             elif index == 0:
-                self.fail( 'sta1 interface displayed in "ap1 ifconfig"' )
+                self.fail('sta1 interface displayed in "ap1 ifconfig"')
             elif index == 2:
-                self.fail( 'wlan0 displayed in "ap1 ifconfig"' )
+                self.fail('wlan0 displayed in "ap1 ifconfig"')
             else:
                 break
-        #self.assertEqual( ifcount, 2, 'Missing interfaces on ap1' )
+        # self.assertEqual( ifcount, 2, 'Missing interfaces on ap1' )
         # verify that all stations a reachable
-        p.sendline( 'pingall' )
-        p.expect( r'(\d+)% dropped' )
-        dropped = int( p.match.group( 1 ) )
-        self.assertEqual( dropped, 0, 'pingall failed')
-        p.expect( self.prompt )
-        p.sendline( 'exit' )
+        p.sendline('pingall')
+        p.expect(r'(\d+)% dropped')
+        dropped = int(p.match.group(1))
+        self.assertEqual(dropped, 0, 'pingall failed')
+        p.expect(self.prompt)
+        p.sendline('exit')
         p.wait()
 
     # PART 3
@@ -569,23 +570,23 @@ class testWalkthrough(unittest.TestCase):
         p.sendline('exit')
         p.wait()
 
-    def testLink( self ):
+    def testLink(self):
         "Test link CLI command using ping"
-        p = pexpect.spawn( 'mn --wifi' )
+        p = pexpect.spawn('mn --wifi')
         sleep(3)
-        p.expect( self.prompt )
-        p.sendline( 'link ap1 sta1 down' )
-        p.expect( self.prompt )
-        p.sendline( 'sta1 ping -c 1 sta2' )
-        p.expect( '100% packet loss' )
-        p.expect( self.prompt )
-        p.sendline( 'link ap1 sta1 up' )
-        p.expect( self.prompt )
+        p.expect(self.prompt)
+        p.sendline('link ap1 sta1 down')
+        p.expect(self.prompt)
+        p.sendline('sta1 ping -c 1 sta2')
+        p.expect('100% packet loss')
+        p.expect(self.prompt)
+        p.sendline('link ap1 sta1 up')
+        p.expect(self.prompt)
         sleep(2)
-        p.sendline( 'sta1 ping -c 1 sta2' )
-        p.expect( '0% packet loss' )
-        p.expect( self.prompt )
-        p.sendline( 'exit' )
+        p.sendline('sta1 ping -c 1 sta2')
+        p.expect('0% packet loss')
+        p.expect(self.prompt)
+        p.sendline('exit')
         p.wait()
 
     # @unittest.skipUnless( os.path.exists( '/tmp/pox' ) or
