@@ -157,17 +157,27 @@ class setChannelParams (object):
                 loss %.1f%% \
                 latency %.2fms \
                 delay %.2fms " % (sta.ifb[wlan], bw, loss, latency, delay))
-        debug("\ntc qdisc replace dev %s \
-            root handle 2: netem rate %.2fmbit \
-            loss %.1f%% \
-            latency %.2fms \
-            delay %.2fms " % (sta.params['wlan'][wlan], bw, loss, latency, delay))
-        sta.pexec("tc qdisc replace dev %s \
-            root handle 2: netem rate %.2fmbit \
-            loss %.1f%% \
-            latency %.2fms \
-            delay %.2fms " % (sta.params['wlan'][wlan], bw, loss, latency, delay))
-            # corrupt 0.1%%" % (sta.params['wlan'][wlan], bw, loss, latency, delay))
+        if 'encrypt' in sta.params:
+            """tbf is applied to encrypt, cause we have noticed troubles with wpa_supplicant and netem"""
+            tc = 'tc qdisc replace dev %s root handle 1: tbf '\
+                 'rate %.2fmbit '\
+                 'burst 15000b '\
+                 'lat %.2fms' % (sta.params['wlan'][wlan], bw, latency)
+            sta.pexec(tc)
+        else:
+            debug("\ntc qdisc replace dev %s " \
+                "root handle 2: netem rate %.2fmbit "\
+                "loss %.1f%% " \
+                "latency %.2fms " \
+                "delay %.2fms" % (sta.params['wlan'][wlan], bw, loss, latency, delay))
+            tc = "tc qdisc replace dev %s " \
+                 "root handle 2: netem " \
+                 "rate %.2fmbit " \
+                 "loss %.1f%% " \
+                 "latency %.2fms " \
+                 "delay %.2fms" % (sta.params['wlan'][wlan], bw, loss, latency, delay)
+            sta.pexec(tc)
+                # corrupt 0.1%%" % (sta.params['wlan'][wlan], bw, loss, latency, delay))
 
     def calculateInterference (self, sta, ap, dist, staList, wlan):
         """Calculating Interference"""

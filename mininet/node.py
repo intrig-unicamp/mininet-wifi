@@ -829,10 +829,7 @@ class Node(object):
         out, err = popen.communicate()
         exitcode = popen.wait()
         return out, err, exitcode
-
-        # Warning: this can fail with large numbers of fds!
-        # out, err = popen.communicate()
-        # return out, err
+    
     # Interface management, configuration, and routing
 
     # BL notes: This might be a bit redundant or over-complicated.
@@ -1504,6 +1501,7 @@ class AccessPoint(AP):
                     cmd = cmd + ("\nauth_algs=%s" % ap.auth_algs)
                     cmd = cmd + ("\nwpa=%s" % ap.wpa)
                     cmd = cmd + ("\nwpa_key_mgmt=%s" % ap.wpa_key_mgmt)
+                    cmd = cmd + ("\nwpa_pairwise=%s" % ap.rsn_pairwise)
                     cmd = cmd + ("\nwpa_passphrase=%s" % ap.wpa_passphrase)
                 elif ap.params['encrypt'][0] == 'wpa2':
                     cmd = cmd + ("\nauth_algs=%s" % ap.auth_algs)

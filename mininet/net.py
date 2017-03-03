@@ -1706,7 +1706,6 @@ class Mininet(object):
             mobilityparam.setdefault('plotNodes', self.plotNodes)
             mobilityparam.setdefault('stations', self.stations)
             mobilityparam.setdefault('aps', self.accessPoints)
-            mobilityparam.setdefault('walls', self.walls)
             mobilityparam.setdefault('MAX_X', self.MAX_X)
             mobilityparam.setdefault('MAX_Y', self.MAX_Y)
             mobilityparam.setdefault('dstConn', self.dstConn)
@@ -1745,7 +1744,6 @@ class Mininet(object):
         mobilityparam.setdefault('plotNodes', self.plotNodes)
         mobilityparam.setdefault('stations', self.stations)
         mobilityparam.setdefault('aps', self.accessPoints)
-        mobilityparam.setdefault('walls', self.walls)
         mobilityparam.setdefault('MAX_X', self.MAX_X)
         mobilityparam.setdefault('MAX_Y', self.MAX_Y)
         mobilityparam.setdefault('MAX_Z', self.MAX_Z)
@@ -1759,7 +1757,7 @@ class Mininet(object):
         self.thread.daemon = True
         self.thread.start()
         
-        self.setWifiParameters()
+        #self.setWifiParameters()
 
     def setWifiParameters(self):
         """

@@ -81,12 +81,13 @@ class mobility (object):
         :param dist: distance between source and destination  
         """ 
         if ap == sta.params['associatedTo'][wlan]:
-            debug('iw dev %s disconnect' % sta.params['wlan'][wlan])
+            debug('iw dev %s disconnect\n' % sta.params['wlan'][wlan])
             if 'encrypt' in ap.params:
                 if ap.params['encrypt'][0] == 'wpa' or ap.params['encrypt'][0] == 'wpa2':
                     os.system('rm %s.staconf' % sta)
                     pidfile = "mn%d_%s_%s_wpa.pid" % (os.getpid(), sta.name, wlan)
                     os.system('pkill -f \'wpa_supplicant -B -Dnl80211 -P %s -i %s\'' % (pidfile, sta.params['wlan'][wlan]))
+                    os.system('rm /var/run/wpa_supplicant/%s' % sta.params['wlan'][wlan])
             sta.pexec('iw dev %s disconnect' % sta.params['wlan'][wlan])
             sta.params['associatedTo'][wlan] = ''
             sta.params['rssi'][wlan] = 0
@@ -198,7 +199,7 @@ class mobility (object):
         sta.params['associatedTo'][wlan] = ap
     
     @classmethod
-    def definedPosition(self, init_time=0, final_time=0, stations=None, aps=None, walls=None, staMov=None,
+    def definedPosition(self, init_time=0, final_time=0, stations=None, aps=None, staMov=None,
                                 dstConn=None, srcConn=None, plotNodes=None, MAX_X=0, MAX_Y=0, MAX_Z=0, AC='', rec_rssi=False):
         """ 
         Used when the position of each node is previously defined
@@ -207,7 +208,6 @@ class mobility (object):
         :param final_time: time when the mobility stops
         :param stations: list of stations
         :param aps: list of access points
-        :param walls: list of walls (not used yet)
         :param staMov: list of nodes with mobility
         :param srcConn: list of connections for source nodes
         :param dstConn: list of connections for destination nodes
@@ -268,13 +268,20 @@ class mobility (object):
                         if self.DRAW:
                             eval(self.continuePlot)
                             plot.graphUpdate(node)
+                        self.parameters_(node)
                     i += 1
         except:
             pass
+        
+    @classmethod
+    def addNodes(self, stas, aps):
+        self.stations = stas
+        self.accessPoints = aps
+        self.mobilityNodes = self.stations
 
     @classmethod
     def models(self, stations=None, aps=None, model=None, staMov=None, min_v=0, max_v=0, seed=None,
-               dstConn=None, srcConn=None, walls=None, plotNodes=None, MAX_X=0, MAX_Y=0, AC='', rec_rssi=False):
+               dstConn=None, srcConn=None, plotNodes=None, MAX_X=0, MAX_Y=0, AC='', rec_rssi=False):
         """ 
         Used when a mobility model is applied
         
@@ -287,7 +294,6 @@ class mobility (object):
         :param speed: speed
         :param srcConn:  list of connections for source nodes
         :param dstConn:  list of connections for destination nodes
-        :param walls: list of walls (not used yet)
         :param plotNodes: list of nodes to be plotted (including hosts and switches)
         :param MAX_X: Maximum value for X
         :param MAX_Y: Maximum value for Y
@@ -295,11 +301,8 @@ class mobility (object):
         self.rec_rssi = rec_rssi
         np.random.seed(seed)
         
-        self.stations = stations
-        self.accessPoints = aps
-        self.wallList = walls
+        self.addNodes(stations, aps)
         nodes = self.stations + self.accessPoints + plotNodes
-        self.mobilityNodes = self.stations
 
         # max waiting time
         MAX_WT = 100.
