@@ -50,45 +50,45 @@ class testWalkthrough(unittest.TestCase):
     #    tshark.expect( [ '74 Hello', '74 of_hello', '74 Type: OFPT_HELLO' ] )
     #    tshark.sendintr()
 
-    # def testBasic( self ):
-    #    "Test basic CLI commands (help, nodes, net, dump)"
-    #    p = pexpect.spawn( 'mn --wifi' )
-    #    sleep(3)
-    #    p.expect( self.prompt )
+    def testBasic( self ):
+        "Test basic CLI commands (help, nodes, net, dump)"
+        p = pexpect.spawn( 'mn --wifi' )
+        sleep(3)
+        p.expect( self.prompt )
         # help command
-    #    p.sendline( 'help' )
-    #    index = p.expect( [ 'commands', self.prompt ] )
-    #    self.assertEqual( index, 0, 'No output for "help" command')
+        p.sendline( 'help' )
+        index = p.expect( [ 'commands', self.prompt ] )
+        self.assertEqual( index, 0, 'No output for "help" command')
         # nodes command
-    #    p.sendline( 'nodes' )
-    #    p.expect( r'([chs]\d ?){4}' )
-    #    nodes = p.match.group( 0 ).split()
-    #    self.assertEqual( len( nodes ), 4, 'No nodes in "nodes" command')
-    #    p.expect( self.prompt )
+        p.sendline( 'nodes' )
+        p.expect( r'(ap\B\d ?){1}([c]\d ?){1}(sta\B\d ?){2}' )
+        nodes = p.match.group( 0 ).split()
+        self.assertEqual( len( nodes ), 4, 'No nodes in "nodes" command')
+        p.expect( self.prompt )
         # net command
-    #    p.sendline( 'net' )
-    #    expected = [ x for x in nodes ]
-    #    while len( expected ) > 0:
-    #        index = p.expect( expected )
-    #        node = p.match.group( 0 )
-    #        expected.remove( node )
-    #        p.expect( '\n' )
-    #    self.assertEqual( len( expected ), 0, '"nodes" and "net" differ')
-    #    p.expect( self.prompt )
+        p.sendline( 'net' )
+        expected = [ x for x in nodes ]
+        while len( expected ) > 0:
+            index = p.expect( expected )
+            node = p.match.group( 0 )
+            expected.remove( node )
+            p.expect( '\n' )
+        self.assertEqual( len( expected ), 0, '"nodes" and "net" differ')
+        p.expect( self.prompt )
         # dump command
-    #    p.sendline( 'dump' )
-    #    expected = [ r'<\w+ (%s)' % n for n in nodes ]
-    #    actual = []
-    #    for _ in nodes:
-    #        index = p.expect( expected )
-    #        node = p.match.group( 1 )
-    #        actual.append( node )
-    #        p.expect( '\n' )
-    #    self.assertEqual( actual.sort(), nodes.sort(),
-    #                      '"nodes" and "dump" differ' )
-    #    p.expect( self.prompt )
-    #    p.sendline( 'exit' )
-    #    p.wait()
+        p.sendline( 'dump' )
+        expected = [ r'<\w+ (%s)' % n for n in nodes ]
+        actual = []
+        for _ in nodes:
+            index = p.expect( expected )
+            node = p.match.group( 1 )
+            actual.append( node )
+            p.expect( '\n' )
+        self.assertEqual( actual.sort(), nodes.sort(),
+                          '"nodes" and "dump" differ' )
+        p.expect( self.prompt )
+        p.sendline( 'exit' )
+        p.wait()
 
     # def testHostCommands( self ):
     #    "Test ifconfig and ps on sta1 and ap1"
