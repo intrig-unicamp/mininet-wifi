@@ -1150,7 +1150,6 @@ class Association(Link):
                 for conf in config:
                     content = content + "   " + conf + "\n"
         else:
-            print sta.params
             content = (content + '   ssid=\"%s\"\n' \
                     '   psk=\"%s\"\n' \
                     '   key_mgmt=%s\n' \
