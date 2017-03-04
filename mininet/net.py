@@ -110,7 +110,7 @@ from mininet.log import info, error, debug, output, warn
 from mininet.node import (Node, Host, Station, Car, OVSKernelSwitch, OVSKernelAP, DefaultController,
                            Controller, AccessPoint)
 from mininet.nodelib import NAT
-from mininet.link import Link, Intf, TCLinkWireless, Association, WDSLink
+from mininet.link import Link, Intf, TCLinkWirelessAP, TCLinkWirelessStation, Association, WDSLink
 from mininet.util import (quietRun, fixLimits, numCores, ensureRoot,
                            macColonHex, ipStr, ipParse, netParse, ipAdd,
                            waitListening)
@@ -130,7 +130,7 @@ from mininet.vanet import vanet
 from __builtin__ import True
 
 # Mininet version: should be consistent with README and LICENSE
-VERSION = "2.0r1"
+VERSION = "2.0r2"
 
 class Mininet(object):
     "Network emulation with hosts spawned in network namespaces."
@@ -447,6 +447,43 @@ class Mininet(object):
         self.switches.append(ap)
         self.accessPoints.append(ap)        
         return ap
+    
+    def addWirelessMeshSwitch(self, name, cls=None, **params):
+        """Add Switch with Wireless Mesh capabilities.
+           name: name of accesspoint to add
+           cls: custom switch class/constructor (optional)
+           returns: added acesspoint
+           side effect: increments listenPort ivar ."""
+        defaults = { 'ip': ipAdd(self.nextIP,
+                                  ipBaseNum=self.ipBaseNum,
+                                  prefixLen=self.prefixLen) + 
+                                  '/%s' % self.prefixLen,
+                     'listenPort': self.listenPort,
+                     'inNamespace': self.inNamespace,
+                     'channel': self.channel,
+                     'mode': self.mode
+                     }
+
+        defaults.update(params)
+        
+        if not cls:
+            cls = self.accessPoint   
+        node = cls(name, **defaults)            
+
+        if not self.inNamespace and self.listenPort:
+            self.listenPort += 1
+        
+        if self.inNamespace or ('inNamespace' in params and params['inNamespace'] == True):
+            node.params['inNamespace'] = True
+        
+        self.nameToNode[ name ] = node
+        node.type = 'station'
+        self.nextIP += 1
+        
+        self.nRadios = node.addParameters(node, self.nRadios, self.autoSetMacs, params, defaults)
+        self.switches.append(node)
+        self.stations.append(node)        
+        return node
 
     def addPhysicalBaseStation(self, name, cls=None, **params):
         """Add BaseStation.
@@ -666,7 +703,6 @@ class Mininet(object):
                                   ipBaseNum=self.ipBaseNum,
                                   prefixLen=self.prefixLen) + 
                                   '/%s' % self.prefixLen}
-
         options.update(params)
 
         node.params['ssid'] = []
@@ -702,7 +738,7 @@ class Mininet(object):
         options.setdefault('addr1', self.randMac())   
                 
         cls = Association
-        cls.configureMesh(node, wlan, self.stations)
+        cls.configureMesh(node, wlan)
         self.tc(node, self.bw)
         node.ifaceToAssociate += 1
 
@@ -844,7 +880,7 @@ class Mininet(object):
             if 'phywlan' not in node.params:
                 if node.func[0] != 'ap':
                     node.params['frequency'][wlan] = setChannelParams.frequency(node, 0)
-                    cls = TCLinkWireless
+                    cls = TCLinkWirelessAP
                     cls(node)
                     if len(node.params['ssid']) > 1:
                         for i in range(1, len(node.params['ssid'])):
@@ -854,7 +890,7 @@ class Mininet(object):
                 iface = node.params.get('phywlan')
                 options = dict()
                 options.setdefault('intfName1', iface)
-                cls = TCLinkWireless
+                cls = TCLinkWirelessAP
                 cls(node, **options)
                 node.params.pop("phywlan", None)
             setChannelParams.recordParams(None, node)
@@ -917,13 +953,20 @@ class Mininet(object):
         self.checkAPAdhoc()
         for node in nodes:
             for wlan in range(0, len(node.params['wlan'])):
-                cls = TCLinkWireless
-                cls(node, intfName1=node.params['wlan'][wlan])
+                if node not in self.switches:
+                    cls = TCLinkWirelessStation
+                    cls(node, intfName1=node.params['wlan'][wlan])
                 if 'car' in node.name and node.type == 'station':
                         node.cmd('iw dev %s-wlan%s interface add %s-mp%s type mp' % (node, wlan, node, wlan))
                         node.cmd('ifconfig %s-mp%s up' % (node, wlan))
                         node.cmd('iw dev %s-mp%s mesh join %s' % (node, wlan, 'ssid'))
                         node.func[wlan] = 'mesh'
+                elif node.type == 'station' and node in self.switches:
+                    node.convertIfaceToMesh(node, wlan)
+                    cls = TCLinkWirelessAP
+                    cls(node, intfName1=node.params['wlan'][wlan])
+                    self.configureMacAddr(node)
+                    node.type = 'SwitchWirelessMesh'
                 else:
                     if 'ssid' not in node.params:
                         if node.params['txpower'][wlan] != 20:
