@@ -607,8 +607,7 @@ class WDSLink(object):
     def createWDSIface(self, node):
         node.cmd('iw dev %s interface add %s-wds type wds' % (node.params['wlan'][0], node.name))
     
-
-class LinkWireless(object):
+class WirelessLinkAP(object):
 
     """A basic link is just a veth pair.
        Other types of links could be tunnels, link emulators, etc.."""
@@ -635,28 +634,96 @@ class LinkWireless(object):
             params1[ 'port' ] = port1
           
         if 'port' not in params1:
-            if 'vehicle' == node1.type or 'station' == node1.type:
-                params1[ 'port' ] = node1.newPort()
-            elif 'accessPoint' == node1.type:
-                if intfName1 == None:
-                    nodelen = int(len(node1.params['wlan']))
-                    currentlen = node1.wlanports
-                    if nodelen > currentlen + 1:
-                        params1[ 'port' ] = node1.newPort()
-                    else:
-                        params1[ 'port' ] = currentlen
-                    ifacename = 'wlan'
-                    intfName1 = self.wlanName(node1, ifacename, params1[ 'port' ])
-                    intf1 = cls1(name=intfName1, node=node1,
-                            link=self, mac=addr1, **params1)
-                    intf2 = None
-                else:
+            if intfName1 == None:
+                nodelen = int(len(node1.params['wlan']))
+                currentlen = node1.wlanports
+                if nodelen > currentlen + 1:
                     params1[ 'port' ] = node1.newPort()
-                    node1.newPort()
-                    intf1 = cls1(name=intfName1, node=node1,
+                else:
+                    params1[ 'port' ] = currentlen
+                ifacename = 'wlan'
+                intfName1 = self.wlanName(node1, ifacename, params1[ 'port' ])
+                intf1 = cls1(name=intfName1, node=node1,
                         link=self, mac=addr1, **params1)
-                    intf2 = None
+                intf2 = 'wireless'
+            else:
+                params1[ 'port' ] = node1.newPort()
+                node1.newPort()
+                intf1 = cls1(name=intfName1, node=node1,
+                    link=self, mac=addr1, **params1)
+                intf2 = 'wireless'
 
+        if not intfName1:
+            ifacename = 'wlan'
+            intfName1 = self.wlanName(node1, ifacename, node1.newWlanPort())
+           
+        if not cls1:
+            cls1 = intf
+        # All we are is dust in the wind, and our two interfaces
+        self.intf1, self.intf2 = intf1, intf2
+    # pylint: enable=too-many-branches    
+
+    @staticmethod
+    def _ignore(*args, **kwargs):
+        "Ignore any arguments"
+        pass
+
+    def wlanName(self, node, ifacename, n):
+        "Construct a canonical interface name node-ethN for interface n."
+        # Leave this as an instance method for now
+        assert self
+        if 'phywlan' in node.params:  # if physical Interface
+            return ifacename + repr(n)
+        else:
+            return node.name + '-' + ifacename + repr(n)
+
+    def delete(self):
+        "Delete this link"
+        self.intf1.delete()
+        self.intf1 = None
+        self.intf2.delete()
+        self.intf2 = None
+
+    def stop(self):
+        "Override to stop and clean up link as needed"
+        self.delete()
+
+    def status(self):
+        "Return link status as a string"
+        return "(%s %s)" % (self.intf1.status(), self.intf2.status())
+
+    def __str__(self):
+        return '%s<->%s' % (self.intf1, self.intf2)
+
+class WirelessLinkStation(object):
+
+    """A basic link is just a veth pair.
+       Other types of links could be tunnels, link emulators, etc.."""
+
+    # pylint: disable=too-many-branches
+    def __init__(self, node1, port1=None,
+                  intfName1=None, addr1=None,
+                  intf=Intf, cls1=None, params1=None):
+        """Create veth link to another node, making two new interfaces.
+           node1: first node
+           port1: node1 port number (optional)
+           intf: default interface class/constructor
+           cls1: optional interface-specific constructors
+           intfName1: node1 interface name (optional)
+           params1: parameters for interface 1"""
+        # This is a bit awkward; it seems that having everything in
+        # params is more orthogonal, but being able to specify
+        # in-line arguments is more convenient! So we support both.
+
+        if params1 is None:
+            params1 = {}
+        
+        if port1 is not None:
+            params1[ 'port' ] = port1
+          
+        if 'port' not in params1:
+            params1[ 'port' ] = node1.newPort()
+            
         if not intfName1:
             ifacename = 'wlan'
             intfName1 = self.wlanName(node1, ifacename, node1.newWlanPort())
@@ -866,12 +933,23 @@ class TCLink(Link):
                        params1=params,
                        params2=params)
         
-class TCLinkWireless(LinkWireless):
+class TCLinkWirelessStation(WirelessLinkStation):
     "Link with symmetric TC interfaces configured via opts"
     def __init__(self, node1, port1=None, port2=None,
                   intfName1=None, intfName2=None,
                   addr1=None, addr2=None, **params):
-        LinkWireless.__init__(self, node1, port1=port1,
+        WirelessLinkStation.__init__(self, node1, port1=port1,
+                       intfName1=intfName1,
+                       cls1=TCIntfWireless,
+                       addr1=addr1,
+                       params1=params)
+        
+class TCLinkWirelessAP(WirelessLinkAP):
+    "Link with symmetric TC interfaces configured via opts"
+    def __init__(self, node1, port1=None, port2=None,
+                  intfName1=None, intfName2=None,
+                  addr1=None, addr2=None, **params):
+        WirelessLinkAP.__init__(self, node1, port1=port1,
                        intfName1=intfName1,
                        cls1=TCIntfWireless,
                        addr1=addr1,
@@ -915,33 +993,27 @@ class Association(Link):
         sta.pexec('iwconfig %s ap %s' % (iface, sta.params['cell'][wlan]))
         
     @classmethod    
-    def configureMesh(self, node, wlan, stations):
+    def configureMesh(self, node, wlan):
         """
         Configure Wireless Mesh Interface
         """
         node.params['rssi'][wlan] = -62
         node.params['snr'][wlan] = -62 - (-90.0)
-        if node.params['mac'][wlan] != '':
-            node.cmd('iw dev %s interface add %s-mp%s type mp' % (node.params['wlan'][wlan], node, wlan))
-            node.cmd('ifconfig %s-mp%s down' % (node, wlan))
-            node.cmd('ip link set %s-mp%s address %s' % (node, wlan, node.params['mac'][wlan]))
-        node.cmd('ifconfig %s down' % node.params['wlan'][wlan])
-        iface = '%s-mp%s' % (node, wlan)
-       
-        node.params['wlan'][wlan] = iface
-        node.params['frequency'][wlan] = setChannelParams.frequency(node, wlan)
-        self.getMacAddress(node, iface, wlan)
-
-        node.intfs[wlan] = node.params['wlan'][wlan]
-        cls = TCLinkWireless
-        cls(node, port1=wlan, intfName1=node.params['wlan'][wlan])
         
-        node.cmd('ifconfig %s %s up' % (node.params['wlan'][wlan], node.params['ip'][wlan]))
+        if 'mp' not in node.params['wlan'][wlan]:
+            node.convertIfaceToMesh(node, wlan)
+            iface = node.params['wlan'][wlan]
+            node.params['frequency'][wlan] = setChannelParams.frequency(node, wlan)
+            self.getMacAddress(node, iface, wlan)
+            node.intfs[wlan] = node.params['wlan'][wlan]
+            cls = TCLinkWirelessStation
+            cls(node, port1=wlan, intfName1=node.params['wlan'][wlan])
+        
         if 'position' not in node.params:
             self.meshAssociation(node, wlan)
             
         if 'link' in node.params and node.params['link'] == 'mesh':
-            cls = TCLinkWireless
+            cls = TCLinkWirelessAP
             intf = '%s-mp%s' % (node, wlan)
             cls(node, intfName1=intf)
             node.setBw(node, wlan, intf)
@@ -1062,7 +1134,7 @@ class Association(Link):
         :param ap: access point
         :param wlan: wlan ID
         """ 
-        if 'config' not in ap.params:
+        if 'config' not in ap.params or 'config' not in sta.params:
             if 'passwd' not in sta.params:
                 passwd = ap.params['passwd'][0]
             else:
@@ -1078,6 +1150,7 @@ class Association(Link):
                 for conf in config:
                     content = content + "   " + conf + "\n"
         else:
+            print sta.params
             content = (content + '   ssid=\"%s\"\n' \
                     '   psk=\"%s\"\n' \
                     '   key_mgmt=%s\n' \
