@@ -66,7 +66,7 @@ from mininet.log import info, error, warn, debug
 from mininet.util import (quietRun, errRun, errFail, moveIntf, isShellBuiltin,
                            numCores, retry, mountCgroups)
 from mininet.moduledeps import moduleDeps, pathCheck, TUN
-from mininet.link import Link, Intf, TCIntf, OVSIntf
+from mininet.link import Link, Intf, TCIntf, TCIntfWireless, OVSIntf
 from re import findall
 from distutils.version import StrictVersion
 from mininet.wifiMobility import mobility
@@ -457,6 +457,16 @@ class Node(object):
                 
         return wifiRadios
     
+    @classmethod
+    def convertIfaceToMesh(self, node, wlan):
+        iface = '%s-mp%s' % (node, wlan)
+        node.cmd('iw dev %s interface add %s-mp%s type mp' % (node.params['wlan'][wlan], node, wlan))
+        node.cmd('ifconfig %s-mp%s down' % (node, wlan))
+        node.cmd('ip link set %s-mp%s address %s' % (node, wlan, node.params['mac'][wlan]))
+        node.cmd('ifconfig %s down' % node.params['wlan'][wlan])
+        node.params['wlan'][wlan] = iface
+        node.cmd('ifconfig %s %s up' % (node.params['wlan'][wlan], node.params['ip'][wlan]))
+        
     @classmethod
     def setBw(self, node, wlan, iface):
         """ Set bw to AP """
@@ -1711,7 +1721,7 @@ class UserAP(AP):
            over tc queuing disciplines. To resolve the conflict,
            we re-create the user switch's configuration, but as a
            leaf of the TCIntf-created configuration."""
-        if isinstance(intf, TCIntf):
+        if isinstance(intf, TCIntfWireless):
             ifspeed = 10000000000  # 10 Gbps
             minspeed = ifspeed * 0.001
 
@@ -1741,12 +1751,6 @@ class UserAP(AP):
         ofplog = '/tmp/' + self.name + '-ofp.log'
         intfs = [ str(i) for i in self.intfList() if not i.IP() ]
 
-        if 'ssid' in self.params:
-            if len(self.params['ssid']) > 1:
-                iface = intfs[0]
-                for n in range(1, len(self.params['ssid'])):
-                    intfs.append(iface + str('-%s' % n))
-
         self.cmd('ofdatapath -i ' + ','.join(intfs) + 
                   ' punix:/tmp/' + self.name + ' -d %s ' % self.dpid + 
                   self.dpopts + 
@@ -1765,8 +1769,9 @@ class UserAP(AP):
     def stop(self, deleteIntfs=True):
         """Stop OpenFlow reference user datapath.
            deleteIntfs: delete interfaces? (True)"""
-        # if self.type == 'accessPoint':
-        #    self.cmd('ovs-vsctl del-br', self.name)
+        self.cmd('kill %ofdatapath')
+        self.cmd('kill %ofprotocol')
+        super(UserAP, self).stop(deleteIntfs)
         
     def renameIface(self, intf, newname):
         "Rename interface"
@@ -1873,7 +1878,7 @@ class OVSAP(AP):
         """Unfortunately OVS and Mininet are fighting
            over tc queuing disciplines. As a quick hack/
            workaround, we clear OVS's and reapply our own."""
-        if isinstance(intf, TCIntf):
+        if isinstance(intf, TCIntfWireless):
             intf.config(**intf.params)
 
     def attach(self, intf):
@@ -1939,7 +1944,7 @@ class OVSAP(AP):
         "Start up a new OVS OpenFlow switch using ovs-vsctl"
         if self.inNamespace:
             raise Exception(
-                'OVS kernel switch does not work in a namespace')
+                'OVS kernel AP does not work in a namespace')
 
         int(self.dpid, 16)  # DPID must be a hex string
         # Command to add interfaces
@@ -2005,7 +2010,7 @@ class OVSAP(AP):
         # Reapply link config if necessary...
         for switch in switches:
             for intf in switch.intfs.itervalues():
-                if isinstance(intf, TCIntf):
+                if isinstance(intf, TCIntfWireless):
                     intf.config(**intf.params)
         return switches
 
@@ -2115,12 +2120,6 @@ class UserSwitch(Switch):
         ofdlog = '/tmp/' + self.name + '-ofd.log'
         ofplog = '/tmp/' + self.name + '-ofp.log'
         intfs = [ str(i) for i in self.intfList() if not i.IP() ]
-
-        if 'ssid' in self.params:
-            if len(self.params['ssid']) > 1:
-                iface = intfs[0]
-                for n in range(1, len(self.params['ssid'])):
-                    intfs.append(iface + str('-%s' % n))
 
         self.cmd('ofdatapath -i ' + ','.join(intfs) + 
                   ' punix:/tmp/' + self.name + ' -d %s ' % self.dpid + 
