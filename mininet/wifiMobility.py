@@ -199,8 +199,8 @@ class mobility (object):
         sta.params['associatedTo'][wlan] = ap
     
     @classmethod
-    def definedPosition(self, init_time=0, final_time=0, stations=None, aps=None, staMov=None,
-                                dstConn=None, srcConn=None, plotNodes=None, MAX_X=0, MAX_Y=0, MAX_Z=0, AC='', rec_rssi=False):
+    def definedPosition(self, init_time=0, final_time=0, stations=None, aps=None, dstConn=None, srcConn=None, 
+                        plotNodes=None, MAX_X=0, MAX_Y=0, MAX_Z=0, AC='', rec_rssi=False):
         """ 
         Used when the position of each node is previously defined
         
@@ -208,7 +208,6 @@ class mobility (object):
         :param final_time: time when the mobility stops
         :param stations: list of stations
         :param aps: list of access points
-        :param staMov: list of nodes with mobility
         :param srcConn: list of connections for source nodes
         :param dstConn: list of connections for destination nodes
         :param plotnodes: list of nodes to be plotted (including hosts and switches)
@@ -268,8 +267,9 @@ class mobility (object):
                         if self.DRAW:
                             eval(self.continuePlot)
                             plot.graphUpdate(node)
-                        self.parameters_(node)
+                        #self.parameters_(node)
                     i += 1
+            self.mobilityNodes = []
         except:
             pass
         
