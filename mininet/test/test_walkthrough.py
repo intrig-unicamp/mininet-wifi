@@ -167,64 +167,60 @@ class testWalkthrough(unittest.TestCase):
         p.wait()
 
     # PART 2
-    # def testRegressionRun( self ):
-    #    "Test pingpair (0% drop) and iperf (bw > 0) regression tests"
+    def testRegressionRun( self ):
+        "Test pingpair (0% drop) and iperf (bw > 0) regression tests"
         # test pingpair
-    #    p = pexpect.spawn( 'mn --wifi --test pingpair' )
-    #    sleep(3)
-    #    p.expect( '0% dropped' )
-    #    p.expect( pexpect.EOF )
+        p = pexpect.spawn( 'mn --wifi --test pingpair' )
+        p.expect( '0% dropped' )
+        p.expect( pexpect.EOF )
         # test iperf
-    #    p = pexpect.spawn( 'mn --wifi --test iperf' )
-    #    sleep(3)
-    #    p.expect( r"Results: \['([\d\.]+) .bits/sec'," )
-    #    bw = float( p.match.group( 1 ) )
-    #    self.assertTrue( bw > 0 )
-    #    p.expect( pexpect.EOF )
+        p = pexpect.spawn( 'mn --wifi --test iperf' )
+        p.expect( r"Results: \['([\d\.]+) .bits/sec'," )
+        bw = float( p.match.group( 1 ) )
+        self.assertTrue( bw > 0 )
+        p.expect( pexpect.EOF )
 
-    # def testTopoChange( self ):
-    #    "Test pingall on single,3 and linear,4 topos"
+    def testATopoChange( self ):
+        "Test pingall on single,3 and linear,4 topos"
         # testing single,3
-    #    p = pexpect.spawn( 'mn --wifi --test pingall --topo single,3' )
-    #    sleep(3)
-    #    p.expect( r'(\d+)/(\d+) received')
-    #    received = int( p.match.group( 1 ) )
-    #    sent = int( p.match.group( 2 ) )
-    #    self.assertEqual( sent, 6, 'Wrong number of pings sent in single,3' )
-    #    self.assertEqual( sent, received, 'Dropped packets in single,3')
-    #    p.expect( pexpect.EOF )
+        p = pexpect.spawn( 'mn --wifi --test pingall --topo single,3' )
+        p.expect( r'(\d+)/(\d+) received')
+        received = int( p.match.group( 1 ) )
+        sent = int( p.match.group( 2 ) )
+        self.assertEqual( sent, 6, 'Wrong number of pings sent in single,3' )
+        self.assertEqual( sent, received, 'Dropped packets in single,3')
+        p.expect( pexpect.EOF )
         # testing linear,4
-    #    p = pexpect.spawn( 'mn --wifi --test pingall --topo linear,4' )
-    #    sleep(3)
-    #    p.expect( r'(\d+)/(\d+) received')
-    #    received = int( p.match.group( 1 ) )
-    #    sent = int( p.match.group( 2 ) )
-    #    self.assertEqual( sent, 12, 'Wrong number of pings sent in linear,4' )
-    #    self.assertEqual( sent, received, 'Dropped packets in linear,4')
-    #    p.expect( pexpect.EOF )
+        #p = pexpect.spawn( 'mn --wifi --test pingall --topo linear,4' )
+        #p.expect( r'(\d+)/(\d+) received')
+        #received = int( p.match.group( 1 ) )
+        #sent = int( p.match.group( 2 ) )
+        #self.assertEqual( sent, 12, 'Wrong number of pings sent in linear,4' )
+        #self.assertEqual( sent, received, 'Dropped packets in linear,4')
+        #p.expect( pexpect.EOF )
 
-    # def testLinkChange( self ):
-    #    "Test TCLink bw and delay"
-    #    p = pexpect.spawn( 'mn --wifi --link tc,bw=10,delay=10ms' )
+    def testLinkChange( self ):
+        "Test TCLink bw and delay"
+        p = pexpect.spawn( 'mn --wifi --link wtc,bw=10,delay=10ms' )
         # test bw
-    #    sleep(3)
-    #    p.expect( self.prompt )
-    #    p.sendline( 'iperf' )
-    #    p.expect( r"Results: \['([\d\.]+) Mbits/sec'," )
-    #    bw = float( p.match.group( 1 ) )
-    #    self.assertTrue( bw < 10.1, 'Bandwidth > 10 Mb/s')
-    #    self.assertTrue( bw > 9.0, 'Bandwidth < 9 Mb/s')
-    #    p.expect( self.prompt )
+        sleep(3)
+        p.expect( self.prompt )
+        p.sendline( 'iperf' )
+        p.expect( r"Results: \['([\d\.]+) Mbits/sec'," )
+        bw = float( p.match.group( 1 ) )
+        self.assertTrue( bw < 10.1, 'Bandwidth > 10 Mb/s')
+        self.assertTrue( bw > 9.0, 'Bandwidth < 9 Mb/s')
+        p.expect( self.prompt )
         # test delay
-    #    p.sendline( 'sta1 ping -c 4 sta2' )
-    #    p.expect( r'rtt min/avg/max/mdev = '
-    #              r'([\d\.]+)/([\d\.]+)/([\d\.]+)/([\d\.]+) ms' )
-    #    delay = float( p.match.group( 2 ) )
-    #    self.assertTrue( delay > 40, 'Delay < 40ms' )
-    #    self.assertTrue( delay < 45, 'Delay > 40ms' )
-    #    p.expect( self.prompt )
-    #    p.sendline( 'exit' )
-    #    p.wait()
+        p.sendline( 'sta1 ping -c 4 sta2' )
+        p.expect( r'rtt min/avg/max/mdev = '
+                  r'([\d\.]+)/([\d\.]+)/([\d\.]+)/([\d\.]+) ms' )
+        delay = float( p.match.group( 2 ) )
+        self.assertTrue( delay > 20, 'Delay < 20ms' )
+        self.assertTrue( delay < 25, 'Delay > 20ms' )
+        p.expect( self.prompt )
+        p.sendline( 'exit' )
+        p.wait()
 
     def testVerbosity(self):
         "Test debug and output verbosity"
