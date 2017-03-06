@@ -340,8 +340,8 @@ class SingleAPTopo(Topo):
         self.k = k
         accessPoint = self.addAccessPoint('ap1')
         for h in irange(1, k):
-            host = self.addHost('sta%s' % h)
-            self.addLink(host, accessPoint)
+            sta = self.addStation('sta%s' % h)
+            self.addLink(sta, accessPoint)
 
 class SingleSwitchReversedTopo(Topo):
     """Single switch connected to k hosts, with reversed ports.
@@ -354,10 +354,10 @@ class SingleSwitchReversedTopo(Topo):
         if isWiFi :
             "k: number of hosts"
             self.k = k
-            switch = self.addSwitch('ap1')
+            ap = self.addAccessPoint('ap1')
             for h in irange(1, k):
-                host = self.addHost('sta%s' % h)
-                self.addLink(host, switch,
+                sta = self.addStation('sta%s' % h)
+                self.addLink(sta, ap,
                               port1=0, port2=(k - h + 1))
         else:
             "k: number of hosts"
@@ -416,9 +416,9 @@ class LinearWirelessTopo(Topo):
         self.k = k
         self.n = n
         if n == 1:
-            genHostName = lambda i, j: 'sta%s' % i
+            genStaName = lambda i, j: 'sta%s' % i
         else:
-            genHostName = lambda i, j: 'sta%sap%d' % (j, i)
+            genStaName = lambda i, j: 'sta%sap%d' % (j, i)
 
         lastAccessPoint = None
         for i in irange(1, k):
@@ -426,8 +426,8 @@ class LinearWirelessTopo(Topo):
             accessPoint = self.addAccessPoint('ap%s' % i, ssid='ssid_ap%s' % i)
             # Add hosts to accessPoint
             for j in irange(1, n):
-                host = self.addHost(genHostName(i, j))
-                self.addLink(host, accessPoint)
+                sta = self.addStation(genStaName(i, j))
+                self.addLink(sta, accessPoint)
             # Connect accessPoint to previous
             if lastAccessPoint:
                 self.addLink(accessPoint, lastAccessPoint)
