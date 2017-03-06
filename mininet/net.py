@@ -110,7 +110,7 @@ from mininet.log import info, error, debug, output, warn
 from mininet.node import (Node, Host, Station, Car, OVSKernelSwitch, OVSKernelAP, DefaultController,
                            Controller, AccessPoint)
 from mininet.nodelib import NAT
-from mininet.link import Link, Intf, TCLinkWirelessAP, TCLinkWirelessStation, Association, WDSLink
+from mininet.link import Link, Intf, TCLinkWirelessAP, TCLinkWirelessStation, Association, WDSLink, TCIntfWireless
 from mininet.util import (quietRun, fixLimits, numCores, ensureRoot,
                            macColonHex, ipStr, ipParse, netParse, ipAdd,
                            waitListening)
@@ -739,7 +739,6 @@ class Mininet(object):
                 
         cls = Association
         cls.configureMesh(node, wlan)
-        self.tc(node, self.bw)
         node.ifaceToAssociate += 1
 
     def addHoc(self, sta, cls=None, **params):
@@ -797,7 +796,6 @@ class Mininet(object):
         
         cls = Association
         cls.configureAdhoc(sta)
-        self.tc(sta, self.bw)
         sta.ifaceToAssociate += 1
 
     def wifiDirect(self, sta, cls=None, **params):
@@ -1030,11 +1028,7 @@ class Mininet(object):
 
             sta.params['mode'][wlan] = ap.params['mode'][0]
             sta.params['channel'][wlan] = ap.params['channel'][0]
-            value = deviceDataRate(sta, ap, wlan)
-            self.bw = value.rate
             
-            self.tc(sta, self.bw)
-
             # If sta/ap have defined position
             if 'position' in sta.params and 'position' in ap.params:
                 dist = setChannelParams.getDistance(sta, ap)
@@ -1047,7 +1041,22 @@ class Mininet(object):
 
             if(doAssociation):
                 cls = Association
-                cls.associate(sta, ap)  
+                cls.associate(sta, ap)
+                if 'bw' not in params and 'mininet.util.TCIntfWireless' not in str(self.link):
+                    value = deviceDataRate(sta, ap, wlan)
+                    self.bw = value.rate
+                    params['bw'] = self.bw
+                
+                if 'mininet.util.TCIntfWireless' in str(self.link):
+                    cls = self.link
+                else:
+                    cls = TCIntfWireless
+                    
+                if 'mininet.util.TCIntfWireless' in str(self.link) or 'bw' in params and params['bw'] != 0:
+                    #tc = True, this is useful only to apply tc configuration
+                    cls(name=sta.params['wlan'][wlan], node=sta,
+                                  link=None, tc=True, **params)
+                
                 if 'position' in sta.params and 'position' in ap.params:
                     setChannelParams(sta, ap, wlan, dist)   
         elif (node1.type == 'accessPoint' and node2.type == 'accessPoint' and 'link' in options and options['link'] == 'wds'):
@@ -1074,12 +1083,12 @@ class Mininet(object):
             if 'position' in node1.params and 'position' in node2.params:
                 self.srcConn.append(node1)
                 self.dstConn.append(node2)
-
             # Port is optional
             if port1 is not None:
                 options.setdefault('port1', port1)
             if port2 is not None:
                 options.setdefault('port2', port2)
+            
             # Set default MAC - this should probably be in Link
             options.setdefault('addr1', self.randMac())
             options.setdefault('addr2', self.randMac())
@@ -1112,10 +1121,6 @@ class Mininet(object):
         for link in links:
             self.delLink(link)
         return links
-
-    def tc(self, sta, bw):
-        sta.cmd('tc qdisc add dev %s root handle 5: tbf rate %fMbit burst 15000 latency %fms' % 
-                          (sta.params['wlan'][sta.ifaceToAssociate], bw, 1))
 
     def configHosts(self):
         "Configure a set of hosts."
@@ -1185,7 +1190,7 @@ class Mininet(object):
             info('\n*** Configuring wifi nodes...\n')
             self.configureWifiNodes()
 
-        info('\n*** Adding links and associating station(s):\n')
+        info('\n*** Adding link(s):\n')
         for srcName, dstName, params in topo.links(
                 sort=True, withInfo=True):
             self.addLink(**params)
@@ -1774,14 +1779,7 @@ class Mininet(object):
         if 'stopTime' in kwargs:
             final_time = kwargs['stopTime']
             
-        # if there is finalPosition, there is mobility.
-        staMov = []
-        for sta in self.stations:
-            if 'finalPosition' in sta.params:
-                staMov.append(sta)
-            
         mobilityparam = dict()
-        mobilityparam.setdefault('staMov', staMov)
         mobilityparam.setdefault('init_time', self.init_time)
         mobilityparam.setdefault('final_time', final_time)
         mobilityparam.setdefault('plotNodes', self.plotNodes)
@@ -1800,7 +1798,7 @@ class Mininet(object):
         self.thread.daemon = True
         self.thread.start()
         
-        #self.setWifiParameters()
+        self.setWifiParameters()
 
     def setWifiParameters(self):
         """
