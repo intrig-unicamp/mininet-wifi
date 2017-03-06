@@ -50,7 +50,8 @@ class replayingMobility(object):
                 break
             for node in stations:
                 while time_ >= node.currentTime and len(node.position) != 0:
-                    node.moveStationTo(node.position[0])
+                    node.moveNodeTo(node.position[0])
+                    mobility.parameters_(node)
                     del node.position[0]
                     node.currentTime += node.time
                 if len(node.position) == 0:
@@ -94,7 +95,7 @@ class replayingBandwidth(object):
             # time.sleep(0.001)
         info("\nReplaying Process Finished!")
 
-    def moveStationTo(self, sta, pos):
+    def moveNodeTo(self, sta, pos):
         x = pos[0]
         y = pos[1]
         sta.params['position'] = x, y, 0
@@ -220,7 +221,7 @@ class replayingRSSI(object):
         x = float('%.2f' %  (dist * cos(ang) + int(ap.params['position'][0])))
         y = float('%.2f' %  (dist * sin(ang) + int(ap.params['position'][1])))
         sta.params['position'] = x, y, 0
-        mobility.parameters_()
+        mobility.parameters_(sta)
         if mobility.DRAW:
             try:
                 plot2d.graphUpdate(sta)
