@@ -36,7 +36,7 @@ def topology():
     getTrace(sta1, 'examples/replaying/replayingMobility/node1.dat')
     getTrace(sta2, 'examples/replaying/replayingMobility/node2.dat')
 
-    replayingMobility()
+    replayingMobility(net)
 
     print "*** Running CLI"
     CLI( net )
