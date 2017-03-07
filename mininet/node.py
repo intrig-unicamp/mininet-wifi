@@ -262,6 +262,7 @@ class Node(object):
         else:
             wlans = 1
             wifiRadios += 1
+            
         for n in range(wlans):
             node.params['frequency'].append(2.412)
             node.func.append('none')
@@ -415,6 +416,11 @@ class Node(object):
             node.params['associatedStations'] = []
             node.params['stationsInRange'] = {}
             node.wds = False
+            
+            node.params['mac'] = []
+            node.params['mac'].append('')
+            if 'mac' in defaults:
+                node.params['mac'][0] = defaults[ 'mac' ]
             
             if 'config' in node.params:
                 config = node.params['config']
@@ -970,9 +976,6 @@ class Node(object):
         """Set the MAC address for an interface.
            intf: intf or intf name
            mac: MAC address as string"""
-        if intf != None:
-            wlan = int(intf[-1:])
-            self.params['mac'][wlan] = mac
         return self.intf(intf).setMAC(mac)
 
     def setIP(self, ip, prefixLen=8, intf=None, **kwargs):
@@ -1572,13 +1575,14 @@ class AccessPoint(AP):
         return mac[0]
 
     @classmethod
-    def verifyNetworkManager(self, ap, wlan):
-        ap.params['mac'] = []
-        
-        for i in range(len(ap.params['ssid'])):
+    def verifyNetworkManager(self, ap, wlan):        
+        for i in range(1,len(ap.params['ssid'])):
             ap.params['mac'].append('')
         if 'phywlan' not in ap.params:
-            ap.params['mac'][wlan] = self.getMac(ap, ap.params['wlan'][wlan])
+            if ap.params['mac'][wlan] != '':
+                ap.setMAC(ap.params['mac'][wlan], ap.params['wlan'][wlan])
+            else:
+                ap.params['mac'][wlan] = self.getMac(ap, ap.params['wlan'][wlan])
             self.checkNetworkManager(ap.params['mac'][wlan])
             if 'inNamespace' in ap.params and 'ip' in ap.params:
                 self.setIPAddr(ap, wlan)

@@ -45,7 +45,6 @@ class Intf(object):
         self.link = link
         self.port = port
         self.mac = mac
-        self.sta = None
         self.ip, self.prefixLen = None, None
         # if interface is lo, we know the ip is 127.0.0.1.
         # This saves an ifconfig command per node
@@ -238,7 +237,6 @@ class IntfWireless(object):
         self.link = link
         self.port = port
         self.mac = mac
-        self.sta = None
         self.ip, self.prefixLen = None, None
         # if interface is lo, we know the ip is 127.0.0.1.
         # This saves an ifconfig command per node
@@ -246,7 +244,6 @@ class IntfWireless(object):
             self.ip = '127.0.0.1'
         # Add to node (and move ourselves if necessary )
         moveIntfFn = params.pop('moveIntfFn', None)
-
         # if self not in node.linksWifi:
         if tc == False:
             if moveIntfFn:

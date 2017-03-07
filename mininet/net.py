@@ -844,14 +844,6 @@ class Mininet(object):
         for wlan in range(len(node.params['wlan']) + wlanID):
             if wlanID == 1:
                 wlan = 0
-            wifiparam = dict()
-            if 'inNamespace' not in node.params:
-                if 'phywlan' not in node.params:
-                    iface = node.params['wlan'][wlan]
-                else:
-                    iface = node.params.get('phywlan')
-
-            self.wmm_enabled = None
             
             if 'encrypt' in node.params and 'config' not in node.params:
                 if node.params['encrypt'][wlan] == 'wpa':
@@ -869,27 +861,15 @@ class Mininet(object):
                 elif node.params['encrypt'][wlan] == 'wep':
                     node.auth_algs = 2
                     node.wep_key0 = node.params['passwd'][0]
-
-            wifiparam.setdefault('wlan', wlan)
                 
             cls = AccessPoint
-            cls(node, **wifiparam)
+            cls(node, wlan=wlan)
             
             if 'phywlan' not in node.params:
                 if node.func[0] != 'ap':
                     node.params['frequency'][wlan] = setChannelParams.frequency(node, 0)
-                    cls = TCLinkWirelessAP
-                    cls(node)
-                    if len(node.params['ssid']) > 1:
-                        for i in range(1, len(node.params['ssid'])):
-                            cls(node, intfName1=node.params['wlan'][i])
                     wlanID = 0
             else:
-                iface = node.params.get('phywlan')
-                options = dict()
-                options.setdefault('intfName1', iface)
-                cls = TCLinkWirelessAP
-                cls(node, **options)
                 node.params.pop("phywlan", None)
             setChannelParams.recordParams(None, node)
                 
@@ -920,7 +900,17 @@ class Mininet(object):
                     
     def configureAPs(self):
         """Configure All APs"""
-        for node in self.accessPoints:                
+        for node in self.accessPoints:  
+            if node.type != 'station':
+                options = dict()
+                if 'phywlan' in node.params:
+                    iface = node.params.get('phywlan')
+                    options.setdefault('intfName1', iface)
+                cls = TCLinkWirelessAP
+                cls(node, **options)
+            if len(node.params['ssid']) > 1:
+                for i in range(1, len(node.params['ssid'])):
+                    cls(node, intfName1=node.params['wlan'][i])
             self.verifyNetworkManager(node)
         self.restartNetworkManager()
         
@@ -1052,7 +1042,8 @@ class Mininet(object):
                 else:
                     cls = TCIntfWireless
                     
-                if 'mininet.util.TCIntfWireless' in str(self.link) or 'bw' in params and params['bw'] != 0:
+                if 'mininet.util.TCIntfWireless' in str(self.link) or 'bw' in params and params['bw'] != 0 \
+                    and 'position' not in sta.params:
                     #tc = True, this is useful only to apply tc configuration
                     cls(name=sta.params['wlan'][wlan], node=sta,
                                   link=None, tc=True, **params)
