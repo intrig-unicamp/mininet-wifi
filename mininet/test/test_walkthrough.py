@@ -543,28 +543,28 @@ class testWalkthrough(unittest.TestCase):
         p.wait()
 
     # PART 3
-    def testPythonInterpreter(self):
-        "Test py and px by checking IP for sta1 and adding sta3"
-        p = pexpect.spawn('mn --wifi')
-        sleep(3)
-        p.expect(self.prompt)
-        # test host IP
-        p.sendline('py sta1.IP()')
-        p.expect('10.0.0.1')
-        p.expect(self.prompt)
+    #def testPythonInterpreter(self):
+    #    "Test py and px by checking IP for sta1 and adding sta3"
+    #    p = pexpect.spawn('mn --wifi')
+    #    sleep(3)
+    #    p.expect(self.prompt)
+    #    # test host IP
+    #    p.sendline('py sta1.IP()')
+    #    p.expect('10.0.0.1')
+    #    p.expect(self.prompt)
         # test adding host
-        p.sendline("px net.addHost('sta3')")
-        p.expect(self.prompt)
-        p.sendline("px net.addLink(ap1, sta3)")
-        p.expect(self.prompt)
-        p.sendline('net')
-        p.expect('sta3')
-        p.expect(self.prompt)
-        p.sendline('py sta3.MAC()')
-        p.expect('([a-f0-9]{2}:?){6}')
-        p.expect(self.prompt)
-        p.sendline('exit')
-        p.wait()
+    #    p.sendline("px net.addStation('sta3')")
+    #    p.expect(self.prompt)
+    #    p.sendline("px net.addLink(ap1, sta3)")
+    #    p.expect(self.prompt)
+    #    p.sendline('net')
+    #    p.expect('sta3')
+    #    p.expect(self.prompt)
+    #    p.sendline('py sta3.MAC()')
+    #    p.expect('([a-f0-9]{2}:?){6}')
+    #    p.expect(self.prompt)
+    #    p.sendline('exit')
+    #    p.wait()
 
     def testLink(self):
         "Test link CLI command using ping"
