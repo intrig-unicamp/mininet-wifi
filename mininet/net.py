@@ -448,8 +448,8 @@ class Mininet(object):
         self.accessPoints.append(ap)        
         return ap
     
-    def addWirelessMeshSwitch(self, name, cls=None, **params):
-        """Add Switch with Wireless Mesh capabilities.
+    def addWirelessMeshAP(self, name, cls=None, **params):
+        """Add AP with Wireless Mesh capabilities.
            name: name of accesspoint to add
            cls: custom switch class/constructor (optional)
            returns: added acesspoint
