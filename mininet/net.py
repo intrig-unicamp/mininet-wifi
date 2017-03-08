@@ -443,7 +443,7 @@ class Mininet(object):
         self.nameToNode[ name ] = ap
         ap.type = 'accessPoint'
         
-        self.nRadios = ap.addParameters(ap, self.nRadios, self.autoSetMacs, params, defaults)
+        self.nRadios = ap.addParameters(ap, self.nRadios, self.autoSetMacs, params, defaults, mode='master')
         self.switches.append(ap)
         self.accessPoints.append(ap)        
         return ap
@@ -514,7 +514,7 @@ class Mininet(object):
         self.switches.append(bs)
         self.accessPoints.append(bs)
 
-        self.nRadios = bs.addParameters(bs, self.nRadios, self.autoSetMacs, params, defaults)                
+        self.nRadios = bs.addParameters(bs, self.nRadios, self.autoSetMacs, params, defaults, mode='master')                
         return bs
 
     def addSwitch(self, name, cls=None, **params):
@@ -950,16 +950,17 @@ class Mininet(object):
                         node.cmd('iw dev %s-mp%s mesh join %s' % (node, wlan, 'ssid'))
                         node.func[wlan] = 'mesh'
                 elif node.type == 'station' and node in self.switches:
+                    self.configureMacAddr(node)
                     node.convertIfaceToMesh(node, wlan)
                     cls = TCLinkWirelessAP
                     cls(node, intfName1=node.params['wlan'][wlan])
-                    self.configureMacAddr(node)
-                    node.type = 'SwitchWirelessMesh'
+                    node.type = 'WirelessMeshAP'
                 else:
                     if 'ssid' not in node.params:
                         if node.params['txpower'][wlan] != 20:
                             node.setTxPower(node.params['wlan'][wlan], node.params['txpower'][wlan])
-            self.configureMacAddr(node)
+            if node not in self.switches:
+                self.configureMacAddr(node)
                 
     def configureWifiNodes(self):
         """Configure Wireless Nodes"""        

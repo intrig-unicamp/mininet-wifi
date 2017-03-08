@@ -177,8 +177,16 @@ class Node(object):
         self.cmd('unset HISTFILE; stty -echo; set +m')
         
     @classmethod
-    def addParameters(self, node, wifiRadios, autoSetMacs, params, defaults):
-        """adding parameters in wifinodes"""
+    def addParameters(self, node, wifiRadios, autoSetMacs, params, defaults, mode='managed'):
+        """adds parameters to wireless nodes
+        
+        node: node
+        wifiRadios: number of wireless interfaces
+        autoSetMacs: set MAC addrs automatically like IP addresses
+        params: parameters
+        defaults: Default IP and MAC addresses
+        mode: if interface is running in managed or master mode
+        """
         
         node.params['frequency'] = []
         node.params['wlan'] = []
@@ -195,9 +203,7 @@ class Node(object):
             encrypt = encrypt.split(',')
             node.params['encrypt'] = []
             
-               
-        if (node.type == 'station' or node.type == 'vehicle' or 
-            'link' in params and params['link'] == 'mesh'):
+        if (mode == 'managed'):
             node.params['apsInRange'] = []
             node.params['associatedTo'] = []
             node.params['rssi'] = []
@@ -267,7 +273,7 @@ class Node(object):
             node.params['frequency'].append(2.412)
             node.func.append('none')
             node.phyID.append(0)
-            if node.type != 'accessPoint':
+            if mode == 'managed':
                 node.params['associatedTo'].append('')
                 if 'ssid' not in node.params:
                     if(passwd != "{}"):
@@ -280,7 +286,7 @@ class Node(object):
                             node.params['encrypt'].append(encrypt[0])
                         else:
                             node.params['encrypt'].append(encrypt[n])
-            if node.type == 'accessPoint':
+            if mode == 'master':
                 node.params['wlan'].append(node.name + '-wlan' + str(n + 1))
                 if 'link' in params and params['link'] == 'mesh':
                     node.params['rssi'].append(0)
@@ -292,8 +298,7 @@ class Node(object):
                 node.params['snr'].append(0)
             node.params.pop("wlans", None)
                         
-        if (node.type == 'station' or node.type == 'vehicle' or 
-            'link' in params and params['link'] == 'mesh'):
+        if (mode == 'managed'):
             mac = ("%s" % params.pop('mac', {}))
             if(mac != "{}"):
                 mac = mac.split(',')
@@ -397,6 +402,7 @@ class Node(object):
             for n in range(wlans):
                 node.params['channel'].append(1)
         
+        # Equipment Model
         equipmentModel = ("%s" % params.pop('equipmentModel', {}))
         if(equipmentModel != "{}"):
             node.equipmentModel = equipmentModel
@@ -405,14 +411,14 @@ class Node(object):
         if 'range' in params:
             node.params['range'] = int(params['range'])
         else:
-            if node.type == 'accessPoint' or node.func[0] == 'ap':
+            if mode == 'master' or node.func[0] == 'ap':
                 value = deviceRange(node)
                 node.params['range'] = value.range
             else:
                 value = deviceRange(node)
                 node.params['range'] = value.range - 15
 
-        if node.type == 'accessPoint' or 'ssid' in node.params:
+        if mode == 'master' or 'ssid' in node.params:
             node.params['associatedStations'] = []
             node.params['stationsInRange'] = {}
             node.wds = False
@@ -434,7 +440,7 @@ class Node(object):
                         if 'wpe=' in conf:
                             node.params['encrypt'].append('wpe')
                
-            if node.type == 'accessPoint':
+            if mode == 'master':
                 ssid = ("%s" % params.pop('ssid', {}))
                 ssid = ssid.split(',')
                 node.params['ssid'] = []
@@ -509,7 +515,7 @@ class Node(object):
     def getMAC(self, iface):
         """ get Mac Address of any Interface """
         _macMatchRegex = re.compile(r'..:..:..:..:..:..')
-        debug('getting mac address of %s\n' % iface)
+        debug('getting mac address from %s\n' % iface)
         ifconfig = str(self.pexec('ifconfig %s' % iface))
         mac = _macMatchRegex.findall(ifconfig)
         debug('%s\n' % mac[0])
@@ -897,9 +903,8 @@ class Node(object):
         if ports:
             return self.intfs[ min(ports) ]
         else:
-            if 'station' != self.type and 'vehicle' != self.type:
-                warn('*** defaultIntf: warning:', self.name,
-                      'has no interfaces\n')
+            warn('*** defaultIntf: warning:', self.name,
+                  'has no interfaces\n')
 
     def intf(self, intf=None):
         """Return our interface object with given string name,
@@ -1773,9 +1778,9 @@ class UserAP(AP):
     def stop(self, deleteIntfs=True):
         """Stop OpenFlow reference user datapath.
            deleteIntfs: delete interfaces? (True)"""
-        self.cmd('kill %ofdatapath')
-        self.cmd('kill %ofprotocol')
-        super(UserAP, self).stop(deleteIntfs)
+        #self.cmd('kill %ofdatapath')
+        #self.cmd('kill %ofprotocol')
+        #super(UserAP, self).stop(deleteIntfs)
         
     def renameIface(self, intf, newname):
         "Rename interface"
