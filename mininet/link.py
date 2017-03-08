@@ -432,8 +432,7 @@ class TCIntfWireless(IntfWireless):
                    % self.bwParamMax, '- ignoring\n')
         elif bw is not None:
             # BL: this seems a bit brittle...
-            if (speedup > 0 and
-                self.node.type == 'station' or self.node.type == 'vehicle'):
+            if (speedup > 0):
                 bw = speedup
             # This may not be correct - we should look more closely
             # at the semantics of burst (and cburst) to make sure we
@@ -445,10 +444,7 @@ class TCIntfWireless(IntfWireless):
                           + 'rate %fMbit ul rate %fMbit' % (bw, bw) ]
             elif use_tbf:                
                 if latency_ms is None:
-                    if self.node.type == 'station' or self.node.type == 'vehicle':
-                        latency_ms = 1
-                    else:
-                        latency_ms = 15 * 8 / bw
+                    latency_ms = 15 * 8 / bw
                 cmds += [ '%s qdisc add dev %s root handle 5: tbf ' + 
                           'rate %fMbit burst 15000 latency %fms' % 
                           (bw, latency_ms) ]
@@ -553,8 +549,7 @@ class TCIntfWireless(IntfWireless):
         cmds = []
         tcoutput = self.tc('%s qdisc show dev %s')
         if "priomap" not in tcoutput and "qdisc noqueue" not in tcoutput:
-            if self.node.type != 'station' and self.node.type != 'vehicle':
-                cmds = [ '%s qdisc del dev %s root' ]
+            cmds = [ '%s qdisc del dev %s root' ]
         else:
             cmds = []
         # Bandwidth limits via various methods
@@ -579,10 +574,6 @@ class TCIntfWireless(IntfWireless):
                   (['%5f%% loss' % loss ] if loss is not None else []) + 
                   ([ 'ECN' ] if enable_ecn else [ 'RED' ]
                     if enable_red else []))
-
-        # Print bw info
-        if self.node.type != 'station' and self.node.type != 'vehicle':
-            info('(' + ' '.join(stuff) + ') ')
         
         # Execute all the commands in our node
         debug("at map stage w/cmds: %s\n" % cmds)
@@ -921,10 +912,9 @@ class WirelessLinkStation(object):
         if not cls1:
             cls1 = intf
        
-        if ('vehicle' == node1.type or 'station' == node1.type or 'link' in node1.params):            
-                intf1 = cls1(name=intfName1, node=node1,
-                              link=self, mac=addr1, **params1)
-                intf2 = 'wireless'
+        intf1 = cls1(name=intfName1, node=node1,
+                      link=self, mac=addr1, **params1)
+        intf2 = 'wireless'
         # All we are is dust in the wind, and our two interfaces
         self.intf1, self.intf2 = intf1, intf2
     # pylint: enable=too-many-branches    
