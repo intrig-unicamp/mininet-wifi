@@ -1498,6 +1498,9 @@ class AccessPoint(AP):
 
         if ap.params['mode'][0] == 'n' or ap.params['mode'][0] == 'ac':
             cmd = cmd + ("\nhw_mode=g")
+        elif ap.params['mode'][0] == 'a':
+            cmd = cmd + ('\ncountry_code=US')
+            cmd = cmd + ("\nhw_mode=%s" % ap.params['mode'][0])
         else:
             cmd = cmd + ("\nhw_mode=%s" % ap.params['mode'][0])
         cmd = cmd + ("\nchannel=%s" % ap.params['channel'][0])
