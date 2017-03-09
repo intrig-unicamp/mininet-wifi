@@ -1496,7 +1496,7 @@ class AccessPoint(AP):
         cmd = cmd + ("\ndriver=nl80211")
         cmd = cmd + ("\nssid=%s" % ap.params['ssid'][0])  # the name of the AP
 
-        if ap.params['mode'][0] == 'n' or ap.params['mode'][0] == 'ac'or ap.params['mode'][0] == 'a':
+        if ap.params['mode'][0] == 'n' or ap.params['mode'][0] == 'ac':
             cmd = cmd + ("\nhw_mode=g")
         else:
             cmd = cmd + ("\nhw_mode=%s" % ap.params['mode'][0])
