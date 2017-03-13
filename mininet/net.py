@@ -886,6 +886,12 @@ class Mininet(object):
                         intf = module.wlan_list[0]
                         module.wlan_list.pop(0)
                         node.renameIface(intf, node.params['wlan'][wlan])
+                        options = dict()
+                        if 'phywlan' in node.params:
+                            iface = node.params.get('phywlan')
+                            options.setdefault('intfName1', iface)
+                        cls = TCLinkWirelessAP
+                        cls(node, **options)
             AccessPoint.verifyNetworkManager(node, wlan)
                     
     def restartNetworkManager(self):
@@ -901,13 +907,6 @@ class Mininet(object):
     def configureAPs(self):
         """Configure All APs"""
         for node in self.accessPoints:  
-            if node.type != 'station':
-                options = dict()
-                if 'phywlan' in node.params:
-                    iface = node.params.get('phywlan')
-                    options.setdefault('intfName1', iface)
-                cls = TCLinkWirelessAP
-                cls(node, **options)
             if len(node.params['ssid']) > 1:
                 for i in range(1, len(node.params['ssid'])):
                     cls(node, intfName1=node.params['wlan'][i])
