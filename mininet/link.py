@@ -548,7 +548,8 @@ class TCIntfWireless(IntfWireless):
         # Clear existing configuration
         cmds = []
         tcoutput = self.tc('%s qdisc show dev %s')
-        if "priomap" not in tcoutput and "qdisc noqueue" not in tcoutput:
+        if "priomap" not in tcoutput and "qdisc noqueue" not in tcoutput \
+            and tcoutput != 'qdisc mq 0: root':
             cmds = [ '%s qdisc del dev %s root' ]
         else:
             cmds = []
@@ -566,15 +567,7 @@ class TCIntfWireless(IntfWireless):
                                             max_queue_size=max_queue_size,
                                             parent=parent)
         cmds += delaycmds
-
-        # Ugly but functional: display configuration info
-        stuff = (([ '%.2fMbit' % bw ] if bw is not None else []) + 
-                  ([ '%s delay' % delay ] if delay is not None else []) + 
-                  ([ '%s jitter' % jitter ] if jitter is not None else []) + 
-                  (['%5f%% loss' % loss ] if loss is not None else []) + 
-                  ([ 'ECN' ] if enable_ecn else [ 'RED' ]
-                    if enable_red else []))
-        
+       
         # Execute all the commands in our node
         debug("at map stage w/cmds: %s\n" % cmds)
         tcoutputs = [ self.tc(cmd) for cmd in cmds ]
@@ -1179,7 +1172,7 @@ class Association(Link):
         """
         node.params['rssi'][wlan] = -62
         node.params['snr'][wlan] = -62 - (-90.0)
-        
+           
         if 'mp' not in node.params['wlan'][wlan]:
             node.convertIfaceToMesh(node, wlan)
             iface = node.params['wlan'][wlan]
