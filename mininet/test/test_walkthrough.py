@@ -74,53 +74,6 @@ class testWalkthrough(unittest.TestCase):
         p.sendline( 'exit' )
         p.wait()
 
-    def testHostCommands( self ):
-        "Test ifconfig and ps on sta1 and ap1"
-        p = pexpect.spawn( 'mn --wifi' )
-        sleep(3)
-        p.expect( self.prompt )
-        interfaces = [ 'sta1-wlan0', 'ap1-wlan1', '[^-]wlan0', 'lo', self.prompt ]
-        # sta1 ifconfig
-        p.sendline( 'sta1 ifconfig -a' )
-        ifcount = 0
-        while True:
-            index = p.expect( interfaces )
-            if index == 0 or index == 3:
-                ifcount += 1
-            elif index == 1:
-                self.fail( 'ap1 interface displayed in "sta1 ifconfig"' )
-            elif index == 2:
-                self.fail( 'wlan0 displayed in "sta1 ifconfig"' )
-            else:
-                break
-        self.assertEqual( ifcount, 3, 'Missing interfaces on sta1')
-        # ap1 ifconfig
-        p.sendline( 'ap1 iwconfig' ) 
-        ifcount = 0
-        while True:
-            index = p.expect( interfaces )
-            if index == 0:
-                self.fail( 'sta1 interface displayed in "ap1 ifconfig"' )
-            elif index == 1 or index == 2 or index == 3:
-                ifcount += 1
-            else:
-                break
-        self.assertEqual( ifcount, 3, 'Missing interfaces on ap1')
-        # sta1 ps
-        p.sendline( "sta1 ps -a | egrep -v 'ps|grep'" )
-        p.expect( self.prompt )
-        h1Output = p.before
-        # ap1 ps
-        p.sendline( "ap1 ps -a | egrep -v 'ps|grep'" )
-        p.expect( self.prompt )
-        s1Output = p.before
-        # strip command from ps output
-        h1Output = h1Output.split( '\n', 1 )[ 1 ]
-        s1Output = s1Output.split( '\n', 1 )[ 1 ]
-        self.assertEqual( h1Output, s1Output, 'sta1 and ap1 "ps" output differs')
-        p.sendline( 'exit' )
-        p.wait()
-
     def testConnectivity(self):
         "Test ping and pingall"
         p = pexpect.spawn('mn --wifi')
@@ -340,12 +293,13 @@ class testWalkthrough(unittest.TestCase):
         p.sendline('exit')
         p.wait()
         
-    def testWifiMeshAP(self):
+    def testAWifiMeshAP(self):
         "Start Mininet-WiFi, then test wifiMeshAP.py"
+        pexpect.spawn('mn -c')
         p = pexpect.spawn(
             'python examples/wifiMeshAP.py')
-        sleep(2)
-        p.sendline('h1 ping -c 1 h2')
+        sleep(3)
+        p.sendline('h1 ping -c1 h2')
         p.expect('1 packets transmitted, 1 received')
         p.expect(self.prompt)
         p.sendline('exit')
