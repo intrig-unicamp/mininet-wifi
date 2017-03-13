@@ -259,7 +259,7 @@ class module(object):
         :param physicalWlans: list of Physical Wlans
         """
         wlan_list = []
-        iface_list = subprocess.check_output("iwconfig 2>&1 | grep IEEE | awk '{print $1}'",
+        iface_list = subprocess.check_output("iwconfig 2>/dev/null | grep IEEE | awk '{print $1}'",
                                             shell=True).split('\n')
         for iface in iface_list:
             if iface not in physicalWlan and iface != '':
