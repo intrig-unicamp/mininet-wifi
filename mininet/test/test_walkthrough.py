@@ -293,7 +293,7 @@ class testWalkthrough(unittest.TestCase):
         p.sendline('exit')
         p.wait()
         
-    def testAWifiMeshAP(self):
+    def testWifiMeshAP(self):
         "Start Mininet-WiFi, then test wifiMeshAP.py"
         pexpect.spawn('mn -c')
         p = pexpect.spawn(
@@ -464,6 +464,7 @@ class testWalkthrough(unittest.TestCase):
 
     def testOwnNamespace(self):
         "Test running user ap in its own namespace"
+        pexpect.spawn('mn -c')
         p = pexpect.spawn('mn --wifi --innamespace --ap user')
         sleep(3)
         p.expect(self.prompt)
