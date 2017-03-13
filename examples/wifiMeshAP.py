@@ -4,21 +4,21 @@
 This example shows how to create wireless link between two APs.
 """
 
-from mininet.net import Mininet, MininetWithControlNet
-from mininet.node import Controller, UserAP
+from mininet.net import Mininet
+from mininet.node import Controller, OVSKernelAP
 from mininet.cli import CLI
 from mininet.log import setLogLevel
 from mininet.link import TCLink
 
 def topology():
     "Create a network."
-    net = MininetWithControlNet(topo=None, build=False, inNamespace=True )
+    net = Mininet( controller=Controller, link=TCLink, accessPoint=OVSKernelAP )
 
     print "*** Creating nodes"
     h1 = net.addHost('h1', mac='00:00:00:00:00:11')
     h2 = net.addHost('h2', mac='00:00:00:00:00:12')
-    ap1 = net.addWirelessMeshAP( 'ap1', cls=UserAP, inNamespace=True )
-    ap2 = net.addWirelessMeshAP( 'ap2', cls=UserAP, inNamespace=True )
+    ap1 = net.addWirelessMeshAP( 'ap1' )
+    ap2 = net.addWirelessMeshAP( 'ap2' )
     c0 = net.addController('c0', controller=Controller, ip='127.0.0.1', port=6653 )
 
     print "*** Configuring wifi nodes"
