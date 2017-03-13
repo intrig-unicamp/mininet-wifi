@@ -293,7 +293,7 @@ class testWalkthrough(unittest.TestCase):
         p.sendline('exit')
         p.wait()
         
-    def testWifiMeshAP(self):
+    def testMeshAP(self):
         "Start Mininet-WiFi, then test wifiMeshAP.py"
         pexpect.spawn('mn -c')
         p = pexpect.spawn(
