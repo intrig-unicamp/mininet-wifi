@@ -1001,8 +1001,8 @@ class Mininet(object):
         options = dict(params)
 
         # If AP and STA
-        if((((node1.type == 'station' or node1.type == 'vehicle') and ('ssid' in node2.params and 'ssid' not in node1.params)) \
-            or ((node2.type == 'station' or node2.type == 'vehicle') and ('ssid' in node1.params and 'ssid' not in node2.params)))
+        if((((node1.type == 'station' or node1.type == 'vehicle') and ('ssid' in node2.params and 'apsInRange' in node1.params)) \
+            or ((node2.type == 'station' or node2.type == 'vehicle') and ('ssid' in node1.params and 'apsInRange' in node2.params)))
             and 'link' not in options):
 
             if (node1.type == 'station' or node1.type == 'vehicle') and 'ssid' in node2.params:
