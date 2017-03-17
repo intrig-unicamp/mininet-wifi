@@ -844,7 +844,6 @@ class Mininet(object):
         for wlan in range(len(node.params['wlan']) + wlanID):
             if wlanID == 1:
                 wlan = 0
-            
             if 'encrypt' in node.params and 'config' not in node.params:
                 if node.params['encrypt'][wlan] == 'wpa':
                     node.auth_algs = 1
@@ -865,12 +864,9 @@ class Mininet(object):
             cls = AccessPoint
             cls(node, wlan=wlan)
             
-            if 'phywlan' not in node.params:
-                if node.func[0] != 'ap':
-                    node.params['frequency'][wlan] = setChannelParams.frequency(node, 0)
-                    wlanID = 0
-            else:
-                node.params.pop("phywlan", None)
+            if node.func[0] != 'ap':
+                node.params['frequency'][wlan] = setChannelParams.frequency(node, 0)
+                wlanID = 0
             setChannelParams.recordParams(None, node)
                 
     def verifyNetworkManager(self, node, wlanID=0):
@@ -880,19 +876,21 @@ class Mininet(object):
         for wlan in range(len(node.params['wlan']) + wlanID):
             if wlanID == 1:
                 wlan = 0
-            if 'inNamespace' not in node.params:
-                if 'phywlan' not in node.params:
-                    if node.type != 'station':
+            if 'inNamespace' not in node.params or wlanID == 1:
+                if node.type != 'station':
+                    options = dict()
+                    if 'phywlan' not in node.params:
                         intf = module.wlan_list[0]
                         module.wlan_list.pop(0)
                         node.renameIface(intf, node.params['wlan'][wlan])
-                        options = dict()
-                        if 'phywlan' in node.params:
-                            iface = node.params.get('phywlan')
-                            options.setdefault('intfName1', iface)
-                        cls = TCLinkWirelessAP
-                        cls(node, **options)
-            AccessPoint.verifyNetworkManager(node, wlan)
+                    else:
+                        iface = node.params['phywlan']
+                        options.setdefault('intfName1', iface)
+                    cls = TCLinkWirelessAP
+                    cls(node, **options)
+            AccessPoint.setIPMAC(node, wlan)
+            if 'phywlan' in node.params:
+                node.params.pop("phywlan", None)
                     
     def restartNetworkManager(self):
         """Restart network manager if the mac address of the AP is not included at 

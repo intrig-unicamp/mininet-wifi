@@ -287,6 +287,8 @@ class Node(object):
                         else:
                             node.params['encrypt'].append(encrypt[n])
             if mode == 'master':
+                if 'phywlan' in node.params:
+                    n = 1
                 node.params['wlan'].append(node.name + '-wlan' + str(n + 1))
                 if 'link' in params and params['link'] == 'mesh':
                     node.params['rssi'].append(0)
@@ -1513,10 +1515,9 @@ class AccessPoint(AP):
                 for conf in config:
                     cmd = cmd + "\n" + conf
         else:
-            if 'phywlan' not in ap.params:
-                cmd = cmd + ("\nwme_enabled=1")
-                cmd = cmd + ("\nwmm_enabled=1")
-            
+            cmd = cmd + ("\nwme_enabled=1")
+            cmd = cmd + ("\nwmm_enabled=1")
+        
             if 'encrypt' in ap.params:
                 if ap.params['encrypt'][0] == 'wpa':
                     cmd = cmd + ("\nauth_algs=%s" % ap.auth_algs)
@@ -1583,7 +1584,7 @@ class AccessPoint(AP):
         return mac[0]
 
     @classmethod
-    def verifyNetworkManager(self, ap, wlan):        
+    def setIPMAC(self, ap, wlan):        
         for i in range(1,len(ap.params['ssid'])):
             ap.params['mac'].append('')
         if 'phywlan' not in ap.params:
@@ -1643,7 +1644,7 @@ class AccessPoint(AP):
         if 'phywlan' not in ap.params:
             iface = ap.params['wlan'][wlan]
         else:
-            iface = ap.params.get('phywlan')
+            iface = ap.params['phywlan']
             ap.cmd('ifconfig %s down' % iface)
             ap.cmd('ifconfig %s up' % iface)
         apconfname = "mn%d_%s.apconf" % (os.getpid(), iface)

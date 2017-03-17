@@ -806,7 +806,9 @@ class WirelessLinkAP(object):
         
         if port1 is not None:
             params1[ 'port' ] = port1
-          
+        
+        ifacename = 'wlan'  
+        
         if 'port' not in params1:
             if intfName1 == None:
                 nodelen = int(len(node1.params['wlan']))
@@ -815,24 +817,26 @@ class WirelessLinkAP(object):
                     params1[ 'port' ] = node1.newPort()
                 else:
                     params1[ 'port' ] = currentlen
-                ifacename = 'wlan'
                 intfName1 = self.wlanName(node1, ifacename, params1[ 'port' ])
                 intf1 = cls1(name=intfName1, node=node1,
                         link=self, mac=addr1, **params1)
-                intf2 = 'wireless'
             else:
                 params1[ 'port' ] = node1.newPort()
                 node1.newPort()
                 intf1 = cls1(name=intfName1, node=node1,
                     link=self, mac=addr1, **params1)
-                intf2 = 'wireless'
+        else:
+            intfName1 = self.wlanName(node1, ifacename, params1[ 'port' ])
+            intf1 = cls1(name=intfName1, node=node1,
+                      link=self, mac=addr1, **params1)
 
         if not intfName1:
-            ifacename = 'wlan'
             intfName1 = self.wlanName(node1, ifacename, node1.newWlanPort())
            
         if not cls1:
             cls1 = intf
+            
+        intf2 = 'wireless'
         # All we are is dust in the wind, and our two interfaces
         self.intf1, self.intf2 = intf1, intf2
     # pylint: enable=too-many-branches    
