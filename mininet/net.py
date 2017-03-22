@@ -1752,13 +1752,13 @@ class Mininet(object):
             
             if self.isVanet == False:
                 self.thread = threading.Thread(name='mobilityModel', target=mobility.models, kwargs=dict(mobilityparam,))
-                self.thread.daemon = True
+                #self.thread.daemon = True
                 self.thread.start()
                 self.setWifiParameters()
             else:
                 self.thread = threading.Thread(name='vanet', target=vanet, args=(self.stations,
                                     self.accessPoints, self.nroads, self.srcConn, self.dstConn, self.MAX_X, self.MAX_Y))
-                self.thread.daemon = True
+                #self.thread.daemon = True
                 self.thread.start()
             
         info("Mobility started at %s second(s)\n" % kwargs['startTime'])
@@ -1784,7 +1784,7 @@ class Mininet(object):
 
         debug('Starting mobility thread...\n')
         self.thread = threading.Thread(name='mobility', target=mobility.definedPosition, kwargs=dict(mobilityparam,))
-        self.thread.daemon = True
+        #self.thread.daemon = True
         self.thread.start()
         
         self.setWifiParameters()
@@ -1809,7 +1809,7 @@ class Mininet(object):
             car.params['position'] = 0, 0, 0
         if program == 'sumo' or program == 'sumo-gui':
             self.thread = threading.Thread(name='vanet', target=sumo, args=(self.stations, self.accessPoints, program, config_file))
-            self.thread.daemon = True
+            #self.thread.daemon = True
             self.thread.start()
             # self.setWifiParameters()
 
