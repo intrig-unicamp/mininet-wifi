@@ -1278,6 +1278,8 @@ class Association(Link):
         :param ap: access point
         :param wlan: wlan ID
         """
+        debug('\niwconfig %s essid %s ap %s' % (sta.params['wlan'][wlan], ap.params['ssid'][0], \
+                                                    ap.params['mac'][0]))
         sta.pexec('iwconfig %s essid %s ap %s' % (sta.params['wlan'][wlan], ap.params['ssid'][0], \
                                                     ap.params['mac'][0]))        
 

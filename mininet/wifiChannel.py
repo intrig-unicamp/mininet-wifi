@@ -165,11 +165,6 @@ class setChannelParams (object):
                  'lat %.2fms' % (sta.params['wlan'][wlan], bw, latency)
             sta.pexec(tc)
         else:
-            debug("\ntc qdisc replace dev %s " \
-                "root handle 2: netem rate %.2fmbit "\
-                "loss %.1f%% " \
-                "latency %.2fms " \
-                "delay %.2fms" % (sta.params['wlan'][wlan], bw, loss, latency, delay))
             tc = "tc qdisc replace dev %s " \
                  "root handle 2: netem " \
                  "rate %.2fmbit " \
