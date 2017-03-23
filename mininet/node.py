@@ -582,30 +582,29 @@ class Node(object):
             if wlan == iface:
                 wlan = idx
                 break
-        for ap_ref in mobility.accessPoints:
-            if ap == ap_ref:
-                if ('position' in sta.params and 'position' in ap.params):
-                    d = setChannelParams.getDistance(sta, ap)
+        if ('position' in sta.params and 'position' in ap.params):
+            d = setChannelParams.getDistance(sta, ap)
+        else:
+            d = 100000
+        if (d < ap.params['range']) or ('position' not in sta.params and 'position' not in ap.params):
+            if sta.params['associatedTo'][wlan] != ap:
+                if sta.params['associatedTo'][wlan] != '':
+                    sta.cmd('iw dev %s disconnect' % iface)
+                if 'encrypt' not in ap.params:
+                    sta.cmd('iwconfig %s essid %s ap %s' % (sta.params['wlan'][wlan], ap.params['ssid'][0], ap.params['mac'][0]))
+                    info ('%s now associated to %s\n' % (sta, ap))
                 else:
-                    d = 100000
-                if (d < ap.params['range']) or ('position' not in sta.params and 'position' not in ap.params):
-                    if sta.params['associatedTo'][wlan] != ap:
-                        if sta.params['associatedTo'][wlan] != '':
-                            sta.cmd('iw dev %s disconnect' % iface)
-                        if 'encrypt' not in ap.params:
-                            sta.cmd('iwconfig %s essid %s ap %s' % (sta.params['wlan'][wlan], ap.params['ssid'][0], ap.params['mac'][0]))
-                        else:
-                            if ap.params['encrypt'][0] == 'wpa' or ap.params['encrypt'][0] == 'wpa2':
-                                sta.associate_wpa(sta, ap, wlan)
-                            elif ap.params['encrypt'][0] == 'wep':
-                                sta.associate_wep(sta, ap, wlan)
-                        setChannelParams(sta, ap, wlan, d)
-                        mobility.updateAssociation(sta, ap, wlan)
-                    else:
-                        info ('%s is already connected!\n' % ap)
-                    mobility.parameters_(self)
-                else:
-                    print "%s is out of range!" % (ap)
+                    if ap.params['encrypt'][0] == 'wpa' or ap.params['encrypt'][0] == 'wpa2':
+                        sta.associate_wpa(sta, ap, wlan)
+                    elif ap.params['encrypt'][0] == 'wep':
+                        sta.associate_wep(sta, ap, wlan)
+                setChannelParams(sta, ap, wlan, d)
+                mobility.updateAssociation(sta, ap, wlan)
+            else:
+                info ('%s is already connected!\n' % ap)
+            mobility.parameters_(self)
+        else:
+            print "%s is out of range!" % (ap)
                     
     def associate_wpa(self, sta, ap, wlan):
         if 'passwd' not in sta.params:
