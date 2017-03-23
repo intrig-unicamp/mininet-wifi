@@ -6,28 +6,28 @@ Mininet-WiFi is a fork of Mininet (http://mininet.org/) which allows the using o
 [![Build Status](https://travis-ci.org/intrig-unicamp/mininet-wifi.svg?branch=master)](https://travis-ci.org/intrig-unicamp/mininet-wifi)
 
 
-###User Manual  
+### User Manual  
 [Access the User Manual](https://www.dropbox.com/s/jgkhsdrz736e4q2/mininet-wifi-draft-manual.pdf?dl=0)
 
-###Mailing List  
+### Mailing List  
 [https://groups.google.com/forum/#!forum/mininet-wifi-discuss](https://groups.google.com/forum/#!forum/mininet-wifi-discuss)  
   
-##Installation  
+## Installation  
 step 1: $ sudo apt-get install git  
 step 2: $ git clone https://github.com/intrig-unicamp/mininet-wifi  
 step 3: $ cd mininet-wifi  
 step 4: $ sudo util/install.sh -Wnfv 
-####install.sh options:   
+#### install.sh options:   
 -W: wireless dependencies   
 -n: mininet-wifi dependencies    
 -f: OpenFlow   
 -v: OpenvSwitch   
 -l: wmediumd (optional)   
    
-##Note
+## Note
 Mininet-WiFi should work fine in any Ubuntu distribution from 14.04, but in some cases (only if you have problems when start it) you have to stop NetworkManager with `stop network-manager` (you can also use `sudo systemctl stop network-manager` or `sudo service network-manager stop`).    
 
-###Team
+### Team
 Ramon dos Reis Fontes (ramonrf@dca.fee.unicamp.br)  
 Christian Rodolfo Esteve Rothenberg (chesteve@dca.fee.unicamp.br)  
 
