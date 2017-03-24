@@ -10,7 +10,7 @@ Mininet-WiFi is a fork of Mininet (http://mininet.org/) which allows the using o
 [Access the User Manual](https://www.dropbox.com/s/jgkhsdrz736e4q2/mininet-wifi-draft-manual.pdf?dl=0)
 
 ### Mailing List  
-[https://groups.google.com/forum/#!forum/mininet-wifi-discuss](https://groups.google.com/forum/#!forum/mininet-wifi-discuss)  
+[https://groups.google.com/forum/#!forum/mininet-wifi-discuss](https://groups.google.com/forum/#!forum/mininet-wifi-discuss) 
   
 ## Installation  
 step 1: $ sudo apt-get install git  
@@ -23,6 +23,11 @@ step 4: $ sudo util/install.sh -Wnfv
 -f: OpenFlow   
 -v: OpenvSwitch   
 -l: wmediumd (optional)   
+
+## Virtual Machine    
+[Ubuntu 14.04 x64](https://www.dropbox.com/s/0u4o1wmmooq81yi/mn-wifi.ova?dl=0)     
+user: wifi   
+pass: wifi   
    
 ## Note
 Mininet-WiFi should work fine in any Ubuntu distribution from 14.04, but in some cases (only if you have problems when start it) you have to stop NetworkManager with `stop network-manager` (you can also use `sudo systemctl stop network-manager` or `sudo service network-manager stop`).    
