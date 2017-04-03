@@ -6,7 +6,6 @@ from wifiDevices import deviceDataRate
 from wifiPropagationModels import propagationModel
 from scipy.spatial.distance import pdist
 import numpy as np
-from mininet.log import debug
 import random
 import os
 
