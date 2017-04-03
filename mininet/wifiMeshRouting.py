@@ -124,7 +124,7 @@ class meshRouting (object):
                         if ref_sta.func[ref_wlan] == 'mesh':
                             if sta.params['associatedTo'][wlan] == ref_sta.params['associatedTo'][ref_wlan]:
                                 associate = True
-                                if WmediumdServerConn.connected == True:
+                                if not WmediumdServerConn.connected:
                                     setChannelParams(sta=sta, wlan=wlan, dist=dist)
                 elif 'position' not in sta.params:
                     associate = True
