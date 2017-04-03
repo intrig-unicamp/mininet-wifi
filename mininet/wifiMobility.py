@@ -15,7 +15,7 @@ from mininet.wifiMobilityModels import gauss_markov, \
 from mininet.wifiChannel import setChannelParams
 from mininet.wifiAssociationControl import associationControl
 from mininet.wifiMeshRouting import listNodes, meshRouting
-from mininet.wmediumdConnector import WmediumdServerConn
+from mininet.wmediumdConnector import WmediumdServerConn, WmediumdSNRLink
 from mininet.wifiPlot import plot2d, plot3d
 from mininet.link import Association
 
@@ -127,8 +127,10 @@ class mobility (object):
             sta.params['snr'][wlan] = snr_
             if sta not in ap.params['associatedStations']:
                 ap.params['associatedStations'].append(sta)  
-            if dist >= 0.01:
+            if not WmediumdServerConn.connected and dist >= 0.01:
                 setChannelParams(sta, ap, wlan, dist) 
+            if WmediumdServerConn.connected and dist >= 0.01:
+                WmediumdServerConn.send_snr_update(WmediumdSNRLink(sta.wmediumdIface, ap.wmediumdIface, sta.params['snr'][wlan]))
         setChannelParams.recordParams(sta, ap)
                 
     @classmethod
