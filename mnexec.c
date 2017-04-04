@@ -130,7 +130,7 @@ int main(int argc, char *argv[])
                 perror("unshare");
                 return 1;
             }
-                
+
             /* Mark our whole hierarchy recursively as private, so that our
              * mounts do not propagate to other processes.
              */
@@ -140,10 +140,10 @@ int main(int argc, char *argv[])
                 return 1;
             }
             /* mount sysfs to pick up the new network namespace */
-            //if (mount("sysfs", "/sys", "sysfs", MS_MGC_VAL, NULL) == -1) {
-            //    perror("mount");
-            //    return 1;
-            //}
+            if (mount("sysfs", "/sys", "sysfs", MS_MGC_VAL, NULL) == -1) {
+                perror("mount");
+                return 1;
+            }
             break;
         case 'p':
             /* print pid */
