@@ -123,7 +123,8 @@ from mininet.wifiPlot import plot2d, plot3d
 from mininet.wifiPropagationModels import propagationModel
 from mininet.wifiAdHocConnectivity import pairingAdhocNodes
 from mininet.wifiMeshRouting import listNodes, meshRouting
-
+from mininet.wmediumdConnector import DynamicWmediumdIntfRef, WmediumdSNRLink, WmediumdStarter, WmediumdServerConn
+        
 sys.path.append(str(os.getcwd()) + '/mininet/')
 from sumo.runner import sumo
 from mininet.vanet import vanet
@@ -139,7 +140,8 @@ class Mininet(object):
                   car=Car, controller=DefaultController, isWiFi=False, link=Link, intf=Intf,
                   build=True, xterms=False, cleanup=False, ipBase='10.0.0.0/8',
                   inNamespace=False, autoSetMacs=False, autoStaticArp=False, autoPinCpus=False,
-                  listenPort=None, waitConnected=False, ssid="new-ssid", mode="g", channel="6", rec_rssi = False):
+                  listenPort=None, waitConnected=False, ssid="new-ssid", mode="g", channel="6", rec_rssi=False,
+                  useWmediumd=False):
         """Create Mininet object.
            topo: Topo (topology) object or None
            switch: default Switch class
@@ -185,7 +187,6 @@ class Mininet(object):
         self.routing = ''
         self.alternativeModule = ''
         self.nroads = 0
-        self.isVanet = False
         self.ssid = ssid
         self.mode = mode
         self.channel = channel
@@ -194,6 +195,7 @@ class Mininet(object):
         self.controllers = []
         self.hosts = []
         self.links = []
+        self.wlinks = []
         self.cars = []
         self.switches = []
         self.stations = []
@@ -210,6 +212,8 @@ class Mininet(object):
         self.MAX_Y = 0
         self.MAX_Z = 0
         self.associationControlMethod = ''
+        self.isVanet = False
+        self.useWmediumd = useWmediumd
         self.is3d = False
         self.ifb = False
         self.alreadyPlotted = False
@@ -960,7 +964,7 @@ class Mininet(object):
                 self.configureMacAddr(node)
                 
     def configureWifiNodes(self):
-        """Configure Wireless Nodes"""        
+        """Configure Wireless Nodes"""
         params = {}
         if self.ifb:
             params['ifb'] = self.ifb
@@ -1029,7 +1033,7 @@ class Mininet(object):
 
             if(doAssociation):
                 cls = Association
-                cls.associate(sta, ap)
+                cls.associate(sta, ap, self.useWmediumd)
                 if 'bw' not in params and 'mininet.util.TCIntfWireless' not in str(self.link):
                     value = deviceDataRate(sta, ap, wlan)
                     self.bw = value.rate
@@ -1046,8 +1050,9 @@ class Mininet(object):
                     cls(name=sta.params['wlan'][wlan], node=sta,
                                   link=None, tc=True, **params)
                 
-                if 'position' in sta.params and 'position' in ap.params:
-                    setChannelParams(sta, ap, wlan, dist)   
+                if self.useWmediumd:
+                    self.wlinks.append([sta, ap])
+
         elif (node1.type == 'accessPoint' and node2.type == 'accessPoint' and 'link' in options and options['link'] == 'wds'):
             # If sta/ap have defined position
             if 'position' in node1.params and 'position' in node2.params:
@@ -1128,6 +1133,22 @@ class Mininet(object):
             # This may not be the right place to do this, but
             # it needs to be done somewhere.
         # info( '\n' )
+        
+    def configureWmediumd(self):
+        intfrefs = []
+        links = []
+        nodes = self.stations + self.accessPoints
+        
+        for node in nodes:
+            node.wmediumdIface = DynamicWmediumdIntfRef(node)
+            intfrefs.append(node.wmediumdIface)
+        
+        for node in self.wlinks:
+            links.append(WmediumdSNRLink(node[0].wmediumdIface, node[1].wmediumdIface, node[0].params['snr'][0]))
+            links.append(WmediumdSNRLink(node[1].wmediumdIface, node[0].wmediumdIface, node[0].params['snr'][0]))
+        
+        WmediumdStarter.initialize(intfrefs, links, with_server=True)
+        WmediumdStarter.start()
 
     def buildFromTopo(self, topo=None):
         """Build mininet from a topology object
@@ -1215,7 +1236,7 @@ class Mininet(object):
                 if dist < ap.params['range']:
                     for wlan in range(0, len(sta.params['wlan'])):
                         cls = Association
-                        cls.configureWirelessLink(sta, ap, wlan)
+                        cls.configureWirelessLink(sta, ap, wlan, self.useWmediumd)
                         if self.rec_rssi:
                             os.system('hwsim_mgmt -k %s %s >/dev/null 2>&1' % (sta.phyID[wlan], abs(int(sta.params['rssi'][wlan]))))
                 
@@ -1261,9 +1282,12 @@ class Mininet(object):
                     meshRouting(nodes)
 
     def build(self):
-        "Build mininet."     
+        "Build mininet."    
         if self.topo:
             self.buildFromTopo(self.topo)
+        if self.useWmediumd:
+            self.configureWmediumd()
+       
         if self.inNamespace:
             self.configureControlNetwork()
         info('*** Configuring hosts\n')
@@ -1273,6 +1297,8 @@ class Mininet(object):
         if self.autoStaticArp:
             self.staticArp()
         self.built = True   
+        if self.useWmediumd:
+            WmediumdServerConn.connect()
 
     def startTerms(self):
         "Start a terminal for each node."
@@ -1380,6 +1406,10 @@ class Mininet(object):
                 plot2d.closePlot()
             module.stop()  # Stopping WiFi Module
 
+        if self.useWmediumd:
+            WmediumdServerConn.disconnect()
+            WmediumdStarter.stop()
+        
         info('\n*** Done\n')
 
     def run(self, test, *args, **kwargs):

@@ -291,13 +291,13 @@ class Node(object):
                     n = 1
                 node.params['wlan'].append(node.name + '-wlan' + str(n + 1))
                 if 'link' in params and params['link'] == 'mesh':
-                    node.params['rssi'].append(0)
-                    node.params['snr'].append(0)
+                    node.params['rssi'].append(-60)
+                    node.params['snr'].append(40)
                     node.params['associatedTo'].append('')
             else:
                 node.params['wlan'].append(node.name + '-wlan' + str(n))
-                node.params['rssi'].append(0)
-                node.params['snr'].append(0)
+                node.params['rssi'].append(-60)
+                node.params['snr'].append(40)
             node.params.pop("wlans", None)
                         
         if (mode == 'managed'):

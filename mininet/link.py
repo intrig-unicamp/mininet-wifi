@@ -1213,7 +1213,7 @@ class Association(Link):
         sta.meshMac[wlan] = str(mac[0])
         
     @classmethod
-    def configureWirelessLink(self, sta, ap, wlan):
+    def configureWirelessLink(self, sta, ap, wlan, useWmediumd=False):
         """ 
         Updates RSSI, SNR, and Others...
         
@@ -1231,8 +1231,9 @@ class Association(Link):
                     sta.params['associatedTo'][wlan] = ap 
                     cls = Association
                     cls.associate_infra(sta, ap, wlan)
-                    if dist >= 0.01:
-                        setChannelParams(sta, ap, wlan, dist)
+                    if not useWmediumd:
+                        if dist >= 0.01:
+                            setChannelParams(sta, ap, wlan, dist)
                     if sta not in ap.params['associatedStations']:
                         ap.params['associatedStations'].append(sta)
                 rssi_ = setChannelParams.setRSSI(sta, ap, wlan, dist)
@@ -1258,11 +1259,11 @@ class Association(Link):
         sta.params['channel'][wlan] = ap.params['channel'][0]
     
     @classmethod
-    def associate(self, sta, ap):
+    def associate(self, sta, ap, useWmediumd):
         """ Associate to Access Point """
         wlan = sta.ifaceToAssociate
         if 'position' in sta.params:
-            self.configureWirelessLink(sta, ap, wlan)
+            self.configureWirelessLink(sta, ap, wlan, useWmediumd)
         else:
             self.associate_infra(sta, ap, wlan)
             sta.params['associatedTo'][wlan] = ap
@@ -1278,7 +1279,7 @@ class Association(Link):
         :param ap: access point
         :param wlan: wlan ID
         """
-        debug('\niwconfig %s essid %s ap %s' % (sta.params['wlan'][wlan], ap.params['ssid'][0], \
+        debug('iwconfig %s essid %s ap %s\n' % (sta.params['wlan'][wlan], ap.params['ssid'][0], \
                                                     ap.params['mac'][0]))
         sta.pexec('iwconfig %s essid %s ap %s' % (sta.params['wlan'][wlan], ap.params['ssid'][0], \
                                                     ap.params['mac'][0]))        
