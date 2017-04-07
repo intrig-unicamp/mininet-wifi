@@ -252,7 +252,7 @@ class WmediumdStarter(object):
         # Create wmediumd config
         wmd_config = tempfile.NamedTemporaryFile(prefix='mn_wmd_config_', suffix='.cfg', delete=False)
         cls.wmd_config_name = wmd_config.name
-        info("Name of wmediumd config: %s\n" % cls.wmd_config_name)
+        debug("Name of wmediumd config: %s\n" % cls.wmd_config_name)
         configstr = 'ifaces:\n{\n\tids = ['
         intfref_id = 0
         for intfref in cls.intfrefs:
@@ -296,7 +296,7 @@ class WmediumdStarter(object):
             cmdline.append(per_data_file)
         cmdline[1:1] = cls.parameters
         cls.wmd_logfile = tempfile.NamedTemporaryFile(prefix='mn_wmd_log_', suffix='.log', delete=not cls.is_managed)
-        info("Name of wmediumd log: %s\n" % cls.wmd_logfile.name)
+        debug("Name of wmediumd log: %s\n" % cls.wmd_logfile.name)
         if cls.is_managed:
             cmdline[0:0] = ["nohup"]
         cls.wmd_process = subprocess.Popen(cmdline, shell=False, stdout=cls.wmd_logfile,
@@ -521,7 +521,7 @@ class WmediumdServerConn(object):
         if cls.connected:
             raise WmediumdException("Already connected to wmediumd server")
         cls.sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        print '*** Connecting to wmediumd server %s' % uds_address
+        info('*** Connecting to wmediumd server %s\n' % uds_address)
         cls.sock.connect(uds_address)
         cls.connected = True
 
