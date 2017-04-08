@@ -164,7 +164,7 @@ class module(object):
                 os.system('pkill -f \'hostapd\'')
         except:
             pass
-
+        
         physicalWlans = self.getPhysicalWlan()  # Gets Physical Wlan(s)
         self.loadModule(wifiRadios, alternativeModule)  # Initatilize WiFi Module
         phys = self.getPhy()  # Get Phy Interfaces
@@ -231,6 +231,7 @@ class module(object):
                         node.phyID[wlan] = self.phyID
                         self.phyID+=1
                         os.system('iw phy %s set netns %s' % (phys[0], node.pid))
+                        node.cmd('ip link set %s down' % self.wlan_list[0])
                         node.cmd('ip link set %s name %s up' % (self.wlan_list[0], node.params['wlan'][wlan]))
                         if ifb:
                             node.ifbSupport(wlan, ifbID)  # Adding Support to IFB
