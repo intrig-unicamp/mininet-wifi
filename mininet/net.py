@@ -141,7 +141,7 @@ class Mininet(object):
                   build=True, xterms=False, cleanup=False, ipBase='10.0.0.0/8',
                   inNamespace=False, autoSetMacs=False, autoStaticArp=False, autoPinCpus=False,
                   listenPort=None, waitConnected=False, ssid="new-ssid", mode="g", channel="6", rec_rssi=False,
-                  useWmediumd=False):
+                  useWmediumd=False, enable_interference=False):
         """Create Mininet object.
            topo: Topo (topology) object or None
            switch: default Switch class
@@ -214,6 +214,7 @@ class Mininet(object):
         self.associationControlMethod = ''
         self.isVanet = False
         self.useWmediumd = useWmediumd
+        self.enable_interference = enable_interference
         self.is3d = False
         self.ifb = False
         self.alreadyPlotted = False
@@ -1137,17 +1138,25 @@ class Mininet(object):
     def configureWmediumd(self):
         intfrefs = []
         links = []
+        positions = []
+        txpowers = []
         nodes = self.stations + self.accessPoints
         
         for node in nodes:
             node.wmediumdIface = DynamicWmediumdIntfRef(node)
             intfrefs.append(node.wmediumdIface)
         
-        for node in self.wlinks:
-            links.append(WmediumdSNRLink(node[0].wmediumdIface, node[1].wmediumdIface, node[0].params['snr'][0]))
-            links.append(WmediumdSNRLink(node[1].wmediumdIface, node[0].wmediumdIface, node[0].params['snr'][0]))
+        if self.enable_interference:
+            for node in nodes:
+                positions.append([float(node.params['position'][0]), float(node.params['position'][1])])
+                txpowers.append(float(node.params['txpower'][0]))
+        else:
+            for node in self.wlinks:
+                links.append(WmediumdSNRLink(node[0].wmediumdIface, node[1].wmediumdIface, node[0].params['snr'][0]))
+                links.append(WmediumdSNRLink(node[1].wmediumdIface, node[0].wmediumdIface, node[0].params['snr'][0]))
         
-        WmediumdStarter.initialize(intfrefs, links, with_server=True)
+        WmediumdStarter.initialize(intfrefs, links, positions=positions, enable_interference=self.enable_interference, 
+                                   txpowers=txpowers, with_server=True)
         WmediumdStarter.start()
 
     def buildFromTopo(self, topo=None):

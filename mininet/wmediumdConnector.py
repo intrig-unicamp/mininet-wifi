@@ -152,21 +152,26 @@ class WmediumdStarter(object):
     is_initialized = False
     intfrefs = None
     links = None
+    positions = None
+    txpowers = None
     executable = None
     parameters = None
     auto_add_links = None
     default_auto_snr = None
-
+    enable_interference = None
+    
     is_connected = False
     wmd_process = None
     wmd_config_name = None
     wmd_logfile = None
     default_auto_errprob = 0.0
     use_errprob = False
+    enable_interference = False
 
     @classmethod
     def initialize(cls, intfrefs=None, links=None, executable='wmediumd', with_server=True, parameters=None,
-                   auto_add_links=True, default_auto_snr=-10, default_auto_errprob=1.0, use_errprob=False):
+                   auto_add_links=True, default_auto_snr=-10, default_auto_errprob=1.0, use_errprob=False, 
+                   enable_interference=False, positions=None, txpowers=None):
         """
         Set the data for the wmediumd daemon
 
@@ -193,6 +198,8 @@ class WmediumdStarter(object):
             parameters.append('-s')
         cls.intfrefs = intfrefs
         cls.links = links
+        cls.positions = positions
+        cls.txpowers = txpowers
         cls.executable = executable
         cls.parameters = parameters
         cls.auto_add_links = auto_add_links
@@ -200,6 +207,7 @@ class WmediumdStarter(object):
         cls.default_auto_errprob = default_auto_errprob
         cls.use_errprob = use_errprob
         cls.is_initialized = True
+        cls.enable_interference = enable_interference
 
     @classmethod
     def start(cls):
@@ -217,37 +225,40 @@ class WmediumdStarter(object):
 
         mappedintfrefs = {}
         mappedlinks = {}
-
-        # Map all links using the interface identifier and check for missing interfaces in the  intfrefs list
-        for link in cls.links:
-            link_id = link.sta1intfref.identifier() + '/' + link.sta2intfref.identifier()
-            mappedlinks[link_id] = link
-            found1 = False
-            found2 = False
-            for intfref in cls.intfrefs:
-                if link.sta1intfref.get_station_name() == intfref.get_station_name():
+        if cls.enable_interference:
+            for position in cls.positions:
+                print position
+        else:
+            # Map all links using the interface identifier and check for missing interfaces in the  intfrefs list
+            for link in cls.links:
+                link_id = link.sta1intfref.identifier() + '/' + link.sta2intfref.identifier()
+                mappedlinks[link_id] = link
+                found1 = False
+                found2 = False
+                for intfref in cls.intfrefs:
                     if link.sta1intfref.get_station_name() == intfref.get_station_name():
-                        found1 = True
-                if link.sta2intfref.get_station_name() == intfref.get_station_name():
+                        if link.sta1intfref.get_station_name() == intfref.get_station_name():
+                            found1 = True
                     if link.sta2intfref.get_station_name() == intfref.get_station_name():
-                        found2 = True
-            if not found1:
-                raise WmediumdException('%s is not part of the managed interfaces' % link.sta1intfref.identifier())
-                pass
-            if not found2:
-                raise WmediumdException('%s is not part of the managed interfaces' % link.sta2intfref.identifier())
-
-        # Auto add links
-        if cls.auto_add_links:
-            for intfref1 in cls.intfrefs:
-                for intfref2 in cls.intfrefs:
-                    if intfref1 != intfref2:
-                        link_id = intfref1.identifier() + '/' + intfref2.identifier()
-                        if cls.use_errprob:
-                            mappedlinks.setdefault(link_id,
-                                                   WmediumdERRPROBLink(intfref1, intfref2, cls.default_auto_errprob))
-                        else:
-                            mappedlinks.setdefault(link_id, WmediumdSNRLink(intfref1, intfref2, cls.default_auto_snr))
+                        if link.sta2intfref.get_station_name() == intfref.get_station_name():
+                            found2 = True
+                if not found1:
+                    raise WmediumdException('%s is not part of the managed interfaces' % link.sta1intfref.identifier())
+                    pass
+                if not found2:
+                    raise WmediumdException('%s is not part of the managed interfaces' % link.sta2intfref.identifier())
+        
+            # Auto add links
+            if cls.auto_add_links:
+                for intfref1 in cls.intfrefs:
+                    for intfref2 in cls.intfrefs:
+                        if intfref1 != intfref2:
+                            link_id = intfref1.identifier() + '/' + intfref2.identifier()
+                            if cls.use_errprob:
+                                mappedlinks.setdefault(link_id,
+                                                       WmediumdERRPROBLink(intfref1, intfref2, cls.default_auto_errprob))
+                            else:
+                                mappedlinks.setdefault(link_id, WmediumdSNRLink(intfref1, intfref2, cls.default_auto_snr))
 
         # Create wmediumd config
         wmd_config = tempfile.NamedTemporaryFile(prefix='mn_wmd_config_', suffix='.cfg', delete=False)
@@ -262,32 +273,57 @@ class WmediumdStarter(object):
             configstr += '"%s"' % grepped_mac
             mappedintfrefs[intfref.identifier()] = intfref_id
             intfref_id += 1
-        configstr += '];\n};model:\n{\n\ttype = "'
-        if cls.use_errprob:
-            configstr += 'prob'
+        if cls.enable_interference: #Still have to be implemented
+            configstr += '];\n\tenable_interference = true;\n};\npath_loss:\n{\n'
+            configstr += '\tpositions = ('            
+            first_pos = True
+            for mappedposition in cls.positions:
+                pos1 = mappedposition[0]
+                pos2 = mappedposition[1]
+                if first_pos:
+                    first_pos = False
+                else:
+                    configstr += ','
+                configstr += '\n\t\t(%d, %d)' % (
+                        pos1, pos2)
+            configstr += '\n\t);\n\ttx_powers = ('
+            first_txpower = True
+            for mappedtxpower in cls.txpowers:
+                txpower = mappedtxpower
+                if first_txpower:
+                    configstr += '%s' % (txpower)
+                    first_txpower = False
+                else:
+                    configstr += ', %s' % (txpower)
+            configstr += ');\n\tmodel_params = ("log_distance", 3.5, 0.0);\n};' 
+            wmd_config.write(configstr)
+            wmd_config.close()               
         else:
-            configstr += 'snr'
-        configstr += '";\n\tdefault_prob = 1.0;\n\tlinks = ('
-        first_link = True
-        for mappedlink in mappedlinks.itervalues():
-            id1 = mappedlink.sta1intfref.identifier()
-            id2 = mappedlink.sta2intfref.identifier()
-            if first_link:
-                first_link = False
-            else:
-                configstr += ','
+            configstr += '];\n};model:\n{\n\ttype = "'       
             if cls.use_errprob:
-                configstr += '\n\t\t(%d, %d, %f)' % (
-                    mappedintfrefs[id1], mappedintfrefs[id2],
-                    mappedlink.errprob)
+                configstr += 'prob'
             else:
-                configstr += '\n\t\t(%d, %d, %d)' % (
-                    mappedintfrefs[id1], mappedintfrefs[id2],
-                    mappedlink.snr)
-        configstr += '\n\t);\n};'
-        wmd_config.write(configstr)
-        wmd_config.close()
-
+                configstr += 'snr'                
+            configstr += '";\n\tdefault_prob = 1.0;\n\tlinks = ('            
+            first_link = True
+            for mappedlink in mappedlinks.itervalues():
+                id1 = mappedlink.sta1intfref.identifier()
+                id2 = mappedlink.sta2intfref.identifier()
+                if first_link:
+                    first_link = False
+                else:
+                    configstr += ','
+                if cls.use_errprob:
+                    configstr += '\n\t\t(%d, %d, %f)' % (
+                        mappedintfrefs[id1], mappedintfrefs[id2],
+                        mappedlink.errprob)
+                else:
+                    configstr += '\n\t\t(%d, %d, %d)' % (
+                        mappedintfrefs[id1], mappedintfrefs[id2],
+                        mappedlink.snr)
+            configstr += '\n\t);\n};'
+            wmd_config.write(configstr)
+            wmd_config.close()
         # Start wmediumd using the created config
         cmdline = [cls.executable, "-c", cls.wmd_config_name]
         if not cls.use_errprob:
