@@ -141,7 +141,6 @@ class mobility (object):
         :param sta: station
         :param wlan: wlan ID
         """
-        
         for ap in self.accessPoints:
             dist = setChannelParams.getDistance(sta, ap)
             if dist > ap.params['range']:
@@ -385,26 +384,31 @@ class mobility (object):
             time.sleep(0.5)
             
     @classmethod
-    def parameters_(self, node):
+    def parameters_(self, node=None):
         """ 
         have to check it!
         Applies channel params and handover
         """
-        nodes = self.stations   
+        if node == None:
+            nodes = self.stations 
+        else:
+            nodes = []
+            nodes.append(node)  
         for node_ in self.accessPoints:
             if 'link' in node_.params and node_.params['link'] == 'mesh':
                 nodes.append(node_)
-                
-        for wlan in range(0, len(node.params['wlan'])):
-            if node.func[wlan] == 'mesh' or node.func[wlan] == 'adhoc':
-                if node.type == 'vehicle':
-                    node = node.params['carsta']
-                    wlan = 0
-                dist = listNodes.pairingNodes(node, wlan, nodes)
-                if WmediumdServerConn.connected == False and dist >= 0.01:
-                    setChannelParams(sta=node, wlan=wlan, dist=dist)
-            else:
-                self.handoverCheck(node, wlan)
+
+        for node in nodes:
+            for wlan in range(0, len(node.params['wlan'])):
+                if node.func[wlan] == 'mesh' or node.func[wlan] == 'adhoc':
+                    if node.type == 'vehicle':
+                        node = node.params['carsta']
+                        wlan = 0
+                    dist = listNodes.pairingNodes(node, wlan, nodes)
+                    if WmediumdServerConn.connected == False and dist >= 0.01:
+                        setChannelParams(sta=node, wlan=wlan, dist=dist)
+                else:
+                    self.handoverCheck(node, wlan)
         if meshRouting.routing == 'custom':
             meshRouting(nodes)
         # have to verify this

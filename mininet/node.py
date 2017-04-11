@@ -545,7 +545,7 @@ class Node(object):
                     plot2d.graphPause()
         except:
             pass
-        mobility.parameters_(self)
+        mobility.parameters_()
 
     def moveNodeTo(self, pos):
         pos = pos.split(',')
