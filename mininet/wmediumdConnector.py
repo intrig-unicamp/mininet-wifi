@@ -225,9 +225,16 @@ class WmediumdStarter(object):
 
         mappedintfrefs = {}
         mappedlinks = {}
+        mappedpositions = {}
+        mappedtxpowers = {}
         if cls.enable_interference:
-            for position in cls.positions:
-                print position
+            """check it"""
+            #for position in cls.positions:
+            #    pos_id = position.sta_position.identifier()
+            #    mappedpositions[pos_id] = position
+            #for txpower in cls.txpowers:
+            #    txpower_id = txpower.sta_txpower.identifier()
+            #    mappedtxpowers[txpower_id] = txpower
         else:
             # Map all links using the interface identifier and check for missing interfaces in the  intfrefs list
             for link in cls.links:
@@ -278,8 +285,8 @@ class WmediumdStarter(object):
             configstr += '\tpositions = ('            
             first_pos = True
             for mappedposition in cls.positions:
-                pos1 = mappedposition[0]
-                pos2 = mappedposition[1]
+                pos1 = mappedposition.sta_position[0]
+                pos2 = mappedposition.sta_position[1]
                 if first_pos:
                     first_pos = False
                 else:
@@ -289,7 +296,7 @@ class WmediumdStarter(object):
             configstr += '\n\t);\n\ttx_powers = ('
             first_txpower = True
             for mappedtxpower in cls.txpowers:
-                txpower = mappedtxpower
+                txpower = mappedtxpower.sta_txpower
                 if first_txpower:
                     configstr += '%s' % (txpower)
                     first_txpower = False
@@ -387,6 +394,30 @@ class WmediumdStarter(object):
         except OSError:
             pass
 
+class WmediumdPosition(object):
+    def __init__(self, staref, sta_position):
+        """
+        Describes the position of a station
+
+        :param sta_position: Instance of WmediumdPosRef
+
+        :type sta_position: WmediumdPosRef
+        """
+        self.staref = staref
+        self.sta_position = sta_position        
+
+class WmediumdTXPower(object):
+    def __init__(self, staref, sta_txpower):
+        """
+        Describes the Transmission Power of a station
+
+        :param sta_txpower: Instance of WmediumdTXPowerRef
+
+        :type sta_txpower: WmediumdTXPowerRef
+        """
+        self.staref = staref
+        self.sta_txpower = sta_txpower
+
 
 class WmediumdSNRLink(object):
     def __init__(self, sta1intfref, sta2intfref, snr=10):
@@ -422,6 +453,55 @@ class WmediumdERRPROBLink(object):
         self.sta1intfref = sta1intfref
         self.sta2intfref = sta2intfref
         self.errprob = errprob
+
+class WmediumdStaRef:
+    def __init__(self, staname, position, txpower):
+        """
+        An unambiguous reference to an interface of a station
+
+        :param staname: Station name
+        :param intfname: Interface name
+        :param intfmac: Interface MAC address
+
+        :type staname: str
+        :type intfname: str
+        :type intfmac: str
+        """
+        self.__staname = staname
+        self.__position = position
+        self.__txpower = txpower
+
+    def get_station_name(self):
+        """
+        Get the name of the station
+
+        :rtype: str
+        """
+        return self.__staname
+
+    def get_position(self):
+        """
+        Get the position
+
+        :rtype: str
+        """
+        return self.__position
+
+    def get_txpower(self):
+        """
+        Get the txpower
+
+        :rtype: str
+        """
+        return self.__txpower
+
+    def identifier(self):
+        """
+        Identifier used in dicts
+
+        :rtype: str
+        """
+        return self.get_station_name()
 
 
 class WmediumdIntfRef:
@@ -511,6 +591,22 @@ class DynamicWmediumdIntfRef(WmediumdIntfRef):
             index += 1
         if found:
             return self.__sta.params['mac'][index]
+        
+class DynamicWmediumdStaRef(WmediumdStaRef):
+    def __init__(self, sta, position=None, txpower=None):
+        """
+        An unambiguous reference to an interface of a station
+
+        :param sta: Mininet-Wifi station
+        :param intf: Mininet interface or name of Mininet interface. If None, the default interface will be used
+
+        :type sta: Station
+        :type intf: Union [Intf, str, None]
+        """
+        WmediumdStaRef.__init__(self, "", "", "")
+        self.__sta = sta
+        self.__position = position
+        self.__txpower = txpower
 
 
 class WmediumdServerConn(object):

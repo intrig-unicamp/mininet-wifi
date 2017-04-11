@@ -123,7 +123,8 @@ from mininet.wifiPlot import plot2d, plot3d
 from mininet.wifiPropagationModels import propagationModel
 from mininet.wifiAdHocConnectivity import pairingAdhocNodes
 from mininet.wifiMeshRouting import listNodes, meshRouting
-from mininet.wmediumdConnector import DynamicWmediumdIntfRef, WmediumdSNRLink, WmediumdStarter, WmediumdServerConn
+from mininet.wmediumdConnector import DynamicWmediumdIntfRef, WmediumdSNRLink, WmediumdStarter, WmediumdServerConn, \
+                                            WmediumdTXPower, WmediumdPosition, DynamicWmediumdStaRef
         
 sys.path.append(str(os.getcwd()) + '/mininet/')
 from sumo.runner import sumo
@@ -1148,8 +1149,9 @@ class Mininet(object):
         
         if self.enable_interference:
             for node in nodes:
-                positions.append([float(node.params['position'][0]), float(node.params['position'][1])])
-                txpowers.append(float(node.params['txpower'][0]))
+                node.staref = DynamicWmediumdStaRef(node)
+                positions.append(WmediumdPosition(node.staref, [float(node.params['position'][0]), float(node.params['position'][1])]))
+                txpowers.append(WmediumdTXPower(node.staref, float(node.params['txpower'][0])))
         else:
             for node in self.wlinks:
                 links.append(WmediumdSNRLink(node[0].wmediumdIface, node[1].wmediumdIface, node[0].params['snr'][0]))
