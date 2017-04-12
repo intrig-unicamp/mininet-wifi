@@ -178,7 +178,6 @@ class WmediumdStarter(object):
     parameters = None
     auto_add_links = None
     default_auto_snr = None
-    enable_interference = None
 
     is_connected = False
     wmd_process = None
@@ -253,10 +252,10 @@ class WmediumdStarter(object):
         mappedtxpowers = {}
         if cls.enable_interference:
             """check it"""
-            #for position in cls.positions:
+            # for position in cls.positions:
             #    pos_id = position.sta_position.identifier()
             #    mappedpositions[pos_id] = position
-            #for txpower in cls.txpowers:
+            # for txpower in cls.txpowers:
             #    txpower_id = txpower.sta_txpower.identifier()
             #    mappedtxpowers[txpower_id] = txpower
         else:
@@ -307,7 +306,7 @@ class WmediumdStarter(object):
                 configstr += '"%s"' % grepped_mac
                 mappedintfrefs[intfref.identifier()] = intfref_id
                 intfref_id += 1
-            if cls.enable_interference: #Still have to be implemented
+            if cls.enable_interference:  # Still have to be implemented
                 configstr += '];\n\tenable_interference = true;\n};\npath_loss:\n{\n'
                 configstr += '\tpositions = ('
                 first_pos = True
@@ -325,13 +324,11 @@ class WmediumdStarter(object):
                 for mappedtxpower in cls.txpowers:
                     txpower = mappedtxpower.sta_txpower
                     if first_txpower:
-                        configstr += '%s' % (txpower)
+                        configstr += '%s' % txpower
                         first_txpower = False
                     else:
-                        configstr += ', %s' % (txpower)
+                        configstr += ', %s' % txpower
                 configstr += ');\n\tmodel_params = ("log_distance", 3.5, 0.0);\n};'
-                wmd_config.write(configstr)
-                wmd_config.close()
             else:
                 configstr += '];\n};model:\n{\n\ttype = "'
                 if cls.mode == WmediumdConstants.WMEDIUMD_MODE_ERRPROB:
@@ -356,8 +353,8 @@ class WmediumdStarter(object):
                             mappedintfrefs[id1], mappedintfrefs[id2],
                             mappedlink.snr)
                 configstr += '\n\t);\n};'
-                wmd_config.write(configstr)
-                wmd_config.close()
+            wmd_config.write(configstr)
+            wmd_config.close()
         # Start wmediumd using the created config
         cmdline = [cls.executable]
         if cls.mode == WmediumdConstants.WMEDIUMD_MODE_SPECPROB:
@@ -426,6 +423,7 @@ class WmediumdStarter(object):
         except OSError:
             pass
 
+
 class WmediumdPosition(object):
     def __init__(self, staref, sta_position):
         """
@@ -437,6 +435,7 @@ class WmediumdPosition(object):
         """
         self.staref = staref
         self.sta_position = sta_position
+
 
 class WmediumdTXPower(object):
     def __init__(self, staref, sta_txpower):
@@ -485,6 +484,7 @@ class WmediumdERRPROBLink(object):
         self.sta1intfref = sta1intfref
         self.sta2intfref = sta2intfref
         self.errprob = errprob
+
 
 class WmediumdStaRef:
     def __init__(self, staname, position, txpower):
@@ -642,6 +642,7 @@ class DynamicWmediumdIntfRef(WmediumdIntfRef):
             index += 1
         if found:
             return self.__sta.params['mac'][index]
+
 
 class DynamicWmediumdStaRef(WmediumdStaRef):
     def __init__(self, sta, position=None, txpower=None):
