@@ -179,6 +179,7 @@ class meshRouting (object):
                             ref_sta = ref_sta.params['carsta']
                         if ref_sta.meshMac[ref_wlan] not in controlMeshMac:
                             sta.pexec('iw dev %s mpath del %s' % (sta.params['wlan'][wlan], ref_sta.meshMac[ref_wlan]))
+                        if WmediumdServerConn.connected:
                             cls = Association
                             cls.setSNRWmediumd(sta, ref_sta, -10)
 
