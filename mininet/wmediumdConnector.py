@@ -22,6 +22,10 @@ class WmediumdConstants:
         raise Exception("WmediumdConstants cannot be initialized")
         pass
 
+    WMEDIUMD_MODE_SNR = 0
+    WMEDIUMD_MODE_ERRPROB = 1
+    WMEDIUMD_MODE_SPECPROB = 2
+
     WSERVER_SHUTDOWN_REQUEST_TYPE = 0
     WSERVER_SNR_UPDATE_REQUEST_TYPE = 1
     WSERVER_SNR_UPDATE_RESPONSE_TYPE = 2
@@ -33,10 +37,13 @@ class WmediumdConstants:
     WSERVER_ADD_RESPONSE_TYPE = 8
     WSERVER_ERRPROB_UPDATE_REQUEST_TYPE = 9
     WSERVER_ERRPROB_UPDATE_RESPONSE_TYPE = 10
+    WSERVER_SPECPROB_UPDATE_REQUEST_TYPE = 11
+    WSERVER_SPECPROB_UPDATE_RESPONSE_TYPE = 12
 
     WUPDATE_SUCCESS = 0
     WUPDATE_INTF_NOTFOUND = 1
     WUPDATE_INTF_DUPLICATE = 2
+    WUPDATE_WRONG_MODE = 3
 
     SOCKET_PATH = '/var/run/wmediumd.sock'
     LOG_PREFIX = 'wmediumd:'
@@ -51,13 +58,15 @@ class WmediumdManager(object):
     registered_interfaces = []
 
     @classmethod
-    def connect(cls, uds_address=WmediumdConstants.SOCKET_PATH):
+    def connect(cls, uds_address=WmediumdConstants.SOCKET_PATH, mode=WmediumdConstants.WMEDIUMD_MODE_SNR):
         # type: (str) -> None
         """
         Connect to the wmediumd server and set Mininet-WiFi parameters to managed
 
         :param uds_address: The Unix Domain socket path
+        :param mode: wmediumd mode to use if the server is not started
         :type uds_address str
+        :type mode int
         """
         h = int(subprocess.check_output("lsmod | grep 'mac80211_hwsim' | wc -l",
                                         shell=True))
@@ -72,7 +81,7 @@ class WmediumdManager(object):
             else:
                 raise WmediumdException("wmediumd is already started but without server")
         if not is_started:
-            WmediumdStarter.initialize(parameters=['-l', '5'])
+            WmediumdStarter.initialize(parameters=['-l', '5'], mode=mode)
             WmediumdStarter.start_managed()
             time.sleep(1)
         WmediumdServerConn.connect(uds_address)
@@ -130,7 +139,7 @@ class WmediumdManager(object):
         Update the SNR of a connection at wmediumd
         :param link The link to update
 
-        :type link: WmediumdLink
+        :type link: WmediumdSNRLink
         """
         WmediumdServerConn.update_link_snr(link)
 
@@ -141,9 +150,20 @@ class WmediumdManager(object):
         Update the error probability of a connection at wmediumd
         :param link The link to update
 
-        :type link: WmediumdLink
+        :type link: WmediumdERRPROBLink
         """
         WmediumdServerConn.update_link_errprob(link)
+
+    @classmethod
+    def update_link_specprob(cls, link):
+        # type: (WmediumdSPECPROBLink) -> None
+        """
+        Update the error probability matrix of a connection at wmediumd
+        :param link The link to update
+
+        :type link: WmediumdSPECPROBLink
+        """
+        WmediumdServerConn.update_link_specprob(link)
 
 
 class WmediumdStarter(object):
@@ -158,19 +178,19 @@ class WmediumdStarter(object):
     parameters = None
     auto_add_links = None
     default_auto_snr = None
-    enable_interference = None
-    
+
     is_connected = False
     wmd_process = None
     wmd_config_name = None
     wmd_logfile = None
     default_auto_errprob = 0.0
-    use_errprob = False
+    mode = 0
     enable_interference = False
 
     @classmethod
     def initialize(cls, intfrefs=None, links=None, executable='wmediumd', with_server=True, parameters=None,
-                   auto_add_links=True, default_auto_snr=-10, default_auto_errprob=1.0, use_errprob=False, 
+                   auto_add_links=True, default_auto_snr=-10, default_auto_errprob=1.0,
+                   mode=WmediumdConstants.WMEDIUMD_MODE_SNR,
                    enable_interference=False, positions=None, txpowers=None):
         """
         Set the data for the wmediumd daemon
@@ -183,7 +203,7 @@ class WmediumdStarter(object):
         :param auto_add_links: If true, it will add all missing links pairs with the default_auto_snr as SNR
         :param default_auto_snr: The default SNR
         :param default_auto_errprob: The default error probability
-        :param use_errprob: If error probabilities should be used instead of SNR
+        :param mode: WmediumdConstants.WMEDIUMD_MODE_* constant
 
         :type intfrefs: list of WmediumdIntfRef
         :type links: list of WmediumdLink
@@ -205,7 +225,10 @@ class WmediumdStarter(object):
         cls.auto_add_links = auto_add_links
         cls.default_auto_snr = default_auto_snr
         cls.default_auto_errprob = default_auto_errprob
-        cls.use_errprob = use_errprob
+        cls.mode = mode
+        if mode != WmediumdConstants.WMEDIUMD_MODE_SNR and mode != WmediumdConstants.WMEDIUMD_MODE_ERRPROB \
+                and mode != WmediumdConstants.WMEDIUMD_MODE_SPECPROB:
+            raise Exception("Wrong wmediumd mode given")
         cls.is_initialized = True
         cls.enable_interference = enable_interference
 
@@ -229,10 +252,10 @@ class WmediumdStarter(object):
         mappedtxpowers = {}
         if cls.enable_interference:
             """check it"""
-            #for position in cls.positions:
+            # for position in cls.positions:
             #    pos_id = position.sta_position.identifier()
             #    mappedpositions[pos_id] = position
-            #for txpower in cls.txpowers:
+            # for txpower in cls.txpowers:
             #    txpower_id = txpower.sta_txpower.identifier()
             #    mappedtxpowers[txpower_id] = txpower
         else:
@@ -254,89 +277,95 @@ class WmediumdStarter(object):
                     pass
                 if not found2:
                     raise WmediumdException('%s is not part of the managed interfaces' % link.sta2intfref.identifier())
-        
+
+        if cls.mode != WmediumdConstants.WMEDIUMD_MODE_SPECPROB:
             # Auto add links
             if cls.auto_add_links:
                 for intfref1 in cls.intfrefs:
                     for intfref2 in cls.intfrefs:
                         if intfref1 != intfref2:
                             link_id = intfref1.identifier() + '/' + intfref2.identifier()
-                            if cls.use_errprob:
+                            if cls.mode == WmediumdConstants.WMEDIUMD_MODE_ERRPROB:
                                 mappedlinks.setdefault(link_id,
-                                                       WmediumdERRPROBLink(intfref1, intfref2, cls.default_auto_errprob))
+                                                       WmediumdERRPROBLink(intfref1, intfref2,
+                                                                           cls.default_auto_errprob))
                             else:
-                                mappedlinks.setdefault(link_id, WmediumdSNRLink(intfref1, intfref2, cls.default_auto_snr))
+                                mappedlinks.setdefault(link_id,
+                                                       WmediumdSNRLink(intfref1, intfref2, cls.default_auto_snr))
 
-        # Create wmediumd config
-        wmd_config = tempfile.NamedTemporaryFile(prefix='mn_wmd_config_', suffix='.cfg', delete=False)
-        cls.wmd_config_name = wmd_config.name
-        debug("Name of wmediumd config: %s\n" % cls.wmd_config_name)
-        configstr = 'ifaces:\n{\n\tids = ['
-        intfref_id = 0
-        for intfref in cls.intfrefs:
-            if intfref_id != 0:
-                configstr += ', '
-            grepped_mac = intfref.get_intf_mac()
-            configstr += '"%s"' % grepped_mac
-            mappedintfrefs[intfref.identifier()] = intfref_id
-            intfref_id += 1
-        if cls.enable_interference: #Still have to be implemented
-            configstr += '];\n\tenable_interference = true;\n};\npath_loss:\n{\n'
-            configstr += '\tpositions = ('            
-            first_pos = True
-            for mappedposition in cls.positions:
-                pos1 = mappedposition.sta_position[0]
-                pos2 = mappedposition.sta_position[1]
-                if first_pos:
-                    first_pos = False
-                else:
-                    configstr += ','
-                configstr += '\n\t\t(%d, %d)' % (
+            # Create wmediumd config
+            wmd_config = tempfile.NamedTemporaryFile(prefix='mn_wmd_config_', suffix='.cfg', delete=False)
+            cls.wmd_config_name = wmd_config.name
+            debug("Name of wmediumd config: %s\n" % cls.wmd_config_name)
+            configstr = 'ifaces:\n{\n\tids = ['
+            intfref_id = 0
+            for intfref in cls.intfrefs:
+                if intfref_id != 0:
+                    configstr += ', '
+                grepped_mac = intfref.get_intf_mac()
+                configstr += '"%s"' % grepped_mac
+                mappedintfrefs[intfref.identifier()] = intfref_id
+                intfref_id += 1
+            if cls.enable_interference:  # Still have to be implemented
+                configstr += '];\n\tenable_interference = true;\n};\npath_loss:\n{\n'
+                configstr += '\tpositions = ('
+                first_pos = True
+                for mappedposition in cls.positions:
+                    pos1 = mappedposition.sta_position[0]
+                    pos2 = mappedposition.sta_position[1]
+                    if first_pos:
+                        first_pos = False
+                    else:
+                        configstr += ','
+                    configstr += '\n\t\t(%d, %d)' % (
                         pos1, pos2)
-            configstr += '\n\t);\n\ttx_powers = ('
-            first_txpower = True
-            for mappedtxpower in cls.txpowers:
-                txpower = mappedtxpower.sta_txpower
-                if first_txpower:
-                    configstr += '%s' % (txpower)
-                    first_txpower = False
-                else:
-                    configstr += ', %s' % (txpower)
-            configstr += ');\n\tmodel_params = ("log_distance", 3.5, 0.0);\n};' 
-            wmd_config.write(configstr)
-            wmd_config.close()               
-        else:
-            configstr += '];\n};model:\n{\n\ttype = "'       
-            if cls.use_errprob:
-                configstr += 'prob'
+                configstr += '\n\t);\n\ttx_powers = ('
+                first_txpower = True
+                for mappedtxpower in cls.txpowers:
+                    txpower = mappedtxpower.sta_txpower
+                    if first_txpower:
+                        configstr += '%s' % txpower
+                        first_txpower = False
+                    else:
+                        configstr += ', %s' % txpower
+                configstr += ');\n\tmodel_params = ("log_distance", 3.5, 0.0);\n};'
             else:
-                configstr += 'snr'                
-            configstr += '";\n\tdefault_prob = 1.0;\n\tlinks = ('            
-            first_link = True
-            for mappedlink in mappedlinks.itervalues():
-                id1 = mappedlink.sta1intfref.identifier()
-                id2 = mappedlink.sta2intfref.identifier()
-                if first_link:
-                    first_link = False
+                configstr += '];\n};model:\n{\n\ttype = "'
+                if cls.mode == WmediumdConstants.WMEDIUMD_MODE_ERRPROB:
+                    configstr += 'prob'
                 else:
-                    configstr += ','
-                if cls.use_errprob:
-                    configstr += '\n\t\t(%d, %d, %f)' % (
-                        mappedintfrefs[id1], mappedintfrefs[id2],
-                        mappedlink.errprob)
-                else:
-                    configstr += '\n\t\t(%d, %d, %d)' % (
-                        mappedintfrefs[id1], mappedintfrefs[id2],
-                        mappedlink.snr)
-            configstr += '\n\t);\n};'
+                    configstr += 'snr'
+                configstr += '";\n\tdefault_prob = 1.0;\n\tlinks = ('
+                first_link = True
+                for mappedlink in mappedlinks.itervalues():
+                    id1 = mappedlink.sta1intfref.identifier()
+                    id2 = mappedlink.sta2intfref.identifier()
+                    if first_link:
+                        first_link = False
+                    else:
+                        configstr += ','
+                    if cls.mode == WmediumdConstants.WMEDIUMD_MODE_ERRPROB:
+                        configstr += '\n\t\t(%d, %d, %f)' % (
+                            mappedintfrefs[id1], mappedintfrefs[id2],
+                            mappedlink.errprob)
+                    else:
+                        configstr += '\n\t\t(%d, %d, %d)' % (
+                            mappedintfrefs[id1], mappedintfrefs[id2],
+                            mappedlink.snr)
+                configstr += '\n\t);\n};'
             wmd_config.write(configstr)
             wmd_config.close()
         # Start wmediumd using the created config
-        cmdline = [cls.executable, "-c", cls.wmd_config_name]
-        if not cls.use_errprob:
-            cmdline.append("-x")
-            per_data_file = pkg_resources.resource_filename('mininet', 'data/signal_table_ieee80211ax')
-            cmdline.append(per_data_file)
+        cmdline = [cls.executable]
+        if cls.mode == WmediumdConstants.WMEDIUMD_MODE_SPECPROB:
+            cmdline.append("-d")
+        else:
+            cmdline.append("-c")
+            cmdline.append(cls.wmd_config_name)
+            if cls.mode == WmediumdConstants.WMEDIUMD_MODE_SNR:
+                cmdline.append("-x")
+                per_data_file = pkg_resources.resource_filename('mininet', 'data/signal_table_ieee80211ax')
+                cmdline.append(per_data_file)
         cmdline[1:1] = cls.parameters
         cls.wmd_logfile = tempfile.NamedTemporaryFile(prefix='mn_wmd_log_', suffix='.log', delete=not cls.is_managed)
         debug("Name of wmediumd log: %s\n" % cls.wmd_logfile.name)
@@ -394,6 +423,7 @@ class WmediumdStarter(object):
         except OSError:
             pass
 
+
 class WmediumdPosition(object):
     def __init__(self, staref, sta_position):
         """
@@ -404,7 +434,8 @@ class WmediumdPosition(object):
         :type sta_position: WmediumdPosRef
         """
         self.staref = staref
-        self.sta_position = sta_position        
+        self.sta_position = sta_position
+
 
 class WmediumdTXPower(object):
     def __init__(self, staref, sta_txpower):
@@ -454,6 +485,7 @@ class WmediumdERRPROBLink(object):
         self.sta2intfref = sta2intfref
         self.errprob = errprob
 
+
 class WmediumdStaRef:
     def __init__(self, staname, position, txpower):
         """
@@ -502,6 +534,25 @@ class WmediumdStaRef:
         :rtype: str
         """
         return self.get_station_name()
+
+
+class WmediumdSPECPROBLink(object):
+    def __init__(self, sta1intfref, sta2intfref, errprobs):
+        """
+        Describes a link between two interfaces using a matrix of error probabilities
+
+        :param sta1intfref: Instance of WmediumdIntfRef
+        :param sta2intfref: Instance of WmediumdIntfRef
+        :param errprobs: The error probabilities in the range [0.0;1.0], the two dimensional array has as first
+            dimension the packet size index and as the second the data rate index: errprobs[size_idx][rate_idx]
+
+        :type sta1intfref: WmediumdIntfRef
+        :type sta2intfref: WmediumdIntfRef
+        :type errprobs: float[][]
+        """
+        self.sta1intfref = sta1intfref
+        self.sta2intfref = sta2intfref
+        self.errprobs = errprobs
 
 
 class WmediumdIntfRef:
@@ -591,7 +642,8 @@ class DynamicWmediumdIntfRef(WmediumdIntfRef):
             index += 1
         if found:
             return self.__sta.params['mac'][index]
-        
+
+
 class DynamicWmediumdStaRef(WmediumdStaRef):
     def __init__(self, sta, position=None, txpower=None):
         """
@@ -624,6 +676,11 @@ class WmediumdServerConn(object):
     __errprob_update_response_fmt = __base_struct_fmt + __errprob_update_request_fmt + 'B'
     __errprob_update_request_struct = struct.Struct('!' + __errprob_update_request_fmt)
     __errprob_update_response_struct = struct.Struct('!' + __errprob_update_response_fmt)
+
+    __specprob_update_request_fmt = __base_struct_fmt + __mac_struct_fmt + __mac_struct_fmt + '144i'
+    __specprob_update_response_fmt = __base_struct_fmt + __mac_struct_fmt + __mac_struct_fmt + 'B'
+    __specprob_update_request_struct = struct.Struct('!' + __specprob_update_request_fmt)
+    __specprob_update_response_struct = struct.Struct('!' + __specprob_update_response_fmt)
 
     __station_del_by_mac_request_fmt = __base_struct_fmt + __mac_struct_fmt
     __station_del_by_mac_response_fmt = __base_struct_fmt + __station_del_by_mac_request_fmt + 'B'
@@ -726,11 +783,24 @@ class WmediumdServerConn(object):
             raise WmediumdException("Received error code from wmediumd: code %d" % ret)
 
     @classmethod
+    def update_link_specprob(cls, link):
+        # type: (WmediumdSPECPROBLink) -> None
+        """
+        Update the SPECPROB of a connection at wmediumd
+        :param link The link to update
+
+        :type link: WmediumdLink
+        """
+        ret = WmediumdServerConn.send_specprob_update(link)
+        if ret != WmediumdConstants.WUPDATE_SUCCESS:
+            raise WmediumdException("Received error code from wmediumd: code %d" % ret)
+
+    @classmethod
     def send_snr_update(cls, link):
         # type: (WmediumdSNRLink) -> int
         """
         Send an update to the wmediumd server
-        :param link: The WmediumdLink to update
+        :param link: The WmediumdSNRLink to update
         :return: A WUPDATE_* constant
         """
         debug("\n%s Updating SNR from interface %s to interface %s to value %d" % (
@@ -744,7 +814,7 @@ class WmediumdServerConn(object):
         # type: (WmediumdERRPROBLink) -> int
         """
         Send an update to the wmediumd server
-        :param link: The WmediumdLink to update
+        :param link: The WmediumdERRPROBLink to update
         :return: A WUPDATE_* constant
         """
         debug("\n%s Updating ERRPROB from interface %s to interface %s to value %f" % (
@@ -753,6 +823,20 @@ class WmediumdServerConn(object):
         cls.sock.send(cls.__create_errprob_update_request(link))
         return cls.__parse_response(WmediumdConstants.WSERVER_ERRPROB_UPDATE_RESPONSE_TYPE,
                                     cls.__errprob_update_response_struct)[-1]
+
+    @classmethod
+    def send_specprob_update(cls, link):
+        # type: (WmediumdSPECPROBLink) -> int
+        """
+        Send an update to the wmediumd server
+        :param link: The WmediumdSPECPROBLink to update
+        :return: A WUPDATE_* constant
+        """
+        debug("\n%s Updating SPECPROB from interface %s to interface %s" % (
+            WmediumdConstants.LOG_PREFIX, link.sta1intfref.get_intf_mac(), link.sta2intfref.get_intf_mac()))
+        cls.sock.send(cls.__create_specprob_update_request(link))
+        return cls.__parse_response(WmediumdConstants.WSERVER_SPECPROB_UPDATE_RESPONSE_TYPE,
+                                    cls.__specprob_update_response_struct)[-1]
 
     @classmethod
     def send_del_by_mac(cls, mac):
@@ -806,12 +890,21 @@ class WmediumdServerConn(object):
         msgtype = WmediumdConstants.WSERVER_ERRPROB_UPDATE_REQUEST_TYPE
         mac_from = link.sta1intfref.get_intf_mac().replace(':', '').decode('hex')
         mac_to = link.sta2intfref.get_intf_mac().replace(':', '').decode('hex')
-        shift_amount = 31
-        one_shifted = ctypes.c_int32(1 << 31).value
-        beforecomma = int(link.errprob)
-        aftercomma = int(((link.errprob - beforecomma) * one_shifted))
-        errprob = (beforecomma << shift_amount) + aftercomma
+        errprob = cls.__conv_float_to_fixed_point(link.errprob)
         return cls.__errprob_update_request_struct.pack(msgtype, mac_from, mac_to, errprob)
+
+    @classmethod
+    def __create_specprob_update_request(cls, link):
+        # type: (WmediumdSPECPROBLink) -> str
+        msgtype = WmediumdConstants.WSERVER_SPECPROB_UPDATE_REQUEST_TYPE
+        mac_from = link.sta1intfref.get_intf_mac().replace(':', '').decode('hex')
+        mac_to = link.sta2intfref.get_intf_mac().replace(':', '').decode('hex')
+        fixed_points = [None] * 144
+        for size_idx in range(0, 12):
+            for rate_idx in range(0, 12):
+                fixed_points[size_idx * 12 + rate_idx] = cls.__conv_float_to_fixed_point(
+                    link.errprobs[size_idx][rate_idx])
+        return cls.__specprob_update_request_struct.pack(msgtype, mac_from, mac_to, *fixed_points)
 
     @classmethod
     def __create_station_del_by_mac_request(cls, mac):
@@ -842,3 +935,11 @@ class WmediumdServerConn(object):
             raise WmediumdException(
                 "Received response of unknown type %d, expected %d" % (recvd_type, expected_type))
         return resp_struct.unpack(recvd_data)
+
+    @classmethod
+    def __conv_float_to_fixed_point(cls, d):
+        shift_amount = 31
+        one_shifted = ctypes.c_int32(1 << 31).value
+        beforecomma = int(d)
+        aftercomma = int(((d - beforecomma) * one_shifted))
+        return ctypes.c_int32(beforecomma << shift_amount).value + aftercomma

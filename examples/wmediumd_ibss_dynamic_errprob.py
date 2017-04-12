@@ -11,7 +11,7 @@ author: Patrick Grosse (patrick.grosse@uni-muenster.de)
 from mininet.cli import CLI
 from mininet.log import setLogLevel
 from mininet.net import Mininet
-from mininet.wmediumdConnector import DynamicWmediumdIntfRef, WmediumdERRPROBLink, WmediumdStarter
+from mininet.wmediumdConnector import DynamicWmediumdIntfRef, WmediumdERRPROBLink, WmediumdStarter, WmediumdConstants
 
 
 def topology():
@@ -37,7 +37,7 @@ def topology():
         WmediumdERRPROBLink(sta2wlan0, sta1wlan0, 0.2),
         WmediumdERRPROBLink(sta2wlan0, sta3wlan0, 0.1),
         WmediumdERRPROBLink(sta3wlan0, sta2wlan0, 0.1)]
-    WmediumdStarter.initialize(intfrefs, links, use_errprob=True)
+    WmediumdStarter.initialize(intfrefs, links, mode=WmediumdConstants.WMEDIUMD_MODE_ERRPROB)
 
     print "*** Configuring wifi nodes"
     net.configureWifiNodes()
