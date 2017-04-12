@@ -4,8 +4,9 @@ author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
 """
 
 from mininet.wifiChannel import setChannelParams
-from mininet.wmediumdConnector import WmediumdServerConn, WmediumdSNRLink
-from mininet.log import debug 
+from mininet.wmediumdConnector import WmediumdServerConn
+from mininet.log import debug
+from mininet.link import Association
 
 class listNodes (object):
 
@@ -81,7 +82,6 @@ class listNodes (object):
         dist = ref_distance / i
         return dist
     
-    
     @classmethod
     def meshAssociation(self, sta, wlan):
         debug("associating %s to %s...\n" % (sta.params['wlan'][wlan], sta.params['associatedTo'][wlan]))
@@ -90,7 +90,7 @@ class listNodes (object):
 
 class meshRouting (object):
     """Mesh Routing"""
-    routing = ''
+    routing = 'custom'
 
     def __init__(self, stations):
         
@@ -142,29 +142,30 @@ class meshRouting (object):
                     break
                 else:
                     newsta = sta_ref[0]
-                for x, y in zip(listNodes.nodesX, listNodes.nodesY):
-                    if x == sta and y not in exist:
+                for sta1, sta2 in zip(listNodes.nodesX, listNodes.nodesY):
+                    if sta1 == sta and sta2 not in exist:
                         if WmediumdServerConn.connected:
-                            WmediumdServerConn.send_snr_update(WmediumdSNRLink(sta.wmediumdIface, y.wmediumdIface, sta.params['snr'][wlan]))
+                            cls = Association
+                            cls.setSNRWmediumd(sta, sta2, sta.params['snr'][wlan])
                         else:
                             command = 'iw dev %s mpath new %s next_hop %s' % (sta.params['wlan'][wlan], \
-                                                                              y.meshMac[wlan], y.meshMac[wlan])
-                            debug('\n'+command)
+                                                                              sta2.meshMac[wlan], sta2.meshMac[wlan])
+                            debug('\n' + command)
                             sta.pexec(command)
-                        exist.append(y)
-                        controlMeshMac.append(y.meshMac[wlan])
-                        sta_ref.append(y)
-                    elif x == newsta and y not in exist:
+                        exist.append(sta2)
+                        controlMeshMac.append(sta2.meshMac[wlan])
+                        sta_ref.append(sta2)
+                    elif sta1 == newsta and sta2 not in exist:
                         if WmediumdServerConn.connected:
                             pass
                         else:
                             command = 'iw dev %s mpath new %s next_hop %s' % (sta.params['wlan'][wlan], \
-                                                                              y.meshMac[wlan], x.meshMac[wlan])
-                            debug('\n'+command)
+                                                                              sta2.meshMac[wlan], sta1.meshMac[wlan])
+                            debug('\n' + command)
                             sta.pexec(command)
-                        exist.append(y)
-                        controlMeshMac.append(y.meshMac[wlan])
-                        sta_ref.append(y)
+                        exist.append(sta2)
+                        controlMeshMac.append(sta2.meshMac[wlan])
+                        sta_ref.append(sta2)
                 if newsta in sta_ref:
                     sta_ref.remove(newsta)
 
@@ -178,6 +179,8 @@ class meshRouting (object):
                             ref_sta = ref_sta.params['carsta']
                         if ref_sta.meshMac[ref_wlan] not in controlMeshMac:
                             sta.pexec('iw dev %s mpath del %s' % (sta.params['wlan'][wlan], ref_sta.meshMac[ref_wlan]))
+                            cls = Association
+                            cls.setSNRWmediumd(sta, ref_sta, -10)
 
         """mesh leave"""
         if associate == False:
