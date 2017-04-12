@@ -90,7 +90,7 @@ class listNodes (object):
 
 class meshRouting (object):
     """Mesh Routing"""
-    routing = 'custom'
+    routing = ''
 
     def __init__(self, stations):
         
