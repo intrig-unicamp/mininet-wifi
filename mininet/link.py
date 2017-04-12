@@ -29,6 +29,7 @@ import re
 from mininet.log import info, error, debug
 from mininet.util import makeIntfPair
 from mininet.wifiChannel import setChannelParams
+from mininet.wmediumdConnector import WmediumdServerConn, WmediumdSNRLink
 
 class Intf(object):
 
@@ -1211,6 +1212,12 @@ class Association(Link):
         ifconfig = str(sta.pexec('ifconfig %s' % iface))
         mac = self._macMatchRegex.findall(ifconfig)
         sta.meshMac[wlan] = str(mac[0])
+        
+    @classmethod
+    def setSNRWmediumd(self, sta, ap, snr):
+        """Set SNR for wmediumd"""
+        WmediumdServerConn.send_snr_update(WmediumdSNRLink(sta.wmediumdIface, ap.wmediumdIface, snr))
+        WmediumdServerConn.send_snr_update(WmediumdSNRLink(ap.wmediumdIface, sta.wmediumdIface, snr))
         
     @classmethod
     def configureWirelessLink(self, sta, ap, wlan, useWmediumd=False):

@@ -15,7 +15,7 @@ from mininet.wifiMobilityModels import gauss_markov, \
 from mininet.wifiChannel import setChannelParams
 from mininet.wifiAssociationControl import associationControl
 from mininet.wifiMeshRouting import listNodes, meshRouting
-from mininet.wmediumdConnector import WmediumdServerConn, WmediumdSNRLink
+from mininet.wmediumdConnector import WmediumdServerConn
 from mininet.wifiPlot import plot2d, plot3d
 from mininet.link import Association
 
@@ -69,7 +69,7 @@ class mobility (object):
         :param diffTime: difference between start and stop time. Useful for calculating the speed
         """
         sta.params['speed'] = '%.2f' % abs(((pos_x + pos_y + pos_z) / diffTime))
-        
+            
     @classmethod
     def apOutOfRange(self, sta, ap, wlan, dist):
         """
@@ -89,6 +89,9 @@ class mobility (object):
                     os.system('pkill -f \'wpa_supplicant -B -Dnl80211 -P %s -i %s\'' % (pidfile, sta.params['wlan'][wlan]))
                     os.system('rm /var/run/wpa_supplicant/%s' % sta.params['wlan'][wlan])
             sta.pexec('iw dev %s disconnect' % sta.params['wlan'][wlan])
+            if WmediumdServerConn.connected and dist >= 0.01:
+                cls = Association
+                cls.setSNRWmediumd(sta, ap, snr=-10)
             sta.params['associatedTo'][wlan] = ''
             sta.params['rssi'][wlan] = 0
             sta.params['snr'][wlan] = 0
@@ -130,7 +133,8 @@ class mobility (object):
             if not WmediumdServerConn.connected and dist >= 0.01:
                 setChannelParams(sta, ap, wlan, dist) 
             if WmediumdServerConn.connected and dist >= 0.01:
-                WmediumdServerConn.send_snr_update(WmediumdSNRLink(sta.wmediumdIface, ap.wmediumdIface, sta.params['snr'][wlan]))
+                cls = Association
+                cls.setSNRWmediumd(sta, ap, snr=sta.params['snr'][wlan])
         setChannelParams.recordParams(sta, ap)
                 
     @classmethod
