@@ -1,7 +1,8 @@
 #!/usr/bin/python
 
 """
-Setting the position of Nodes (only for Stations and Access Points) and providing mobility using mobility models with wmediumd enabled.
+Setting the position of Nodes (only for Stations and Access Points)
+and providing mobility using mobility models with wmediumd enabled.
 
 """
 
@@ -28,21 +29,21 @@ def topology():
     print "*** Associating and Creating links"
     net.addLink(ap1, sta1)
     net.addLink(ap1, sta2)
-    
+
     print "*** Starting network"
     net.build()
     c1.start()
     ap1.start( [c1] )
-    
+
     """uncomment to plot graph"""
     net.plotGraph(max_x=100, max_y=100)
 
     """Seed"""
-    net.seed(20) 
+    net.seed(20)
 
     "*** Available models: RandomWalk, TruncatedLevyWalk, RandomDirection, RandomWayPoint, GaussMarkov, ReferencePoint, TimeVariantCommunity ***"
     net.startMobility(startTime=0, model='RandomDirection', max_x=100, max_y=100, min_v=0.5, max_v=0.8)
-   
+
     print "*** Running CLI"
     CLI( net )
 
