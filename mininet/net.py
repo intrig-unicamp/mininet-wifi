@@ -124,7 +124,7 @@ from mininet.wifiPropagationModels import propagationModel
 from mininet.wifiAdHocConnectivity import pairingAdhocNodes
 from mininet.wifiMeshRouting import listNodes, meshRouting
 from mininet.wmediumdConnector import DynamicWmediumdIntfRef, WmediumdSNRLink, WmediumdStarter, WmediumdServerConn, \
-                                            WmediumdTXPower, WmediumdPosition, DynamicWmediumdStaRef
+                                            WmediumdTXPower, WmediumdPosition, DynamicWmediumdStaRef, WmediumdConstants
         
 sys.path.append(str(os.getcwd()) + '/mininet/')
 from sumo.runner import sumo
@@ -1148,17 +1148,19 @@ class Mininet(object):
             intfrefs.append(node.wmediumdIface)
         
         if self.enable_interference:
+            mode = WmediumdConstants.WMEDIUMD_MODE_INTERFERENCE
             for node in nodes:
                 node.staref = DynamicWmediumdStaRef(node)
                 positions.append(WmediumdPosition(node.staref, [float(node.params['position'][0]), float(node.params['position'][1])]))
                 txpowers.append(WmediumdTXPower(node.staref, float(node.params['txpower'][0])))
         else:
+            mode = WmediumdConstants.WMEDIUMD_MODE_SNR
             for node in self.wlinks:
                 links.append(WmediumdSNRLink(node[0].wmediumdIface, node[1].wmediumdIface, node[0].params['snr'][0]))
                 links.append(WmediumdSNRLink(node[1].wmediumdIface, node[0].wmediumdIface, node[0].params['snr'][0]))
         
-        WmediumdStarter.initialize(intfrefs, links, positions=positions, enable_interference=self.enable_interference, 
-                                   txpowers=txpowers, with_server=True)
+        WmediumdStarter.initialize(intfrefs, links, mode=mode, positions=positions, \
+                                   enable_interference=self.enable_interference, txpowers=txpowers, with_server=True)
         WmediumdStarter.start()
 
     def buildFromTopo(self, topo=None):

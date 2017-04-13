@@ -25,6 +25,7 @@ class WmediumdConstants:
     WMEDIUMD_MODE_SNR = 0
     WMEDIUMD_MODE_ERRPROB = 1
     WMEDIUMD_MODE_SPECPROB = 2
+    WMEDIUMD_MODE_INTERFERENCE = 3
 
     WSERVER_SHUTDOWN_REQUEST_TYPE = 0
     WSERVER_SNR_UPDATE_REQUEST_TYPE = 1
@@ -39,6 +40,9 @@ class WmediumdConstants:
     WSERVER_ERRPROB_UPDATE_RESPONSE_TYPE = 10
     WSERVER_SPECPROB_UPDATE_REQUEST_TYPE = 11
     WSERVER_SPECPROB_UPDATE_RESPONSE_TYPE = 12
+    WSERVER_POSITION_UPDATE_REQUEST_TYPE = 13
+    WSERVER_POSITION_UPDATE_RESPONSE_TYPE = 14
+
 
     WUPDATE_SUCCESS = 0
     WUPDATE_INTF_NOTFOUND = 1
@@ -144,6 +148,17 @@ class WmediumdManager(object):
         WmediumdServerConn.update_link_snr(link)
 
     @classmethod
+    def update_position(cls, position):
+        # type: (WmediumdPosition) -> None
+        """
+        Update the Position of a node at wmediumd
+        :param position The position to update
+
+        :type position: WmediumdPosition
+        """
+        WmediumdServerConn.update_position(position)
+
+    @classmethod
     def update_link_errprob(cls, link):
         # type: (WmediumdERRPROBLink) -> None
         """
@@ -227,7 +242,7 @@ class WmediumdStarter(object):
         cls.default_auto_errprob = default_auto_errprob
         cls.mode = mode
         if mode != WmediumdConstants.WMEDIUMD_MODE_SNR and mode != WmediumdConstants.WMEDIUMD_MODE_ERRPROB \
-                and mode != WmediumdConstants.WMEDIUMD_MODE_SPECPROB:
+                and mode != WmediumdConstants.WMEDIUMD_MODE_SPECPROB and mode != WmediumdConstants.WMEDIUMD_MODE_INTERFERENCE:
             raise Exception("Wrong wmediumd mode given")
         cls.is_initialized = True
         cls.enable_interference = enable_interference
@@ -279,19 +294,20 @@ class WmediumdStarter(object):
                     raise WmediumdException('%s is not part of the managed interfaces' % link.sta2intfref.identifier())
 
         if cls.mode != WmediumdConstants.WMEDIUMD_MODE_SPECPROB:
-            # Auto add links
-            if cls.auto_add_links:
-                for intfref1 in cls.intfrefs:
-                    for intfref2 in cls.intfrefs:
-                        if intfref1 != intfref2:
-                            link_id = intfref1.identifier() + '/' + intfref2.identifier()
-                            if cls.mode == WmediumdConstants.WMEDIUMD_MODE_ERRPROB:
-                                mappedlinks.setdefault(link_id,
-                                                       WmediumdERRPROBLink(intfref1, intfref2,
-                                                                           cls.default_auto_errprob))
-                            else:
-                                mappedlinks.setdefault(link_id,
-                                                       WmediumdSNRLink(intfref1, intfref2, cls.default_auto_snr))
+            if cls.mode != WmediumdConstants.WMEDIUMD_MODE_INTERFERENCE:
+                # Auto add links
+                if cls.auto_add_links:
+                    for intfref1 in cls.intfrefs:
+                        for intfref2 in cls.intfrefs:
+                            if intfref1 != intfref2:
+                                link_id = intfref1.identifier() + '/' + intfref2.identifier()
+                                if cls.mode == WmediumdConstants.WMEDIUMD_MODE_ERRPROB:
+                                    mappedlinks.setdefault(link_id,
+                                                           WmediumdERRPROBLink(intfref1, intfref2,
+                                                                               cls.default_auto_errprob))
+                                else:
+                                    mappedlinks.setdefault(link_id,
+                                                           WmediumdSNRLink(intfref1, intfref2, cls.default_auto_snr))
 
             # Create wmediumd config
             wmd_config = tempfile.NamedTemporaryFile(prefix='mn_wmd_config_', suffix='.cfg', delete=False)
@@ -362,7 +378,7 @@ class WmediumdStarter(object):
         else:
             cmdline.append("-c")
             cmdline.append(cls.wmd_config_name)
-            if cls.mode == WmediumdConstants.WMEDIUMD_MODE_SNR:
+            if cls.mode == WmediumdConstants.WMEDIUMD_MODE_SNR or WmediumdConstants.WMEDIUMD_MODE_INTERFERENCE:
                 cmdline.append("-x")
                 per_data_file = pkg_resources.resource_filename('mininet', 'data/signal_table_ieee80211ax')
                 cmdline.append(per_data_file)
@@ -671,6 +687,11 @@ class WmediumdServerConn(object):
     __snr_update_response_fmt = __base_struct_fmt + __snr_update_request_fmt + 'B'
     __snr_update_request_struct = struct.Struct('!' + __snr_update_request_fmt)
     __snr_update_response_struct = struct.Struct('!' + __snr_update_response_fmt)
+    
+    __position_update_request_fmt = __base_struct_fmt
+    __position_update_response_fmt = __base_struct_fmt + __position_update_request_fmt + 'B'
+    __position_update_request_struct = struct.Struct('!' + __position_update_request_fmt)
+    __position_update_response_struct = struct.Struct('!' + __position_update_response_fmt)
 
     __errprob_update_request_fmt = __base_struct_fmt + __mac_struct_fmt + __mac_struct_fmt + 'i'
     __errprob_update_response_fmt = __base_struct_fmt + __errprob_update_request_fmt + 'B'
@@ -768,6 +789,19 @@ class WmediumdServerConn(object):
         ret = WmediumdServerConn.send_snr_update(link)
         if ret != WmediumdConstants.WUPDATE_SUCCESS:
             raise WmediumdException("Received error code from wmediumd: code %d" % ret)
+        
+    @classmethod
+    def update_position(cls, position):
+        # type: (WmediumdPosition) -> None
+        """
+        Update the Position of a connection at wmediumd
+        :param position The position to update
+
+        :type position: WmediumdPosition
+        """
+        ret = WmediumdServerConn.send_position(position)
+        if ret != WmediumdConstants.WUPDATE_SUCCESS:
+            raise WmediumdException("Received error code from wmediumd: code %d" % ret)
 
     @classmethod
     def update_link_errprob(cls, link):
@@ -808,6 +842,20 @@ class WmediumdServerConn(object):
         cls.sock.send(cls.__create_snr_update_request(link))
         return cls.__parse_response(WmediumdConstants.WSERVER_SNR_UPDATE_RESPONSE_TYPE,
                                     cls.__snr_update_response_struct)[-1]
+                                    
+    @classmethod
+    def send_position(cls, position):
+        # type: (WmediumdPosition) -> int
+        """
+        Send an update to the wmediumd server
+        :param position: The WmediumdPosition to update
+        :return: A WUPDATE_* constant
+        """
+        debug("\n%s Updating Position of %s to value %d" % (
+            WmediumdConstants.LOG_PREFIX, position.staref, position.sta_position))
+        cls.sock.send(cls.__create_position_update_request(position))
+        return cls.__parse_response(WmediumdConstants.WSERVER_POSITION_UPDATE_RESPONSE_TYPE,
+                                    cls.__position_update_response_struct)[-1]
 
     @classmethod
     def send_errprob_update(cls, link):
@@ -883,6 +931,15 @@ class WmediumdServerConn(object):
         mac_to = link.sta2intfref.get_intf_mac().replace(':', '').decode('hex')
         snr = link.snr
         return cls.__snr_update_request_struct.pack(msgtype, mac_from, mac_to, snr)
+    
+    @classmethod
+    def __create_position_update_request(cls, link):
+        # type: (WmediumdPosition) -> str
+        msgtype = WmediumdConstants.WSERVER_POSITION_UPDATE_REQUEST_TYPE
+        mac_from = link.sta1intfref.get_intf_mac().replace(':', '').decode('hex')
+        mac_to = link.sta2intfref.get_intf_mac().replace(':', '').decode('hex')
+        snr = link.snr
+        return cls.__position_update_request_struct.pack(msgtype, mac_from, mac_to, snr)
 
     @classmethod
     def __create_errprob_update_request(cls, link):
