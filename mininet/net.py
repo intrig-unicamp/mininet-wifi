@@ -124,7 +124,7 @@ from mininet.wifiPropagationModels import propagationModel
 from mininet.wifiAdHocConnectivity import pairingAdhocNodes
 from mininet.wifiMeshRouting import listNodes, meshRouting
 from mininet.wmediumdConnector import DynamicWmediumdIntfRef, WmediumdSNRLink, WmediumdStarter, WmediumdServerConn, \
-                                            WmediumdTXPower, WmediumdPosition, DynamicWmediumdStaRef, WmediumdConstants
+                                            WmediumdTXPower, WmediumdPosition, WmediumdConstants
         
 sys.path.append(str(os.getcwd()) + '/mininet/')
 from sumo.runner import sumo
@@ -1150,9 +1150,14 @@ class Mininet(object):
         if self.enable_interference:
             mode = WmediumdConstants.WMEDIUMD_MODE_INTERFERENCE
             for node in nodes:
-                node.staref = DynamicWmediumdStaRef(node)
-                positions.append(WmediumdPosition(node.staref, [float(node.params['position'][0]), float(node.params['position'][1])]))
-                txpowers.append(WmediumdTXPower(node.staref, float(node.params['txpower'][0])))
+                if 'position' not in node.params:
+                    pos1 = 0
+                    pos2 = 0
+                else:
+                    pos1 = float(node.params['position'][0])
+                    pos2 = float(node.params['position'][1])
+                positions.append(WmediumdPosition(node.wmediumdIface, [pos1, pos2]))
+                txpowers.append(WmediumdTXPower(node.wmediumdIface, float(node.params['txpower'][0])))
         else:
             mode = WmediumdConstants.WMEDIUMD_MODE_SNR
             for node in self.wlinks:

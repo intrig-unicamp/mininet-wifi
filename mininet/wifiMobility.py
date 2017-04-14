@@ -89,7 +89,9 @@ class mobility (object):
                     os.system('pkill -f \'wpa_supplicant -B -Dnl80211 -P %s -i %s\'' % (pidfile, sta.params['wlan'][wlan]))
                     os.system('rm /var/run/wpa_supplicant/%s' % sta.params['wlan'][wlan])
             sta.pexec('iw dev %s disconnect' % sta.params['wlan'][wlan])
-            if WmediumdServerConn.connected and dist >= 0.01:
+            if WmediumdServerConn.connected and WmediumdServerConn.interference_enabled and dist >= 0.01:
+                """do nothing"""
+            elif WmediumdServerConn.connected and dist >= 0.01:
                 cls = Association
                 cls.setSNRWmediumd(sta, ap, snr=-10)
             sta.params['associatedTo'][wlan] = ''
@@ -129,10 +131,13 @@ class mobility (object):
             snr_ = setChannelParams.setSNR(sta, wlan)
             sta.params['snr'][wlan] = snr_
             if sta not in ap.params['associatedStations']:
-                ap.params['associatedStations'].append(sta)  
+                ap.params['associatedStations'].append(sta)
             if not WmediumdServerConn.connected and dist >= 0.01:
-                setChannelParams(sta, ap, wlan, dist) 
-            if WmediumdServerConn.connected and dist >= 0.01:
+                setChannelParams(sta, ap, wlan, dist)
+            if WmediumdServerConn.connected and WmediumdServerConn.interference_enabled and dist >= 0.01:
+                cls = Association
+                cls.setPositionWmediumd(sta)
+            elif WmediumdServerConn.connected and dist >= 0.01:
                 cls = Association
                 cls.setSNRWmediumd(sta, ap, snr=sta.params['snr'][wlan])
         setChannelParams.recordParams(sta, ap)

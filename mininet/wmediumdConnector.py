@@ -246,6 +246,7 @@ class WmediumdStarter(object):
             raise Exception("Wrong wmediumd mode given")
         cls.is_initialized = True
         cls.enable_interference = enable_interference
+        WmediumdServerConn.interference_enabled = enable_interference
 
     @classmethod
     def start(cls):
@@ -263,16 +264,11 @@ class WmediumdStarter(object):
 
         mappedintfrefs = {}
         mappedlinks = {}
-        mappedpositions = {}
-        mappedtxpowers = {}
         if cls.enable_interference:
             """check it"""
             # for position in cls.positions:
-            #    pos_id = position.sta_position.identifier()
+            #    pos_id = position.staintfref.identifier()
             #    mappedpositions[pos_id] = position
-            # for txpower in cls.txpowers:
-            #    txpower_id = txpower.sta_txpower.identifier()
-            #    mappedtxpowers[txpower_id] = txpower
         else:
             # Map all links using the interface identifier and check for missing interfaces in the  intfrefs list
             for link in cls.links:
@@ -313,17 +309,17 @@ class WmediumdStarter(object):
             wmd_config = tempfile.NamedTemporaryFile(prefix='mn_wmd_config_', suffix='.cfg', delete=False)
             cls.wmd_config_name = wmd_config.name
             debug("Name of wmediumd config: %s\n" % cls.wmd_config_name)
-            configstr = 'ifaces:\n{\n\tids = ['
+            configstr = 'ifaces:\n{\n\tids = [\n'
             intfref_id = 0
             for intfref in cls.intfrefs:
                 if intfref_id != 0:
-                    configstr += ', '
+                    configstr += ', \n'
                 grepped_mac = intfref.get_intf_mac()
-                configstr += '"%s"' % grepped_mac
+                configstr += '\t\t"%s"' % grepped_mac
                 mappedintfrefs[intfref.identifier()] = intfref_id
                 intfref_id += 1
             if cls.enable_interference:  # Still have to be implemented
-                configstr += '];\n\tenable_interference = true;\n};\npath_loss:\n{\n'
+                configstr += '\n\t];\n\tenable_interference = true;\n};\npath_loss:\n{\n'
                 configstr += '\tpositions = ('
                 first_pos = True
                 for mappedposition in cls.positions:
@@ -378,7 +374,7 @@ class WmediumdStarter(object):
         else:
             cmdline.append("-c")
             cmdline.append(cls.wmd_config_name)
-            if cls.mode == WmediumdConstants.WMEDIUMD_MODE_SNR or WmediumdConstants.WMEDIUMD_MODE_INTERFERENCE:
+            if cls.mode == WmediumdConstants.WMEDIUMD_MODE_SNR or cls.mode == WmediumdConstants.WMEDIUMD_MODE_INTERFERENCE:
                 cmdline.append("-x")
                 per_data_file = pkg_resources.resource_filename('mininet', 'data/signal_table_ieee80211ax')
                 cmdline.append(per_data_file)
@@ -441,7 +437,7 @@ class WmediumdStarter(object):
 
 
 class WmediumdPosition(object):
-    def __init__(self, staref, sta_position):
+    def __init__(self, staintfref, sta_position):
         """
         Describes the position of a station
 
@@ -449,12 +445,12 @@ class WmediumdPosition(object):
 
         :type sta_position: WmediumdPosRef
         """
-        self.staref = staref
+        self.staintfref = staintfref
         self.sta_position = sta_position
 
 
 class WmediumdTXPower(object):
-    def __init__(self, staref, sta_txpower):
+    def __init__(self, staintfref, sta_txpower):
         """
         Describes the Transmission Power of a station
 
@@ -462,7 +458,7 @@ class WmediumdTXPower(object):
 
         :type sta_txpower: WmediumdTXPowerRef
         """
-        self.staref = staref
+        self.staintfref = staintfref
         self.sta_txpower = sta_txpower
 
 
@@ -500,57 +496,6 @@ class WmediumdERRPROBLink(object):
         self.sta1intfref = sta1intfref
         self.sta2intfref = sta2intfref
         self.errprob = errprob
-
-
-class WmediumdStaRef:
-    def __init__(self, staname, position, txpower):
-        """
-        An unambiguous reference to an interface of a station
-
-        :param staname: Station name
-        :param intfname: Interface name
-        :param intfmac: Interface MAC address
-
-        :type staname: str
-        :type intfname: str
-        :type intfmac: str
-        """
-        self.__staname = staname
-        self.__position = position
-        self.__txpower = txpower
-
-    def get_station_name(self):
-        """
-        Get the name of the station
-
-        :rtype: str
-        """
-        return self.__staname
-
-    def get_position(self):
-        """
-        Get the position
-
-        :rtype: str
-        """
-        return self.__position
-
-    def get_txpower(self):
-        """
-        Get the txpower
-
-        :rtype: str
-        """
-        return self.__txpower
-
-    def identifier(self):
-        """
-        Identifier used in dicts
-
-        :rtype: str
-        """
-        return self.get_station_name()
-
 
 class WmediumdSPECPROBLink(object):
     def __init__(self, sta1intfref, sta2intfref, errprobs):
@@ -659,24 +604,6 @@ class DynamicWmediumdIntfRef(WmediumdIntfRef):
         if found:
             return self.__sta.params['mac'][index]
 
-
-class DynamicWmediumdStaRef(WmediumdStaRef):
-    def __init__(self, sta, position=None, txpower=None):
-        """
-        An unambiguous reference to an interface of a station
-
-        :param sta: Mininet-Wifi station
-        :param intf: Mininet interface or name of Mininet interface. If None, the default interface will be used
-
-        :type sta: Station
-        :type intf: Union [Intf, str, None]
-        """
-        WmediumdStaRef.__init__(self, "", "", "")
-        self.__sta = sta
-        self.__position = position
-        self.__txpower = txpower
-
-
 class WmediumdServerConn(object):
     __mac_struct_fmt = '6s'
 
@@ -688,7 +615,7 @@ class WmediumdServerConn(object):
     __snr_update_request_struct = struct.Struct('!' + __snr_update_request_fmt)
     __snr_update_response_struct = struct.Struct('!' + __snr_update_response_fmt)
     
-    __position_update_request_fmt = __base_struct_fmt
+    __position_update_request_fmt = __base_struct_fmt + __mac_struct_fmt + 's' + 's'
     __position_update_response_fmt = __base_struct_fmt + __position_update_request_fmt + 'B'
     __position_update_request_struct = struct.Struct('!' + __position_update_request_fmt)
     __position_update_response_struct = struct.Struct('!' + __position_update_response_fmt)
@@ -720,6 +647,7 @@ class WmediumdServerConn(object):
 
     sock = None
     connected = False
+    interference_enabled = False
 
     @classmethod
     def connect(cls, uds_address=WmediumdConstants.SOCKET_PATH):
@@ -799,7 +727,7 @@ class WmediumdServerConn(object):
 
         :type position: WmediumdPosition
         """
-        ret = WmediumdServerConn.send_position(position)
+        ret = WmediumdServerConn.send_position_update(position)
         if ret != WmediumdConstants.WUPDATE_SUCCESS:
             raise WmediumdException("Received error code from wmediumd: code %d" % ret)
 
@@ -844,15 +772,15 @@ class WmediumdServerConn(object):
                                     cls.__snr_update_response_struct)[-1]
                                     
     @classmethod
-    def send_position(cls, position):
+    def send_position_update(cls, position):
         # type: (WmediumdPosition) -> int
         """
         Send an update to the wmediumd server
         :param position: The WmediumdPosition to update
         :return: A WUPDATE_* constant
         """
-        debug("\n%s Updating Position of %s to value %d" % (
-            WmediumdConstants.LOG_PREFIX, position.staref, position.sta_position))
+        debug("\n%s Updating Position of %s to x=%s, y=%s" % (
+            WmediumdConstants.LOG_PREFIX, position.staintfref.get_intf_mac(), position.sta_position[0], position.sta_position[1]))
         cls.sock.send(cls.__create_position_update_request(position))
         return cls.__parse_response(WmediumdConstants.WSERVER_POSITION_UPDATE_RESPONSE_TYPE,
                                     cls.__position_update_response_struct)[-1]
@@ -933,13 +861,13 @@ class WmediumdServerConn(object):
         return cls.__snr_update_request_struct.pack(msgtype, mac_from, mac_to, snr)
     
     @classmethod
-    def __create_position_update_request(cls, link):
+    def __create_position_update_request(cls, position):
         # type: (WmediumdPosition) -> str
         msgtype = WmediumdConstants.WSERVER_POSITION_UPDATE_REQUEST_TYPE
-        mac_from = link.sta1intfref.get_intf_mac().replace(':', '').decode('hex')
-        mac_to = link.sta2intfref.get_intf_mac().replace(':', '').decode('hex')
-        snr = link.snr
-        return cls.__position_update_request_struct.pack(msgtype, mac_from, mac_to, snr)
+        mac = position.staintfref.get_intf_mac().replace(':', '').decode('hex')
+        pos1 = position.sta_position[0]
+        pos2 = position.sta_position[1]
+        return cls.__position_update_request_struct.pack(msgtype, mac, pos1, pos2)
 
     @classmethod
     def __create_errprob_update_request(cls, link):
