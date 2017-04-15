@@ -134,7 +134,7 @@ class mobility (object):
                 ap.params['associatedStations'].append(sta)
             if not WmediumdServerConn.connected and dist >= 0.01:
                 setChannelParams(sta, ap, wlan, dist)
-            if WmediumdServerConn.connected and WmediumdServerConn.interference_enabled and dist >= 0.01:
+            elif WmediumdServerConn.connected and WmediumdServerConn.interference_enabled and dist >= 0.01:
                 cls = Association
                 cls.setPositionWmediumd(sta)
             elif WmediumdServerConn.connected and dist >= 0.01:

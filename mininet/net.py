@@ -1151,12 +1151,12 @@ class Mininet(object):
             mode = WmediumdConstants.WMEDIUMD_MODE_INTERFERENCE
             for node in nodes:
                 if 'position' not in node.params:
-                    pos1 = 0
-                    pos2 = 0
+                    posX = 0
+                    posY = 0
                 else:
-                    pos1 = float(node.params['position'][0])
-                    pos2 = float(node.params['position'][1])
-                positions.append(WmediumdPosition(node.wmediumdIface, [pos1, pos2]))
+                    posX = node.params['position'][0]
+                    posY = node.params['position'][1]
+                positions.append(WmediumdPosition(node.wmediumdIface, [posX, posY]))
                 txpowers.append(WmediumdTXPower(node.wmediumdIface, float(node.params['txpower'][0])))
         else:
             mode = WmediumdConstants.WMEDIUMD_MODE_SNR

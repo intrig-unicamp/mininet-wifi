@@ -323,14 +323,14 @@ class WmediumdStarter(object):
                 configstr += '\ttype = "path_loss";\n\tpositions = ('
                 first_pos = True
                 for mappedposition in cls.positions:
-                    pos1 = mappedposition.sta_position[0]
-                    pos2 = mappedposition.sta_position[1]
+                    posX = float(mappedposition.sta_position[0])
+                    posY = float(mappedposition.sta_position[1])
                     if first_pos:
                         first_pos = False
                     else:
                         configstr += ','
                     configstr += '\n\t\t(%.1f, %.1f)' % (
-                        pos1, pos2)
+                        posX, posY)
                 configstr += '\n\t);\n\ttx_powers = ('
                 first_txpower = True
                 for mappedtxpower in cls.txpowers:
@@ -779,8 +779,10 @@ class WmediumdServerConn(object):
         :param position: The WmediumdPosition to update
         :return: A WUPDATE_* constant
         """
+        posX = position.sta_position[0]
+        posY = position.sta_position[1]
         debug("\n%s Updating Position of %s to x=%s, y=%s" % (
-            WmediumdConstants.LOG_PREFIX, position.staintfref.get_intf_mac(), position.sta_position[0], position.sta_position[1]))
+            WmediumdConstants.LOG_PREFIX, position.staintfref.get_intf_mac(), posX, posY))
         cls.sock.send(cls.__create_position_update_request(position))
         return cls.__parse_response(WmediumdConstants.WSERVER_POSITION_UPDATE_RESPONSE_TYPE,
                                     cls.__position_update_response_struct)[-1]
@@ -865,9 +867,9 @@ class WmediumdServerConn(object):
         # type: (WmediumdPosition) -> str
         msgtype = WmediumdConstants.WSERVER_POSITION_UPDATE_REQUEST_TYPE
         mac = position.staintfref.get_intf_mac().replace(':', '').decode('hex')
-        pos1 = position.sta_position[0]
-        pos2 = position.sta_position[1]
-        return cls.__position_update_request_struct.pack(msgtype, mac, pos1, pos2)
+        posX = position.sta_position[0]
+        posY = position.sta_position[1]
+        return cls.__position_update_request_struct.pack(msgtype, mac, posX, posY)
 
     @classmethod
     def __create_errprob_update_request(cls, link):
