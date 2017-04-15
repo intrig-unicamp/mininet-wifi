@@ -124,7 +124,7 @@ class setChannelParams (object):
         :param sta: station
         :param wlan: wlan ID
         """
-        return float('%.2f' % (sta.params['rssi'][wlan] - (-90.0)))
+        return float('%.2f' % (sta.params['rssi'][wlan] - (-91.0)))
     
     @classmethod
     def recordParams(self, sta, ap):
