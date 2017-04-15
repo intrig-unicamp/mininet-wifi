@@ -319,8 +319,8 @@ class WmediumdStarter(object):
                 mappedintfrefs[intfref.identifier()] = intfref_id
                 intfref_id += 1
             if cls.enable_interference:  # Still have to be implemented
-                configstr += '\n\t];\n\tenable_interference = true;\n};\npath_loss:\n{\n'
-                configstr += '\tpositions = ('
+                configstr += '\n\t];\n};\nmodel:\n{\n'
+                configstr += '\ttype = "path_loss";\n\tpositions = ('
                 first_pos = True
                 for mappedposition in cls.positions:
                     pos1 = mappedposition.sta_position[0]
@@ -329,7 +329,7 @@ class WmediumdStarter(object):
                         first_pos = False
                     else:
                         configstr += ','
-                    configstr += '\n\t\t(%d, %d)' % (
+                    configstr += '\n\t\t(%.1f, %.1f)' % (
                         pos1, pos2)
                 configstr += '\n\t);\n\ttx_powers = ('
                 first_txpower = True
@@ -340,7 +340,7 @@ class WmediumdStarter(object):
                         first_txpower = False
                     else:
                         configstr += ', %s' % txpower
-                configstr += ');\n\tmodel_params = ("log_distance", 3.5, 0.0);\n};'
+                configstr += ');\n\tmodel_name = "log_distance";\n\tpath_loss_exp = 3.5;\n\txg = 0.0;\n};'
             else:
                 configstr += '];\n};model:\n{\n\ttype = "'
                 if cls.mode == WmediumdConstants.WMEDIUMD_MODE_ERRPROB:
