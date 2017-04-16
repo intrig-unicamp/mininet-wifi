@@ -78,7 +78,7 @@ class propagationModel (object):
         (gR): Rx Antenna Gain (dBi)
         (hT): Tx Antenna Height
         (hR): Rx Antenna Height
-        (d) is the distance between the transmitter and the receiver (m)
+        (dist) is the distance between the transmitter and the receiver (m)
         (L): System loss"""
         if dist == 0:
             dist = 0.1
@@ -93,7 +93,7 @@ class propagationModel (object):
         """Log Distance Propagation Loss Model:
         referenceDistance (m): The distance at which the reference loss is calculated
         exponent: The exponent of the Path Loss propagation model, where 2 is for propagation in free space
-        (d) is the distance between the transmitter and the receiver (m)"""
+        (dist) is the distance between the transmitter and the receiver (m)"""
         referenceDistance = 1
         pathLoss = self.pathLoss(sta, ap, referenceDistance, wlan)
         if dist == 0:
