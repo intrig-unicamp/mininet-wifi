@@ -1160,7 +1160,7 @@ class Association(Link):
         wlan = sta.ifaceToAssociate
         iface = sta.params['wlan'][wlan]
         sta.params['rssi'][wlan] = -62
-        sta.params['snr'][wlan] = -62 - (-90.0)
+        sta.params['snr'][wlan] = -62 - (-91.0)
         sta.func[wlan] = 'adhoc'
         sta.intfs[wlan].setIP(sta.params['ip'][wlan])
         sta.cmd('iw dev %s set type ibss' % iface)
@@ -1176,7 +1176,7 @@ class Association(Link):
         Configure Wireless Mesh Interface
         """
         node.params['rssi'][wlan] = -62
-        node.params['snr'][wlan] = -62 - (-90.0)
+        node.params['snr'][wlan] = -62 - (-91.0)
            
         if 'mp' not in node.params['wlan'][wlan]:
             node.convertIfaceToMesh(node, wlan)

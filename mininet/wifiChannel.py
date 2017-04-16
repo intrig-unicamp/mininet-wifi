@@ -243,4 +243,6 @@ class setChannelParams (object):
             freq = 2.457
         elif node.params['channel'][wlan] == 11:
             freq = 2.462
+        elif node.params['channel'][wlan] == 36:
+            freq = 5.18
         return freq

@@ -1164,8 +1164,8 @@ class Mininet(object):
                 links.append(WmediumdSNRLink(node[0].wmediumdIface, node[1].wmediumdIface, node[0].params['snr'][0]))
                 links.append(WmediumdSNRLink(node[1].wmediumdIface, node[0].wmediumdIface, node[0].params['snr'][0]))
         
-        WmediumdStarter.initialize(intfrefs, links, mode=mode, positions=positions, \
-                                   enable_interference=self.enable_interference, txpowers=txpowers, with_server=True)
+        WmediumdStarter.initialize(intfrefs, links, mode=mode, positions=positions, enable_interference=self.enable_interference, \
+                                   auto_add_links=False, txpowers=txpowers, with_server=True)
         WmediumdStarter.start()
 
     def buildFromTopo(self, topo=None):
@@ -1641,10 +1641,12 @@ class Mininet(object):
         conn1 = 0
         conn2 = 0
         if client.type == 'station' or server.type == 'station':
-            while conn1 == 0:
-                conn1 = int(client.cmd('iwconfig %s-wlan0 | grep -ic \'Link Quality\'' % client))
-            while conn2 == 0:
-                conn2 = int(server.cmd('iwconfig %s-wlan0 | grep -ic \'Link Quality\'' % server))
+            if client.type == 'station':
+                while conn1 == 0:
+                    conn1 = int(client.cmd('iwconfig %s-wlan0 | grep -ic \'Link Quality\'' % client))
+            if server.type == 'station':
+                while conn2 == 0:
+                    conn2 = int(server.cmd('iwconfig %s-wlan0 | grep -ic \'Link Quality\'' % server))
         output( '*** Iperf: testing', l4Type, 'bandwidth between',
                 client, 'and', server, '\n' )
         server.cmd( 'killall -9 iperf' )

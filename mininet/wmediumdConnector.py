@@ -264,12 +264,8 @@ class WmediumdStarter(object):
 
         mappedintfrefs = {}
         mappedlinks = {}
-        if cls.enable_interference:
-            """check it"""
-            # for position in cls.positions:
-            #    pos_id = position.staintfref.identifier()
-            #    mappedpositions[pos_id] = position
-        else:
+        
+        if not cls.enable_interference:
             # Map all links using the interface identifier and check for missing interfaces in the  intfrefs list
             for link in cls.links:
                 link_id = link.sta1intfref.identifier() + '/' + link.sta2intfref.identifier()
@@ -342,7 +338,7 @@ class WmediumdStarter(object):
                         configstr += ', %s' % txpower
                 configstr += ');\n\tmodel_name = "log_distance";\n\tpath_loss_exp = 3.5;\n\txg = 0.0;\n};'
             else:
-                configstr += '];\n};model:\n{\n\ttype = "'
+                configstr += '\n\t];\n};\nmodel:\n{\n\ttype = "'
                 if cls.mode == WmediumdConstants.WMEDIUMD_MODE_ERRPROB:
                     configstr += 'prob'
                 else:
