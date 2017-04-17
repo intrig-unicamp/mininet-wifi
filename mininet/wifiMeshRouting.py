@@ -116,15 +116,21 @@ class meshRouting (object):
             for ref_wlan in range(len(ref_sta.params['wlan'])):
                 if ref_sta != sta and ref_sta.func[ref_wlan] == 'mesh' and 'position' in sta.params:
                     dist = setChannelParams.getDistance(sta, ref_sta)
-                    totalRange = int(sta.params['range'])
-                    ref_totalRange = int(ref_sta.params['range'])
-                    if ref_totalRange > totalRange:
-                        totalRange = ref_totalRange
-                    if dist <= totalRange:
+                    range_ = int(sta.params['range'])
+                    refRange_ = int(ref_sta.params['range'])
+                    if refRange_ > range_:
+                        range_ = refRange_
+                    if dist <= range_:
                         if ref_sta.func[ref_wlan] == 'mesh':
                             if sta.params['associatedTo'][wlan] == ref_sta.params['associatedTo'][ref_wlan]:
                                 associate = True
-                                if not WmediumdServerConn.connected:
+                                if WmediumdServerConn.connected and WmediumdServerConn.interference_enabled:
+                                    cls = Association
+                                    cls.setPositionWmediumd(sta)
+                                elif WmediumdServerConn.connected:
+                                    cls = Association
+                                    cls.setSNRWmediumd(sta, ref_sta, sta.params['snr'][wlan])
+                                else:
                                     setChannelParams(sta=sta, wlan=wlan, dist=dist)
                 elif 'position' not in sta.params:
                     associate = True
@@ -144,25 +150,18 @@ class meshRouting (object):
                     newsta = sta_ref[0]
                 for sta1, sta2 in zip(listNodes.nodesX, listNodes.nodesY):
                     if sta1 == sta and sta2 not in exist:
-                        if WmediumdServerConn.connected:
-                            cls = Association
-                            cls.setSNRWmediumd(sta, sta2, sta.params['snr'][wlan])
-                        else:
-                            command = 'iw dev %s mpath new %s next_hop %s' % (sta.params['wlan'][wlan], \
-                                                                              sta2.meshMac[wlan], sta2.meshMac[wlan])
-                            debug('\n' + command)
-                            sta.pexec(command)
+                        command = 'iw dev %s mpath new %s next_hop %s' % (sta.params['wlan'][wlan], \
+                                                                          sta2.meshMac[wlan], sta2.meshMac[wlan])
+                        debug('\n' + command)
+                        sta.pexec(command)
                         exist.append(sta2)
                         controlMeshMac.append(sta2.meshMac[wlan])
                         sta_ref.append(sta2)
                     elif sta1 == newsta and sta2 not in exist:
-                        if WmediumdServerConn.connected:
-                            pass
-                        else:
-                            command = 'iw dev %s mpath new %s next_hop %s' % (sta.params['wlan'][wlan], \
-                                                                              sta2.meshMac[wlan], sta1.meshMac[wlan])
-                            debug('\n' + command)
-                            sta.pexec(command)
+                        command = 'iw dev %s mpath new %s next_hop %s' % (sta.params['wlan'][wlan], \
+                                                                          sta2.meshMac[wlan], sta1.meshMac[wlan])
+                        debug('\n' + command)
+                        sta.pexec(command)
                         exist.append(sta2)
                         controlMeshMac.append(sta2.meshMac[wlan])
                         sta_ref.append(sta2)
