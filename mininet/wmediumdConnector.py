@@ -611,7 +611,7 @@ class WmediumdServerConn(object):
     __snr_update_request_struct = struct.Struct('!' + __snr_update_request_fmt)
     __snr_update_response_struct = struct.Struct('!' + __snr_update_response_fmt)
     
-    __position_update_request_fmt = __base_struct_fmt + __mac_struct_fmt + 's' + 's'
+    __position_update_request_fmt = __base_struct_fmt + __mac_struct_fmt + 'f' + 'f'
     __position_update_response_fmt = __base_struct_fmt + __position_update_request_fmt + 'B'
     __position_update_request_struct = struct.Struct('!' + __position_update_request_fmt)
     __position_update_response_struct = struct.Struct('!' + __position_update_response_fmt)
@@ -656,6 +656,7 @@ class WmediumdServerConn(object):
             raise WmediumdException("Already connected to wmediumd server")
         cls.sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         info('*** Connecting to wmediumd server %s\n' % uds_address)
+        time.sleep(1)
         cls.sock.connect(uds_address)
         cls.connected = True
 
@@ -777,7 +778,7 @@ class WmediumdServerConn(object):
         """
         posX = position.sta_position[0]
         posY = position.sta_position[1]
-        debug("\n%s Updating Position of %s to x=%s, y=%s" % (
+        debug("%s Updating Position of %s to x=%s, y=%s\n" % (
             WmediumdConstants.LOG_PREFIX, position.staintfref.get_intf_mac(), posX, posY))
         cls.sock.send(cls.__create_position_update_request(position))
         return cls.__parse_response(WmediumdConstants.WSERVER_POSITION_UPDATE_RESPONSE_TYPE,
