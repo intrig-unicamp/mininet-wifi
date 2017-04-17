@@ -1225,7 +1225,7 @@ class Association(Link):
         posX = sta.params['position'][0]
         posY = sta.params['position'][1]
         WmediumdServerConn.send_position_update(WmediumdPosition(sta.wmediumdIface, \
-                                            [posX, posY]))
+                                            [float(posX), float(posY)]))
     @classmethod
     def configureWirelessLink(self, sta, ap, wlan, useWmediumd=False):
         """ 
