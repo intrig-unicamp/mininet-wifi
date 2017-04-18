@@ -124,12 +124,13 @@ class meshRouting (object):
                         if ref_sta.func[ref_wlan] == 'mesh':
                             if sta.params['associatedTo'][wlan] == ref_sta.params['associatedTo'][ref_wlan]:
                                 associate = True
-                                if WmediumdServerConn.connected and WmediumdServerConn.interference_enabled:
-                                    cls = Association
-                                    cls.setPositionWmediumd(sta)
-                                elif WmediumdServerConn.connected:
-                                    cls = Association
-                                    cls.setSNRWmediumd(sta, ref_sta, sta.params['snr'][wlan])
+                                if WmediumdServerConn.connected:
+                                    if WmediumdServerConn.interference_enabled:
+                                        cls = Association
+                                        cls.setPositionWmediumd(sta)
+                                    else:
+                                        cls = Association
+                                        cls.setSNRWmediumd(sta, ref_sta, sta.params['snr'][wlan])
                                 else:
                                     setChannelParams(sta=sta, wlan=wlan, dist=dist)
                 elif 'position' not in sta.params:

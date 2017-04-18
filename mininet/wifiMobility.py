@@ -133,14 +133,16 @@ class mobility (object):
                 sta.params['snr'][wlan] = snr_
             if sta not in ap.params['associatedStations']:
                 ap.params['associatedStations'].append(sta)
-            if not WmediumdServerConn.connected and dist >= 0.01:
-                setChannelParams(sta, ap, wlan, dist)
-            elif WmediumdServerConn.connected and WmediumdServerConn.interference_enabled and dist >= 0.01:
-                cls = Association
-                cls.setPositionWmediumd(sta)
-            elif WmediumdServerConn.connected and dist >= 0.01:
-                cls = Association
-                cls.setSNRWmediumd(sta, ap, snr=sta.params['snr'][wlan])
+            if dist >= 0.01:
+                if WmediumdServerConn.connected:
+                    if WmediumdServerConn.interference_enabled:
+                        cls = Association
+                        cls.setPositionWmediumd(sta)
+                    else:
+                        cls = Association
+                        cls.setSNRWmediumd(sta, ap, snr=sta.params['snr'][wlan])
+                else:
+                    setChannelParams(sta, ap, wlan, dist)
         setChannelParams.recordParams(sta, ap)
                 
     @classmethod
