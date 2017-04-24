@@ -216,7 +216,7 @@ class testWalkthrough(unittest.TestCase):
         if a != b:
             p.sendline('exit')
             p.wait()
-
+        
     def testMesh(self):
         "Start Mininet-WiFi with wireless mesh, then test ping"
         p = pexpect.spawn(
@@ -227,7 +227,7 @@ class testWalkthrough(unittest.TestCase):
         p.expect(self.prompt)
         p.sendline('exit')
         p.wait()
-
+        
     def testAdhoc(self):
         "Start Mininet-WiFi with wireless adhoc, then test ping"
         p = pexpect.spawn(
@@ -238,7 +238,7 @@ class testWalkthrough(unittest.TestCase):
         p.expect(self.prompt)
         p.sendline('exit')
         p.wait()
-
+        
     def testAuthentication(self):
         "Start Mininet-WiFi using WPA, then test ping"
         p = pexpect.spawn(
@@ -249,7 +249,7 @@ class testWalkthrough(unittest.TestCase):
         p.expect(self.prompt)
         p.sendline('exit')
         p.wait()
-
+        
     def testHandover(self):
         "Start Mininet-WiFi with handover, then test handover"
         p = pexpect.spawn(
@@ -264,7 +264,7 @@ class testWalkthrough(unittest.TestCase):
         p.expect(self.prompt)
         p.sendline('exit')
         p.wait()
-
+        
     def testmultipleWlan(self):
         "Start Mininet-WiFi with multiple WLAN"
         p = pexpect.spawn(
@@ -281,7 +281,7 @@ class testWalkthrough(unittest.TestCase):
         p.expect(self.prompt)
         p.sendline('exit')
         p.wait()
-
+        
     def testPosition(self):
         "Start Mininet-WiFi when the position is statically defined, then test ping"
         p = pexpect.spawn(
@@ -292,7 +292,32 @@ class testWalkthrough(unittest.TestCase):
         p.expect(self.prompt)
         p.sendline('exit')
         p.wait()
-
+        
+    def testMutipleSSID(self):
+        "Start Mininet-WiFi with multiple SSIDs, the test connectivity"
+        pexpect.spawn(
+            'service network-manager stop')
+        p = pexpect.spawn(
+            'python examples/forwardingBySSID.py')
+        sleep(3)
+        p.sendline('sta1 iwconfig')
+        p.expect('ssid1')
+        p.expect(self.prompt)
+        p.sendline('sta2 iwconfig')
+        p.expect('ssid2')
+        p.expect(self.prompt)
+        p.sendline('sta3 iwconfig')
+        p.expect('ssid2')
+        p.expect(self.prompt)
+        p.sendline('sta4 iwconfig')
+        p.expect('ssid3')
+        p.expect(self.prompt)
+        p.sendline('sta5 iwconfig')
+        p.expect('ssid4')
+        p.expect(self.prompt)
+        p.sendline('exit')
+        p.wait()
+        
     def testWiFiMeshAP(self):
         "Start Mininet-WiFi, then test wifiMeshAP.py"
         p = pexpect.spawn(
@@ -303,7 +328,7 @@ class testWalkthrough(unittest.TestCase):
         p.expect(self.prompt)
         p.sendline('exit')
         p.wait()
-
+        
     def testWmediumdStatic(self):
         "Start Mininet-WiFi with wmediumd, then test ping"
         p = pexpect.spawn(
@@ -340,7 +365,7 @@ class testWalkthrough(unittest.TestCase):
         p2.sendline('exit')
         p2.wait()
         os.system('rmmod mac80211_hwsim')
-
+    
     def testWirelessParams(self):
         """Start Mininet-WiFi with apadhoc, then do an extensive test"""
         p = pexpect.spawn(
@@ -418,7 +443,7 @@ class testWalkthrough(unittest.TestCase):
         p.expect(stations) 
         p.sendline('exit')
         p.wait()
-
+        
     def testDynamicMAC(self):
         "Verify that MACs are set correctly"
         p = pexpect.spawn('mn --wifi')
