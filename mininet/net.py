@@ -1290,7 +1290,7 @@ class Mininet(object):
         
         if self.isVanet == False:
             for node in nodes:
-                if 'ssid' in node.params and len(node.params['ssid']) < 1:
+                if ('ssid' in node.params and len(node.params['ssid']) < 1) or 'ssid' not in node.params:
                     pairingAdhocNodes.ssid_ID += 1
                     if 'position' in node.params and 'link' not in node.params:
                         self.getAPsInRange(node)
