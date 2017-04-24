@@ -1256,6 +1256,8 @@ class Mininet(object):
         :param sta: station
         """
         for ap in self.accessPoints:
+            if 'ssid' in ap.params and len(ap.params['ssid']) > 1:
+                break
             if 'position' in ap.params:
                 dist = setChannelParams.getDistance(sta, ap)
                 if dist < ap.params['range']:
@@ -1290,22 +1292,21 @@ class Mininet(object):
         
         if self.isVanet == False:
             for node in nodes:
-                if ('ssid' in node.params and len(node.params['ssid']) < 1) or 'ssid' not in node.params:
-                    pairingAdhocNodes.ssid_ID += 1
-                    if 'position' in node.params and 'link' not in node.params:
-                        self.getAPsInRange(node)
-                    for wlan in range(0, len(node.params['wlan'])):
-                        if 'position' in node.params and node.func[wlan] == 'adhoc' and node.params['associatedTo'][wlan] == '':
-                            value = pairingAdhocNodes(node, wlan, nodes)
-                            dist = value.dist
-                            if dist >= 0.01:
-                                setChannelParams(sta=node, wlan=wlan, dist=dist)
-                        elif 'position' in node.params and node.func[wlan] == 'mesh':
-                            dist = listNodes.pairingNodes(node, wlan, nodes)
-                            if dist >= 0.01:
-                                setChannelParams(sta=node, wlan=wlan, dist=dist)
-                    if meshRouting.routing == 'custom':
-                        meshRouting(nodes)
+                pairingAdhocNodes.ssid_ID += 1
+                if 'position' in node.params and 'link' not in node.params:
+                    self.getAPsInRange(node)
+                for wlan in range(0, len(node.params['wlan'])):
+                    if 'position' in node.params and node.func[wlan] == 'adhoc' and node.params['associatedTo'][wlan] == '':
+                        value = pairingAdhocNodes(node, wlan, nodes)
+                        dist = value.dist
+                        if dist >= 0.01:
+                            setChannelParams(sta=node, wlan=wlan, dist=dist)
+                    elif 'position' in node.params and node.func[wlan] == 'mesh':
+                        dist = listNodes.pairingNodes(node, wlan, nodes)
+                        if dist >= 0.01:
+                            setChannelParams(sta=node, wlan=wlan, dist=dist)
+                if meshRouting.routing == 'custom':
+                    meshRouting(nodes)
 
     def build(self):
         "Build mininet."    
