@@ -66,7 +66,7 @@ from mininet.log import info, error, warn, debug
 from mininet.util import (quietRun, errRun, errFail, moveIntf, isShellBuiltin,
                            numCores, retry, mountCgroups)
 from mininet.moduledeps import moduleDeps, pathCheck, TUN
-from mininet.link import Link, Intf, TCIntf, TCIntfWireless, OVSIntf
+from mininet.link import Link, Intf, TCIntf, TCIntfWireless, OVSIntf, TCLinkWirelessAP
 from re import findall
 from distutils.version import StrictVersion
 from mininet.wifiMobility import mobility
@@ -1542,10 +1542,8 @@ class AccessPoint(AP):
                     ap.params.pop("config", None)
                     for conf in config:
                         cmd = cmd + "\n" + conf
-    
             if(len(ap.params['ssid'])) > 1:
                 for i in range(1, len(ap.params['ssid'])):
-                    ap.params['wlan'].append('%s-%s' % (ap.params['wlan'][0], i))
                     ssid = ap.params['ssid'][i]
                     cmd = cmd + ('\n')
                     cmd = cmd + ("\nbss=%s" % ap.params['wlan'][i])
@@ -1557,6 +1555,15 @@ class AccessPoint(AP):
                             cmd = cmd + self.verifyWepKey(ap.wep_key0)
                     ap.params['mac'][i] = ap.params['mac'][wlan][:-1] + str(i)
         self.APConfigFile(cmd, ap, wlan)
+
+        if(len(ap.params['ssid'])) > 1:
+            for i in range(1, len(ap.params['ssid'])):
+                wlan = i
+                ap.params['mac'][wlan] = ''
+                self.setIPMAC(ap, wlan)
+                cls = TCLinkWirelessAP
+                intf = ap.params['wlan'][wlan]
+                cls(ap, intfName1=intf)
     
     @classmethod    
     def verifyWepKey(self, wep_key0):
@@ -1584,8 +1591,6 @@ class AccessPoint(AP):
 
     @classmethod
     def setIPMAC(self, ap, wlan):        
-        for i in range(1,len(ap.params['ssid'])):
-            ap.params['mac'].append('')
         if 'phywlan' not in ap.params:
             if ap.params['mac'][wlan] != '':
                 ap.setMAC(ap.params['mac'][wlan], ap.params['wlan'][wlan])

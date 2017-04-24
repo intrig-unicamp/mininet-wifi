@@ -842,7 +842,6 @@ class Mininet(object):
         # Set default MAC - this should probably be in Link
         options.setdefault('addr1', self.randMac())
 
-
     def configureAP(self, node, wlanID=0):
         """Configure AP"""        
         if 'phywlan' in node.params:
@@ -874,6 +873,9 @@ class Mininet(object):
                 node.params['frequency'][wlan] = setChannelParams.frequency(node, 0)
                 wlanID = 0
             setChannelParams.recordParams(None, node)
+
+            if len(node.params['ssid']) > 1 and wlan==0:
+                break
                 
     def verifyNetworkManager(self, node, wlanID=0):
         """First verify if the mac address of the ap is included at NetworkManager.conf"""
@@ -897,6 +899,8 @@ class Mininet(object):
             AccessPoint.setIPMAC(node, wlan)
             if 'phywlan' in node.params:
                 node.params.pop("phywlan", None)
+            if len(node.params['ssid']) > 1 and wlan==0:
+                break
                     
     def restartNetworkManager(self):
         """Restart network manager if the mac address of the AP is not included at 
@@ -913,7 +917,10 @@ class Mininet(object):
         for node in self.accessPoints:  
             if len(node.params['ssid']) > 1:
                 for i in range(1, len(node.params['ssid'])):
-                    cls(node, intfName1=node.params['wlan'][i])
+                    node.params['wlan'].append('%s-%s' % (node.params['wlan'][0], i))
+                    node.params['mode'].append(node.params['mode'][0])
+                    node.params['frequency'].append(node.params['frequency'][0])
+                    node.params['mac'].append('')
             self.verifyNetworkManager(node)
         self.restartNetworkManager()
         
@@ -1283,21 +1290,22 @@ class Mininet(object):
         
         if self.isVanet == False:
             for node in nodes:
-                pairingAdhocNodes.ssid_ID += 1
-                if 'position' in node.params and 'link' not in node.params:
-                    self.getAPsInRange(node)
-                for wlan in range(0, len(node.params['wlan'])):
-                    if 'position' in node.params and node.func[wlan] == 'adhoc' and node.params['associatedTo'][wlan] == '':
-                        value = pairingAdhocNodes(node, wlan, nodes)
-                        dist = value.dist
-                        if dist >= 0.01:
-                            setChannelParams(sta=node, wlan=wlan, dist=dist)
-                    elif 'position' in node.params and node.func[wlan] == 'mesh':
-                        dist = listNodes.pairingNodes(node, wlan, nodes)
-                        if dist >= 0.01:
-                            setChannelParams(sta=node, wlan=wlan, dist=dist)                   
-                if meshRouting.routing == 'custom':
-                    meshRouting(nodes)
+                if 'ssid' in node.params and len(node.params['ssid']) < 1:
+                    pairingAdhocNodes.ssid_ID += 1
+                    if 'position' in node.params and 'link' not in node.params:
+                        self.getAPsInRange(node)
+                    for wlan in range(0, len(node.params['wlan'])):
+                        if 'position' in node.params and node.func[wlan] == 'adhoc' and node.params['associatedTo'][wlan] == '':
+                            value = pairingAdhocNodes(node, wlan, nodes)
+                            dist = value.dist
+                            if dist >= 0.01:
+                                setChannelParams(sta=node, wlan=wlan, dist=dist)
+                        elif 'position' in node.params and node.func[wlan] == 'mesh':
+                            dist = listNodes.pairingNodes(node, wlan, nodes)
+                            if dist >= 0.01:
+                                setChannelParams(sta=node, wlan=wlan, dist=dist)
+                    if meshRouting.routing == 'custom':
+                        meshRouting(nodes)
 
     def build(self):
         "Build mininet."    
