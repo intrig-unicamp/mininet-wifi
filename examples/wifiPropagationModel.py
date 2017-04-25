@@ -37,7 +37,7 @@ def topology():
     net.plotGraph(max_x=100, max_y=100)
 
     """Seed"""
-    net.seed(1) 
+    net.seed(1)
 
     "*** Available propagation models: friisPropagationLossModel, twoRayGroundPropagationLossModel, logDistancePropagationLossModel ***"
     net.propagationModel('friisPropagationLossModel', sL=2)
