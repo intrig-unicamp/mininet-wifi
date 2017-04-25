@@ -35,7 +35,6 @@ import os
 import atexit
 
 from mininet.wifiNet import mininetWiFi
-from mininet.wifiPlot import plot2d, plot3d
 from mininet.wifiMobility import mobility
 from mininet.log import info, output, error
 from mininet.term import makeTerms, runX11

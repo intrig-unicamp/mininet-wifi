@@ -507,7 +507,7 @@ class mininetWiFi(object):
             
         info("Mobility started at %s second(s)\n" % kwargs['time'])
     
-    @classmethod   
+    @classmethod
     def stopMobility(self, stations, accessPoints, plotNodes, **kwargs):
         """Stops Mobility"""        
         if 'time' in kwargs:
@@ -533,7 +533,35 @@ class mininetWiFi(object):
         self.thread.start()        
         self.setWifiParameters()
         
-    def useExternalProgram(self, program, **params):
+    @classmethod
+    def mobility(self, *args, **kwargs):
+        """
+        Mobility Parameters
+        """
+
+        sta = args[0]
+        stage = args[1]
+
+        if 'position' in kwargs:
+            if(stage == 'stop'):
+                finalPosition = kwargs['position']
+                sta.params['finalPosition'] = finalPosition.split(',')
+            if(stage == 'start'):
+                initialPosition = kwargs['position']
+                sta.params['initialPosition'] = initialPosition.split(',')
+
+        if 'time' in kwargs:
+            time = kwargs['time']
+
+        if(stage == 'start'):
+            sta.startTime = time
+        elif(stage == 'stop'):
+            sta.endTime = time
+            diffTime = sta.endTime - sta.startTime
+            mobility.moveFactor(sta, diffTime)
+        
+    @classmethod
+    def useExternalProgram(self, program, stations, accessPoints, cars, **params):
         """
         Opens an external program
         
@@ -542,10 +570,10 @@ class mininetWiFi(object):
         """
         config_file = ("%s" % params.pop('config_file', {}))
         self.isVanet = True
-        for car in self.cars:
+        for car in cars:
             car.params['position'] = 0, 0, 0
         if program == 'sumo' or program == 'sumo-gui':
-            self.thread = threading.Thread(name='vanet', target=sumo, args=(self.stations, self.accessPoints, program, config_file))
+            self.thread = threading.Thread(name='vanet', target=sumo, args=(stations, accessPoints, program, config_file))
             self.thread.daemon = True
             self.thread.start()
             # self.setWifiParameters()
@@ -567,7 +595,7 @@ class mininetWiFi(object):
     
     @classmethod
     def configureWifiNodes(self, stations, accessPoints, cars, switches, nRadios, ifb, alternativeModule,\
-                           nextIP, ipBaseNum, prefixLen):
+                           nextIP, ipBaseNum, prefixLen, useWmediumd):
         """
         Configure WiFi Nodes
         
@@ -578,10 +606,14 @@ class mininetWiFi(object):
         :param nRadios: number of wireless radios
         :param ifb: if enable ifb
         :param alternativeModule: if there is an alternative module
+        :param wmediumd: loads wmediumd 
         """
+        self.useWmediumd = useWmediumd
+
         params = {}
         if ifb:
             params['ifb'] = ifb
+        params['useWmediumd'] = useWmediumd
         nodes = stations + accessPoints + cars
         module.start(nodes, nRadios, alternativeModule, **params)               
         self.configureWirelessLink(stations, accessPoints, cars, switches) 
@@ -652,11 +684,45 @@ class mininetWiFi(object):
                         if dist >= 0.01:
                             setChannelParams(sta=node, wlan=wlan, dist=dist)
                     elif 'position' in node.params and node.func[wlan] == 'mesh':
+                        if node.type == 'vehicle':
+                            node = node.params['carsta']
+                            wlan = 0
                         dist = listNodes.pairingNodes(node, wlan, nodes)
                         if dist >= 0.01:
                             setChannelParams(sta=node, wlan=wlan, dist=dist)
                 if meshRouting.routing == 'custom':
                     meshRouting(nodes)
+                
+    @classmethod    
+    def getCurrentDistance(self, src, dst, nodes):
+        """ 
+        Gets the distance between two nodes
+        
+        :params src: source node
+        :params dst: destination node
+        :params nodes: list of nodes
+        """
+        try:
+            for host1 in nodes:
+                if src == str(host1):
+                    src = host1
+                    for host2 in nodes:
+                        if dst == str(host2):
+                            dst = host2
+                            self.printDistance(src, dst)
+        except:
+            print ("node %s or/and node %s does not exist or there is no position defined" % (dst, src))
+            
+    @classmethod
+    def printDistance(self, src, dst):
+        """ 
+        Prints the distance between two points
+        
+        :params src: source node
+        :params dst: destination node
+        """
+        dist = setChannelParams.getDistance(src, dst)
+        info ("The distance between %s and %s is %.2f meters\n" % (src, dst, float(dist)))
                     
     @classmethod
     def closeMininetWiFi(self ):

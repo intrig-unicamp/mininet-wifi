@@ -201,7 +201,7 @@ class Mininet(object):
         self.alreadyPlotted = False
         self.enable_interference = enable_interference
         mininetWiFi.rec_rssi = rec_rssi
-        mininetWiFi.useWmediumd = useWmediumd
+        self.useWmediumd = useWmediumd
         Mininet.init()  # Initialize Mininet if necessary
 
         self.built = False
@@ -787,7 +787,7 @@ class Mininet(object):
 
             if(doAssociation):
                 cls = Association
-                cls.associate(sta, ap, mininetWiFi.useWmediumd)
+                cls.associate(sta, ap, self.useWmediumd)
                 if 'bw' not in params and 'mininet.util.TCIntfWireless' not in str(self.link):
                     value = deviceDataRate(sta, ap, wlan)
                     self.bw = value.rate
@@ -804,7 +804,7 @@ class Mininet(object):
                     cls(name=sta.params['wlan'][wlan], node=sta,
                                   link=None, tc=True, **params)
                 
-                if mininetWiFi.useWmediumd:
+                if self.useWmediumd:
                     self.wlinks.append([sta, ap])
 
         elif (node1.type == 'accessPoint' and node2.type == 'accessPoint' and 'link' in options and options['link'] == 'wds'):
@@ -867,8 +867,9 @@ class Mininet(object):
         nextIP = self.nextIP
         ipBaseNum = self.ipBaseNum
         prefixLen = self.prefixLen
+        useWmediumd = self.useWmediumd
         self.stations, self.accessPoints, self.isWiFi = mininetWiFi.configureWifiNodes(stations, accessPoints, \
-                    cars, switches, nRadios, ifb, alternativeModule, nextIP, ipBaseNum, prefixLen)
+                    cars, switches, nRadios, ifb, alternativeModule, nextIP, ipBaseNum, prefixLen, useWmediumd)
         
     def delLink(self, link):
         "Remove a link from this network"
@@ -978,7 +979,7 @@ class Mininet(object):
         "Build mininet."    
         if self.topo:
             self.buildFromTopo(self.topo)
-        if mininetWiFi.useWmediumd:
+        if self.useWmediumd:
             mininetWiFi.configureWmediumd(self.stations, self.accessPoints, self.wlinks, self.enable_interference)
        
         if self.inNamespace:
@@ -990,7 +991,7 @@ class Mininet(object):
         if self.autoStaticArp:
             self.staticArp()
         self.built = True   
-        if mininetWiFi.useWmediumd:
+        if self.useWmediumd:
             mininetWiFi.wmediumdConnect()
 
     def startTerms(self):
@@ -1403,28 +1404,8 @@ class Mininet(object):
     def mobility(self, *args, **kwargs):
         """ 
         Mobility Parameters 
-        """
-        
-        sta = args[0]
-        stage = args[1]
-
-        if 'position' in kwargs:
-            if(stage == 'stop'):
-                finalPosition = kwargs['position']
-                sta.params['finalPosition'] = finalPosition.split(',')
-            if(stage == 'start'):
-                initialPosition = kwargs['position']
-                sta.params['initialPosition'] = initialPosition.split(',')
- 
-        if 'time' in kwargs:
-            self.time = kwargs['time']
-
-        if(stage == 'start'):
-            sta.startTime = self.time
-        elif(stage == 'stop'):
-            sta.endTime = self.time
-            diffTime = sta.endTime - sta.startTime
-            mobility.moveFactor(sta, diffTime)
+        """        
+        mininetWiFi.mobility(*args, **kwargs)
 
     def startMobility(self, **kwargs):
         """
@@ -1455,17 +1436,20 @@ class Mininet(object):
         :params program: any program (useful for SUMO)
         :params **params config_file: file configuration
         """
-        mininetWiFi.useExternalProgram(program, **params)
-
-    def printDistance(self, src, dst):
+        stations = self.stations
+        accessPoints = self.accessPoints
+        cars = self.cars
+        mininetWiFi.useExternalProgram(program, stations, accessPoints, cars, **params)
+        
+    def getCurrentDistance(self, src, dst):
         """ 
-        Prints the distance between two points
+        Gets the distance between two nodes
         
         :params src: source node
         :params dst: destination node
         """
-        dist = setChannelParams.getDistance(src, dst)
-        info ("The distance between %s and %s is %.2f meters\n" % (src, dst, float(dist)))
+        nodes = self.stations + self.cars + self.accessPoints
+        mininetWiFi.getCurrentDistance(src, dst, nodes)
 
     def plotNode(self, node, position):
         """ 
@@ -1490,20 +1474,6 @@ class Mininet(object):
             
     def startGraph(self):
         mininetWiFi.startGraph()
-
-    def getCurrentPosition(self, node):
-        """ 
-        Gets Current Position of a node
-        
-        :params node: a node
-        """
-        try:
-            wifiNodes = self.stations + self.cars + self.accessPoints
-            for host in wifiNodes:
-                if node == str(host):
-                    self.printPosition(host)
-        except:
-            info ("Position was not defined\n")
         
     def setChannelEquation(self, **params):
         """ 
@@ -1557,26 +1527,6 @@ class Mininet(object):
         :params ac: the association control
         """
         mobility.associationControlMethod = ac
-
-    def getCurrentDistance(self, src, dst):
-        """ 
-        Gets the distance between two nodes
-        
-        :params src: source node
-        :params dst: destination node
-        """
-        try:
-            wifiNodes = self.stations + self.cars + self.accessPoints
-            for host1 in wifiNodes:
-                if src == str(host1):
-                    src = host1
-                    for host2 in wifiNodes:
-                        if dst == str(host2):
-                            dst = host2
-                            self.printDistance(src, dst)
-        except:
-            print ("node %s or/and node %s does not exist or there is no position defined" % (dst, src))
-
     
     def configWirelessLinkStatus(self, src, dst, status):
         if status == 'down':

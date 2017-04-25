@@ -18,6 +18,7 @@ class module(object):
     externally_managed = False
     devices_created_dynamically = False
     phyID = 0
+    useWmediumd = False
 
     @classmethod
     def loadModule(self, wifiRadios, alternativeModule=''):
@@ -140,7 +141,7 @@ class module(object):
         except:
             pass
 
-        if not self.externally_managed:
+        if not self.externally_managed and self.useWmediumd:
             try:
                 info("*** Killing wmediumd\n")
                 os.system('pkill wmediumd')
@@ -164,6 +165,7 @@ class module(object):
                 os.system('pkill -f \'hostapd\'')
         except:
             pass
+        self.useWmediumd = params['useWmediumd']
         
         physicalWlans = self.getPhysicalWlan()  # Gets Physical Wlan(s)
         self.loadModule(wifiRadios, alternativeModule)  # Initatilize WiFi Module
