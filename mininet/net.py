@@ -98,8 +98,6 @@ import re
 import select
 import signal
 import random
-import sys
-import threading
 
 from time import sleep
 from itertools import chain, groupby
@@ -108,27 +106,21 @@ from math import ceil
 from mininet.cli import CLI
 from mininet.log import info, error, debug, output, warn
 from mininet.node import (Node, Host, Station, Car, OVSKernelSwitch, OVSKernelAP, DefaultController,
-                           Controller, AccessPoint)
+                           Controller)
 from mininet.nodelib import NAT
-from mininet.link import Link, Intf, TCLinkWirelessAP, TCLinkWirelessStation, Association, WDSLink, TCIntfWireless
+from mininet.link import Link, Intf, Association, WDSLink, TCIntfWireless
 from mininet.util import (quietRun, fixLimits, numCores, ensureRoot,
                            macColonHex, ipStr, ipParse, netParse, ipAdd,
                            waitListening)
 from mininet.term import cleanUpScreens, makeTerms
 from mininet.wifiChannel import setChannelParams
-from mininet.wifiDevices import deviceRange, deviceDataRate
+from mininet.wifiDevices import deviceDataRate
+from mininet.wifiMeshRouting import meshRouting
 from mininet.wifiMobility import mobility
-from mininet.wifiModule import module
-from mininet.wifiPlot import plot2d, plot3d
 from mininet.wifiPropagationModels import propagationModel
-from mininet.wifiAdHocConnectivity import pairingAdhocNodes
-from mininet.wifiMeshRouting import listNodes, meshRouting
-from mininet.wmediumdConnector import DynamicWmediumdIntfRef, WmediumdSNRLink, WmediumdStarter, WmediumdServerConn, \
-                                            WmediumdTXPower, WmediumdPosition, WmediumdConstants
+from mininet.wifiNet import mininetWiFi
+from mininet.wmediumdConnector import WmediumdServerConn
         
-sys.path.append(str(os.getcwd()) + '/mininet/')
-from sumo.runner import sumo
-from mininet.vanet import vanet
 from __builtin__ import True
 
 # Mininet version: should be consistent with README and LICENSE
@@ -160,7 +152,6 @@ class Mininet(object):
            autoPinCpus: pin hosts to (real) cores (requires CPULimitedHost)?
            listenPort: base listening port to open; will be incremented for
                each additional switch in the net if inNamespace=False"""
-        self.thread = threading.Thread()
         self.topo = topo
         self.switch = switch        
         self.host = host
@@ -183,7 +174,6 @@ class Mininet(object):
         self.nextCore = 0  # next core for pinning hosts to CPUs
         self.listenPort = listenPort
         self.waitConn = waitConnected
-        self.init_time = 0  # start mobility time
         self.set_seed = 10
         self.routing = ''
         self.alternativeModule = ''
@@ -209,17 +199,12 @@ class Mininet(object):
         self.terms = []  # list of spawned xterm processes
         self.isWiFi = isWiFi
         self.nRadios = 0
-        self.MAX_X = 0
-        self.MAX_Y = 0
-        self.MAX_Z = 0
-        self.associationControlMethod = ''
         self.isVanet = False
-        self.useWmediumd = useWmediumd
         self.enable_interference = enable_interference
-        self.is3d = False
         self.ifb = False
         self.alreadyPlotted = False
-        self.rec_rssi = rec_rssi
+        mininetWiFi.rec_rssi = rec_rssi
+        mininetWiFi.useWmediumd = useWmediumd
         Mininet.init()  # Initialize Mininet if necessary
 
         self.built = False
@@ -699,110 +684,24 @@ class Mininet(object):
         cls: custom association class/constructor
         params: parameters for node
         """
-        if node.type == 'station':
-            wlan = node.ifaceToAssociate
-        else:
-            wlan = 0
-        node.func[wlan] = 'mesh'
+        nextIP = self.nextIP
+        ipBaseNum = self.ipBaseNum
+        prefixLen = self.prefixLen
+        mininetWiFi.addMesh(node, nextIP, ipBaseNum, prefixLen, cls=None, **params)
 
-        options = { 'ip': ipAdd(self.nextIP,
-                                  ipBaseNum=self.ipBaseNum,
-                                  prefixLen=self.prefixLen) + 
-                                  '/%s' % self.prefixLen}
-        options.update(params)
-
-        node.params['ssid'] = []
-        if hasattr(node, 'meshMac'):
-            for n in range(len(node.params['wlan'])): 
-                node.meshMac.append('')
-                node.params['ssid'].append('')
-        else:
-            node.meshMac = []
-            for n in range(len(node.params['wlan'])):
-                node.meshMac.append('')
-                node.params['ssid'].append('')
-                
-        ip = ("%s" % params.pop('ip', {}))
-        if ip == "{}":
-            ip = options['ip']                
-       
-        ssid = ("%s" % params['ssid'])
-        if(ssid != "{}"):
-            node.params['ssid'][wlan] = ssid
-        else:
-            node.params['ssid'][wlan] = 'meshNetwork'
-
-        deviceRange(node)
-
-        value = deviceDataRate(sta=node, wlan=wlan)
-        self.bw = value.rate
-        
-        options['node'] = node
-        options.update(params)
-
-        # Set default MAC - this should probably be in Link
-        options.setdefault('addr1', self.randMac())   
-                
-        cls = Association
-        cls.configureMesh(node, wlan)
-        node.ifaceToAssociate += 1
-
-    def addHoc(self, sta, cls=None, **params):
+    def addHoc(self, node, cls=None, **params):
         """
         Configure AdHoc
         
-        sta: name of the station
+        node: name of the node
         cls: custom association class/constructor
         params: parameters for station
            
         """
-        
-        wlan = sta.ifaceToAssociate
-        sta.func[wlan] = 'adhoc'
-        
-        options = { 'ip': ipAdd(self.nextIP,
-                                  ipBaseNum=self.ipBaseNum,
-                                  prefixLen=self.prefixLen) + 
-                                  '/%s' % self.prefixLen}
-        options.update(params)
-
-        sta.params['cell'] = []
-        sta.params['ssid'] = []
-        for w in range(0, len(sta.params['wlan'])):
-            sta.params['cell'].append('')
-            sta.params['ssid'].append('')
-            
-        ip = ("%s" % params.pop('ip', {}))
-        if ip == "{}":
-            ip = options['ip']
- 
-        ssid = ("%s" % params.pop('ssid', {}))
-        if(ssid != "{}"):
-            sta.params['ssid'][wlan] = ssid
-            sta.params['associatedTo'][wlan] = ssid
-        else:
-            sta.params['ssid'][wlan] = 'adhocNetwork'
-            sta.params['associatedTo'][wlan] = 'adhocNetwork'
-            
-        cell = ("%s" % params.pop('cell', {}))
-        if(cell != "{}"):
-            sta.params['cell'][wlan] = cell
-        else:
-            sta.params['cell'][wlan] = 'FE:4C:6A:B5:A9:7E'
-
-        deviceRange(sta)
-
-        value = deviceDataRate(sta=sta, wlan=wlan)
-        self.bw = value.rate
-
-        options['sta'] = sta
-        options.update(params)
-        # Set default MAC - this should probably be in Link
-        options.setdefault('addr1', self.randMac())
-        
-        cls = Association
-        cls.configureAdhoc(sta)
-        sta.ifaceToAssociate += 1
+        nextIP = self.nextIP
+        ipBaseNum = self.ipBaseNum
+        prefixLen = self.prefixLen
+        mininetWiFi.addHoc(node, nextIP, ipBaseNum, prefixLen, cls=None, **params)
 
     def wifiDirect(self, sta, cls=None, **params):
         """
@@ -841,162 +740,11 @@ class Mininet(object):
         options.update(params)
         # Set default MAC - this should probably be in Link
         options.setdefault('addr1', self.randMac())
-
-    def configureAP(self, node, wlanID=0):
-        """Configure AP"""        
-        if 'phywlan' in node.params:
-            wlanID = 1
-        for wlan in range(len(node.params['wlan']) + wlanID):
-            if wlanID == 1:
-                wlan = 0
-            if 'encrypt' in node.params and 'config' not in node.params:
-                if node.params['encrypt'][wlan] == 'wpa':
-                    node.auth_algs = 1
-                    node.wpa = 1
-                    node.wpa_key_mgmt = 'WPA-EAP'
-                    node.rsn_pairwise = 'TKIP CCMP'
-                    node.wpa_passphrase = node.params['passwd'][0]
-                elif node.params['encrypt'][wlan] == 'wpa2':
-                    node.auth_algs = 1
-                    node.wpa = 2
-                    node.wpa_key_mgmt = 'WPA-PSK'
-                    node.rsn_pairwise = 'CCMP'
-                    node.wpa_passphrase = node.params['passwd'][0]
-                elif node.params['encrypt'][wlan] == 'wep':
-                    node.auth_algs = 2
-                    node.wep_key0 = node.params['passwd'][0]
-                
-            cls = AccessPoint
-            cls(node, wlan=wlan)
-            
-            if node.func[0] != 'ap':
-                node.params['frequency'][wlan] = setChannelParams.frequency(node, 0)
-                wlanID = 0
-            setChannelParams.recordParams(None, node)
-
-            if len(node.params['ssid']) > 1 and wlan==0:
-                break
-                
-    def verifyNetworkManager(self, node, wlanID=0):
-        """First verify if the mac address of the ap is included at NetworkManager.conf"""
-        if 'phywlan' in node.params:
-            wlanID = 1
-        for wlan in range(len(node.params['wlan']) + wlanID):
-            if wlanID == 1:
-                wlan = 0
-            if 'inNamespace' not in node.params or wlanID == 1:
-                if node.type != 'station':
-                    options = dict()
-                    if 'phywlan' not in node.params:
-                        intf = module.wlan_list[0]
-                        module.wlan_list.pop(0)
-                        node.renameIface(intf, node.params['wlan'][wlan])
-                    else:
-                        iface = node.params['phywlan']
-                        options.setdefault('intfName1', iface)
-                    cls = TCLinkWirelessAP
-                    cls(node, **options)
-            AccessPoint.setIPMAC(node, wlan)
-            if 'phywlan' in node.params:
-                node.params.pop("phywlan", None)
-            if len(node.params['ssid']) > 1 and wlan==0:
-                break
-                    
-    def restartNetworkManager(self):
-        """Restart network manager if the mac address of the AP is not included at 
-        /etc/NetworkManager/NetworkManager.conf"""
-        nm_is_running = os.system('service network-manager status 2>&1 | grep -ic running >/dev/null 2>&1')
-        if AccessPoint.writeMacAddress and nm_is_running != 256:
-            info('Mac Address(es) of AP(s) is(are) being added into /etc/NetworkManager/NetworkManager.conf\n')
-            info('Restarting network-manager...\n')
-            os.system('service network-manager restart')
-        AccessPoint.writeMacAddress = False
-                    
-    def configureAPs(self):
-        """Configure All APs"""
-        for node in self.accessPoints:  
-            if len(node.params['ssid']) > 1:
-                for i in range(1, len(node.params['ssid'])):
-                    node.params['wlan'].append('%s-%s' % (node.params['wlan'][0], i))
-                    node.params['mode'].append(node.params['mode'][0])
-                    node.params['frequency'].append(node.params['frequency'][0])
-                    node.params['mac'].append('')
-            self.verifyNetworkManager(node)
-        self.restartNetworkManager()
-        
-        for node in self.accessPoints:
-            if 'link' not in node.params:
-                self.configureAP(node)
-                node.phyID = module.phyID
-                module.phyID += 1
               
     def useIFB(self):
         """Support to Intermediate Functional Block (IFB) Devices"""        
         self.ifb = True
         setChannelParams.ifb = True
-        
-    def configureMacAddr(self, node):
-        """Configure Mac Address"""
-        for wlan in range(0, len(node.params['wlan'])):
-            iface = node.params['wlan'][wlan]
-            if node.params['mac'][wlan] == '':
-                node.params['mac'][wlan] = node.getMAC(iface)
-            else:
-                mac = node.params['mac'][wlan]
-                node.setMAC(mac, iface)
-
-    def configureWirelessLink(self):
-        """Configure Wireless Link"""
-        nodes = self.stations + self.cars
-        self.checkAPAdhoc()
-        for node in nodes:
-            for wlan in range(0, len(node.params['wlan'])):
-                if node not in self.switches:
-                    cls = TCLinkWirelessStation
-                    cls(node, intfName1=node.params['wlan'][wlan])
-                if 'car' in node.name and node.type == 'station':
-                        node.cmd('iw dev %s-wlan%s interface add %s-mp%s type mp' % (node, wlan, node, wlan))
-                        node.cmd('ifconfig %s-mp%s up' % (node, wlan))
-                        node.cmd('iw dev %s-mp%s mesh join %s' % (node, wlan, 'ssid'))
-                        node.func[wlan] = 'mesh'
-                elif node.type == 'station' and node in self.switches:
-                    self.configureMacAddr(node)
-                    node.convertIfaceToMesh(node, wlan)
-                    cls = TCLinkWirelessAP
-                    cls(node, intfName1=node.params['wlan'][wlan])
-                    node.type = 'WirelessMeshAP'
-                else:
-                    if 'ssid' not in node.params:
-                        if node.params['txpower'][wlan] != 20:
-                            node.setTxPower(node.params['wlan'][wlan], node.params['txpower'][wlan])
-            if node not in self.switches:
-                self.configureMacAddr(node)
-                
-    def configureWifiNodes(self):
-        """Configure Wireless Nodes"""
-        params = {}
-        if self.ifb:
-            params['ifb'] = self.ifb
-        nodes = self.stations + self.cars + self.accessPoints
-        module.start(nodes, self.nRadios, self.alternativeModule, **params)               
-        self.configureWirelessLink() 
-        self.configureAPs()  
-        self.isWiFi = True
-        
-        # useful if there no link between sta and any other device
-        for car in self.cars:
-            self.addMesh(car.params['carsta'], ssid='mesh-ssid')
-            self.stations.remove(car.params['carsta'])
-            self.stations.append(car)      
-            car.params['wlan'].append(0)
-            car.params['rssi'].append(0)
-            car.params['snr'].append(0)
-            car.params['channel'].append(0)
-            car.params['txpower'].append(0)
-            car.params['antennaGain'].append(0)
-            car.params['antennaHeight'].append(0)
-            car.params['associatedTo'].append('')
-            car.params['frequency'].append(0)
         
     def addLink(self, node1, node2, port1=None, port2=None,
                  cls=None, **params):
@@ -1042,7 +790,7 @@ class Mininet(object):
 
             if(doAssociation):
                 cls = Association
-                cls.associate(sta, ap, self.useWmediumd)
+                cls.associate(sta, ap, mininetWiFi.useWmediumd)
                 if 'bw' not in params and 'mininet.util.TCIntfWireless' not in str(self.link):
                     value = deviceDataRate(sta, ap, wlan)
                     self.bw = value.rate
@@ -1059,7 +807,7 @@ class Mininet(object):
                     cls(name=sta.params['wlan'][wlan], node=sta,
                                   link=None, tc=True, **params)
                 
-                if self.useWmediumd:
+                if mininetWiFi.useWmediumd:
                     self.wlinks.append([sta, ap])
 
         elif (node1.type == 'accessPoint' and node2.type == 'accessPoint' and 'link' in options and options['link'] == 'wds'):
@@ -1100,6 +848,30 @@ class Mininet(object):
             link = cls(node1, node2, **options)
             self.links.append(link)
             return link
+        
+    def autoAssociation(self):
+        """
+        This is useful to make the users' life easier
+        """
+        stations = self.stations
+        accessPoints = self.accessPoints
+        isVanet = self.isVanet
+        mininetWiFi.autoAssociation(stations, accessPoints, isVanet)
+        
+    def configureWifiNodes(self):
+        """Configure WiFi Nodes"""
+        stations = self.stations
+        accessPoints = self.accessPoints
+        cars = self.cars
+        switches = self.switches 
+        nRadios = self.nRadios 
+        ifb = self.ifb 
+        alternativeModule = self.alternativeModule
+        nextIP = self.nextIP
+        ipBaseNum = self.ipBaseNum
+        prefixLen = self.prefixLen
+        self.stations, self.accessPoints, self.isWiFi = mininetWiFi.configureWifiNodes(stations, accessPoints, \
+                    cars, switches, nRadios, ifb, alternativeModule, nextIP, ipBaseNum, prefixLen)
         
     def delLink(self, link):
         "Remove a link from this network"
@@ -1142,38 +914,6 @@ class Mininet(object):
             # This may not be the right place to do this, but
             # it needs to be done somewhere.
         # info( '\n' )
-        
-    def configureWmediumd(self):
-        intfrefs = []
-        links = []
-        positions = []
-        txpowers = []
-        nodes = self.stations + self.accessPoints
-        
-        for node in nodes:
-            node.wmediumdIface = DynamicWmediumdIntfRef(node)
-            intfrefs.append(node.wmediumdIface)
-        
-        if self.enable_interference:
-            mode = WmediumdConstants.WMEDIUMD_MODE_INTERFERENCE
-            for node in nodes:
-                if 'position' not in node.params:
-                    posX = 0
-                    posY = 0
-                else:
-                    posX = node.params['position'][0]
-                    posY = node.params['position'][1]
-                positions.append(WmediumdPosition(node.wmediumdIface, [posX, posY]))
-                txpowers.append(WmediumdTXPower(node.wmediumdIface, float(node.params['txpower'][0])))
-        else:
-            mode = WmediumdConstants.WMEDIUMD_MODE_SNR
-            for node in self.wlinks:
-                links.append(WmediumdSNRLink(node[0].wmediumdIface, node[1].wmediumdIface, node[0].params['snr'][0]))
-                links.append(WmediumdSNRLink(node[1].wmediumdIface, node[0].wmediumdIface, node[0].params['snr'][0]))
-        
-        WmediumdStarter.initialize(intfrefs, links, mode=mode, positions=positions, enable_interference=self.enable_interference, \
-                                   auto_add_links=False, txpowers=txpowers, with_server=True)
-        WmediumdStarter.start()
 
     def buildFromTopo(self, topo=None):
         """Build mininet from a topology object
@@ -1236,84 +976,13 @@ class Mininet(object):
         "Control net config hook: override in subclass"
         raise Exception('configureControlNetwork: '
                          'should be overriden in subclass', self)
-        
-    @classmethod     
-    def updateParams(self, sta, ap, wlan):
-        """ 
-        Updates values for frequency and channel
-        
-        :param sta: station
-        :param ap: access point
-        :param wlan: wlan ID
-        """
-
-        sta.params['frequency'][wlan] = setChannelParams.frequency(ap, 0)
-        sta.params['channel'][wlan] = ap.params['channel'][0]
-
-    def getAPsInRange(self, sta):
-        """ 
-        
-        :param sta: station
-        """
-        for ap in self.accessPoints:
-            if 'ssid' in ap.params and len(ap.params['ssid']) > 1:
-                break
-            if 'position' in ap.params:
-                dist = setChannelParams.getDistance(sta, ap)
-                if dist < ap.params['range']:
-                    for wlan in range(0, len(sta.params['wlan'])):
-                        cls = Association
-                        cls.configureWirelessLink(sta, ap, wlan, self.useWmediumd)
-                        if self.rec_rssi:
-                            os.system('hwsim_mgmt -k %s %s >/dev/null 2>&1' % (sta.phyID[wlan], abs(int(sta.params['rssi'][wlan]))))
-                
-    def checkAPAdhoc(self):
-        isApAdhoc = []
-        for sta in self.stations:
-            if sta.func[0] == 'ap':
-                self.accessPoints.append(sta)
-                isApAdhoc.append(sta)
-        
-        for ap in isApAdhoc:
-            self.stations.remove(ap)
-            ap.params.pop('rssi', None)
-            ap.params.pop('snr', None)
-            ap.params.pop('apsInRange', None)
-            ap.params.pop('associatedTo', None)
-        
-    def autoAssociation(self):
-        """This is useful to make the users' life easier"""        
-        ap = []
-        for node in self.accessPoints:
-            if 'link' in node.params:
-                ap.append(node)
-        
-        nodes = self.stations + ap
-        
-        if self.isVanet == False:
-            for node in nodes:
-                pairingAdhocNodes.ssid_ID += 1
-                if 'position' in node.params and 'link' not in node.params:
-                    self.getAPsInRange(node)
-                for wlan in range(0, len(node.params['wlan'])):
-                    if 'position' in node.params and node.func[wlan] == 'adhoc' and node.params['associatedTo'][wlan] == '':
-                        value = pairingAdhocNodes(node, wlan, nodes)
-                        dist = value.dist
-                        if dist >= 0.01:
-                            setChannelParams(sta=node, wlan=wlan, dist=dist)
-                    elif 'position' in node.params and node.func[wlan] == 'mesh':
-                        dist = listNodes.pairingNodes(node, wlan, nodes)
-                        if dist >= 0.01:
-                            setChannelParams(sta=node, wlan=wlan, dist=dist)
-                if meshRouting.routing == 'custom':
-                    meshRouting(nodes)
 
     def build(self):
         "Build mininet."    
         if self.topo:
             self.buildFromTopo(self.topo)
-        if self.useWmediumd:
-            self.configureWmediumd()
+        if mininetWiFi.useWmediumd:
+            mininetWiFi.configureWmediumd(self.stations, self.accessPoints, self.wlinks, self.enable_interference)
        
         if self.inNamespace:
             self.configureControlNetwork()
@@ -1324,7 +993,7 @@ class Mininet(object):
         if self.autoStaticArp:
             self.staticArp()
         self.built = True   
-        if self.useWmediumd:
+        if mininetWiFi.useWmediumd:
             WmediumdServerConn.connect()
 
     def startTerms(self):
@@ -1376,6 +1045,15 @@ class Mininet(object):
         info('\n')
         if self.waitConn:
             self.waitConnected()
+            
+    def meshRouting(self, routing):
+        """
+        Defined the mesh routing
+        
+        :params routing: the mesh routing (default: custom)
+        """
+        if routing != '':
+            meshRouting.routing = routing
 
     def seed(self, seed):
         "Seed"
@@ -1424,19 +1102,7 @@ class Mininet(object):
         info('\n')
         if(self.isWiFi):
             "Stop Graph"
-            mobility.continuePlot = 'exit()'
-            mobility.continueParams = 'exit()'
-            sleep(2)
-            if self.is3d:
-                plot3d.closePlot()
-            else:
-                plot2d.closePlot()
-            module.stop()  # Stopping WiFi Module
-
-        if self.useWmediumd:
-            WmediumdServerConn.disconnect()
-            WmediumdStarter.stop()
-        
+            mininetWiFi.closeMininetWiFi()        
         info('\n*** Done\n')
 
     def run(self, test, *args, **kwargs):
@@ -1768,92 +1434,25 @@ class Mininet(object):
         Starts Mobility 
         """
         
-        self.mobilityModel = ''
-        mobilityparam = dict()
-        mobility.isMobility = True
-        
-        if 'AC' in kwargs:
-            self.associationControlMethod = kwargs['AC']
-
-        if 'model' in kwargs:
-            mobilityparam.setdefault('model', kwargs['model'])
-            self.mobilityModel = kwargs['model']
-
-        if self.mobilityModel != '' or self.isVanet:
-            if 'max_x' in kwargs:
-                self.MAX_X = kwargs['max_x']
-            if 'max_y' in kwargs:
-                self.MAX_Y = kwargs['max_y']
-            if 'min_v' in kwargs:
-                mobilityparam.setdefault('min_v', kwargs['min_v'])
-            if 'max_v' in kwargs:
-                mobilityparam.setdefault('max_v', kwargs['max_v'])
-            if 'startTime' in kwargs:
-                self.init_time = kwargs['startTime']
-
-            staMov = []
-            for sta in self.stations:
-                if 'position' not in sta.params:
-                    staMov.append(sta)
-                    sta.params['position'] = 0, 0, 0
-
-            mobilityparam.setdefault('staMov', staMov)
-            mobilityparam.setdefault('seed', self.set_seed)
-            mobilityparam.setdefault('plotNodes', self.plotNodes)
-            mobilityparam.setdefault('stations', self.stations)
-            mobilityparam.setdefault('aps', self.accessPoints)
-            mobilityparam.setdefault('MAX_X', self.MAX_X)
-            mobilityparam.setdefault('MAX_Y', self.MAX_Y)
-            mobilityparam.setdefault('dstConn', self.dstConn)
-            mobilityparam.setdefault('srcConn', self.srcConn)
-            mobilityparam.setdefault('AC', self.associationControlMethod)
-            mobilityparam.setdefault('rec_rssi', self.rec_rssi)
-            
-            if self.isVanet == False:
-                self.thread = threading.Thread(name='mobilityModel', target=mobility.models, kwargs=dict(mobilityparam,))
-                self.thread.daemon = True
-                self.thread.start()
-                self.setWifiParameters()
-            else:
-                self.thread = threading.Thread(name='vanet', target=vanet, args=(self.stations,
-                                    self.accessPoints, self.nroads, self.srcConn, self.dstConn, self.MAX_X, self.MAX_Y))
-                self.thread.daemon = True
-                self.thread.start()
-            
-        info("Mobility started at %s second(s)\n" % kwargs['startTime'])
+        stations = self.stations
+        accessPoints = self.accessPoints
+        isVanet = self.isVanet
+        seed = self.set_seed
+        dstConn = self.dstConn
+        srcConn = self.srcConn
+        plotNodes = self.plotNodes
+        mininetWiFi.startMobility(stations, accessPoints, plotNodes, seed, \
+                                  isVanet, srcConn, dstConn, **kwargs)
 
     def stopMobility(self, **kwargs):
         """Stops Mobility"""        
-        if 'stopTime' in kwargs:
-            final_time = kwargs['stopTime']
-            
-        mobilityparam = dict()
-        mobilityparam.setdefault('init_time', self.init_time)
-        mobilityparam.setdefault('final_time', final_time)
-        mobilityparam.setdefault('plotNodes', self.plotNodes)
-        mobilityparam.setdefault('stations', self.stations)
-        mobilityparam.setdefault('aps', self.accessPoints)
-        mobilityparam.setdefault('MAX_X', self.MAX_X)
-        mobilityparam.setdefault('MAX_Y', self.MAX_Y)
-        mobilityparam.setdefault('MAX_Z', self.MAX_Z)
-        mobilityparam.setdefault('dstConn', self.dstConn)
-        mobilityparam.setdefault('srcConn', self.srcConn)
-        mobilityparam.setdefault('AC', self.associationControlMethod)
-        mobilityparam.setdefault('rec_rssi', self.rec_rssi)        
-
-        debug('Starting mobility thread...\n')
-        self.thread = threading.Thread(name='mobility', target=mobility.definedPosition, kwargs=dict(mobilityparam,))
-        self.thread.daemon = True
-        self.thread.start()        
-        self.setWifiParameters()
-
-    def setWifiParameters(self):
-        """
-        Opens a thread for wifi parameters
-        """
-        self.thread = threading.Thread(name='wifiParameters', target=mobility.parameters)
-        self.thread.daemon = True
-        self.thread.start()
+        
+        stations = self.stations
+        accessPoints = self.accessPoints
+        dstConn = self.dstConn
+        srcConn = self.srcConn
+        plotNodes = self.plotNodes
+        mininetWiFi.stopMobility(stations, accessPoints, plotNodes, srcConn, dstConn, **kwargs)
 
     def useExternalProgram(self, program, **params):
         """
@@ -1862,24 +1461,7 @@ class Mininet(object):
         :params program: any program (useful for SUMO)
         :params **params config_file: file configuration
         """
-        config_file = ("%s" % params.pop('config_file', {}))
-        self.isVanet = True
-        for car in self.cars:
-            car.params['position'] = 0, 0, 0
-        if program == 'sumo' or program == 'sumo-gui':
-            self.thread = threading.Thread(name='vanet', target=sumo, args=(self.stations, self.accessPoints, program, config_file))
-            self.thread.daemon = True
-            self.thread.start()
-            # self.setWifiParameters()
-
-    def meshRouting(self, routing):
-        """
-        Defined the mesh routing
-        
-        :params routing: the mesh routing (default: custom)
-        """
-        if routing != '':
-            meshRouting.routing = routing
+        mininetWiFi.useExternalProgram(program, **params)
 
     def printDistance(self, src, dst):
         """ 
@@ -1910,50 +1492,10 @@ class Mininet(object):
         :params max_y: maximum Y
         :params max_z: maximum Z
         """
-        mobility.DRAW = True
-        self.MAX_X = max_x
-        self.MAX_Y = max_y
-        if max_z != 0:
-            self.MAX_Z = max_z
-            self.is3d = True
-            mobility.is3d = self.is3d
-            mobility.continuePlot = 'plot3d.graphPause()'
+        mininetWiFi.plotGraph(max_x, max_y, max_z)
             
     def startGraph(self):
-        self.alreadyPlotted = True
-        if mobility.isMobility == False and mobility.DRAW:
-            for sta in self.stations:
-                if sta.func[0] == 'ap':
-                    self.accessPoints.append(sta)
-                    self.stations.remove(sta)
-            
-            if mobility.accessPoints == []:
-                mobility.accessPoints = self.accessPoints
-            if mobility.stations == []: 
-                mobility.stations = self.stations
-            
-            nodes = []
-            nodes = self.plotNodes
-            
-            for ap in self.accessPoints:
-                if 'position' in ap.params:
-                    nodes.append(ap)
-                    
-            for sta in self.stations:
-                if 'position' in sta.params:
-                    nodes.append(sta)
-            
-            try:
-                if self.is3d:
-                    plot3d.instantiateGraph(self.MAX_X, self.MAX_Y, self.MAX_Z)
-                    plot3d.graphInstantiateNodes(nodes)
-                else:
-                    plot2d.instantiateGraph(self.MAX_X, self.MAX_Y)
-                    plot2d.plotGraph(nodes, self.srcConn, self.dstConn)
-                    plot2d.graphPause()
-            except:
-                info('Warning: This OS does not support GUI. Running without GUI.\n')
-                mobility.DRAW = False
+        mininetWiFi.startGraph()
 
     def getCurrentPosition(self, node):
         """ 
