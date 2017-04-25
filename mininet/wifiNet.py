@@ -27,14 +27,16 @@ from sumo.runner import sumo
 
 class mininetWiFi(object):
     
+    thread = threading.Thread()
     rec_rssi = False
     useWmediumd = False
     is3d = False
     init_time = 0
-    thread = threading.Thread()
     MAX_X = 0
     MAX_Y = 0
     MAX_Z = 0
+    srcConn = []
+    dstConn = []
     
     @classmethod
     def addMesh(self, node, nextIP, ipBaseNum, prefixLen, cls=None, **params):
@@ -155,6 +157,11 @@ class mininetWiFi(object):
         "Return a random, non-multicast MAC address"
         return macColonHex(random.randint(1, 2 ** 48 - 1) & 0xfeffffffffff | 
                             0x020000000000)
+
+    @staticmethod
+    def wmediumdConnect():
+        WmediumdServerConn.connect()
+
     @classmethod
     def configureWmediumd(self, stations, accessPoints, wlinks, enable_interference):
         """ 
@@ -400,21 +407,21 @@ class mininetWiFi(object):
             mobility.continuePlot = 'plot3d.graphPause()'
     
     @classmethod
-    def checkDimension(self, nodes, srcConn, dstConn):
+    def checkDimension(self, nodes):
         try:
             if self.is3d:
                 plot3d.instantiateGraph(self.MAX_X, self.MAX_Y, self.MAX_Z)
                 plot3d.graphInstantiateNodes(nodes)
             else:
                 plot2d.instantiateGraph(self.MAX_X, self.MAX_Y)
-                plot2d.plotGraph(nodes, srcConn, dstConn)
+                plot2d.plotGraph(nodes, self.srcConn, self.dstConn)
                 plot2d.graphPause()
         except:
             info('Warning: This OS does not support GUI. Running without GUI.\n')
             mobility.DRAW = False
             
     @classmethod
-    def startGraph(self, stations, accessPoints, plotNodes, srcConn, dstConn, is3d=False):
+    def startGraph(self, stations, accessPoints, plotNodes, is3d=False):
         self.alreadyPlotted = True
         if mobility.isMobility == False and mobility.DRAW:
             for sta in stations:
@@ -438,10 +445,10 @@ class mininetWiFi(object):
                 if 'position' in sta.params:
                     nodes.append(sta)
             
-            self.checkDimension(nodes, srcConn, dstConn)
+            self.checkDimension(nodes)
     
     @classmethod
-    def startMobility(self, stations, accessPoints, plotNodes, seed, isVanet, srcConn, dstConn, **kwargs):
+    def startMobility(self, stations, accessPoints, plotNodes, seed, isVanet, nroads, **kwargs):
         """
         Starts Mobility
         """
@@ -482,10 +489,10 @@ class mininetWiFi(object):
             mobilityparam.setdefault('aps', accessPoints)
             mobilityparam.setdefault('MAX_X', self.MAX_X)
             mobilityparam.setdefault('MAX_Y', self.MAX_Y)
-            mobilityparam.setdefault('dstConn', dstConn)
-            mobilityparam.setdefault('srcConn', srcConn)
+            mobilityparam.setdefault('dstConn', self.dstConn)
+            mobilityparam.setdefault('srcConn', self.srcConn)
             mobilityparam.setdefault('AC', associationControlMethod)
-            mobilityparam.setdefault('rec_rssi', mininetWiFi.rec_rssi)
+            mobilityparam.setdefault('rec_rssi', self.rec_rssi)
             
             if isVanet == False:
                 self.thread = threading.Thread(name='mobilityModel', target=mobility.models, kwargs=dict(mobilityparam,))
@@ -494,14 +501,14 @@ class mininetWiFi(object):
                 self.setWifiParameters()
             else:
                 self.thread = threading.Thread(name='vanet', target=vanet, args=(stations,
-                                    accessPoints, self.nroads, srcConn, dstConn, self.MAX_X, self.MAX_Y))
+                                    accessPoints, nroads, self.srcConn, self.dstConn, self.MAX_X, self.MAX_Y))
                 self.thread.daemon = True
                 self.thread.start()
             
         info("Mobility started at %s second(s)\n" % kwargs['time'])
     
     @classmethod   
-    def stopMobility(self, stations, accessPoints, plotNodes, srcConn, dstConn, **kwargs):
+    def stopMobility(self, stations, accessPoints, plotNodes, **kwargs):
         """Stops Mobility"""        
         if 'time' in kwargs:
             final_time = kwargs['time']
@@ -515,10 +522,10 @@ class mininetWiFi(object):
         mobilityparam.setdefault('MAX_X', self.MAX_X)
         mobilityparam.setdefault('MAX_Y', self.MAX_Y)
         mobilityparam.setdefault('MAX_Z', self.MAX_Z)
-        mobilityparam.setdefault('dstConn', dstConn)
-        mobilityparam.setdefault('srcConn', srcConn)
+        mobilityparam.setdefault('dstConn', self.dstConn)
+        mobilityparam.setdefault('srcConn', self.srcConn)
         mobilityparam.setdefault('AC', mobility.associationControlMethod)
-        mobilityparam.setdefault('rec_rssi', mininetWiFi.rec_rssi)        
+        mobilityparam.setdefault('rec_rssi', self.rec_rssi)        
 
         debug('Starting mobility thread...\n')
         self.thread = threading.Thread(name='mobility', target=mobility.definedPosition, kwargs=dict(mobilityparam,))
@@ -653,7 +660,9 @@ class mininetWiFi(object):
                     
     @classmethod
     def closeMininetWiFi(self ):
-        
+        """
+        Close Mininet-WiFi        
+        """
         mobility.continuePlot = 'exit()'
         mobility.continueParams = 'exit()'
         sleep(2)
@@ -663,7 +672,7 @@ class mininetWiFi(object):
             plot2d.closePlot()
         module.stop()  # Stopping WiFi Module
 
-        if mininetWiFi.useWmediumd:
+        if self.useWmediumd:
             WmediumdServerConn.disconnect()
             WmediumdStarter.stop()
         

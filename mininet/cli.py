@@ -79,7 +79,7 @@ class CLI(Cmd):
                 if 'position' in sta.params:
                     nodes.append(sta)
                 
-            mininetWiFi.checkDimension(nodes, mininet.srcConn, mininet.dstConn)    
+            mininetWiFi.checkDimension(nodes)
 
         self.mn = mininet
         # Local variable bindings for py command

@@ -119,7 +119,6 @@ from mininet.wifiMeshRouting import meshRouting
 from mininet.wifiMobility import mobility
 from mininet.wifiPropagationModels import propagationModel
 from mininet.wifiNet import mininetWiFi
-from mininet.wmediumdConnector import WmediumdServerConn
         
 from __builtin__ import True
 
@@ -193,16 +192,14 @@ class Mininet(object):
         self.vehicles = []
         self.vehiclesSTA = []
         self.plotNodes = []
-        self.srcConn = []
-        self.dstConn = []
         self.walls = []
         self.terms = []  # list of spawned xterm processes
         self.isWiFi = isWiFi
         self.nRadios = 0
         self.isVanet = False
-        self.enable_interference = enable_interference
         self.ifb = False
         self.alreadyPlotted = False
+        self.enable_interference = enable_interference
         mininetWiFi.rec_rssi = rec_rssi
         mininetWiFi.useWmediumd = useWmediumd
         Mininet.init()  # Initialize Mininet if necessary
@@ -813,8 +810,8 @@ class Mininet(object):
         elif (node1.type == 'accessPoint' and node2.type == 'accessPoint' and 'link' in options and options['link'] == 'wds'):
             # If sta/ap have defined position
             if 'position' in node1.params and 'position' in node2.params:
-                self.srcConn.append(node1)
-                self.dstConn.append(node2)
+                mininetWiFi.srcConn.append(node1)
+                mininetWiFi.dstConn.append(node2)
             
                 dist = setChannelParams.getDistance(node1, node2)
                 if dist > node1.params['range']:
@@ -832,8 +829,8 @@ class Mininet(object):
                 options.pop('link', None)
             
             if 'position' in node1.params and 'position' in node2.params:
-                self.srcConn.append(node1)
-                self.dstConn.append(node2)
+                mininetWiFi.srcConn.append(node1)
+                mininetWiFi.dstConn.append(node2)
             # Port is optional
             if port1 is not None:
                 options.setdefault('port1', port1)
@@ -994,7 +991,7 @@ class Mininet(object):
             self.staticArp()
         self.built = True   
         if mininetWiFi.useWmediumd:
-            WmediumdServerConn.connect()
+            mininetWiFi.wmediumdConnect()
 
     def startTerms(self):
         "Start a terminal for each node."
@@ -1205,7 +1202,7 @@ class Mininet(object):
         m = re.search(r, pingOutput)
         if m is not None:
             return errorTuple
-        r = r'(\d+) packets transmitted, (\d+) received'
+        r = r'(\d+) packets transmitted, (\d+)( packets)? received'
         m = re.search(r, pingOutput)
         if m is None:
             error('*** Error: could not parse ping output: %s\n' % 
@@ -1344,7 +1341,7 @@ class Mininet(object):
         debug( 'Client output: %s\n' % cliout )
         servout = ''
         # We want the last *b/sec from the iperf server output
-        # for TCP, there are two fo them because of waitListening
+        # for TCP, there are two of them because of waitListening
         count = 2 if l4Type == 'TCP' else 1
         while len( re.findall( '/sec', servout ) ) < count:
             servout += server.monitor( timeoutms=5000 )
@@ -1438,21 +1435,18 @@ class Mininet(object):
         accessPoints = self.accessPoints
         isVanet = self.isVanet
         seed = self.set_seed
-        dstConn = self.dstConn
-        srcConn = self.srcConn
         plotNodes = self.plotNodes
+        nroads = self.nroads
         mininetWiFi.startMobility(stations, accessPoints, plotNodes, seed, \
-                                  isVanet, srcConn, dstConn, **kwargs)
+                                  isVanet, nroads, **kwargs)
 
     def stopMobility(self, **kwargs):
         """Stops Mobility"""        
         
         stations = self.stations
         accessPoints = self.accessPoints
-        dstConn = self.dstConn
-        srcConn = self.srcConn
         plotNodes = self.plotNodes
-        mininetWiFi.stopMobility(stations, accessPoints, plotNodes, srcConn, dstConn, **kwargs)
+        mininetWiFi.stopMobility(stations, accessPoints, plotNodes, **kwargs)
 
     def useExternalProgram(self, program, **params):
         """
