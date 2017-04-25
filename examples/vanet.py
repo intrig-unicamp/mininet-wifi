@@ -38,7 +38,7 @@ def topology():
     print "*** Configuring wifi nodes"
     net.configureWifiNodes()
 
-    net.meshRouting('custom') 
+    net.meshRouting('custom')
 
     print "*** Associating and Creating links"
     net.addLink(rsu11, rsu12)
@@ -65,7 +65,7 @@ def topology():
     net.roads(20)
 
     """Start Mobility"""
-    net.startMobility(startTime=0)
+    net.startMobility(time=0)
 
     i = 1
     j = 2
@@ -84,14 +84,14 @@ def topology():
         v.cmd('ifconfig %s-eth0 192.168.1.%s/24 up' % (v, j))
         v.cmd('ifconfig %s-mp0 10.0.0.%s/24 up' % (v,i))
         v.cmd('echo 1 > /proc/sys/net/ipv4/ip_forward')
-        i+=1    
+        i+=1
         j+=2
 
     for v1 in net.vehiclesSTA:
         i = 1
         j = 1
         for v2 in net.vehiclesSTA:
-            if v1 != v2: 
+            if v1 != v2:
                 v1.cmd('route add -host 192.168.1.%s gw 10.0.0.%s' % (j,i))
             i+=1
             j+=2
