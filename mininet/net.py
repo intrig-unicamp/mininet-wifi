@@ -857,19 +857,19 @@ class Mininet(object):
         
     def configureWifiNodes(self):
         """Configure WiFi Nodes"""
-        stations = self.stations
-        accessPoints = self.accessPoints
-        cars = self.cars
-        switches = self.switches 
-        nRadios = self.nRadios 
-        ifb = self.ifb 
-        alternativeModule = self.alternativeModule
-        nextIP = self.nextIP
-        ipBaseNum = self.ipBaseNum
-        prefixLen = self.prefixLen
-        useWmediumd = self.useWmediumd
-        self.stations, self.accessPoints, self.isWiFi = mininetWiFi.configureWifiNodes(stations, accessPoints, \
-                    cars, switches, nRadios, ifb, alternativeModule, nextIP, ipBaseNum, prefixLen, useWmediumd)
+        params = dict()
+        params.setdefault('stations', self.stations)
+        params.setdefault('accessPoints', self.accessPoints)
+        params.setdefault('cars', self.cars)
+        params.setdefault('switches', self.switches)
+        params.setdefault('nRadios', self.nRadios)
+        params.setdefault('ifb', self.ifb)
+        params.setdefault('alternativeModule', self.alternativeModule)
+        params.setdefault('nextIP', self.nextIP)
+        params.setdefault('ipBaseNum', self.ipBaseNum)
+        params.setdefault('prefixLen', self.prefixLen)
+        params.setdefault('useWmediumd', self.useWmediumd)
+        self.stations, self.accessPoints, self.isWiFi = mininetWiFi.configureWifiNodes(**params)
         
     def delLink(self, link):
         "Remove a link from this network"
