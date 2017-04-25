@@ -28,6 +28,7 @@ from sumo.runner import sumo
 class mininetWiFi(object):
     
     thread = threading.Thread()
+    associationControlMethod = ''
     rec_rssi = False
     useWmediumd = False
     is3d = False
@@ -452,13 +453,12 @@ class mininetWiFi(object):
         """
         Starts Mobility
         """
-        associationControlMethod = ''
         mobilityModel = ''
         mobilityparam = dict()
         mobility.isMobility = True
         
         if 'AC' in kwargs:
-            associationControlMethod = kwargs['AC']
+            self.associationControlMethod = kwargs['AC']
 
         if 'model' in kwargs:
             mobilityparam.setdefault('model', kwargs['model'])
@@ -491,7 +491,7 @@ class mininetWiFi(object):
             mobilityparam.setdefault('MAX_Y', self.MAX_Y)
             mobilityparam.setdefault('dstConn', self.dstConn)
             mobilityparam.setdefault('srcConn', self.srcConn)
-            mobilityparam.setdefault('AC', associationControlMethod)
+            mobilityparam.setdefault('AC', self.associationControlMethod)
             mobilityparam.setdefault('rec_rssi', self.rec_rssi)
             
             if isVanet == False:
@@ -524,7 +524,7 @@ class mininetWiFi(object):
         mobilityparam.setdefault('MAX_Z', self.MAX_Z)
         mobilityparam.setdefault('dstConn', self.dstConn)
         mobilityparam.setdefault('srcConn', self.srcConn)
-        mobilityparam.setdefault('AC', mobility.associationControlMethod)
+        mobilityparam.setdefault('AC', self.associationControlMethod)
         mobilityparam.setdefault('rec_rssi', self.rec_rssi)        
 
         debug('Starting mobility thread...\n')

@@ -313,6 +313,7 @@ class mobility (object):
         """
         self.rec_rssi = rec_rssi
         np.random.seed(seed)
+        self.associationControlMethod = AC
         
         self.addNodes(stations, aps)
         nodes = self.stations + self.accessPoints + plotNodes
