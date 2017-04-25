@@ -32,12 +32,12 @@ def topology(mobility):
 
 	print "*** Starting network"
 	net.build()
-	
+
 	if mobility:
-		net.startMobility(startTime=1, AC='ssf')
+		net.startMobility(time=1, AC='ssf')
 		net.mobility(sta1, 'start', time=1, position='20.0,60.0,0.0')
 		net.mobility(sta1, 'stop', time=5, position='63.0,60.0,0.0')
-		net.stopMobility(stopTime=6)
+		net.stopMobility(time=6)
 
 	if mobility == False:
 		net.autoAssociation()

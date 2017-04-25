@@ -32,7 +32,7 @@ def topology():
     net.build()
     c1.start()
     ap1.start( [c1] )
-    
+
     """uncomment to plot graph"""
     net.plotGraph(max_x=100, max_y=100)
 
@@ -43,8 +43,8 @@ def topology():
     net.propagationModel('friisPropagationLossModel', sL=2)
 
     "*** Available mobility models: RandomWalk, TruncatedLevyWalk, RandomDirection, RandomWayPoint, GaussMarkov ***"
-    net.startMobility(startTime=0, model='RandomWayPoint', max_x=100, max_y=100, min_v=0.5, max_v=0.5)
-   
+    net.startMobility(time=0, model='RandomWayPoint', max_x=100, max_y=100, min_v=0.5, max_v=0.5)
+
     print "*** Running CLI"
     CLI( net )
 
