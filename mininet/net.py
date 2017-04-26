@@ -174,7 +174,6 @@ class Mininet(object):
         self.listenPort = listenPort
         self.waitConn = waitConnected
         self.routing = ''
-        self.alternativeModule = ''
         self.ssid = ssid
         self.mode = mode
         self.channel = channel
@@ -191,8 +190,7 @@ class Mininet(object):
         self.walls = []
         self.terms = []  # list of spawned xterm processes
         self.isWiFi = isWiFi
-        self.nRadios = 0
-        self.ifb = False
+        self.wifiRadios = 0
         self.useWmediumd = useWmediumd
 
         mininetWiFi.enable_interference = enable_interference
@@ -308,7 +306,7 @@ class Mininet(object):
         self.stations.append(sta)
         self.nameToNode[ name ] = sta 
         
-        self.nRadios = sta.addParameters(sta, self.nRadios, self.autoSetMacs, params, defaults)
+        self.wifiRadios = sta.addParameters(sta, self.wifiRadios, self.autoSetMacs, params, defaults)
         return sta
     
     def addAPAdhoc(self, name, cls=None, **params):
@@ -347,7 +345,7 @@ class Mininet(object):
         self.stations.append(sta)
         self.nameToNode[ name ] = sta 
         
-        self.nRadios = sta.addParameters(sta, self.nRadios, self.autoSetMacs, params, defaults)
+        self.wifiRadios = sta.addParameters(sta, self.wifiRadios, self.autoSetMacs, params, defaults)
         sta.func[0] = 'ap'
         return sta
         
@@ -381,7 +379,7 @@ class Mininet(object):
         
         self.nameToNode[ name ] = car
         car.type = 'vehicle'
-        self.nRadios = car.addParameters(car, self.nRadios, self.autoSetMacs, params, defaults)
+        self.wifiRadios = car.addParameters(car, self.wifiRadios, self.autoSetMacs, params, defaults)
         
         carsta = self.addStation(name + 'STA')
         carsta.params['range'] = car.params['range']
@@ -426,7 +424,7 @@ class Mininet(object):
         self.nameToNode[ name ] = ap
         ap.type = 'accessPoint'
         
-        self.nRadios = ap.addParameters(ap, self.nRadios, self.autoSetMacs, params, defaults, mode='master')
+        self.wifiRadios = ap.addParameters(ap, self.wifiRadios, self.autoSetMacs, params, defaults, mode='master')
         self.switches.append(ap)
         self.accessPoints.append(ap)        
         return ap
@@ -463,7 +461,7 @@ class Mininet(object):
         node.type = 'station'
         self.nextIP += 1
         
-        self.nRadios = node.addParameters(node, self.nRadios, self.autoSetMacs, params, defaults)
+        self.wifiRadios = node.addParameters(node, self.wifiRadios, self.autoSetMacs, params, defaults)
         self.switches.append(node)
         self.stations.append(node)        
         return node
@@ -497,7 +495,7 @@ class Mininet(object):
         self.switches.append(bs)
         self.accessPoints.append(bs)
 
-        self.nRadios = bs.addParameters(bs, self.nRadios, self.autoSetMacs, params, defaults, mode='master')                
+        self.wifiRadios = bs.addParameters(bs, self.wifiRadios, self.autoSetMacs, params, defaults, mode='master')                
         return bs
 
     def addSwitch(self, name, cls=None, **params):
@@ -666,7 +664,7 @@ class Mininet(object):
 
     def runAlternativeModule(self, moduleDir):
         "Run an alternative module rather than mac80211_hwsim"
-        self.alternativeModule = moduleDir
+        mininetWiFi.alternativeModule = moduleDir
 
     def addMesh(self, node, cls=None, **params):
         """
@@ -735,8 +733,7 @@ class Mininet(object):
               
     def useIFB(self):
         "Support to Intermediate Functional Block (IFB) Devices"
-        self.ifb = True
-        setChannelParams.ifb = True
+        mininetWiFi.ifb = True
         
     def addLink(self, node1, node2, port1=None, port2=None,
                  cls=None, **params):
@@ -854,9 +851,7 @@ class Mininet(object):
         params.setdefault('accessPoints', self.accessPoints)
         params.setdefault('cars', self.cars)
         params.setdefault('switches', self.switches)
-        params.setdefault('nRadios', self.nRadios)
-        params.setdefault('ifb', self.ifb)
-        params.setdefault('alternativeModule', self.alternativeModule)
+        params.setdefault('wifiRadios', self.wifiRadios)
         params.setdefault('nextIP', self.nextIP)
         params.setdefault('ipBaseNum', self.ipBaseNum)
         params.setdefault('prefixLen', self.prefixLen)

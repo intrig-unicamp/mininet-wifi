@@ -2,7 +2,7 @@
 author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
 """
 
-from wifiDevices import deviceDataRate
+from mininet.wifiDevices import deviceDataRate
 from wifiPropagationModels import propagationModel
 from scipy.spatial.distance import pdist
 import numpy as np

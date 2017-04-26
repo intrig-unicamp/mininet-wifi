@@ -33,6 +33,7 @@ from sumo.runner import sumo
 class mininetWiFi(object):
 
     associationControlMethod = ''
+    alternativeModule = ''
     rec_rssi = False
     useWmediumd = False
     is3d = False
@@ -41,6 +42,7 @@ class mininetWiFi(object):
     alreadyPlotted = False
     enable_interference = False
     isVanet = False
+    ifb = False
     seed_ = 10
     init_time = 0
     MAX_X = 0
@@ -561,7 +563,7 @@ class mininetWiFi(object):
                 cls(node, intfName1=node.params['wlan'][wlan])     
     
     @classmethod
-    def configureWifiNodes(self, stations, accessPoints, cars, switches, nRadios, ifb, alternativeModule,\
+    def configureWifiNodes(self, stations, accessPoints, cars, switches, wifiRadios, \
                            nextIP, ipBaseNum, prefixLen, useWmediumd):
         """
         Configure WiFi Nodes
@@ -570,19 +572,18 @@ class mininetWiFi(object):
         :param accessPoints: list of access points
         :param cars: list of cars
         :param switches: list of switches
-        :param nRadios: number of wireless radios
-        :param ifb: if enable ifb
-        :param alternativeModule: if there is an alternative module
+        :param wifiRadios: number of wireless radios
         :param wmediumd: loads wmediumd 
         """
         self.useWmediumd = useWmediumd
 
         params = {}
-        if ifb:
-            params['ifb'] = ifb
+        if self.ifb:
+            setChannelParams.ifb = True
+            params['ifb'] = self.ifb
         params['useWmediumd'] = useWmediumd
         nodes = stations + accessPoints + cars
-        module.start(nodes, nRadios, alternativeModule, **params)               
+        module.start(nodes, wifiRadios, self.alternativeModule, **params)               
         self.configureWirelessLink(stations, accessPoints, cars, switches) 
         self.configureAPs(accessPoints)
         isWiFi = True 
