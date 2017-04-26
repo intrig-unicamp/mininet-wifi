@@ -123,7 +123,7 @@ from mininet.wifiNet import mininetWiFi
 from __builtin__ import True
 
 # Mininet version: should be consistent with README and LICENSE
-VERSION = "2.0r3"
+VERSION = "2.0r4"
 
 class Mininet(object):
     "Network emulation with hosts spawned in network namespaces."
@@ -728,7 +728,7 @@ class Mininet(object):
         confname = "mn%d_%s_wifiDirect.conf" % (os.getpid(), sta)
         cmd = cmd + ("\' > %s" % confname)
         os.system(cmd)
-        sta.cmd('wpa_supplicant -B -Dnl80211 -c%s -i%s-wlan0 -d' % (confname, sta))
+        sta.cmd('wpa_supplicant -B -Dnl80211 -c%s -i%s -d' % (confname, sta.params['wlan'][wlan]))
 
         value = deviceDataRate(sta=sta, wlan=wlan)
         self.bw = value.rate
@@ -739,7 +739,7 @@ class Mininet(object):
         options.setdefault('addr1', self.randMac())
               
     def useIFB(self):
-        """Support to Intermediate Functional Block (IFB) Devices"""        
+        "Support to Intermediate Functional Block (IFB) Devices"
         self.ifb = True
         setChannelParams.ifb = True
         
@@ -847,16 +847,14 @@ class Mininet(object):
             return link
         
     def autoAssociation(self):
-        """
-        This is useful to make the users' life easier
-        """
+        "This is useful to make the users' life easier"
         stations = self.stations
         accessPoints = self.accessPoints
         isVanet = self.isVanet
         mininetWiFi.autoAssociation(stations, accessPoints, isVanet)
         
     def configureWifiNodes(self):
-        """Configure WiFi Nodes"""
+        "Configure WiFi Nodes"
         params = dict()
         params.setdefault('stations', self.stations)
         params.setdefault('accessPoints', self.accessPoints)
@@ -1405,21 +1403,19 @@ class Mininet(object):
         """ 
         Mobility Parameters 
         """        
-        mininetWiFi.mobility(*args, **kwargs)
+        mobility.configure(*args, **kwargs)
 
     def startMobility(self, **kwargs):
         """
         Starts Mobility 
         """
-        
+        kwargs['seed'] = self.set_seed
+        kwargs['nroads'] = self.nroads
         stations = self.stations
         accessPoints = self.accessPoints
         isVanet = self.isVanet
-        seed = self.set_seed
         plotNodes = self.plotNodes
-        nroads = self.nroads
-        mininetWiFi.startMobility(stations, accessPoints, plotNodes, seed, \
-                                  isVanet, nroads, **kwargs)
+        mininetWiFi.startMobility(stations, accessPoints, plotNodes, isVanet, **kwargs)
 
     def stopMobility(self, **kwargs):
         """Stops Mobility"""        
@@ -1436,10 +1432,11 @@ class Mininet(object):
         :params program: any program (useful for SUMO)
         :params **params config_file: file configuration
         """
-        stations = self.stations
-        accessPoints = self.accessPoints
-        cars = self.cars
-        mininetWiFi.useExternalProgram(program, stations, accessPoints, cars, **params)
+        params['stations'] = self.stations
+        params['aps'] = self.accessPoints
+        params['cars'] = self.cars
+        params['program'] = program
+        mininetWiFi.useExternalProgram(**params)
         
     def getCurrentDistance(self, src, dst):
         """ 
@@ -1449,7 +1446,7 @@ class Mininet(object):
         :params dst: destination node
         """
         nodes = self.stations + self.cars + self.accessPoints
-        mininetWiFi.getCurrentDistance(src, dst, nodes)
+        mininetWiFi.getDistance(src, dst, nodes)
 
     def plotNode(self, node, position):
         """ 

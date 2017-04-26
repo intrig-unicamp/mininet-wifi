@@ -5,6 +5,7 @@ author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
         ramonfontes.com
 
 """
+import threading
 import numpy as np
 import time
 import os
@@ -21,7 +22,6 @@ from mininet.link import Association
 
 class mobility (object):
     """ Mobility """
-
     associationControlMethod = ''
     accessPoints = []
     stations = []
@@ -37,6 +37,21 @@ class mobility (object):
     continuePlot = 'plot2d.graphPause()'
     continueParams = 'time.sleep(0.001)'
     rec_rssi = False
+
+    @classmethod
+    def start(self, **mobilityparam):
+        thread = threading.Thread(name='mobilityModel', target=self.models, kwargs=dict(mobilityparam,))
+        thread.daemon = True
+        thread.start()
+        self.setWifiParameters()
+
+    @classmethod
+    def stop(self, **mobilityparam):
+        debug('Starting mobility thread...\n')
+        thread = threading.Thread(name='mobility', target=self.definedPosition, kwargs=dict(mobilityparam,))
+        thread.daemon = True
+        thread.start()
+        self.setWifiParameters()
 
     @classmethod
     def moveFactor(self, sta, diffTime):
@@ -56,6 +71,41 @@ class mobility (object):
         pos = '%.2f,%.2f,%.2f' % (pos_x / diffTime, pos_y / diffTime, pos_z / diffTime)
         pos = pos.split(',')
         sta.moveFac = pos
+
+    @classmethod
+    def configure(self, *args, **kwargs):
+        """
+        configure Mobility Parameters
+        """
+        sta = args[0]
+        stage = args[1]
+
+        if 'position' in kwargs:
+            if(stage == 'stop'):
+                finalPosition = kwargs['position']
+                sta.params['finalPosition'] = finalPosition.split(',')
+            if(stage == 'start'):
+                initialPosition = kwargs['position']
+                sta.params['initialPosition'] = initialPosition.split(',')
+
+        if 'time' in kwargs:
+            time = kwargs['time']
+
+        if(stage == 'start'):
+            sta.startTime = time
+        elif(stage == 'stop'):
+            sta.endTime = time
+            diffTime = sta.endTime - sta.startTime
+            self.moveFactor(sta, diffTime)
+
+    @classmethod
+    def setWifiParameters(self):
+        """
+        Opens a thread for wifi parameters
+        """
+        thread = threading.Thread(name='wifiParameters', target=self.parameters)
+        thread.daemon = True
+        thread.start()
 
     @classmethod
     def nodeSpeed(self, sta, pos_x, pos_y, pos_z, diffTime):
@@ -213,7 +263,7 @@ class mobility (object):
     
     @classmethod
     def definedPosition(self, init_time=0, final_time=0, stations=None, aps=None, dstConn=None, srcConn=None, 
-                        plotNodes=None, MAX_X=0, MAX_Y=0, MAX_Z=0, AC='', rec_rssi=False):
+                        plotNodes=None, MAX_X=0, MAX_Y=0, MAX_Z=0, AC='', rec_rssi=False, **params):
         """ 
         Used when the position of each node is previously defined
         
@@ -263,7 +313,7 @@ class mobility (object):
                     plot.instantiateGraph(MAX_X, MAX_Y)
                     plot.plotGraph(self.plotNodes, srcConn, dstConn)
         except:
-            info('Warning: This OS does not support GUI. Running without GUI.\n')
+            info('Warning: running without GUI.\n')
             self.DRAW = False
         
         try:
@@ -294,7 +344,7 @@ class mobility (object):
 
     @classmethod
     def models(self, stations=None, aps=None, model=None, staMov=None, min_v=0, max_v=0, seed=None,
-               dstConn=None, srcConn=None, plotNodes=None, MAX_X=0, MAX_Y=0, AC='', rec_rssi=False):
+               dstConn=None, srcConn=None, plotNodes=None, MAX_X=0, MAX_Y=0, AC='', rec_rssi=False, **params):
         """ 
         Used when a mobility model is applied
         
@@ -337,7 +387,7 @@ class mobility (object):
                 plot2d.plotGraph(nodes, srcConn, dstConn)
                 plot2d.graphPause()
         except:
-            info('Warning: This OS does not support GUI. Running without GUI.\n')
+            info('Warning: running without GUI.\n')
             self.DRAW = False
 
         if staMov != None:            

@@ -8,12 +8,17 @@ from mininet.wifiMobility import mobility
 
 class sumo(object):
 	
-	def __init__( self, stations, accessPoints, program, config_file ):
+	def __init__( self, **params ):
+		thread = threading.Thread(name='vanet', target=self.configureApp, kwargs=dict(params,))
+		thread.daemon = True
+		thread.start()
+
+	def configureApp(self, stations, aps, program, config_file, **params):
 		try:			
 			mobility.stations = stations
-			mobility.accessPoints = accessPoints
+			mobility.accessPoints = aps
 			mobility.mobilityNodes = stations
-			self.start(stations, accessPoints, program, config_file)
+			self.start(stations, aps, program, config_file)
 		except:
 			pass
 		

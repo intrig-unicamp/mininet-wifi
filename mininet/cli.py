@@ -301,7 +301,7 @@ class CLI(Cmd):
         elif len(args) == 2 and args[ 0 ] == args[ 1 ]:
             error('invalid. Source and Destination are equals\n')
         else:
-            self.mn.getCurrentDistance(*args)
+            self.mn.getDistance(*args)
 
     def do_link(self, line):
         """Bring link(s) between two nodes up or down.

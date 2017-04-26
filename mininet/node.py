@@ -612,16 +612,16 @@ class Node(object):
         else:
             passwd = sta.params['passwd'][wlan]
         pidfile = "mn%d_%s_%s_wpa.pid" % (os.getpid(), sta.name, wlan)
-        sta.cmd("wpa_supplicant -B -Dnl80211 -P %s -i %s-wlan%s -c <(wpa_passphrase \"%s\" \"%s\")"
-                % (pidfile, sta, wlan, ap.params['ssid'][0], passwd))
+        sta.cmd("wpa_supplicant -B -Dnl80211 -P %s -i %s -c <(wpa_passphrase \"%s\" \"%s\")"
+                % (pidfile, sta.params['wlan'][wlan], wlan, ap.params['ssid'][0], passwd))
 
     def associate_wep(self, sta, ap, wlan):
         if 'passwd' not in sta.params:
             passwd = ap.params['passwd'][0]
         else:
             passwd = sta.params['passwd'][wlan]
-        sta.pexec('iw dev %s-wlan%s connect %s key d:0:%s' \
-                % (sta, wlan, ap.params['ssid'][0], passwd))
+        sta.pexec('iw dev %s connect %s key d:0:%s' \
+                % (sta.params['wlan'][wlan], ap.params['ssid'][0], passwd))
 
     def mountPrivateDirs(self):
         "mount private directories"

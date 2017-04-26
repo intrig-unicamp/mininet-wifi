@@ -174,34 +174,34 @@ class plot2d (object):
 
     @classmethod
     def plotDraw(self):
-        """plotDraw"""
+        "plotDraw"
         plt.draw()
 
     @classmethod
     def plotScatter(self, nodesx, nodesy):
-        """plotScatter"""
+        "plotScatter"
         return plt.scatter(nodesx, nodesy, color='red', marker='s')
 
     @classmethod
     def plotLine2d(self, nodesx, nodesy, color='', ls='-', lw=1):
-        """plotLine2d"""
+        "plotLine2d"
         return plt.Line2D(nodesx, nodesy, color=color, ls=ls, lw=lw)
 
     @classmethod
     def plotLineTxt(self, x, y, i):
-        """plotLineTxt"""
+        "plotLineTxt"
         title = 'Av.%s' % i
         plt.text(x, y, title, ha='left', va='bottom', fontsize=8, color='g')
 
     @classmethod
     def plotLine(self, line):
-        """plotLine"""
+        "plotLine"
         ax = self.ax
         ax.add_line(line)
 
     @classmethod
     def instantiateGraph(self, MAX_X, MAX_Y, is3d=False):
-        """instantiateGraph"""
+        "instantiateGraph"
         plt.ion()
         plt.title("Mininet-WiFi Graph")
         self.ax = plt.subplot(111)
@@ -213,7 +213,7 @@ class plot2d (object):
         
     @classmethod
     def instantiateNode(self, node):
-        """instantiateNode"""
+        "instantiateNode"
         ax = self.ax
 
         color = 'b'
@@ -226,7 +226,7 @@ class plot2d (object):
 
     @classmethod
     def instantiateCircle(self, node):
-        """instantiateCircle"""
+        "instantiateCircle"
         ax = self.ax
 
         color = 'b'
@@ -243,7 +243,7 @@ class plot2d (object):
 
     @classmethod
     def instantiateAnnotate(self, node):
-        """instantiateAnnotate"""
+        "instantiateAnnotate"
         node.plttxt = self.ax.annotate(node, xy=(0, 0))
 
     @classmethod
@@ -259,8 +259,8 @@ class plot2d (object):
 
     @classmethod
     def plotGraph(self, wifiNodes=[], srcConn=[], dstConn=[]):
-        """ Plot Graph """
-        debug('Enabling Graph...\n')           
+        "Plot Graph"
+        debug('Enabling Graph...\n')
         for node in wifiNodes:
             x = '%.2f' % float(node.params['position'][0])
             y = '%.2f' % float(node.params['position'][1])

@@ -1,13 +1,18 @@
+"""
+Provides support to wifi
 
+author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
+        ramonfontes.com
+
+"""
 
 import os
 import random
-import threading
 import sys
 from time import sleep
 
 from mininet.node import AccessPoint
-from mininet.log import info, debug
+from mininet.log import info
 from mininet.wmediumdConnector import DynamicWmediumdIntfRef, WmediumdSNRLink, WmediumdStarter, \
                     WmediumdTXPower, WmediumdPosition, WmediumdConstants, WmediumdServerConn
 from mininet.wifiChannel import setChannelParams
@@ -26,8 +31,7 @@ sys.path.append(str(os.getcwd()) + '/mininet/')
 from sumo.runner import sumo
 
 class mininetWiFi(object):
-    
-    thread = threading.Thread()
+
     associationControlMethod = ''
     rec_rssi = False
     useWmediumd = False
@@ -384,15 +388,6 @@ class mininetWiFi(object):
         return stations, accessPoints
     
     @classmethod
-    def setWifiParameters(self):
-        """
-        Opens a thread for wifi parameters
-        """
-        self.thread = threading.Thread(name='wifiParameters', target=mobility.parameters)
-        self.thread.daemon = True
-        self.thread.start()
-    
-    @classmethod
     def plotGraph(self, max_x=0, max_y=0, max_z=0):
         """ 
         Plots Graph 
@@ -452,22 +447,54 @@ class mininetWiFi(object):
             self.checkDimension(nodes)
     
     @classmethod
-    def startMobility(self, stations, accessPoints, plotNodes, seed, isVanet, nroads, **kwargs):
-        """
-        Starts Mobility
-        """
+    def startMobility(self, stations, accessPoints, plotNodes, isVanet, **kwargs):
+        "Starts Mobility"
         mobilityModel = ''
-        mobilityparam = dict()
         mobility.isMobility = True
         
+        if 'model' in kwargs:
+            mobilityModel = kwargs['model']
+
         if 'AC' in kwargs:
             self.associationControlMethod = kwargs['AC']
 
+        if mobilityModel != '' or isVanet:
+            staMov = []
+            for sta in stations:
+                if 'position' not in sta.params:
+                    staMov.append(sta)
+                    sta.params['position'] = 0, 0, 0
+            
+            if not isVanet:
+                params = self.setMobilityParams(stations, accessPoints, plotNodes, isVanet, staMov, **kwargs)
+                mobility.start(**params)
+            else:
+                params = self.setMobilityParams(stations, accessPoints, isVanet, staMov, **kwargs)
+                vanet(**params)
+
+        info("Mobility started at %s second(s)\n" % kwargs['time'])
+
+    @classmethod
+    def stopMobility(self, stations, accessPoints, plotNodes, **kwargs):
+        "Stops Mobility"
+        params = self.setMobilityParams(stations, accessPoints, plotNodes, **kwargs)        
+        mobility.stop(**params)
+
+    @classmethod
+    def setMobilityParams(self, stations, accessPoints, plotNodes, isVanet=False, staMov=[], **kwargs):
+        "Set Mobility Parameters"
+        mobilityparam = dict()
+
         if 'model' in kwargs:
             mobilityparam.setdefault('model', kwargs['model'])
-            mobilityModel = kwargs['model']
-
-        if mobilityModel != '' or isVanet:
+        if 'time' in kwargs:
+            mobilityparam.setdefault('final_time', kwargs['time'])
+        if 'seed' in kwargs:
+            mobilityparam.setdefault('seed', kwargs['seed'])
+        if 'nroads' in kwargs and kwargs['nroads']!=0:
+            mobilityparam.setdefault('nroads', kwargs['nroads'])
+            
+        if 'model' in kwargs or isVanet:
             if 'max_x' in kwargs:
                 self.MAX_X = kwargs['max_x']
             if 'max_y' in kwargs:
@@ -479,107 +506,33 @@ class mininetWiFi(object):
             if 'time' in kwargs:
                 self.init_time = kwargs['time']
 
-            staMov = []
-            for sta in stations:
-                if 'position' not in sta.params:
-                    staMov.append(sta)
-                    sta.params['position'] = 0, 0, 0
-
-            mobilityparam.setdefault('staMov', staMov)
-            mobilityparam.setdefault('seed', seed)
-            mobilityparam.setdefault('plotNodes', plotNodes)
-            mobilityparam.setdefault('stations', stations)
-            mobilityparam.setdefault('aps', accessPoints)
-            mobilityparam.setdefault('MAX_X', self.MAX_X)
-            mobilityparam.setdefault('MAX_Y', self.MAX_Y)
-            mobilityparam.setdefault('dstConn', self.dstConn)
-            mobilityparam.setdefault('srcConn', self.srcConn)
-            mobilityparam.setdefault('AC', self.associationControlMethod)
-            mobilityparam.setdefault('rec_rssi', self.rec_rssi)
-            
-            if isVanet == False:
-                self.thread = threading.Thread(name='mobilityModel', target=mobility.models, kwargs=dict(mobilityparam,))
-                self.thread.daemon = True
-                self.thread.start()
-                self.setWifiParameters()
-            else:
-                self.thread = threading.Thread(name='vanet', target=vanet, args=(stations,
-                                    accessPoints, nroads, self.srcConn, self.dstConn, self.MAX_X, self.MAX_Y))
-                self.thread.daemon = True
-                self.thread.start()
-            
-        info("Mobility started at %s second(s)\n" % kwargs['time'])
-    
-    @classmethod
-    def stopMobility(self, stations, accessPoints, plotNodes, **kwargs):
-        """Stops Mobility"""        
-        if 'time' in kwargs:
-            final_time = kwargs['time']
-            
-        mobilityparam = dict()
-        mobilityparam.setdefault('init_time', self.init_time)
-        mobilityparam.setdefault('final_time', final_time)
         mobilityparam.setdefault('plotNodes', plotNodes)
         mobilityparam.setdefault('stations', stations)
         mobilityparam.setdefault('aps', accessPoints)
+        mobilityparam.setdefault('dstConn', self.dstConn)
+        mobilityparam.setdefault('srcConn', self.srcConn)
         mobilityparam.setdefault('MAX_X', self.MAX_X)
         mobilityparam.setdefault('MAX_Y', self.MAX_Y)
         mobilityparam.setdefault('MAX_Z', self.MAX_Z)
-        mobilityparam.setdefault('dstConn', self.dstConn)
-        mobilityparam.setdefault('srcConn', self.srcConn)
         mobilityparam.setdefault('AC', self.associationControlMethod)
-        mobilityparam.setdefault('rec_rssi', self.rec_rssi)        
+        mobilityparam.setdefault('rec_rssi', self.rec_rssi)
+        mobilityparam.setdefault('init_time', self.init_time)
+        mobilityparam.setdefault('staMov', staMov)
+        return mobilityparam
 
-        debug('Starting mobility thread...\n')
-        self.thread = threading.Thread(name='mobility', target=mobility.definedPosition, kwargs=dict(mobilityparam,))
-        self.thread.daemon = True
-        self.thread.start()        
-        self.setWifiParameters()
-        
     @classmethod
-    def mobility(self, *args, **kwargs):
-        """
-        Mobility Parameters
-        """
-
-        sta = args[0]
-        stage = args[1]
-
-        if 'position' in kwargs:
-            if(stage == 'stop'):
-                finalPosition = kwargs['position']
-                sta.params['finalPosition'] = finalPosition.split(',')
-            if(stage == 'start'):
-                initialPosition = kwargs['position']
-                sta.params['initialPosition'] = initialPosition.split(',')
-
-        if 'time' in kwargs:
-            time = kwargs['time']
-
-        if(stage == 'start'):
-            sta.startTime = time
-        elif(stage == 'stop'):
-            sta.endTime = time
-            diffTime = sta.endTime - sta.startTime
-            mobility.moveFactor(sta, diffTime)
-        
-    @classmethod
-    def useExternalProgram(self, program, stations, accessPoints, cars, **params):
+    def useExternalProgram(self, **params):
         """
         Opens an external program
         
         :params program: any program (useful for SUMO)
         :params **params config_file: file configuration
         """
-        config_file = ("%s" % params.pop('config_file', {}))
         self.isVanet = True
-        for car in cars:
+        for car in params['cars']:
             car.params['position'] = 0, 0, 0
-        if program == 'sumo' or program == 'sumo-gui':
-            self.thread = threading.Thread(name='vanet', target=sumo, args=(stations, accessPoints, program, config_file))
-            self.thread.daemon = True
-            self.thread.start()
-            # self.setWifiParameters()
+        if params['program'] == 'sumo' or params['program'] == 'sumo-gui':
+            sumo(**params)
     
     @classmethod
     def configureMacAddr(self, node):
@@ -701,7 +654,7 @@ class mininetWiFi(object):
                     meshRouting(nodes)
                 
     @classmethod    
-    def getCurrentDistance(self, src, dst, nodes):
+    def getDistance(self, src, dst, nodes):
         """ 
         Gets the distance between two nodes
         
@@ -733,9 +686,7 @@ class mininetWiFi(object):
                     
     @classmethod
     def closeMininetWiFi(self ):
-        """
-        Close Mininet-WiFi        
-        """
+        "Close Mininet-WiFi"
         mobility.continuePlot = 'exit()'
         mobility.continueParams = 'exit()'
         sleep(2)
