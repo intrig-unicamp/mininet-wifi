@@ -533,10 +533,11 @@ class Node(object):
         self.ifb.append(ifbID)
 
     def setRange(self, _range):
+        from mininet.wifiNet import mininetWiFi
         self.params['range'] = _range
         try:
-            if mobility.DRAW:
-                if mobility.is3d: 
+            if mininetWiFi.DRAW:
+                if mininetWiFi.is3d: 
                     plot3d.graphUpdate(self)
                     plot3d.graphPause()
                 else:
@@ -548,19 +549,21 @@ class Node(object):
         mobility.parameters_()
 
     def moveNodeTo(self, pos):
+        from mininet.wifiNet import mininetWiFi
         pos = pos.split(',')
         self.params['position'] = float(pos[0]), float(pos[1]), float(pos[2])
-        if mobility.DRAW and mobility.is3d == False:
+        if mininetWiFi.DRAW and not mininetWiFi.is3d:
             plot2d.graphUpdate(self)
             plot2d.graphPause()
-        elif mobility.DRAW and mobility.is3d == True:
+        elif mininetWiFi.DRAW and mininetWiFi.is3d:
             plot3d.graphUpdate(self)            
         mobility.parameters_(self)
 
     def setAntennaGain(self, iface, value):
+        from mininet.wifiNet import mininetWiFi
         wlan = int(iface[-1:])
         self.params['antennaGain'][wlan] = int(value)
-        if mobility.DRAW:
+        if mininetWiFi.DRAW:
             try:
                 plot2d.graphUpdate(self)
             except:

@@ -54,12 +54,11 @@ class CLI(Cmd):
 
         stations = mininet.stations
         accessPoints = mininet.accessPoints
-        isVanet = mininet.isVanet
 
-        if mobility.isMobility == False and mininet.isWiFi == True:
-            mininetWiFi.autoAssociation(stations, accessPoints, isVanet)
+        if not mininetWiFi.isMobility and mininet.isWiFi == True:
+            mininetWiFi.autoAssociation(stations, accessPoints)
 
-        if mobility.isMobility == False and mobility.DRAW and mininet.alreadyPlotted == False:
+        if not mininetWiFi.isMobility and mininetWiFi.DRAW and not mininetWiFi.alreadyPlotted:
             mininet.stations, mininet.accessPoints = mininetWiFi.checkAPAdhoc(stations, accessPoints)
             
             if mobility.accessPoints == []:
@@ -68,7 +67,7 @@ class CLI(Cmd):
                 mobility.stations = stations
             
             nodes = []
-            nodes = mininet.plotNodes
+            nodes = mininetWiFi.plotNodes
             
             for ap in accessPoints:
                 if 'position' in ap.params:

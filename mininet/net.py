@@ -173,10 +173,8 @@ class Mininet(object):
         self.nextCore = 0  # next core for pinning hosts to CPUs
         self.listenPort = listenPort
         self.waitConn = waitConnected
-        self.set_seed = 10
         self.routing = ''
         self.alternativeModule = ''
-        self.nroads = 0
         self.ssid = ssid
         self.mode = mode
         self.channel = channel
@@ -185,23 +183,20 @@ class Mininet(object):
         self.controllers = []
         self.hosts = []
         self.links = []
-        self.wlinks = []
         self.cars = []
         self.switches = []
         self.stations = []
         self.vehicles = []
         self.vehiclesSTA = []
-        self.plotNodes = []
         self.walls = []
         self.terms = []  # list of spawned xterm processes
         self.isWiFi = isWiFi
         self.nRadios = 0
-        self.isVanet = False
         self.ifb = False
-        self.alreadyPlotted = False
-        self.enable_interference = enable_interference
-        mininetWiFi.rec_rssi = rec_rssi
         self.useWmediumd = useWmediumd
+
+        mininetWiFi.enable_interference = enable_interference
+        mininetWiFi.rec_rssi = rec_rssi
         Mininet.init()  # Initialize Mininet if necessary
 
         self.built = False
@@ -805,7 +800,7 @@ class Mininet(object):
                                   link=None, tc=True, **params)
                 
                 if self.useWmediumd:
-                    self.wlinks.append([sta, ap])
+                    mininetWiFi.wlinks.append([sta, ap])
 
         elif (node1.type == 'accessPoint' and node2.type == 'accessPoint' and 'link' in options and options['link'] == 'wds'):
             # If sta/ap have defined position
@@ -850,8 +845,7 @@ class Mininet(object):
         "This is useful to make the users' life easier"
         stations = self.stations
         accessPoints = self.accessPoints
-        isVanet = self.isVanet
-        mininetWiFi.autoAssociation(stations, accessPoints, isVanet)
+        mininetWiFi.autoAssociation(stations, accessPoints)
         
     def configureWifiNodes(self):
         "Configure WiFi Nodes"
@@ -978,7 +972,7 @@ class Mininet(object):
         if self.topo:
             self.buildFromTopo(self.topo)
         if self.useWmediumd:
-            mininetWiFi.configureWmediumd(self.stations, self.accessPoints, self.wlinks, self.enable_interference)
+            mininetWiFi.configureWmediumd(self.stations, self.accessPoints)
        
         if self.inNamespace:
             self.configureControlNetwork()
@@ -1053,12 +1047,12 @@ class Mininet(object):
 
     def seed(self, seed):
         "Seed"
-        self.set_seed = seed
+        mininetWiFi.seed_ = seed
 
     def roads(self, nroads):
-        "Roads"
-        self.isVanet = True
-        self.nroads = nroads
+        "Number of roads"
+        mininetWiFi.isVanet = True
+        mininetWiFi.nroads = nroads
 
     def stop(self):
         "Stop the controller(s), switches and hosts"
@@ -1409,21 +1403,16 @@ class Mininet(object):
         """
         Starts Mobility 
         """
-        kwargs['seed'] = self.set_seed
-        kwargs['nroads'] = self.nroads
         stations = self.stations
         accessPoints = self.accessPoints
-        isVanet = self.isVanet
-        plotNodes = self.plotNodes
-        mininetWiFi.startMobility(stations, accessPoints, plotNodes, isVanet, **kwargs)
+        mininetWiFi.startMobility(stations, accessPoints, **kwargs)
 
     def stopMobility(self, **kwargs):
         """Stops Mobility"""        
         
         stations = self.stations
         accessPoints = self.accessPoints
-        plotNodes = self.plotNodes
-        mininetWiFi.stopMobility(stations, accessPoints, plotNodes, **kwargs)
+        mininetWiFi.stopMobility(stations, accessPoints, **kwargs)
 
     def useExternalProgram(self, program, **params):
         """
@@ -1457,7 +1446,7 @@ class Mininet(object):
         """
         node.params['position'] = position.split(',')
         node.params['range'] = 0
-        self.plotNodes.append(node)
+        mininetWiFi.plotNodes.append(node)
 
     def plotGraph(self, max_x=0, max_y=0, max_z=0):
         """ 

@@ -43,8 +43,6 @@ class vanet(object):
         'start topology'
         cars = stations
         mobility.addNodes(cars, aps)
-        mobility.MAX_X = MAX_X
-        mobility.MAX_Y = MAX_Y
         [self.road.append(x) for x in range(0, nroads)]
         [self.points.append(x) for x in range(0, nroads)]
         [self.totalRoads.append(x) for x in range(0, nroads)]

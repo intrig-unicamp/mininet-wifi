@@ -27,13 +27,6 @@ class mobility (object):
     stations = []
     mobilityNodes = []
     staticNodes = []
-    plotNodes = []
-    DRAW = False
-    isMobility = False
-    MAX_X = 0
-    MAX_Y = 0
-    MAX_Z = 0
-    is3d = False
     continuePlot = 'plot2d.graphPause()'
     continueParams = 'time.sleep(0.001)'
     rec_rssi = False
@@ -263,7 +256,8 @@ class mobility (object):
     
     @classmethod
     def definedPosition(self, init_time=0, final_time=0, stations=None, aps=None, dstConn=None, srcConn=None, 
-                        plotNodes=None, MAX_X=0, MAX_Y=0, MAX_Z=0, AC='', rec_rssi=False, **params):
+                        plotNodes=None, MAX_X=0, MAX_Y=0, MAX_Z=0, AC='', rec_rssi=False, is3d=False, 
+                        DRAW=False, **params):
         """ 
         Used when the position of each node is previously defined
         
@@ -300,21 +294,21 @@ class mobility (object):
                 node.params.pop("finalPosition", None)
                 self.mobilityNodes.append(node)
                 
-        self.plotNodes = self.mobilityNodes + self.staticNodes
+        plotNodes = self.mobilityNodes + self.staticNodes
 
         try:
-            if self.DRAW == True:
-                if self.is3d:
+            if DRAW:
+                if is3d:
                     plot = plot3d
                     plot.instantiateGraph(MAX_X, MAX_Y, MAX_Z)
-                    plot.graphInstantiateNodes(self.plotNodes)
+                    plot.graphInstantiateNodes(plotNodes)
                 else:
                     plot = plot2d
                     plot.instantiateGraph(MAX_X, MAX_Y)
-                    plot.plotGraph(self.plotNodes, srcConn, dstConn)
+                    plot.plotGraph(plotNodes, srcConn, dstConn)
         except:
             info('Warning: running without GUI.\n')
-            self.DRAW = False
+            DRAW = False
         
         try:
             while True:
@@ -327,7 +321,7 @@ class mobility (object):
                             y = '%.2f' % (float(node.params['position'][1]) + float(node.moveFac[1]))
                             z = '%.2f' % (float(node.params['position'][2]) + float(node.moveFac[2]))
                             node.params['position'] = x, y, z
-                        if self.DRAW:
+                        if DRAW:
                             eval(self.continuePlot)
                             plot.graphUpdate(node)
                         #self.parameters_(node)
@@ -344,7 +338,8 @@ class mobility (object):
 
     @classmethod
     def models(self, stations=None, aps=None, model=None, staMov=None, min_v=0, max_v=0, seed=None,
-               dstConn=None, srcConn=None, plotNodes=None, MAX_X=0, MAX_Y=0, AC='', rec_rssi=False, **params):
+               dstConn=None, srcConn=None, plotNodes=None, MAX_X=0, MAX_Y=0, AC='', rec_rssi=False, 
+               DRAW=False, **params):
         """ 
         Used when a mobility model is applied
         
@@ -382,13 +377,13 @@ class mobility (object):
                 sta.min_v = min_v
 
         try:
-            if self.DRAW:
+            if DRAW:
                 plot2d.instantiateGraph(MAX_X, MAX_Y)
                 plot2d.plotGraph(nodes, srcConn, dstConn)
                 plot2d.graphPause()
         except:
             info('Warning: running without GUI.\n')
-            self.DRAW = False
+            DRAW = False
 
         if staMov != None:            
             debug('Configuring the mobility model %s' % model)
@@ -410,7 +405,7 @@ class mobility (object):
             else:
                 raise Exception("Mobility Model not defined or doesn't exist!")
             
-            if self.DRAW:
+            if DRAW:
                 self.startMobilityModelGraph(mob, staMov)
             else:
                 self.startMobilityModelNoGraph(mob, staMov)

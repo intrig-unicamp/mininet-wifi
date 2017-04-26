@@ -36,12 +36,21 @@ class mininetWiFi(object):
     rec_rssi = False
     useWmediumd = False
     is3d = False
+    isMobility = False
+    DRAW = False
+    alreadyPlotted = False
+    enable_interference = False
+    isVanet = False
+    seed_ = 10
     init_time = 0
     MAX_X = 0
     MAX_Y = 0
     MAX_Z = 0
+    nroads = 0
     srcConn = []
     dstConn = []
+    wlinks = []
+    plotNodes = []
     
     @classmethod
     def addMesh(self, node, nextIP, ipBaseNum, prefixLen, cls=None, **params):
@@ -168,14 +177,12 @@ class mininetWiFi(object):
         WmediumdServerConn.connect()
 
     @classmethod
-    def configureWmediumd(self, stations, accessPoints, wlinks, enable_interference):
+    def configureWmediumd(self, stations, accessPoints):
         """ 
         Updates values for frequency and channel
         
         :param stations: list of stations
-        :param accessPoints: list of access points 
-        :param wlinks: wireless links (pairs)
-        :param enable_interference: use interference or not
+        :param accessPoints: list of access points
         """
         intfrefs = []
         links = []
@@ -187,7 +194,7 @@ class mininetWiFi(object):
             node.wmediumdIface = DynamicWmediumdIntfRef(node)
             intfrefs.append(node.wmediumdIface)
         
-        if enable_interference:
+        if self.enable_interference:
             mode = WmediumdConstants.WMEDIUMD_MODE_INTERFERENCE
             for node in nodes:
                 if 'position' not in node.params:
@@ -200,11 +207,11 @@ class mininetWiFi(object):
                 txpowers.append(WmediumdTXPower(node.wmediumdIface, float(node.params['txpower'][0])))
         else:
             mode = WmediumdConstants.WMEDIUMD_MODE_SNR
-            for node in wlinks:
+            for node in self.wlinks:
                 links.append(WmediumdSNRLink(node[0].wmediumdIface, node[1].wmediumdIface, node[0].params['snr'][0]))
                 links.append(WmediumdSNRLink(node[1].wmediumdIface, node[0].wmediumdIface, node[0].params['snr'][0]))
         
-        WmediumdStarter.initialize(intfrefs, links, mode=mode, positions=positions, enable_interference=enable_interference, \
+        WmediumdStarter.initialize(intfrefs, links, mode=mode, positions=positions, enable_interference=self.enable_interference, \
                                    auto_add_links=False, txpowers=txpowers, with_server=True)
         WmediumdStarter.start()
             
@@ -396,13 +403,12 @@ class mininetWiFi(object):
         :params max_y: maximum Y
         :params max_z: maximum Z
         """
-        mobility.DRAW = True
+        self.DRAW = True
         self.MAX_X = max_x
         self.MAX_Y = max_y
         if max_z != 0:
             self.MAX_Z = max_z
             self.is3d = True
-            mobility.is3d = self.is3d
             mobility.continuePlot = 'plot3d.graphPause()'
     
     @classmethod
@@ -417,12 +423,12 @@ class mininetWiFi(object):
                 plot2d.graphPause()
         except:
             info('Warning: This OS does not support GUI. Running without GUI.\n')
-            mobility.DRAW = False
+            self.DRAW = False
             
     @classmethod
-    def startGraph(self, stations, accessPoints, plotNodes, is3d=False):
+    def startGraph(self, stations, accessPoints, is3d=False):
         self.alreadyPlotted = True
-        if mobility.isMobility == False and mobility.DRAW:
+        if not self.isMobility and self.DRAW:
             for sta in stations:
                 if sta.func[0] == 'ap':
                     accessPoints.append(sta)
@@ -434,7 +440,7 @@ class mininetWiFi(object):
                 mobility.stations = stations
             
             nodes = []
-            nodes = plotNodes
+            nodes = self.plotNodes
             
             for ap in accessPoints:
                 if 'position' in ap.params:
@@ -447,10 +453,10 @@ class mininetWiFi(object):
             self.checkDimension(nodes)
     
     @classmethod
-    def startMobility(self, stations, accessPoints, plotNodes, isVanet, **kwargs):
+    def startMobility(self, stations, accessPoints, **kwargs):
         "Starts Mobility"
         mobilityModel = ''
-        mobility.isMobility = True
+        self.isMobility = True
         
         if 'model' in kwargs:
             mobilityModel = kwargs['model']
@@ -458,30 +464,31 @@ class mininetWiFi(object):
         if 'AC' in kwargs:
             self.associationControlMethod = kwargs['AC']
 
-        if mobilityModel != '' or isVanet:
+        if mobilityModel != '' or self.isVanet:
             staMov = []
             for sta in stations:
                 if 'position' not in sta.params:
                     staMov.append(sta)
                     sta.params['position'] = 0, 0, 0
             
-            if not isVanet:
-                params = self.setMobilityParams(stations, accessPoints, plotNodes, isVanet, staMov, **kwargs)
+            if not self.isVanet:
+                params = self.setMobilityParams(stations, accessPoints, staMov, **kwargs)
                 mobility.start(**params)
             else:
-                params = self.setMobilityParams(stations, accessPoints, isVanet, staMov, **kwargs)
+                params = self.setMobilityParams(stations, accessPoints, staMov, **kwargs)
                 vanet(**params)
 
         info("Mobility started at %s second(s)\n" % kwargs['time'])
 
     @classmethod
-    def stopMobility(self, stations, accessPoints, plotNodes, **kwargs):
+    def stopMobility(self, stations, accessPoints, **kwargs):
         "Stops Mobility"
-        params = self.setMobilityParams(stations, accessPoints, plotNodes, **kwargs)        
+        kwargs['is3d'] = self.is3d
+        params = self.setMobilityParams(stations, accessPoints, **kwargs)        
         mobility.stop(**params)
 
     @classmethod
-    def setMobilityParams(self, stations, accessPoints, plotNodes, isVanet=False, staMov=[], **kwargs):
+    def setMobilityParams(self, stations, accessPoints, staMov=[], **kwargs):
         "Set Mobility Parameters"
         mobilityparam = dict()
 
@@ -489,12 +496,10 @@ class mininetWiFi(object):
             mobilityparam.setdefault('model', kwargs['model'])
         if 'time' in kwargs:
             mobilityparam.setdefault('final_time', kwargs['time'])
-        if 'seed' in kwargs:
-            mobilityparam.setdefault('seed', kwargs['seed'])
-        if 'nroads' in kwargs and kwargs['nroads']!=0:
-            mobilityparam.setdefault('nroads', kwargs['nroads'])
+        if self.nroads!=0:
+            mobilityparam.setdefault('nroads', self.nroads)
             
-        if 'model' in kwargs or isVanet:
+        if 'model' in kwargs or self.isVanet:
             if 'max_x' in kwargs:
                 self.MAX_X = kwargs['max_x']
             if 'max_y' in kwargs:
@@ -505,8 +510,10 @@ class mininetWiFi(object):
                 mobilityparam.setdefault('max_v', kwargs['max_v'])
             if 'time' in kwargs:
                 self.init_time = kwargs['time']
-
-        mobilityparam.setdefault('plotNodes', plotNodes)
+                
+        mobilityparam.setdefault('seed', self.seed_)
+        mobilityparam.setdefault('DRAW', self.DRAW)
+        mobilityparam.setdefault('plotNodes', self.plotNodes)
         mobilityparam.setdefault('stations', stations)
         mobilityparam.setdefault('aps', accessPoints)
         mobilityparam.setdefault('dstConn', self.dstConn)
@@ -617,13 +624,12 @@ class mininetWiFi(object):
                             os.system('hwsim_mgmt -k %s %s >/dev/null 2>&1' % (sta.phyID[wlan], abs(int(sta.params['rssi'][wlan]))))
             
     @classmethod
-    def autoAssociation(self, stations, accessPoints, isVanet=False):
+    def autoAssociation(self, stations, accessPoints):
         """
         This is useful to make the users' life easier
         
         :param stations: list of stations
         :param accessPoints: list of access points
-        :param isVanet: check if vanet is enabled
         """        
         ap = []
         for node in accessPoints:
@@ -632,7 +638,7 @@ class mininetWiFi(object):
         
         nodes = stations + ap
         
-        if not isVanet:
+        if not self.isVanet:
             for node in nodes:
                 pairingAdhocNodes.ssid_ID += 1
                 if 'position' in node.params and 'link' not in node.params:

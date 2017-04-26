@@ -10,14 +10,15 @@ import threading
 import random
 from pylab import math, cos, sin
 from mininet.log import info
+from mininet.wifiNet import mininetWiFi
 from mininet.wifiPlot import plot2d, plot3d
 from mininet.wifiMobility import mobility
 from mininet.wifiChannel import setChannelParams
 from mininet.wifiDevices import deviceDataRate
 
 def instantiateGraph(mininet):
-        MAX_X = mininet.MAX_X
-        MAX_Y = mininet.MAX_Y
+        MAX_X = mininetWiFi.MAX_X
+        MAX_Y = mininetWiFi.MAX_Y
         nodes = mininet.stations + mininet.accessPoints
         for node in nodes:
             replayingMobility.addNode(node)   
@@ -28,13 +29,13 @@ class replayingMobility(object):
     """Replaying Mobility Traces"""
     
     def __init__(self, mininet):
-        mobility.isMobility = True
+        mininetWiFi.isMobility = True
         self.thread = threading.Thread(name='replayingMobility', target=self.mobility, args=(mininet,))
         self.thread.daemon = True
         self.thread.start()
 
     def mobility(self, mininet):
-        if mobility.DRAW:
+        if mininetWiFi.DRAW:
             instantiateGraph(mininet)
         currentTime = time.time()
         staList = mininet.stations
@@ -100,7 +101,7 @@ class replayingBandwidth(object):
         y = pos[1]
         sta.params['position'] = x, y, 0
         # mobility.getAPsInRange(sta)
-        if mobility.DRAW:
+        if mininetWiFi.DRAW:
             try:
                 plot2d.graphUpdate(sta)
             except:
@@ -182,7 +183,7 @@ class replayingRSSI(object):
         if 'print_distance' in kwargs:    
             self.print_distance = True
         
-        mobility.isMobility = True
+        mininetWiFi.isMobility = True
         self.thread = threading.Thread(name='replayingRSSI', target=self.rssi, args=(mininet, propagationModel, n))
         self.thread.daemon = True
         self.thread.start()
@@ -222,7 +223,7 @@ class replayingRSSI(object):
         y = float('%.2f' %  (dist * sin(ang) + int(ap.params['position'][1])))
         sta.params['position'] = x, y, 0
         mobility.parameters_(sta)
-        if mobility.DRAW:
+        if mininetWiFi.DRAW:
             try:
                 plot2d.graphUpdate(sta)
             except:
