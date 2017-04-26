@@ -230,13 +230,16 @@ class mininetWiFi(object):
             if sta.func[0] == 'ap':
                 accessPoints.append(sta)
                 isApAdhoc.append(sta)
-        
+
         for ap in isApAdhoc:
             stations.remove(ap)
             ap.params.pop('rssi', None)
             ap.params.pop('snr', None)
             ap.params.pop('apsInRange', None)
             ap.params.pop('associatedTo', None)
+
+            for wlan in (1, len(ap.params['wlan'])):
+                ap.params['mac'].append('')
         
         return stations, accessPoints
     
@@ -335,6 +338,9 @@ class mininetWiFi(object):
                     node.params['mode'].append(node.params['mode'][0])
                     node.params['frequency'].append(node.params['frequency'][0])
                     node.params['mac'].append('')
+            else:
+                for i in range(1, len(node.params['wlan'])):
+                    node.params['mac'].append('')
             self.verifyNetworkManager(node)
         self.restartNetworkManager()
         
@@ -367,11 +373,8 @@ class mininetWiFi(object):
                         node.cmd('iw dev %s-mp%s mesh join %s' % (node, wlan, 'ssid'))
                         node.func[wlan] = 'mesh'
                 elif node.type == 'station' and node in switches:
-                    self.configureMacAddr(node)
-                    node.convertIfaceToMesh(node, wlan)
-                    cls = TCLinkWirelessAP
-                    cls(node, intfName1=node.params['wlan'][wlan])
                     node.type = 'WirelessMeshAP'
+                    self.configureMacAddr(node)
                 else:
                     if 'ssid' not in node.params:
                         if node.params['txpower'][wlan] != 20:
@@ -592,6 +595,10 @@ class mininetWiFi(object):
             else:
                 mac = node.params['mac'][wlan]
                 node.setMAC(mac, iface)
+            if node.type == 'WirelessMeshAP':
+                node.convertIfaceToMesh(node, wlan)
+                cls = TCLinkWirelessAP
+                cls(node, intfName1=node.params['wlan'][wlan])     
     
     @classmethod
     def configureWifiNodes(self, stations, accessPoints, cars, switches, nRadios, ifb, alternativeModule,\
