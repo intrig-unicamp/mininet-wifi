@@ -113,11 +113,6 @@ from mininet.util import (quietRun, fixLimits, numCores, ensureRoot,
                            macColonHex, ipStr, ipParse, netParse, ipAdd,
                            waitListening)
 from mininet.term import cleanUpScreens, makeTerms
-from mininet.wifiChannel import setChannelParams
-from mininet.wifiDevices import deviceDataRate
-from mininet.wifiMeshRouting import meshRouting
-from mininet.wifiMobility import mobility
-from mininet.wifiPropagationModels import propagationModel
 from mininet.wifiNet import mininetWiFi
         
 from __builtin__ import True
@@ -723,7 +718,7 @@ class Mininet(object):
         os.system(cmd)
         sta.cmd('wpa_supplicant -B -Dnl80211 -c%s -i%s -d' % (confname, sta.params['wlan'][wlan]))
 
-        value = deviceDataRate(sta=sta, wlan=wlan)
+        value = mininetWiFi.setDataRate(sta=sta, wlan=wlan)
         self.bw = value.rate
 
         options['sta'] = sta
@@ -769,7 +764,7 @@ class Mininet(object):
             
             # If sta/ap have defined position
             if 'position' in sta.params and 'position' in ap.params:
-                dist = setChannelParams.getDistance(sta, ap)
+                dist = mininetWiFi.getDistance(sta, ap)
                 if dist > ap.params['range']:
                     doAssociation = False
                 else:
@@ -781,7 +776,7 @@ class Mininet(object):
                 cls = Association
                 cls.associate(sta, ap, self.useWmediumd)
                 if 'bw' not in params and 'mininet.util.TCIntfWireless' not in str(self.link):
-                    value = deviceDataRate(sta, ap, wlan)
+                    value = mininetWiFi.setDataRate(sta, ap, wlan)
                     self.bw = value.rate
                     params['bw'] = self.bw
                 
@@ -805,7 +800,7 @@ class Mininet(object):
                 mininetWiFi.srcConn.append(node1)
                 mininetWiFi.dstConn.append(node2)
             
-                dist = setChannelParams.getDistance(node1, node2)
+                dist = mininetWiFi.getDistance(node1, node2)
                 if dist > node1.params['range']:
                     doAssociation = False
                 else:
@@ -1038,7 +1033,7 @@ class Mininet(object):
         :params routing: the mesh routing (default: custom)
         """
         if routing != '':
-            meshRouting.routing = routing
+            mininetWiFi.meshRouting(routing)
 
     def seed(self, seed):
         "Seed"
@@ -1389,15 +1384,11 @@ class Mininet(object):
         return cpu_fractions
 
     def mobility(self, *args, **kwargs):
-        """ 
-        Mobility Parameters 
-        """        
-        mobility.configure(*args, **kwargs)
+        "Configure mobility parameters"
+        mininetWiFi.configureMobility(*args, **kwargs)
 
     def startMobility(self, **kwargs):
-        """
-        Starts Mobility 
-        """
+        "Starts Mobility"
         stations = self.stations
         accessPoints = self.accessPoints
         mininetWiFi.startMobility(stations, accessPoints, **kwargs)
@@ -1430,7 +1421,7 @@ class Mininet(object):
         :params dst: destination node
         """
         nodes = self.stations + self.cars + self.accessPoints
-        mininetWiFi.getDistance(src, dst, nodes)
+        mininetWiFi.printDistance(src, dst, nodes)
 
     def plotNode(self, node, position):
         """ 
@@ -1465,14 +1456,7 @@ class Mininet(object):
         :params latency: latency (ms)
         :params loss: loss (%)
         """
-        if 'bw' in params:
-            setChannelParams.equationBw = params['bw']
-        if 'delay' in params:
-            setChannelParams.equationDelay = params['delay']
-        if 'latency' in params:
-            setChannelParams.equationLatency = params['latency']
-        if 'loss' in params:
-            setChannelParams.equationLoss = params['loss']
+        mininetWiFi.setChannelEquation(**params)
 
     def propagationModel(self, model, exp=2, sL=1, lF=0, pL=0, nFloors=0, gRandom=0):
         """ 
@@ -1486,20 +1470,7 @@ class Mininet(object):
         :params nFloors: number of floors
         :params gRandom: gaussian random variable
         """
-        propagationModel.model = model
-        propagationModel.exp = exp
-        setChannelParams.sl = sL 
-        setChannelParams.lF = lF
-        setChannelParams.nFloors = nFloors 
-        setChannelParams.gRandom = gRandom
-        setChannelParams.pL = pL
-        
-        for sta in self.stations:
-            if 'position' in sta.params and sta not in mobility.stations:
-                mobility.stations.append(sta)
-        for ap in self.accessPoints:
-            if 'position' in ap.params and ap not in mobility.accessPoints:
-                mobility.accessPoints.append(ap)
+        mininetWiFi.propagationModel(self.stations, self.accessPoints, model, exp, sL, lF, pL, nFloors, gRandom)
 
     def associationControl(self, ac):
         """
@@ -1507,7 +1478,7 @@ class Mininet(object):
         
         :params ac: the association control
         """
-        mobility.associationControlMethod = ac
+        mininetWiFi.associationControl(ac)
     
     def configWirelessLinkStatus(self, src, dst, status):
         if status == 'down':

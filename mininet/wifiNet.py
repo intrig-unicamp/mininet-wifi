@@ -22,10 +22,10 @@ from mininet.wifiMeshRouting import listNodes, meshRouting
 from mininet.wifiMobility import mobility
 from mininet.wifiPlot import plot2d, plot3d
 from mininet.wifiModule import module
+from mininet.wifiPropagationModels import propagationModel
 from mininet.link import TCLinkWirelessAP, TCLinkWirelessStation, Association
 from mininet.util import macColonHex, ipAdd
 from mininet.vanet import vanet
-
 
 sys.path.append(str(os.getcwd()) + '/mininet/')
 from sumo.runner import sumo
@@ -660,10 +660,53 @@ class mininetWiFi(object):
                 if meshRouting.routing == 'custom':
                     meshRouting(nodes)
                 
-    @classmethod    
-    def getDistance(self, src, dst, nodes):
+    @classmethod
+    def propagationModel(self, stations, accessPoints, model, exp=2, sL=1, lF=0, pL=0, nFloors=0, gRandom=0):
+        """
+        Attributes for Propagation Model
+
+        :params model: propagation model
+        :params exp: exponent
+        :params sL: system Loss
+        :params lF: floor penetration loss factor
+        :params pL: power Loss Coefficient
+        :params nFloors: number of floors
+        :params gRandom: gaussian random variable
+        """
+        propagationModel.model = model
+        propagationModel.exp = exp
+        setChannelParams.sl = sL
+        setChannelParams.lF = lF
+        setChannelParams.nFloors = nFloors
+        setChannelParams.gRandom = gRandom
+        setChannelParams.pL = pL
+
+        for sta in stations:
+            if 'position' in sta.params and sta not in mobility.stations:
+                mobility.stations.append(sta)
+        for ap in accessPoints:
+            if 'position' in ap.params and ap not in mobility.accessPoints:
+                mobility.accessPoints.append(ap)
+
+    @classmethod
+    def meshRouting(self, routing):
+        """
+        Defines the mesh routing
+
+        :params routing: the mesh routing (default: custom)
+        """
+        if routing != '':
+            meshRouting.routing = routing
+
+    @classmethod
+    def getDistance(self, src, dst):
+        dist = setChannelParams.getDistance(src, dst)
+        return dist
+
+    @classmethod
+    def printDistance(self, src, dst, nodes):
         """ 
-        Gets the distance between two nodes
+        Prints the distance between two points
         
         :params src: source node
         :params dst: destination node
@@ -676,20 +719,46 @@ class mininetWiFi(object):
                     for host2 in nodes:
                         if dst == str(host2):
                             dst = host2
-                            self.printDistance(src, dst)
+                            dist = self.getDistance(src, dst)
+                            info ("The distance between %s and %s is %.2f meters\n" % (src, dst, float(dist)))
         except:
             print ("node %s or/and node %s does not exist or there is no position defined" % (dst, src))
-            
+
     @classmethod
-    def printDistance(self, src, dst):
-        """ 
-        Prints the distance between two points
-        
-        :params src: source node
-        :params dst: destination node
+    def configureMobility(self, *args, **kwargs):
+        "Configure mobility parameters"
+        mobility.configure(*args, **kwargs)
+
+    @classmethod
+    def setDataRate(self, sta=None, ap=None, wlan=0):
+        value = deviceDataRate(sta, ap, wlan)
+        return value
+
+    @classmethod
+    def associationControl(self, ac):
+        """Defines an association control
+        :params ac: the association control
         """
-        dist = setChannelParams.getDistance(src, dst)
-        info ("The distance between %s and %s is %.2f meters\n" % (src, dst, float(dist)))
+        mobility.associationControlMethod = ac
+
+    @classmethod
+    def setChannelEquation(self, **params):
+        """ 
+        Set Channel Equation. The user may change the equation defined in wifiChannel.py by any other.
+        
+        :params bw: bandwidth (mbps)
+        :params delay: delay (ms)
+        :params latency: latency (ms)
+        :params loss: loss (%)
+        """
+        if 'bw' in params:
+            setChannelParams.equationBw = params['bw']
+        if 'delay' in params:
+            setChannelParams.equationDelay = params['delay']
+        if 'latency' in params:
+            setChannelParams.equationLatency = params['latency']
+        if 'loss' in params:
+            setChannelParams.equationLoss = params['loss']
                     
     @classmethod
     def closeMininetWiFi(self ):
