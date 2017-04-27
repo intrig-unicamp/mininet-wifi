@@ -51,14 +51,14 @@ def topology():
     net.associationControl('ssf')
 
     """Seed"""
-    net.seed(1) 
+    net.seed(1)
 
-    """ *** Available models: 
+    """ *** Available models:
                 RandomWalk, TruncatedLevyWalk, RandomDirection, RandomWayPoint, GaussMarkov
 	*** Association Control (AC) - mechanism that optimizes the use of the APs:
                 llf (Least-Loaded-First)
                 ssf (Strongest-Signal-First)"""
-    net.startMobility(startTime=0, model='RandomWayPoint', max_x=120, max_y=120, min_v=0.3, max_v=0.5)
+    net.startMobility(time=0, model='RandomWayPoint', max_x=120, max_y=120, min_v=0.3, max_v=0.5)
 
     print "*** Running CLI"
     CLI( net )
