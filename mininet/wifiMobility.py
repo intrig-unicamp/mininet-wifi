@@ -21,7 +21,7 @@ from mininet.wifiPlot import plot2d, plot3d
 from mininet.link import Association
 
 class mobility (object):
-    """ Mobility """
+    "Mobility"
     associationControlMethod = ''
     accessPoints = []
     stations = []
@@ -112,7 +112,7 @@ class mobility (object):
         :param diffTime: difference between start and stop time. Useful for calculating the speed
         """
         sta.params['speed'] = '%.2f' % abs(((pos_x + pos_y + pos_z) / diffTime))
-            
+
     @classmethod
     def apOutOfRange(self, sta, ap, wlan, dist):
         """
@@ -122,7 +122,7 @@ class mobility (object):
         :param ap: access point
         :param wlan: wlan ID
         :param dist: distance between source and destination  
-        """ 
+        """
         if ap == sta.params['associatedTo'][wlan]:
             debug('iw dev %s disconnect\n' % sta.params['wlan'][wlan])
             if 'encrypt' in ap.params:
@@ -148,7 +148,7 @@ class mobility (object):
             sta.params['apsInRange'].remove(ap)
             ap.params['stationsInRange'].pop(sta, None)
         setChannelParams.recordParams(sta, ap)
-            
+
     @classmethod
     def apInRange(self, sta, ap, wlan, dist):
         """
@@ -158,7 +158,7 @@ class mobility (object):
         :param ap: access point
         :param wlan: wlan ID
         :param dist: distance between source and destination  
-        """ 
+        """
         if self.rec_rssi:
             os.system('hwsim_mgmt -k %s %s >/dev/null 2>&1' % (sta.phyID[wlan], abs(int(sta.params['rssi'][wlan]))))
         if ap not in sta.params['apsInRange']:
@@ -187,7 +187,7 @@ class mobility (object):
                 else:
                     setChannelParams(sta, ap, wlan, dist)
         setChannelParams.recordParams(sta, ap)
-                
+
     @classmethod
     def handoverCheck(self, sta, wlan):
         """ 
@@ -199,14 +199,14 @@ class mobility (object):
         for ap in self.accessPoints:
             dist = setChannelParams.getDistance(sta, ap)
             if dist > ap.params['range']:
-                self.apOutOfRange(sta, ap, wlan, dist)                   
-            
+                self.apOutOfRange(sta, ap, wlan, dist)
+
         for ap in self.accessPoints:
             dist = setChannelParams.getDistance(sta, ap)
             if dist <= ap.params['range']:
                 self.handover(sta, ap, wlan, dist)
-                self.apInRange(sta, ap, wlan, dist) 
-                                   
+                self.apInRange(sta, ap, wlan, dist)
+
     @classmethod
     def handover(self, sta, ap, wlan, dist):
         """
@@ -218,7 +218,7 @@ class mobility (object):
         :param dist: distance between source and destination   
         """
         changeAP = False
-        
+
         """Association Control: mechanisms that optimize the use of the APs"""
         if self.associationControlMethod != '' and sta.params['associatedTo'][wlan] != ap \
             and sta.params['associatedTo'][wlan] != '':
@@ -237,8 +237,8 @@ class mobility (object):
                     elif ap.params['encrypt'][0] == 'wep':
                         cls.associate_wep(sta, ap, wlan)
                 self.updateAssociation(sta, ap, wlan)
-    
-    @classmethod     
+
+    @classmethod
     def updateAssociation(self, sta, ap, wlan):
         """ 
         Updates attributes regarding the association
@@ -253,10 +253,10 @@ class mobility (object):
         cls = Association
         cls.updateParams(sta, ap, wlan)
         sta.params['associatedTo'][wlan] = ap
-    
+
     @classmethod
-    def definedPosition(self, init_time=0, final_time=0, stations=None, aps=None, dstConn=None, srcConn=None, 
-                        plotNodes=None, MAX_X=0, MAX_Y=0, MAX_Z=0, AC='', rec_rssi=False, is3d=False, 
+    def definedPosition(self, init_time=0, final_time=0, stations=None, aps=None, dstConn=None, srcConn=None,
+                        plotNodes=None, MAX_X=0, MAX_Y=0, MAX_Z=0, AC='', rec_rssi=False, is3d=False,
                         DRAW=False, **params):
         """ 
         Used when the position of each node is previously defined
@@ -279,12 +279,12 @@ class mobility (object):
         t_initial = time.time() + init_time
         currentTime = time.time()
         i = 1
-        
+
         self.stations = stations
         self.accessPoints = aps
-        
+
         nodes = self.stations + self.accessPoints + plotNodes
-        
+
         for node in nodes:
             if 'position' in node.params and 'initialPosition' not in node.params:
                 self.staticNodes.append(node)
@@ -293,7 +293,7 @@ class mobility (object):
                 node.params.pop("initialPosition", None)
                 node.params.pop("finalPosition", None)
                 self.mobilityNodes.append(node)
-                
+
         plotNodes = self.mobilityNodes + self.staticNodes
 
         try:
@@ -309,7 +309,7 @@ class mobility (object):
         except:
             info('Warning: running without GUI.\n')
             DRAW = False
-        
+
         try:
             while True:
                 if time.time() > t_end or time.time() < t_initial:
@@ -324,12 +324,12 @@ class mobility (object):
                         if DRAW:
                             eval(self.continuePlot)
                             plot.graphUpdate(node)
-                        #self.parameters_(node)
+                        # self.parameters_(node)
                     i += 1
             self.mobilityNodes = []
         except:
             pass
-        
+
     @classmethod
     def addNodes(self, stas, aps):
         self.stations = stas
@@ -338,7 +338,7 @@ class mobility (object):
 
     @classmethod
     def models(self, stations=None, aps=None, model=None, staMov=None, min_v=0, max_v=0, seed=None,
-               dstConn=None, srcConn=None, plotNodes=None, MAX_X=0, MAX_Y=0, AC='', rec_rssi=False, 
+               dstConn=None, srcConn=None, plotNodes=None, MAX_X=0, MAX_Y=0, AC='', rec_rssi=False,
                DRAW=False, **params):
         """ 
         Used when a mobility model is applied
@@ -359,7 +359,7 @@ class mobility (object):
         self.rec_rssi = rec_rssi
         np.random.seed(seed)
         self.associationControlMethod = AC
-        
+
         self.addNodes(stations, aps)
         nodes = self.stations + self.accessPoints + plotNodes
 
@@ -385,9 +385,9 @@ class mobility (object):
             info('Warning: running without GUI.\n')
             DRAW = False
 
-        if staMov != None:            
+        if staMov != None:
             debug('Configuring the mobility model %s' % model)
-    
+
             if(model == 'RandomWalk'):  # Random Walk model
                 mob = random_walk(staMov)
             elif(model == 'TruncatedLevyWalk'):  # Truncated Levy Walk model
@@ -404,12 +404,12 @@ class mobility (object):
                 mob = tvc(staMov, dimensions=(MAX_X, MAX_Y), aggregation=[0.5, 0.], epoch=[100, 100])
             else:
                 raise Exception("Mobility Model not defined or doesn't exist!")
-            
+
             if DRAW:
                 self.startMobilityModelGraph(mob, staMov)
             else:
                 self.startMobilityModelNoGraph(mob, staMov)
-    
+
     @classmethod
     def startMobilityModelGraph(self, mob, nodes):
         """ 
@@ -425,8 +425,8 @@ class mobility (object):
                 i += 1
                 plot2d.graphUpdate(node)
             eval(self.continuePlot)
-                
-    @classmethod    
+
+    @classmethod
     def startMobilityModelNoGraph(self, mob, nodes):
         """ 
         Useful when graph is not required
@@ -440,7 +440,7 @@ class mobility (object):
                 node.params['position'] = '%.2f' % xy[i][0], '%.2f' % xy[i][1], 0.0
                 i += 1
             time.sleep(0.5)
-            
+
     @classmethod
     def parameters_(self, node=None):
         """ 
@@ -448,10 +448,10 @@ class mobility (object):
         Applies channel params and handover
         """
         if node == None:
-            nodes = self.stations 
+            nodes = self.stations
         else:
             nodes = []
-            nodes.append(node)  
+            nodes.append(node)
         for node_ in self.accessPoints:
             if 'link' in node_.params and node_.params['link'] == 'mesh':
                 nodes.append(node_)
@@ -470,19 +470,17 @@ class mobility (object):
         if meshRouting.routing == 'custom':
             meshRouting(nodes)
         # have to verify this
-        eval(self.continueParams)        
-    
+        eval(self.continueParams)
+
     @classmethod
     def parameters(self):
-        """ 
-        Applies channel params and handover
-        """
+        "Applies channel params and handover"
         meshNodes = []
         for node in self.mobilityNodes:
             for wlan in range(0, len(node.params['wlan'])):
                 if node.func[wlan] == 'mesh' or node.func[wlan] == 'adhoc':
                     meshNodes.append(node)
-        
+
         while True:
             for node in self.mobilityNodes:
                 for wlan in range(0, len(node.params['wlan'])):

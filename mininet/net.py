@@ -114,7 +114,7 @@ from mininet.util import (quietRun, fixLimits, numCores, ensureRoot,
                            waitListening)
 from mininet.term import cleanUpScreens, makeTerms
 from mininet.wifiNet import mininetWiFi
-        
+
 from __builtin__ import True
 
 # Mininet version: should be consistent with README and LICENSE
@@ -147,7 +147,7 @@ class Mininet(object):
            listenPort: base listening port to open; will be incremented for
                each additional switch in the net if inNamespace=False"""
         self.topo = topo
-        self.switch = switch        
+        self.switch = switch
         self.host = host
         self.station = station
         self.accessPoint = accessPoint
@@ -224,7 +224,7 @@ class Mininet(object):
                       % switch.name)
             else:
                 remaining.remove(switch)
-        return not remaining    
+        return not remaining
 
     def addHost(self, name, cls=None, **params):
         """Add host.
@@ -235,7 +235,7 @@ class Mininet(object):
         # Default IP and MAC addresses
         defaults = { 'ip': ipAdd(self.nextIP,
                                   ipBaseNum=self.ipBaseNum,
-                                  prefixLen=self.prefixLen) + 
+                                  prefixLen=self.prefixLen) +
                                   '/%s' % self.prefixLen }
         if self.autoSetMacs:
             defaults[ 'mac' ] = macColonHex(self.nextIP)
@@ -251,7 +251,7 @@ class Mininet(object):
         self.hosts.append(h)
         self.nameToNode[ name ] = h
         return h
-    
+
     def delNode(self, node, nodes=None):
         """Delete node
            node: node to delete
@@ -265,7 +265,7 @@ class Mininet(object):
         node.terminate()
         nodes.remove(node)
         del self.nameToNode[ node.name ]
- 
+
     def delHost(self, host):
         "Delete a host"
         self.delNode(host, nodes=self.hosts)
@@ -279,11 +279,11 @@ class Mininet(object):
         # Default IP and MAC addresses
         defaults = { 'ip': ipAdd(self.nextIP,
                                   ipBaseNum=self.ipBaseNum,
-                                  prefixLen=self.prefixLen) + 
+                                  prefixLen=self.prefixLen) +
                                   '/%s' % self.prefixLen,
                      'channel': self.channel,
                      'mode': self.mode}
-       
+
         if self.autoSetMacs:
             defaults[ 'mac' ] = macColonHex(self.nextIP)
         if self.autoPinCpus:
@@ -291,19 +291,19 @@ class Mininet(object):
             self.nextCore = (self.nextCore + 1) % self.numCores
         self.nextIP += 1
         defaults.update(params)
-        
+
         if not cls:
             cls = self.station
-        sta = cls(name, **defaults)   
+        sta = cls(name, **defaults)
         sta.type = 'station'
-          
+
         self.hosts.append(sta)
         self.stations.append(sta)
-        self.nameToNode[ name ] = sta 
-        
+        self.nameToNode[ name ] = sta
+
         self.wifiRadios = sta.addParameters(sta, self.wifiRadios, self.autoSetMacs, params, defaults)
         return sta
-    
+
     def addAPAdhoc(self, name, cls=None, **params):
         """Add Station with AP capabilities.
            name: name of station ap to add
@@ -313,11 +313,11 @@ class Mininet(object):
         # Default IP and MAC addresses
         defaults = { 'ip': ipAdd(self.nextIP,
                                   ipBaseNum=self.ipBaseNum,
-                                  prefixLen=self.prefixLen) + 
+                                  prefixLen=self.prefixLen) +
                                   '/%s' % self.prefixLen,
                      'channel': self.channel,
                      'mode': self.mode}
-       
+
         if self.autoSetMacs:
             defaults[ 'mac' ] = macColonHex(self.nextIP)
         if self.autoPinCpus:
@@ -325,25 +325,25 @@ class Mininet(object):
             self.nextCore = (self.nextCore + 1) % self.numCores
         self.nextIP += 1
         defaults.update(params)
-        
+
         if not cls:
             cls = self.station
-        sta = cls(name, **defaults)   
+        sta = cls(name, **defaults)
         sta.type = 'station'
-        
+
         if 'ssid' in params:
             sta.params['ssid'] = []
             sta.params['ssid'].append('')
             sta.params['ssid'][0] = params['ssid']
-        
+
         self.hosts.append(sta)
         self.stations.append(sta)
-        self.nameToNode[ name ] = sta 
-        
+        self.nameToNode[ name ] = sta
+
         self.wifiRadios = sta.addParameters(sta, self.wifiRadios, self.autoSetMacs, params, defaults)
         sta.func[0] = 'ap'
         return sta
-        
+
     def addCar(self, name, cls=None, **params):
         """Add Car.
            name: name of vehicle to add
@@ -353,7 +353,7 @@ class Mininet(object):
         # Default IP and MAC addresses
         defaults = { 'ip': ipAdd(self.nextIP,
                                   ipBaseNum=self.ipBaseNum,
-                                  prefixLen=self.prefixLen) + 
+                                  prefixLen=self.prefixLen) +
                                   '/%s' % self.prefixLen,
                      'channel': self.channel,
                      'mode': self.mode,
@@ -365,31 +365,31 @@ class Mininet(object):
             defaults[ 'cores' ] = self.nextCore
             self.nextCore = (self.nextCore + 1) % self.numCores
         defaults.update(params)
-        
+
         self.nextIP += 1
         if not cls:
             cls = self.car
         car = cls(name, **defaults)
         self.hosts.append(car)
-        
+
         self.nameToNode[ name ] = car
         car.type = 'vehicle'
         self.wifiRadios = car.addParameters(car, self.wifiRadios, self.autoSetMacs, params, defaults)
-        
+
         carsta = self.addStation(name + 'STA')
         carsta.params['range'] = car.params['range']
-   
+
         car.params['carsta'] = carsta
         self.vehiclesSTA.append(carsta)
         switchName = car.name + 'SW'
         carsw = self.addSwitch(switchName, inband=True)
         self.vehicles.append(carsw)
         self.cars.append(car)
-        
+
         car.func.append('mesh')
         self.addLink(carsta, carsw)
-        self.addLink(car, carsw)        
-        return car    
+        self.addLink(car, carsw)
+        return car
 
     def addAccessPoint(self, name, cls=None, **params):
         """Add AccessPoint.
@@ -405,25 +405,25 @@ class Mininet(object):
                      }
 
         defaults.update(params)
-        
+
         if not cls:
-            cls = self.accessPoint   
-        ap = cls(name, **defaults)            
+            cls = self.accessPoint
+        ap = cls(name, **defaults)
 
         if not self.inNamespace and self.listenPort:
             self.listenPort += 1
-        
+
         if self.inNamespace or ('inNamespace' in params and params['inNamespace'] == True):
             ap.params['inNamespace'] = True
-        
+
         self.nameToNode[ name ] = ap
         ap.type = 'accessPoint'
-        
+
         self.wifiRadios = ap.addParameters(ap, self.wifiRadios, self.autoSetMacs, params, defaults, mode='master')
         self.switches.append(ap)
-        self.accessPoints.append(ap)        
+        self.accessPoints.append(ap)
         return ap
-    
+
     def addWirelessMeshAP(self, name, cls=None, **params):
         """Add AP with Wireless Mesh capabilities.
            name: name of accesspoint to add
@@ -432,7 +432,7 @@ class Mininet(object):
            side effect: increments listenPort ivar ."""
         defaults = { 'ip': ipAdd(self.nextIP,
                                   ipBaseNum=self.ipBaseNum,
-                                  prefixLen=self.prefixLen) + 
+                                  prefixLen=self.prefixLen) +
                                   '/%s' % self.prefixLen,
                      'listenPort': self.listenPort,
                      'inNamespace': self.inNamespace,
@@ -441,24 +441,24 @@ class Mininet(object):
                      }
 
         defaults.update(params)
-        
+
         if not cls:
-            cls = self.accessPoint   
-        node = cls(name, **defaults)            
+            cls = self.accessPoint
+        node = cls(name, **defaults)
 
         if not self.inNamespace and self.listenPort:
             self.listenPort += 1
-        
+
         if self.inNamespace or ('inNamespace' in params and params['inNamespace'] == True):
             node.params['inNamespace'] = True
-        
+
         self.nameToNode[ name ] = node
         node.type = 'station'
         self.nextIP += 1
-        
+
         self.wifiRadios = node.addParameters(node, self.wifiRadios, self.autoSetMacs, params, defaults)
         self.switches.append(node)
-        self.stations.append(node)        
+        self.stations.append(node)
         return node
 
     def addPhysicalBaseStation(self, name, cls=None, **params):
@@ -481,7 +481,7 @@ class Mininet(object):
         bs = cls(name, **defaults)
         if not self.inNamespace and self.listenPort:
             self.listenPort += 1
-        
+
         self.nameToNode[ name ] = bs
         bs.type = 'accessPoint'
 
@@ -490,7 +490,7 @@ class Mininet(object):
         self.switches.append(bs)
         self.accessPoints.append(bs)
 
-        self.wifiRadios = bs.addParameters(bs, self.wifiRadios, self.autoSetMacs, params, defaults, mode='master')                
+        self.wifiRadios = bs.addParameters(bs, self.wifiRadios, self.autoSetMacs, params, defaults, mode='master')
         return bs
 
     def addSwitch(self, name, cls=None, **params):
@@ -522,7 +522,7 @@ class Mininet(object):
 
     # Still in development
     def addWall(self, name, cls=None, **params):
-        """in development"""           
+        """in development"""
         defaults = {}
         defaults.update(params)
 
@@ -573,7 +573,7 @@ class Mininet(object):
             self.controllers.append(controller_new)
             self.nameToNode[ name ] = controller_new
         return controller_new
-    
+
     def delController(self, controller):
         """Delete a controller
            Warning - does not reconfigure switches, so they
@@ -620,7 +620,7 @@ class Mininet(object):
     def __getitem__(self, key):
         "net[ name ] operator: Return node with given name"
         return self.nameToNode[ key ]
-    
+
     def __delitem__(self, key):
         "del net[ name ] operator - delete node with given name"
         self.delNode(self.nameToNode[ key ])
@@ -632,7 +632,7 @@ class Mininet(object):
 
     def __len__(self):
         "returns number of nodes in net"
-        return (len(self.hosts) + len(self.switches) + 
+        return (len(self.hosts) + len(self.switches) +
                  len(self.controllers))
 
     def __contains__(self, item):
@@ -654,7 +654,7 @@ class Mininet(object):
     @staticmethod
     def randMac():
         "Return a random, non-multicast MAC address"
-        return macColonHex(random.randint(1, 2 ** 48 - 1) & 0xfeffffffffff | 
+        return macColonHex(random.randint(1, 2 ** 48 - 1) & 0xfeffffffffff |
                             0x020000000000)
 
     def runAlternativeModule(self, moduleDir):
@@ -696,13 +696,13 @@ class Mininet(object):
         cls: custom association class/constructor
         params: parameters for station
         """
-        
+
         wlan = sta.ifaceToAssociate
         sta.func[wlan] = 'wifiDirect'
 
         options = { 'ip': ipAdd(self.nextIP,
                                   ipBaseNum=self.ipBaseNum,
-                                  prefixLen=self.prefixLen) + 
+                                  prefixLen=self.prefixLen) +
                                   '/%s' % self.prefixLen}
         options.update(params)
 
@@ -725,11 +725,11 @@ class Mininet(object):
         options.update(params)
         # Set default MAC - this should probably be in Link
         options.setdefault('addr1', self.randMac())
-              
+
     def useIFB(self):
         "Support to Intermediate Functional Block (IFB) Devices"
         mininetWiFi.ifb = True
-        
+
     def addLink(self, node1, node2, port1=None, port2=None,
                  cls=None, **params):
         """"Add a link from node1 to node2
@@ -756,19 +756,19 @@ class Mininet(object):
             else:
                 sta = node2
                 ap = node1
-            
+
             wlan = sta.ifaceToAssociate
 
             sta.params['mode'][wlan] = ap.params['mode'][0]
             sta.params['channel'][wlan] = ap.params['channel'][0]
-            
+
             # If sta/ap have defined position
             if 'position' in sta.params and 'position' in ap.params:
                 dist = mininetWiFi.getDistance(sta, ap)
                 if dist > ap.params['range']:
                     doAssociation = False
                 else:
-                    doAssociation = True                        
+                    doAssociation = True
             else:
                 doAssociation = True
 
@@ -779,18 +779,18 @@ class Mininet(object):
                     value = mininetWiFi.setDataRate(sta, ap, wlan)
                     self.bw = value.rate
                     params['bw'] = self.bw
-                
+
                 if 'mininet.util.TCIntfWireless' in str(self.link):
                     cls = self.link
                 else:
                     cls = TCIntfWireless
-                    
+
                 if 'mininet.util.TCIntfWireless' in str(self.link) or 'bw' in params and params['bw'] != 0 \
                     and 'position' not in sta.params:
-                    #tc = True, this is useful only to apply tc configuration
+                    # tc = True, this is useful only to apply tc configuration
                     cls(name=sta.params['wlan'][wlan], node=sta,
                                   link=None, tc=True, **params)
-                
+
                 if self.useWmediumd:
                     mininetWiFi.wlinks.append([sta, ap])
 
@@ -799,22 +799,22 @@ class Mininet(object):
             if 'position' in node1.params and 'position' in node2.params:
                 mininetWiFi.srcConn.append(node1)
                 mininetWiFi.dstConn.append(node2)
-            
+
                 dist = mininetWiFi.getDistance(node1, node2)
                 if dist > node1.params['range']:
                     doAssociation = False
                 else:
-                    doAssociation = True                        
+                    doAssociation = True
             else:
                 doAssociation = True
 
             if(doAssociation):
                 cls = WDSLink
-                cls(node1, node2)              
+                cls(node1, node2)
         else:
             if 'link' in options:
                 options.pop('link', None)
-            
+
             if 'position' in node1.params and 'position' in node2.params:
                 mininetWiFi.srcConn.append(node1)
                 mininetWiFi.dstConn.append(node2)
@@ -823,7 +823,7 @@ class Mininet(object):
                 options.setdefault('port1', port1)
             if port2 is not None:
                 options.setdefault('port2', port2)
-            
+
             # Set default MAC - this should probably be in Link
             options.setdefault('addr1', self.randMac())
             options.setdefault('addr2', self.randMac())
@@ -832,13 +832,13 @@ class Mininet(object):
             link = cls(node1, node2, **options)
             self.links.append(link)
             return link
-        
+
     def autoAssociation(self):
         "This is useful to make the users' life easier"
         stations = self.stations
         accessPoints = self.accessPoints
         mininetWiFi.autoAssociation(stations, accessPoints)
-        
+
     def configureWifiNodes(self):
         "Configure WiFi Nodes"
         params = dict()
@@ -852,7 +852,7 @@ class Mininet(object):
         params.setdefault('prefixLen', self.prefixLen)
         params.setdefault('useWmediumd', self.useWmediumd)
         self.stations, self.accessPoints, self.isWiFi = mininetWiFi.configureWifiNodes(**params)
-        
+
     def delLink(self, link):
         "Remove a link from this network"
         link.delete()
@@ -958,12 +958,12 @@ class Mininet(object):
                          'should be overriden in subclass', self)
 
     def build(self):
-        "Build mininet."    
+        "Build mininet."
         if self.topo:
             self.buildFromTopo(self.topo)
         if self.useWmediumd:
             mininetWiFi.configureWmediumd(self.stations, self.accessPoints)
-       
+
         if self.inNamespace:
             self.configureControlNetwork()
         info('*** Configuring hosts\n')
@@ -972,7 +972,7 @@ class Mininet(object):
             self.startTerms()
         if self.autoStaticArp:
             self.staticArp()
-        self.built = True   
+        self.built = True
         if self.useWmediumd:
             mininetWiFi.wmediumdConnect()
 
@@ -1025,7 +1025,7 @@ class Mininet(object):
         info('\n')
         if self.waitConn:
             self.waitConnected()
-            
+
     def meshRouting(self, routing):
         """
         Defined the mesh routing
@@ -1082,7 +1082,7 @@ class Mininet(object):
         info('\n')
         if(self.isWiFi):
             "Stop Graph"
-            mininetWiFi.closeMininetWiFi()        
+            mininetWiFi.closeMininetWiFi()
         info('\n*** Done\n')
 
     def run(self, test, *args, **kwargs):
@@ -1126,7 +1126,7 @@ class Mininet(object):
         r = r'(\d+) packets transmitted, (\d+)( packets)? received'
         m = re.search(r, pingOutput)
         if m is None:
-            error('*** Error: could not parse ping output: %s\n' % 
+            error('*** Error: could not parse ping output: %s\n' %
                    pingOutput)
             return 1, 0
         sent, received = int(m.group(1)), int(m.group(2))
@@ -1152,7 +1152,7 @@ class Mininet(object):
                     if timeout:
                         opts = '-W %s' % timeout
                     if dest.intfs:
-                        result = node.cmdPrint('ping -c1 %s %s' % 
+                        result = node.cmdPrint('ping -c1 %s %s' %
                                            (opts, dest.IP()))
                         sent, received = self._parsePing(result)
                     else:
@@ -1169,7 +1169,7 @@ class Mininet(object):
         if packets > 0:
             ploss = 100.0 * lost / packets
             received = packets - lost
-            output("*** Results: %i%% dropped (%d/%d received)\n" % 
+            output("*** Results: %i%% dropped (%d/%d received)\n" %
                     (ploss, received, packets))
         else:
             ploss = 0
@@ -1188,7 +1188,7 @@ class Mininet(object):
         r = r'(\d+) packets transmitted, (\d+)( packets)? received'
         m = re.search(r, pingOutput)
         if m is None:
-            error('*** Error: could not parse ping output: %s\n' % 
+            error('*** Error: could not parse ping output: %s\n' %
                    pingOutput)
             return errorTuple
         sent, received = int(m.group(1)), int(m.group(2))
@@ -1198,7 +1198,7 @@ class Mininet(object):
         if m is None:
             if received == 0:
                 return errorTuple
-            error('*** Error: could not parse ping output: %s\n' % 
+            error('*** Error: could not parse ping output: %s\n' %
                    pingOutput)
             return errorTuple
         rttmin = float(m.group(1))
@@ -1236,7 +1236,7 @@ class Mininet(object):
             src, dest, ping_outputs = outputs
             sent, received, rttmin, rttavg, rttmax, rttdev = ping_outputs
             output(" %s->%s: %s/%s, " % (src, dest, sent, received))
-            output("rtt min/avg/max/mdev %0.3f/%0.3f/%0.3f/%0.3f ms\n" % 
+            output("rtt min/avg/max/mdev %0.3f/%0.3f/%0.3f/%0.3f ms\n" %
                     (rttmin, rttavg, rttmax, rttdev))
         return all_outputs
 
@@ -1276,7 +1276,7 @@ class Mininet(object):
             error('could not parse iperf output: ' + iperfOutput)
             return ''
 
-    def iperf( self, hosts=None, l4Type='TCP', udpBw='10M', fmt=None,
+    def iperf(self, hosts=None, l4Type='TCP', udpBw='10M', fmt=None,
                seconds=5, port=5001):
         """Run iperf between two hosts.
            hosts: list of hosts; if None, uses first and last hosts
@@ -1290,9 +1290,9 @@ class Mininet(object):
            the actual transmission rate; on an unloaded system, server
            rate should be much closer to the actual receive rate"""
         hosts = hosts or [ self.hosts[ 0 ], self.hosts[ -1 ] ]
-        assert len( hosts ) == 2
+        assert len(hosts) == 2
         client, server = hosts
-        
+
         conn1 = 0
         conn2 = 0
         if client.type == 'station' or server.type == 'station':
@@ -1302,39 +1302,39 @@ class Mininet(object):
             if server.type == 'station':
                 while conn2 == 0:
                     conn2 = int(server.cmd('iwconfig %s-wlan0 | grep -ic \'Link Quality\'' % server))
-        output( '*** Iperf: testing', l4Type, 'bandwidth between',
-                client, 'and', server, '\n' )
-        server.cmd( 'killall -9 iperf' )
+        output('*** Iperf: testing', l4Type, 'bandwidth between',
+                client, 'and', server, '\n')
+        server.cmd('killall -9 iperf')
         iperfArgs = 'iperf -p %d ' % port
         bwArgs = ''
         if l4Type == 'UDP':
             iperfArgs += '-u '
             bwArgs = '-b ' + udpBw + ' '
         elif l4Type != 'TCP':
-            raise Exception( 'Unexpected l4 type: %s' % l4Type )
+            raise Exception('Unexpected l4 type: %s' % l4Type)
         if fmt:
             iperfArgs += '-f %s ' % fmt
-        server.sendCmd( iperfArgs + '-s' )
+        server.sendCmd(iperfArgs + '-s')
         if l4Type == 'TCP':
-            if not waitListening( client, server.IP(), port ):
-                raise Exception( 'Could not connect to iperf on port %d'
-                                 % port )
-        cliout = client.cmd( iperfArgs + '-t %d -c ' % seconds +
-                             server.IP() + ' ' + bwArgs )
-        debug( 'Client output: %s\n' % cliout )
+            if not waitListening(client, server.IP(), port):
+                raise Exception('Could not connect to iperf on port %d'
+                                 % port)
+        cliout = client.cmd(iperfArgs + '-t %d -c ' % seconds +
+                             server.IP() + ' ' + bwArgs)
+        debug('Client output: %s\n' % cliout)
         servout = ''
         # We want the last *b/sec from the iperf server output
         # for TCP, there are two of them because of waitListening
         count = 2 if l4Type == 'TCP' else 1
-        while len( re.findall( '/sec', servout ) ) < count:
-            servout += server.monitor( timeoutms=5000 )
+        while len(re.findall('/sec', servout)) < count:
+            servout += server.monitor(timeoutms=5000)
         server.sendInt()
         servout += server.waitOutput()
-        debug( 'Server output: %s\n' % servout )
-        result = [ self._parseIperf( servout ), self._parseIperf( cliout ) ]
+        debug('Server output: %s\n' % servout)
+        result = [ self._parseIperf(servout), self._parseIperf(cliout) ]
         if l4Type == 'UDP':
-            result.insert( 0, udpBw )
-        output( '*** Results: %s\n' % result )
+            result.insert(0, udpBw)
+        output('*** Results: %s\n' % result)
         return result
 
     def runCpuLimitTest(self, cpu, duration=5):
@@ -1361,13 +1361,13 @@ class Mininet(object):
         # get the initial cpu time for each host
         for host in hosts:
             outputs[ host ] = []
-            with open('/sys/fs/cgroup/cpuacct/%s/cpuacct.usage' % 
+            with open('/sys/fs/cgroup/cpuacct/%s/cpuacct.usage' %
                        host, 'r') as f:
                 time[ host ] = float(f.read())
         for _ in range(duration):
             sleep(1)
             for host in hosts:
-                with open('/sys/fs/cgroup/cpuacct/%s/cpuacct.usage' % 
+                with open('/sys/fs/cgroup/cpuacct/%s/cpuacct.usage' %
                            host, 'r') as f:
                     readTime = float(f.read())
                 outputs[ host ].append(((readTime - time[ host ])
@@ -1394,8 +1394,8 @@ class Mininet(object):
         mininetWiFi.startMobility(stations, accessPoints, **kwargs)
 
     def stopMobility(self, **kwargs):
-        """Stops Mobility"""        
-        
+        """Stops Mobility"""
+
         stations = self.stations
         accessPoints = self.accessPoints
         mininetWiFi.stopMobility(stations, accessPoints, **kwargs)
@@ -1412,7 +1412,7 @@ class Mininet(object):
         params['cars'] = self.cars
         params['program'] = program
         mininetWiFi.useExternalProgram(**params)
-        
+
     def getCurrentDistance(self, src, dst):
         """ 
         Gets the distance between two nodes
@@ -1443,10 +1443,10 @@ class Mininet(object):
         :params max_z: maximum Z
         """
         mininetWiFi.plotGraph(max_x, max_y, max_z)
-            
+
     def startGraph(self):
         mininetWiFi.startGraph()
-        
+
     def setChannelEquation(self, **params):
         """ 
         Set Channel Equation. The user may change the equation defined in wifiChannel.py by any other.
@@ -1479,7 +1479,7 @@ class Mininet(object):
         :params ac: the association control
         """
         mininetWiFi.associationControl(ac)
-    
+
     def configWirelessLinkStatus(self, src, dst, status):
         if status == 'down':
             if self.nameToNode[ src ].type == 'station':
@@ -1518,8 +1518,8 @@ class Mininet(object):
         elif dst not in self.nameToNode:
             error('dst not in network: %s\n' % dst)
         if self.nameToNode[ src ].type == 'station' and self.nameToNode[ dst ].type == 'accessPoint' or \
-            self.nameToNode[ src ].type == 'accessPoint' and self.nameToNode[ dst ].type == 'station': 
-            self.configWirelessLinkStatus(src, dst, status)            
+            self.nameToNode[ src ].type == 'accessPoint' and self.nameToNode[ dst ].type == 'station':
+            self.configWirelessLinkStatus(src, dst, status)
         else:
             src = self.nameToNode[ src ]
             dst = self.nameToNode[ dst ]

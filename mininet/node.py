@@ -102,7 +102,7 @@ class Node(object):
         self.nameToIntf = {}  # dict of interface names to Intfs
 
         self.func = []
-        self.type = 'host'        
+        self.type = 'host'
 
         # Make pylint happy
         (self.shell, self.execed, self.pid, self.stdin, self.stdout,
@@ -175,7 +175,7 @@ class Node(object):
         self.waiting = False
         # +m: disable job control notification
         self.cmd('unset HISTFILE; stty -echo; set +m')
-        
+
     @classmethod
     def addParameters(self, node, wifiRadios, autoSetMacs, params, defaults, mode='managed'):
         """adds parameters to wireless nodes
@@ -187,28 +187,28 @@ class Node(object):
         defaults: Default IP and MAC addresses
         mode: if interface is running in managed or master mode
         """
-        
+
         node.params['frequency'] = []
         node.params['wlan'] = []
         node.params['mac'] = []
         node.phyID = []
-        
+
         passwd = ("%s" % params.pop('passwd', {}))
         if(passwd != "{}"):
             passwd = passwd.split(',')
             node.params['passwd'] = []
-                        
+
         encrypt = ("%s" % params.pop('encrypt', {}))
         if(encrypt != "{}"):
             encrypt = encrypt.split(',')
             node.params['encrypt'] = []
-            
+
         if (mode == 'managed'):
             node.params['apsInRange'] = []
             node.params['associatedTo'] = []
             node.params['rssi'] = []
             node.params['snr'] = []
-            node.ifaceToAssociate = 0 
+            node.ifaceToAssociate = 0
             node.max_x = 0
             node.max_y = 0
             node.min_x = 0
@@ -217,7 +217,7 @@ class Node(object):
             node.min_v = 0
             node.constantVelocity = 1.0
             node.constantDistance = 1.0
-           
+
         # speed
         if 'speed' in params:
             node.speed = int(params['speed'])
@@ -253,7 +253,7 @@ class Node(object):
         # constantDistance
         if 'constantDistance' in params:
             node.constantDistance = int(params['constantDistance'])
-            
+
         # position
         position = ("%s" % params.pop('position', {}))
         if(position != "{}"):
@@ -268,7 +268,7 @@ class Node(object):
         else:
             wlans = 1
             wifiRadios += 1
-            
+
         for n in range(wlans):
             node.params['frequency'].append(2.412)
             node.func.append('none')
@@ -299,7 +299,7 @@ class Node(object):
                 node.params['rssi'].append(-60)
                 node.params['snr'].append(40)
             node.params.pop("wlans", None)
-                        
+
         if (mode == 'managed'):
             mac = ("%s" % params.pop('mac', {}))
             if(mac != "{}"):
@@ -318,7 +318,7 @@ class Node(object):
                 node.params['mac'] = []
                 for n in range(wlans):
                     node.params['mac'].append('')
-    
+
             ip = ("%s" % params.pop('ip', {}))
             if(ip != "{}"):
                 ip = ip.split(',')
@@ -341,18 +341,18 @@ class Node(object):
                     node.params['ip'].append(defaults[ 'ip' ])
                     for n in range(1, wlans):
                         node.params['ip'].append('0/0')
-            
+
             # max_speed
             if 'max_speed' in params:
                 node.max_speed = int(params['max_speed'])
             else:
                 node.max_speed = 10
-                
+
             # min_speed
             if 'min_speed' in params:
                 node.min_speed = int(params['min_speed'])
             else:
-                node.min_speed = 1            
+                node.min_speed = 1
 
         # mode
         if 'mode' in params:
@@ -363,7 +363,7 @@ class Node(object):
             node.params['mode'] = []
             for n in range(wlans):
                 node.params['mode'].append(defaults['mode'])
-                
+
         # antennaHeight
         if 'antennaHeight' in params:
             node.params['antennaHeight'] = []
@@ -373,7 +373,7 @@ class Node(object):
             node.params['antennaHeight'] = []
             for n in range(wlans):
                 node.params['antennaHeight'].append(1)
-        
+
         # antennaGain
         if 'antennaGain' in params:
             node.params['antennaGain'] = []
@@ -383,7 +383,7 @@ class Node(object):
             node.params['antennaGain'] = []
             for n in range(wlans):
                 node.params['antennaGain'].append(5)
-  
+
         # txpower
         if 'txpower' in params:
             node.params['txpower'] = []
@@ -393,7 +393,7 @@ class Node(object):
             node.params['txpower'] = []
             for n in range(wlans):
                 node.params['txpower'].append(14)
-                
+
         # Channel
         if 'channel' in params:
             node.params['channel'] = []
@@ -403,12 +403,12 @@ class Node(object):
             node.params['channel'] = []
             for n in range(wlans):
                 node.params['channel'].append(1)
-        
+
         # Equipment Model
         equipmentModel = ("%s" % params.pop('equipmentModel', {}))
         if(equipmentModel != "{}"):
             node.equipmentModel = equipmentModel
-        
+
         # Range
         if 'range' in params:
             node.params['range'] = int(params['range'])
@@ -424,12 +424,12 @@ class Node(object):
             node.params['associatedStations'] = []
             node.params['stationsInRange'] = {}
             node.wds = False
-            
+
             node.params['mac'] = []
             node.params['mac'].append('')
             if 'mac' in defaults:
                 node.params['mac'][0] = defaults[ 'mac' ]
-            
+
             if 'config' in node.params:
                 config = node.params['config']
                 if(config != []):
@@ -441,7 +441,7 @@ class Node(object):
                             node.params['encrypt'].append('wpa')
                         if 'wpe=' in conf:
                             node.params['encrypt'].append('wpe')
-               
+
             if mode == 'master':
                 ssid = ("%s" % params.pop('ssid', {}))
                 ssid = ssid.split(',')
@@ -468,9 +468,9 @@ class Node(object):
                                     node.params['encrypt'].append(encrypt[n])
                 else:
                     node.params['ssid'].append(defaults[ 'ssid' ])
-                
+
         return wifiRadios
-    
+
     @classmethod
     def convertIfaceToMesh(self, node, wlan):
         iface = '%s-mp%s' % (node, wlan)
@@ -480,7 +480,7 @@ class Node(object):
         node.cmd('ifconfig %s down' % node.params['wlan'][wlan])
         node.params['wlan'][wlan] = iface
         node.cmd('ifconfig %s %s up' % (node.params['wlan'][wlan], node.params['ip'][wlan]))
-        
+
     @classmethod
     def setBw(self, node, wlan, iface):
         """ Set bw to AP """
@@ -490,13 +490,13 @@ class Node(object):
             root handle 2: tbf rate %sMbit burst 15000 latency 1ms" % (iface, bw))
         # Reordering packets
         node.cmd('tc qdisc add dev %s parent 2:1 handle 10: pfifo limit 1000' % (iface))
-        
-        
+
+
     @classmethod
     def customDataRate(self, node, wlan):
         """Custom Maximum Data Rate - Useful when there is mobility"""
         mode = node.params['mode'][wlan]
-        
+
         if (mode == 'a'):
             self.rate = 54
         elif(mode == 'b'):
@@ -513,7 +513,7 @@ class Node(object):
         for key, val in self.params.items():
             if val == ssid:
                 self.cmd('iw dev %s-%s mesh leave' % (self, key))
-                
+
     def getMAC(self, iface):
         """ get Mac Address of any Interface """
         _macMatchRegex = re.compile(r'..:..:..:..:..:..')
@@ -522,11 +522,11 @@ class Node(object):
         mac = _macMatchRegex.findall(ifconfig)
         debug('%s\n' % mac[0])
         return mac[0]
-                
+
     def ifbSupport(self, wlan, ifbID):
         """Support to Intermediate Functional Block (IFB) Devices"""
         os.system('ip link set dev ifb%s netns %s' % (ifbID, self.pid))
-        self.cmd('ifconfig ifb%s up' % ifbID)                        
+        self.cmd('ifconfig ifb%s up' % ifbID)
         self.cmd('tc qdisc add dev %s handle ffff: ingress' % self.params['wlan'][wlan])
         self.cmd('tc filter add dev %s parent ffff: protocol ip u32 \
                                 match u32 0 0 action mirred egress redirect dev ifb%s' % (self.params['wlan'][wlan], ifbID))
@@ -537,7 +537,7 @@ class Node(object):
         self.params['range'] = _range
         try:
             if mininetWiFi.DRAW:
-                if mininetWiFi.is3d: 
+                if mininetWiFi.is3d:
                     plot3d.graphUpdate(self)
                     plot3d.graphPause()
                 else:
@@ -556,7 +556,7 @@ class Node(object):
             plot2d.graphUpdate(self)
             plot2d.graphPause()
         elif mininetWiFi.DRAW and mininetWiFi.is3d:
-            plot3d.graphUpdate(self)            
+            plot3d.graphUpdate(self)
         mobility.parameters_(self)
 
     def setAntennaGain(self, iface, value):
@@ -608,7 +608,7 @@ class Node(object):
             mobility.parameters_(self)
         else:
             print "%s is out of range!" % (ap)
-                    
+
     def associate_wpa(self, sta, ap, wlan):
         if 'passwd' not in sta.params:
             passwd = ap.params['passwd'][0]
@@ -635,7 +635,7 @@ class Node(object):
                 mountPoint = directory[ 0 ]
                 self.cmd('mkdir -p %s' % privateDir)
                 self.cmd('mkdir -p %s' % mountPoint)
-                self.cmd('mount --bind %s %s' % 
+                self.cmd('mount --bind %s %s' %
                                (privateDir, mountPoint))
             else:
                 # mount temporary filesystem on directory
@@ -855,7 +855,7 @@ class Node(object):
         out, err = popen.communicate()
         exitcode = popen.wait()
         return out, err, exitcode
-    
+
     # Interface management, configuration, and routing
 
     # BL notes: This might be a bit redundant or over-complicated.
@@ -891,7 +891,7 @@ class Node(object):
         if self.inNamespace:
             debug('moving', intf, 'into namespace for', self.name, '\n')
             moveIntfFn(intf.name, self)
-            
+
     def delIntf(self, intf):
         """Remove interface from Node's known interfaces
            Note: to fully delete interface, call intf.delete() instead"""
@@ -955,7 +955,7 @@ class Node(object):
                 info('.')
 
     # Routing support
-    
+
     def setARP(self, ip, mac):
         """Add an ARP entry.
            ip: IP address as string
@@ -996,7 +996,7 @@ class Node(object):
         if intf != None and (self.type == 'station' or self.type == 'vehicle'):
             wlan = int(intf[-1:])
             self.params['ip'][wlan] = ip
-        
+
         return self.intf(intf).setIP(ip, prefixLen, **kwargs)
 
     def IP(self, intf=None):
@@ -1183,7 +1183,7 @@ class CPULimitedHost(Host):
             if int(self.cgroupGet('rt_runtime_us', 'cpu')) <= 0:
                 mncmd += [ '-r', str(self.rtprio) ]
             else:
-                debug('*** error: not enough cpu time available for %s.' % 
+                debug('*** error: not enough cpu time available for %s.' %
                        self.name, 'Using cfs scheduler for subprocess\n')
         return Host.popen(self, *args, mncmd=mncmd, **kwargs)
 
@@ -1199,7 +1199,7 @@ class CPULimitedHost(Host):
         "Check (Ubuntu,Debian) kernel config for CONFIG_RT_GROUP_SCHED for RT"
         if not cls._rtGroupSched:
             release = quietRun('uname -r').strip('\r\n')
-            output = quietRun('grep CONFIG_RT_GROUP_SCHED /boot/config-%s' % 
+            output = quietRun('grep CONFIG_RT_GROUP_SCHED /boot/config-%s' %
                                release)
             if output == '# CONFIG_RT_GROUP_SCHED is not set\n':
                 error('\n*** error: please enable RT_GROUP_SCHED '
@@ -1379,7 +1379,7 @@ class Switch(Node):
         if not self.execed:
             return Node.sendCmd(self, *cmd, **kwargs)
         else:
-            error('*** Error: %s has execed and cannot accept commands' % 
+            error('*** Error: %s has execed and cannot accept commands' %
                    self.name)
 
     def connected(self):
@@ -1402,8 +1402,8 @@ class Switch(Node):
                               for i in self.intfList() ]))
         return '<%s %s: %s pid=%s> ' % (
             self.__class__.__name__, self.name, intfs, self.pid)
-        
-        
+
+
 class AP(Node):
     """A Switch is a Node that is running (or has execed?)
        an OpenFlow switch."""
@@ -1454,7 +1454,7 @@ class AP(Node):
         if not self.execed:
             return Node.sendCmd(self, *cmd, **kwargs)
         else:
-            error('*** Error: %s has execed and cannot accept commands' % 
+            error('*** Error: %s has execed and cannot accept commands' %
                    self.name)
 
     def connected(self):
@@ -1476,23 +1476,23 @@ class AP(Node):
         intfs = (','.join([ '%s:%s' % (i.name, i.IP())
                               for i in self.intfList() ]))
         return '<%s %s: %s pid=%s> ' % (
-            self.__class__.__name__, self.name, intfs, self.pid)        
-        
+            self.__class__.__name__, self.name, intfs, self.pid)
+
 class AccessPoint(AP):
     """An AccessPoint is a Switch equipped with wireless interface that is running (or has execed?)
        an OpenFlow switch."""
-       
+
     writeMacAddress = False
-    
+
     def __init__ (self, ap, wlan=None, **params):
 
         self.start_(ap, wlan, **params)
-    
+
     @classmethod
     def start_(self, ap, wlan=None, **params):
         """ Starting Access Point """
         cmd = ("echo \'")
-        
+
         if 'phywlan' not in ap.params:
             cmd = cmd + ("interface=%s" % ap.params['wlan'][wlan])  # the interface used by the AP
         else:
@@ -1511,7 +1511,7 @@ class AccessPoint(AP):
         else:
             cmd = cmd + ("\nhw_mode=%s" % ap.params['mode'][0])
         cmd = cmd + ("\nchannel=%s" % ap.params['channel'][0])
-        
+
         if 'config' in ap.params:
             config = ap.params['config']
             if(config != []):
@@ -1522,7 +1522,7 @@ class AccessPoint(AP):
         else:
             cmd = cmd + ("\nwme_enabled=1")
             cmd = cmd + ("\nwmm_enabled=1")
-        
+
             if 'encrypt' in ap.params:
                 if ap.params['encrypt'][0] == 'wpa':
                     cmd = cmd + ("\nauth_algs=%s" % ap.auth_algs)
@@ -1540,7 +1540,7 @@ class AccessPoint(AP):
                     cmd = cmd + ("\nauth_algs=%s" % ap.auth_algs)
                     cmd = cmd + ("\nwep_default_key=%s" % 0)
                     cmd = cmd + self.verifyWepKey(ap.wep_key0)
-             
+
             if 'config' in ap.params:
                 config = ap.params['config']
                 if(config != []):
@@ -1570,8 +1570,8 @@ class AccessPoint(AP):
                 cls = TCLinkWirelessAP
                 intf = ap.params['wlan'][wlan]
                 cls(ap, intfName1=intf)
-    
-    @classmethod    
+
+    @classmethod
     def verifyWepKey(self, wep_key0):
         if len(wep_key0) == 10 or len(wep_key0) == 26 or len(wep_key0) == 32:
             cmd = ("\nwep_key0=%s" % wep_key0)
@@ -1581,13 +1581,13 @@ class AccessPoint(AP):
             info("Warning! Wep Key is wrong!\n")
             exit(1)
         return cmd
-       
+
     _macMatchRegex = re.compile(r'..:..:..:..:..:..')
-    
+
     @classmethod
     def setIPAddr(self, ap, wlan):
         ap.cmd('ifconfig %s %s' % (ap.params['wlan'][wlan], ap.params['ip']))
-    
+
     @classmethod
     def getMac(self, ap, iface):
         """ get Mac Address of any Interface """
@@ -1596,7 +1596,7 @@ class AccessPoint(AP):
         return mac[0]
 
     @classmethod
-    def setIPMAC(self, ap, wlan):        
+    def setIPMAC(self, ap, wlan):
         if 'phywlan' not in ap.params:
             if ap.params['mac'][wlan] != '':
                 ap.setMAC(ap.params['mac'][wlan], ap.params['wlan'][wlan])
@@ -1668,7 +1668,7 @@ class AccessPoint(AP):
                                              working properly in your machine.')
             exit(1)
         ap.setBw(ap, wlan, iface)
-        
+
 class UserAP(AP):
     "User-space AP."
 
@@ -1680,7 +1680,7 @@ class UserAP(AP):
            dpopts: additional arguments to ofdatapath (--no-slicing)"""
         AP.__init__(self, name, **kwargs)
         pathCheck('ofdatapath', 'ofprotocol',
-                   moduleName='the OpenFlow reference user switch' + 
+                   moduleName='the OpenFlow reference user switch' +
                               '(openflow.org)')
         if self.listenPort:
             self.opts += ' --listen=ptcp:%i ' % self.listenPort
@@ -1692,7 +1692,7 @@ class UserAP(AP):
     def customDataRate(self, node, wlan):
         """Custom Maximum Data Rate - Useful when there is mobility"""
         mode = node.params['mode'][wlan]
-        
+
         if (mode == 'a'):
             self.rate = 54
         elif(mode == 'b'):
@@ -1729,7 +1729,7 @@ class UserAP(AP):
             listenAddr = 'unix:/tmp/%s.listen' % self.name
         else:
             listenAddr = 'tcp:127.0.0.1:%i' % self.listenPort
-        return self.cmd('dpctl ' + ' '.join(args) + 
+        return self.cmd('dpctl ' + ' '.join(args) +
                          ' ' + listenAddr)
 
     def connected(self):
@@ -1756,11 +1756,11 @@ class UserAP(AP):
             # Re-add qdisc, root, and default classes user switch created, but
             # with new parent, as setup by Mininet's TCIntf
             parent = res['parent']
-            intf.tc("%s qdisc add dev %s " + parent + 
+            intf.tc("%s qdisc add dev %s " + parent +
                      " handle 1: htb default 0xfffe")
             intf.tc("%s class add dev %s classid 1:0xffff parent 1: htb rate "
                      + str(ifspeed))
-            intf.tc("%s class add dev %s classid 1:0xfffe parent 1:0xffff " + 
+            intf.tc("%s class add dev %s classid 1:0xfffe parent 1:0xffff " +
                      "htb rate " + str(minspeed) + " ceil " + str(ifspeed))
 
     def start(self, controllers):
@@ -1774,13 +1774,13 @@ class UserAP(AP):
         ofplog = '/tmp/' + self.name + '-ofp.log'
         intfs = [ str(i) for i in self.intfList() if not i.IP() ]
 
-        self.cmd('ofdatapath -i ' + ','.join(intfs) + 
-                  ' punix:/tmp/' + self.name + ' -d %s ' % self.dpid + 
-                  self.dpopts + 
+        self.cmd('ofdatapath -i ' + ','.join(intfs) +
+                  ' punix:/tmp/' + self.name + ' -d %s ' % self.dpid +
+                  self.dpopts +
                   ' 1> ' + ofdlog + ' 2> ' + ofdlog + ' &')
-        self.cmd('ofprotocol unix:/tmp/' + self.name + 
-                  ' ' + clist + 
-                  ' --fail=closed ' + self.opts + 
+        self.cmd('ofprotocol unix:/tmp/' + self.name +
+                  ' ' + clist +
+                  ' --fail=closed ' + self.opts +
                   ' 1> ' + ofplog + ' 2>' + ofplog + ' &')
         if "no-slicing" not in self.dpopts:
             # Only TCReapply if slicing is enable
@@ -1792,10 +1792,10 @@ class UserAP(AP):
     def stop(self, deleteIntfs=True):
         """Stop OpenFlow reference user datapath.
            deleteIntfs: delete interfaces? (True)"""
-        #self.cmd('kill %ofdatapath')
-        #self.cmd('kill %ofprotocol')
-        #super(UserAP, self).stop(deleteIntfs)
-        
+        # self.cmd('kill %ofdatapath')
+        # self.cmd('kill %ofprotocol')
+        # super(UserAP, self).stop(deleteIntfs)
+
     def renameIface(self, intf, newname):
         "Rename interface"
         self.pexec('ifconfig %s down' % intf)
@@ -1838,12 +1838,12 @@ class OVSAP(AP):
             root handle 2: tbf rate %sMbit burst 15000 latency 1ms" % (iface, bw))
         # Reordering packets
         ap.cmd('tc qdisc add dev %s parent 2:1 handle 10: pfifo limit 1000' % (iface))
-        
+
     @classmethod
     def customDataRate(self, node, wlan):
         """Custom Maximum Data Rate - Useful when there is mobility"""
         mode = node.params['mode'][wlan]
-        
+
         if (mode == 'a'):
             self.rate = 54
         elif(mode == 'b'):
@@ -1866,8 +1866,8 @@ class OVSAP(AP):
         #  moduleDeps( subtract=OF_KMOD, add=OVS_KMOD )
         out, err, exitcode = errRun('ovs-vsctl -t 1 show')
         if exitcode:
-            error(out + err + 
-                   'ovs-vsctl exited with code %d\n' % exitcode + 
+            error(out + err +
+                   'ovs-vsctl exited with code %d\n' % exitcode +
                    '*** Error connecting to ovs-db with ovs-vsctl\n'
                    'Make sure that Open vSwitch is installed, '
                    'that ovsdb-server is running, and that\n'
@@ -1881,7 +1881,7 @@ class OVSAP(AP):
     @classmethod
     def isOldOVS(cls):
         "Is OVS ersion < 1.10?"
-        return (StrictVersion(cls.OVSVersion) < 
+        return (StrictVersion(cls.OVSVersion) <
                  StrictVersion('1.10'))
 
     def dpctl(self, *args):
@@ -1951,7 +1951,7 @@ class OVSAP(AP):
 
     def bridgeOpts(self):
         "Return OVS bridge options"
-        opts = (' other_config:datapath-id=%s' % self.dpid + 
+        opts = (' other_config:datapath-id=%s' % self.dpid +
                  ' fail_mode=%s' % self.failMode)
         if not self.inband:
             opts += ' other-config:disable-in-band=true'
@@ -1962,7 +1962,7 @@ class OVSAP(AP):
         if self.stp and self.failMode == 'standalone':
             opts += ' stp_enable=true' % self
         return opts
-    
+
     def start(self, controllers):
         "Start up a new OVS OpenFlow switch using ovs-vsctl"
         if self.inNamespace:
@@ -1971,13 +1971,13 @@ class OVSAP(AP):
 
         int(self.dpid, 16)  # DPID must be a hex string
         # Command to add interfaces
-        intfs = ''.join(' -- add-port %s %s' % (self, intf) + 
+        intfs = ''.join(' -- add-port %s %s' % (self, intf) +
                          self.intfOpts(intf)
                          for intf in self.intfList()
                          if self.ports[ intf ] and not intf.IP())
-        
+
         # Command to create controller entries
-        clist = [ (self.name + c.name, '%s:%s:%d' % 
+        clist = [ (self.name + c.name, '%s:%s:%d' %
                   (c.protocol, c.IP(), c.port))
                   for c in controllers ]
         if self.listenPort:
@@ -1994,16 +1994,16 @@ class OVSAP(AP):
         if not self.isOldOVS():
             cargs += ' -- --if-exists del-br %s' % self
         # One ovs-vsctl command to rule them all!
-        self.vsctl(cargs + 
+        self.vsctl(cargs +
                     ' -- add-br %s' % self +
-                    ' -- set bridge %s controller=[%s]' % (self, cids) + 
-                    self.bridgeOpts() + 
+                    ' -- set bridge %s controller=[%s]' % (self, cids) +
+                    self.bridgeOpts() +
                     intfs)
         # If necessary, restore TC config overwritten by OVS
         if not self.batch:
             for intf in self.intfList():
                 self.TCReapply(intf)
-                
+
     # This should be ~ int( quietRun( 'getconf ARG_MAX' ) ),
     # but the real limit seems to be much lower
     argmax = 128000
@@ -2052,7 +2052,7 @@ class OVSAP(AP):
         if switches and not switches[ 0 ].isOldOVS():
             delcmd = '--if-exists ' + delcmd
         # First, delete them all from ovsdb
-        run('ovs-vsctl ' + 
+        run('ovs-vsctl ' +
              ' -- '.join(delcmd % s for s in switches))
         # Next, shut down all of the processes
         pids = ' '.join(str(switch.pid) for switch in switches)
@@ -2060,13 +2060,13 @@ class OVSAP(AP):
         for switch in switches:
             switch.shell = None
         return switches
-    
+
     def renameIface(self, intf, newname):
         "Rename interface"
         self.pexec('ifconfig %s down' % intf)
         self.pexec('ip link set %s name %s' % (intf, newname))
         self.pexec('ifconfig %s up' % newname)
-        
+
 class UserSwitch(Switch):
     "User-space switch."
 
@@ -2078,7 +2078,7 @@ class UserSwitch(Switch):
            dpopts: additional arguments to ofdatapath (--no-slicing)"""
         Switch.__init__(self, name, **kwargs)
         pathCheck('ofdatapath', 'ofprotocol',
-                   moduleName='the OpenFlow reference user switch' + 
+                   moduleName='the OpenFlow reference user switch' +
                               '(openflow.org)')
         if self.listenPort:
             self.opts += ' --listen=ptcp:%i ' % self.listenPort
@@ -2099,7 +2099,7 @@ class UserSwitch(Switch):
             listenAddr = 'unix:/tmp/%s.listen' % self.name
         else:
             listenAddr = 'tcp:127.0.0.1:%i' % self.listenPort
-        return self.cmd('dpctl ' + ' '.join(args) + 
+        return self.cmd('dpctl ' + ' '.join(args) +
                          ' ' + listenAddr)
 
     def connected(self):
@@ -2126,11 +2126,11 @@ class UserSwitch(Switch):
             # Re-add qdisc, root, and default classes user switch created, but
             # with new parent, as setup by Mininet's TCIntf
             parent = res['parent']
-            intf.tc("%s qdisc add dev %s " + parent + 
+            intf.tc("%s qdisc add dev %s " + parent +
                      " handle 1: htb default 0xfffe")
             intf.tc("%s class add dev %s classid 1:0xffff parent 1: htb rate "
                      + str(ifspeed))
-            intf.tc("%s class add dev %s classid 1:0xfffe parent 1:0xffff " + 
+            intf.tc("%s class add dev %s classid 1:0xfffe parent 1:0xffff " +
                      "htb rate " + str(minspeed) + " ceil " + str(ifspeed))
 
     def start(self, controllers):
@@ -2144,13 +2144,13 @@ class UserSwitch(Switch):
         ofplog = '/tmp/' + self.name + '-ofp.log'
         intfs = [ str(i) for i in self.intfList() if not i.IP() ]
 
-        self.cmd('ofdatapath -i ' + ','.join(intfs) + 
-                  ' punix:/tmp/' + self.name + ' -d %s ' % self.dpid + 
-                  self.dpopts + 
+        self.cmd('ofdatapath -i ' + ','.join(intfs) +
+                  ' punix:/tmp/' + self.name + ' -d %s ' % self.dpid +
+                  self.dpopts +
                   ' 1> ' + ofdlog + ' 2> ' + ofdlog + ' &')
-        self.cmd('ofprotocol unix:/tmp/' + self.name + 
-                  ' ' + clist + 
-                  ' --fail=closed ' + self.opts + 
+        self.cmd('ofprotocol unix:/tmp/' + self.name +
+                  ' ' + clist +
+                  ' --fail=closed ' + self.opts +
                   ' 1> ' + ofplog + ' 2>' + ofplog + ' &')
         if "no-slicing" not in self.dpopts:
             # Only TCReapply if slicing is enable
@@ -2165,8 +2165,8 @@ class UserSwitch(Switch):
         self.cmd('kill %ofdatapath')
         self.cmd('kill %ofprotocol')
         super(UserSwitch, self).stop(deleteIntfs)
-        
-        
+
+
 class OVSSwitch(Switch):
     "Open vSwitch switch. Depends on ovs-vsctl."
 
@@ -2203,8 +2203,8 @@ class OVSSwitch(Switch):
         #  moduleDeps( subtract=OF_KMOD, add=OVS_KMOD )
         out, err, exitcode = errRun('ovs-vsctl -t 1 show')
         if exitcode:
-            error(out + err + 
-                   'ovs-vsctl exited with code %d\n' % exitcode + 
+            error(out + err +
+                   'ovs-vsctl exited with code %d\n' % exitcode +
                    '*** Error connecting to ovs-db with ovs-vsctl\n'
                    'Make sure that Open vSwitch is installed, '
                    'that ovsdb-server is running, and that\n'
@@ -2218,7 +2218,7 @@ class OVSSwitch(Switch):
     @classmethod
     def isOldOVS(cls):
         "Is OVS ersion < 1.10?"
-        return (StrictVersion(cls.OVSVersion) < 
+        return (StrictVersion(cls.OVSVersion) <
                  StrictVersion('1.10'))
 
     def dpctl(self, *args):
@@ -2288,7 +2288,7 @@ class OVSSwitch(Switch):
 
     def bridgeOpts(self):
         "Return OVS bridge options"
-        opts = (' other_config:datapath-id=%s' % self.dpid + 
+        opts = (' other_config:datapath-id=%s' % self.dpid +
                  ' fail_mode=%s' % self.failMode)
         if not self.inband:
             opts += ' other-config:disable-in-band=true'
@@ -2307,12 +2307,12 @@ class OVSSwitch(Switch):
                 'OVS kernel switch does not work in a namespace')
         int(self.dpid, 16)  # DPID must be a hex string
         # Command to add interfaces
-        intfs = ''.join(' -- add-port %s %s' % (self, intf) + 
+        intfs = ''.join(' -- add-port %s %s' % (self, intf) +
                          self.intfOpts(intf)
                          for intf in self.intfList()
                          if self.ports[ intf ] and not intf.IP())
         # Command to create controller entries
-        clist = [ (self.name + c.name, '%s:%s:%d' % 
+        clist = [ (self.name + c.name, '%s:%s:%d' %
                   (c.protocol, c.IP(), c.port))
                   for c in controllers ]
         if self.listenPort:
@@ -2329,10 +2329,10 @@ class OVSSwitch(Switch):
         if not self.isOldOVS():
             cargs += ' -- --if-exists del-br %s' % self
         # One ovs-vsctl command to rule them all!
-        self.vsctl(cargs + 
+        self.vsctl(cargs +
                     ' -- add-br %s' % self +
-                    ' -- set bridge %s controller=[%s]' % (self, cids) + 
-                    self.bridgeOpts() + 
+                    ' -- set bridge %s controller=[%s]' % (self, cids) +
+                    self.bridgeOpts() +
                     intfs)
         # If necessary, restore TC config overwritten by OVS
         if not self.batch:
@@ -2388,7 +2388,7 @@ class OVSSwitch(Switch):
         if switches and not switches[ 0 ].isOldOVS():
             delcmd = '--if-exists ' + delcmd
         # First, delete them all from ovsdb
-        run('ovs-vsctl ' + 
+        run('ovs-vsctl ' +
              ' -- '.join(delcmd % s for s in switches))
         # Next, shut down all of the processes
         pids = ' '.join(str(switch.pid) for switch in switches)
@@ -2436,8 +2436,8 @@ class IVSSwitch(Switch):
                    moduleName="Indigo Virtual Switch (projectfloodlight.org)")
         out, err, exitcode = errRun('ivs-ctl show')
         if exitcode:
-            error(out + err + 
-                   'ivs-ctl exited with code %d\n' % exitcode + 
+            error(out + err +
+                   'ivs-ctl exited with code %d\n' % exitcode +
                    '*** The openvswitch kernel module might '
                    'not be loaded. Try modprobe openvswitch.\n')
             exit(1)
@@ -2488,7 +2488,7 @@ class IVSSwitch(Switch):
         "Run dpctl command"
         if not self.listenPort:
             return "can't run dpctl without passive listening port"
-        return self.cmd('ovs-ofctl ' + ' '.join(args) + 
+        return self.cmd('ovs-ofctl ' + ' '.join(args) +
                          ' tcp:127.0.0.1:%i' % self.listenPort)
 
 class Controller(Node):
@@ -2520,14 +2520,14 @@ class Controller(Node):
             raise Exception("Error running telnet to check for listening "
                              "controllers; please check that it is "
                              "installed.")
-        listening = self.cmd("echo A | telnet -e A %s %d" % 
+        listening = self.cmd("echo A | telnet -e A %s %d" %
                               (self.ip, self.port))
         if 'Connected' in listening:
             servers = self.cmd('netstat -natp').split('\n')
             pstr = ':%d ' % self.port
             clist = servers[ 0:1 ] + [ s for s in servers if pstr in s ]
             raise Exception("Please shut down the controller which is"
-                             " running on port %d:\n" % self.port + 
+                             " running on port %d:\n" % self.port +
                              '\n'.join(clist))
 
     def start(self):
@@ -2537,7 +2537,7 @@ class Controller(Node):
         cout = '/tmp/' + self.name + '.log'
         if self.cdir is not None:
             self.cmd('cd ' + self.cdir)
-        self.cmd(self.command + ' ' + self.cargs % self.port + 
+        self.cmd(self.command + ' ' + self.cargs % self.port +
                   ' 1>' + cout + ' 2>' + cout + ' &')
         self.execed = False
 
@@ -2600,7 +2600,7 @@ class NOX(Controller):
 
         Controller.__init__(self, name,
                              command=noxCoreDir + '/nox_core',
-                             cargs='--libdir=/usr/local/lib -v -i ptcp:%s ' + 
+                             cargs='--libdir=/usr/local/lib -v -i ptcp:%s ' +
                              ' '.join(noxArgs),
                              cdir=noxCoreDir,
                              **kwargs)
@@ -2622,7 +2622,7 @@ class Ryu(Controller):
 
         Controller.__init__(self, name,
                              command='ryu-manager',
-                             cargs='--ofp-tcp-listen-port %s ' + 
+                             cargs='--ofp-tcp-listen-port %s ' +
                              ' '.join(ryuArgs),
                              cdir=ryuCoreDir,
                              **kwargs)
