@@ -25,7 +25,7 @@ step 4: $ sudo util/install.sh -Wnfvl
 -l: wmediumd   
 
 ## Virtual Machine    
-[Ubuntu 14.04 x64](https://www.dropbox.com/s/0u4o1wmmooq81yi/mn-wifi.ova?dl=0)     
+[Ubuntu 14.04 x64](https://www.dropbox.com/s/0u4o1wmmooq81yi/mn-wifi.ova?dl=1)     
 user: wifi   
 pass: wifi   
    
