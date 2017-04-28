@@ -7,7 +7,7 @@ Mininet-WiFi is a fork of Mininet (http://mininet.org/) which allows the using o
 
 
 ### User Manual  
-[Access the User Manual](https://www.dropbox.com/s/jgkhsdrz736e4q2/mininet-wifi-draft-manual.pdf?dl=0)
+[Access the User Manual](https://www.dropbox.com/s/jgkhsdrz736e4q2/mininet-wifi-draft-manual.pdf?dl=1)
 
 ### Mailing List  
 [https://groups.google.com/forum/#!forum/mininet-wifi-discuss](https://groups.google.com/forum/#!forum/mininet-wifi-discuss) 
@@ -24,7 +24,7 @@ step 4: $ sudo util/install.sh -Wnfvl
 -v: OpenvSwitch   
 -l: wmediumd   
 
-## Virtual Machine    
+## Pre-configured Virtual Machine    
 [Ubuntu 14.04 x64](https://www.dropbox.com/s/0u4o1wmmooq81yi/mn-wifi.ova?dl=1)     
 user: wifi   
 pass: wifi   
