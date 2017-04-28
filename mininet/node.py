@@ -71,7 +71,6 @@ from re import findall
 from distutils.version import StrictVersion
 from mininet.wifiMobility import mobility
 from mininet.wifiChannel import setChannelParams
-from mininet.wifiDevices import deviceRange
 from mininet.wifiPlot import plot2d, plot3d
 
 class Node(object):
@@ -175,301 +174,6 @@ class Node(object):
         self.waiting = False
         # +m: disable job control notification
         self.cmd('unset HISTFILE; stty -echo; set +m')
-
-    @classmethod
-    def addParameters(self, node, wifiRadios, autoSetMacs, params, defaults, mode='managed'):
-        """adds parameters to wireless nodes
-        
-        node: node
-        wifiRadios: number of wireless interfaces
-        autoSetMacs: set MAC addrs automatically like IP addresses
-        params: parameters
-        defaults: Default IP and MAC addresses
-        mode: if interface is running in managed or master mode
-        """
-
-        node.params['frequency'] = []
-        node.params['wlan'] = []
-        node.params['mac'] = []
-        node.phyID = []
-
-        passwd = ("%s" % params.pop('passwd', {}))
-        if(passwd != "{}"):
-            passwd = passwd.split(',')
-            node.params['passwd'] = []
-
-        encrypt = ("%s" % params.pop('encrypt', {}))
-        if(encrypt != "{}"):
-            encrypt = encrypt.split(',')
-            node.params['encrypt'] = []
-
-        if (mode == 'managed'):
-            node.params['apsInRange'] = []
-            node.params['associatedTo'] = []
-            node.params['rssi'] = []
-            node.params['snr'] = []
-            node.ifaceToAssociate = 0
-            node.max_x = 0
-            node.max_y = 0
-            node.min_x = 0
-            node.min_y = 0
-            node.max_v = 0
-            node.min_v = 0
-            node.constantVelocity = 1.0
-            node.constantDistance = 1.0
-
-        # speed
-        if 'speed' in params:
-            node.speed = int(params['speed'])
-
-        # max_x
-        if 'max_x' in params:
-            node.max_x = int(params['max_x'])
-
-        # max_y
-        if 'max_y' in params:
-            node.max_y = int(params['max_y'])
-
-        # min_x
-        if 'min_x' in params:
-            node.min_x = int(params['min_x'])
-
-        # min_y
-        if 'min_y' in params:
-            node.min_y = int(params['min_y'])
-
-        # min_v
-        if 'min_v' in params:
-            node.min_v = int(params['min_v'])
-
-        # max_v
-        if 'max_v' in params:
-            node.max_v = int(params['max_v'])
-
-        # constantVelocity
-        if 'constantVelocity' in params:
-            node.constantVelocity = int(params['constantVelocity'])
-
-        # constantDistance
-        if 'constantDistance' in params:
-            node.constantDistance = int(params['constantDistance'])
-
-        # position
-        position = ("%s" % params.pop('position', {}))
-        if(position != "{}"):
-            position = position.split(',')
-            node.params['position'] = position
-
-        # Wifi Interfaces
-        wlans = ("%s" % params.pop('wlans', {}))
-        if(wlans != "{}"):
-            wlans = int(wlans)
-            wifiRadios += int(wlans)
-        else:
-            wlans = 1
-            wifiRadios += 1
-
-        for n in range(wlans):
-            node.params['frequency'].append(2.412)
-            node.func.append('none')
-            node.phyID.append(0)
-            if mode == 'managed':
-                node.params['associatedTo'].append('')
-                if 'ssid' not in node.params:
-                    if(passwd != "{}"):
-                        if len(passwd) == 1:
-                            node.params['passwd'].append(passwd[0])
-                        else:
-                            node.params['passwd'].append(passwd[n])
-                    if(encrypt != "{}"):
-                        if len(encrypt) == 1:
-                            node.params['encrypt'].append(encrypt[0])
-                        else:
-                            node.params['encrypt'].append(encrypt[n])
-            if mode == 'master':
-                if 'phywlan' in node.params:
-                    n = 1
-                node.params['wlan'].append(node.name + '-wlan' + str(n + 1))
-                if 'link' in params and params['link'] == 'mesh':
-                    node.params['rssi'].append(-60)
-                    node.params['snr'].append(40)
-                    node.params['associatedTo'].append('')
-            else:
-                node.params['wlan'].append(node.name + '-wlan' + str(n))
-                node.params['rssi'].append(-60)
-                node.params['snr'].append(40)
-            node.params.pop("wlans", None)
-
-        if (mode == 'managed'):
-            mac = ("%s" % params.pop('mac', {}))
-            if(mac != "{}"):
-                mac = mac.split(',')
-                node.params['mac'] = []
-                for n in range(len(node.params['wlan'])):
-                    node.params['mac'].append('')
-                    if len(mac) > n:
-                        node.params['mac'][n] = mac[n]
-            elif autoSetMacs:
-                node.params['mac'] = []
-                for n in range(wlans):
-                    node.params['mac'].append('')
-                    node.params['mac'][n] = defaults[ 'mac' ]
-            else:
-                node.params['mac'] = []
-                for n in range(wlans):
-                    node.params['mac'].append('')
-
-            ip = ("%s" % params.pop('ip', {}))
-            if(ip != "{}"):
-                ip = ip.split(',')
-                node.params['ip'] = []
-                for n in range(len(node.params['wlan'])):
-                    node.params['ip'].append('0/0')
-                    if len(ip) > n:
-                        node.params['ip'][n] = ip[n]
-            elif autoSetMacs:
-                node.params['ip'] = []
-                for n in range(wlans):
-                    node.params['ip'].append('0/0')
-                    node.params['ip'][n] = defaults[ 'ip' ]
-            else:
-                try:
-                    for n in range(wlans):
-                        node.params['ip'].append('0/0')
-                except:
-                    node.params['ip'] = []
-                    node.params['ip'].append(defaults[ 'ip' ])
-                    for n in range(1, wlans):
-                        node.params['ip'].append('0/0')
-
-            # max_speed
-            if 'max_speed' in params:
-                node.max_speed = int(params['max_speed'])
-            else:
-                node.max_speed = 10
-
-            # min_speed
-            if 'min_speed' in params:
-                node.min_speed = int(params['min_speed'])
-            else:
-                node.min_speed = 1
-
-        # mode
-        if 'mode' in params:
-            node.params['mode'] = []
-            for n in range(wlans):
-                node.params['mode'].append(params['mode'])
-        else:
-            node.params['mode'] = []
-            for n in range(wlans):
-                node.params['mode'].append(defaults['mode'])
-
-        # antennaHeight
-        if 'antennaHeight' in params:
-            node.params['antennaHeight'] = []
-            for n in range(wlans):
-                node.params['antennaHeight'].append(int(params['antennaHeight']))
-        else:
-            node.params['antennaHeight'] = []
-            for n in range(wlans):
-                node.params['antennaHeight'].append(1)
-
-        # antennaGain
-        if 'antennaGain' in params:
-            node.params['antennaGain'] = []
-            for n in range(wlans):
-                node.params['antennaGain'].append(int(params['antennaGain']))
-        else:
-            node.params['antennaGain'] = []
-            for n in range(wlans):
-                node.params['antennaGain'].append(5)
-
-        # txpower
-        if 'txpower' in params:
-            node.params['txpower'] = []
-            for n in range(wlans):
-                node.params['txpower'].append(int(params['txpower']))
-        else:
-            node.params['txpower'] = []
-            for n in range(wlans):
-                node.params['txpower'].append(14)
-
-        # Channel
-        if 'channel' in params:
-            node.params['channel'] = []
-            for n in range(wlans):
-                node.params['channel'].append(int(params['channel']))
-        else:
-            node.params['channel'] = []
-            for n in range(wlans):
-                node.params['channel'].append(1)
-
-        # Equipment Model
-        equipmentModel = ("%s" % params.pop('equipmentModel', {}))
-        if(equipmentModel != "{}"):
-            node.equipmentModel = equipmentModel
-
-        # Range
-        if 'range' in params:
-            node.params['range'] = int(params['range'])
-        else:
-            if mode == 'master' or node.func[0] == 'ap':
-                value = deviceRange(node)
-                node.params['range'] = value.range
-            else:
-                value = deviceRange(node)
-                node.params['range'] = value.range - 15
-
-        if mode == 'master' or 'ssid' in node.params:
-            node.params['associatedStations'] = []
-            node.params['stationsInRange'] = {}
-            node.wds = False
-
-            node.params['mac'] = []
-            node.params['mac'].append('')
-            if 'mac' in defaults:
-                node.params['mac'][0] = defaults[ 'mac' ]
-
-            if 'config' in node.params:
-                config = node.params['config']
-                if(config != []):
-                    config = node.params['config'].split(',')
-                    for conf in config:
-                        if 'wpa=' in conf or 'wpe=' in conf:
-                            node.params['encrypt'] = []
-                        if 'wpa=' in conf:
-                            node.params['encrypt'].append('wpa')
-                        if 'wpe=' in conf:
-                            node.params['encrypt'].append('wpe')
-
-            if mode == 'master':
-                ssid = ("%s" % params.pop('ssid', {}))
-                ssid = ssid.split(',')
-                node.params['ssid'] = []
-                if(ssid[0] != "{}"):
-                    if len(ssid) == 1:
-                        node.params['ssid'].append(ssid[0])
-                        if(encrypt != "{}"):
-                            node.params['encrypt'].append(encrypt[0])
-                        if(passwd != "{}"):
-                            node.params['passwd'].append(passwd[0])
-                    else:
-                        for n in range(len(ssid)):
-                            node.params['ssid'].append(ssid[n])
-                            if(passwd != "{}"):
-                                if len(passwd) == 1:
-                                    node.params['passwd'].append(passwd[0])
-                                else:
-                                    node.params['passwd'].append(passwd[n])
-                            if(encrypt != "{}"):
-                                if len(encrypt) == 1:
-                                    node.params['encrypt'].append(encrypt[0])
-                                else:
-                                    node.params['encrypt'].append(encrypt[n])
-                else:
-                    node.params['ssid'].append(defaults[ 'ssid' ])
-
-        return wifiRadios
 
     @classmethod
     def convertIfaceToMesh(self, node, wlan):
@@ -586,10 +290,10 @@ class Node(object):
                 wlan = idx
                 break
         if ('position' in sta.params and 'position' in ap.params):
-            d = setChannelParams.getDistance(sta, ap)
+            dist = setChannelParams.getDistance(sta, ap)
         else:
-            d = 100000
-        if (d < ap.params['range']) or ('position' not in sta.params and 'position' not in ap.params):
+            dist = 100000
+        if (dist < ap.params['range']) or ('position' not in sta.params and 'position' not in ap.params):
             if sta.params['associatedTo'][wlan] != ap:
                 if sta.params['associatedTo'][wlan] != '':
                     sta.cmd('iw dev %s disconnect' % iface)
@@ -598,10 +302,10 @@ class Node(object):
                     info ('%s now associated to %s\n' % (sta, ap))
                 else:
                     if ap.params['encrypt'][0] == 'wpa' or ap.params['encrypt'][0] == 'wpa2':
-                        sta.associate_wpa(sta, ap, wlan)
+                        self.associate_wpa(ap, wlan)
                     elif ap.params['encrypt'][0] == 'wep':
-                        sta.associate_wep(sta, ap, wlan)
-                setChannelParams(sta, ap, wlan, d)
+                        self.associate_wep(ap, wlan)
+                setChannelParams(sta, ap, wlan, dist)
                 mobility.updateAssociation(sta, ap, wlan)
             else:
                 info ('%s is already connected!\n' % ap)
@@ -609,22 +313,22 @@ class Node(object):
         else:
             print "%s is out of range!" % (ap)
 
-    def associate_wpa(self, sta, ap, wlan):
-        if 'passwd' not in sta.params:
+    def associate_wpa(self, ap, wlan):
+        if 'passwd' not in self.params:
             passwd = ap.params['passwd'][0]
         else:
-            passwd = sta.params['passwd'][wlan]
-        pidfile = "mn%d_%s_%s_wpa.pid" % (os.getpid(), sta.name, wlan)
-        sta.cmd("wpa_supplicant -B -Dnl80211 -P %s -i %s -c <(wpa_passphrase \"%s\" \"%s\")"
-                % (pidfile, sta.params['wlan'][wlan], wlan, ap.params['ssid'][0], passwd))
+            passwd = self.params['passwd'][wlan]
+        pidfile = "mn%d_%s_%s_wpa.pid" % (os.getpid(), self.name, wlan)
+        self.cmd("wpa_supplicant -B -Dnl80211 -P %s -i %s -c <(wpa_passphrase \"%s\" \"%s\")"
+                % (pidfile, self.parself['wlan'][wlan], wlan, ap.params['ssid'][0], passwd))
 
-    def associate_wep(self, sta, ap, wlan):
-        if 'passwd' not in sta.params:
+    def associate_wep(self, ap, wlan):
+        if 'passwd' not in self.params:
             passwd = ap.params['passwd'][0]
         else:
-            passwd = sta.params['passwd'][wlan]
-        sta.pexec('iw dev %s connect %s key d:0:%s' \
-                % (sta.params['wlan'][wlan], ap.params['ssid'][0], passwd))
+            passwd = self.params['passwd'][wlan]
+        self.pexec('iw dev %s connect %s key d:0:%s' \
+                % (self.params['wlan'][wlan], ap.params['ssid'][0], passwd))
 
     def mountPrivateDirs(self):
         "mount private directories"

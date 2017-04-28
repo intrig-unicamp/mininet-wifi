@@ -184,10 +184,9 @@ class Mininet(object):
         self.vehiclesSTA = []
         self.walls = []
         self.terms = []  # list of spawned xterm processes
-        self.isWiFi = isWiFi
-        self.wifiRadios = 0
         self.useWmediumd = useWmediumd
 
+        mininetWiFi.isWiFi = isWiFi
         mininetWiFi.enable_interference = enable_interference
         mininetWiFi.rec_rssi = rec_rssi
         Mininet.init()  # Initialize Mininet if necessary
@@ -301,7 +300,7 @@ class Mininet(object):
         self.stations.append(sta)
         self.nameToNode[ name ] = sta
 
-        self.wifiRadios = sta.addParameters(sta, self.wifiRadios, self.autoSetMacs, params, defaults)
+        mininetWiFi.addParameters(sta, self.autoSetMacs, params, defaults)
         return sta
 
     def addAPAdhoc(self, name, cls=None, **params):
@@ -340,7 +339,7 @@ class Mininet(object):
         self.stations.append(sta)
         self.nameToNode[ name ] = sta
 
-        self.wifiRadios = sta.addParameters(sta, self.wifiRadios, self.autoSetMacs, params, defaults)
+        mininetWiFi.addParameters(sta, self.autoSetMacs, params, defaults)
         sta.func[0] = 'ap'
         return sta
 
@@ -374,7 +373,7 @@ class Mininet(object):
 
         self.nameToNode[ name ] = car
         car.type = 'vehicle'
-        self.wifiRadios = car.addParameters(car, self.wifiRadios, self.autoSetMacs, params, defaults)
+        mininetWiFi.addParameters(car, self.autoSetMacs, params, defaults)
 
         carsta = self.addStation(name + 'STA')
         carsta.params['range'] = car.params['range']
@@ -419,7 +418,7 @@ class Mininet(object):
         self.nameToNode[ name ] = ap
         ap.type = 'accessPoint'
 
-        self.wifiRadios = ap.addParameters(ap, self.wifiRadios, self.autoSetMacs, params, defaults, mode='master')
+        mininetWiFi.addParameters(ap, self.autoSetMacs, params, defaults, mode='master')
         self.switches.append(ap)
         self.accessPoints.append(ap)
         return ap
@@ -456,7 +455,7 @@ class Mininet(object):
         node.type = 'station'
         self.nextIP += 1
 
-        self.wifiRadios = node.addParameters(node, self.wifiRadios, self.autoSetMacs, params, defaults)
+        mininetWiFi.addParameters(node, self.autoSetMacs, params, defaults)
         self.switches.append(node)
         self.stations.append(node)
         return node
@@ -490,7 +489,7 @@ class Mininet(object):
         self.switches.append(bs)
         self.accessPoints.append(bs)
 
-        self.wifiRadios = bs.addParameters(bs, self.wifiRadios, self.autoSetMacs, params, defaults, mode='master')
+        mininetWiFi.addParameters(bs, self.autoSetMacs, params, defaults, mode='master')
         return bs
 
     def addSwitch(self, name, cls=None, **params):
@@ -846,12 +845,11 @@ class Mininet(object):
         params.setdefault('accessPoints', self.accessPoints)
         params.setdefault('cars', self.cars)
         params.setdefault('switches', self.switches)
-        params.setdefault('wifiRadios', self.wifiRadios)
         params.setdefault('nextIP', self.nextIP)
         params.setdefault('ipBaseNum', self.ipBaseNum)
         params.setdefault('prefixLen', self.prefixLen)
         params.setdefault('useWmediumd', self.useWmediumd)
-        self.stations, self.accessPoints, self.isWiFi = mininetWiFi.configureWifiNodes(**params)
+        self.stations, self.accessPoints = mininetWiFi.configureWifiNodes(**params)
 
     def delLink(self, link):
         "Remove a link from this network"
@@ -941,7 +939,7 @@ class Mininet(object):
                 self.addSwitch(switchName, **params)
             info(switchName + ' ')
 
-        if self.isWiFi:
+        if mininetWiFi.isWiFi:
             info('\n*** Configuring wifi nodes...\n')
             self.configureWifiNodes()
 
@@ -1080,7 +1078,7 @@ class Mininet(object):
             info(host.name + ' ')
             host.terminate()
         info('\n')
-        if(self.isWiFi):
+        if(mininetWiFi.isWiFi):
             "Stop Graph"
             mininetWiFi.closeMininetWiFi()
         info('\n*** Done\n')

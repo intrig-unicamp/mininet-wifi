@@ -55,7 +55,7 @@ class CLI(Cmd):
         stations = mininet.stations
         accessPoints = mininet.accessPoints
 
-        if not mininetWiFi.isMobility and mininet.isWiFi == True:
+        if not mininetWiFi.isMobility and mininetWiFi.isWiFi == True:
             mininetWiFi.autoAssociation(stations, accessPoints)
 
         if not mininetWiFi.isMobility and mininetWiFi.DRAW and not mininetWiFi.alreadyPlotted:
