@@ -349,7 +349,7 @@ class mininetWiFi(object):
                     node.params['ssid'].append(defaults[ 'ssid' ])
 
     @classmethod
-    def addMesh(self, node, nextIP, ipBaseNum, prefixLen, cls=None, **params):
+    def addMesh(self, node, cls=None, **params):
         """
         Configure wireless mesh
         
@@ -357,16 +357,22 @@ class mininetWiFi(object):
         cls: custom association class/constructor
         params: parameters for node
         """
-        if node.type == 'station':
-            wlan = node.ifaceToAssociate
+        if 'intf' in params:
+            for intf_ in node.params['wlan']:
+                if params['intf'] == intf_:
+                    wlan = node.params['wlan'].index(intf_)
         else:
-            wlan = 0
+            if node.type == 'station':
+                wlan = node.ifaceToAssociate
+            else:
+                wlan = 0
+
         node.func[wlan] = 'mesh'
 
-        options = { 'ip': ipAdd(nextIP,
-                                  ipBaseNum=ipBaseNum,
-                                  prefixLen=prefixLen) +
-                                  '/%s' % prefixLen}
+        options = { 'ip': ipAdd(params['nextIP'],
+                                  ipBaseNum=params['ipBaseNum'],
+                                  prefixLen=params['prefixLen']) +
+                                  '/%s' % params['prefixLen']}
         options.update(params)
 
         node.params['ssid'] = []
@@ -406,7 +412,7 @@ class mininetWiFi(object):
         node.ifaceToAssociate += 1
 
     @classmethod
-    def addHoc(self, node, nextIP, ipBaseNum, prefixLen, cls=None, **params):
+    def addHoc(self, node, cls=None, **params):
         """
         Configure AdHoc
         
@@ -415,13 +421,19 @@ class mininetWiFi(object):
         params: parameters for station
            
         """
-        wlan = node.ifaceToAssociate
+        if 'intf' in params:
+            for intf_ in node.params['wlan']:
+                if params['intf'] == intf_:
+                    wlan = node.params['wlan'].index(intf_)
+        else:
+            wlan = node.ifaceToAssociate
+
         node.func[wlan] = 'adhoc'
 
-        options = { 'ip': ipAdd(nextIP,
-                                  ipBaseNum=ipBaseNum,
-                                  prefixLen=prefixLen) +
-                                  '/%s' % prefixLen}
+        options = { 'ip': ipAdd(params['nextIP'],
+                                  ipBaseNum=params['ipBaseNum'],
+                                  prefixLen=params['prefixLen']) +
+                                  '/%s' % params['prefixLen']}
         options.update(params)
 
         node.params['cell'] = []

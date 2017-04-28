@@ -668,10 +668,10 @@ class Mininet(object):
         cls: custom association class/constructor
         params: parameters for node
         """
-        nextIP = self.nextIP
-        ipBaseNum = self.ipBaseNum
-        prefixLen = self.prefixLen
-        mininetWiFi.addMesh(node, nextIP, ipBaseNum, prefixLen, cls=None, **params)
+        params['nextIP'] = self.nextIP
+        params['ipBaseNum'] = self.ipBaseNum
+        params['prefixLen'] = self.prefixLen
+        mininetWiFi.addMesh(node, cls=None, **params)
 
     def addHoc(self, node, cls=None, **params):
         """
@@ -682,10 +682,10 @@ class Mininet(object):
         params: parameters for station
            
         """
-        nextIP = self.nextIP
-        ipBaseNum = self.ipBaseNum
-        prefixLen = self.prefixLen
-        mininetWiFi.addHoc(node, nextIP, ipBaseNum, prefixLen, cls=None, **params)
+        params['nextIP'] = self.nextIP
+        params['ipBaseNum'] = self.ipBaseNum
+        params['prefixLen'] = self.prefixLen
+        mininetWiFi.addHoc(node, cls=None, **params)
 
     def wifiDirect(self, sta, cls=None, **params):
         """
