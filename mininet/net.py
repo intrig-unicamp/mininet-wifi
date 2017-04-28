@@ -756,7 +756,12 @@ class Mininet(object):
                 sta = node2
                 ap = node1
 
-            wlan = sta.ifaceToAssociate
+            if 'intf' in params:
+                for intf_ in sta.params['wlan']:
+                    if params['intf'] == intf_:
+                        wlan = sta.params['wlan'].index(intf_)
+            else:
+                wlan = sta.ifaceToAssociate
 
             sta.params['mode'][wlan] = ap.params['mode'][0]
             sta.params['channel'][wlan] = ap.params['channel'][0]

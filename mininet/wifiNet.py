@@ -409,7 +409,8 @@ class mininetWiFi(object):
 
         cls = Association
         cls.configureMesh(node, wlan)
-        node.ifaceToAssociate += 1
+        if 'intf' not in params:
+            node.ifaceToAssociate += 1
 
     @classmethod
     def addHoc(self, node, cls=None, **params):
@@ -472,7 +473,8 @@ class mininetWiFi(object):
 
         cls = Association
         cls.configureAdhoc(node)
-        node.ifaceToAssociate += 1
+        if 'intf' not in params:
+            node.ifaceToAssociate += 1
 
     @staticmethod
     def randMac():
