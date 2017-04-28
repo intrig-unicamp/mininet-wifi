@@ -852,7 +852,7 @@ class mininetWiFi(object):
                 mac = node.params['mac'][wlan]
                 node.setMAC(mac, iface)
             if node.type == 'WirelessMeshAP':
-                node.convertIfaceToMesh(wlan)
+                node.convertIfaceToMesh(node, wlan)
                 cls = TCLinkWirelessAP
                 cls(node, intfName1=node.params['wlan'][wlan])
 
