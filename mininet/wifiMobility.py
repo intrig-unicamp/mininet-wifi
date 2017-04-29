@@ -475,7 +475,7 @@ class mobility (object):
         if meshNodes == None:
             meshNodes = nodes
 
-        for node in self.mobilityNodes:
+        for node in nodes:
             for wlan in range(0, len(node.params['wlan'])):
                 if node.func[wlan] == 'mesh' or node.func[wlan] == 'adhoc':
                     if node.type == 'vehicle':
