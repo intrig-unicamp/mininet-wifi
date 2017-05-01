@@ -12,9 +12,9 @@ from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
 
 class plot3d (object):
-    
+
     ax = None
-    
+
     @classmethod
     def instantiateGraph(self, MAX_X, MAX_Y, MAX_Z):
         """instantiateGraph"""
@@ -28,15 +28,15 @@ class plot3d (object):
         self.ax.set_ylim([0, MAX_Y])
         self.ax.set_zlim([0, MAX_Z])
         self.ax.grid(True)
-        
+
     @classmethod
     def instantiateAnnotate(self, node):
         """instantiateAnnotate"""
-        
+
         x = '%.2f' % float(node.params['position'][0])
         y = '%.2f' % float(node.params['position'][1])
         z = '%.2f' % float(node.params['position'][2])
-        
+
         node.plttxt = self.ax.text(float(x), float(y), float(z), node.name)
 
     @classmethod
@@ -45,11 +45,11 @@ class plot3d (object):
         x = '%.2f' % float(node.params['position'][0])
         y = '%.2f' % float(node.params['position'][1])
         z = '%.2f' % float(node.params['position'][2])
-        
+
         resolution = 40
         u = np.linspace(0, 2 * np.pi, resolution)
         v = np.linspace(0, np.pi, resolution)
-        
+
         r = 1
 
         x = r * np.outer(np.cos(u), np.sin(v)) + float(x)
@@ -64,32 +64,32 @@ class plot3d (object):
         for node in nodes:
             self.instantiateAnnotate(node)
             self.instantiateNode(node)
-            self.instantiateCircle(node)      
-        self.plotDraw()  
-        
+            self.instantiateCircle(node)
+        self.plotDraw()
+
     @classmethod
     def graphPause(self):
         """Pause"""
         plt.pause(0.001)
-        
+
     @classmethod
     def graphUpdate(self, node):
         """Graph Update"""
-        
+
         node.pltNode.remove()
         node.pltCircle.remove()
         node.plttxt.remove()
-        
+
         self.instantiateCircle(node)
         self.instantiateNode(node)
         self.instantiateAnnotate(node)
-        self.plotDraw()  
-        
+        self.plotDraw()
+
     @classmethod
     def plotDraw(self):
         """plotDraw"""
-        plt.draw()    
-    
+        plt.draw()
+
     @classmethod
     def closePlot(self):
         """Close"""
@@ -97,33 +97,33 @@ class plot3d (object):
             plt.close()
         except:
             pass
-        
+
     @classmethod
     def instantiateCircle(self, node):
         """Instantiate Circle"""
-        
+
         x = '%.2f' % float(node.params['position'][0])
         y = '%.2f' % float(node.params['position'][1])
         z = '%.2f' % float(node.params['position'][2])
-        
+
         color = 'b'
         if node.type == 'station':
             color = 'g'
         elif node.type == 'vehicle':
             color = 'r'
-        
+
         resolution = 100
         u = np.linspace(0, 2 * np.pi, resolution)
         v = np.linspace(0, np.pi, resolution)
-        
+
         r = node.params['range']
-           
+
         x = r * np.outer(np.cos(u), np.sin(v)) + float(x)
         y = r * np.outer(np.sin(u), np.sin(v)) + float(y)
         z = r * np.outer(np.ones(np.size(u)), np.cos(v)) + float(z)
 
         node.pltCircle = self.ax.plot_surface(x, y, z, alpha=0.2, edgecolor='none', color=color)
-        
+
 
 class plot2d (object):
 
@@ -142,7 +142,7 @@ class plot2d (object):
         """draw text"""
         x = '%.2f' % float(node.params['position'][0])
         y = '%.2f' % float(node.params['position'][1])
-        
+
         if hasattr(node.plttxt, 'xyann'): node.plttxt.xyann = (x, y)  # newer MPL versions (>=1.4)
         else: node.plttxt.xytext = (x, y)
 
@@ -151,7 +151,7 @@ class plot2d (object):
         """drawCircle"""
         x = '%.2f' % float(node.params['position'][0])
         y = '%.2f' % float(node.params['position'][1])
-        
+
         node.pltCircle.center = x, y
 
     @classmethod
@@ -159,7 +159,7 @@ class plot2d (object):
         """Graph Update"""
         x = '%.2f' % float(node.params['position'][0])
         y = '%.2f' % float(node.params['position'][1])
-        
+
         if hasattr(node.plttxt, 'xyann'): node.plttxt.xyann = (x, y)  # newer MPL versions (>=1.4)
         else: node.plttxt.xytext = (x, y)
 
@@ -174,34 +174,34 @@ class plot2d (object):
 
     @classmethod
     def plotDraw(self):
-        """plotDraw"""
+        "plotDraw"
         plt.draw()
 
     @classmethod
     def plotScatter(self, nodesx, nodesy):
-        """plotScatter"""
+        "plotScatter"
         return plt.scatter(nodesx, nodesy, color='red', marker='s')
 
     @classmethod
     def plotLine2d(self, nodesx, nodesy, color='', ls='-', lw=1):
-        """plotLine2d"""
+        "plotLine2d"
         return plt.Line2D(nodesx, nodesy, color=color, ls=ls, lw=lw)
 
     @classmethod
     def plotLineTxt(self, x, y, i):
-        """plotLineTxt"""
+        "plotLineTxt"
         title = 'Av.%s' % i
         plt.text(x, y, title, ha='left', va='bottom', fontsize=8, color='g')
 
     @classmethod
     def plotLine(self, line):
-        """plotLine"""
+        "plotLine"
         ax = self.ax
         ax.add_line(line)
 
     @classmethod
     def instantiateGraph(self, MAX_X, MAX_Y, is3d=False):
-        """instantiateGraph"""
+        "instantiateGraph"
         plt.ion()
         plt.title("Mininet-WiFi Graph")
         self.ax = plt.subplot(111)
@@ -210,10 +210,10 @@ class plot2d (object):
         self.ax.set_xlim([0, MAX_X])
         self.ax.set_ylim([0, MAX_Y])
         self.ax.grid(True)
-        
+
     @classmethod
     def instantiateNode(self, node):
-        """instantiateNode"""
+        "instantiateNode"
         ax = self.ax
 
         color = 'b'
@@ -222,11 +222,11 @@ class plot2d (object):
         elif node.type == 'vehicle':
             color = 'r'
 
-        node.pltNode, = ax.plot(1,1,linestyle='', marker='.', ms=10, mfc=color)
+        node.pltNode, = ax.plot(1, 1, linestyle='', marker='.', ms=10, mfc=color)
 
     @classmethod
     def instantiateCircle(self, node):
-        """instantiateCircle"""
+        "instantiateCircle"
         ax = self.ax
 
         color = 'b'
@@ -243,7 +243,7 @@ class plot2d (object):
 
     @classmethod
     def instantiateAnnotate(self, node):
-        """instantiateAnnotate"""
+        "instantiateAnnotate"
         node.plttxt = self.ax.annotate(node, xy=(0, 0))
 
     @classmethod
@@ -259,8 +259,8 @@ class plot2d (object):
 
     @classmethod
     def plotGraph(self, wifiNodes=[], srcConn=[], dstConn=[]):
-        """ Plot Graph """
-        debug('Enabling Graph...\n')           
+        "Plot Graph"
+        debug('Enabling Graph...\n')
         for node in wifiNodes:
             x = '%.2f' % float(node.params['position'][0])
             y = '%.2f' % float(node.params['position'][1])
@@ -268,12 +268,12 @@ class plot2d (object):
             node.pltNode.set_data(x, y)
             self.text(node)
             self.circle(node)
-        
+
         for c in range(0, len(srcConn)):
             src_x = '%.2f' % float(srcConn[c].params['position'][0])
             src_y = '%.2f' % float(srcConn[c].params['position'][1])
             dst_x = '%.2f' % float(dstConn[c].params['position'][0])
             dst_y = '%.2f' % float(dstConn[c].params['position'][1])
             line = self.plotLine2d([src_x, dst_x], \
-                                   [src_y, dst_y], 'b')            
+                                   [src_y, dst_y], 'b')
             self.plotLine(line)

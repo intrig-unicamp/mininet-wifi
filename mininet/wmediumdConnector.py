@@ -264,7 +264,7 @@ class WmediumdStarter(object):
 
         mappedintfrefs = {}
         mappedlinks = {}
-        
+
         if not cls.enable_interference:
             # Map all links using the interface identifier and check for missing interfaces in the  intfrefs list
             for link in cls.links:
@@ -610,7 +610,7 @@ class WmediumdServerConn(object):
     __snr_update_response_fmt = __base_struct_fmt + __snr_update_request_fmt + 'B'
     __snr_update_request_struct = struct.Struct('!' + __snr_update_request_fmt)
     __snr_update_response_struct = struct.Struct('!' + __snr_update_response_fmt)
-    
+
     __position_update_request_fmt = __base_struct_fmt + __mac_struct_fmt + 'f' + 'f'
     __position_update_response_fmt = __base_struct_fmt + __position_update_request_fmt + 'B'
     __position_update_request_struct = struct.Struct('!' + __position_update_request_fmt)
@@ -714,7 +714,7 @@ class WmediumdServerConn(object):
         ret = WmediumdServerConn.send_snr_update(link)
         if ret != WmediumdConstants.WUPDATE_SUCCESS:
             raise WmediumdException("Received error code from wmediumd: code %d" % ret)
-        
+
     @classmethod
     def update_position(cls, position):
         # type: (WmediumdPosition) -> None
@@ -767,7 +767,7 @@ class WmediumdServerConn(object):
         cls.sock.send(cls.__create_snr_update_request(link))
         return cls.__parse_response(WmediumdConstants.WSERVER_SNR_UPDATE_RESPONSE_TYPE,
                                     cls.__snr_update_response_struct)[-1]
-                                    
+
     @classmethod
     def send_position_update(cls, position):
         # type: (WmediumdPosition) -> int
@@ -858,7 +858,7 @@ class WmediumdServerConn(object):
         mac_to = link.sta2intfref.get_intf_mac().replace(':', '').decode('hex')
         snr = link.snr
         return cls.__snr_update_request_struct.pack(msgtype, mac_from, mac_to, snr)
-    
+
     @classmethod
     def __create_position_update_request(cls, position):
         # type: (WmediumdPosition) -> str

@@ -34,7 +34,7 @@ import time
 import os
 import atexit
 
-from mininet.wifiPlot import plot2d, plot3d
+from mininet.wifiNet import mininetWiFi
 from mininet.wifiMobility import mobility
 from mininet.log import info, output, error
 from mininet.term import makeTerms, runX11
@@ -52,39 +52,32 @@ class CLI(Cmd):
            stdin: standard input for CLI
            script: script to run in batch mode"""
 
-        if mobility.isMobility == False and mininet.isWiFi == True:
-            mininet.autoAssociation()
+        stations = mininet.stations
+        accessPoints = mininet.accessPoints
 
-        if mobility.isMobility == False and mobility.DRAW and mininet.alreadyPlotted == False:
-            mininet.checkAPAdhoc()
+        if not mininetWiFi.isMobility and mininetWiFi.isWiFi == True:
+            mininetWiFi.autoAssociation(stations, accessPoints)
+
+        if not mininetWiFi.isMobility and mininetWiFi.DRAW and not mininetWiFi.alreadyPlotted:
+            mininet.stations, mininet.accessPoints = mininetWiFi.checkAPAdhoc(stations, accessPoints)
             
             if mobility.accessPoints == []:
-                mobility.accessPoints = mininet.accessPoints
+                mobility.accessPoints = accessPoints
             if mobility.stations == []: 
-                mobility.stations = mininet.stations
+                mobility.stations = stations
             
             nodes = []
-            nodes = mininet.plotNodes
+            nodes = mininetWiFi.plotNodes
             
-            for ap in mininet.accessPoints:
+            for ap in accessPoints:
                 if 'position' in ap.params:
                     nodes.append(ap)
                     
-            for sta in mininet.stations:
+            for sta in stations:
                 if 'position' in sta.params:
                     nodes.append(sta)
-                    
-            try:
-                if mininet.is3d:
-                    plot3d.instantiateGraph(mininet.MAX_X, mininet.MAX_Y, mininet.MAX_Z)
-                    plot3d.graphInstantiateNodes(nodes)
-                else:
-                    plot2d.instantiateGraph(mininet.MAX_X, mininet.MAX_Y)
-                    plot2d.plotGraph(nodes, mininet.srcConn, mininet.dstConn)
-                    plot2d.graphPause()
-            except:
-                info('Warning: This OS does not support GUI. Running without GUI.\n')
-                mobility.DRAW = False
+                
+            mininetWiFi.checkDimension(nodes)
 
         self.mn = mininet
         # Local variable bindings for py command

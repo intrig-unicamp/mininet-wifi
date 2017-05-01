@@ -18,6 +18,7 @@ class module(object):
     externally_managed = False
     devices_created_dynamically = False
     phyID = 0
+    useWmediumd = False
 
     @classmethod
     def loadModule(self, wifiRadios, alternativeModule=''):
@@ -32,13 +33,13 @@ class module(object):
                 output_ = os.system('modprobe mac80211_hwsim radios=0 >/dev/null 2>&1')
             else:
                 output_ = os.system('insmod %s radios=0 >/dev/null 2>&1' % alternativeModule)
-            
+
             """output_ is different of zero in Kernel 3.13.x. radios=0 doesn't work in such kernel version"""
             if output_ == 0:
                 self.__create_hwsim_mgmt_devices(wifiRadios)
             else:
                 if wifiRadios == 0:
-                    wifiRadios = 1 #Useful for tests in Kernels like Kernel 3.13.x
+                    wifiRadios = 1  # Useful for tests in Kernels like Kernel 3.13.x
                 if alternativeModule == '':
                     os.system('modprobe mac80211_hwsim radios=%s' % wifiRadios)
                 else:
@@ -119,15 +120,15 @@ class module(object):
             os.system('rmmod ifb')
         except:
             pass
-        
+
         try:
             h = subprocess.check_output("ps -aux | grep -ic \'hostapd\'",
                                                           shell=True)
             if h >= 2:
                 os.system('pkill -f \'hostapd -B mn%d\'' % os.getpid())
         except:
-            pass 
-            
+            pass
+
         try:
             confnames = "mn%d_" % os.getpid()
             os.system('pkill -f \'wpa_supplicant -B -Dnl80211 -c%s\'' % confnames)
@@ -140,7 +141,7 @@ class module(object):
         except:
             pass
 
-        if not self.externally_managed:
+        if not self.externally_managed and self.useWmediumd:
             try:
                 info("*** Killing wmediumd\n")
                 os.system('pkill wmediumd')
@@ -164,7 +165,8 @@ class module(object):
                 os.system('pkill -f \'hostapd\'')
         except:
             pass
-        
+        self.useWmediumd = params['useWmediumd']
+
         physicalWlans = self.getPhysicalWlan()  # Gets Physical Wlan(s)
         self.loadModule(wifiRadios, alternativeModule)  # Initatilize WiFi Module
         phys = self.getPhy()  # Get Phy Interfaces
@@ -192,7 +194,7 @@ class module(object):
         phy.pop()
         phy.sort(key=len, reverse=False)
         return phy
-    
+
     @classmethod
     def loadIFB(self, wlans):
         """ Loads IFB
@@ -201,7 +203,7 @@ class module(object):
         """
         debug('\nLoading IFB: modprobe ifb numifbs=%s' % wlans)
         os.system('modprobe ifb numifbs=%s' % wlans)
-    
+
     @classmethod
     def assignIface(self, nodes, physicalWlans, phys, **params):
         """Assign virtual interfaces for all nodes
@@ -211,10 +213,10 @@ class module(object):
         :param phys: list of phys
         :param **params: ifb -  Intermediate Functional Block device
         """
-        
+
         log_filename = '/tmp/mininetwifi-mac80211_hwsim.log'
         self.logging_to_file("%s" % log_filename)
-        
+
         if 'ifb' in params:
             ifb = params['ifb']
         else:
@@ -225,11 +227,11 @@ class module(object):
                 self.loadIFB(len(self.wlan_list))
                 ifbID = 0
             for node in nodes:
-                if (node.type == 'station' or node.type == 'vehicle') or 'inNamespace' in node.params:    
-                    node.ifb = []            
+                if (node.type == 'station' or node.type == 'vehicle') or 'inNamespace' in node.params:
+                    node.ifb = []
                     for wlan in range(0, len(node.params['wlan'])):
                         node.phyID[wlan] = self.phyID
-                        self.phyID+=1
+                        self.phyID += 1
                         os.system('iw phy %s set netns %s' % (phys[0], node.pid))
                         node.cmd('ip link set %s down' % self.wlan_list[0])
                         node.cmd('ip link set %s name %s up' % (self.wlan_list[0], node.params['wlan'][wlan]))
@@ -243,14 +245,14 @@ class module(object):
             info("Warning! Error when loading mac80211_hwsim. Please run sudo 'mn -c' before running your code.\n")
             info("Further information available at %s.\n" % log_filename)
             exit(1)
-        
-            
+
+
     @classmethod
     def logging_to_file(self, filename):
-        logging.basicConfig( filename=filename,
+        logging.basicConfig(filename=filename,
                              filemode='a',
                              level=logging.DEBUG,
-                             format= '%(asctime)s - %(levelname)s - %(message)s',
+                             format='%(asctime)s - %(levelname)s - %(message)s',
                            )
 
     @classmethod
