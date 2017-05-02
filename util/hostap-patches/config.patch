@@ -35,19 +35,6 @@ index 521d877..a8c491e 100644
  
  # Wireless Network Management (IEEE Std 802.11v-2011)
  # Note: This is experimental and not complete implementation.
-diff --git tests/hwsim/test_p2p_service.py tests/hwsim/test_p2p_service.py
-index 5da1bca..3056d0f 100644
---- tests/hwsim/test_p2p_service.py
-+++ tests/hwsim/test_p2p_service.py
-@@ -478,7 +478,7 @@ def test_p2p_service_discovery_peer_not_listening(dev):
-     add_bonjour_services(dev[0])
-     add_upnp_services(dev[0])
-     dev[0].p2p_listen()
--    dev[1].global_request("P2P_FIND 1 type=social")
-+    dev[1].global_request("P2P_FIND 4 type=social")
-     ev = dev[1].wait_global_event(["P2P-DEVICE-FOUND"], timeout=4)
-     if ev is None:
-         raise Exception("Peer not found")
 diff --git wpa_supplicant/defconfig wpa_supplicant/defconfig
 index 307f82d..7445d94 100644
 --- wpa_supplicant/defconfig
