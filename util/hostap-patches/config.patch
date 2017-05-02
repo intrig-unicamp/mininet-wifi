@@ -1,4 +1,3 @@
-
 diff --git hostapd/defconfig hostapd/defconfig
 index 9ade580..be7f888 100644
 --- hostapd/defconfig
