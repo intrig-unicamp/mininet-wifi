@@ -1,5 +1,5 @@
 diff --git hostapd/defconfig hostapd/defconfig
-index 9ade580..be7f888 100644
+index 521d877..a8c491e 100644
 --- hostapd/defconfig
 +++ hostapd/defconfig
 @@ -31,7 +31,7 @@ CONFIG_DRIVER_NL80211=y
@@ -11,7 +11,22 @@ index 9ade580..be7f888 100644
  
  
  # Driver interface for FreeBSD net80211 layer (e.g., Atheros driver)
-@@ -148,7 +148,7 @@ CONFIG_IPV6=y
+@@ -135,20 +135,20 @@ CONFIG_PKCS12=y
+ 
+ # RADIUS authentication server. This provides access to the integrated EAP
+ # server from external hosts using RADIUS.
+-#CONFIG_RADIUS_SERVER=y
++CONFIG_RADIUS_SERVER=y
+ 
+ # Build IPv6 support for RADIUS operations
+ CONFIG_IPV6=y
+ 
+ # IEEE Std 802.11r-2008 (Fast BSS Transition)
+-#CONFIG_IEEE80211R=y
++CONFIG_IEEE80211R=y
+ 
+ # Use the hostapd's IEEE 802.11 authentication (ACL), but without
+ # the IEEE 802.11 Management capability (e.g., FreeBSD/net80211)
  #CONFIG_DRIVER_RADIUS_ACL=y
  
  # IEEE 802.11n (High Throughput) support
@@ -21,7 +36,7 @@ index 9ade580..be7f888 100644
  # Wireless Network Management (IEEE Std 802.11v-2011)
  # Note: This is experimental and not complete implementation.
 diff --git wpa_supplicant/defconfig wpa_supplicant/defconfig
-index 1e37e27..0f18713 100644
+index 307f82d..7445d94 100644
 --- wpa_supplicant/defconfig
 +++ wpa_supplicant/defconfig
 @@ -44,7 +44,7 @@ CONFIG_DRIVER_NL80211=y
@@ -33,7 +48,7 @@ index 1e37e27..0f18713 100644
  
  
  # Driver interface for FreeBSD net80211 layer (e.g., Atheros driver)
-@@ -487,7 +487,7 @@ CONFIG_PEERKEY=y
+@@ -488,7 +488,7 @@ CONFIG_PEERKEY=y
  # P2P (Wi-Fi Direct)
  # This can be used to enable P2P support in wpa_supplicant. See README-P2P for
  # more information on P2P operations.
