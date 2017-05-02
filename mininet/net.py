@@ -280,8 +280,7 @@ class Mininet(object):
                                   ipBaseNum=self.ipBaseNum,
                                   prefixLen=self.prefixLen) +
                                   '/%s' % self.prefixLen,
-                     'channel': self.channel,
-                     'mode': self.mode}
+                                  }
 
         if self.autoSetMacs:
             defaults[ 'mac' ] = macColonHex(self.nextIP)
@@ -290,6 +289,9 @@ class Mininet(object):
             self.nextCore = (self.nextCore + 1) % self.numCores
         self.nextIP += 1
         defaults.update(params)
+
+        params = {'channel': self.channel,
+                     'mode': self.mode}
 
         if not cls:
             cls = self.station
@@ -398,8 +400,6 @@ class Mininet(object):
            side effect: increments listenPort ivar ."""
         defaults = { 'listenPort': self.listenPort,
                      'inNamespace': self.inNamespace,
-                     'channel': self.channel,
-                     'mode': self.mode,
                      'ssid': self.ssid
                      }
 
@@ -408,6 +408,9 @@ class Mininet(object):
         if not cls:
             cls = self.accessPoint
         ap = cls(name, **defaults)
+
+        params = {'channel': self.channel,
+                     'mode': self.mode}
 
         if not self.inNamespace and self.listenPort:
             self.listenPort += 1
