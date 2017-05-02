@@ -48,6 +48,29 @@ index 307f82d..7445d94 100644
  
  
  # Driver interface for FreeBSD net80211 layer (e.g., Atheros driver)
+@@ -372,11 +372,11 @@ CONFIG_PEERKEY=y
+ #CONFIG_DYNAMIC_EAP_METHODS=y
+ 
+ # IEEE Std 802.11r-2008 (Fast BSS Transition) for station mode
+-#CONFIG_IEEE80211R=y
++CONFIG_IEEE80211R=y
+ 
+ # IEEE Std 802.11r-2008 (Fast BSS Transition) for AP mode (implies
+ # CONFIG_IEEE80211R).
+-#CONFIG_IEEE80211R_AP=y
++CONFIG_IEEE80211R_AP=y
+ 
+ # Add support for writing debug log to a file (/tmp/wpa_supplicant-log-#.txt)
+ #CONFIG_DEBUG_FILE=y
+@@ -453,7 +453,7 @@ CONFIG_PEERKEY=y
+ #CONFIG_NO_RANDOM_POOL=y
+ 
+ # IEEE 802.11n (High Throughput) support (mainly for AP mode)
+-#CONFIG_IEEE80211N=y
++CONFIG_IEEE80211N=y
+ 
+ # IEEE 802.11ac (Very High Throughput) support (mainly for AP mode)
+ # (depends on CONFIG_IEEE80211N)
 @@ -488,7 +488,7 @@ CONFIG_PEERKEY=y
  # P2P (Wi-Fi Direct)
  # This can be used to enable P2P support in wpa_supplicant. See README-P2P for
