@@ -1,0 +1,85 @@
+diff --git hostapd/defconfig hostapd/defconfig
+index 521d877..a8c491e 100644
+--- hostapd/defconfig
++++ hostapd/defconfig
+@@ -31,7 +31,7 @@ CONFIG_DRIVER_NL80211=y
+ #CONFIG_LIBNL20=y
+ 
+ # Use libnl 3.2 libraries (if this is selected, CONFIG_LIBNL20 is ignored)
+-#CONFIG_LIBNL32=y
++CONFIG_LIBNL32=y
+ 
+ 
+ # Driver interface for FreeBSD net80211 layer (e.g., Atheros driver)
+@@ -135,20 +135,20 @@ CONFIG_PKCS12=y
+ 
+ # RADIUS authentication server. This provides access to the integrated EAP
+ # server from external hosts using RADIUS.
+-#CONFIG_RADIUS_SERVER=y
++CONFIG_RADIUS_SERVER=y
+ 
+ # Build IPv6 support for RADIUS operations
+ CONFIG_IPV6=y
+ 
+ # IEEE Std 802.11r-2008 (Fast BSS Transition)
+-#CONFIG_IEEE80211R=y
++CONFIG_IEEE80211R=y
+ 
+ # Use the hostapd's IEEE 802.11 authentication (ACL), but without
+ # the IEEE 802.11 Management capability (e.g., FreeBSD/net80211)
+ #CONFIG_DRIVER_RADIUS_ACL=y
+ 
+ # IEEE 802.11n (High Throughput) support
+-#CONFIG_IEEE80211N=y
++CONFIG_IEEE80211N=y
+ 
+ # Wireless Network Management (IEEE Std 802.11v-2011)
+ # Note: This is experimental and not complete implementation.
+diff --git tests/hwsim/test_p2p_service.py tests/hwsim/test_p2p_service.py
+index 5da1bca..3056d0f 100644
+--- tests/hwsim/test_p2p_service.py
++++ tests/hwsim/test_p2p_service.py
+@@ -478,7 +478,7 @@ def test_p2p_service_discovery_peer_not_listening(dev):
+     add_bonjour_services(dev[0])
+     add_upnp_services(dev[0])
+     dev[0].p2p_listen()
+-    dev[1].global_request("P2P_FIND 1 type=social")
++    dev[1].global_request("P2P_FIND 4 type=social")
+     ev = dev[1].wait_global_event(["P2P-DEVICE-FOUND"], timeout=4)
+     if ev is None:
+         raise Exception("Peer not found")
+diff --git wpa_supplicant/defconfig wpa_supplicant/defconfig
+index 307f82d..7445d94 100644
+--- wpa_supplicant/defconfig
++++ wpa_supplicant/defconfig
+@@ -44,7 +44,7 @@ CONFIG_DRIVER_NL80211=y
+ #CONFIG_LIBNL20=y
+ 
+ # Use libnl 3.2 libraries (if this is selected, CONFIG_LIBNL20 is ignored)
+-#CONFIG_LIBNL32=y
++CONFIG_LIBNL32=y
+ 
+ 
+ # Driver interface for FreeBSD net80211 layer (e.g., Atheros driver)
+@@ -488,7 +488,7 @@ CONFIG_PEERKEY=y
+ # P2P (Wi-Fi Direct)
+ # This can be used to enable P2P support in wpa_supplicant. See README-P2P for
+ # more information on P2P operations.
+-#CONFIG_P2P=y
++CONFIG_P2P=y
+ 
+ # Enable TDLS support
+ #CONFIG_TDLS=y
+diff --git wpa_supplicant/p2p_supplicant.c wpa_supplicant/p2p_supplicant.c
+index 73bed57..cadd748 100644
+--- wpa_supplicant/p2p_supplicant.c
++++ wpa_supplicant/p2p_supplicant.c
+@@ -96,7 +96,7 @@
+ #define P2P_MAX_INITIAL_CONN_WAIT_GO_REINVOKE 15
+ #endif /* P2P_MAX_INITIAL_CONN_WAIT_GO_REINVOKE */
+ 
+-#define P2P_MGMT_DEVICE_PREFIX		"p2p-dev-"
++#define P2P_MGMT_DEVICE_PREFIX		"p2p-"
+ 
+ /*
+  * How many seconds to wait to re-attempt to move GOs, in case previous attempt
