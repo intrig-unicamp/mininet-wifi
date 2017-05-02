@@ -1207,6 +1207,10 @@ class AccessPoint(AP):
         else:
             cmd = cmd + ("\nssid=%s" % ap.params['ssid'][0])  # ssid name
 
+        if 'ieee80211r' in ap.params:
+            if 'mobility_domain' in ap.params:
+                cmd = cmd + ("\nmobility_domain=%s" % ap.params['mobility_domain'])  # support to 802.11r
+
         if ap.params['mode'][0] == 'n' or ap.params['mode'][0] == 'ac':
             cmd = cmd + ("\nhw_mode=g")
         elif ap.params['mode'][0] == 'a':
