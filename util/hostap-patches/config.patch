@@ -1,7 +1,7 @@
-diff --git a/hostapd/defconfig b/hostapd/defconfig
+diff --git hostapd/defconfig b/hostapd/defconfig
 index 521d877..7367f23 100644
---- a/hostapd/defconfig
-+++ b/hostapd/defconfig
+--- hostapd/defconfig
++++ hostapd/defconfig
 @@ -31,7 +31,7 @@ CONFIG_DRIVER_NL80211=y
  #CONFIG_LIBNL20=y
  
@@ -68,10 +68,10 @@ index 521d877..7367f23 100644
  
  # Opportunistic Wireless Encryption (OWE)
  # Experimental implementation of draft-harkins-owe-07.txt
-diff --git a/wpa_supplicant/defconfig b/wpa_supplicant/defconfig
+diff --git wpa_supplicant/defconfig b/wpa_supplicant/defconfig
 index 307f82d..7445d94 100644
---- a/wpa_supplicant/defconfig
-+++ b/wpa_supplicant/defconfig
+--- wpa_supplicant/defconfig
++++ wpa_supplicant/defconfig
 @@ -44,7 +44,7 @@ CONFIG_DRIVER_NL80211=y
  #CONFIG_LIBNL20=y
  
@@ -90,10 +90,10 @@ index 307f82d..7445d94 100644
  
  # Enable TDLS support
  #CONFIG_TDLS=y
-diff --git a/wpa_supplicant/p2p_supplicant.c b/wpa_supplicant/p2p_supplicant.c
+diff --git wpa_supplicant/p2p_supplicant.c b/wpa_supplicant/p2p_supplicant.c
 index 73bed57..cadd748 100644
---- a/wpa_supplicant/p2p_supplicant.c
-+++ b/wpa_supplicant/p2p_supplicant.c
+--- wpa_supplicant/p2p_supplicant.c
++++ wpa_supplicant/p2p_supplicant.c
 @@ -96,7 +96,7 @@
  #define P2P_MAX_INITIAL_CONN_WAIT_GO_REINVOKE 15
  #endif /* P2P_MAX_INITIAL_CONN_WAIT_GO_REINVOKE */
