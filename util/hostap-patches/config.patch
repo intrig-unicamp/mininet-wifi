@@ -1,5 +1,5 @@
 diff --git hostapd/defconfig hostapd/defconfig
-index 521d877..7367f23 100644
+index 521d877..0387cd4 100644
 --- hostapd/defconfig
 +++ hostapd/defconfig
 @@ -31,7 +31,7 @@ CONFIG_DRIVER_NL80211=y
@@ -11,16 +11,7 @@ index 521d877..7367f23 100644
  
  
  # Driver interface for FreeBSD net80211 layer (e.g., Atheros driver)
-@@ -114,7 +114,7 @@ CONFIG_EAP_TTLS=y
- #CONFIG_EAP_FAST=y
- 
- # Wi-Fi Protected Setup (WPS)
--#CONFIG_WPS=y
-+CONFIG_WPS=y
- # Enable UPnP support for external WPS Registrars
- #CONFIG_WPS_UPNP=y
- # Enable WPS support with NFC config method
-@@ -135,33 +135,33 @@ CONFIG_PKCS12=y
+@@ -135,27 +135,27 @@ CONFIG_PKCS12=y
  
  # RADIUS authentication server. This provides access to the integrated EAP
  # server from external hosts using RADIUS.
@@ -52,13 +43,6 @@ index 521d877..7367f23 100644
  
  # IEEE 802.11ax HE support
  # Note: This is experimental and work in progress. The definitions are still
- # subject to change and this should not be expected to interoperate with the
- # final IEEE 802.11ax version.
--#CONFIG_IEEE80211AX=y
-+CONFIG_IEEE80211AX=y
- 
- # Remove debugging code that is printing out debug messages to stdout.
- # This can be used to reduce the size of the hostapd considerably if debugging
 @@ -363,7 +363,7 @@ CONFIG_IPV6=y
  
  # Include internal line edit mode in hostapd_cli. This can be used to provide
