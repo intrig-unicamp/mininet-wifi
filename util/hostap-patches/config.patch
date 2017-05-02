@@ -1,5 +1,5 @@
 diff --git hostapd/defconfig hostapd/defconfig
-index 521d877..a8c491e 100644
+index 521d877..4adcd6b 100644
 --- hostapd/defconfig
 +++ hostapd/defconfig
 @@ -31,7 +31,7 @@ CONFIG_DRIVER_NL80211=y
@@ -11,7 +11,22 @@ index 521d877..a8c491e 100644
  
  
  # Driver interface for FreeBSD net80211 layer (e.g., Atheros driver)
-@@ -135,20 +135,20 @@ CONFIG_PKCS12=y
+@@ -114,11 +114,11 @@ CONFIG_EAP_TTLS=y
+ #CONFIG_EAP_FAST=y
+ 
+ # Wi-Fi Protected Setup (WPS)
+-#CONFIG_WPS=y
++CONFIG_WPS=y
+ # Enable UPnP support for external WPS Registrars
+-#CONFIG_WPS_UPNP=y
++CONFIG_WPS_UPNP=y
+ # Enable WPS support with NFC config method
+-#CONFIG_WPS_NFC=y
++CONFIG_WPS_NFC=y
+ 
+ # EAP-IKEv2
+ #CONFIG_EAP_IKEV2=y
+@@ -135,27 +135,27 @@ CONFIG_PKCS12=y
  
  # RADIUS authentication server. This provides access to the integrated EAP
  # server from external hosts using RADIUS.
@@ -35,8 +50,25 @@ index 521d877..a8c491e 100644
  
  # Wireless Network Management (IEEE Std 802.11v-2011)
  # Note: This is experimental and not complete implementation.
+ #CONFIG_WNM=y
+ 
+ # IEEE 802.11ac (Very High Throughput) support
+-#CONFIG_IEEE80211AC=y
++CONFIG_IEEE80211AC=y
+ 
+ # IEEE 802.11ax HE support
+ # Note: This is experimental and work in progress. The definitions are still
+@@ -363,7 +363,7 @@ CONFIG_IPV6=y
+ 
+ # Include internal line edit mode in hostapd_cli. This can be used to provide
+ # limited command line editing and history support.
+-#CONFIG_WPA_CLI_EDIT=y
++CONFIG_WPA_CLI_EDIT=y
+ 
+ # Opportunistic Wireless Encryption (OWE)
+ # Experimental implementation of draft-harkins-owe-07.txt
 diff --git wpa_supplicant/defconfig wpa_supplicant/defconfig
-index 307f82d..7445d94 100644
+index 307f82d..5948d73 100644
 --- wpa_supplicant/defconfig
 +++ wpa_supplicant/defconfig
 @@ -44,7 +44,7 @@ CONFIG_DRIVER_NL80211=y
@@ -48,6 +80,62 @@ index 307f82d..7445d94 100644
  
  
  # Driver interface for FreeBSD net80211 layer (e.g., Atheros driver)
+@@ -151,14 +151,14 @@ CONFIG_EAP_LEAP=y
+ #CONFIG_EAP_TNC=y
+ 
+ # Wi-Fi Protected Setup (WPS)
+-#CONFIG_WPS=y
++CONFIG_WPS=y
+ # Enable WPS external registrar functionality
+-#CONFIG_WPS_ER=y
++CONFIG_WPS_ER=y
+ # Disable credentials for an open network by default when acting as a WPS
+ # registrar.
+-#CONFIG_WPS_REG_DISABLE_OPEN=y
++CONFIG_WPS_REG_DISABLE_OPEN=y
+ # Enable WPS support with NFC config method
+-#CONFIG_WPS_NFC=y
++CONFIG_WPS_NFC=y
+ 
+ # EAP-IKEv2
+ #CONFIG_EAP_IKEV2=y
+@@ -207,7 +207,7 @@ CONFIG_CTRL_IFACE=y
+ 
+ # Include internal line edit mode in wpa_cli. This can be used as a replacement
+ # for GNU Readline to provide limited command line editing and history support.
+-#CONFIG_WPA_CLI_EDIT=y
++CONFIG_WPA_CLI_EDIT=y
+ 
+ # Remove debugging code that is printing out debug message to stdout.
+ # This can be used to reduce the size of the wpa_supplicant considerably
+@@ -372,11 +372,11 @@ CONFIG_PEERKEY=y
+ #CONFIG_DYNAMIC_EAP_METHODS=y
+ 
+ # IEEE Std 802.11r-2008 (Fast BSS Transition) for station mode
+-#CONFIG_IEEE80211R=y
++CONFIG_IEEE80211R=y
+ 
+ # IEEE Std 802.11r-2008 (Fast BSS Transition) for AP mode (implies
+ # CONFIG_IEEE80211R).
+-#CONFIG_IEEE80211R_AP=y
++CONFIG_IEEE80211R_AP=y
+ 
+ # Add support for writing debug log to a file (/tmp/wpa_supplicant-log-#.txt)
+ #CONFIG_DEBUG_FILE=y
+@@ -453,11 +453,11 @@ CONFIG_PEERKEY=y
+ #CONFIG_NO_RANDOM_POOL=y
+ 
+ # IEEE 802.11n (High Throughput) support (mainly for AP mode)
+-#CONFIG_IEEE80211N=y
++CONFIG_IEEE80211N=y
+ 
+ # IEEE 802.11ac (Very High Throughput) support (mainly for AP mode)
+ # (depends on CONFIG_IEEE80211N)
+-#CONFIG_IEEE80211AC=y
++CONFIG_IEEE80211AC=y
+ 
+ # Wireless Network Management (IEEE Std 802.11v-2011)
+ # Note: This is experimental and not complete implementation.
 @@ -488,7 +488,7 @@ CONFIG_PEERKEY=y
  # P2P (Wi-Fi Direct)
  # This can be used to enable P2P support in wpa_supplicant. See README-P2P for
