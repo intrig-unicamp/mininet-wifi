@@ -246,7 +246,6 @@ class module(object):
             info("Further information available at %s.\n" % log_filename)
             exit(1)
 
-
     @classmethod
     def logging_to_file(self, filename):
         logging.basicConfig(filename=filename,
