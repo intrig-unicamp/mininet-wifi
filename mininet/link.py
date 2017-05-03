@@ -90,8 +90,8 @@ class Intf(object):
         """Set the MAC address for an interface.
            macstr: MAC address as string"""
         self.mac = macstr
-        return (self.ifconfig('down') + 
-                 self.ifconfig('hw', 'ether', macstr) + 
+        return (self.ifconfig('down') +
+                 self.ifconfig('hw', 'ether', macstr) +
                  self.ifconfig('up'))
 
     _ipMatchRegex = re.compile(r'\d+\.\d+\.\d+\.\d+')
@@ -196,7 +196,7 @@ class Intf(object):
         self.setParam(r, 'setIP', ip=ip)
         self.setParam(r, 'isUp', up=up)
         self.setParam(r, 'ifconfig', ifconfig=ifconfig)
-        
+
         return r
 
     def delete(self):
@@ -222,7 +222,7 @@ class Intf(object):
 
     def __str__(self):
         return self.name
-    
+
 class IntfWireless(object):
 
     "Basic interface object that can configure itself."
@@ -282,8 +282,8 @@ class IntfWireless(object):
         """Set the MAC address for an interface.
            macstr: MAC address as string"""
         self.mac = macstr
-        return (self.ifconfig('down') + 
-                 self.ifconfig('hw', 'ether', macstr) + 
+        return (self.ifconfig('down') +
+                 self.ifconfig('hw', 'ether', macstr) +
                  self.ifconfig('up'))
 
     _ipMatchRegex = re.compile(r'\d+\.\d+\.\d+\.\d+')
@@ -388,7 +388,7 @@ class IntfWireless(object):
         self.setParam(r, 'setIP', ip=ip)
         self.setParam(r, 'isUp', up=up)
         self.setParam(r, 'ifconfig', ifconfig=ifconfig)
-        
+
         return r
 
     def delete(self):
@@ -423,7 +423,7 @@ class TCIntfWireless(IntfWireless):
     # The parameters we use seem to work reasonably up to 1 Gb/sec
     # For higher data rates, we will probably need to change them.
     bwParamMax = 1000
-    
+
     def bwCmds(self, bw=None, speedup=0, use_hfsc=False, use_tbf=False,
                 latency_ms=None, enable_ecn=False, enable_red=False):
         "Return tc commands to set bandwidth"
@@ -443,33 +443,33 @@ class TCIntfWireless(IntfWireless):
                 cmds += [ '%s qdisc add dev %s root handle 5:0 hfsc default 1',
                           '%s class add dev %s parent 5:0 classid 5:1 hfsc sc '
                           + 'rate %fMbit ul rate %fMbit' % (bw, bw) ]
-            elif use_tbf:                
+            elif use_tbf:
                 if latency_ms is None:
                     latency_ms = 15 * 8 / bw
-                cmds += [ '%s qdisc add dev %s root handle 5: tbf ' + 
-                          'rate %fMbit burst 15000 latency %fms' % 
+                cmds += [ '%s qdisc add dev %s root handle 5: tbf ' +
+                          'rate %fMbit burst 15000 latency %fms' %
                           (bw, latency_ms) ]
             else:
                 cmds += [ '%s qdisc add dev %s root handle 5:0 htb default 1',
-                          '%s class add dev %s parent 5:0 classid 5:1 htb ' + 
+                          '%s class add dev %s parent 5:0 classid 5:1 htb ' +
                           'rate %fMbit burst 15k' % bw ]
             parent = ' parent 5:1 '
             # ECN or RED
             if enable_ecn:
-                cmds += [ '%s qdisc add dev %s' + parent + 
-                          'handle 6: red limit 1000000 ' + 
-                          'min 30000 max 35000 avpkt 1500 ' + 
-                          'burst 20 ' + 
+                cmds += [ '%s qdisc add dev %s' + parent +
+                          'handle 6: red limit 1000000 ' +
+                          'min 30000 max 35000 avpkt 1500 ' +
+                          'burst 20 ' +
                           'bandwidth %fmbit probability 1 ecn' % bw ]
                 parent = ' parent 6: '
             elif enable_red:
-                cmds += [ '%s qdisc add dev %s' + parent + 
-                          'handle 6: red limit 1000000 ' + 
-                          'min 30000 max 35000 avpkt 1500 ' + 
-                          'burst 20 ' + 
+                cmds += [ '%s qdisc add dev %s' + parent +
+                          'handle 6: red limit 1000000 ' +
+                          'min 30000 max 35000 avpkt 1500 ' +
+                          'burst 20 ' +
                           'bandwidth %fmbit probability 1' % bw ]
                 parent = ' parent 6: '
-                
+
         return cmds, parent
 
     @staticmethod
@@ -492,8 +492,8 @@ class TCIntfWireless(IntfWireless):
                 'limit %d' % max_queue_size if max_queue_size is not None
                 else '')
             if netemargs:
-                cmds = [ '%s qdisc add dev %s ' + parent + 
-                         ' handle 10: netem ' + 
+                cmds = [ '%s qdisc add dev %s ' + parent +
+                         ' handle 10: netem ' +
                          netemargs ]
                 parent = ' parent 10:1 '
         return cmds, parent
@@ -524,16 +524,16 @@ class TCIntfWireless(IntfWireless):
             enable_ecn: enable ECN (False)
             enable_red: enable RED (False)
             max_queue_size: queue limit parameter for netem"""
-        
+
         # Support old names for parameters
         gro = not params.pop('disable_gro', not gro)
-        
+
         result = IntfWireless.config(self, **params)
 
         def on(isOn):
             "Helper method: bool -> 'on'/'off'"
             return 'on' if isOn else 'off'
- 
+
         # Set offload parameters with ethool
         self.cmd('ethtool -K', self,
                   'gro', on(gro),
@@ -568,7 +568,7 @@ class TCIntfWireless(IntfWireless):
                                             max_queue_size=max_queue_size,
                                             parent=parent)
         cmds += delaycmds
-       
+
         # Execute all the commands in our node
         debug("at map stage w/cmds: %s\n" % cmds)
         tcoutputs = [ self.tc(cmd) for cmd in cmds ]
@@ -579,7 +579,7 @@ class TCIntfWireless(IntfWireless):
         debug("outputs:", tcoutputs, '\n')
         result[ 'tcoutputs'] = tcoutputs
         result[ 'parent' ] = parent
-        
+
         return result
 
 
@@ -611,30 +611,30 @@ class TCIntf(Intf):
                 cmds += [ '%s qdisc add dev %s root handle 5:0 hfsc default 1',
                           '%s class add dev %s parent 5:0 classid 5:1 hfsc sc '
                           + 'rate %fMbit ul rate %fMbit' % (bw, bw) ]
-            elif use_tbf:                
+            elif use_tbf:
                 if latency_ms is None:
                     latency_ms = 15 * 8 / bw
-                cmds += [ '%s qdisc add dev %s root handle 5: tbf ' + 
-                          'rate %fMbit burst 15000 latency %fms' % 
+                cmds += [ '%s qdisc add dev %s root handle 5: tbf ' +
+                          'rate %fMbit burst 15000 latency %fms' %
                           (bw, latency_ms) ]
             else:
                 cmds += [ '%s qdisc add dev %s root handle 5:0 htb default 1',
-                          '%s class add dev %s parent 5:0 classid 5:1 htb ' + 
+                          '%s class add dev %s parent 5:0 classid 5:1 htb ' +
                           'rate %fMbit burst 15k' % bw ]
             parent = ' parent 5:1 '
             # ECN or RED
             if enable_ecn:
-                cmds += [ '%s qdisc add dev %s' + parent + 
-                          'handle 6: red limit 1000000 ' + 
-                          'min 30000 max 35000 avpkt 1500 ' + 
-                          'burst 20 ' + 
+                cmds += [ '%s qdisc add dev %s' + parent +
+                          'handle 6: red limit 1000000 ' +
+                          'min 30000 max 35000 avpkt 1500 ' +
+                          'burst 20 ' +
                           'bandwidth %fmbit probability 1 ecn' % bw ]
                 parent = ' parent 6: '
             elif enable_red:
-                cmds += [ '%s qdisc add dev %s' + parent + 
-                          'handle 6: red limit 1000000 ' + 
-                          'min 30000 max 35000 avpkt 1500 ' + 
-                          'burst 20 ' + 
+                cmds += [ '%s qdisc add dev %s' + parent +
+                          'handle 6: red limit 1000000 ' +
+                          'min 30000 max 35000 avpkt 1500 ' +
+                          'burst 20 ' +
                           'bandwidth %fmbit probability 1' % bw ]
                 parent = ' parent 6: '
 
@@ -660,8 +660,8 @@ class TCIntf(Intf):
                 'limit %d' % max_queue_size if max_queue_size is not None
                 else '')
             if netemargs:
-                cmds = [ '%s qdisc add dev %s ' + parent + 
-                         ' handle 10: netem ' + 
+                cmds = [ '%s qdisc add dev %s ' + parent +
+                         ' handle 10: netem ' +
                          netemargs ]
                 parent = ' parent 10:1 '
         return cmds, parent
@@ -712,16 +712,16 @@ class TCIntf(Intf):
         cmds += delaycmds
 
         # Ugly but functional: display configuration info
-        stuff = (([ '%.2fMbit' % bw ] if bw is not None else []) + 
-                  ([ '%s delay' % delay ] if delay is not None else []) + 
-                  ([ '%s jitter' % jitter ] if jitter is not None else []) + 
-                  (['%5f%% loss' % loss ] if loss is not None else []) + 
+        stuff = (([ '%.2fMbit' % bw ] if bw is not None else []) +
+                  ([ '%s delay' % delay ] if delay is not None else []) +
+                  ([ '%s jitter' % jitter ] if jitter is not None else []) +
+                  (['%5f%% loss' % loss ] if loss is not None else []) +
                   ([ 'ECN' ] if enable_ecn else [ 'RED' ]
                     if enable_red else []))
 
         # Print bw info
         info('(' + ' '.join(stuff) + ') ')
-        
+
         # Execute all the commands in our node
         debug("at map stage w/cmds: %s\n" % cmds)
         tcoutputs = [ self.tc(cmd) for cmd in cmds ]
@@ -732,9 +732,9 @@ class TCIntf(Intf):
         debug("outputs:", tcoutputs, '\n')
         result[ 'tcoutputs'] = tcoutputs
         result[ 'parent' ] = parent
-        
+
         return result
-    
+
 class WDSLink(object):
 
     # pylint: disable=too-many-branches
@@ -744,44 +744,44 @@ class WDSLink(object):
            node2: second node
            intf: default interface class/constructor
            """
- 
+
         self.createWDSIface(node1)
         self.createWDSIface(node2)
         self.setWDSPeer(node1, node2)
         self.bringWDSIfaceUP(node1)
         self.bringWDSIfaceUP(node2)
-       
+
         params1 = {}
         params2 = {}
 
         params1[ 'port' ] = node1.newPort()
         params2[ 'port' ] = node2.newPort()
-        
+
         cls = intf
-        
+
         intfName1 = '%s-wds' % node1.name
         intfName2 = '%s-wds' % node2.name
 
         node1.setBw(node1, 0, intfName1)
         node2.setBw(node2, 0, intfName2)
-        
+
         intf1 = cls(name=intfName1, node=node1,
                               link=self, **params1)
         intf2 = cls(name=intfName2, node=node2,
                               link=self, **params2)
         # All we are is dust in the wind, and our two interfaces
         self.intf1, self.intf2 = intf1, intf2
-    
+
     def bringWDSIfaceUP(self, node):
         node.cmd('ifconfig %s-wds up' % node.name)
-    
+
     def setWDSPeer(self, node1, node2):
         node1.cmd('iw dev %s-wds set peer %s' % (node1.name, node2.params['mac'][0]))
         node2.cmd('iw dev %s-wds set peer %s' % (node2.name, node1.params['mac'][0]))
-        
+
     def createWDSIface(self, node):
         node.cmd('iw dev %s interface add %s-wds type wds' % (node.params['wlan'][0], node.name))
-    
+
 class WirelessLinkAP(object):
 
     """A basic link is just a veth pair.
@@ -804,12 +804,12 @@ class WirelessLinkAP(object):
 
         if params1 is None:
             params1 = {}
-        
+
         if port1 is not None:
             params1[ 'port' ] = port1
-        
-        ifacename = 'wlan'  
-        
+
+        ifacename = 'wlan'
+
         if 'port' not in params1:
             if intfName1 == None:
                 nodelen = int(len(node1.params['wlan']))
@@ -833,14 +833,14 @@ class WirelessLinkAP(object):
 
         if not intfName1:
             intfName1 = self.wlanName(node1, ifacename, node1.newWlanPort())
-           
+
         if not cls1:
             cls1 = intf
-            
+
         intf2 = 'wireless'
         # All we are is dust in the wind, and our two interfaces
         self.intf1, self.intf2 = intf1, intf2
-    # pylint: enable=too-many-branches    
+    # pylint: enable=too-many-branches
 
     @staticmethod
     def _ignore(*args, **kwargs):
@@ -896,26 +896,26 @@ class WirelessLinkStation(object):
 
         if params1 is None:
             params1 = {}
-        
+
         if port1 is not None:
             params1[ 'port' ] = port1
-          
+
         if 'port' not in params1:
             params1[ 'port' ] = node1.newPort()
-            
+
         if not intfName1:
             ifacename = 'wlan'
             intfName1 = self.wlanName(node1, ifacename, node1.newWlanPort())
-           
+
         if not cls1:
             cls1 = intf
-       
+
         intf1 = cls1(name=intfName1, node=node1,
                       link=self, mac=addr1, **params1)
         intf2 = 'wireless'
         # All we are is dust in the wind, and our two interfaces
         self.intf1, self.intf2 = intf1, intf2
-    # pylint: enable=too-many-branches    
+    # pylint: enable=too-many-branches
 
     @staticmethod
     def _ignore(*args, **kwargs):
@@ -1082,7 +1082,7 @@ class OVSLink(Link):
 
     def __init__(self, node1, node2, **kwargs):
         from mininet.node import OVSSwitch
-        
+
         "See Link.__init__() for options"
         self.isPatchLink = False
         if (isinstance(node1, OVSSwitch) and
@@ -1110,7 +1110,7 @@ class TCLink(Link):
                        addr1=addr1, addr2=addr2,
                        params1=params,
                        params2=params)
-        
+
 class TCLinkWirelessStation(WirelessLinkStation):
     "Link with symmetric TC interfaces configured via opts"
     def __init__(self, node1, port1=None, port2=None,
@@ -1121,7 +1121,7 @@ class TCLinkWirelessStation(WirelessLinkStation):
                        cls1=TCIntfWireless,
                        addr1=addr1,
                        params1=params)
-        
+
 class TCLinkWirelessAP(WirelessLinkAP):
     "Link with symmetric TC interfaces configured via opts"
     def __init__(self, node1, port1=None, port2=None,
@@ -1132,8 +1132,8 @@ class TCLinkWirelessAP(WirelessLinkAP):
                        cls1=TCIntfWireless,
                        addr1=addr1,
                        params1=params)
-        
-        
+
+
 class TCULink(TCLink):
     """TCLink with default settings optimized for UserSwitch
        (txo=rxo=0/False).  Unfortunately with recent Linux kernels,
@@ -1147,12 +1147,12 @@ class TCULink(TCLink):
     def __init__(self, *args, **kwargs):
         kwargs.update(txo=False, rxo=False)
         TCLink.__init__(self, *args, **kwargs)
-        
-class Association(Link):        
-    
+
+class Association(Link):
+
     printCon = True
-    
-    @classmethod    
+
+    @classmethod
     def configureAdhoc(self, sta):
         """
         Configure Wireless Ad Hoc
@@ -1169,15 +1169,15 @@ class Association(Link):
         sta.pexec('iwconfig %s channel %s essid %s mode ad-hoc' % (iface, sta.params['channel'][wlan], \
                                                      sta.params['associatedTo'][wlan]))
         sta.pexec('iwconfig %s ap %s' % (iface, sta.params['cell'][wlan]))
-        
-    @classmethod    
+
+    @classmethod
     def configureMesh(self, node, wlan):
         """
         Configure Wireless Mesh Interface
         """
         node.params['rssi'][wlan] = -62
         node.params['snr'][wlan] = -62 - (-91.0)
-           
+
         if 'mp' not in node.params['wlan'][wlan]:
             node.convertIfaceToMesh(node, wlan)
             iface = node.params['wlan'][wlan]
@@ -1186,16 +1186,16 @@ class Association(Link):
             node.intfs[wlan] = node.params['wlan'][wlan]
             cls = TCLinkWirelessStation
             cls(node, port1=wlan, intfName1=node.params['wlan'][wlan])
-        
+
         if 'position' not in node.params:
             self.meshAssociation(node, wlan)
-            
+
         if 'link' in node.params and node.params['link'] == 'mesh':
             cls = TCLinkWirelessAP
             intf = '%s-mp%s' % (node, wlan)
             cls(node, intfName1=intf)
             node.setBw(node, wlan, intf)
-    
+
     @classmethod
     def meshAssociation(self, sta, wlan):
         """
@@ -1203,22 +1203,22 @@ class Association(Link):
         """
         info("associating %s to %s...\n" % (sta.params['wlan'][wlan], sta.params['ssid'][wlan]))
         sta.pexec('iw dev %s mesh join %s' % (sta.params['wlan'][wlan], sta.params['ssid'][wlan]))
-    
+
     _macMatchRegex = re.compile(r'..:..:..:..:..:..')
-    
+
     @classmethod
     def getMacAddress(self, sta, iface, wlan):
         """ get Mac Address of any Interface """
         ifconfig = str(sta.pexec('ifconfig %s' % iface))
         mac = self._macMatchRegex.findall(ifconfig)
         sta.meshMac[wlan] = str(mac[0])
-        
+
     @classmethod
     def setSNRWmediumd(self, sta, ap, snr):
         """Set SNR for wmediumd"""
         WmediumdServerConn.send_snr_update(WmediumdSNRLink(sta.wmediumdIface, ap.wmediumdIface, snr))
         WmediumdServerConn.send_snr_update(WmediumdSNRLink(ap.wmediumdIface, sta.wmediumdIface, snr))
-        
+
     @classmethod
     def setPositionWmediumd(self, sta):
         """Set SNR for wmediumd"""
@@ -1235,14 +1235,14 @@ class Association(Link):
         :param ap: access point
         :param wlan: wlan ID
         """
-        
+
         dist = setChannelParams.getDistance(sta, ap)
         if dist <= ap.params['range']:
             for wlan in range(0, len(sta.params['wlan'])):
                 if sta.params['rssi'][wlan] == 0:
                     self.updateParams(sta, ap, wlan)
                 if sta.params['associatedTo'][wlan] == '' and ap not in sta.params['associatedTo']:
-                    sta.params['associatedTo'][wlan] = ap 
+                    sta.params['associatedTo'][wlan] = ap
                     cls = Association
                     cls.associate_infra(sta, ap, wlan)
                     if not useWmediumd:
@@ -1258,8 +1258,8 @@ class Association(Link):
                 sta.params['apsInRange'].append(ap)
                 ap.params['stationsInRange'][sta] = rssi_
             setChannelParams.recordParams(sta, ap)
-                
-    @classmethod     
+
+    @classmethod
     def updateParams(self, sta, ap, wlan):
         """ 
         Updates values for frequency and channel
@@ -1271,7 +1271,7 @@ class Association(Link):
 
         sta.params['frequency'][wlan] = setChannelParams.frequency(ap, 0)
         sta.params['channel'][wlan] = ap.params['channel'][0]
-    
+
     @classmethod
     def associate(self, sta, ap, useWmediumd):
         """ Associate to Access Point """
@@ -1283,7 +1283,7 @@ class Association(Link):
             sta.params['associatedTo'][wlan] = ap
             ap.params['associatedStations'].append(sta)
         sta.ifaceToAssociate += 1
-        
+
     @classmethod
     def associate_noEncrypt(self, sta, ap, wlan):
         """ 
@@ -1296,7 +1296,7 @@ class Association(Link):
         debug('iwconfig %s essid %s ap %s\n' % (sta.params['wlan'][wlan], ap.params['ssid'][0], \
                                                     ap.params['mac'][0]))
         sta.pexec('iwconfig %s essid %s ap %s' % (sta.params['wlan'][wlan], ap.params['ssid'][0], \
-                                                    ap.params['mac'][0]))        
+                                                    ap.params['mac'][0]))
 
     @classmethod
     def associate_infra(self, sta, ap, wlan):
@@ -1318,7 +1318,7 @@ class Association(Link):
             iface = sta.params['wlan'][wlan]
             info("Associating %s to %s\n" % (iface, ap))
         sta.params['frequency'][wlan] = setChannelParams.frequency(ap, 0)
-        
+
     @classmethod
     def wpaFile(self, sta, ap, wlan):
         """ 
@@ -1327,15 +1327,15 @@ class Association(Link):
         :param sta: station
         :param ap: access point
         :param wlan: wlan ID
-        """ 
+        """
         if 'config' not in ap.params or 'config' not in sta.params:
             if 'passwd' not in sta.params:
                 passwd = ap.params['passwd'][0]
             else:
                 passwd = sta.params['passwd'][wlan]
-                
+
         content = 'ctrl_interface=/var/run/wpa_supplicant\nnetwork={\n'
-                
+
         if 'config' in sta.params:
             config = sta.params['config']
             if(config != []):
@@ -1350,11 +1350,11 @@ class Association(Link):
                     '   proto=%s\n' \
                     '   pairwise=%s\n') % \
             (ap.params['ssid'][0], passwd, ap.wpa_key_mgmt, ap.params['encrypt'][0].upper(), ap.rsn_pairwise)
-        
+
         content = content + '}'
-        
+
         fileName = str(sta) + '.staconf'
-        os.system('echo \'%s\' > %s' % (content, fileName))  
+        os.system('echo \'%s\' > %s' % (content, fileName))
 
     @classmethod
     def associate_wpa(self, sta, ap, wlan):
