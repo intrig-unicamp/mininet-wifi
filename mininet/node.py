@@ -1201,21 +1201,22 @@ class AccessPoint(AP):
             cmd = cmd + ("interface=%s" % ap.params['wlan'][wlan])  # the interface used by the AP
         else:
             cmd = cmd + ("interface=%s" % ap.params.get('phywlan'))  # the interface used by the AP
+        #if 'ieee80211r' in ap.params:
+        #    cmd = cmd + ("\ndriver=madwifi")
+        #else:
         cmd = cmd + ("\ndriver=nl80211")
         if wlan > 0:
             cmd = cmd + ("\nssid=%s-%s" % (ap.params['ssid'][0], wlan))  # ssid name
         else:
             cmd = cmd + ("\nssid=%s" % ap.params['ssid'][0])  # ssid name
 
-        if 'ieee80211r' in ap.params:
-            if 'mobility_domain' in ap.params:
-                cmd = cmd + ("\nmobility_domain=%s" % ap.params['mobility_domain'])  # support to 802.11r
-
-        if ap.params['mode'][0] == 'n' or ap.params['mode'][0] == 'ac':
+        if ap.params['mode'][0] == 'n':
             cmd = cmd + ("\nhw_mode=g")
         elif ap.params['mode'][0] == 'a':
             cmd = cmd + ('\ncountry_code=US')
             cmd = cmd + ("\nhw_mode=%s" % ap.params['mode'][0])
+        elif ap.params['mode'][0] == 'ac':
+            cmd = cmd + ("\nhw_mode=a")
         else:
             cmd = cmd + ("\nhw_mode=%s" % ap.params['mode'][0])
         cmd = cmd + ("\nchannel=%s" % ap.params['channel'][0])
@@ -1249,13 +1250,17 @@ class AccessPoint(AP):
                     cmd = cmd + ("\nwep_default_key=%s" % 0)
                     cmd = cmd + self.verifyWepKey(ap.wep_key0)
 
-            if 'config' in ap.params:
-                config = ap.params['config']
-                if(config != []):
-                    config = ap.params['config'].split(',')
-                    ap.params.pop("config", None)
-                    for conf in config:
-                        cmd = cmd + "\n" + conf
+            if ap.params['mode'][0] == 'ac':
+                cmd = cmd + ("\nieee80211ac=1")
+            elif ap.params['mode'][0] == 'n':
+                cmd = cmd + ("\nieee80211n=1")
+
+            if 'ieee80211r' in ap.params:
+                if 'mobility_domain' in ap.params:
+                    cmd = cmd + ("\nmobility_domain=%s" % ap.params['mobility_domain'])  # support to 802.11r
+                    #cmd = cmd + ("\nown_ip_addr=127.0.0.1")
+                    cmd = cmd + ("\nnas_identifier=%s.example.com" % ap.name)
+
             if(len(ap.params['ssid'])) > 1:
                 for i in range(1, len(ap.params['ssid'])):
                     ssid = ap.params['ssid'][i]

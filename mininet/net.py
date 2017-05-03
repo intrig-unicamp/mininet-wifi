@@ -128,7 +128,7 @@ class Mininet(object):
                   build=True, xterms=False, cleanup=False, ipBase='10.0.0.0/8',
                   inNamespace=False, autoSetMacs=False, autoStaticArp=False, autoPinCpus=False,
                   listenPort=None, waitConnected=False, ssid="new-ssid", mode="g", channel="6", rec_rssi=False,
-                  useWmediumd=False, enable_interference=False):
+                  useWmediumd=False, enable_interference=False, disableAutoAssociation=False):
         """Create Mininet object.
            topo: Topo (topology) object or None
            switch: default Switch class
@@ -185,6 +185,7 @@ class Mininet(object):
         self.walls = []
         self.terms = []  # list of spawned xterm processes
         self.useWmediumd = useWmediumd
+        self.disableAutoAssociation = disableAutoAssociation
 
         mininetWiFi.isWiFi = isWiFi
         mininetWiFi.enable_interference = enable_interference
@@ -281,7 +282,9 @@ class Mininet(object):
                                   prefixLen=self.prefixLen) +
                                   '/%s' % self.prefixLen,
                      'channel': self.channel,
-                     'mode': self.mode}
+                     'mode': self.mode
+                                  }
+        defaults.update(params)
 
         if self.autoSetMacs:
             defaults[ 'mac' ] = macColonHex(self.nextIP)
@@ -289,7 +292,6 @@ class Mininet(object):
             defaults[ 'cores' ] = self.nextCore
             self.nextCore = (self.nextCore + 1) % self.numCores
         self.nextIP += 1
-        defaults.update(params)
 
         if not cls:
             cls = self.station
@@ -300,7 +302,7 @@ class Mininet(object):
         self.stations.append(sta)
         self.nameToNode[ name ] = sta
 
-        mininetWiFi.addParameters(sta, self.autoSetMacs, params, defaults)
+        mininetWiFi.addParameters(sta, self.autoSetMacs, defaults)
         return sta
 
     def addAPAdhoc(self, name, cls=None, **params):
@@ -324,7 +326,7 @@ class Mininet(object):
             self.nextCore = (self.nextCore + 1) % self.numCores
         self.nextIP += 1
         defaults.update(params)
-
+        
         if not cls:
             cls = self.station
         sta = cls(name, **defaults)
@@ -339,7 +341,7 @@ class Mininet(object):
         self.stations.append(sta)
         self.nameToNode[ name ] = sta
 
-        mininetWiFi.addParameters(sta, self.autoSetMacs, params, defaults)
+        mininetWiFi.addParameters(sta, self.autoSetMacs, defaults)
         sta.func[0] = 'ap'
         return sta
 
@@ -373,7 +375,7 @@ class Mininet(object):
 
         self.nameToNode[ name ] = car
         car.type = 'vehicle'
-        mininetWiFi.addParameters(car, self.autoSetMacs, params, defaults)
+        mininetWiFi.addParameters(car, self.autoSetMacs, defaults)
 
         carsta = self.addStation(name + 'STA')
         carsta.params['range'] = car.params['range']
@@ -398,9 +400,9 @@ class Mininet(object):
            side effect: increments listenPort ivar ."""
         defaults = { 'listenPort': self.listenPort,
                      'inNamespace': self.inNamespace,
+                     'ssid': self.ssid,
                      'channel': self.channel,
-                     'mode': self.mode,
-                     'ssid': self.ssid
+                     'mode': self.mode
                      }
 
         defaults.update(params)
@@ -418,7 +420,7 @@ class Mininet(object):
         self.nameToNode[ name ] = ap
         ap.type = 'accessPoint'
 
-        mininetWiFi.addParameters(ap, self.autoSetMacs, params, defaults, mode='master')
+        mininetWiFi.addParameters(ap, self.autoSetMacs, defaults, mode='master')
         self.switches.append(ap)
         self.accessPoints.append(ap)
         return ap
@@ -455,7 +457,7 @@ class Mininet(object):
         node.type = 'station'
         self.nextIP += 1
 
-        mininetWiFi.addParameters(node, self.autoSetMacs, params, defaults)
+        mininetWiFi.addParameters(node, self.autoSetMacs, defaults)
         self.switches.append(node)
         self.stations.append(node)
         return node
@@ -489,7 +491,7 @@ class Mininet(object):
         self.switches.append(bs)
         self.accessPoints.append(bs)
 
-        mininetWiFi.addParameters(bs, self.autoSetMacs, params, defaults, mode='master')
+        mininetWiFi.addParameters(bs, self.autoSetMacs, defaults, mode='master')
         return bs
 
     def addSwitch(self, name, cls=None, **params):

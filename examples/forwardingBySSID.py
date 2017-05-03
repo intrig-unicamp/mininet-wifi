@@ -30,7 +30,7 @@ import time
 
 def topology():
     "Create a network."
-    net = Mininet( controller=Controller, link=TCLink, switch=UserSwitch )
+    net = Mininet( controller=Controller, link=TCLink, switch=UserSwitch, disableAutoAssociation=True )
 
     print "*** Creating nodes"
     sta1 = net.addStation( 'sta1', position='10,60,0' )
