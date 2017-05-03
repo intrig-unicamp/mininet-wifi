@@ -190,7 +190,6 @@ class mininetWiFi(object):
             self.addChannelParamToNode(node, wlans, params)
             self.addModeParamToNode(node, wlans, params)
 
-        print node.params['mode']
         # Equipment Model
         equipmentModel = ("%s" % params.pop('equipmentModel', {}))
         if(equipmentModel != "{}"):
@@ -212,11 +211,6 @@ class mininetWiFi(object):
             node.params['stationsInRange'] = {}
             node.wds = False
 
-            node.params['mac'] = []
-            node.params['mac'].append('')
-            if 'mac' in params:
-                node.params['mac'][0] = params[ 'mac' ]
-
             if 'config' in node.params:
                 config = node.params['config']
                 if(config != []):
@@ -230,6 +224,11 @@ class mininetWiFi(object):
                             node.params['encrypt'].append('wpe')
 
             if mode == 'master':
+                node.params['mac'] = []
+                node.params['mac'].append('')
+                if 'mac' in params:
+                    node.params['mac'][0] = params[ 'mac' ]
+                
                 ssid = ("%s" % params.pop('ssid', {}))
                 ssid = ssid.split(',')
                 node.params['ssid'] = []
