@@ -128,7 +128,7 @@ class Mininet(object):
                   build=True, xterms=False, cleanup=False, ipBase='10.0.0.0/8',
                   inNamespace=False, autoSetMacs=False, autoStaticArp=False, autoPinCpus=False,
                   listenPort=None, waitConnected=False, ssid="new-ssid", mode="g", channel="6", rec_rssi=False,
-                  useWmediumd=False, enable_interference=False):
+                  useWmediumd=False, enable_interference=False, disableAutoAssociation=False):
         """Create Mininet object.
            topo: Topo (topology) object or None
            switch: default Switch class
@@ -185,6 +185,7 @@ class Mininet(object):
         self.walls = []
         self.terms = []  # list of spawned xterm processes
         self.useWmediumd = useWmediumd
+        self.disableAutoAssociation = disableAutoAssociation
 
         mininetWiFi.isWiFi = isWiFi
         mininetWiFi.enable_interference = enable_interference
@@ -325,7 +326,7 @@ class Mininet(object):
             self.nextCore = (self.nextCore + 1) % self.numCores
         self.nextIP += 1
         defaults.update(params)
-
+        
         if not cls:
             cls = self.station
         sta = cls(name, **defaults)

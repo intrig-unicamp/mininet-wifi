@@ -1248,7 +1248,7 @@ class AccessPoint(AP):
             if 'ieee80211r' in ap.params:
                 if 'mobility_domain' in ap.params:
                     cmd = cmd + ("\nmobility_domain=%s" % ap.params['mobility_domain'])  # support to 802.11r
-                    cmd = cmd + ("\npsk_generate_local=1")
+                    # cmd = cmd + ("\npsk_generate_local=1")
 
             if 'config' in ap.params:
                 config = ap.params['config']
