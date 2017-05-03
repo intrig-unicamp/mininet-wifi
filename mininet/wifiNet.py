@@ -228,7 +228,7 @@ class mininetWiFi(object):
                 node.params['mac'].append('')
                 if 'mac' in params:
                     node.params['mac'][0] = params[ 'mac' ]
-                
+
                 ssid = ("%s" % params.pop('ssid', {}))
                 ssid = ssid.split(',')
                 node.params['ssid'] = []
@@ -594,9 +594,11 @@ class mininetWiFi(object):
                 if 'position' not in node.params:
                     posX = 0
                     posY = 0
+                    node.lastpos = [0, 0, 0]
                 else:
                     posX = node.params['position'][0]
                     posY = node.params['position'][1]
+                    node.lastpos = node.params['position']
                 positions.append(WmediumdPosition(node.wmediumdIface, [posX, posY]))
                 txpowers.append(WmediumdTXPower(node.wmediumdIface, float(node.params['txpower'][0])))
         else:
