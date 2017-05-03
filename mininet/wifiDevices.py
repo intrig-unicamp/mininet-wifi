@@ -13,7 +13,7 @@ class deviceDataRate (object):
     rate = 0
 
     def __init__(self, sta=None, ap=None, wlan=0):
-        
+
         """         
         sta: station
         ap: accessPoint
@@ -38,7 +38,7 @@ class deviceDataRate (object):
         """
         mode = node.params['mode'][wlan]
         rate = 0
-        
+
         if (mode == 'a'):
             rate = 11
         elif(mode == 'b'):
@@ -49,7 +49,7 @@ class deviceDataRate (object):
             rate = 600
         elif(mode == 'ac'):
             rate = 6777
-            
+
         self.rate = rate
         return self.rate
 
@@ -61,7 +61,7 @@ class deviceDataRate (object):
         """
         mode = node.params['mode'][wlan]
         rate = 0
-        
+
         if (mode == 'a'):
             rate = 20
         elif(mode == 'b'):
@@ -72,7 +72,7 @@ class deviceDataRate (object):
             rate = 48
         elif(mode == 'ac'):
             rate = 90
-            
+
         self.rate = rate
         return self.rate
 
@@ -85,7 +85,7 @@ class deviceDataRate (object):
         rate: maximum supported bandwidth (mbps)   
         """
         rate = 0
-        
+
         if node1.params['rssi'][wlan] != 0:
             if (node1.params['rssi'][wlan] >= -68):
                 rate = 48
@@ -101,7 +101,7 @@ class deviceDataRate (object):
                 rate = 6
             elif (node1.params['rssi'][wlan] < -88 and node1.params['rssi'][wlan] >= -89):
                 rate = 1
-                
+
         self.rate = rate
         return self.rate
 
@@ -116,7 +116,7 @@ class deviceDataRate (object):
         """
         mode = node1.params['mode'][wlan]
         rate = 0
-        
+
         try:  # if Station
             if node1.params['rssi'][wlan] != 0:
                 if (node1.params['rssi'][wlan] >= -68):
@@ -139,7 +139,7 @@ class deviceDataRate (object):
                 rate = 54
             elif mode == 'b':
                 rate = 11
-                
+
         self.rate = rate
         return self.rate
 
@@ -154,7 +154,7 @@ class deviceDataRate (object):
         """
         mode = node2.params['mode'][0]
         rate = 0
-        
+
         try:  # if Station
             if node1.params['rssi'][wlan] != 0:
                 if (node1.params['rssi'][wlan] >= -65):
@@ -180,7 +180,7 @@ class deviceDataRate (object):
                 rate = 54
             elif node2.params['mode'][0] == 'b':
                 rate = 11
-                
+
         self.rate = rate
         return self.rate
 
@@ -190,13 +190,13 @@ class deviceRange (object):
     range = 100
 
     def __init__(self, ap=None, wlan=0):
-        
+
         """         
         ap: accessPoint
         wlan: wlan ID
         """
-        
-        if 'equipmentModel' in ap.params.keys():        
+
+        if 'equipmentModel' in ap.params.keys():
             if ap.equipmentModel in dir(self):
                 self.__getattribute__(ap.equipmentModel)(ap)
         else:
@@ -210,20 +210,20 @@ class deviceRange (object):
         range: signal range (m)
         """
         mode = node.params['mode'][wlan]
-        range = 0
-        
+        range_ = 0
+
         if (mode == 'a'):
-            range = 33
+            range_ = 33
         elif(mode == 'b'):
-            range = 50
+            range_ = 50
         elif(mode == 'g'):
-            range = 33
+            range_ = 33
         elif(mode == 'n'):
-            range = 70
+            range_ = 70
         elif(mode == 'ac'):
-            range = 100
-            
-        self.range = range
+            range_ = 100
+
+        self.range = range_
         return self.range
 
     def DI524(self, ap):
@@ -257,7 +257,7 @@ class deviceRange (object):
         
         range: signal range (m)
         """
-        
+
         self.range = 50
         return self.range
 
@@ -267,7 +267,7 @@ class deviceTxPower (object):
     txPower = 0
 
     def __init__(self, model=None, ap=None, wlan=0):
-        
+
         """         
         :param model: device model
         :param ap: accessPoint
@@ -303,8 +303,8 @@ class deviceTxPower (object):
            from http://downloads.linksys.com/downloads/datasheet/WRT120N_V10_DS_B-WEB.pdf
            
         txPower = transmission power (dBm)   
-        """        
-        
+        """
+
         if ap.params['mode'][wlan] == 'b':
             self.txPower = 21
         elif ap.params['mode'][wlan] == 'g':
