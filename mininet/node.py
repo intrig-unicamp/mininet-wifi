@@ -1201,6 +1201,9 @@ class AccessPoint(AP):
             cmd = cmd + ("interface=%s" % ap.params['wlan'][wlan])  # the interface used by the AP
         else:
             cmd = cmd + ("interface=%s" % ap.params.get('phywlan'))  # the interface used by the AP
+        #if 'ieee80211r' in ap.params:
+        #    cmd = cmd + ("\ndriver=madwifi")
+        #else:
         cmd = cmd + ("\ndriver=nl80211")
         if wlan > 0:
             cmd = cmd + ("\nssid=%s-%s" % (ap.params['ssid'][0], wlan))  # ssid name
@@ -1248,7 +1251,8 @@ class AccessPoint(AP):
             if 'ieee80211r' in ap.params:
                 if 'mobility_domain' in ap.params:
                     cmd = cmd + ("\nmobility_domain=%s" % ap.params['mobility_domain'])  # support to 802.11r
-                    # cmd = cmd + ("\npsk_generate_local=1")
+                    #cmd = cmd + ("\nown_ip_addr=127.0.0.1")
+                    cmd = cmd + ("\nnas_identifier=%s.example.com" % ap.name)
 
             if 'config' in ap.params:
                 config = ap.params['config']

@@ -200,7 +200,7 @@ class plot2d (object):
         ax.add_line(line)
 
     @classmethod
-    def instantiateGraph(self, MAX_X, MAX_Y, is3d=False):
+    def instantiateGraph(self, MAX_X, MAX_Y):
         "instantiateGraph"
         plt.ion()
         plt.title("Mininet-WiFi Graph")

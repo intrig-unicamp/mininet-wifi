@@ -179,11 +179,15 @@ class mobility (object):
             if dist >= 0.01:
                 if WmediumdServerConn.connected:
                     if WmediumdServerConn.interference_enabled:
-                        cls = Association
-                        cls.setPositionWmediumd(sta)
+                        if sta.lastpos != sta.params['position']:
+                            time.sleep(0.0001)
+                            cls = Association
+                            cls.setPositionWmediumd(sta)
+                            sta.lastpos = sta.params['position']
                     else:
-                        cls = Association
-                        cls.setSNRWmediumd(sta, ap, snr=sta.params['snr'][wlan])
+                        if sta.lastpos != sta.params['position']:
+                            cls = Association
+                            cls.setSNRWmediumd(sta, ap, snr=sta.params['snr'][wlan])
                 else:
                     setChannelParams(sta, ap, wlan, dist)
         setChannelParams.recordParams(sta, ap)
