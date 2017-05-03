@@ -280,7 +280,10 @@ class Mininet(object):
                                   ipBaseNum=self.ipBaseNum,
                                   prefixLen=self.prefixLen) +
                                   '/%s' % self.prefixLen,
+                     'channel': self.channel,
+                     'mode': self.mode
                                   }
+        defaults.update(params)
 
         if self.autoSetMacs:
             defaults[ 'mac' ] = macColonHex(self.nextIP)
@@ -288,10 +291,6 @@ class Mininet(object):
             defaults[ 'cores' ] = self.nextCore
             self.nextCore = (self.nextCore + 1) % self.numCores
         self.nextIP += 1
-        defaults.update(params)
-
-        params = {'channel': self.channel,
-                     'mode': self.mode}
 
         if not cls:
             cls = self.station
@@ -302,7 +301,7 @@ class Mininet(object):
         self.stations.append(sta)
         self.nameToNode[ name ] = sta
 
-        mininetWiFi.addParameters(sta, self.autoSetMacs, params, defaults)
+        mininetWiFi.addParameters(sta, self.autoSetMacs, defaults)
         return sta
 
     def addAPAdhoc(self, name, cls=None, **params):
@@ -341,7 +340,7 @@ class Mininet(object):
         self.stations.append(sta)
         self.nameToNode[ name ] = sta
 
-        mininetWiFi.addParameters(sta, self.autoSetMacs, params, defaults)
+        mininetWiFi.addParameters(sta, self.autoSetMacs, defaults)
         sta.func[0] = 'ap'
         return sta
 
@@ -375,7 +374,7 @@ class Mininet(object):
 
         self.nameToNode[ name ] = car
         car.type = 'vehicle'
-        mininetWiFi.addParameters(car, self.autoSetMacs, params, defaults)
+        mininetWiFi.addParameters(car, self.autoSetMacs, defaults)
 
         carsta = self.addStation(name + 'STA')
         carsta.params['range'] = car.params['range']
@@ -400,7 +399,9 @@ class Mininet(object):
            side effect: increments listenPort ivar ."""
         defaults = { 'listenPort': self.listenPort,
                      'inNamespace': self.inNamespace,
-                     'ssid': self.ssid
+                     'ssid': self.ssid,
+                     'channel': self.channel,
+                     'mode': self.mode
                      }
 
         defaults.update(params)
@@ -408,9 +409,6 @@ class Mininet(object):
         if not cls:
             cls = self.accessPoint
         ap = cls(name, **defaults)
-
-        params = {'channel': self.channel,
-                     'mode': self.mode}
 
         if not self.inNamespace and self.listenPort:
             self.listenPort += 1
@@ -421,7 +419,7 @@ class Mininet(object):
         self.nameToNode[ name ] = ap
         ap.type = 'accessPoint'
 
-        mininetWiFi.addParameters(ap, self.autoSetMacs, params, defaults, mode='master')
+        mininetWiFi.addParameters(ap, self.autoSetMacs, defaults, mode='master')
         self.switches.append(ap)
         self.accessPoints.append(ap)
         return ap
@@ -458,7 +456,7 @@ class Mininet(object):
         node.type = 'station'
         self.nextIP += 1
 
-        mininetWiFi.addParameters(node, self.autoSetMacs, params, defaults)
+        mininetWiFi.addParameters(node, self.autoSetMacs, defaults)
         self.switches.append(node)
         self.stations.append(node)
         return node
@@ -492,7 +490,7 @@ class Mininet(object):
         self.switches.append(bs)
         self.accessPoints.append(bs)
 
-        mininetWiFi.addParameters(bs, self.autoSetMacs, params, defaults, mode='master')
+        mininetWiFi.addParameters(bs, self.autoSetMacs, defaults, mode='master')
         return bs
 
     def addSwitch(self, name, cls=None, **params):

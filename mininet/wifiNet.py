@@ -57,7 +57,7 @@ class mininetWiFi(object):
     plotNodes = []
 
     @classmethod
-    def addParameters(self, node, autoSetMacs, params, defaults, mode='managed'):
+    def addParameters(self, node, autoSetMacs, params, mode='managed'):
         """adds parameters to wireless nodes
 
         node: node
@@ -179,8 +179,8 @@ class mininetWiFi(object):
             node.params.pop("wlans", None)
 
         if (mode == 'managed'):
-            self.addMacParamToNode(node, wlans, autoSetMacs, defaults, params)
-            self.addIpParamToNode(node, wlans, autoSetMacs, defaults, params)
+            self.addMacParamToNode(node, wlans, autoSetMacs, params)
+            self.addIpParamToNode(node, wlans, autoSetMacs, params)
 
         self.addAntennaHeightParamToNode(node, wlans, params)
         self.addAntennaGainParamToNode(node, wlans, params)
@@ -213,8 +213,8 @@ class mininetWiFi(object):
 
             node.params['mac'] = []
             node.params['mac'].append('')
-            if 'mac' in defaults:
-                node.params['mac'][0] = defaults[ 'mac' ]
+            if 'mac' in params:
+                node.params['mac'][0] = params[ 'mac' ]
 
             if 'config' in node.params:
                 config = node.params['config']
@@ -244,7 +244,7 @@ class mininetWiFi(object):
                             node.params['ssid'].append(ssid[n])
                             self.appendEncrypt(node, n, passwd, encrypt)
                 else:
-                    node.params['ssid'].append(defaults[ 'ssid' ])
+                    node.params['ssid'].append(params[ 'ssid' ])
 
     @classmethod
     def addParamsToNode(self, node):
@@ -278,7 +278,7 @@ class mininetWiFi(object):
         node.params['rssi'].append(-60)
 
     @classmethod
-    def addIpParamToNode(self, node, wlans=0, autoSetMacs=False, defaults=None, params=None, isVirtualIface=False):
+    def addIpParamToNode(self, node, wlans=0, autoSetMacs=False, params=None, isVirtualIface=False):
         if isVirtualIface:
             node.params['ip'].append(node.params['ip'][0])
         else:
@@ -294,25 +294,25 @@ class mininetWiFi(object):
                 node.params['ip'] = []
                 for n in range(wlans):
                     node.params['ip'].append('0/0')
-                    node.params['ip'][n] = defaults[ 'ip' ]
+                    node.params['ip'][n] = params[ 'ip' ]
             else:
                 try:
                     for n in range(wlans):
                         node.params['ip'].append('0/0')
                 except:
                     node.params['ip'] = []
-                    node.params['ip'].append(defaults[ 'ip' ])
+                    node.params['ip'].append(params[ 'ip' ])
                     for n in range(1, wlans):
                         node.params['ip'].append('0/0')
 
     @classmethod
-    def addMacParamToNode(self, node, wlans=0, autoSetMacs=False, defaults=None, params=None, isVirtualIface=False, macID=0):
+    def addMacParamToNode(self, node, wlans=0, autoSetMacs=False, params=None, isVirtualIface=False, macID=0):
         if isVirtualIface:
             new_mac = list(node.params['mac'][0])
             new_mac[7] = str(macID)
             node.params['mac'].append("".join(new_mac))
         else:
-            mac = ("%s" % defaults.pop('mac', {}))
+            mac = ("%s" % params.pop('mac', {}))
             if(mac != "{}"):
                 mac = mac.split(',')
                 node.params['mac'] = []
@@ -324,7 +324,7 @@ class mininetWiFi(object):
                 node.params['mac'] = []
                 for n in range(wlans):
                     node.params['mac'].append('')
-                    node.params['mac'][n] = defaults[ 'mac' ]
+                    node.params['mac'][n] = params[ 'mac' ]
             else:
                 node.params['mac'] = []
                 for n in range(wlans):
@@ -695,13 +695,19 @@ class mininetWiFi(object):
                 if ap.params['encrypt'][wlan] == 'wpa':
                     ap.auth_algs = 1
                     ap.wpa = 1
-                    ap.wpa_key_mgmt = 'WPA-EAP'
+                    if 'ieee80211r' in ap.params:
+                        ap.wpa_key_mgmt = 'FT-EAP'
+                    else:
+                        ap.wpa_key_mgmt = 'WPA-EAP'
                     ap.rsn_pairwise = 'TKIP CCMP'
                     ap.wpa_passphrase = ap.params['passwd'][0]
                 elif ap.params['encrypt'][wlan] == 'wpa2':
                     ap.auth_algs = 1
                     ap.wpa = 2
-                    ap.wpa_key_mgmt = 'WPA-PSK'
+                    if 'ieee80211r' in ap.params:
+                        ap.wpa_key_mgmt = 'FT-PSK'
+                    else:
+                        ap.wpa_key_mgmt = 'WPA-PSK'
                     ap.rsn_pairwise = 'CCMP'
                     ap.wpa_passphrase = ap.params['passwd'][0]
                 elif ap.params['encrypt'][wlan] == 'wep':
@@ -1024,9 +1030,10 @@ class mininetWiFi(object):
         if not self.isVanet:
             for node in nodes:
                 pairingAdhocNodes.ssid_ID += 1
-                if 'position' in node.params and 'link' not in node.params:
-                    self.getAPsInRange(node, accessPoints)
                 for wlan in range(0, len(node.params['wlan'])):
+                    if 'position' in node.params and 'link' not in node.params:
+                        mobility.accessPoints = accessPoints
+                        mobility.handoverCheck(node, wlan)
                     if 'position' in node.params and node.func[wlan] == 'adhoc' and node.params['associatedTo'][wlan] == '':
                         value = pairingAdhocNodes(node, wlan, nodes)
                         dist = value.dist
