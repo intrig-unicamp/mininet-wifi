@@ -184,11 +184,9 @@ class mininetWiFi(object):
 
         self.addAntennaHeightParamToNode(node, wlans, params)
         self.addAntennaGainParamToNode(node, wlans, params)
-
-        for wlan in range(0, wlans):
-            self.addTxPowerParamToNode(node, wlans, params)
-            self.addChannelParamToNode(node, wlans, params)
-            self.addModeParamToNode(node, wlans, params)
+        self.addTxPowerParamToNode(node, wlans, params)
+        self.addChannelParamToNode(node, wlans, params)
+        self.addModeParamToNode(node, wlans, params)
 
         # Equipment Model
         equipmentModel = ("%s" % params.pop('equipmentModel', {}))

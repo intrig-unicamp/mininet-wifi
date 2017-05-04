@@ -1345,6 +1345,7 @@ class Association(Link):
                     content = content + "   " + conf + "\n"
         else:
             content = (content + '   ssid=\"%s\"\n' \
+                    '   bgscan="simple:30:-40:300"\n' \
                     '   psk=\"%s\"\n' \
                     '   key_mgmt=%s\n' \
                     '   proto=%s\n' \
@@ -1365,12 +1366,17 @@ class Association(Link):
         :param ap: access point
         :param wlan: wlan ID
         """
-        pidfile = "mn%d_%s_%s_wpa.pid" % (os.getpid(), sta.name, wlan)
-        self.wpaFile(sta, ap, wlan)
-        debug("wpa_supplicant -B -Dnl80211 -P %s -i %s -c %s.staconf\n"
-                % (pidfile, sta.params['wlan'][wlan], sta))
-        sta.pexec("wpa_supplicant -B -Dnl80211 -P %s -i %s -c %s.staconf"
-                % (pidfile, sta.params['wlan'][wlan], sta))
+        if sta.passwd != ap.params['passwd'][0]:
+            sta.passwd = ap.params['passwd'][0]
+            pidfile = "mn%d_%s_%s_wpa.pid" % (os.getpid(), sta.name, wlan)
+            self.wpaFile(sta, ap, wlan)
+            debug("wpa_supplicant -B -Dnl80211 -P %s -i %s -c %s.staconf\n"
+                    % (pidfile, sta.params['wlan'][wlan], sta))
+            sta.pexec("wpa_supplicant -B -Dnl80211 -P %s -i %s -c %s.staconf"
+                    % (pidfile, sta.params['wlan'][wlan], sta))
+        else:
+            sta.pexec('iw dev %s disconnect' % sta.params['wlan'][wlan])
+            #sta.cmdPrint('wpa_cli reconnect -i %s' % sta.params['wlan'][wlan])
 
     @classmethod
     def associate_wep(self, sta, ap, wlan):
