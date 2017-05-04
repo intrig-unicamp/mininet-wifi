@@ -320,7 +320,7 @@ class Node(object):
             passwd = self.params['passwd'][wlan]
         pidfile = "mn%d_%s_%s_wpa.pid" % (os.getpid(), self.name, wlan)
         self.cmd("wpa_supplicant -B -Dnl80211 -P %s -i %s -c <(wpa_passphrase \"%s\" \"%s\")"
-                % (pidfile, self.parself['wlan'][wlan], wlan, ap.params['ssid'][0], passwd))
+                % (pidfile, self.params['wlan'][wlan], wlan, ap.params['ssid'][0], passwd))
 
     def associate_wep(self, ap, wlan):
         if 'passwd' not in self.params:
