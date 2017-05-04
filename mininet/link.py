@@ -1151,6 +1151,7 @@ class TCULink(TCLink):
 class Association(Link):
 
     printCon = True
+    bgscan = ''
 
     @classmethod
     def configureAdhoc(self, sta):
@@ -1322,7 +1323,7 @@ class Association(Link):
     @classmethod
     def wpaFile(self, sta, ap, wlan):
         """ 
-        It creates a wpa config file
+        creates a wpa config file
         
         :param sta: station
         :param ap: access point
@@ -1345,15 +1346,14 @@ class Association(Link):
                     content = content + "   " + conf + "\n"
         else:
             content = (content + '   ssid=\"%s\"\n' \
-                    '   bgscan="simple:30:-40:300"\n' \
                     '   psk=\"%s\"\n' \
                     '   key_mgmt=%s\n' \
                     '   proto=%s\n' \
-                    '   pairwise=%s\n') % \
-            (ap.params['ssid'][0], passwd, ap.wpa_key_mgmt, ap.params['encrypt'][0].upper(), ap.rsn_pairwise)
-
+                    '   pairwise=%s\n'\
+                    '   %s\n') % \
+            (ap.params['ssid'][0], passwd, ap.wpa_key_mgmt, ap.params['encrypt'][0].upper(), \
+                                                ap.rsn_pairwise, self.bgscan)
         content = content + '}'
-
         fileName = str(sta) + '.staconf'
         os.system('echo \'%s\' > %s' % (content, fileName))
 
@@ -1376,7 +1376,7 @@ class Association(Link):
                     % (pidfile, sta.params['wlan'][wlan], sta))
         else:
             sta.pexec('iw dev %s disconnect' % sta.params['wlan'][wlan])
-            #sta.cmdPrint('wpa_cli reconnect -i %s' % sta.params['wlan'][wlan])
+            # sta.cmdPrint('wpa_cli reconnect -i %s' % sta.params['wlan'][wlan])
 
     @classmethod
     def associate_wep(self, sta, ap, wlan):
