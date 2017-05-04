@@ -326,7 +326,7 @@ class Mininet(object):
             self.nextCore = (self.nextCore + 1) % self.numCores
         self.nextIP += 1
         defaults.update(params)
-        
+
         if not cls:
             cls = self.station
         sta = cls(name, **defaults)
@@ -1417,6 +1417,24 @@ class Mininet(object):
         params['cars'] = self.cars
         params['program'] = program
         mininetWiFi.useExternalProgram(**params)
+
+    def setBgscan(self, module='simple', s_inverval=30, signal=-45, l_interval=300, \
+                  database='/etc/wpa_supplicant/network1.bgscan'):
+        """
+        Set Background scanning
+
+        :params module: module
+        :params s_inverval: short bgscan interval in second
+        :params signal: signal strength threshold
+        :params l_interval: long interval
+        :params database: database file name
+        """
+        if module == 'simple':
+            bgscan = 'bgscan=\"%s:%d:%d:%d\"' % (module, s_inverval, signal, l_interval)
+        else:
+            bgscan = 'bgscan=\"%s:%d:%d:%d:%s\"' % (module, s_inverval, signal, l_interval, database)
+        cls = Association
+        cls.bgscan = bgscan
 
     def getCurrentDistance(self, src, dst):
         """ 

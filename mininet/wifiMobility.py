@@ -127,10 +127,13 @@ class mobility (object):
             debug('iw dev %s disconnect\n' % sta.params['wlan'][wlan])
             if 'encrypt' in ap.params:
                 if ap.params['encrypt'][0] == 'wpa' or ap.params['encrypt'][0] == 'wpa2':
-                    os.system('rm %s.staconf' % sta)
-                    pidfile = "mn%d_%s_%s_wpa.pid" % (os.getpid(), sta.name, wlan)
-                    os.system('pkill -f \'wpa_supplicant -B -Dnl80211 -P %s -i %s\'' % (pidfile, sta.params['wlan'][wlan]))
-                    os.system('rm /var/run/wpa_supplicant/%s' % sta.params['wlan'][wlan])
+                    if sta.passwd != ap.params['passwd'][0]:
+                        os.system('rm %s.staconf' % sta)
+                        pidfile = "mn%d_%s_%s_wpa.pid" % (os.getpid(), sta.name, wlan)
+                        os.system('pkill -f \'wpa_supplicant -B -Dnl80211 -P %s -i %s\'' % (pidfile, sta.params['wlan'][wlan]))
+                        os.system('rm /var/run/wpa_supplicant/%s' % sta.params['wlan'][wlan])
+                    else:
+                        pass
             sta.pexec('iw dev %s disconnect' % sta.params['wlan'][wlan])
             if WmediumdServerConn.connected and WmediumdServerConn.interference_enabled and dist >= 0.01:
                 """do nothing"""
