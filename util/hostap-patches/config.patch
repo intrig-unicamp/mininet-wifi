@@ -68,7 +68,7 @@ index 521d877..4adcd6b 100644
  # Opportunistic Wireless Encryption (OWE)
  # Experimental implementation of draft-harkins-owe-07.txt
 diff --git wpa_supplicant/defconfig wpa_supplicant/defconfig
-index 307f82d..5948d73 100644
+index 307f82d..0d7d6f4 100644
 --- wpa_supplicant/defconfig
 +++ wpa_supplicant/defconfig
 @@ -44,7 +44,7 @@ CONFIG_DRIVER_NL80211=y
@@ -136,7 +136,13 @@ index 307f82d..5948d73 100644
  
  # Wireless Network Management (IEEE Std 802.11v-2011)
  # Note: This is experimental and not complete implementation.
-@@ -488,7 +488,7 @@ CONFIG_PEERKEY=y
+@@ -483,12 +483,12 @@ CONFIG_PEERKEY=y
+ # should be noted that this is mainly aimed at simple cases like
+ # WPA2-Personal while more complex configurations like WPA2-Enterprise with an
+ # external RADIUS server can be supported with hostapd.
+-#CONFIG_AP=y
++CONFIG_AP=y
+ 
  # P2P (Wi-Fi Direct)
  # This can be used to enable P2P support in wpa_supplicant. See README-P2P for
  # more information on P2P operations.
@@ -145,6 +151,27 @@ index 307f82d..5948d73 100644
  
  # Enable TDLS support
  #CONFIG_TDLS=y
+@@ -572,17 +572,17 @@ CONFIG_PEERKEY=y
+ #CONFIG_PMKSA_CACHE_EXTERNAL=y
+ 
+ # Mesh Networking (IEEE 802.11s)
+-#CONFIG_MESH=y
++CONFIG_MESH=y
+ 
+ # Background scanning modules
+ # These can be used to request wpa_supplicant to perform background scanning
+ # operations for roaming within an ESS (same SSID). See the bgscan parameter in
+ # the wpa_supplicant.conf file for more details.
+ # Periodic background scans based on signal strength
+-#CONFIG_BGSCAN_SIMPLE=y
++CONFIG_BGSCAN_SIMPLE=y
+ # Learn channels used by the network and try to avoid bgscans on other
+ # channels (experimental)
+-#CONFIG_BGSCAN_LEARN=y
++CONFIG_BGSCAN_LEARN=y
+ 
+ # Opportunistic Wireless Encryption (OWE)
+ # Experimental implementation of draft-harkins-owe-07.txt
 diff --git wpa_supplicant/p2p_supplicant.c wpa_supplicant/p2p_supplicant.c
 index 73bed57..cadd748 100644
 --- wpa_supplicant/p2p_supplicant.c
