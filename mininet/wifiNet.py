@@ -82,6 +82,7 @@ class mininetWiFi(object):
             node.params['encrypt'] = []
 
         if (mode == 'managed'):
+            self.passwd = ''
             node.params['apsInRange'] = []
             node.params['associatedTo'] = []
             node.params['rssi'] = []
