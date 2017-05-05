@@ -1253,7 +1253,7 @@ class AccessPoint(AP):
             elif ap.params['mode'][0] == 'n':
                 cmd = cmd + ("\nieee80211n=1")
 
-            if 'ieee80211r' in ap.params:  # support to 802.11r
+            if 'ieee80211r' in ap.params and ap.params['ieee80211r'] == 'yes':  # support to 802.11r
                 if 'mobility_domain' in ap.params:
                     cmd = cmd + ("\nmobility_domain=%s" % ap.params['mobility_domain'])
                     # cmd = cmd + ("\nown_ip_addr=127.0.0.1")

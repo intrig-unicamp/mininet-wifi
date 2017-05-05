@@ -709,7 +709,7 @@ class mininetWiFi(object):
                 if ap.params['encrypt'][wlan] == 'wpa':
                     ap.auth_algs = 1
                     ap.wpa = 1
-                    if 'ieee80211r' in ap.params:
+                    if 'ieee80211r' in ap.params and ap.params['ieee80211r'] == 'yes':
                         ap.wpa_key_mgmt = 'FT-EAP'
                     else:
                         ap.wpa_key_mgmt = 'WPA-EAP'
@@ -718,7 +718,7 @@ class mininetWiFi(object):
                 elif ap.params['encrypt'][wlan] == 'wpa2':
                     ap.auth_algs = 1
                     ap.wpa = 2
-                    if 'ieee80211r' in ap.params:
+                    if 'ieee80211r' in ap.params and ap.params['ieee80211r'] == 'yes':
                         ap.wpa_key_mgmt = 'FT-PSK'
                     else:
                         ap.wpa_key_mgmt = 'WPA-PSK'
