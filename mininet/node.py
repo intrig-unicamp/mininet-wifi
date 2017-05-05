@@ -1188,12 +1188,12 @@ class AccessPoint(AP):
 
     writeMacAddress = False
 
-    def __init__ (self, ap, wlan=None, **params):
+    def __init__ (self, ap, wlan=None, aplist=None, **params):
 
-        self.start_(ap, wlan, **params)
+        self.start_(ap, wlan, aplist, **params)
 
     @classmethod
-    def start_(self, ap, wlan=None, **params):
+    def start_(self, ap, wlan=None, aplist=None, **params):
         """ Starting Access Point """
         cmd = ("echo \'")
 
@@ -1253,11 +1253,19 @@ class AccessPoint(AP):
             elif ap.params['mode'][0] == 'n':
                 cmd = cmd + ("\nieee80211n=1")
 
-            if 'ieee80211r' in ap.params:
+            if 'ieee80211r' in ap.params:  # support to 802.11r
                 if 'mobility_domain' in ap.params:
-                    cmd = cmd + ("\nmobility_domain=%s" % ap.params['mobility_domain'])  # support to 802.11r
+                    cmd = cmd + ("\nmobility_domain=%s" % ap.params['mobility_domain'])
                     # cmd = cmd + ("\nown_ip_addr=127.0.0.1")
                     cmd = cmd + ("\nnas_identifier=%s.example.com" % ap.name)
+                    for apref in aplist:
+                        cmd = cmd + ('\nr0kh=%s r0kh-%s.example.com 000102030405060708090a0b0c0d0e0f' % \
+                                     (apref.params['mac'][0], aplist.index(apref)))
+                        cmd = cmd + ('\nr1kh=%s %s 000102030405060708090a0b0c0d0e0f' % \
+                                     (apref.params['mac'][0], apref.params['mac'][0]))
+                    cmd = cmd + ('\npmk_r1_push=1')
+                    cmd = cmd + ('\nft_over_ds=1')
+                    cmd = cmd + ('\nft_psk_generate_local=1')
 
             if(len(ap.params['ssid'])) > 1:
                 for i in range(1, len(ap.params['ssid'])):

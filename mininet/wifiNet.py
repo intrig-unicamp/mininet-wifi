@@ -428,8 +428,10 @@ class mininetWiFi(object):
                     self.appendAssociatedTo(node)
                     self.addAntennaGainParamToNode(node, isVirtualIface=True)
                     self.addAntennaHeightParamToNode(node, isVirtualIface=True)
-                    # node.params['wlan'].append(vif)
                     node.cmd('iw dev %s interface add %s type station' % (node.params['wlan'][wlan], vif))
+                    cls = TCLinkWirelessStation
+                    cls(node, intfName1=vif)
+                    self.configureMacAddr(node)
 
     @classmethod
     def addMesh(self, node, cls=None, **params):
@@ -692,7 +694,7 @@ class mininetWiFi(object):
                 break
 
     @classmethod
-    def configureAP(self, ap, wlanID=0):
+    def configureAP(self, ap, wlanID=0, aplist=None):
         """Configure AP
         
         :param ap: ap node
@@ -727,7 +729,7 @@ class mininetWiFi(object):
                     ap.wep_key0 = ap.params['passwd'][0]
 
             cls = AccessPoint
-            cls(ap, wlan=wlan)
+            cls(ap, wlan=wlan, aplist=aplist)
 
             if ap.func[0] != 'ap':
                 ap.params['frequency'][wlan] = setChannelParams.frequency(ap, 0)
@@ -758,7 +760,7 @@ class mininetWiFi(object):
 
         for ap in accessPoints:
             if 'link' not in ap.params:
-                self.configureAP(ap)
+                self.configureAP(ap, aplist=accessPoints)
                 ap.phyID = module.phyID
                 module.phyID += 1
 
@@ -983,8 +985,8 @@ class mininetWiFi(object):
         params['useWmediumd'] = useWmediumd
         nodes = stations + accessPoints + cars
         module.start(nodes, self.wifiRadios, self.alternativeModule, **params)
-        self.createVirtualIfaces(stations)
         self.configureWirelessLink(stations, accessPoints, cars, switches)
+        self.createVirtualIfaces(stations)
         self.configureAPs(accessPoints)
         self.isWiFi = True
 
