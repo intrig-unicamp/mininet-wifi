@@ -1,7 +1,6 @@
 #!/usr/bin/python
 
-"""
-Before running this script please stop network-manager:
+"""Before running this script please stop network-manager:
 service network-manager stop
 
 This example shows how to create multiple SSID at the same AP and ideas around SSID-based packet forwarding
@@ -18,8 +17,7 @@ This example shows how to create multiple SSID at the same AP and ideas around S
                |
             --------
              ssid-2
-            --------
-"""
+            --------"""
 
 from mininet.net import Mininet
 from mininet.node import  Controller, UserSwitch
@@ -30,16 +28,16 @@ import time
 
 def topology():
     "Create a network."
-    net = Mininet( controller=Controller, link=TCLink, switch=UserSwitch, disableAutoAssociation=True )
+    net = Mininet(controller=Controller, link=TCLink, switch=UserSwitch, disableAutoAssociation=True)
 
     print "*** Creating nodes"
-    sta1 = net.addStation( 'sta1', position='10,60,0' )
-    sta2 = net.addStation( 'sta2', position='20,15,0' )
-    sta3 = net.addStation( 'sta3', position='10,25,0' )
-    sta4 = net.addStation( 'sta4', position='50,30,0' )
-    sta5 = net.addStation( 'sta5', position='45,65,0' )
-    ap1 = net.addAccessPoint( 'ap1', ssid="ssid,ssid1,ssid2,ssid3,ssid4", mode="g", channel="1", position='30,40,0' )
-    c0 = net.addController('c0', controller=Controller, ip='127.0.0.1', port=6653 )
+    sta1 = net.addStation('sta1', position='10,60,0')
+    sta2 = net.addStation('sta2', position='20,15,0')
+    sta3 = net.addStation('sta3', position='10,25,0')
+    sta4 = net.addStation('sta4', position='50,30,0')
+    sta5 = net.addStation('sta5', position='45,65,0')
+    ap1 = net.addAccessPoint('ap1', ssid="ssid,ssid1,ssid2,ssid3,ssid4", mode="g", channel="1", position='30,40,0')
+    c0 = net.addController('c0', controller=Controller, ip='127.0.0.1', port=6653)
 
     print "*** Configuring wifi nodes"
     net.configureWifiNodes()
@@ -50,7 +48,7 @@ def topology():
     print "*** Starting network"
     net.build()
     c0.start()
-    ap1.start( [c0] )
+    ap1.start([c0])
 
     sta1.setRange(15)
     sta2.setRange(15)
@@ -74,11 +72,11 @@ def topology():
     ap1.cmd('dpctl unix:/tmp/ap1 flow-mod table=0,cmd=add in_port=5 meter:4 apply:output=flood')
 
     print "*** Running CLI"
-    CLI( net )
+    CLI(net)
 
     print "*** Stopping network"
     net.stop()
 
 if __name__ == '__main__':
-    setLogLevel( 'info' )
+    setLogLevel('info')
     topology()

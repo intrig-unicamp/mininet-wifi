@@ -1,8 +1,6 @@
 #!/usr/bin/python
 
-"""
-   Example: Propagation Models
-"""
+'This example show how to configure Propagation Models'
 
 from mininet.net import Mininet
 from mininet.node import Controller, OVSKernelAP
@@ -13,13 +11,13 @@ from mininet.log import setLogLevel
 def topology():
 
     "Create a network."
-    net = Mininet( controller=Controller, link=TCLink, accessPoint=OVSKernelAP )
+    net = Mininet(controller=Controller, link=TCLink, accessPoint=OVSKernelAP)
 
     print "*** Creating nodes"
-    sta1 = net.addStation( 'sta1' )
-    sta2 = net.addStation( 'sta2' )
-    ap1 = net.addAccessPoint( 'ap1', ssid= 'new-ssid', equipmentModel='DI524', mode='g', channel='1', position='50,50,0' )
-    c1 = net.addController( 'c1', controller=Controller )
+    sta1 = net.addStation('sta1')
+    sta2 = net.addStation('sta2')
+    ap1 = net.addAccessPoint('ap1', ssid='new-ssid', equipmentModel='DI524', mode='g', channel='1', position='50,50,0')
+    c1 = net.addController('c1', controller=Controller)
 
     print "*** Configuring wifi nodes"
     net.configureWifiNodes()
@@ -31,7 +29,7 @@ def topology():
     print "*** Starting network"
     net.build()
     c1.start()
-    ap1.start( [c1] )
+    ap1.start([c1])
 
     """uncomment to plot graph"""
     net.plotGraph(max_x=100, max_y=100)
@@ -46,11 +44,11 @@ def topology():
     net.startMobility(time=0, model='RandomWayPoint', max_x=100, max_y=100, min_v=0.5, max_v=0.5)
 
     print "*** Running CLI"
-    CLI( net )
+    CLI(net)
 
     print "*** Stopping network"
     net.stop()
 
 if __name__ == '__main__':
-    setLogLevel( 'info' )
+    setLogLevel('info')
     topology()

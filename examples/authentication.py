@@ -1,21 +1,21 @@
 #!/usr/bin/python
 
-'This example creates a simple network topology with 1 AP and 2 stations'
+'This example shows how to work with authentication'
 
 from mininet.net import Mininet
-from mininet.node import  Controller, OVSKernelAP
+from mininet.node import  Controller, UserAP
 from mininet.cli import CLI
 from mininet.log import setLogLevel
 from mininet.link import TCLink
 
 def topology():
     "Create a network."
-    net = Mininet(controller=Controller, link=TCLink, accessPoint=OVSKernelAP)
+    net = Mininet(controller=Controller, link=TCLink, accessPoint=UserAP)
 
     print "*** Creating nodes"
-    sta1 = net.addStation('sta1')
-    sta2 = net.addStation('sta2')
-    ap1 = net.addAccessPoint('ap1', ssid="simplewifi", mode="g", channel="5")
+    sta1 = net.addStation('sta1', passwd='123456789a', encrypt='wpa2')  # encrypt=(wpa,wpa2,wep)
+    sta2 = net.addStation('sta2', passwd='123456789a', encrypt='wpa2')  # encrypt=(wpa,wpa2,wep)
+    ap1 = net.addAccessPoint('ap1', ssid="simplewifi", mode="g", channel="1", passwd='123456789a', encrypt='wpa2')  # encrypt=(wpa,wpa2,wep)
     c0 = net.addController('c0', controller=Controller, ip='127.0.0.1', port=6633)
 
     print "*** Configuring wifi nodes"
@@ -39,3 +39,5 @@ def topology():
 if __name__ == '__main__':
     setLogLevel('info')
     topology()
+
+

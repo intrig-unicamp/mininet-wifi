@@ -1,7 +1,6 @@
 #!/usr/bin/python
 
-"""
-                   (mesh)
+"""                   (mesh)
          ..........................
          .                        .
          .                        .
@@ -9,7 +8,7 @@
     (car1STA-mp0)            (car2STA-mp0)
        car1STA                  car2STA
     (car1STA-eth0)          (car2STA-eth0)
-    192.168.1.2/24           192.168.1.4/24 
+    192.168.1.2/24           192.168.1.4/24
          |                        |
     (car1SW-eth1)            (car2SW-eth1)
        car1SW                   car2SW
@@ -23,8 +22,7 @@
          .                        .
          .                        .
          ...........RSU1............
-                  (infra)
-"""
+                  (infra)"""
 
 
 from mininet.net import Mininet
@@ -35,9 +33,9 @@ from mininet.log import setLogLevel
 import os
 
 
-class InbandController( RemoteController ):
+class InbandController(RemoteController):
 
-    def checkListening( self ):
+    def checkListening(self):
         "Overridden to do nothing."
         return
 
@@ -65,15 +63,15 @@ def topology():
     print "*** Configuring wifi nodes"
     net.configureWifiNodes()
 
-    net.meshRouting('custom') 
+    net.meshRouting('custom')
 
-    net.addLink(rsu10,rsu11)
-    net.addLink(rsu11,rsu12)
-    net.addLink(rsu12,rsu13)
-    net.addLink(rsu13,rsu14)
+    net.addLink(rsu10, rsu11)
+    net.addLink(rsu11, rsu12)
+    net.addLink(rsu12, rsu13)
+    net.addLink(rsu13, rsu14)
 
     """Available Options: sumo, sumo-gui"""
-    #Put your sumocfg file in /mininet/sumo/data
+    # Put your sumocfg file in /mininet/sumo/data
     net.useExternalProgram('sumo-gui', config_file='map.sumocfg')
 
     print "*** Starting network"
@@ -88,35 +86,35 @@ def topology():
     for sw in net.vehicles:
         sw.start([c1])
         os.system('ifconfig %s 10.0.0.%s' % (sw, i))
-        i+=1
+        i += 1
 
     i = 1
     j = 2
     for c in car:
-        c.cmd('ifconfig %s-wlan0 192.168.0.%s/24 up' % (c,i))
-        c.cmd('ifconfig %s-eth0 192.168.1.%s/24 up' % (c,i))
+        c.cmd('ifconfig %s-wlan0 192.168.0.%s/24 up' % (c, i))
+        c.cmd('ifconfig %s-eth0 192.168.1.%s/24 up' % (c, i))
         c.cmd('ip route add 10.0.0.0/8 via 192.168.1.%s' % j)
-        i+=2
-        j+=2
-     
+        i += 2
+        j += 2
+
     i = 1
     j = 2
     for v in net.vehiclesSTA:
         v.cmd('ifconfig %s-eth0 192.168.1.%s/24 up' % (v, j))
-        v.cmd('ifconfig %s-mp0 10.0.0.%s/24 up' % (v,i))
+        v.cmd('ifconfig %s-mp0 10.0.0.%s/24 up' % (v, i))
         v.cmd('echo 1 > /proc/sys/net/ipv4/ip_forward')
-        i+=1    
-        j+=2
+        i += 1
+        j += 2
 
-  
+
     for v1 in net.vehiclesSTA:
         i = 1
         j = 1
         for v2 in net.vehiclesSTA:
-            if v1 != v2: 
-                v1.cmd('route add -host 192.168.1.%s gw 10.0.0.%s' % (j,i))
-            i+=1
-            j+=2
+            if v1 != v2:
+                v1.cmd('route add -host 192.168.1.%s gw 10.0.0.%s' % (j, i))
+            i += 1
+            j += 2
 
     print "*** Running CLI"
     CLI(net)

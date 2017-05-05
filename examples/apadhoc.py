@@ -1,8 +1,7 @@
 #!/usr/bin/python
 
-"""
-This example shows how to work with in ns APs
-"""
+'This example runs stations in AP mode'
+
 from mininet.net import Mininet
 from mininet.cli import CLI
 from mininet.log import setLogLevel

@@ -1,23 +1,21 @@
 #!/usr/bin/python
 
-"""
-This example shows how to work in adhoc mode
+"""This example shows how to work in adhoc mode
 
-sta1 <---> sta2 <---> sta3
+sta1 <---> sta2 <---> sta3"""
 
-"""
 from mininet.net import Mininet
 from mininet.cli import CLI
 from mininet.log import setLogLevel
 
 def topology():
     "Create a network."
-    net = Mininet( )
+    net = Mininet()
 
     print "*** Creating nodes"
-    sta1 = net.addStation( 'sta1' )
-    sta2 = net.addStation( 'sta2' )
-    sta3 = net.addStation( 'sta3' )
+    sta1 = net.addStation('sta1')
+    sta2 = net.addStation('sta2')
+    sta3 = net.addStation('sta3')
 
     print "*** Configuring wifi nodes"
     net.configureWifiNodes()
@@ -31,12 +29,12 @@ def topology():
     net.build()
 
     print "*** Running CLI"
-    CLI( net )
+    CLI(net)
 
     print "*** Stopping network"
     net.stop()
 
 if __name__ == '__main__':
-    setLogLevel( 'info' )
+    setLogLevel('info')
     topology()
 
