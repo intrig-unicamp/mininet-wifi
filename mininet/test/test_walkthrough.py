@@ -311,7 +311,7 @@ class testWalkthrough(unittest.TestCase):
         p.expect('00:00:00:00:00:01')
         p.expect(self.prompt)
         p.sendline('py sta1.moveNodeTo(\'80,40,0\')')
-        sleep(10)
+        sleep(15)
         p.sendline('sta1 iwconfig')
         p.expect('00:00:00:00:00:02')
         p.expect(self.prompt)
