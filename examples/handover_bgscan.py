@@ -35,7 +35,7 @@ def topology():
     net.addLink(ap2, ap3)
 
     print "*** Setting bgscan"
-    net.setBgscan(signal=-45, s_inverval=10, l_interval=20)
+    net.setBgscan(signal=-45, s_inverval=5, l_interval=10)
 
     print "*** Starting network"
     net.build()
