@@ -90,7 +90,7 @@ class replayingBandwidth(object):
                         # self.moveStationTo(sta, pos)
                         del sta.throughput[0]
                         del sta.time[0]
-                        info('%s\n' % sta.time[0])
+                        #info('%s\n' % sta.time[0])
                     if len(sta.time) == 1:
                         stations.remove(sta)
             # time.sleep(0.001)
