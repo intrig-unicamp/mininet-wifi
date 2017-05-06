@@ -991,8 +991,10 @@ class mininetWiFi(object):
         self.isWiFi = True
 
         # useful if there no link between sta and any other device
+        params = { 'nextIP': nextIP, 'ipBaseNum':ipBaseNum, 'prefixLen':prefixLen, 'ssid': 'mesh-ssid'}
+
         for car in cars:
-            self.addMesh(car.params['carsta'], nextIP, ipBaseNum, prefixLen, ssid='mesh-ssid')
+            self.addMesh(car.params['carsta'], **params)
             stations.remove(car.params['carsta'])
             stations.append(car)
             car.params['wlan'].append(0)
