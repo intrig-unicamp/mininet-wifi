@@ -198,6 +198,15 @@ class testWalkthrough(unittest.TestCase):
         p.sendline('exit')
         p.wait()
 
+    def testVanet(self):
+        "Start Mininet-WiFi using vanet example"
+        p = pexpect.spawn(
+            'python examples/vanet.py')
+        sleep(8)
+        p.expect(self.prompt)
+        p.sendline('exit')
+        p.wait()
+    
     def testPropagationModel(self):
         "Start Mininet-WiFi using a propagation model, then test ping and rssi"
         p = pexpect.spawn(
@@ -293,8 +302,24 @@ class testWalkthrough(unittest.TestCase):
         p.sendline('exit')
         p.wait()
 
+    def testBgscan(self):
+        "Start Mininet-WiF, then test bgscan"
+        p = pexpect.spawn(
+            'python examples/handover_bgscan.py')
+        sleep(3)
+        p.sendline('sta1 iwconfig')
+        p.expect('00:00:00:00:00:01')
+        p.expect(self.prompt)
+        p.sendline('py sta1.moveNodeTo(\'80,40,0\')')
+        sleep(10)
+        p.sendline('sta1 iwconfig')
+        p.expect('00:00:00:00:00:02')
+        p.expect(self.prompt)
+        p.sendline('exit')
+        p.wait()
+
     def testMutipleSSID(self):
-        "Start Mininet-WiFi with multiple SSIDs, thne test connectivity"
+        "Start Mininet-WiFi with multiple SSIDs, then test connectivity"
         pexpect.spawn(
             'service network-manager stop')
         p = pexpect.spawn(
