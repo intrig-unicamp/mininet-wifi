@@ -34,44 +34,44 @@ class testWalkthrough(unittest.TestCase):
         index = p.expect([ 'Usage: mn', pexpect.EOF ])
         self.assertEqual(index, 0)
 
-    def testBasic( self ):
+    def testBasic(self):
         "Test basic CLI commands (help, nodes, net, dump)"
-        p = pexpect.spawn( 'mn --wifi' )
+        p = pexpect.spawn('mn --wifi')
         sleep(3)
-        p.expect( self.prompt )
+        p.expect(self.prompt)
         # help command
-        p.sendline( 'help' )
-        index = p.expect( [ 'commands', self.prompt ] )
-        self.assertEqual( index, 0, 'No output for "help" command')
+        p.sendline('help')
+        index = p.expect([ 'commands', self.prompt ])
+        self.assertEqual(index, 0, 'No output for "help" command')
         # nodes command
-        p.sendline( 'nodes' )
-        p.expect( r'(ap\B\d ?){1}([c]\d ?){1}(sta\B\d ?){2}' )
-        nodes = p.match.group( 0 ).split()
-        self.assertEqual( len( nodes ), 4, 'No nodes in "nodes" command')
-        p.expect( self.prompt )
+        p.sendline('nodes')
+        p.expect(r'(ap\B\d ?){1}([c]\d ?){1}(sta\B\d ?){2}')
+        nodes = p.match.group(0).split()
+        self.assertEqual(len(nodes), 4, 'No nodes in "nodes" command')
+        p.expect(self.prompt)
         # net command
-        p.sendline( 'net' )
+        p.sendline('net')
         expected = [ x for x in nodes ]
-        while len( expected ) > 0:
-            index = p.expect( expected )
-            node = p.match.group( 0 )
-            expected.remove( node )
-            p.expect( '\n' )
-        self.assertEqual( len( expected ), 0, '"nodes" and "net" differ')
-        p.expect( self.prompt )
+        while len(expected) > 0:
+            index = p.expect(expected)
+            node = p.match.group(0)
+            expected.remove(node)
+            p.expect('\n')
+        self.assertEqual(len(expected), 0, '"nodes" and "net" differ')
+        p.expect(self.prompt)
         # dump command
-        p.sendline( 'dump' )
+        p.sendline('dump')
         expected = [ r'<\w+ (%s)' % n for n in nodes ]
         actual = []
         for _ in nodes:
-            index = p.expect( expected )
-            node = p.match.group( 1 )
-            actual.append( node )
-            p.expect( '\n' )
-        self.assertEqual( actual.sort(), nodes.sort(),
-                          '"nodes" and "dump" differ' )
-        p.expect( self.prompt )
-        p.sendline( 'exit' )
+            index = p.expect(expected)
+            node = p.match.group(1)
+            actual.append(node)
+            p.expect('\n')
+        self.assertEqual(actual.sort(), nodes.sort(),
+                          '"nodes" and "dump" differ')
+        p.expect(self.prompt)
+        p.sendline('exit')
         p.wait()
 
     def testConnectivity(self):
@@ -104,58 +104,58 @@ class testWalkthrough(unittest.TestCase):
         p.wait()
 
     # PART 2
-    def testRegressionRun( self ):
+    def testRegressionRun(self):
         "Test pingpair (0% drop) and iperf (bw > 0) regression tests"
         # test pingpair
-        p = pexpect.spawn( 'mn --wifi --test pingpair' )
-        p.expect( '0% dropped' )
-        p.expect( pexpect.EOF )
+        p = pexpect.spawn('mn --wifi --test pingpair')
+        p.expect('0% dropped')
+        p.expect(pexpect.EOF)
         # test iperf
-        p = pexpect.spawn( 'mn --wifi --test iperf' )
-        p.expect( r"Results: \['([\d\.]+) .bits/sec'," )
-        bw = float( p.match.group( 1 ) )
-        self.assertTrue( bw > 0 )
-        p.expect( pexpect.EOF )
+        p = pexpect.spawn('mn --wifi --test iperf')
+        p.expect(r"Results: \['([\d\.]+) .bits/sec',")
+        bw = float(p.match.group(1))
+        self.assertTrue(bw > 0)
+        p.expect(pexpect.EOF)
 
-    def testTopoChange( self ):
+    def testTopoChange(self):
         "Test pingall on single,3 and linear,4 topos"
         # testing single,3
-        p = pexpect.spawn( 'mn --wifi --test pingall --topo single,3' )
-        p.expect( r'(\d+)/(\d+) received')
-        received = int( p.match.group( 1 ) )
-        sent = int( p.match.group( 2 ) )
-        self.assertEqual( sent, 6, 'Wrong number of pings sent in single,3' )
-        self.assertEqual( sent, received, 'Dropped packets in single,3')
-        p.expect( pexpect.EOF )
+        p = pexpect.spawn('mn --wifi --test pingall --topo single,3')
+        p.expect(r'(\d+)/(\d+) received')
+        received = int(p.match.group(1))
+        sent = int(p.match.group(2))
+        self.assertEqual(sent, 6, 'Wrong number of pings sent in single,3')
+        self.assertEqual(sent, received, 'Dropped packets in single,3')
+        p.expect(pexpect.EOF)
         # testing linear,4
-        p = pexpect.spawn( 'mn --wifi --test pingall --topo linear,4' )
-        p.expect( r'(\d+)/(\d+) received')
-        received = int( p.match.group( 1 ) )
-        sent = int( p.match.group( 2 ) )
-        self.assertTrue( sent > 10 ) #it should be 12, but there is a delay for association
-        p.expect( pexpect.EOF )
+        p = pexpect.spawn('mn --wifi --test pingall --topo linear,4')
+        p.expect(r'(\d+)/(\d+) received')
+        received = int(p.match.group(1))
+        sent = int(p.match.group(2))
+        self.assertTrue(sent > 10)  # it should be 12, but there is a delay for association
+        p.expect(pexpect.EOF)
 
-    def testLinkChange( self ):
+    def testLinkChange(self):
         "Test TCLink bw and delay"
-        p = pexpect.spawn( 'mn --wifi --link wtc,bw=10,delay=10ms' )
+        p = pexpect.spawn('mn --wifi --link wtc,bw=10,delay=10ms')
         # test bw
         sleep(3)
-        p.expect( self.prompt )
-        p.sendline( 'iperf' )
-        p.expect( r"Results: \['([\d\.]+) Mbits/sec'," )
-        bw = float( p.match.group( 1 ) )
-        self.assertTrue( bw < 10.1, 'Bandwidth > 10 Mb/s')
-        self.assertTrue( bw > 9.0, 'Bandwidth < 9 Mb/s')
-        p.expect( self.prompt )
+        p.expect(self.prompt)
+        p.sendline('iperf')
+        p.expect(r"Results: \['([\d\.]+) Mbits/sec',")
+        bw = float(p.match.group(1))
+        self.assertTrue(bw < 10.1, 'Bandwidth > 10 Mb/s')
+        self.assertTrue(bw > 9.0, 'Bandwidth < 9 Mb/s')
+        p.expect(self.prompt)
         # test delay
-        p.sendline( 'sta1 ping -c 4 sta2' )
-        p.expect( r'rtt min/avg/max/mdev = '
-                  r'([\d\.]+)/([\d\.]+)/([\d\.]+)/([\d\.]+) ms' )
-        delay = float( p.match.group( 2 ) )
-        self.assertTrue( delay > 20, 'Delay < 20ms' )
-        self.assertTrue( delay < 25, 'Delay > 20ms' )
-        p.expect( self.prompt )
-        p.sendline( 'exit' )
+        p.sendline('sta1 ping -c 4 sta2')
+        p.expect(r'rtt min/avg/max/mdev = '
+                  r'([\d\.]+)/([\d\.]+)/([\d\.]+)/([\d\.]+) ms')
+        delay = float(p.match.group(2))
+        self.assertTrue(delay > 20, 'Delay < 20ms')
+        self.assertTrue(delay < 25, 'Delay > 20ms')
+        p.expect(self.prompt)
+        p.sendline('exit')
         p.wait()
 
     def testVerbosity(self):
@@ -186,22 +186,22 @@ class testWalkthrough(unittest.TestCase):
         sleep(3)
         p.expect('0% dropped')
         p.expect(pexpect.EOF)
-        
+
     def testMobility(self):
         "Start Mininet-WiFi using mobility, then test ping"
         p = pexpect.spawn(
-            'python examples/wifiMobility.py')
+            'python examples/mobility.py')
         sleep(3)
         p.sendline('sta1 ping -c 1 sta2')
         p.expect('1 packets transmitted, 1 received')
         p.expect(self.prompt)
         p.sendline('exit')
         p.wait()
-        
+
     def testPropagationModel(self):
         "Start Mininet-WiFi using a propagation model, then test ping and rssi"
         p = pexpect.spawn(
-            'python examples/wifiPropagationModel.py')
+            'python examples/propagationModel.py')
         sleep(3)
         p.sendline('sta1 ping -c 1 sta2')
         p.expect('1 packets transmitted, 1 received')
@@ -216,18 +216,18 @@ class testWalkthrough(unittest.TestCase):
         if a != b:
             p.sendline('exit')
             p.wait()
-        
+
     def testMesh(self):
         "Start Mininet-WiFi with wireless mesh, then test ping"
         p = pexpect.spawn(
-            'python examples/wifimesh.py')
+            'python examples/mesh.py')
         sleep(2)
         p.sendline('sta1 ping -c 1 sta2')
         p.expect('1 packets transmitted, 1 received')
         p.expect(self.prompt)
         p.sendline('exit')
         p.wait()
-        
+
     def testAdhoc(self):
         "Start Mininet-WiFi with wireless adhoc, then test ping"
         p = pexpect.spawn(
@@ -238,18 +238,18 @@ class testWalkthrough(unittest.TestCase):
         p.expect(self.prompt)
         p.sendline('exit')
         p.wait()
-        
+
     def testAuthentication(self):
         "Start Mininet-WiFi using WPA, then test ping"
         p = pexpect.spawn(
-            'python examples/wifiAuthentication.py')
+            'python examples/authentication.py')
         sleep(3)
-        p.sendline('sta1 ping -c 1 sta2')
+        p.sendline('sta1 ping -c1 sta2')
         p.expect('1 packets transmitted, 1 received')
         p.expect(self.prompt)
         p.sendline('exit')
         p.wait()
-        
+
     def testHandover(self):
         "Start Mininet-WiFi with handover, then test handover"
         p = pexpect.spawn(
@@ -264,7 +264,7 @@ class testWalkthrough(unittest.TestCase):
         p.expect(self.prompt)
         p.sendline('exit')
         p.wait()
-        
+
     def testmultipleWlan(self):
         "Start Mininet-WiFi with multiple WLAN"
         p = pexpect.spawn(
@@ -281,20 +281,20 @@ class testWalkthrough(unittest.TestCase):
         p.expect(self.prompt)
         p.sendline('exit')
         p.wait()
-        
+
     def testPosition(self):
         "Start Mininet-WiFi when the position is statically defined, then test ping"
         p = pexpect.spawn(
-            'python examples/wifiPosition.py')
+            'python examples/position.py')
         sleep(3)
         p.sendline('sta1 ping -c 1 sta2')
         p.expect('1 packets transmitted, 1 received')
         p.expect(self.prompt)
         p.sendline('exit')
         p.wait()
-        
+
     def testMutipleSSID(self):
-        "Start Mininet-WiFi with multiple SSIDs, the test connectivity"
+        "Start Mininet-WiFi with multiple SSIDs, thne test connectivity"
         pexpect.spawn(
             'service network-manager stop')
         p = pexpect.spawn(
@@ -317,18 +317,18 @@ class testWalkthrough(unittest.TestCase):
         p.expect(self.prompt)
         p.sendline('exit')
         p.wait()
-        
+
     def testWiFiMeshAP(self):
         "Start Mininet-WiFi, then test wifiMeshAP.py"
         p = pexpect.spawn(
-            'python examples/wifiMeshAP.py')
+            'python examples/meshAP.py')
         sleep(3)
         p.sendline('h1 ping -c1 h2')
         p.expect('1 packets transmitted, 1 received')
         p.expect(self.prompt)
         p.sendline('exit')
         p.wait()
-        
+
     def testWmediumdStatic(self):
         "Start Mininet-WiFi with wmediumd, then test ping"
         p = pexpect.spawn(
@@ -365,7 +365,7 @@ class testWalkthrough(unittest.TestCase):
         p2.sendline('exit')
         p2.wait()
         os.system('rmmod mac80211_hwsim')
-    
+
     def testWirelessParams(self):
         """Start Mininet-WiFi with apadhoc, then do an extensive test"""
         p = pexpect.spawn(
@@ -387,19 +387,19 @@ class testWalkthrough(unittest.TestCase):
         p.expect('Station ap2: ap2-wlan0:10.0.0.12')
         p.expect(self.prompt)
         p.sendline('py sta2.params[\'apsInRange\']')
-        p.expect('Station ap2: ap2-wlan0:10.0.0.12')   
+        p.expect('Station ap2: ap2-wlan0:10.0.0.12')
         p.expect(self.prompt)
         p.sendline('net')
         p.expect('ap1 ap1-wlan0:wireless ap1-eth1:ap2-eth1')
         p.expect(self.prompt)
         stations = [ 'Station sta1: sta1-wlan0:10.0.0.1', self.prompt ]
         p.sendline('py ap1.params[\'associatedStations\']')
-        p.expect(stations) 
+        p.expect(stations)
         p.sendline('py ap1.params[\'stationsInRange\']')
         p.expect(stations)
         stations = [ 'Station sta2: sta2-wlan0:10.0.0.2', self.prompt ]
         p.sendline('py ap2.params[\'associatedStations\']')
-        p.expect(stations) 
+        p.expect(stations)
         p.sendline('py ap2.params[\'stationsInRange\']')
         p.expect(stations)
         p.sendline('py sta1.moveNodeTo(\'80,40,0\')')
@@ -408,21 +408,21 @@ class testWalkthrough(unittest.TestCase):
         p.expect('Station ap2: ap2-wlan0:10.0.0.12')
         p.expect(self.prompt)
         p.sendline('py sta1.params[\'apsInRange\']')
-        p.expect('Station ap2: ap2-wlan0:10.0.0.12')   
+        p.expect('Station ap2: ap2-wlan0:10.0.0.12')
         p.expect(self.prompt)
         p.sendline('py sta1.params[\'rssi\']')
-        p.expect('-47.21')   
+        p.expect('-47.21')
         p.expect(self.prompt)
         stations = [ 'Station sta1: sta1-wlan0:10.0.0.1', 'Station sta2: sta2-wlan0:10.0.0.2', self.prompt ]
         p.sendline('py ap2.params[\'associatedStations\']')
-        p.expect(stations) 
+        p.expect(stations)
         p.sendline('py ap2.params[\'stationsInRange\']')
-        p.expect(stations)   
+        p.expect(stations)
         stations = [ self.prompt ]
         p.sendline('py ap1.params[\'associatedStations\']')
-        p.expect(stations) 
+        p.expect(stations)
         p.sendline('py ap1.params[\'stationsInRange\']')
-        p.expect(stations)   
+        p.expect(stations)
         p.sendline('exit')
         p.wait()
         p = pexpect.spawn(
@@ -433,17 +433,17 @@ class testWalkthrough(unittest.TestCase):
         p.expect(self.prompt)
         accessPoints = [ 'Station ap1: ap1-wlan0:10.0.0.11', 'Station ap2: ap2-wlan0:10.0.0.12', self.prompt ]
         p.sendline('py sta1.params[\'apsInRange\']')
-        p.expect(accessPoints)   
+        p.expect(accessPoints)
         stations = [ 'Station sta1: sta1-wlan0:10.0.0.1', 'Station sta2: sta2-wlan0:10.0.0.2', self.prompt ]
         p.sendline('py ap1.params[\'stationsInRange\']')
-        p.expect(stations) 
+        p.expect(stations)
         p.sendline('py ap2.params[\'stationsInRange\']')
-        p.expect(stations) 
+        p.expect(stations)
         p.sendline('py ap2.params[\'associatedStations\']')
-        p.expect(stations) 
+        p.expect(stations)
         p.sendline('exit')
         p.wait()
-        
+
     def testDynamicMAC(self):
         "Verify that MACs are set correctly"
         p = pexpect.spawn('mn --wifi')
@@ -516,7 +516,7 @@ class testWalkthrough(unittest.TestCase):
         p.wait()
 
     # PART 3
-    #def testPythonInterpreter(self):
+    # def testPythonInterpreter(self):
     #    "Test py and px by checking IP for sta1 and adding sta3"
     #    p = pexpect.spawn('mn --wifi')
     #    sleep(3)
