@@ -306,7 +306,7 @@ class testWalkthrough(unittest.TestCase):
         "Start Mininet-WiF, then test bgscan"
         p = pexpect.spawn(
             'python examples/handover_bgscan.py')
-        sleep(3)
+        sleep(5)
         p.sendline('sta1 iwconfig')
         p.expect('00:00:00:00:00:01')
         p.expect(self.prompt)
