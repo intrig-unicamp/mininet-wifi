@@ -1468,7 +1468,7 @@ class Mininet(object):
         mininetWiFi.plotGraph(max_x, max_y, max_z)
 
     def startGraph(self):
-        mininetWiFi.startGraph()
+        mininetWiFi.startGraph(self.stations, self.accessPoints)
 
     def setChannelEquation(self, **params):
         """ 
