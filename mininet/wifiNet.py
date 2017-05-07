@@ -731,6 +731,13 @@ class mininetWiFi(object):
             cls = AccessPoint
             cls(ap, wlan=wlan, aplist=aplist)
 
+            if 'phywlan' not in ap.params:
+                iface = ap.params['wlan'][wlan]
+            else:
+                iface = ap.params['phywlan']
+            if not self.useWmediumd:
+                self.setBw(ap, wlan, iface)
+
             if ap.func[0] != 'ap':
                 ap.params['frequency'][wlan] = setChannelParams.frequency(ap, 0)
                 wlanID = 0
@@ -738,6 +745,33 @@ class mininetWiFi(object):
 
             if len(ap.params['ssid']) > 1 and wlan == 0:
                 break
+
+    @classmethod
+    def customDataRate(self, node, wlan):
+        """Custom Maximum Data Rate - Useful when there is mobility"""
+        mode = node.params['mode'][wlan]
+
+        if (mode == 'a'):
+            self.rate = 54
+        elif(mode == 'b'):
+            self.rate = 11
+        elif(mode == 'g'):
+            self.rate = 54
+        elif(mode == 'n'):
+            self.rate = 600
+        elif(mode == 'ac'):
+            self.rate = 6777
+        return self.rate
+
+    @classmethod
+    def setBw(self, node, wlan, iface):
+        """ Set bw to AP """
+        value = self.customDataRate(node, wlan)
+        bw = value
+        node.cmd("tc qdisc replace dev %s \
+            root handle 2: tbf rate %sMbit burst 15000 latency 1ms" % (iface, bw))
+        # Reordering packets
+        node.cmd('tc qdisc add dev %s parent 2:1 handle 10: pfifo limit 1000' % (iface))
 
     @classmethod
     def configureAPs(self, accessPoints):
