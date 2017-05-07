@@ -478,7 +478,7 @@ class Mininet(object):
         defaults.update(params)
 
         if not cls:
-            cls = self.switch
+            cls = self.accessPoint
         bs = cls(name, **defaults)
         if not self.inNamespace and self.listenPort:
             self.listenPort += 1
