@@ -376,6 +376,7 @@ class Mininet(object):
         self.nameToNode[ name ] = car
         car.type = 'vehicle'
         mininetWiFi.addParameters(car, self.autoSetMacs, defaults)
+        self.disableAutoAssociation = True
 
         carsta = self.addStation(name + 'STA')
         carsta.params['range'] = car.params['range']
@@ -480,6 +481,7 @@ class Mininet(object):
         if not cls:
             cls = self.accessPoint
         bs = cls(name, **defaults)
+
         if not self.inNamespace and self.listenPort:
             self.listenPort += 1
 
