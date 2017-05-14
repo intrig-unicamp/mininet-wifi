@@ -25,7 +25,7 @@ step 4: $ sudo util/install.sh -Wnfvl
 -l: wmediumd   
 
 ## Pre-configured Virtual Machine    
-[Ubuntu 14.04 x64](https://www.dropbox.com/s/0u4o1wmmooq81yi/mn-wifi.ova?dl=1)     
+[Ubuntu 14.04 x64](https://intrig.dca.fee.unicamp.br:8840/owncloud/index.php/s/nFMcCmUPjpka1rF)     
 user: wifi   
 pass: wifi   
    
