@@ -458,18 +458,9 @@ class mininetWiFi(object):
                                   ipBaseNum=params['ipBaseNum'],
                                   prefixLen=params['prefixLen']) +
                                   '/%s' % params['prefixLen']}
-        options.update(params)
-
         node.params['ssid'] = []
-        if hasattr(node, 'meshMac'):
-            for n in range(len(node.params['wlan'])):
-                node.meshMac.append('')
-                node.params['ssid'].append('')
-        else:
-            node.meshMac = []
-            for n in range(len(node.params['wlan'])):
-                node.meshMac.append('')
-                node.params['ssid'].append('')
+        for n in range(len(node.params['wlan'])):
+            node.params['ssid'].append('')
 
         ip = ("%s" % params.pop('ip', {}))
         if ip == "{}":
@@ -483,15 +474,14 @@ class mininetWiFi(object):
 
         deviceRange(node)
 
-        value = deviceDataRate(sta=node, wlan=wlan)
-        self.bw = value.rate
-
         options['node'] = node
         options.update(params)
 
         # Set default MAC - this should probably be in Link
         options.setdefault('addr1', self.randMac())
 
+        if node.type != 'WirelessMeshAP':
+            node.convertIfaceToMesh(node, wlan)
         cls = Association
         cls.configureMesh(node, wlan)
         if 'intf' not in params:
@@ -595,11 +585,10 @@ class mininetWiFi(object):
                 if 'position' not in node.params:
                     posX = 0
                     posY = 0
-                    node.lastpos = [0, 0, 0]
                 else:
                     posX = node.params['position'][0]
                     posY = node.params['position'][1]
-                    node.lastpos = node.params['position']
+                node.lastpos = [0, 0, 0]
                 positions.append(WmediumdPosition(node.wmediumdIface, [posX, posY]))
                 txpowers.append(WmediumdTXPower(node.wmediumdIface, float(node.params['txpower'][0])))
         else:
@@ -992,16 +981,17 @@ class mininetWiFi(object):
         :param node: node
         """
         for wlan in range(0, len(node.params['wlan'])):
+            if node.type == 'WirelessMeshAP':
+                node.convertIfaceToMesh(node, wlan)
+                #cls = TCLinkWirelessAP
+                #cls(node, intfName1=node.params['wlan'][wlan])
             iface = node.params['wlan'][wlan]
             if node.params['mac'][wlan] == '':
                 node.params['mac'][wlan] = node.getMAC(iface)
             else:
-                mac = node.params['mac'][wlan]
-                node.setMAC(mac, iface)
-            if node.type == 'WirelessMeshAP':
-                node.convertIfaceToMesh(node, wlan)
-                cls = TCLinkWirelessAP
-                cls(node, intfName1=node.params['wlan'][wlan])
+                if node.type != 'WirelessMeshAP':
+                    mac = node.params['mac'][wlan]
+                    node.setMAC(mac, iface)
 
     @classmethod
     def configureWifiNodes(self, stations, accessPoints, cars, switches, \
@@ -1081,7 +1071,7 @@ class mininetWiFi(object):
                             node = node.params['carsta']
                             wlan = 0
                         dist = listNodes.pairingNodes(node, wlan, nodes)
-                        if dist >= 0.01:
+                        if dist >= 0.01 and not self.useWmediumd:
                             setChannelParams(sta=node, wlan=wlan, dist=dist)
                 if meshRouting.routing == 'custom':
                     meshRouting(nodes)

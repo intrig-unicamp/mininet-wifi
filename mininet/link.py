@@ -54,7 +54,6 @@ class Intf(object):
         # Add to node (and move ourselves if necessary )
         moveIntfFn = params.pop('moveIntfFn', None)
 
-        # if self not in node.linksWifi:
         if moveIntfFn:
             node.addIntf(self, port=port, moveIntfFn=moveIntfFn)
         else:
@@ -245,7 +244,7 @@ class IntfWireless(object):
             self.ip = '127.0.0.1'
         # Add to node (and move ourselves if necessary )
         moveIntfFn = params.pop('moveIntfFn', None)
-        # if self not in node.linksWifi:
+
         if tc == False:
             if moveIntfFn:
                 node.addIntf(self, port=port, moveIntfFn=moveIntfFn)
@@ -1180,7 +1179,6 @@ class Association(Link):
         node.params['snr'][wlan] = -62 - (-91.0)
 
         if 'mp' not in node.params['wlan'][wlan]:
-            node.convertIfaceToMesh(node, wlan)
             iface = node.params['wlan'][wlan]
             node.params['frequency'][wlan] = setChannelParams.frequency(node, wlan)
             self.getMacAddress(node, iface, wlan)

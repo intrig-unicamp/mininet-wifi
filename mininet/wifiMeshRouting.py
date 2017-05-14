@@ -126,8 +126,10 @@ class meshRouting (object):
                                 associate = True
                                 if WmediumdServerConn.connected:
                                     if WmediumdServerConn.interference_enabled:
-                                        cls = Association
-                                        cls.setPositionWmediumd(sta)
+                                        if sta.lastpos != sta.params['position']:
+                                            cls = Association
+                                            cls.setPositionWmediumd(sta)
+                                            sta.lastpos = sta.params['position']
                                     else:
                                         cls = Association
                                         cls.setSNRWmediumd(sta, ref_sta, sta.params['snr'][wlan])
@@ -152,19 +154,19 @@ class meshRouting (object):
                 for sta1, sta2 in zip(listNodes.nodesX, listNodes.nodesY):
                     if sta1 == sta and sta2 not in exist:
                         command = 'iw dev %s mpath new %s next_hop %s' % (sta.params['wlan'][wlan], \
-                                                                          sta2.meshMac[wlan], sta2.meshMac[wlan])
+                                                                          sta2.params['mac'][wlan], sta2.params['mac'][wlan])
                         debug('\n' + command)
                         sta.pexec(command)
                         exist.append(sta2)
-                        controlMeshMac.append(sta2.meshMac[wlan])
+                        controlMeshMac.append(sta2.params['mac'][wlan])
                         sta_ref.append(sta2)
                     elif sta1 == newsta and sta2 not in exist:
                         command = 'iw dev %s mpath new %s next_hop %s' % (sta.params['wlan'][wlan], \
-                                                                          sta2.meshMac[wlan], sta1.meshMac[wlan])
+                                                                          sta2.params['mac'][wlan], sta1.params['mac'][wlan])
                         debug('\n' + command)
                         sta.pexec(command)
                         exist.append(sta2)
-                        controlMeshMac.append(sta2.meshMac[wlan])
+                        controlMeshMac.append(sta2.params['mac'][wlan])
                         sta_ref.append(sta2)
                 if newsta in sta_ref:
                     sta_ref.remove(newsta)
@@ -177,12 +179,17 @@ class meshRouting (object):
                         if ref_sta.type == 'vehicle':
                             ref_wlan = 0
                             ref_sta = ref_sta.params['carsta']
-                        if ref_sta.meshMac[ref_wlan] not in controlMeshMac:
-                            sta.pexec('iw dev %s mpath del %s' % (sta.params['wlan'][wlan], ref_sta.meshMac[ref_wlan]))
+                        if ref_sta.params['mac'][ref_wlan] not in controlMeshMac:
+                            sta.pexec('iw dev %s mpath del %s' % (sta.params['wlan'][wlan], ref_sta.params['mac'][ref_wlan]))
                         if WmediumdServerConn.connected:
-                            cls = Association
-                            cls.setSNRWmediumd(sta, ref_sta, -10)
-
+                            if WmediumdServerConn.interference_enabled:
+                                if sta.lastpos != sta.params['position']:
+                                    cls = Association
+                                    cls.setPositionWmediumd(sta)
+                                    sta.lastpos = sta.params['position']
+                            else:
+                                cls = Association
+                                cls.setSNRWmediumd(sta, ref_sta, -10)
         """mesh leave"""
         if associate == False:
             debug('\niw dev %s mesh leave' % sta.params['wlan'][wlan])

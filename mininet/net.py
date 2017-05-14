@@ -448,6 +448,13 @@ class Mininet(object):
             cls = self.accessPoint
         node = cls(name, **defaults)
 
+        node.params['ssid'] = []
+        wlans = 1
+        if 'wlans' in params:
+            wlans = params['wlans']
+        for n in range(0, wlans):
+            node.params['ssid'].append('')
+
         if not self.inNamespace and self.listenPort:
             self.listenPort += 1
 
