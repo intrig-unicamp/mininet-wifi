@@ -673,25 +673,29 @@ class mininetWiFi(object):
         if 'phywlan' in node.params:
             wlanID = 1
         for wlan in range(len(node.params['wlan']) + wlanID):
-            if wlanID == 1:
-                wlan = 0
             if 'inNamespace' not in node.params or wlanID == 1:
                 if node.type != 'station':
                     options = dict()
                     if 'phywlan' not in node.params:
-                        intf = module.wlan_list[0]
-                        module.wlan_list.pop(0)
-                        node.renameIface(intf, node.params['wlan'][wlan])
+                        self.configureIface(node, wlan)
                     else:
-                        iface = node.params['phywlan']
-                        options.setdefault('intfName1', iface)
+                        if wlan == 1:
+                            wlan = 0
+                            self.configureIface(node, wlan)
+                        else:
+                            iface = node.params['phywlan']
+                            options.setdefault('intfName1', iface)
                     cls = TCLinkWirelessAP
                     cls(node, **options)
             AccessPoint.setIPMAC(node, wlan)
-            if 'phywlan' in node.params:
-                node.params.pop("phywlan", None)
             if len(node.params['ssid']) > 1 and wlan == 0:
                 break
+
+    @classmethod
+    def configureIface(self, node, wlan):
+        intf = module.wlan_list[0]
+        module.wlan_list.pop(0)
+        node.renameIface(intf, node.params['wlan'][wlan])
 
     @classmethod
     def configureAP(self, ap, wlanID=0, aplist=None):
@@ -738,9 +742,11 @@ class mininetWiFi(object):
             if not self.useWmediumd:
                 self.setBw(ap, wlan, iface)
 
+            if 'phywlan' in ap.params:
+                ap.params.pop("phywlan", None)
+
             if ap.func[0] != 'ap':
                 ap.params['frequency'][wlan] = setChannelParams.frequency(ap, 0)
-                wlanID = 0
             setChannelParams.recordParams(None, ap)
 
             if len(ap.params['ssid']) > 1 and wlan == 0:
