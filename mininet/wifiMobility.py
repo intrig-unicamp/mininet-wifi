@@ -474,6 +474,12 @@ class mobility (object):
                 if node.func[wlan] == 'mesh' or node.func[wlan] == 'adhoc':
                     meshNodes.append(node)
 
+        if WmediumdServerConn.connected and meshNodes != []:
+            cls = Association
+            for node in meshNodes:
+                for wlan in range(0, len(node.params['wlan'])):
+                    cls.meshAssociation(node, wlan)
+
         while True:
             self.setParameters(self.mobilityNodes, meshNodes)
 
@@ -485,12 +491,18 @@ class mobility (object):
         for node in nodes:
             for wlan in range(0, len(node.params['wlan'])):
                 if node.func[wlan] == 'mesh' or node.func[wlan] == 'adhoc':
-                    if node.type == 'vehicle':
-                        node = node.params['carsta']
-                        wlan = 0
-                    dist = listNodes.pairingNodes(node, wlan, meshNodes)
-                    if WmediumdServerConn.connected == False and dist >= 0.01:
-                        setChannelParams(sta=node, wlan=wlan, dist=dist)
+                    if not WmediumdServerConn.interference_enabled:
+                        if node.type == 'vehicle':
+                            node = node.params['carsta']
+                            wlan = 0
+                        dist = listNodes.pairingNodes(node, wlan, meshNodes)
+                        if WmediumdServerConn.connected == False and dist >= 0.01:
+                            setChannelParams(sta=node, wlan=wlan, dist=dist)
+                    else:
+                        if node.lastpos != node.params['position']:
+                            cls = Association
+                            cls.setPositionWmediumd(node)
+                            node.lastpos = node.params['position']
                 else:
                     self.handoverCheck(node, wlan)
         if meshRouting.routing == 'custom':
