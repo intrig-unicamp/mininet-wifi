@@ -1200,7 +1200,7 @@ class Association(Link):
         """
         Performs Mesh Association
         """
-        info("associating %s to %s...\n" % (sta.params['wlan'][wlan], sta.params['ssid'][wlan]))
+        debug("associating %s to %s...\n" % (sta.params['wlan'][wlan], sta.params['ssid'][wlan]))
         sta.pexec('iw dev %s mesh join %s' % (sta.params['wlan'][wlan], sta.params['ssid'][wlan]))
 
     _macMatchRegex = re.compile(r'..:..:..:..:..:..')

@@ -474,7 +474,7 @@ class mobility (object):
                 if node.func[wlan] == 'mesh' or node.func[wlan] == 'adhoc':
                     meshNodes.append(node)
 
-        if WmediumdServerConn.connected and meshNodes != []:
+        if WmediumdServerConn.interference_enabled and meshNodes != []:
             cls = Association
             for node in meshNodes:
                 for wlan in range(0, len(node.params['wlan'])):
@@ -496,7 +496,7 @@ class mobility (object):
                             node = node.params['carsta']
                             wlan = 0
                         dist = listNodes.pairingNodes(node, wlan, meshNodes)
-                        if WmediumdServerConn.connected == False and dist >= 0.01:
+                        if not WmediumdServerConn.connected and dist >= 0.01:
                             setChannelParams(sta=node, wlan=wlan, dist=dist)
                     else:
                         if node.lastpos != node.params['position']:
@@ -505,7 +505,8 @@ class mobility (object):
                             node.lastpos = node.params['position']
                 else:
                     self.handoverCheck(node, wlan)
-        if meshRouting.routing == 'custom':
-            meshRouting(meshNodes)
-        # have to verify this
+        if not WmediumdServerConn.interference_enabled:
+            if meshRouting.routing == 'custom':
+                meshRouting(meshNodes)
+            # have to verify this
         eval(self.continueParams)
