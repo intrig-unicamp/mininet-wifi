@@ -581,6 +581,9 @@ class mininetWiFi(object):
         os.system(cmd)
         node.cmd('wpa_supplicant -B -Dnl80211 -c%s -i%s -d' % (confname, node.params['wlan'][wlan]))
 
+        if 'intf' not in params:
+            node.ifaceToAssociate += 1
+
     @staticmethod
     def randMac():
         "Return a random, non-multicast MAC address"
