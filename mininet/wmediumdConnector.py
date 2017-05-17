@@ -15,6 +15,7 @@ import struct
 import stat
 
 from mininet.log import info, error, debug
+from mininet.wifiPropagationModels import propagationModel
 
 
 class WmediumdConstants:
@@ -336,7 +337,14 @@ class WmediumdStarter(object):
                         first_txpower = False
                     else:
                         configstr += ', %s' % txpower
-                configstr += ');\n\tmodel_name = "log_distance";\n\tpath_loss_exp = 3.5;\n\txg = 0.0;\n};'
+                if propagationModel.model == 'ITUPropagationLossModel':
+                    configstr += ');\n\tmodel_name = "itu";\n\tnFLOORS = %d;\n\tLF = %d;\n};' % \
+                                                            (propagationModel.nFloors, propagationModel.pL)
+                elif propagationModel.model == 'logDistancePropagationLossModel':
+                    configstr += ');\n\tmodel_name = "log_distance";\n\tpath_loss_exp = %f;\n\txg = 0.0;\n};' % propagationModel.exp
+                else:
+                    configstr += ');\n\tmodel_name = "free_space";\n};'
+
             else:
                 configstr += '\n\t];\n};\nmodel:\n{\n\ttype = "'
                 if cls.mode == WmediumdConstants.WMEDIUMD_MODE_ERRPROB:
