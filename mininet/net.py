@@ -530,38 +530,6 @@ class Mininet(object):
         "Delete a switch"
         self.delNode(switch, nodes=self.switches)
 
-    # Still in development
-    def addWall(self, name, cls=None, **params):
-        """in development"""
-        defaults = {}
-        defaults.update(params)
-
-        if not cls:
-            cls = self.switch
-
-        wall = cls(name, **defaults)
-        wall.type = 'wall'
-        self.walls.append(wall)
-
-        initPos = ("%s" % params.pop('initPos', {}))
-        if(initPos != "{}"):
-            initPos = initPos.split(',')
-            wall.params['initPos'] = initPos
-
-        finalPos = ("%s" % params.pop('finalPos', {}))
-        if(finalPos != "{}"):
-            finalPos = finalPos.split(',')
-            wall.params['finalPos'] = finalPos
-
-        width = ("%s" % params.pop('width', {}))
-        if(width != "{}"):
-            wall.params['width'] = width
-        else:
-            wall.params['width'] = 3
-
-        self.nameToNode[ name ] = wall
-        return wall
-
     def addController(self, name='c0', controller=None, **params):
         """Add controller.
            controller: Controller class"""
@@ -698,43 +666,14 @@ class Mininet(object):
         params['prefixLen'] = self.prefixLen
         mininetWiFi.addHoc(node, cls=None, **params)
 
-    def wifiDirect(self, sta, cls=None, **params):
+    def wifiDirect(self, node, **params):
         """
         Configure wifidirect
         
-        sta: name of the station
-        cls: custom association class/constructor
+        node: name of node
         params: parameters for station
         """
-
-        wlan = sta.ifaceToAssociate
-        sta.func[wlan] = 'wifiDirect'
-
-        options = { 'ip': ipAdd(self.nextIP,
-                                  ipBaseNum=self.ipBaseNum,
-                                  prefixLen=self.prefixLen) +
-                                  '/%s' % self.prefixLen}
-        options.update(params)
-
-        cmd = ("echo \'")
-        cmd = cmd + 'ctrl_interface=/var/run/wpa_supplicant\
-            \nap_scan=1\
-            \np2p_go_ht40=1\
-            \ndevice_name=%s\
-            \ndevice_type=1-0050F204-1\
-            \np2p_no_group_iface=1' % (sta)
-        confname = "mn%d_%s_wifiDirect.conf" % (os.getpid(), sta)
-        cmd = cmd + ("\' > %s" % confname)
-        os.system(cmd)
-        sta.cmd('wpa_supplicant -B -Dnl80211 -c%s -i%s -d' % (confname, sta.params['wlan'][wlan]))
-
-        value = mininetWiFi.setDataRate(sta=sta, wlan=wlan)
-        self.bw = value.rate
-
-        options['sta'] = sta
-        options.update(params)
-        # Set default MAC - this should probably be in Link
-        options.setdefault('addr1', self.randMac())
+        mininetWiFi.wifiDirect(node, **params)
 
     def useIFB(self):
         "Support to Intermediate Functional Block (IFB) Devices"

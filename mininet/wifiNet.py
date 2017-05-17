@@ -551,6 +551,36 @@ class mininetWiFi(object):
         if 'intf' not in params:
             node.ifaceToAssociate += 1
 
+    @classmethod
+    def wifiDirect(self, node, **params):
+        """
+        Configure wifidirect
+
+        node: name of the node
+        cls: custom association class/constructor
+        params: parameters for station
+        """
+        if 'intf' in params:
+            for intf_ in node.params['wlan']:
+                if params['intf'] == intf_:
+                    wlan = node.params['wlan'].index(intf_)
+        else:
+            wlan = node.ifaceToAssociate
+
+        node.func[wlan] = 'wifiDirect'
+
+        cmd = ("echo \'")
+        cmd = cmd + 'ctrl_interface=/var/run/wpa_supplicant\
+            \nap_scan=1\
+            \np2p_go_ht40=1\
+            \ndevice_name=%s\
+            \ndevice_type=1-0050F204-1\
+            \np2p_no_group_iface=1' % (node)
+        confname = "mn%d_%s_wifiDirect.conf" % (os.getpid(), node)
+        cmd = cmd + ("\' > %s" % confname)
+        os.system(cmd)
+        node.cmd('wpa_supplicant -B -Dnl80211 -c%s -i%s -d' % (confname, node.params['wlan'][wlan]))
+
     @staticmethod
     def randMac():
         "Return a random, non-multicast MAC address"

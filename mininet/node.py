@@ -1210,11 +1210,11 @@ class AccessPoint(AP):
                 else:
                     cmd = cmd + ('\nwpa=3')
                 cmd = cmd + ('\neap_server=1')
-                cmd = cmd + ('\neapol_version=2')                
+                cmd = cmd + ('\neapol_version=2')
             else:
                 cmd = cmd + ("\nwme_enabled=1")
                 cmd = cmd + ("\nwmm_enabled=1")
-    
+
                 if 'encrypt' in ap.params:
                     if 'wpa' in ap.params['encrypt'][0]:
                         cmd = cmd + ("\nauth_algs=%s" % ap.auth_algs)
@@ -1226,12 +1226,12 @@ class AccessPoint(AP):
                         cmd = cmd + ("\nauth_algs=%s" % ap.auth_algs)
                         cmd = cmd + ("\nwep_default_key=%s" % 0)
                         cmd = cmd + self.verifyWepKey(ap.wep_key0)
-    
+
                 if ap.params['mode'][0] == 'ac':
                     cmd = cmd + ("\nieee80211ac=1")
                 elif ap.params['mode'][0] == 'n':
-                    cmd = cmd + ("\nieee80211n=1")                 
-    
+                    cmd = cmd + ("\nieee80211n=1")
+
                 if 'ieee80211r' in ap.params and ap.params['ieee80211r'] == 'yes':  # support to 802.11r
                     if 'mobility_domain' in ap.params:
                         cmd = cmd + ("\nmobility_domain=%s" % ap.params['mobility_domain'])
