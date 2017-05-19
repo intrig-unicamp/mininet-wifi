@@ -341,7 +341,7 @@ class WmediumdStarter(object):
                     configstr += ');\n\tmodel_name = "itu";\n\tnFLOORS = %d;\n\tLF = %d;\n};' % \
                                                             (propagationModel.nFloors, propagationModel.pL)
                 elif propagationModel.model == 'logDistancePropagationLossModel':
-                    configstr += ');\n\tmodel_name = "log_distance";\n\tpath_loss_exp = %f;\n\txg = 0.0;\n};' % propagationModel.exp
+                    configstr += ');\n\tmodel_name = "log_distance";\n\tpath_loss_exp = %.1f;\n\txg = 0.0;\n};' % propagationModel.exp
                 else:
                     configstr += ');\n\tmodel_name = "free_space";\n};'
 
