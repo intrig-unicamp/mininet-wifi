@@ -28,10 +28,6 @@ def topology():
     print "*** Configuring Propagation Model"
     net.propagationModel("logDistancePropagationLossModel", exp=3)
 
-    print "*** Creating links"
-    net.addLink(ap1, sta1)
-    net.addLink(ap1, sta2)
-
     print "*** Starting network"
     net.build()
     c1.start()
