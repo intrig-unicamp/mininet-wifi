@@ -15,7 +15,7 @@ from mininet.node import AccessPoint
 from mininet.log import info
 from mininet.wmediumdConnector import DynamicWmediumdIntfRef, WmediumdSNRLink, WmediumdStarter, \
                     WmediumdTXPower, WmediumdPosition, WmediumdConstants, WmediumdServerConn
-from mininet.wifiChannel import setChannelParams
+from mininet.wifiLink import link
 from mininet.wifiDevices import deviceRange, deviceDataRate
 from mininet.wifiAdHocConnectivity import pairingAdhocNodes
 from mininet.wifiMeshRouting import listNodes, meshRouting
@@ -32,7 +32,7 @@ from sumo.runner import sumo
 
 class mininetWiFi(object):
 
-    associationControlMethod = ''
+    AC = ''
     alternativeModule = ''
     rec_rssi = False
     useWmediumd = False
@@ -644,7 +644,7 @@ class mininetWiFi(object):
         :param wlan: wlan ID
         """
 
-        sta.params['frequency'][wlan] = setChannelParams.frequency(ap, 0)
+        sta.params['frequency'][wlan] = link.frequency(ap, 0)
         sta.params['channel'][wlan] = ap.params['channel'][0]
 
     @classmethod
@@ -768,8 +768,8 @@ class mininetWiFi(object):
                 ap.params.pop("phywlan", None)
 
             if ap.func[0] != 'ap':
-                ap.params['frequency'][wlan] = setChannelParams.frequency(ap, 0)
-            setChannelParams.recordParams(None, ap)
+                ap.params['frequency'][wlan] = link.frequency(ap, 0)
+            link.recordParams(None, ap)
 
             if len(ap.params['ssid']) > 1 and wlan == 0:
                 break
@@ -927,7 +927,7 @@ class mininetWiFi(object):
             mobilityModel = kwargs['model']
 
         if 'AC' in kwargs:
-            self.associationControlMethod = kwargs['AC']
+            self.AC = kwargs['AC']
 
         if mobilityModel != '' or self.isVanet:
             stationaryNodes = []
@@ -987,10 +987,11 @@ class mininetWiFi(object):
         mobilityparam.setdefault('MAX_X', self.MAX_X)
         mobilityparam.setdefault('MAX_Y', self.MAX_Y)
         mobilityparam.setdefault('MAX_Z', self.MAX_Z)
-        mobilityparam.setdefault('AC', self.associationControlMethod)
+        mobilityparam.setdefault('AC', self.AC)
         mobilityparam.setdefault('rec_rssi', self.rec_rssi)
         mobilityparam.setdefault('init_time', self.init_time)
         mobilityparam.setdefault('stationaryNodes', stationaryNodes)
+        mobilityparam.setdefault('is3d', self.is3d)
         return mobilityparam
 
     @classmethod
@@ -1045,7 +1046,7 @@ class mininetWiFi(object):
 
         params = {}
         if self.ifb:
-            setChannelParams.ifb = True
+            link.ifb = True
             params['ifb'] = self.ifb
         params['useWmediumd'] = useWmediumd
         nodes = stations + accessPoints + cars
@@ -1095,19 +1096,19 @@ class mininetWiFi(object):
                 for wlan in range(0, len(node.params['wlan'])):
                     if 'position' in node.params and 'link' not in node.params:
                         mobility.accessPoints = accessPoints
-                        mobility.handoverCheck(node, wlan)
+                        mobility.checkAssociation(node, wlan)
                     if 'position' in node.params and node.func[wlan] == 'adhoc' and node.params['associatedTo'][wlan] == '':
                         value = pairingAdhocNodes(node, wlan, nodes)
                         dist = value.dist
                         if dist >= 0.01:
-                            setChannelParams(sta=node, wlan=wlan, dist=dist)
+                            link(sta=node, wlan=wlan, dist=dist)
                     elif 'position' in node.params and node.func[wlan] == 'mesh':
                         if node.type == 'vehicle':
                             node = node.params['carsta']
                             wlan = 0
                         dist = listNodes.pairingNodes(node, wlan, nodes)
                         if dist >= 0.01 and not self.useWmediumd:
-                            setChannelParams(sta=node, wlan=wlan, dist=dist)
+                            link(sta=node, wlan=wlan, dist=dist)
                 if meshRouting.routing == 'custom':
                     meshRouting(nodes)
 
@@ -1126,11 +1127,11 @@ class mininetWiFi(object):
         """
         propagationModel.model = model
         propagationModel.exp = exp
-        setChannelParams.sl = sL
-        setChannelParams.lF = lF
-        setChannelParams.nFloors = nFloors
-        setChannelParams.gRandom = gRandom
-        setChannelParams.pL = pL
+        link.sl = sL
+        link.lF = lF
+        link.nFloors = nFloors
+        link.gRandom = gRandom
+        link.pL = pL
 
         for sta in stations:
             if 'position' in sta.params and sta not in mobility.stations:
@@ -1151,7 +1152,7 @@ class mininetWiFi(object):
 
     @classmethod
     def getDistance(self, src, dst):
-        dist = setChannelParams.getDistance(src, dst)
+        dist = link.getDistance(src, dst)
         return dist
 
     @classmethod
@@ -1189,9 +1190,9 @@ class mininetWiFi(object):
     @classmethod
     def associationControl(self, ac):
         """Defines an association control
-        :params ac: the association control
+        :params ac: association control method
         """
-        mobility.associationControlMethod = ac
+        mobility.AC = ac
 
     @classmethod
     def setChannelEquation(self, **params):
@@ -1204,13 +1205,13 @@ class mininetWiFi(object):
         :params loss: loss (%)
         """
         if 'bw' in params:
-            setChannelParams.equationBw = params['bw']
+            link.equationBw = params['bw']
         if 'delay' in params:
-            setChannelParams.equationDelay = params['delay']
+            link.equationDelay = params['delay']
         if 'latency' in params:
-            setChannelParams.equationLatency = params['latency']
+            link.equationLatency = params['latency']
         if 'loss' in params:
-            setChannelParams.equationLoss = params['loss']
+            link.equationLoss = params['loss']
 
     @classmethod
     def closeMininetWiFi(self):

@@ -70,7 +70,7 @@ from mininet.link import Link, Intf, TCIntf, TCIntfWireless, OVSIntf, TCLinkWire
 from re import findall
 from distutils.version import StrictVersion
 from mininet.wifiMobility import mobility
-from mininet.wifiChannel import setChannelParams
+from mininet.wifiLink import link
 from mininet.wifiPlot import plot2d, plot3d
 
 class Node(object):
@@ -263,7 +263,7 @@ class Node(object):
                 wlan = idx
                 break
         if ('position' in sta.params and 'position' in ap.params):
-            dist = setChannelParams.getDistance(sta, ap)
+            dist = link.getDistance(sta, ap)
         else:
             dist = 100000
         if (dist < ap.params['range']) or ('position' not in sta.params and 'position' not in ap.params):
@@ -278,7 +278,7 @@ class Node(object):
                         self.associate_wpa(ap, wlan)
                     elif ap.params['encrypt'][0] == 'wep':
                         self.associate_wep(ap, wlan)
-                setChannelParams(sta, ap, wlan, dist)
+                link(sta, ap, wlan, dist)
                 mobility.updateAssociation(sta, ap, wlan)
             else:
                 info ('%s is already connected!\n' % ap)

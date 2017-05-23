@@ -3,7 +3,7 @@ author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
         ramonfontes.com
 """
 
-from mininet.wifiChannel import setChannelParams
+from mininet.wifiLink import link
 from mininet.log import debug, info
 
 class pairingAdhocNodes (object):
@@ -25,7 +25,7 @@ class pairingAdhocNodes (object):
 
         for sta_ref in stationList:
             if sta_ref != sta:
-                dist = setChannelParams.getDistance(sta, sta_ref)
+                dist = link.getDistance(sta, sta_ref)
                 if dist != 0.0:
                     totalRange = min(sta.params['range'], sta_ref.params['range'])
                     if dist < totalRange:
@@ -43,7 +43,7 @@ class pairingAdhocNodes (object):
                                           (sta.params['wlan'][wlan], sta.params['associatedTo'][wlan], self.ssid_ID))
                                     sta.pexec('iwconfig %s essid %s ap 02:CA:FF:EE:BA:0%s' % \
                                           (sta.params['wlan'][wlan], sta.params['associatedTo'][wlan], self.ssid_ID))
-                                    sta.params['frequency'][wlan] = setChannelParams.frequency(sta, wlan)
+                                    sta.params['frequency'][wlan] = link.frequency(sta, wlan)
                                 if sta.params['cell'][wlan] != sta_ref.params['cell'][wlan_ref]:
                                     if sta_ref.params['associatedTo'][wlan_ref] == sta.params['ssid'][wlan]:
                                         if sta_ref.params['cell'][wlan_ref] == '' and sta in alreadyConn:
@@ -56,7 +56,7 @@ class pairingAdhocNodes (object):
                                                           (sta_ref.params['wlan'][wlan_ref], sta_ref.params['associatedTo'][wlan_ref], self.ssid_ID))
                                             sta_ref.pexec('iwconfig %s essid %s ap 02:CA:FF:EE:BA:0%s' % \
                                                           (sta_ref.params['wlan'][wlan_ref], sta_ref.params['associatedTo'][wlan_ref], self.ssid_ID))
-                                            sta_ref.params['frequency'][wlan_ref] = setChannelParams.frequency(sta_ref, wlan_ref)
+                                            sta_ref.params['frequency'][wlan_ref] = link.frequency(sta_ref, wlan_ref)
         if alreadyConn != [] and len(alreadyConn) != 1:
             for sta_ref in stationList:
                 if sta_ref not in alreadyConn:

@@ -28,7 +28,7 @@ import re
 
 from mininet.log import info, error, debug
 from mininet.util import makeIntfPair
-from mininet.wifiChannel import setChannelParams
+from mininet.wifiLink import link
 from mininet.wmediumdConnector import WmediumdServerConn, WmediumdSNRLink, WmediumdPosition
 
 class Intf(object):
@@ -1180,7 +1180,7 @@ class Association(Link):
 
         if 'mp' not in node.params['wlan'][wlan]:
             iface = node.params['wlan'][wlan]
-            node.params['frequency'][wlan] = setChannelParams.frequency(node, wlan)
+            node.params['frequency'][wlan] = link.frequency(node, wlan)
             self.getMacAddress(node, iface, wlan)
             node.intfs[wlan] = node.params['wlan'][wlan]
             cls = TCLinkWirelessStation
@@ -1235,7 +1235,7 @@ class Association(Link):
         :param wlan: wlan ID
         """
 
-        dist = setChannelParams.getDistance(sta, ap)
+        dist = link.getDistance(sta, ap)
         if dist <= ap.params['range']:
             for wlan in range(0, len(sta.params['wlan'])):
                 if sta.params['rssi'][wlan] == 0:
@@ -1246,17 +1246,17 @@ class Association(Link):
                     cls.associate_infra(sta, ap, wlan)
                     if not useWmediumd:
                         if dist >= 0.01:
-                            setChannelParams(sta, ap, wlan, dist)
+                            link(sta, ap, wlan, dist)
                     if sta not in ap.params['associatedStations']:
                         ap.params['associatedStations'].append(sta)
-                rssi_ = setChannelParams.setRSSI(sta, ap, wlan, dist)
+                rssi_ = link.setRSSI(sta, ap, wlan, dist)
                 sta.params['rssi'][wlan] = rssi_
-                snr_ = setChannelParams.setSNR(sta, wlan)
+                snr_ = link.setSNR(sta, wlan)
                 sta.params['snr'][wlan] = snr_
             if ap not in sta.params['apsInRange']:
                 sta.params['apsInRange'].append(ap)
                 ap.params['stationsInRange'][sta] = rssi_
-            setChannelParams.recordParams(sta, ap)
+            link.recordParams(sta, ap)
 
     @classmethod
     def updateParams(self, sta, ap, wlan):
@@ -1268,7 +1268,7 @@ class Association(Link):
         :param wlan: wlan ID
         """
 
-        sta.params['frequency'][wlan] = setChannelParams.frequency(ap, 0)
+        sta.params['frequency'][wlan] = link.frequency(ap, 0)
         sta.params['channel'][wlan] = ap.params['channel'][0]
 
     @classmethod
@@ -1316,7 +1316,7 @@ class Association(Link):
         if self.printCon:
             iface = sta.params['wlan'][wlan]
             info("Associating %s to %s\n" % (iface, ap))
-        sta.params['frequency'][wlan] = setChannelParams.frequency(ap, 0)
+        sta.params['frequency'][wlan] = link.frequency(ap, 0)
 
     @classmethod
     def wpaFile(self, sta, ap, wlan):

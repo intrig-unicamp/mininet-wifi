@@ -3,7 +3,7 @@ author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
         ramonfontes.com
 """
 
-from mininet.wifiChannel import setChannelParams
+from mininet.wifiLink import link
 from mininet.wmediumdConnector import WmediumdServerConn
 from mininet.log import debug
 from mininet.link import Association
@@ -44,7 +44,7 @@ class listNodes (object):
                     ref_sta.params['position'] = car.params['position']
                     ref_sta.params['range'] = car.params['range']
                 if ref_sta != sta and ref_sta.func[wlan] == 'mesh' :
-                    dist = setChannelParams.getDistance(sta, ref_sta)
+                    dist = link.getDistance(sta, ref_sta)
                     if dist >= 0.1:
                         totalRange = int(sta.params['range'])
                         ref_totalRange = int(ref_sta.params['range'])
@@ -115,7 +115,7 @@ class meshRouting (object):
                 ref_sta = ref_sta.params['carsta']
             for ref_wlan in range(len(ref_sta.params['wlan'])):
                 if ref_sta != sta and ref_sta.func[ref_wlan] == 'mesh' and 'position' in sta.params:
-                    dist = setChannelParams.getDistance(sta, ref_sta)
+                    dist = link.getDistance(sta, ref_sta)
                     range_ = int(sta.params['range'])
                     refRange_ = int(ref_sta.params['range'])
                     if refRange_ > range_:
@@ -134,7 +134,7 @@ class meshRouting (object):
                                         cls = Association
                                         cls.setSNRWmediumd(sta, ref_sta, sta.params['snr'][wlan])
                                 else:
-                                    setChannelParams(sta=sta, wlan=wlan, dist=dist)
+                                    link(sta=sta, wlan=wlan, dist=dist)
                 elif 'position' not in sta.params:
                     associate = True
 
