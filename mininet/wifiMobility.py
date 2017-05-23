@@ -25,8 +25,8 @@ class mobility (object):
     associationControlMethod = ''
     accessPoints = []
     stations = []
-    mobilityNodes = []
-    staticNodes = []
+    mobileNodes = []
+    stationaryNodes = []
     continuePlot = 'plot2d.graphPause()'
     continueParams = 'time.sleep(0.001)'
     rec_rssi = False
@@ -182,11 +182,7 @@ class mobility (object):
             if dist >= 0.01:
                 if WmediumdServerConn.connected:
                     if WmediumdServerConn.interference_enabled:
-                        if sta.lastpos != sta.params['position']:
-                            time.sleep(0.0001)
-                            cls = Association
-                            cls.setPositionWmediumd(sta)
-                            sta.lastpos = sta.params['position']
+                        self.setWmediumdPos(sta)
                     else:
                         if sta.lastpos != sta.params['position']:
                             cls = Association
@@ -261,6 +257,25 @@ class mobility (object):
         cls.updateParams(sta, ap, wlan)
         sta.params['associatedTo'][wlan] = ap
 
+        # necessary when a station is associated to a new AP
+        if WmediumdServerConn.interference_enabled:
+            self.updateWmediumdPos(sta)
+
+    @classmethod
+    def updateWmediumdPos(self, sta):
+        if sta.isStationary:
+            info('Configuring wmediumd for %s...\n' % sta)
+            time.sleep(2)
+        self.setWmediumdPos(sta, force=True)
+
+    @classmethod
+    def setWmediumdPos(self, sta, force=False):
+        if sta.lastpos != sta.params['position'] or force:
+            time.sleep(0.0001)
+            cls = Association
+            cls.setPositionWmediumd(sta)
+            sta.lastpos = sta.params['position']
+
     @classmethod
     def definedPosition(self, init_time=0, final_time=0, stations=None, aps=None, dstConn=None, srcConn=None,
                         plotNodes=None, MAX_X=0, MAX_Y=0, MAX_Z=0, AC='', rec_rssi=False, is3d=False,
@@ -294,14 +309,15 @@ class mobility (object):
 
         for node in nodes:
             if 'position' in node.params and 'initialPosition' not in node.params:
-                self.staticNodes.append(node)
+                self.stationaryNodes.append(node)
             if 'initialPosition' in node.params:
                 node.params['position'] = node.params['initialPosition']
                 node.params.pop("initialPosition", None)
                 node.params.pop("finalPosition", None)
-                self.mobilityNodes.append(node)
+                if not node.isStationary:
+                    self.mobileNodes.append(node)
 
-        plotNodes = self.mobilityNodes + self.staticNodes
+        plotNodes = self.mobileNodes + self.stationaryNodes
 
         try:
             if DRAW:
@@ -322,7 +338,7 @@ class mobility (object):
                 if time.time() > t_end or time.time() < t_initial:
                     break
                 if time.time() - currentTime >= i:
-                    for node in self.mobilityNodes:
+                    for node in self.mobileNodes:
                         if time.time() - currentTime >= node.startTime and time.time() - currentTime <= node.endTime:
                             x = '%.2f' % (float(node.params['position'][0]) + float(node.moveFac[0]))
                             y = '%.2f' % (float(node.params['position'][1]) + float(node.moveFac[1]))
@@ -333,7 +349,7 @@ class mobility (object):
                             plot.graphUpdate(node)
                         # self.parameters_(node)
                     i += 1
-            self.mobilityNodes = []
+            self.mobileNodes = []
         except:
             pass
 
@@ -341,10 +357,10 @@ class mobility (object):
     def addNodes(self, stas, aps):
         self.stations = stas
         self.accessPoints = aps
-        self.mobilityNodes = self.stations
+        self.mobileNodes = self.stations
 
     @classmethod
-    def models(self, stations=None, aps=None, model=None, staMov=None, min_v=0, max_v=0, seed=None,
+    def models(self, stations=None, aps=None, model=None, stationaryNodes=[], min_v=0, max_v=0, seed=None,
                dstConn=None, srcConn=None, plotNodes=None, MAX_X=0, MAX_Y=0, AC='', rec_rssi=False,
                DRAW=False, **params):
         """ 
@@ -353,12 +369,12 @@ class mobility (object):
         :param stations: list of stations
         :param aps: list of access points
         :param model: mobility model
-        :param staMov: list of nodes with mobility
+        :param stationaryNodes: stationary nodes
         :param min_v: minimum velocity
         :param max_v: maximum velocity
         :param speed: speed
-        :param srcConn:  list of connections for source nodes
-        :param dstConn:  list of connections for destination nodes
+        :param srcConn: list of connections for source nodes
+        :param dstConn: list of connections for destination nodes
         :param plotNodes: list of nodes to be plotted (including hosts and switches)
         :param MAX_X: Maximum value for X
         :param MAX_Y: Maximum value for Y
@@ -392,30 +408,30 @@ class mobility (object):
             info('Warning: running without GUI.\n')
             DRAW = False
 
-        if staMov != None:
+        if stationaryNodes != None:
             debug('Configuring the mobility model %s' % model)
 
             if(model == 'RandomWalk'):  # Random Walk model
-                mob = random_walk(staMov)
+                mob = random_walk(stationaryNodes)
             elif(model == 'TruncatedLevyWalk'):  # Truncated Levy Walk model
-                mob = truncated_levy_walk(staMov)
+                mob = truncated_levy_walk(stationaryNodes)
             elif(model == 'RandomDirection'):  # Random Direction model
-                mob = random_direction(staMov, dimensions=(MAX_X, MAX_Y))
+                mob = random_direction(stationaryNodes, dimensions=(MAX_X, MAX_Y))
             elif(model == 'RandomWayPoint'):  # Random Waypoint model
-                mob = random_waypoint(staMov, wt_max=MAX_WT)
+                mob = random_waypoint(stationaryNodes, wt_max=MAX_WT)
             elif(model == 'GaussMarkov'):  # Gauss-Markov model
-                mob = gauss_markov(staMov, alpha=0.99)
+                mob = gauss_markov(stationaryNodes, alpha=0.99)
             elif(model == 'ReferencePoint'):  # Reference Point Group model
-                mob = reference_point_group(staMov, dimensions=(MAX_X, MAX_Y), aggregation=0.5)
+                mob = reference_point_group(stationaryNodes, dimensions=(MAX_X, MAX_Y), aggregation=0.5)
             elif(model == 'TimeVariantCommunity'):  # Time-variant Community Mobility Model
-                mob = tvc(staMov, dimensions=(MAX_X, MAX_Y), aggregation=[0.5, 0.], epoch=[100, 100])
+                mob = tvc(stationaryNodes, dimensions=(MAX_X, MAX_Y), aggregation=[0.5, 0.], epoch=[100, 100])
             else:
                 raise Exception("Mobility Model not defined or doesn't exist!")
 
             if DRAW:
-                self.startMobilityModelGraph(mob, staMov)
+                self.startMobilityModelGraph(mob, stationaryNodes)
             else:
-                self.startMobilityModelNoGraph(mob, staMov)
+                self.startMobilityModelNoGraph(mob, stationaryNodes)
 
     @classmethod
     def startMobilityModelGraph(self, mob, nodes):
@@ -469,7 +485,7 @@ class mobility (object):
     def parameters(self):
         "Applies channel params and handover"
         meshNodes = []
-        for node in self.mobilityNodes:
+        for node in self.mobileNodes:
             for wlan in range(0, len(node.params['wlan'])):
                 if node.func[wlan] == 'mesh' or node.func[wlan] == 'adhoc':
                     meshNodes.append(node)
@@ -481,7 +497,7 @@ class mobility (object):
                     cls.meshAssociation(node, wlan)
 
         while True:
-            self.setParameters(self.mobilityNodes, meshNodes)
+            self.setParameters(self.mobileNodes, meshNodes)
 
     @classmethod
     def setParameters(self, nodes, meshNodes=None):
@@ -508,5 +524,5 @@ class mobility (object):
         if not WmediumdServerConn.interference_enabled:
             if meshRouting.routing == 'custom':
                 meshRouting(meshNodes)
-            # have to verify this
+        # have to verify this
         eval(self.continueParams)

@@ -1348,7 +1348,6 @@ class Mininet(object):
 
     def stopMobility(self, **kwargs):
         """Stops Mobility"""
-
         stations = self.stations
         accessPoints = self.accessPoints
         mininetWiFi.stopMobility(stations, accessPoints, **kwargs)

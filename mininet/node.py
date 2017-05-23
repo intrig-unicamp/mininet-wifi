@@ -102,6 +102,7 @@ class Node(object):
 
         self.func = []
         self.type = 'host'
+        self.isStationary = True
 
         # Make pylint happy
         (self.shell, self.execed, self.pid, self.stdin, self.stdout,
