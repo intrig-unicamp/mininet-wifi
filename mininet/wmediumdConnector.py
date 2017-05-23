@@ -339,7 +339,7 @@ class WmediumdStarter(object):
                         configstr += ', %s' % txpower
                 if propagationModel.model == 'ITUPropagationLossModel':
                     configstr += ');\n\tmodel_name = "itu";\n\tnFLOORS = %d;\n\tLF = %d;\n};' % \
-                                                            (propagationModel.nFloors, propagationModel.pL)
+                                                            (propagationModel.nFloors, propagationModel.lF)
                 elif propagationModel.model == 'logDistancePropagationLossModel':
                     configstr += ');\n\tmodel_name = "log_distance";\n\tpath_loss_exp = %.1f;\n\txg = 0.0;\n};' % propagationModel.exp
                 else:
