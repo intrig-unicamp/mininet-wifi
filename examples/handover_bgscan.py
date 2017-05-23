@@ -31,7 +31,7 @@ def topology():
     net.configureWifiNodes()
 
     print "*** Configuring Propagation Model"
-    net.propagationModel("logDistancePropagationLossModel", exp=3)
+    net.propagationModel("logDistancePropagationLossModel", exp=3.5)
 
     print "*** Creating links"
     net.addLink(ap1, ap2)

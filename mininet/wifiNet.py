@@ -930,17 +930,18 @@ class mininetWiFi(object):
             self.associationControlMethod = kwargs['AC']
 
         if mobilityModel != '' or self.isVanet:
-            staMov = []
+            stationaryNodes = []
             for sta in stations:
                 if 'position' not in sta.params:
-                    staMov.append(sta)
+                    sta.isStationary = False
+                    stationaryNodes.append(sta)
                     sta.params['position'] = 0, 0, 0
 
             if not self.isVanet:
-                params = self.setMobilityParams(stations, accessPoints, staMov, **kwargs)
+                params = self.setMobilityParams(stations, accessPoints, stationaryNodes, **kwargs)
                 mobility.start(**params)
             else:
-                params = self.setMobilityParams(stations, accessPoints, staMov, **kwargs)
+                params = self.setMobilityParams(stations, accessPoints, stationaryNodes, **kwargs)
                 vanet(**params)
 
         info("Mobility started at %s second(s)\n" % kwargs['time'])
@@ -953,7 +954,7 @@ class mininetWiFi(object):
         mobility.stop(**params)
 
     @classmethod
-    def setMobilityParams(self, stations, accessPoints, staMov=[], **kwargs):
+    def setMobilityParams(self, stations, accessPoints, stationaryNodes=[], **kwargs):
         "Set Mobility Parameters"
         mobilityparam = dict()
 
@@ -989,7 +990,7 @@ class mininetWiFi(object):
         mobilityparam.setdefault('AC', self.associationControlMethod)
         mobilityparam.setdefault('rec_rssi', self.rec_rssi)
         mobilityparam.setdefault('init_time', self.init_time)
-        mobilityparam.setdefault('staMov', staMov)
+        mobilityparam.setdefault('stationaryNodes', stationaryNodes)
         return mobilityparam
 
     @classmethod
@@ -1177,6 +1178,7 @@ class mininetWiFi(object):
     @classmethod
     def configureMobility(self, *args, **kwargs):
         "Configure mobility parameters"
+        args[0].isStationary = False
         mobility.configure(*args, **kwargs)
 
     @classmethod
