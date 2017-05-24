@@ -1188,6 +1188,7 @@ class AccessPoint(AP):
                         cmd = cmd + ("\nhw_mode=g")
                     elif ap.params['band'] == 5:
                         cmd = cmd + ("\nhw_mode=a")
+                    ap.params.pop("band", None)
                 else:
                     cmd = cmd + ("\nhw_mode=g")
             elif ap.params['mode'][0] == 'a':

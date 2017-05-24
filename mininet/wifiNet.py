@@ -22,7 +22,7 @@ from mininet.wifiMeshRouting import listNodes, meshRouting
 from mininet.wifiMobility import mobility
 from mininet.wifiPlot import plot2d, plot3d
 from mininet.wifiModule import module
-from mininet.wifiPropagationModels import propagationModel
+from mininet.wifiPropagationModels import propagationModel, distanceByPropagationModel
 from mininet.link import TCLinkWirelessAP, TCLinkWirelessStation, Association
 from mininet.util import macColonHex, ipAdd
 from mininet.vanet import vanet
@@ -761,6 +761,7 @@ class mininetWiFi(object):
                 iface = ap.params['wlan'][wlan]
             else:
                 iface = ap.params['phywlan']
+
             if not self.useWmediumd:
                 self.setBw(ap, wlan, iface)
 
@@ -770,6 +771,12 @@ class mininetWiFi(object):
             if ap.func[0] != 'ap':
                 ap.params['frequency'][wlan] = link.frequency(ap, 0)
             link.recordParams(None, ap)
+
+            if self.useWmediumd:
+                for wlan in range(0, len(ap.params['channel'])):
+                    if ap.params['range'] == 33:
+                        value = distanceByPropagationModel(ap, wlan)
+                        ap.params['range'] = int(value.dist)
 
             if len(ap.params['ssid']) > 1 and wlan == 0:
                 break
