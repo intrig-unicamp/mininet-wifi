@@ -1183,7 +1183,13 @@ class AccessPoint(AP):
 
         if ap.params['mode'][0] != '8021x':
             if ap.params['mode'][0] == 'n':
-                cmd = cmd + ("\nhw_mode=g")
+                if 'band' in ap.params:
+                    if ap.params['band'] == 2.4:
+                        cmd = cmd + ("\nhw_mode=g")
+                    elif ap.params['band'] == 5:
+                        cmd = cmd + ("\nhw_mode=a")
+                else:
+                    cmd = cmd + ("\nhw_mode=g")
             elif ap.params['mode'][0] == 'a':
                 cmd = cmd + ('\ncountry_code=US')
                 cmd = cmd + ("\nhw_mode=%s" % ap.params['mode'][0])
