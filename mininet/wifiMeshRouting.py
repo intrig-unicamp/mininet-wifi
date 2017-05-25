@@ -125,12 +125,7 @@ class meshRouting (object):
                             if sta.params['associatedTo'][wlan] == ref_sta.params['associatedTo'][ref_wlan]:
                                 associate = True
                                 if WmediumdServerConn.connected:
-                                    if WmediumdServerConn.interference_enabled:
-                                        if sta.lastpos != sta.params['position']:
-                                            cls = Association
-                                            cls.setPositionWmediumd(sta)
-                                            sta.lastpos = sta.params['position']
-                                    else:
+                                    if not WmediumdServerConn.interference_enabled:
                                         cls = Association
                                         cls.setSNRWmediumd(sta, ref_sta, sta.params['snr'][wlan])
                                 else:
@@ -181,15 +176,9 @@ class meshRouting (object):
                             ref_sta = ref_sta.params['carsta']
                         if ref_sta.params['mac'][ref_wlan] not in controlMeshMac:
                             sta.pexec('iw dev %s mpath del %s' % (sta.params['wlan'][wlan], ref_sta.params['mac'][ref_wlan]))
-                        if WmediumdServerConn.connected:
-                            if WmediumdServerConn.interference_enabled:
-                                if sta.lastpos != sta.params['position']:
-                                    cls = Association
-                                    cls.setPositionWmediumd(sta)
-                                    sta.lastpos = sta.params['position']
-                            else:
-                                cls = Association
-                                cls.setSNRWmediumd(sta, ref_sta, -10)
+                        if not WmediumdServerConn.connected:
+                            cls = Association
+                            cls.setSNRWmediumd(sta, ref_sta, -10)
         """mesh leave"""
         if associate == False:
             debug('\niw dev %s mesh leave' % sta.params['wlan'][wlan])

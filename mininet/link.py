@@ -1153,7 +1153,7 @@ class Association(Link):
     bgscan = ''
 
     @classmethod
-    def configureAdhoc(self, sta):
+    def configureAdhoc(self, sta, useWmediumd):
         """
         Configure Wireless Ad Hoc
         """
@@ -1164,11 +1164,12 @@ class Association(Link):
         sta.func[wlan] = 'adhoc'
         sta.intfs[wlan].setIP(sta.params['ip'][wlan])
         sta.cmd('iw dev %s set type ibss' % iface)
-        sta.params['associatedTo'][wlan] = sta.params['ssid'][wlan]
-        info("associating %s to %s...\n" % (iface, sta.params['ssid'][wlan]))
-        sta.pexec('iwconfig %s channel %s essid %s mode ad-hoc' % (iface, sta.params['channel'][wlan], \
-                                                     sta.params['associatedTo'][wlan]))
-        sta.pexec('iwconfig %s ap %s' % (iface, sta.params['cell'][wlan]))
+        if 'position' not in sta.params or useWmediumd:
+            sta.params['associatedTo'][wlan] = sta.params['ssid'][wlan]
+            info("associating %s to %s...\n" % (iface, sta.params['ssid'][wlan]))
+            sta.pexec('iwconfig %s channel %s essid %s ap 02:CA:FF:EE:BA:01 mode ad-hoc'\
+                       % (iface, sta.params['channel'][wlan], sta.params['associatedTo'][wlan]))
+            sta.pexec('iwconfig %s ap %s' % (iface, sta.params['cell'][wlan]))
 
     @classmethod
     def configureMesh(self, node, wlan):

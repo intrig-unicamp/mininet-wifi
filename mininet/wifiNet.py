@@ -17,8 +17,7 @@ from mininet.wmediumdConnector import DynamicWmediumdIntfRef, WmediumdSNRLink, W
                     WmediumdTXPower, WmediumdPosition, WmediumdConstants, WmediumdServerConn
 from mininet.wifiLink import link
 from mininet.wifiDevices import deviceRange, deviceDataRate
-from mininet.wifiAdHocConnectivity import pairingAdhocNodes
-from mininet.wifiMeshRouting import listNodes, meshRouting
+from mininet.wifiMeshRouting import meshRouting
 from mininet.wifiMobility import mobility
 from mininet.wifiPlot import plot2d, plot3d
 from mininet.wifiModule import module
@@ -534,7 +533,8 @@ class mininetWiFi(object):
         if(cell != "{}"):
             node.params['cell'][wlan] = cell
         else:
-            node.params['cell'][wlan] = 'FE:4C:6A:B5:A9:7E'
+            if 'position' not in node.params:
+                node.params['cell'][wlan] = 'FE:4C:6A:B5:A9:7E'
 
         deviceRange(node)
 
@@ -547,7 +547,7 @@ class mininetWiFi(object):
         options.setdefault('addr1', self.randMac())
 
         cls = Association
-        cls.configureAdhoc(node)
+        cls.configureAdhoc(node, self.useWmediumd)
         if 'intf' not in params:
             node.ifaceToAssociate += 1
 
@@ -772,12 +772,6 @@ class mininetWiFi(object):
                 ap.params['frequency'][wlan] = link.frequency(ap, 0)
             link.recordParams(None, ap)
 
-            if self.useWmediumd:
-                for wlan in range(0, len(ap.params['channel'])):
-                    if ap.params['range'] == 33:
-                        value = distanceByPropagationModel(ap, wlan)
-                        ap.params['range'] = int(value.dist)
-
             if len(ap.params['ssid']) > 1 and wlan == 0:
                 break
 
@@ -864,6 +858,12 @@ class mininetWiFi(object):
                             node.setTxPower(node.params['wlan'][wlan], node.params['txpower'][wlan])
             if node not in switches:
                 self.configureMacAddr(node)
+            
+            if self.useWmediumd:
+                for wlan in range(0, len(node.params['channel'])):
+                    if node.params['range'] == 33 or node.params['range'] == 18:
+                        value = distanceByPropagationModel(node, wlan)
+                        node.params['range'] = int(value.dist)
         return stations, accessPoints
 
     @classmethod
@@ -1098,26 +1098,16 @@ class mininetWiFi(object):
         nodes = stations + ap
 
         if not self.isVanet:
-            for node in nodes:
-                pairingAdhocNodes.ssid_ID += 1
+            for node in stations:
                 for wlan in range(0, len(node.params['wlan'])):
-                    if 'position' in node.params and 'link' not in node.params:
-                        mobility.accessPoints = accessPoints
-                        mobility.checkAssociation(node, wlan)
-                    if 'position' in node.params and node.func[wlan] == 'adhoc' and node.params['associatedTo'][wlan] == '':
-                        value = pairingAdhocNodes(node, wlan, nodes)
-                        dist = value.dist
-                        if dist >= 0.01:
-                            link(sta=node, wlan=wlan, dist=dist)
-                    elif 'position' in node.params and node.func[wlan] == 'mesh':
-                        if node.type == 'vehicle':
-                            node = node.params['carsta']
-                            wlan = 0
-                        dist = listNodes.pairingNodes(node, wlan, nodes)
-                        if dist >= 0.01 and not self.useWmediumd:
-                            link(sta=node, wlan=wlan, dist=dist)
-                if meshRouting.routing == 'custom':
-                    meshRouting(nodes)
+                    if node.func[wlan] == 'mesh':
+                        mobility.meshNodes.append(node)
+                    elif node.func[wlan] == 'adhoc':
+                        mobility.adhocNodes.append(node)
+            for node in nodes:
+                if 'position' in node.params and 'link' not in node.params:
+                    mobility.accessPoints = accessPoints
+                    mobility.parameters_(node)
 
     @classmethod
     def propagationModel(self, stations, accessPoints, model, exp=2, sL=1, lF=0, pL=0, nFloors=0, gRandom=0):

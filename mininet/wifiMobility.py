@@ -26,6 +26,7 @@ import os
 from mininet.log import debug, info
 from mininet.wifiLink import link
 from mininet.wifiAssociationControl import associationControl
+from mininet.wifiAdHocConnectivity import pairingAdhocNodes
 from mininet.wifiMeshRouting import listNodes, meshRouting
 from mininet.wmediumdConnector import WmediumdServerConn
 from mininet.wifiPlot import plot2d, plot3d
@@ -34,9 +35,11 @@ from mininet.link import Association
 
 class mobility (object):
     "Mobility"
-    AC = '' # association control method
+    AC = ''  # association control method
     accessPoints = []
     stations = []
+    adhocNodes = []
+    meshNodes = []
     mobileNodes = []
     stationaryNodes = []
     continuePlot = 'plot2d.graphPause()'
@@ -506,46 +509,37 @@ class mobility (object):
     @classmethod
     def parameters(self):
         "Applies channel params and handover"
-        meshNodes = []
-        for node in self.mobileNodes:
-            for wlan in range(0, len(node.params['wlan'])):
-                if node.func[wlan] == 'mesh' or node.func[wlan] == 'adhoc':
-                    meshNodes.append(node)
-
-        if WmediumdServerConn.interference_enabled and meshNodes != []:
+        if WmediumdServerConn.interference_enabled and self.meshNodes != []:
             cls = Association
-            for node in meshNodes:
+            for node in self.meshNodes:
                 for wlan in range(0, len(node.params['wlan'])):
                     cls.meshAssociation(node, wlan)
-
         while True:
-            self.setParameters(self.mobileNodes, meshNodes)
+            self.setParameters(self.mobileNodes)
 
     @classmethod
-    def setParameters(self, nodes, meshNodes=None):
-        if meshNodes == None:
-            meshNodes = nodes
-
+    def setParameters(self, nodes):
         for node in nodes:
             for wlan in range(0, len(node.params['wlan'])):
                 if node.func[wlan] == 'mesh' or node.func[wlan] == 'adhoc':
                     if not WmediumdServerConn.interference_enabled:
-                        if node.type == 'vehicle':
-                            node = node.params['carsta']
-                            wlan = 0
-                        dist = listNodes.pairingNodes(node, wlan, meshNodes)
+                        if node.func[wlan] == 'adhoc':
+                            value = pairingAdhocNodes(node, wlan, self.adhocNodes)
+                            dist = value.dist
+                        else:
+                            if node.type == 'vehicle':
+                                node = node.params['carsta']
+                                wlan = 0
+                            dist = listNodes.pairingNodes(node, wlan, self.meshNodes)
                         if not WmediumdServerConn.connected and dist >= 0.01:
                             link(sta=node, wlan=wlan, dist=dist)
                     else:
-                        if node.lastpos != node.params['position']:
-                            cls = Association
-                            cls.setPositionWmediumd(node)
-                            node.lastpos = node.params['position']
+                        self.setWmediumdPos(node)
                 else:
                     self.checkAssociation(node, wlan)
         if not WmediumdServerConn.interference_enabled:
             if meshRouting.routing == 'custom':
-                meshRouting(meshNodes)
+                meshRouting(self.meshNodes)
         # have to verify this
         eval(self.continueParams)
 
@@ -610,9 +604,9 @@ def init_random_waypoint(nodes, min_x, min_y, max_x, max_y,
     for i in range(nr_nodes):
         while True:
             if rand() < q0[i]:
-                #moving[i] = 0.
-                #speed_mean = np.delete(speed_mean, i)
-                #speed_delta = np.delete(speed_delta, i)
+                # moving[i] = 0.
+                # speed_mean = np.delete(speed_mean, i)
+                # speed_delta = np.delete(speed_delta, i)
                 # M_0
                 x1 = rand() * max_x[i]
                 x2 = rand() * max_x[i]
@@ -713,13 +707,13 @@ class RandomWaypoint(object):
             MIN_X[node] = self.nodes[node].min_x
             MIN_Y[node] = self.nodes[node].min_y
 
-        #wt_min = 0.
+        # wt_min = 0.
 
-        #if self.init_stationary:
+        # if self.init_stationary:
         #    x, y, x_waypoint, y_waypoint, velocity, wt = \
         #        init_random_waypoint(self.nr_nodes, MIN_X, MIN_Y, MAX_X, MAX_Y, MIN_V, MAX_V, wt_min,
         #                     (self.wt_max if self.wt_max is not None else 0.))
-        #else:
+        # else:
         NODES = np.arange(self.nr_nodes)
         x = U(MIN_X, MAX_X, NODES)
         y = U(MIN_Y, MAX_Y, NODES)
@@ -766,7 +760,7 @@ class RandomWaypoint(object):
                     sintheta[arrived] = np.sin(theta[arrived])
             except:
                 pass
-            
+
             self.velocity = velocity
             self.wt = wt
             yield np.dstack((x, y))[0]
