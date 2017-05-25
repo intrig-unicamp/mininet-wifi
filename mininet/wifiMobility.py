@@ -347,6 +347,8 @@ class mobility (object):
                             y = '%.2f' % (float(node.params['position'][1]) + float(node.moveFac[1]))
                             z = '%.2f' % (float(node.params['position'][2]) + float(node.moveFac[2]))
                             node.params['position'] = x, y, z
+                            if WmediumdServerConn.interference_enabled:
+                                self.setWmediumdPos(node)
                         if DRAW:
                             eval(self.continuePlot)
                             plot.graphUpdate(node)
@@ -459,6 +461,8 @@ class mobility (object):
             i = 0
             for node in nodes:
                 node.params['position'] = '%.2f' % xy[i][0], '%.2f' % xy[i][1], 0.0
+                if WmediumdServerConn.interference_enabled:
+                    self.setWmediumdPos(node)
                 i += 1
                 plot2d.graphUpdate(node)
             eval(self.continuePlot)
@@ -475,6 +479,8 @@ class mobility (object):
             i = 0
             for node in nodes:
                 node.params['position'] = '%.2f' % xy[i][0], '%.2f' % xy[i][1], 0.0
+                if WmediumdServerConn.interference_enabled:
+                    self.setWmediumdPos(node)
                 i += 1
             time.sleep(0.5)
 
@@ -484,6 +490,8 @@ class mobility (object):
         have to check it!
         Applies channel params and handover
         """
+        if WmediumdServerConn.interference_enabled:
+            self.setWmediumdPos(node)
         if node == None:
             nodes = self.stations
         else:

@@ -59,7 +59,7 @@ class propagationModel(object):
         numerator = (4 * math.pi * dist) ** 2 * L
         pathLoss_ = 10 * math.log10(numerator / denominator)
 
-        return pathLoss_
+        return int(pathLoss_)
 
     def friisPropagationLossModel(self, sta, dist, wlan, pT, gT, gR, hT, hR):
         """Friis Propagation Loss Model:
@@ -68,7 +68,7 @@ class propagationModel(object):
         (c) speed of light in vacuum (m)
         (L) System loss"""
         pathLoss = self.pathLoss(sta, dist, wlan)
-        self.rssi = '%.2f' % (pT + gT + gR - pathLoss)
+        self.rssi = pT + gT + gR - pathLoss
 
         return self.rssi
 
@@ -85,7 +85,7 @@ class propagationModel(object):
         L = self.sl
 
         pathLossDb = (pT * gT * gR * hT ** 2 * hR ** 2) / (dist ** 4 * L)
-        self.rssi = pT + gT + gR - pathLossDb
+        self.rssi = pT + gT + gR - int(pathLossDb)
 
         return self.rssi
 
@@ -100,7 +100,7 @@ class propagationModel(object):
             dist = 0.1
 
         pathLossDb = 10 * self.exp * math.log10(dist / referenceDistance)
-        self.rssi = '%.2f' % (pT + gT + gR - (pathLoss + pathLossDb))
+        self.rssi = pT + gT + gR - (int(pathLoss) + int(pathLossDb))
 
         return self.rssi
 
@@ -117,7 +117,7 @@ class propagationModel(object):
             dist = 0.1
 
         pathLossDb = 10 * self.exp * math.log10(dist / referenceDistance) + gRandom
-        self.rssi = '%.2f' % (pT + gT + gR - (pathLoss + pathLossDb))
+        self.rssi = pT + gT + gR - (int(pathLoss) + int(pathLossDb))
 
         return self.rssi
 
@@ -140,7 +140,7 @@ class propagationModel(object):
             N = pL
 
         pathLossDb = 20 * math.log10(f) + N * math.log10(dist) + lF * nFloors - 28
-        self.rssi = '%.2f' % (gains - pathLossDb)
+        self.rssi = gains - int(pathLossDb)
 
         return self.rssi
 
@@ -153,7 +153,7 @@ class propagationModel(object):
         if dist == 0:
             dist = 0.1
 
-        self.rssi = '%.2f' % (dist ** 4 / (gT * gR) * (hT * hR) ** 2 * cf)
+        self.rssi = int(dist ** 4 / (gT * gR) * (hT * hR) ** 2 * cf)
 
         return self.rssi
 
@@ -218,10 +218,10 @@ class distanceByPropagationModel(object):
         exponent: The exponent of the Path Loss propagation model, where 2 is for propagation in free space
         (dist) is the distance between the transmitter and the receiver (m)"""
         referenceDistance = 1
-        pathLoss = self.pathLoss(node, referenceDistance, wlan)
         txpower = node.params['txpower'][wlan]
+        pathLoss = self.pathLoss(node, referenceDistance, wlan)
         self.dist = math.pow(10, ((95 - pathLoss + txpower) / (10 * self.exp)) + math.log10(referenceDistance))
-
+        
         return self.dist
     
     def ITUPropagationLossModel(self, sta, wlan):
