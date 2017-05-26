@@ -68,6 +68,7 @@ from mininet.util import (quietRun, errRun, errFail, moveIntf, isShellBuiltin,
 from mininet.moduledeps import moduleDeps, pathCheck, TUN
 from mininet.link import Link, Intf, TCIntf, TCIntfWireless, OVSIntf, TCLinkWirelessAP
 from re import findall
+from mininet.wifiPropagationModels import distanceByPropagationModel
 from distutils.version import StrictVersion
 from mininet.wifiMobility import mobility
 from mininet.wifiLink import link
@@ -1217,8 +1218,17 @@ class AccessPoint(AP):
                     cmd = cmd + ("\nwpa=%s" % ap.wpa)
                 else:
                     cmd = cmd + ('\nwpa=3')
-                cmd = cmd + ('\neap_server=1')
+                cmd = cmd + ('\neap_server=0')
                 cmd = cmd + ('\neapol_version=2')
+
+                if 'enable_radius' in ap.params and ap.params['enable_radius'] == 'yes':
+                    cmd = cmd + ("\nwpa_pairwise=TKIP CCMP")
+                    cmd = cmd + ("\neapol_key_index_workaround=0")
+                    cmd = cmd + ("\nown_ip_addr=127.0.0.1")
+                    cmd = cmd + ("\nnas_identifier=%s.example.com" % ap.name)
+                    cmd = cmd + ("\nauth_server_addr=127.0.0.1")
+                    cmd = cmd + ("\nauth_server_port=1812")
+                    cmd = cmd + ("\nauth_server_shared_secret=secret")
             else:
                 cmd = cmd + ("\nwme_enabled=1")
                 cmd = cmd + ("\nwmm_enabled=1")

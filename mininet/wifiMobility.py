@@ -489,10 +489,7 @@ class mobility (object):
 
     @classmethod
     def parameters_(self, node=None):
-        """ 
-        have to check it!
-        Applies channel params and handover
-        """
+        "Applies channel params and handover"
         if WmediumdServerConn.interference_enabled:
             self.setWmediumdPos(node)
         if node == None:
@@ -504,7 +501,7 @@ class mobility (object):
             if 'link' in node_.params and node_.params['link'] == 'mesh':
                 nodes.append(node_)
 
-        self.setParameters(nodes)
+        self.configureLinks(nodes)
 
     @classmethod
     def parameters(self):
@@ -515,10 +512,10 @@ class mobility (object):
                 for wlan in range(0, len(node.params['wlan'])):
                     cls.meshAssociation(node, wlan)
         while True:
-            self.setParameters(self.mobileNodes)
+            self.configureLinks(self.mobileNodes)
 
     @classmethod
-    def setParameters(self, nodes):
+    def configureLinks(self, nodes):
         for node in nodes:
             for wlan in range(0, len(node.params['wlan'])):
                 if node.func[wlan] == 'mesh' or node.func[wlan] == 'adhoc':

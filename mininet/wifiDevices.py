@@ -222,6 +222,8 @@ class deviceRange (object):
             range_ = 70
         elif(mode == 'ac'):
             range_ = 100
+        else:
+            range_ = 33
 
         self.range = range_
         return self.range

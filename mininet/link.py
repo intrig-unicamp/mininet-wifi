@@ -1334,7 +1334,7 @@ class Association(Link):
             else:
                 passwd = sta.params['passwd'][wlan]
 
-        content = 'ctrl_interface=/var/run/wpa_supplicant\nnetwork={\n'
+        cmd = 'ctrl_interface=/var/run/wpa_supplicant\nnetwork={\n'
 
         if 'config' in sta.params:
             config = sta.params['config']
@@ -1342,19 +1342,25 @@ class Association(Link):
                 config = sta.params['config'].split(',')
                 sta.params.pop("config", None)
                 for conf in config:
-                    content = content + "   " + conf + "\n"
+                    cmd = cmd + "   " + conf + "\n"
         else:
-            content = (content + '   ssid=\"%s\"\n' \
-                    '   psk=\"%s\"\n' \
-                    '   key_mgmt=%s\n' \
-                    '   proto=%s\n' \
-                    '   pairwise=%s\n'\
-                    '   %s\n') % \
-            (ap.params['ssid'][0], passwd, ap.wpa_key_mgmt, ap.params['encrypt'][0].upper(), \
-                                                ap.rsn_pairwise, self.bgscan)
-        content = content + '}'
+            cmd = cmd + '   ssid=\"%s\"\n' % ap.params['ssid'][0]
+            if 'enable_radius' not in ap.params:
+                cmd = cmd + '   psk=\"%s\"\n' % passwd
+                cmd = cmd + '   proto=%s\n' % ap.params['encrypt'][0].upper()
+                cmd = cmd + '   pairwise=%s\n' % ap.rsn_pairwise
+            cmd = cmd + '   key_mgmt=%s\n' % ap.wpa_key_mgmt
+            if self.bgscan != '':
+                cmd = cmd + '   %s\n' % self.bgscan
+            if 'enable_radius' in ap.params:
+                cmd = cmd + '   eap=PEAP\n'
+                cmd = cmd + '   identity=\"%s\"\n' % sta.params['radius_identity']
+                cmd = cmd + '   password=\"%s\"\n' % sta.params['radius_passwd']
+                cmd = cmd + '   phase2=\"autheap=MSCHAPV2\"\n'
+        cmd = cmd + '}'
+
         fileName = str(sta) + '.staconf'
-        os.system('echo \'%s\' > %s' % (content, fileName))
+        os.system('echo \'%s\' > %s' % (cmd, fileName))
 
     @classmethod
     def associate_wpa(self, sta, ap, wlan):

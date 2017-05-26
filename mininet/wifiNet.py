@@ -746,6 +746,8 @@ class mininetWiFi(object):
                     ap.wpa = 2
                     if 'ieee80211r' in ap.params and ap.params['ieee80211r'] == 'yes':
                         ap.wpa_key_mgmt = 'FT-PSK'
+                    elif 'enable_radius' in ap.params and ap.params['enable_radius'] == 'yes':
+                        ap.wpa_key_mgmt = 'WPA-EAP'
                     else:
                         ap.wpa_key_mgmt = 'WPA-PSK'
                     ap.rsn_pairwise = 'CCMP'
@@ -772,6 +774,14 @@ class mininetWiFi(object):
                 ap.params['frequency'][wlan] = link.frequency(ap, 0)
             link.recordParams(None, ap)
 
+            if self.useWmediumd:
+                if len(ap.params['channel']) == 0:
+                    ap.params['channel'].append(1)
+                for wlan in range(0, len(ap.params['channel'])):
+                    if ap.params['range'] == 33 or ap.params['range'] == 18:
+                        value = distanceByPropagationModel(ap, wlan)
+                        ap.params['range'] = int(value.dist)
+
             if len(ap.params['ssid']) > 1 and wlan == 0:
                 break
 
@@ -790,6 +800,8 @@ class mininetWiFi(object):
             self.rate = 600
         elif(mode == 'ac'):
             self.rate = 6777
+        else:
+            self.rate = 54
         return self.rate
 
     @classmethod
@@ -853,12 +865,14 @@ class mininetWiFi(object):
                     node.type = 'WirelessMeshAP'
                     self.configureMacAddr(node)
                 else:
+                    # have to verify
                     if 'ssid' not in node.params:
-                        if node.params['txpower'][wlan] != 20:
-                            node.setTxPower(node.params['wlan'][wlan], node.params['txpower'][wlan])
+                        if not self.useWmediumd:
+                            if node.params['txpower'][wlan] != 20:
+                                node.setTxPower(node.params['wlan'][wlan], node.params['txpower'][wlan])
             if node not in switches:
                 self.configureMacAddr(node)
-            
+
             if self.useWmediumd:
                 for wlan in range(0, len(node.params['channel'])):
                     if node.params['range'] == 33 or node.params['range'] == 18:
