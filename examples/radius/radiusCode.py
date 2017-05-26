@@ -1,6 +1,11 @@
 #!/usr/bin/python
 
-'This example shows how to work with Radius Server'
+"""This example shows how to work with Radius Server
+
+Tested with freeradius and with the files included in /radius:
+    -users
+    -clients.conf
+"""
 
 from mininet.net import Mininet
 from mininet.node import  Controller, UserAP
