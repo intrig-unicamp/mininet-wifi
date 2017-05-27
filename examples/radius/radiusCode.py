@@ -1,11 +1,6 @@
 #!/usr/bin/python
 
-"""This example shows how to work with Radius Server
-
-Tested with freeradius and with the files included in /radius:
-    -users
-    -clients.conf
-"""
+'This example shows how to work with Radius Server'
 
 from mininet.net import Mininet
 from mininet.node import  Controller, UserAP
@@ -18,9 +13,9 @@ def topology():
     net = Mininet( controller=Controller, link=TCLink, accessPoint=UserAP, useWmediumd=True, enable_interference=True )
 
     print "*** Creating nodes"
-    sta1 = net.addStation( 'sta1', encrypt='wpa2', radius_passwd='sdnteam', radius_identity='joe', position='110,120,0' )
-    sta2 = net.addStation( 'sta2', encrypt='wpa2', radius_passwd='hello', radius_identity='bob', position='200,100,0' )
-    ap1 = net.addAccessPoint( 'ap1', ssid="simplewifi", mode="8021x", passwd='123456789a', encrypt='wpa2', enable_radius='yes', position='150,100,0' )
+    sta1 = net.addStation( 'sta1', radius_passwd='sdnteam', radius_identity='joe', position='110,120,0' )
+    sta2 = net.addStation( 'sta2', radius_passwd='hello', radius_identity='bob', position='200,100,0' )
+    ap1 = net.addAccessPoint( 'ap1', ssid="simplewifi", mode="8021x", encrypt='wpa2', enable_radius='yes', position='150,100,0' )
     c0 = net.addController('c0', controller=Controller, ip='127.0.0.1', port=6633 )
 
     print "*** Configuring Propagation Model"
