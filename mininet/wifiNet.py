@@ -81,7 +81,6 @@ class mininetWiFi(object):
             node.params['encrypt'] = []
 
         if (mode == 'managed'):
-            node.passwd = ''
             node.params['apsInRange'] = []
             node.params['associatedTo'] = []
             node.params['rssi'] = []
@@ -751,7 +750,8 @@ class mininetWiFi(object):
                     else:
                         ap.wpa_key_mgmt = 'WPA-PSK'
                     ap.rsn_pairwise = 'CCMP'
-                    ap.wpa_passphrase = ap.params['passwd'][0]
+                    if 'enable_radius' not in ap.params or ('enable_radius' not in ap.params and ap.params['enable_radius'] != 'yes'):
+                        ap.wpa_passphrase = ap.params['passwd'][0]
                 elif ap.params['encrypt'][wlan] == 'wep':
                     ap.auth_algs = 2
                     ap.wep_key0 = ap.params['passwd'][0]
