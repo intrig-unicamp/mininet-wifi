@@ -17,7 +17,7 @@ class InbandController(RemoteController):
 def topology():
 
     "Create a network."
-    net = Mininet(controller=Controller, link=TCLink, switch=OVSKernelSwitch, use_wmediumd=True, enable_interference=True )
+    net = Mininet(controller=Controller, link=TCLink, switch=OVSKernelSwitch, enable_wmediumd=True, enable_interference=True )
 
     print "*** Creating nodes"
     car = []

@@ -10,7 +10,7 @@ from mininet.link import TCLink
 
 def topology():
     "Create a network."
-    net = Mininet( controller=Controller, link=TCLink, accessPoint=UserAP, useWmediumd=True, enable_interference=True )
+    net = Mininet( controller=Controller, link=TCLink, accessPoint=UserAP, enable_wmediumd=True, enable_interference=True )
 
     print "*** Creating nodes"
     sta1 = net.addStation( 'sta1', radius_passwd='sdnteam', radius_identity='joe', position='110,120,0' )

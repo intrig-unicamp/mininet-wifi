@@ -18,7 +18,7 @@ from mininet.log import setLogLevel
 def topology():
 
     "Create a network."
-    net = Mininet(controller=Controller, link=TCLink, accessPoint=UserAP, useWmediumd=True, enable_interference=True)
+    net = Mininet(controller=Controller, link=TCLink, accessPoint=UserAP, enable_wmediumd=True, enable_interference=True)
 
     print "*** Creating nodes"
     net.addStation('sta1', position='15,20,0')

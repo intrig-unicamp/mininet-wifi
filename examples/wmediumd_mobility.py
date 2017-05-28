@@ -15,7 +15,7 @@ from mininet.log import setLogLevel
 def topology():
 
     "Create a network."
-    net = Mininet(controller=Controller, link=TCLink, accessPoint=OVSKernelAP, useWmediumd=True)
+    net = Mininet(controller=Controller, link=TCLink, accessPoint=OVSKernelAP, enable_wmediumd=True)
 
     print "*** Creating nodes"
     ap1 = net.addAccessPoint('ap1', ssid='new-ssid', mode='a', channel='36', range=100, position='50,50,0')
