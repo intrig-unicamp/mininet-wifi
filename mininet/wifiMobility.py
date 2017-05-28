@@ -34,7 +34,7 @@ from mininet.link import Association
 
 
 class mobility (object):
-    "Mobility"
+    'Mobility'
     AC = ''  # association control method
     accessPoints = []
     stations = []
@@ -276,7 +276,7 @@ class mobility (object):
 
     @classmethod
     def updateWmediumdPos(self, sta):
-        if sta.isStationary:
+        if sta.isStationary and sta.type != 'vehicle':
             info('Configuring wmediumd for %s...\n' % sta)
             time.sleep(2)
         self.setWmediumdPos(sta)

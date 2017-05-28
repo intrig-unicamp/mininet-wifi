@@ -1,30 +1,5 @@
 #!/usr/bin/python
 
-"""                   (mesh)
-         ..........................
-         .                        .
-         .                        .
-     10.0.0.1/24             10.0.0.2/24
-    (car1STA-mp0)            (car2STA-mp0)
-       car1STA                  car2STA
-    (car1STA-eth0)          (car2STA-eth0)
-    192.168.1.2/24           192.168.1.4/24
-         |                        |
-    (car1SW-eth1)            (car2SW-eth1)
-       car1SW                   car2SW
-    (car1SW-eth2)            (car2SW-eth2)
-         |                        |
-    (car1-eth0)               (car2-eth0)
-   192.168.1.1/24            192.168.1.3/24
-    	car1                     car2
-    (car1-wlan0)              (car2-wlan0)
-   192.168.0.1/24            192.168.0.3/24
-         .                        .
-         .                        .
-         ...........RSU1............
-                  (infra)"""
-
-
 from mininet.net import Mininet
 from mininet.node import Controller, OVSKernelSwitch, UserSwitch, RemoteController
 from mininet.link import TCLink
@@ -42,7 +17,7 @@ class InbandController(RemoteController):
 def topology():
 
     "Create a network."
-    net = Mininet(controller=Controller, link=TCLink, switch=OVSKernelSwitch)
+    net = Mininet(controller=Controller, link=TCLink, switch=OVSKernelSwitch, use_wmediumd=True, enable_interference=True )
 
     print "*** Creating nodes"
     car = []
@@ -51,37 +26,42 @@ def topology():
         car.append(x)
         stas.append(x)
     for x in range(0, 10):
-        car[x] = net.addCar('car%s' % (x), wlans=1, ip='10.0.0.%s/8' % (x + 1), mode='b', max_x=40, max_y=40, range=1000)
+        car[x] = net.addCar('car%s' % (x), wlans=1, ip='10.0.0.%s/8' % (x + 1))
 
-    rsu10 = net.addAccessPoint('rsu10', ssid='rsu10', mode='g', channel='1', position='3500,2500,0', range=500)
-    rsu11 = net.addAccessPoint('rsu11', ssid='rsu11', mode='g', channel='6', position='3000,2500,0', range=500)
-    rsu12 = net.addAccessPoint('rsu12', ssid='rsu12', mode='g', channel='11', position='2500,3000,0', range=500)
-    rsu13 = net.addAccessPoint('rsu13', ssid='rsu13', mode='g', channel='11', position='4000,3000,0', range=500)
-    rsu14 = net.addAccessPoint('rsu14', ssid='rsu14', mode='g', channel='11', position='4500,3000,0', range=500)
+    e1 = net.addAccessPoint('e1', ssid='enodeb1', mac='00:00:00:11:00:01', mode='g', channel='1', position='3279.02,3736.27,0')
+    e2 = net.addAccessPoint('e2', ssid='enodeb2', mac='00:00:00:11:00:02', mode='g', channel='6', position='2320.82,3565.75,0')
+    e3 = net.addAccessPoint('e3', ssid='enodeb3', mac='00:00:00:11:00:03', mode='g', channel='11', position='2806.42,3395.22,0')
+    e4 = net.addAccessPoint('e4', ssid='enodeb4', mac='00:00:00:11:00:04', mode='g', channel='1', position='3332.62,3253.92,0')
+    e5 = net.addAccessPoint('e5', ssid='enodeb5', mac='00:00:00:11:00:05', mode='g', channel='6', position='2887.62,2935.61,0')
+    e6 = net.addAccessPoint('e6', ssid='enodeb6', mac='00:00:00:11:00:06', mode='g', channel='11', position='2351.68,3083.40,0')
     c1 = net.addController('c1', controller=Controller, ip='127.0.0.1', port=6633)
+
+    net.propagationModel("logDistancePropagationLossModel", exp=2.5)
 
     print "*** Configuring wifi nodes"
     net.configureWifiNodes()
 
     net.meshRouting('custom')
 
-    net.addLink(rsu10, rsu11)
-    net.addLink(rsu11, rsu12)
-    net.addLink(rsu12, rsu13)
-    net.addLink(rsu13, rsu14)
+    net.addLink(e1, e2)
+    net.addLink(e2, e3)
+    net.addLink(e3, e4)
+    net.addLink(e4, e5)
+    net.addLink(e5, e6)
 
-    """Available Options: sumo, sumo-gui"""
-    # Put your sumocfg file in /mininet/sumo/data
+    "Available Options: sumo, sumo-gui"
     net.useExternalProgram('sumo-gui', config_file='map.sumocfg')
 
     print "*** Starting network"
     net.build()
     c1.start()
-    rsu10.start([c1])
-    rsu11.start([c1])
-    rsu12.start([c1])
-    rsu13.start([c1])
-    rsu14.start([c1])
+    e1.start([c1])
+    e2.start([c1])
+    e3.start([c1])
+    e4.start([c1])
+    e5.start([c1])
+    e6.start([c1])
+
     i = 201
     for sw in net.vehicles:
         sw.start([c1])
