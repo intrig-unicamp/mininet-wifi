@@ -27,11 +27,11 @@ def topology():
     ap3 = net.addAccessPoint('ap3', mac='00:00:00:00:00:03', range=70, ssid="handover", mode="g", channel="1", passwd='123456789a', encrypt='wpa2', position='100,100,0')
     c1 = net.addController('c1', controller=Controller)
 
-    print "*** Configuring wifi nodes"
-    net.configureWifiNodes()
-
     print "*** Configuring Propagation Model"
     net.propagationModel("logDistancePropagationLossModel", exp=3.5)
+
+    print "*** Configuring wifi nodes"
+    net.configureWifiNodes()
 
     print "*** Creating links"
     net.addLink(ap1, ap2)
