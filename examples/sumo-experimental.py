@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 from mininet.net import Mininet
-from mininet.node import Controller, OVSKernelSwitch, UserSwitch, RemoteController
+from mininet.node import Controller, OVSKernelAP, RemoteController
 from mininet.link import TCLink
 from mininet.cli import CLI
 from mininet.log import setLogLevel
@@ -17,7 +17,7 @@ class InbandController(RemoteController):
 def topology():
 
     "Create a network."
-    net = Mininet(controller=Controller, link=TCLink, switch=OVSKernelSwitch, enable_wmediumd=True, enable_interference=True )
+    net = Mininet(controller=Controller, link=TCLink, accessPoint=OVSKernelAP, enable_wmediumd=True, enable_interference=True)
 
     print "*** Creating nodes"
     car = []
@@ -34,14 +34,12 @@ def topology():
     e4 = net.addAccessPoint('e4', ssid='enodeb4', mac='00:00:00:11:00:04', mode='g', channel='1', position='3332.62,3253.92,0')
     e5 = net.addAccessPoint('e5', ssid='enodeb5', mac='00:00:00:11:00:05', mode='g', channel='6', position='2887.62,2935.61,0')
     e6 = net.addAccessPoint('e6', ssid='enodeb6', mac='00:00:00:11:00:06', mode='g', channel='11', position='2351.68,3083.40,0')
-    c1 = net.addController('c1', controller=Controller, ip='127.0.0.1', port=6633)
+    c1 = net.addController('c1', controller=Controller, ip='127.0.0.1', port=6653)
 
     net.propagationModel("logDistancePropagationLossModel", exp=2.5)
 
     print "*** Configuring wifi nodes"
     net.configureWifiNodes()
-
-    net.meshRouting('custom')
 
     net.addLink(e1, e2)
     net.addLink(e2, e3)
