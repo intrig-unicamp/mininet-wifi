@@ -354,17 +354,6 @@ class testWalkthrough(unittest.TestCase):
         p.sendline('exit')
         p.wait()
 
-    def testWmediumdStatic(self):
-        "Start Mininet-WiFi with wmediumd, then test ping"
-        p = pexpect.spawn(
-            'python examples/wmediumd_ibss_static.py')
-        sleep(3)
-        p.sendline('sta1 ping -c 1 sta2')
-        p.expect('1 packets transmitted, 1 received')
-        p.expect(self.prompt)
-        p.sendline('exit')
-        p.wait()
-
     def testMultipleInstances(self):
         """Start Mininet-WiFi with multiple instances, then test ping"""
         p1 = pexpect.spawn(
