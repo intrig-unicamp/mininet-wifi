@@ -1183,8 +1183,7 @@ class Association(Link):
             cls = TCLinkWirelessStation
             cls(node, port1=wlan, intfName1=node.params['wlan'][wlan])
 
-        if 'position' not in node.params:
-            self.meshAssociation(node, wlan)
+        self.meshAssociation(node, wlan)
 
         if 'link' in node.params and node.params['link'] == 'mesh':
             cls = TCLinkWirelessAP
