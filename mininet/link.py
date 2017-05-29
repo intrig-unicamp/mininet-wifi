@@ -28,7 +28,7 @@ import re
 
 from mininet.log import info, error, debug
 from mininet.util import makeIntfPair
-from mininet.wifiChannel import setChannelParams
+from mininet.wifiLink import link
 from mininet.wmediumdConnector import WmediumdServerConn, WmediumdSNRLink, WmediumdPosition
 
 class Intf(object):
@@ -1153,10 +1153,8 @@ class Association(Link):
     bgscan = ''
 
     @classmethod
-    def configureAdhoc(self, sta):
-        """
-        Configure Wireless Ad Hoc
-        """
+    def configureAdhoc(self, sta, useWmediumd):
+        "Configure Wireless Ad Hoc"
         wlan = sta.ifaceToAssociate
         iface = sta.params['wlan'][wlan]
         sta.params['rssi'][wlan] = -62
@@ -1164,30 +1162,28 @@ class Association(Link):
         sta.func[wlan] = 'adhoc'
         sta.intfs[wlan].setIP(sta.params['ip'][wlan])
         sta.cmd('iw dev %s set type ibss' % iface)
-        sta.params['associatedTo'][wlan] = sta.params['ssid'][wlan]
-        info("associating %s to %s...\n" % (iface, sta.params['ssid'][wlan]))
-        sta.pexec('iwconfig %s channel %s essid %s mode ad-hoc' % (iface, sta.params['channel'][wlan], \
-                                                     sta.params['associatedTo'][wlan]))
-        sta.pexec('iwconfig %s ap %s' % (iface, sta.params['cell'][wlan]))
+        if 'position' not in sta.params or useWmediumd:
+            sta.params['associatedTo'][wlan] = sta.params['ssid'][wlan]
+            info("associating %s to %s...\n" % (iface, sta.params['ssid'][wlan]))
+            sta.pexec('iwconfig %s channel %s essid %s ap 02:CA:FF:EE:BA:01 mode ad-hoc'\
+                       % (iface, sta.params['channel'][wlan], sta.params['associatedTo'][wlan]))
+            sta.pexec('iwconfig %s ap %s' % (iface, sta.params['cell'][wlan]))
 
     @classmethod
     def configureMesh(self, node, wlan):
-        """
-        Configure Wireless Mesh Interface
-        """
+        "Configure Wireless Mesh Interface"
         node.params['rssi'][wlan] = -62
         node.params['snr'][wlan] = -62 - (-91.0)
 
         if 'mp' not in node.params['wlan'][wlan]:
             iface = node.params['wlan'][wlan]
-            node.params['frequency'][wlan] = setChannelParams.frequency(node, wlan)
+            node.params['frequency'][wlan] = link.frequency(node, wlan)
             self.getMacAddress(node, iface, wlan)
             node.intfs[wlan] = node.params['wlan'][wlan]
             cls = TCLinkWirelessStation
             cls(node, port1=wlan, intfName1=node.params['wlan'][wlan])
 
-        if 'position' not in node.params:
-            self.meshAssociation(node, wlan)
+        self.meshAssociation(node, wlan)
 
         if 'link' in node.params and node.params['link'] == 'mesh':
             cls = TCLinkWirelessAP
@@ -1196,31 +1192,29 @@ class Association(Link):
             node.setBw(node, wlan, intf)
 
     @classmethod
-    def meshAssociation(self, sta, wlan):
-        """
-        Performs Mesh Association
-        """
-        debug("associating %s to %s...\n" % (sta.params['wlan'][wlan], sta.params['ssid'][wlan]))
-        sta.pexec('iw dev %s mesh join %s' % (sta.params['wlan'][wlan], sta.params['ssid'][wlan]))
+    def meshAssociation(self, node, wlan):
+        "Performs Mesh Association"
+        debug("associating %s to %s...\n" % (node.params['wlan'][wlan], node.params['ssid'][wlan]))
+        node.pexec('iw dev %s mesh join %s' % (node.params['wlan'][wlan], node.params['ssid'][wlan]))
 
     _macMatchRegex = re.compile(r'..:..:..:..:..:..')
 
     @classmethod
-    def getMacAddress(self, sta, iface, wlan):
-        """ get Mac Address of any Interface """
-        ifconfig = str(sta.pexec('ifconfig %s' % iface))
+    def getMacAddress(self, node, iface, wlan):
+        "gets Mac Address of any Interface"
+        ifconfig = str(node.pexec('ifconfig %s' % iface))
         mac = self._macMatchRegex.findall(ifconfig)
-        sta.meshMac[wlan] = str(mac[0])
+        node.meshMac[wlan] = str(mac[0])
 
     @classmethod
     def setSNRWmediumd(self, sta, ap, snr):
-        """Set SNR for wmediumd"""
+        "Set SNR for wmediumd"
         WmediumdServerConn.send_snr_update(WmediumdSNRLink(sta.wmediumdIface, ap.wmediumdIface, snr))
         WmediumdServerConn.send_snr_update(WmediumdSNRLink(ap.wmediumdIface, sta.wmediumdIface, snr))
 
     @classmethod
     def setPositionWmediumd(self, sta):
-        """Set SNR for wmediumd"""
+        "Set SNR for wmediumd"
         posX = sta.params['position'][0]
         posY = sta.params['position'][1]
         WmediumdServerConn.send_position_update(WmediumdPosition(sta.wmediumdIface, \
@@ -1235,7 +1229,7 @@ class Association(Link):
         :param wlan: wlan ID
         """
 
-        dist = setChannelParams.getDistance(sta, ap)
+        dist = link.getDistance(sta, ap)
         if dist <= ap.params['range']:
             for wlan in range(0, len(sta.params['wlan'])):
                 if sta.params['rssi'][wlan] == 0:
@@ -1246,17 +1240,17 @@ class Association(Link):
                     cls.associate_infra(sta, ap, wlan)
                     if not useWmediumd:
                         if dist >= 0.01:
-                            setChannelParams(sta, ap, wlan, dist)
+                            link(sta, ap, wlan, dist)
                     if sta not in ap.params['associatedStations']:
                         ap.params['associatedStations'].append(sta)
-                rssi_ = setChannelParams.setRSSI(sta, ap, wlan, dist)
+                rssi_ = link.setRSSI(sta, ap, wlan, dist)
                 sta.params['rssi'][wlan] = rssi_
-                snr_ = setChannelParams.setSNR(sta, wlan)
+                snr_ = link.setSNR(sta, wlan)
                 sta.params['snr'][wlan] = snr_
             if ap not in sta.params['apsInRange']:
                 sta.params['apsInRange'].append(ap)
                 ap.params['stationsInRange'][sta] = rssi_
-            setChannelParams.recordParams(sta, ap)
+            link.recordParams(sta, ap)
 
     @classmethod
     def updateParams(self, sta, ap, wlan):
@@ -1268,7 +1262,7 @@ class Association(Link):
         :param wlan: wlan ID
         """
 
-        sta.params['frequency'][wlan] = setChannelParams.frequency(ap, 0)
+        sta.params['frequency'][wlan] = link.frequency(ap, 0)
         sta.params['channel'][wlan] = ap.params['channel'][0]
 
     @classmethod
@@ -1316,7 +1310,7 @@ class Association(Link):
         if self.printCon:
             iface = sta.params['wlan'][wlan]
             info("Associating %s to %s\n" % (iface, ap))
-        sta.params['frequency'][wlan] = setChannelParams.frequency(ap, 0)
+        sta.params['frequency'][wlan] = link.frequency(ap, 0)
 
     @classmethod
     def wpaFile(self, sta, ap, wlan):
@@ -1328,12 +1322,13 @@ class Association(Link):
         :param wlan: wlan ID
         """
         if 'config' not in ap.params or 'config' not in sta.params:
-            if 'passwd' not in sta.params:
-                passwd = ap.params['passwd'][0]
-            else:
-                passwd = sta.params['passwd'][wlan]
+            if 'enable_radius' not in ap.params or ('enable_radius' not in ap.params and ap.params['enable_radius'] != 'yes'):
+                if 'passwd' not in sta.params:
+                    passwd = ap.params['passwd'][0]
+                else:
+                    passwd = sta.params['passwd'][wlan]
 
-        content = 'ctrl_interface=/var/run/wpa_supplicant\nnetwork={\n'
+        cmd = 'ctrl_interface=/var/run/wpa_supplicant\nnetwork={\n'
 
         if 'config' in sta.params:
             config = sta.params['config']
@@ -1341,19 +1336,25 @@ class Association(Link):
                 config = sta.params['config'].split(',')
                 sta.params.pop("config", None)
                 for conf in config:
-                    content = content + "   " + conf + "\n"
+                    cmd = cmd + "   " + conf + "\n"
         else:
-            content = (content + '   ssid=\"%s\"\n' \
-                    '   psk=\"%s\"\n' \
-                    '   key_mgmt=%s\n' \
-                    '   proto=%s\n' \
-                    '   pairwise=%s\n'\
-                    '   %s\n') % \
-            (ap.params['ssid'][0], passwd, ap.wpa_key_mgmt, ap.params['encrypt'][0].upper(), \
-                                                ap.rsn_pairwise, self.bgscan)
-        content = content + '}'
+            cmd = cmd + '   ssid=\"%s\"\n' % ap.params['ssid'][0]
+            if 'enable_radius' not in ap.params:
+                cmd = cmd + '   psk=\"%s\"\n' % passwd
+                cmd = cmd + '   proto=%s\n' % ap.params['encrypt'][0].upper()
+                cmd = cmd + '   pairwise=%s\n' % ap.rsn_pairwise
+            cmd = cmd + '   key_mgmt=%s\n' % ap.wpa_key_mgmt
+            if self.bgscan != '':
+                cmd = cmd + '   %s\n' % self.bgscan
+            if 'enable_radius' in ap.params:
+                cmd = cmd + '   eap=PEAP\n'
+                cmd = cmd + '   identity=\"%s\"\n' % sta.params['radius_identity']
+                cmd = cmd + '   password=\"%s\"\n' % sta.params['radius_passwd']
+                cmd = cmd + '   phase2=\"autheap=MSCHAPV2\"\n'
+        cmd = cmd + '}'
+
         fileName = str(sta) + '.staconf'
-        os.system('echo \'%s\' > %s' % (content, fileName))
+        os.system('echo \'%s\' > %s' % (cmd, fileName))
 
     @classmethod
     def associate_wpa(self, sta, ap, wlan):
@@ -1364,17 +1365,12 @@ class Association(Link):
         :param ap: access point
         :param wlan: wlan ID
         """
-        if sta.passwd != ap.params['passwd'][0]:
-            sta.passwd = ap.params['passwd'][0]
-            pidfile = "mn%d_%s_%s_wpa.pid" % (os.getpid(), sta.name, wlan)
-            self.wpaFile(sta, ap, wlan)
-            debug("wpa_supplicant -B -Dnl80211 -P %s -i %s -c %s.staconf\n"
-                    % (pidfile, sta.params['wlan'][wlan], sta))
-            sta.pexec("wpa_supplicant -B -Dnl80211 -P %s -i %s -c %s.staconf"
-                    % (pidfile, sta.params['wlan'][wlan], sta))
-        else:
-            sta.pexec('iw dev %s disconnect' % sta.params['wlan'][wlan])
-            # sta.cmdPrint('wpa_cli reconnect -i %s' % sta.params['wlan'][wlan])
+        pidfile = "mn%d_%s_%s_wpa.pid" % (os.getpid(), sta.name, wlan)
+        self.wpaFile(sta, ap, wlan)
+        debug("wpa_supplicant -B -Dnl80211 -P %s -i %s -c %s.staconf\n"
+                % (pidfile, sta.params['wlan'][wlan], sta))
+        sta.pexec("wpa_supplicant -B -Dnl80211 -P %s -i %s -c %s.staconf"
+                % (pidfile, sta.params['wlan'][wlan], sta))
 
     @classmethod
     def associate_wep(self, sta, ap, wlan):

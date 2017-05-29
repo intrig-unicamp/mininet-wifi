@@ -10,7 +10,7 @@ import random
 import os
 
 
-class setChannelParams (object):
+class link (object):
 
     dist = 0
     noise = 0

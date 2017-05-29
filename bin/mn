@@ -414,7 +414,7 @@ class MininetRunner(object):
                   channel=channel,
                   mode=mode,
                   ssid=ssid,
-                  useWmediumd=opts.wmediumd,
+                  enable_wmediumd=opts.wmediumd,
                   xterms=xterms, autoSetMacs=mac,
                   autoStaticArp=arp, autoPinCpus=pin,
                   listenPort=listenPort)

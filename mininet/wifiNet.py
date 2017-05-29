@@ -15,14 +15,13 @@ from mininet.node import AccessPoint
 from mininet.log import info
 from mininet.wmediumdConnector import DynamicWmediumdIntfRef, WmediumdSNRLink, WmediumdStarter, \
                     WmediumdTXPower, WmediumdPosition, WmediumdConstants, WmediumdServerConn
-from mininet.wifiChannel import setChannelParams
+from mininet.wifiLink import link
 from mininet.wifiDevices import deviceRange, deviceDataRate
-from mininet.wifiAdHocConnectivity import pairingAdhocNodes
-from mininet.wifiMeshRouting import listNodes, meshRouting
+from mininet.wifiMeshRouting import meshRouting
 from mininet.wifiMobility import mobility
 from mininet.wifiPlot import plot2d, plot3d
 from mininet.wifiModule import module
-from mininet.wifiPropagationModels import propagationModel
+from mininet.wifiPropagationModels import propagationModel, distanceByPropagationModel
 from mininet.link import TCLinkWirelessAP, TCLinkWirelessStation, Association
 from mininet.util import macColonHex, ipAdd
 from mininet.vanet import vanet
@@ -32,7 +31,7 @@ from sumo.runner import sumo
 
 class mininetWiFi(object):
 
-    associationControlMethod = ''
+    AC = ''
     alternativeModule = ''
     rec_rssi = False
     useWmediumd = False
@@ -82,7 +81,6 @@ class mininetWiFi(object):
             node.params['encrypt'] = []
 
         if (mode == 'managed'):
-            node.passwd = ''
             node.params['apsInRange'] = []
             node.params['associatedTo'] = []
             node.params['rssi'] = []
@@ -534,7 +532,8 @@ class mininetWiFi(object):
         if(cell != "{}"):
             node.params['cell'][wlan] = cell
         else:
-            node.params['cell'][wlan] = 'FE:4C:6A:B5:A9:7E'
+            if 'position' not in node.params:
+                node.params['cell'][wlan] = 'FE:4C:6A:B5:A9:7E'
 
         deviceRange(node)
 
@@ -547,7 +546,7 @@ class mininetWiFi(object):
         options.setdefault('addr1', self.randMac())
 
         cls = Association
-        cls.configureAdhoc(node)
+        cls.configureAdhoc(node, self.useWmediumd)
         if 'intf' not in params:
             node.ifaceToAssociate += 1
 
@@ -606,7 +605,13 @@ class mininetWiFi(object):
         links = []
         positions = []
         txpowers = []
-        nodes = stations + accessPoints
+        cars = []
+
+        for node in stations:
+            if 'carsta' in node.params:
+                cars.append(node.params['carsta'])
+
+        nodes = stations + accessPoints + cars
 
         for node in nodes:
             node.wmediumdIface = DynamicWmediumdIntfRef(node)
@@ -644,7 +649,7 @@ class mininetWiFi(object):
         :param wlan: wlan ID
         """
 
-        sta.params['frequency'][wlan] = setChannelParams.frequency(ap, 0)
+        sta.params['frequency'][wlan] = link.frequency(ap, 0)
         sta.params['channel'][wlan] = ap.params['channel'][0]
 
     @classmethod
@@ -746,10 +751,13 @@ class mininetWiFi(object):
                     ap.wpa = 2
                     if 'ieee80211r' in ap.params and ap.params['ieee80211r'] == 'yes':
                         ap.wpa_key_mgmt = 'FT-PSK'
+                    elif 'enable_radius' in ap.params and ap.params['enable_radius'] == 'yes':
+                        ap.wpa_key_mgmt = 'WPA-EAP'
                     else:
                         ap.wpa_key_mgmt = 'WPA-PSK'
                     ap.rsn_pairwise = 'CCMP'
-                    ap.wpa_passphrase = ap.params['passwd'][0]
+                    if 'enable_radius' not in ap.params or ('enable_radius' not in ap.params and ap.params['enable_radius'] != 'yes'):
+                        ap.wpa_passphrase = ap.params['passwd'][0]
                 elif ap.params['encrypt'][wlan] == 'wep':
                     ap.auth_algs = 2
                     ap.wep_key0 = ap.params['passwd'][0]
@@ -761,6 +769,7 @@ class mininetWiFi(object):
                 iface = ap.params['wlan'][wlan]
             else:
                 iface = ap.params['phywlan']
+
             if not self.useWmediumd:
                 self.setBw(ap, wlan, iface)
 
@@ -768,8 +777,16 @@ class mininetWiFi(object):
                 ap.params.pop("phywlan", None)
 
             if ap.func[0] != 'ap':
-                ap.params['frequency'][wlan] = setChannelParams.frequency(ap, 0)
-            setChannelParams.recordParams(None, ap)
+                ap.params['frequency'][wlan] = link.frequency(ap, 0)
+            link.recordParams(None, ap)
+
+            if self.useWmediumd:
+                if len(ap.params['channel']) == 0:
+                    ap.params['channel'].append(1)
+                for wlan in range(0, len(ap.params['channel'])):
+                    if ap.params['range'] == 33 or ap.params['range'] == 18:
+                        value = distanceByPropagationModel(ap, wlan)
+                        ap.params['range'] = int(value.dist)
 
             if len(ap.params['ssid']) > 1 and wlan == 0:
                 break
@@ -789,6 +806,8 @@ class mininetWiFi(object):
             self.rate = 600
         elif(mode == 'ac'):
             self.rate = 6777
+        else:
+            self.rate = 54
         return self.rate
 
     @classmethod
@@ -843,20 +862,23 @@ class mininetWiFi(object):
                 if node not in switches:
                     cls = TCLinkWirelessStation
                     cls(node, intfName1=node.params['wlan'][wlan])
-                if 'car' in node.name and node.type == 'station':
-                        node.cmd('iw dev %s-wlan%s interface add %s-mp%s type mp' % (node, wlan, node, wlan))
-                        node.cmd('ifconfig %s-mp%s up' % (node, wlan))
-                        node.cmd('iw dev %s-mp%s mesh join %s' % (node, wlan, 'ssid'))
-                        node.func[wlan] = 'mesh'
-                elif node.type == 'station' and node in switches:
+                if node.type == 'station' and node in switches:
                     node.type = 'WirelessMeshAP'
                     self.configureMacAddr(node)
                 else:
+                    # have to verify
                     if 'ssid' not in node.params:
-                        if node.params['txpower'][wlan] != 20:
-                            node.setTxPower(node.params['wlan'][wlan], node.params['txpower'][wlan])
+                        if not self.useWmediumd:
+                            if node.params['txpower'][wlan] != 20:
+                                node.setTxPower(node.params['wlan'][wlan], node.params['txpower'][wlan])
             if node not in switches:
                 self.configureMacAddr(node)
+
+            if self.useWmediumd:
+                for wlan in range(0, len(node.params['channel'])):
+                    if node.params['range'] == 33 or node.params['range'] == 18:
+                        value = distanceByPropagationModel(node, wlan)
+                        node.params['range'] = int(value.dist)
         return stations, accessPoints
 
     @classmethod
@@ -927,7 +949,7 @@ class mininetWiFi(object):
             mobilityModel = kwargs['model']
 
         if 'AC' in kwargs:
-            self.associationControlMethod = kwargs['AC']
+            self.AC = kwargs['AC']
 
         if mobilityModel != '' or self.isVanet:
             stationaryNodes = []
@@ -987,10 +1009,11 @@ class mininetWiFi(object):
         mobilityparam.setdefault('MAX_X', self.MAX_X)
         mobilityparam.setdefault('MAX_Y', self.MAX_Y)
         mobilityparam.setdefault('MAX_Z', self.MAX_Z)
-        mobilityparam.setdefault('AC', self.associationControlMethod)
+        mobilityparam.setdefault('AC', self.AC)
         mobilityparam.setdefault('rec_rssi', self.rec_rssi)
         mobilityparam.setdefault('init_time', self.init_time)
         mobilityparam.setdefault('stationaryNodes', stationaryNodes)
+        mobilityparam.setdefault('is3d', self.is3d)
         return mobilityparam
 
     @classmethod
@@ -1045,7 +1068,7 @@ class mininetWiFi(object):
 
         params = {}
         if self.ifb:
-            setChannelParams.ifb = True
+            link.ifb = True
             params['ifb'] = self.ifb
         params['useWmediumd'] = useWmediumd
         nodes = stations + accessPoints + cars
@@ -1062,6 +1085,7 @@ class mininetWiFi(object):
             self.addMesh(car.params['carsta'], **params)
             stations.remove(car.params['carsta'])
             stations.append(car)
+            car.lastpos = [0, 0, 0]
             car.params['wlan'].append(0)
             car.params['rssi'].append(0)
             car.params['snr'].append(0)
@@ -1090,26 +1114,16 @@ class mininetWiFi(object):
         nodes = stations + ap
 
         if not self.isVanet:
-            for node in nodes:
-                pairingAdhocNodes.ssid_ID += 1
+            for node in stations:
                 for wlan in range(0, len(node.params['wlan'])):
-                    if 'position' in node.params and 'link' not in node.params:
-                        mobility.accessPoints = accessPoints
-                        mobility.handoverCheck(node, wlan)
-                    if 'position' in node.params and node.func[wlan] == 'adhoc' and node.params['associatedTo'][wlan] == '':
-                        value = pairingAdhocNodes(node, wlan, nodes)
-                        dist = value.dist
-                        if dist >= 0.01:
-                            setChannelParams(sta=node, wlan=wlan, dist=dist)
-                    elif 'position' in node.params and node.func[wlan] == 'mesh':
-                        if node.type == 'vehicle':
-                            node = node.params['carsta']
-                            wlan = 0
-                        dist = listNodes.pairingNodes(node, wlan, nodes)
-                        if dist >= 0.01 and not self.useWmediumd:
-                            setChannelParams(sta=node, wlan=wlan, dist=dist)
-                if meshRouting.routing == 'custom':
-                    meshRouting(nodes)
+                    if node.func[wlan] == 'mesh':
+                        mobility.meshNodes.append(node)
+                    elif node.func[wlan] == 'adhoc':
+                        mobility.adhocNodes.append(node)
+            for node in nodes:
+                if 'position' in node.params and 'link' not in node.params:
+                    mobility.accessPoints = accessPoints
+                    mobility.parameters_(node)
 
     @classmethod
     def propagationModel(self, stations, accessPoints, model, exp=2, sL=1, lF=0, pL=0, nFloors=0, gRandom=0):
@@ -1126,11 +1140,11 @@ class mininetWiFi(object):
         """
         propagationModel.model = model
         propagationModel.exp = exp
-        setChannelParams.sl = sL
-        setChannelParams.lF = lF
-        setChannelParams.nFloors = nFloors
-        setChannelParams.gRandom = gRandom
-        setChannelParams.pL = pL
+        link.sl = sL
+        link.lF = lF
+        link.nFloors = nFloors
+        link.gRandom = gRandom
+        link.pL = pL
 
         for sta in stations:
             if 'position' in sta.params and sta not in mobility.stations:
@@ -1151,7 +1165,7 @@ class mininetWiFi(object):
 
     @classmethod
     def getDistance(self, src, dst):
-        dist = setChannelParams.getDistance(src, dst)
+        dist = link.getDistance(src, dst)
         return dist
 
     @classmethod
@@ -1189,9 +1203,9 @@ class mininetWiFi(object):
     @classmethod
     def associationControl(self, ac):
         """Defines an association control
-        :params ac: the association control
+        :params ac: association control method
         """
-        mobility.associationControlMethod = ac
+        mobility.AC = ac
 
     @classmethod
     def setChannelEquation(self, **params):
@@ -1204,13 +1218,13 @@ class mininetWiFi(object):
         :params loss: loss (%)
         """
         if 'bw' in params:
-            setChannelParams.equationBw = params['bw']
+            link.equationBw = params['bw']
         if 'delay' in params:
-            setChannelParams.equationDelay = params['delay']
+            link.equationDelay = params['delay']
         if 'latency' in params:
-            setChannelParams.equationLatency = params['latency']
+            link.equationLatency = params['latency']
         if 'loss' in params:
-            setChannelParams.equationLoss = params['loss']
+            link.equationLoss = params['loss']
 
     @classmethod
     def closeMininetWiFi(self):

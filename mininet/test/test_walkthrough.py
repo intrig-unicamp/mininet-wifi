@@ -354,17 +354,6 @@ class testWalkthrough(unittest.TestCase):
         p.sendline('exit')
         p.wait()
 
-    def testWmediumdStatic(self):
-        "Start Mininet-WiFi with wmediumd, then test ping"
-        p = pexpect.spawn(
-            'python examples/wmediumd_ibss_static.py')
-        sleep(3)
-        p.sendline('sta1 ping -c 1 sta2')
-        p.expect('1 packets transmitted, 1 received')
-        p.expect(self.prompt)
-        p.sendline('exit')
-        p.wait()
-
     def testMultipleInstances(self):
         """Start Mininet-WiFi with multiple instances, then test ping"""
         p1 = pexpect.spawn(
@@ -436,7 +425,7 @@ class testWalkthrough(unittest.TestCase):
         p.expect('Station ap2: ap2-wlan0:10.0.0.12')
         p.expect(self.prompt)
         p.sendline('py sta1.params[\'rssi\']')
-        p.expect('-47.21')
+        p.expect('-47.0')
         p.expect(self.prompt)
         stations = [ 'Station sta1: sta1-wlan0:10.0.0.1', 'Station sta2: sta2-wlan0:10.0.0.2', self.prompt ]
         p.sendline('py ap2.params[\'associatedStations\']')

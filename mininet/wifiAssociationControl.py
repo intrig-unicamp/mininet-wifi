@@ -1,4 +1,4 @@
-from mininet.wifiChannel import setChannelParams
+from mininet.wifiLink import link
 from mininet.log import debug
 
 class associationControl (object):
@@ -23,10 +23,10 @@ class associationControl (object):
             else:
                 self.changeAP = True
         elif ac == "ssf":
-            distance = setChannelParams.getDistance(sta, sta.params['associatedTo'][wlan])
-            RSSI = setChannelParams.setRSSI(sta, sta.params['associatedTo'][wlan], wlan, distance)
-            refDistance = setChannelParams.getDistance(sta, ap)
-            refRSSI = setChannelParams.setRSSI(sta, ap, wlan, refDistance)
+            distance = link.getDistance(sta, sta.params['associatedTo'][wlan])
+            RSSI = link.setRSSI(sta, sta.params['associatedTo'][wlan], wlan, distance)
+            refDistance = link.getDistance(sta, ap)
+            refRSSI = link.setRSSI(sta, ap, wlan, refDistance)
             if float(refRSSI) > float(RSSI + 0.1):
                 debug('iw dev %s disconnect' % sta.params['wlan'][wlan])
                 sta.pexec('iw dev %s disconnect' % sta.params['wlan'][wlan])

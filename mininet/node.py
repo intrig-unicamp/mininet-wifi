@@ -68,9 +68,10 @@ from mininet.util import (quietRun, errRun, errFail, moveIntf, isShellBuiltin,
 from mininet.moduledeps import moduleDeps, pathCheck, TUN
 from mininet.link import Link, Intf, TCIntf, TCIntfWireless, OVSIntf, TCLinkWirelessAP
 from re import findall
+from mininet.wifiPropagationModels import distanceByPropagationModel
 from distutils.version import StrictVersion
 from mininet.wifiMobility import mobility
-from mininet.wifiChannel import setChannelParams
+from mininet.wifiLink import link
 from mininet.wifiPlot import plot2d, plot3d
 
 class Node(object):
@@ -263,7 +264,7 @@ class Node(object):
                 wlan = idx
                 break
         if ('position' in sta.params and 'position' in ap.params):
-            dist = setChannelParams.getDistance(sta, ap)
+            dist = link.getDistance(sta, ap)
         else:
             dist = 100000
         if (dist < ap.params['range']) or ('position' not in sta.params and 'position' not in ap.params):
@@ -278,7 +279,7 @@ class Node(object):
                         self.associate_wpa(ap, wlan)
                     elif ap.params['encrypt'][0] == 'wep':
                         self.associate_wep(ap, wlan)
-                setChannelParams(sta, ap, wlan, dist)
+                link(sta, ap, wlan, dist)
                 mobility.updateAssociation(sta, ap, wlan)
             else:
                 info ('%s is already connected!\n' % ap)
@@ -1183,7 +1184,14 @@ class AccessPoint(AP):
 
         if ap.params['mode'][0] != '8021x':
             if ap.params['mode'][0] == 'n':
-                cmd = cmd + ("\nhw_mode=g")
+                if 'band' in ap.params:
+                    if ap.params['band'] == 2.4:
+                        cmd = cmd + ("\nhw_mode=g")
+                    elif ap.params['band'] == 5:
+                        cmd = cmd + ("\nhw_mode=a")
+                    ap.params.pop("band", None)
+                else:
+                    cmd = cmd + ("\nhw_mode=g")
             elif ap.params['mode'][0] == 'a':
                 cmd = cmd + ('\ncountry_code=US')
                 cmd = cmd + ("\nhw_mode=%s" % ap.params['mode'][0])
@@ -1210,8 +1218,17 @@ class AccessPoint(AP):
                     cmd = cmd + ("\nwpa=%s" % ap.wpa)
                 else:
                     cmd = cmd + ('\nwpa=3')
-                cmd = cmd + ('\neap_server=1')
+                cmd = cmd + ('\neap_server=0')
                 cmd = cmd + ('\neapol_version=2')
+
+                if 'enable_radius' in ap.params and ap.params['enable_radius'] == 'yes':
+                    cmd = cmd + ("\nwpa_pairwise=TKIP CCMP")
+                    cmd = cmd + ("\neapol_key_index_workaround=0")
+                    cmd = cmd + ("\nown_ip_addr=127.0.0.1")
+                    cmd = cmd + ("\nnas_identifier=%s.example.com" % ap.name)
+                    cmd = cmd + ("\nauth_server_addr=127.0.0.1")
+                    cmd = cmd + ("\nauth_server_port=1812")
+                    cmd = cmd + ("\nauth_server_shared_secret=secret")
             else:
                 cmd = cmd + ("\nwme_enabled=1")
                 cmd = cmd + ("\nwmm_enabled=1")

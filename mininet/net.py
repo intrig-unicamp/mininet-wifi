@@ -118,7 +118,7 @@ from mininet.wifiNet import mininetWiFi
 from __builtin__ import True
 
 # Mininet version: should be consistent with README and LICENSE
-VERSION = "2.0r4"
+VERSION = "2.1"
 
 class Mininet(object):
     "Network emulation with hosts spawned in network namespaces."
@@ -128,7 +128,7 @@ class Mininet(object):
                   build=True, xterms=False, cleanup=False, ipBase='10.0.0.0/8',
                   inNamespace=False, autoSetMacs=False, autoStaticArp=False, autoPinCpus=False,
                   listenPort=None, waitConnected=False, ssid="new-ssid", mode="g", channel="6", rec_rssi=False,
-                  useWmediumd=False, enable_interference=False, disableAutoAssociation=False):
+                  enable_wmediumd=False, enable_interference=False, disableAutoAssociation=False):
         """Create Mininet object.
            topo: Topo (topology) object or None
            switch: default Switch class
@@ -184,7 +184,7 @@ class Mininet(object):
         self.vehiclesSTA = []
         self.walls = []
         self.terms = []  # list of spawned xterm processes
-        self.useWmediumd = useWmediumd
+        self.useWmediumd = enable_wmediumd
         self.disableAutoAssociation = disableAutoAssociation
 
         mininetWiFi.isWiFi = isWiFi
