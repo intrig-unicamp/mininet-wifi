@@ -275,19 +275,19 @@ class mobility (object):
             self.updateWmediumdPos(sta)
 
     @classmethod
-    def updateWmediumdPos(self, sta):
-        if sta.isStationary and sta.type != 'vehicle':
-            info('Configuring wmediumd for %s...\n' % sta)
+    def updateWmediumdPos(self, node):
+        if node.isStationary and node.type != 'vehicle':
+            info('Configuring wmediumd for %s...\n' % node)
             time.sleep(2)
-        self.setWmediumdPos(sta)
+        self.setWmediumdPos(node)
 
     @classmethod
-    def setWmediumdPos(self, sta):
-        if sta.lastpos != sta.params['position']:
+    def setWmediumdPos(self, node):
+        if node.lastpos != node.params['position']:
             time.sleep(0.0001)
             cls = Association
-            cls.setPositionWmediumd(sta)
-            sta.lastpos = sta.params['position']
+            cls.setPositionWmediumd(node)
+            node.lastpos = node.params['position']
 
     @classmethod
     def controlledMobility(self, init_time=0, final_time=0, stations=None, aps=None, dstConn=None, srcConn=None,
@@ -531,6 +531,10 @@ class mobility (object):
                         if not WmediumdServerConn.connected and dist >= 0.01:
                             link(sta=node, wlan=wlan, dist=dist)
                     else:
+                        if 'carsta' in node.params:
+                            car = node.params['carsta']
+                            car.params['position'] = node.params['position']
+                            node = car
                         self.setWmediumdPos(node)
                 else:
                     self.checkAssociation(node, wlan)

@@ -605,7 +605,13 @@ class mininetWiFi(object):
         links = []
         positions = []
         txpowers = []
-        nodes = stations + accessPoints
+        cars = []
+
+        for node in stations:
+            if 'carsta' in node.params:
+                cars.append(node.params['carsta'])
+
+        nodes = stations + accessPoints + cars
 
         for node in nodes:
             node.wmediumdIface = DynamicWmediumdIntfRef(node)
@@ -856,12 +862,7 @@ class mininetWiFi(object):
                 if node not in switches:
                     cls = TCLinkWirelessStation
                     cls(node, intfName1=node.params['wlan'][wlan])
-                if 'car' in node.name and node.type == 'station':
-                        node.cmd('iw dev %s-wlan%s interface add %s-mp%s type mp' % (node, wlan, node, wlan))
-                        node.cmd('ifconfig %s-mp%s up' % (node, wlan))
-                        node.cmd('iw dev %s-mp%s mesh join %s' % (node, wlan, 'ssid'))
-                        node.func[wlan] = 'mesh'
-                elif node.type == 'station' and node in switches:
+                if node.type == 'station' and node in switches:
                     node.type = 'WirelessMeshAP'
                     self.configureMacAddr(node)
                 else:
@@ -1084,6 +1085,7 @@ class mininetWiFi(object):
             self.addMesh(car.params['carsta'], **params)
             stations.remove(car.params['carsta'])
             stations.append(car)
+            car.lastpos = [0, 0, 0]
             car.params['wlan'].append(0)
             car.params['rssi'].append(0)
             car.params['snr'].append(0)

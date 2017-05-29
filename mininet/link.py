@@ -1154,9 +1154,7 @@ class Association(Link):
 
     @classmethod
     def configureAdhoc(self, sta, useWmediumd):
-        """
-        Configure Wireless Ad Hoc
-        """
+        "Configure Wireless Ad Hoc"
         wlan = sta.ifaceToAssociate
         iface = sta.params['wlan'][wlan]
         sta.params['rssi'][wlan] = -62
@@ -1173,9 +1171,7 @@ class Association(Link):
 
     @classmethod
     def configureMesh(self, node, wlan):
-        """
-        Configure Wireless Mesh Interface
-        """
+        "Configure Wireless Mesh Interface"
         node.params['rssi'][wlan] = -62
         node.params['snr'][wlan] = -62 - (-91.0)
 
@@ -1197,31 +1193,29 @@ class Association(Link):
             node.setBw(node, wlan, intf)
 
     @classmethod
-    def meshAssociation(self, sta, wlan):
-        """
-        Performs Mesh Association
-        """
-        debug("associating %s to %s...\n" % (sta.params['wlan'][wlan], sta.params['ssid'][wlan]))
-        sta.pexec('iw dev %s mesh join %s' % (sta.params['wlan'][wlan], sta.params['ssid'][wlan]))
+    def meshAssociation(self, node, wlan):
+        "Performs Mesh Association"
+        debug("associating %s to %s...\n" % (node.params['wlan'][wlan], node.params['ssid'][wlan]))
+        node.pexec('iw dev %s mesh join %s' % (node.params['wlan'][wlan], node.params['ssid'][wlan]))
 
     _macMatchRegex = re.compile(r'..:..:..:..:..:..')
 
     @classmethod
-    def getMacAddress(self, sta, iface, wlan):
-        """ get Mac Address of any Interface """
-        ifconfig = str(sta.pexec('ifconfig %s' % iface))
+    def getMacAddress(self, node, iface, wlan):
+        "gets Mac Address of any Interface"
+        ifconfig = str(node.pexec('ifconfig %s' % iface))
         mac = self._macMatchRegex.findall(ifconfig)
-        sta.meshMac[wlan] = str(mac[0])
+        node.meshMac[wlan] = str(mac[0])
 
     @classmethod
     def setSNRWmediumd(self, sta, ap, snr):
-        """Set SNR for wmediumd"""
+        "Set SNR for wmediumd"
         WmediumdServerConn.send_snr_update(WmediumdSNRLink(sta.wmediumdIface, ap.wmediumdIface, snr))
         WmediumdServerConn.send_snr_update(WmediumdSNRLink(ap.wmediumdIface, sta.wmediumdIface, snr))
 
     @classmethod
     def setPositionWmediumd(self, sta):
-        """Set SNR for wmediumd"""
+        "Set SNR for wmediumd"
         posX = sta.params['position'][0]
         posY = sta.params['position'][1]
         WmediumdServerConn.send_position_update(WmediumdPosition(sta.wmediumdIface, \
