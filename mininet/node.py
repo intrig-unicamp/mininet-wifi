@@ -1222,11 +1222,13 @@ class AccessPoint(AP):
                 cmd = cmd + ('\neapol_version=2')
 
                 if 'enable_radius' in ap.params and ap.params['enable_radius'] == 'yes':
+                    if 'radius_server' not in ap.params:
+                        ap.params['radius_server'] = '127.0.0.1'
                     cmd = cmd + ("\nwpa_pairwise=TKIP CCMP")
                     cmd = cmd + ("\neapol_key_index_workaround=0")
-                    cmd = cmd + ("\nown_ip_addr=127.0.0.1")
+                    cmd = cmd + ("\nown_ip_addr=%s" % ap.params['radius_server'])
                     cmd = cmd + ("\nnas_identifier=%s.example.com" % ap.name)
-                    cmd = cmd + ("\nauth_server_addr=127.0.0.1")
+                    cmd = cmd + ("\nauth_server_addr=%s" % ap.params['radius_server'])
                     cmd = cmd + ("\nauth_server_port=1812")
                     cmd = cmd + ("\nauth_server_shared_secret=secret")
             else:

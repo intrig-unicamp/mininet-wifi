@@ -714,6 +714,9 @@ class mininetWiFi(object):
                             options.setdefault('intfName1', iface)
                     cls = TCLinkWirelessAP
                     cls(node, **options)
+            elif 'inNamespace' in node.params:
+                cls = TCLinkWirelessAP
+                cls(node)
             AccessPoint.setIPMAC(node, wlan)
             if len(node.params['ssid']) > 1 and wlan == 0:
                 break
