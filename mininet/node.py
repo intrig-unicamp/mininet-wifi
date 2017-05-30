@@ -1278,6 +1278,8 @@ class AccessPoint(AP):
                             cmd = cmd + ("\nwep_default_key=0")
                             cmd = cmd + self.verifyWepKey(ap.wep_key0)
                     ap.params['mac'][i] = ap.params['mac'][wlan][:-1] + str(i)
+        cmd = cmd + ("\nctrl_interface=/var/run/hostapd")
+        cmd = cmd + ("\nctrl_interface_group=0")
         self.APConfigFile(cmd, ap, wlan)
 
         if(len(ap.params['ssid'])) > 1:
