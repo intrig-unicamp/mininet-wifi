@@ -47,6 +47,7 @@ class replayingMobility(object):
                 node.time = float(1.0 / node.params['speed'])
         while True:
             time_ = time.time() - currentTime
+            time.sleep(0.0001)
             if len(stations) == 0:
                 break
             for node in stations:
