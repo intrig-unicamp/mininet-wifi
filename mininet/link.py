@@ -1164,10 +1164,10 @@ class Association(Link):
         sta.cmd('iw dev %s set type ibss' % iface)
         if 'position' not in sta.params or useWmediumd:
             sta.params['associatedTo'][wlan] = sta.params['ssid'][wlan]
-            info("associating %s to %s...\n" % (iface, sta.params['ssid'][wlan]))
+            debug("associating %s to %s...\n" % (iface, sta.params['ssid'][wlan]))
             sta.pexec('iwconfig %s channel %s essid %s ap 02:CA:FF:EE:BA:01 mode ad-hoc'\
                        % (iface, sta.params['channel'][wlan], sta.params['associatedTo'][wlan]))
-            sta.pexec('iwconfig %s ap %s' % (iface, sta.params['cell'][wlan]))
+            #sta.pexec('iwconfig %s ap %s' % (iface, sta.params['cell'][wlan]))
 
     @classmethod
     def configureMesh(self, node, wlan):

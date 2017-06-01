@@ -13,7 +13,7 @@ from mininet.log import info
 from mininet.wifiNet import mininetWiFi
 from mininet.wifiPlot import plot2d, plot3d
 from mininet.wifiMobility import mobility
-from mininet.wifiChannel import setChannelParams
+from mininet.wifiLink import link
 from mininet.wifiDevices import deviceDataRate
 
 def instantiateGraph(mininet):
@@ -21,7 +21,7 @@ def instantiateGraph(mininet):
         MAX_Y = mininetWiFi.MAX_Y
         nodes = mininet.stations + mininet.accessPoints
         for node in nodes:
-            replayingMobility.addNode(node)   
+            replayingMobility.addNode(node)
         plot2d.instantiateGraph(MAX_X, MAX_Y)
         plot2d.plotGraph(nodes, [], [])
 
@@ -52,7 +52,7 @@ class replayingMobility(object):
             for node in stations:
                 while time_ >= node.currentTime and len(node.position) != 0:
                     node.moveNodeTo(node.position[0])
-                    mobility.parameters_(node)
+                    #mobility.parameters_(node)
                     del node.position[0]
                     node.currentTime += node.time
                 if len(node.position) == 0:
@@ -85,7 +85,7 @@ class replayingBandwidth(object):
             for sta in stations:
                 if hasattr(sta, 'time'):
                     if time_ >= sta.time[0]:
-                        setChannelParams.tc(sta, 0, sta.throughput[0], 0, 0, 0)
+                        link.tc(sta, 0, sta.throughput[0], 0, 0, 0)
                         # pos = '%d, %d, %d' % (sta.throughput[0], sta.throughput[0], 0)
                         # self.moveStationTo(sta, pos)
                         del sta.throughput[0]
@@ -127,7 +127,7 @@ class replayingNetworkBehavior(object):
         currentTime = time.time()
         stations = mininet.stations
         for sta in stations:
-            sta.params['frequency'][0] = setChannelParams.frequency(sta, 0)
+            sta.params['frequency'][0] = link.frequency(sta, 0)
         while True:
             if len(stations) == 0:
                 break
@@ -140,7 +140,7 @@ class replayingNetworkBehavior(object):
                             loss = sta.loss[0]
                             delay = sta.delay[0]
                             latency = sta.latency[0]
-                            setChannelParams.tc(sta, 0, bw, loss, latency, delay)
+                            link.tc(sta, 0, bw, loss, latency, delay)
                         del sta.bw[0]
                         del sta.loss[0]
                         del sta.delay[0]
@@ -196,7 +196,7 @@ class replayingRSSI(object):
         ang = {}
         for sta in staList:
             ang[sta] = random.uniform(0, 360)
-            sta.params['frequency'][0] = setChannelParams.frequency(sta, 0)
+            sta.params['frequency'][0] = link.frequency(sta, 0)
         while True:
             if len(staList) == 0:
                 break
@@ -210,7 +210,7 @@ class replayingRSSI(object):
                             rssi = sta.rssi[0]
                             dist = int('%d' % self.calculateDistance(sta, ap, rssi, propagationModel, n))
                             self.moveNodeTo(sta, ap, dist, ang[sta])
-                            setChannelParams(sta, ap, 0, dist)
+                            link(sta, ap, 0, dist)
                         del sta.rssi[0]
                         del sta.time[0]
                     if len(sta.time) == 0:
