@@ -178,10 +178,10 @@ class Mininet(object):
         self.hosts = []
         self.links = []
         self.cars = []
+        self.carsSW = []
+        self.carsSTA = []
         self.switches = []
         self.stations = []
-        self.vehicles = []
-        self.vehiclesSTA = []
         self.walls = []
         self.terms = []  # list of spawned xterm processes
         self.useWmediumd = enable_wmediumd
@@ -382,10 +382,10 @@ class Mininet(object):
         carsta.params['range'] = car.params['range']
 
         car.params['carsta'] = carsta
-        self.vehiclesSTA.append(carsta)
+        self.carsSTA.append(carsta)
         switchName = car.name + 'SW'
         carsw = self.addSwitch(switchName, inband=True)
-        self.vehicles.append(carsw)
+        self.carsSW.append(carsw)
         self.cars.append(car)
 
         car.func.append('mesh')

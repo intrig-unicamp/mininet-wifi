@@ -50,7 +50,7 @@ def topology():
     rsu13.start([c1])
     rsu14.start([c1])
     i = 201
-    for sw in net.vehicles:
+    for sw in net.carsSW:
         sw.start([c1])
         os.system('ifconfig %s 10.0.0.%s' % (sw, i))
         i += 1
@@ -77,17 +77,17 @@ def topology():
 
     i = 1
     j = 2
-    for v in net.vehiclesSTA:
+    for v in net.carsSTA:
         v.cmd('ifconfig %s-eth0 192.168.1.%s/24 up' % (v, j))
         v.cmd('ifconfig %s-mp0 10.0.0.%s/24 up' % (v, i))
         v.cmd('echo 1 > /proc/sys/net/ipv4/ip_forward')
         i += 1
         j += 2
 
-    for v1 in net.vehiclesSTA:
+    for v1 in net.carsSTA:
         i = 1
         j = 1
-        for v2 in net.vehiclesSTA:
+        for v2 in net.carsSTA:
             if v1 != v2:
                 v1.cmd('route add -host 192.168.1.%s gw 10.0.0.%s' % (j, i))
             i += 1
