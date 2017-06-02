@@ -38,7 +38,7 @@ def topology():
     ap1.start([c1])
 
     """uncomment to plot graph"""
-    net.plotGraph(max_x=200, max_y=200)
+    #net.plotGraph(max_x=200, max_y=200)
 
     getTrace(sta1, 'examples/replaying/replayingMobility/node1.dat')
     getTrace(sta2, 'examples/replaying/replayingMobility/node2.dat')
