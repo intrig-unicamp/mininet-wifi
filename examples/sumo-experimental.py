@@ -20,13 +20,13 @@ def topology():
     net = Mininet(controller=Controller, link=TCLink, accessPoint=OVSKernelAP, enable_wmediumd=True, enable_interference=True)
 
     print "*** Creating nodes"
-    car = []
+    cars = []
     stas = []
     for x in range(0, 10):
-        car.append(x)
+        cars.append(x)
         stas.append(x)
     for x in range(0, 10):
-        car[x] = net.addCar('car%s' % (x), wlans=1, ip='10.0.0.%s/8' % (x + 1))
+        cars[x] = net.addCar('car%s' % (x), wlans=1, ip='10.0.0.%s/8' % (x + 1))
 
     e1 = net.addAccessPoint('e1', ssid='enodeb1', mac='00:00:00:11:00:01', mode='g', channel='1', position='3279.02,3736.27,0')
     e2 = net.addAccessPoint('e2', ssid='enodeb2', mac='00:00:00:11:00:02', mode='g', channel='6', position='2320.82,3565.75,0')
@@ -61,23 +61,23 @@ def topology():
     e6.start([c1])
 
     i = 201
-    for sw in net.vehicles:
+    for sw in net.carsSW:
         sw.start([c1])
         os.system('ifconfig %s 10.0.0.%s' % (sw, i))
         i += 1
 
     i = 1
     j = 2
-    for c in car:
-        c.cmd('ifconfig %s-wlan0 192.168.0.%s/24 up' % (c, i))
-        c.cmd('ifconfig %s-eth0 192.168.1.%s/24 up' % (c, i))
-        c.cmd('ip route add 10.0.0.0/8 via 192.168.1.%s' % j)
+    for car in cars:
+        car.cmd('ifconfig %s-wlan0 192.168.0.%s/24 up' % (car, i))
+        car.cmd('ifconfig %s-eth0 192.168.1.%s/24 up' % (car, i))
+        car.cmd('ip route add 10.0.0.0/8 via 192.168.1.%s' % j)
         i += 2
         j += 2
 
     i = 1
     j = 2
-    for v in net.vehiclesSTA:
+    for v in net.carsSTA:
         v.cmd('ifconfig %s-eth0 192.168.1.%s/24 up' % (v, j))
         v.cmd('ifconfig %s-mp0 10.0.0.%s/24 up' % (v, i))
         v.cmd('echo 1 > /proc/sys/net/ipv4/ip_forward')
@@ -85,10 +85,10 @@ def topology():
         j += 2
 
 
-    for v1 in net.vehiclesSTA:
+    for v1 in net.carsSTA:
         i = 1
         j = 1
-        for v2 in net.vehiclesSTA:
+        for v2 in net.carsSTA:
             if v1 != v2:
                 v1.cmd('route add -host 192.168.1.%s gw 10.0.0.%s' % (j, i))
             i += 1
