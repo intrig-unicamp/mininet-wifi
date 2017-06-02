@@ -29,7 +29,7 @@ import re
 from mininet.log import info, error, debug
 from mininet.util import makeIntfPair
 from mininet.wifiLink import link
-from mininet.wmediumdConnector import WmediumdServerConn, WmediumdSNRLink, WmediumdPosition
+from mininet.wmediumdConnector import WmediumdServerConn, WmediumdSNRLink, WmediumdPosition, WmediumdTXPower
 
 class Intf(object):
 
@@ -1214,11 +1214,17 @@ class Association(Link):
 
     @classmethod
     def setPositionWmediumd(self, sta):
-        "Set SNR for wmediumd"
+        "Set Position for wmediumd"
         posX = sta.params['position'][0]
         posY = sta.params['position'][1]
         WmediumdServerConn.send_position_update(WmediumdPosition(sta.wmediumdIface, \
                                             [float(posX), float(posY)]))
+    @classmethod
+    def setTXPowerWmediumd(self, sta):
+        "Set TxPower for wmediumd"
+        txpower_ = sta.params['txpower'][0]
+        WmediumdServerConn.send_txpower_update(WmediumdTXPower(sta.wmediumdIface, \
+                                            int(txpower_)))
     @classmethod
     def configureWirelessLink(self, sta, ap, wlan, useWmediumd=False):
         """ 

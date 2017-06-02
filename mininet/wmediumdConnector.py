@@ -43,6 +43,8 @@ class WmediumdConstants:
     WSERVER_SPECPROB_UPDATE_RESPONSE_TYPE = 12
     WSERVER_POSITION_UPDATE_REQUEST_TYPE = 13
     WSERVER_POSITION_UPDATE_RESPONSE_TYPE = 14
+    WSERVER_TXPOWER_UPDATE_REQUEST_TYPE = 15
+    WSERVER_TXPOWER_UPDATE_RESPONSE_TYPE = 16
 
 
     WUPDATE_SUCCESS = 0
@@ -158,6 +160,17 @@ class WmediumdManager(object):
         :type position: WmediumdPosition
         """
         WmediumdServerConn.update_position(position)
+
+    @classmethod
+    def update_txpower(cls, txpower):
+        # type: (WmediumdTXPower) -> None
+        """
+        Update the TXPower of a node at wmediumd
+        :param txpower The txpower to update
+
+        :type txpower: WmediumdTXPower
+        """
+        WmediumdServerConn.update_txpower(txpower)
 
     @classmethod
     def update_link_errprob(cls, link):
@@ -624,6 +637,11 @@ class WmediumdServerConn(object):
     __position_update_request_struct = struct.Struct('!' + __position_update_request_fmt)
     __position_update_response_struct = struct.Struct('!' + __position_update_response_fmt)
 
+    __txpower_update_request_fmt = __base_struct_fmt + __mac_struct_fmt + 'i'
+    __txpower_update_response_fmt = __base_struct_fmt + __txpower_update_request_fmt + 'B'
+    __txpower_update_request_struct = struct.Struct('!' + __txpower_update_request_fmt)
+    __txpower_update_response_struct = struct.Struct('!' + __txpower_update_response_fmt)
+
     __errprob_update_request_fmt = __base_struct_fmt + __mac_struct_fmt + __mac_struct_fmt + 'i'
     __errprob_update_response_fmt = __base_struct_fmt + __errprob_update_request_fmt + 'B'
     __errprob_update_request_struct = struct.Struct('!' + __errprob_update_request_fmt)
@@ -737,6 +755,19 @@ class WmediumdServerConn(object):
             raise WmediumdException("Received error code from wmediumd: code %d" % ret)
 
     @classmethod
+    def update_txpower(cls, txpower):
+        # type: (WmediumdTXPower) -> None
+        """
+        Update the TXPower of a connection at wmediumd
+        :param txpower The txpower to update
+
+        :type txpower: WmediumdTXPower
+        """
+        ret = WmediumdServerConn.send_txpower_update(txpower)
+        if ret != WmediumdConstants.WUPDATE_SUCCESS:
+            raise WmediumdException("Received error code from wmediumd: code %d" % ret)
+
+    @classmethod
     def update_link_errprob(cls, link):
         # type: (WmediumdERRPROBLink) -> None
         """
@@ -791,6 +822,21 @@ class WmediumdServerConn(object):
         cls.sock.send(cls.__create_position_update_request(position))
         return cls.__parse_response(WmediumdConstants.WSERVER_POSITION_UPDATE_RESPONSE_TYPE,
                                     cls.__position_update_response_struct)[-1]
+                                    
+    @classmethod
+    def send_txpower_update(cls, txpower):
+        # type: (WmediumdTXPower) -> int
+        """
+        Send an update to the wmediumd server
+        :param txpower: The WmediumdTXPower to update
+        :return: A WUPDATE_* constant
+        """
+        txpower_ = txpower.sta_txpower
+        debug("%s Updating TxPower of %s to %d\n" % (
+            WmediumdConstants.LOG_PREFIX, txpower.staintfref.get_intf_mac(), txpower_))
+        cls.sock.send(cls.__create_txpower_update_request(txpower))
+        return cls.__parse_response(WmediumdConstants.WSERVER_TXPOWER_UPDATE_RESPONSE_TYPE,
+                                    cls.__txpower_update_response_struct)[-1]
 
     @classmethod
     def send_errprob_update(cls, link):
@@ -875,6 +921,14 @@ class WmediumdServerConn(object):
         posX = position.sta_position[0]
         posY = position.sta_position[1]
         return cls.__position_update_request_struct.pack(msgtype, mac, posX, posY)
+    
+    @classmethod
+    def __create_txpower_update_request(cls, txpower):
+        # type: (WmediumdTXPower) -> str
+        msgtype = WmediumdConstants.WSERVER_TXPOWER_UPDATE_REQUEST_TYPE
+        mac = txpower.staintfref.get_intf_mac().replace(':', '').decode('hex')
+        txpower_ = txpower.sta_txpower
+        return cls.__txpower_update_request_struct.pack(msgtype, mac, txpower_)
 
     @classmethod
     def __create_errprob_update_request(cls, link):

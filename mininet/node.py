@@ -68,7 +68,6 @@ from mininet.util import (quietRun, errRun, errFail, moveIntf, isShellBuiltin,
 from mininet.moduledeps import moduleDeps, pathCheck, TUN
 from mininet.link import Link, Intf, TCIntf, TCIntfWireless, OVSIntf, TCLinkWirelessAP
 from re import findall
-from mininet.wifiPropagationModels import distanceByPropagationModel
 from distutils.version import StrictVersion
 from mininet.wifiMobility import mobility
 from mininet.wifiLink import link
@@ -249,10 +248,24 @@ class Node(object):
         mobility.parameters_(self)
 
     def setTxPower(self, iface, txpower):
-        wlan = int(iface[-1:])
+        wlan = self.params['wlan'].index(iface)
         self.pexec('iwconfig %s txpower %s' % (iface, txpower))
         self.params['txpower'][wlan] = txpower
-        mobility.parameters_(self)
+        power = self.getTxPower(iface)
+        if power != None and power < self.params['txpower'][wlan]:
+            self.params['txpower'][wlan] = power
+            info('%s is the maximum supported tx power\n' % power)
+        mobility.set_txpower(self)
+        mobility.parameters_(self)        
+    
+    def getTxPower(self, iface):
+        connected = self.cmd('iwconfig %s | grep Signal | awk \'{print $4}\'' % iface)
+        if connected != '':
+            txpower = int(self.cmd('iwconfig %s | grep Tx-Power | awk \'{print $4}\' | tr -d \"Tx-\" | tr -d \"Power=\"' % iface))
+            return txpower
+        elif self.type == 'accessPoint':
+            txpower = int(self.cmd('iwconfig %s | grep Tx-Power | awk \'{print $5}\' | tr -d \"Tx-\" | tr -d \"Power=\"' % iface))
+            return txpower
 
     def associateTo(self, iface, ap):
         self.moveAssociationTo(iface, ap)

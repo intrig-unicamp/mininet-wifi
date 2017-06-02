@@ -259,6 +259,20 @@ class testWalkthrough(unittest.TestCase):
         p.sendline('exit')
         p.wait()
 
+    def testReplayingMobility(self):
+        "Start Mininet-WiFi using Replaying Mobility, then test ping"
+        p = pexpect.spawn(
+            'python examples/replaying/replayingMobility.py')
+        sleep(15)
+        p.sendline('sta1 ping -c1 sta2')
+        p.expect('1 packets transmitted, 1 received')
+        p.expect(self.prompt)
+        p.sendline('sta3 ping -c1 sta4')
+        p.expect('1 packets transmitted, 1 received')
+        p.expect(self.prompt)
+        p.sendline('exit')
+        p.wait()
+
     def testHandover(self):
         "Start Mininet-WiFi with handover, then test handover"
         p = pexpect.spawn(
