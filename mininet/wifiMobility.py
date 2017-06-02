@@ -488,6 +488,12 @@ class mobility (object):
             time.sleep(0.5)
 
     @classmethod
+    def set_txpower(self, node):
+        if WmediumdServerConn.interference_enabled:
+            cls = Association
+            cls.setTXPowerWmediumd(node)
+
+    @classmethod
     def parameters_(self, node=None):
         "Applies channel params and handover"
         if WmediumdServerConn.interference_enabled:
@@ -495,8 +501,11 @@ class mobility (object):
         if node == None:
             nodes = self.stations
         else:
-            nodes = []
-            nodes.append(node)
+            if node.type == 'accessPoint':
+                nodes = self.stations
+            else:
+                nodes = []
+                nodes.append(node)
         for node_ in self.accessPoints:
             if 'link' in node_.params and node_.params['link'] == 'mesh':
                 nodes.append(node_)

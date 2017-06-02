@@ -110,7 +110,10 @@ class link (object):
         pL = self.pL
         gT = 0
         hT = 0
-        pT = sta.params['txpower'][wlan]
+        if ap != None:
+            pT = ap.params['txpower'][0]
+        else:
+            pT = sta.params['txpower'][wlan]
         gR = sta.params['antennaGain'][wlan]
         hR = sta.params['antennaHeight'][wlan]
 
