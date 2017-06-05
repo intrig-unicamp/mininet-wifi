@@ -138,21 +138,19 @@ class mobility (object):
         """
         if ap == sta.params['associatedTo'][wlan]:
             debug('iw dev %s disconnect\n' % sta.params['wlan'][wlan])
-            if 'encrypt' in ap.params:
+            if 'encrypt' in ap.params and 'ieee80211r' not in ap.params:
                 if ap.params['encrypt'][0] == 'wpa' or ap.params['encrypt'][0] == 'wpa2':
-                    if sta.passwd != ap.params['passwd'][0]:
-                        os.system('rm %s.staconf' % sta)
-                        pidfile = "mn%d_%s_%s_wpa.pid" % (os.getpid(), sta.name, wlan)
-                        os.system('pkill -f \'wpa_supplicant -B -Dnl80211 -P %s -i %s\'' % (pidfile, sta.params['wlan'][wlan]))
-                        os.system('rm /var/run/wpa_supplicant/%s' % sta.params['wlan'][wlan])
-                    else:
-                        pass
-            sta.pexec('iw dev %s disconnect' % sta.params['wlan'][wlan])
+                    os.system('rm %s.staconf' % sta)
+                    pidfile = "mn%d_%s_%s_wpa.pid" % (os.getpid(), sta.name, wlan)
+                    os.system('pkill -f \'wpa_supplicant -B -Dnl80211 -P %s -i %s\'' % (pidfile, sta.params['wlan'][wlan]))
+                    os.system('rm /var/run/wpa_supplicant/%s' % sta.params['wlan'][wlan])
             if WmediumdServerConn.connected and WmediumdServerConn.interference_enabled and dist >= 0.01:
                 """do nothing"""
             elif WmediumdServerConn.connected and dist >= 0.01:
                 cls = Association
                 cls.setSNRWmediumd(sta, ap, snr=-10)
+            else:
+                sta.pexec('iw dev %s disconnect' % sta.params['wlan'][wlan])
             sta.params['associatedTo'][wlan] = ''
             sta.params['rssi'][wlan] = 0
             sta.params['snr'][wlan] = 0
@@ -290,7 +288,7 @@ class mobility (object):
 
     @classmethod
     def controlledMobility(self, init_time=0, final_time=0, stations=None, aps=None, dstConn=None, srcConn=None,
-                        plotNodes=None, MIN_X=0, MIN_Y=0, MIN_Z=0, MAX_X=0, MAX_Y=0, MAX_Z=0, AC='', 
+                        plotNodes=None, MIN_X=0, MIN_Y=0, MIN_Z=0, MAX_X=0, MAX_Y=0, MAX_Z=0, AC='',
                         rec_rssi=False, is3d=False, DRAW=False, **params):
         """ 
         Used when the position of each node is previously defined

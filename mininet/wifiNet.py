@@ -876,11 +876,6 @@ class mininetWiFi(object):
                 if node.type == 'station' and node in switches:
                     node.type = 'WirelessMeshAP'
                     self.configureMacAddr(node)
-                else:
-                    # have to verify
-                    if 'ssid' not in node.params:
-                        if not self.useWmediumd:
-                            node.setTxPower(node.params['wlan'][wlan], node.params['txpower'][wlan])
             if node not in switches:
                 self.configureMacAddr(node)
 
@@ -1126,6 +1121,11 @@ class mininetWiFi(object):
         :param stations: list of stations
         :param accessPoints: list of access points
         """
+        nodes = stations + accessPoints
+        for node in nodes:
+            for wlan in range(0, len(node.params['wlan'])):
+                node.setTxPower_(node.params['wlan'][wlan], node.params['txpower'][wlan])
+
         ap = []
         for node in accessPoints:
             if 'link' in node.params:
