@@ -1121,11 +1121,10 @@ class mininetWiFi(object):
         :param stations: list of stations
         :param accessPoints: list of access points
         """
-
         nodes = stations + accessPoints
         for node in nodes:
-            for wlan in range(0,len(node.params['wlan'])):
-                node.setTxPower(node.params['wlan'][wlan], node.params['txpower'][wlan])
+            for wlan in range(0, len(node.params['wlan'])):
+                node.setTxPower_(node.params['wlan'][wlan], node.params['txpower'][wlan])
 
         ap = []
         for node in accessPoints:

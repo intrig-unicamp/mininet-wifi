@@ -245,6 +245,10 @@ class Node(object):
         mobility.parameters_(self)
 
     def setTxPower(self, iface, txpower):
+        self.setTxPower_(iface, txpower)
+        mobility.parameters_(self)
+
+    def setTxPower_(self, iface, txpower):
         wlan = self.params['wlan'].index(iface)
         self.pexec('iwconfig %s txpower %s' % (iface, txpower))
         self.params['txpower'][wlan] = txpower
@@ -253,7 +257,6 @@ class Node(object):
             self.params['txpower'][wlan] = power
             info('%s is the maximum supported tx power\n' % power)
         self.setTXPowerWmediumd(wlan)
-        mobility.parameters_(self)
 
     def setPositionWmediumd(self):
         "Set Position for wmediumd"
