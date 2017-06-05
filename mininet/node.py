@@ -1203,8 +1203,6 @@ class AccessPoint(AP):
         """ Starting Access Point """
         cmd = ("echo \'")
 
-        ap.setTxPower(ap.params['wlan'][wlan], ap.params['txpower'][wlan])
-
         if 'phywlan' not in ap.params:
             cmd = cmd + ("interface=%s" % ap.params['wlan'][wlan])  # the interface used by the AP
         else:
@@ -1315,6 +1313,7 @@ class AccessPoint(AP):
         cmd = cmd + ("\nctrl_interface=/var/run/hostapd")
         cmd = cmd + ("\nctrl_interface_group=0")
         self.APConfigFile(cmd, ap, wlan)
+        ap.setTxPower(ap.params['wlan'][wlan], ap.params['txpower'][wlan])
 
         if(len(ap.params['ssid'])) > 1:
             for i in range(1, len(ap.params['ssid'])):
