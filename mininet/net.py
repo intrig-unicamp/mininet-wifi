@@ -118,7 +118,7 @@ from mininet.wifiNet import mininetWiFi
 from __builtin__ import True
 
 # Mininet version: should be consistent with README and LICENSE
-VERSION = "2.1"
+VERSION = "2.1r1"
 
 class Mininet(object):
     "Network emulation with hosts spawned in network namespaces."
@@ -1404,15 +1404,18 @@ class Mininet(object):
         node.params['range'] = 0
         mininetWiFi.plotNodes.append(node)
 
-    def plotGraph(self, max_x=0, max_y=0, max_z=0):
+    def plotGraph(self, min_x=0, min_y=0, min_z=0, max_x=0, max_y=0, max_z=0):
         """ 
         Plots Graph 
         
+        :params min_x: minimum X
+        :params min_y: minimum Y
+        :params min_z: minimum Z
         :params max_x: maximum X
         :params max_y: maximum Y
         :params max_z: maximum Z
         """
-        mininetWiFi.plotGraph(max_x, max_y, max_z)
+        mininetWiFi.plotGraph(min_x, min_y, min_z, max_x, max_y, max_z)
 
     def startGraph(self):
         mininetWiFi.startGraph(self.stations, self.accessPoints)

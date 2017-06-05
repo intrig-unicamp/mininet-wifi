@@ -46,6 +46,9 @@ class mininetWiFi(object):
     wifiRadios = 0
     seed_ = 10
     init_time = 0
+    MIN_X = 0
+    MIN_Y = 0
+    MIN_Z = 0
     MAX_X = 0
     MAX_Y = 0
     MAX_Z = 0
@@ -885,7 +888,7 @@ class mininetWiFi(object):
         return stations, accessPoints
 
     @classmethod
-    def plotGraph(self, max_x=0, max_y=0, max_z=0):
+    def plotGraph(self, min_x=0, min_y=0, min_z=0, max_x=0, max_y=0, max_z=0):
         """ 
         Plots Graph 
         
@@ -894,9 +897,12 @@ class mininetWiFi(object):
         :params max_z: maximum Z
         """
         self.DRAW = True
+        self.MIN_X = min_x
+        self.MIN_Y = min_y
         self.MAX_X = max_x
         self.MAX_Y = max_y
         if max_z != 0:
+            self.MIN_Z = min_z
             self.MAX_Z = max_z
             self.is3d = True
             mobility.continuePlot = 'plot3d.graphPause()'
@@ -905,10 +911,10 @@ class mininetWiFi(object):
     def checkDimension(self, nodes):
         try:
             if self.is3d:
-                plot3d.instantiateGraph(self.MAX_X, self.MAX_Y, self.MAX_Z)
+                plot3d.instantiateGraph(self.MIN_X, self.MIN_Y, self.MIN_Z, self.MAX_X, self.MAX_Y, self.MAX_Z)
                 plot3d.graphInstantiateNodes(nodes)
             else:
-                plot2d.instantiateGraph(self.MAX_X, self.MAX_Y)
+                plot2d.instantiateGraph(self.MIN_X, self.MIN_Y, self.MAX_X, self.MAX_Y)
                 plot2d.plotGraph(nodes, self.srcConn, self.dstConn)
                 plot2d.graphPause()
         except:
@@ -991,6 +997,10 @@ class mininetWiFi(object):
             mobilityparam.setdefault('nroads', self.nroads)
 
         if 'model' in kwargs or self.isVanet:
+            if 'min_x' in kwargs:
+                self.MIN_X = kwargs['min_x']
+            if 'min_y' in kwargs:
+                self.MIN_Y = kwargs['min_y']
             if 'max_x' in kwargs:
                 self.MAX_X = kwargs['max_x']
             if 'max_y' in kwargs:
@@ -1009,6 +1019,9 @@ class mininetWiFi(object):
         mobilityparam.setdefault('aps', accessPoints)
         mobilityparam.setdefault('dstConn', self.dstConn)
         mobilityparam.setdefault('srcConn', self.srcConn)
+        mobilityparam.setdefault('MIN_X', self.MIN_X)
+        mobilityparam.setdefault('MIN_Y', self.MIN_Y)
+        mobilityparam.setdefault('MIN_Z', self.MIN_Z)
         mobilityparam.setdefault('MAX_X', self.MAX_X)
         mobilityparam.setdefault('MAX_Y', self.MAX_Y)
         mobilityparam.setdefault('MAX_Z', self.MAX_Z)

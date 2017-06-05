@@ -39,14 +39,14 @@ class vanet(object):
         thread.daemon = True
         thread.start()
 
-    def start(self, stations, aps, nroads, srcConn, dstConn, MAX_X, MAX_Y, **params):
+    def start(self, stations, aps, nroads, srcConn, dstConn, MIN_X, MIN_Y, MAX_X, MAX_Y, **params):
         'start topology'
         cars = stations
         mobility.addNodes(cars, aps)
         [self.road.append(x) for x in range(0, nroads)]
         [self.points.append(x) for x in range(0, nroads)]
         [self.totalRoads.append(x) for x in range(0, nroads)]
-        plot2d.instantiateGraph(MAX_X, MAX_Y)
+        plot2d.instantiateGraph(MIN_X, MIN_Y, MAX_X, MAX_Y)
 
         try:
             self.display_grid(aps, srcConn, dstConn, nroads)

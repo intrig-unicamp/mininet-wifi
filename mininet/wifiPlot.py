@@ -16,7 +16,7 @@ class plot3d (object):
     ax = None
 
     @classmethod
-    def instantiateGraph(self, MAX_X, MAX_Y, MAX_Z):
+    def instantiateGraph(self, MIN_X, MIN_Y, MIN_Z, MAX_X, MAX_Y, MAX_Z):
         """instantiateGraph"""
         plt.ion()
         plt.title("Mininet-WiFi Graph")
@@ -24,9 +24,9 @@ class plot3d (object):
         self.ax.set_xlabel('meters (x)')
         self.ax.set_ylabel('meters (y)')
         self.ax.set_zlabel('meters (z)')
-        self.ax.set_xlim([0, MAX_X])
-        self.ax.set_ylim([0, MAX_Y])
-        self.ax.set_zlim([0, MAX_Z])
+        self.ax.set_xlim([MIN_X, MAX_X])
+        self.ax.set_ylim([MIN_Y, MAX_Y])
+        self.ax.set_zlim([MIN_Z, MAX_Z])
         self.ax.grid(True)
 
     @classmethod
@@ -200,15 +200,15 @@ class plot2d (object):
         ax.add_line(line)
 
     @classmethod
-    def instantiateGraph(self, MAX_X, MAX_Y):
+    def instantiateGraph(self, MIN_X, MIN_Y, MAX_X, MAX_Y):
         "instantiateGraph"
         plt.ion()
         plt.title("Mininet-WiFi Graph")
         self.ax = plt.subplot(111)
         self.ax.set_xlabel('meters')
         self.ax.set_ylabel('meters')
-        self.ax.set_xlim([0, MAX_X])
-        self.ax.set_ylim([0, MAX_Y])
+        self.ax.set_xlim([MIN_X, MAX_X])
+        self.ax.set_ylim([MIN_Y, MAX_Y])
         self.ax.grid(True)
 
     @classmethod

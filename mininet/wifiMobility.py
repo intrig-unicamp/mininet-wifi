@@ -291,8 +291,8 @@ class mobility (object):
 
     @classmethod
     def controlledMobility(self, init_time=0, final_time=0, stations=None, aps=None, dstConn=None, srcConn=None,
-                        plotNodes=None, MAX_X=0, MAX_Y=0, MAX_Z=0, AC='', rec_rssi=False, is3d=False,
-                        DRAW=False, **params):
+                        plotNodes=None, MIN_X=0, MIN_Y=0, MIN_Z=0, MAX_X=0, MAX_Y=0, MAX_Z=0, AC='', 
+                        rec_rssi=False, is3d=False, DRAW=False, **params):
         """ 
         Used when the position of each node is previously defined
         
@@ -303,6 +303,9 @@ class mobility (object):
         :param srcConn: list of connections for source nodes
         :param dstConn: list of connections for destination nodes
         :param plotnodes: list of nodes to be plotted (including hosts and switches)
+        :param MIN_X: Minimum value for X
+        :param MIN_Y: Minimum value for Y
+        :param MIN_Z: Minimum value for Z
         :param MAX_X: Maximum value for X
         :param MAX_Y: Maximum value for Y
         :param MAX_Z: Maximum value for Z
@@ -334,7 +337,7 @@ class mobility (object):
 
         try:
             if DRAW:
-                plot = self.instantiateGraph(MAX_X, MAX_Y, nodes, srcConn, dstConn, MAX_Z, is3d)
+                plot = self.instantiateGraph(MIN_X, MIN_Y, MAX_X, MAX_Y, nodes, srcConn, dstConn, MIN_Z, MAX_Z, is3d)
         except:
             info('Warning: running without GUI.\n')
             DRAW = False
@@ -362,14 +365,14 @@ class mobility (object):
             pass
 
     @classmethod
-    def instantiateGraph(self, MAX_X, MAX_Y, nodes, srcConn, dstConn, MAX_Z=0, is3d=False):
+    def instantiateGraph(self, MIN_X, MIN_Y, MAX_X, MAX_Y, nodes, srcConn, dstConn, MIN_Z=0, MAX_Z=0, is3d=False):
         if is3d:
             plot = plot3d
-            plot.instantiateGraph(MAX_X, MAX_Y, MAX_Z)
+            plot.instantiateGraph(MIN_X, MIN_Y, MIN_Z, MAX_X, MAX_Y, MAX_Z)
             plot.graphInstantiateNodes(nodes)
         else:
             plot = plot2d
-            plot.instantiateGraph(MAX_X, MAX_Y)
+            plot.instantiateGraph(MIN_X, MIN_Y, MAX_X, MAX_Y)
             plot.plotGraph(nodes, srcConn, dstConn)
         return plot
 
