@@ -398,7 +398,10 @@ class mininetWiFi(object):
             else:
                 node.params['txpower'] = []
                 for n in range(wlans):
-                    node.params['txpower'].append(14)
+                    if node.type == 'accessPoint':
+                        node.params['txpower'].append(20)
+                    else:
+                        node.params['txpower'].append(14)
 
     @classmethod
     def countWiFiIfaces(self, params):
@@ -875,8 +878,7 @@ class mininetWiFi(object):
                     # have to verify
                     if 'ssid' not in node.params:
                         if not self.useWmediumd:
-                            if node.params['txpower'][wlan] != 20:
-                                node.setTxPower(node.params['wlan'][wlan], node.params['txpower'][wlan])
+                            node.setTxPower(node.params['wlan'][wlan], node.params['txpower'][wlan])
             if node not in switches:
                 self.configureMacAddr(node)
 

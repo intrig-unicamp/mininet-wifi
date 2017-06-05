@@ -1184,6 +1184,8 @@ class AccessPoint(AP):
         """ Starting Access Point """
         cmd = ("echo \'")
 
+        ap.setTxPower(ap.params['wlan'][wlan], ap.params['txpower'][wlan])
+
         if 'phywlan' not in ap.params:
             cmd = cmd + ("interface=%s" % ap.params['wlan'][wlan])  # the interface used by the AP
         else:
