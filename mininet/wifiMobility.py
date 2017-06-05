@@ -149,8 +149,7 @@ class mobility (object):
             elif WmediumdServerConn.connected and dist >= 0.01:
                 cls = Association
                 cls.setSNRWmediumd(sta, ap, snr=-10)
-            else:
-                sta.pexec('iw dev %s disconnect' % sta.params['wlan'][wlan])
+            sta.pexec('iw dev %s disconnect' % sta.params['wlan'][wlan])
             sta.params['associatedTo'][wlan] = ''
             sta.params['rssi'][wlan] = 0
             sta.params['snr'][wlan] = 0
