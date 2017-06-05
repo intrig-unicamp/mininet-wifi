@@ -67,6 +67,8 @@ from mininet.util import (quietRun, errRun, errFail, moveIntf, isShellBuiltin,
                            numCores, retry, mountCgroups)
 from mininet.moduledeps import moduleDeps, pathCheck, TUN
 from mininet.link import Link, Intf, TCIntf, TCIntfWireless, OVSIntf, TCLinkWirelessAP
+from mininet.wmediumdConnector import WmediumdServerConn, WmediumdPosition, \
+                                WmediumdTXPower, WmediumdGain
 from re import findall
 from distutils.version import StrictVersion
 from mininet.wifiMobility import mobility
@@ -225,7 +227,7 @@ class Node(object):
             pass
         mobility.parameters_()
 
-    def moveNodeTo(self, pos):
+    def setPosition(self, pos):
         from mininet.wifiNet import mininetWiFi
         pos = pos.split(',')
         self.params['position'] = float(pos[0]), float(pos[1]), float(pos[2])
@@ -236,15 +238,10 @@ class Node(object):
             plot3d.graphUpdate(self)
         mobility.parameters_(self)
 
-    def setAntennaGain(self, iface, value):
-        from mininet.wifiNet import mininetWiFi
-        wlan = int(iface[-1:])
-        self.params['antennaGain'][wlan] = int(value)
-        if mininetWiFi.DRAW:
-            try:
-                plot2d.graphUpdate(self)
-            except:
-                pass
+    def setAntennaGain(self, iface, gain):
+        wlan = self.params['wlan'].index(iface)
+        self.params['antennaGain'][wlan] = int(gain)
+        self.setGainWmediumd(wlan)
         mobility.parameters_(self)
 
     def setTxPower(self, iface, txpower):
@@ -255,9 +252,31 @@ class Node(object):
         if power != None and power < self.params['txpower'][wlan]:
             self.params['txpower'][wlan] = power
             info('%s is the maximum supported tx power\n' % power)
-        mobility.set_txpower(self)
-        mobility.parameters_(self)        
-    
+        self.setTXPowerWmediumd(wlan)
+        mobility.parameters_(self)
+
+    def setPositionWmediumd(self):
+        "Set Position for wmediumd"
+        posX = self.params['position'][0]
+        posY = self.params['position'][1]
+        posZ = self.params['position'][2]
+        WmediumdServerConn.send_position_update(WmediumdPosition(self.wmediumdIface, \
+                                            [float(posX), float(posY), float(posZ)]))
+
+    def setGainWmediumd(self, wlan):
+        "Set Gain for wmediumd"
+        if WmediumdServerConn.interference_enabled:
+            gain_ = self.params['antennaGain'][wlan]
+            WmediumdServerConn.send_gain_update(WmediumdGain(self.wmediumdIface, \
+                                            int(gain_)))
+
+    def setTXPowerWmediumd(self, wlan):
+        "Set TxPower for wmediumd"
+        if WmediumdServerConn.interference_enabled:
+            txpower_ = self.params['txpower'][wlan]
+            WmediumdServerConn.send_txpower_update(WmediumdTXPower(self.wmediumdIface, \
+                                                int(txpower_)))
+
     def getTxPower(self, iface):
         connected = self.cmd('iwconfig %s | grep Signal | awk \'{print $4}\'' % iface)
         if connected != '':

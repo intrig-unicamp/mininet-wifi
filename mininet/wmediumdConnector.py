@@ -45,6 +45,8 @@ class WmediumdConstants:
     WSERVER_POSITION_UPDATE_RESPONSE_TYPE = 14
     WSERVER_TXPOWER_UPDATE_REQUEST_TYPE = 15
     WSERVER_TXPOWER_UPDATE_RESPONSE_TYPE = 16
+    WSERVER_GAIN_UPDATE_REQUEST_TYPE = 17
+    WSERVER_GAIN_UPDATE_RESPONSE_TYPE = 18
 
 
     WUPDATE_SUCCESS = 0
@@ -171,6 +173,17 @@ class WmediumdManager(object):
         :type txpower: WmediumdTXPower
         """
         WmediumdServerConn.update_txpower(txpower)
+
+    @classmethod
+    def update_gain(cls, gain):
+        # type: (WmediumdGain) -> None
+        """
+        Update the Gain of a node at wmediumd
+        :param gain The gain to update
+
+        :type gain: WmediumdGain
+        """
+        WmediumdServerConn.update_gain(gain)
 
     @classmethod
     def update_link_errprob(cls, link):
@@ -335,12 +348,13 @@ class WmediumdStarter(object):
                 for mappedposition in cls.positions:
                     posX = float(mappedposition.sta_position[0])
                     posY = float(mappedposition.sta_position[1])
+                    posZ = float(mappedposition.sta_position[2])
                     if first_pos:
                         first_pos = False
                     else:
                         configstr += ','
-                    configstr += '\n\t\t(%.1f, %.1f)' % (
-                        posX, posY)
+                    configstr += '\n\t\t(%.1f, %.1f, %.1f)' % (
+                        posX, posY, posZ)
                 configstr += '\n\t);\n\ttx_powers = ('
                 first_txpower = True
                 for mappedtxpower in cls.txpowers:
@@ -478,6 +492,19 @@ class WmediumdTXPower(object):
         self.staintfref = staintfref
         self.sta_txpower = sta_txpower
 
+
+class WmediumdGain(object):
+    def __init__(self, staintfref, sta_gain):
+        """
+        Describes the Gain of a station
+
+        :param sta_gain: Instance of WmediumdGainRef
+
+        :type sta_gain: WmediumdGainRef
+        """
+        self.staintfref = staintfref
+        self.sta_gain = sta_gain
+        
 
 class WmediumdSNRLink(object):
     def __init__(self, sta1intfref, sta2intfref, snr=10):
@@ -632,7 +659,7 @@ class WmediumdServerConn(object):
     __snr_update_request_struct = struct.Struct('!' + __snr_update_request_fmt)
     __snr_update_response_struct = struct.Struct('!' + __snr_update_response_fmt)
 
-    __position_update_request_fmt = __base_struct_fmt + __mac_struct_fmt + 'f' + 'f'
+    __position_update_request_fmt = __base_struct_fmt + __mac_struct_fmt + 'f' + 'f' + 'f'
     __position_update_response_fmt = __base_struct_fmt + __position_update_request_fmt + 'B'
     __position_update_request_struct = struct.Struct('!' + __position_update_request_fmt)
     __position_update_response_struct = struct.Struct('!' + __position_update_response_fmt)
@@ -641,6 +668,11 @@ class WmediumdServerConn(object):
     __txpower_update_response_fmt = __base_struct_fmt + __txpower_update_request_fmt + 'B'
     __txpower_update_request_struct = struct.Struct('!' + __txpower_update_request_fmt)
     __txpower_update_response_struct = struct.Struct('!' + __txpower_update_response_fmt)
+    
+    __gain_update_request_fmt = __base_struct_fmt + __mac_struct_fmt + 'i'
+    __gain_update_response_fmt = __base_struct_fmt + __gain_update_request_fmt + 'B'
+    __gain_update_request_struct = struct.Struct('!' + __gain_update_request_fmt)
+    __gain_update_response_struct = struct.Struct('!' + __gain_update_response_fmt)
 
     __errprob_update_request_fmt = __base_struct_fmt + __mac_struct_fmt + __mac_struct_fmt + 'i'
     __errprob_update_response_fmt = __base_struct_fmt + __errprob_update_request_fmt + 'B'
@@ -766,6 +798,19 @@ class WmediumdServerConn(object):
         ret = WmediumdServerConn.send_txpower_update(txpower)
         if ret != WmediumdConstants.WUPDATE_SUCCESS:
             raise WmediumdException("Received error code from wmediumd: code %d" % ret)
+        
+    @classmethod
+    def update_gain(cls, gain):
+        # type: (WmediumdGain) -> None
+        """
+        Update the Gain of a connection at wmediumd
+        :param gain The gain to update
+
+        :type gain: WmediumdGain
+        """
+        ret = WmediumdServerConn.send_gain_update(gain)
+        if ret != WmediumdConstants.WUPDATE_SUCCESS:
+            raise WmediumdException("Received error code from wmediumd: code %d" % ret)
 
     @classmethod
     def update_link_errprob(cls, link):
@@ -817,8 +862,9 @@ class WmediumdServerConn(object):
         """
         posX = position.sta_position[0]
         posY = position.sta_position[1]
-        debug("%s Updating Position of %s to x=%s, y=%s\n" % (
-            WmediumdConstants.LOG_PREFIX, position.staintfref.get_intf_mac(), posX, posY))
+        posZ = position.sta_position[2]
+        debug("%s Updating Position of %s to x=%s, y=%s, z=%s\n" % (
+            WmediumdConstants.LOG_PREFIX, position.staintfref.get_intf_mac(), posX, posY, posZ))
         cls.sock.send(cls.__create_position_update_request(position))
         return cls.__parse_response(WmediumdConstants.WSERVER_POSITION_UPDATE_RESPONSE_TYPE,
                                     cls.__position_update_response_struct)[-1]
@@ -837,6 +883,21 @@ class WmediumdServerConn(object):
         cls.sock.send(cls.__create_txpower_update_request(txpower))
         return cls.__parse_response(WmediumdConstants.WSERVER_TXPOWER_UPDATE_RESPONSE_TYPE,
                                     cls.__txpower_update_response_struct)[-1]
+
+    @classmethod
+    def send_gain_update(cls, gain):
+        # type: (WmediumdGain) -> int
+        """
+        Send an update to the wmediumd server
+        :param gain: The WmediumdGain to update
+        :return: A WUPDATE_* constant
+        """
+        gain_ = gain.sta_gain
+        debug("%s Updating Gain of %s to %d\n" % (
+            WmediumdConstants.LOG_PREFIX, gain.staintfref.get_intf_mac(), gain_))
+        cls.sock.send(cls.__create_gain_update_request(gain))
+        return cls.__parse_response(WmediumdConstants.WSERVER_GAIN_UPDATE_RESPONSE_TYPE,
+                                    cls.__gain_update_response_struct)[-1]
 
     @classmethod
     def send_errprob_update(cls, link):
@@ -920,7 +981,8 @@ class WmediumdServerConn(object):
         mac = position.staintfref.get_intf_mac().replace(':', '').decode('hex')
         posX = position.sta_position[0]
         posY = position.sta_position[1]
-        return cls.__position_update_request_struct.pack(msgtype, mac, posX, posY)
+        posZ = position.sta_position[2]
+        return cls.__position_update_request_struct.pack(msgtype, mac, posX, posY, posZ)
     
     @classmethod
     def __create_txpower_update_request(cls, txpower):
@@ -929,6 +991,14 @@ class WmediumdServerConn(object):
         mac = txpower.staintfref.get_intf_mac().replace(':', '').decode('hex')
         txpower_ = txpower.sta_txpower
         return cls.__txpower_update_request_struct.pack(msgtype, mac, txpower_)
+    
+    @classmethod
+    def __create_gain_update_request(cls, gain):
+        # type: (WmediumdGain) -> str
+        msgtype = WmediumdConstants.WSERVER_GAIN_UPDATE_REQUEST_TYPE
+        mac = gain.staintfref.get_intf_mac().replace(':', '').decode('hex')
+        gain_ = gain.sta_gain
+        return cls.__gain_update_request_struct.pack(msgtype, mac, gain_)
 
     @classmethod
     def __create_errprob_update_request(cls, link):

@@ -285,8 +285,7 @@ class mobility (object):
     def setWmediumdPos(self, node):
         if node.lastpos != node.params['position']:
             time.sleep(0.0001)
-            cls = Association
-            cls.setPositionWmediumd(node)
+            node.setPositionWmediumd()
             node.lastpos = node.params['position']
 
     @classmethod
@@ -489,12 +488,6 @@ class mobility (object):
                     self.setWmediumdPos(node)
                 i += 1
             time.sleep(0.5)
-
-    @classmethod
-    def set_txpower(self, node):
-        if WmediumdServerConn.interference_enabled:
-            cls = Association
-            cls.setTXPowerWmediumd(node)
 
     @classmethod
     def parameters_(self, node=None):

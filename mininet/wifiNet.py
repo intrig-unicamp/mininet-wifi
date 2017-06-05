@@ -399,7 +399,7 @@ class mininetWiFi(object):
                 node.params['txpower'] = []
                 for n in range(wlans):
                     if node.type == 'accessPoint':
-                        node.params['txpower'].append(20)
+                        node.params['txpower'].append(14)
                     else:
                         node.params['txpower'].append(14)
 
@@ -629,11 +629,13 @@ class mininetWiFi(object):
                 if 'position' not in node.params:
                     posX = 0
                     posY = 0
+                    posZ = 0
                 else:
                     posX = node.params['position'][0]
                     posY = node.params['position'][1]
+                    posZ = node.params['position'][2]
                 node.lastpos = [0, 0, 0]
-                positions.append(WmediumdPosition(node.wmediumdIface, [posX, posY]))
+                positions.append(WmediumdPosition(node.wmediumdIface, [posX, posY, posZ]))
                 txpowers.append(WmediumdTXPower(node.wmediumdIface, float(node.params['txpower'][0])))
         else:
             mode = WmediumdConstants.WMEDIUMD_MODE_SNR
