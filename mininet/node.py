@@ -1313,7 +1313,6 @@ class AccessPoint(AP):
         cmd = cmd + ("\nctrl_interface=/var/run/hostapd")
         cmd = cmd + ("\nctrl_interface_group=0")
         self.APConfigFile(cmd, ap, wlan)
-        ap.setTxPower(ap.params['wlan'][wlan], ap.params['txpower'][wlan])
 
         if(len(ap.params['ssid'])) > 1:
             for i in range(1, len(ap.params['ssid'])):
