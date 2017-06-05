@@ -317,14 +317,14 @@ class testWalkthrough(unittest.TestCase):
         p.wait()
 
     def testBgscan(self):
-        "Start Mininet-WiF, then test bgscan"
+        "Start Mininet-WiFi, then test bgscan"
         p = pexpect.spawn(
             'python examples/handover_bgscan.py')
         sleep(5)
         p.sendline('sta1 iwconfig')
         p.expect('00:00:00:00:00:01')
         p.expect(self.prompt)
-        p.sendline('py sta1.moveNodeTo(\'80,40,0\')')
+        p.sendline('py sta1.setPosition(\'80,40,0\')')
         sleep(15)
         p.sendline('sta1 iwconfig')
         p.expect('00:00:00:00:00:02')
@@ -430,7 +430,7 @@ class testWalkthrough(unittest.TestCase):
         p.expect(stations)
         p.sendline('py ap2.params[\'stationsInRange\']')
         p.expect(stations)
-        p.sendline('py sta1.moveNodeTo(\'80,40,0\')')
+        p.sendline('py sta1.setPosition(\'80,40,0\')')
         sleep(4)
         p.sendline('py sta1.params[\'associatedTo\']')
         p.expect('Station ap2: ap2-wlan0:10.0.0.12')

@@ -19,14 +19,14 @@ from mininet.wifiDevices import deviceDataRate
 def instantiateGraph(mininet):
         MIN_X = mininetWiFi.MIN_X
         MIN_Y = mininetWiFi.MIN_Y
-        MIN_Z = mininetWiFi.MIN_Z
+        #MIN_Z = mininetWiFi.MIN_Z
         MAX_X = mininetWiFi.MAX_X
         MAX_Y = mininetWiFi.MAX_Y
-        MAX_Z = mininetWiFi.MAX_Z
+        #MAX_Z = mininetWiFi.MAX_Z
         nodes = mininet.stations + mininet.accessPoints
         for node in nodes:
             replayingMobility.addNode(node)
-        plot2d.instantiateGraph(MIN_X, MIN_Y, MIN_Z, MAX_X, MAX_Y, MAX_Z)
+        plot2d.instantiateGraph(MIN_X, MIN_Y, MAX_X, MAX_Y)
         plot2d.plotGraph(nodes, [], [])
 
 class replayingMobility(object):
@@ -57,7 +57,7 @@ class replayingMobility(object):
                 break
             for node in stations:
                 while time_ >= node.currentTime and len(node.position) != 0:
-                    node.moveNodeTo(node.position[0])
+                    node.setPosition(node.position[0])
                     #mobility.parameters_(node)
                     del node.position[0]
                     node.currentTime += node.time
