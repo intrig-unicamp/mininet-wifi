@@ -236,6 +236,7 @@ class mobility (object):
         if sta.params['associatedTo'][wlan] == '' or changeAP == True:
             if ap not in sta.params['associatedTo']:
                 cls = Association
+                cls.printCon = False
                 cls.associate_infra(sta, ap, wlan)
                 self.updateAssociation(sta, ap, wlan)
 
@@ -532,11 +533,9 @@ class mobility (object):
                         for ap in self.accessPoints:
                             dist = link.getDistance(node, ap)
                             if dist <= ap.params['range']:
-                                cls = Association
-                                cls.printCon = False
                                 self.handover(node, ap, wlan, dist)
                     else:
-                        self.checkAssociation(node, wlan)                
+                        self.checkAssociation(node, wlan)
         if not WmediumdServerConn.interference_enabled:
             if meshRouting.routing == 'custom':
                 meshRouting(self.meshNodes)
