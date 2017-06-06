@@ -144,8 +144,6 @@ class mobility (object):
                     pidfile = "mn%d_%s_%s_wpa.pid" % (os.getpid(), sta.name, wlan)
                     os.system('pkill -f \'wpa_supplicant -B -Dnl80211 -P %s -i %s\'' % (pidfile, sta.params['wlan'][wlan]))
                     os.system('rm /var/run/wpa_supplicant/%s' % sta.params['wlan'][wlan])
-            if WmediumdServerConn.connected and WmediumdServerConn.interference_enabled and dist >= 0.01:
-                """do nothing"""
             elif WmediumdServerConn.connected and dist >= 0.01:
                 cls = Association
                 cls.setSNRWmediumd(sta, ap, snr=-10)
@@ -182,21 +180,17 @@ class mobility (object):
             rssi_ = link.setRSSI(sta, ap, wlan, dist)
             ap.params['stationsInRange'][sta] = rssi_
         if ap == sta.params['associatedTo'][wlan]:
-            if not WmediumdServerConn.interference_enabled:
-                rssi_ = link.setRSSI(sta, ap, wlan, dist)
-                sta.params['rssi'][wlan] = rssi_
-                snr_ = link.setSNR(sta, wlan)
-                sta.params['snr'][wlan] = snr_
+            rssi_ = link.setRSSI(sta, ap, wlan, dist)
+            sta.params['rssi'][wlan] = rssi_
+            snr_ = link.setSNR(sta, wlan)
+            sta.params['snr'][wlan] = snr_
             if sta not in ap.params['associatedStations']:
                 ap.params['associatedStations'].append(sta)
             if dist >= 0.01:
                 if WmediumdServerConn.connected:
-                    if WmediumdServerConn.interference_enabled:
-                        self.setWmediumdPos(sta)
-                    else:
-                        if sta.lastpos != sta.params['position']:
-                            cls = Association
-                            cls.setSNRWmediumd(sta, ap, snr=sta.params['snr'][wlan])
+                    if sta.lastpos != sta.params['position']:
+                        cls = Association
+                        cls.setSNRWmediumd(sta, ap, snr=sta.params['snr'][wlan])
                 else:
                     link(sta, ap, wlan, dist)
         link.recordParams(sta, ap)
@@ -539,7 +533,13 @@ class mobility (object):
                             node = car
                         self.setWmediumdPos(node)
                 else:
-                    self.checkAssociation(node, wlan)
+                    if WmediumdServerConn.interference_enabled:
+                        for ap in self.accessPoints:
+                            dist = link.getDistance(node, ap)
+                            if dist <= ap.params['range']:
+                                self.handover(node, ap, wlan, dist)
+                    else:
+                        self.checkAssociation(node, wlan)                
         if not WmediumdServerConn.interference_enabled:
             if meshRouting.routing == 'custom':
                 meshRouting(self.meshNodes)

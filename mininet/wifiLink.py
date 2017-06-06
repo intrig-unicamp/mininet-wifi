@@ -27,7 +27,6 @@ class link (object):
 
     def __init__(self, sta=None, ap=None, wlan=0, dist=0):
         """"
-        
         :param sta: station
         :param ap: access point
         :param wlan: wlan ID
