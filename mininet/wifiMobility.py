@@ -24,13 +24,12 @@ import time
 import os
 
 from mininet.log import debug, info
-from mininet.wifiLink import link
+from mininet.wifiLink import link, Association
 from mininet.wifiAssociationControl import associationControl
 from mininet.wifiAdHocConnectivity import pairingAdhocNodes
 from mininet.wifiMeshRouting import listNodes, meshRouting
 from mininet.wmediumdConnector import WmediumdServerConn
 from mininet.wifiPlot import plot2d, plot3d
-from mininet.link import Association
 
 
 class mobility (object):
@@ -144,7 +143,7 @@ class mobility (object):
                     pidfile = "mn%d_%s_%s_wpa.pid" % (os.getpid(), sta.name, wlan)
                     os.system('pkill -f \'wpa_supplicant -B -Dnl80211 -P %s -i %s\'' % (pidfile, sta.params['wlan'][wlan]))
                     os.system('rm /var/run/wpa_supplicant/%s' % sta.params['wlan'][wlan])
-            elif WmediumdServerConn.connected and dist >= 0.01:
+            elif WmediumdServerConn.connected and not WmediumdServerConn.interference_enabled:
                 cls = Association
                 cls.setSNRWmediumd(sta, ap, snr=-10)
             sta.pexec('iw dev %s disconnect' % sta.params['wlan'][wlan])
@@ -187,7 +186,7 @@ class mobility (object):
             if sta not in ap.params['associatedStations']:
                 ap.params['associatedStations'].append(sta)
             if dist >= 0.01:
-                if WmediumdServerConn.connected:
+                if WmediumdServerConn.connected and not WmediumdServerConn.interference_enabled:
                     if sta.lastpos != sta.params['position']:
                         cls = Association
                         cls.setSNRWmediumd(sta, ap, snr=sta.params['snr'][wlan])
@@ -529,11 +528,14 @@ class mobility (object):
                         self.setWmediumdPos(node)
                 else:
                     if WmediumdServerConn.interference_enabled:
-                        self.setWmediumdPos(node)
-                        for ap in self.accessPoints:
-                            dist = link.getDistance(node, ap)
-                            if dist <= ap.params['range']:
-                                self.handover(node, ap, wlan, dist)
+                        if Association.bgscan != '':
+                            self.setWmediumdPos(node)
+                            for ap in self.accessPoints:
+                                dist = link.getDistance(node, ap)
+                                if dist <= ap.params['range']:
+                                    self.handover(node, ap, wlan, dist)
+                        else:
+                            self.checkAssociation(node, wlan)
                     else:
                         self.checkAssociation(node, wlan)
         if not WmediumdServerConn.interference_enabled:

@@ -15,14 +15,14 @@ from mininet.node import AccessPoint
 from mininet.log import info
 from mininet.wmediumdConnector import DynamicWmediumdIntfRef, WmediumdSNRLink, WmediumdStarter, \
                     WmediumdTXPower, WmediumdPosition, WmediumdConstants, WmediumdServerConn
-from mininet.wifiLink import link
+from mininet.wifiLink import link, Association
 from mininet.wifiDevices import deviceRange, deviceDataRate
 from mininet.wifiMeshRouting import meshRouting
 from mininet.wifiMobility import mobility
 from mininet.wifiPlot import plot2d, plot3d
 from mininet.wifiModule import module
 from mininet.wifiPropagationModels import propagationModel, distanceByPropagationModel
-from mininet.link import TCLinkWirelessAP, TCLinkWirelessStation, Association
+from mininet.link import TCLinkWirelessAP, TCLinkWirelessStation
 from mininet.util import macColonHex, ipAdd
 from mininet.vanet import vanet
 
