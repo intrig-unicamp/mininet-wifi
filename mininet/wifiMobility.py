@@ -236,13 +236,7 @@ class mobility (object):
         if sta.params['associatedTo'][wlan] == '' or changeAP == True:
             if ap not in sta.params['associatedTo']:
                 cls = Association
-                if 'encrypt' not in ap.params:
-                    cls.associate_noEncrypt(sta, ap, wlan)
-                else:
-                    if ap.params['encrypt'][0] == 'wpa' or ap.params['encrypt'][0] == 'wpa2':
-                        cls.associate_wpa(sta, ap, wlan)
-                    elif ap.params['encrypt'][0] == 'wep':
-                        cls.associate_wep(sta, ap, wlan)
+                cls.associate_infra(sta, ap, wlan)
                 self.updateAssociation(sta, ap, wlan)
 
     @classmethod
@@ -534,9 +528,12 @@ class mobility (object):
                         self.setWmediumdPos(node)
                 else:
                     if WmediumdServerConn.interference_enabled:
+                        self.setWmediumdPos(node)
                         for ap in self.accessPoints:
                             dist = link.getDistance(node, ap)
                             if dist <= ap.params['range']:
+                                cls = Association
+                                cls.printCon = False
                                 self.handover(node, ap, wlan, dist)
                     else:
                         self.checkAssociation(node, wlan)                
