@@ -95,6 +95,7 @@ class replayingMobility(object):
                         node.setPosition(position)
                     if len(node.position) == 0:
                         stations.remove(node)
+                plot.graphPause()
 
     @classmethod
     def addNode(self, node):
