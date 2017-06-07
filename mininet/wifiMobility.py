@@ -314,8 +314,7 @@ class mobility (object):
                 node.params['position'] = node.params['initialPosition']
                 node.params.pop("initialPosition", None)
                 node.params.pop("finalPosition", None)
-                if not node.isStationary:
-                    self.mobileNodes.append(node)
+                self.mobileNodes.append(node)
 
         nodes = self.mobileNodes + self.stationaryNodes
 
