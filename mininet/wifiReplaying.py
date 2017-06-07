@@ -19,15 +19,21 @@ from mininet.wifiDevices import deviceDataRate
 def instantiateGraph(mininet):
         MIN_X = mininetWiFi.MIN_X
         MIN_Y = mininetWiFi.MIN_Y
-        #MIN_Z = mininetWiFi.MIN_Z
+        MIN_Z = mininetWiFi.MIN_Z
         MAX_X = mininetWiFi.MAX_X
         MAX_Y = mininetWiFi.MAX_Y
-        #MAX_Z = mininetWiFi.MAX_Z
+        MAX_Z = mininetWiFi.MAX_Z
         nodes = mininet.stations + mininet.accessPoints
         for node in nodes:
             replayingMobility.addNode(node)
-        plot2d.instantiateGraph(MIN_X, MIN_Y, MAX_X, MAX_Y)
-        plot2d.plotGraph(nodes, [], [])
+
+        if MIN_Z != 0 or MAX_Z!= 0:
+            plot3d.instantiateGraph(MIN_X, MIN_Y, MIN_Z, MAX_X, MAX_Y, MAX_Z)
+            plot3d.graphInstantiateNodes(nodes)
+            mininetWiFi.is3d = True
+        else:
+            plot2d.instantiateGraph(MIN_X, MIN_Y, MAX_X, MAX_Y)
+            plot2d.plotGraph(nodes)
 
 class replayingMobility(object):
     """Replaying Mobility Traces"""
@@ -42,11 +48,10 @@ class replayingMobility(object):
         if mininetWiFi.DRAW:
             instantiateGraph(mininet)
         currentTime = time.time()
-        staList = mininet.stations
-        stations = []
-        for node in staList:
+        stations = mininet.stations
+        for node in stations:
             if 'speed' in node.params:
-                stations.append(node)
+                node.lastpos = 0,0,0
                 node.currentTime = 1 / node.params['speed']
                 node.time = float(1.0 / node.params['speed'])
                 node.isStationary = False
@@ -56,11 +61,14 @@ class replayingMobility(object):
             if len(stations) == 0:
                 break
             for node in stations:
+                position = (0,0,0)
                 while time_ >= node.currentTime and len(node.position) != 0:
-                    node.setPosition(node.position[0])
+                    position = node.position[0]
                     #mobility.parameters_(node)
                     del node.position[0]
                     node.currentTime += node.time
+                if position != (0,0,0):
+                    node.setPosition(position)
                 if len(node.position) == 0:
                     stations.remove(node)
             

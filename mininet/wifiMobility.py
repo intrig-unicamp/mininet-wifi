@@ -408,7 +408,7 @@ class mobility (object):
 
         try:
             if DRAW:
-                self.instantiateGraph(MAX_X, MAX_Y, nodes, srcConn, dstConn)
+                self.instantiateGraph(0, 0, MAX_X, MAX_Y, nodes, srcConn, dstConn, 0, 0, is3d=False)
                 plot2d.graphPause()
         except:
             info('Warning: running without GUI.\n')

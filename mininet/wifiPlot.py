@@ -70,7 +70,7 @@ class plot3d (object):
     @classmethod
     def graphPause(self):
         """Pause"""
-        plt.pause(0.001)
+        plt.pause(0.0001)
 
     @classmethod
     def graphUpdate(self, node):
