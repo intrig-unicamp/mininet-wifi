@@ -340,9 +340,9 @@ class mobility (object):
                             if WmediumdServerConn.interference_enabled:
                                 self.setWmediumdPos(node)
                         if DRAW:
-                            eval(self.continuePlot)
                             plot.graphUpdate(node)
-                        # self.parameters_(node)
+                    eval(self.continuePlot)
+                    plot.graphPause()
                     i += 1
             self.mobileNodes = []
         except:

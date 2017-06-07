@@ -37,6 +37,7 @@ def instantiateGraph(mininet):
 
 class replayingMobility(object):
     """Replaying Mobility Traces"""
+    timestamp = False
     
     def __init__(self, mininet):
         mininetWiFi.isMobility = True
@@ -47,31 +48,54 @@ class replayingMobility(object):
     def mobility(self, mininet):
         if mininetWiFi.DRAW:
             instantiateGraph(mininet)
+        if mininetWiFi.is3d:
+            plot = plot3d
+        else:
+            plot = plot2d
         currentTime = time.time()
         stations = mininet.stations
         for node in stations:
             if 'speed' in node.params:
                 node.lastpos = 0,0,0
                 node.currentTime = 1 / node.params['speed']
-                node.time = float(1.0 / node.params['speed'])
+                node.timestamp = float(1.0 / node.params['speed'])
                 node.isStationary = False
-        while True:
-            time_ = time.time() - currentTime
-            time.sleep(0.0001)
-            if len(stations) == 0:
-                break
-            for node in stations:
-                position = (0,0,0)
-                while time_ >= node.currentTime and len(node.position) != 0:
-                    position = node.position[0]
-                    #mobility.parameters_(node)
-                    del node.position[0]
-                    node.currentTime += node.time
-                if position != (0,0,0):
-                    node.setPosition(position)
-                if len(node.position) == 0:
-                    stations.remove(node)
-            
+            if hasattr(node, 'time'):
+                self.timestamp = True
+        if self.timestamp:
+            while True:
+                time_ = time.time() - currentTime
+                time.sleep(0.00001)
+                if len(stations) == 0:
+                    break
+                for node in stations:
+                    position_ = (0,0,0)
+                    if time_ >= int(node.time[0]):
+                        position_ = node.position[0]
+                        del node.position[0]
+                        del node.time[0]
+                    if position_ != (0,0,0):
+                        node.setPosition(position_)
+                    if len(node.position) == 0:
+                        stations.remove(node)
+                plot.graphPause()
+        else:
+            while True:
+                time_ = time.time() - currentTime
+                time.sleep(0.00001)
+                if len(stations) == 0:
+                    break
+                for node in stations:
+                    position = (0,0,0)
+                    while time_ >= node.currentTime and len(node.position) != 0:
+                        position = node.position[0]
+                        del node.position[0]
+                        node.currentTime += node.timestamp
+                    if position != (0,0,0):
+                        node.setPosition(position)
+                    if len(node.position) == 0:
+                        stations.remove(node)
+
     @classmethod
     def addNode(self, node):
         if node.type == 'station':
