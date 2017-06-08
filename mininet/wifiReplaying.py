@@ -70,7 +70,7 @@ class replayingMobility(object):
                     break
                 for node in stations:
                     position_ = (0,0,0)
-                    if time_ >= int(node.time[0]):
+                    if time_ >= float(node.time[0]):
                         position_ = node.position[0]
                         del node.position[0]
                         del node.time[0]
