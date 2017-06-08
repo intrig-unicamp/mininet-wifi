@@ -286,14 +286,6 @@ class Association(object):
         node.params['rssi'][wlan] = -62
         node.params['snr'][wlan] = -62 - (-91.0)
 
-        if 'mp' not in node.params['wlan'][wlan]:
-            iface = node.params['wlan'][wlan]
-            node.params['frequency'][wlan] = link.frequency(node, wlan)
-            self.getMacAddress(node, iface, wlan)
-            node.intfs[wlan] = node.params['wlan'][wlan]
-            cls = TCLinkWirelessStation
-            cls(node, port1=wlan, intfName1=node.params['wlan'][wlan])
-
         self.meshAssociation(node, wlan)
 
         if 'link' in node.params and node.params['link'] == 'mesh':

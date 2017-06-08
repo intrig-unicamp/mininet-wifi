@@ -186,7 +186,10 @@ class Node(object):
         node.cmd('ip link set %s-mp%s address %s' % (node, wlan, node.params['mac'][wlan]))
         node.cmd('ifconfig %s down' % node.params['wlan'][wlan])
         node.params['wlan'][wlan] = iface
-        node.cmd('ifconfig %s %s up' % (node.params['wlan'][wlan], node.params['ip'][wlan]))
+        if hasattr(self, 'type') and self.type != 'WirelessMeshAP':
+            node.cmd('ifconfig %s %s up' % (node.params['wlan'][wlan], node.params['ip'][wlan]))
+        else:
+            node.cmd('ifconfig %s up' % node.params['wlan'][wlan])
 
     def meshLeave(self, ssid):
         for key, val in self.params.items():
@@ -601,8 +604,9 @@ class Node(object):
         debug('added intf %s (%s) to node %s\n' % (
                 intf, port, self.name))
         if self.inNamespace:
-            debug('moving', intf, 'into namespace for', self.name, '\n')
-            moveIntfFn(intf.name, self)
+            if hasattr(self, 'type') and self.type != 'WirelessMeshAP':
+                debug('moving', intf, 'into namespace for', self.name, '\n')
+                moveIntfFn(intf.name, self)
 
     def delIntf(self, intf):
         """Remove interface from Node's known interfaces
