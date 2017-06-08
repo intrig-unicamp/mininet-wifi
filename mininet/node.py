@@ -186,7 +186,7 @@ class Node(object):
         node.cmd('ip link set %s-mp%s address %s' % (node, wlan, node.params['mac'][wlan]))
         node.cmd('ifconfig %s down' % node.params['wlan'][wlan])
         node.params['wlan'][wlan] = iface
-        if hasattr(self, 'type') and self.type != 'WirelessMeshAP':
+        if (hasattr(self, 'type') and self.type != 'WirelessMeshAP') or (not hasattr(self, 'type')):
             node.cmd('ifconfig %s %s up' % (node.params['wlan'][wlan], node.params['ip'][wlan]))
         else:
             node.cmd('ifconfig %s up' % node.params['wlan'][wlan])
