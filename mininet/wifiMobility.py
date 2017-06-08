@@ -341,7 +341,6 @@ class mobility (object):
                         if DRAW:
                             plot.graphUpdate(node)
                     eval(self.continuePlot)
-                    plot.graphPause()
                     i += 1
             self.mobileNodes = []
         except:
