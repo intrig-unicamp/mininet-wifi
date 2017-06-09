@@ -529,10 +529,10 @@ class mobility (object):
                     if WmediumdServerConn.interference_enabled:
                         if Association.bgscan != '':
                             self.setWmediumdPos(node)
-                            for ap in self.accessPoints:
-                                dist = link.getDistance(node, ap)
-                                if dist <= ap.params['range']:
-                                    self.handover(node, ap, wlan, dist)
+                            #for ap in self.accessPoints:
+                                #dist = link.getDistance(node, ap)
+                                #if dist <= ap.params['range']:
+                                    #self.handover(node, ap, wlan, dist)
                         else:
                             self.checkAssociation(node, wlan)
                     else:

@@ -1140,6 +1140,14 @@ class mininetWiFi(object):
                     mobility.accessPoints = accessPoints
                     mobility.parameters_(node)
 
+            for sta in stations:
+                for wlan in range(0, len(node.params['wlan'])):
+                    for ap in accessPoints:
+                        if 'position' in sta.params and 'position' in ap.params:
+                            dist = link.getDistance(sta, ap)
+                            if dist <= ap.params['range']:
+                                mobility.handover(sta, ap, wlan, dist)
+
     @classmethod
     def propagationModel(self, stations, accessPoints, model, exp=2, sL=1, lF=0, pL=0, nFloors=0, gRandom=0):
         """
