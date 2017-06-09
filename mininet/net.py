@@ -743,8 +743,9 @@ class Mininet(object):
                 if 'mininet.util.TCIntfWireless' in str(self.link) or 'bw' in params and params['bw'] != 0 \
                     and 'position' not in sta.params:
                     # tc = True, this is useful only to apply tc configuration
-                    cls(name=sta.params['wlan'][wlan], node=sta,
-                                  link=None, tc=True, **params)
+                    if not mininetWiFi.enable_interference:
+                        cls(name=sta.params['wlan'][wlan], node=sta,
+                                      link=None, tc=True, **params)
 
                 if self.useWmediumd:
                     mininetWiFi.wlinks.append([sta, ap])

@@ -10,7 +10,7 @@ from mininet.wifiDevices import deviceDataRate
 from mininet.log import debug, info
 from wifiPropagationModels import propagationModel
 from mininet.wmediumdConnector import WmediumdServerConn, WmediumdSNRLink
-from mininet.link import TCLinkWirelessStation, TCLinkWirelessAP
+from mininet.link import TCLinkWirelessAP
 from scipy.spatial.distance import pdist
 
 class link (object):
