@@ -19,18 +19,25 @@ from mininet.wifiDevices import deviceDataRate
 def instantiateGraph(mininet):
         MIN_X = mininetWiFi.MIN_X
         MIN_Y = mininetWiFi.MIN_Y
-        #MIN_Z = mininetWiFi.MIN_Z
+        MIN_Z = mininetWiFi.MIN_Z
         MAX_X = mininetWiFi.MAX_X
         MAX_Y = mininetWiFi.MAX_Y
-        #MAX_Z = mininetWiFi.MAX_Z
+        MAX_Z = mininetWiFi.MAX_Z
         nodes = mininet.stations + mininet.accessPoints
         for node in nodes:
             replayingMobility.addNode(node)
-        plot2d.instantiateGraph(MIN_X, MIN_Y, MAX_X, MAX_Y)
-        plot2d.plotGraph(nodes, [], [])
+
+        if MIN_Z != 0 or MAX_Z!= 0:
+            plot3d.instantiateGraph(MIN_X, MIN_Y, MIN_Z, MAX_X, MAX_Y, MAX_Z)
+            plot3d.graphInstantiateNodes(nodes)
+            mininetWiFi.is3d = True
+        else:
+            plot2d.instantiateGraph(MIN_X, MIN_Y, MAX_X, MAX_Y)
+            plot2d.plotGraph(nodes)
 
 class replayingMobility(object):
     """Replaying Mobility Traces"""
+    timestamp = False
     
     def __init__(self, mininet):
         mininetWiFi.isMobility = True
@@ -41,29 +48,55 @@ class replayingMobility(object):
     def mobility(self, mininet):
         if mininetWiFi.DRAW:
             instantiateGraph(mininet)
+        if mininetWiFi.is3d:
+            plot = plot3d
+        else:
+            plot = plot2d
         currentTime = time.time()
-        staList = mininet.stations
-        stations = []
-        for node in staList:
+        stations = mininet.stations
+        for node in stations:
             if 'speed' in node.params:
-                stations.append(node)
+                node.lastpos = 0,0,0
                 node.currentTime = 1 / node.params['speed']
-                node.time = float(1.0 / node.params['speed'])
+                node.timestamp = float(1.0 / node.params['speed'])
                 node.isStationary = False
-        while True:
-            time_ = time.time() - currentTime
-            time.sleep(0.0001)
-            if len(stations) == 0:
-                break
-            for node in stations:
-                while time_ >= node.currentTime and len(node.position) != 0:
-                    node.setPosition(node.position[0])
-                    #mobility.parameters_(node)
-                    del node.position[0]
-                    node.currentTime += node.time
-                if len(node.position) == 0:
-                    stations.remove(node)
-            
+            if hasattr(node, 'time'):
+                self.timestamp = True
+        if self.timestamp:
+            while True:
+                time_ = time.time() - currentTime
+                time.sleep(0.00001)
+                if len(stations) == 0:
+                    break
+                for node in stations:
+                    position_ = (0,0,0)
+                    if time_ >= float(node.time[0]):
+                        position_ = node.position[0]
+                        del node.position[0]
+                        del node.time[0]
+                    if position_ != (0,0,0):
+                        node.setPosition(position_)
+                    if len(node.position) == 0:
+                        stations.remove(node)
+                plot.graphPause()
+        else:
+            while True:
+                time_ = time.time() - currentTime
+                time.sleep(0.00001)
+                if len(stations) == 0:
+                    break
+                for node in stations:
+                    position = (0,0,0)
+                    while time_ >= node.currentTime and len(node.position) != 0:
+                        position = node.position[0]
+                        del node.position[0]
+                        node.currentTime += node.timestamp
+                    if position != (0,0,0):
+                        node.setPosition(position)
+                    if len(node.position) == 0:
+                        stations.remove(node)
+                plot.graphPause()
+
     @classmethod
     def addNode(self, node):
         if node.type == 'station':

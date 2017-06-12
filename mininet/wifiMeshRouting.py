@@ -3,10 +3,9 @@ author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
         ramonfontes.com
 """
 
-from mininet.wifiLink import link
+from mininet.wifiLink import link, Association
 from mininet.wmediumdConnector import WmediumdServerConn
 from mininet.log import debug
-from mininet.link import Association
 
 class listNodes (object):
 

@@ -15,14 +15,14 @@ from mininet.node import AccessPoint
 from mininet.log import info
 from mininet.wmediumdConnector import DynamicWmediumdIntfRef, WmediumdSNRLink, WmediumdStarter, \
                     WmediumdTXPower, WmediumdPosition, WmediumdConstants, WmediumdServerConn
-from mininet.wifiLink import link
+from mininet.wifiLink import link, Association
 from mininet.wifiDevices import deviceRange, deviceDataRate
 from mininet.wifiMeshRouting import meshRouting
 from mininet.wifiMobility import mobility
 from mininet.wifiPlot import plot2d, plot3d
 from mininet.wifiModule import module
 from mininet.wifiPropagationModels import propagationModel, distanceByPropagationModel
-from mininet.link import TCLinkWirelessAP, TCLinkWirelessStation, Association
+from mininet.link import TCLinkWirelessAP, TCLinkWirelessStation
 from mininet.util import macColonHex, ipAdd
 from mininet.vanet import vanet
 
@@ -481,9 +481,6 @@ class mininetWiFi(object):
         options['node'] = node
         options.update(params)
 
-        # Set default MAC - this should probably be in Link
-        options.setdefault('addr1', self.randMac())
-
         if node.type != 'WirelessMeshAP':
             node.convertIfaceToMesh(node, wlan)
         cls = Association
@@ -585,7 +582,6 @@ class mininetWiFi(object):
         cmd = cmd + ("\' > %s" % confname)
         os.system(cmd)
         node.cmd('wpa_supplicant -B -Dnl80211 -c%s -i%s -d' % (confname, node.params['wlan'][wlan]))
-
         if 'intf' not in params:
             node.ifaceToAssociate += 1
 
@@ -1055,9 +1051,8 @@ class mininetWiFi(object):
         for wlan in range(0, len(node.params['wlan'])):
             if node.type == 'WirelessMeshAP':
                 node.convertIfaceToMesh(node, wlan)
-                if 'inNamespace' not in node.params:
-                    cls = TCLinkWirelessAP
-                    cls(node, intfName1=node.params['wlan'][wlan])
+                cls = TCLinkWirelessAP
+                cls(node, intfName1=node.params['wlan'][wlan])
             iface = node.params['wlan'][wlan]
             if node.params['mac'][wlan] == '':
                 node.params['mac'][wlan] = node.getMAC(iface)
@@ -1144,6 +1139,14 @@ class mininetWiFi(object):
                 if 'position' in node.params and 'link' not in node.params:
                     mobility.accessPoints = accessPoints
                     mobility.parameters_(node)
+
+            for sta in stations:
+                for wlan in range(0, len(node.params['wlan'])):
+                    for ap in accessPoints:
+                        if 'position' in sta.params and 'position' in ap.params:
+                            dist = link.getDistance(sta, ap)
+                            if dist <= ap.params['range']:
+                                mobility.handover(sta, ap, wlan, dist)
 
     @classmethod
     def propagationModel(self, stations, accessPoints, model, exp=2, sL=1, lF=0, pL=0, nFloors=0, gRandom=0):

@@ -24,13 +24,12 @@ import time
 import os
 
 from mininet.log import debug, info
-from mininet.wifiLink import link
+from mininet.wifiLink import link, Association
 from mininet.wifiAssociationControl import associationControl
 from mininet.wifiAdHocConnectivity import pairingAdhocNodes
 from mininet.wifiMeshRouting import listNodes, meshRouting
 from mininet.wmediumdConnector import WmediumdServerConn
 from mininet.wifiPlot import plot2d, plot3d
-from mininet.link import Association
 
 
 class mobility (object):
@@ -144,18 +143,14 @@ class mobility (object):
                     pidfile = "mn%d_%s_%s_wpa.pid" % (os.getpid(), sta.name, wlan)
                     os.system('pkill -f \'wpa_supplicant -B -Dnl80211 -P %s -i %s\'' % (pidfile, sta.params['wlan'][wlan]))
                     os.system('rm /var/run/wpa_supplicant/%s' % sta.params['wlan'][wlan])
-            if WmediumdServerConn.connected and WmediumdServerConn.interference_enabled and dist >= 0.01:
-                """do nothing"""
-            elif WmediumdServerConn.connected and dist >= 0.01:
+            elif WmediumdServerConn.connected and not WmediumdServerConn.interference_enabled:
                 cls = Association
                 cls.setSNRWmediumd(sta, ap, snr=-10)
-            else:
-                sta.pexec('iw dev %s disconnect' % sta.params['wlan'][wlan])
+            sta.pexec('iw dev %s disconnect' % sta.params['wlan'][wlan])
             sta.params['associatedTo'][wlan] = ''
             sta.params['rssi'][wlan] = 0
             sta.params['snr'][wlan] = 0
             sta.params['channel'][wlan] = 0
-            # sta.params['frequency'][wlan] = 0
         if sta in ap.params['associatedStations']:
             ap.params['associatedStations'].remove(sta)
         if ap in sta.params['apsInRange']:
@@ -183,21 +178,19 @@ class mobility (object):
             rssi_ = link.setRSSI(sta, ap, wlan, dist)
             ap.params['stationsInRange'][sta] = rssi_
         if ap == sta.params['associatedTo'][wlan]:
-            if not WmediumdServerConn.interference_enabled:
-                rssi_ = link.setRSSI(sta, ap, wlan, dist)
-                sta.params['rssi'][wlan] = rssi_
-                snr_ = link.setSNR(sta, wlan)
-                sta.params['snr'][wlan] = snr_
+            rssi_ = link.setRSSI(sta, ap, wlan, dist)
+            sta.params['rssi'][wlan] = rssi_
+            snr_ = link.setSNR(sta, wlan)
+            sta.params['snr'][wlan] = snr_
             if sta not in ap.params['associatedStations']:
                 ap.params['associatedStations'].append(sta)
             if dist >= 0.01:
-                if WmediumdServerConn.connected:
-                    if WmediumdServerConn.interference_enabled:
-                        self.setWmediumdPos(sta)
-                    else:
-                        if sta.lastpos != sta.params['position']:
-                            cls = Association
-                            cls.setSNRWmediumd(sta, ap, snr=sta.params['snr'][wlan])
+                if WmediumdServerConn.connected and WmediumdServerConn.interference_enabled:
+                    pass
+                elif WmediumdServerConn.connected and not WmediumdServerConn.interference_enabled:
+                    if sta.lastpos != sta.params['position']:
+                        cls = Association
+                        cls.setSNRWmediumd(sta, ap, snr=sta.params['snr'][wlan])
                 else:
                     link(sta, ap, wlan, dist)
         link.recordParams(sta, ap)
@@ -243,13 +236,8 @@ class mobility (object):
         if sta.params['associatedTo'][wlan] == '' or changeAP == True:
             if ap not in sta.params['associatedTo']:
                 cls = Association
-                if 'encrypt' not in ap.params:
-                    cls.associate_noEncrypt(sta, ap, wlan)
-                else:
-                    if ap.params['encrypt'][0] == 'wpa' or ap.params['encrypt'][0] == 'wpa2':
-                        cls.associate_wpa(sta, ap, wlan)
-                    elif ap.params['encrypt'][0] == 'wep':
-                        cls.associate_wep(sta, ap, wlan)
+                cls.printCon = False
+                cls.associate_infra(sta, ap, wlan)
                 self.updateAssociation(sta, ap, wlan)
 
     @classmethod
@@ -327,8 +315,7 @@ class mobility (object):
                 node.params['position'] = node.params['initialPosition']
                 node.params.pop("initialPosition", None)
                 node.params.pop("finalPosition", None)
-                if not node.isStationary:
-                    self.mobileNodes.append(node)
+                self.mobileNodes.append(node)
 
         nodes = self.mobileNodes + self.stationaryNodes
 
@@ -353,9 +340,8 @@ class mobility (object):
                             if WmediumdServerConn.interference_enabled:
                                 self.setWmediumdPos(node)
                         if DRAW:
-                            eval(self.continuePlot)
                             plot.graphUpdate(node)
-                        # self.parameters_(node)
+                    eval(self.continuePlot)
                     i += 1
             self.mobileNodes = []
         except:
@@ -421,7 +407,7 @@ class mobility (object):
 
         try:
             if DRAW:
-                self.instantiateGraph(MAX_X, MAX_Y, nodes, srcConn, dstConn)
+                self.instantiateGraph(0, 0, MAX_X, MAX_Y, nodes, srcConn, dstConn, 0, 0, is3d=False)
                 plot2d.graphPause()
         except:
             info('Warning: running without GUI.\n')
@@ -540,7 +526,19 @@ class mobility (object):
                             node = car
                         self.setWmediumdPos(node)
                 else:
-                    self.checkAssociation(node, wlan)
+                    if WmediumdServerConn.interference_enabled:
+                        if Association.bgscan != '':
+                            self.setWmediumdPos(node)
+                            if node.params['associatedTo'][wlan] == '':
+                                for ap in self.accessPoints:
+                                    cls = Association
+                                    cls.printCon = False
+                                    cls.associate_infra(node, ap, wlan)
+                                    node.params['associatedTo'][wlan] = 'bgscan'
+                        else:
+                            self.checkAssociation(node, wlan)
+                    else:
+                        self.checkAssociation(node, wlan)
         if not WmediumdServerConn.interference_enabled:
             if meshRouting.routing == 'custom':
                 meshRouting(self.meshNodes)

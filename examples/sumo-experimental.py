@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 from mininet.net import Mininet
-from mininet.node import Controller, OVSKernelAP, RemoteController
+from mininet.node import Controller, UserAP, RemoteController
 from mininet.link import TCLink
 from mininet.cli import CLI
 from mininet.log import setLogLevel
@@ -17,7 +17,7 @@ class InbandController(RemoteController):
 def topology():
 
     "Create a network."
-    net = Mininet(controller=Controller, link=TCLink, accessPoint=OVSKernelAP, enable_wmediumd=True, enable_interference=True)
+    net = Mininet(controller=Controller, link=TCLink, accessPoint=UserAP, enable_wmediumd=True, enable_interference=True)
 
     print "*** Creating nodes"
     cars = []
@@ -28,15 +28,18 @@ def topology():
     for x in range(0, 10):
         cars[x] = net.addCar('car%s' % (x), wlans=1, ip='10.0.0.%s/8' % (x + 1))
 
-    e1 = net.addAccessPoint('e1', ssid='enodeb1', mac='00:00:00:11:00:01', mode='g', channel='1', position='3279.02,3736.27,0')
-    e2 = net.addAccessPoint('e2', ssid='enodeb2', mac='00:00:00:11:00:02', mode='g', channel='6', position='2320.82,3565.75,0')
-    e3 = net.addAccessPoint('e3', ssid='enodeb3', mac='00:00:00:11:00:03', mode='g', channel='11', position='2806.42,3395.22,0')
-    e4 = net.addAccessPoint('e4', ssid='enodeb4', mac='00:00:00:11:00:04', mode='g', channel='1', position='3332.62,3253.92,0')
-    e5 = net.addAccessPoint('e5', ssid='enodeb5', mac='00:00:00:11:00:05', mode='g', channel='6', position='2887.62,2935.61,0')
-    e6 = net.addAccessPoint('e6', ssid='enodeb6', mac='00:00:00:11:00:06', mode='g', channel='11', position='2351.68,3083.40,0')
+    e1 = net.addAccessPoint('e1', ssid='vanet-ssid', mac='00:00:00:11:00:01', mode='g', channel='1', passwd='123456789a', encrypt='wpa2', position='3279.02,3736.27,0')
+    e2 = net.addAccessPoint('e2', ssid='vanet-ssid', mac='00:00:00:11:00:02', mode='g', channel='6', passwd='123456789a', encrypt='wpa2', position='2320.82,3565.75,0')
+    e3 = net.addAccessPoint('e3', ssid='vanet-ssid', mac='00:00:00:11:00:03', mode='g', channel='11', passwd='123456789a', encrypt='wpa2', position='2806.42,3395.22,0')
+    e4 = net.addAccessPoint('e4', ssid='vanet-ssid', mac='00:00:00:11:00:04', mode='g', channel='1', passwd='123456789a', encrypt='wpa2', position='3332.62,3253.92,0')
+    e5 = net.addAccessPoint('e5', ssid='vanet-ssid', mac='00:00:00:11:00:05', mode='g', channel='6', passwd='123456789a', encrypt='wpa2', position='2887.62,2935.61,0')
+    e6 = net.addAccessPoint('e6', ssid='vanet-ssid', mac='00:00:00:11:00:06', mode='g', channel='11', passwd='123456789a', encrypt='wpa2', position='2351.68,3083.40,0')
     c1 = net.addController('c1', controller=Controller, ip='127.0.0.1', port=6653)
 
     net.propagationModel("logDistancePropagationLossModel", exp=2.5)
+
+    print "*** Setting bgscan"
+    net.setBgscan(signal=-45, s_inverval=5, l_interval=10)
 
     print "*** Configuring wifi nodes"
     net.configureWifiNodes()

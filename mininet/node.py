@@ -186,7 +186,10 @@ class Node(object):
         node.cmd('ip link set %s-mp%s address %s' % (node, wlan, node.params['mac'][wlan]))
         node.cmd('ifconfig %s down' % node.params['wlan'][wlan])
         node.params['wlan'][wlan] = iface
-        node.cmd('ifconfig %s %s up' % (node.params['wlan'][wlan], node.params['ip'][wlan]))
+        if (hasattr(self, 'type') and self.type != 'WirelessMeshAP') or (not hasattr(self, 'type')):
+            node.cmd('ifconfig %s %s up' % (node.params['wlan'][wlan], node.params['ip'][wlan]))
+        else:
+            node.cmd('ifconfig %s up' % node.params['wlan'][wlan])
 
     def meshLeave(self, ssid):
         for key, val in self.params.items():
@@ -233,7 +236,6 @@ class Node(object):
         self.params['position'] = float(pos[0]), float(pos[1]), float(pos[2])
         if mininetWiFi.DRAW and not mininetWiFi.is3d:
             plot2d.graphUpdate(self)
-            plot2d.graphPause()
         elif mininetWiFi.DRAW and mininetWiFi.is3d:
             plot3d.graphUpdate(self)
         mobility.parameters_(self)
@@ -602,8 +604,9 @@ class Node(object):
         debug('added intf %s (%s) to node %s\n' % (
                 intf, port, self.name))
         if self.inNamespace:
-            debug('moving', intf, 'into namespace for', self.name, '\n')
-            moveIntfFn(intf.name, self)
+            if hasattr(self, 'type') and self.type != 'WirelessMeshAP':
+                debug('moving', intf, 'into namespace for', self.name, '\n')
+                moveIntfFn(intf.name, self)
 
     def delIntf(self, intf):
         """Remove interface from Node's known interfaces
