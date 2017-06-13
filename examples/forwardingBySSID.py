@@ -24,7 +24,7 @@ from mininet.node import  Controller, UserAP
 from mininet.cli import CLI
 from mininet.log import setLogLevel
 from mininet.link import TCLink
-import time
+from time import sleep
 
 def topology():
     "Create a network."
@@ -56,6 +56,7 @@ def topology():
     sta4.setRange(15)
     sta5.setRange(15)
 
+    sleep(2)
     sta1.cmd('iwconfig sta1-wlan0 essid %s ap %s' % (ap1.params['ssid'][1], ap1.params['mac'][1]))
     sta2.cmd('iwconfig sta2-wlan0 essid %s ap %s' % (ap1.params['ssid'][2], ap1.params['mac'][2]))
     sta3.cmd('iwconfig sta3-wlan0 essid %s ap %s' % (ap1.params['ssid'][2], ap1.params['mac'][2]))
