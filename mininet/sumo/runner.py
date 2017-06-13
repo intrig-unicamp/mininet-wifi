@@ -17,7 +17,7 @@ class sumo(object):
 		try:			
 			mobility.stations = stations
 			mobility.accessPoints = aps
-			mobility.mobilityNodes = stations
+			mobility.mobileNodes = stations
 			self.start(stations, aps, program, config_file)
 		except:
 			pass
