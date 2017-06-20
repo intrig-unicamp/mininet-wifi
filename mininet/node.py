@@ -265,7 +265,11 @@ class Node(object):
         posX = self.params['position'][0]
         posY = self.params['position'][1]
         posZ = self.params['position'][2]
-        for wlan in range(0, len(self.params['wlan'])):
+        if self.type == 'vehicle':
+                wlans = 1
+        else:
+            wlans = len(self.params['wlan'])
+        for wlan in range(0, wlans):
             WmediumdServerConn.send_position_update(WmediumdPosition(self.wmIface[wlan], \
                                             [float(posX), float(posY), float(posZ)]))
 
@@ -288,14 +292,14 @@ class Node(object):
         if connected != '':
             try:
                 txpower = int(self.cmd('iwconfig %s | grep Tx-Power | awk \'{print $4}\' | tr -d \"Tx-\" | tr -d \"Power=\"' % iface))
-	    except:
-		txpower = 20
+            except:
+                txpower = 20
             return txpower
         elif self.type == 'accessPoint':
             try:
                 txpower = int(self.cmd('iwconfig %s | grep Tx-Power | awk \'{print $5}\' | tr -d \"Tx-\" | tr -d \"Power=\"' % iface))
-	    except:
-		txpower = 14
+            except:
+                txpower = 14
             return txpower
 
     def associateTo(self, iface, ap):

@@ -460,7 +460,7 @@ class mininetWiFi(object):
 
         options = { 'ip': ipAdd(params['nextIP'],
                                   ipBaseNum=params['ipBaseNum'],
-                                  prefixLen=params['prefixLen']) +
+                                  prefixLen=params['prefixLen']) + 
                                   '/%s' % params['prefixLen']}
         node.params['ssid'] = []
         for n in range(len(node.params['wlan'])):
@@ -509,7 +509,7 @@ class mininetWiFi(object):
 
         options = { 'ip': ipAdd(params['nextIP'],
                                   ipBaseNum=params['ipBaseNum'],
-                                  prefixLen=params['prefixLen']) +
+                                  prefixLen=params['prefixLen']) + 
                                   '/%s' % params['prefixLen']}
         options.update(params)
 
@@ -588,7 +588,7 @@ class mininetWiFi(object):
     @staticmethod
     def randMac():
         "Return a random, non-multicast MAC address"
-        return macColonHex(random.randint(1, 2 ** 48 - 1) & 0xfeffffffffff |
+        return macColonHex(random.randint(1, 2 ** 48 - 1) & 0xfeffffffffff | 
                             0x020000000000)
 
     @staticmethod
@@ -617,9 +617,13 @@ class mininetWiFi(object):
 
         for node in nodes:
             node.wmIface = []
-            for wlan in range(0, len(node.params['wlan'])):
-		node.wmIface.append(wlan)
-		node.wmIface[wlan] = DynamicWmediumdIntfRef(node, intf=wlan)
+            if node.type == 'vehicle':
+                wlans = 1
+            else:
+                wlans = len(node.params['wlan'])
+            for wlan in range(0, wlans):
+                node.wmIface.append(wlan)
+                node.wmIface[wlan] = DynamicWmediumdIntfRef(node, intf=wlan)
                 intfrefs.append(node.wmIface[wlan])
 
         if self.enable_interference:
@@ -634,13 +638,21 @@ class mininetWiFi(object):
                     posY = node.params['position'][1]
                     posZ = node.params['position'][2]
                 node.lastpos = [0, 0, 0]
-	        for wlan in range(0, len(node.params['wlan'])):
+                if node.type == 'vehicle':
+                    wlans = 1
+                else:
+                    wlans = len(node.params['wlan'])
+                for wlan in range(0, wlans):
                     positions.append(WmediumdPosition(node.wmIface[wlan], [posX, posY, posZ]))
                     txpowers.append(WmediumdTXPower(node.wmIface[wlan], float(node.params['txpower'][wlan])))
         else:
             mode = WmediumdConstants.WMEDIUMD_MODE_SNR
             for node in self.wlinks:
-	        for wlan in range(0, len(node.params['wlan'])):
+                if node.type == 'vehicle':
+                    wlans = 1
+                else:
+                    wlans = len(node.params['wlan'])
+                for wlan in range(0, wlans):
                     links.append(WmediumdSNRLink(node[0].wmIface[wlan], node[1].wmIface[wlan], node[0].params['snr'][0]))
                     links.append(WmediumdSNRLink(node[1].wmIface[wlan], node[0].wmIface[wlan], node[0].params['snr'][0]))
 
