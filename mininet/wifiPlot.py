@@ -165,6 +165,7 @@ class plot2d (object):
 
         node.pltNode.set_data(x, y)
         node.pltCircle.center = x, y
+        self.graphPause()
 
     @classmethod
     def graphPause(self):
