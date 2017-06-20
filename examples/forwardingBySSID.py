@@ -20,15 +20,15 @@ This example shows how to create multiple SSID at the same AP and ideas around S
             --------"""
 
 from mininet.net import Mininet
-from mininet.node import  Controller, UserSwitch
+from mininet.node import  Controller, UserAP
 from mininet.cli import CLI
 from mininet.log import setLogLevel
 from mininet.link import TCLink
-import time
+from time import sleep
 
 def topology():
     "Create a network."
-    net = Mininet(controller=Controller, link=TCLink, switch=UserSwitch, disableAutoAssociation=True)
+    net = Mininet(controller=Controller, link=TCLink, accessPoint=UserAP, disableAutoAssociation=True)
 
     print "*** Creating nodes"
     sta1 = net.addStation('sta1', position='10,60,0')
@@ -56,6 +56,7 @@ def topology():
     sta4.setRange(15)
     sta5.setRange(15)
 
+    sleep(2)
     sta1.cmd('iwconfig sta1-wlan0 essid %s ap %s' % (ap1.params['ssid'][1], ap1.params['mac'][1]))
     sta2.cmd('iwconfig sta2-wlan0 essid %s ap %s' % (ap1.params['ssid'][2], ap1.params['mac'][2]))
     sta3.cmd('iwconfig sta3-wlan0 essid %s ap %s' % (ap1.params['ssid'][2], ap1.params['mac'][2]))

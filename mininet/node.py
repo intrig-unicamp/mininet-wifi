@@ -265,30 +265,37 @@ class Node(object):
         posX = self.params['position'][0]
         posY = self.params['position'][1]
         posZ = self.params['position'][2]
-        WmediumdServerConn.send_position_update(WmediumdPosition(self.wmediumdIface, \
+        for wlan in range(0, len(self.params['wlan'])):
+            WmediumdServerConn.send_position_update(WmediumdPosition(self.wmIface[wlan], \
                                             [float(posX), float(posY), float(posZ)]))
 
     def setGainWmediumd(self, wlan):
         "Set Gain for wmediumd"
         if WmediumdServerConn.interference_enabled:
             gain_ = self.params['antennaGain'][wlan]
-            WmediumdServerConn.send_gain_update(WmediumdGain(self.wmediumdIface, \
+            WmediumdServerConn.send_gain_update(WmediumdGain(self.wmIface[wlan], \
                                             int(gain_)))
 
     def setTXPowerWmediumd(self, wlan):
         "Set TxPower for wmediumd"
         if WmediumdServerConn.interference_enabled:
             txpower_ = self.params['txpower'][wlan]
-            WmediumdServerConn.send_txpower_update(WmediumdTXPower(self.wmediumdIface, \
+            WmediumdServerConn.send_txpower_update(WmediumdTXPower(self.wmIface[wlan], \
                                                 int(txpower_)))
 
     def getTxPower(self, iface):
         connected = self.cmd('iwconfig %s | grep Signal | awk \'{print $4}\'' % iface)
         if connected != '':
-            txpower = int(self.cmd('iwconfig %s | grep Tx-Power | awk \'{print $4}\' | tr -d \"Tx-\" | tr -d \"Power=\"' % iface))
+            try:
+                txpower = int(self.cmd('iwconfig %s | grep Tx-Power | awk \'{print $4}\' | tr -d \"Tx-\" | tr -d \"Power=\"' % iface))
+	    except:
+		txpower = 20
             return txpower
         elif self.type == 'accessPoint':
-            txpower = int(self.cmd('iwconfig %s | grep Tx-Power | awk \'{print $5}\' | tr -d \"Tx-\" | tr -d \"Power=\"' % iface))
+            try:
+                txpower = int(self.cmd('iwconfig %s | grep Tx-Power | awk \'{print $5}\' | tr -d \"Tx-\" | tr -d \"Power=\"' % iface))
+	    except:
+		txpower = 14
             return txpower
 
     def associateTo(self, iface, ap):

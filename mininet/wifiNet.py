@@ -575,10 +575,10 @@ class mininetWiFi(object):
         cmd = cmd + 'ctrl_interface=/var/run/wpa_supplicant\
             \nap_scan=1\
             \np2p_go_ht40=1\
-            \ndevice_name=%s\
+            \ndevice_name=%s-%s\
             \ndevice_type=1-0050F204-1\
-            \np2p_no_group_iface=1' % (node)
-        confname = "mn%d_%s_wifiDirect.conf" % (os.getpid(), node)
+            \np2p_no_group_iface=1' % (node, wlan)
+        confname = "mn%d_%s-%s_wifiDirect.conf" % (os.getpid(), node, wlan)
         cmd = cmd + ("\' > %s" % confname)
         os.system(cmd)
         node.cmd('wpa_supplicant -B -Dnl80211 -c%s -i%s -d' % (confname, node.params['wlan'][wlan]))
@@ -616,8 +616,11 @@ class mininetWiFi(object):
         nodes = stations + accessPoints + cars
 
         for node in nodes:
-            node.wmediumdIface = DynamicWmediumdIntfRef(node)
-            intfrefs.append(node.wmediumdIface)
+            node.wmIface = []
+            for wlan in range(0, len(node.params['wlan'])):
+		node.wmIface.append(wlan)
+		node.wmIface[wlan] = DynamicWmediumdIntfRef(node, intf=wlan)
+                intfrefs.append(node.wmIface[wlan])
 
         if self.enable_interference:
             mode = WmediumdConstants.WMEDIUMD_MODE_INTERFERENCE
@@ -631,13 +634,15 @@ class mininetWiFi(object):
                     posY = node.params['position'][1]
                     posZ = node.params['position'][2]
                 node.lastpos = [0, 0, 0]
-                positions.append(WmediumdPosition(node.wmediumdIface, [posX, posY, posZ]))
-                txpowers.append(WmediumdTXPower(node.wmediumdIface, float(node.params['txpower'][0])))
+	        for wlan in range(0, len(node.params['wlan'])):
+                    positions.append(WmediumdPosition(node.wmIface[wlan], [posX, posY, posZ]))
+                    txpowers.append(WmediumdTXPower(node.wmIface[wlan], float(node.params['txpower'][wlan])))
         else:
             mode = WmediumdConstants.WMEDIUMD_MODE_SNR
             for node in self.wlinks:
-                links.append(WmediumdSNRLink(node[0].wmediumdIface, node[1].wmediumdIface, node[0].params['snr'][0]))
-                links.append(WmediumdSNRLink(node[1].wmediumdIface, node[0].wmediumdIface, node[0].params['snr'][0]))
+	        for wlan in range(0, len(node.params['wlan'])):
+                    links.append(WmediumdSNRLink(node[0].wmIface[wlan], node[1].wmIface[wlan], node[0].params['snr'][0]))
+                    links.append(WmediumdSNRLink(node[1].wmIface[wlan], node[0].wmIface[wlan], node[0].params['snr'][0]))
 
         WmediumdStarter.initialize(intfrefs, links, mode=mode, positions=positions, enable_interference=self.enable_interference, \
                                    auto_add_links=False, txpowers=txpowers, with_server=True)
