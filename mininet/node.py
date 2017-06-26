@@ -1279,7 +1279,9 @@ class AccessPoint(AP):
                     cmd = cmd + ("\nnas_identifier=%s.example.com" % ap.name)
                     cmd = cmd + ("\nauth_server_addr=%s" % ap.params['radius_server'])
                     cmd = cmd + ("\nauth_server_port=1812")
-                    cmd = cmd + ("\nauth_server_shared_secret=secret")
+                    if 'shared_secret' not in ap.params:
+                        ap.params['shared_secret'] = 'secret'
+                    cmd = cmd + ("\nauth_server_shared_secret=%s" % ap.params['shared_secret'])
             else:
                 cmd = cmd + ("\nwme_enabled=1")
                 cmd = cmd + ("\nwmm_enabled=1")
