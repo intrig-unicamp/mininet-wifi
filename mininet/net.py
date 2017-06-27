@@ -767,6 +767,10 @@ class Mininet(object):
             if(doAssociation):
                 cls = WDSLink
                 cls(node1, node2)
+
+                if not mininetWiFi.enable_interference:
+                    node1.setBw(node1, 0, node1.params['wlan'][0])
+                    node2.setBw(node2, 0, node2.params['wlan'][0])
         else:
             if 'link' in options:
                 options.pop('link', None)

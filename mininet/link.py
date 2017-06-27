@@ -86,8 +86,8 @@ class Intf(object):
         """Set the MAC address for an interface.
            macstr: MAC address as string"""
         self.mac = macstr
-        return (self.ifconfig('down') +
-                 self.ifconfig('hw', 'ether', macstr) +
+        return (self.ifconfig('down') + 
+                 self.ifconfig('hw', 'ether', macstr) + 
                  self.ifconfig('up'))
 
     _ipMatchRegex = re.compile(r'\d+\.\d+\.\d+\.\d+')
@@ -278,8 +278,8 @@ class IntfWireless(object):
         """Set the MAC address for an interface.
            macstr: MAC address as string"""
         self.mac = macstr
-        return (self.ifconfig('down') +
-                 self.ifconfig('hw', 'ether', macstr) +
+        return (self.ifconfig('down') + 
+                 self.ifconfig('hw', 'ether', macstr) + 
                  self.ifconfig('up'))
 
     _ipMatchRegex = re.compile(r'\d+\.\d+\.\d+\.\d+')
@@ -442,27 +442,27 @@ class TCIntfWireless(IntfWireless):
             elif use_tbf:
                 if latency_ms is None:
                     latency_ms = 15 * 8 / bw
-                cmds += [ '%s qdisc add dev %s root handle 5: tbf ' +
-                          'rate %fMbit burst 15000 latency %fms' %
+                cmds += [ '%s qdisc add dev %s root handle 5: tbf ' + 
+                          'rate %fMbit burst 15000 latency %fms' % 
                           (bw, latency_ms) ]
             else:
                 cmds += [ '%s qdisc add dev %s root handle 5:0 htb default 1',
-                          '%s class add dev %s parent 5:0 classid 5:1 htb ' +
+                          '%s class add dev %s parent 5:0 classid 5:1 htb ' + 
                           'rate %fMbit burst 15k' % bw ]
             parent = ' parent 5:1 '
             # ECN or RED
             if enable_ecn:
-                cmds += [ '%s qdisc add dev %s' + parent +
-                          'handle 6: red limit 1000000 ' +
-                          'min 30000 max 35000 avpkt 1500 ' +
-                          'burst 20 ' +
+                cmds += [ '%s qdisc add dev %s' + parent + 
+                          'handle 6: red limit 1000000 ' + 
+                          'min 30000 max 35000 avpkt 1500 ' + 
+                          'burst 20 ' + 
                           'bandwidth %fmbit probability 1 ecn' % bw ]
                 parent = ' parent 6: '
             elif enable_red:
-                cmds += [ '%s qdisc add dev %s' + parent +
-                          'handle 6: red limit 1000000 ' +
-                          'min 30000 max 35000 avpkt 1500 ' +
-                          'burst 20 ' +
+                cmds += [ '%s qdisc add dev %s' + parent + 
+                          'handle 6: red limit 1000000 ' + 
+                          'min 30000 max 35000 avpkt 1500 ' + 
+                          'burst 20 ' + 
                           'bandwidth %fmbit probability 1' % bw ]
                 parent = ' parent 6: '
 
@@ -488,8 +488,8 @@ class TCIntfWireless(IntfWireless):
                 'limit %d' % max_queue_size if max_queue_size is not None
                 else '')
             if netemargs:
-                cmds = [ '%s qdisc add dev %s ' + parent +
-                         ' handle 10: netem ' +
+                cmds = [ '%s qdisc add dev %s ' + parent + 
+                         ' handle 10: netem ' + 
                          netemargs ]
                 parent = ' parent 10:1 '
         return cmds, parent
@@ -610,27 +610,27 @@ class TCIntf(Intf):
             elif use_tbf:
                 if latency_ms is None:
                     latency_ms = 15 * 8 / bw
-                cmds += [ '%s qdisc add dev %s root handle 5: tbf ' +
-                          'rate %fMbit burst 15000 latency %fms' %
+                cmds += [ '%s qdisc add dev %s root handle 5: tbf ' + 
+                          'rate %fMbit burst 15000 latency %fms' % 
                           (bw, latency_ms) ]
             else:
                 cmds += [ '%s qdisc add dev %s root handle 5:0 htb default 1',
-                          '%s class add dev %s parent 5:0 classid 5:1 htb ' +
+                          '%s class add dev %s parent 5:0 classid 5:1 htb ' + 
                           'rate %fMbit burst 15k' % bw ]
             parent = ' parent 5:1 '
             # ECN or RED
             if enable_ecn:
-                cmds += [ '%s qdisc add dev %s' + parent +
-                          'handle 6: red limit 1000000 ' +
-                          'min 30000 max 35000 avpkt 1500 ' +
-                          'burst 20 ' +
+                cmds += [ '%s qdisc add dev %s' + parent + 
+                          'handle 6: red limit 1000000 ' + 
+                          'min 30000 max 35000 avpkt 1500 ' + 
+                          'burst 20 ' + 
                           'bandwidth %fmbit probability 1 ecn' % bw ]
                 parent = ' parent 6: '
             elif enable_red:
-                cmds += [ '%s qdisc add dev %s' + parent +
-                          'handle 6: red limit 1000000 ' +
-                          'min 30000 max 35000 avpkt 1500 ' +
-                          'burst 20 ' +
+                cmds += [ '%s qdisc add dev %s' + parent + 
+                          'handle 6: red limit 1000000 ' + 
+                          'min 30000 max 35000 avpkt 1500 ' + 
+                          'burst 20 ' + 
                           'bandwidth %fmbit probability 1' % bw ]
                 parent = ' parent 6: '
 
@@ -656,8 +656,8 @@ class TCIntf(Intf):
                 'limit %d' % max_queue_size if max_queue_size is not None
                 else '')
             if netemargs:
-                cmds = [ '%s qdisc add dev %s ' + parent +
-                         ' handle 10: netem ' +
+                cmds = [ '%s qdisc add dev %s ' + parent + 
+                         ' handle 10: netem ' + 
                          netemargs ]
                 parent = ' parent 10:1 '
         return cmds, parent
@@ -708,10 +708,10 @@ class TCIntf(Intf):
         cmds += delaycmds
 
         # Ugly but functional: display configuration info
-        stuff = (([ '%.2fMbit' % bw ] if bw is not None else []) +
-                  ([ '%s delay' % delay ] if delay is not None else []) +
-                  ([ '%s jitter' % jitter ] if jitter is not None else []) +
-                  (['%5f%% loss' % loss ] if loss is not None else []) +
+        stuff = (([ '%.2fMbit' % bw ] if bw is not None else []) + 
+                  ([ '%s delay' % delay ] if delay is not None else []) + 
+                  ([ '%s jitter' % jitter ] if jitter is not None else []) + 
+                  (['%5f%% loss' % loss ] if loss is not None else []) + 
                   ([ 'ECN' ] if enable_ecn else [ 'RED' ]
                     if enable_red else []))
 
@@ -733,7 +733,6 @@ class TCIntf(Intf):
 
 class WDSLink(object):
 
-    # pylint: disable=too-many-branches
     def __init__(self, node1, node2, intf=Intf):
         """Create WDS link to another node.
            node1: first node
@@ -743,7 +742,11 @@ class WDSLink(object):
 
         self.createWDSIface(node1)
         self.createWDSIface(node2)
+        node1.params['mac'].append(node1.params['mac'][0][:3] + '01' + node1.params['mac'][0][5:])
+        node2.params['mac'].append(node2.params['mac'][0][:3] + '01' + node2.params['mac'][0][5:])
         self.setWDSPeer(node1, node2)
+        self.setMac(node1)
+        self.setMac(node2)
         self.bringWDSIfaceUP(node1)
         self.bringWDSIfaceUP(node2)
 
@@ -758,8 +761,17 @@ class WDSLink(object):
         intfName1 = '%s-wds' % node1.name
         intfName2 = '%s-wds' % node2.name
 
-        node1.setBw(node1, 0, intfName1)
-        node2.setBw(node2, 0, intfName2)
+        node1.params['wlan'].append(intfName1)
+        node1.params['txpower'].append(14)
+        node1.params['mode'].append(node1.params['mode'][0])
+        node1.params['channel'].append(node1.params['channel'][0])
+        node1.params['frequency'].append(node1.params['frequency'][0])
+
+        node2.params['wlan'].append(intfName2)
+        node2.params['txpower'].append(14)
+        node2.params['mode'].append(node2.params['mode'][0])
+        node2.params['channel'].append(node2.params['channel'][0])
+        node2.params['frequency'].append(node2.params['frequency'][0])
 
         intf1 = cls(name=intfName1, node=node1,
                               link=self, **params1)
@@ -771,9 +783,12 @@ class WDSLink(object):
     def bringWDSIfaceUP(self, node):
         node.cmd('ifconfig %s-wds up' % node.name)
 
+    def setMac(self, node):
+        node.cmd('ifconfig %s-wds hw ether %s' % (node.name, node.params['mac'][1]))
+
     def setWDSPeer(self, node1, node2):
-        node1.cmd('iw dev %s-wds set peer %s' % (node1.name, node2.params['mac'][0]))
-        node2.cmd('iw dev %s-wds set peer %s' % (node2.name, node1.params['mac'][0]))
+        node1.cmd('iw dev %s-wds set peer %s' % (node1.name, node2.params['mac'][1]))
+        node2.cmd('iw dev %s-wds set peer %s' % (node2.name, node1.params['mac'][1]))
 
     def createWDSIface(self, node):
         node.cmd('iw dev %s interface add %s-wds type wds' % (node.params['wlan'][0], node.name))
