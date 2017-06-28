@@ -185,7 +185,7 @@ class mobility (object):
             if sta not in ap.params['associatedStations']:
                 ap.params['associatedStations'].append(sta)
             if dist >= 0.01:
-                if WmediumdServerConn.connected and WmediumdServerConn.interference_enabled:
+                if Association.bgscan != '':
                     pass
                 elif WmediumdServerConn.connected and not WmediumdServerConn.interference_enabled:
                     if sta.lastpos != sta.params['position']:
