@@ -1,0 +1,6 @@
+wifiChannel.py -> wifiLink.py
+wifiPosition.py -> position.py
+wifiMobilityModel.py -> mobilityModel.py
+
+Esse último, setPosition() é o método atualmente suportado, porém a VM não estava atualizada. Por isso usar moveNodeTo().
+setPosition() -> moveNodeTo()
