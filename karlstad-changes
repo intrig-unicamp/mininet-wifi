@@ -1,0 +1,16 @@
+wifiChannel.py -> wifiLink.py
+wifiPosition.py -> position.py
+wifiMobilityModel.py -> mobilityModel.py
+
+Esse último, setPosition() é o método atualmente suportado, porém a VM não estava atualizada. Por isso usar moveNodeTo().
+setPosition() -> moveNodeTo()
+
+
+Link to Slides on Mininet and Mininet-WiFi: 
+
+https://docs.google.com/presentation/d/1KR3b1hTl69IKMp9DmoAv-8O5ZtvC-Lcwqp_mIND1PsU/edit?usp=sharing
+
+https://goo.gl/3KGG9j
+
+
+
