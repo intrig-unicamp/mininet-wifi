@@ -894,16 +894,18 @@ class CPULimitedHost(Host):
     def cgroupDel(self):
         "Clean up our cgroup"
         # info( '*** deleting cgroup', self.cgroup, '\n' )
-        _out, _err, exitcode = errRun('cgdelete -r ' + self.cgroup)
-        return exitcode == 0  # success condition
+        _out, _err, exitcode = errRun( 'cgdelete -r ' + self.cgroup )
+        # Sometimes cgdelete returns a resource busy error but still
+        # deletes the group; next attempt will give "no such file"
+        return exitcode == 0 or ( 'no such file' in _err.lower() )
 
     def popen(self, *args, **kwargs):
         """Return a Popen() object in node's namespace
            args: Popen() args, single list, or string
            kwargs: Popen() keyword args"""
         # Tell mnexec to execute command in our cgroup
-        mncmd = [ 'mnexec', '-g', self.name,
-                  '-da', str(self.pid) ]
+        mncmd = kwargs.pop( 'mncmd', [ 'mnexec', '-g', self.name,
+                  '-da', str( self.pid ) ] )
         # if our cgroup is not given any cpu time,
         # we cannot assign the RR Scheduler.
         if self.sched == 'rt':
@@ -2067,7 +2069,7 @@ class OVSSwitch(Switch):
         if self.protocols and not self.isOldOVS():
             opts += ' protocols=%s' % self.protocols
         if self.stp and self.failMode == 'standalone':
-            opts += ' stp_enable=true' % self
+            opts += ' stp_enable=true'
         return opts
 
     def start(self, controllers):
@@ -2267,7 +2269,7 @@ class Controller(Node):
 
     def __init__(self, name, inNamespace=False, command='controller',
                   cargs='-v ptcp:%d', cdir=None, ip="127.0.0.1",
-                  port=6633, protocol='tcp', **params):
+                  port=6653, protocol='tcp', **params):
         self.command = command
         self.cargs = cargs
         self.cdir = cdir

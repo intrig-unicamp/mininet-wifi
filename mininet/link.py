@@ -49,12 +49,12 @@ class Intf(object):
         if self.name == 'lo':
             self.ip = '127.0.0.1'
         # Add to node (and move ourselves if necessary )
-        moveIntfFn = params.pop('moveIntfFn', None)
-
-        if moveIntfFn:
-            node.addIntf(self, port=port, moveIntfFn=moveIntfFn)
-        else:
-            node.addIntf(self, port=port)
+        if node:
+            moveIntfFn = params.pop('moveIntfFn', None)
+            if moveIntfFn:
+                node.addIntf(self, port=port, moveIntfFn=moveIntfFn)
+            else:
+                node.addIntf(self, port=port)
 
         # Save params for future reference
         self.params = params
@@ -609,7 +609,7 @@ class TCIntf(Intf):
                           + 'rate %fMbit ul rate %fMbit' % (bw, bw) ]
             elif use_tbf:
                 if latency_ms is None:
-                    latency_ms = 15 * 8 / bw
+                    latency_ms = 15.0 * 8 / bw
                 cmds += [ '%s qdisc add dev %s root handle 5: tbf ' + 
                           'rate %fMbit burst 15000 latency %fms' % 
                           (bw, latency_ms) ]
@@ -668,64 +668,87 @@ class TCIntf(Intf):
         debug(" *** executing command: %s\n" % c)
         return self.cmd(c)
 
-    def config(self, bw=None, delay=None, jitter=None, loss=None,
-                disable_gro=True, speedup=0, use_hfsc=False, use_tbf=False,
+    def config( self, bw=None, delay=None, jitter=None, loss=None,
+                gro=False, txo=True, rxo=True,
+                speedup=0, use_hfsc=False, use_tbf=False,
                 latency_ms=None, enable_ecn=False, enable_red=False,
-                max_queue_size=None, **params):
-        "Configure the port and set its properties."
-        result = Intf.config(self, **params)
+                max_queue_size=None, **params ):
+        """Configure the port and set its properties.
+           bw: bandwidth in b/s (e.g. '10m')
+           delay: transmit delay (e.g. '1ms' )
+           jitter: jitter (e.g. '1ms')
+           loss: loss (e.g. '1%' )
+           gro: enable GRO (False)
+           txo: enable transmit checksum offload (True)
+           rxo: enable receive checksum offload (True)
+           speedup: experimental switch-side bw option
+           use_hfsc: use HFSC scheduling
+           use_tbf: use TBF scheduling
+           latency_ms: TBF latency parameter
+           enable_ecn: enable ECN (False)
+           enable_red: enable RED (False)
+           max_queue_size: queue limit parameter for netem"""
 
-        # Disable GRO
-        if disable_gro:
-            self.cmd('ethtool -K %s gro off' % self)
+        # Support old names for parameters
+        gro = not params.pop( 'disable_gro', not gro )
+
+        result = Intf.config( self, **params)
+
+        def on( isOn ):
+            "Helper method: bool -> 'on'/'off'"
+            return 'on' if isOn else 'off'
+
+        # Set offload parameters with ethool
+        self.cmd( 'ethtool -K', self,
+                  'gro', on( gro ),
+                  'tx', on( txo ),
+                  'rx', on( rxo ) )
 
         # Optimization: return if nothing else to configure
         # Question: what happens if we want to reset things?
-        if (bw is None and not delay and not loss
-             and max_queue_size is None):
+        if ( bw is None and not delay and not loss
+             and max_queue_size is None ):
             return
 
         # Clear existing configuration
-        cmds = []
-        tcoutput = self.tc('%s qdisc show dev %s')
-        if "priomap" not in tcoutput and "qdisc noqueue" not in tcoutput:
+        tcoutput = self.tc( '%s qdisc show dev %s' )
+        if "priomap" not in tcoutput and "noqueue" not in tcoutput:
             cmds = [ '%s qdisc del dev %s root' ]
         else:
             cmds = []
+
         # Bandwidth limits via various methods
-        bwcmds, parent = self.bwCmds(bw=bw, speedup=speedup,
+        bwcmds, parent = self.bwCmds( bw=bw, speedup=speedup,
                                       use_hfsc=use_hfsc, use_tbf=use_tbf,
                                       latency_ms=latency_ms,
                                       enable_ecn=enable_ecn,
-                                      enable_red=enable_red)
+                                      enable_red=enable_red )
         cmds += bwcmds
 
         # Delay/jitter/loss/max_queue_size using netem
-        delaycmds, parent = self.delayCmds(delay=delay, jitter=jitter,
+        delaycmds, parent = self.delayCmds( delay=delay, jitter=jitter,
                                             loss=loss,
                                             max_queue_size=max_queue_size,
-                                            parent=parent)
+                                            parent=parent )
         cmds += delaycmds
 
         # Ugly but functional: display configuration info
-        stuff = (([ '%.2fMbit' % bw ] if bw is not None else []) + 
-                  ([ '%s delay' % delay ] if delay is not None else []) + 
-                  ([ '%s jitter' % jitter ] if jitter is not None else []) + 
-                  (['%5f%% loss' % loss ] if loss is not None else []) + 
-                  ([ 'ECN' ] if enable_ecn else [ 'RED' ]
-                    if enable_red else []))
-
-        # Print bw info
-        info('(' + ' '.join(stuff) + ') ')
+        stuff = ( ( [ '%.2fMbit' % bw ] if bw is not None else [] ) +
+                  ( [ '%s delay' % delay ] if delay is not None else [] ) +
+                  ( [ '%s jitter' % jitter ] if jitter is not None else [] ) +
+                  ( ['%.5f%% loss' % loss ] if loss is not None else [] ) +
+                  ( [ 'ECN' ] if enable_ecn else [ 'RED' ]
+                    if enable_red else [] ) )
+        info( '(' + ' '.join( stuff ) + ') ' )
 
         # Execute all the commands in our node
         debug("at map stage w/cmds: %s\n" % cmds)
         tcoutputs = [ self.tc(cmd) for cmd in cmds ]
         for output in tcoutputs:
             if output != '':
-                error("*** Error: %s" % output)
-        debug("cmds:", cmds, '\n')
-        debug("outputs:", tcoutputs, '\n')
+                error( "*** Error: %s" % output )
+        debug( "cmds:", cmds, '\n' )
+        debug( "outputs:", tcoutputs, '\n' )
         result[ 'tcoutputs'] = tcoutputs
         result[ 'parent' ] = parent
 
@@ -1092,9 +1115,8 @@ class OVSLink(Link):
        than ~64 OVS patch links should be used in row."""
 
     def __init__(self, node1, node2, **kwargs):
-        from mininet.node import OVSSwitch
-
         "See Link.__init__() for options"
+        from mininet.node import OVSSwitch
         self.isPatchLink = False
         if (isinstance(node1, OVSSwitch) and
              isinstance(node2, OVSSwitch)):
