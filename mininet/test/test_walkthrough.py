@@ -368,32 +368,6 @@ class testWalkthrough(unittest.TestCase):
         p.sendline('exit')
         p.wait()
 
-    def testMultipleInstances(self):
-        """Start Mininet-WiFi with multiple instances, then test ping"""
-        p1 = pexpect.spawn(
-            'python examples/wmediumd_multiple_instances.py')
-        sleep(3)
-        p1.sendline('sta1 ping -c 1 sta2')
-        p1.expect('1 packets transmitted, 1 received')
-        p1.expect(self.prompt)
-        p1.sendline('sta1 ifconfig')
-        p1.expect('02:00:00:00:00:00')
-        p1.expect(self.prompt)
-        p2 = pexpect.spawn(
-            'python examples/wmediumd_multiple_instances.py')
-        sleep(3)
-        p2.sendline('sta1 ping -c 1 sta2')
-        p2.expect('1 packets transmitted, 1 received')
-        p2.expect(self.prompt)
-        p2.sendline('sta1 ifconfig')
-        p2.expect('02:00:00:00:03:00')
-        p2.expect(self.prompt)
-        p1.sendline('exit')
-        p1.wait()
-        p2.sendline('exit')
-        p2.wait()
-        os.system('rmmod mac80211_hwsim')
-
     def testWirelessParams(self):
         """Start Mininet-WiFi with apadhoc, then do an extensive test"""
         p = pexpect.spawn(

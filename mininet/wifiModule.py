@@ -15,8 +15,6 @@ class module(object):
     wlan_list = []
     hwsim_ids = []
     prefix = ""
-    externally_managed = False
-    devices_created_dynamically = False
     phyID = 0
     useWmediumd = False
 
@@ -28,25 +26,21 @@ class module(object):
         :param alternativeModule: dir of a mac80211_hwsim alternative module
         """
         debug('Loading %s virtual interfaces\n' % wifiRadios)
-        if not self.externally_managed:
-            if alternativeModule == '':
-                output_ = os.system('modprobe mac80211_hwsim radios=0 >/dev/null 2>&1')
-            else:
-                output_ = os.system('insmod %s radios=0 >/dev/null 2>&1' % alternativeModule)
-
-            """output_ is different of zero in Kernel 3.13.x. radios=0 doesn't work in such kernel version"""
-            if output_ == 0:
-                self.__create_hwsim_mgmt_devices(wifiRadios)
-            else:
-                if wifiRadios == 0:
-                    wifiRadios = 1  # Useful for tests in Kernels like Kernel 3.13.x
-                if alternativeModule == '':
-                    os.system('modprobe mac80211_hwsim radios=%s' % wifiRadios)
-                else:
-                    os.system('insmod %s radios=%s' % (alternativeModule, wifiRadios))
+        if alternativeModule == '':
+            output_ = os.system('modprobe mac80211_hwsim radios=0 >/dev/null 2>&1')
         else:
-            self.devices_created_dynamically = True
+            output_ = os.system('insmod %s radios=0 >/dev/null 2>&1' % alternativeModule)
+
+        """output_ is different of zero in Kernel 3.13.x. radios=0 doesn't work in such kernel version"""
+        if output_ == 0:
             self.__create_hwsim_mgmt_devices(wifiRadios)
+        else:
+            if wifiRadios == 0:
+                wifiRadios = 1  # Useful for tests in Kernels like Kernel 3.13.x
+            if alternativeModule == '':
+                os.system('modprobe mac80211_hwsim radios=%s' % wifiRadios)
+            else:
+                os.system('insmod %s radios=%s' % (alternativeModule, wifiRadios))
 
     @classmethod
     def __create_hwsim_mgmt_devices(cls, wifi_radios):
@@ -94,25 +88,12 @@ class module(object):
         if glob.glob("*.nodeParams"):
             os.system('rm *.nodeParams')
 
-        if self.devices_created_dynamically:
-            for hwsim_id in self.hwsim_ids:
-                p = subprocess.Popen(["hwsim_mgmt", "-d", hwsim_id], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-                                     stderr=subprocess.PIPE, bufsize=-1)
-                output, err_out = p.communicate()
-                if p.returncode == 0:
-                    m = re.search("ID (\d+)", output)
-                    debug("\nDeleted mac80211_hwsim device with ID %s" % m.group(1))
-                else:
-                    error("\nError on deleting mac80211_hwsim device with ID %s" % hwsim_id)
-                    error("\nOutput: %s" % output)
-                    error("\nError: %s" % err_out)
-        else:
-            try:
-                subprocess.check_output("lsmod | grep mac80211_hwsim",
-                                                              shell=True)
-                os.system('rmmod mac80211_hwsim')
-            except:
-                pass
+        try:
+            subprocess.check_output("lsmod | grep mac80211_hwsim",
+                                                          shell=True)
+            os.system('rmmod mac80211_hwsim')
+        except:
+            pass
 
         try:
             (subprocess.check_output("lsmod | grep ifb",
@@ -141,7 +122,7 @@ class module(object):
         except:
             pass
 
-        if not self.externally_managed and self.useWmediumd:
+        if self.useWmediumd:
             try:
                 info("*** Killing wmediumd\n")
                 os.system('pkill wmediumd')
@@ -184,12 +165,7 @@ class module(object):
     @classmethod
     def getPhy(self):
         """Gets all phys after starting the wireless module"""
-        if self.devices_created_dynamically:
-            phy = subprocess.check_output(
-                "find /sys/kernel/debug/ieee80211 -regex \".*/%s.*/hwsim\" | cut -d/ -f 6 | sort" % self.prefix,
-                shell=True).split("\n")
-        else:
-            phy = subprocess.check_output("find /sys/kernel/debug/ieee80211 -name hwsim | cut -d/ -f 6 | sort",
+        phy = subprocess.check_output("find /sys/kernel/debug/ieee80211 -name hwsim | cut -d/ -f 6 | sort",
                                           shell=True).split("\n")
         phy.pop()
         phy.sort(key=len, reverse=False)
