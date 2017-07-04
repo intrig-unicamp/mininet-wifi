@@ -312,8 +312,8 @@ class Association(object):
     @classmethod
     def setSNRWmediumd(self, sta, ap, snr):
         "Set SNR for wmediumd"
-        WmediumdServerConn.send_snr_update(WmediumdSNRLink(sta.wmediumdIface, ap.wmediumdIface, snr))
-        WmediumdServerConn.send_snr_update(WmediumdSNRLink(ap.wmediumdIface, sta.wmediumdIface, snr))
+        WmediumdServerConn.send_snr_update(WmediumdSNRLink(sta.wmIface[0], ap.wmIface[0], snr))
+        WmediumdServerConn.send_snr_update(WmediumdSNRLink(ap.wmIface[0], sta.wmIface[0], snr))
 
     @classmethod
     def configureWirelessLink(self, sta, ap, wlan, useWmediumd=False):

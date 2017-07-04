@@ -638,7 +638,8 @@ class mininetWiFi(object):
                     posY = node.params['position'][1]
                     posZ = node.params['position'][2]
                 node.lastpos = [0, 0, 0]
-                if node.type == 'vehicle':
+                
+                if hasattr(node, 'type') and node.type == 'vehicle':
                     wlans = 1
                 else:
                     wlans = len(node.params['wlan'])
@@ -648,13 +649,8 @@ class mininetWiFi(object):
         else:
             mode = WmediumdConstants.WMEDIUMD_MODE_SNR
             for node in self.wlinks:
-                if node.type == 'vehicle':
-                    wlans = 1
-                else:
-                    wlans = len(node.params['wlan'])
-                for wlan in range(0, wlans):
-                    links.append(WmediumdSNRLink(node[0].wmIface[wlan], node[1].wmIface[wlan], node[0].params['snr'][0]))
-                    links.append(WmediumdSNRLink(node[1].wmIface[wlan], node[0].wmIface[wlan], node[0].params['snr'][0]))
+                links.append(WmediumdSNRLink(node[0].wmIface[0], node[1].wmIface[0], node[0].params['snr'][0]))
+                links.append(WmediumdSNRLink(node[1].wmIface[0], node[0].wmIface[0], node[0].params['snr'][0]))
 
         WmediumdStarter.initialize(intfrefs, links, mode=mode, positions=positions, enable_interference=self.enable_interference, \
                                    auto_add_links=False, txpowers=txpowers, with_server=True)

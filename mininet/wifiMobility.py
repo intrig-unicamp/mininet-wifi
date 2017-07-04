@@ -188,9 +188,8 @@ class mobility (object):
                 if Association.bgscan != '':
                     pass
                 elif WmediumdServerConn.connected and not WmediumdServerConn.interference_enabled:
-                    if sta.lastpos != sta.params['position']:
-                        cls = Association
-                        cls.setSNRWmediumd(sta, ap, snr=sta.params['snr'][wlan])
+                    cls = Association
+                    cls.setSNRWmediumd(sta, ap, snr=sta.params['snr'][wlan])
                 else:
                     link(sta, ap, wlan, dist)
         link.recordParams(sta, ap)

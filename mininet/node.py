@@ -236,8 +236,10 @@ class Node(object):
         self.params['position'] = float(pos[0]), float(pos[1]), float(pos[2])
         if mininetWiFi.DRAW and not mininetWiFi.is3d:
             plot2d.graphUpdate(self)
+            plot2d.graphPause()
         elif mininetWiFi.DRAW and mininetWiFi.is3d:
             plot3d.graphUpdate(self)
+            plot3d.graphPause()
         mobility.parameters_(self)
 
     def setAntennaGain(self, iface, gain):
