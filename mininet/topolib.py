@@ -9,7 +9,7 @@ from mininet.net import Mininet
 class TreeTopo( Topo ):
     "Topology for a tree network with a given depth and fanout."
 
-    def build( self, depth=1, fanout=2, isWiFi=False ):
+    def build( self, depth=1, fanout=2 ):
         # Numbering:  h1..N, s1..M
         self.hostNum = 1
         self.switchNum = 1

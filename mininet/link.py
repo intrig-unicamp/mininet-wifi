@@ -543,10 +543,8 @@ class TCIntfWireless(IntfWireless):
             return
 
         # Clear existing configuration
-        cmds = []
         tcoutput = self.tc('%s qdisc show dev %s')
-        if "priomap" not in tcoutput and "qdisc noqueue" not in tcoutput \
-            and tcoutput != 'qdisc mq 0: root':
+        if "priomap" not in tcoutput and "noqueue" not in tcoutput:
             cmds = [ '%s qdisc del dev %s root' ]
         else:
             cmds = []
