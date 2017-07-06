@@ -13,8 +13,8 @@ def topology():
     net = Mininet( controller=Controller, link=TCLink, accessPoint=UserAP, enable_wmediumd=True, enable_interference=True )
 
     print "*** Creating nodes"
-    sta1 = net.addStation( 'sta1', radius_passwd='sdnteam', radius_identity='joe', position='110,120,0' )
-    sta2 = net.addStation( 'sta2', radius_passwd='hello', radius_identity='bob', position='200,100,0' )
+    sta1 = net.addStation( 'sta1', radius_passwd='sdnteam', encrypt='wpa2', radius_identity='joe', position='110,120,0' )
+    sta2 = net.addStation( 'sta2', radius_passwd='hello', encrypt='wpa2', radius_identity='bob', position='200,100,0' )
     ap1 = net.addAccessPoint( 'ap1', ssid="simplewifi", mode="8021x", encrypt='wpa2', enable_radius='yes', position='150,100,0' )
     c0 = net.addController('c0', controller=Controller, ip='127.0.0.1', port=6633 )
 
