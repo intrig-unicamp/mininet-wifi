@@ -216,12 +216,12 @@ class mininetWiFi(object):
                 if(config != []):
                     config = node.params['config'].split(',')
                     for conf in config:
-                        if 'wpa=' in conf or 'wpe=' in conf:
+                        if 'wpa=' in conf or 'wep=' in conf:
                             node.params['encrypt'] = []
                         if 'wpa=' in conf:
                             node.params['encrypt'].append('wpa')
-                        if 'wpe=' in conf:
-                            node.params['encrypt'].append('wpe')
+                        if 'wep=' in conf:
+                            node.params['encrypt'].append('wep')
 
             if mode == 'master':
                 node.params['mac'] = []
