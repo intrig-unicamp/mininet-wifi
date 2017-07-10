@@ -1174,18 +1174,19 @@ class mininetWiFi(object):
         :params nFloors: number of floors
         :params gRandom: gaussian random variable
         """
-        'HAVE TO FIX IT'
         propagationModel.model = model
         propagationModel.exp = exp
-        propagationModel.sL = sL
-        propagationModel.lF = lF
-        propagationModel.nFloors = nFloors
-        propagationModel.pL = pL
-        link.sL = sL
-        link.lF = lF
-        link.nFloors = nFloors
-        link.gRandom = gRandom
-        link.pL = pL
+        if self.useWmediumd:
+            propagationModel.sL = sL
+            propagationModel.lF = lF
+            propagationModel.nFloors = nFloors
+            propagationModel.pL = pL
+        else:
+            link.sL = sL
+            link.lF = lF
+            link.nFloors = nFloors
+            link.gRandom = gRandom
+            link.pL = pL
         for sta in stations:
             if 'position' in sta.params and sta not in mobility.stations:
                 mobility.stations.append(sta)
