@@ -291,7 +291,6 @@ class WmediumdStarter(object):
 
         mappedintfrefs = {}
         mappedlinks = {}
-
         if not cls.enable_interference:
             # Map all links using the interface identifier and check for missing interfaces in the  intfrefs list
             for link in cls.links:
@@ -365,12 +364,12 @@ class WmediumdStarter(object):
                     else:
                         configstr += ', %s' % txpower
                 if propagationModel.model == 'ITUPropagationLossModel':
-                    configstr += ');\n\tmodel_name = "itu";\n\tnFLOORS = %d;\n\tLF = %d;\n};' % \
+                    configstr += ');\n\tmodel_name = "itu";\n\tnFLOORS = %d;\n\tlF = %d;\n};' % \
                                                             (propagationModel.nFloors, propagationModel.lF)
                 elif propagationModel.model == 'logDistancePropagationLossModel':
                     configstr += ');\n\tmodel_name = "log_distance";\n\tpath_loss_exp = %.1f;\n\txg = 0.0;\n};' % propagationModel.exp
                 else:
-                    configstr += ');\n\tmodel_name = "free_space";\n};'
+                    configstr += ');\n\tmodel_name = "free_space";\n\tsL = %d;\n};' % propagationModel.sL
 
             else:
                 configstr += '\n\t];\n};\nmodel:\n{\n\ttype = "'

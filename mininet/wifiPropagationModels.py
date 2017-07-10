@@ -19,13 +19,13 @@ class propagationModel(object):
     rssi = -62
     model = ''
     exp = 2  # Exponent
-    sl = 1  # System Loss
+    sL = 1  # System Loss
     lF = 0  # Floor penetration loss factor
     pL = 0  # Power Loss Coefficient
     nFloors = 0  # Number of floors
     gRandom = 0  # Gaussian random variable
 
-    def __init__(self, sta=None, ap=None, dist=0, wlan=0, pT=14, gT=5, gR=5, hT=1, hR=1, sl=1,
+    def __init__(self, sta=None, ap=None, dist=0, wlan=0, pT=14, gT=5, gR=5, hT=1, hR=1, sL=1,
                   lF=0, pL=0, nFloors=0, gRandom=0):
         """pT = Tx Power
            gT = Tx Antenna Gain
@@ -34,7 +34,7 @@ class propagationModel(object):
            hR = Rx Antenna Height
         """
         self.lF = lF
-        self.sl = sl
+        self.sL = sL
         self.pL = pL
         self.nFloors = nFloors
         if self.model == '':
@@ -50,7 +50,7 @@ class propagationModel(object):
         (L) System loss"""
         f = sta.params['frequency'][wlan] * 10 ** 9  # Convert Ghz to Hz
         c = 299792458.0
-        L = self.sl
+        L = self.sL
         if dist == 0:
             dist = 0.1
 
@@ -82,7 +82,7 @@ class propagationModel(object):
         (L): System loss"""
         if dist == 0:
             dist = 0.1
-        L = self.sl
+        L = self.sL
 
         pathLossDb = (pT * gT * gR * hT ** 2 * hR ** 2) / (dist ** 4 * L)
         self.rssi = pT + gT + gR - int(pathLossDb)
@@ -161,7 +161,7 @@ class distanceByPropagationModel(object):
 
     dist = 0
     exp = 2  # Exponent
-    sl = 1  # System Loss
+    sL = 1  # System Loss
     lF = 0  # Floor penetration loss factor
     pL = 0  # Power Loss Coefficient
     nFloors = 0  # Number of floors
@@ -169,7 +169,7 @@ class distanceByPropagationModel(object):
 
     def __init__(self, node=None, wlan=0):
         self.lF = propagationModel.lF
-        self.sl = propagationModel.sl
+        self.sL = propagationModel.sL
         self.pL = propagationModel.pL
         self.exp = propagationModel.exp
         self.nFloors = propagationModel.nFloors
@@ -187,7 +187,7 @@ class distanceByPropagationModel(object):
         (L) System loss"""
         f = node.params['frequency'][wlan] * 10 ** 9  # Convert Ghz to Hz
         c = 299792458.0
-        L = self.sl
+        L = self.sL
 
         lambda_ = c / f  # lambda: wavelength (m)
         denominator = lambda_ ** 2
@@ -203,7 +203,7 @@ class distanceByPropagationModel(object):
         (L) System loss"""
         f = node.params['frequency'][wlan] * 10 ** 9  # Convert Ghz to Hz
         c = 299792458.0
-        L = self.sl
+        L = self.sL
 
         lambda_ = c / f  # lambda: wavelength (m)
         denominator = lambda_ ** 2

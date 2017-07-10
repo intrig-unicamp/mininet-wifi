@@ -126,14 +126,13 @@ class mobility (object):
         sta.params['speed'] = '%.2f' % abs(((pos_x + pos_y + pos_z) / diffTime))
 
     @classmethod
-    def apOutOfRange(self, sta, ap, wlan, dist):
+    def apOutOfRange(self, sta, ap, wlan):
         """
         When ap is out of range
         
         :param sta: station
         :param ap: access point
-        :param wlan: wlan ID
-        :param dist: distance between source and destination  
+        :param wlan: wlan ID 
         """
         if ap == sta.params['associatedTo'][wlan]:
             debug('iw dev %s disconnect\n' % sta.params['wlan'][wlan])
@@ -205,23 +204,22 @@ class mobility (object):
         for ap in self.accessPoints:
             dist = link.getDistance(sta, ap)
             if dist > ap.params['range']:
-                self.apOutOfRange(sta, ap, wlan, dist)
+                self.apOutOfRange(sta, ap, wlan)
 
         for ap in self.accessPoints:
             dist = link.getDistance(sta, ap)
             if dist <= ap.params['range']:
-                self.handover(sta, ap, wlan, dist)
+                self.handover(sta, ap, wlan)
                 self.apInRange(sta, ap, wlan, dist)
 
     @classmethod
-    def handover(self, sta, ap, wlan, dist):
+    def handover(self, sta, ap, wlan):
         """
         handover
         
         :param sta: station
         :param ap: access point
-        :param wlan: wlan ID
-        :param dist: distance between source and destination   
+        :param wlan: wlan ID 
         """
         changeAP = False
 

@@ -1159,7 +1159,7 @@ class mininetWiFi(object):
                         if 'position' in sta.params and 'position' in ap.params:
                             dist = link.getDistance(sta, ap)
                             if dist <= ap.params['range']:
-                                mobility.handover(sta, ap, wlan, dist)
+                                mobility.handover(sta, ap, wlan)
 
     @classmethod
     def propagationModel(self, stations, accessPoints, model, exp=2, sL=1, lF=0, pL=0, nFloors=0, gRandom=0):
@@ -1174,14 +1174,18 @@ class mininetWiFi(object):
         :params nFloors: number of floors
         :params gRandom: gaussian random variable
         """
+        'HAVE TO FIX IT'
         propagationModel.model = model
         propagationModel.exp = exp
-        link.sl = sL
+        propagationModel.sL = sL
+        propagationModel.lF = lF
+        propagationModel.nFloors = nFloors
+        propagationModel.pL = pL
+        link.sL = sL
         link.lF = lF
         link.nFloors = nFloors
         link.gRandom = gRandom
         link.pL = pL
-
         for sta in stations:
             if 'position' in sta.params and sta not in mobility.stations:
                 mobility.stations.append(sta)
