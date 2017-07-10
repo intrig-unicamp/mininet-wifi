@@ -111,7 +111,7 @@ class propagationModel(object):
         (d) is the distance between the transmitter and the receiver (m)
         gRandom is a Gaussian random variable"""
         referenceDistance = 1
-        gRandom = self. gRandom
+        gRandom = self.gRandom
         pathLoss = self.pathLoss(sta, referenceDistance, wlan)
         if dist == 0:
             dist = 0.1
