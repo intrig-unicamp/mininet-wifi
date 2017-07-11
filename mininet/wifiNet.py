@@ -1163,7 +1163,7 @@ class mininetWiFi(object):
 
     @classmethod
     def propagationModel(self, stations, accessPoints, model, exp=2, sL=1, lF=0, pL=0, \
-                         nFloors=0, gRandom=0, useWmediumd=False):
+                         nFloors=0, gRandom=0):
         """
         Attributes for Propagation Model
 
@@ -1175,20 +1175,13 @@ class mininetWiFi(object):
         :params nFloors: number of floors
         :params gRandom: gaussian random variable
         """
-        self.useWmediumd = useWmediumd
         propagationModel.model = model
         propagationModel.exp = exp
-        if self.useWmediumd:
-            propagationModel.sL = sL
-            propagationModel.lF = lF
-            propagationModel.nFloors = nFloors
-            propagationModel.pL = pL
-        else:
-            link.sL = sL
-            link.lF = lF
-            link.nFloors = nFloors
-            link.gRandom = gRandom
-            link.pL = pL
+        propagationModel.sL = sL
+        propagationModel.lF = lF
+        propagationModel.nFloors = nFloors
+        propagationModel.gRandom = gRandom
+        propagationModel.pL = pL
         for sta in stations:
             if 'position' in sta.params and sta not in mobility.stations:
                 mobility.stations.append(sta)

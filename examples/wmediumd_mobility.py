@@ -23,11 +23,11 @@ def topology():
     sta2 = net.addStation('sta2', mac='00:00:00:00:00:03', ip='10.0.0.3/8')
     c1 = net.addController('c1', controller=Controller)
 
-    print "*** Configuring wifi nodes"
-    net.configureWifiNodes()
-
     print "*** Configuring Propagation Model"
     net.propagationModel("logDistancePropagationLossModel", exp=3)
+
+    print "*** Configuring wifi nodes"
+    net.configureWifiNodes()
 
     print "*** Associating and Creating links"
     net.addLink(ap1, sta1)

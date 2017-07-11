@@ -17,11 +17,6 @@ class link (object):
 
     dist = 0
     noise = 0
-    sL = 1  # System Loss
-    lF = 0  # Floor penetration loss factor
-    pL = 0  # Power Loss Coefficient
-    nFloors = 0  # Number of floors
-    gRandom = 0  # Gaussian random variable
     equationLoss = '(dist * 2) / 1000'
     equationDelay = '(dist / 10) + 1'
     equationLatency = '2 + dist'
@@ -105,11 +100,6 @@ class link (object):
         :param wlan: wlan ID
         :param dist: distance
         """
-        lF = self.lF
-        sL = self.sL
-        nFloors = self.nFloors
-        gRandom = self.gRandom
-        pL = self.pL
         gT = 0
         hT = 0
         if ap != None:
@@ -119,7 +109,7 @@ class link (object):
         gR = sta.params['antennaGain'][wlan]
         hR = sta.params['antennaHeight'][wlan]
 
-        value = propagationModel(sta, ap, dist, wlan, pT, gT, gR, hT, hR, sL, lF, pL, nFloors, gRandom)
+        value = propagationModel(sta, ap, dist, wlan, pT, gT, gR, hT, hR)
         return float(value.rssi)  # random.uniform(value.rssi-1, value.rssi+1)
 
     @classmethod
