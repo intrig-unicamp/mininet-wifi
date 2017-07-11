@@ -1449,7 +1449,8 @@ class Mininet(object):
         :params nFloors: number of floors
         :params gRandom: gaussian random variable
         """
-        mininetWiFi.propagationModel(self.stations, self.accessPoints, model, exp, sL, lF, pL, nFloors, gRandom)
+        mininetWiFi.propagationModel(self.stations, self.accessPoints, model, exp, sL, \
+                                     lF, pL, nFloors, gRandom, self.useWmediumd)
 
     def associationControl(self, ac):
         """

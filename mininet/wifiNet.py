@@ -1162,7 +1162,8 @@ class mininetWiFi(object):
                                 mobility.handover(sta, ap, wlan)
 
     @classmethod
-    def propagationModel(self, stations, accessPoints, model, exp=2, sL=1, lF=0, pL=0, nFloors=0, gRandom=0):
+    def propagationModel(self, stations, accessPoints, model, exp=2, sL=1, lF=0, pL=0, \
+                         nFloors=0, gRandom=0, useWmediumd=False):
         """
         Attributes for Propagation Model
 
@@ -1174,6 +1175,7 @@ class mininetWiFi(object):
         :params nFloors: number of floors
         :params gRandom: gaussian random variable
         """
+        self.useWmediumd = useWmediumd
         propagationModel.model = model
         propagationModel.exp = exp
         if self.useWmediumd:
