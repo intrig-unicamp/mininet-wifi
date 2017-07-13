@@ -47,7 +47,8 @@ class WmediumdConstants:
     WSERVER_TXPOWER_UPDATE_RESPONSE_TYPE = 16
     WSERVER_GAIN_UPDATE_REQUEST_TYPE = 17
     WSERVER_GAIN_UPDATE_RESPONSE_TYPE = 18
-
+    WSERVER_HEIGHT_UPDATE_REQUEST_TYPE = 19
+    WSERVER_HEIGHT_UPDATE_RESPONSE_TYPE = 20
 
     WUPDATE_SUCCESS = 0
     WUPDATE_INTF_NOTFOUND = 1
@@ -179,11 +180,22 @@ class WmediumdManager(object):
         # type: (WmediumdGain) -> None
         """
         Update the Gain of a node at wmediumd
-        :param gain The gain to update
+        :param gain The Antenna Gain to update
 
         :type gain: WmediumdGain
         """
         WmediumdServerConn.update_gain(gain)
+
+    @classmethod
+    def update_height(cls, height):
+        # type: (WmediumdHeight) -> None
+        """
+        Update the Height of a node at wmediumd
+        :param height The Antenna Height to update
+
+        :type height: WmediumdHeight
+        """
+        WmediumdServerConn.update_Height(height)
 
     @classmethod
     def update_link_errprob(cls, link):
@@ -368,6 +380,8 @@ class WmediumdStarter(object):
                                                             (propagationModel.nFloors, propagationModel.lF, propagationModel.pL)
                 elif propagationModel.model == 'logDistancePropagationLossModel':
                     configstr += ');\n\tmodel_name = "log_distance";\n\tpath_loss_exp = %.1f;\n\txg = 0.0;\n};' % propagationModel.exp
+                elif propagationModel.model == 'twoRayGroundPropagationLossModel':
+                    configstr += ');\n\tmodel_name = "two_ray_ground";\n\tsL = %d;\n};' % propagationModel.sL
                 elif propagationModel.model == 'logNormalShadowingPropagationLossModel':
                     configstr += ');\n\tmodel_name = "log_normal_shadowing";\n\tpath_loss_exp = %.1f;\n\tgRandom = %d;\n\tsL = %d;\n};' \
                                                 % (propagationModel.exp, propagationModel.gRandom, propagationModel.sL)
@@ -494,11 +508,10 @@ class WmediumdTXPower(object):
         self.staintfref = staintfref
         self.sta_txpower = sta_txpower
 
-
 class WmediumdGain(object):
     def __init__(self, staintfref, sta_gain):
         """
-        Describes the Gain of a station
+        Describes the Antenna Gain of a station
 
         :param sta_gain: Instance of WmediumdGainRef
 
@@ -507,6 +520,17 @@ class WmediumdGain(object):
         self.staintfref = staintfref
         self.sta_gain = sta_gain
         
+class WmediumdHeight(object):
+    def __init__(self, staintfref, sta_height):
+        """
+        Describes the Antenna Height of a station
+
+        :param sta_height: Instance of WmediumdHeightRef
+
+        :type sta_height: WmediumdHeightRef
+        """
+        self.staintfref = staintfref
+        self.sta_height = sta_height
 
 class WmediumdSNRLink(object):
     def __init__(self, sta1intfref, sta2intfref, snr=10):
@@ -676,6 +700,11 @@ class WmediumdServerConn(object):
     __gain_update_request_struct = struct.Struct('!' + __gain_update_request_fmt)
     __gain_update_response_struct = struct.Struct('!' + __gain_update_response_fmt)
 
+    __height_update_request_fmt = __base_struct_fmt + __mac_struct_fmt + 'i'
+    __height_update_response_fmt = __base_struct_fmt + __height_update_request_fmt + 'B'
+    __height_update_request_struct = struct.Struct('!' + __height_update_request_fmt)
+    __height_update_response_struct = struct.Struct('!' + __height_update_response_fmt)
+
     __errprob_update_request_fmt = __base_struct_fmt + __mac_struct_fmt + __mac_struct_fmt + 'i'
     __errprob_update_response_fmt = __base_struct_fmt + __errprob_update_request_fmt + 'B'
     __errprob_update_request_struct = struct.Struct('!' + __errprob_update_request_fmt)
@@ -805,12 +834,25 @@ class WmediumdServerConn(object):
     def update_gain(cls, gain):
         # type: (WmediumdGain) -> None
         """
-        Update the Gain of a connection at wmediumd
+        Update the Antenna Gain of a connection at wmediumd
         :param gain The gain to update
 
         :type gain: WmediumdGain
         """
         ret = WmediumdServerConn.send_gain_update(gain)
+        if ret != WmediumdConstants.WUPDATE_SUCCESS:
+            raise WmediumdException("Received error code from wmediumd: code %d" % ret)
+
+    @classmethod
+    def update_height(cls, height):
+        # type: (WmediumdHeight) -> None
+        """
+        Update the Antenna Height of a connection at wmediumd
+        :param gain The height to update
+
+        :type height: WmediumdHeight
+        """
+        ret = WmediumdServerConn.send_height_update(height)
         if ret != WmediumdConstants.WUPDATE_SUCCESS:
             raise WmediumdException("Received error code from wmediumd: code %d" % ret)
 
@@ -895,11 +937,26 @@ class WmediumdServerConn(object):
         :return: A WUPDATE_* constant
         """
         gain_ = gain.sta_gain
-        debug("%s Updating Gain of %s to %d\n" % (
+        debug("%s Updating Antenna Gain of %s to %d\n" % (
             WmediumdConstants.LOG_PREFIX, gain.staintfref.get_intf_mac(), gain_))
         cls.sock.send(cls.__create_gain_update_request(gain))
         return cls.__parse_response(WmediumdConstants.WSERVER_GAIN_UPDATE_RESPONSE_TYPE,
                                     cls.__gain_update_response_struct)[-1]
+
+    @classmethod
+    def send_height_update(cls, height):
+        # type: (WmediumdHeight) -> int
+        """
+        Send an update to the wmediumd server
+        :param height: The WmediumdHeight to update
+        :return: A WUPDATE_* constant
+        """
+        height_ = height.sta_gain
+        debug("%s Updating Antenna Height of %s to %d\n" % (
+            WmediumdConstants.LOG_PREFIX, height.staintfref.get_intf_mac(), height_))
+        cls.sock.send(cls.__create_gain_update_request(height))
+        return cls.__parse_response(WmediumdConstants.WSERVER_HEIGHT_UPDATE_RESPONSE_TYPE,
+                                    cls.__height_update_response_struct)[-1]
 
     @classmethod
     def send_errprob_update(cls, link):
@@ -1001,6 +1058,14 @@ class WmediumdServerConn(object):
         mac = gain.staintfref.get_intf_mac().replace(':', '').decode('hex')
         gain_ = gain.sta_gain
         return cls.__gain_update_request_struct.pack(msgtype, mac, gain_)
+
+    @classmethod
+    def __create_height_update_request(cls, height):
+        # type: (WmediumdHeight) -> str
+        msgtype = WmediumdConstants.WSERVER_HEIGHT_UPDATE_REQUEST_TYPE
+        mac = height.staintfref.get_intf_mac().replace(':', '').decode('hex')
+        height_ = height.sta_height
+        return cls.__height_update_request_struct.pack(msgtype, mac, height_)
 
     @classmethod
     def __create_errprob_update_request(cls, link):

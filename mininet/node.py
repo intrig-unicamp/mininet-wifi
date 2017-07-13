@@ -242,10 +242,16 @@ class Node(object):
             plot3d.graphPause()
         mobility.parameters_(self)
 
-    def setAntennaGain(self, iface, gain):
+    def setAntennaGain(self, iface, value):
         wlan = self.params['wlan'].index(iface)
-        self.params['antennaGain'][wlan] = int(gain)
+        self.params['antennaGain'][wlan] = int(value)
         self.setGainWmediumd(wlan)
+        mobility.parameters_(self)
+
+    def setAntennaHeight(self, iface, value):
+        wlan = self.params['wlan'].index(iface)
+        self.params['antennaHeight'][wlan] = int(value)
+        self.setHeightWmediumd(wlan)
         mobility.parameters_(self)
 
     def setTxPower(self, iface, txpower):
@@ -276,11 +282,18 @@ class Node(object):
                                             [float(posX), float(posY), float(posZ)]))
 
     def setGainWmediumd(self, wlan):
-        "Set Gain for wmediumd"
+        "Set Antenna Gain for wmediumd"
         if WmediumdServerConn.interference_enabled:
             gain_ = self.params['antennaGain'][wlan]
             WmediumdServerConn.send_gain_update(WmediumdGain(self.wmIface[wlan], \
                                             int(gain_)))
+
+    def setHeightWmediumd(self, wlan):
+        "Set Antenna Height for wmediumd"
+        if WmediumdServerConn.interference_enabled:
+            height_ = self.params['antennaHeight'][wlan]
+            WmediumdServerConn.send_height_update(WmediumdHeight(self.wmIface[wlan], \
+                                            int(height_)))
 
     def setTXPowerWmediumd(self, wlan):
         "Set TxPower for wmediumd"
