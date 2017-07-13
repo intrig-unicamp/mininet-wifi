@@ -364,10 +364,13 @@ class WmediumdStarter(object):
                     else:
                         configstr += ', %s' % txpower
                 if propagationModel.model == 'ITUPropagationLossModel':
-                    configstr += ');\n\tmodel_name = "itu";\n\tnFLOORS = %d;\n\tlF = %d;\n};' % \
-                                                            (propagationModel.nFloors, propagationModel.lF)
+                    configstr += ');\n\tmodel_name = "itu";\n\tnFLOORS = %d;\n\tlF = %d;\n\tpL = %d;\n};' % \
+                                                            (propagationModel.nFloors, propagationModel.lF, propagationModel.pL)
                 elif propagationModel.model == 'logDistancePropagationLossModel':
                     configstr += ');\n\tmodel_name = "log_distance";\n\tpath_loss_exp = %.1f;\n\txg = 0.0;\n};' % propagationModel.exp
+                elif propagationModel.model == 'logNormalShadowingPropagationLossModel':
+                    configstr += ');\n\tmodel_name = "log_normal_shadowing";\n\tpath_loss_exp = %.1f;\n\tgRandom = %d;\n\tsL = %d;\n};' \
+                                                % (propagationModel.exp, propagationModel.gRandom, propagationModel.sL)
                 else:
                     configstr += ');\n\tmodel_name = "free_space";\n\tsL = %d;\n};' % propagationModel.sL
 

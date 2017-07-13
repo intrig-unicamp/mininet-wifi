@@ -219,6 +219,16 @@ class distanceByPropagationModel(object):
         
         return self.dist
     
+    def logNormalShadowingPropagationLossModel(self, node, wlan):
+        """Log-Normal Shadowing Propagation Loss Model"""
+        #Have to check this formula
+        referenceDistance = 1
+        txpower = node.params['txpower'][wlan]
+        pathLoss = self.pathLoss(node, referenceDistance, wlan)
+        self.dist = math.pow(10, ((95 - pathLoss + txpower) / (10 * self.exp)) + math.log10(referenceDistance))
+
+        return self.dist
+
     def ITUPropagationLossModel(self, sta, wlan):
         """International Telecommunication Union (ITU) Propagation Loss Model:"""
         f = sta.params['frequency'][wlan] * 10 ** 3
