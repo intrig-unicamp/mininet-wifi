@@ -215,16 +215,8 @@ class testWalkthrough(unittest.TestCase):
         p.sendline('sta1 ping -c 1 sta2')
         p.expect('1 packets transmitted, 1 received')
         p.expect(self.prompt)
-        p.sendline('py sta1.params[\'rssi\'][0]')
-        p.expect(self.prompt)
-        a = p.before
-        sleep(1)
-        p.sendline('py sta1.params[\'rssi\'][0]')
-        p.expect(self.prompt)
-        b = p.before
-        if a != b:
-            p.sendline('exit')
-            p.wait()
+        p.sendline('exit')
+        p.wait()
 
     def testMesh(self):
         "Start Mininet-WiFi with wireless mesh, then test ping"
