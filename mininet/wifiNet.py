@@ -33,7 +33,6 @@ class mininetWiFi(object):
 
     AC = ''
     alternativeModule = ''
-    rec_rssi = False
     useWmediumd = False
     is3d = False
     isMobility = False
@@ -1034,7 +1033,6 @@ class mininetWiFi(object):
         mobilityparam.setdefault('MAX_Y', self.MAX_Y)
         mobilityparam.setdefault('MAX_Z', self.MAX_Z)
         mobilityparam.setdefault('AC', self.AC)
-        mobilityparam.setdefault('rec_rssi', self.rec_rssi)
         mobilityparam.setdefault('init_time', self.init_time)
         mobilityparam.setdefault('stationaryNodes', stationaryNodes)
         mobilityparam.setdefault('is3d', self.is3d)

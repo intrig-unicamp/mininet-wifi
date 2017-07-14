@@ -43,7 +43,6 @@ class mobility (object):
     stationaryNodes = []
     continuePlot = 'plot2d.graphPause()'
     continueParams = 'time.sleep(0.001)'
-    rec_rssi = False
 
     @classmethod
     def start(self, **mobilityparam):
@@ -167,8 +166,6 @@ class mobility (object):
         :param wlan: wlan ID
         :param dist: distance between source and destination  
         """
-        if self.rec_rssi:
-            os.system('hwsim_mgmt -k %s %s >/dev/null 2>&1' % (sta.phyID[wlan], abs(int(sta.params['rssi'][wlan]))))
         if ap not in sta.params['apsInRange']:
             sta.params['apsInRange'].append(ap)
             rssi_ = link.setRSSI(sta, ap, wlan, dist)
@@ -274,7 +271,7 @@ class mobility (object):
     @classmethod
     def controlledMobility(self, init_time=0, final_time=0, stations=None, aps=None, dstConn=None, srcConn=None,
                         plotNodes=None, MIN_X=0, MIN_Y=0, MIN_Z=0, MAX_X=0, MAX_Y=0, MAX_Z=0, AC='',
-                        rec_rssi=False, is3d=False, DRAW=False, **params):
+                        is3d=False, DRAW=False, **params):
         """ 
         Used when the position of each node is previously defined
         
@@ -293,7 +290,6 @@ class mobility (object):
         :param MAX_Z: Maximum value for Z
         :param AC: Association Control Method
         """
-        self.rec_rssi = rec_rssi
         self.AC = AC
         t_end = time.time() + final_time
         t_initial = time.time() + init_time
@@ -364,8 +360,7 @@ class mobility (object):
 
     @classmethod
     def models(self, stations=None, aps=None, model=None, stationaryNodes=[], min_v=0, max_v=0, seed=None,
-               dstConn=None, srcConn=None, plotNodes=None, MAX_X=0, MAX_Y=0, AC='', rec_rssi=False,
-               DRAW=False, **params):
+               dstConn=None, srcConn=None, plotNodes=None, MAX_X=0, MAX_Y=0, AC='', DRAW=False, **params):
         """ 
         Used when a mobility model is applied
         
@@ -382,7 +377,6 @@ class mobility (object):
         :param MAX_X: Maximum value for X
         :param MAX_Y: Maximum value for Y
         """
-        self.rec_rssi = rec_rssi
         np.random.seed(seed)
         self.AC = AC
 

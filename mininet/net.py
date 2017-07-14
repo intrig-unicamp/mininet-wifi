@@ -128,7 +128,7 @@ class Mininet(object):
                   car=Car, controller=DefaultController, isWiFi=False, link=Link, intf=Intf,
                   build=True, xterms=False, cleanup=False, ipBase='10.0.0.0/8',
                   inNamespace=False, autoSetMacs=False, autoStaticArp=False, autoPinCpus=False,
-                  listenPort=None, waitConnected=False, ssid="new-ssid", mode="g", channel="6", rec_rssi=False,
+                  listenPort=None, waitConnected=False, ssid="new-ssid", mode="g", channel="6",
                   enable_wmediumd=False, enable_interference=False, disableAutoAssociation=False):
         """Create Mininet object.
            topo: Topo (topology) object or None
@@ -190,7 +190,6 @@ class Mininet(object):
 
         mininetWiFi.isWiFi = isWiFi
         mininetWiFi.enable_interference = enable_interference
-        mininetWiFi.rec_rssi = rec_rssi
         Mininet.init()  # Initialize Mininet if necessary
 
         self.built = False
