@@ -33,7 +33,7 @@ def topology():
     c1.start()
     ap1.start([c1])
 
-    """uncomment to plot graph"""
+    """plotting graph"""
     net.plotGraph(max_x=100, max_y=100)
 
     net.startMobility(time=0)

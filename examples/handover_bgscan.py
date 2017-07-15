@@ -47,7 +47,7 @@ def topology():
     ap2.start([c1])
     ap3.start([c1])
 
-    """uncomment to plot graph"""
+    """plotting graph"""
     net.plotGraph(min_x=-100, min_y=-100, max_x=200, max_y=200)
 
     print "*** Running CLI"

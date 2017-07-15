@@ -42,7 +42,7 @@ def topology():
     ap2.start([c1])
     ap3.start([c1])
 
-    """uncomment to plot graph"""
+    """plotting graph"""
     net.plotGraph(max_x=120, max_y=120)
 
     """association control"""
