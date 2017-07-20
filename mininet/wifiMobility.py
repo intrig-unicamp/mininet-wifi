@@ -42,7 +42,7 @@ class mobility (object):
     mobileNodes = []
     stationaryNodes = []
     continuePlot = 'plot2d.graphPause()'
-    continueParams = 'time.sleep(0.001)'
+    continueParams = 'time.sleep(0.0001)'
 
     @classmethod
     def start(self, **mobilityparam):
@@ -67,6 +67,8 @@ class mobility (object):
         """
         initialPosition = sta.params['initialPosition']
         finalPosition = sta.params['finalPosition']
+        sta.diffTime = diffTime
+        sta.time = 0
 
         sta.params['position'] = initialPosition
         pos_x = float(finalPosition[0]) - float(initialPosition[0])
@@ -74,7 +76,7 @@ class mobility (object):
         pos_z = float(finalPosition[2]) - float(initialPosition[2])
 
         self.speed(sta, pos_x, pos_y, pos_z, diffTime)
-        pos = '%.2f,%.2f,%.2f' % (pos_x / diffTime, pos_y / diffTime, pos_z / diffTime)
+        pos = '%.4f,%.4f,%.4f' % (pos_x / diffTime, pos_y / diffTime, pos_z / diffTime)
         pos = pos.split(',')
         sta.moveFac = pos
 
@@ -307,7 +309,6 @@ class mobility (object):
             if 'initialPosition' in node.params:
                 node.params['position'] = node.params['initialPosition']
                 node.params.pop("initialPosition", None)
-                node.params.pop("finalPosition", None)
                 self.mobileNodes.append(node)
 
         nodes = self.mobileNodes + self.stationaryNodes
@@ -325,13 +326,20 @@ class mobility (object):
                     break
                 if time.time() - currentTime >= i:
                     for node in self.mobileNodes:
-                        if time.time() - currentTime >= node.startTime and time.time() - currentTime <= node.endTime:
-                            x = '%.2f' % (float(node.params['position'][0]) + float(node.moveFac[0]))
-                            y = '%.2f' % (float(node.params['position'][1]) + float(node.moveFac[1]))
-                            z = '%.2f' % (float(node.params['position'][2]) + float(node.moveFac[2]))
-                            node.params['position'] = x, y, z
-                            if WmediumdServerConn.interference_enabled:
-                                self.setWmediumdPos(node)
+                        if time.time() - currentTime >= node.startTime:
+                            if node.time < node.diffTime:
+                                node.time += 1
+                                if node.time == node.diffTime:
+                                    x = '%.2f' % (float(node.params['finalPosition'][0]))
+                                    y = '%.2f' % (float(node.params['finalPosition'][1]))
+                                    z = '%.2f' % (float(node.params['finalPosition'][2]))
+                                else:
+                                    x = '%.2f' % (float(node.params['position'][0]) + float(node.moveFac[0]))
+                                    y = '%.2f' % (float(node.params['position'][1]) + float(node.moveFac[1]))
+                                    z = '%.2f' % (float(node.params['position'][2]) + float(node.moveFac[2]))
+                                node.params['position'] = x, y, z
+                                if WmediumdServerConn.interference_enabled:
+                                    self.setWmediumdPos(node)
                         if DRAW:
                             plot.graphUpdate(node)
                     eval(self.continuePlot)
