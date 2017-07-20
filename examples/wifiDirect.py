@@ -7,6 +7,7 @@ from mininet.node import  Controller
 from mininet.cli import CLI
 from mininet.log import setLogLevel
 from mininet.link import TCLink
+import time
 
 def topology():
     "Create a network."
@@ -34,9 +35,9 @@ def topology():
 
     sta1.cmd('wpa_cli -ista1-wlan0 p2p_find')
     sta2.cmd('wpa_cli -ista2-wlan0 p2p_find')
-    sta2.cmdPrint('wpa_cli -ista2-wlan0 p2p_peers')
+    sta2.cmd('wpa_cli -ista2-wlan0 p2p_peers')
     time.sleep(2)
-    sta1.cmdPrint('wpa_cli -ista1-wlan0 p2p_peers')
+    sta1.cmd('wpa_cli -ista1-wlan0 p2p_peers')
     time.sleep(2)
     pin = sta1.cmd('wpa_cli -ista1-wlan0 p2p_connect 02:00:00:00:01:00 pin auth')
     time.sleep(3)
