@@ -768,7 +768,8 @@ class mininetWiFi(object):
                 elif ap.params['encrypt'][wlan] == 'wpa2':
                     ap.auth_algs = 1
                     ap.wpa = 2
-                    if 'ieee80211r' in ap.params and ap.params['ieee80211r'] == 'yes':
+                    if 'ieee80211r' in ap.params and ap.params['ieee80211r'] == 'yes' and \
+                        'enable_radius' not in ap.params:
                         ap.wpa_key_mgmt = 'FT-PSK'
                     elif 'enable_radius' in ap.params and ap.params['enable_radius'] == 'yes':
                         ap.wpa_key_mgmt = 'WPA-EAP'
