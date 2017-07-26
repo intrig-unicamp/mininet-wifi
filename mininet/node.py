@@ -68,7 +68,7 @@ from mininet.util import (quietRun, errRun, errFail, moveIntf, isShellBuiltin,
 from mininet.moduledeps import moduleDeps, pathCheck, TUN
 from mininet.link import Link, Intf, TCIntf, TCIntfWireless, OVSIntf, TCLinkWirelessAP
 from mininet.wmediumdConnector import WmediumdServerConn, WmediumdPosition, \
-                                WmediumdTXPower, WmediumdGain
+                                WmediumdTXPower, WmediumdGain, WmediumdHeight
 from re import findall
 from distutils.version import StrictVersion
 from mininet.wifiMobility import mobility
