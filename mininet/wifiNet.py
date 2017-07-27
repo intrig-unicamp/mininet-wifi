@@ -769,14 +769,14 @@ class mininetWiFi(object):
                     ap.auth_algs = 1
                     ap.wpa = 2
                     if 'ieee80211r' in ap.params and ap.params['ieee80211r'] == 'yes' and \
-                        'enable_radius' not in ap.params:
+                        'authmode' not in ap.params:
                         ap.wpa_key_mgmt = 'FT-PSK'
-                    elif 'enable_radius' in ap.params and ap.params['enable_radius'] == 'yes':
+                    elif 'authmode' in ap.params and ap.params['authmode'] == '8021x':
                         ap.wpa_key_mgmt = 'WPA-EAP'
                     else:
                         ap.wpa_key_mgmt = 'WPA-PSK'
                     ap.rsn_pairwise = 'CCMP'
-                    if 'enable_radius' not in ap.params or ('enable_radius' not in ap.params and ap.params['enable_radius'] != 'yes'):
+                    if 'authmode' not in ap.params:
                         ap.wpa_passphrase = ap.params['passwd'][0]
                 elif ap.params['encrypt'][wlan] == 'wep':
                     ap.auth_algs = 2

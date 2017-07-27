@@ -408,7 +408,7 @@ class Association(object):
         :param wlan: wlan ID
         """
         if 'config' not in ap.params or 'config' not in sta.params:
-            if 'enable_radius' not in ap.params or ('enable_radius' not in ap.params and ap.params['enable_radius'] != 'yes'):
+            if 'authmode' not in ap.params:
                 if 'passwd' not in sta.params:
                     passwd = ap.params['passwd'][0]
                 else:
@@ -425,14 +425,14 @@ class Association(object):
                     cmd = cmd + "   " + conf + "\n"
         else:
             cmd = cmd + '   ssid=\"%s\"\n' % ap.params['ssid'][0]
-            if 'enable_radius' not in ap.params:
+            if 'authmode' not in ap.params:
                 cmd = cmd + '   psk=\"%s\"\n' % passwd
                 cmd = cmd + '   proto=%s\n' % ap.params['encrypt'][0].upper()
                 cmd = cmd + '   pairwise=%s\n' % ap.rsn_pairwise
             cmd = cmd + '   key_mgmt=%s\n' % ap.wpa_key_mgmt
             if self.bgscan != '':
                 cmd = cmd + '   %s\n' % self.bgscan
-            if 'enable_radius' in ap.params:
+            if 'authmode' in ap.params and ap.params['authmode'] == '8021x':
                 cmd = cmd + '   eap=PEAP\n'
                 cmd = cmd + '   identity=\"%s\"\n' % sta.params['radius_identity']
                 cmd = cmd + '   password=\"%s\"\n' % sta.params['radius_passwd']

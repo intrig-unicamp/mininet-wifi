@@ -1285,18 +1285,17 @@ class AccessPoint(AP):
                 cmd = cmd + ('\neap_server=0')
                 cmd = cmd + ('\neapol_version=2')
 
-                if 'enable_radius' in ap.params and ap.params['enable_radius'] == 'yes':
-                    if 'radius_server' not in ap.params:
-                        ap.params['radius_server'] = '127.0.0.1'
-                    cmd = cmd + ("\nwpa_pairwise=TKIP CCMP")
-                    cmd = cmd + ("\neapol_key_index_workaround=0")
-                    cmd = cmd + ("\nown_ip_addr=%s" % ap.params['radius_server'])
-                    cmd = cmd + ("\nnas_identifier=%s.example.com" % ap.name)
-                    cmd = cmd + ("\nauth_server_addr=%s" % ap.params['radius_server'])
-                    cmd = cmd + ("\nauth_server_port=1812")
-                    if 'shared_secret' not in ap.params:
-                        ap.params['shared_secret'] = 'secret'
-                    cmd = cmd + ("\nauth_server_shared_secret=%s" % ap.params['shared_secret'])
+                if 'radius_server' not in ap.params:
+                    ap.params['radius_server'] = '127.0.0.1'
+                cmd = cmd + ("\nwpa_pairwise=TKIP CCMP")
+                cmd = cmd + ("\neapol_key_index_workaround=0")
+                cmd = cmd + ("\nown_ip_addr=%s" % ap.params['radius_server'])
+                cmd = cmd + ("\nnas_identifier=%s.example.com" % ap.name)
+                cmd = cmd + ("\nauth_server_addr=%s" % ap.params['radius_server'])
+                cmd = cmd + ("\nauth_server_port=1812")
+                if 'shared_secret' not in ap.params:
+                    ap.params['shared_secret'] = 'secret'
+                cmd = cmd + ("\nauth_server_shared_secret=%s" % ap.params['shared_secret'])
             else:
                 cmd = cmd + ("\nwme_enabled=1")
                 cmd = cmd + ("\nwmm_enabled=1")
