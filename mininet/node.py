@@ -1248,24 +1248,23 @@ class AccessPoint(AP):
         else:
             cmd = cmd + ("\nssid=%s" % ap.params['ssid'][0])  # ssid name
 
-        if ap.params['mode'][0] != '8021x':
-            if ap.params['mode'][0] == 'n':
-                if 'band' in ap.params:
-                    if ap.params['band'] == 2.4:
-                        cmd = cmd + ("\nhw_mode=g")
-                    elif ap.params['band'] == 5:
-                        cmd = cmd + ("\nhw_mode=a")
-                    ap.params.pop("band", None)
-                else:
+        if ap.params['mode'][0] == 'n':
+            if 'band' in ap.params:
+                if ap.params['band'] == 2.4:
                     cmd = cmd + ("\nhw_mode=g")
-            elif ap.params['mode'][0] == 'a':
-                cmd = cmd + ('\ncountry_code=US')
-                cmd = cmd + ("\nhw_mode=%s" % ap.params['mode'][0])
-            elif ap.params['mode'][0] == 'ac':
-                cmd = cmd + ("\nhw_mode=a")
+                elif ap.params['band'] == 5:
+                    cmd = cmd + ("\nhw_mode=a")
+                ap.params.pop("band", None)
             else:
-                cmd = cmd + ("\nhw_mode=%s" % ap.params['mode'][0])
-            cmd = cmd + ("\nchannel=%s" % ap.params['channel'][0])
+                cmd = cmd + ("\nhw_mode=g")
+        elif ap.params['mode'][0] == 'a':
+            cmd = cmd + ('\ncountry_code=US')
+            cmd = cmd + ("\nhw_mode=%s" % ap.params['mode'][0])
+        elif ap.params['mode'][0] == 'ac':
+            cmd = cmd + ("\nhw_mode=a")
+        else:
+            cmd = cmd + ("\nhw_mode=%s" % ap.params['mode'][0])
+        cmd = cmd + ("\nchannel=%s" % ap.params['channel'][0])
 
         if 'config' in ap.params:
             config = ap.params['config']
@@ -1275,8 +1274,7 @@ class AccessPoint(AP):
                 for conf in config:
                     cmd = cmd + "\n" + conf
         else:
-            if ap.params['mode'][0] == '8021x':
-                cmd = cmd + ('\nchannel=1')
+            if 'authmode' in ap.params and ap.params['authmode'] == '8021x':
                 cmd = cmd + ("\nieee8021x=1")
                 cmd = cmd + ("\nwpa_key_mgmt=WPA-EAP")
                 if 'encrypt' in ap.params:
