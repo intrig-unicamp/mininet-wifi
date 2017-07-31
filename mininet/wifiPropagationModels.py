@@ -186,7 +186,7 @@ class distanceByPropagationModel(object):
 
         lambda_ = c / f  # lambda: wavelength (m)
         denominator = lambda_ ** 2
-        self.dist = math.pow(10, ((95 + 10 * math.log10(denominator)) / (10 - math.log10((4 * math.pi) ** 2 * L))) / (L))
+        self.dist = math.pow(10, ((95 + 10 * math.log10(denominator)) / 10 - math.log10((4 * math.pi) ** 2 * L)) / (2 * L))
 
         return self.dist
 
