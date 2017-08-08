@@ -121,11 +121,11 @@ class deviceDataRate (object):
             if node1.params['rssi'][wlan] != 0:
                 if (node1.params['rssi'][wlan] >= -68):
                     if mode == 'n':
-                        rate = 130 - 100
+                        rate = 130
                     elif mode == 'g':
-                        rate = 54 - 43
+                        rate = 54
                     elif mode == 'b':
-                        rate = 11 - 8
+                        rate = 11
                 elif (node1.params['rssi'][wlan] < -68 and node1.params['rssi'][wlan] >= -85):
                     rate = 11
                 elif (node1.params['rssi'][wlan] < -85 and node1.params['rssi'][wlan] >= -88):
