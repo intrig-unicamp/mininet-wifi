@@ -841,7 +841,7 @@ class mininetWiFi(object):
         node.cmd('tc qdisc add dev %s parent 2:1 handle 10: pfifo limit 1000' % (iface))
 
     @classmethod
-    def configureAPs(self, accessPoints):
+    def configureAPs(self, accessPoints, driver):
         """Configure All APs
         
         :param accessPoints: list of access points
@@ -856,6 +856,7 @@ class mininetWiFi(object):
             else:
                 for i in range(1, len(node.params['wlan'])):
                     node.params['mac'].append('')
+            node.params['driver'] = driver
             self.verifyNetworkManager(node)
         self.restartNetworkManager()
 
@@ -1075,7 +1076,7 @@ class mininetWiFi(object):
 
     @classmethod
     def configureWifiNodes(self, stations, accessPoints, cars, switches, \
-                           nextIP, ipBaseNum, prefixLen, useWmediumd):
+                           nextIP, ipBaseNum, prefixLen, useWmediumd, driver):
         """
         Configure WiFi Nodes
         
@@ -1097,7 +1098,7 @@ class mininetWiFi(object):
         module.start(nodes, self.wifiRadios, self.alternativeModule, **params)
         self.configureWirelessLink(stations, accessPoints, cars, switches)
         self.createVirtualIfaces(stations)
-        self.configureAPs(accessPoints)
+        self.configureAPs(accessPoints, driver)
         self.isWiFi = True
 
         # useful if there no link between sta and any other device

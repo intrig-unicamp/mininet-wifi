@@ -129,7 +129,8 @@ class Mininet(object):
                   build=True, xterms=False, cleanup=False, ipBase='10.0.0.0/8',
                   inNamespace=False, autoSetMacs=False, autoStaticArp=False, autoPinCpus=False,
                   listenPort=None, waitConnected=False, ssid="new-ssid", mode="g", channel="6",
-                  enable_wmediumd=False, enable_interference=False, disableAutoAssociation=False):
+                  enable_wmediumd=False, enable_interference=False, disableAutoAssociation=False,
+                  driver='nl80211'):
         """Create Mininet object.
            topo: Topo (topology) object or None
            switch: default Switch class
@@ -186,6 +187,7 @@ class Mininet(object):
         self.walls = []
         self.terms = []  # list of spawned xterm processes
         self.useWmediumd = enable_wmediumd
+        self.driver = driver
         self.disableAutoAssociation = disableAutoAssociation
 
         mininetWiFi.isWiFi = isWiFi
@@ -809,6 +811,7 @@ class Mininet(object):
         params.setdefault('ipBaseNum', self.ipBaseNum)
         params.setdefault('prefixLen', self.prefixLen)
         params.setdefault('useWmediumd', self.useWmediumd)
+        params.setdefault('driver', self.driver)
         self.stations, self.accessPoints = mininetWiFi.configureWifiNodes(**params)
 
     def delLink(self, link):

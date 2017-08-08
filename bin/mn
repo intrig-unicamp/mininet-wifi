@@ -263,6 +263,8 @@ class MininetRunner(object):
                          "port")
         opts.add_option('--pre', type='string', default=None,
                          help='CLI script to run before tests')
+        opts.add_option('--driver', type='string', default='nl80211',
+                         help='wifi driver nl80211|capwap_wtp')
         opts.add_option('--post', type='string', default=None,
                          help='CLI script to run after tests')
         opts.add_option('--pin', action='store_true',
@@ -385,9 +387,14 @@ class MininetRunner(object):
         mode = opts.mode
         ssid = opts.ssid
        
-        listenPort = None
+        listenPort = 'None'
         if not opts.nolistenport:
             listenPort = opts.listenport
+
+        if opts.driver:
+            driver = opts.driver
+        else:
+            driver = 'nl80211'
 
         # Handle inNamespace, cluster options
         inNamespace = opts.innamespace
@@ -417,7 +424,8 @@ class MininetRunner(object):
                   enable_wmediumd=opts.wmediumd,
                   xterms=xterms, autoSetMacs=mac,
                   autoStaticArp=arp, autoPinCpus=pin,
-                  listenPort=listenPort)
+                  listenPort=listenPort,
+                  driver=driver)
         
         if opts.ensure_value('nat', False):
             nat = mn.addNAT(*opts.nat_args,

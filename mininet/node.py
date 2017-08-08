@@ -1241,7 +1241,7 @@ class AccessPoint(AP):
             cmd = cmd + ("interface=%s" % ap.params['wlan'][wlan])  # the interface used by the AP
         else:
             cmd = cmd + ("interface=%s" % ap.params.get('phywlan'))  # the interface used by the AP
-        cmd = cmd + ("\ndriver=nl80211")
+        cmd = cmd + ("\ndriver=%s" % ap.params['driver'])
 
         if wlan > 0:
             cmd = cmd + ("\nssid=%s-%s" % (ap.params['ssid'][0], wlan))  # ssid name
