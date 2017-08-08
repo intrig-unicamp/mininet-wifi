@@ -1,6 +1,10 @@
 #!/usr/bin/python
 
-"""Enabling CAPWAP_WTP"""
+"""Enabling CAPWAP_WTP
+
+Please consider to follow up this repository:
+https://github.com/ramonfontes/opencapwap-mininet-wifi 
+"""
 
 from mininet.net import Mininet
 from mininet.node import Controller, OVSKernelAP
