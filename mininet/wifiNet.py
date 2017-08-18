@@ -977,11 +977,10 @@ class mininetWiFi(object):
                     stationaryNodes.append(sta)
                     sta.params['position'] = 0, 0, 0
 
+            params = self.setMobilityParams(stations, accessPoints, stationaryNodes, **kwargs)
             if not self.isVanet:
-                params = self.setMobilityParams(stations, accessPoints, stationaryNodes, **kwargs)
                 mobility.start(**params)
             else:
-                params = self.setMobilityParams(stations, accessPoints, stationaryNodes, **kwargs)
                 vanet(**params)
 
         info("Mobility started at %s second(s)\n" % kwargs['time'])
@@ -1007,13 +1006,17 @@ class mininetWiFi(object):
 
         if 'model' in kwargs or self.isVanet:
             if 'min_x' in kwargs:
-                self.MIN_X = kwargs['min_x']
+                for sta in stations:
+                    sta.min_x = int(kwargs['min_x'])
             if 'min_y' in kwargs:
-                self.MIN_Y = kwargs['min_y']
+                for sta in stations:
+                    sta.min_y = int(kwargs['min_y'])
             if 'max_x' in kwargs:
-                self.MAX_X = kwargs['max_x']
+                for sta in stations:
+                    sta.max_x = int(kwargs['max_x'])
             if 'max_y' in kwargs:
-                self.MAX_Y = kwargs['max_y']
+                for sta in stations:
+                    sta.max_y = int(kwargs['max_y'])
             if 'min_v' in kwargs:
                 mobilityparam.setdefault('min_v', kwargs['min_v'])
             if 'max_v' in kwargs:
