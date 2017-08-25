@@ -75,12 +75,12 @@ class mininetWiFi(object):
         passwd = ("%s" % params.pop('passwd', {}))
         if(passwd != "{}"):
             passwd = passwd.split(',')
-            node.params['passwd'] = []
+            node.params['passwd'] = passwd
 
         encrypt = ("%s" % params.pop('encrypt', {}))
         if(encrypt != "{}"):
             encrypt = encrypt.split(',')
-            node.params['encrypt'] = []
+            node.params['encrypt'] = encrypt
 
         if (mode == 'managed'):
             node.params['apsInRange'] = []
