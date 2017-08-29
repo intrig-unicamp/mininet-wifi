@@ -238,8 +238,9 @@ def moveIntf(intf, dstNode, printError=True,
        intf: string, interface
        dstNode: destination Node
        printError: if true, print error"""
-    retry(retries, delaySecs, moveIntfNoRetry, intf, dstNode,
-           printError=printError)
+    if dstNode.type != 'accessPoint':
+        retry(retries, delaySecs, moveIntfNoRetry, intf, dstNode,
+               printError=printError)
 
 # Support for dumping network
 
