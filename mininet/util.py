@@ -206,10 +206,9 @@ def retry(retries, delaySecs, fn, *args, **keywords):
     while not fn(*args, **keywords) and tries < retries:
         sleep(delaySecs)
         tries += 1
-    if args[1].type != 'accessPoint':
-        if tries >= retries:
-            error("*** gave up after %i retries\n" % tries)
-            exit(1)
+    if tries >= retries:
+        error("*** gave up after %i retries\n" % tries)
+        exit(1)
 
 def moveIntfNoRetry(intf, dstNode, printError=False):
     """Move interface to node, without retrying.
