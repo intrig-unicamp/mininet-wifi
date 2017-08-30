@@ -1261,10 +1261,13 @@ class AccessPoint(AP):
             cmd = cmd + ('\ncountry_code=US')
             cmd = cmd + ("\nhw_mode=%s" % ap.params['mode'][0])
         elif ap.params['mode'][0] == 'ac':
+            cmd = cmd + ('\ncountry_code=US')
             cmd = cmd + ("\nhw_mode=a")
         else:
             cmd = cmd + ("\nhw_mode=%s" % ap.params['mode'][0])
         cmd = cmd + ("\nchannel=%s" % ap.params['channel'][0])
+        if 'ht_capab' in ap.params:
+            cmd = cmd + ('\nht_capab=%s' % ap.params['ht_capab'])
 
         if 'config' in ap.params:
             config = ap.params['config']
