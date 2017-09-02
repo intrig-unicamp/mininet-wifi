@@ -146,15 +146,15 @@ class mininetWiFi(object):
             node.constantDistance = int(params['constantDistance'])
 
         # position
-        if 'position' in node.params:
-            position = node.params['position']
+        if 'position' in params:
+            position = params['position']
             position = position.split(',')
             node.params['position'] = [float(position[0]), float(position[1]), float(position[2])]
         else:
-            position = ("%s" % params.pop('position', {}))
-            if(position != "{}"):
+            if 'position' in node.params:
+                position = node.params['position']
                 position = position.split(',')
-                node.params['position'] = position
+                node.params['position'] = [float(position[0]), float(position[1]), float(position[2])]
 
         wlans = self.countWiFiIfaces(params)
 

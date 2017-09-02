@@ -119,7 +119,7 @@ from mininet.wifiNet import mininetWiFi
 from __builtin__ import True
 
 # Mininet version: should be consistent with README and LICENSE
-VERSION = "2.1r2"
+VERSION = "2.1r3"
 
 class Mininet(object):
     "Network emulation with hosts spawned in network namespaces."
@@ -130,7 +130,7 @@ class Mininet(object):
                   inNamespace=False, autoSetMacs=False, autoStaticArp=False, autoPinCpus=False,
                   listenPort=None, waitConnected=False, ssid="new-ssid", mode="g", channel="6",
                   enable_wmediumd=False, enable_interference=False, disableAutoAssociation=False,
-                  driver='nl80211'):
+                  driver='nl80211', autoSetPositions=False):
         """Create Mininet object.
            topo: Topo (topology) object or None
            switch: default Switch class
@@ -160,10 +160,12 @@ class Mininet(object):
         self.ipBase = ipBase
         self.ipBaseNum, self.prefixLen = netParse(self.ipBase)
         self.nextIP = 1  # start for address allocation
+        self.nextPosition = 1 # start for position allocation
         self.inNamespace = inNamespace
         self.xterms = xterms
         self.cleanup = cleanup
         self.autoSetMacs = autoSetMacs
+        self.autoSetPositions = autoSetPositions
         self.autoStaticArp = autoStaticArp
         self.autoPinCpus = autoPinCpus
         self.numCores = numCores()
@@ -288,12 +290,15 @@ class Mininet(object):
                                   }
         defaults.update(params)
 
+        if self.autoSetPositions:
+            defaults[ 'position' ] = ('%s,0,0' % self.nextPosition)
         if self.autoSetMacs:
             defaults[ 'mac' ] = macColonHex(self.nextIP)
         if self.autoPinCpus:
             defaults[ 'cores' ] = self.nextCore
             self.nextCore = (self.nextCore + 1) % self.numCores
         self.nextIP += 1
+        self.nextPosition += 1
 
         if not cls:
             cls = self.station
@@ -409,6 +414,10 @@ class Mininet(object):
                      }
 
         defaults.update(params)
+
+        if self.autoSetPositions:
+            defaults[ 'position' ] = ('0,%s,0' % self.nextPosition)
+            self.nextPosition += 1
 
         if not cls:
             cls = self.accessPoint

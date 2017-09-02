@@ -249,6 +249,8 @@ class MininetRunner(object):
                          help='base IP address for hosts')
         opts.add_option('--mac', action='store_true',
                          default=False, help='automatically set host MACs')
+        opts.add_option('--position', action='store_true',
+                         default=False, help='automatically set node Positions')
         opts.add_option('--arp', action='store_true',
                          default=False, help='set all-pairs ARP entries')
         opts.add_option('--verbosity', '-v', type='choice',
@@ -382,6 +384,7 @@ class MininetRunner(object):
         mac = opts.mac
         arp = opts.arp
         pin = opts.pin
+        position = opts.position
                  
         channel = opts.channel
         mode = opts.mode
@@ -425,7 +428,7 @@ class MininetRunner(object):
                   xterms=xterms, autoSetMacs=mac,
                   autoStaticArp=arp, autoPinCpus=pin,
                   listenPort=listenPort,
-                  driver=driver)
+                  driver=driver, autoSetPositions=position)
         
         if opts.ensure_value('nat', False):
             nat = mn.addNAT(*opts.nat_args,
