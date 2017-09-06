@@ -13,7 +13,7 @@ import random
 def topology():
 
     "Create a network."
-    net = Mininet(controller=Controller, link=TCLink, switch=OVSKernelSwitch)
+    net = Mininet(controller=Controller, link=TCLink, switch=OVSKernelSwitch, enable_interference=True, enable_wmediumd=True)
 
     print "*** Creating nodes"
     car = []
@@ -24,18 +24,19 @@ def topology():
     for x in range(0, 10):
         min = random.randint(1, 10)
         max = random.randint(11, 30)
-        car[x] = net.addCar('car%s' % (x + 1), wlans=1, ip='10.0.0.%s/8' % (x + 1), min_speed=min, max_speed=max, range=50)
+        car[x] = net.addCar('car%s' % (x + 1), wlans=1, ip='10.0.0.%s/8' % (x + 1), min_speed=min, max_speed=max)
 
-    rsu11 = net.addAccessPoint('RSU11', ssid='RSU11', mode='g', channel='1', range=100)
-    rsu12 = net.addAccessPoint('RSU12', ssid='RSU12', mode='g', channel='6', range=100)
-    rsu13 = net.addAccessPoint('RSU13', ssid='RSU13', mode='g', channel='11', range=100)
-    rsu14 = net.addAccessPoint('RSU14', ssid='RSU14', mode='g', channel='11', range=100)
+    rsu11 = net.addAccessPoint('RSU11', ssid='RSU11', mode='g', channel='1')
+    rsu12 = net.addAccessPoint('RSU12', ssid='RSU12', mode='g', channel='6')
+    rsu13 = net.addAccessPoint('RSU13', ssid='RSU13', mode='g', channel='11')
+    rsu14 = net.addAccessPoint('RSU14', ssid='RSU14', mode='g', channel='11')
     c1 = net.addController('c1', controller=Controller)
+
+    print "*** Configuring Propagation Model"
+    net.propagationModel("logDistancePropagationLossModel", exp=4)
 
     print "*** Configuring wifi nodes"
     net.configureWifiNodes()
-
-    net.meshRouting('custom')
 
     print "*** Associating and Creating links"
     net.addLink(rsu11, rsu12)

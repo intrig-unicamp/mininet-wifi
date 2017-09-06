@@ -41,6 +41,9 @@ def topology():
     print "*** Setting bgscan"
     net.setBgscan(signal=-45, s_inverval=5, l_interval=10)
 
+    print "*** Configuring Propagation Model"
+    net.propagationModel("logDistancePropagationLossModel", exp=2)
+
     print "*** Configuring wifi nodes"
     net.configureWifiNodes()
 
