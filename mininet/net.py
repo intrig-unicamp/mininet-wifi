@@ -383,7 +383,6 @@ class Mininet(object):
         self.nameToNode[ name ] = car
         car.type = 'vehicle'
         mininetWiFi.addParameters(car, self.autoSetMacs, defaults)
-        self.disableAutoAssociation = True
 
         carsta = self.addStation(name + 'STA')
         carsta.params['range'] = car.params['range']
@@ -398,6 +397,7 @@ class Mininet(object):
         car.func.append('mesh')
         self.addLink(carsta, carsw)
         self.addLink(car, carsw)
+        mininetWiFi.isVanet = True
         return car
 
     def addAccessPoint(self, name, cls=None, **params):
@@ -1015,7 +1015,6 @@ class Mininet(object):
 
     def roads(self, nroads):
         "Number of roads"
-        mininetWiFi.isVanet = True
         mininetWiFi.nroads = nroads
 
     def stop(self):
@@ -1384,6 +1383,7 @@ class Mininet(object):
         params['aps'] = self.accessPoints
         params['cars'] = self.cars
         params['program'] = program
+        self.disableAutoAssociation = True
         mininetWiFi.useExternalProgram(**params)
 
     def setBgscan(self, module='simple', s_inverval=30, signal=-45, l_interval=300, \

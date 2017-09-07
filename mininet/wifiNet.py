@@ -978,7 +978,7 @@ class mininetWiFi(object):
                     sta.params['position'] = 0, 0, 0
 
             params = self.setMobilityParams(stations, accessPoints, stationaryNodes, **kwargs)
-            if not self.isVanet:
+            if self.nroads == 0:
                 mobility.start(**params)
             else:
                 vanet(**params)
@@ -1111,7 +1111,14 @@ class mininetWiFi(object):
             self.addMesh(car.params['carsta'], **params)
             stations.remove(car.params['carsta'])
             stations.append(car)
-            car.lastpos = [0, 0, 0]
+            if 'position' in car.params:
+                if car.params['position'] == (0,0,0):
+                    car.lastpos = [0, 0, 0]
+                else:
+                    car.params['carsta'].params['position'] = car.params['position']
+                    car.lastpos = car.params['position']
+            else:
+                car.lastpos = [0, 0, 0]
             car.params['wlan'].append(0)
             car.params['rssi'].append(0)
             car.params['snr'].append(0)
@@ -1157,6 +1164,9 @@ class mininetWiFi(object):
         nodes = stations + accessPoints
         for node in nodes:
             for wlan in range(0, len(node.params['wlan'])):
+                if node.type == 'vehicle' and wlan == 1:
+                    node = node.params['carsta']
+                    wlan = 0
                 node.setTxPower_(node.params['wlan'][wlan], node.params['txpower'][wlan])
 
         ap = []
@@ -1166,7 +1176,7 @@ class mininetWiFi(object):
 
         nodes = stations + ap
 
-        if not self.isVanet:
+        if self.nroads == 0:
             for node in stations:
                 for wlan in range(0, len(node.params['wlan'])):
                     if node.func[wlan] == 'mesh':
