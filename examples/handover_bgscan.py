@@ -40,15 +40,15 @@ def topology():
     print "*** Setting bgscan"
     net.setBgscan(signal=-45, s_inverval=5, l_interval=10)
 
+    """plotting graph"""
+    net.plotGraph(min_x=-100, min_y=-100, max_x=200, max_y=200)
+
     print "*** Starting network"
     net.build()
     c1.start()
     ap1.start([c1])
     ap2.start([c1])
     ap3.start([c1])
-
-    """plotting graph"""
-    net.plotGraph(min_x=-100, min_y=-100, max_x=200, max_y=200)
 
     print "*** Running CLI"
     CLI(net)

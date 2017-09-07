@@ -25,15 +25,6 @@ def topology():
     print "*** Configuring wifi nodes"
     net.configureWifiNodes()
 
-    print "*** Associating and Creating links"
-    net.addLink(ap1, sta1)
-    net.addLink(ap1, sta2)
-
-    print "*** Starting network"
-    net.build()
-    c1.start()
-    ap1.start([c1])
-
     """plotting graph"""
     net.plotGraph(max_x=100, max_y=100)
 
@@ -42,6 +33,11 @@ def topology():
 
     "*** Available mobility models: RandomWalk, TruncatedLevyWalk, RandomDirection, RandomWayPoint, GaussMarkov ***"
     net.startMobility(time=0, model='RandomWayPoint', max_x=100, max_y=100, min_v=0.5, max_v=0.5)
+
+    print "*** Starting network"
+    net.build()
+    c1.start()
+    ap1.start([c1])
 
     print "*** Running CLI"
     CLI(net)

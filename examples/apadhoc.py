@@ -29,9 +29,6 @@ def topology(mobility):
 	print "*** Adding Link"
 	net.addLink(ap1, ap2)  # wired connection
 
-	print "*** Starting network"
-	net.build()
-
 	if mobility:
 		net.startMobility(time=1, AC='ssf')
 		net.mobility(sta1, 'start', time=1, position='20.0,60.0,0.0')
@@ -39,7 +36,10 @@ def topology(mobility):
 		net.stopMobility(time=6)
 
 	if mobility == False:
-		net.autoAssociation()
+		pass
+
+	print "*** Starting network"
+	net.build()
 
 	print "*** Running CLI"
 	CLI(net)
@@ -51,4 +51,3 @@ if __name__ == '__main__':
 	setLogLevel('info')
 	mobility = True if '-m' in sys.argv else False
 	topology(mobility)
-

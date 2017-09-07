@@ -25,16 +25,14 @@ def topology():
 
     print "*** Creating links"
     net.addLink(ap1, h1)
-    net.addLink(ap1, sta1)
-    net.addLink(ap1, sta2)
+
+    """plotting graph"""
+    net.plotGraph(max_x=100, max_y=100)
 
     print "*** Starting network"
     net.build()
     c1.start()
     ap1.start([c1])
-
-    """plotting graph"""
-    net.plotGraph(max_x=100, max_y=100)
 
     print "*** Running CLI"
     CLI(net)

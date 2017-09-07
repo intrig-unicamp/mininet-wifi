@@ -13,7 +13,7 @@ import random
 def topology():
 
     "Create a network."
-    net = Mininet(controller=Controller, link=TCLink, switch=OVSKernelSwitch, enable_interference=True, enable_wmediumd=True)
+    net = Mininet(controller=Controller, link=TCLink, switch=OVSKernelSwitch, enable_wmediumd=True)
 
     print "*** Creating nodes"
     car = []
@@ -43,6 +43,15 @@ def topology():
     net.addLink(rsu11, rsu13)
     net.addLink(rsu11, rsu14)
 
+    """plotting graph"""
+    net.plotGraph(max_x=500, max_y=500)
+
+    """Number of Roads"""
+    net.roads(10)
+
+    """Start Mobility"""
+    net.startMobility(time=0)
+
     print "*** Starting network"
     net.build()
     c1.start()
@@ -50,20 +59,12 @@ def topology():
     rsu12.start([c1])
     rsu13.start([c1])
     rsu14.start([c1])
+
     i = 201
     for sw in net.carsSW:
         sw.start([c1])
         os.system('ifconfig %s 10.0.0.%s' % (sw, i))
         i += 1
-
-    """uncomment to plot graph"""
-    net.plotGraph(max_x=500, max_y=500)
-
-    """Number of Roads"""
-    net.roads(20)
-
-    """Start Mobility"""
-    net.startMobility(time=0)
 
     i = 1
     j = 2

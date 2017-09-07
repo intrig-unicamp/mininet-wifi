@@ -1125,6 +1125,28 @@ class mininetWiFi(object):
         return stations, accessPoints
 
     @classmethod
+    def plotCheck(self, stations, accessPoints):
+        stas, aps = self.checkAPAdhoc(stations, accessPoints)
+        if mobility.accessPoints == []:
+            mobility.accessPoints = accessPoints
+        if mobility.stations == []:
+            mobility.stations = stations
+
+        nodes = []
+        nodes = self.plotNodes
+
+        for ap in accessPoints:
+            if 'position' in ap.params:
+                nodes.append(ap)
+
+        for sta in stations:
+            if 'position' in sta.params:
+                nodes.append(sta)
+
+        self.checkDimension(nodes)
+        return stas, aps
+
+    @classmethod
     def autoAssociation(self, stations, accessPoints):
         """
         This is useful to make the users' life easier

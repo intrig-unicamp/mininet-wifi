@@ -27,11 +27,11 @@ def topology():
     net.wifiDirect(sta1)
     net.wifiDirect(sta2)
 
-    print "*** Starting network"
-    net.build()
-
     "Plotting graph"
     net.plotGraph(max_x=200, max_y=200)
+
+    print "*** Starting network"
+    net.build()
 
     sta1.cmd('wpa_cli -ista1-wlan0 p2p_find')
     sta2.cmd('wpa_cli -ista2-wlan0 p2p_find')

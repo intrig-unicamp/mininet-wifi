@@ -34,8 +34,6 @@ import time
 import os
 import atexit
 
-from mininet.wifiNet import mininetWiFi
-from mininet.wifiMobility import mobility
 from mininet.log import info, output, error
 from mininet.term import makeTerms, runX11
 from mininet.util import (quietRun, dumpNodeConnections,
@@ -51,33 +49,6 @@ class CLI(Cmd):
            mininet: Mininet network object
            stdin: standard input for CLI
            script: script to run in batch mode"""
-
-        stations = mininet.stations
-        accessPoints = mininet.accessPoints
-
-        if mininetWiFi.isWiFi and not mininet.disableAutoAssociation and not mininetWiFi.isMobility:
-            mininetWiFi.autoAssociation(stations, accessPoints)
-
-        if not mininetWiFi.isMobility and mininetWiFi.DRAW and not mininetWiFi.alreadyPlotted:
-            mininet.stations, mininet.accessPoints = mininetWiFi.checkAPAdhoc(stations, accessPoints)
-            
-            if mobility.accessPoints == []:
-                mobility.accessPoints = accessPoints
-            if mobility.stations == []: 
-                mobility.stations = stations
-            
-            nodes = []
-            nodes = mininetWiFi.plotNodes
-            
-            for ap in accessPoints:
-                if 'position' in ap.params:
-                    nodes.append(ap)
-                    
-            for sta in stations:
-                if 'position' in sta.params:
-                    nodes.append(sta)
-                
-            mininetWiFi.checkDimension(nodes)
 
         self.mn = mininet
         # Local variable bindings for py command
