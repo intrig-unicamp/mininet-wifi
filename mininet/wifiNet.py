@@ -481,7 +481,7 @@ class mininetWiFi(object):
         options.update(params)
 
         if node.type != 'WirelessMeshAP':
-            node.convertIfaceToMesh(wlan)
+            node.setMeshIface(node.params['wlan'][wlan])
         cls = Association
         cls.configureMesh(node, wlan)
         if 'intf' not in params:
@@ -546,9 +546,10 @@ class mininetWiFi(object):
         options.update(params)
         # Set default MAC - this should probably be in Link
         options.setdefault('addr1', self.randMac())
+        enable_wmediumd = self.useWmediumd
 
         cls = Association
-        cls.configureAdhoc(node, self.useWmediumd)
+        cls.configureAdhoc(node, wlan, enable_wmediumd)
         if 'intf' not in params:
             node.ifaceToAssociate += 1
 
@@ -1066,7 +1067,7 @@ class mininetWiFi(object):
         """
         for wlan in range(0, len(node.params['wlan'])):
             if node.type == 'WirelessMeshAP':
-                node.convertIfaceToMesh(wlan)
+                node.setMeshIface(node.params['wlan'][wlan])
                 cls = TCLinkWirelessAP
                 cls(node, intfName1=node.params['wlan'][wlan])
             iface = node.params['wlan'][wlan]

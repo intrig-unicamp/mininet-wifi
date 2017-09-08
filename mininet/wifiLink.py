@@ -294,20 +294,19 @@ class Association(object):
     bgscan = ''
 
     @classmethod
-    def configureAdhoc(self, sta, useWmediumd):
+    def configureAdhoc(self, node, wlan, enable_wmediumd):
         "Configure Wireless Ad Hoc"
-        wlan = sta.ifaceToAssociate
-        iface = sta.params['wlan'][wlan]
-        sta.params['rssi'][wlan] = -62
-        sta.params['snr'][wlan] = -62 - (-91.0)
-        sta.func[wlan] = 'adhoc'
-        sta.intfs[wlan].setIP(sta.params['ip'][wlan])
-        sta.cmd('iw dev %s set type ibss' % iface)
-        if 'position' not in sta.params or useWmediumd:
-            sta.params['associatedTo'][wlan] = sta.params['ssid'][wlan]
-            debug("associating %s to %s...\n" % (iface, sta.params['ssid'][wlan]))
-            sta.pexec('iwconfig %s channel %s essid %s ap 02:CA:FF:EE:BA:01 mode ad-hoc'\
-                       % (iface, sta.params['channel'][wlan], sta.params['associatedTo'][wlan]))
+        iface = node.params['wlan'][wlan]
+        node.params['rssi'][wlan] = -62
+        node.params['snr'][wlan] = -62 - (-91.0)
+        node.func[wlan] = 'adhoc'
+        node.intfs[wlan].setIP(node.params['ip'][wlan])
+        node.cmd('iw dev %s set type ibss' % iface)
+        if 'position' not in node.params or enable_wmediumd:
+            node.params['associatedTo'][wlan] = node.params['ssid'][wlan]
+            debug("associating %s to %s...\n" % (iface, node.params['ssid'][wlan]))
+            node.pexec('iwconfig %s channel %s essid %s ap 02:CA:FF:EE:BA:01 mode ad-hoc'\
+                       % (iface, node.params['channel'][wlan], node.params['associatedTo'][wlan]))
             #sta.pexec('iwconfig %s ap %s' % (iface, sta.params['cell'][wlan]))
 
     @classmethod
@@ -315,7 +314,7 @@ class Association(object):
         "Configure Wireless Mesh Interface"
         node.params['rssi'][wlan] = -62
         node.params['snr'][wlan] = -62 - (-91.0)
-
+        node.func[wlan] = 'mesh'
         self.meshAssociation(node, wlan)
 
         if 'link' in node.params and node.params['link'] == 'mesh':

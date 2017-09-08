@@ -74,6 +74,7 @@ from distutils.version import StrictVersion
 from mininet.wifiMobility import mobility
 from mininet.wifiLink import link
 from mininet.wifiPlot import plot2d, plot3d
+from mininet.wifiLink import Association
 
 class Node(object):
     """A virtual network node is simply a shell in a network namespace.
@@ -178,17 +179,36 @@ class Node(object):
         # +m: disable job control notification
         self.cmd('unset HISTFILE; stty -echo; set +m')
 
-    def convertIfaceToMesh(self, wlan):
+    def setMeshIface(self, iface, ssid=''):
+        wlan = self.params['wlan'].index(iface)
+        if self.func[wlan] == 'adhoc':
+            self.cmd('iw dev %s set type managed' % self.params['wlan'][wlan])
         iface = '%s-mp%s' % (self, wlan)
-        self.cmd('iw dev %s interface add %s-mp%s type mp' % (self.params['wlan'][wlan], self, wlan))
-        self.cmd('ifconfig %s-mp%s down' % (self, wlan))
-        self.cmd('ip link set %s-mp%s address %s' % (self, wlan, self.params['mac'][wlan]))
+        self.cmd('iw dev %s interface add %s type mp' % (self.params['wlan'][wlan], iface))
+        self.cmd('ifconfig %s down' % iface)
+        self.cmd('ip link set %s address %s' % (iface, self.params['mac'][wlan]))
         self.cmd('ifconfig %s down' % self.params['wlan'][wlan])
         self.params['wlan'][wlan] = iface
         if (hasattr(self, 'type') and self.type != 'WirelessMeshAP') or (not hasattr(self, 'type')):
             self.cmd('ifconfig %s %s up' % (self.params['wlan'][wlan], self.params['ip'][wlan]))
         else:
             self.cmd('ifconfig %s up' % self.params['wlan'][wlan])
+        if ssid != '':
+            self.params['ssid'][wlan] = ssid
+            cls = Association
+            cls.configureMesh(self, wlan)
+
+    def setAdhocIface(self, iface, ssid=''):
+        wlan = self.params['wlan'].index(iface)
+        if self.func[wlan] == 'mesh':
+            self.cmd('iw dev %s del' % self.params['wlan'][wlan])
+            iface = '%s-wlan%s' % (self, wlan)
+        else:
+            iface = self.params['wlan'][wlan]
+        if ssid != '':
+            self.params['ssid'][wlan] = ssid
+            cls = Association
+            cls.configureAdhoc(self, wlan, enable_wmediumd=True)
 
     def meshLeave(self, ssid):
         for key, val in self.params.items():
