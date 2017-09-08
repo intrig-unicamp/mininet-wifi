@@ -1104,11 +1104,14 @@ class mininetWiFi(object):
         self.configureAPs(accessPoints, driver)
         self.isWiFi = True
 
-        # useful if there no link between sta and any other device
-        params = { 'nextIP': nextIP, 'ipBaseNum':ipBaseNum, 'prefixLen':prefixLen, 'ssid': 'mesh-ssid'}
-
         for car in cars:
-            self.addMesh(car.params['carsta'], **params)
+            # useful if there no link between sta and any other device
+            params = { 'nextIP': nextIP, 'ipBaseNum':ipBaseNum, \
+                      'prefixLen':prefixLen, 'ssid':car.params['ssid']}
+            if 'func' in car.params and car.params['func'] == 'adhoc':
+                self.addHoc(car.params['carsta'], **params)
+            else:
+                self.addMesh(car.params['carsta'], **params)
             stations.remove(car.params['carsta'])
             stations.append(car)
             if 'position' in car.params:

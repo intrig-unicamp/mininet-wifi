@@ -394,7 +394,12 @@ class Mininet(object):
         self.carsSW.append(carsw)
         self.cars.append(car)
 
-        car.func.append('mesh')
+        if 'func' in car.params and car.params['func'] == 'adhoc':
+            car.params['ssid'] = 'adhoc-ssid'
+            car.func.append('adhoc')
+        else:
+            car.params['ssid'] = 'mesh-ssid'
+            car.func.append('mesh')
         self.addLink(carsta, carsw)
         self.addLink(car, carsw)
         mininetWiFi.isVanet = True

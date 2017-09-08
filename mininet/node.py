@@ -274,7 +274,7 @@ class Node(object):
         posY = self.params['position'][1]
         posZ = self.params['position'][2]
         if self.type == 'vehicle':
-                wlans = 1
+            wlans = 1
         else:
             wlans = len(self.params['wlan'])
         for wlan in range(0, wlans):
