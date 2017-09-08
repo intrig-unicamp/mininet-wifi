@@ -246,6 +246,46 @@ class link (object):
             freq = 5.22
         elif node.params['channel'][wlan] == 48:
             freq = 5.24
+        elif node.params['channel'][wlan] == 52:
+            freq = 5.26
+        elif node.params['channel'][wlan] == 56:
+            freq = 5.28
+        elif node.params['channel'][wlan] == 60:
+            freq = 5.30
+        elif node.params['channel'][wlan] == 64:
+            freq = 5.32
+        elif node.params['channel'][wlan] == 100:
+            freq = 5.50
+        elif node.params['channel'][wlan] == 104:
+            freq = 5.52
+        elif node.params['channel'][wlan] == 108:
+            freq = 5.54
+        elif node.params['channel'][wlan] == 112:
+            freq = 5.56
+        elif node.params['channel'][wlan] == 116:
+            freq = 5.58
+        elif node.params['channel'][wlan] == 120:
+            freq = 5.60
+        elif node.params['channel'][wlan] == 124:
+            freq = 5.62
+        elif node.params['channel'][wlan] == 128:
+            freq = 5.64
+        elif node.params['channel'][wlan] == 132:
+            freq = 5.66
+        elif node.params['channel'][wlan] == 136:
+            freq = 5.68
+        elif node.params['channel'][wlan] == 140:
+            freq = 5.70
+        elif node.params['channel'][wlan] == 149:
+            freq = 5.745
+        elif node.params['channel'][wlan] == 153:
+            freq = 5.765
+        elif node.params['channel'][wlan] == 157:
+            freq = 5.785
+        elif node.params['channel'][wlan] == 161:
+            freq = 5.805
+        elif node.params['channel'][wlan] == 165:
+            freq = 5.825
         return freq
 
 class Association(object):

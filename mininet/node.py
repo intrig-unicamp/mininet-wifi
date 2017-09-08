@@ -178,18 +178,17 @@ class Node(object):
         # +m: disable job control notification
         self.cmd('unset HISTFILE; stty -echo; set +m')
 
-    @classmethod
-    def convertIfaceToMesh(self, node, wlan):
-        iface = '%s-mp%s' % (node, wlan)
-        node.cmd('iw dev %s interface add %s-mp%s type mp' % (node.params['wlan'][wlan], node, wlan))
-        node.cmd('ifconfig %s-mp%s down' % (node, wlan))
-        node.cmd('ip link set %s-mp%s address %s' % (node, wlan, node.params['mac'][wlan]))
-        node.cmd('ifconfig %s down' % node.params['wlan'][wlan])
-        node.params['wlan'][wlan] = iface
+    def convertIfaceToMesh(self, wlan):
+        iface = '%s-mp%s' % (self, wlan)
+        self.cmd('iw dev %s interface add %s-mp%s type mp' % (self.params['wlan'][wlan], self, wlan))
+        self.cmd('ifconfig %s-mp%s down' % (self, wlan))
+        self.cmd('ip link set %s-mp%s address %s' % (self, wlan, self.params['mac'][wlan]))
+        self.cmd('ifconfig %s down' % self.params['wlan'][wlan])
+        self.params['wlan'][wlan] = iface
         if (hasattr(self, 'type') and self.type != 'WirelessMeshAP') or (not hasattr(self, 'type')):
-            node.cmd('ifconfig %s %s up' % (node.params['wlan'][wlan], node.params['ip'][wlan]))
+            self.cmd('ifconfig %s %s up' % (self.params['wlan'][wlan], self.params['ip'][wlan]))
         else:
-            node.cmd('ifconfig %s up' % node.params['wlan'][wlan])
+            self.cmd('ifconfig %s up' % self.params['wlan'][wlan])
 
     def meshLeave(self, ssid):
         for key, val in self.params.items():

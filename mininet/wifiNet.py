@@ -481,7 +481,7 @@ class mininetWiFi(object):
         options.update(params)
 
         if node.type != 'WirelessMeshAP':
-            node.convertIfaceToMesh(node, wlan)
+            node.convertIfaceToMesh(wlan)
         cls = Association
         cls.configureMesh(node, wlan)
         if 'intf' not in params:
@@ -1066,7 +1066,7 @@ class mininetWiFi(object):
         """
         for wlan in range(0, len(node.params['wlan'])):
             if node.type == 'WirelessMeshAP':
-                node.convertIfaceToMesh(node, wlan)
+                node.convertIfaceToMesh(wlan)
                 cls = TCLinkWirelessAP
                 cls(node, intfName1=node.params['wlan'][wlan])
             iface = node.params['wlan'][wlan]
