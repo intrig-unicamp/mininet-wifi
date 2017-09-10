@@ -657,19 +657,6 @@ class mininetWiFi(object):
         WmediumdStarter.start()
 
     @classmethod
-    def updateParams(self, sta, ap, wlan):
-        """ 
-        Updates values for frequency and channel
-        
-        :param sta: station
-        :param ap: access point
-        :param wlan: wlan ID
-        """
-
-        sta.params['frequency'][wlan] = link.frequency(ap, 0)
-        sta.params['channel'][wlan] = ap.params['channel'][0]
-
-    @classmethod
     def checkAPAdhoc(self, stations, accessPoints):
         """
         configure APAdhoc

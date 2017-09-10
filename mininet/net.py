@@ -119,7 +119,7 @@ from mininet.wifiNet import mininetWiFi
 from __builtin__ import True
 
 # Mininet version: should be consistent with README and LICENSE
-VERSION = "2.1r3"
+VERSION = "2.1r4"
 
 class Mininet(object):
     "Network emulation with hosts spawned in network namespaces."

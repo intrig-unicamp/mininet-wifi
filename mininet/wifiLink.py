@@ -214,78 +214,9 @@ class link (object):
         :param node: node
         :param wlan: wlan ID
         """
-
-        freq = 0
-        if node.params['channel'][wlan] == 1:
-            freq = 2.412
-        elif node.params['channel'][wlan] == 2:
-            freq = 2.417
-        elif node.params['channel'][wlan] == 3:
-            freq = 2.422
-        elif node.params['channel'][wlan] == 4:
-            freq = 2.427
-        elif node.params['channel'][wlan] == 5:
-            freq = 2.432
-        elif node.params['channel'][wlan] == 6:
-            freq = 2.437
-        elif node.params['channel'][wlan] == 7:
-            freq = 2.442
-        elif node.params['channel'][wlan] == 8:
-            freq = 2.447
-        elif node.params['channel'][wlan] == 9:
-            freq = 2.452
-        elif node.params['channel'][wlan] == 10:
-            freq = 2.457
-        elif node.params['channel'][wlan] == 11:
-            freq = 2.462
-        elif node.params['channel'][wlan] == 36:
-            freq = 5.18
-        elif node.params['channel'][wlan] == 40:
-            freq = 5.2
-        elif node.params['channel'][wlan] == 44:
-            freq = 5.22
-        elif node.params['channel'][wlan] == 48:
-            freq = 5.24
-        elif node.params['channel'][wlan] == 52:
-            freq = 5.26
-        elif node.params['channel'][wlan] == 56:
-            freq = 5.28
-        elif node.params['channel'][wlan] == 60:
-            freq = 5.30
-        elif node.params['channel'][wlan] == 64:
-            freq = 5.32
-        elif node.params['channel'][wlan] == 100:
-            freq = 5.50
-        elif node.params['channel'][wlan] == 104:
-            freq = 5.52
-        elif node.params['channel'][wlan] == 108:
-            freq = 5.54
-        elif node.params['channel'][wlan] == 112:
-            freq = 5.56
-        elif node.params['channel'][wlan] == 116:
-            freq = 5.58
-        elif node.params['channel'][wlan] == 120:
-            freq = 5.60
-        elif node.params['channel'][wlan] == 124:
-            freq = 5.62
-        elif node.params['channel'][wlan] == 128:
-            freq = 5.64
-        elif node.params['channel'][wlan] == 132:
-            freq = 5.66
-        elif node.params['channel'][wlan] == 136:
-            freq = 5.68
-        elif node.params['channel'][wlan] == 140:
-            freq = 5.70
-        elif node.params['channel'][wlan] == 149:
-            freq = 5.745
-        elif node.params['channel'][wlan] == 153:
-            freq = 5.765
-        elif node.params['channel'][wlan] == 157:
-            freq = 5.785
-        elif node.params['channel'][wlan] == 161:
-            freq = 5.805
-        elif node.params['channel'][wlan] == 165:
-            freq = 5.825
+        freq = node.cmd('iw dev %s info | grep channel \
+            | awk \'{print $3}\' | tr -d \'(\'' % node.params['wlan'][wlan])
+        freq = float(freq[:1] + '.' + freq[1:])
         return freq
 
 class Association(object):
