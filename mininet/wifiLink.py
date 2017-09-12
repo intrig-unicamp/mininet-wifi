@@ -10,7 +10,7 @@ from mininet.wifiDevices import deviceDataRate
 from mininet.log import debug, info
 from wifiPropagationModels import propagationModel
 from mininet.wmediumdConnector import WmediumdServerConn, WmediumdSNRLink
-from mininet.link import TCLinkWirelessAP
+from mininet.link import TCLinkWirelessStation
 from scipy.spatial.distance import pdist
 
 class link (object):
@@ -311,16 +311,11 @@ class Association(object):
     @classmethod
     def configureMesh(self, node, wlan):
         "Configure Wireless Mesh Interface"
-        node.params['rssi'][wlan] = -62
-        node.params['snr'][wlan] = -62 - (-91.0)
         node.func[wlan] = 'mesh'
         self.meshAssociation(node, wlan)
-
-        if 'link' in node.params and node.params['link'] == 'mesh':
-            cls = TCLinkWirelessAP
-            intf = '%s-mp%s' % (node, wlan)
-            cls(node, intfName1=intf)
-            node.setBw(node, wlan, intf)
+        if node.params['wlan'][wlan] not in str(node.intf):
+            cls = TCLinkWirelessStation
+            cls(node, intfName1=node.params['wlan'][wlan])
 
     @classmethod
     def meshAssociation(self, node, wlan):

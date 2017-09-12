@@ -189,11 +189,14 @@ class Node(object):
         self.cmd('ip link set %s address %s' % (iface, self.params['mac'][wlan]))
         self.cmd('ifconfig %s down' % self.params['wlan'][wlan])
         self.params['wlan'][wlan] = iface
-        if (hasattr(self, 'type') and self.type != 'WirelessMeshAP') or (not hasattr(self, 'type')):
+        if ('ip' in self.params):
             self.cmd('ifconfig %s %s up' % (self.params['wlan'][wlan], self.params['ip'][wlan]))
         else:
             self.cmd('ifconfig %s up' % self.params['wlan'][wlan])
         if ssid != '':
+            if 'ssid' not in self.params:
+                self.params['ssid'] = []
+                self.params['ssid'].append(0)
             self.params['ssid'][wlan] = ssid
             cls = Association
             cls.configureMesh(self, wlan)
@@ -206,6 +209,9 @@ class Node(object):
         else:
             iface = self.params['wlan'][wlan]
         if ssid != '':
+            if 'ssid' not in self.params:
+                self.params['ssid'] = []
+                self.params['ssid'].append(0)
             self.params['ssid'][wlan] = ssid
             cls = Association
             cls.configureAdhoc(self, wlan, enable_wmediumd=True)
@@ -1602,6 +1608,44 @@ class UserAP(AP):
         # self.cmd('kill %ofprotocol')
         # super(UserAP, self).stop(deleteIntfs)
 
+    def setMeshIface(self, iface, ssid=''):
+        wlan = self.params['wlan'].index(iface)
+        if self.func[wlan] == 'adhoc':
+            self.cmd('iw dev %s set type managed' % self.params['wlan'][wlan])
+        iface = '%s-mp%s' % (self, wlan)
+        self.cmd('iw dev %s interface add %s type mp' % (self.params['wlan'][wlan], iface))
+        self.cmd('ifconfig %s down' % iface)
+        self.cmd('ip link set %s address %s' % (iface, self.params['mac'][wlan]))
+        self.cmd('ifconfig %s down' % self.params['wlan'][wlan])
+        self.params['wlan'][wlan] = iface
+        if ('ip' in self.params):
+            self.cmd('ifconfig %s %s up' % (self.params['wlan'][wlan], self.params['ip'][wlan]))
+        else:
+            self.cmd('ifconfig %s up' % self.params['wlan'][wlan])
+        if ssid != '':
+            self.params['ssid'][wlan] = ssid
+            cls = Association
+            cls.configureMesh(self, wlan)
+
+    def setAdhocIface(self, iface, ssid=''):
+        wlan = self.params['wlan'].index(iface)
+        if self.func[wlan] == 'mesh':
+            self.cmd('iw dev %s del' % self.params['wlan'][wlan])
+            iface = '%s-wlan%s' % (self, wlan)
+            self.params['wlan'][wlan] = iface
+        if ssid != '':
+            self.params['ssid'][wlan] = ssid
+            cls = Association
+            cls.configureAdhoc(self, wlan, enable_wmediumd=True)
+
+    def setManagedIface(self, iface):
+        wlan = self.params['wlan'].index(iface)
+        if self.func[wlan] == 'mesh':
+            self.cmd('iw dev %s del' % self.params['wlan'][wlan])
+            iface = '%s-wlan%s' % (self, wlan)
+            self.params['wlan'][wlan] = iface
+        self.cmd('iw dev %s set type managed' % (self.params['wlan'][wlan]))
+
     def renameIface(self, intf, newname):
         "Rename interface"
         self.pexec('ifconfig %s down' % intf)
@@ -1740,6 +1784,37 @@ class OVSAP(AP):
                                      uuid, 'is_connected'):
                 return True
         return self.failMode == 'standalone'
+
+    def setMeshIface(self, iface, ssid=''):
+        wlan = self.params['wlan'].index(iface)
+        if self.func[wlan] == 'adhoc':
+            self.cmd('iw dev %s set type managed' % self.params['wlan'][wlan])
+        iface = '%s-mp%s' % (self, wlan)
+        self.cmd('iw dev %s interface add %s type mp' % (self.params['wlan'][wlan], iface))
+        self.cmd('ifconfig %s down' % iface)
+        self.cmd('ip link set %s address %s' % (iface, self.params['mac'][wlan]))
+        self.cmd('ifconfig %s down' % self.params['wlan'][wlan])
+        self.params['wlan'][wlan] = iface
+        if ('ip' in self.params):
+            self.cmd('ifconfig %s %s up' % (self.params['wlan'][wlan], self.params['ip'][wlan]))
+        else:
+            self.cmd('ifconfig %s up' % self.params['wlan'][wlan])
+        if ssid != '':
+            self.params['ssid'][wlan] = ssid
+            cls = Association
+            cls.configureMesh(self, wlan)
+
+    def setAdhocIface(self, iface, ssid=''):
+        wlan = self.params['wlan'].index(iface)
+        if self.func[wlan] == 'mesh':
+            self.cmd('iw dev %s del' % self.params['wlan'][wlan])
+            iface = '%s-wlan%s' % (self, wlan)
+        else:
+            iface = self.params['wlan'][wlan]
+        if ssid != '':
+            self.params['ssid'][wlan] = ssid
+            cls = Association
+            cls.configureAdhoc(self, wlan, enable_wmediumd=True)
 
     def intfOpts(self, intf):
         "Return OVS interface options for intf"
