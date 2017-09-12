@@ -206,6 +206,7 @@ class Node(object):
         if self.func[wlan] == 'mesh':
             self.cmd('iw dev %s del' % self.params['wlan'][wlan])
             iface = '%s-wlan%s' % (self, wlan)
+            self.params['wlan'][wlan] = iface
         else:
             iface = self.params['wlan'][wlan]
         if ssid != '':

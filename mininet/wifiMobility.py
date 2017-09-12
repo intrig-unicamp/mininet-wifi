@@ -26,8 +26,6 @@ import os
 from mininet.log import debug, info
 from mininet.wifiLink import link, Association
 from mininet.wifiAssociationControl import associationControl
-from mininet.wifiAdHocConnectivity import pairingAdhocNodes
-from mininet.wifiMeshRouting import listNodes, meshRouting
 from mininet.wmediumdConnector import WmediumdServerConn
 from mininet.wifiPlot import plot2d, plot3d
 
@@ -507,23 +505,11 @@ class mobility (object):
         for node in nodes:
             for wlan in range(0, len(node.params['wlan'])):
                 if node.func[wlan] == 'mesh' or node.func[wlan] == 'adhoc':
-                    if not WmediumdServerConn.interference_enabled:
-                        if node.func[wlan] == 'adhoc':
-                            value = pairingAdhocNodes(node, wlan, self.adhocNodes)
-                            dist = value.dist
-                        else:
-                            if node.type == 'vehicle':
-                                node = node.params['carsta']
-                                wlan = 0
-                            dist = listNodes.pairingNodes(node, wlan, self.meshNodes)
-                        if not WmediumdServerConn.connected and dist >= 0.01:
-                            link(sta=node, wlan=wlan, dist=dist)
-                    else:
-                        if 'carsta' in node.params:
-                            car = node.params['carsta']
-                            car.params['position'] = node.params['position']
-                            node = car
-                        self.setWmediumdPos(node)
+                    if 'carsta' in node.params:
+                        car = node.params['carsta']
+                        car.params['position'] = node.params['position']
+                        node = car
+                    self.setWmediumdPos(node)
                 else:
                     if WmediumdServerConn.interference_enabled:
                         if Association.bgscan != '':
@@ -537,11 +523,7 @@ class mobility (object):
                         else:
                             self.checkAssociation(node, wlan)
                     else:
-                        self.checkAssociation(node, wlan)
-        if not WmediumdServerConn.interference_enabled:
-            if meshRouting.routing == 'custom':
-                meshRouting(self.meshNodes)
-        # have to verify this
+                        self.checkAssociation(node, wlan)        # have to verify this
         eval(self.continueParams)
 
 

@@ -92,24 +92,15 @@ class link (object):
         return rate
 
     @classmethod
-    def setRSSI(self, sta=None, ap=None, wlan=0, dist=0):
+    def setRSSI(self, node1=None, node2=None, wlan=0, dist=0):
         """set RSSI
         
-        :param sta: station
-        :param ap: access point
+        :param node1: station
+        :param node2: access point
         :param wlan: wlan ID
         :param dist: distance
         """
-        gT = 0
-        hT = 0
-        if ap != None:
-            pT = ap.params['txpower'][0]
-        else:
-            pT = sta.params['txpower'][wlan]
-        gR = sta.params['antennaGain'][wlan]
-        hR = sta.params['antennaHeight'][wlan]
-
-        value = propagationModel(sta, ap, dist, wlan, pT, gT, gR, hT, hR)
+        value = propagationModel(node1, node2, dist, wlan)
         return float(value.rssi)  # random.uniform(value.rssi-1, value.rssi+1)
 
     @classmethod
@@ -296,10 +287,8 @@ class Association(object):
     def configureAdhoc(self, node, wlan, enable_wmediumd):
         "Configure Wireless Ad Hoc"
         iface = node.params['wlan'][wlan]
-        node.params['rssi'][wlan] = -62
-        node.params['snr'][wlan] = -62 - (-91.0)
         node.func[wlan] = 'adhoc'
-        node.intfs[wlan].setIP(node.params['ip'][wlan])
+        node.setIP(node.params['ip'][wlan], intf='%s' % iface)
         node.cmd('iw dev %s set type ibss' % iface)
         if 'position' not in node.params or enable_wmediumd:
             node.params['associatedTo'][wlan] = node.params['ssid'][wlan]

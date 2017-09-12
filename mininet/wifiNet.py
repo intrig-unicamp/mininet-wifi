@@ -17,7 +17,6 @@ from mininet.wmediumdConnector import DynamicWmediumdIntfRef, WmediumdSNRLink, W
                     WmediumdTXPower, WmediumdPosition, WmediumdConstants, WmediumdServerConn
 from mininet.wifiLink import link, Association
 from mininet.wifiDevices import deviceRange, deviceDataRate
-from mininet.wifiMeshRouting import meshRouting
 from mininet.wifiMobility import mobility
 from mininet.wifiPlot import plot2d, plot3d
 from mininet.wifiModule import module
@@ -1214,16 +1213,6 @@ class mininetWiFi(object):
         for ap in accessPoints:
             if 'position' in ap.params and ap not in mobility.accessPoints:
                 mobility.accessPoints.append(ap)
-
-    @classmethod
-    def meshRouting(self, routing):
-        """
-        Defines the mesh routing
-
-        :params routing: the mesh routing (default: custom)
-        """
-        if routing != '':
-            meshRouting.routing = routing
 
     @classmethod
     def getDistance(self, src, dst):

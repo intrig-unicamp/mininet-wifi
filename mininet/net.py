@@ -1005,15 +1005,6 @@ class Mininet(object):
         if self.waitConn:
             self.waitConnected()
 
-    def meshRouting(self, routing):
-        """
-        Defined the mesh routing
-        
-        :params routing: the mesh routing (default: custom)
-        """
-        if routing != '':
-            mininetWiFi.meshRouting(routing)
-
     def seed(self, seed):
         "Seed"
         mininetWiFi.seed_ = seed
