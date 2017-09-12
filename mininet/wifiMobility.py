@@ -44,6 +44,7 @@ class mobility (object):
 
     @classmethod
     def start(self, **mobilityparam):
+        debug('Starting mobility thread...\n')
         thread = threading.Thread(name='mobilityModel', target=self.models, kwargs=dict(mobilityparam,))
         thread.daemon = True
         thread.start()
@@ -336,8 +337,6 @@ class mobility (object):
                                     y = '%.2f' % (float(node.params['position'][1]) + float(node.moveFac[1]))
                                     z = '%.2f' % (float(node.params['position'][2]) + float(node.moveFac[2]))
                                 node.params['position'] = x, y, z
-                                if WmediumdServerConn.interference_enabled:
-                                    self.setWmediumdPos(node)
                         if DRAW:
                             plot.graphUpdate(node)
                     eval(self.continuePlot)

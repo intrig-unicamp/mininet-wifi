@@ -975,6 +975,7 @@ class mininetWiFi(object):
     @classmethod
     def stopMobility(self, stations, accessPoints, **kwargs):
         "Stops Mobility"
+        self.autoAssociation(stations, accessPoints)
         kwargs['is3d'] = self.is3d
         params = self.setMobilityParams(stations, accessPoints, **kwargs)
         mobility.stop(**params)
