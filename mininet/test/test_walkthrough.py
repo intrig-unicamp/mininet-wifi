@@ -222,7 +222,7 @@ class testWalkthrough(unittest.TestCase):
         "Start Mininet-WiFi with wifi direct, then test ping"
         p = pexpect.spawn(
             'python examples/wifiDirect.py')
-        sleep(12)
+        sleep(15)
         p.sendline('sta1 ping -c 1 sta2')
         p.expect('1 packets transmitted, 1 received')
         p.expect(self.prompt)
