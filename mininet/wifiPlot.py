@@ -68,6 +68,10 @@ class plot3d (object):
         self.plotDraw()
 
     @classmethod
+    def fig_exists(self):
+        return plt.fignum_exists(1)
+
+    @classmethod
     def graphPause(self):
         """Pause"""
         plt.pause(0.0001)
@@ -209,6 +213,10 @@ class plot2d (object):
         self.ax.set_xlim([MIN_X, MAX_X])
         self.ax.set_ylim([MIN_Y, MAX_Y])
         self.ax.grid(True)
+
+    @classmethod
+    def fig_exists(self):
+        return plt.fignum_exists(1)
 
     @classmethod
     def instantiateNode(self, node):
