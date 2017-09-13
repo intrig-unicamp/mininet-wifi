@@ -584,6 +584,12 @@ class mininetWiFi(object):
         if 'intf' not in params:
             node.ifaceToAssociate += 1
 
+        p2p_mac = node.cmd('iw dev | grep addr | awk \'NR==1\' | awk \'{print $2};\'')
+        node.params['mac'].append(p2p_mac.splitlines()[0])
+        node.params['wlan'].append('0')
+        node.params['txpower'].append(node.params['txpower'][0])
+        node.func.append('wifiDirect')
+
     @staticmethod
     def randMac():
         "Return a random, non-multicast MAC address"

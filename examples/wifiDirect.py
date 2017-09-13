@@ -3,19 +3,18 @@
 'Example for WiFi Direct'
 
 from mininet.net import Mininet
-from mininet.node import  Controller
 from mininet.cli import CLI
 from mininet.log import setLogLevel
 from mininet.link import TCLink
-import time
+from time import sleep
 
 def topology():
     "Create a network."
-    net = Mininet(controller=Controller, link=TCLink, enable_wmediumd=True, enable_interference=True)
+    net = Mininet(enable_wmediumd=True, enable_interference=True)
 
     print "*** Creating nodes"
     sta1 = net.addStation('sta1', ip='10.0.0.1/8', position='10,10,0')
-    sta2 = net.addStation('sta2', ip='10.0.0.2/8', position='40,40,0')
+    sta2 = net.addStation('sta2', ip='10.0.0.2/8', position='20,40,0')
 
     print "*** Configuring Propagation Model"
     net.propagationModel("logDistancePropagationLossModel", exp=3.5)
@@ -23,12 +22,12 @@ def topology():
     print "*** Configuring wifi nodes"
     net.configureWifiNodes()
 
+    "Plotting graph"
+    net.plotGraph(max_x=200, max_y=200)
+
     print "*** Starting WiFi Direct"
     net.wifiDirect(sta1)
     net.wifiDirect(sta2)
-
-    "Plotting graph"
-    net.plotGraph(max_x=200, max_y=200)
 
     print "*** Starting network"
     net.build()
@@ -36,12 +35,12 @@ def topology():
     sta1.cmd('wpa_cli -ista1-wlan0 p2p_find')
     sta2.cmd('wpa_cli -ista2-wlan0 p2p_find')
     sta2.cmd('wpa_cli -ista2-wlan0 p2p_peers')
-    time.sleep(2)
+    sleep(3)
     sta1.cmd('wpa_cli -ista1-wlan0 p2p_peers')
-    time.sleep(2)
-    pin = sta1.cmd('wpa_cli -ista1-wlan0 p2p_connect 02:00:00:00:01:00 pin auth')
-    time.sleep(3)
-    sta2.cmd('wpa_cli -ista2-wlan0 p2p_connect 02:00:00:00:00:00 %s' % pin)
+    sleep(3)
+    pin = sta1.cmd('wpa_cli -ista1-wlan0 p2p_connect %s pin auth' % sta2.params['mac'][1])
+    sleep(3)
+    sta2.cmd('wpa_cli -ista2-wlan0 p2p_connect %s %s' % (sta1.params['mac'][1], pin))
 
     print "*** Running CLI"
     CLI(net)

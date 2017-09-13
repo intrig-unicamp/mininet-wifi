@@ -947,13 +947,13 @@ class Mininet(object):
             self.startTerms()
         if self.autoStaticArp:
             self.staticArp()
-        self.built = True
         if self.useWmediumd:
             mininetWiFi.wmediumdConnect()
         if mininetWiFi.isWiFi and not self.disableAutoAssociation and not mininetWiFi.isMobility:
             mininetWiFi.autoAssociation(self.stations, self.accessPoints)
         if not mininetWiFi.isMobility and mininetWiFi.DRAW and not mininetWiFi.alreadyPlotted:
             self.stations, self.accessPoints = mininetWiFi.plotCheck(self.stations, self.accessPoints)
+        self.built = True
 
     def startTerms(self):
         "Start a terminal for each node."
