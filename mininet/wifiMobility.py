@@ -508,7 +508,8 @@ class mobility (object):
                         car = node.params['carsta']
                         car.params['position'] = node.params['position']
                         node = car
-                    self.setWmediumdPos(node)
+                    if WmediumdServerConn.interference_enabled:
+                        self.setWmediumdPos(node)
                 else:
                     if WmediumdServerConn.interference_enabled:
                         if Association.bgscan != '':
