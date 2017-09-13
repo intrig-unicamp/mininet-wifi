@@ -41,6 +41,7 @@ class mininetWiFi(object):
     isVanet = False
     ifb = False
     isWiFi = False
+    configureWiFiDirect = False
     wifiRadios = 0
     seed_ = 10
     init_time = 0
@@ -1096,7 +1097,7 @@ class mininetWiFi(object):
         self.configureWirelessLink(stations, accessPoints, cars, switches)
         self.createVirtualIfaces(stations)
         self.configureAPs(accessPoints, driver)
-        if self.useWmediumd:
+        if not self.configureWiFiDirect and self.useWmediumd:
             self.configureWmediumd(stations, accessPoints)
             self.wmediumdConnect()
         self.isWiFi = True

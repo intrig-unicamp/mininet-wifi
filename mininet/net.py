@@ -130,7 +130,7 @@ class Mininet(object):
                   inNamespace=False, autoSetMacs=False, autoStaticArp=False, autoPinCpus=False,
                   listenPort=None, waitConnected=False, ssid="new-ssid", mode="g", channel="6",
                   enable_wmediumd=False, enable_interference=False, disableAutoAssociation=False,
-                  driver='nl80211', autoSetPositions=False):
+                  driver='nl80211', autoSetPositions=False, configureWiFiDirect=False):
         """Create Mininet object.
            topo: Topo (topology) object or None
            switch: default Switch class
@@ -192,6 +192,7 @@ class Mininet(object):
         self.driver = driver
         self.disableAutoAssociation = disableAutoAssociation
 
+        mininetWiFi.configureWiFiDirect = configureWiFiDirect
         mininetWiFi.isWiFi = isWiFi
         mininetWiFi.enable_interference = enable_interference
         Mininet.init()  # Initialize Mininet if necessary
@@ -936,6 +937,10 @@ class Mininet(object):
         "Build mininet."
         if self.topo:
             self.buildFromTopo(self.topo)
+
+        if mininetWiFi.configureWiFiDirect and self.useWmediumd:
+            mininetWiFi.configureWmediumd(self.stations, self.accessPoints)
+            mininetWiFi.wmediumdConnect()
 
         if self.inNamespace:
             self.configureControlNetwork()
