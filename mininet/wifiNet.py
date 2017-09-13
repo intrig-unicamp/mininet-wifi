@@ -1096,6 +1096,9 @@ class mininetWiFi(object):
         self.configureWirelessLink(stations, accessPoints, cars, switches)
         self.createVirtualIfaces(stations)
         self.configureAPs(accessPoints, driver)
+        if self.useWmediumd:
+            self.configureWmediumd(stations, accessPoints)
+            self.wmediumdConnect()
         self.isWiFi = True
 
         for car in cars:

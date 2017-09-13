@@ -936,8 +936,6 @@ class Mininet(object):
         "Build mininet."
         if self.topo:
             self.buildFromTopo(self.topo)
-        if self.useWmediumd:
-            mininetWiFi.configureWmediumd(self.stations, self.accessPoints)
 
         if self.inNamespace:
             self.configureControlNetwork()
@@ -947,8 +945,7 @@ class Mininet(object):
             self.startTerms()
         if self.autoStaticArp:
             self.staticArp()
-        if self.useWmediumd:
-            mininetWiFi.wmediumdConnect()
+
         if mininetWiFi.isWiFi and not self.disableAutoAssociation and not mininetWiFi.isMobility:
             mininetWiFi.autoAssociation(self.stations, self.accessPoints)
         if not mininetWiFi.isMobility and mininetWiFi.DRAW and not mininetWiFi.alreadyPlotted:
