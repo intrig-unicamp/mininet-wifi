@@ -69,6 +69,7 @@ from mininet.moduledeps import moduleDeps, pathCheck, TUN
 from mininet.link import Link, Intf, TCIntf, TCIntfWireless, OVSIntf, TCLinkWirelessAP
 from mininet.wmediumdConnector import WmediumdServerConn, WmediumdPosition, \
                                 WmediumdTXPower, WmediumdGain, WmediumdHeight
+from mininet.wifiPropagationModels import distanceByPropagationModel
 from re import findall
 from distutils.version import StrictVersion
 from mininet.wifiMobility import mobility
@@ -240,9 +241,18 @@ class Node(object):
                                 match u32 0 0 action mirred egress redirect dev ifb%s' % (self.params['wlan'][wlan], ifbID))
         self.ifb.append(ifbID)
 
-    def setRange(self, _range):
+    def setRange(self, _range=0):
         from mininet.wifiNet import mininetWiFi
-        self.params['range'] = _range
+        if _range == 0:
+            if self.type == 'accessPoint':
+                ap = self
+            else:
+                ap = self.params['associatedTo'][0]
+            wlan = 0
+            value = distanceByPropagationModel(ap, wlan)
+            self.params['range'] = int(value.dist)
+        else:
+            self.params['range'] = _range
         try:
             if mininetWiFi.DRAW:
                 if mininetWiFi.is3d:

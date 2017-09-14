@@ -944,7 +944,7 @@ class Mininet(object):
 
         if self.inNamespace:
             self.configureControlNetwork()
-        info('*** Configuring hosts\n')
+        info('*** Configuring nodes\n')
         self.configHosts()
         if self.xterms:
             self.startTerms()

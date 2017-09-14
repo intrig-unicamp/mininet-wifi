@@ -12,6 +12,7 @@ author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
 """
 
 import math
+from random import gauss
 
 class propagationModel(object):
     """ Propagation Models """
@@ -249,8 +250,12 @@ class distanceByPropagationModel(object):
     def logNormalShadowingPropagationLossModel(self, node, wlan):
         """Log-Normal Shadowing Propagation Loss Model"""
         referenceDistance = 1
-        gRandom = self.gRandom
         txpower = node.params['txpower'][wlan]
+        mean = 0
+        variance = 2
+        gRandom = float('%.2f' % gauss(mean, variance))
+        propagationModel.gRandom = gRandom
+
         pathLoss = self.pathLoss(node, referenceDistance, wlan) - gRandom
         self.dist = math.pow(10, ((95 - pathLoss + txpower) / (10 * self.exp)) + math.log10(referenceDistance))
 
