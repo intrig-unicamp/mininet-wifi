@@ -215,7 +215,7 @@ class distanceByPropagationModel(object):
 
         lambda_ = c / f  # lambda: wavelength (m)
         denominator = lambda_ ** 2
-        self.dist = math.pow(10, ((95 + 10 * math.log10(denominator)) / 10 - math.log10((4 * math.pi) ** 2 * L)) / (2 * L))
+        self.dist = math.pow(10, ((92 + 10 * math.log10(denominator)) / 10 - math.log10((4 * math.pi) ** 2 * L)) / (2 * L))
 
         return self.dist
 
@@ -244,7 +244,7 @@ class distanceByPropagationModel(object):
         referenceDistance = 1
         txpower = node.params['txpower'][wlan]
         pathLoss = self.pathLoss(node, referenceDistance, wlan)
-        self.dist = math.pow(10, ((95 - pathLoss + txpower) / (10 * self.exp)) + math.log10(referenceDistance))
+        self.dist = math.pow(10, ((92 - pathLoss + txpower) / (10 * self.exp)) + math.log10(referenceDistance))
 
         return self.dist
     
@@ -258,7 +258,7 @@ class distanceByPropagationModel(object):
         propagationModel.gRandom = gRandom
 
         pathLoss = self.pathLoss(node, referenceDistance, wlan) - gRandom
-        self.dist = math.pow(10, ((95 - pathLoss + txpower) / (10 * self.exp)) + math.log10(referenceDistance))
+        self.dist = math.pow(10, ((92 - pathLoss + txpower) / (10 * self.exp)) + math.log10(referenceDistance))
 
         return self.dist
 
@@ -268,6 +268,6 @@ class distanceByPropagationModel(object):
         N = 28  # Power Loss Coefficient
         lF = self.lF  # Floor penetration loss factor
         nFloors = self.nFloors  # Number of Floors
-        self.dist = math.pow(10, ((95 - 20 * math.log10(f) - lF * nFloors + 28)/N))
+        self.dist = math.pow(10, ((92 - 20 * math.log10(f) - lF * nFloors + 28)/N))
 
         return self.dist
