@@ -1198,8 +1198,8 @@ class mininetWiFi(object):
                                 mobility.handover(sta, ap, wlan)
 
     @classmethod
-    def propagationModel(self, stations, accessPoints, model, exp=2, sL=1, lF=0, pL=0, \
-                         nFloors=0, gRandom=0):
+    def propagationModel(self, stations, accessPoints, model, exp, sL, lF, pL, \
+                         nFloors, variance):
         """
         Attributes for Propagation Model
 
@@ -1216,8 +1216,9 @@ class mininetWiFi(object):
         propagationModel.sL = sL
         propagationModel.lF = lF
         propagationModel.nFloors = nFloors
-        propagationModel.gRandom = gRandom
+        propagationModel.variance = variance
         propagationModel.pL = pL
+
         for sta in stations:
             if 'position' in sta.params and sta not in mobility.stations:
                 mobility.stations.append(sta)

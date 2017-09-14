@@ -25,6 +25,7 @@ class propagationModel(object):
     pL = 0  # Power Loss Coefficient
     nFloors = 0  # Number of floors
     gRandom = 0  # Gaussian random variable
+    variance = 2 # variance
 
     def __init__(self, node1=None, node2=None, dist=0, wlan=0):
         """pT = Tx Power
@@ -252,7 +253,7 @@ class distanceByPropagationModel(object):
         referenceDistance = 1
         txpower = node.params['txpower'][wlan]
         mean = 0
-        variance = 2
+        variance = propagationModel.variance
         gRandom = float('%.2f' % gauss(mean, variance))
         propagationModel.gRandom = gRandom
 

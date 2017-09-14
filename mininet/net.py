@@ -1450,7 +1450,7 @@ class Mininet(object):
         """
         mininetWiFi.setChannelEquation(**params)
 
-    def propagationModel(self, model, exp=2, sL=1, lF=0, pL=0, nFloors=0, gRandom=0):
+    def propagationModel(self, model, exp=2, sL=1, lF=0, pL=0, nFloors=0, variance=2):
         """ 
         Attributes for Propagation Model 
         
@@ -1460,10 +1460,10 @@ class Mininet(object):
         :params lF: floor penetration loss factor
         :params pL: power Loss Coefficient
         :params nFloors: number of floors
-        :params gRandom: gaussian random variable
+        :params variance
         """
         mininetWiFi.propagationModel(self.stations, self.accessPoints, model, exp, sL, \
-                                     lF, pL, nFloors, gRandom)
+                                     lF, pL, nFloors, variance)
 
     def associationControl(self, ac):
         """
