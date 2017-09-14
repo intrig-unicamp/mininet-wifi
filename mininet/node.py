@@ -316,28 +316,28 @@ class Node(object):
         else:
             wlans = len(self.params['wlan'])
         for wlan in range(0, wlans):
-            WmediumdServerConn.send_position_update(WmediumdPosition(self.wmIface[wlan], \
+            WmediumdServerConn.update_position(WmediumdPosition(self.wmIface[wlan], \
                                             [float(posX), float(posY), float(posZ)]))
 
     def setGainWmediumd(self, wlan):
         "Set Antenna Gain for wmediumd"
         if WmediumdServerConn.interference_enabled:
             gain_ = self.params['antennaGain'][wlan]
-            WmediumdServerConn.send_gain_update(WmediumdGain(self.wmIface[wlan], \
+            WmediumdServerConn.update_gain(WmediumdGain(self.wmIface[wlan], \
                                             int(gain_)))
 
     def setHeightWmediumd(self, wlan):
         "Set Antenna Height for wmediumd"
         if WmediumdServerConn.interference_enabled:
             height_ = self.params['antennaHeight'][wlan]
-            WmediumdServerConn.send_height_update(WmediumdHeight(self.wmIface[wlan], \
+            WmediumdServerConn.update_height(WmediumdHeight(self.wmIface[wlan], \
                                             int(height_)))
 
     def setTXPowerWmediumd(self, wlan):
         "Set TxPower for wmediumd"
         if WmediumdServerConn.interference_enabled:
             txpower_ = self.params['txpower'][wlan]
-            WmediumdServerConn.send_txpower_update(WmediumdTXPower(self.wmIface[wlan], \
+            WmediumdServerConn.update_txpower(WmediumdTXPower(self.wmIface[wlan], \
                                                 int(txpower_)))
 
     def getTxPower(self, iface):

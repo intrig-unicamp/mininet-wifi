@@ -28,12 +28,6 @@ class propagationModel(object):
     variance = 2 # variance
 
     def __init__(self, node1=None, node2=None, dist=0, wlan=0):
-        """pT = Tx Power
-           gT = Tx Antenna Gain
-           gR = Rx Antenna Gain
-           hT = Tx Antenna Height
-           hR = Rx Antenna Height
-        """
         if self.model == '':
             self.model = 'friisPropagationLossModel'
         if self.model in dir(self):
@@ -212,10 +206,13 @@ class distanceByPropagationModel(object):
         f = node.params['frequency'][wlan] * 10 ** 9  # Convert Ghz to Hz
         c = 299792458.0
         L = self.sL
+        txpower = node.params['txpower'][wlan]
+        antGain  = node.params['antennaGain'][wlan]
+        gains = txpower + antGain
 
         lambda_ = c / f  # lambda: wavelength (m)
         denominator = lambda_ ** 2
-        self.dist = math.pow(10, ((92 + 10 * math.log10(denominator)) / 10 - math.log10((4 * math.pi) ** 2 * L)) / (2 * L))
+        self.dist = math.pow(10, ((90 + gains + 10 * math.log10(denominator)) / 10 - math.log10((4 * math.pi) ** 2 * L)) / (2))
 
         return self.dist
 
@@ -243,8 +240,10 @@ class distanceByPropagationModel(object):
         (dist) is the distance between the transmitter and the receiver (m)"""
         referenceDistance = 1
         txpower = node.params['txpower'][wlan]
+        antGain  = node.params['antennaGain'][wlan]
+        gains = txpower + antGain
         pathLoss = self.pathLoss(node, referenceDistance, wlan)
-        self.dist = math.pow(10, ((92 - pathLoss + txpower) / (10 * self.exp)) + math.log10(referenceDistance))
+        self.dist = math.pow(10, ((90 - pathLoss + gains) / (10 * self.exp)) + math.log10(referenceDistance))
 
         return self.dist
     
@@ -252,22 +251,27 @@ class distanceByPropagationModel(object):
         """Log-Normal Shadowing Propagation Loss Model"""
         referenceDistance = 1
         txpower = node.params['txpower'][wlan]
+        antGain  = node.params['antennaGain'][wlan]
+        gains = txpower + antGain
         mean = 0
         variance = propagationModel.variance
         gRandom = float('%.2f' % gauss(mean, variance))
         propagationModel.gRandom = gRandom
 
         pathLoss = self.pathLoss(node, referenceDistance, wlan) - gRandom
-        self.dist = math.pow(10, ((92 - pathLoss + txpower) / (10 * self.exp)) + math.log10(referenceDistance))
+        self.dist = math.pow(10, ((90 - pathLoss + gains) / (10 * self.exp)) + math.log10(referenceDistance))
 
         return self.dist
 
-    def ITUPropagationLossModel(self, sta, wlan):
+    def ITUPropagationLossModel(self, node, wlan):
         """International Telecommunication Union (ITU) Propagation Loss Model:"""
-        f = sta.params['frequency'][wlan] * 10 ** 3
+        f = node.params['frequency'][wlan] * 10 ** 3
+        txpower = node.params['txpower'][wlan]
+        antGain  = node.params['antennaGain'][wlan]
+        gains = txpower + antGain
         N = 28  # Power Loss Coefficient
         lF = self.lF  # Floor penetration loss factor
         nFloors = self.nFloors  # Number of Floors
-        self.dist = math.pow(10, ((92 - 20 * math.log10(f) - lF * nFloors + 28)/N))
+        self.dist = math.pow(10, ((90 + gains - 20 * math.log10(f) - lF * nFloors + 28)/N))
 
         return self.dist
