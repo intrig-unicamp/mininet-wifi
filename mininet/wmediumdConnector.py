@@ -848,7 +848,7 @@ class WmediumdServerConn(object):
         # type: (WmediumdHeight) -> None
         """
         Update the Antenna Height of a connection at wmediumd
-        :param gain The height to update
+        :param height The height to update
 
         :type height: WmediumdHeight
         """
@@ -951,10 +951,10 @@ class WmediumdServerConn(object):
         :param height: The WmediumdHeight to update
         :return: A WUPDATE_* constant
         """
-        height_ = height.sta_gain
+        height_ = height.sta_height
         debug("%s Updating Antenna Height of %s to %d\n" % (
             WmediumdConstants.LOG_PREFIX, height.staintfref.get_intf_mac(), height_))
-        cls.sock.send(cls.__create_gain_update_request(height))
+        cls.sock.send(cls.__create_height_update_request(height))
         return cls.__parse_response(WmediumdConstants.WSERVER_HEIGHT_UPDATE_RESPONSE_TYPE,
                                     cls.__height_update_response_struct)[-1]
 
