@@ -472,6 +472,8 @@ class mobility (object):
     @classmethod
     def parameters_(self, node=None):
         "Applies channel params and handover"
+        if WmediumdServerConn.interference_enabled:
+            self.setWmediumdPos(node)
         if node == None:
             nodes = self.stations
         else:
