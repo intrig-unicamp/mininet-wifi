@@ -243,13 +243,16 @@ class Node(object):
 
     def setRange(self, _range=0):
         from mininet.wifiNet import mininetWiFi
+        print self
         if _range == 0:
-            if self.type == 'accessPoint':
-                ap = self
+            if self.type == 'station':
+                node = self
+            elif self.type == 'accessPoint':
+                node = self
             else:
-                ap = self.params['associatedTo'][0]
+                node = self.params['associatedTo'][0]
             wlan = 0
-            value = distanceByPropagationModel(ap, wlan)
+            value = distanceByPropagationModel(node, wlan)
             self.params['range'] = int(value.dist)
         else:
             self.params['range'] = _range
@@ -264,7 +267,10 @@ class Node(object):
                     plot2d.graphPause()
         except:
             pass
-        mobility.parameters_()
+        if WmediumdServerConn.interference_enabled:
+            mobility.parameters_(node)
+        else:
+            mobility.parameters_()
 
     def setPosition(self, pos):
         from mininet.wifiNet import mininetWiFi

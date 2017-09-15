@@ -882,12 +882,6 @@ class mininetWiFi(object):
                     self.configureMacAddr(node)
             if node not in switches:
                 self.configureMacAddr(node)
-
-            if self.useWmediumd:
-                for wlan in range(0, len(node.params['channel'])):
-                    if node.params['range'] == 33 or node.params['range'] == 18:
-                        value = distanceByPropagationModel(node, wlan)
-                        node.params['range'] = int(value.dist)
         return stations, accessPoints
 
     @classmethod
@@ -1100,6 +1094,11 @@ class mininetWiFi(object):
         if not self.configureWiFiDirect and self.useWmediumd:
             self.configureWmediumd(stations, accessPoints)
             self.wmediumdConnect()
+            for node in nodes:
+                for wlan in range(0, len(node.params['channel'])):
+                    if node.params['range'] == 33 or node.params['range'] == 18:
+                        value = distanceByPropagationModel(node, wlan)
+                        node.params['range'] = int(value.dist)
         self.isWiFi = True
 
         for car in cars:

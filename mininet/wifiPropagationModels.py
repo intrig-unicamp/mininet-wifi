@@ -249,6 +249,8 @@ class distanceByPropagationModel(object):
     
     def logNormalShadowingPropagationLossModel(self, node, wlan):
         """Log-Normal Shadowing Propagation Loss Model"""
+        from mininet.wmediumdConnector import WmediumdGaussianRandom, WmediumdServerConn
+        from mininet.wifiNet import mininetWiFi
         referenceDistance = 1
         txpower = node.params['txpower'][wlan]
         antGain  = node.params['antennaGain'][wlan]
@@ -257,6 +259,9 @@ class distanceByPropagationModel(object):
         variance = propagationModel.variance
         gRandom = float('%.2f' % gauss(mean, variance))
         propagationModel.gRandom = gRandom
+
+        if mininetWiFi.enable_interference:
+            WmediumdServerConn.update_gaussian_random(WmediumdGaussianRandom(node.wmIface[wlan], gRandom))
 
         pathLoss = self.pathLoss(node, referenceDistance, wlan) - gRandom
         self.dist = math.pow(10, ((90 - pathLoss + gains) / (10 * self.exp)) + math.log10(referenceDistance))
