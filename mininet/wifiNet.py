@@ -1093,14 +1093,14 @@ class mininetWiFi(object):
         self.configureAPs(accessPoints, driver)
 
         if self.useWmediumd:
+            if not self.configureWiFiDirect:
+                self.configureWmediumd(stations, accessPoints)
+                self.wmediumdConnect()
             for node in nodes:
                 for wlan in range(0, len(node.params['channel'])):
                     if node.params['range'] == 33 or node.params['range'] == 18:
                         value = distanceByPropagationModel(node, wlan)
                         node.params['range'] = int(value.dist)
-            if not self.configureWiFiDirect:
-                self.configureWmediumd(stations, accessPoints)
-                self.wmediumdConnect()
 
         self.isWiFi = True
 
