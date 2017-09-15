@@ -266,10 +266,7 @@ class Node(object):
                     plot2d.graphPause()
         except:
             pass
-        if WmediumdServerConn.interference_enabled:
-            mobility.parameters_(node)
-        else:
-            mobility.parameters_()
+        mobility.parameters_()
 
     def setPosition(self, pos):
         from mininet.wifiNet import mininetWiFi
