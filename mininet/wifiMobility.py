@@ -27,6 +27,7 @@ from mininet.log import debug, info
 from mininet.wifiLink import link, Association
 from mininet.wifiAssociationControl import associationControl
 from mininet.wmediumdConnector import WmediumdServerConn
+from mininet.wifiPropagationModels import propagationModel
 from mininet.wifiPlot import plot2d, plot3d
 
 
@@ -339,6 +340,8 @@ class mobility (object):
                                 node.params['position'] = x, y, z
                         if DRAW:
                             plot.graphUpdate(node)
+                        if propagationModel.model == 'logNormalShadowingPropagationLossModel':
+                            node.getRange()
                     eval(self.continuePlot)
                     i += 1
             self.mobileNodes = []
@@ -350,7 +353,7 @@ class mobility (object):
         if is3d:
             plot = plot3d
             plot.instantiateGraph(MIN_X, MIN_Y, MIN_Z, MAX_X, MAX_Y, MAX_Z)
-            plot.graphInstantiateNodes(nodes)
+            plot.instantiateNodes(nodes)
         else:
             plot = plot2d
             plot.instantiateGraph(MIN_X, MIN_Y, MAX_X, MAX_Y)
@@ -448,6 +451,9 @@ class mobility (object):
                 node.params['position'] = '%.2f' % xy[i][0], '%.2f' % xy[i][1], 0.0
                 if WmediumdServerConn.interference_enabled:
                     self.setWmediumdPos(node)
+                    if propagationModel.model == 'logNormalShadowingPropagationLossModel':
+                        time.sleep(0.1)
+                        node.getRange()
                 i += 1
                 plot2d.graphUpdate(node)
             eval(self.continuePlot)
@@ -466,6 +472,9 @@ class mobility (object):
                 node.params['position'] = '%.2f' % xy[i][0], '%.2f' % xy[i][1], 0.0
                 if WmediumdServerConn.interference_enabled:
                     self.setWmediumdPos(node)
+                    if propagationModel.model == 'logNormalShadowingPropagationLossModel':
+                        time.sleep(0.1)
+                        node.getRange()
                 i += 1
             time.sleep(0.5)
 

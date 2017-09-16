@@ -115,6 +115,7 @@ from mininet.util import (quietRun, fixLimits, numCores, ensureRoot,
                            waitListening)
 from mininet.term import cleanUpScreens, makeTerms
 from mininet.wifiNet import mininetWiFi
+from mininet.wifiPropagationModels import propagationModel
 
 from __builtin__ import True
 
@@ -766,7 +767,8 @@ class Mininet(object):
                 if self.useWmediumd:
                     mininetWiFi.wlinks.append([sta, ap])
 
-        elif (node1.type == 'accessPoint' and node2.type == 'accessPoint' and 'link' in options and options['link'] == 'wds'):
+        elif (node1.type == 'accessPoint' and node2.type == 'accessPoint' and \
+                                        'link' in options and options['link'] == 'wds'):
             # If sta/ap have defined position
             if 'position' in node1.params and 'position' in node2.params:
                 mininetWiFi.srcConn.append(node1)
@@ -953,8 +955,15 @@ class Mininet(object):
 
         if mininetWiFi.isWiFi and not self.disableAutoAssociation and not mininetWiFi.isMobility:
             mininetWiFi.autoAssociation(self.stations, self.accessPoints)
-        if not mininetWiFi.isMobility and mininetWiFi.DRAW and not mininetWiFi.alreadyPlotted:
-            self.stations, self.accessPoints = mininetWiFi.plotCheck(self.stations, self.accessPoints)
+        if not mininetWiFi.isMobility and \
+                propagationModel.model == 'logNormalShadowingPropagationLossModel':
+            import threading
+            thread = threading.Thread(target=mininetWiFi.plotCheck, args=(self.stations, self.accessPoints))
+            thread.daemon = True
+            thread.start()
+        else:
+            if not mininetWiFi.isMobility and mininetWiFi.DRAW and not mininetWiFi.alreadyPlotted:
+                self.stations, self.accessPoints = mininetWiFi.plotCheck(self.stations, self.accessPoints)
         self.built = True
 
     def startTerms(self):

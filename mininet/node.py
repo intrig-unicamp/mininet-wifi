@@ -241,20 +241,20 @@ class Node(object):
                                 match u32 0 0 action mirred egress redirect dev ifb%s' % (self.params['wlan'][wlan], ifbID))
         self.ifb.append(ifbID)
 
+    def getRange(self):
+        if self.type == 'station':
+            node = self
+        elif self.type == 'accessPoint':
+            node = self
+        else:
+            node = self.params['associatedTo'][0]
+        wlan = 0
+        value = distanceByPropagationModel(node, wlan)
+        self.params['range'] = int(value.dist)
+
     def setRange(self, _range=0):
         from mininet.wifiNet import mininetWiFi
-        if _range == 0:
-            if self.type == 'station':
-                node = self
-            elif self.type == 'accessPoint':
-                node = self
-            else:
-                node = self.params['associatedTo'][0]
-            wlan = 0
-            value = distanceByPropagationModel(node, wlan)
-            self.params['range'] = int(value.dist)
-        else:
-            self.params['range'] = _range
+        self.params['range'] = _range
         try:
             if mininetWiFi.DRAW:
                 if mininetWiFi.is3d:

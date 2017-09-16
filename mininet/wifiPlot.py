@@ -59,7 +59,7 @@ class plot3d (object):
         node.pltNode = self.ax.plot_surface(x, y, z, alpha=0.2, edgecolor='none', color='black')
 
     @classmethod
-    def graphInstantiateNodes(self, nodes):
+    def instantiateNodes(self, nodes):
         """Instantiate Nodes"""
         for node in nodes:
             self.instantiateAnnotate(node)
@@ -258,7 +258,7 @@ class plot2d (object):
         node.pltCircle.set_radius(node.params['range'])
 
     @classmethod
-    def graphInstantiateNodes(self, node):
+    def instantiateNodes(self, node):
         self.instantiateAnnotate(node)
         self.instantiateCircle(node)
         self.instantiateNode(node)
@@ -271,7 +271,7 @@ class plot2d (object):
         for node in wifiNodes:
             x = '%.2f' % float(node.params['position'][0])
             y = '%.2f' % float(node.params['position'][1])
-            self.graphInstantiateNodes(node)
+            self.instantiateNodes(node)
             node.pltNode.set_data(x, y)
             self.text(node)
             self.circle(node)

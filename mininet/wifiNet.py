@@ -32,19 +32,20 @@ class mininetWiFi(object):
 
     AC = ''
     alternativeModule = ''
-    useWmediumd = False
+    alreadyPlotted = False
+    configureWiFiDirect = False
+    DRAW = False
+    enable_interference = False
+    ifb = False
     is3d = False
     isMobility = False
-    DRAW = False
-    alreadyPlotted = False
-    enable_interference = False
     isVanet = False
-    ifb = False
     isWiFi = False
-    configureWiFiDirect = False
+    plot = plot2d
+    useWmediumd = False
+    init_time = 0
     wifiRadios = 0
     seed_ = 10
-    init_time = 0
     MIN_X = 0
     MIN_Y = 0
     MIN_Z = 0
@@ -52,10 +53,10 @@ class mininetWiFi(object):
     MAX_Y = 0
     MAX_Z = 0
     nroads = 0
-    srcConn = []
     dstConn = []
-    wlinks = []
     plotNodes = []
+    srcConn = []
+    wlinks = []
 
     @classmethod
     def addParameters(self, node, autoSetMacs, params, mode='managed'):
@@ -902,18 +903,19 @@ class mininetWiFi(object):
             self.MIN_Z = min_z
             self.MAX_Z = max_z
             self.is3d = True
+            self.plot = plot3d
             mobility.continuePlot = 'plot3d.graphPause()'
 
     @classmethod
     def checkDimension(self, nodes):
         try:
             if self.is3d:
-                plot3d.instantiateGraph(self.MIN_X, self.MIN_Y, self.MIN_Z, self.MAX_X, self.MAX_Y, self.MAX_Z)
-                plot3d.graphInstantiateNodes(nodes)
+                self.plot.instantiateGraph(self.MIN_X, self.MIN_Y, self.MIN_Z, self.MAX_X, self.MAX_Y, self.MAX_Z)
+                self.plot.instantiateNodes(nodes)
             else:
-                plot2d.instantiateGraph(self.MIN_X, self.MIN_Y, self.MAX_X, self.MAX_Y)
-                plot2d.plotGraph(nodes, self.srcConn, self.dstConn)
-                plot2d.graphPause()
+                self.plot.instantiateGraph(self.MIN_X, self.MIN_Y, self.MAX_X, self.MAX_Y)
+                self.plot.plotGraph(nodes, self.srcConn, self.dstConn)
+                self.plot.graphPause()
         except:
             info('Warning: This OS does not support GUI. Running without GUI.\n')
             self.DRAW = False
@@ -1154,6 +1156,19 @@ class mininetWiFi(object):
                 nodes.append(sta)
 
         self.checkDimension(nodes)
+
+        if propagationModel.model == 'logNormalShadowingPropagationLossModel':
+            while True:
+                for node in nodes:
+                    node.getRange()
+                    if self.DRAW:
+                        if not self.is3d:
+                            self.plot.updateCircleRadius(node)
+                        self.plot.graphUpdate(node)
+                if self.DRAW:
+                    self.plot.graphUpdate(node)
+                eval(mobility.continuePlot)
+                sleep(1)
         return stas, aps
 
     @classmethod
@@ -1297,10 +1312,7 @@ class mininetWiFi(object):
         mobility.continuePlot = 'exit()'
         mobility.continueParams = 'exit()'
         sleep(2)
-        if self.is3d:
-            plot3d.closePlot()
-        else:
-            plot2d.closePlot()
+        self.plot.closePlot()
         module.stop()  # Stopping WiFi Module
 
         if self.useWmediumd:
