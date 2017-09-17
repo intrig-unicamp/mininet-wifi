@@ -222,7 +222,7 @@ class testWalkthrough(unittest.TestCase):
         "Start Mininet-WiFi with wifi direct, then test ping"
         p = pexpect.spawn(
             'python examples/wifiDirect.py')
-        sleep(15)
+        sleep(17)
         p.sendline('sta1 ping -c 1 sta2')
         p.expect('1 packets transmitted, 1 received')
         p.expect(self.prompt)
@@ -360,7 +360,7 @@ class testWalkthrough(unittest.TestCase):
         p.sendline('exit')
         p.wait()
 
-    def testWiFiMeshAP(self):
+    def testMeshAP(self):
         "Start Mininet-WiFi, then test wifiMeshAP.py"
         p = pexpect.spawn(
             'python examples/meshAP.py')
