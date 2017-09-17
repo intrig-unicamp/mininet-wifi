@@ -10,21 +10,21 @@ from mininet.link import TCLink
 
 def topology():
     "Create a network."
-    net = Mininet(controller=Controller, link=TCLink, accessPoint=OVSKernelAP)
+    net = Mininet(controller=Controller, link=TCLink, accessPoint=OVSKernelAP, enable_wmediumd=True, enable_interference=True)
 
     print "*** Creating nodes"
-    h1 = net.addHost('h1', mac='00:00:00:00:00:11')
-    h2 = net.addHost('h2', mac='00:00:00:00:00:12')
-    ap1 = net.addWirelessMeshAP('ap1')
-    ap2 = net.addWirelessMeshAP('ap2')
-    c0 = net.addController('c0', controller=Controller, ip='127.0.0.1', port=6653)
+    sta1 = net.addStation('sta1', mac='00:00:00:00:00:11')
+    sta2 = net.addStation('sta2', mac='00:00:00:00:00:12')
+    ap1 = net.addAccessPoint('ap1', wlans=2, type='mesh', ssid='ssid1', position='10,10,0')
+    ap2 = net.addAccessPoint('ap2', wlans=2, type='mesh', ssid='ssid2', position='30,10,0')
+    c0 = net.addController('c0', controller=Controller, ip='127.0.0.1', port=6633)
 
     print "*** Configuring wifi nodes"
     net.configureWifiNodes()
 
     print "*** Associating Stations"
-    net.addLink(h1, ap1)
-    net.addLink(h2, ap2)
+    net.addLink(sta1, ap1)
+    net.addLink(sta2, ap2)
     net.addMesh(ap1, ssid='mesh-ssid')
     net.addMesh(ap2, ssid='mesh-ssid')
 

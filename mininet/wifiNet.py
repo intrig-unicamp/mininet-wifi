@@ -87,8 +87,9 @@ class mininetWiFi(object):
         if (mode == 'managed'):
             node.params['apsInRange'] = []
             node.params['associatedTo'] = []
-            node.params['rssi'] = []
-            node.params['snr'] = []
+            if not self.enable_interference:
+                node.params['rssi'] = []
+                node.params['snr'] = []
             node.ifaceToAssociate = 0
             node.max_x = 0
             node.max_y = 0
@@ -259,7 +260,8 @@ class mininetWiFi(object):
 
     @classmethod
     def appendSNR(self, node):
-        node.params['snr'].append(40)
+        if not self.enable_interference:
+            node.params['snr'].append(40)
 
     @classmethod
     def appendEncrypt(self, node, n, passwd, encrypt):
@@ -276,7 +278,8 @@ class mininetWiFi(object):
 
     @classmethod
     def appendRSSI(self, node):
-        node.params['rssi'].append(-60)
+        if not self.enable_interference:
+            node.params['rssi'].append(-60)
 
     @classmethod
     def addIpParamToNode(self, node, wlans=0, autoSetMacs=False, params=None, isVirtualIface=False):
@@ -455,17 +458,22 @@ class mininetWiFi(object):
             if node.type == 'station':
                 wlan = node.ifaceToAssociate
             else:
-                wlan = 0
+                wlan = node.ifaceToAssociate
 
         node.func[wlan] = 'mesh'
+        node.params['txpower'][wlan] = 20
 
         options = { 'ip': ipAdd(params['nextIP'],
                                   ipBaseNum=params['ipBaseNum'],
                                   prefixLen=params['prefixLen']) + 
                                   '/%s' % params['prefixLen']}
-        node.params['ssid'] = []
-        for n in range(len(node.params['wlan'])):
+
+        if node.type == 'accessPoint':
             node.params['ssid'].append('')
+        else:
+            node.params['ssid'] = []
+            for n in range(len(node.params['wlan'])):
+                node.params['ssid'].append('')
 
         ip = ("%s" % params.pop('ip', {}))
         if ip == "{}":
@@ -482,8 +490,7 @@ class mininetWiFi(object):
         options['node'] = node
         options.update(params)
 
-        if node.type != 'WirelessMeshAP':
-            node.setMeshIface(node.params['wlan'][wlan])
+        node.setMeshIface(node.params['wlan'][wlan])
         if 'channel' in params:
             node.setChannel(node.params['wlan'][wlan], params['channel'])
 
@@ -510,6 +517,7 @@ class mininetWiFi(object):
             wlan = node.ifaceToAssociate
 
         node.func[wlan] = 'adhoc'
+        node.params['txpower'][wlan] = 20
 
         options = { 'ip': ipAdd(params['nextIP'],
                                   ipBaseNum=params['ipBaseNum'],
@@ -517,10 +525,8 @@ class mininetWiFi(object):
                                   '/%s' % params['prefixLen']}
         options.update(params)
 
-        node.params['cell'] = []
         node.params['ssid'] = []
         for w in range(0, len(node.params['wlan'])):
-            node.params['cell'].append('')
             node.params['ssid'].append('')
 
         ip = ("%s" % params.pop('ip', {}))
@@ -534,13 +540,6 @@ class mininetWiFi(object):
         else:
             node.params['ssid'][wlan] = 'adhocNetwork'
             node.params['associatedTo'][wlan] = 'adhocNetwork'
-
-        cell = ("%s" % params.pop('cell', {}))
-        if(cell != "{}"):
-            node.params['cell'][wlan] = cell
-        else:
-            if 'position' not in node.params:
-                node.params['cell'][wlan] = 'FE:4C:6A:B5:A9:7E'
 
         deviceRange(node)
 
@@ -755,63 +754,64 @@ class mininetWiFi(object):
         if 'phywlan' in ap.params:
             wlanID = 1
         for wlan in range(len(ap.params['wlan']) + wlanID):
-            if wlanID == 1:
-                wlan = 0
-            if 'encrypt' in ap.params and 'config' not in ap.params:
-                if ap.params['encrypt'][wlan] == 'wpa':
-                    ap.auth_algs = 1
-                    ap.wpa = 1
-                    if 'ieee80211r' in ap.params and ap.params['ieee80211r'] == 'yes':
-                        ap.wpa_key_mgmt = 'FT-EAP'
-                    else:
-                        ap.wpa_key_mgmt = 'WPA-EAP'
-                    ap.rsn_pairwise = 'TKIP CCMP'
-                    ap.wpa_passphrase = ap.params['passwd'][0]
-                elif ap.params['encrypt'][wlan] == 'wpa2':
-                    ap.auth_algs = 1
-                    ap.wpa = 2
-                    if 'ieee80211r' in ap.params and ap.params['ieee80211r'] == 'yes' and \
-                        'authmode' not in ap.params:
-                        ap.wpa_key_mgmt = 'FT-PSK'
-                    elif 'authmode' in ap.params and ap.params['authmode'] == '8021x':
-                        ap.wpa_key_mgmt = 'WPA-EAP'
-                    else:
-                        ap.wpa_key_mgmt = 'WPA-PSK'
-                    ap.rsn_pairwise = 'CCMP'
-                    if 'authmode' not in ap.params:
+            if ap.func[wlan] != 'mesh':
+                if wlanID == 1:
+                    wlan = 0
+                if 'encrypt' in ap.params and 'config' not in ap.params:
+                    if ap.params['encrypt'][wlan] == 'wpa':
+                        ap.auth_algs = 1
+                        ap.wpa = 1
+                        if 'ieee80211r' in ap.params and ap.params['ieee80211r'] == 'yes':
+                            ap.wpa_key_mgmt = 'FT-EAP'
+                        else:
+                            ap.wpa_key_mgmt = 'WPA-EAP'
+                        ap.rsn_pairwise = 'TKIP CCMP'
                         ap.wpa_passphrase = ap.params['passwd'][0]
-                elif ap.params['encrypt'][wlan] == 'wep':
-                    ap.auth_algs = 2
-                    ap.wep_key0 = ap.params['passwd'][0]
+                    elif ap.params['encrypt'][wlan] == 'wpa2':
+                        ap.auth_algs = 1
+                        ap.wpa = 2
+                        if 'ieee80211r' in ap.params and ap.params['ieee80211r'] == 'yes' and \
+                            'authmode' not in ap.params:
+                            ap.wpa_key_mgmt = 'FT-PSK'
+                        elif 'authmode' in ap.params and ap.params['authmode'] == '8021x':
+                            ap.wpa_key_mgmt = 'WPA-EAP'
+                        else:
+                            ap.wpa_key_mgmt = 'WPA-PSK'
+                        ap.rsn_pairwise = 'CCMP'
+                        if 'authmode' not in ap.params:
+                            ap.wpa_passphrase = ap.params['passwd'][0]
+                    elif ap.params['encrypt'][wlan] == 'wep':
+                        ap.auth_algs = 2
+                        ap.wep_key0 = ap.params['passwd'][0]
 
-            cls = AccessPoint
-            cls(ap, wlan=wlan, aplist=aplist)
+                cls = AccessPoint
+                cls(ap, wlan=wlan, aplist=aplist)
 
-            if 'phywlan' not in ap.params:
-                iface = ap.params['wlan'][wlan]
-            else:
-                iface = ap.params['phywlan']
+                if 'phywlan' not in ap.params:
+                    iface = ap.params['wlan'][wlan]
+                else:
+                    iface = ap.params['phywlan']
 
-            if not self.useWmediumd:
-                self.setBw(ap, wlan, iface)
+                if not self.useWmediumd:
+                    self.setBw(ap, wlan, iface)
 
-            if 'phywlan' in ap.params:
-                ap.params.pop("phywlan", None)
+                if 'phywlan' in ap.params:
+                    ap.params.pop("phywlan", None)
 
-            if ap.func[0] != 'ap':
-                ap.params['frequency'][wlan] = link.frequency(ap, 0)
-            link.recordParams(None, ap)
+                if ap.func[0] != 'ap':
+                    ap.params['frequency'][wlan] = link.frequency(ap, 0)
+                link.recordParams(None, ap)
 
-            if self.useWmediumd:
-                if len(ap.params['channel']) == 0:
-                    ap.params['channel'].append(1)
-                for wlan in range(0, len(ap.params['channel'])):
-                    if ap.params['range'] == 33 or ap.params['range'] == 18:
-                        value = distanceByPropagationModel(ap, wlan)
-                        ap.params['range'] = int(value.dist)
+                if self.useWmediumd:
+                    if len(ap.params['channel']) == 0:
+                        ap.params['channel'].append(1)
+                    for wlan in range(0, len(ap.params['channel'])):
+                        if ap.params['range'] == 33 or ap.params['range'] == 18:
+                            value = distanceByPropagationModel(ap, wlan)
+                            ap.params['range'] = int(value.dist)
 
-            if len(ap.params['ssid']) > 1 and wlan == 0:
-                break
+                if len(ap.params['ssid']) > 1 and wlan == 0:
+                    break
 
     @classmethod
     def customDataRate(self, node, wlan):
@@ -885,9 +885,6 @@ class mininetWiFi(object):
                 if node not in switches:
                     cls = TCLinkWirelessStation
                     cls(node, intfName1=node.params['wlan'][wlan])
-                if node.type == 'station' and node in switches:
-                    node.type = 'WirelessMeshAP'
-                    self.configureMacAddr(node)
             if node not in switches:
                 self.configureMacAddr(node)
         return stations, accessPoints
@@ -1063,17 +1060,12 @@ class mininetWiFi(object):
         :param node: node
         """
         for wlan in range(0, len(node.params['wlan'])):
-            if node.type == 'WirelessMeshAP':
-                node.setMeshIface(node.params['wlan'][wlan])
-                cls = TCLinkWirelessAP
-                cls(node, intfName1=node.params['wlan'][wlan])
             iface = node.params['wlan'][wlan]
             if node.params['mac'][wlan] == '':
                 node.params['mac'][wlan] = node.getMAC(iface)
             else:
-                if node.type != 'WirelessMeshAP':
-                    mac = node.params['mac'][wlan]
-                    node.setMAC(mac, iface)
+                mac = node.params['mac'][wlan]
+                node.setMAC(mac, iface)
 
     @classmethod
     def configureWifiNodes(self, stations, accessPoints, cars, switches, \

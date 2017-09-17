@@ -298,6 +298,7 @@ class Node(object):
         wlan = self.params['wlan'].index(iface)
         self.cmd('iw dev %s set channel %s' % (self.params['wlan'][wlan], value))
         self.params['channel'][wlan] = value
+        self.params['frequency'][wlan] = link.frequency(self, wlan)
 
     def setTxPower(self, iface, txpower):
         self.setTxPower_(iface, txpower)
@@ -675,7 +676,7 @@ class Node(object):
         debug('added intf %s (%s) to node %s\n' % (
                 intf, port, self.name))
         if self.inNamespace:
-            if hasattr(self, 'type') and self.type != 'WirelessMeshAP':
+            if hasattr(self, 'type'):
                 debug('moving', intf, 'into namespace for', self.name, '\n')
                 moveIntfFn(intf.name, self)
 
@@ -1288,7 +1289,7 @@ class AccessPoint(AP):
             cmd = cmd + ("interface=%s" % ap.params.get('phywlan'))  # the interface used by the AP
         cmd = cmd + ("\ndriver=%s" % ap.params['driver'])
 
-        if wlan > 0:
+        if wlan > 0 and not ap.func[1] == 'mesh':
             cmd = cmd + ("\nssid=%s-%s" % (ap.params['ssid'][0], wlan))  # ssid name
         else:
             cmd = cmd + ("\nssid=%s" % ap.params['ssid'][0])  # ssid name
@@ -1632,7 +1633,10 @@ class UserAP(AP):
         wlan = self.params['wlan'].index(iface)
         if self.func[wlan] == 'adhoc':
             self.cmd('iw dev %s set type managed' % self.params['wlan'][wlan])
-        iface = '%s-mp%s' % (self, wlan)
+        if self.func['wlan'][wlan] == 'mesh':
+            iface = '%s-mp%s' % (self, wlan+1)
+        else:
+            iface = '%s-mp%s' % (self, wlan)
         self.cmd('iw dev %s interface add %s type mp' % (self.params['wlan'][wlan], iface))
         self.cmd('ifconfig %s down' % iface)
         self.cmd('ip link set %s address %s' % (iface, self.params['mac'][wlan]))
@@ -1809,7 +1813,10 @@ class OVSAP(AP):
         wlan = self.params['wlan'].index(iface)
         if self.func[wlan] == 'adhoc':
             self.cmd('iw dev %s set type managed' % self.params['wlan'][wlan])
-        iface = '%s-mp%s' % (self, wlan)
+        if self.func[wlan] == 'mesh':
+            iface = '%s-mp%s' % (self, wlan+1)
+        else:
+            iface = '%s-mp%s' % (self, wlan)
         self.cmd('iw dev %s interface add %s type mp' % (self.params['wlan'][wlan], iface))
         self.cmd('ifconfig %s down' % iface)
         self.cmd('ip link set %s address %s' % (iface, self.params['mac'][wlan]))
