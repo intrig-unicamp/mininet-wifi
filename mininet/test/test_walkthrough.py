@@ -365,7 +365,7 @@ class testWalkthrough(unittest.TestCase):
         p = pexpect.spawn(
             'python examples/meshAP.py')
         sleep(3)
-        p.sendline('h1 ping -c1 h2')
+        p.sendline('sta1 ping -c1 sta2')
         p.expect('1 packets transmitted, 1 received')
         p.expect(self.prompt)
         p.sendline('exit')
@@ -428,7 +428,7 @@ class testWalkthrough(unittest.TestCase):
         p.sendline('exit')
         p.wait()
         p = pexpect.spawn(
-            'python examples/apadhoc.py -m')
+            'python examples/sta_ap_mode.py -m')
         sleep(10)
         p.sendline('py sta1.params[\'associatedTo\']')
         p.expect('Station ap2: ap2-wlan0:10.0.0.12')
