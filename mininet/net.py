@@ -1051,7 +1051,7 @@ class Mininet(object):
         lost = 0
         ploss = None
         if not hosts:
-            hosts = self.hosts
+            hosts = self.hosts + self.stations
             output('*** Ping: testing ping reachability\n')
         for node in hosts:
             output('%s -> ' % node.name)
@@ -1168,7 +1168,8 @@ class Mininet(object):
     def pingPairFull(self):
         """Ping between first two hosts, useful for testing.
            returns: ploss packet loss percentage"""
-        hosts = [ self.hosts[ 0 ], self.hosts[ 1 ] ]
+        nodes = self.hosts + self.stations
+        hosts = [ nodes[ 0 ], nodes[ 1 ] ]
         return self.pingFull(hosts=hosts)
 
     @staticmethod
@@ -1198,7 +1199,8 @@ class Mininet(object):
            note: send() is buffered, so client rate can be much higher than
            the actual transmission rate; on an unloaded system, server
            rate should be much closer to the actual receive rate"""
-        hosts = hosts or [ self.hosts[ 0 ], self.hosts[ -1 ] ]
+        nodes = self.hosts + self.stations
+        hosts = hosts or [ nodes[ 0 ], nodes[ -1 ] ]
         assert len(hosts) == 2
         client, server = hosts
 
