@@ -930,13 +930,14 @@ class Mininet(object):
         info('\n')
 
         info('*** Starting switches and/or access points\n')
-        for switch in self.switches:
+        nodesL2 = self.switches + self.accessPoints
+        for switch in nodesL2:
             info(switch.name + ' ')
             switch.start(self.controllers)
 
         started = {}
         for swclass, switches in groupby(
-                sorted(self.switches, key=type), type):
+                sorted(nodesL2, key=type), type):
             switches = tuple(switches)
             if hasattr(swclass, 'batchStartup'):
                 success = swclass.batchStartup(switches)
@@ -971,13 +972,14 @@ class Mininet(object):
         info('\n')
         info('*** Stopping switches and/or access points\n')
         stopped = {}
+        nodesL2 = self.switches + self.accessPoints
         for swclass, switches in groupby(
-                sorted(self.switches, key=type), type):
+                sorted(nodesL2, key=type), type):
             switches = tuple(switches)
             if hasattr(swclass, 'batchShutdown'):
                 success = swclass.batchShutdown(switches)
                 stopped.update({ s: s for s in success })
-        for switch in self.switches:
+        for switch in nodesL2:
             info(switch.name + ' ')
             if switch not in stopped:
                 switch.stop()
@@ -1530,8 +1532,8 @@ class MininetWithControlNet(Mininet):
         info(controller.name + ' <->')
         cip = ip
         snum = ipParse(ip)
-        nodes = self.switches + self.accessPoints 
-        for switch in nodes:
+        nodesL2 = self.switches + self.accessPoints 
+        for switch in nodesL2:
             info(' ' + switch.name)
             link = self.link(switch, controller, port1=0)
             sintf, cintf = link.intf1, link.intf2
@@ -1549,7 +1551,7 @@ class MininetWithControlNet(Mininet):
         while not cintf.isUp():
             info('*** Waiting for', cintf, 'to come up\n')
             sleep(1)
-        for switch in self.switches:
+        for switch in nodesL2:
             while not sintf.isUp():
                 info('*** Waiting for', sintf, 'to come up\n')
                 sleep(1)
