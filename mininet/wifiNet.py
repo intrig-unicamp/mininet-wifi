@@ -1124,8 +1124,9 @@ class mininetWiFi(object):
             else:
                 car.lastpos = [0, 0, 0]
             car.params['wlan'].append(0)
-            car.params['rssi'].append(0)
-            car.params['snr'].append(0)
+            if not self.enable_interference:
+                car.params['rssi'].append(0)
+                car.params['snr'].append(0)
             car.params['channel'].append(0)
             car.params['txpower'].append(0)
             car.params['antennaGain'].append(0)
