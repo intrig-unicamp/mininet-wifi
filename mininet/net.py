@@ -1086,7 +1086,7 @@ class Mininet(object):
         return ploss
 
     @staticmethod
-    def _parsePingFull(pingOutput):
+    def _parseFull(pingOutput):
         "Parse ping output and return all data."
         errorTuple = (1, 0, 0, 0, 0, 0)
         # Check for downed link
@@ -1157,7 +1157,8 @@ class Mininet(object):
     def pingPair(self):
         """Ping between first two hosts, useful for testing.
            returns: ploss packet loss percentage"""
-        hosts = [ self.hosts[ 0 ], self.hosts[ 1 ] ]
+        nodes = self.hosts + self.stations
+        hosts = [ nodes[ 0 ], nodes[ 1 ] ]
         return self.ping(hosts=hosts)
 
     def pingAllFull(self):
