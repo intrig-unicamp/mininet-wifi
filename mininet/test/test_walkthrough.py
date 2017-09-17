@@ -374,7 +374,7 @@ class testWalkthrough(unittest.TestCase):
     def testWirelessParams(self):
         """Start Mininet-WiFi with apadhoc, then do an extensive test"""
         p = pexpect.spawn(
-            'python examples/apadhoc.py')
+            'python examples/sta_ap_mode.py')
         sleep(5)
         p.sendline('sta1 iwconfig')
         p.expect('02:00:00:00:01:00')
