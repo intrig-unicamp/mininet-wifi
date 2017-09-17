@@ -1530,7 +1530,8 @@ class MininetWithControlNet(Mininet):
         info(controller.name + ' <->')
         cip = ip
         snum = ipParse(ip)
-        for switch in self.switches:
+        nodes = self.switches + self.accessPoints 
+        for switch in nodes:
             info(' ' + switch.name)
             link = self.link(switch, controller, port1=0)
             sintf, cintf = link.intf1, link.intf2
