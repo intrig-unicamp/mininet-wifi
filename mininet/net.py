@@ -131,7 +131,7 @@ class Mininet(object):
                   inNamespace=False, autoSetMacs=False, autoStaticArp=False, autoPinCpus=False,
                   listenPort=None, waitConnected=False, ssid="new-ssid", mode="g", channel="6",
                   enable_wmediumd=False, enable_interference=False, disableAutoAssociation=False,
-                  driver='nl80211', autoSetPositions=False, configureWiFiDirect=False):
+                  driver='nl80211', autoSetPositions=False, configureWiFiDirect=False, configureWDS=False):
         """Create Mininet object.
            topo: Topo (topology) object or None
            switch: default Switch class
@@ -194,6 +194,7 @@ class Mininet(object):
         self.disableAutoAssociation = disableAutoAssociation
 
         mininetWiFi.configureWiFiDirect = configureWiFiDirect
+        mininetWiFi.configureWDS = configureWDS
         mininetWiFi.isWiFi = isWiFi
         mininetWiFi.enable_interference = enable_interference
         Mininet.init()  # Initialize Mininet if necessary
@@ -774,21 +775,19 @@ class Mininet(object):
                 mininetWiFi.srcConn.append(node1)
                 mininetWiFi.dstConn.append(node2)
 
+            if mininetWiFi.enable_interference:
+                cls = WDSLink
+                cls(node1, node2)
+            else:
                 dist = mininetWiFi.getDistance(node1, node2)
                 if dist > node1.params['range']:
                     doAssociation = False
                 else:
                     doAssociation = True
-            else:
-                doAssociation = True
 
-            if(doAssociation):
-                cls = WDSLink
-                cls(node1, node2)
-
-                if not mininetWiFi.enable_interference:
-                    node1.setBw(node1, 0, node1.params['wlan'][0])
-                    node2.setBw(node2, 0, node2.params['wlan'][0])
+                if(doAssociation):
+                    cls = WDSLink
+                    cls(node1, node2)
         else:
             if 'link' in options:
                 options.pop('link', None)
@@ -940,7 +939,7 @@ class Mininet(object):
         if self.topo:
             self.buildFromTopo(self.topo)
 
-        if mininetWiFi.configureWiFiDirect and self.useWmediumd:
+        if (mininetWiFi.configureWDS or mininetWiFi.configureWiFiDirect) and self.useWmediumd:
             mininetWiFi.configureWmediumd(self.stations, self.accessPoints)
             mininetWiFi.wmediumdConnect()
 

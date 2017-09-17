@@ -485,8 +485,7 @@ class mininetWiFi(object):
         if node.type != 'WirelessMeshAP':
             node.setMeshIface(node.params['wlan'][wlan])
         if 'channel' in params:
-            node.cmd('iw dev %s set channel %s' % (node.params['wlan'][wlan], params['channel']))
-            node.params['channel'][wlan] = params['channel']
+            node.setChannel(node.params['wlan'][wlan], params['channel'])
 
         cls = Association
         cls.configureMesh(node, wlan)
@@ -553,6 +552,9 @@ class mininetWiFi(object):
         # Set default MAC - this should probably be in Link
         options.setdefault('addr1', self.randMac())
         enable_wmediumd = self.useWmediumd
+
+        if 'channel' in params:
+            node.setChannel(node.params['wlan'][wlan], params['channel'])
 
         cls = Association
         cls.configureAdhoc(node, wlan, enable_wmediumd)

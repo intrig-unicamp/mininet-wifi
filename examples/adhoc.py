@@ -21,9 +21,9 @@ def topology():
     net.configureWifiNodes()
 
     print "*** Creating links"
-    net.addHoc(sta1, ssid='adhocNet', mode='g')
-    net.addHoc(sta2, ssid='adhocNet', mode='g')
-    net.addHoc(sta3, ssid='adhocNet', mode='g')
+    net.addHoc(sta1, ssid='adhocNet', mode='g', channel=5)
+    net.addHoc(sta2, ssid='adhocNet', mode='g', channel=5)
+    net.addHoc(sta3, ssid='adhocNet', mode='g', channel=5)
 
     print "*** Starting network"
     net.build()

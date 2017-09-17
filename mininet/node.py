@@ -294,6 +294,11 @@ class Node(object):
         self.setHeightWmediumd(wlan)
         mobility.parameters_(self)
 
+    def setChannel(self, iface, value):
+        wlan = self.params['wlan'].index(iface)
+        self.cmd('iw dev %s set channel %s' % (self.params['wlan'][wlan], value))
+        self.params['channel'][wlan] = value
+
     def setTxPower(self, iface, txpower):
         self.setTxPower_(iface, txpower)
         mobility.parameters_(self)
