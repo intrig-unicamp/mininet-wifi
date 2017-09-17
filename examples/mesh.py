@@ -18,17 +18,17 @@ def topology():
     net = Mininet(enable_wmediumd=True, enable_interference=True)
 
     print "*** Creating nodes"
-    sta1 = net.addStation('sta1', channel=5, position='10,10,0')
-    sta2 = net.addStation('sta2', channel=5, position='50,10,0')
-    sta3 = net.addStation('sta3', channel=5, position='90,10,0')
+    sta1 = net.addStation('sta1', position='10,10,0')
+    sta2 = net.addStation('sta2', position='50,10,0')
+    sta3 = net.addStation('sta3', position='90,10,0')
 
     print "*** Configuring wifi nodes"
     net.configureWifiNodes()
 
     print "*** Creating links"
-    net.addMesh(sta1, ssid='meshNet')
-    net.addMesh(sta2, ssid='meshNet')
-    net.addMesh(sta3, ssid='meshNet')
+    net.addMesh(sta1, ssid='meshNet', channel=5)
+    net.addMesh(sta2, ssid='meshNet', channel=5)
+    net.addMesh(sta3, ssid='meshNet', channel=5)
 
     print "*** Starting network"
     net.build()

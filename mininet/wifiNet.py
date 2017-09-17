@@ -484,8 +484,9 @@ class mininetWiFi(object):
 
         if node.type != 'WirelessMeshAP':
             node.setMeshIface(node.params['wlan'][wlan])
-        if 'channel' in node.params:
-            node.cmd('iw dev %s set channel %s' % (node.params['wlan'][wlan], node.params['channel'][wlan]))
+        if 'channel' in params:
+            node.cmd('iw dev %s set channel %s' % (node.params['wlan'][wlan], params['channel']))
+            node.params['channel'][wlan] = params['channel']
 
         cls = Association
         cls.configureMesh(node, wlan)
