@@ -34,6 +34,7 @@ class mininetWiFi(object):
     alternativeModule = ''
     alreadyPlotted = False
     configureWiFiDirect = False
+    configureWDS = False
     DRAW = False
     enable_interference = False
     ifb = False
@@ -483,6 +484,9 @@ class mininetWiFi(object):
 
         if node.type != 'WirelessMeshAP':
             node.setMeshIface(node.params['wlan'][wlan])
+        if 'channel' in node.params:
+            node.cmd('iw dev %s set channel %s' % (node.params['wlan'][wlan], node.params['channel'][wlan]))
+
         cls = Association
         cls.configureMesh(node, wlan)
         if 'intf' not in params:
@@ -1095,7 +1099,7 @@ class mininetWiFi(object):
         self.configureAPs(accessPoints, driver)
 
         if self.useWmediumd:
-            if not self.configureWiFiDirect:
+            if not self.configureWiFiDirect and not self.configureWDS:
                 self.configureWmediumd(stations, accessPoints)
                 self.wmediumdConnect()
             for node in nodes:
