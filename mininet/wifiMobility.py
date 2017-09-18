@@ -148,8 +148,9 @@ class mobility (object):
                 cls.setSNRWmediumd(sta, ap, snr=-10)
             sta.pexec('iw dev %s disconnect' % sta.params['wlan'][wlan])
             sta.params['associatedTo'][wlan] = ''
-            sta.params['rssi'][wlan] = 0
-            sta.params['snr'][wlan] = 0
+            if not WmediumdServerConn.interference_enabled:
+                sta.params['rssi'][wlan] = 0
+                sta.params['snr'][wlan] = 0
             sta.params['channel'][wlan] = 0
         if sta in ap.params['associatedStations']:
             ap.params['associatedStations'].remove(sta)

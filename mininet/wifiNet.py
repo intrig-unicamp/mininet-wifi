@@ -684,7 +684,6 @@ class mininetWiFi(object):
                 isApAdhoc.append(sta)
 
         for ap in isApAdhoc:
-            #stations.remove(ap)
             ap.params.pop('rssi', None)
             ap.params.pop('snr', None)
             ap.params.pop('apsInRange', None)
