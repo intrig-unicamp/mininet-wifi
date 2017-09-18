@@ -684,7 +684,7 @@ class mininetWiFi(object):
                 isApAdhoc.append(sta)
 
         for ap in isApAdhoc:
-            stations.remove(ap)
+            #stations.remove(ap)
             ap.params.pop('rssi', None)
             ap.params.pop('snr', None)
             ap.params.pop('apsInRange', None)
@@ -882,11 +882,9 @@ class mininetWiFi(object):
         stations, accessPoints = self.checkAPAdhoc(stations, accessPoints)
         for node in nodes:
             for wlan in range(0, len(node.params['wlan'])):
-                if node not in switches:
-                    cls = TCLinkWirelessStation
-                    cls(node, intfName1=node.params['wlan'][wlan])
-            if node not in switches:
-                self.configureMacAddr(node)
+                cls = TCLinkWirelessStation
+                cls(node, intfName1=node.params['wlan'][wlan])
+            self.configureMacAddr(node)
         return stations, accessPoints
 
     @classmethod

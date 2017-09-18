@@ -308,9 +308,6 @@ class Mininet(object):
         sta = cls(name, **defaults)
         sta.type = 'station'
 
-        self.stations.append(sta)
-        self.nameToNode[ name ] = sta
-
         mininetWiFi.addParameters(sta, self.autoSetMacs, defaults)
 
         if 'type' in params and params['type'] == 'ap':
@@ -319,6 +316,9 @@ class Mininet(object):
                 sta.params['ssid'] = []
                 sta.params['ssid'].append('')
                 sta.params['ssid'][0] = params['ssid']
+
+        self.stations.append(sta)
+        self.nameToNode[ name ] = sta
 
         return sta
 
@@ -879,6 +879,13 @@ class Mininet(object):
             self.startTerms()
         if self.autoStaticArp:
             self.staticArp()
+
+        isApAdhoc = []
+        for sta in self.stations:
+            if sta.func[0] == 'ap':
+                isApAdhoc.append(sta)
+        for sta in isApAdhoc:
+            self.stations.remove(sta)
 
         if mininetWiFi.isWiFi and not self.disableAutoAssociation and not mininetWiFi.isMobility:
             mininetWiFi.autoAssociation(self.stations, self.accessPoints)

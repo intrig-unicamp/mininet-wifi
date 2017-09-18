@@ -372,7 +372,7 @@ class testWalkthrough(unittest.TestCase):
         p.wait()
 
     def testWirelessParams(self):
-        """Start Mininet-WiFi with apadhoc, then do an extensive test"""
+        """Start Mininet-WiFi with sta in ap mode, then do an extensive test"""
         p = pexpect.spawn(
             'python examples/sta_ap_mode.py')
         sleep(5)

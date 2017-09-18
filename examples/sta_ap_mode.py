@@ -39,9 +39,6 @@ def topology(mobility):
 	else:
 		pass
 
-	ap1.cmd('echo 1 > /proc/sys/net/ipv4/ip_forward')
-	ap2.cmdPrint('echo 1 > /proc/sys/net/ipv4/ip_forward')
-
 	print "*** Starting network"
 	net.build()
 
