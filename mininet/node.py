@@ -69,11 +69,13 @@ from mininet.moduledeps import moduleDeps, pathCheck, TUN
 from mininet.link import Link, Intf, TCIntf, TCIntfWireless, OVSIntf, TCLinkWirelessAP
 from mininet.wmediumdConnector import WmediumdServerConn, WmediumdPosition, \
                                 WmediumdTXPower, WmediumdGain, WmediumdHeight
+from mininet.wifiPropagationModels import distanceByPropagationModel
 from re import findall
 from distutils.version import StrictVersion
 from mininet.wifiMobility import mobility
 from mininet.wifiLink import link
 from mininet.wifiPlot import plot2d, plot3d
+from mininet.wifiLink import Association
 
 class Node(object):
     """A virtual network node is simply a shell in a network namespace.
@@ -178,18 +180,43 @@ class Node(object):
         # +m: disable job control notification
         self.cmd('unset HISTFILE; stty -echo; set +m')
 
-    @classmethod
-    def convertIfaceToMesh(self, node, wlan):
-        iface = '%s-mp%s' % (node, wlan)
-        node.cmd('iw dev %s interface add %s-mp%s type mp' % (node.params['wlan'][wlan], node, wlan))
-        node.cmd('ifconfig %s-mp%s down' % (node, wlan))
-        node.cmd('ip link set %s-mp%s address %s' % (node, wlan, node.params['mac'][wlan]))
-        node.cmd('ifconfig %s down' % node.params['wlan'][wlan])
-        node.params['wlan'][wlan] = iface
-        if (hasattr(self, 'type') and self.type != 'WirelessMeshAP') or (not hasattr(self, 'type')):
-            node.cmd('ifconfig %s %s up' % (node.params['wlan'][wlan], node.params['ip'][wlan]))
+    def setMeshIface(self, iface, ssid=''):
+        wlan = self.params['wlan'].index(iface)
+        if self.func[wlan] == 'adhoc':
+            self.cmd('iw dev %s set type managed' % self.params['wlan'][wlan])
+        iface = '%s-mp%s' % (self, wlan)
+        self.cmd('iw dev %s interface add %s type mp' % (self.params['wlan'][wlan], iface))
+        self.cmd('ifconfig %s down' % iface)
+        self.cmd('ip link set %s address %s' % (iface, self.params['mac'][wlan]))
+        self.cmd('ifconfig %s down' % self.params['wlan'][wlan])
+        self.params['wlan'][wlan] = iface
+        if ('ip' in self.params):
+            self.cmd('ifconfig %s %s up' % (self.params['wlan'][wlan], self.params['ip'][wlan]))
         else:
-            node.cmd('ifconfig %s up' % node.params['wlan'][wlan])
+            self.cmd('ifconfig %s up' % self.params['wlan'][wlan])
+        if ssid != '':
+            if 'ssid' not in self.params:
+                self.params['ssid'] = []
+                self.params['ssid'].append(0)
+            self.params['ssid'][wlan] = ssid
+            cls = Association
+            cls.configureMesh(self, wlan)
+
+    def setAdhocIface(self, iface, ssid=''):
+        wlan = self.params['wlan'].index(iface)
+        if self.func[wlan] == 'mesh':
+            self.cmd('iw dev %s del' % self.params['wlan'][wlan])
+            iface = '%s-wlan%s' % (self, wlan)
+            self.params['wlan'][wlan] = iface
+        else:
+            iface = self.params['wlan'][wlan]
+        if ssid != '':
+            if 'ssid' not in self.params:
+                self.params['ssid'] = []
+                self.params['ssid'].append(0)
+            self.params['ssid'][wlan] = ssid
+            cls = Association
+            cls.configureAdhoc(self, wlan, enable_wmediumd=True)
 
     def meshLeave(self, ssid):
         for key, val in self.params.items():
@@ -214,7 +241,18 @@ class Node(object):
                                 match u32 0 0 action mirred egress redirect dev ifb%s' % (self.params['wlan'][wlan], ifbID))
         self.ifb.append(ifbID)
 
-    def setRange(self, _range):
+    def getRange(self):
+        if self.type == 'station':
+            node = self
+        elif self.type == 'accessPoint':
+            node = self
+        else:
+            node = self.params['associatedTo'][0]
+        wlan = 0
+        value = distanceByPropagationModel(node, wlan)
+        self.params['range'] = int(value.dist)
+
+    def setRange(self, _range=0):
         from mininet.wifiNet import mininetWiFi
         self.params['range'] = _range
         try:
@@ -235,11 +273,13 @@ class Node(object):
         pos = pos.split(',')
         self.params['position'] = float(pos[0]), float(pos[1]), float(pos[2])
         if mininetWiFi.DRAW and not mininetWiFi.is3d:
-            plot2d.graphUpdate(self)
-            plot2d.graphPause()
+            if plot2d.fig_exists():
+                plot2d.graphUpdate(self)
+                plot2d.graphPause()
         elif mininetWiFi.DRAW and mininetWiFi.is3d:
-            plot3d.graphUpdate(self)
-            plot3d.graphPause()
+            if plot2d.fig_exists():
+                plot3d.graphUpdate(self)
+                plot3d.graphPause()
         mobility.parameters_(self)
 
     def setAntennaGain(self, iface, value):
@@ -253,6 +293,12 @@ class Node(object):
         self.params['antennaHeight'][wlan] = int(value)
         self.setHeightWmediumd(wlan)
         mobility.parameters_(self)
+
+    def setChannel(self, iface, value):
+        wlan = self.params['wlan'].index(iface)
+        self.cmd('iw dev %s set channel %s' % (self.params['wlan'][wlan], value))
+        self.params['channel'][wlan] = value
+        self.params['frequency'][wlan] = link.frequency(self, wlan)
 
     def setTxPower(self, iface, txpower):
         self.setTxPower_(iface, txpower)
@@ -274,32 +320,32 @@ class Node(object):
         posY = self.params['position'][1]
         posZ = self.params['position'][2]
         if self.type == 'vehicle':
-                wlans = 1
+            wlans = 1
         else:
             wlans = len(self.params['wlan'])
         for wlan in range(0, wlans):
-            WmediumdServerConn.send_position_update(WmediumdPosition(self.wmIface[wlan], \
+            WmediumdServerConn.update_position(WmediumdPosition(self.wmIface[wlan], \
                                             [float(posX), float(posY), float(posZ)]))
 
     def setGainWmediumd(self, wlan):
         "Set Antenna Gain for wmediumd"
         if WmediumdServerConn.interference_enabled:
             gain_ = self.params['antennaGain'][wlan]
-            WmediumdServerConn.send_gain_update(WmediumdGain(self.wmIface[wlan], \
+            WmediumdServerConn.update_gain(WmediumdGain(self.wmIface[wlan], \
                                             int(gain_)))
 
     def setHeightWmediumd(self, wlan):
         "Set Antenna Height for wmediumd"
         if WmediumdServerConn.interference_enabled:
             height_ = self.params['antennaHeight'][wlan]
-            WmediumdServerConn.send_height_update(WmediumdHeight(self.wmIface[wlan], \
+            WmediumdServerConn.update_height(WmediumdHeight(self.wmIface[wlan], \
                                             int(height_)))
 
     def setTXPowerWmediumd(self, wlan):
         "Set TxPower for wmediumd"
         if WmediumdServerConn.interference_enabled:
             txpower_ = self.params['txpower'][wlan]
-            WmediumdServerConn.send_txpower_update(WmediumdTXPower(self.wmIface[wlan], \
+            WmediumdServerConn.update_txpower(WmediumdTXPower(self.wmIface[wlan], \
                                                 int(txpower_)))
 
     def getTxPower(self, iface):
@@ -630,7 +676,7 @@ class Node(object):
         debug('added intf %s (%s) to node %s\n' % (
                 intf, port, self.name))
         if self.inNamespace:
-            if hasattr(self, 'type') and self.type != 'WirelessMeshAP':
+            if hasattr(self, 'type'):
                 debug('moving', intf, 'into namespace for', self.name, '\n')
                 moveIntfFn(intf.name, self)
 
@@ -1243,7 +1289,7 @@ class AccessPoint(AP):
             cmd = cmd + ("interface=%s" % ap.params.get('phywlan'))  # the interface used by the AP
         cmd = cmd + ("\ndriver=%s" % ap.params['driver'])
 
-        if wlan > 0:
+        if wlan > 0 and not ap.func[1] == 'mesh':
             cmd = cmd + ("\nssid=%s-%s" % (ap.params['ssid'][0], wlan))  # ssid name
         else:
             cmd = cmd + ("\nssid=%s" % ap.params['ssid'][0])  # ssid name
@@ -1583,6 +1629,47 @@ class UserAP(AP):
         # self.cmd('kill %ofprotocol')
         # super(UserAP, self).stop(deleteIntfs)
 
+    def setMeshIface(self, iface, ssid=''):
+        wlan = self.params['wlan'].index(iface)
+        if self.func[wlan] == 'adhoc':
+            self.cmd('iw dev %s set type managed' % self.params['wlan'][wlan])
+        if self.func['wlan'][wlan] == 'mesh':
+            iface = '%s-mp%s' % (self, wlan+1)
+        else:
+            iface = '%s-mp%s' % (self, wlan)
+        self.cmd('iw dev %s interface add %s type mp' % (self.params['wlan'][wlan], iface))
+        self.cmd('ifconfig %s down' % iface)
+        self.cmd('ip link set %s address %s' % (iface, self.params['mac'][wlan]))
+        self.cmd('ifconfig %s down' % self.params['wlan'][wlan])
+        self.params['wlan'][wlan] = iface
+        if ('ip' in self.params):
+            self.cmd('ifconfig %s %s up' % (self.params['wlan'][wlan], self.params['ip'][wlan]))
+        else:
+            self.cmd('ifconfig %s up' % self.params['wlan'][wlan])
+        if ssid != '':
+            self.params['ssid'][wlan] = ssid
+            cls = Association
+            cls.configureMesh(self, wlan)
+
+    def setAdhocIface(self, iface, ssid=''):
+        wlan = self.params['wlan'].index(iface)
+        if self.func[wlan] == 'mesh':
+            self.cmd('iw dev %s del' % self.params['wlan'][wlan])
+            iface = '%s-wlan%s' % (self, wlan)
+            self.params['wlan'][wlan] = iface
+        if ssid != '':
+            self.params['ssid'][wlan] = ssid
+            cls = Association
+            cls.configureAdhoc(self, wlan, enable_wmediumd=True)
+
+    def setManagedIface(self, iface):
+        wlan = self.params['wlan'].index(iface)
+        if self.func[wlan] == 'mesh':
+            self.cmd('iw dev %s del' % self.params['wlan'][wlan])
+            iface = '%s-wlan%s' % (self, wlan)
+            self.params['wlan'][wlan] = iface
+        self.cmd('iw dev %s set type managed' % (self.params['wlan'][wlan]))
+
     def renameIface(self, intf, newname):
         "Rename interface"
         self.pexec('ifconfig %s down' % intf)
@@ -1721,6 +1808,40 @@ class OVSAP(AP):
                                      uuid, 'is_connected'):
                 return True
         return self.failMode == 'standalone'
+
+    def setMeshIface(self, iface, ssid=''):
+        wlan = self.params['wlan'].index(iface)
+        if self.func[wlan] == 'adhoc':
+            self.cmd('iw dev %s set type managed' % self.params['wlan'][wlan])
+        if self.func[wlan] == 'mesh':
+            iface = '%s-mp%s' % (self, wlan+1)
+        else:
+            iface = '%s-mp%s' % (self, wlan)
+        self.cmd('iw dev %s interface add %s type mp' % (self.params['wlan'][wlan], iface))
+        self.cmd('ifconfig %s down' % iface)
+        self.cmd('ip link set %s address %s' % (iface, self.params['mac'][wlan]))
+        self.cmd('ifconfig %s down' % self.params['wlan'][wlan])
+        self.params['wlan'][wlan] = iface
+        if ('ip' in self.params):
+            self.cmd('ifconfig %s %s up' % (self.params['wlan'][wlan], self.params['ip'][wlan]))
+        else:
+            self.cmd('ifconfig %s up' % self.params['wlan'][wlan])
+        if ssid != '':
+            self.params['ssid'][wlan] = ssid
+            cls = Association
+            cls.configureMesh(self, wlan)
+
+    def setAdhocIface(self, iface, ssid=''):
+        wlan = self.params['wlan'].index(iface)
+        if self.func[wlan] == 'mesh':
+            self.cmd('iw dev %s del' % self.params['wlan'][wlan])
+            iface = '%s-wlan%s' % (self, wlan)
+        else:
+            iface = self.params['wlan'][wlan]
+        if ssid != '':
+            self.params['ssid'][wlan] = ssid
+            cls = Association
+            cls.configureAdhoc(self, wlan, enable_wmediumd=True)
 
     def intfOpts(self, intf):
         "Return OVS interface options for intf"

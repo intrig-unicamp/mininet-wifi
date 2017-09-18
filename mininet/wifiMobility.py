@@ -26,9 +26,8 @@ import os
 from mininet.log import debug, info
 from mininet.wifiLink import link, Association
 from mininet.wifiAssociationControl import associationControl
-from mininet.wifiAdHocConnectivity import pairingAdhocNodes
-from mininet.wifiMeshRouting import listNodes, meshRouting
 from mininet.wmediumdConnector import WmediumdServerConn
+from mininet.wifiPropagationModels import propagationModel
 from mininet.wifiPlot import plot2d, plot3d
 
 
@@ -46,6 +45,7 @@ class mobility (object):
 
     @classmethod
     def start(self, **mobilityparam):
+        debug('Starting mobility thread...\n')
         thread = threading.Thread(name='mobilityModel', target=self.models, kwargs=dict(mobilityparam,))
         thread.daemon = True
         thread.start()
@@ -148,8 +148,9 @@ class mobility (object):
                 cls.setSNRWmediumd(sta, ap, snr=-10)
             sta.pexec('iw dev %s disconnect' % sta.params['wlan'][wlan])
             sta.params['associatedTo'][wlan] = ''
-            sta.params['rssi'][wlan] = 0
-            sta.params['snr'][wlan] = 0
+            if not WmediumdServerConn.interference_enabled:
+                sta.params['rssi'][wlan] = 0
+                sta.params['snr'][wlan] = 0
             sta.params['channel'][wlan] = 0
         if sta in ap.params['associatedStations']:
             ap.params['associatedStations'].remove(sta)
@@ -176,10 +177,11 @@ class mobility (object):
             rssi_ = link.setRSSI(sta, ap, wlan, dist)
             ap.params['stationsInRange'][sta] = rssi_
         if ap == sta.params['associatedTo'][wlan]:
-            rssi_ = link.setRSSI(sta, ap, wlan, dist)
-            sta.params['rssi'][wlan] = rssi_
-            snr_ = link.setSNR(sta, wlan)
-            sta.params['snr'][wlan] = snr_
+            if not WmediumdServerConn.interference_enabled:
+                rssi_ = link.setRSSI(sta, ap, wlan, dist)
+                sta.params['rssi'][wlan] = rssi_
+                snr_ = link.setSNR(sta, wlan)
+                sta.params['snr'][wlan] = snr_
             if sta not in ap.params['associatedStations']:
                 ap.params['associatedStations'].append(sta)
             if dist >= 0.01:
@@ -338,10 +340,10 @@ class mobility (object):
                                     y = '%.2f' % (float(node.params['position'][1]) + float(node.moveFac[1]))
                                     z = '%.2f' % (float(node.params['position'][2]) + float(node.moveFac[2]))
                                 node.params['position'] = x, y, z
-                                if WmediumdServerConn.interference_enabled:
-                                    self.setWmediumdPos(node)
                         if DRAW:
                             plot.graphUpdate(node)
+                        if propagationModel.model == 'logNormalShadowingPropagationLossModel':
+                            node.getRange()
                     eval(self.continuePlot)
                     i += 1
             self.mobileNodes = []
@@ -353,7 +355,7 @@ class mobility (object):
         if is3d:
             plot = plot3d
             plot.instantiateGraph(MIN_X, MIN_Y, MIN_Z, MAX_X, MAX_Y, MAX_Z)
-            plot.graphInstantiateNodes(nodes)
+            plot.instantiateNodes(nodes)
         else:
             plot = plot2d
             plot.instantiateGraph(MIN_X, MIN_Y, MAX_X, MAX_Y)
@@ -451,6 +453,9 @@ class mobility (object):
                 node.params['position'] = '%.2f' % xy[i][0], '%.2f' % xy[i][1], 0.0
                 if WmediumdServerConn.interference_enabled:
                     self.setWmediumdPos(node)
+                    if propagationModel.model == 'logNormalShadowingPropagationLossModel':
+                        time.sleep(0.1)
+                        node.getRange()
                 i += 1
                 plot2d.graphUpdate(node)
             eval(self.continuePlot)
@@ -469,14 +474,15 @@ class mobility (object):
                 node.params['position'] = '%.2f' % xy[i][0], '%.2f' % xy[i][1], 0.0
                 if WmediumdServerConn.interference_enabled:
                     self.setWmediumdPos(node)
+                    if propagationModel.model == 'logNormalShadowingPropagationLossModel':
+                        time.sleep(0.1)
+                        node.getRange()
                 i += 1
             time.sleep(0.5)
 
     @classmethod
     def parameters_(self, node=None):
         "Applies channel params and handover"
-        if WmediumdServerConn.interference_enabled:
-            self.setWmediumdPos(node)
         if node == None:
             nodes = self.stations
         else:
@@ -507,22 +513,11 @@ class mobility (object):
         for node in nodes:
             for wlan in range(0, len(node.params['wlan'])):
                 if node.func[wlan] == 'mesh' or node.func[wlan] == 'adhoc':
-                    if not WmediumdServerConn.interference_enabled:
-                        if node.func[wlan] == 'adhoc':
-                            value = pairingAdhocNodes(node, wlan, self.adhocNodes)
-                            dist = value.dist
-                        else:
-                            if node.type == 'vehicle':
-                                node = node.params['carsta']
-                                wlan = 0
-                            dist = listNodes.pairingNodes(node, wlan, self.meshNodes)
-                        if not WmediumdServerConn.connected and dist >= 0.01:
-                            link(sta=node, wlan=wlan, dist=dist)
-                    else:
-                        if 'carsta' in node.params:
-                            car = node.params['carsta']
-                            car.params['position'] = node.params['position']
-                            node = car
+                    if 'carsta' in node.params:
+                        car = node.params['carsta']
+                        car.params['position'] = node.params['position']
+                        node = car
+                    if WmediumdServerConn.interference_enabled:
                         self.setWmediumdPos(node)
                 else:
                     if WmediumdServerConn.interference_enabled:
@@ -537,11 +532,7 @@ class mobility (object):
                         else:
                             self.checkAssociation(node, wlan)
                     else:
-                        self.checkAssociation(node, wlan)
-        if not WmediumdServerConn.interference_enabled:
-            if meshRouting.routing == 'custom':
-                meshRouting(self.meshNodes)
-        # have to verify this
+                        self.checkAssociation(node, wlan)        # have to verify this
         eval(self.continueParams)
 
 

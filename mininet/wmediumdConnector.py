@@ -49,6 +49,8 @@ class WmediumdConstants:
     WSERVER_GAIN_UPDATE_RESPONSE_TYPE = 18
     WSERVER_HEIGHT_UPDATE_REQUEST_TYPE = 19
     WSERVER_HEIGHT_UPDATE_RESPONSE_TYPE = 20
+    WSERVER_GAUSSIAN_RANDOM_UPDATE_REQUEST_TYPE = 21
+    WSERVER_GAUSSIAN_RANDOM_UPDATE_RESPONSE_TYPE = 22
 
     WUPDATE_SUCCESS = 0
     WUPDATE_INTF_NOTFOUND = 1
@@ -185,6 +187,17 @@ class WmediumdManager(object):
         :type gain: WmediumdGain
         """
         WmediumdServerConn.update_gain(gain)
+
+    @classmethod
+    def update_gaussian_random(cls, gRandom):
+        # type: (WmediumdGaussianRandom) -> None
+        """
+        Update the gRandom of a node at wmediumd
+        :param gRandom The gRandom to update
+
+        :type gRandom: WmediumdGaussianRandom
+        """
+        WmediumdServerConn.update_gaussian_random(gRandom)
 
     @classmethod
     def update_height(cls, height):
@@ -383,8 +396,8 @@ class WmediumdStarter(object):
                 elif propagationModel.model == 'twoRayGroundPropagationLossModel':
                     configstr += ');\n\tmodel_name = "two_ray_ground";\n\tsL = %d;\n};' % propagationModel.sL
                 elif propagationModel.model == 'logNormalShadowingPropagationLossModel':
-                    configstr += ');\n\tmodel_name = "log_normal_shadowing";\n\tpath_loss_exp = %.1f;\n\tgRandom = %d;\n\tsL = %d;\n};' \
-                                                % (propagationModel.exp, propagationModel.gRandom, propagationModel.sL)
+                    configstr += ');\n\tmodel_name = "log_normal_shadowing";\n\tpath_loss_exp = %.1f;\n\tsL = %d;\n};' \
+                                                % (propagationModel.exp, propagationModel.sL)
                 else:
                     configstr += ');\n\tmodel_name = "free_space";\n\tsL = %d;\n};' % propagationModel.sL
 
@@ -520,6 +533,18 @@ class WmediumdGain(object):
         self.staintfref = staintfref
         self.sta_gain = sta_gain
         
+class WmediumdGaussianRandom(object):
+    def __init__(self, staintfref, sta_gaussian_random):
+        """
+        Describes the Gaussian Random of a node
+
+        :param sta_gaussian_random: Instance of WmediumdGaussianRandomRef
+
+        :type sta_gaussian_random: WmediumdGaussianRandomRef
+        """
+        self.staintfref = staintfref
+        self.sta_gaussian_random = sta_gaussian_random
+
 class WmediumdHeight(object):
     def __init__(self, staintfref, sta_height):
         """
@@ -700,6 +725,11 @@ class WmediumdServerConn(object):
     __gain_update_request_struct = struct.Struct('!' + __gain_update_request_fmt)
     __gain_update_response_struct = struct.Struct('!' + __gain_update_response_fmt)
 
+    __gaussian_random_update_request_fmt = __base_struct_fmt + __mac_struct_fmt + 'f'
+    __gaussian_random_update_response_fmt = __base_struct_fmt + __gaussian_random_update_request_fmt + 'B'
+    __gaussian_random_update_request_struct = struct.Struct('!' + __gaussian_random_update_request_fmt)
+    __gaussian_random_update_response_struct = struct.Struct('!' + __gaussian_random_update_response_fmt)
+
     __height_update_request_fmt = __base_struct_fmt + __mac_struct_fmt + 'i'
     __height_update_response_fmt = __base_struct_fmt + __height_update_request_fmt + 'B'
     __height_update_request_struct = struct.Struct('!' + __height_update_request_fmt)
@@ -844,11 +874,24 @@ class WmediumdServerConn(object):
             raise WmediumdException("Received error code from wmediumd: code %d" % ret)
 
     @classmethod
+    def update_gaussian_random(cls, gRandom):
+        # type: (WmediumdGaussianRandom) -> None
+        """
+        Update the Gaussian Random of a connection at wmediumd
+        :param gRandom The gRandom to update
+
+        :type gRandom: WmediumdGaussianRandom
+        """
+        ret = WmediumdServerConn.send_gaussian_random_update(gRandom)
+        if ret != WmediumdConstants.WUPDATE_SUCCESS:
+            raise WmediumdException("Received error code from wmediumd: code %d" % ret)
+
+    @classmethod
     def update_height(cls, height):
         # type: (WmediumdHeight) -> None
         """
         Update the Antenna Height of a connection at wmediumd
-        :param gain The height to update
+        :param height The height to update
 
         :type height: WmediumdHeight
         """
@@ -944,6 +987,21 @@ class WmediumdServerConn(object):
                                     cls.__gain_update_response_struct)[-1]
 
     @classmethod
+    def send_gaussian_random_update(cls, gRandom):
+        # type: (WmediumdGaussianRandom) -> int
+        """
+        Send an update to the wmediumd server
+        :param gRandom: The WmediumdGaussianRandom to update
+        :return: A WUPDATE_* constant
+        """
+        gRandom_ = gRandom.sta_gaussian_random
+        debug("%s Updating Gaussian Random of %s to %f\n" % (
+            WmediumdConstants.LOG_PREFIX, gRandom.staintfref.get_intf_mac(), gRandom_))
+        cls.sock.send(cls.__create_gaussian_random_update_request(gRandom))
+        return cls.__parse_response(WmediumdConstants.WSERVER_GAUSSIAN_RANDOM_UPDATE_RESPONSE_TYPE,
+                                    cls.__gaussian_random_update_response_struct)[-1]
+
+    @classmethod
     def send_height_update(cls, height):
         # type: (WmediumdHeight) -> int
         """
@@ -951,10 +1009,10 @@ class WmediumdServerConn(object):
         :param height: The WmediumdHeight to update
         :return: A WUPDATE_* constant
         """
-        height_ = height.sta_gain
+        height_ = height.sta_height
         debug("%s Updating Antenna Height of %s to %d\n" % (
             WmediumdConstants.LOG_PREFIX, height.staintfref.get_intf_mac(), height_))
-        cls.sock.send(cls.__create_gain_update_request(height))
+        cls.sock.send(cls.__create_height_update_request(height))
         return cls.__parse_response(WmediumdConstants.WSERVER_HEIGHT_UPDATE_RESPONSE_TYPE,
                                     cls.__height_update_response_struct)[-1]
 
@@ -1058,6 +1116,14 @@ class WmediumdServerConn(object):
         mac = gain.staintfref.get_intf_mac().replace(':', '').decode('hex')
         gain_ = gain.sta_gain
         return cls.__gain_update_request_struct.pack(msgtype, mac, gain_)
+
+    @classmethod
+    def __create_gaussian_random_update_request(cls, gRandom):
+        # type: (WmediumdGaussianRandom) -> str
+        msgtype = WmediumdConstants.WSERVER_GAUSSIAN_RANDOM_UPDATE_REQUEST_TYPE
+        mac = gRandom.staintfref.get_intf_mac().replace(':', '').decode('hex')
+        gRandom_ = gRandom.sta_gaussian_random
+        return cls.__gaussian_random_update_request_struct.pack(msgtype, mac, gRandom_)
 
     @classmethod
     def __create_height_update_request(cls, height):

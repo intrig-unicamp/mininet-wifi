@@ -10,7 +10,7 @@ from mininet.wifiDevices import deviceDataRate
 from mininet.log import debug, info
 from wifiPropagationModels import propagationModel
 from mininet.wmediumdConnector import WmediumdServerConn, WmediumdSNRLink
-from mininet.link import TCLinkWirelessAP
+from mininet.link import TCLinkWirelessStation
 from scipy.spatial.distance import pdist
 
 class link (object):
@@ -92,24 +92,15 @@ class link (object):
         return rate
 
     @classmethod
-    def setRSSI(self, sta=None, ap=None, wlan=0, dist=0):
+    def setRSSI(self, node1=None, node2=None, wlan=0, dist=0):
         """set RSSI
         
-        :param sta: station
-        :param ap: access point
+        :param node1: station
+        :param node2: access point
         :param wlan: wlan ID
         :param dist: distance
         """
-        gT = 0
-        hT = 0
-        if ap != None:
-            pT = ap.params['txpower'][0]
-        else:
-            pT = sta.params['txpower'][wlan]
-        gR = sta.params['antennaGain'][wlan]
-        hR = sta.params['antennaHeight'][wlan]
-
-        value = propagationModel(sta, ap, dist, wlan, pT, gT, gR, hT, hR)
+        value = propagationModel(node1, node2, dist, wlan)
         return float(value.rssi)  # random.uniform(value.rssi-1, value.rssi+1)
 
     @classmethod
@@ -214,7 +205,6 @@ class link (object):
         :param node: node
         :param wlan: wlan ID
         """
-
         freq = 0
         if node.params['channel'][wlan] == 1:
             freq = 2.412
@@ -246,6 +236,46 @@ class link (object):
             freq = 5.22
         elif node.params['channel'][wlan] == 48:
             freq = 5.24
+        elif node.params['channel'][wlan] == 52:
+            freq = 5.26
+        elif node.params['channel'][wlan] == 56:
+            freq = 5.28
+        elif node.params['channel'][wlan] == 60:
+            freq = 5.30
+        elif node.params['channel'][wlan] == 64:
+            freq = 5.32
+        elif node.params['channel'][wlan] == 100:
+            freq = 5.50
+        elif node.params['channel'][wlan] == 104:
+            freq = 5.52
+        elif node.params['channel'][wlan] == 108:
+            freq = 5.54
+        elif node.params['channel'][wlan] == 112:
+            freq = 5.56
+        elif node.params['channel'][wlan] == 116:
+            freq = 5.58
+        elif node.params['channel'][wlan] == 120:
+            freq = 5.60
+        elif node.params['channel'][wlan] == 124:
+            freq = 5.62
+        elif node.params['channel'][wlan] == 128:
+            freq = 5.64
+        elif node.params['channel'][wlan] == 132:
+            freq = 5.66
+        elif node.params['channel'][wlan] == 136:
+            freq = 5.68
+        elif node.params['channel'][wlan] == 140:
+            freq = 5.70
+        elif node.params['channel'][wlan] == 149:
+            freq = 5.745
+        elif node.params['channel'][wlan] == 153:
+            freq = 5.765
+        elif node.params['channel'][wlan] == 157:
+            freq = 5.785
+        elif node.params['channel'][wlan] == 161:
+            freq = 5.805
+        elif node.params['channel'][wlan] == 165:
+            freq = 5.825
         return freq
 
 class Association(object):
@@ -254,35 +284,27 @@ class Association(object):
     bgscan = ''
 
     @classmethod
-    def configureAdhoc(self, sta, useWmediumd):
+    def configureAdhoc(self, node, wlan, enable_wmediumd):
         "Configure Wireless Ad Hoc"
-        wlan = sta.ifaceToAssociate
-        iface = sta.params['wlan'][wlan]
-        sta.params['rssi'][wlan] = -62
-        sta.params['snr'][wlan] = -62 - (-91.0)
-        sta.func[wlan] = 'adhoc'
-        sta.intfs[wlan].setIP(sta.params['ip'][wlan])
-        sta.cmd('iw dev %s set type ibss' % iface)
-        if 'position' not in sta.params or useWmediumd:
-            sta.params['associatedTo'][wlan] = sta.params['ssid'][wlan]
-            debug("associating %s to %s...\n" % (iface, sta.params['ssid'][wlan]))
-            sta.pexec('iwconfig %s channel %s essid %s ap 02:CA:FF:EE:BA:01 mode ad-hoc'\
-                       % (iface, sta.params['channel'][wlan], sta.params['associatedTo'][wlan]))
+        iface = node.params['wlan'][wlan]
+        node.func[wlan] = 'adhoc'
+        node.setIP(node.params['ip'][wlan], intf='%s' % iface)
+        node.cmd('iw dev %s set type ibss' % iface)
+        if 'position' not in node.params or enable_wmediumd:
+            node.params['associatedTo'][wlan] = node.params['ssid'][wlan]
+            debug("associating %s to %s...\n" % (iface, node.params['ssid'][wlan]))
+            node.pexec('iwconfig %s channel %s essid %s ap 02:CA:FF:EE:BA:01 mode ad-hoc'\
+                       % (iface, node.params['channel'][wlan], node.params['associatedTo'][wlan]))
             #sta.pexec('iwconfig %s ap %s' % (iface, sta.params['cell'][wlan]))
 
     @classmethod
     def configureMesh(self, node, wlan):
         "Configure Wireless Mesh Interface"
-        node.params['rssi'][wlan] = -62
-        node.params['snr'][wlan] = -62 - (-91.0)
-
+        node.func[wlan] = 'mesh'
         self.meshAssociation(node, wlan)
-
-        if 'link' in node.params and node.params['link'] == 'mesh':
-            cls = TCLinkWirelessAP
-            intf = '%s-mp%s' % (node, wlan)
-            cls(node, intfName1=intf)
-            node.setBw(node, wlan, intf)
+        if node.params['wlan'][wlan] not in str(node.intf):
+            cls = TCLinkWirelessStation
+            cls(node, intfName1=node.params['wlan'][wlan])
 
     @classmethod
     def meshAssociation(self, node, wlan):

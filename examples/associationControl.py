@@ -35,13 +35,6 @@ def topology():
     net.addLink(ap1, ap2)
     net.addLink(ap2, ap3)
 
-    print "*** Starting network"
-    net.build()
-    c1.start()
-    ap1.start([c1])
-    ap2.start([c1])
-    ap3.start([c1])
-
     """plotting graph"""
     net.plotGraph(max_x=120, max_y=120)
 
@@ -53,10 +46,17 @@ def topology():
 
     """ *** Available models:
                 RandomWalk, TruncatedLevyWalk, RandomDirection, RandomWayPoint, GaussMarkov
-	*** Association Control (AC) - mechanism that optimizes the use of the APs:
+    *** Association Control (AC) - mechanism that optimizes the use of the APs:
                 llf (Least-Loaded-First)
                 ssf (Strongest-Signal-First)"""
     net.startMobility(time=0, model='RandomWayPoint', max_x=120, max_y=120, min_v=0.3, max_v=0.5)
+
+    print "*** Starting network"
+    net.build()
+    c1.start()
+    ap1.start([c1])
+    ap2.start([c1])
+    ap3.start([c1])
 
     print "*** Running CLI"
     CLI(net)

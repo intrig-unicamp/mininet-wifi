@@ -760,44 +760,49 @@ class WDSLink(object):
            node2: second node
            intf: default interface class/constructor
            """
-
-        self.createWDSIface(node1)
-        self.createWDSIface(node2)
-        node1.params['mac'].append(node1.params['mac'][0][:3] + '01' + node1.params['mac'][0][5:])
-        node2.params['mac'].append(node2.params['mac'][0][:3] + '01' + node2.params['mac'][0][5:])
-        self.setWDSPeer(node1, node2)
-        self.setMac(node1)
-        self.setMac(node2)
-        self.bringWDSIfaceUP(node1)
-        self.bringWDSIfaceUP(node2)
-
-        params1 = {}
-        params2 = {}
-
-        params1[ 'port' ] = node1.newPort()
-        params2[ 'port' ] = node2.newPort()
-
-        cls = intf
-
         intfName1 = '%s-wds' % node1.name
         intfName2 = '%s-wds' % node2.name
+        intf1 = None
+        intf2 = None
 
-        node1.params['wlan'].append(intfName1)
-        node1.params['txpower'].append(14)
-        node1.params['mode'].append(node1.params['mode'][0])
-        node1.params['channel'].append(node1.params['channel'][0])
-        node1.params['frequency'].append(node1.params['frequency'][0])
+        if intfName1 not in node1.params['wlan']:
+            self.createWDSIface(node1)
+            node1.params['mac'].append(node1.params['mac'][0][:3] + '01' + node1.params['mac'][0][5:])
+            self.setMac(node1)
+        if intfName2 not in node2.params['wlan']:
+            self.createWDSIface(node2)
+            node2.params['mac'].append(node2.params['mac'][0][:3] + '01' + node2.params['mac'][0][5:])
+            self.setMac(node2)
 
-        node2.params['wlan'].append(intfName2)
-        node2.params['txpower'].append(14)
-        node2.params['mode'].append(node2.params['mode'][0])
-        node2.params['channel'].append(node2.params['channel'][0])
-        node2.params['frequency'].append(node2.params['frequency'][0])
+        if intfName1 not in node1.params['wlan']:
+            self.setWDSPeer(node1, node2)
+            self.bringWDSIfaceUP(node1)
+            params1 = {}
+            params1[ 'port' ] = node1.newPort()
 
-        intf1 = cls(name=intfName1, node=node1,
-                              link=self, **params1)
-        intf2 = cls(name=intfName2, node=node2,
-                              link=self, **params2)
+            cls = intf
+            node1.params['wlan'].append(intfName1)
+            node1.params['txpower'].append(14)
+            node1.params['mode'].append(node1.params['mode'][0])
+            node1.params['channel'].append(node1.params['channel'][0])
+            node1.params['frequency'].append(node1.params['frequency'][0])
+            intf1 = cls(name=intfName1, node=node1,
+                                  link=self, **params1)
+
+        if intfName2 not in node2.params['wlan']:
+            self.setWDSPeer(node2, node1)
+            self.bringWDSIfaceUP(node2)
+            params2 = {}
+            params2[ 'port' ] = node2.newPort()
+
+            cls = intf
+            node2.params['wlan'].append(intfName2)
+            node2.params['txpower'].append(14)
+            node2.params['mode'].append(node2.params['mode'][0])
+            node2.params['channel'].append(node2.params['channel'][0])
+            node2.params['frequency'].append(node2.params['frequency'][0])
+            intf2 = cls(name=intfName2, node=node2,
+                                  link=self, **params2)
         # All we are is dust in the wind, and our two interfaces
         self.intf1, self.intf2 = intf1, intf2
 
@@ -807,9 +812,8 @@ class WDSLink(object):
     def setMac(self, node):
         node.cmd('ifconfig %s-wds hw ether %s' % (node.name, node.params['mac'][1]))
 
-    def setWDSPeer(self, node1, node2):
-        node1.cmd('iw dev %s-wds set peer %s' % (node1.name, node2.params['mac'][1]))
-        node2.cmd('iw dev %s-wds set peer %s' % (node2.name, node1.params['mac'][1]))
+    def setWDSPeer(self, node, peer):
+        node.cmd('iw dev %s-wds set peer %s' % (node.name, peer.params['mac'][1]))
 
     def createWDSIface(self, node):
         node.cmd('iw dev %s interface add %s-wds type wds' % (node.params['wlan'][0], node.name))

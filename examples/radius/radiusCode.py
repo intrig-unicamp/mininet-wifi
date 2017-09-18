@@ -28,13 +28,13 @@ def topology():
     net.addLink(sta1, ap1)
     net.addLink(sta2, ap1)
 
+    print "*** Building graph"
+    net.plotGraph(max_x=300, max_y=300)
+
     print "*** Starting network"
     net.build()
     c0.start()
     ap1.start( [c0] )
-
-    print "*** Building graph"
-    net.plotGraph(max_x=300, max_y=300)
 
     print "*** Running CLI"
     CLI( net )

@@ -29,7 +29,7 @@ def instantiateGraph(mininet):
 
         if MIN_Z != 0 or MAX_Z!= 0:
             plot3d.instantiateGraph(MIN_X, MIN_Y, MIN_Z, MAX_X, MAX_Y, MAX_Z)
-            plot3d.graphInstantiateNodes(nodes)
+            plot3d.instantiateNodes(nodes)
             mininetWiFi.is3d = True
         else:
             plot2d.instantiateGraph(MIN_X, MIN_Y, MAX_X, MAX_Y)
