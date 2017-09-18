@@ -34,7 +34,7 @@ def topology():
     e4 = net.addAccessPoint('e4', ssid='vanet-ssid', mac='00:00:00:11:00:04', mode='g', channel='1', passwd='123456789a', encrypt='wpa2', position='3332.62,3253.92,0')
     e5 = net.addAccessPoint('e5', ssid='vanet-ssid', mac='00:00:00:11:00:05', mode='g', channel='6', passwd='123456789a', encrypt='wpa2', position='2887.62,2935.61,0')
     e6 = net.addAccessPoint('e6', ssid='vanet-ssid', mac='00:00:00:11:00:06', mode='g', channel='11', passwd='123456789a', encrypt='wpa2', position='2351.68,3083.40,0')
-    c1 = net.addController('c1', controller=Controller, ip='127.0.0.1', port=6653)
+    c1 = net.addController('c1', controller=Controller, ip='127.0.0.1', port=6633)
 
     net.propagationModel("logDistancePropagationLossModel", exp=2.5)
 

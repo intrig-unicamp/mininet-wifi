@@ -14,7 +14,7 @@ def topology():
 
     print "*** Creating nodes"
     sta1 = net.addStation('sta1', ip='10.0.0.1/8', position='10,10,0')
-    sta2 = net.addStation('sta2', ip='10.0.0.2/8', position='20,40,0')
+    sta2 = net.addStation('sta2', ip='10.0.0.2/8', position='20,20,0')
 
     print "*** Configuring Propagation Model"
     net.propagationModel("logDistancePropagationLossModel", exp=3.5)

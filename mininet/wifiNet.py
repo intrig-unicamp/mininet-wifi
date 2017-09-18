@@ -684,6 +684,8 @@ class mininetWiFi(object):
                 isApAdhoc.append(sta)
 
         for ap in isApAdhoc:
+            stations.remove(ap)
+            ap.setIP('%s' % ap.params['ip'][0], intf='%s' % ap.params['wlan'][0])
             ap.params.pop('rssi', None)
             ap.params.pop('snr', None)
             ap.params.pop('apsInRange', None)
@@ -878,12 +880,12 @@ class mininetWiFi(object):
         :param switches: list of switches
         """
         nodes = stations + cars
-        stations, accessPoints = self.checkAPAdhoc(stations, accessPoints)
         for node in nodes:
             for wlan in range(0, len(node.params['wlan'])):
                 cls = TCLinkWirelessStation
                 cls(node, intfName1=node.params['wlan'][wlan])
             self.configureMacAddr(node)
+        stations, accessPoints = self.checkAPAdhoc(stations, accessPoints)
         return stations, accessPoints
 
     @classmethod
@@ -1089,17 +1091,6 @@ class mininetWiFi(object):
         self.configureWirelessLink(stations, accessPoints, cars, switches)
         self.createVirtualIfaces(stations)
         self.configureAPs(accessPoints, driver)
-
-        if self.useWmediumd:
-            if not self.configureWiFiDirect and not self.configureWDS:
-                self.configureWmediumd(stations, accessPoints)
-                self.wmediumdConnect()
-            for node in nodes:
-                for wlan in range(0, len(node.params['channel'])):
-                    if node.params['range'] == 33 or node.params['range'] == 18:
-                        value = distanceByPropagationModel(node, wlan)
-                        node.params['range'] = int(value.dist)
-
         self.isWiFi = True
 
         for car in cars:
@@ -1130,6 +1121,16 @@ class mininetWiFi(object):
             car.params['antennaHeight'].append(0)
             car.params['associatedTo'].append('')
             car.params['frequency'].append(0)
+
+        if self.useWmediumd:
+            if not self.configureWiFiDirect and not self.configureWDS:
+                self.configureWmediumd(stations, accessPoints)
+                self.wmediumdConnect()
+            for node in nodes:
+                for wlan in range(0, len(node.params['channel'])):
+                    if node.params['range'] == 33 or node.params['range'] == 18:
+                        value = distanceByPropagationModel(node, wlan)
+                        node.params['range'] = int(value.dist)
 
         return stations, accessPoints
 

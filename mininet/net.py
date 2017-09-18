@@ -348,7 +348,6 @@ class Mininet(object):
         if not cls:
             cls = self.car
         car = cls(name, **defaults)
-        self.hosts.append(car)
 
         self.nameToNode[ name ] = car
         car.type = 'vehicle'
@@ -879,13 +878,6 @@ class Mininet(object):
             self.startTerms()
         if self.autoStaticArp:
             self.staticArp()
-
-        isApAdhoc = []
-        for sta in self.stations:
-            if sta.func[0] == 'ap':
-                isApAdhoc.append(sta)
-        for sta in isApAdhoc:
-            self.stations.remove(sta)
 
         if mininetWiFi.isWiFi and not self.disableAutoAssociation and not mininetWiFi.isMobility:
             mininetWiFi.autoAssociation(self.stations, self.accessPoints)
