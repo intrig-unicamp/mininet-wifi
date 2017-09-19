@@ -340,11 +340,15 @@ class mobility (object):
                                     y = '%.2f' % (float(node.params['position'][1]) + float(node.moveFac[1]))
                                     z = '%.2f' % (float(node.params['position'][2]) + float(node.moveFac[2]))
                                 node.params['position'] = x, y, z
-                        if DRAW:
-                            plot.graphUpdate(node)
+                        if WmediumdServerConn.interference_enabled:
+                            self.setWmediumdPos(node)
                         if propagationModel.model == 'logNormalShadowingPropagationLossModel':
                             node.getRange()
-                    eval(self.continuePlot)
+                        if DRAW:
+                            plot.graphUpdate(node)
+                            if not is3d:
+                                plot.updateCircleRadius(node)
+                        eval(self.continuePlot)
                     i += 1
             self.mobileNodes = []
         except:
@@ -448,15 +452,14 @@ class mobility (object):
         :param nodes: list of nodes
         """
         for xy in mob:
-            i = 0
-            for node in nodes:
-                node.params['position'] = '%.2f' % xy[i][0], '%.2f' % xy[i][1], 0.0
+            for idx, node in enumerate(nodes):
+                node.params['position'] = '%.2f' % xy[idx][0], '%.2f' % xy[idx][1], 0.0
                 if WmediumdServerConn.interference_enabled:
                     self.setWmediumdPos(node)
                     if propagationModel.model == 'logNormalShadowingPropagationLossModel':
-                        time.sleep(0.1)
+                        time.sleep(0.0001)
                         node.getRange()
-                i += 1
+                        plot2d.updateCircleRadius(node)
                 plot2d.graphUpdate(node)
             eval(self.continuePlot)
 
@@ -469,15 +472,13 @@ class mobility (object):
         :param nodes: list of nodes
         """
         for xy in mob:
-            i = 0
-            for node in nodes:
-                node.params['position'] = '%.2f' % xy[i][0], '%.2f' % xy[i][1], 0.0
+            for idx, node in enumerate(nodes):
+                node.params['position'] = '%.2f' % xy[idx][0], '%.2f' % xy[idx][1], 0.0
                 if WmediumdServerConn.interference_enabled:
                     self.setWmediumdPos(node)
                     if propagationModel.model == 'logNormalShadowingPropagationLossModel':
-                        time.sleep(0.1)
+                        time.sleep(0.0001)
                         node.getRange()
-                i += 1
             time.sleep(0.5)
 
     @classmethod
@@ -517,12 +518,9 @@ class mobility (object):
                         car = node.params['carsta']
                         car.params['position'] = node.params['position']
                         node = car
-                    if WmediumdServerConn.interference_enabled:
-                        self.setWmediumdPos(node)
                 else:
                     if WmediumdServerConn.interference_enabled:
                         if Association.bgscan != '':
-                            self.setWmediumdPos(node)
                             if node.params['associatedTo'][wlan] == '':
                                 for ap in self.accessPoints:
                                     cls = Association
