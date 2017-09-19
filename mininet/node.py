@@ -272,6 +272,9 @@ class Node(object):
         from mininet.wifiNet import mininetWiFi
         pos = pos.split(',')
         self.params['position'] = float(pos[0]), float(pos[1]), float(pos[2])
+        if self.type == 'vehicle':
+            car = self.params['carsta']
+            car.params['position'] = self.params['position']
         if mininetWiFi.DRAW and not mininetWiFi.is3d:
             if plot2d.fig_exists():
                 plot2d.graphUpdate(self)
@@ -282,6 +285,9 @@ class Node(object):
                 plot3d.graphPause()
         if WmediumdServerConn.interference_enabled:
             self.setPositionWmediumd()
+            if self.type == 'vehicle':
+                self = self.params['carsta']
+                self.setPositionWmediumd()
         mobility.parameters_(self)
 
     def setAntennaGain(self, iface, value):

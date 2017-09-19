@@ -13,7 +13,7 @@ from time import sleep
 
 from mininet.node import AccessPoint
 from mininet.log import info
-from mininet.wmediumdConnector import DynamicWmediumdIntfRef, WmediumdSNRLink, WmediumdStarter, \
+from mininet.wmediumdConnector import DynamicWmediumdIntfRef, WmediumdStarter, \
                     WmediumdTXPower, WmediumdPosition, WmediumdConstants, WmediumdServerConn
 from mininet.wifiLink import link, Association
 from mininet.wifiDevices import deviceRange, deviceDataRate
@@ -37,6 +37,8 @@ class mininetWiFi(object):
     configureWDS = False
     DRAW = False
     enable_interference = False
+    enable_spec_prob_link = False
+    enable_error_prob = False
     ifb = False
     is3d = False
     isMobility = False
@@ -57,7 +59,6 @@ class mininetWiFi(object):
     dstConn = []
     plotNodes = []
     srcConn = []
-    wlinks = []
 
     @classmethod
     def addParameters(self, node, autoSetMacs, params, mode='managed'):
@@ -659,11 +660,12 @@ class mininetWiFi(object):
                 for wlan in range(0, wlans):
                     positions.append(WmediumdPosition(node.wmIface[wlan], [posX, posY, posZ]))
                     txpowers.append(WmediumdTXPower(node.wmIface[wlan], float(node.params['txpower'][wlan])))
+        elif self.enable_spec_prob_link:
+            mode = WmediumdConstants.WMEDIUMD_MODE_SPECPROB
+        elif self.enable_error_prob:
+            mode = WmediumdConstants.WMEDIUMD_MODE_ERRPROB
         else:
             mode = WmediumdConstants.WMEDIUMD_MODE_SNR
-            for node in self.wlinks:
-                links.append(WmediumdSNRLink(node[0].wmIface[0], node[1].wmIface[0], node[0].params['snr'][0]))
-                links.append(WmediumdSNRLink(node[1].wmIface[0], node[0].wmIface[0], node[0].params['snr'][0]))
 
         WmediumdStarter.initialize(intfrefs, links, mode=mode, positions=positions, enable_interference=self.enable_interference, \
                                    auto_add_links=False, txpowers=txpowers, with_server=True)
@@ -1183,7 +1185,8 @@ class mininetWiFi(object):
                 if node.type == 'vehicle' and wlan == 1:
                     node = node.params['carsta']
                     wlan = 0
-                node.setTxPower_(node.params['wlan'][wlan], node.params['txpower'][wlan])
+                node.setTxPower_(node.params['wlan'][wlan], node.params['antennaGain'][wlan])
+                node.setAntennaGain(node.params['wlan'][wlan], node.params['antennaGain'][wlan])
 
         ap = []
         for node in accessPoints:
