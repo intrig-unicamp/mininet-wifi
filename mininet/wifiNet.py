@@ -1186,7 +1186,7 @@ class mininetWiFi(object):
                     node = node.params['carsta']
                     wlan = 0
                 node.setTxPower_(node.params['wlan'][wlan], node.params['antennaGain'][wlan])
-                node.setAntennaGain(node.params['wlan'][wlan], node.params['antennaGain'][wlan])
+                node.setAntennaGain_(node.params['wlan'][wlan], node.params['antennaGain'][wlan])
 
         ap = []
         for node in accessPoints:

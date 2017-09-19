@@ -296,6 +296,11 @@ class Node(object):
         self.setGainWmediumd(wlan)
         mobility.parameters_(self)
 
+    def setAntennaGain_(self, iface, value):
+        wlan = self.params['wlan'].index(iface)
+        self.params['antennaGain'][wlan] = int(value)
+        self.setGainWmediumd(wlan)
+
     def setAntennaHeight(self, iface, value):
         wlan = self.params['wlan'].index(iface)
         self.params['antennaHeight'][wlan] = int(value)
