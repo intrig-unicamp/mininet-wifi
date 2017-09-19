@@ -1166,7 +1166,7 @@ class mininetWiFi(object):
                 if self.DRAW:
                     self.plot.graphUpdate(node)
                 eval(mobility.continuePlot)
-                sleep(1)
+                sleep(0.5)
         return stas, aps
 
     @classmethod

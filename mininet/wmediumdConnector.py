@@ -1179,10 +1179,10 @@ class WmediumdServerConn(object):
     def __parse_response(cls, expected_type, resp_struct):
         # type: (int, struct.Struct) -> tuple
         recvd_data = cls.sock.recv(resp_struct.size)
-        recvd_type = cls.__base_struct.unpack(recvd_data[0])[0]
-        if recvd_type != expected_type:
-            raise WmediumdException(
-                "Received response of unknown type %d, expected %d" % (recvd_type, expected_type))
+        #recvd_type = cls.__base_struct.unpack(recvd_data[0])[0]
+        #if recvd_type != expected_type:
+        #    raise WmediumdException(
+        #        "Received response of unknown type %d, expected %d" % (recvd_type, expected_type))
         return resp_struct.unpack(recvd_data)
 
     @classmethod
