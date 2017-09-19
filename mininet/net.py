@@ -130,8 +130,9 @@ class Mininet(object):
                   build=True, xterms=False, cleanup=False, ipBase='10.0.0.0/8',
                   inNamespace=False, autoSetMacs=False, autoStaticArp=False, autoPinCpus=False,
                   listenPort=None, waitConnected=False, ssid="new-ssid", mode="g", channel="1",
-                  enable_wmediumd=False, enable_interference=False, disableAutoAssociation=False,
-                  driver='nl80211', autoSetPositions=False, configureWiFiDirect=False, configureWDS=False):
+                  enable_wmediumd=False, enable_interference=False, enable_spec_prob_link=False,
+                  enable_error_prob=False, disableAutoAssociation=False, driver='nl80211',
+                  autoSetPositions=False, configureWiFiDirect=False, configureWDS=False):
         """Create Mininet object.
            topo: Topo (topology) object or None
            switch: default Switch class
@@ -196,7 +197,9 @@ class Mininet(object):
         mininetWiFi.configureWiFiDirect = configureWiFiDirect
         mininetWiFi.configureWDS = configureWDS
         mininetWiFi.isWiFi = isWiFi
+        mininetWiFi.enable_error_prob = enable_error_prob
         mininetWiFi.enable_interference = enable_interference
+        mininetWiFi.enable_spec_prob_link = enable_spec_prob_link
         Mininet.init()  # Initialize Mininet if necessary
 
         self.built = False
@@ -550,13 +553,13 @@ class Mininet(object):
 
     def __iter__(self):
         "return iterator over node names"
-        for node in chain(self.hosts, self.switches, self.controllers, self.stations, self.accessPoints):
+        for node in chain(self.hosts, self.switches, self.controllers, self.stations, self.carsSTA, self.accessPoints):
             yield node.name
 
     def __len__(self):
         "returns number of nodes in net"
         return (len(self.hosts) + len(self.switches) +
-                 len(self.controllers) + len(self.stations) + len(self.accessPoints))
+                 len(self.controllers) + len(self.stations) + len(self.carsSTA) + len(self.accessPoints))
 
     def __contains__(self, item):
         "returns True if net contains named node"
@@ -690,9 +693,6 @@ class Mininet(object):
                     if not mininetWiFi.enable_interference:
                         cls(name=sta.params['wlan'][wlan], node=sta,
                                       link=None, tc=True, **params)
-
-                if self.useWmediumd:
-                    mininetWiFi.wlinks.append([sta, ap])
 
         elif (node1.type == 'accessPoint' and node2.type == 'accessPoint' and \
                                         'link' in options and options['link'] == 'wds'):
