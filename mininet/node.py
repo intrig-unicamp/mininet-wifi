@@ -280,6 +280,8 @@ class Node(object):
             if plot2d.fig_exists():
                 plot3d.graphUpdate(self)
                 plot3d.graphPause()
+        if WmediumdServerConn.interference_enabled:
+            self.setPositionWmediumd()
         mobility.parameters_(self)
 
     def setAntennaGain(self, iface, value):
