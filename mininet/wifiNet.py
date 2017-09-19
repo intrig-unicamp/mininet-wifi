@@ -1185,7 +1185,7 @@ class mininetWiFi(object):
                 if node.type == 'vehicle' and wlan == 1:
                     node = node.params['carsta']
                     wlan = 0
-                node.setTxPower_(node.params['wlan'][wlan], node.params['antennaGain'][wlan])
+                node.setTxPower_(node.params['wlan'][wlan], node.params['txpower'][wlan])
                 node.setAntennaGain_(node.params['wlan'][wlan], node.params['antennaGain'][wlan])
 
         ap = []
