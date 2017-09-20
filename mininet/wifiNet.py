@@ -1144,7 +1144,6 @@ class mininetWiFi(object):
         if mobility.stations == []:
             mobility.stations = stations
 
-        nodes = []
         nodes = self.plotNodes
 
         for ap in accessPoints:

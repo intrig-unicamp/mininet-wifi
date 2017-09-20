@@ -262,6 +262,11 @@ class Node(object):
         except:
             pass
 
+        def setRange(self, _range=0):
+            self.params['range'] = _range
+            self.updateGraph()
+            mobility.parameters_()
+
     def setPosition(self, pos):
         from mininet.wifiNet import mininetWiFi
         pos = pos.split(',')
