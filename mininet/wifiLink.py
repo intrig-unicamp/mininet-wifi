@@ -31,7 +31,6 @@ class link (object):
         :param dist: distance between source and destination
         """
 
-        # self.calculateInterference(node1, node2, dist, staList, wlan)
         delay_ = self.setDelay(dist)
         latency_ = self.setLatency(dist)
         loss_ = self.setLoss(dist)
@@ -158,40 +157,6 @@ class link (object):
                  "delay %.2fms" % (sta.params['wlan'][wlan], bw, loss, latency, delay)
             sta.pexec(tc)
                 # corrupt 0.1%%" % (sta.params['wlan'][wlan], bw, loss, latency, delay))
-
-    def calculateInterference (self, sta, ap, dist, staList, wlan):
-        """Calculating Interference"""
-        self.noise = 0
-        noisePower = 0
-        self.i = 0
-        signalPower = sta.params['rssi'][wlan]
-
-        if ap == None:
-            for station in staList:
-                if station != sta and sta.params['associatedTo'][wlan] != '':
-                    self.calculateNoise(sta, station, signalPower, wlan)
-        else:
-            for station in ap.params['associatedStations']:
-                if station != sta and sta.params['associatedTo'][wlan] != '':
-                    self.calculateNoise(sta, station, signalPower, wlan)
-        if self.noise != 0:
-            noisePower = self.noise / self.i
-            self.dist = self.dist + dist
-            signalPower = sta.params['rssi'][wlan]
-            snr = self.signalToNoiseRatio(signalPower, noisePower)
-            sta.params['snr'][wlan] = random.uniform(snr - 1, snr + 1)
-        else:
-            sta.params['snr'][wlan] = 0
-
-    def calculateNoise(self, sta, station, signalPower, wlan):
-        dist = self.getDistance(sta, station)
-        totalRange = sta.range + station.range
-        if dist < totalRange:
-            value = propagationModel(sta, station, dist, wlan)
-            n = value.rssi + signalPower
-            self.noise += n
-            self.i += 1
-            self.dist += dist
 
     def signalToNoiseRatio(self, signalPower, noisePower):
         """Calculating SNR margin"""
@@ -328,7 +293,7 @@ class Association(object):
         WmediumdServerConn.send_snr_update(WmediumdSNRLink(ap.wmIface[0], sta.wmIface[0], snr))
 
     @classmethod
-    def configureWirelessLink(self, sta, ap, wlan, useWmediumd=False):
+    def configureWirelessLink(self, sta, ap, wlan, useWmediumd=False, enable_interference=False):
         """ 
         Updates RSSI, SNR, and Others...
         
@@ -340,8 +305,9 @@ class Association(object):
         dist = link.getDistance(sta, ap)
         if dist <= ap.params['range']:
             for wlan in range(0, len(sta.params['wlan'])):
-                if sta.params['rssi'][wlan] == 0:
-                    self.updateParams(sta, ap, wlan)
+                if not enable_interference:
+                    if sta.params['rssi'][wlan] == 0:
+                        self.updateParams(sta, ap, wlan)
                 if sta.params['associatedTo'][wlan] == '' and ap not in sta.params['associatedTo']:
                     sta.params['associatedTo'][wlan] = ap
                     cls = Association
@@ -351,20 +317,20 @@ class Association(object):
                             link(sta, ap, wlan, dist)
                     if sta not in ap.params['associatedStations']:
                         ap.params['associatedStations'].append(sta)
-                rssi_ = link.setRSSI(sta, ap, wlan, dist)
-                sta.params['rssi'][wlan] = rssi_
-                snr_ = link.setSNR(sta, wlan)
-                sta.params['snr'][wlan] = snr_
+                if not enable_interference:
+                    rssi_ = link.setRSSI(sta, ap, wlan, dist)
+                    sta.params['rssi'][wlan] = rssi_
+                    snr_ = link.setSNR(sta, wlan)
+                    sta.params['snr'][wlan] = snr_
             if ap not in sta.params['apsInRange']:
                 sta.params['apsInRange'].append(ap)
-                ap.params['stationsInRange'][sta] = rssi_
+                if not enable_interference:
+                    ap.params['stationsInRange'][sta] = rssi_
             link.recordParams(sta, ap)
 
     @classmethod
-    def updateParams(self, sta, ap, wlan):
-        """ 
-        Updates values for frequency and channel
-        
+    def updateParams(self, sta, ap, wlan, interference_enabled=False):
+        """
         :param sta: station
         :param ap: access point
         :param wlan: wlan ID
@@ -372,13 +338,16 @@ class Association(object):
 
         sta.params['frequency'][wlan] = link.frequency(ap, 0)
         sta.params['channel'][wlan] = ap.params['channel'][0]
+        sta.params['mode'][wlan] = ap.params['mode'][0]
+        if interference_enabled:
+            sta.getRange()
 
     @classmethod
-    def associate(self, sta, ap, useWmediumd):
+    def associate(self, sta, ap, useWmediumd, enable_interference=False):
         """ Associate to Access Point """
         wlan = sta.ifaceToAssociate
         if 'position' in sta.params:
-            self.configureWirelessLink(sta, ap, wlan, useWmediumd)
+            self.configureWirelessLink(sta, ap, wlan, useWmediumd, enable_interference)
         else:
             self.associate_infra(sta, ap, wlan)
             sta.params['associatedTo'][wlan] = ap
