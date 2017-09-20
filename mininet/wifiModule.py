@@ -4,9 +4,10 @@ author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
 
 import glob
 import os
+import re
 import subprocess
 import logging
-from mininet.log import debug, info
+from mininet.log import debug, info, error
 
 class module(object):
     """ wireless module """
@@ -14,6 +15,8 @@ class module(object):
     wlan_list = []
     hwsim_ids = []
     prefix = ""
+    externally_managed = False
+    devices_created_dynamically = False
     phyID = 0
     useWmediumd = False
 
@@ -25,10 +28,59 @@ class module(object):
         :param alternativeModule: dir of a mac80211_hwsim alternative module
         """
         debug('Loading %s virtual interfaces\n' % wifiRadios)
-        if alternativeModule == '':
-            os.system('modprobe mac80211_hwsim radios=%s' % wifiRadios)
+        if not self.externally_managed:
+            if alternativeModule == '':
+                output_ = os.system('modprobe mac80211_hwsim radios=0 >/dev/null 2>&1')
+            else:
+                output_ = os.system('insmod %s radios=0 >/dev/null 2>&1' % alternativeModule)
+
+            """output_ is different of zero in Kernel 3.13.x. radios=0 doesn't work in such kernel version"""
+            if output_ == 0:
+                self.__create_hwsim_mgmt_devices(wifiRadios)
+            else:
+                if wifiRadios == 0:
+                    wifiRadios = 1 #Useful for tests in Kernels like Kernel 3.13.x
+                if alternativeModule == '':
+                    os.system('modprobe mac80211_hwsim radios=%s' % wifiRadios)
+                else:
+                    os.system('insmod %s radios=%s' % (alternativeModule, wifiRadios))
         else:
-            os.system('insmod %s radios=%s' % (alternativeModule, wifiRadios))
+            self.devices_created_dynamically = True
+            self.__create_hwsim_mgmt_devices(wifiRadios)
+
+    @classmethod
+    def __create_hwsim_mgmt_devices(cls, wifi_radios):
+        # generate prefix
+        phys = subprocess.check_output("find /sys/kernel/debug/ieee80211 -name hwsim | cut -d/ -f 6 | sort",
+                                       shell=True).split("\n")
+        num = 0
+        numokay = False
+        cls.prefix = ""
+        while not numokay:
+            cls.prefix = "mn%02ds" % num
+            numokay = True
+            for phy in phys:
+                if phy.startswith(cls.prefix):
+                    num += 1
+                    numokay = False
+                    break
+        try:
+            for i in range(0, wifi_radios):
+                p = subprocess.Popen(["hwsim_mgmt", "-c", "-n", cls.prefix + ("%02d" % i)], stdin=subprocess.PIPE,
+                                     stdout=subprocess.PIPE,
+                                     stderr=subprocess.PIPE, bufsize=-1)
+                output, err_out = p.communicate()
+                if p.returncode == 0:
+                    m = re.search("ID (\d+)", output)
+                    debug("\nCreated mac80211_hwsim device with ID %s" % m.group(1))
+                    cls.hwsim_ids.append(m.group(1))
+                else:
+                    error("\nError on creating mac80211_hwsim device with name %s" % (cls.prefix + ("%02d" % i)))
+                    error("\nOutput: %s" % output)
+                    error("\nError: %s" % err_out)
+        except:
+            print "Warning! If you already had Mininet-WiFi installed, please run util/install.sh -W \
+                                    and then make install. A new API for mac80211_hwsim has been created."
 
     @classmethod
     def stop(self):

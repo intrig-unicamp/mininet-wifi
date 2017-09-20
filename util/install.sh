@@ -162,6 +162,10 @@ function wifi_deps {
     sudo make && make install
     pushd $MININET_DIR/mininet-wifi/iw
     sudo make && make install
+    cd $BUILD_DIR
+    git clone --depth=1 https://github.com/ramonfontes/mac80211_hwsim_mgmt.git
+    pushd $BUILD_DIR/mac80211_hwsim_mgmt
+    sudo make install
 }
 
 # Install Mininet developer dependencies
