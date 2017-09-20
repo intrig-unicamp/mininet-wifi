@@ -267,6 +267,19 @@ class Node(object):
         self.updateGraph()
         mobility.parameters_()
 
+    def testPosition(self, pos):
+        pos = pos.split(',')
+        self.params['position'] = float(pos[0]), float(pos[1]), float(pos[2])
+        if self.type == 'vehicle':
+            car = self.params['carsta']
+            car.params['position'] = self.params['position']
+        if WmediumdServerConn.interference_enabled:
+            self.setPositionWmediumd()
+            if self.type == 'vehicle':
+                self = self.params['carsta']
+                self.setPositionWmediumd()
+        mobility.parameters_(self)
+
     def setPosition(self, pos):
         from mininet.wifiNet import mininetWiFi
         pos = pos.split(',')

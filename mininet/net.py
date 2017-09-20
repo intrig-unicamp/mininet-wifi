@@ -1312,6 +1312,37 @@ class Mininet(object):
         accessPoints = self.accessPoints
         mininetWiFi.stopMobility(stations, accessPoints, **kwargs)
 
+    def getSignalRange(self):
+        info('*** Getting the signal range automatically...\n')
+        if mininetWiFi.isVanet:
+            nodes = self.stations + self.cars
+            for node in nodes:
+                node_ = node
+                if node.type == 'vehicle':
+                    node = node.params['carsta']
+                ori_pos = node_.params['position']
+                signal = node.cmd('iw dev %s station dump | grep signal: | awk \'{print $2}\'' % node.params['wlan'][0])
+                for idx, signal_ in enumerate(signal.splitlines()):
+                    while signal_ >= -92:
+                        signal_ = int(node.cmd('iw dev %s station dump | grep signal: | awk \'NR==%s\' | awk \'{print $2}\'' % (node.params['wlan'][0], idx+1)))
+                        pos = node_.params['position']
+                        pos_ = pos[0] + 10
+                        node_.testPosition('%f,%f,%f' % (pos_, pos[1], pos[2]))
+                        sleep(0.1)
+                    mac = node.cmd('iw dev %s station dump | grep Station | awk \'NR==%s\' | awk \'{print $2}\'' % (node.params['wlan'][0], idx+1))
+                    mac = mac.splitlines()[0]
+                    for n in nodes:
+                        ref_node = n.params['carsta']
+                        if ref_node != node:
+                            if str(ref_node.params['mac'][0]) == str(mac):
+                                dist = mininetWiFi.getDistance(node_, ref_node)
+                                for n in nodes:
+                                    n.setRange(dist)
+                                    node_.testPosition('%f,%f,%f' % (ori_pos[0], ori_pos[1], ori_pos[2]))
+                                break
+                    break
+                break
+
     def useExternalProgram(self, program, **params):
         """
         Opens an external program
