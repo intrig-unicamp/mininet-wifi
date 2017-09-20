@@ -215,7 +215,7 @@ def moveIntfNoRetry(intf, dstNode, printError=False):
        intf: string, interface
         dstNode: destination Node
         printError: if true, print error"""
-    if (dstNode.type == 'station' or dstNode.type == 'vehicle' or dstNode.type == 'accessPoint') and 'eth' not in str(intf):
+    if (dstNode.type == 'station' or dstNode.type == 'vehicle' or dstNode.type == 'ap') and 'eth' not in str(intf):
         if dstNode.type == 'station' or dstNode.type == 'vehicle':
             return True
     else:
@@ -238,7 +238,7 @@ def moveIntf(intf, dstNode, printError=True,
        intf: string, interface
        dstNode: destination Node
        printError: if true, print error"""
-    if dstNode.type != 'accessPoint':
+    if dstNode.type != 'ap':
         retry(retries, delaySecs, moveIntfNoRetry, intf, dstNode,
                printError=printError)
 

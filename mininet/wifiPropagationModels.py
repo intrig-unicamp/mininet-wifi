@@ -208,7 +208,7 @@ class distanceByPropagationModel(object):
         L = self.sL
         txpower = node.params['txpower'][wlan]
         antGain  = node.params['antennaGain'][wlan]
-        gains = txpower + antGain
+        gains = txpower + (antGain * 2)
 
         lambda_ = c / f  # lambda: wavelength (m)
         denominator = lambda_ ** 2
@@ -241,7 +241,8 @@ class distanceByPropagationModel(object):
         referenceDistance = 1
         txpower = node.params['txpower'][wlan]
         antGain  = node.params['antennaGain'][wlan]
-        gains = txpower + antGain
+        gains = txpower + (antGain * 2)
+
         pathLoss = self.pathLoss(node, referenceDistance, wlan)
         self.dist = math.pow(10, ((90 - pathLoss + gains) / (10 * self.exp)) + math.log10(referenceDistance))
 
@@ -254,7 +255,7 @@ class distanceByPropagationModel(object):
         referenceDistance = 1
         txpower = node.params['txpower'][wlan]
         antGain  = node.params['antennaGain'][wlan]
-        gains = txpower + antGain
+        gains = txpower + (antGain * 2)
         mean = 0
         variance = propagationModel.variance
         gRandom = float('%.2f' % gauss(mean, variance))
@@ -273,7 +274,7 @@ class distanceByPropagationModel(object):
         f = node.params['frequency'][wlan] * 10 ** 3
         txpower = node.params['txpower'][wlan]
         antGain  = node.params['antennaGain'][wlan]
-        gains = txpower + antGain
+        gains = txpower + (antGain * 2)
         N = 28  # Power Loss Coefficient
         lF = self.lF  # Floor penetration loss factor
         nFloors = self.nFloors  # Number of Floors

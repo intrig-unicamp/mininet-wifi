@@ -108,7 +108,7 @@ from mininet.log import info, error, debug, output, warn
 from mininet.node import (Node, Host, Station, Car, OVSKernelSwitch, OVSKernelAP,
                           DefaultController, Controller)
 from mininet.nodelib import NAT
-from mininet.link import Link, Intf, WDSLink, TCIntfWireless
+from mininet.link import Link, Intf, _4addrLink, TCIntfWireless
 from mininet.wifiLink import Association
 from mininet.util import (quietRun, fixLimits, numCores, ensureRoot,
                            macColonHex, ipStr, ipParse, netParse, ipAdd,
@@ -132,7 +132,7 @@ class Mininet(object):
                   listenPort=None, waitConnected=False, ssid="new-ssid", mode="g", channel="1",
                   enable_wmediumd=False, enable_interference=False, enable_spec_prob_link=False,
                   enable_error_prob=False, disableAutoAssociation=False, driver='nl80211',
-                  autoSetPositions=False, configureWiFiDirect=False, configureWDS=False):
+                  autoSetPositions=False, configureWiFiDirect=False, configure4addr=False):
         """Create Mininet object.
            topo: Topo (topology) object or None
            switch: default Switch class
@@ -195,7 +195,7 @@ class Mininet(object):
         self.disableAutoAssociation = disableAutoAssociation
 
         mininetWiFi.configureWiFiDirect = configureWiFiDirect
-        mininetWiFi.configureWDS = configureWDS
+        mininetWiFi.configure4addr = configure4addr
         mininetWiFi.isWiFi = isWiFi
         mininetWiFi.enable_error_prob = enable_error_prob
         mininetWiFi.enable_interference = enable_interference
@@ -407,7 +407,7 @@ class Mininet(object):
             ap.params['inNamespace'] = True
 
         self.nameToNode[ name ] = ap
-        ap.type = 'accessPoint'
+        ap.type = 'ap'
 
         mininetWiFi.addParameters(ap, self.autoSetMacs, defaults, mode='master')
         if 'type' in params and params['type'] == 'mesh':
@@ -441,7 +441,7 @@ class Mininet(object):
             self.listenPort += 1
 
         self.nameToNode[ name ] = bs
-        bs.type = 'accessPoint'
+        bs.type = 'ap'
 
         wlan = ("%s" % params.pop('phywlan', {}))
         bs.params['phywlan'] = wlan
@@ -676,7 +676,7 @@ class Mininet(object):
 
             if(doAssociation):
                 cls = Association
-                cls.associate(sta, ap, self.useWmediumd)
+                cls.associate(sta, ap, self.useWmediumd, mininetWiFi.enable_interference)
                 if 'bw' not in params and 'mininet.util.TCIntfWireless' not in str(self.link):
                     value = mininetWiFi.setDataRate(sta, ap, wlan)
                     self.bw = value.rate
@@ -694,15 +694,15 @@ class Mininet(object):
                         cls(name=sta.params['wlan'][wlan], node=sta,
                                       link=None, tc=True, **params)
 
-        elif (node1.type == 'accessPoint' and node2.type == 'accessPoint' and \
-                                        'link' in options and options['link'] == 'wds'):
+        elif (node1.type == 'ap' and node2.type == 'ap' and \
+                                        'link' in options and options['link'] == '4addr'):
             # If sta/ap have defined position
             if 'position' in node1.params and 'position' in node2.params:
                 mininetWiFi.srcConn.append(node1)
                 mininetWiFi.dstConn.append(node2)
 
             if mininetWiFi.enable_interference:
-                cls = WDSLink
+                cls = _4addrLink
                 cls(node1, node2)
             else:
                 dist = mininetWiFi.getDistance(node1, node2)
@@ -712,7 +712,7 @@ class Mininet(object):
                     doAssociation = True
 
                 if(doAssociation):
-                    cls = WDSLink
+                    cls = _4addrLink
                     cls(node1, node2)
         else:
             if 'link' in options:
@@ -866,7 +866,7 @@ class Mininet(object):
         if self.topo:
             self.buildFromTopo(self.topo)
 
-        if (mininetWiFi.configureWDS or mininetWiFi.configureWiFiDirect) and self.useWmediumd:
+        if (mininetWiFi.configure4addr or mininetWiFi.configureWiFiDirect) and self.useWmediumd:
             mininetWiFi.configureWmediumd(self.stations, self.accessPoints)
             mininetWiFi.wmediumdConnect()
 
@@ -903,7 +903,7 @@ class Mininet(object):
         self.terms += makeTerms(self.switches, 'switch')
         self.terms += makeTerms(self.hosts, 'host')
         self.terms += makeTerms(self.stations, 'station')
-        self.terms += makeTerms(self.accessPoints, 'accessPoint')
+        self.terms += makeTerms(self.accessPoints, 'ap')
 
     def stopXterms(self):
         "Kill each xterm."
@@ -1312,6 +1312,37 @@ class Mininet(object):
         accessPoints = self.accessPoints
         mininetWiFi.stopMobility(stations, accessPoints, **kwargs)
 
+    def getSignalRange(self):
+        info('*** Getting the signal range automatically...\n')
+        if mininetWiFi.isVanet:
+            nodes = self.stations + self.cars
+            for node in nodes:
+                node_ = node
+                if node.type == 'vehicle':
+                    node = node.params['carsta']
+                ori_pos = node_.params['position']
+                signal = node.cmd('iw dev %s station dump | grep signal: | awk \'{print $2}\'' % node.params['wlan'][0])
+                for idx, signal_ in enumerate(signal.splitlines()):
+                    while signal_ >= -92:
+                        signal_ = int(node.cmd('iw dev %s station dump | grep signal: | awk \'NR==%s\' | awk \'{print $2}\'' % (node.params['wlan'][0], idx+1)))
+                        pos = node_.params['position']
+                        pos_ = pos[0] + 10
+                        node_.testPosition('%f,%f,%f' % (pos_, pos[1], pos[2]))
+                        sleep(0.1)
+                    mac = node.cmd('iw dev %s station dump | grep Station | awk \'NR==%s\' | awk \'{print $2}\'' % (node.params['wlan'][0], idx+1))
+                    mac = mac.splitlines()[0]
+                    for n in nodes:
+                        ref_node = n.params['carsta']
+                        if ref_node != node:
+                            if str(ref_node.params['mac'][0]) == str(mac):
+                                dist = mininetWiFi.getDistance(node_, ref_node)
+                                for n in nodes:
+                                    n.setRange(dist)
+                                    node_.testPosition('%f,%f,%f' % (ori_pos[0], ori_pos[1], ori_pos[2]))
+                                break
+                    break
+                break
+
     def useExternalProgram(self, program, **params):
         """
         Opens an external program
@@ -1452,8 +1483,8 @@ class Mininet(object):
             error('src not in network: %s\n' % src)
         elif dst not in self.nameToNode:
             error('dst not in network: %s\n' % dst)
-        if self.nameToNode[ src ].type == 'station' and self.nameToNode[ dst ].type == 'accessPoint' or \
-            self.nameToNode[ src ].type == 'accessPoint' and self.nameToNode[ dst ].type == 'station':
+        if self.nameToNode[ src ].type == 'station' and self.nameToNode[ dst ].type == 'ap' or \
+            self.nameToNode[ src ].type == 'ap' and self.nameToNode[ dst ].type == 'station':
             self.configWirelessLinkStatus(src, dst, status)
         else:
             src = self.nameToNode[ src ]

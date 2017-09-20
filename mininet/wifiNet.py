@@ -34,7 +34,7 @@ class mininetWiFi(object):
     alternativeModule = ''
     alreadyPlotted = False
     configureWiFiDirect = False
-    configureWDS = False
+    configure4addr = False
     DRAW = False
     enable_interference = False
     enable_spec_prob_link = False
@@ -212,7 +212,7 @@ class mininetWiFi(object):
         if mode == 'master' or 'ssid' in node.params:
             node.params['associatedStations'] = []
             node.params['stationsInRange'] = {}
-            node.wds = False
+            node._4addr = False
 
             if 'config' in node.params:
                 config = node.params['config']
@@ -403,7 +403,7 @@ class mininetWiFi(object):
             else:
                 node.params['txpower'] = []
                 for n in range(wlans):
-                    if node.type == 'accessPoint':
+                    if node.type == 'ap':
                         node.params['txpower'].append(14)
                     else:
                         node.params['txpower'].append(14)
@@ -469,7 +469,7 @@ class mininetWiFi(object):
                                   prefixLen=params['prefixLen']) + 
                                   '/%s' % params['prefixLen']}
 
-        if node.type == 'accessPoint':
+        if node.type == 'ap':
             node.params['ssid'].append('')
         else:
             node.params['ssid'] = []
@@ -1125,7 +1125,7 @@ class mininetWiFi(object):
             car.params['frequency'].append(0)
 
         if self.useWmediumd:
-            if not self.configureWiFiDirect and not self.configureWDS:
+            if not self.configureWiFiDirect and not self.configure4addr:
                 self.configureWmediumd(stations, accessPoints)
                 self.wmediumdConnect()
             for node in nodes:
@@ -1144,7 +1144,6 @@ class mininetWiFi(object):
         if mobility.stations == []:
             mobility.stations = stations
 
-        nodes = []
         nodes = self.plotNodes
 
         for ap in accessPoints:
@@ -1187,6 +1186,7 @@ class mininetWiFi(object):
                     wlan = 0
                 node.setTxPower_(node.params['wlan'][wlan], node.params['txpower'][wlan])
                 node.setAntennaGain_(node.params['wlan'][wlan], node.params['antennaGain'][wlan])
+                #node.setAntennaHeight_(node.params['wlan'][wlan], node.params['antennaHeight'][wlan])
 
         ap = []
         for node in accessPoints:

@@ -42,6 +42,12 @@ def topology():
     print "*** Configuring wifi nodes"
     net.configureWifiNodes()
 
+    sta1.setRange(15)
+    sta2.setRange(15)
+    sta3.setRange(15)
+    sta4.setRange(15)
+    sta5.setRange(15)
+
     """uncomment to plot graph"""
     net.plotGraph(max_x=100, max_y=100)
 
@@ -49,12 +55,6 @@ def topology():
     net.build()
     c0.start()
     ap1.start([c0])
-
-    sta1.setRange(15)
-    sta2.setRange(15)
-    sta3.setRange(15)
-    sta4.setRange(15)
-    sta5.setRange(15)
 
     sleep(2)
     sta1.cmd('iwconfig sta1-wlan0 essid %s ap %s' % (ap1.params['ssid'][1], ap1.params['mac'][1]))

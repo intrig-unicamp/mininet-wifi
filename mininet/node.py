@@ -218,11 +218,6 @@ class Node(object):
             cls = Association
             cls.configureAdhoc(self, wlan, enable_wmediumd=True)
 
-    def meshLeave(self, ssid):
-        for key, val in self.params.items():
-            if val == ssid:
-                self.cmd('iw dev %s-%s mesh leave' % (self, key))
-
     def getMAC(self, iface):
         """ get Mac Address of any Interface """
         _macMatchRegex = re.compile(r'..:..:..:..:..:..')
@@ -242,19 +237,19 @@ class Node(object):
         self.ifb.append(ifbID)
 
     def getRange(self):
-        if self.type == 'station':
+        if self.type == 'station' or self.type == 'vehicle':
             node = self
-        elif self.type == 'accessPoint':
+        elif self.type == 'ap':
             node = self
         else:
             node = self.params['associatedTo'][0]
         wlan = 0
         value = distanceByPropagationModel(node, wlan)
         self.params['range'] = int(value.dist)
+        self.updateGraph()
 
-    def setRange(self, _range=0):
+    def updateGraph(self):
         from mininet.wifiNet import mininetWiFi
-        self.params['range'] = _range
         try:
             if mininetWiFi.DRAW:
                 if mininetWiFi.is3d:
@@ -266,7 +261,24 @@ class Node(object):
                     plot2d.graphPause()
         except:
             pass
+
+    def setRange(self, _range=0):
+        self.params['range'] = _range
+        self.updateGraph()
         mobility.parameters_()
+
+    def testPosition(self, pos):
+        pos = pos.split(',')
+        self.params['position'] = float(pos[0]), float(pos[1]), float(pos[2])
+        if self.type == 'vehicle':
+            car = self.params['carsta']
+            car.params['position'] = self.params['position']
+        if WmediumdServerConn.interference_enabled:
+            self.setPositionWmediumd()
+            if self.type == 'vehicle':
+                self = self.params['carsta']
+                self.setPositionWmediumd()
+        mobility.parameters_(self)
 
     def setPosition(self, pos):
         from mininet.wifiNet import mininetWiFi
@@ -280,7 +292,7 @@ class Node(object):
                 plot2d.graphUpdate(self)
                 plot2d.graphPause()
         elif mininetWiFi.DRAW and mininetWiFi.is3d:
-            if plot2d.fig_exists():
+            if plot3d.fig_exists():
                 plot3d.graphUpdate(self)
                 plot3d.graphPause()
         if WmediumdServerConn.interference_enabled:
@@ -291,9 +303,7 @@ class Node(object):
         mobility.parameters_(self)
 
     def setAntennaGain(self, iface, value):
-        wlan = self.params['wlan'].index(iface)
-        self.params['antennaGain'][wlan] = int(value)
-        self.setGainWmediumd(wlan)
+        self.setAntennaGain_(iface, value)
         mobility.parameters_(self)
 
     def setAntennaGain_(self, iface, value):
@@ -302,10 +312,13 @@ class Node(object):
         self.setGainWmediumd(wlan)
 
     def setAntennaHeight(self, iface, value):
+        self.setAntennaHeight_(iface, value)
+        mobility.parameters_(self)
+
+    def setAntennaHeight_(self, iface, value):
         wlan = self.params['wlan'].index(iface)
         self.params['antennaHeight'][wlan] = int(value)
         self.setHeightWmediumd(wlan)
-        mobility.parameters_(self)
 
     def setChannel(self, iface, value):
         wlan = self.params['wlan'].index(iface)
@@ -326,6 +339,8 @@ class Node(object):
             self.params['txpower'][wlan] = power
             info('%s is the maximum supported tx power\n' % power)
         self.setTXPowerWmediumd(wlan)
+        if WmediumdServerConn.interference_enabled:
+            self.getRange()
 
     def setPositionWmediumd(self):
         "Set Position for wmediumd"
@@ -369,7 +384,7 @@ class Node(object):
             except:
                 txpower = 20
             return txpower
-        elif self.type == 'accessPoint':
+        elif self.type == 'ap':
             try:
                 txpower = int(self.cmd('iwconfig %s | grep Tx-Power | awk \'{print $5}\' | tr -d \"Tx-\" | tr -d \"Power=\"' % iface))
             except:
@@ -1287,12 +1302,12 @@ class AccessPoint(AP):
 
     writeMacAddress = False
 
-    def __init__ (self, ap, wlan=None, aplist=None, **params):
+    def __init__ (self, ap, wlan=None, aplist=None):
 
-        self.start_(ap, wlan, aplist, **params)
+        self.start_(ap, wlan, aplist)
 
     @classmethod
-    def start_(self, ap, wlan=None, aplist=None, **params):
+    def start_(self, ap, wlan=None, aplist=None):
         """ Starting Access Point """
         cmd = ("echo \'")
 
@@ -1306,7 +1321,7 @@ class AccessPoint(AP):
             cmd = cmd + ("\nssid=%s-%s" % (ap.params['ssid'][0], wlan))  # ssid name
         else:
             cmd = cmd + ("\nssid=%s" % ap.params['ssid'][0])  # ssid name
-
+        cmd = cmd + ('\nwds_sta=1')
         if ap.params['mode'][0] == 'n':
             if 'band' in ap.params:
                 if ap.params['band'] == 2.4:

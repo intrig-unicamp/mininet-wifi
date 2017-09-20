@@ -251,10 +251,9 @@ class mobility (object):
             sta.params['associatedTo'][wlan].params['associatedStations'].remove(sta)
             link.recordParams(sta, sta.params['associatedTo'][wlan])
         cls = Association
-        cls.updateParams(sta, ap, wlan)
+        cls.updateParams(sta, ap, wlan, WmediumdServerConn.interference_enabled)
         sta.params['associatedTo'][wlan] = ap
 
-        # necessary when a station is associated to a new AP
         if WmediumdServerConn.interference_enabled:
             self.updateWmediumdPos(sta)
 
@@ -487,7 +486,7 @@ class mobility (object):
         if node == None:
             nodes = self.stations
         else:
-            if node.type == 'accessPoint':
+            if node.type == 'ap':
                 nodes = self.stations
             else:
                 nodes = []
