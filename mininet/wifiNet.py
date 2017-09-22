@@ -1094,7 +1094,6 @@ class mininetWiFi(object):
         module.start(nodes, self.wifiRadios, self.alternativeModule, **params)
         self.configureWirelessLink(stations, accessPoints, cars, switches)
         self.createVirtualIfaces(stations)
-        self.configureAPs(accessPoints, driver)
         self.isWiFi = True
 
         for car in cars:
@@ -1142,6 +1141,7 @@ class mininetWiFi(object):
                             value = distanceByPropagationModel(node, wlan)
                             node.params['range'] = int(value.dist)
 
+        self.configureAPs(accessPoints, driver)
         return stations, accessPoints
 
     @classmethod

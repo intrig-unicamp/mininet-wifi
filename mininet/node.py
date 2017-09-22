@@ -69,6 +69,7 @@ from mininet.moduledeps import moduleDeps, pathCheck, TUN
 from mininet.link import Link, Intf, TCIntf, TCIntfWireless, OVSIntf, TCLinkWirelessAP
 from mininet.wmediumdConnector import WmediumdServerConn, WmediumdPosition, \
                                 WmediumdTXPower, WmediumdGain, WmediumdHeight
+from mininet.wifiPropagationModels import distanceByPropagationModel
 from re import findall
 from distutils.version import StrictVersion
 from mininet.wifiMobility import mobility
@@ -243,6 +244,9 @@ class Node(object):
         else:
             node = self.params['associatedTo'][0]
         wlan = 0
+        value = distanceByPropagationModel(node, wlan)
+        self.params['range'] = int(value.dist)
+        self.updateGraph()
 
     def updateGraph(self):
         from mininet.wifiNet import mininetWiFi

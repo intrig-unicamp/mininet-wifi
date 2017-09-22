@@ -381,7 +381,7 @@ class testWalkthrough(unittest.TestCase):
         p.expect('Station ap2: ap2-wlan0:192.168.1.10')
         p.expect(self.prompt)
         p.sendline('py sta2.params[\'apsInRange\']')
-        p.expect('Station ap2: ap2-wlan0:192.168.0.10')
+        p.expect('Station ap2: ap2-wlan0:192.168.1.10')
         p.expect(self.prompt)
         p.sendline('net')
         p.expect('ap1 ap1-wlan0:wireless ap1-eth1:ap2-eth1')
