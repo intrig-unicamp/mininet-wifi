@@ -805,15 +805,6 @@ class mininetWiFi(object):
                 if ap.func[0] != 'ap':
                     ap.params['frequency'][wlan] = link.frequency(ap, 0)
 
-                if self.useWmediumd:
-                    if len(ap.params['channel']) == 0:
-                        ap.params['channel'].append(1)
-                    if not self.getSignalRange:
-                        for wlan in range(0, len(ap.params['channel'])):
-                            if ap.params['range'] == 33 or ap.params['range'] == 18:
-                                value = distanceByPropagationModel(ap, wlan)
-                                ap.params['range'] = int(value.dist)
-
                 if len(ap.params['ssid']) > 1 and wlan == 0:
                     break
 
@@ -1094,6 +1085,7 @@ class mininetWiFi(object):
         module.start(nodes, self.wifiRadios, self.alternativeModule, **params)
         self.configureWirelessLink(stations, accessPoints, cars, switches)
         self.createVirtualIfaces(stations)
+        self.configureAPs(accessPoints, driver)
         self.isWiFi = True
 
         for car in cars:
@@ -1141,7 +1133,6 @@ class mininetWiFi(object):
                             value = distanceByPropagationModel(node, wlan)
                             node.params['range'] = int(value.dist)
 
-        self.configureAPs(accessPoints, driver)
         return stations, accessPoints
 
     @classmethod
