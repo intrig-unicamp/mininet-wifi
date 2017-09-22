@@ -69,7 +69,6 @@ from mininet.moduledeps import moduleDeps, pathCheck, TUN
 from mininet.link import Link, Intf, TCIntf, TCIntfWireless, OVSIntf, TCLinkWirelessAP
 from mininet.wmediumdConnector import WmediumdServerConn, WmediumdPosition, \
                                 WmediumdTXPower, WmediumdGain, WmediumdHeight
-from mininet.wifiPropagationModels import distanceByPropagationModel
 from re import findall
 from distutils.version import StrictVersion
 from mininet.wifiMobility import mobility
@@ -244,9 +243,6 @@ class Node(object):
         else:
             node = self.params['associatedTo'][0]
         wlan = 0
-        value = distanceByPropagationModel(node, wlan)
-        self.params['range'] = int(value.dist)
-        self.updateGraph()
 
     def updateGraph(self):
         from mininet.wifiNet import mininetWiFi
@@ -263,9 +259,17 @@ class Node(object):
             pass
 
     def setRange(self, _range=0):
+        from mininet.wifiNet import mininetWiFi
         self.params['range'] = _range
-        self.updateGraph()
-        mobility.parameters_()
+        if self.isStationary:
+            self.updateGraph()
+            mobility.parameters_()
+        else:
+            if mininetWiFi.is3d:
+                pass
+            else:
+                if plot2d.fig_exists():
+                    plot2d.updateCircleRadius(self)
 
     def testPosition(self, pos):
         pos = pos.split(',')
@@ -278,7 +282,6 @@ class Node(object):
             if self.type == 'vehicle':
                 self = self.params['carsta']
                 self.setPositionWmediumd()
-        mobility.parameters_(self)
 
     def setPosition(self, pos):
         from mininet.wifiNet import mininetWiFi
@@ -339,8 +342,6 @@ class Node(object):
             self.params['txpower'][wlan] = power
             info('%s is the maximum supported tx power\n' % power)
         self.setTXPowerWmediumd(wlan)
-        if WmediumdServerConn.interference_enabled:
-            self.getRange()
 
     def setPositionWmediumd(self):
         "Set Position for wmediumd"
@@ -410,7 +411,7 @@ class Node(object):
                     sta.cmd('iw dev %s disconnect' % iface)
                 if 'encrypt' not in ap.params:
                     sta.cmd('iwconfig %s essid %s ap %s' % (sta.params['wlan'][wlan], ap.params['ssid'][0], ap.params['mac'][0]))
-                    info ('%s now associated to %s\n' % (sta, ap))
+                    debug ('%s is now associated with %s\n' % (sta, ap))
                 else:
                     if ap.params['encrypt'][0] == 'wpa' or ap.params['encrypt'][0] == 'wpa2':
                         self.associate_wpa(ap, wlan)

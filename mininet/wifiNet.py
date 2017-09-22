@@ -46,6 +46,7 @@ class mininetWiFi(object):
     isWiFi = False
     plot = plot2d
     useWmediumd = False
+    getSignalRange = False
     init_time = 0
     wifiRadios = 0
     seed_ = 10
@@ -803,15 +804,15 @@ class mininetWiFi(object):
 
                 if ap.func[0] != 'ap':
                     ap.params['frequency'][wlan] = link.frequency(ap, 0)
-                link.recordParams(None, ap)
 
                 if self.useWmediumd:
                     if len(ap.params['channel']) == 0:
                         ap.params['channel'].append(1)
-                    for wlan in range(0, len(ap.params['channel'])):
-                        if ap.params['range'] == 33 or ap.params['range'] == 18:
-                            value = distanceByPropagationModel(ap, wlan)
-                            ap.params['range'] = int(value.dist)
+                    if not self.getSignalRange:
+                        for wlan in range(0, len(ap.params['channel'])):
+                            if ap.params['range'] == 33 or ap.params['range'] == 18:
+                                value = distanceByPropagationModel(ap, wlan)
+                                ap.params['range'] = int(value.dist)
 
                 if len(ap.params['ssid']) > 1 and wlan == 0:
                     break
@@ -967,7 +968,8 @@ class mininetWiFi(object):
         if mobilityModel != '' or self.isVanet:
             stationaryNodes = []
             for sta in stations:
-                if 'position' not in sta.params:
+                if 'position' not in sta.params or \
+                    'position' in sta.params and sta.params['position'] == (-1,-1,-1):
                     sta.isStationary = False
                     stationaryNodes.append(sta)
                     sta.params['position'] = 0, 0, 0
@@ -1128,13 +1130,23 @@ class mininetWiFi(object):
             if not self.configureWiFiDirect and not self.configure4addr:
                 self.configureWmediumd(stations, accessPoints)
                 self.wmediumdConnect()
-            for node in nodes:
-                for wlan in range(0, len(node.params['channel'])):
-                    if node.params['range'] == 33 or node.params['range'] == 18:
-                        value = distanceByPropagationModel(node, wlan)
-                        node.params['range'] = int(value.dist)
+                if self.enable_interference and not self.isVanet:
+                    for node in nodes:
+                        for wlan in range(0, len(node.params['wlan'])):
+                            node.setTxPower_(node.params['wlan'][wlan], node.params['txpower'][wlan])
+                            node.setAntennaGain_(node.params['wlan'][wlan], node.params['antennaGain'][wlan])
+            if not self.getSignalRange:
+                for node in nodes:
+                    for wlan in range(0, len(node.params['channel'])):
+                        if node.params['range'] == 33 or node.params['range'] == 18:
+                            value = distanceByPropagationModel(node, wlan)
+                            node.params['range'] = int(value.dist)
 
         return stations, accessPoints
+
+    @classmethod
+    def _available_range(self, ranges):
+        mobility.available_range = ranges
 
     @classmethod
     def plotCheck(self, stations, accessPoints):
@@ -1187,6 +1199,9 @@ class mininetWiFi(object):
                 node.setTxPower_(node.params['wlan'][wlan], node.params['txpower'][wlan])
                 node.setAntennaGain_(node.params['wlan'][wlan], node.params['antennaGain'][wlan])
                 #node.setAntennaHeight_(node.params['wlan'][wlan], node.params['antennaHeight'][wlan])
+                if not self.getSignalRange and self.enable_interference:
+                    value = distanceByPropagationModel(node, wlan)
+                    node.params['range'] = int(value.dist)
 
         ap = []
         for node in accessPoints:

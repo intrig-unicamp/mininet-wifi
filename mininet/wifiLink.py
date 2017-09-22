@@ -112,18 +112,6 @@ class link (object):
         return float('%.2f' % (sta.params['rssi'][wlan] - (-91.0)))
 
     @classmethod
-    def recordParams(self, sta, ap):
-        """ Records node params to a file
-        
-        :param sta: station
-        :param ap: access point
-        """
-        if sta != None and 'recordNodeParams' in sta.params:
-            os.system('echo \'%s\' > %s.nodeParams' % (sta.params, sta.name))
-        if ap != None and 'recordNodeParams' in ap.params:
-            os.system('echo \'%s\' > %s.nodeParams' % (ap.params, ap.name))
-
-    @classmethod
     def tc(self, sta, wlan, bw, loss, latency, delay):
         """Applies TC
         
@@ -326,10 +314,9 @@ class Association(object):
                 sta.params['apsInRange'].append(ap)
                 if not enable_interference:
                     ap.params['stationsInRange'][sta] = rssi_
-            link.recordParams(sta, ap)
 
     @classmethod
-    def updateParams(self, sta, ap, wlan, interference_enabled=False):
+    def updateParams(self, sta, ap, wlan):
         """
         :param sta: station
         :param ap: access point
@@ -339,8 +326,6 @@ class Association(object):
         sta.params['frequency'][wlan] = link.frequency(ap, 0)
         sta.params['channel'][wlan] = ap.params['channel'][0]
         sta.params['mode'][wlan] = ap.params['mode'][0]
-        if interference_enabled:
-            sta.getRange()
 
     @classmethod
     def associate(self, sta, ap, useWmediumd, enable_interference=False):

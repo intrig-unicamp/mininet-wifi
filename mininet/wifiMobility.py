@@ -40,6 +40,7 @@ class mobility (object):
     meshNodes = []
     mobileNodes = []
     stationaryNodes = []
+    available_range = {}
     continuePlot = 'plot2d.graphPause()'
     continueParams = 'time.sleep(0.0001)'
 
@@ -137,12 +138,15 @@ class mobility (object):
         """
         if ap == sta.params['associatedTo'][wlan]:
             debug('iw dev %s disconnect\n' % sta.params['wlan'][wlan])
+            if self.available_range != {}:
+                sta.setRange(18)
             if 'encrypt' in ap.params and 'ieee80211r' not in ap.params:
                 if ap.params['encrypt'][0] == 'wpa' or ap.params['encrypt'][0] == 'wpa2':
                     os.system('rm %s.staconf' % sta)
                     pidfile = "mn%d_%s_%s_wpa.pid" % (os.getpid(), sta.name, wlan)
                     os.system('pkill -f \'wpa_supplicant -B -Dnl80211 -P %s -i %s\'' % (pidfile, sta.params['wlan'][wlan]))
-                    os.system('rm /var/run/wpa_supplicant/%s' % sta.params['wlan'][wlan])
+                    if os.path.exists(('/var/run/wpa_supplicant/%s' % sta.params['wlan'][wlan])) :
+                        os.system('rm /var/run/wpa_supplicant/%s' % sta.params['wlan'][wlan])
             elif WmediumdServerConn.connected and not WmediumdServerConn.interference_enabled:
                 cls = Association
                 cls.setSNRWmediumd(sta, ap, snr=-10)
@@ -157,7 +161,6 @@ class mobility (object):
         if ap in sta.params['apsInRange']:
             sta.params['apsInRange'].remove(ap)
             ap.params['stationsInRange'].pop(sta, None)
-        link.recordParams(sta, ap)
 
     @classmethod
     def apInRange(self, sta, ap, wlan, dist):
@@ -192,7 +195,6 @@ class mobility (object):
                     cls.setSNRWmediumd(sta, ap, snr=sta.params['snr'][wlan])
                 else:
                     link(sta, ap, wlan, dist)
-        link.recordParams(sta, ap)
 
     @classmethod
     def checkAssociation(self, sta, wlan):
@@ -237,6 +239,8 @@ class mobility (object):
                 cls.printCon = False
                 cls.associate_infra(sta, ap, wlan)
                 self.updateAssociation(sta, ap, wlan)
+                if self.available_range != {}:
+                    sta.setRange(self.available_range[sta.params['mode'][wlan]]/5)
 
     @classmethod
     def updateAssociation(self, sta, ap, wlan):
@@ -249,9 +253,8 @@ class mobility (object):
         """
         if sta.params['associatedTo'][wlan] != '' and sta in sta.params['associatedTo'][wlan].params['associatedStations']:
             sta.params['associatedTo'][wlan].params['associatedStations'].remove(sta)
-            link.recordParams(sta, sta.params['associatedTo'][wlan])
         cls = Association
-        cls.updateParams(sta, ap, wlan, WmediumdServerConn.interference_enabled)
+        cls.updateParams(sta, ap, wlan)
         sta.params['associatedTo'][wlan] = ap
 
         if WmediumdServerConn.interference_enabled:
@@ -259,9 +262,6 @@ class mobility (object):
 
     @classmethod
     def updateWmediumdPos(self, node):
-        if node.isStationary and node.type != 'vehicle':
-            info('Configuring wmediumd for %s...\n' % node)
-            time.sleep(2)
         self.setWmediumdPos(node)
 
     @classmethod
@@ -347,7 +347,7 @@ class mobility (object):
                             plot.graphUpdate(node)
                             if not is3d:
                                 plot.updateCircleRadius(node)
-                        eval(self.continuePlot)
+                    eval(self.continuePlot)
                     i += 1
             self.mobileNodes = []
         except:
