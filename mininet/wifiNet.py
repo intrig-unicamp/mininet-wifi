@@ -1111,6 +1111,7 @@ class mininetWiFi(object):
                 car.params['rssi'].append(0)
                 car.params['snr'].append(0)
             car.params['channel'].append(0)
+            car.params['mode'].append(0)
             car.params['txpower'].append(0)
             car.params['antennaGain'].append(0)
             car.params['antennaHeight'].append(0)

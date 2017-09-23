@@ -1331,12 +1331,13 @@ class Mininet(object):
     def _getSignalRange(self):
         info('*** Getting the signal range automatically...\n')
         nodes = self.stations
+        hop = float(propagationModel.exp)
         isadhoc = False
         for node in nodes:
             if node.func[0] == 'adhoc' or node.func[0] == 'mesh':
                 isadhoc = True
         if mininetWiFi.isVanet:
-            sleep(2)
+            sleep(3)
             nodes = self.stations
             for node in nodes:
                 if node.type == 'vehicle':
@@ -1348,9 +1349,10 @@ class Mininet(object):
                     while signal_ >= -92:
                         signal_ = int(node.cmd('iw dev %s station dump | grep signal: | awk \'NR==%s\' | awk \'{print $2}\'' % (node.params['wlan'][0], idx+1)))
                         pos = node_.params['position']
-                        pos_ = pos[0] + 10
-                        node_.testPosition('%f,%f,%f' % (pos_, pos[1], pos[2]))
-                        sleep(0.3)
+                        posX = pos[0] + hop/(2*hop)
+                        posY = pos[1] + hop/(2*hop)
+                        node_.testPosition('%f,%f,%f' % (posX, posY, pos[2]))
+                        sleep(hop/10)
                     mac = node.cmd('iw dev %s station dump | grep Station | awk \'NR==%s\' | awk \'{print $2}\'' % (node.params['wlan'][0], idx+1))
                     mac = mac.splitlines()[0]
                     for n in nodes:
@@ -1375,9 +1377,10 @@ class Mininet(object):
                         node.cmd('iw dev %s station dump | grep signal:' % node.params['wlan'][0])
                         signal_ = int(node.cmd('iw dev %s station dump | grep signal: | awk \'NR==%s\' | awk \'{print $2}\'' % (node.params['wlan'][0], idx+1)))
                         pos = node.params['position']
-                        pos_ = pos[0] + 1
-                        node.testPosition('%f,%f,%f' % (pos_, pos[1], pos[2]))
-                        sleep(0.4)
+                        posX = pos[0] + hop/10
+                        posY = pos[1] + hop/10
+                        node.testPosition('%f,%f,%f' % (posX, posY, pos[2]))
+                        sleep(0.1)
                     mac = node.cmd('iw dev %s station dump | grep Station | awk \'NR==%s\' | awk \'{print $2}\'' % (node.params['wlan'][0], idx+1))
                     mac = mac.splitlines()[0]
                     for n in nodes:
@@ -1413,9 +1416,10 @@ class Mininet(object):
                                 info('.')
                                 signal_ = int(node.cmd('iw dev %s station dump | grep signal: | awk \'NR==%s\' | awk \'{print $2}\'' % (node.params['wlan'][0], idx+1)))
                                 pos = node.params['position']
-                                pos_ = float(pos[0]) + 10
-                                node.testPosition('%f,%s,%s' % (pos_, pos[1], pos[2]))
-                                sleep(0.3)
+                                posX = float(pos[0]) + hop/10
+                                posY = float(pos[1]) + hop/10
+                                node.testPosition('%f,%s,%s' % (posX, posY, pos[2]))
+                                sleep(0.1)
                             mac = node.cmd('iw dev %s station dump | grep Station | awk \'NR==%s\' | awk \'{print $2}\'' % (node.params['wlan'][0], idx+1))
                             mac = mac.splitlines()[0]
                             dist = mininetWiFi.getDistance(node, ap)
