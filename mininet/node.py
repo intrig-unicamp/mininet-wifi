@@ -1987,16 +1987,14 @@ class OVSAP(AP):
         super(OVSSwitch, self).stop(deleteIntfs)
 
     def stop_(self):
-        """Terminate OVS switch.
-           deleteIntfs: delete interfaces? (True)"""
+        """Stops hostapd"""
         process = 'mn%d_%s' % (os.getpid(), self.name)
         os.system('pkill -f \'hostapd -B %s\'' % process)
         self.range = self.params['range']
         self.setRange(0)
 
     def start_(self):
-        """Terminate OVS switch.
-           deleteIntfs: delete interfaces? (True)"""
+        """Starts hostapd"""
         process = 'mn%d_%s' % (os.getpid(), self.name)
         os.system('hostapd -B %s-wlan1.apconf' % process)
         self.setRange(self.range)
