@@ -152,7 +152,6 @@ class mobility (object):
             sta.params['associatedTo'][wlan] = ''
             if not WmediumdServerConn.interference_enabled:
                 sta.params['rssi'][wlan] = 0
-                sta.params['snr'][wlan] = 0
             sta.params['channel'][wlan] = 0
         if sta in ap.params['associatedStations']:
             ap.params['associatedStations'].remove(sta)
@@ -181,8 +180,6 @@ class mobility (object):
             if not WmediumdServerConn.interference_enabled:
                 rssi_ = link.setRSSI(sta, ap, wlan, dist)
                 sta.params['rssi'][wlan] = rssi_
-                snr_ = link.setSNR(sta, wlan)
-                sta.params['snr'][wlan] = snr_
             if sta not in ap.params['associatedStations']:
                 ap.params['associatedStations'].append(sta)
             if dist >= 0.01:

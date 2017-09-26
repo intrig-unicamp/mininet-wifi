@@ -34,8 +34,6 @@ class link (object):
         latency_ = self.setLatency(dist)
         loss_ = self.setLoss(dist)
         bw_ = self.setBW(sta=sta, ap=ap, dist=dist, wlan=wlan)
-        # sta.params['rssi'][wlan] = self.setRSSI(sta, ap, wlan, dist)
-        # sta.params['snr'][wlan] = self.setSNR(sta, wlan)
         self.tc(sta, wlan, bw_, loss_, latency_, delay_)
 
     @classmethod
@@ -102,15 +100,6 @@ class link (object):
         return float(value.rssi)  # random.uniform(value.rssi-1, value.rssi+1)
 
     @classmethod
-    def setSNR(self, sta, wlan):
-        """set SNR
-        
-        :param sta: station
-        :param wlan: wlan ID
-        """
-        return float('%.2f' % (sta.params['rssi'][wlan] - (-91.0)))
-
-    @classmethod
     def tc(self, sta, wlan, bw, loss, latency, delay):
         """Applies TC
         
@@ -144,11 +133,6 @@ class link (object):
                  "delay %.2fms" % (sta.params['wlan'][wlan], bw, loss, latency, delay)
             sta.pexec(tc)
                 # corrupt 0.1%%" % (sta.params['wlan'][wlan], bw, loss, latency, delay))
-
-    def signalToNoiseRatio(self, signalPower, noisePower):
-        """Calculating SNR margin"""
-        snr = signalPower - noisePower
-        return snr
 
     @classmethod
     def frequency(self, node, wlan):
@@ -275,14 +259,14 @@ class Association(object):
 
     @classmethod
     def setSNRWmediumd(self, sta, ap, snr):
-        "Set SNR for wmediumd"
+        "Send SNR to wmediumd"
         WmediumdServerConn.send_snr_update(WmediumdSNRLink(sta.wmIface[0], ap.wmIface[0], snr))
         WmediumdServerConn.send_snr_update(WmediumdSNRLink(ap.wmIface[0], sta.wmIface[0], snr))
 
     @classmethod
     def configureWirelessLink(self, sta, ap, wlan, useWmediumd=False, enable_interference=False):
         """ 
-        Updates RSSI, SNR, and Others...
+        Updates RSSI and Others...
         
         :param sta: station
         :param ap: access point
@@ -307,8 +291,6 @@ class Association(object):
                 if not enable_interference:
                     rssi_ = link.setRSSI(sta, ap, wlan, dist)
                     sta.params['rssi'][wlan] = rssi_
-                    snr_ = link.setSNR(sta, wlan)
-                    sta.params['snr'][wlan] = snr_
             if ap not in sta.params['apsInRange']:
                 sta.params['apsInRange'].append(ap)
                 if not enable_interference:

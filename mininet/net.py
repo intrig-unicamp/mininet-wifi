@@ -132,8 +132,7 @@ class Mininet(object):
                   listenPort=None, waitConnected=False, ssid="new-ssid", mode="g", channel="1",
                   enable_wmediumd=False, enable_interference=False, enable_spec_prob_link=False,
                   enable_error_prob=False, disableAutoAssociation=False, driver='nl80211',
-                  autoSetPositions=False, configureWiFiDirect=False, configure4addr=False,
-                  getSignalRange=False):
+                  autoSetPositions=False, configureWiFiDirect=False, configure4addr=False):
         """Create Mininet object.
            topo: Topo (topology) object or None
            switch: default Switch class
@@ -199,7 +198,6 @@ class Mininet(object):
         self._stopMobility = False
         self._startMobility = False
 
-        mininetWiFi.getSignalRange = getSignalRange
         mininetWiFi.configureWiFiDirect = configureWiFiDirect
         mininetWiFi.configure4addr = configure4addr
         mininetWiFi.isWiFi = isWiFi
@@ -887,10 +885,6 @@ class Mininet(object):
         if mininetWiFi.isWiFi and not self.disableAutoAssociation and not mininetWiFi.isMobility:
             mininetWiFi.autoAssociation(self.stations, self.accessPoints)
 
-        if mininetWiFi.getSignalRange:
-            self._getSignalRange()
-            mininetWiFi._available_range(self.available_range)
-
         if self._stopMobility:
             mininetWiFi.stopMobility(self.stations, self.accessPoints, **self.mobilityKwargs)
         if self._startMobility:
@@ -1326,110 +1320,6 @@ class Mininet(object):
         self._stopMobility = True
         mininetWiFi.isMobility = True
         self.mobilityKwargs = kwargs
-
-    def _getSignalRange(self):
-        info('*** Getting the signal range automatically...\n')
-        nodes = self.stations
-        hop = float(propagationModel.exp)
-        isadhoc = False
-        for node in nodes:
-            if node.func[0] == 'adhoc' or node.func[0] == 'mesh':
-                isadhoc = True
-        if mininetWiFi.isVanet:
-            sleep(3)
-            nodes = self.stations
-            for node in nodes:
-                if node.type == 'vehicle':
-                    node_ = node
-                    node = node.params['carsta']
-                ori_pos = node_.params['position']
-                signal = node.cmd('iw dev %s station dump | grep signal: | awk \'{print $2}\'' % node.params['wlan'][0])
-                for idx, signal_ in enumerate(signal.splitlines()):
-                    while signal_ >= -92:
-                        signal_ = int(node.cmd('iw dev %s station dump | grep signal: | awk \'NR==%s\' | awk \'{print $2}\'' % (node.params['wlan'][0], idx+1)))
-                        pos = node_.params['position']
-                        posX = pos[0] + hop/(2*hop)
-                        posY = pos[1] + hop/(2*hop)
-                        node_.testPosition('%f,%f,%f' % (posX, posY, pos[2]))
-                        sleep(hop/10)
-                    mac = node.cmd('iw dev %s station dump | grep Station | awk \'NR==%s\' | awk \'{print $2}\'' % (node.params['wlan'][0], idx+1))
-                    mac = mac.splitlines()[0]
-                    for n in nodes:
-                        ref_node = n.params['carsta']
-                        if ref_node != node:
-                            if str(ref_node.params['mac'][0]) == str(mac):
-                                dist = mininetWiFi.getDistance(node, ref_node)
-                                for n in nodes:
-                                    n.setRange(dist)
-                                node_.setPosition('%f,%f,%f' % (ori_pos[0], ori_pos[1], ori_pos[2]))
-                                break
-                    break
-                break
-        elif isadhoc:
-            sleep(2)
-            nodes = self.stations
-            for node in nodes:
-                ori_pos = node.params['position']
-                signal = node.cmd('iw dev %s station dump | grep signal: | awk \'{print $2}\'' % node.params['wlan'][0])
-                for idx, signal_ in enumerate(signal.splitlines()):
-                    while signal_ >= -92:
-                        node.cmd('iw dev %s station dump | grep signal:' % node.params['wlan'][0])
-                        signal_ = int(node.cmd('iw dev %s station dump | grep signal: | awk \'NR==%s\' | awk \'{print $2}\'' % (node.params['wlan'][0], idx+1)))
-                        pos = node.params['position']
-                        posX = pos[0] + hop/10
-                        posY = pos[1] + hop/10
-                        node.testPosition('%f,%f,%f' % (posX, posY, pos[2]))
-                        sleep(0.1)
-                    mac = node.cmd('iw dev %s station dump | grep Station | awk \'NR==%s\' | awk \'{print $2}\'' % (node.params['wlan'][0], idx+1))
-                    mac = mac.splitlines()[0]
-                    for n in nodes:
-                        if n != node:
-                            if str(n.params['mac'][0]) == str(mac):
-                                dist = mininetWiFi.getDistance(node, n)
-                                for n in nodes:
-                                    n.setRange(dist)
-                                node.setPosition('%f,%f,%f' % (ori_pos[0], ori_pos[1], ori_pos[2]))
-                                break
-                    break
-                break
-        else:
-            for sta in self.stations:
-                if 'position' not in sta.params:
-                    sta.setPosition('%s,%s,%s' % (-1,-1,-1))
-
-            nodes = self.stations
-            for node in nodes:
-                ori_pos = node.params['position']
-                mode = []
-                for ap in self.accessPoints:
-                    if ap.params['mode'][0] not in mode:
-                        mode.append(ap.params['mode'][0])
-                        pos = ap.params['position']
-                        node.testPosition('%s,%s,%s' % (float(pos[0])+10, pos[1], pos[2]))
-                        node.associateTo('%s' % node.params['wlan'][0], ap)
-                        sleep(3)
-                    if node.params['associatedTo'][0] != '':
-                        signal = node.cmd('iw dev %s station dump | grep signal: | awk \'{print $2}\'' % node.params['wlan'][0])
-                        for idx, signal_ in enumerate(signal.splitlines()):
-                            while signal_ >= -92:
-                                info('.')
-                                signal_ = int(node.cmd('iw dev %s station dump | grep signal: | awk \'NR==%s\' | awk \'{print $2}\'' % (node.params['wlan'][0], idx+1)))
-                                pos = node.params['position']
-                                posX = float(pos[0]) + hop/10
-                                posY = float(pos[1]) + hop/10
-                                node.testPosition('%f,%s,%s' % (posX, posY, pos[2]))
-                                sleep(0.1)
-                            mac = node.cmd('iw dev %s station dump | grep Station | awk \'NR==%s\' | awk \'{print $2}\'' % (node.params['wlan'][0], idx+1))
-                            mac = mac.splitlines()[0]
-                            dist = mininetWiFi.getDistance(node, ap)
-                            if ap.params['mode'][0] not in self.available_range:
-                                self.available_range[ap.params['mode'][0]] = dist
-                            node.setPosition('%s,%s,%s' % (ori_pos[0], ori_pos[1], ori_pos[2]))
-                    node.params['associatedTo'][0] = ''
-                    ap.params['associatedStations'].append(node)
-            for ap in self.accessPoints:
-                ap.setRange(self.available_range[ap.params['mode'][0]])
-            info('.\n')
 
     def useExternalProgram(self, program, **params):
         """

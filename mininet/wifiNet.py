@@ -46,7 +46,6 @@ class mininetWiFi(object):
     isWiFi = False
     plot = plot2d
     useWmediumd = False
-    getSignalRange = False
     init_time = 0
     wifiRadios = 0
     seed_ = 10
@@ -95,7 +94,6 @@ class mininetWiFi(object):
             node.params['associatedTo'] = []
             if not self.enable_interference:
                 node.params['rssi'] = []
-                node.params['snr'] = []
             node.ifaceToAssociate = 0
             node.max_x = 0
             node.max_y = 0
@@ -178,12 +176,10 @@ class mininetWiFi(object):
                 node.params['wlan'].append(node.name + '-wlan' + str(n + 1))
                 if 'link' in params and params['link'] == 'mesh':
                     self.appendRSSI(node)
-                    self.appendSNR(node)
                     self.appendAssociatedTo(node)
             else:
                 node.params['wlan'].append(node.name + '-wlan' + str(n))
                 self.appendRSSI(node)
-                self.appendSNR(node)
             node.params.pop("wlans", None)
 
         if (mode == 'managed'):
@@ -245,11 +241,6 @@ class mininetWiFi(object):
     @classmethod
     def appendAssociatedTo(self, node):
         node.params['associatedTo'].append('')
-
-    @classmethod
-    def appendSNR(self, node):
-        if not self.enable_interference:
-            node.params['snr'].append(40)
 
     @classmethod
     def appendRSSI(self, node):
@@ -379,6 +370,7 @@ class mininetWiFi(object):
     def countWiFiIfaces(self, params):
         if 'wlans' in params:
             self.wifiRadios += int(params['wlans'])
+            wlans = int(params['wlans'])
         else:
             wlans = 1
             self.wifiRadios += 1
@@ -398,7 +390,6 @@ class mininetWiFi(object):
                     self.addChannelParamToNode(node, isVirtualIface=True)
                     self.addMacParamToNode(node, isVirtualIface=True, macID=(vif_ + 1))
                     self.appendRSSI(node)
-                    self.appendSNR(node)
                     self.appendAssociatedTo(node)
                     self.addAntennaGainParamToNode(node, isVirtualIface=True)
                     self.addAntennaHeightParamToNode(node, isVirtualIface=True)
@@ -654,7 +645,6 @@ class mininetWiFi(object):
             stations.remove(ap)
             ap.setIP('%s' % ap.params['ip'][0], intf='%s' % ap.params['wlan'][0])
             ap.params.pop('rssi', None)
-            ap.params.pop('snr', None)
             ap.params.pop('apsInRange', None)
             ap.params.pop('associatedTo', None)
 
@@ -1073,7 +1063,6 @@ class mininetWiFi(object):
             car.params['wlan'].append(0)
             if not self.enable_interference:
                 car.params['rssi'].append(0)
-                car.params['snr'].append(0)
             car.params['channel'].append(0)
             car.params['mode'].append(0)
             car.params['txpower'].append(0)
@@ -1091,19 +1080,18 @@ class mininetWiFi(object):
                         for wlan in range(0, len(node.params['wlan'])):
                             node.setTxPower_(node.params['wlan'][wlan], node.params['txpower'][wlan])
                             node.setAntennaGain_(node.params['wlan'][wlan], node.params['antennaGain'][wlan])
-        if not self.getSignalRange:
-            for node in nodes:
-                for wlan in range(0, len(node.params['wlan'])):
-                    if node.range == 0:
-                        if node.type == 'vehicle' and wlan == 1:
-                            node = node.params['carsta']
-                            wlan = 0
-                        value = distanceByPropagationModel(node, wlan)
-                        if node.type != 'ap' and node.func[0] != 'ap' and \
-                            node.func[wlan] != 'mesh' and node.func[wlan] != 'adhoc':
-                            node.params['range'] = int(value.dist)/5
-                        else:
-                            node.params['range'] = int(value.dist)
+        for node in nodes:
+            for wlan in range(0, len(node.params['wlan'])):
+                if node.range == 0:
+                    if node.type == 'vehicle' and wlan == 1:
+                        node = node.params['carsta']
+                        wlan = 0
+                    value = distanceByPropagationModel(node, wlan)
+                    if node.type != 'ap' and node.func[0] != 'ap' and \
+                        node.func[wlan] != 'mesh' and node.func[wlan] != 'adhoc':
+                        node.params['range'] = int(value.dist)/5
+                    else:
+                        node.params['range'] = int(value.dist)
 
         return stations, accessPoints
 
