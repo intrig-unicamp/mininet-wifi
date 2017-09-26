@@ -252,20 +252,18 @@ class mininetWiFi(object):
         if isVirtualIface:
             node.params['ip'].append(node.params['ip'][0])
         else:
+            node.params['ip'] = []
             if 'ip' in params:
-                node.params['ip'] = []
                 if isinstance(params['ip'], basestring):
-                    node.params['ip'].append(params['ip'])
+                    for n in range(wlans):
+                        node.params['ip'].append(params['ip'])
                 else:
-                    for ip in (node.params['ip']):
-                        node.params['ip'].append(ip)
+                    node.params['ip'] = params['ip']
             elif autoSetMacs:
-                node.params['ip'] = []
                 for n in range(wlans):
                     node.params['ip'].append('0/0')
                     node.params['ip'][n] = params[ 'ip' ]
             else:
-                node.params['ip'] = []
                 for n in range(wlans):
                     node.params['ip'].append('')
 
@@ -276,20 +274,18 @@ class mininetWiFi(object):
             new_mac[7] = str(macID)
             node.params['mac'].append("".join(new_mac))
         else:
+            node.params['mac'] = []
             if 'mac' in params:
-                node.params['mac'] = []
                 if isinstance(params['mac'], basestring):
-                    node.params['mac'].append(params['mac'])
+                    for n in range(wlans):
+                        node.params['mac'].append(params['mac'])
                 else:
-                    for mac in (node.params['mac']):
-                        node.params['mac'].append(mac)
+                    node.params['mac'] = params['mac']
             elif autoSetMacs:
-                node.params['mac'] = []
                 for n in range(wlans):
                     node.params['mac'].append('')
                     node.params['mac'][n] = params[ 'mac' ]
             else:
-                node.params['mac'] = []
                 for n in range(wlans):
                     node.params['mac'].append('')
 
@@ -298,12 +294,11 @@ class mininetWiFi(object):
         if isVirtualIface:
             node.params['antennaHeight'].append(node.params['antennaHeight'][0])
         else:
+            node.params['antennaHeight'] = []
             if 'antennaHeight' in params:
-                node.params['antennaHeight'] = []
                 for n in range(wlans):
                     node.params['antennaHeight'].append(int(params['antennaHeight']))
             else:
-                node.params['antennaHeight'] = []
                 for n in range(wlans):
                     node.params['antennaHeight'].append(1)
 
@@ -312,12 +307,11 @@ class mininetWiFi(object):
         if isVirtualIface:
             node.params['antennaGain'].append(node.params['antennaGain'][0])
         else:
+            node.params['antennaGain'] = []
             if 'antennaGain' in params:
-                node.params['antennaGain'] = []
                 for n in range(wlans):
                     node.params['antennaGain'].append(int(params['antennaGain']))
             else:
-                node.params['antennaGain'] = []
                 for n in range(wlans):
                     node.params['antennaGain'].append(5)
 
@@ -326,12 +320,11 @@ class mininetWiFi(object):
         if isVirtualIface:
             node.params['mode'].append(node.params['mode'][0])
         else:
+            node.params['mode'] = []
             if 'mode' in params:
-                node.params['mode'] = []
                 for n in range(wlans):
                     node.params['mode'].append(params['mode'])
             else:
-                node.params['mode'] = []
                 for n in range(wlans):
                     node.params['mode'].append(params['mode'])
 
@@ -340,12 +333,11 @@ class mininetWiFi(object):
         if isVirtualIface:
             node.params['channel'].append(node.params['channel'][0])
         else:
+            node.params['channel'] = []
             if 'channel' in params:
-                node.params['channel'] = []
                 for n in range(wlans):
                     node.params['channel'].append(int(params['channel']))
             else:
-                node.params['channel'] = []
                 for n in range(wlans):
                     node.params['channel'].append(1)
 
@@ -354,17 +346,13 @@ class mininetWiFi(object):
         if isVirtualIface:
             node.params['txpower'].append(node.params['txpower'][0])
         else:
+            node.params['txpower'] = []
             if 'txpower' in params:
-                node.params['txpower'] = []
-                for n in range(wlans):
+                if isinstance(params['txpower'], basestring):                
                     node.params['txpower'].append(int(params['txpower']))
             else:
-                node.params['txpower'] = []
                 for n in range(wlans):
-                    if node.type == 'ap':
-                        node.params['txpower'].append(14)
-                    else:
-                        node.params['txpower'].append(14)
+                    node.params['txpower'].append(14)
 
     @classmethod
     def countWiFiIfaces(self, params):
