@@ -19,7 +19,7 @@ class propagationModel(object):
 
     rssi = -62
     model = ''
-    exp = 2  # Exponent
+    exp = 4  # Exponent
     sL = 1  # System Loss
     lF = 0  # Floor penetration loss factor
     pL = 0  # Power Loss Coefficient
@@ -29,7 +29,7 @@ class propagationModel(object):
 
     def __init__(self, node1=None, node2=None, dist=0, wlan=0):
         if self.model == '':
-            self.model = 'friisPropagationLossModel'
+            self.model = 'logDistancePropagationLossModel'
         if self.model in dir(self):
             self.__getattribute__(self.model)(node1, node2, dist, wlan)
 
@@ -177,7 +177,7 @@ class propagationModel(object):
 class distanceByPropagationModel(object):
 
     dist = 0
-    exp = 2  # Exponent
+    exp = 4  # Exponent
     sL = 1  # System Loss
     lF = 0  # Floor penetration loss factor
     pL = 0  # Power Loss Coefficient
@@ -194,7 +194,7 @@ class distanceByPropagationModel(object):
         model = propagationModel.model
 
         if model == '':
-            model = 'friisPropagationLossModel'
+            model = 'logDistancePropagationLossModel'
         if model in dir(self):
             self.__getattribute__(model)(node, wlan)
 

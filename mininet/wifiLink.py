@@ -2,7 +2,6 @@
 author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
 """
 import numpy as np
-import random
 import os
 import re
 
@@ -415,7 +414,7 @@ class Association(object):
                 cmd = cmd + '   phase2=\"autheap=MSCHAPV2\"\n'
         cmd = cmd + '}'
 
-        fileName = str(sta) + '.staconf'
+        fileName = '%s_%s.staconf' % (sta.name, wlan)
         os.system('echo \'%s\' > %s' % (cmd, fileName))
 
     @classmethod
@@ -429,10 +428,10 @@ class Association(object):
         """
         pidfile = "mn%d_%s_%s_wpa.pid" % (os.getpid(), sta.name, wlan)
         self.wpaFile(sta, ap, wlan)
-        debug("wpa_supplicant -B -Dnl80211 -P %s -i %s -c %s.staconf\n"
-                % (pidfile, sta.params['wlan'][wlan], sta))
-        sta.pexec("wpa_supplicant -B -Dnl80211 -P %s -i %s -c %s.staconf"
-                % (pidfile, sta.params['wlan'][wlan], sta))
+        debug("wpa_supplicant -B -Dnl80211 -P %s -i %s -c %s_%s.staconf\n"
+                % (pidfile, sta.params['wlan'][wlan], sta.name, wlan))
+        sta.pexec("wpa_supplicant -B -Dnl80211 -P %s -i %s -c %s_%s.staconf"
+                % (pidfile, sta.params['wlan'][wlan], sta.name, wlan))
 
     @classmethod
     def associate_wep(self, sta, ap, wlan):

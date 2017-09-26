@@ -363,7 +363,6 @@ class Mininet(object):
         mininetWiFi.addParameters(car, self.autoSetMacs, defaults)
 
         carsta = self.addStation(name + 'STA')
-        carsta.params['range'] = car.params['range']
 
         car.params['carsta'] = carsta
         self.carsSTA.append(carsta)

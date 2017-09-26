@@ -28,6 +28,8 @@ def topology():
     ap3 = net.addAccessPoint('ap3', ssid='ssid-ap3', mode='g', channel='11', position='90,50,0')
     c1 = net.addController('c1', controller=Controller)
 
+    net.propagationModel("logDistancePropagationLossModel", exp=5)
+
     print "*** Configuring wifi nodes"
     net.configureWifiNodes()
 

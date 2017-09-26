@@ -138,11 +138,9 @@ class mobility (object):
         """
         if ap == sta.params['associatedTo'][wlan]:
             debug('iw dev %s disconnect\n' % sta.params['wlan'][wlan])
-            if self.available_range != {}:
-                sta.setRange(18)
             if 'encrypt' in ap.params and 'ieee80211r' not in ap.params:
                 if ap.params['encrypt'][0] == 'wpa' or ap.params['encrypt'][0] == 'wpa2':
-                    os.system('rm %s.staconf' % sta)
+                    os.system('rm %s_%s.staconf' % (sta.name, wlan))
                     pidfile = "mn%d_%s_%s_wpa.pid" % (os.getpid(), sta.name, wlan)
                     os.system('pkill -f \'wpa_supplicant -B -Dnl80211 -P %s -i %s\'' % (pidfile, sta.params['wlan'][wlan]))
                     if os.path.exists(('/var/run/wpa_supplicant/%s' % sta.params['wlan'][wlan])) :
@@ -240,12 +238,12 @@ class mobility (object):
                 cls.associate_infra(sta, ap, wlan)
                 self.updateAssociation(sta, ap, wlan)
                 if self.available_range != {}:
-                    sta.setRange(self.available_range[sta.params['mode'][wlan]]/5)
+                    sta.setRange_(self.available_range[sta.params['mode'][wlan]]/5)
 
     @classmethod
     def updateAssociation(self, sta, ap, wlan):
         """ 
-        Updates attributes regarding the association
+        Updates attributes regarding association
         
         :param sta: station
         :param ap: access point

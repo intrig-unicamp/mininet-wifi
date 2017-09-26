@@ -107,6 +107,7 @@ class Node(object):
         self.func = []
         self.type = 'host'
         self.isStationary = True
+        self.range = 0
 
         # Make pylint happy
         (self.shell, self.execed, self.pid, self.stdin, self.stdout,
@@ -265,9 +266,22 @@ class Node(object):
     def setRange(self, _range=0):
         from mininet.wifiNet import mininetWiFi
         self.params['range'] = _range
+        self.range = _range
         if self.isStationary:
             self.updateGraph()
             mobility.parameters_()
+        else:
+            if mininetWiFi.is3d:
+                pass
+            else:
+                if plot2d.fig_exists():
+                    plot2d.updateCircleRadius(self)
+
+    def setRange_(self, _range=0):
+        from mininet.wifiNet import mininetWiFi
+        self.params['range'] = _range
+        if self.isStationary:
+            self.updateGraph()
         else:
             if mininetWiFi.is3d:
                 pass
@@ -1415,6 +1429,9 @@ class AccessPoint(AP):
 
             if(len(ap.params['ssid'])) > 1:
                 for i in range(1, len(ap.params['ssid'])):
+                    ap.params['txpower'].append(ap.params['txpower'][0])
+                    ap.params['antennaGain'].append(ap.params['antennaGain'][0])
+                    ap.params['antennaHeight'].append(ap.params['antennaHeight'][0])
                     ssid = ap.params['ssid'][i]
                     cmd = cmd + ('\n')
                     cmd = cmd + ("\nbss=%s" % ap.params['wlan'][i])
