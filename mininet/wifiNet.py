@@ -1208,7 +1208,7 @@ class mininetWiFi(object):
                     mobility.parameters_(node)
 
             for sta in stations:
-                for wlan in range(0, len(node.params['wlan'])):
+                for wlan in range(0, len(sta.params['wlan'])):
                     for ap in accessPoints:
                         if 'position' in sta.params and 'position' in ap.params:
                             dist = link.getDistance(sta, ap)
