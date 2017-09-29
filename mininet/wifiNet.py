@@ -22,7 +22,7 @@ from mininet.wifiPlot import plot2d, plot3d
 from mininet.wifiModule import module
 from mininet.wifiPropagationModels import propagationModel, distanceByPropagationModel
 from mininet.link import TCLinkWirelessAP, TCLinkWirelessStation
-from mininet.util import macColonHex, ipAdd
+from mininet.util import macColonHex
 from mininet.vanet import vanet
 
 sys.path.append(str(os.getcwd()) + '/mininet/')
@@ -199,7 +199,7 @@ class mininetWiFi(object):
 
         # Range
         if 'range' in params:
-            node.setRange(params['range'])
+            node.setRange(int(params['range']))
 
         if mode == 'master' or 'ssid' in node.params:
             node.params['associatedStations'] = []
@@ -408,21 +408,12 @@ class mininetWiFi(object):
         node.func[wlan] = 'mesh'
         node.params['txpower'][wlan] = 20
 
-        options = { 'ip': ipAdd(params['nextIP'],
-                                  ipBaseNum=params['ipBaseNum'],
-                                  prefixLen=params['prefixLen']) + 
-                                  '/%s' % params['prefixLen']}
-
         if node.type == 'ap':
             node.params['ssid'].append('')
         else:
             node.params['ssid'] = []
             for n in range(len(node.params['wlan'])):
                 node.params['ssid'].append('')
-
-        ip = ("%s" % params.pop('ip', {}))
-        if ip == "{}":
-            ip = options['ip']
 
         ssid = ("%s" % params['ssid'])
         if(ssid != "{}"):
@@ -431,9 +422,6 @@ class mininetWiFi(object):
             node.params['ssid'][wlan] = 'meshNetwork'
 
         deviceRange(node)
-
-        options['node'] = node
-        options.update(params)
 
         node.setMeshIface(node.params['wlan'][wlan])
         if 'channel' in params:
@@ -464,19 +452,9 @@ class mininetWiFi(object):
         node.func[wlan] = 'adhoc'
         node.params['txpower'][wlan] = 20
 
-        options = { 'ip': ipAdd(params['nextIP'],
-                                  ipBaseNum=params['ipBaseNum'],
-                                  prefixLen=params['prefixLen']) + 
-                                  '/%s' % params['prefixLen']}
-        options.update(params)
-
         node.params['ssid'] = []
         for w in range(0, len(node.params['wlan'])):
             node.params['ssid'].append('')
-
-        ip = ("%s" % params.pop('ip', {}))
-        if ip == "{}":
-            ip = options['ip']
 
         ssid = ("%s" % params.pop('ssid', {}))
         if(ssid != "{}"):
@@ -491,10 +469,6 @@ class mininetWiFi(object):
         value = deviceDataRate(sta=node, wlan=wlan)
         self.bw = value.rate
 
-        options['sta'] = node
-        options.update(params)
-        # Set default MAC - this should probably be in Link
-        options.setdefault('addr1', self.randMac())
         enable_wmediumd = self.useWmediumd
 
         if 'channel' in params:
@@ -577,6 +551,8 @@ class mininetWiFi(object):
             node.wmIface = []
             if node.type == 'vehicle':
                 wlans = 1
+            elif '_4addr' in node.params and node.params['_4addr'] == 'ap':
+                wlans = 1
             else:
                 wlans = len(node.params['wlan'])
             for wlan in range(0, wlans):
@@ -598,6 +574,8 @@ class mininetWiFi(object):
                 node.lastpos = [0, 0, 0]
                 
                 if hasattr(node, 'type') and node.type == 'vehicle':
+                    wlans = 1
+                elif '_4addr' in node.params and node.params['_4addr'] == 'ap':
                     wlans = 1
                 else:
                     wlans = len(node.params['wlan'])
@@ -1070,7 +1048,7 @@ class mininetWiFi(object):
                             node.setAntennaGain_(node.params['wlan'][wlan], node.params['antennaGain'][wlan])
         for node in nodes:
             for wlan in range(0, len(node.params['wlan'])):
-                if node.range == 0:
+                if int(node.range) == 0:
                     if node.type == 'vehicle' and wlan == 1:
                         node = node.params['carsta']
                         wlan = 0
@@ -1082,10 +1060,6 @@ class mininetWiFi(object):
                         node.params['range'] = int(value.dist)
 
         return stations, accessPoints
-
-    @classmethod
-    def _available_range(self, ranges):
-        mobility.available_range = ranges
 
     @classmethod
     def plotCheck(self, stations, accessPoints):
@@ -1162,7 +1136,7 @@ class mininetWiFi(object):
                     mobility.parameters_(node)
 
             for sta in stations:
-                for wlan in range(0, len(node.params['wlan'])):
+                for wlan in range(0, len(sta.params['wlan'])):
                     for ap in accessPoints:
                         if 'position' in sta.params and 'position' in ap.params:
                             dist = link.getDistance(sta, ap)

@@ -179,7 +179,6 @@ class Mininet(object):
         self.mode = mode
         self.channel = channel
         self.nameToNode = {}  # name to Node (Host/Switch) objects
-        self.available_range = {}
         self.accessPoints = []
         self.controllers = []
         self.hosts = []

@@ -40,7 +40,6 @@ class mobility (object):
     meshNodes = []
     mobileNodes = []
     stationaryNodes = []
-    available_range = {}
     continuePlot = 'plot2d.graphPause()'
     continueParams = 'time.sleep(0.0001)'
 
@@ -171,11 +170,8 @@ class mobility (object):
         """
         if ap not in sta.params['apsInRange']:
             sta.params['apsInRange'].append(ap)
-            rssi_ = link.setRSSI(sta, ap, wlan, dist)
-            ap.params['stationsInRange'][sta] = rssi_
-        else:
-            rssi_ = link.setRSSI(sta, ap, wlan, dist)
-            ap.params['stationsInRange'][sta] = rssi_
+        rssi_ = link.setRSSI(sta, ap, wlan, dist)
+        ap.params['stationsInRange'][sta] = rssi_
         if ap == sta.params['associatedTo'][wlan]:
             if not WmediumdServerConn.interference_enabled:
                 rssi_ = link.setRSSI(sta, ap, wlan, dist)
@@ -227,15 +223,12 @@ class mobility (object):
             ac = self.AC
             value = associationControl(sta, ap, wlan, ac)
             changeAP = value.changeAP
-
         if sta.params['associatedTo'][wlan] == '' or changeAP == True:
             if ap not in sta.params['associatedTo']:
                 cls = Association
                 cls.printCon = False
                 cls.associate_infra(sta, ap, wlan)
                 self.updateAssociation(sta, ap, wlan)
-                if self.available_range != {}:
-                    sta.setRange_(self.available_range[sta.params['mode'][wlan]]/5)
 
     @classmethod
     def updateAssociation(self, sta, ap, wlan):

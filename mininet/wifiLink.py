@@ -248,15 +248,6 @@ class Association(object):
         debug("associating %s to %s...\n" % (node.params['wlan'][wlan], node.params['ssid'][wlan]))
         node.pexec('iw dev %s mesh join %s' % (node.params['wlan'][wlan], node.params['ssid'][wlan]))
 
-    _macMatchRegex = re.compile(r'..:..:..:..:..:..')
-
-    @classmethod
-    def getMacAddress(self, node, iface, wlan):
-        "gets Mac Address of any Interface"
-        ifconfig = str(node.pexec('ifconfig %s' % iface))
-        mac = self._macMatchRegex.findall(ifconfig)
-        node.meshMac[wlan] = str(mac[0])
-
     @classmethod
     def setSNRWmediumd(self, sta, ap, snr):
         "Send SNR to wmediumd"
