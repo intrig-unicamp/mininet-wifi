@@ -695,6 +695,8 @@ class Mininet(object):
                     if not mininetWiFi.enable_interference:
                         cls(name=sta.params['wlan'][wlan], node=sta,
                                       link=None, tc=True, **params)
+            if mininetWiFi.useWmediumd and not mininetWiFi.enable_interference:
+                mininetWiFi.wlinks.append([sta, ap])
 
         elif (node1.type == 'ap' and node2.type == 'ap' and \
                                         'link' in options and options['link'] == '4addr'):

@@ -13,7 +13,7 @@ from time import sleep
 
 from mininet.node import AccessPoint
 from mininet.log import info
-from mininet.wmediumdConnector import DynamicWmediumdIntfRef, WmediumdStarter, \
+from mininet.wmediumdConnector import DynamicWmediumdIntfRef, WmediumdStarter, WmediumdSNRLink, \
                     WmediumdTXPower, WmediumdPosition, WmediumdConstants, WmediumdServerConn
 from mininet.wifiLink import link, Association
 from mininet.wifiDevices import deviceRange, deviceDataRate
@@ -59,6 +59,7 @@ class mininetWiFi(object):
     dstConn = []
     plotNodes = []
     srcConn = []
+    wlinks = []
 
     @classmethod
     def addParameters(self, node, autoSetMacs, params, mode='managed'):
@@ -588,6 +589,9 @@ class mininetWiFi(object):
             mode = WmediumdConstants.WMEDIUMD_MODE_ERRPROB
         else:
             mode = WmediumdConstants.WMEDIUMD_MODE_SNR
+            for node in self.wlinks:
+                links.append(WmediumdSNRLink(node[0].wmIface[0], node[1].wmIface[0], node[0].params['rssi'][0] - (-91)))
+                links.append(WmediumdSNRLink(node[1].wmIface[0], node[0].wmIface[0], node[0].params['rssi'][0] - (-91)))
 
         WmediumdStarter.initialize(intfrefs, links, mode=mode, positions=positions, enable_interference=self.enable_interference, \
                                    auto_add_links=False, txpowers=txpowers, with_server=True)
