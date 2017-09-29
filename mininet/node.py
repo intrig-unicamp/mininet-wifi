@@ -767,7 +767,7 @@ class Node(object):
         connections = []
         for intf in self.intfList():
             link = intf.link
-            if link and link.intf2 != None:
+            if link and link.intf2 != None and link.intf2 != 'wireless':
                 node1, node2 = link.intf1.node, link.intf2.node
                 if node1 == self and node2 == node:
                     connections += [ (intf, link.intf2) ]
@@ -2007,7 +2007,7 @@ class OVSAP(AP):
         """Stops hostapd"""
         process = 'mn%d_%s' % (os.getpid(), self.name)
         os.system('pkill -f \'hostapd -B %s\'' % process)
-        self.range = self.params['range']
+        self.range = int(self.params['range'])
         self.setRange(0)
 
     def start_(self):
