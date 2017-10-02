@@ -107,6 +107,7 @@ class Node(object):
         self.func = []
         self.type = 'host'
         self.isStationary = True
+        self.range = 0
 
         # Make pylint happy
         (self.shell, self.execed, self.pid, self.stdin, self.stdout,
@@ -263,9 +264,30 @@ class Node(object):
             pass
 
     def setRange(self, _range=0):
+        from mininet.wifiNet import mininetWiFi
         self.params['range'] = _range
-        self.updateGraph()
-        mobility.parameters_()
+        self.range = _range
+        if self.isStationary:
+            self.updateGraph()
+            mobility.parameters_()
+        else:
+            if mininetWiFi.is3d:
+                pass
+            else:
+                if plot2d.fig_exists():
+                    plot2d.updateCircleRadius(self)
+
+    def setRange_(self, _range=0):
+        from mininet.wifiNet import mininetWiFi
+        self.params['range'] = _range
+        if self.isStationary:
+            self.updateGraph()
+        else:
+            if mininetWiFi.is3d:
+                pass
+            else:
+                if plot2d.fig_exists():
+                    plot2d.updateCircleRadius(self)
 
     def testPosition(self, pos):
         pos = pos.split(',')
@@ -278,7 +300,6 @@ class Node(object):
             if self.type == 'vehicle':
                 self = self.params['carsta']
                 self.setPositionWmediumd()
-        mobility.parameters_(self)
 
     def setPosition(self, pos):
         from mininet.wifiNet import mininetWiFi
@@ -339,8 +360,6 @@ class Node(object):
             self.params['txpower'][wlan] = power
             info('%s is the maximum supported tx power\n' % power)
         self.setTXPowerWmediumd(wlan)
-        if WmediumdServerConn.interference_enabled:
-            self.getRange()
 
     def setPositionWmediumd(self):
         "Set Position for wmediumd"
@@ -410,7 +429,7 @@ class Node(object):
                     sta.cmd('iw dev %s disconnect' % iface)
                 if 'encrypt' not in ap.params:
                     sta.cmd('iwconfig %s essid %s ap %s' % (sta.params['wlan'][wlan], ap.params['ssid'][0], ap.params['mac'][0]))
-                    info ('%s now associated to %s\n' % (sta, ap))
+                    debug ('%s is now associated with %s\n' % (sta, ap))
                 else:
                     if ap.params['encrypt'][0] == 'wpa' or ap.params['encrypt'][0] == 'wpa2':
                         self.associate_wpa(ap, wlan)
@@ -748,7 +767,7 @@ class Node(object):
         connections = []
         for intf in self.intfList():
             link = intf.link
-            if link and link.intf2 != None:
+            if link and link.intf2 != None and link.intf2 != 'wireless':
                 node1, node2 = link.intf1.node, link.intf2.node
                 if node1 == self and node2 == node:
                     connections += [ (intf, link.intf2) ]
@@ -1410,6 +1429,9 @@ class AccessPoint(AP):
 
             if(len(ap.params['ssid'])) > 1:
                 for i in range(1, len(ap.params['ssid'])):
+                    ap.params['txpower'].append(ap.params['txpower'][0])
+                    ap.params['antennaGain'].append(ap.params['antennaGain'][0])
+                    ap.params['antennaHeight'].append(ap.params['antennaHeight'][0])
                     ssid = ap.params['ssid'][i]
                     cmd = cmd + ('\n')
                     cmd = cmd + ("\nbss=%s" % ap.params['wlan'][i])
@@ -1980,6 +2002,19 @@ class OVSAP(AP):
         if self.datapath == 'user':
             self.cmd('ip link del', self)
         super(OVSSwitch, self).stop(deleteIntfs)
+
+    def stop_(self):
+        """Stops hostapd"""
+        process = 'mn%d_%s' % (os.getpid(), self.name)
+        os.system('pkill -f \'hostapd -B %s\'' % process)
+        self.range = int(self.params['range'])
+        self.setRange(0)
+
+    def start_(self):
+        """Starts hostapd"""
+        process = 'mn%d_%s' % (os.getpid(), self.name)
+        os.system('hostapd -B %s-wlan1.apconf' % process)
+        self.setRange(self.range)
 
     @classmethod
     def batchShutdown(cls, switches, run=errRun):

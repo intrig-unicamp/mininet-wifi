@@ -193,6 +193,9 @@ class Mininet(object):
         self.useWmediumd = enable_wmediumd
         self.driver = driver
         self.disableAutoAssociation = disableAutoAssociation
+        self.mobilityKwargs = ''
+        self._stopMobility = False
+        self._startMobility = False
 
         mininetWiFi.configureWiFiDirect = configureWiFiDirect
         mininetWiFi.configure4addr = configure4addr
@@ -357,7 +360,6 @@ class Mininet(object):
         mininetWiFi.addParameters(car, self.autoSetMacs, defaults)
 
         carsta = self.addStation(name + 'STA')
-        carsta.params['range'] = car.params['range']
 
         car.params['carsta'] = carsta
         self.carsSTA.append(carsta)
@@ -693,6 +695,8 @@ class Mininet(object):
                     if not mininetWiFi.enable_interference:
                         cls(name=sta.params['wlan'][wlan], node=sta,
                                       link=None, tc=True, **params)
+            if mininetWiFi.useWmediumd and not mininetWiFi.enable_interference:
+                mininetWiFi.wlinks.append([sta, ap])
 
         elif (node1.type == 'ap' and node2.type == 'ap' and \
                                         'link' in options and options['link'] == '4addr'):
@@ -881,6 +885,12 @@ class Mininet(object):
 
         if mininetWiFi.isWiFi and not self.disableAutoAssociation and not mininetWiFi.isMobility:
             mininetWiFi.autoAssociation(self.stations, self.accessPoints)
+
+        if self._stopMobility:
+            mininetWiFi.stopMobility(self.stations, self.accessPoints, **self.mobilityKwargs)
+        if self._startMobility:
+            mininetWiFi.startMobility(self.stations, self.accessPoints, **self.mobilityKwargs)
+
         if not mininetWiFi.isMobility and \
                 propagationModel.model == 'logNormalShadowingPropagationLossModel':
             import threading
@@ -1302,46 +1312,15 @@ class Mininet(object):
 
     def startMobility(self, **kwargs):
         "Starts Mobility"
-        stations = self.stations
-        accessPoints = self.accessPoints
-        mininetWiFi.startMobility(stations, accessPoints, **kwargs)
+        self._startMobility = True
+        mininetWiFi.isMobility = True
+        self.mobilityKwargs = kwargs
 
     def stopMobility(self, **kwargs):
         """Stops Mobility"""
-        stations = self.stations
-        accessPoints = self.accessPoints
-        mininetWiFi.stopMobility(stations, accessPoints, **kwargs)
-
-    def getSignalRange(self):
-        info('*** Getting the signal range automatically...\n')
-        if mininetWiFi.isVanet:
-            nodes = self.stations + self.cars
-            for node in nodes:
-                node_ = node
-                if node.type == 'vehicle':
-                    node = node.params['carsta']
-                ori_pos = node_.params['position']
-                signal = node.cmd('iw dev %s station dump | grep signal: | awk \'{print $2}\'' % node.params['wlan'][0])
-                for idx, signal_ in enumerate(signal.splitlines()):
-                    while signal_ >= -92:
-                        signal_ = int(node.cmd('iw dev %s station dump | grep signal: | awk \'NR==%s\' | awk \'{print $2}\'' % (node.params['wlan'][0], idx+1)))
-                        pos = node_.params['position']
-                        pos_ = pos[0] + 10
-                        node_.testPosition('%f,%f,%f' % (pos_, pos[1], pos[2]))
-                        sleep(0.1)
-                    mac = node.cmd('iw dev %s station dump | grep Station | awk \'NR==%s\' | awk \'{print $2}\'' % (node.params['wlan'][0], idx+1))
-                    mac = mac.splitlines()[0]
-                    for n in nodes:
-                        ref_node = n.params['carsta']
-                        if ref_node != node:
-                            if str(ref_node.params['mac'][0]) == str(mac):
-                                dist = mininetWiFi.getDistance(node_, ref_node)
-                                for n in nodes:
-                                    n.setRange(dist)
-                                    node_.testPosition('%f,%f,%f' % (ori_pos[0], ori_pos[1], ori_pos[2]))
-                                break
-                    break
-                break
+        self._stopMobility = True
+        mininetWiFi.isMobility = True
+        self.mobilityKwargs = kwargs
 
     def useExternalProgram(self, program, **params):
         """

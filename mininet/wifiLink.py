@@ -2,7 +2,6 @@
 author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
 """
 import numpy as np
-import random
 import os
 import re
 
@@ -35,8 +34,6 @@ class link (object):
         latency_ = self.setLatency(dist)
         loss_ = self.setLoss(dist)
         bw_ = self.setBW(sta=sta, ap=ap, dist=dist, wlan=wlan)
-        # sta.params['rssi'][wlan] = self.setRSSI(sta, ap, wlan, dist)
-        # sta.params['snr'][wlan] = self.setSNR(sta, wlan)
         self.tc(sta, wlan, bw_, loss_, latency_, delay_)
 
     @classmethod
@@ -103,27 +100,6 @@ class link (object):
         return float(value.rssi)  # random.uniform(value.rssi-1, value.rssi+1)
 
     @classmethod
-    def setSNR(self, sta, wlan):
-        """set SNR
-        
-        :param sta: station
-        :param wlan: wlan ID
-        """
-        return float('%.2f' % (sta.params['rssi'][wlan] - (-91.0)))
-
-    @classmethod
-    def recordParams(self, sta, ap):
-        """ Records node params to a file
-        
-        :param sta: station
-        :param ap: access point
-        """
-        if sta != None and 'recordNodeParams' in sta.params:
-            os.system('echo \'%s\' > %s.nodeParams' % (sta.params, sta.name))
-        if ap != None and 'recordNodeParams' in ap.params:
-            os.system('echo \'%s\' > %s.nodeParams' % (ap.params, ap.name))
-
-    @classmethod
     def tc(self, sta, wlan, bw, loss, latency, delay):
         """Applies TC
         
@@ -157,11 +133,6 @@ class link (object):
                  "delay %.2fms" % (sta.params['wlan'][wlan], bw, loss, latency, delay)
             sta.pexec(tc)
                 # corrupt 0.1%%" % (sta.params['wlan'][wlan], bw, loss, latency, delay))
-
-    def signalToNoiseRatio(self, signalPower, noisePower):
-        """Calculating SNR margin"""
-        snr = signalPower - noisePower
-        return snr
 
     @classmethod
     def frequency(self, node, wlan):
@@ -277,25 +248,16 @@ class Association(object):
         debug("associating %s to %s...\n" % (node.params['wlan'][wlan], node.params['ssid'][wlan]))
         node.pexec('iw dev %s mesh join %s' % (node.params['wlan'][wlan], node.params['ssid'][wlan]))
 
-    _macMatchRegex = re.compile(r'..:..:..:..:..:..')
-
-    @classmethod
-    def getMacAddress(self, node, iface, wlan):
-        "gets Mac Address of any Interface"
-        ifconfig = str(node.pexec('ifconfig %s' % iface))
-        mac = self._macMatchRegex.findall(ifconfig)
-        node.meshMac[wlan] = str(mac[0])
-
     @classmethod
     def setSNRWmediumd(self, sta, ap, snr):
-        "Set SNR for wmediumd"
+        "Send SNR to wmediumd"
         WmediumdServerConn.send_snr_update(WmediumdSNRLink(sta.wmIface[0], ap.wmIface[0], snr))
         WmediumdServerConn.send_snr_update(WmediumdSNRLink(ap.wmIface[0], sta.wmIface[0], snr))
 
     @classmethod
     def configureWirelessLink(self, sta, ap, wlan, useWmediumd=False, enable_interference=False):
         """ 
-        Updates RSSI, SNR, and Others...
+        Updates RSSI and Others...
         
         :param sta: station
         :param ap: access point
@@ -320,16 +282,13 @@ class Association(object):
                 if not enable_interference:
                     rssi_ = link.setRSSI(sta, ap, wlan, dist)
                     sta.params['rssi'][wlan] = rssi_
-                    snr_ = link.setSNR(sta, wlan)
-                    sta.params['snr'][wlan] = snr_
             if ap not in sta.params['apsInRange']:
                 sta.params['apsInRange'].append(ap)
                 if not enable_interference:
                     ap.params['stationsInRange'][sta] = rssi_
-            link.recordParams(sta, ap)
 
     @classmethod
-    def updateParams(self, sta, ap, wlan, interference_enabled=False):
+    def updateParams(self, sta, ap, wlan):
         """
         :param sta: station
         :param ap: access point
@@ -339,8 +298,6 @@ class Association(object):
         sta.params['frequency'][wlan] = link.frequency(ap, 0)
         sta.params['channel'][wlan] = ap.params['channel'][0]
         sta.params['mode'][wlan] = ap.params['mode'][0]
-        if interference_enabled:
-            sta.getRange()
 
     @classmethod
     def associate(self, sta, ap, useWmediumd, enable_interference=False):
@@ -430,7 +387,7 @@ class Association(object):
                 cmd = cmd + '   phase2=\"autheap=MSCHAPV2\"\n'
         cmd = cmd + '}'
 
-        fileName = str(sta) + '.staconf'
+        fileName = '%s_%s.staconf' % (sta.name, wlan)
         os.system('echo \'%s\' > %s' % (cmd, fileName))
 
     @classmethod
@@ -444,10 +401,10 @@ class Association(object):
         """
         pidfile = "mn%d_%s_%s_wpa.pid" % (os.getpid(), sta.name, wlan)
         self.wpaFile(sta, ap, wlan)
-        debug("wpa_supplicant -B -Dnl80211 -P %s -i %s -c %s.staconf\n"
-                % (pidfile, sta.params['wlan'][wlan], sta))
-        sta.pexec("wpa_supplicant -B -Dnl80211 -P %s -i %s -c %s.staconf"
-                % (pidfile, sta.params['wlan'][wlan], sta))
+        debug("wpa_supplicant -B -Dnl80211 -P %s -i %s -c %s_%s.staconf\n"
+                % (pidfile, sta.params['wlan'][wlan], sta.name, wlan))
+        sta.pexec("wpa_supplicant -B -Dnl80211 -P %s -i %s -c %s_%s.staconf"
+                % (pidfile, sta.params['wlan'][wlan], sta.name, wlan))
 
     @classmethod
     def associate_wep(self, sta, ap, wlan):
