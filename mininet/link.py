@@ -760,21 +760,24 @@ class _4addrLink(object):
            node2: second node
            intf: default interface class/constructor
            """
-        intfName1 = '%s-wds' % node1.name
-        intfName2 = '%s-wds' % node2.name
+        intfName1 = '%s.wds' % node1.name
+        intfName2 = '%s.wds' % node2.name
         intf1 = None
         intf2 = None
         cls = intf
 
         if intfName1 not in node1.params['wlan'] and node1.params['_4addr'] == 'client':
             self.add4addrIface(node1, intfName1)
-            node1.params['mac'].append(node1.params['mac'][0][:3] + '01' + node1.params['mac'][0][5:])
+            node1.params['mac'].append(node1.params['mac'][0][:3] + '09' + node1.params['mac'][0][5:])
             self.setMac(node1)
             self.bring4addrIfaceUP(node1)
-            params1 = {}
-            params1[ 'port' ] = node1.newPort()
-            intf1 = cls(name=intfName1, node=node1,
-                                  link=self, **params1)
+
+            node2.params['mode'].append(node2.params['mode'][0])
+            node2.params['channel'].append(node2.params['channel'][0])
+            node2.params['frequency'].append(node2.params['frequency'][0])
+            node2.params['txpower'].append(14)
+            node2.params['antennaGain'].append(node2.params['antennaGain'][0])
+
             node1.params['mode'].append(node1.params['mode'][0])
             node1.params['channel'].append(node1.params['channel'][0])
             node1.params['frequency'].append(node1.params['frequency'][0])
@@ -783,15 +786,34 @@ class _4addrLink(object):
             node1.params['wlan'].append(intfName1)
             node1.cmd('iwconfig %s essid %s ap %s' % (node1.params['wlan'][1], node2.params['ssid'][0], node2.params['mac'][0]))
 
-        if intfName2 not in node2.params['wlan'] and node2.params['_4addr'] == 'client':
-            self.add4addrIface(node2, intfName2)
-            node2.params['mac'].append(node2.params['mac'][0][:3] + '01' + node2.params['mac'][0][5:])
-            self.setMac(node2)
-            self.bring4addrIfaceUP(node2)
+            params1 = {}
             params2 = {}
+            params1[ 'port' ] = node1.newPort()
             params2[ 'port' ] = node2.newPort()
+            intf1 = cls(name=intfName1, node=node1,
+                                  link=self, **params1)
+            if hasattr(node1, 'wds'):
+                node2.wds += 1
+            else:
+                node2.wds = 1
+            intfName2 = node2.params['wlan'][0] + '.sta%s' % node2.wds
             intf2 = cls(name=intfName2, node=node2,
                                   link=self, **params2)
+            node2.params['wlan'].append(intfName2)
+            node2.params['mac'].append(node2.params['mac'][0])
+
+        if intfName2 not in node2.params['wlan'] and node2.params['_4addr'] == 'client':
+            self.add4addrIface(node2, intfName2)
+            node2.params['mac'].append(node2.params['mac'][0][:3] + '09' + node2.params['mac'][0][5:])
+            self.setMac(node2)
+            self.bring4addrIfaceUP(node2)
+
+            node1.params['mode'].append(node1.params['mode'][0])
+            node1.params['channel'].append(node1.params['channel'][0])
+            node1.params['frequency'].append(node1.params['frequency'][0])
+            node1.params['txpower'].append(14)
+            node1.params['antennaGain'].append(node1.params['antennaGain'][0])
+
             node2.params['mode'].append(node2.params['mode'][0])
             node2.params['channel'].append(node2.params['channel'][0])
             node2.params['frequency'].append(node2.params['frequency'][0])
@@ -800,14 +822,31 @@ class _4addrLink(object):
             node2.params['wlan'].append(intfName2)
             node2.cmd('iwconfig %s essid %s ap %s' % (node2.params['wlan'][1], node1.params['ssid'][0], node1.params['mac'][0]))
 
+            params2 = {}
+            params1 = {}
+            params2[ 'port' ] = node2.newPort()
+            params1[ 'port' ] = node1.newPort()
+
+            intf2 = cls(name=intfName2, node=node2,
+                                  link=self, **params2)
+            if hasattr(node1, 'wds'):
+                node1.wds += 1
+            else:
+                node1.wds = 1
+            intfName1 = node1.params['wlan'][0] + '.sta%s' % node1.wds
+            intf1 = cls(name=intfName1, node=node1,
+                                  link=self, **params1)
+            node1.params['wlan'].append(intfName1)
+            node1.params['mac'].append(node1.params['mac'][0])
+
         # All we are is dust in the wind, and our two interfaces
         self.intf1, self.intf2 = intf1, intf2
 
     def bring4addrIfaceUP(self, node):
-        node.cmd('ifconfig %s-wds up' % node.name)
+        node.cmd('ip link set dev %s.wds up' % node.name)
 
     def setMac(self, node):
-        node.cmd('ifconfig %s-wds hw ether %s' % (node.name, node.params['mac'][1]))
+        node.cmd('ip link set dev %s.wds addr %s' % (node.name, node.params['mac'][1]))
 
     def add4addrIface(self, node, intfName):
         node.cmd('iw dev %s interface add %s type managed 4addr on' % (node.params['wlan'][0], intfName))
