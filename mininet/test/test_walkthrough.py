@@ -396,7 +396,7 @@ class testWalkthrough(unittest.TestCase):
         p.expect(stations)
         p.sendline('py ap2.params[\'stationsInRange\']')
         p.expect(stations)
-        p.sendline('py sta1.setPosition(\'80,40,0\')')
+        p.sendline('py sta1.setPosition(\'100,40,0\')')
         sleep(4)
         p.sendline('py sta1.params[\'associatedTo\']')
         p.expect('Station ap2: ap2-wlan0:192.168.1.10')
