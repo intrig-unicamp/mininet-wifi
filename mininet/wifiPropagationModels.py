@@ -212,7 +212,7 @@ class distanceByPropagationModel(object):
 
         lambda_ = c / f  # lambda: wavelength (m)
         denominator = lambda_ ** 2
-        self.dist = math.pow(10, ((90 + gains + 10 * math.log10(denominator)) / 10 - math.log10((4 * math.pi) ** 2 * L)) / (2))
+        self.dist = math.pow(10, ((92 + gains + 10 * math.log10(denominator)) / 10 - math.log10((4 * math.pi) ** 2 * L)) / (2))
 
         return self.dist
 
@@ -244,7 +244,7 @@ class distanceByPropagationModel(object):
         gains = txpower + (antGain * 2)
 
         pathLoss = self.pathLoss(node, referenceDistance, wlan)
-        self.dist = math.pow(10, ((90 - pathLoss + gains) / (10 * self.exp)) + math.log10(referenceDistance))
+        self.dist = math.pow(10, ((92 - pathLoss + gains) / (10 * self.exp))) * referenceDistance
 
         return self.dist
     
@@ -265,7 +265,7 @@ class distanceByPropagationModel(object):
             WmediumdServerConn.send_gaussian_random_update(WmediumdGaussianRandom(node.wmIface[wlan], gRandom))
 
         pathLoss = self.pathLoss(node, referenceDistance, wlan) - gRandom
-        self.dist = math.pow(10, ((90 - pathLoss + gains) / (10 * self.exp)) + math.log10(referenceDistance))
+        self.dist = math.pow(10, ((92 - pathLoss + gains) / (10 * self.exp))) * referenceDistance
 
         return self.dist
 
@@ -278,6 +278,6 @@ class distanceByPropagationModel(object):
         N = 28  # Power Loss Coefficient
         lF = self.lF  # Floor penetration loss factor
         nFloors = self.nFloors  # Number of Floors
-        self.dist = math.pow(10, ((90 + gains - 20 * math.log10(f) - lF * nFloors + 28)/N))
+        self.dist = math.pow(10, ((92 + gains - 20 * math.log10(f) - lF * nFloors + 28)/N))
 
         return self.dist

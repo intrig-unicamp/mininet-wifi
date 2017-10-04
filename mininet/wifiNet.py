@@ -1057,12 +1057,7 @@ class mininetWiFi(object):
                         node = node.params['carsta']
                         wlan = 0
                     value = distanceByPropagationModel(node, wlan)
-                    if node.type != 'ap' and node.func[0] != 'ap' and \
-                        node.func[wlan] != 'mesh' and node.func[wlan] != 'adhoc':
-                        node.params['range'] = int(value.dist)/5
-                    else:
-                        node.params['range'] = int(value.dist)
-
+                    node.params['range'] = int(value.dist)
         return stations, accessPoints
 
     @classmethod
@@ -1113,13 +1108,6 @@ class mininetWiFi(object):
                 if node.type == 'vehicle' and wlan == 1:
                     node = node.params['carsta']
                     wlan = 0
-                #node.setTxPower_(node.params['wlan'][wlan], node.params['txpower'][wlan])
-                #node.setAntennaGain_(node.params['wlan'][wlan], node.params['antennaGain'][wlan])
-                #node.setAntennaHeight_(node.params['wlan'][wlan], node.params['antennaHeight'][wlan])
-                #if not self.getSignalRange and self.enable_interference:
-                #    value = distanceByPropagationModel(node, wlan)
-                #    node.params['range'] = int(value.dist)
-
         ap = []
         for node in accessPoints:
             if 'link' in node.params:

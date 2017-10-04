@@ -184,6 +184,8 @@ class mobility (object):
                 elif WmediumdServerConn.connected and not WmediumdServerConn.interference_enabled:
                     cls = Association
                     cls.setSNRWmediumd(sta, ap, snr=sta.params['rssi'][wlan] - (-91))
+                elif WmediumdServerConn.interference_enabled:
+                    pass
                 else:
                     link(sta, ap, wlan, dist)
 
