@@ -106,7 +106,7 @@ class wirelessLink (object):
                 node = node.params['carsta']
                 wlan = node.params['wlan'][0]
             if isinstance(wlan, basestring):
-                node.cmdPrint('iw dev ' + wlan + ' del')
+                node.cmd('iw dev ' + wlan + ' del')
                 node.delIntf(wlan)
                 node.intf = None
 
