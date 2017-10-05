@@ -24,7 +24,7 @@ import time
 import os
 
 from mininet.log import debug, info
-from mininet.wifiLink import link, Association
+from mininet.wifiLink import wirelessLink, Association
 from mininet.wifiAssociationControl import associationControl
 from mininet.wmediumdConnector import WmediumdServerConn
 from mininet.wifiPropagationModels import propagationModel
@@ -170,11 +170,11 @@ class mobility (object):
         """
         if ap not in sta.params['apsInRange']:
             sta.params['apsInRange'].append(ap)
-        rssi_ = link.setRSSI(sta, ap, wlan, dist)
+        rssi_ = wirelessLink.setRSSI(sta, ap, wlan, dist)
         ap.params['stationsInRange'][sta] = rssi_
         if ap == sta.params['associatedTo'][wlan]:
             if not WmediumdServerConn.interference_enabled:
-                rssi_ = link.setRSSI(sta, ap, wlan, dist)
+                rssi_ = wirelessLink.setRSSI(sta, ap, wlan, dist)
                 sta.params['rssi'][wlan] = rssi_
             if sta not in ap.params['associatedStations']:
                 ap.params['associatedStations'].append(sta)
@@ -187,7 +187,7 @@ class mobility (object):
                 elif WmediumdServerConn.interference_enabled:
                     pass
                 else:
-                    link(sta, ap, wlan, dist)
+                    wirelessLink(sta, ap, wlan, dist)
 
     @classmethod
     def checkAssociation(self, sta, wlan):
@@ -198,12 +198,12 @@ class mobility (object):
         :param wlan: wlan ID
         """
         for ap in self.accessPoints:
-            dist = link.getDistance(sta, ap)
+            dist = wirelessLink.getDistance(sta, ap)
             if dist > ap.params['range']:
                 self.apOutOfRange(sta, ap, wlan)
 
         for ap in self.accessPoints:
-            dist = link.getDistance(sta, ap)
+            dist = wirelessLink.getDistance(sta, ap)
             if dist <= ap.params['range']:
                 self.handover(sta, ap, wlan)
                 self.apInRange(sta, ap, wlan, dist)

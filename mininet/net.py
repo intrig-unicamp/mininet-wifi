@@ -109,7 +109,7 @@ from mininet.node import (Node, Host, Station, Car, OVSKernelSwitch, OVSKernelAP
                           DefaultController, Controller)
 from mininet.nodelib import NAT
 from mininet.link import Link, Intf, _4addrLink, TCIntfWireless
-from mininet.wifiLink import Association
+from mininet.wifiLink import Association, wirelessLink
 from mininet.util import (quietRun, fixLimits, numCores, ensureRoot,
                            macColonHex, ipStr, ipParse, netParse, ipAdd,
                            waitListening)
@@ -971,6 +971,9 @@ class Mininet(object):
         mininetWiFi.nroads = nroads
 
     def stop(self):
+        if(mininetWiFi.isWiFi):
+            "Stops Graph and Params"
+            mininetWiFi.stopGraphParams()
         "Stop the controller(s), switches and hosts"
         info('*** Stopping %i controllers\n' % len(self.controllers))
         for controller in self.controllers:
@@ -982,6 +985,10 @@ class Mininet(object):
             info('*** Stopping %i terms\n' % len(self.terms))
             self.stopXterms()
         info('*** Stopping %i links\n' % len(self.links))
+
+        for sta in self.stations:
+            wirelessLink.delete(sta)
+
         for link in self.links:
             info('.')
             link.stop()
@@ -1003,12 +1010,13 @@ class Mininet(object):
         info('\n')
 
         info('*** Stopping hosts and/or stations\n')
-        for host in self.hosts:
+        hosts = self.hosts + self.stations
+        for host in hosts:
             info(host.name + ' ')
             host.terminate()
         info('\n')
         if(mininetWiFi.isWiFi):
-            "Stop Graph"
+            "Stops Mininet-WiFi"
             mininetWiFi.closeMininetWiFi()
         info('\n*** Done\n')
 

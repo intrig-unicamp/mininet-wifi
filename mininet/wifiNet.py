@@ -15,7 +15,7 @@ from mininet.node import AccessPoint
 from mininet.log import info
 from mininet.wmediumdConnector import DynamicWmediumdIntfRef, WmediumdStarter, WmediumdSNRLink, \
                     WmediumdTXPower, WmediumdPosition, WmediumdConstants, WmediumdServerConn
-from mininet.wifiLink import link, Association
+from mininet.wifiLink import wirelessLink, Association
 from mininet.wifiDevices import deviceRange, deviceDataRate
 from mininet.wifiMobility import mobility
 from mininet.wifiPlot import plot2d, plot3d
@@ -727,7 +727,7 @@ class mininetWiFi(object):
                     ap.params.pop("phywlan", None)
 
                 #if ap.func[0] != 'ap':
-                ap.params['frequency'][wlan] = link.frequency(ap, 0)
+                ap.params['frequency'][wlan] = wirelessLink.frequency(ap, 0)
 
                 if len(ap.params['ssid']) > 1 and wlan == 0:
                     break
@@ -1002,7 +1002,7 @@ class mininetWiFi(object):
 
         params = {}
         if self.ifb:
-            link.ifb = True
+            wirelessLink.ifb = True
             params['ifb'] = self.ifb
         params['useWmediumd'] = useWmediumd
         nodes = stations + accessPoints + cars
@@ -1131,7 +1131,7 @@ class mininetWiFi(object):
                 for wlan in range(0, len(sta.params['wlan'])):
                     for ap in accessPoints:
                         if 'position' in sta.params and 'position' in ap.params:
-                            dist = link.getDistance(sta, ap)
+                            dist = wirelessLink.getDistance(sta, ap)
                             if dist <= ap.params['range']:
                                 mobility.handover(sta, ap, wlan)
 
@@ -1166,7 +1166,7 @@ class mininetWiFi(object):
 
     @classmethod
     def getDistance(self, src, dst):
-        dist = link.getDistance(src, dst)
+        dist = wirelessLink.getDistance(src, dst)
         return dist
 
     @classmethod
@@ -1219,20 +1219,23 @@ class mininetWiFi(object):
         :params loss: loss (%)
         """
         if 'bw' in params:
-            link.equationBw = params['bw']
+            wirelessLink.equationBw = params['bw']
         if 'delay' in params:
-            link.equationDelay = params['delay']
+            wirelessLink.equationDelay = params['delay']
         if 'latency' in params:
-            link.equationLatency = params['latency']
+            wirelessLink.equationLatency = params['latency']
         if 'loss' in params:
-            link.equationLoss = params['loss']
+            wirelessLink.equationLoss = params['loss']
+
+    @classmethod
+    def stopGraphParams(self):
+        mobility.continuePlot = 'exit()'
+        mobility.continueParams = 'exit()'
+        sleep(2)
 
     @classmethod
     def closeMininetWiFi(self):
         "Close Mininet-WiFi"
-        mobility.continuePlot = 'exit()'
-        mobility.continueParams = 'exit()'
-        sleep(2)
         self.plot.closePlot()
         module.stop()  # Stopping WiFi Module
 

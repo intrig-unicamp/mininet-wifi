@@ -3,7 +3,6 @@ author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
 """
 import numpy as np
 import os
-import re
 
 from mininet.wifiDevices import deviceDataRate
 from mininet.log import debug, info
@@ -12,7 +11,7 @@ from mininet.wmediumdConnector import WmediumdServerConn, WmediumdSNRLink
 from mininet.link import TCLinkWirelessStation
 from scipy.spatial.distance import pdist
 
-class link (object):
+class wirelessLink (object):
 
     dist = 0
     noise = 0
@@ -98,6 +97,14 @@ class link (object):
         """
         value = propagationModel(node1, node2, dist, wlan)
         return float(value.rssi)  # random.uniform(value.rssi-1, value.rssi+1)
+
+    @classmethod
+    def delete(self, node):
+        "Delete interface"
+        for wlan in node.params['wlan']:
+            node.cmd('iw dev ' + wlan + ' del')
+            node.delIntf(self)
+            node.intf = None
 
     @classmethod
     def tc(self, sta, wlan, bw, loss, latency, delay):
@@ -264,7 +271,7 @@ class Association(object):
         :param wlan: wlan ID
         """
 
-        dist = link.getDistance(sta, ap)
+        dist = wirelessLink.getDistance(sta, ap)
         if dist <= ap.params['range']:
             for wlan in range(0, len(sta.params['wlan'])):
                 if not enable_interference:
@@ -276,11 +283,11 @@ class Association(object):
                     cls.associate_infra(sta, ap, wlan)
                     if not useWmediumd:
                         if dist >= 0.01:
-                            link(sta, ap, wlan, dist)
+                            wirelessLink(sta, ap, wlan, dist)
                     if sta not in ap.params['associatedStations']:
                         ap.params['associatedStations'].append(sta)
                 if not enable_interference:
-                    rssi_ = link.setRSSI(sta, ap, wlan, dist)
+                    rssi_ = wirelessLink.setRSSI(sta, ap, wlan, dist)
                     sta.params['rssi'][wlan] = rssi_
             if ap not in sta.params['apsInRange']:
                 sta.params['apsInRange'].append(ap)
@@ -295,7 +302,7 @@ class Association(object):
         :param wlan: wlan ID
         """
 
-        sta.params['frequency'][wlan] = link.frequency(ap, 0)
+        sta.params['frequency'][wlan] = wirelessLink.frequency(ap, 0)
         sta.params['channel'][wlan] = ap.params['channel'][0]
         sta.params['mode'][wlan] = ap.params['mode'][0]
 
@@ -344,7 +351,7 @@ class Association(object):
         if self.printCon:
             iface = sta.params['wlan'][wlan]
             info("Associating %s to %s\n" % (iface, ap))
-        sta.params['frequency'][wlan] = link.frequency(ap, 0)
+        sta.params['frequency'][wlan] = wirelessLink.frequency(ap, 0)
 
     @classmethod
     def wpaFile(self, sta, ap, wlan):

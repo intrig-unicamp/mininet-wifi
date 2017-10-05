@@ -73,7 +73,7 @@ from mininet.wifiPropagationModels import distanceByPropagationModel
 from re import findall
 from distutils.version import StrictVersion
 from mininet.wifiMobility import mobility
-from mininet.wifiLink import link
+from mininet.wifiLink import wirelessLink
 from mininet.wifiPlot import plot2d, plot3d
 from mininet.wifiLink import Association
 
@@ -345,7 +345,7 @@ class Node(object):
         wlan = self.params['wlan'].index(iface)
         self.cmd('iw dev %s set channel %s' % (self.params['wlan'][wlan], value))
         self.params['channel'][wlan] = value
-        self.params['frequency'][wlan] = link.frequency(self, wlan)
+        self.params['frequency'][wlan] = wirelessLink.frequency(self, wlan)
 
     def setTxPower(self, iface, txpower):
         self.setTxPower_(iface, txpower)
@@ -420,7 +420,7 @@ class Node(object):
                 wlan = idx
                 break
         if ('position' in sta.params and 'position' in ap.params):
-            dist = link.getDistance(sta, ap)
+            dist = wirelessLink.getDistance(sta, ap)
         else:
             dist = 100000
         if (dist < ap.params['range']) or ('position' not in sta.params and 'position' not in ap.params):
@@ -435,7 +435,7 @@ class Node(object):
                         self.associate_wpa(ap, wlan)
                     elif ap.params['encrypt'][0] == 'wep':
                         self.associate_wep(ap, wlan)
-                link(sta, ap, wlan, dist)
+                wirelessLink(sta, ap, wlan, dist)
                 mobility.updateAssociation(sta, ap, wlan)
             else:
                 info ('%s is already connected!\n' % ap)
