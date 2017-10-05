@@ -102,9 +102,13 @@ class wirelessLink (object):
     def delete(self, node):
         "Delete interface"
         for wlan in node.params['wlan']:
-            node.cmd('iw dev ' + wlan + ' del')
-            node.delIntf(self)
-            node.intf = None
+            if node.type == 'vehicle' and node.params['wlan'].index(wlan) == 1:
+                node = node.params['carsta']
+                wlan = node.params['wlan'][0]
+            if isinstance(wlan, basestring):
+                node.cmdPrint('iw dev ' + wlan + ' del')
+                node.delIntf(wlan)
+                node.intf = None
 
     @classmethod
     def tc(self, sta, wlan, bw, loss, latency, delay):
