@@ -842,33 +842,6 @@ class mininetWiFi(object):
             self.DRAW = False
 
     @classmethod
-    def startGraph(self, stations, accessPoints, is3d=False):
-        self.alreadyPlotted = True
-        if not self.isMobility and self.DRAW:
-            for sta in stations:
-                if sta.func[0] == 'ap':
-                    accessPoints.append(sta)
-                    stations.remove(sta)
-
-            if mobility.accessPoints == []:
-                mobility.accessPoints = accessPoints
-            if mobility.stations == []:
-                mobility.stations = stations
-
-            nodes = []
-            nodes = self.plotNodes
-
-            for ap in accessPoints:
-                if 'position' in ap.params:
-                    nodes.append(ap)
-
-            for sta in stations:
-                if 'position' in sta.params:
-                    nodes.append(sta)
-
-            self.checkDimension(nodes)
-
-    @classmethod
     def startMobility(self, stations, accessPoints, **kwargs):
         "Starts Mobility"
         mobilityModel = ''

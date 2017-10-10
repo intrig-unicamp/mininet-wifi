@@ -223,7 +223,10 @@ class MininetRunner(object):
         
         opts.add_option('--wmediumd', action='store_true',
                          default=False, help='activate wmediumd')
-        
+
+        opts.add_option('--plot', action='store_true',
+                         default=False, help='activate graph')
+
         opts.add_option('--channel', type='int',
                          default=1, help='wireless channel configuration')
          
@@ -425,6 +428,7 @@ class MininetRunner(object):
                   mode=mode,
                   ssid=ssid,
                   enable_wmediumd=opts.wmediumd,
+                  defaultGraph=opts.plot,
                   xterms=xterms, autoSetMacs=mac,
                   autoStaticArp=arp, autoPinCpus=pin,
                   listenPort=listenPort,

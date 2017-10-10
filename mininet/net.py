@@ -132,7 +132,8 @@ class Mininet(object):
                   listenPort=None, waitConnected=False, ssid="new-ssid", mode="g", channel="1",
                   enable_wmediumd=False, enable_interference=False, enable_spec_prob_link=False,
                   enable_error_prob=False, disableAutoAssociation=False, driver='nl80211',
-                  autoSetPositions=False, configureWiFiDirect=False, configure4addr=False):
+                  autoSetPositions=False, configureWiFiDirect=False, configure4addr=False,
+                  defaultGraph=False):
         """Create Mininet object.
            topo: Topo (topology) object or None
            switch: default Switch class
@@ -204,6 +205,9 @@ class Mininet(object):
         mininetWiFi.enable_interference = enable_interference
         mininetWiFi.enable_spec_prob_link = enable_spec_prob_link
         Mininet.init()  # Initialize Mininet if necessary
+
+        if defaultGraph:
+            self.defaultGraph()
 
         self.built = False
         if topo and build:
@@ -1370,6 +1374,9 @@ class Mininet(object):
         cls = Association
         cls.bgscan = bgscan
 
+    def defaultGraph(self):
+        self.plotGraph(min_x=0, min_y=0, min_z=0, max_x=100, max_y=100, max_z=0)
+
     def getCurrentDistance(self, src, dst):
         """ 
         Gets the distance between two nodes
@@ -1403,9 +1410,6 @@ class Mininet(object):
         :params max_z: maximum Z
         """
         mininetWiFi.plotGraph(min_x, min_y, min_z, max_x, max_y, max_z)
-
-    def startGraph(self):
-        mininetWiFi.startGraph(self.stations, self.accessPoints)
 
     def setChannelEquation(self, **params):
         """ 
