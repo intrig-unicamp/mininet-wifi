@@ -242,7 +242,6 @@ class Association(object):
             debug("associating %s to %s...\n" % (iface, node.params['ssid'][wlan]))
             node.pexec('iwconfig %s channel %s essid %s ap 02:CA:FF:EE:BA:01 mode ad-hoc'\
                        % (iface, node.params['channel'][wlan], node.params['associatedTo'][wlan]))
-            #sta.pexec('iwconfig %s ap %s' % (iface, sta.params['cell'][wlan]))
 
     @classmethod
     def configureMesh(self, node, wlan):

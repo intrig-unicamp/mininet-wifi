@@ -181,7 +181,7 @@ class Node(object):
         # +m: disable job control notification
         self.cmd('unset HISTFILE; stty -echo; set +m')
 
-    def setMeshIface(self, iface, ssid=''):
+    def setMeshIface(self, iface, ssid='', **params):
         wlan = self.params['wlan'].index(iface)
         if self.func[wlan] == 'adhoc':
             self.cmd('iw dev %s set type managed' % self.params['wlan'][wlan])
@@ -191,6 +191,13 @@ class Node(object):
         self.cmd('ip link set %s address %s' % (iface, self.params['mac'][wlan]))
         self.cmd('ifconfig %s down' % self.params['wlan'][wlan])
         self.params['wlan'][wlan] = iface
+
+        if 'channel' in params:
+            self.setChannel(self.params['wlan'][wlan], params['channel'])
+
+        if 'freq' in params:
+            self.setFreq(self.params['wlan'][wlan], params['freq'])
+
         if ('ip' in self.params):
             self.cmd('ifconfig %s %s up' % (self.params['wlan'][wlan], self.params['ip'][wlan]))
         else:
@@ -346,6 +353,11 @@ class Node(object):
         self.cmd('iw dev %s set channel %s' % (self.params['wlan'][wlan], value))
         self.params['channel'][wlan] = value
         self.params['frequency'][wlan] = wirelessLink.frequency(self, wlan)
+
+    def setFreq(self, iface, value):
+        wlan = self.params['wlan'].index(iface)
+        self.cmd('iw dev %s set freq %s' % (self.params['wlan'][wlan], value))
+        self.params['frequency'][wlan] = value
 
     def setTxPower(self, iface, txpower):
         self.setTxPower_(iface, txpower)
@@ -1335,11 +1347,7 @@ class AccessPoint(AP):
         else:
             cmd = cmd + ("interface=%s" % ap.params.get('phywlan'))  # the interface used by the AP
         cmd = cmd + ("\ndriver=%s" % ap.params['driver'])
-
-        if 'vssids' in ap.params and len(ap.func)>1 and not ap.func[1] == 'mesh':
-            cmd = cmd + ("\nssid=%s-%s" % (ap.params['ssid'][wlan], wlan))  # ssid name
-        else:
-            cmd = cmd + ("\nssid=%s" % ap.params['ssid'][wlan])  # ssid name
+        cmd = cmd + ("\nssid=%s" % ap.params['ssid'][wlan])  # ssid name
         cmd = cmd + ('\nwds_sta=1')
         if ap.params['mode'][wlan] == 'n':
             if 'band' in ap.params:
@@ -1679,7 +1687,7 @@ class UserAP(AP):
         # self.cmd('kill %ofprotocol')
         # super(UserAP, self).stop(deleteIntfs)
 
-    def setMeshIface(self, iface, ssid=''):
+    def setMeshIface(self, iface, ssid='', **params):
         wlan = self.params['wlan'].index(iface)
         if self.func[wlan] == 'adhoc':
             self.cmd('iw dev %s set type managed' % self.params['wlan'][wlan])
@@ -1692,6 +1700,13 @@ class UserAP(AP):
         self.cmd('ip link set %s address %s' % (iface, self.params['mac'][wlan]))
         self.cmd('ifconfig %s down' % self.params['wlan'][wlan])
         self.params['wlan'][wlan] = iface
+
+        if 'channel' in params:
+            self.setChannel(self.params['wlan'][wlan], params['channel'])
+
+        if 'freq' in params:
+            self.setFreq(self.params['wlan'][wlan], params['freq'])
+
         if ('ip' in self.params):
             self.cmd('ifconfig %s %s up' % (self.params['wlan'][wlan], self.params['ip'][wlan]))
         else:
@@ -1859,7 +1874,7 @@ class OVSAP(AP):
                 return True
         return self.failMode == 'standalone'
 
-    def setMeshIface(self, iface, ssid=''):
+    def setMeshIface(self, iface, ssid='', **params):
         wlan = self.params['wlan'].index(iface)
         if self.func[wlan] == 'adhoc':
             self.cmd('iw dev %s set type managed' % self.params['wlan'][wlan])
@@ -1872,6 +1887,13 @@ class OVSAP(AP):
         self.cmd('ip link set %s address %s' % (iface, self.params['mac'][wlan]))
         self.cmd('ifconfig %s down' % self.params['wlan'][wlan])
         self.params['wlan'][wlan] = iface
+
+        if 'channel' in params:
+            self.setChannel(self.params['wlan'][wlan], params['channel'])
+
+        if 'freq' in params:
+            self.setFreq(self.params['wlan'][wlan], params['freq'])
+
         if ('ip' in self.params):
             self.cmd('ifconfig %s %s up' % (self.params['wlan'][wlan], self.params['ip'][wlan]))
         else:

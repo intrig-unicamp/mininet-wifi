@@ -419,7 +419,7 @@ class mininetWiFi(object):
         node.params['txpower'][wlan] = 20
 
         if node.type == 'ap':
-            node.params['ssid'].append('')
+            pass
         else:
             node.params['ssid'] = []
             for n in range(len(node.params['wlan'])):
@@ -433,9 +433,7 @@ class mininetWiFi(object):
 
         deviceRange(node)
 
-        node.setMeshIface(node.params['wlan'][wlan])
-        if 'channel' in params:
-            node.setChannel(node.params['wlan'][wlan], params['channel'])
+        node.setMeshIface(node.params['wlan'][wlan], **params)
 
         cls = Association
         cls.configureMesh(node, wlan)
@@ -691,7 +689,7 @@ class mininetWiFi(object):
         if 'phywlan' in ap.params:
             wlanID = 1
         for wlan in range(len(ap.params['wlan']) + wlanID):
-            if ap.func[wlan] != 'mesh':
+            if ap.params['ssid'][wlan] != ' ':
                 if wlanID == 1:
                     wlan = 0
                 if 'encrypt' in ap.params and 'config' not in ap.params:
