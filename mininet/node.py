@@ -1336,12 +1336,12 @@ class AccessPoint(AP):
             cmd = cmd + ("interface=%s" % ap.params.get('phywlan'))  # the interface used by the AP
         cmd = cmd + ("\ndriver=%s" % ap.params['driver'])
 
-        if wlan > 0 and not ap.func[1] == 'mesh':
-            cmd = cmd + ("\nssid=%s-%s" % (ap.params['ssid'][0], wlan))  # ssid name
+        if 'vssids' in ap.params and len(ap.func)>1 and not ap.func[1] == 'mesh':
+            cmd = cmd + ("\nssid=%s-%s" % (ap.params['ssid'][wlan], wlan))  # ssid name
         else:
-            cmd = cmd + ("\nssid=%s" % ap.params['ssid'][0])  # ssid name
+            cmd = cmd + ("\nssid=%s" % ap.params['ssid'][wlan])  # ssid name
         cmd = cmd + ('\nwds_sta=1')
-        if ap.params['mode'][0] == 'n':
+        if ap.params['mode'][wlan] == 'n':
             if 'band' in ap.params:
                 if ap.params['band'] == 2.4:
                     cmd = cmd + ("\nhw_mode=g")
@@ -1352,13 +1352,13 @@ class AccessPoint(AP):
                 cmd = cmd + ("\nhw_mode=g")
         elif ap.params['mode'][0] == 'a':
             cmd = cmd + ('\ncountry_code=US')
-            cmd = cmd + ("\nhw_mode=%s" % ap.params['mode'][0])
+            cmd = cmd + ("\nhw_mode=%s" % ap.params['mode'][wlan])
         elif ap.params['mode'][0] == 'ac':
             cmd = cmd + ('\ncountry_code=US')
             cmd = cmd + ("\nhw_mode=a")
         else:
-            cmd = cmd + ("\nhw_mode=%s" % ap.params['mode'][0])
-        cmd = cmd + ("\nchannel=%s" % ap.params['channel'][0])
+            cmd = cmd + ("\nhw_mode=%s" % ap.params['mode'][wlan])
+        cmd = cmd + ("\nchannel=%s" % ap.params['channel'][wlan])
         if 'ht_capab' in ap.params:
             cmd = cmd + ('\nht_capab=%s' % ap.params['ht_capab'])
 
@@ -1397,7 +1397,7 @@ class AccessPoint(AP):
                 cmd = cmd + ("\nwmm_enabled=1")
 
                 if 'encrypt' in ap.params:
-                    if 'wpa' in ap.params['encrypt'][0]:
+                    if 'wpa' in ap.params['encrypt'][wlan]:
                         cmd = cmd + ("\nauth_algs=%s" % ap.auth_algs)
                         cmd = cmd + ("\nwpa=%s" % ap.wpa)
                         cmd = cmd + ("\nwpa_key_mgmt=%s" % ap.wpa_key_mgmt)
@@ -1427,8 +1427,8 @@ class AccessPoint(AP):
                         cmd = cmd + ('\nft_over_ds=1')
                         cmd = cmd + ('\nft_psk_generate_local=1')
 
-            if(len(ap.params['ssid'])) > 1:
-                for i in range(1, len(ap.params['ssid'])):
+            if 'vssids' in ap.params:
+                for i in range(1, ap.params['vssids']+1):
                     ap.params['txpower'].append(ap.params['txpower'][0])
                     ap.params['antennaGain'].append(ap.params['antennaGain'][0])
                     ap.params['antennaHeight'].append(ap.params['antennaHeight'][0])
@@ -1446,8 +1446,8 @@ class AccessPoint(AP):
         cmd = cmd + ("\nctrl_interface_group=0")
         self.APConfigFile(cmd, ap, wlan)
 
-        if(len(ap.params['ssid'])) > 1:
-            for i in range(1, len(ap.params['ssid'])):
+        if 'vssids' in ap.params:
+            for i in range(1, ap.params['vssids']+1):
                 wlan = i
                 ap.params['mac'][wlan] = ''
                 self.setIPMAC(ap, wlan)

@@ -323,8 +323,12 @@ class mininetWiFi(object):
         else:
             node.params['mode'] = []
             if 'mode' in params:
-                for n in range(wlans):
-                    node.params['mode'].append(params['mode'])
+                if isinstance(params['mode'], basestring):
+                    for n in range(wlans):
+                        node.params['mode'].append(params['mode'])
+                else:
+                    for wlan in range(wlans):
+                        node.params['mode'].append(params['mode'][wlan])
             else:
                 for n in range(wlans):
                     node.params['mode'].append(params['mode'])
@@ -336,8 +340,13 @@ class mininetWiFi(object):
         else:
             node.params['channel'] = []
             if 'channel' in params:
-                for n in range(wlans):
-                    node.params['channel'].append(int(params['channel']))
+                if isinstance(params['channel'], basestring) or \
+                        isinstance(params['channel'], int):
+                    for n in range(wlans):
+                        node.params['channel'].append(int(params['channel']))
+                else:
+                    for wlan in range(wlans):
+                        node.params['channel'].append(int(params['channel'][wlan]))
             else:
                 for n in range(wlans):
                     node.params['channel'].append(1)
@@ -663,7 +672,7 @@ class mininetWiFi(object):
                 cls = TCLinkWirelessAP
                 cls(node)
             AccessPoint.setIPMAC(node, wlan)
-            if len(node.params['ssid']) > 1 and wlan == 0:
+            if 'vssids' in node.params:
                 break
 
     @classmethod
@@ -729,7 +738,7 @@ class mininetWiFi(object):
                 #if ap.func[0] != 'ap':
                 ap.params['frequency'][wlan] = wirelessLink.frequency(ap, 0)
 
-                if len(ap.params['ssid']) > 1 and wlan == 0:
+                if 'vssids' in ap.params:
                     break
 
     @classmethod
@@ -768,8 +777,8 @@ class mininetWiFi(object):
         :param accessPoints: list of access points
         """
         for node in accessPoints:
-            if len(node.params['ssid']) > 1:
-                for i in range(1, len(node.params['ssid'])):
+            if 'vssids' in node.params:
+                for i in range(1, node.params['vssids']+1):
                     node.params['wlan'].append('%s-%s' % (node.params['wlan'][0], i))
                     node.params['mode'].append(node.params['mode'][0])
                     node.params['frequency'].append(node.params['frequency'][0])
@@ -787,15 +796,15 @@ class mininetWiFi(object):
                 ap.phyID = module.phyID
                 module.phyID += 1
 
+
     @classmethod
-    def configureWirelessLink(self, stations, accessPoints, cars, switches):
+    def configureWirelessLink(self, stations, accessPoints, cars):
         """
         Configure Wireless Link
         
         :param stations: list of stations
         :param accessPoints: list of access points
         :param cars: list of cars
-        :param switches: list of switches
         """
         nodes = stations + cars
         for node in nodes:
@@ -867,8 +876,6 @@ class mininetWiFi(object):
                 mobility.start(**params)
             else:
                 vanet(**params)
-
-        info("Mobility started at %s second(s)\n" % kwargs['time'])
 
     @classmethod
     def stopMobility(self, stations, accessPoints, **kwargs):
@@ -980,7 +987,7 @@ class mininetWiFi(object):
         params['useWmediumd'] = useWmediumd
         nodes = stations + accessPoints + cars
         module.start(nodes, self.wifiRadios, self.alternativeModule, **params)
-        self.configureWirelessLink(stations, accessPoints, cars, switches)
+        self.configureWirelessLink(stations, accessPoints, cars)
         self.createVirtualIfaces(stations)
         self.configureAPs(accessPoints, driver)
         self.isWiFi = True
