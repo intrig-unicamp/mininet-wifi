@@ -100,7 +100,7 @@ class wirelessLink (object):
 
     @classmethod
     def delete(self, node):
-        "Delete interface"
+        "Delete interfaces"
         for wlan in node.params['wlan']:
             if node.type == 'vehicle' and node.params['wlan'].index(wlan) == 1:
                 node = node.params['carsta']
@@ -153,75 +153,76 @@ class wirelessLink (object):
         :param wlan: wlan ID
         """
         freq = 0
-        if node.params['channel'][wlan] == 1:
+        channel = int(node.params['channel'][wlan])
+        if channel == 1:
             freq = 2.412
-        elif node.params['channel'][wlan] == 2:
+        elif channel == 2:
             freq = 2.417
-        elif node.params['channel'][wlan] == 3:
+        elif channel == 3:
             freq = 2.422
-        elif node.params['channel'][wlan] == 4:
+        elif channel == 4:
             freq = 2.427
-        elif node.params['channel'][wlan] == 5:
+        elif channel == 5:
             freq = 2.432
-        elif node.params['channel'][wlan] == 6:
+        elif channel == 6:
             freq = 2.437
-        elif node.params['channel'][wlan] == 7:
+        elif channel == 7:
             freq = 2.442
-        elif node.params['channel'][wlan] == 8:
+        elif channel == 8:
             freq = 2.447
-        elif node.params['channel'][wlan] == 9:
+        elif channel == 9:
             freq = 2.452
-        elif node.params['channel'][wlan] == 10:
+        elif channel == 10:
             freq = 2.457
-        elif node.params['channel'][wlan] == 11:
+        elif channel == 11:
             freq = 2.462
-        elif node.params['channel'][wlan] == 36:
+        elif channel == 36:
             freq = 5.18
-        elif node.params['channel'][wlan] == 40:
+        elif channel == 40:
             freq = 5.2
-        elif node.params['channel'][wlan] == 44:
+        elif channel == 44:
             freq = 5.22
-        elif node.params['channel'][wlan] == 48:
+        elif channel == 48:
             freq = 5.24
-        elif node.params['channel'][wlan] == 52:
+        elif channel == 52:
             freq = 5.26
-        elif node.params['channel'][wlan] == 56:
+        elif channel == 56:
             freq = 5.28
-        elif node.params['channel'][wlan] == 60:
+        elif channel == 60:
             freq = 5.30
-        elif node.params['channel'][wlan] == 64:
+        elif channel == 64:
             freq = 5.32
-        elif node.params['channel'][wlan] == 100:
+        elif channel == 100:
             freq = 5.50
-        elif node.params['channel'][wlan] == 104:
+        elif channel == 104:
             freq = 5.52
-        elif node.params['channel'][wlan] == 108:
+        elif channel == 108:
             freq = 5.54
-        elif node.params['channel'][wlan] == 112:
+        elif channel == 112:
             freq = 5.56
-        elif node.params['channel'][wlan] == 116:
+        elif channel == 116:
             freq = 5.58
-        elif node.params['channel'][wlan] == 120:
+        elif channel == 120:
             freq = 5.60
-        elif node.params['channel'][wlan] == 124:
+        elif channel == 124:
             freq = 5.62
-        elif node.params['channel'][wlan] == 128:
+        elif channel == 128:
             freq = 5.64
-        elif node.params['channel'][wlan] == 132:
+        elif channel == 132:
             freq = 5.66
-        elif node.params['channel'][wlan] == 136:
+        elif channel == 136:
             freq = 5.68
-        elif node.params['channel'][wlan] == 140:
+        elif channel == 140:
             freq = 5.70
-        elif node.params['channel'][wlan] == 149:
+        elif channel == 149:
             freq = 5.745
-        elif node.params['channel'][wlan] == 153:
+        elif channel == 153:
             freq = 5.765
-        elif node.params['channel'][wlan] == 157:
+        elif channel == 157:
             freq = 5.785
-        elif node.params['channel'][wlan] == 161:
+        elif channel == 161:
             freq = 5.805
-        elif node.params['channel'][wlan] == 165:
+        elif channel == 165:
             freq = 5.825
         return freq
 
