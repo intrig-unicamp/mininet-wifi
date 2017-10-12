@@ -256,6 +256,9 @@ class mininetWiFi(object):
                 ip_list = params['ip'].split(',')
                 for ip in ip_list:
                     node.params['ip'].append(ip)
+                if len(ip_list) != len(node.params['wlan']):
+                    for ip_list in range(len(ip_list), len(node.params['wlan'])):
+                        node.params['ip'].append('0/0')
             elif autoSetMacs:
                 for n in range(wlans):
                     node.params['ip'].append('0/0')
@@ -322,6 +325,9 @@ class mininetWiFi(object):
                 mode_list = params['mode'].split(',')
                 for mode in mode_list:
                     node.params['mode'].append(mode)
+                if len(mode_list) != len(node.params['wlan']):
+                    for mode_list in range(len(mode_list), len(node.params['wlan'])):
+                        node.params['mode'].append(node.params['mode'][0])
             else:
                 for n in range(wlans):
                     node.params['mode'].append(params['mode'])
@@ -335,7 +341,10 @@ class mininetWiFi(object):
             if 'channel' in params:
                 channel_list = params['channel'].split(',')
                 for channel in channel_list:
-                    node.params['channel'].append(int(channel))
+                    node.params['channel'].append(channel)
+                if len(channel_list) != len(node.params['wlan']):
+                    for channel_list in range(len(channel_list), len(node.params['wlan'])):
+                        node.params['channel'].append(node.params['channel'][0])
             else:
                 for n in range(wlans):
                     node.params['channel'].append(1)

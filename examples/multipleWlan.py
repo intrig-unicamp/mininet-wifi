@@ -16,7 +16,7 @@ def topology():
     print "*** Creating nodes"
     sta1 = net.addStation('sta1', wlans=3)  # 3 wlan added
     sta2 = net.addStation('sta2')  # 1 wlan added
-    ap1 = net.addAccessPoint('ap1', ssid="ssid_1", mode="g", channel=5)  # 1 wlan added
+    ap1 = net.addAccessPoint('ap1', ssid='ssid_1', mode='g', channel='5')  # 1 wlan added
     c0 = net.addController('c0', controller=Controller)
 
     print "*** Configuring wifi nodes"
@@ -24,8 +24,8 @@ def topology():
 
     print "*** Associating..."
     net.addLink(ap1, sta1)
-    net.addHoc(sta1, ssid='adhoc1', mode='g')
-    net.addHoc(sta2, ssid='adhoc1', mode='g')
+    net.addHoc(sta1, ssid='adhoc1')
+    net.addHoc(sta2, ssid='adhoc1')
 
     print "*** Starting network"
     net.build()
