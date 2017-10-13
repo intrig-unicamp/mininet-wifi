@@ -357,12 +357,6 @@ class testWalkthrough(unittest.TestCase):
         p.sendline('sta1 ping -c1 sta2')
         p.expect('1 packets transmitted, 1 received')
         p.expect(self.prompt)
-        p.sendline('iw dev ap1-mp2 station dump')
-        p.expect('ESTAB')
-        p.expect(self.prompt)
-        p.sendline('iw dev ap2-mp2 station dump')
-        p.expect('ESTAB')
-        p.expect(self.prompt)
         p.sendline('exit')
         p.wait()
 
