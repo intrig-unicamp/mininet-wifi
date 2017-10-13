@@ -1694,7 +1694,7 @@ class UserAP(AP):
         wlan = self.params['wlan'].index(iface)
         if self.func[wlan] == 'adhoc':
             self.cmd('iw dev %s set type managed' % self.params['wlan'][wlan])
-        if self.func['wlan'][wlan] == 'mesh':
+        if self.func[wlan] == 'mesh':
             iface = '%s-mp%s' % (self, wlan+1)
         else:
             iface = '%s-mp%s' % (self, wlan)
@@ -1890,9 +1890,9 @@ class OVSAP(AP):
             iface = '%s-mp%s' % (self, wlan)
         self.cmd('iw dev %s interface add %s type mp' % (self.params['wlan'][wlan], iface))
         self.cmd('ifconfig %s down' % iface)
-        self.cmd('ifconfig %s down' % self.params['wlan'][wlan])
         #self.deleteIface(self.params['wlan'][wlan])
         self.cmd('ip link set %s address %s' % (iface, self.params['mac'][wlan]))
+        self.cmd('ifconfig %s down' % self.params['wlan'][wlan])
         self.params['wlan'][wlan] = iface
 
         if 'channel' in params:
