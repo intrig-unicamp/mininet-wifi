@@ -434,8 +434,6 @@ class mininetWiFi(object):
 
         node.setMeshIface(node.params['wlan'][wlan], **params)
 
-        cls = Association
-        cls.configureMesh(node, wlan)
         if 'intf' not in params:
             node.ifaceToAssociate += 1
 
