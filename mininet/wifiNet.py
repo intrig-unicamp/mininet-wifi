@@ -641,6 +641,21 @@ class mininetWiFi(object):
         AccessPoint.writeMacAddress = False
 
     @classmethod
+    def kill_hostapd(self):
+        module.kill_hostapd()
+        sleep(0.1)
+
+    @classmethod
+    def kill_wmediumd(self):
+        module.kill_wmediumd()
+        sleep(0.1)
+
+    @classmethod
+    def kill_mac80211_hwsim(self):
+        module.kill_mac80211_hwsim()
+        sleep(0.1)
+
+    @classmethod
     def verifyNetworkManager(self, node, wlanID=0):
         """
         First verify if the mac address of the ap is included at NetworkManager.conf

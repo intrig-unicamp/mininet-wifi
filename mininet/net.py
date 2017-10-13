@@ -976,8 +976,7 @@ class Mininet(object):
         mininetWiFi.nroads = nroads
 
     def stop(self):
-        if(mininetWiFi.isWiFi):
-            "Stops Graph and Params"
+        if mininetWiFi.isWiFi:
             mininetWiFi.stopGraphParams()
         "Stop the controller(s), switches and hosts"
         info('*** Stopping %i controllers\n' % len(self.controllers))
@@ -985,20 +984,15 @@ class Mininet(object):
             info(controller.name + ' ')
             controller.stop()
         info('\n')
-
         if self.terms:
             info('*** Stopping %i terms\n' % len(self.terms))
             self.stopXterms()
         info('*** Stopping %i links\n' % len(self.links))
-
-        for sta in self.stations:
-            wirelessLink.delete(sta)
-
         for link in self.links:
             info('.')
             link.stop()
         info('\n')
-        info('*** Stopping switches and/or access points\n')
+        info('*** Stopping switches/access points\n')
         stopped = {}
         nodesL2 = self.switches + self.accessPoints
         for swclass, switches in groupby(
@@ -1013,14 +1007,17 @@ class Mininet(object):
                 switch.stop()
             switch.terminate()
         info('\n')
-
-        info('*** Stopping hosts and/or stations\n')
+        info('*** Stopping hosts/stations\n')
         hosts = self.hosts + self.stations
         for host in hosts:
             info(host.name + ' ')
             host.terminate()
         info('\n')
-        if(mininetWiFi.isWiFi):
+        if self.accessPoints != []:
+            mininetWiFi.kill_hostapd()
+        if self.useWmediumd:
+            mininetWiFi.kill_wmediumd()
+        if mininetWiFi.isWiFi:
             "Stops Mininet-WiFi"
             mininetWiFi.closeMininetWiFi()
         info('\n*** Done\n')

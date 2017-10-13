@@ -83,6 +83,21 @@ class module(object):
                                     and then make install. A new API for mac80211_hwsim has been created."
 
     @classmethod
+    def kill_hostapd(self):
+        info("*** Killing hostapd\n")
+        os.system('pkill -f \'hostapd -B mn%d\'' % os.getpid())
+
+    @classmethod
+    def kill_wmediumd(self):
+        info("*** Killing wmediumd\n")
+        os.system('pkill -f wmediumd')
+
+    @classmethod
+    def kill_mac80211_hwsim(self):
+        info("*** Killing mac80211_hwsim\n")
+        os.system('rmmod mac80211_hwsim')
+
+    @classmethod
     def stop(self):
         """ Stop wireless Module """
         if glob.glob("*.apconf"):
@@ -95,24 +110,9 @@ class module(object):
             os.system('rm *.nodeParams')
 
         try:
-            subprocess.check_output("lsmod | grep mac80211_hwsim",
-                                                          shell=True)
-            os.system('rmmod mac80211_hwsim')
-        except:
-            pass
-
-        try:
             (subprocess.check_output("lsmod | grep ifb",
                                                           shell=True))
             os.system('rmmod ifb')
-        except:
-            pass
-
-        try:
-            h = subprocess.check_output("ps -aux | grep -ic \'hostapd\'",
-                                                          shell=True)
-            if h >= 2:
-                os.system('pkill -f \'hostapd -B mn%d\'' % os.getpid())
         except:
             pass
 
@@ -128,12 +128,7 @@ class module(object):
         except:
             pass
 
-        if self.useWmediumd:
-            try:
-                info("*** Killing wmediumd\n")
-                os.system('pkill wmediumd')
-            except:
-                pass
+        self.kill_mac80211_hwsim()
 
     @classmethod
     def start(self, nodes, wifiRadios, alternativeModule='', **params):
