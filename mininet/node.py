@@ -195,6 +195,9 @@ class Node(object):
         if 'channel' in params:
             self.setChannel(self.params['wlan'][wlan], params['channel'])
 
+        if 'mode' in params and (params['mode'] == 'a' or params['mode'] == 'ac'):
+            self.pexec('iw reg set US')
+
         if 'freq' in params:
             self.setFreq(self.params['wlan'][wlan], params['freq'])
 
@@ -1888,12 +1891,15 @@ class OVSAP(AP):
         self.cmd('iw dev %s interface add %s type mp' % (self.params['wlan'][wlan], iface))
         self.cmd('ifconfig %s down' % iface)
         self.cmd('ifconfig %s down' % self.params['wlan'][wlan])
-        self.deleteIface(self.params['wlan'][wlan])
+        #self.deleteIface(self.params['wlan'][wlan])
         self.cmd('ip link set %s address %s' % (iface, self.params['mac'][wlan]))
         self.params['wlan'][wlan] = iface
 
         if 'channel' in params:
             self.setChannel(self.params['wlan'][wlan], params['channel'])
+
+        if 'mode' in params and (params['mode'] == 'a' or params['mode'] == 'ac'):
+            self.pexec('iw reg set US')
 
         if 'freq' in params:
             self.setFreq(self.params['wlan'][wlan], params['freq'])
