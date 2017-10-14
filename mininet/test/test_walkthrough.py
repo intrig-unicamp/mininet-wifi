@@ -226,6 +226,9 @@ class testWalkthrough(unittest.TestCase):
         p.sendline('sta1 ping -c 1 sta2')
         p.expect('1 packets transmitted, 1 received')
         p.expect(self.prompt)
+        p.sendline('pingall')
+        p.expect('0% dropped')
+        p.expect(self.prompt)
         p.sendline('exit')
         p.wait()
 

@@ -18,7 +18,7 @@ class propagationModel(object):
     """ Propagation Models """
 
     rssi = -62
-    model = ''
+    model = 'logDistancePropagationLossModel'
     exp = 4  # Exponent
     sL = 1  # System Loss
     lF = 0  # Floor penetration loss factor
@@ -28,8 +28,6 @@ class propagationModel(object):
     variance = 2 # variance
 
     def __init__(self, node1=None, node2=None, dist=0, wlan=0):
-        if self.model == '':
-            self.model = 'logDistancePropagationLossModel'
         if self.model in dir(self):
             self.__getattribute__(self.model)(node1, node2, dist, wlan)
 
