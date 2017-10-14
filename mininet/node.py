@@ -181,7 +181,7 @@ class Node(object):
         # +m: disable job control notification
         self.cmd('unset HISTFILE; stty -echo; set +m')
 
-    def setMeshIface(self, iface, ssid=''):
+    def setMeshIface(self, iface, ssid='', **params):
         wlan = self.params['wlan'].index(iface)
         if self.func[wlan] == 'adhoc':
             self.cmd('iw dev %s set type managed' % self.params['wlan'][wlan])
@@ -191,6 +191,16 @@ class Node(object):
         self.cmd('ip link set %s address %s' % (iface, self.params['mac'][wlan]))
         self.cmd('ifconfig %s down' % self.params['wlan'][wlan])
         self.params['wlan'][wlan] = iface
+
+        if 'channel' in params:
+            self.setChannel(self.params['wlan'][wlan], params['channel'])
+
+        if 'mode' in params and (params['mode'] == 'a' or params['mode'] == 'ac'):
+            self.pexec('iw reg set US')
+
+        if 'freq' in params:
+            self.setFreq(self.params['wlan'][wlan], params['freq'])
+
         if ('ip' in self.params):
             self.cmd('ifconfig %s %s up' % (self.params['wlan'][wlan], self.params['ip'][wlan]))
         else:
@@ -346,6 +356,11 @@ class Node(object):
         self.cmd('iw dev %s set channel %s' % (self.params['wlan'][wlan], value))
         self.params['channel'][wlan] = value
         self.params['frequency'][wlan] = wirelessLink.frequency(self, wlan)
+
+    def setFreq(self, iface, value):
+        wlan = self.params['wlan'].index(iface)
+        self.cmd('iw dev %s set freq %s' % (self.params['wlan'][wlan], value))
+        self.params['frequency'][wlan] = value
 
     def setTxPower(self, iface, txpower):
         self.setTxPower_(iface, txpower)
@@ -1335,13 +1350,9 @@ class AccessPoint(AP):
         else:
             cmd = cmd + ("interface=%s" % ap.params.get('phywlan'))  # the interface used by the AP
         cmd = cmd + ("\ndriver=%s" % ap.params['driver'])
-
-        if wlan > 0 and not ap.func[1] == 'mesh':
-            cmd = cmd + ("\nssid=%s-%s" % (ap.params['ssid'][0], wlan))  # ssid name
-        else:
-            cmd = cmd + ("\nssid=%s" % ap.params['ssid'][0])  # ssid name
+        cmd = cmd + ("\nssid=%s" % ap.params['ssid'][wlan])  # ssid name
         cmd = cmd + ('\nwds_sta=1')
-        if ap.params['mode'][0] == 'n':
+        if ap.params['mode'][wlan] == 'n':
             if 'band' in ap.params:
                 if ap.params['band'] == 2.4:
                     cmd = cmd + ("\nhw_mode=g")
@@ -1352,13 +1363,13 @@ class AccessPoint(AP):
                 cmd = cmd + ("\nhw_mode=g")
         elif ap.params['mode'][0] == 'a':
             cmd = cmd + ('\ncountry_code=US')
-            cmd = cmd + ("\nhw_mode=%s" % ap.params['mode'][0])
+            cmd = cmd + ("\nhw_mode=%s" % ap.params['mode'][wlan])
         elif ap.params['mode'][0] == 'ac':
             cmd = cmd + ('\ncountry_code=US')
             cmd = cmd + ("\nhw_mode=a")
         else:
-            cmd = cmd + ("\nhw_mode=%s" % ap.params['mode'][0])
-        cmd = cmd + ("\nchannel=%s" % ap.params['channel'][0])
+            cmd = cmd + ("\nhw_mode=%s" % ap.params['mode'][wlan])
+        cmd = cmd + ("\nchannel=%s" % ap.params['channel'][wlan])
         if 'ht_capab' in ap.params:
             cmd = cmd + ('\nht_capab=%s' % ap.params['ht_capab'])
 
@@ -1397,7 +1408,7 @@ class AccessPoint(AP):
                 cmd = cmd + ("\nwmm_enabled=1")
 
                 if 'encrypt' in ap.params:
-                    if 'wpa' in ap.params['encrypt'][0]:
+                    if 'wpa' in ap.params['encrypt'][wlan]:
                         cmd = cmd + ("\nauth_algs=%s" % ap.auth_algs)
                         cmd = cmd + ("\nwpa=%s" % ap.wpa)
                         cmd = cmd + ("\nwpa_key_mgmt=%s" % ap.wpa_key_mgmt)
@@ -1427,8 +1438,8 @@ class AccessPoint(AP):
                         cmd = cmd + ('\nft_over_ds=1')
                         cmd = cmd + ('\nft_psk_generate_local=1')
 
-            if(len(ap.params['ssid'])) > 1:
-                for i in range(1, len(ap.params['ssid'])):
+            if 'vssids' in ap.params:
+                for i in range(1, ap.params['vssids']+1):
                     ap.params['txpower'].append(ap.params['txpower'][0])
                     ap.params['antennaGain'].append(ap.params['antennaGain'][0])
                     ap.params['antennaHeight'].append(ap.params['antennaHeight'][0])
@@ -1446,8 +1457,8 @@ class AccessPoint(AP):
         cmd = cmd + ("\nctrl_interface_group=0")
         self.APConfigFile(cmd, ap, wlan)
 
-        if(len(ap.params['ssid'])) > 1:
-            for i in range(1, len(ap.params['ssid'])):
+        if 'vssids' in ap.params:
+            for i in range(1, ap.params['vssids']+1):
                 wlan = i
                 ap.params['mac'][wlan] = ''
                 self.setIPMAC(ap, wlan)
@@ -1679,11 +1690,11 @@ class UserAP(AP):
         # self.cmd('kill %ofprotocol')
         # super(UserAP, self).stop(deleteIntfs)
 
-    def setMeshIface(self, iface, ssid=''):
+    def setMeshIface(self, iface, ssid='', **params):
         wlan = self.params['wlan'].index(iface)
         if self.func[wlan] == 'adhoc':
             self.cmd('iw dev %s set type managed' % self.params['wlan'][wlan])
-        if self.func['wlan'][wlan] == 'mesh':
+        if self.func[wlan] == 'mesh':
             iface = '%s-mp%s' % (self, wlan+1)
         else:
             iface = '%s-mp%s' % (self, wlan)
@@ -1692,6 +1703,16 @@ class UserAP(AP):
         self.cmd('ip link set %s address %s' % (iface, self.params['mac'][wlan]))
         self.cmd('ifconfig %s down' % self.params['wlan'][wlan])
         self.params['wlan'][wlan] = iface
+
+        if 'channel' in params:
+            self.setChannel(self.params['wlan'][wlan], params['channel'])
+
+        if 'mode' in params and (params['mode'] == 'a' or params['mode'] == 'ac'):
+            self.pexec('iw reg set US')
+
+        if 'freq' in params:
+            self.setFreq(self.params['wlan'][wlan], params['freq'])
+
         if ('ip' in self.params):
             self.cmd('ifconfig %s %s up' % (self.params['wlan'][wlan], self.params['ip'][wlan]))
         else:
@@ -1859,7 +1880,7 @@ class OVSAP(AP):
                 return True
         return self.failMode == 'standalone'
 
-    def setMeshIface(self, iface, ssid=''):
+    def setMeshIface(self, iface, ssid='', **params):
         wlan = self.params['wlan'].index(iface)
         if self.func[wlan] == 'adhoc':
             self.cmd('iw dev %s set type managed' % self.params['wlan'][wlan])
@@ -1869,9 +1890,20 @@ class OVSAP(AP):
             iface = '%s-mp%s' % (self, wlan)
         self.cmd('iw dev %s interface add %s type mp' % (self.params['wlan'][wlan], iface))
         self.cmd('ifconfig %s down' % iface)
+        #self.deleteIface(self.params['wlan'][wlan])
         self.cmd('ip link set %s address %s' % (iface, self.params['mac'][wlan]))
         self.cmd('ifconfig %s down' % self.params['wlan'][wlan])
         self.params['wlan'][wlan] = iface
+
+        if 'channel' in params:
+            self.setChannel(self.params['wlan'][wlan], params['channel'])
+
+        if 'mode' in params and (params['mode'] == 'a' or params['mode'] == 'ac'):
+            self.pexec('iw reg set US')
+
+        if 'freq' in params:
+            self.setFreq(self.params['wlan'][wlan], params['freq'])
+
         if ('ip' in self.params):
             self.cmd('ifconfig %s %s up' % (self.params['wlan'][wlan], self.params['ip'][wlan]))
         else:
@@ -1880,6 +1912,11 @@ class OVSAP(AP):
             self.params['ssid'][wlan] = ssid
             cls = Association
             cls.configureMesh(self, wlan)
+
+    def deleteIface(self, intf_):
+        for intf in self.intfs.values():
+            if intf.name == intf_:
+                self.delIntf(intf)
 
     def setAdhocIface(self, iface, ssid=''):
         wlan = self.params['wlan'].index(iface)
