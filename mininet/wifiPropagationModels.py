@@ -19,7 +19,7 @@ class propagationModel(object):
 
     rssi = -62
     model = 'logDistancePropagationLossModel'
-    exp = 4  # Exponent
+    exp = 3  # Exponent
     sL = 1  # System Loss
     lF = 0  # Floor penetration loss factor
     pL = 0  # Power Loss Coefficient
