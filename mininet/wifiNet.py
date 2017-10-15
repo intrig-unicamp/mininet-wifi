@@ -56,9 +56,8 @@ class mininetWiFi(object):
     MAX_Y = 0
     MAX_Z = 0
     nroads = 0
-    dstConn = []
+    connections = {}
     plotNodes = []
-    srcConn = []
     wlinks = []
 
     @classmethod
@@ -854,7 +853,7 @@ class mininetWiFi(object):
                 self.plot.instantiateNodes(nodes)
             else:
                 self.plot.instantiateGraph(self.MIN_X, self.MIN_Y, self.MAX_X, self.MAX_Y)
-                self.plot.plotGraph(nodes, self.srcConn, self.dstConn)
+                self.plot.plotGraph(nodes, self.connections)
                 self.plot.graphPause()
         except:
             info('Warning: This OS does not support GUI. Running without GUI.\n')
@@ -932,8 +931,7 @@ class mininetWiFi(object):
         mobilityparam.setdefault('plotNodes', self.plotNodes)
         mobilityparam.setdefault('stations', stations)
         mobilityparam.setdefault('aps', accessPoints)
-        mobilityparam.setdefault('dstConn', self.dstConn)
-        mobilityparam.setdefault('srcConn', self.srcConn)
+        mobilityparam.setdefault('connections', self.connections)
         mobilityparam.setdefault('MIN_X', self.MIN_X)
         mobilityparam.setdefault('MIN_Y', self.MIN_Y)
         mobilityparam.setdefault('MIN_Z', self.MIN_Z)
