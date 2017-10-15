@@ -332,7 +332,7 @@ class testWalkthrough(unittest.TestCase):
         pexpect.spawn(
             'service network-manager stop')
         p = pexpect.spawn(
-            'python examples/4address.py.py')
+            'python examples/4address.py')
         sleep(3)
         p.sendline('sta1 ping -c 1 sta2')
         p.expect('1 packets transmitted, 1 received')
