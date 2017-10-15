@@ -648,6 +648,10 @@ class Mininet(object):
         node2 = node2 if not isinstance(node2, basestring) else self[ node2 ]
         options = dict(params)
 
+        mininetWiFi.connections.setdefault('src', [])
+        mininetWiFi.connections.setdefault('dst', [])
+        mininetWiFi.connections.setdefault('ls', [])
+
         # If AP and STA
         if((((node1.type == 'station' or node1.type == 'vehicle') and ('ssid' in node2.params and 'apsInRange' in node1.params)) \
             or ((node2.type == 'station' or node2.type == 'vehicle') and ('ssid' in node1.params and 'apsInRange' in node2.params)))
@@ -706,8 +710,9 @@ class Mininet(object):
                                         'link' in options and options['link'] == '4addr'):
             # If sta/ap have defined position
             if 'position' in node1.params and 'position' in node2.params:
-                mininetWiFi.srcConn.append(node1)
-                mininetWiFi.dstConn.append(node2)
+                mininetWiFi.connections['src'].append(node1)
+                mininetWiFi.connections['dst'].append(node2)
+                mininetWiFi.connections['ls'].append('--')
 
             if mininetWiFi.enable_interference:
                 cls = _4addrLink
@@ -727,8 +732,9 @@ class Mininet(object):
                 options.pop('link', None)
 
             if 'position' in node1.params and 'position' in node2.params:
-                mininetWiFi.srcConn.append(node1)
-                mininetWiFi.dstConn.append(node2)
+                mininetWiFi.connections['src'].append(node1)
+                mininetWiFi.connections['dst'].append(node2)
+                mininetWiFi.connections['ls'].append('-')
             # Port is optional
             if port1 is not None:
                 options.setdefault('port1', port1)

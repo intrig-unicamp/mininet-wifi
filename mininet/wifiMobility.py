@@ -262,7 +262,7 @@ class mobility (object):
             node.lastpos = node.params['position']
 
     @classmethod
-    def controlledMobility(self, init_time=0, final_time=0, stations=None, aps=None, dstConn=None, srcConn=None,
+    def controlledMobility(self, init_time=0, final_time=0, stations=None, aps=None, connections=[],
                         plotNodes=None, MIN_X=0, MIN_Y=0, MIN_Z=0, MAX_X=0, MAX_Y=0, MAX_Z=0, AC='',
                         is3d=False, DRAW=False, **params):
         """ 
@@ -272,8 +272,7 @@ class mobility (object):
         :param final_time: time when the mobility stops
         :param stations: list of stations
         :param aps: list of access points
-        :param srcConn: list of connections for source nodes
-        :param dstConn: list of connections for destination nodes
+        :param connections: list of connections
         :param plotnodes: list of nodes to be plotted (including hosts and switches)
         :param MIN_X: Minimum value for X
         :param MIN_Y: Minimum value for Y
@@ -306,7 +305,7 @@ class mobility (object):
 
         try:
             if DRAW:
-                plot = self.instantiateGraph(MIN_X, MIN_Y, MAX_X, MAX_Y, nodes, srcConn, dstConn, MIN_Z, MAX_Z, is3d)
+                plot = self.instantiateGraph(MIN_X, MIN_Y, MAX_X, MAX_Y, nodes, connections, MIN_Z, MAX_Z, is3d)
         except:
             info('Warning: running without GUI.\n')
             DRAW = False
@@ -344,7 +343,7 @@ class mobility (object):
             pass
 
     @classmethod
-    def instantiateGraph(self, MIN_X, MIN_Y, MAX_X, MAX_Y, nodes, srcConn, dstConn, MIN_Z=0, MAX_Z=0, is3d=False):
+    def instantiateGraph(self, MIN_X, MIN_Y, MAX_X, MAX_Y, nodes, connections, MIN_Z=0, MAX_Z=0, is3d=False):
         if is3d:
             plot = plot3d
             plot.instantiateGraph(MIN_X, MIN_Y, MIN_Z, MAX_X, MAX_Y, MAX_Z)
@@ -352,7 +351,7 @@ class mobility (object):
         else:
             plot = plot2d
             plot.instantiateGraph(MIN_X, MIN_Y, MAX_X, MAX_Y)
-            plot.plotGraph(nodes, srcConn, dstConn)
+            plot.plotGraph(nodes, connections)
         return plot
 
     @classmethod
@@ -363,7 +362,7 @@ class mobility (object):
 
     @classmethod
     def models(self, stations=None, aps=None, model=None, stationaryNodes=[], min_v=0, max_v=0, seed=None,
-               dstConn=None, srcConn=None, plotNodes=None, MAX_X=0, MAX_Y=0, AC='', DRAW=False, **params):
+               connections=None, plotNodes=None, MAX_X=0, MAX_Y=0, AC='', DRAW=False, **params):
         """ 
         Used when a mobility model is applied
         
@@ -374,8 +373,7 @@ class mobility (object):
         :param min_v: minimum velocity
         :param max_v: maximum velocity
         :param speed: speed
-        :param srcConn: list of connections for source nodes
-        :param dstConn: list of connections for destination nodes
+        :param connections: list of connections
         :param plotNodes: list of nodes to be plotted (including hosts and switches)
         :param MAX_X: Maximum value for X
         :param MAX_Y: Maximum value for Y
@@ -401,7 +399,7 @@ class mobility (object):
 
         try:
             if DRAW:
-                self.instantiateGraph(0, 0, MAX_X, MAX_Y, nodes, srcConn, dstConn, 0, 0, is3d=False)
+                self.instantiateGraph(0, 0, MAX_X, MAX_Y, nodes, connections, 0, 0, is3d=False)
                 plot2d.graphPause()
         except:
             info('Warning: running without GUI.\n')
