@@ -109,7 +109,7 @@ from mininet.node import (Node, Host, Station, Car, OVSKernelSwitch, OVSKernelAP
                           DefaultController, Controller)
 from mininet.nodelib import NAT
 from mininet.link import Link, Intf, _4addrLink, TCIntfWireless
-from mininet.wifiLink import Association, wirelessLink
+from mininet.wifiLink import Association
 from mininet.util import (quietRun, fixLimits, numCores, ensureRoot,
                            macColonHex, ipStr, ipParse, netParse, ipAdd,
                            waitListening)
