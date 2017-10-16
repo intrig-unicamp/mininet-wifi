@@ -39,7 +39,7 @@ class vanet(object):
         thread.daemon = True
         thread.start()
 
-    def start(self, stations, aps, nroads, srcConn, dstConn, MIN_X, MIN_Y, MAX_X, MAX_Y, **params):
+    def start(self, stations, aps, nroads, connections, MIN_X, MIN_Y, MAX_X, MAX_Y, **params):
         'start topology'
         cars = stations
         mobility.addNodes(cars, aps)
@@ -49,9 +49,9 @@ class vanet(object):
         plot2d.instantiateGraph(MIN_X, MIN_Y, MAX_X, MAX_Y)
 
         try:
-            self.display_grid(aps, srcConn, dstConn, nroads)
+            self.display_grid(aps, connections, nroads)
             self.display_cars(cars)
-            plot2d.plotGraph(cars, [], [])
+            plot2d.plotGraph(cars, [])
             self.setWifiParameters()
             while True:
                 [self.scatter, self.com_lines] = self.simulate_car_movement(cars, aps, self.scatter, self.com_lines)
@@ -97,7 +97,7 @@ class vanet(object):
             points.reverse()
         return points
 
-    def display_grid(self, baseStations, srcConn, dstConn, nroads):
+    def display_grid(self, baseStations, connections, nroads):
 
         for n in range(nroads):
             if n == 0:
@@ -138,10 +138,11 @@ class vanet(object):
             plot2d.circle(bs)
             plot2d.plotDraw()
 
-        for c in range(0, len(srcConn)):
-            line = plot2d.plotLine2d([srcConn[c].params['position'][0], dstConn[c].params['position'][0]], \
-                                   [srcConn[c].params['position'][1], dstConn[c].params['position'][1]], 'b', ls='dashed')
-            plot2d.plotLine(line)
+        if 'src' in connections:
+            for c in range(0, len(connections['src'])):
+                line = plot2d.plotLine2d([connections['src'][c].params['position'][0], connections['dst'][c].params['position'][0]], \
+                                       [connections['src'][c].params['position'][1], connections['dst'][c].params['position'][1]], 'b', ls='dashed')
+                plot2d.plotLine(line)
 
     def display_cars(self, cars):
 
