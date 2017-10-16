@@ -276,12 +276,13 @@ class plot2d (object):
             self.text(node)
             self.circle(node)
 
-        for c in range(0, len(connections['src'])):
-            ls = connections['ls'][c]
-            src_x = '%.2f' % float(connections['src'][c].params['position'][0])
-            src_y = '%.2f' % float(connections['src'][c].params['position'][1])
-            dst_x = '%.2f' % float(connections['dst'][c].params['position'][0])
-            dst_y = '%.2f' % float(connections['dst'][c].params['position'][1])
-            line = self.plotLine2d([src_x, dst_x], \
-                                   [src_y, dst_y], 'b', ls=ls)
-            self.plotLine(line)
+        if 'src' in connections:
+            for c in range(0, len(connections['src'])):
+                ls = connections['ls'][c]
+                src_x = '%.2f' % float(connections['src'][c].params['position'][0])
+                src_y = '%.2f' % float(connections['src'][c].params['position'][1])
+                dst_x = '%.2f' % float(connections['dst'][c].params['position'][0])
+                dst_y = '%.2f' % float(connections['dst'][c].params['position'][1])
+                line = self.plotLine2d([src_x, dst_x], \
+                                       [src_y, dst_y], 'b', ls=ls)
+                self.plotLine(line)
