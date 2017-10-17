@@ -90,12 +90,12 @@ class module(object):
     @classmethod
     def kill_wmediumd(self):
         info("*** Killing wmediumd\n")
-        os.system('pkill -f wmediumd')
+        os.system('pkill -f wmediumd >/dev/null 2>&1')
 
     @classmethod
     def kill_mac80211_hwsim(self):
         info("*** Killing mac80211_hwsim\n")
-        os.system('rmmod mac80211_hwsim')
+        os.system('rmmod mac80211_hwsim >/dev/null 2>&1')
 
     @classmethod
     def stop(self):
@@ -110,8 +110,7 @@ class module(object):
             os.system('rm *.nodeParams')
 
         try:
-            (subprocess.check_output("lsmod | grep ifb",
-                                                          shell=True))
+            (subprocess.check_output("lsmod | grep ifb", shell=True))
             os.system('rmmod ifb')
         except:
             pass

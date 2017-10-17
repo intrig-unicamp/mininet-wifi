@@ -11,6 +11,7 @@ from math import atan2
 from pylab import ginput as ginp
 from mininet.wifiPlot import plot2d, plot3d
 from random import randrange
+from time import sleep
 import warnings
 import matplotlib.cbook
 import threading
@@ -48,17 +49,14 @@ class vanet(object):
         [self.totalRoads.append(x) for x in range(0, nroads)]
         plot2d.instantiateGraph(MIN_X, MIN_Y, MAX_X, MAX_Y)
 
-        try:
-            self.display_grid(aps, connections, nroads)
-            self.display_cars(cars)
-            plot2d.plotGraph(cars, [])
-            self.setWifiParameters()
-            while True:
-                [self.scatter, self.com_lines] = self.simulate_car_movement(cars, aps, self.scatter, self.com_lines)
-                mobility.continueParams
-        except:
-            pass
-        
+        self.display_grid(aps, connections, nroads)
+        self.display_cars(cars)
+        plot2d.plotGraph(cars, [])
+        self.setWifiParameters()
+        while True:
+            [self.scatter, self.com_lines] = self.simulate_car_movement(cars, aps, self.scatter, self.com_lines)
+            mobility.continueParams
+
     def setWifiParameters(self):
         thread = threading.Thread(name='wifiParameters', target=mobility.parameters)
         thread.start()
@@ -127,17 +125,19 @@ class vanet(object):
 
         for bs in baseStations:
             bs.properties = ginp(1)[0]
-            bs_x = bs.properties[0]
-            bs_y = bs.properties[1]
+            bs_x = '%.2f' % bs.properties[0]
+            bs_y = '%.2f' % bs.properties[1]
             self.scatter = plot2d.plotScatter(bs_x, bs_y)
             bs.params['position'] = bs_x, bs_y, 0
             bs.setPositionWmediumd()
+            plot2d.instantiateNode(bs)
             plot2d.instantiateAnnotate(bs)
             plot2d.instantiateCircle(bs)
             plot2d.text(bs)
             plot2d.circle(bs)
             plot2d.plotDraw()
 
+        sleep(1)
         if 'src' in connections:
             for c in range(0, len(connections['src'])):
                 line = plot2d.plotLine2d([connections['src'][c].params['position'][0], connections['dst'][c].params['position'][0]], \
@@ -315,9 +315,6 @@ class vanet(object):
             position_y = car.properties[1]
 
             car.params['position'] = position_x, position_y, 0
-            car.setPositionWmediumd()
-            carsta = car.params['carsta']
-            carsta.setPositionWmediumd()
             angle = car.properties[2]
 
             # calculate new position of the car

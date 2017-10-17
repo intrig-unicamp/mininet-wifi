@@ -13,6 +13,7 @@ author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
 
 import math
 from random import gauss
+from time import sleep
 
 class propagationModel(object):
     """ Propagation Models """
@@ -260,7 +261,8 @@ class distanceByPropagationModel(object):
         propagationModel.gRandom = gRandom
 
         if mininetWiFi.enable_interference:
-            WmediumdServerConn.send_gaussian_random_update(WmediumdGaussianRandom(node.wmIface[wlan], gRandom))
+            sleep(0.001)
+            WmediumdServerConn.update_gaussian_random(WmediumdGaussianRandom(node.wmIface[wlan], gRandom))
 
         pathLoss = self.pathLoss(node, referenceDistance, wlan) - gRandom
         self.dist = math.pow(10, ((92 - pathLoss + gains) / (10 * self.exp))) * referenceDistance

@@ -644,7 +644,8 @@ class mininetWiFi(object):
 
     @classmethod
     def kill_wmediumd(self):
-        module.kill_wmediumd()
+        WmediumdServerConn.disconnect()
+        WmediumdStarter.stop()
         sleep(0.1)
 
     @classmethod
@@ -1219,14 +1220,10 @@ class mininetWiFi(object):
     def stopGraphParams(self):
         mobility.continuePlot = 'exit()'
         mobility.continueParams = 'exit()'
-        sleep(2)
+        sleep(0.5)
 
     @classmethod
     def closeMininetWiFi(self):
         "Close Mininet-WiFi"
         self.plot.closePlot()
         module.stop()  # Stopping WiFi Module
-
-        if self.useWmediumd:
-            WmediumdServerConn.disconnect()
-            WmediumdStarter.stop()

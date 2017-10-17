@@ -995,7 +995,7 @@ class WmediumdServerConn(object):
         :return: A WUPDATE_* constant
         """
         gRandom_ = gRandom.sta_gaussian_random
-        debug("%s Updating Gaussian Random of %s to %f\n" % (
+        debug("%s Updating Gaussian Random of %s to %s\n" % (
             WmediumdConstants.LOG_PREFIX, gRandom.staintfref.get_intf_mac(), gRandom_))
         cls.sock.send(cls.__create_gaussian_random_update_request(gRandom))
         return cls.__parse_response(WmediumdConstants.WSERVER_GAUSSIAN_RANDOM_UPDATE_RESPONSE_TYPE,

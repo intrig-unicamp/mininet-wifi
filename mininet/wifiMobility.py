@@ -328,8 +328,6 @@ class mobility (object):
                                     y = '%.2f' % (float(node.params['position'][1]) + float(node.moveFac[1]))
                                     z = '%.2f' % (float(node.params['position'][2]) + float(node.moveFac[2]))
                                 node.params['position'] = x, y, z
-                        if WmediumdServerConn.interference_enabled:
-                            self.setWmediumdPos(node)
                         if propagationModel.model == 'logNormalShadowingPropagationLossModel':
                             node.getRange()
                         if DRAW:
@@ -441,12 +439,10 @@ class mobility (object):
         for xy in mob:
             for idx, node in enumerate(nodes):
                 node.params['position'] = '%.2f' % xy[idx][0], '%.2f' % xy[idx][1], 0.0
-                if WmediumdServerConn.interference_enabled:
-                    self.setWmediumdPos(node)
-                    if propagationModel.model == 'logNormalShadowingPropagationLossModel':
-                        time.sleep(0.0001)
-                        node.getRange()
-                        plot2d.updateCircleRadius(node)
+                if propagationModel.model == 'logNormalShadowingPropagationLossModel':
+                    time.sleep(0.0001)
+                    node.getRange()
+                    plot2d.updateCircleRadius(node)
                 plot2d.graphUpdate(node)
             eval(self.continuePlot)
 
@@ -461,11 +457,9 @@ class mobility (object):
         for xy in mob:
             for idx, node in enumerate(nodes):
                 node.params['position'] = '%.2f' % xy[idx][0], '%.2f' % xy[idx][1], 0.0
-                if WmediumdServerConn.interference_enabled:
-                    self.setWmediumdPos(node)
-                    if propagationModel.model == 'logNormalShadowingPropagationLossModel':
-                        time.sleep(0.0001)
-                        node.getRange()
+                if propagationModel.model == 'logNormalShadowingPropagationLossModel':
+                    time.sleep(0.0001)
+                    node.getRange()
             time.sleep(0.5)
 
     @classmethod
@@ -518,6 +512,8 @@ class mobility (object):
                             self.checkAssociation(node, wlan)
                     else:
                         self.checkAssociation(node, wlan)        # have to verify this
+                    if WmediumdServerConn.interference_enabled:
+                        self.setWmediumdPos(node)
         eval(self.continueParams)
 
 

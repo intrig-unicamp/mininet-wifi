@@ -1022,11 +1022,11 @@ class Mininet(object):
         info('\n')
         if self.accessPoints != []:
             mininetWiFi.kill_hostapd()
-        if self.useWmediumd:
-            mininetWiFi.kill_wmediumd()
         if mininetWiFi.isWiFi:
             "Stops Mininet-WiFi"
             mininetWiFi.closeMininetWiFi()
+        if self.useWmediumd:
+            mininetWiFi.kill_wmediumd()
         info('\n*** Done\n')
 
     def run(self, test, *args, **kwargs):
