@@ -258,7 +258,10 @@ class IntfWireless(object):
 
     def ifconfig(self, *args):
         "Configure ourselves using ifconfig"
-        if self.name in self.node.params['wlan']:
+        if hasattr(self.node, 'type') and self.node.type == 'ap' and \
+                    self.name not in self.node.params['wlan']:
+            pass
+        else:
             return self.cmd('ifconfig', self.name, *args)
 
     def setIP(self, ipstr, prefixLen=None):
