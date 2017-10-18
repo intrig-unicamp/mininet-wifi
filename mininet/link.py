@@ -258,7 +258,8 @@ class IntfWireless(object):
 
     def ifconfig(self, *args):
         "Configure ourselves using ifconfig"
-        return self.cmd('ifconfig', self.name, *args)
+        if self.name in self.node.params['wlan']:
+            return self.cmd('ifconfig', self.name, *args)
 
     def setIP(self, ipstr, prefixLen=None):
         """Set our IP address"""
@@ -501,8 +502,7 @@ class TCIntfWireless(IntfWireless):
         return self.cmd(c)
 
     def config(self, bw=None, delay=None, jitter=None, loss=None,
-                gro=False, txo=True, rxo=True,
-                speedup=0, use_hfsc=False, use_tbf=False,
+                gro=False, speedup=0, use_hfsc=False, use_tbf=True,
                 latency_ms=None, enable_ecn=False, enable_red=False,
                 max_queue_size=None, **params):
         """Configure the port and set its properties.
@@ -532,9 +532,7 @@ class TCIntfWireless(IntfWireless):
 
         # Set offload parameters with ethool
         self.cmd('ethtool -K', self,
-                  'gro', on(gro),
-                  'tx', on(txo),
-                  'rx', on(rxo))
+                  'gro', on(gro))
 
         # Optimization: return if nothing else to configure
         # Question: what happens if we want to reset things?
