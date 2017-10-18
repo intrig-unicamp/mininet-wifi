@@ -502,7 +502,7 @@ class TCIntfWireless(IntfWireless):
         return self.cmd(c)
 
     def config(self, bw=None, delay=None, jitter=None, loss=None,
-                gro=False, speedup=0, use_hfsc=False, use_tbf=True,
+                gro=False, speedup=0, use_hfsc=False, use_tbf=False,
                 latency_ms=None, enable_ecn=False, enable_red=False,
                 max_queue_size=None, **params):
         """Configure the port and set its properties.
