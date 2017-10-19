@@ -289,30 +289,30 @@ class mininetWiFi(object):
     @classmethod
     def addAntennaHeightParamToNode(self, node, wlans=0, params=None, isVirtualIface=False):
         if isVirtualIface:
-            node.params['antennaHeight'].append(int(node.params['antennaHeight'][0]))
+            node.params['antennaHeight'].append(float(node.params['antennaHeight'][0]))
         else:
             node.params['antennaHeight'] = []
             if 'antennaHeight' in params:
                 antennaHeight_list = params['antennaHeight'].split(',')
                 for antennaHeight in antennaHeight_list:
-                    node.params['antennaHeight'].append(int(antennaHeight))
+                    node.params['antennaHeight'].append(float(antennaHeight))
             else:
                 for n in range(wlans):
-                    node.params['antennaHeight'].append(1)
+                    node.params['antennaHeight'].append(1.0)
 
     @classmethod
     def addAntennaGainParamToNode(self, node, wlans=0, params=None, isVirtualIface=False):
         if isVirtualIface:
-            node.params['antennaGain'].append(int(node.params['antennaGain'][0]))
+            node.params['antennaGain'].append(float(node.params['antennaGain'][0]))
         else:
             node.params['antennaGain'] = []
             if 'antennaGain' in params:
                 antennaGain_list = params['antennaGain'].split(',')
                 for antennaGain in antennaGain_list:
-                    node.params['antennaGain'].append(int(antennaGain))
+                    node.params['antennaGain'].append(float(antennaGain))
             else:
                 for n in range(wlans):
-                    node.params['antennaGain'].append(5)
+                    node.params['antennaGain'].append(5.0)
 
     @classmethod
     def addModeParamToNode(self, node, wlans=0, params=None, isVirtualIface=False):
