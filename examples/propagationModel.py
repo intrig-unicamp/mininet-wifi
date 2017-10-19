@@ -14,8 +14,8 @@ def topology():
     net = Mininet(controller=Controller, link=TCLink, accessPoint=OVSKernelAP)
 
     print "*** Creating nodes"
-    sta1 = net.addStation('sta1')
-    sta2 = net.addStation('sta2')
+    sta1 = net.addStation('sta1', antennaHeight='1', antennaGain='5')
+    sta2 = net.addStation('sta2', antennaHeight='1', antennaGain='5')
     ap1 = net.addAccessPoint('ap1', ssid='new-ssid', equipmentModel='DI524', mode='g', channel='1', position='50,50,0')
     c1 = net.addController('c1', controller=Controller)
 

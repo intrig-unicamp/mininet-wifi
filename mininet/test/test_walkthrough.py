@@ -198,6 +198,17 @@ class testWalkthrough(unittest.TestCase):
         p.sendline('exit')
         p.wait()
 
+    def testVirtualIface(self):
+        "Start Mininet-WiFi using simplewifitopology, then test vif"
+        p = pexpect.spawn(
+            'python examples/simplewifitopology.py -v')
+        sleep(3)
+        wlans = [ 'sta1-wlan0', 'sta1-wlan01', 'sta1-wlan02', self.prompt ]
+        p.sendline('py sta1.params[\'wlan\']')
+        p.expect(wlans)
+        p.sendline('exit')
+        p.wait()
+
     def testVanet(self):
         "Start Mininet-WiFi using vanet example"
         p = pexpect.spawn(

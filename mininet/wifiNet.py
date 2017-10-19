@@ -389,6 +389,7 @@ class mininetWiFi(object):
                     self.appendAssociatedTo(node)
                     self.addAntennaGainParamToNode(node, isVirtualIface=True)
                     self.addAntennaHeightParamToNode(node, isVirtualIface=True)
+                    self.addModeParamToNode(node, isVirtualIface=True)
                     node.cmd('iw dev %s interface add %s type station' % (node.params['wlan'][wlan], vif))
                     cls = TCLinkWirelessStation
                     cls(node, intfName1=vif)
