@@ -261,7 +261,7 @@ class distanceByPropagationModel(object):
         propagationModel.gRandom = gRandom
 
         if mininetWiFi.enable_interference:
-            sleep(0.001)
+            sleep(0.001) #notice problem when there are many threads
             WmediumdServerConn.update_gaussian_random(WmediumdGaussianRandom(node.wmIface[wlan], gRandom))
 
         pathLoss = self.pathLoss(node, referenceDistance, wlan) - gRandom

@@ -210,7 +210,7 @@ class module(object):
                         self.phyID += 1
                         os.system('iw phy %s set netns %s' % (phys[0], node.pid))
                         node.cmd('ip link set %s down' % self.wlan_list[0])
-                        node.cmd('ip link set %s name %s up' % (self.wlan_list[0], node.params['wlan'][wlan]))
+                        node.cmd('ip link set %s name %s' % (self.wlan_list[0], node.params['wlan'][wlan]))
                         if ifb:
                             node.ifbSupport(wlan, ifbID)  # Adding Support to IFB
                             ifbID += 1

@@ -440,8 +440,8 @@ class mobility (object):
             for idx, node in enumerate(nodes):
                 node.params['position'] = '%.2f' % xy[idx][0], '%.2f' % xy[idx][1], 0.0
                 if propagationModel.model == 'logNormalShadowingPropagationLossModel':
-                    time.sleep(0.0001)
-                    node.getRange()
+                    time.sleep(0.0001) #notice problem when there are many threads
+                    node.getRange(stationary=False)
                     plot2d.updateCircleRadius(node)
                 plot2d.graphUpdate(node)
             eval(self.continuePlot)
