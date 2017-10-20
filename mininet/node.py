@@ -846,8 +846,9 @@ class Node(object):
            prefixLen: prefix length, e.g. 8 for /8 or 16M addrs
            kwargs: any additional arguments for intf.setIP"""
         if intf != None and (self.type == 'station' or self.type == 'vehicle'):
-            wlan = int(intf[-1:])
-            self.params['ip'][wlan] = ip
+            if intf in self.params['wlan']:
+                wlan = int(intf[-1:])
+                self.params['ip'][wlan] = ip
 
         return self.intf(intf).setIP(ip, prefixLen, **kwargs)
 
