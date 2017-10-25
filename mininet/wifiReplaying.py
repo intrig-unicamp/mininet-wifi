@@ -80,6 +80,7 @@ class replayingMobility(object):
                             node.setPosition(position_)
                         if len(node.position) == 0:
                             nodes.remove(node)
+                        mobility.parameters_(node)
                 plot.graphPause()
         else:
             while True:
@@ -98,6 +99,7 @@ class replayingMobility(object):
                             node.setPosition(position)
                         if len(node.position) == 0:
                             nodes.remove(node)
+                        mobility.parameters_(node)
                 plot.graphPause()
 
     @classmethod
