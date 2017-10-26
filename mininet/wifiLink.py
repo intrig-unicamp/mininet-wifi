@@ -422,7 +422,7 @@ class Association(object):
     @classmethod
     def handover_ieee80211r(self, sta, ap, wlan):
         debug('wpa_cli -i %s roam %s\n' % (sta.params['wlan'][wlan], ap.params['mac'][0]))
-        sta.pxec('wpa_cli -i %s roam %s' % (sta.params['wlan'][wlan], ap.params['mac'][0]))
+        sta.pexec('wpa_cli -i %s roam %s' % (sta.params['wlan'][wlan], ap.params['mac'][0]))
 
     @classmethod
     def associate_wep(self, sta, ap, wlan):
