@@ -345,6 +345,8 @@ class Association(object):
         :param ap: access point
         :param wlan: wlan ID
         """
+        if 'ieee80211r' in ap.params and ap.params['ieee80211r'] == 'yes':
+            self.handover_ieee80211r(sta, ap, wlan)
         if 'encrypt' not in ap.params:
             self.associate_noEncrypt(sta, ap, wlan)
         else:
@@ -416,6 +418,11 @@ class Association(object):
                 % (pidfile, sta.params['wlan'][wlan], sta.name, wlan))
         sta.pexec("wpa_supplicant -B -Dnl80211 -P %s -i %s -c %s_%s.staconf"
                 % (pidfile, sta.params['wlan'][wlan], sta.name, wlan))
+
+    @classmethod
+    def handover_ieee80211r(self, sta, ap, wlan):
+        debug('wpa_cli -i %s roam %s\n' % (sta.params['wlan'][wlan], ap.params['mac'][0]))
+        sta.pxec('wpa_cli -i %s roam %s' % (sta.params['wlan'][wlan], ap.params['mac'][0]))
 
     @classmethod
     def associate_wep(self, sta, ap, wlan):
