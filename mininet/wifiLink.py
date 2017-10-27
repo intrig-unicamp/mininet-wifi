@@ -347,7 +347,7 @@ class Association(object):
         """
         if 'ieee80211r' in ap.params and ap.params['ieee80211r'] == 'yes':
             self.handover_ieee80211r(sta, ap, wlan)
-        if 'encrypt' not in ap.params:
+        elif 'encrypt' not in ap.params:
             self.associate_noEncrypt(sta, ap, wlan)
         else:
             if ap.params['encrypt'][0] == 'wpa' or ap.params['encrypt'][0] == 'wpa2':
