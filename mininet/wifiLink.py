@@ -282,7 +282,6 @@ class Association(object):
                     if sta.params['rssi'][wlan] == 0:
                         self.updateParams(sta, ap, wlan)
                 if sta.params['associatedTo'][wlan] == '' and ap not in sta.params['associatedTo']:
-                    sta.params['associatedTo'][wlan] = ap
                     cls = Association
                     cls.associate_infra(sta, ap, wlan)
                     if not useWmediumd:
@@ -346,7 +345,10 @@ class Association(object):
         :param wlan: wlan ID
         """
         if 'ieee80211r' in ap.params and ap.params['ieee80211r'] == 'yes':
-            self.handover_ieee80211r(sta, ap, wlan)
+            if sta.params['associatedTo'][wlan] == '':
+                self.associate_wpa(sta, ap, wlan)
+            else:
+                self.handover_ieee80211r(sta, ap, wlan)
         elif 'encrypt' not in ap.params:
             self.associate_noEncrypt(sta, ap, wlan)
         else:
@@ -358,6 +360,7 @@ class Association(object):
             iface = sta.params['wlan'][wlan]
             info("Associating %s to %s\n" % (iface, ap))
         sta.params['frequency'][wlan] = wirelessLink.frequency(ap, 0)
+        sta.params['associatedTo'][wlan] = ap
 
     @classmethod
     def wpaFile(self, sta, ap, wlan):
