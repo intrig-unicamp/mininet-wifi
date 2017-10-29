@@ -63,15 +63,15 @@ def topology():
     i = 201
     for sw in net.carsSW:
         sw.start([c1])
-        os.system('ifconfig %s 10.0.0.%s' % (sw, i))
+        os.system('ip addr add 10.0.0.%s dev %s' % (i, sw))
         i += 1
 
     i = 1
     j = 2
     k = 1
     for c in car:
-        c.cmd('ifconfig %s-wlan0 192.168.0.%s/24 up' % (c, k))
-        c.cmd('ifconfig %s-eth0 192.168.1.%s/24 up' % (c, i))
+        c.setIP('192.168.0.%s/24' % k, intf='%s-wlan0' % c)
+        c.setIP('192.168.1.%s/24' % i, intf='%s-eth0' % c)
         c.cmd('ip route add 10.0.0.0/8 via 192.168.1.%s' % j)
         i += 2
         j += 2
@@ -80,8 +80,8 @@ def topology():
     i = 1
     j = 2
     for v in net.carsSTA:
-        v.cmd('ifconfig %s-eth0 192.168.1.%s/24 up' % (v, j))
-        v.cmd('ifconfig %s-mp0 10.0.0.%s/24 up' % (v, i))
+        v.setIP('192.168.1.%s/24' % j, intf='%s-eth0' % v)
+        v.setIP('10.0.0.%s/24' % i, intf='%s-mp0' % v)
         v.cmd('echo 1 > /proc/sys/net/ipv4/ip_forward')
         i += 1
         j += 2

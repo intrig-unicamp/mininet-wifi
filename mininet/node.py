@@ -187,9 +187,9 @@ class Node(object):
             self.cmd('iw dev %s set type managed' % self.params['wlan'][wlan])
         iface = '%s-mp%s' % (self, wlan)
         self.cmd('iw dev %s interface add %s type mp' % (self.params['wlan'][wlan], iface))
-        self.cmd('ifconfig %s down' % iface)
+        self.cmd('ip link set %s down' % iface)
         self.cmd('ip link set %s address %s' % (iface, self.params['mac'][wlan]))
-        self.cmd('ifconfig %s down' % self.params['wlan'][wlan])
+        self.cmd('ip link set %s down' % self.params['wlan'][wlan])
         self.params['wlan'][wlan] = iface
 
         if 'channel' in params:
@@ -202,9 +202,10 @@ class Node(object):
             self.setFreq(self.params['wlan'][wlan], params['freq'])
 
         if ('ip' in self.params):
-            self.cmd('ifconfig %s %s up' % (self.params['wlan'][wlan], self.params['ip'][wlan]))
+            self.cmd('ip addr add %s dev %s' % (self.params['ip'][wlan], self.params['wlan'][wlan]))
+            self.cmd('ip link set %s up' % iface)
         else:
-            self.cmd('ifconfig %s up' % self.params['wlan'][wlan])
+            self.cmd('ip link set %s up' % self.params['wlan'][wlan])
         if ssid != '':
             if 'ssid' not in self.params:
                 self.params['ssid'] = []
@@ -233,21 +234,21 @@ class Node(object):
         """ get Mac Address of any Interface """
         _macMatchRegex = re.compile(r'..:..:..:..:..:..')
         debug('getting mac address from %s\n' % iface)
-        ifconfig = str(self.pexec('ifconfig %s' % iface))
-        mac = _macMatchRegex.findall(ifconfig)
+        macaddr = str(self.pexec('ip addr show %s' % iface))
+        mac = _macMatchRegex.findall(macaddr)
         debug('%s\n' % mac[0])
         return mac[0]
 
     def ifbSupport(self, wlan, ifbID):
         """Support to Intermediate Functional Block (IFB) Devices"""
         os.system('ip link set dev ifb%s netns %s' % (ifbID, self.pid))
-        self.cmd('ifconfig ifb%s up' % ifbID)
+        self.cmd('ip link set ifb%s up' % ifbID)
         self.cmd('tc qdisc add dev %s handle ffff: ingress' % self.params['wlan'][wlan])
         self.cmd('tc filter add dev %s parent ffff: protocol ip u32 \
                                 match u32 0 0 action mirred egress redirect dev ifb%s' % (self.params['wlan'][wlan], ifbID))
         self.ifb.append(ifbID)
 
-    def getRange(self):
+    def getRange(self, stationary=True):
         if self.type == 'station' or self.type == 'vehicle':
             node = self
         elif self.type == 'ap':
@@ -257,7 +258,8 @@ class Node(object):
         wlan = 0
         value = distanceByPropagationModel(node, wlan)
         self.params['range'] = int(value.dist)
-        self.updateGraph()
+        if not stationary:
+            self.updateGraph()
 
     def updateGraph(self):
         from mininet.wifiNet import mininetWiFi
@@ -844,8 +846,9 @@ class Node(object):
            prefixLen: prefix length, e.g. 8 for /8 or 16M addrs
            kwargs: any additional arguments for intf.setIP"""
         if intf != None and (self.type == 'station' or self.type == 'vehicle'):
-            wlan = int(intf[-1:])
-            self.params['ip'][wlan] = ip
+            if intf in self.params['wlan']:
+                wlan = int(intf[-1:])
+                self.params['ip'][wlan] = ip
 
         return self.intf(intf).setIP(ip, prefixLen, **kwargs)
 
@@ -909,7 +912,7 @@ class Node(object):
         self.setParam(r, 'setDefaultRoute', defaultRoute=defaultRoute)
 
         # This should be examined
-        self.cmd('ifconfig lo ' + lo)
+        self.cmd('ip link set lo ' + lo)
         return r
 
     def configDefault(self, **moreParams):
@@ -1481,13 +1484,13 @@ class AccessPoint(AP):
 
     @classmethod
     def setIPAddr(self, ap, wlan):
-        ap.cmd('ifconfig %s %s' % (ap.params['wlan'][wlan], ap.params['ip']))
+        ap.cmd('ip addr add %s dev %s' % (ap.params['ip'], ap.params['wlan'][wlan]))
 
     @classmethod
     def getMac(self, ap, iface):
         """ get Mac Address of any Interface """
-        ifconfig = str(ap.pexec('ifconfig %s' % iface))
-        mac = self._macMatchRegex.findall(ifconfig)
+        macaddr = str(ap.pexec('ifconfig %s' % iface))
+        mac = self._macMatchRegex.findall(macaddr)
         return mac[0]
 
     @classmethod
@@ -1550,8 +1553,8 @@ class AccessPoint(AP):
             iface = ap.params['wlan'][wlan]
         else:
             iface = ap.params['phywlan']
-            ap.cmd('ifconfig %s down' % iface)
-            ap.cmd('ifconfig %s up' % iface)
+            ap.cmd('ip link set %s down' % iface)
+            ap.cmd('ip link set %s up' % iface)
         apconfname = "mn%d_%s.apconf" % (os.getpid(), iface)
         content = cmd + ("\' > %s" % apconfname)
         ap.cmd(content)
@@ -1690,6 +1693,19 @@ class UserAP(AP):
         # self.cmd('kill %ofprotocol')
         # super(UserAP, self).stop(deleteIntfs)
 
+    def stop_(self):
+        """Stops hostapd"""
+        process = 'mn%d_%s' % (os.getpid(), self.name)
+        os.system('pkill -f \'hostapd -B %s\'' % process)
+        self.range = int(self.params['range'])
+        self.setRange(0)
+
+    def start_(self):
+        """Starts hostapd"""
+        process = 'mn%d_%s' % (os.getpid(), self.name)
+        os.system('hostapd -B %s-wlan1.apconf' % process)
+        self.setRange(self.range)
+
     def setMeshIface(self, iface, ssid='', **params):
         wlan = self.params['wlan'].index(iface)
         if self.func[wlan] == 'adhoc':
@@ -1699,9 +1715,9 @@ class UserAP(AP):
         else:
             iface = '%s-mp%s' % (self, wlan)
         self.cmd('iw dev %s interface add %s type mp' % (self.params['wlan'][wlan], iface))
-        self.cmd('ifconfig %s down' % iface)
+        self.cmd('ip link set %s down' % iface)
         self.cmd('ip link set %s address %s' % (iface, self.params['mac'][wlan]))
-        self.cmd('ifconfig %s down' % self.params['wlan'][wlan])
+        self.cmd('ip link set %s down' % self.params['wlan'][wlan])
         self.params['wlan'][wlan] = iface
 
         if 'channel' in params:
@@ -1714,9 +1730,9 @@ class UserAP(AP):
             self.setFreq(self.params['wlan'][wlan], params['freq'])
 
         if ('ip' in self.params):
-            self.cmd('ifconfig %s %s up' % (self.params['wlan'][wlan], self.params['ip'][wlan]))
+            self.cmd('ip addr add %s dev %s' % (self.params['ip'][wlan], self.params['wlan'][wlan]))
         else:
-            self.cmd('ifconfig %s up' % self.params['wlan'][wlan])
+            self.cmd('ip link set %s up' % self.params['wlan'][wlan])
         if ssid != '':
             self.params['ssid'][wlan] = ssid
             cls = Association
@@ -1743,9 +1759,9 @@ class UserAP(AP):
 
     def renameIface(self, intf, newname):
         "Rename interface"
-        self.pexec('ifconfig %s down' % intf)
+        self.pexec('ip link set %s down' % intf)
         self.pexec('ip link set %s name %s' % (intf, newname))
-        self.pexec('ifconfig %s up' % newname)
+        self.pexec('ip link set %s up' % newname)
 
 class OVSAP(AP):
     "Open vSwitch AP. Depends on ovs-vsctl."
@@ -1852,7 +1868,7 @@ class OVSAP(AP):
     def attach(self, intf):
         "Connect a data port"
         self.vsctl('add-port', self, intf)
-        self.cmd('ifconfig', intf, 'up')
+        self.cmd('ip link set', intf, 'up')
         self.TCReapply(intf)
 
     def detach(self, intf):
@@ -1889,10 +1905,10 @@ class OVSAP(AP):
         else:
             iface = '%s-mp%s' % (self, wlan)
         self.cmd('iw dev %s interface add %s type mp' % (self.params['wlan'][wlan], iface))
-        self.cmd('ifconfig %s down' % iface)
+        self.cmd('ip link set %s down' % iface)
         #self.deleteIface(self.params['wlan'][wlan])
         self.cmd('ip link set %s address %s' % (iface, self.params['mac'][wlan]))
-        self.cmd('ifconfig %s down' % self.params['wlan'][wlan])
+        self.cmd('ip link set %s down' % self.params['wlan'][wlan])
         self.params['wlan'][wlan] = iface
 
         if 'channel' in params:
@@ -1905,9 +1921,9 @@ class OVSAP(AP):
             self.setFreq(self.params['wlan'][wlan], params['freq'])
 
         if ('ip' in self.params):
-            self.cmd('ifconfig %s %s up' % (self.params['wlan'][wlan], self.params['ip'][wlan]))
+            self.cmd('ip addr add %s dev %s' % (self.params['ip'][wlan], self.params['wlan'][wlan]))
         else:
-            self.cmd('ifconfig %s up' % self.params['wlan'][wlan])
+            self.cmd('ip link set %s up' % self.params['wlan'][wlan])
         if ssid != '':
             self.params['ssid'][wlan] = ssid
             cls = Association
@@ -2071,9 +2087,9 @@ class OVSAP(AP):
 
     def renameIface(self, intf, newname):
         "Rename interface"
-        self.pexec('ifconfig %s down' % intf)
+        self.pexec('ip link set %s down' % intf)
         self.pexec('ip link set %s name %s' % (intf, newname))
-        self.pexec('ifconfig %s up' % newname)
+        self.pexec('ip link set %s up' % newname)
 
 class UserSwitch(Switch):
     "User-space switch."
@@ -2252,7 +2268,7 @@ class OVSSwitch(Switch):
     def attach(self, intf):
         "Connect a data port"
         self.vsctl('add-port', self, intf)
-        self.cmd('ifconfig', intf, 'up')
+        self.cmd('ip link set', intf, 'up')
         self.TCReapply(intf)
 
     def detach(self, intf):
@@ -2534,9 +2550,14 @@ class Controller(Node):
             servers = self.cmd('netstat -natp').split('\n')
             pstr = ':%d ' % self.port
             clist = servers[ 0:1 ] + [ s for s in servers if pstr in s ]
-            raise Exception("Please shut down the controller which is"
+            info("Please shut down the controller which is"
                              " running on port %d:\n" % self.port +
                              '\n'.join(clist))
+            opt = raw_input("Would you like to shut down the controller right now? (y/n)\n")
+            if opt.lower() == 'yes' or opt.lower() == 'y':
+                os.system('fuser -k 6653/tcp')
+            else:
+                exit(1)
 
     def start(self):
         """Start <controller> <args> on controller.

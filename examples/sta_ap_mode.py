@@ -29,6 +29,7 @@ def topology(mobility):
 	print "*** Adding Link"
 	net.addLink(ap1, ap2)  # wired connection
 
+	print "*** Plotting Graph"
 	net.plotGraph(max_x=120, max_y=120)
 
 	if mobility:
@@ -42,16 +43,17 @@ def topology(mobility):
 	print "*** Starting network"
 	net.build()
 
-        ap1.cmd('echo 1 > /proc/sys/net/ipv4/ip_forward')
+	ap1.cmd('echo 1 > /proc/sys/net/ipv4/ip_forward')
 	ap2.cmd('echo 1 > /proc/sys/net/ipv4/ip_forward')
-	ap1.cmd('ifconfig ap1-eth1 192.168.2.1')
-	ap2.cmd('ifconfig ap2-eth1 192.168.2.2')
-        ap1.cmd('route add -net 192.168.1.0/24 gw 192.168.2.2')
-        ap2.cmd('route add -net 192.168.0.0/24 gw 192.168.2.1')
-        sta1.cmd('route add -net 192.168.1.0/24 gw 192.168.0.10')
-        sta1.cmd('route add -net 192.168.2.0/24 gw 192.168.0.10')
-        sta2.cmd('route add -net 192.168.0.0/24 gw 192.168.1.10')
-        sta2.cmd('route add -net 192.168.2.0/24 gw 192.168.1.10')
+
+	ap1.setIP('192.168.2.1/24', intf='ap1-eth1')
+	ap2.setIP('192.168.2.2/24', intf='ap2-eth1')
+	ap1.cmd('route add -net 192.168.1.0/24 gw 192.168.2.2')
+	ap2.cmd('route add -net 192.168.0.0/24 gw 192.168.2.1')
+	sta1.cmd('route add -net 192.168.1.0/24 gw 192.168.0.10')
+	sta1.cmd('route add -net 192.168.2.0/24 gw 192.168.0.10')
+	sta2.cmd('route add -net 192.168.0.0/24 gw 192.168.1.10')
+	sta2.cmd('route add -net 192.168.2.0/24 gw 192.168.1.10')
 
 	print "*** Running CLI"
 	CLI(net)

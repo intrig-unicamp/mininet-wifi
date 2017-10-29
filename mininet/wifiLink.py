@@ -282,7 +282,6 @@ class Association(object):
                     if sta.params['rssi'][wlan] == 0:
                         self.updateParams(sta, ap, wlan)
                 if sta.params['associatedTo'][wlan] == '' and ap not in sta.params['associatedTo']:
-                    sta.params['associatedTo'][wlan] = ap
                     cls = Association
                     cls.associate_infra(sta, ap, wlan)
                     if not useWmediumd:
@@ -345,7 +344,12 @@ class Association(object):
         :param ap: access point
         :param wlan: wlan ID
         """
-        if 'encrypt' not in ap.params:
+        if 'ieee80211r' in ap.params and ap.params['ieee80211r'] == 'yes':
+            if sta.params['associatedTo'][wlan] == '':
+                self.associate_wpa(sta, ap, wlan)
+            else:
+                self.handover_ieee80211r(sta, ap, wlan)
+        elif 'encrypt' not in ap.params:
             self.associate_noEncrypt(sta, ap, wlan)
         else:
             if ap.params['encrypt'][0] == 'wpa' or ap.params['encrypt'][0] == 'wpa2':
@@ -356,6 +360,7 @@ class Association(object):
             iface = sta.params['wlan'][wlan]
             info("Associating %s to %s\n" % (iface, ap))
         sta.params['frequency'][wlan] = wirelessLink.frequency(ap, 0)
+        sta.params['associatedTo'][wlan] = ap
 
     @classmethod
     def wpaFile(self, sta, ap, wlan):
@@ -416,6 +421,11 @@ class Association(object):
                 % (pidfile, sta.params['wlan'][wlan], sta.name, wlan))
         sta.pexec("wpa_supplicant -B -Dnl80211 -P %s -i %s -c %s_%s.staconf"
                 % (pidfile, sta.params['wlan'][wlan], sta.name, wlan))
+
+    @classmethod
+    def handover_ieee80211r(self, sta, ap, wlan):
+        debug('wpa_cli -i %s roam %s\n' % (sta.params['wlan'][wlan], ap.params['mac'][0]))
+        sta.pexec('wpa_cli -i %s roam %s' % (sta.params['wlan'][wlan], ap.params['mac'][0]))
 
     @classmethod
     def associate_wep(self, sta, ap, wlan):

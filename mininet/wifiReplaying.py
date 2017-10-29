@@ -39,13 +39,13 @@ class replayingMobility(object):
     """Replaying Mobility Traces"""
     timestamp = False
     
-    def __init__(self, mininet):
+    def __init__(self, mininet, nodes=None):
         mininetWiFi.isMobility = True
-        self.thread = threading.Thread(name='replayingMobility', target=self.mobility, args=(mininet,))
+        self.thread = threading.Thread(name='replayingMobility', target=self.mobility, args=(mininet,nodes,))
         self.thread.daemon = True
         self.thread.start()
 
-    def mobility(self, mininet):
+    def mobility(self, mininet, nodes):
         if mininetWiFi.DRAW:
             instantiateGraph(mininet)
         if mininetWiFi.is3d:
@@ -53,8 +53,9 @@ class replayingMobility(object):
         else:
             plot = plot2d
         currentTime = time.time()
-        stations = mininet.stations
-        for node in stations:
+        if nodes == None:
+            nodes = mininet.stations
+        for node in nodes:
             if 'speed' in node.params:
                 node.lastpos = 0,0,0
                 node.currentTime = 1 / node.params['speed']
@@ -66,35 +67,39 @@ class replayingMobility(object):
             while True:
                 time_ = time.time() - currentTime
                 time.sleep(0.00001)
-                if len(stations) == 0:
+                if len(nodes) == 0:
                     break
-                for node in stations:
-                    position_ = (0,0,0)
-                    if time_ >= float(node.time[0]):
-                        position_ = node.position[0]
-                        del node.position[0]
-                        del node.time[0]
-                    if position_ != (0,0,0):
-                        node.setPosition(position_)
-                    if len(node.position) == 0:
-                        stations.remove(node)
+                for node in nodes:
+                    if hasattr(node, 'position'):
+                        position_ = (0,0,0)
+                        if time_ >= float(node.time[0]):
+                            position_ = node.position[0]
+                            del node.position[0]
+                            del node.time[0]
+                        if position_ != (0,0,0):
+                            node.setPosition(position_)
+                        if len(node.position) == 0:
+                            nodes.remove(node)
+                        mobility.parameters_()
                 plot.graphPause()
         else:
             while True:
                 time_ = time.time() - currentTime
                 time.sleep(0.00001)
-                if len(stations) == 0:
+                if len(nodes) == 0:
                     break
-                for node in stations:
-                    position = (0,0,0)
-                    while time_ >= node.currentTime and len(node.position) != 0:
-                        position = node.position[0]
-                        del node.position[0]
-                        node.currentTime += node.timestamp
-                    if position != (0,0,0):
-                        node.setPosition(position)
-                    if len(node.position) == 0:
-                        stations.remove(node)
+                for node in nodes:
+                    if hasattr(node, 'position'):
+                        position = (0,0,0)
+                        while time_ >= node.currentTime and len(node.position) != 0:
+                            position = node.position[0]
+                            del node.position[0]
+                            node.currentTime += node.timestamp
+                        if position != (0,0,0):
+                            node.setPosition(position)
+                        if len(node.position) == 0:
+                            nodes.remove(node)
+                        mobility.parameters_()
                 plot.graphPause()
 
     @classmethod

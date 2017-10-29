@@ -278,6 +278,9 @@ class mininetWiFi(object):
                 mac_list = params['mac'].split(',')
                 for mac in mac_list:
                     node.params['mac'].append(mac)
+                if len(mac_list) != wlans:
+                    for addmac in range(len(mac_list), wlans):
+                        node.params['mac'].append('')
             elif autoSetMacs:
                 for n in range(wlans):
                     node.params['mac'].append('')
