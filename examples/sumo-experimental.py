@@ -69,14 +69,14 @@ def topology():
     i = 201
     for sw in net.carsSW:
         sw.start([c1])
-        os.system('ifconfig %s 10.0.0.%s' % (sw, i))
+        os.system('ip addr add 10.0.0.%s dev %s' % (i, sw))
         i += 1
 
     i = 1
     j = 2
     for car in cars:
-        c.setIP('192.168.0.%s/24' % i, intf='%s-wlan0' % car)
-        c.setIP('192.168.1.%s/24' % i, intf='%s-eth0' % car)
+        car.setIP('192.168.0.%s/24' % i, intf='%s-wlan0' % car)
+        car.setIP('192.168.1.%s/24' % i, intf='%s-eth0' % car)
         car.cmd('ip route add 10.0.0.0/8 via 192.168.1.%s' % j)
         i += 2
         j += 2

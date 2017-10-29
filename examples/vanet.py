@@ -63,7 +63,7 @@ def topology():
     i = 201
     for sw in net.carsSW:
         sw.start([c1])
-        os.system('ip %s 10.0.0.%s' % (sw, i))
+        os.system('ip addr add 10.0.0.%s dev %s' % (i, sw))
         i += 1
 
     i = 1
