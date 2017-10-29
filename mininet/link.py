@@ -94,7 +94,7 @@ class Intf(object):
            macstr: MAC address as string"""
         self.mac = macstr
         return (self.ipLink('down') + 
-                 self.ipAddr('address', macstr) + 
+                 self.ipLink('address', macstr) + 
                  self.ipLink('up'))
 
     _ipMatchRegex = re.compile(r'\d+\.\d+\.\d+\.\d+')
@@ -296,7 +296,7 @@ class IntfWireless(object):
            macstr: MAC address as string"""
         self.mac = macstr
         return (self.ipLink('down') + 
-                 self.ipAddr('address', macstr) + 
+                 self.ipLink('address', macstr) + 
                  self.ipLink('up'))
 
     _ipMatchRegex = re.compile(r'\d+\.\d+\.\d+\.\d+')
