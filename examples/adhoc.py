@@ -14,8 +14,10 @@ def topology():
 
     print "*** Creating nodes"
     sta1 = net.addStation('sta1', position='10,10,0')
-    sta2 = net.addStation('sta2', position='50,10,0')
-    sta3 = net.addStation('sta3', position='90,10,0')
+    sta2 = net.addStation('sta2', position='110,10,0')
+    sta3 = net.addStation('sta3', position='210,10,0')
+
+    net.propagationModel("logDistancePropagationLossModel", exp=3.5)
 
     print "*** Configuring wifi nodes"
     net.configureWifiNodes()
