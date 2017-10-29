@@ -370,7 +370,7 @@ class Node(object):
 
     def setTxPower_(self, iface, txpower):
         wlan = self.params['wlan'].index(iface)
-        self.pexec('iwconfig %s txpower %s' % (iface, txpower))
+        self.pexec('iw dev %s set txpower fixed %s' % (iface, (int(txpower) * 100)))
         self.params['txpower'][wlan] = txpower
         power = self.getTxPower(iface)
         if power != None and power < self.params['txpower'][wlan]:
@@ -413,16 +413,16 @@ class Node(object):
                                                 int(txpower_)))
 
     def getTxPower(self, iface):
-        connected = self.cmd('iwconfig %s | grep Signal | awk \'{print $4}\'' % iface)
-        if connected != '':
+        connected = self.cmd('iw dev %s link | awk \'{print $1}\'' % iface)
+        if connected != 'Not':
             try:
-                txpower = int(self.cmd('iwconfig %s | grep Tx-Power | awk \'{print $4}\' | tr -d \"Tx-\" | tr -d \"Power=\"' % iface))
+                txpower = int(self.cmd('iw dev %s info | grep txpower | awk \'{print $2}\'' % iface))
             except:
                 txpower = 20
             return txpower
         elif self.type == 'ap':
             try:
-                txpower = int(self.cmd('iwconfig %s | grep Tx-Power | awk \'{print $5}\' | tr -d \"Tx-\" | tr -d \"Power=\"' % iface))
+                txpower = int(self.cmd('iw dev %s info | grep txpower | awk \'{print $2}\'' % iface))
             except:
                 txpower = 14
             return txpower
@@ -445,7 +445,7 @@ class Node(object):
                 if sta.params['associatedTo'][wlan] != '':
                     sta.cmd('iw dev %s disconnect' % iface)
                 if 'encrypt' not in ap.params:
-                    sta.cmd('iwconfig %s essid %s ap %s' % (sta.params['wlan'][wlan], ap.params['ssid'][0], ap.params['mac'][0]))
+                    sta.cmd('iw dev %s connect %s %s' % (sta.params['wlan'][wlan], ap.params['ssid'][0], ap.params['mac'][0]))
                     debug ('%s is now associated with %s\n' % (sta, ap))
                 else:
                     if ap.params['encrypt'][0] == 'wpa' or ap.params['encrypt'][0] == 'wpa2':
@@ -896,7 +896,7 @@ class Node(object):
         """Configure Node according to (optional) parameters:
            mac: MAC address for default interface
            ip: IP address for default interface
-           ifconfig: arbitrary interface configuration
+           ip addr: arbitrary interface configuration
            Subclasses should override this method and call
            the parent class's config(**params)"""
         # If we were overriding this method, we would call
@@ -961,7 +961,7 @@ class Node(object):
     @classmethod
     def setup(cls):
         "Make sure our class dependencies are available"
-        pathCheck('mnexec', 'ifconfig', moduleName='Mininet')
+        pathCheck('mnexec', 'ip addr', moduleName='Mininet')
 
 class Host(Node):
     "A host is simply a Node"
@@ -1176,11 +1176,11 @@ class CPULimitedHost(Host):
 # normally never want to change its IP address!
 #
 # In general, you NEVER want to attempt to use Linux's
-# network stack (i.e. ifconfig) to "assign" an IP address or
+# network stack (i.e. ip addr) to "assign" an IP address or
 # MAC address to a switch data port. Instead, you "assign"
 # the IP and MAC addresses in the controller by specifying
 # packets that you want to receive or send. The "MAC" address
-# reported by ifconfig for a switch data port is essentially
+# reported by ip addr for a switch data port is essentially
 # meaningless. It is important to understand this if you
 # want to create a functional router using OpenFlow.
 
@@ -1489,7 +1489,7 @@ class AccessPoint(AP):
     @classmethod
     def getMac(self, ap, iface):
         """ get Mac Address of any Interface """
-        macaddr = str(ap.pexec('ifconfig %s' % iface))
+        macaddr = str(ap.pexec('ip addr show %s' % iface))
         mac = self._macMatchRegex.findall(macaddr)
         return mac[0]
 

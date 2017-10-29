@@ -241,8 +241,8 @@ class Association(object):
         if 'position' not in node.params or enable_wmediumd:
             node.params['associatedTo'][wlan] = node.params['ssid'][wlan]
             debug("associating %s to %s...\n" % (iface, node.params['ssid'][wlan]))
-            node.pexec('iwconfig %s channel %s essid %s ap 02:CA:FF:EE:BA:01 mode ad-hoc'\
-                       % (iface, node.params['channel'][wlan], node.params['associatedTo'][wlan]))
+            node.pexec('iw dev %s ibss join %s %s 02:CA:FF:EE:BA:01'\
+                       % (iface, node.params['associatedTo'][wlan], str(node.params['frequency'][wlan]).replace('.','')))
 
     @classmethod
     def configureMesh(self, node, wlan):
@@ -330,9 +330,9 @@ class Association(object):
         :param ap: access point
         :param wlan: wlan ID
         """
-        debug('iwconfig %s essid %s ap %s\n' % (sta.params['wlan'][wlan], ap.params['ssid'][0], \
+        debug('iw dev %s connect %s %s\n' % (sta.params['wlan'][wlan], ap.params['ssid'][0], \
                                                     ap.params['mac'][0]))
-        sta.pexec('iwconfig %s essid %s ap %s' % (sta.params['wlan'][wlan], ap.params['ssid'][0], \
+        sta.pexec('iw dev %s connect %s %s' % (sta.params['wlan'][wlan], ap.params['ssid'][0], \
                                                     ap.params['mac'][0]))
 
     @classmethod
