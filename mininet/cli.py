@@ -4,9 +4,9 @@ A simple command-line interface for Mininet.
 The Mininet CLI provides a simple control console which
 makes it easy to talk to nodes. For example, the command
 
-mininet> h27 ifconfig
+mininet> h27 ip addr
 
-runs 'ifconfig' on host h27.
+runs 'ip addr' on host h27.
 
 Having a single console rather than, for example, an xterm for each
 node is particularly convenient for networks of any reasonable
@@ -124,7 +124,7 @@ class CLI(Cmd):
         'You may also send a command to a node using:\n'
         '  <node> command {args}\n'
         'For example:\n'
-        '  mininet> h1 ifconfig\n'
+        '  mininet> h1 ip addr\n'
         '\n'
         'The interpreter automatically substitutes IP addresses\n'
         'for node names when a node is the first arg, so commands\n'

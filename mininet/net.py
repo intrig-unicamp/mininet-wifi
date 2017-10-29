@@ -20,7 +20,7 @@ A virtual console (pipes to a shell)
 A virtual interface (half of a veth pair)
 A parent shell (and possibly some child processes) in a namespace
 
-Hosts have a network interface which is configured via ifconfig/ip
+Hosts have a network interface which is configured via ip addr/ip
 link/etc.
 
 Each station has:
@@ -1245,10 +1245,10 @@ class Mininet(object):
         if client.type == 'station' or server.type == 'station':
             if client.type == 'station':
                 while conn1 == 0:
-                    conn1 = int(client.cmd('iwconfig %s-wlan0 | grep -ic \'Link Quality\'' % client))
+                    conn1 = int(client.cmd('iw dev %s link | grep -ic \'Connected\'' % client.params['wlan'][0]))
             if server.type == 'station':
                 while conn2 == 0:
-                    conn2 = int(server.cmd('iwconfig %s-wlan0 | grep -ic \'Link Quality\'' % server))
+                    conn2 = int(server.cmd('iw dev %s link | grep -ic \'Connected\'' % server.params['wlan'][0]))
         output('*** Iperf: testing', l4Type, 'bandwidth between',
                 client, 'and', server, '\n')
         server.cmd('killall -9 iperf')
@@ -1471,7 +1471,7 @@ class Mininet(object):
                 ap = self.nameToNode[ src ]
             for wlan in range(0, len(sta.params['wlan'])):
                 if sta.params['associatedTo'][wlan] == '':
-                    sta.pexec('iwconfig %s essid %s ap %s' % (sta.params['wlan'][wlan], ap.params['ssid'][0], ap.params['mac'][0]))
+                    sta.pexec('iw dev %s connect %s %s' % (sta.params['wlan'][wlan], ap.params['ssid'][0], ap.params['mac'][0]))
                     sta.params['associatedTo'][wlan] = ap
                     ap.params['associatedStations'].append(sta)
 
@@ -1496,10 +1496,10 @@ class Mininet(object):
             if len(connections) == 0:
                 error('src and dst not connected: %s %s\n' % (src, dst))
             for srcIntf, dstIntf in connections:
-                result = srcIntf.ifconfig(status)
+                result = srcIntf.ip_link_addr(status)
                 if result:
                     error('link src status change failed: %s\n' % result)
-                result = dstIntf.ifconfig(status)
+                result = dstIntf.ip_link_addr(status)
                 if result:
                     error('link dst status change failed: %s\n' % result)
 

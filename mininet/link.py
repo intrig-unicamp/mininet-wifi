@@ -802,7 +802,7 @@ class _4addrLink(object):
             client.params['txpower'].append(14)
             client.params['antennaGain'].append(client.params['antennaGain'][0])
             client.params['wlan'].append(client_intfName)
-            client.cmd('iwconfig %s essid %s ap %s' % (client.params['wlan'][1], 
+            client.cmd('iw dev %s connect %s %s' % (client.params['wlan'][1], 
                                                        ap.params['ssid'][0], ap.params['mac'][0]))
 
             params1 = {}

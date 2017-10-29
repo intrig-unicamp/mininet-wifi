@@ -57,11 +57,11 @@ def topology():
     ap1.start([c0])
 
     sleep(2)
-    sta1.cmd('iwconfig sta1-wlan0 essid %s ap %s' % (ap1.params['ssid'][1], ap1.params['mac'][1]))
-    sta2.cmd('iwconfig sta2-wlan0 essid %s ap %s' % (ap1.params['ssid'][2], ap1.params['mac'][2]))
-    sta3.cmd('iwconfig sta3-wlan0 essid %s ap %s' % (ap1.params['ssid'][2], ap1.params['mac'][2]))
-    sta4.cmd('iwconfig sta4-wlan0 essid %s ap %s' % (ap1.params['ssid'][3], ap1.params['mac'][3]))
-    sta5.cmd('iwconfig sta5-wlan0 essid %s ap %s' % (ap1.params['ssid'][4], ap1.params['mac'][4]))
+    sta1.cmd('iw dev %s connect %s %s' % (sta1.params['wlan'][0], ap1.params['ssid'][1], ap1.params['mac'][1]))
+    sta2.cmd('iw dev %s connect %s %s' % (sta2.params['wlan'][0], ap1.params['ssid'][2], ap1.params['mac'][2]))
+    sta3.cmd('iw dev %s connect %s %s' % (sta3.params['wlan'][0], ap1.params['ssid'][2], ap1.params['mac'][2]))
+    sta4.cmd('iw dev %s connect %s %s' % (sta4.params['wlan'][0], ap1.params['ssid'][3], ap1.params['mac'][3]))
+    sta5.cmd('iw dev %s connect %s %s' % (sta5.params['wlan'][0], ap1.params['ssid'][4], ap1.params['mac'][4]))
 
     ap1.cmd('dpctl unix:/tmp/ap1 meter-mod cmd=add,flags=1,meter=1 drop:rate=100')
     ap1.cmd('dpctl unix:/tmp/ap1 meter-mod cmd=add,flags=1,meter=2 drop:rate=200')
