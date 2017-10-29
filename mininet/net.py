@@ -1496,10 +1496,10 @@ class Mininet(object):
             if len(connections) == 0:
                 error('src and dst not connected: %s %s\n' % (src, dst))
             for srcIntf, dstIntf in connections:
-                result = srcIntf.ip_link_addr(status)
+                result = srcIntf.ipLink(status)
                 if result:
                     error('link src status change failed: %s\n' % result)
-                result = dstIntf.ip_link_addr(status)
+                result = dstIntf.ipLink(status)
                 if result:
                     error('link dst status change failed: %s\n' % result)
 
