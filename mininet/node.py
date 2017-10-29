@@ -1693,6 +1693,19 @@ class UserAP(AP):
         # self.cmd('kill %ofprotocol')
         # super(UserAP, self).stop(deleteIntfs)
 
+    def stop_(self):
+        """Stops hostapd"""
+        process = 'mn%d_%s' % (os.getpid(), self.name)
+        os.system('pkill -f \'hostapd -B %s\'' % process)
+        self.range = int(self.params['range'])
+        self.setRange(0)
+
+    def start_(self):
+        """Starts hostapd"""
+        process = 'mn%d_%s' % (os.getpid(), self.name)
+        os.system('hostapd -B %s-wlan1.apconf' % process)
+        self.setRange(self.range)
+
     def setMeshIface(self, iface, ssid='', **params):
         wlan = self.params['wlan'].index(iface)
         if self.func[wlan] == 'adhoc':
