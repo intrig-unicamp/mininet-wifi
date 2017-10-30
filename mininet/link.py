@@ -69,6 +69,7 @@ class Intf(object):
         if len(args) == 0:
             return self.cmd('ip addr show', self.name)
         else:
+            self.cmd('ip addr flush ', self.name)
             return self.cmd('ip addr add', args[0], 'dev', self.name)
 
     def ipLink(self, *args):
@@ -266,11 +267,13 @@ class IntfWireless(object):
     def ipAddr(self, *args):
         "Configure ourselves using ip link/addr"
         if self.name not in self.node.params['wlan']:
+            self.cmd('ip addr flush ', self.name)
             return self.cmd('ip addr add', args[0], 'dev', self.name)
         else:
             if len(args) == 0:
                 return self.cmd('ip addr show', self.name)
             else:
+                self.cmd('ip addr flush ', self.name)
                 return self.cmd('ip addr add', args[0], 'dev', self.name)
 
     def ipLink(self, *args):

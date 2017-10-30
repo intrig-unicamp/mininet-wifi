@@ -512,8 +512,8 @@ class mobility (object):
                             self.checkAssociation(node, wlan)
                     else:
                         self.checkAssociation(node, wlan)        # have to verify this
-                    if WmediumdServerConn.interference_enabled:
-                        self.setWmediumdPos(node)
+                if WmediumdServerConn.interference_enabled:
+                    self.setWmediumdPos(node)
         eval(self.continueParams)
 
 
