@@ -16,15 +16,13 @@ def topology():
     net = Mininet(controller=Controller, link=TCLink, switch=OVSKernelSwitch, enable_wmediumd=True, enable_interference=True)
 
     print "*** Creating nodes"
-    car = []
-    stas = []
+    cars = []
     for x in range(0, 10):
-        car.append(x)
-        stas.append(x)
+        cars.append(x)
     for x in range(0, 10):
-        min = random.randint(1, 10)
+        min = random.randint(1, 4)
         max = random.randint(11, 30)
-        car[x] = net.addCar('car%s' % (x + 1), wlans=1, ip='10.0.0.%s/8' % (x + 1), min_speed=min, max_speed=max)
+        cars[x] = net.addCar('car%s' % (x + 1), wlans=1, ip='10.0.0.%s/8' % (x + 1), min_speed=min, max_speed=max)
 
     rsu11 = net.addAccessPoint('RSU11', ssid='RSU11', mode='g', channel='1', range=50)
     rsu12 = net.addAccessPoint('RSU12', ssid='RSU12', mode='g', channel='6', range=50)
@@ -69,10 +67,10 @@ def topology():
     i = 1
     j = 2
     k = 1
-    for c in car:
-        c.setIP('192.168.0.%s/24' % k, intf='%s-wlan0' % c)
-        c.setIP('192.168.1.%s/24' % i, intf='%s-eth0' % c)
-        c.cmd('ip route add 10.0.0.0/8 via 192.168.1.%s' % j)
+    for car in cars:
+        car.setIP('192.168.0.%s/24' % k, intf='%s-wlan0' % car)
+        car.setIP('192.168.1.%s/24' % i, intf='%s-eth0' % car)
+        car.cmd('ip route add 10.0.0.0/8 via 192.168.1.%s' % j)
         i += 2
         j += 2
         k += 1
