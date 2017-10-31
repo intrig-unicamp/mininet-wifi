@@ -259,7 +259,6 @@ class mobility (object):
         if node.lastpos != node.params['position']:
             time.sleep(0.0001)
             node.setPositionWmediumd()
-            node.lastpos = node.params['position']
 
     @classmethod
     def controlledMobility(self, init_time=0, final_time=0, stations=None, aps=None, connections=[],

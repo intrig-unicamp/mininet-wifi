@@ -418,7 +418,6 @@ class mininetWiFi(object):
                 wlan = node.ifaceToAssociate
 
         node.func[wlan] = 'mesh'
-        node.params['txpower'][wlan] = 20
 
         if node.type == 'ap':
             pass
@@ -458,7 +457,6 @@ class mininetWiFi(object):
             wlan = node.ifaceToAssociate
 
         node.func[wlan] = 'adhoc'
-        node.params['txpower'][wlan] = 20
 
         node.params['ssid'] = []
         for w in range(0, len(node.params['wlan'])):
@@ -579,7 +577,7 @@ class mininetWiFi(object):
                     posX = node.params['position'][0]
                     posY = node.params['position'][1]
                     posZ = node.params['position'][2]
-                node.lastpos = [0, 0, 0]
+                node.lastpos = [posX, posY, posZ]
                 
                 if hasattr(node, 'type') and node.type == 'vehicle':
                     wlans = 1
