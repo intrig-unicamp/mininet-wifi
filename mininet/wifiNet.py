@@ -432,7 +432,9 @@ class mininetWiFi(object):
         else:
             node.params['ssid'][wlan] = 'meshNetwork'
 
-        deviceRange(node)
+        distanceByPropagationModel.NOISE_LEVEL = 95
+        value = distanceByPropagationModel(node, wlan)
+        node.params['range'] = int(value.dist)
 
         node.setMeshIface(node.params['wlan'][wlan], **params)
 
@@ -470,12 +472,11 @@ class mininetWiFi(object):
             node.params['ssid'][wlan] = 'adhocNetwork'
             node.params['associatedTo'][wlan] = 'adhocNetwork'
 
-        deviceRange(node)
-
-        value = deviceDataRate(sta=node, wlan=wlan)
-        self.bw = value.rate
-
         enable_wmediumd = self.useWmediumd
+
+        distanceByPropagationModel.NOISE_LEVEL = 95
+        value = distanceByPropagationModel(node, wlan)
+        node.params['range'] = int(value.dist)
 
         if 'channel' in params:
             node.setChannel(node.params['wlan'][wlan], params['channel'])

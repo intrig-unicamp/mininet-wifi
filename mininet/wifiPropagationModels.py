@@ -182,6 +182,7 @@ class distanceByPropagationModel(object):
     pL = 0  # Power Loss Coefficient
     nFloors = 0  # Number of floors
     gRandom = 0  # Gaussian random variable
+    NOISE_LEVEL = 92
 
     def __init__(self, node=None, wlan=0):
         self.lF = propagationModel.lF
@@ -211,7 +212,7 @@ class distanceByPropagationModel(object):
 
         lambda_ = c / f  # lambda: wavelength (m)
         denominator = lambda_ ** 2
-        self.dist = math.pow(10, ((92 + gains + 10 * math.log10(denominator)) / 10 - math.log10((4 * math.pi) ** 2 * L)) / (2))
+        self.dist = math.pow(10, ((self.NOISE_LEVEL + gains + 10 * math.log10(denominator)) / 10 - math.log10((4 * math.pi) ** 2 * L)) / (2))
 
         return self.dist
 
@@ -243,7 +244,7 @@ class distanceByPropagationModel(object):
         gains = txpower + (antGain * 2)
 
         pathLoss = self.pathLoss(node, referenceDistance, wlan)
-        self.dist = math.pow(10, ((92 - pathLoss + gains) / (10 * self.exp))) * referenceDistance
+        self.dist = math.pow(10, ((self.NOISE_LEVEL - pathLoss + gains) / (10 * self.exp))) * referenceDistance
 
         return self.dist
     
@@ -265,7 +266,7 @@ class distanceByPropagationModel(object):
             WmediumdServerConn.update_gaussian_random(WmediumdGaussianRandom(node.wmIface[wlan], gRandom))
 
         pathLoss = self.pathLoss(node, referenceDistance, wlan) - gRandom
-        self.dist = math.pow(10, ((92 - pathLoss + gains) / (10 * self.exp))) * referenceDistance
+        self.dist = math.pow(10, ((self.NOISE_LEVEL - pathLoss + gains) / (10 * self.exp))) * referenceDistance
 
         return self.dist
 
@@ -278,6 +279,6 @@ class distanceByPropagationModel(object):
         N = 28  # Power Loss Coefficient
         lF = self.lF  # Floor penetration loss factor
         nFloors = self.nFloors  # Number of Floors
-        self.dist = math.pow(10, ((92 + gains - 20 * math.log10(f) - lF * nFloors + 28)/N))
+        self.dist = math.pow(10, ((self.NOISE_LEVEL + gains - 20 * math.log10(f) - lF * nFloors + 28)/N))
 
         return self.dist
