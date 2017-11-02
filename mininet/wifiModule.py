@@ -21,22 +21,25 @@ class module(object):
     useWmediumd = False
 
     @classmethod
-    def loadModule(self, wifiRadios, alternativeModule=''):
+    def loadModule(cls, wifiRadios, alternativeModule=''):
         """ Load WiFi Module 
         
         :param wifiRadios: number of wifi radios
         :param alternativeModule: dir of a mac80211_hwsim alternative module
         """
         debug('Loading %s virtual interfaces\n' % wifiRadios)
-        if not self.externally_managed:
+        if not cls.externally_managed:
             if alternativeModule == '':
-                output_ = os.system('modprobe mac80211_hwsim radios=0 >/dev/null 2>&1')
+                output_ = os.system('modprobe mac80211_hwsim radios=0 '
+                                    '>/dev/null 2>&1')
             else:
-                output_ = os.system('insmod %s radios=0 >/dev/null 2>&1' % alternativeModule)
+                output_ = os.system('insmod %s radios=0 >/dev/null 2>&1'
+                                    % alternativeModule)
 
-            """output_ is different of zero in Kernel 3.13.x. radios=0 doesn't work in such kernel version"""
+            """output_ is different of zero in Kernel 3.13.x. radios=0 doesn't
+             work in such kernel version"""
             if output_ == 0:
-                self.__create_hwsim_mgmt_devices(wifiRadios)
+                cls.__create_hwsim_mgmt_devices(wifiRadios)
             else:
                 if wifiRadios == 0:
                     wifiRadios = 1 #Useful for tests in Kernels like Kernel 3.13.x
@@ -45,13 +48,14 @@ class module(object):
                 else:
                     os.system('insmod %s radios=%s' % (alternativeModule, wifiRadios))
         else:
-            self.devices_created_dynamically = True
-            self.__create_hwsim_mgmt_devices(wifiRadios)
+            cls.devices_created_dynamically = True
+            cls.__create_hwsim_mgmt_devices(wifiRadios)
 
     @classmethod
     def __create_hwsim_mgmt_devices(cls, wifi_radios):
         # generate prefix
-        phys = subprocess.check_output("find /sys/kernel/debug/ieee80211 -name hwsim | cut -d/ -f 6 | sort",
+        phys = subprocess.check_output("find /sys/kernel/debug/ieee80211 -name "
+                                       "hwsim | cut -d/ -f 6 | sort",
                                        shell=True).split("\n")
         num = 0
         numokay = False
@@ -66,7 +70,8 @@ class module(object):
                     break
         try:
             for i in range(0, wifi_radios):
-                p = subprocess.Popen(["hwsim_mgmt", "-c", "-n", cls.prefix + ("%02d" % i)], stdin=subprocess.PIPE,
+                p = subprocess.Popen(["hwsim_mgmt", "-c", "-n", cls.prefix +
+                                      ("%02d" % i)], stdin=subprocess.PIPE,
                                      stdout=subprocess.PIPE,
                                      stderr=subprocess.PIPE, bufsize=-1)
                 output, err_out = p.communicate()
@@ -75,30 +80,32 @@ class module(object):
                     debug("\nCreated mac80211_hwsim device with ID %s" % m.group(1))
                     cls.hwsim_ids.append(m.group(1))
                 else:
-                    error("\nError on creating mac80211_hwsim device with name %s" % (cls.prefix + ("%02d" % i)))
+                    error("\nError on creating mac80211_hwsim device with name %s"
+                          % (cls.prefix + ("%02d" % i)))
                     error("\nOutput: %s" % output)
                     error("\nError: %s" % err_out)
         except:
-            print "Warning! If you already had Mininet-WiFi installed, please run util/install.sh -W \
-                                    and then make install. A new API for mac80211_hwsim has been created."
+            print "Warning! If you already had Mininet-WiFi installed, please run " \
+                  "util/install.sh -W and then make install. A new API for " \
+                  "mac80211_hwsim has been created."
 
     @classmethod
-    def kill_hostapd(self):
+    def kill_hostapd(cls):
         info("*** Killing hostapd\n")
         os.system('pkill -f \'hostapd -B mn%d\'' % os.getpid())
 
     @classmethod
-    def kill_wmediumd(self):
+    def kill_wmediumd(cls):
         info("*** Killing wmediumd\n")
         os.system('pkill -f wmediumd >/dev/null 2>&1')
 
     @classmethod
-    def kill_mac80211_hwsim(self):
+    def kill_mac80211_hwsim(cls):
         info("*** Killing mac80211_hwsim\n")
         os.system('rmmod mac80211_hwsim >/dev/null 2>&1')
 
     @classmethod
-    def stop(self):
+    def stop(cls):
         """ Stop wireless Module """
         if glob.glob("*.apconf"):
             os.system('rm *.apconf')
@@ -117,20 +124,22 @@ class module(object):
 
         try:
             confnames = "mn%d_" % os.getpid()
-            os.system('pkill -f \'wpa_supplicant -B -Dnl80211 -c%s\'' % confnames)
+            os.system('pkill -f \'wpa_supplicant -B -Dnl80211 -c%s\''
+                      % confnames)
         except:
             pass
 
         try:
             pidfiles = "mn%d_" % os.getpid()
-            os.system('pkill -f \'wpa_supplicant -B -Dnl80211 -P %s\'' % pidfiles)
+            os.system('pkill -f \'wpa_supplicant -B -Dnl80211 -P %s\''
+                      % pidfiles)
         except:
             pass
 
-        self.kill_mac80211_hwsim()
+        cls.kill_mac80211_hwsim()
 
     @classmethod
-    def start(self, nodes, wifiRadios, alternativeModule='', **params):
+    def start(cls, nodes, wifiRadios, alternativeModule='', **params):
         """Starts environment
         
         :param nodes: list of wireless nodes
@@ -141,38 +150,40 @@ class module(object):
         """kill hostapd if it is already running"""
         try:
             h = subprocess.check_output("ps -aux | grep -ic \'hostapd\'",
-                                                          shell=True)
+                                        shell=True)
             if h >= 2:
                 os.system('pkill -f \'hostapd\'')
         except:
             pass
-        self.useWmediumd = params['useWmediumd']
+        cls.useWmediumd = params['useWmediumd']
 
-        physicalWlans = self.getPhysicalWlan()  # Gets Physical Wlan(s)
-        self.loadModule(wifiRadios, alternativeModule)  # Initatilize WiFi Module
-        phys = self.getPhy()  # Get Phy Interfaces
+        physicalWlans = cls.getPhysicalWlan()  # Gets Physical Wlan(s)
+        cls.loadModule(wifiRadios, alternativeModule)  # Initatilize WiFi Module
+        phys = cls.getPhy()  # Get Phy Interfaces
         module.assignIface(nodes, physicalWlans, phys, **params)  # iface assign
 
     @classmethod
-    def getPhysicalWlan(self):
+    def getPhysicalWlan(cls):
         """Gets the list of physical wlans that already exist"""
-        self.wlans = []
-        self.wlans = (subprocess.check_output("iw dev 2>&1 | grep Interface | awk '{print $2}'",
-                                                      shell=True)).split('\n')
-        self.wlans.pop()
-        return self.wlans
+        cls.wlans = []
+        cls.wlans = (subprocess.check_output("iw dev 2>&1 | grep Interface "
+                                             "| awk '{print $2}'",
+                                             shell=True)).split('\n')
+        cls.wlans.pop()
+        return cls.wlans
 
     @classmethod
-    def getPhy(self):
+    def getPhy(cls):
         """Gets all phys after starting the wireless module"""
-        phy = subprocess.check_output("find /sys/kernel/debug/ieee80211 -name hwsim | cut -d/ -f 6 | sort",
-                                          shell=True).split("\n")
+        phy = subprocess.check_output("find /sys/kernel/debug/ieee80211 -name "
+                                      "hwsim | cut -d/ -f 6 | sort",
+                                      shell=True).split("\n")
         phy.pop()
         phy.sort(key=len, reverse=False)
         return phy
 
     @classmethod
-    def loadIFB(self, wlans):
+    def loadIFB(cls, wlans):
         """ Loads IFB
         
         :param wlans: Number of wireless interfaces
@@ -181,7 +192,7 @@ class module(object):
         os.system('modprobe ifb numifbs=%s' % wlans)
 
     @classmethod
-    def assignIface(self, nodes, physicalWlans, phys, **params):
+    def assignIface(cls, nodes, physicalWlans, phys, **params):
         """Assign virtual interfaces for all nodes
         
         :param nodes: list of wireless nodes
@@ -191,54 +202,58 @@ class module(object):
         """
 
         log_filename = '/tmp/mininetwifi-mac80211_hwsim.log'
-        self.logging_to_file("%s" % log_filename)
+        cls.logging_to_file("%s" % log_filename)
 
         if 'ifb' in params:
             ifb = params['ifb']
         else:
             ifb = False
         try:
-            self.wlan_list = self.getWlanIface(physicalWlans)
+            cls.wlan_list = cls.getWlanIface(physicalWlans)
             if ifb:
-                self.loadIFB(len(self.wlan_list))
+                cls.loadIFB(len(cls.wlan_list))
                 ifbID = 0
             for node in nodes:
-                if (node.type == 'station' or node.type == 'vehicle') or 'inNamespace' in node.params:
+                if (node.type == 'station' or node.type == 'vehicle') \
+                        or 'inNamespace' in node.params:
                     node.ifb = []
                     for wlan in range(0, len(node.params['wlan'])):
-                        node.phyID[wlan] = self.phyID
-                        self.phyID += 1
+                        node.phyID[wlan] = cls.phyID
+                        cls.phyID += 1
                         os.system('iw phy %s set netns %s' % (phys[0], node.pid))
-                        node.cmd('ip link set %s down' % self.wlan_list[0])
-                        node.cmd('ip link set %s name %s' % (self.wlan_list[0], node.params['wlan'][wlan]))
+                        node.cmd('ip link set %s down' % cls.wlan_list[0])
+                        node.cmd('ip link set %s name %s'
+                                 % (cls.wlan_list[0], node.params['wlan'][wlan]))
                         if ifb:
                             node.ifbSupport(wlan, ifbID)  # Adding Support to IFB
                             ifbID += 1
-                        self.wlan_list.pop(0)
+                        cls.wlan_list.pop(0)
                         phys.pop(0)
         except:
             logging.exception("Warning:")
-            info("Warning! Error when loading mac80211_hwsim. Please run sudo 'mn -c' before running your code.\n")
+            info("Warning! Error when loading mac80211_hwsim. Please run sudo 'mn -c' "
+                 "before running your code.\n")
             info("Further information available at %s.\n" % log_filename)
             exit(1)
 
     @classmethod
-    def logging_to_file(self, filename):
+    def logging_to_file(cls, filename):
         logging.basicConfig(filename=filename,
-                             filemode='a',
-                             level=logging.DEBUG,
-                             format='%(asctime)s - %(levelname)s - %(message)s',
+                            filemode='a',
+                            level=logging.DEBUG,
+                            format='%(asctime)s - %(levelname)s - %(message)s',
                            )
 
     @classmethod
-    def getWlanIface(self, physicalWlan):
+    def getWlanIface(cls, physicalWlan):
         """Build a new wlan list removing the physical wlan
         
         :param physicalWlans: list of Physical Wlans
         """
         wlan_list = []
-        iface_list = subprocess.check_output("iw dev 2>&1 | grep Interface | awk '{print $2}'",
-                                            shell=True).split('\n')
+        iface_list = subprocess.check_output("iw dev 2>&1 | grep Interface | "
+                                             "awk '{print $2}'",
+                                             shell=True).split('\n')
         for iface in iface_list:
             if iface not in physicalWlan and iface != '':
                 wlan_list.append(iface)

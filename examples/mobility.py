@@ -17,7 +17,8 @@ def topology():
     h1 = net.addHost('h1', mac='00:00:00:00:00:01', ip='10.0.0.1/8')
     sta1 = net.addStation('sta1', mac='00:00:00:00:00:02', ip='10.0.0.2/8')
     sta2 = net.addStation('sta2', mac='00:00:00:00:00:03', ip='10.0.0.3/8')
-    ap1 = net.addAccessPoint('ap1', ssid='new-ssid', mode='g', channel='1', position='45,40,0')
+    ap1 = net.addAccessPoint('ap1', ssid='new-ssid', mode='g', channel='1',
+                             position='45,40,0')
     c1 = net.addController('c1', controller=Controller)
 
     print "*** Configuring wifi nodes"
@@ -26,7 +27,6 @@ def topology():
     print "*** Associating and Creating links"
     net.addLink(ap1, h1)
 
-    """plotting graph"""
     net.plotGraph(max_x=100, max_y=100)
 
     net.startMobility(time=0)
@@ -46,6 +46,7 @@ def topology():
 
     print "*** Stopping network"
     net.stop()
+
 
 if __name__ == '__main__':
     setLogLevel('info')

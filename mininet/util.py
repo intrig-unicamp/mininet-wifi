@@ -1,7 +1,5 @@
 "Utility functions for Mininet."
 
-from mininet.log import output, info, error, warn, debug
-
 from time import sleep
 from resource import getrlimit, setrlimit, RLIMIT_NPROC, RLIMIT_NOFILE
 from select import poll, POLLIN, POLLHUP
@@ -11,6 +9,8 @@ from fcntl import fcntl, F_GETFL, F_SETFL
 from os import O_NONBLOCK
 import os
 from functools import partial
+
+from mininet.log import output, info, error, warn, debug
 # Command execution support
 
 def run(cmd):
@@ -123,7 +123,7 @@ def errFail(*cmd, **kwargs):
     out, err, ret = errRun(*cmd, **kwargs)
     if ret:
         raise Exception("errFail: %s failed with return code %s: %s"
-                         % (cmd, ret, err))
+                        % (cmd, ret, err))
     return out, err, ret
 
 def quietRun(cmd, **kwargs):
@@ -157,7 +157,7 @@ isShellBuiltin.builtIns = None
 # explicitly moved.
 
 def makeIntfPair(intf1, intf2, addr1=None, addr2=None, node1=None, node2=None,
-                  deleteIntfs=True, runCmd=None):
+                 deleteIntfs=True, runCmd=None):
     """Make a veth pair connnecting new interfaces intf1 and intf2
        intf1: name for interface 1
        intf2: name for interface 2
@@ -182,8 +182,8 @@ def makeIntfPair(intf1, intf2, addr1=None, addr2=None, node1=None, node2=None,
     cmdOutput = ''
     if addr1 is None and addr2 is None:
         cmdOutput = runCmd('ip link add name %s '
-                            'type veth peer name %s '
-                            'netns %s' % (intf1, intf2, netns))
+                           'type veth peer name %s '
+                           'netns %s' % (intf1, intf2, netns))
     else:
         cmdOutput = runCmd('ip link add name %s '
                            'address %s '
@@ -194,7 +194,7 @@ def makeIntfPair(intf1, intf2, addr1=None, addr2=None, node1=None, node2=None,
 
     if cmdOutput:
         raise Exception("Error creating interface pair (%s,%s): %s " % 
-                         (intf1, intf2, cmdOutput))
+                        (intf1, intf2, cmdOutput))
 
 def retry(retries, delaySecs, fn, *args, **keywords):
     """Try something several times before giving up.
@@ -215,7 +215,8 @@ def moveIntfNoRetry(intf, dstNode, printError=False):
        intf: string, interface
         dstNode: destination Node
         printError: if true, print error"""
-    if (dstNode.type == 'station' or dstNode.type == 'vehicle' or dstNode.type == 'ap') and 'eth' not in str(intf):
+    if (dstNode.type == 'station' or dstNode.type == 'vehicle'
+            or dstNode.type == 'ap') and 'eth' not in str(intf):
         if dstNode.type == 'station' or dstNode.type == 'vehicle':
             return True
     else:
@@ -226,21 +227,21 @@ def moveIntfNoRetry(intf, dstNode, printError=False):
         # that the link has been moved successfully.
         if cmdOutput:
             if printError:
-                error('*** Error: moveIntf: ' + intf + 
-                       ' not successfully moved to ' + dstNode.name + ':\n',
-                       cmdOutput)
+                error('*** Error: moveIntf: ' + intf +
+                      ' not successfully moved to ' + dstNode.name + ':\n',
+                      cmdOutput)
             return False
         return True
 
 def moveIntf(intf, dstNode, printError=True,
-              retries=3, delaySecs=0.001):
+             retries=3, delaySecs=0.001):
     """Move interface to node, retrying on failure.
        intf: string, interface
        dstNode: destination Node
        printError: if true, print error"""
     if dstNode.type != 'ap':
         retry(retries, delaySecs, moveIntfNoRetry, intf, dstNode,
-               printError=printError)
+              printError=printError)
 
 # Support for dumping network
 
@@ -461,7 +462,7 @@ def fixLimits():
     # pylint: disable=broad-except
     except Exception:
         warn("*** Error setting resource limits. "
-              "Mininet's performance may be affected.\n")
+             "Mininet's performance may be affected.\n")
     # pylint: enable=broad-except
 
 
@@ -539,15 +540,15 @@ def customClass(classes, argStr):
     cname, args, kwargs = splitArgs(argStr)
     cls = classes.get(cname, None)
     if not cls:
-        raise Exception("error: %s is unknown - please specify one of %s" % 
-                         (cname, classes.keys()))
+        raise Exception("error: %s is unknown - please specify one of %s"
+                        % (cname, classes.keys()))
     if not args and not kwargs:
         return cls
 
     return specialClass(cls, append=args, defaults=kwargs)
 
 def specialClass(cls, prepend=None, append=None,
-                  defaults=None, override=None):
+                 defaults=None, override=None):
     """Like functools.partial, but it returns a class
        prepend: arguments to prepend to argument list
        append: arguments to append to argument list
@@ -572,9 +573,8 @@ def specialClass(cls, prepend=None, append=None,
             newparams = defaults.copy()
             newparams.update(params)
             newparams.update(override)
-            cls.__init__(self, *(list(prepend) + list(args) + 
-                                   list(append)),
-                          **newparams)
+            cls.__init__(self, *(list(prepend) + list(args) +
+                                 list(append)), **newparams)
 
     CustomClass.__name__ = '%s%s' % (cls.__name__, defaults)
     return CustomClass
@@ -601,7 +601,7 @@ def waitListening(client=None, server='127.0.0.1', port=80, timeout=None):
     """Wait until server is listening on port.
        returns True if server is listening"""
     runCmd = (client.cmd if client else
-               partial(quietRun, shell=True))
+              partial(quietRun, shell=True))
     if not runCmd('which telnet'):
         raise Exception('Could not find telnet')
     # pylint: disable=maybe-no-member

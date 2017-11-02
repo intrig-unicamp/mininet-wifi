@@ -33,7 +33,7 @@ class Intf(object):
     "Basic interface object that can configure itself."
 
     def __init__(self, name, node=None, port=None, link=None,
-                  mac=None, **params):
+                 mac=None, **params):
         """name: interface name (e.g. h1-eth0)
            node: owning node (where this intf most likely lives)
            link: parent link if we're part of a link
@@ -86,7 +86,7 @@ class Intf(object):
         else:
             if prefixLen is None:
                 raise Exception('No prefix length set for IP address %s'
-                                 % (ipstr,))
+                                % (ipstr,))
             self.ip, self.prefixLen = ipstr, prefixLen
             return self.ipAddr('%s/%s' % (ipstr, prefixLen))
 
@@ -95,8 +95,8 @@ class Intf(object):
            macstr: MAC address as string"""
         self.mac = macstr
         return (self.ipLink('down') + 
-                 self.ipLink('address', macstr) + 
-                 self.ipLink('up'))
+                self.ipLink('address', macstr) +
+                self.ipLink('up'))
 
     _ipMatchRegex = re.compile(r'\d+\.\d+\.\d+\.\d+')
     _macMatchRegex = re.compile(r'..:..:..:..:..:..')
@@ -232,7 +232,7 @@ class IntfWireless(object):
     "Basic interface object that can configure itself."
 
     def __init__(self, name, node=None, port=None, link=None,
-                  mac=None, tc=False, **params):
+                 mac=None, tc=False, **params):
         """name: interface name (e.g. h1-eth0)
            node: owning node (where this intf most likely lives)
            link: parent link if we're part of a link
@@ -290,7 +290,7 @@ class IntfWireless(object):
         else:
             if prefixLen is None:
                 raise Exception('No prefix length set for IP address %s'
-                                 % (ipstr,))
+                                % (ipstr,))
             self.ip, self.prefixLen = ipstr, prefixLen
             return self.ipAddr('%s/%s' % (ipstr, prefixLen))
 
@@ -299,8 +299,8 @@ class IntfWireless(object):
            macstr: MAC address as string"""
         self.mac = macstr
         return (self.ipLink('down') + 
-                 self.ipLink('address', macstr) + 
-                 self.ipLink('up'))
+                self.ipLink('address', macstr) +
+                self.ipLink('up'))
 
     _ipMatchRegex = re.compile(r'\d+\.\d+\.\d+\.\d+')
     _macMatchRegex = re.compile(r'..:..:..:..:..:..')
@@ -441,15 +441,15 @@ class TCIntfWireless(IntfWireless):
     bwParamMax = 1000
 
     def bwCmds(self, bw=None, speedup=0, use_hfsc=False, use_tbf=False,
-                latency_ms=None, enable_ecn=False, enable_red=False):
+               latency_ms=None, enable_ecn=False, enable_red=False):
         "Return tc commands to set bandwidth"
         cmds, parent = [], ' root '
         if bw and (bw < 0 or bw > self.bwParamMax):
             error('Bandwidth limit', bw, 'is outside supported range 0..%d'
-                   % self.bwParamMax, '- ignoring\n')
+                  % self.bwParamMax, '- ignoring\n')
         elif bw is not None:
             # BL: this seems a bit brittle...
-            if (speedup > 0):
+            if speedup > 0:
                 bw = speedup
             # This may not be correct - we should look more closely
             # at the semantics of burst (and cburst) to make sure we
@@ -490,7 +490,7 @@ class TCIntfWireless(IntfWireless):
 
     @staticmethod
     def delayCmds(parent, delay=None, jitter=None,
-                   loss=None, max_queue_size=None):
+                  loss=None, max_queue_size=None):
         "Internal method: return tc commands for delay and loss"
         cmds = []
         if delay and delay < 0:
@@ -521,9 +521,9 @@ class TCIntfWireless(IntfWireless):
         return self.cmd(c)
 
     def config(self, bw=None, delay=None, jitter=None, loss=None,
-                gro=False, speedup=0, use_hfsc=False, use_tbf=False,
-                latency_ms=None, enable_ecn=False, enable_red=False,
-                max_queue_size=None, **params):
+               gro=False, speedup=0, use_hfsc=False, use_tbf=False,
+               latency_ms=None, enable_ecn=False, enable_red=False,
+               max_queue_size=None, **params):
         """Configure the port and set its properties.
             bw: bandwidth in b/s (e.g. '10m')
             delay: transmit delay (e.g. '1ms' )
@@ -551,12 +551,12 @@ class TCIntfWireless(IntfWireless):
 
         # Set offload parameters with ethool
         self.cmd('ethtool -K', self,
-                  'gro', on(gro))
+                 'gro', on(gro))
 
         # Optimization: return if nothing else to configure
         # Question: what happens if we want to reset things?
         if (bw is None and not delay and not loss
-             and max_queue_size is None):
+                and max_queue_size is None):
             return
 
         # Clear existing configuration
@@ -567,17 +567,17 @@ class TCIntfWireless(IntfWireless):
             cmds = []
         # Bandwidth limits via various methods
         bwcmds, parent = self.bwCmds(bw=bw, speedup=speedup,
-                                      use_hfsc=use_hfsc, use_tbf=use_tbf,
-                                      latency_ms=latency_ms,
-                                      enable_ecn=enable_ecn,
-                                      enable_red=enable_red)
+                                     use_hfsc=use_hfsc, use_tbf=use_tbf,
+                                     latency_ms=latency_ms,
+                                     enable_ecn=enable_ecn,
+                                     enable_red=enable_red)
         cmds += bwcmds
 
         # Delay/jitter/loss/max_queue_size using netem
         delaycmds, parent = self.delayCmds(delay=delay, jitter=jitter,
-                                            loss=loss,
-                                            max_queue_size=max_queue_size,
-                                            parent=parent)
+                                           loss=loss,
+                                           max_queue_size=max_queue_size,
+                                           parent=parent)
         cmds += delaycmds
 
         # Execute all the commands in our node
@@ -604,15 +604,15 @@ class TCIntf(Intf):
     bwParamMax = 1000
 
     def bwCmds(self, bw=None, speedup=0, use_hfsc=False, use_tbf=False,
-                latency_ms=None, enable_ecn=False, enable_red=False):
+               latency_ms=None, enable_ecn=False, enable_red=False):
         "Return tc commands to set bandwidth"
         cmds, parent = [], ' root '
         if bw and (bw < 0 or bw > self.bwParamMax):
             error('Bandwidth limit', bw, 'is outside supported range 0..%d'
-                   % self.bwParamMax, '- ignoring\n')
+                  % self.bwParamMax, '- ignoring\n')
         elif bw is not None:
             # BL: this seems a bit brittle...
-            if (speedup > 0):
+            if speedup > 0:
                 bw = speedup
             # This may not be correct - we should look more closely
             # at the semantics of burst (and cburst) to make sure we
@@ -653,7 +653,7 @@ class TCIntf(Intf):
 
     @staticmethod
     def delayCmds(parent, delay=None, jitter=None,
-                   loss=None, max_queue_size=None):
+                  loss=None, max_queue_size=None):
         "Internal method: return tc commands for delay and loss"
         cmds = []
         if delay and delay < 0:
@@ -792,7 +792,8 @@ class _4addrLink(object):
 
         if client_intfName not in client.params['wlan']:
             self.add4addrIface(client, client_intfName)
-            client.params['mac'].append(client.params['mac'][0][:3] + '09' + client.params['mac'][0][5:])
+            client.params['mac'].append(client.params['mac'][0][:3] +
+                                        '09' + client.params['mac'][0][5:])
             self.setMac(client)
             self.bring4addrIfaceUP(client)
 
@@ -808,8 +809,9 @@ class _4addrLink(object):
             client.params['txpower'].append(14)
             client.params['antennaGain'].append(client.params['antennaGain'][0])
             client.params['wlan'].append(client_intfName)
-            client.cmd('iw dev %s connect %s %s' % (client.params['wlan'][1], 
-                                                       ap.params['ssid'][0], ap.params['mac'][0]))
+            client.cmd('iw dev %s connect %s %s'
+                       % (client.params['wlan'][1],
+                          ap.params['ssid'][0], ap.params['mac'][0]))
 
             params1 = {}
             params2 = {}
@@ -828,14 +830,19 @@ class _4addrLink(object):
         # All we are is dust in the wind, and our two interfaces
         self.intf1, self.intf2 = intf1, intf2
 
-    def bring4addrIfaceUP(self, node):
+    @classmethod
+    def bring4addrIfaceUP(cls, node):
         node.cmd('ip link set dev %s.wds up' % node.name)
 
-    def setMac(self, node):
-        node.cmd('ip link set dev %s.wds addr %s' % (node.name, node.params['mac'][1]))
+    @classmethod
+    def setMac(cls, node):
+        node.cmd('ip link set dev %s.wds addr %s'
+                 % (node.name, node.params['mac'][1]))
 
-    def add4addrIface(self, node, intfName):
-        node.cmd('iw dev %s interface add %s type managed 4addr on' % (node.params['wlan'][0], intfName))
+    @classmethod
+    def add4addrIface(cls, node, intfName):
+        node.cmd('iw dev %s interface add %s type managed 4addr on'
+                 % (node.params['wlan'][0], intfName))
 
 class WirelessLinkAP(object):
 
@@ -844,8 +851,8 @@ class WirelessLinkAP(object):
 
     # pylint: disable=too-many-branches
     def __init__(self, node1, port1=None,
-                  intfName1=None, addr1=None,
-                  intf=Intf, cls1=None, params1=None):
+                 intfName1=None, addr1=None,
+                 intf=Intf, cls1=None, params1=None):
         """Create veth link to another node, making two new interfaces.
            node1: first node
            port1: node1 port number (optional)
@@ -875,16 +882,16 @@ class WirelessLinkAP(object):
                     params1[ 'port' ] = currentlen
                 intfName1 = self.wlanName(node1, ifacename, params1[ 'port' ])
                 intf1 = cls1(name=intfName1, node=node1,
-                        link=self, mac=addr1, **params1)
+                             link=self, mac=addr1, **params1)
             else:
                 params1[ 'port' ] = node1.newPort()
                 node1.newPort()
                 intf1 = cls1(name=intfName1, node=node1,
-                    link=self, mac=addr1, **params1)
+                             link=self, mac=addr1, **params1)
         else:
             intfName1 = self.wlanName(node1, ifacename, params1[ 'port' ])
             intf1 = cls1(name=intfName1, node=node1,
-                      link=self, mac=addr1, **params1)
+                         link=self, mac=addr1, **params1)
 
         if not intfName1:
             intfName1 = self.wlanName(node1, ifacename, node1.newWlanPort())
@@ -936,8 +943,8 @@ class WirelessLinkStation(object):
 
     # pylint: disable=too-many-branches
     def __init__(self, node1, port1=None,
-                  intfName1=None, addr1=None,
-                  intf=Intf, cls1=None, params1=None):
+                 intfName1=None, addr1=None,
+                 intf=Intf, cls1=None, params1=None):
         """Create veth link to another node, making two new interfaces.
            node1: first node
            port1: node1 port number (optional)
@@ -966,7 +973,7 @@ class WirelessLinkStation(object):
             cls1 = intf
 
         intf1 = cls1(name=intfName1, node=node1,
-                      link=self, mac=addr1, **params1)
+                     link=self, mac=addr1, **params1)
         intf2 = 'wireless'
         # All we are is dust in the wind, and our two interfaces
         self.intf1, self.intf2 = intf1, intf2
@@ -1012,9 +1019,9 @@ class Link(object):
 
     # pylint: disable=too-many-branches
     def __init__(self, node1, node2, port1=None, port2=None,
-                  intfName1=None, intfName2=None, addr1=None, addr2=None,
-                  intf=Intf, cls1=None, cls2=None, params1=None,
-                  params2=None, fast=True):
+                 intfName1=None, intfName2=None, addr1=None, addr2=None,
+                 intf=Intf, cls1=None, cls2=None, params1=None,
+                 params2=None, fast=True):
         """Create veth link to another node, making two new interfaces.
            node1: first node
            node2: second node
@@ -1054,7 +1061,7 @@ class Link(object):
             params1.setdefault('moveIntfFn', self._ignore)
             params2.setdefault('moveIntfFn', self._ignore)
             self.makeIntfPair(intfName1, intfName2, addr1, addr2,
-                               node1, node2, deleteIntfs=False)
+                              node1, node2, deleteIntfs=False)
         else:
             self.makeIntfPair(intfName1, intfName2, addr1, addr2)
 
@@ -1064,9 +1071,9 @@ class Link(object):
             cls2 = intf
 
         intf1 = cls1(name=intfName1, node=node1,
-                      link=self, mac=addr1, **params1)
+                     link=self, mac=addr1, **params1)
         intf2 = cls2(name=intfName2, node=node2,
-                      link=self, mac=addr2, **params2)
+                     link=self, mac=addr2, **params2)
 
         # All we are is dust in the wind, and our two interfaces
         self.intf1, self.intf2 = intf1, intf2
@@ -1085,7 +1092,7 @@ class Link(object):
 
     @classmethod
     def makeIntfPair(cls, intfname1, intfname2, addr1=None, addr2=None,
-                      node1=None, node2=None, deleteIntfs=True):
+                     node1=None, node2=None, deleteIntfs=True):
         """Create pair of interfaces
            intfname1: name for interface 1
            intfname2: name for interface 2
@@ -1098,7 +1105,7 @@ class Link(object):
         # Leave this as a class method for now
         assert cls
         return makeIntfPair(intfname1, intfname2, addr1, addr2, node1, node2,
-                             deleteIntfs=deleteIntfs)
+                            deleteIntfs=deleteIntfs)
 
     def delete(self):
         "Delete this link"
@@ -1128,7 +1135,7 @@ class OVSIntf(Intf):
             # OVSIntf is always up
             return
         else:
-            raise Exception('OVSIntf cannot do ip link/addr ' + cmd)
+            raise Exception('OVSIntf cannot do ip addr ' + cmd)
 
 class OVSLink(Link):
     """Link that makes patch links between OVSSwitches
@@ -1139,8 +1146,8 @@ class OVSLink(Link):
         "See Link.__init__() for options"
         from mininet.node import OVSSwitch
         self.isPatchLink = False
-        if (isinstance(node1, OVSSwitch) and
-             isinstance(node2, OVSSwitch)):
+        if (isinstance(node1, OVSSwitch)
+                and isinstance(node2, OVSSwitch)):
             self.isPatchLink = True
             kwargs.update(cls1=OVSIntf, cls2=OVSIntf)
         Link.__init__(self, node1, node2, **kwargs)
@@ -1155,37 +1162,36 @@ class OVSLink(Link):
 class TCLink(Link):
     "Link with symmetric TC interfaces configured via opts"
     def __init__(self, node1, node2, port1=None, port2=None,
-                  intfName1=None, intfName2=None,
-                  addr1=None, addr2=None, **params):
+                 intfName1=None, intfName2=None,
+                 addr1=None, addr2=None, **params):
         Link.__init__(self, node1, node2, port1=port1, port2=port2,
-                       intfName1=intfName1, intfName2=intfName2,
-                       cls1=TCIntf,
-                       cls2=TCIntf,
-                       addr1=addr1, addr2=addr2,
-                       params1=params,
-                       params2=params)
+                      intfName1=intfName1, intfName2=intfName2,
+                      cls1=TCIntf,
+                      cls2=TCIntf,
+                      addr1=addr1, addr2=addr2,
+                      params1=params,
+                      params2=params)
 
 class TCLinkWirelessStation(WirelessLinkStation):
     "Link with symmetric TC interfaces configured via opts"
-    def __init__(self, node1, port1=None, port2=None,
-                  intfName1=None, intfName2=None,
-                  addr1=None, addr2=None, **params):
+    def __init__(self, node1, port1=None,
+                 intfName1=None, addr1=None, **params):
         WirelessLinkStation.__init__(self, node1, port1=port1,
-                       intfName1=intfName1,
-                       cls1=TCIntfWireless,
-                       addr1=addr1,
-                       params1=params)
+                                     intfName1=intfName1,
+                                     cls1=TCIntfWireless,
+                                     addr1=addr1,
+                                     params1=params)
 
 class TCLinkWirelessAP(WirelessLinkAP):
     "Link with symmetric TC interfaces configured via opts"
     def __init__(self, node1, port1=None, port2=None,
-                  intfName1=None, intfName2=None,
-                  addr1=None, addr2=None, **params):
+                 intfName1=None, intfName2=None,
+                 addr1=None, addr2=None, **params):
         WirelessLinkAP.__init__(self, node1, port1=port1,
-                       intfName1=intfName1,
-                       cls1=TCIntfWireless,
-                       addr1=addr1,
-                       params1=params)
+                                intfName1=intfName1,
+                                cls1=TCIntfWireless,
+                                addr1=addr1,
+                                params1=params)
 
 
 class TCULink(TCLink):

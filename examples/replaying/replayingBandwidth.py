@@ -18,7 +18,8 @@ def topology():
 
     print "*** Creating nodes"
     sta1 = net.addStation( 'sta1', mac='00:00:00:00:00:02', ip='10.0.0.2/8' )
-    ap1 = net.addAccessPoint( 'ap1', ssid= 'new-ssid', mode= 'g', channel= '1', position='50,50,0' )
+    ap1 = net.addAccessPoint( 'ap1', ssid= 'new-ssid', mode= 'g', channel= '1',
+                              position='50,50,0' )
     c1 = net.addController( 'c1', controller=Controller )
 
     print "*** Configuring wifi nodes"
@@ -58,6 +59,7 @@ def getTrace(sta, file):
         line = data.split()
         sta.time.append(float(line[0])) #First Column = Time
         sta.throughput.append(float(line[1])) #Second Column = Throughput
+
 
 if __name__ == '__main__':
     setLogLevel( 'info' )

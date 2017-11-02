@@ -16,7 +16,7 @@ def topology():
     print "*** Creating nodes"
     sta1 = net.addStation('sta1', wlans=3)  # 3 wlan added
     sta2 = net.addStation('sta2')  # 1 wlan added
-    ap1 = net.addAccessPoint('ap1', ssid='ssid_1', mode='g', channel='5')  # 1 wlan added
+    ap1 = net.addAccessPoint('ap1', ssid='ssid_1', mode='g', channel='5')
     c0 = net.addController('c0', controller=Controller)
 
     print "*** Configuring wifi nodes"
@@ -41,6 +41,7 @@ def topology():
 
     print "*** Stopping network"
     net.stop()
+
 
 if __name__ == '__main__':
     setLogLevel('info')

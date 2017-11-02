@@ -130,7 +130,7 @@ class NAT( Node ):
         "Stop NAT/forwarding between Mininet and external network"
         # Remote NAT rules
         self.cmd( 'iptables -D FORWARD',
-                   '-i', self.localIntf, '-d', self.subnet, '-j DROP' )
+                  '-i', self.localIntf, '-d', self.subnet, '-j DROP' )
         self.cmd( 'iptables -D FORWARD',
                   '-i', self.localIntf, '-s', self.subnet, '-j ACCEPT' )
         self.cmd( 'iptables -D FORWARD',

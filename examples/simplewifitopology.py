@@ -1,13 +1,14 @@
 #!/usr/bin/python
 
 'This example creates a simple network topology with 1 AP and 2 stations'
+import sys
 
 from mininet.net import Mininet
 from mininet.node import  Controller, OVSKernelAP
 from mininet.cli import CLI
 from mininet.log import setLogLevel
 from mininet.link import TCLink
-import sys
+
 
 def topology(isVirtual):
     "Create a network."
@@ -20,7 +21,8 @@ def topology(isVirtual):
         sta1 = net.addStation('sta1')
     sta2 = net.addStation('sta2')
     ap1 = net.addAccessPoint('ap1', ssid="simplewifi", mode="g", channel="5")
-    c0 = net.addController('c0', controller=Controller, ip='127.0.0.1', port=6633)
+    c0 = net.addController('c0', controller=Controller, ip='127.0.0.1',
+                           port=6633)
 
     print "*** Configuring wifi nodes"
     net.configureWifiNodes()
@@ -40,8 +42,8 @@ def topology(isVirtual):
     print "*** Stopping network"
     net.stop()
 
+
 if __name__ == '__main__':
     setLogLevel('info')
     isVirtual = True if '-v' in sys.argv else False
     topology(isVirtual)
-

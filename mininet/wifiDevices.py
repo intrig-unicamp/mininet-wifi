@@ -39,15 +39,15 @@ class deviceDataRate (object):
         mode = node.params['mode'][wlan]
         rate = 0
 
-        if (mode == 'a'):
+        if mode == 'a':
             rate = 11
-        elif(mode == 'b'):
+        elif mode == 'b':
             rate = 3
-        elif(mode == 'g'):
+        elif mode == 'g':
             rate = 11
-        elif(mode == 'n'):
+        elif mode == 'n':
             rate = 600
-        elif(mode == 'ac'):
+        elif mode == 'ac':
             rate = 6777
 
         self.rate = rate
@@ -62,15 +62,15 @@ class deviceDataRate (object):
         mode = node.params['mode'][wlan]
         rate = 0
 
-        if (mode == 'a'):
+        if mode == 'a':
             rate = 20
-        elif(mode == 'b'):
+        elif mode == 'b':
             rate = 6
-        elif(mode == 'g'):
+        elif mode == 'g':
             rate = 20
-        elif(mode == 'n'):
+        elif mode == 'n':
             rate = 48
-        elif(mode == 'ac'):
+        elif mode == 'ac':
             rate = 90
 
         self.rate = rate
@@ -87,19 +87,19 @@ class deviceDataRate (object):
         rate = 0
 
         if node1.params['rssi'][wlan] != 0:
-            if (node1.params['rssi'][wlan] >= -68):
+            if node1.params['rssi'][wlan] >= -68:
                 rate = 48
-            elif (node1.params['rssi'][wlan] < -68 and node1.params['rssi'][wlan] >= -75):
+            elif node1.params['rssi'][wlan] < -68 and node1.params['rssi'][wlan] >= -75:
                 rate = 36
-            elif (node1.params['rssi'][wlan] < -75 and node1.params['rssi'][wlan] >= -79):
+            elif node1.params['rssi'][wlan] < -75 and node1.params['rssi'][wlan] >= -79:
                 rate = 24
-            elif (node1.params['rssi'][wlan] < -79 and node1.params['rssi'][wlan] >= -84):
+            elif node1.params['rssi'][wlan] < -79 and node1.params['rssi'][wlan] >= -84:
                 rate = 18
-            elif (node1.params['rssi'][wlan] < -84 and node1.params['rssi'][wlan] >= -87):
+            elif node1.params['rssi'][wlan] < -84 and node1.params['rssi'][wlan] >= -87:
                 rate = 9
-            elif (node1.params['rssi'][wlan] < -87 and node1.params['rssi'][wlan] >= -88):
+            elif node1.params['rssi'][wlan] < -87 and node1.params['rssi'][wlan] >= -88:
                 rate = 6
-            elif (node1.params['rssi'][wlan] < -88 and node1.params['rssi'][wlan] >= -89):
+            elif node1.params['rssi'][wlan] < -88 and node1.params['rssi'][wlan] >= -89:
                 rate = 1
 
         self.rate = rate
@@ -119,18 +119,18 @@ class deviceDataRate (object):
 
         try:  # if Station
             if node1.params['rssi'][wlan] != 0:
-                if (node1.params['rssi'][wlan] >= -68):
+                if node1.params['rssi'][wlan] >= -68:
                     if mode == 'n':
                         rate = 130
                     elif mode == 'g':
                         rate = 54
                     elif mode == 'b':
                         rate = 11
-                elif (node1.params['rssi'][wlan] < -68 and node1.params['rssi'][wlan] >= -85):
+                elif node1.params['rssi'][wlan] < -68 and node1.params['rssi'][wlan] >= -85:
                     rate = 11
-                elif (node1.params['rssi'][wlan] < -85 and node1.params['rssi'][wlan] >= -88):
+                elif node1.params['rssi'][wlan] < -85 and node1.params['rssi'][wlan] >= -88:
                     rate = 6
-                elif (node1.params['rssi'][wlan] < -88 and node1.params['rssi'][wlan] >= -90):
+                elif node1.params['rssi'][wlan] < -88 and node1.params['rssi'][wlan] >= -90:
                     rate = 1
         except:  # if AP
             if mode == 'n':
@@ -157,21 +157,21 @@ class deviceDataRate (object):
 
         try:  # if Station
             if node1.params['rssi'][wlan] != 0:
-                if (node1.params['rssi'][wlan] >= -65):
+                if node1.params['rssi'][wlan] >= -65:
                     if mode == 'n':
                         rate = 150
                     elif mode == 'g':
                         rate = 54
                     elif mode == 'b':
                         rate = 11
-                elif (node1.params['rssi'][wlan] < -65 and node1.params['rssi'][wlan] >= -68):
+                elif node1.params['rssi'][wlan] < -65 and node1.params['rssi'][wlan] >= -68:
                     if mode == 'g':
                         rate = 54
                     elif mode == 'b':
                         rate = 11
-                elif (node1.params['rssi'][wlan] < -68 and node1.params['rssi'][wlan] >= -85):
+                elif node1.params['rssi'][wlan] < -68 and node1.params['rssi'][wlan] >= -85:
                     rate = 11
-                elif (node1.params['rssi'][wlan] < -85 and node1.params['rssi'][wlan] >= -90):
+                elif node1.params['rssi'][wlan] < -85 and node1.params['rssi'][wlan] >= -90:
                     rate = 1
         except:  # if AP
             if node2.params['mode'][0] == 'n':
@@ -212,15 +212,15 @@ class deviceRange (object):
         mode = node.params['mode'][wlan]
         range_ = 0
 
-        if (mode == 'a'):
+        if mode == 'a':
             range_ = 33
-        elif(mode == 'b'):
+        elif mode == 'b':
             range_ = 50
-        elif(mode == 'g'):
+        elif mode == 'g':
             range_ = 33
-        elif(mode == 'n'):
+        elif mode == 'n':
             range_ = 70
-        elif(mode == 'ac'):
+        elif mode == 'ac':
             range_ = 100
         else:
             range_ = 33
