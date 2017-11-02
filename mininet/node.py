@@ -372,10 +372,11 @@ class Node(object):
         wlan = self.params['wlan'].index(iface)
         self.pexec('iw dev %s set txpower fixed %s' % (iface, (int(txpower) * 100)))
         self.params['txpower'][wlan] = txpower
-        power = self.getTxPower(iface)
-        if power != None and power < self.params['txpower'][wlan]:
-            self.params['txpower'][wlan] = power
-            info('%s is the maximum supported tx power\n' % power)
+        
+        #power = self.getTxPower(iface)
+        #if power != None and power < self.params['txpower'][wlan]:
+        #    self.params['txpower'][wlan] = power
+        #    info('%s is the maximum supported tx power\n' % power)
         self.setTXPowerWmediumd(wlan)
 
     def setPositionWmediumd(self):
@@ -388,6 +389,7 @@ class Node(object):
         else:
             wlans = len(self.params['wlan'])
         for wlan in range(0, wlans):
+            self.lastpos = self.params['position']
             WmediumdServerConn.update_position(WmediumdPosition(self.wmIface[wlan], \
                                             [float(posX), float(posY), float(posZ)]))
 

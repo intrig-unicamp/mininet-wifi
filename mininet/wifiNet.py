@@ -418,7 +418,6 @@ class mininetWiFi(object):
                 wlan = node.ifaceToAssociate
 
         node.func[wlan] = 'mesh'
-        node.params['txpower'][wlan] = 20
 
         if node.type == 'ap':
             pass
@@ -433,7 +432,9 @@ class mininetWiFi(object):
         else:
             node.params['ssid'][wlan] = 'meshNetwork'
 
-        deviceRange(node)
+        distanceByPropagationModel.NOISE_LEVEL = 95
+        value = distanceByPropagationModel(node, wlan)
+        node.params['range'] = int(value.dist)
 
         node.setMeshIface(node.params['wlan'][wlan], **params)
 
@@ -458,7 +459,6 @@ class mininetWiFi(object):
             wlan = node.ifaceToAssociate
 
         node.func[wlan] = 'adhoc'
-        node.params['txpower'][wlan] = 20
 
         node.params['ssid'] = []
         for w in range(0, len(node.params['wlan'])):
@@ -472,12 +472,11 @@ class mininetWiFi(object):
             node.params['ssid'][wlan] = 'adhocNetwork'
             node.params['associatedTo'][wlan] = 'adhocNetwork'
 
-        deviceRange(node)
-
-        value = deviceDataRate(sta=node, wlan=wlan)
-        self.bw = value.rate
-
         enable_wmediumd = self.useWmediumd
+
+        distanceByPropagationModel.NOISE_LEVEL = 95
+        value = distanceByPropagationModel(node, wlan)
+        node.params['range'] = int(value.dist)
 
         if 'channel' in params:
             node.setChannel(node.params['wlan'][wlan], params['channel'])
@@ -579,7 +578,7 @@ class mininetWiFi(object):
                     posX = node.params['position'][0]
                     posY = node.params['position'][1]
                     posZ = node.params['position'][2]
-                node.lastpos = [0, 0, 0]
+                node.lastpos = [posX, posY, posZ]
                 
                 if hasattr(node, 'type') and node.type == 'vehicle':
                     wlans = 1

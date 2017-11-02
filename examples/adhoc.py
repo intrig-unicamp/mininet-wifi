@@ -19,7 +19,8 @@ def topology():
     sta2 = net.addStation('sta2', position='50,10,0')
     sta3 = net.addStation('sta3', position='90,10,0')
 
-    net.propagationModel("logDistancePropagationLossModel", exp=3.5)
+
+    net.propagationModel("logDistancePropagationLossModel", exp=4)
 
     # calc for sta1, the others should be the same
     power_to_distance = powerForRangeByPropagationModel().logDistancePropagationLossModel(node=sta1, wlan=0,
