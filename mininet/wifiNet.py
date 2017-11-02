@@ -194,6 +194,7 @@ class mininetWiFi(object):
             cls.addIpParamToNode(node, wlans, autoSetMacs, params)
 
         cls.addAntennaGainParamToNode(node, wlans, params)
+        cls.addAntennaHeightParamToNode(node, wlans, params)
         cls.addTxPowerParamToNode(node, wlans, params)
         cls.addChannelParamToNode(node, wlans, params)
         cls.addModeParamToNode(node, wlans, params)
