@@ -250,7 +250,7 @@ class IntfWireless(object):
         # Add to node (and move ourselves if necessary )
         moveIntfFn = params.pop('moveIntfFn', None)
 
-        if tc == False:
+        if tc is False:
             if moveIntfFn:
                 node.addIntf(self, port=port, moveIntfFn=moveIntfFn)
             else:
@@ -873,7 +873,7 @@ class WirelessLinkAP(object):
         ifacename = 'wlan'
 
         if 'port' not in params1:
-            if intfName1 == None:
+            if intfName1 is None:
                 nodelen = int(len(node1.params['wlan']))
                 currentlen = node1.wlanports
                 if nodelen > currentlen + 1:
@@ -1174,8 +1174,8 @@ class TCLink(Link):
 
 class TCLinkWirelessStation(WirelessLinkStation):
     "Link with symmetric TC interfaces configured via opts"
-    def __init__(self, node1, port1=None,
-                 intfName1=None, addr1=None, **params):
+    def __init__(self, node1, port1=None, intfName1=None,
+                 addr1=None, **params):
         WirelessLinkStation.__init__(self, node1, port1=port1,
                                      intfName1=intfName1,
                                      cls1=TCIntfWireless,
@@ -1184,9 +1184,8 @@ class TCLinkWirelessStation(WirelessLinkStation):
 
 class TCLinkWirelessAP(WirelessLinkAP):
     "Link with symmetric TC interfaces configured via opts"
-    def __init__(self, node1, port1=None, port2=None,
-                 intfName1=None, intfName2=None,
-                 addr1=None, addr2=None, **params):
+    def __init__(self, node1, port1=None, intfName1=None,
+                 addr1=None, **params):
         WirelessLinkAP.__init__(self, node1, port1=port1,
                                 intfName1=intfName1,
                                 cls1=TCIntfWireless,

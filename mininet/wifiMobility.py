@@ -237,7 +237,7 @@ class mobility (object):
             ac = cls.AC
             value = associationControl(sta, ap, wlan, ac)
             changeAP = value.changeAP
-        if sta.params['associatedTo'][wlan] == '' or changeAP == True:
+        if sta.params['associatedTo'][wlan] == '' or changeAP is True:
             if ap not in sta.params['associatedTo']:
                 Association.printCon = False
                 Association.associate_infra(sta, ap, wlan)
@@ -489,7 +489,7 @@ class mobility (object):
     @classmethod
     def parameters_(cls, node=None):
         "Applies channel params and handover"
-        if node == None:
+        if node is None:
             nodes = cls.stations
         else:
             if node.type == 'ap':

@@ -28,10 +28,10 @@ and bandwidth ('iperf'.)
 from subprocess import call
 from cmd import Cmd
 from os import isatty
+from os import path
 from select import poll, POLLIN
 import sys
 import time
-import os
 import atexit
 
 from mininet.log import info, output, error
@@ -83,8 +83,8 @@ class CLI(Cmd):
         except ImportError:
             pass
         else:
-            history_path = os.path.expanduser('~/.mininet_history')
-            if os.path.isfile(history_path):
+            history_path = path.expanduser('~/.mininet_history')
+            if path.isfile(history_path):
                 read_history_file(history_path)
             atexit.register(lambda: write_history_file(history_path))
 

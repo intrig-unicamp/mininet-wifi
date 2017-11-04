@@ -1,18 +1,14 @@
 #!/usr/bin/python
+
+"Sample file for SUMO"
+
 import os
 
 from mininet.net import Mininet
-from mininet.node import Controller, UserAP, RemoteController
+from mininet.node import Controller, UserAP
 from mininet.link import TCLink
 from mininet.cli import CLI
 from mininet.log import setLogLevel
-
-
-class InbandController(RemoteController):
-
-    def checkListening(self):
-        "Overridden to do nothing."
-        return
 
 def topology():
 

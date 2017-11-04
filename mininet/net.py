@@ -411,7 +411,7 @@ class Mininet(object):
             self.listenPort += 1
 
         if self.inNamespace or ('inNamespace' in params
-                                and params['inNamespace'] == True):
+                                and params['inNamespace'] is True):
             ap.params['inNamespace'] = True
 
         self.nameToNode[ name ] = ap
@@ -701,8 +701,8 @@ class Mininet(object):
                 if 'bw' not in params and 'mininet.util.TCIntfWireless' \
                         not in str(self.link):
                     value = mininetWiFi.setDataRate(sta, ap, wlan)
-                    self.bw = value.rate
-                    params['bw'] = self.bw
+                    bw = value.rate
+                    params['bw'] = bw
 
                 if 'mininet.util.TCIntfWireless' in str(self.link):
                     cls = self.link
@@ -1007,7 +1007,6 @@ class Mininet(object):
     def stop(self):
         if mininetWiFi.isWiFi:
             mininetWiFi.stopGraphParams()
-        "Stop the controller(s), switches and hosts"
         info('*** Stopping %i controllers\n' % len(self.controllers))
         for controller in self.controllers:
             info(controller.name + ' ')
@@ -1045,7 +1044,6 @@ class Mininet(object):
         if self.accessPoints != []:
             mininetWiFi.kill_hostapd()
         if mininetWiFi.isWiFi:
-            "Stops Mininet-WiFi"
             mininetWiFi.closeMininetWiFi()
         if self.useWmediumd:
             mininetWiFi.kill_wmediumd()

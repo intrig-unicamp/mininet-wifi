@@ -57,7 +57,7 @@ class replayingMobility(object):
         else:
             plot = plot2d
         currentTime = time.time()
-        if nodes == None:
+        if nodes is None:
             nodes = mininet.stations
         for node in nodes:
             if 'speed' in node.params:

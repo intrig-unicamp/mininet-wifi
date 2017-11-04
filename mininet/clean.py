@@ -13,7 +13,6 @@ nothing irreplaceable!
 from subprocess import (Popen, PIPE, check_output as co,
                         CalledProcessError)
 import time
-import subprocess
 import os
 import glob
 
@@ -82,15 +81,13 @@ class Cleanup(object):
         info("***  Removing WiFi module and Configurations\n")
         
         try:
-            (subprocess.check_output("lsmod | grep "
-                                     "mac80211_hwsim", shell=True))
+            co("lsmod | grep mac80211_hwsim", shell=True)
             os.system('rmmod mac80211_hwsim')
         except:
             pass
         
         try:
-            (subprocess.check_output("lsmod | "
-                                     "grep ifb", shell=True))
+            co("lsmod | grep ifb", shell=True)
             os.system('rmmod ifb')
         except:
             pass
