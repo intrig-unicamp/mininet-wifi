@@ -1527,18 +1527,6 @@ class AccessPoint(AP):
 
     _macMatchRegex = re.compile(r'..:..:..:..:..:..')
 
-    def setIPAddr(self, wlan):
-        "Set IP Address"
-        self.cmd('ip addr add %s dev %s' % (self.params['ip'],
-                                            self.params['wlan'][wlan]))
-
-    @classmethod
-    def getMac(cls, ap, iface):
-        "get Mac Address of any Interface"
-        macaddr = str(ap.pexec('ip addr show %s' % iface))
-        mac = cls._macMatchRegex.findall(macaddr)
-        return mac[0]
-
     @classmethod
     def setIPMAC(cls, ap, wlan):
         if 'phywlan' not in ap.params:
@@ -1546,10 +1534,10 @@ class AccessPoint(AP):
                 ap.setMAC(ap.params['mac'][wlan], ap.params['wlan'][wlan])
             else:
                 ap.params['mac'][wlan] = \
-                    cls.getMac(ap, ap.params['wlan'][wlan])
+                    ap.getMAC(ap.params['wlan'][wlan])
             cls.checkNetworkManager(ap.params['mac'][wlan])
             if 'inNamespace' in ap.params and 'ip' in ap.params:
-                cls.setIPAddr(wlan)
+                ap.setIP(ap.params['ip'], intf=ap.params['wlan'][wlan])
 
     @classmethod
     def checkNetworkManager(cls, mac):
@@ -1635,36 +1623,6 @@ class UserAP(AP):
         else:
             self.opts += ' --listen=punix:/tmp/%s.listen' % self.name
         self.dpopts = dpopts
-
-    @classmethod
-    def customDataRate(cls, node, wlan):
-        """Custom Maximum Data Rate - Useful when there is mobility"""
-        mode = node.params['mode'][wlan]
-
-        if mode == 'a':
-            cls.rate = 54
-        elif mode == 'b':
-            cls.rate = 11
-        elif mode == 'g':
-            cls.rate = 54
-        elif mode == 'n':
-            cls.rate = 600
-        elif mode == 'ac':
-            cls.rate = 6777
-        return cls.rate
-
-    @classmethod
-    def setBw(cls, ap, wlan, iface):
-        """ Set bw to AP """
-        value = cls.customDataRate(ap, wlan)
-        bw = value
-
-        ap.cmd("tc qdisc replace dev %s \
-            root handle 2: tbf rate %sMbit burst 15000 latency 1ms" %
-               (iface, bw))
-        # Reordering packets
-        ap.cmd('tc qdisc add dev %s parent 2:1 handle 10: pfifo '
-               'limit 1000' % (iface))
 
     @classmethod
     def setup(cls):
@@ -1845,36 +1803,6 @@ class OVSAP(AP):
         self._uuids = []  # controller UUIDs
         self.batch = batch
         self.commands = []  # saved commands for batch startup
-
-    @classmethod
-    def setBw(cls, ap, wlan, iface):
-        """ Set bw to AP """
-        value = cls.customDataRate(ap, wlan)
-        bw = value
-
-        ap.cmd("tc qdisc replace dev %s \
-            root handle 2: tbf rate %sMbit burst 15000 latency "
-               "1ms" % (iface, bw))
-        # Reordering packets
-        ap.cmd('tc qdisc add dev %s parent 2:1 handle 10: pfifo '
-               'limit 1000' % (iface))
-
-    @classmethod
-    def customDataRate(cls, node, wlan):
-        """Custom Maximum Data Rate - Useful when there is mobility"""
-        mode = node.params['mode'][wlan]
-
-        if mode == 'a':
-            cls.rate = 54
-        elif mode == 'b':
-            cls.rate = 11
-        elif mode == 'g':
-            cls.rate = 54
-        elif mode == 'n':
-            cls.rate = 600
-        elif mode == 'ac':
-            cls.rate = 6777
-        return cls.rate
 
     @classmethod
     def setup(cls):

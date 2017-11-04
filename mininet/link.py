@@ -794,7 +794,7 @@ class _4addrLink(object):
             self.add4addrIface(client, client_intfName)
             client.params['mac'].append(client.params['mac'][0][:3] +
                                         '09' + client.params['mac'][0][5:])
-            self.setMac(client)
+            self.setMAC(client)
             self.bring4addrIfaceUP(client)
 
             ap.params['mode'].append(ap.params['mode'][0])
@@ -835,7 +835,7 @@ class _4addrLink(object):
         node.cmd('ip link set dev %s.wds up' % node.name)
 
     @classmethod
-    def setMac(cls, node):
+    def setMAC(cls, node):
         node.cmd('ip link set dev %s.wds addr %s'
                  % (node.name, node.params['mac'][1]))
 
