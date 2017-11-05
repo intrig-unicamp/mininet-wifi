@@ -262,7 +262,7 @@ class testWalkthrough(unittest.TestCase):
         p.sendline('exit')
         p.wait()
         p = pexpect.spawn(
-            'python examples/adhoc.py -m')
+            'python examples/adhoc.py -a')
         sleep(3)
         p.sendline('py sta1.params[\'range\']')
         p.expect('100')
