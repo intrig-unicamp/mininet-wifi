@@ -11,7 +11,7 @@ from mininet.log import setLogLevel
 
 def topology(autoTxPower):
     "Create a network."
-    net = Mininet(enable_wmediumd=True, enable_interference=True, autoTxPower=autoTxPower)
+    net = Mininet(enable_wmediumd=True, enable_interference=True)
 
     print "*** Creating nodes"
     if autoTxPower:

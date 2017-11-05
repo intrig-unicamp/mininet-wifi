@@ -294,6 +294,8 @@ class Node(object):
         from mininet.wifiNet import mininetWiFi
         self.params['range'] = _range
         self.range = _range
+        if mininetWiFi.autoTxPower:
+            self.params['txpower'][0] = self.getTxPower_prop_model(0)
         if self.isStationary:
             self.updateGraph()
             mobility.parameters_()

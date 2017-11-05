@@ -1092,14 +1092,17 @@ class mininetWiFi(object):
 
         for node in nodes:
             for wlan in range(0, len(node.params['wlan'])):
-                if int(node.range) == 0 and not cls.autoTxPower:
+                if int(node.range) == 0:
                     if node.type == 'vehicle' and wlan == 1:
                         node = node.params['carsta']
                         wlan = 0
                     node.getRange()
-                if cls.autoTxPower:
+                else:
+                    cls.autoTxPower=True
                     node.params['txpower'][wlan] = \
                         node.getTxPower_prop_model(wlan)
+                    node.setTxPower(node.params['txpower'][wlan],
+                                    intf=node.params['wlan'][wlan])
 
         if cls.useWmediumd:
             if not cls.configureWiFiDirect and not cls.configure4addr:
