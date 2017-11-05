@@ -135,7 +135,7 @@ class Mininet(object):
                  enable_error_prob=False, disableAutoAssociation=False,
                  driver='nl80211', autoSetPositions=False,
                  configureWiFiDirect=False, configure4addr=False,
-                 defaultGraph=False):
+                 defaultGraph=False, autoTxPower=False):
         """Create Mininet object.
            topo: Topo (topology) object or None
            switch: default Switch class
@@ -201,6 +201,7 @@ class Mininet(object):
         self._startMobility = False
 
         mininetWiFi.configureWiFiDirect = configureWiFiDirect
+        mininetWiFi.autoTxPower = autoTxPower
         mininetWiFi.configure4addr = configure4addr
         mininetWiFi.isWiFi = isWiFi
         mininetWiFi.enable_error_prob = enable_error_prob

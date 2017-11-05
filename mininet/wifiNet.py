@@ -21,7 +21,8 @@ from mininet.wifiDevices import deviceDataRate
 from mininet.wifiMobility import mobility
 from mininet.wifiPlot import plot2d, plot3d
 from mininet.wifiModule import module
-from mininet.wifiPropagationModels import propagationModel, distanceByPropagationModel
+from mininet.wifiPropagationModels import propagationModel, distanceByPropagationModel, \
+    powerForRangeByPropagationModel
 from mininet.link import TCLinkWirelessAP, TCLinkWirelessStation
 from mininet.util import macColonHex
 from mininet.vanet import vanet
@@ -36,6 +37,7 @@ class mininetWiFi(object):
     alreadyPlotted = False
     configureWiFiDirect = False
     configure4addr = False
+    autoTxPower = False
     DRAW = False
     enable_interference = False
     enable_spec_prob_link = False
@@ -464,9 +466,10 @@ class mininetWiFi(object):
         else:
             node.params['ssid'][wlan] = 'meshNetwork'
 
-        distanceByPropagationModel.NOISE_LEVEL = 95
-        value = distanceByPropagationModel(node, wlan)
-        node.params['range'] = int(value.dist)
+        if not cls.autoTxPower:
+            distanceByPropagationModel.NOISE_LEVEL = 95
+            value = distanceByPropagationModel(node, wlan)
+            node.params['range'] = int(value.dist)
 
         node.setMeshIface(node.params['wlan'][wlan], **params)
 
@@ -506,9 +509,10 @@ class mininetWiFi(object):
 
         enable_wmediumd = cls.useWmediumd
 
-        distanceByPropagationModel.NOISE_LEVEL = 95
-        value = distanceByPropagationModel(node, wlan)
-        node.params['range'] = int(value.dist)
+        if not cls.autoTxPower:
+            distanceByPropagationModel.NOISE_LEVEL = 95
+            value = distanceByPropagationModel(node, wlan)
+            node.params['range'] = int(value.dist)
 
         if 'channel' in params:
             node.setChannel(node.params['wlan'][wlan], params['channel'])
@@ -1090,6 +1094,19 @@ class mininetWiFi(object):
             car.params['associatedTo'].append('')
             car.params['frequency'].append(0)
 
+        for node in nodes:
+            for wlan in range(0, len(node.params['wlan'])):
+                if int(node.range) == 0 and not cls.autoTxPower:
+                    if node.type == 'vehicle' and wlan == 1:
+                        node = node.params['carsta']
+                        wlan = 0
+                    value = distanceByPropagationModel(node, wlan)
+                    node.params['range'] = int(value.dist)
+                if cls.autoTxPower:
+                    value = powerForRangeByPropagationModel(node, wlan,
+                                                            node.params['range'])
+                    node.params['txpower'][wlan] = int(value.txpower)
+
         if cls.useWmediumd:
             if not cls.configureWiFiDirect and not cls.configure4addr:
                 cls.configureWmediumd(stations, accessPoints)
@@ -1101,14 +1118,6 @@ class mininetWiFi(object):
                                              node.params['txpower'][wlan])
                             node.setAntennaGain_(node.params['wlan'][wlan],
                                                  node.params['antennaGain'][wlan])
-        for node in nodes:
-            for wlan in range(0, len(node.params['wlan'])):
-                if int(node.range) == 0:
-                    if node.type == 'vehicle' and wlan == 1:
-                        node = node.params['carsta']
-                        wlan = 0
-                    value = distanceByPropagationModel(node, wlan)
-                    node.params['range'] = int(value.dist)
         return stations, accessPoints
 
     @classmethod

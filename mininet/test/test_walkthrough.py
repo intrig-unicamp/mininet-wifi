@@ -261,6 +261,14 @@ class testWalkthrough(unittest.TestCase):
         p.expect(self.prompt)
         p.sendline('exit')
         p.wait()
+        p = pexpect.spawn(
+            'python examples/adhoc.py -m')
+        sleep(3)
+        p.sendline('py sta1.params[\'range\']')
+        p.expect('100')
+        p.expect(self.prompt)
+        p.sendline('exit')
+        p.wait()
 
     def testAuthentication(self):
         "Start Mininet-WiFi using WPA, then test ping"
