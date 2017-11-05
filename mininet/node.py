@@ -1417,7 +1417,8 @@ class AccessPoint(AP):
         cmd = cmd + ("\nchannel=%s" % ap.params['channel'][wlan])
         if 'ht_capab' in ap.params:
             cmd = cmd + ('\nht_capab=%s' % ap.params['ht_capab'])
-
+        if 'beacon_int' in ap.params:
+            cmd = cmd + ('\nbeacon_int=%s' % ap.params['beacon_int'])
         if 'config' in ap.params:
             config = ap.params['config']
             if config != []:
