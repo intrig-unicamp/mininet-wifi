@@ -72,7 +72,8 @@ from mininet.link import Link, Intf, TCIntf, TCIntfWireless, OVSIntf, \
     TCLinkWirelessAP
 from mininet.wmediumdConnector import WmediumdServerConn, WmediumdPosition, \
                                 WmediumdTXPower, WmediumdGain, WmediumdHeight
-from mininet.wifiPropagationModels import distanceByPropagationModel
+from mininet.wifiPropagationModels import distanceByPropagationModel, \
+    powerForRangeByPropagationModel
 from mininet.wifiMobility import mobility
 from mininet.wifiLink import wirelessLink, Association
 from mininet.wifiPlot import plot2d, plot3d
@@ -206,7 +207,7 @@ class Node(object):
             self.pexec('iw reg set US')
 
         if 'freq' in params:
-            self.setFreq(self.params['wlan'][wlan], params['freq'])
+            self.setFreq(params['freq'], intf=self.params['wlan'][wlan])
 
         if 'ip' in self.params:
             self.cmd('ip addr add %s dev %s' % (self.params['ip'][wlan],
@@ -260,16 +261,15 @@ class Node(object):
                  % (self.params['wlan'][wlan], ifbID))
         self.ifb.append(ifbID)
 
-    def getRange(self, stationary=True):
+    def getRange(self, stationary=True, noiseLevel=0):
         "Get the Signal Range"
-        if self.type == 'station' or self.type == 'vehicle':
-            node = self
-        elif self.type == 'ap':
-            node = self
-        else:
-            node = self.params['associatedTo'][0]
+        if noiseLevel !=0:
+            distanceByPropagationModel.NOISE_LEVEL = 95
+        if self.type != 'station' and self.type != 'vehicle' \
+                and self.type != 'ap':
+            self = self.params['associatedTo'][0]
         wlan = 0
-        value = distanceByPropagationModel(node, wlan)
+        value = distanceByPropagationModel(self, wlan)
         self.params['range'] = int(value.dist)
         if not stationary:
             self.updateGraph()
@@ -353,53 +353,53 @@ class Node(object):
                 self.setPositionWmediumd()
         mobility.parameters_(self)
 
-    def setAntennaGain(self, iface, value):
+    def setAntennaGain(self, value, intf=None):
         "Set Antenna Gain"
-        self.setAntennaGain_(iface, value)
+        self.setAntennaGain_(intf, value)
         mobility.parameters_(self)
 
-    def setAntennaGain_(self, iface, value):
+    def setAntennaGain_(self, value, intf=None):
         "Set Antenna Gain_"
-        wlan = self.params['wlan'].index(iface)
+        wlan = self.params['wlan'].index(intf)
         self.params['antennaGain'][wlan] = int(value)
         self.setGainWmediumd(wlan)
 
-    def setAntennaHeight(self, iface, value):
+    def setAntennaHeight(self, value, intf=None):
         "Set Antenna Height"
-        self.setAntennaHeight_(iface, value)
+        self.setAntennaHeight_(intf, value)
         mobility.parameters_(self)
 
-    def setAntennaHeight_(self, iface, value):
+    def setAntennaHeight_(self, value, intf=None):
         "Set Antenna Height_"
-        wlan = self.params['wlan'].index(iface)
+        wlan = self.params['wlan'].index(intf)
         self.params['antennaHeight'][wlan] = int(value)
         self.setHeightWmediumd(wlan)
 
-    def setChannel(self, iface, value):
+    def setChannel(self, value, intf=None):
         "Set Channel"
-        wlan = self.params['wlan'].index(iface)
+        wlan = self.params['wlan'].index(intf)
         self.cmd('iw dev %s set channel %s'
                  % (self.params['wlan'][wlan], value))
         self.params['channel'][wlan] = value
         self.params['frequency'][wlan] = wirelessLink.frequency(self, wlan)
 
-    def setFreq(self, iface, value):
+    def setFreq(self, value, intf=None):
         "Set Frequency"
-        wlan = self.params['wlan'].index(iface)
+        wlan = self.params['wlan'].index(intf)
         self.cmd('iw dev %s set freq %s' % (self.params['wlan'][wlan], value))
         self.params['frequency'][wlan] = value
 
-    def setTxPower(self, iface, txpower):
+    def setTxPower(self, value, intf=None):
         "Set Tx Power"
-        self.setTxPower_(iface, txpower)
+        self.setTxPower_(value, intf)
         mobility.parameters_(self)
 
-    def setTxPower_(self, iface, txpower):
+    def setTxPower_(self, value, intf=None):
         "Set Tx Power_"
-        wlan = self.params['wlan'].index(iface)
+        wlan = self.params['wlan'].index(intf)
         self.pexec('iw dev %s set txpower fixed %s'
-                   % (iface, (int(txpower) * 100)))
-        self.params['txpower'][wlan] = txpower
+                   % (intf, (int(value) * 100)))
+        self.params['txpower'][wlan] = value
 
         #power = self.getTxPower(iface)
         #if power != None and power < self.params['txpower'][wlan]:
@@ -442,6 +442,12 @@ class Node(object):
             WmediumdServerConn.update_txpower(WmediumdTXPower(
                 self.wmIface[wlan], int(txpower_)))
 
+    def getTxPower_prop_model(self, wlan):
+        "Get Tx Power Given the propagation Model"
+        value = powerForRangeByPropagationModel(self, wlan,
+                                                self.params['range'])
+        return int(value.txpower)
+
     def getTxPower(self, iface):
         connected = self.cmd('iw dev %s link | awk \'{print $1}\'' % iface)
         if connected != 'Not':
@@ -459,16 +465,16 @@ class Node(object):
                 txpower = 14
             return txpower
 
-    def associateTo(self, iface, ap):
-        "Force association to specific AP"
-        self.moveAssociationTo(iface, ap)
+    def associateTo(self, ap, intf=None):
+        "Force association to given AP"
+        self.moveAssociationTo(ap, intf)
 
-    def moveAssociationTo(self, iface, ap):
+    def moveAssociationTo(self, ap, intf=None):
         "Force association to specific AP"
         sta = self
         wlan = 0
         for idx, wlan in enumerate(sta.params['wlan']):
-            if wlan == iface:
+            if wlan == intf:
                 wlan = idx
                 break
         if 'position' in sta.params and 'position' in ap.params:
@@ -479,7 +485,7 @@ class Node(object):
                 and 'position' not in ap.params:
             if sta.params['associatedTo'][wlan] != ap:
                 if sta.params['associatedTo'][wlan] != '':
-                    sta.cmd('iw dev %s disconnect' % iface)
+                    sta.cmd('iw dev %s disconnect' % intf)
                 if 'encrypt' not in ap.params:
                     sta.cmd('iw dev %s connect %s %s' %
                             (sta.params['wlan'][wlan], ap.params['ssid'][0],
@@ -1418,7 +1424,7 @@ class AccessPoint(AP):
         if 'ht_capab' in ap.params:
             cmd = cmd + ('\nht_capab=%s' % ap.params['ht_capab'])
         if 'beacon_int' in ap.params:
-            cmd = cmd + ('\nbeacon_int=%s' % ap.params['beacon_int'])
+            cmd = cmd + ('\nbeacon_int=%s' % ap.params['ht_capab'])
         if 'config' in ap.params:
             config = ap.params['config']
             if config != []:

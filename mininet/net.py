@@ -115,7 +115,6 @@ from mininet.util import (quietRun, fixLimits, numCores, ensureRoot,
                           waitListening)
 from mininet.term import cleanUpScreens, makeTerms
 from mininet.wifiNet import mininetWiFi
-from mininet.wifiPropagationModels import propagationModel
 
 # Mininet version: should be consistent with README and LICENSE
 VERSION = "2.2"
@@ -929,7 +928,8 @@ class Mininet(object):
                                       **self.mobilityKwargs)
 
         if not mininetWiFi.isMobility \
-                and propagationModel.model == 'logNormalShadowingPropagationLossModel':
+                and mininetWiFi.prop_model_name == \
+                        'logNormalShadowingPropagationLossModel':
             import threading
             thread = threading.Thread(target=mininetWiFi.plotCheck,
                                       args=(self.stations, self.accessPoints))
