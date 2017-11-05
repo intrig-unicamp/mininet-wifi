@@ -200,7 +200,7 @@ class Node(object):
         self.params['wlan'][wlan] = iface
 
         if 'channel' in params:
-            self.setChannel(self.params['wlan'][wlan], params['channel'])
+            self.setChannel(params['channel'], intf=self.params['wlan'][wlan])
 
         if 'mode' in params and (params['mode'] == 'a'
                                  or params['mode'] == 'ac'):
