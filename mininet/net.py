@@ -912,8 +912,7 @@ class Mininet(object):
                 if node.type != 'ap' and node.func[0] != 'ap' and \
                     node.func[wlan] != 'mesh' and node.func[wlan] != 'adhoc' \
                         and node.func[wlan] != 'wifiDirect':
-                    if node.range[wlan] == 0:
-                        node.params['range'][wlan] = \
+                    node.params['range'][wlan] = \
                             int(node.params['range'][wlan])/5
 
         if mininetWiFi.isWiFi and not self.disableAutoAssociation \

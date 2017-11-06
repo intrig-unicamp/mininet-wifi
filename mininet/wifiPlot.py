@@ -263,6 +263,10 @@ class plot2d (object):
         node.pltCircle.set_radius(max(node.params['range']))
 
     @classmethod
+    def updateCircleColor(cls, node, color):
+        node.pltCircle.set_color(color)
+
+    @classmethod
     def instantiateNodes(cls, node):
         cls.instantiateAnnotate(node)
         cls.instantiateCircle(node)

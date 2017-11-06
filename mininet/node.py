@@ -108,7 +108,6 @@ class Node(object):
         self.func = []
         self.type = 'host'
         self.isStationary = True
-        self.range = []
 
         # Make pylint happy
         (self.shell, self.execed, self.pid, self.stdin, self.stdout,
@@ -298,7 +297,6 @@ class Node(object):
             wlan = 0
         from mininet.wifiNet import mininetWiFi
         self.params['range'][wlan] = value
-        self.range[wlan] = value
         if mininetWiFi.autoTxPower:
             self.params['txpower'][wlan] = self.getTxPower_prop_model(0)
             self.setTxPower(value, intf=self.params['wlan'][wlan])
@@ -1732,16 +1730,25 @@ class UserAP(AP):
 
     def stop_(self):
         """Stops hostapd"""
+        from mininet.wifiNet import mininetWiFi
         process = 'mn%d_%s' % (os.getpid(), self.name)
         os.system('pkill -f \'hostapd -B %s\'' % process)
-        self.range[0] = int(self.params['range'][0])
-        self.setRange(0, intf=self.params['wlan'][0])
+        if mininetWiFi.is3d:
+            pass
+        else:
+            if plot2d.fig_exists():
+                plot2d.updateCircleColor(self, 'w')
 
     def start_(self):
         """Starts hostapd"""
+        from mininet.wifiNet import mininetWiFi
         process = 'mn%d_%s' % (os.getpid(), self.name)
         os.system('hostapd -B %s-wlan1.apconf' % process)
-        self.setRange(self.range[0], intf=self.params['wlan'][0])
+        if mininetWiFi.is3d:
+            pass
+        else:
+            if plot2d.fig_exists():
+                plot2d.updateCircleColor(self, 'b')
 
     def setManagedIface(self, iface):
         wlan = self.params['wlan'].index(iface)
@@ -1978,16 +1985,25 @@ class OVSAP(AP):
 
     def stop_(self):
         """Stops hostapd"""
+        from mininet.wifiNet import mininetWiFi
         process = 'mn%d_%s' % (os.getpid(), self.name)
         os.system('pkill -f \'hostapd -B %s\'' % process)
-        self.range[0] = int(self.params['range'][0])
-        self.setRange(0, intf=self.params['wlan'][0])
+        if mininetWiFi.is3d:
+            pass
+        else:
+            if plot2d.fig_exists():
+                plot2d.updateCircleColor(self, 'w')
 
     def start_(self):
         """Starts hostapd"""
+        from mininet.wifiNet import mininetWiFi
         process = 'mn%d_%s' % (os.getpid(), self.name)
         os.system('hostapd -B %s-wlan1.apconf' % process)
-        self.setRange(self.range[0], intf=self.params['wlan'][0])
+        if mininetWiFi.is3d:
+            pass
+        else:
+            if plot2d.fig_exists():
+                plot2d.updateCircleColor(self, 'b')
 
     @classmethod
     def batchShutdown(cls, switches, run=errRun):

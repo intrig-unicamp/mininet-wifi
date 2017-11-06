@@ -262,15 +262,10 @@ class mininetWiFi(object):
             range_list = str(params['range']).split(',')
             for value in range_list:
                 node.params['range'].append(int(value))
-                node.range.append(0)
                 node.setRange(int(value), intf=node.params['wlan'][0])
-            if len(range_list) != wlans:
-                for _ in range(len(range_list), wlans):
-                    node.params['range'].append(node.params['range'][0])
         else:
             for range_ in range(0, wlans):
                 node.params['range'].append(0)
-                node.range.append(0)
 
     @classmethod
     def addIpParamToNode(cls, node, wlans=0, autoSetMacs=False,
@@ -433,7 +428,6 @@ class mininetWiFi(object):
                     vif = node.params['wlan'][wlan] + str(vif_ + 1)
                     node.params['wlan'].append(vif)
                     node.params['range'].append(node.params['range'][0])
-                    node.range.append(node.params['range'][0])
                     cls.addParamsToNode(node)
                     cls.addTxPowerParamToNode(node, isVirtualIface=True)
                     cls.addChannelParamToNode(node, isVirtualIface=True)
@@ -859,7 +853,6 @@ class mininetWiFi(object):
             if 'vssids' in node.params:
                 for i in range(1, node.params['vssids']+1):
                     node.params['range'].append(node.params['range'][0])
-                    node.range.append(node.params['range'][0])
                     node.params['wlan'].append('%s-%s'
                                                % (node.params['wlan'][0], i))
                     node.params['mode'].append(node.params['mode'][0])
@@ -868,7 +861,6 @@ class mininetWiFi(object):
                     node.params['mac'].append('')
             else:
                 for i in range(1, len(node.params['wlan'])):
-                    node.range.append(0)
                     node.params['mac'].append('')
             node.params['driver'] = driver
             cls.verifyNetworkManager(node)
@@ -1115,7 +1107,7 @@ class mininetWiFi(object):
                 if node.type == 'vehicle' and wlan == 1:
                     node = node.params['carsta']
                     wlan = 0
-                if int(node.range[wlan]) == 0:
+                if int(node.params['range'][wlan]) == 0:
                     if node.type == 'vehicle' and wlan == 1:
                         node = node.params['carsta']
                         wlan = 0
