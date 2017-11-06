@@ -1426,7 +1426,7 @@ class AccessPoint(AP):
         if 'ht_capab' in ap.params:
             cmd = cmd + ('\nht_capab=%s' % ap.params['ht_capab'])
         if 'beacon_int' in ap.params:
-            cmd = cmd + ('\nbeacon_int=%s' % ap.params['ht_capab'])
+            cmd = cmd + ('\nbeacon_int=%s' % ap.params['beacon_int'])
         if 'config' in ap.params:
             config = ap.params['config']
             if config != []:
