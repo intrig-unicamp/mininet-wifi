@@ -12,7 +12,7 @@ import sys
 from time import sleep
 
 from mininet.node import AccessPoint
-from mininet.log import info
+from mininet.log import info, error
 from mininet.wmediumdConnector import DynamicWmediumdIntfRef, WmediumdStarter, \
     WmediumdSNRLink, WmediumdTXPower, WmediumdPosition, \
     WmediumdConstants, WmediumdServerConn
@@ -263,6 +263,9 @@ class mininetWiFi(object):
             for value in range_list:
                 node.params['range'].append(int(value))
                 node.setRange(int(value), intf=node.params['wlan'][0])
+            if len(range_list) != wlans:
+                error('*** Error: Too few range param...')
+                exit(1)
         else:
             for range_ in range(0, wlans):
                 node.params['range'].append(0)
