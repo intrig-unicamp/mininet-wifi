@@ -359,7 +359,7 @@ class vanet(object):
                         # compute to see if vehicle is in range
                         inside = math.pow((node.properties[0] - position_x), 2) + \
                                  math.pow((node.properties[1] - position_y), 2)
-                        if inside <= math.pow(node.params['range'], 2):
+                        if inside <= math.pow(node.params['range'][0], 2):
                             if node.type == 'ap':
                                 color = 'black'
                             else:

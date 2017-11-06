@@ -686,7 +686,7 @@ class Mininet(object):
             # If sta/ap have defined position
             if 'position' in sta.params and 'position' in ap.params:
                 dist = mininetWiFi.getDistance(sta, ap)
-                if dist > ap.params['range']:
+                if dist > ap.params['range'][0]:
                     doAssociation = False
                 else:
                     doAssociation = True
@@ -732,7 +732,7 @@ class Mininet(object):
                 cls(node1, node2)
             else:
                 dist = mininetWiFi.getDistance(node1, node2)
-                if dist > node1.params['range']:
+                if dist > node1.params['range'][0]:
                     doAssociation = False
                 else:
                     doAssociation = True
@@ -912,8 +912,9 @@ class Mininet(object):
                 if node.type != 'ap' and node.func[0] != 'ap' and \
                     node.func[wlan] != 'mesh' and node.func[wlan] != 'adhoc' \
                         and node.func[wlan] != 'wifiDirect':
-                    if node.range == 0:
-                        node.params['range'] = int(node.params['range'])/5
+                    if node.range[wlan] == 0:
+                        node.params['range'][wlan] = \
+                            int(node.params['range'][wlan])/5
 
         if mininetWiFi.isWiFi and not self.disableAutoAssociation \
                 and not mininetWiFi.isMobility:

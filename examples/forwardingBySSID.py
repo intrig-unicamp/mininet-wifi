@@ -50,11 +50,11 @@ def topology():
 
     net.plotGraph(max_x=100, max_y=100)
 
-    sta1.setRange(15)
-    sta2.setRange(15)
-    sta3.setRange(15)
-    sta4.setRange(15)
-    sta5.setRange(15)
+    sta1.setRange(15, intf=sta1.params['wlan'][0])
+    sta2.setRange(15, intf=sta2.params['wlan'][0])
+    sta3.setRange(15, intf=sta3.params['wlan'][0])
+    sta4.setRange(15, intf=sta4.params['wlan'][0])
+    sta5.setRange(15, intf=sta5.params['wlan'][0])
 
     print "*** Starting network"
     net.build()

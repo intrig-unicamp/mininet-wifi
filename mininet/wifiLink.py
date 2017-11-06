@@ -285,7 +285,7 @@ class Association(object):
         """
 
         dist = wirelessLink.getDistance(sta, ap)
-        if dist <= ap.params['range']:
+        if dist <= ap.params['range'][0]:
             for wlan in range(0, len(sta.params['wlan'])):
                 if not enable_interference:
                     if sta.params['rssi'][wlan] == 0:

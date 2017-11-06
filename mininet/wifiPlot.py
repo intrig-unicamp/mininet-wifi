@@ -121,7 +121,7 @@ class plot3d (object):
         u = np.linspace(0, 2 * np.pi, resolution)
         v = np.linspace(0, np.pi, resolution)
 
-        r = node.params['range']
+        r = max(node.params['range'])
 
         x = r * np.outer(np.cos(u), np.sin(v)) + float(x)
         y = r * np.outer(np.sin(u), np.sin(v)) + float(y)
@@ -248,7 +248,7 @@ class plot2d (object):
             color = 'r'
 
         node.pltCircle = ax.add_patch(
-            patches.Circle((0, 0), node.params['range'],
+            patches.Circle((0, 0), max(node.params['range']),
                            fill=True, alpha=0.1, color=color
                           )
         )
@@ -260,7 +260,7 @@ class plot2d (object):
 
     @classmethod
     def updateCircleRadius(cls, node):
-        node.pltCircle.set_radius(node.params['range'])
+        node.pltCircle.set_radius(max(node.params['range']))
 
     @classmethod
     def instantiateNodes(cls, node):

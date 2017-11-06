@@ -211,12 +211,12 @@ class mobility (object):
         """
         for ap in cls.accessPoints:
             dist = wirelessLink.getDistance(sta, ap)
-            if dist > ap.params['range']:
+            if dist > ap.params['range'][0]:
                 cls.apOutOfRange(sta, ap, wlan)
 
         for ap in cls.accessPoints:
             dist = wirelessLink.getDistance(sta, ap)
-            if dist <= ap.params['range']:
+            if dist <= ap.params['range'][0]:
                 cls.handover(sta, ap, wlan)
                 cls.apInRange(sta, ap, wlan, dist)
 
@@ -344,7 +344,7 @@ class mobility (object):
                                                   float(node.moveFac[2]))
                                 node.params['position'] = x, y, z
                         if propagationModel.model == 'logNormalShadowingPropagationLossModel':
-                            node.getRange()
+                            node.getRange(intf=node.params['wlan'][0])
                         if DRAW:
                             plot.graphUpdate(node)
                             if not is3d:
@@ -464,7 +464,7 @@ class mobility (object):
                                           % xy[idx][1], 0.0
                 if propagationModel.model == 'logNormalShadowingPropagationLossModel':
                     time.sleep(0.0001) #notice problem when there are many threads
-                    node.getRange(stationary=False)
+                    node.getRange(intf=node.params['wlan'][0], stationary=False)
                     plot2d.updateCircleRadius(node)
                 plot2d.graphUpdate(node)
             eval(cls.continuePlot)
@@ -483,7 +483,7 @@ class mobility (object):
                                           % xy[idx][1], 0.0
                 if propagationModel.model == 'logNormalShadowingPropagationLossModel':
                     time.sleep(0.0001)
-                    node.getRange()
+                    node.getRange(intf=node.params['wlan'][0])
             time.sleep(0.5)
 
     @classmethod

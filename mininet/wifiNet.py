@@ -200,15 +200,12 @@ class mininetWiFi(object):
         cls.addTxPowerParamToNode(node, wlans, params)
         cls.addChannelParamToNode(node, wlans, params)
         cls.addModeParamToNode(node, wlans, params)
+        cls.addRangeParamToNode(node, wlans, params)
 
         # Equipment Model
         equipmentModel = ("%s" % params.pop('equipmentModel', {}))
         if equipmentModel != "{}":
             node.equipmentModel = equipmentModel
-
-        # Range
-        if 'range' in params:
-            node.setRange(int(params['range']))
 
         if mode == 'master' or 'ssid' in node.params:
             node.params['associatedStations'] = []
@@ -256,6 +253,24 @@ class mininetWiFi(object):
         "Add RSSI param"
         if not cls.enable_interference:
             node.params['rssi'].append(-60)
+
+    @classmethod
+    def addRangeParamToNode(cls, node, wlans=0, params=None):
+        "Add Mac Params"
+        node.params['range'] = []
+        if 'range' in params:
+            range_list = str(params['range']).split(',')
+            for value in range_list:
+                node.params['range'].append(int(value))
+                node.range.append(0)
+                node.setRange(int(value), intf=node.params['wlan'][0])
+            if len(range_list) != wlans:
+                for _ in range(len(range_list), wlans):
+                    node.params['range'].append(0)
+        else:
+            for range_ in range(0, wlans):
+                node.params['range'].append(0)
+                node.range.append(0)
 
     @classmethod
     def addIpParamToNode(cls, node, wlans=0, autoSetMacs=False,
@@ -467,7 +482,7 @@ class mininetWiFi(object):
             node.params['ssid'][wlan] = 'meshNetwork'
 
         if not cls.autoTxPower:
-            node.getRange(noiseLevel=95)
+            node.getRange(intf=node.params['wlan'][wlan], noiseLevel=95)
 
         node.setMeshIface(node.params['wlan'][wlan], **params)
 
@@ -508,7 +523,7 @@ class mininetWiFi(object):
         enable_wmediumd = cls.useWmediumd
 
         if not cls.autoTxPower:
-            node.getRange(noiseLevel=95)
+            node.getRange(intf=node.params['wlan'][wlan], noiseLevel=95)
 
         if 'channel' in params:
             node.setChannel(params['channel'], intf=node.params['wlan'][wlan])
@@ -1092,11 +1107,14 @@ class mininetWiFi(object):
 
         for node in nodes:
             for wlan in range(0, len(node.params['wlan'])):
-                if int(node.range) == 0:
+                if node.type == 'vehicle' and wlan == 1:
+                    node = node.params['carsta']
+                    wlan = 0
+                if int(node.range[wlan]) == 0:
                     if node.type == 'vehicle' and wlan == 1:
                         node = node.params['carsta']
                         wlan = 0
-                    node.getRange()
+                    node.getRange(intf=node.params['wlan'][wlan])
                 else:
                     cls.autoTxPower=True
                     node.params['txpower'][wlan] = \
@@ -1141,7 +1159,7 @@ class mininetWiFi(object):
         if propagationModel.model == 'logNormalShadowingPropagationLossModel':
             while True:
                 for node in nodes:
-                    node.getRange()
+                    node.getRange(intf=node.params['wlan'][0])
                     if cls.DRAW:
                         if not cls.is3d:
                             cls.plot.updateCircleRadius(node)
@@ -1190,7 +1208,7 @@ class mininetWiFi(object):
                     for ap in accessPoints:
                         if 'position' in sta.params and 'position' in ap.params:
                             dist = wirelessLink.getDistance(sta, ap)
-                            if dist <= ap.params['range']:
+                            if dist <= ap.params['range'][0]:
                                 mobility.handover(sta, ap, wlan)
 
     @classmethod
