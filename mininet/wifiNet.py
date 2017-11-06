@@ -266,7 +266,7 @@ class mininetWiFi(object):
                 node.setRange(int(value), intf=node.params['wlan'][0])
             if len(range_list) != wlans:
                 for _ in range(len(range_list), wlans):
-                    node.params['range'].append(0)
+                    node.params['range'].append(node.params['range'][0])
         else:
             for range_ in range(0, wlans):
                 node.params['range'].append(0)
@@ -432,6 +432,8 @@ class mininetWiFi(object):
                 for vif_ in range(0, nvif):
                     vif = node.params['wlan'][wlan] + str(vif_ + 1)
                     node.params['wlan'].append(vif)
+                    node.params['range'].append(node.params['range'][0])
+                    node.range.append(node.params['range'][0])
                     cls.addParamsToNode(node)
                     cls.addTxPowerParamToNode(node, isVirtualIface=True)
                     cls.addChannelParamToNode(node, isVirtualIface=True)
@@ -856,6 +858,8 @@ class mininetWiFi(object):
         for node in accessPoints:
             if 'vssids' in node.params:
                 for i in range(1, node.params['vssids']+1):
+                    node.params['range'].append(node.params['range'][0])
+                    node.range.append(node.params['range'][0])
                     node.params['wlan'].append('%s-%s'
                                                % (node.params['wlan'][0], i))
                     node.params['mode'].append(node.params['mode'][0])
@@ -864,6 +868,7 @@ class mininetWiFi(object):
                     node.params['mac'].append('')
             else:
                 for i in range(1, len(node.params['wlan'])):
+                    node.range.append(0)
                     node.params['mac'].append('')
             node.params['driver'] = driver
             cls.verifyNetworkManager(node)

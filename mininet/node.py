@@ -292,7 +292,10 @@ class Node(object):
 
     def setRange(self, value, intf=None):
         "Set Signal Range"
-        wlan = self.params['wlan'].index(intf)
+        if intf == None:
+            wlan = self.params['wlan'].index(intf)
+        else:
+            wlan = 0
         from mininet.wifiNet import mininetWiFi
         self.params['range'][wlan] = value
         self.range[wlan] = value
@@ -311,7 +314,10 @@ class Node(object):
 
     def setRange_(self, value, intf=None):
         "Set Signal Range_"
-        wlan = self.params['wlan'].index(intf)
+        if intf == None:
+            wlan = self.params['wlan'].index(intf)
+        else:
+            wlan = 0
         from mininet.wifiNet import mininetWiFi
         self.params['range'][wlan] = value
         if self.isStationary:
