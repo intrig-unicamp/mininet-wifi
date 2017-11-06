@@ -1612,6 +1612,10 @@ class AccessPoint(AP):
         cmd = ("hostapd -B %s" % apconfname)
         try:
             ap.cmd(cmd)
+            if int(ap.params['channel'][wlan]) == 0 \
+                    or ap.params['channel'][wlan] == 'acs_survey':
+                info("*** Waiting for ACS... It takes 10 seconds.\n")
+                sleep(10)
         except:
             print 'error with hostapd. Please, run sudo mn -c in order ' \
             'to fix it or check if hostapd is working properly in ' \
