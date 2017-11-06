@@ -74,6 +74,17 @@ class testWalkthrough(unittest.TestCase):
         p.expect(self.prompt)
         p.sendline('exit')
         p.wait()
+        p = pexpect.spawn('mn --wifi --position')
+        sleep(3)
+        p.expect(self.prompt)
+        p.sendline('py sta1.params[\'position\']')
+        p.expect('[1.0, 0.0, 0.0]')
+        p.expect(self.prompt)
+        p.sendline('py sta2.params[\'position\']')
+        p.expect('[2.0, 0.0, 0.0]')
+        p.expect(self.prompt)
+        p.sendline('exit')
+        p.wait()
 
     def testConnectivity(self):
         "Test ping and pingall"

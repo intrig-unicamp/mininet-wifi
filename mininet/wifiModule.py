@@ -77,7 +77,7 @@ class module(object):
                 output, err_out = p.communicate()
                 if p.returncode == 0:
                     m = re.search("ID (\d+)", output)
-                    debug("\nCreated mac80211_hwsim device with ID %s" % m.group(1))
+                    debug("Created mac80211_hwsim device with ID %s\n" % m.group(1))
                     cls.hwsim_ids.append(m.group(1))
                 else:
                     error("\nError on creating mac80211_hwsim device with name %s"
@@ -213,6 +213,8 @@ class module(object):
             if ifb:
                 cls.loadIFB(len(cls.wlan_list))
                 ifbID = 0
+            info("\n*** Configuring interfaces with appropriated network"
+                 "-namespaces...\n")
             for node in nodes:
                 if (node.type == 'station' or node.type == 'vehicle') \
                         or 'inNamespace' in node.params:
