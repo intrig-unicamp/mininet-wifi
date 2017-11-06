@@ -1038,8 +1038,8 @@ class WmediumdServerConn(object):
         :param link: The WmediumdSNRLink to update
         :return: A WUPDATE_* constant
         """
-        debug("\n%s Updating SNR from interface %s to interface %s to "
-              "value %d" % (WmediumdConstants.LOG_PREFIX,
+        debug("%s Updating SNR from interface %s to interface %s to "
+              "value %d\n" % (WmediumdConstants.LOG_PREFIX,
                             link.sta1intfref.get_intf_mac(),
                             link.sta2intfref.get_intf_mac(), link.snr))
         cls.sock.send(cls.__create_snr_update_request(link))
