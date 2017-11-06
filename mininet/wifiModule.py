@@ -213,7 +213,7 @@ class module(object):
             if ifb:
                 cls.loadIFB(len(cls.wlan_list))
                 ifbID = 0
-            info("\n*** Configuring interfaces with appropriated network"
+            debug("\n*** Configuring interfaces with appropriated network"
                  "-namespaces...\n")
             for node in nodes:
                 if (node.type == 'station' or node.type == 'vehicle') \
