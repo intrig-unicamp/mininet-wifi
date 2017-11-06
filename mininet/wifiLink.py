@@ -226,6 +226,8 @@ class wirelessLink (object):
             freq = 5.805
         elif channel == 165:
             freq = 5.825
+        else:
+            freq = 2.412
         return freq
 
 class Association(object):
