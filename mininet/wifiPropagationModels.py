@@ -342,8 +342,7 @@ class powerForRangeByPropagationModel(object):
         denominator = lambda_ ** 2
 
         self.txpower = 10 * (math.log10((4 * math.pi) ** 2 * L * dist ** 2)) \
-                       - 92 - 10 * math.log10(denominator) - (
-        antGain * 2)
+                       - 92 - 10 * math.log10(denominator) - (antGain * 2)
 
         return self.txpower
 

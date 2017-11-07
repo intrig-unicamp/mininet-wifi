@@ -192,7 +192,7 @@ class Mininet(object):
         self.stations = []
         self.walls = []
         self.terms = []  # list of spawned xterm processes
-        self.useWmediumd = enable_wmediumd
+        self.enable_wmediumd = enable_wmediumd
         self.driver = driver
         self.disableAutoAssociation = disableAutoAssociation
         self.mobilityKwargs = ''
@@ -695,7 +695,7 @@ class Mininet(object):
 
             if doAssociation:
                 cls = Association
-                cls.associate(sta, ap, self.useWmediumd,
+                cls.associate(sta, ap, self.enable_wmediumd,
                               mininetWiFi.enable_interference)
                 if 'bw' not in params and 'mininet.util.TCIntfWireless' \
                         not in str(self.link):
@@ -715,7 +715,7 @@ class Mininet(object):
                     if not mininetWiFi.enable_interference:
                         cls(name=sta.params['wlan'][wlan], node=sta,
                             link=None, tc=True, **params)
-            if mininetWiFi.useWmediumd and not mininetWiFi.enable_interference:
+            if mininetWiFi.enable_wmediumd and not mininetWiFi.enable_interference:
                 mininetWiFi.wlinks.append([sta, ap])
 
         elif (node1.type == 'ap' and node2.type == 'ap'
@@ -778,7 +778,7 @@ class Mininet(object):
         params.setdefault('nextIP', self.nextIP)
         params.setdefault('ipBaseNum', self.ipBaseNum)
         params.setdefault('prefixLen', self.prefixLen)
-        params.setdefault('useWmediumd', self.useWmediumd)
+        params.setdefault('enable_wmediumd', self.enable_wmediumd)
         params.setdefault('driver', self.driver)
         self.stations, self.accessPoints = mininetWiFi.configureWifiNodes(**params)
 
@@ -1045,7 +1045,7 @@ class Mininet(object):
             mininetWiFi.kill_hostapd()
         if mininetWiFi.isWiFi:
             mininetWiFi.closeMininetWiFi()
-        if self.useWmediumd:
+        if self.enable_wmediumd:
             mininetWiFi.kill_wmediumd()
         info('\n*** Done\n')
 

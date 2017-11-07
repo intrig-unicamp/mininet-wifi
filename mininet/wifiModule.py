@@ -18,7 +18,6 @@ class module(object):
     externally_managed = False
     devices_created_dynamically = False
     phyID = 0
-    useWmediumd = False
 
     @classmethod
     def loadModule(cls, wifiRadios, alternativeModule=''):
@@ -101,7 +100,7 @@ class module(object):
 
     @classmethod
     def kill_mac80211_hwsim(cls):
-        info("*** Killing mac80211_hwsim\n")
+        info("*** Killing mac80211_hwsim")
         os.system('rmmod mac80211_hwsim >/dev/null 2>&1')
 
     @classmethod
@@ -155,7 +154,6 @@ class module(object):
                 os.system('pkill -f \'hostapd\'')
         except:
             pass
-        cls.useWmediumd = params['useWmediumd']
 
         physicalWlans = cls.getPhysicalWlan()  # Gets Physical Wlan(s)
         cls.loadModule(wifiRadios, alternativeModule)  # Initatilize WiFi Module

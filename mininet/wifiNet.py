@@ -48,7 +48,7 @@ class mininetWiFi(object):
     isVanet = False
     isWiFi = False
     plot = plot2d
-    useWmediumd = False
+    enable_wmediumd = False
     init_time = 0
     wifiRadios = 0
     seed_ = 10
@@ -519,7 +519,7 @@ class mininetWiFi(object):
             node.params['ssid'][wlan] = 'adhocNetwork'
             node.params['associatedTo'][wlan] = 'adhocNetwork'
 
-        enable_wmediumd = cls.useWmediumd
+        enable_wmediumd = cls.enable_wmediumd
 
         if not cls.autoTxPower:
             node.getRange(intf=node.params['wlan'][wlan], noiseLevel=95)
@@ -705,6 +705,7 @@ class mininetWiFi(object):
     @classmethod
     def kill_wmediumd(cls):
         "Kill wmediumd"
+        info("\n*** Killing wmediumd")
         WmediumdServerConn.disconnect()
         WmediumdStarter.stop()
         sleep(0.1)
@@ -803,7 +804,7 @@ class mininetWiFi(object):
                 else:
                     iface = ap.params['phywlan']
 
-                if not cls.useWmediumd:
+                if not cls.enable_wmediumd:
                     cls.setBw(ap, wlan, iface)
 
                 if 'phywlan' in ap.params:
@@ -1052,7 +1053,7 @@ class mininetWiFi(object):
 
     @classmethod
     def configureWifiNodes(cls, stations, accessPoints, cars, nextIP,
-                           ipBaseNum, prefixLen, useWmediumd, driver):
+                           ipBaseNum, prefixLen, enable_wmediumd, driver):
         """
         Configure WiFi Nodes
         
@@ -1062,13 +1063,12 @@ class mininetWiFi(object):
         :param wifiRadios: number of wireless radios
         :param wmediumd: loads wmediumd 
         """
-        cls.useWmediumd = useWmediumd
+        cls.enable_wmediumd = enable_wmediumd
 
         params = {}
         if cls.ifb:
             wirelessLink.ifb = True
             params['ifb'] = cls.ifb
-        params['useWmediumd'] = useWmediumd
         nodes = stations + accessPoints + cars
         module.start(nodes, cls.wifiRadios, cls.alternativeModule, **params)
         cls.configureWirelessLink(stations, accessPoints, cars)
@@ -1122,7 +1122,7 @@ class mininetWiFi(object):
                     node.setTxPower(node.params['txpower'][wlan],
                                     intf=node.params['wlan'][wlan])
 
-        if cls.useWmediumd:
+        if cls.enable_wmediumd:
             if not cls.configureWiFiDirect and not cls.configure4addr:
                 cls.configureWmediumd(stations, accessPoints)
                 cls.wmediumdConnect()
