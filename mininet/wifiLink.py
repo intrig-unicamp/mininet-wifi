@@ -16,9 +16,9 @@ class wirelessLink (object):
     dist = 0
     noise = 0
     equationLoss = '(dist * 2) / 1000'
-    equationDelay = '(dist / 10) + 1'
+    equationDelay = '(dist / 100) + 1'
     equationLatency = '2 + dist'
-    equationBw = ' * (1.1 ** -dist)'
+    equationBw = '(1.01 ** -dist)'
     ifb = False
 
     def __init__(self, sta=None, ap=None, wlan=0, dist=0):
@@ -81,7 +81,7 @@ class wirelessLink (object):
         """
         value = deviceDataRate(sta, ap, wlan)
         custombw = value.rate
-        rate = eval(str(custombw) + cls.equationBw)
+        rate = custombw * float(eval(cls.equationBw))
 
         if rate <= 0.0:
             rate = 0.1
@@ -140,7 +140,7 @@ class wirelessLink (object):
         else:
             tc = "tc qdisc replace dev %s " \
                  "root handle 2: netem " \
-                 "rate %.2fmbit " \
+                 "rate %.4fmbit " \
                  "loss %.1f%% " \
                  "latency %.2fms " \
                  "delay %.2fms" % (sta.params['wlan'][wlan], bw, loss, latency, delay)
