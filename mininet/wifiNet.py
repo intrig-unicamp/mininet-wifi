@@ -264,7 +264,7 @@ class mininetWiFi(object):
                 node.params['range'].append(int(value))
                 node.setRange(int(value), intf=node.params['wlan'][0])
             if len(range_list) != wlans:
-                error('*** Error: Too few range param...')
+                error('*** Error (%s): Too few range param...' % node.name)
                 exit(1)
         else:
             for range_ in range(0, wlans):
