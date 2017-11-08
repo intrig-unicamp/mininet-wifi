@@ -990,6 +990,8 @@ class mininetWiFi(object):
             mobilityparam.setdefault('final_time', kwargs['time'])
         if cls.nroads != 0:
             mobilityparam.setdefault('nroads', cls.nroads)
+        if 'repetitions' in kwargs:
+            mobilityparam.setdefault('repetitions', kwargs['repetitions'])
 
         if 'model' in kwargs or cls.isVanet:
             if 'min_x' in kwargs:

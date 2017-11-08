@@ -275,7 +275,7 @@ class mobility (object):
     def controlledMobility(cls, init_time=0, final_time=0, stations=None,
                            aps=None, connections=[], plotNodes=None, MIN_X=0,
                            MIN_Y=0, MIN_Z=0, MAX_X=0, MAX_Y=0, MAX_Z=0, AC='',
-                           is3d=False, DRAW=False, **params):
+                           is3d=False, DRAW=False, repetitions=1, **params):
         """ 
         Used when the position of each node is previously defined
         
@@ -285,6 +285,7 @@ class mobility (object):
         :param aps: list of access points
         :param connections: list of connections
         :param plotnodes: list of nodes to be plotted (including hosts and switches)
+        :param repetitions: number of repetitions
         :param MIN_X: Minimum value for X
         :param MIN_Y: Minimum value for Y
         :param MIN_Z: Minimum value for Z
@@ -309,7 +310,6 @@ class mobility (object):
                 cls.stationaryNodes.append(node)
             if 'initialPosition' in node.params:
                 node.params['position'] = node.params['initialPosition']
-                node.params.pop("initialPosition", None)
                 cls.mobileNodes.append(node)
 
         nodes = cls.mobileNodes + cls.stationaryNodes
@@ -321,37 +321,48 @@ class mobility (object):
         except:
             info('Warning: running without GUI.\n')
             DRAW = False
-
         try:
-            while True:
-                if time.time() > t_end or time.time() < t_initial:
-                    break
-                if time.time() - currentTime >= i:
-                    for node in cls.mobileNodes:
-                        if time.time() - currentTime >= node.startTime:
-                            if node.time < node.diffTime:
-                                node.time += 1
-                                if node.time == node.diffTime:
-                                    x = '%.2f' % (float(node.params['finalPosition'][0]))
-                                    y = '%.2f' % (float(node.params['finalPosition'][1]))
-                                    z = '%.2f' % (float(node.params['finalPosition'][2]))
-                                else:
-                                    x = '%.2f' % (float(node.params['position'][0]) +
-                                                  float(node.moveFac[0]))
-                                    y = '%.2f' % (float(node.params['position'][1]) +
-                                                  float(node.moveFac[1]))
-                                    z = '%.2f' % (float(node.params['position'][2]) +
-                                                  float(node.moveFac[2]))
-                                node.params['position'] = x, y, z
-                        if propagationModel.model == 'logNormalShadowingPropagationLossModel':
-                            node.getRange(intf=node.params['wlan'][0])
-                        if DRAW:
-                            plot.graphUpdate(node)
-                            if not is3d:
-                                plot.updateCircleRadius(node)
-                    eval(cls.continuePlot)
-                    i += 1
-            cls.mobileNodes = []
+            for rep in range(0, repetitions):
+                if rep > 0:
+                    t_end = time.time() + final_time
+                    t_initial = time.time() + init_time
+                    currentTime = time.time()
+                    i = 1
+                    for node in nodes:
+                        if 'initialPosition' in node.params:
+                            cls.mobileNodes.append(node)
+                for node in cls.mobileNodes:
+                    node.time = 0
+                    node.params['position'] = node.params['initialPosition']
+                while True:
+                    if time.time() > t_end or time.time() < t_initial:
+                        break
+                    if time.time() - currentTime >= i:
+                        for node in cls.mobileNodes:
+                            if time.time() - currentTime >= node.startTime:
+                                if node.time < node.diffTime:
+                                    node.time += 1
+                                    if node.time == node.diffTime:
+                                        x = '%.2f' % (float(node.params['finalPosition'][0]))
+                                        y = '%.2f' % (float(node.params['finalPosition'][1]))
+                                        z = '%.2f' % (float(node.params['finalPosition'][2]))
+                                    else:
+                                        x = '%.2f' % (float(node.params['position'][0]) +
+                                                      float(node.moveFac[0]))
+                                        y = '%.2f' % (float(node.params['position'][1]) +
+                                                      float(node.moveFac[1]))
+                                        z = '%.2f' % (float(node.params['position'][2]) +
+                                                      float(node.moveFac[2]))
+                                    node.params['position'] = x, y, z
+                            if propagationModel.model == 'logNormalShadowingPropagationLossModel':
+                                node.getRange(intf=node.params['wlan'][0])
+                            if DRAW:
+                                plot.graphUpdate(node)
+                                if not is3d:
+                                    plot.updateCircleRadius(node)
+                        eval(cls.continuePlot)
+                        i += 1
+                cls.mobileNodes = []
         except:
             pass
 
