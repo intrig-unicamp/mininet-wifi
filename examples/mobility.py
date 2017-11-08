@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
 'Setting the position of nodes and providing mobility'
+import sys
 
 from mininet.net import Mininet
 from mininet.node import Controller, OVSKernelAP
@@ -8,7 +9,7 @@ from mininet.link import TCLink
 from mininet.cli import CLI
 from mininet.log import setLogLevel
 
-def topology():
+def topology(cood):
 
     "Create a network."
     net = Mininet(controller=Controller, link=TCLink, accessPoint=OVSKernelAP)
@@ -27,14 +28,24 @@ def topology():
     print "*** Associating and Creating links"
     net.addLink(ap1, h1)
 
-    net.plotGraph(max_x=100, max_y=100)
+    net.plotGraph(max_x=200, max_y=200)
+
+    if coord:
+        sta1.coord = ['40.0,30.01,0.0', '31.0,10.0,0.0', '31.0,30.0,0.0']
+        sta2.coord = ['40.0,40.0,0.0', '55.0,31.0,0.0', '55.0,81.0,0.0']
 
     net.startMobility(time=0, repetitions=1, reverse=False)
-    net.mobility(sta1, 'start', time=1, position='40.0,30.0,0.0')
-    net.mobility(sta2, 'start', time=2, position='40.0,40.0,0.0')
-    net.mobility(sta1, 'stop', time=12, position='31.0,10.0,0.0')
-    net.mobility(sta2, 'stop', time=22, position='55.0,31.0,0.0')
-    net.stopMobility(time=23)
+    if coord:
+        net.mobility(sta1, 'start', time=1)
+        net.mobility(sta2, 'start', time=2)
+        net.mobility(sta1, 'stop', time=12)
+        net.mobility(sta2, 'stop', time=22)
+    else:
+        net.mobility(sta1, 'start', time=1, position='40.0,30.0,0.0')
+        net.mobility(sta2, 'start', time=2, position='40.0,40.0,0.0')
+        net.mobility(sta1, 'stop', time=12, position='31.0,10.0,0.0')
+        net.mobility(sta2, 'stop', time=22, position='55.0,31.0,0.0')
+    net.stopMobility(time=33)
 
     print "*** Starting network"
     net.build()
@@ -50,4 +61,5 @@ def topology():
 
 if __name__ == '__main__':
     setLogLevel('info')
-    topology()
+    coord = True if '-c' in sys.argv else False
+    topology(coord)

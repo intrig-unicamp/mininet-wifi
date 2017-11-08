@@ -55,7 +55,8 @@ class mobility (object):
     @classmethod
     def stop(cls, **mobilityparam):
         debug('Starting mobility thread...\n')
-        thread = threading.Thread(name='mobility', target=cls.controlledMobility,
+        thread = threading.Thread(name='mobility',
+                                  target=cls.controlled_mobility,
                                   kwargs=dict(mobilityparam,))
         thread.daemon = True
         thread.start()
@@ -68,10 +69,13 @@ class mobility (object):
         :param diffTime: difference between initial and final time. Useful for
         calculating the speed
         """
+        if not hasattr(node, 'coord'):
+            node.coord = ['','']
         initialPosition = node.params['initialPosition']
         finalPosition = node.params['finalPosition']
         node.diffTime = diffTime
-        node.time = 0
+        diffTime = diffTime/(len(node.coord)-1)
+        #node.time = 0
 
         node.params['position'] = initialPosition
         pos_x = float(finalPosition[0]) - float(initialPosition[0])
@@ -96,6 +100,13 @@ class mobility (object):
                 node.params['finalPosition'] = finalPosition.split(',')
             if stage == 'start':
                 initialPosition = kwargs['position']
+                node.params['initialPosition'] = initialPosition.split(',')
+        else:
+            if stage == 'stop':
+                finalPosition = node.coord[1]
+                node.params['finalPosition'] = finalPosition.split(',')
+            if stage == 'start':
+                initialPosition = node.coord[0]
                 node.params['initialPosition'] = initialPosition.split(',')
 
         if 'time' in kwargs:
@@ -277,7 +288,7 @@ class mobility (object):
             node.setPositionWmediumd()
 
     @classmethod
-    def controlledMobility(cls, init_time=0, final_time=0, stations=None,
+    def controlled_mobility(cls, init_time=0, final_time=0, stations=None,
                            aps=None, connections=[], plotNodes=None, MIN_X=0,
                            MIN_Y=0, MIN_Z=0, MAX_X=0, MAX_Y=0, MAX_Z=0, AC='',
                            is3d=False, DRAW=False, repetitions=1, reverse=False,
@@ -318,6 +329,7 @@ class mobility (object):
             if 'initialPosition' in node.params:
                 node.params['position'] = node.params['initialPosition']
                 cls.mobileNodes.append(node)
+                node.coord_ = 1
 
         nodes = cls.mobileNodes + cls.stationaryNodes
 
@@ -336,6 +348,7 @@ class mobility (object):
                     currentTime = time.time()
                     i = 1
                     for node in nodes:
+                        node.coord_ = 1
                         if 'initialPosition' in node.params:
                             cls.mobileNodes.append(node)
                 for node in cls.mobileNodes:
@@ -354,10 +367,16 @@ class mobility (object):
                             if time.time() - currentTime >= node.startTime:
                                 if node.time < node.diffTime:
                                     node.time += 1
-                                    if node.time == node.diffTime:
+                                    if node.time == node.diffTime/(len(node.coord)-1):
                                         x = '%.2f' % (float(node.params['finalPosition'][0]))
                                         y = '%.2f' % (float(node.params['finalPosition'][1]))
                                         z = '%.2f' % (float(node.params['finalPosition'][2]))
+                                        node.coord_ += 1
+                                        if hasattr(node, 'coord'):
+                                            if node.coord_ < len(node.coord):
+                                                node.params['finalPosition'] = node.coord[node.coord_].split(',')
+                                                node.params['initialPosition'] = node.params['position']
+                                                cls.calculate_diff_time(node)
                                     else:
                                         x = '%.2f' % (float(node.params['position'][0]) +
                                                       float(node.moveFac[0]))
@@ -365,7 +384,7 @@ class mobility (object):
                                                       float(node.moveFac[1]))
                                         z = '%.2f' % (float(node.params['position'][2]) +
                                                       float(node.moveFac[2]))
-                                    node.params['position'] = x, y, z
+                                    node.params['position'] = [x, y, z]
                             if propagationModel.model == 'logNormalShadowingPropagationLossModel':
                                 node.getRange(intf=node.params['wlan'][0])
                             if DRAW:
