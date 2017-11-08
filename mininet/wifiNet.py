@@ -1129,10 +1129,12 @@ class mininetWiFi(object):
                 if cls.enable_interference and not cls.isVanet:
                     for node in nodes:
                         for wlan in range(0, len(node.params['wlan'])):
-                            node.setTxPower_(node.params['txpower'][wlan],
-                                             intf=node.params['wlan'][wlan])
-                            node.setAntennaGain_(node.params['antennaGain'][wlan],
-                                                 intf=node.params['wlan'][wlan])
+                            node.setTxPower(node.params['txpower'][wlan],
+                                            intf=node.params['wlan'][wlan],
+                                            setParam=False)
+                            node.setAntennaGain(node.params['antennaGain'][wlan],
+                                                intf=node.params['wlan'][wlan],
+                                                setParam=False)
         return stations, accessPoints
 
     @classmethod

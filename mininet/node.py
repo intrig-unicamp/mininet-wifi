@@ -310,36 +310,6 @@ class Node(object):
                 if plot2d.fig_exists():
                     plot2d.updateCircleRadius(self)
 
-    def setRange_(self, value, intf=None):
-        "Set Signal Range_"
-        if intf == None:
-            wlan = self.params['wlan'].index(intf)
-        else:
-            wlan = 0
-        from mininet.wifiNet import mininetWiFi
-        self.params['range'][wlan] = value
-        if self.isStationary:
-            self.updateGraph()
-        else:
-            if mininetWiFi.is3d:
-                pass
-            else:
-                if plot2d.fig_exists():
-                    plot2d.updateCircleRadius(self)
-
-    def testPosition(self, pos):
-        "Test Position"
-        pos = pos.split(',')
-        self.params['position'] = float(pos[0]), float(pos[1]), float(pos[2])
-        if self.type == 'vehicle':
-            car = self.params['carsta']
-            car.params['position'] = self.params['position']
-        if WmediumdServerConn.interference_enabled:
-            self.setPositionWmediumd()
-            if self.type == 'vehicle':
-                self = self.params['carsta']
-                self.setPositionWmediumd()
-
     def setPosition(self, pos):
         "Set Position"
         from mininet.wifiNet import mininetWiFi
@@ -363,27 +333,20 @@ class Node(object):
                 self.setPositionWmediumd()
         mobility.parameters_(self)
 
-    def setAntennaGain(self, value, intf=None):
+    def setAntennaGain(self, value, intf=None, setParam=True):
         "Set Antenna Gain"
-        self.setAntennaGain_(intf, value)
-        mobility.parameters_(self)
-
-    def setAntennaGain_(self, value, intf=None):
-        "Set Antenna Gain_"
         wlan = self.params['wlan'].index(intf)
         self.params['antennaGain'][wlan] = int(value)
         self.setGainWmediumd(wlan)
+        if setParam:
+            mobility.parameters_(self)
 
     def setAntennaHeight(self, value, intf=None):
         "Set Antenna Height"
-        self.setAntennaHeight_(intf, value)
-        mobility.parameters_(self)
-
-    def setAntennaHeight_(self, value, intf=None):
-        "Set Antenna Height_"
         wlan = self.params['wlan'].index(intf)
         self.params['antennaHeight'][wlan] = int(value)
         self.setHeightWmediumd(wlan)
+        mobility.parameters_(self)
 
     def setChannel(self, value, intf=None):
         "Set Channel"
@@ -399,23 +362,15 @@ class Node(object):
         self.cmd('iw dev %s set freq %s' % (self.params['wlan'][wlan], value))
         self.params['frequency'][wlan] = value
 
-    def setTxPower(self, value, intf=None):
+    def setTxPower(self, value, intf=None, setParam=True):
         "Set Tx Power"
-        self.setTxPower_(value, intf)
-        mobility.parameters_(self)
-
-    def setTxPower_(self, value, intf=None):
-        "Set Tx Power_"
         wlan = self.params['wlan'].index(intf)
         self.pexec('iw dev %s set txpower fixed %s'
                    % (intf, (int(value) * 100)))
         self.params['txpower'][wlan] = value
-
-        #power = self.getTxPower(iface)
-        #if power != None and power < self.params['txpower'][wlan]:
-        #    self.params['txpower'][wlan] = power
-        #    info('%s is the maximum supported tx power\n' % power)
         self.setTXPowerWmediumd(wlan)
+        if setParam:
+            mobility.parameters_(self)
 
     def setPositionWmediumd(self):
         "Set Position for wmediumd"
@@ -1020,6 +975,28 @@ class Node(object):
     def setup(cls):
         "Make sure our class dependencies are available"
         pathCheck('mnexec', 'ip addr', moduleName='Mininet')
+
+    def stop_(self):
+        """Stops hostapd"""
+        from mininet.wifiNet import mininetWiFi
+        process = 'mn%d_%s' % (os.getpid(), self.name)
+        os.system('pkill -f \'hostapd -B %s\'' % process)
+        if mininetWiFi.is3d:
+            pass
+        else:
+            if plot2d.fig_exists():
+                plot2d.updateCircleColor(self, 'w')
+
+    def start_(self):
+        """Starts hostapd"""
+        from mininet.wifiNet import mininetWiFi
+        process = 'mn%d_%s' % (os.getpid(), self.name)
+        os.system('hostapd -B %s-wlan1.apconf' % process)
+        if mininetWiFi.is3d:
+            pass
+        else:
+            if plot2d.fig_exists():
+                plot2d.updateCircleColor(self, 'b')
 
 class Host(Node):
     "A host is simply a Node"
@@ -1728,28 +1705,6 @@ class UserAP(AP):
         # self.cmd('kill %ofprotocol')
         # super(UserAP, self).stop(deleteIntfs)
 
-    def stop_(self):
-        """Stops hostapd"""
-        from mininet.wifiNet import mininetWiFi
-        process = 'mn%d_%s' % (os.getpid(), self.name)
-        os.system('pkill -f \'hostapd -B %s\'' % process)
-        if mininetWiFi.is3d:
-            pass
-        else:
-            if plot2d.fig_exists():
-                plot2d.updateCircleColor(self, 'w')
-
-    def start_(self):
-        """Starts hostapd"""
-        from mininet.wifiNet import mininetWiFi
-        process = 'mn%d_%s' % (os.getpid(), self.name)
-        os.system('hostapd -B %s-wlan1.apconf' % process)
-        if mininetWiFi.is3d:
-            pass
-        else:
-            if plot2d.fig_exists():
-                plot2d.updateCircleColor(self, 'b')
-
     def setManagedIface(self, iface):
         wlan = self.params['wlan'].index(iface)
         if self.func[wlan] == 'mesh':
@@ -1982,28 +1937,6 @@ class OVSAP(AP):
         if self.datapath == 'user':
             self.cmd('ip link del', self)
         super(OVSSwitch, self).stop(deleteIntfs)
-
-    def stop_(self):
-        """Stops hostapd"""
-        from mininet.wifiNet import mininetWiFi
-        process = 'mn%d_%s' % (os.getpid(), self.name)
-        os.system('pkill -f \'hostapd -B %s\'' % process)
-        if mininetWiFi.is3d:
-            pass
-        else:
-            if plot2d.fig_exists():
-                plot2d.updateCircleColor(self, 'w')
-
-    def start_(self):
-        """Starts hostapd"""
-        from mininet.wifiNet import mininetWiFi
-        process = 'mn%d_%s' % (os.getpid(), self.name)
-        os.system('hostapd -B %s-wlan1.apconf' % process)
-        if mininetWiFi.is3d:
-            pass
-        else:
-            if plot2d.fig_exists():
-                plot2d.updateCircleColor(self, 'b')
 
     @classmethod
     def batchShutdown(cls, switches, run=errRun):
