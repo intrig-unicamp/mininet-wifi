@@ -893,7 +893,7 @@ class Mininet(object):
             self.buildFromTopo(self.topo)
 
         if (mininetWiFi.configure4addr or mininetWiFi.configureWiFiDirect) \
-                and self.useWmediumd:
+                and self.enable_wmediumd:
             mininetWiFi.configureWmediumd(self.stations, self.accessPoints)
             mininetWiFi.wmediumdConnect()
 
