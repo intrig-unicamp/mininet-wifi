@@ -166,6 +166,7 @@ class Mininet(object):
         self.nextIP = 1  # start for address allocation
         self.nextPosition = 1 # start for position allocation
         self.repetitions = 1 # mobility: number of repetitions
+        self.reverse = False  # reverse mobility
         self.inNamespace = inNamespace
         self.xterms = xterms
         self.cleanup = cleanup
@@ -1366,6 +1367,8 @@ class Mininet(object):
         mininetWiFi.isMobility = True
         if 'repetitions' in kwargs:
             self.repetitions = kwargs['repetitions']
+        if 'reverse' in kwargs:
+            self.reverse = kwargs['reverse']
         self.mobilityKwargs = kwargs
 
     def stopMobility(self, **kwargs):
@@ -1373,6 +1376,7 @@ class Mininet(object):
         self._stopMobility = True
         mininetWiFi.isMobility = True
         kwargs['repetitions'] = self.repetitions
+        kwargs['reverse'] = self.reverse
         self.mobilityKwargs = kwargs
 
     def useExternalProgram(self, program, **params):

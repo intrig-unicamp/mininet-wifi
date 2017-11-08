@@ -992,6 +992,8 @@ class mininetWiFi(object):
             mobilityparam.setdefault('nroads', cls.nroads)
         if 'repetitions' in kwargs:
             mobilityparam.setdefault('repetitions', kwargs['repetitions'])
+        if 'reverse' in kwargs:
+            mobilityparam.setdefault('reverse', kwargs['reverse'])
 
         if 'model' in kwargs or cls.isVanet:
             if 'min_x' in kwargs:

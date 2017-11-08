@@ -29,7 +29,7 @@ def topology():
 
     net.plotGraph(max_x=100, max_y=100)
 
-    net.startMobility(time=0, repetitions=1)
+    net.startMobility(time=0, repetitions=1, reverse=False)
     net.mobility(sta1, 'start', time=1, position='40.0,30.0,0.0')
     net.mobility(sta2, 'start', time=2, position='40.0,40.0,0.0')
     net.mobility(sta1, 'stop', time=12, position='31.0,10.0,0.0')

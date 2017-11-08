@@ -62,51 +62,56 @@ class mobility (object):
         cls.setWifiParameters()
 
     @classmethod
-    def moveFactor(cls, sta, diffTime):
+    def moveFactor(cls, node, diffTime):
         """
-        :param sta: station
+        :param node: node
         :param diffTime: difference between initial and final time. Useful for
         calculating the speed
         """
-        initialPosition = sta.params['initialPosition']
-        finalPosition = sta.params['finalPosition']
-        sta.diffTime = diffTime
-        sta.time = 0
+        initialPosition = node.params['initialPosition']
+        finalPosition = node.params['finalPosition']
+        node.diffTime = diffTime
+        node.time = 0
 
-        sta.params['position'] = initialPosition
+        node.params['position'] = initialPosition
         pos_x = float(finalPosition[0]) - float(initialPosition[0])
         pos_y = float(finalPosition[1]) - float(initialPosition[1])
         pos_z = float(finalPosition[2]) - float(initialPosition[2])
 
-        cls.speed(sta, pos_x, pos_y, pos_z, diffTime)
+        cls.speed(node, pos_x, pos_y, pos_z, diffTime)
         pos = '%.4f,%.4f,%.4f' % (pos_x / diffTime, pos_y / diffTime,
                                   pos_z / diffTime)
         pos = pos.split(',')
-        sta.moveFac = pos
+        node.moveFac = pos
 
     @classmethod
     def configure(cls, *args, **kwargs):
         'configure Mobility Parameters'
-        sta = args[0]
+        node = args[0]
         stage = args[1]
 
         if 'position' in kwargs:
             if stage == 'stop':
                 finalPosition = kwargs['position']
-                sta.params['finalPosition'] = finalPosition.split(',')
+                node.params['finalPosition'] = finalPosition.split(',')
             if stage == 'start':
                 initialPosition = kwargs['position']
-                sta.params['initialPosition'] = initialPosition.split(',')
+                node.params['initialPosition'] = initialPosition.split(',')
 
         if 'time' in kwargs:
             time = kwargs['time']
 
         if stage == 'start':
-            sta.startTime = time
+            node.startTime = time
         elif stage == 'stop':
-            sta.endTime = time
-            diffTime = sta.endTime - sta.startTime
-            cls.moveFactor(sta, diffTime)
+            cls.calculate_diff_time(node, time)
+
+    @classmethod
+    def calculate_diff_time(cls, node, time=0):
+        if time != 0:
+            node.endTime = time
+        diffTime = node.endTime - node.startTime
+        cls.moveFactor(node, diffTime)
 
     @classmethod
     def setWifiParameters(cls):
@@ -275,7 +280,8 @@ class mobility (object):
     def controlledMobility(cls, init_time=0, final_time=0, stations=None,
                            aps=None, connections=[], plotNodes=None, MIN_X=0,
                            MIN_Y=0, MIN_Z=0, MAX_X=0, MAX_Y=0, MAX_Z=0, AC='',
-                           is3d=False, DRAW=False, repetitions=1, **params):
+                           is3d=False, DRAW=False, repetitions=1, reverse=False,
+                           **params):
         """ 
         Used when the position of each node is previously defined
         
@@ -286,6 +292,7 @@ class mobility (object):
         :param connections: list of connections
         :param plotnodes: list of nodes to be plotted (including hosts and switches)
         :param repetitions: number of repetitions
+        :param reverse: reverse mobility
         :param MIN_X: Minimum value for X
         :param MIN_Y: Minimum value for Y
         :param MIN_Z: Minimum value for Z
@@ -333,7 +340,12 @@ class mobility (object):
                             cls.mobileNodes.append(node)
                 for node in cls.mobileNodes:
                     node.time = 0
-                    node.params['position'] = node.params['initialPosition']
+                    if rep > 0 and reverse:
+                        node.params['finalPosition'] = node.params['initialPosition']
+                        node.params['initialPosition'] = node.params['position']
+                        cls.calculate_diff_time(node)
+                    else:
+                        node.params['position'] = node.params['initialPosition']
                 while True:
                     if time.time() > t_end or time.time() < t_initial:
                         break
