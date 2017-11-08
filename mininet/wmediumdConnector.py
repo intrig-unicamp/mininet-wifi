@@ -15,7 +15,6 @@ import stat
 import pkg_resources
 
 from mininet.log import info, error, debug
-from mininet.wifiPropagationModels import propagationModel
 
 
 class WmediumdConstants:
@@ -313,7 +312,7 @@ class WmediumdStarter(object):
         WmediumdServerConn.interference_enabled = enable_interference
 
     @classmethod
-    def start(cls):
+    def start(cls, **params):
         """
         Start wmediumd, this method should be called right after
         Mininet.configureWifiNodes()
@@ -411,6 +410,7 @@ class WmediumdStarter(object):
                         posX, posY, posZ)
                 configstr += '\n\t);\n\ttx_powers = ('
                 first_txpower = True
+
                 for mappedtxpower in cls.txpowers:
                     txpower = mappedtxpower.sta_txpower
                     if first_txpower:
@@ -418,25 +418,24 @@ class WmediumdStarter(object):
                         first_txpower = False
                     else:
                         configstr += ', %s' % txpower
-                if propagationModel.model == 'ITUPropagationLossModel':
+                if params['model'] == 'ITUPropagationLossModel':
                     configstr += ');\n\tmodel_name = "itu";\n\tnFLOORS = %d;' \
                                  '\n\tlF = %d;\n\tpL = %d;\n};' % \
-                                 (propagationModel.nFloors, propagationModel.lF,
-                                  propagationModel.pL)
-                elif propagationModel.model == 'logDistancePropagationLossModel':
+                                 (params['n_floors'], params['lF'], params['pL'])
+                elif params['model'] == 'logDistancePropagationLossModel':
                     configstr += ');\n\tmodel_name = "log_distance";' \
                                  '\n\tpath_loss_exp = %.1f;\n\txg = 0.0;\n};' \
-                                 % propagationModel.exp
-                elif propagationModel.model == 'twoRayGroundPropagationLossModel':
+                                 % params['exp']
+                elif params['model'] == 'twoRayGroundPropagationLossModel':
                     configstr += ');\n\tmodel_name = "two_ray_ground";' \
-                                 '\n\tsL = %d;\n};' % propagationModel.sL
-                elif propagationModel.model == 'logNormalShadowingPropagationLossModel':
+                                 '\n\tsL = %d;\n};' % params['sL']
+                elif params['model'] == 'logNormalShadowingPropagationLossModel':
                     configstr += ');\n\tmodel_name = "log_normal_shadowing";' \
                                  '\n\tpath_loss_exp = %.1f;\n\tsL = %d;\n};' \
-                                 % (propagationModel.exp, propagationModel.sL)
+                                 % (params['exp'], params['sL'])
                 else:
                     configstr += ');\n\tmodel_name = "free_space";\n\tsL = %d;\n};' \
-                                 % propagationModel.sL
+                                 % params['sL']
 
             else:
                 configstr += '\n\t];\n};\nmodel:\n{\n\ttype = "'
@@ -1040,8 +1039,8 @@ class WmediumdServerConn(object):
         """
         debug("%s Updating SNR from interface %s to interface %s to "
               "value %d\n" % (WmediumdConstants.LOG_PREFIX,
-                            link.sta1intfref.get_intf_mac(),
-                            link.sta2intfref.get_intf_mac(), link.snr))
+                              link.sta1intfref.get_intf_mac(),
+                              link.sta2intfref.get_intf_mac(), link.snr))
         cls.sock.send(cls.__create_snr_update_request(link))
         return cls.__parse_response(
             WmediumdConstants.WSERVER_SNR_UPDATE_RESPONSE_TYPE,

@@ -143,9 +143,11 @@ class wirelessLink (object):
                  "rate %.4fmbit " \
                  "loss %.1f%% " \
                  "latency %.2fms " \
-                 "delay %.2fms" % (sta.params['wlan'][wlan], bw, loss, latency, delay)
+                 "delay %.2fms" % (sta.params['wlan'][wlan], bw, loss,
+                                   latency, delay)
             sta.pexec(tc)
-                # corrupt 0.1%%" % (sta.params['wlan'][wlan], bw, loss, latency, delay))
+                # corrupt 0.1%%" % (sta.params['wlan'][wlan], bw, loss,
+            # latency, delay))
 
     @classmethod
     def frequency(cls, node, wlan):
@@ -274,7 +276,7 @@ class Association(object):
                                                            sta.wmIface[0], snr))
 
     @classmethod
-    def configureWirelessLink(cls, sta, ap, wlan, enable_wmediumd=False,
+    def configureWirelessLink(cls, sta, ap, enable_wmediumd=False,
                               enable_interference=False):
         """ 
         Updates RSSI and Others...
@@ -323,7 +325,7 @@ class Association(object):
         """ Associate to Access Point """
         wlan = sta.ifaceToAssociate
         if 'position' in sta.params:
-            cls.configureWirelessLink(sta, ap, wlan, enable_wmediumd,
+            cls.configureWirelessLink(sta, ap, enable_wmediumd,
                                       enable_interference)
         else:
             cls.associate_infra(sta, ap, wlan)

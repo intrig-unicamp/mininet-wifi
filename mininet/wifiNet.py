@@ -13,8 +13,8 @@ from time import sleep
 
 from mininet.node import AccessPoint
 from mininet.log import info, error
-from mininet.wmediumdConnector import DynamicWmediumdIntfRef, WmediumdStarter, \
-    WmediumdSNRLink, WmediumdTXPower, WmediumdPosition, \
+from mininet.wmediumdConnector import DynamicWmediumdIntfRef, \
+    WmediumdStarter, WmediumdSNRLink, WmediumdTXPower, WmediumdPosition, \
     WmediumdConstants, WmediumdServerConn
 from mininet.wifiLink import wirelessLink, Association
 from mininet.wifiDevices import deviceDataRate
@@ -264,7 +264,8 @@ class mininetWiFi(object):
                 node.params['range'].append(int(value))
                 node.setRange(int(value), intf=node.params['wlan'][0])
             if len(range_list) != wlans:
-                error('*** Error (%s): Too few range param...' % node.name)
+                error('*** Error (%s): signal range length'
+                      'differs from the number of interfaces!' % node.name)
                 exit(1)
         else:
             for range_ in range(0, wlans):
@@ -655,7 +656,14 @@ class mininetWiFi(object):
                                    enable_interference=cls.enable_interference,
                                    auto_add_links=False, txpowers=txpowers,
                                    with_server=True)
-        WmediumdStarter.start()
+        params = dict()
+        params['model'] = propagationModel.model
+        params['sL'] = propagationModel.sL
+        params['pL'] = propagationModel.pL
+        params['lF'] = propagationModel.lF
+        params['exp'] = propagationModel.exp
+        params['n_floors'] = propagationModel.nFloors
+        WmediumdStarter.start(**params)
 
     @classmethod
     def checkAPAdhoc(cls, stations, accessPoints):
@@ -875,7 +883,6 @@ class mininetWiFi(object):
                 cls.configureAP(ap, aplist=accessPoints)
                 ap.phyID = module.phyID
                 module.phyID += 1
-
 
     @classmethod
     def configureWirelessLink(cls, stations, accessPoints, cars):

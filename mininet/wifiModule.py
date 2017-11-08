@@ -40,12 +40,14 @@ class module(object):
             if output_ == 0:
                 cls.__create_hwsim_mgmt_devices(wifiRadios)
             else:
+                # Useful for tests in Kernels like Kernel 3.13.x
                 if wifiRadios == 0:
-                    wifiRadios = 1 #Useful for tests in Kernels like Kernel 3.13.x
+                    wifiRadios = 1
                 if alternativeModule == '':
                     os.system('modprobe mac80211_hwsim radios=%s' % wifiRadios)
                 else:
-                    os.system('insmod %s radios=%s' % (alternativeModule, wifiRadios))
+                    os.system('insmod %s radios=%s' % (alternativeModule,
+                                                       wifiRadios))
         else:
             cls.devices_created_dynamically = True
             cls.__create_hwsim_mgmt_devices(wifiRadios)
@@ -84,9 +86,9 @@ class module(object):
                     error("\nOutput: %s" % output)
                     error("\nError: %s" % err_out)
         except:
-            print "Warning! If you already had Mininet-WiFi installed, please run " \
-                  "util/install.sh -W and then make install. A new API for " \
-                  "mac80211_hwsim has been created."
+            print "Warning! If you already had Mininet-WiFi installed, " \
+                  "please run util/install.sh -W and then make install. " \
+                  "A new API for mac80211_hwsim has been created."
 
     @classmethod
     def kill_hostapd(cls):
@@ -231,8 +233,8 @@ class module(object):
                         phys.pop(0)
         except:
             logging.exception("Warning:")
-            info("Warning! Error when loading mac80211_hwsim. Please run sudo 'mn -c' "
-                 "before running your code.\n")
+            info("Warning! Error when loading mac80211_hwsim. "
+                 "Please run sudo 'mn -c' before running your code.\n")
             info("Further information available at %s.\n" % log_filename)
             exit(1)
 
