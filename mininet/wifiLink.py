@@ -18,7 +18,7 @@ class wirelessLink (object):
     equationLoss = '(dist * 2) / 1000'
     equationDelay = '(dist / 100) + 1'
     equationLatency = '2 + dist'
-    equationBw = '(1.01 ** -dist)'
+    equationBw = 'custombw * (1.01 ** -dist)'
     ifb = False
 
     def __init__(self, sta=None, ap=None, wlan=0, dist=0):
@@ -81,7 +81,7 @@ class wirelessLink (object):
         """
         value = deviceDataRate(sta, ap, wlan)
         custombw = value.rate
-        rate = custombw * float(eval(cls.equationBw))
+        rate = eval(cls.equationBw)
 
         if rate <= 0.0:
             rate = 0.1
