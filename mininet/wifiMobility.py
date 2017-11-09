@@ -377,13 +377,13 @@ class mobility (object):
                     if time.time() - currentTime >= i:
                         for node in cls.mobileNodes:
                             if time.time() - currentTime >= node.startTime:
-                                if node.time < node.diffTime:
+                                if node.time <= node.diffTime:
                                     node.time += 1
                                     if hasattr(node, 'coord'):
                                         len_ = len(node.coord)-1
                                     else:
                                         len_ = 1
-                                    if node.time == (node.diffTime/len_):
+                                    if node.time == (node.diffTime/len_)+1:
                                         x = '%.2f' % (float(node.params['finalPosition'][0]))
                                         y = '%.2f' % (float(node.params['finalPosition'][1]))
                                         z = '%.2f' % (float(node.params['finalPosition'][2]))
