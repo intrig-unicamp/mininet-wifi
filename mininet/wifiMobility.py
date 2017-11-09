@@ -69,13 +69,11 @@ class mobility (object):
         :param diffTime: difference between initial and final time. Useful for
         calculating the speed
         """
-        if not hasattr(node, 'coord'):
-            node.coord = ['','']
         initialPosition = node.params['initialPosition']
         finalPosition = node.params['finalPosition']
         node.diffTime = diffTime
-        diffTime = diffTime/(len(node.coord)-1)
-        #node.time = 0
+        if hasattr(node, 'coord'):
+            diffTime = diffTime/(len(node.coord)-1)
 
         node.params['position'] = initialPosition
         pos_x = float(finalPosition[0]) - float(initialPosition[0])
@@ -341,6 +339,8 @@ class mobility (object):
             info('Warning: running without GUI.\n')
             DRAW = False
         try:
+            for node in nodes:
+                node.idx = 1
             for rep in range(0, repetitions):
                 if rep > 0:
                     t_end = time.time() + final_time
@@ -348,17 +348,29 @@ class mobility (object):
                     currentTime = time.time()
                     i = 1
                     for node in nodes:
-                        node.coord_ = 1
+                        if hasattr(node, 'coord') and reverse and rep%2 == 1:
+                            node.coord_=len(node.coord)-node.idx
+                            node.idx+=1
+                        else:
+                            node.coord_=1
+                            node.idx=1
                         if 'initialPosition' in node.params:
                             cls.mobileNodes.append(node)
                 for node in cls.mobileNodes:
                     node.time = 0
-                    if rep > 0 and reverse:
-                        node.params['finalPosition'] = node.params['initialPosition']
-                        node.params['initialPosition'] = node.params['position']
-                        cls.calculate_diff_time(node)
+                    if rep%2 == 1 and reverse:
+                        if hasattr(node, 'coord'):
+                            if node.coord_ < len(node.coord):
+                                node.params['initialPosition'] = node.params['position']
+                                node.params['finalPosition'] = node.coord[node.coord_-1].split(',')
+                        else:
+                            node.params['initialPosition'] = node.params['position']
+                            node.params['finalPosition'] = node.params['initialPosition']
                     else:
-                        node.params['position'] = node.params['initialPosition']
+                        if hasattr(node, 'coord'):
+                            node.params['initialPosition'] = node.coord[node.coord_-1].split(',')
+                            node.params['finalPosition'] = node.coord[node.coord_].split(',')
+                    cls.calculate_diff_time(node)
                 while True:
                     if time.time() > t_end or time.time() < t_initial:
                         break
@@ -367,15 +379,25 @@ class mobility (object):
                             if time.time() - currentTime >= node.startTime:
                                 if node.time < node.diffTime:
                                     node.time += 1
-                                    if node.time == node.diffTime/(len(node.coord)-1):
+                                    if hasattr(node, 'coord'):
+                                        len_ = len(node.coord)-1
+                                    else:
+                                        len_ = 1
+                                    if node.time == (node.diffTime/len_):
                                         x = '%.2f' % (float(node.params['finalPosition'][0]))
                                         y = '%.2f' % (float(node.params['finalPosition'][1]))
                                         z = '%.2f' % (float(node.params['finalPosition'][2]))
-                                        node.coord_ += 1
+                                        if hasattr(node, 'coord') and reverse and rep%2 == 1:
+                                            node.coord_-=1
+                                        else:
+                                            node.coord_+=1
                                         if hasattr(node, 'coord'):
                                             if node.coord_ < len(node.coord):
-                                                node.params['finalPosition'] = node.coord[node.coord_].split(',')
                                                 node.params['initialPosition'] = node.params['position']
+                                                if reverse and rep%2 == 1:
+                                                    node.params['finalPosition'] = node.coord[node.coord_-1].split(',')
+                                                else:
+                                                    node.params['finalPosition'] = node.coord[node.coord_].split(',')
                                                 cls.calculate_diff_time(node)
                                     else:
                                         x = '%.2f' % (float(node.params['position'][0]) +

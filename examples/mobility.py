@@ -9,7 +9,7 @@ from mininet.link import TCLink
 from mininet.cli import CLI
 from mininet.log import setLogLevel
 
-def topology(cood):
+def topology(coord):
 
     "Create a network."
     net = Mininet(controller=Controller, link=TCLink, accessPoint=OVSKernelAP)
@@ -45,7 +45,7 @@ def topology(cood):
         net.mobility(sta2, 'start', time=2, position='40.0,40.0,0.0')
         net.mobility(sta1, 'stop', time=12, position='31.0,10.0,0.0')
         net.mobility(sta2, 'stop', time=22, position='55.0,31.0,0.0')
-    net.stopMobility(time=33)
+    net.stopMobility(time=23)
 
     print "*** Starting network"
     net.build()
