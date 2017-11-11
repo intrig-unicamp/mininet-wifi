@@ -474,6 +474,9 @@ class testWalkthrough(unittest.TestCase):
         p.expect(stations)
         p.sendline('py ap1.params[\'stationsInRange\']')
         p.expect(stations)
+        p.sendline('sta1 ping -c 1 sta2')
+        p.expect('0% packet loss')
+        p.expect(self.prompt)
         p.sendline('exit')
         p.wait()
         p = pexpect.spawn(
