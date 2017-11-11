@@ -12,14 +12,16 @@ from mininet.wifiReplaying import replayingMobility
 def topology():
 
     "Create a network."
-    net = Mininet(controller=Controller, link=TCLink, accessPoint=OVSAP, enable_wmediumd=True, enable_interference=True)
+    net = Mininet(controller=Controller, link=TCLink, accessPoint=OVSAP,
+                  enable_wmediumd=True, enable_interference=True)
 
     print "*** Creating nodes"
     sta1 = net.addStation('sta1', mac='00:00:00:00:00:02', ip='10.0.0.1/8', speed=4)
     sta2 = net.addStation('sta2', mac='00:00:00:00:00:03', ip='10.0.0.2/8', speed=6)
     sta3 = net.addStation('sta3', mac='00:00:00:00:00:04', ip='10.0.0.3/8', speed=3)
     sta4 = net.addStation('sta4', mac='00:00:00:00:00:05', ip='10.0.0.4/8', speed=3)
-    ap1 = net.addAccessPoint('ap1', ssid='new-ssid', mode='g', channel='1', position='45,45,0')
+    ap1 = net.addAccessPoint('ap1', ssid='new-ssid', mode='g', channel='1',
+                             position='45,45,0')
     c1 = net.addController('c1', controller=Controller)
 
     print "*** Configuring Propagation Model"
@@ -66,6 +68,7 @@ def getTrace(sta, file_):
         x = line[0]  # First Column
         y = line[1]  # Second Column
         sta.position.append('%s,%s,0' % (x, y))
+
 
 if __name__ == '__main__':
     setLogLevel('info')

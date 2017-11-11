@@ -11,9 +11,8 @@ nothing irreplaceable!
 """
 
 from subprocess import (Popen, PIPE, check_output as co,
-                         CalledProcessError)
+                        CalledProcessError)
 import time
-import subprocess
 import os
 import glob
 
@@ -51,9 +50,10 @@ class Cleanup(object):
            do fast stuff before slow dp and link removal!"""
 
         info("*** Removing excess controllers/ofprotocols/ofdatapaths/"
-              "pings/noxes\n")
+             "pings/noxes\n")
         zombies = 'controller ofprotocol ofdatapath ping nox_core lt-nox_core '
-        zombies += 'ovs-openflowd ovs-controller udpbwtest mnexec ivs ryu-manager'
+        zombies += 'ovs-openflowd ovs-controller udpbwtest mnexec ivs ' \
+                   'ryu-manager'
         # Note: real zombie processes can't actually be killed, since they
         # are already (un)dead. Then again,
         # you can't connect to them either, so they're mostly harmless.
@@ -72,8 +72,8 @@ class Cleanup(object):
         cleanUpScreens()
 
         info("*** Removing excess kernel datapaths\n")
-        dps = sh("ps ax | egrep -o 'dp[0-9]+' | sed 's/dp/nl:/'"
-                  ).splitlines()
+        dps = sh("ps ax | egrep -o 'dp[0-9]+' | "
+                 "sed 's/dp/nl:/'").splitlines()
         for dp in dps:
             if dp:
                 sh('dpctl deldp ' + dp)
@@ -81,15 +81,13 @@ class Cleanup(object):
         info("***  Removing WiFi module and Configurations\n")
         
         try:
-            (subprocess.check_output("lsmod | grep mac80211_hwsim",
-                                                          shell=True))
+            co("lsmod | grep mac80211_hwsim", shell=True)
             os.system('rmmod mac80211_hwsim')
         except:
             pass
         
         try:
-            (subprocess.check_output("lsmod | grep ifb",
-                                                          shell=True))
+            co("lsmod | grep ifb", shell=True)
             os.system('rmmod ifb')
         except:
             pass
@@ -114,7 +112,7 @@ class Cleanup(object):
         dps = sh("ovs-vsctl --timeout=1 list-br").strip().splitlines()
         if dps:
             sh("ovs-vsctl " + " -- ".join("--if-exists del-br " + dp
-                                            for dp in dps if dp))
+                                          for dp in dps if dp))
         # And in case the above didn't work...
         dps = sh("ovs-vsctl --timeout=1 list-br").strip().splitlines()
         for dp in dps:
@@ -122,13 +120,13 @@ class Cleanup(object):
 
         info("*** Removing all links of the pattern foo-ethX\n")
         links = sh("ip link show | "
-                    "egrep -o '([-_.[:alnum:]]+-eth[[:digit:]]+)'"
-                    ).splitlines()
+                   "egrep -o '([-_.[:alnum:]]+-eth[[:digit:]]+)'"
+                  ).splitlines()
         # Delete blocks of links
         n = 1000  # chunk size
         for i in range(0, len(links), n):
             cmd = ';'.join('ip link del %s' % link
-                             for link in links[ i : i + n ])
+                           for link in links[ i : i + n ])
             sh('( %s ) 2> /dev/null' % cmd)
 
         if 'tap9' in sh('ip link show'):

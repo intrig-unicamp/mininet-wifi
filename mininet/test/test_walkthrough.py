@@ -6,10 +6,11 @@ TODO: missing xterm test
 """
 
 import unittest
-import pexpect
 import os
 import re
 from time import sleep
+import pexpect
+
 from mininet.util import quietRun
 
 def tsharkVersion():
@@ -69,7 +70,18 @@ class testWalkthrough(unittest.TestCase):
             actual.append(node)
             p.expect('\n')
         self.assertEqual(actual.sort(), nodes.sort(),
-                          '"nodes" and "dump" differ')
+                         '"nodes" and "dump" differ')
+        p.expect(self.prompt)
+        p.sendline('exit')
+        p.wait()
+        p = pexpect.spawn('mn --wifi --position')
+        sleep(3)
+        p.expect(self.prompt)
+        p.sendline('py sta1.params[\'position\']')
+        p.expect('[1.0, 0.0, 0.0]')
+        p.expect(self.prompt)
+        p.sendline('py sta2.params[\'position\']')
+        p.expect('[2.0, 0.0, 0.0]')
         p.expect(self.prompt)
         p.sendline('exit')
         p.wait()
@@ -132,7 +144,8 @@ class testWalkthrough(unittest.TestCase):
         p.expect(r'(\d+)/(\d+) received')
         received = int(p.match.group(1))
         sent = int(p.match.group(2))
-        self.assertTrue(sent > 10)  # it should be 12, but there is a delay for association
+        self.assertTrue(sent > 10)  # it should be 12, but there is a delay
+        # for association
         p.expect(pexpect.EOF)
 
     def testLinkChange(self):
@@ -150,7 +163,7 @@ class testWalkthrough(unittest.TestCase):
         # test delay
         p.sendline('sta1 ping -c 4 sta2')
         p.expect(r'rtt min/avg/max/mdev = '
-                  r'([\d\.]+)/([\d\.]+)/([\d\.]+)/([\d\.]+) ms')
+                 r'([\d\.]+)/([\d\.]+)/([\d\.]+)/([\d\.]+) ms')
         delay = float(p.match.group(2))
         self.assertTrue(delay > 20, 'Delay < 20ms')
         self.assertTrue(delay < 25, 'Delay > 20ms')
@@ -259,6 +272,14 @@ class testWalkthrough(unittest.TestCase):
         p.expect(self.prompt)
         p.sendline('exit')
         p.wait()
+        p = pexpect.spawn(
+            'python examples/adhoc.py -a')
+        sleep(3)
+        p.sendline('py sta1.params[\'range\']')
+        p.expect('100')
+        p.expect(self.prompt)
+        p.sendline('exit')
+        p.wait()
 
     def testAuthentication(self):
         "Start Mininet-WiFi using WPA, then test ping"
@@ -318,7 +339,8 @@ class testWalkthrough(unittest.TestCase):
         p.wait()
 
     def testPosition(self):
-        "Start Mininet-WiFi when the position is statically defined, then test ping"
+        """Start Mininet-WiFi when the position is statically defined,
+        then test ping"""
         p = pexpect.spawn(
             'python examples/position.py')
         sleep(3)
@@ -397,7 +419,8 @@ class testWalkthrough(unittest.TestCase):
         p.wait()
 
     def testWirelessParams(self):
-        """Start Mininet-WiFi with sta in ap mode, then do an extensive test"""
+        """Start Mininet-WiFi with sta in ap mode,
+        then do an extensive test"""
         p = pexpect.spawn(
             'python examples/sta_ap_mode.py')
         sleep(5)
@@ -440,7 +463,8 @@ class testWalkthrough(unittest.TestCase):
         p.sendline('py sta1.params[\'apsInRange\']')
         p.expect('Station ap2: ap2-wlan0:192.168.1.10')
         p.expect(self.prompt)
-        stations = [ 'Station sta1: sta1-wlan0:10.0.0.1', 'Station sta2: sta2-wlan0:10.0.0.2', self.prompt ]
+        stations = [ 'Station sta1: sta1-wlan0:10.0.0.1',
+                     'Station sta2: sta2-wlan0:10.0.0.2', self.prompt ]
         p.sendline('py ap2.params[\'associatedStations\']')
         p.expect(stations)
         p.sendline('py ap2.params[\'stationsInRange\']')
@@ -461,7 +485,8 @@ class testWalkthrough(unittest.TestCase):
         accessPoints = [ 'Station ap2: ap2-wlan0:192.168.1.10', self.prompt ]
         p.sendline('py sta1.params[\'apsInRange\']')
         p.expect(accessPoints)
-        stations = [ 'Station sta1: sta1-wlan0:10.0.0.1', 'Station sta2: sta2-wlan0:10.0.0.2', self.prompt ]
+        stations = [ 'Station sta1: sta1-wlan0:10.0.0.1',
+                     'Station sta2: sta2-wlan0:10.0.0.2', self.prompt ]
         p.sendline('py ap2.params[\'stationsInRange\']')
         p.expect(stations)
         p.sendline('py ap2.params[\'associatedStations\']')
@@ -517,17 +542,18 @@ class testWalkthrough(unittest.TestCase):
         p = pexpect.spawn('mn --wifi --innamespace --ap user')
         sleep(3)
         p.expect(self.prompt)
-        interfaces = [ 'sta1-wlan0', 'ap1-wlan1', '[^-]eth0', 'lo', self.prompt ]
-        p.sendline('ap1 ifconfig -a')
+        interfaces = [ 'sta1-wlan0', 'ap1-wlan1', '[^-]eth0', 'lo',
+                       self.prompt ]
+        p.sendline('ap1 ip addr show')
         ifcount = 0
         while True:
             index = p.expect(interfaces)
             if index == 1 or index == 3:
                 ifcount += 1
             elif index == 0:
-                self.fail('sta1 interface displayed in "ap1 ifconfig"')
+                self.fail('sta1 interface displayed in "ap1 ip addr show"')
             elif index == 2:
-                self.fail('wlan0 displayed in "ap1 ifconfig"')
+                self.fail('wlan0 displayed in "ap1 ip addr show"')
             else:
                 break
         # self.assertEqual( ifcount, 2, 'Missing interfaces on ap1' )
@@ -582,6 +608,7 @@ class testWalkthrough(unittest.TestCase):
         p.expect(self.prompt)
         p.sendline('exit')
         p.wait()
+
 
 if __name__ == '__main__':
     unittest.main()

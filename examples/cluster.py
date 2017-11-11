@@ -73,6 +73,15 @@ Things to do:
 - tests and benchmarks
 - hifi support (e.g. delay compensation)
 """
+from signal import signal, SIGINT, SIG_IGN
+from subprocess import Popen, PIPE, STDOUT
+import os
+from random import randrange
+import sys
+import re
+from itertools import groupby
+from operator import attrgetter
+from distutils.version import StrictVersion
 
 from mininet.node import Node, Host, OVSSwitch, OVSAP, Controller
 from mininet.link import Link, Intf
@@ -84,26 +93,16 @@ from mininet.examples.clustercli import CLI
 from mininet.log import setLogLevel, debug, info, error
 from mininet.clean import addCleanupCallback
 
-from signal import signal, SIGINT, SIG_IGN
-from subprocess import Popen, PIPE, STDOUT
-import os
-from random import randrange
-import sys
-import re
-from itertools import groupby
-from operator import attrgetter
-from distutils.version import StrictVersion
-
 
 def findUser():
     "Try to return logged-in (usually non-root) user"
     return (
-            # If we're running sudo
-            os.environ.get( 'SUDO_USER', False ) or
-            # Logged-in user (if we have a tty)
-            ( quietRun( 'who am i' ).split() or [ False ] )[ 0 ] or
-            # Give up and return effective user
-            quietRun( 'whoami' ) )
+        # If we're running sudo
+        os.environ.get( 'SUDO_USER', False ) or
+        # Logged-in user (if we have a tty)
+        ( quietRun( 'who am i' ).split() or [ False ] )[ 0 ] or
+        # Give up and return effective user
+        quietRun( 'whoami' ) )
 
 
 class ClusterCleanup( object ):
@@ -635,7 +634,7 @@ class SwitchBinPlacer( Placer ):
                 placement[ h ] = placement[ switchFor[ h ] ]
             else:
                 raise Exception(
-                        "SwitchBinPlacer: cannot place isolated host " + h )
+                    "SwitchBinPlacer: cannot place isolated host " + h )
         return placement
 
     def place( self, node ):
@@ -757,7 +756,7 @@ class MininetCluster( Mininet ):
             if code != 0:
                 error( '\nstartConnection: server connection check failed '
                        'to %s using command:\n%s\n'
-                        % ( server, ' '.join( cmd ) ) )
+                       % ( server, ' '.join( cmd ) ) )
             result |= code
         if result:
             error( '*** Server precheck failed.\n'
@@ -797,7 +796,7 @@ class MininetCluster( Mininet ):
             info( '%s:%s ' % ( node, server ) )
             key = ( None, server )
             _dest, cfile, _conn = self.connections.get(
-                        key, ( None, None, None ) )
+                key, ( None, None, None ) )
             if cfile:
                 config.setdefault( 'controlPath', cfile )
 

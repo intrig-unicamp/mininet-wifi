@@ -10,14 +10,16 @@ from mininet.link import TCLink
 
 def topology():
     "Create a network."
-    net = Mininet(controller=Controller, link=TCLink, accessPoint=OVSKernelAP, enable_wmediumd=True, enable_interference=True)
+    net = Mininet(controller=Controller, link=TCLink, accessPoint=OVSKernelAP,
+                  enable_wmediumd=True, enable_interference=True)
 
     print "*** Creating nodes"
     sta1 = net.addStation('sta1', mac='00:00:00:00:00:11')
     sta2 = net.addStation('sta2', mac='00:00:00:00:00:12')
     ap1 = net.addAccessPoint('ap1', wlans=2, ssid='ssid1,', position='10,10,0')
     ap2 = net.addAccessPoint('ap2', wlans=2, ssid='ssid2,', position='30,10,0')
-    c0 = net.addController('c0', controller=Controller, ip='127.0.0.1', port=6633)
+    c0 = net.addController('c0', controller=Controller, ip='127.0.0.1',
+                           port=6633)
 
     print "*** Configuring wifi nodes"
     net.configureWifiNodes()
@@ -39,6 +41,7 @@ def topology():
 
     print "*** Stopping network"
     net.stop()
+
 
 if __name__ == '__main__':
     setLogLevel('info')

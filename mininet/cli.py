@@ -28,16 +28,16 @@ and bandwidth ('iperf'.)
 from subprocess import call
 from cmd import Cmd
 from os import isatty
+from os import path
 from select import poll, POLLIN
 import sys
 import time
-import os
 import atexit
 
 from mininet.log import info, output, error
 from mininet.term import makeTerms, runX11
 from mininet.util import (quietRun, dumpNodeConnections,
-                           dumpPorts)
+                          dumpPorts)
 
 class CLI(Cmd):
     "Simple command-line interface to talk to nodes."
@@ -83,8 +83,8 @@ class CLI(Cmd):
         except ImportError:
             pass
         else:
-            history_path = os.path.expanduser('~/.mininet_history')
-            if os.path.isfile(history_path):
+            history_path = path.expanduser('~/.mininet_history')
+            if path.isfile(history_path):
                 read_history_file(history_path)
             atexit.register(lambda: write_history_file(history_path))
 
@@ -250,13 +250,13 @@ class CLI(Cmd):
                 self.mn.iperf(hosts, l4Type='UDP', udpBw=udpBw)
         else:
             error('invalid number of args: iperfudp bw src dst\n' +
-                   'bw examples: 10M\n')
+                  'bw examples: 10M\n')
 
     def do_intfs(self, _line):
         "List interfaces."
         for node in self.mn.values():
-            output('%s: %s\n' %
-                    (node.name, ','.join(node.intfNames())))
+            output('%s: %s\n'
+                   % (node.name, ','.join(node.intfNames())))
 
     def do_dump(self, _line):
         "Dump node info."
@@ -391,7 +391,7 @@ class CLI(Cmd):
         args = line.split()
         if len(args) != 2:
             error('invalid number of args: switch <switch name>'
-                   '{start, stop}\n')
+                  '{start, stop}\n')
             return
         sw = args[ 0 ]
         command = args[ 1 ]
@@ -406,7 +406,7 @@ class CLI(Cmd):
                 self.mn.get(sw).stop(deleteIntfs=False)
             else:
                 error('invalid command: '
-                       'switch <switch name> {start, stop}\n')
+                      'switch <switch name> {start, stop}\n')
 
     def default(self, line):
         """Called on an input line when the command prefix is not recognized.

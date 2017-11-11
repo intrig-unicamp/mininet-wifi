@@ -31,8 +31,9 @@ class TestSwitchDpidAssignmentOVS(unittest.TestCase):
         """Verify that the default dpid is assigned using a valid provided
         canonical apname if no dpid is passed in ap creation."""
         ap = Mininet(topo=Topo(),
-                          accessPoint=self.accessPointClass,
-                          station=Station, controller=Controller, isWiFi=True).addAccessPoint('ap1')
+                     accessPoint=self.accessPointClass,
+                     station=Station, controller=Controller,
+                     isWiFi=True).addAccessPoint('ap1')
         self.assertEqual(ap.defaultDpid(), ap.dpid)
 
     def dpidFrom(self, num):
@@ -45,20 +46,9 @@ class TestSwitchDpidAssignmentOVS(unittest.TestCase):
         passed in ap creation."""
         dpid = self.dpidFrom(0xABCD)
         ap = Mininet(topo=Topo(), accessPoint=self.accessPointClass,
-                          station=Station, controller=Controller, isWiFi=True).addAccessPoint(
-                            'ap1', dpid=dpid)
+                     station=Station, controller=Controller,
+                     isWiFi=True).addAccessPoint('ap1', dpid=dpid)
         self.assertEqual(ap.dpid, dpid)
-
-    #def testDefaultDpidAssignmentFailure(self):
-    #    """Verify that Default dpid assignment raises an Exception if the
-    #    name of the ap does not contain a digit. Also verify the
-    #    exception message."""
-    #    with self.assertRaises(Exception) as raises_cm:
-    #        Mininet(topo=Topo(), accessPoint=self.accessPointClass,
-    #                 station=Station, controller=Controller, isWiFi=True).addAccessPoint('A')
-    #    self.assertEqual(raises_cm.exception.message, 'Unable to derive '
-    #                     'default datapath ID - please either specify a dpid '
-    #                     'or use a canonical ap name such as ap23.')
 
     def testDefaultDpidLen(self):
         """Verify that Default dpid length is 16 characters consisting of
@@ -66,7 +56,8 @@ class TestSwitchDpidAssignmentOVS(unittest.TestCase):
         name) 0's followed by hex of first string of contiguous digits passed
         in ap name."""
         ap = Mininet(topo=Topo(), accessPoint=self.accessPointClass,
-                          station=Station, controller=Controller, isWiFi=True).addAccessPoint('ap123')
+                     station=Station, controller=Controller,
+                     isWiFi=True).addAccessPoint('ap123')
 
         self.assertEqual(ap.dpid, self.dpidFrom(123))
 
@@ -81,16 +72,17 @@ class testSwitchOVSUser(TestSwitchDpidAssignmentOVS):
     accessPointClass = OVSUser
 
 @unittest.skipUnless(quietRun('which ivs-ctl'),
-                      'IVS ap is not installed')
+                     'IVS ap is not installed')
 class testSwitchIVS(TestSwitchDpidAssignmentOVS):
     "Test dpid assignment of IVS ap."
     accessPointClass = IVSSwitch
 
 @unittest.skipUnless(quietRun('which ofprotocol'),
-                      'Reference user ap is not installed')
+                     'Reference user ap is not installed')
 class testSwitchUserspace(TestSwitchDpidAssignmentOVS):
     "Test dpid assignment of Userspace ap."
     accessPointClass = UserAP
+
 
 if __name__ == '__main__':
     setLogLevel('warning')

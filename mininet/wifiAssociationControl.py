@@ -23,8 +23,10 @@ class associationControl (object):
             else:
                 self.changeAP = True
         elif ac == "ssf":
-            distance = wirelessLink.getDistance(sta, sta.params['associatedTo'][wlan])
-            RSSI = wirelessLink.setRSSI(sta, sta.params['associatedTo'][wlan], wlan, distance)
+            distance = wirelessLink.getDistance(sta,
+                                                sta.params['associatedTo'][wlan])
+            RSSI = wirelessLink.setRSSI(sta, sta.params['associatedTo'][wlan],
+                                        wlan, distance)
             refDistance = wirelessLink.getDistance(sta, ap)
             refRSSI = wirelessLink.setRSSI(sta, ap, wlan, refDistance)
             if float(refRSSI) > float(RSSI + 0.1):

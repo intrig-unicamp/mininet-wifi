@@ -1,23 +1,20 @@
 #!/usr/bin/python
 
+"Sample file for SUMO"
+
+import os
+
 from mininet.net import Mininet
-from mininet.node import Controller, UserAP, RemoteController
+from mininet.node import Controller, UserAP
 from mininet.link import TCLink
 from mininet.cli import CLI
 from mininet.log import setLogLevel
-import os
-
-
-class InbandController(RemoteController):
-
-    def checkListening(self):
-        "Overridden to do nothing."
-        return
 
 def topology():
 
     "Create a network."
-    net = Mininet(controller=Controller, link=TCLink, accessPoint=UserAP, enable_wmediumd=True, enable_interference=True)
+    net = Mininet(controller=Controller, link=TCLink, accessPoint=UserAP,
+                  enable_wmediumd=True, enable_interference=True)
 
     print "*** Creating nodes"
     cars = []
@@ -26,15 +23,29 @@ def topology():
         cars.append(x)
         stas.append(x)
     for x in range(0, 10):
-        cars[x] = net.addCar('car%s' % (x), wlans=1, ip='10.0.0.%s/8' % (x + 1))
+        cars[x] = net.addCar('car%s' % (x),
+                             wlans=1, ip='10.0.0.%s/8' % (x + 1))
 
-    e1 = net.addAccessPoint('e1', ssid='vanet-ssid', mac='00:00:00:11:00:01', mode='g', channel='1', passwd='123456789a', encrypt='wpa2', position='3279.02,3736.27,0')
-    e2 = net.addAccessPoint('e2', ssid='vanet-ssid', mac='00:00:00:11:00:02', mode='g', channel='6', passwd='123456789a', encrypt='wpa2', position='2320.82,3565.75,0')
-    e3 = net.addAccessPoint('e3', ssid='vanet-ssid', mac='00:00:00:11:00:03', mode='g', channel='11', passwd='123456789a', encrypt='wpa2', position='2806.42,3395.22,0')
-    e4 = net.addAccessPoint('e4', ssid='vanet-ssid', mac='00:00:00:11:00:04', mode='g', channel='1', passwd='123456789a', encrypt='wpa2', position='3332.62,3253.92,0')
-    e5 = net.addAccessPoint('e5', ssid='vanet-ssid', mac='00:00:00:11:00:05', mode='g', channel='6', passwd='123456789a', encrypt='wpa2', position='2887.62,2935.61,0')
-    e6 = net.addAccessPoint('e6', ssid='vanet-ssid', mac='00:00:00:11:00:06', mode='g', channel='11', passwd='123456789a', encrypt='wpa2', position='2351.68,3083.40,0')
-    c1 = net.addController('c1', controller=Controller, ip='127.0.0.1', port=6633)
+    e1 = net.addAccessPoint('e1', ssid='vanet-ssid', mac='00:00:00:11:00:01',
+                            mode='g', channel='1', passwd='123456789a',
+                            encrypt='wpa2', position='3279.02,3736.27,0')
+    e2 = net.addAccessPoint('e2', ssid='vanet-ssid', mac='00:00:00:11:00:02',
+                            mode='g', channel='6', passwd='123456789a',
+                            encrypt='wpa2', position='2320.82,3565.75,0')
+    e3 = net.addAccessPoint('e3', ssid='vanet-ssid', mac='00:00:00:11:00:03',
+                            mode='g', channel='11', passwd='123456789a',
+                            encrypt='wpa2', position='2806.42,3395.22,0')
+    e4 = net.addAccessPoint('e4', ssid='vanet-ssid', mac='00:00:00:11:00:04',
+                            mode='g', channel='1', passwd='123456789a',
+                            encrypt='wpa2', position='3332.62,3253.92,0')
+    e5 = net.addAccessPoint('e5', ssid='vanet-ssid', mac='00:00:00:11:00:05',
+                            mode='g', channel='6', passwd='123456789a',
+                            encrypt='wpa2', position='2887.62,2935.61,0')
+    e6 = net.addAccessPoint('e6', ssid='vanet-ssid', mac='00:00:00:11:00:06',
+                            mode='g', channel='11', passwd='123456789a',
+                            encrypt='wpa2', position='2351.68,3083.40,0')
+    c1 = net.addController('c1', controller=Controller, ip='127.0.0.1',
+                           port=6633)
 
     net.propagationModel("logDistancePropagationLossModel", exp=2.5)
 
@@ -53,7 +64,6 @@ def topology():
     net.addLink(e4, e5)
     net.addLink(e5, e6)
 
-    "Available Options: sumo, sumo-gui"
     net.useExternalProgram('sumo-gui', config_file='map.sumocfg')
 
     print "*** Starting network"
@@ -105,6 +115,7 @@ def topology():
 
     print "*** Stopping network"
     net.stop()
+
 
 if __name__ == '__main__':
     setLogLevel('info')

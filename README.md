@@ -24,8 +24,7 @@ step 4: $ sudo util/install.sh -Wnfvl
 -v: OpenvSwitch   
 -l: wmediumd   
 
-
-### Developement
+### Development
 For instructions about easier development check [this helper file](doc/dev_help.md).
 
 ## Pre-configured Virtual Machine    

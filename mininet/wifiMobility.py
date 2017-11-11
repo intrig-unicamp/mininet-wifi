@@ -17,11 +17,11 @@ Modified by Ramon Fontes (ramonrf@dca.fee.unicamp.br)
 @copyright: http://dx.doi.org/10.5281/zenodo.9873
 '''
 
-import numpy as np
-from numpy.random import rand
 import threading
 import time
 import os
+import numpy as np
+from numpy.random import rand
 
 from mininet.log import debug, info
 from mininet.wifiLink import wirelessLink, Association
@@ -44,77 +44,95 @@ class mobility (object):
     continueParams = 'time.sleep(0.0001)'
 
     @classmethod
-    def start(self, **mobilityparam):
+    def start(cls, **mobilityparam):
         debug('Starting mobility thread...\n')
-        thread = threading.Thread(name='mobilityModel', target=self.models, kwargs=dict(mobilityparam,))
+        thread = threading.Thread(name='mobilityModel', target=cls.models,
+                                  kwargs=dict(mobilityparam,))
         thread.daemon = True
         thread.start()
-        self.setWifiParameters()
+        cls.setWifiParameters()
 
     @classmethod
-    def stop(self, **mobilityparam):
+    def stop(cls, **mobilityparam):
         debug('Starting mobility thread...\n')
-        thread = threading.Thread(name='mobility', target=self.controlledMobility, kwargs=dict(mobilityparam,))
+        thread = threading.Thread(name='mobility',
+                                  target=cls.controlled_mobility,
+                                  kwargs=dict(mobilityparam,))
         thread.daemon = True
         thread.start()
-        self.setWifiParameters()
+        cls.setWifiParameters()
 
     @classmethod
-    def moveFactor(self, sta, diffTime):
+    def moveFactor(cls, node, diffTime):
         """
-        :param sta: station
-        :param diffTime: difference between initial and final time. Useful for calculating the speed
+        :param node: node
+        :param diffTime: difference between initial and final time. Useful for
+        calculating the speed
         """
-        initialPosition = sta.params['initialPosition']
-        finalPosition = sta.params['finalPosition']
-        sta.diffTime = diffTime
-        sta.time = 0
+        initialPosition = node.params['initialPosition']
+        finalPosition = node.params['finalPosition']
+        node.diffTime = diffTime
+        if hasattr(node, 'coord'):
+            diffTime = diffTime/(len(node.coord)-1)
 
-        sta.params['position'] = initialPosition
+        node.params['position'] = initialPosition
         pos_x = float(finalPosition[0]) - float(initialPosition[0])
         pos_y = float(finalPosition[1]) - float(initialPosition[1])
         pos_z = float(finalPosition[2]) - float(initialPosition[2])
 
-        self.speed(sta, pos_x, pos_y, pos_z, diffTime)
-        pos = '%.4f,%.4f,%.4f' % (pos_x / diffTime, pos_y / diffTime, pos_z / diffTime)
+        cls.speed(node, pos_x, pos_y, pos_z, diffTime)
+        pos = '%.4f,%.4f,%.4f' % (pos_x / diffTime, pos_y / diffTime,
+                                  pos_z / diffTime)
         pos = pos.split(',')
-        sta.moveFac = pos
+        node.moveFac = pos
 
     @classmethod
-    def configure(self, *args, **kwargs):
+    def configure(cls, *args, **kwargs):
         'configure Mobility Parameters'
-        sta = args[0]
+        node = args[0]
         stage = args[1]
 
         if 'position' in kwargs:
-            if(stage == 'stop'):
+            if stage == 'stop':
                 finalPosition = kwargs['position']
-                sta.params['finalPosition'] = finalPosition.split(',')
-            if(stage == 'start'):
+                node.params['finalPosition'] = finalPosition.split(',')
+            if stage == 'start':
                 initialPosition = kwargs['position']
-                sta.params['initialPosition'] = initialPosition.split(',')
+                node.params['initialPosition'] = initialPosition.split(',')
+        else:
+            if stage == 'stop':
+                finalPosition = node.coord[1]
+                node.params['finalPosition'] = finalPosition.split(',')
+            if stage == 'start':
+                initialPosition = node.coord[0]
+                node.params['initialPosition'] = initialPosition.split(',')
 
         if 'time' in kwargs:
             time = kwargs['time']
 
-        if(stage == 'start'):
-            sta.startTime = time
-        elif(stage == 'stop'):
-            sta.endTime = time
-            diffTime = sta.endTime - sta.startTime
-            self.moveFactor(sta, diffTime)
+        if stage == 'start':
+            node.startTime = time
+        elif stage == 'stop':
+            cls.calculate_diff_time(node, time)
 
     @classmethod
-    def setWifiParameters(self):
+    def calculate_diff_time(cls, node, time=0):
+        if time != 0:
+            node.endTime = time
+        diffTime = node.endTime - node.startTime
+        cls.moveFactor(node, diffTime)
+
+    @classmethod
+    def setWifiParameters(cls):
         """
         Opens a thread for wifi parameters
         """
-        thread = threading.Thread(name='wifiParameters', target=self.parameters)
+        thread = threading.Thread(name='wifiParameters', target=cls.parameters)
         thread.daemon = True
         thread.start()
 
     @classmethod
-    def speed(self, sta, pos_x, pos_y, pos_z, diffTime):
+    def speed(cls, sta, pos_x, pos_y, pos_z, diffTime):
         """
         Calculates the speed
         
@@ -122,12 +140,13 @@ class mobility (object):
         :param pos_x: Position x
         :param pos_y: Position y
         :param pos_z: Position z
-        :param diffTime: difference between start and stop time. Useful for calculating the speed
+        :param diffTime: difference between start and stop time. Useful for
+        calculating the speed
         """
         sta.params['speed'] = '%.2f' % abs(((pos_x + pos_y + pos_z) / diffTime))
 
     @classmethod
-    def apOutOfRange(self, sta, ap, wlan):
+    def apOutOfRange(cls, sta, ap, wlan):
         """
         When ap is out of range
         
@@ -138,13 +157,19 @@ class mobility (object):
         if ap == sta.params['associatedTo'][wlan]:
             debug('iw dev %s disconnect\n' % sta.params['wlan'][wlan])
             if 'encrypt' in ap.params and 'ieee80211r' not in ap.params:
-                if ap.params['encrypt'][0] == 'wpa' or ap.params['encrypt'][0] == 'wpa2':
+                if ap.params['encrypt'][0] == 'wpa' \
+                        or ap.params['encrypt'][0] == 'wpa2':
                     os.system('rm %s_%s.staconf' % (sta.name, wlan))
-                    pidfile = "mn%d_%s_%s_wpa.pid" % (os.getpid(), sta.name, wlan)
-                    os.system('pkill -f \'wpa_supplicant -B -Dnl80211 -P %s -i %s\'' % (pidfile, sta.params['wlan'][wlan]))
-                    if os.path.exists(('/var/run/wpa_supplicant/%s' % sta.params['wlan'][wlan])) :
-                        os.system('rm /var/run/wpa_supplicant/%s' % sta.params['wlan'][wlan])
-            elif WmediumdServerConn.connected and not WmediumdServerConn.interference_enabled:
+                    pidfile = "mn%d_%s_%s_wpa.pid" \
+                              % (os.getpid(), sta.name, wlan)
+                    os.system('pkill -f \'wpa_supplicant -B -Dnl80211 -P %s -i '
+                              '%s\'' % (pidfile, sta.params['wlan'][wlan]))
+                    if os.path.exists(('/var/run/wpa_supplicant/%s'
+                                       % sta.params['wlan'][wlan])) :
+                        os.system('rm /var/run/wpa_supplicant/%s'
+                                  % sta.params['wlan'][wlan])
+            elif WmediumdServerConn.connected \
+                    and not WmediumdServerConn.interference_enabled:
                 cls = Association
                 cls.setSNRWmediumd(sta, ap, snr=-10)
             sta.pexec('iw dev %s disconnect' % sta.params['wlan'][wlan])
@@ -159,7 +184,7 @@ class mobility (object):
             ap.params['stationsInRange'].pop(sta, None)
 
     @classmethod
-    def apInRange(self, sta, ap, wlan, dist):
+    def apInRange(cls, sta, ap, wlan, dist):
         """
         When ap is in range
         
@@ -181,35 +206,36 @@ class mobility (object):
             if dist >= 0.01:
                 if Association.bgscan != '':
                     pass
-                elif WmediumdServerConn.connected and not WmediumdServerConn.interference_enabled:
-                    cls = Association
-                    cls.setSNRWmediumd(sta, ap, snr=sta.params['rssi'][wlan] - (-91))
+                elif WmediumdServerConn.connected \
+                        and not WmediumdServerConn.interference_enabled:
+                    Association.setSNRWmediumd(sta, ap,
+                                               snr=sta.params['rssi'][wlan] - (-91))
                 elif WmediumdServerConn.interference_enabled:
                     pass
                 else:
                     wirelessLink(sta, ap, wlan, dist)
 
     @classmethod
-    def checkAssociation(self, sta, wlan):
+    def checkAssociation(cls, sta, wlan):
         """ 
         check association
         
         :param sta: station
         :param wlan: wlan ID
         """
-        for ap in self.accessPoints:
+        for ap in cls.accessPoints:
             dist = wirelessLink.getDistance(sta, ap)
-            if dist > ap.params['range']:
-                self.apOutOfRange(sta, ap, wlan)
+            if dist > ap.params['range'][0]:
+                cls.apOutOfRange(sta, ap, wlan)
 
-        for ap in self.accessPoints:
+        for ap in cls.accessPoints:
             dist = wirelessLink.getDistance(sta, ap)
-            if dist <= ap.params['range']:
-                self.handover(sta, ap, wlan)
-                self.apInRange(sta, ap, wlan, dist)
+            if dist <= ap.params['range'][0]:
+                cls.handover(sta, ap, wlan)
+                cls.apInRange(sta, ap, wlan, dist)
 
     @classmethod
-    def handover(self, sta, ap, wlan):
+    def handover(cls, sta, ap, wlan):
         """
         handover
         
@@ -220,20 +246,19 @@ class mobility (object):
         changeAP = False
 
         """Association Control: mechanisms that optimize the use of the APs"""
-        if self.AC != '' and sta.params['associatedTo'][wlan] != ap \
+        if cls.AC != '' and sta.params['associatedTo'][wlan] != ap \
             and sta.params['associatedTo'][wlan] != '':
-            ac = self.AC
+            ac = cls.AC
             value = associationControl(sta, ap, wlan, ac)
             changeAP = value.changeAP
-        if sta.params['associatedTo'][wlan] == '' or changeAP == True:
+        if sta.params['associatedTo'][wlan] == '' or changeAP is True:
             if ap not in sta.params['associatedTo']:
-                cls = Association
-                cls.printCon = False
-                cls.associate_infra(sta, ap, wlan)
-                self.updateAssociation(sta, ap, wlan)
+                Association.printCon = False
+                Association.associate_infra(sta, ap, wlan)
+                cls.updateAssociation(sta, ap, wlan)
 
     @classmethod
-    def updateAssociation(self, sta, ap, wlan):
+    def updateAssociation(cls, sta, ap, wlan):
         """ 
         Updates attributes regarding association
         
@@ -241,29 +266,31 @@ class mobility (object):
         :param ap: access point
         :param wlan: wlan ID
         """
-        if sta.params['associatedTo'][wlan] != '' and sta in sta.params['associatedTo'][wlan].params['associatedStations']:
+        if sta.params['associatedTo'][wlan] != '' \
+                and sta in sta.params['associatedTo'][wlan].params['associatedStations']:
             sta.params['associatedTo'][wlan].params['associatedStations'].remove(sta)
-        cls = Association
-        cls.updateParams(sta, ap, wlan)
+        Association.updateParams(sta, ap, wlan)
         sta.params['associatedTo'][wlan] = ap
 
         if WmediumdServerConn.interference_enabled:
-            self.updateWmediumdPos(sta)
+            cls.updateWmediumdPos(sta)
 
     @classmethod
-    def updateWmediumdPos(self, node):
-        self.setWmediumdPos(node)
+    def updateWmediumdPos(cls, node):
+        cls.setWmediumdPos(node)
 
     @classmethod
-    def setWmediumdPos(self, node):
+    def setWmediumdPos(cls, node):
         if node.lastpos != node.params['position']:
             time.sleep(0.0001)
             node.setPositionWmediumd()
 
     @classmethod
-    def controlledMobility(self, init_time=0, final_time=0, stations=None, aps=None, connections=[],
-                        plotNodes=None, MIN_X=0, MIN_Y=0, MIN_Z=0, MAX_X=0, MAX_Y=0, MAX_Z=0, AC='',
-                        is3d=False, DRAW=False, **params):
+    def controlled_mobility(cls, init_time=0, final_time=0, stations=None,
+                           aps=None, connections=[], plotNodes=None, MIN_X=0,
+                           MIN_Y=0, MIN_Z=0, MAX_X=0, MAX_Y=0, MAX_Z=0, AC='',
+                           is3d=False, DRAW=False, repetitions=1, reverse=False,
+                           **params):
         """ 
         Used when the position of each node is previously defined
         
@@ -273,6 +300,8 @@ class mobility (object):
         :param aps: list of access points
         :param connections: list of connections
         :param plotnodes: list of nodes to be plotted (including hosts and switches)
+        :param repetitions: number of repetitions
+        :param reverse: reverse mobility
         :param MIN_X: Minimum value for X
         :param MIN_Y: Minimum value for Y
         :param MIN_Z: Minimum value for Z
@@ -281,66 +310,118 @@ class mobility (object):
         :param MAX_Z: Maximum value for Z
         :param AC: Association Control Method
         """
-        self.AC = AC
+        cls.AC = AC
         t_end = time.time() + final_time
         t_initial = time.time() + init_time
         currentTime = time.time()
         i = 1
 
-        self.stations = stations
-        self.accessPoints = aps
+        cls.stations = stations
+        cls.accessPoints = aps
 
-        nodes = self.stations + self.accessPoints + plotNodes
+        nodes = cls.stations + cls.accessPoints + plotNodes
 
         for node in nodes:
             if 'position' in node.params and 'initialPosition' not in node.params:
-                self.stationaryNodes.append(node)
+                cls.stationaryNodes.append(node)
             if 'initialPosition' in node.params:
                 node.params['position'] = node.params['initialPosition']
-                node.params.pop("initialPosition", None)
-                self.mobileNodes.append(node)
+                cls.mobileNodes.append(node)
+                node.coord_ = 1
 
-        nodes = self.mobileNodes + self.stationaryNodes
+        nodes = cls.mobileNodes + cls.stationaryNodes
 
         try:
             if DRAW:
-                plot = self.instantiateGraph(MIN_X, MIN_Y, MAX_X, MAX_Y, nodes, connections, MIN_Z, MAX_Z, is3d)
+                plot = cls.instantiateGraph(MIN_X, MIN_Y, MAX_X, MAX_Y, nodes,
+                                            connections, MIN_Z, MAX_Z, is3d)
         except:
             info('Warning: running without GUI.\n')
             DRAW = False
-
         try:
-            while True:
-                if time.time() > t_end or time.time() < t_initial:
-                    break
-                if time.time() - currentTime >= i:
-                    for node in self.mobileNodes:
-                        if time.time() - currentTime >= node.startTime:
-                            if node.time < node.diffTime:
-                                node.time += 1
-                                if node.time == node.diffTime:
-                                    x = '%.2f' % (float(node.params['finalPosition'][0]))
-                                    y = '%.2f' % (float(node.params['finalPosition'][1]))
-                                    z = '%.2f' % (float(node.params['finalPosition'][2]))
-                                else:
-                                    x = '%.2f' % (float(node.params['position'][0]) + float(node.moveFac[0]))
-                                    y = '%.2f' % (float(node.params['position'][1]) + float(node.moveFac[1]))
-                                    z = '%.2f' % (float(node.params['position'][2]) + float(node.moveFac[2]))
-                                node.params['position'] = x, y, z
-                        if propagationModel.model == 'logNormalShadowingPropagationLossModel':
-                            node.getRange()
-                        if DRAW:
-                            plot.graphUpdate(node)
-                            if not is3d:
-                                plot.updateCircleRadius(node)
-                    eval(self.continuePlot)
-                    i += 1
-            self.mobileNodes = []
+            for node in nodes:
+                node.idx = 1
+            for rep in range(0, repetitions):
+                if rep > 0:
+                    t_end = time.time() + final_time
+                    t_initial = time.time() + init_time
+                    currentTime = time.time()
+                    i = 1
+                    for node in nodes:
+                        if hasattr(node, 'coord') and reverse and rep%2 == 1:
+                            node.coord_=len(node.coord)-node.idx
+                            node.idx+=1
+                        else:
+                            node.coord_=1
+                            node.idx=1
+                        if 'initialPosition' in node.params:
+                            cls.mobileNodes.append(node)
+                for node in cls.mobileNodes:
+                    node.time = 0
+                    if rep%2 == 1 and reverse:
+                        if hasattr(node, 'coord'):
+                            if node.coord_ < len(node.coord):
+                                node.params['initialPosition'] = node.params['position']
+                                node.params['finalPosition'] = node.coord[node.coord_-1].split(',')
+                        else:
+                            node.params['initialPosition'] = node.params['position']
+                            node.params['finalPosition'] = node.params['initialPosition']
+                    else:
+                        if hasattr(node, 'coord'):
+                            node.params['initialPosition'] = node.coord[node.coord_-1].split(',')
+                            node.params['finalPosition'] = node.coord[node.coord_].split(',')
+                    cls.calculate_diff_time(node)
+                while True:
+                    if time.time() > t_end or time.time() < t_initial:
+                        break
+                    if time.time() - currentTime >= i:
+                        for node in cls.mobileNodes:
+                            if time.time() - currentTime >= node.startTime:
+                                if node.time <= node.diffTime:
+                                    node.time += 1
+                                    if hasattr(node, 'coord'):
+                                        len_ = len(node.coord)-1
+                                    else:
+                                        len_ = 1
+                                    if node.time == (node.diffTime/len_)+1:
+                                        x = '%.2f' % (float(node.params['finalPosition'][0]))
+                                        y = '%.2f' % (float(node.params['finalPosition'][1]))
+                                        z = '%.2f' % (float(node.params['finalPosition'][2]))
+                                        if hasattr(node, 'coord') and reverse and rep%2 == 1:
+                                            node.coord_-=1
+                                        else:
+                                            node.coord_+=1
+                                        if hasattr(node, 'coord'):
+                                            if node.coord_ < len(node.coord):
+                                                node.params['initialPosition'] = node.params['position']
+                                                if reverse and rep%2 == 1:
+                                                    node.params['finalPosition'] = node.coord[node.coord_-1].split(',')
+                                                else:
+                                                    node.params['finalPosition'] = node.coord[node.coord_].split(',')
+                                                cls.calculate_diff_time(node)
+                                    else:
+                                        x = '%.2f' % (float(node.params['position'][0]) +
+                                                      float(node.moveFac[0]))
+                                        y = '%.2f' % (float(node.params['position'][1]) +
+                                                      float(node.moveFac[1]))
+                                        z = '%.2f' % (float(node.params['position'][2]) +
+                                                      float(node.moveFac[2]))
+                                    node.params['position'] = [x, y, z]
+                            if propagationModel.model == 'logNormalShadowingPropagationLossModel':
+                                node.getRange(intf=node.params['wlan'][0])
+                            if DRAW:
+                                plot.graphUpdate(node)
+                                if not is3d:
+                                    plot.updateCircleRadius(node)
+                        eval(cls.continuePlot)
+                        i += 1
+                cls.mobileNodes = []
         except:
             pass
 
     @classmethod
-    def instantiateGraph(self, MIN_X, MIN_Y, MAX_X, MAX_Y, nodes, connections, MIN_Z=0, MAX_Z=0, is3d=False):
+    def instantiateGraph(cls, MIN_X, MIN_Y, MAX_X, MAX_Y, nodes, connections,
+                         MIN_Z=0, MAX_Z=0, is3d=False):
         if is3d:
             plot = plot3d
             plot.instantiateGraph(MIN_X, MIN_Y, MIN_Z, MAX_X, MAX_Y, MAX_Z)
@@ -352,14 +433,15 @@ class mobility (object):
         return plot
 
     @classmethod
-    def addNodes(self, stas, aps):
-        self.stations = stas
-        self.accessPoints = aps
-        self.mobileNodes = self.stations
+    def addNodes(cls, stas, aps):
+        cls.stations = stas
+        cls.accessPoints = aps
+        cls.mobileNodes = cls.stations
 
     @classmethod
-    def models(self, stations=None, aps=None, model=None, stationaryNodes=[], min_v=0, max_v=0, seed=None,
-               connections=None, plotNodes=None, MAX_X=0, MAX_Y=0, AC='', DRAW=False, **params):
+    def models(cls, stations=None, aps=None, model=None, stationaryNodes=[],
+               min_v=0, max_v=0, seed=None, connections=None, plotNodes=None,
+               MAX_X=0, MAX_Y=0, AC='', DRAW=False, **params):
         """ 
         Used when a mobility model is applied
         
@@ -376,15 +458,15 @@ class mobility (object):
         :param MAX_Y: Maximum value for Y
         """
         np.random.seed(seed)
-        self.AC = AC
+        cls.AC = AC
 
-        self.addNodes(stations, aps)
-        nodes = self.stations + self.accessPoints + plotNodes
+        cls.addNodes(stations, aps)
+        nodes = cls.stations + cls.accessPoints + plotNodes
 
         # max waiting time
         MAX_WT = 100.
 
-        for sta in self.stations:
+        for sta in cls.stations:
             if sta.max_x == 0:
                 sta.max_x = MAX_X
             if sta.max_y == 0:
@@ -396,7 +478,8 @@ class mobility (object):
 
         try:
             if DRAW:
-                self.instantiateGraph(0, 0, MAX_X, MAX_Y, nodes, connections, 0, 0, is3d=False)
+                cls.instantiateGraph(0, 0, MAX_X, MAX_Y, nodes, connections,
+                                     0, 0, is3d=False)
                 plot2d.graphPause()
         except:
             info('Warning: running without GUI.\n')
@@ -405,30 +488,34 @@ class mobility (object):
         if stationaryNodes != None:
             debug('Configuring the mobility model %s' % model)
 
-            if(model == 'RandomWalk'):  # Random Walk model
+            if model == 'RandomWalk':  # Random Walk model
                 mob = random_walk(stationaryNodes)
-            elif(model == 'TruncatedLevyWalk'):  # Truncated Levy Walk model
+            elif model == 'TruncatedLevyWalk':  # Truncated Levy Walk model
                 mob = truncated_levy_walk(stationaryNodes)
-            elif(model == 'RandomDirection'):  # Random Direction model
-                mob = random_direction(stationaryNodes, dimensions=(MAX_X, MAX_Y))
-            elif(model == 'RandomWayPoint'):  # Random Waypoint model
+            elif model == 'RandomDirection':  # Random Direction model
+                mob = random_direction(stationaryNodes,
+                                       dimensions=(MAX_X, MAX_Y))
+            elif model == 'RandomWayPoint':  # Random Waypoint model
                 mob = random_waypoint(stationaryNodes, wt_max=MAX_WT)
-            elif(model == 'GaussMarkov'):  # Gauss-Markov model
+            elif model == 'GaussMarkov':  # Gauss-Markov model
                 mob = gauss_markov(stationaryNodes, alpha=0.99)
-            elif(model == 'ReferencePoint'):  # Reference Point Group model
-                mob = reference_point_group(stationaryNodes, dimensions=(MAX_X, MAX_Y), aggregation=0.5)
-            elif(model == 'TimeVariantCommunity'):  # Time-variant Community Mobility Model
-                mob = tvc(stationaryNodes, dimensions=(MAX_X, MAX_Y), aggregation=[0.5, 0.], epoch=[100, 100])
+            elif model == 'ReferencePoint':  # Reference Point Group model
+                mob = reference_point_group(stationaryNodes,
+                                            dimensions=(MAX_X, MAX_Y),
+                                            aggregation=0.5)
+            elif model == 'TimeVariantCommunity' :
+                mob = tvc(stationaryNodes, dimensions=(MAX_X, MAX_Y),
+                          aggregation=[0.5, 0.], epoch=[100, 100])
             else:
                 raise Exception("Mobility Model not defined or doesn't exist!")
 
             if DRAW:
-                self.startMobilityModelGraph(mob, stationaryNodes)
+                cls.startMobilityModelGraph(mob, stationaryNodes)
             else:
-                self.startMobilityModelNoGraph(mob, stationaryNodes)
+                cls.startMobilityModelNoGraph(mob, stationaryNodes)
 
     @classmethod
-    def startMobilityModelGraph(self, mob, nodes):
+    def startMobilityModelGraph(cls, mob, nodes):
         """ 
         Useful for plotting graphs
         
@@ -437,16 +524,17 @@ class mobility (object):
         """
         for xy in mob:
             for idx, node in enumerate(nodes):
-                node.params['position'] = '%.2f' % xy[idx][0], '%.2f' % xy[idx][1], 0.0
+                node.params['position'] = '%.2f' % xy[idx][0], '%.2f' \
+                                          % xy[idx][1], 0.0
                 if propagationModel.model == 'logNormalShadowingPropagationLossModel':
                     time.sleep(0.0001) #notice problem when there are many threads
-                    node.getRange(stationary=False)
+                    node.getRange(intf=node.params['wlan'][0], stationary=False)
                     plot2d.updateCircleRadius(node)
                 plot2d.graphUpdate(node)
-            eval(self.continuePlot)
+            eval(cls.continuePlot)
 
     @classmethod
-    def startMobilityModelNoGraph(self, mob, nodes):
+    def startMobilityModelNoGraph(cls, mob, nodes):
         """ 
         Useful when graph is not required
         
@@ -455,42 +543,42 @@ class mobility (object):
         """
         for xy in mob:
             for idx, node in enumerate(nodes):
-                node.params['position'] = '%.2f' % xy[idx][0], '%.2f' % xy[idx][1], 0.0
+                node.params['position'] = '%.2f' % xy[idx][0], '%.2f' \
+                                          % xy[idx][1], 0.0
                 if propagationModel.model == 'logNormalShadowingPropagationLossModel':
                     time.sleep(0.0001)
-                    node.getRange()
+                    node.getRange(intf=node.params['wlan'][0])
             time.sleep(0.5)
 
     @classmethod
-    def parameters_(self, node=None):
+    def parameters_(cls, node=None):
         "Applies channel params and handover"
-        if node == None:
-            nodes = self.stations
+        if node is None:
+            nodes = cls.stations
         else:
             if node.type == 'ap':
-                nodes = self.stations
+                nodes = cls.stations
             else:
                 nodes = []
                 nodes.append(node)
-        for node_ in self.accessPoints:
+        for node_ in cls.accessPoints:
             if 'link' in node_.params and node_.params['link'] == 'mesh':
                 nodes.append(node_)
 
-        self.configureLinks(nodes)
+        cls.configureLinks(nodes)
 
     @classmethod
-    def parameters(self):
+    def parameters(cls):
         "Applies channel params and handover"
-        if WmediumdServerConn.interference_enabled and self.meshNodes != []:
-            cls = Association
-            for node in self.meshNodes:
+        if WmediumdServerConn.interference_enabled and cls.meshNodes != []:
+            for node in cls.meshNodes:
                 for wlan in range(0, len(node.params['wlan'])):
-                    cls.meshAssociation(node, wlan)
+                    Association.meshAssociation(node, wlan)
         while True:
-            self.configureLinks(self.mobileNodes)
+            cls.configureLinks(cls.mobileNodes)
 
     @classmethod
-    def configureLinks(self, nodes):
+    def configureLinks(cls, nodes):
         for node in nodes:
             for wlan in range(0, len(node.params['wlan'])):
                 if node.func[wlan] == 'mesh' or node.func[wlan] == 'adhoc':
@@ -502,45 +590,48 @@ class mobility (object):
                     if WmediumdServerConn.interference_enabled:
                         if Association.bgscan != '':
                             if node.params['associatedTo'][wlan] == '':
-                                for ap in self.accessPoints:
-                                    cls = Association
-                                    cls.printCon = False
-                                    cls.associate_infra(node, ap, wlan)
+                                for ap in cls.accessPoints:
+                                    Association.printCon = False
+                                    Association.associate_infra(node, ap, wlan)
                                     node.params['associatedTo'][wlan] = 'bgscan'
                         else:
-                            self.checkAssociation(node, wlan)
+                            cls.checkAssociation(node, wlan)
                     else:
-                        self.checkAssociation(node, wlan)        # have to verify this
+                        cls.checkAssociation(node, wlan) # have to verify this
                 if WmediumdServerConn.interference_enabled:
-                    self.setWmediumdPos(node)
-        eval(self.continueParams)
+                    cls.setWmediumdPos(node)
+        eval(cls.continueParams)
 
 
 # define a Uniform Distribution
 U = lambda MIN, MAX, SAMPLES: rand(*SAMPLES.shape) * (MAX - MIN) + MIN
 
 # define a Truncated Power Law Distribution
-P = lambda ALPHA, MIN, MAX, SAMPLES: ((MAX ** (ALPHA + 1.) - 1.) * rand(*SAMPLES.shape) + 1.) ** (1. / (ALPHA + 1.))
+P = lambda ALPHA, MIN, MAX, SAMPLES: ((MAX ** (ALPHA + 1.) - 1.) * \
+                                rand(*SAMPLES.shape) + 1.) ** (1. / (ALPHA + 1.))
 
 # define an Exponential Distribution
 E = lambda SCALE, SAMPLES:-SCALE * np.log(rand(*SAMPLES.shape))
 
 # *************** Palm state probability **********************
-def pause_probability_init(pause_low, pause_high, speed_low, speed_high, max_x, max_y):
-    alpha1 = ((pause_high + pause_low) * (speed_high - speed_low)) / (2 * np.log(speed_high / speed_low))
+def pause_probability_init(pause_low, pause_high, speed_low, \
+                           speed_high, max_x, max_y):
+    alpha1 = ((pause_high + pause_low) * (speed_high - speed_low)) / \
+             (2 * np.log(speed_high / speed_low))
     delta1 = np.sqrt((max_x * max_x) + (max_y * max_y))
     return alpha1 / (alpha1 + delta1)
 
 # *************** Palm residual ******************************
 def residual_time(mean, delta, shape=(1,)):
-    t1 = mean - delta;
-    t2 = mean + delta;
-    u = rand(*shape);
+    t1 = mean - delta
+    t2 = mean + delta
+    u = rand(*shape)
     residual = np.zeros(shape)
     if delta != 0.0:
         case_1_u = u < (2.*t1 / (t1 + t2))
         residual[case_1_u] = u[case_1_u] * (t1 + t2) / 2.
-        residual[np.logical_not(case_1_u)] = t2 - np.sqrt((1. - u[np.logical_not(case_1_u)]) * (t2 * t2 - t1 * t1))
+        residual[np.logical_not(case_1_u)] = \
+            t2 - np.sqrt((1. - u[np.logical_not(case_1_u)]) * (t2 * t2 - t1 * t1))
     else:
         residual = u * mean
     return residual
@@ -567,11 +658,14 @@ def init_random_waypoint(nodes, min_x, min_y, max_x, max_y,
     speed_low = speed_low
     speed_high = speed_high
     moving = np.ones(nr_nodes)
-    speed_mean, speed_delta = (speed_low + speed_high) / 2., (speed_high - speed_low) / 2.
-    pause_mean, pause_delta = (pause_low + pause_high) / 2., (pause_high - pause_low) / 2.
+    speed_mean, speed_delta = (speed_low + speed_high) / 2., \
+                              (speed_high - speed_low) / 2.
+    pause_mean, pause_delta = (pause_low + pause_high) / 2., \
+                              (pause_high - pause_low) / 2.
 
     # steady-state pause probability for Random Waypoint
-    q0 = pause_probability_init(pause_low, pause_high, speed_low, speed_high, max_x, max_y)
+    q0 = pause_probability_init(pause_low, pause_high, speed_low, \
+                                speed_high, max_x, max_y)
 
     for i in range(nr_nodes):
         while True:
@@ -597,7 +691,8 @@ def init_random_waypoint(nodes, min_x, min_y, max_x, max_y,
                 # r is a ratio of the length of the randomly chosen path over
                 # the length of a diagonal across the simulation area
                 # ||M_1 - M_0||
-                r = np.sqrt(((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1)) / (max_x[i] * max_x[i] + max_y[i] * max_y[i]))
+                r = np.sqrt(((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1)) / \
+                            (max_x[i] * max_x[i] + max_y[i] * max_y[i]))
                 if rand() < r:
                     moving[i] = 1.
                     break
@@ -739,7 +834,8 @@ class RandomWaypoint(object):
 
 class StochasticWalk(object):
 
-    def __init__(self, nodes, FL_DISTR, VELOCITY_DISTR, WT_DISTR=None, border_policy='reflect', model=None):
+    def __init__(self, nodes, FL_DISTR, VELOCITY_DISTR, WT_DISTR=None, \
+                 border_policy='reflect', model=None):
         '''
         Base implementation for models with direction uniformly chosen from [0,pi]:
         random_direction, random_walk, truncated_levy_walk
@@ -762,7 +858,8 @@ class StochasticWalk(object):
             A function that, given a set of flight lengths, 
              returns another set with the same size of the input set.
             This function should implement the distribution of velocities
-             to be used in the model, as random or as a function of the flight lengths.
+             to be used in the model, as random or as a function of the flight
+             lengths.
           
         keyword arguments:
         
@@ -774,9 +871,11 @@ class StochasticWalk(object):
             If WT_DISTR is 0 or None, there is no pause time.
             
           *border_policy*:
-            String, either 'reflect' or 'wrap'. The policy that is used when the node arrives to the border.
+            String, either 'reflect' or 'wrap'. The policy that is used when
+            the node arrives to the border.
             If 'reflect', the node reflects off the border.
-            If 'wrap', the node reappears at the opposite edge (as in a torus-shaped area).
+            If 'wrap', the node reappears at the opposite edge
+            (as in a torus-shaped area).
         '''
         self.b = [0]
         self.nodes = nodes
@@ -850,7 +949,8 @@ class StochasticWalk(object):
         fl = self.FL_DISTR(NODES)
         velocity = self.VELOCITY_DISTR(fl)
         theta = U(0, 1.8 * np.pi, NODES)
-        cosintheta = np.dstack((np.cos(theta), np.sin(theta)))[0] * np.dstack((velocity, velocity))[0]
+        cosintheta = np.dstack((np.cos(theta), np.sin(theta)))[0] * \
+                     np.dstack((velocity, velocity))[0]
         wt = np.zeros(self.nr_nodes)
 
         if self.collect_fl_stats: self.fl_stats = list(fl)
@@ -890,7 +990,8 @@ class StochasticWalk(object):
                 else:
                     velocity[arrived] = self.VELOCITY_DISTR(fl[arrived])[arrived]
                 v = velocity[arrived]
-                cosintheta[arrived] = np.dstack((v * np.cos(theta), v * np.sin(theta)))[0]
+                cosintheta[arrived] = np.dstack((v * np.cos(theta),
+                                                 v * np.sin(theta)))[0]
             yield xy
 
 class RandomWalk(StochasticWalk):
@@ -898,8 +999,10 @@ class RandomWalk(StochasticWalk):
     def __init__(self, nodes, border_policy='reflect'):
         '''
         Random Walk mobility model.
-        This model is based in the Stochastic Walk, but both the flight length and node velocity distributions are in fact constants,
-        set to the *distance* and *velocity* parameters. The waiting time is set to None.
+        This model is based in the Stochastic Walk, but both the flight
+        length and node velocity distributions are in fact constants,
+        set to the *distance* and *velocity* parameters. The waiting time
+        is set to None.
         
         Required arguments:
         
@@ -912,12 +1015,15 @@ class RandomWalk(StochasticWalk):
             Double, the value for the constant node velocity. Default is 1.0
           
           *distance*:
-            Double, the value for the constant distance traveled in each step. Default is 1.0
+            Double, the value for the constant distance traveled in each step.
+            Default is 1.0
             
           *border_policy*:
-            String, either 'reflect' or 'wrap'. The policy that is used when the node arrives to the border.
+            String, either 'reflect' or 'wrap'. The policy that is used when the
+            node arrives to the border.
             If 'reflect', the node reflects off the border.
-            If 'wrap', the node reappears at the opposite edge (as in a torus-shaped area).
+            If 'wrap', the node reappears at the opposite edge
+            (as in a torus-shaped area).
         '''
         nr_nodes = len(nodes)
         NODES = np.arange(nr_nodes)
@@ -940,18 +1046,21 @@ class RandomWalk(StochasticWalk):
         FL_DISTR = lambda SAMPLES: np.array(fl[:len(SAMPLES)])
         VELOCITY_DISTR = lambda FD: np.array(vel[:len(FD)])
 
-        StochasticWalk.__init__(self, nodes, FL_DISTR, VELOCITY_DISTR, border_policy=border_policy)
+        StochasticWalk.__init__(self, nodes, FL_DISTR, VELOCITY_DISTR, \
+                                border_policy=border_policy)
 
 class RandomDirection(StochasticWalk):
 
     def __init__(self, nodes, dimensions, wt_max=None, border_policy='reflect'):
         '''
         Random Direction mobility model.
-        This model is based in the Stochastic Walk. The flight length is chosen from a uniform distribution, 
-        with minimum 0 and maximum set to the maximum dimension value.
-        The velocity is also chosen from a uniform distribution, with boundaries set by the *velocity* parameter.
-        If wt_max is set, the waiting time is chosen from a uniform distribution with values between 0 and wt_max.
-        If wt_max is not set, waiting time is set to None.
+        This model is based in the Stochastic Walk. The flight length is chosen
+        from a uniform distribution, with minimum 0 and maximum set to the maximum
+        dimension value. The velocity is also chosen from a uniform distribution,
+        with boundaries set by the *velocity* parameter.
+        If wt_max is set, the waiting time is chosen from a uniform distribution
+        with values between 0 and wt_max. If wt_max is not set, waiting time is
+        set to None.
         
         Required arguments:
         
@@ -965,14 +1074,16 @@ class RandomDirection(StochasticWalk):
         
           *wt_max*:
             Double, maximum value for the waiting time distribution.
-            If wt_max is set, the waiting time is chosen from a uniform distribution with values between 0 and wt_max.
+            If wt_max is set, the waiting time is chosen from a uniform
+            distribution with values between 0 and wt_max.
             If wt_max is not set, the waiting time is set to None.
             Default is None.
             
           *border_policy*:
-            String, either 'reflect' or 'wrap'. The policy that is used when the node arrives to the border.
-            If 'reflect', the node reflects off the border.
-            If 'wrap', the node reappears at the opposite edge (as in a torus-shaped area).
+            String, either 'reflect' or 'wrap'. The policy that is used
+            when the node arrives to the border. If 'reflect', the node reflects
+            off the border. If 'wrap', the node reappears at the opposite edge
+            (as in a torus-shaped area).
         '''
         nr_nodes = len(nodes)
         NODES = np.arange(nr_nodes)
@@ -996,20 +1107,25 @@ class RandomDirection(StochasticWalk):
             WT_DISTR = None
         VELOCITY_DISTR = lambda FD: U(MIN_V, MAX_V, FD)
 
-        StochasticWalk.__init__(self, nodes, FL_DISTR, VELOCITY_DISTR, WT_DISTR, border_policy, model='RandomDirection')
+        StochasticWalk.__init__(self, nodes, FL_DISTR, VELOCITY_DISTR,
+                                WT_DISTR, border_policy, model='RandomDirection')
 
 class TruncatedLevyWalk(StochasticWalk):
 
-    def __init__(self, nodes, FL_EXP=-2.6, FL_MAX=50., WT_EXP=-1.8, WT_MAX=100., border_policy='reflect'):
+    def __init__(self, nodes, FL_EXP=-2.6, FL_MAX=50., WT_EXP=-1.8,
+                 WT_MAX=100., border_policy='reflect'):
         '''
         Truncated Levy Walk mobility model, based on the following paper:
-        Injong Rhee, Minsu Shin, Seongik Hong, Kyunghan Lee, and Song Chong. On the Levy-Walk Nature of Human Mobility. 
-            In 2008 IEEE INFOCOM - Proceedings of the 27th Conference on Computer Communications, pages 924-932. April 2008.
+        Injong Rhee, Minsu Shin, Seongik Hong, Kyunghan Lee, and Song Chong.
+        On the Levy-Walk Nature of Human Mobility.
+            In 2008 IEEE INFOCOM - Proceedings of the 27th Conference on Computer
+            Communications, pages 924-932. April 2008.
         
         The implementation is a special case of the more generic Stochastic Walk, 
-        in which both the flight length and waiting time distributions are truncated power laws,
-        with exponents set to FL_EXP and WT_EXP and truncated at FL_MAX and WT_MAX.
-        The node velocity is a function of the flight length.
+        in which both the flight length and waiting time distributions are
+        truncated power laws, with exponents set to FL_EXP and WT_EXP and
+        truncated at FL_MAX and WT_MAX. The node velocity is a function of the
+        flight length.
         
         Required arguments:
         
@@ -1019,21 +1135,26 @@ class TruncatedLevyWalk(StochasticWalk):
         keyword arguments:
         
           *FL_EXP*:
-            Double, the exponent of the flight length distribution. Default is -2.6
+            Double, the exponent of the flight length distribution.
+            Default is -2.6
             
           *FL_MAX*:
-            Double, the maximum value of the flight length distribution. Default is 50
+            Double, the maximum value of the flight length distribution.
+            Default is 50
           
           *WT_EXP*:
-            Double, the exponent of the waiting time distribution. Default is -1.8
+            Double, the exponent of the waiting time distribution.
+            Default is -1.8
             
           *WT_MAX*:
-            Double, the maximum value of the waiting time distribution. Default is 100
+            Double, the maximum value of the waiting time distribution.
+            Default is 100
             
           *border_policy*:
-            String, either 'reflect' or 'wrap'. The policy that is used when the node arrives to the border.
-            If 'reflect', the node reflects off the border.
-            If 'wrap', the node reappears at the opposite edge (as in a torus-shaped area).
+            String, either 'reflect' or 'wrap'. The policy that is used when the
+            node arrives to the border. If 'reflect', the node reflects off the
+            border. If 'wrap', the node reappears at the opposite edge (as in a
+            torus-shaped area).
         '''
         FL_DISTR = lambda SAMPLES: P(FL_EXP, 1., FL_MAX, SAMPLES)
         if WT_EXP and WT_MAX:
@@ -1042,18 +1163,22 @@ class TruncatedLevyWalk(StochasticWalk):
             WT_DISTR = None
         VELOCITY_DISTR = lambda FD: np.sqrt(FD) / 10.
 
-        StochasticWalk.__init__(self, nodes, FL_DISTR, VELOCITY_DISTR, WT_DISTR, border_policy, model='TruncatedLevyWalk')
+        StochasticWalk.__init__(self, nodes, FL_DISTR, VELOCITY_DISTR,
+                                WT_DISTR, border_policy, model='TruncatedLevyWalk')
 
 class HeterogeneousTruncatedLevyWalk(StochasticWalk):
 
-    def __init__(self, nodes, dimensions, WT_EXP=-1.8, WT_MAX=100., FL_EXP=-2.6, FL_MAX=50., border_policy='reflect'):
+    def __init__(self, nodes, dimensions, WT_EXP=-1.8, WT_MAX=100.,
+                 FL_EXP=-2.6, FL_MAX=50., border_policy='reflect'):
         '''
         This is a variant of the Truncated Levy Walk mobility model.
         This model is based in the Stochastic Walk.
-        The waiting time distribution is a truncated power law with exponent set to WT_EXP and truncated WT_MAX.
-        The flight length is a uniform distribution, different for each node. These uniform distributions are 
-        created by taking both min and max values from a power law with exponent set to FL_EXP and truncated FL_MAX.
-        The node velocity is a function of the flight length.
+        The waiting time distribution is a truncated power law with exponent
+        set to WT_EXP and truncated WT_MAX. The flight length is a uniform
+        distribution, different for each node. These uniform distributions are
+        created by taking both min and max values from a power law with exponent
+        set to FL_EXP and truncated FL_MAX. The node velocity is a function of
+        the flight length.
         
         Required arguments:
         
@@ -1066,32 +1191,41 @@ class HeterogeneousTruncatedLevyWalk(StochasticWalk):
         keyword arguments:
         
           *WT_EXP*:
-            Double, the exponent of the waiting time distribution. Default is -1.8
+            Double, the exponent of the waiting time distribution.
+             Default is -1.8
             
           *WT_MAX*:
-            Double, the maximum value of the waiting time distribution. Default is 100
+            Double, the maximum value of the waiting time distribution.
+            Default is 100
         
           *FL_EXP*:
-            Double, the exponent of the flight length distribution. Default is -2.6
+            Double, the exponent of the flight length distribution.
+            Default is -2.6
             
           *FL_MAX*:
-            Double, the maximum value of the flight length distribution. Default is 50
+            Double, the maximum value of the flight length distribution.
+            Default is 50
             
           *border_policy*:
-            String, either 'reflect' or 'wrap'. The policy that is used when the node arrives to the border.
-            If 'reflect', the node reflects off the border.
-            If 'wrap', the node reappears at the opposite edge (as in a torus-shaped area).
+            String, either 'reflect' or 'wrap'. The policy that is used when
+            the node arrives to the border. If 'reflect', the node reflects off
+            the border. If 'wrap', the node reappears at the opposite edge
+            (as in a torus-shaped area).
         '''
         nr_nodes = len(nodes)
         NODES = np.arange(nr_nodes)
         FL_MAX = P(-1.8, 10., FL_MAX, NODES)
         FL_MIN = FL_MAX / 10.
 
-        FL_DISTR = lambda SAMPLES: rand(len(SAMPLES)) * (FL_MAX[SAMPLES] - FL_MIN[SAMPLES]) + FL_MIN[SAMPLES]
+        FL_DISTR = lambda SAMPLES: rand(len(SAMPLES)) * \
+                                   (FL_MAX[SAMPLES] - FL_MIN[SAMPLES]) + \
+                                   FL_MIN[SAMPLES]
         WT_DISTR = lambda SAMPLES: P(WT_EXP, 1., WT_MAX, SAMPLES)
         VELOCITY_DISTR = lambda FD: np.sqrt(FD) / 10.
 
-        StochasticWalk.__init__(self, nr_nodes, dimensions, FL_DISTR, VELOCITY_DISTR, WT_DISTR=WT_DISTR, border_policy=border_policy)
+        StochasticWalk.__init__(self, nr_nodes, dimensions, FL_DISTR,
+                                VELOCITY_DISTR, WT_DISTR=WT_DISTR,
+                                border_policy=border_policy)
 
 def random_waypoint(*args, **kwargs):
     return iter(RandomWaypoint(*args, **kwargs))
@@ -1114,7 +1248,8 @@ def heterogeneous_truncated_levy_walk(*args, **kwargs):
 def gauss_markov(nodes, velocity_mean=1., alpha=1., variance=1.):
     '''
     Gauss-Markov Mobility Model, as proposed in 
-    Camp, T., Boleng, J. & Davies, V. A survey of mobility models for ad hoc network research. 
+    Camp, T., Boleng, J. & Davies, V. A survey of mobility models for ad hoc
+    network research.
     Wireless Communications and Mobile Computing 2, 483-502 (2002).
     
     Required arguments:
@@ -1167,21 +1302,32 @@ def gauss_markov(nodes, velocity_mean=1., alpha=1., variance=1.):
 
         # node bounces on the margins
         b = np.where(x < MIN_X)[0]
-        x[b] = 2 * MIN_X[b] - x[b]; theta[b] = np.pi - theta[b]; angle_mean[b] = np.pi - angle_mean[b]
+        x[b] = 2 * MIN_X[b] - x[b]
+        theta[b] = np.pi - theta[b]
+        angle_mean[b] = np.pi - angle_mean[b]
+
         b = np.where(x > MAX_X)[0]
-        x[b] = 2 * MAX_X[b] - x[b]; theta[b] = np.pi - theta[b]; angle_mean[b] = np.pi - angle_mean[b]
+        x[b] = 2 * MAX_X[b] - x[b]
+        theta[b] = np.pi - theta[b]
+        angle_mean[b] = np.pi - angle_mean[b]
+
         b = np.where(y < MIN_Y)[0]
-        y[b] = 2 * MIN_Y[b] - y[b]; theta[b] = -theta[b]; angle_mean[b] = -angle_mean[b]
+        y[b] = 2 * MIN_Y[b] - y[b]
+        theta[b] = -theta[b]
+        angle_mean[b] = -angle_mean[b]
+
         b = np.where(y > MAX_Y)[0]
-        y[b] = 2 * MAX_Y[b] - y[b]; theta[b] = -theta[b]; angle_mean[b] = -angle_mean[b]
+        y[b] = 2 * MAX_Y[b] - y[b]
+        theta[b] = -theta[b]
+        angle_mean[b] = -angle_mean[b]
         # calculate new speed and direction based on the model
         velocity = (alpha * velocity +
                     alpha2 * velocity_mean +
                     alpha3 * np.random.normal(0.0, 1.0, nr_nodes))
 
         theta = (alpha * theta +
-                    alpha2 * angle_mean +
-                    alpha3 * np.random.normal(0.0, 1.0, nr_nodes))
+                 alpha2 * angle_mean +
+                 alpha3 * np.random.normal(0.0, 1.0, nr_nodes))
 
         yield np.dstack((x, y))[0]
 
@@ -1190,13 +1336,15 @@ def reference_point_group(nodes, dimensions, velocity=(0.1, 1.), aggregation=0.1
     Reference Point Group Mobility model, discussed in the following paper:
     
         Xiaoyan Hong, Mario Gerla, Guangyu Pei, and Ching-Chuan Chiang. 1999. 
-        A group mobility model for ad hoc wireless networks. In Proceedings of the 
-        2nd ACM international workshop on Modeling, analysis and simulation of 
-        wireless and mobile systems (MSWiM '99). ACM, New York, NY, USA, 53-60.
+        A group mobility model for ad hoc wireless networks. In Proceedings of
+        the 2nd ACM international workshop on Modeling, analysis and simulation
+        of wireless and mobile systems (MSWiM '99). ACM, New York, NY, USA,
+        53-60.
     
     In this implementation, group trajectories follow a random direction model,
     while nodes follow a random walk around the group center.
-    The parameter 'aggregation' controls how close the nodes are to the group center.
+    The parameter 'aggregation' controls how close the nodes are to the group
+    center.
     
     Required arguments:
     
@@ -1212,11 +1360,11 @@ def reference_point_group(nodes, dimensions, velocity=(0.1, 1.), aggregation=0.1
         Tuple of Doubles, the minimum and maximum values for group velocity.
         
       *aggregation*:
-        Double, parameter (between 0 and 1) used to aggregate the nodes in the group.
-        Usually between 0 and 1, the more this value approximates to 1,
+        Double, parameter (between 0 and 1) used to aggregate the nodes in the
+        group. Usually between 0 and 1, the more this value approximates to 1,
         the nodes will be more aggregated and closer to the group center.
-        With a value of 0, the nodes are randomly distributed in the simulation area.
-        With a value of 1, the nodes are close to the group center.
+        With a value of 0, the nodes are randomly distributed in the simulation
+        area. With a value of 1, the nodes are close to the group center.
     '''
     nr_nodes = len(nodes)
     try:
@@ -1318,17 +1466,22 @@ def tvc(nodes, dimensions, velocity=(0.1, 1.), aggregation=[0.5, 0.], epoch=[100
     Time-variant Community Mobility Model, discussed in the paper
     
         Wei-jen Hsu, Thrasyvoulos Spyropoulos, Konstantinos Psounis, and Ahmed Helmy, 
-        "Modeling Time-variant User Mobility in Wireless Mobile Networks," INFOCOM 2007, May 2007.
+        "Modeling Time-variant User Mobility in Wireless Mobile Networks,"
+        INFOCOM 2007, May 2007.
     
     This is a variant of the original definition, in the following way:
     - Communities don't have a specific area, but a reference point where the 
        community members aggregate around.
-    - The community reference points are not static, but follow a random direction model.
-    - You can define a list of epoch stages, each value is the duration of the stage.
-       For each stage a different aggregation value is used (from the aggregation parameter).
+    - The community reference points are not static, but follow a random
+    direction model.
+    - You can define a list of epoch stages, each value is the duration of the
+    stage.
+       For each stage a different aggregation value is used (from the aggregation
+       parameter).
     - Aggregation values should be doubles between 0 and 1.
-       For aggregation 0, there's no attraction point and the nodes move in a random walk model.
-       For aggregation near 1, the nodes move closer to the community reference point.
+       For aggregation 0, there's no attraction point and the nodes move in a random
+       walk model. For aggregation near 1, the nodes move closer to the community
+       reference point.
        
     Required arguments:
     
@@ -1344,7 +1497,8 @@ def tvc(nodes, dimensions, velocity=(0.1, 1.), aggregation=[0.5, 0.], epoch=[100
         Tuple of Doubles, the minimum and maximum values for community velocities.
         
       *aggregation*:
-        List of Doubles, parameters (between 0 and 1) used to aggregate the nodes around the community center.
+        List of Doubles, parameters (between 0 and 1) used to aggregate the nodes
+        around the community center.
         Usually between 0 and 1, the more this value approximates to 1,
         the nodes will be more aggregated and closer to the group center.
         With aggregation 0, the nodes are randomly distributed in the simulation area.
@@ -1355,7 +1509,8 @@ def tvc(nodes, dimensions, velocity=(0.1, 1.), aggregation=[0.5, 0.], epoch=[100
     '''
     nr_nodes = len(nodes)
     if len(aggregation) != len(epoch):
-        raise Exception("The parameters 'aggregation' and 'epoch' should be of same size")
+        raise Exception("The parameters 'aggregation' and 'epoch' should be "
+                        "of same size")
 
     try:
         iter(nr_nodes)
@@ -1463,7 +1618,8 @@ def tvc(nodes, dimensions, velocity=(0.1, 1.), aggregation=[0.5, 0.], epoch=[100
                 c_theta = np.arctan2(dy, dx)
 
                 # invert angle if wrapping around
-                invert = np.where((np.abs(dy) > MAX_Y / 2) != (np.abs(dx) > MAX_X / 2))[0]
+                invert = np.where((np.abs(dy) > MAX_Y / 2) !=
+                                  (np.abs(dx) > MAX_X / 2))[0]
                 c_theta[invert] = c_theta[invert] + np.pi
 
                 x[g] = x_g + g_velocity[i] * g_costheta[i] + aggr * np.cos(c_theta)

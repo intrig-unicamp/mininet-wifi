@@ -167,7 +167,7 @@ class Topo(object):
         return result
 
     def addLink(self, node1, node2, port1=None, port2=None,
-                 key=None, **opts):
+                key=None, **opts):
         """node1, node2: nodes to link together
            port1, port2: ports (optional)
            opts: link options (optional)
@@ -358,7 +358,7 @@ class SingleSwitchReversedTopo(Topo):
             for h in irange(1, k):
                 sta = self.addStation('sta%s' % h)
                 self.addLink(sta, ap,
-                              port1=0, port2=(k - h + 1))
+                             port1=0, port2=(k - h + 1))
         else:
             "k: number of hosts"
             self.k = k
@@ -366,7 +366,7 @@ class SingleSwitchReversedTopo(Topo):
             for h in irange(1, k):
                 host = self.addHost('h%s' % h)
                 self.addLink(host, switch,
-                              port1=0, port2=(k - h + 1))
+                             port1=0, port2=(k - h + 1))
 
 
 class MinimalTopo(SingleSwitchTopo):

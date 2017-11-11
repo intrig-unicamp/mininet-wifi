@@ -1,24 +1,24 @@
 """
 author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
 """
-import numpy as np
 import os
+import numpy as np
+from scipy.spatial.distance import pdist
 
 from mininet.wifiDevices import deviceDataRate
 from mininet.log import debug, info
-from wifiPropagationModels import propagationModel
+from mininet.wifiPropagationModels import propagationModel
 from mininet.wmediumdConnector import WmediumdServerConn, WmediumdSNRLink
 from mininet.link import TCLinkWirelessStation
-from scipy.spatial.distance import pdist
 
 class wirelessLink (object):
 
     dist = 0
     noise = 0
     equationLoss = '(dist * 2) / 1000'
-    equationDelay = '(dist / 10) + 1'
+    equationDelay = '(dist / 100) + 1'
     equationLatency = '2 + dist'
-    equationBw = 'custombw * (1.1 ** -dist)'
+    equationBw = 'custombw * (1.01 ** -dist)'
     ifb = False
 
     def __init__(self, sta=None, ap=None, wlan=0, dist=0):
@@ -36,41 +36,42 @@ class wirelessLink (object):
         self.tc(sta, wlan, bw_, loss_, latency_, delay_)
 
     @classmethod
-    def getDistance(self, src, dst):
-        """ Get the distance between two nodes 
+    def getDistance(cls, src, dst):
+        """ Get the distance between two nodes
         
         :param src: source node
         :param dst: destination node
         """
         pos_src = src.params['position']
         pos_dst = dst.params['position']
-        points = np.array([(pos_src[0], pos_src[1], pos_src[2]), (pos_dst[0], pos_dst[1], pos_dst[2])])
+        points = np.array([(pos_src[0], pos_src[1], pos_src[2]),
+                           (pos_dst[0], pos_dst[1], pos_dst[2])])
         return float(pdist(points))
 
     @classmethod
-    def setDelay(self, dist):
+    def setDelay(cls, dist):
         """"Based on RandomPropagationDelayModel
         
         :param dist: distance between source and destination
         """
-        return eval(self.equationDelay)
+        return eval(cls.equationDelay)
 
     @classmethod
-    def setLatency(self, dist):
+    def setLatency(cls, dist):
         """
         :param dist: distance between source and destination
         """
-        return eval(self.equationLatency)
+        return eval(cls.equationLatency)
 
     @classmethod
-    def setLoss(self, dist):
+    def setLoss(cls, dist):
         """
         :param dist: distance between source and destination
         """
-        return eval(self.equationLoss)
+        return eval(cls.equationLoss)
 
     @classmethod
-    def setBW(self, sta=None, ap=None, wlan=0, dist=0):
+    def setBW(cls, sta=None, ap=None, wlan=0, dist=0):
         """set BW
 
         :param sta: station
@@ -80,14 +81,14 @@ class wirelessLink (object):
         """
         value = deviceDataRate(sta, ap, wlan)
         custombw = value.rate
-        rate = eval(self.equationBw)
+        rate = eval(cls.equationBw)
 
         if rate <= 0.0:
             rate = 0.1
         return rate
 
     @classmethod
-    def setRSSI(self, node1=None, node2=None, wlan=0, dist=0):
+    def setRSSI(cls, node1=None, node2=None, wlan=0, dist=0):
         """set RSSI
         
         :param node1: station
@@ -99,7 +100,7 @@ class wirelessLink (object):
         return float(value.rssi)  # random.uniform(value.rssi-1, value.rssi+1)
 
     @classmethod
-    def delete(self, node):
+    def delete(cls, node):
         "Delete interfaces"
         for wlan in node.params['wlan']:
             if node.type == 'vehicle' and node.params['wlan'].index(wlan) == 1:
@@ -111,7 +112,7 @@ class wirelessLink (object):
                 node.intf = None
 
     @classmethod
-    def tc(self, sta, wlan, bw, loss, latency, delay):
+    def tc(cls, sta, wlan, bw, loss, latency, delay):
         """Applies TC
         
         :param sta: station
@@ -122,14 +123,15 @@ class wirelessLink (object):
         :param delay: delay (ms)
         """
 
-        if self.ifb:
+        if cls.ifb:
             sta.pexec("tc qdisc replace dev ifb%s \
                 root handle 2: netem rate %.2fmbit \
                 loss %.1f%% \
                 latency %.2fms \
                 delay %.2fms " % (sta.ifb[wlan], bw, loss, latency, delay))
         if 'encrypt' in sta.params:
-            """tbf is applied to encrypt, cause we have noticed troubles with wpa_supplicant and netem"""
+            """tbf is applied to encrypt, cause we have noticed troubles 
+            with wpa_supplicant and netem"""
             tc = 'tc qdisc replace dev %s root handle 1: tbf '\
                  'rate %.2fmbit '\
                  'burst 15000b '\
@@ -138,15 +140,17 @@ class wirelessLink (object):
         else:
             tc = "tc qdisc replace dev %s " \
                  "root handle 2: netem " \
-                 "rate %.2fmbit " \
+                 "rate %.4fmbit " \
                  "loss %.1f%% " \
                  "latency %.2fms " \
-                 "delay %.2fms" % (sta.params['wlan'][wlan], bw, loss, latency, delay)
+                 "delay %.2fms" % (sta.params['wlan'][wlan], bw, loss,
+                                   latency, delay)
             sta.pexec(tc)
-                # corrupt 0.1%%" % (sta.params['wlan'][wlan], bw, loss, latency, delay))
+                # corrupt 0.1%%" % (sta.params['wlan'][wlan], bw, loss,
+            # latency, delay))
 
     @classmethod
-    def frequency(self, node, wlan):
+    def frequency(cls, node, wlan):
         """Gets frequency based on channel number
         
         :param node: node
@@ -224,6 +228,8 @@ class wirelessLink (object):
             freq = 5.805
         elif channel == 165:
             freq = 5.825
+        else:
+            freq = 2.412
         return freq
 
 class Association(object):
@@ -232,7 +238,7 @@ class Association(object):
     bgscan = ''
 
     @classmethod
-    def configureAdhoc(self, node, wlan, enable_wmediumd):
+    def configureAdhoc(cls, node, wlan, enable_wmediumd):
         "Configure Wireless Ad Hoc"
         iface = node.params['wlan'][wlan]
         node.func[wlan] = 'adhoc'
@@ -242,31 +248,36 @@ class Association(object):
             node.params['associatedTo'][wlan] = node.params['ssid'][wlan]
             debug("associating %s to %s...\n" % (iface, node.params['ssid'][wlan]))
             node.pexec('iw dev %s ibss join %s %s 02:CA:FF:EE:BA:01'\
-                       % (iface, node.params['associatedTo'][wlan], str(node.params['frequency'][wlan]).replace('.','')))
+                       % (iface, node.params['associatedTo'][wlan],
+                          str(node.params['frequency'][wlan]).replace('.','')))
 
     @classmethod
-    def configureMesh(self, node, wlan):
+    def configureMesh(cls, node, wlan):
         "Configure Wireless Mesh Interface"
         node.func[wlan] = 'mesh'
-        self.meshAssociation(node, wlan)
+        cls.meshAssociation(node, wlan)
         if node.params['wlan'][wlan] not in str(node.intf):
-            cls = TCLinkWirelessStation
-            cls(node, intfName1=node.params['wlan'][wlan])
+            TCLinkWirelessStation(node, intfName1=node.params['wlan'][wlan])
 
     @classmethod
-    def meshAssociation(self, node, wlan):
+    def meshAssociation(cls, node, wlan):
         "Performs Mesh Association"
-        debug("associating %s to %s...\n" % (node.params['wlan'][wlan], node.params['ssid'][wlan]))
-        node.pexec('iw dev %s mesh join %s' % (node.params['wlan'][wlan], node.params['ssid'][wlan]))
+        debug("associating %s to %s...\n" % (node.params['wlan'][wlan],
+                                             node.params['ssid'][wlan]))
+        node.pexec('iw dev %s mesh join %s' % (node.params['wlan'][wlan],
+                                               node.params['ssid'][wlan]))
 
     @classmethod
-    def setSNRWmediumd(self, sta, ap, snr):
+    def setSNRWmediumd(cls, sta, ap, snr):
         "Send SNR to wmediumd"
-        WmediumdServerConn.send_snr_update(WmediumdSNRLink(sta.wmIface[0], ap.wmIface[0], snr))
-        WmediumdServerConn.send_snr_update(WmediumdSNRLink(ap.wmIface[0], sta.wmIface[0], snr))
+        WmediumdServerConn.send_snr_update(WmediumdSNRLink(sta.wmIface[0],
+                                                           ap.wmIface[0], snr))
+        WmediumdServerConn.send_snr_update(WmediumdSNRLink(ap.wmIface[0],
+                                                           sta.wmIface[0], snr))
 
     @classmethod
-    def configureWirelessLink(self, sta, ap, wlan, useWmediumd=False, enable_interference=False):
+    def configureWirelessLink(cls, sta, ap, enable_wmediumd=False,
+                              enable_interference=False):
         """ 
         Updates RSSI and Others...
         
@@ -276,15 +287,15 @@ class Association(object):
         """
 
         dist = wirelessLink.getDistance(sta, ap)
-        if dist <= ap.params['range']:
+        if dist <= ap.params['range'][0]:
             for wlan in range(0, len(sta.params['wlan'])):
                 if not enable_interference:
                     if sta.params['rssi'][wlan] == 0:
-                        self.updateParams(sta, ap, wlan)
-                if sta.params['associatedTo'][wlan] == '' and ap not in sta.params['associatedTo']:
-                    cls = Association
-                    cls.associate_infra(sta, ap, wlan)
-                    if not useWmediumd:
+                        cls.updateParams(sta, ap, wlan)
+                if sta.params['associatedTo'][wlan] == '' \
+                        and ap not in sta.params['associatedTo']:
+                    Association.associate_infra(sta, ap, wlan)
+                    if not enable_wmediumd:
                         if dist >= 0.01:
                             wirelessLink(sta, ap, wlan, dist)
                     if sta not in ap.params['associatedStations']:
@@ -298,7 +309,7 @@ class Association(object):
                     ap.params['stationsInRange'][sta] = rssi_
 
     @classmethod
-    def updateParams(self, sta, ap, wlan):
+    def updateParams(cls, sta, ap, wlan):
         """
         :param sta: station
         :param ap: access point
@@ -310,19 +321,20 @@ class Association(object):
         sta.params['mode'][wlan] = ap.params['mode'][0]
 
     @classmethod
-    def associate(self, sta, ap, useWmediumd, enable_interference=False):
+    def associate(cls, sta, ap, enable_wmediumd, enable_interference=False):
         """ Associate to Access Point """
         wlan = sta.ifaceToAssociate
         if 'position' in sta.params:
-            self.configureWirelessLink(sta, ap, wlan, useWmediumd, enable_interference)
+            cls.configureWirelessLink(sta, ap, enable_wmediumd,
+                                      enable_interference)
         else:
-            self.associate_infra(sta, ap, wlan)
+            cls.associate_infra(sta, ap, wlan)
             sta.params['associatedTo'][wlan] = ap
             ap.params['associatedStations'].append(sta)
         sta.ifaceToAssociate += 1
 
     @classmethod
-    def associate_noEncrypt(self, sta, ap, wlan):
+    def associate_noEncrypt(cls, sta, ap, wlan):
         """ 
         Association when there is no encrypt
         
@@ -330,13 +342,13 @@ class Association(object):
         :param ap: access point
         :param wlan: wlan ID
         """
-        debug('iw dev %s connect %s %s\n' % (sta.params['wlan'][wlan], ap.params['ssid'][0], \
-                                                    ap.params['mac'][0]))
-        sta.pexec('iw dev %s connect %s %s' % (sta.params['wlan'][wlan], ap.params['ssid'][0], \
-                                                    ap.params['mac'][0]))
+        debug('iw dev %s connect %s %s\n'
+              % (sta.params['wlan'][wlan], ap.params['ssid'][0], ap.params['mac'][0]))
+        sta.pexec('iw dev %s connect %s %s'
+                  % (sta.params['wlan'][wlan], ap.params['ssid'][0], ap.params['mac'][0]))
 
     @classmethod
-    def associate_infra(self, sta, ap, wlan):
+    def associate_infra(cls, sta, ap, wlan):
         """ 
         Association when infra
         
@@ -346,24 +358,24 @@ class Association(object):
         """
         if 'ieee80211r' in ap.params and ap.params['ieee80211r'] == 'yes':
             if sta.params['associatedTo'][wlan] == '':
-                self.associate_wpa(sta, ap, wlan)
+                cls.associate_wpa(sta, ap, wlan)
             else:
-                self.handover_ieee80211r(sta, ap, wlan)
+                cls.handover_ieee80211r(sta, ap, wlan)
         elif 'encrypt' not in ap.params:
-            self.associate_noEncrypt(sta, ap, wlan)
+            cls.associate_noEncrypt(sta, ap, wlan)
         else:
             if ap.params['encrypt'][0] == 'wpa' or ap.params['encrypt'][0] == 'wpa2':
-                self.associate_wpa(sta, ap, wlan)
+                cls.associate_wpa(sta, ap, wlan)
             elif ap.params['encrypt'][0] == 'wep':
-                self.associate_wep(sta, ap, wlan)
-        if self.printCon:
+                cls.associate_wep(sta, ap, wlan)
+        if cls.printCon:
             iface = sta.params['wlan'][wlan]
             info("Associating %s to %s\n" % (iface, ap))
         sta.params['frequency'][wlan] = wirelessLink.frequency(ap, 0)
         sta.params['associatedTo'][wlan] = ap
 
     @classmethod
-    def wpaFile(self, sta, ap, wlan):
+    def wpaFile(cls, sta, ap, wlan):
         """ 
         creates a wpa config file
         
@@ -382,7 +394,7 @@ class Association(object):
 
         if 'config' in sta.params:
             config = sta.params['config']
-            if(config != []):
+            if config != []:
                 config = sta.params['config'].split(',')
                 sta.params.pop("config", None)
                 for conf in config:
@@ -394,8 +406,8 @@ class Association(object):
                 cmd = cmd + '   proto=%s\n' % ap.params['encrypt'][0].upper()
                 cmd = cmd + '   pairwise=%s\n' % ap.rsn_pairwise
             cmd = cmd + '   key_mgmt=%s\n' % ap.wpa_key_mgmt
-            if self.bgscan != '':
-                cmd = cmd + '   %s\n' % self.bgscan
+            if cls.bgscan != '':
+                cmd = cmd + '   %s\n' % cls.bgscan
             if 'authmode' in ap.params and ap.params['authmode'] == '8021x':
                 cmd = cmd + '   eap=PEAP\n'
                 cmd = cmd + '   identity=\"%s\"\n' % sta.params['radius_identity']
@@ -407,7 +419,7 @@ class Association(object):
         os.system('echo \'%s\' > %s' % (cmd, fileName))
 
     @classmethod
-    def associate_wpa(self, sta, ap, wlan):
+    def associate_wpa(cls, sta, ap, wlan):
         """ 
         Association when WPA
         
@@ -416,19 +428,21 @@ class Association(object):
         :param wlan: wlan ID
         """
         pidfile = "mn%d_%s_%s_wpa.pid" % (os.getpid(), sta.name, wlan)
-        self.wpaFile(sta, ap, wlan)
+        cls.wpaFile(sta, ap, wlan)
         debug("wpa_supplicant -B -Dnl80211 -P %s -i %s -c %s_%s.staconf\n"
-                % (pidfile, sta.params['wlan'][wlan], sta.name, wlan))
+              % (pidfile, sta.params['wlan'][wlan], sta.name, wlan))
         sta.pexec("wpa_supplicant -B -Dnl80211 -P %s -i %s -c %s_%s.staconf"
-                % (pidfile, sta.params['wlan'][wlan], sta.name, wlan))
+                  % (pidfile, sta.params['wlan'][wlan], sta.name, wlan))
 
     @classmethod
-    def handover_ieee80211r(self, sta, ap, wlan):
-        debug('wpa_cli -i %s roam %s\n' % (sta.params['wlan'][wlan], ap.params['mac'][0]))
-        sta.pexec('wpa_cli -i %s roam %s' % (sta.params['wlan'][wlan], ap.params['mac'][0]))
+    def handover_ieee80211r(cls, sta, ap, wlan):
+        debug('wpa_cli -i %s roam %s\n' % (sta.params['wlan'][wlan],
+                                           ap.params['mac'][0]))
+        sta.pexec('wpa_cli -i %s roam %s' % (sta.params['wlan'][wlan],
+                                             ap.params['mac'][0]))
 
     @classmethod
-    def associate_wep(self, sta, ap, wlan):
+    def associate_wep(cls, sta, ap, wlan):
         """ 
         Association when WEP
         

@@ -5,13 +5,13 @@
 
 import unittest
 import sys
-from time import sleep
+#from time import sleep
 from functools import partial
 
-from mininet.net import Mininet
-from mininet.node import Station, Controller
+#from mininet.net import Mininet
+#from mininet.node import Station, Controller
 from mininet.node import UserSwitch, OVSSwitch, IVSSwitch
-from mininet.topo import SingleAPTopo, LinearWirelessTopo
+#from mininet.topo import SingleAPTopo, LinearWirelessTopo
 from mininet.log import setLogLevel
 from mininet.util import quietRun
 from mininet.clean import cleanup
