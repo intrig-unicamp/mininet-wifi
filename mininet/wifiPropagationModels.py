@@ -247,7 +247,7 @@ class distanceByPropagationModel(object):
         self.dist = math.pow(10, ((self.NOISE_LEVEL - pathLoss + gains) / (10 * self.exp))) * referenceDistance
 
         return self.dist
-    
+
     def logNormalShadowingPropagationLossModel(self, node, wlan):
         """Log-Normal Shadowing Propagation Loss Model"""
         from mininet.wmediumdConnector import WmediumdGaussianRandom, WmediumdServerConn
@@ -282,3 +282,108 @@ class distanceByPropagationModel(object):
         self.dist = math.pow(10, ((self.NOISE_LEVEL + gains - 20 * math.log10(f) - lF * nFloors + 28)/N))
 
         return self.dist
+
+
+class powerForRangeByPropagationModel(object):
+    dist = 0
+    exp = 4  # Exponent
+    sL = 1  # System Loss
+    lF = 0  # Floor penetration loss factor
+    pL = 0  # Power Loss Coefficient
+    nFloors = 0  # Number of floors
+    gRandom = 0  # Gaussian random variable
+
+    def __init__(self):
+        self.lF = propagationModel.lF
+        self.sL = propagationModel.sL
+        self.pL = propagationModel.pL
+        self.exp = propagationModel.exp
+        self.nFloors = propagationModel.nFloors
+        self.gRandom = propagationModel.gRandom
+
+    def friisPropagationLossModel(self, node, wlan, distance):
+        """Path Loss Model:
+        distance is the range of the transmitter (m)
+        (f) signal frequency transmited(Hz)
+        (c) speed of light in vacuum (m)
+        (L) System loss"""
+        f = node.params['frequency'][wlan] * 10 ** 9  # Convert Ghz to Hz
+        c = 299792458.0
+        L = self.sL
+        antGain = node.params['antennaGain'][wlan]
+
+        lambda_ = c / f  # lambda: wavelength (m)
+        denominator = lambda_ ** 2
+
+        txpower = 10 * (math.log10((4 * math.pi) ** 2 * L * distance ** 2)) - 92 - 10 * math.log10(denominator) - (
+        antGain * 2)
+
+        return txpower
+
+    def pathLoss(self, node, dist, wlan):
+        """Path Loss Model:
+        (f) signal frequency transmited(Hz)
+        (d) is the distance between the transmitter and the receiver (m)
+        (c) speed of light in vacuum (m)
+        (L) System loss"""
+        f = node.params['frequency'][wlan] * 10 ** 9  # Convert Ghz to Hz
+        c = 299792458.0
+        L = self.sL
+
+        lambda_ = c / f  # lambda: wavelength (m)
+        denominator = lambda_ ** 2
+        numerator = (4 * math.pi * dist) ** 2 * L
+        pathLoss_ = 10 * math.log10(numerator / denominator)
+
+        return pathLoss_
+
+    def logDistancePropagationLossModel(self, node, wlan, distance):
+        """Log Distance Propagation Loss Model:
+        referenceDistance (m): The distance at which the reference loss is calculated
+        exponent: The exponent of the Path Loss propagation model, where 2 is for propagation in free space
+        distance is the range of the transmitter (m)"""
+        referenceDistance = 1
+        antGain = node.params['antennaGain'][wlan]
+        gains_fixed = (antGain * 2)
+
+        pathLoss = self.pathLoss(node, referenceDistance, wlan)
+
+        txpower = int(math.ceil(math.log10(
+            (math.pow(distance / referenceDistance, 10 * self.exp) * 10 ** pathLoss) / 10 ** 92) - gains_fixed))
+
+        return txpower
+
+    def logNormalShadowingPropagationLossModel(self, node, wlan, distance):
+        """Log-Normal Shadowing Propagation Loss Model
+        distance is the range of the transmitter (m)"""
+        from mininet.wmediumdConnector import WmediumdGaussianRandom, WmediumdServerConn
+        from mininet.wifiNet import mininetWiFi
+        referenceDistance = 1
+        antGain = node.params['antennaGain'][wlan]
+        mean = 0
+        variance = propagationModel.variance
+        gRandom = float('%.2f' % gauss(mean, variance))
+        propagationModel.gRandom = gRandom
+
+        if mininetWiFi.enable_interference:
+            sleep(0.001)  # notice problem when there are many threads
+            WmediumdServerConn.update_gaussian_random(WmediumdGaussianRandom(node.wmIface[wlan], gRandom))
+
+        pathLoss = self.pathLoss(node, referenceDistance, wlan) - gRandom
+
+        txpower = 10 * self.exp * math.log10(distance / referenceDistance) - 92 + pathLoss - (antGain * 2)
+
+        return txpower
+
+    def ITUPropagationLossModel(self, node, wlan, distance):
+        """International Telecommunication Union (ITU) Propagation Loss Model:
+        distance is the range of the transmitter (m)"""
+        f = node.params['frequency'][wlan] * 10 ** 3
+        antGain = node.params['antennaGain'][wlan]
+        N = 28  # Power Loss Coefficient
+        lF = self.lF  # Floor penetration loss factor
+        nFloors = self.nFloors  # Number of Floors
+
+        txpower = N * math.log10(distance) - 92 + 20 * math.log10(f) + lF * nFloors - 28 - (antGain * 2)
+
+        return txpower
