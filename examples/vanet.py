@@ -26,20 +26,20 @@ def topology():
         max_ = random.randint(11, 30)
         cars[x] = net.addCar('car%s' % (x + 1), wlans=1,
                              ip='10.0.0.%s/8'% (x + 1), min_speed=min_,
-                             max_speed=max_)
+                             max_speed=max_, range=50)
 
     rsu11 = net.addAccessPoint('RSU11', ssid='RSU11', mode='g',
-                               channel='1', range=50)
+                               channel='1', range=100)
     rsu12 = net.addAccessPoint('RSU12', ssid='RSU12', mode='g',
-                               channel='6', range=50)
+                               channel='6', range=100)
     rsu13 = net.addAccessPoint('RSU13', ssid='RSU13', mode='g',
-                               channel='11', range=50)
+                               channel='11', range=100)
     rsu14 = net.addAccessPoint('RSU14', ssid='RSU14', mode='g',
-                               channel='11', range=50)
+                               channel='11', range=100)
     c1 = net.addController('c1', controller=Controller)
 
     print "*** Configuring Propagation Model"
-    net.propagationModel("logDistancePropagationLossModel", exp=3)
+    net.propagationModel("logDistancePropagationLossModel", exp=4.5)
 
     print "*** Configuring wifi nodes"
     net.configureWifiNodes()

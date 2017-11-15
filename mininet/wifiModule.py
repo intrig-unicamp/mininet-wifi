@@ -214,7 +214,7 @@ class module(object):
                 cls.loadIFB(len(cls.wlan_list))
                 ifbID = 0
             debug("\n*** Configuring interfaces with appropriated network"
-                 "-namespaces...\n")
+                  "-namespaces...\n")
             for node in nodes:
                 if (node.type == 'station' or node.type == 'vehicle') \
                         or 'inNamespace' in node.params:

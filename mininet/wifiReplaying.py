@@ -182,7 +182,7 @@ class replayingNetworkBehavior(object):
         currentTime = time.time()
         stations = mininet.stations
         for sta in stations:
-            sta.params['frequency'][0] = wirelessLink.frequency(sta, 0)
+            sta.params['frequency'][0] = sta.getFrequency(0)
         while True:
             if len(stations) == 0:
                 break
@@ -254,7 +254,7 @@ class replayingRSSI(object):
         ang = {}
         for sta in staList:
             ang[sta] = random.uniform(0, 360)
-            sta.params['frequency'][0] = wirelessLink.frequency(sta, 0)
+            sta.params['frequency'][0] = sta.getFrequency(0)
         while True:
             if len(staList) == 0:
                 break

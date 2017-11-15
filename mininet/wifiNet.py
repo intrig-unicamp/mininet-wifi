@@ -16,7 +16,7 @@ from mininet.log import info, error
 from mininet.wmediumdConnector import DynamicWmediumdIntfRef, \
     WmediumdStarter, WmediumdSNRLink, WmediumdTXPower, WmediumdPosition, \
     WmediumdConstants, WmediumdServerConn
-from mininet.wifiLink import wirelessLink, Association
+from mininet.wifiLink import wirelessLink
 from mininet.wifiDevices import deviceDataRate
 from mininet.wifiMobility import mobility
 from mininet.wifiPlot import plot2d, plot3d
@@ -37,7 +37,6 @@ class mininetWiFi(object):
     alreadyPlotted = False
     configureWiFiDirect = False
     configure4addr = False
-    autoTxPower = False
     DRAW = False
     enable_interference = False
     enable_spec_prob_link = False
@@ -79,6 +78,7 @@ class mininetWiFi(object):
         node.params['wlan'] = []
         node.params['mac'] = []
         node.phyID = []
+        node.autoTxPower = False
 
         if 'passwd' in params:
             node.params['passwd'] = []
@@ -268,7 +268,7 @@ class mininetWiFi(object):
                       'differs from the number of interfaces!' % node.name)
                 exit(1)
         else:
-            for range_ in range(0, wlans):
+            for _ in range(0, wlans):
                 node.params['range'].append(0)
 
     @classmethod
@@ -481,7 +481,7 @@ class mininetWiFi(object):
         else:
             node.params['ssid'][wlan] = 'meshNetwork'
 
-        if not cls.autoTxPower:
+        if node.autoTxPower:
             node.getRange(intf=node.params['wlan'][wlan], noiseLevel=95)
 
         node.setMeshIface(node.params['wlan'][wlan], **params)
@@ -522,13 +522,13 @@ class mininetWiFi(object):
 
         enable_wmediumd = cls.enable_wmediumd
 
-        if not cls.autoTxPower:
+        if not node.autoTxPower:
             node.getRange(intf=node.params['wlan'][wlan], noiseLevel=95)
 
         if 'channel' in params:
             node.setChannel(params['channel'], intf=node.params['wlan'][wlan])
 
-        Association.configureAdhoc(node, wlan, enable_wmediumd)
+        node.configureAdhoc(wlan, enable_wmediumd)
         if 'intf' not in params:
             node.ifaceToAssociate += 1
 
@@ -819,7 +819,7 @@ class mininetWiFi(object):
                     ap.params.pop("phywlan", None)
 
                 #if ap.func[0] != 'ap':
-                ap.params['frequency'][wlan] = wirelessLink.frequency(ap, 0)
+                ap.params['frequency'][wlan] = ap.getFrequency(0)
 
                 if 'vssids' in ap.params:
                     break
@@ -980,7 +980,7 @@ class mininetWiFi(object):
 
     @classmethod
     def setMobilityParams(cls, stations, accessPoints,
-                          stationaryNodes=[], **kwargs):
+                          stationaryNodes=None, **kwargs):
         "Set Mobility Parameters"
         mobilityparam = dict()
 
@@ -1127,7 +1127,7 @@ class mininetWiFi(object):
                         wlan = 0
                     node.getRange(intf=node.params['wlan'][wlan])
                 else:
-                    cls.autoTxPower=True
+                    node.autoTxPower=True
                     node.params['txpower'][wlan] = \
                         node.getTxPower_prop_model(wlan)
                     node.setTxPower(node.params['txpower'][wlan],
