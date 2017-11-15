@@ -21,8 +21,8 @@ if 'PYTHONPATH' in os.environ:
     sys.path = os.environ[ 'PYTHONPATH' ].split(':') + sys.path
 
 from mininet.clean import cleanup
-from mininet.cli import CLI
-from mininet.log import lg, LEVELS, info, debug, warn, error
+import mininet.cli
+from mininet.log import lg, LEVELS, info, debug, warn, error, output
 from mininet.net import Mininet, MininetWithControlNet, VERSION
 from mininet.node import (Host, CPULimitedHost, Controller, OVSController,
                           Ryu, NOX, RemoteController, findController,
@@ -100,16 +100,51 @@ LINKS = { 'default': Link,  # Note: overridden below
           'tcu': TCULink,
           'ovs': OVSLink }
 
+# TESTS dict can contain functions and/or Mininet() method names
+# XXX: it would be nice if we could specify a default test, but
+# this may be tricky
+TESTS = { name: True
+          for name in ( 'pingall', 'pingpair', 'iperf', 'iperfudp' ) }
 
-# Names of tests that are Mininet() methods
-TESTNAMES = [ 'cli', 'build', 'pingall', 'pingpair', 'iperf', 'all', 'iperfudp',
-              'none' ]
+CLI = None  # Set below if needed
 
-TESTS = { 'pingall': 'pingAll',
-          'pingpair': 'pingPair',
-          'iperfudp': 'iperfUdp',
-          'iperfUDP': 'iperfUdp' }
+# Locally defined tests
+def allTest( net ):
+    "Run ping and iperf tests"
+    net.waitConnected()
+    net.start()
+    net.ping()
+    net.iperf()
 
+def nullTest( _net ):
+    "Null 'test' (does nothing)"
+    pass
+
+TESTS.update( all=allTest, none=nullTest, build=nullTest )
+
+# Map to alternate spellings of Mininet() methods
+ALTSPELLING = { 'pingall': 'pingAll', 'pingpair': 'pingPair',
+                'iperfudp': 'iperfUdp' }
+
+def runTests( mn, options ):
+    """Run tests
+       mn: Mininet object
+       option: list of test optinos """
+    # Split option into test name and parameters
+    for option in options:
+        # Multiple tests may be separated by '+' for now
+        for test in option.split( '+' ):
+            test, args, kwargs = splitArgs( test )
+            test = ALTSPELLING.get( test.lower(), test )
+            testfn = TESTS.get( test, test )
+            if callable( testfn ):
+                testfn( mn, *args, **kwargs )
+            elif hasattr( mn, test ):
+                mn.waitConnected()
+                getattr( mn, test )( *args, **kwargs )
+            else:
+                raise Exception( 'Test %s is unknown - please specify one of '
+                                 '%s ' % ( test, TESTS.keys() ) )
 
 def addDictOption(opts, choicesDict, default, name, **kwargs):
     """Convenience function to add choices dicts to OptionParser.
@@ -129,7 +164,7 @@ def addDictOption(opts, choicesDict, default, name, **kwargs):
 
 def version(*_args):
     "Print Mininet version and exit"
-    print "%s" % VERSION
+    output( "%s\n" % VERSION )
     exit()
 
 
@@ -243,10 +278,9 @@ class MininetRunner(object):
                         callback=self.custom,
                         type='string',
                         help='read custom classes or params from .py file(s)')
-        
-        testList = TESTNAMES + TESTS.keys()
+
         opts.add_option('--test', default=[], action='append',
-                        dest='tests', help='|'.join(testList))
+                        dest='test', help='|'.join(TESTS.keys()))
         opts.add_option('--xterms', '-x', action='store_true',
                         default=False, help='spawn xterms for each node')
         opts.add_option('--ipbase', '-i', type='string', default='10.0.0.0/8',
@@ -318,6 +352,8 @@ class MininetRunner(object):
 
     def begin(self):
         "Create and run mininet."
+
+        global CLI
 
         opts = self.options
 
@@ -408,14 +444,14 @@ class MininetRunner(object):
         if inNamespace and cluster:
             print "Please specify --innamespace OR --cluster"
             exit()
-        Net = MininetWithControlNet if inNamespace else Mininet
-        cli = ClusterCLI if cluster else CLI
-        if cluster:
+        Net = MininetWithControlNet if opts.innamespace else Mininet
+        if opts.cluster:
             warn('*** WARNING: Experimental cluster mode!\n'
                  '*** Using RemoteHost, RemoteOVSSwitch, RemoteLink\n')
             host, switch, ap, link = RemoteHost, RemoteOVSSwitch, RemoteOVSAP, RemoteLink
             Net = partial(MininetCluster, servers=servers,
-                          placement=PLACEMENT[ opts.placement ])
+                          placement=PLACEMENT[opts.placement])
+            mininet.cli.CLI = ClusterCLI
 
         mn = Net(topo=topo,
                  switch=switch, accessPoint=ap, host=host, controller=controller,
@@ -432,38 +468,25 @@ class MininetRunner(object):
                  autoStaticArp=arp, autoPinCpus=pin,
                  listenPort=listenPort,
                  driver=driver, autoSetPositions=position)
-        
+
         if opts.ensure_value('nat', False):
-            nat = mn.addNAT(*opts.nat_args,
-                            **opts.nat_kwargs)
-            nat.configDefault()
+            mn.addNAT(*opts.nat_args, **opts.nat_kwargs).configDefault()
+
+        # --custom files can set CLI or change mininet.cli.CLI
+        CLI = mininet.cli.CLI if CLI is None else CLI
 
         if opts.pre:
-            cli(mn, script=opts.pre)
+            CLI(mn, script=opts.pre)
 
         mn.start()
 
-        if not opts.tests:
-            cli(mn)
-        for test in opts.tests:
-            test = TESTS.get(test, test)
-            if callable(test):  # user added TESTMAP={'mytest': testfn}
-                test(mn)
-            elif test == 'none':
-                pass
-            elif test == 'all':
-                mn.waitConnected()
-                mn.start()
-                mn.ping()
-                mn.iperf()
-            elif test == 'cli':
-                cli(mn)
-            elif test != 'build':
-                mn.waitConnected()
-                getattr(mn, test)()
+        if opts.test:
+            runTests(mn, opts.test)
+        else:
+            CLI(mn)
 
         if opts.post:
-            cli(mn, script=opts.post)
+            CLI(mn, script=opts.post)
 
         mn.stop()
 
