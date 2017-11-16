@@ -15,7 +15,6 @@ from pylab import ginput as ginp
 from pylab import math, cos, sin, np
 
 from mininet.wifiPlot import plot2d
-from mininet.wifiMobility import mobility
 
 try:
     warnings.filterwarnings("ignore", category=matplotlib.cbook.mplDeprecation)
@@ -41,27 +40,29 @@ class vanet(object):
         thread.daemon = True
         thread.start()
 
-    def start(self, stations, aps, nroads, connections, MIN_X, MIN_Y,
-              MAX_X, MAX_Y, **params):
+    def start(self, **params):
         'start topology'
-        cars = stations
+        from mininet.wifiMobility import mobility
+        cars = params['stations']
+        aps = params['aps']
         mobility.addNodes(cars, aps)
-        [self.road.append(x) for x in range(0, nroads)]
-        [self.points.append(x) for x in range(0, nroads)]
-        [self.totalRoads.append(x) for x in range(0, nroads)]
-        plot2d.instantiateGraph(MIN_X, MIN_Y, MAX_X, MAX_Y)
+        [self.road.append(x) for x in range(0, params['nroads'])]
+        [self.points.append(x) for x in range(0, params['nroads'])]
+        [self.totalRoads.append(x) for x in range(0, params['nroads'])]
+        plot2d.instantiateGraph(params['MIN_X'], params['MIN_Y'], params['MAX_X'], params['MAX_Y'])
 
-        self.display_grid(aps, connections, nroads)
+        self.display_grid(aps, params['connections'], params['nroads'])
         self.display_cars(cars)
         plot2d.plotGraph(cars, [])
-        self.setWifiParameters()
+        self.setWifiParameters(mobility)
         while True:
             [self.scatter, self.com_lines] = \
-                self.simulate_car_movement(cars, aps, self.scatter, self.com_lines)
+                self.simulate_car_movement(cars, aps, self.scatter,
+                                           self.com_lines, mobility)
             mobility.continueParams
 
     @classmethod
-    def setWifiParameters(cls):
+    def setWifiParameters(cls, mobility):
         thread = threading.Thread(name='wifiParameters', target=mobility.parameters)
         thread.start()
 
@@ -316,7 +317,8 @@ class vanet(object):
         (element,) = first_set.intersection(secnd_set)
         print element[0]
 
-    def simulate_car_movement(self, cars, baseStations, scatter, com_lines):
+    def simulate_car_movement(self, cars, baseStations, scatter,
+                              com_lines, mobility):
         # temporal variables
         points = [[], []]
         scatter.remove()
