@@ -256,7 +256,7 @@ class mininetWiFi(object):
 
     @classmethod
     def addRangeParamToNode(cls, node, wlans=0, params=None):
-        "Add Mac Params"
+        "Add Signal Range Param"
         node.params['range'] = []
         if 'range' in params:
             range_list = str(params['range']).split(',')
@@ -274,7 +274,7 @@ class mininetWiFi(object):
     @classmethod
     def addIpParamToNode(cls, node, wlans=0, autoSetMacs=False,
                          params=None, isVirtualIface=False):
-        "Add IP Params"
+        "Add IP Param"
         if isVirtualIface:
             node.params['ip'].append(node.params['ip'][0])
         else:
@@ -298,7 +298,7 @@ class mininetWiFi(object):
     @classmethod
     def addMacParamToNode(cls, node, wlans=0, autoSetMacs=False,
                           params=None, isVirtualIface=False, macID=0):
-        "Add Mac Params"
+        "Add Mac Param"
         if isVirtualIface:
             new_mac = list(node.params['mac'][0])
             new_mac[7] = str(macID)
@@ -323,7 +323,7 @@ class mininetWiFi(object):
     @classmethod
     def addAntennaHeightParamToNode(cls, node, wlans=0, params=None,
                                     isVirtualIface=False):
-        "Add Antenna Height Params"
+        "Add Antenna Height Param"
         if isVirtualIface:
             node.params['antennaHeight'].append(
                 float(node.params['antennaHeight'][0]))
@@ -340,7 +340,7 @@ class mininetWiFi(object):
     @classmethod
     def addAntennaGainParamToNode(cls, node, wlans=0, params=None,
                                   isVirtualIface=False):
-        "Add Antenna Gain Params"
+        "Add Antenna Gain Param"
         if isVirtualIface:
             node.params['antennaGain'].append(
                 float(node.params['antennaGain'][0]))
@@ -357,7 +357,7 @@ class mininetWiFi(object):
     @classmethod
     def addModeParamToNode(cls, node, wlans=0, params=None,
                            isVirtualIface=False):
-        "Add Mode Params"
+        "Add Mode Param"
         if isVirtualIface:
             node.params['mode'].append(node.params['mode'][0])
         else:
@@ -377,7 +377,7 @@ class mininetWiFi(object):
     @classmethod
     def addChannelParamToNode(cls, node, wlans=0, params=None,
                               isVirtualIface=False):
-        "Add Channel Params"
+        "Add Channel Param"
         if isVirtualIface:
             node.params['channel'].append(node.params['channel'][0])
         else:
@@ -397,7 +397,7 @@ class mininetWiFi(object):
     @classmethod
     def addTxPowerParamToNode(cls, node, wlans=0, params=None,
                               isVirtualIface=False):
-        "Add Tx Power Params"
+        "Add Tx Power Param"
         if isVirtualIface:
             node.params['txpower'].append(node.params['txpower'][0])
         else:
@@ -1130,8 +1130,12 @@ class mininetWiFi(object):
                     node.autoTxPower=True
                     node.params['txpower'][wlan] = \
                         node.getTxPower_prop_model(wlan)
+                    setParam = True
+                    if node.type == 'vehicle':
+                        setParam = False
                     node.setTxPower(node.params['txpower'][wlan],
-                                    intf=node.params['wlan'][wlan])
+                                    intf=node.params['wlan'][wlan],
+                                    setParam=setParam)
 
         if cls.enable_wmediumd:
             if not cls.configureWiFiDirect and not cls.configure4addr:
