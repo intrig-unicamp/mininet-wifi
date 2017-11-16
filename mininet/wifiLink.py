@@ -9,7 +9,6 @@ from mininet.wifiDevices import deviceDataRate
 from mininet.log import debug, info
 from mininet.wifiPropagationModels import propagationModel
 from mininet.wmediumdConnector import WmediumdServerConn, WmediumdSNRLink
-from mininet.link import TCLinkWirelessStation
 
 class wirelessLink (object):
 
@@ -18,7 +17,7 @@ class wirelessLink (object):
     equationLoss = '(dist * 2) / 1000'
     equationDelay = '(dist / 100) + 1'
     equationLatency = '2 + dist'
-    equationBw = 'custombw * (1.01 ** -dist)'
+    equationBw = ' * (1.01 ** -dist)'
     ifb = False
 
     def __init__(self, sta=None, ap=None, wlan=0, dist=0):
@@ -81,7 +80,7 @@ class wirelessLink (object):
         """
         value = deviceDataRate(sta, ap, wlan)
         custombw = value.rate
-        rate = eval(cls.equationBw)
+        rate = eval(str(custombw) + cls.equationBw)
 
         if rate <= 0.0:
             rate = 0.1
@@ -149,131 +148,18 @@ class wirelessLink (object):
                 # corrupt 0.1%%" % (sta.params['wlan'][wlan], bw, loss,
             # latency, delay))
 
-    @classmethod
-    def frequency(cls, node, wlan):
-        """Gets frequency based on channel number
-        
-        :param node: node
-        :param wlan: wlan ID
-        """
-        freq = 0
-        channel = int(node.params['channel'][wlan])
-        if channel == 1:
-            freq = 2.412
-        elif channel == 2:
-            freq = 2.417
-        elif channel == 3:
-            freq = 2.422
-        elif channel == 4:
-            freq = 2.427
-        elif channel == 5:
-            freq = 2.432
-        elif channel == 6:
-            freq = 2.437
-        elif channel == 7:
-            freq = 2.442
-        elif channel == 8:
-            freq = 2.447
-        elif channel == 9:
-            freq = 2.452
-        elif channel == 10:
-            freq = 2.457
-        elif channel == 11:
-            freq = 2.462
-        elif channel == 36:
-            freq = 5.18
-        elif channel == 40:
-            freq = 5.2
-        elif channel == 44:
-            freq = 5.22
-        elif channel == 48:
-            freq = 5.24
-        elif channel == 52:
-            freq = 5.26
-        elif channel == 56:
-            freq = 5.28
-        elif channel == 60:
-            freq = 5.30
-        elif channel == 64:
-            freq = 5.32
-        elif channel == 100:
-            freq = 5.50
-        elif channel == 104:
-            freq = 5.52
-        elif channel == 108:
-            freq = 5.54
-        elif channel == 112:
-            freq = 5.56
-        elif channel == 116:
-            freq = 5.58
-        elif channel == 120:
-            freq = 5.60
-        elif channel == 124:
-            freq = 5.62
-        elif channel == 128:
-            freq = 5.64
-        elif channel == 132:
-            freq = 5.66
-        elif channel == 136:
-            freq = 5.68
-        elif channel == 140:
-            freq = 5.70
-        elif channel == 149:
-            freq = 5.745
-        elif channel == 153:
-            freq = 5.765
-        elif channel == 157:
-            freq = 5.785
-        elif channel == 161:
-            freq = 5.805
-        elif channel == 165:
-            freq = 5.825
-        else:
-            freq = 2.412
-        return freq
-
 class Association(object):
 
     printCon = True
     bgscan = ''
 
     @classmethod
-    def configureAdhoc(cls, node, wlan, enable_wmediumd):
-        "Configure Wireless Ad Hoc"
-        iface = node.params['wlan'][wlan]
-        node.func[wlan] = 'adhoc'
-        node.setIP(node.params['ip'][wlan], intf='%s' % iface)
-        node.cmd('iw dev %s set type ibss' % iface)
-        if 'position' not in node.params or enable_wmediumd:
-            node.params['associatedTo'][wlan] = node.params['ssid'][wlan]
-            debug("associating %s to %s...\n" % (iface, node.params['ssid'][wlan]))
-            node.pexec('iw dev %s ibss join %s %s 02:CA:FF:EE:BA:01'\
-                       % (iface, node.params['associatedTo'][wlan],
-                          str(node.params['frequency'][wlan]).replace('.','')))
-
-    @classmethod
-    def configureMesh(cls, node, wlan):
-        "Configure Wireless Mesh Interface"
-        node.func[wlan] = 'mesh'
-        cls.meshAssociation(node, wlan)
-        if node.params['wlan'][wlan] not in str(node.intf):
-            TCLinkWirelessStation(node, intfName1=node.params['wlan'][wlan])
-
-    @classmethod
-    def meshAssociation(cls, node, wlan):
-        "Performs Mesh Association"
-        debug("associating %s to %s...\n" % (node.params['wlan'][wlan],
-                                             node.params['ssid'][wlan]))
-        node.pexec('iw dev %s mesh join %s' % (node.params['wlan'][wlan],
-                                               node.params['ssid'][wlan]))
-
-    @classmethod
     def setSNRWmediumd(cls, sta, ap, snr):
         "Send SNR to wmediumd"
-        WmediumdServerConn.send_snr_update(WmediumdSNRLink(sta.wmIface[0],
-                                                           ap.wmIface[0], snr))
-        WmediumdServerConn.send_snr_update(WmediumdSNRLink(ap.wmIface[0],
-                                                           sta.wmIface[0], snr))
+        WmediumdServerConn.send_snr_update(WmediumdSNRLink(
+            sta.wmIface[0], ap.wmIface[0], snr))
+        WmediumdServerConn.send_snr_update(WmediumdSNRLink(
+            ap.wmIface[0], sta.wmIface[0], snr))
 
     @classmethod
     def configureWirelessLink(cls, sta, ap, enable_wmediumd=False,
@@ -316,7 +202,7 @@ class Association(object):
         :param wlan: wlan ID
         """
 
-        sta.params['frequency'][wlan] = wirelessLink.frequency(ap, 0)
+        sta.params['frequency'][wlan] = ap.getFrequency(0)
         sta.params['channel'][wlan] = ap.params['channel'][0]
         sta.params['mode'][wlan] = ap.params['mode'][0]
 
@@ -371,7 +257,7 @@ class Association(object):
         if cls.printCon:
             iface = sta.params['wlan'][wlan]
             info("Associating %s to %s\n" % (iface, ap))
-        sta.params['frequency'][wlan] = wirelessLink.frequency(ap, 0)
+        sta.params['frequency'][wlan] = ap.getFrequency(wlan)
         sta.params['associatedTo'][wlan] = ap
 
     @classmethod

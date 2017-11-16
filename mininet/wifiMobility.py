@@ -249,7 +249,7 @@ class mobility (object):
         if cls.AC != '' and sta.params['associatedTo'][wlan] != ap \
             and sta.params['associatedTo'][wlan] != '':
             ac = cls.AC
-            value = associationControl(sta, ap, wlan, ac)
+            value = associationControl(sta, ap, wlan, ac, wirelessLink)
             changeAP = value.changeAP
         if sta.params['associatedTo'][wlan] == '' or changeAP is True:
             if ap not in sta.params['associatedTo']:
@@ -287,10 +287,10 @@ class mobility (object):
 
     @classmethod
     def controlled_mobility(cls, init_time=0, final_time=0, stations=None,
-                           aps=None, connections=[], plotNodes=None, MIN_X=0,
-                           MIN_Y=0, MIN_Z=0, MAX_X=0, MAX_Y=0, MAX_Z=0, AC='',
-                           is3d=False, DRAW=False, repetitions=1, reverse=False,
-                           **params):
+                            aps=None, connections=[], plotNodes=None, MIN_X=0,
+                            MIN_Y=0, MIN_Z=0, MAX_X=0, MAX_Y=0, MAX_Z=0, AC='',
+                            is3d=False, DRAW=False, repetitions=1, reverse=False,
+                            **params):
         """ 
         Used when the position of each node is previously defined
         
@@ -439,7 +439,7 @@ class mobility (object):
         cls.mobileNodes = cls.stations
 
     @classmethod
-    def models(cls, stations=None, aps=None, model=None, stationaryNodes=[],
+    def models(cls, stations=None, aps=None, model=None, stationaryNodes=None,
                min_v=0, max_v=0, seed=None, connections=None, plotNodes=None,
                MAX_X=0, MAX_Y=0, AC='', DRAW=False, **params):
         """ 
@@ -822,7 +822,10 @@ class RandomWaypoint(object):
                     y_waypoint[arrived] = wy[arrived]
                     v = U(MIN_V, MAX_V, arrived)
                     velocity[arrived] = v[arrived]
-                    theta[arrived] = np.arctan2(y_waypoint[arrived] - y[arrived], x_waypoint[arrived] - x[arrived])
+                    theta[arrived] = np.arctan2(y_waypoint[arrived]
+                                                - y[arrived],
+                                                x_waypoint[arrived]
+                                                - x[arrived])
                     costheta[arrived] = np.cos(theta[arrived])
                     sintheta[arrived] = np.sin(theta[arrived])
             except:

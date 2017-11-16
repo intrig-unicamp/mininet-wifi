@@ -1,14 +1,13 @@
-from mininet.wifiLink import wirelessLink
 from mininet.log import debug
 
 class associationControl (object):
 
     changeAP = False
 
-    def __init__(self, sta, ap, wlan, ac):
-        self.customAssociationControl(sta, ap, wlan, ac)
+    def __init__(self, sta, ap, wlan, ac, wirelessLink):
+        self.customAssociationControl(sta, ap, wlan, ac, wirelessLink)
 
-    def customAssociationControl(self, sta, ap, wlan, ac):
+    def customAssociationControl(self, sta, ap, wlan, ac, wirelessLink):
         """Mechanisms that optimize the use of the APs
         llf: Least-loaded-first
         ssf: Strongest-signal-first"""
