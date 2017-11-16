@@ -365,8 +365,7 @@ class Mininet(object):
         car.type = 'vehicle'
         mininetWiFi.addParameters(car, self.autoSetMacs, defaults)
 
-        carsta = self.addStation(name + 'STA')
-
+        carsta = self.addStation(name + 'STA', **defaults)
         car.params['carsta'] = carsta
         self.carsSTA.append(carsta)
         switchName = car.name + 'SW'
@@ -914,8 +913,9 @@ class Mininet(object):
                 if node.type != 'ap' and node.func[0] != 'ap' and \
                     node.func[wlan] != 'mesh' and node.func[wlan] != 'adhoc' \
                         and node.func[wlan] != 'wifiDirect':
-                    node.params['range'][wlan] = \
-                            int(node.params['range'][wlan])/5
+                    if not node.autoTxPower:
+                        node.params['range'][wlan] = \
+                                int(node.params['range'][wlan])/5
 
         if mininetWiFi.isWiFi and not self.disableAutoAssociation \
                 and not mininetWiFi.isMobility:
