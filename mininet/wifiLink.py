@@ -257,7 +257,7 @@ class Association(object):
         if cls.printCon:
             iface = sta.params['wlan'][wlan]
             info("Associating %s to %s\n" % (iface, ap))
-        sta.params['frequency'][wlan] = ap.getFrequency(wlan)
+        sta.params['frequency'][wlan] = ap.getFrequency(0)
         sta.params['associatedTo'][wlan] = ap
 
     @classmethod
