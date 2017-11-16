@@ -937,7 +937,7 @@ class mininetWiFi(object):
                 cls.plot.plotGraph(nodes, cls.connections)
                 cls.plot.graphPause()
         except:
-            info('Warning: This OS does not support GUI. '
+            info('Something went wrong. '
                  'Running without GUI.\n')
             cls.DRAW = False
 
