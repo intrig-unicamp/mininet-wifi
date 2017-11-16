@@ -1437,7 +1437,7 @@ class Mininet(object):
         :params position: position of the node (x,y,z)
         """
         node.params['position'] = position.split(',')
-        node.params['range'] = 0
+        node.params['range'] = [0]
         mininetWiFi.plotNodes.append(node)
 
     @classmethod
