@@ -366,6 +366,7 @@ class Mininet(object):
         mininetWiFi.addParameters(car, self.autoSetMacs, defaults)
 
         carsta = self.addStation(name + 'STA', **defaults)
+        carsta.pexec('ip link set lo up')
         car.params['carsta'] = carsta
         self.carsSTA.append(carsta)
         switchName = car.name + 'SW'
