@@ -14,6 +14,7 @@ from mininet.log import debug
 class plot3d (object):
 
     ax = None
+    is3d = False
 
     @classmethod
     def instantiateGraph(cls, MIN_X, MIN_Y, MIN_Z, MAX_X, MAX_Y, MAX_Z):
@@ -62,6 +63,7 @@ class plot3d (object):
     @classmethod
     def instantiateNodes(cls, nodes):
         """Instantiate Nodes"""
+        cls.is3d = True
         for node in nodes:
             cls.instantiateAnnotate(node)
             cls.instantiateNode(node)

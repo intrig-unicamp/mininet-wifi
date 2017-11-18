@@ -303,13 +303,12 @@ class Node(object):
     def updateGraph(self):
         "Update the Graph"
         try:
-            if plot3d.fig_exists():
-                plot3d.graphUpdate(self)
-                plot3d.graphPause()
-            elif plot2d.fig_exists():
-                plot2d.updateCircleRadius(self)
-                plot2d.graphUpdate(self)
-                plot2d.graphPause()
+            cls = plot2d
+            if plot3d.is3d:
+                cls = plot3d
+            if cls.fig_exists():
+                cls.graphUpdate(self)
+                cls.graphPause()
         except:
             pass
 
@@ -337,12 +336,12 @@ class Node(object):
         if self.type == 'vehicle':
             car = self.params['carsta']
             car.params['position'] = self.params['position']
-        if plot3d.fig_exists():
-            plot3d.graphUpdate(self)
-            plot3d.graphPause()
-        elif plot2d.fig_exists():
-            plot2d.graphUpdate(self)
-            plot2d.graphPause()
+        cls = plot2d
+        if plot3d.is3d:
+            cls = plot3d
+        if cls.fig_exists():
+            cls.graphUpdate(self)
+            cls.graphPause()
 
         if WmediumdServerConn.interference_enabled:
             self.setPositionWmediumd()
