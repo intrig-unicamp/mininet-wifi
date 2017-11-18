@@ -369,10 +369,16 @@ class Node(object):
     def setChannel(self, value, intf=None):
         "Set Channel"
         wlan = self.params['wlan'].index(intf)
-        self.cmd('iw dev %s set channel %s'
-                 % (self.params['wlan'][wlan], value))
-        self.params['channel'][wlan] = value
+        self.params['channel'][wlan] = str(value)
         self.params['frequency'][wlan] = self.getFrequency(wlan)
+        if self.type is 'ap':
+            self.pexec(
+                'hostapd_cli -i %s chan_switch %s %s' % (
+                    intf, str(value),
+                    str(self.params['frequency'][wlan]).replace(".", "")))
+        else:
+            self.cmd('iw dev %s set channel %s'
+                     % (self.params['wlan'][wlan], str(value)))
 
     def setFreq(self, value, intf=None):
         "Set Frequency"
