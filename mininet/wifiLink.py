@@ -228,10 +228,15 @@ class Association(object):
         :param ap: access point
         :param wlan: wlan ID
         """
-        debug('iw dev %s connect %s %s\n'
-              % (sta.params['wlan'][wlan], ap.params['ssid'][0], ap.params['mac'][0]))
-        sta.pexec('iw dev %s connect %s %s'
-                  % (sta.params['wlan'][wlan], ap.params['ssid'][0], ap.params['mac'][0]))
+        #debug('iw dev %s connect %s %s\n'
+        #      % (sta.params['wlan'][wlan], ap.params['ssid'][0], ap.params['mac'][0]))
+        #sta.pexec('iw dev %s connect %s %s'
+        #          % (sta.params['wlan'][wlan], ap.params['ssid'][0], ap.params['mac'][0]))
+        #iwconfig is still necessary, since iw doesn't include essid like iwconfig does.
+        debug('iwconfig %s essid %s ap %s\n' % (
+            sta.params['wlan'][wlan], ap.params['ssid'][0], ap.params['mac'][0]))
+        sta.pexec('iwconfig %s essid %s ap %s' % (
+            sta.params['wlan'][wlan], ap.params['ssid'][0], ap.params['mac'][0]))
 
     @classmethod
     def associate_infra(cls, sta, ap, wlan):
