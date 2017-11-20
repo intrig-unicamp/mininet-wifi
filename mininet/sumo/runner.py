@@ -32,14 +32,10 @@ class sumo(object):
 		sumoBinary = checkBinary(program)
 		myfile = (os.path.join( os.path.dirname(__file__), "data/%s" % config_file))
 		sumoConfig = myfile
-		
-		for node in baseStations:
-			ap = node
-			break
-		
+
 		if not trace.isEmbedded():
 			#This is not working with subprocess.
-			ap.cmd(' %s -c %s &' % (sumoBinary, sumoConfig))
+			os.system(' %s -c %s &' % (sumoBinary, sumoConfig))
 			#subprocess.Popen(' %s -c  %s' % (sumoBinary,sumoConfig), shell=True, stdout=sys.stdout)
 			trace.init(PORT)
 			
