@@ -31,8 +31,8 @@ def topology(coord):
     net.plotGraph(max_x=200, max_y=200)
 
     if coord:
-        sta1.coord = ['40.0,30.01,0.0', '31.0,10.0,0.0', '31.0,30.0,0.0']
-        sta2.coord = ['40.0,40.0,0.0', '55.0,31.0,0.0', '55.0,81.0,0.0']
+        sta1.coord = ['40.00,30.00,0.00', '31.00,10.00,0.00', '31.00,30.00,0.00']
+        sta2.coord = ['40.00,40.00,0.00', '55.00,31.00,0.00', '55.00,81.00,0.00']
 
     net.startMobility(time=0, repetitions=1, reverse=False)
     if coord:
