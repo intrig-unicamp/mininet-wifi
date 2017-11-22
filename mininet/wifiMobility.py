@@ -18,7 +18,7 @@ Modified by Ramon Fontes (ramonrf@dca.fee.unicamp.br)
 '''
 
 import threading
-import time
+from time import sleep, time
 import os
 import numpy as np
 from numpy.random import rand
@@ -41,7 +41,7 @@ class mobility (object):
     mobileNodes = []
     stationaryNodes = []
     continuePlot = 'plot2d.graphPause()'
-    continueParams = 'time.sleep(0.0001)'
+    continueParams = 'sleep(0.0001)'
 
     @classmethod
     def start(cls, **mobilityparam):
@@ -63,26 +63,26 @@ class mobility (object):
         cls.setWifiParameters()
 
     @classmethod
-    def moveFactor(cls, node, diffTime):
+    def moveFactor(cls, node, diff_time):
         """
         :param node: node
-        :param diffTime: difference between initial and final time. Useful for
+        :param diff_time: difference between initial and final time. Useful for
         calculating the speed
         """
-        initialPosition = node.params['initialPosition']
-        finalPosition = node.params['finalPosition']
-        node.diffTime = diffTime
+        initial_pos = node.params['initialPosition']
+        final_pos = node.params['finalPosition']
+        node.diffTime = diff_time
         if hasattr(node, 'coord'):
-            diffTime = diffTime/(len(node.coord)-1)
+            diff_time = diff_time/(len(node.coord)-1)
 
-        node.params['position'] = initialPosition
-        pos_x = float(finalPosition[0]) - float(initialPosition[0])
-        pos_y = float(finalPosition[1]) - float(initialPosition[1])
-        pos_z = float(finalPosition[2]) - float(initialPosition[2])
+        node.params['position'] = initial_pos
+        pos_x = float(final_pos[0]) - float(initial_pos[0])
+        pos_y = float(final_pos[1]) - float(initial_pos[1])
+        pos_z = float(final_pos[2]) - float(initial_pos[2])
 
-        cls.speed(node, pos_x, pos_y, pos_z, diffTime)
-        pos = '%.4f,%.4f,%.4f' % (pos_x / diffTime, pos_y / diffTime,
-                                  pos_z / diffTime)
+        cls.speed(node, pos_x, pos_y, pos_z, diff_time)
+        pos = '%.4f,%.4f,%.4f' % (pos_x / diff_time, pos_y / diff_time,
+                                  pos_z / diff_time)
         pos = pos.split(',')
         node.moveFac = pos
 
@@ -282,7 +282,7 @@ class mobility (object):
     @classmethod
     def setWmediumdPos(cls, node):
         if node.lastpos != node.params['position']:
-            time.sleep(0.0001)
+            sleep(0.0001)
             node.setPositionWmediumd()
 
     @classmethod
@@ -311,11 +311,6 @@ class mobility (object):
         :param AC: Association Control Method
         """
         cls.AC = AC
-        t_end = time.time() + final_time
-        t_initial = time.time() + init_time
-        currentTime = time.time()
-        i = 1
-
         cls.stations = stations
         cls.accessPoints = aps
 
@@ -342,11 +337,11 @@ class mobility (object):
             for node in nodes:
                 node.idx = 1
             for rep in range(0, repetitions):
+                end_time = time() + final_time
+                initial_time = time() + init_time
+                current_time = time()
+                i = 1
                 if rep > 0:
-                    t_end = time.time() + final_time
-                    t_initial = time.time() + init_time
-                    currentTime = time.time()
-                    i = 1
                     for node in nodes:
                         if hasattr(node, 'coord') and reverse and rep%2 == 1:
                             node.coord_=len(node.coord)-node.idx
@@ -372,14 +367,17 @@ class mobility (object):
                             node.params['finalPosition'] = node.coord[node.coord_].split(',')
                     cls.calculate_diff_time(node)
                 while True:
-                    if time.time() > t_end or time.time() < t_initial:
+                    if time() > end_time or time() < initial_time:
                         break
-                    if time.time() - currentTime >= i:
+                    if time() - current_time >= i:
                         for node in cls.mobileNodes:
-                            if time.time() - currentTime >= node.startTime:
+                            if time() - current_time >= node.startTime:
                                 if node.time <= node.endTime:
                                     node.time += 1
-                                    if node.params['position'] == node.params['finalPosition']:
+                                    x = '%.1f' % float(node.params['position'][0])
+                                    y = '%.1f' % float(node.params['position'][1])
+                                    z = '%.1f' % float(node.params['position'][2])
+                                    if [x,y,z] == node.params['finalPosition']:
                                         x = '%.2f' % (float(node.params['finalPosition'][0]))
                                         y = '%.2f' % (float(node.params['finalPosition'][1]))
                                         z = '%.2f' % (float(node.params['finalPosition'][2]))
@@ -395,13 +393,9 @@ class mobility (object):
                                                 else:
                                                     node.params['finalPosition'] = node.coord[node.coord_].split(',')
                                                 cls.calculate_diff_time(node)
+                                                #x, y, z = cls.move_node(node)
                                     else:
-                                        x = '%.2f' % (float(node.params['position'][0]) +
-                                                      float(node.moveFac[0]))
-                                        y = '%.2f' % (float(node.params['position'][1]) +
-                                                      float(node.moveFac[1]))
-                                        z = '%.2f' % (float(node.params['position'][2]) +
-                                                      float(node.moveFac[2]))
+                                        x, y, z = cls.move_node(node)
                                     node.params['position'] = [x, y, z]
                             if propagationModel.model == 'logNormalShadowingPropagationLossModel':
                                 node.getRange(intf=node.params['wlan'][0])
@@ -414,6 +408,16 @@ class mobility (object):
                 cls.mobileNodes = []
         except:
             pass
+
+    @classmethod
+    def move_node(cls, node):
+        x = '%.2f' % (float(node.params['position'][0]) +
+                      float(node.moveFac[0]))
+        y = '%.2f' % (float(node.params['position'][1]) +
+                      float(node.moveFac[1]))
+        z = '%.2f' % (float(node.params['position'][2]) +
+                      float(node.moveFac[2]))
+        return x, y, z
 
     @classmethod
     def instantiateGraph(cls, MIN_X, MIN_Y, MAX_X, MAX_Y, nodes, connections,
@@ -523,7 +527,7 @@ class mobility (object):
                 node.params['position'] = '%.2f' % xy[idx][0], '%.2f' \
                                           % xy[idx][1], 0.0
                 if propagationModel.model == 'logNormalShadowingPropagationLossModel':
-                    time.sleep(0.0001) #notice problem when there are many threads
+                    sleep(0.0001) #notice problem when there are many threads
                     node.getRange(intf=node.params['wlan'][0], stationary=False)
                     plot2d.updateCircleRadius(node)
                 plot2d.graphUpdate(node)
@@ -542,9 +546,9 @@ class mobility (object):
                 node.params['position'] = '%.2f' % xy[idx][0], '%.2f' \
                                           % xy[idx][1], 0.0
                 if propagationModel.model == 'logNormalShadowingPropagationLossModel':
-                    time.sleep(0.0001)
+                    sleep(0.0001)
                     node.getRange(intf=node.params['wlan'][0])
-            time.sleep(0.5)
+            sleep(0.5)
 
     @classmethod
     def parameters_(cls, node=None):
