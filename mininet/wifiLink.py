@@ -128,7 +128,7 @@ class wirelessLink (object):
                 loss %.1f%% \
                 latency %.2fms \
                 delay %.2fms " % (sta.ifb[wlan], bw, loss, latency, delay))
-        if 'encrypt' in sta.params:
+        if 'encrypt' in sta.params['associatedTo'][wlan].params:
             """tbf is applied to encrypt, cause we have noticed troubles 
             with wpa_supplicant and netem"""
             tc = 'tc qdisc replace dev %s root handle 1: tbf '\
@@ -285,7 +285,7 @@ class Association(object):
 
         if 'config' in sta.params:
             config = sta.params['config']
-            if config != []:
+            if config is not []:
                 config = sta.params['config'].split(',')
                 sta.params.pop("config", None)
                 for conf in config:
