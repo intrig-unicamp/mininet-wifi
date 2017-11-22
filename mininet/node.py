@@ -312,6 +312,11 @@ class Node(object):
         except:
             pass
 
+    def plot(self, position):
+        self.params['position'] = position.split(',')
+        self.params['range'] = [0]
+        self.plot = True
+
     def setRange(self, value, intf=None):
         "Set Signal Range"
         if intf is None:

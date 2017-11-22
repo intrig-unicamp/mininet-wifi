@@ -59,7 +59,6 @@ class mininetWiFi(object):
     MAX_Z = 0
     nroads = 0
     connections = {}
-    plotNodes = []
     wlinks = []
 
     @classmethod
@@ -994,6 +993,8 @@ class mininetWiFi(object):
             mobilityparam.setdefault('repetitions', kwargs['repetitions'])
         if 'reverse' in kwargs:
             mobilityparam.setdefault('reverse', kwargs['reverse'])
+        if 'plotNodes' in kwargs:
+            mobilityparam.setdefault('plotNodes', kwargs['plotNodes'])
 
         if 'model' in kwargs or cls.isVanet:
             if 'min_x' in kwargs:
@@ -1017,7 +1018,6 @@ class mininetWiFi(object):
 
         mobilityparam.setdefault('seed', cls.seed_)
         mobilityparam.setdefault('DRAW', cls.DRAW)
-        mobilityparam.setdefault('plotNodes', cls.plotNodes)
         mobilityparam.setdefault('stations', stations)
         mobilityparam.setdefault('aps', accessPoints)
         mobilityparam.setdefault('connections', cls.connections)
@@ -1153,7 +1153,7 @@ class mininetWiFi(object):
         return stations, accessPoints
 
     @classmethod
-    def plotCheck(cls, stations, accessPoints):
+    def plotCheck(cls, stations, accessPoints, other_nodes):
         "Check which nodes will be plotted"
         stas, aps = cls.checkAPAdhoc(stations, accessPoints)
         if mobility.accessPoints == []:
@@ -1161,7 +1161,7 @@ class mininetWiFi(object):
         if mobility.stations == []:
             mobility.stations = stations
 
-        nodes = cls.plotNodes
+        nodes = other_nodes
 
         for ap in accessPoints:
             if 'position' in ap.params:

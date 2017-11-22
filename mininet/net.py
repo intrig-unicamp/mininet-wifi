@@ -923,6 +923,7 @@ class Mininet(object):
             mininetWiFi.autoAssociation(self.stations, self.accessPoints)
 
         if self._stopMobility:
+            self.mobilityKwargs['plotNodes'] = self.plot_nodes()
             mininetWiFi.stopMobility(self.stations, self.accessPoints,
                                      **self.mobilityKwargs)
         if self._startMobility:
@@ -940,9 +941,19 @@ class Mininet(object):
         else:
             if not mininetWiFi.isMobility and mininetWiFi.DRAW \
                     and not mininetWiFi.alreadyPlotted:
+                plotNodes = self.plot_nodes()
                 self.stations, self.accessPoints = \
-                    mininetWiFi.plotCheck(self.stations, self.accessPoints)
+                    mininetWiFi.plotCheck(self.stations, self.accessPoints,
+                                          plotNodes)
         self.built = True
+
+    def plot_nodes(self):
+        other_nodes = self.hosts + self.switches + self.controllers
+        plotNodes = []
+        for node in other_nodes:
+            if hasattr(node, 'plot') and node.plot == True:
+                plotNodes.append(node)
+        return plotNodes
 
     def startTerms(self):
         "Start a terminal for each node."
@@ -1428,18 +1439,6 @@ class Mininet(object):
         """
         nodes = self.stations + self.cars + self.accessPoints
         mininetWiFi.printDistance(src, dst, nodes)
-
-    @classmethod
-    def plotNode(cls, node, position):
-        """ 
-        Useful for plotting switches and hosts 
-        
-        :params node: the node
-        :params position: position of the node (x,y,z)
-        """
-        node.params['position'] = position.split(',')
-        node.params['range'] = [0]
-        mininetWiFi.plotNodes.append(node)
 
     @classmethod
     def plotGraph(cls, min_x=0, min_y=0, min_z=0, max_x=0, max_y=0, max_z=0):
