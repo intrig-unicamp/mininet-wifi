@@ -130,12 +130,12 @@ class mobility(object):
                 node.params['initialPosition'] = initialPosition.split(',')
 
         if 'time' in kwargs:
-            time = kwargs['time']
+            time_ = kwargs['time']
 
         if stage == 'start':
-            node.startTime = time
+            node.startTime = time_
         elif stage == 'stop':
-            cls.calculate_diff_time(node, time)
+            cls.calculate_diff_time(node, time_)
 
     @classmethod
     def calculate_diff_time(cls, node, time=0):
@@ -367,7 +367,7 @@ class mobility(object):
         :param stations: list of stations
         :param aps: list of access points
         :param connections: list of connections
-        :param plotnodes: list of nodes to be plotted (including hosts and switches)
+        :param plotnodes: list of nodes to be plotted (only hosts and switches)
         :param repetitions: number of repetitions
         :param MIN_X: Minimum value for X
         :param MIN_Y: Minimum value for Y
@@ -411,10 +411,11 @@ class mobility(object):
                                      float(coord_[1].split(',')[0]),
                                      float(coord_[1].split(',')[1]),
                                      float(coord_[1].split(',')[2]))
+            time_ = time()
             for rep in range(0, repetitions):
-                end_time = time() + final_time
-                initial_time = time() + init_time
-                current_time = time()
+                end_time = time_ + final_time
+                initial_time = time_ + init_time
+                current_time = time_
                 i = 1
                 if rep > 0:
                     for node in nodes:

@@ -33,6 +33,22 @@ class propagationModel(object):
             self.__getattribute__(self.model)(node1=node1, node2=node2,
                                               dist=dist, wlan=wlan)
 
+    @classmethod
+    def setAttr(cls, model, **kwargs):
+        cls.model = model
+        if 'exp' in kwargs:
+            cls.exp = kwargs['exp']
+        if 'sL' in kwargs:
+            cls.exp = kwargs['sL']
+        if 'lF' in kwargs:
+            cls.exp = kwargs['lF']
+        if 'pL' in kwargs:
+            cls.exp = kwargs['pL']
+        if 'nFloors' in kwargs:
+            cls.exp = kwargs['nFloors']
+        if 'variance' in kwargs:
+            cls.exp = kwargs['variance']
+
     def pathLoss(self, node1, dist, wlan):
         """Path Loss Model:
         (f) signal frequency transmited(Hz)
@@ -285,7 +301,7 @@ class distanceByPropagationModel(object):
         propagationModel.gRandom = gRandom
 
         if kwargs['interference']:
-            sleep(0.001) #notice problem when there are many threads
+            sleep(0.002) #notice problem when there are many threads
             WmediumdServerConn.update_gaussian_random(
                 WmediumdGaussianRandom(kwargs['node'].wmIface[kwargs['wlan']],
                                        gRandom))
@@ -355,6 +371,8 @@ class powerForRangeByPropagationModel(object):
         self.txpower = 10 * (
             math.log10((4 * math.pi) ** 2 * L * kwargs['dist'] ** 2)) \
                        - 92 - 10 * math.log10(denominator) - (antGain * 2)
+        if self.txpower < 1:
+            self.txpower = 1
 
         return self.txpower
 
@@ -391,6 +409,8 @@ class powerForRangeByPropagationModel(object):
         self.txpower = int(math.ceil(math.log10(
             (math.pow(kwargs['dist'] / referenceDistance, 10 * self.exp) *
              10 ** pathLoss) / 10 ** 92) - gains_fixed))
+        if self.txpower < 1:
+            self.txpower = 1
 
         return self.txpower
 
@@ -417,6 +437,8 @@ class powerForRangeByPropagationModel(object):
 
         self.txpower = 10 * self.exp * math.log10(
             kwargs['dist'] / referenceDistance) - 92 + pathLoss - (antGain * 2)
+        if self.txpower < 1:
+            self.txpower = 1
 
         return self.txpower
 
@@ -431,5 +453,7 @@ class powerForRangeByPropagationModel(object):
 
         self.txpower = N * math.log10(kwargs['dist']) - 92 + \
                        20 * math.log10(f) + lF * nFloors - 28 - (antGain * 2)
+        if self.txpower < 1:
+            self.txpower = 1
 
         return self.txpower

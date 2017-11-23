@@ -774,7 +774,7 @@ class Mininet(object):
         "Configure WiFi Nodes"
         params = dict()
         params.setdefault('stations', self.stations)
-        params.setdefault('accessPoints', self.accessPoints)
+        params.setdefault('aps', self.accessPoints)
         params.setdefault('cars', self.cars)
         params.setdefault('nextIP', self.nextIP)
         params.setdefault('ipBaseNum', self.ipBaseNum)
@@ -926,7 +926,7 @@ class Mininet(object):
             mininetWiFi.stopMobility(self.stations, self.accessPoints,
                                      **self.mobilityKwargs)
         if self._startMobility:
-            mininetWiFi.startMobility(self.stations, self.accessPoints,
+            mininetWiFi.start_mobility(self.stations, self.accessPoints,
                                       **self.mobilityKwargs)
 
         if not mininetWiFi.isMobility \
@@ -1054,7 +1054,7 @@ class Mininet(object):
             info(host.name + ' ')
             host.terminate()
         info('\n')
-        if self.accessPoints != []:
+        if self.accessPoints is not []:
             mininetWiFi.kill_hostapd()
         if mininetWiFi.isWiFi:
             mininetWiFi.closeMininetWiFi()
@@ -1462,21 +1462,13 @@ class Mininet(object):
         """
         mininetWiFi.setChannelEquation(**params)
 
-    def propagationModel(self, model, exp=2, sL=1, lF=0, pL=0,
-                         nFloors=0, variance=2):
+    def propagationModel(self, model, **kwargs):
         """ 
         Attributes for Propagation Model 
         
         :params model: propagation model
-        :params exp: exponent
-        :params sL: system Loss
-        :params lF: floor penetration loss factor
-        :params pL: power Loss Coefficient
-        :params nFloors: number of floors
-        :params variance
         """
-        mininetWiFi.propagationModel(self.stations, self.accessPoints, model,
-                                     exp, sL, lF, pL, nFloors, variance)
+        mininetWiFi.propagation_model(model, **kwargs)
 
     @classmethod
     def associationControl(cls, ac):
