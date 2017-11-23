@@ -66,10 +66,12 @@ class mobility(object):
     def create_coordinate(cls, node):
         node.coord_ = []
         if not hasattr(node, 'coord'):
-            coord1 = '%s,%s,%s' % (node.params['initialPosition'][0], node.params['initialPosition'][1], \
-                      node.params['initialPosition'][2])
-            coord2 = '%s,%s,%s' % (node.params['finalPosition'][0], node.params['finalPosition'][1], \
-                      node.params['finalPosition'][2])
+            coord1 = '%s,%s,%s' % (node.params['initialPosition'][0],
+                                   node.params['initialPosition'][1],
+                                   node.params['initialPosition'][2])
+            coord2 = '%s,%s,%s' % (node.params['finalPosition'][0],
+                                   node.params['finalPosition'][1],
+                                   node.params['finalPosition'][2])
             node.coord_.append([coord1, coord2])
         else:
             for idx in range(0, len(node.coord) - 1):
@@ -100,13 +102,6 @@ class mobility(object):
                                       pos_z / diff_time)
             pos = pos.split(',')
             node.moveFac = pos
-
-        #node.params['position'] = initial_pos
-        #cls.speed(node, pos_x, pos_y, pos_z, diff_time)
-        #pos = '%.2f,%.2f,%.2f' % (pos_x / diff_time,
-         #                         pos_y / diff_time,
-          #                        pos_z / diff_time)
-        #pos = pos.split(',')
 
     @classmethod
     def configure(cls, *args, **kwargs):

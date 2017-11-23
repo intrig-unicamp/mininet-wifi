@@ -19,10 +19,12 @@ def topology():
     sta2 = net.addStation('sta2', mac='00:00:00:00:00:03', ip='10.0.0.3/8',
                           range=20)
     ap1 = net.addAccessPoint('ap1', ssid='ssid-ap1', mode='g', channel='1',
-                             position='15,30,0', range=30)
+                             position='15,30,0', range=50)
     ap2 = net.addAccessPoint('ap2', ssid='ssid-ap2', mode='g', channel='6',
-                             position='55,30,0', range=30)
+                             position='55,30,0', range=50)
     c1 = net.addController('c1', controller=Controller)
+
+    net.propagationModel("logDistancePropagationLossModel", exp=5)
 
     print "*** Configuring wifi nodes"
     net.configureWifiNodes()
