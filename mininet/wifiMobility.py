@@ -356,7 +356,7 @@ class mobility(object):
 
     @classmethod
     def controlled_mobility(cls, init_time=0, final_time=0, stations=None,
-                            aps=None, connections=[], plotNodes=None, MIN_X=0,
+                            aps=None, connections=[], plotNodes=[], MIN_X=0,
                             MIN_Y=0, MIN_Z=0, MAX_X=0, MAX_Y=0, MAX_Z=0, AC='',
                             is3d=False, DRAW=False, repetitions=1, **params):
         """
@@ -472,7 +472,7 @@ class mobility(object):
 
     @classmethod
     def models(cls, stations=None, aps=None, model=None, stationaryNodes=None,
-               min_v=0, max_v=0, seed=None, connections=None, plotNodes=None,
+               min_v=0, max_v=0, seed=None, connections=None, plotNodes=[],
                MAX_X=0, MAX_Y=0, AC='', DRAW=False, **params):
         """
         Used when a mobility model is applied
