@@ -1124,9 +1124,10 @@ class mininetWiFi(object):
                         wlan = 0
                     node.getRange(intf=node.params['wlan'][wlan])
                 else:
-                    node.autoTxPower=True
-                    node.params['txpower'][wlan] = \
-                        node.getTxPower_prop_model(wlan)
+                    if node.params['txpower'][wlan] == 14:
+                        node.autoTxPower=True
+                        node.params['txpower'][wlan] = \
+                            node.getTxPower_prop_model(wlan)
                     setParam = True
                     if node.type == 'vehicle':
                         setParam = False
