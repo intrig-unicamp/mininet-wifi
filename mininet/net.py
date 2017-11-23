@@ -766,9 +766,7 @@ class Mininet(object):
 
     def autoAssociation(self):
         "This is useful to make the users' life easier"
-        stations = self.stations
-        accessPoints = self.accessPoints
-        mininetWiFi.autoAssociation(stations, accessPoints)
+        mininetWiFi.autoAssociation(self.stations, self.accessPoints)
 
     def configureWifiNodes(self):
         "Configure WiFi Nodes"
