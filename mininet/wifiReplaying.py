@@ -50,6 +50,14 @@ class replayingMobility(object):
         self.thread.start()
 
     def mobility(self, mininet, nodes):
+        nodes = mininet.stations + mininet.accessPoints
+        for node in nodes:
+            if node.type == 'station':
+                if 'position' in node.params and node not in mobility.stations:
+                    mobility.stations.append(node)
+            if node.type == 'ap':
+                if 'position' in node.params and node not in mobility.accessPoints:
+                    mobility.accessPoints.append(node)
         if mininetWiFi.DRAW:
             instantiateGraph(mininet)
         if mininetWiFi.is3d:
