@@ -34,7 +34,7 @@ def topology(coord):
         sta1.coord = ['40.0,30.0,0.0', '31.0,10.0,0.0', '31.0,30.0,0.0']
         sta2.coord = ['40.0,40.0,0.0', '55.0,31.0,0.0', '55.0,81.0,0.0']
 
-    net.startMobility(time=0, repetitions=2)
+    net.startMobility(time=0, repetitions=1)
     if coord:
         net.mobility(sta1, 'start', time=1)
         net.mobility(sta2, 'start', time=2)

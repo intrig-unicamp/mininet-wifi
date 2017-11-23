@@ -406,8 +406,8 @@ class mobility(object):
                                      float(coord_[1].split(',')[0]),
                                      float(coord_[1].split(',')[1]),
                                      float(coord_[1].split(',')[2]))
-            time_ = time()
             for rep in range(0, repetitions):
+                time_ = time()
                 end_time = time_ + final_time
                 initial_time = time_ + init_time
                 current_time = time_
