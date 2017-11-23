@@ -970,11 +970,11 @@ class mininetWiFi(object):
                 vanet(**params)
 
     @classmethod
-    def stopMobility(cls, stations, accessPoints, **kwargs):
+    def stopMobility(cls, stations, aps, **kwargs):
         "Stops Mobility"
-        cls.autoAssociation(stations, accessPoints)
+        cls.autoAssociation(stations, aps)
         kwargs['is3d'] = cls.is3d
-        params = cls.setMobilityParams(stations, accessPoints, **kwargs)
+        params = cls.setMobilityParams(stations, aps, **kwargs)
         mobility.stop(**params)
 
     @classmethod
@@ -1185,21 +1185,21 @@ class mininetWiFi(object):
         return stas, aps
 
     @classmethod
-    def autoAssociation(cls, stations, accessPoints):
+    def autoAssociation(cls, stations, aps):
         """
         This is useful to make the users' life easier
         
         :param stations: list of stations
-        :param accessPoints: list of access points
+        :param aps: list of access points
         """
-        nodes = stations + accessPoints
+        nodes = stations + aps
         for node in nodes:
             for wlan in range(0, len(node.params['wlan'])):
                 if node.type == 'vehicle' and wlan == 1:
                     node = node.params['carsta']
                     wlan = 0
         ap = []
-        for node in accessPoints:
+        for node in aps:
             if 'link' in node.params:
                 ap.append(node)
 
@@ -1214,12 +1214,12 @@ class mininetWiFi(object):
                         mobility.adhocNodes.append(node)
             for node in nodes:
                 if 'position' in node.params and 'link' not in node.params:
-                    mobility.accessPoints = accessPoints
+                    mobility.accessPoints = aps
                     mobility.parameters_(node)
 
             for sta in stations:
                 for wlan in range(0, len(sta.params['wlan'])):
-                    for ap in accessPoints:
+                    for ap in aps:
                         if 'position' in sta.params and 'position' in ap.params:
                             dist = wirelessLink.getDistance(sta, ap)
                             if dist <= ap.params['range'][0]:
