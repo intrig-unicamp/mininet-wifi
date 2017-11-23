@@ -14,6 +14,7 @@ author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
 import math
 from random import gauss
 from time import sleep
+from mininet.log import error
 
 class propagationModel(object):
     """ Propagation Models """
@@ -372,7 +373,8 @@ class powerForRangeByPropagationModel(object):
             math.log10((4 * math.pi) ** 2 * L * kwargs['dist'] ** 2)) \
                        - 92 - 10 * math.log10(denominator) - (antGain * 2)
         if self.txpower < 1:
-            self.txpower = 1
+            error('*** Error: tx power is negative!\n')
+            exit(1)
 
         return self.txpower
 
@@ -410,7 +412,8 @@ class powerForRangeByPropagationModel(object):
             (math.pow(kwargs['dist'] / referenceDistance, 10 * self.exp) *
              10 ** pathLoss) / 10 ** 92) - gains_fixed))
         if self.txpower < 1:
-            self.txpower = 1
+            error('*** Error: tx power is negative!\n')
+            exit(1)
 
         return self.txpower
 
@@ -438,7 +441,8 @@ class powerForRangeByPropagationModel(object):
         self.txpower = 10 * self.exp * math.log10(
             kwargs['dist'] / referenceDistance) - 92 + pathLoss - (antGain * 2)
         if self.txpower < 1:
-            self.txpower = 1
+            error('*** Error: tx power is negative!\n')
+            exit(1)
 
         return self.txpower
 
@@ -454,6 +458,7 @@ class powerForRangeByPropagationModel(object):
         self.txpower = N * math.log10(kwargs['dist']) - 92 + \
                        20 * math.log10(f) + lF * nFloors - 28 - (antGain * 2)
         if self.txpower < 1:
-            self.txpower = 1
+            error('*** Error: tx power is negative!\n')
+            exit(1)
 
         return self.txpower
