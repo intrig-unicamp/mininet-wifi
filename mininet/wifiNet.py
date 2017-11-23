@@ -260,8 +260,8 @@ class mininetWiFi(object):
         if 'range' in params:
             range_list = str(params['range']).split(',')
             for value in range_list:
-                node.params['range'].append(int(value))
-                node.setRange(int(value), intf=node.params['wlan'][0])
+                node.params['range'].append(float(value))
+                node.setRange(float(value), intf=node.params['wlan'][0])
             if len(range_list) != wlans:
                 error('*** Error (%s): signal range length'
                       'differs from the number of interfaces!' % node.name)
@@ -991,8 +991,6 @@ class mininetWiFi(object):
             mobilityparam.setdefault('nroads', cls.nroads)
         if 'repetitions' in kwargs:
             mobilityparam.setdefault('repetitions', kwargs['repetitions'])
-        if 'reverse' in kwargs:
-            mobilityparam.setdefault('reverse', kwargs['reverse'])
         if 'plotNodes' in kwargs:
             mobilityparam.setdefault('plotNodes', kwargs['plotNodes'])
 
