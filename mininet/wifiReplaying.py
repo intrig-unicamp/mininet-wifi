@@ -50,7 +50,8 @@ class replayingMobility(object):
         self.thread.start()
 
     def mobility(self, mininet, nodes):
-        nodes = mininet.stations + mininet.accessPoints
+        if nodes == None:
+            nodes = mininet.stations + mininet.accessPoints
         for node in nodes:
             if node.type == 'station':
                 if 'position' in node.params and node not in mobility.stations:
