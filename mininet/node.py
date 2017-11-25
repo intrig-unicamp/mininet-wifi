@@ -1477,12 +1477,12 @@ class AccessPoint(AP):
 
     writeMacAddress = False
 
-    def __init__ (self, ap, wlan=None, aplist=None):
+    def __init__ (self, ap, wlan=0, aplist=[]):
 
         self.start_(ap, wlan, aplist)
 
     @classmethod
-    def start_(cls, ap, wlan=None, aplist=None):
+    def start_(cls, ap, wlan, aplist):
         """ Starting Access Point """
         cmd = ("echo \'")
 
@@ -1502,10 +1502,10 @@ class AccessPoint(AP):
                 ap.params.pop("band", None)
             else:
                 cmd = cmd + ("\nhw_mode=g")
-        elif ap.params['mode'][0] == 'a':
+        elif ap.params['mode'][wlan] == 'a':
             cmd = cmd + ('\ncountry_code=US')
             cmd = cmd + ("\nhw_mode=%s" % ap.params['mode'][wlan])
-        elif ap.params['mode'][0] == 'ac':
+        elif ap.params['mode'][wlan] == 'ac':
             cmd = cmd + ('\ncountry_code=US')
             cmd = cmd + ("\nhw_mode=a")
         else:
@@ -1517,7 +1517,7 @@ class AccessPoint(AP):
             cmd = cmd + ('\nbeacon_int=%s' % ap.params['beacon_int'])
         if 'config' in ap.params:
             config = ap.params['config']
-            if config != []:
+            if config is not []:
                 config = ap.params['config'].split(',')
                 # ap.params.pop("config", None)
                 for conf in config:
@@ -1557,14 +1557,14 @@ class AccessPoint(AP):
                         cmd = cmd + ("\nwpa_key_mgmt=%s" % ap.wpa_key_mgmt)
                         cmd = cmd + ("\nwpa_pairwise=%s" % ap.rsn_pairwise)
                         cmd = cmd + ("\nwpa_passphrase=%s" % ap.wpa_passphrase)
-                    elif ap.params['encrypt'][0] == 'wep':
+                    elif ap.params['encrypt'][wlan] == 'wep':
                         cmd = cmd + ("\nauth_algs=%s" % ap.auth_algs)
                         cmd = cmd + ("\nwep_default_key=%s" % 0)
                         cmd = cmd + cls.verifyWepKey(ap.wep_key0)
 
-                if ap.params['mode'][0] == 'ac':
+                if ap.params['mode'][wlan] == 'ac':
                     cmd = cmd + ("\nieee80211ac=1")
-                elif ap.params['mode'][0] == 'n':
+                elif ap.params['mode'][wlan] == 'n':
                     cmd = cmd + ("\nieee80211n=1")
 
                 if 'ieee80211r' in ap.params and ap.params['ieee80211r'] == 'yes':
@@ -1577,21 +1577,21 @@ class AccessPoint(AP):
                         for apref in aplist:
                             cmd = cmd + ('\nr0kh=%s r0kh-%s.example.com '
                                          '000102030405060708090a0b0c0d0e0f'
-                                         % (apref.params['mac'][0],
+                                         % (apref.params['mac'][wlan],
                                             aplist.index(apref)))
                             cmd = cmd + ('\nr1kh=%s %s '
                                          '000102030405060708090a0b0c0d0e0f'
-                                         % (apref.params['mac'][0],
-                                            apref.params['mac'][0]))
+                                         % (apref.params['mac'][wlan],
+                                            apref.params['mac'][wlan]))
                         cmd = cmd + ('\npmk_r1_push=1')
                         cmd = cmd + ('\nft_over_ds=1')
                         cmd = cmd + ('\nft_psk_generate_local=1')
 
             if 'vssids' in ap.params:
                 for i in range(1, ap.params['vssids']+1):
-                    ap.params['txpower'].append(ap.params['txpower'][0])
-                    ap.params['antennaGain'].append(ap.params['antennaGain'][0])
-                    ap.params['antennaHeight'].append(ap.params['antennaHeight'][0])
+                    ap.params['txpower'].append(ap.params['txpower'][wlan])
+                    ap.params['antennaGain'].append(ap.params['antennaGain'][wlan])
+                    ap.params['antennaHeight'].append(ap.params['antennaHeight'][wlan])
                     ssid = ap.params['ssid'][i]
                     cmd = cmd + ('\n')
                     cmd = cmd + ("\nbss=%s" % ap.params['wlan'][i])
