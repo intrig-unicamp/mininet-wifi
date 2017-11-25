@@ -1,21 +1,6 @@
-# coding: utf-8
-#
-#  Copyright (C) 2008-2010 Istituto per l'Interscambio Scientifico I.S.I.
-#  You can contact us by email (isi@isi.it) or write to:
-#  ISI Foundation, Viale S. Severo 65, 10133 Torino, Italy.
-#
-#  This program was written by André Panisson <panisson@gmail.com>
-#
-'''
-Created on Jan 24, 2012
-Modified by Ramon Fontes (ramonrf@dca.fee.unicamp.br)
-
-@author: André Panisson
-@contact: panisson@gmail.com
-@organization: ISI Foundation, Torino, Italy
-@source: https://github.com/panisson/pymobility
-@copyright: http://dx.doi.org/10.5281/zenodo.9873
-'''
+"""
+author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
+"""
 
 import threading
 from time import sleep, time
@@ -86,19 +71,18 @@ class mobility(object):
         """
         initial_pos = node.params['initialPosition']
         final_pos = node.params['finalPosition']
-        node.diffTime = diff_time
-        #node.diffTime = diff_time
         if hasattr(node, 'points'):
             diff_time = (len(node.points)-1) / diff_time
             node.moveFac = diff_time
         else:
+            diff_time = diff_time + 1
             node.params['position'] = initial_pos
             pos_x = float(final_pos[0]) - float(initial_pos[0])
             pos_y = float(final_pos[1]) - float(initial_pos[1])
             pos_z = float(final_pos[2]) - float(initial_pos[2])
 
             cls.speed(node, pos_x, pos_y, pos_z, diff_time)
-            pos = '%.4f,%.4f,%.4f' % (pos_x / diff_time, pos_y / diff_time,
+            pos = '%.2f,%.2f,%.2f' % (pos_x / diff_time, pos_y / diff_time,
                                       pos_z / diff_time)
             pos = pos.split(',')
             node.moveFac = pos
@@ -417,7 +401,7 @@ class mobility(object):
                         if 'initialPosition' in node.params:
                             cls.mobileNodes.append(node)
                 for node in cls.mobileNodes:
-                    node.time = 0
+                    node.time = node.startTime
                     cls.calculate_diff_time(node)
                 while True:
                     if time() > end_time or time() < initial_time:
@@ -630,6 +614,24 @@ class mobility(object):
                     cls.setWmediumdPos(node)
         eval(cls.continueParams)
 
+# coding: utf-8
+#
+#  Copyright (C) 2008-2010 Istituto per l'Interscambio Scientifico I.S.I.
+#  You can contact us by email (isi@isi.it) or write to:
+#  ISI Foundation, Viale S. Severo 65, 10133 Torino, Italy.
+#
+#  This program was written by Andre Panisson <panisson@gmail.com>
+#
+'''
+Created on Jan 24, 2012
+Modified by Ramon Fontes (ramonrf@dca.fee.unicamp.br)
+
+@author: Andre Panisson
+@contact: panisson@gmail.com
+@organization: ISI Foundation, Torino, Italy
+@source: https://github.com/panisson/pymobility
+@copyright: http://dx.doi.org/10.5281/zenodo.9873
+'''
 
 # define a Uniform Distribution
 U = lambda MIN, MAX, SAMPLES: rand(*SAMPLES.shape) * (MAX - MIN) + MIN
