@@ -15,7 +15,7 @@ from mininet.node import AccessPoint
 from mininet.log import info, error
 from mininet.wmediumdConnector import DynamicWmediumdIntfRef, \
     WmediumdStarter, WmediumdSNRLink, WmediumdTXPower, WmediumdPosition, \
-    WmediumdConstants, WmediumdServerConn
+    WmediumdConstants, WmediumdServerConn, WmediumdERRPROBLink
 from mininet.wifiLink import wirelessLink
 from mininet.wifiDevices import deviceDataRate
 from mininet.wifiMobility import mobility
@@ -583,12 +583,9 @@ class mininetWiFi(object):
         WmediumdServerConn.connect()
 
     @classmethod
-    def configureWmediumd(cls, stations, aps):
+    def configureWmediumd(cls, mininet):
         """ 
         Updates values for frequency and channel
-        
-        :param stations: list of stations
-        :param aps: list of access points
         """
         intfrefs = []
         links = []
@@ -596,12 +593,17 @@ class mininetWiFi(object):
         txpowers = []
         cars = []
 
-        for node in stations:
+        cls.configureWiFiDirect = mininet.configureWiFiDirect
+        cls.configure4addr = mininet.configure4addr
+        cls.enable_error_prob = mininet.enable_error_prob
+        cls.enable_interference = mininet.enable_interference
+        cls.enable_spec_prob_link = mininet.enable_spec_prob_link
+
+        for node in mininet.stations:
             if 'carsta' in node.params:
                 cars.append(node.params['carsta'])
 
-        nodes = stations + aps + cars
-
+        nodes = mininet.stations + mininet.aps + cars
         for node in nodes:
             node.wmIface = []
             if node.type == 'vehicle':
@@ -643,6 +645,11 @@ class mininetWiFi(object):
             mode = WmediumdConstants.WMEDIUMD_MODE_SPECPROB
         elif cls.enable_error_prob:
             mode = WmediumdConstants.WMEDIUMD_MODE_ERRPROB
+            for node in cls.wlinks:
+                links.append(WmediumdERRPROBLink(node[0].wmIface[0], node[1].wmIface[0],
+                                                 node[2]))
+                links.append(WmediumdERRPROBLink(node[1].wmIface[0], node[0].wmIface[0],
+                                                 node[2]))
         else:
             mode = WmediumdConstants.WMEDIUMD_MODE_SNR
             for node in cls.wlinks:
@@ -858,7 +865,7 @@ class mininetWiFi(object):
     def configureAPs(cls, aps, driver):
         """Configure All APs
         
-        :param accessPoints: list of access points
+        :param aps: list of access points
         """
         for ap in aps:
             if 'vssids' in ap.params:
@@ -1060,8 +1067,7 @@ class mininetWiFi(object):
                 node.setMAC(mac, iface)
 
     @classmethod
-    def configureWifiNodes(cls, stations, aps, cars, nextIP,
-                           ipBaseNum, prefixLen, enable_wmediumd, driver):
+    def configureWifiNodes(cls, mininet):
         """
         Configure WiFi Nodes
         
@@ -1071,29 +1077,29 @@ class mininetWiFi(object):
         :param wifiRadios: number of wireless radios
         :param wmediumd: loads wmediumd 
         """
-        cls.enable_wmediumd = enable_wmediumd
+        cls.enable_wmediumd = mininet.enable_wmediumd
 
         params = {}
         if cls.ifb:
             wirelessLink.ifb = True
             params['ifb'] = cls.ifb
-        nodes = stations + aps + cars
+        nodes = mininet.stations + mininet.aps + mininet.cars
         module.start(nodes, cls.wifiRadios, cls.alternativeModule, **params)
-        cls.configureWirelessLink(stations, aps, cars)
-        cls.createVirtualIfaces(stations)
-        cls.configureAPs(aps, driver)
+        cls.configureWirelessLink(mininet.stations, mininet.aps, mininet.cars)
+        cls.createVirtualIfaces(mininet.stations)
+        cls.configureAPs(mininet.aps, mininet.driver)
         cls.isWiFi = True
 
-        for car in cars:
+        for car in mininet.cars:
             # useful if there no link between sta and any other device
-            params = {'nextIP': nextIP, 'ipBaseNum':ipBaseNum,
-                      'prefixLen':prefixLen, 'ssid':car.params['ssid']}
+            params = {'nextIP': mininet.nextIP, 'ipBaseNum':mininet.ipBaseNum,
+                      'prefixLen':mininet.prefixLen, 'ssid':car.params['ssid']}
             if 'func' in car.params and car.params['func'] == 'adhoc':
                 cls.addHoc(car.params['carsta'], **params)
             else:
                 cls.addMesh(car.params['carsta'], **params)
-            stations.remove(car.params['carsta'])
-            stations.append(car)
+            mininet.stations.remove(car.params['carsta'])
+            mininet.stations.append(car)
             if 'position' in car.params:
                 if car.params['position'] == (0,0,0):
                     car.lastpos = [0, 0, 0]
@@ -1136,8 +1142,9 @@ class mininetWiFi(object):
                                     setParam=setParam)
 
         if cls.enable_wmediumd:
-            if not cls.configureWiFiDirect and not cls.configure4addr:
-                cls.configureWmediumd(stations, aps)
+            if not mininet.configureWiFiDirect and not mininet.configure4addr and \
+                    not mininet.enable_error_prob:
+                cls.configureWmediumd(mininet)
                 cls.wmediumdConnect()
                 if cls.enable_interference and not cls.isVanet:
                     for node in nodes:
@@ -1148,14 +1155,14 @@ class mininetWiFi(object):
                             node.setAntennaGain(node.params['antennaGain'][wlan],
                                                 intf=node.params['wlan'][wlan],
                                                 setParam=False)
-        return stations, aps
+        return mininet.stations, mininet.aps
 
     @classmethod
     def plotCheck(cls, stations, aps, other_nodes):
         "Check which nodes will be plotted"
         stas, aps = cls.checkAPAdhoc(stations, aps)
-        if mobility.accessPoints == []:
-            mobility.accessPoints = aps
+        if mobility.aps == []:
+            mobility.aps = aps
         if mobility.stations == []:
             mobility.stations = stations
 
@@ -1207,15 +1214,9 @@ class mininetWiFi(object):
         nodes = stations + ap
 
         if cls.nroads == 0:
-            for node in stations:
-                for wlan in range(0, len(node.params['wlan'])):
-                    if node.func[wlan] == 'mesh':
-                        mobility.meshNodes.append(node)
-                    elif node.func[wlan] == 'adhoc':
-                        mobility.adhocNodes.append(node)
             for node in nodes:
                 if 'position' in node.params and 'link' not in node.params:
-                    mobility.accessPoints = aps
+                    mobility.aps = aps
                     mobility.parameters_(node)
 
             for sta in stations:
