@@ -19,7 +19,7 @@ class sumo(object):
     def configureApp(self, stations, aps, program, config_file, **params):
         try:
             mobility.stations = stations
-            mobility.accessPoints = aps
+            mobility.aps = aps
             mobility.mobileNodes = stations
             self.start(stations, program, config_file)
         except:

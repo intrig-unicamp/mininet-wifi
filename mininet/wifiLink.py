@@ -8,7 +8,8 @@ from scipy.spatial.distance import pdist
 from mininet.wifiDevices import deviceDataRate
 from mininet.log import debug, info
 from mininet.wifiPropagationModels import propagationModel
-from mininet.wmediumdConnector import WmediumdServerConn, WmediumdSNRLink
+from mininet.wmediumdConnector import WmediumdServerConn, WmediumdSNRLink, \
+    WmediumdERRPROBLink
 
 class wirelessLink (object):
 
@@ -163,7 +164,7 @@ class Association(object):
 
     @classmethod
     def configureWirelessLink(cls, sta, ap, enable_wmediumd=False,
-                              enable_interference=False):
+                              wmediumd_mode=False):
         """ 
         Updates RSSI and Others...
         
@@ -175,7 +176,7 @@ class Association(object):
         dist = wirelessLink.getDistance(sta, ap)
         if dist <= ap.params['range'][0]:
             for wlan in range(0, len(sta.params['wlan'])):
-                if not enable_interference:
+                if wmediumd_mode is not 'interference':
                     if sta.params['rssi'][wlan] == 0:
                         cls.updateParams(sta, ap, wlan)
                 if sta.params['associatedTo'][wlan] == '' \
@@ -186,12 +187,12 @@ class Association(object):
                             wirelessLink(sta, ap, wlan, dist)
                     if sta not in ap.params['associatedStations']:
                         ap.params['associatedStations'].append(sta)
-                if not enable_interference:
+                if wmediumd_mode is not 'interference':
                     rssi_ = wirelessLink.setRSSI(sta, ap, wlan, dist)
                     sta.params['rssi'][wlan] = rssi_
             if ap not in sta.params['apsInRange']:
                 sta.params['apsInRange'].append(ap)
-                if not enable_interference:
+                if wmediumd_mode is not 'interference':
                     ap.params['stationsInRange'][sta] = rssi_
 
     @classmethod
@@ -207,12 +208,12 @@ class Association(object):
         sta.params['mode'][wlan] = ap.params['mode'][0]
 
     @classmethod
-    def associate(cls, sta, ap, enable_wmediumd, enable_interference=False):
+    def associate(cls, sta, ap, enable_wmediumd, wmediumd_mode):
         """ Associate to Access Point """
         wlan = sta.ifaceToAssociate
         if 'position' in sta.params:
             cls.configureWirelessLink(sta, ap, enable_wmediumd,
-                                      enable_interference)
+                                      wmediumd_mode)
         else:
             cls.associate_infra(sta, ap, wlan)
             sta.params['associatedTo'][wlan] = ap
@@ -255,10 +256,11 @@ class Association(object):
         elif 'encrypt' not in ap.params:
             cls.associate_noEncrypt(sta, ap, wlan)
         else:
-            if ap.params['encrypt'][0] == 'wpa' or ap.params['encrypt'][0] == 'wpa2':
-                cls.associate_wpa(sta, ap, wlan)
-            elif ap.params['encrypt'][0] == 'wep':
-                cls.associate_wep(sta, ap, wlan)
+            if sta.params['associatedTo'][wlan] == '':
+                if ap.params['encrypt'][0] == 'wpa' or ap.params['encrypt'][0] == 'wpa2':
+                    cls.associate_wpa(sta, ap, wlan)
+                elif ap.params['encrypt'][0] == 'wep':
+                    cls.associate_wep(sta, ap, wlan)
         if cls.printCon:
             iface = sta.params['wlan'][wlan]
             info("Associating %s to %s\n" % (iface, ap))

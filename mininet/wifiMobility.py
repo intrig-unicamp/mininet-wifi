@@ -19,7 +19,7 @@ from mininet.wifiPlot import plot2d, plot3d
 class mobility(object):
     'Mobility'
     AC = ''  # association control method
-    accessPoints = []
+    aps = []
     stations = []
     adhocNodes = []
     meshNodes = []
@@ -235,12 +235,12 @@ class mobility(object):
         :param sta: station
         :param wlan: wlan ID
         """
-        for ap in cls.accessPoints:
+        for ap in cls.aps:
             dist = wirelessLink.getDistance(sta, ap)
             if dist > ap.params['range'][0]:
                 cls.apOutOfRange(sta, ap, wlan)
 
-        for ap in cls.accessPoints:
+        for ap in cls.aps:
             dist = wirelessLink.getDistance(sta, ap)
             if dist <= ap.params['range'][0]:
                 cls.handover(sta, ap, wlan)
@@ -358,9 +358,9 @@ class mobility(object):
         """
         cls.AC = AC
         cls.stations = stations
-        cls.accessPoints = aps
+        cls.aps = aps
 
-        nodes = cls.stations + cls.accessPoints + plotNodes
+        nodes = cls.stations + cls.aps + plotNodes
 
         for node in nodes:
             if 'position' in node.params and 'initialPosition' not in node.params:
@@ -447,7 +447,7 @@ class mobility(object):
     @classmethod
     def addNodes(cls, stas, aps):
         cls.stations = stas
-        cls.accessPoints = aps
+        cls.aps = aps
         cls.mobileNodes = cls.stations
 
     @classmethod
@@ -473,7 +473,7 @@ class mobility(object):
         cls.AC = AC
 
         cls.addNodes(stations, aps)
-        nodes = cls.stations + cls.accessPoints + plotNodes
+        nodes = cls.stations + cls.aps + plotNodes
 
         # max waiting time
         MAX_WT = 100.
@@ -573,7 +573,7 @@ class mobility(object):
             else:
                 nodes = []
                 nodes.append(node)
-        for node_ in cls.accessPoints:
+        for node_ in cls.aps:
             if 'link' in node_.params and node_.params['link'] == 'mesh':
                 nodes.append(node_)
 
@@ -582,10 +582,6 @@ class mobility(object):
     @classmethod
     def parameters(cls):
         "Applies channel params and handover"
-        if WmediumdServerConn.interference_enabled and cls.meshNodes != []:
-            for node in cls.meshNodes:
-                for wlan in range(0, len(node.params['wlan'])):
-                    Association.meshAssociation(node, wlan)
         while True:
             cls.configureLinks(cls.mobileNodes)
 
@@ -602,7 +598,7 @@ class mobility(object):
                     if WmediumdServerConn.interference_enabled:
                         if Association.bgscan != '':
                             if node.params['associatedTo'][wlan] == '':
-                                for ap in cls.accessPoints:
+                                for ap in cls.aps:
                                     Association.printCon = False
                                     Association.associate_infra(node, ap, wlan)
                                     node.params['associatedTo'][wlan] = 'bgscan'

@@ -117,7 +117,7 @@ from mininet.term import cleanUpScreens, makeTerms
 from mininet.wifiNet import mininetWiFi
 
 # Mininet version: should be consistent with README and LICENSE
-VERSION = "2.2"
+VERSION = "2.2.0d1"
 
 class Mininet(object):
     "Network emulation with hosts spawned in network namespaces."
@@ -182,7 +182,7 @@ class Mininet(object):
         self.mode = mode
         self.channel = channel
         self.nameToNode = {}  # name to Node (Host/Switch) objects
-        self.accessPoints = []
+        self.aps = []
         self.controllers = []
         self.hosts = []
         self.links = []
@@ -193,19 +193,18 @@ class Mininet(object):
         self.stations = []
         self.walls = []
         self.terms = []  # list of spawned xterm processes
-        self.enable_wmediumd = enable_wmediumd
         self.driver = driver
         self.disableAutoAssociation = disableAutoAssociation
         self.mobilityKwargs = ''
         self._stopMobility = False
         self._startMobility = False
-
-        mininetWiFi.configureWiFiDirect = configureWiFiDirect
-        mininetWiFi.configure4addr = configure4addr
+        self.configureWiFiDirect = configureWiFiDirect
+        self.configure4addr = configure4addr
+        self.enable_wmediumd = enable_wmediumd
+        self.enable_error_prob = enable_error_prob
+        self.enable_interference = enable_interference
+        self.enable_spec_prob_link = enable_spec_prob_link
         mininetWiFi.isWiFi = isWiFi
-        mininetWiFi.enable_error_prob = enable_error_prob
-        mininetWiFi.enable_interference = enable_interference
-        mininetWiFi.enable_spec_prob_link = enable_spec_prob_link
         Mininet.init()  # Initialize Mininet if necessary
 
         if defaultGraph:
@@ -422,7 +421,7 @@ class Mininet(object):
             ap.func[1] = 'mesh'
             ap.ifaceToAssociate = 1
 
-        self.accessPoints.append(ap)
+        self.aps.append(ap)
 
         return ap
 
@@ -454,7 +453,7 @@ class Mininet(object):
         wlan = ("%s" % params.pop('phywlan', {}))
         bs.params['phywlan'] = wlan
         self.switches.append(bs)
-        self.accessPoints.append(bs)
+        self.aps.append(bs)
 
         mininetWiFi.addParameters(bs, self.autoSetMacs, defaults, mode='master')
         return bs
@@ -562,14 +561,14 @@ class Mininet(object):
     def __iter__(self):
         "return iterator over node names"
         for node in chain(self.hosts, self.switches, self.controllers,
-                          self.stations, self.carsSTA, self.accessPoints):
+                          self.stations, self.carsSTA, self.aps):
             yield node.name
 
     def __len__(self):
         "returns number of nodes in net"
         return (len(self.hosts) + len(self.switches) +
                 len(self.controllers) + len(self.stations) +
-                len(self.carsSTA) + len(self.accessPoints))
+                len(self.carsSTA) + len(self.aps))
 
     def __contains__(self, item):
         "returns True if net contains named node"
@@ -695,9 +694,15 @@ class Mininet(object):
                 doAssociation = True
 
             if doAssociation:
+                if self.enable_interference:
+                    wmediumd_mode = 'interference'
+                elif self.enable_error_prob:
+                    wmediumd_mode = 'error_prob'
+                else:
+                    wmediumd_mode = None
                 cls = Association
                 cls.associate(sta, ap, self.enable_wmediumd,
-                              mininetWiFi.enable_interference)
+                              wmediumd_mode)
                 if 'bw' not in params and 'mininet.util.TCIntfWireless' \
                         not in str(self.link):
                     value = mininetWiFi.setDataRate(sta, ap, wlan)
@@ -716,8 +721,11 @@ class Mininet(object):
                     if not mininetWiFi.enable_interference:
                         cls(name=sta.params['wlan'][wlan], node=sta,
                             link=None, tc=True, **params)
-            if mininetWiFi.enable_wmediumd and not mininetWiFi.enable_interference:
-                mininetWiFi.wlinks.append([sta, ap])
+            if self.enable_wmediumd:
+                if self.enable_error_prob:
+                    mininetWiFi.wlinks.append([sta, ap, params['error_prob']])
+                elif not self.enable_interference:
+                    mininetWiFi.wlinks.append([sta, ap])
 
         elif (node1.type == 'ap' and node2.type == 'ap'
               and 'link' in options
@@ -766,20 +774,11 @@ class Mininet(object):
 
     def autoAssociation(self):
         "This is useful to make the users' life easier"
-        mininetWiFi.autoAssociation(self.stations, self.accessPoints)
+        mininetWiFi.autoAssociation(self.stations, self.aps)
 
     def configureWifiNodes(self):
         "Configure WiFi Nodes"
-        params = dict()
-        params.setdefault('stations', self.stations)
-        params.setdefault('aps', self.accessPoints)
-        params.setdefault('cars', self.cars)
-        params.setdefault('nextIP', self.nextIP)
-        params.setdefault('ipBaseNum', self.ipBaseNum)
-        params.setdefault('prefixLen', self.prefixLen)
-        params.setdefault('enable_wmediumd', self.enable_wmediumd)
-        params.setdefault('driver', self.driver)
-        self.stations, self.accessPoints = mininetWiFi.configureWifiNodes(**params)
+        self.stations, self.aps = mininetWiFi.configureWifiNodes(self)
 
     def delLink(self, link):
         "Remove a link from this network"
@@ -891,9 +890,9 @@ class Mininet(object):
         if self.topo:
             self.buildFromTopo(self.topo)
 
-        if (mininetWiFi.configure4addr or mininetWiFi.configureWiFiDirect) \
+        if (self.configure4addr or self.configureWiFiDirect or self.enable_error_prob) \
                 and self.enable_wmediumd:
-            mininetWiFi.configureWmediumd(self.stations, self.accessPoints)
+            mininetWiFi.configureWmediumd(self)
             mininetWiFi.wmediumdConnect()
 
         if self.inNamespace:
@@ -917,14 +916,14 @@ class Mininet(object):
 
         if mininetWiFi.isWiFi and not self.disableAutoAssociation \
                 and not mininetWiFi.isMobility:
-            mininetWiFi.autoAssociation(self.stations, self.accessPoints)
+            mininetWiFi.autoAssociation(self.stations, self.aps)
 
         if self._stopMobility:
             self.mobilityKwargs['plotNodes'] = self.plot_nodes()
-            mininetWiFi.stopMobility(self.stations, self.accessPoints,
+            mininetWiFi.stopMobility(self.stations, self.aps,
                                      **self.mobilityKwargs)
         if self._startMobility:
-            mininetWiFi.start_mobility(self.stations, self.accessPoints,
+            mininetWiFi.start_mobility(self.stations, self.aps,
                                       **self.mobilityKwargs)
 
         if not mininetWiFi.isMobility \
@@ -932,15 +931,15 @@ class Mininet(object):
                         'logNormalShadowingPropagationLossModel':
             import threading
             thread = threading.Thread(target=mininetWiFi.plotCheck,
-                                      args=(self.stations, self.accessPoints))
+                                      args=(self.stations, self.aps))
             thread.daemon = True
             thread.start()
         else:
             if not mininetWiFi.isMobility and mininetWiFi.DRAW \
                     and not mininetWiFi.alreadyPlotted:
                 plotNodes = self.plot_nodes()
-                self.stations, self.accessPoints = \
-                    mininetWiFi.plotCheck(self.stations, self.accessPoints,
+                self.stations, self.aps = \
+                    mininetWiFi.plotCheck(self.stations, self.aps,
                                           plotNodes)
         self.built = True
 
@@ -963,7 +962,7 @@ class Mininet(object):
         self.terms += makeTerms(self.switches, 'switch')
         self.terms += makeTerms(self.hosts, 'host')
         self.terms += makeTerms(self.stations, 'station')
-        self.terms += makeTerms(self.accessPoints, 'ap')
+        self.terms += makeTerms(self.aps, 'ap')
 
     def stopXterms(self):
         "Kill each xterm."
@@ -989,7 +988,7 @@ class Mininet(object):
         info('\n')
 
         info('*** Starting switches and/or access points\n')
-        nodesL2 = self.switches + self.accessPoints
+        nodesL2 = self.switches + self.aps
         for switch in nodesL2:
             info(switch.name + ' ')
             switch.start(self.controllers)
@@ -1033,7 +1032,7 @@ class Mininet(object):
         info('\n')
         info('*** Stopping switches/access points\n')
         stopped = {}
-        nodesL2 = self.switches + self.accessPoints
+        nodesL2 = self.switches + self.aps
         for swclass, switches in groupby(
                 sorted(nodesL2, key=type), type):
             switches = tuple(switches)
@@ -1052,7 +1051,7 @@ class Mininet(object):
             info(host.name + ' ')
             host.terminate()
         info('\n')
-        if self.accessPoints is not []:
+        if self.aps is not []:
             mininetWiFi.kill_hostapd()
         if mininetWiFi.isWiFi:
             mininetWiFi.closeMininetWiFi()
@@ -1393,7 +1392,7 @@ class Mininet(object):
         :params **params config_file: file configuration
         """
         params['stations'] = self.stations
-        params['aps'] = self.accessPoints
+        params['aps'] = self.aps
         params['cars'] = self.cars
         params['program'] = program
         self.disableAutoAssociation = True
@@ -1431,7 +1430,7 @@ class Mininet(object):
         :params src: source node
         :params dst: destination node
         """
-        nodes = self.stations + self.cars + self.accessPoints
+        nodes = self.stations + self.cars + self.aps
         mininetWiFi.printDistance(src, dst, nodes)
 
     @classmethod
@@ -1597,7 +1596,7 @@ class MininetWithControlNet(Mininet):
         info(controller.name + ' <->')
         cip = ip
         snum = ipParse(ip)
-        nodesL2 = self.switches + self.accessPoints 
+        nodesL2 = self.switches + self.aps
         for switch in nodesL2:
             info(' ' + switch.name)
             link = self.link(switch, controller, port1=0)

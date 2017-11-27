@@ -258,6 +258,7 @@ class WmediumdStarter(object):
     default_auto_errprob = 0.0
     mode = 0
     enable_interference = False
+    enable_error_prob = False
 
     @classmethod
     def initialize(cls, intfrefs=None, links=None, executable='wmediumd',
@@ -265,7 +266,8 @@ class WmediumdStarter(object):
                    auto_add_links=True, default_auto_snr=-10,
                    default_auto_errprob=1.0,
                    mode=WmediumdConstants.WMEDIUMD_MODE_SNR,
-                   enable_interference=False, positions=None, txpowers=None):
+                   enable_interference=False, enable_error_prob=False,
+                   positions=None, txpowers=None):
         """
         Set the data for the wmediumd daemon
 
@@ -309,6 +311,7 @@ class WmediumdStarter(object):
             raise Exception("Wrong wmediumd mode given")
         cls.is_initialized = True
         cls.enable_interference = enable_interference
+        cls.enable_error_prob = enable_error_prob
         WmediumdServerConn.interference_enabled = enable_interference
 
     @classmethod
