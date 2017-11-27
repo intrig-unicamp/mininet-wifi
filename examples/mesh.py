@@ -12,15 +12,21 @@ sta1 ----- sta2"""
 from mininet.net import Mininet
 from mininet.cli import CLI
 from mininet.log import setLogLevel
+import sys
 
-def topology():
+def topology(mobility):
     "Create a network."
     net = Mininet(enable_wmediumd=True, enable_interference=True)
 
     print "*** Creating nodes"
-    sta1 = net.addStation('sta1', position='10,10,0')
-    sta2 = net.addStation('sta2', position='50,10,0')
-    sta3 = net.addStation('sta3', position='90,10,0')
+    if mobility:
+        sta1 = net.addStation('sta1')
+        sta2 = net.addStation('sta2')
+        sta3 = net.addStation('sta3')
+    else:
+        sta1 = net.addStation('sta1', position='10,10,0')
+        sta2 = net.addStation('sta2', position='50,10,0')
+        sta3 = net.addStation('sta3', position='90,10,0')
 
     print "*** Configuring wifi nodes"
     net.configureWifiNodes()
@@ -29,6 +35,14 @@ def topology():
     net.addMesh(sta1, ssid='meshNet', channel=5)
     net.addMesh(sta2, ssid='meshNet', channel=5)
     net.addMesh(sta3, ssid='meshNet', channel=5)
+
+    if mobility:
+        net.plotGraph(max_x=100, max_y=100)
+
+        net.seed(20)
+
+        net.startMobility(time=0, model='RandomDirection', max_x=100, max_y=100,
+                          min_v=0.5, max_v=0.8)
 
     print "*** Starting network"
     net.build()
@@ -42,4 +56,6 @@ def topology():
 
 if __name__ == '__main__':
     setLogLevel('info')
-    topology()
+    mobility = True if '-m' in sys.argv else False
+    topology(mobility)
+
