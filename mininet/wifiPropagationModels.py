@@ -372,8 +372,8 @@ class powerForRangeByPropagationModel(object):
         self.txpower = 10 * (
             math.log10((4 * math.pi) ** 2 * L * kwargs['dist'] ** 2)) \
                        - 92 - 10 * math.log10(denominator) - (antGain * 2)
-        if self.txpower < 1:
-            error('*** Error: tx power is negative!\n')
+        if self.txpower < 0:
+            error('*** Error: tx power is negative! (%s)\n' % self.txpower)
             exit(1)
 
         return self.txpower
@@ -411,8 +411,8 @@ class powerForRangeByPropagationModel(object):
         self.txpower = int(math.ceil(math.log10(
             (math.pow(kwargs['dist'] / referenceDistance, 10 * self.exp) *
              10 ** pathLoss) / 10 ** 92) - gains_fixed))
-        if self.txpower < 1:
-            error('*** Error: tx power is negative!\n')
+        if self.txpower < 0:
+            error('*** Error: tx power is negative! (%s)\n' % self.txpower)
             exit(1)
 
         return self.txpower
@@ -440,8 +440,8 @@ class powerForRangeByPropagationModel(object):
 
         self.txpower = 10 * self.exp * math.log10(
             kwargs['dist'] / referenceDistance) - 92 + pathLoss - (antGain * 2)
-        if self.txpower < 1:
-            error('*** Error: tx power is negative!\n')
+        if self.txpower < 0:
+            error('*** Error: tx power is negative! (%s)\n' % self.txpower)
             exit(1)
 
         return self.txpower
@@ -457,8 +457,8 @@ class powerForRangeByPropagationModel(object):
 
         self.txpower = N * math.log10(kwargs['dist']) - 92 + \
                        20 * math.log10(f) + lF * nFloors - 28 - (antGain * 2)
-        if self.txpower < 1:
-            error('*** Error: tx power is negative!\n')
+        if self.txpower < 0:
+            error('*** Error: tx power is negative! (%s)\n' % self.txpower)
             exit(1)
 
         return self.txpower
