@@ -77,6 +77,7 @@ from mininet.wifiPropagationModels import distanceByPropagationModel, \
 from mininet.wifiMobility import mobility
 from mininet.wifiLink import wirelessLink
 from mininet.wifiPlot import plot2d, plot3d
+from mininet.utils.private_folder_manager import PrivateFolderManager
 
 
 class Node(object):
