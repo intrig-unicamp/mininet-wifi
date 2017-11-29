@@ -32,7 +32,7 @@ def topology():
                            port=6633)
 
     print "*** Configuring Propagation Model"
-    net.propagationModel("logDistancePropagationLossModel", exp=4.5)
+    net.propagationModel(model="logDistance", exp=4.5)
 
     print "*** Configuring wifi nodes"
     net.configureWifiNodes()

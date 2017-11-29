@@ -28,7 +28,7 @@ def topology():
     c1 = net.addController('c1', controller=Controller)
 
     print "*** Configuring Propagation Model"
-    net.propagationModel("logDistancePropagationLossModel", exp=4)
+    net.propagationModel(model="logDistance", exp=4)
 
     print "*** Configuring wifi nodes"
     net.configureWifiNodes()

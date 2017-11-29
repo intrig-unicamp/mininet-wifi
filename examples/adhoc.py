@@ -23,7 +23,7 @@ def topology(autoTxPower):
         sta2 = net.addStation('sta2', position='90,10,0')
         sta3 = net.addStation('sta3', position='170,10,0')
 
-    net.propagationModel("logDistancePropagationLossModel", exp=4)
+    net.propagationModel(model="logDistance", exp=4)
 
     print "*** Configuring wifi nodes"
     net.configureWifiNodes()

@@ -47,13 +47,13 @@ def topology():
     c1 = net.addController('c1', controller=Controller, ip='127.0.0.1',
                            port=6633)
 
-    net.propagationModel("logDistancePropagationLossModel", exp=2.5)
+    net.propagationModel(model="logDistance", exp=2.5)
 
     print "*** Setting bgscan"
     net.setBgscan(signal=-45, s_inverval=5, l_interval=10)
 
     print "*** Configuring Propagation Model"
-    net.propagationModel("logDistancePropagationLossModel", exp=2)
+    net.propagationModel(model="logDistance", exp=2)
 
     print "*** Configuring wifi nodes"
     net.configureWifiNodes()

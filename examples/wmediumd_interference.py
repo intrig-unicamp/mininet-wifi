@@ -14,7 +14,7 @@ def topology():
 
     "Create a network."
     net = Mininet(controller=Controller, link=TCLink, accessPoint=OVSKernelAP,
-                  enable_wmediumd=True, enable_interference=True)
+                  enable_wmediumd=True, enable_interference=True, noise_threshold=-91)
 
     print "*** Creating nodes"
     ap1 = net.addAccessPoint('ap1', ssid='new-ssid', mode='a', channel='36',
@@ -28,7 +28,7 @@ def topology():
     c1 = net.addController('c1', controller=Controller)
 
     print "*** Configuring Propagation Model"
-    net.propagationModel("logDistancePropagationLossModel", exp=4)
+    net.propagationModel(model="logDistance", exp=4)
 
     print "*** Configuring wifi nodes"
     net.configureWifiNodes()

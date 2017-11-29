@@ -29,7 +29,7 @@ def topology(mobility):
                          ip='192.168.1.10/24', ssid="apadhoc-ssid2", mode="g",
                          channel="6", position='70,60,0')
 
-    net.propagationModel("logDistancePropagationLossModel", exp=4.5)
+    net.propagationModel(model="logDistance", exp=4.5)
 
     print "*** Configuring wifi nodes"
     net.configureWifiNodes()
