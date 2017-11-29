@@ -19,42 +19,62 @@ class PrivateFolderManager(object):
         self.node = node  # type: Node
         self.private_folders = private_folders  # type: List[Union[str, Tuple[str, str]]]
         for private_folder in self.private_folders:
-            self._mount(private_folder)
+            folder = private_folder[0] if isinstance(private_folder, tuple) else private_folder
+            destination = private_folder[1] if isinstance(private_folder, tuple) else None
+            self._mount(folder, destination)
 
-    def mount(self, directories):
-        folder = directories[0] if isinstance(directories, tuple) else directories
-        if folder in filter(lambda x: x[0] if isinstance(x, tuple) else x, self.private_folders):
+    def mount(self, directory, destination=None):
+        """
+        Mounts a folder in another point
+
+
+        :param directory: the directory path that will be virtually isolated
+        :type directory: str
+        :param destination: the destined directory to point the virtual directory
+        :type destination: str
+        """
+        if directory in self.private_folders:
             raise ValueError("Folder already present, please unmount and mount again")
         # let's try to mount it
-        self._mount(directories)
-        self.private_folders.append(directories)
+        self._mount(directory, destination)
+        self.private_folders.append(directory)
 
-    def _mount(self, directory):
-        if isinstance(directory, tuple):
+    def _mount(self, private_dir, destination):
+        """
+        Makes the mount of the directories
+
+        :type destination: str
+        :type private_dir: str
+        :param private_dir:
+        :param destination:
+        """
+        if destination:
             # mount given private directory
-            private_dir = directory[1] % self.__dict__
-            mount_point = directory[0]
             self.node.cmd('mkdir -p %s' % private_dir)
-            self.node.cmd('mkdir -p %s' % mount_point)
-            self.node.cmd('mount --bind %s %s' % (private_dir, mount_point))
+            self.node.cmd('mkdir -p %s' % destination)
+            self.node.cmd('mount --bind %s %s' % (private_dir, destination))
         else:
             # mount temporary filesystem on directory
-            self.node.cmd('mkdir -p %s' % directory)
-            self.node.cmd('mount -n -t tmpfs tmpfs %s' % directory)
+            self.node.cmd('mkdir -p %s' % private_dir)
+            self.node.cmd('mount -n -t tmpfs tmpfs %s' % private_dir)
 
     def finish(self):
+        """
+        Cleans the mounted directories
+        """
         for private_folder in self.private_folders:
             self.unmount(private_folder)
 
     def unmount(self, private_folder):
-        directory = private_folder[0] if isinstance(private_folder, tuple) else private_folder
+        """
+        Unmounts a folder
+
+        :param private_folder: the path of the folder to unmount
+        :type private_folder: str
+        """
         if private_folder in self.private_folders:
             self.private_folders.remove(private_folder)
         else:
-            # the used added a private folder with a tuple of (origin, destination) but is removing with just the origin
-            entry = filter(lambda x: x if (x[0] if isinstance(x, tuple) else x) == directory else None,
-                           self.private_folders)
-            if not entry:
-                raise ValueError("Directory mount not found")
+            raise ValueError("Directory mount not found, maybe you didn't mount it before?")
 
-        self.node.cmd('umount ', directory)
+        self.node.cmd('umount ', private_folder)

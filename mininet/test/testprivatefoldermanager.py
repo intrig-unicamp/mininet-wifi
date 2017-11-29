@@ -12,7 +12,7 @@ class MockNode(Node):
         self.cmds.append(args)
 
 
-class test_private_folder_manager(unittest.TestCase):
+class TestPrivateFolderManager(unittest.TestCase):
     def test_mount(self):
         # todo improve test
         node = MockNode()
@@ -21,7 +21,7 @@ class test_private_folder_manager(unittest.TestCase):
         folder_manager.mount("/")
         assert len(node.cmds) is 2  # two for mount the dir
         try:
-            folder_manager.mount(("/", "/test"))
+            folder_manager.mount("/", "/test")
             assert False  # we should never be where
         except ValueError as e:
             pass
