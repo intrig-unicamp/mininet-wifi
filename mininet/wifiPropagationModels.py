@@ -38,7 +38,9 @@ class propagationModel(object):
 
     @classmethod
     def setAttr(cls, **kwargs):
-        cls.model = kwargs['model']
+        cls.model = 'logDistance'
+        if 'model' in kwargs:
+            cls.model = kwargs['model']
         if 'exp' in kwargs:
             cls.exp = kwargs['exp']
         if 'sL' in kwargs:

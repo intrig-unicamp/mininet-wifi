@@ -1223,13 +1223,7 @@ class mininetWiFi(object):
 
     @classmethod
     def propagation_model(cls, **kwargs):
-        """
-        Attributes for Propagation Model
-
-        :params model: propagation model
-        """
-        if 'model' not in kwargs:
-            kwargs['model'] = 'logDistance'
+        "Propagation Model Attr"
         propagationModel.setAttr(**kwargs)
 
     @classmethod
