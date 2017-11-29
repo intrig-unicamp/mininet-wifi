@@ -8,8 +8,7 @@ from scipy.spatial.distance import pdist
 from mininet.wifiDevices import deviceDataRate
 from mininet.log import debug, info
 from mininet.wifiPropagationModels import propagationModel
-from mininet.wmediumdConnector import WmediumdServerConn, WmediumdSNRLink, \
-    WmediumdERRPROBLink
+from mininet.wmediumdConnector import WmediumdServerConn, WmediumdSNRLink
 
 class wirelessLink (object):
 
