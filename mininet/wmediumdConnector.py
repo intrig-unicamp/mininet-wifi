@@ -315,7 +315,7 @@ class WmediumdStarter(object):
         WmediumdServerConn.interference_enabled = enable_interference
 
     @classmethod
-    def start(cls, **params):
+    def start(cls, mininet, ppm):
         """
         Start wmediumd, this method should be called right after
         Mininet.configureWifiNodes()
@@ -323,6 +323,7 @@ class WmediumdStarter(object):
         Notice: The stations can reach each other before this method is
         called and some scripts may use some kind of a cache (eg. iw station
         dump)
+        ppm: propagation model class
         """
         if not cls.is_initialized:
             raise WmediumdException("Use WmediumdStarter.initialize first "
@@ -421,24 +422,24 @@ class WmediumdStarter(object):
                         first_txpower = False
                     else:
                         configstr += ', %s' % txpower
-                if params['model'] == 'ITUPropagationLossModel':
+                if ppm.model == 'ITU':
                     configstr += ');\n\tmodel_name = "itu";\n\tnFLOORS = %d;' \
                                  '\n\tlF = %d;\n\tpL = %d;\n};' % \
-                                 (params['n_floors'], params['lF'], params['pL'])
-                elif params['model'] == 'logDistancePropagationLossModel':
+                                 (ppm.nFloors, ppm.lF, ppm.pL)
+                elif ppm.model == 'logDistance':
                     configstr += ');\n\tmodel_name = "log_distance";' \
                                  '\n\tpath_loss_exp = %.1f;\n\txg = 0.0;\n};' \
-                                 % params['exp']
-                elif params['model'] == 'twoRayGroundPropagationLossModel':
+                                 % ppm.exp
+                elif ppm.model == 'twoRayGround':
                     configstr += ');\n\tmodel_name = "two_ray_ground";' \
-                                 '\n\tsL = %d;\n};' % params['sL']
-                elif params['model'] == 'logNormalShadowingPropagationLossModel':
+                                 '\n\tsL = %d;\n};' % ppm.sL
+                elif ppm.model == 'logNormalShadowing':
                     configstr += ');\n\tmodel_name = "log_normal_shadowing";' \
                                  '\n\tpath_loss_exp = %.1f;\n\tsL = %d;\n};' \
-                                 % (params['exp'], params['sL'])
+                                 % (ppm.exp, ppm.sL)
                 else:
                     configstr += ');\n\tmodel_name = "free_space";\n\tsL = %d;\n};' \
-                                 % params['sL']
+                                 % ppm.sL
 
             else:
                 configstr += '\n\t];\n};\nmodel:\n{\n\ttype = "'

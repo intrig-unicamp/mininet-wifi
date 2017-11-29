@@ -232,7 +232,7 @@ class replayingRSSI(object):
     print_latency = False
     print_distance = False
     
-    def __init__(self, mininet, propagationModel='friisPropagationLossModel',
+    def __init__(self, mininet, propagationModel='friis',
                  n=32, **kwargs):
         """
             propagationModel = Propagation Model
@@ -311,7 +311,7 @@ class replayingRSSI(object):
             rate = 1
         return rate
 
-    def calculateDistance (self, sta, ap, rssi, propagationModel, n=32.0):
+    def calculateDistance(self, sta, ap, rssi, propagationModel, n=32.0):
 
         pT = ap.params['txpower'][0]
         gT = ap.params['antennaGain'][0]
@@ -341,7 +341,7 @@ class replayingRSSI(object):
         return pathLoss_
 
     @classmethod
-    def friisPropagationLossModel(cls, sta, ap, pT, gT, gR, signalLevel, n):
+    def friis(cls, sta, ap, pT, gT, gR, signalLevel, n):
         """Based on Free Space Propagation Model"""
         c = 299792458.0
         L = 2.0
@@ -353,7 +353,7 @@ class replayingRSSI(object):
 
         return dist
 
-    def logDistancePropagationLossModel(self, sta, ap, pT, gT, gR,
+    def logDistance(self, sta, ap, pT, gT, gR,
                                         signalLevel, n):
         """Based on Log Distance Propagation Loss Model"""
         gains = gR + gT + pT
@@ -367,7 +367,7 @@ class replayingRSSI(object):
         return dist
 
     @classmethod
-    def ITUPropagationLossModel(cls, sta, ap, pT, gT, gR, signalLevel, N):
+    def ITU(cls, sta, ap, pT, gT, gR, signalLevel, N):
         """Based on International Telecommunication Union (ITU) Propagation
         Loss Model"""
         lF = 0  # Floor penetration loss factor

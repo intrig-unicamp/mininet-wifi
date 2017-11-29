@@ -134,7 +134,7 @@ class Mininet(object):
                  enable_error_prob=False, disableAutoAssociation=False,
                  driver='nl80211', autoSetPositions=False,
                  configureWiFiDirect=False, configure4addr=False,
-                 defaultGraph=False):
+                 defaultGraph=False, noise_threshold=-91, cca_threshold=-90):
         """Create Mininet object.
            topo: Topo (topology) object or None
            switch: default Switch class
@@ -198,6 +198,9 @@ class Mininet(object):
         self.mobilityKwargs = ''
         self._stopMobility = False
         self._startMobility = False
+        self.ppm_is_set = False
+        self.noise_threshold = noise_threshold
+        self.cca_threshold = cca_threshold
         self.configureWiFiDirect = configureWiFiDirect
         self.configure4addr = configure4addr
         self.enable_wmediumd = enable_wmediumd
@@ -778,6 +781,8 @@ class Mininet(object):
 
     def configureWifiNodes(self):
         "Configure WiFi Nodes"
+        if not self.ppm_is_set:
+            self.propagationModel()
         self.stations, self.aps = mininetWiFi.configureWifiNodes(self)
 
     def delLink(self, link):
@@ -1459,13 +1464,14 @@ class Mininet(object):
         """
         mininetWiFi.setChannelEquation(**params)
 
-    def propagationModel(self, model, **kwargs):
+    def propagationModel(self, **kwargs):
         """ 
-        Attributes for Propagation Model 
-        
-        :params model: propagation model
+        Propagation Model Attr
         """
-        mininetWiFi.propagation_model(model, **kwargs)
+        self.ppm_is_set = True
+        kwargs['noise_threshold'] = self.noise_threshold
+        kwargs['cca_threshold'] = self.cca_threshold
+        mininetWiFi.propagation_model(**kwargs)
 
     @classmethod
     def associationControl(cls, ac):

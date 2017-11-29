@@ -48,6 +48,7 @@ class mininetWiFi(object):
     isWiFi = False
     plot = plot2d
     enable_wmediumd = False
+    ppm_is_set = False
     init_time = 0
     wifiRadios = 0
     seed_ = 10
@@ -662,14 +663,7 @@ class mininetWiFi(object):
                                    enable_interference=cls.enable_interference,
                                    auto_add_links=False, txpowers=txpowers,
                                    with_server=True)
-        params = dict()
-        params['model'] = propagationModel.model
-        params['sL'] = propagationModel.sL
-        params['pL'] = propagationModel.pL
-        params['lF'] = propagationModel.lF
-        params['exp'] = propagationModel.exp
-        params['n_floors'] = propagationModel.nFloors
-        WmediumdStarter.start(**params)
+        WmediumdStarter.start(mininet, propagationModel)
 
     @classmethod
     def checkAPAdhoc(cls, stations, aps):
@@ -1228,14 +1222,15 @@ class mininetWiFi(object):
                                 mobility.handover(sta, ap, wlan)
 
     @classmethod
-    def propagation_model(cls, model, **kwargs):
+    def propagation_model(cls, **kwargs):
         """
         Attributes for Propagation Model
 
         :params model: propagation model
         """
-        cls.prop_model_name = model
-        propagationModel.setAttr(model, **kwargs)
+        if 'model' not in kwargs:
+            kwargs['model'] = 'logDistance'
+        propagationModel.setAttr(**kwargs)
 
     @classmethod
     def getDistance(cls, src, dst):
