@@ -263,6 +263,14 @@ class CLI(Cmd):
         for node in self.mn.values():
             output('%s\n' % repr(node))
 
+    def do_pause(self, line):
+        "pause mobility for a while"
+        self.mn.pause_simulation()
+
+    def do_start(self, line):
+        "pause mobility for a while"
+        self.mn.start_simulation()
+
     def do_distance(self, line):
         "Distance between two nodes."
         args = line.split()

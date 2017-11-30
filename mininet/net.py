@@ -934,7 +934,7 @@ class Mininet(object):
 
         if not mininetWiFi.isMobility \
                 and mininetWiFi.prop_model_name == \
-                        'logNormalShadowingPropagationLossModel':
+                        'logNormalShadowing':
             import threading
             thread = threading.Thread(target=mininetWiFi.plotCheck,
                                       args=(self.stations, self.aps))
@@ -1438,6 +1438,12 @@ class Mininet(object):
     def defaultGraph(self):
         "Default values for graph"
         self.plotGraph(min_x=0, min_y=0, min_z=0, max_x=100, max_y=100, max_z=0)
+
+    def pause_simulation(self):
+        mininetWiFi.pause_simulation()
+
+    def start_simulation(self):
+        mininetWiFi.start_simulation()
 
     def getCurrentDistance(self, src, dst):
         """ 
