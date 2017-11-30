@@ -418,6 +418,20 @@ class testWalkthrough(unittest.TestCase):
         p.sendline('exit')
         p.wait()
 
+    def testErrorProb(self):
+        "Start Mininet-WiFi, then test wmediumd_error_prob.py"
+        p = pexpect.spawn(
+            'python examples/wmediumd_error_prob.py')
+        sleep(4)
+        p.sendline('sta1 ping -c1 sta2')
+        p.expect('1 packets transmitted, 1 received')
+        p.expect(self.prompt)
+        p.sendline('sta1 ping -c1 sta3')
+        p.expect('1 packets transmitted, 0 received')
+        p.expect(self.prompt)
+        p.sendline('exit')
+        p.wait()
+
     def testWirelessParams(self):
         """Start Mininet-WiFi with sta in ap mode,
         then do an extensive test"""
