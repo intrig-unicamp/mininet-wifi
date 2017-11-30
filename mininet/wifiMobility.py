@@ -563,7 +563,7 @@ class mobility(object):
                 if propagationModel.model == 'logNormalShadowing':
                     sleep(0.0001)
                     node.getRange(intf=node.params['wlan'][0])
-            sleep(0.0001)
+            sleep(0.5)
             while cls.pause_simulation:
                 pass
 
@@ -581,7 +581,6 @@ class mobility(object):
         for node_ in cls.aps:
             if 'link' in node_.params and node_.params['link'] == 'mesh':
                 nodes.append(node_)
-
         cls.configureLinks(nodes)
 
     @classmethod

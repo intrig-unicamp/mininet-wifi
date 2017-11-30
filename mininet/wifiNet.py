@@ -996,15 +996,23 @@ class mininetWiFi(object):
 
         if 'model' in kwargs or cls.isVanet:
             if 'min_x' in kwargs:
+                if not cls.DRAW:
+                    cls.MIN_X = int(kwargs['min_x'])
                 for sta in stations:
                     sta.min_x = int(kwargs['min_x'])
             if 'min_y' in kwargs:
+                if not cls.DRAW:
+                    cls.MIN_Y = int(kwargs['min_y'])
                 for sta in stations:
                     sta.min_y = int(kwargs['min_y'])
             if 'max_x' in kwargs:
+                if not cls.DRAW:
+                    cls.MAX_X = int(kwargs['max_x'])
                 for sta in stations:
                     sta.max_x = int(kwargs['max_x'])
             if 'max_y' in kwargs:
+                if not cls.DRAW:
+                    cls.MAX_Y = int(kwargs['max_y'])
                 for sta in stations:
                     sta.max_y = int(kwargs['max_y'])
             if 'min_v' in kwargs:
