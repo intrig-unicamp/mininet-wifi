@@ -1172,7 +1172,7 @@ class mininetWiFi(object):
 
         cls.checkDimension(nodes)
 
-        if propagationModel.model == 'logNormalShadowingPropagationLossModel':
+        if propagationModel.model == 'logNormalShadowing':
             while True:
                 for node in nodes:
                     node.getRange(intf=node.params['wlan'][0])
@@ -1231,6 +1231,14 @@ class mininetWiFi(object):
         "Get the distance between two nodes"
         dist = wirelessLink.getDistance(src, dst)
         return dist
+
+    @classmethod
+    def pause_simulation(self):
+        mobility.pause_simulation = True
+
+    @classmethod
+    def start_simulation(self):
+        mobility.pause_simulation = False
 
     @classmethod
     def printDistance(cls, src, dst, nodes):
