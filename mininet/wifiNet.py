@@ -1241,7 +1241,7 @@ class mininetWiFi(object):
         return dist
 
     @classmethod
-    def pause_simulation(self):
+    def stop_simulation(self):
         mobility.pause_simulation = True
 
     @classmethod

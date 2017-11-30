@@ -263,9 +263,9 @@ class CLI(Cmd):
         for node in self.mn.values():
             output('%s\n' % repr(node))
 
-    def do_pause(self, line):
-        "pause mobility for a while"
-        self.mn.pause_simulation()
+    def do_stop(self, line):
+        "stop mobility for a while"
+        self.mn.stop_simulation()
 
     def do_start(self, line):
         "pause mobility for a while"

@@ -1439,8 +1439,8 @@ class Mininet(object):
         "Default values for graph"
         self.plotGraph(min_x=0, min_y=0, min_z=0, max_x=100, max_y=100, max_z=0)
 
-    def pause_simulation(self):
-        mininetWiFi.pause_simulation()
+    def stop_simulation(self):
+        mininetWiFi.stop_simulation()
 
     def start_simulation(self):
         mininetWiFi.start_simulation()
