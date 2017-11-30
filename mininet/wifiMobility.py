@@ -26,6 +26,7 @@ class mobility(object):
     mobileNodes = []
     stationaryNodes = []
     continuePlot = 'plot2d.graphPause()'
+    pause_simulation = False
     continueParams = 'sleep(0.0001)'
 
     @classmethod
@@ -419,7 +420,7 @@ class mobility(object):
                                         x, y, z = cls.move_node(node)
                                         node.params['position'] = [x, y, z]
                                     node.time += 1
-                            if propagationModel.model == 'logNormalShadowingPropagationLossModel':
+                            if propagationModel.model == 'logNormalShadowing':
                                 node.getRange(intf=node.params['wlan'][0])
                             if DRAW:
                                 plot.graphUpdate(node)
@@ -497,7 +498,7 @@ class mobility(object):
             info('Warning: running without GUI.\n')
             DRAW = False
 
-        if stationaryNodes != None:
+        if stationaryNodes is not None:
             debug('Configuring the mobility model %s' % model)
 
             if model == 'RandomWalk':  # Random Walk model
@@ -538,12 +539,14 @@ class mobility(object):
             for idx, node in enumerate(nodes):
                 node.params['position'] = '%.2f' % xy[idx][0], '%.2f' \
                                           % xy[idx][1], 0.0
-                if propagationModel.model == 'logNormalShadowingPropagationLossModel':
+                if propagationModel.model == 'logNormalShadowing':
                     sleep(0.0001)  # notice problem when there are many threads
                     node.getRange(intf=node.params['wlan'][0], stationary=False)
                     plot2d.updateCircleRadius(node)
                 plot2d.graphUpdate(node)
             eval(cls.continuePlot)
+            while cls.pause_simulation:
+                pass
 
     @classmethod
     def startMobilityModelNoGraph(cls, mob, nodes):
@@ -557,10 +560,12 @@ class mobility(object):
             for idx, node in enumerate(nodes):
                 node.params['position'] = '%.2f' % xy[idx][0], '%.2f' \
                                           % xy[idx][1], 0.0
-                if propagationModel.model == 'logNormalShadowingPropagationLossModel':
+                if propagationModel.model == 'logNormalShadowing':
                     sleep(0.0001)
                     node.getRange(intf=node.params['wlan'][0])
-            sleep(0.5)
+            sleep(0.0001)
+            while cls.pause_simulation:
+                pass
 
     @classmethod
     def parameters_(cls, node=None):

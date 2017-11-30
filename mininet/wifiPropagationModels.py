@@ -44,15 +44,15 @@ class propagationModel(object):
         if 'exp' in kwargs:
             cls.exp = kwargs['exp']
         if 'sL' in kwargs:
-            cls.exp = kwargs['sL']
+            cls.sL = kwargs['sL']
         if 'lF' in kwargs:
-            cls.exp = kwargs['lF']
+            cls.lF = kwargs['lF']
         if 'pL' in kwargs:
-            cls.exp = kwargs['pL']
+            cls.pL = kwargs['pL']
         if 'nFloors' in kwargs:
-            cls.exp = kwargs['nFloors']
+            cls.nFloors = kwargs['nFloors']
         if 'variance' in kwargs:
-            cls.exp = kwargs['variance']
+            cls.variance = kwargs['variance']
         if 'noise_threshold' in kwargs:
             cls.noise_threshold = kwargs['noise_threshold']
         if 'cca_threshold' in kwargs:
