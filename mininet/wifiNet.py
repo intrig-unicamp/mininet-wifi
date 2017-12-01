@@ -31,6 +31,7 @@ from mininet.sumo.runner import sumo
 
 class mininetWiFi(object):
 
+    mobilityparam = dict()
     AC = ''
     alternativeModule = ''
     prop_model_name = ''
@@ -49,9 +50,7 @@ class mininetWiFi(object):
     plot = plot2d
     enable_wmediumd = False
     ppm_is_set = False
-    init_time = 0
     wifiRadios = 0
-    seed_ = 10
     MIN_X = 0
     MIN_Y = 0
     MIN_Z = 0
@@ -942,29 +941,21 @@ class mininetWiFi(object):
             cls.DRAW = False
 
     @classmethod
-    def start_mobility(cls, stations, aps, **kwargs):
+    def start_mobility(cls, **kwargs):
         "Starts Mobility"
-        mobility_model = ''
         cls.isMobility = True
 
-        if 'model' in kwargs:
-            mobility_model = kwargs['model']
-
-        if 'AC' in kwargs:
-            cls.AC = kwargs['AC']
-
-        if mobility_model != '' or cls.isVanet:
+        if 'model' in kwargs or cls.isVanet:
             stationaryNodes = []
-            for sta in stations:
+            for sta in kwargs['stations']:
                 if 'position' not in sta.params \
                         or 'position' in sta.params \
                                 and sta.params['position'] == (-1,-1,-1):
                     sta.isStationary = False
                     stationaryNodes.append(sta)
                     sta.params['position'] = 0, 0, 0
-
-            params = cls.setMobilityParams(stations, aps,
-                                           stationaryNodes, **kwargs)
+            kwargs['stationaryNodes'] = stationaryNodes
+            params = cls.setMobilityParams(**kwargs)
             if cls.nroads == 0:
                 mobility.start(**params)
             else:
@@ -975,26 +966,24 @@ class mininetWiFi(object):
         "Stops Mobility"
         cls.autoAssociation(stations, aps)
         kwargs['is3d'] = cls.is3d
-        params = cls.setMobilityParams(stations, aps, **kwargs)
+        params = cls.setMobilityParams(**kwargs)
         mobility.stop(**params)
 
     @classmethod
-    def setMobilityParams(cls, stations, aps, stationaryNodes=None, **kwargs):
+    def setMobilityParams(cls, **kwargs):
         "Set Mobility Parameters"
-        mobilityparam = dict()
+        if 'model' in kwargs:
+            cls.mobilityparam.setdefault('model', kwargs['model'])
+        if cls.nroads != 0:
+            cls.mobilityparam.setdefault('nroads', cls.nroads)
+        if 'repetitions' in kwargs:
+            cls.mobilityparam.setdefault('repetitions', kwargs['repetitions'])
+        if 'plotNodes' in kwargs:
+            cls.mobilityparam.setdefault('plotNodes', kwargs['plotNodes'])
 
         if 'model' in kwargs:
-            mobilityparam.setdefault('model', kwargs['model'])
-        if 'time' in kwargs:
-            mobilityparam.setdefault('final_time', kwargs['time'])
-        if cls.nroads != 0:
-            mobilityparam.setdefault('nroads', cls.nroads)
-        if 'repetitions' in kwargs:
-            mobilityparam.setdefault('repetitions', kwargs['repetitions'])
-        if 'plotNodes' in kwargs:
-            mobilityparam.setdefault('plotNodes', kwargs['plotNodes'])
-
-        if 'model' in kwargs or cls.isVanet:
+            stations = kwargs['stations']
+            aps = kwargs['aps']
             if 'min_x' in kwargs:
                 if not cls.DRAW:
                     cls.MIN_X = int(kwargs['min_x'])
@@ -1016,28 +1005,35 @@ class mininetWiFi(object):
                 for sta in stations:
                     sta.max_y = int(kwargs['max_y'])
             if 'min_v' in kwargs:
-                mobilityparam.setdefault('min_v', kwargs['min_v'])
+                cls.mobilityparam.setdefault('min_v', kwargs['min_v'])
             if 'max_v' in kwargs:
-                mobilityparam.setdefault('max_v', kwargs['max_v'])
-            if 'time' in kwargs:
-                cls.init_time = kwargs['time']
+                cls.mobilityparam.setdefault('max_v', kwargs['max_v'])
 
-        mobilityparam.setdefault('seed', cls.seed_)
-        mobilityparam.setdefault('DRAW', cls.DRAW)
-        mobilityparam.setdefault('stations', stations)
-        mobilityparam.setdefault('aps', aps)
-        mobilityparam.setdefault('connections', cls.connections)
-        mobilityparam.setdefault('MIN_X', cls.MIN_X)
-        mobilityparam.setdefault('MIN_Y', cls.MIN_Y)
-        mobilityparam.setdefault('MIN_Z', cls.MIN_Z)
-        mobilityparam.setdefault('MAX_X', cls.MAX_X)
-        mobilityparam.setdefault('MAX_Y', cls.MAX_Y)
-        mobilityparam.setdefault('MAX_Z', cls.MAX_Z)
-        mobilityparam.setdefault('AC', cls.AC)
-        mobilityparam.setdefault('init_time', cls.init_time)
-        mobilityparam.setdefault('stationaryNodes', stationaryNodes)
-        mobilityparam.setdefault('is3d', cls.is3d)
-        return mobilityparam
+        if 'time' in kwargs:
+            if 'init_time' not in cls.mobilityparam:
+                cls.mobilityparam.setdefault('init_time', kwargs['time'])
+            else:
+                cls.mobilityparam.setdefault('final_time', kwargs['time'])
+        if 'seed' in kwargs:
+            cls.mobilityparam.setdefault('seed', kwargs['seed'])
+        if 'stations' in kwargs:
+            cls.mobilityparam.setdefault('stations', kwargs['stations'])
+        if 'aps' in kwargs:
+            cls.mobilityparam.setdefault('aps', kwargs['aps'])
+
+        cls.mobilityparam.setdefault('DRAW', cls.DRAW)
+        cls.mobilityparam.setdefault('connections', cls.connections)
+        cls.mobilityparam.setdefault('MIN_X', cls.MIN_X)
+        cls.mobilityparam.setdefault('MIN_Y', cls.MIN_Y)
+        cls.mobilityparam.setdefault('MIN_Z', cls.MIN_Z)
+        cls.mobilityparam.setdefault('MAX_X', cls.MAX_X)
+        cls.mobilityparam.setdefault('MAX_Y', cls.MAX_Y)
+        cls.mobilityparam.setdefault('MAX_Z', cls.MAX_Z)
+        cls.mobilityparam.setdefault('AC', cls.AC)
+        if 'stationaryNodes' in kwargs and kwargs['stationaryNodes'] is not []:
+            cls.mobilityparam.setdefault('stationaryNodes', kwargs['stationaryNodes'])
+        cls.mobilityparam.setdefault('is3d', cls.is3d)
+        return cls.mobilityparam
 
     @classmethod
     def useExternalProgram(cls, **params):
@@ -1242,10 +1238,12 @@ class mininetWiFi(object):
 
     @classmethod
     def stop_simulation(self):
+        "Pause the simulation"
         mobility.pause_simulation = True
 
     @classmethod
     def start_simulation(self):
+        "Start the simulation"
         mobility.pause_simulation = False
 
     @classmethod

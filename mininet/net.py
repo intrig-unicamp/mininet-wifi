@@ -196,8 +196,8 @@ class Mininet(object):
         self.driver = driver
         self.disableAutoAssociation = disableAutoAssociation
         self.mobilityKwargs = ''
-        self._stopMobility = False
-        self._startMobility = False
+        self.isMobilityModel = False
+        self.isMobility = False
         self.ppm_is_set = False
         self.noise_threshold = noise_threshold
         self.cca_threshold = cca_threshold
@@ -921,18 +921,17 @@ class Mininet(object):
                                 int(node.params['range'][wlan])/5
 
         if self.isWiFi and not self.disableAutoAssociation \
-                and not mininetWiFi.isMobility:
+                and not self.isMobility:
             mininetWiFi.autoAssociation(self.stations, self.aps)
 
-        if self._stopMobility:
-            self.mobilityKwargs['plotNodes'] = self.plot_nodes()
-            mininetWiFi.stopMobility(self.stations, self.aps,
-                                     **self.mobilityKwargs)
-        if self._startMobility:
-            mininetWiFi.start_mobility(self.stations, self.aps,
-                                      **self.mobilityKwargs)
+        if self.isMobility:
+            if self.isMobilityModel or mininetWiFi.isVanet:
+                mininetWiFi.start_mobility(**self.mobilityKwargs)
+            else:
+                self.mobilityKwargs['plotNodes'] = self.plot_nodes()
+                mininetWiFi.stopMobility(**self.mobilityKwargs)
 
-        if not mininetWiFi.isMobility \
+        if not self.isMobility \
                 and mininetWiFi.prop_model_name == \
                         'logNormalShadowing':
             import threading
@@ -941,7 +940,7 @@ class Mininet(object):
             thread.daemon = True
             thread.start()
         else:
-            if not mininetWiFi.isMobility and mininetWiFi.DRAW \
+            if not self.isMobility and mininetWiFi.DRAW \
                     and not mininetWiFi.alreadyPlotted:
                 plotNodes = self.plot_nodes()
                 self.stations, self.aps = \
@@ -1013,7 +1012,9 @@ class Mininet(object):
     @classmethod
     def seed(cls, seed):
         "Seed"
-        mininetWiFi.seed_ = seed
+        kwargs = dict()
+        kwargs['seed'] = seed
+        mininetWiFi.setMobilityParams(**kwargs)
 
     @classmethod
     def roads(cls, nroads):
@@ -1387,18 +1388,20 @@ class Mininet(object):
 
     def startMobility(self, **kwargs):
         "Starts Mobility"
-        self._startMobility = True
-        mininetWiFi.isMobility = True
+        self.isMobility = True
         if 'repetitions' in kwargs:
             self.repetitions = kwargs['repetitions']
+        if 'model' in kwargs:
+            self.isMobilityModel = True
         self.mobilityKwargs = kwargs
+        kwargs['stations'] = self.stations
+        kwargs['aps'] = self.aps
+        mininetWiFi.setMobilityParams(**kwargs)
 
     def stopMobility(self, **kwargs):
         """Stops Mobility"""
-        self._stopMobility = True
-        mininetWiFi.isMobility = True
-        kwargs['repetitions'] = self.repetitions
-        self.mobilityKwargs = kwargs
+        self.mobilityKwargs.update(kwargs)
+        mininetWiFi.setMobilityParams(**kwargs)
 
     def useExternalProgram(self, program, **params):
         """

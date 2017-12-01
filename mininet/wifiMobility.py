@@ -335,8 +335,8 @@ class mobility(object):
         node.points = node.points + points
 
     @classmethod
-    def controlled_mobility(cls, init_time=0, final_time=0, stations=None,
-                            aps=None, connections=[], plotNodes=[], MIN_X=0,
+    def controlled_mobility(cls, init_time=0, final_time=0, stations=[],
+                            aps=[], connections=[], plotNodes=[], MIN_X=0,
                             MIN_Y=0, MIN_Z=0, MAX_X=0, MAX_Y=0, MAX_Z=0, AC='',
                             is3d=False, DRAW=False, repetitions=1, **params):
         """
@@ -360,7 +360,6 @@ class mobility(object):
         cls.AC = AC
         cls.stations = stations
         cls.aps = aps
-
         nodes = cls.stations + cls.aps + plotNodes
 
         for node in nodes:
@@ -391,11 +390,9 @@ class mobility(object):
                                      float(coord_[1].split(',')[0]),
                                      float(coord_[1].split(',')[1]),
                                      float(coord_[1].split(',')[2]))
+
             for rep in range(0, repetitions):
-                time_ = time()
-                end_time = time_ + final_time
-                initial_time = time_ + init_time
-                current_time = time_
+                t1 = time()
                 i = 1
                 if rep > 0:
                     for node in nodes:
@@ -405,21 +402,21 @@ class mobility(object):
                     node.time = node.startTime
                     cls.calculate_diff_time(node)
                 while True:
-                    if time() > end_time or time() < initial_time:
-                        break
-                    if time() - current_time >= i:
+                    t2 = time()
+                    if (t2 - t1) > final_time or (t2 - t1) < init_time:
+                        pass
+                    if t2 - t1 >= i:
                         for node in cls.mobileNodes:
-                            if time() - current_time >= node.startTime:
-                                if node.time <= node.endTime:
-                                    if hasattr(node, 'coord'):
-                                        cls.calculate_diff_time(node)
-                                        node.params['position'] = node.points[node.time * node.moveFac]
-                                        if node.time == node.endTime:
-                                            node.params['position'] = node.points[len(node.points)-1]
-                                    else:
-                                        x, y, z = cls.move_node(node)
-                                        node.params['position'] = [x, y, z]
-                                    node.time += 1
+                            if (t2 - t1) >= node.startTime and node.time <= node.endTime:
+                                if hasattr(node, 'coord'):
+                                    cls.calculate_diff_time(node)
+                                    node.params['position'] = node.points[node.time * node.moveFac]
+                                    if node.time == node.endTime:
+                                        node.params['position'] = node.points[len(node.points)-1]
+                                else:
+                                    x, y, z = cls.move_node(node)
+                                    node.params['position'] = [x, y, z]
+                                node.time += 1
                             if propagationModel.model == 'logNormalShadowing':
                                 node.getRange(intf=node.params['wlan'][0])
                             if DRAW:
@@ -452,7 +449,7 @@ class mobility(object):
         cls.mobileNodes = cls.stations
 
     @classmethod
-    def models(cls, stations=None, aps=None, model=None, stationaryNodes=None,
+    def models(cls, stations=[], aps=[], model=None, stationaryNodes=[],
                min_v=0, max_v=0, seed=None, connections=None, plotNodes=[],
                MAX_X=0, MAX_Y=0, AC='', DRAW=False, **params):
         """
@@ -472,7 +469,6 @@ class mobility(object):
         """
         np.random.seed(seed)
         cls.AC = AC
-
         cls.addNodes(stations, aps)
         nodes = cls.stations + cls.aps + plotNodes
 
@@ -498,7 +494,7 @@ class mobility(object):
             info('Warning: running without GUI.\n')
             DRAW = False
 
-        if stationaryNodes is not None:
+        if stationaryNodes is not []:
             debug('Configuring the mobility model %s' % model)
 
             if model == 'RandomWalk':  # Random Walk model
@@ -522,13 +518,19 @@ class mobility(object):
             else:
                 raise Exception("Mobility Model not defined or doesn't exist!")
 
+            if 'final_time' in params:
+                current_time = time()
+            while (time() - current_time) < params['init_time']:
+                pass
             if DRAW:
-                cls.startMobilityModelGraph(mob, stationaryNodes)
+                cls.startMobilityModelGraph(mob, stationaryNodes,
+                                            current_time, params['final_time'])
             else:
-                cls.startMobilityModelNoGraph(mob, stationaryNodes)
+                cls.startMobilityModelNoGraph(mob, stationaryNodes,
+                                              current_time, params['final_time'])
 
     @classmethod
-    def startMobilityModelGraph(cls, mob, nodes):
+    def startMobilityModelGraph(cls, mob, nodes, current_time, final_time):
         """
         Useful for plotting graphs
 
@@ -545,11 +547,13 @@ class mobility(object):
                     plot2d.updateCircleRadius(node)
                 plot2d.graphUpdate(node)
             eval(cls.continuePlot)
+            if final_time is not 0 and (time() - current_time) > final_time:
+                break
             while cls.pause_simulation:
                 pass
 
     @classmethod
-    def startMobilityModelNoGraph(cls, mob, nodes):
+    def startMobilityModelNoGraph(cls, mob, nodes, current_time, final_time):
         """
         Useful when graph is not required
 
@@ -564,6 +568,8 @@ class mobility(object):
                     sleep(0.0001)
                     node.getRange(intf=node.params['wlan'][0])
             sleep(0.5)
+            if final_time is not 0 and (time() - current_time) > final_time:
+                break
             while cls.pause_simulation:
                 pass
 
