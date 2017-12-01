@@ -37,13 +37,13 @@ def topology(mobility):
     print "*** Adding Link"
     net.addLink(ap1, ap2)  # wired connection
 
-    #print "*** Plotting Graph"
-    #net.plotGraph(max_x=120, max_y=120)
+    print "*** Plotting Graph"
+    net.plotGraph(max_x=120, max_y=120)
 
     if mobility:
         net.startMobility(time=1)
         net.mobility(sta1, 'start', time=2, position='20.0,60.0,0.0')
-        net.mobility(sta1, 'stop', time=6, position='98.0,60.0,0.0')
+        net.mobility(sta1, 'stop', time=6, position='110.0,60.0,0.0')
         net.stopMobility(time=6)
 
     print "*** Starting network"
