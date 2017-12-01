@@ -70,13 +70,13 @@ from mininet.util import (quietRun, errRun, errFail, moveIntf, isShellBuiltin,
 from mininet.moduledeps import moduleDeps, pathCheck, TUN
 from mininet.link import Link, Intf, TCIntf, TCIntfWireless, OVSIntf, \
     TCLinkWirelessAP, TCLinkWirelessStation
-from mininet.wmediumdConnector import WmediumdServerConn, WmediumdPosition, \
+from mininet.wifi.wmediumdConnector import WmediumdServerConn, WmediumdPosition, \
                                 WmediumdTXPower, WmediumdGain, WmediumdHeight
-from mininet.wifiPropagationModels import distanceByPropagationModel, \
+from mininet.wifi.wifiPropagationModels import distanceByPropagationModel, \
     powerForRangeByPropagationModel
-from mininet.wifiMobility import mobility
-from mininet.wifiLink import wirelessLink
-from mininet.wifiPlot import plot2d, plot3d
+from mininet.wifi.wifiMobility import mobility
+from mininet.wifi.wifiLink import wirelessLink
+from mininet.wifi.wifiPlot import plot2d, plot3d
 from mininet.utils.private_folder_manager import PrivateFolderManager
 
 

@@ -109,12 +109,12 @@ from mininet.node import (Node, Host, Station, Car, OVSKernelSwitch,
                           OVSKernelAP, DefaultController, Controller)
 from mininet.nodelib import NAT
 from mininet.link import Link, Intf, _4addrLink, TCIntfWireless
-from mininet.wifiLink import Association
 from mininet.util import (quietRun, fixLimits, numCores, ensureRoot,
                           macColonHex, ipStr, ipParse, netParse, ipAdd,
                           waitListening)
 from mininet.term import cleanUpScreens, makeTerms
-from mininet.wifiNet import mininetWiFi
+from mininet.wifi.wifiLink import Association
+from mininet.wifi.wifiNet import mininetWiFi
 
 # Mininet version: should be consistent with README and LICENSE
 VERSION = "2.2.0d1"

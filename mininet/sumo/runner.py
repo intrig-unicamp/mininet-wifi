@@ -5,7 +5,7 @@ from sumolib.sumulib import checkBinary
 from traci import trace
 from fonction import initialisation, noChangeSaveTimeAndSpeed,\
     changeSaveTimeAndSpeed, reroutage
-from mininet.wifiMobility import mobility
+from mininet.wifi.wifiMobility import mobility
 
 
 class sumo(object):
