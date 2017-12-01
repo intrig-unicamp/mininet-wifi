@@ -571,6 +571,7 @@ class WmediumdTXPower(object):
         self.staintfref = staintfref
         self.sta_txpower = sta_txpower
 
+
 class WmediumdGain(object):
     def __init__(self, staintfref, sta_gain):
         """
@@ -582,7 +583,8 @@ class WmediumdGain(object):
         """
         self.staintfref = staintfref
         self.sta_gain = sta_gain
-        
+
+
 class WmediumdGaussianRandom(object):
     def __init__(self, staintfref, sta_gaussian_random):
         """
@@ -595,6 +597,7 @@ class WmediumdGaussianRandom(object):
         self.staintfref = staintfref
         self.sta_gaussian_random = sta_gaussian_random
 
+
 class WmediumdHeight(object):
     def __init__(self, staintfref, sta_height):
         """
@@ -606,6 +609,7 @@ class WmediumdHeight(object):
         """
         self.staintfref = staintfref
         self.sta_height = sta_height
+
 
 class WmediumdSNRLink(object):
     def __init__(self, sta1intfref, sta2intfref, snr=10):
@@ -641,6 +645,7 @@ class WmediumdERRPROBLink(object):
         self.sta1intfref = sta1intfref
         self.sta2intfref = sta2intfref
         self.errprob = errprob
+
 
 class WmediumdSPECPROBLink(object):
     def __init__(self, sta1intfref, sta2intfref, errprobs):
@@ -753,6 +758,7 @@ class DynamicWmediumdIntfRef(WmediumdIntfRef):
         if found:
             return self.__sta.params['mac'][index]
 
+
 class WmediumdServerConn(object):
     __mac_struct_fmt = '6s'
 
@@ -785,7 +791,7 @@ class WmediumdServerConn(object):
         struct.Struct('!' + __txpower_update_request_fmt)
     __txpower_update_response_struct = \
         struct.Struct('!' + __txpower_update_response_fmt)
-    
+
     __gain_update_request_fmt = \
         __base_struct_fmt + __mac_struct_fmt + 'i'
     __gain_update_response_fmt = \
@@ -962,7 +968,7 @@ class WmediumdServerConn(object):
         if ret != WmediumdConstants.WUPDATE_SUCCESS:
             raise WmediumdException("Received error code from wmediumd: "
                                     "code %d" % ret)
-        
+
     @classmethod
     def update_gain(cls, gain):
         # type: (WmediumdGain) -> None
@@ -1068,7 +1074,7 @@ class WmediumdServerConn(object):
         return cls.__parse_response(
             WmediumdConstants.WSERVER_POSITION_UPDATE_RESPONSE_TYPE,
             cls.__position_update_response_struct)[-1]
-                                    
+
     @classmethod
     def send_txpower_update(cls, txpower):
         # type: (WmediumdTXPower) -> int
@@ -1234,7 +1240,7 @@ class WmediumdServerConn(object):
         posZ = position.sta_position[2]
         return cls.__position_update_request_struct.pack(msgtype, mac,
                                                          posX, posY, posZ)
-    
+
     @classmethod
     def __create_txpower_update_request(cls, txpower):
         "tx power update request"
@@ -1243,7 +1249,7 @@ class WmediumdServerConn(object):
         mac = txpower.staintfref.get_intf_mac().replace(':', '').decode('hex')
         txpower_ = txpower.sta_txpower
         return cls.__txpower_update_request_struct.pack(msgtype, mac, txpower_)
-    
+
     @classmethod
     def __create_gain_update_request(cls, gain):
         "antenna gain update request"
@@ -1327,8 +1333,8 @@ class WmediumdServerConn(object):
         "parse response"
         # type: (int, struct.Struct) -> tuple
         recvd_data = cls.sock.recv(resp_struct.size)
-        #recvd_type = cls.__base_struct.unpack(recvd_data[0])[0]
-        #if recvd_type != expected_type:
+        # recvd_type = cls.__base_struct.unpack(recvd_data[0])[0]
+        # if recvd_type != expected_type:
         #    raise WmediumdException(
         #        "Received response of unknown type %d, expected %d" % (recvd_type,
         # expected_type))
