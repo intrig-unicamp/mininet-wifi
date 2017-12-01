@@ -32,7 +32,7 @@ class vanet(object):
     totalRoads = []
     interX = {}
     interY = {}
-    time_per_iteraiton = 100 * math.pow(10, -3)
+    time_per_iteration = 100 * math.pow(10, -3)
 
     def __init__(self, **params):
         thread = threading.Thread(name='vanet', target=self.start,
@@ -340,8 +340,8 @@ class vanet(object):
             angle = car.properties[2]
 
             # calculate new position of the car
-            position_x = position_x + velocity * cos(angle) * self.time_per_iteraiton
-            position_y = position_y + velocity * sin(angle) * self.time_per_iteraiton
+            position_x = position_x + velocity * cos(angle) * self.time_per_iteration
+            position_y = position_y + velocity * sin(angle) * self.time_per_iteration
 
             if (position_x < car.properties[3] or position_x > car.properties[4]) \
                 or (position_y < car.properties[5] or position_y > car.properties[6]):
