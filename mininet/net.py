@@ -1536,11 +1536,11 @@ class Mininet(object):
             error('src not in network: %s\n' % src)
         elif dst not in self.nameToNode:
             error('dst not in network: %s\n' % dst)
-            if isinstance(self.nameToNode[src], Station) \
-                and isinstance(self.nameToNode[dst], AP) or \
-                            isinstance(self.nameToNode[src], AP) \
-                        and isinstance(self.nameToNode[dst], Station):
-                self.configWirelessLinkStatus(src, dst, status)
+        if isinstance(self.nameToNode[src], Station) \
+            and isinstance(self.nameToNode[dst], AP) or \
+                        isinstance(self.nameToNode[src], AP) \
+                    and isinstance(self.nameToNode[dst], Station):
+            self.configWirelessLinkStatus(src, dst, status)
         else:
             src = self.nameToNode[ src ]
             dst = self.nameToNode[ dst ]
