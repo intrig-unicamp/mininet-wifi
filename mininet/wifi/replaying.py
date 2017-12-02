@@ -13,7 +13,7 @@ from mininet.log import info
 from mininet.wifi.net import mininetWiFi
 from mininet.wifi.plot import plot2d, plot3d
 from mininet.wifi.mobility import mobility
-from mininet.wifi.wifiLink import wirelessLink
+from mininet.wifi.link import wirelessLink
 from mininet.wifi.devices import deviceDataRate
 
 
