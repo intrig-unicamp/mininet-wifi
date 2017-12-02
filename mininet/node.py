@@ -578,7 +578,7 @@ class Node( object ):
         """Configure Node according to (optional) parameters:
            mac: MAC address for default interface
            ip: IP address for default interface
-           ifconfig: arbitrary interface configuration
+           ip addr: arbitrary interface configuration
            Subclasses should override this method and call
            the parent class's config(**params)"""
         # If we were overriding this method, we would call
@@ -588,8 +588,9 @@ class Node( object ):
         self.setParam( r, 'setMAC', mac=mac )
         self.setParam( r, 'setIP', ip=ip )
         self.setParam( r, 'setDefaultRoute', defaultRoute=defaultRoute )
+
         # This should be examined
-        self.cmd( 'ifconfig lo ' + lo )
+        self.cmd('ip link set lo ' + lo)
         return r
 
     def configDefault( self, **moreParams ):
@@ -640,7 +641,7 @@ class Node( object ):
     @classmethod
     def setup( cls ):
         "Make sure our class dependencies are available"
-        pathCheck( 'mnexec', 'ifconfig', moduleName='Mininet')
+        pathCheck( 'mnexec', 'ip addr', moduleName='Mininet')
 
 class Host( Node ):
     "A host is simply a Node"
@@ -848,11 +849,11 @@ class CPULimitedHost( Host ):
 # normally never want to change its IP address!
 #
 # In general, you NEVER want to attempt to use Linux's
-# network stack (i.e. ifconfig) to "assign" an IP address or
+# network stack (i.e. ipaddr) to "assign" an IP address or
 # MAC address to a switch data port. Instead, you "assign"
 # the IP and MAC addresses in the controller by specifying
 # packets that you want to receive or send. The "MAC" address
-# reported by ifconfig for a switch data port is essentially
+# reported by ipaddr for a switch data port is essentially
 # meaningless. It is important to understand this if you
 # want to create a functional router using OpenFlow.
 
@@ -1106,7 +1107,7 @@ class OVSSwitch( Switch ):
     def attach( self, intf ):
         "Connect a data port"
         self.vsctl( 'add-port', self, intf )
-        self.cmd( 'ifconfig', intf, 'up' )
+        self.cmd('ip link set', intf, 'up')
         self.TCReapply( intf )
 
     def detach( self, intf ):
