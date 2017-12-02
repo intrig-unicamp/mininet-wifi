@@ -15,6 +15,7 @@ from pylab import ginput as ginp
 from pylab import math, cos, sin, np
 
 from mininet.wifi.plot import plot2d
+from mininet.wifi.node import AP
 
 try:
     warnings.filterwarnings("ignore", category=matplotlib.cbook.mplDeprecation)
@@ -362,7 +363,7 @@ class vanet(object):
                         inside = math.pow((node.properties[0] - position_x), 2) + \
                                  math.pow((node.properties[1] - position_y), 2)
                         if inside <= math.pow(node.params['range'][0], 2):
-                            if node.type == 'ap':
+                            if isinstance(node, AP):
                                 color = 'black'
                             else:
                                 color = 'r'

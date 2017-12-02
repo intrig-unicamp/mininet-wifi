@@ -8,6 +8,7 @@ import re
 import subprocess
 import logging
 from mininet.log import debug, info, error
+from mininet.wifi.node import Station, Car
 
 class module(object):
     """ wireless module """
@@ -216,7 +217,7 @@ class module(object):
             debug("\n*** Configuring interfaces with appropriated network"
                   "-namespaces...\n")
             for node in nodes:
-                if (node.type == 'station' or node.type == 'vehicle') \
+                if (isinstance(node, Station) or isinstance(node, Car)) \
                         or 'inNamespace' in node.params:
                     node.ifb = []
                     for wlan in range(0, len(node.params['wlan'])):

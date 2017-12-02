@@ -15,6 +15,7 @@ from mininet.wifi.plot import plot2d, plot3d
 from mininet.wifi.mobility import mobility
 from mininet.wifi.link import wirelessLink
 from mininet.wifi.devices import deviceDataRate
+from mininet.wifi.node import Station, AP
 
 
 def instantiateGraph(mininet):
@@ -53,10 +54,10 @@ class replayingMobility(object):
         if nodes == None:
             nodes = mininet.stations + mininet.aps
         for node in nodes:
-            if node.type == 'station':
+            if isinstance(node, Station):
                 if 'position' in node.params and node not in mobility.stations:
                     mobility.stations.append(node)
-            if node.type == 'ap':
+            if isinstance(node, AP):
                 if 'position' in node.params and node not in mobility.aps:
                     mobility.aps.append(node)
         if mininetWiFi.DRAW:
@@ -117,12 +118,12 @@ class replayingMobility(object):
 
     @classmethod
     def addNode(cls, node):
-        if node.type == 'station':
+        if isinstance(node, Station):
             if hasattr(node, 'position'):
                 position = node.position[0].split(' ')
                 node.params['position'] = position[0].split(',')
             mobility.stations.append(node)
-        elif node.type == 'ap':
+        elif isinstance(node, AP):
             mobility.aps.append(node)
 
 
@@ -217,9 +218,9 @@ class replayingNetworkBehavior(object):
 
     @classmethod
     def addNode(cls, node):
-        if node.type == 'station':
+        if isinstance(node, Station):
             mobility.stations.append(node)
-        elif node.type == 'ap':
+        elif isinstance(node, AP):
             mobility.aps.append(node)
 
 

@@ -935,8 +935,10 @@ class wirelessLink (object):
     @classmethod
     def delete(cls, node):
         "Delete interfaces"
+        from mininet.wifi.node import Car
+
         for wlan in node.params['wlan']:
-            if node.type == 'vehicle' and node.params['wlan'].index(wlan) == 1:
+            if isinstance(node, Car) and node.params['wlan'].index(wlan) == 1:
                 node = node.params['carsta']
                 wlan = node.params['wlan'][0]
             if isinstance(wlan, basestring):

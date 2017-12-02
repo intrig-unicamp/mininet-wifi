@@ -114,7 +114,7 @@ from mininet.util import (quietRun, fixLimits, numCores, ensureRoot,
                           macColonHex, ipStr, ipParse, netParse, ipAdd,
                           waitListening)
 from mininet.term import cleanUpScreens, makeTerms
-from mininet.wifi.node import Station, Car, OVSKernelAP
+from mininet.wifi.node import Station, Car, AP, OVSKernelAP
 from mininet.wifi.net import mininetWiFi
 
 # Mininet version: should be consistent with README and LICENSE
@@ -269,7 +269,6 @@ class Mininet(object):
         if not cls:
             cls = self.host
         h = cls(name, **defaults)
-        h.type = 'host'
         self.hosts.append(h)
         self.nameToNode[ name ] = h
         return h
@@ -320,7 +319,6 @@ class Mininet(object):
         if not cls:
             cls = self.station
         sta = cls(name, **defaults)
-        sta.type = 'station'
 
         mininetWiFi.addParameters(sta, self.autoSetMacs, defaults)
 
@@ -364,7 +362,6 @@ class Mininet(object):
         car = cls(name, **defaults)
 
         self.nameToNode[ name ] = car
-        car.type = 'vehicle'
         mininetWiFi.addParameters(car, self.autoSetMacs, defaults)
 
         carsta = self.addStation(name + 'STA', **defaults)
@@ -418,7 +415,6 @@ class Mininet(object):
             ap.params['inNamespace'] = True
 
         self.nameToNode[ name ] = ap
-        ap.type = 'ap'
 
         mininetWiFi.addParameters(ap, self.autoSetMacs, defaults, mode='master')
         if 'type' in params and params['type'] == 'mesh':
@@ -452,7 +448,6 @@ class Mininet(object):
             self.listenPort += 1
 
         self.nameToNode[ name ] = bs
-        bs.type = 'ap'
 
         wlan = ("%s" % params.pop('phywlan', {}))
         bs.params['phywlan'] = wlan
@@ -477,7 +472,6 @@ class Mininet(object):
             cls = self.switch
 
         sw = cls(name, **defaults)
-        sw.type = 'switch'
 
         if not self.inNamespace and self.listenPort:
             self.listenPort += 1
@@ -663,13 +657,13 @@ class Mininet(object):
         mininetWiFi.connections.setdefault('ls', [])
 
         # If AP and STA
-        if((((node1.type == 'station' or node1.type == 'vehicle')
+        if((((isinstance(node1, Station) or isinstance(node1, Car))
              and ('ssid' in node2.params and 'apsInRange' in node1.params))
-                or ((node2.type == 'station' or node2.type == 'vehicle')
+                or ((isinstance(node2, Station) or isinstance(node2, Car))
                     and ('ssid' in node1.params and 'apsInRange' in node2.params)))
            and 'link' not in options):
 
-            if (node1.type == 'station' or node1.type == 'vehicle') \
+            if (isinstance(node1, Station) or isinstance(node1, Car)) \
                     and 'ssid' in node2.params:
                 sta = node1
                 ap = node2
@@ -731,7 +725,7 @@ class Mininet(object):
                 elif not self.enable_interference:
                     mininetWiFi.wlinks.append([sta, ap])
 
-        elif (node1.type == 'ap' and node2.type == 'ap'
+        elif (isinstance(node1, AP) and isinstance(node2, AP)
               and 'link' in options
               and options['link'] == '4addr'):
             # If sta/ap have defined position
@@ -914,7 +908,7 @@ class Mininet(object):
         nodes = self.stations
         for node in nodes:
             for wlan in range(0, len(node.params['wlan'])):
-                if node.type != 'ap' and node.func[0] != 'ap' and \
+                if not isinstance(node, AP) and node.func[0] != 'ap' and \
                     node.func[wlan] != 'mesh' and node.func[wlan] != 'adhoc' \
                         and node.func[wlan] != 'wifiDirect':
                     if not node.autoTxPower:
@@ -1290,13 +1284,13 @@ class Mininet(object):
 
         conn1 = 0
         conn2 = 0
-        if client.type == 'station' or server.type == 'station':
-            if client.type == 'station':
+        if isinstance(client, Station) or isinstance(server, Station):
+            if isinstance(client, Station):
                 while conn1 == 0:
                     conn1 = int(client.cmd('iw dev %s link '
                                            '| grep -ic \'Connected\''
                                            % client.params['wlan'][0]))
-            if server.type == 'station':
+            if isinstance(server, Station):
                 while conn2 == 0:
                     conn2 = int(server.cmd('iw dev %s link | grep -ic '
                                            '\'Connected\''
@@ -1505,7 +1499,7 @@ class Mininet(object):
 
     def configWirelessLinkStatus(self, src, dst, status):
         if status == 'down':
-            if self.nameToNode[ src ].type == 'station':
+            if isinstance(self.nameToNode[ src ], Station):
                 sta = self.nameToNode[ src ]
                 ap = self.nameToNode[ dst ]
             else:
@@ -1517,7 +1511,7 @@ class Mininet(object):
                     sta.params['associatedTo'][wlan] = ''
                     ap.params['associatedStations'].remove(sta)
         else:
-            if self.nameToNode[ src ].type == 'station':
+            if isinstance(self.nameToNode[src], Station):
                 sta = self.nameToNode[ src ]
                 ap = self.nameToNode[ dst ]
             else:
@@ -1542,11 +1536,11 @@ class Mininet(object):
             error('src not in network: %s\n' % src)
         elif dst not in self.nameToNode:
             error('dst not in network: %s\n' % dst)
-        if self.nameToNode[ src ].type == 'station' \
-                and self.nameToNode[ dst ].type == 'ap' or \
-                                self.nameToNode[ src ].type == 'ap' \
-                        and self.nameToNode[ dst ].type == 'station':
-            self.configWirelessLinkStatus(src, dst, status)
+            if isinstance(self.nameToNode[src], Station) \
+                and isinstance(self.nameToNode[dst], AP) or \
+                            isinstance(self.nameToNode[src], AP) \
+                        and isinstance(self.nameToNode[dst], Station):
+                self.configWirelessLinkStatus(src, dst, status)
         else:
             src = self.nameToNode[ src ]
             dst = self.nameToNode[ dst ]
