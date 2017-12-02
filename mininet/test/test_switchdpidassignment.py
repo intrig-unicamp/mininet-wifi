@@ -7,8 +7,8 @@ import unittest
 import sys
 
 from mininet.net import Mininet
-from mininet.node import Station, Controller
-from mininet.node import (UserAP, OVSAP, IVSSwitch)
+from mininet.node import Controller, IVSSwitch
+from mininet.wifi.node import Station, UserAP, OVSAP
 from mininet.topo import Topo
 from mininet.log import setLogLevel
 from mininet.util import quietRun
