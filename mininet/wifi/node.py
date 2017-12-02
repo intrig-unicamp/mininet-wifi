@@ -1,55 +1,6 @@
 """
-Node objects for Mininet.
+Node objects for Mininet-WiFi.
 
-Nodes provide a simple abstraction for interacting with hosts, switches
-and controllers. Local nodes are simply one or more processes on the local
-machine.
-
-Node: superclass for all (primarily local) network nodes.
-
-Host: a virtual host. By default, a host is simply a shell; commands
-    may be sent using Cmd (which waits for output), or using sendCmd(),
-    which returns immediately, allowing subsequent monitoring using
-    monitor(). Examples of how to run experiments using this
-    functionality are provided in the examples/ directory. By default,
-    hosts share the root file system, but they may also specify private
-    directories.
-
-CPULimitedHost: a virtual host whose CPU bandwidth is limited by
-    RT or CFS bandwidth limiting.
-
-Switch: superclass for switch nodes.
-
-UserSwitch: a switch using the user-space switch from the OpenFlow
-    reference implementation.
-
-OVSSwitch: a switch using the Open vSwitch OpenFlow-compatible switch
-    implementation (openvswitch.org).
-
-OVSBridge: an Ethernet bridge implemented using Open vSwitch.
-    Supports STP.
-
-IVSSwitch: OpenFlow switch using the Indigo Virtual Switch.
-
-Controller: superclass for OpenFlow controllers. The default controller
-    is controller(8) from the reference implementation.
-
-OVSController: The test controller from Open vSwitch.
-
-NOXController: a controller node using NOX (noxrepo.org).
-
-Ryu: The Ryu controller (https://osrg.github.io/ryu/)
-
-RemoteController: a remote controller node, which may use any
-    arbitrary OpenFlow-compatible controller, and which is not
-    created or managed by Mininet.
-
-Future enhancements:
-
-- Possibly make Node, Switch and Controller more abstract so that
-  they can be used for both local and remote nodes
-
-- Create proxy objects for remote nodes (Mininet: Cluster Edition)
 """
 
 import os

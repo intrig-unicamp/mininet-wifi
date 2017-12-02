@@ -2,6 +2,7 @@
 Helps starting the wmediumd service
 
 author: Patrick Grosse (patrick.grosse@uni-muenster.de)
+        Ramon Fontes (ramonrf@dca.fee.unicamp.br)
 """
 import ctypes
 import os

@@ -1,5 +1,5 @@
 """
-Devices list to Mininet-WiFi.
+Devices list for Mininet-WiFi.
 
 author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
 

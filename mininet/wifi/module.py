@@ -87,9 +87,8 @@ class module(object):
                     error("\nOutput: %s" % output)
                     error("\nError: %s" % err_out)
         except:
-            print "Warning! If you already had Mininet-WiFi installed, " \
-                  "please run util/install.sh -W and then make install. " \
-                  "A new API for mac80211_hwsim has been created."
+            info("Warning! If you already had Mininet-WiFi installed "
+                 "please run util/install.sh -W and then sudo make install.\n")
 
     @classmethod
     def kill_hostapd(cls):

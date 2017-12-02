@@ -1,6 +1,5 @@
 """
 author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
-        ramonfontes.com
         
         Implemented propagation models:
             (Indoors):

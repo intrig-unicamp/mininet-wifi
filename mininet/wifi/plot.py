@@ -1,7 +1,7 @@
 """
+Plot Graphs
 
 author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
-        ramonfontes.com
 
 """
 import numpy as np

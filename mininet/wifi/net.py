@@ -2,7 +2,6 @@
 Provides support to wifi
 
 author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
-        ramonfontes.com
 
 """
 

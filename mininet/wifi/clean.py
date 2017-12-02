@@ -1,13 +1,7 @@
 """
-Mininet Cleanup
-author: Bob Lantz (rlantz@cs.stanford.edu)
+Mininet-WiFi Cleanup
+author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
 
-Unfortunately, Mininet and OpenFlow (and the Linux kernel)
-don't always clean up properly after themselves. Until they do
-(or until cleanup functionality is integrated into the Python
-code), this script may be used to get rid of unwanted garbage.
-It may also get rid of 'false positives', but hopefully
-nothing irreplaceable!
 """
 
 from subprocess import (Popen, PIPE, check_output as co,

@@ -1,6 +1,7 @@
 """
 author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
 """
+
 import os
 import re
 import numpy as np

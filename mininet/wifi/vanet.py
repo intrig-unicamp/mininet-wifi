@@ -1,9 +1,9 @@
 """
+Vanet...
 
 author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
-        ramonfontes.com
-
 """
+
 from __future__ import division
 from math import atan2
 from time import sleep

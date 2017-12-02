@@ -1,7 +1,7 @@
 """
+Replaying Mobility
 
 author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
-        ramonfontes.com
 
 """
 

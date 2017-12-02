@@ -1,3 +1,10 @@
+"""
+Association Control.
+
+author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
+
+"""
+
 from mininet.log import debug
 
 class associationControl (object):
