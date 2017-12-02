@@ -3,19 +3,25 @@
 'This example shows how to work with Radius Server'
 
 from mininet.net import Mininet
-from mininet.node import  Controller, UserAP
+from mininet.node import  Controller
+from mininet.wifi.node import UserAP
 from mininet.cli import CLI
 from mininet.log import setLogLevel
 from mininet.link import TCLink
 
+
 def topology():
     "Create a network."
-    net = Mininet( controller=Controller, link=TCLink, accessPoint=UserAP, enable_wmediumd=True, enable_interference=True )
+    net = Mininet( controller=Controller, link=TCLink, accessPoint=UserAP,
+                   enable_wmediumd=True, enable_interference=True )
 
     print "*** Creating nodes"
-    sta1 = net.addStation( 'sta1', radius_passwd='sdnteam', encrypt='wpa2', radius_identity='joe', position='110,120,0' )
-    sta2 = net.addStation( 'sta2', radius_passwd='hello', encrypt='wpa2', radius_identity='bob', position='200,100,0' )
-    ap1 = net.addAccessPoint( 'ap1', ssid='simplewifi', authmode='8021x', mode='a', channel='36', encrypt='wpa2', position='150,100,0' )
+    sta1 = net.addStation( 'sta1', radius_passwd='sdnteam', encrypt='wpa2',
+                           radius_identity='joe', position='110,120,0' )
+    sta2 = net.addStation( 'sta2', radius_passwd='hello', encrypt='wpa2',
+                           radius_identity='bob', position='200,100,0' )
+    ap1 = net.addAccessPoint( 'ap1', ssid='simplewifi', authmode='8021x',
+                              mode='a', channel='36', encrypt='wpa2', position='150,100,0' )
     c0 = net.addController('c0', controller=Controller, ip='127.0.0.1', port=6633 )
 
     print "*** Configuring Propagation Model"
@@ -41,6 +47,7 @@ def topology():
 
     print "*** Stopping network"
     net.stop()
+
 
 if __name__ == '__main__':
     setLogLevel( 'info' )

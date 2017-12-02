@@ -3,11 +3,12 @@
 'Replaying Mobility'
 
 from mininet.net import Mininet
-from mininet.node import Controller, OVSAP
+from mininet.node import Controller
+from mininet.wifi.node import OVSAP
 from mininet.link import TCLink
 from mininet.cli import CLI
 from mininet.log import setLogLevel
-from mininet.wifiReplaying import replayingMobility
+from mininet.wifi.replaying import replayingMobility
 
 def topology():
 

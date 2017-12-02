@@ -9,7 +9,7 @@ from mininet.node import Controller,OVSKernelSwitch
 from mininet.link import TCLink
 from mininet.cli import CLI
 from mininet.log import setLogLevel
-from mininet.wifiReplaying import replayingRSSI
+from mininet.wifi.replaying import replayingRSSI
 
 def topology():
 
