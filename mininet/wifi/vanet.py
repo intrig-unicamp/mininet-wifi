@@ -14,7 +14,7 @@ import matplotlib.cbook
 from pylab import ginput as ginp
 from pylab import math, cos, sin, np
 
-from mininet.wifi.wifiPlot import plot2d
+from mininet.wifi.plot import plot2d
 
 try:
     warnings.filterwarnings("ignore", category=matplotlib.cbook.mplDeprecation)
@@ -42,7 +42,7 @@ class vanet(object):
 
     def start(self, **params):
         'start topology'
-        from mininet.wifiMobility import mobility
+        from mininet.wifi.mobility import mobility
         cars = params['stations']
         aps = params['aps']
         mobility.addNodes(cars, aps)

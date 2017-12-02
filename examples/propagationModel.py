@@ -3,7 +3,8 @@
 'This example show how to configure Propagation Models'
 
 from mininet.net import Mininet
-from mininet.node import Controller, OVSKernelAP
+from mininet.node import Controller
+from mininet.wifi.node import OVSKernelAP
 from mininet.link import TCLink
 from mininet.cli import CLI
 from mininet.log import setLogLevel

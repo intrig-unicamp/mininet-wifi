@@ -10,11 +10,11 @@ import threading
 import random
 from pylab import math, cos, sin
 from mininet.log import info
-from mininet.wifi.wifiNet import mininetWiFi
-from mininet.wifi.wifiPlot import plot2d, plot3d
-from mininet.wifi.wifiMobility import mobility
+from mininet.wifi.net import mininetWiFi
+from mininet.wifi.plot import plot2d, plot3d
+from mininet.wifi.mobility import mobility
 from mininet.wifi.wifiLink import wirelessLink
-from mininet.wifi.wifiDevices import deviceDataRate
+from mininet.wifi.devices import deviceDataRate
 
 
 def instantiateGraph(mininet):

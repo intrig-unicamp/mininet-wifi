@@ -14,6 +14,7 @@ from mininet.cli import CLI
 from mininet.log import setLogLevel
 import sys
 
+
 def topology(mobility):
     "Create a network."
     net = Mininet(enable_wmediumd=True, enable_interference=True)

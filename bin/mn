@@ -21,16 +21,18 @@ if 'PYTHONPATH' in os.environ:
     sys.path = os.environ[ 'PYTHONPATH' ].split(':') + sys.path
 
 from mininet.clean import cleanup
+from mininet.wifi.clean import cleanup_wifi
 import mininet.cli
 from mininet.log import lg, LEVELS, info, debug, warn, error, output
 from mininet.net import Mininet, MininetWithControlNet, VERSION
 from mininet.node import (Host, CPULimitedHost, Controller, OVSController,
                           Ryu, NOX, RemoteController, findController,
                           DefaultController, NullController,
-                          UserSwitch, UserAP, OVSSwitch, OVSAP, OVSBridge,
-                          IVSSwitch)
+                          UserSwitch, OVSSwitch, OVSBridge, IVSSwitch)
+from mininet.wifi.node import UserAP, OVSAP
 from mininet.nodelib import LinuxBridge
-from mininet.link import Link, TCLink, TCULink, OVSLink, TCIntfWireless
+from mininet.link import Link, TCLink, TCULink, OVSLink
+from mininet.wifi.link import TCIntfWireless
 from mininet.topo import (SingleSwitchTopo, SingleAPTopo, LinearTopo,
                           LinearWirelessTopo, SingleSwitchReversedTopo,
                           MinimalTopo, MinimalWirelessTopo)
@@ -364,6 +366,7 @@ class MininetRunner(object):
 
         if opts.clean:
             cleanup()
+            cleanup_wifi()
             exit()
 
         start = time.time()
@@ -500,6 +503,7 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         info("\n\nKeyboard Interrupt. Shutting down and cleaning up...\n\n")
         cleanup()
+        cleanup_wifi()
     except Exception:
         # Print exception
         type_, val_, trace_ = sys.exc_info()
@@ -513,3 +517,4 @@ if __name__ == "__main__":
         stackTrace = traceback.format_exc()
         debug(stackTrace + "\n")
         cleanup()
+        cleanup_wifi()

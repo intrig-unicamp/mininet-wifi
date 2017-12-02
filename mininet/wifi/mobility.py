@@ -9,11 +9,11 @@ import numpy as np
 from numpy.random import rand
 
 from mininet.log import debug, info
-from mininet.wifi.wifiLink import wirelessLink, Association
-from mininet.wifi.wifiAssociationControl import associationControl
+from mininet.wifi.link import wirelessLink, Association
+from mininet.wifi.associationControl import associationControl
 from mininet.wifi.wmediumdConnector import WmediumdServerConn
-from mininet.wifi.wifiPropagationModels import propagationModel
-from mininet.wifi.wifiPlot import plot2d, plot3d
+from mininet.wifi.propagationModels import propagationModel
+from mininet.wifi.plot import plot2d, plot3d
 
 
 class mobility(object):

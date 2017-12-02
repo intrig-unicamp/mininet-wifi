@@ -3,7 +3,8 @@
 'Setting mechanism to optimize the use of APs'
 
 from mininet.net import Mininet
-from mininet.node import Controller, OVSKernelAP
+from mininet.node import Controller
+from mininet.wifi.node import OVSKernelAP
 from mininet.link import TCLink
 from mininet.cli import CLI
 from mininet.log import setLogLevel

@@ -11,19 +11,20 @@ import random
 import sys
 from time import sleep
 
-from mininet.node import AccessPoint
 from mininet.log import info, error
-from mininet.link import TCLinkWirelessAP, TCLinkWirelessStation
+from mininet.wifi.link import TCLinkWirelessAP, TCLinkWirelessStation
 from mininet.util import macColonHex
+
+from mininet.wifi.node import AccessPoint
 from mininet.wifi.wmediumdConnector import DynamicWmediumdIntfRef, \
     WmediumdStarter, WmediumdSNRLink, WmediumdTXPower, WmediumdPosition, \
     WmediumdConstants, WmediumdServerConn, WmediumdERRPROBLink
-from mininet.wifi.wifiLink import wirelessLink
-from mininet.wifi.wifiDevices import deviceDataRate
-from mininet.wifi.wifiMobility import mobility
-from mininet.wifi.wifiPlot import plot2d, plot3d
-from mininet.wifi.wifiModule import module
-from mininet.wifi.wifiPropagationModels import propagationModel
+from mininet.wifi.link import wirelessLink
+from mininet.wifi.devices import deviceDataRate
+from mininet.wifi.mobility import mobility
+from mininet.wifi.plot import plot2d, plot3d
+from mininet.wifi.module import module
+from mininet.wifi.propagationModels import propagationModel
 from mininet.wifi.vanet import vanet
 
 

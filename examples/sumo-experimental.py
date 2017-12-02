@@ -5,7 +5,8 @@
 import os
 
 from mininet.net import Mininet
-from mininet.node import Controller, UserAP
+from mininet.node import Controller
+from mininet.wifi.node import UserAP
 from mininet.link import TCLink
 from mininet.cli import CLI
 from mininet.log import setLogLevel

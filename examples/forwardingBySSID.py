@@ -22,7 +22,8 @@ around SSID-based packet forwarding
 from time import sleep
 
 from mininet.net import Mininet
-from mininet.node import  Controller, UserAP
+from mininet.node import  Controller
+from mininet.wifi.node import UserAP
 from mininet.cli import CLI
 from mininet.log import setLogLevel
 from mininet.link import TCLink

@@ -105,16 +105,17 @@ from math import ceil
 
 from mininet.cli import CLI
 from mininet.log import info, error, debug, output, warn
-from mininet.node import (Node, Host, Station, Car, OVSKernelSwitch,
-                          OVSKernelAP, DefaultController, Controller)
+from mininet.node import (Node, Host, OVSKernelSwitch,
+                          DefaultController, Controller)
 from mininet.nodelib import NAT
-from mininet.link import Link, Intf, _4addrLink, TCIntfWireless
+from mininet.link import Link, Intf
+from mininet.wifi.link import Association, _4addrLink, TCIntfWireless
 from mininet.util import (quietRun, fixLimits, numCores, ensureRoot,
                           macColonHex, ipStr, ipParse, netParse, ipAdd,
                           waitListening)
 from mininet.term import cleanUpScreens, makeTerms
-from mininet.wifi.wifiLink import Association
-from mininet.wifi.wifiNet import mininetWiFi
+from mininet.wifi.node import Station, Car, OVSKernelAP
+from mininet.wifi.net import mininetWiFi
 
 # Mininet version: should be consistent with README and LICENSE
 VERSION = "2.2.0d1"
@@ -603,7 +604,7 @@ class Mininet(object):
     def addMesh(self, node, **params):
         """
         Configure wireless mesh
-        
+
         node: name of the node
         cls: custom association class/constructor
         params: parameters for node
@@ -616,11 +617,11 @@ class Mininet(object):
     def addHoc(self, node, **params):
         """
         Configure AdHoc
-        
+
         node: name of the node
         cls: custom association class/constructor
         params: parameters for station
-           
+
         """
         params['nextIP'] = self.nextIP
         params['ipBaseNum'] = self.ipBaseNum

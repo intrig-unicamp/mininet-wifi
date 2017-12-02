@@ -4,7 +4,8 @@
 import sys
 
 from mininet.net import Mininet
-from mininet.node import  Controller, OVSKernelAP
+from mininet.node import  Controller
+from mininet.wifi.node import OVSKernelAP
 from mininet.cli import CLI
 from mininet.log import setLogLevel
 from mininet.link import TCLink
