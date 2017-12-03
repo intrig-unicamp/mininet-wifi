@@ -1,7 +1,10 @@
 """
-Vanet...
+
+    Mininet-WiFi: A simple networking testbed for Wireless OpenFlow/SDWN!
 
 author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
+
+
 """
 
 from __future__ import division
@@ -60,7 +63,7 @@ class vanet(object):
             [self.scatter, self.com_lines] = \
                 self.simulate_car_movement(cars, aps, self.scatter,
                                            self.com_lines, mobility)
-            mobility.continueParams
+            mobility.continue_params
 
     @classmethod
     def setWifiParameters(cls, mobility):
@@ -140,7 +143,7 @@ class vanet(object):
             bs_y = '%.2f' % bs.properties[1]
             self.scatter = plot2d.plotScatter(bs_x, bs_y)
             bs.params['position'] = bs_x, bs_y, 0
-            bs.setPositionWmediumd()
+            bs.set_position_wmediumd()
             plot2d.instantiateNode(bs)
             plot2d.instantiateAnnotate(bs)
             plot2d.instantiateCircle(bs)

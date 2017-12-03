@@ -97,8 +97,8 @@ class Node( object ):
 
         # Make pylint happy
         ( self.shell, self.execed, self.pid, self.stdin, self.stdout,
-            self.lastPid, self.lastCmd, self.pollOut ) = (
-                None, None, None, None, None, None, None, None )
+          self.lastPid, self.lastCmd, self.pollOut ) = (
+              None, None, None, None, None, None, None, None )
         self.waiting = False
         self.readbuf = ''
 
@@ -166,6 +166,11 @@ class Node( object ):
         # +m: disable job control notification
         self.cmd( 'unset HISTFILE; stty -echo; set +m' )
 
+    def plot(self, position):
+        self.params['position'] = position.split(',')
+        self.params['range'] = [0]
+        self.plot = True
+
     def mountPrivateDirs( self ):
         "mount private directories"
         # Avoid expanding a string into a list of chars
@@ -178,7 +183,7 @@ class Node( object ):
                 self.cmd( 'mkdir -p %s' % privateDir )
                 self.cmd( 'mkdir -p %s' % mountPoint )
                 self.cmd( 'mount --bind %s %s' %
-                               ( privateDir, mountPoint ) )
+                          ( privateDir, mountPoint ) )
             else:
                 # mount temporary filesystem on directory
                 self.cmd( 'mkdir -p %s' % directory )
@@ -426,7 +431,7 @@ class Node( object ):
         self.nameToIntf[ intf.name ] = intf
         debug( '\n' )
         debug( 'added intf %s (%d) to node %s\n' % (
-                intf, port, self.name ) )
+            intf, port, self.name ) )
         if self.inNamespace:
             debug( 'moving', intf, 'into namespace for', self.name, '\n' )
             moveIntfFn( intf.name, self  )
@@ -815,7 +820,7 @@ class CPULimitedHost( Host ):
         # We have to do this here after we've specified
         # cpus and mems
         errFail( 'cgclassify -g cpuset:/%s %s' % (
-                 self.name, self.pid ) )
+            self.name, self.pid ) )
 
     def config( self, cpu=-1, cores=None, **params ):
         """cpu: desired overall system CPU fraction
@@ -943,7 +948,7 @@ class UserSwitch( Switch ):
         Switch.__init__( self, name, **kwargs )
         pathCheck( 'ofdatapath', 'ofprotocol',
                    moduleName='the OpenFlow reference user switch' +
-                              '(openflow.org)' )
+                   '(openflow.org)' )
         if self.listenPort:
             self.opts += ' --listen=ptcp:%i ' % self.listenPort
         else:
@@ -1175,7 +1180,7 @@ class OVSSwitch( Switch ):
                          if self.ports[ intf ] and not intf.IP() )
         # Command to create controller entries
         clist = [ ( self.name + c.name, '%s:%s:%d' %
-                  ( c.protocol, c.IP(), c.port ) )
+                    ( c.protocol, c.IP(), c.port ) )
                   for c in controllers ]
         if self.listenPort:
             clist.append( ( self.name + '-listen',

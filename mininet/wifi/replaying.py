@@ -1,11 +1,13 @@
 """
-Replaying Mobility
+
+    Mininet-WiFi: A simple networking testbed for Wireless OpenFlow/SDWN!
 
 author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
 
+
 """
 
-import time
+from time import time, sleep
 import threading
 import random
 from pylab import math, cos, sin
@@ -66,7 +68,7 @@ class replayingMobility(object):
             plot = plot3d
         else:
             plot = plot2d
-        currentTime = time.time()
+        currentTime = time()
         if nodes is None:
             nodes = mininet.stations
         for node in nodes:
@@ -79,8 +81,8 @@ class replayingMobility(object):
                 self.timestamp = True
         if self.timestamp:
             while True:
-                time_ = time.time() - currentTime
-                time.sleep(0.00001)
+                time_ = time() - currentTime
+                sleep(0.00001)
                 if len(nodes) == 0:
                     break
                 for node in nodes:
@@ -98,8 +100,8 @@ class replayingMobility(object):
                 plot.graphPause()
         else:
             while True:
-                time_ = time.time() - currentTime
-                time.sleep(0.00001)
+                time_ = time() - currentTime
+                sleep(0.00001)
                 if len(nodes) == 0:
                     break
                 for node in nodes:
@@ -138,12 +140,12 @@ class replayingBandwidth(object):
 
     @classmethod
     def throughput(cls, mininet):
-        currentTime = time.time()
+        currentTime = time()
         stations = mininet.stations
         while True:
             if len(stations) == 0:
                 break
-            time_ = time.time() - currentTime
+            time_ = time() - currentTime
             for sta in stations:
                 if hasattr(sta, 'time'):
                     if time_ >= sta.time[0]:
@@ -187,16 +189,16 @@ class replayingNetworkBehavior(object):
     def behavior(cls, mininet):
         seconds = 5
         info('Replaying process starting in %s seconds\n' % seconds)
-        time.sleep(seconds)
+        sleep(seconds)
         info('Replaying process has been started\n')
-        currentTime = time.time()
+        currentTime = time()
         stations = mininet.stations
         for sta in stations:
-            sta.params['frequency'][0] = sta.getFrequency(0)
+            sta.params['frequency'][0] = sta.get_freq(0)
         while True:
             if len(stations) == 0:
                 break
-            time_ = time.time() - currentTime
+            time_ = time() - currentTime
             for sta in stations:
                 if hasattr(sta, 'time'):
                     if time_ >= sta.time[0]:
@@ -213,7 +215,7 @@ class replayingNetworkBehavior(object):
                         del sta.time[0]
                     if len(sta.time) == 0:
                         stations.remove(sta)
-            time.sleep(0.001)
+            sleep(0.001)
         info('Replaying process has finished!')
 
     @classmethod
@@ -259,16 +261,16 @@ class replayingRSSI(object):
     def rssi(self, mininet, propagationModel='', n=0):
         #if mobility.DRAW:
         #    instantiateGraph(mininet)
-        currentTime = time.time()
+        currentTime = time()
         staList = mininet.stations
         ang = {}
         for sta in staList:
             ang[sta] = random.uniform(0, 360)
-            sta.params['frequency'][0] = sta.getFrequency(0)
+            sta.params['frequency'][0] = sta.get_freq(0)
         while True:
             if len(staList) == 0:
                 break
-            time_ = time.time() - currentTime
+            time_ = time() - currentTime
             for sta in staList:
                 if hasattr(sta, 'time'):
                     if time_ >= sta.time[0]:
@@ -284,7 +286,7 @@ class replayingRSSI(object):
                         del sta.time[0]
                     if len(sta.time) == 0:
                         staList.remove(sta)
-            time.sleep(0.01)
+            sleep(0.01)
 
     @classmethod
     def moveNodeTo(cls, sta, ap, dist, ang):
@@ -354,8 +356,7 @@ class replayingRSSI(object):
 
         return dist
 
-    def logDistance(self, sta, ap, pT, gT, gR,
-                                        signalLevel, n):
+    def logDistance(self, sta, ap, pT, gT, gR, signalLevel, n):
         """Based on Log Distance Propagation Loss Model"""
         gains = gR + gT + pT
         referenceDistance = 1

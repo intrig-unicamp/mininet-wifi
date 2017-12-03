@@ -1,7 +1,9 @@
 """
-Provides support to wifi
+
+    Mininet-WiFi: A simple networking testbed for Wireless OpenFlow/SDWN!
 
 author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
+
 
 """
 
@@ -51,7 +53,7 @@ class mininetWiFi(object):
     plot = plot2d
     enable_wmediumd = False
     ppm_is_set = False
-    wifiRadios = 0
+    n_radios = 0
     MIN_X = 0
     MIN_Y = 0
     MIN_Z = 0
@@ -414,11 +416,11 @@ class mininetWiFi(object):
     def countWiFiIfaces(cls, params):
         "Count the number of virtual wifi interfaces"
         if 'wlans' in params:
-            cls.wifiRadios += int(params['wlans'])
+            cls.n_radios += int(params['wlans'])
             wlans = int(params['wlans'])
         else:
             wlans = 1
-            cls.wifiRadios += 1
+            cls.n_radios += 1
         return wlans
 
     @classmethod
@@ -589,6 +591,7 @@ class mininetWiFi(object):
         links = []
         positions = []
         txpowers = []
+        isnodeaps = []
         cars = []
 
         cls.configureWiFiDirect = mininet.configureWiFiDirect
@@ -614,6 +617,10 @@ class mininetWiFi(object):
                 node.wmIface.append(wlan)
                 node.wmIface[wlan] = DynamicWmediumdIntfRef(node, intf=wlan)
                 intfrefs.append(node.wmIface[wlan])
+                if node.func[wlan] == 'ap' or isinstance(node, AP):
+                    isnodeaps.append(1)
+                else:
+                    isnodeaps.append(0)
 
         if cls.enable_interference:
             mode = WmediumdConstants.WMEDIUMD_MODE_INTERFERENCE
@@ -659,7 +666,7 @@ class mininetWiFi(object):
         WmediumdStarter.initialize(intfrefs, links, mode=mode, positions=positions,
                                    enable_interference=cls.enable_interference,
                                    auto_add_links=False, txpowers=txpowers,
-                                   with_server=True)
+                                   isnodeaps=isnodeaps, with_server=True)
         WmediumdStarter.start(mininet, propagationModel)
 
     @classmethod
@@ -816,7 +823,7 @@ class mininetWiFi(object):
                     ap.params.pop("phywlan", None)
 
                 #if ap.func[0] != 'ap':
-                ap.params['frequency'][wlan] = ap.getFrequency(0)
+                ap.params['frequency'][wlan] = ap.get_freq(0)
 
                 if 'vssids' in ap.params:
                     break
@@ -863,7 +870,7 @@ class mininetWiFi(object):
                 for i in range(1, ap.params['vssids']+1):
                     ap.params['range'].append(ap.params['range'][0])
                     ap.params['wlan'].append('%s-%s'
-                                               % (ap.params['wlan'][0], i))
+                                             % (ap.params['wlan'][0], i))
                     ap.params['mode'].append(ap.params['mode'][0])
                     ap.params['frequency'].append(
                         ap.params['frequency'][0])
@@ -1066,11 +1073,6 @@ class mininetWiFi(object):
         """
         Configure WiFi Nodes
         
-        :param stations: list of stations
-        :param aps: list of access points
-        :param cars: list of cars
-        :param wifiRadios: number of wireless radios
-        :param wmediumd: loads wmediumd 
         """
         cls.enable_wmediumd = mininet.enable_wmediumd
 
@@ -1079,7 +1081,7 @@ class mininetWiFi(object):
             wirelessLink.ifb = True
             params['ifb'] = cls.ifb
         nodes = mininet.stations + mininet.aps + mininet.cars
-        module.start(nodes, cls.wifiRadios, cls.alternativeModule, **params)
+        module.start(nodes, cls.n_radios, cls.alternativeModule, **params)
         cls.configureWirelessLink(mininet.stations, mininet.aps, mininet.cars)
         cls.createVirtualIfaces(mininet.stations)
         cls.configureAPs(mininet.aps, mininet.driver)
@@ -1128,7 +1130,7 @@ class mininetWiFi(object):
                     if node.params['txpower'][wlan] == 14:
                         node.autoTxPower=True
                         node.params['txpower'][wlan] = \
-                            node.getTxPower_prop_model(wlan)
+                            node.get_txpower_prop_model(wlan)
                     setParam = True
                     if isinstance(node, Car):
                         setParam = False
@@ -1218,7 +1220,7 @@ class mininetWiFi(object):
                 for wlan in range(0, len(sta.params['wlan'])):
                     for ap in aps:
                         if 'position' in sta.params and 'position' in ap.params:
-                            dist = wirelessLink.getDistance(sta, ap)
+                            dist = sta.get_distance_to(ap)
                             if dist <= ap.params['range'][0]:
                                 mobility.handover(sta, ap, wlan)
 
@@ -1228,9 +1230,9 @@ class mininetWiFi(object):
         propagationModel.setAttr(**kwargs)
 
     @classmethod
-    def getDistance(cls, src, dst):
+    def get_distance_to(cls, src, dst):
         "Get the distance between two nodes"
-        dist = wirelessLink.getDistance(src, dst)
+        dist = src.get_distance_to(dst)
         return dist
 
     @classmethod
@@ -1259,7 +1261,7 @@ class mininetWiFi(object):
                     for host2 in nodes:
                         if dst == str(host2):
                             dst = host2
-                            dist = cls.getDistance(src, dst)
+                            dist = src.get_distance_to(dst)
                             info ("The distance between %s and %s is %.2f "
                                   "meters\n" % (src, dst, float(dist)))
         except:
@@ -1309,7 +1311,7 @@ class mininetWiFi(object):
     def stopGraphParams(cls):
         "Stop the graph"
         mobility.continuePlot = 'exit()'
-        mobility.continueParams = 'exit()'
+        mobility.continue_params = 'exit()'
         sleep(0.5)
 
     @classmethod

@@ -1,5 +1,9 @@
 """
-Node objects for Mininet-WiFi.
+
+    Mininet-WiFi: A simple networking testbed for Wireless OpenFlow/SDWN!
+
+author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
+
 
 """
 
@@ -9,6 +13,8 @@ import re
 import signal
 import select
 import fileinput
+import numpy as np
+from scipy.spatial.distance import pdist
 
 from subprocess import Popen, PIPE
 from time import sleep
@@ -24,7 +30,7 @@ from mininet.wifi.link import TCIntfWireless, TCLinkWirelessAP,\
 from mininet.wifi.wmediumdConnector import WmediumdServerConn, WmediumdPosition, \
                                 WmediumdTXPower, WmediumdGain, WmediumdHeight
 from mininet.wifi.propagationModels import distanceByPropagationModel, \
-    powerForRangeByPropagationModel
+    powerForRangeByPropagationModel, propagationModel
 from mininet.wifi.mobility import mobility
 from mininet.wifi.link import wirelessLink
 from mininet.wifi.plot import plot2d, plot3d
@@ -263,11 +269,6 @@ class WiFiNode(object):
         except:
             pass
 
-    def plot(self, position):
-        self.params['position'] = position.split(',')
-        self.params['range'] = [0]
-        self.plot = True
-
     def setRange(self, value, intf=None):
         "Set Signal Range"
         if intf is None:
@@ -276,7 +277,7 @@ class WiFiNode(object):
             wlan = 0
         self.params['range'][wlan] = value
         if self.autoTxPower:
-            self.params['txpower'][wlan] = self.getTxPower_prop_model(0)
+            self.params['txpower'][wlan] = self.get_txpower_prop_model(0)
             self.setTxPower(value, intf=self.params['wlan'][wlan])
         if self.isStationary:
             self.updateGraph()
@@ -300,10 +301,10 @@ class WiFiNode(object):
             cls.graphPause()
 
         if WmediumdServerConn.interference_enabled:
-            self.setPositionWmediumd()
+            self.set_position_wmediumd()
             if isinstance(self, Car):
                 self = self.params['carsta']
-                self.setPositionWmediumd()
+                self.set_position_wmediumd()
         mobility.parameters_(self)
 
     def setAntennaGain(self, value, intf=None, setParam=True):
@@ -325,7 +326,7 @@ class WiFiNode(object):
         "Set Channel"
         wlan = self.params['wlan'].index(intf)
         self.params['channel'][wlan] = str(value)
-        self.params['frequency'][wlan] = self.getFrequency(wlan)
+        self.params['frequency'][wlan] = self.get_freq(wlan)
         if isinstance(self, AP):
             self.pexec(
                 'hostapd_cli -i %s chan_switch %s %s' % (
@@ -351,7 +352,7 @@ class WiFiNode(object):
         if setParam:
             mobility.parameters_(self)
 
-    def getFrequency(self, wlan):
+    def get_freq(self, wlan):
         """Gets frequency based on channel number
 
         :param wlan: wlan ID
@@ -432,7 +433,18 @@ class WiFiNode(object):
             freq = 2.412
         return freq
 
-    def setPositionWmediumd(self):
+    def set_rssi(self, node2=None, wlan=0, dist=0):
+        """set RSSI
+
+        :param node1: self
+        :param node2: access point
+        :param wlan: wlan ID
+        :param dist: distance
+        """
+        value = propagationModel(self, node2, dist, wlan)
+        return float(value.rssi)  # random.uniform(value.rssi-1, value.rssi+1)
+
+    def set_position_wmediumd(self):
         "Set Position for wmediumd"
         posX = self.params['position'][0]
         posY = self.params['position'][1]
@@ -467,7 +479,7 @@ class WiFiNode(object):
             WmediumdServerConn.update_txpower(WmediumdTXPower(
                 self.wmIface[wlan], int(txpower_)))
 
-    def getTxPower_prop_model(self, wlan):
+    def get_txpower_prop_model(self, wlan):
         "Get Tx Power Given the propagation Model"
         enable_interference = WmediumdServerConn.interference_enabled
         value = powerForRangeByPropagationModel(self, wlan,
@@ -475,7 +487,7 @@ class WiFiNode(object):
                                                 enable_interference)
         return int(value.txpower)
 
-    def getTxPower(self, iface):
+    def get_txpower(self, iface):
         connected = self.cmd('iw dev %s link | awk \'{print $1}\'' % iface)
         if connected != 'Not':
             try:
@@ -492,6 +504,18 @@ class WiFiNode(object):
                 txpower = 14
             return txpower
 
+    def get_distance_to(self, dst):
+        """ Get the distance between two nodes
+
+        :param self: source node
+        :param dst: destination node
+        """
+        pos_src = self.params['position']
+        pos_dst = dst.params['position']
+        points = np.array([(pos_src[0], pos_src[1], pos_src[2]),
+                           (pos_dst[0], pos_dst[1], pos_dst[2])])
+        return float(pdist(points))
+
     def associateTo(self, ap, intf=None):
         "Force association to given AP"
         self.moveAssociationTo(ap, intf)
@@ -505,7 +529,7 @@ class WiFiNode(object):
                 wlan = idx
                 break
         if 'position' in sta.params and 'position' in ap.params:
-            dist = wirelessLink.getDistance(sta, ap)
+            dist = sta.get_distance_to(ap)
         else:
             dist = 100000
         if dist < ap.params['range'][wlan] or 'position' not in sta.params \
@@ -525,7 +549,7 @@ class WiFiNode(object):
                     elif ap.params['encrypt'][0] == 'wep':
                         self.associate_wep(ap, wlan)
                 wirelessLink(sta, ap, wlan, dist)
-                mobility.updateAssociation(sta, ap, wlan)
+                mobility.update_association(sta, ap, wlan)
             else:
                 info ('%s is already connected!\n' % ap)
             mobility.parameters_(self)
@@ -1037,9 +1061,11 @@ class Station(WiFiNode):
     "A station is simply a Node"
     pass
 
+
 class Car(WiFiNode):
     "A car is simply a Node"
     pass
+
 
 class AP(WiFiNode):
     """A Switch is a Node that is running (or has execed?)

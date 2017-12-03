@@ -1,11 +1,10 @@
 """
 
-    Mininet-WiFi: A simple networking testbed for Wireless OpenFlow/SDN!
+    Mininet-WiFi: A simple networking testbed for Wireless OpenFlow/SDWN!
 
 author: Bob Lantz (rlantz@cs.stanford.edu)
 author: Brandon Heller (brandonh@stanford.edu)
-
-Modified by Ramon Fontes (ramonrf@dca.fee.unicamp.br)
+author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
 
 Mininet creates scalable OpenFlow test networks by using
 process-based virtualization and network namespaces.
@@ -683,7 +682,7 @@ class Mininet(object):
 
             # If sta/ap have defined position
             if 'position' in sta.params and 'position' in ap.params:
-                dist = mininetWiFi.getDistance(sta, ap)
+                dist = mininetWiFi.get_distance_to(sta, ap)
                 if dist > ap.params['range'][0]:
                     doAssociation = False
                 else:
@@ -738,7 +737,7 @@ class Mininet(object):
                 cls = _4addrLink
                 cls(node1, node2)
             else:
-                dist = mininetWiFi.getDistance(node1, node2)
+                dist = mininetWiFi.get_distance_to(node1, node2)
                 if dist > node1.params['range'][0]:
                     doAssociation = False
                 else:

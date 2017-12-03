@@ -1,8 +1,10 @@
 """
+
 Helps starting the wmediumd service
 
 author: Patrick Grosse (patrick.grosse@uni-muenster.de)
-        Ramon Fontes (ramonrf@dca.fee.unicamp.br)
+author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
+
 """
 import ctypes
 import os
@@ -104,7 +106,7 @@ class WmediumdManager(object):
         cls.is_connected = True
 
         # Mininet specific
-        from mininet.wifiModule import module
+        from mininet.wifi.module import module
         module.externally_managed = True
 
     @classmethod
@@ -247,6 +249,7 @@ class WmediumdStarter(object):
     links = None
     positions = None
     txpowers = None
+    isnodeaps = None
     executable = None
     parameters = None
     auto_add_links = None
@@ -268,7 +271,7 @@ class WmediumdStarter(object):
                    default_auto_errprob=1.0,
                    mode=WmediumdConstants.WMEDIUMD_MODE_SNR,
                    enable_interference=False, enable_error_prob=False,
-                   positions=None, txpowers=None):
+                   positions=None, txpowers=None, isnodeaps=None):
         """
         Set the data for the wmediumd daemon
 
@@ -299,6 +302,7 @@ class WmediumdStarter(object):
         cls.links = links
         cls.positions = positions
         cls.txpowers = txpowers
+        cls.isnodeaps = isnodeaps
         cls.executable = executable
         cls.parameters = parameters
         cls.auto_add_links = auto_add_links
@@ -413,9 +417,18 @@ class WmediumdStarter(object):
                         configstr += ','
                     configstr += '\n\t\t(%.1f, %.1f, %.1f)' % (
                         posX, posY, posZ)
-                configstr += '\n\t);\n\ttx_powers = ('
-                first_txpower = True
 
+                configstr += '\n\t);\n\tisnodeaps = ('
+                first_isnodeap = True
+                for isnodeap in cls.isnodeaps:
+                    if first_isnodeap:
+                        configstr += '%s' % isnodeap
+                        first_isnodeap = False
+                    else:
+                        configstr += ', %s' % isnodeap
+
+                configstr += ');\n\ttx_powers = ('
+                first_txpower = True
                 for mappedtxpower in cls.txpowers:
                     txpower = mappedtxpower.sta_txpower
                     if first_txpower:

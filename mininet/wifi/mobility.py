@@ -1,5 +1,10 @@
 """
+
+    Mininet-WiFi: A simple networking testbed for Wireless OpenFlow/SDWN!
+
 author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
+
+
 """
 
 import threading
@@ -21,13 +26,12 @@ class mobility(object):
     AC = ''  # association control method
     aps = []
     stations = []
-    adhocNodes = []
     meshNodes = []
     mobileNodes = []
     stationaryNodes = []
     continuePlot = 'plot2d.graphPause()'
     pause_simulation = False
-    continueParams = 'sleep(0.0001)'
+    continue_params = 'sleep(0.0001)'
 
     @classmethod
     def start(cls, **mobilityparam):
@@ -36,7 +40,7 @@ class mobility(object):
                                   kwargs=dict(mobilityparam, ))
         thread.daemon = True
         thread.start()
-        cls.setWifiParameters()
+        cls.set_wifi_params()
 
     @classmethod
     def stop(cls, **mobilityparam):
@@ -46,7 +50,7 @@ class mobility(object):
                                   kwargs=dict(mobilityparam, ))
         thread.daemon = True
         thread.start()
-        cls.setWifiParameters()
+        cls.set_wifi_params()
 
     @classmethod
     def create_coordinate(cls, node):
@@ -135,7 +139,7 @@ class mobility(object):
         return x, y, z
 
     @classmethod
-    def setWifiParameters(cls):
+    def set_wifi_params(cls):
         """
         Opens a thread for wifi parameters
         """
@@ -159,7 +163,7 @@ class mobility(object):
                                             diff_time))
 
     @classmethod
-    def apOutOfRange(cls, sta, ap, wlan):
+    def ap_out_of_range(cls, sta, ap, wlan):
         """
         When ap is out of range
 
@@ -178,7 +182,7 @@ class mobility(object):
                     os.system('pkill -f \'wpa_supplicant -B -Dnl80211 -P %s -i '
                               '%s\'' % (pidfile, sta.params['wlan'][wlan]))
                     if os.path.exists(('/var/run/wpa_supplicant/%s'
-                                           % sta.params['wlan'][wlan])):
+                                       % sta.params['wlan'][wlan])):
                         os.system('rm /var/run/wpa_supplicant/%s'
                                   % sta.params['wlan'][wlan])
             elif WmediumdServerConn.connected \
@@ -197,7 +201,7 @@ class mobility(object):
             ap.params['stationsInRange'].pop(sta, None)
 
     @classmethod
-    def apInRange(cls, sta, ap, wlan, dist):
+    def ap_in_range(cls, sta, ap, wlan, dist):
         """
         When ap is in range
 
@@ -208,11 +212,11 @@ class mobility(object):
         """
         if ap not in sta.params['apsInRange']:
             sta.params['apsInRange'].append(ap)
-        rssi_ = wirelessLink.setRSSI(sta, ap, wlan, dist)
+        rssi_ = sta.set_rssi(ap, wlan, dist)
         ap.params['stationsInRange'][sta] = rssi_
         if ap == sta.params['associatedTo'][wlan]:
             if not WmediumdServerConn.interference_enabled:
-                rssi_ = wirelessLink.setRSSI(sta, ap, wlan, dist)
+                rssi_ = sta.set_rssi(ap, wlan, dist)
                 sta.params['rssi'][wlan] = rssi_
             if sta not in ap.params['associatedStations']:
                 ap.params['associatedStations'].append(sta)
@@ -229,7 +233,7 @@ class mobility(object):
                     wirelessLink(sta, ap, wlan, dist)
 
     @classmethod
-    def checkAssociation(cls, sta, wlan):
+    def check_association(cls, sta, wlan):
         """
         check association
 
@@ -237,15 +241,15 @@ class mobility(object):
         :param wlan: wlan ID
         """
         for ap in cls.aps:
-            dist = wirelessLink.getDistance(sta, ap)
+            dist = sta.get_distance_to(ap)
             if dist > ap.params['range'][0]:
-                cls.apOutOfRange(sta, ap, wlan)
+                cls.ap_out_of_range(sta, ap, wlan)
 
         for ap in cls.aps:
-            dist = wirelessLink.getDistance(sta, ap)
+            dist = sta.get_distance_to(ap)
             if dist <= ap.params['range'][0]:
                 cls.handover(sta, ap, wlan)
-                cls.apInRange(sta, ap, wlan, dist)
+                cls.ap_in_range(sta, ap, wlan, dist)
 
     @classmethod
     def handover(cls, sta, ap, wlan):
@@ -262,16 +266,16 @@ class mobility(object):
         if cls.AC != '' and sta.params['associatedTo'][wlan] != ap \
                 and sta.params['associatedTo'][wlan] != '':
             ac = cls.AC
-            value = associationControl(sta, ap, wlan, ac, wirelessLink)
+            value = associationControl(sta, ap, wlan, ac)
             changeAP = value.changeAP
         if sta.params['associatedTo'][wlan] == '' or changeAP is True:
             if ap not in sta.params['associatedTo']:
                 Association.printCon = False
                 Association.associate_infra(sta, ap, wlan)
-                cls.updateAssociation(sta, ap, wlan)
+                cls.update_association(sta, ap, wlan)
 
     @classmethod
-    def updateAssociation(cls, sta, ap, wlan):
+    def update_association(cls, sta, ap, wlan):
         """
         Updates attributes regarding association
 
@@ -286,17 +290,17 @@ class mobility(object):
         sta.params['associatedTo'][wlan] = ap
 
         if WmediumdServerConn.interference_enabled:
-            cls.updateWmediumdPos(sta)
+            cls.update_wmediumd_pos(sta)
 
     @classmethod
-    def updateWmediumdPos(cls, node):
-        cls.setWmediumdPos(node)
+    def update_wmediumd_pos(cls, node):
+        cls.set_wmediumd_pos(node)
 
     @classmethod
-    def setWmediumdPos(cls, node):
+    def set_wmediumd_pos(cls, node):
         if node.lastpos != node.params['position']:
             sleep(0.0001)
-            node.setPositionWmediumd()
+            node.set_position_wmediumd()
 
     @classmethod
     def get_line(cls, node, x1, y1, z1, x2, y2, z2):
@@ -617,12 +621,12 @@ class mobility(object):
                                     Association.associate_infra(node, ap, wlan)
                                     node.params['associatedTo'][wlan] = 'bgscan'
                         else:
-                            cls.checkAssociation(node, wlan)
+                            cls.check_association(node, wlan)
                     else:
-                        cls.checkAssociation(node, wlan)  # have to verify this
+                        cls.check_association(node, wlan)  # have to verify this
                 if WmediumdServerConn.interference_enabled:
-                    cls.setWmediumdPos(node)
-        eval(cls.continueParams)
+                    cls.set_wmediumd_pos(node)
+        eval(cls.continue_params)
 
 # coding: utf-8
 #
@@ -655,7 +659,7 @@ E = lambda SCALE, SAMPLES: -SCALE * np.log(rand(*SAMPLES.shape))
 
 
 # *************** Palm state probability **********************
-def pause_probability_init(pause_low, pause_high, speed_low, \
+def pause_probability_init(pause_low, pause_high, speed_low,
                            speed_high, max_x, max_y):
     alpha1 = ((pause_high + pause_low) * (speed_high - speed_low)) / \
              (2 * np.log(speed_high / speed_low))
@@ -707,7 +711,7 @@ def init_random_waypoint(nodes, min_x, min_y, max_x, max_y,
                               (pause_high - pause_low) / 2.
 
     # steady-state pause probability for Random Waypoint
-    q0 = pause_probability_init(pause_low, pause_high, speed_low, \
+    q0 = pause_probability_init(pause_low, pause_high, speed_low,
                                 speed_high, max_x, max_y)
 
     for i in range(nr_nodes):
@@ -880,7 +884,7 @@ class RandomWaypoint(object):
 
 
 class StochasticWalk(object):
-    def __init__(self, nodes, FL_DISTR, VELOCITY_DISTR, WT_DISTR=None, \
+    def __init__(self, nodes, FL_DISTR, VELOCITY_DISTR, WT_DISTR=None,
                  border_policy='reflect', model=None):
         '''
         Base implementation for models with direction uniformly chosen from [0,pi]:
@@ -1092,7 +1096,7 @@ class RandomWalk(StochasticWalk):
         FL_DISTR = lambda SAMPLES: np.array(fl[:len(SAMPLES)])
         VELOCITY_DISTR = lambda FD: np.array(vel[:len(FD)])
 
-        StochasticWalk.__init__(self, nodes, FL_DISTR, VELOCITY_DISTR, \
+        StochasticWalk.__init__(self, nodes, FL_DISTR, VELOCITY_DISTR,
                                 border_policy=border_policy)
 
 

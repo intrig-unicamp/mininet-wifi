@@ -1,6 +1,9 @@
 """
-Mininet-WiFi Cleanup
+
+    Mininet-WiFi: A simple networking testbed for Wireless OpenFlow/SDWN!
+
 author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
+
 
 """
 

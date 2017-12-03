@@ -72,7 +72,7 @@ class Cleanup( object ):
 
         info( "*** Removing excess kernel datapaths\n" )
         dps = sh( "ps ax | egrep -o 'dp[0-9]+' | sed 's/dp/nl:/'"
-                  ).splitlines()
+                ).splitlines()
         for dp in dps:
             if dp:
                 sh( 'dpctl deldp ' + dp )
@@ -90,12 +90,12 @@ class Cleanup( object ):
         info( "*** Removing all links of the pattern foo-ethX\n" )
         links = sh( "ip link show | "
                     "egrep -o '([-_.[:alnum:]]+-eth[[:digit:]]+)'"
-                    ).splitlines()
+                  ).splitlines()
         # Delete blocks of links
         n = 1000  # chunk size
         for i in range( 0, len( links ), n ):
             cmd = ';'.join( 'ip link del %s' % link
-                             for link in links[ i : i + n ] )
+                            for link in links[ i : i + n ] )
             sh( '( %s ) 2> /dev/null' % cmd )
 
         if 'tap9' in sh( 'ip link show' ):

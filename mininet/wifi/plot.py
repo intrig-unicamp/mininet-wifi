@@ -1,9 +1,12 @@
 """
-Plot Graphs
+
+    Mininet-WiFi: A simple networking testbed for Wireless OpenFlow/SDWN!
 
 author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
 
+
 """
+
 import numpy as np
 import matplotlib.patches as patches
 import matplotlib.pyplot as plt

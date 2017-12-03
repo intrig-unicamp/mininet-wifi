@@ -4,13 +4,10 @@ author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
 
 import os
 import re
-import numpy as np
-from scipy.spatial.distance import pdist
 
 from mininet.log import info, error, debug
 
 from mininet.wifi.devices import deviceDataRate
-from mininet.wifi.propagationModels import propagationModel
 from mininet.wifi.wmediumdConnector import WmediumdServerConn, WmediumdSNRLink
 
 
@@ -870,19 +867,6 @@ class wirelessLink (object):
         self.tc(sta, wlan, bw_, loss_, latency_, delay_)
 
     @classmethod
-    def getDistance(cls, src, dst):
-        """ Get the distance between two nodes
-        
-        :param src: source node
-        :param dst: destination node
-        """
-        pos_src = src.params['position']
-        pos_dst = dst.params['position']
-        points = np.array([(pos_src[0], pos_src[1], pos_src[2]),
-                           (pos_dst[0], pos_dst[1], pos_dst[2])])
-        return float(pdist(points))
-
-    @classmethod
     def setDelay(cls, dist):
         """"Based on RandomPropagationDelayModel
         
@@ -920,18 +904,6 @@ class wirelessLink (object):
         if rate <= 0.0:
             rate = 0.1
         return rate
-
-    @classmethod
-    def setRSSI(cls, node1=None, node2=None, wlan=0, dist=0):
-        """set RSSI
-        
-        :param node1: station
-        :param node2: access point
-        :param wlan: wlan ID
-        :param dist: distance
-        """
-        value = propagationModel(node1, node2, dist, wlan)
-        return float(value.rssi)  # random.uniform(value.rssi-1, value.rssi+1)
 
     @classmethod
     def delete(cls, node):
@@ -1009,7 +981,7 @@ class Association(object):
         :param wlan: wlan ID
         """
 
-        dist = wirelessLink.getDistance(sta, ap)
+        dist = sta.get_distance_to(ap)
         if dist <= ap.params['range'][0]:
             for wlan in range(0, len(sta.params['wlan'])):
                 if wmediumd_mode is not 'interference':
@@ -1024,12 +996,12 @@ class Association(object):
                     if sta not in ap.params['associatedStations']:
                         ap.params['associatedStations'].append(sta)
                 if wmediumd_mode is not 'interference':
-                    rssi_ = wirelessLink.setRSSI(sta, ap, wlan, dist)
-                    sta.params['rssi'][wlan] = rssi_
+                    rssi = sta.set_rssi(ap, wlan, dist)
+                    sta.params['rssi'][wlan] = rssi
             if ap not in sta.params['apsInRange']:
                 sta.params['apsInRange'].append(ap)
                 if wmediumd_mode is not 'interference':
-                    ap.params['stationsInRange'][sta] = rssi_
+                    ap.params['stationsInRange'][sta] = rssi
 
     @classmethod
     def updateParams(cls, sta, ap, wlan):
@@ -1039,7 +1011,7 @@ class Association(object):
         :param wlan: wlan ID
         """
 
-        sta.params['frequency'][wlan] = ap.getFrequency(0)
+        sta.params['frequency'][wlan] = ap.get_freq(0)
         sta.params['channel'][wlan] = ap.params['channel'][0]
         sta.params['mode'][wlan] = ap.params['mode'][0]
 
@@ -1100,7 +1072,7 @@ class Association(object):
         if cls.printCon:
             iface = sta.params['wlan'][wlan]
             info("Associating %s to %s\n" % (iface, ap))
-        sta.params['frequency'][wlan] = ap.getFrequency(0)
+        sta.params['frequency'][wlan] = ap.get_freq(0)
         sta.params['associatedTo'][wlan] = ap
 
     @classmethod
