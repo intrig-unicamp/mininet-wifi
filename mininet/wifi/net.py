@@ -617,7 +617,8 @@ class mininetWiFi(object):
                 node.wmIface.append(wlan)
                 node.wmIface[wlan] = DynamicWmediumdIntfRef(node, intf=wlan)
                 intfrefs.append(node.wmIface[wlan])
-                if node.func[wlan] == 'ap' or isinstance(node, AP):
+                if '_4addr' not in node.params and \
+                        (node.func[wlan] == 'ap' or isinstance(node, AP)):
                     isnodeaps.append(1)
                 else:
                     isnodeaps.append(0)
