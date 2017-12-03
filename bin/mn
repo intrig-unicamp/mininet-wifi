@@ -33,9 +33,9 @@ from mininet.wifi.node import UserAP, OVSAP
 from mininet.nodelib import LinuxBridge
 from mininet.link import Link, TCLink, TCULink, OVSLink
 from mininet.wifi.link import TCIntfWireless
-from mininet.topo import (SingleSwitchTopo, SingleAPTopo, LinearTopo,
-                          LinearWirelessTopo, SingleSwitchReversedTopo,
-                          MinimalTopo, MinimalWirelessTopo)
+from mininet.topo import (SingleSwitchTopo, LinearTopo, SingleSwitchReversedTopo,
+                          MinimalTopo)
+from mininet.wifi.topo import (SingleAPTopo, LinearWirelessTopo, MinimalWirelessTopo)
 from mininet.topolib import TreeTopo, TorusTopo
 from mininet.util import customClass, specialClass, splitArgs
 from mininet.util import buildTopo
