@@ -143,10 +143,10 @@ class WiFiNode(object):
         if self.func[wlan] == 'adhoc':
             self.cmd('iw dev %s set type managed' %
                      self.params['wlan'][wlan])
+        iface = '%s-mp%s' % (self, wlan)
         if self.func[wlan] == 'mesh' and isinstance(self, AP):
             iface = '%s-mp%s' % (self, wlan+1)
-        else:
-            iface = '%s-mp%s' % (self, wlan)
+
         self.cmd('iw dev %s interface add %s type mp' %
                  (self.params['wlan'][wlan], iface))
         self.cmd('ip link set %s down' % iface)
@@ -271,10 +271,10 @@ class WiFiNode(object):
 
     def setRange(self, value, intf=None):
         "Set Signal Range"
+        wlan = 0
         if intf is None:
             wlan = self.params['wlan'].index(intf)
-        else:
-            wlan = 0
+
         self.params['range'][wlan] = value
         if self.autoTxPower:
             self.params['txpower'][wlan] = self.get_txpower_prop_model(0)
@@ -449,10 +449,11 @@ class WiFiNode(object):
         posX = self.params['position'][0]
         posY = self.params['position'][1]
         posZ = self.params['position'][2]
+
+        wlans = len(self.params['wlan'])
         if isinstance(self, Car):
             wlans = 1
-        else:
-            wlans = len(self.params['wlan'])
+
         for wlan in range(0, wlans):
             self.lastpos = self.params['position']
             WmediumdServerConn.update_position(WmediumdPosition(
@@ -528,10 +529,10 @@ class WiFiNode(object):
             if wlan == intf:
                 wlan = idx
                 break
+        dist = 100000
         if 'position' in sta.params and 'position' in ap.params:
             dist = sta.get_distance_to(ap)
-        else:
-            dist = 100000
+
         if dist < ap.params['range'][wlan] or 'position' not in sta.params \
                 and 'position' not in ap.params:
             if sta.params['associatedTo'][wlan] != ap:
@@ -558,10 +559,10 @@ class WiFiNode(object):
 
     def associate_wpa(self, ap, wlan):
         "Association with WPA"
+        passwd = self.params['passwd'][wlan]
         if 'passwd' not in self.params:
             passwd = ap.params['passwd'][0]
-        else:
-            passwd = self.params['passwd'][wlan]
+
         pidfile = "mn%d_%s_%s_wpa.pid" % (os.getpid(), self.name, wlan)
         self.cmd("wpa_supplicant -B -Dnl80211 -P %s -i %s -c "
                  "<(wpa_passphrase \"%s\" \"%s\")"
@@ -570,10 +571,10 @@ class WiFiNode(object):
 
     def associate_wep(self, ap, wlan):
         "Association with WEP"
+        passwd = self.params['passwd'][wlan]
         if 'passwd' not in self.params:
             passwd = ap.params['passwd'][0]
-        else:
-            passwd = self.params['passwd'][wlan]
+
         self.pexec('iw dev %s connect %s key d:0:%s' \
                 % (self.params['wlan'][wlan], ap.params['ssid'][0], passwd))
 
@@ -1358,9 +1359,8 @@ class AccessPoint(AP):
     @classmethod
     def APConfigFile(cls, cmd, ap, wlan):
         """ run an Access Point and create the config file """
-        if 'phywlan' not in ap.params:
-            iface = ap.params['wlan'][wlan]
-        else:
+        iface = ap.params['wlan'][wlan]
+        if 'phywlan' in ap.params:
             iface = ap.params['phywlan']
             ap.cmd('ip link set %s down' % iface)
             ap.cmd('ip link set %s up' % iface)

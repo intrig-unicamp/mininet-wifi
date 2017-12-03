@@ -359,12 +359,11 @@ class replayingRSSI(object):
     def logDistance(self, sta, ap, pT, gT, gR, signalLevel, n):
         """Based on Log Distance Propagation Loss Model"""
         gains = gR + gT + pT
-        referenceDistance = 1
+        ref_dist = 1
         exp = 2
-        pathLossDb = self.pathLoss(sta, ap, referenceDistance)
+        pathLossDb = self.pathLoss(sta, ap, ref_dist)
         rssi = gains - signalLevel - pathLossDb
-        dist = 10 ** ((rssi + 10 * exp * math.log10(referenceDistance))
-                      / (10 * exp))
+        dist = 10 ** ((rssi + 10 * exp * math.log10(ref_dist)) / (10 * exp))
 
         return dist
 

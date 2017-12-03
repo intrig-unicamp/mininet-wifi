@@ -7,41 +7,16 @@ author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
 
 """
 
-from subprocess import (Popen, PIPE, check_output as co,
-                        CalledProcessError)
-import time
+from subprocess import (check_output as co)
+
 import os
 import glob
 
 from mininet.log import info
-
-
-def sh(cmd):
-    "Print a command and send it to the shell"
-    info(cmd + '\n')
-    return Popen(['/bin/sh', '-c', cmd], stdout=PIPE).communicate()[0]
-
-
-def killprocs(pattern):
-    "Reliably terminate processes matching a pattern (including args)"
-    sh('pkill -9 -f %s' % pattern)
-    # Make sure they are gone
-    while True:
-        try:
-            pids = co(['pgrep', '-f', pattern])
-        except CalledProcessError:
-            pids = ''
-        if pids:
-            sh('pkill -9 -f %s' % pattern)
-            time.sleep(.5)
-        else:
-            break
-
+from mininet.clean import killprocs, sh
 
 class Cleanup(object):
     "Wrapper for cleanup()"
-
-    callbacks = []
 
     @classmethod
     def cleanup_wifi(cls):
@@ -81,18 +56,5 @@ class Cleanup(object):
         info("*** Killing wmediumd\n")
         sh('pkill wmediumd')
 
-        # Call any additional cleanup code if necessary
-        for callback in cls.callbacks:
-            callback()
-
-        info("*** Cleanup complete.\n")
-
-    @classmethod
-    def addCleanupCallback(cls, callback):
-        "Add cleanup callback"
-        if callback not in cls.callbacks:
-            cls.callbacks.append(callback)
-
 
 cleanup_wifi = Cleanup.cleanup_wifi
-addCleanupCallback = Cleanup.addCleanupCallback
