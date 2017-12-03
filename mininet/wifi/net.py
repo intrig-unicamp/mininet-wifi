@@ -50,6 +50,7 @@ class mininetWiFi(object):
     isMobility = False
     isVanet = False
     isWiFi = False
+    rec_rssi = False
     plot = plot2d
     enable_wmediumd = False
     ppm_is_set = False
@@ -1035,6 +1036,7 @@ class mininetWiFi(object):
         cls.mobilityparam.setdefault('MAX_Y', cls.MAX_Y)
         cls.mobilityparam.setdefault('MAX_Z', cls.MAX_Z)
         cls.mobilityparam.setdefault('AC', cls.AC)
+        cls.mobilityparam.setdefault('rec_rssi', cls.rec_rssi)
         if 'stationaryNodes' in kwargs and kwargs['stationaryNodes'] is not []:
             cls.mobilityparam.setdefault('stationaryNodes', kwargs['stationaryNodes'])
         cls.mobilityparam.setdefault('is3d', cls.is3d)
@@ -1087,6 +1089,7 @@ class mininetWiFi(object):
         cls.createVirtualIfaces(mininet.stations)
         cls.configureAPs(mininet.aps, mininet.driver)
         cls.isWiFi = True
+        cls.rec_rssi = mininet.rec_rssi
 
         for car in mininet.cars:
             # useful if there no link between sta and any other device
@@ -1224,6 +1227,9 @@ class mininetWiFi(object):
                             dist = sta.get_distance_to(ap)
                             if dist <= ap.params['range'][0]:
                                 mobility.handover(sta, ap, wlan)
+                                if cls.rec_rssi:
+                                    os.system('hwsim_mgmt -k %s %s >/dev/null 2>&1'
+                                              % (sta.phyID[wlan], abs(int(sta.params['rssi'][wlan]))))
 
     @classmethod
     def propagation_model(cls, **kwargs):

@@ -31,6 +31,7 @@ class mobility(object):
     stationaryNodes = []
     continuePlot = 'plot2d.graphPause()'
     pause_simulation = False
+    rec_rssi = False
     continue_params = 'sleep(0.0001)'
 
     @classmethod
@@ -218,6 +219,9 @@ class mobility(object):
             if not WmediumdServerConn.interference_enabled:
                 rssi_ = sta.set_rssi(ap, wlan, dist)
                 sta.params['rssi'][wlan] = rssi_
+                if cls.rec_rssi:
+                    os.system('hwsim_mgmt -k %s %s >/dev/null 2>&1'
+                              % (sta.phyID[wlan], abs(int(sta.params['rssi'][wlan]))))
             if sta not in ap.params['associatedStations']:
                 ap.params['associatedStations'].append(sta)
             if dist >= 0.01:
@@ -342,7 +346,8 @@ class mobility(object):
     def controlled_mobility(cls, init_time=0, final_time=0, stations=[],
                             aps=[], connections=[], plotNodes=[], MIN_X=0,
                             MIN_Y=0, MIN_Z=0, MAX_X=0, MAX_Y=0, MAX_Z=0, AC='',
-                            is3d=False, DRAW=False, repetitions=1, **params):
+                            is3d=False, DRAW=False, repetitions=1, rec_rssi=False,
+                            **params):
         """
         Used when the position of each node is previously defined
 
@@ -364,6 +369,7 @@ class mobility(object):
         from mininet.wifi.node import Station
 
         cls.AC = AC
+        cls.rec_rssi = rec_rssi
         cls.stations = stations
         cls.aps = aps
         nodes = cls.stations + cls.aps + plotNodes
@@ -457,7 +463,7 @@ class mobility(object):
     @classmethod
     def models(cls, stations=[], aps=[], model=None, stationaryNodes=[],
                min_v=0, max_v=0, seed=None, connections=None, plotNodes=[],
-               MAX_X=0, MAX_Y=0, AC='', DRAW=False, **params):
+               MAX_X=0, MAX_Y=0, AC='', DRAW=False, rec_rssi=False, **params):
         """
         Used when a mobility model is applied
 
@@ -474,6 +480,7 @@ class mobility(object):
         :param MAX_Y: Maximum value for Y
         """
         np.random.seed(seed)
+        cls.rec_rssi = rec_rssi
         cls.AC = AC
         cls.addNodes(stations, aps)
         nodes = cls.stations + cls.aps + plotNodes

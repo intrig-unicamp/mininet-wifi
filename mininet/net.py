@@ -134,7 +134,8 @@ class Mininet(object):
                  enable_error_prob=False, disableAutoAssociation=False,
                  driver='nl80211', autoSetPositions=False,
                  configureWiFiDirect=False, configure4addr=False,
-                 defaultGraph=False, noise_threshold=-91, cca_threshold=-90):
+                 defaultGraph=False, noise_threshold=-91, cca_threshold=-90,
+                 rec_rssi=False):
         """Create Mininet object.
            topo: Topo (topology) object or None
            switch: default Switch class
@@ -198,6 +199,7 @@ class Mininet(object):
         self.mobilityKwargs = ''
         self.isMobilityModel = False
         self.isMobility = False
+        self.rec_rssi = rec_rssi
         self.ppm_is_set = False
         self.noise_threshold = noise_threshold
         self.cca_threshold = cca_threshold
