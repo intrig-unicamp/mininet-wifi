@@ -422,7 +422,7 @@ class testWalkthrough(unittest.TestCase):
         "Start Mininet-WiFi, then test wmediumd_error_prob.py"
         p = pexpect.spawn(
             'python examples/wmediumd_error_prob.py')
-        sleep(4)
+        sleep(6)
         p.sendline('sta1 ping -c1 sta2')
         p.expect('1 packets transmitted, 1 received')
         p.expect(self.prompt)
