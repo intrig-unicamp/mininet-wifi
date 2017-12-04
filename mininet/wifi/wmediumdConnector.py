@@ -421,7 +421,7 @@ class WmediumdStarter(object):
                         configstr += ','
                     configstr += '\n\t\t(%.1f, %.1f, %.1f)' % (
                         posX, posY, posZ)
-                configstr += '\n\t);\n\tfading_coefficient = %d' % cls.fading_coefficient
+                configstr += '\n\t);\n\tfading_coefficient = %d;' % cls.fading_coefficient
                 configstr += '\n\tisnodeaps = ('
                 first_isnodeap = True
                 for isnodeap in cls.isnodeaps:

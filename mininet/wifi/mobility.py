@@ -213,12 +213,12 @@ class mobility(object):
         """
         if ap not in sta.params['apsInRange']:
             sta.params['apsInRange'].append(ap)
-        rssi_ = sta.set_rssi(ap, wlan, dist)
-        ap.params['stationsInRange'][sta] = rssi_
+        rssi = sta.set_rssi(ap, wlan, dist)
+        ap.params['stationsInRange'][sta] = rssi
         if ap == sta.params['associatedTo'][wlan]:
             if not WmediumdServerConn.interference_enabled:
-                rssi_ = sta.set_rssi(ap, wlan, dist)
-                sta.params['rssi'][wlan] = rssi_
+                rssi = sta.set_rssi(ap, wlan, dist)
+                sta.params['rssi'][wlan] = rssi
                 if cls.rec_rssi:
                     os.system('hwsim_mgmt -k %s %s >/dev/null 2>&1'
                               % (sta.phyID[wlan], abs(int(sta.params['rssi'][wlan]))))

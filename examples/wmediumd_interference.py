@@ -16,7 +16,7 @@ def topology():
     "Create a network."
     net = Mininet(controller=Controller, link=TCLink, accessPoint=OVSKernelAP,
                   enable_wmediumd=True, enable_interference=True, noise_threshold=-91,
-		  fading_coefficient=2)
+                  fading_coefficient=1gigi)
 
     print "*** Creating nodes"
     ap1 = net.addAccessPoint('ap1', ssid='new-ssid', mode='a', channel='36',
