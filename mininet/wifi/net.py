@@ -600,6 +600,7 @@ class mininetWiFi(object):
         cls.enable_error_prob = mininet.enable_error_prob
         cls.enable_interference = mininet.enable_interference
         cls.enable_spec_prob_link = mininet.enable_spec_prob_link
+        fading_coefficient = mininet.fading_coefficient
 
         for node in mininet.stations:
             if 'carsta' in node.params:
@@ -667,6 +668,7 @@ class mininetWiFi(object):
 
         WmediumdStarter.initialize(intfrefs, links, mode=mode, positions=positions,
                                    enable_interference=cls.enable_interference,
+                                   fading_coefficient=fading_coefficient,
                                    auto_add_links=False, txpowers=txpowers,
                                    isnodeaps=isnodeaps, with_server=True)
         WmediumdStarter.start(mininet, propagationModel)

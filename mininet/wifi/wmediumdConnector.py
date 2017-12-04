@@ -261,6 +261,7 @@ class WmediumdStarter(object):
     wmd_logfile = None
     default_auto_errprob = 0.0
     mode = 0
+    fading_coefficient = 0
     enable_interference = False
     enable_error_prob = False
 
@@ -270,8 +271,9 @@ class WmediumdStarter(object):
                    auto_add_links=True, default_auto_snr=-10,
                    default_auto_errprob=1.0,
                    mode=WmediumdConstants.WMEDIUMD_MODE_SNR,
-                   enable_interference=False, enable_error_prob=False,
-                   positions=None, txpowers=None, isnodeaps=None):
+                   enable_interference=False, fading_coefficient=0,
+                   enable_error_prob=False, positions=None,
+                   txpowers=None, isnodeaps=None):
         """
         Set the data for the wmediumd daemon
 
@@ -317,6 +319,7 @@ class WmediumdStarter(object):
         cls.is_initialized = True
         cls.enable_interference = enable_interference
         cls.enable_error_prob = enable_error_prob
+        cls.fading_coefficient = fading_coefficient
         WmediumdServerConn.interference_enabled = enable_interference
 
     @classmethod
@@ -404,7 +407,8 @@ class WmediumdStarter(object):
                 mappedintfrefs[intfref.identifier()] = intfref_id
                 intfref_id += 1
             if cls.enable_interference:  # Still have to be implemented
-                configstr += '\n\t];\n};\nmodel:\n{\n'
+                configstr += '\n\t];\n\tenable_interference = true;'
+                configstr += '\n};\nmodel:\n{\n'
                 configstr += '\ttype = "path_loss";\n\tpositions = ('
                 first_pos = True
                 for mappedposition in cls.positions:
@@ -417,8 +421,8 @@ class WmediumdStarter(object):
                         configstr += ','
                     configstr += '\n\t\t(%.1f, %.1f, %.1f)' % (
                         posX, posY, posZ)
-
-                configstr += '\n\t);\n\tisnodeaps = ('
+                configstr += '\n\t);\n\tfading_coefficient = %d' % cls.fading_coefficient
+                configstr += '\n\tisnodeaps = ('
                 first_isnodeap = True
                 for isnodeap in cls.isnodeaps:
                     if first_isnodeap:

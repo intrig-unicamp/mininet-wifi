@@ -131,7 +131,8 @@ class Mininet(object):
                  listenPort=None, waitConnected=False, ssid="new-ssid",
                  mode="g", channel="1", enable_wmediumd=False,
                  enable_interference=False, enable_spec_prob_link=False,
-                 enable_error_prob=False, disableAutoAssociation=False,
+                 enable_error_prob=False, fading_coefficient=0,
+                 disableAutoAssociation=False,
                  driver='nl80211', autoSetPositions=False,
                  configureWiFiDirect=False, configure4addr=False,
                  defaultGraph=False, noise_threshold=-91, cca_threshold=-90,
@@ -207,6 +208,7 @@ class Mininet(object):
         self.configure4addr = configure4addr
         self.enable_wmediumd = enable_wmediumd
         self.enable_error_prob = enable_error_prob
+        self.fading_coefficient = fading_coefficient
         self.enable_interference = enable_interference
         self.enable_spec_prob_link = enable_spec_prob_link
         self.isWiFi = isWiFi
