@@ -10,13 +10,14 @@ from mininet.cli import CLI
 from mininet.log import setLogLevel
 from mininet.wifi.replaying import replayingMobility
 
+
 def topology():
 
     "Create a network."
     net = Mininet(controller=Controller, link=TCLink, accessPoint=OVSAP,
                   enable_wmediumd=True, enable_interference=True)
 
-    print "*** Creating nodes"
+    print("*** Creating nodes")
     sta1 = net.addStation('sta1', mac='00:00:00:00:00:02', ip='10.0.0.1/8', speed=4)
     sta2 = net.addStation('sta2', mac='00:00:00:00:00:03', ip='10.0.0.2/8', speed=6)
     sta3 = net.addStation('sta3', mac='00:00:00:00:00:04', ip='10.0.0.3/8', speed=3)
@@ -25,17 +26,17 @@ def topology():
                              position='45,45,0')
     c1 = net.addController('c1', controller=Controller)
 
-    print "*** Configuring Propagation Model"
+    print("*** Configuring Propagation Model")
     net.propagationModel(model="logDistance", exp=4.5)
 
-    print "*** Configuring wifi nodes"
+    print("*** Configuring wifi nodes")
     net.configureWifiNodes()
 
-    print "*** Creating links"
+    print("*** Creating links")
     net.addHoc(sta3, ssid='adhocNet')
     net.addHoc(sta4, ssid='adhocNet')
 
-    print "*** Starting network"
+    print("*** Starting network")
     net.build()
     c1.start()
     ap1.start([c1])
@@ -50,10 +51,10 @@ def topology():
 
     replayingMobility(net)
 
-    print "*** Running CLI"
+    print("*** Running CLI")
     CLI(net)
 
-    print "*** Stopping network"
+    print("*** Stopping network")
     net.stop()
 
 def getTrace(sta, file_):

@@ -9,11 +9,12 @@ from mininet.net import Mininet
 from mininet.cli import CLI
 from mininet.log import setLogLevel
 
+
 def topology(autoTxPower):
     "Create a network."
     net = Mininet(enable_wmediumd=True, enable_interference=True)
 
-    print "*** Creating nodes"
+    print("*** Creating nodes")
     if autoTxPower:
         sta1 = net.addStation('sta1', position='10,10,0', range=100)
         sta2 = net.addStation('sta2', position='50,10,0', range=100)
@@ -25,21 +26,21 @@ def topology(autoTxPower):
 
     net.propagationModel(model="logDistance", exp=4)
 
-    print "*** Configuring wifi nodes"
+    print("*** Configuring wifi nodes")
     net.configureWifiNodes()
 
-    print "*** Creating links"
+    print("*** Creating links")
     net.addHoc(sta1, ssid='adhocNet', mode='g', channel=5)
     net.addHoc(sta2, ssid='adhocNet', mode='g', channel=5)
     net.addHoc(sta3, ssid='adhocNet', mode='g', channel=5)
 
-    print "*** Starting network"
+    print("*** Starting network")
     net.build()
 
-    print "*** Running CLI"
+    print("*** Running CLI")
     CLI(net)
 
-    print "*** Stopping network"
+    print("*** Stopping network")
     net.stop()
 
 

@@ -34,7 +34,7 @@ def topology():
     net = Mininet(controller=Controller, link=TCLink, accessPoint=UserAP,
                   disableAutoAssociation=True)
 
-    print "*** Creating nodes"
+    print("*** Creating nodes")
     sta1 = net.addStation('sta1', position='10,60,0')
     sta2 = net.addStation('sta2', position='20,15,0')
     sta3 = net.addStation('sta3', position='10,25,0')
@@ -46,7 +46,7 @@ def topology():
     c0 = net.addController('c0', controller=Controller, ip='127.0.0.1',
                            port=6633)
 
-    print "*** Configuring wifi nodes"
+    print("*** Configuring wifi nodes")
     net.configureWifiNodes()
 
     net.plotGraph(max_x=100, max_y=100)
@@ -57,7 +57,7 @@ def topology():
     sta4.setRange(15, intf=sta4.params['wlan'][0])
     sta5.setRange(15, intf=sta5.params['wlan'][0])
 
-    print "*** Starting network"
+    print("*** Starting network")
     net.build()
     c0.start()
     ap1.start([c0])
@@ -96,10 +96,10 @@ def topology():
     ap1.cmd('dpctl unix:/tmp/ap1 flow-mod table=0,cmd=add in_port=5 '
             'meter:4 apply:output=flood')
 
-    print "*** Running CLI"
+    print("*** Running CLI")
     CLI(net)
 
-    print "*** Stopping network"
+    print("*** Stopping network")
     net.stop()
 
 

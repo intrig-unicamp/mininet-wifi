@@ -11,6 +11,7 @@ from mininet.link import TCLink
 from mininet.cli import CLI
 from mininet.log import setLogLevel
 
+
 def topology():
 
     "Create a network."
@@ -18,7 +19,7 @@ def topology():
                   enable_wmediumd=True, enable_interference=True, noise_threshold=-91,
                   fading_coefficient=1)
 
-    print "*** Creating nodes"
+    print("*** Creating nodes")
     ap1 = net.addAccessPoint('ap1', ssid='new-ssid', mode='a', channel='36',
                              position='15,30,0')
     net.addStation('sta1', mac='00:00:00:00:00:02', ip='10.0.0.1/8',
@@ -29,23 +30,23 @@ def topology():
                    position='20,60,10')
     c1 = net.addController('c1', controller=Controller)
 
-    print "*** Configuring Propagation Model"
+    print("*** Configuring Propagation Model")
     net.propagationModel(model="logDistance", exp=4)
 
-    print "*** Configuring wifi nodes"
+    print("*** Configuring wifi nodes")
     net.configureWifiNodes()
 
     net.plotGraph(max_x=100, max_y=100)
 
-    print "*** Starting network"
+    print("*** Starting network")
     net.build()
     c1.start()
     ap1.start([c1])
 
-    print "*** Running CLI"
+    print("*** Running CLI")
     CLI(net)
 
-    print "*** Stopping network"
+    print("*** Stopping network")
     net.stop()
 
 

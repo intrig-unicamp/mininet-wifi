@@ -836,28 +836,28 @@ def testNsTunnels():
 
 def testRemoteNet( remote='ubuntu2' ):
     "Test remote Node classes"
-    print '*** Remote Node Test'
+    print('*** Remote Node Test')
     net = Mininet( host=RemoteHost, switch=RemoteOVSSwitch,
                    link=RemoteLink )
     c0 = net.addController( 'c0' )
     # Make sure controller knows its non-loopback address
     Intf( 'eth0', node=c0 ).updateIP()
-    print "*** Creating local h1"
+    print("*** Creating local h1")
     h1 = net.addHost( 'h1' )
-    print "*** Creating remote h2"
+    print("*** Creating remote h2")
     h2 = net.addHost( 'h2', server=remote )
-    print "*** Creating local s1"
+    print("*** Creating local s1")
     s1 = net.addSwitch( 's1' )
-    print "*** Creating remote s2"
+    print("*** Creating remote s2")
     s2 = net.addSwitch( 's2', server=remote )
-    print "*** Adding links"
+    print("*** Adding links")
     net.addLink( h1, s1 )
     net.addLink( s1, s2 )
     net.addLink( h2, s2 )
     net.start()
-    print 'Mininet is running on', quietRun( 'hostname' ).strip()
+    print('Mininet is running on', quietRun( 'hostname' ).strip())
     for node in c0, h1, h2, s1, s2:
-        print 'Node', node, 'is running on', node.cmd( 'hostname' ).strip()
+        print('Node', node, 'is running on', node.cmd( 'hostname' ).strip())
     net.pingAll()
     CLI( net )
     net.stop()
@@ -944,9 +944,9 @@ def signalTest():
     h.shell.send_signal( SIGINT )
     h.shell.poll()
     if h.shell.returncode is None:
-        print 'OK: ', h, 'has not exited'
+        print('OK: ', h, 'has not exited')
     else:
-        print 'FAILURE:', h, 'exited with code', h.shell.returncode
+        print('FAILURE:', h, 'exited with code', h.shell.returncode)
     h.stop()
 
 if __name__ == '__main__':

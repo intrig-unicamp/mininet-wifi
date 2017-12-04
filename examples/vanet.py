@@ -17,7 +17,7 @@ def topology():
     net = Mininet(controller=Controller, link=TCLink, switch=OVSKernelSwitch,
                   enable_wmediumd=True, enable_interference=True)
 
-    print "*** Creating nodes"
+    print("*** Creating nodes")
     cars = []
     for x in range(0, 10):
         cars.append(x)
@@ -38,13 +38,13 @@ def topology():
                                channel='11', range=100)
     c1 = net.addController('c1', controller=Controller)
 
-    print "*** Configuring Propagation Model"
+    print("*** Configuring Propagation Model")
     net.propagationModel(model="logDistance", exp=4.5)
 
-    print "*** Configuring wifi nodes"
+    print("*** Configuring wifi nodes")
     net.configureWifiNodes()
 
-    print "*** Associating and Creating links"
+    print("*** Associating and Creating links")
     net.addLink(rsu11, rsu12)
     net.addLink(rsu11, rsu13)
     net.addLink(rsu11, rsu14)
@@ -55,7 +55,7 @@ def topology():
 
     net.startMobility(time=0)
 
-    print "*** Starting network"
+    print("*** Starting network")
     net.build()
     c1.start()
     rsu11.start([c1])
@@ -98,10 +98,10 @@ def topology():
             i += 1
             j += 2
 
-    print "*** Running CLI"
+    print("*** Running CLI")
     CLI(net)
 
-    print "*** Stopping network"
+    print("*** Stopping network")
     net.stop()
 
 

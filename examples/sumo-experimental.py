@@ -11,13 +11,14 @@ from mininet.link import TCLink
 from mininet.cli import CLI
 from mininet.log import setLogLevel
 
+
 def topology():
 
     "Create a network."
     net = Mininet(controller=Controller, link=TCLink, accessPoint=UserAP,
                   enable_wmediumd=True, enable_interference=True)
 
-    print "*** Creating nodes"
+    print("*** Creating nodes")
     cars = []
     stas = []
     for x in range(0, 10):
@@ -50,13 +51,13 @@ def topology():
 
     net.propagationModel(model="logDistance", exp=2.5)
 
-    print "*** Setting bgscan"
+    print("*** Setting bgscan")
     net.setBgscan(signal=-45, s_inverval=5, l_interval=10)
 
-    print "*** Configuring Propagation Model"
+    print("*** Configuring Propagation Model")
     net.propagationModel(model="logDistance", exp=2)
 
-    print "*** Configuring wifi nodes"
+    print("*** Configuring wifi nodes")
     net.configureWifiNodes()
 
     net.addLink(e1, e2)
@@ -67,7 +68,7 @@ def topology():
 
     net.useExternalProgram('sumo-gui', config_file='map.sumocfg')
 
-    print "*** Starting network"
+    print("*** Starting network")
     net.build()
     c1.start()
     e1.start([c1])
@@ -111,10 +112,10 @@ def topology():
             i += 1
             j += 2
 
-    print "*** Running CLI"
+    print("*** Running CLI")
     CLI(net)
 
-    print "*** Stopping network"
+    print("*** Stopping network")
     net.stop()
 
 

@@ -15,7 +15,7 @@ def topology():
     "Create a network."
     net = Mininet(controller=Controller, link=TCLink, accessPoint=OVSKernelAP)
 
-    print "*** Creating nodes"
+    print("*** Creating nodes")
     net.addStation('sta1', mac='00:00:00:00:00:02', ip='10.0.0.1/8',
                    position='10,20,0')
     net.addStation('sta2', mac='00:00:00:00:00:03', ip='10.0.0.2/8',
@@ -25,23 +25,23 @@ def topology():
     c1 = net.addController('c1', controller=Controller)
     h1 = net.addHost ('h1', ip='10.0.0.3/8')
 
-    print "*** Configuring wifi nodes"
+    print("*** Configuring wifi nodes")
     net.configureWifiNodes()
 
-    print "*** Creating links"
+    print("*** Creating links")
     net.addLink(ap1, h1)
 
     net.plotGraph(max_x=100, max_y=100)
 
-    print "*** Starting network"
+    print("*** Starting network")
     net.build()
     c1.start()
     ap1.start([c1])
 
-    print "*** Running CLI"
+    print("*** Running CLI")
     CLI(net)
 
-    print "*** Stopping network"
+    print("*** Stopping network")
     net.stop()
 
 

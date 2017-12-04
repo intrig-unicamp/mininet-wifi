@@ -24,7 +24,7 @@ def topology():
     net = Mininet(controller=Controller, link=TCLink, accessPoint=UserAP,
                   enable_wmediumd=True, enable_interference=True)
 
-    print "*** Creating nodes"
+    print("*** Creating nodes")
     net.addStation('sta1', position='15,20,0')
     ap1 = net.addAccessPoint('ap1', mac='00:00:00:00:00:01', ssid="handover",
                              mode="g", channel="1", passwd='123456789a',
@@ -37,32 +37,32 @@ def topology():
                              encrypt='wpa2', position='120,100,0')
     c1 = net.addController('c1', controller=Controller)
 
-    print "*** Configuring Propagation Model"
+    print("*** Configuring Propagation Model")
     net.propagationModel(model="logDistance", exp=3.5)
 
-    print "*** Configuring wifi nodes"
+    print("*** Configuring wifi nodes")
     net.configureWifiNodes()
 
-    print "*** Creating links"
+    print("*** Creating links")
     net.addLink(ap1, ap2)
     net.addLink(ap2, ap3)
 
-    print "*** Setting bgscan"
+    print("*** Setting bgscan")
     net.setBgscan(signal=-45, s_inverval=5, l_interval=10)
 
     net.plotGraph(min_x=-100, min_y=-100, max_x=200, max_y=200)
 
-    print "*** Starting network"
+    print("*** Starting network")
     net.build()
     c1.start()
     ap1.start([c1])
     ap2.start([c1])
     ap3.start([c1])
 
-    print "*** Running CLI"
+    print("*** Running CLI")
     CLI(net)
 
-    print "*** Stopping network"
+    print("*** Stopping network")
     net.stop()
 
 

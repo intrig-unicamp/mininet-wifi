@@ -15,7 +15,7 @@ def topology():
     net = Mininet(controller=Controller, link=TCLink, accessPoint=OVSKernelAP,
                   enable_wmediumd=True, enable_interference=True)
 
-    print "*** Creating nodes"
+    print("*** Creating nodes")
     sta1 = net.addStation('sta1', mac='00:00:00:00:00:11')
     sta2 = net.addStation('sta2', mac='00:00:00:00:00:12')
     ap1 = net.addAccessPoint('ap1', wlans=2, ssid='ssid1,', position='10,10,0')
@@ -23,25 +23,25 @@ def topology():
     c0 = net.addController('c0', controller=Controller, ip='127.0.0.1',
                            port=6633)
 
-    print "*** Configuring wifi nodes"
+    print("*** Configuring wifi nodes")
     net.configureWifiNodes()
 
-    print "*** Associating Stations"
+    print("*** Associating Stations")
     net.addLink(sta1, ap1)
     net.addLink(sta2, ap2)
     net.addMesh(ap1, intf='ap1-wlan2', ssid='mesh-ssid')
     net.addMesh(ap2, intf='ap2-wlan2', ssid='mesh-ssid')
 
-    print "*** Starting network"
+    print("*** Starting network")
     net.build()
     c0.start()
     ap1.start([c0])
     ap2.start([c0])
 
-    print "*** Running CLI"
+    print("*** Running CLI")
     CLI(net)
 
-    print "*** Stopping network"
+    print("*** Stopping network")
     net.stop()
 
 

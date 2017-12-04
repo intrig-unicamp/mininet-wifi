@@ -14,23 +14,23 @@ def topology():
     net = Mininet(enable_wmediumd=True, enable_interference=True,
                   configureWiFiDirect=True, disableAutoAssociation=True)
 
-    print "*** Creating nodes"
+    print("*** Creating nodes")
     sta1 = net.addStation('sta1', ip='10.0.0.1/8', position='10,10,0')
     sta2 = net.addStation('sta2', ip='10.0.0.2/8', position='20,20,0')
 
-    print "*** Configuring Propagation Model"
+    print("*** Configuring Propagation Model")
     net.propagationModel(model="logDistance", exp=3.5)
 
-    print "*** Configuring wifi nodes"
+    print("*** Configuring wifi nodes")
     net.configureWifiNodes()
 
     net.plotGraph(max_x=200, max_y=200)
 
-    print "*** Starting WiFi Direct"
+    print("*** Starting WiFi Direct")
     net.wifiDirect(sta1)
     net.wifiDirect(sta2)
 
-    print "*** Starting network"
+    print("*** Starting network")
     net.build()
 
     sta1.cmd('wpa_cli -ista1-wlan0 p2p_find')
@@ -45,10 +45,10 @@ def topology():
     sta2.cmd('wpa_cli -ista2-wlan0 p2p_connect %s %s'
              % (sta1.params['mac'][1], pin))
 
-    print "*** Running CLI"
+    print("*** Running CLI")
     CLI(net)
 
-    print "*** Stopping network"
+    print("*** Stopping network")
     net.stop()
 
 

@@ -19,7 +19,7 @@ def topology(mobility):
     "Create a network."
     net = Mininet(enable_wmediumd=True, enable_interference=True)
 
-    print "*** Creating nodes"
+    print("*** Creating nodes")
     if mobility:
         sta1 = net.addStation('sta1')
         sta2 = net.addStation('sta2')
@@ -29,10 +29,10 @@ def topology(mobility):
         sta2 = net.addStation('sta2', position='50,10,0')
         sta3 = net.addStation('sta3', position='90,10,0')
 
-    print "*** Configuring wifi nodes"
+    print("*** Configuring wifi nodes")
     net.configureWifiNodes()
 
-    print "*** Creating links"
+    print("*** Creating links")
     net.addMesh(sta1, ssid='meshNet', channel=5)
     net.addMesh(sta2, ssid='meshNet', channel=5)
     net.addMesh(sta3, ssid='meshNet', channel=5)
@@ -45,13 +45,13 @@ def topology(mobility):
         net.startMobility(time=0, model='RandomDirection', max_x=100, max_y=100,
                           min_v=0.5, max_v=0.8)
 
-    print "*** Starting network"
+    print("*** Starting network")
     net.build()
 
-    print "*** Running CLI"
+    print("*** Running CLI")
     CLI(net)
 
-    print "*** Stopping network"
+    print("*** Stopping network")
     net.stop()
 
 

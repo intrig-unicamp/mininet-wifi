@@ -9,11 +9,12 @@ from mininet.link import TCLink
 from mininet.cli import CLI
 from mininet.log import setLogLevel
 
+
 def topology():
     "Create a network."
     net = Mininet(controller=Controller, link=TCLink, accessPoint=OVSKernelAP)
 
-    print "*** Creating nodes"
+    print("*** Creating nodes")
     net.addStation('sta1', mac='00:00:00:00:00:02', ip='10.0.0.2/8')
     net.addStation('sta2', mac='00:00:00:00:00:03', ip='10.0.0.3/8')
     net.addStation('sta3', mac='00:00:00:00:00:04', ip='10.0.0.4/8')
@@ -34,10 +35,10 @@ def topology():
 
     net.propagationModel(model="logDistance", exp=5)
 
-    print "*** Configuring wifi nodes"
+    print("*** Configuring wifi nodes")
     net.configureWifiNodes()
 
-    print "*** Associating and Creating links"
+    print("*** Associating and Creating links")
     net.addLink(ap1, ap2)
     net.addLink(ap2, ap3)
 
@@ -50,17 +51,17 @@ def topology():
     net.startMobility(time=0, model='RandomWayPoint', max_x=120, max_y=120,
                       min_v=0.3, max_v=0.5)
 
-    print "*** Starting network"
+    print("*** Starting network")
     net.build()
     c1.start()
     ap1.start([c1])
     ap2.start([c1])
     ap3.start([c1])
 
-    print "*** Running CLI"
+    print("*** Running CLI")
     CLI(net)
 
-    print "*** Stopping network"
+    print("*** Stopping network")
     net.stop()
 
 

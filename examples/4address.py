@@ -10,13 +10,14 @@ from mininet.cli import CLI
 from mininet.log import setLogLevel
 from mininet.link import TCLink
 
+
 def topology():
     "Create a network."
     net = Mininet( controller=Controller, link=TCLink, accessPoint=OVSKernelAP,
                    enable_wmediumd=True, enable_interference=True,
                    configure4addr=True, disableAutoAssociation=True )
 
-    print "*** Creating nodes"
+    print("*** Creating nodes")
     ap1 = net.addAccessPoint( 'ap1', _4addr="ap", ssid="wds-ssid1",
                               mode="g", channel="1", position='30,30,0' )
     ap2 = net.addAccessPoint( 'ap2', _4addr="client", ssid="wds-ssid2",
@@ -32,13 +33,13 @@ def topology():
     c0 = net.addController('c0', controller=Controller, ip='127.0.0.1',
                            port=6633)
 
-    print "*** Configuring Propagation Model"
+    print("*** Configuring Propagation Model")
     net.propagationModel(model="logDistance", exp=4.5)
 
-    print "*** Configuring wifi nodes"
+    print("*** Configuring wifi nodes")
     net.configureWifiNodes()
 
-    print "*** Adding Link"
+    print("*** Adding Link")
     net.addLink(ap1, ap2, link='4addr')
     net.addLink(ap1, ap3, link='4addr')
     net.addLink(sta1, ap1)
@@ -50,17 +51,17 @@ def topology():
 
     net.plotGraph(max_x=100, max_y=100)
 
-    print "*** Starting network"
+    print("*** Starting network")
     net.build()
     c0.start()
     ap1.start( [c0] )
     ap2.start( [c0] )
     ap3.start( [c0] )
 
-    print "*** Running CLI"
+    print("*** Running CLI")
     CLI( net )
 
-    print "*** Stopping network"
+    print("*** Stopping network")
     net.stop()
 
 
