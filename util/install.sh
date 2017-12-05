@@ -139,7 +139,7 @@ function mn_deps {
             python3-setuptools cgroup-bin ethtool help2man \
             pyflakes pylint pep8 python-pexpect python-pip python3-pip
     fi
-    pip install typing
+    pip3 install typing
 
     echo "Installing Mininet core"
     pushd $MININET_DIR/mininet-wifi
