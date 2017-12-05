@@ -2,10 +2,12 @@ language: python
 sudo: required
 dist: trusty
 
+python:
+- 3.5
+
 before_install:
 - sudo apt-get update -qq
 - sudo apt-get install -qq vlan
-- sudo apt-get install python3
 
 install:
 - sudo util/install.sh -Wnfvlw
