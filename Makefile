@@ -45,7 +45,7 @@ slowtest: $(MININET)
 	mininet/examples/test/runner.py -v
 
 mnexec: mnexec.c $(MN) mininet/net.py
-	cc $(CFLAGS) $(LDFLAGS) -DVERSION=\"`PYTHONPATH=. $(PYMN) --version`\" $< -o $@
+	cc $(CFLAGS) $(LDFLAGS) -DVERSION=\"`PYTHONPATH3=. $(PYMN) --version`\" $< -o $@
 
 install: $(MNEXEC) $(MANPAGES)
 	install $(MNEXEC) $(BINDIR)
@@ -61,7 +61,7 @@ develop: $(MNEXEC) $(MANPAGES)
 man: $(MANPAGES)
 
 mn.1: $(MN)
-	PYTHONPATH=. help2man -N -n "create a Mininet network." \
+	PYTHONPATH3=. help2man -N -n "create a Mininet network." \
 	--no-discard-stderr "$(PYMN)" -o $@
 
 mnexec.1: mnexec

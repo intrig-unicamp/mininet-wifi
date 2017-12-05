@@ -1,3 +1,3 @@
 #!/bin/bash
-export PYTHONPATH=$(dirname $0)/../
+export PYTHONPATH3=$(dirname $0)/../
 /usr/bin/python "$@"

@@ -17,8 +17,8 @@ import sys
 import time
 
 # Fix setuptools' evil madness, and open up (more?) security holes
-if 'PYTHONPATH' in os.environ:
-    sys.path = os.environ[ 'PYTHONPATH' ].split(':') + sys.path
+if 'PYTHONPATH3' in os.environ:
+    sys.path = os.environ[ 'PYTHONPATH3' ].split(':') + sys.path
 
 from mininet.clean import cleanup
 from mininet.wifi.clean import cleanup_wifi
