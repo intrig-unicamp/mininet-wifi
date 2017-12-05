@@ -150,7 +150,7 @@ function mn_deps {
 # Install Mininet-WiFi deps
 function wifi_deps {
     echo "Installing Mininet-WiFi dependencies"
-    $install wireless-tools python3-pip python3-scipy pkg-config python3-matplotlib libnl-3-dev libnl-genl-3-dev libssl-dev make libevent-dev patch
+    $install wireless-tools python-pip python3-pip python3-scipy pkg-config python3-matplotlib libnl-3-dev libnl-genl-3-dev libssl-dev make libevent-dev patch
     pip3 install -U numpy
     pushd $MININET_DIR/mininet-wifi
     git submodule update --init --recursive
