@@ -50,13 +50,13 @@ mnexec: mnexec.c $(MN) mininet/net.py
 install: $(MNEXEC) $(MANPAGES)
 	install $(MNEXEC) $(BINDIR)
 	install $(MANPAGES) $(MANDIR)
-	python setup.py install
+	python3 setup.py install
 
 develop: $(MNEXEC) $(MANPAGES)
 # 	Perhaps we should link these as well
 	install $(MNEXEC) $(BINDIR)
 	install $(MANPAGES) $(MANDIR)
-	python setup.py develop
+	python3 setup.py develop
 
 man: $(MANPAGES)
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Mininet install script for Ubuntu (and Debian Wheezy+)
+# Mininet-WiFi install script for Ubuntu (and Debian Wheezy+)
 # Brandon Heller (brandonh@stanford.edu)
 # Modified by Ramon Fontes (ramonreisfontes@gmail.com)
 
@@ -128,16 +128,16 @@ function mn_deps {
     echo "Installing Mininet dependencies"
     if [ "$DIST" = "Fedora" -o "$DIST" = "RedHatEnterpriseServer" ]; then
         $install gcc make socat psmisc xterm openssh-clients iperf \
-            iproute telnet python-setuptools libcgroup-tools \
-            ethtool help2man pyflakes pylint python-pep8 python-pexpect python-pip
+            iproute telnet python3-setuptools libcgroup-tools \
+            ethtool help2man pyflakes pylint python-pep8 python-pexpect python-pip, python3-pip
 	elif [ "$DIST" = "SUSE LINUX"  ]; then
 		$install gcc make socat psmisc xterm openssh iperf \
-			iproute telnet python-setuptools libcgroup-tools \
-			ethtool help2man python-pyflakes python3-pylint python-pep8 python-pexpect python-pip
+			iproute telnet python3-setuptools libcgroup-tools \
+			ethtool help2man python-pyflakes python3-pylint python-pep8 python-pexpect python-pip python3-pip
     else
         $install gcc make socat psmisc xterm ssh iperf iproute telnet \
-            python-setuptools cgroup-bin ethtool help2man \
-            pyflakes pylint pep8 python-pexpect python-pip
+            python3-setuptools cgroup-bin ethtool help2man \
+            pyflakes pylint pep8 python-pexpect python-pip, python3-pip
     fi
     pip install typing
 
@@ -150,7 +150,8 @@ function mn_deps {
 # Install Mininet-WiFi deps
 function wifi_deps {
     echo "Installing Mininet-WiFi dependencies"
-    $install wireless-tools python-numpy python-scipy pkg-config python-matplotlib libnl-3-dev libnl-genl-3-dev libssl-dev make libevent-dev patch
+    $install wireless-tools python3-scipy pkg-config python3-matplotlib libnl-3-dev libnl-genl-3-dev libssl-dev make libevent-dev patch
+    pip3 install -U numpy
     pushd $MININET_DIR/mininet-wifi
     git submodule update --init --recursive
     pushd $MININET_DIR/mininet-wifi/hostap
@@ -555,27 +556,6 @@ function pox {
     git clone --depth=1 https://github.com/noxrepo/pox.git
 }
 
-
-# "Install" iw
-function iw {
-    echo "Installing iw..."
-    $install wireless-tools python-numpy python-scipy pkg-config python-matplotlib libnl-3-dev libnl-genl-3-dev libssl-dev patch
-    pushd $MININET_DIR/mininet-wifi
-    git submodule update --init --recursive
-    pushd $MININET_DIR/mininet-wifi/hostap
-    patch -p0 < $MININET_DIR/mininet-wifi/util/hostap-patches/config.patch
-    pushd $MININET_DIR/mininet-wifi/hostap/hostapd
-    cp defconfig .config
-    sudo make && make install
-    pushd $MININET_DIR/mininet-wifi/hostap/wpa_supplicant
-    cp defconfig .config
-    sudo make && make install
-    pushd $MININET_DIR/mininet-wifi/iw
-    sudo make && make install
-    #popd
-}
-
-
 # Install OFtest
 function oftest {
     echo "Installing oftest..."
@@ -739,7 +719,7 @@ function all {
     # NOX-classic is deprecated, but you can install it manually if desired.
     # nox
     pox
-    iw
+    wifi_deps
     oftest
     cbench
     wmediumd

@@ -13,8 +13,8 @@ Copyright (C) 2011 DLR (http://www.dlr.de/) and contributors
 All rights reserved
 """
 import struct
-import trace
-import constants as tc
+from . import trace
+from . import constants as tc
 
 DEFAULT_VIEW = 'View #0'
 _RETURN_VALUE_FUNC = {tc.ID_LIST:           trace.Storage.readStringList,

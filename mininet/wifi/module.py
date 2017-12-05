@@ -59,7 +59,7 @@ class module(object):
         # generate prefix
         phys = subprocess.check_output("find /sys/kernel/debug/ieee80211 -name "
                                        "hwsim | cut -d/ -f 6 | sort",
-                                       shell=True).split("\n")
+                                       shell=True).decode('utf-8').split("\n")
         num = 0
         numokay = False
         cls.prefix = ""
@@ -79,7 +79,7 @@ class module(object):
                                      stderr=subprocess.PIPE, bufsize=-1)
                 output, err_out = p.communicate()
                 if p.returncode == 0:
-                    m = re.search("ID (\d+)", output)
+                    m = re.search("ID (\d+)", output.decode())
                     debug("Created mac80211_hwsim device with ID %s\n" % m.group(1))
                     cls.hwsim_ids.append(m.group(1))
                 else:
@@ -169,7 +169,7 @@ class module(object):
         cls.wlans = []
         cls.wlans = (subprocess.check_output("iw dev 2>&1 | grep Interface "
                                              "| awk '{print $2}'",
-                                             shell=True)).split('\n')
+                                             shell=True)).decode('utf-8').split("\n")
         cls.wlans.pop()
         return cls.wlans
 
@@ -178,7 +178,7 @@ class module(object):
         """Gets all phys after starting the wireless module"""
         phy = subprocess.check_output("find /sys/kernel/debug/ieee80211 -name "
                                       "hwsim | cut -d/ -f 6 | sort",
-                                      shell=True).split("\n")
+                                      shell=True).decode('utf-8').split("\n")
         phy.pop()
         phy.sort(key=len, reverse=False)
         return phy
@@ -256,7 +256,7 @@ class module(object):
         wlan_list = []
         iface_list = subprocess.check_output("iw dev 2>&1 | grep Interface | "
                                              "awk '{print $2}'",
-                                             shell=True).split('\n')
+                                             shell=True).decode('utf-8').split('\n')
         for iface in iface_list:
             if iface not in physicalWlan and iface != '':
                 wlan_list.append(iface)

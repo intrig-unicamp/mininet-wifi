@@ -15,6 +15,7 @@ import select
 import fileinput
 import numpy as np
 from scipy.spatial.distance import pdist
+from six import string_types
 
 from subprocess import Popen, PIPE
 from time import sleep
@@ -114,7 +115,7 @@ class WiFiNode(object):
         master, slave = pty.openpty()
         self.shell = self._popen(cmd, stdin=slave, stdout=slave, stderr=slave,
                                  close_fds=False)
-        self.stdin = os.fdopen(master, 'rw')
+        self.stdin = os.fdopen(master, 'bw')
         self.stdout = self.stdin
         self.pid = self.shell.pid
         self.pollOut = select.poll()
@@ -607,7 +608,7 @@ class WiFiNode(object):
         count = len(self.readbuf)
         if count < maxbytes:
             data = os.read(self.stdout.fileno(), maxbytes - count)
-            self.readbuf += data
+            self.readbuf += data.decode('utf-8')
         if maxbytes >= len(self.readbuf):
             result = self.readbuf
             self.readbuf = ''
@@ -630,7 +631,7 @@ class WiFiNode(object):
     def write(self, data):
         """Write data to node.
            data: string"""
-        os.write(self.stdin.fileno(), data)
+        os.write(self.stdin.fileno(), data.encode())
 
     def terminate(self):
         "Send kill signal to Node and clean up after it."
@@ -762,7 +763,7 @@ class WiFiNode(object):
             if isinstance(args[ 0 ], list):
                 # popen([cmd, arg1, arg2...])
                 cmd = args[ 0 ]
-            elif isinstance(args[ 0 ], basestring):
+            elif isinstance(args[ 0 ], string_types):
                 # popen("cmd arg1 arg2...")
                 cmd = args[ 0 ].split()
             else:
@@ -854,7 +855,7 @@ class WiFiNode(object):
         """
         if not intf:
             return self.defaultIntf()
-        elif isinstance(intf, basestring):
+        elif isinstance(intf, string_types):
             return self.nameToIntf[ intf ]
         else:
             return intf
@@ -906,7 +907,7 @@ class WiFiNode(object):
         """Set the default route to go through intf.
            intf: Intf or {dev <intfname> via <gw-ip> ...}"""
         # Note setParam won't call us if intf is none
-        if isinstance(intf, basestring) and ' ' in intf:
+        if isinstance(intf, string_types) and ' ' in intf:
             params = intf
         else:
             params = 'dev %s' % intf
@@ -957,7 +958,7 @@ class WiFiNode(object):
            method: config method name
            param: arg=value (ignore if value=None)
            value may also be list or dict"""
-        name, value = param.items()[ 0 ]
+        name, value = list(param.items())[ 0 ]
         if value is None:
             return
         f = getattr(self, method, None)
@@ -1009,7 +1010,7 @@ class WiFiNode(object):
     # Other methods
     def intfList(self):
         "List of our interfaces sorted by port number"
-        return [ self.intfs[ p ] for p in sorted(self.intfs.iterkeys()) ]
+        return [ self.intfs[ p ] for p in sorted(self.intfs.keys()) ]
 
     def intfNames(self):
         "The names of our interfaces sorted by port number"
@@ -1345,14 +1346,14 @@ class AccessPoint(AP):
                                             'NetworkManager.conf', inplace=1):
                     if isNew:
                         if line.__contains__('#'):
-                            print line.replace(unmatch, echo)
+                            print(line.replace(unmatch, echo))
                         else:
-                            print line.rstrip()
+                            print(line.rstrip())
                     else:
                         if line.__contains__('unmanaged-devices'):
-                            print line.replace(unmatch, echo)
+                            print(line.replace(unmatch, echo))
                         else:
-                            print line.rstrip()
+                            print(line.rstrip())
         if cls.writeMacAddress is False:
             cls.writeMacAddress = writeMacAddress
 
@@ -1375,9 +1376,9 @@ class AccessPoint(AP):
                 info("*** Waiting for ACS... It takes 10 seconds.\n")
                 sleep(10)
         except:
-            print 'error with hostapd. Please, run sudo mn -c in order ' \
+            print('error with hostapd. Please, run sudo mn -c in order ' \
             'to fix it or check if hostapd is working properly in ' \
-            'your system.'
+            'your system.')
             exit(1)
 
 class UserAP(AP):
@@ -1698,7 +1699,7 @@ class OVSAP(AP):
             run(cmds, shell=True)
         # Reapply link config if necessary...
         for switch in switches:
-            for intf in switch.intfs.itervalues():
+            for intf in switch.intfs.values():
                 if isinstance(intf, TCIntfWireless):
                     intf.config(**intf.params)
         return switches

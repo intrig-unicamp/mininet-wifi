@@ -12,8 +12,8 @@ Copyright (C) 2011 DLR (http://www.dlr.de/) and contributors
 All rights reserved
 """
 import struct
-import trace
-import constants as tc
+from . import trace
+from . import constants as tc
 
 _RETURN_VALUE_FUNC = {tc.ID_LIST:                   trace.Storage.readStringList,
                       tc.ID_COUNT:                  trace.Storage.readInt,

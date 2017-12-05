@@ -8,8 +8,7 @@ SUMO, Simulation of Urban MObility; see http://sumo.sourceforge.net/
 Copyright (C) 2009-2013 DLR (http://www.dlr.de/) and contributors
 All rights reserved
 """
-
-
+from __future__ import print_function
 
 # ****************************************
 # VERSION
@@ -651,5 +650,3 @@ VAR_SCREENSHOT = 0xa5
 
 # track vehicle
 VAR_TRACK_VEHICLE = 0xa6
-
-

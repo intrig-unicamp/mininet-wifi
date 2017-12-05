@@ -319,7 +319,7 @@ class vanet(object):
         first_set = set(first_tuple_list)
         secnd_set = set(secnd_tuple_list)
         (element,) = first_set.intersection(secnd_set)
-        print element[0]
+        print(element[0])
 
     def simulate_car_movement(self, cars, baseStations, scatter,
                               com_lines, mobility):

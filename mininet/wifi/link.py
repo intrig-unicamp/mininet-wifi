@@ -96,14 +96,14 @@ class IntfWireless(object):
         # backgrounded output from the cli.
         ipAddr, _err, _exitCode = self.node.pexec(
             'ip addr show %s' % self.name)
-        ips = self._ipMatchRegex.findall(ipAddr)
+        ips = self._ipMatchRegex.findall(ipAddr.decode('utf-8'))
         self.ip = ips[ 0 ] if ips else None
         return self.ip
 
     def updateMAC(self):
         "Return updated MAC address based on ip addr"
         ipAddr = self.ipAddr()
-        macs = self._macMatchRegex.findall(ipAddr)
+        macs = self._macMatchRegex.findall(ipAddr.decode('utf-8'))
         self.mac = macs[ 0 ] if macs else None
         return self.mac
 
@@ -115,7 +115,7 @@ class IntfWireless(object):
         "Return IP address and MAC address based on ip addr."
         ipAddr = self.ipAddr()
         ips = self._ipMatchRegex.findall(ipAddr)
-        macs = self._macMatchRegex.findall(ipAddr)
+        macs = self._macMatchRegex.findall(ipAddr.decode('utf-8'))
         self.ip = ips[ 0 ] if ips else None
         self.mac = macs[ 0 ] if macs else None
         return self.ip, self.mac
@@ -161,7 +161,7 @@ class IntfWireless(object):
            method: config method name
            param: arg=value (ignore if value=None)
            value may also be list or dict"""
-        name, value = param.items()[ 0 ]
+        name, value = list(param.items())[ 0 ]
         f = getattr(self, method, None)
         if not f or value is None:
             return

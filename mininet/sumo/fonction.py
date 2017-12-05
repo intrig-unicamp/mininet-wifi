@@ -1,5 +1,5 @@
 # !/bin/bash
-import traci
+from . import traci
 
 
 def intersect(a, b):

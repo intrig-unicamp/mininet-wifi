@@ -28,9 +28,9 @@ from mininet.wifi.module import module
 from mininet.wifi.propagationModels import propagationModel
 from mininet.wifi.vanet import vanet
 
-
 sys.path.append(str(os.getcwd()) + '/mininet/')
 from mininet.sumo.runner import sumo
+
 
 class mininetWiFi(object):
 
@@ -1274,8 +1274,8 @@ class mininetWiFi(object):
                             info ("The distance between %s and %s is %.2f "
                                   "meters\n" % (src, dst, float(dist)))
         except:
-            print "node %s or/and node %s does not exist or there is no " \
-                  "position defined" % (dst, src)
+            print("node %s or/and node %s does not exist or there is no " \
+                  "position defined" % (dst, src))
 
     @classmethod
     def configureMobility(cls, *args, **kwargs):

@@ -99,7 +99,7 @@ def errRun(*cmd, **kwargs):
                 if echo:
                     output(data)
                 if f == popen.stdout:
-                    out += data
+                    out += data.decode('utf-8')
                     if data == '':
                         outDone = True
                 elif f == popen.stderr:
@@ -597,7 +597,7 @@ def ensureRoot():
     Probably we should only sudo when needed as per Big Switch's patch.
     """
     if os.getuid() != 0:
-        print "*** Mininet must run as root."
+        print("*** Mininet must run as root.")
         exit(1)
     return
 
