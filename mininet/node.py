@@ -63,6 +63,7 @@ from time import sleep
 from mininet.log import info, error, warn, debug
 from mininet.util import ( quietRun, errRun, errFail, moveIntf, isShellBuiltin,
                            numCores, retry, mountCgroups )
+from mininet.utils.private_folder_manager import PrivateFolderManager
 from mininet.moduledeps import moduleDeps, pathCheck, TUN
 from mininet.link import Link, Intf, TCIntf, OVSIntf
 from re import findall
@@ -84,7 +85,6 @@ class Node( object ):
         self.checkSetup()
 
         self.name = params.get( 'name', name )
-        self.privateDirs = params.get( 'privateDirs', [] )
         self.inNamespace = params.get( 'inNamespace', inNamespace )
 
         # Stash configuration parameters for future reference
@@ -104,7 +104,7 @@ class Node( object ):
 
         # Start command interpreter shell
         self.startShell()
-        self.mountPrivateDirs()
+        self.private_folder_manager = PrivateFolderManager(self, params.get('privateDirs', []))
 
     # File descriptor to node mapping support
     # Class variables and methods
@@ -171,31 +171,9 @@ class Node( object ):
         self.params['range'] = [0]
         self.plot = True
 
-    def mountPrivateDirs( self ):
-        "mount private directories"
-        # Avoid expanding a string into a list of chars
-        assert not isinstance( self.privateDirs, basestring )
-        for directory in self.privateDirs:
-            if isinstance( directory, tuple ):
-                # mount given private directory
-                privateDir = directory[ 1 ] % self.__dict__
-                mountPoint = directory[ 0 ]
-                self.cmd( 'mkdir -p %s' % privateDir )
-                self.cmd( 'mkdir -p %s' % mountPoint )
-                self.cmd( 'mount --bind %s %s' %
-                          ( privateDir, mountPoint ) )
-            else:
-                # mount temporary filesystem on directory
-                self.cmd( 'mkdir -p %s' % directory )
-                self.cmd( 'mount -n -t tmpfs tmpfs %s' % directory )
-
-    def unmountPrivateDirs( self ):
-        "mount private directories"
-        for directory in self.privateDirs:
-            if isinstance( directory, tuple ):
-                self.cmd( 'umount ', directory[ 0 ] )
-            else:
-                self.cmd( 'umount ', directory )
+    def get_private_folder_manager(self):
+        # type: () -> PrivateFolderManager
+        return self.private_folder_manager
 
     def _popen( self, cmd, **params ):
         """Internal method: spawn and return a process
@@ -249,7 +227,7 @@ class Node( object ):
 
     def terminate( self ):
         "Send kill signal to Node and clean up after it."
-        self.unmountPrivateDirs()
+        self.private_folder_manager.finish()
         if self.shell:
             if self.shell.poll() is None:
                 os.killpg( self.shell.pid, signal.SIGHUP )
