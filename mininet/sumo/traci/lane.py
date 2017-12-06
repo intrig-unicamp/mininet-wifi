@@ -13,8 +13,8 @@ Copyright (C) 2011 DLR (http://www.dlr.de/) and contributors
 All rights reserved
 """
 import struct
-from mininet.sumo.traci import trace
-from mininet.sumo.traci import constants as tc
+from . import trace_
+from . import constants as tc
 
 def _readLinks(result):
     result.read("!Bi") # Type Compound, Length
@@ -41,34 +41,34 @@ def _readLinks(result):
     return links
 
 
-_RETURN_VALUE_FUNC = {tc.ID_LIST:                   trace.Storage.readStringList,
-                      tc.VAR_LENGTH:                trace.Storage.readDouble,
-                      tc.VAR_MAXSPEED:              trace.Storage.readDouble,
-                      tc.VAR_WIDTH:                 trace.Storage.readDouble,
-                      tc.LANE_ALLOWED:              trace.Storage.readStringList,
-                      tc.LANE_DISALLOWED:           trace.Storage.readStringList,
+_RETURN_VALUE_FUNC = {tc.ID_LIST:                   trace_.Storage.readStringList,
+                      tc.VAR_LENGTH:                trace_.Storage.readDouble,
+                      tc.VAR_MAXSPEED:              trace_.Storage.readDouble,
+                      tc.VAR_WIDTH:                 trace_.Storage.readDouble,
+                      tc.LANE_ALLOWED:              trace_.Storage.readStringList,
+                      tc.LANE_DISALLOWED:           trace_.Storage.readStringList,
                       tc.LANE_LINK_NUMBER:          lambda result: result.read("!B")[0],
                       tc.LANE_LINKS:                _readLinks,
-                      tc.VAR_SHAPE:                 trace.Storage.readShape,
-                      tc.LANE_EDGE_ID:              trace.Storage.readString,
-                      tc.VAR_CO2EMISSION:           trace.Storage.readDouble,
-                      tc.VAR_COEMISSION:            trace.Storage.readDouble,
-                      tc.VAR_HCEMISSION:            trace.Storage.readDouble,
-                      tc.VAR_PMXEMISSION:           trace.Storage.readDouble,
-                      tc.VAR_NOXEMISSION:           trace.Storage.readDouble,
-                      tc.VAR_FUELCONSUMPTION:       trace.Storage.readDouble,
-                      tc.VAR_NOISEEMISSION:         trace.Storage.readDouble,
-                      tc.LAST_STEP_MEAN_SPEED:      trace.Storage.readDouble,
-                      tc.LAST_STEP_OCCUPANCY:       trace.Storage.readDouble,
-                      tc.LAST_STEP_LENGTH:          trace.Storage.readDouble,
-                      tc.VAR_CURRENT_TRAVELTIME:    trace.Storage.readDouble,
-                      tc.LAST_STEP_VEHICLE_NUMBER:  trace.Storage.readInt,
-                      tc.LAST_STEP_VEHICLE_HALTING_NUMBER: trace.Storage.readInt,
-                      tc.LAST_STEP_VEHICLE_ID_LIST: trace.Storage.readStringList}
-subscriptionResults = trace.SubscriptionResults(_RETURN_VALUE_FUNC)
+                      tc.VAR_SHAPE:                 trace_.Storage.readShape,
+                      tc.LANE_EDGE_ID:              trace_.Storage.readString,
+                      tc.VAR_CO2EMISSION:           trace_.Storage.readDouble,
+                      tc.VAR_COEMISSION:            trace_.Storage.readDouble,
+                      tc.VAR_HCEMISSION:            trace_.Storage.readDouble,
+                      tc.VAR_PMXEMISSION:           trace_.Storage.readDouble,
+                      tc.VAR_NOXEMISSION:           trace_.Storage.readDouble,
+                      tc.VAR_FUELCONSUMPTION:       trace_.Storage.readDouble,
+                      tc.VAR_NOISEEMISSION:         trace_.Storage.readDouble,
+                      tc.LAST_STEP_MEAN_SPEED:      trace_.Storage.readDouble,
+                      tc.LAST_STEP_OCCUPANCY:       trace_.Storage.readDouble,
+                      tc.LAST_STEP_LENGTH:          trace_.Storage.readDouble,
+                      tc.VAR_CURRENT_TRAVELTIME:    trace_.Storage.readDouble,
+                      tc.LAST_STEP_VEHICLE_NUMBER:  trace_.Storage.readInt,
+                      tc.LAST_STEP_VEHICLE_HALTING_NUMBER: trace_.Storage.readInt,
+                      tc.LAST_STEP_VEHICLE_ID_LIST: trace_.Storage.readStringList}
+subscriptionResults = trace_.SubscriptionResults(_RETURN_VALUE_FUNC)
 
 def _getUniversal(varID, laneID):
-    result = trace._sendReadOneStringCmd(tc.CMD_GET_LANE_VARIABLE, varID, laneID)
+    result = trace_._sendReadOneStringCmd(tc.CMD_GET_LANE_VARIABLE, varID, laneID)
     return _RETURN_VALUE_FUNC[varID](result)
 
 def getIDList():
@@ -248,7 +248,7 @@ def subscribe(laneID, varIDs=(tc.LAST_STEP_VEHICLE_NUMBER,), begin=0, end=2**31-
     A call to this method clears all previous subscription results.
     """
     subscriptionResults.reset()
-    trace._subscribe(tc.CMD_SUBSCRIBE_LANE_VARIABLE, begin, end, laneID, varIDs)
+    trace_._subscribe(tc.CMD_SUBSCRIBE_LANE_VARIABLE, begin, end, laneID, varIDs)
 
 def getSubscriptionResults(laneID=None):
     """getSubscriptionResults(string) -> dict(integer: <value_type>)
@@ -264,28 +264,28 @@ def getSubscriptionResults(laneID=None):
 
 def subscribeContext(laneID, domain, dist, varIDs=(tc.LAST_STEP_VEHICLE_NUMBER,), begin=0, end=2**31-1):
     subscriptionResults.reset()
-    trace._subscribeContext(tc.CMD_SUBSCRIBE_LANE_CONTEXT, begin, end, laneID, domain, dist, varIDs)
+    trace_._subscribeContext(tc.CMD_SUBSCRIBE_LANE_CONTEXT, begin, end, laneID, domain, dist, varIDs)
 
 def getContextSubscriptionResults(laneID=None):
     return subscriptionResults.getContext(laneID)
 
 
 def setAllowed(laneID, allowedClasses):
-    trace._beginMessage(tc.CMD_SET_LANE_VARIABLE, tc.LANE_ALLOWED, laneID, 1+4+sum(map(len, allowedClasses))+4*len(allowedClasses))
-    trace._message.string += struct.pack("!Bi", tc.TYPE_STRINGLIST, len(allowedClasses))
+    trace_._beginMessage(tc.CMD_SET_LANE_VARIABLE, tc.LANE_ALLOWED, laneID, 1 + 4 + sum(map(len, allowedClasses)) + 4 * len(allowedClasses))
+    trace_._message.string += struct.pack("!Bi", tc.TYPE_STRINGLIST, len(allowedClasses))
     for c in allowedClasses:
-        trace._message.string += struct.pack("!i", len(c)) + c
-    trace._sendExact()
+        trace_._message.string += struct.pack("!i", len(c)) + c
+    trace_._sendExact()
 
 def setDisallowed(laneID, disallowedClasses):
-    trace._beginMessage(tc.CMD_SET_LANE_VARIABLE, tc.LANE_DISALLOWED, laneID, 1+4+sum(map(len, disallowedClasses))+4*len(disallowedClasses))
-    trace._message.string += struct.pack("!Bi", tc.TYPE_STRINGLIST, len(disallowedClasses))
+    trace_._beginMessage(tc.CMD_SET_LANE_VARIABLE, tc.LANE_DISALLOWED, laneID, 1 + 4 + sum(map(len, disallowedClasses)) + 4 * len(disallowedClasses))
+    trace_._message.string += struct.pack("!Bi", tc.TYPE_STRINGLIST, len(disallowedClasses))
     for c in disallowedClasses:
-        trace._message.string += struct.pack("!i", len(c)) + c
-    trace._sendExact()
+        trace_._message.string += struct.pack("!i", len(c)) + c
+    trace_._sendExact()
 
 def setMaxSpeed(laneID, speed):
-    trace._sendDoubleCmd(tc.CMD_SET_LANE_VARIABLE, tc.VAR_MAXSPEED, laneID, speed)
+    trace_._sendDoubleCmd(tc.CMD_SET_LANE_VARIABLE, tc.VAR_MAXSPEED, laneID, speed)
 
 def setLength(laneID, length):
-    trace._sendDoubleCmd(tc.CMD_SET_LANE_VARIABLE, tc.VAR_LENGTH, laneID, length)
+    trace_._sendDoubleCmd(tc.CMD_SET_LANE_VARIABLE, tc.VAR_LENGTH, laneID, length)

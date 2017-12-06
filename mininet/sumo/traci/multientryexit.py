@@ -11,18 +11,18 @@ SUMO, Simulation of Urban MObility; see http://sumo.sourceforge.net/
 Copyright (C) 2011 DLR (http://www.dlr.de/) and contributors
 All rights reserved
 """
-from mininet.sumo.traci import trace
-from mininet.sumo.traci import constants as tc
+from . import trace_
+from . import constants as tc
 
-_RETURN_VALUE_FUNC = {tc.ID_LIST:                          trace.Storage.readStringList,
-                      tc.LAST_STEP_VEHICLE_NUMBER:         trace.Storage.readInt,
-                      tc.LAST_STEP_MEAN_SPEED:             trace.Storage.readDouble,
-                      tc.LAST_STEP_VEHICLE_ID_LIST:        trace.Storage.readStringList,
-                      tc.LAST_STEP_VEHICLE_HALTING_NUMBER: trace.Storage.readInt}
-subscriptionResults = trace.SubscriptionResults(_RETURN_VALUE_FUNC)
+_RETURN_VALUE_FUNC = {tc.ID_LIST:                          trace_.Storage.readStringList,
+                      tc.LAST_STEP_VEHICLE_NUMBER:         trace_.Storage.readInt,
+                      tc.LAST_STEP_MEAN_SPEED:             trace_.Storage.readDouble,
+                      tc.LAST_STEP_VEHICLE_ID_LIST:        trace_.Storage.readStringList,
+                      tc.LAST_STEP_VEHICLE_HALTING_NUMBER: trace_.Storage.readInt}
+subscriptionResults = trace_.SubscriptionResults(_RETURN_VALUE_FUNC)
 
 def _getUniversal(varID, detID):
-    result = trace._sendReadOneStringCmd(tc.CMD_GET_MULTI_ENTRY_EXIT_DETECTOR_VARIABLE, varID, detID)
+    result = trace_._sendReadOneStringCmd(tc.CMD_GET_MULTI_ENTRY_EXIT_DETECTOR_VARIABLE, varID, detID)
     return _RETURN_VALUE_FUNC[varID](result)
 
 def getIDList():
@@ -68,7 +68,7 @@ def subscribe(detID, varIDs=(tc.LAST_STEP_VEHICLE_NUMBER,), begin=0, end=2**31-1
     A call to this method clears all previous subscription results.
     """
     subscriptionResults.reset()
-    trace._subscribe(tc.CMD_SUBSCRIBE_MULTI_ENTRY_EXIT_DETECTOR_VARIABLE, begin, end, detID, varIDs)
+    trace_._subscribe(tc.CMD_SUBSCRIBE_MULTI_ENTRY_EXIT_DETECTOR_VARIABLE, begin, end, detID, varIDs)
 
 def getSubscriptionResults(detID=None):
     """getSubscriptionResults(string) -> dict(integer: <value_type>)
@@ -84,7 +84,7 @@ def getSubscriptionResults(detID=None):
 
 def subscribeContext(detID, domain, dist, varIDs=(tc.LAST_STEP_VEHICLE_NUMBER,), begin=0, end=2**31-1):
     subscriptionResults.reset()
-    trace._subscribeContext(tc.CMD_SUBSCRIBE_MULTI_ENTRY_EXIT_DETECTOR_CONTEXT, begin, end, detID, domain, dist, varIDs)
+    trace_._subscribeContext(tc.CMD_SUBSCRIBE_MULTI_ENTRY_EXIT_DETECTOR_CONTEXT, begin, end, detID, domain, dist, varIDs)
 
 def getContextSubscriptionResults(detID=None):
     return subscriptionResults.getContext(detID)

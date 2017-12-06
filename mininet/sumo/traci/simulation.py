@@ -12,27 +12,27 @@ Copyright (C) 2008-2013 DLR (http://www.dlr.de/) and contributors
 All rights reserved
 """
 import struct
-from mininet.sumo.traci import trace
-from mininet.sumo.traci import constants as tc
+from . import trace_
+from . import constants as tc
 
-_RETURN_VALUE_FUNC = {tc.VAR_TIME_STEP:                         trace.Storage.readInt,
-                      tc.VAR_LOADED_VEHICLES_NUMBER:            trace.Storage.readInt,
-                      tc.VAR_LOADED_VEHICLES_IDS:               trace.Storage.readStringList,
-                      tc.VAR_DEPARTED_VEHICLES_NUMBER:          trace.Storage.readInt,
-                      tc.VAR_DEPARTED_VEHICLES_IDS:             trace.Storage.readStringList,
-                      tc.VAR_ARRIVED_VEHICLES_NUMBER:           trace.Storage.readInt,
-                      tc.VAR_ARRIVED_VEHICLES_IDS:              trace.Storage.readStringList,
-                      tc.VAR_MIN_EXPECTED_VEHICLES:             trace.Storage.readInt,
-                      tc.VAR_TELEPORT_STARTING_VEHICLES_NUMBER: trace.Storage.readInt,
-                      tc.VAR_TELEPORT_STARTING_VEHICLES_IDS:    trace.Storage.readStringList,
-                      tc.VAR_TELEPORT_ENDING_VEHICLES_NUMBER:   trace.Storage.readInt,
-                      tc.VAR_TELEPORT_ENDING_VEHICLES_IDS:      trace.Storage.readStringList,
-                      tc.VAR_DELTA_T:                           trace.Storage.readInt,
+_RETURN_VALUE_FUNC = {tc.VAR_TIME_STEP:                         trace_.Storage.readInt,
+                      tc.VAR_LOADED_VEHICLES_NUMBER:            trace_.Storage.readInt,
+                      tc.VAR_LOADED_VEHICLES_IDS:               trace_.Storage.readStringList,
+                      tc.VAR_DEPARTED_VEHICLES_NUMBER:          trace_.Storage.readInt,
+                      tc.VAR_DEPARTED_VEHICLES_IDS:             trace_.Storage.readStringList,
+                      tc.VAR_ARRIVED_VEHICLES_NUMBER:           trace_.Storage.readInt,
+                      tc.VAR_ARRIVED_VEHICLES_IDS:              trace_.Storage.readStringList,
+                      tc.VAR_MIN_EXPECTED_VEHICLES:             trace_.Storage.readInt,
+                      tc.VAR_TELEPORT_STARTING_VEHICLES_NUMBER: trace_.Storage.readInt,
+                      tc.VAR_TELEPORT_STARTING_VEHICLES_IDS:    trace_.Storage.readStringList,
+                      tc.VAR_TELEPORT_ENDING_VEHICLES_NUMBER:   trace_.Storage.readInt,
+                      tc.VAR_TELEPORT_ENDING_VEHICLES_IDS:      trace_.Storage.readStringList,
+                      tc.VAR_DELTA_T:                           trace_.Storage.readInt,
                       tc.VAR_NET_BOUNDING_BOX:                  lambda result: (result.read("!dd"), result.read("!dd"))}
-subscriptionResults = trace.SubscriptionResults(_RETURN_VALUE_FUNC)
+subscriptionResults = trace_.SubscriptionResults(_RETURN_VALUE_FUNC)
 
 def _getUniversal(varID):
-    result = trace._sendReadOneStringCmd(tc.CMD_GET_SIM_VARIABLE, varID, "")
+    result = trace_._sendReadOneStringCmd(tc.CMD_GET_SIM_VARIABLE, varID, "")
     return _RETURN_VALUE_FUNC[varID](result)
 
 def getCurrentTime():
@@ -133,21 +133,21 @@ def convert2D(edgeID, pos, laneIndex=0, toGeo=False):
     posType = tc.POSITION_2D
     if toGeo:
         posType = tc.POSITION_LAT_LON
-    trace._beginMessage(tc.CMD_GET_SIM_VARIABLE, tc.POSITION_CONVERSION, "", 1+4 + 1+4+len(edgeID)+8+1 + 1+1)
-    trace._message.string += struct.pack("!Bi", tc.TYPE_COMPOUND, 2)
-    trace._message.string += struct.pack("!Bi", tc.POSITION_ROADMAP, len(edgeID)) + edgeID
-    trace._message.string += struct.pack("!dBBB", pos, laneIndex, tc.TYPE_UBYTE, posType)
-    return trace._checkResult(tc.CMD_GET_SIM_VARIABLE, tc.POSITION_CONVERSION, "").read("!dd")
+    trace_._beginMessage(tc.CMD_GET_SIM_VARIABLE, tc.POSITION_CONVERSION, "", 1 + 4 + 1 + 4 + len(edgeID) + 8 + 1 + 1 + 1)
+    trace_._message.string += struct.pack("!Bi", tc.TYPE_COMPOUND, 2)
+    trace_._message.string += struct.pack("!Bi", tc.POSITION_ROADMAP, len(edgeID)) + edgeID
+    trace_._message.string += struct.pack("!dBBB", pos, laneIndex, tc.TYPE_UBYTE, posType)
+    return trace_._checkResult(tc.CMD_GET_SIM_VARIABLE, tc.POSITION_CONVERSION, "").read("!dd")
 
 def convertRoad(x, y, isGeo=False):
     posType = tc.POSITION_2D
     if isGeo:
         posType = tc.POSITION_LAT_LON
-    trace._beginMessage(tc.CMD_GET_SIM_VARIABLE, tc.POSITION_CONVERSION, "", 1+4 + 1+8+8 + 1+1)
-    trace._message.string += struct.pack("!Bi", tc.TYPE_COMPOUND, 2)
-    trace._message.string += struct.pack("!Bdd", posType, x, y)
-    trace._message.string += struct.pack("!BB", tc.TYPE_UBYTE, tc.POSITION_ROADMAP)
-    result = trace._checkResult(tc.CMD_GET_SIM_VARIABLE, tc.POSITION_CONVERSION, "")
+    trace_._beginMessage(tc.CMD_GET_SIM_VARIABLE, tc.POSITION_CONVERSION, "", 1 + 4 + 1 + 8 + 8 + 1 + 1)
+    trace_._message.string += struct.pack("!Bi", tc.TYPE_COMPOUND, 2)
+    trace_._message.string += struct.pack("!Bdd", posType, x, y)
+    trace_._message.string += struct.pack("!BB", tc.TYPE_UBYTE, tc.POSITION_ROADMAP)
+    result = trace_._checkResult(tc.CMD_GET_SIM_VARIABLE, tc.POSITION_CONVERSION, "")
     return result.readString(), result.readDouble(), result.read("!B")[0]
 
 def convertGeo(x, y, fromGeo=False):
@@ -156,11 +156,11 @@ def convertGeo(x, y, fromGeo=False):
     if fromGeo:
         fromType = tc.POSITION_LAT_LON
         toType = tc.POSITION_2D
-    trace._beginMessage(tc.CMD_GET_SIM_VARIABLE, tc.POSITION_CONVERSION, "", 1+4 + 1+8+8 + 1+1)
-    trace._message.string += struct.pack("!Bi", tc.TYPE_COMPOUND, 2)
-    trace._message.string += struct.pack("!Bdd", fromType, x, y)
-    trace._message.string += struct.pack("!BB", tc.TYPE_UBYTE, toType)
-    return trace._checkResult(tc.CMD_GET_SIM_VARIABLE, tc.POSITION_CONVERSION, "").read("!dd")
+    trace_._beginMessage(tc.CMD_GET_SIM_VARIABLE, tc.POSITION_CONVERSION, "", 1 + 4 + 1 + 8 + 8 + 1 + 1)
+    trace_._message.string += struct.pack("!Bi", tc.TYPE_COMPOUND, 2)
+    trace_._message.string += struct.pack("!Bdd", fromType, x, y)
+    trace_._message.string += struct.pack("!BB", tc.TYPE_UBYTE, toType)
+    return trace_._checkResult(tc.CMD_GET_SIM_VARIABLE, tc.POSITION_CONVERSION, "").read("!dd")
 
 def getDistance2D(x1, y1, x2, y2, isGeo=False, isDriving=False):
     """getDistance2D(double, double, double, double, boolean, boolean) -> double
@@ -173,11 +173,11 @@ def getDistance2D(x1, y1, x2, y2, isGeo=False, isDriving=False):
     distType = tc.REQUEST_AIRDIST
     if isDriving:
         distType = tc.REQUEST_DRIVINGDIST
-    trace._beginMessage(tc.CMD_GET_SIM_VARIABLE, tc.DISTANCE_REQUEST, "", 1+4 + 1+8+8 + 1+8+8 + 1)
-    trace._message.string += struct.pack("!Bi", tc.TYPE_COMPOUND, 3)
-    trace._message.string += struct.pack("!Bdd", posType, x1, y1)
-    trace._message.string += struct.pack("!BddB", posType, x2, y2, distType)
-    return trace._checkResult(tc.CMD_GET_SIM_VARIABLE, tc.DISTANCE_REQUEST, "").readDouble()
+    trace_._beginMessage(tc.CMD_GET_SIM_VARIABLE, tc.DISTANCE_REQUEST, "", 1 + 4 + 1 + 8 + 8 + 1 + 8 + 8 + 1)
+    trace_._message.string += struct.pack("!Bi", tc.TYPE_COMPOUND, 3)
+    trace_._message.string += struct.pack("!Bdd", posType, x1, y1)
+    trace_._message.string += struct.pack("!BddB", posType, x2, y2, distType)
+    return trace_._checkResult(tc.CMD_GET_SIM_VARIABLE, tc.DISTANCE_REQUEST, "").readDouble()
 
 def getDistanceRoad(edgeID1, pos1, edgeID2, pos2, isDriving=False):
     """getDistanceRoad(string, double, string, double, boolean) -> double
@@ -187,12 +187,12 @@ def getDistanceRoad(edgeID1, pos1, edgeID2, pos2, isDriving=False):
     distType = tc.REQUEST_AIRDIST
     if isDriving:
         distType = tc.REQUEST_DRIVINGDIST
-    trace._beginMessage(tc.CMD_GET_SIM_VARIABLE, tc.DISTANCE_REQUEST, "", 1+4 + 1+4+len(edgeID1)+8+1 + 1+4+len(edgeID2)+8+1 + 1)
-    trace._message.string += struct.pack("!Bi", tc.TYPE_COMPOUND, 3)
-    trace._message.string += struct.pack("!Bi", tc.POSITION_ROADMAP, len(edgeID1)) + edgeID1
-    trace._message.string += struct.pack("!dBBi", pos1, 0, tc.POSITION_ROADMAP, len(edgeID2)) + edgeID2
-    trace._message.string += struct.pack("!dBB", pos2, 0, distType)
-    return trace._checkResult(tc.CMD_GET_SIM_VARIABLE, tc.DISTANCE_REQUEST, "").readDouble()
+    trace_._beginMessage(tc.CMD_GET_SIM_VARIABLE, tc.DISTANCE_REQUEST, "", 1 + 4 + 1 + 4 + len(edgeID1) + 8 + 1 + 1 + 4 + len(edgeID2) + 8 + 1 + 1)
+    trace_._message.string += struct.pack("!Bi", tc.TYPE_COMPOUND, 3)
+    trace_._message.string += struct.pack("!Bi", tc.POSITION_ROADMAP, len(edgeID1)) + edgeID1
+    trace_._message.string += struct.pack("!dBBi", pos1, 0, tc.POSITION_ROADMAP, len(edgeID2)) + edgeID2
+    trace_._message.string += struct.pack("!dBB", pos2, 0, distType)
+    return trace_._checkResult(tc.CMD_GET_SIM_VARIABLE, tc.DISTANCE_REQUEST, "").readDouble()
 
 
 def subscribe(varIDs=(tc.VAR_DEPARTED_VEHICLES_IDS,), begin=0, end=2**31-1):
@@ -202,7 +202,7 @@ def subscribe(varIDs=(tc.VAR_DEPARTED_VEHICLES_IDS,), begin=0, end=2**31-1):
     A call to this method clears all previous subscription results.
     """
     subscriptionResults.reset()
-    trace._subscribe(tc.CMD_SUBSCRIBE_SIM_VARIABLE, begin, end, "x", varIDs)
+    trace_._subscribe(tc.CMD_SUBSCRIBE_SIM_VARIABLE, begin, end, "x", varIDs)
 
 def getSubscriptionResults():
     """getSubscriptionResults() -> dict(integer: <value_type>)

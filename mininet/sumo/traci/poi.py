@@ -13,17 +13,17 @@ Copyright (C) 2008-2013 DLR (http://www.dlr.de/) and contributors
 All rights reserved
 """
 import struct
-from mininet.sumo.traci import trace
-from mininet.sumo.traci import constants as tc
+from . import trace_
+from . import constants as tc
 
-_RETURN_VALUE_FUNC = {tc.ID_LIST:      trace.Storage.readStringList,
-                      tc.VAR_TYPE:     trace.Storage.readString,
+_RETURN_VALUE_FUNC = {tc.ID_LIST:      trace_.Storage.readStringList,
+                      tc.VAR_TYPE:     trace_.Storage.readString,
                       tc.VAR_POSITION: lambda result: result.read("!dd"),
                       tc.VAR_COLOR:    lambda result: result.read("!BBBB")}
-subscriptionResults = trace.SubscriptionResults(_RETURN_VALUE_FUNC)
+subscriptionResults = trace_.SubscriptionResults(_RETURN_VALUE_FUNC)
 
 def _getUniversal(varID, poiID):
-    result = trace._sendReadOneStringCmd(tc.CMD_GET_POI_VARIABLE, varID, poiID)
+    result = trace_._sendReadOneStringCmd(tc.CMD_GET_POI_VARIABLE, varID, poiID)
     return _RETURN_VALUE_FUNC[varID](result)
 
 def getIDList():
@@ -62,7 +62,7 @@ def subscribe(poiID, varIDs=(tc.VAR_POSITION,), begin=0, end=2**31-1):
     A call to this method clears all previous subscription results.
     """
     subscriptionResults.reset()
-    trace._subscribe(tc.CMD_SUBSCRIBE_POI_VARIABLE, begin, end, poiID, varIDs)
+    trace_._subscribe(tc.CMD_SUBSCRIBE_POI_VARIABLE, begin, end, poiID, varIDs)
 
 def getSubscriptionResults(poiID=None):
     """getSubscriptionResults(string) -> dict(integer: <value_type>)
@@ -78,37 +78,37 @@ def getSubscriptionResults(poiID=None):
 
 def subscribeContext(poiID, domain, dist, varIDs=(tc.VAR_POSITION,), begin=0, end=2**31-1):
     subscriptionResults.reset()
-    trace._subscribeContext(tc.CMD_SUBSCRIBE_POI_CONTEXT, begin, end, poiID, domain, dist, varIDs)
+    trace_._subscribeContext(tc.CMD_SUBSCRIBE_POI_CONTEXT, begin, end, poiID, domain, dist, varIDs)
 
 def getContextSubscriptionResults(poiID=None):
     return subscriptionResults.getContext(poiID)
 
 
 def setType(poiID, poiType):
-    trace._beginMessage(tc.CMD_SET_POI_VARIABLE, tc.VAR_TYPE, poiID, 1+4+len(poiType))
-    trace._message.string += struct.pack("!Bi", tc.TYPE_STRING, len(poiType)) + poiType
-    trace._sendExact()
+    trace_._beginMessage(tc.CMD_SET_POI_VARIABLE, tc.VAR_TYPE, poiID, 1 + 4 + len(poiType))
+    trace_._message.string += struct.pack("!Bi", tc.TYPE_STRING, len(poiType)) + poiType
+    trace_._sendExact()
 
 def setPosition(poiID, x, y):
-    trace._beginMessage(tc.CMD_SET_POI_VARIABLE, tc.VAR_POSITION, poiID, 1+8+8)
-    trace._message.string += struct.pack("!Bdd", tc.POSITION_2D, x, y)
-    trace._sendExact()
+    trace_._beginMessage(tc.CMD_SET_POI_VARIABLE, tc.VAR_POSITION, poiID, 1 + 8 + 8)
+    trace_._message.string += struct.pack("!Bdd", tc.POSITION_2D, x, y)
+    trace_._sendExact()
 
 def setColor(poiID, color):
-    trace._beginMessage(tc.CMD_SET_POI_VARIABLE, tc.VAR_COLOR, poiID, 1+1+1+1+1)
-    trace._message.string += struct.pack("!BBBBB", tc.TYPE_COLOR, int(color[0]), int(color[1]), int(color[2]), int(color[3]))
-    trace._sendExact()
+    trace_._beginMessage(tc.CMD_SET_POI_VARIABLE, tc.VAR_COLOR, poiID, 1 + 1 + 1 + 1 + 1)
+    trace_._message.string += struct.pack("!BBBBB", tc.TYPE_COLOR, int(color[0]), int(color[1]), int(color[2]), int(color[3]))
+    trace_._sendExact()
 
 def add(poiID, x, y, color, poiType="", layer=0):
-    trace._beginMessage(tc.CMD_SET_POI_VARIABLE, tc.ADD, poiID, 1+4 + 1+4+len(poiType) + 1+1+1+1+1 + 1+4 + 1+8+8)
-    trace._message.string += struct.pack("!Bi", tc.TYPE_COMPOUND, 4)
-    trace._message.string += struct.pack("!Bi", tc.TYPE_STRING, len(poiType)) + poiType
-    trace._message.string += struct.pack("!BBBBB", tc.TYPE_COLOR, int(color[0]), int(color[1]), int(color[2]), int(color[3]))
-    trace._message.string += struct.pack("!Bi", tc.TYPE_INTEGER, layer)
-    trace._message.string += struct.pack("!Bdd", tc.POSITION_2D, x, y)
-    trace._sendExact()
+    trace_._beginMessage(tc.CMD_SET_POI_VARIABLE, tc.ADD, poiID, 1 + 4 + 1 + 4 + len(poiType) + 1 + 1 + 1 + 1 + 1 + 1 + 4 + 1 + 8 + 8)
+    trace_._message.string += struct.pack("!Bi", tc.TYPE_COMPOUND, 4)
+    trace_._message.string += struct.pack("!Bi", tc.TYPE_STRING, len(poiType)) + poiType
+    trace_._message.string += struct.pack("!BBBBB", tc.TYPE_COLOR, int(color[0]), int(color[1]), int(color[2]), int(color[3]))
+    trace_._message.string += struct.pack("!Bi", tc.TYPE_INTEGER, layer)
+    trace_._message.string += struct.pack("!Bdd", tc.POSITION_2D, x, y)
+    trace_._sendExact()
 
 def remove(poiID, layer=0):
-    trace._beginMessage(tc.CMD_SET_POI_VARIABLE, tc.REMOVE, poiID, 1+4)
-    trace._message.string += struct.pack("!Bi", tc.TYPE_INTEGER, layer)
-    trace._sendExact()
+    trace_._beginMessage(tc.CMD_SET_POI_VARIABLE, tc.REMOVE, poiID, 1 + 4)
+    trace_._message.string += struct.pack("!Bi", tc.TYPE_INTEGER, layer)
+    trace_._sendExact()

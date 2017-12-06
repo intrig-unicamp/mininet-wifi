@@ -13,8 +13,8 @@ Copyright (C) 2011 DLR (http://www.dlr.de/) and contributors
 All rights reserved
 """
 import struct
-from mininet.sumo.traci import trace
-from mininet.sumo.traci import constants as tc
+from . import trace_
+from . import constants as tc
 
 DEPART_TRIGGERED = -1
 DEPART_NOW = -2
@@ -36,49 +36,49 @@ def _readBestLanes(result):
     return lanes
 
 
-_RETURN_VALUE_FUNC = {tc.ID_LIST:             trace.Storage.readStringList,
-                      tc.VAR_SPEED:           trace.Storage.readDouble,
-                      tc.VAR_SPEED_WITHOUT_TRACI: trace.Storage.readDouble,
+_RETURN_VALUE_FUNC = {tc.ID_LIST:             trace_.Storage.readStringList,
+                      tc.VAR_SPEED:           trace_.Storage.readDouble,
+                      tc.VAR_SPEED_WITHOUT_TRACI: trace_.Storage.readDouble,
                       tc.VAR_POSITION:        lambda result: result.read("!dd"),
-                      tc.VAR_ANGLE:           trace.Storage.readDouble,
-                      tc.VAR_ROAD_ID:         trace.Storage.readString,
-                      tc.VAR_LANE_ID:         trace.Storage.readString,
-                      tc.VAR_LANE_INDEX:      trace.Storage.readInt,
-                      tc.VAR_TYPE:            trace.Storage.readString,
-                      tc.VAR_ROUTE_ID:        trace.Storage.readString,
+                      tc.VAR_ANGLE:           trace_.Storage.readDouble,
+                      tc.VAR_ROAD_ID:         trace_.Storage.readString,
+                      tc.VAR_LANE_ID:         trace_.Storage.readString,
+                      tc.VAR_LANE_INDEX:      trace_.Storage.readInt,
+                      tc.VAR_TYPE:            trace_.Storage.readString,
+                      tc.VAR_ROUTE_ID:        trace_.Storage.readString,
                       tc.VAR_COLOR:           lambda result: result.read("!BBBB"),
-                      tc.VAR_LANEPOSITION:    trace.Storage.readDouble,
-                      tc.VAR_CO2EMISSION:     trace.Storage.readDouble,
-                      tc.VAR_COEMISSION:      trace.Storage.readDouble,
-                      tc.VAR_HCEMISSION:      trace.Storage.readDouble,
-                      tc.VAR_PMXEMISSION:     trace.Storage.readDouble,
-                      tc.VAR_NOXEMISSION:     trace.Storage.readDouble,
-                      tc.VAR_FUELCONSUMPTION: trace.Storage.readDouble,
-                      tc.VAR_NOISEEMISSION:   trace.Storage.readDouble,
-                      tc.VAR_EDGE_TRAVELTIME: trace.Storage.readDouble,
-                      tc.VAR_EDGE_EFFORT:     trace.Storage.readDouble,
+                      tc.VAR_LANEPOSITION:    trace_.Storage.readDouble,
+                      tc.VAR_CO2EMISSION:     trace_.Storage.readDouble,
+                      tc.VAR_COEMISSION:      trace_.Storage.readDouble,
+                      tc.VAR_HCEMISSION:      trace_.Storage.readDouble,
+                      tc.VAR_PMXEMISSION:     trace_.Storage.readDouble,
+                      tc.VAR_NOXEMISSION:     trace_.Storage.readDouble,
+                      tc.VAR_FUELCONSUMPTION: trace_.Storage.readDouble,
+                      tc.VAR_NOISEEMISSION:   trace_.Storage.readDouble,
+                      tc.VAR_EDGE_TRAVELTIME: trace_.Storage.readDouble,
+                      tc.VAR_EDGE_EFFORT:     trace_.Storage.readDouble,
                       tc.VAR_ROUTE_VALID:     lambda result: bool(result.read("!B")[0]),
-                      tc.VAR_EDGES:           trace.Storage.readStringList,
-                      tc.VAR_SIGNALS:         trace.Storage.readInt,
-                      tc.VAR_LENGTH:          trace.Storage.readDouble,
-                      tc.VAR_MAXSPEED:        trace.Storage.readDouble,
-                      tc.VAR_VEHICLECLASS:    trace.Storage.readString,
-                      tc.VAR_SPEED_FACTOR:    trace.Storage.readDouble,
-                      tc.VAR_SPEED_DEVIATION: trace.Storage.readDouble,
-                      tc.VAR_EMISSIONCLASS:   trace.Storage.readString,
-                      tc.VAR_WIDTH:           trace.Storage.readDouble,
-                      tc.VAR_MINGAP:          trace.Storage.readDouble,
-                      tc.VAR_SHAPECLASS:      trace.Storage.readString,
-                      tc.VAR_ACCEL:           trace.Storage.readDouble,
-                      tc.VAR_DECEL:           trace.Storage.readDouble,
-                      tc.VAR_IMPERFECTION:    trace.Storage.readDouble,
-                      tc.VAR_TAU:             trace.Storage.readDouble,
+                      tc.VAR_EDGES:           trace_.Storage.readStringList,
+                      tc.VAR_SIGNALS:         trace_.Storage.readInt,
+                      tc.VAR_LENGTH:          trace_.Storage.readDouble,
+                      tc.VAR_MAXSPEED:        trace_.Storage.readDouble,
+                      tc.VAR_VEHICLECLASS:    trace_.Storage.readString,
+                      tc.VAR_SPEED_FACTOR:    trace_.Storage.readDouble,
+                      tc.VAR_SPEED_DEVIATION: trace_.Storage.readDouble,
+                      tc.VAR_EMISSIONCLASS:   trace_.Storage.readString,
+                      tc.VAR_WIDTH:           trace_.Storage.readDouble,
+                      tc.VAR_MINGAP:          trace_.Storage.readDouble,
+                      tc.VAR_SHAPECLASS:      trace_.Storage.readString,
+                      tc.VAR_ACCEL:           trace_.Storage.readDouble,
+                      tc.VAR_DECEL:           trace_.Storage.readDouble,
+                      tc.VAR_IMPERFECTION:    trace_.Storage.readDouble,
+                      tc.VAR_TAU:             trace_.Storage.readDouble,
                       tc.VAR_BEST_LANES:      _readBestLanes,
-                      tc.DISTANCE_REQUEST:    trace.Storage.readDouble}
-subscriptionResults = trace.SubscriptionResults(_RETURN_VALUE_FUNC)
+                      tc.DISTANCE_REQUEST:    trace_.Storage.readDouble}
+subscriptionResults = trace_.SubscriptionResults(_RETURN_VALUE_FUNC)
 
 def _getUniversal(varID, vehID):
-    result = trace._sendReadOneStringCmd(tc.CMD_GET_VEHICLE_VARIABLE, varID, vehID)
+    result = trace_._sendReadOneStringCmd(tc.CMD_GET_VEHICLE_VARIABLE, varID, vehID)
     return _RETURN_VALUE_FUNC[varID](result)
 
 def getIDList():
@@ -226,20 +226,20 @@ def getAdaptedTraveltime(vehID, time, edgeID):
     
     .
     """
-    trace._beginMessage(tc.CMD_GET_VEHICLE_VARIABLE, tc.VAR_EDGE_TRAVELTIME, vehID, 1+4+1+4+1+4+len(edgeID))
-    trace._message.string += struct.pack("!BiBiBi", tc.TYPE_COMPOUND, 2, tc.TYPE_INTEGER, time,
-                                         tc.TYPE_STRING, len(edgeID)) + edgeID
-    return trace._checkResult(tc.CMD_GET_VEHICLE_VARIABLE, tc.VAR_EDGE_TRAVELTIME, vehID).readDouble()
+    trace_._beginMessage(tc.CMD_GET_VEHICLE_VARIABLE, tc.VAR_EDGE_TRAVELTIME, vehID, 1 + 4 + 1 + 4 + 1 + 4 + len(edgeID))
+    trace_._message.string += struct.pack("!BiBiBi", tc.TYPE_COMPOUND, 2, tc.TYPE_INTEGER, time,
+                                          tc.TYPE_STRING, len(edgeID)) + edgeID
+    return trace_._checkResult(tc.CMD_GET_VEHICLE_VARIABLE, tc.VAR_EDGE_TRAVELTIME, vehID).readDouble()
 
 def getEffort(vehID, time, edgeID):
     """getEffort(string, double, string) -> double
     
     .
     """
-    trace._beginMessage(tc.CMD_GET_VEHICLE_VARIABLE, tc.VAR_EDGE_EFFORT, vehID, 1+4+1+4+1+4+len(edgeID))
-    trace._message.string += struct.pack("!BiBiBi", tc.TYPE_COMPOUND, 2, tc.TYPE_INTEGER, time,
-                                         tc.TYPE_STRING, len(edgeID)) + edgeID
-    return trace._checkResult(tc.CMD_GET_VEHICLE_VARIABLE, tc.VAR_EDGE_EFFORT, vehID).readDouble()
+    trace_._beginMessage(tc.CMD_GET_VEHICLE_VARIABLE, tc.VAR_EDGE_EFFORT, vehID, 1 + 4 + 1 + 4 + 1 + 4 + len(edgeID))
+    trace_._message.string += struct.pack("!BiBiBi", tc.TYPE_COMPOUND, 2, tc.TYPE_INTEGER, time,
+                                          tc.TYPE_STRING, len(edgeID)) + edgeID
+    return trace_._checkResult(tc.CMD_GET_VEHICLE_VARIABLE, tc.VAR_EDGE_EFFORT, vehID).readDouble()
 
 def isRouteValid(vehID):
     return _getUniversal(tc.VAR_ROUTE_VALID, vehID)
@@ -354,21 +354,21 @@ def getDrivingDistance(vehID, edgeID, pos, laneID=0):
     
     .
     """
-    trace._beginMessage(tc.CMD_GET_VEHICLE_VARIABLE, tc.DISTANCE_REQUEST, vehID, 1+4+1+4+len(edgeID)+4+1+1)
-    trace._message.string += struct.pack("!BiBi", tc.TYPE_COMPOUND, 2,
-                                         tc.POSITION_ROADMAP, len(edgeID)) + edgeID
-    trace._message.string += struct.pack("!dBB", pos, laneID, REQUEST_DRIVINGDIST)
-    return trace._checkResult(tc.CMD_GET_VEHICLE_VARIABLE, tc.DISTANCE_REQUEST, vehID).readDouble()
+    trace_._beginMessage(tc.CMD_GET_VEHICLE_VARIABLE, tc.DISTANCE_REQUEST, vehID, 1 + 4 + 1 + 4 + len(edgeID) + 4 + 1 + 1)
+    trace_._message.string += struct.pack("!BiBi", tc.TYPE_COMPOUND, 2,
+                                          tc.POSITION_ROADMAP, len(edgeID)) + edgeID
+    trace_._message.string += struct.pack("!dBB", pos, laneID, REQUEST_DRIVINGDIST)
+    return trace_._checkResult(tc.CMD_GET_VEHICLE_VARIABLE, tc.DISTANCE_REQUEST, vehID).readDouble()
 
 def getDrivingDistance2D(vehID, x, y):
     """getDrivingDistance2D(string, double, double) -> integer
     
     .
     """
-    trace._beginMessage(tc.CMD_GET_VEHICLE_VARIABLE, tc.DISTANCE_REQUEST, vehID, 1+4+1+4+4+1)
-    trace._message.string += struct.pack("!BiBddB", tc.TYPE_COMPOUND, 2,
-                                         tc.POSITION_2D, x, y, REQUEST_DRIVINGDIST)
-    return trace._checkResult(tc.CMD_GET_VEHICLE_VARIABLE, tc.DISTANCE_REQUEST, vehID).readDouble()
+    trace_._beginMessage(tc.CMD_GET_VEHICLE_VARIABLE, tc.DISTANCE_REQUEST, vehID, 1 + 4 + 1 + 4 + 4 + 1)
+    trace_._message.string += struct.pack("!BiBddB", tc.TYPE_COMPOUND, 2,
+                                          tc.POSITION_2D, x, y, REQUEST_DRIVINGDIST)
+    return trace_._checkResult(tc.CMD_GET_VEHICLE_VARIABLE, tc.DISTANCE_REQUEST, vehID).readDouble()
 
 
 def subscribe(vehID, varIDs=(tc.VAR_ROAD_ID, tc.VAR_LANEPOSITION), begin=0, end=2**31-1):
@@ -378,7 +378,7 @@ def subscribe(vehID, varIDs=(tc.VAR_ROAD_ID, tc.VAR_LANEPOSITION), begin=0, end=
     A call to this method clears all previous subscription results.
     """
     subscriptionResults.reset()
-    trace._subscribe(tc.CMD_SUBSCRIBE_VEHICLE_VARIABLE, begin, end, vehID, varIDs)
+    trace_._subscribe(tc.CMD_SUBSCRIBE_VEHICLE_VARIABLE, begin, end, vehID, varIDs)
 
 def getSubscriptionResults(vehID=None):
     """getSubscriptionResults(string) -> dict(integer: <value_type>)
@@ -394,37 +394,37 @@ def getSubscriptionResults(vehID=None):
 
 def subscribeContext(vehID, domain, dist, varIDs=(tc.VAR_ROAD_ID, tc.VAR_LANEPOSITION), begin=0, end=2**31-1):
     subscriptionResults.reset()
-    trace._subscribeContext(tc.CMD_SUBSCRIBE_VEHICLE_CONTEXT, begin, end, vehID, domain, dist, varIDs)
+    trace_._subscribeContext(tc.CMD_SUBSCRIBE_VEHICLE_CONTEXT, begin, end, vehID, domain, dist, varIDs)
 
 def getContextSubscriptionResults(vehID=None):
     return subscriptionResults.getContext(vehID)
 
 
 def setMaxSpeed(vehID, speed):
-    trace._sendDoubleCmd(tc.CMD_SET_VEHICLE_VARIABLE, tc.VAR_MAXSPEED, vehID, speed)
+    trace_._sendDoubleCmd(tc.CMD_SET_VEHICLE_VARIABLE, tc.VAR_MAXSPEED, vehID, speed)
 
 def setStop(vehID, edgeID, pos=1., laneIndex=0, duration=2**31-1):
-    trace._beginMessage(tc.CMD_SET_VEHICLE_VARIABLE, tc.CMD_STOP, vehID, 1+4+1+4+len(edgeID)+1+8+1+1+1+4)
-    trace._message.string += struct.pack("!Bi", tc.TYPE_COMPOUND, 4)
-    trace._message.string += struct.pack("!Bi", tc.TYPE_STRING, len(edgeID)) + edgeID
-    trace._message.string += struct.pack("!BdBBBi", tc.TYPE_DOUBLE, pos, tc.TYPE_BYTE, laneIndex, tc.TYPE_INTEGER, duration)
-    trace._sendExact()
+    trace_._beginMessage(tc.CMD_SET_VEHICLE_VARIABLE, tc.CMD_STOP, vehID, 1 + 4 + 1 + 4 + len(edgeID) + 1 + 8 + 1 + 1 + 1 + 4)
+    trace_._message.string += struct.pack("!Bi", tc.TYPE_COMPOUND, 4)
+    trace_._message.string += struct.pack("!Bi", tc.TYPE_STRING, len(edgeID)) + edgeID
+    trace_._message.string += struct.pack("!BdBBBi", tc.TYPE_DOUBLE, pos, tc.TYPE_BYTE, laneIndex, tc.TYPE_INTEGER, duration)
+    trace_._sendExact()
 
 def changeLane(vehID, laneIndex, duration):
-    trace._beginMessage(tc.CMD_SET_VEHICLE_VARIABLE, tc.CMD_CHANGELANE, vehID, 1+4+1+1+1+4)
-    trace._message.string += struct.pack("!BiBBBi", tc.TYPE_COMPOUND, 2, tc.TYPE_BYTE, laneIndex, tc.TYPE_INTEGER, duration)
-    trace._sendExact()
+    trace_._beginMessage(tc.CMD_SET_VEHICLE_VARIABLE, tc.CMD_CHANGELANE, vehID, 1 + 4 + 1 + 1 + 1 + 4)
+    trace_._message.string += struct.pack("!BiBBBi", tc.TYPE_COMPOUND, 2, tc.TYPE_BYTE, laneIndex, tc.TYPE_INTEGER, duration)
+    trace_._sendExact()
 
 def slowDown(vehID, speed, duration):
-    trace._beginMessage(tc.CMD_SET_VEHICLE_VARIABLE, tc.CMD_SLOWDOWN, vehID, 1+4+1+8+1+4)
-    trace._message.string += struct.pack("!BiBdBi", tc.TYPE_COMPOUND, 2, tc.TYPE_DOUBLE, speed, tc.TYPE_INTEGER, duration)
-    trace._sendExact()
+    trace_._beginMessage(tc.CMD_SET_VEHICLE_VARIABLE, tc.CMD_SLOWDOWN, vehID, 1 + 4 + 1 + 8 + 1 + 4)
+    trace_._message.string += struct.pack("!BiBdBi", tc.TYPE_COMPOUND, 2, tc.TYPE_DOUBLE, speed, tc.TYPE_INTEGER, duration)
+    trace_._sendExact()
 
 def changeTarget(vehID, edgeID):
-    trace._sendStringCmd(tc.CMD_SET_VEHICLE_VARIABLE, tc.CMD_CHANGETARGET, vehID, edgeID)
+    trace_._sendStringCmd(tc.CMD_SET_VEHICLE_VARIABLE, tc.CMD_CHANGETARGET, vehID, edgeID)
 
 def setRouteID(vehID, routeID):
-    trace._sendStringCmd(tc.CMD_SET_VEHICLE_VARIABLE, tc.VAR_ROUTE_ID, vehID, routeID)
+    trace_._sendStringCmd(tc.CMD_SET_VEHICLE_VARIABLE, tc.VAR_ROUTE_ID, vehID, routeID)
 
 def setRoute(vehID, edgeList):
     """
@@ -436,49 +436,49 @@ def setRoute(vehID, edgeList):
     
     this changes route for vehicle id 1 to edges 1-2-4-6-7
     """
-    trace._beginMessage(tc.CMD_SET_VEHICLE_VARIABLE, tc.VAR_ROUTE, vehID,
-                        1+4+sum(map(len, edgeList))+4*len(edgeList))
-    trace._message.string += struct.pack("!Bi", tc.TYPE_STRINGLIST, len(edgeList))
+    trace_._beginMessage(tc.CMD_SET_VEHICLE_VARIABLE, tc.VAR_ROUTE, vehID,
+                         1 + 4 + sum(map(len, edgeList)) + 4 * len(edgeList))
+    trace_._message.string += struct.pack("!Bi", tc.TYPE_STRINGLIST, len(edgeList))
     for edge in edgeList:
-        trace._message.string += struct.pack("!i", len(edge)) + edge
-    trace._sendExact()
+        trace_._message.string += struct.pack("!i", len(edge)) + edge
+    trace_._sendExact()
 
 def setAdaptedTraveltime(vehID, begTime, endTime, edgeID, time):
-    trace._beginMessage(tc.CMD_SET_VEHICLE_VARIABLE, tc.VAR_EDGE_TRAVELTIME, vehID, 1+4+1+4+1+4+1+4+len(edgeID)+1+8)
-    trace._message.string += struct.pack("!BiBiBiBi", tc.TYPE_COMPOUND, 4, tc.TYPE_INTEGER, begTime,
-                                         tc.TYPE_INTEGER, endTime, tc.TYPE_STRING, len(edgeID)) + edgeID
-    trace._message.string += struct.pack("!Bd", tc.TYPE_DOUBLE, time)
-    trace._sendExact()
+    trace_._beginMessage(tc.CMD_SET_VEHICLE_VARIABLE, tc.VAR_EDGE_TRAVELTIME, vehID, 1 + 4 + 1 + 4 + 1 + 4 + 1 + 4 + len(edgeID) + 1 + 8)
+    trace_._message.string += struct.pack("!BiBiBiBi", tc.TYPE_COMPOUND, 4, tc.TYPE_INTEGER, begTime,
+                                          tc.TYPE_INTEGER, endTime, tc.TYPE_STRING, len(edgeID)) + edgeID
+    trace_._message.string += struct.pack("!Bd", tc.TYPE_DOUBLE, time)
+    trace_._sendExact()
 
 def setEffort(vehID, begTime, endTime, edgeID, effort):
-    trace._beginMessage(tc.CMD_SET_VEHICLE_VARIABLE, tc.VAR_EDGE_EFFORT, vehID, 1+4+1+4+1+4+1+4+len(edgeID)+1+4)
-    trace._message.string += struct.pack("!BiBiBiBi", tc.TYPE_COMPOUND, 4, tc.TYPE_INTEGER, begTime,
-                                         tc.TYPE_INTEGER, endTime, tc.TYPE_STRING, len(edgeID)) + edgeID
-    trace._message.string += struct.pack("!Bd", tc.TYPE_DOUBLE, effort)
-    trace._sendExact()
+    trace_._beginMessage(tc.CMD_SET_VEHICLE_VARIABLE, tc.VAR_EDGE_EFFORT, vehID, 1 + 4 + 1 + 4 + 1 + 4 + 1 + 4 + len(edgeID) + 1 + 4)
+    trace_._message.string += struct.pack("!BiBiBiBi", tc.TYPE_COMPOUND, 4, tc.TYPE_INTEGER, begTime,
+                                          tc.TYPE_INTEGER, endTime, tc.TYPE_STRING, len(edgeID)) + edgeID
+    trace_._message.string += struct.pack("!Bd", tc.TYPE_DOUBLE, effort)
+    trace_._sendExact()
 
 def rerouteTraveltime(vehID):
-    trace._beginMessage(tc.CMD_SET_VEHICLE_VARIABLE, tc.CMD_REROUTE_TRAVELTIME, vehID, 1+4)
-    trace._message.string += struct.pack("!Bi", tc.TYPE_COMPOUND, 0)
-    trace._sendExact()
+    trace_._beginMessage(tc.CMD_SET_VEHICLE_VARIABLE, tc.CMD_REROUTE_TRAVELTIME, vehID, 1 + 4)
+    trace_._message.string += struct.pack("!Bi", tc.TYPE_COMPOUND, 0)
+    trace_._sendExact()
 
 def rerouteEffort(vehID):
-    trace._beginMessage(tc.CMD_SET_VEHICLE_VARIABLE, tc.CMD_REROUTE_EFFORT, vehID, 1+4)
-    trace._message.string += struct.pack("!Bi", tc.TYPE_COMPOUND, 0)
-    trace._sendExact()
+    trace_._beginMessage(tc.CMD_SET_VEHICLE_VARIABLE, tc.CMD_REROUTE_EFFORT, vehID, 1 + 4)
+    trace_._message.string += struct.pack("!Bi", tc.TYPE_COMPOUND, 0)
+    trace_._sendExact()
 
 def setSignals(vehID, signals):
-    trace._sendIntCmd(tc.CMD_SET_VEHICLE_VARIABLE, tc.VAR_SIGNALS, vehID, signals)
+    trace_._sendIntCmd(tc.CMD_SET_VEHICLE_VARIABLE, tc.VAR_SIGNALS, vehID, signals)
 
 def moveTo(vehID, laneID, pos):
-    trace._beginMessage(tc.CMD_SET_VEHICLE_VARIABLE, tc.VAR_MOVE_TO, vehID, 1+4+1+4+len(laneID)+1+8)
-    trace._message.string += struct.pack("!Bi", tc.TYPE_COMPOUND, 2)
-    trace._message.string += struct.pack("!Bi", tc.TYPE_STRING, len(laneID)) + laneID
-    trace._message.string += struct.pack("!Bd", tc.TYPE_DOUBLE, pos)
-    trace._sendExact()
+    trace_._beginMessage(tc.CMD_SET_VEHICLE_VARIABLE, tc.VAR_MOVE_TO, vehID, 1 + 4 + 1 + 4 + len(laneID) + 1 + 8)
+    trace_._message.string += struct.pack("!Bi", tc.TYPE_COMPOUND, 2)
+    trace_._message.string += struct.pack("!Bi", tc.TYPE_STRING, len(laneID)) + laneID
+    trace_._message.string += struct.pack("!Bd", tc.TYPE_DOUBLE, pos)
+    trace_._sendExact()
 
 def setSpeed(vehID, speed):
-    trace._sendDoubleCmd(tc.CMD_SET_VEHICLE_VARIABLE, tc.VAR_SPEED, vehID, speed)
+    trace_._sendDoubleCmd(tc.CMD_SET_VEHICLE_VARIABLE, tc.VAR_SPEED, vehID, speed)
 
 def setColor(vehID, color):
     """setColor(string, (integer, integer, integer, integer))
@@ -486,70 +486,70 @@ def setColor(vehID, color):
     i.e. (255,0,0,0) for the color red. 
     The fourth integer (alpha) is currently ignored
     """
-    trace._beginMessage(tc.CMD_SET_VEHICLE_VARIABLE, tc.VAR_COLOR, vehID, 1+1+1+1+1)
-    trace._message.string += struct.pack("!BBBBB", tc.TYPE_COLOR, int(color[0]), int(color[1]), int(color[2]), int(color[3]))
-    trace._sendExact()
+    trace_._beginMessage(tc.CMD_SET_VEHICLE_VARIABLE, tc.VAR_COLOR, vehID, 1 + 1 + 1 + 1 + 1)
+    trace_._message.string += struct.pack("!BBBBB", tc.TYPE_COLOR, int(color[0]), int(color[1]), int(color[2]), int(color[3]))
+    trace_._sendExact()
 
 def setLength(vehID, length):
-    trace._sendDoubleCmd(tc.CMD_SET_VEHICLE_VARIABLE, tc.VAR_LENGTH, vehID, length)
+    trace_._sendDoubleCmd(tc.CMD_SET_VEHICLE_VARIABLE, tc.VAR_LENGTH, vehID, length)
 
 def setVehicleClass(vehID, clazz):
-    trace._sendStringCmd(tc.CMD_SET_VEHICLE_VARIABLE, tc.VAR_VEHICLECLASS, vehID, clazz)
+    trace_._sendStringCmd(tc.CMD_SET_VEHICLE_VARIABLE, tc.VAR_VEHICLECLASS, vehID, clazz)
 
 def setSpeedFactor(vehID, factor):
-    trace._sendDoubleCmd(tc.CMD_SET_VEHICLE_VARIABLE, tc.VAR_SPEED_FACTOR, vehID, factor)
+    trace_._sendDoubleCmd(tc.CMD_SET_VEHICLE_VARIABLE, tc.VAR_SPEED_FACTOR, vehID, factor)
 
 def setSpeedDeviation(vehID, deviation):
-    trace._sendDoubleCmd(tc.CMD_SET_VEHICLE_VARIABLE, tc.VAR_SPEED_DEVIATION, vehID, deviation)
+    trace_._sendDoubleCmd(tc.CMD_SET_VEHICLE_VARIABLE, tc.VAR_SPEED_DEVIATION, vehID, deviation)
 
 def setEmissionClass(vehID, clazz):
-    trace._sendStringCmd(tc.CMD_SET_VEHICLE_VARIABLE, tc.VAR_EMISSIONCLASS, vehID, clazz)
+    trace_._sendStringCmd(tc.CMD_SET_VEHICLE_VARIABLE, tc.VAR_EMISSIONCLASS, vehID, clazz)
 
 def setWidth(vehID, width):
-    trace._sendDoubleCmd(tc.CMD_SET_VEHICLE_VARIABLE, tc.VAR_WIDTH, vehID, width)
+    trace_._sendDoubleCmd(tc.CMD_SET_VEHICLE_VARIABLE, tc.VAR_WIDTH, vehID, width)
 
 def setMinGap(vehID, minGap):
-    trace._sendDoubleCmd(tc.CMD_SET_VEHICLE_VARIABLE, tc.VAR_MINGAP, vehID, minGap)
+    trace_._sendDoubleCmd(tc.CMD_SET_VEHICLE_VARIABLE, tc.VAR_MINGAP, vehID, minGap)
 
 def setShapeClass(vehID, clazz):
-    trace._sendStringCmd(tc.CMD_SET_VEHICLE_VARIABLE, tc.VAR_SHAPECLASS, vehID, clazz)
+    trace_._sendStringCmd(tc.CMD_SET_VEHICLE_VARIABLE, tc.VAR_SHAPECLASS, vehID, clazz)
 
 def setAccel(vehID, accel):
-    trace._sendDoubleCmd(tc.CMD_SET_VEHICLE_VARIABLE, tc.VAR_ACCEL, vehID, accel)
+    trace_._sendDoubleCmd(tc.CMD_SET_VEHICLE_VARIABLE, tc.VAR_ACCEL, vehID, accel)
 
 def setDecel(vehID, decel):
-    trace._sendDoubleCmd(tc.CMD_SET_VEHICLE_VARIABLE, tc.VAR_DECEL, vehID, decel)
+    trace_._sendDoubleCmd(tc.CMD_SET_VEHICLE_VARIABLE, tc.VAR_DECEL, vehID, decel)
 
 def setImperfection(vehID, imperfection):
-    trace._sendDoubleCmd(tc.CMD_SET_VEHICLE_VARIABLE, tc.VAR_IMPERFECTION, vehID, imperfection)
+    trace_._sendDoubleCmd(tc.CMD_SET_VEHICLE_VARIABLE, tc.VAR_IMPERFECTION, vehID, imperfection)
 
 def setTau(vehID, tau):
-    trace._sendDoubleCmd(tc.CMD_SET_VEHICLE_VARIABLE, tc.VAR_TAU, vehID, tau)
+    trace_._sendDoubleCmd(tc.CMD_SET_VEHICLE_VARIABLE, tc.VAR_TAU, vehID, tau)
 
 def add(vehID, routeID, depart=DEPART_NOW, pos=0, speed=0, lane=0, typeID="DEFAULT_VEHTYPE"):
-    trace._beginMessage(tc.CMD_SET_VEHICLE_VARIABLE, tc.ADD, vehID,
-                        1+4 + 1+4+len(typeID) + 1+4+len(routeID) + 1+4 + 1+8 + 1+8 + 1+1)
+    trace_._beginMessage(tc.CMD_SET_VEHICLE_VARIABLE, tc.ADD, vehID,
+                         1 + 4 + 1 + 4 + len(typeID) + 1 + 4 + len(routeID) + 1 + 4 + 1 + 8 + 1 + 8 + 1 + 1)
     if depart > 0:
         depart *= 1000
-    trace._message.string += struct.pack("!Bi", tc.TYPE_COMPOUND, 6)
-    trace._message.string += struct.pack("!Bi", tc.TYPE_STRING, len(typeID)) + typeID
-    trace._message.string += struct.pack("!Bi", tc.TYPE_STRING, len(routeID)) + routeID
-    trace._message.string += struct.pack("!Bi", tc.TYPE_INTEGER, depart)
-    trace._message.string += struct.pack("!BdBd", tc.TYPE_DOUBLE, pos, tc.TYPE_DOUBLE, speed)
-    trace._message.string += struct.pack("!BB", tc.TYPE_BYTE, lane)
-    trace._sendExact()
+    trace_._message.string += struct.pack("!Bi", tc.TYPE_COMPOUND, 6)
+    trace_._message.string += struct.pack("!Bi", tc.TYPE_STRING, len(typeID)) + typeID
+    trace_._message.string += struct.pack("!Bi", tc.TYPE_STRING, len(routeID)) + routeID
+    trace_._message.string += struct.pack("!Bi", tc.TYPE_INTEGER, depart)
+    trace_._message.string += struct.pack("!BdBd", tc.TYPE_DOUBLE, pos, tc.TYPE_DOUBLE, speed)
+    trace_._message.string += struct.pack("!BB", tc.TYPE_BYTE, lane)
+    trace_._sendExact()
 
 def remove(vehID, reason=tc.REMOVE_VAPORIZED):
     '''Remove vehicle with the given ID for the give reason. 
        Reasons are defined in module constants and start with REMOVE_'''
-    trace._sendByteCmd(tc.CMD_SET_VEHICLE_VARIABLE, tc.REMOVE, vehID, reason)
+    trace_._sendByteCmd(tc.CMD_SET_VEHICLE_VARIABLE, tc.REMOVE, vehID, reason)
 
 def moveToVTD(vehID, edgeID, lane, x, y):
-    trace._beginMessage(tc.CMD_SET_VEHICLE_VARIABLE, tc.VAR_MOVE_TO_VTD, vehID, 1+4+1+4+len(edgeID)+1+4+1+8+1+8)
-    trace._message.string += struct.pack("!Bi", tc.TYPE_COMPOUND, 4)
-    trace._message.string += struct.pack("!Bi", tc.TYPE_STRING, len(edgeID)) + edgeID
-    trace._message.string += struct.pack("!Bi", tc.TYPE_INTEGER, lane)    
-    trace._message.string += struct.pack("!Bd", tc.TYPE_DOUBLE, x)
-    trace._message.string += struct.pack("!Bd", tc.TYPE_DOUBLE, y)
-    trace._sendExact()
+    trace_._beginMessage(tc.CMD_SET_VEHICLE_VARIABLE, tc.VAR_MOVE_TO_VTD, vehID, 1 + 4 + 1 + 4 + len(edgeID) + 1 + 4 + 1 + 8 + 1 + 8)
+    trace_._message.string += struct.pack("!Bi", tc.TYPE_COMPOUND, 4)
+    trace_._message.string += struct.pack("!Bi", tc.TYPE_STRING, len(edgeID)) + edgeID
+    trace_._message.string += struct.pack("!Bi", tc.TYPE_INTEGER, lane)
+    trace_._message.string += struct.pack("!Bd", tc.TYPE_DOUBLE, x)
+    trace_._message.string += struct.pack("!Bd", tc.TYPE_DOUBLE, y)
+    trace_._sendExact()
 

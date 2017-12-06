@@ -12,8 +12,8 @@ Copyright (C) 2011 DLR (http://www.dlr.de/) and contributors
 All rights reserved
 """
 import struct
-from mininet.sumo.traci import trace
-from mininet.sumo.traci import constants as tc
+from . import trace_
+from . import constants as tc
 
 class Phase:
     def __init__(self, duration, duration1, duration2, phaseDef):
@@ -89,18 +89,18 @@ def _readLinks(result):
     return signals
 
 
-_RETURN_VALUE_FUNC = {tc.ID_LIST:                     trace.Storage.readStringList,
-                      tc.TL_RED_YELLOW_GREEN_STATE:   trace.Storage.readString,
+_RETURN_VALUE_FUNC = {tc.ID_LIST:                     trace_.Storage.readStringList,
+                      tc.TL_RED_YELLOW_GREEN_STATE:   trace_.Storage.readString,
                       tc.TL_COMPLETE_DEFINITION_RYG:  _readLogics,
-                      tc.TL_CONTROLLED_LANES:         trace.Storage.readStringList,
+                      tc.TL_CONTROLLED_LANES:         trace_.Storage.readStringList,
                       tc.TL_CONTROLLED_LINKS:         _readLinks,
-                      tc.TL_CURRENT_PROGRAM:          trace.Storage.readString,
-                      tc.TL_CURRENT_PHASE:            trace.Storage.readInt,
-                      tc.TL_NEXT_SWITCH:              trace.Storage.readInt}
-subscriptionResults = trace.SubscriptionResults(_RETURN_VALUE_FUNC)
+                      tc.TL_CURRENT_PROGRAM:          trace_.Storage.readString,
+                      tc.TL_CURRENT_PHASE:            trace_.Storage.readInt,
+                      tc.TL_NEXT_SWITCH:              trace_.Storage.readInt}
+subscriptionResults = trace_.SubscriptionResults(_RETURN_VALUE_FUNC)
 
 def _getUniversal(varID, tlsID):
-    result = trace._sendReadOneStringCmd(tc.CMD_GET_TL_VARIABLE, varID, tlsID)
+    result = trace_._sendReadOneStringCmd(tc.CMD_GET_TL_VARIABLE, varID, tlsID)
     return _RETURN_VALUE_FUNC[varID](result)
 
 def getIDList():
@@ -167,7 +167,7 @@ def subscribe(tlsID, varIDs=(tc.TL_CURRENT_PHASE,), begin=0, end=2**31-1):
     A call to this method clears all previous subscription results.
     """
     subscriptionResults.reset()
-    trace._subscribe(tc.CMD_SUBSCRIBE_TL_VARIABLE, begin, end, tlsID, varIDs)
+    trace_._subscribe(tc.CMD_SUBSCRIBE_TL_VARIABLE, begin, end, tlsID, varIDs)
 
 def getSubscriptionResults(tlsID=None):
     """getSubscriptionResults(string) -> dict(integer: <value_type>)
@@ -183,23 +183,23 @@ def getSubscriptionResults(tlsID=None):
 
 def subscribeContext(tlsID, domain, dist, varIDs=(tc.TL_CURRENT_PHASE,), begin=0, end=2**31-1):
     subscriptionResults.reset()
-    trace._subscribeContext(tc.CMD_SUBSCRIBE_TL_CONTEXT, begin, end, tlsID, domain, dist, varIDs)
+    trace_._subscribeContext(tc.CMD_SUBSCRIBE_TL_CONTEXT, begin, end, tlsID, domain, dist, varIDs)
 
 def getContextSubscriptionResults(tlsID=None):
     return subscriptionResults.getContext(tlsID)
 
 
 def setRedYellowGreenState(tlsID, state):
-    trace._sendStringCmd(tc.CMD_SET_TL_VARIABLE, tc.TL_RED_YELLOW_GREEN_STATE, tlsID, state)
+    trace_._sendStringCmd(tc.CMD_SET_TL_VARIABLE, tc.TL_RED_YELLOW_GREEN_STATE, tlsID, state)
 
 def setPhase(tlsID, index):
-    trace._sendIntCmd(tc.CMD_SET_TL_VARIABLE, tc.TL_PHASE_INDEX, tlsID, index)
+    trace_._sendIntCmd(tc.CMD_SET_TL_VARIABLE, tc.TL_PHASE_INDEX, tlsID, index)
 
 def setProgram(tlsID, programID):
-    trace._sendStringCmd(tc.CMD_SET_TL_VARIABLE, tc.TL_PROGRAM, tlsID, programID)
+    trace_._sendStringCmd(tc.CMD_SET_TL_VARIABLE, tc.TL_PROGRAM, tlsID, programID)
 
 def setPhaseDuration(tlsID, phaseDuration):
-    trace._sendIntCmd(tc.CMD_SET_TL_VARIABLE, tc.TL_PHASE_DURATION, tlsID, int(1000*phaseDuration))
+    trace_._sendIntCmd(tc.CMD_SET_TL_VARIABLE, tc.TL_PHASE_DURATION, tlsID, int(1000 * phaseDuration))
 
 def setCompleteRedYellowGreenDefinition(tlsID, tls):
     length = 1+4 + 1+4+len(tls._subID) + 1+4 + 1+4 + 1+4 + 1+4 # tls parameter
@@ -207,14 +207,14 @@ def setCompleteRedYellowGreenDefinition(tlsID, tls):
     for p in tls._phases:
         length += 1+4 + 1+4 + 1+4 + 1+4+len(p._phaseDef)
         itemNo += 4
-    trace._beginMessage(tc.CMD_SET_TL_VARIABLE, tc.TL_COMPLETE_PROGRAM_RYG, tlsID, length)
-    trace._message.string += struct.pack("!Bi", tc.TYPE_COMPOUND, itemNo)
-    trace._message.string += struct.pack("!Bi", tc.TYPE_STRING, len(tls._subID)) + tls._subID # programID
-    trace._message.string += struct.pack("!Bi", tc.TYPE_INTEGER, 0) # type
-    trace._message.string += struct.pack("!Bi", tc.TYPE_COMPOUND, 0) # subitems
-    trace._message.string += struct.pack("!Bi", tc.TYPE_INTEGER, tls._currentPhaseIndex) # index
-    trace._message.string += struct.pack("!Bi", tc.TYPE_INTEGER, len(tls._phases)) # phaseNo
+    trace_._beginMessage(tc.CMD_SET_TL_VARIABLE, tc.TL_COMPLETE_PROGRAM_RYG, tlsID, length)
+    trace_._message.string += struct.pack("!Bi", tc.TYPE_COMPOUND, itemNo)
+    trace_._message.string += struct.pack("!Bi", tc.TYPE_STRING, len(tls._subID)) + tls._subID # programID
+    trace_._message.string += struct.pack("!Bi", tc.TYPE_INTEGER, 0) # type
+    trace_._message.string += struct.pack("!Bi", tc.TYPE_COMPOUND, 0) # subitems
+    trace_._message.string += struct.pack("!Bi", tc.TYPE_INTEGER, tls._currentPhaseIndex) # index
+    trace_._message.string += struct.pack("!Bi", tc.TYPE_INTEGER, len(tls._phases)) # phaseNo
     for p in tls._phases:
-        trace._message.string += struct.pack("!BiBiBi", tc.TYPE_INTEGER, p._duration, tc.TYPE_INTEGER, p._duration1, tc.TYPE_INTEGER, p._duration2)
-        trace._message.string += struct.pack("!Bi", tc.TYPE_STRING, len(p._phaseDef)) + p._phaseDef
-    trace._sendExact()
+        trace_._message.string += struct.pack("!BiBiBi", tc.TYPE_INTEGER, p._duration, tc.TYPE_INTEGER, p._duration1, tc.TYPE_INTEGER, p._duration2)
+        trace_._message.string += struct.pack("!Bi", tc.TYPE_STRING, len(p._phaseDef)) + p._phaseDef
+    trace_._sendExact()

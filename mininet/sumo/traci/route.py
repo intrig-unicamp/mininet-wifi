@@ -13,15 +13,15 @@ Copyright (C) 2008-2013 DLR (http://www.dlr.de/) and contributors
 All rights reserved
 """
 import struct
-from mininet.sumo.traci import trace
-from mininet.sumo.traci import constants as tc
+from . import trace_
+from . import constants as tc
 
-_RETURN_VALUE_FUNC = {tc.ID_LIST:   trace.Storage.readStringList,
-                      tc.VAR_EDGES: trace.Storage.readStringList}
-subscriptionResults = trace.SubscriptionResults(_RETURN_VALUE_FUNC)
+_RETURN_VALUE_FUNC = {tc.ID_LIST:   trace_.Storage.readStringList,
+                      tc.VAR_EDGES: trace_.Storage.readStringList}
+subscriptionResults = trace_.SubscriptionResults(_RETURN_VALUE_FUNC)
 
 def _getUniversal(varID, routeID):
-    result = trace._sendReadOneStringCmd(tc.CMD_GET_ROUTE_VARIABLE, varID, routeID)
+    result = trace_._sendReadOneStringCmd(tc.CMD_GET_ROUTE_VARIABLE, varID, routeID)
     return _RETURN_VALUE_FUNC[varID](result)
 
 def getIDList():
@@ -46,7 +46,7 @@ def subscribe(routeID, varIDs=(tc.ID_LIST,), begin=0, end=2**31-1):
     A call to this method clears all previous subscription results.
     """
     subscriptionResults.reset()
-    trace._subscribe(tc.CMD_SUBSCRIBE_ROUTE_VARIABLE, begin, end, routeID, varIDs)
+    trace_._subscribe(tc.CMD_SUBSCRIBE_ROUTE_VARIABLE, begin, end, routeID, varIDs)
 
 def getSubscriptionResults(routeID=None):
     """getSubscriptionResults(string) -> dict(integer: <value_type>)
@@ -62,16 +62,16 @@ def getSubscriptionResults(routeID=None):
 
 def subscribeContext(routeID, domain, dist, varIDs=(tc.ID_LIST,), begin=0, end=2**31-1):
     subscriptionResults.reset()
-    trace._subscribeContext(tc.CMD_SUBSCRIBE_ROUTE_CONTEXT, begin, end, routeID, domain, dist, varIDs)
+    trace_._subscribeContext(tc.CMD_SUBSCRIBE_ROUTE_CONTEXT, begin, end, routeID, domain, dist, varIDs)
 
 def getContextSubscriptionResults(routeID=None):
     return subscriptionResults.getContext(routeID)
 
 
 def add(routeID, edges):
-    trace._beginMessage(tc.CMD_SET_ROUTE_VARIABLE, tc.ADD, routeID,
-                        1+4+sum(map(len, edges))+4*len(edges))
-    trace._message.string += struct.pack("!Bi", tc.TYPE_STRINGLIST, len(edges))
+    trace_._beginMessage(tc.CMD_SET_ROUTE_VARIABLE, tc.ADD, routeID,
+                         1 + 4 + sum(map(len, edges)) + 4 * len(edges))
+    trace_._message.string += struct.pack("!Bi", tc.TYPE_STRINGLIST, len(edges))
     for e in edges:
-        trace._message.string += struct.pack("!i", len(e)) + e
-    trace._sendExact()
+        trace_._message.string += struct.pack("!i", len(e)) + e
+    trace_._sendExact()

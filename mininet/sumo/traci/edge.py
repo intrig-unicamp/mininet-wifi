@@ -12,31 +12,31 @@ Copyright (C) 2011 DLR (http://www.dlr.de/) and contributors
 All rights reserved
 """
 import struct
-from mininet.sumo.traci import trace
-from mininet.sumo.traci import constants as tc
+from . import trace_
+from . import constants as tc
 
-_RETURN_VALUE_FUNC = {tc.ID_LIST:                   trace.Storage.readStringList,
-                      tc.ID_COUNT:                  trace.Storage.readInt,
-                      tc.VAR_EDGE_TRAVELTIME:       trace.Storage.readDouble,
-                      tc.VAR_EDGE_EFFORT:           trace.Storage.readDouble,
-                      tc.VAR_CO2EMISSION:           trace.Storage.readDouble,
-                      tc.VAR_COEMISSION:            trace.Storage.readDouble,
-                      tc.VAR_HCEMISSION:            trace.Storage.readDouble,
-                      tc.VAR_PMXEMISSION:           trace.Storage.readDouble,
-                      tc.VAR_NOXEMISSION:           trace.Storage.readDouble,
-                      tc.VAR_FUELCONSUMPTION:       trace.Storage.readDouble,
-                      tc.VAR_NOISEEMISSION:         trace.Storage.readDouble,
-                      tc.LAST_STEP_MEAN_SPEED:      trace.Storage.readDouble,
-                      tc.LAST_STEP_OCCUPANCY:       trace.Storage.readDouble,
-                      tc.LAST_STEP_LENGTH:          trace.Storage.readDouble,
-                      tc.VAR_CURRENT_TRAVELTIME:    trace.Storage.readDouble,
-                      tc.LAST_STEP_VEHICLE_NUMBER:  trace.Storage.readInt,
-                      tc.LAST_STEP_VEHICLE_HALTING_NUMBER: trace.Storage.readInt,
-                      tc.LAST_STEP_VEHICLE_ID_LIST: trace.Storage.readStringList}
-subscriptionResults = trace.SubscriptionResults(_RETURN_VALUE_FUNC)
+_RETURN_VALUE_FUNC = {tc.ID_LIST:                   trace_.Storage.readStringList,
+                      tc.ID_COUNT:                  trace_.Storage.readInt,
+                      tc.VAR_EDGE_TRAVELTIME:       trace_.Storage.readDouble,
+                      tc.VAR_EDGE_EFFORT:           trace_.Storage.readDouble,
+                      tc.VAR_CO2EMISSION:           trace_.Storage.readDouble,
+                      tc.VAR_COEMISSION:            trace_.Storage.readDouble,
+                      tc.VAR_HCEMISSION:            trace_.Storage.readDouble,
+                      tc.VAR_PMXEMISSION:           trace_.Storage.readDouble,
+                      tc.VAR_NOXEMISSION:           trace_.Storage.readDouble,
+                      tc.VAR_FUELCONSUMPTION:       trace_.Storage.readDouble,
+                      tc.VAR_NOISEEMISSION:         trace_.Storage.readDouble,
+                      tc.LAST_STEP_MEAN_SPEED:      trace_.Storage.readDouble,
+                      tc.LAST_STEP_OCCUPANCY:       trace_.Storage.readDouble,
+                      tc.LAST_STEP_LENGTH:          trace_.Storage.readDouble,
+                      tc.VAR_CURRENT_TRAVELTIME:    trace_.Storage.readDouble,
+                      tc.LAST_STEP_VEHICLE_NUMBER:  trace_.Storage.readInt,
+                      tc.LAST_STEP_VEHICLE_HALTING_NUMBER: trace_.Storage.readInt,
+                      tc.LAST_STEP_VEHICLE_ID_LIST: trace_.Storage.readStringList}
+subscriptionResults = trace_.SubscriptionResults(_RETURN_VALUE_FUNC)
 
 def _getUniversal(varID, edgeID):
-    result = trace._sendReadOneStringCmd(tc.CMD_GET_EDGE_VARIABLE, varID, edgeID)
+    result = trace_._sendReadOneStringCmd(tc.CMD_GET_EDGE_VARIABLE, varID, edgeID)
     return _RETURN_VALUE_FUNC[varID](result)
 
 def getIDList():
@@ -59,12 +59,12 @@ def getAdaptedTraveltime(edgeID, time):
     Returns the travel time value (in s) used for (re-)routing 
     which is valid on the edge at the given time.
     """
-    trace._beginMessage(tc.CMD_GET_EDGE_VARIABLE, tc.VAR_EDGE_TRAVELTIME,
-                        edgeID, 1+4)
-    trace._message.string += struct.pack("!Bi", tc.TYPE_INTEGER,
-                                         trace._TIME2STEPS(time))
-    return trace._checkResult(tc.CMD_GET_EDGE_VARIABLE,
-                              tc.VAR_EDGE_TRAVELTIME, edgeID).readDouble()
+    trace_._beginMessage(tc.CMD_GET_EDGE_VARIABLE, tc.VAR_EDGE_TRAVELTIME,
+                         edgeID, 1 + 4)
+    trace_._message.string += struct.pack("!Bi", tc.TYPE_INTEGER,
+                                          trace_._TIME2STEPS(time))
+    return trace_._checkResult(tc.CMD_GET_EDGE_VARIABLE,
+                               tc.VAR_EDGE_TRAVELTIME, edgeID).readDouble()
 
 def getEffort(edgeID, time):
     """getEffort(string, double) -> double
@@ -72,12 +72,12 @@ def getEffort(edgeID, time):
     Returns the effort value used for (re-)routing 
     which is valid on the edge at the given time.
     """
-    trace._beginMessage(tc.CMD_GET_EDGE_VARIABLE, tc.VAR_EDGE_EFFORT,
-                        edgeID, 1+4)
-    trace._message.string += struct.pack("!Bi", tc.TYPE_INTEGER,
-                                         trace._TIME2STEPS(time))
-    return trace._checkResult(tc.CMD_GET_EDGE_VARIABLE,
-                              tc.VAR_EDGE_EFFORT, edgeID).readDouble()
+    trace_._beginMessage(tc.CMD_GET_EDGE_VARIABLE, tc.VAR_EDGE_EFFORT,
+                         edgeID, 1 + 4)
+    trace_._message.string += struct.pack("!Bi", tc.TYPE_INTEGER,
+                                          trace_._TIME2STEPS(time))
+    return trace_._checkResult(tc.CMD_GET_EDGE_VARIABLE,
+                               tc.VAR_EDGE_EFFORT, edgeID).readDouble()
 
 def getCO2Emission(edgeID):
     """getCO2Emission(string) -> double
@@ -186,7 +186,7 @@ def subscribe(edgeID, varIDs=(tc.LAST_STEP_VEHICLE_NUMBER,), begin=0, end=2**31-
     A call to this method clears all previous subscription results.
     """
     subscriptionResults.reset()
-    trace._subscribe(tc.CMD_SUBSCRIBE_EDGE_VARIABLE, begin, end, edgeID, varIDs)
+    trace_._subscribe(tc.CMD_SUBSCRIBE_EDGE_VARIABLE, begin, end, edgeID, varIDs)
 
 def getSubscriptionResults(edgeID=None):
     """getSubscriptionResults(string) -> dict(integer: <value_type>)
@@ -202,7 +202,7 @@ def getSubscriptionResults(edgeID=None):
 
 def subscribeContext(edgeID, domain, dist, varIDs=(tc.LAST_STEP_VEHICLE_NUMBER,), begin=0, end=2**31-1):
     subscriptionResults.reset()
-    trace._subscribeContext(tc.CMD_SUBSCRIBE_EDGE_CONTEXT, begin, end, edgeID, domain, dist, varIDs)
+    trace_._subscribeContext(tc.CMD_SUBSCRIBE_EDGE_CONTEXT, begin, end, edgeID, domain, dist, varIDs)
 
 def getContextSubscriptionResults(edgeID=None):
     """getContextSubscriptionResults(string) -> dict(string: dict(integer: <value_type>))
@@ -222,22 +222,22 @@ def adaptTraveltime(edgeID, time):
     
     Adapt the travel time value (in s) used for (re-)routing for the given edge.
     """
-    trace._beginMessage(tc.CMD_SET_EDGE_VARIABLE, tc.VAR_EDGE_TRAVELTIME, edgeID, 1+4+1+8)
-    trace._message.string += struct.pack("!BiBd", tc.TYPE_COMPOUND, 1, tc.TYPE_DOUBLE, time)
-    trace._sendExact()
+    trace_._beginMessage(tc.CMD_SET_EDGE_VARIABLE, tc.VAR_EDGE_TRAVELTIME, edgeID, 1 + 4 + 1 + 8)
+    trace_._message.string += struct.pack("!BiBd", tc.TYPE_COMPOUND, 1, tc.TYPE_DOUBLE, time)
+    trace_._sendExact()
 
 def setEffort(edgeID, effort):
     """setEffort(string, double) -> None
     
     Adapt the effort value used for (re-)routing for the given edge.
     """
-    trace._beginMessage(tc.CMD_SET_EDGE_VARIABLE, tc.VAR_EDGE_EFFORT, edgeID, 1+4+1+8)
-    trace._message.string += struct.pack("!BiBd", tc.TYPE_COMPOUND, 1, tc.TYPE_DOUBLE, effort)
-    trace._sendExact()
+    trace_._beginMessage(tc.CMD_SET_EDGE_VARIABLE, tc.VAR_EDGE_EFFORT, edgeID, 1 + 4 + 1 + 8)
+    trace_._message.string += struct.pack("!BiBd", tc.TYPE_COMPOUND, 1, tc.TYPE_DOUBLE, effort)
+    trace_._sendExact()
 
 def setMaxSpeed(edgeID, speed):
     """setMaxSpeed(string, double) -> None
     
     Set a new maximum speed (in m/s) for all lanes of the edge..
     """
-    trace._sendDoubleCmd(tc.CMD_SET_EDGE_VARIABLE, tc.VAR_MAXSPEED, edgeID, speed)
+    trace_._sendDoubleCmd(tc.CMD_SET_EDGE_VARIABLE, tc.VAR_MAXSPEED, edgeID, speed)

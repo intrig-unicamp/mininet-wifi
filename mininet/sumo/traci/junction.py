@@ -11,15 +11,15 @@ SUMO, Simulation of Urban MObility; see http://sumo.sourceforge.net/
 Copyright (C) 2011 DLR (http://www.dlr.de/) and contributors
 All rights reserved
 """
-from mininet.sumo.traci import trace
-from mininet.sumo.traci import constants as tc
+from . import trace_
+from . import constants as tc
 
-_RETURN_VALUE_FUNC = {tc.ID_LIST:      trace.Storage.readStringList,
+_RETURN_VALUE_FUNC = {tc.ID_LIST:      trace_.Storage.readStringList,
                      tc.VAR_POSITION: lambda result: result.read("!dd")}
-subscriptionResults = trace.SubscriptionResults(_RETURN_VALUE_FUNC)
+subscriptionResults = trace_.SubscriptionResults(_RETURN_VALUE_FUNC)
 
 def _getUniversal(varID, junctionID):
-    result = trace._sendReadOneStringCmd(tc.CMD_GET_JUNCTION_VARIABLE, varID, junctionID)
+    result = trace_._sendReadOneStringCmd(tc.CMD_GET_JUNCTION_VARIABLE, varID, junctionID)
     return _RETURN_VALUE_FUNC[varID](result)
 
 def getIDList():
@@ -44,7 +44,7 @@ def subscribe(junctionID, varIDs=(tc.VAR_POSITION,), begin=0, end=2**31-1):
     A call to this method clears all previous subscription results.
     """
     subscriptionResults.reset()
-    trace._subscribe(tc.CMD_SUBSCRIBE_JUNCTION_VARIABLE, begin, end, junctionID, varIDs)
+    trace_._subscribe(tc.CMD_SUBSCRIBE_JUNCTION_VARIABLE, begin, end, junctionID, varIDs)
 
 def getSubscriptionResults(junctionID=None):
     """getSubscriptionResults(string) -> dict(integer: <value_type>)
@@ -60,7 +60,7 @@ def getSubscriptionResults(junctionID=None):
 
 def subscribeContext(junctionID, domain, dist, varIDs=(tc.VAR_POSITION,), begin=0, end=2**31-1):
     subscriptionResults.reset()
-    trace._subscribeContext(tc.CMD_SUBSCRIBE_JUNCTION_CONTEXT, begin, end, junctionID, domain, dist, varIDs)
+    trace_._subscribeContext(tc.CMD_SUBSCRIBE_JUNCTION_CONTEXT, begin, end, junctionID, domain, dist, varIDs)
 
 def getContextSubscriptionResults(junctionID=None):
     return subscriptionResults.getContext(junctionID)

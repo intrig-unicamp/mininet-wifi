@@ -13,19 +13,19 @@ Copyright (C) 2011 DLR (http://www.dlr.de/) and contributors
 All rights reserved
 """
 import struct
-from mininet.sumo.traci import trace
-from mininet.sumo.traci import constants as tc
+from . import trace_
+from . import constants as tc
 
 DEFAULT_VIEW = 'View #0'
-_RETURN_VALUE_FUNC = {tc.ID_LIST:           trace.Storage.readStringList,
-                      tc.VAR_VIEW_ZOOM:     trace.Storage.readDouble,
+_RETURN_VALUE_FUNC = {tc.ID_LIST:           trace_.Storage.readStringList,
+                      tc.VAR_VIEW_ZOOM:     trace_.Storage.readDouble,
                       tc.VAR_VIEW_OFFSET:   lambda result: result.read("!dd"),
-                      tc.VAR_VIEW_SCHEMA:   trace.Storage.readString,
+                      tc.VAR_VIEW_SCHEMA:   trace_.Storage.readString,
                       tc.VAR_VIEW_BOUNDARY: lambda result: (result.read("!dd"), result.read("!dd"))}
-subscriptionResults = trace.SubscriptionResults(_RETURN_VALUE_FUNC)
+subscriptionResults = trace_.SubscriptionResults(_RETURN_VALUE_FUNC)
 
 def _getUniversal(varID, viewID):
-    result = trace._sendReadOneStringCmd(tc.CMD_GET_GUI_VARIABLE, varID, viewID)
+    result = trace_._sendReadOneStringCmd(tc.CMD_GET_GUI_VARIABLE, varID, viewID)
     return _RETURN_VALUE_FUNC[varID](result)
 
 def getIDList():
@@ -71,7 +71,7 @@ def subscribe(viewID, varIDs=(tc.VAR_VIEW_OFFSET,), begin=0, end=2**31-1):
     A call to this method clears all previous subscription results.
     """
     subscriptionResults.reset()
-    trace._subscribe(tc.CMD_SUBSCRIBE_GUI_VARIABLE, begin, end, viewID, varIDs)
+    trace_._subscribe(tc.CMD_SUBSCRIBE_GUI_VARIABLE, begin, end, viewID, varIDs)
 
 def getSubscriptionResults(viewID=None):
     """getSubscriptionResults(string) -> dict(integer: <value_type>)
@@ -87,7 +87,7 @@ def getSubscriptionResults(viewID=None):
 
 def subscribeContext(viewID, domain, dist, varIDs=(tc.VAR_VIEW_OFFSET,), begin=0, end=2**31-1):
     subscriptionResults.reset()
-    trace._subscribeContext(tc.CMD_SUBSCRIBE_GUI_CONTEXT, begin, end, viewID, domain, dist, varIDs)
+    trace_._subscribeContext(tc.CMD_SUBSCRIBE_GUI_CONTEXT, begin, end, viewID, domain, dist, varIDs)
 
 def getContextSubscriptionResults(viewID=None):
     return subscriptionResults.getContext(viewID)
@@ -98,32 +98,32 @@ def setZoom(viewID, zoom):
     
     Set the current zoom factor for the given view.
     """
-    trace._sendDoubleCmd(tc.CMD_SET_GUI_VARIABLE, tc.VAR_VIEW_ZOOM, viewID, zoom)
+    trace_._sendDoubleCmd(tc.CMD_SET_GUI_VARIABLE, tc.VAR_VIEW_ZOOM, viewID, zoom)
 
 def setOffset(viewID, x, y):
     """setOffset(string, double, double) -> None
     
     Set the current offset for the given view.
     """
-    trace._beginMessage(tc.CMD_SET_GUI_VARIABLE, tc.VAR_VIEW_OFFSET, viewID, 1+8+8)
-    trace._message.string += struct.pack("!Bdd", tc.POSITION_2D, x, y)
-    trace._sendExact()
+    trace_._beginMessage(tc.CMD_SET_GUI_VARIABLE, tc.VAR_VIEW_OFFSET, viewID, 1 + 8 + 8)
+    trace_._message.string += struct.pack("!Bdd", tc.POSITION_2D, x, y)
+    trace_._sendExact()
 
 def setSchema(viewID, schemeName):
     """setSchema(string, string) -> None
     
     Set the current coloring scheme for the given view.
     """
-    trace._sendStringCmd(tc.CMD_SET_GUI_VARIABLE, tc.VAR_VIEW_SCHEMA, viewID, schemeName)
+    trace_._sendStringCmd(tc.CMD_SET_GUI_VARIABLE, tc.VAR_VIEW_SCHEMA, viewID, schemeName)
 
 def setBoundary(viewID, xmin, ymin, xmax, ymax):
     """setBoundary(string, double, double, double, double) -> None
     
     Set the current boundary for the given view (see getBoundary()).
     """
-    trace._beginMessage(tc.CMD_SET_GUI_VARIABLE, tc.VAR_VIEW_BOUNDARY, viewID, 1+8+8+8+8)
-    trace._message.string += struct.pack("!Bdddd", tc.TYPE_BOUNDINGBOX, xmin, ymin, xmax, ymax)
-    trace._sendExact()
+    trace_._beginMessage(tc.CMD_SET_GUI_VARIABLE, tc.VAR_VIEW_BOUNDARY, viewID, 1 + 8 + 8 + 8 + 8)
+    trace_._message.string += struct.pack("!Bdddd", tc.TYPE_BOUNDINGBOX, xmin, ymin, xmax, ymax)
+    trace_._sendExact()
 
 def screenshot(viewID, filename):
     """screenshot(string, string) -> None
@@ -133,11 +133,11 @@ def screenshot(viewID, filename):
     formats differ from platform to platform but should at least
     include ps, svg and pdf, on linux probably gif, png and jpg as well.
     """
-    trace._sendStringCmd(tc.CMD_SET_GUI_VARIABLE, tc.VAR_SCREENSHOT, viewID, filename)
+    trace_._sendStringCmd(tc.CMD_SET_GUI_VARIABLE, tc.VAR_SCREENSHOT, viewID, filename)
 
 def trackVehicle(viewID, vehID):
     """trackVehicle(string, string) -> None
     
     Start visually tracking the given vehicle on the given view.
     """
-    trace._sendStringCmd(tc.CMD_SET_GUI_VARIABLE, tc.VAR_TRACK_VEHICLE, viewID, vehID)
+    trace_._sendStringCmd(tc.CMD_SET_GUI_VARIABLE, tc.VAR_TRACK_VEHICLE, viewID, vehID)

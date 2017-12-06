@@ -12,8 +12,8 @@ SUMO, Simulation of Urban MObility; see http://sumo.sourceforge.net/
 Copyright (C) 2011 DLR (http://www.dlr.de/) and contributors
 All rights reserved
 """
-from mininet.sumo.traci import trace
-from mininet.sumo.traci import constants as tc
+from . import trace_
+from . import constants as tc
 
 
 def readVehicleData(result):
@@ -34,20 +34,20 @@ def readVehicleData(result):
         data.append( [ vehID, length, entryTime, leaveTime, typeID ] ) 
     return data
 
-_RETURN_VALUE_FUNC = {tc.ID_LIST:    trace.Storage.readStringList,
-                     tc.VAR_POSITION:       trace.Storage.readDouble,
-                     tc.VAR_LANE_ID:       trace.Storage.readString,
-                     tc.LAST_STEP_VEHICLE_NUMBER:       trace.Storage.readInt,
-                     tc.LAST_STEP_MEAN_SPEED:           trace.Storage.readDouble,
-                     tc.LAST_STEP_VEHICLE_ID_LIST:      trace.Storage.readStringList,
-                     tc.LAST_STEP_OCCUPANCY:            trace.Storage.readDouble,
-                     tc.LAST_STEP_LENGTH:               trace.Storage.readDouble,
-                     tc.LAST_STEP_TIME_SINCE_DETECTION: trace.Storage.readDouble,
+_RETURN_VALUE_FUNC = {tc.ID_LIST:    trace_.Storage.readStringList,
+                     tc.VAR_POSITION:       trace_.Storage.readDouble,
+                     tc.VAR_LANE_ID:       trace_.Storage.readString,
+                     tc.LAST_STEP_VEHICLE_NUMBER:       trace_.Storage.readInt,
+                     tc.LAST_STEP_MEAN_SPEED:           trace_.Storage.readDouble,
+                     tc.LAST_STEP_VEHICLE_ID_LIST:      trace_.Storage.readStringList,
+                     tc.LAST_STEP_OCCUPANCY:            trace_.Storage.readDouble,
+                     tc.LAST_STEP_LENGTH:               trace_.Storage.readDouble,
+                     tc.LAST_STEP_TIME_SINCE_DETECTION: trace_.Storage.readDouble,
                      tc.LAST_STEP_VEHICLE_DATA:         readVehicleData}
-subscriptionResults = trace.SubscriptionResults(_RETURN_VALUE_FUNC)
+subscriptionResults = trace_.SubscriptionResults(_RETURN_VALUE_FUNC)
 
 def _getUniversal(varID, loopID):
-    result = trace._sendReadOneStringCmd(tc.CMD_GET_INDUCTIONLOOP_VARIABLE, varID, loopID)
+    result = trace_._sendReadOneStringCmd(tc.CMD_GET_INDUCTIONLOOP_VARIABLE, varID, loopID)
     return _RETURN_VALUE_FUNC[varID](result)
 
 def getIDList():
@@ -128,7 +128,7 @@ def subscribe(loopID, varIDs=(tc.LAST_STEP_VEHICLE_NUMBER,), begin=0, end=2**31-
     A call to this method clears all previous subscription results.
     """
     subscriptionResults.reset()
-    trace._subscribe(tc.CMD_SUBSCRIBE_INDUCTIONLOOP_VARIABLE, begin, end, loopID, varIDs)
+    trace_._subscribe(tc.CMD_SUBSCRIBE_INDUCTIONLOOP_VARIABLE, begin, end, loopID, varIDs)
 
 def getSubscriptionResults(loopID=None):
     """getSubscriptionResults(string) -> dict(integer: <value_type>)
@@ -144,7 +144,7 @@ def getSubscriptionResults(loopID=None):
 
 def subscribeContext(loopID, domain, dist, varIDs=(tc.LAST_STEP_VEHICLE_NUMBER,), begin=0, end=2**31-1):
     subscriptionResults.reset()
-    trace._subscribeContext(tc.CMD_SUBSCRIBE_INDUCTIONLOOP_CONTEXT, begin, end, loopID, domain, dist, varIDs)
+    trace_._subscribeContext(tc.CMD_SUBSCRIBE_INDUCTIONLOOP_CONTEXT, begin, end, loopID, domain, dist, varIDs)
 
 def getContextSubscriptionResults(loopID=None):
     return subscriptionResults.getContext(loopID)
