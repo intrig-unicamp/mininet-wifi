@@ -483,7 +483,7 @@ class WmediumdStarter(object):
                             mappedintfrefs[id1], mappedintfrefs[id2],
                             mappedlink.snr)
                 configstr += '\n\t);\n};'
-            wmd_config.write(configstr)
+            wmd_config.write(configstr.encode())
             wmd_config.close()
         # Start wmediumd using the created config
         cmdline = [cls.executable]
