@@ -47,100 +47,98 @@ def return_value_func(self):
                          tc.LAST_STEP_OCCUPANCY:            trace.Storage.readDouble,
                          tc.LAST_STEP_LENGTH:               trace.Storage.readDouble,
                          tc.LAST_STEP_TIME_SINCE_DETECTION: trace.Storage.readDouble,
-                         tc.LAST_STEP_VEHICLE_DATA:         self.readVehicleData}
-    self.subscriptionResults = trace.SubscriptionResults(self._RETURN_VALUE_FUNC)
+                         tc.LAST_STEP_VEHICLE_DATA:         readVehicleData}
+    subscriptionResults = trace.SubscriptionResults(_RETURN_VALUE_FUNC)
 
-def _getUniversal(self, varID, loopID):
+def _getUniversal(varID, loopID):
     from . import trace
     from . import constants as tc
-    print "kkkkkkkkkkkkk"
-    self.return_value_func()
-    print "aaaaaaaaaaaaa"
+    return_value_func()
     result = trace._sendReadOneStringCmd(tc.CMD_GET_INDUCTIONLOOP_VARIABLE, varID, loopID)
-    return self._RETURN_VALUE_FUNC[varID](result)
+    return _RETURN_VALUE_FUNC[varID](result)
 
-def getIDList(self):
+def getIDList():
     """getIDList() -> list(string)
 
     Returns a list of all induction loops in the network.
     """
     from . import constants as tc
-    return self._getUniversal(tc.ID_LIST, "")
+    return _getUniversal(tc.ID_LIST, "")
 
-def getPosition(self, loopID):
+def getPosition(loopID):
     """getPosition(string) -> double
 
     Returns the position measured from the beginning of the lane.
     """
     from . import constants as tc
-    return self._getUniversal(tc.VAR_POSITION, loopID)
+    return _getUniversal(tc.VAR_POSITION, loopID)
 
-def getLaneID(self, loopID):
+def getLaneID(loopID):
     """getLaneID(string) -> string
 
     Returns the id of the lane the loop is on.
     """
     from . import constants as tc
-    return self._getUniversal(tc.VAR_LANE_ID, loopID)
+    return _getUniversal(tc.VAR_LANE_ID, loopID)
 
-def getLastStepVehicleNumber(self, loopID):
+def getLastStepVehicleNumber(loopID):
     """getLastStepVehicleNumber(string) -> integer
 
     .
     """
     from . import constants as tc
-    return self._getUniversal(tc.LAST_STEP_VEHICLE_NUMBER, loopID)
+    return _getUniversal(tc.LAST_STEP_VEHICLE_NUMBER, loopID)
 
-def getLastStepMeanSpeed(self, loopID):
+def getLastStepMeanSpeed(loopID):
     """getLastStepMeanSpeed(string) -> double
 
     .
     """
     from . import constants as tc
-    return self._getUniversal(tc.LAST_STEP_MEAN_SPEED, loopID)
+    return _getUniversal(tc.LAST_STEP_MEAN_SPEED, loopID)
 
-def getLastStepVehicleIDs(self, loopID):
+def getLastStepVehicleIDs(loopID):
     """getLastStepVehicleIDs(string) -> list(string)
 
     .
     """
     from . import constants as tc
-    return self._getUniversal(tc.LAST_STEP_VEHICLE_ID_LIST, loopID)
+    return _getUniversal(tc.LAST_STEP_VEHICLE_ID_LIST, loopID)
 
-def getLastStepOccupancy(self, loopID):
+def getLastStepOccupancy(loopID):
     """getLastStepOccupancy(string) -> double
 
     .
     """
     from . import constants as tc
-    return self._getUniversal(tc.LAST_STEP_OCCUPANCY, loopID)
+    return _getUniversal(tc.LAST_STEP_OCCUPANCY, loopID)
 
-def getLastStepMeanLength(self, loopID):
+def getLastStepMeanLength(loopID):
     """getLastStepMeanLength(string) -> double
 
     .
     """
     from . import constants as tc
-    return self._getUniversal(tc.LAST_STEP_LENGTH, loopID)
+    return _getUniversal(tc.LAST_STEP_LENGTH, loopID)
 
-def getTimeSinceDetection(self, loopID):
+def getTimeSinceDetection(loopID):
     """getTimeSinceDetection(string) -> double
 
     .
     """
     from . import constants as tc
-    return self._getUniversal(tc.LAST_STEP_TIME_SINCE_DETECTION, loopID)
+    return _getUniversal(tc.LAST_STEP_TIME_SINCE_DETECTION, loopID)
 
-def getVehicleData(self, loopID):
+def getVehicleData(loopID):
     """getVehicleData(string) -> integer
 
     .
     """
     from . import constants as tc
-    return self._getUniversal(tc.LAST_STEP_VEHICLE_DATA, loopID)
+    return _getUniversal(tc.LAST_STEP_VEHICLE_DATA, loopID)
 
 
-def subscribe(self, loopID, varIDs=None, begin=0, end=2**31-1):
+def subscribe(loopID, varIDs=None, begin=0, end=2**31-1):
     """subscribe(string, list(integer), double, double) -> None
 
     Subscribe to one or more induction loop values for the given interval.
@@ -150,10 +148,10 @@ def subscribe(self, loopID, varIDs=None, begin=0, end=2**31-1):
     from . import constants as tc
     varIDs = (tc.LAST_STEP_VEHICLE_NUMBER,)
 
-    self.subscriptionResults.reset()
+    subscriptionResults.reset()
     trace._subscribe(tc.CMD_SUBSCRIBE_INDUCTIONLOOP_VARIABLE, begin, end, loopID, varIDs)
 
-def getSubscriptionResults(self, loopID=None):
+def getSubscriptionResults(loopID=None):
     """getSubscriptionResults(string) -> dict(integer: <value_type>)
 
     Returns the subscription results for the last time step and the given loop.
@@ -163,15 +161,15 @@ def getSubscriptionResults(self, loopID=None):
     It is not possible to retrieve older subscription results than the ones
     from the last time step.
     """
-    return self.subscriptionResults.get(loopID)
+    return subscriptionResults.get(loopID)
 
-def subscribeContext(self, loopID, domain, dist, varIDs=None, begin=0, end=2**31-1):
+def subscribeContext(loopID, domain, dist, varIDs=None, begin=0, end=2**31-1):
     from . import trace
     from . import constants as tc
     varIDs = (tc.LAST_STEP_VEHICLE_NUMBER,)
 
-    self.subscriptionResults.reset()
+    subscriptionResults.reset()
     trace._subscribeContext(tc.CMD_SUBSCRIBE_INDUCTIONLOOP_CONTEXT, begin, end, loopID, domain, dist, varIDs)
 
-def getContextSubscriptionResults(self, loopID=None):
-    return self.subscriptionResults.getContext(loopID)
+def getContextSubscriptionResults(loopID=None):
+    return subscriptionResults.getContext(loopID)
