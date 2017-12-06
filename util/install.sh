@@ -129,15 +129,15 @@ function mn_deps {
     if [ "$DIST" = "Fedora" -o "$DIST" = "RedHatEnterpriseServer" ]; then
         $install gcc make socat psmisc xterm openssh-clients iperf \
             iproute telnet python3-setuptools libcgroup-tools \
-            ethtool help2man pyflakes pylint python-pep8 python-pexpect python-pip python3-pip
+            ethtool help2man pyflakes pylint python-pep8 python3-pexpect python-pip python3-pip
 	elif [ "$DIST" = "SUSE LINUX"  ]; then
 		$install gcc make socat psmisc xterm openssh iperf \
 			iproute telnet python3-setuptools libcgroup-tools \
-			ethtool help2man python-pyflakes python3-pylint python-pep8 python-pexpect python-pip python3-pip
+			ethtool help2man python-pyflakes python3-pylint python-pep8 python3-pexpect python-pip python3-pip
     else
         $install gcc make socat psmisc xterm ssh iperf iproute telnet \
             python3-setuptools cgroup-bin ethtool help2man \
-            pyflakes pylint pep8 python-pexpect python-pip python3-pip
+            pyflakes pylint pep8 python3-pexpect python-pip python3-pip
     fi
     pip3 install typing
 
