@@ -133,9 +133,7 @@ class SubscriptionResults:
 
 
 from . import constants
-from inductionloop import inductionloop
-from multientryexit import multientryexit
-from . import trafficlights
+from . import inductionloop, multientryexit, trafficlights
 from . import lane, vehicle, vehicletype, route
 from . import poi, polygon, junction, edge, simulation, gui
 

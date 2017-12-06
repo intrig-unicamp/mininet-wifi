@@ -13,7 +13,6 @@ All rights reserved
 """
 import struct
 
-
 class Phase:
     def __init__(self, duration, duration1, duration2, phaseDef):
         self._duration = duration
