@@ -13,8 +13,8 @@ Copyright (C) 2011 DLR (http://www.dlr.de/) and contributors
 All rights reserved
 """
 import struct
-from . import trace
-from . import constants as tc
+from mininet.sumo.traci import trace
+from mininet.sumo.traci import constants as tc
 
 def _readLinks(result):
     result.read("!Bi") # Type Compound, Length

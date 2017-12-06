@@ -12,8 +12,8 @@ Copyright (C) 2011 DLR (http://www.dlr.de/) and contributors
 All rights reserved
 """
 import struct
-from . import trace
-from . import constants as tc
+from mininet.sumo.traci import trace
+from mininet.sumo.traci import constants as tc
 
 class Phase:
     def __init__(self, duration, duration1, duration2, phaseDef):

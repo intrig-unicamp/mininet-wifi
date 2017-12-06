@@ -12,8 +12,8 @@ SUMO, Simulation of Urban MObility; see http://sumo.sourceforge.net/
 Copyright (C) 2011 DLR (http://www.dlr.de/) and contributors
 All rights reserved
 """
-from . import trace
-from . import constants as tc
+from mininet.sumo.traci import trace
+from mininet.sumo.traci import constants as tc
 
 
 def readVehicleData(result):

@@ -11,8 +11,8 @@ SUMO, Simulation of Urban MObility; see http://sumo.sourceforge.net/
 Copyright (C) 2011 DLR (http://www.dlr.de/) and contributors
 All rights reserved
 """
-from . import trace
-from . import constants as tc
+from mininet.sumo.traci import trace
+from mininet.sumo.traci import constants as tc
 
 _RETURN_VALUE_FUNC = {tc.ID_LIST:                          trace.Storage.readStringList,
                       tc.LAST_STEP_VEHICLE_NUMBER:         trace.Storage.readInt,
