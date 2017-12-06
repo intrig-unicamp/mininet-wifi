@@ -13,22 +13,31 @@ Copyright (C) 2008-2013 DLR (http://www.dlr.de/) and contributors
 All rights reserved
 """
 import struct
-from . import trace_
-from . import constants as tc
 
-_RETURN_VALUE_FUNC = {tc.ID_LIST:   trace_.Storage.readStringList,
-                      tc.VAR_EDGES: trace_.Storage.readStringList}
-subscriptionResults = trace_.SubscriptionResults(_RETURN_VALUE_FUNC)
+subscriptionResults = ''
+_RETURN_VALUE_FUNC = ''
 
-def _getUniversal(varID, routeID):
-    result = trace_._sendReadOneStringCmd(tc.CMD_GET_ROUTE_VARIABLE, varID, routeID)
-    return _RETURN_VALUE_FUNC[varID](result)
+def return_value_func(self):
+    from . import trace
+    from . import constants as tc
+
+    self._RETURN_VALUE_FUNC = {tc.ID_LIST:   trace.Storage.readStringList,
+                          tc.VAR_EDGES: trace.Storage.readStringList}
+    self.subscriptionResults = trace.SubscriptionResults(self._RETURN_VALUE_FUNC)
+
+def _getUniversal(self, varID, routeID):
+    from . import trace
+    from . import constants as tc
+    self.return_value_func()
+    result = trace._sendReadOneStringCmd(tc.CMD_GET_ROUTE_VARIABLE, varID, routeID)
+    return self._RETURN_VALUE_FUNC[varID](result)
 
 def getIDList():
     """getIDList() -> list(string)
     
     Returns a list of all routes in the network.
     """
+    from . import constants as tc
     return _getUniversal(tc.ID_LIST, "")
 
 def getEdges(routeID):
@@ -36,19 +45,23 @@ def getEdges(routeID):
     
     Returns a list of all edges in the route.
     """
+    from . import constants as tc
     return _getUniversal(tc.VAR_EDGES, routeID)
 
 
-def subscribe(routeID, varIDs=(tc.ID_LIST,), begin=0, end=2**31-1):
+def subscribe(self, routeID, varIDs=None, begin=0, end=2**31-1):
     """subscribe(string, list(integer), double, double) -> None
     
     Subscribe to one or more route values for the given interval.
     A call to this method clears all previous subscription results.
     """
-    subscriptionResults.reset()
-    trace_._subscribe(tc.CMD_SUBSCRIBE_ROUTE_VARIABLE, begin, end, routeID, varIDs)
+    from . import trace
+    from . import constants as tc
+    varIDs = (tc.ID_LIST,)
+    self.subscriptionResults.reset()
+    trace._subscribe(tc.CMD_SUBSCRIBE_ROUTE_VARIABLE, begin, end, routeID, varIDs)
 
-def getSubscriptionResults(routeID=None):
+def getSubscriptionResults(self, routeID=None):
     """getSubscriptionResults(string) -> dict(integer: <value_type>)
     
     Returns the subscription results for the last time step and the given route.
@@ -58,20 +71,25 @@ def getSubscriptionResults(routeID=None):
     It is not possible to retrieve older subscription results than the ones
     from the last time step.
     """
-    return subscriptionResults.get(routeID)
+    return self.subscriptionResults.get(routeID)
 
-def subscribeContext(routeID, domain, dist, varIDs=(tc.ID_LIST,), begin=0, end=2**31-1):
-    subscriptionResults.reset()
-    trace_._subscribeContext(tc.CMD_SUBSCRIBE_ROUTE_CONTEXT, begin, end, routeID, domain, dist, varIDs)
+def subscribeContext(self, routeID, domain, dist, varIDs=None, begin=0, end=2**31-1):
+    from . import trace
+    from . import constants as tc
+    varIDs = (tc.ID_LIST,)
+    self.subscriptionResults.reset()
+    trace._subscribeContext(tc.CMD_SUBSCRIBE_ROUTE_CONTEXT, begin, end, routeID, domain, dist, varIDs)
 
-def getContextSubscriptionResults(routeID=None):
-    return subscriptionResults.getContext(routeID)
+def getContextSubscriptionResults(self, routeID=None):
+    return self.subscriptionResults.getContext(routeID)
 
 
 def add(routeID, edges):
-    trace_._beginMessage(tc.CMD_SET_ROUTE_VARIABLE, tc.ADD, routeID,
-                         1 + 4 + sum(map(len, edges)) + 4 * len(edges))
-    trace_._message.string += struct.pack("!Bi", tc.TYPE_STRINGLIST, len(edges))
+    from . import trace
+    from . import constants as tc
+    trace._beginMessage(tc.CMD_SET_ROUTE_VARIABLE, tc.ADD, routeID,
+                        1 + 4 + sum(map(len, edges)) + 4 * len(edges))
+    trace._message.string += struct.pack("!Bi", tc.TYPE_STRINGLIST, len(edges))
     for e in edges:
-        trace_._message.string += struct.pack("!i", len(e)) + e
-    trace_._sendExact()
+        trace._message.string += struct.pack("!i", len(e)) + e
+    trace._sendExact()

@@ -12,24 +12,36 @@ Copyright (C) 2011 DLR (http://www.dlr.de/) and contributors
 All rights reserved
 """
 import struct
-from . import trace_
-from . import constants as tc
 
-_RETURN_VALUE_FUNC = {tc.ID_LIST:   trace_.Storage.readStringList,
-                      tc.VAR_TYPE:  trace_.Storage.readString,
-                      tc.VAR_SHAPE: trace_.Storage.readShape,
-                      tc.VAR_COLOR: lambda result: result.read("!BBBB")}
-subscriptionResults = trace_.SubscriptionResults(_RETURN_VALUE_FUNC)
 
-def _getUniversal(varID, polygonID):
-    result = trace_._sendReadOneStringCmd(tc.CMD_GET_POLYGON_VARIABLE, varID, polygonID)
-    return _RETURN_VALUE_FUNC[varID](result)
+_RETURN_VALUE_FUNC = ''
+subscriptionResults = ''
+
+def return_value_func(self):
+    from . import trace
+    from . import constants as tc
+
+    self._RETURN_VALUE_FUNC = {tc.ID_LIST:   trace.Storage.readStringList,
+                          tc.VAR_TYPE:  trace.Storage.readString,
+                          tc.VAR_SHAPE: trace.Storage.readShape,
+                          tc.VAR_COLOR: lambda result: result.read("!BBBB")}
+    self.subscriptionResults = trace.SubscriptionResults(self._RETURN_VALUE_FUNC)
+
+def _getUniversal(self, varID, polygonID):
+    from . import trace
+    from . import constants as tc
+    self.return_value_func()
+
+    result = trace._sendReadOneStringCmd(tc.CMD_GET_POLYGON_VARIABLE, varID, polygonID)
+    return self._RETURN_VALUE_FUNC[varID](result)
 
 def getIDList():
     """getIDList() -> list(string)
     
     Returns a list of all polygons in the network.
     """
+    from . import constants as tc
+
     return _getUniversal(tc.ID_LIST, "")
 
 def getType(polygonID):
@@ -37,6 +49,8 @@ def getType(polygonID):
     
     .
     """
+    from . import constants as tc
+
     return _getUniversal(tc.VAR_TYPE, polygonID)
 
 def getShape(polygonID):
@@ -44,6 +58,8 @@ def getShape(polygonID):
     
     .
     """
+    from . import constants as tc
+
     return _getUniversal(tc.VAR_SHAPE, polygonID)
 
 def getColor(polygonID):
@@ -51,17 +67,23 @@ def getColor(polygonID):
     
     .
     """
+    from . import constants as tc
+
     return _getUniversal(tc.VAR_COLOR, polygonID)
 
 
-def subscribe(polygonID, varIDs=(tc.VAR_SHAPE,), begin=0, end=2**31-1):
+def subscribe(polygonID, varIDs=None, begin=0, end=2**31-1):
     """subscribe(string, list(integer), double, double) -> None
     
     Subscribe to one or more polygon values for the given interval.
     A call to this method clears all previous subscription results.
     """
+    from . import trace
+    from . import constants as tc
+
+    varIDs = (tc.VAR_SHAPE,)
     subscriptionResults.reset()
-    trace_._subscribe(tc.CMD_SUBSCRIBE_POLYGON_VARIABLE, begin, end, polygonID, varIDs)
+    trace._subscribe(tc.CMD_SUBSCRIBE_POLYGON_VARIABLE, begin, end, polygonID, varIDs)
 
 def getSubscriptionResults(polygonID=None):
     """getSubscriptionResults(string) -> dict(integer: <value_type>)
@@ -75,44 +97,62 @@ def getSubscriptionResults(polygonID=None):
     """
     return subscriptionResults.get(polygonID)
 
-def subscribeContext(polygonID, domain, dist, varIDs=(tc.VAR_SHAPE,), begin=0, end=2**31-1):
+def subscribeContext(polygonID, domain, dist, varIDs=None, begin=0, end=2**31-1):
+    from . import trace
+    from . import constants as tc
+
+    varIDs = (tc.VAR_SHAPE,)
     subscriptionResults.reset()
-    trace_._subscribeContext(tc.CMD_SUBSCRIBE_POLYGON_CONTEXT, begin, end, polygonID, domain, dist, varIDs)
+    trace._subscribeContext(tc.CMD_SUBSCRIBE_POLYGON_CONTEXT, begin, end, polygonID, domain, dist, varIDs)
 
 def getContextSubscriptionResults(polygonID=None):
     return subscriptionResults.getContext(polygonID)
 
 
 def setType(polygonID, polygonType):
-    trace_._beginMessage(tc.CMD_SET_POLYGON_VARIABLE, tc.VAR_TYPE, polygonID, 1 + 4 + len(polygonType))
-    trace_._message.string += struct.pack("!Bi", tc.TYPE_STRING, len(polygonType)) + polygonType
-    trace_._sendExact()
+    from . import trace
+    from . import constants as tc
+
+    trace._beginMessage(tc.CMD_SET_POLYGON_VARIABLE, tc.VAR_TYPE, polygonID, 1 + 4 + len(polygonType))
+    trace._message.string += struct.pack("!Bi", tc.TYPE_STRING, len(polygonType)) + polygonType
+    trace._sendExact()
 
 def setShape(polygonID, shape):
-    trace_._beginMessage(tc.CMD_SET_POLYGON_VARIABLE, tc.VAR_SHAPE, polygonID, 1 + 1 + len(shape) * (8 + 8))
-    trace_._message.string += struct.pack("!BB", tc.TYPE_POLYGON, len(shape))
+    from . import trace
+    from . import constants as tc
+
+    trace._beginMessage(tc.CMD_SET_POLYGON_VARIABLE, tc.VAR_SHAPE, polygonID, 1 + 1 + len(shape) * (8 + 8))
+    trace._message.string += struct.pack("!BB", tc.TYPE_POLYGON, len(shape))
     for p in shape:
-        trace_._message.string += struct.pack("!dd", p)
-    trace_._sendExact()
+        trace._message.string += struct.pack("!dd", p)
+    trace._sendExact()
 
 def setColor(polygonID, color):
-    trace_._beginMessage(tc.CMD_SET_POLYGON_VARIABLE, tc.VAR_COLOR, polygonID, 1 + 1 + 1 + 1 + 1)
-    trace_._message.string += struct.pack("!BBBBB", tc.TYPE_COLOR, int(color[0]), int(color[1]), int(color[2]), int(color[3]))
-    trace_._sendExact()
+    from . import trace
+    from . import constants as tc
+
+    trace._beginMessage(tc.CMD_SET_POLYGON_VARIABLE, tc.VAR_COLOR, polygonID, 1 + 1 + 1 + 1 + 1)
+    trace._message.string += struct.pack("!BBBBB", tc.TYPE_COLOR, int(color[0]), int(color[1]), int(color[2]), int(color[3]))
+    trace._sendExact()
 
 def add(polygonID, shape, color, fill=False, polygonType="", layer=0):
-    trace_._beginMessage(tc.CMD_SET_POLYGON_VARIABLE, tc.ADD, polygonID, 1 + 4 + 1 + 4 + len(polygonType) + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 4 + 1 + 1 + len(shape) * (8 + 8))
-    trace_._message.string += struct.pack("!Bi", tc.TYPE_COMPOUND, 5)
-    trace_._message.string += struct.pack("!Bi", tc.TYPE_STRING, len(polygonType)) + polygonType
-    trace_._message.string += struct.pack("!BBBBB", tc.TYPE_COLOR, int(color[0]), int(color[1]), int(color[2]), int(color[3]))
-    trace_._message.string += struct.pack("!BB", tc.TYPE_UBYTE, int(fill))
-    trace_._message.string += struct.pack("!Bi", tc.TYPE_INTEGER, layer)
-    trace_._message.string += struct.pack("!BB", tc.TYPE_POLYGON, len(shape))
+    from . import trace
+    from . import constants as tc
+
+    trace._beginMessage(tc.CMD_SET_POLYGON_VARIABLE, tc.ADD, polygonID, 1 + 4 + 1 + 4 + len(polygonType) + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 4 + 1 + 1 + len(shape) * (8 + 8))
+    trace._message.string += struct.pack("!Bi", tc.TYPE_COMPOUND, 5)
+    trace._message.string += struct.pack("!Bi", tc.TYPE_STRING, len(polygonType)) + polygonType
+    trace._message.string += struct.pack("!BBBBB", tc.TYPE_COLOR, int(color[0]), int(color[1]), int(color[2]), int(color[3]))
+    trace._message.string += struct.pack("!BB", tc.TYPE_UBYTE, int(fill))
+    trace._message.string += struct.pack("!Bi", tc.TYPE_INTEGER, layer)
+    trace._message.string += struct.pack("!BB", tc.TYPE_POLYGON, len(shape))
     for p in shape:
-        trace_._message.string += struct.pack("!dd", *p)
-    trace_._sendExact()
+        trace._message.string += struct.pack("!dd", *p)
+    trace._sendExact()
 
 def remove(polygonID, layer=0):
-    trace_._beginMessage(tc.CMD_SET_POLYGON_VARIABLE, tc.REMOVE, polygonID, 1 + 4)
-    trace_._message.string += struct.pack("!Bi", tc.TYPE_INTEGER, layer)
-    trace_._sendExact()
+    from . import trace
+    from . import constants as tc
+    trace._beginMessage(tc.CMD_SET_POLYGON_VARIABLE, tc.REMOVE, polygonID, 1 + 4)
+    trace._message.string += struct.pack("!Bi", tc.TYPE_INTEGER, layer)
+    trace._sendExact()

@@ -13,8 +13,6 @@ Copyright (C) 2011 DLR (http://www.dlr.de/) and contributors
 All rights reserved
 """
 import struct
-from . import trace_
-from . import constants as tc
 
 def _readLinks(result):
     result.read("!Bi") # Type Compound, Length
@@ -40,42 +38,51 @@ def _readLinks(result):
         links.append((approachedLane, hasPrio, isOpen, hasFoe))
     return links
 
+subscriptionResults = ''
+_RETURN_VALUE_FUNC = ''
 
-_RETURN_VALUE_FUNC = {tc.ID_LIST:                   trace_.Storage.readStringList,
-                      tc.VAR_LENGTH:                trace_.Storage.readDouble,
-                      tc.VAR_MAXSPEED:              trace_.Storage.readDouble,
-                      tc.VAR_WIDTH:                 trace_.Storage.readDouble,
-                      tc.LANE_ALLOWED:              trace_.Storage.readStringList,
-                      tc.LANE_DISALLOWED:           trace_.Storage.readStringList,
-                      tc.LANE_LINK_NUMBER:          lambda result: result.read("!B")[0],
-                      tc.LANE_LINKS:                _readLinks,
-                      tc.VAR_SHAPE:                 trace_.Storage.readShape,
-                      tc.LANE_EDGE_ID:              trace_.Storage.readString,
-                      tc.VAR_CO2EMISSION:           trace_.Storage.readDouble,
-                      tc.VAR_COEMISSION:            trace_.Storage.readDouble,
-                      tc.VAR_HCEMISSION:            trace_.Storage.readDouble,
-                      tc.VAR_PMXEMISSION:           trace_.Storage.readDouble,
-                      tc.VAR_NOXEMISSION:           trace_.Storage.readDouble,
-                      tc.VAR_FUELCONSUMPTION:       trace_.Storage.readDouble,
-                      tc.VAR_NOISEEMISSION:         trace_.Storage.readDouble,
-                      tc.LAST_STEP_MEAN_SPEED:      trace_.Storage.readDouble,
-                      tc.LAST_STEP_OCCUPANCY:       trace_.Storage.readDouble,
-                      tc.LAST_STEP_LENGTH:          trace_.Storage.readDouble,
-                      tc.VAR_CURRENT_TRAVELTIME:    trace_.Storage.readDouble,
-                      tc.LAST_STEP_VEHICLE_NUMBER:  trace_.Storage.readInt,
-                      tc.LAST_STEP_VEHICLE_HALTING_NUMBER: trace_.Storage.readInt,
-                      tc.LAST_STEP_VEHICLE_ID_LIST: trace_.Storage.readStringList}
-subscriptionResults = trace_.SubscriptionResults(_RETURN_VALUE_FUNC)
+def return_value_func(self):
+    from . import trace
+    from . import constants as tc
 
-def _getUniversal(varID, laneID):
-    result = trace_._sendReadOneStringCmd(tc.CMD_GET_LANE_VARIABLE, varID, laneID)
-    return _RETURN_VALUE_FUNC[varID](result)
+    self._RETURN_VALUE_FUNC = {tc.ID_LIST:                   trace.Storage.readStringList,
+                          tc.VAR_LENGTH:                trace.Storage.readDouble,
+                          tc.VAR_MAXSPEED:              trace.Storage.readDouble,
+                          tc.VAR_WIDTH:                 trace.Storage.readDouble,
+                          tc.LANE_ALLOWED:              trace.Storage.readStringList,
+                          tc.LANE_DISALLOWED:           trace.Storage.readStringList,
+                          tc.LANE_LINK_NUMBER:          lambda result: result.read("!B")[0],
+                          tc.LANE_LINKS:                _readLinks,
+                          tc.VAR_SHAPE:                 trace.Storage.readShape,
+                          tc.LANE_EDGE_ID:              trace.Storage.readString,
+                          tc.VAR_CO2EMISSION:           trace.Storage.readDouble,
+                          tc.VAR_COEMISSION:            trace.Storage.readDouble,
+                          tc.VAR_HCEMISSION:            trace.Storage.readDouble,
+                          tc.VAR_PMXEMISSION:           trace.Storage.readDouble,
+                          tc.VAR_NOXEMISSION:           trace.Storage.readDouble,
+                          tc.VAR_FUELCONSUMPTION:       trace.Storage.readDouble,
+                          tc.VAR_NOISEEMISSION:         trace.Storage.readDouble,
+                          tc.LAST_STEP_MEAN_SPEED:      trace.Storage.readDouble,
+                          tc.LAST_STEP_OCCUPANCY:       trace.Storage.readDouble,
+                          tc.LAST_STEP_LENGTH:          trace.Storage.readDouble,
+                          tc.VAR_CURRENT_TRAVELTIME:    trace.Storage.readDouble,
+                          tc.LAST_STEP_VEHICLE_NUMBER:  trace.Storage.readInt,
+                          tc.LAST_STEP_VEHICLE_HALTING_NUMBER: trace.Storage.readInt,
+                          tc.LAST_STEP_VEHICLE_ID_LIST: trace.Storage.readStringList}
+    self.subscriptionResults = trace.SubscriptionResults(self._RETURN_VALUE_FUNC)
+
+def _getUniversal(self, varID, laneID):
+    from . import trace
+    from . import constants as tc
+    result = trace._sendReadOneStringCmd(tc.CMD_GET_LANE_VARIABLE, varID, laneID)
+    return self._RETURN_VALUE_FUNC[varID](result)
 
 def getIDList():
     """getIDList() -> list(string)
     
     Returns a list of all lanes in the network.
     """
+    from . import constants as tc
     return _getUniversal(tc.ID_LIST, "")
 
 def getLength(laneID):
@@ -83,6 +90,7 @@ def getLength(laneID):
     
     Returns the length in m.
     """
+    from . import constants as tc
     return _getUniversal(tc.VAR_LENGTH, laneID)
 
 def getMaxSpeed(laneID):
@@ -90,6 +98,7 @@ def getMaxSpeed(laneID):
     
     Returns the maximum allowed speed on the lane in m/s.
     """
+    from . import constants as tc
     return _getUniversal(tc.VAR_MAXSPEED, laneID)
 
 def getWidth(laneID):
@@ -97,6 +106,7 @@ def getWidth(laneID):
     
     Returns the width of the lane in m.
     """
+    from . import constants as tc
     return _getUniversal(tc.VAR_WIDTH, laneID)
 
 def getAllowed(laneID):
@@ -104,6 +114,7 @@ def getAllowed(laneID):
     
     Returns a list of allowed vehicle classes. An empty list means all vehicles are allowed.
     """
+    from . import constants as tc
     return _getUniversal(tc.LANE_ALLOWED, laneID)
 
 def getDisallowed(laneID):
@@ -111,6 +122,7 @@ def getDisallowed(laneID):
     
     Returns a list of disallowed vehicle classes.
     """
+    from . import constants as tc
     return _getUniversal(tc.LANE_DISALLOWED, laneID)
 
 def getLinkNumber(laneID):
@@ -118,6 +130,7 @@ def getLinkNumber(laneID):
     
     Returns the number of connections to successive lanes.
     """
+    from . import constants as tc
     return _getUniversal(tc.LANE_LINK_NUMBER, laneID)
 
 def getLinks(laneID):
@@ -125,6 +138,7 @@ def getLinks(laneID):
     
     A list containing ids of successor lanes together with priority, open and foe.
     """
+    from . import constants as tc
     return _getUniversal(tc.LANE_LINKS, laneID)
 
 def getShape(laneID):
@@ -132,6 +146,7 @@ def getShape(laneID):
     
     List of 2D positions (cartesian) describing the geometry.
     """
+    from . import constants as tc
     return _getUniversal(tc.VAR_SHAPE, laneID)
 
 def getEdgeID(laneID):
@@ -139,6 +154,7 @@ def getEdgeID(laneID):
     
     Returns the id of the edge the lane belongs to.
     """
+    from . import constants as tc
     return _getUniversal(tc.LANE_EDGE_ID, laneID)
 
 def getCO2Emission(laneID):
@@ -146,6 +162,7 @@ def getCO2Emission(laneID):
     
     Returns the CO2 emission in mg for the last time step on the given lane.
     """
+    from . import constants as tc
     return _getUniversal(tc.VAR_CO2EMISSION, laneID)
 
 def getCOEmission(laneID):
@@ -153,6 +170,7 @@ def getCOEmission(laneID):
     
     Returns the CO emission in mg for the last time step on the given lane.
     """
+    from . import constants as tc
     return _getUniversal(tc.VAR_COEMISSION, laneID)
 
 def getHCEmission(laneID):
@@ -160,6 +178,7 @@ def getHCEmission(laneID):
     
     Returns the HC emission in mg for the last time step on the given lane.
     """
+    from . import constants as tc
     return _getUniversal(tc.VAR_HCEMISSION, laneID)
 
 def getPMxEmission(laneID):
@@ -167,6 +186,7 @@ def getPMxEmission(laneID):
     
     Returns the particular matter emission in mg for the last time step on the given lane.
     """
+    from . import constants as tc
     return _getUniversal(tc.VAR_PMXEMISSION, laneID)
 
 def getNOxEmission(laneID):
@@ -174,6 +194,7 @@ def getNOxEmission(laneID):
     
     Returns the NOx emission in mg for the last time step on the given lane.
     """
+    from . import constants as tc
     return _getUniversal(tc.VAR_NOXEMISSION, laneID)
 
 def getFuelConsumption(laneID):
@@ -181,6 +202,7 @@ def getFuelConsumption(laneID):
     
     Returns the fuel consumption in ml for the last time step on the given lane.
     """
+    from . import constants as tc
     return _getUniversal(tc.VAR_FUELCONSUMPTION, laneID)
 
 def getNoiseEmission(laneID):
@@ -188,6 +210,7 @@ def getNoiseEmission(laneID):
     
     Returns the noise emission in db for the last time step on the given lane.
     """
+    from . import constants as tc
     return _getUniversal(tc.VAR_NOISEEMISSION, laneID)
 
 def getLastStepMeanSpeed(laneID):
@@ -195,6 +218,7 @@ def getLastStepMeanSpeed(laneID):
     
     Returns the average speed in m/s for the last time step on the given lane.
     """
+    from . import constants as tc
     return _getUniversal(tc.LAST_STEP_MEAN_SPEED, laneID)
 
 def getLastStepOccupancy(laneID):
@@ -202,6 +226,7 @@ def getLastStepOccupancy(laneID):
     
     Returns the occupancy in % for the last time step on the given lane.
     """
+    from . import constants as tc
     return _getUniversal(tc.LAST_STEP_OCCUPANCY, laneID)
 
 def getLastStepLength(laneID):
@@ -209,6 +234,7 @@ def getLastStepLength(laneID):
     
     Returns the total vehicle length in m for the last time step on the given lane.
     """
+    from . import constants as tc
     return _getUniversal(tc.LAST_STEP_LENGTH, laneID)
 
 def getTraveltime(laneID):
@@ -216,6 +242,7 @@ def getTraveltime(laneID):
     
     Returns the estimated travel time in s for the last time step on the given lane.
     """
+    from . import constants as tc
     return _getUniversal(tc.VAR_CURRENT_TRAVELTIME, laneID)
 
 def getLastStepVehicleNumber(laneID):
@@ -223,6 +250,7 @@ def getLastStepVehicleNumber(laneID):
     
     Returns the total number of vehicles for the last time step on the given lane.
     """
+    from . import constants as tc
     return _getUniversal(tc.LAST_STEP_VEHICLE_NUMBER, laneID)
 
 def getLastStepHaltingNumber(laneID):
@@ -231,6 +259,7 @@ def getLastStepHaltingNumber(laneID):
     Returns the total number of halting vehicles for the last time step on the given lane.
     A speed of less than 0.1 m/s is considered a halt.
     """
+    from . import constants as tc
     return _getUniversal(tc.LAST_STEP_VEHICLE_HALTING_NUMBER, laneID)
 
 def getLastStepVehicleIDs(laneID):
@@ -238,19 +267,24 @@ def getLastStepVehicleIDs(laneID):
     
     Returns the ids of the vehicles for the last time step on the given lane.
     """
+    from . import constants as tc
     return _getUniversal(tc.LAST_STEP_VEHICLE_ID_LIST, laneID)
 
 
-def subscribe(laneID, varIDs=(tc.LAST_STEP_VEHICLE_NUMBER,), begin=0, end=2**31-1):
+def subscribe(self, laneID, varIDs=None, begin=0, end=2**31-1):
     """subscribe(string, list(integer), double, double) -> None
     
     Subscribe to one or more lane values for the given interval.
     A call to this method clears all previous subscription results.
     """
-    subscriptionResults.reset()
-    trace_._subscribe(tc.CMD_SUBSCRIBE_LANE_VARIABLE, begin, end, laneID, varIDs)
+    from . import trace
+    from . import constants as tc
 
-def getSubscriptionResults(laneID=None):
+    varIDs = (tc.LAST_STEP_VEHICLE_NUMBER,)
+    self.subscriptionResults.reset()
+    trace._subscribe(tc.CMD_SUBSCRIBE_LANE_VARIABLE, begin, end, laneID, varIDs)
+
+def getSubscriptionResults(self, laneID=None):
     """getSubscriptionResults(string) -> dict(integer: <value_type>)
     
     Returns the subscription results for the last time step and the given lane.
@@ -260,32 +294,45 @@ def getSubscriptionResults(laneID=None):
     It is not possible to retrieve older subscription results than the ones
     from the last time step.
     """
-    return subscriptionResults.get(laneID)
+    return self.subscriptionResults.get(laneID)
 
-def subscribeContext(laneID, domain, dist, varIDs=(tc.LAST_STEP_VEHICLE_NUMBER,), begin=0, end=2**31-1):
-    subscriptionResults.reset()
-    trace_._subscribeContext(tc.CMD_SUBSCRIBE_LANE_CONTEXT, begin, end, laneID, domain, dist, varIDs)
+def subscribeContext(self, laneID, domain, dist, varIDs=None, begin=0, end=2**31-1):
+    from . import trace
+    from . import constants as tc
 
-def getContextSubscriptionResults(laneID=None):
-    return subscriptionResults.getContext(laneID)
+    varIDs = (tc.LAST_STEP_VEHICLE_NUMBER,)
+
+    self.subscriptionResults.reset()
+    trace._subscribeContext(tc.CMD_SUBSCRIBE_LANE_CONTEXT, begin, end, laneID, domain, dist, varIDs)
+
+def getContextSubscriptionResults(self, laneID=None):
+    return self.subscriptionResults.getContext(laneID)
 
 
 def setAllowed(laneID, allowedClasses):
-    trace_._beginMessage(tc.CMD_SET_LANE_VARIABLE, tc.LANE_ALLOWED, laneID, 1 + 4 + sum(map(len, allowedClasses)) + 4 * len(allowedClasses))
-    trace_._message.string += struct.pack("!Bi", tc.TYPE_STRINGLIST, len(allowedClasses))
+    from . import trace
+    from . import constants as tc
+    trace._beginMessage(tc.CMD_SET_LANE_VARIABLE, tc.LANE_ALLOWED, laneID, 1 + 4 + sum(map(len, allowedClasses)) + 4 * len(allowedClasses))
+    trace._message.string += struct.pack("!Bi", tc.TYPE_STRINGLIST, len(allowedClasses))
     for c in allowedClasses:
-        trace_._message.string += struct.pack("!i", len(c)) + c
-    trace_._sendExact()
+        trace._message.string += struct.pack("!i", len(c)) + c
+    trace._sendExact()
 
 def setDisallowed(laneID, disallowedClasses):
-    trace_._beginMessage(tc.CMD_SET_LANE_VARIABLE, tc.LANE_DISALLOWED, laneID, 1 + 4 + sum(map(len, disallowedClasses)) + 4 * len(disallowedClasses))
-    trace_._message.string += struct.pack("!Bi", tc.TYPE_STRINGLIST, len(disallowedClasses))
+    from . import trace
+    from . import constants as tc
+    trace._beginMessage(tc.CMD_SET_LANE_VARIABLE, tc.LANE_DISALLOWED, laneID, 1 + 4 + sum(map(len, disallowedClasses)) + 4 * len(disallowedClasses))
+    trace._message.string += struct.pack("!Bi", tc.TYPE_STRINGLIST, len(disallowedClasses))
     for c in disallowedClasses:
-        trace_._message.string += struct.pack("!i", len(c)) + c
-    trace_._sendExact()
+        trace._message.string += struct.pack("!i", len(c)) + c
+    trace._sendExact()
 
 def setMaxSpeed(laneID, speed):
-    trace_._sendDoubleCmd(tc.CMD_SET_LANE_VARIABLE, tc.VAR_MAXSPEED, laneID, speed)
+    from . import trace
+    from . import constants as tc
+    trace._sendDoubleCmd(tc.CMD_SET_LANE_VARIABLE, tc.VAR_MAXSPEED, laneID, speed)
 
 def setLength(laneID, length):
-    trace_._sendDoubleCmd(tc.CMD_SET_LANE_VARIABLE, tc.VAR_LENGTH, laneID, length)
+    from . import trace
+    from . import constants as tc
+    trace._sendDoubleCmd(tc.CMD_SET_LANE_VARIABLE, tc.VAR_LENGTH, laneID, length)

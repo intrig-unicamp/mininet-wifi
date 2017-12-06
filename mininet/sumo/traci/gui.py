@@ -13,26 +13,38 @@ Copyright (C) 2011 DLR (http://www.dlr.de/) and contributors
 All rights reserved
 """
 import struct
-from . import trace_
-from . import constants as tc
 
+
+_RETURN_VALUE_FUNC = ''
+subscriptionResults = ''
 DEFAULT_VIEW = 'View #0'
-_RETURN_VALUE_FUNC = {tc.ID_LIST:           trace_.Storage.readStringList,
-                      tc.VAR_VIEW_ZOOM:     trace_.Storage.readDouble,
-                      tc.VAR_VIEW_OFFSET:   lambda result: result.read("!dd"),
-                      tc.VAR_VIEW_SCHEMA:   trace_.Storage.readString,
-                      tc.VAR_VIEW_BOUNDARY: lambda result: (result.read("!dd"), result.read("!dd"))}
-subscriptionResults = trace_.SubscriptionResults(_RETURN_VALUE_FUNC)
 
-def _getUniversal(varID, viewID):
-    result = trace_._sendReadOneStringCmd(tc.CMD_GET_GUI_VARIABLE, varID, viewID)
-    return _RETURN_VALUE_FUNC[varID](result)
+def return_value_func(self):
+    from . import trace
+    from . import constants as tc
+
+
+    self._RETURN_VALUE_FUNC = {tc.ID_LIST:      trace.Storage.readStringList,
+                          tc.VAR_VIEW_ZOOM:     trace.Storage.readDouble,
+                          tc.VAR_VIEW_OFFSET:   lambda result: result.read("!dd"),
+                          tc.VAR_VIEW_SCHEMA:   trace.Storage.readString,
+                          tc.VAR_VIEW_BOUNDARY: lambda result: (result.read("!dd"), result.read("!dd"))}
+    self.subscriptionResults = trace.SubscriptionResults(self._RETURN_VALUE_FUNC)
+
+def _getUniversal(self, varID, viewID):
+    from . import trace
+    from . import constants as tc
+    return_value_func()
+    result = trace._sendReadOneStringCmd(tc.CMD_GET_GUI_VARIABLE, varID, viewID)
+    return self._RETURN_VALUE_FUNC[varID](result)
 
 def getIDList():
     """getIDList(): -> list(string)
     
     Returns the list of available views (open windows).
     """
+    from . import constants as tc
+
     return _getUniversal(tc.ID_LIST, "")
 
 def getZoom(viewID=DEFAULT_VIEW):
@@ -40,6 +52,7 @@ def getZoom(viewID=DEFAULT_VIEW):
     
     Returns the current zoom factor.
     """
+    from . import constants as tc
     return _getUniversal(tc.VAR_VIEW_ZOOM, viewID)
 
 def getOffset(viewID=DEFAULT_VIEW):
@@ -47,6 +60,7 @@ def getOffset(viewID=DEFAULT_VIEW):
     
     Returns the x and y offset of the center of the current view.
     """
+    from . import constants as tc
     return _getUniversal(tc.VAR_VIEW_OFFSET, viewID)
 
 def getSchema(viewID=DEFAULT_VIEW):
@@ -54,6 +68,7 @@ def getSchema(viewID=DEFAULT_VIEW):
     
     Returns the name of the current coloring scheme.
     """
+    from . import constants as tc
     return _getUniversal(tc.VAR_VIEW_SCHEMA, viewID)
 
 def getBoundary(viewID=DEFAULT_VIEW):
@@ -61,19 +76,23 @@ def getBoundary(viewID=DEFAULT_VIEW):
     
     Returns the coordinates of the lower left and the upper right corner of the currently visible view.
     """
+    from . import constants as tc
     return _getUniversal(tc.VAR_VIEW_BOUNDARY, viewID)
 
 
-def subscribe(viewID, varIDs=(tc.VAR_VIEW_OFFSET,), begin=0, end=2**31-1):
+def subscribe(self, viewID, varIDs=None, begin=0, end=2**31-1):
     """subscribe(string, list(integer), double, double) -> None
     
     Subscribe to one or more gui values for the given interval.
     A call to this method clears all previous subscription results.
     """
-    subscriptionResults.reset()
-    trace_._subscribe(tc.CMD_SUBSCRIBE_GUI_VARIABLE, begin, end, viewID, varIDs)
+    from . import trace
+    from . import constants as tc
+    varIDs = (tc.VAR_VIEW_OFFSET,)
+    self.subscriptionResults.reset()
+    trace._subscribe(tc.CMD_SUBSCRIBE_GUI_VARIABLE, begin, end, viewID, varIDs)
 
-def getSubscriptionResults(viewID=None):
+def getSubscriptionResults(self, viewID=None):
     """getSubscriptionResults(string) -> dict(integer: <value_type>)
     
     Returns the subscription results for the last time step and the given view.
@@ -83,14 +102,17 @@ def getSubscriptionResults(viewID=None):
     It is not possible to retrieve older subscription results than the ones
     from the last time step.
     """
-    return subscriptionResults.get(viewID)
+    return self.subscriptionResults.get(viewID)
 
-def subscribeContext(viewID, domain, dist, varIDs=(tc.VAR_VIEW_OFFSET,), begin=0, end=2**31-1):
-    subscriptionResults.reset()
-    trace_._subscribeContext(tc.CMD_SUBSCRIBE_GUI_CONTEXT, begin, end, viewID, domain, dist, varIDs)
+def subscribeContext(self, viewID, domain, dist, varIDs=None, begin=0, end=2**31-1):
+    from . import trace
+    from . import constants as tc
+    varIDs = (tc.VAR_VIEW_OFFSET,)
+    self.subscriptionResults.reset()
+    trace._subscribeContext(tc.CMD_SUBSCRIBE_GUI_CONTEXT, begin, end, viewID, domain, dist, varIDs)
 
-def getContextSubscriptionResults(viewID=None):
-    return subscriptionResults.getContext(viewID)
+def getContextSubscriptionResults(self, viewID=None):
+    return self.subscriptionResults.getContext(viewID)
 
 
 def setZoom(viewID, zoom):
@@ -98,32 +120,40 @@ def setZoom(viewID, zoom):
     
     Set the current zoom factor for the given view.
     """
-    trace_._sendDoubleCmd(tc.CMD_SET_GUI_VARIABLE, tc.VAR_VIEW_ZOOM, viewID, zoom)
+    from . import trace
+    from . import constants as tc
+    trace._sendDoubleCmd(tc.CMD_SET_GUI_VARIABLE, tc.VAR_VIEW_ZOOM, viewID, zoom)
 
 def setOffset(viewID, x, y):
     """setOffset(string, double, double) -> None
     
     Set the current offset for the given view.
     """
-    trace_._beginMessage(tc.CMD_SET_GUI_VARIABLE, tc.VAR_VIEW_OFFSET, viewID, 1 + 8 + 8)
-    trace_._message.string += struct.pack("!Bdd", tc.POSITION_2D, x, y)
-    trace_._sendExact()
+    from . import trace
+    from . import constants as tc
+    trace._beginMessage(tc.CMD_SET_GUI_VARIABLE, tc.VAR_VIEW_OFFSET, viewID, 1 + 8 + 8)
+    trace._message.string += struct.pack("!Bdd", tc.POSITION_2D, x, y)
+    trace._sendExact()
 
 def setSchema(viewID, schemeName):
     """setSchema(string, string) -> None
     
     Set the current coloring scheme for the given view.
     """
-    trace_._sendStringCmd(tc.CMD_SET_GUI_VARIABLE, tc.VAR_VIEW_SCHEMA, viewID, schemeName)
+    from . import trace
+    from . import constants as tc
+    trace._sendStringCmd(tc.CMD_SET_GUI_VARIABLE, tc.VAR_VIEW_SCHEMA, viewID, schemeName)
 
 def setBoundary(viewID, xmin, ymin, xmax, ymax):
     """setBoundary(string, double, double, double, double) -> None
     
     Set the current boundary for the given view (see getBoundary()).
     """
-    trace_._beginMessage(tc.CMD_SET_GUI_VARIABLE, tc.VAR_VIEW_BOUNDARY, viewID, 1 + 8 + 8 + 8 + 8)
-    trace_._message.string += struct.pack("!Bdddd", tc.TYPE_BOUNDINGBOX, xmin, ymin, xmax, ymax)
-    trace_._sendExact()
+    from . import trace
+    from . import constants as tc
+    trace._beginMessage(tc.CMD_SET_GUI_VARIABLE, tc.VAR_VIEW_BOUNDARY, viewID, 1 + 8 + 8 + 8 + 8)
+    trace._message.string += struct.pack("!Bdddd", tc.TYPE_BOUNDINGBOX, xmin, ymin, xmax, ymax)
+    trace._sendExact()
 
 def screenshot(viewID, filename):
     """screenshot(string, string) -> None
@@ -133,11 +163,15 @@ def screenshot(viewID, filename):
     formats differ from platform to platform but should at least
     include ps, svg and pdf, on linux probably gif, png and jpg as well.
     """
-    trace_._sendStringCmd(tc.CMD_SET_GUI_VARIABLE, tc.VAR_SCREENSHOT, viewID, filename)
+    from . import trace
+    from . import constants as tc
+    trace._sendStringCmd(tc.CMD_SET_GUI_VARIABLE, tc.VAR_SCREENSHOT, viewID, filename)
 
 def trackVehicle(viewID, vehID):
     """trackVehicle(string, string) -> None
     
     Start visually tracking the given vehicle on the given view.
     """
-    trace_._sendStringCmd(tc.CMD_SET_GUI_VARIABLE, tc.VAR_TRACK_VEHICLE, viewID, vehID)
+    from . import trace
+    from . import constants as tc
+    trace._sendStringCmd(tc.CMD_SET_GUI_VARIABLE, tc.VAR_TRACK_VEHICLE, viewID, vehID)
