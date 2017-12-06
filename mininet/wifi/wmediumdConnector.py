@@ -16,6 +16,7 @@ import time
 import struct
 import stat
 import pkg_resources
+import binascii
 
 from mininet.log import info, error, debug
 
@@ -1264,7 +1265,7 @@ class WmediumdServerConn(object):
         "tx power update request"
         # type: (WmediumdTXPower) -> str
         msgtype = WmediumdConstants.WSERVER_TXPOWER_UPDATE_REQUEST_TYPE
-        mac = txpower.staintfref.get_intf_mac().replace(':', '').decode('hex')
+        mac = binascii.hexlify((txpower.staintfref.get_intf_mac().replace(':', '')).encode())
         txpower_ = txpower.sta_txpower
         return cls.__txpower_update_request_struct.pack(msgtype, mac, txpower_)
 
@@ -1273,7 +1274,7 @@ class WmediumdServerConn(object):
         "antenna gain update request"
         # type: (WmediumdGain) -> str
         msgtype = WmediumdConstants.WSERVER_GAIN_UPDATE_REQUEST_TYPE
-        mac = gain.staintfref.get_intf_mac().replace(':', '').decode('hex')
+        mac = binascii.hexlify((gain.staintfref.get_intf_mac().replace(':', '')).encode())
         gain_ = gain.sta_gain
         return cls.__gain_update_request_struct.pack(msgtype, mac, gain_)
 
@@ -1282,7 +1283,7 @@ class WmediumdServerConn(object):
         "gaussian random update request"
         # type: (WmediumdGaussianRandom) -> str
         msgtype = WmediumdConstants.WSERVER_GAUSSIAN_RANDOM_UPDATE_REQUEST_TYPE
-        mac = gRandom.staintfref.get_intf_mac().replace(':', '').decode('hex')
+        mac = binascii.hexlify((gRandom.staintfref.get_intf_mac().replace(':', '')).encode())
         gRandom_ = gRandom.sta_gaussian_random
         return cls.__gaussian_random_update_request_struct.pack(msgtype, mac,
                                                                 gRandom_)
@@ -1292,7 +1293,7 @@ class WmediumdServerConn(object):
         "height update request"
         # type: (WmediumdHeight) -> str
         msgtype = WmediumdConstants.WSERVER_HEIGHT_UPDATE_REQUEST_TYPE
-        mac = height.staintfref.get_intf_mac().replace(':', '').decode('hex')
+        mac = binascii.hexlify((height.staintfref.get_intf_mac().replace(':', '')).encode())
         height_ = height.sta_height
         return cls.__height_update_request_struct.pack(msgtype, mac, height_)
 
@@ -1301,8 +1302,8 @@ class WmediumdServerConn(object):
         "error prob update request"
         # type: (WmediumdERRPROBLink) -> str
         msgtype = WmediumdConstants.WSERVER_ERRPROB_UPDATE_REQUEST_TYPE
-        mac_from = link.sta1intfref.get_intf_mac().replace(':', '').decode('hex')
-        mac_to = link.sta2intfref.get_intf_mac().replace(':', '').decode('hex')
+        mac_from = binascii.hexlify((link.sta1intfref.get_intf_mac().replace(':', '')).encode())
+        mac_to = binascii.hexlify((link.sta2intfref.get_intf_mac().replace(':', '')).encode())
         errprob = cls.__conv_float_to_fixed_point(link.errprob)
         return cls.__errprob_update_request_struct.pack(msgtype, mac_from, mac_to,
                                                         errprob)
@@ -1312,8 +1313,8 @@ class WmediumdServerConn(object):
         "specprob update request"
         # type: (WmediumdSPECPROBLink) -> str
         msgtype = WmediumdConstants.WSERVER_SPECPROB_UPDATE_REQUEST_TYPE
-        mac_from = link.sta1intfref.get_intf_mac().replace(':', '').decode('hex')
-        mac_to = link.sta2intfref.get_intf_mac().replace(':', '').decode('hex')
+        mac_from = binascii.hexlify((link.sta1intfref.get_intf_mac().replace(':', '')).encode())
+        mac_to = binascii.hexlify((link.sta2intfref.get_intf_mac().replace(':', '')).encode())
         fixed_points = [None] * 144
         for size_idx in range(0, 12):
             for rate_idx in range(0, 12):
@@ -1328,7 +1329,7 @@ class WmediumdServerConn(object):
         "del station by mac"
         # type: (str) -> str
         msgtype = WmediumdConstants.WSERVER_DEL_BY_MAC_REQUEST_TYPE
-        macparsed = mac.replace(':', '').decode('hex')
+        macparsed = binascii.hexlify((mac.replace(':', '')).encode())
         return cls.__station_del_by_mac_request_struct.pack(msgtype, macparsed)
 
     @classmethod
