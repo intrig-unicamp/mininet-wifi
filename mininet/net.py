@@ -999,11 +999,11 @@ class Mininet(object):
 
         started = {}
         for swclass, switches in groupby(
-                sorted(nodesL2, key=type), type):
+                sorted(nodesL2, key=lambda x: str(type(x))), type):
             switches = tuple(switches)
             if hasattr(swclass, 'batchStartup'):
                 success = swclass.batchStartup(switches)
-                started.update({ s: s for s in success })
+                started.update({s: s for s in success})
         info('\n')
         if self.waitConn:
             self.waitConnected()
@@ -1038,29 +1038,18 @@ class Mininet(object):
         info('\n')
         info('*** Stopping switches/access points\n')
         stopped = {}
+        nodesL2 = self.switches + self.aps
         for swclass, switches in groupby(
-                sorted(self.switches, key=type), type):
+                sorted(nodesL2, key=lambda x: str(type(x))), type):
             switches = tuple(switches)
             if hasattr(swclass, 'batchShutdown'):
                 success = swclass.batchShutdown(switches)
-                stopped.update({ s: s for s in success })
-        for switch in self.switches:
+                stopped.update({s: s for s in success})
+        for switch in nodesL2:
             info(switch.name + ' ')
             if switch not in stopped:
                 switch.stop()
             switch.terminate()
-        if not self.configure4addr:
-            for apclass, aps in groupby(
-                    sorted(self.aps, key=type), type):
-                aps = tuple(aps)
-                if hasattr(apclass, 'batchShutdown'):
-                    success = apclass.batchShutdown(aps)
-                    stopped.update({ s: s for s in success })
-            for ap in self.aps:
-                info(ap.name + ' ')
-                if ap not in stopped:
-                    ap.stop()
-                ap.terminate()
         info('\n')
         info('*** Stopping hosts/stations\n')
         hosts = self.hosts + self.stations
