@@ -865,7 +865,7 @@ class Switch( Node ):
         "Return correctly formatted dpid from dpid or switch name (s1 -> 1)"
         if dpid:
             # Remove any colons and make sure it's a good hex number
-            dpid = dpid.translate( None, ':' )
+            dpid = dpid.translate(str.maketrans('', '', ':'))
             assert len( dpid ) <= self.dpidLen and int( dpid, 16 ) >= 0
         else:
             # Use hex of the first number in the switch name

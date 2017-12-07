@@ -4,6 +4,7 @@ author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
 
 import os
 import re
+from six import string_types
 
 from mininet.log import info, error, debug
 from mininet.link import Intf
@@ -715,7 +716,7 @@ class wirelessLink (object):
             if isinstance(node, Car) and node.params['wlan'].index(wlan) == 1:
                 node = node.params['carsta']
                 wlan = node.params['wlan'][0]
-            if isinstance(wlan, basestring):
+            if isinstance(wlan, string_types):
                 node.cmd('iw dev ' + wlan + ' del')
                 node.delIntf(wlan)
                 node.intf = None
