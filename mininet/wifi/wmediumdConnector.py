@@ -468,7 +468,7 @@ class WmediumdStarter(object):
                     configstr += 'snr'
                 configstr += '";\n\tdefault_prob = 1.0;\n\tlinks = ('
                 first_link = True
-                for mappedlink in mappedlinks.itervalues():
+                for mappedlink in mappedlinks.values():
                     id1 = mappedlink.sta1intfref.identifier()
                     id2 = mappedlink.sta2intfref.identifier()
                     if first_link:
@@ -1242,9 +1242,9 @@ class WmediumdServerConn(object):
         "snr update request"
         # type: (WmediumdSNRLink) -> str
         msgtype = WmediumdConstants.WSERVER_SNR_UPDATE_REQUEST_TYPE
-        mac_from = link.sta1intfref.get_intf_mac().replace(':', '').decode('hex')
-        mac_to = link.sta2intfref.get_intf_mac().replace(':', '').decode('hex')
-        snr = link.snr
+        mac_from = binascii.hexlify(link.sta1intfref.get_intf_mac().replace(':', '').encode())
+        mac_to = binascii.hexlify(link.sta2intfref.get_intf_mac().replace(':', '').encode())
+        snr = int(link.snr)
         return cls.__snr_update_request_struct.pack(msgtype, mac_from,
                                                     mac_to, snr)
 
@@ -1253,7 +1253,7 @@ class WmediumdServerConn(object):
         "position update request"
         # type: (WmediumdPosition) -> str
         msgtype = WmediumdConstants.WSERVER_POSITION_UPDATE_REQUEST_TYPE
-        mac = position.staintfref.get_intf_mac().replace(':', '').decode('hex')
+        mac = binascii.hexlify(position.staintfref.get_intf_mac().replace(':', '').encode())
         posX = position.sta_position[0]
         posY = position.sta_position[1]
         posZ = position.sta_position[2]
