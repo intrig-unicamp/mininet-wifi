@@ -30,6 +30,7 @@ class testWalkthrough(unittest.TestCase):
     # PART 1
     def testHelp(self):
         "Check the usage message"
+        pexpect.spawn('mn -c')
         p = pexpect.spawn('mn --wifi -h')
         sleep(3)
         index = p.expect([ 'Usage: mn', pexpect.EOF ])
@@ -37,6 +38,7 @@ class testWalkthrough(unittest.TestCase):
 
     def testBasic(self):
         "Test basic CLI commands (help, nodes, net, dump)"
+        pexpect.spawn('mn -c')
         p = pexpect.spawn('mn --wifi')
         sleep(3)
         p.expect(self.prompt)
@@ -88,6 +90,7 @@ class testWalkthrough(unittest.TestCase):
 
     def testConnectivity(self):
         "Test ping and pingall"
+        pexpect.spawn('mn -c')
         p = pexpect.spawn('mn --wifi')
         p.expect(self.prompt)
         sleep(3)
@@ -102,6 +105,7 @@ class testWalkthrough(unittest.TestCase):
 
     def testSimpleHTTP(self):
         "Start an HTTP server on sta1 and wget from sta2"
+        pexpect.spawn('mn -c')
         p = pexpect.spawn('mn --wifi')
         p.expect(self.prompt)
         sleep(3)
@@ -119,6 +123,7 @@ class testWalkthrough(unittest.TestCase):
     def testRegressionRun(self):
         "Test pingpair (0% drop) and iperf (bw > 0) regression tests"
         # test pingpair
+        pexpect.spawn('mn -c')
         p = pexpect.spawn('mn --wifi --test pingpair')
         p.expect('0% dropped')
         p.expect(pexpect.EOF)
@@ -132,6 +137,7 @@ class testWalkthrough(unittest.TestCase):
     def testTopoChange(self):
         "Test pingall on single,3 and linear,4 topos"
         # testing single,3
+        pexpect.spawn('mn -c')
         p = pexpect.spawn('mn --wifi --test pingall --topo single,3')
         p.expect(r'(\d+)/(\d+) received')
         received = int(p.match.group(1))
@@ -150,6 +156,7 @@ class testWalkthrough(unittest.TestCase):
 
     def testLinkChange(self):
         "Test TCLink bw and delay"
+        pexpect.spawn('mn -c')
         p = pexpect.spawn('mn --wifi --link wtc,bw=10,delay=10ms')
         # test bw
         sleep(3)
@@ -173,6 +180,7 @@ class testWalkthrough(unittest.TestCase):
 
     def testVerbosity(self):
         "Test debug and output verbosity"
+        pexpect.spawn('mn -c')
         # test output
         p = pexpect.spawn('mn --wifi -v output')
         p.expect(self.prompt)
@@ -189,6 +197,7 @@ class testWalkthrough(unittest.TestCase):
 
     def testCustomTopo(self):
         "Start Mininet using a custom topo, then run pingall"
+        pexpect.spawn('mn -c')
         # Satisfy pylint
         assert self
         custom = os.path.dirname(os.path.realpath(__file__))
@@ -202,6 +211,7 @@ class testWalkthrough(unittest.TestCase):
 
     def testMobility(self):
         "Start Mininet-WiFi using mobility, then test ping"
+        pexpect.spawn('mn -c')
         p = pexpect.spawn(
             'python3 examples/mobility.py')
         sleep(3)
@@ -213,6 +223,7 @@ class testWalkthrough(unittest.TestCase):
 
     def testVirtualIface(self):
         "Start Mininet-WiFi using simplewifitopology, then test vif"
+        pexpect.spawn('mn -c')
         p = pexpect.spawn(
             'python3 examples/simplewifitopology.py -v')
         sleep(3)
@@ -224,6 +235,7 @@ class testWalkthrough(unittest.TestCase):
 
     def testVanet(self):
         "Start Mininet-WiFi using vanet example"
+        pexpect.spawn('mn -c')
         p = pexpect.spawn(
             'python3 examples/vanet.py')
         sleep(8)
@@ -233,6 +245,7 @@ class testWalkthrough(unittest.TestCase):
     
     def testPropagationModel(self):
         "Start Mininet-WiFi using a propagation model, then test ping and rssi"
+        pexpect.spawn('mn -c')
         p = pexpect.spawn(
             'python3 examples/propagationModel.py')
         sleep(3)
@@ -244,6 +257,7 @@ class testWalkthrough(unittest.TestCase):
 
     def testMesh(self):
         "Start Mininet-WiFi with wireless mesh, then test ping"
+        pexpect.spawn('mn -c')
         p = pexpect.spawn(
             'python3 examples/mesh.py')
         sleep(2)
@@ -258,6 +272,7 @@ class testWalkthrough(unittest.TestCase):
 
     def testAdhoc(self):
         "Start Mininet-WiFi with wireless adhoc, then test ping"
+        pexpect.spawn('mn -c')
         p = pexpect.spawn(
             'python3 examples/adhoc.py')
         sleep(12)
@@ -283,6 +298,7 @@ class testWalkthrough(unittest.TestCase):
 
     def testAuthentication(self):
         "Start Mininet-WiFi using WPA, then test ping"
+        pexpect.spawn('mn -c')
         p = pexpect.spawn(
             'python3 examples/authentication.py')
         sleep(3)
@@ -294,6 +310,7 @@ class testWalkthrough(unittest.TestCase):
 
     def testReplayingMobility(self):
         "Start Mininet-WiFi using Replaying Mobility, then test ping"
+        pexpect.spawn('mn -c')
         p = pexpect.spawn(
             'python3 examples/replaying/replayingMobility.py')
         sleep(15)
@@ -308,6 +325,7 @@ class testWalkthrough(unittest.TestCase):
 
     def testHandover(self):
         "Start Mininet-WiFi with handover, then test handover"
+        pexpect.spawn('mn -c')
         p = pexpect.spawn(
             'python3 examples/handover.py')
         sleep(2)
@@ -323,6 +341,7 @@ class testWalkthrough(unittest.TestCase):
 
     def testmultipleWlan(self):
         "Start Mininet-WiFi with multiple WLAN"
+        pexpect.spawn('mn -c')
         p = pexpect.spawn(
             'python3 examples/multipleWlan.py')
         sleep(3)
@@ -341,6 +360,7 @@ class testWalkthrough(unittest.TestCase):
     def testPosition(self):
         """Start Mininet-WiFi when the position is statically defined,
         then test ping"""
+        pexpect.spawn('mn -c')
         p = pexpect.spawn(
             'python3 examples/position.py')
         sleep(3)
@@ -352,6 +372,9 @@ class testWalkthrough(unittest.TestCase):
 
     def testBgscan(self):
         "Start Mininet-WiFi, then test bgscan"
+        pexpect.spawn('mn -c')
+        pexpect.spawn(
+            'service network-manager stop')
         p = pexpect.spawn(
             'python3 examples/handover_bgscan.py')
         sleep(5)
@@ -368,6 +391,7 @@ class testWalkthrough(unittest.TestCase):
 
     def test4addr(self):
         "Start Mininet-WiFi with 4addr, then test connectivity"
+        pexpect.spawn('mn -c')
         pexpect.spawn(
             'service network-manager stop')
         p = pexpect.spawn(
@@ -384,6 +408,7 @@ class testWalkthrough(unittest.TestCase):
 
     def testMutipleSSID(self):
         "Start Mininet-WiFi with multiple SSIDs, then test connectivity"
+        pexpect.spawn('mn -c')
         pexpect.spawn(
             'service network-manager stop')
         p = pexpect.spawn(
@@ -409,6 +434,7 @@ class testWalkthrough(unittest.TestCase):
 
     def testMeshAP(self):
         "Start Mininet-WiFi, then test wifiMeshAP.py"
+        pexpect.spawn('mn -c')
         p = pexpect.spawn(
             'python3 examples/meshAP.py')
         sleep(3)
@@ -420,6 +446,7 @@ class testWalkthrough(unittest.TestCase):
 
     def testErrorProb(self):
         "Start Mininet-WiFi, then test wmediumd_error_prob.py"
+        pexpect.spawn('mn -c')
         p = pexpect.spawn(
             'python3 examples/wmediumd_error_prob.py')
         sleep(6)
@@ -435,6 +462,7 @@ class testWalkthrough(unittest.TestCase):
     def testWirelessParams(self):
         """Start Mininet-WiFi with sta in ap mode,
         then do an extensive test"""
+        pexpect.spawn('mn -c')
         p = pexpect.spawn(
             'python3 examples/sta_ap_mode.py')
         sleep(5)
@@ -513,6 +541,7 @@ class testWalkthrough(unittest.TestCase):
 
     def testDynamicMAC(self):
         "Verify that MACs are set correctly"
+        pexpect.spawn('mn -c')
         p = pexpect.spawn('mn --wifi')
         sleep(3)
         p.expect(self.prompt)
@@ -525,6 +554,7 @@ class testWalkthrough(unittest.TestCase):
 
     def testStaticMAC(self):
         "Verify that MACs are set to easy to read numbers"
+        pexpect.spawn('mn -c')
         p = pexpect.spawn('mn --wifi --mac')
         sleep(3)
         p.expect(self.prompt)
@@ -537,6 +567,7 @@ class testWalkthrough(unittest.TestCase):
 
     def testAPs(self):
         "Run iperf test using user and ovsk aps"
+        pexpect.spawn('mn -c')
         aps = [ 'user', 'ovsk' ]
         for ap in aps:
             p = pexpect.spawn('mn --wifi --ap %s --test iperf' % ap)
@@ -547,6 +578,7 @@ class testWalkthrough(unittest.TestCase):
 
     def testBenchmark(self):
         "Run benchmark and verify that it takes less than 4 seconds"
+        pexpect.spawn('mn -c')
         p = pexpect.spawn('mn --wifi --test none')
         sleep(3)
         p.expect(r'completed in ([\d\.]+) seconds')
@@ -609,6 +641,7 @@ class testWalkthrough(unittest.TestCase):
 
     def testLink(self):
         "Test link CLI command using ping"
+        pexpect.spawn('mn -c')
         p = pexpect.spawn('mn --wifi')
         sleep(3)
         p.expect(self.prompt)
