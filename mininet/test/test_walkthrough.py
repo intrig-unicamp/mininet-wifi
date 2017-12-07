@@ -200,7 +200,7 @@ class testWalkthrough(unittest.TestCase):
         p = pexpect.spawn('mn --wifi -v debug --test none')
         sleep(3)
         p.expect(pexpect.EOF)
-        lines = p.before.split('\n')
+        lines = p.before.decode().split('\n')
         self.assertTrue(len(lines) > 70, "Debug output is too short")
 
     def testCustomTopo(self):
