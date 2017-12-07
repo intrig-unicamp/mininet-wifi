@@ -882,7 +882,7 @@ class WiFiNode(object):
         # explicitly so that we won't get errors if we run before they
         # have been removed by the kernel. Unfortunately this is very slow,
         # at least with Linux kernels before 2.6.33
-        for intf in self.intfs.values():
+        for intf in list(self.intfs.values()):
             # Protect against deleting hardware interfaces
             if (self.name in intf.name) or (not checkName):
                 intf.delete()
@@ -1091,7 +1091,7 @@ class AP(WiFiNode):
         "Return correctly formatted dpid from dpid or switch name (s1 -> 1)"
         if dpid:
             # Remove any colons and make sure it's a good hex number
-            dpid = dpid.translate(str.maketrans('', '', ':'))
+            dpid = dpid.translate(None, ':')
             assert len(dpid) <= self.dpidLen and int(dpid, 16) >= 0
         else:
             # Use hex of the first number in the switch name
