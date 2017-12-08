@@ -9,10 +9,9 @@ def intersect(a, b):
 
 def initialisation(ListVeh, ListTravelTime, ListVisited, Visited, time, speed, vehID):
     # enregistrement de chaque vehicule qui apparait et initialisation des Lists
-    # ListVeh.append(vehID)
-    # ListTravelTime.append([])
+    ListVeh.append(vehID)
+    ListTravelTime.append([])
     ListVisited.append([])
-
     # enregistrement pour chaque vehicule du premier lien visite
     ListVisited[ListVeh.index(vehID)].append(traci.vehicle.getRoadID(vehID))
     Visited.append([])
