@@ -2,8 +2,6 @@ import sys
 import os
 import threading
 from .sumolib.sumulib import checkBinary
-from .traci import trace
-from .traci import vehicle
 from .fonction import initialisation, noChangeSaveTimeAndSpeed,\
     changeSaveTimeAndSpeed, reroutage
 from mininet.wifi.mobility import mobility
@@ -28,6 +26,8 @@ class sumo(object):
         thread.start()
 
     def start( self, stations, program, config_file ):
+        from .traci import trace
+        from .traci import vehicle
         PORT = 8813
         sumoBinary = checkBinary(program)
         myfile = (os.path.join( os.path.dirname(__file__), "data/%s" % config_file))
