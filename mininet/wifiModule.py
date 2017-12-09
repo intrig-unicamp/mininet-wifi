@@ -20,13 +20,13 @@ class module(object):
     phyID = 0
 
     @classmethod
-    def loadModule(cls, wifiRadios, alternativeModule=''):
+    def loadModule(cls, n_radios, alternativeModule=''):
         """ Load WiFi Module 
         
-        :param wifiRadios: number of wifi radios
+        :param n_radios: number of wifi radios
         :param alternativeModule: dir of a mac80211_hwsim alternative module
         """
-        debug('Loading %s virtual interfaces\n' % wifiRadios)
+        debug('Loading %s virtual interfaces\n' % n_radios)
         if not cls.externally_managed:
             if alternativeModule == '':
                 output_ = os.system('modprobe mac80211_hwsim radios=0 '
@@ -38,19 +38,29 @@ class module(object):
             """output_ is different of zero in Kernel 3.13.x. radios=0 doesn't
              work in such kernel version"""
             if output_ == 0:
-                cls.__create_hwsim_mgmt_devices(wifiRadios)
+                cls.__create_hwsim_mgmt_devices(n_radios)
             else:
                 # Useful for tests in Kernels like Kernel 3.13.x
-                if wifiRadios == 0:
-                    wifiRadios = 1
+                if n_radios == 0:
+                    n_radios = 1
                 if alternativeModule == '':
-                    os.system('modprobe mac80211_hwsim radios=%s' % wifiRadios)
+                    os.system('modprobe mac80211_hwsim radios=%s' % n_radios)
                 else:
                     os.system('insmod %s radios=%s' % (alternativeModule,
-                                                       wifiRadios))
+                                                       n_radios))
         else:
             cls.devices_created_dynamically = True
-            cls.__create_hwsim_mgmt_devices(wifiRadios)
+            cls.__create_hwsim_mgmt_devices(n_radios)
+        cls.call_rfkill(n_radios)
+
+    @classmethod
+    def call_rfkill(cls, n_radios):
+        # generate phys to be used with rfkill
+        phys = subprocess.check_output("iw dev | grep phy# | tr -d \"phy#\"",
+                                       shell=True).decode('utf-8').split("\n")
+        for id, phy in enumerate(phys):
+            if phy is not "" and id < n_radios:
+                os.system('rfkill unblock %s' % phy)
 
     @classmethod
     def __create_hwsim_mgmt_devices(cls, wifi_radios):
@@ -140,11 +150,11 @@ class module(object):
         cls.kill_mac80211_hwsim()
 
     @classmethod
-    def start(cls, nodes, wifiRadios, alternativeModule='', **params):
+    def start(cls, nodes, n_radios, alternativeModule='', **params):
         """Starts environment
         
         :param nodes: list of wireless nodes
-        :param wifiRadios: number of wifi radios
+        :param n_radios: number of wifi radios
         :param alternativeModule: dir of a mac80211_hwsim alternative module
         :param **params: ifb -  Intermediate Functional Block device
         """
@@ -158,7 +168,7 @@ class module(object):
             pass
 
         physicalWlans = cls.getPhysicalWlan()  # Gets Physical Wlan(s)
-        cls.loadModule(wifiRadios, alternativeModule)  # Initatilize WiFi Module
+        cls.loadModule(n_radios, alternativeModule)  # Initatilize WiFi Module
         phys = cls.getPhy()  # Get Phy Interfaces
         module.assignIface(nodes, physicalWlans, phys, **params)  # iface assign
 
