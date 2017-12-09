@@ -13,7 +13,6 @@ mobility_domain='a1b2',...)"""
 from mininet.net import Mininet
 from mininet.node import Controller
 from mininet.wifi.node import UserAP
-from mininet.link import TCLink
 from mininet.cli import CLI
 from mininet.log import setLogLevel
 
@@ -21,7 +20,7 @@ from mininet.log import setLogLevel
 def topology():
 
     "Create a network."
-    net = Mininet(controller=Controller, link=TCLink, accessPoint=UserAP,
+    net = Mininet(controller=Controller, accessPoint=UserAP,
                   enable_wmediumd=True, enable_interference=True)
 
     print("*** Creating nodes")

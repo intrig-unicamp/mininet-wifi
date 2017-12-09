@@ -7,12 +7,11 @@ from mininet.node import Controller
 from mininet.wifi.node import OVSKernelAP
 from mininet.cli import CLI
 from mininet.log import setLogLevel
-from mininet.link import TCLink
 
 
 def topology():
     "Create a network."
-    net = Mininet(controller=Controller, link=TCLink, accessPoint=OVSKernelAP,
+    net = Mininet(controller=Controller, accessPoint=OVSKernelAP,
                   enable_wmediumd=True, enable_interference=True)
 
     print("*** Creating nodes")

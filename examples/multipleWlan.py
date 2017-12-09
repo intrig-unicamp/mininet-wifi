@@ -6,12 +6,11 @@ from mininet.net import Mininet
 from mininet.node import  OVSKernelSwitch, Controller
 from mininet.cli import CLI
 from mininet.log import setLogLevel
-from mininet.link import TCLink
 
 
 def topology():
     "Create a network."
-    net = Mininet(controller=Controller, link=TCLink, switch=OVSKernelSwitch)
+    net = Mininet(controller=Controller, switch=OVSKernelSwitch)
 
     print("*** Creating nodes")
     sta1 = net.addStation('sta1', wlans=3)  # 3 wlan added
