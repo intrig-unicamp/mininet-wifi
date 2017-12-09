@@ -127,7 +127,7 @@ class Mininet(object):
                  accessPoint=OVSKernelAP, host=Host, station=Station,
                  car=Car, controller=DefaultController, isWiFi=False,
                  link=Link, intf=Intf, build=True, xterms=False,
-                 cleanup=False, ipBase='10.0.0.0/8', inNamespace=False,
+                 ipBase='10.0.0.0/8', inNamespace=False,
                  autoSetMacs=False, autoStaticArp=False, autoPinCpus=False,
                  listenPort=None, waitConnected=False, ssid="new-ssid",
                  mode="g", channel="1", enable_wmediumd=False,
@@ -171,7 +171,6 @@ class Mininet(object):
         self.repetitions = 1 # mobility: number of repetitions
         self.inNamespace = inNamespace
         self.xterms = xterms
-        self.cleanup = cleanup
         self.autoSetMacs = autoSetMacs
         self.autoSetPositions = autoSetPositions
         self.autoStaticArp = autoStaticArp
@@ -834,10 +833,6 @@ class Mininet(object):
            and up."""
         cls = Association
         cls.printCon = False
-        # Possibly we should clean up here and/or validate
-        # the topo
-        if self.cleanup:
-            pass
 
         info('*** Creating network\n')
         if not self.controllers and self.controller:
