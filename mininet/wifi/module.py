@@ -50,10 +50,10 @@ class module(object):
                 else:
                     os.system('insmod %s radios=%s' % (alternativeModule,
                                                        n_radios))
+            cls.call_rfkill(n_radios)
         else:
             cls.devices_created_dynamically = True
             cls.__create_hwsim_mgmt_devices(n_radios)
-        cls.call_rfkill(n_radios)
 
     @classmethod
     def call_rfkill(cls, n_radios):
