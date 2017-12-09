@@ -17,8 +17,8 @@ import sys
 import time
 
 # Fix setuptools' evil madness, and open up (more?) security holes
-if 'PYTHONPATH' in os.environ:
-    sys.path = os.environ[ 'PYTHONPATH' ].split(':') + sys.path
+if 'PYTHONPATH3' in os.environ:
+    sys.path = os.environ[ 'PYTHONPATH3' ].split(':') + sys.path
 
 from mininet.clean import cleanup
 from mininet.wifi.clean import cleanup_wifi
@@ -200,8 +200,8 @@ class MininetRunner(object):
         for fileName in files:
             customs = {}
             if os.path.isfile(fileName):
-                execfile(fileName, customs, customs)
-                for name, val in customs.iteritems():
+                exec (compile(open(fileName, "rb").read(), fileName, 'exec'), customs, customs)
+                for name, val in customs.items():
                     self.setCustom(name, val)
             else:
                 raise Exception('could not find custom file: %s' % fileName)
@@ -294,8 +294,8 @@ class MininetRunner(object):
         opts.add_option('--arp', action='store_true',
                         default=False, help='set all-pairs ARP entries')
         opts.add_option('--verbosity', '-v', type='choice',
-                        choices=LEVELS.keys(), default='info',
-                        help='|'.join(LEVELS.keys()))
+                        choices=list(LEVELS.keys()), default='info',
+                        help='|'.join(list(LEVELS.keys())))
         opts.add_option('--innamespace', action='store_true',
                         default=False, help='sw and ctrl in namespace?')
         opts.add_option('--listenport', type='int', default=6634,
@@ -326,7 +326,7 @@ class MininetRunner(object):
                         metavar='server1,server2...',
                         help=('run on multiple servers (experimental!)'))
         opts.add_option('--placement', type='choice',
-                        choices=PLACEMENT.keys(), default='block',
+                        choices=list(PLACEMENT.keys()), default='block',
                         metavar='block|random',
                         help=('node placement for --cluster '
                               '(experimental!) '))
@@ -445,7 +445,7 @@ class MininetRunner(object):
         inNamespace = opts.innamespace
         cluster = opts.cluster
         if inNamespace and cluster:
-            print "Please specify --innamespace OR --cluster"
+            print("Please specify --innamespace OR --cluster")
             exit()
         Net = MininetWithControlNet if opts.innamespace else Mininet
         if opts.cluster:

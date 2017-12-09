@@ -101,6 +101,7 @@ import random
 from time import sleep
 from itertools import chain, groupby
 from math import ceil
+from six import string_types
 
 from mininet.cli import CLI
 from mininet.log import info, error, debug, output, warn
@@ -238,7 +239,7 @@ class Mininet(object):
             if not remaining:
                 info('\n')
                 return True
-            if time > timeout and timeout is not None:
+            if timeout is not None and time > timeout:
                 break
             sleep(delay)
             time += delay
@@ -651,8 +652,8 @@ class Mininet(object):
             params: additional link params (optional)
             returns: link object"""
         # Accept node objects or names
-        node1 = node1 if not isinstance(node1, basestring) else self[ node1 ]
-        node2 = node2 if not isinstance(node2, basestring) else self[ node2 ]
+        node1 = node1 if not isinstance(node1, string_types) else self[ node1 ]
+        node2 = node2 if not isinstance(node2, string_types) else self[ node2 ]
         options = dict(params)
 
         mininetWiFi.connections.setdefault('src', [])
@@ -998,11 +999,11 @@ class Mininet(object):
 
         started = {}
         for swclass, switches in groupby(
-                sorted(nodesL2, key=type), type):
+                sorted(nodesL2, key=lambda x: str(type(x))), type):
             switches = tuple(switches)
             if hasattr(swclass, 'batchStartup'):
                 success = swclass.batchStartup(switches)
-                started.update({ s: s for s in success })
+                started.update({s: s for s in success})
         info('\n')
         if self.waitConn:
             self.waitConnected()
@@ -1039,11 +1040,11 @@ class Mininet(object):
         stopped = {}
         nodesL2 = self.switches + self.aps
         for swclass, switches in groupby(
-                sorted(nodesL2, key=type), type):
+                sorted(nodesL2, key=lambda x: str(type(x))), type):
             switches = tuple(switches)
             if hasattr(swclass, 'batchShutdown'):
                 success = swclass.batchShutdown(switches)
-                stopped.update({ s: s for s in success })
+                stopped.update({s: s for s in success})
         for switch in nodesL2:
             info(switch.name + ' ')
             if switch not in stopped:

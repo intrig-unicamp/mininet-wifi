@@ -1,6 +1,7 @@
 "Utility functions for Mininet."
 
 from time import sleep
+from six import string_types
 from resource import getrlimit, setrlimit, RLIMIT_NPROC, RLIMIT_NOFILE
 from select import poll, POLLIN, POLLHUP
 from subprocess import call, check_call, Popen, PIPE, STDOUT
@@ -99,7 +100,7 @@ def errRun(*cmd, **kwargs):
                 if echo:
                     output(data)
                 if f == popen.stdout:
-                    out += data
+                    out += data.decode('utf-8')
                     if data == '':
                         outDone = True
                 elif f == popen.stderr:
@@ -597,7 +598,7 @@ def ensureRoot():
     Probably we should only sudo when needed as per Big Switch's patch.
     """
     if os.getuid() != 0:
-        print "*** Mininet must run as root."
+        print("*** Mininet must run as root.")
         exit(1)
     return
 
@@ -609,7 +610,7 @@ def waitListening(client=None, server='127.0.0.1', port=80, timeout=None):
     if not runCmd('which telnet'):
         raise Exception('Could not find telnet')
     # pylint: disable=maybe-no-member
-    serverIP = server if isinstance(server, basestring) else server.IP()
+    serverIP = server if isinstance(server, string_types) else server.IP()
     cmd = ('echo A | telnet -e A %s %s' % (serverIP, port))
     time = 0
     result = runCmd(cmd)

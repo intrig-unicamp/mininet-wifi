@@ -48,7 +48,7 @@ def topology():
     print("*** Running CLI")
     CLI(net)
 
-    print "*** Stopping network"
+    print("*** Stopping network")
     net.stop()
 
 

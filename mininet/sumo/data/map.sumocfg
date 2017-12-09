@@ -16,7 +16,8 @@
 	<step-length value="0.1"/>
     </time>
     <report>
-	<no-step-log value="true"/>
+	    <no-step-log value="true"/>
+	    <xml-validation value="never"/>
     </report>
     <traci_server>
 	<processing>

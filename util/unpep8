@@ -195,4 +195,4 @@ def convertFromPep8( program ):
    return program
 
 if __name__ == '__main__':
-   print convertFromPep8( sys.stdin.read() )
+   print(convertFromPep8( sys.stdin.read() ))

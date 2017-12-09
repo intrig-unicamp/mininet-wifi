@@ -3,7 +3,7 @@ MININET-WIFI = mininet/wifi/*.py
 TEST = mininet/test/*.py
 EXAMPLES = mininet/examples/*.py
 MN = bin/mn
-PYMN = python -B bin/mn
+PYMN = python3 -B bin/mn
 BIN = $(MN)
 PYSRC = $(MININET) $(MININET-WIFI) $(TEST) $(EXAMPLES) $(BIN)
 MNEXEC = mnexec
@@ -45,23 +45,23 @@ slowtest: $(MININET)
 	mininet/examples/test/runner.py -v
 
 mnexec: mnexec.c $(MN) mininet/net.py
-	cc $(CFLAGS) $(LDFLAGS) -DVERSION=\"`PYTHONPATH=. $(PYMN) --version`\" $< -o $@
+	cc $(CFLAGS) $(LDFLAGS) -DVERSION=\"`PYTHONPATH3=. $(PYMN) --version`\" $< -o $@
 
 install: $(MNEXEC) $(MANPAGES)
 	install $(MNEXEC) $(BINDIR)
 	install $(MANPAGES) $(MANDIR)
-	python setup.py install
+	python3 setup.py install
 
 develop: $(MNEXEC) $(MANPAGES)
 # 	Perhaps we should link these as well
 	install $(MNEXEC) $(BINDIR)
 	install $(MANPAGES) $(MANDIR)
-	python setup.py develop
+	python3 setup.py develop
 
 man: $(MANPAGES)
 
 mn.1: $(MN)
-	PYTHONPATH=. help2man -N -n "create a Mininet network." \
+	PYTHONPATH3=. help2man -N -n "create a Mininet network." \
 	--no-discard-stderr "$(PYMN)" -o $@
 
 mnexec.1: mnexec
