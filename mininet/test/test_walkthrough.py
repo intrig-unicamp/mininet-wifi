@@ -420,13 +420,10 @@ class testWalkthrough(unittest.TestCase):
         n.wait()
         p = pexpect.spawn(
             'python3 examples/4address.py')
-        sleep(3)
-        p.sendline('sta1 ping -c 1 sta2')
-        p.expect('1 packets transmitted, 1 received')
+        sleep(5)
+        p.sendline('pingall')
+        p.expect('0% dropped')
         p.expect(self.prompt)
-        #p.sendline('pingall')
-        #p.expect('0% dropped')
-        #p.expect(self.prompt)
         p.sendline('exit')
         p.wait()
 
