@@ -824,28 +824,9 @@ class mininetWiFi(object):
                     break
 
     @classmethod
-    def customDataRate(cls, node, wlan):
-        """Custom Maximum Data Rate - Useful when there is mobility"""
-        mode = node.params['mode'][wlan]
-
-        if mode == 'a':
-            cls.rate = 54
-        elif mode == 'b':
-            cls.rate = 11
-        elif mode == 'g':
-            cls.rate = 54
-        elif mode == 'n':
-            cls.rate = 600
-        elif mode == 'ac':
-            cls.rate = 6777
-        else:
-            cls.rate = 54
-        return cls.rate
-
-    @classmethod
     def setBw(cls, node, wlan, iface):
         """ Set bw to AP """
-        value = cls.customDataRate(node, wlan)
+        value = deviceDataRate.apDataRate(node, wlan)
         bw = value
         node.cmd("tc qdisc replace dev %s \
             root handle 2: tbf rate %sMbit burst 15000 "
