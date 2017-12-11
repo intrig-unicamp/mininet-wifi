@@ -407,6 +407,8 @@ class _4addrLink(object):
                                         '09' + client.params['mac'][0][5:])
             self.setMAC(client)
             self.bring4addrIfaceUP(client)
+            client.func.append('client')
+            ap.func.append('ap')
 
             ap.params['mode'].append(ap.params['mode'][0])
             ap.params['channel'].append(ap.params['channel'][0])

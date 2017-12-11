@@ -454,7 +454,7 @@ class mininetWiFi(object):
     def addMesh(cls, node, **params):
         """
         Configure wireless mesh
-        
+
         node: name of the node
         cls: custom association class/constructor
         params: parameters for node
@@ -493,11 +493,11 @@ class mininetWiFi(object):
     def addHoc(cls, node, **params):
         """
         Configure AdHoc
-        
+
         node: name of the node
         cls: custom association class/constructor
         params: parameters for station
-           
+
         """
         if 'intf' in params:
             for intf_ in node.params['wlan']:
@@ -585,7 +585,7 @@ class mininetWiFi(object):
 
     @classmethod
     def configureWmediumd(cls, mininet):
-        """ 
+        """
         Updates values for frequency and channel
         """
         intfrefs = []
@@ -619,8 +619,8 @@ class mininetWiFi(object):
                 node.wmIface.append(wlan)
                 node.wmIface[wlan] = DynamicWmediumdIntfRef(node, intf=wlan)
                 intfrefs.append(node.wmIface[wlan])
-                if '_4addr' not in node.params and \
-                        (node.func[wlan] == 'ap' or isinstance(node, AP)):
+                if (node.func[wlan] == 'ap' or (isinstance(node, AP)
+                                                and node.func[wlan] is not 'client')):
                     isnodeaps.append(1)
                 else:
                     isnodeaps.append(0)
@@ -832,28 +832,9 @@ class mininetWiFi(object):
                     break
 
     @classmethod
-    def customDataRate(cls, node, wlan):
-        """Custom Maximum Data Rate - Useful when there is mobility"""
-        mode = node.params['mode'][wlan]
-
-        if mode == 'a':
-            cls.rate = 54
-        elif mode == 'b':
-            cls.rate = 11
-        elif mode == 'g':
-            cls.rate = 54
-        elif mode == 'n':
-            cls.rate = 600
-        elif mode == 'ac':
-            cls.rate = 6777
-        else:
-            cls.rate = 54
-        return cls.rate
-
-    @classmethod
     def setBw(cls, node, wlan, iface):
         """ Set bw to AP """
-        value = cls.customDataRate(node, wlan)
+        value = deviceDataRate.apRate(node, wlan)
         bw = value
         node.cmd("tc qdisc replace dev %s \
             root handle 2: tbf rate %sMbit burst 15000 "
