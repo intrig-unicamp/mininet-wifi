@@ -914,7 +914,7 @@ class Mininet(object):
         nodes = self.stations
         for node in nodes:
             for wlan in range(0, len(node.params['wlan'])):
-                if isinstance(node, AP) and node.func[0] != 'ap' and \
+                if not isinstance(node, AP) and node.func[0] != 'ap' and \
                     node.func[wlan] != 'mesh' and node.func[wlan] != 'adhoc' \
                         and node.func[wlan] != 'wifiDirect':
                     if not node.autoTxPower:
