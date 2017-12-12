@@ -294,7 +294,8 @@ class TCIntf( Intf ):
                    loss=None, max_queue_size=None ):
         "Internal method: return tc commands for delay and loss"
         cmds = []
-        if delay and delay < 0:
+        delay_ = int(delay.replace("ms", ""))
+        if delay and delay_ < 0:
             error( 'Negative delay', delay, '\n' )
         elif jitter and jitter < 0:
             error( 'Negative jitter', jitter, '\n' )

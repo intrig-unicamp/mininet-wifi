@@ -164,7 +164,7 @@ class testWalkthrough(unittest.TestCase):
         "Test TCLink bw and delay"
         c = pexpect.spawn('mn -c')
         c.wait()
-        p = pexpect.spawn('mn --wifi --link wtc,bw=10,delay=10')
+        p = pexpect.spawn('mn --wifi --link wtc,bw=10,delay=10ms')
         # test bw
         sleep(3)
         p.expect(self.prompt)
