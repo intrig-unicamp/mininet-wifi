@@ -278,11 +278,6 @@ class IntfWireless(object):
 
     def ipLink(self, *args):
         "Configure ourselves using ip link"
-        iface = self.name
-        if 'mp' in self.name:
-            iface = self.name.replace('mp', 'wlan')
-        debug('rfkill unblock %s\n' % iface)
-        self.cmd('rfkill unblock %s' % iface)
         return self.cmd('ip link set', self.name, *args)
 
     def setIP(self, ipstr, prefixLen=None):
