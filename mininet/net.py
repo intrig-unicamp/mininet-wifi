@@ -382,8 +382,6 @@ class Mininet(object):
         else:
             car.params['ssid'] = 'mesh-ssid'
             car.func.append('mesh')
-        self.addLink(carsta, carsw)
-        self.addLink(car, carsw)
         mininetWiFi.isVanet = True
         return car
 
@@ -885,10 +883,18 @@ class Mininet(object):
         raise Exception('configureControlNetwork: '
                         'should be overriden in subclass', self)
 
+    def create_vanet_link(self):
+        for idx, car in enumerate(self.cars):
+            self.addLink(self.carsSTA[idx], self.carsSW[idx])
+            self.addLink(car, self.carsSW[idx])
+
     def build(self):
         "Build mininet."
         if self.topo:
             self.buildFromTopo(self.topo)
+
+        if mininetWiFi.isVanet:
+            self.create_vanet_link()
 
         if (self.configure4addr or self.configureWiFiDirect or self.enable_error_prob) \
                 and self.enable_wmediumd:

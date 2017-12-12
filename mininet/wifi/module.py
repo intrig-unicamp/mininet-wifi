@@ -50,19 +50,11 @@ class module(object):
                 else:
                     os.system('insmod %s radios=%s' % (alternativeModule,
                                                        n_radios))
-            cls.call_rfkill(n_radios)
+            debug('rfkill unblock all\n')
+            os.system('rfkill unblock all')
         else:
             cls.devices_created_dynamically = True
             cls.__create_hwsim_mgmt_devices(n_radios)
-
-    @classmethod
-    def call_rfkill(cls, n_radios):
-        # generate phys to be used with rfkill
-        phys = subprocess.check_output("iw dev | grep phy# | tr -d \"phy#\"",
-                                       shell=True).decode('utf-8').split("\n")
-        for id, phy in enumerate(phys):
-            if phy is not "" and id < n_radios:
-                os.system('rfkill unblock %s' % phy)
 
     @classmethod
     def __create_hwsim_mgmt_devices(cls, n_radios):
