@@ -387,7 +387,7 @@ def pmonitor(popens, timeoutms=500, readline=True,
        terminates: when all EOFs received"""
     poller = poll()
     fdToHost = {}
-    for host, popen in popens.iteritems():
+    for host, popen in popens.items():
         fd = popen.stdout.fileno()
         fdToHost[ fd ] = host
         poller.register(fd, POLLIN)
@@ -490,9 +490,11 @@ def natural(text):
         return int(s) if s.isdigit() else s
     return [  num(s) for s in re.split(r'(\d+)', str(text)) ]
 
+
 def naturalSeq(t):
     "Natural sort key function for sequences"
     return [ natural(x) for x in t ]
+
 
 def numCores():
     "Returns number of CPU cores based on /proc/cpuinfo"
@@ -504,10 +506,12 @@ def numCores():
         return 0
     return numCores.ncores
 
+
 def irange(start, end):
     """Inclusive range from start to end (vs. Python insanity.)
        irange(1,5) -> 1, 2, 3, 4, 5"""
     return range(start, end + 1)
+
 
 def custom(cls, **params):
     "Returns customized constructor for class cls."
@@ -520,6 +524,7 @@ def custom(cls, **params):
         return cls(*args, **kwargs)
     customized.__name__ = 'custom(%s,%s)' % (cls, params)
     return customized
+
 
 def splitArgs(argstr):
     """Split argument string into usable python arguments
@@ -537,6 +542,7 @@ def splitArgs(argstr):
         kwargs[ key ] = makeNumeric(val)
     return fn, args, kwargs
 
+
 def customClass(classes, argStr):
     """Return customized class based on argStr
     The args and key/val pairs in argStr will be automatically applied
@@ -549,8 +555,8 @@ def customClass(classes, argStr):
                         % (cname, classes.keys()))
     if not args and not kwargs:
         return cls
-
     return specialClass(cls, append=args, defaults=kwargs)
+
 
 def specialClass(cls, prepend=None, append=None,
                  defaults=None, override=None):
@@ -574,15 +580,16 @@ def specialClass(cls, prepend=None, append=None,
 
     class CustomClass(cls):
         "Customized subclass with preset args/params"
+
         def __init__(self, *args, **params):
             newparams = defaults.copy()
             newparams.update(params)
             newparams.update(override)
             cls.__init__(self, *(list(prepend) + list(args) +
                                  list(append)), **newparams)
-
     CustomClass.__name__ = '%s%s' % (cls.__name__, defaults)
     return CustomClass
+
 
 def buildTopo(topos, topoStr):
     """Create topology from string with format (object, arg1, arg2,...).
@@ -593,6 +600,7 @@ def buildTopo(topos, topoStr):
         raise Exception('Invalid topo name %s' % topo)
     return topos[ topo ](*args, **kwargs)
 
+
 def ensureRoot():
     """Ensure that we are running as root.
     Probably we should only sudo when needed as per Big Switch's patch.
@@ -601,6 +609,7 @@ def ensureRoot():
         print("*** Mininet must run as root.")
         exit(1)
     return
+
 
 def waitListening(client=None, server='127.0.0.1', port=80, timeout=None):
     """Wait until server is listening on port.

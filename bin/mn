@@ -29,16 +29,19 @@ from mininet.node import (Host, CPULimitedHost, Controller, OVSController,
                           Ryu, NOX, RemoteController, findController,
                           DefaultController, NullController,
                           UserSwitch, OVSSwitch, OVSBridge, IVSSwitch)
-from mininet.wifi.node import UserAP, OVSAP
 from mininet.nodelib import LinuxBridge
 from mininet.link import Link, TCLink, TCULink, OVSLink
-from mininet.wifi.link import TCIntfWireless
+
 from mininet.topo import (SingleSwitchTopo, LinearTopo, SingleSwitchReversedTopo,
                           MinimalTopo)
-from mininet.wifi.topo import (SingleAPTopo, LinearWirelessTopo, MinimalWirelessTopo)
 from mininet.topolib import TreeTopo, TorusTopo
 from mininet.util import customClass, specialClass, splitArgs
 from mininet.util import buildTopo
+
+from mininet.wifi.topo import (SingleAPTopo, LinearWirelessTopo, MinimalWirelessTopo)
+from mininet.wifi.link import TCIntfWireless
+from mininet.wifi.node import UserAP, OVSAP
+
 
 from functools import partial
 
@@ -172,7 +175,7 @@ def version(*_args):
 
 class MininetRunner(object):
     "Build, setup, and run Mininet."
-    
+
     def __init__(self):
         "Init."
         self.options = None
@@ -244,7 +247,7 @@ class MininetRunner(object):
 
         usage = ('%prog [options]\n'
                  '(type %prog -h for details)')
-        
+
         opts = OptionParser(description=desc, usage=usage)
         addDictOption(opts, SWITCHES, SWITCHDEF, 'switch')
         addDictOption(opts, APS, APDEF, 'ap')
@@ -255,10 +258,10 @@ class MininetRunner(object):
 
         opts.add_option('--radios', type='int',
                         default=0, help='starting k radios')
-        
+
         opts.add_option('--wifi', '-w', action='store_true',
                         default=False, help='activate wifi')
-        
+
         opts.add_option('--wmediumd', action='store_true',
                         default=False, help='activate wmediumd')
 
@@ -267,13 +270,13 @@ class MininetRunner(object):
 
         opts.add_option('--channel', type='string',
                         default="1", help='wireless channel configuration')
-         
+
         opts.add_option('--mode', type='string',
                         default="g", help='wireless mode configuration')
-        
+
         opts.add_option('--ssid', type='string',
                         default="my-ssid", help='wireless ssid configuration')
-       
+
         opts.add_option('--clean', '-c', action='store_true',
                         default=False, help='clean and exit')
         opts.add_option('--custom', action='callback',
@@ -370,7 +373,7 @@ class MininetRunner(object):
             exit()
 
         start = time.time()
-       
+
         if not opts.controller:
             # Update default based on available controllers
             CONTROLLERS[ 'default' ] = findController()
@@ -407,21 +410,21 @@ class MininetRunner(object):
         host = customClass(HOSTS, opts.host)
         controller = [ customClass(CONTROLLERS, c)
                        for c in opts.controller ]
-        
+
         if opts.switch == 'user' and opts.link == 'default':
             debug('*** Using TCULink with UserSwitch\n')
             # Use link configured correctly for UserSwitch
-            opts.link = 'tcu'     
+            opts.link = 'tcu'
         elif opts.ap == 'user' and opts.link == 'default':
             debug('*** Using TCULink with UserAP\n')
             # Use link configured correctly for UserAP
-            opts.link = 'tcu'          
-        
+            opts.link = 'tcu'
+
         link = customClass(LINKS, opts.link)
-        
+
         if self.validate:
             self.validate(opts)
-        
+
         ipBase = opts.ipbase
         xterms = opts.xterms
         mac = opts.mac

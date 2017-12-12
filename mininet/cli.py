@@ -377,7 +377,7 @@ class CLI(Cmd):
         if len(args) < 1:
             error('usage: dpctl command [arg1] [arg2] ...\n')
             return
-        nodesL2 = self.mn.switches + self.mn.accessPoints
+        nodesL2 = self.mn.switches + self.mn.aps
         for sw in nodesL2:
             output('*** ' + sw.name + ' ' + ('-' * 72) + '\n')
             output(sw.dpctl(*args))

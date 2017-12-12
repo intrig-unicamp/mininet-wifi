@@ -704,18 +704,18 @@ class Mininet(object):
                 cls = Association
                 cls.associate(sta, ap, self.enable_wmediumd,
                               wmediumd_mode)
-                if 'bw' not in params and 'mininet.util.TCIntfWireless' \
-                        not in str(self.link):
+                if 'bw' not in params and 'TCIntfWireless' \
+                        not in str(self.link.__name__):
                     value = mininetWiFi.setDataRate(sta, ap, wlan)
                     bw = value.rate
                     params['bw'] = bw
 
-                if 'mininet.util.TCIntfWireless' in str(self.link):
+                if 'TCIntfWireless' in str(self.link.__name__):
                     cls = self.link
                 else:
                     cls = TCIntfWireless
 
-                if 'mininet.util.TCIntfWireless' in str(self.link) \
+                if 'TCIntfWireless' in str(self.link.__name__) \
                         or 'bw' in params and params['bw'] != 0 \
                     and 'position' not in sta.params:
                     # tc = True, this is useful only to apply tc configuration
