@@ -455,19 +455,21 @@ class mininetWiFi(object):
         cls: custom association class/constructor
         params: parameters for node
         """
+        from mininet.node import AP, Station
+
         if 'intf' in params:
             for intf_ in node.params['wlan']:
                 if params['intf'] == intf_:
                     wlan = node.params['wlan'].index(intf_)
         else:
-            if node.type == 'station':
+            if isinstance(node, Station):
                 wlan = node.ifaceToAssociate
             else:
                 wlan = node.ifaceToAssociate
 
         node.func[wlan] = 'mesh'
 
-        if node.type == 'ap':
+        if isinstance(node, AP):
             pass
         else:
             node.params['ssid'] = []
@@ -587,6 +589,8 @@ class mininetWiFi(object):
         """ 
         Updates values for frequency and channel
         """
+        from mininet.node import Car
+
         intfrefs = []
         links = []
         positions = []
@@ -606,7 +610,7 @@ class mininetWiFi(object):
         nodes = mininet.stations + mininet.aps + cars
         for node in nodes:
             node.wmIface = []
-            if node.type == 'vehicle':
+            if isinstance(node, Car):
                 wlans = 1
             elif '_4addr' in node.params and node.params['_4addr'] == 'ap':
                 wlans = 1
@@ -630,7 +634,7 @@ class mininetWiFi(object):
                     posZ = node.params['position'][2]
                 node.lastpos = [posX, posY, posZ]
                 
-                if hasattr(node, 'type') and node.type == 'vehicle':
+                if isinstance(node, Car):
                     wlans = 1
                 elif '_4addr' in node.params and node.params['_4addr'] == 'ap':
                     wlans = 1
@@ -732,11 +736,13 @@ class mininetWiFi(object):
         :param node: node
         :param wlanID: wlan ID
         """
+        from mininet.node import Station
+
         if 'phywlan' in node.params:
             wlanID = 1
         for wlan in range(len(node.params['wlan']) + wlanID):
             if 'inNamespace' not in node.params or wlanID == 1:
-                if node.type != 'station':
+                if not isinstance(node, Station):
                     options = dict()
                     if 'phywlan' not in node.params:
                         cls.configureIface(node, wlan)
@@ -963,7 +969,7 @@ class mininetWiFi(object):
 
         if 'model' in kwargs:
             stations = kwargs['stations']
-            aps = kwargs['aps']
+
             if 'min_x' in kwargs:
                 if not cls.DRAW:
                     cls.MIN_X = int(kwargs['min_x'])
@@ -1055,6 +1061,8 @@ class mininetWiFi(object):
         :param wifiRadios: number of wireless radios
         :param wmediumd: loads wmediumd 
         """
+        from mininet.node import Car
+
         cls.enable_wmediumd = mininet.enable_wmediumd
 
         params = {}
@@ -1099,11 +1107,11 @@ class mininetWiFi(object):
 
         for node in nodes:
             for wlan in range(0, len(node.params['wlan'])):
-                if node.type == 'vehicle' and wlan == 1:
+                if isinstance(node, Car) and wlan == 1:
                     node = node.params['carsta']
                     wlan = 0
                 if int(node.params['range'][wlan]) == 0:
-                    if node.type == 'vehicle' and wlan == 1:
+                    if isinstance(node, Car) and wlan == 1:
                         node = node.params['carsta']
                         wlan = 0
                     node.getRange(intf=node.params['wlan'][wlan])
@@ -1113,7 +1121,7 @@ class mininetWiFi(object):
                         node.params['txpower'][wlan] = \
                             node.getTxPower_prop_model(wlan)
                     setParam = True
-                    if node.type == 'vehicle':
+                    if isinstance(node, Car):
                         setParam = False
                     node.setTxPower(node.params['txpower'][wlan],
                                     intf=node.params['wlan'][wlan],
@@ -1178,10 +1186,12 @@ class mininetWiFi(object):
         :param stations: list of stations
         :param aps: list of access points
         """
+        from mininet.node import Car
+
         nodes = stations + aps
         for node in nodes:
             for wlan in range(0, len(node.params['wlan'])):
-                if node.type == 'vehicle' and wlan == 1:
+                if isinstance(node, Car) and wlan == 1:
                     node = node.params['carsta']
                     wlan = 0
         ap = []

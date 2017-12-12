@@ -211,6 +211,7 @@ class module(object):
         :param phys: list of phys
         :param **params: ifb -  Intermediate Functional Block device
         """
+        from mininet.node import Car, Station
 
         log_filename = '/tmp/mininetwifi-mac80211_hwsim.log'
         cls.logging_to_file("%s" % log_filename)
@@ -227,7 +228,7 @@ class module(object):
             debug("\n*** Configuring interfaces with appropriated network"
                   "-namespaces...\n")
             for node in nodes:
-                if (node.type == 'station' or node.type == 'vehicle') \
+                if (isinstance(node, Station) or isinstance(node, Car)) \
                         or 'inNamespace' in node.params:
                     node.ifb = []
                     for wlan in range(0, len(node.params['wlan'])):

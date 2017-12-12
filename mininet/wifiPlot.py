@@ -108,15 +108,16 @@ class plot3d (object):
     @classmethod
     def instantiateCircle(cls, node):
         """Instantiate Circle"""
+        from mininet.node import Station, Car
 
         x = '%.2f' % float(node.params['position'][0])
         y = '%.2f' % float(node.params['position'][1])
         z = '%.2f' % float(node.params['position'][2])
 
         color = 'b'
-        if node.type == 'station':
+        if isinstance(node, Station):
             color = 'g'
-        elif node.type == 'vehicle':
+        elif isinstance(node, Car):
             color = 'r'
 
         resolution = 100
@@ -227,12 +228,13 @@ class plot2d (object):
     @classmethod
     def instantiateNode(cls, node):
         "instantiateNode"
+        from mininet.node import Station, Car
         ax = cls.ax
 
         color = 'b'
-        if node.type == 'station':
+        if isinstance(node, Station):
             color = 'g'
-        elif node.type == 'vehicle':
+        elif isinstance(node, Car):
             color = 'r'
 
         node.pltNode, = ax.plot(1, 1, linestyle='', marker='.', ms=10,
@@ -241,12 +243,13 @@ class plot2d (object):
     @classmethod
     def instantiateCircle(cls, node):
         "instantiateCircle"
+        from mininet.node import Station, Car
         ax = cls.ax
 
         color = 'b'
-        if node.type == 'station':
+        if isinstance(node, Station):
             color = 'g'
-        elif node.type == 'vehicle':
+        elif isinstance(node, Car):
             color = 'r'
 
         node.pltCircle = ax.add_patch(

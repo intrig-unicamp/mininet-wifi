@@ -215,9 +215,11 @@ def moveIntfNoRetry(intf, dstNode, printError=False):
        intf: string, interface
         dstNode: destination Node
         printError: if true, print error"""
-    if (dstNode.type == 'station' or dstNode.type == 'vehicle'
-            or dstNode.type == 'ap') and 'eth' not in str(intf):
-        if dstNode.type == 'station' or dstNode.type == 'vehicle':
+    from mininet.node import AP, Station, Car
+
+    if (isinstance(dstNode, Station) or isinstance(dstNode, Car)
+            or isinstance(dstNode, AP)) and 'eth' not in str(intf):
+        if isinstance(dstNode, Station) or isinstance(dstNode, Car):
             return True
     else:
         intf = str(intf)
@@ -239,7 +241,9 @@ def moveIntf(intf, dstNode, printError=True,
        intf: string, interface
        dstNode: destination Node
        printError: if true, print error"""
-    if dstNode.type != 'ap':
+    from mininet.node import AP
+
+    if not isinstance(dstNode, AP):
         retry(retries, delaySecs, moveIntfNoRetry, intf, dstNode,
               printError=printError)
 

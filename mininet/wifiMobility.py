@@ -357,6 +357,8 @@ class mobility(object):
         :param MAX_Z: Maximum value for Z
         :param AC: Association Control Method
         """
+        from mininet.node import Station
+
         cls.AC = AC
         cls.stations = stations
         cls.aps = aps
@@ -380,7 +382,7 @@ class mobility(object):
             DRAW = False
         try:
             for node in nodes:
-                if node.type == 'station' and hasattr(node, 'coord'):
+                if isinstance(node, Station) and hasattr(node, 'coord'):
                     cls.create_coordinate(node)
                     node.points = []
                     for coord_ in node.coord_:
@@ -576,10 +578,11 @@ class mobility(object):
     @classmethod
     def parameters_(cls, node=None):
         "Applies channel params and handover"
+        from mininet.node import AP
         if node is None:
             nodes = cls.stations
         else:
-            if node.type == 'ap':
+            if isinstance(node, AP):
                 nodes = cls.stations
             else:
                 nodes = []

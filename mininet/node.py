@@ -107,7 +107,6 @@ class Node(object):
         self.nameToIntf = {}  # dict of interface names to Intfs
 
         self.func = []
-        self.type = 'host'
         self.isStationary = True
 
         # Make pylint happy
@@ -187,7 +186,7 @@ class Node(object):
         if self.func[wlan] == 'adhoc':
             self.cmd('iw dev %s set type managed' %
                      self.params['wlan'][wlan])
-        if self.func[wlan] == 'mesh' and self.type == 'ap':
+        if self.func[wlan] == 'mesh' and isinstance(self, AP):
             iface = '%s-mp%s' % (self, wlan+1)
         else:
             iface = '%s-mp%s' % (self, wlan)
@@ -292,8 +291,8 @@ class Node(object):
         wlan = self.params['wlan'].index(intf)
         if noiseLevel !=0:
             distanceByPropagationModel.NOISE_LEVEL = 95
-        if self.type != 'station' and self.type != 'vehicle' \
-                and self.type != 'ap':
+        if not isinstance(self, Station) and not isinstance(self, Car) \
+                and not isinstance(self, AP):
             self = self.params['associatedTo'][0]
         wlan = 0
         value = distanceByPropagationModel(self, wlan, enable_interference)
@@ -339,7 +338,7 @@ class Node(object):
         "Set Position"
         pos = pos.split(',')
         self.params['position'] = float(pos[0]), float(pos[1]), float(pos[2])
-        if self.type == 'vehicle':
+        if isinstance(self, Car):
             car = self.params['carsta']
             car.params['position'] = self.params['position']
         cls = plot2d
@@ -351,7 +350,7 @@ class Node(object):
 
         if WmediumdServerConn.interference_enabled:
             self.setPositionWmediumd()
-            if self.type == 'vehicle':
+            if isinstance(self, Car):
                 self = self.params['carsta']
                 self.setPositionWmediumd()
         mobility.parameters_(self)
@@ -376,7 +375,7 @@ class Node(object):
         wlan = self.params['wlan'].index(intf)
         self.params['channel'][wlan] = str(value)
         self.params['frequency'][wlan] = self.getFrequency(wlan)
-        if self.type is 'ap':
+        if isinstance(self, AP):
             self.pexec(
                 'hostapd_cli -i %s chan_switch %s %s' % (
                     intf, str(value),
@@ -487,7 +486,7 @@ class Node(object):
         posX = self.params['position'][0]
         posY = self.params['position'][1]
         posZ = self.params['position'][2]
-        if self.type == 'vehicle':
+        if isinstance(self, Car):
             wlans = 1
         else:
             wlans = len(self.params['wlan'])
@@ -534,7 +533,7 @@ class Node(object):
             except:
                 txpower = 20
             return txpower
-        elif self.type == 'ap':
+        elif isinstance(self, AP):
             try:
                 txpower = int(self.cmd('iw dev %s info | grep txpower | '
                                        'awk \'{print $2}\'' % iface))
@@ -951,7 +950,7 @@ class Node(object):
            ip: IP address as a string
            prefixLen: prefix length, e.g. 8 for /8 or 16M addrs
            kwargs: any additional arguments for intf.setIP"""
-        if intf != None and (self.type == 'station' or self.type == 'vehicle'):
+        if intf != None and (isinstance(self, Station) or isinstance(self, Car)):
             if intf in self.params['wlan']:
                 wlan = int(intf[-1:])
                 self.params['ip'][wlan] = ip
@@ -1008,10 +1007,10 @@ class Node(object):
         # the superclass config method here as follows:
         # r = Parent.config( **_params )
         r = {}
-        if self.type == 'station' or self.type == 'vehicle':
+        if isinstance(self, Station) or isinstance(self, Car):
             if len(ip) > 1:
                 ip = ip[0]
-        if self.type != 'station' and self.type != 'vehicle':
+        if not isinstance(self, Station) and not isinstance(self, Car):
             self.setParam(r, 'setMAC', mac=mac)
         self.setParam(r, 'setIP', ip=ip)
         self.setParam(r, 'setDefaultRoute', defaultRoute=defaultRoute)

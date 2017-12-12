@@ -23,7 +23,7 @@ class TestPrivateFolderManager(unittest.TestCase):
         try:
             folder_manager.mount("/", "/test")
             assert False  # we should never be where
-        except ValueError as e:
+        except ValueError:
             pass
         folder_manager.unmount("/")
         assert len(node.cmds) is 3  # the two from before plus one more
