@@ -60,6 +60,7 @@ class module(object):
                                        shell=True).decode('utf-8').split("\n")
         for id, phy in enumerate(phys):
             if phy is not "" and id < n_radios:
+                debug('rfkill unblock %s\n' % phy)
                 os.system('rfkill unblock %s' % phy)
 
     @classmethod

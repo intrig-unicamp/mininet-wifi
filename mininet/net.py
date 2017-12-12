@@ -324,6 +324,7 @@ class Mininet(object):
         mininetWiFi.addParameters(sta, self.autoSetMacs, defaults)
 
         if 'type' in params and params['type'] == 'ap':
+            sta.cmd('ip link set lo up')
             sta.func[0] = 'ap'
             if 'ssid' in params:
                 sta.params['ssid'] = []
@@ -731,14 +732,12 @@ class Mininet(object):
                     mininetWiFi.wlinks.append([sta, ap])
 
         elif (node1.type == 'ap' and node2.type == 'ap'
-              and 'link' in options
-              and options['link'] == '4addr'):
+              and 'link' in options and options['link'] == '4addr'):
             # If sta/ap have defined position
             if 'position' in node1.params and 'position' in node2.params:
                 mininetWiFi.connections['src'].append(node1)
                 mininetWiFi.connections['dst'].append(node2)
                 mininetWiFi.connections['ls'].append('--')
-
             if mininetWiFi.enable_interference:
                 cls = _4addrLink
                 cls(node1, node2)
@@ -756,7 +755,8 @@ class Mininet(object):
             if 'link' in options:
                 options.pop('link', None)
 
-            if 'position' in node1.params and 'position' in node2.params:
+            if 'position' in node1.params and 'position' in node2.params or \
+                    (node1.type == 'ap' and node2.type == 'ap' and mininetWiFi.isVanet):
                 mininetWiFi.connections['src'].append(node1)
                 mininetWiFi.connections['dst'].append(node2)
                 mininetWiFi.connections['ls'].append('-')

@@ -154,7 +154,7 @@ class vanet(object):
                                           connections['dst'][c].params['position'][0]], \
                                        [connections['src'][c].params['position'][1],
                                         connections['dst'][c].params['position'][1]],
-                                         'b', ls='dashed')
+                                         'b', ls='-')
                 plot2d.plotLine(line)
 
     def display_cars(self, cars):

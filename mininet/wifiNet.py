@@ -817,7 +817,6 @@ class mininetWiFi(object):
                 if 'phywlan' in ap.params:
                     ap.params.pop("phywlan", None)
 
-                #if ap.func[0] != 'ap':
                 ap.params['frequency'][wlan] = ap.getFrequency(0)
 
                 if 'vssids' in ap.params:
