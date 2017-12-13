@@ -16,7 +16,6 @@ import time
 import struct
 import stat
 import pkg_resources
-import binascii
 
 from mininet.log import info, error, debug
 

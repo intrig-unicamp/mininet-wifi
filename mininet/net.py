@@ -130,10 +130,9 @@ class Mininet(object):
                  ipBase='10.0.0.0/8', inNamespace=False,
                  autoSetMacs=False, autoStaticArp=False, autoPinCpus=False,
                  listenPort=None, waitConnected=False, ssid="new-ssid",
-                 mode="g", channel="1", enable_wmediumd=False,
-                 enable_interference=False, enable_spec_prob_link=False,
-                 enable_error_prob=False, fading_coefficient=0,
-                 disableAutoAssociation=False,
+                 mode="g", channel="1", enable_interference=False,
+                 enable_spec_prob_link=False, enable_error_prob=False,
+                 fading_coefficient=0, disableAutoAssociation=False,
                  driver='nl80211', autoSetPositions=False,
                  configureWiFiDirect=False, configure4addr=False,
                  defaultGraph=False, noise_threshold=-91, cca_threshold=-90,
@@ -206,7 +205,6 @@ class Mininet(object):
         self.cca_threshold = cca_threshold
         self.configureWiFiDirect = configureWiFiDirect
         self.configure4addr = configure4addr
-        self.enable_wmediumd = enable_wmediumd
         self.enable_error_prob = enable_error_prob
         self.fading_coefficient = fading_coefficient
         self.enable_interference = enable_interference
@@ -700,31 +698,30 @@ class Mininet(object):
                 else:
                     wmediumd_mode = None
                 cls = Association
-                cls.associate(sta, ap, self.enable_wmediumd,
-                              wmediumd_mode)
+                cls.associate(sta, ap, self.link, wmediumd_mode)
                 if 'bw' not in params and 'TCIntfWireless' \
-                        not in str(self.link.__name__):
+                        not in self.link.__name__:
                     value = mininetWiFi.setDataRate(sta, ap, wlan)
                     bw = value.rate
                     params['bw'] = bw
 
-                if 'TCIntfWireless' in str(self.link.__name__):
+                if 'TCIntfWireless' in self.link.__name__:
                     cls = self.link
                 else:
                     cls = TCIntfWireless
 
-                if 'TCIntfWireless' in str(self.link.__name__) \
+                if 'TCIntfWireless' in self.link.__name__ \
                         or 'bw' in params and params['bw'] != 0 \
                     and 'position' not in sta.params:
                     # tc = True, this is useful only to apply tc configuration
                     if not mininetWiFi.enable_interference:
                         cls(name=sta.params['wlan'][wlan], node=sta,
                             link=None, tc=True, **params)
-            if self.enable_wmediumd:
+            if 'wmediumd' in self.link.__name__:
                 if self.enable_error_prob:
-                    mininetWiFi.wlinks.append([sta, ap, params['error_prob']])
+                    self.link.wlinks.append([sta, ap, params['error_prob']])
                 elif not self.enable_interference:
-                    mininetWiFi.wlinks.append([sta, ap])
+                    self.link.wlinks.append([sta, ap])
 
         elif (isinstance(node1, AP) and isinstance(node2, AP)
               and 'link' in options
@@ -883,21 +880,13 @@ class Mininet(object):
         raise Exception('configureControlNetwork: '
                         'should be overriden in subclass', self)
 
-    def create_vanet_link(self):
-        for idx, car in enumerate(self.cars):
-            self.addLink(self.carsSTA[idx], self.carsSW[idx])
-            self.addLink(car, self.carsSW[idx])
-
     def build(self):
         "Build mininet."
         if self.topo:
             self.buildFromTopo(self.topo)
 
-        if mininetWiFi.isVanet:
-            self.create_vanet_link()
-
         if (self.configure4addr or self.configureWiFiDirect or self.enable_error_prob) \
-                and self.enable_wmediumd:
+                and 'wmediumd' in self.link.__name__:
             mininetWiFi.configureWmediumd(self)
             mininetWiFi.wmediumdConnect()
 
@@ -1062,7 +1051,7 @@ class Mininet(object):
             mininetWiFi.kill_hostapd()
         if self.isWiFi:
             mininetWiFi.closeMininetWiFi()
-        if self.enable_wmediumd:
+        if 'wmediumd' in self.link.__name__:
             mininetWiFi.kill_wmediumd()
         info('\n*** Done\n')
 

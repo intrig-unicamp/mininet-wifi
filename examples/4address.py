@@ -5,15 +5,16 @@ Warning: It works only when network manager is stopped"""
 
 from mininet.net import Mininet
 from mininet.node import Controller
-from mininet.wifi.node import OVSKernelAP
 from mininet.cli import CLI
 from mininet.log import setLogLevel
+from mininet.wifi.node import OVSKernelAP
+from mininet.wifi.link import wmediumd
 
 
 def topology():
     "Create a network."
     net = Mininet( controller=Controller, accessPoint=OVSKernelAP,
-                   enable_wmediumd=True, enable_interference=False,
+                   link=wmediumd, enable_interference=True,
                    configure4addr=True, disableAutoAssociation=True )
 
     print("*** Creating nodes")

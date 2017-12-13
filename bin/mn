@@ -39,7 +39,7 @@ from mininet.util import customClass, specialClass, splitArgs
 from mininet.util import buildTopo
 
 from mininet.wifi.topo import (SingleAPTopo, LinearWirelessTopo, MinimalWirelessTopo)
-from mininet.wifi.link import TCIntfWireless
+from mininet.wifi.link import TCIntfWireless, wmediumd
 from mininet.wifi.node import UserAP, OVSAP
 
 
@@ -102,6 +102,7 @@ LINKDEF = 'default'
 LINKS = { 'default': Link,  # Note: overridden below
           'tc': TCLink,
           'wtc': TCIntfWireless,
+          'wmediumd': wmediumd,
           'tcu': TCULink,
           'ovs': OVSLink }
 
@@ -261,9 +262,6 @@ class MininetRunner(object):
 
         opts.add_option('--wifi', '-w', action='store_true',
                         default=False, help='activate wifi')
-
-        opts.add_option('--wmediumd', action='store_true',
-                        default=False, help='activate wmediumd')
 
         opts.add_option('--plot', action='store_true',
                         default=False, help='activate graph')
@@ -468,7 +466,6 @@ class MininetRunner(object):
                  channel=channel,
                  mode=mode,
                  ssid=ssid,
-                 enable_wmediumd=opts.wmediumd,
                  defaultGraph=opts.plot,
                  xterms=xterms, autoSetMacs=mac,
                  autoStaticArp=arp, autoPinCpus=pin,

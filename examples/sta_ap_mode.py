@@ -6,10 +6,10 @@ import sys
 from mininet.net import Mininet
 from mininet.cli import CLI
 from mininet.log import setLogLevel
-from mininet.link import TCLink
+from mininet.wifi.link import wmediumd
 
 
-net = Mininet(link=TCLink, enable_wmediumd=True, enable_interference=True)
+net = Mininet(link=wmediumd, enable_interference=True)
 
 
 def topology(mobility):

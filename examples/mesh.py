@@ -8,16 +8,17 @@ It is a full mesh network
     .      .
    .        .
 sta1 ----- sta2"""
+import sys
 
 from mininet.net import Mininet
 from mininet.cli import CLI
 from mininet.log import setLogLevel
-import sys
+from mininet.wifi.link import wmediumd
 
 
 def topology(mobility):
     "Create a network."
-    net = Mininet(enable_wmediumd=True, enable_interference=True)
+    net = Mininet(link=wmediumd, enable_interference=True)
 
     print("*** Creating nodes")
     if mobility:

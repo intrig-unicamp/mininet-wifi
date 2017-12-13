@@ -208,15 +208,15 @@ class WiFiNode(object):
                 self.params['ssid'] = []
                 self.params['ssid'].append(0)
             self.params['ssid'][wlan] = ssid
-            self.configureAdhoc(wlan, enable_wmediumd=True)
+            self.configureAdhoc(wlan, link='wmediumd')
 
-    def configureAdhoc(self, wlan, enable_wmediumd):
+    def configureAdhoc(self, wlan, link):
         "Configure Wireless Ad Hoc"
         iface = self.params['wlan'][wlan]
         self.func[wlan] = 'adhoc'
         self.setIP(self.params['ip'][wlan], intf='%s' % iface)
         self.cmd('iw dev %s set type ibss' % iface)
-        if 'position' not in self.params or enable_wmediumd:
+        if 'position' not in self.params or 'wmediumd' in link.__name__:
             self.params['associatedTo'][wlan] = self.params['ssid'][wlan]
             debug("associating %s to %s...\n" % (iface, self.params['ssid'][wlan]))
             self.pexec('iw dev %s ibss join %s %s 02:CA:FF:EE:BA:01' \

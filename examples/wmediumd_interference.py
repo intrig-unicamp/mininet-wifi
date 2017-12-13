@@ -6,17 +6,17 @@ Setting the position of Nodes and using wmediumd to calculate the interference.
 
 from mininet.net import Mininet
 from mininet.node import Controller
-from mininet.wifi.node import OVSKernelAP
 from mininet.cli import CLI
 from mininet.log import setLogLevel
+from mininet.wifi.node import OVSKernelAP
+from mininet.wifi.link import wmediumd
 
 
 def topology():
 
     "Create a network."
-    net = Mininet(controller=Controller, accessPoint=OVSKernelAP,
-                  enable_wmediumd=True, enable_interference=True,
-                  noise_threshold=-91, fading_coefficient=1)
+    net = Mininet(controller=Controller, link=wmediumd, accessPoint=OVSKernelAP,
+                  enable_interference=True, noise_threshold=-91, fading_coefficient=1)
 
     print("*** Creating nodes")
     ap1 = net.addAccessPoint('ap1', ssid='new-ssid', mode='a', channel='36',
@@ -50,5 +50,5 @@ def topology():
 
 
 if __name__ == '__main__':
-    setLogLevel('info')
+    setLogLevel('debug')
     topology()

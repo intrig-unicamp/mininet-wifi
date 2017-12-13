@@ -10,7 +10,9 @@ from mininet.log import info, error, debug
 from mininet.link import Intf
 
 from mininet.wifi.devices import deviceDataRate
-from mininet.wifi.wmediumdConnector import WmediumdServerConn, WmediumdSNRLink
+from mininet.wifi.wmediumdConnector import DynamicWmediumdIntfRef, \
+    WmediumdStarter, WmediumdSNRLink, WmediumdTXPower, WmediumdPosition, \
+    WmediumdConstants, WmediumdServerConn, WmediumdERRPROBLink
 
 
 class IntfWireless(object):
@@ -763,6 +765,102 @@ class wirelessLink (object):
                 # corrupt 0.1%%" % (sta.params['wlan'][wlan], bw, loss,
             # latency, delay))
 
+
+class wmediumd(object):
+    wlinks = []
+
+    def __init__(self, mininet, propagation_model):
+        self.configureWmediumd(mininet, propagation_model)
+
+
+    def configureWmediumd(self, mininet, propagation_model):
+        "Configure wmediumd"
+        from mininet.wifi.node import AP, Car
+
+        intfrefs = []
+        links = []
+        positions = []
+        txpowers = []
+        isnodeaps = []
+        cars = []
+
+        enable_error_prob = mininet.enable_error_prob
+        enable_interference = mininet.enable_interference
+        enable_spec_prob_link = mininet.enable_spec_prob_link
+        fading_coefficient = mininet.fading_coefficient
+
+        for node in mininet.stations:
+            if 'carsta' in node.params:
+                cars.append(node.params['carsta'])
+
+        nodes = mininet.stations + mininet.aps + cars
+        for node in nodes:
+            node.wmIface = []
+            if isinstance(node, Car):
+                wlans = 1
+            elif '_4addr' in node.params and node.params['_4addr'] == 'ap':
+                wlans = 1
+            else:
+                wlans = len(node.params['wlan'])
+            for wlan in range(0, wlans):
+                node.wmIface.append(wlan)
+                node.wmIface[wlan] = DynamicWmediumdIntfRef(node, intf=wlan)
+                intfrefs.append(node.wmIface[wlan])
+                if (node.func[wlan] == 'ap' or (isinstance(node, AP)
+                                                and node.func[wlan] is not 'client')):
+                    isnodeaps.append(1)
+                else:
+                    isnodeaps.append(0)
+
+        if enable_interference:
+            mode = WmediumdConstants.WMEDIUMD_MODE_INTERFERENCE
+            for node in nodes:
+                if 'position' not in node.params:
+                    posX = 0
+                    posY = 0
+                    posZ = 0
+                else:
+                    posX = node.params['position'][0]
+                    posY = node.params['position'][1]
+                    posZ = node.params['position'][2]
+                node.lastpos = [posX, posY, posZ]
+
+                if isinstance(node, Car):
+                    wlans = 1
+                elif '_4addr' in node.params and node.params['_4addr'] == 'ap':
+                    wlans = 1
+                else:
+                    wlans = len(node.params['wlan'])
+                for wlan in range(0, wlans):
+                    positions.append(WmediumdPosition(node.wmIface[wlan],
+                                                      [posX, posY, posZ]))
+                    txpowers.append(WmediumdTXPower(
+                        node.wmIface[wlan], float(node.params['txpower'][wlan])))
+        elif enable_spec_prob_link:
+            mode = WmediumdConstants.WMEDIUMD_MODE_SPECPROB
+        elif enable_error_prob:
+            mode = WmediumdConstants.WMEDIUMD_MODE_ERRPROB
+            for node in self.wlinks:
+                links.append(WmediumdERRPROBLink(node[0].wmIface[0], node[1].wmIface[0],
+                                                 node[2]))
+                links.append(WmediumdERRPROBLink(node[1].wmIface[0], node[0].wmIface[0],
+                                                 node[2]))
+        else:
+            mode = WmediumdConstants.WMEDIUMD_MODE_SNR
+            for node in self.wlinks:
+                links.append(WmediumdSNRLink(node[0].wmIface[0], node[1].wmIface[0],
+                                             node[0].params['rssi'][0] - (-91)))
+                links.append(WmediumdSNRLink(node[1].wmIface[0], node[0].wmIface[0],
+                                             node[0].params['rssi'][0] - (-91)))
+
+        WmediumdStarter.initialize(intfrefs, links, mode=mode, positions=positions,
+                                   enable_interference=enable_interference,
+                                   fading_coefficient=fading_coefficient,
+                                   auto_add_links=False, txpowers=txpowers,
+                                   isnodeaps=isnodeaps, with_server=True)
+        WmediumdStarter.start(mininet, propagation_model)
+
+
 class Association(object):
 
     printCon = True
@@ -777,8 +875,7 @@ class Association(object):
             ap.wmIface[0], sta.wmIface[0], snr))
 
     @classmethod
-    def configureWirelessLink(cls, sta, ap, enable_wmediumd=False,
-                              wmediumd_mode=False):
+    def configureWirelessLink(cls, sta, ap, link, wmediumd_mode=False):
         """ 
         Updates RSSI and Others...
         
@@ -796,7 +893,7 @@ class Association(object):
                 if sta.params['associatedTo'][wlan] == '' \
                         and ap not in sta.params['associatedTo']:
                     Association.associate_infra(sta, ap, wlan)
-                    if not enable_wmediumd:
+                    if 'wmediumd' not in link.__name__:
                         if dist >= 0.01:
                             wirelessLink(sta, ap, wlan, dist)
                     if sta not in ap.params['associatedStations']:
@@ -822,11 +919,11 @@ class Association(object):
         sta.params['mode'][wlan] = ap.params['mode'][0]
 
     @classmethod
-    def associate(cls, sta, ap, enable_wmediumd, wmediumd_mode):
+    def associate(cls, sta, ap, link, wmediumd_mode):
         """ Associate to Access Point """
         wlan = sta.ifaceToAssociate
         if 'position' in sta.params:
-            cls.configureWirelessLink(sta, ap, enable_wmediumd,
+            cls.configureWirelessLink(sta, ap, link,
                                       wmediumd_mode)
         else:
             cls.associate_infra(sta, ap, wlan)

@@ -9,13 +9,14 @@ from mininet.node import Controller
 from mininet.wifi.node import OVSKernelAP
 from mininet.cli import CLI
 from mininet.log import setLogLevel
+from mininet.wifi.link import wmediumd
 
 
 def topology():
 
     "Create a network."
-    net = Mininet(controller=Controller, accessPoint=OVSKernelAP,
-                  enable_wmediumd=True, enable_error_prob=True)
+    net = Mininet(controller=Controller, accessPoint=OVSKernelAP, link=wmediumd,
+                  enable_error_prob=True)
 
     print("*** Creating nodes")
     ap1 = net.addAccessPoint('ap1', ssid='new-ssid', mode='a', channel='36',
