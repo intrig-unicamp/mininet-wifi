@@ -282,8 +282,8 @@ class TCIntfWireless(IntfWireless):
         cmds = []
         if delay:
             delay_ = int(delay.replace("ms", ""))
-            if delay_ < 0:
-                error( 'Negative delay', delay, '\n' )
+        if delay and delay_ < 0:
+            error( 'Negative delay', delay, '\n' )
         elif jitter and jitter < 0:
             error('Negative jitter', jitter, '\n')
         elif loss and (loss < 0 or loss > 100):
