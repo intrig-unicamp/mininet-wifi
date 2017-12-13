@@ -12,6 +12,7 @@ from mininet.log import setLogLevel
 from mininet.wifi.link import wmediumd
 
 
+
 def topology():
 
     "Create a network."
@@ -30,13 +31,13 @@ def topology():
                              max_speed=max_, range=50)
 
     rsu11 = net.addAccessPoint('RSU11', ssid='RSU11', mode='g',
-                               channel='1')
+                               channel='1', range=100)
     rsu12 = net.addAccessPoint('RSU12', ssid='RSU12', mode='g',
-                               channel='6')
+                               channel='6', range=100)
     rsu13 = net.addAccessPoint('RSU13', ssid='RSU13', mode='g',
-                               channel='11')
+                               channel='11', range=100)
     rsu14 = net.addAccessPoint('RSU14', ssid='RSU14', mode='g',
-                               channel='11')
+                               channel='11', range=100)
     c1 = net.addController('c1', controller=Controller)
 
     print("*** Configuring Propagation Model")
@@ -75,7 +76,7 @@ def topology():
     k = 1
     for car in cars:
         car.setIP('192.168.0.%s/24' % k, intf='%s-wlan0' % car)
-        car.setIP('192.168.1.%s/24' % i, intf='%s-eth1' % car)
+        car.setIP('192.168.1.%s/24' % i, intf='%s-eth0' % car)
         car.cmd('ip route add 10.0.0.0/8 via 192.168.1.%s' % j)
         i += 2
         j += 2
@@ -83,21 +84,19 @@ def topology():
 
     i = 1
     j = 2
-    for carsta in net.carsSTA:
-        carsta.setIP('10.0.0.%s/24' % i, intf='%s-mp0' % carsta)
-        carsta.setIP('192.168.1.%s/24' % j, intf='%s-eth2' % carsta)
-        #May be confuse, but it allows ping to the name instead of ip addr
-        carsta.setIP('10.0.0.%s/24' % i, intf='%s-wlan0' % carsta)
-        carsta.cmd('echo 1 > /proc/sys/net/ipv4/ip_forward')
+    for v in net.carsSTA:
+        v.setIP('192.168.1.%s/24' % j, intf='%s-eth0' % v)
+        v.setIP('10.0.0.%s/24' % i, intf='%s-mp0' % v)
+        v.cmd('echo 1 > /proc/sys/net/ipv4/ip_forward')
         i += 1
         j += 2
 
-    for carsta1 in net.carsSTA:
+    for v1 in net.carsSTA:
         i = 1
         j = 1
-        for carsta2 in net.carsSTA:
-            if carsta1 != carsta2:
-                carsta1.cmd('route add -host 192.168.1.%s gw 10.0.0.%s' % (j, i))
+        for v2 in net.carsSTA:
+            if v1 != v2:
+                v1.cmd('route add -host 192.168.1.%s gw 10.0.0.%s' % (j, i))
             i += 1
             j += 2
 

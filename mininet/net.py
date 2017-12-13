@@ -380,6 +380,8 @@ class Mininet(object):
         else:
             car.params['ssid'] = 'mesh-ssid'
             car.func.append('mesh')
+        self.addLink(carsta, carsw)
+        self.addLink(car, carsw)
         mininetWiFi.isVanet = True
         return car
 
