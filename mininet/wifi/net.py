@@ -1,10 +1,6 @@
 """
-
     Mininet-WiFi: A simple networking testbed for Wireless OpenFlow/SDWN!
-
 author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
-
-
 """
 
 import os
@@ -17,7 +13,9 @@ from mininet.wifi.link import TCLinkWirelessAP, TCLinkWirelessStation
 from mininet.util import macColonHex
 
 from mininet.wifi.node import AccessPoint, AP, Station, Car
-from mininet.wifi.wmediumdConnector import WmediumdStarter, WmediumdServerConn
+from mininet.wifi.wmediumdConnector import DynamicWmediumdIntfRef, \
+    WmediumdStarter, WmediumdSNRLink, WmediumdTXPower, WmediumdPosition, \
+    WmediumdConstants, WmediumdServerConn, WmediumdERRPROBLink
 from mininet.wifi.link import wirelessLink
 from mininet.wifi.devices import deviceDataRate
 from mininet.wifi.mobility import mobility
@@ -50,7 +48,7 @@ class mininetWiFi(object):
     isWiFi = False
     rec_rssi = False
     plot = plot2d
-    link = ''
+    enable_wmediumd = False
     ppm_is_set = False
     n_radios = 0
     MIN_X = 0
@@ -61,11 +59,11 @@ class mininetWiFi(object):
     MAX_Z = 0
     nroads = 0
     connections = {}
+    wlinks = []
 
     @classmethod
     def addParameters(cls, node, autoSetMacs, params, mode='managed'):
         """adds parameters to wireless nodes
-
         node: node
         autoSetMacs: set MAC addrs automatically like IP addresses
         params: parameters
@@ -451,7 +449,6 @@ class mininetWiFi(object):
     def addMesh(cls, node, **params):
         """
         Configure wireless mesh
-
         node: name of the node
         cls: custom association class/constructor
         params: parameters for node
@@ -490,11 +487,9 @@ class mininetWiFi(object):
     def addHoc(cls, node, **params):
         """
         Configure AdHoc
-
         node: name of the node
         cls: custom association class/constructor
         params: parameters for station
-
         """
         if 'intf' in params:
             for intf_ in node.params['wlan']:
@@ -517,13 +512,15 @@ class mininetWiFi(object):
             node.params['ssid'][wlan] = 'adhocNetwork'
             node.params['associatedTo'][wlan] = 'adhocNetwork'
 
+        enable_wmediumd = cls.enable_wmediumd
+
         if not node.autoTxPower:
             node.getRange(intf=node.params['wlan'][wlan], noiseLevel=95)
 
         if 'channel' in params:
             node.setChannel(params['channel'], intf=node.params['wlan'][wlan])
 
-        node.configureAdhoc(wlan, cls.link)
+        node.configureAdhoc(wlan, enable_wmediumd)
         if 'intf' not in params:
             node.ifaceToAssociate += 1
 
@@ -531,7 +528,6 @@ class mininetWiFi(object):
     def wifiDirect(cls, node, **params):
         """
         Configure wifidirect
-
         node: name of the node
         cls: custom association class/constructor
         params: parameters for station
@@ -579,10 +575,100 @@ class mininetWiFi(object):
         WmediumdServerConn.connect()
 
     @classmethod
+    def configureWmediumd(cls, mininet):
+        """
+        Updates values for frequency and channel
+        """
+        intfrefs = []
+        links = []
+        positions = []
+        txpowers = []
+        isnodeaps = []
+        cars = []
+
+        cls.configureWiFiDirect = mininet.configureWiFiDirect
+        cls.configure4addr = mininet.configure4addr
+        cls.enable_error_prob = mininet.enable_error_prob
+        cls.enable_interference = mininet.enable_interference
+        cls.enable_spec_prob_link = mininet.enable_spec_prob_link
+        fading_coefficient = mininet.fading_coefficient
+
+        for node in mininet.stations:
+            if 'carsta' in node.params:
+                cars.append(node.params['carsta'])
+
+        nodes = mininet.stations + mininet.aps + cars
+        for node in nodes:
+            node.wmIface = []
+            if isinstance(node, Car):
+                wlans = 1
+            elif '_4addr' in node.params and node.params['_4addr'] == 'ap':
+                wlans = 1
+            else:
+                wlans = len(node.params['wlan'])
+            for wlan in range(0, wlans):
+                node.wmIface.append(wlan)
+                node.wmIface[wlan] = DynamicWmediumdIntfRef(node, intf=wlan)
+                intfrefs.append(node.wmIface[wlan])
+                if (node.func[wlan] == 'ap' or (isinstance(node, AP)
+                                                and node.func[wlan] is not 'client')):
+                    isnodeaps.append(1)
+                else:
+                    isnodeaps.append(0)
+
+        if cls.enable_interference:
+            mode = WmediumdConstants.WMEDIUMD_MODE_INTERFERENCE
+            for node in nodes:
+                if 'position' not in node.params:
+                    posX = 0
+                    posY = 0
+                    posZ = 0
+                else:
+                    posX = node.params['position'][0]
+                    posY = node.params['position'][1]
+                    posZ = node.params['position'][2]
+                node.lastpos = [posX, posY, posZ]
+
+                if isinstance(node, Car):
+                    wlans = 1
+                elif '_4addr' in node.params and node.params['_4addr'] == 'ap':
+                    wlans = 1
+                else:
+                    wlans = len(node.params['wlan'])
+                for wlan in range(0, wlans):
+                    positions.append(WmediumdPosition(node.wmIface[wlan],
+                                                      [posX, posY, posZ]))
+                    txpowers.append(WmediumdTXPower(
+                        node.wmIface[wlan], float(node.params['txpower'][wlan])))
+        elif cls.enable_spec_prob_link:
+            mode = WmediumdConstants.WMEDIUMD_MODE_SPECPROB
+        elif cls.enable_error_prob:
+            mode = WmediumdConstants.WMEDIUMD_MODE_ERRPROB
+            for node in cls.wlinks:
+                links.append(WmediumdERRPROBLink(node[0].wmIface[0], node[1].wmIface[0],
+                                                 node[2]))
+                links.append(WmediumdERRPROBLink(node[1].wmIface[0], node[0].wmIface[0],
+                                                 node[2]))
+        else:
+            mode = WmediumdConstants.WMEDIUMD_MODE_SNR
+            for node in cls.wlinks:
+                links.append(WmediumdSNRLink(node[0].wmIface[0], node[1].wmIface[0],
+                                             node[0].params['rssi'][0] - (-91)))
+                links.append(WmediumdSNRLink(node[1].wmIface[0], node[0].wmIface[0],
+                                             node[0].params['rssi'][0] - (-91)))
+
+        WmediumdStarter.initialize(intfrefs, links, mode=mode, positions=positions,
+                                   enable_interference=cls.enable_interference,
+                                   fading_coefficient=fading_coefficient,
+                                   auto_add_links=False, txpowers=txpowers,
+                                   isnodeaps=isnodeaps, with_server=True)
+        WmediumdStarter.start(mininet, propagationModel)
+
+    @classmethod
     def checkAPAdhoc(cls, stations, aps):
         """
         configure APAdhoc
-        
+
         :param stations: list of stations
         :param aps: list of access points
         """
@@ -606,7 +692,7 @@ class mininetWiFi(object):
 
     @classmethod
     def restartNetworkManager(cls):
-        """Restart network manager if the mac address of the AP is not included at 
+        """Restart network manager if the mac address of the AP is not included at
         /etc/NetworkManager/NetworkManager.conf"""
         nm_is_running = os.system('service network-manager status 2>&1 | grep -ic '
                                   'running >/dev/null 2>&1')
@@ -642,7 +728,7 @@ class mininetWiFi(object):
         """
         First verify if the mac address of the ap is included at
         NetworkManager.conf
-        
+
         :param node: node
         :param wlanID: wlan ID
         """
@@ -678,7 +764,7 @@ class mininetWiFi(object):
     @classmethod
     def configureAP(cls, ap, wlanID=0, aplist=None):
         """Configure AP
-        
+
         :param ap: ap node
         :param wlanID: wlan ID
         """
@@ -725,7 +811,7 @@ class mininetWiFi(object):
                 else:
                     iface = ap.params['phywlan']
 
-                if 'wmediumd' not in cls.link.__name__:
+                if not cls.enable_wmediumd:
                     cls.setBw(ap, wlan, iface)
 
                 if 'phywlan' in ap.params:
@@ -751,7 +837,7 @@ class mininetWiFi(object):
     @classmethod
     def configureAPs(cls, aps, driver):
         """Configure All APs
-        
+
         :param aps: list of access points
         """
         for ap in aps:
@@ -781,7 +867,7 @@ class mininetWiFi(object):
     def configureWirelessLink(cls, stations, aps, cars):
         """
         Configure Wireless Link
-        
+
         :param stations: list of stations
         :param aps: list of access points
         :param cars: list of cars
@@ -798,9 +884,9 @@ class mininetWiFi(object):
     @classmethod
     def plotGraph(cls, min_x=0, min_y=0, min_z=0,
                   max_x=0, max_y=0, max_z=0):
-        """ 
-        Plots Graph 
-        
+        """
+        Plots Graph
+
         :params max_x: maximum X
         :params max_y: maximum Y
         :params max_z: maximum Z
@@ -933,7 +1019,7 @@ class mininetWiFi(object):
     def useExternalProgram(cls, **params):
         """
         Opens an external program
-        
+
         :params program: any program (useful for SUMO)
         :params **params config_file: file configuration
         """
@@ -947,7 +1033,7 @@ class mininetWiFi(object):
     def configureMacAddr(cls, node):
         """
         Configure Mac Address
-        
+
         :param node: node
         """
         for wlan in range(0, len(node.params['wlan'])):
@@ -962,14 +1048,9 @@ class mininetWiFi(object):
     def configureWifiNodes(cls, mininet):
         """
         Configure WiFi Nodes
-        
+
         """
-        cls.link = mininet.link
-        cls.configureWiFiDirect = mininet.configureWiFiDirect
-        cls.configure4addr = mininet.configure4addr
-        cls.enable_error_prob = mininet.enable_error_prob
-        cls.enable_interference = mininet.enable_interference
-        cls.enable_spec_prob_link = mininet.enable_spec_prob_link
+        cls.enable_wmediumd = mininet.enable_wmediumd
 
         params = {}
         if cls.ifb:
@@ -1034,10 +1115,10 @@ class mininetWiFi(object):
                                     intf=node.params['wlan'][wlan],
                                     setParam=setParam)
 
-        if 'wmediumd' in cls.link.__name__:
+        if cls.enable_wmediumd:
             if not mininet.configureWiFiDirect and not mininet.configure4addr and \
                     not mininet.enable_error_prob:
-                cls.link(mininet, propagationModel)
+                cls.configureWmediumd(mininet)
                 cls.wmediumdConnect()
                 if cls.enable_interference and not cls.isVanet:
                     for node in nodes:
@@ -1089,7 +1170,7 @@ class mininetWiFi(object):
     def autoAssociation(cls, stations, aps):
         """
         This is useful to make the users' life easier
-        
+
         :param stations: list of stations
         :param aps: list of access points
         """
@@ -1146,9 +1227,9 @@ class mininetWiFi(object):
 
     @classmethod
     def printDistance(cls, src, dst, nodes):
-        """ 
+        """
         Prints the distance between two points
-        
+
         :params src: source node
         :params dst: destination node
         :params nodes: list of nodes
@@ -1188,10 +1269,10 @@ class mininetWiFi(object):
 
     @classmethod
     def setChannelEquation(cls, **params):
-        """ 
+        """
         Set Channel Equation. The user may change the equation defined in
         wifiChannel.py by any other.
-        
+
         :params bw: bandwidth (mbps)
         :params delay: delay (ms)
         :params latency: latency (ms)

@@ -1,76 +1,56 @@
 """
-
     Mininet-WiFi: A simple networking testbed for Wireless OpenFlow/SDWN!
-
 author: Bob Lantz (rlantz@cs.stanford.edu)
 author: Brandon Heller (brandonh@stanford.edu)
 author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
-
 Mininet creates scalable OpenFlow test networks by using
 process-based virtualization and network namespaces.
-
 Simulated hosts/stations are created as processes in separate network
 namespaces. This allows a complete OpenFlow network to be simulated on
 top of a single Linux kernel.
-
 Each host has:
-
 A virtual console (pipes to a shell)
 A virtual interface (half of a veth pair)
 A parent shell (and possibly some child processes) in a namespace
-
 Hosts have a network interface which is configured via ip addr/ip
 link/etc.
-
 Each station has:
-
 A virtual console (pipes to a shell)
 A virtual wireless interface (half of a veth pair)
 A parent shell (and possibly some child processes) in a namespace
-
 This version supports both the kernel and user space datapaths
 from the OpenFlow reference implementation (openflowswitch.org)
 as well as OpenVSwitch (openvswitch.org.)
-
 In kernel datapath mode, the controller and switches are simply
 processes in the root namespace.
-
 Kernel OpenFlow datapaths are instantiated using dpctl(8), and are
 attached to the one side of a veth pair; the other side resides in the
 host namespace. In this mode, switch processes can simply connect to the
 controller via the loopback interface.
-
 In user datapath mode, the controller and switches can be full-service
 nodes that live in their own network namespaces and have management
 interfaces and IP addresses on a control network (e.g. 192.168.123.1,
 currently routed although it could be bridged.)
-
 In addition to a management interface, user mode switches also have
 several switch interfaces, halves of veth pairs whose other halves
 reside in the host nodes that the switches are connected to.
-
 Consistent, straightforward naming is important in addLinkorder to easily
 identify hosts, switches and controllers, both from the CLI and
 from program code. Interfaces are named to make it easy to identify
 which interfaces belong to which node.
-
 The basic naming scheme is as follows:
-
     Host nodes are named h1-hN
     Switch nodes are named s1-sN
     Controller nodes are named c0-cN
     Interfaces are named {nodename}-eth0 .. {nodename}-ethN
-
 Note: If the network topology is created using mininet.topo, then
 node numbers are unique among hosts and switches (e.g. we have
 h1..hN and SN..SN+M) and also correspond to their default IP addresses
 of 10.x.y.z/8 where x.y.z is the base-256 representation of N for
 hN. This mapping allows easy determination of a node's IP
 address from its name, e.g. h1 -> 10.0.0.1, h257 -> 10.0.1.1.
-
 Note also that 10.0.0.1 can often be written as 10.1 for short, e.g.
 "ping 10.1" is equivalent to "ping 10.0.0.1".
-
 Currently we wrap the entire network in a 'mininet' object, which
 constructs a simulated network based on a network topology created
 using a topology object (e.g. LinearTopo) from mininet.topo or
@@ -78,19 +58,15 @@ mininet.topolib, and a Controller which the switches will connect
 to. Several configuration options are provided for functions such as
 automatically setting MAC addresses, populating the ARP table, or
 even running a set of terminals to allow direct interaction with nodes.
-
 After the network is created, it can be started using start(), and a
 variety of useful tasks maybe performed, including basic connectivity
 and bandwidth tests and running the mininet CLI.
-
 Once the network is up and running, test code can easily get access
 to host and switch objects which can then be used for arbitrary
 experiments, typically involving running a series of commands on the
 hosts.
-
 After all desired tests or activities have been completed, the stop()
 method may be called to shut down the network.
-
 """
 import os
 import re
@@ -130,9 +106,10 @@ class Mininet(object):
                  ipBase='10.0.0.0/8', inNamespace=False,
                  autoSetMacs=False, autoStaticArp=False, autoPinCpus=False,
                  listenPort=None, waitConnected=False, ssid="new-ssid",
-                 mode="g", channel="1", enable_interference=False,
-                 enable_spec_prob_link=False, enable_error_prob=False,
-                 fading_coefficient=0, disableAutoAssociation=False,
+                 mode="g", channel="1", enable_wmediumd=False,
+                 enable_interference=False, enable_spec_prob_link=False,
+                 enable_error_prob=False, fading_coefficient=0,
+                 disableAutoAssociation=False,
                  driver='nl80211', autoSetPositions=False,
                  configureWiFiDirect=False, configure4addr=False,
                  defaultGraph=False, noise_threshold=-91, cca_threshold=-90,
@@ -205,6 +182,7 @@ class Mininet(object):
         self.cca_threshold = cca_threshold
         self.configureWiFiDirect = configureWiFiDirect
         self.configure4addr = configure4addr
+        self.enable_wmediumd = enable_wmediumd
         self.enable_error_prob = enable_error_prob
         self.fading_coefficient = fading_coefficient
         self.enable_interference = enable_interference
@@ -380,8 +358,6 @@ class Mininet(object):
         else:
             car.params['ssid'] = 'mesh-ssid'
             car.func.append('mesh')
-        self.addLink(carsta, carsw)
-        self.addLink(car, carsw)
         mininetWiFi.isVanet = True
         return car
 
@@ -599,7 +575,6 @@ class Mininet(object):
     def addMesh(self, node, **params):
         """
         Configure wireless mesh
-
         node: name of the node
         cls: custom association class/constructor
         params: parameters for node
@@ -612,11 +587,9 @@ class Mininet(object):
     def addHoc(self, node, **params):
         """
         Configure AdHoc
-
         node: name of the node
         cls: custom association class/constructor
         params: parameters for station
-
         """
         params['nextIP'] = self.nextIP
         params['ipBaseNum'] = self.ipBaseNum
@@ -627,7 +600,7 @@ class Mininet(object):
     def wifiDirect(cls, node, **params):
         """
         Configure wifidirect
-        
+
         node: name of node
         params: parameters for station
         """
@@ -700,30 +673,31 @@ class Mininet(object):
                 else:
                     wmediumd_mode = None
                 cls = Association
-                cls.associate(sta, ap, self.link, wmediumd_mode)
+                cls.associate(sta, ap, self.enable_wmediumd,
+                              wmediumd_mode)
                 if 'bw' not in params and 'TCIntfWireless' \
-                        not in self.link.__name__:
+                        not in str(self.link.__name__):
                     value = mininetWiFi.setDataRate(sta, ap, wlan)
                     bw = value.rate
                     params['bw'] = bw
 
-                if 'TCIntfWireless' in self.link.__name__:
+                if 'TCIntfWireless' in str(self.link.__name__):
                     cls = self.link
                 else:
                     cls = TCIntfWireless
 
-                if 'TCIntfWireless' in self.link.__name__ \
+                if 'TCIntfWireless' in str(self.link.__name__) \
                         or 'bw' in params and params['bw'] != 0 \
                     and 'position' not in sta.params:
                     # tc = True, this is useful only to apply tc configuration
                     if not mininetWiFi.enable_interference:
                         cls(name=sta.params['wlan'][wlan], node=sta,
                             link=None, tc=True, **params)
-            if 'wmediumd' in self.link.__name__:
+            if self.enable_wmediumd:
                 if self.enable_error_prob:
-                    self.link.wlinks.append([sta, ap, params['error_prob']])
+                    mininetWiFi.wlinks.append([sta, ap, params['error_prob']])
                 elif not self.enable_interference:
-                    self.link.wlinks.append([sta, ap])
+                    mininetWiFi.wlinks.append([sta, ap])
 
         elif (isinstance(node1, AP) and isinstance(node2, AP)
               and 'link' in options
@@ -882,13 +856,21 @@ class Mininet(object):
         raise Exception('configureControlNetwork: '
                         'should be overriden in subclass', self)
 
+    def create_vanet_link(self):
+        for idx, car in enumerate(self.cars):
+            self.addLink(self.carsSTA[idx], self.carsSW[idx])
+            self.addLink(car, self.carsSW[idx])
+
     def build(self):
         "Build mininet."
         if self.topo:
             self.buildFromTopo(self.topo)
 
+        if mininetWiFi.isVanet:
+            self.create_vanet_link()
+
         if (self.configure4addr or self.configureWiFiDirect or self.enable_error_prob) \
-                and 'wmediumd' in self.link.__name__:
+                and self.enable_wmediumd:
             mininetWiFi.configureWmediumd(self)
             mininetWiFi.wmediumdConnect()
 
@@ -1053,7 +1035,7 @@ class Mininet(object):
             mininetWiFi.kill_hostapd()
         if self.isWiFi:
             mininetWiFi.closeMininetWiFi()
-        if 'wmediumd' in self.link.__name__:
+        if self.enable_wmediumd:
             mininetWiFi.kill_wmediumd()
         info('\n*** Done\n')
 
@@ -1397,7 +1379,7 @@ class Mininet(object):
     def useExternalProgram(self, program, **params):
         """
         Opens an external program
-        
+
         :params program: any program (useful for SUMO)
         :params **params config_file: file configuration
         """
@@ -1413,7 +1395,6 @@ class Mininet(object):
                   l_interval=300, database='/etc/wpa_supplicant/network1.bgscan'):
         """
         Set Background scanning
-
         :params module: module
         :params s_inverval: short bgscan interval in second
         :params signal: signal strength threshold
@@ -1440,9 +1421,9 @@ class Mininet(object):
         mininetWiFi.start_simulation()
 
     def getCurrentDistance(self, src, dst):
-        """ 
+        """
         Gets the distance between two nodes
-        
+
         :params src: source node
         :params dst: destination node
         """
@@ -1451,9 +1432,9 @@ class Mininet(object):
 
     @classmethod
     def plotGraph(cls, min_x=0, min_y=0, min_z=0, max_x=0, max_y=0, max_z=0):
-        """ 
-        Plots Graph 
-        
+        """
+        Plots Graph
+
         :params min_x: minimum X
         :params min_y: minimum Y
         :params min_z: minimum Z
@@ -1465,9 +1446,9 @@ class Mininet(object):
 
     @classmethod
     def setChannelEquation(cls, **params):
-        """ 
+        """
         Set Channel Equation.
-        
+
         :params bw: bandwidth (mbps)
         :params delay: delay (ms)
         :params latency: latency (ms)
@@ -1476,7 +1457,7 @@ class Mininet(object):
         mininetWiFi.setChannelEquation(**params)
 
     def propagationModel(self, **kwargs):
-        """ 
+        """
         Propagation Model Attr
         """
         self.ppm_is_set = True
@@ -1488,7 +1469,7 @@ class Mininet(object):
     def associationControl(cls, ac):
         """
         Defines an association control
-        
+
         :params ac: the association control
         """
         mininetWiFi.associationControl(ac)
@@ -1573,27 +1554,19 @@ class Mininet(object):
 class MininetWithControlNet(Mininet):
 
     """Control network support:
-
        Create an explicit control network. Currently this is only
        used/usable with the user datapath.
-
        Notes:
-
        1. If the controller and switches are in the same (e.g. root)
           namespace, they can just use the loopback connection.
-
        2. If we can get unix domain sockets to work, we can use them
           instead of an explicit control network.
-
        3. Instead of routing, we could bridge or use 'in-band' control.
-
        4. Even if we dispense with this in general, it could still be
           useful for people who wish to simulate a separate control
           network (since real networks may need one!)
-
        5. Basically nobody ever used this code, so it has been moved
           into its own class.
-
        6. Ultimately we may wish to extend this to allow us to create a
           control network which every node's control interface is
           attached to."""

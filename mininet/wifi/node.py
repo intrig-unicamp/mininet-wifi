@@ -1,10 +1,6 @@
 """
-
     Mininet-WiFi: A simple networking testbed for Wireless OpenFlow/SDWN!
-
 author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
-
-
 """
 
 import os
@@ -208,15 +204,15 @@ class WiFiNode(object):
                 self.params['ssid'] = []
                 self.params['ssid'].append(0)
             self.params['ssid'][wlan] = ssid
-            self.configureAdhoc(wlan, link='wmediumd')
+            self.configureAdhoc(wlan, enable_wmediumd=True)
 
-    def configureAdhoc(self, wlan, link):
+    def configureAdhoc(self, wlan, enable_wmediumd):
         "Configure Wireless Ad Hoc"
         iface = self.params['wlan'][wlan]
         self.func[wlan] = 'adhoc'
         self.setIP(self.params['ip'][wlan], intf='%s' % iface)
         self.cmd('iw dev %s set type ibss' % iface)
-        if 'position' not in self.params or 'wmediumd' in link.__name__:
+        if 'position' not in self.params or enable_wmediumd:
             self.params['associatedTo'][wlan] = self.params['ssid'][wlan]
             debug("associating %s to %s...\n" % (iface, self.params['ssid'][wlan]))
             self.pexec('iw dev %s ibss join %s %s 02:CA:FF:EE:BA:01' \
@@ -355,7 +351,6 @@ class WiFiNode(object):
 
     def get_freq(self, wlan):
         """Gets frequency based on channel number
-
         :param wlan: wlan ID
         """
         freq = 0
@@ -436,7 +431,6 @@ class WiFiNode(object):
 
     def set_rssi(self, node2=None, wlan=0, dist=0):
         """set RSSI
-
         :param node1: self
         :param node2: access point
         :param wlan: wlan ID
@@ -508,7 +502,6 @@ class WiFiNode(object):
 
     def get_distance_to(self, dst):
         """ Get the distance between two nodes
-
         :param self: source node
         :param dst: destination node
         """
@@ -848,7 +841,6 @@ class WiFiNode(object):
         """Return our interface object with given string name,
            default intf if name is falsy (None, empty string, etc).
            or the input intf arg.
-
         Having this fcn return its arg for Intf objects makes it
         easier to construct functions with flexible input args for
         interfaces (those that accept both string names and Intf objects).
