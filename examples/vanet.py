@@ -74,7 +74,7 @@ def topology():
     k = 1
     for car in cars:
         car.setIP('192.168.0.%s/24' % k, intf='%s-wlan0' % car)
-        car.setIP('192.168.1.%s/24' % i, intf='%s-eth   ' % car)
+        car.setIP('192.168.1.%s/24' % i, intf='%s-eth1' % car)
         car.cmd('ip route add 10.0.0.0/8 via 192.168.1.%s' % j)
         i += 2
         j += 2
