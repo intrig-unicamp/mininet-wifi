@@ -6,14 +6,14 @@ import os
 
 from mininet.net import Mininet
 from mininet.node import Controller, UserAP
-from mininet.link import TCLink
 from mininet.cli import CLI
 from mininet.log import setLogLevel
+
 
 def topology():
 
     "Create a network."
-    net = Mininet(controller=Controller, link=TCLink, accessPoint=UserAP,
+    net = Mininet(controller=Controller, accessPoint=UserAP,
                   enable_wmediumd=True, enable_interference=True)
 
     print "*** Creating nodes"
@@ -86,27 +86,28 @@ def topology():
     j = 2
     for car in cars:
         car.setIP('192.168.0.%s/24' % i, intf='%s-wlan0' % car)
-        car.setIP('192.168.1.%s/24' % i, intf='%s-eth0' % car)
+        car.setIP('192.168.1.%s/24' % i, intf='%s-eth1' % car)
         car.cmd('ip route add 10.0.0.0/8 via 192.168.1.%s' % j)
         i += 2
         j += 2
 
     i = 1
     j = 2
-    for v in net.carsSTA:
-        v.setIP('192.168.1.%s/24' % j, intf='%s-eth0' % v)
-        v.setIP('10.0.0.%s/24' % i, intf='%s-mp0' % v)
-        v.cmd('echo 1 > /proc/sys/net/ipv4/ip_forward')
+    for carsta in net.carsSTA:
+        carsta.setIP('10.0.0.%s/24' % i, intf='%s-mp0' % carsta)
+        carsta.setIP('192.168.1.%s/24' % j, intf='%s-eth2' % carsta)
+        #May be confuse, but it allows ping to the name instead of ip addr
+        carsta.setIP('10.0.0.%s/24' % i, intf='%s-wlan0' % carsta)
+        carsta.cmd('echo 1 > /proc/sys/net/ipv4/ip_forward')
         i += 1
         j += 2
 
-
-    for v1 in net.carsSTA:
+    for carsta1 in net.carsSTA:
         i = 1
         j = 1
-        for v2 in net.carsSTA:
-            if v1 != v2:
-                v1.cmd('route add -host 192.168.1.%s gw 10.0.0.%s' % (j, i))
+        for carsta2 in net.carsSTA:
+            if carsta1 != carsta2:
+                carsta1.cmd('route add -host 192.168.1.%s gw 10.0.0.%s' % (j, i))
             i += 1
             j += 2
 
