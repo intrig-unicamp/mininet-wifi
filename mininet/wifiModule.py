@@ -223,6 +223,11 @@ class module(object):
                     for wlan in range(0, len(node.params['wlan'])):
                         node.phyID[wlan] = cls.phyID
                         cls.phyID += 1
+                        rfkill = os.system(
+                            'rfkill list | grep %s | awk \'{print $1}\' '
+                            '| tr -d \":\" >/dev/null 2>&1' % phys[0])
+                        debug('rfkill unblock %s\n' % rfkill)
+                        os.system('rfkill unblock %s' % rfkill)
                         os.system('iw phy %s set netns %s' % (phys[0], node.pid))
                         node.cmd('ip link set %s down' % cls.wlan_list[0])
                         node.cmd('ip link set %s name %s'
