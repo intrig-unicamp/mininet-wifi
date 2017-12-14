@@ -48,8 +48,6 @@ class module(object):
                 else:
                     os.system('insmod %s radios=%s' % (alternativeModule,
                                                        n_radios))
-            debug('rfkill unblock all\n')
-            os.system('rfkill unblock all')
         else:
             cls.devices_created_dynamically = True
             cls.__create_hwsim_mgmt_devices(n_radios)
