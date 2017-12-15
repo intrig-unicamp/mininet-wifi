@@ -1,13 +1,11 @@
 #!/usr/bin/python
 
-"""
-Setting the position of Nodes and using wmediumd to calculate the interference.
-"""
+"Setting the position of Nodes with wmediumd to calculate the interference"
 
 from mininet.net import Mininet
 from mininet.node import Controller
 from mininet.cli import CLI
-from mininet.log import setLogLevel
+from mininet.log import setLogLevel, info
 from mininet.wifi.node import OVSKernelAP
 
 
@@ -17,7 +15,7 @@ def topology():
     net = Mininet(controller=Controller, enable_wmediumd=True, accessPoint=OVSKernelAP,
                   enable_interference=True, noise_threshold=-91, fading_coefficient=1)
 
-    print("*** Creating nodes")
+    info("*** Creating nodes\n")
     ap1 = net.addAccessPoint('ap1', ssid='new-ssid', mode='a', channel='36',
                              position='15,30,0')
     net.addStation('sta1', mac='00:00:00:00:00:02', ip='10.0.0.1/8',
@@ -28,23 +26,23 @@ def topology():
                    position='20,60,10')
     c1 = net.addController('c1', controller=Controller)
 
-    print("*** Configuring Propagation Model")
+    info("*** Configuring Propagation Model\n")
     net.propagationModel(model="logDistance", exp=4)
 
-    print("*** Configuring wifi nodes")
+    info("*** Configuring wifi nodes\n")
     net.configureWifiNodes()
 
     net.plotGraph(max_x=100, max_y=100)
 
-    print("*** Starting network")
+    info("*** Starting network\n")
     net.build()
     c1.start()
     ap1.start([c1])
 
-    print("*** Running CLI")
+    info("*** Running CLI\n")
     CLI(net)
 
-    print("*** Stopping network")
+    info("*** Stopping network\n")
     net.stop()
 
 

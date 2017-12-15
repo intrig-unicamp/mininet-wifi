@@ -6,14 +6,14 @@ from mininet.net import Mininet
 from mininet.node import Controller
 from mininet.wifi.node import OVSKernelAP
 from mininet.cli import CLI
-from mininet.log import setLogLevel
+from mininet.log import setLogLevel, info
 
 
 def topology():
     "Create a network."
     net = Mininet(controller=Controller, accessPoint=OVSKernelAP)
 
-    print("*** Creating nodes")
+    info("*** Creating nodes\n")
     net.addStation('sta1', mac='00:00:00:00:00:02', ip='10.0.0.2/8')
     net.addStation('sta2', mac='00:00:00:00:00:03', ip='10.0.0.3/8')
     net.addStation('sta3', mac='00:00:00:00:00:04', ip='10.0.0.4/8')
@@ -34,10 +34,10 @@ def topology():
 
     net.propagationModel(model="logDistance", exp=5)
 
-    print("*** Configuring wifi nodes")
+    info("*** Configuring wifi nodes\n")
     net.configureWifiNodes()
 
-    print("*** Associating and Creating links")
+    info("*** Associating and Creating links\n")
     net.addLink(ap1, ap2)
     net.addLink(ap2, ap3)
 
@@ -50,17 +50,17 @@ def topology():
     net.startMobility(time=0, model='RandomWayPoint', max_x=120, max_y=120,
                       min_v=0.3, max_v=0.5)
 
-    print("*** Starting network")
+    info("*** Starting network\n")
     net.build()
     c1.start()
     ap1.start([c1])
     ap2.start([c1])
     ap3.start([c1])
 
-    print("*** Running CLI")
+    info("*** Running CLI\n")
     CLI(net)
 
-    print("*** Stopping network")
+    info("*** Stopping network\n")
     net.stop()
 
 

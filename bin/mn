@@ -346,7 +346,7 @@ class MininetRunner(object):
 
         # set logging verbosity
         if LEVELS[self.options.verbosity] > LEVELS['output']:
-            print ('*** WARNING: selected verbosity level (%s) will hide CLI '
+            info('*** WARNING: selected verbosity level (%s) will hide CLI '
                    'output!\n'
                    'Please restart Mininet with -v [debug, info, output].'
                    % self.options.verbosity)
@@ -448,7 +448,7 @@ class MininetRunner(object):
         inNamespace = opts.innamespace
         cluster = opts.cluster
         if inNamespace and cluster:
-            print("Please specify --innamespace OR --cluster")
+            info("Please specify --innamespace OR --cluster\n")
             exit()
         Net = MininetWithControlNet if opts.innamespace else Mininet
         if opts.cluster:

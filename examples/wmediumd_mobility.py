@@ -5,11 +5,10 @@ Setting the position of Nodes (only for Stations and Access Points)
 and providing mobility using mobility models with wmediumd enabled.
 
 """
-
 from mininet.net import Mininet
 from mininet.node import Controller
 from mininet.cli import CLI
-from mininet.log import setLogLevel
+from mininet.log import setLogLevel, info
 from mininet.wifi.node import OVSKernelAP
 
 
@@ -19,17 +18,17 @@ def topology():
     net = Mininet(controller=Controller, accessPoint=OVSKernelAP,
                   enable_wmediumd=True)
 
-    print("*** Creating nodes")
+    info("*** Creating nodes\n")
     ap1 = net.addAccessPoint('ap1', ssid='new-ssid', mode='a', channel='36',
                              position='150,150,0')
     net.addStation('sta1', mac='00:00:00:00:00:02', ip='10.0.0.2/8')
     net.addStation('sta2', mac='00:00:00:00:00:03', ip='10.0.0.3/8')
     c1 = net.addController('c1', controller=Controller)
 
-    print("*** Configuring Propagation Model")
+    info("*** Configuring Propagation Model\n")
     net.propagationModel(model="logDistance", exp=3)
 
-    print("*** Configuring wifi nodes")
+    info("*** Configuring wifi nodes\n")
     net.configureWifiNodes()
 
     net.plotGraph(max_x=300, max_y=300)
@@ -39,15 +38,15 @@ def topology():
     net.startMobility(time=0, model='RandomDirection', max_x=300, max_y=300,
                       min_v=0.5, max_v=0.8)
 
-    print("*** Starting network")
+    info("*** Starting network\n")
     net.build()
     c1.start()
     ap1.start([c1])
 
-    print("*** Running CLI")
+    info("*** Running CLI\n")
     CLI(net)
 
-    print("*** Stopping network")
+    info("*** Stopping network\n")
     net.stop()
 
 

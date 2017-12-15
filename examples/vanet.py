@@ -8,7 +8,7 @@ import random
 from mininet.net import Mininet
 from mininet.node import Controller, OVSKernelSwitch
 from mininet.cli import CLI
-from mininet.log import setLogLevel
+from mininet.log import setLogLevel, info
 
 
 def topology():
@@ -17,7 +17,7 @@ def topology():
     net = Mininet(controller=Controller, switch=OVSKernelSwitch,
                   enable_wmediumd=True, enable_interference=True)
 
-    print("*** Creating nodes")
+    info("*** Creating nodes\n")
     cars = []
     for x in range(0, 10):
         cars.append(x)
@@ -38,13 +38,13 @@ def topology():
                                channel='11')
     c1 = net.addController('c1', controller=Controller)
 
-    print("*** Configuring Propagation Model")
+    info("*** Configuring Propagation Model\n")
     net.propagationModel(model="logDistance", exp=4.5)
 
-    print("*** Configuring wifi nodes")
+    info("*** Configuring wifi nodes\n")
     net.configureWifiNodes()
 
-    print("*** Associating and Creating links")
+    info("*** Associating and Creating links\n")
     net.addLink(rsu11, rsu12)
     net.addLink(rsu11, rsu13)
     net.addLink(rsu11, rsu14)
@@ -55,7 +55,7 @@ def topology():
 
     net.startMobility(time=0)
 
-    print("*** Starting network")
+    info("*** Starting network\n")
     net.build()
     c1.start()
     rsu11.start([c1])
@@ -100,10 +100,10 @@ def topology():
             i += 1
             j += 2
 
-    print("*** Running CLI")
+    info("*** Running CLI\n")
     CLI(net)
 
-    print("*** Stopping network")
+    info("*** Stopping network\n")
     net.stop()
 
 

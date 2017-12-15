@@ -3,18 +3,19 @@
 """This example shows how to work in adhoc mode
 
 sta1 <---> sta2 <---> sta3"""
+
 import sys
 
 from mininet.net import Mininet
 from mininet.cli import CLI
-from mininet.log import setLogLevel
+from mininet.log import setLogLevel, info
 
 
 def topology(autoTxPower):
     "Create a network."
     net = Mininet(enable_wmediumd=True, enable_interference=True)
 
-    print("*** Creating nodes")
+    info("*** Creating nodes\n")
     if autoTxPower:
         sta1 = net.addStation('sta1', position='10,10,0', range=100)
         sta2 = net.addStation('sta2', position='50,10,0', range=100)
@@ -26,21 +27,21 @@ def topology(autoTxPower):
 
     net.propagationModel(model="logDistance", exp=4)
 
-    print("*** Configuring wifi nodes")
+    info("*** Configuring wifi nodes\n")
     net.configureWifiNodes()
 
-    print("*** Creating links")
+    info("*** Creating links\n")
     net.addHoc(sta1, ssid='adhocNet', mode='g', channel=5)
     net.addHoc(sta2, ssid='adhocNet', mode='g', channel=5)
     net.addHoc(sta3, ssid='adhocNet', mode='g', channel=5)
 
-    print("*** Starting network")
+    info("*** Starting network\n")
     net.build()
 
-    print("*** Running CLI")
+    info("*** Running CLI\n")
     CLI(net)
 
-    print("*** Stopping network")
+    info("*** Stopping network\n")
     net.stop()
 
 

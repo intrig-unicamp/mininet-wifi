@@ -8,28 +8,27 @@ from mininet.net import Mininet
 from mininet.node import Controller,OVSKernelSwitch
 from mininet.link import TCLink
 from mininet.cli import CLI
-from mininet.log import setLogLevel
+from mininet.log import setLogLevel, info
 from mininet.wifi.replaying import replayingBandwidth
 
 
 def topology():
-
     "Create a network."
     net = Mininet( controller=Controller, link=TCLink, switch=OVSKernelSwitch )
 
-    print("*** Creating nodes")
+    info("*** Creating nodes\n")
     sta1 = net.addStation( 'sta1', mac='00:00:00:00:00:02', ip='10.0.0.2/8' )
     ap1 = net.addAccessPoint( 'ap1', ssid= 'new-ssid', mode= 'g', channel= '1',
                               position='50,50,0' )
     c1 = net.addController( 'c1', controller=Controller )
 
-    print("*** Configuring wifi nodes")
+    info("*** Configuring wifi nodes\n")
     net.configureWifiNodes()
 
-    print("*** adding Link")
+    info("*** adding Link\n")
     net.addLink(sta1, ap1)
 
-    print("*** Starting network")
+    info("*** Starting network\n")
     net.build()
     c1.start()
     ap1.start( [c1] )
@@ -40,10 +39,10 @@ def topology():
 
     replayingBandwidth(net)
 
-    print("*** Running CLI")
+    info("*** Running CLI\n")
     CLI( net )
 
-    print("*** Stopping network")
+    info("*** Stopping network\n")
     net.stop()
 
 def getTrace(sta, file):

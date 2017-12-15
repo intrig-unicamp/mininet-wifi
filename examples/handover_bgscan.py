@@ -13,17 +13,16 @@ mobility_domain='a1b2',...)"""
 from mininet.net import Mininet
 from mininet.node import Controller
 from mininet.cli import CLI
-from mininet.log import setLogLevel
+from mininet.log import setLogLevel, info
 from mininet.wifi.node import UserAP
 
 
 def topology():
-
     "Create a network."
     net = Mininet(controller=Controller, accessPoint=UserAP,
                   enable_wmediumd=True, enable_interference=True)
 
-    print("*** Creating nodes")
+    info("*** Creating nodes\n")
     net.addStation('sta1', position='15,20,0')
     ap1 = net.addAccessPoint('ap1', mac='00:00:00:00:00:01', ssid="handover",
                              mode="g", channel="1", passwd='123456789a',
@@ -36,32 +35,32 @@ def topology():
                              encrypt='wpa2', position='120,100,0')
     c1 = net.addController('c1', controller=Controller)
 
-    print("*** Configuring Propagation Model")
+    info("*** Configuring Propagation Model\n")
     net.propagationModel(model="logDistance", exp=3.5)
 
-    print("*** Configuring wifi nodes")
+    info("*** Configuring wifi nodes\n")
     net.configureWifiNodes()
 
-    print("*** Creating links")
+    info("*** Creating links\n")
     net.addLink(ap1, ap2)
     net.addLink(ap2, ap3)
 
-    print("*** Setting bgscan")
+    info("*** Setting bgscan\n")
     net.setBgscan(signal=-45, s_inverval=5, l_interval=10)
 
     net.plotGraph(min_x=-100, min_y=-100, max_x=200, max_y=200)
 
-    print("*** Starting network")
+    info("*** Starting network\n")
     net.build()
     c1.start()
     ap1.start([c1])
     ap2.start([c1])
     ap3.start([c1])
 
-    print("*** Running CLI")
+    info("*** Running CLI\n")
     CLI(net)
 
-    print("*** Stopping network")
+    info("*** Stopping network\n")
     net.stop()
 
 
