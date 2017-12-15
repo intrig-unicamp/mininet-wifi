@@ -19,6 +19,7 @@ from pylab import math, cos, sin, np
 
 from mininet.wifi.plot import plot2d
 from mininet.wifi.node import AP
+from mininet.log import info
 
 try:
     warnings.filterwarnings("ignore", category=matplotlib.cbook.mplDeprecation)
@@ -319,7 +320,7 @@ class vanet(object):
         first_set = set(first_tuple_list)
         secnd_set = set(secnd_tuple_list)
         (element,) = first_set.intersection(secnd_set)
-        print(element[0])
+        info(element[0])
 
     def simulate_car_movement(self, cars, baseStations, scatter,
                               com_lines, mobility):

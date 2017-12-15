@@ -1493,25 +1493,25 @@ def reference_point_group(nodes, dimensions, velocity=(0.1, 1.), aggregation=0.1
         if b.size > 0:
             x[b] = -x[b];
             costheta[b] = -costheta[b]
-            g_idx = np.unique(g_ref[b]);
+            g_idx = np.unique(g_ref[b])
             g_costheta[g_idx] = -g_costheta[g_idx]
         b = np.where(x > MAX_X)[0]
         if b.size > 0:
-            x[b] = 2 * MAX_X - x[b];
+            x[b] = 2 * MAX_X - x[b]
             costheta[b] = -costheta[b]
-            g_idx = np.unique(g_ref[b]);
+            g_idx = np.unique(g_ref[b])
             g_costheta[g_idx] = -g_costheta[g_idx]
         b = np.where(y < 0)[0]
         if b.size > 0:
-            y[b] = -y[b];
+            y[b] = -y[b]
             sintheta[b] = -sintheta[b]
-            g_idx = np.unique(g_ref[b]);
+            g_idx = np.unique(g_ref[b])
             g_sintheta[g_idx] = -g_sintheta[g_idx]
         b = np.where(y > MAX_Y)[0]
         if b.size > 0:
-            y[b] = 2 * MAX_Y - y[b];
+            y[b] = 2 * MAX_Y - y[b]
             sintheta[b] = -sintheta[b]
-            g_idx = np.unique(g_ref[b]);
+            g_idx = np.unique(g_ref[b])
             g_sintheta[g_idx] = -g_sintheta[g_idx]
 
         # update info for nodes

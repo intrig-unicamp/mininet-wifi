@@ -53,7 +53,7 @@ class replayingMobility(object):
         self.thread.start()
 
     def mobility(self, mininet, nodes):
-        if nodes == None:
+        if nodes is None:
             nodes = mininet.stations + mininet.aps
         for node in nodes:
             if isinstance(node, Station):
