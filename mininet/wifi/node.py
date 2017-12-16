@@ -24,8 +24,8 @@ from mininet.moduledeps import moduleDeps, pathCheck, TUN
 from mininet.link import Link, Intf, OVSIntf
 from mininet.wifi.link import TCIntfWireless, TCLinkWirelessAP,\
     TCLinkWirelessStation
-from mininet.wifi.wmediumdConnector import WmediumdServerConn, WmediumdPosition, \
-                                WmediumdTXPower, WmediumdGain, WmediumdHeight
+from mininet.wifi.wmediumdConnector import WmediumdServerConn, \
+    WmediumdPosition, WmediumdTXPower, WmediumdGain, WmediumdHeight
 from mininet.wifi.propagationModels import distanceByPropagationModel, \
     powerForRangeByPropagationModel, propagationModel
 from mininet.wifi.mobility import mobility
@@ -72,7 +72,8 @@ class WiFiNode(object):
 
         # Start command interpreter shell
         self.startShell()
-        self.private_folder_manager = PrivateFolderManager(self, params.get('privateDirs', []))
+        self.private_folder_manager = \
+            PrivateFolderManager(self, params.get('privateDirs', []))
 
     # File descriptor to node mapping support
     # Class variables and methods
@@ -214,7 +215,8 @@ class WiFiNode(object):
         self.cmd('iw dev %s set type ibss' % iface)
         if 'position' not in self.params or enable_wmediumd:
             self.params['associatedTo'][wlan] = self.params['ssid'][wlan]
-            debug("associating %s to %s...\n" % (iface, self.params['ssid'][wlan]))
+            debug("associating %s to %s...\n"
+                  % (iface, self.params['ssid'][wlan]))
             self.pexec('iw dev %s ibss join %s %s 02:CA:FF:EE:BA:01' \
                        % (iface, self.params['associatedTo'][wlan],
                           str(self.params['frequency'][wlan]).replace('.', '')))
@@ -919,7 +921,8 @@ class WiFiNode(object):
            ip: IP address as a string
            prefixLen: prefix length, e.g. 8 for /8 or 16M addrs
            kwargs: any additional arguments for intf.setIP"""
-        if intf != None and (isinstance(self, Station) or isinstance(self, Car)):
+        if intf is not None and (isinstance(self, Station)
+                                 or isinstance(self, Car)):
             if intf in self.params['wlan']:
                 wlan = int(intf[-1:])
                 self.params['ip'][wlan] = ip
@@ -1204,7 +1207,8 @@ class AccessPoint(AP):
                 cmd = cmd + ("\neapol_key_index_workaround=0")
                 cmd = cmd + ("\nown_ip_addr=%s" % ap.params['radius_server'])
                 cmd = cmd + ("\nnas_identifier=%s.example.com" % ap.name)
-                cmd = cmd + ("\nauth_server_addr=%s" % ap.params['radius_server'])
+                cmd = cmd + ("\nauth_server_addr=%s"
+                             % ap.params['radius_server'])
                 cmd = cmd + ("\nauth_server_port=1812")
                 if 'shared_secret' not in ap.params:
                     ap.params['shared_secret'] = 'secret'
@@ -1231,7 +1235,8 @@ class AccessPoint(AP):
                 elif ap.params['mode'][wlan] == 'n':
                     cmd = cmd + ("\nieee80211n=1")
 
-                if 'ieee80211r' in ap.params and ap.params['ieee80211r'] == 'yes':
+                if 'ieee80211r' in ap.params and \
+                                ap.params['ieee80211r'] is 'yes':
                     if 'mobility_domain' in ap.params:
                         cmd = cmd + ("\nmobility_domain=%s" %
                                      ap.params['mobility_domain'])

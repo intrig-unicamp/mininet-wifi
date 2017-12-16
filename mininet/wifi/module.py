@@ -93,22 +93,25 @@ class module(object):
 
     @classmethod
     def kill_hostapd(cls):
+        'Kill hostapd'
         info("*** Killing hostapd\n")
         os.system('pkill -f \'hostapd -B mn%d\'' % os.getpid())
 
     @classmethod
     def kill_wmediumd(cls):
+        'Kill wmediumd'
         info("*** Killing wmediumd\n")
         os.system('pkill -f wmediumd >/dev/null 2>&1')
 
     @classmethod
     def kill_mac80211_hwsim(cls):
+        'Kill mac80211_hwsim'
         info("*** Killing mac80211_hwsim")
         os.system('rmmod mac80211_hwsim >/dev/null 2>&1')
 
     @classmethod
     def stop(cls):
-        """ Stop wireless Module """
+        'Stop wireless Module'
         if glob.glob("*.apconf"):
             os.system('rm *.apconf')
         if glob.glob("*.staconf"):
@@ -165,7 +168,7 @@ class module(object):
 
     @classmethod
     def get_physical_wlan(cls):
-        """Gets the list of physical wlans that already exist"""
+        'Gets the list of physical wlans that already exist'
         cls.wlans = []
         cls.wlans = (subprocess.check_output("iw dev 2>&1 | grep Interface "
                                              "| awk '{print $2}'",
@@ -175,7 +178,7 @@ class module(object):
 
     @classmethod
     def get_phy(cls):
-        """Gets all phys after starting the wireless module"""
+        'Gets all phys after starting the wireless module'
         phy = subprocess.check_output("find /sys/kernel/debug/ieee80211 -name "
                                       "hwsim | cut -d/ -f 6 | sort",
                                       shell=True).decode('utf-8').split("\n")

@@ -12,8 +12,9 @@ from mininet.wifi.node import OVSKernelAP
 def topology():
 
     "Create a network."
-    net = Mininet(controller=Controller, enable_wmediumd=True, accessPoint=OVSKernelAP,
-                  enable_interference=True, noise_threshold=-91, fading_coefficient=1)
+    net = Mininet(controller=Controller, enable_wmediumd=True,
+                  accessPoint=OVSKernelAP, enable_interference=True,
+                  noise_threshold=-91, fading_coefficient=1)
 
     info("*** Creating nodes\n")
     ap1 = net.addAccessPoint('ap1', ssid='new-ssid', mode='a', channel='36',

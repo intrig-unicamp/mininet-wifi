@@ -347,9 +347,9 @@ class MininetRunner(object):
         # set logging verbosity
         if LEVELS[self.options.verbosity] > LEVELS['output']:
             info('*** WARNING: selected verbosity level (%s) will hide CLI '
-                   'output!\n'
-                   'Please restart Mininet with -v [debug, info, output].'
-                   % self.options.verbosity)
+                 'output!\n'
+                 'Please restart Mininet with -v [debug, info, output].'
+                 % self.options.verbosity)
         lg.setLogLevel(self.options.verbosity)
 
     # Maybe we'll reorganize this someday...
