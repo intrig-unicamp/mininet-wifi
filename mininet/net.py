@@ -696,9 +696,9 @@ class Mininet(object):
                             link=None, tc=True, **params)
             if self.enable_wmediumd:
                 if self.enable_error_prob:
-                    mininetWiFi.wlinks.append([sta, ap, params['error_prob']])
+                    wmediumd.wlinks.append([sta, ap, params['error_prob']])
                 elif not self.enable_interference:
-                    mininetWiFi.wlinks.append([sta, ap])
+                    wmediumd.wlinks.append([sta, ap])
 
         elif (isinstance(node1, AP) and isinstance(node2, AP)
               and 'link' in options
@@ -872,7 +872,8 @@ class Mininet(object):
 
         if (self.configure4addr or self.configureWiFiDirect or self.enable_error_prob) \
                 and self.enable_wmediumd:
-            wmediumd(self)
+            wmediumd(self.wmediumd_mode, self.fading_coefficient, self.stations,
+                     self.aps, mininetWiFi.propagation_model)
 
         if self.inNamespace:
             self.configureControlNetwork()
