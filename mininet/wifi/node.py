@@ -22,7 +22,7 @@ from mininet.log import info, error, warn, debug
 from mininet.util import (quietRun, errRun, moveIntf, isShellBuiltin)
 from mininet.moduledeps import moduleDeps, pathCheck, TUN
 from mininet.link import Link, Intf, OVSIntf
-from mininet.wifi.link import TCIntfWireless, TCLinkWirelessAP,\
+from mininet.wifi.link import TCWirelessLink, TCLinkWirelessAP,\
     TCLinkWirelessStation
 from mininet.wifi.wmediumdConnector import WmediumdServerConn, \
     WmediumdPosition, WmediumdTXPower, WmediumdGain, WmediumdHeight
@@ -1424,7 +1424,7 @@ class UserAP(AP):
            over tc queuing disciplines. To resolve the conflict,
            we re-create the user switch's configuration, but as a
            leaf of the TCIntf-created configuration."""
-        if isinstance(intf, TCIntfWireless):
+        if isinstance(intf, TCWirelessLink):
             ifspeed = 10000000000  # 10 Gbps
             minspeed = ifspeed * 0.001
 
@@ -1560,7 +1560,7 @@ class OVSAP(AP):
         """Unfortunately OVS and Mininet are fighting
            over tc queuing disciplines. As a quick hack/
            workaround, we clear OVS's and reapply our own."""
-        if isinstance(intf, TCIntfWireless):
+        if isinstance(intf, TCWirelessLink):
             intf.config(**intf.params)
 
     def attach(self, intf):
@@ -1697,7 +1697,7 @@ class OVSAP(AP):
         # Reapply link config if necessary...
         for switch in switches:
             for intf in switch.intfs.values():
-                if isinstance(intf, TCIntfWireless):
+                if isinstance(intf, TCWirelessLink):
                     intf.config(**intf.params)
         return switches
 

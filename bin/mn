@@ -39,7 +39,7 @@ from mininet.util import customClass, specialClass, splitArgs
 from mininet.util import buildTopo
 
 from mininet.wifi.topo import (SingleAPTopo, LinearWirelessTopo, MinimalWirelessTopo)
-from mininet.wifi.link import TCIntfWireless
+from mininet.wifi.link import TCWirelessLink
 from mininet.wifi.node import UserAP, OVSAP
 
 
@@ -101,7 +101,7 @@ CONTROLLERS = { 'ref': Controller,
 LINKDEF = 'default'
 LINKS = { 'default': Link,  # Note: overridden below
           'tc': TCLink,
-          'wtc': TCIntfWireless,
+          'wtc': TCWirelessLink,
           'tcu': TCULink,
           'ovs': OVSLink }
 

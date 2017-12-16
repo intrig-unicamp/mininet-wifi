@@ -85,7 +85,7 @@ from mininet.node import (Node, Host, OVSKernelSwitch,
                           DefaultController, Controller)
 from mininet.nodelib import NAT
 from mininet.link import Link, Intf
-from mininet.wifi.link import Association, _4addrLink, TCIntfWireless, wmediumd
+from mininet.wifi.link import Association, _4addrLink, TCWirelessLink, wmediumd
 from mininet.util import (quietRun, fixLimits, numCores, ensureRoot,
                           macColonHex, ipStr, ipParse, netParse, ipAdd,
                           waitListening)
@@ -685,7 +685,7 @@ class Mininet(object):
                 if 'TCIntfWireless' in str(self.link.__name__):
                     cls = self.link
                 else:
-                    cls = TCIntfWireless
+                    cls = TCWirelessLink
 
                 if 'TCIntfWireless' in str(self.link.__name__) \
                         or 'bw' in params and params['bw'] != 0 \
@@ -1479,7 +1479,7 @@ class Mininet(object):
         mininetWiFi.associationControl(ac)
 
     def configWirelessLinkStatus(self, src, dst, status):
-        if status is 'down':
+        if status == 'down':
             if isinstance(self.nameToNode[ src ], Station):
                 sta = self.nameToNode[ src ]
                 ap = self.nameToNode[ dst ]

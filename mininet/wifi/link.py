@@ -220,7 +220,7 @@ class IntfWireless(object):
         return self.name
 
 
-class TCIntfWireless(IntfWireless):
+class TCWirelessLink(IntfWireless):
     """Interface customized by tc (traffic control) utility
        Allows specification of bandwidth limits (various methods)
        as well as delay, loss and max queue length"""
@@ -636,7 +636,7 @@ class TCLinkWirelessStation(WirelessLinkStation):
                  addr1=None, **params):
         WirelessLinkStation.__init__(self, node1, port1=port1,
                                      intfName1=intfName1,
-                                     cls1=TCIntfWireless,
+                                     cls1=TCWirelessLink,
                                      addr1=addr1,
                                      params1=params)
 
@@ -646,13 +646,13 @@ class TCLinkWirelessAP(WirelessLinkAP):
                  addr1=None, **params):
         WirelessLinkAP.__init__(self, node1, port1=port1,
                                 intfName1=intfName1,
-                                cls1=TCIntfWireless,
+                                cls1=TCWirelessLink,
                                 addr1=addr1,
                                 params1=params)
 
 
 class wmediumd(object):
-
+    "Wmediumd Class"
     wlinks = []
     links = []
     txpowers = []
