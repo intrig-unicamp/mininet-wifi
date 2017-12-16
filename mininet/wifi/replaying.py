@@ -21,12 +21,12 @@ from mininet.wifi.node import Station, AP
 
 
 def instantiateGraph(mininet):
-    MIN_X = mininetWiFi.MIN_X
-    MIN_Y = mininetWiFi.MIN_Y
-    MIN_Z = mininetWiFi.MIN_Z
-    MAX_X = mininetWiFi.MAX_X
-    MAX_Y = mininetWiFi.MAX_Y
-    MAX_Z = mininetWiFi.MAX_Z
+    MIN_X = mininetWiFi.min_x
+    MIN_Y = mininetWiFi.min_y
+    MIN_Z = mininetWiFi.min_z
+    MAX_X = mininetWiFi.max_x
+    MAX_Y = mininetWiFi.max_y
+    MAX_Z = mininetWiFi.max_z
     nodes = mininet.stations + mininet.aps
     for node in nodes:
         replayingMobility.addNode(node)

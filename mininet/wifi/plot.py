@@ -284,10 +284,10 @@ class plot2d (object):
         cls.graphUpdate(node)
 
     @classmethod
-    def plotGraph(cls, wifiNodes=[], connections=[]):
+    def plotGraph(cls, nodes=[], connections=[]):
         "Plot Graph"
         debug('Enabling Graph...\n')
-        for node in wifiNodes:
+        for node in nodes:
             x = '%.2f' % float(node.params['position'][0])
             y = '%.2f' % float(node.params['position'][1])
             cls.instantiateNodes(node)
@@ -309,3 +309,22 @@ class plot2d (object):
                 line = cls.plotLine2d([src_x, dst_x], \
                                        [src_y, dst_y], 'b', ls=ls)
                 cls.plotLine(line)
+
+
+class plotGraph(object):
+
+    def __init__(self, min_x=0, min_y=0, min_z=0, max_x=0, max_y=0, max_z=0,
+                 nodes=None, connections=None):
+        'init plotgraph'
+        self.instantiateGraph(min_x, min_y, min_z, max_x, max_y, max_z,
+                              nodes, connections)
+
+    def instantiateGraph(self, min_x, min_y, min_z, max_x, max_y, max_z,
+                         nodes, connections):
+        "instantiatePlotGraph"
+        if min_z == 0 and max_z == 0:
+            plot2d.instantiateGraph(min_x, min_y, max_x, max_y)
+            plot2d.plotGraph(nodes, connections)
+        else:
+            plot3d.instantiateGraph(min_x, min_y, min_z, max_x, max_y, max_z)
+            plot3d.instantiateNodes(nodes)

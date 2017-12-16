@@ -18,7 +18,7 @@ from mininet.wifi.link import wirelessLink, Association
 from mininet.wifi.associationControl import associationControl
 from mininet.wifi.wmediumdConnector import WmediumdServerConn
 from mininet.wifi.propagationModels import propagationModel
-from mininet.wifi.plot import plot2d, plot3d
+from mininet.wifi.plot import plot2d, plot3d, plotGraph
 
 
 class mobility(object):
@@ -32,6 +32,7 @@ class mobility(object):
     continuePlot = 'plot2d.graphPause()'
     pause_simulation = False
     rec_rssi = False
+    plot = plot2d
     continue_params = 'sleep(0.0001)'
 
     @classmethod
@@ -141,9 +142,7 @@ class mobility(object):
 
     @classmethod
     def set_wifi_params(cls):
-        """
-        Opens a thread for wifi parameters
-        """
+        "Opens a thread for wifi parameters"
         thread = threading.Thread(name='wifiParameters', target=cls.parameters)
         thread.daemon = True
         thread.start()
@@ -345,9 +344,9 @@ class mobility(object):
 
     @classmethod
     def controlled_mobility(cls, init_time=0, final_time=0, stations=[],
-                            aps=[], connections=[], plotNodes=[], MIN_X=0,
-                            MIN_Y=0, MIN_Z=0, MAX_X=0, MAX_Y=0, MAX_Z=0, AC='',
-                            is3d=False, DRAW=False, repetitions=1, rec_rssi=False,
+                            aps=[], connections=[], plotNodes=[], min_x=0,
+                            min_y=0, min_z=0, max_x=0, max_y=0, max_z=0, AC='',
+                            DRAW=False, repetitions=1, rec_rssi=False,
                             **params):
         """
         Used when the position of each node is previously defined
@@ -386,8 +385,9 @@ class mobility(object):
 
         try:
             if DRAW:
-                plot = cls.instantiateGraph(MIN_X, MIN_Y, MAX_X, MAX_Y, nodes,
-                                            connections, MIN_Z, MAX_Z, is3d)
+                plotGraph(min_x, min_y, min_z, max_x, max_y, max_z, nodes, connections)
+                if min_z != 0 and max_z != 0:
+                    cls.plot = plot3d
         except:
             info('Warning: running without GUI.\n')
             DRAW = False
@@ -433,27 +433,14 @@ class mobility(object):
                             if propagationModel.model == 'logNormalShadowing':
                                 node.getRange(intf=node.params['wlan'][0])
                             if DRAW:
-                                plot.graphUpdate(node)
-                                if not is3d:
-                                    plot.updateCircleRadius(node)
+                                cls.plot.graphUpdate(node)
+                                if not issubclass(cls.plot, plot3d):
+                                    cls.plot.updateCircleRadius(node)
                         eval(cls.continuePlot)
                         i += 1
                 cls.mobileNodes = []
         except:
             pass
-
-    @classmethod
-    def instantiateGraph(cls, MIN_X, MIN_Y, MAX_X, MAX_Y, nodes, connections,
-                         MIN_Z=0, MAX_Z=0, is3d=False):
-        if is3d:
-            plot = plot3d
-            plot.instantiateGraph(MIN_X, MIN_Y, MIN_Z, MAX_X, MAX_Y, MAX_Z)
-            plot.instantiateNodes(nodes)
-        else:
-            plot = plot2d
-            plot.instantiateGraph(MIN_X, MIN_Y, MAX_X, MAX_Y)
-            plot.plotGraph(nodes, connections)
-        return plot
 
     @classmethod
     def addNodes(cls, stas, aps):
@@ -464,7 +451,7 @@ class mobility(object):
     @classmethod
     def models(cls, stations=[], aps=[], model=None, stationaryNodes=[],
                min_v=0, max_v=0, seed=None, connections=None, plotNodes=[],
-               MAX_X=0, MAX_Y=0, AC='', DRAW=False, rec_rssi=False, **params):
+               max_x=0, max_y=0, AC='', DRAW=False, rec_rssi=False, **params):
         """
         Used when a mobility model is applied
 
@@ -491,9 +478,9 @@ class mobility(object):
 
         for sta in cls.stations:
             if sta.max_x == 0:
-                sta.max_x = MAX_X
+                sta.max_x = max_x
             if sta.max_y == 0:
-                sta.max_y = MAX_Y
+                sta.max_y = max_y
             if sta.max_v == 0:
                 sta.max_v = max_v
             if sta.min_v == 0:
@@ -501,8 +488,7 @@ class mobility(object):
 
         try:
             if DRAW:
-                cls.instantiateGraph(0, 0, MAX_X, MAX_Y, nodes, connections,
-                                     0, 0, is3d=False)
+                plotGraph(0, 0, 0, max_x, max_y, 0, nodes, connections)
                 plot2d.graphPause()
         except:
             info('Warning: running without GUI.\n')
@@ -517,17 +503,17 @@ class mobility(object):
                 mob = truncated_levy_walk(stationaryNodes)
             elif model == 'RandomDirection':  # Random Direction model
                 mob = random_direction(stationaryNodes,
-                                       dimensions=(MAX_X, MAX_Y))
+                                       dimensions=(max_x, max_y))
             elif model == 'RandomWayPoint':  # Random Waypoint model
                 mob = random_waypoint(stationaryNodes, wt_max=MAX_WT)
             elif model == 'GaussMarkov':  # Gauss-Markov model
                 mob = gauss_markov(stationaryNodes, alpha=0.99)
             elif model == 'ReferencePoint':  # Reference Point Group model
                 mob = reference_point_group(stationaryNodes,
-                                            dimensions=(MAX_X, MAX_Y),
+                                            dimensions=(max_x, max_y),
                                             aggregation=0.5)
             elif model == 'TimeVariantCommunity':
-                mob = tvc(stationaryNodes, dimensions=(MAX_X, MAX_Y),
+                mob = tvc(stationaryNodes, dimensions=(max_x, max_y),
                           aggregation=[0.5, 0.], epoch=[100, 100])
             else:
                 raise Exception("Mobility Model not defined or doesn't exist!")
@@ -833,7 +819,7 @@ class RandomWaypoint(object):
 
         # if self.init_stationary:
         #    x, y, x_waypoint, y_waypoint, velocity, wt = \
-        #        init_random_waypoint(self.nr_nodes, MIN_X, MIN_Y, MAX_X, MAX_Y, MIN_V, MAX_V, wt_min,
+        #        init_random_waypoint(self.nr_nodes, min_x, min_y, max_x, max_y, MIN_V, MAX_V, wt_min,
         #                     (self.wt_max if self.wt_max is not None else 0.))
         # else:
         NODES = np.arange(self.nr_nodes)

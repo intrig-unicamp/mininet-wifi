@@ -54,7 +54,7 @@ class vanet(object):
         [self.road.append(x) for x in range(0, params['nroads'])]
         [self.points.append(x) for x in range(0, params['nroads'])]
         [self.totalRoads.append(x) for x in range(0, params['nroads'])]
-        plot2d.instantiateGraph(params['MIN_X'], params['MIN_Y'], params['MAX_X'], params['MAX_Y'])
+        plot2d.instantiateGraph(params['min_x'], params['min_y'], params['max_x'], params['max_y'])
 
         self.display_grid(aps, params['connections'], params['nroads'])
         self.display_cars(cars)

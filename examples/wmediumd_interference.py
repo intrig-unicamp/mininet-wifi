@@ -11,7 +11,6 @@ from mininet.wifi.link import wmediumd
 
 
 def topology():
-
     "Create a network."
     net = Mininet(controller=Controller, link=wmediumd,
                   accessPoint=OVSKernelAP, enable_interference=True,

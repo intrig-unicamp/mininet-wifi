@@ -10,7 +10,7 @@ from mininet.log import setLogLevel, info
 
 
 def topology():
-    "Create a network."
+
     net = Mininet(controller=Controller, accessPoint=OVSKernelAP)
 
     info("*** Creating nodes\n")

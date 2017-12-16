@@ -17,7 +17,7 @@ from mininet.wifi.wmediumdConnector import WmediumdStarter, WmediumdServerConn
 from mininet.wifi.link import wirelessLink, wmediumd
 from mininet.wifi.devices import deviceDataRate
 from mininet.wifi.mobility import mobility
-from mininet.wifi.plot import plot2d, plot3d
+from mininet.wifi.plot import plot2d, plot3d, plotGraph
 from mininet.wifi.module import module
 from mininet.wifi.propagationModels import propagationModel
 from mininet.wifi.vanet import vanet
@@ -40,7 +40,6 @@ class mininetWiFi(object):
     enable_spec_prob_link = False
     enable_error_prob = False
     ifb = False
-    is3d = False
     isMobility = False
     isVanet = False
     isWiFi = False
@@ -49,12 +48,12 @@ class mininetWiFi(object):
     enable_wmediumd = False
     ppm_is_set = False
     n_radios = 0
-    MIN_X = 0
-    MIN_Y = 0
-    MIN_Z = 0
-    MAX_X = 0
-    MAX_Y = 0
-    MAX_Z = 0
+    min_x = 0
+    min_y = 0
+    min_z = 0
+    max_x = 0
+    max_y = 0
+    max_z = 0
     nroads = 0
     connections = {}
     wlinks = []
@@ -510,15 +509,13 @@ class mininetWiFi(object):
             node.params['ssid'][wlan] = 'adhocNetwork'
             node.params['associatedTo'][wlan] = 'adhocNetwork'
 
-        enable_wmediumd = cls.enable_wmediumd
-
         if not node.autoTxPower:
             node.getRange(intf=node.params['wlan'][wlan], noiseLevel=95)
 
         if 'channel' in params:
             node.setChannel(params['channel'], intf=node.params['wlan'][wlan])
 
-        node.configureAdhoc(wlan, enable_wmediumd)
+        node.configureAdhoc(wlan, cls.enable_wmediumd)
         if 'intf' not in params:
             node.ifaceToAssociate += 1
 
@@ -795,32 +792,27 @@ class mininetWiFi(object):
         :params max_z: maximum Z
         """
         cls.DRAW = True
-        cls.MIN_X = min_x
-        cls.MIN_Y = min_y
-        cls.MAX_X = max_x
-        cls.MAX_Y = max_y
+        cls.min_x = min_x
+        cls.min_y = min_y
+        cls.max_x = max_x
+        cls.max_y = max_y
         if max_z != 0:
-            cls.MIN_Z = min_z
-            cls.MAX_Z = max_z
-            cls.is3d = True
+            cls.min_z = min_z
+            cls.max_z = max_z
             cls.plot = plot3d
             mobility.continuePlot = 'plot3d.graphPause()'
 
     @classmethod
     def checkDimension(cls, nodes):
         try:
-            if cls.is3d:
-                cls.plot.instantiateGraph(cls.MIN_X, cls.MIN_Y, cls.MIN_Z,
-                                          cls.MAX_X, cls.MAX_Y, cls.MAX_Z)
-                cls.plot.instantiateNodes(nodes)
-            else:
-                cls.plot.instantiateGraph(cls.MIN_X, cls.MIN_Y,
-                                          cls.MAX_X, cls.MAX_Y)
-                cls.plot.plotGraph(nodes, cls.connections)
+            plotGraph(cls.min_x, cls.min_y, cls.min_z,
+                      cls.max_x, cls.max_y, cls.max_z,
+                      nodes, cls.connections)
+            if not issubclass(cls.plot, plot3d):
+                cls.plot.plotGraph()
                 cls.plot.graphPause()
         except:
-            info('Something went wrong. '
-                 'Running without GUI.\n')
+            info('Something went wrong. Running without GUI.\n')
             cls.DRAW = False
 
     @classmethod
@@ -848,7 +840,6 @@ class mininetWiFi(object):
     def stopMobility(cls, stations, aps, **kwargs):
         "Stops Mobility"
         cls.autoAssociation(stations, aps)
-        kwargs['is3d'] = cls.is3d
         params = cls.setMobilityParams(**kwargs)
         mobility.stop(**params)
 
@@ -868,22 +859,22 @@ class mininetWiFi(object):
             stations = kwargs['stations']
             if 'min_x' in kwargs:
                 if not cls.DRAW:
-                    cls.MIN_X = int(kwargs['min_x'])
+                    cls.min_x = int(kwargs['min_x'])
                 for sta in stations:
                     sta.min_x = int(kwargs['min_x'])
             if 'min_y' in kwargs:
                 if not cls.DRAW:
-                    cls.MIN_Y = int(kwargs['min_y'])
+                    cls.min_y = int(kwargs['min_y'])
                 for sta in stations:
                     sta.min_y = int(kwargs['min_y'])
             if 'max_x' in kwargs:
                 if not cls.DRAW:
-                    cls.MAX_X = int(kwargs['max_x'])
+                    cls.max_x = int(kwargs['max_x'])
                 for sta in stations:
                     sta.max_x = int(kwargs['max_x'])
             if 'max_y' in kwargs:
                 if not cls.DRAW:
-                    cls.MAX_Y = int(kwargs['max_y'])
+                    cls.max_y = int(kwargs['max_y'])
                 for sta in stations:
                     sta.max_y = int(kwargs['max_y'])
             if 'min_v' in kwargs:
@@ -905,17 +896,16 @@ class mininetWiFi(object):
 
         cls.mobilityparam.setdefault('DRAW', cls.DRAW)
         cls.mobilityparam.setdefault('connections', cls.connections)
-        cls.mobilityparam.setdefault('MIN_X', cls.MIN_X)
-        cls.mobilityparam.setdefault('MIN_Y', cls.MIN_Y)
-        cls.mobilityparam.setdefault('MIN_Z', cls.MIN_Z)
-        cls.mobilityparam.setdefault('MAX_X', cls.MAX_X)
-        cls.mobilityparam.setdefault('MAX_Y', cls.MAX_Y)
-        cls.mobilityparam.setdefault('MAX_Z', cls.MAX_Z)
+        cls.mobilityparam.setdefault('min_x', cls.min_x)
+        cls.mobilityparam.setdefault('min_y', cls.min_y)
+        cls.mobilityparam.setdefault('min_z', cls.min_z)
+        cls.mobilityparam.setdefault('max_x', cls.max_x)
+        cls.mobilityparam.setdefault('max_y', cls.max_y)
+        cls.mobilityparam.setdefault('max_z', cls.max_z)
         cls.mobilityparam.setdefault('AC', cls.AC)
         cls.mobilityparam.setdefault('rec_rssi', cls.rec_rssi)
         if 'stationaryNodes' in kwargs and kwargs['stationaryNodes'] is not []:
             cls.mobilityparam.setdefault('stationaryNodes', kwargs['stationaryNodes'])
-        cls.mobilityparam.setdefault('is3d', cls.is3d)
         return cls.mobilityparam
 
     @classmethod
@@ -948,35 +938,32 @@ class mininetWiFi(object):
                 node.setMAC(mac, iface)
 
     @classmethod
-    def configureWifiNodes(cls, mininet):
-        """
-        Configure WiFi Nodes
-
-        """
-        cls.enable_wmediumd = mininet.enable_wmediumd
+    def configureWifiNodes(cls, mn):
+        "Configure WiFi Nodes"
+        cls.enable_wmediumd = mn.enable_wmediumd
 
         params = {}
         if cls.ifb:
             wirelessLink.ifb = True
             params['ifb'] = cls.ifb
-        nodes = mininet.stations + mininet.aps + mininet.cars
+        nodes = mn.stations + mn.aps + mn.cars
         module.start(nodes, cls.n_radios, cls.alternativeModule, **params)
-        cls.configureWirelessLink(mininet.stations, mininet.aps, mininet.cars)
-        cls.createVirtualIfaces(mininet.stations)
-        cls.configureAPs(mininet.aps, mininet.driver)
+        cls.configureWirelessLink(mn.stations, mn.aps, mn.cars)
+        cls.createVirtualIfaces(mn.stations)
+        cls.configureAPs(mn.aps, mn.driver)
         cls.isWiFi = True
-        cls.rec_rssi = mininet.rec_rssi
+        cls.rec_rssi = mn.rec_rssi
 
-        for car in mininet.cars:
+        for car in mn.cars:
             # useful if there no link between sta and any other device
-            params = {'nextIP': mininet.nextIP, 'ipBaseNum':mininet.ipBaseNum,
-                      'prefixLen':mininet.prefixLen, 'ssid':car.params['ssid']}
+            params = {'nextIP': mn.nextIP, 'ipBaseNum':mn.ipBaseNum,
+                      'prefixLen':mn.prefixLen, 'ssid':car.params['ssid']}
             if 'func' in car.params and car.params['func'] == 'adhoc':
                 cls.addHoc(car.params['carsta'], **params)
             else:
                 cls.addMesh(car.params['carsta'], **params)
-            mininet.stations.remove(car.params['carsta'])
-            mininet.stations.append(car)
+                mn.stations.remove(car.params['carsta'])
+            mn.stations.append(car)
             if 'position' in car.params:
                 if car.params['position'] == (0,0,0):
                     car.lastpos = [0, 0, 0]
@@ -1019,24 +1006,19 @@ class mininetWiFi(object):
                                     setParam=setParam)
 
         if cls.enable_wmediumd:
-            if not mininet.configureWiFiDirect and not mininet.configure4addr and \
-                    not mininet.enable_error_prob:
-                if mininet.enable_interference:
-                    mininet.wmediumd_mode = 'interference'
-                elif mininet.enable_error_prob:
-                    mininet.wmediumd_mode = 'error_prob'
+            if not mn.configureWiFiDirect and not mn.configure4addr and \
+                    not mn.enable_error_prob:
+                if mn.enable_interference:
+                    mn.wmediumd_mode = 'interference'
+                elif mn.enable_error_prob:
+                    mn.wmediumd_mode = 'error_prob'
                 else:
-                    mininet.wmediumd_mode = None
+                    mn.wmediumd_mode = None
 
-                wmediumd(mininet.wmediumd_mode, mininet.fading_coefficient, mininet.stations,
-                         mininet.aps, propagationModel)
-                for node in nodes:
-                    if 'position' in node.params:
-                        x = node.params['position'][0]
-                        y = node.params['position'][1]
-                        z = node.params['position'][2]
-                        node.setPosition('%s,%s,%s' % (x,y,z))
-                if cls.enable_interference and not cls.isVanet:
+                wmediumd(mn.wmediumd_mode, mn.fading_coefficient, mn.stations,
+                         mn.aps, propagationModel)
+
+                if mn.enable_interference and not cls.isVanet:
                     for node in nodes:
                         for wlan in range(0, len(node.params['wlan'])):
                             node.setTxPower(node.params['txpower'][wlan],
@@ -1045,7 +1027,7 @@ class mininetWiFi(object):
                             node.setAntennaGain(node.params['antennaGain'][wlan],
                                                 intf=node.params['wlan'][wlan],
                                                 setParam=False)
-        return mininet.stations, mininet.aps
+        return mn.stations, mn.aps
 
     @classmethod
     def plotCheck(cls, stations, aps, other_nodes):
@@ -1073,7 +1055,7 @@ class mininetWiFi(object):
                 for node in nodes:
                     node.getRange(intf=node.params['wlan'][0])
                     if cls.DRAW:
-                        if not cls.is3d:
+                        if not issubclass(cls.plot, plot3d):
                             cls.plot.updateCircleRadius(node)
                         cls.plot.graphUpdate(node)
                 if cls.DRAW:
