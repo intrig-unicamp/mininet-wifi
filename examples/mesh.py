@@ -60,4 +60,3 @@ if __name__ == '__main__':
     setLogLevel('info')
     mobility = True if '-m' in sys.argv else False
     topology(mobility)
-
