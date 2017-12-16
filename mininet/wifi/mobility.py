@@ -221,7 +221,8 @@ class mobility(object):
                 sta.params['rssi'][wlan] = rssi
                 if cls.rec_rssi:
                     os.system('hwsim_mgmt -k %s %s >/dev/null 2>&1'
-                              % (sta.phyID[wlan], abs(int(sta.params['rssi'][wlan]))))
+                              % (sta.phyID[wlan],
+                                 abs(int(sta.params['rssi'][wlan]))))
             if sta not in ap.params['associatedStations']:
                 ap.params['associatedStations'].append(sta)
             if dist >= 0.01:
@@ -229,8 +230,8 @@ class mobility(object):
                     pass
                 elif WmediumdServerConn.connected \
                         and not WmediumdServerConn.interference_enabled:
-                    Association.setSNRWmediumd(sta, ap,
-                                               snr=sta.params['rssi'][wlan] - (-91))
+                    Association.setSNRWmediumd(
+                        sta, ap, snr=sta.params['rssi'][wlan] - (-91))
                 elif WmediumdServerConn.interference_enabled:
                     pass
                 else:
@@ -266,7 +267,7 @@ class mobility(object):
         """
         changeAP = False
 
-        """Association Control: mechanisms that optimize the use of the APs"""
+        "Association Control: mechanisms that optimize the use of the APs"
         if cls.AC != '' and sta.params['associatedTo'][wlan] != ap \
                 and sta.params['associatedTo'][wlan] != '':
             ac = cls.AC
