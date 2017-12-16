@@ -879,6 +879,12 @@ class Mininet(object):
                 and self.enable_wmediumd:
             wmediumd(self.wmediumd_mode, self.fading_coefficient, self.stations,
                      self.aps, mininetWiFi.propagation_model)
+            for node in self.stations:
+                if 'position' in node.params:
+                    x = node.params['position'][0]
+                    y = node.params['position'][1]
+                    z = node.params['position'][2]
+                    node.setPosition('%s,%s,%s' % (x, y, z))
 
         if self.inNamespace:
             self.configureControlNetwork()
