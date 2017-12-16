@@ -194,6 +194,9 @@ class Mininet(object):
         if defaultGraph:
             self.defaultGraph()
 
+        if 'wmediumd' in self.link.__name__:
+            self.enable_wmediumd = True
+
         self.built = False
         if topo and build:
             self.build()
@@ -676,18 +679,18 @@ class Mininet(object):
                 cls = Association
                 cls.associate(sta, ap, self.enable_wmediumd,
                               self.wmediumd_mode)
-                if 'bw' not in params and 'TCIntfWireless' \
+                if 'bw' not in params and 'TCWirelessLink' \
                         not in str(self.link.__name__):
                     value = mininetWiFi.setDataRate(sta, ap, wlan)
                     bw = value.rate
                     params['bw'] = bw
 
-                if 'TCIntfWireless' in str(self.link.__name__):
+                if 'TCWirelessLink' in str(self.link.__name__):
                     cls = self.link
                 else:
                     cls = TCWirelessLink
 
-                if 'TCIntfWireless' in str(self.link.__name__) \
+                if 'TCWirelessLink' in str(self.link.__name__) \
                         or 'bw' in params and params['bw'] != 0 \
                     and 'position' not in sta.params:
                     # tc = True, this is useful only to apply tc configuration
@@ -740,6 +743,8 @@ class Mininet(object):
             options.setdefault('addr1', self.randMac())
             options.setdefault('addr2', self.randMac())
 
+            if self.isWiFi:
+                cls = Link
             cls = self.link if cls is None else cls
             link = cls(node1, node2, **options)
             self.links.append(link)

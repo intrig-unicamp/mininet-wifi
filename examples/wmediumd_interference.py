@@ -7,12 +7,13 @@ from mininet.node import Controller
 from mininet.cli import CLI
 from mininet.log import setLogLevel, info
 from mininet.wifi.node import OVSKernelAP
+from mininet.wifi.link import wmediumd
 
 
 def topology():
 
     "Create a network."
-    net = Mininet(controller=Controller, enable_wmediumd=True,
+    net = Mininet(controller=Controller, link=wmediumd,
                   accessPoint=OVSKernelAP, enable_interference=True,
                   noise_threshold=-91, fading_coefficient=1)
 

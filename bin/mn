@@ -39,7 +39,7 @@ from mininet.util import customClass, specialClass, splitArgs
 from mininet.util import buildTopo
 
 from mininet.wifi.topo import (SingleAPTopo, LinearWirelessTopo, MinimalWirelessTopo)
-from mininet.wifi.link import TCWirelessLink
+from mininet.wifi.link import TCWirelessLink, wmediumd
 from mininet.wifi.node import UserAP, OVSAP
 
 
@@ -102,6 +102,7 @@ LINKDEF = 'default'
 LINKS = { 'default': Link,  # Note: overridden below
           'tc': TCLink,
           'wtc': TCWirelessLink,
+          'wmediumd': wmediumd,
           'tcu': TCULink,
           'ovs': OVSLink }
 
@@ -421,6 +422,9 @@ class MininetRunner(object):
             opts.link = 'tcu'
 
         link = customClass(LINKS, opts.link)
+        enable_wmediumd = False
+        if 'wmedium' in link.__name__:
+            enable_wmediumd = True
 
         if self.validate:
             self.validate(opts)
@@ -472,6 +476,7 @@ class MininetRunner(object):
                  xterms=xterms, autoSetMacs=mac,
                  autoStaticArp=arp, autoPinCpus=pin,
                  listenPort=listenPort,
+                 enable_wmediumd=enable_wmediumd,
                  driver=driver, autoSetPositions=position)
 
         if opts.ensure_value('nat', False):

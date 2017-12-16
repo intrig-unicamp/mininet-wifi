@@ -651,7 +651,7 @@ class TCLinkWirelessAP(WirelessLinkAP):
                                 params1=params)
 
 
-class wmediumd(object):
+class wmediumd(TCWirelessLink):
     "Wmediumd Class"
     wlinks = []
     links = []
