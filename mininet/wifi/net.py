@@ -13,10 +13,8 @@ from mininet.wifi.link import TCLinkWirelessAP, TCLinkWirelessStation
 from mininet.util import macColonHex
 
 from mininet.wifi.node import AccessPoint, AP, Station, Car
-from mininet.wifi.wmediumdConnector import DynamicWmediumdIntfRef, \
-    WmediumdStarter, WmediumdSNRLink, WmediumdTXPower, WmediumdPosition, \
-    WmediumdConstants, WmediumdServerConn, WmediumdERRPROBLink
-from mininet.wifi.link import wirelessLink
+from mininet.wifi.wmediumdConnector import WmediumdStarter, WmediumdServerConn
+from mininet.wifi.link import wirelessLink, wmediumd
 from mininet.wifi.devices import deviceDataRate
 from mininet.wifi.mobility import mobility
 from mininet.wifi.plot import plot2d, plot3d
@@ -569,101 +567,6 @@ class mininetWiFi(object):
         return macColonHex(random.randint(1, 2 ** 48 - 1) & 0xfeffffffffff |
                            0x020000000000)
 
-    @staticmethod
-    def wmediumdConnect():
-        "Connect to wmediumd"
-        WmediumdServerConn.connect()
-
-    @classmethod
-    def configureWmediumd(cls, mininet):
-        """
-        Updates values for frequency and channel
-        """
-        intfrefs = []
-        links = []
-        positions = []
-        txpowers = []
-        isnodeaps = []
-        cars = []
-
-        cls.configureWiFiDirect = mininet.configureWiFiDirect
-        cls.configure4addr = mininet.configure4addr
-        cls.enable_error_prob = mininet.enable_error_prob
-        cls.enable_interference = mininet.enable_interference
-        cls.enable_spec_prob_link = mininet.enable_spec_prob_link
-        fading_coefficient = mininet.fading_coefficient
-
-        for node in mininet.stations:
-            if 'carsta' in node.params:
-                cars.append(node.params['carsta'])
-
-        nodes = mininet.stations + mininet.aps + cars
-        for node in nodes:
-            node.wmIface = []
-            if isinstance(node, Car):
-                wlans = 1
-            elif '_4addr' in node.params and node.params['_4addr'] == 'ap':
-                wlans = 1
-            else:
-                wlans = len(node.params['wlan'])
-            for wlan in range(0, wlans):
-                node.wmIface.append(wlan)
-                node.wmIface[wlan] = DynamicWmediumdIntfRef(node, intf=wlan)
-                intfrefs.append(node.wmIface[wlan])
-                if (node.func[wlan] == 'ap' or (isinstance(node, AP)
-                                                and node.func[wlan] is not 'client')):
-                    isnodeaps.append(1)
-                else:
-                    isnodeaps.append(0)
-
-        if cls.enable_interference:
-            mode = WmediumdConstants.WMEDIUMD_MODE_INTERFERENCE
-            for node in nodes:
-                if 'position' not in node.params:
-                    posX = 0
-                    posY = 0
-                    posZ = 0
-                else:
-                    posX = node.params['position'][0]
-                    posY = node.params['position'][1]
-                    posZ = node.params['position'][2]
-                node.lastpos = [posX, posY, posZ]
-
-                if isinstance(node, Car):
-                    wlans = 1
-                elif '_4addr' in node.params and node.params['_4addr'] == 'ap':
-                    wlans = 1
-                else:
-                    wlans = len(node.params['wlan'])
-                for wlan in range(0, wlans):
-                    positions.append(WmediumdPosition(node.wmIface[wlan],
-                                                      [posX, posY, posZ]))
-                    txpowers.append(WmediumdTXPower(
-                        node.wmIface[wlan], float(node.params['txpower'][wlan])))
-        elif cls.enable_spec_prob_link:
-            mode = WmediumdConstants.WMEDIUMD_MODE_SPECPROB
-        elif cls.enable_error_prob:
-            mode = WmediumdConstants.WMEDIUMD_MODE_ERRPROB
-            for node in cls.wlinks:
-                links.append(WmediumdERRPROBLink(node[0].wmIface[0], node[1].wmIface[0],
-                                                 node[2]))
-                links.append(WmediumdERRPROBLink(node[1].wmIface[0], node[0].wmIface[0],
-                                                 node[2]))
-        else:
-            mode = WmediumdConstants.WMEDIUMD_MODE_SNR
-            for node in cls.wlinks:
-                links.append(WmediumdSNRLink(node[0].wmIface[0], node[1].wmIface[0],
-                                             node[0].params['rssi'][0] - (-91)))
-                links.append(WmediumdSNRLink(node[1].wmIface[0], node[0].wmIface[0],
-                                             node[0].params['rssi'][0] - (-91)))
-
-        WmediumdStarter.initialize(intfrefs, links, mode=mode, positions=positions,
-                                   enable_interference=cls.enable_interference,
-                                   fading_coefficient=fading_coefficient,
-                                   auto_add_links=False, txpowers=txpowers,
-                                   isnodeaps=isnodeaps, with_server=True)
-        WmediumdStarter.start(mininet, propagationModel)
-
     @classmethod
     def checkAPAdhoc(cls, stations, aps):
         """
@@ -1118,8 +1021,15 @@ class mininetWiFi(object):
         if cls.enable_wmediumd:
             if not mininet.configureWiFiDirect and not mininet.configure4addr and \
                     not mininet.enable_error_prob:
-                cls.configureWmediumd(mininet)
-                cls.wmediumdConnect()
+                if mininet.enable_interference:
+                    mininet.wmediumd_mode = 'interference'
+                elif mininet.enable_error_prob:
+                    mininet.wmediumd_mode = 'error_prob'
+                else:
+                    mininet.wmediumd_mode = None
+
+                wmediumd(mininet.wmediumd_mode, mininet.fading_coefficient, mininet.stations,
+                         mininet.aps, propagationModel)
                 if cls.enable_interference and not cls.isVanet:
                     for node in nodes:
                         for wlan in range(0, len(node.params['wlan'])):
@@ -1216,12 +1126,12 @@ class mininetWiFi(object):
         return dist
 
     @classmethod
-    def stop_simulation(self):
+    def stop_simulation(cls):
         "Pause the simulation"
         mobility.pause_simulation = True
 
     @classmethod
-    def start_simulation(self):
+    def start_simulation(cls):
         "Start the simulation"
         mobility.pause_simulation = False
 
@@ -1242,11 +1152,11 @@ class mininetWiFi(object):
                         if dst == str(host2):
                             dst = host2
                             dist = src.get_distance_to(dst)
-                            info ("The distance between %s and %s is %.2f "
-                                  "meters\n" % (src, dst, float(dist)))
+                            info("The distance between %s and %s is %.2f "
+                                 "meters\n" % (src, dst, float(dist)))
         except:
-            print("node %s or/and node %s does not exist or there is no " \
-                  "position defined" % (dst, src))
+            info("node %s or/and node %s does not exist or there is no " \
+                  "position defined\n" % (dst, src))
 
     @classmethod
     def configureMobility(cls, *args, **kwargs):

@@ -10,7 +10,9 @@ from mininet.log import info, error, debug
 from mininet.link import Intf
 
 from mininet.wifi.devices import deviceDataRate
-from mininet.wifi.wmediumdConnector import WmediumdServerConn, WmediumdSNRLink
+from mininet.wifi.wmediumdConnector import DynamicWmediumdIntfRef, \
+    WmediumdStarter, WmediumdSNRLink, WmediumdTXPower, WmediumdPosition, \
+    WmediumdConstants, WmediumdServerConn, WmediumdERRPROBLink
 
 
 class IntfWireless(object):
@@ -647,6 +649,154 @@ class TCLinkWirelessAP(WirelessLinkAP):
                                 cls1=TCIntfWireless,
                                 addr1=addr1,
                                 params1=params)
+
+
+class wmediumd(object):
+
+    wlinks = []
+    links = []
+    txpowers = []
+    positions = []
+    nodes = []
+
+    def __init__(self, wmediumd_mode, fading_coefficient, stations,
+                 aps, propagation_model):
+
+        self.configureWmediumd(wmediumd_mode, fading_coefficient, stations,
+                               aps, propagation_model)
+
+    @classmethod
+    def configureWmediumd(self, wmediumd_mode, fading_coefficient, stations,
+                          aps, propagation_model):
+        "Configure wmediumd"
+        from mininet.wifi.node import AP, Car
+
+        intfrefs = []
+        isnodeaps = []
+        cars = []
+        mode = wmediumd_mode
+        fading_coefficient = fading_coefficient
+
+        for node in stations:
+            if 'carsta' in node.params:
+                cars.append(node.params['carsta'])
+
+        self.nodes = stations + aps + cars
+        for node in self.nodes:
+            node.wmIface = []
+            if isinstance(node, Car):
+                wlans = 1
+            elif '_4addr' in node.params and node.params['_4addr'] == 'ap':
+                wlans = 1
+            else:
+                wlans = len(node.params['wlan'])
+            for wlan in range(0, wlans):
+                node.wmIface.append(wlan)
+                node.wmIface[wlan] = DynamicWmediumdIntfRef(node, intf=wlan)
+                intfrefs.append(node.wmIface[wlan])
+                if (node.func[wlan] == 'ap' or (isinstance(node, AP)
+                                                and node.func[wlan] is not 'client')):
+                    isnodeaps.append(1)
+                else:
+                    isnodeaps.append(0)
+
+        if mode == 'interference':
+            set_interference()
+            mode = WmediumdConstants.INTERFERENCE_MODE
+        elif mode == 'spec_prob_link':
+            spec_prob_link()
+            mode = WmediumdConstants.SPECPROB_MODE
+        elif mode == 'error_prob':
+            set_error_prob()
+            mode = WmediumdConstants.ERRPROB_MODE
+        else:
+            set_snr()
+            mode = WmediumdConstants.SNR_MODE
+        start_wmediumd(intfrefs, wmediumd.links, mode, wmediumd.positions,
+                       fading_coefficient, wmediumd.txpowers, isnodeaps,
+                       propagation_model)
+
+
+class start_wmediumd(object):
+    def __init__(self, intfrefs, links, mode, positions,
+                 fading_coefficient, txpowers, isnodeaps,
+                 propagation_model):
+
+        WmediumdStarter.start(intfrefs, links, mode=mode, positions=positions,
+                              fading_coefficient=fading_coefficient,
+                              txpowers=txpowers, isnodeaps=isnodeaps,
+                              ppm=propagation_model)
+
+
+class set_interference(object):
+
+    def __init__(cls):
+        cls.interference()
+
+    @classmethod
+    def interference(cls):
+
+        from mininet.wifi.node import Car
+        for node in wmediumd.nodes:
+            if 'position' not in node.params:
+                posX = 0
+                posY = 0
+                posZ = 0
+            else:
+                posX = node.params['position'][0]
+                posY = node.params['position'][1]
+                posZ = node.params['position'][2]
+            node.lastpos = [posX, posY, posZ]
+
+            if isinstance(node, Car):
+                wlans = 1
+            elif '_4addr' in node.params and node.params['_4addr'] == 'ap':
+                wlans = 1
+            else:
+                wlans = len(node.params['wlan'])
+
+            for wlan in range(0, wlans):
+                wmediumd.positions.append(WmediumdPosition(node.wmIface[wlan],
+                                                           [posX, posY, posZ]))
+                wmediumd.txpowers.append(WmediumdTXPower(
+                    node.wmIface[wlan], float(node.params['txpower'][wlan])))
+
+
+class spec_prob_link(object):
+    "wmediumd: spec prob link"
+    def __init__(cls):
+        'do nothing'
+
+
+class set_error_prob(object):
+    "wmediumd: set error prob"
+    def __init__(cls):
+        cls.error_prob()
+
+    @classmethod
+    def error_prob(cls):
+        "wmediumd: error prob"
+        for node in wmediumd.wlinks:
+            wmediumd.links.append(WmediumdERRPROBLink(node[0].wmIface[0],
+                                                      node[1].wmIface[0], node[2]))
+            wmediumd.links.append(WmediumdERRPROBLink(node[1].wmIface[0],
+                                                      node[0].wmIface[0], node[2]))
+
+
+class set_snr(object):
+    "wmediumd: set snr"
+    def __init__(cls):
+        cls.snr()
+
+    @classmethod
+    def snr(cls):
+        "wmediumd: snr"
+        for node in wmediumd.wlinks:
+            wmediumd.links.append(WmediumdSNRLink(node[0].wmIface[0], node[1].wmIface[0],
+                                                  node[0].params['rssi'][0] - (-91)))
+            wmediumd.links.append(WmediumdSNRLink(node[1].wmIface[0], node[0].wmIface[0],
+                                                  node[0].params['rssi'][0] - (-91)))
+
 
 class wirelessLink (object):
 
