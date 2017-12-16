@@ -240,6 +240,12 @@ class module(object):
                             ifbID += 1
                         cls.wlan_list.pop(0)
                         phys.pop(0)
+            for phy in phys:
+                rfkill = os.system(
+                    'rfkill list | grep %s | awk \'{print $1}\' '
+                    '| tr -d \":\" >/dev/null 2>&1' % phy)
+                debug('rfkill unblock %s\n' % rfkill)
+                os.system('rfkill unblock %s' % rfkill)
         except:
             logging.exception("Warning:")
             info("Warning! Error when loading mac80211_hwsim. "

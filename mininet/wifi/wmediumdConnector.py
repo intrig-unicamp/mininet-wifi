@@ -247,6 +247,7 @@ class set_interference(object):
 
     def __init__(self, configstr, ppm, positions, txpowers,
                  fading_coefficient, isnodeaps):
+        WmediumdServerConn.interference_enabled = True
         self.interference(configstr, ppm, positions, txpowers,
                           fading_coefficient, isnodeaps)
 
