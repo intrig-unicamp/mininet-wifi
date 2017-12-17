@@ -14,8 +14,10 @@ def topology():
     net = Mininet(controller=Controller, accessPoint=OVSKernelAP)
 
     info("*** Creating nodes\n")
-    net.addStation('sta1', mac='00:00:00:00:00:02', ip='10.0.0.2/8')
-    net.addStation('sta2', mac='00:00:00:00:00:03', ip='10.0.0.3/8')
+    net.addStation('sta1', mac='00:00:00:00:00:02', ip='10.0.0.2/8',
+                   min_x=30, max_x=30, min_y=70, max_y=70, min_v=1, max_v=1)
+    net.addStation('sta2', mac='00:00:00:00:00:03', ip='10.0.0.3/8',
+                   min_x=30, max_x=30, min_y=70, max_y=70, min_v=5, max_v=5)
     ap1 = net.addAccessPoint('ap1', ssid='new-ssid', mode='g', channel='1',
                              position='50,50,0')
     c1 = net.addController('c1', controller=Controller)
@@ -23,7 +25,7 @@ def topology():
     info("*** Configuring wifi nodes\n")
     net.configureWifiNodes()
 
-    net.plotGraph(max_x=100, max_y=100)
+    net.plotGraph(max_x=300, max_y=300)
 
     net.seed(20)
 
