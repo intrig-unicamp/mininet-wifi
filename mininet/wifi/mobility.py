@@ -808,8 +808,8 @@ class RandomWaypoint(object):
         MIN_V = min_v
 
         for node in range(0, len(self.nodes)):
-            MAX_V[node] = self.nodes[node].max_v
-            MIN_V[node] = self.nodes[node].min_v
+            MAX_V[node] = self.nodes[node].max_v/10
+            MIN_V[node] = self.nodes[node].min_v/10
             MAX_X[node] = self.nodes[node].max_x
             MAX_Y[node] = self.nodes[node].max_y
             MIN_X[node] = self.nodes[node].min_x
@@ -863,10 +863,8 @@ class RandomWaypoint(object):
                     y_waypoint[arrived] = wy[arrived]
                     v = U(MIN_V, MAX_V, arrived)
                     velocity[arrived] = v[arrived]
-                    theta[arrived] = np.arctan2(y_waypoint[arrived]
-                                                - y[arrived],
-                                                x_waypoint[arrived]
-                                                - x[arrived])
+                    theta[arrived] = np.arctan2(y_waypoint[arrived] - y[arrived],
+                                                x_waypoint[arrived] - x[arrived])
                     costheta[arrived] = np.cos(theta[arrived])
                     sintheta[arrived] = np.sin(theta[arrived])
             except:
@@ -1139,8 +1137,8 @@ class RandomDirection(StochasticWalk):
         MIN_V = min_v
 
         for node in range(0, len(nodes)):
-            MAX_V[node] = nodes[node].max_v
-            MIN_V[node] = nodes[node].min_v
+            MAX_V[node] = nodes[node].max_v/10
+            MIN_V[node] = nodes[node].min_v/10
 
         FL_MAX = max(dimensions)
 
