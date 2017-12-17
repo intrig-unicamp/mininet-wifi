@@ -386,7 +386,7 @@ class mobility(object):
         try:
             if DRAW:
                 plotGraph(min_x, min_y, min_z, max_x, max_y, max_z, nodes, connections)
-                if min_z != 0 and max_z != 0:
+                if max_z != 0:
                     cls.plot = plot3d
         except:
             info('Warning: running without GUI.\n')

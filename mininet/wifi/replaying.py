@@ -13,7 +13,7 @@ import random
 from pylab import math, cos, sin
 from mininet.log import info
 from mininet.wifi.net import mininetWiFi
-from mininet.wifi.plot import plot2d, plot3d
+from mininet.wifi.plot import plot2d, plot3d, plotGraph
 from mininet.wifi.mobility import mobility
 from mininet.wifi.link import wirelessLink
 from mininet.wifi.devices import deviceDataRate
@@ -21,23 +21,21 @@ from mininet.wifi.node import Station, AP
 
 
 def instantiateGraph(mininet):
-    MIN_X = mininetWiFi.min_x
-    MIN_Y = mininetWiFi.min_y
-    MIN_Z = mininetWiFi.min_z
-    MAX_X = mininetWiFi.max_x
-    MAX_Y = mininetWiFi.max_y
-    MAX_Z = mininetWiFi.max_z
+    min_x = mininetWiFi.min_x
+    min_y = mininetWiFi.min_y
+    min_z = mininetWiFi.min_z
+    max_x = mininetWiFi.max_x
+    max_y = mininetWiFi.max_y
+    max_z = mininetWiFi.max_z
     nodes = mininet.stations + mininet.aps
+    is3d = False
     for node in nodes:
         replayingMobility.addNode(node)
 
-    if MIN_Z != 0 or MAX_Z!= 0:
-        plot3d.instantiateGraph(MIN_X, MIN_Y, MIN_Z, MAX_X, MAX_Y, MAX_Z)
-        plot3d.instantiateNodes(nodes)
-        mininetWiFi.is3d = True
-    else:
-        plot2d.instantiateGraph(MIN_X, MIN_Y, MAX_X, MAX_Y)
-        plot2d.plotGraph(nodes)
+    plotGraph(min_x, min_y, min_z, max_x, max_y, max_z, nodes, [])
+    if min_z != 0 or max_z!= 0:
+        is3d = True
+    return is3d
 
 
 class replayingMobility(object):
@@ -62,9 +60,10 @@ class replayingMobility(object):
             if isinstance(node, AP):
                 if 'position' in node.params and node not in mobility.aps:
                     mobility.aps.append(node)
+        is3d = False
         if mininetWiFi.DRAW:
-            instantiateGraph(mininet)
-        if mininetWiFi.is3d:
+            is3d = instantiateGraph(mininet)
+        if is3d:
             plot = plot3d
         else:
             plot = plot2d
