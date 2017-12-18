@@ -207,7 +207,10 @@ class Mininet(object):
            timeout: time to wait, or None to wait indefinitely
            delay: seconds to sleep per iteration
            returns: True if all switches are connected"""
-        info('*** Waiting for switches to connect\n')
+        if self.isWiFi:
+            info('*** Waiting for aps to connect\n')
+        else:
+            info('*** Waiting for switches to connect\n')
         time = 0
         remaining = list(self.switches)
         while True:

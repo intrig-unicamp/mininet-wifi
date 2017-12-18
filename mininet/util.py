@@ -104,7 +104,7 @@ def errRun(*cmd, **kwargs):
                     if data == '':
                         outDone = True
                 elif f == popen.stderr:
-                    err += data
+                    err += str(data)
                     if data == '':
                         errDone = True
             else:  # POLLHUP or something unexpected
