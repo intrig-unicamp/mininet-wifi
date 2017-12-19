@@ -15,7 +15,7 @@ from mininet.log import debug
 
 
 class plot3d (object):
-
+    'Plot 3d Graphs'
     ax = None
     is3d = False
 
@@ -138,7 +138,7 @@ class plot3d (object):
 
 
 class plot2d (object):
-
+    'Plot 2d Graphs'
     ax = None
 
     @classmethod
@@ -312,7 +312,7 @@ class plot2d (object):
 
 
 class plotGraph(object):
-
+    'Plot Graphs'
     def __init__(self, min_x=0, min_y=0, min_z=0, max_x=0, max_y=0, max_z=0,
                  nodes=None, connections=None):
         'init plotgraph'

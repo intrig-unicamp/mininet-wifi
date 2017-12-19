@@ -1119,7 +1119,7 @@ class mininetWiFi(object):
         mobility.pause_simulation = True
 
     @classmethod
-    def start_simulation(self):
+    def start_simulation(cls):
         "Start the simulation"
         mobility.pause_simulation = False
 
@@ -1141,10 +1141,10 @@ class mininetWiFi(object):
                             dst = host2
                             dist = src.get_distance_to(dst)
                             info("The distance between %s and %s is %.2f "
-                                  "meters\n" % (src, dst, float(dist)))
+                                 "meters\n" % (src, dst, float(dist)))
         except:
             info("node %s or/and node %s does not exist or there is no " \
-                  "position defined\n" % (dst, src))
+                 "position defined\n" % (dst, src))
 
     @classmethod
     def configureMobility(cls, *args, **kwargs):

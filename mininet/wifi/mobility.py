@@ -686,7 +686,7 @@ def initial_speed(speed_mean, speed_delta, shape=(1,)):
     return pow(v1, u) / pow(v0, u - 1)
 
 
-def init_random_waypoint(nodes, min_x, min_y, max_x, max_y,
+def init_random_waypoint(nodes, max_x, max_y, max_z,
                          speed_low, speed_high, pause_low, pause_high):
     nr_nodes = nodes
     x = np.empty(nr_nodes)
@@ -732,8 +732,10 @@ def init_random_waypoint(nodes, min_x, min_y, max_x, max_y,
                 # r is a ratio of the length of the randomly chosen path over
                 # the length of a diagonal across the simulation area
                 # ||M_1 - M_0||
-                r = np.sqrt(((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1)) / \
-                            (max_x[i] * max_x[i] + max_y[i] * max_y[i]))
+                r = np.sqrt(((x2 - x1) * (x2 - x1) +
+                             (y2 - y1) * (y2 - y1)) / \
+                            (max_x[i] * max_x[i] +
+                             max_y[i] * max_y[i]))
                 if rand() < r:
                     moving[i] = 1.
                     break
@@ -1476,7 +1478,7 @@ def reference_point_group(nodes, dimensions, velocity=(0.1, 1.), aggregation=0.1
         # node and group bounces on the margins
         b = np.where(x < 0)[0]
         if b.size > 0:
-            x[b] = -x[b];
+            x[b] = -x[b]
             costheta[b] = -costheta[b]
             g_idx = np.unique(g_ref[b])
             g_costheta[g_idx] = -g_costheta[g_idx]

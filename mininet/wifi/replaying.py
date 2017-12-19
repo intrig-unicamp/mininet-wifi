@@ -21,6 +21,7 @@ from mininet.wifi.node import Station, AP
 
 
 def instantiateGraph(mininet):
+    'Instantiate Graph'
     min_x = mininetWiFi.min_x
     min_y = mininetWiFi.min_y
     min_z = mininetWiFi.min_z
@@ -33,13 +34,13 @@ def instantiateGraph(mininet):
         replayingMobility.addNode(node)
 
     plotGraph(min_x, min_y, min_z, max_x, max_y, max_z, nodes, [])
-    if min_z != 0 or max_z!= 0:
+    if min_z != 0 or max_z != 0:
         is3d = True
     return is3d
 
 
 class replayingMobility(object):
-    """Replaying Mobility Traces"""
+    'Replaying Mobility Traces'
     timestamp = False
     
     def __init__(self, mininet, nodes=None):
@@ -129,7 +130,7 @@ class replayingMobility(object):
 
 
 class replayingBandwidth(object):
-    """Replaying Bandwidth Traces"""
+    'Replaying Bandwidth Traces'
 
     def __init__(self, mininet, **params):
         self.thread = threading.Thread(name='replayingBandwidth',
@@ -173,7 +174,7 @@ class replayingBandwidth(object):
 
 
 class replayingNetworkBehavior(object):
-    """Replaying RSSI Traces"""
+    'Replaying RSSI Traces'
     
     def __init__(self, mininet, **kwargs):
         """
@@ -226,7 +227,7 @@ class replayingNetworkBehavior(object):
 
 
 class replayingRSSI(object):
-    """Replaying RSSI Traces"""
+    'Replaying RSSI Traces'
     
     print_bw = False
     print_loss = False
@@ -236,10 +237,8 @@ class replayingRSSI(object):
     
     def __init__(self, mininet, propagationModel='friis',
                  n=32, **kwargs):
-        """
-            propagationModel = Propagation Model
-            n: Power Loss Coefficient
-        """
+        """ propagationModel = Propagation Model
+            n: Power Loss Coefficient """
         if 'print_bw' in kwargs:
             self.print_bw = True
         if 'print_loss' in kwargs:

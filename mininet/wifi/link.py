@@ -659,14 +659,14 @@ class wmediumd(TCWirelessLink):
     positions = []
     nodes = []
 
-    def __init__(self, wmediumd_mode, fading_coefficient, stations,
+    def __init__(cls, wmediumd_mode, fading_coefficient, stations,
                  aps, propagation_model):
 
-        self.configureWmediumd(wmediumd_mode, fading_coefficient, stations,
+        cls.configureWmediumd(wmediumd_mode, fading_coefficient, stations,
                                aps, propagation_model)
 
     @classmethod
-    def configureWmediumd(self, wmediumd_mode, fading_coefficient, stations,
+    def configureWmediumd(cls, wmediumd_mode, fading_coefficient, stations,
                           aps, propagation_model):
         "Configure wmediumd"
         from mininet.wifi.node import AP, Car
@@ -681,8 +681,8 @@ class wmediumd(TCWirelessLink):
             if 'carsta' in node.params:
                 cars.append(node.params['carsta'])
 
-        self.nodes = stations + aps + cars
-        for node in self.nodes:
+        cls.nodes = stations + aps + cars
+        for node in cls.nodes:
             node.wmIface = []
             if isinstance(node, Car):
                 wlans = 1
@@ -718,7 +718,7 @@ class wmediumd(TCWirelessLink):
 
 
 class start_wmediumd(object):
-    def __init__(self, intfrefs, links, mode, positions,
+    def __init__(cls, intfrefs, links, mode, positions,
                  fading_coefficient, txpowers, isnodeaps,
                  propagation_model):
 
