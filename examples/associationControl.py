@@ -4,13 +4,12 @@
 
 from mininet.net import Mininet
 from mininet.node import Controller, OVSKernelAP
-from mininet.link import TCLink
 from mininet.cli import CLI
 from mininet.log import setLogLevel
 
 def topology():
     "Create a network."
-    net = Mininet(controller=Controller, link=TCLink, accessPoint=OVSKernelAP)
+    net = Mininet(controller=Controller, accessPoint=OVSKernelAP)
 
     print "*** Creating nodes"
     net.addStation('sta1', mac='00:00:00:00:00:02', ip='10.0.0.2/8')

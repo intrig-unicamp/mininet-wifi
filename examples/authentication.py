@@ -6,11 +6,11 @@ from mininet.net import Mininet
 from mininet.node import  Controller, UserAP
 from mininet.cli import CLI
 from mininet.log import setLogLevel
-from mininet.link import TCLink
+
 
 def topology():
     "Create a network."
-    net = Mininet(controller=Controller, link=TCLink, accessPoint=UserAP)
+    net = Mininet(controller=Controller, accessPoint=UserAP)
 
     print "*** Creating nodes"
     sta1 = net.addStation('sta1', passwd='123456789a', encrypt='wpa2')

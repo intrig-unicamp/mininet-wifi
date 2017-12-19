@@ -9,6 +9,7 @@ from mininet.net import Mininet
 from mininet.cli import CLI
 from mininet.log import setLogLevel
 
+
 def topology(autoTxPower):
     "Create a network."
     net = Mininet(enable_wmediumd=True, enable_interference=True)

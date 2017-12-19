@@ -7,12 +7,11 @@ from mininet.net import Mininet
 from mininet.node import  Controller, OVSKernelAP
 from mininet.cli import CLI
 from mininet.log import setLogLevel
-from mininet.link import TCLink
 
 
 def topology(isVirtual):
     "Create a network."
-    net = Mininet(controller=Controller, link=TCLink, accessPoint=OVSKernelAP)
+    net = Mininet(controller=Controller, accessPoint=OVSKernelAP)
 
     print "*** Creating nodes"
     if isVirtual:
