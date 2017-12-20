@@ -1015,9 +1015,9 @@ class Association(object):
             if sta.params['associatedTo'][wlan] == '':
                 if ap.params['encrypt'][ap_wlan] == 'wpa' \
                         or ap.params['encrypt'][ap_wlan] == 'wpa2':
-                    cls.associate_wpa(sta, ap, wlan)
+                    cls.associate_wpa(sta, ap, wlan, ap_wlan)
                 elif ap.params['encrypt'][ap_wlan] == 'wep':
-                    cls.associate_wep(sta, ap, wlan)
+                    cls.associate_wep(sta, ap, wlan, ap_wlan)
         if cls.printCon:
             iface = sta.params['wlan'][wlan]
             info("Associating %s to %s\n" % (iface, ap))
