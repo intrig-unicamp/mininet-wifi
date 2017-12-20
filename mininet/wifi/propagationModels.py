@@ -346,7 +346,8 @@ class powerForRangeByPropagationModel(object):
 
         self.txpower = 10 * (
             math.log10((4 * math.pi) ** 2 * L * kwargs['dist'] ** 2)) \
-                       - 92 - 10 * math.log10(denominator) - (antGain * 2)
+                       + ppm.noise_threshold - 10 * math.log10(denominator)\
+                       - (antGain * 2)
         if self.txpower < 0:
             error('*** Error: tx power is negative! (%s)\n' % self.txpower)
             exit(1)
@@ -384,7 +385,7 @@ class powerForRangeByPropagationModel(object):
 
         self.txpower = int(math.ceil(math.log10(
             (math.pow(kwargs['dist'] / ref_dist, 10 * ppm.exp) *
-             10 ** pl) / 10 ** 92) - gains_fixed))
+             10 ** pl) / 10 ** - ppm.noise_threshold) - gains_fixed))
         if self.txpower < 0:
             error('*** Error: tx power is negative! (%s)\n' % self.txpower)
             exit(1)
@@ -412,7 +413,7 @@ class powerForRangeByPropagationModel(object):
         pl = self.pathLoss(kwargs['node'], ref_dist, kwargs['wlan']) - gRandom
 
         self.txpower = 10 * ppm.exp * math.log10(
-            kwargs['dist'] / ref_dist) - 92 + pl - (antGain * 2)
+            kwargs['dist'] / ref_dist) + ppm.noise_threshold + pl - (antGain * 2)
         if self.txpower < 0:
             error('*** Error: tx power is negative! (%s)\n' % self.txpower)
             exit(1)
@@ -428,7 +429,7 @@ class powerForRangeByPropagationModel(object):
         nFloors = ppm.nFloors  # Number of Floors
         N = 28  # Power Loss Coefficient
 
-        self.txpower = N * math.log10(kwargs['dist']) - 92 + \
+        self.txpower = N * math.log10(kwargs['dist']) + ppm.noise_threshold + \
                        20 * math.log10(f) + lF * nFloors - 28 - (antGain * 2)
         if self.txpower < 0:
             error('*** Error: tx power is negative! (%s)\n' % self.txpower)
