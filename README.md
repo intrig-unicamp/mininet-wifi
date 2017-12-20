@@ -16,7 +16,7 @@ Mininet-WiFi is a fork of Mininet (http://mininet.org/) which allows the using o
 step 1: $ sudo apt-get install git  
 step 2: $ git clone https://github.com/intrig-unicamp/mininet-wifi  
 step 3: $ cd mininet-wifi  
-step 4: $ sudo util/install.sh -Wnfvl 
+step 4: $ sudo util/install.sh -Wlnfv  
 #### install.sh options:   
 -W: wireless dependencies   
 -n: mininet-wifi dependencies    
