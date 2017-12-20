@@ -542,9 +542,9 @@ class WiFiNode(object):
                 else:
                     if ap.params['encrypt'][0] == 'wpa' or \
                                     ap.params['encrypt'][0] == 'wpa2':
-                        self.associate_wpa(ap, wlan)
+                        self.associate_wpa(ap, wlan, ap_wlan=0)
                     elif ap.params['encrypt'][0] == 'wep':
-                        self.associate_wep(ap, wlan, ap_wlan)
+                        self.associate_wep(ap, wlan, ap_wlan=0)
                 wirelessLink(sta, ap, wlan, dist)
                 mobility.update_association(sta, ap, wlan)
             else:
@@ -553,17 +553,17 @@ class WiFiNode(object):
         else:
             info("%s is out of range!" % (ap))
 
-    def associate_wpa(self, ap, wlan):
+    def associate_wpa(self, ap, wlan, ap_wlan):
         "Association with WPA"
         passwd = self.params['passwd'][wlan]
         if 'passwd' not in self.params:
-            passwd = ap.params['passwd'][0]
+            passwd = ap.params['passwd'][ap_wlan]
 
         pidfile = "mn%d_%s_%s_wpa.pid" % (os.getpid(), self.name, wlan)
         self.cmd("wpa_supplicant -B -Dnl80211 -P %s -i %s -c "
                  "<(wpa_passphrase \"%s\" \"%s\")"
-                 % (pidfile, self.params['wlan'][wlan],
-                    wlan, ap.params['ssid'][0], passwd))
+                 % (pidfile, self.params['wlan'][wlan], wlan,
+                    ap.params['ssid'][ap_wlan], passwd))
 
     def associate_wep(self, ap, wlan, ap_wlan):
         "Association with WEP"

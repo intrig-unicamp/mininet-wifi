@@ -1078,7 +1078,7 @@ class Association(object):
         :param wlan: wlan ID
         """
         pidfile = "mn%d_%s_%s_wpa.pid" % (os.getpid(), sta.name, wlan)
-        cls.wpaFile(sta, ap, wlan)
+        cls.wpaFile(sta, ap, wlan, ap_wlan)
         debug("wpa_supplicant -B -Dnl80211 -P %s -i %s -c %s_%s.staconf\n"
               % (pidfile, sta.params['wlan'][wlan], sta.name, wlan))
         sta.pexec("wpa_supplicant -B -Dnl80211 -P %s -i %s -c %s_%s.staconf"
