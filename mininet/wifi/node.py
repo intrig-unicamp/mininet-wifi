@@ -544,7 +544,7 @@ class WiFiNode(object):
                                     ap.params['encrypt'][0] == 'wpa2':
                         self.associate_wpa(ap, wlan)
                     elif ap.params['encrypt'][0] == 'wep':
-                        self.associate_wep(ap, wlan)
+                        self.associate_wep(ap, wlan, ap_wlan)
                 wirelessLink(sta, ap, wlan, dist)
                 mobility.update_association(sta, ap, wlan)
             else:
@@ -565,14 +565,14 @@ class WiFiNode(object):
                  % (pidfile, self.params['wlan'][wlan],
                     wlan, ap.params['ssid'][0], passwd))
 
-    def associate_wep(self, ap, wlan):
+    def associate_wep(self, ap, wlan, ap_wlan):
         "Association with WEP"
         passwd = self.params['passwd'][wlan]
         if 'passwd' not in self.params:
-            passwd = ap.params['passwd'][0]
+            passwd = ap.params['passwd'][ap_wlan]
 
         self.pexec('iw dev %s connect %s key d:0:%s' \
-                % (self.params['wlan'][wlan], ap.params['ssid'][0], passwd))
+                % (self.params['wlan'][wlan], ap.params['ssid'][ap_wlan], passwd))
 
     def get_private_folder_manager(self):
         # type: () -> PrivateFolderManager
@@ -1153,10 +1153,11 @@ class AccessPoint(AP):
         """ Starting Access Point """
         cmd = ("echo \'")
 
-        if 'phywlan' not in ap.params:
-            cmd = cmd + ("interface=%s" % ap.params['wlan'][wlan])
-        else:
+        if 'phywlan' in ap.params and wlan == 0:
             cmd = cmd + ("interface=%s" % ap.params.get('phywlan'))
+        else:
+            cmd = cmd + ("interface=%s" % ap.params['wlan'][wlan])
+
         cmd = cmd + ("\ndriver=%s" % ap.params['driver'])
         cmd = cmd + ("\nssid=%s" % ap.params['ssid'][wlan])
         cmd = cmd + ('\nwds_sta=1')
@@ -1299,15 +1300,14 @@ class AccessPoint(AP):
 
     @classmethod
     def setIPMAC(cls, ap, wlan):
-        if 'phywlan' not in ap.params:
-            if ap.params['mac'][wlan] != '':
-                ap.setMAC(ap.params['mac'][wlan], ap.params['wlan'][wlan])
-            else:
-                ap.params['mac'][wlan] = \
-                    ap.getMAC(ap.params['wlan'][wlan])
-            cls.checkNetworkManager(ap.params['mac'][wlan])
-            if 'inNamespace' in ap.params and 'ip' in ap.params:
-                ap.setIP(ap.params['ip'], intf=ap.params['wlan'][wlan])
+        if ap.params['mac'][wlan] != '':
+            ap.setMAC(ap.params['mac'][wlan], ap.params['wlan'][wlan])
+        else:
+            ap.params['mac'][wlan] = \
+                ap.getMAC(ap.params['wlan'][wlan])
+        cls.checkNetworkManager(ap.params['mac'][wlan])
+        if 'inNamespace' in ap.params and 'ip' in ap.params:
+            ap.setIP(ap.params['ip'], intf=ap.params['wlan'][wlan])
 
     @classmethod
     def checkNetworkManager(cls, mac):
@@ -1356,9 +1356,9 @@ class AccessPoint(AP):
 
     @classmethod
     def APConfigFile(cls, cmd, ap, wlan):
-        """ run an Access Point and create the config file """
+        "run an Access Point and create the config file"
         iface = ap.params['wlan'][wlan]
-        if 'phywlan' in ap.params:
+        if 'phywlan' in ap.params and wlan == 0:
             iface = ap.params['phywlan']
             ap.cmd('ip link set %s down' % iface)
             ap.cmd('ip link set %s up' % iface)

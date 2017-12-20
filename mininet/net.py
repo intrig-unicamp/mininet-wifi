@@ -435,7 +435,6 @@ class Mininet(object):
 
         wlan = ("%s" % params.pop('phywlan', {}))
         bs.params['phywlan'] = wlan
-        self.switches.append(bs)
         self.aps.append(bs)
 
         mininetWiFi.addParameters(bs, self.autoSetMacs, defaults, mode='master')
@@ -644,28 +643,37 @@ class Mininet(object):
                     and ('ssid' in node1.params and 'apsInRange' in node2.params)))
            and 'link' not in options):
 
+            sta_intf = None
+            ap_intf = 0
             if (isinstance(node1, Station) or isinstance(node1, Car)) \
                     and 'ssid' in node2.params:
                 sta = node1
                 ap = node2
+                if port1:
+                    sta_intf = port1
+                if port2:
+                    ap_intf = port2
             else:
                 sta = node2
                 ap = node1
+                if port2:
+                    sta_intf = port2
+                if port1:
+                    ap_intf = port1
 
-            if 'intf' in params:
-                for intf_ in sta.params['wlan']:
-                    if params['intf'] is intf_:
-                        wlan = sta.params['wlan'].index(intf_)
+            if sta_intf:
+                wlan = sta_intf
             else:
                 wlan = sta.ifaceToAssociate
+            ap_wlan = ap_intf
 
-            sta.params['mode'][wlan] = ap.params['mode'][0]
-            sta.params['channel'][wlan] = ap.params['channel'][0]
+            sta.params['mode'][wlan] = ap.params['mode'][ap_wlan]
+            sta.params['channel'][wlan] = ap.params['channel'][ap_wlan]
 
             # If sta/ap have defined position
             if 'position' in sta.params and 'position' in ap.params:
                 dist = mininetWiFi.get_distance_to(sta, ap)
-                if dist > ap.params['range'][0]:
+                if dist > ap.params['range'][ap_wlan]:
                     doAssociation = False
                 else:
                     doAssociation = True
@@ -681,7 +689,7 @@ class Mininet(object):
                     self.wmediumd_mode = None
                 cls = Association
                 cls.associate(sta, ap, self.enable_wmediumd,
-                              self.wmediumd_mode)
+                              self.wmediumd_mode, wlan, ap_wlan)
                 if 'bw' not in params and 'TCWirelessLink' \
                         not in str(self.link.__name__):
                     value = mininetWiFi.setDataRate(sta, ap, wlan)

@@ -237,7 +237,7 @@ class mobility(object):
                     wirelessLink(sta, ap, wlan, dist)
 
     @classmethod
-    def check_association(cls, sta, wlan):
+    def check_association(cls, sta, wlan, ap_wlan):
         """
         check association
 
@@ -252,18 +252,16 @@ class mobility(object):
         for ap in cls.aps:
             dist = sta.get_distance_to(ap)
             if dist <= ap.params['range'][0]:
-                cls.handover(sta, ap, wlan)
+                cls.handover(sta, ap, wlan, ap_wlan)
                 cls.ap_in_range(sta, ap, wlan, dist)
 
     @classmethod
-    def handover(cls, sta, ap, wlan):
-        """
-        handover
+    def handover(cls, sta, ap, wlan, ap_wlan):
+        """handover
 
         :param sta: station
         :param ap: access point
-        :param wlan: wlan ID
-        """
+        :param wlan: wlan ID"""
         changeAP = False
 
         "Association Control: mechanisms that optimize the use of the APs"
@@ -275,7 +273,7 @@ class mobility(object):
         if sta.params['associatedTo'][wlan] == '' or changeAP is True:
             if ap not in sta.params['associatedTo']:
                 Association.printCon = False
-                Association.associate_infra(sta, ap, wlan)
+                Association.associate_infra(sta, ap, wlan, ap_wlan)
                 cls.update_association(sta, ap, wlan)
 
     @classmethod
@@ -612,12 +610,12 @@ class mobility(object):
                             if node.params['associatedTo'][wlan] == '':
                                 for ap in cls.aps:
                                     Association.printCon = False
-                                    Association.associate_infra(node, ap, wlan)
+                                    Association.associate_infra(node, ap, wlan, ap_wlan=0)
                                     node.params['associatedTo'][wlan] = 'bgscan'
                         else:
-                            cls.check_association(node, wlan)
+                            cls.check_association(node, wlan, ap_wlan=0)
                     else:
-                        cls.check_association(node, wlan)  # have to verify this
+                        cls.check_association(node, wlan, ap_wlan=0)
                 if WmediumdServerConn.interference_enabled:
                     cls.set_wmediumd_pos(node)
         eval(cls.continue_params)
