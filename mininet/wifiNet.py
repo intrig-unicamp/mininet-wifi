@@ -173,20 +173,21 @@ class mininetWiFi(object):
 
         wlans = cls.countWiFiIfaces(params)
 
-        for n in range(wlans):
+        for wlan in range(wlans):
             cls.addParamsToNode(node)
             if mode == 'managed':
                 cls.appendAssociatedTo(node)
 
             if mode == 'master':
-                if 'phywlan' in node.params:
-                    n = 1
-                node.params['wlan'].append(node.name + '-wlan' + str(n + 1))
+                if 'phywlan' in node.params and wlan == 0:
+                    node.params['wlan'].append(node.params['phywlan'])
+                else:
+                    node.params['wlan'].append(node.name + '-wlan' + str(wlan + 1))
                 if 'link' in params and params['link'] == 'mesh':
                     cls.appendRSSI(node)
                     cls.appendAssociatedTo(node)
             else:
-                node.params['wlan'].append(node.name + '-wlan' + str(n))
+                node.params['wlan'].append(node.name + '-wlan' + str(wlan))
                 cls.appendRSSI(node)
             node.params.pop("wlans", None)
 
@@ -483,7 +484,8 @@ class mininetWiFi(object):
             node.params['ssid'][wlan] = 'meshNetwork'
 
         if node.autoTxPower:
-            node.getRange(intf=node.params['wlan'][wlan], noiseLevel=95)
+            intf = node.params['wlan'][wlan]
+            node.params['range'][wlan] = node.getRange(intf=intf, noiseLevel=95)
 
         node.setMeshIface(node.params['wlan'][wlan], **params)
 
@@ -524,7 +526,8 @@ class mininetWiFi(object):
         enable_wmediumd = cls.enable_wmediumd
 
         if not node.autoTxPower:
-            node.getRange(intf=node.params['wlan'][wlan], noiseLevel=95)
+            intf = node.params['wlan'][wlan]
+            node.params['range'][wlan] = node.getRange(intf=intf, noiseLevel=95)
 
         if 'channel' in params:
             node.setChannel(params['channel'], intf=node.params['wlan'][wlan])
@@ -728,31 +731,24 @@ class mininetWiFi(object):
         sleep(0.1)
 
     @classmethod
-    def verifyNetworkManager(cls, node, wlanID=0):
+    def verifyNetworkManager(cls, node):
         """
         First verify if the mac address of the ap is included at
         NetworkManager.conf
         
         :param node: node
-        :param wlanID: wlan ID
         """
         from mininet.node import Station
 
-        if 'phywlan' in node.params:
-            wlanID = 1
-        for wlan in range(len(node.params['wlan']) + wlanID):
-            if 'inNamespace' not in node.params or wlanID == 1:
+        for wlan in range(len(node.params['wlan'])):
+            if 'inNamespace' not in node.params:
                 if not isinstance(node, Station):
                     options = dict()
-                    if 'phywlan' not in node.params:
-                        cls.configureIface(node, wlan)
+                    if 'phywlan' in node.params and wlan == 0:
+                        iface = node.params['phywlan']
+                        options.setdefault('intfName1', iface)
                     else:
-                        if wlan == 1:
-                            wlan = 0
-                            cls.configureIface(node, wlan)
-                        else:
-                            iface = node.params['phywlan']
-                            options.setdefault('intfName1', iface)
+                        cls.configureIface(node, wlan)
                     TCLinkWirelessAP(node, **options)
             elif 'inNamespace' in node.params:
                 cls = TCLinkWirelessAP
@@ -768,18 +764,14 @@ class mininetWiFi(object):
         node.renameIface(intf, node.params['wlan'][wlan])
 
     @classmethod
-    def configureAP(cls, ap, wlanID=0, aplist=None):
+    def configureAP(cls, ap, aplist=None):
         """Configure AP
         
         :param ap: ap node
         :param wlanID: wlan ID
         """
-        if 'phywlan' in ap.params:
-            wlanID = 1
-        for wlan in range(len(ap.params['wlan']) + wlanID):
+        for wlan in range(len(ap.params['wlan'])):
             if ap.params['ssid'][wlan] != '':
-                if wlanID == 1:
-                    wlan = 0
                 if 'encrypt' in ap.params and 'config' not in ap.params:
                     if ap.params['encrypt'][wlan] == 'wpa':
                         ap.auth_algs = 1
@@ -812,16 +804,13 @@ class mininetWiFi(object):
 
                 AccessPoint(ap, wlan=wlan, aplist=aplist)
 
-                if 'phywlan' not in ap.params:
-                    iface = ap.params['wlan'][wlan]
-                else:
+                if 'phywlan' in ap.params and wlan == 0:
                     iface = ap.params['phywlan']
+                else:
+                    iface = ap.params['wlan'][wlan]
 
                 if not cls.enable_wmediumd:
                     cls.setBw(ap, wlan, iface)
-
-                if 'phywlan' in ap.params:
-                    ap.params.pop("phywlan", None)
 
                 ap.params['frequency'][wlan] = ap.getFrequency(0)
 
@@ -1114,7 +1103,8 @@ class mininetWiFi(object):
                     if isinstance(node, Car) and wlan == 1:
                         node = node.params['carsta']
                         wlan = 0
-                    node.getRange(intf=node.params['wlan'][wlan])
+                    intf = node.params['wlan'][wlan]
+                    node.params['range'][wlan] = node.getRange(intf=intf)
                 else:
                     if node.params['txpower'][wlan] == 14:
                         node.autoTxPower=True
@@ -1167,7 +1157,8 @@ class mininetWiFi(object):
         if propagationModel.model == 'logNormalShadowing':
             while True:
                 for node in nodes:
-                    node.getRange(intf=node.params['wlan'][0])
+                    intf = node.params['wlan'][0]
+                    node.params['range'][0] = node.getRange(intf=intf)
                     if cls.DRAW:
                         if not cls.is3d:
                             cls.plot.updateCircleRadius(node)
@@ -1213,7 +1204,7 @@ class mininetWiFi(object):
                         if 'position' in sta.params and 'position' in ap.params:
                             dist = wirelessLink.getDistance(sta, ap)
                             if dist <= ap.params['range'][0]:
-                                mobility.handover(sta, ap, wlan)
+                                mobility.handover(sta, ap, wlan, ap_wlan=0)
 
     @classmethod
     def propagation_model(cls, **kwargs):

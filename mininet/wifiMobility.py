@@ -160,13 +160,12 @@ class mobility(object):
 
     @classmethod
     def apOutOfRange(cls, sta, ap, wlan):
-        """
-        When ap is out of range
+        """When ap is out of range
 
         :param sta: station
         :param ap: access point
-        :param wlan: wlan ID
-        """
+        :param wlan: wlan ID"""
+
         if ap == sta.params['associatedTo'][wlan]:
             debug('iw dev %s disconnect\n' % sta.params['wlan'][wlan])
             if 'encrypt' in ap.params and 'ieee80211r' not in ap.params:
@@ -229,7 +228,7 @@ class mobility(object):
                     wirelessLink(sta, ap, wlan, dist)
 
     @classmethod
-    def checkAssociation(cls, sta, wlan):
+    def checkAssociation(cls, sta, wlan, ap_wlan):
         """
         check association
 
@@ -244,18 +243,15 @@ class mobility(object):
         for ap in cls.aps:
             dist = wirelessLink.getDistance(sta, ap)
             if dist <= ap.params['range'][0]:
-                cls.handover(sta, ap, wlan)
+                cls.handover(sta, ap, wlan, ap_wlan)
                 cls.apInRange(sta, ap, wlan, dist)
 
     @classmethod
-    def handover(cls, sta, ap, wlan):
-        """
-        handover
+    def handover(cls, sta, ap, wlan, ap_wlan):
+        """handover
 
         :param sta: station
-        :param ap: access point
-        :param wlan: wlan ID
-        """
+        :param ap: access point"""
         changeAP = False
 
         """Association Control: mechanisms that optimize the use of the APs"""
@@ -267,7 +263,7 @@ class mobility(object):
         if sta.params['associatedTo'][wlan] == '' or changeAP is True:
             if ap not in sta.params['associatedTo']:
                 Association.printCon = False
-                Association.associate_infra(sta, ap, wlan)
+                Association.associate_infra(sta, ap, wlan, ap_wlan)
                 cls.updateAssociation(sta, ap, wlan)
 
     @classmethod
@@ -420,7 +416,9 @@ class mobility(object):
                                     node.params['position'] = [x, y, z]
                                 node.time += 1
                             if propagationModel.model == 'logNormalShadowing':
-                                node.getRange(intf=node.params['wlan'][0])
+                                intf = node.params['wlan'][0]
+                                wlan = node.params['wlan'].index(intf)
+                                node.params['range'][wlan] = node.getRange(intf=intf)
                             if DRAW:
                                 plot.graphUpdate(node)
                                 if not is3d:
@@ -545,7 +543,10 @@ class mobility(object):
                                           % xy[idx][1], 0.0
                 if propagationModel.model == 'logNormalShadowing':
                     sleep(0.0001)  # notice problem when there are many threads
-                    node.getRange(intf=node.params['wlan'][0], stationary=False)
+                    intf = node.params['wlan'][0]
+                    wlan = node.params['wlan'].index(intf)
+                    node.params['range'][wlan] = node.getRange(intf=intf)
+                    node.updateGraph()
                     plot2d.updateCircleRadius(node)
                 plot2d.graphUpdate(node)
             eval(cls.continuePlot)
@@ -568,7 +569,9 @@ class mobility(object):
                                           % xy[idx][1], 0.0
                 if propagationModel.model == 'logNormalShadowing':
                     sleep(0.0001)
-                    node.getRange(intf=node.params['wlan'][0])
+                    intf = node.params['wlan'][0]
+                    wlan = node.params['wlan'].index(intf)
+                    node.params['range'][wlan] = node.getRange(intf=intf)
             sleep(0.5)
             if final_time is not 0 and (time() - current_time) > final_time:
                 break
@@ -613,12 +616,12 @@ class mobility(object):
                             if node.params['associatedTo'][wlan] == '':
                                 for ap in cls.aps:
                                     Association.printCon = False
-                                    Association.associate_infra(node, ap, wlan)
+                                    Association.associate_infra(node, ap, wlan, ap_wlan=0)
                                     node.params['associatedTo'][wlan] = 'bgscan'
                         else:
-                            cls.checkAssociation(node, wlan)
+                            cls.checkAssociation(node, wlan, ap_wlan=0)
                     else:
-                        cls.checkAssociation(node, wlan)  # have to verify this
+                        cls.checkAssociation(node, wlan, ap_wlan=0)
                 if WmediumdServerConn.interference_enabled:
                     cls.setWmediumdPos(node)
         eval(cls.continueParams)
