@@ -188,7 +188,7 @@ class Association(object):
                     if sta not in ap.params['associatedStations']:
                         ap.params['associatedStations'].append(sta)
                 if wmediumd_mode is not 'interference':
-                    rssi_ = wirelessLink.setRSSI(sta, ap, wlan, ap_wlan, dist)
+                    rssi_ = wirelessLink.setRSSI(sta, ap, wlan, dist)
                     sta.params['rssi'][wlan] = rssi_
             if ap not in sta.params['apsInRange']:
                 sta.params['apsInRange'].append(ap)
