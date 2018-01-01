@@ -241,20 +241,18 @@ class WiFiNode(object):
                  % (self.params['wlan'][wlan], ifbID))
         self.ifb.append(ifbID)
 
-    def getRange(self, intf=None, stationary=True, noiseLevel=0):
+    def getRange(self, intf=None, noiseLevel=0):
         "Get the Signal Range"
         enable_interference = WmediumdServerConn.interference_enabled
         wlan = self.params['wlan'].index(intf)
-        if noiseLevel !=0:
-            distanceByPropagationModel.NOISE_LEVEL = 95
+        if noiseLevel != 0:
+            distanceByPropagationModel.NOISE_LEVEL = noiseLevel
         if not isinstance(self, Station) and not isinstance(self, Car) \
                 and not isinstance(self, AP):
             self = self.params['associatedTo'][0]
-        wlan = 0
-        value = distanceByPropagationModel(self, wlan, enable_interference)
-        self.params['range'][wlan] = int(value.dist)
-        if not stationary:
-            self.updateGraph()
+        value = int(distanceByPropagationModel(self, wlan, enable_interference))
+
+        return value.dist
 
     def updateGraph(self):
         "Update the Graph"

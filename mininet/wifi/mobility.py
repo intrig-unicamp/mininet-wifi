@@ -429,7 +429,9 @@ class mobility(object):
                                     node.params['position'] = [x, y, z]
                                 node.time += 1
                             if propagationModel.model == 'logNormalShadowing':
-                                node.getRange(intf=node.params['wlan'][0])
+                                intf = node.params['wlan'][0]
+                                wlan = node.params['wlan'].index(intf)
+                                node.params['range'][wlan] = node.getRange(intf=intf)
                             if DRAW:
                                 cls.plot.graphUpdate(node)
                                 if not issubclass(cls.plot, plot3d):
@@ -541,7 +543,10 @@ class mobility(object):
                                           % xy[idx][1], 0.0
                 if propagationModel.model == 'logNormalShadowing':
                     sleep(0.0001)  # notice problem when there are many threads
-                    node.getRange(intf=node.params['wlan'][0], stationary=False)
+                    intf = node.params['wlan'][0]
+                    wlan = node.params['wlan'].index(intf)
+                    node.params['range'][wlan] = node.getRange(intf=intf)
+                    node.updateGraph()
                     plot2d.updateCircleRadius(node)
                 plot2d.graphUpdate(node)
             eval(cls.continuePlot)
@@ -564,7 +569,9 @@ class mobility(object):
                                           % xy[idx][1], 0.0
                 if propagationModel.model == 'logNormalShadowing':
                     sleep(0.0001)
-                    node.getRange(intf=node.params['wlan'][0])
+                    intf = node.params['wlan'][0]
+                    wlan = node.params['wlan'].index(intf)
+                    node.params['range'][wlan] = node.getRange(intf=intf)
             sleep(0.5)
             if final_time is not 0 and (time() - current_time) > final_time:
                 break

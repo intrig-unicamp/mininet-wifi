@@ -474,7 +474,8 @@ class mininetWiFi(object):
             node.params['ssid'][wlan] = 'meshNetwork'
 
         if node.autoTxPower:
-            node.getRange(intf=node.params['wlan'][wlan], noiseLevel=95)
+            intf = node.params['wlan'][wlan]
+            node.params['range'][wlan] = node.getRange(intf=intf, noiseLevel=95)
 
         node.setMeshIface(node.params['wlan'][wlan], **params)
 
@@ -511,7 +512,8 @@ class mininetWiFi(object):
             node.params['associatedTo'][wlan] = 'adhocNetwork'
 
         if not node.autoTxPower:
-            node.getRange(intf=node.params['wlan'][wlan], noiseLevel=95)
+            intf = node.params['wlan'][wlan]
+            node.params['range'][wlan] = node.getRange(intf=intf, noiseLevel=95)
 
         if 'channel' in params:
             node.setChannel(params['channel'], intf=node.params['wlan'][wlan])
@@ -981,7 +983,8 @@ class mininetWiFi(object):
                     if isinstance(node, Car) and wlan == 1:
                         node = node.params['carsta']
                         wlan = 0
-                    node.getRange(intf=node.params['wlan'][wlan])
+                    intf = node.params['wlan'][wlan]
+                    node.params['range'][wlan] = node.getRange(intf=intf)
                 else:
                     if node.params['txpower'][wlan] == 14:
                         node.autoTxPower=True
@@ -1042,7 +1045,8 @@ class mininetWiFi(object):
         if propagationModel.model == 'logNormalShadowing':
             while True:
                 for node in nodes:
-                    node.getRange(intf=node.params['wlan'][0])
+                    intf = node.params['wlan'][0]
+                    node.params['range'][0] = node.getRange(intf=intf)
                     if cls.DRAW:
                         if not issubclass(cls.plot, plot3d):
                             cls.plot.updateCircleRadius(node)
