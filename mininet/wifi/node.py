@@ -250,9 +250,9 @@ class WiFiNode(object):
         if not isinstance(self, Station) and not isinstance(self, Car) \
                 and not isinstance(self, AP):
             self = self.params['associatedTo'][0]
-        value = int(distanceByPropagationModel(self, wlan, enable_interference))
+        value = distanceByPropagationModel(self, wlan, enable_interference)
 
-        return value.dist
+        return int(value.dist)
 
     def updateGraph(self):
         "Update the Graph"
