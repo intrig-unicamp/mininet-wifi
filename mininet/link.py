@@ -913,10 +913,7 @@ class WirelessLinkAP(object):
         "Construct a canonical interface name node-ethN for interface n."
         # Leave this as an instance method for now
         assert self
-        if 'phywlan' in node.params:  # if physical Interface
-            return ifacename + repr(n)
-        else:
-            return node.name + '-' + ifacename + repr(n)
+        return node.name + '-' + ifacename + repr(n)
 
     def delete(self):
         "Delete this link"
@@ -988,10 +985,7 @@ class WirelessLinkStation(object):
         "Construct a canonical interface name node-ethN for interface n."
         # Leave this as an instance method for now
         assert self
-        if 'phywlan' in node.params:  # if physical Interface
-            return ifacename + repr(n)
-        else:
-            return node.name + '-' + ifacename + repr(n)
+        return node.name + '-' + ifacename + repr(n)
 
     def delete(self):
         "Delete this link"
