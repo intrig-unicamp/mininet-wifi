@@ -900,8 +900,11 @@ class Mininet(object):
         if self.autoStaticArp:
             self.staticArp()
 
+        isPosDefined = False
         nodes = self.stations
         for node in nodes:
+            if 'position' in node.params:
+                isPosDefined = True
             for wlan in range(0, len(node.params['wlan'])):
                 if not isinstance(node, AP) and node.func[0] != 'ap' and \
                     node.func[wlan] != 'mesh' and node.func[wlan] != 'adhoc' \
@@ -931,7 +934,7 @@ class Mininet(object):
             thread.start()
         else:
             if not self.isMobility and mininetWiFi.DRAW \
-                    and not mininetWiFi.alreadyPlotted:
+                    and not mininetWiFi.alreadyPlotted and isPosDefined:
                 plotNodes = self.plot_nodes()
                 self.stations, self.aps = \
                     mininetWiFi.plotCheck(self.stations, self.aps,

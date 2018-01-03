@@ -34,13 +34,13 @@ def topology():
     net.addHoc(sta3, ssid='adhocNet')
     net.addHoc(sta4, ssid='adhocNet')
 
+    'ploting graph'
+    net.plotGraph(max_x=200, max_y=200)
+
     info("*** Starting network\n")
     net.build()
     c1.start()
     ap1.start([c1])
-
-    'ploting graph'
-    #net.plotGraph(max_x=200, max_y=200)
 
     getTrace(sta1, 'examples/replaying/replayingMobility/node1.dat')
     getTrace(sta2, 'examples/replaying/replayingMobility/node2.dat')
