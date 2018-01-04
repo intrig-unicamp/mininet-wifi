@@ -1387,15 +1387,24 @@ class Mininet(object):
             self.repetitions = kwargs['repetitions']
         if 'model' in kwargs:
             self.isMobilityModel = True
+            kwargs['mobileNodes'] = self.getMobileNodes()
         self.mobilityKwargs = kwargs
         kwargs['stations'] = self.stations
         kwargs['aps'] = self.aps
         mininetWiFi.setMobilityParams(**kwargs)
 
     def stopMobility(self, **kwargs):
-        """Stops Mobility"""
+        'Stops Mobility'
         self.mobilityKwargs.update(kwargs)
         mininetWiFi.setMobilityParams(**kwargs)
+
+    def getMobileNodes(self):
+        mobileNodes = []
+        nodes = self.stations + self.aps
+        for node in nodes:
+            if 'position' not in node.params:
+                mobileNodes.append(node)
+        return mobileNodes
 
     def useExternalProgram(self, program, **params):
         """

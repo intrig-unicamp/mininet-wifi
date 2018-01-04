@@ -813,7 +813,7 @@ class mininetWiFi(object):
 
         if 'model' in kwargs or cls.isVanet:
             stationaryNodes = []
-            for sta in kwargs['stations']:
+            for sta in kwargs['mobileNodes']:
                 if 'position' not in sta.params \
                         or 'position' in sta.params \
                                 and sta.params['position'] == (-1,-1,-1):
