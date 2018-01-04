@@ -919,8 +919,11 @@ class Mininet(object):
         if self.autoStaticArp:
             self.staticArp()
 
+        isPosDefined = False
         nodes = self.stations
         for node in nodes:
+            if 'position' in node.params:
+                isPosDefined = True
             for wlan in range(0, len(node.params['wlan'])):
                 if not isinstance(node, AP) and node.func[0] != 'ap' and \
                     node.func[wlan] != 'mesh' and node.func[wlan] != 'adhoc' \
@@ -935,6 +938,7 @@ class Mininet(object):
 
         if self.isMobility:
             if self.isMobilityModel or mininetWiFi.isVanet:
+                self.mobilityKwargs['mobileNodes'] = self.getMobileNodes()
                 mininetWiFi.start_mobility(**self.mobilityKwargs)
             else:
                 self.mobilityKwargs['plotNodes'] = self.plot_nodes()
@@ -950,7 +954,7 @@ class Mininet(object):
             thread.start()
         else:
             if not self.isMobility and mininetWiFi.DRAW \
-                    and not mininetWiFi.alreadyPlotted:
+                    and not mininetWiFi.alreadyPlotted and isPosDefined:
                 plotNodes = self.plot_nodes()
                 self.stations, self.aps = \
                     mininetWiFi.plotCheck(self.stations, self.aps,
@@ -1402,6 +1406,7 @@ class Mininet(object):
             self.repetitions = kwargs['repetitions']
         if 'model' in kwargs:
             self.isMobilityModel = True
+            kwargs['mobileNodes'] = self.getMobileNodes()
         self.mobilityKwargs = kwargs
         kwargs['stations'] = self.stations
         kwargs['aps'] = self.aps
@@ -1411,6 +1416,14 @@ class Mininet(object):
         """Stops Mobility"""
         self.mobilityKwargs.update(kwargs)
         mininetWiFi.setMobilityParams(**kwargs)
+
+    def getMobileNodes(self):
+        mobileNodes = []
+        nodes = self.stations + self.aps + self.cars
+        for node in nodes:
+            if 'position' not in node.params:
+                mobileNodes.append(node)
+        return mobileNodes
 
     def useExternalProgram(self, program, **params):
         """

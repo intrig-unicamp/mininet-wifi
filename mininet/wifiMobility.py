@@ -254,7 +254,7 @@ class mobility(object):
         :param ap: access point"""
         changeAP = False
 
-        """Association Control: mechanisms that optimize the use of the APs"""
+        "Association Control: mechanisms that optimize the use of the APs"
         if cls.AC != '' and sta.params['associatedTo'][wlan] != ap \
                 and sta.params['associatedTo'][wlan] != '':
             ac = cls.AC
@@ -475,15 +475,20 @@ class mobility(object):
         # max waiting time
         MAX_WT = 100.
 
-        for sta in cls.stations:
-            if sta.max_x == 0:
-                sta.max_x = MAX_X
-            if sta.max_y == 0:
-                sta.max_y = MAX_Y
-            if sta.max_v == 0:
-                sta.max_v = max_v
-            if sta.min_v == 0:
-                sta.min_v = min_v
+        for node in nodes:
+            if node.params['position'] == (0,0,0):
+                if not hasattr(node, 'max_x') or node.max_x == 0:
+                    node.max_x = MAX_X
+                if not hasattr(node, 'max_y') or node.max_y == 0:
+                    node.max_y = MAX_Y
+                if not hasattr(node, 'max_v') or node.max_v == 0:
+                    node.max_v = max_v
+                if not hasattr(node, 'min_v') or node.min_v == 0:
+                    node.min_v = min_v
+                if not hasattr(node, 'min_x'):
+                    node.min_x = 0
+                if not hasattr(node, 'min_y'):
+                    node.min_y = 0
 
         try:
             if DRAW:
@@ -603,6 +608,7 @@ class mobility(object):
 
     @classmethod
     def configureLinks(cls, nodes):
+        from mininet.node import Station
         for node in nodes:
             for wlan in range(0, len(node.params['wlan'])):
                 if node.func[wlan] == 'mesh' or node.func[wlan] == 'adhoc':
@@ -619,9 +625,11 @@ class mobility(object):
                                     Association.associate_infra(node, ap, wlan, ap_wlan=0)
                                     node.params['associatedTo'][wlan] = 'bgscan'
                         else:
-                            cls.checkAssociation(node, wlan, ap_wlan=0)
+                            if isinstance(node, Station):
+                                cls.checkAssociation(node, wlan, ap_wlan=0)
                     else:
-                        cls.checkAssociation(node, wlan, ap_wlan=0)
+                        if isinstance(node, Station):
+                            cls.checkAssociation(node, wlan, ap_wlan=0)
                 if WmediumdServerConn.interference_enabled:
                     cls.setWmediumdPos(node)
         eval(cls.continueParams)
