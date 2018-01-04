@@ -813,13 +813,13 @@ class mininetWiFi(object):
 
         if 'model' in kwargs or cls.isVanet:
             stationaryNodes = []
-            for sta in kwargs['mobileNodes']:
-                if 'position' not in sta.params \
-                        or 'position' in sta.params \
-                                and sta.params['position'] == (-1,-1,-1):
-                    sta.isStationary = False
-                    stationaryNodes.append(sta)
-                    sta.params['position'] = 0, 0, 0
+            for node in kwargs['mobileNodes']:
+                if 'position' not in node.params \
+                        or 'position' in node.params \
+                                and node.params['position'] == (-1,-1,-1):
+                    node.isStationary = False
+                    stationaryNodes.append(node)
+                    node.params['position'] = 0, 0, 0
             kwargs['stationaryNodes'] = stationaryNodes
             params = cls.setMobilityParams(**kwargs)
             if cls.nroads == 0:

@@ -919,6 +919,7 @@ class Mininet(object):
 
         if self.isMobility:
             if self.isMobilityModel or mininetWiFi.isVanet:
+                self.mobilityKwargs['mobileNodes'] = self.getMobileNodes()
                 mininetWiFi.start_mobility(**self.mobilityKwargs)
             else:
                 self.mobilityKwargs['plotNodes'] = self.plot_nodes()
@@ -1400,7 +1401,7 @@ class Mininet(object):
 
     def getMobileNodes(self):
         mobileNodes = []
-        nodes = self.stations + self.aps
+        nodes = self.stations + self.aps + self.cars
         for node in nodes:
             if 'position' not in node.params:
                 mobileNodes.append(node)
