@@ -258,7 +258,7 @@ class mobility(object):
         if cls.AC != '' and sta.params['associatedTo'][wlan] != ap \
                 and sta.params['associatedTo'][wlan] != '':
             ac = cls.AC
-            value = associationControl(sta, ap, wlan, ac, wirelessLink)
+            value = associationControl(sta, ap, wlan, ac)
             changeAP = value.changeAP
         if sta.params['associatedTo'][wlan] == '' or changeAP is True:
             if ap not in sta.params['associatedTo']:
@@ -268,13 +268,11 @@ class mobility(object):
 
     @classmethod
     def updateAssociation(cls, sta, ap, wlan):
-        """
-        Updates attributes regarding association
+        """Updates attributes regarding association
 
         :param sta: station
         :param ap: access point
-        :param wlan: wlan ID
-        """
+        :param wlan: wlan ID"""
         if sta.params['associatedTo'][wlan] != '' \
                 and sta in sta.params['associatedTo'][wlan].params['associatedStations']:
             sta.params['associatedTo'][wlan].params['associatedStations'].remove(sta)
