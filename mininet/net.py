@@ -672,7 +672,7 @@ class Mininet(object):
 
             # If sta/ap have defined position
             if 'position' in sta.params and 'position' in ap.params:
-                dist = mininetWiFi.get_distance_to(sta, ap)
+                dist = sta.get_distance_to(ap)
                 if dist > ap.params['range'][ap_wlan]:
                     doAssociation = False
                 else:
@@ -727,7 +727,7 @@ class Mininet(object):
                 cls = _4addrLink
                 cls(node1, node2)
             else:
-                dist = mininetWiFi.get_distance_to(node1, node2)
+                dist = node1.get_distance_to(node2)
                 if dist > node1.params['range'][0]:
                     doAssociation = False
                 else:
@@ -1376,6 +1376,27 @@ class Mininet(object):
         output('*** Results: %s\n' % cpu_fractions)
         return cpu_fractions
 
+    def get_distance(self, src, dst):
+        """Gets the distance between two nodes
+
+        :params src: source node
+        :params dst: destination node
+        :params nodes: list of nodes"""
+        nodes = self.stations + self.cars + self.aps
+        try:
+            for host1 in nodes:
+                if src == str(host1):
+                    src = host1
+                    for host2 in nodes:
+                        if dst == str(host2):
+                            dst = host2
+                            dist = src.get_distance_to(dst)
+                            info("The distance between %s and %s is %.2f "
+                                 "meters\n" % (src, dst, float(dist)))
+        except:
+            info("node %s or/and node %s does not exist or there is no " \
+            "position defined" % (dst, src))
+
     @classmethod
     def mobility(cls, *args, **kwargs):
         "Configure mobility parameters"
@@ -1452,16 +1473,6 @@ class Mininet(object):
     def start_simulation(self):
         'Start Simulation'
         mininetWiFi.start_simulation()
-
-    def getCurrentDistance(self, src, dst):
-        """
-        Gets the distance between two nodes
-
-        :params src: source node
-        :params dst: destination node
-        """
-        nodes = self.stations + self.cars + self.aps
-        mininetWiFi.printDistance(src, dst, nodes)
 
     @classmethod
     def plotGraph(cls, min_x=0, min_y=0, min_z=0, max_x=0, max_y=0, max_z=0):

@@ -663,9 +663,7 @@ class mininetWiFi(object):
         """Configure AP
 
         :param ap: ap node
-        :param wlanID: wlan ID """
-        if 'phywlan' in ap.params:
-            wlanID = 1
+        :param wlanID: wlan ID"""
         for wlan in range(len(ap.params['wlan'])):
             if ap.params['ssid'][wlan] != '':
                 if 'encrypt' in ap.params and 'config' not in ap.params:
@@ -1099,12 +1097,6 @@ class mininetWiFi(object):
     def propagation_model(cls, **kwargs):
         "Propagation Model Attr"
         propagationModel.setAttr(**kwargs)
-
-    @classmethod
-    def get_distance_to(cls, src, dst):
-        "Get the distance between two nodes"
-        dist = src.get_distance_to(dst)
-        return dist
 
     @classmethod
     def stop_simulation(cls):

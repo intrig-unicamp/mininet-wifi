@@ -501,15 +501,16 @@ class WiFiNode(object):
             return txpower
 
     def get_distance_to(self, dst):
-        """ Get the distance between two nodes
+        """Get the distance between two nodes
         :param self: source node
-        :param dst: destination node
-        """
+        :param dst: destination node"""
+
         pos_src = self.params['position']
         pos_dst = dst.params['position']
         points = np.array([(pos_src[0], pos_src[1], pos_src[2]),
                            (pos_dst[0], pos_dst[1], pos_dst[2])])
-        return float(pdist(points))
+        dist = pdist(points)
+        return float("%.2f" % dist)
 
     def associateTo(self, ap, intf=None):
         "Force association to given AP"
