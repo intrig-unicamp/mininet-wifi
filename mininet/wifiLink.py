@@ -2,8 +2,6 @@
 author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
 """
 import os
-import numpy as np
-from scipy.spatial.distance import pdist
 
 from mininet.wifiDevices import deviceDataRate
 from mininet.log import debug, info
@@ -33,19 +31,6 @@ class wirelessLink (object):
         loss_ = self.setLoss(dist)
         bw_ = self.setBW(sta=sta, ap=ap, dist=dist, wlan=wlan)
         self.tc(sta, wlan, bw_, loss_, latency_, delay_)
-
-    @classmethod
-    def getDistance(cls, src, dst):
-        """ Get the distance between two nodes
-        
-        :param src: source node
-        :param dst: destination node
-        """
-        pos_src = src.params['position']
-        pos_dst = dst.params['position']
-        points = np.array([(pos_src[0], pos_src[1], pos_src[2]),
-                           (pos_dst[0], pos_dst[1], pos_dst[2])])
-        return float(pdist(points))
 
     @classmethod
     def setDelay(cls, dist):
@@ -173,7 +158,7 @@ class Association(object):
         :param ap: access point
         """
 
-        dist = wirelessLink.getDistance(sta, ap)
+        dist = sta.get_distance_to(ap)
         if dist <= ap.params['range'][0]:
             for wlan in range(0, len(sta.params['wlan'])):
                 if wmediumd_mode is not 'interference':

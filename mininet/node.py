@@ -58,6 +58,8 @@ import re
 import signal
 import select
 import fileinput
+import numpy as np
+from scipy.spatial.distance import pdist
 
 from subprocess import Popen, PIPE
 from time import sleep
@@ -297,6 +299,18 @@ class Node(object):
         value = distanceByPropagationModel(self, wlan, enable_interference)
 
         return int(value.dist)
+
+    def get_distance_to(self, dst):
+        """Get the distance between two nodes
+        :param self: source node
+        :param dst: destination node"""
+
+        pos_src = self.params['position']
+        pos_dst = dst.params['position']
+        points = np.array([(pos_src[0], pos_src[1], pos_src[2]),
+                           (pos_dst[0], pos_dst[1], pos_dst[2])])
+        dist = pdist(points)
+        return float("%.2f" % dist)
 
     def updateGraph(self):
         "Update the Graph"
@@ -552,7 +566,7 @@ class Node(object):
                 wlan = idx
                 break
         if 'position' in sta.params and 'position' in ap.params:
-            dist = wirelessLink.getDistance(sta, ap)
+            dist = sta.get_distance_to(ap)
         else:
             dist = 100000
         if dist < ap.params['range'][wlan] or 'position' not in sta.params \

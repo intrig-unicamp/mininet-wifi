@@ -1202,7 +1202,7 @@ class mininetWiFi(object):
                 for wlan in range(0, len(sta.params['wlan'])):
                     for ap in aps:
                         if 'position' in sta.params and 'position' in ap.params:
-                            dist = wirelessLink.getDistance(sta, ap)
+                            dist = sta.get_distance_to(ap)
                             if dist <= ap.params['range'][0]:
                                 mobility.handover(sta, ap, wlan, ap_wlan=0)
 
@@ -1210,12 +1210,6 @@ class mininetWiFi(object):
     def propagation_model(cls, **kwargs):
         "Propagation Model Attr"
         propagationModel.setAttr(**kwargs)
-
-    @classmethod
-    def getDistance(cls, src, dst):
-        "Get the distance between two nodes"
-        dist = wirelessLink.getDistance(src, dst)
-        return dist
 
     @classmethod
     def stop_simulation(self):
@@ -1226,29 +1220,6 @@ class mininetWiFi(object):
     def start_simulation(self):
         "Start the simulation"
         mobility.pause_simulation = False
-
-    @classmethod
-    def printDistance(cls, src, dst, nodes):
-        """ 
-        Prints the distance between two points
-        
-        :params src: source node
-        :params dst: destination node
-        :params nodes: list of nodes
-        """
-        try:
-            for host1 in nodes:
-                if src == str(host1):
-                    src = host1
-                    for host2 in nodes:
-                        if dst == str(host2):
-                            dst = host2
-                            dist = cls.getDistance(src, dst)
-                            info ("The distance between %s and %s is %.2f "
-                                  "meters\n" % (src, dst, float(dist)))
-        except:
-            print "node %s or/and node %s does not exist or there is no " \
-                  "position defined" % (dst, src)
 
     @classmethod
     def configureMobility(cls, *args, **kwargs):

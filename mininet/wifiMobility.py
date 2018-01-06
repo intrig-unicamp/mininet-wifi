@@ -236,12 +236,12 @@ class mobility(object):
         :param wlan: wlan ID
         """
         for ap in cls.aps:
-            dist = wirelessLink.getDistance(sta, ap)
+            dist = sta.get_distance_to(ap)
             if dist > ap.params['range'][0]:
                 cls.apOutOfRange(sta, ap, wlan)
 
         for ap in cls.aps:
-            dist = wirelessLink.getDistance(sta, ap)
+            dist = sta.get_distance_to(ap)
             if dist <= ap.params['range'][0]:
                 cls.handover(sta, ap, wlan, ap_wlan)
                 cls.apInRange(sta, ap, wlan, dist)
