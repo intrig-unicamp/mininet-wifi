@@ -225,7 +225,7 @@ class mobility(object):
                 elif WmediumdServerConn.interference_enabled:
                     pass
                 else:
-                    wirelessLink(sta, ap, wlan, dist)
+                    wirelessLink(sta, ap, wlan, 0, dist)
 
     @classmethod
     def checkAssociation(cls, sta, wlan, ap_wlan):

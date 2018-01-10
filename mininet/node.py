@@ -585,7 +585,7 @@ class Node(object):
                         self.associate_wpa(ap, wlan)
                     elif ap.params['encrypt'][0] == 'wep':
                         self.associate_wep(ap, wlan)
-                wirelessLink(sta, ap, wlan, dist)
+                wirelessLink(sta, ap, wlan, 0, dist)
                 mobility.updateAssociation(sta, ap, wlan)
             else:
                 info ('%s is already connected!\n' % ap)
