@@ -797,8 +797,8 @@ class wirelessLink (object):
     dist = 0
     noise = 0
     equationLoss = '(dist * 2) / 1000'
-    equationDelay = '(dist / 100) + 1'
-    equationLatency = '2 + dist'
+    equationDelay = '(dist / 10) + 1'
+    equationLatency = '(dist / 10)/2'
     equationBw = ' * (1.01 ** -dist)'
     ifb = False
 
@@ -877,21 +877,20 @@ class wirelessLink (object):
         :param bw: bandwidth (mbps)
         :param loss: loss (%)
         :param latency: latency (ms)
-        :param delay: delay (ms)
-        """
+        :param delay: delay (ms)"""
+        # delay is not being used
 
         if cls.ifb:
             sta.pexec("tc qdisc replace dev ifb%s \
-                root handle 2: netem rate %.2fmbit \
-                loss %.1f%% \
-                latency %.2fms \
-                delay %.2fms " % (sta.ifb[wlan], bw, loss, latency, delay))
+                        root handle 2: netem rate %.2fmbit \
+                        loss %.1f%% \
+                        latency %.2fms " % (sta.ifb[wlan], bw, loss, latency))
         if 'encrypt' in sta.params['associatedTo'][wlan].params:
             """tbf is applied to encrypt, cause we have noticed troubles 
             with wpa_supplicant and netem"""
-            tc = 'tc qdisc replace dev %s root handle 1: tbf '\
-                 'rate %.2fmbit '\
-                 'burst 15000b '\
+            tc = 'tc qdisc replace dev %s root handle 1: tbf ' \
+                 'rate %.2fmbit ' \
+                 'burst 15000b ' \
                  'lat %.2fms' % (sta.params['wlan'][wlan], bw, latency)
             sta.pexec(tc)
         else:
@@ -899,12 +898,9 @@ class wirelessLink (object):
                  "root handle 2: netem " \
                  "rate %.4fmbit " \
                  "loss %.1f%% " \
-                 "latency %.2fms " \
-                 "delay %.2fms" % (sta.params['wlan'][wlan], bw, loss,
-                                   latency, delay)
+                 "latency %.2fms " % (sta.params['wlan'][wlan], bw, loss,
+                                      latency)
             sta.pexec(tc)
-                # corrupt 0.1%%" % (sta.params['wlan'][wlan], bw, loss,
-            # latency, delay))
 
 class Association(object):
 
