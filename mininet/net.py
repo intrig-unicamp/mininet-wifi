@@ -926,7 +926,7 @@ class Mininet(object):
                 mininetWiFi.stopMobility(**self.mobilityKwargs)
 
         if not self.isMobility \
-                and mininetWiFi.prop_model_name is \
+                and mininetWiFi.getPropagationModel() is \
                         'logNormalShadowing':
             import threading
             thread = threading.Thread(target=mininetWiFi.plotCheck,
@@ -1490,20 +1490,16 @@ class Mininet(object):
 
     @classmethod
     def setChannelEquation(cls, **params):
-        """
-        Set Channel Equation.
+        """Set Channel Equation.
 
         :params bw: bandwidth (mbps)
         :params delay: delay (ms)
         :params latency: latency (ms)
-        :params loss: loss (%)
-        """
+        :params loss: loss (%)"""
         mininetWiFi.setChannelEquation(**params)
 
     def propagationModel(self, **kwargs):
-        """
-        Propagation Model Attr
-        """
+        "Propagation Model Attr"
         self.ppm_is_set = True
         kwargs['noise_threshold'] = self.noise_threshold
         kwargs['cca_threshold'] = self.cca_threshold
@@ -1511,11 +1507,9 @@ class Mininet(object):
 
     @classmethod
     def associationControl(cls, ac):
-        """
-        Defines an association control
+        """Defines an association control
 
-        :params ac: the association control
-        """
+        :params ac: the association control"""
         mininetWiFi.associationControl(ac)
 
     def configWirelessLinkStatus(self, src, dst, status):
