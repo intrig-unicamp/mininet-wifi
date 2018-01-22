@@ -945,7 +945,7 @@ class Mininet(object):
                 mininetWiFi.stopMobility(**self.mobilityKwargs)
 
         if not self.isMobility \
-                and mininetWiFi.prop_model_name == \
+                and mininetWiFi.getPropagationModel() == \
                         'logNormalShadowing':
             import threading
             thread = threading.Thread(target=mininetWiFi.plotCheck,

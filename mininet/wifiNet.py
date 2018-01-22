@@ -34,7 +34,6 @@ class mininetWiFi(object):
     mobilityparam = dict()
     AC = ''
     alternativeModule = ''
-    prop_model_name = ''
     alreadyPlotted = False
     configureWiFiDirect = False
     configure4addr = False
@@ -1134,7 +1133,7 @@ class mininetWiFi(object):
         return mininet.stations, mininet.aps
 
     @classmethod
-    def plotCheck(cls, stations, aps, other_nodes):
+    def plotCheck(cls, stations, aps, other_nodes=[]):
         "Check which nodes will be plotted"
         stas, aps = cls.checkAPAdhoc(stations, aps)
         if mobility.aps == []:
@@ -1168,6 +1167,10 @@ class mininetWiFi(object):
                 eval(mobility.continuePlot)
                 sleep(0.5)
         return stas, aps
+
+    @classmethod
+    def getPropagationModel(cls):
+        return propagationModel.model
 
     @classmethod
     def autoAssociation(cls, stations, aps):
