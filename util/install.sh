@@ -139,7 +139,6 @@ function mn_deps {
             python3-setuptools cgroup-bin ethtool help2man \
             pyflakes pylint pep8 python3-pexpect python-pip python3-pip
     fi
-    pip3 install typing
 
     echo "Installing Mininet core"
     pushd $MININET_DIR/mininet-wifi
@@ -152,6 +151,7 @@ function wifi_deps {
     echo "Installing Mininet-WiFi dependencies"
     $install wireless-tools rfkill python3 python-pip python3-pip python3-scipy pkg-config \
             python3-matplotlib libnl-3-dev libnl-genl-3-dev libssl-dev make libevent-dev patch
+    pip3 install typing
     pip3 install -U numpy
     pushd $MININET_DIR/mininet-wifi
     git submodule update --init --recursive
