@@ -753,7 +753,7 @@ class Mininet_wifi(Mininet):
                 self.start_mobility(**self.mobilityKwargs)
             else:
                 self.mobilityKwargs['plotNodes'] = self.plot_nodes()
-                self.stopMobility(**self.mobilityKwargs)
+                self.stopMobility_(**self.mobilityKwargs)
 
         if not self.isMobility \
                 and self.getPropagationModel() is \
@@ -1235,7 +1235,7 @@ class Mininet_wifi(Mininet):
         kwargs['aps'] = self.aps
         self.setMobilityParams(**kwargs)
 
-    def stopMobility(self, **kwargs):
+    def stopMobility_(self, **kwargs):
         'Stops Mobility'
         self.mobilityKwargs.update(kwargs)
         self.setMobilityParams(**kwargs)
@@ -2091,9 +2091,9 @@ class Mininet_wifi(Mininet):
             else:
                 vanet(**params)
 
-    def stopMobility(self, stations, aps, **kwargs):
+    def stopMobility(self, **kwargs):
         "Stops Mobility"
-        self.autoAssociation(stations, aps)
+        self.autoAssociation(self.stations, self.aps)
         params = self.setMobilityParams(**kwargs)
         mobility.stop(**params)
 

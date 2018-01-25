@@ -33,7 +33,7 @@ from mininet.wifi.util import moveIntf
 from mininet.utils.private_folder_manager import PrivateFolderManager
 
 
-class WiFiNode(object):
+class Node_wifi(object):
     """A virtual network node is simply a shell in a network namespace.
        We communicate with it using pipes."""
 
@@ -1058,17 +1058,17 @@ class WiFiNode(object):
             plot2d.updateCircleColor(self, 'b')
 
 
-class Station(WiFiNode):
+class Station(Node_wifi):
     "A station is simply a Node"
     pass
 
 
-class Car(WiFiNode):
+class Car(Node_wifi):
     "A car is simply a Node"
     pass
 
 
-class AP(WiFiNode):
+class AP(Node_wifi):
     """A Switch is a Node that is running (or has execed?)
        an OpenFlow switch."""
     portBase = 1  # Switches start with port 1 in OpenFlow
@@ -1078,7 +1078,7 @@ class AP(WiFiNode):
         """dpid: dpid hex string (or None to derive from name, e.g. s1 -> 1)
            opts: additional switch options
            listenPort: port to listen on for dpctl connections"""
-        WiFiNode.__init__(self, name, **params)
+        Node_wifi.__init__(self, name, **params)
         self.dpid = self.defaultDpid(dpid)
         self.opts = opts
         self.listenPort = listenPort
@@ -1108,7 +1108,7 @@ class AP(WiFiNode):
         if self.controlIntf:
             return self.controlIntf
         else:
-            return WiFiNode.defaultIntf(self)
+            return Node_wifi.defaultIntf(self)
 
 
     def sendCmd(self, *cmd, **kwargs):
@@ -1116,7 +1116,7 @@ class AP(WiFiNode):
            cmd: string"""
         kwargs.setdefault('printPid', False)
         if not self.execed:
-            return WiFiNode.sendCmd(self, *cmd, **kwargs)
+            return Node_wifi.sendCmd(self, *cmd, **kwargs)
         else:
             error('*** Error: %s has execed and cannot accept commands' %
                   self.name)

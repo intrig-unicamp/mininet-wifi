@@ -6,7 +6,7 @@
 import unittest
 import sys
 
-from mininet.net import Mininet
+from mininet.wifi.net import Mininet_wifi
 from mininet.node import Controller, IVSSwitch
 from mininet.wifi.node import Station, UserAP, OVSAP
 from mininet.topo import Topo
@@ -30,7 +30,7 @@ class TestSwitchDpidAssignmentOVS(unittest.TestCase):
     def testDefaultDpid(self):
         """Verify that the default dpid is assigned using a valid provided
         canonical apname if no dpid is passed in ap creation."""
-        ap = Mininet(topo=Topo(),
+        ap = Mininet_wifi(topo=Topo(),
                      accessPoint=self.accessPointClass,
                      station=Station, controller=Controller,
                      isWiFi=True).addAccessPoint('ap1')
@@ -45,7 +45,7 @@ class TestSwitchDpidAssignmentOVS(unittest.TestCase):
         """Verify that AP dpid is the actual dpid assigned if dpid is
         passed in ap creation."""
         dpid = self.dpidFrom(0xABCD)
-        ap = Mininet(topo=Topo(), accessPoint=self.accessPointClass,
+        ap = Mininet_wifi(topo=Topo(), accessPoint=self.accessPointClass,
                      station=Station, controller=Controller,
                      isWiFi=True).addAccessPoint('ap1', dpid=dpid)
         self.assertEqual(ap.dpid, dpid)
@@ -55,7 +55,7 @@ class TestSwitchDpidAssignmentOVS(unittest.TestCase):
         16 - len(hex of first string of contiguous digits passed in ap
         name) 0's followed by hex of first string of contiguous digits passed
         in ap name."""
-        ap = Mininet(topo=Topo(), accessPoint=self.accessPointClass,
+        ap = Mininet-wifi(topo=Topo(), accessPoint=self.accessPointClass,
                      station=Station, controller=Controller,
                      isWiFi=True).addAccessPoint('ap123')
 
