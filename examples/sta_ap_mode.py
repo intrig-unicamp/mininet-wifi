@@ -5,16 +5,14 @@
 import sys
 
 from mininet.net import Mininet
-from mininet.cli import CLI
 from mininet.log import setLogLevel, info
 from mininet.wifi.link import wmediumd
-
-
-net = Mininet(link=wmediumd, enable_interference=True)
+from mininet.wifi.cli import CLI_WiFi
 
 
 def topology(mobility):
     'Create a network.'
+    net = Mininet(link=wmediumd, enable_interference=True)
 
     info("*** Creating nodes\n")
     if mobility:
@@ -65,7 +63,7 @@ def topology(mobility):
     sta2.cmd('route add -net 192.168.2.0/24 gw 192.168.1.10')
 
     info("*** Running CLI\n")
-    CLI(net)
+    CLI_WiFi(net)
 
     info("*** Stopping network\n")
     net.stop()

@@ -5,9 +5,9 @@
 from time import sleep
 
 from mininet.net import Mininet
-from mininet.cli import CLI
 from mininet.log import setLogLevel, info
 from mininet.wifi.link import wmediumd
+from mininet.wifi.cli import CLI_WiFi
 
 
 def topology():
@@ -47,7 +47,7 @@ def topology():
              % (sta1.params['mac'][1], pin))
 
     info("*** Running CLI\n")
-    CLI(net)
+    CLI_WiFi(net)
 
     info("*** Stopping network\n")
     net.stop()

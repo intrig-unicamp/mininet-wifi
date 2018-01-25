@@ -19,7 +19,7 @@ from distutils.version import StrictVersion
 from re import findall
 
 from mininet.log import info, error, warn, debug
-from mininet.util import (quietRun, errRun, moveIntf, isShellBuiltin)
+from mininet.util import (quietRun, errRun, isShellBuiltin)
 from mininet.moduledeps import moduleDeps, pathCheck, TUN
 from mininet.link import Link, Intf, OVSIntf
 from mininet.wifi.link import TCWirelessLink, TCLinkWirelessAP,\
@@ -31,6 +31,7 @@ from mininet.wifi.propagationModels import distanceByPropagationModel, \
 from mininet.wifi.mobility import mobility
 from mininet.wifi.link import wirelessLink
 from mininet.wifi.plot import plot2d, plot3d
+from mininet.wifi.util import moveIntf
 from mininet.utils.private_folder_manager import PrivateFolderManager
 
 

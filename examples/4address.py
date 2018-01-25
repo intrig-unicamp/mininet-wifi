@@ -5,10 +5,10 @@ Warning: It works only when network manager is stopped"""
 
 from mininet.net import Mininet
 from mininet.node import Controller
-from mininet.cli import CLI
 from mininet.log import setLogLevel, info
 from mininet.wifi.node import OVSKernelAP
 from mininet.wifi.link import wmediumd
+from mininet.wifi.cli import CLI_WiFi
 
 
 def topology():
@@ -59,7 +59,7 @@ def topology():
     ap3.start( [c0] )
 
     info("*** Running CLI\n")
-    CLI( net )
+    CLI_WiFi( net )
 
     info("*** Stopping network\n")
     net.stop()

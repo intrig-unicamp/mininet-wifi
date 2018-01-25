@@ -4,10 +4,10 @@
 
 from mininet.net import Mininet
 from mininet.node import Controller
-from mininet.wifi.node import OVSAP
-from mininet.cli import CLI
 from mininet.log import setLogLevel, info
 from mininet.wifi.replaying import replayingMobility
+from mininet.wifi.node import OVSAP
+from mininet.wifi.cli import CLI_WiFi
 
 
 def topology():
@@ -50,7 +50,7 @@ def topology():
     replayingMobility(net)
 
     info("*** Running CLI\n")
-    CLI(net)
+    CLI_WiFi(net)
 
     info("*** Stopping network\n")
     net.stop()

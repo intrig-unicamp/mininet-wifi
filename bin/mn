@@ -22,7 +22,7 @@ if 'PYTHONPATH3' in os.environ:
 
 from mininet.clean import cleanup
 from mininet.wifi.clean import cleanup_wifi
-import mininet.cli
+import mininet.wifi.cli
 from mininet.log import lg, LEVELS, info, debug, warn, error, output
 from mininet.net import Mininet, MininetWithControlNet, VERSION
 from mininet.node import (Host, CPULimitedHost, Controller, OVSController,
@@ -461,7 +461,7 @@ class MininetRunner(object):
             host, switch, ap, link = RemoteHost, RemoteOVSSwitch, RemoteOVSAP, RemoteLink
             Net = partial(MininetCluster, servers=servers,
                           placement=PLACEMENT[opts.placement])
-            mininet.cli.CLI = ClusterCLI
+            mininet.wifi.cli.CLI_WiFi = ClusterCLI
 
         mn = Net(topo=topo,
                  switch=switch, accessPoint=ap, host=host, controller=controller,
@@ -483,7 +483,7 @@ class MininetRunner(object):
             mn.addNAT(*opts.nat_args, **opts.nat_kwargs).configDefault()
 
         # --custom files can set CLI or change mininet.cli.CLI
-        CLI = mininet.cli.CLI if CLI is None else CLI
+        CLI = mininet.wifi.cli.CLI_WiFi if CLI is None else CLI
 
         if opts.pre:
             CLI(mn, script=opts.pre)

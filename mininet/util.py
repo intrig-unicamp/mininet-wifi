@@ -12,6 +12,7 @@ import os
 from functools import partial
 
 from mininet.log import output, info, error, warn, debug
+
 # Command execution support
 
 def run(cmd):
@@ -176,11 +177,8 @@ def makeIntfPair(intf1, intf2, addr1=None, addr2=None, node1=None, node2=None,
         # Delete any old interfaces with the same names
         runCmd('ip link del ' + intf1)
         runCmd2('ip link del ' + intf2)
-
     # Create new pair
     netns = 1 if not node2 else node2.pid
-    
-    cmdOutput = ''
     if addr1 is None and addr2 is None:
         cmdOutput = runCmd('ip link add name %s '
                            'type veth peer name %s '
@@ -190,11 +188,10 @@ def makeIntfPair(intf1, intf2, addr1=None, addr2=None, node1=None, node2=None,
                            'address %s '
                            'type veth peer name %s '
                            'address %s '
-                           'netns %s' % 
+                           'netns %s' %
                            (intf1, addr1, intf2, addr2, netns))
-
     if cmdOutput:
-        raise Exception("Error creating interface pair (%s,%s): %s " % 
+        raise Exception("Error creating interface pair (%s,%s): %s " %
                         (intf1, intf2, cmdOutput))
 
 def retry(retries, delaySecs, fn, *args, **keywords):
@@ -216,25 +213,18 @@ def moveIntfNoRetry(intf, dstNode, printError=False):
        intf: string, interface
         dstNode: destination Node
         printError: if true, print error"""
-    from mininet.wifi.node import Station, Car, AP
-
-    if (isinstance(dstNode, Station) or isinstance(dstNode, Car)
-            or isinstance(dstNode, AP) and 'eth' not in str(intf)):
-        if isinstance(dstNode, Station) or isinstance(dstNode, Car):
-            return True
-    else:
-        intf = str(intf)
-        cmd = 'ip link set %s netns %s' % (intf, dstNode.pid)
-        cmdOutput = quietRun(cmd)
-        # If ip link set does not produce any output, then we can assume
-        # that the link has been moved successfully.
-        if cmdOutput:
-            if printError:
-                error('*** Error: moveIntf: ' + intf +
-                      ' not successfully moved to ' + dstNode.name + ':\n',
-                      cmdOutput)
-            return False
-        return True
+    intf = str( intf )
+    cmd = 'ip link set %s netns %s' % ( intf, dstNode.pid )
+    cmdOutput = quietRun( cmd )
+    # If ip link set does not produce any output, then we can assume
+    # that the link has been moved successfully.
+    if cmdOutput:
+        if printError:
+            error( '*** Error: moveIntf: ' + intf +
+                   ' not successfully moved to ' + dstNode.name + ':\n',
+                   cmdOutput )
+        return False
+    return True
 
 def moveIntf(intf, dstNode, printError=True,
              retries=3, delaySecs=0.001):
@@ -242,11 +232,8 @@ def moveIntf(intf, dstNode, printError=True,
        intf: string, interface
        dstNode: destination Node
        printError: if true, print error"""
-    from mininet.wifi.node import AP
-
-    if not isinstance(dstNode, AP):
-        retry(retries, delaySecs, moveIntfNoRetry, intf, dstNode,
-              printError=printError)
+    retry( retries, delaySecs, moveIntfNoRetry, intf, dstNode,
+           printError=printError )
 
 # Support for dumping network
 
@@ -490,11 +477,9 @@ def natural(text):
         return int(s) if s.isdigit() else s
     return [  num(s) for s in re.split(r'(\d+)', str(text)) ]
 
-
 def naturalSeq(t):
     "Natural sort key function for sequences"
     return [ natural(x) for x in t ]
-
 
 def numCores():
     "Returns number of CPU cores based on /proc/cpuinfo"
@@ -506,12 +491,10 @@ def numCores():
         return 0
     return numCores.ncores
 
-
 def irange(start, end):
     """Inclusive range from start to end (vs. Python insanity.)
        irange(1,5) -> 1, 2, 3, 4, 5"""
     return range(start, end + 1)
-
 
 def custom(cls, **params):
     "Returns customized constructor for class cls."
@@ -524,7 +507,6 @@ def custom(cls, **params):
         return cls(*args, **kwargs)
     customized.__name__ = 'custom(%s,%s)' % (cls, params)
     return customized
-
 
 def splitArgs(argstr):
     """Split argument string into usable python arguments
@@ -542,7 +524,6 @@ def splitArgs(argstr):
         kwargs[ key ] = makeNumeric(val)
     return fn, args, kwargs
 
-
 def customClass(classes, argStr):
     """Return customized class based on argStr
     The args and key/val pairs in argStr will be automatically applied
@@ -555,8 +536,8 @@ def customClass(classes, argStr):
                         % (cname, classes.keys()))
     if not args and not kwargs:
         return cls
-    return specialClass(cls, append=args, defaults=kwargs)
 
+    return specialClass(cls, append=args, defaults=kwargs)
 
 def specialClass(cls, prepend=None, append=None,
                  defaults=None, override=None):
@@ -587,6 +568,7 @@ def specialClass(cls, prepend=None, append=None,
             newparams.update(override)
             cls.__init__(self, *(list(prepend) + list(args) +
                                  list(append)), **newparams)
+
     CustomClass.__name__ = '%s%s' % (cls.__name__, defaults)
     return CustomClass
 
@@ -609,7 +591,6 @@ def ensureRoot():
         info("*** Mininet must run as root.\n")
         exit(1)
     return
-
 
 def waitListening(client=None, server='127.0.0.1', port=80, timeout=None):
     """Wait until server is listening on port.

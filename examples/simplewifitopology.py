@@ -5,11 +5,10 @@
 import sys
 
 from mininet.net import Mininet
-from mininet.node import  Controller
-from mininet.wifi.node import OVSKernelAP
-from mininet.cli import CLI
+from mininet.node import Controller
 from mininet.log import setLogLevel, info
-
+from mininet.wifi.node import OVSKernelAP
+from mininet.wifi.cli import CLI_WiFi
 
 def topology(isVirtual):
     "Create a network."
@@ -38,7 +37,7 @@ def topology(isVirtual):
     ap1.start([c0])
 
     info("*** Running CLI\n")
-    CLI(net)
+    CLI_WiFi(net)
 
     info("*** Stopping network\n")
     net.stop()

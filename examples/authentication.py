@@ -5,7 +5,7 @@
 from mininet.net import Mininet
 from mininet.node import Controller
 from mininet.wifi.node import UserAP
-from mininet.cli import CLI
+from mininet.wifi.cli import CLI_WiFi
 from mininet.log import setLogLevel, info
 
 
@@ -33,7 +33,7 @@ def topology():
     ap1.start([c0])
 
     info("*** Running CLI\n")
-    CLI(net)
+    CLI_WiFi(net)
 
     info("*** Stopping network\n")
     net.stop()

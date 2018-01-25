@@ -7,10 +7,9 @@ https://github.com/ramonfontes/opencapwap-mininet-wifi
 
 from mininet.net import Mininet
 from mininet.node import Controller
-from mininet.wifi.node import OVSKernelAP
-from mininet.cli import CLI
 from mininet.log import setLogLevel, info
-
+from mininet.wifi.node import OVSKernelAP
+from mininet.wifi.cli import CLI_WiFi
 
 def topology():
     "Create a network."
@@ -41,7 +40,7 @@ def topology():
     ap1.start([c1])
 
     info("*** Running CLI\n")
-    CLI(net)
+    CLI_WiFi(net)
 
     info("*** Stopping network\n")
     net.stop()
