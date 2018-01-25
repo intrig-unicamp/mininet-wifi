@@ -1,9 +1,7 @@
 """
-
     Mininet-WiFi: A simple networking testbed for Wireless OpenFlow/SDWN!
 
-author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
-
+    author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
 
 """
 
@@ -330,8 +328,7 @@ class mobility(object):
                             min_y=0, min_z=0, max_x=0, max_y=0, max_z=0, AC='',
                             DRAW=False, repetitions=1, rec_rssi=False,
                             **params):
-        """
-        Used when the position of each node is previously defined
+        """Used when the position of each node is previously defined
 
         :param init_time: time when the mobility starts
         :param final_time: time when the mobility stops
@@ -346,8 +343,7 @@ class mobility(object):
         :param MAX_X: Maximum value for X
         :param MAX_Y: Maximum value for Y
         :param MAX_Z: Maximum value for Z
-        :param AC: Association Control Method
-        """
+        :param AC: Association Control Method"""
         from mininet.wifi.node import Station
 
         cls.AC = AC

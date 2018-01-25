@@ -601,10 +601,6 @@ class Mininet_wifi(Mininet):
             self.links.append(link)
             return link
 
-    def autoAssociation(self):
-        "This is useful to make the users' life easier"
-        self.autoAssociation(self.stations, self.aps)
-
     def delLink(self, link):
         "Remove a link from this network"
         link.delete()
@@ -1248,18 +1244,6 @@ class Mininet_wifi(Mininet):
                 mobileNodes.append(node)
         return mobileNodes
 
-    def useExternalProgram(self, program, **params):
-        """Opens an external program
-
-        :params program: any program (useful for SUMO)
-        :params **params config_file: file configuration"""
-        params['stations'] = self.stations
-        params['aps'] = self.aps
-        params['cars'] = self.cars
-        params['program'] = program
-        self.disableAutoAssociation = True
-        self.useExternalProgram(**params)
-
     def setBgscan(self, module='simple', s_inverval=30, signal=-45,
                   l_interval=300, database='/etc/wpa_supplicant/network1.bgscan'):
         """Set Background scanning
@@ -1287,12 +1271,6 @@ class Mininet_wifi(Mininet):
         kwargs['noise_threshold'] = self.noise_threshold
         kwargs['cca_threshold'] = self.cca_threshold
         self.propagation_model(**kwargs)
-
-    def associationControl(self, ac):
-        """Defines an association control
-
-        :params ac: the association control"""
-        self.associationControl(ac)
 
     def configWirelessLinkStatus(self, src, dst, status):
         if status == 'down':
@@ -1849,12 +1827,6 @@ class Mininet_wifi(Mininet):
         node.params['txpower'].append(node.params['txpower'][0])
         node.func.append('wifiDirect')
 
-    @staticmethod
-    def randMac():
-        "Return a random, non-multicast MAC address"
-        return macColonHex(random.randint(1, 2 ** 48 - 1) & 0xfeffffffffff |
-                           0x020000000000)
-
     def checkAPAdhoc(self, stations, aps):
         """configure APAdhoc
 
@@ -2161,11 +2133,16 @@ class Mininet_wifi(Mininet):
             self.mobilityparam.setdefault('stationaryNodes', kwargs['stationaryNodes'])
         return self.mobilityparam
 
-    def useExternalProgram(self, **params):
+    def useExternalProgram(self, program, **params):
         """Opens an external program
 
         :params program: any program (useful for SUMO)
         :params **params config_file: file configuration"""
+        params['stations'] = self.stations
+        params['aps'] = self.aps
+        params['cars'] = self.cars
+        params['program'] = program
+        self.disableAutoAssociation = True
         self.isVanet = True
         for car in params['cars']:
             car.params['position'] = 0, 0, 0
