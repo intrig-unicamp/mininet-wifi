@@ -465,7 +465,6 @@ class MininetRunner(object):
                           placement=PLACEMENT[opts.placement])
             mininet.wifi.cli.CLI_wifi = ClusterCLI
 
-        print(Net)
         mn = Net(topo=topo,
                  switch=switch, accessPoint=ap, host=host, controller=controller,
                  link=link,
