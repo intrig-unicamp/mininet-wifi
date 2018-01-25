@@ -1,20 +1,18 @@
 #!/usr/bin/python
 
-"""
-Replaying Bandwidth
-"""
+"Replaying Bandwidth"
 
-from mininet.net import Mininet
 from mininet.node import Controller,OVSKernelSwitch
 from mininet.link import TCLink
 from mininet.log import setLogLevel, info
 from mininet.wifi.replaying import replayingBandwidth
-from mininet.wifi.cli import CLI_WiFi
+from mininet.wifi.cli import CLI_wifi
+from mininet.wifi.net import Mininet_wifi
 
 
 def topology():
     "Create a network."
-    net = Mininet( controller=Controller, link=TCLink, switch=OVSKernelSwitch )
+    net = Mininet_wifi( controller=Controller, link=TCLink, switch=OVSKernelSwitch )
 
     info("*** Creating nodes\n")
     sta1 = net.addStation( 'sta1', mac='00:00:00:00:00:02', ip='10.0.0.2/8' )
@@ -40,7 +38,7 @@ def topology():
     replayingBandwidth(net)
 
     info("*** Running CLI\n")
-    CLI_WiFi( net )
+    CLI_wifi(net)
 
     info("*** Stopping network\n")
     net.stop()

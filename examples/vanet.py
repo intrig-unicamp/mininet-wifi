@@ -5,16 +5,16 @@
 import os
 import random
 
-from mininet.net import Mininet
 from mininet.node import Controller, OVSKernelSwitch
 from mininet.log import setLogLevel, info
-from mininet.wifi.cli import CLI_WiFi
+from mininet.wifi.cli import CLI_wifi
+from mininet.wifi.net import Mininet_wifi
 
 
 def topology():
 
     "Create a network."
-    net = Mininet(controller=Controller, switch=OVSKernelSwitch,
+    net = Mininet_wifi(controller=Controller, switch=OVSKernelSwitch,
                   enable_wmediumd=True, enable_interference=True)
 
     info("*** Creating nodes\n")
@@ -101,7 +101,7 @@ def topology():
             j += 2
 
     info("*** Running CLI\n")
-    CLI_WiFi(net)
+    CLI_wifi(net)
 
     info("*** Stopping network\n")
     net.stop()

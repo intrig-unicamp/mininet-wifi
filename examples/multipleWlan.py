@@ -1,15 +1,17 @@
 #!/usr/bin/python
 
 'This example shows how to create multiple interfaces in stations'
+
 from __future__ import print_function
-from mininet.net import Mininet
 from mininet.node import OVSKernelSwitch, Controller
 from mininet.log import setLogLevel, info
-from mininet.wifi.cli import CLI_WiFi
+from mininet.wifi.cli import CLI_wifi
+from mininet.wifi.net import Mininet_wifi
+
 
 def topology():
     "Create a network."
-    net = Mininet(controller=Controller, switch=OVSKernelSwitch)
+    net = Mininet_wifi(controller=Controller, switch=OVSKernelSwitch)
 
     info("*** Creating nodes\n")
     sta1 = net.addStation('sta1', wlans=3)  # 3 wlan added
@@ -35,7 +37,7 @@ def topology():
     sta2.setIP('192.168.10.2/24', intf="sta2-wlan0")
 
     info("*** Running CLI")
-    CLI_WiFi(net)
+    CLI_wifi(net)
 
     info("*** Stopping network\n")
     net.stop()

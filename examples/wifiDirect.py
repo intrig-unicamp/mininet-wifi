@@ -4,15 +4,15 @@
 
 from time import sleep
 
-from mininet.net import Mininet
 from mininet.log import setLogLevel, info
 from mininet.wifi.link import wmediumd
-from mininet.wifi.cli import CLI_WiFi
+from mininet.wifi.cli import CLI_wifi
+from mininet.wifi.net import Mininet_wifi
 
 
 def topology():
     "Create a network."
-    net = Mininet(link=wmediumd, enable_interference=True,
+    net = Mininet_wifi(link=wmediumd, enable_interference=True,
                   configureWiFiDirect=True, disableAutoAssociation=True)
 
     info("*** Creating nodes\n")
@@ -47,7 +47,7 @@ def topology():
              % (sta1.params['mac'][1], pin))
 
     info("*** Running CLI\n")
-    CLI_WiFi(net)
+    CLI_wifi(net)
 
     info("*** Stopping network\n")
     net.stop()

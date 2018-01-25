@@ -8,11 +8,10 @@ import re
 import subprocess
 import logging
 from mininet.log import debug, info, error
-from mininet.wifi.node import Station, Car
 
 
 class module(object):
-    """ wireless module """
+    "wireless module"
 
     wlan_list = []
     hwsim_ids = []
@@ -202,8 +201,8 @@ class module(object):
         :param nodes: list of wireless nodes
         :param physicalWlans: list of Physical Wlans
         :param phys: list of phys
-        :param **params: ifb -  Intermediate Functional Block device
-        """
+        :param **params: ifb -  Intermediate Functional Block device"""
+        from mininet.wifi.node import Station, Car
 
         log_filename = '/tmp/mininetwifi-mac80211_hwsim.log'
         cls.logging_to_file("%s" % log_filename)

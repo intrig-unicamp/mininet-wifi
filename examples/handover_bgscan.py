@@ -10,16 +10,17 @@ mobility_domain='a1b2'
 e.g. ap1 = net.addAccessPoint('ap1', ..., ieee80211r='yes',
 mobility_domain='a1b2',...)"""
 
-from mininet.net import Mininet
 from mininet.node import Controller
 from mininet.log import setLogLevel, info
 from mininet.wifi.node import UserAP
 from mininet.wifi.link import wmediumd
-from mininet.wifi.cli import CLI_WiFi
+from mininet.wifi.cli import CLI_wifi
+from mininet.wifi.net import Mininet_wifi
+
 
 def topology():
     "Create a network."
-    net = Mininet(controller=Controller, accessPoint=UserAP,
+    net = Mininet_wifi(controller=Controller, accessPoint=UserAP,
                   link=wmediumd, enable_interference=True)
 
     info("*** Creating nodes\n")
@@ -58,7 +59,7 @@ def topology():
     ap3.start([c1])
 
     info("*** Running CLI\n")
-    CLI_WiFi(net)
+    CLI_wifi(net)
 
     info("*** Stopping network\n")
     net.stop()

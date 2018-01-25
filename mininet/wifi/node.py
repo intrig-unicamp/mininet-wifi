@@ -23,14 +23,12 @@ from mininet.util import (quietRun, errRun, isShellBuiltin)
 from mininet.moduledeps import moduleDeps, pathCheck, TUN
 from mininet.link import Link, Intf, OVSIntf
 from mininet.wifi.link import TCWirelessLink, TCLinkWirelessAP,\
-    TCLinkWirelessStation
+    TCLinkWirelessStation, Association
 from mininet.wifi.wmediumdConnector import WmediumdServerConn, \
     WmediumdPosition, WmediumdTXPower, WmediumdGain, WmediumdHeight
 from mininet.wifi.propagationModels import distanceByPropagationModel, \
     powerForRangeByPropagationModel, propagationModel
-from mininet.wifi.mobility import mobility
 from mininet.wifi.link import wirelessLink
-from mininet.wifi.plot import plot2d, plot3d
 from mininet.wifi.util import moveIntf
 from mininet.utils.private_folder_manager import PrivateFolderManager
 
@@ -137,6 +135,11 @@ class WiFiNode(object):
         # +m: disable job control notification
         self.cmd('unset HISTFILE; stty -echo; set +m')
 
+    def plot(self, position):
+        self.params['position'] = position.split(',')
+        self.params['range'] = [0]
+        self.plot = True
+
     def setMeshIface(self, iface, ssid='', **params):
         wlan = self.params['wlan'].index(iface)
         if self.func[wlan] == 'adhoc':
@@ -222,8 +225,13 @@ class WiFiNode(object):
                        % (iface, self.params['associatedTo'][wlan],
                           str(self.params['frequency'][wlan]).replace('.', '')))
 
+    def configLinks(self):
+        "Applies channel params and handover"
+        from mininet.wifi.mobility import mobility
+        mobility.configLinks(self)
+
     def getMAC(self, iface):
-        """ get Mac Address of any Interface """
+        "get Mac Address of any Interface"
         _macMatchRegex = re.compile(r'..:..:..:..:..:..')
         debug('getting mac address from %s\n' % iface)
         macaddr = str(self.pexec('ip addr show %s' % iface))
@@ -232,7 +240,7 @@ class WiFiNode(object):
         return mac[0]
 
     def ifbSupport(self, wlan, ifbID):
-        """Support to Intermediate Functional Block (IFB) Devices"""
+        "Support to Intermediate Functional Block (IFB) Devices"
         os.system('ip link set dev ifb%s netns %s' % (ifbID, self.pid))
         self.cmd('ip link set ifb%s up' % ifbID)
         self.cmd('tc qdisc add dev %s handle ffff: ingress' %
@@ -255,20 +263,9 @@ class WiFiNode(object):
 
         return int(value.dist)
 
-    def updateGraph(self):
-        "Update the Graph"
-        try:
-            cls = plot2d
-            if plot3d.is3d:
-                cls = plot3d
-            if cls.fig_exists():
-                cls.graphUpdate(self)
-                cls.graphPause()
-        except:
-            pass
-
     def setRange(self, value, intf=None):
         "Set Signal Range"
+        from mininet.wifi.plot import plot2d
         wlan = 0
         if intf is None:
             wlan = self.params['wlan'].index(intf)
@@ -279,10 +276,20 @@ class WiFiNode(object):
             self.setTxPower(value, intf=self.params['wlan'][wlan])
         if self.isStationary:
             self.updateGraph()
-            mobility.parameters_()
+            self.configLinks()
         else:
             if plot2d.fig_exists():
                 plot2d.updateCircleRadius(self)
+
+    def updateGraph(self):
+        "Update the Graph"
+        from mininet.wifi.plot import plot2d, plot3d
+        cls = plot2d
+        if plot3d.is3d:
+            cls = plot3d
+        if cls.fig_exists():
+            cls.graphUpdate(self)
+            cls.graphPause()
 
     def setPosition(self, pos):
         "Set Position"
@@ -291,19 +298,14 @@ class WiFiNode(object):
         if isinstance(self, Car):
             car = self.params['carsta']
             car.params['position'] = self.params['position']
-        cls = plot2d
-        if plot3d.is3d:
-            cls = plot3d
-        if cls.fig_exists():
-            cls.graphUpdate(self)
-            cls.graphPause()
+        self.updateGraph()
 
         if WmediumdServerConn.interference_enabled:
             self.set_position_wmediumd()
             if isinstance(self, Car):
                 self = self.params['carsta']
                 self.set_position_wmediumd()
-        mobility.parameters_(self)
+        self.configLinks()
 
     def setAntennaGain(self, value, intf=None, setParam=True):
         "Set Antenna Gain"
@@ -311,14 +313,14 @@ class WiFiNode(object):
         self.params['antennaGain'][wlan] = int(value)
         self.setGainWmediumd(wlan)
         if setParam:
-            mobility.parameters_(self)
+            self.configLinks()
 
     def setAntennaHeight(self, value, intf=None):
         "Set Antenna Height"
         wlan = self.params['wlan'].index(intf)
         self.params['antennaHeight'][wlan] = int(value)
         self.setHeightWmediumd(wlan)
-        mobility.parameters_(self)
+        self.configLinks()
 
     def setChannel(self, value, intf=None):
         "Set Channel"
@@ -348,7 +350,7 @@ class WiFiNode(object):
         self.params['txpower'][wlan] = value
         self.setTXPowerWmediumd(wlan)
         if setParam:
-            mobility.parameters_(self)
+            self.configLinks()
 
     def get_freq(self, wlan):
         """Gets frequency based on channel number
@@ -546,10 +548,10 @@ class WiFiNode(object):
                     elif ap.params['encrypt'][0] == 'wep':
                         self.associate_wep(ap, wlan, ap_wlan=0)
                 wirelessLink(sta, ap, wlan, 0, dist)
-                mobility.update_association(sta, ap, wlan)
+                Association.update_association(sta, ap, wlan)
             else:
                 info ('%s is already connected!\n' % ap)
-            mobility.parameters_(self)
+            self.configLinks()
         else:
             info("%s is out of range!" % (ap))
 
@@ -1040,14 +1042,16 @@ class WiFiNode(object):
         pathCheck('mnexec', 'ip addr', moduleName='Mininet')
 
     def stop_(self):
-        """Stops hostapd"""
+        "Stops hostapd"
+        from mininet.wifi.plot import plot2d
         process = 'mn%d_%s' % (os.getpid(), self.name)
         os.system('pkill -f \'hostapd -B %s\'' % process)
         if plot2d.fig_exists():
             plot2d.updateCircleColor(self, 'w')
 
     def start_(self):
-        """Starts hostapd"""
+        "Starts hostapd"
+        from mininet.wifi.plot import plot2d
         process = 'mn%d_%s' % (os.getpid(), self.name)
         os.system('hostapd -B %s-wlan1.apconf' % process)
         if plot2d.fig_exists():

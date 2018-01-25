@@ -24,7 +24,8 @@ from mininet.clean import cleanup
 from mininet.wifi.clean import cleanup_wifi
 import mininet.wifi.cli
 from mininet.log import lg, LEVELS, info, debug, warn, error, output
-from mininet.net import Mininet, MininetWithControlNet, VERSION
+from mininet.net import MininetWithControlNet, VERSION
+from mininet.wifi.net import Mininet_wifi as Mininet
 from mininet.node import (Host, CPULimitedHost, Controller, OVSController,
                           Ryu, NOX, RemoteController, findController,
                           DefaultController, NullController,
@@ -461,7 +462,7 @@ class MininetRunner(object):
             host, switch, ap, link = RemoteHost, RemoteOVSSwitch, RemoteOVSAP, RemoteLink
             Net = partial(MininetCluster, servers=servers,
                           placement=PLACEMENT[opts.placement])
-            mininet.wifi.cli.CLI_WiFi = ClusterCLI
+            mininet.wifi.cli.CLI_wifi = ClusterCLI
 
         mn = Net(topo=topo,
                  switch=switch, accessPoint=ap, host=host, controller=controller,
@@ -483,7 +484,7 @@ class MininetRunner(object):
             mn.addNAT(*opts.nat_args, **opts.nat_kwargs).configDefault()
 
         # --custom files can set CLI or change mininet.cli.CLI
-        CLI = mininet.wifi.cli.CLI_WiFi if CLI is None else CLI
+        CLI = mininet.wifi.cli.CLI_wifi if CLI is None else CLI
 
         if opts.pre:
             CLI(mn, script=opts.pre)

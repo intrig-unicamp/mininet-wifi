@@ -4,16 +4,16 @@
 Replaying RSSI
 """
 
-from mininet.net import Mininet
 from mininet.node import Controller,OVSKernelSwitch
 from mininet.log import setLogLevel, info
 from mininet.wifi.replaying import replayingRSSI
-from mininet.wifi.cli import CLI_WiFi
+from mininet.wifi.cli import CLI_wifi
+from mininet.wifi.net import Mininet_wifi
 
 
 def topology():
     "Create a network."
-    net = Mininet( controller=Controller, switch=OVSKernelSwitch )
+    net = Mininet_wifi( controller=Controller, switch=OVSKernelSwitch )
 
     info("*** Creating nodes\n")
     sta1 = net.addStation( 'sta1', mac='00:00:00:00:00:02', ip='10.0.0.2/8' )
@@ -42,7 +42,7 @@ def topology():
     replayingRSSI(net)
 
     info("*** Running CLI\n")
-    CLI_WiFi( net )
+    CLI_wifi(net)
 
     info("*** Stopping network\n")
     net.stop()

@@ -974,13 +974,11 @@ class Association(object):
 
     @classmethod
     def associate_noEncrypt(cls, sta, ap, wlan, ap_wlan):
-        """
-        Association when there is no encrypt
+        """Association when there is no encrypt
 
         :param sta: station
         :param ap: access point
-        :param wlan: wlan ID
-        """
+        :param wlan: wlan ID"""
         #debug('iw dev %s connect %s %s\n'
         #      % (sta.params['wlan'][wlan], ap.params['ssid'][0], ap.params['mac'][0]))
         #sta.pexec('iw dev %s connect %s %s'
@@ -993,13 +991,11 @@ class Association(object):
 
     @classmethod
     def associate_infra(cls, sta, ap, wlan, ap_wlan):
-        """
-        Association when infra
+        """Association when infra
 
         :param sta: station
         :param ap: access point
-        :param wlan: wlan ID
-        """
+        :param wlan: wlan ID"""
         if 'ieee80211r' in ap.params and ap.params['ieee80211r'] == 'yes':
             if sta.params['associatedTo'][wlan] == '':
                 cls.associate_wpa(sta, ap, wlan, ap_wlan)
@@ -1022,13 +1018,11 @@ class Association(object):
 
     @classmethod
     def wpaFile(cls, sta, ap, wlan, ap_wlan):
-        """
-        creates a wpa config file
+        """creates wpa config file
 
         :param sta: station
         :param ap: access point
-        :param wlan: wlan ID
-        """
+        :param wlan: wlan ID"""
         if 'config' not in ap.params or 'config' not in sta.params:
             if 'authmode' not in ap.params:
                 if 'passwd' not in sta.params:
@@ -1066,13 +1060,11 @@ class Association(object):
 
     @classmethod
     def associate_wpa(cls, sta, ap, wlan, ap_wlan):
-        """
-        Association when WPA
+        """Association when WPA
 
         :param sta: station
         :param ap: access point
-        :param wlan: wlan ID
-        """
+        :param wlan: wlan ID"""
         pidfile = "mn%d_%s_%s_wpa.pid" % (os.getpid(), sta.name, wlan)
         cls.wpaFile(sta, ap, wlan, ap_wlan)
         debug("wpa_supplicant -B -Dnl80211 -P %s -i %s -c %s_%s.staconf\n"
@@ -1089,16 +1081,27 @@ class Association(object):
 
     @classmethod
     def associate_wep(cls, sta, ap, wlan, ap_wlan):
-        """
-        Association when WEP
+        """Association when WEP
 
         :param sta: station
         :param ap: access point
-        :param wlan: wlan ID
-        """
+        :param wlan: wlan ID"""
         if 'passwd' not in sta.params:
             passwd = ap.params['passwd'][ap_wlan]
         else:
             passwd = sta.params['passwd'][wlan]
         sta.pexec('iw dev %s connect %s key d:0:%s' \
                 % (sta.params['wlan'][wlan], ap.params['ssid'][ap_wlan], passwd))
+
+    @classmethod
+    def update_association(cls, sta, ap, wlan):
+        """Updates attributes regarding association
+
+        :param sta: station
+        :param ap: access point
+        :param wlan: wlan ID"""
+        if sta.params['associatedTo'][wlan] != '' \
+                and sta in sta.params['associatedTo'][wlan].params['associatedStations']:
+            sta.params['associatedTo'][wlan].params['associatedStations'].remove(sta)
+        cls.updateParams(sta, ap, wlan)
+        sta.params['associatedTo'][wlan] = ap

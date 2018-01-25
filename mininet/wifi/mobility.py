@@ -274,25 +274,9 @@ class mobility(object):
             if ap not in sta.params['associatedTo']:
                 Association.printCon = False
                 Association.associate_infra(sta, ap, wlan, ap_wlan)
-                cls.update_association(sta, ap, wlan)
-
-    @classmethod
-    def update_association(cls, sta, ap, wlan):
-        """
-        Updates attributes regarding association
-
-        :param sta: station
-        :param ap: access point
-        :param wlan: wlan ID
-        """
-        if sta.params['associatedTo'][wlan] != '' \
-                and sta in sta.params['associatedTo'][wlan].params['associatedStations']:
-            sta.params['associatedTo'][wlan].params['associatedStations'].remove(sta)
-        Association.updateParams(sta, ap, wlan)
-        sta.params['associatedTo'][wlan] = ap
-
-        if WmediumdServerConn.interference_enabled:
-            cls.update_wmediumd_pos(sta)
+                Association.update_association(sta, ap, wlan)
+                if WmediumdServerConn.interference_enabled:
+                    cls.update_wmediumd_pos(sta)
 
     @classmethod
     def update_wmediumd_pos(cls, node):
@@ -562,12 +546,10 @@ class mobility(object):
 
     @classmethod
     def startMobilityModelNoGraph(cls, mob, nodes, current_time, final_time):
-        """
-        Useful when graph is not required
+        """Useful when graph is not required
 
         :param mob: mobility params
-        :param nodes: list of nodes
-        """
+        :param nodes: list of nodes"""
         for xy in mob:
             for idx, node in enumerate(nodes):
                 node.params['position'] = '%.2f' % xy[idx][0], '%.2f' \
@@ -584,7 +566,7 @@ class mobility(object):
                 pass
 
     @classmethod
-    def parameters_(cls, node=None):
+    def configLinks(cls, node=None):
         "Applies channel params and handover"
         from mininet.wifi.node import AP
 

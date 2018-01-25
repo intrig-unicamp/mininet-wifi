@@ -169,11 +169,6 @@ class Node( object ):
         # +m: disable job control notification
         self.cmd( 'unset HISTFILE; stty -echo; set +m' )
 
-    def plot(self, position):
-        self.params['position'] = position.split(',')
-        self.params['range'] = [0]
-        self.plot = True
-
     def _popen( self, cmd, **params ):
         """Internal method: spawn and return a process
             cmd: command to run (list)

@@ -11,14 +11,15 @@ sta1 ----- sta2"""
 
 import sys
 
-from mininet.net import Mininet
 from mininet.log import setLogLevel, info
 from mininet.wifi.link import wmediumd
-from mininet.wifi.cli import CLI_WiFi
+from mininet.wifi.cli import CLI_wifi
+from mininet.wifi.net import Mininet_wifi
+
 
 def topology(mobility):
     "Create a network."
-    net = Mininet(link=wmediumd, enable_interference=True)
+    net = Mininet_wifi(link=wmediumd, enable_interference=True)
 
     info("*** Creating nodes\n")
     if mobility:
@@ -50,7 +51,7 @@ def topology(mobility):
     net.build()
 
     info("*** Running CLI\n")
-    CLI_WiFi(net)
+    CLI_wifi(net)
 
     info("*** Stopping network\n")
     net.stop()

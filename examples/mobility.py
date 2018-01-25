@@ -4,15 +4,16 @@
 
 import sys
 
-from mininet.net import Mininet
 from mininet.node import Controller
 from mininet.log import setLogLevel, info
 from mininet.wifi.node import OVSKernelAP
-from mininet.wifi.cli import CLI_WiFi
+from mininet.wifi.cli import CLI_wifi
+from mininet.wifi.net import Mininet_wifi
+
 
 def topology(coord):
     "Create a network."
-    net = Mininet(controller=Controller, accessPoint=OVSKernelAP)
+    net = Mininet_wifi(controller=Controller, accessPoint=OVSKernelAP)
 
     info("*** Creating nodes\n")
     h1 = net.addHost('h1', mac='00:00:00:00:00:01', ip='10.0.0.1/8')
@@ -53,7 +54,7 @@ def topology(coord):
     ap1.start([c1])
 
     info("*** Running CLI\n")
-    CLI_WiFi(net)
+    CLI_wifi(net)
 
     info("*** Stopping network\n")
     net.stop()

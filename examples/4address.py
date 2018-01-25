@@ -3,17 +3,16 @@
 """This example shows how to enable 4-address
 Warning: It works only when network manager is stopped"""
 
-from mininet.net import Mininet
 from mininet.node import Controller
 from mininet.log import setLogLevel, info
 from mininet.wifi.node import OVSKernelAP
 from mininet.wifi.link import wmediumd
-from mininet.wifi.cli import CLI_WiFi
-
+from mininet.wifi.cli import CLI_wifi
+from mininet.wifi.net import Mininet_wifi
 
 def topology():
     "Create a network."
-    net = Mininet( controller=Controller, accessPoint=OVSKernelAP,
+    net = Mininet_wifi( controller=Controller, accessPoint=OVSKernelAP,
                    link=wmediumd, enable_interference=False,
                    configure4addr=True, disableAutoAssociation=True )
 
@@ -59,7 +58,7 @@ def topology():
     ap3.start( [c0] )
 
     info("*** Running CLI\n")
-    CLI_WiFi( net )
+    CLI_wifi(net)
 
     info("*** Stopping network\n")
     net.stop()

@@ -3,7 +3,7 @@ import sys
 from mininet.cli import CLI
 from mininet.log import output, error
 
-class CLI_WiFi(CLI):
+class CLI_wifi(CLI):
     "Simple command-line interface to talk to nodes."
 
     prompt = 'mininet-wifi> '
