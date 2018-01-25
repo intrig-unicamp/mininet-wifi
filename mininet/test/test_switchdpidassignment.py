@@ -55,7 +55,7 @@ class TestSwitchDpidAssignmentOVS(unittest.TestCase):
         16 - len(hex of first string of contiguous digits passed in ap
         name) 0's followed by hex of first string of contiguous digits passed
         in ap name."""
-        ap = Mininet-wifi(topo=Topo(), accessPoint=self.accessPointClass,
+        ap = Mininet_wifi(topo=Topo(), accessPoint=self.accessPointClass,
                      station=Station, controller=Controller,
                      isWiFi=True).addAccessPoint('ap123')
 

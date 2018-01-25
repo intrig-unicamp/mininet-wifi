@@ -24,8 +24,9 @@ from mininet.clean import cleanup
 from mininet.wifi.clean import cleanup_wifi
 import mininet.wifi.cli
 from mininet.log import lg, LEVELS, info, debug, warn, error, output
-from mininet.net import MininetWithControlNet, VERSION
-from mininet.wifi.net import Mininet_wifi as Mininet
+from mininet.net import VERSION
+from mininet.wifi.net import MininetWithControlNet
+from mininet.wifi.net import Mininet_wifi
 from mininet.node import (Host, CPULimitedHost, Controller, OVSController,
                           Ryu, NOX, RemoteController, findController,
                           DefaultController, NullController,
@@ -455,7 +456,7 @@ class MininetRunner(object):
         if inNamespace and cluster:
             info("Please specify --innamespace OR --cluster\n")
             exit()
-        Net = MininetWithControlNet if opts.innamespace else Mininet
+        Net = MininetWithControlNet if opts.innamespace else Mininet_wifi
         if opts.cluster:
             warn('*** WARNING: Experimental cluster mode!\n'
                  '*** Using RemoteHost, RemoteOVSSwitch, RemoteLink\n')
@@ -464,6 +465,7 @@ class MininetRunner(object):
                           placement=PLACEMENT[opts.placement])
             mininet.wifi.cli.CLI_wifi = ClusterCLI
 
+        print(Net)
         mn = Net(topo=topo,
                  switch=switch, accessPoint=ap, host=host, controller=controller,
                  link=link,

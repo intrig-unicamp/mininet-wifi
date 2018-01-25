@@ -753,7 +753,7 @@ class Mininet_wifi(Mininet):
                 self.start_mobility(**self.mobilityKwargs)
             else:
                 self.mobilityKwargs['plotNodes'] = self.plot_nodes()
-                self.stopMobility_(**self.mobilityKwargs)
+                self.stop_mobility(**self.mobilityKwargs)
 
         if not self.isMobility \
                 and self.getPropagationModel() is \
@@ -1235,8 +1235,8 @@ class Mininet_wifi(Mininet):
         kwargs['aps'] = self.aps
         self.setMobilityParams(**kwargs)
 
-    def stopMobility_(self, **kwargs):
-        'Stops Mobility'
+    def stop_mobility(self, **kwargs):
+        'Set Mobility Args'
         self.mobilityKwargs.update(kwargs)
         self.setMobilityParams(**kwargs)
 
@@ -2423,7 +2423,7 @@ class Mininet_wifi(Mininet):
         module.stop()  # Stopping WiFi Module
 
 
-class MininetWithControlNet(Mininet):
+class MininetWithControlNet(Mininet_wifi):
     """Control network support:
        Create an explicit control network. Currently this is only
        used/usable with the user datapath.
