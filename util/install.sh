@@ -137,7 +137,7 @@ function mn_deps {
     else
         $install gcc make socat psmisc xterm ssh iperf iproute telnet \
             python-setuptools cgroup-bin ethtool help2man \
-            pyflakes pylint pep8 python3-pexpect python-pip
+            pyflakes pylint pep8 python-pexpect python-pip
     fi
 
     echo "Installing Mininet core"
