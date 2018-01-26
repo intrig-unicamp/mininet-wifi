@@ -113,7 +113,7 @@ class testWalkthrough(unittest.TestCase):
         p = pexpect.spawn('mn --wifi')
         p.expect(self.prompt)
         sleep(3)
-        p.sendline('sta1 python3 -m http.server 80 &')
+        p.sendline('sta1 python -m http.server 80 &')
         p.expect(self.prompt)
         p.sendline(' sta2 wget -O - sta1')
         p.expect('200 OK')
@@ -223,7 +223,7 @@ class testWalkthrough(unittest.TestCase):
         c = pexpect.spawn('mn -c')
         c.wait()
         p = pexpect.spawn(
-            'python3 examples/mobility.py')
+            'python examples/mobility.py')
         sleep(3)
         p.sendline('sta1 ping -c 1 sta2')
         p.expect('1 packets transmitted, 1 received')
@@ -236,7 +236,7 @@ class testWalkthrough(unittest.TestCase):
         c = pexpect.spawn('mn -c')
         c.wait()
         p = pexpect.spawn(
-            'python3 examples/simplewifitopology.py -v')
+            'python examples/simplewifitopology.py -v')
         sleep(3)
         wlans = [ 'sta1-wlan0', 'sta1-wlan01', 'sta1-wlan02', self.prompt ]
         p.sendline('py sta1.params[\'wlan\']')
@@ -249,7 +249,7 @@ class testWalkthrough(unittest.TestCase):
         c = pexpect.spawn('mn -c')
         c.wait()
         p = pexpect.spawn(
-            'python3 examples/vanet.py')
+            'python examples/vanet.py')
         sleep(8)
         p.expect(self.prompt)
         p.sendline('exit')
@@ -260,7 +260,7 @@ class testWalkthrough(unittest.TestCase):
         c = pexpect.spawn('mn -c')
         c.wait()
         p = pexpect.spawn(
-            'python3 examples/propagationModel.py')
+            'python examples/propagationModel.py')
         sleep(3)
         p.sendline('sta1 ping -c 1 sta2')
         p.expect('1 packets transmitted, 1 received')
@@ -273,7 +273,7 @@ class testWalkthrough(unittest.TestCase):
         c = pexpect.spawn('mn -c')
         c.wait()
         p = pexpect.spawn(
-            'python3 examples/mesh.py')
+            'python examples/mesh.py')
         sleep(2)
         p.sendline('sta1 ping -c 1 sta2')
         p.expect('1 packets transmitted, 1 received')
@@ -289,7 +289,7 @@ class testWalkthrough(unittest.TestCase):
         c = pexpect.spawn('mn -c')
         c.wait()
         p = pexpect.spawn(
-            'python3 examples/adhoc.py')
+            'python examples/adhoc.py')
         sleep(12)
         p.sendline('sta1 ping -c 1 sta2')
         p.expect('1 packets transmitted, 1 received')
@@ -303,7 +303,7 @@ class testWalkthrough(unittest.TestCase):
         p.sendline('exit')
         p.wait()
         p = pexpect.spawn(
-            'python3 examples/adhoc.py -a')
+            'python examples/adhoc.py -a')
         sleep(3)
         p.sendline('py sta1.params[\'range\']')
         p.expect('100')
@@ -316,7 +316,7 @@ class testWalkthrough(unittest.TestCase):
         c = pexpect.spawn('mn -c')
         c.wait()
         p = pexpect.spawn(
-            'python3 examples/authentication.py')
+            'python examples/authentication.py')
         sleep(3)
         p.sendline('sta1 ping -c1 sta2')
         p.expect('1 packets transmitted, 1 received')
@@ -329,7 +329,7 @@ class testWalkthrough(unittest.TestCase):
         c = pexpect.spawn('mn -c')
         c.wait()
         p = pexpect.spawn(
-            'python3 examples/replaying/replayingMobility.py')
+            'python examples/replaying/replayingMobility.py')
         sleep(15)
         p.sendline('sta1 ping -c1 sta2')
         p.expect('1 packets transmitted, 1 received')
@@ -345,7 +345,7 @@ class testWalkthrough(unittest.TestCase):
         c = pexpect.spawn('mn -c')
         c.wait()
         p = pexpect.spawn(
-            'python3 examples/handover.py')
+            'python examples/handover.py')
         sleep(2)
         p.sendline('sta1 iw dev sta1-wlan0 info | grep ssid')
         p.expect('ssid-ap1')
@@ -362,7 +362,7 @@ class testWalkthrough(unittest.TestCase):
         c = pexpect.spawn('mn -c')
         c.wait()
         p = pexpect.spawn(
-            'python3 examples/multipleWlan.py')
+            'python examples/multipleWlan.py')
         sleep(3)
         p.sendline('sta1 ip addr show sta1-wlan0')
         p.expect('sta1-wlan0')
@@ -382,7 +382,7 @@ class testWalkthrough(unittest.TestCase):
         c = pexpect.spawn('mn -c')
         c.wait()
         p = pexpect.spawn(
-            'python3 examples/position.py')
+            'python examples/position.py')
         sleep(3)
         p.sendline('sta1 ping -c 1 sta2')
         p.expect('1 packets transmitted, 1 received')
@@ -398,7 +398,7 @@ class testWalkthrough(unittest.TestCase):
             'service network-manager stop')
         n.wait()
         p = pexpect.spawn(
-            'python3 examples/handover_bgscan.py')
+            'python examples/handover_bgscan.py')
         sleep(5)
         p.sendline('sta1 iw dev sta1-wlan0 link | grep Connected')
         p.expect('00:00:00:00:00:01')
@@ -419,7 +419,7 @@ class testWalkthrough(unittest.TestCase):
             'service network-manager stop')
         n.wait()
         p = pexpect.spawn(
-            'python3 examples/4address.py')
+            'python examples/4address.py')
         sleep(3)
         p.sendline('sta1 ping -c 1 sta2')
         p.expect('1 packets transmitted, 1 received')
@@ -440,7 +440,7 @@ class testWalkthrough(unittest.TestCase):
         pexpect.spawn(
             'service network-manager stop')
         p = pexpect.spawn(
-            'python3 examples/forwardingBySSID.py')
+            'python examples/forwardingBySSID.py')
         sleep(3)
         p.sendline('sta1 iw dev sta1-wlan0 info | grep ssid')
         p.expect('ssid1')
@@ -465,7 +465,7 @@ class testWalkthrough(unittest.TestCase):
         c = pexpect.spawn('mn -c')
         c.wait()
         p = pexpect.spawn(
-            'python3 examples/meshAP.py')
+            'python examples/meshAP.py')
         sleep(3)
         p.sendline('sta1 ping -c1 sta2')
         p.expect('1 packets transmitted, 1 received')
@@ -478,7 +478,7 @@ class testWalkthrough(unittest.TestCase):
         c = pexpect.spawn('mn -c')
         c.wait()
         p = pexpect.spawn(
-            'python3 examples/wmediumd_error_prob.py')
+            'python examples/wmediumd_error_prob.py')
         sleep(6)
         p.sendline('sta1 ping -c1 sta2')
         p.expect('1 packets transmitted, 1 received')
@@ -495,7 +495,7 @@ class testWalkthrough(unittest.TestCase):
         c = pexpect.spawn('mn -c')
         c.wait()
         p = pexpect.spawn(
-            'python3 examples/sta_ap_mode.py')
+            'python examples/sta_ap_mode.py')
         sleep(5)
         p.sendline('sta1 iw dev sta1-wlan0 link | grep Connected')
         p.expect('02:00:00:00:01:00')
@@ -553,7 +553,7 @@ class testWalkthrough(unittest.TestCase):
         p.sendline('exit')
         p.wait()
         p = pexpect.spawn(
-            'python3 examples/sta_ap_mode.py -m')
+            'python examples/sta_ap_mode.py -m')
         sleep(10)
         p.sendline('py sta1.params[\'associatedTo\']')
         p.expect('Station ap2: ap2-wlan0:192.168.1.10')
