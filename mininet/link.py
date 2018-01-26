@@ -108,14 +108,14 @@ class Intf( object ):
         # backgrounded output from the cli.
         ipAddr, _err, _exitCode = self.node.pexec(
             'ip addr show %s' % self.name)
-        ips = self._ipMatchRegex.findall(ipAddr.decode('utf-8'))
+        ips = self._ipMatchRegex.findall(ipAddr)
         self.ip = ips[0] if ips else None
         return self.ip
 
     def updateMAC(self):
         "Return updated MAC address based on ip addr"
         ipAddr = self.ipAddr()
-        macs = self._macMatchRegex.findall(ipAddr.decode('utf-8'))
+        macs = self._macMatchRegex.findall(ipAddr)
         self.mac = macs[0] if macs else None
         return self.mac
 
@@ -127,7 +127,7 @@ class Intf( object ):
         "Return IP address and MAC address based on ipAddr."
         ipAddr = self.ipAddr()
         ips = self._ipMatchRegex.findall(ipAddr)
-        macs = self._macMatchRegex.findall(ipAddr.decode('utf-8'))
+        macs = self._macMatchRegex.findall(ipAddr)
         self.ip = ips[0] if ips else None
         self.mac = macs[0] if macs else None
         return self.ip, self.mac

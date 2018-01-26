@@ -207,7 +207,7 @@ class MininetRunner(object):
             customs = {}
             if os.path.isfile(fileName):
                 exec (compile(open(fileName, "rb").read(), fileName, 'exec'), customs, customs)
-                for name, val in customs.items():
+                for name, val in customs.iteritems():
                     self.setCustom(name, val)
             else:
                 raise Exception('could not find custom file: %s' % fileName)

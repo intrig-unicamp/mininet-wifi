@@ -94,11 +94,11 @@ class Cleanup( object ):
         # Delete blocks of links
         n = 1000  # chunk size
         for i in range( 0, len( links ), n ):
-            cmd = ';'.join( 'ip link del %s' % link.decode('utf-8')
+            cmd = ';'.join( 'ip link del %s' % link
                             for link in links[ i : i + n ] )
             sh( '( %s ) 2> /dev/null' % cmd )
 
-        if 'tap9' in sh( 'ip link show' ).decode('utf-8'):
+        if 'tap9' in sh( 'ip link show' ):
             info( "*** Removing tap9 - assuming it's from cluster edition\n" )
             sh( 'ip link del tap9' )
 

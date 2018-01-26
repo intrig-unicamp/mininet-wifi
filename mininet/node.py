@@ -193,7 +193,7 @@ class Node( object ):
         count = len( self.readbuf )
         if count < maxbytes:
             data = os.read( self.stdout.fileno(), maxbytes - count )
-            self.readbuf += data.decode('utf-8')
+            self.readbuf += data
         if maxbytes >= len( self.readbuf ):
             result = self.readbuf
             self.readbuf = ''
@@ -216,7 +216,7 @@ class Node( object ):
     def write( self, data ):
         """Write data to node.
            data: string"""
-        os.write( self.stdin.fileno(), data.encode() )
+        os.write( self.stdin.fileno(), data )
 
     def get_private_folder_manager(self):
         # type: () -> PrivateFolderManager

@@ -57,12 +57,12 @@ class MultiGraph( object ):
 
     def edges_iter( self, data=False, keys=False ):
         "Iterator: return graph edges"
-        for src, entry in self.edge.items():
-            for dst, keys in entry.items():
+        for src, entry in self.edge.iteritems():
+            for dst, keys in entry.iteritems():
                 if src > dst:
                     # Skip duplicate edges
                     continue
-                for k, attrs in keys.items():
+                for k, attrs in keys.iteritems():
                     if data:
                         if keys:
                             yield( src, dst, k, attrs )
