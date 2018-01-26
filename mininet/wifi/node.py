@@ -111,7 +111,7 @@ class Node_wifi(object):
         master, slave = pty.openpty()
         self.shell = self._popen(cmd, stdin=slave, stdout=slave, stderr=slave,
                                  close_fds=False)
-        self.stdin = os.fdopen(master, 'bw')
+        self.stdin = os.fdopen(master, 'rw')
         self.stdout = self.stdin
         self.pid = self.shell.pid
         self.pollOut = select.poll()

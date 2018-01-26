@@ -95,7 +95,6 @@ import random
 from time import sleep
 from itertools import chain, groupby
 from math import ceil
-from six import string_types
 
 from mininet.cli import CLI
 from mininet.log import info, error, debug, output, warn
@@ -384,8 +383,8 @@ class Mininet(object):
             params: additional link params (optional)
             returns: link object"""
         # Accept node objects or names
-        node1 = node1 if not isinstance(node1, string_types) else self[node1]
-        node2 = node2 if not isinstance(node2, string_types) else self[node2]
+        node1 = node1 if not isinstance(node1, basestring) else self[node1]
+        node2 = node2 if not isinstance(node2, basestring) else self[node2]
         options = dict(params)
         # Port is optional
         if port1 is not None:

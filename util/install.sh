@@ -128,16 +128,16 @@ function mn_deps {
     echo "Installing Mininet dependencies"
     if [ "$DIST" = "Fedora" -o "$DIST" = "RedHatEnterpriseServer" ]; then
         $install gcc make socat psmisc xterm openssh-clients iperf \
-            iproute telnet python3-setuptools libcgroup-tools \
-            ethtool help2man pyflakes pylint python-pep8 python3-pexpect python-pip python3-pip
+            iproute telnet python-setuptools libcgroup-tools \
+            ethtool help2man pyflakes pylint python-pep8 python-pexpect python-pip
 	elif [ "$DIST" = "SUSE LINUX"  ]; then
 		$install gcc make socat psmisc xterm openssh iperf \
-			iproute telnet python3-setuptools libcgroup-tools \
-			ethtool help2man python-pyflakes python3-pylint python-pep8 python3-pexpect python-pip python3-pip
+			iproute telnet python-setuptools libcgroup-tools \
+			ethtool help2man python-pyflakes python-pylint python-pep8 python-pexpect python-pip
     else
         $install gcc make socat psmisc xterm ssh iperf iproute telnet \
-            python3-setuptools cgroup-bin ethtool help2man \
-            pyflakes pylint pep8 python3-pexpect python-pip python3-pip
+            python-setuptools cgroup-bin ethtool help2man \
+            pyflakes pylint pep8 python3-pexpect python-pip
     fi
 
     echo "Installing Mininet core"
@@ -149,8 +149,8 @@ function mn_deps {
 # Install Mininet-WiFi deps
 function wifi_deps {
     echo "Installing Mininet-WiFi dependencies"
-    $install wireless-tools rfkill python3 python-pip python3-pip python3-scipy pkg-config \
-            python3-matplotlib libnl-3-dev libnl-genl-3-dev libssl-dev make libevent-dev patch
+    $install wireless-tools rfkill python python-pip python-scipy pkg-config \
+            python-matplotlib libnl-3-dev libnl-genl-3-dev libssl-dev make libevent-dev patch
     pip3 install typing
     pip3 install -U numpy
     pushd $MININET_DIR/mininet-wifi

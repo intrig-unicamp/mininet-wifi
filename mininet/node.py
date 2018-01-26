@@ -59,7 +59,6 @@ import signal
 import select
 from subprocess import Popen, PIPE
 from time import sleep
-from six import string_types
 
 from mininet.log import info, error, warn, debug
 from mininet.util import ( quietRun, errRun, errFail, moveIntf, isShellBuiltin,
@@ -145,7 +144,7 @@ class Node( object ):
         master, slave = pty.openpty()
         self.shell = self._popen( cmd, stdin=slave, stdout=slave, stderr=slave,
                                   close_fds=False )
-        self.stdin = os.fdopen( master, 'bw' )
+        self.stdin = os.fdopen( master, 'rw' )
         self.stdout = self.stdin
         self.pid = self.shell.pid
         self.pollOut = select.poll()
@@ -355,7 +354,7 @@ class Node( object ):
             if isinstance( args[ 0 ], list ):
                 # popen([cmd, arg1, arg2...])
                 cmd = args[ 0 ]
-            elif isinstance( args[ 0 ], string_types ):
+            elif isinstance( args[ 0 ], basestring ):
                 # popen("cmd arg1 arg2...")
                 cmd = args[ 0 ].split()
             else:
@@ -440,7 +439,7 @@ class Node( object ):
         """
         if not intf:
             return self.defaultIntf()
-        elif isinstance( intf, string_types):
+        elif isinstance( intf, basestring):
             return self.nameToIntf[ intf ]
         else:
             return intf
@@ -492,7 +491,7 @@ class Node( object ):
         """Set the default route to go through intf.
            intf: Intf or {dev <intfname> via <gw-ip> ...}"""
         # Note setParam won't call us if intf is none
-        if isinstance( intf, string_types ) and ' ' in intf:
+        if isinstance( intf, basestring ) and ' ' in intf:
             params = intf
         else:
             params = 'dev %s' % intf

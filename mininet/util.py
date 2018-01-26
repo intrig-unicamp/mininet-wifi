@@ -588,7 +588,7 @@ def ensureRoot():
     Probably we should only sudo when needed as per Big Switch's patch.
     """
     if os.getuid() != 0:
-        info("*** Mininet must run as root.\n")
+        info("*** Mininet-WiFi must run as root.\n")
         exit(1)
     return
 

@@ -3,7 +3,7 @@ sudo: required
 dist: trusty
 
 python:
-- 3.5
+- 2.7
 
 before_install:
 - sudo apt-get update -qq
@@ -14,7 +14,7 @@ install:
 
 script:
 - sudo mn --wifi --test pingall
-- sudo python3 mininet/test/runner.py -v -quick
+- sudo python mininet/test/runner.py -v -quick
 #- sudo python examples/test/runner.py -v -quick
 
 notifications:

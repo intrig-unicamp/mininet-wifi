@@ -1,14 +1,14 @@
-#!/usr/bin/python3
+#!/usr/bin/python
 
 from subprocess import check_output as co
 from sys import exit
 
 # Actually run bin/mn rather than importing via python path
-version = 'Mininet-WiFi ' + co( 'PYTHONPATH3=. bin/mn --wifi --version 2>&1', shell=True ).decode('utf-8')
+version = 'Mininet-WiFi ' + co( 'PYTHONPATH=. bin/mn --wifi --version 2>&1', shell=True )
 version = version.strip()
 
 # Find all Mininet path references
-lines = co( "egrep -or 'Mininet-WiFi [0-9\.\+]+\w*' *", shell=True ).decode('utf-8')
+lines = co( "egrep -or 'Mininet-WiFi [0-9\.\+]+\w*' *", shell=True )
 
 error = False
 
