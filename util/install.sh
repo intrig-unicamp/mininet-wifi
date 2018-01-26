@@ -151,8 +151,8 @@ function wifi_deps {
     echo "Installing Mininet-WiFi dependencies"
     $install wireless-tools rfkill python python-pip python-scipy pkg-config \
             python-matplotlib libnl-3-dev libnl-genl-3-dev libssl-dev make libevent-dev patch
-    pip3 install typing
-    pip3 install -U numpy
+    pip install typing
+    pip install -U numpy
     pushd $MININET_DIR/mininet-wifi
     git submodule update --init --recursive
     pushd $MININET_DIR/mininet-wifi/hostap
