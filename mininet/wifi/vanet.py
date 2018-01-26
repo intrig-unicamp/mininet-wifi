@@ -1,9 +1,12 @@
 """
 
+    Mininet-WiFi: A simple networking testbed for Wireless OpenFlow/SDWN!
+
 author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
-        ramonfontes.com
+
 
 """
+
 from __future__ import division
 from math import atan2
 from time import sleep
@@ -14,7 +17,9 @@ import matplotlib.cbook
 from pylab import ginput as ginp
 from pylab import math, cos, sin, np
 
-from mininet.wifiPlot import plot2d
+from mininet.wifi.plot import plot2d
+from mininet.wifi.node import AP
+from mininet.log import info
 
 try:
     warnings.filterwarnings("ignore", category=matplotlib.cbook.mplDeprecation)
@@ -42,14 +47,14 @@ class vanet(object):
 
     def start(self, **params):
         'start topology'
-        from mininet.wifiMobility import mobility
+        from mininet.wifi.mobility import mobility
         cars = params['stations']
         aps = params['aps']
         mobility.addNodes(cars, aps)
         [self.road.append(x) for x in range(0, params['nroads'])]
         [self.points.append(x) for x in range(0, params['nroads'])]
         [self.totalRoads.append(x) for x in range(0, params['nroads'])]
-        plot2d.instantiateGraph(params['MIN_X'], params['MIN_Y'], params['MAX_X'], params['MAX_Y'])
+        plot2d.instantiateGraph(params['min_x'], params['min_y'], params['max_x'], params['max_y'])
 
         self.display_grid(aps, params['connections'], params['nroads'])
         self.display_cars(cars)
@@ -59,7 +64,7 @@ class vanet(object):
             [self.scatter, self.com_lines] = \
                 self.simulate_car_movement(cars, aps, self.scatter,
                                            self.com_lines, mobility)
-            mobility.continueParams
+            mobility.continue_params
 
     @classmethod
     def setWifiParameters(cls, mobility):
@@ -139,7 +144,7 @@ class vanet(object):
             bs_y = '%.2f' % bs.properties[1]
             self.scatter = plot2d.plotScatter(bs_x, bs_y)
             bs.params['position'] = bs_x, bs_y, 0
-            bs.setPositionWmediumd()
+            bs.set_position_wmediumd()
             plot2d.instantiateNode(bs)
             plot2d.instantiateAnnotate(bs)
             plot2d.instantiateCircle(bs)
@@ -154,7 +159,7 @@ class vanet(object):
                                           connections['dst'][c].params['position'][0]], \
                                        [connections['src'][c].params['position'][1],
                                         connections['dst'][c].params['position'][1]],
-                                         'b', ls='-')
+                                         'b', ls='dashed')
                 plot2d.plotLine(line)
 
     def display_cars(self, cars):
@@ -315,13 +320,11 @@ class vanet(object):
         first_set = set(first_tuple_list)
         secnd_set = set(secnd_tuple_list)
         (element,) = first_set.intersection(secnd_set)
-        print element[0]
+        info(element[0])
 
     def simulate_car_movement(self, cars, baseStations, scatter,
                               com_lines, mobility):
         # temporal variables
-        from mininet.node import AP
-
         points = [[], []]
         scatter.remove()
 

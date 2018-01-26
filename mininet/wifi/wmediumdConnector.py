@@ -1,7 +1,10 @@
 """
+
 Helps starting the wmediumd service
 
 author: Patrick Grosse (patrick.grosse@uni-muenster.de)
+author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
+
 """
 import ctypes
 import os
@@ -18,14 +21,16 @@ from mininet.log import info, error, debug
 
 
 class WmediumdConstants:
+    "wmediumd constants"
+
     def __init__(self):
         raise Exception("WmediumdConstants cannot be initialized")
         pass
 
-    WMEDIUMD_MODE_SNR = 0
-    WMEDIUMD_MODE_ERRPROB = 1
-    WMEDIUMD_MODE_SPECPROB = 2
-    WMEDIUMD_MODE_INTERFERENCE = 3
+    SNR_MODE = 0
+    ERRPROB_MODE = 1
+    SPECPROB_MODE = 2
+    INTERFERENCE_MODE = 3
 
     WSERVER_SHUTDOWN_REQUEST_TYPE = 0
     WSERVER_SNR_UPDATE_REQUEST_TYPE = 1
@@ -70,7 +75,7 @@ class WmediumdManager(object):
 
     @classmethod
     def connect(cls, uds_address=WmediumdConstants.SOCKET_PATH,
-                mode=WmediumdConstants.WMEDIUMD_MODE_SNR):
+                mode=WmediumdConstants.SNR_MODE):
         # type: (str) -> None
         """
         Connect to the wmediumd server and set Mininet-WiFi parameters
@@ -103,7 +108,7 @@ class WmediumdManager(object):
         cls.is_connected = True
 
         # Mininet specific
-        from mininet.wifiModule import module
+        from mininet.wifi.module import module
         module.externally_managed = True
 
     @classmethod
@@ -238,84 +243,130 @@ class WmediumdManager(object):
         WmediumdServerConn.update_link_specprob(link)
 
 
+class set_interference(object):
+
+    def __init__(self, configstr, ppm, positions, txpowers,
+                 fading_coefficient, isnodeaps):
+        WmediumdServerConn.interference_enabled = True
+        self.interference(configstr, ppm, positions, txpowers,
+                          fading_coefficient, isnodeaps)
+
+    def interference(self, configstr, ppm, positions, txpowers,
+                     fading_coefficient, isnodeaps):
+        configstr += '\n\t];\n\tenable_interference = true;'
+        configstr += '\n};\nmodel:\n{\n'
+        configstr += '\ttype = "path_loss";\n\tpositions = ('
+        first_pos = True
+        for mappedposition in positions:
+            posX = float(mappedposition.sta_position[0])
+            posY = float(mappedposition.sta_position[1])
+            posZ = float(mappedposition.sta_position[2])
+            if first_pos:
+                first_pos = False
+            else:
+                configstr += ','
+            configstr += '\n\t\t(%.1f, %.1f, %.1f)' % (
+                posX, posY, posZ)
+        configstr += '\n\t);\n\tfading_coefficient = %d;' % fading_coefficient
+        configstr += '\n\tisnodeaps = ('
+        first_isnodeap = True
+        for isnodeap in isnodeaps:
+            if first_isnodeap:
+                configstr += '%s' % isnodeap
+                first_isnodeap = False
+            else:
+                configstr += ', %s' % isnodeap
+        configstr += ');\n\ttx_powers = ('
+        first_txpower = True
+        for mappedtxpower in txpowers:
+            txpower = mappedtxpower.sta_txpower
+            if first_txpower:
+                configstr += '%s' % txpower
+                first_txpower = False
+            else:
+                configstr += ', %s' % txpower
+        if ppm.model == 'ITU':
+            configstr += ');\n\tmodel_name = "itu";\n\tnFLOORS = %d;' \
+                         '\n\tlF = %d;\n\tpL = %d;\n};' % \
+                         (ppm.nFloors, ppm.lF, ppm.pL)
+        elif ppm.model == 'logDistance':
+            configstr += ');\n\tmodel_name = "log_distance";' \
+                         '\n\tpath_loss_exp = %.1f;\n\txg = 0.0;\n};' \
+                         % ppm.exp
+        elif ppm.model == 'twoRayGround':
+            configstr += ');\n\tmodel_name = "two_ray_ground";' \
+                         '\n\tsL = %d;\n};' % ppm.sL
+        elif ppm.model == 'logNormalShadowing':
+            configstr += ');\n\tmodel_name = "log_normal_shadowing";' \
+                         '\n\tpath_loss_exp = %.1f;\n\tsL = %d;\n};' \
+                         % (ppm.exp, ppm.sL)
+        else:
+            configstr += ');\n\tmodel_name = "free_space";\n\tsL = %d;\n};' \
+                         % ppm.sL
+        WmediumdStarter.configstr = configstr
+
+
 class WmediumdStarter(object):
     is_managed = False
-
     is_initialized = False
-    intfrefs = None
-    links = None
-    positions = None
-    txpowers = None
-    executable = None
-    parameters = None
-    auto_add_links = None
-    default_auto_snr = None
-
     is_connected = False
     wmd_process = None
-    wmd_config_name = None
     wmd_logfile = None
+    wmd_config_name = None
+    configstr = ''
     default_auto_errprob = 0.0
-    mode = 0
-    enable_interference = False
-    enable_error_prob = False
+    default_auto_snr = -10
 
     @classmethod
-    def initialize(cls, intfrefs=None, links=None, executable='wmediumd',
-                   with_server=True, parameters=None,
-                   auto_add_links=True, default_auto_snr=-10,
-                   default_auto_errprob=1.0,
-                   mode=WmediumdConstants.WMEDIUMD_MODE_SNR,
-                   enable_interference=False, enable_error_prob=False,
-                   positions=None, txpowers=None):
+    def start(cls, intfrefs=None, links=None, default_auto_snr=-10,
+              default_auto_errprob=1.0, isnodeaps=None,
+              mode=WmediumdConstants.SNR_MODE, fading_coefficient=0,
+              positions=None, txpowers=None, ppm=None):
         """
         Set the data for the wmediumd daemon
 
         :param intfrefs: A list of all WmediumdIntfRef that should be managed
         in wmediumd
         :param links: A list of WmediumdLink
-        :param executable: The wmediumd executable
-        :param with_server: True if the wmediumd server should be started
         :param parameters: Parameters to pass to the wmediumd executable
-        :param auto_add_links: If true, it will add all missing links pairs
-        with the default_auto_snr as SNR
         :param default_auto_snr: The default SNR
-        :param default_auto_errprob: The default error probability
         :param mode: WmediumdConstants.WMEDIUMD_MODE_* constant
-
-        :type intfrefs: list of WmediumdIntfRef
-        :type links: list of WmediumdLink
+        :param txpowers: list of txpowers
+        :param positions: list of positions
+        :param is nodeaps: check if the node is ap
+        :param fading_coefficient: fading_coefficient
+        :param ppm: propagation model
         """
+        kwargs = {}
         if intfrefs is None:
             intfrefs = []
         if links is None:
             links = []
-        if parameters is None:
-            parameters = ['-l', '4']
-        if with_server:
-            parameters.append('-s')
-        cls.intfrefs = intfrefs
-        cls.links = links
-        cls.positions = positions
-        cls.txpowers = txpowers
-        cls.executable = executable
-        cls.parameters = parameters
-        cls.auto_add_links = auto_add_links
-        cls.default_auto_snr = default_auto_snr
-        cls.default_auto_errprob = default_auto_errprob
-        cls.mode = mode
-        if mode != WmediumdConstants.WMEDIUMD_MODE_SNR \
-                and mode != WmediumdConstants.WMEDIUMD_MODE_ERRPROB \
-                and mode != WmediumdConstants.WMEDIUMD_MODE_SPECPROB \
-                and mode != WmediumdConstants.WMEDIUMD_MODE_INTERFERENCE:
+        parameters = ['-l', '4', '-s']
+
+        kwargs['intfrefs'] = intfrefs
+        kwargs['links'] = links
+        kwargs['positions'] = positions
+        kwargs['txpowers'] = txpowers
+        kwargs['isnodeaps'] = isnodeaps
+        kwargs['parameters'] = parameters
+        kwargs['default_auto_snr'] = default_auto_snr
+        kwargs['default_auto_errprob'] = default_auto_errprob
+        kwargs['fading_coefficient'] = fading_coefficient
+        kwargs['mode'] = mode
+        kwargs['ppm'] = ppm
+
+        if mode != WmediumdConstants.SNR_MODE \
+                and mode != WmediumdConstants.ERRPROB_MODE \
+                and mode != WmediumdConstants.SPECPROB_MODE \
+                and mode != WmediumdConstants.INTERFERENCE_MODE:
             raise Exception("Wrong wmediumd mode given")
         cls.is_initialized = True
-        cls.enable_interference = enable_interference
-        cls.enable_error_prob = enable_error_prob
-        WmediumdServerConn.interference_enabled = enable_interference
+        cls.initialize(**kwargs)
+        WmediumdServerConn.connect()
 
     @classmethod
-    def start(cls, mininet, ppm):
+    def initialize(cls, **kwargs):
         """
         Start wmediumd, this method should be called right after
         Mininet.configureWifiNodes()
@@ -334,16 +385,16 @@ class WmediumdStarter(object):
 
         mappedintfrefs = {}
         mappedlinks = {}
-        if not cls.enable_interference:
+        if kwargs['mode'] is not WmediumdConstants.INTERFERENCE_MODE:
             # Map all links using the interface identifier and check for missing
             # interfaces in the  intfrefs list
-            for link in cls.links:
+            for link in kwargs['links']:
                 link_id = link.sta1intfref.identifier() + '/' + \
                           link.sta2intfref.identifier()
                 mappedlinks[link_id] = link
                 found1 = False
                 found2 = False
-                for intfref in cls.intfrefs:
+                for intfref in kwargs['intfrefs']:
                     if link.sta1intfref.get_station_name() == \
                             intfref.get_station_name():
                         if link.sta1intfref.get_station_name() == \
@@ -364,16 +415,15 @@ class WmediumdStarter(object):
                                             'interfaces'
                                             % link.sta2intfref.identifier())
 
-        if cls.mode != WmediumdConstants.WMEDIUMD_MODE_SPECPROB:
-            if cls.mode != WmediumdConstants.WMEDIUMD_MODE_INTERFERENCE and \
-                    cls.auto_add_links:
-                for intfref1 in cls.intfrefs:
-                    for intfref2 in cls.intfrefs:
-                        if intfref1 != intfref2:
+        if kwargs['mode'] is not WmediumdConstants.SPECPROB_MODE:
+            if kwargs['mode'] is not WmediumdConstants.INTERFERENCE_MODE:
+                for intfref1 in kwargs['intfrefs']:
+                    for intfref2 in kwargs['intfrefs']:
+                        if intfref1 is not intfref2:
                             link_id = intfref1.identifier() + '/' + \
                                       intfref2.identifier()
-                            if cls.mode == \
-                                    WmediumdConstants.WMEDIUMD_MODE_ERRPROB:
+                            if kwargs['mode'] == \
+                                    WmediumdConstants.ERRPROB_MODE:
                                 mappedlinks.setdefault(
                                     link_id, WmediumdERRPROBLink(
                                         intfref1, intfref2,
@@ -391,72 +441,35 @@ class WmediumdStarter(object):
             debug("Name of wmediumd config: %s\n" % cls.wmd_config_name)
             configstr = 'ifaces:\n{\n\tids = [\n'
             intfref_id = 0
-            for intfref in cls.intfrefs:
+            for intfref in kwargs['intfrefs']:
                 if intfref_id != 0:
                     configstr += ', \n'
                 grepped_mac = intfref.get_intf_mac()
                 configstr += '\t\t"%s"' % grepped_mac
                 mappedintfrefs[intfref.identifier()] = intfref_id
                 intfref_id += 1
-            if cls.enable_interference:  # Still have to be implemented
-                configstr += '\n\t];\n};\nmodel:\n{\n'
-                configstr += '\ttype = "path_loss";\n\tpositions = ('
-                first_pos = True
-                for mappedposition in cls.positions:
-                    posX = float(mappedposition.sta_position[0])
-                    posY = float(mappedposition.sta_position[1])
-                    posZ = float(mappedposition.sta_position[2])
-                    if first_pos:
-                        first_pos = False
-                    else:
-                        configstr += ','
-                    configstr += '\n\t\t(%.1f, %.1f, %.1f)' % (
-                        posX, posY, posZ)
-                configstr += '\n\t);\n\ttx_powers = ('
-                first_txpower = True
 
-                for mappedtxpower in cls.txpowers:
-                    txpower = mappedtxpower.sta_txpower
-                    if first_txpower:
-                        configstr += '%s' % txpower
-                        first_txpower = False
-                    else:
-                        configstr += ', %s' % txpower
-                if ppm.model == 'ITU':
-                    configstr += ');\n\tmodel_name = "itu";\n\tnFLOORS = %d;' \
-                                 '\n\tlF = %d;\n\tpL = %d;\n};' % \
-                                 (ppm.nFloors, ppm.lF, ppm.pL)
-                elif ppm.model == 'logDistance':
-                    configstr += ');\n\tmodel_name = "log_distance";' \
-                                 '\n\tpath_loss_exp = %.1f;\n\txg = 0.0;\n};' \
-                                 % ppm.exp
-                elif ppm.model == 'twoRayGround':
-                    configstr += ');\n\tmodel_name = "two_ray_ground";' \
-                                 '\n\tsL = %d;\n};' % ppm.sL
-                elif ppm.model == 'logNormalShadowing':
-                    configstr += ');\n\tmodel_name = "log_normal_shadowing";' \
-                                 '\n\tpath_loss_exp = %.1f;\n\tsL = %d;\n};' \
-                                 % (ppm.exp, ppm.sL)
-                else:
-                    configstr += ');\n\tmodel_name = "free_space";\n\tsL = %d;\n};' \
-                                 % ppm.sL
-
+            if kwargs['mode'] is WmediumdConstants.INTERFERENCE_MODE:
+                set_interference(configstr, kwargs['ppm'], kwargs['positions'],
+                                 kwargs['txpowers'], kwargs['fading_coefficient'],
+                                 kwargs['isnodeaps'])
+                configstr = cls.configstr
             else:
                 configstr += '\n\t];\n};\nmodel:\n{\n\ttype = "'
-                if cls.mode == WmediumdConstants.WMEDIUMD_MODE_ERRPROB:
+                if kwargs['mode'] == WmediumdConstants.ERRPROB_MODE:
                     configstr += 'prob'
                 else:
                     configstr += 'snr'
                 configstr += '";\n\tdefault_prob = 1.0;\n\tlinks = ('
                 first_link = True
-                for mappedlink in mappedlinks.itervalues():
+                for mappedlink in mappedlinks.values():
                     id1 = mappedlink.sta1intfref.identifier()
                     id2 = mappedlink.sta2intfref.identifier()
                     if first_link:
                         first_link = False
                     else:
                         configstr += ','
-                    if cls.mode == WmediumdConstants.WMEDIUMD_MODE_ERRPROB:
+                    if kwargs['mode'] is WmediumdConstants.ERRPROB_MODE:
                         configstr += '\n\t\t(%d, %d, %f)' % (
                             mappedintfrefs[id1], mappedintfrefs[id2],
                             mappedlink.errprob)
@@ -465,29 +478,30 @@ class WmediumdStarter(object):
                             mappedintfrefs[id1], mappedintfrefs[id2],
                             mappedlink.snr)
                 configstr += '\n\t);\n};'
-            wmd_config.write(configstr)
+            wmd_config.write(configstr.encode())
             wmd_config.close()
         # Start wmediumd using the created config
-        cmdline = [cls.executable]
-        if cls.mode == WmediumdConstants.WMEDIUMD_MODE_SPECPROB:
+        cmdline = ['wmediumd']
+        if kwargs['mode'] is WmediumdConstants.SPECPROB_MODE:
             cmdline.append("-d")
         else:
             cmdline.append("-c")
             cmdline.append(cls.wmd_config_name)
-            if cls.mode == WmediumdConstants.WMEDIUMD_MODE_SNR \
-                    or cls.mode == WmediumdConstants.WMEDIUMD_MODE_INTERFERENCE:
+            if kwargs['mode'] is WmediumdConstants.SNR_MODE \
+                    or kwargs['mode'] is WmediumdConstants.INTERFERENCE_MODE:
                 cmdline.append("-x")
                 per_data_file = \
                     pkg_resources.resource_filename(
                         'mininet', 'data/signal_table_ieee80211ax')
                 cmdline.append(per_data_file)
-        cmdline[1:1] = cls.parameters
+        cmdline[1:1] = kwargs['parameters']
         cls.wmd_logfile = tempfile.NamedTemporaryFile(prefix='mn_wmd_log_',
                                                       suffix='.log',
                                                       delete=not cls.is_managed)
         debug("Name of wmediumd log: %s\n" % cls.wmd_logfile.name)
         if cls.is_managed:
             cmdline[0:0] = ["nohup"]
+
         cls.wmd_process = subprocess.Popen(cmdline, shell=False,
                                            stdout=cls.wmd_logfile,
                                            stderr=subprocess.STDOUT,
@@ -571,7 +585,9 @@ class WmediumdTXPower(object):
         self.staintfref = staintfref
         self.sta_txpower = sta_txpower
 
+
 class WmediumdGain(object):
+    'Gain'
     def __init__(self, staintfref, sta_gain):
         """
         Describes the Antenna Gain of a station
@@ -582,8 +598,10 @@ class WmediumdGain(object):
         """
         self.staintfref = staintfref
         self.sta_gain = sta_gain
-        
+
+
 class WmediumdGaussianRandom(object):
+    'Gaussing Random'
     def __init__(self, staintfref, sta_gaussian_random):
         """
         Describes the Gaussian Random of a node
@@ -595,7 +613,9 @@ class WmediumdGaussianRandom(object):
         self.staintfref = staintfref
         self.sta_gaussian_random = sta_gaussian_random
 
+
 class WmediumdHeight(object):
+    'Antenna Height'
     def __init__(self, staintfref, sta_height):
         """
         Describes the Antenna Height of a station
@@ -607,7 +627,9 @@ class WmediumdHeight(object):
         self.staintfref = staintfref
         self.sta_height = sta_height
 
+
 class WmediumdSNRLink(object):
+    'SNR Link'
     def __init__(self, sta1intfref, sta2intfref, snr=10):
         """
         Describes a link between two interfaces using the SNR
@@ -626,6 +648,7 @@ class WmediumdSNRLink(object):
 
 
 class WmediumdERRPROBLink(object):
+    'ERRPROBLink'
     def __init__(self, sta1intfref, sta2intfref, errprob=0.2):
         """
         Describes a link between two interfaces using the error probability
@@ -642,7 +665,9 @@ class WmediumdERRPROBLink(object):
         self.sta2intfref = sta2intfref
         self.errprob = errprob
 
+
 class WmediumdSPECPROBLink(object):
+    'SPECPROB Link'
     def __init__(self, sta1intfref, sta2intfref, errprobs):
         """
         Describes a link between two interfaces using a matrix of error
@@ -665,6 +690,7 @@ class WmediumdSPECPROBLink(object):
 
 
 class WmediumdIntfRef:
+    'Intf Ref'
     def __init__(self, staname, intfname, intfmac):
         """
         An unambiguous reference to an interface of a station
@@ -715,6 +741,7 @@ class WmediumdIntfRef:
 
 
 class DynamicWmediumdIntfRef(WmediumdIntfRef):
+    'Intf Ref'
     def __init__(self, sta, intf=None):
         """
         An unambiguous reference to an interface of a station
@@ -753,7 +780,9 @@ class DynamicWmediumdIntfRef(WmediumdIntfRef):
         if found:
             return self.__sta.params['mac'][index]
 
+
 class WmediumdServerConn(object):
+    'Server Conn'
     __mac_struct_fmt = '6s'
 
     __base_struct_fmt = 'B'
@@ -785,7 +814,7 @@ class WmediumdServerConn(object):
         struct.Struct('!' + __txpower_update_request_fmt)
     __txpower_update_response_struct = \
         struct.Struct('!' + __txpower_update_response_fmt)
-    
+
     __gain_update_request_fmt = \
         __base_struct_fmt + __mac_struct_fmt + 'i'
     __gain_update_response_fmt = \
@@ -962,7 +991,7 @@ class WmediumdServerConn(object):
         if ret != WmediumdConstants.WUPDATE_SUCCESS:
             raise WmediumdException("Received error code from wmediumd: "
                                     "code %d" % ret)
-        
+
     @classmethod
     def update_gain(cls, gain):
         # type: (WmediumdGain) -> None
@@ -1068,7 +1097,7 @@ class WmediumdServerConn(object):
         return cls.__parse_response(
             WmediumdConstants.WSERVER_POSITION_UPDATE_RESPONSE_TYPE,
             cls.__position_update_response_struct)[-1]
-                                    
+
     @classmethod
     def send_txpower_update(cls, txpower):
         # type: (WmediumdTXPower) -> int
@@ -1219,7 +1248,7 @@ class WmediumdServerConn(object):
         msgtype = WmediumdConstants.WSERVER_SNR_UPDATE_REQUEST_TYPE
         mac_from = link.sta1intfref.get_intf_mac().replace(':', '').decode('hex')
         mac_to = link.sta2intfref.get_intf_mac().replace(':', '').decode('hex')
-        snr = link.snr
+        snr = int(link.snr)
         return cls.__snr_update_request_struct.pack(msgtype, mac_from,
                                                     mac_to, snr)
 
@@ -1229,12 +1258,13 @@ class WmediumdServerConn(object):
         # type: (WmediumdPosition) -> str
         msgtype = WmediumdConstants.WSERVER_POSITION_UPDATE_REQUEST_TYPE
         mac = position.staintfref.get_intf_mac().replace(':', '').decode('hex')
+
         posX = position.sta_position[0]
         posY = position.sta_position[1]
         posZ = position.sta_position[2]
         return cls.__position_update_request_struct.pack(msgtype, mac,
                                                          posX, posY, posZ)
-    
+
     @classmethod
     def __create_txpower_update_request(cls, txpower):
         "tx power update request"
@@ -1243,7 +1273,7 @@ class WmediumdServerConn(object):
         mac = txpower.staintfref.get_intf_mac().replace(':', '').decode('hex')
         txpower_ = txpower.sta_txpower
         return cls.__txpower_update_request_struct.pack(msgtype, mac, txpower_)
-    
+
     @classmethod
     def __create_gain_update_request(cls, gain):
         "antenna gain update request"
@@ -1327,8 +1357,8 @@ class WmediumdServerConn(object):
         "parse response"
         # type: (int, struct.Struct) -> tuple
         recvd_data = cls.sock.recv(resp_struct.size)
-        #recvd_type = cls.__base_struct.unpack(recvd_data[0])[0]
-        #if recvd_type != expected_type:
+        # recvd_type = cls.__base_struct.unpack(recvd_data[0])[0]
+        # if recvd_type != expected_type:
         #    raise WmediumdException(
         #        "Received response of unknown type %d, expected %d" % (recvd_type,
         # expected_type))
