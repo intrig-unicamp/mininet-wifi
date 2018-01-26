@@ -28,10 +28,10 @@ and bandwidth ('iperf'.)
 from subprocess import call
 from cmd import Cmd
 from os import isatty
-from os import path
 from select import poll, POLLIN
 import sys
 import time
+import os
 import atexit
 
 from mininet.log import info, output, error
@@ -49,7 +49,6 @@ class CLI(Cmd):
            mininet: Mininet network object
            stdin: standard input for CLI
            script: script to run in batch mode"""
-
         self.mn = mininet
         # Local variable bindings for py command
         self.locals = { 'net': mininet }
@@ -58,7 +57,6 @@ class CLI(Cmd):
         self.inPoller = poll()
         self.inPoller.register(stdin)
         self.inputFile = script
-
         Cmd.__init__(self)
         info('*** Starting CLI:\n')
 
@@ -79,13 +77,15 @@ class CLI(Cmd):
             return
         cls.readlineInited = True
         try:
-            from readline import read_history_file, write_history_file
+            from readline import (read_history_file, write_history_file,
+                                  set_history_length)
         except ImportError:
             pass
         else:
-            history_path = path.expanduser('~/.mininet_history')
-            if path.isfile(history_path):
+            history_path = os.path.expanduser('~/.mininet_history')
+            if os.path.isfile(history_path):
                 read_history_file(history_path)
+                set_history_length(1000)
             atexit.register(lambda: write_history_file(history_path))
 
     def run(self):
@@ -178,7 +178,7 @@ class CLI(Cmd):
                 output(result + '\n')
             else:
                 output(repr(result) + '\n')
-        except Exception, e:
+        except Exception as e:
             output(str(e) + '\n')
 
     # We are in fact using the exec() pseudo-function
@@ -189,7 +189,7 @@ class CLI(Cmd):
             Node names may be used, e.g.: px print h1.cmd('ls')"""
         try:
             exec(line, globals(), self.getLocals())
-        except Exception, e:
+        except Exception as e:
             output(str(e) + '\n')
 
     # pylint: enable=broad-except,exec-used
@@ -262,24 +262,6 @@ class CLI(Cmd):
         "Dump node info."
         for node in self.mn.values():
             output('%s\n' % repr(node))
-
-    def do_stop(self, line):
-        "stop mobility for a while"
-        self.mn.stop_simulation()
-
-    def do_start(self, line):
-        "pause mobility for a while"
-        self.mn.start_simulation()
-
-    def do_distance(self, line):
-        "Distance between two nodes."
-        args = line.split()
-        if len(args) != 2:
-            error('invalid number of args: distance [sta or ap] [sta or ap]\n')
-        elif len(args) == 2 and args[ 0 ] == args[ 1 ]:
-            error('invalid. Source and Destination are equals\n')
-        else:
-            self.mn.get_distance(*args)
 
     def do_link(self, line):
         """Bring link(s) between two nodes up or down.
@@ -377,8 +359,7 @@ class CLI(Cmd):
         if len(args) < 1:
             error('usage: dpctl command [arg1] [arg2] ...\n')
             return
-        nodesL2 = self.mn.switches + self.mn.aps
-        for sw in nodesL2:
+        for sw in self.mn.switches:
             output('*** ' + sw.name + ' ' + ('-' * 72) + '\n')
             output(sw.dpctl(*args))
 
@@ -484,6 +465,7 @@ class CLI(Cmd):
         if '#' in line:
             line = line.split('#')[ 0 ]
         return line
+
 
 # Helper functions
 

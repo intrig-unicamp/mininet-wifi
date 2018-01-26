@@ -1,20 +1,21 @@
 #!/usr/bin/python
 
 'Setting the position of nodes and providing mobility'
+
 import sys
 
-from mininet.net import Mininet
-from mininet.node import Controller, OVSKernelAP
-from mininet.cli import CLI
-from mininet.log import setLogLevel
+from mininet.node import Controller
+from mininet.log import setLogLevel, info
+from mininet.wifi.node import OVSKernelAP
+from mininet.wifi.cli import CLI_wifi
+from mininet.wifi.net import Mininet_wifi
 
 
 def topology(coord):
-
     "Create a network."
-    net = Mininet(controller=Controller, accessPoint=OVSKernelAP)
+    net = Mininet_wifi(controller=Controller, accessPoint=OVSKernelAP)
 
-    print "*** Creating nodes"
+    info("*** Creating nodes\n")
     h1 = net.addHost('h1', mac='00:00:00:00:00:01', ip='10.0.0.1/8')
     sta1 = net.addStation('sta1', mac='00:00:00:00:00:02', ip='10.0.0.2/8')
     sta2 = net.addStation('sta2', mac='00:00:00:00:00:03', ip='10.0.0.3/8')
@@ -22,10 +23,10 @@ def topology(coord):
                              position='45,40,0')
     c1 = net.addController('c1', controller=Controller)
 
-    print "*** Configuring wifi nodes"
+    info("*** Configuring wifi nodes\n")
     net.configureWifiNodes()
 
-    print "*** Associating and Creating links"
+    info("*** Associating and Creating links\n")
     net.addLink(ap1, h1)
 
     net.plotGraph(max_x=200, max_y=200)
@@ -47,15 +48,15 @@ def topology(coord):
         net.mobility(sta2, 'stop', time=22, position='55.0,31.0,0.0')
     net.stopMobility(time=23)
 
-    print "*** Starting network"
+    info("*** Starting network\n")
     net.build()
     c1.start()
     ap1.start([c1])
 
-    print "*** Running CLI"
-    CLI(net)
+    info("*** Running CLI\n")
+    CLI_wifi(net)
 
-    print "*** Stopping network"
+    info("*** Stopping network\n")
     net.stop()
 
 

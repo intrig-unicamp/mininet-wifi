@@ -1,33 +1,33 @@
 #!/usr/bin/python
 
-"""
-Setting the error prob with wmediumd
-"""
+"Setting the error prob with wmediumd"
 
-from mininet.net import Mininet
-from mininet.node import Controller, OVSKernelAP
-from mininet.cli import CLI
-from mininet.log import setLogLevel
+from mininet.node import Controller
+from mininet.wifi.node import OVSKernelAP
+from mininet.log import setLogLevel, info
+from mininet.wifi.link import wmediumd
+from mininet.wifi.cli import CLI_wifi
+from mininet.wifi.net import Mininet_wifi
 
 
 def topology():
 
     "Create a network."
-    net = Mininet(controller=Controller, accessPoint=OVSKernelAP,
-                  enable_wmediumd=True, enable_error_prob=True)
+    net = Mininet_wifi(controller=Controller, accessPoint=OVSKernelAP,
+                  link=wmediumd, enable_error_prob=True)
 
-    print "*** Creating nodes"
+    info("*** Creating nodes\n")
     ap1 = net.addAccessPoint('ap1', ssid='new-ssid', mode='a', channel='36',
                              position='15,30,0')
     sta1 = net.addStation('sta1', mac='00:00:00:00:00:02', ip='10.0.0.1/8',
-                   position='10,20,0')
+                          position='10,20,0')
     sta2 = net.addStation('sta2', mac='00:00:00:00:00:03', ip='10.0.0.2/8',
-                   position='20,50,0')
+                          position='20,50,0')
     sta3 = net.addStation('sta3', mac='00:00:00:00:00:04', ip='10.0.0.3/8',
-                   position='20,60,10')
+                          position='20,60,10')
     c1 = net.addController('c1', controller=Controller)
 
-    print "*** Configuring wifi nodes"
+    info("*** Configuring wifi nodes\n")
     net.configureWifiNodes()
 
     net.addLink(sta1, ap1, error_prob=0.01)
@@ -36,15 +36,15 @@ def topology():
 
     net.plotGraph(max_x=100, max_y=100)
 
-    print "*** Starting network"
+    info("*** Starting network\n")
     net.build()
     c1.start()
     ap1.start([c1])
 
-    print "*** Running CLI"
-    CLI(net)
+    info("*** Running CLI\n")
+    CLI_wifi(net)
 
-    print "*** Stopping network"
+    info("*** Stopping network\n")
     net.stop()
 
 

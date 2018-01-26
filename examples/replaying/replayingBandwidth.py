@@ -1,49 +1,46 @@
 #!/usr/bin/python
 
-"""
-Replaying Bandwidth
-"""
+"Replaying Bandwidth"
 
-from mininet.net import Mininet
 from mininet.node import Controller,OVSKernelSwitch
 from mininet.link import TCLink
-from mininet.cli import CLI
-from mininet.log import setLogLevel
-from mininet.wifiReplaying import replayingBandwidth
+from mininet.log import setLogLevel, info
+from mininet.wifi.replaying import replayingBandwidth
+from mininet.wifi.cli import CLI_wifi
+from mininet.wifi.net import Mininet_wifi
+
 
 def topology():
-
     "Create a network."
-    net = Mininet( controller=Controller, link=TCLink, switch=OVSKernelSwitch )
+    net = Mininet_wifi( controller=Controller, link=TCLink, switch=OVSKernelSwitch )
 
-    print "*** Creating nodes"
+    info("*** Creating nodes\n")
     sta1 = net.addStation( 'sta1', mac='00:00:00:00:00:02', ip='10.0.0.2/8' )
     ap1 = net.addAccessPoint( 'ap1', ssid= 'new-ssid', mode= 'g', channel= '1',
                               position='50,50,0' )
     c1 = net.addController( 'c1', controller=Controller )
 
-    print "*** Configuring wifi nodes"
+    info("*** Configuring wifi nodes\n")
     net.configureWifiNodes()
 
-    print "*** adding Link"
+    info("*** adding Link\n")
     net.addLink(sta1, ap1)
 
-    print "*** Starting network"
+    info("*** Starting network\n")
     net.build()
     c1.start()
     ap1.start( [c1] )
 
-    """uncomment to plot graph"""
     net.plotGraph(max_x=100, max_y=100)
 
     getTrace(sta1, 'examples/replaying/replayingBandwidth/throughputData.dat')
 
     replayingBandwidth(net)
 
-    print "*** Running CLI"
-    CLI( net )
+    info("*** Running CLI\n")
+    CLI_wifi(net)
 
-    print "*** Stopping network"
+    info("*** Stopping network\n")
     net.stop()
 
 def getTrace(sta, file):

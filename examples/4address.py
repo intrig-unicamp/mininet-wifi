@@ -3,19 +3,20 @@
 """This example shows how to enable 4-address
 Warning: It works only when network manager is stopped"""
 
-from mininet.net import Mininet
-from mininet.node import Controller, OVSKernelAP
-from mininet.cli import CLI
-from mininet.log import setLogLevel
-
+from mininet.node import Controller
+from mininet.log import setLogLevel, info
+from mininet.wifi.node import OVSKernelAP
+from mininet.wifi.link import wmediumd
+from mininet.wifi.cli import CLI_wifi
+from mininet.wifi.net import Mininet_wifi
 
 def topology():
     "Create a network."
-    net = Mininet( controller=Controller, accessPoint=OVSKernelAP,
-                   enable_wmediumd=True, enable_interference=True,
+    net = Mininet_wifi( controller=Controller, accessPoint=OVSKernelAP,
+                   link=wmediumd, enable_interference=False,
                    configure4addr=True, disableAutoAssociation=True )
 
-    print "*** Creating nodes"
+    info("*** Creating nodes\n")
     ap1 = net.addAccessPoint( 'ap1', _4addr="ap", ssid="wds-ssid1",
                               mode="g", channel="1", position='30,30,0' )
     ap2 = net.addAccessPoint( 'ap2', _4addr="client", ssid="wds-ssid2",
@@ -31,13 +32,13 @@ def topology():
     c0 = net.addController('c0', controller=Controller, ip='127.0.0.1',
                            port=6633)
 
-    print "*** Configuring Propagation Model"
+    info("*** Configuring Propagation Model\n")
     net.propagationModel(model="logDistance", exp=4.5)
 
-    print "*** Configuring wifi nodes"
+    info("*** Configuring wifi nodes\n")
     net.configureWifiNodes()
 
-    print "*** Adding Link"
+    info("*** Adding Link\n")
     net.addLink(ap1, ap2, link='4addr')
     net.addLink(ap1, ap3, link='4addr')
     net.addLink(sta1, ap1)
@@ -49,17 +50,17 @@ def topology():
 
     net.plotGraph(max_x=100, max_y=100)
 
-    print "*** Starting network"
+    info("*** Starting network\n")
     net.build()
     c0.start()
     ap1.start( [c0] )
     ap2.start( [c0] )
     ap3.start( [c0] )
 
-    print "*** Running CLI"
-    CLI( net )
+    info("*** Running CLI\n")
+    CLI_wifi(net)
 
-    print "*** Stopping network"
+    info("*** Stopping network\n")
     net.stop()
 
 

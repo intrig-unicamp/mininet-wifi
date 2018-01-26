@@ -83,7 +83,8 @@ from itertools import groupby
 from operator import attrgetter
 from distutils.version import StrictVersion
 
-from mininet.node import Node, Host, OVSSwitch, OVSAP, Controller
+from mininet.node import Node, Host, OVSSwitch, Controller
+from mininet.wifi.node import OVSAP
 from mininet.link import Link, Intf
 from mininet.net import Mininet
 from mininet.topo import LinearTopo
@@ -835,28 +836,28 @@ def testNsTunnels():
 
 def testRemoteNet( remote='ubuntu2' ):
     "Test remote Node classes"
-    print '*** Remote Node Test'
+    info('*** Remote Node Test\n')
     net = Mininet( host=RemoteHost, switch=RemoteOVSSwitch,
                    link=RemoteLink )
     c0 = net.addController( 'c0' )
     # Make sure controller knows its non-loopback address
     Intf( 'eth0', node=c0 ).updateIP()
-    print "*** Creating local h1"
+    info("*** Creating local h1\n")
     h1 = net.addHost( 'h1' )
-    print "*** Creating remote h2"
+    info("*** Creating remote h2\n")
     h2 = net.addHost( 'h2', server=remote )
-    print "*** Creating local s1"
+    info("*** Creating local s1\n")
     s1 = net.addSwitch( 's1' )
-    print "*** Creating remote s2"
+    info("*** Creating remote s2\n")
     s2 = net.addSwitch( 's2', server=remote )
-    print "*** Adding links"
+    info("*** Adding links\n")
     net.addLink( h1, s1 )
     net.addLink( s1, s2 )
     net.addLink( h2, s2 )
     net.start()
-    print 'Mininet is running on', quietRun( 'hostname' ).strip()
+    info('Mininet is running on', quietRun( 'hostname' ).strip())
     for node in c0, h1, h2, s1, s2:
-        print 'Node', node, 'is running on', node.cmd( 'hostname' ).strip()
+        info('Node', node, 'is running on', node.cmd( 'hostname' ).strip())
     net.pingAll()
     CLI( net )
     net.stop()
@@ -943,9 +944,9 @@ def signalTest():
     h.shell.send_signal( SIGINT )
     h.shell.poll()
     if h.shell.returncode is None:
-        print 'OK: ', h, 'has not exited'
+        info('OK: ', h, 'has not exited\n')
     else:
-        print 'FAILURE:', h, 'exited with code', h.shell.returncode
+        info('FAILURE:', h, 'exited with code', h.shell.returncode)
     h.stop()
 
 if __name__ == '__main__':

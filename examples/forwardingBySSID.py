@@ -19,20 +19,21 @@ around SSID-based packet forwarding
             --------
              ssid-2
             --------"""
+
 from time import sleep
 
-from mininet.net import Mininet
-from mininet.node import  Controller, UserAP
-from mininet.cli import CLI
-from mininet.log import setLogLevel
-
+from mininet.node import  Controller
+from mininet.log import setLogLevel, info
+from mininet.wifi.node import UserAP
+from mininet.wifi.cli import CLI_wifi
+from mininet.wifi.net import Mininet_wifi
 
 def topology():
     "Create a network."
-    net = Mininet(controller=Controller, accessPoint=UserAP,
+    net = Mininet_wifi(controller=Controller, accessPoint=UserAP,
                   disableAutoAssociation=True)
 
-    print "*** Creating nodes"
+    info("*** Creating nodes\n")
     sta1 = net.addStation('sta1', position='10,60,0')
     sta2 = net.addStation('sta2', position='20,15,0')
     sta3 = net.addStation('sta3', position='10,25,0')
@@ -44,7 +45,7 @@ def topology():
     c0 = net.addController('c0', controller=Controller, ip='127.0.0.1',
                            port=6633)
 
-    print "*** Configuring wifi nodes"
+    info("*** Configuring wifi nodes\n")
     net.configureWifiNodes()
 
     net.plotGraph(max_x=100, max_y=100)
@@ -55,7 +56,7 @@ def topology():
     sta4.setRange(15, intf=sta4.params['wlan'][0])
     sta5.setRange(15, intf=sta5.params['wlan'][0])
 
-    print "*** Starting network"
+    info("*** Starting network\n")
     net.build()
     c0.start()
     ap1.start([c0])
@@ -94,10 +95,10 @@ def topology():
     ap1.cmd('dpctl unix:/tmp/ap1 flow-mod table=0,cmd=add in_port=5 '
             'meter:4 apply:output=flood')
 
-    print "*** Running CLI"
-    CLI(net)
+    info("*** Running CLI\n")
+    CLI_wifi(net)
 
-    print "*** Stopping network"
+    info("*** Stopping network\n")
     net.stop()
 
 

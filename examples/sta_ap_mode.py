@@ -1,18 +1,20 @@
 #!/usr/bin/python
 
 'This example runs stations in AP mode'
+
 import sys
 
-from mininet.net import Mininet
-from mininet.cli import CLI
-from mininet.log import setLogLevel
+from mininet.log import setLogLevel, info
+from mininet.wifi.link import wmediumd
+from mininet.wifi.cli import CLI_wifi
+from mininet.wifi.net import Mininet_wifi
 
-
-net = Mininet(enable_wmediumd=True, enable_interference=True)
 
 def topology(mobility):
     'Create a network.'
+    net = Mininet_wifi(link=wmediumd, enable_interference=True)
 
+    info("*** Creating nodes\n")
     if mobility:
         sta1 = net.addStation('sta1', mac='00:00:00:00:00:01',
                               ip='192.168.0.1/24')
@@ -30,13 +32,13 @@ def topology(mobility):
 
     net.propagationModel(model="logDistance", exp=4.5)
 
-    print "*** Configuring wifi nodes"
+    info("*** Configuring wifi nodes\n")
     net.configureWifiNodes()
 
-    print "*** Adding Link"
+    info("*** Adding Link\n")
     net.addLink(ap1, ap2)  # wired connection
 
-    print "*** Plotting Graph"
+    info("*** Plotting Graph\n")
     net.plotGraph(max_x=120, max_y=120)
 
     if mobility:
@@ -45,7 +47,7 @@ def topology(mobility):
         net.mobility(sta1, 'stop', time=6, position='110.0,60.0,0.0')
         net.stopMobility(time=6)
 
-    print "*** Starting network"
+    info("*** Starting network\n")
     net.build()
 
     ap1.cmd('echo 1 > /proc/sys/net/ipv4/ip_forward')
@@ -60,10 +62,10 @@ def topology(mobility):
     sta2.cmd('route add -net 192.168.0.0/24 gw 192.168.1.10')
     sta2.cmd('route add -net 192.168.2.0/24 gw 192.168.1.10')
 
-    print "*** Running CLI"
-    CLI(net)
+    info("*** Running CLI\n")
+    CLI_wifi(net)
 
-    print "*** Stopping network"
+    info("*** Stopping network\n")
     net.stop()
 
 

@@ -5,18 +5,19 @@
 import os
 import random
 
-from mininet.net import Mininet
 from mininet.node import Controller, OVSKernelSwitch
-from mininet.cli import CLI
-from mininet.log import setLogLevel
+from mininet.log import setLogLevel, info
+from mininet.wifi.cli import CLI_wifi
+from mininet.wifi.net import Mininet_wifi
+
 
 def topology():
 
     "Create a network."
-    net = Mininet(controller=Controller, switch=OVSKernelSwitch,
+    net = Mininet_wifi(controller=Controller, switch=OVSKernelSwitch,
                   enable_wmediumd=True, enable_interference=True)
 
-    print "*** Creating nodes"
+    info("*** Creating nodes\n")
     cars = []
     for x in range(0, 10):
         cars.append(x)
@@ -25,7 +26,7 @@ def topology():
         max_ = random.randint(11, 30)
         cars[x] = net.addCar('car%s' % (x + 1), wlans=1,
                              ip='10.0.0.%s/8'% (x + 1), min_speed=min_,
-                             max_speed=max_, range=50)
+                             max_speed=max_)
 
     rsu11 = net.addAccessPoint('RSU11', ssid='RSU11', mode='g',
                                channel='1')
@@ -37,13 +38,13 @@ def topology():
                                channel='11')
     c1 = net.addController('c1', controller=Controller)
 
-    print "*** Configuring Propagation Model"
+    info("*** Configuring Propagation Model\n")
     net.propagationModel(model="logDistance", exp=4.5)
 
-    print "*** Configuring wifi nodes"
+    info("*** Configuring wifi nodes\n")
     net.configureWifiNodes()
 
-    print "*** Associating and Creating links"
+    info("*** Associating and Creating links\n")
     net.addLink(rsu11, rsu12)
     net.addLink(rsu11, rsu13)
     net.addLink(rsu11, rsu14)
@@ -54,7 +55,7 @@ def topology():
 
     net.startMobility(time=0)
 
-    print "*** Starting network"
+    info("*** Starting network\n")
     net.build()
     c1.start()
     rsu11.start([c1])
@@ -84,7 +85,7 @@ def topology():
     for carsta in net.carsSTA:
         carsta.setIP('10.0.0.%s/24' % i, intf='%s-mp0' % carsta)
         carsta.setIP('192.168.1.%s/24' % j, intf='%s-eth2' % carsta)
-        #May be confuse, but it allows ping to the name instead of ip addr
+        # May be confuse, but it allows ping to the name instead of ip addr
         carsta.setIP('10.0.0.%s/24' % i, intf='%s-wlan0' % carsta)
         carsta.cmd('echo 1 > /proc/sys/net/ipv4/ip_forward')
         i += 1
@@ -99,10 +100,10 @@ def topology():
             i += 1
             j += 2
 
-    print "*** Running CLI"
-    CLI(net)
+    info("*** Running CLI\n")
+    CLI_wifi(net)
 
-    print "*** Stopping network"
+    info("*** Stopping network\n")
     net.stop()
 
 

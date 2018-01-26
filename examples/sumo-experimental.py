@@ -4,19 +4,21 @@
 
 import os
 
-from mininet.net import Mininet
-from mininet.node import Controller, UserAP
-from mininet.cli import CLI
-from mininet.log import setLogLevel
+from mininet.node import Controller
+from mininet.log import setLogLevel, info
+from mininet.wifi.node import UserAP
+from mininet.wifi.link import wmediumd
+from mininet.wifi.cli import CLI_wifi
+from mininet.wifi.net import Mininet_wifi
 
 
 def topology():
 
     "Create a network."
-    net = Mininet(controller=Controller, accessPoint=UserAP,
-                  enable_wmediumd=True, enable_interference=True)
+    net = Mininet_wifi(controller=Controller, accessPoint=UserAP,
+                  link=wmediumd, enable_interference=True)
 
-    print "*** Creating nodes"
+    info("*** Creating nodes\n")
     cars = []
     stas = []
     for x in range(0, 10):
@@ -49,13 +51,13 @@ def topology():
 
     net.propagationModel(model="logDistance", exp=2.5)
 
-    print "*** Setting bgscan"
+    info("*** Setting bgscan\n")
     net.setBgscan(signal=-45, s_inverval=5, l_interval=10)
 
-    print "*** Configuring Propagation Model"
+    info("*** Configuring Propagation Model\n")
     net.propagationModel(model="logDistance", exp=2)
 
-    print "*** Configuring wifi nodes"
+    info("*** Configuring wifi nodes\n")
     net.configureWifiNodes()
 
     net.addLink(e1, e2)
@@ -66,7 +68,7 @@ def topology():
 
     net.useExternalProgram('sumo-gui', config_file='map.sumocfg')
 
-    print "*** Starting network"
+    info("*** Starting network\n")
     net.build()
     c1.start()
     e1.start([c1])
@@ -96,11 +98,12 @@ def topology():
     for carsta in net.carsSTA:
         carsta.setIP('10.0.0.%s/24' % i, intf='%s-mp0' % carsta)
         carsta.setIP('192.168.1.%s/24' % j, intf='%s-eth2' % carsta)
-        #May be confuse, but it allows ping to the name instead of ip addr
+        # May be confuse, but it allows ping to the name instead of ip addr
         carsta.setIP('10.0.0.%s/24' % i, intf='%s-wlan0' % carsta)
         carsta.cmd('echo 1 > /proc/sys/net/ipv4/ip_forward')
         i += 1
         j += 2
+
 
     for carsta1 in net.carsSTA:
         i = 1
@@ -111,10 +114,10 @@ def topology():
             i += 1
             j += 2
 
-    print "*** Running CLI"
-    CLI(net)
+    info("*** Running CLI\n")
+    CLI_wifi(net)
 
-    print "*** Stopping network"
+    info("*** Stopping network\n")
     net.stop()
 
 

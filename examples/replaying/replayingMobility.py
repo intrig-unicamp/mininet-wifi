@@ -2,20 +2,20 @@
 
 'Replaying Mobility'
 
-from mininet.net import Mininet
-from mininet.node import Controller, OVSAP
-from mininet.link import TCLink
-from mininet.cli import CLI
-from mininet.log import setLogLevel
-from mininet.wifiReplaying import replayingMobility
+from mininet.node import Controller
+from mininet.log import setLogLevel, info
+from mininet.wifi.replaying import replayingMobility
+from mininet.wifi.node import OVSAP
+from mininet.wifi.cli import CLI_wifi
+from mininet.wifi.net import Mininet_wifi
+
 
 def topology():
-
     "Create a network."
-    net = Mininet(controller=Controller, link=TCLink, accessPoint=OVSAP,
+    net = Mininet_wifi(controller=Controller, accessPoint=OVSAP,
                   enable_wmediumd=True, enable_interference=True)
 
-    print "*** Creating nodes"
+    info("*** Creating nodes\n")
     sta1 = net.addStation('sta1', mac='00:00:00:00:00:02', ip='10.0.0.1/8', speed=4)
     sta2 = net.addStation('sta2', mac='00:00:00:00:00:03', ip='10.0.0.2/8', speed=6)
     sta3 = net.addStation('sta3', mac='00:00:00:00:00:04', ip='10.0.0.3/8', speed=3)
@@ -24,23 +24,23 @@ def topology():
                              position='45,45,0')
     c1 = net.addController('c1', controller=Controller)
 
-    print "*** Configuring Propagation Model"
+    info("*** Configuring Propagation Model\n")
     net.propagationModel(model="logDistance", exp=4.5)
 
-    print "*** Configuring wifi nodes"
+    info("*** Configuring wifi nodes\n")
     net.configureWifiNodes()
 
-    print "*** Creating links"
+    info("*** Creating links\n")
     net.addHoc(sta3, ssid='adhocNet')
     net.addHoc(sta4, ssid='adhocNet')
 
-    print "*** Starting network"
+    'ploting graph'
+    #net.plotGraph(max_x=200, max_y=200)
+
+    info("*** Starting network\n")
     net.build()
     c1.start()
     ap1.start([c1])
-
-    'ploting graph'
-    #net.plotGraph(max_x=200, max_y=200)
 
     getTrace(sta1, 'examples/replaying/replayingMobility/node1.dat')
     getTrace(sta2, 'examples/replaying/replayingMobility/node2.dat')
@@ -49,10 +49,10 @@ def topology():
 
     replayingMobility(net)
 
-    print "*** Running CLI"
-    CLI(net)
+    info("*** Running CLI\n")
+    CLI_wifi(net)
 
-    print "*** Stopping network"
+    info("*** Stopping network\n")
     net.stop()
 
 def getTrace(sta, file_):

@@ -11,6 +11,7 @@ import os
 from functools import partial
 
 from mininet.log import output, info, error, warn, debug
+
 # Command execution support
 
 def run(cmd):
@@ -103,7 +104,7 @@ def errRun(*cmd, **kwargs):
                     if data == '':
                         outDone = True
                 elif f == popen.stderr:
-                    err += data
+                    err += str(data)
                     if data == '':
                         errDone = True
             else:  # POLLHUP or something unexpected
@@ -175,11 +176,8 @@ def makeIntfPair(intf1, intf2, addr1=None, addr2=None, node1=None, node2=None,
         # Delete any old interfaces with the same names
         runCmd('ip link del ' + intf1)
         runCmd2('ip link del ' + intf2)
-
     # Create new pair
     netns = 1 if not node2 else node2.pid
-    
-    cmdOutput = ''
     if addr1 is None and addr2 is None:
         cmdOutput = runCmd('ip link add name %s '
                            'type veth peer name %s '
@@ -189,11 +187,10 @@ def makeIntfPair(intf1, intf2, addr1=None, addr2=None, node1=None, node2=None,
                            'address %s '
                            'type veth peer name %s '
                            'address %s '
-                           'netns %s' % 
+                           'netns %s' %
                            (intf1, addr1, intf2, addr2, netns))
-
     if cmdOutput:
-        raise Exception("Error creating interface pair (%s,%s): %s " % 
+        raise Exception("Error creating interface pair (%s,%s): %s " %
                         (intf1, intf2, cmdOutput))
 
 def retry(retries, delaySecs, fn, *args, **keywords):
@@ -215,25 +212,18 @@ def moveIntfNoRetry(intf, dstNode, printError=False):
        intf: string, interface
         dstNode: destination Node
         printError: if true, print error"""
-    from mininet.node import AP, Station, Car
-
-    if (isinstance(dstNode, Station) or isinstance(dstNode, Car)
-            or isinstance(dstNode, AP)) and 'eth' not in str(intf):
-        if isinstance(dstNode, Station) or isinstance(dstNode, Car):
-            return True
-    else:
-        intf = str(intf)
-        cmd = 'ip link set %s netns %s' % (intf, dstNode.pid)
-        cmdOutput = quietRun(cmd)
-        # If ip link set does not produce any output, then we can assume
-        # that the link has been moved successfully.
-        if cmdOutput:
-            if printError:
-                error('*** Error: moveIntf: ' + intf +
-                      ' not successfully moved to ' + dstNode.name + ':\n',
-                      cmdOutput)
-            return False
-        return True
+    intf = str( intf )
+    cmd = 'ip link set %s netns %s' % ( intf, dstNode.pid )
+    cmdOutput = quietRun( cmd )
+    # If ip link set does not produce any output, then we can assume
+    # that the link has been moved successfully.
+    if cmdOutput:
+        if printError:
+            error( '*** Error: moveIntf: ' + intf +
+                   ' not successfully moved to ' + dstNode.name + ':\n',
+                   cmdOutput )
+        return False
+    return True
 
 def moveIntf(intf, dstNode, printError=True,
              retries=3, delaySecs=0.001):
@@ -241,11 +231,8 @@ def moveIntf(intf, dstNode, printError=True,
        intf: string, interface
        dstNode: destination Node
        printError: if true, print error"""
-    from mininet.node import AP
-
-    if not isinstance(dstNode, AP):
-        retry(retries, delaySecs, moveIntfNoRetry, intf, dstNode,
-              printError=printError)
+    retry( retries, delaySecs, moveIntfNoRetry, intf, dstNode,
+           printError=printError )
 
 # Support for dumping network
 
@@ -573,6 +560,7 @@ def specialClass(cls, prepend=None, append=None,
 
     class CustomClass(cls):
         "Customized subclass with preset args/params"
+
         def __init__(self, *args, **params):
             newparams = defaults.copy()
             newparams.update(params)
@@ -583,6 +571,7 @@ def specialClass(cls, prepend=None, append=None,
     CustomClass.__name__ = '%s%s' % (cls.__name__, defaults)
     return CustomClass
 
+
 def buildTopo(topos, topoStr):
     """Create topology from string with format (object, arg1, arg2,...).
     input topos is a dict of topo names to constructors, possibly w/args.
@@ -592,12 +581,13 @@ def buildTopo(topos, topoStr):
         raise Exception('Invalid topo name %s' % topo)
     return topos[ topo ](*args, **kwargs)
 
+
 def ensureRoot():
     """Ensure that we are running as root.
     Probably we should only sudo when needed as per Big Switch's patch.
     """
     if os.getuid() != 0:
-        print "*** Mininet must run as root."
+        info("*** Mininet-WiFi must run as root.\n")
         exit(1)
     return
 
