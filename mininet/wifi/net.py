@@ -820,7 +820,7 @@ class Mininet_wifi(Mininet):
 
         started = {}
         for swclass, switches in groupby(
-                sorted(nodesL2, key=lambda x: str(type(x))), type):
+                sorted(nodesL2, key=type), type):
             switches = tuple(switches)
             if hasattr(swclass, 'batchStartup'):
                 success = swclass.batchStartup(switches)
@@ -859,7 +859,7 @@ class Mininet_wifi(Mininet):
         stopped = {}
         nodesL2 = self.switches + self.aps
         for swclass, switches in groupby(
-                sorted(nodesL2, key=lambda x: str(type(x))), type):
+                sorted(nodesL2, key=type), type):
             switches = tuple(switches)
             if hasattr(swclass, 'batchShutdown'):
                 success = swclass.batchShutdown(switches)

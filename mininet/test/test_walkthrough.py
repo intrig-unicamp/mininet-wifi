@@ -113,7 +113,7 @@ class testWalkthrough(unittest.TestCase):
         p = pexpect.spawn('mn --wifi')
         p.expect(self.prompt)
         sleep(3)
-        p.sendline('sta1 python -m http.server 80 &')
+        p.sendline('sta1 python -m SimpleHTTPServer 80 &')
         p.expect(self.prompt)
         p.sendline(' sta2 wget -O - sta1')
         p.expect('200 OK')
