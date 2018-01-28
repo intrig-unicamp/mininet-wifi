@@ -225,6 +225,22 @@ class Node_wifi(object):
                        % (iface, self.params['associatedTo'][wlan],
                           str(self.params['frequency'][wlan]).replace('.', '')))
 
+    def setOCBIface(self, iface):
+        "Set OCB Interface"
+        wlan = self.params['wlan'].index(iface)
+        iface = self.params['wlan'][wlan]
+        self.cmd('ip link set %s down' % iface)
+        self.cmd('iw dev %s set type ocb' % iface)
+        self.cmd('ip link set %s up' % iface)
+        self.configureOCB(wlan)
+
+    def configureOCB(self, wlan):
+        "Configure Wireless OCB"
+        iface = self.params['wlan'][wlan]
+        freq = self.params['freq'][wlan]
+        self.func[wlan] = 'ocb'
+        self.cmd('iw dev %s ocb join %s 10MHz' % (iface, freq))
+
     def configLinks(self):
         "Applies channel params and handover"
         from mininet.wifi.mobility import mobility
