@@ -11,7 +11,10 @@ Mininet-WiFi is a fork of Mininet (http://mininet.org/) which allows the using o
 
 ### Mailing List  
 [https://groups.google.com/forum/#!forum/mininet-wifi-discuss](https://groups.google.com/forum/#!forum/mininet-wifi-discuss) 
-  
+
+### Use Cases Catalogue   
+Please, let us know if you are doing research with Mininet-WiFi. A list of citations on Mininet-WiFi is available [here](https://docs.google.com/spreadsheets/d/1laEhejMg6th-Urgc-_RqBi2H6m308Rnh9uJpKZavEio/edit?usp=sharing).     
+
 ## Installation  
 step 1: $ sudo apt-get install git  
 step 2: $ git clone https://github.com/intrig-unicamp/mininet-wifi  
