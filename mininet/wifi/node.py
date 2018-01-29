@@ -343,7 +343,7 @@ class Node_wifi(object):
         wlan = self.params['wlan'].index(intf)
         self.params['channel'][wlan] = str(value)
         self.params['frequency'][wlan] = self.get_freq(wlan)
-        if isinstance(self, AP):
+        if isinstance(self, AP) and self.func[wlan] != 'mesh':
             self.pexec(
                 'hostapd_cli -i %s chan_switch %s %s' % (
                     intf, str(value),
