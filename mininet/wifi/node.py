@@ -237,7 +237,7 @@ class Node_wifi(object):
     def configureOCB(self, wlan):
         "Configure Wireless OCB"
         iface = self.params['wlan'][wlan]
-        freq = self.params['freq'][wlan]
+        freq = self.params['frequency'][wlan]
         self.func[wlan] = 'ocb'
         self.cmd('iw dev %s ocb join %s 10MHz' % (iface, freq))
 
