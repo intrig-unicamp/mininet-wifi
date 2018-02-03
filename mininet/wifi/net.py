@@ -1,7 +1,6 @@
 """
     Mininet-WiFi: A simple networking testbed for Wireless OpenFlow/SDWN!
-author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
-"""
+author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)"""
 
 import os
 import random
@@ -528,9 +527,8 @@ class Mininet_wifi(Mininet):
                     self.wmediumd_mode = 'error_prob'
                 else:
                     self.wmediumd_mode = None
-                cls = Association
-                cls.associate(sta, ap, self.enable_wmediumd,
-                              self.wmediumd_mode, wlan, ap_wlan)
+                Association.associate(sta, ap, self.enable_wmediumd,
+                                      self.wmediumd_mode, wlan, ap_wlan)
                 if 'bw' not in params and 'TCWirelessLink' \
                         not in str(self.link.__name__):
                     value = self.setDataRate(sta, ap, wlan)
@@ -542,11 +540,10 @@ class Mininet_wifi(Mininet):
                 else:
                     cls = TCWirelessLink
 
-                if 'TCWirelessLink' in str(self.link.__name__) \
-                        or 'bw' in params and params['bw'] != 0 \
-                                and 'position' not in sta.params:
-                    # tc = True, this is useful only to apply tc configuration
-                    if not self.enable_interference:
+                if not self.enable_interference:
+                    if 'TCWirelessLink' in str(self.link.__name__) \
+                            or 'bw' in params and params['bw'] != 0:
+                        # tc = True, this is useful only to apply tc configuration
                         cls(name=sta.params['wlan'][wlan], node=sta,
                             link=None, tc=True, **params)
             if self.enable_wmediumd:
@@ -2309,9 +2306,10 @@ class Mininet_wifi(Mininet):
 
         if self.nroads == 0:
             for node in nodes:
-                if 'position' in node.params and 'link' not in node.params:
-                    mobility.aps = aps
-                    mobility.configLinks(node)
+                if node.params['associatedTo'][0] == '':
+                    if 'position' in node.params and 'link' not in node.params:
+                        mobility.aps = aps
+                        mobility.configLinks(node)
 
             for sta in stations:
                 for wlan in range(0, len(sta.params['wlan'])):
