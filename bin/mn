@@ -470,7 +470,6 @@ class MininetRunner(object):
                  link=link,
                  ipBase=ipBase,
                  inNamespace=inNamespace,
-                 isWiFi=opts.wifi,
                  channel=channel,
                  mode=mode,
                  ssid=ssid,
