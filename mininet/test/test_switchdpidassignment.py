@@ -33,7 +33,7 @@ class TestSwitchDpidAssignmentOVS(unittest.TestCase):
         ap = Mininet_wifi(topo=Topo(),
                      accessPoint=self.accessPointClass,
                      station=Station, controller=Controller,
-                     isWiFi=True).addAccessPoint('ap1')
+                     ).addAccessPoint('ap1')
         self.assertEqual(ap.defaultDpid(), ap.dpid)
 
     def dpidFrom(self, num):
@@ -47,7 +47,7 @@ class TestSwitchDpidAssignmentOVS(unittest.TestCase):
         dpid = self.dpidFrom(0xABCD)
         ap = Mininet_wifi(topo=Topo(), accessPoint=self.accessPointClass,
                      station=Station, controller=Controller,
-                     isWiFi=True).addAccessPoint('ap1', dpid=dpid)
+                     ).addAccessPoint('ap1', dpid=dpid)
         self.assertEqual(ap.dpid, dpid)
 
     def testDefaultDpidLen(self):
@@ -57,7 +57,7 @@ class TestSwitchDpidAssignmentOVS(unittest.TestCase):
         in ap name."""
         ap = Mininet_wifi(topo=Topo(), accessPoint=self.accessPointClass,
                      station=Station, controller=Controller,
-                     isWiFi=True).addAccessPoint('ap123')
+                     ).addAccessPoint('ap123')
 
         self.assertEqual(ap.dpid, self.dpidFrom(123))
 

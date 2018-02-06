@@ -52,7 +52,7 @@ class testOptionsTopoCommon( object ):
         mn = Mininet( topo=SingleSwitchOptionsTopo( n=n, hopts=hopts,
                                                     lopts=lopts ),
                       host=CPULimitedHost, link=TCLink,
-                      switch=self.switchClass, waitConnected=True, isWiFi=True)
+                      switch=self.switchClass, waitConnected=True)
         dropped = mn.run( mn.ping )
         hoptsStr = ', '.join( '%s: %s' % ( opt, value )
                               for opt, value in hopts.items() )

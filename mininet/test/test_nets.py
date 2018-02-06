@@ -33,7 +33,7 @@ class testSingleSwitchCommon( object ):
     #def testMinimal( self ):
     #    "Ping test on minimal topology"
     #    mn = Mininet( SingleAPTopo(), self.switchClass, Station, Controller,
-    #                  waitConnected=True, isWiFi=True )
+    #                  waitConnected=True )
     #    sleep(2)
     #    dropped = mn.run( mn.ping )
     #    self.assertEqual( dropped, 0 )
@@ -41,7 +41,7 @@ class testSingleSwitchCommon( object ):
     #def testSingle5( self ):
     #    "Ping test on 5-Station single-ap topology"
     #    mn = Mininet( SingleAPTopo( k=5 ), self.switchClass, Station, 
-    #                  Controller, waitConnected=True, isWiFi=True )
+    #                  Controller, waitConnected=True )
     #    sleep(2)
     #    dropped = mn.run( mn.ping )
     #    self.assertEqual( dropped, 0 )
@@ -79,7 +79,7 @@ class testLinearCommon( object ):
     #def testLinear5( self ):
     #    "Ping test on a 5-ap topology"
     #    mn = Mininet( LinearWirelessTopo( k=5 ), self.switchClass, Station,
-    #                  Controller, waitConnected=True, isWiFi=True )
+    #                  Controller, waitConnected=True )
     #    sleep(2)
     #    dropped = mn.run( mn.ping )
     #    self.assertEqual( dropped, 0 )
