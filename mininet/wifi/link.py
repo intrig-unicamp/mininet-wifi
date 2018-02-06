@@ -929,7 +929,7 @@ class Association(object):
             for wlan in range(0, len(sta.params['wlan'])):
                 if wmediumd_mode is not 'interference':
                     if sta.params['rssi'][wlan] == 0:
-                        cls.updateParams(sta, ap, wlan, ap_wlan)
+                        cls.updateParams(sta, ap, wlan)
                 if sta.params['associatedTo'][wlan] == '' \
                         and ap not in sta.params['associatedTo']:
                     Association.associate_infra(sta, ap, wlan, ap_wlan)
