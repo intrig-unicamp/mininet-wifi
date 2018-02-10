@@ -34,7 +34,6 @@ from mininet.wifi.util import moveIntf
 from mininet.utils.private_folder_manager import PrivateFolderManager
 
 
-
 class Node_wifi(Node):
     """A virtual network node is simply a shell in a network namespace.
        We communicate with it using pipes."""
@@ -250,12 +249,15 @@ class Node_wifi(Node):
 
     def getMAC(self, iface):
         "get Mac Address of any Interface"
-        _macMatchRegex = re.compile(r'..:..:..:..:..:..')
-        debug('getting mac address from %s\n' % iface)
-        macaddr = str(self.pexec('ip addr show %s' % iface))
-        mac = _macMatchRegex.findall(macaddr)
-        debug('%s\n' % mac[0])
-        return mac[0]
+        try:
+            _macMatchRegex = re.compile(r'..:..:..:..:..:..')
+            debug('getting mac address from %s\n' % iface)
+            macaddr = str(self.pexec('ip addr show %s' % iface))
+            mac = _macMatchRegex.findall(macaddr)
+            debug('%s\n' % mac[0])
+            return mac[0]
+        except:
+            info('Please run sudo mn -c.\n')
 
     def ifbSupport(self, wlan, ifbID):
         "Support to Intermediate Functional Block (IFB) Devices"
