@@ -520,12 +520,6 @@ class Mininet_wifi(Mininet):
                 doAssociation = True
 
             if doAssociation:
-                if self.enable_interference:
-                    self.wmediumd_mode = 'interference'
-                elif self.enable_error_prob:
-                    self.wmediumd_mode = 'error_prob'
-                else:
-                    self.wmediumd_mode = None
                 Association.associate(sta, ap, self.enable_wmediumd,
                                       self.wmediumd_mode, wlan, ap_wlan)
                 if 'bw' not in params and 'TCWirelessLink' \
@@ -712,7 +706,7 @@ class Mininet_wifi(Mininet):
         if (self.configure4addr or self.configureWiFiDirect or self.enable_error_prob) \
                 and self.enable_wmediumd:
             wmediumd(self.wmediumd_mode, self.fading_coefficient, self.stations,
-                     self.aps, self.propagation_model)
+                     self.aps, propagationModel)
 
         if self.inNamespace:
             self.configureControlNetwork()
@@ -1819,9 +1813,9 @@ class Mininet_wifi(Mininet):
         p2p_mac = node.cmd('iw dev | grep addr | awk \'NR==1\' | '
                            'awk \'{print $2};\'')
         node.params['mac'].append(p2p_mac.splitlines()[0])
-        node.params['wlan'].append('0')
-        node.params['txpower'].append(node.params['txpower'][0])
-        node.func.append('wifiDirect')
+        #node.params['wlan'].append('0')
+        #node.params['txpower'].append(node.params['txpower'][0])
+        #node.func.append('wifiDirect')
 
     def checkAPAdhoc(self, stations, aps):
         """configure APAdhoc
@@ -2224,15 +2218,14 @@ class Mininet_wifi(Mininet):
                                     setParam=setParam)
 
         if self.enable_wmediumd:
+            if self.enable_interference:
+                self.wmediumd_mode = 'interference'
+            elif self.enable_error_prob:
+                self.wmediumd_mode = 'error_prob'
+            else:
+                self.wmediumd_mode = None
             if not self.configureWiFiDirect and not self.configure4addr and \
                     not self.enable_error_prob:
-                if self.enable_interference:
-                    self.wmediumd_mode = 'interference'
-                elif self.enable_error_prob:
-                    self.wmediumd_mode = 'error_prob'
-                else:
-                    self.wmediumd_mode = None
-
                 wmediumd(self.wmediumd_mode, self.fading_coefficient, self.stations,
                          self.aps, propagationModel)
 
