@@ -162,15 +162,12 @@ class mobility(object):
 
     @classmethod
     def ap_out_of_range(cls, sta, ap, wlan):
-        """
-        When ap is out of range
+        """When ap is out of range
 
         :param sta: station
         :param ap: access point
-        :param wlan: wlan ID
-        """
+        :param wlan: wlan ID"""
         if ap == sta.params['associatedTo'][wlan]:
-            debug('iw dev %s disconnect\n' % sta.params['wlan'][wlan])
             if 'encrypt' in ap.params and 'ieee80211r' not in ap.params:
                 if ap.params['encrypt'][0] == 'wpa' \
                         or ap.params['encrypt'][0] == 'wpa2':
@@ -187,7 +184,9 @@ class mobility(object):
                     and not WmediumdServerConn.interference_enabled:
                 cls = Association
                 cls.setSNRWmediumd(sta, ap, snr=-10)
-            sta.pexec('iw dev %s disconnect' % sta.params['wlan'][wlan])
+            if 'encrypt' in ap.params and 'ieee80211r' not in ap.params:
+                debug('iw dev %s disconnect\n' % sta.params['wlan'][wlan])
+                sta.pexec('iw dev %s disconnect' % sta.params['wlan'][wlan])
             sta.params['associatedTo'][wlan] = ''
             if not WmediumdServerConn.interference_enabled:
                 sta.params['rssi'][wlan] = 0
@@ -200,14 +199,12 @@ class mobility(object):
 
     @classmethod
     def ap_in_range(cls, sta, ap, wlan, dist):
-        """
-        When ap is in range
+        """When ap is in range
 
         :param sta: station
         :param ap: access point
         :param wlan: wlan ID
-        :param dist: distance between source and destination
-        """
+        :param dist: distance between source and destination"""
         if ap not in sta.params['apsInRange']:
             sta.params['apsInRange'].append(ap)
         rssi = sta.set_rssi(ap, wlan, dist)
@@ -236,12 +233,10 @@ class mobility(object):
 
     @classmethod
     def check_association(cls, sta, wlan, ap_wlan):
-        """
-        check association
+        """check association
 
         :param sta: station
-        :param wlan: wlan ID
-        """
+        :param wlan: wlan ID"""
         for ap in cls.aps:
             dist = sta.get_distance_to(ap)
             if dist > ap.params['range'][0]:

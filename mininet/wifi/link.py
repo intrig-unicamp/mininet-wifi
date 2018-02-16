@@ -4,6 +4,7 @@ author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
 
 import os
 import re
+import subprocess
 from six import string_types
 
 from mininet.log import info, error, debug
@@ -998,7 +999,12 @@ class Association(object):
         :param wlan: wlan ID"""
         if 'ieee80211r' in ap.params and ap.params['ieee80211r'] == 'yes':
             if sta.params['associatedTo'][wlan] == '':
-                cls.associate_wpa(sta, ap, wlan, ap_wlan)
+                command = ('ps -aux | grep %s | wc -l' % sta.params['wlan'][wlan])
+                np = int(subprocess.check_output(command, shell=True))
+                if np == 2:
+                    cls.associate_wpa(sta, ap, wlan, ap_wlan)
+                else:
+                    cls.handover_ieee80211r(sta, ap, wlan, ap_wlan)
             else:
                 cls.handover_ieee80211r(sta, ap, wlan, ap_wlan)
         elif 'encrypt' not in ap.params:
