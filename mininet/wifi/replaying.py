@@ -173,14 +173,12 @@ class replayingBandwidth(object):
                 pass
 
 
-class replayingNetworkBehavior(object):
-    'Replaying RSSI Traces'
+class replayingNetworkConditions(object):
+    'Replaying Network Conditions'
     
     def __init__(self, Mininet_wifi, **kwargs):
-        """
-            Replaying Network Behavior
-        """        
-        self.thread = threading.Thread( name='replayingRSSI',
+
+        self.thread = threading.Thread( name='replayingNetConditions',
                                         target=self.behavior, args=(Mininet_wifi,) )
         self.thread.daemon = True
         self.thread.start()
