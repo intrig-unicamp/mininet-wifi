@@ -19,8 +19,8 @@ def topology():
     net.configureSixLoWPANNodes()
 
     info("*** Associating Stations\n")
-    net.addLink(sta1, link='6LoWPAN')
-    net.addLink(sta2, link='6LoWPAN')
+    net.addLink(sta1, link='6LoWPAN', panid='0xbeef')
+    net.addLink(sta2, link='6LoWPAN', panid='0xbeef')
 
     info("*** Starting network\n")
     net.build()

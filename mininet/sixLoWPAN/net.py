@@ -185,13 +185,6 @@ class Mininet_sixLoWPAN(Mininet_wifi):
 
         self.addParameters(node, self.autoSetMacs, defaults)
 
-        if 'type' in params and params['type'] is 'ap':
-            sta.func[0] = 'ap'
-            if 'ssid' in params:
-                sta.params['ssid'] = []
-                sta.params['ssid'].append('')
-                sta.params['ssid'][0] = params['ssid']
-
         self.sixLP.append(node)
         self.nameToNode[name] = node
 
@@ -259,15 +252,11 @@ class Mininet_sixLoWPAN(Mininet_wifi):
         node1 = node1 if not isinstance(node1, string_types) else self[node1]
         options = dict(params)
 
-        if 'position' in node1.params and 'position' in node2.params:
-            self.connections['src'].append(node1)
-            self.connections['dst'].append(node2)
-            self.connections['ls'].append('-')
         # Port is optional
         if port1 is not None:
             options.setdefault('port1', port1)
 
-        sixLoWPANLink(node1)
+        sixLoWPANLink(node1, **params)
 
         # Set default MAC - this should probably be in Link
         options.setdefault('addr1', self.randMac())
