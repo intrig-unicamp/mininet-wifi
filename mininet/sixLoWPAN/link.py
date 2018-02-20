@@ -14,6 +14,7 @@ class sixLoWPANLink(object):
 
     @classmethod
     def configIface(cls, node, **params):
+        node.cmd('ip link set lo up')
         node.cmd('ip link set %s down' % node.params['wlan'][0])
         node.cmd('iwpan dev %s set pan_id "%s"' % (node.params['wlan'][0], params['panid']))
         node.cmd('ip link add link %s name %s-lowpan type lowpan'
