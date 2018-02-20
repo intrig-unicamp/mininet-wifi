@@ -20,7 +20,7 @@ setup(
     description='Process-based OpenFlow emulator',
     author='Bob Lantz; Ramon Fontes',
     author_email='rlantz@cs.stanford.edu; ramonrf@dca.fee.unicamp.br',
-    packages=[ 'mininet', 'mininet.wifi', 'mininet.data', 'mininet.examples', 'mininet.sumo', 'mininet.sumo.sumolib',
+    packages=[ 'mininet', 'mininet.wifi', 'mininet.sixLoWPAN', 'mininet.data', 'mininet.examples', 'mininet.sumo', 'mininet.sumo.sumolib',
                'mininet.sumo.traci', 'mininet.sumo.data', 'mininet.sumo.sumolib.net', 'mininet.sumo.sumolib.output',
                'mininet.sumo.sumolib.shapes', 'mininet.utils' ],
     package_data={'mininet.sumo.data': ['*.xml', '*.sumocfg'], 'mininet.data': ['signal_table_ieee80211ax']},
