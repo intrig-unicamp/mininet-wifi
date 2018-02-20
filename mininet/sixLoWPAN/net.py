@@ -153,6 +153,178 @@ class Mininet_sixLoWPAN(Mininet_wifi):
         if topo and build:
             self.build()
 
+    def addParameters(self, node, autoSetMacs, params, mode='managed'):
+        """adds parameters to wireless nodes
+        node: node
+        autoSetMacs: set MAC addrs automatically like IP addresses
+        params: parameters
+        defaults: Default IP and MAC addresses
+        mode: if interface is running in managed or master mode"""
+        node.params['frequency'] = []
+        node.params['channel'] = []
+        node.params['mode'] = []
+        node.params['wlan'] = []
+        node.params['mac'] = []
+        node.phyID = []
+        node.autoTxPower = False
+
+        if 'passwd' in params:
+            node.params['passwd'] = []
+            passwd_list = params['passwd'].split(',')
+            for passwd in passwd_list:
+                node.params['passwd'].append(passwd)
+
+        if 'encrypt' in params:
+            node.params['encrypt'] = []
+            encrypt_list = params['encrypt'].split(',')
+            for encrypt in encrypt_list:
+                node.params['encrypt'].append(encrypt)
+
+        if mode == 'managed':
+            node.params['apsInRange'] = []
+            node.params['associatedTo'] = []
+            if not self.enable_interference:
+                node.params['rssi'] = []
+            node.ifaceToAssociate = 0
+            node.max_x = 0
+            node.max_y = 0
+            node.min_x = 0
+            node.min_y = 0
+            node.max_v = 0
+            node.min_v = 0
+
+            # max_speed
+            if 'max_speed' in params:
+                node.max_speed = int(params['max_speed'])
+            else:
+                node.max_speed = 10
+
+            # min_speed
+            if 'min_speed' in params:
+                node.min_speed = int(params['min_speed'])
+            else:
+                node.min_speed = 1
+
+        # speed
+        if 'speed' in params:
+            node.speed = int(params['speed'])
+
+        # max_x
+        if 'max_x' in params:
+            node.max_x = int(params['max_x'])
+
+        # max_y
+        if 'max_y' in params:
+            node.max_y = int(params['max_y'])
+
+        # min_x
+        if 'min_x' in params:
+            node.min_x = int(params['min_x'])
+
+        # min_y
+        if 'min_y' in params:
+            node.min_y = int(params['min_y'])
+
+        # min_v
+        if 'min_v' in params:
+            node.min_v = int(params['min_v'])
+
+        # max_v
+        if 'max_v' in params:
+            node.max_v = int(params['max_v'])
+
+        # constantVelocity
+        if 'constantVelocity' in params:
+            node.constantVelocity = int(params['constantVelocity'])
+        else:
+            node.constantVelocity = 1
+
+        # constantDistance
+        if 'constantDistance' in params:
+            node.constantDistance = int(params['constantDistance'])
+        else:
+            node.constantDistance = 1
+
+        # position
+        if 'position' in params:
+            position = params['position']
+            position = position.split(',')
+            node.params['position'] = [float(position[0]),
+                                       float(position[1]),
+                                       float(position[2])]
+        else:
+            if 'position' in node.params:
+                position = node.params['position']
+                position = position.split(',')
+                node.params['position'] = [float(position[0]),
+                                           float(position[1]),
+                                           float(position[2])]
+
+        wpans = self.count6LoWPANIfaces(params)
+
+        for wlan in range(wpans):
+            self.addParamsToNode(node)
+            if mode == 'managed':
+                self.appendAssociatedTo(node)
+
+            if mode == 'master':
+                if 'phywlan' in node.params and wlan == 0:
+                    node.params['wlan'].append(node.params['phywlan'])
+                else:
+                    node.params['wlan'].append(node.name + '-wpan' + str(wlan + 1))
+                if 'link' in params and params['link'] == 'mesh':
+                    self.appendRSSI(node)
+                    self.appendAssociatedTo(node)
+            else:
+                node.params['wlan'].append(node.name + '-wpan' + str(wlan))
+                self.appendRSSI(node)
+            node.params.pop("wlans", None)
+
+        if mode == 'managed':
+            self.addMacParamToNode(node, wpans, autoSetMacs, params)
+            self.addIpParamToNode(node, wpans, autoSetMacs, params)
+
+        self.addAntennaGainParamToNode(node, wpans, params)
+        self.addAntennaHeightParamToNode(node, wpans, params)
+        self.addTxPowerParamToNode(node, wpans, params)
+        self.addChannelParamToNode(node, wpans, params)
+        self.addModeParamToNode(node, wpans, params)
+        self.addRangeParamToNode(node, wpans, params)
+
+        # Equipment Model
+        equipmentModel = ("%s" % params.pop('equipmentModel', {}))
+        if equipmentModel != "{}":
+            node.equipmentModel = equipmentModel
+
+        if mode == 'master' or 'ssid' in node.params:
+            node.params['associatedStations'] = []
+            node.params['stationsInRange'] = {}
+            node._4addr = False
+
+            if 'config' in node.params:
+                config = node.params['config']
+                if config != []:
+                    config = node.params['config'].split(',')
+                    for conf in config:
+                        if 'wpa=' in conf or 'wep=' in conf:
+                            node.params['encrypt'] = []
+                        if 'wpa=' in conf:
+                            node.params['encrypt'].append('wpa')
+                        if 'wep=' in conf:
+                            node.params['encrypt'].append('wep')
+
+            if mode == 'master':
+                node.params['mac'] = []
+                node.params['mac'].append('')
+                if 'mac' in params:
+                    node.params['mac'][0] = params[ 'mac' ]
+
+                if 'ssid' in params:
+                    node.params['ssid'] = []
+                    ssid_list = params['ssid'].split(',')
+                    for ssid in ssid_list:
+                        node.params['ssid'].append(ssid)
+
     def add6LoWPAN(self, name, cls=None, **params):
         """Add 6LoWPAN node.
            name: name of station to add
@@ -532,8 +704,8 @@ class Mininet_sixLoWPAN(Mininet_wifi):
         fixLimits()
         cls.inited = True
 
-    def countWiFiIfaces(self, params):
-        "Count the number of virtual wifi interfaces"
+    def count6LoWPANIfaces(self, params):
+        "Count the number of virtual 6LoWPAN interfaces"
         if 'wlans' in params:
             self.n_radios += int(params['wlans'])
             wlans = int(params['wlans'])
