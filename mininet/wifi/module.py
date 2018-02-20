@@ -25,8 +25,7 @@ class module(object):
         """ Load WiFi Module 
         
         :param n_radios: number of wifi radios
-        :param alternativeModule: dir of a mac80211_hwsim alternative module
-        """
+        :param alternativeModule: dir of a mac80211_hwsim alternative module"""
         debug('Loading %s virtual interfaces\n' % n_radios)
         if not cls.externally_managed:
             if alternativeModule == '':
@@ -149,8 +148,7 @@ class module(object):
         :param nodes: list of wireless nodes
         :param n_radios: number of wifi radios
         :param alternativeModule: dir of a mac80211_hwsim alternative module
-        :param **params: ifb -  Intermediate Functional Block device
-        """
+        :param **params: ifb -  Intermediate Functional Block device"""
         """kill hostapd if it is already running"""
         try:
             h = subprocess.check_output("ps -aux | grep -ic \'hostapd\'",
@@ -264,8 +262,7 @@ class module(object):
     def get_wlan_iface(cls, physicalWlan):
         """Build a new wlan list removing the physical wlan
         
-        :param physicalWlans: list of Physical Wlans
-        """
+        :param physicalWlans: list of Physical Wlans"""
         wlan_list = []
         iface_list = subprocess.check_output("iw dev 2>&1 | grep Interface | "
                                              "awk '{print $2}'",

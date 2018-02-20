@@ -388,7 +388,7 @@ class TCWirelessLink(IntfWireless):
 class _4addrLink(object):
 
     def __init__(self, node1, node2, intf=Intf):
-        """Create WDS link to another node.
+        """Create 4addr link to another node.
            node1: first node
            node2: second node
            intf: default interface class/constructor
