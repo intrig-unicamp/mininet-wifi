@@ -21,7 +21,7 @@ from mininet.node import (Node, Host, OVSKernelSwitch,
 from mininet.util import (quietRun, fixLimits, numCores, ensureRoot,
                           macColonHex, ipStr, ipParse, netParse, ipAdd,
                           waitListening)
-from mininet.link import Link, Intf
+from mininet.link import Link, Intf, TCLink
 from mininet.nodelib import NAT
 from mininet.log import info, error, debug, output, warn
 
@@ -585,7 +585,7 @@ class Mininet_wifi(Mininet):
             options.setdefault('addr1', self.randMac())
             options.setdefault('addr2', self.randMac())
 
-            cls = Link
+            cls = TCLink
             cls = self.link if cls is None else cls
             link = cls(node1, node2, **options)
             self.links.append(link)
