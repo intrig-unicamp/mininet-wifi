@@ -26,6 +26,8 @@ step 4: $ sudo util/install.sh -Wlnfv
 -f: OpenFlow   
 -v: OpenvSwitch   
 -l: wmediumd   
+optional:  
+-6: wpan tools
 
 ### Development
 For instructions about easier development check [this helper file](doc/dev_help.md).
