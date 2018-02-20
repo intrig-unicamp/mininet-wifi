@@ -717,6 +717,24 @@ function wmediumd {
     popd
 }
 
+
+# Script for installing wpan tools
+function wpan_tools {
+    echo "Installing wpan tools sources"
+    cd $BUILD_DIR
+    if [ -d wpan-tools ]; then
+      echo "Removing wpan-tools..."
+      rm -r wpan-tools
+    fi
+    git clone --depth=1 https://github.com/ramonfontes/wpan-tools
+    pushd $BUILD_DIR/wpan-tools
+    sudo ./autogen.sh
+    sudo ./configure
+    sudo make
+    sudo make install
+    popd
+}
+
 function all {
     if [ "$DIST" = "Fedora" ]; then
         printf "\nFedora 18+ support (still work in progress):\n"
@@ -744,6 +762,7 @@ function all {
     oftest
     cbench
     wmediumd
+    wpan_tools
     echo "Enjoy Mininet-WiFi!"
 }
 
@@ -814,6 +833,7 @@ function usage {
     printf -- ' -y: install R(y)u Controller\n' >&2
     printf -- ' -0: (default) -0[fx] installs OpenFlow 1.0 versions\n' >&2
     printf -- ' -3: -3[fx] installs OpenFlow 1.3 versions\n' >&2
+    printf -- ' -6: install wpan tools\n' >&2
     exit 2
 }
 
@@ -823,7 +843,7 @@ if [ $# -eq 0 ]
 then
     all
 else
-    while getopts 'abcdefhiklmnprs:tvV:wWxy03' OPTION
+    while getopts 'abcdefhiklmnprs:tvV:wWxy036' OPTION
     do
       case $OPTION in
       a)    all;;
@@ -861,6 +881,7 @@ else
       y)    ryu;;
       0)    OF_VERSION=1.0;;
       3)    OF_VERSION=1.3;;
+      6)    wpan_tools;;
       ?)    usage;;
       esac
     done
