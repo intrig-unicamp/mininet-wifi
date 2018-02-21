@@ -1051,6 +1051,10 @@ class Association(object):
                 cmd = cmd + '   psk=\"%s\"\n' % passwd
                 cmd = cmd + '   proto=%s\n' % ap.params['encrypt'][ap_wlan].upper()
                 cmd = cmd + '   pairwise=%s\n' % ap.rsn_pairwise
+            if 'active_scan' in sta.params and sta.params['active_scan'] == 1:
+                cmd = cmd + '   scan_ssid=1\n'
+            if 'scan_freq' in sta.params:
+                cmd = cmd + '   scan_freq=%s\n' % sta.params['scan_freq'][wlan]
             cmd = cmd + '   key_mgmt=%s\n' % ap.wpa_key_mgmt
             if cls.bgscan != '':
                 cmd = cmd + '   %s\n' % cls.bgscan
