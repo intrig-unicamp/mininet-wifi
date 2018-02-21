@@ -26,7 +26,7 @@ class module(object):
         
         :param n_radios: number of wifi radios
         :param alternativeModule: dir of a mac80211_hwsim alternative module"""
-        debug('Loading %s virtual interfaces\n' % n_radios)
+        debug('Loading %s virtual wifi interfaces\n' % n_radios)
         if not cls.externally_managed:
             if alternativeModule == '':
                 output_ = os.system('modprobe mac80211_hwsim radios=0 '
@@ -57,7 +57,7 @@ class module(object):
         # generate prefix
         phys = subprocess.check_output("find /sys/kernel/debug/ieee80211 -name "
                                        "hwsim | cut -d/ -f 6 | sort",
-                                       shell=True).decode('utf-8').split("\n")
+                                       shell=True).split("\n")
         num = 0
         numokay = False
         cls.prefix = ""
@@ -77,7 +77,7 @@ class module(object):
                                      stderr=subprocess.PIPE, bufsize=-1)
                 output, err_out = p.communicate()
                 if p.returncode == 0:
-                    m = re.search("ID (\d+)", output.decode())
+                    m = re.search("ID (\d+)", output)
                     debug("Created mac80211_hwsim device with ID %s\n" % m.group(1))
                     cls.hwsim_ids.append(m.group(1))
                 else:
@@ -169,7 +169,7 @@ class module(object):
         cls.wlans = []
         cls.wlans = (subprocess.check_output("iw dev 2>&1 | grep Interface "
                                              "| awk '{print $2}'",
-                                             shell=True)).decode('utf-8').split("\n")
+                                             shell=True)).split("\n")
         cls.wlans.pop()
         return cls.wlans
 
@@ -178,7 +178,7 @@ class module(object):
         'Gets all phys after starting the wireless module'
         phy = subprocess.check_output("find /sys/kernel/debug/ieee80211 -name "
                                       "hwsim | cut -d/ -f 6 | sort",
-                                      shell=True).decode('utf-8').split("\n")
+                                      shell=True).split("\n")
         phy.pop()
         phy.sort(key=len, reverse=False)
         return phy
@@ -223,11 +223,12 @@ class module(object):
                     for wlan in range(0, len(node.params['wlan'])):
                         node.phyID[wlan] = cls.phyID
                         cls.phyID += 1
-                        rfkill = os.system(
-                            'rfkill list | grep %s | awk \'{print $1}\' '
-                            '| tr -d \":\" >/dev/null 2>&1' % phys[0])
-                        debug('rfkill unblock %s\n' % rfkill)
-                        os.system('rfkill unblock %s' % rfkill)
+                        rfkill = subprocess.check_output(
+                            'rfkill list | grep %s | awk \'{print $1}\''
+                            '| tr -d ":"' % phys[0],
+                            shell=True).split('\n')
+                        debug('rfkill unblock %s\n' % rfkill[0])
+                        os.system('rfkill unblock %s' % rfkill[0])
                         os.system('iw phy %s set netns %s' % (phys[0], node.pid))
                         node.cmd('ip link set %s down' % cls.wlan_list[0])
                         node.cmd('ip link set %s name %s'
@@ -237,12 +238,6 @@ class module(object):
                             ifbID += 1
                         cls.wlan_list.pop(0)
                         phys.pop(0)
-            for phy in phys:
-                rfkill = os.system(
-                    'rfkill list | grep %s | awk \'{print $1}\' '
-                    '| tr -d \":\" >/dev/null 2>&1' % phy)
-                debug('rfkill unblock %s\n' % rfkill)
-                os.system('rfkill unblock %s' % rfkill)
         except:
             logging.exception("Warning:")
             info("Warning! Error when loading mac80211_hwsim. "
@@ -266,7 +261,7 @@ class module(object):
         wlan_list = []
         iface_list = subprocess.check_output("iw dev 2>&1 | grep Interface | "
                                              "awk '{print $2}'",
-                                             shell=True).decode('utf-8').split('\n')
+                                             shell=True).split('\n')
         for iface in iface_list:
             if iface not in physicalWlan and iface != '':
                 wlan_list.append(iface)
