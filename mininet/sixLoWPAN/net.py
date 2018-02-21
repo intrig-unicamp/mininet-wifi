@@ -19,8 +19,8 @@ from mininet.wifi.net import Mininet_wifi
 from mininet.node import (Node, Host, OVSKernelSwitch,
                           DefaultController, Controller)
 from mininet.util import (quietRun, fixLimits, numCores, ensureRoot,
-                          macColonHex, ipStr, ipParse, netParse, ipAdd,
-                          waitListening)
+                          macColonHex, ipParse, waitListening)
+from mininet.sixLoWPAN.util import ipAdd6, netParse
 from mininet.link import Link, Intf
 from mininet.nodelib import NAT
 from mininet.log import info, error, debug, output, warn
@@ -44,7 +44,7 @@ class Mininet_sixLoWPAN(Mininet_wifi):
                  accessPoint=OVSKernelAP, host=Host, station=Station,
                  car=Car, controller=DefaultController,
                  link=Link, intf=Intf, build=True, xterms=False,
-                 ipBase='10.0.0.0/8', inNamespace=False,
+                 ipBase='2001:0:0:0:0:0:0:0/64', inNamespace=False,
                  autoSetMacs=False, autoStaticArp=False, autoPinCpus=False,
                  listenPort=None, waitConnected=False, ssid="new-ssid",
                  mode="g", channel="1", enable_wmediumd=False,
@@ -137,6 +137,7 @@ class Mininet_sixLoWPAN(Mininet_wifi):
         self.alternativeModule = ''
         self.rec_rssi = rec_rssi
         self.plot = plot2d
+        self.n_wpans = 0
         self.n_radios = 0
         self.min_x = 0
         self.min_y = 0
@@ -332,7 +333,7 @@ class Mininet_sixLoWPAN(Mininet_wifi):
            params: parameters for 6LoWPAN
            returns: added station"""
         # Default IP and MAC addresses
-        defaults = {'ip': ipAdd(self.nextIP,
+        defaults = {'ip': ipAdd6(self.nextIP,
                                 ipBaseNum=self.ipBaseNum,
                                 prefixLen=self.prefixLen) +
                           '/%s' % self.prefixLen,
@@ -386,14 +387,14 @@ class Mininet_sixLoWPAN(Mininet_wifi):
     def __iter__(self):
         "return iterator over node names"
         for node in chain(self.hosts, self.switches, self.controllers,
-                          self.stations, self.carsSTA, self.aps):
+                          self.stations, self.carsSTA, self.aps, self.sixLP):
             yield node.name
 
     def __len__(self):
         "returns number of nodes in net"
         return (len(self.hosts) + len(self.switches) +
                 len(self.controllers) + len(self.stations) +
-                len(self.carsSTA) + len(self.aps))
+                len(self.carsSTA) + len(self.aps) + len(self.sixLP))
 
     def __contains__(self, item):
         "returns True if net contains named node"
@@ -428,10 +429,13 @@ class Mininet_sixLoWPAN(Mininet_wifi):
         if port1 is not None:
             options.setdefault('port1', port1)
 
-        sixLoWPANLink(node1, **params)
-
         # Set default MAC - this should probably be in Link
         options.setdefault('addr1', self.randMac())
+
+        cls = sixLoWPANLink
+        cls(name=node1.params['wlan'][0], node=node1, **params)
+
+
     def monitor(self, hosts=None, timeoutms=-1):
         """Monitor a set of hosts (or all hosts by default),
            and return their output, a line at a time.
@@ -707,11 +711,11 @@ class Mininet_sixLoWPAN(Mininet_wifi):
     def count6LoWPANIfaces(self, params):
         "Count the number of virtual 6LoWPAN interfaces"
         if 'wlans' in params:
-            self.n_radios += int(params['wlans'])
+            self.n_wpans += int(params['wlans'])
             wlans = int(params['wlans'])
         else:
             wlans = 1
-            self.n_radios += 1
+            self.n_wpans += 1
         return wlans
 
     def kill_fakelb(self):
@@ -727,8 +731,15 @@ class Mininet_sixLoWPAN(Mininet_wifi):
     def configureSixLoWPANNodes(self):
         "Configure WiFi Nodes"
         nodes = self.stations + self.aps + self.cars + self.sixLP
-        module.start(nodes, self.n_radios, self.alternativeModule)
+        module.start(nodes, self.n_wpans, self.alternativeModule)
         self.configureWifiNodes()
+        #self.configNodes()
+
+    def configNodes(self):
+        "Configure a set of nodes."
+        for node in self.sixLP:
+            ip = node.params['ip'][0]
+            sixLoWPANLink.setIP(ip)
 
     def closeMininetWiFi(self):
         "Close Mininet-WiFi"
