@@ -997,7 +997,8 @@ class Association(object):
         :param sta: station
         :param ap: access point
         :param wlan: wlan ID"""
-        if 'ieee80211r' in ap.params and ap.params['ieee80211r'] == 'yes':
+        if 'ieee80211r' in ap.params and ap.params['ieee80211r'] == 'yes' \
+        and ('encrypt' not in sta.params or 'encrypt' in sta.params and 'wpa' in sta.params['encrypt'][wlan]):
             if sta.params['associatedTo'][wlan] == '':
                 command = ('ps -aux | grep %s | wc -l' % sta.params['wlan'][wlan])
                 np = int(subprocess.check_output(command, shell=True))
@@ -1011,8 +1012,8 @@ class Association(object):
             cls.associate_noEncrypt(sta, ap, wlan, ap_wlan)
         else:
             if sta.params['associatedTo'][wlan] == '':
-                if ap.params['encrypt'][ap_wlan] == 'wpa' \
-                        or ap.params['encrypt'][ap_wlan] == 'wpa2':
+                if 'wpa' in ap.params['encrypt'][ap_wlan] \
+                and ('encrypt' not in sta.params or 'encrypt' in sta.params and 'wpa' in sta.params['encrypt'][wlan]):
                     cls.associate_wpa(sta, ap, wlan, ap_wlan)
                 elif ap.params['encrypt'][ap_wlan] == 'wep':
                     cls.associate_wep(sta, ap, wlan, ap_wlan)
@@ -1053,7 +1054,7 @@ class Association(object):
                 cmd = cmd + '   pairwise=%s\n' % ap.rsn_pairwise
                 if 'active_scan' in sta.params and sta.params['active_scan'] == 1:
                     cmd = cmd + '   scan_ssid=1\n'
-                if 'scan_freq' in sta.params:
+                if 'scan_freq' in sta.params and sta.params['scan_freq'][wlan] != '':
                     cmd = cmd + '   scan_freq=%s\n' % sta.params['scan_freq'][wlan]
             cmd = cmd + '   key_mgmt=%s\n' % ap.wpa_key_mgmt
             if cls.bgscan != '':
