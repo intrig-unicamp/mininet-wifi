@@ -1283,7 +1283,7 @@ class Mininet_wifi(Mininet):
                 sta = self.nameToNode[dst]
                 ap = self.nameToNode[src]
             for wlan in range(0, len(sta.params['wlan'])):
-                if sta.params['associatedTo'][wlan] is '':
+                if sta.params['associatedTo'][wlan] == '':
                     sta.pexec('iw dev %s connect %s %s'
                               % (sta.params['wlan'][wlan],
                                  ap.params['ssid'][0], ap.params['mac'][0]))

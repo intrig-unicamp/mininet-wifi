@@ -952,8 +952,7 @@ class Association(object):
         """
         :param sta: station
         :param ap: access point
-        :param wlan: wlan ID
-        """
+        :param wlan: wlan ID"""
 
         sta.params['frequency'][wlan] = ap.get_freq(0)
         sta.params['channel'][wlan] = ap.params['channel'][0]
@@ -969,8 +968,6 @@ class Association(object):
                                       wmediumd_mode, ap_wlan=0)
         else:
             cls.associate_infra(sta, ap, wlan=0, ap_wlan=0)
-            sta.params['associatedTo'][wlan] = ap
-            ap.params['associatedStations'].append(sta)
         sta.ifaceToAssociate += 1
 
     @classmethod
@@ -997,6 +994,7 @@ class Association(object):
         :param sta: station
         :param ap: access point
         :param wlan: wlan ID"""
+        associated = 0
         if 'ieee80211r' in ap.params and ap.params['ieee80211r'] == 'yes' \
         and ('encrypt' not in sta.params or 'encrypt' in sta.params and 'wpa' in sta.params['encrypt'][wlan]):
             if sta.params['associatedTo'][wlan] == '':
@@ -1008,20 +1006,24 @@ class Association(object):
                     cls.handover_ieee80211r(sta, ap, wlan, ap_wlan)
             else:
                 cls.handover_ieee80211r(sta, ap, wlan, ap_wlan)
+            associated = 1
         elif 'encrypt' not in ap.params:
+            associated = 1
             cls.associate_noEncrypt(sta, ap, wlan, ap_wlan)
         else:
             if sta.params['associatedTo'][wlan] == '':
                 if 'wpa' in ap.params['encrypt'][ap_wlan] \
                 and ('encrypt' not in sta.params or 'encrypt' in sta.params and 'wpa' in sta.params['encrypt'][wlan]):
                     cls.associate_wpa(sta, ap, wlan, ap_wlan)
+                    associated = 1
                 elif ap.params['encrypt'][ap_wlan] == 'wep':
                     cls.associate_wep(sta, ap, wlan, ap_wlan)
+                    associated = 1
         if cls.printCon:
             iface = sta.params['wlan'][wlan]
             info("Associating %s to %s\n" % (iface, ap))
-        sta.params['frequency'][wlan] = ap.get_freq(0)
-        sta.params['associatedTo'][wlan] = ap
+        if associated:
+            cls.update_association(sta, ap, wlan)
 
     @classmethod
     def wpaFile(cls, sta, ap, wlan, ap_wlan):
@@ -1111,8 +1113,11 @@ class Association(object):
         :param sta: station
         :param ap: access point
         :param wlan: wlan ID"""
-        if sta.params['associatedTo'][wlan] != '' \
-                and sta in sta.params['associatedTo'][wlan].params['associatedStations']:
-            sta.params['associatedTo'][wlan].params['associatedStations'].remove(sta)
-        cls.updateParams(sta, ap, wlan)
-        sta.params['associatedTo'][wlan] = ap
+        if sta.params['associatedTo'][wlan] != 'active_scan' \
+            and sta.params['associatedTo'][wlan] != 'bgscan':
+            if sta.params['associatedTo'][wlan] != '' \
+                    and sta in sta.params['associatedTo'][wlan].params['associatedStations']:
+                sta.params['associatedTo'][wlan].params['associatedStations'].remove(sta)
+            cls.updateParams(sta, ap, wlan)
+            ap.params['associatedStations'].append(sta)
+            sta.params['associatedTo'][wlan] = ap

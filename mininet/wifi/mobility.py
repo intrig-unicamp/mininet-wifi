@@ -220,10 +220,10 @@ class mobility(object):
             if sta not in ap.params['associatedStations']:
                 ap.params['associatedStations'].append(sta)
             if dist >= 0.01:
-                if Association.bgscan != '' or 'active_scan' in sta.params:
+                if Association.bgscan != '' or 'active_scan' in sta.params \
+                and ('encrypt' in sta.params and 'wpa' in sta.params['encrypt'][wlan]):
                     pass
-                elif WmediumdServerConn.connected \
-                        and not WmediumdServerConn.interference_enabled:
+                elif WmediumdServerConn.connected and not WmediumdServerConn.interference_enabled:
                     Association.setSNRWmediumd(
                         sta, ap, snr=sta.params['rssi'][wlan] - (-91))
                 elif WmediumdServerConn.interference_enabled:
@@ -267,7 +267,6 @@ class mobility(object):
             if ap not in sta.params['associatedTo']:
                 Association.printCon = False
                 Association.associate_infra(sta, ap, wlan, ap_wlan)
-                Association.update_association(sta, ap, wlan)
                 if WmediumdServerConn.interference_enabled:
                     cls.update_wmediumd_pos(sta)
 
@@ -592,7 +591,8 @@ class mobility(object):
                         node = car
                 else:
                     if WmediumdServerConn.interference_enabled:
-                        if Association.bgscan != '' or 'active_scan' in node.params:
+                        if Association.bgscan != '' or ('active_scan' in node.params \
+                        and ('encrypt' in node.params and 'wpa' in node.params['encrypt'][wlan])):
                             if node.params['associatedTo'][wlan] == '':
                                 for ap in cls.aps:
                                     Association.printCon = False
