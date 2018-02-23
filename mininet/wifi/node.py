@@ -1217,6 +1217,8 @@ class AccessPoint(AP):
             cmd = cmd + ('\nht_capab=%s' % ap.params['ht_capab'])
         if 'beacon_int' in ap.params:
             cmd = cmd + ('\nbeacon_int=%s' % ap.params['beacon_int'])
+        if 'client_isolation' in ap.params and ap.params['cliente_isolation'][wlan]:
+            cmd = cmd + ('\nap_isolate=1')
         if 'config' in ap.params:
             config = ap.params['config']
             if config is not []:

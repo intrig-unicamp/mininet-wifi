@@ -1525,6 +1525,13 @@ class Mininet_wifi(Mininet):
                     for ssid in ssid_list:
                         node.params['ssid'].append(ssid)
 
+                if 'cliente_isolation' in params:
+                    node.params['cliente_isolation'] = []
+                    cliente_isolation_list = params['cliente_isolation'].split(',')
+                    for cliente_isolation in cliente_isolation_list:
+                        node.params['cliente_isolation'].append(cliente_isolation)
+
+
     def addParamsToNode(self, node):
         "Add Frequency, func and phyID"
         node.params['frequency'].append(2.412)
