@@ -16,6 +16,7 @@ from six import string_types
 from subprocess import Popen, PIPE
 from time import sleep
 from distutils.version import StrictVersion
+from sys import version_info as py_version_info
 from re import findall
 
 from mininet.log import info, error, warn, debug
@@ -112,7 +113,10 @@ class Node_wifi(Node):
         master, slave = pty.openpty()
         self.shell = self._popen(cmd, stdin=slave, stdout=slave, stderr=slave,
                                  close_fds=False)
-        self.stdin = os.fdopen(master, 'rw')
+        if py_version_info < (3, 0):
+            self.stdin = os.fdopen(master, 'rw')
+        else:
+            self.stdin = os.fdopen(master, 'bw')
         self.stdout = self.stdin
         self.pid = self.shell.pid
         self.pollOut = select.poll()
@@ -625,7 +629,10 @@ class Node_wifi(Node):
         count = len(self.readbuf)
         if count < maxbytes:
             data = os.read(self.stdout.fileno(), maxbytes - count)
-            self.readbuf += data
+            if py_version_info < (3, 0):
+                self.readbuf += data
+            else:
+                self.readbuf += data.decode('utf-8')
         if maxbytes >= len(self.readbuf):
             result = self.readbuf
             self.readbuf = ''
@@ -648,7 +655,10 @@ class Node_wifi(Node):
     def write(self, data):
         """Write data to node.
            data: string"""
-        os.write(self.stdin.fileno(), data)
+        if py_version_info < (3, 0):
+            os.write( self.stdin.fileno(), data )
+        else:
+            os.write(self.stdin.fileno(), data.encode())
 
     def terminate(self):
         "Send kill signal to Node and clean up after it."

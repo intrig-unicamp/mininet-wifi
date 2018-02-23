@@ -28,6 +28,7 @@ step 4: $ sudo util/install.sh -Wlnfv
 -l: wmediumd   
 optional:  
 -6: wpan tools
+-P: python3
 
 ### Development
 For instructions about easier development check [this helper file](doc/dev_help.md).

@@ -12,6 +12,7 @@ nothing irreplaceable!
 
 from subprocess import ( Popen, PIPE, check_output as co,
                          CalledProcessError )
+from sys import version_info as py_version_info
 import time
 
 from mininet.log import info
@@ -94,13 +95,22 @@ class Cleanup( object ):
         # Delete blocks of links
         n = 1000  # chunk size
         for i in range( 0, len( links ), n ):
-            cmd = ';'.join( 'ip link del %s' % link
-                            for link in links[ i : i + n ] )
+            if py_version_info < (3, 0):
+                cmd = ';'.join('ip link del %s' % link.decode('utf-8')
+                               for link in links[i: i + n])
+            else:
+                cmd = ';'.join( 'ip link del %s' % link
+                                for link in links[ i : i + n ] )
             sh( '( %s ) 2> /dev/null' % cmd )
 
-        if 'tap9' in sh( 'ip link show' ):
-            info( "*** Removing tap9 - assuming it's from cluster edition\n" )
-            sh( 'ip link del tap9' )
+        if py_version_info < (3, 0):
+            if 'tap9' in sh( 'ip link show' ):
+                info( "*** Removing tap9 - assuming it's from cluster edition\n" )
+                sh( 'ip link del tap9' )
+        else:
+            if 'tap9' in sh( 'ip link show' ).decode('utf-8'):
+                info( "*** Removing tap9 - assuming it's from cluster edition\n" )
+                sh( 'ip link del tap9' )
 
         info( "*** Killing stale mininet node processes\n" )
         killprocs( 'mininet:' )

@@ -30,6 +30,7 @@ KERNEL_LOC=http://www.openflow.org/downloads/mininet
 DIST=Unknown
 RELEASE=Unknown
 CODENAME=Unknown
+PYTHON3=false
 ARCH=`uname -m`
 if [ "$ARCH" = "x86_64" ]; then ARCH="amd64"; fi
 if [ "$ARCH" = "i686" ]; then ARCH="i386"; fi
@@ -125,21 +126,33 @@ function kernel_clean {
 
 # Install Mininet deps
 function mn_deps {
-    echo "Installing Mininet dependencies"
     if [ "$DIST" = "Fedora" -o "$DIST" = "RedHatEnterpriseServer" ]; then
         $install gcc make socat psmisc xterm openssh-clients iperf \
-            iproute telnet python-setuptools libcgroup-tools \
-            ethtool help2man pyflakes pylint python-pep8 python-pexpect python-pip
+            iproute telnet libcgroup-tools \
+            ethtool help2m pyflakes pylint python-pep8
+        if [ "$PYTHON3" == true ]; then
+		    $install python3-setuptools python3-pexpect python3-pip
+		else
+		    $install python-setuptools python-pexpect python-pip
+	    fi
 	elif [ "$DIST" = "SUSE LINUX"  ]; then
 		$install gcc make socat psmisc xterm openssh iperf \
-			iproute telnet python-setuptools libcgroup-tools \
-			ethtool help2man python-pyflakes python3-pylint python-pep8 python-pexpect python-pip
+			iproute telnet libcgroup-tools \
+			ethtool help2man python-pyflakes python3-pylint python-pep8
+		if [ "$PYTHON3" == true ]; then
+		    $install python3-setuptools python3-pexpect python3-pip
+		else
+		    $install python-setuptools python-pexpect python-pip
+	    fi
     else
         $install gcc make socat psmisc xterm ssh iperf iproute telnet \
-            python-setuptools cgroup-bin ethtool help2man \
-            pyflakes pylint pep8 python-pexpect python-pip
+            cgroup-bin ethtool help2man pyflakes pylint pep8
+        if [ "$PYTHON3" == true ]; then
+		    $install python3-setuptools python3-pexpect python3-pip
+		else
+		    $install python-setuptools python-pexpect python-pip
+	    fi
     fi
-
     echo "Installing Mininet core"
     pushd $MININET_DIR/mininet-wifi
     sudo make install
@@ -149,8 +162,13 @@ function mn_deps {
 # Install Mininet-WiFi deps
 function wifi_deps {
     echo "Installing Mininet-WiFi dependencies"
-    $install wireless-tools rfkill python-numpy python-scipy pkg-config python-pip \
-            python-matplotlib libnl-3-dev libnl-genl-3-dev libssl-dev make libevent-dev patch
+    $install wireless-tools rfkill python-numpy pkg-config \
+             libnl-3-dev libnl-genl-3-dev libssl-dev make libevent-dev patch
+    if [ "$PYTHON3" == true ]; then
+		    $install python3-scipy python3-pip python3 python3-matplotlib
+		else
+		    $install python-scipy python-pip python-matplotlib
+	    fi
     pip install typing
     pushd $MININET_DIR/mininet-wifi
     git submodule update --init --recursive
@@ -843,7 +861,7 @@ if [ $# -eq 0 ]
 then
     all
 else
-    while getopts 'abcdefhiklmnprs:tvV:wWxy036' OPTION
+    while getopts 'abcdefhiklmnpPrs:tvV:wWxy036' OPTION
     do
       case $OPTION in
       a)    all;;
@@ -863,6 +881,7 @@ else
       m)    modprobe;;
       n)    mn_deps;;
       p)    pox;;
+      P)    PYTHON3=true;;
       r)    remove_ovs;;
       s)    mkdir -p $OPTARG; # ensure the directory is created
             BUILD_DIR="$( cd -P "$OPTARG" && pwd )"; # get the full path

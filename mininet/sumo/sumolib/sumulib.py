@@ -4,18 +4,17 @@
 @author  Michael Behrisch
 @date    2011-06-23
 @version $Id: __init__.py 13845 2013-05-02 13:53:19Z dkrajzew $
-
 Python interface to SUMO especially for parsing xml input and output files.
-
 SUMO, Simulation of Urban MObility; see http://sumo.sourceforge.net/
 Copyright (C) 2011-2013 DLR (http://www.dlr.de/) and contributors
 All rights reserved
 """
-import net, shapes, output
+# import net, shapes, output
 
 import os, subprocess
 from xml.sax import parseString, handler
 from optparse import OptionParser, OptionGroup, Option
+
 
 class ConfigurationReader(handler.ContentHandler):
     """Reads a configuration template, storing the options in an OptionParser"""
@@ -60,9 +59,11 @@ def pullOptions(executable, optParse, groups=None, options=None):
     output = subprocess.Popen([executable, "--save-template", "-"], stdout=subprocess.PIPE).communicate()[0]
     parseString(output, ConfigurationReader(optParse, groups, options))
 
+
 def saveConfiguration(executable, options, filename):
     options.save_configuration = filename
     call(executable, options)
+
 
 def call(executable, options):
     optParser = OptionParser()
@@ -77,10 +78,12 @@ def call(executable, options):
                 cmd.append(str(value))
     return subprocess.call(cmd)
 
+
 def exeExists(binary):
     if os.name == "nt" and binary[-4:] != ".exe":
         binary += ".exe"
     return os.path.exists(binary)
+
 
 def checkBinary(name, bindir=None):
     """Checks for the given binary in the places, defined by the environment variables SUMO_HOME and SUMO_BINDIR."""
@@ -109,44 +112,45 @@ def checkBinary(name, bindir=None):
         return binary
     return name
 
+
 class _Running:
-  """
-  A generator of running, numerical IDs
-  Should be enhanced by:
-  - a member method for returning the size
-  - a member iterator over the stored ids
-  """
-  def __init__(self):
-    """Contructor"""
-    self._m = {}
-    
-  def g(self, id):
     """
-    If the given id is known, the numerical representation is returned,
-    otherwise a new running number is assigned to the id and returned"""
-    if id not in self._m:
-      self._m[id] = len(self._m)   
-      return len(self._m)-1
-    return self._m[id]
-
-  def k(self, id):
+    A generator of running, numerical IDs
+    Should be enhanced by:
+    - a member method for returning the size
+    - a member iterator over the stored ids
     """
-    Returns whether the given id is known."""
-    return id in self._m
 
-  def d(self, id):
-    """
-    Removed the element."""
-    del self._m[id]
+    def __init__(self):
+        """Contructor"""
+        self._m = {}
 
+    def g(self, id):
+        """
+        If the given id is known, the numerical representation is returned,
+        otherwise a new running number is assigned to the id and returned"""
+        if id not in self._m:
+            self._m[id] = len(self._m)
+            return len(self._m) - 1
+        return self._m[id]
+
+    def k(self, id):
+        """
+        Returns whether the given id is known."""
+        return id in self._m
+
+    def d(self, id):
+        """
+        Removed the element."""
+        del self._m[id]
 
 
 def _intTime(tStr):
-  """
-  Converts a time given as a string containing a float into an integer representation.
-  """
-  return int(float(tStr))
+    """
+    Converts a time given as a string containing a float into an integer representation.
+    """
+    return int(float(tStr))
 
 
 def _laneID2edgeID(laneID):
-  return laneID[:laneID.rfind("_")]
+    return laneID[:laneID.rfind("_")]

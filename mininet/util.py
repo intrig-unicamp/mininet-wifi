@@ -9,6 +9,7 @@ from fcntl import fcntl, F_GETFL, F_SETFL
 from os import O_NONBLOCK
 import os
 from functools import partial
+from sys import version_info as py_version_info
 
 from mininet.log import output, info, error, warn, debug
 
@@ -100,7 +101,10 @@ def errRun(*cmd, **kwargs):
                 if echo:
                     output(data)
                 if f == popen.stdout:
-                    out += data
+                    if py_version_info < (3, 0):
+                        out += data
+                    else:
+                        out += data.decode('utf-8')
                     if data == '':
                         outDone = True
                 elif f == popen.stderr:
