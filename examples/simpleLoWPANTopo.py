@@ -12,8 +12,8 @@ def topology():
     net = Mininet_sixLoWPAN()
 
     info("*** Creating nodes\n")
-    sta1 = net.add6LoWPAN('sta1', ip='2001::1/64')
-    sta2 = net.add6LoWPAN('sta2', ip='2001::2/64')
+    sta1 = net.add6LoWPAN('sta1')
+    sta2 = net.add6LoWPAN('sta2')
 
     info("*** Configuring wifi nodes\n")
     net.configureSixLoWPANNodes()

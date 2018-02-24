@@ -15,9 +15,9 @@ def topology():
 
     info("*** Creating nodes\n")
     net.addStation('sta1', passwd='123456789a,123456789a', encrypt='wpa2,wpa2', wlans=2,
-                          active_scan=1, scan_freq='2412,2437', position='5,10,0')
+                   active_scan=1, scan_freq='2412,2437', position='5,10,0')
     net.addStation('sta2', passwd='123456789a', encrypt='wpa2',
-                          active_scan=1, scan_freq='2437', position='45,10,0')
+                   active_scan=1, scan_freq='2437', position='45,10,0')
     ap1 = net.addAccessPoint('ap1', ssid="ssid-1", mode="g", channel="1",
                              passwd='123456789a', encrypt='wpa2', position='10,10,0')
     ap2 = net.addAccessPoint('ap2', ssid="ssid-1", mode="g", channel="6",
