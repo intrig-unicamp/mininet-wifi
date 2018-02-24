@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/python
 
 "Replaying Network Conditions"
 
@@ -7,7 +7,7 @@ from mininet.node import Controller
 from mininet.wifi.net import Mininet_wifi
 from mininet.wifi.cli import CLI_wifi
 from mininet.wifi.replaying import replayingNetworkConditions
-
+from sys import version_info as py_version_info
 
 def topology():
 
@@ -19,7 +19,7 @@ def topology():
                            position='47.28,50,0' )
     sta2 = net.addStation( 'sta2', mac='00:00:00:00:00:02', ip='192.168.0.2/24',
                            position='54.08,50,0' )
-    ap3 = net.addBaseStation( 'ap3', range=20, ssid='ap-ssid3', mode='g',
+    ap3 = net.addAccessPoint( 'ap3', ssid='ap-ssid3', mode='g',
                               channel= '1', position='50,50,0' )
     c0 = net.addController('c0', controller=Controller, port=6653)
 
@@ -35,7 +35,10 @@ def topology():
     sta1.cmd('ifconfig mon0 up &')
     sta2.cmd('iw dev sta2-wlan0 interface add mon0 type monitor &')
     sta2.cmd('ifconfig mon0 up &')
-    sta2.cmd('pushd /home/alpha/Downloads; python3 -m http.server 80 &')
+	if py_version_info < (3,0)
+		sta2.cmd('pushd /home/alpha/Downloads; python -m http.server 80 &')
+    else:
+		sta2.cmd('pushd /home/alpha/Downloads; python3 -m http.server 80 &')
 
     getTrace(sta1, 'replayingNetworkConditions/clientTrace.txt')
     getTrace(sta2, 'replayingNetworkConditions/serverTrace.txt')
@@ -54,8 +57,6 @@ def topology():
     #sta2.cmd('iperf -s &')
     #sta1.cmd('iperf -c ' + sta2.IP() + ' -i 0.5 -t 60 | awk \'t=120{if(NR>=7 && NR<=25) print $8; else if(NR>=26 && NR<=t+6) print $7}\' > replay1.dat')
     #sta2.cmd('iperf -c ' + sta1.IP() + ' -i 0.5 -t 60 | awk \'t=120{if(NR>=7 && NR<=25) print $8; else if(NR>=26 && NR<=t+6) print $7}\' > replay2.dat &')
-
-    net.autoAssociation()
 
     print("*** Running CLI")
     CLI_wifi( net )

@@ -17,7 +17,9 @@ import sys
 import time
 
 # Fix setuptools' evil madness, and open up (more?) security holes
-if 'PYTHONPATH3' in os.environ:
+if 'PYTHONPATH' in os.environ:
+    sys.path = os.environ[ 'PYTHONPATH' ].split(':') + sys.path
+elif 'PYTHONPATH3' in os.environ:
     sys.path = os.environ[ 'PYTHONPATH3' ].split(':') + sys.path
 
 from mininet.clean import cleanup
@@ -207,7 +209,11 @@ class MininetRunner(object):
             customs = {}
             if os.path.isfile(fileName):
                 exec (compile(open(fileName, "rb").read(), fileName, 'exec'), customs, customs)
-                for name, val in customs.items():
+				if sys.version_info < (3,0):
+					custom_items = customs.iteritems()
+				else
+					custom_items = customs.items()
+				for name, val in custom_items:
                     self.setCustom(name, val)
             else:
                 raise Exception('could not find custom file: %s' % fileName)

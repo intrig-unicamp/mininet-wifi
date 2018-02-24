@@ -10,10 +10,12 @@ To force this, one option is uninstall any instaled versions using pip:
 > pip uninstall mininet
 
 Then in a shell with superuser permission make sure that the python path is the root of the project
-> export PYTHONPATH3=....(dir root of mininet-wifi)
+> export PYTHONPATH=....(dir root of mininet-wifi) # If using Python 2.
+> export PYTHONPATH3=....(dir root of mininet-wifi) # If using Python 3 or newer.
 
 At last you can run any example simply by doing in the terminal:
-> python file.py
+> python file.py # In Python 2.
+> python3 file.py # In Python 3+.
 
 
 ### Running code using Pycharm
