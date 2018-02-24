@@ -1,8 +1,7 @@
 #!/usr/bin/make -f
 
 %:
-	dh $@ --buildsystem=python_distutils --with=python2 # For use Python 2.
-	dh $@ --buildsystem=python_distutils --with=python3 # For use Python 3.
+	dh $@ --buildsystem=python_distutils --with=python2 
 
 override_dh_auto_build:
 	make man
