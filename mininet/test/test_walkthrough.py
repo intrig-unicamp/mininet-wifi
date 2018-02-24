@@ -10,6 +10,7 @@ import os
 import re
 from time import sleep
 import pexpect
+from sys import version_info as py_version_info
 
 from mininet.util import quietRun
 
@@ -105,7 +106,10 @@ class testWalkthrough(unittest.TestCase):
         p = pexpect.spawn('mn --wifi')
         p.expect(self.prompt)
         sleep(3)
-        p.sendline('sta1 python -m SimpleHTTPServer 80 &')
+        if py_version_info < (3, 0):
+            p.sendline('sta1 python -m SimpleHTTPServer 80 &')
+        else:
+            p.sendline('sta1 python -m http.server 80 &')
         p.expect(self.prompt)
         p.sendline(' sta2 wget -O - sta1')
         p.expect('200 OK')
