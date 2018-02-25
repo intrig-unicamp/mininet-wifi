@@ -33,57 +33,14 @@ class module(object):
             else:
                 output_ = os.system('insmod %s numlbs=0' % alternativeModule)
 
-            if output_ == 0:
-                cls.__create_hwsim_mgmt_devices(n_radios)
+            # Useful for tests in Kernels like Kernel 3.13.x
+            if n_radios == 0:
+                n_radios = 1
+            if alternativeModule == '':
+                os.system('modprobe fakelb numlbs=%s' % n_radios)
             else:
-                # Useful for tests in Kernels like Kernel 3.13.x
-                if n_radios == 0:
-                    n_radios = 1
-                if alternativeModule == '':
-                    os.system('modprobe fakelb numlbs=%s' % n_radios)
-                else:
-                    os.system('insmod %s numlbs=%s' % (alternativeModule,
-                                                       n_radios))
-        else:
-            cls.devices_created_dynamically = True
-            cls.__create_hwsim_mgmt_devices(n_radios)
-
-    @classmethod
-    def __create_hwsim_mgmt_devices(cls, n_radios):
-        # generate prefix
-        phys = subprocess.check_output("find /sys/kernel/debug/ieee80211 -name "
-                                       "hwsim | cut -d/ -f 6 | sort",
-                                       shell=True).decode('utf-8').split("\n")
-        num = 0
-        numokay = False
-        cls.prefix = ""
-        while not numokay:
-            cls.prefix = "mn%02ds" % num
-            numokay = True
-            for phy in phys:
-                if phy.startswith(cls.prefix):
-                    num += 1
-                    numokay = False
-                    break
-        """try:
-            for i in range(0, n_radios):
-                p = subprocess.Popen(["hwsim_mgmt", "-c", "-n", cls.prefix +
-                                      ("%02d" % i)], stdin=subprocess.PIPE,
-                                     stdout=subprocess.PIPE,
-                                     stderr=subprocess.PIPE, bufsize=-1)
-                output, err_out = p.communicate()
-                if p.returncode == 0:
-                    m = re.search("ID (\d+)", output.decode())
-                    debug("Created mac80211_hwsim device with ID %s\n" % m.group(1))
-                    cls.hwsim_ids.append(m.group(1))
-                else:
-                    error("\nError on creating mac80211_hwsim device with name %s"
-                          % (cls.prefix + ("%02d" % i)))
-                    error("\nOutput: %s" % output)
-                    error("\nError: %s" % err_out)
-        except:
-            info("Warning! If you already had Mininet-WiFi installed "
-                 "please run util/install.sh -W and then sudo make install.\n")"""
+                os.system('insmod %s numlbs=%s' % (alternativeModule,
+                                                   n_radios))
 
     @classmethod
     def kill_fakelb(cls):
@@ -151,9 +108,14 @@ class module(object):
     def get_virtual_wlan(cls):
         'Gets the list of virtual wlans that already exist'
         cls.wlans = []
-        cls.wlans = (subprocess.check_output("iwpan dev 2>&1 | grep Interface "
-                                             "| awk '{print $2}'",
-                                             shell=True)).split("\n")
+        if py_version_info < (3, 0):
+            cls.wlans = (subprocess.check_output("iw dev 2>&1 | grep Interface "
+                                                 "| awk '{print $2}'",
+                                                 shell=True)).split("\n")
+        else:
+            cls.wlans = (subprocess.check_output("iw dev 2>&1 | grep Interface "
+                                                 "| awk '{print $2}'",
+                                                 shell=True)).decode('utf-8').split("\n")
         cls.wlans.pop()
         cls.wlan_list = sorted(cls.wlans)
         cls.wlan_list.sort(key=len, reverse=False)
@@ -162,9 +124,14 @@ class module(object):
     @classmethod
     def getPhy(cls, wlan):
         'Gets the list of virtual wlans that already exist'
-        phy = (subprocess.check_output("iwpan dev | grep -B 1 %s"
-                                       " | sed -ne '1 s/phy#\([0-9]\)/\\1/p'" % wlan,
-                                       shell=True)).split("\n")
+        if py_version_info < (3, 0):
+            phy = subprocess.check_output("find /sys/kernel/debug/ieee80211 -name "
+                                          "hwsim | cut -d/ -f 6 | sort",
+                                          shell=True).split("\n")
+        else:
+            phy = subprocess.check_output("find /sys/kernel/debug/ieee80211 -name "
+                                          "hwsim | cut -d/ -f 6 | sort",
+                                          shell=True).decode('utf-8').split("\n")
         phy.pop()
         return phy[0]
 

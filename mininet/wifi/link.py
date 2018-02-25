@@ -6,6 +6,7 @@ import os
 import re
 import subprocess
 from six import string_types
+from sys import version_info as py_version_info
 
 from mininet.log import info, error, debug
 from mininet.link import Intf
@@ -100,15 +101,21 @@ class IntfWireless(object):
         # backgrounded output from the cli.
         ipAddr, _err, _exitCode = self.node.pexec(
             'ip addr show %s' % self.name)
-        ips = self._ipMatchRegex.findall(ipAddr)
-        self.ip = ips[ 0 ] if ips else None
+        if py_version_info < (3, 0):
+            ips = self._ipMatchRegex.findall(ipAddr)
+        else:
+            ips = self._ipMatchRegex.findall(ipAddr.decode('utf-8'))
+        self.ip = ips[0] if ips else None
         return self.ip
 
     def updateMAC(self):
         "Return updated MAC address based on ip addr"
         ipAddr = self.ipAddr()
-        macs = self._macMatchRegex.findall(ipAddr)
-        self.mac = macs[ 0 ] if macs else None
+        if py_version_info < (3, 0):
+            macs = self._macMatchRegex.findall(ipAddr)
+        else:
+            macs = self._macMatchRegex.findall(ipAddr.decode('utf-8'))
+        self.mac = macs[0] if macs else None
         return self.mac
 
     # Instead of updating ip and mac separately,
@@ -116,12 +123,16 @@ class IntfWireless(object):
     # This saves an ipAddr command, which improves performance.
 
     def updateAddr(self):
-        "Return IP address and MAC address based on ip addr."
+        "Return IP address and MAC address based on ipAddr."
         ipAddr = self.ipAddr()
-        ips = self._ipMatchRegex.findall(ipAddr)
-        macs = self._macMatchRegex.findall(ipAddr)
-        self.ip = ips[ 0 ] if ips else None
-        self.mac = macs[ 0 ] if macs else None
+        if py_version_info < (3, 0):
+            ips = self._ipMatchRegex.findall(ipAddr)
+            macs = self._macMatchRegex.findall(ipAddr)
+        else:
+            ips = self._ipMatchRegex.findall(ipAddr.decode('utf-8'))
+            macs = self._macMatchRegex.findall(ipAddr.decode('utf-8'))
+        self.ip = ips[0] if ips else None
+        self.mac = macs[0] if macs else None
         return self.ip, self.mac
 
     def IP(self):

@@ -16,6 +16,7 @@ import time
 import struct
 import stat
 import pkg_resources
+from sys import version_info as py_version_info
 
 from mininet.log import info, error, debug
 
@@ -1246,8 +1247,12 @@ class WmediumdServerConn(object):
         "snr update request"
         # type: (WmediumdSNRLink) -> str
         msgtype = WmediumdConstants.WSERVER_SNR_UPDATE_REQUEST_TYPE
-        mac_from = link.sta1intfref.get_intf_mac().replace(':', '').decode('hex')
-        mac_to = link.sta2intfref.get_intf_mac().replace(':', '').decode('hex')
+        if py_version_info < (3, 0):
+            mac_from = link.sta1intfref.get_intf_mac().replace(':', '').decode('hex')
+            mac_to = link.sta2intfref.get_intf_mac().replace(':', '').decode('hex')
+        else:
+            mac_from = bytes.fromhex(link.sta1intfref.get_intf_mac().replace(':', ''))
+            mac_to = bytes.fromhex(link.sta2intfref.get_intf_mac().replace(':', ''))
         snr = int(link.snr)
         return cls.__snr_update_request_struct.pack(msgtype, mac_from,
                                                     mac_to, snr)
@@ -1257,8 +1262,10 @@ class WmediumdServerConn(object):
         "position update request"
         # type: (WmediumdPosition) -> str
         msgtype = WmediumdConstants.WSERVER_POSITION_UPDATE_REQUEST_TYPE
-        mac = position.staintfref.get_intf_mac().replace(':', '').decode('hex')
-
+        if py_version_info < (3, 0):
+            mac = position.staintfref.get_intf_mac().replace(':', '').decode('hex')
+        else:
+            mac = bytes.fromhex(position.staintfref.get_intf_mac().replace(':', ''))
         posX = position.sta_position[0]
         posY = position.sta_position[1]
         posZ = position.sta_position[2]
@@ -1270,7 +1277,10 @@ class WmediumdServerConn(object):
         "tx power update request"
         # type: (WmediumdTXPower) -> str
         msgtype = WmediumdConstants.WSERVER_TXPOWER_UPDATE_REQUEST_TYPE
-        mac = txpower.staintfref.get_intf_mac().replace(':', '').decode('hex')
+        if py_version_info < (3, 0):
+            mac = txpower.staintfref.get_intf_mac().replace(':', '').decode('hex')
+        else:
+            mac = bytes.fromhex((txpower.staintfref.get_intf_mac().replace(':', '')))
         txpower_ = txpower.sta_txpower
         return cls.__txpower_update_request_struct.pack(msgtype, mac, txpower_)
 
@@ -1279,7 +1289,10 @@ class WmediumdServerConn(object):
         "antenna gain update request"
         # type: (WmediumdGain) -> str
         msgtype = WmediumdConstants.WSERVER_GAIN_UPDATE_REQUEST_TYPE
-        mac = gain.staintfref.get_intf_mac().replace(':', '').decode('hex')
+        if py_version_info < (3, 0):
+            mac = gain.staintfref.get_intf_mac().replace(':', '').decode('hex')
+        else:
+            mac = bytes.fromhex((gain.staintfref.get_intf_mac().replace(':', '')))
         gain_ = gain.sta_gain
         return cls.__gain_update_request_struct.pack(msgtype, mac, gain_)
 
@@ -1288,7 +1301,10 @@ class WmediumdServerConn(object):
         "gaussian random update request"
         # type: (WmediumdGaussianRandom) -> str
         msgtype = WmediumdConstants.WSERVER_GAUSSIAN_RANDOM_UPDATE_REQUEST_TYPE
-        mac = gRandom.staintfref.get_intf_mac().replace(':', '').decode('hex')
+        if py_version_info < (3, 0):
+            mac = gRandom.staintfref.get_intf_mac().replace(':', '').decode('hex')
+        else:
+            mac = bytes.fromhex((gRandom.staintfref.get_intf_mac().replace(':', '')))
         gRandom_ = gRandom.sta_gaussian_random
         return cls.__gaussian_random_update_request_struct.pack(msgtype, mac,
                                                                 gRandom_)
@@ -1298,7 +1314,10 @@ class WmediumdServerConn(object):
         "height update request"
         # type: (WmediumdHeight) -> str
         msgtype = WmediumdConstants.WSERVER_HEIGHT_UPDATE_REQUEST_TYPE
-        mac = height.staintfref.get_intf_mac().replace(':', '').decode('hex')
+        if py_version_info < (3, 0):
+            mac = height.staintfref.get_intf_mac().replace(':', '').decode('hex')
+        else:
+            mac = bytes.fromhex((height.staintfref.get_intf_mac().replace(':', '')))
         height_ = height.sta_height
         return cls.__height_update_request_struct.pack(msgtype, mac, height_)
 
@@ -1307,8 +1326,12 @@ class WmediumdServerConn(object):
         "error prob update request"
         # type: (WmediumdERRPROBLink) -> str
         msgtype = WmediumdConstants.WSERVER_ERRPROB_UPDATE_REQUEST_TYPE
-        mac_from = link.sta1intfref.get_intf_mac().replace(':', '').decode('hex')
-        mac_to = link.sta2intfref.get_intf_mac().replace(':', '').decode('hex')
+        if py_version_info < (3, 0):
+            mac_from = link.sta1intfref.get_intf_mac().replace(':', '').decode('hex')
+            mac_to = link.sta2intfref.get_intf_mac().replace(':', '').decode('hex')
+        else:
+            mac_from = bytes.fromhex((link.sta1intfref.get_intf_mac().replace(':', '')))
+            mac_to = bytes.fromhex((link.sta2intfref.get_intf_mac().replace(':', '')))
         errprob = cls.__conv_float_to_fixed_point(link.errprob)
         return cls.__errprob_update_request_struct.pack(msgtype, mac_from, mac_to,
                                                         errprob)
@@ -1318,8 +1341,12 @@ class WmediumdServerConn(object):
         "specprob update request"
         # type: (WmediumdSPECPROBLink) -> str
         msgtype = WmediumdConstants.WSERVER_SPECPROB_UPDATE_REQUEST_TYPE
-        mac_from = link.sta1intfref.get_intf_mac().replace(':', '').decode('hex')
-        mac_to = link.sta2intfref.get_intf_mac().replace(':', '').decode('hex')
+        if py_version_info < (3, 0):
+            mac_from = link.sta1intfref.get_intf_mac().replace(':', '').decode('hex')
+            mac_to = link.sta2intfref.get_intf_mac().replace(':', '').decode('hex')
+        else:
+            mac_from = bytes.fromhex((link.sta1intfref.get_intf_mac().replace(':', '')))
+            mac_to = bytes.fromhex((link.sta2intfref.get_intf_mac().replace(':', '')))
         fixed_points = [None] * 144
         for size_idx in range(0, 12):
             for rate_idx in range(0, 12):

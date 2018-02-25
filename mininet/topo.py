@@ -12,6 +12,8 @@ setup for testing, and can even be emulated with the Mininet package.
 """
 
 from mininet.util import irange, natural, naturalSeq
+from sys import version_info as py_version_info
+
 
 class MultiGraph( object ):
     "Utility class to track nodes and edges - replaces networkx.MultiGraph"
@@ -57,22 +59,40 @@ class MultiGraph( object ):
 
     def edges_iter( self, data=False, keys=False ):
         "Iterator: return graph edges"
-        for src, entry in self.edge.iteritems():
-            for dst, keys in entry.iteritems():
-                if src > dst:
-                    # Skip duplicate edges
-                    continue
-                for k, attrs in keys.iteritems():
-                    if data:
-                        if keys:
-                            yield( src, dst, k, attrs )
+        if py_version_info < (3, 0):
+            for src, entry in self.edge.iteritems():
+                for dst, keys in entry.iteritems():
+                    if src > dst:
+                        # Skip duplicate edges
+                        continue
+                    for k, attrs in keys.iteritems():
+                        if data:
+                            if keys:
+                                yield( src, dst, k, attrs )
+                            else:
+                                yield( src, dst, attrs )
                         else:
-                            yield( src, dst, attrs )
-                    else:
-                        if keys:
-                            yield( src, dst, k )
+                            if keys:
+                                yield( src, dst, k )
+                            else:
+                                yield( src, dst )
+        else:
+            for src, entry in self.edge.items():
+                for dst, keys in entry.items():
+                    if src > dst:
+                        # Skip duplicate edges
+                        continue
+                    for k, attrs in keys.items():
+                        if data:
+                            if keys:
+                                yield (src, dst, k, attrs)
+                            else:
+                                yield (src, dst, attrs)
                         else:
-                            yield( src, dst )
+                            if keys:
+                                yield (src, dst, k)
+                            else:
+                                yield (src, dst)
 
     def edges( self, data=False, keys=False ):
         "Return list of graph edges"

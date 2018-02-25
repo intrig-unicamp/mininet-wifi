@@ -12,6 +12,7 @@ from time import sleep
 from itertools import chain, groupby
 from math import ceil
 from six import string_types
+from sys import version_info as py_version_info
 
 from mininet.cli import CLI
 from mininet.term import cleanUpScreens, makeTerms
@@ -848,12 +849,20 @@ class Mininet_wifi(Mininet):
         info('*** Stopping switches/access points\n')
         stopped = {}
         nodesL2 = self.switches + self.aps
-        for swclass, switches in groupby(
-                sorted(nodesL2, key=type), type):
-            switches = tuple(switches)
-            if hasattr(swclass, 'batchShutdown'):
-                success = swclass.batchShutdown(switches)
-                stopped.update({s: s for s in success})
+        if py_version_info < (3, 0):
+            for swclass, switches in groupby(
+                    sorted(nodesL2, key=type), type):
+                switches = tuple(switches)
+                if hasattr(swclass, 'batchShutdown'):
+                    success = swclass.batchShutdown(switches)
+                    stopped.update({s: s for s in success})
+        else:
+            for swclass, switches in groupby(
+                    sorted(nodesL2, key=lambda x: str(type(x))), type):
+                switches = tuple(switches)
+                if hasattr(swclass, 'batchShutdown'):
+                    success = swclass.batchShutdown(switches)
+                    stopped.update({s: s for s in success})
         for switch in nodesL2:
             info(switch.name + ' ')
             if switch not in stopped:
@@ -1515,6 +1524,13 @@ class Mininet_wifi(Mininet):
                     ssid_list = params['ssid'].split(',')
                     for ssid in ssid_list:
                         node.params['ssid'].append(ssid)
+
+                if 'cliente_isolation' in params:
+                    node.params['cliente_isolation'] = []
+                    cliente_isolation_list = params['cliente_isolation'].split(',')
+                    for cliente_isolation in cliente_isolation_list:
+                        node.params['cliente_isolation'].append(cliente_isolation)
+
 
     def addParamsToNode(self, node):
         "Add Frequency, func and phyID"

@@ -15,6 +15,7 @@ from optparse import OptionParser
 import os
 import sys
 import time
+from sys import version_info as py_version_info
 
 # Fix setuptools' evil madness, and open up (more?) security holes
 if 'PYTHONPATH' in os.environ:
@@ -207,7 +208,11 @@ class MininetRunner(object):
             customs = {}
             if os.path.isfile(fileName):
                 exec (compile(open(fileName, "rb").read(), fileName, 'exec'), customs, customs)
-                for name, val in customs.iteritems():
+                if py_version_info < (3, 0):
+                    custom_items = customs.iteritems()
+                else:
+                    custom_items = customs.items()
+                for name, val in custom_items:
                     self.setCustom(name, val)
             else:
                 raise Exception('could not find custom file: %s' % fileName)

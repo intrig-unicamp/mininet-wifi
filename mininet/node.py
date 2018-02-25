@@ -57,8 +57,10 @@ import pty
 import re
 import signal
 import select
+from sys import version_info as py_version_info
 from subprocess import Popen, PIPE
 from time import sleep
+from six import string_types
 
 from mininet.log import info, error, warn, debug
 from mininet.util import ( quietRun, errRun, errFail, moveIntf, isShellBuiltin,
@@ -144,7 +146,10 @@ class Node( object ):
         master, slave = pty.openpty()
         self.shell = self._popen( cmd, stdin=slave, stdout=slave, stderr=slave,
                                   close_fds=False )
-        self.stdin = os.fdopen( master, 'rw' )
+        if py_version_info < (3, 0):
+            self.stdin = os.fdopen(master, 'rw')
+        else:
+            self.stdin = os.fdopen(master, 'bw')
         self.stdout = self.stdin
         self.pid = self.shell.pid
         self.pollOut = select.poll()
@@ -193,7 +198,10 @@ class Node( object ):
         count = len( self.readbuf )
         if count < maxbytes:
             data = os.read( self.stdout.fileno(), maxbytes - count )
-            self.readbuf += data
+            if py_version_info < (3, 0):
+                self.readbuf += data
+            else:
+                self.readbuf += data.decode('utf-8')
         if maxbytes >= len( self.readbuf ):
             result = self.readbuf
             self.readbuf = ''
@@ -216,7 +224,10 @@ class Node( object ):
     def write( self, data ):
         """Write data to node.
            data: string"""
-        os.write( self.stdin.fileno(), data )
+        if py_version_info < (3, 0):
+            os.write( self.stdin.fileno(), data )
+        else:
+            os.write(self.stdin.fileno(), data.encode())
 
     def get_private_folder_manager(self):
         # type: () -> PrivateFolderManager
@@ -351,10 +362,14 @@ class Node( object ):
                      [ 'mnexec', '-da', str( self.pid ) ] }
         defaults.update( kwargs )
         if len( args ) == 1:
+            if py_version_info < (3, 0):
+                str_type = basestring
+            else:
+                str_type = string_types
             if isinstance( args[ 0 ], list ):
                 # popen([cmd, arg1, arg2...])
                 cmd = args[ 0 ]
-            elif isinstance( args[ 0 ], basestring ):
+            elif isinstance( args[ 0 ], str_type ):
                 # popen("cmd arg1 arg2...")
                 cmd = args[ 0 ].split()
             else:
