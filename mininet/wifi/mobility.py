@@ -602,8 +602,7 @@ class mobility(object):
                                     else:
                                         node.params['associatedTo'][wlan] = 'active_scan'
                         else:
-                            if isinstance(node, Station):
-                                cls.check_association(node, wlan, ap_wlan=0)
+                            cls.check_association(node, wlan, ap_wlan=0)
                     else:
                         if isinstance(node, Station):
                             cls.check_association(node, wlan, ap_wlan=0)
