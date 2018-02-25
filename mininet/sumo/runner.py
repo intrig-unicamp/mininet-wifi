@@ -1,8 +1,9 @@
 import sys
 import os
 import threading
-from .sumolib.sumulib import checkBinary
-from .fonction import initialisation, noChangeSaveTimeAndSpeed,\
+from sumolib.sumulib import checkBinary
+from traci import trace
+from fonction import initialisation, noChangeSaveTimeAndSpeed,\
     changeSaveTimeAndSpeed, reroutage
 from mininet.wifi.mobility import mobility
 
@@ -16,18 +17,19 @@ class sumo(object):
         thread.start()
 
     def configureApp(self, stations, aps, program, config_file, **params):
-        mobility.stations = stations
-        mobility.aps = aps
-        mobility.mobileNodes = stations
-        self.start(stations, program, config_file)
+        try:
+            mobility.stations = stations
+            mobility.aps = aps
+            mobility.mobileNodes = stations
+            self.start(stations, program, config_file)
+        except:
+            pass
 
     def setWifiParameters(self):
         thread = threading.Thread(name='wifiParameters', target=mobility.parameters)
         thread.start()
 
     def start( self, stations, program, config_file ):
-        from .traci import trace
-        from .traci import vehicle
         PORT = 8813
         sumoBinary = checkBinary(program)
         myfile = (os.path.join( os.path.dirname(__file__), "data/%s" % config_file))
@@ -51,7 +53,7 @@ class sumo(object):
         #while len(ListVeh) < len(nodes):
         while True:
             trace.simulationStep()
-            for vehID in vehicle.getIDList():
+            for vehID in trace.vehicle.getIDList():
                 if not(vehID in ListVeh):
                     Initialisation=initialisation(ListVeh, ListTravelTime,
                                                   ListVisited, Visited, time,
@@ -78,17 +80,17 @@ class sumo(object):
                 ListVisited=ChangeSaveTimeAndSpeed[3]
                 ListTravelTime=ChangeSaveTimeAndSpeed[4]
 
-            for vehID2 in vehicle.getIDList():
-                for vehID1 in vehicle.getIDList():
-                    Road1=vehicle.getRoadID(vehID1)
-                    Road2=vehicle.getRoadID(vehID2)
-                    OppositeRoad1=b'-'+Road1
-                    OppositeRoad2=b'-'+Road2
+            for vehID2 in trace.vehicle.getIDList():
+                for vehID1 in trace.vehicle.getIDList():
+                    Road1=trace.vehicle.getRoadID(vehID1)
+                    Road2=trace.vehicle.getRoadID(vehID2)
+                    OppositeRoad1='-'+Road1
+                    OppositeRoad2='-'+Road2
                     if not((vehID2,vehID1) in ListVehInteract):
-                        x1=vehicle.getPosition(vehID1)[0]
-                        y1=vehicle.getPosition(vehID1)[1]
-                        x2=vehicle.getPosition(vehID2)[0]
-                        y2=vehicle.getPosition(vehID2)[1]
+                        x1=trace.vehicle.getPosition(vehID1)[0]
+                        y1=trace.vehicle.getPosition(vehID1)[1]
+                        x2=trace.vehicle.getPosition(vehID2)[0]
+                        y2=trace.vehicle.getPosition(vehID2)[1]
 
                         if int(vehID1) < len(stations):
                             stations[int(vehID1)].params['position'] = x1, y1, 0
@@ -97,10 +99,10 @@ class sumo(object):
                         if abs(x1-x2)>0 and abs(x1-x2)<20 and (
                                         Road1==OppositeRoad2 or Road2==OppositeRoad1):
                             ListVehInteract.append((vehID2,vehID1))
-                            Route2=vehicle.getRoute(vehID2)
-                            Route1=vehicle.getRoute(vehID1)
-                            Index2=Route2.index(vehicle.getRoadID(vehID2))
-                            Index1=Route1.index(vehicle.getRoadID(vehID1))
+                            Route2=trace.vehicle.getRoute(vehID2)
+                            Route1=trace.vehicle.getRoute(vehID1)
+                            Index2=Route2.index(trace.vehicle.getRoadID(vehID2))
+                            Index1=Route1.index(trace.vehicle.getRoadID(vehID1))
                             VisitedEdge2=ListVisited[ListVeh.index(vehID2)][0:len(
                                 ListVisited[ListVeh.index(vehID2)])-1]
                             reroutage(VisitedEdge2,ListTravelTime,vehID1,vehID2,ListVeh)
