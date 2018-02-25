@@ -27,7 +27,7 @@ step 4: $ sudo util/install.sh -Wlnfv
 -v: OpenvSwitch   
 -l: wmediumd   
 optional:  
--6: wpan tools
+-6: wpan tools  
 -P: python3
 
 ### Development
