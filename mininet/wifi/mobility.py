@@ -452,19 +452,18 @@ class mobility(object):
 
         for node in nodes:
             if node.params['position'] == (0,0,0):
-                if not hasattr(node, 'max_x') or node.max_x == 0:
-                    node.max_x = max_x
-                if not hasattr(node, 'max_y') or node.max_y == 0:
-                    node.max_y = max_y
-                if not hasattr(node, 'max_v') or node.max_v == 0:
-                    node.max_v = max_v
-                if not hasattr(node, 'min_v') or node.min_v == 0:
-                    node.min_v = min_v
                 if not hasattr(node, 'min_x'):
                     node.min_x = 0
+                if not hasattr(node, 'max_x') or node.max_x == 0:
+                    node.max_x = max_x
                 if not hasattr(node, 'min_y'):
                     node.min_y = 0
-
+                if not hasattr(node, 'max_y') or node.max_y == 0:
+                    node.max_y = max_y
+                if not hasattr(node, 'min_v') or node.min_v == 0:
+                    node.min_v = min_v
+                if not hasattr(node, 'max_v') or node.max_v == 0:
+                    node.max_v = max_v
         try:
             if DRAW:
                 plotGraph(0, 0, 0, max_x, max_y, 0, nodes, connections)

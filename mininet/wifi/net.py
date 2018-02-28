@@ -700,7 +700,6 @@ class Mininet_wifi(Mininet):
         "Build mininet."
         if self.topo:
             self.buildFromTopo(self.topo)
-
         if self.isVanet:
             self.create_vanet_link()
 
@@ -733,7 +732,6 @@ class Mininet_wifi(Mininet):
 
         if not self.disableAutoAssociation and not self.isMobility:
             self.autoAssociation(self.stations, self.aps)
-
         if self.isMobility:
             if self.isMobilityModel or self.isVanet:
                 self.mobilityKwargs['mobileNodes'] = self.getMobileNodes()
@@ -741,18 +739,14 @@ class Mininet_wifi(Mininet):
             else:
                 self.mobilityKwargs['plotNodes'] = self.plot_nodes()
                 self.stop_mobility(**self.mobilityKwargs)
-
-        if not self.isMobility \
-                and self.getPropagationModel() is \
-                        'logNormalShadowing':
-            import threading
-            thread = threading.Thread(target=self.plotCheck,
-                                      args=(self.stations, self.aps))
-            thread.daemon = True
-            thread.start()
         else:
-            if not self.isMobility and self.DRAW \
-                    and not self.alreadyPlotted and isPosDefined:
+            if self.getPropagationModel() is 'logNormalShadowing':
+                import threading
+                thread = threading.Thread(target=self.plotCheck,
+                                          args=(self.stations, self.aps))
+                thread.daemon = True
+                thread.start()
+            elif self.DRAW and not self.alreadyPlotted and isPosDefined:
                 plotNodes = self.plot_nodes()
                 self.stations, self.aps = \
                     self.plotCheck(self.stations, self.aps,
@@ -1233,7 +1227,8 @@ class Mininet_wifi(Mininet):
     def stop_mobility(self, **kwargs):
         'Set Mobility Args'
         self.mobilityKwargs.update(kwargs)
-        self.setMobilityParams(**kwargs)
+        params = self.setMobilityParams(**kwargs)
+        mobility.stop(**params)
 
     def getMobileNodes(self):
         mobileNodes = []
@@ -1411,27 +1406,27 @@ class Mininet_wifi(Mininet):
 
         # max_x
         if 'max_x' in params:
-            node.max_x = int(params['max_x'])
+            node.max_x = float(params['max_x'])
 
         # max_y
         if 'max_y' in params:
-            node.max_y = int(params['max_y'])
+            node.max_y = float(params['max_y'])
 
         # min_x
         if 'min_x' in params:
-            node.min_x = int(params['min_x'])
+            node.min_x = float(params['min_x'])
 
         # min_y
         if 'min_y' in params:
-            node.min_y = int(params['min_y'])
+            node.min_y = float(params['min_y'])
 
         # min_v
         if 'min_v' in params:
-            node.min_v = int(params['min_v'])
+            node.min_v = float(params['min_v'])
 
         # max_v
         if 'max_v' in params:
-            node.max_v = int(params['max_v'])
+            node.max_v = float(params['max_v'])
 
         # constantVelocity
         if 'constantVelocity' in params:
@@ -2078,8 +2073,7 @@ class Mininet_wifi(Mininet):
     def stopMobility(self, **kwargs):
         "Stops Mobility"
         self.autoAssociation(self.stations, self.aps)
-        params = self.setMobilityParams(**kwargs)
-        mobility.stop(**params)
+        self.setMobilityParams(**kwargs)
 
     def setMobilityParams(self, **kwargs):
         "Set Mobility Parameters"

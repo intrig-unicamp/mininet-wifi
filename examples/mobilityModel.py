@@ -15,9 +15,9 @@ def topology():
 
     info("*** Creating nodes\n")
     net.addStation('sta1', mac='00:00:00:00:00:02', ip='10.0.0.2/8',
-                   min_x=30, max_x=30, min_y=70, max_y=70, min_v=1, max_v=1)
+                   min_x=10, max_x=30, min_y=50, max_y=70, min_v=5, max_v=10)
     net.addStation('sta2', mac='00:00:00:00:00:03', ip='10.0.0.3/8',
-                   min_x=30, max_x=30, min_y=70, max_y=70, min_v=5, max_v=5)
+                   min_x=60, max_x=70, min_y=10, max_y=20, min_v=1, max_v=5)
     ap1 = net.addAccessPoint('ap1', ssid='new-ssid', mode='g', channel='1',
                              position='50,50,0')
     c1 = net.addController('c1', controller=Controller)
@@ -29,8 +29,7 @@ def topology():
 
     net.seed(20)
 
-    net.startMobility(time=0, model='RandomDirection', max_x=100, max_y=100,
-                      min_v=0.5, max_v=0.8)
+    net.startMobility(time=0, model='RandomDirection', max_x=100, max_y=100)
 
     info("*** Starting network\n")
     net.build()
