@@ -295,7 +295,7 @@ class TCWirelessLink(IntfWireless):
         "Internal method: return tc commands for delay and loss"
         cmds = []
         if delay:
-            delay_ = int(delay.replace("ms", ""))
+            delay_ = float(delay.replace("ms", ""))
         if delay and delay_ < 0:
             error( 'Negative delay', delay, '\n' )
         elif jitter and jitter < 0:
@@ -1007,7 +1007,8 @@ class Association(object):
         :param wlan: wlan ID"""
         associated = 0
         if 'ieee80211r' in ap.params and ap.params['ieee80211r'] == 'yes' \
-        and ('encrypt' not in sta.params or 'encrypt' in sta.params and 'wpa' in sta.params['encrypt'][wlan]):
+        and ('encrypt' not in sta.params or 'encrypt' in sta.params and
+                        'wpa' in sta.params['encrypt'][wlan]):
             if sta.params['associatedTo'][wlan] == '':
                 command = ('ps -aux | grep %s | wc -l' % sta.params['wlan'][wlan])
                 np = int(subprocess.check_output(command, shell=True))
@@ -1024,7 +1025,8 @@ class Association(object):
         else:
             if sta.params['associatedTo'][wlan] == '':
                 if 'wpa' in ap.params['encrypt'][ap_wlan] \
-                and ('encrypt' not in sta.params or 'encrypt' in sta.params and 'wpa' in sta.params['encrypt'][wlan]):
+                and ('encrypt' not in sta.params or 'encrypt' in sta.params and
+                                'wpa' in sta.params['encrypt'][wlan]):
                     cls.associate_wpa(sta, ap, wlan, ap_wlan)
                     associated = 1
                 elif ap.params['encrypt'][ap_wlan] == 'wep':
