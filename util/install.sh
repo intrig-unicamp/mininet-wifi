@@ -180,9 +180,9 @@ function wifi_deps {
     pushd $MININET_DIR/mininet-wifi/hostap/wpa_supplicant
     cp defconfig .config
     sudo make && make install
-    sudo mkdir $MININET_DIR/mininet-wifi/iw
-    pushd $MININET_DIR/mininet-wifi/iw
+    pushd $MININET_DIR/mininet-wifi/
     git clone --depth=1 https://github.com/ramonfontes/iw
+    pushd $MININET_DIR/mininet-wifi/iw
     sudo make && make install
     cd $BUILD_DIR
     if [ -d mac80211_hwsim_mgmt ]; then
