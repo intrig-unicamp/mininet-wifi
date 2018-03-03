@@ -180,7 +180,9 @@ function wifi_deps {
     pushd $MININET_DIR/mininet-wifi/hostap/wpa_supplicant
     cp defconfig .config
     sudo make && make install
+    sudo mkdir $MININET_DIR/mininet-wifi/iw
     pushd $MININET_DIR/mininet-wifi/iw
+    git clone --depth=1 https://github.com/ramonfontes/iw
     sudo make && make install
     cd $BUILD_DIR
     if [ -d mac80211_hwsim_mgmt ]; then
@@ -574,27 +576,6 @@ function pox {
     git clone --depth=1 https://github.com/noxrepo/pox.git
 }
 
-
-# "Install" iw
-function iw {
-    echo "Installing iw..."
-    $install wireless-tools python-numpy python-scipy pkg-config python-matplotlib libnl-3-dev libnl-genl-3-dev libssl-dev patch
-    pushd $MININET_DIR/mininet-wifi
-    git submodule update --init --recursive
-    pushd $MININET_DIR/mininet-wifi/hostap
-    patch -p0 < $MININET_DIR/mininet-wifi/util/hostap-patches/config.patch
-    pushd $MININET_DIR/mininet-wifi/hostap/hostapd
-    cp defconfig .config
-    sudo make && make install
-    pushd $MININET_DIR/mininet-wifi/hostap/wpa_supplicant
-    cp defconfig .config
-    sudo make && make install
-    pushd $MININET_DIR/mininet-wifi/iw
-    sudo make && make install
-    #popd
-}
-
-
 # Install OFtest
 function oftest {
     echo "Installing oftest..."
@@ -776,7 +757,7 @@ function all {
     # NOX-classic is deprecated, but you can install it manually if desired.
     # nox
     pox
-    iw
+    wifi_deps
     oftest
     cbench
     wmediumd
