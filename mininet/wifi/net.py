@@ -1369,6 +1369,12 @@ class Mininet_wifi(Mininet):
             for scan_freq in scan_freq_list:
                 node.params['scan_freq'].append(scan_freq)
 
+	if 'freq_list' in params:
+            node.params['freq_list'] = []
+            freq_list_list = params['freq_list'].split(',')
+            for freq_list in freq_list_list:
+                node.params['freq_list'].append(freq_list)
+
         if 'encrypt' in params:
             node.params['encrypt'] = []
             encrypt_list = params['encrypt'].split(',')

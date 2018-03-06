@@ -1071,6 +1071,8 @@ class Association(object):
                     cmd = cmd + '   scan_ssid=1\n'
                 if 'scan_freq' in sta.params and sta.params['scan_freq'][wlan] != '':
                     cmd = cmd + '   scan_freq=%s\n' % sta.params['scan_freq'][wlan]
+                if 'freq_list' in sta.params and sta.params['freq_list'][wlan] != '':
+                    cmd = cmd + '   freq_list=%s\n' % sta.params['freq_list'][wlan]
             cmd = cmd + '   key_mgmt=%s\n' % ap.wpa_key_mgmt
             if cls.bgscan != '':
                 cmd = cmd + '   %s\n' % cls.bgscan
