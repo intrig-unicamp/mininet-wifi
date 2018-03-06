@@ -592,8 +592,8 @@ class mobility(object):
                     if WmediumdServerConn.interference_enabled:
                         if Association.bgscan != '' or ('active_scan' in node.params \
                         and ('encrypt' in node.params and 'wpa' in node.params['encrypt'][wlan])):
-                            if node.params['associatedTo'][wlan] == '':
-                                for ap in cls.aps:
+                            for ap in cls.aps:
+                                if node.params['associatedTo'][wlan] == '':
                                     Association.printCon = False
                                     Association.associate_infra(node, ap, wlan, ap_wlan=0)
                                     if Association.bgscan != '':
