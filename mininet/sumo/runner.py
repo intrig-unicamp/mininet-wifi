@@ -7,7 +7,7 @@ from sys import version_info as py_version_info
 if py_version_info < (3, 0):
     from sumolib.sumulib import checkBinary
     from traci import trace
-    from fonction import initialisation, noChangeSaveTimeAndSpeed,\
+    from function import initialisation, noChangeSaveTimeAndSpeed,\
         changeSaveTimeAndSpeed, reroutage
 
 
