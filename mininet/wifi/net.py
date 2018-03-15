@@ -22,7 +22,7 @@ from mininet.node import (Node, Host, OVSKernelSwitch,
 from mininet.util import (quietRun, fixLimits, numCores, ensureRoot,
                           macColonHex, ipStr, ipParse, netParse, ipAdd,
                           waitListening)
-from mininet.link import Link, Intf, TCLink
+from mininet.link import Link, Intf, TCLink, TCULink
 from mininet.nodelib import NAT
 from mininet.log import info, error, debug, output, warn
 
@@ -57,7 +57,7 @@ class Mininet_wifi(Mininet):
                  driver='nl80211', autoSetPositions=False,
                  configureWiFiDirect=False, configure4addr=False,
                  defaultGraph=False, noise_threshold=-91, cca_threshold=-90,
-                 rec_rssi=False):
+                 rec_rssi=False, disable_tcp_checksum=False):
         """Create Mininet object.
            topo: Topo (topology) object or None
            switch: default Switch class
@@ -139,6 +139,7 @@ class Mininet_wifi(Mininet):
         self.AC = ''
         self.alternativeModule = ''
         self.rec_rssi = rec_rssi
+        self.disable_tcp_checksum = disable_tcp_checksum
         self.plot = plot2d
         self.n_radios = 0
         self.min_x = 0
@@ -587,6 +588,9 @@ class Mininet_wifi(Mininet):
             options.setdefault('addr2', self.randMac())
 
             cls = TCLink
+            if self.disable_tcp_checksum:
+                cls = TCULink
+
             cls = self.link if cls is None else cls
             link = cls(node1, node2, **options)
             self.links.append(link)
