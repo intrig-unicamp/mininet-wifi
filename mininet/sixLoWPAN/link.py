@@ -183,8 +183,6 @@ class IntfSixLoWPAN( object ):
         # the superclass config method here as follows:
         # r = Parent.config( **params )
         r = {}
-
-        self.setIP(ip)
         self.setParam( r, 'setMAC', mac=mac )
         self.setParam( r, 'setIP', ip=ip )
         self.setParam( r, 'isUp', up=up )
@@ -242,19 +240,42 @@ class sixLoWPANLink(object):
             params[ 'port' ] = node.newPort()
         if not intfName:
             ifacename = 'lowpan'
-            intfName1 = self.wpanName(node, ifacename, node.newWlanPort())
+            intfName1 = self.wpanName(node, ifacename, node.newWpanPort())
         if not cls:
             cls = IntfSixLoWPAN
         params['ip'] = node.params['ip'][0]
         params['name'] = intfName1
 
-        intf1 = cls(node=node, mac=addr, **params)
+        intf1 = cls(node=node, mac=addr, link=self, **params)
         intf2 = '6LoWPAN'
         # All we are is dust in the wind, and our two interfaces
         cls.intf1, cls.intf2 = intf1, intf2
+
+    @staticmethod
+    def _ignore(*args, **kwargs):
+        "Ignore any arguments"
+        pass
 
     def wpanName(self, node, ifacename, n):
         "Construct a canonical interface name node-ethN for interface n."
         # Leave this as an instance method for now
         assert self
         return node.name + '-' + ifacename # + repr(n)
+
+    def delete(self):
+        "Delete this link"
+        self.intf1.delete()
+        self.intf1 = None
+        self.intf2.delete()
+        self.intf2 = None
+
+    def stop(self):
+        "Override to stop and clean up link as needed"
+        self.delete()
+
+    def status(self):
+        "Return link status as a string"
+        return "(%s %s)" % (self.intf1.status(), self.intf2.status())
+
+    def __str__(self):
+        return '%s<->%s' % (self.intf1, self.intf2)

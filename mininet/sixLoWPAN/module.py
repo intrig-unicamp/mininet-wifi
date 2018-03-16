@@ -89,17 +89,7 @@ class module(object):
         :param nodes: list of wireless nodes
         :param n_radios: number of wifi radios
         :param alternativeModule: dir of a fakelb alternative module
-        :param **params: ifb -  Intermediate Functional Block device
-        """
-        """kill hostapd if it is already running"""
-        try:
-            h = subprocess.check_output("ps -aux | grep -ic \'hostapd\'",
-                                        shell=True)
-            if h >= 2:
-                os.system('pkill -f \'hostapd\'')
-        except:
-            pass
-
+        :param **params: ifb -  Intermediate Functional Block device"""
         cls.load_module(n_radios, alternativeModule)  # Initatilize WiFi Module
         phys = cls.get_virtual_wlan()  # Get Phy Interfaces
         cls.assign_iface(nodes, phys, **params)  # iface assign
@@ -151,8 +141,6 @@ class module(object):
         :param nodes: list of wireless nodes
         :param phys: list of phys
         :param **params: ifb -  Intermediate Functional Block device"""
-        from mininet.wifi.node import Station, Car
-
         log_filename = '/tmp/mininetwifi-fakelb.log'
         cls.logging_to_file("%s" % log_filename)
 
@@ -160,23 +148,20 @@ class module(object):
             debug("\n*** Configuring interfaces with appropriated network"
                   "-namespaces...\n")
             for node in nodes:
-                if (isinstance(node, Station) or isinstance(node, Car)) \
-                        or 'inNamespace' in node.params:
-                    node.ifb = []
-                    for wlan in range(0, len(node.params['wlan'])):
-                        node.phyID[wlan] = cls.phyID
-                        cls.phyID += 1
-                        #rfkill = os.system(
-                        #    'rfkill list | grep %s | awk \'{print $1}\' '
-                        #    '| tr -d \":\" >/dev/null 2>&1' % phys[0])
-                        #debug('rfkill unblock %s\n' % rfkill)
-                        #os.system('rfkill unblock %s' % rfkill)
-                        phy = cls.getPhy(phys[0])
-                        os.system('iwpan phy phy%s set netns %s' % (phy, node.pid))
-                        node.cmd('ip link set %s down' % cls.wlan_list[0])
-                        node.cmd('ip link set %s name %s'
-                                 % (cls.wlan_list[0], node.params['wlan'][wlan]))
-                        cls.wlan_list.pop(0)
+                for wlan in range(0, len(node.params['wlan'])):
+                    node.phyID[wlan] = cls.phyID
+                    cls.phyID += 1
+                    #rfkill = os.system(
+                    #    'rfkill list | grep %s | awk \'{print $1}\' '
+                    #    '| tr -d \":\" >/dev/null 2>&1' % phys[0])
+                    #debug('rfkill unblock %s\n' % rfkill)
+                    #os.system('rfkill unblock %s' % rfkill)
+                    phy = cls.getPhy(phys[0])
+                    os.system('iwpan phy phy%s set netns %s' % (phy, node.pid))
+                    node.cmd('ip link set %s down' % cls.wlan_list[0])
+                    node.cmd('ip link set %s name %s'
+                             % (cls.wlan_list[0], node.params['wlan'][wlan]))
+                    cls.wlan_list.pop(0)
         except:
             logging.exception("Warning:")
             info("Warning! Error when loading fakelb. "

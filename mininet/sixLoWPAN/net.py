@@ -9,16 +9,16 @@ from itertools import chain
 from six import string_types
 
 from mininet.wifi.net import Mininet_wifi
-from mininet.node import (Node, Host, OVSKernelSwitch,
-                          DefaultController, Controller)
-from mininet.util import (quietRun, fixLimits, numCores, ensureRoot,
-                          macColonHex, ipParse, waitListening)
+from mininet.node import (Host, OVSKernelSwitch,
+                          DefaultController)
+from mininet.util import (fixLimits, numCores, ensureRoot,
+                          macColonHex, waitListening)
 from mininet.sixLoWPAN.util import ipAdd6, netParse
 from mininet.link import Link, Intf
 from mininet.log import info, error, debug, output
+from mininet.wifi.plot import plot2d
 
-from mininet.wifi.node import AccessPoint, AP, Station, Car, OVSKernelAP
-from mininet.wifi.plot import plot2d, plot3d, plotGraph
+from mininet.sixLoWPAN.node import sixLoWPan
 from mininet.sixLoWPAN.module import module
 from mininet.sixLoWPAN.link import sixLoWPANLink
 
@@ -26,8 +26,8 @@ from mininet.sixLoWPAN.link import sixLoWPANLink
 class Mininet_sixLoWPAN(Mininet_wifi):
 
     def __init__(self, topo=None, switch=OVSKernelSwitch,
-                 accessPoint=OVSKernelAP, host=Host, station=Station,
-                 car=Car, controller=DefaultController,
+                 host=Host, station=sixLoWPan,
+                 controller=DefaultController,
                  link=Link, intf=Intf, build=True, xterms=False,
                  ipBase='2001:0:0:0:0:0:0:0/64', inNamespace=False,
                  autoSetMacs=False, autoStaticArp=False, autoPinCpus=False,
@@ -61,8 +61,6 @@ class Mininet_sixLoWPAN(Mininet_wifi):
         self.switch = switch
         self.host = host
         self.station = station
-        self.accessPoint = accessPoint
-        self.car = car
         self.controller = controller
         self.link = link
         self.intf = intf
@@ -99,7 +97,6 @@ class Mininet_sixLoWPAN(Mininet_wifi):
         self.sixLP = []
         self.terms = []  # list of spawned xterm processes
         self.driver = driver
-        self.disableAutoAssociation = disableAutoAssociation
         self.mobilityKwargs = ''
         self.isMobilityModel = False
         self.isMobility = False
@@ -108,6 +105,7 @@ class Mininet_sixLoWPAN(Mininet_wifi):
         self.DRAW = False
         self.ifb = False
         self.isVanet = False
+        self.plot = plot2d
         self.noise_threshold = noise_threshold
         self.cca_threshold = cca_threshold
         self.configureWiFiDirect = configureWiFiDirect
@@ -121,7 +119,6 @@ class Mininet_sixLoWPAN(Mininet_wifi):
         self.AC = ''
         self.alternativeModule = ''
         self.rec_rssi = rec_rssi
-        self.plot = plot2d
         self.n_wpans = 0
         self.n_radios = 0
         self.min_x = 0
@@ -398,11 +395,9 @@ class Mininet_sixLoWPAN(Mininet_wifi):
         return zip(self.keys(), self.values())
 
     def addLink(self, node1, port1=None, cls=None, **params):
-        """"Add a link from node1 to node2
+        """"Add a link to node1
             node1: source node (or name)
-            node2: dest node (or name)
             port1: source port (optional)
-            port2: dest port (optional)
             cls: link class (optional)
             params: additional link params (optional)
             returns: link object"""
@@ -417,9 +412,8 @@ class Mininet_sixLoWPAN(Mininet_wifi):
         # Set default MAC - this should probably be in Link
         options.setdefault('addr1', self.randMac())
 
-        cls = sixLoWPANLink
-        cls(name=node1.params['wlan'][0], node=node1, **params)
-
+        link = cls(name=node1.params['wlan'][0], node=node1, **params)
+        return link
 
     def monitor(self, hosts=None, timeoutms=-1):
         """Monitor a set of hosts (or all hosts by default),
@@ -460,8 +454,8 @@ class Mininet_sixLoWPAN(Mininet_wifi):
         sent, received = int(m.group(1)), int(m.group(2))
         return sent, received
 
-    def ping(self, hosts=None, timeout=None):
-        """Ping between all specified hosts.
+    def ping6(self, hosts=None, timeout=None):
+        """Ping6 between all specified hosts.
            hosts: list of hosts
            timeout: time to wait for a response, as string
            returns: ploss packet loss percentage"""
@@ -480,7 +474,7 @@ class Mininet_sixLoWPAN(Mininet_wifi):
                     if timeout:
                         opts = '-W %s' % timeout
                     if dest.intfs:
-                        result = node.cmdPrint('ping -c1 %s %s'
+                        result = node.cmdPrint('ping6 -c1 %s %s'
                                                % (opts, dest.IP()))
                         sent, received = self._parsePing(result)
                     else:
@@ -571,37 +565,7 @@ class Mininet_sixLoWPAN(Mininet_wifi):
     def pingAll(self, timeout=None):
         """Ping between all hosts.
            returns: ploss packet loss percentage"""
-        hosts = self.hosts + self.stations + self.sixLP
-        all_outputs = []
-        packets = 0
-        lost = 0
-        ploss = None
-        output('*** Ping: testing ping reachability\n')
-        for node in hosts:
-            output('%s -> ' % node.name)
-            if timeout:
-                opts = '-W %s' % timeout
-            result = node.cmdPrint('ping6 -c1 ff02::1%%%s-lowpan'
-                          % (node.name))
-            sent, received = self._parsePing(result)
-            packets += sent
-            if received > sent:
-                error('*** Error: received too many packets')
-                error('%s' % result)
-                node.cmdPrint('route')
-                exit(1)
-            lost += sent - received
-            #output(('%s ' % dest.name) if received else 'X ')
-        output('\n')
-        if packets > 0:
-            ploss = 100.0 * lost / packets
-            received = packets - lost
-            output("*** Results: %i%% dropped (%d/%d received)\n" %
-                   (ploss, received, packets))
-        else:
-            ploss = 0
-            output("*** Warning: No packets sent\n")
-        return 1
+        return self.ping6(timeout=timeout)
 
     @staticmethod
     def _parseIperf(iperfOutput):
@@ -630,25 +594,11 @@ class Mininet_sixLoWPAN(Mininet_wifi):
            note: send() is buffered, so client rate can be much higher than
            the actual transmission rate; on an unloaded system, server
            rate should be much closer to the actual receive rate"""
-        sleep(3)
-        nodes = self.hosts + self.stations
+        sleep(2)
+        nodes = self.sixLP
         hosts = hosts or [nodes[0], nodes[-1]]
         assert len(hosts) is 2
         client, server = hosts
-
-        conn1 = 0
-        conn2 = 0
-        if isinstance(client, Station) or isinstance(server, Station):
-            if isinstance(client, Station):
-                while conn1 is 0:
-                    conn1 = int(client.cmd('iw dev %s link '
-                                           '| grep -ic \'Connected\''
-                                           % client.params['wlan'][0]))
-            if isinstance(server, Station):
-                while conn2 is 0:
-                    conn2 = int(server.cmd('iw dev %s link | grep -ic '
-                                           '\'Connected\''
-                                           % server.params['wlan'][0]))
         output('*** Iperf: testing', l4Type, 'bandwidth between',
                client, 'and', server, '\n')
         server.cmd('killall -9 iperf')
@@ -693,6 +643,53 @@ class Mininet_sixLoWPAN(Mininet_wifi):
         fixLimits()
         cls.inited = True
 
+    def configHosts(self):
+        "Configure a set of nodes."
+        nodes = self.sixLP
+        for node in nodes:
+            # info( host.name + ' ' )
+            intf = node.defaultIntf()
+            if intf:
+                node.configDefault()
+            else:
+                # Don't configure nonexistent intf
+                node.configDefault(ip=None, mac=None)
+                # You're low priority, dude!
+                # BL: do we want to do this here or not?
+                # May not make sense if we have CPU lmiting...
+                # quietRun( 'renice +18 -p ' + repr( host.pid ) )
+                # This may not be the right place to do this, but
+                # it needs to be done somewhere.
+                # info( '\n' )
+
+    def build(self):
+        "Build mininet."
+        if self.topo:
+            self.buildFromTopo(self.topo)
+        if self.inNamespace:
+            self.configureControlNetwork()
+        info('*** Configuring nodes\n')
+        self.configHosts()
+        if self.xterms:
+            self.startTerms()
+        if self.autoStaticArp:
+            self.staticArp()
+
+        self.built = True
+
+    def stop(self):
+        'Stop Mininet-WiFi'
+        self.stopGraphParams()
+        info('\n')
+        info('*** Stopping nodes\n')
+        nodes = self.sixLP
+        for node in nodes:
+            info(node.name + ' ')
+            node.terminate()
+        info('\n')
+        self.closeMininetWiFi()
+        info('\n*** Done\n')
+
     def count6LoWPANIfaces(self, params):
         "Count the number of virtual 6LoWPAN interfaces"
         if 'wlans' in params:
@@ -728,5 +725,4 @@ class Mininet_sixLoWPAN(Mininet_wifi):
 
     def closeMininetWiFi(self):
         "Close Mininet-WiFi"
-        self.plot.closePlot()
-        module.stop()  # Stopping WiFi Module
+        module.stop()
