@@ -4,10 +4,10 @@ author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
 
 import glob
 import os
-import re
 import subprocess
 import logging
-from mininet.log import debug, info, error
+from mininet.log import debug, info
+from sys import version_info as py_version_info
 
 
 class module(object):
@@ -109,11 +109,11 @@ class module(object):
         'Gets the list of virtual wlans that already exist'
         cls.wlans = []
         if py_version_info < (3, 0):
-            cls.wlans = (subprocess.check_output("iw dev 2>&1 | grep Interface "
+            cls.wlans = (subprocess.check_output("iwpan dev 2>&1 | grep Interface "
                                                  "| awk '{print $2}'",
                                                  shell=True)).split("\n")
         else:
-            cls.wlans = (subprocess.check_output("iw dev 2>&1 | grep Interface "
+            cls.wlans = (subprocess.check_output("iwpan dev 2>&1 | grep Interface "
                                                  "| awk '{print $2}'",
                                                  shell=True)).decode('utf-8').split("\n")
         cls.wlans.pop()
@@ -125,13 +125,13 @@ class module(object):
     def getPhy(cls, wlan):
         'Gets the list of virtual wlans that already exist'
         if py_version_info < (3, 0):
-            phy = subprocess.check_output("find /sys/kernel/debug/ieee80211 -name "
-                                          "hwsim | cut -d/ -f 6 | sort",
-                                          shell=True).split("\n")
+            phy = (subprocess.check_output("iwpan dev | grep -B 1 %s"
+                                           " | sed -ne '1 s/phy#\([0-9]\)/\\1/p'" % wlan,
+                                           shell=True)).split("\n")
         else:
-            phy = subprocess.check_output("find /sys/kernel/debug/ieee80211 -name "
-                                          "hwsim | cut -d/ -f 6 | sort",
-                                          shell=True).decode('utf-8').split("\n")
+            phy = (subprocess.check_output("iwpan dev | grep -B 1 %s"
+                                           " | sed -ne '1 s/phy#\([0-9]\)/\\1/p'" % wlan,
+                                           shell=True)).decode('utf-8').split("\n")
         phy.pop()
         return phy[0]
 
@@ -153,7 +153,7 @@ class module(object):
         :param **params: ifb -  Intermediate Functional Block device"""
         from mininet.wifi.node import Station, Car
 
-        log_filename = '/tmp/mininetwifi-mac80211_hwsim.log'
+        log_filename = '/tmp/mininetwifi-fakelb.log'
         cls.logging_to_file("%s" % log_filename)
 
         try:
@@ -179,7 +179,7 @@ class module(object):
                         cls.wlan_list.pop(0)
         except:
             logging.exception("Warning:")
-            info("Warning! Error when loading mac80211_hwsim. "
+            info("Warning! Error when loading fakelb. "
                  "Please run sudo 'mn -c' before running your code.\n")
             info("Further information available at %s.\n" % log_filename)
             exit(1)
