@@ -2,19 +2,12 @@
     Mininet-WiFi: A simple networking testbed for Wireless OpenFlow/SDWN!
 author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)"""
 
-import os
-import random
 import re
-import sys
 import select
-import signal
 from time import sleep
-from itertools import chain, groupby
-from math import ceil
+from itertools import chain
 from six import string_types
 
-from mininet.cli import CLI
-from mininet.term import cleanUpScreens, makeTerms
 from mininet.wifi.net import Mininet_wifi
 from mininet.node import (Node, Host, OVSKernelSwitch,
                           DefaultController, Controller)
@@ -22,20 +15,12 @@ from mininet.util import (quietRun, fixLimits, numCores, ensureRoot,
                           macColonHex, ipParse, waitListening)
 from mininet.sixLoWPAN.util import ipAdd6, netParse
 from mininet.link import Link, Intf
-from mininet.nodelib import NAT
-from mininet.log import info, error, debug, output, warn
+from mininet.log import info, error, debug, output
 
 from mininet.wifi.node import AccessPoint, AP, Station, Car, OVSKernelAP
-from mininet.wifi.devices import deviceDataRate
-from mininet.wifi.mobility import mobility
 from mininet.wifi.plot import plot2d, plot3d, plotGraph
 from mininet.sixLoWPAN.module import module
 from mininet.sixLoWPAN.link import sixLoWPANLink
-from mininet.wifi.propagationModels import propagationModel
-from mininet.wifi.vanet import vanet
-
-sys.path.append(str(os.getcwd()) + '/mininet/')
-from mininet.sumo.runner import sumo
 
 
 class Mininet_sixLoWPAN(Mininet_wifi):
