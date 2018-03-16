@@ -16,7 +16,7 @@ from mininet.wifi.net import Mininet_wifi
 from mininet.wifi.plot import plot2d, plot3d, plotGraph
 from mininet.wifi.mobility import mobility
 from mininet.wifi.link import wirelessLink
-from mininet.wifi.devices import deviceDataRate
+from mininet.wifi.devices import getRate
 from mininet.wifi.node import Station, AP
 
 
@@ -300,7 +300,7 @@ class replayingRSSI(object):
 
     @classmethod
     def calculateRate(cls, sta, ap, dist):
-        value = deviceDataRate(sta, ap, 0)
+        value = getRate(sta, ap, 0)
         custombw = value.rate
         rate = value.rate / 2.5
         

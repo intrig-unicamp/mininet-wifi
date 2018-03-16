@@ -30,7 +30,7 @@ from mininet.wifi.node import AccessPoint, AP, Station, Car, OVSKernelAP
 from mininet.wifi.wmediumdConnector import WmediumdStarter, WmediumdServerConn
 from mininet.wifi.link import wirelessLink, wmediumd, Association, \
     _4addrLink, TCWirelessLink, TCLinkWirelessAP, TCLinkWirelessStation
-from mininet.wifi.devices import deviceDataRate
+from mininet.wifi.devices import getRate, getRange, getTxPower
 from mininet.wifi.mobility import mobility
 from mininet.wifi.plot import plot2d, plot3d, plotGraph
 from mininet.wifi.module import module
@@ -1566,7 +1566,11 @@ class Mininet_wifi(Mininet):
                 exit(1)
         else:
             for _ in range(0, wlans):
-                node.params['range'].append(0)
+                if 'equipmentModel' in node.params:
+                    range_ = getRange(node)
+                    node.params['range'].append(range_.value)
+                else:
+                    node.params['range'].append(0)
 
     def addIpParamToNode(self, node, wlans=0, autoSetMacs=False,
                          params=None, isVirtualIface=False):
@@ -1698,7 +1702,11 @@ class Mininet_wifi(Mininet):
                     node.params['txpower'].append(int(txpower))
             else:
                 for _ in range(wlans):
-                    node.params['txpower'].append(14)
+                    if 'equipmentModel' in node.params:
+                        txpower_ = getTxPower(node)
+                        node.params['txpower'].append(txpower_.value)
+                    else:
+                        node.params['txpower'].append(14)
 
     def countWiFiIfaces(self, params):
         "Count the number of virtual wifi interfaces"
@@ -1978,7 +1986,7 @@ class Mininet_wifi(Mininet):
 
     def setBw(self, node, wlan, iface):
         "Set bw to AP"
-        value = deviceDataRate.apRate(node, wlan)
+        value = getRate.apRate(node, wlan)
         bw = value
         node.cmd("tc qdisc replace dev %s \
             root handle 2: tbf rate %sMbit burst 15000 "
@@ -2232,7 +2240,8 @@ class Mininet_wifi(Mininet):
                     intf = node.params['wlan'][wlan]
                     node.params['range'][wlan] = node.getRange(intf=intf)
                 else:
-                    if node.params['txpower'][wlan] == 14:
+                    if node.params['txpower'][wlan] == 14 and \
+                                    'equipmentModel' not in node.params:
                         node.autoTxPower=True
                         node.params['txpower'][wlan] = \
                             node.get_txpower_prop_model(wlan)
@@ -2379,7 +2388,7 @@ class Mininet_wifi(Mininet):
 
     def setDataRate(self, sta=None, ap=None, wlan=0):
         "Set the rate"
-        value = deviceDataRate(sta, ap, wlan)
+        value = getRate(sta, ap, wlan)
         return value
 
     def associationControl(self, ac):

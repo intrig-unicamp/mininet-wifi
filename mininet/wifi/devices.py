@@ -7,20 +7,16 @@ author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
 
 """
 
-class deviceDataRate (object):
-    """ 
-    Data Rate for specific equipments 
-    """
+class getRate (object):
+    "Data Rate for specific equipments"
 
     rate = 0
 
     def __init__(self, sta=None, ap=None, wlan=0):
 
-        """         
-        sta: station
+        """sta: station
         ap: accessPoint
-        wlan: wlan ID
-        """
+        wlan: wlan ID"""
 
         if ap != None and 'equipmentModel' in ap.params.keys():
             if  ap.equipmentModel in dir(self) and sta != None:
@@ -32,12 +28,10 @@ class deviceDataRate (object):
             self.customDataRate_mobility(sta, wlan)
 
     def customDataRate_mobility(self, node, wlan):
-        """
-        Custom Maximum Data Rate - Useful when there is mobility
+        """Custom Maximum Data Rate - Useful when there is mobility
         
         mode: interface mode
-        rate: maximum supported bandwidth (mbps)
-        """
+        rate: maximum supported bandwidth (mbps)"""
         mode = node.params['mode'][wlan]
         rate = 0
 
@@ -59,8 +53,7 @@ class deviceDataRate (object):
         """Custom Maximum Data Rate - Useful when there is no mobility
                 
         mode: interface mode
-        rate: maximum supported bandwidth (mbps)
-        """
+        rate: maximum supported bandwidth (mbps)"""
         mode = node.params['mode'][wlan]
         rate = 0
 
@@ -97,13 +90,11 @@ class deviceDataRate (object):
         return cls.rate
 
     def DI524(self, node1, node2, wlan):
-        """
-        D-Link AirPlus G DI-524
+        """D-Link AirPlus G DI-524
            from http://www.dlink.com/-/media/Consumer_Products/DI/DI%20524/Manual/DI_524_Manual_EN_UK.pdf
            
         rssi: rssi value (dBm)
-        rate: maximum supported bandwidth (mbps)   
-        """
+        rate: maximum supported bandwidth (mbps)"""
         rate = 0
 
         if node1.params['rssi'][wlan] != 0:
@@ -126,14 +117,12 @@ class deviceDataRate (object):
         return self.rate
 
     def TLWR740N(self, node1, node2, wlan):
-        """
-        TL-WR740N
+        """TL-WR740N
            from http://www.tp-link.com.br/products/details/cat-9_TL-WR740N.html#specificationsf
         
         mode: interface mode
         rssi: rssi value (dBm)
-        rate: maximum supported bandwidth (mbps) 
-        """
+        rate: maximum supported bandwidth (mbps)"""
         mode = node1.params['mode'][wlan]
         rate = 0
 
@@ -164,14 +153,12 @@ class deviceDataRate (object):
         return self.rate
 
     def WRT120N(self, node1, node2, wlan):
-        """
-        CISCO WRT120N
+        """CISCO WRT120N
            from http://downloads.linksys.com/downloads/datasheet/WRT120N_V10_DS_B-WEB.pdf
         
         mode: interface mode
         rssi: rssi value (dBm)
-        rate: maximum supported bandwidth (mbps)    
-        """
+        rate: maximum supported bandwidth (mbps)"""
         mode = node2.params['mode'][0]
         rate = 0
 
@@ -204,33 +191,28 @@ class deviceDataRate (object):
         self.rate = rate
         return self.rate
 
-class deviceRange (object):
-    """ Range for specific equipments """
+class getRange (object):
+    "Range for specific equipments"
 
-    range = 100
+    value = 100
 
     def __init__(self, ap=None, wlan=0):
 
-        """         
-        ap: accessPoint
-        wlan: wlan ID
-        """
+        """ ap: accessPoint
+        wlan: wlan ID """
 
-        if 'equipmentModel' in ap.params.keys():
-            if ap.equipmentModel in dir(self):
-                self.__getattribute__(ap.equipmentModel)(ap)
+        if 'equipmentModel' in ap.params:
+            if ap.params['equipmentModel'] in dir(self):
+                self.__getattribute__(ap.params['equipmentModel'])(ap)
         else:
             self.customSignalRange(ap, wlan)
 
     def customSignalRange(self, node, wlan):
-        """
-        Custom Signal Range
+        """Custom Signal Range
         
         mode: interface mode
-        range: signal range (m)
-        """
+        range: signal range (m)"""
         mode = node.params['mode'][wlan]
-        range_ = 0
 
         if mode == 'a':
             range_ = 33
@@ -245,92 +227,79 @@ class deviceRange (object):
         else:
             range_ = 33
 
-        self.range = range_
-        return self.range
+        self.value = range_
+        return self.value
 
     def DI524(self, ap):
-        """ 
-        D-Link AirPlus G DI-524
+        """ D-Link AirPlus G DI-524
             from http://www.dlink.com/-/media/Consumer_Products/DI/DI%20524/Manual/DI_524_Manual_EN_UK.pdf
             indoor = 100
             outdoor = 200 
         
-        range: signal range (m)
-        """
+        range: signal range (m)"""
 
-        self.range = 100
-        return self.range
+        self.value = 100
+        return self.value
 
     def TLWR740N(self, ap):
-        """
-        TL-WR740N
+        """TL-WR740N
             NO REFERENCE!
         
-        range: signal range (m)
-        """
+        range: signal range (m)"""
 
-        self.range = 50
-        return self.range
+        self.value = 50
+        return self.value
 
     def WRT120N(self, ap):
-        """ 
-        CISCO WRT120N
+        """CISCO WRT120N
             NO REFERENCE!
         
-        range: signal range (m)
-        """
+        range: signal range (m)"""
 
-        self.range = 50
-        return self.range
+        self.value = 50
+        return self.value
 
-class deviceTxPower (object):
-    """ TX Power for specific equipments """
+class getTxPower (object):
+    "TX Power for specific equipments"
 
-    txPower = 0
+    value = 0
 
-    def __init__(self, model=None, ap=None, wlan=0):
+    def __init__(self, ap=None, wlan=0):
 
-        """         
-        :param model: device model
+        """:param model: device model
         :param ap: accessPoint
-        :param wlan: wlan ID
-        """
+        :param wlan: wlan ID"""
 
-        if model in dir(self):
-            self.__getattribute__(model)(ap, wlan)
+        if 'equipmentModel' in ap.params:
+            if ap.params['equipmentModel'] in dir(self):
+                self.__getattribute__(ap.params['equipmentModel'])(ap, wlan)
 
     def DI524(self, ap, wlan):
-        """ 
-        D-Link AirPlus G DI-524
+        """D-Link AirPlus G DI-524
             from http://www.dlink.com/-/media/Consumer_Products/DI/DI%20524/Manual/DI_524_Manual_EN_UK.pdf
         
-        txPower = transmission power (dBm)
-        """
-        self.txPower = 14
-        return self.txPower
+        txPower = transmission power (dBm)"""
+        self.value = 14
+        return self.value
 
     def TLWR740N(self, ap, wlan):
-        """
-        TL-WR740N
+        """TL-WR740N
             No REFERENCE!
         
-        txPower = transmission power (dBm)
-        """
-        self.txPower = 20
-        return self.txPower
+        txPower = transmission power (dBm)"""
+        self.value = 20
+        return self.value
 
     def WRT120N(self, ap, wlan):
-        """
-        CISCO WRT120N
+        """CISCO WRT120N
            from http://downloads.linksys.com/downloads/datasheet/WRT120N_V10_DS_B-WEB.pdf
            
-        txPower = transmission power (dBm)   
-        """
+        txPower = transmission power (dBm)"""
 
         if ap.params['mode'][wlan] == 'b':
-            self.txPower = 21
+            self.value = 21
         elif ap.params['mode'][wlan] == 'g':
-            self.txPower = 18
+            self.value = 18
         elif ap.params['mode'][wlan] == 'n':
-            self.txPower = 16
-        return self.txPower
+            self.value = 16
+        return self.value

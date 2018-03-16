@@ -11,7 +11,7 @@ from sys import version_info as py_version_info
 from mininet.log import info, error, debug
 from mininet.link import Intf
 
-from mininet.wifi.devices import deviceDataRate
+from mininet.wifi.devices import getRate
 from mininet.wifi.wmediumdConnector import DynamicWmediumdIntfRef, \
     WmediumdStarter, WmediumdSNRLink, WmediumdTXPower, WmediumdPosition, \
     WmediumdConstants, WmediumdServerConn, WmediumdERRPROBLink
@@ -858,7 +858,7 @@ class wirelessLink (object):
         :param wlan: wlan ID
         :param dist: distance between source and destination
         """
-        value = deviceDataRate(sta, ap, wlan)
+        value = getRate(sta, ap, wlan)
         custombw = value.rate
         rate = eval(str(custombw) + cls.equationBw)
 
