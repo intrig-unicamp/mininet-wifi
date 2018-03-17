@@ -234,6 +234,17 @@ class testWalkthrough(unittest.TestCase):
         p.expect(self.prompt)
         p.sendline('exit')
         p.wait()
+
+    def testSixLoWPan(self):
+        "Start Mininet-WiFi using sixlowpan, then test pingall"
+        p = pexpect.spawn(
+            'python examples/simpleLoWPANTopo.py')
+        sleep(4)
+        p.sendline('pingall')
+        p.expect('0% dropped')
+        p.expect(self.prompt)
+        p.sendline('exit')
+        p.wait()
     
     def testPropagationModel(self):
         "Start Mininet-WiFi using a propagation model, then test ping and rssi"
