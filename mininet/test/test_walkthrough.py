@@ -238,7 +238,7 @@ class testWalkthrough(unittest.TestCase):
     def testSixLoWPan(self):
         "Start Mininet-WiFi using sixlowpan, then test pingall"
         p = pexpect.spawn(
-            'python examples/simpleLoWPANTopo.py')
+            'python examples/6LoWPan.py')
         sleep(4)
         p.sendline('pingall')
         p.expect('0% dropped')
