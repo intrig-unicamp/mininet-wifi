@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-'This example creates a simple network topology with 1 AP and 2 stations'
+'This example creates a simple network topology with 3 nodes'
 
 from mininet.log import setLogLevel, info
 from mininet.wifi.cli import CLI_wifi
@@ -13,15 +13,17 @@ def topology():
     net = Mininet_sixLoWPAN()
 
     info("*** Creating nodes\n")
-    sta1 = net.add6LoWPAN('sta1', ip='2001::1/64')
-    sta2 = net.add6LoWPAN('sta2', ip='2001::2/64')
+    node1 = net.add6LoWPAN('node1', ip='2001::1/64')
+    node2 = net.add6LoWPAN('node2', ip='2001::2/64')
+    node3 = net.add6LoWPAN('node3', ip='2001::3/64')
 
-    info("*** Configuring wifi nodes\n")
+    info("*** Configuring nodes\n")
     net.configureSixLoWPANNodes()
 
-    info("*** Associating Stations\n")
-    net.addLink(sta1, panid='0xbeef', cls=sixLoWPANLink)
-    net.addLink(sta2, panid='0xbeef', cls=sixLoWPANLink)
+    info("*** Associating Nodes\n")
+    net.addLink(node1, panid='0xbeef', cls=sixLoWPANLink)
+    net.addLink(node2, panid='0xbeef', cls=sixLoWPANLink)
+    net.addLink(node3, panid='0xbeef', cls=sixLoWPANLink)
 
     info("*** Starting network\n")
     net.build()
