@@ -679,6 +679,9 @@ class Mininet_sixLoWPAN(Mininet_wifi):
 
     def stop(self):
         'Stop Mininet-WiFi'
+        if self.terms:
+            info('*** Stopping %i terms\n' % len(self.terms))
+            self.stopXterms()
         self.stopGraphParams()
         info('\n')
         info('*** Stopping nodes\n')

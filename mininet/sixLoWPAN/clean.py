@@ -13,31 +13,23 @@ import os
 import glob
 
 from mininet.log import info
-from mininet.clean import killprocs, sh
+from mininet.wifi.clean import cleanup_wifi
 
-class Cleanup(object):
+class Cleanup(cleanup_wifi):
     "Wrapper for cleanup()"
 
     @classmethod
-    def cleanup_wifi(cls):
+    def cleanup_6lowpan(cls):
         """Clean up junk which might be left over from old runs;
            do fast stuff before slow dp and link removal!"""
 
-        info("***  Removing WiFi module and Configurations\n")
+        info("***  Removing fakelb module and Configurations\n")
 
         try:
-            co("lsmod | grep mac80211_hwsim", shell=True)
-            os.system('rmmod mac80211_hwsim')
+            co("lsmod | grep fakelb", shell=True)
+            os.system('rmmod fakelb')
         except:
             pass
-
-        try:
-            co("lsmod | grep ifb", shell=True)
-            os.system('rmmod ifb')
-        except:
-            pass
-
-        killprocs('hostapd')
 
         if glob.glob("*.apconf"):
             os.system('rm *.apconf')
@@ -48,13 +40,4 @@ class Cleanup(object):
         if glob.glob("*.nodeParams"):
             os.system('rm *.nodeParams')
 
-        try:
-            os.system('pkill -f \'wpa_supplicant -B -Dnl80211\'')
-        except:
-            pass
-
-        info("*** Killing wmediumd\n")
-        sh('pkill wmediumd')
-
-
-cleanup_wifi = Cleanup.cleanup_wifi
+cleanup_wifi = Cleanup.cleanup_6lowpan
