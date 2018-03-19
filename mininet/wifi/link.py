@@ -396,7 +396,7 @@ class TCWirelessLink(IntfWireless):
 
         return result
 
-class _4addrLink(object):
+class _4address(object):
 
     def __init__(self, node1, node2, intf=Intf):
         """Create 4addr link to another node.

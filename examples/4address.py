@@ -6,14 +6,14 @@ Warning: It works only when network manager is stopped"""
 from mininet.node import Controller
 from mininet.log import setLogLevel, info
 from mininet.wifi.node import OVSKernelAP
-from mininet.wifi.link import wmediumd
+from mininet.wifi.link import wmediumd, _4address
 from mininet.wifi.cli import CLI_wifi
 from mininet.wifi.net import Mininet_wifi
 
 def topology():
     "Create a network."
     net = Mininet_wifi( controller=Controller, accessPoint=OVSKernelAP,
-                   link=wmediumd, enable_interference=False,
+                   link=wmediumd, enable_interference=True,
                    configure4addr=True, disableAutoAssociation=True )
 
     info("*** Creating nodes\n")
@@ -39,8 +39,8 @@ def topology():
     net.configureWifiNodes()
 
     info("*** Adding Link\n")
-    net.addLink(ap1, ap2, link='4addr')
-    net.addLink(ap1, ap3, link='4addr')
+    net.addLink(ap1, ap2, cls=_4address)
+    net.addLink(ap1, ap3, cls=_4address)
     net.addLink(sta1, ap1)
     net.addLink(sta2, ap1)
     net.addLink(sta3, ap2)

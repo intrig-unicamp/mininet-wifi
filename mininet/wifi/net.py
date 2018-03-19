@@ -29,7 +29,7 @@ from mininet.log import info, error, debug, output, warn
 from mininet.wifi.node import AccessPoint, AP, Station, Car, OVSKernelAP
 from mininet.wifi.wmediumdConnector import WmediumdStarter, WmediumdServerConn
 from mininet.wifi.link import wirelessLink, wmediumd, Association, \
-    _4addrLink, TCWirelessLink, TCLinkWirelessAP, TCLinkWirelessStation
+    _4address, TCWirelessLink, TCLinkWirelessAP, TCLinkWirelessStation
 from mininet.wifi.devices import getRate, getRange, getTxPower
 from mininet.wifi.mobility import mobility
 from mininet.wifi.plot import plot2d, plot3d, plotGraph
@@ -548,8 +548,7 @@ class Mininet_wifi(Mininet):
                     wmediumd.wlinks.append([sta, ap])
 
         elif (isinstance(node1, AP) and isinstance(node2, AP)
-              and 'link' in options
-              and options['link'] is '4addr'):
+              and cls and cls is _4address):
             # If sta/ap have defined position
             if 'position' in node1.params and 'position' in node2.params:
                 self.connections['src'].append(node1)
@@ -557,7 +556,6 @@ class Mininet_wifi(Mininet):
                 self.connections['ls'].append('--')
 
             if self.enable_interference:
-                cls = _4addrLink
                 cls(node1, node2)
             else:
                 dist = node1.get_distance_to(node2)
@@ -567,7 +565,6 @@ class Mininet_wifi(Mininet):
                     doAssociation = True
 
                 if doAssociation:
-                    cls = _4addrLink
                     cls(node1, node2)
         else:
             if 'link' in options:
