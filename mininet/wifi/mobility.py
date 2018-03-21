@@ -69,11 +69,9 @@ class mobility(object):
 
     @classmethod
     def move_factor(cls, node, diff_time):
-        """
-        :param node: node
+        """:param node: node
         :param diff_time: difference between initial and final time. Useful for
-        calculating the speed
-        """
+        calculating the speed"""
         initial_pos = node.params['initialPosition']
         final_pos = node.params['finalPosition']
         if hasattr(node, 'points'):
@@ -147,16 +145,14 @@ class mobility(object):
 
     @classmethod
     def speed(cls, sta, pos_x, pos_y, pos_z, diff_time):
-        """
-        Calculates the speed
+        """Calculates the speed
 
         :param sta: station
         :param pos_x: Position x
         :param pos_y: Position y
         :param pos_z: Position z
         :param diff_time: difference between start and stop time. Useful for
-        calculating the speed
-        """
+        calculating the speed"""
         sta.params['speed'] = '%.2f' % abs(((pos_x + pos_y + pos_z) /
                                             diff_time))
 
@@ -267,18 +263,6 @@ class mobility(object):
             if ap not in sta.params['associatedTo']:
                 Association.printCon = False
                 Association.associate_infra(sta, ap, wlan, ap_wlan)
-                if WmediumdServerConn.interference_enabled:
-                    cls.update_wmediumd_pos(sta)
-
-    @classmethod
-    def update_wmediumd_pos(cls, node):
-        cls.set_wmediumd_pos(node)
-
-    @classmethod
-    def set_wmediumd_pos(cls, node):
-        if node.lastpos != node.params['position']:
-            sleep(0.0001)
-            node.set_position_wmediumd()
 
     @classmethod
     def get_line(cls, node, x1, y1, z1, x2, y2, z2):
@@ -410,6 +394,8 @@ class mobility(object):
                                 cls.plot.graphUpdate(node)
                                 if not issubclass(cls.plot, plot3d):
                                     cls.plot.updateCircleRadius(node)
+                            if WmediumdServerConn.interference_enabled:
+                                node.set_position_wmediumd()
                         eval(cls.continuePlot)
                         i += 1
                 cls.mobileNodes = []
@@ -426,8 +412,7 @@ class mobility(object):
     def models(cls, stations=[], aps=[], model=None, stationaryNodes=[],
                min_v=0, max_v=0, seed=None, connections=None, plotNodes=[],
                max_x=0, max_y=0, AC='', DRAW=False, rec_rssi=False, **params):
-        """
-        Used when a mobility model is applied
+        """Used when a mobility model is applied
 
         :param stations: list of stations
         :param aps: list of access points
@@ -439,8 +424,7 @@ class mobility(object):
         :param connections: list of connections
         :param plotNodes: list of nodes to be plotted (including hosts and switches)
         :param MAX_X: Maximum value for X
-        :param MAX_Y: Maximum value for Y
-        """
+        :param MAX_Y: Maximum value for Y"""
         np.random.seed(seed)
         cls.rec_rssi = rec_rssi
         cls.AC = AC
@@ -509,16 +493,16 @@ class mobility(object):
 
     @classmethod
     def startMobilityModelGraph(cls, mob, nodes, current_time, final_time):
-        """
-        Useful for plotting graphs
+        """Useful for plotting graphs
 
         :param mob: mobility params
-        :param nodes: list of nodes
-        """
+        :param nodes: list of nodes"""
         for xy in mob:
             for idx, node in enumerate(nodes):
                 node.params['position'] = '%.2f' % xy[idx][0], '%.2f' \
                                           % xy[idx][1], 0.0
+                if WmediumdServerConn.interference_enabled:
+                    node.set_position_wmediumd()
                 if propagationModel.model == 'logNormalShadowing':
                     sleep(0.0001)  # notice problem when there are many threads
                     intf = node.params['wlan'][0]
@@ -543,6 +527,8 @@ class mobility(object):
             for idx, node in enumerate(nodes):
                 node.params['position'] = '%.2f' % xy[idx][0], '%.2f' \
                                           % xy[idx][1], 0.0
+                if WmediumdServerConn.interference_enabled:
+                    cls.set_wmediumd_pos(node)
                 if propagationModel.model == 'logNormalShadowing':
                     sleep(0.0001)
                     intf = node.params['wlan'][0]
@@ -605,8 +591,6 @@ class mobility(object):
                     else:
                         if isinstance(node, Station):
                             cls.check_association(node, wlan, ap_wlan=0)
-                if WmediumdServerConn.interference_enabled:
-                    cls.set_wmediumd_pos(node)
         eval(cls.continue_params)
 
 # coding: utf-8
