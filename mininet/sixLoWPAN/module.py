@@ -91,11 +91,11 @@ class module(object):
         :param alternativeModule: dir of a fakelb alternative module
         :param **params: ifb -  Intermediate Functional Block device"""
         cls.load_module(n_radios, alternativeModule)  # Initatilize WiFi Module
-        phys = cls.get_virtual_wlan()  # Get Phy Interfaces
+        phys = cls.get_virtual_wpan()  # Get Phy Interfaces
         cls.assign_iface(nodes, phys, **params)  # iface assign
 
     @classmethod
-    def get_virtual_wlan(cls):
+    def get_virtual_wpan(cls):
         'Gets the list of virtual wlans that already exist'
         cls.wlans = []
         if py_version_info < (3, 0):
