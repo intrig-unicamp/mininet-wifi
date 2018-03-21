@@ -1,6 +1,11 @@
 #!/usr/bin/python
 
-"Sample file for SUMO"
+"""Sample file for SUMO
+
+***Requirements***:
+
+sumo
+sumo-gui"""
 
 import os
 
