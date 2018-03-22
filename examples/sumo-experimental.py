@@ -21,7 +21,7 @@ def topology():
 
     "Create a network."
     net = Mininet_wifi(controller=Controller, accessPoint=UserAP,
-                  link=wmediumd, enable_interference=True)
+                       link=wmediumd, enable_interference=True)
 
     info("*** Creating nodes\n")
     cars = []

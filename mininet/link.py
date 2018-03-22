@@ -212,7 +212,7 @@ class Intf( object ):
         self.setParam( r, 'setMAC', mac=mac )
         self.setParam( r, 'setIP', ip=ip )
         self.setParam( r, 'isUp', up=up )
-        self.setParam(r, 'ipAddr', ipAddr=ipAddr)
+        self.setParam( r, 'ipAddr', ipAddr=ipAddr)
         return r
 
     def delete( self ):

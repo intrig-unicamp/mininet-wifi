@@ -1,4 +1,4 @@
-#!/usr/bin/python
+ #!/usr/bin/python
 
 """Before running this script please stop network-manager:
 service network-manager stop
@@ -31,7 +31,7 @@ from mininet.wifi.net import Mininet_wifi
 def topology():
     "Create a network."
     net = Mininet_wifi(controller=Controller, accessPoint=UserAP,
-                  disableAutoAssociation=True)
+                       disableAutoAssociation=True)
 
     info("*** Creating nodes\n")
     sta1 = net.addStation('sta1', position='10,60,0')

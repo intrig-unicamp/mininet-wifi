@@ -13,7 +13,7 @@ from mininet.wifi.net import Mininet_wifi
 def topology():
     "Create a network."
     net = Mininet_wifi(controller=Controller, accessPoint=OVSKernelAP,
-                  link=wmediumd, enable_interference=True)
+                       link=wmediumd, enable_interference=True)
 
     info("*** Creating nodes\n")
     sta1 = net.addStation('sta1', mac='00:00:00:00:00:11', position='1,1,0')
