@@ -528,7 +528,7 @@ class mobility(object):
                 node.params['position'] = '%.2f' % xy[idx][0], '%.2f' \
                                           % xy[idx][1], 0.0
                 if WmediumdServerConn.interference_enabled:
-                    cls.set_wmediumd_pos(node)
+                    node.set_position_wmediumd()
                 if propagationModel.model == 'logNormalShadowing':
                     sleep(0.0001)
                     intf = node.params['wlan'][0]
