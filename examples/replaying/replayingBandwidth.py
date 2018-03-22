@@ -16,7 +16,7 @@ def topology():
 
     info("*** Creating nodes\n")
     sta1 = net.addStation( 'sta1', mac='00:00:00:00:00:02', ip='10.0.0.2/8' )
-    ap1 = net.addAccessPoint( 'ap1', ssid= 'new-ssid', mode= 'g', channel= '1',
+    ap1 = net.addAccessPoint( 'ap1', ssid='new-ssid', mode='g', channel='1',
                               position='50,50,0' )
     c1 = net.addController( 'c1', controller=Controller )
 

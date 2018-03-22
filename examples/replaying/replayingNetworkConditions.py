@@ -21,7 +21,7 @@ def topology():
     sta2 = net.addStation( 'sta2', mac='00:00:00:00:00:02', ip='192.168.0.2/24',
                            position='54.08,50,0' )
     ap3 = net.addAccessPoint( 'ap3', ssid='ap-ssid3', mode='g',
-                              channel= '1', position='50,50,0' )
+                              channel='1', position='50,50,0' )
     c0 = net.addController('c0', controller=Controller, port=6653)
 
     print("*** Configuring wifi nodes")
