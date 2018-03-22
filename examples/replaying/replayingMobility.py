@@ -8,12 +8,13 @@ from mininet.wifi.replaying import replayingMobility
 from mininet.wifi.node import OVSAP
 from mininet.wifi.cli import CLI_wifi
 from mininet.wifi.net import Mininet_wifi
+from mininet.wifi.link import wmediumd
 
 
 def topology():
     "Create a network."
     net = Mininet_wifi(controller=Controller, accessPoint=OVSAP,
-                  enable_wmediumd=True, enable_interference=True)
+                       link=wmediumd, enable_interference=True)
 
     info("*** Creating nodes\n")
     sta1 = net.addStation('sta1', mac='00:00:00:00:00:02', ip='10.0.0.1/8', speed=4)
