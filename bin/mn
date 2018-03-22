@@ -270,9 +270,6 @@ class MininetRunner(object):
         opts.add_option('--wifi', '-w', action='store_true',
                         default=False, help='activate wifi')
 
-        opts.add_option('--wmediumd', action='store_true',
-                        default = False, help = 'activate wmediumd')
-
         opts.add_option('--plot', action='store_true',
                         default=False, help='activate graph')
 
@@ -429,9 +426,6 @@ class MininetRunner(object):
             opts.link = 'tcu'
 
         link = customClass(LINKS, opts.link)
-        enable_wmediumd = False
-        if 'wmedium' in link.__name__:
-            enable_wmediumd = True
 
         if self.validate:
             self.validate(opts)
@@ -482,7 +476,6 @@ class MininetRunner(object):
                  xterms=xterms, autoSetMacs=mac,
                  autoStaticArp=arp, autoPinCpus=pin,
                  listenPort=listenPort,
-                 enable_wmediumd=enable_wmediumd,
                  driver=driver, autoSetPositions=position)
 
         if opts.ensure_value('nat', False):

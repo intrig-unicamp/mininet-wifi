@@ -27,7 +27,8 @@ from mininet.link import Link, Intf, OVSIntf
 from mininet.wifi.link import TCWirelessLink, TCLinkWirelessAP,\
     TCLinkWirelessStation, Association
 from mininet.wifi.wmediumdConnector import WmediumdServerConn, \
-    WmediumdPosition, WmediumdTXPower, WmediumdGain, WmediumdHeight
+    WmediumdPosition, WmediumdTXPower, WmediumdGain, WmediumdHeight, \
+    wmediumd_mode, WmediumdConstants
 from mininet.wifi.propagationModels import distanceByPropagationModel, \
     powerForRangeByPropagationModel, propagationModel
 from mininet.wifi.link import wirelessLink
@@ -276,14 +277,16 @@ class Node_wifi(Node):
 
     def getRange(self, intf=None, noiseLevel=0):
         "Get the Signal Range"
-        enable_interference = WmediumdServerConn.interference_enabled
+        interference_enabled = False
+        if wmediumd_mode.mode == WmediumdConstants.INTERFERENCE_MODE:
+            interference_enabled = True
         wlan = self.params['wlan'].index(intf)
         if noiseLevel != 0:
             distanceByPropagationModel.NOISE_LEVEL = noiseLevel
         if not isinstance(self, Station) and not isinstance(self, Car) \
                 and not isinstance(self, AP):
             self = self.params['associatedTo'][0]
-        value = distanceByPropagationModel(self, wlan, enable_interference)
+        value = distanceByPropagationModel(self, wlan, interference_enabled)
 
         return int(value.dist)
 
@@ -324,7 +327,7 @@ class Node_wifi(Node):
             car.params['position'] = self.params['position']
         self.updateGraph()
 
-        if WmediumdServerConn.interference_enabled:
+        if wmediumd_mode.mode == WmediumdConstants.INTERFERENCE_MODE:
             self.set_position_wmediumd()
             if isinstance(self, Car):
                 self = self.params['carsta']
@@ -483,31 +486,33 @@ class Node_wifi(Node):
 
     def setGainWmediumd(self, wlan):
         "Set Antenna Gain for wmediumd"
-        if WmediumdServerConn.interference_enabled:
+        if wmediumd_mode.mode == WmediumdConstants.INTERFERENCE_MODE:
             gain_ = self.params['antennaGain'][wlan]
             WmediumdServerConn.update_gain(WmediumdGain(
                 self.wmIface[wlan], int(gain_)))
 
     def setHeightWmediumd(self, wlan):
         "Set Antenna Height for wmediumd"
-        if WmediumdServerConn.interference_enabled:
+        if wmediumd_mode.mode == WmediumdConstants.INTERFERENCE_MODE:
             height_ = self.params['antennaHeight'][wlan]
             WmediumdServerConn.update_height(WmediumdHeight(
                 self.wmIface[wlan], int(height_)))
 
     def setTXPowerWmediumd(self, wlan):
         "Set TxPower for wmediumd"
-        if WmediumdServerConn.interference_enabled:
+        if wmediumd_mode.mode == WmediumdConstants.INTERFERENCE_MODE:
             txpower_ = self.params['txpower'][wlan]
             WmediumdServerConn.update_txpower(WmediumdTXPower(
                 self.wmIface[wlan], int(txpower_)))
 
     def get_txpower_prop_model(self, wlan):
         "Get Tx Power Given the propagation Model"
-        enable_interference = WmediumdServerConn.interference_enabled
+        interference_enabled = False
+        if wmediumd_mode.mode == WmediumdConstants.INTERFERENCE_MODE:
+            interference_enabled = True
         value = powerForRangeByPropagationModel(self, wlan,
                                                 self.params['range'][wlan],
-                                                enable_interference)
+                                                interference_enabled)
         return int(value.txpower)
 
     def get_txpower(self, iface):

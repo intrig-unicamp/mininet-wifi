@@ -16,12 +16,13 @@ from mininet.wifi.node import UserAP
 from mininet.wifi.link import wmediumd
 from mininet.wifi.cli import CLI_wifi
 from mininet.wifi.net import Mininet_wifi
+from mininet.wifi.wmediumdConnector import interference
 
 
 def topology():
     "Create a network."
     net = Mininet_wifi(controller=Controller, accessPoint=UserAP,
-                       link=wmediumd, enable_interference=True)
+                       link=wmediumd, wmediumd_mode=interference)
 
     info("*** Creating nodes\n")
     net.addStation('sta1', position='15,20,0')

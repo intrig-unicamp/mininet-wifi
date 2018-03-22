@@ -8,12 +8,13 @@ from mininet.wifi.node import OVSKernelAP
 from mininet.wifi.link import wmediumd
 from mininet.wifi.cli import CLI_wifi
 from mininet.wifi.net import Mininet_wifi
+from mininet.wifi.wmediumdConnector import interference
 
 
 def topology():
     "Create a network."
     net = Mininet_wifi(controller=Controller, link=wmediumd,
-                       accessPoint=OVSKernelAP, enable_interference=True,
+                       accessPoint=OVSKernelAP, wmediumd_mode=interference,
                        noise_threshold=-91, fading_coefficient=1)
 
     info("*** Creating nodes\n")

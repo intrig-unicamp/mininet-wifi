@@ -10,11 +10,12 @@ from mininet.log import setLogLevel, info
 from mininet.wifi.link import wmediumd
 from mininet.wifi.cli import CLI_wifi
 from mininet.wifi.net import Mininet_wifi
+from mininet.wifi.wmediumdConnector import interference
 
 
 def topology(autoTxPower):
     "Create a network."
-    net = Mininet_wifi(link=wmediumd, enable_interference=True)
+    net = Mininet_wifi(link=wmediumd, wmediumd_mode=interference)
 
     info("*** Creating nodes\n")
     if autoTxPower:

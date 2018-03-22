@@ -14,7 +14,7 @@ from mininet.link import Intf
 from mininet.wifi.devices import getRate
 from mininet.wifi.wmediumdConnector import DynamicWmediumdIntfRef, \
     WmediumdStarter, WmediumdSNRLink, WmediumdTXPower, WmediumdPosition, \
-    WmediumdConstants, WmediumdServerConn, WmediumdERRPROBLink
+    WmediumdConstants, WmediumdServerConn, WmediumdERRPROBLink, wmediumd_mode
 
 
 class IntfWireless(object):
@@ -665,14 +665,14 @@ class wmediumd(TCWirelessLink):
     positions = []
     nodes = []
 
-    def __init__(cls, wmediumd_mode, fading_coefficient, stations,
+    def __init__(cls, fading_coefficient, stations,
                  aps, propagation_model):
 
-        cls.configureWmediumd(wmediumd_mode, fading_coefficient, stations,
-                               aps, propagation_model)
+        cls.configureWmediumd(fading_coefficient, stations,
+                              aps, propagation_model)
 
     @classmethod
-    def configureWmediumd(cls, wmediumd_mode, fading_coefficient, stations,
+    def configureWmediumd(cls, fading_coefficient, stations,
                           aps, propagation_model):
         "Configure wmediumd"
         from mininet.wifi.node import AP, Car
@@ -680,7 +680,6 @@ class wmediumd(TCWirelessLink):
         intfrefs = []
         isnodeaps = []
         cars = []
-        mode = wmediumd_mode
         fading_coefficient = fading_coefficient
 
         for node in stations:
@@ -706,29 +705,25 @@ class wmediumd(TCWirelessLink):
                 else:
                     isnodeaps.append(0)
 
-        if mode == 'interference':
+        if wmediumd_mode.mode == WmediumdConstants.INTERFERENCE_MODE:
             set_interference()
-            mode = WmediumdConstants.INTERFERENCE_MODE
-        elif mode == 'spec_prob_link':
+        elif wmediumd_mode.mode == WmediumdConstants.SPECPROB_MODE:
             spec_prob_link()
-            mode = WmediumdConstants.SPECPROB_MODE
-        elif mode == 'error_prob':
+        elif wmediumd_mode.mode == WmediumdConstants.ERRPROB_MODE:
             set_error_prob()
-            mode = WmediumdConstants.ERRPROB_MODE
         else:
             set_snr()
-            mode = WmediumdConstants.SNR_MODE
-        start_wmediumd(intfrefs, wmediumd.links, mode, wmediumd.positions,
+        start_wmediumd(intfrefs, wmediumd.links, wmediumd.positions,
                        fading_coefficient, wmediumd.txpowers, isnodeaps,
                        propagation_model)
 
 
 class start_wmediumd(object):
-    def __init__(cls, intfrefs, links, mode, positions,
+    def __init__(cls, intfrefs, links, positions,
                  fading_coefficient, txpowers, isnodeaps,
                  propagation_model):
 
-        WmediumdStarter.start(intfrefs, links, mode=mode, positions=positions,
+        WmediumdStarter.start(intfrefs, links, positions=positions,
                               fading_coefficient=fading_coefficient,
                               txpowers=txpowers, isnodeaps=isnodeaps,
                               ppm=propagation_model)
@@ -929,7 +924,7 @@ class Association(object):
 
     @classmethod
     def configureWirelessLink(cls, sta, ap, enable_wmediumd=False,
-                              wmediumd_mode=False, ap_wlan=0):
+                              enable_interference=False, ap_wlan=0):
         """Updates RSSI and Others...
 
         :param sta: station
@@ -939,7 +934,7 @@ class Association(object):
         dist = sta.get_distance_to(ap)
         if dist <= ap.params['range'][0]:
             for wlan in range(0, len(sta.params['wlan'])):
-                if wmediumd_mode is not 'interference':
+                if not enable_interference:
                     if sta.params['rssi'][wlan] == 0:
                         cls.updateParams(sta, ap, wlan)
                 if sta.params['associatedTo'][wlan] == '' \
@@ -950,12 +945,12 @@ class Association(object):
                             wirelessLink(sta, ap, wlan, ap_wlan, dist)
                     if sta not in ap.params['associatedStations']:
                         ap.params['associatedStations'].append(sta)
-                if wmediumd_mode is not 'interference':
+                if not enable_interference:
                     rssi = sta.set_rssi(ap, wlan, dist)
                     sta.params['rssi'][wlan] = rssi
             if ap not in sta.params['apsInRange']:
                 sta.params['apsInRange'].append(ap)
-                if wmediumd_mode is not 'interference':
+                if not enable_interference:
                     ap.params['stationsInRange'][sta] = rssi
 
     @classmethod
@@ -970,13 +965,14 @@ class Association(object):
         sta.params['mode'][wlan] = ap.params['mode'][0]
 
     @classmethod
-    def associate(cls, sta, ap, enable_wmediumd, wmediumd_mode, wlan=0, ap_wlan=0):
+    def associate(cls, sta, ap, enable_wmediumd, enable_interference,
+                  wlan=0, ap_wlan=0):
         "Associate to Access Point"
         if wlan == 0:
             wlan = sta.ifaceToAssociate
         if 'position' in sta.params:
             cls.configureWirelessLink(sta, ap, enable_wmediumd,
-                                      wmediumd_mode, ap_wlan=0)
+                                      enable_interference, ap_wlan=0)
         else:
             cls.associate_infra(sta, ap, wlan=0, ap_wlan=0)
         sta.ifaceToAssociate += 1

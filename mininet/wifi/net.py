@@ -27,7 +27,8 @@ from mininet.nodelib import NAT
 from mininet.log import info, error, debug, output, warn
 
 from mininet.wifi.node import AccessPoint, AP, Station, Car, OVSKernelAP
-from mininet.wifi.wmediumdConnector import WmediumdStarter, WmediumdServerConn
+from mininet.wifi.wmediumdConnector import WmediumdStarter, WmediumdServerConn, \
+    error_prob, snr, interference, spec_prob
 from mininet.wifi.link import wirelessLink, wmediumd, Association, \
     _4address, TCWirelessLink, TCLinkWirelessAP, TCLinkWirelessStation
 from mininet.wifi.devices import getRate, getRange, getTxPower
@@ -50,10 +51,8 @@ class Mininet_wifi(Mininet):
                  ipBase='10.0.0.0/8', inNamespace=False,
                  autoSetMacs=False, autoStaticArp=False, autoPinCpus=False,
                  listenPort=None, waitConnected=False, ssid="new-ssid",
-                 mode="g", channel="1", enable_wmediumd=False,
-                 enable_interference=False, enable_spec_prob_link=False,
-                 enable_error_prob=False, fading_coefficient=0,
-                 disableAutoAssociation=False,
+                 mode="g", channel="1", wmediumd_mode=snr,
+                 fading_coefficient=0, disableAutoAssociation=False,
                  driver='nl80211', autoSetPositions=False,
                  configureWiFiDirect=False, configure4addr=False,
                  defaultGraph=False, noise_threshold=-91, cca_threshold=-90,
@@ -102,7 +101,7 @@ class Mininet_wifi(Mininet):
         self.routing = ''
         self.ssid = ssid
         self.mode = mode
-        self.wmediumd_mode = ''
+        self.wmediumd_mode = wmediumd_mode
         self.channel = channel
         self.nameToNode = {}  # name to Node (Host/Switch) objects
         self.aps = []
@@ -130,11 +129,7 @@ class Mininet_wifi(Mininet):
         self.cca_threshold = cca_threshold
         self.configureWiFiDirect = configureWiFiDirect
         self.configure4addr = configure4addr
-        self.enable_wmediumd = enable_wmediumd
-        self.enable_error_prob = enable_error_prob
         self.fading_coefficient = fading_coefficient
-        self.enable_interference = enable_interference
-        self.enable_spec_prob_link = enable_spec_prob_link
         self.mobilityparam = dict()
         self.AC = ''
         self.alternativeModule = ''
@@ -155,9 +150,6 @@ class Mininet_wifi(Mininet):
 
         if defaultGraph:
             self.defaultGraph()
-
-        if 'wmediumd' in self.link.__name__:
-            self.enable_wmediumd = True
 
         self.built = False
         if topo and build:
@@ -522,8 +514,14 @@ class Mininet_wifi(Mininet):
                 doAssociation = True
 
             if doAssociation:
-                Association.associate(sta, ap, self.enable_wmediumd,
-                                      self.wmediumd_mode, wlan, ap_wlan)
+                enable_wmediumd = False
+                enable_interference = False
+                if self.link == wmediumd:
+                    enable_wmediumd = True
+                if self.wmediumd_mode == interference:
+                    enable_interference = True
+                Association.associate(sta, ap, enable_wmediumd,
+                                      enable_interference, wlan, ap_wlan)
                 if 'bw' not in params and 'TCWirelessLink' \
                         not in str(self.link.__name__):
                     value = self.setDataRate(sta, ap, wlan)
@@ -535,16 +533,16 @@ class Mininet_wifi(Mininet):
                 else:
                     cls = TCWirelessLink
 
-                if not self.enable_interference:
+                if self.wmediumd_mode != interference:
                     if 'TCWirelessLink' in str(self.link.__name__) \
                             or 'bw' in params and params['bw'] != 0:
                         # tc = True, this is useful only to apply tc configuration
                         cls(name=sta.params['wlan'][wlan], node=sta,
                             link=None, tc=True, **params)
-            if self.enable_wmediumd:
-                if self.enable_error_prob:
+            if self.link == wmediumd:
+                if self.wmediumd_mode == error_prob:
                     wmediumd.wlinks.append([sta, ap, params['error_prob']])
-                elif not self.enable_interference:
+                elif self.wmediumd_mode != interference:
                     wmediumd.wlinks.append([sta, ap])
 
         elif (isinstance(node1, AP) and isinstance(node2, AP)
@@ -555,7 +553,7 @@ class Mininet_wifi(Mininet):
                 self.connections['dst'].append(node2)
                 self.connections['ls'].append('--')
 
-            if self.enable_interference:
+            if self.wmediumd_mode == interference:
                 cls(node1, node2)
             else:
                 dist = node1.get_distance_to(node2)
@@ -704,9 +702,9 @@ class Mininet_wifi(Mininet):
         if self.isVanet:
             self.create_vanet_link()
 
-        if (self.configure4addr or self.configureWiFiDirect or self.enable_error_prob) \
-                and self.enable_wmediumd:
-            wmediumd(self.wmediumd_mode, self.fading_coefficient, self.stations,
+        if (self.configure4addr or self.configureWiFiDirect
+            or self.wmediumd_mode == error_prob) and self.link == wmediumd:
+            wmediumd(self.fading_coefficient, self.stations,
                      self.aps, propagationModel)
 
         if self.inNamespace:
@@ -873,7 +871,7 @@ class Mininet_wifi(Mininet):
         if self.aps is not []:
             self.kill_hostapd()
         self.closeMininetWiFi()
-        if self.enable_wmediumd:
+        if self.link == wmediumd:
             self.kill_wmediumd()
         info('\n*** Done\n')
 
@@ -1385,7 +1383,7 @@ class Mininet_wifi(Mininet):
         if mode == 'managed':
             node.params['apsInRange'] = []
             node.params['associatedTo'] = []
-            if not self.enable_interference:
+            if self.wmediumd_mode != interference:
                 node.params['rssi'] = []
             node.ifaceToAssociate = 0
             node.max_x = 0
@@ -1546,7 +1544,7 @@ class Mininet_wifi(Mininet):
 
     def appendRSSI(self, node):
         "Add RSSI param"
-        if not self.enable_interference:
+        if self.wmediumd_mode != interference:
             node.params['rssi'].append(-60)
 
     def addRangeParamToNode(self, node, wlans=0, params=None):
@@ -1809,7 +1807,10 @@ class Mininet_wifi(Mininet):
         if 'channel' in params:
             node.setChannel(params['channel'], intf=node.params['wlan'][wlan])
 
-        node.configureAdhoc(wlan, self.enable_wmediumd)
+        enable_wmediumd = False
+        if self.link == wmediumd:
+            enable_wmediumd = True
+        node.configureAdhoc(wlan, enable_wmediumd)
         if 'intf' not in params:
             node.ifaceToAssociate += 1
 
@@ -1973,7 +1974,7 @@ class Mininet_wifi(Mininet):
                 else:
                     iface = ap.params['wlan'][wlan]
 
-                if not self.enable_wmediumd:
+                if self.link is not wmediumd:
                     self.setBw(ap, wlan, iface)
 
                 ap.params['frequency'][wlan] = ap.get_freq(0)
@@ -2059,7 +2060,6 @@ class Mininet_wifi(Mininet):
                       self.max_x, self.max_y, self.max_z,
                       nodes, self.connections)
             if not issubclass(self.plot, plot3d):
-                self.plot.plotGraph()
                 self.plot.graphPause()
         except:
             info('Something went wrong. Running without GUI.\n')
@@ -2215,7 +2215,7 @@ class Mininet_wifi(Mininet):
             else:
                 car.lastpos = [0, 0, 0]
             car.params['wlan'].append(0)
-            if not self.enable_interference:
+            if self.wmediumd_mode != interference:
                 car.params['rssi'].append(0)
             car.params['channel'].append(0)
             car.params['mode'].append(0)
@@ -2249,19 +2249,16 @@ class Mininet_wifi(Mininet):
                                     intf=node.params['wlan'][wlan],
                                     setParam=setParam)
 
-        if self.enable_wmediumd:
-            if self.enable_interference:
-                self.wmediumd_mode = 'interference'
-            elif self.enable_error_prob:
-                self.wmediumd_mode = 'error_prob'
-            else:
-                self.wmediumd_mode = None
+        if self.link == wmediumd:
+            if self.autoSetPositions:
+                self.wmediumd_mode = interference
+            self.wmediumd_mode()
             if not self.configureWiFiDirect and not self.configure4addr and \
-                    not self.enable_error_prob:
-                wmediumd(self.wmediumd_mode, self.fading_coefficient, self.stations,
+                self.wmediumd_mode != error_prob:
+                wmediumd(self.fading_coefficient, self.stations,
                          self.aps, propagationModel)
 
-                if self.enable_interference and not self.isVanet:
+                if self.wmediumd_mode == interference and not self.isVanet:
                     for node in nodes:
                         for wlan in range(0, len(node.params['wlan'])):
                             node.setTxPower(node.params['txpower'][wlan],

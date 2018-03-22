@@ -14,7 +14,8 @@ from numpy.random import rand
 from mininet.log import debug, info
 from mininet.wifi.link import wirelessLink, Association
 from mininet.wifi.associationControl import associationControl
-from mininet.wifi.wmediumdConnector import WmediumdServerConn
+from mininet.wifi.wmediumdConnector import WmediumdServerConn, \
+    wmediumd_mode, WmediumdConstants
 from mininet.wifi.propagationModels import propagationModel
 from mininet.wifi.plot import plot2d, plot3d, plotGraph
 
@@ -177,14 +178,14 @@ class mobility(object):
                         os.system('rm /var/run/wpa_supplicant/%s'
                                   % sta.params['wlan'][wlan])
             elif WmediumdServerConn.connected \
-                    and not WmediumdServerConn.interference_enabled:
+                    and wmediumd_mode.mode != WmediumdConstants.INTERFERENCE_MODE:
                 cls = Association
                 cls.setSNRWmediumd(sta, ap, snr=-10)
             if 'encrypt' in ap.params and 'ieee80211r' not in ap.params:
                 debug('iw dev %s disconnect\n' % sta.params['wlan'][wlan])
                 sta.pexec('iw dev %s disconnect' % sta.params['wlan'][wlan])
             sta.params['associatedTo'][wlan] = ''
-            if not WmediumdServerConn.interference_enabled:
+            if wmediumd_mode.mode != WmediumdConstants.INTERFERENCE_MODE:
                 sta.params['rssi'][wlan] = 0
             sta.params['channel'][wlan] = 0
         if sta in ap.params['associatedStations']:
@@ -206,7 +207,7 @@ class mobility(object):
         rssi = sta.set_rssi(ap, wlan, dist)
         ap.params['stationsInRange'][sta] = rssi
         if ap == sta.params['associatedTo'][wlan]:
-            if not WmediumdServerConn.interference_enabled:
+            if wmediumd_mode.mode != WmediumdConstants.INTERFERENCE_MODE:
                 rssi = sta.set_rssi(ap, wlan, dist)
                 sta.params['rssi'][wlan] = rssi
                 if cls.rec_rssi:
@@ -219,10 +220,11 @@ class mobility(object):
                 if Association.bgscan != '' or 'active_scan' in sta.params \
                 and ('encrypt' in sta.params and 'wpa' in sta.params['encrypt'][wlan]):
                     pass
-                elif WmediumdServerConn.connected and not WmediumdServerConn.interference_enabled:
+                elif WmediumdServerConn.connected and \
+                                wmediumd_mode.mode != WmediumdConstants.INTERFERENCE_MODE:
                     Association.setSNRWmediumd(
                         sta, ap, snr=sta.params['rssi'][wlan] - (-91))
-                elif WmediumdServerConn.interference_enabled:
+                elif wmediumd_mode.mode == WmediumdConstants.INTERFERENCE_MODE:
                     pass
                 else:
                     wirelessLink(sta, ap, wlan, 0, dist)
@@ -394,7 +396,7 @@ class mobility(object):
                                 cls.plot.graphUpdate(node)
                                 if not issubclass(cls.plot, plot3d):
                                     cls.plot.updateCircleRadius(node)
-                            if WmediumdServerConn.interference_enabled:
+                            if wmediumd_mode.mode == WmediumdConstants.INTERFERENCE_MODE:
                                 node.set_position_wmediumd()
                         eval(cls.continuePlot)
                         i += 1
@@ -501,7 +503,7 @@ class mobility(object):
             for idx, node in enumerate(nodes):
                 node.params['position'] = '%.2f' % xy[idx][0], '%.2f' \
                                           % xy[idx][1], 0.0
-                if WmediumdServerConn.interference_enabled:
+                if wmediumd_mode.mode == WmediumdConstants.INTERFERENCE_MODE:
                     node.set_position_wmediumd()
                 if propagationModel.model == 'logNormalShadowing':
                     sleep(0.0001)  # notice problem when there are many threads
@@ -527,7 +529,7 @@ class mobility(object):
             for idx, node in enumerate(nodes):
                 node.params['position'] = '%.2f' % xy[idx][0], '%.2f' \
                                           % xy[idx][1], 0.0
-                if WmediumdServerConn.interference_enabled:
+                if wmediumd_mode.mode == WmediumdConstants.INTERFERENCE_MODE:
                     node.set_position_wmediumd()
                 if propagationModel.model == 'logNormalShadowing':
                     sleep(0.0001)
@@ -575,7 +577,7 @@ class mobility(object):
                         car.params['position'] = node.params['position']
                         node = car
                 else:
-                    if WmediumdServerConn.interference_enabled:
+                    if wmediumd_mode.mode == WmediumdConstants.INTERFERENCE_MODE:
                         if Association.bgscan != '' or ('active_scan' in node.params \
                         and ('encrypt' in node.params and 'wpa' in node.params['encrypt'][wlan])):
                             for ap in cls.aps:

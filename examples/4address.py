@@ -9,13 +9,14 @@ from mininet.wifi.node import OVSKernelAP
 from mininet.wifi.link import wmediumd, _4address
 from mininet.wifi.cli import CLI_wifi
 from mininet.wifi.net import Mininet_wifi
+from mininet.wifi.wmediumdConnector import interference
 
 
 def topology():
     "Create a network."
     net = Mininet_wifi( controller=Controller, accessPoint=OVSKernelAP,
-                   link=wmediumd, enable_interference=True,
-                   configure4addr=True, disableAutoAssociation=True )
+                        link=wmediumd, wmediumd_mode=interference,
+                        configure4addr=True, disableAutoAssociation=True )
 
     info("*** Creating nodes\n")
     ap1 = net.addAccessPoint( 'ap1', _4addr="ap", ssid="wds-ssid1",

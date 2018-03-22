@@ -21,6 +21,36 @@ from sys import version_info as py_version_info
 from mininet.log import info, error, debug
 
 
+class wmediumd_mode(object):
+
+    mode = 4
+
+    @classmethod
+    def set_mode(self, mode):
+        self.mode = mode
+
+
+class snr(object):
+    def __init__(self):
+        wmediumd_mode.set_mode(mode=0)
+
+
+class error_prob(object):
+
+    def __init__(self):
+        wmediumd_mode.set_mode(mode=1)
+
+
+class spec_prob(object):
+    def __init__(self):
+        wmediumd_mode.set_mode(mode=2)
+
+
+class interference(object):
+    def __init__(self):
+        wmediumd_mode.set_mode(mode=3)
+
+
 class WmediumdConstants:
     "wmediumd constants"
 
@@ -32,6 +62,7 @@ class WmediumdConstants:
     ERRPROB_MODE = 1
     SPECPROB_MODE = 2
     INTERFERENCE_MODE = 3
+    WRONG_MODE = 4
 
     WSERVER_SHUTDOWN_REQUEST_TYPE = 0
     WSERVER_SNR_UPDATE_REQUEST_TYPE = 1
@@ -101,6 +132,7 @@ class WmediumdManager(object):
             else:
                 raise WmediumdException("wmediumd is already started but "
                                         "without server")
+
         if not is_started:
             WmediumdStarter.initialize(parameters=['-l', '5'], mode=mode)
             WmediumdStarter.start_managed()
@@ -248,7 +280,7 @@ class set_interference(object):
 
     def __init__(self, configstr, ppm, positions, txpowers,
                  fading_coefficient, isnodeaps):
-        WmediumdServerConn.interference_enabled = True
+
         self.interference(configstr, ppm, positions, txpowers,
                           fading_coefficient, isnodeaps)
 
@@ -321,23 +353,21 @@ class WmediumdStarter(object):
     @classmethod
     def start(cls, intfrefs=None, links=None, default_auto_snr=-10,
               default_auto_errprob=1.0, isnodeaps=None,
-              mode=WmediumdConstants.SNR_MODE, fading_coefficient=0,
-              positions=None, txpowers=None, ppm=None):
-        """
-        Set the data for the wmediumd daemon
+              fading_coefficient=0, positions=None, txpowers=None,
+              ppm=None):
+        """Set the data for the wmediumd daemon
 
         :param intfrefs: A list of all WmediumdIntfRef that should be managed
         in wmediumd
         :param links: A list of WmediumdLink
         :param parameters: Parameters to pass to the wmediumd executable
         :param default_auto_snr: The default SNR
-        :param mode: WmediumdConstants.WMEDIUMD_MODE_* constant
         :param txpowers: list of txpowers
         :param positions: list of positions
         :param is nodeaps: check if the node is ap
         :param fading_coefficient: fading_coefficient
-        :param ppm: propagation model
-        """
+        :param ppm: propagation model"""
+
         kwargs = {}
         if intfrefs is None:
             intfrefs = []
@@ -354,13 +384,9 @@ class WmediumdStarter(object):
         kwargs['default_auto_snr'] = default_auto_snr
         kwargs['default_auto_errprob'] = default_auto_errprob
         kwargs['fading_coefficient'] = fading_coefficient
-        kwargs['mode'] = mode
         kwargs['ppm'] = ppm
 
-        if mode != WmediumdConstants.SNR_MODE \
-                and mode != WmediumdConstants.ERRPROB_MODE \
-                and mode != WmediumdConstants.SPECPROB_MODE \
-                and mode != WmediumdConstants.INTERFERENCE_MODE:
+        if wmediumd_mode.mode == 4:
             raise Exception("Wrong wmediumd mode given")
         cls.is_initialized = True
         cls.initialize(**kwargs)
@@ -386,7 +412,7 @@ class WmediumdStarter(object):
 
         mappedintfrefs = {}
         mappedlinks = {}
-        if kwargs['mode'] is not WmediumdConstants.INTERFERENCE_MODE:
+        if wmediumd_mode.mode != WmediumdConstants.INTERFERENCE_MODE:
             # Map all links using the interface identifier and check for missing
             # interfaces in the  intfrefs list
             for link in kwargs['links']:
@@ -416,14 +442,14 @@ class WmediumdStarter(object):
                                             'interfaces'
                                             % link.sta2intfref.identifier())
 
-        if kwargs['mode'] is not WmediumdConstants.SPECPROB_MODE:
-            if kwargs['mode'] is not WmediumdConstants.INTERFERENCE_MODE:
+        if wmediumd_mode.mode is not WmediumdConstants.SPECPROB_MODE:
+            if wmediumd_mode.mode is not WmediumdConstants.INTERFERENCE_MODE:
                 for intfref1 in kwargs['intfrefs']:
                     for intfref2 in kwargs['intfrefs']:
                         if intfref1 is not intfref2:
                             link_id = intfref1.identifier() + '/' + \
                                       intfref2.identifier()
-                            if kwargs['mode'] == \
+                            if wmediumd_mode.mode == \
                                     WmediumdConstants.ERRPROB_MODE:
                                 mappedlinks.setdefault(
                                     link_id, WmediumdERRPROBLink(
@@ -450,14 +476,14 @@ class WmediumdStarter(object):
                 mappedintfrefs[intfref.identifier()] = intfref_id
                 intfref_id += 1
 
-            if kwargs['mode'] is WmediumdConstants.INTERFERENCE_MODE:
+            if wmediumd_mode.mode is WmediumdConstants.INTERFERENCE_MODE:
                 set_interference(configstr, kwargs['ppm'], kwargs['positions'],
                                  kwargs['txpowers'], kwargs['fading_coefficient'],
                                  kwargs['isnodeaps'])
                 configstr = cls.configstr
             else:
                 configstr += '\n\t];\n};\nmodel:\n{\n\ttype = "'
-                if kwargs['mode'] == WmediumdConstants.ERRPROB_MODE:
+                if wmediumd_mode.mode == WmediumdConstants.ERRPROB_MODE:
                     configstr += 'prob'
                 else:
                     configstr += 'snr'
@@ -470,7 +496,7 @@ class WmediumdStarter(object):
                         first_link = False
                     else:
                         configstr += ','
-                    if kwargs['mode'] is WmediumdConstants.ERRPROB_MODE:
+                    if wmediumd_mode.mode == WmediumdConstants.ERRPROB_MODE:
                         configstr += '\n\t\t(%d, %d, %f)' % (
                             mappedintfrefs[id1], mappedintfrefs[id2],
                             mappedlink.errprob)
@@ -483,13 +509,13 @@ class WmediumdStarter(object):
             wmd_config.close()
         # Start wmediumd using the created config
         cmdline = ['wmediumd']
-        if kwargs['mode'] is WmediumdConstants.SPECPROB_MODE:
+        if wmediumd_mode.mode is WmediumdConstants.SPECPROB_MODE:
             cmdline.append("-d")
         else:
             cmdline.append("-c")
             cmdline.append(cls.wmd_config_name)
-            if kwargs['mode'] is WmediumdConstants.SNR_MODE \
-                    or kwargs['mode'] is WmediumdConstants.INTERFERENCE_MODE:
+            if wmediumd_mode.mode is WmediumdConstants.SNR_MODE \
+                    or wmediumd_mode.mode is WmediumdConstants.INTERFERENCE_MODE:
                 cmdline.append("-x")
                 per_data_file = \
                     pkg_resources.resource_filename(
@@ -888,7 +914,6 @@ class WmediumdServerConn(object):
 
     sock = None
     connected = False
-    interference_enabled = False
 
     @classmethod
     def connect(cls, uds_address=WmediumdConstants.SOCKET_PATH):

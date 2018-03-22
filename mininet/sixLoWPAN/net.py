@@ -32,10 +32,9 @@ class Mininet_sixLoWPAN(Mininet_wifi):
                  ipBase='2001:0:0:0:0:0:0:0/64', inNamespace=False,
                  autoSetMacs=False, autoStaticArp=False, autoPinCpus=False,
                  listenPort=None, waitConnected=False, ssid="new-ssid",
-                 mode="g", channel="1", enable_wmediumd=False,
-                 enable_interference=False, enable_spec_prob_link=False,
-                 enable_error_prob=False, fading_coefficient=0,
-                 disableAutoAssociation=False,
+                 mode="g", channel="1", enable_interference=False,
+                 enable_spec_prob_link=False, enable_error_prob=False,
+                 fading_coefficient=0, disableAutoAssociation=False,
                  driver='nl80211', autoSetPositions=False,
                  configureWiFiDirect=False, configure4addr=False,
                  defaultGraph=False, noise_threshold=-91, cca_threshold=-90,
@@ -110,7 +109,6 @@ class Mininet_sixLoWPAN(Mininet_wifi):
         self.cca_threshold = cca_threshold
         self.configureWiFiDirect = configureWiFiDirect
         self.configure4addr = configure4addr
-        self.enable_wmediumd = enable_wmediumd
         self.enable_error_prob = enable_error_prob
         self.fading_coefficient = fading_coefficient
         self.enable_interference = enable_interference

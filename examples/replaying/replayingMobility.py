@@ -9,12 +9,13 @@ from mininet.wifi.node import OVSAP
 from mininet.wifi.cli import CLI_wifi
 from mininet.wifi.net import Mininet_wifi
 from mininet.wifi.link import wmediumd
+from mininet.wifi.wmediumdConnector import interference
 
 
 def topology():
     "Create a network."
     net = Mininet_wifi(controller=Controller, accessPoint=OVSAP,
-                       link=wmediumd, enable_interference=True)
+                       link=wmediumd, wmediumd_mode=interference)
 
     info("*** Creating nodes\n")
     sta1 = net.addStation('sta1', mac='00:00:00:00:00:02', ip='10.0.0.1/8', speed=4)
