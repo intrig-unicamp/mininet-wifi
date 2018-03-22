@@ -9,13 +9,14 @@ from mininet.node import Controller, OVSKernelSwitch
 from mininet.log import setLogLevel, info
 from mininet.wifi.cli import CLI_wifi
 from mininet.wifi.net import Mininet_wifi
+from mininet.wifi.link import wmediumd
 
 
 def topology():
 
     "Create a network."
     net = Mininet_wifi(controller=Controller, switch=OVSKernelSwitch,
-                  enable_wmediumd=True, enable_interference=True)
+                       link=wmediumd, enable_interference=True)
 
     info("*** Creating nodes\n")
     cars = []
