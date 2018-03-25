@@ -504,14 +504,11 @@ class Mininet_wifi(Mininet):
             sta.params['channel'][wlan] = ap.params['channel'][ap_wlan]
 
             # If sta/ap have defined position
+            doAssociation = True
             if 'position' in sta.params and 'position' in ap.params:
                 dist = sta.get_distance_to(ap)
                 if dist > ap.params['range'][ap_wlan]:
                     doAssociation = False
-                else:
-                    doAssociation = True
-            else:
-                doAssociation = True
 
             if doAssociation:
                 enable_wmediumd = False
@@ -557,12 +554,7 @@ class Mininet_wifi(Mininet):
                 cls(node1, node2)
             else:
                 dist = node1.get_distance_to(node2)
-                if dist > node1.params['range'][0]:
-                    doAssociation = False
-                else:
-                    doAssociation = True
-
-                if doAssociation:
+                if dist <= node1.params['range'][0]:
                     cls(node1, node2)
         else:
             if 'link' in options:
@@ -716,11 +708,6 @@ class Mininet_wifi(Mininet):
         if self.autoStaticArp:
             self.staticArp()
 
-        isPosDefined = False
-        nodes_ = self.stations + self.aps
-        for node in nodes_:
-            if 'position' in node.params:
-                isPosDefined = True
         nodes = self.stations
         for node in nodes:
             for wlan in range(0, len(node.params['wlan'])):
@@ -743,15 +730,12 @@ class Mininet_wifi(Mininet):
         else:
             if self.getPropagationModel() is 'logNormalShadowing':
                 import threading
-                thread = threading.Thread(target=self.plotCheck,
-                                          args=(self.stations, self.aps))
+                thread = threading.Thread(target=self.plot_dynamic)
                 thread.daemon = True
                 thread.start()
-            elif self.DRAW and not self.alreadyPlotted and isPosDefined:
+            elif self.DRAW and not self.alreadyPlotted:
                 plotNodes = self.plot_nodes()
-                self.stations, self.aps = \
-                    self.plotCheck(self.stations, self.aps,
-                                           plotNodes)
+                self.plotCheck(plotNodes)
         self.built = True
 
     def plot_nodes(self):
@@ -1852,19 +1836,16 @@ class Mininet_wifi(Mininet):
         #node.params['txpower'].append(node.params['txpower'][0])
         #node.func.append('wifiDirect')
 
-    def checkAPAdhoc(self, stations, aps):
-        """configure APAdhoc
-
-        :param stations: list of stations
-        :param aps: list of access points"""
+    def check_sta_ap_mode(self):
+        "check if sta is working in ap mode"
         isApAdhoc = []
-        for sta in stations:
+        for sta in self.stations:
             if sta.func[0] == 'ap':
-                aps.append(sta)
+                self.aps.append(sta)
                 isApAdhoc.append(sta)
 
         for ap in isApAdhoc:
-            stations.remove(ap)
+            self.stations.remove(ap)
             ap.setIP('%s' % ap.params['ip'][0], intf='%s' % ap.params['wlan'][0])
             ap.params.pop('rssi', None)
             ap.params.pop('apsInRange', None)
@@ -1872,8 +1853,6 @@ class Mininet_wifi(Mininet):
 
             for _ in (1, len(ap.params['wlan'])):
                 ap.params['mac'].append('')
-
-        return stations, aps
 
     def restartNetworkManager(self):
         """Restart network manager if the mac address of the AP is not included at
@@ -2023,20 +2002,19 @@ class Mininet_wifi(Mininet):
                 ap.phyID = module.phyID
                 module.phyID += 1
 
-    def configureWirelessLink(self, stations, aps, cars):
+    def configureWirelessLink(self):
         """Configure Wireless Link
 
         :param stations: list of stations
         :param aps: list of access points
         :param cars: list of cars"""
-        nodes = stations + cars
+        nodes = self.stations + self.cars
         for node in nodes:
             for wlan in range(0, len(node.params['wlan'])):
                 TCLinkWirelessStation(node,
                                       intfName1=node.params['wlan'][wlan])
             self.configureMacAddr(node)
-        stations, aps = self.checkAPAdhoc(stations, aps)
-        return stations, aps
+        self.check_sta_ap_mode()
 
     def plotGraph(self, min_x=0, min_y=0, min_z=0,
                   max_x=0, max_y=0, max_z=0):
@@ -2194,7 +2172,7 @@ class Mininet_wifi(Mininet):
             params['ifb'] = self.ifb
         nodes = self.stations + self.aps + self.cars
         module.start(nodes, self.n_radios, self.alternativeModule, **params)
-        self.configureWirelessLink(self.stations, self.aps, self.cars)
+        self.configureWirelessLink()
         self.createVirtualIfaces(self.stations)
         self.configureAPs(self.aps, self.driver)
 
@@ -2271,40 +2249,29 @@ class Mininet_wifi(Mininet):
                                                 setParam=False)
         return self.stations, self.aps
 
-    def plotCheck(self, stations, aps, other_nodes=[]):
+    def plotCheck(self, other_nodes):
         "Check which nodes will be plotted"
-        stas, aps = self.checkAPAdhoc(stations, aps)
-        if mobility.aps == []:
-            mobility.aps = aps
-        if mobility.stations == []:
-            mobility.stations = stations
-
-        nodes = other_nodes
-
-        for ap in aps:
-            if 'position' in ap.params:
-                nodes.append(ap)
-
-        for sta in stations:
-            if 'position' in sta.params:
-                nodes.append(sta)
-
+        self.check_sta_ap_mode()
+        nodes = self.stations + self.aps + other_nodes
         self.checkDimension(nodes)
 
-        if propagationModel.model == 'logNormalShadowing':
-            while True:
-                for node in nodes:
-                    intf = node.params['wlan'][0]
-                    node.params['range'][0] = node.getRange(intf=intf)
-                    if self.DRAW:
-                        if not issubclass(self.plot, plot3d):
-                            self.plot.updateCircleRadius(node)
-                        self.plot.graphUpdate(node)
+    def plot_dynamic(self):
+        "Check which nodes will be plotted dynamically at runtime"
+        nodes = self.stations + self.aps
+        self.checkDimension(nodes)
+
+        while True:
+            for node in nodes:
+                intf = node.params['wlan'][0]
+                node.params['range'][0] = node.getRange(intf=intf)
                 if self.DRAW:
+                    if not issubclass(self.plot, plot3d):
+                        self.plot.updateCircleRadius(node)
                     self.plot.graphUpdate(node)
-                eval(mobility.continuePlot)
-                sleep(0.5)
-        return stas, aps
+            if self.DRAW:
+                self.plot.graphUpdate(node)
+            eval(mobility.continuePlot)
+            sleep(0.5)
 
     def getPropagationModel(self):
         return propagationModel.model

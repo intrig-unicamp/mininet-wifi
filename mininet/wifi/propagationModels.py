@@ -285,7 +285,7 @@ class distanceByPropagationModel(object):
 
         ref_dist = 1
         txpower = kwargs['node'].params['txpower'][kwargs['wlan']]
-        antGain  = kwargs['node'].params['antennaGain'][kwargs['wlan']]
+        antGain = kwargs['node'].params['antennaGain'][kwargs['wlan']]
         gains = txpower + (antGain * 2)
         mean = 0
         variance = propagationModel.variance
