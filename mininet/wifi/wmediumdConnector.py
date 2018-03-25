@@ -279,13 +279,13 @@ class WmediumdManager(object):
 class set_interference(object):
 
     def __init__(self, configstr, ppm, positions, txpowers,
-                 fading_coefficient, isnodeaps):
+                 fading_coefficient, noise_threshold, isnodeaps):
 
         self.interference(configstr, ppm, positions, txpowers,
-                          fading_coefficient, isnodeaps)
+                          fading_coefficient, noise_threshold, isnodeaps)
 
     def interference(self, configstr, ppm, positions, txpowers,
-                     fading_coefficient, isnodeaps):
+                     fading_coefficient, noise_threshold, isnodeaps):
         configstr += '\n\t];\n\tenable_interference = true;'
         configstr += '\n};\nmodel:\n{\n'
         configstr += '\ttype = "path_loss";\n\tpositions = ('
@@ -301,6 +301,7 @@ class set_interference(object):
             configstr += '\n\t\t(%.1f, %.1f, %.1f)' % (
                 posX, posY, posZ)
         configstr += '\n\t);\n\tfading_coefficient = %d;' % fading_coefficient
+        configstr += '\n\tnoise_threshold = %d;' % noise_threshold
         configstr += '\n\tisnodeaps = ('
         first_isnodeap = True
         for isnodeap in isnodeaps:
@@ -353,8 +354,8 @@ class WmediumdStarter(object):
     @classmethod
     def start(cls, intfrefs=None, links=None, default_auto_snr=-10,
               default_auto_errprob=1.0, isnodeaps=None,
-              fading_coefficient=0, positions=None, txpowers=None,
-              ppm=None):
+              fading_coefficient=0, noise_threshold=-91, positions=None,
+              txpowers=None, ppm=None):
         """Set the data for the wmediumd daemon
 
         :param intfrefs: A list of all WmediumdIntfRef that should be managed
@@ -384,6 +385,7 @@ class WmediumdStarter(object):
         kwargs['default_auto_snr'] = default_auto_snr
         kwargs['default_auto_errprob'] = default_auto_errprob
         kwargs['fading_coefficient'] = fading_coefficient
+        kwargs['noise_threshold'] = noise_threshold
         kwargs['ppm'] = ppm
 
         if wmediumd_mode.mode == 4:
@@ -479,7 +481,7 @@ class WmediumdStarter(object):
             if wmediumd_mode.mode is WmediumdConstants.INTERFERENCE_MODE:
                 set_interference(configstr, kwargs['ppm'], kwargs['positions'],
                                  kwargs['txpowers'], kwargs['fading_coefficient'],
-                                 kwargs['isnodeaps'])
+                                 kwargs['noise_threshold'], kwargs['isnodeaps'])
                 configstr = cls.configstr
             else:
                 configstr += '\n\t];\n};\nmodel:\n{\n\ttype = "'

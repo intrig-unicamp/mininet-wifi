@@ -665,14 +665,14 @@ class wmediumd(TCWirelessLink):
     positions = []
     nodes = []
 
-    def __init__(cls, fading_coefficient, stations,
+    def __init__(cls, fading_coefficient, noise_threshold, stations,
                  aps, propagation_model):
 
-        cls.configureWmediumd(fading_coefficient, stations,
+        cls.configureWmediumd(fading_coefficient, noise_threshold, stations,
                               aps, propagation_model)
 
     @classmethod
-    def configureWmediumd(cls, fading_coefficient, stations,
+    def configureWmediumd(cls, fading_coefficient, noise_threshold, stations,
                           aps, propagation_model):
         "Configure wmediumd"
         from mininet.wifi.node import AP, Car
@@ -681,6 +681,7 @@ class wmediumd(TCWirelessLink):
         isnodeaps = []
         cars = []
         fading_coefficient = fading_coefficient
+        noise_threshold = noise_threshold
 
         for node in stations:
             if 'carsta' in node.params:
@@ -714,17 +715,18 @@ class wmediumd(TCWirelessLink):
         else:
             set_snr()
         start_wmediumd(intfrefs, wmediumd.links, wmediumd.positions,
-                       fading_coefficient, wmediumd.txpowers, isnodeaps,
-                       propagation_model)
+                       fading_coefficient, noise_threshold,
+                       wmediumd.txpowers, isnodeaps, propagation_model)
 
 
 class start_wmediumd(object):
     def __init__(cls, intfrefs, links, positions,
-                 fading_coefficient, txpowers, isnodeaps,
+                 fading_coefficient, noise_threshold, txpowers, isnodeaps,
                  propagation_model):
 
         WmediumdStarter.start(intfrefs, links, positions=positions,
                               fading_coefficient=fading_coefficient,
+                              noise_threshold=noise_threshold,
                               txpowers=txpowers, isnodeaps=isnodeaps,
                               ppm=propagation_model)
 

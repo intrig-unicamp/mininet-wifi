@@ -125,11 +125,11 @@ class Mininet_wifi(Mininet):
         self.DRAW = False
         self.ifb = False
         self.isVanet = False
-        self.noise_threshold = noise_threshold
         self.cca_threshold = cca_threshold
         self.configureWiFiDirect = configureWiFiDirect
         self.configure4addr = configure4addr
         self.fading_coefficient = fading_coefficient
+        self.noise_threshold = noise_threshold
         self.mobilityparam = dict()
         self.AC = ''
         self.alternativeModule = ''
@@ -704,8 +704,8 @@ class Mininet_wifi(Mininet):
 
         if (self.configure4addr or self.configureWiFiDirect
             or self.wmediumd_mode == error_prob) and self.link == wmediumd:
-            wmediumd(self.fading_coefficient, self.stations,
-                     self.aps, propagationModel)
+            wmediumd(self.fading_coefficient, self.noise_threshold,
+                     self.stations, self.aps, propagationModel)
 
         if self.inNamespace:
             self.configureControlNetwork()
@@ -717,10 +717,12 @@ class Mininet_wifi(Mininet):
             self.staticArp()
 
         isPosDefined = False
-        nodes = self.stations
-        for node in nodes:
+        nodes_ = self.stations + self.aps
+        for node in nodes_:
             if 'position' in node.params:
                 isPosDefined = True
+        nodes = self.stations
+        for node in nodes:
             for wlan in range(0, len(node.params['wlan'])):
                 if not isinstance(node, AP) and node.func[0] != 'ap' and \
                                 node.func[wlan] != 'mesh' and node.func[wlan] != 'adhoc' \
@@ -2255,8 +2257,8 @@ class Mininet_wifi(Mininet):
             self.wmediumd_mode()
             if not self.configureWiFiDirect and not self.configure4addr and \
                 self.wmediumd_mode != error_prob:
-                wmediumd(self.fading_coefficient, self.stations,
-                         self.aps, propagationModel)
+                wmediumd(self.fading_coefficient, self.noise_threshold,
+                         self.stations, self.aps, propagationModel)
 
                 if self.wmediumd_mode == interference and not self.isVanet:
                     for node in nodes:
