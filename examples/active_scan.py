@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-'This example shows how to work with authentication'
+'This example shows how to work with active scan'
 
 from mininet.node import Controller
 from mininet.wifi.node import UserAP
