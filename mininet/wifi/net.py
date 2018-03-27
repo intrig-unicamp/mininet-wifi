@@ -515,14 +515,14 @@ class Mininet_wifi(Mininet):
             if doAssociation:
                 enable_wmediumd = False
                 enable_interference = False
-                if cls == wmediumd:
+                if self.link == wmediumd:
                     enable_wmediumd = True
                 if self.wmediumd_mode == interference:
                     enable_interference = True
                 Association.associate(sta, ap, enable_wmediumd,
                                       enable_interference, wlan, ap_wlan)
 
-                if issubclass(cls,TCWirelessLink):
+                if 'TCWirelessLink' in str(self.link.__name__):
                     if 'bw' not in params and 'bw' not in str(cls):
                         value = self.setDataRate(sta, ap, wlan)
                         bw = value.rate
@@ -530,7 +530,7 @@ class Mininet_wifi(Mininet):
                     # tc = True, this is useful only to apply tc configuration
                     cls(name=sta.params['wlan'][wlan], node=sta,
                         link=None, tc=True, **params)
-            if cls == wmediumd:
+            if self.link == wmediumd:
                 if self.wmediumd_mode == error_prob:
                     wmediumd.wlinks.append([sta, ap, params['error_prob']])
                 elif self.wmediumd_mode != interference:
