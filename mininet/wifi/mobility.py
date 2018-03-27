@@ -584,10 +584,9 @@ class mobility(object):
                                 if node.params['associatedTo'][wlan] == '':
                                     Association.printCon = False
                                     Association.associate_infra(node, ap, wlan, ap_wlan=0)
+                                    node.params['associatedTo'][wlan] = 'active_scan'
                                     if Association.bgscan != '':
                                         node.params['associatedTo'][wlan] = 'bgscan'
-                                    else:
-                                        node.params['associatedTo'][wlan] = 'active_scan'
                         else:
                             cls.check_association(node, wlan, ap_wlan=0)
                     else:

@@ -47,7 +47,7 @@ class Mininet_wifi(Mininet):
     def __init__(self, topo=None, switch=OVSKernelSwitch,
                  accessPoint=OVSKernelAP, host=Host, station=Station,
                  car=Car, controller=DefaultController,
-                 link=Link, intf=Intf, build=True, xterms=False,
+                 link=TCWirelessLink, intf=Intf, build=True, xterms=False,
                  ipBase='10.0.0.0/8', inNamespace=False,
                  autoSetMacs=False, autoStaticArp=False, autoPinCpus=False,
                  listenPort=None, waitConnected=False, ssid="new-ssid",
@@ -494,10 +494,10 @@ class Mininet_wifi(Mininet):
                 if port1:
                     ap_intf = port1
 
+            wlan = sta.ifaceToAssociate
             if sta_intf:
                 wlan = sta_intf
-            else:
-                wlan = sta.ifaceToAssociate
+
             ap_wlan = ap_intf
 
             sta.params['mode'][wlan] = ap.params['mode'][ap_wlan]
@@ -510,33 +510,27 @@ class Mininet_wifi(Mininet):
                 if dist > ap.params['range'][ap_wlan]:
                     doAssociation = False
 
+            cls = self.link if cls is None else cls
+
             if doAssociation:
                 enable_wmediumd = False
                 enable_interference = False
-                if self.link == wmediumd:
+                if cls == wmediumd:
                     enable_wmediumd = True
                 if self.wmediumd_mode == interference:
                     enable_interference = True
                 Association.associate(sta, ap, enable_wmediumd,
                                       enable_interference, wlan, ap_wlan)
-                if 'bw' not in params and 'TCWirelessLink' \
-                        not in str(self.link.__name__):
-                    value = self.setDataRate(sta, ap, wlan)
-                    bw = value.rate
-                    params['bw'] = bw
 
-                if 'TCWirelessLink' in str(self.link.__name__):
-                    cls = self.link
-                else:
-                    cls = TCWirelessLink
-
-                if self.wmediumd_mode != interference:
-                    if 'TCWirelessLink' in str(self.link.__name__) \
-                            or 'bw' in params and params['bw'] != 0:
-                        # tc = True, this is useful only to apply tc configuration
-                        cls(name=sta.params['wlan'][wlan], node=sta,
-                            link=None, tc=True, **params)
-            if self.link == wmediumd:
+                if issubclass(cls,TCWirelessLink):
+                    if 'bw' not in params and 'bw' not in str(cls):
+                        value = self.setDataRate(sta, ap, wlan)
+                        bw = value.rate
+                        params['bw'] = bw
+                    # tc = True, this is useful only to apply tc configuration
+                    cls(name=sta.params['wlan'][wlan], node=sta,
+                        link=None, tc=True, **params)
+            if cls == wmediumd:
                 if self.wmediumd_mode == error_prob:
                     wmediumd.wlinks.append([sta, ap, params['error_prob']])
                 elif self.wmediumd_mode != interference:
@@ -1252,25 +1246,21 @@ class Mininet_wifi(Mininet):
         self.propagation_model(**kwargs)
 
     def configWirelessLinkStatus(self, src, dst, status):
+
+        sta = self.nameToNode[dst]
+        ap = self.nameToNode[src]
+
+        if isinstance(self.nameToNode[src], Station):
+            sta = self.nameToNode[src]
+            ap = self.nameToNode[dst]
+
         if status == 'down':
-            if isinstance(self.nameToNode[src], Station):
-                sta = self.nameToNode[src]
-                ap = self.nameToNode[dst]
-            else:
-                sta = self.nameToNode[dst]
-                ap = self.nameToNode[src]
             for wlan in range(0, len(sta.params['wlan'])):
                 if sta.params['associatedTo'][wlan] != '':
                     sta.cmd('iw dev %s disconnect' % sta.params['wlan'][wlan])
                     sta.params['associatedTo'][wlan] = ''
                     ap.params['associatedStations'].remove(sta)
         else:
-            if isinstance(self.nameToNode[src], Station):
-                sta = self.nameToNode[src]
-                ap = self.nameToNode[dst]
-            else:
-                sta = self.nameToNode[dst]
-                ap = self.nameToNode[src]
             for wlan in range(0, len(sta.params['wlan'])):
                 if sta.params['associatedTo'][wlan] == '':
                     sta.pexec('iw dev %s connect %s %s'
@@ -1380,16 +1370,14 @@ class Mininet_wifi(Mininet):
             node.min_v = 0
 
             # max_speed
+            node.max_speed = 10
             if 'max_speed' in params:
                 node.max_speed = int(params['max_speed'])
-            else:
-                node.max_speed = 10
 
             # min_speed
+            node.min_speed = 1
             if 'min_speed' in params:
                 node.min_speed = int(params['min_speed'])
-            else:
-                node.min_speed = 1
 
         # speed
         if 'speed' in params:
@@ -1420,16 +1408,14 @@ class Mininet_wifi(Mininet):
             node.max_v = float(params['max_v'])
 
         # constantVelocity
+        node.constantVelocity = 1
         if 'constantVelocity' in params:
             node.constantVelocity = int(params['constantVelocity'])
-        else:
-            node.constantVelocity = 1
 
         # constantDistance
+        node.constantDistance = 1
         if 'constantDistance' in params:
             node.constantDistance = int(params['constantDistance'])
-        else:
-            node.constantDistance = 1
 
         # position
         if 'position' in params:
@@ -1729,6 +1715,7 @@ class Mininet_wifi(Mininet):
         node: name of the node
         self: custom association class/constructor
         params: parameters for node"""
+
         if 'intf' in params:
             for intf_ in node.params['wlan']:
                 if params['intf'] == intf_:
@@ -1738,18 +1725,15 @@ class Mininet_wifi(Mininet):
 
         node.func[wlan] = 'mesh'
 
-        if isinstance(node, AP):
-            pass
-        else:
+        if not isinstance(node, AP):
             node.params['ssid'] = []
             for _ in range(len(node.params['wlan'])):
                 node.params['ssid'].append('')
 
+        node.params['ssid'][wlan] = 'meshNetwork'
         ssid = ("%s" % params['ssid'])
         if ssid != "{}":
             node.params['ssid'][wlan] = ssid
-        else:
-            node.params['ssid'][wlan] = 'meshNetwork'
 
         if node.autoTxPower:
             intf = node.params['wlan'][wlan]
@@ -1765,6 +1749,7 @@ class Mininet_wifi(Mininet):
         node: name of the node
         self: custom association class/constructor
         params: parameters for station"""
+
         if 'intf' in params:
             for intf_ in node.params['wlan']:
                 if params['intf'] == intf_:
@@ -1778,13 +1763,12 @@ class Mininet_wifi(Mininet):
         for _ in range(0, len(node.params['wlan'])):
             node.params['ssid'].append('')
 
+        node.params['ssid'][wlan] = 'adhocNetwork'
+        node.params['associatedTo'][wlan] = 'adhocNetwork'
         ssid = ("%s" % params.pop('ssid', {}))
         if ssid != "{}":
             node.params['ssid'][wlan] = ssid
             node.params['associatedTo'][wlan] = ssid
-        else:
-            node.params['ssid'][wlan] = 'adhocNetwork'
-            node.params['associatedTo'][wlan] = 'adhocNetwork'
 
         if not node.autoTxPower:
             intf = node.params['wlan'][wlan]
@@ -1805,6 +1789,7 @@ class Mininet_wifi(Mininet):
         node: name of the node
         self: custom association class/constructor
         params: parameters for station"""
+
         if 'intf' in params:
             for intf_ in node.params['wlan']:
                 if params['intf'] == intf_:
@@ -1950,10 +1935,9 @@ class Mininet_wifi(Mininet):
 
                 AccessPoint(ap, wlan=wlan, aplist=aplist)
 
+                iface = ap.params['wlan'][wlan]
                 if 'phywlan' in ap.params and wlan == 0:
                     iface = ap.params['phywlan']
-                else:
-                    iface = ap.params['wlan'][wlan]
 
                 if self.link is not wmediumd:
                     self.setBw(ap, wlan, iface)
