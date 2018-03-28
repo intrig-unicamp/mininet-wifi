@@ -9,10 +9,10 @@ import unittest
 import os
 import re
 from time import sleep
+from mininet.util import quietRun
 import pexpect
 from sys import version_info as py_version_info
 
-from mininet.util import quietRun
 
 def tsharkVersion():
     "Return tshark version"

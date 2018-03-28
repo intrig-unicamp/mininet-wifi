@@ -31,9 +31,9 @@ class TestSwitchDpidAssignmentOVS(unittest.TestCase):
         """Verify that the default dpid is assigned using a valid provided
         canonical apname if no dpid is passed in ap creation."""
         ap = Mininet_wifi(topo=Topo(),
-                     accessPoint=self.accessPointClass,
-                     station=Station, controller=Controller,
-                     ).addAccessPoint('ap1')
+                          accessPoint=self.accessPointClass,
+                          station=Station, controller=Controller,
+                         ).addAccessPoint('ap1')
         self.assertEqual(ap.defaultDpid(), ap.dpid)
 
     def dpidFrom(self, num):
@@ -46,8 +46,8 @@ class TestSwitchDpidAssignmentOVS(unittest.TestCase):
         passed in ap creation."""
         dpid = self.dpidFrom(0xABCD)
         ap = Mininet_wifi(topo=Topo(), accessPoint=self.accessPointClass,
-                     station=Station, controller=Controller,
-                     ).addAccessPoint('ap1', dpid=dpid)
+                          station=Station, controller=Controller,
+                         ).addAccessPoint('ap1', dpid=dpid)
         self.assertEqual(ap.dpid, dpid)
 
     def testDefaultDpidLen(self):
@@ -56,8 +56,8 @@ class TestSwitchDpidAssignmentOVS(unittest.TestCase):
         name) 0's followed by hex of first string of contiguous digits passed
         in ap name."""
         ap = Mininet_wifi(topo=Topo(), accessPoint=self.accessPointClass,
-                     station=Station, controller=Controller,
-                     ).addAccessPoint('ap123')
+                          station=Station, controller=Controller,
+                         ).addAccessPoint('ap123')
 
         self.assertEqual(ap.dpid, self.dpidFrom(123))
 

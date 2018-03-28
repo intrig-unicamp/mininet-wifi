@@ -113,11 +113,10 @@ class Mininet(object):
     "Network emulation with hosts spawned in network namespaces."
 
     def __init__(self, topo=None, switch=OVSKernelSwitch, host=Host,
-                  controller=DefaultController, link=Link, intf=Intf,
-                  build=True, xterms=False, cleanup=False, ipBase='10.0.0.0/8',
-                  inNamespace=False,
-                  autoSetMacs=False, autoStaticArp=False, autoPinCpus=False,
-                  listenPort=None, waitConnected=False):
+                 controller=DefaultController, link=Link, intf=Intf,
+                 build=True, xterms=False, cleanup=False, ipBase='10.0.0.0/8',
+                 inNamespace=False, autoSetMacs=False, autoStaticArp=False,
+                 autoPinCpus=False, listenPort=None, waitConnected=False):
         """Create Mininet object.
            topo: Topo (topology) object or None
            switch: default Switch class
@@ -863,13 +862,13 @@ class Mininet(object):
         for host in hosts:
             outputs[host] = []
             with open('/sys/fs/cgroup/cpuacct/%s/cpuacct.usage' %
-                              host, 'r') as f:
+                      host, 'r') as f:
                 time[host] = float(f.read())
         for _ in range(duration):
             sleep(1)
             for host in hosts:
                 with open('/sys/fs/cgroup/cpuacct/%s/cpuacct.usage' %
-                                  host, 'r') as f:
+                          host, 'r') as f:
                     readTime = float(f.read())
                 outputs[host].append(((readTime - time[host])
                                       / 1000000000) / cores * 100)

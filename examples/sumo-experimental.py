@@ -116,7 +116,8 @@ def topology():
         j = 1
         for carsta2 in net.carsSTA:
             if carsta1 != carsta2:
-                carsta1.cmd('route add -host 192.168.1.%s gw 10.0.0.%s' % (j, i))
+                carsta1.cmd('route add -host 192.168.1.%s '
+                            'gw 10.0.0.%s' % (j, i))
             i += 1
             j += 2
 

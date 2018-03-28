@@ -132,9 +132,9 @@ class replayingMobility(object):
 class replayingBandwidth(object):
     'Replaying Bandwidth Traces'
 
-    def __init__(self, mininet, **params):
+    def __init__(self, Mininet_wifi, **params):
         self.thread = threading.Thread(name='replayingBandwidth',
-                                       target=self.throughput, args=(mininet,))
+                                       target=self.throughput, args=(Mininet_wifi,))
         self.thread.daemon = True
         self.thread.start()
 

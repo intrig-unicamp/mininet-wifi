@@ -5,8 +5,8 @@ author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
 import os
 import re
 import subprocess
-from six import string_types
 from sys import version_info as py_version_info
+from six import string_types
 
 from mininet.log import info, error, debug
 from mininet.link import Intf
@@ -665,11 +665,11 @@ class wmediumd(TCWirelessLink):
     positions = []
     nodes = []
 
-    def __init__(cls, fading_coefficient, noise_threshold, stations,
+    def __init__(self, fading_coefficient, noise_threshold, stations,
                  aps, propagation_model):
 
-        cls.configureWmediumd(fading_coefficient, noise_threshold, stations,
-                              aps, propagation_model)
+        self.configureWmediumd(fading_coefficient, noise_threshold, stations,
+                               aps, propagation_model)
 
     @classmethod
     def configureWmediumd(cls, fading_coefficient, noise_threshold, stations,
@@ -733,8 +733,8 @@ class start_wmediumd(object):
 
 class set_interference(object):
 
-    def __init__(cls):
-        cls.interference()
+    def __init__(self):
+        self.interference()
 
     @classmethod
     def interference(cls):
@@ -767,14 +767,14 @@ class set_interference(object):
 
 class spec_prob_link(object):
     "wmediumd: spec prob link"
-    def __init__(cls):
+    def __init__(self):
         'do nothing'
 
 
 class set_error_prob(object):
     "wmediumd: set error prob"
-    def __init__(cls):
-        cls.error_prob()
+    def __init__(self):
+        self.error_prob()
 
     @classmethod
     def error_prob(cls):
@@ -788,8 +788,8 @@ class set_error_prob(object):
 
 class set_snr(object):
     "wmediumd: set snr"
-    def __init__(cls):
-        cls.snr()
+    def __init__(self):
+        self.snr()
 
     @classmethod
     def snr(cls):
@@ -1006,7 +1006,7 @@ class Association(object):
         associated = 0
         if 'ieee80211r' in ap.params and ap.params['ieee80211r'] == 'yes' \
         and ('encrypt' not in sta.params or 'encrypt' in sta.params and
-                        'wpa' in sta.params['encrypt'][wlan]):
+             'wpa' in sta.params['encrypt'][wlan]):
             if sta.params['associatedTo'][wlan] == '':
                 command = ('ps -aux | grep %s | wc -l' % sta.params['wlan'][wlan])
                 np = int(subprocess.check_output(command, shell=True))
@@ -1024,7 +1024,7 @@ class Association(object):
             if sta.params['associatedTo'][wlan] == '':
                 if 'wpa' in ap.params['encrypt'][ap_wlan] \
                 and ('encrypt' not in sta.params or 'encrypt' in sta.params and
-                                'wpa' in sta.params['encrypt'][wlan]):
+                     'wpa' in sta.params['encrypt'][wlan]):
                     cls.associate_wpa(sta, ap, wlan, ap_wlan)
                     associated = 1
                 elif ap.params['encrypt'][ap_wlan] == 'wep':

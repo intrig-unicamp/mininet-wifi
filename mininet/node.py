@@ -60,6 +60,8 @@ import select
 from sys import version_info as py_version_info
 from subprocess import Popen, PIPE
 from time import sleep
+from distutils.version import StrictVersion
+from re import findall
 from six import string_types
 
 from mininet.log import info, error, warn, debug
@@ -68,8 +70,6 @@ from mininet.util import ( quietRun, errRun, errFail, moveIntf, isShellBuiltin,
 from mininet.utils.private_folder_manager import PrivateFolderManager
 from mininet.moduledeps import moduleDeps, pathCheck, TUN
 from mininet.link import Link, Intf, TCIntf, OVSIntf
-from re import findall
-from distutils.version import StrictVersion
 
 
 class Node( object ):
@@ -108,7 +108,8 @@ class Node( object ):
 
         # Start command interpreter shell
         self.startShell()
-        self.private_folder_manager = PrivateFolderManager(self, params.get('privateDirs', []))
+        self.private_folder_manager = \
+            PrivateFolderManager(self, params.get('privateDirs', []))
 
     # File descriptor to node mapping support
     # Class variables and methods

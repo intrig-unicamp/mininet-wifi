@@ -587,6 +587,7 @@ class mobility(object):
                                     node.params['associatedTo'][wlan] = 'active_scan'
                                     if Association.bgscan != '':
                                         node.params['associatedTo'][wlan] = 'bgscan'
+
                         else:
                             cls.check_association(node, wlan, ap_wlan=0)
                     else:

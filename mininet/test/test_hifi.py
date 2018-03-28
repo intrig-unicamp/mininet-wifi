@@ -8,7 +8,8 @@ import sys
 from functools import partial
 
 from mininet.net import Mininet
-from mininet.node import OVSSwitch, UserSwitch, IVSSwitch
+from mininet.node import IVSSwitch
+from mininet.wifi.node import OVSAP, UserAP
 from mininet.node import CPULimitedHost
 from mininet.link import TCLink
 from mininet.topo import Topo
@@ -19,7 +20,7 @@ from mininet.clean import cleanup
 # Number of stations for each test
 N = 2
 
-class SingleSwitchOptionsTopo(Topo):
+class SingleAPOptionsTopo(Topo):
     "Single switch connected to n hosts."
     def __init__(self, n=2, hopts=None, lopts=None):
         if not hopts:
@@ -39,7 +40,7 @@ class testOptionsTopoCommon( object ):
     """Verify ability to create networks with host and link options
        (common code)."""
 
-    switchClass = None  # overridden in subclasses
+    apClass = None  # overridden in subclasses
 
     @staticmethod
     def tearDown():
@@ -49,10 +50,10 @@ class testOptionsTopoCommon( object ):
 
     def runOptionsTopoTest( self, n, msg, hopts=None, lopts=None ):
         "Generic topology-with-options test runner."
-        mn = Mininet( topo=SingleSwitchOptionsTopo( n=n, hopts=hopts,
-                                                    lopts=lopts ),
+        mn = Mininet( topo=SingleAPOptionsTopo( n=n, hopts=hopts,
+                                                lopts=lopts ),
                       host=CPULimitedHost, link=TCLink,
-                      switch=self.switchClass, waitConnected=True)
+                      switch=self.apClass, waitConnected=True)
         dropped = mn.run( mn.ping )
         hoptsStr = ', '.join( '%s: %s' % ( opt, value )
                               for opt, value in hopts.items() )
@@ -95,14 +96,14 @@ class testOptionsTopoOVSKernel( testOptionsTopoCommon, unittest.TestCase ):
     """Verify ability to create networks with host and link options
        (OVS kernel switch)."""
     longMessage = True
-    switchClass = OVSSwitch
+    switchClass = OVSAP
 
 @unittest.skip( 'Skipping OVS user switch test for now' )
 class testOptionsTopoOVSUser( testOptionsTopoCommon, unittest.TestCase ):
     """Verify ability to create networks with host and link options
        (OVS user switch)."""
     longMessage = True
-    switchClass = partial( OVSSwitch, datapath='user' )
+    switchClass = partial( OVSAP, datapath='user' )
 
 @unittest.skipUnless( quietRun( 'which ivs-ctl' ), 'IVS is not installed' )
 class testOptionsTopoIVS( testOptionsTopoCommon, unittest.TestCase ):
@@ -116,7 +117,7 @@ class testOptionsTopoUserspace( testOptionsTopoCommon, unittest.TestCase ):
     """Verify ability to create networks with host and link options
      (UserSwitch)."""
     longMessage = True
-    switchClass = UserSwitch
+    apClass = UserAP
 
 if __name__ == '__main__':
     setLogLevel( 'warning' )

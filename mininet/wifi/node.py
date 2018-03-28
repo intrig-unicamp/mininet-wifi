@@ -9,15 +9,14 @@ import re
 import signal
 import select
 import fileinput
-import numpy as np
-from scipy.spatial.distance import pdist
-from six import string_types
-
 from subprocess import Popen, PIPE
 from time import sleep
 from distutils.version import StrictVersion
-from sys import version_info as py_version_info
 from re import findall
+from sys import version_info as py_version_info
+import numpy as np
+from scipy.spatial.distance import pdist
+from six import string_types
 
 from mininet.log import info, error, warn, debug
 from mininet.util import (quietRun, errRun, isShellBuiltin)

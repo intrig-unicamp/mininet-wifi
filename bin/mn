@@ -2,7 +2,8 @@
 
 """
 Mininet runner
-author: Brandon Heller (brandonh@stanford.edu) - (Modified by Ramon Fontes (ramonrf@dca.fee.unicamp.br)
+author: Brandon Heller (brandonh@stanford.edu) -
+Modified by: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
 
 To see options:
   sudo mn -h
@@ -35,13 +36,15 @@ from mininet.node import (Host, CPULimitedHost, Controller, OVSController,
 from mininet.nodelib import LinuxBridge
 from mininet.link import Link, TCLink, TCULink, OVSLink
 
-from mininet.topo import (SingleSwitchTopo, LinearTopo, SingleSwitchReversedTopo,
+from mininet.topo import (SingleSwitchTopo, LinearTopo,
+                          SingleSwitchReversedTopo,
                           MinimalTopo)
 from mininet.topolib import TreeTopo, TorusTopo
 from mininet.util import customClass, specialClass, splitArgs
 from mininet.util import buildTopo
 
-from mininet.wifi.topo import (SingleAPTopo, LinearWirelessTopo, MinimalWirelessTopo)
+from mininet.wifi.topo import (SingleAPTopo, LinearWirelessTopo,
+                               MinimalWirelessTopo)
 from mininet.wifi.link import TCWirelessLink, wmediumd
 from mininet.wifi.node import UserAP, OVSAP
 
@@ -207,7 +210,8 @@ class MininetRunner(object):
         for fileName in files:
             customs = {}
             if os.path.isfile(fileName):
-                exec (compile(open(fileName, "rb").read(), fileName, 'exec'), customs, customs)
+                exec (compile(open(fileName, "rb").read(), fileName, 'exec'),
+                      customs, customs)
                 if py_version_info < (3, 0):
                     custom_items = customs.iteritems()
                 else:
@@ -459,7 +463,8 @@ class MininetRunner(object):
         if opts.cluster:
             warn('*** WARNING: Experimental cluster mode!\n'
                  '*** Using RemoteHost, RemoteOVSSwitch, RemoteLink\n')
-            host, switch, ap, link = RemoteHost, RemoteOVSSwitch, RemoteOVSAP, RemoteLink
+            host, switch, ap, link = RemoteHost, RemoteOVSSwitch, \
+                                     RemoteOVSAP, RemoteLink
             Net = partial(MininetCluster, servers=servers,
                           placement=PLACEMENT[opts.placement])
             mininet.wifi.cli.CLI_wifi = ClusterCLI

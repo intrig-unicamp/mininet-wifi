@@ -2,8 +2,7 @@
 
 """Enabling CAPWAP_WTP
 Please consider to follow up this repository:
-https://github.com/ramonfontes/opencapwap-mininet-wifi 
-"""
+https://github.com/ramonfontes/opencapwap-mininet-wifi """
 
 from mininet.node import Controller
 from mininet.log import setLogLevel, info
