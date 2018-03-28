@@ -52,8 +52,9 @@ class Mininet_wifi(Mininet):
                  autoSetMacs=False, autoStaticArp=False, autoPinCpus=False,
                  listenPort=None, waitConnected=False, ssid="new-ssid",
                  mode="g", channel="1", wmediumd_mode=snr,
-                 fading_coefficient=0, disableAutoAssociation=False,
-                 driver='nl80211', autoSetPositions=False,
+                 fading_coefficient=0, autoAssociation=True,
+                 allAutoAssociation=True, driver='nl80211',
+                 autoSetPositions=False,
                  configureWiFiDirect=False, configure4addr=False,
                  defaultGraph=False, noise_threshold=-91, cca_threshold=-90,
                  rec_rssi=False, disable_tcp_checksum=False):
@@ -116,7 +117,8 @@ class Mininet_wifi(Mininet):
         self.walls = []
         self.terms = []  # list of spawned xterm processes
         self.driver = driver
-        self.disableAutoAssociation = disableAutoAssociation
+        self.autoAssociation = autoAssociation # does not include mobility
+        self.allAutoAssociation = allAutoAssociation # includes mobility
         self.mobilityKwargs = ''
         self.isMobilityModel = False
         self.isMobility = False
@@ -147,6 +149,10 @@ class Mininet_wifi(Mininet):
         self.connections = {}
         self.wlinks = []
         Mininet_wifi.init()  # Initialize Mininet if necessary
+
+        if allAutoAssociation == False:
+            self.autoAssociation = False
+            mobility.allAutoAssociation = False
 
         if defaultGraph:
             self.defaultGraph()
@@ -712,8 +718,9 @@ class Mininet_wifi(Mininet):
                         node.params['range'][wlan] = \
                             int(node.params['range'][wlan]) / 5
 
-        if not self.disableAutoAssociation and not self.isMobility:
-            self.autoAssociation()
+        if self.allAutoAssociation:
+            if self.autoAssociation and not self.isMobility:
+                self.auto_association()
         if self.isMobility:
             if self.isMobilityModel or self.isVanet:
                 self.mobilityKwargs['mobileNodes'] = self.getMobileNodes()
@@ -2069,7 +2076,8 @@ class Mininet_wifi(Mininet):
 
     def stopMobility(self, **kwargs):
         "Stops Mobility"
-        self.autoAssociation()
+        if self.allAutoAssociation:
+            self.auto_association()
         self.setMobilityParams(**kwargs)
 
     def setMobilityParams(self, **kwargs):
@@ -2145,7 +2153,7 @@ class Mininet_wifi(Mininet):
         params['aps'] = self.aps
         params['cars'] = self.cars
         params['program'] = program
-        self.disableAutoAssociation = True
+        self.autoAssociation = False
         self.isVanet = True
         for car in params['cars']:
             car.params['position'] = 0, 0, 0
@@ -2280,7 +2288,7 @@ class Mininet_wifi(Mininet):
     def getPropagationModel():
         return propagationModel.model
 
-    def autoAssociation(self):
+    def auto_association(self):
         "This is useful to make the users' life easier"
         nodes = self.stations + self.aps
         for node in nodes:

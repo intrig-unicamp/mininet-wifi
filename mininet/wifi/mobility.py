@@ -31,6 +31,7 @@ class mobility(object):
     continuePlot = 'plot2d.graphPause()'
     pause_simulation = False
     rec_rssi = False
+    allAutoAssociation = True
     plot = plot2d
     continue_params = 'sleep(0.0001)'
 
@@ -140,9 +141,10 @@ class mobility(object):
     @classmethod
     def set_wifi_params(cls):
         "Opens a thread for wifi parameters"
-        thread = threading.Thread(name='wifiParameters', target=cls.parameters)
-        thread.daemon = True
-        thread.start()
+        if cls.allAutoAssociation:
+            thread = threading.Thread(name='wifiParameters', target=cls.parameters)
+            thread.daemon = True
+            thread.start()
 
     @classmethod
     def speed(cls, sta, pos_x, pos_y, pos_z, diff_time):

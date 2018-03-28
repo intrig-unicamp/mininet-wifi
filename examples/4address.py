@@ -16,7 +16,7 @@ def topology():
     "Create a network."
     net = Mininet_wifi( controller=Controller, accessPoint=OVSKernelAP,
                         link=wmediumd, wmediumd_mode=interference,
-                        configure4addr=True, disableAutoAssociation=True )
+                        configure4addr=True, autoAssociation=False )
 
     info("*** Creating nodes\n")
     ap1 = net.addAccessPoint( 'ap1', _4addr="ap", ssid="wds-ssid1",

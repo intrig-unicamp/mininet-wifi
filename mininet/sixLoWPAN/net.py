@@ -34,11 +34,10 @@ class Mininet_sixLoWPAN(Mininet_wifi):
                  listenPort=None, waitConnected=False, ssid="new-ssid",
                  mode="g", channel="1", enable_interference=False,
                  enable_spec_prob_link=False, enable_error_prob=False,
-                 fading_coefficient=0, disableAutoAssociation=False,
-                 driver='nl80211', autoSetPositions=False,
-                 configureWiFiDirect=False, configure4addr=False,
-                 defaultGraph=False, noise_threshold=-91, cca_threshold=-90,
-                 rec_rssi=False):
+                 fading_coefficient=0, driver='nl80211',
+                 autoSetPositions=False, configureWiFiDirect=False,
+                 configure4addr=False, defaultGraph=False,
+                 noise_threshold=-91, cca_threshold=-90):
         """Create Mininet object.
            topo: Topo (topology) object or None
            switch: default Switch class
@@ -116,7 +115,6 @@ class Mininet_sixLoWPAN(Mininet_wifi):
         self.mobilityparam = dict()
         self.AC = ''
         self.alternativeModule = ''
-        self.rec_rssi = rec_rssi
         self.n_wpans = 0
         self.n_radios = 0
         self.min_x = 0
