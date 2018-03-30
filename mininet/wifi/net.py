@@ -150,7 +150,7 @@ class Mininet_wifi(Mininet):
         self.wlinks = []
         Mininet_wifi.init()  # Initialize Mininet if necessary
 
-        if allAutoAssociation == False:
+        if not allAutoAssociation:
             self.autoAssociation = False
             mobility.allAutoAssociation = False
 
@@ -2218,22 +2218,20 @@ class Mininet_wifi(Mininet):
 
         for node in nodes:
             for wlan in range(0, len(node.params['wlan'])):
-                if isinstance(node, Car) and wlan == 1:
+               setParam = True
+               if isinstance(node, Car) and wlan == 1:
                     node = node.params['carsta']
                     wlan = 0
-                if int(node.params['range'][wlan]) == 0:
-                    if isinstance(node, Car) and wlan == 1:
-                        node = node.params['carsta']
-                        wlan = 0
+               if int(node.params['range'][wlan]) == 0:
                     intf = node.params['wlan'][wlan]
                     node.params['range'][wlan] = node.getRange(intf=intf)
-                else:
+               else:
                     if node.params['txpower'][wlan] == 14 and \
                                     'equipmentModel' not in node.params:
                         node.autoTxPower=True
                         node.params['txpower'][wlan] = \
                             node.get_txpower_prop_model(wlan)
-                    setParam = True
+               if int(node.params['range'][wlan]) != 0:
                     if isinstance(node, Car):
                         setParam = False
                     node.setTxPower(node.params['txpower'][wlan],
