@@ -342,6 +342,8 @@ class vanet(object):
             position_y = car.properties[1]
 
             car.params['position'] = position_x, position_y, 0
+            car_ = car.params['carsta']
+            car_.params['position'] = car.params['position']
             angle = car.properties[2]
 
             # calculate new position of the car

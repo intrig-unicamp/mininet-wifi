@@ -576,7 +576,6 @@ class mobility(object):
                 if node.func[wlan] == 'mesh' or node.func[wlan] == 'adhoc':
                     if 'carsta' in node.params:
                         car = node.params['carsta']
-                        car.params['position'] = node.params['position']
                         node = car
                 else:
                     if wmediumd_mode.mode == WmediumdConstants.INTERFERENCE_MODE:

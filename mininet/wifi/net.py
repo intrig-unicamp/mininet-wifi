@@ -2173,20 +2173,8 @@ class Mininet_wifi(Mininet):
                 mac = node.params['mac'][wlan]
                 node.setMAC(mac, iface)
 
-    def configureWifiNodes(self):
-        "Configure WiFi Nodes"
-        if not self.ppm_is_set:
-            self.propagationModel()
-        params = {}
-        if self.ifb:
-            wirelessLink.ifb = True
-            params['ifb'] = self.ifb
-        nodes = self.stations + self.aps + self.cars
-        module.start(nodes, self.n_radios, self.alternativeModule, **params)
-        self.configureWirelessLink()
-        self.createVirtualIfaces(self.stations)
-        self.configureAPs(self.aps, self.driver)
-
+    def configureCars(self):
+        "Configure Cars"
         for car in self.cars:
             # useful if there no link between sta and any other device
             params = {'nextIP': self.nextIP, 'ipBaseNum':self.ipBaseNum,
@@ -2216,46 +2204,62 @@ class Mininet_wifi(Mininet):
             car.params['associatedTo'].append('')
             car.params['frequency'].append(0)
 
+    def configureWmediumd(self, nodes):
+        "Configure Wmediumd"
+        if self.autoSetPositions:
+            self.wmediumd_mode = interference
+        self.wmediumd_mode()
+        if not self.configureWiFiDirect and not self.configure4addr and \
+            self.wmediumd_mode != error_prob:
+            wmediumd(self.fading_coefficient, self.noise_threshold,
+                     self.stations, self.aps, propagationModel)
+
+            if self.wmediumd_mode == interference and not self.isVanet:
+                for node in nodes:
+                    for wlan in range(0, len(node.params['wlan'])):
+                        node.setTxPower(node.params['txpower'][wlan],
+                                        intf=node.params['wlan'][wlan],
+                                        setParam=False)
+                        node.setAntennaGain(node.params['antennaGain'][wlan],
+                                            intf=node.params['wlan'][wlan],
+                                            setParam=False)
+
+    def configureWifiNodes(self):
+        "Configure WiFi Nodes"
+        if not self.ppm_is_set:
+            self.propagationModel()
+        params = {}
+        if self.ifb:
+            wirelessLink.ifb = True
+            params['ifb'] = self.ifb
+        nodes = self.stations + self.aps + self.cars
+        module.start(nodes, self.n_radios, self.alternativeModule, **params)
+        self.configureWirelessLink()
+        self.createVirtualIfaces(self.stations)
+        self.configureAPs(self.aps, self.driver)
+        self.configureCars()
+
         for node in nodes:
             for wlan in range(0, len(node.params['wlan'])):
-               setParam = True
-               if isinstance(node, Car) and wlan == 1:
+                if isinstance(node, Car) and wlan == 1:
                     node = node.params['carsta']
                     wlan = 0
-               if int(node.params['range'][wlan]) == 0:
+                if int(node.params['range'][wlan]) == 0:
                     intf = node.params['wlan'][wlan]
                     node.params['range'][wlan] = node.getRange(intf=intf)
-               else:
+                else:
                     if node.params['txpower'][wlan] == 14 and \
                                     'equipmentModel' not in node.params:
                         node.autoTxPower=True
                         node.params['txpower'][wlan] = \
                             node.get_txpower_prop_model(wlan)
-               if int(node.params['range'][wlan]) != 0:
-                    if isinstance(node, Car):
-                        setParam = False
-                    node.setTxPower(node.params['txpower'][wlan],
-                                    intf=node.params['wlan'][wlan],
-                                    setParam=setParam)
+                node.setTxPower(node.params['txpower'][wlan],
+                                intf=node.params['wlan'][wlan],
+                                setParam=True)
 
         if self.link == wmediumd:
-            if self.autoSetPositions:
-                self.wmediumd_mode = interference
-            self.wmediumd_mode()
-            if not self.configureWiFiDirect and not self.configure4addr and \
-                self.wmediumd_mode != error_prob:
-                wmediumd(self.fading_coefficient, self.noise_threshold,
-                         self.stations, self.aps, propagationModel)
+            self.configureWmediumd(nodes)
 
-                if self.wmediumd_mode == interference and not self.isVanet:
-                    for node in nodes:
-                        for wlan in range(0, len(node.params['wlan'])):
-                            node.setTxPower(node.params['txpower'][wlan],
-                                            intf=node.params['wlan'][wlan],
-                                            setParam=False)
-                            node.setAntennaGain(node.params['antennaGain'][wlan],
-                                                intf=node.params['wlan'][wlan],
-                                                setParam=False)
         return self.stations, self.aps
 
     def plotCheck(self, other_nodes):
