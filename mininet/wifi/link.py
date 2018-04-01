@@ -209,7 +209,7 @@ class IntfWireless(object):
 
     def delete(self):
         "Delete interface"
-        self.cmd('ip link del ' + self.name)
+        self.cmd('iw dev ' + self.name + ' del')
         # We used to do this, but it slows us down:
         # if self.node.inNamespace:
         # Link may have been dumped into root NS
@@ -528,7 +528,7 @@ class WirelessLinkAP(object):
         if not cls1:
             cls1 = intf
 
-        intf2 = 'wireless'
+        intf2 = 'wifi'
         # All we are is dust in the wind, and our two interfaces
         self.intf1, self.intf2 = intf1, intf2
     # pylint: enable=too-many-branches
@@ -548,7 +548,6 @@ class WirelessLinkAP(object):
         "Delete this link"
         self.intf1.delete()
         self.intf1 = None
-        self.intf2.delete()
         self.intf2 = None
 
     def stop(self):
@@ -557,7 +556,7 @@ class WirelessLinkAP(object):
 
     def status(self):
         "Return link status as a string"
-        return "(%s %s)" % (self.intf1.status(), self.intf2.status())
+        return "(%s %s)" % (self.intf1.status(), self.intf2)
 
     def __str__(self):
         return '%s<->%s' % (self.intf1, self.intf2)
@@ -601,7 +600,7 @@ class WirelessLinkStation(object):
 
         intf1 = cls1(name=intfName1, node=node1,
                      link=self, mac=addr1, **params1)
-        intf2 = 'wireless'
+        intf2 = 'wifi'
         # All we are is dust in the wind, and our two interfaces
         self.intf1, self.intf2 = intf1, intf2
     # pylint: enable=too-many-branches
@@ -621,7 +620,6 @@ class WirelessLinkStation(object):
         "Delete this link"
         self.intf1.delete()
         self.intf1 = None
-        self.intf2.delete()
         self.intf2 = None
 
     def stop(self):
@@ -630,7 +628,7 @@ class WirelessLinkStation(object):
 
     def status(self):
         "Return link status as a string"
-        return "(%s %s)" % (self.intf1.status(), self.intf2.status())
+        return "(%s %s)" % (self.intf1.status(), self.intf2)
 
     def __str__(self):
         return '%s<->%s' % (self.intf1, self.intf2)

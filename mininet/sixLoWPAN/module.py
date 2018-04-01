@@ -45,7 +45,7 @@ class module(object):
     @classmethod
     def kill_fakelb(cls):
         'Kill fakelb'
-        info("*** Killing fakelb")
+        info("*** Killing fakelb\n")
         os.system('rmmod fakelb')
 
     @classmethod
@@ -148,7 +148,7 @@ class module(object):
             debug("\n*** Configuring interfaces with appropriated network"
                   "-namespaces...\n")
             for node in nodes:
-                for wlan in range(0, len(node.params['wlan'])):
+                for wlan in range(0, len(node.params['wpan'])):
                     node.phyID[wlan] = cls.phyID
                     cls.phyID += 1
                     #rfkill = os.system(
@@ -160,7 +160,7 @@ class module(object):
                     os.system('iwpan phy phy%s set netns %s' % (phy, node.pid))
                     node.cmd('ip link set %s down' % cls.wlan_list[0])
                     node.cmd('ip link set %s name %s'
-                             % (cls.wlan_list[0], node.params['wlan'][wlan]))
+                             % (cls.wlan_list[0], node.params['wpan'][wlan]))
                     cls.wlan_list.pop(0)
         except:
             logging.exception("Warning:")

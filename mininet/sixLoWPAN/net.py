@@ -3,135 +3,59 @@
 author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)"""
 
 import re
-import select
 from time import sleep
-from itertools import chain
 from six import string_types
 
-from mininet.wifi.net import Mininet_wifi
-from mininet.node import (Host, OVSKernelSwitch,
-                          DefaultController)
+from mininet.net import Mininet
+from mininet.node import (DefaultController)
 from mininet.util import (fixLimits, numCores, ensureRoot,
                           macColonHex, waitListening)
 from mininet.sixLoWPAN.util import ipAdd6, netParse
-from mininet.link import Link, Intf
+from mininet.link import Intf
 from mininet.log import info, error, debug, output
-from mininet.wifi.plot import plot2d
 
 from mininet.sixLoWPAN.node import sixLoWPan
 from mininet.sixLoWPAN.module import module
 from mininet.sixLoWPAN.link import sixLoWPANLink
 
 
-class Mininet_sixLoWPAN(Mininet_wifi):
+class Mininet_6LoWPAN(Mininet):
 
-    def __init__(self, topo=None, switch=OVSKernelSwitch,
-                 host=Host, station=sixLoWPan,
-                 controller=DefaultController,
-                 link=Link, intf=Intf, build=True, xterms=False,
-                 ipBase='2001:0:0:0:0:0:0:0/64', inNamespace=False,
-                 autoSetMacs=False, autoStaticArp=False, autoPinCpus=False,
-                 listenPort=None, waitConnected=False, ssid="new-ssid",
-                 mode="g", channel="1", enable_interference=False,
-                 enable_spec_prob_link=False, enable_error_prob=False,
-                 fading_coefficient=0, driver='nl80211',
-                 autoSetPositions=False, configureWiFiDirect=False,
-                 configure4addr=False, defaultGraph=False,
-                 noise_threshold=-91, cca_threshold=-90):
-        """Create Mininet object.
-           topo: Topo (topology) object or None
-           switch: default Switch class
-           host: default Host class/constructor
-           controller: default Controller class/constructor
-           link: default Link class/constructor
-           intf: default Intf class/constructor
-           ipBase: base IP address for hosts,
-           build: build now from topo?
-           xterms: if build now, spawn xterms?
-           cleanup: if build now, cleanup before creating?
-           inNamespace: spawn switches and controller in net namespaces?
-           autoSetMacs: set MAC addrs automatically like IP addresses?
-           autoStaticArp: set all-pairs static MAC addrs?
-           autoPinCpus: pin hosts to (real) cores (requires CPULimitedHost)?
-           listenPort: base listening port to open; will be incremented for
-               each additional switch in the net if inNamespace=False"""
-        self.topo = topo
-        self.switch = switch
-        self.host = host
-        self.station = station
-        self.controller = controller
-        self.link = link
-        self.intf = intf
-        self.ipBase = ipBase
-        self.ipBaseNum, self.prefixLen = netParse(self.ipBase)
-        self.nextIP = 1  # start for address allocation
-        self.nextPosition = 1 # start for position allocation
-        self.repetitions = 1 # mobility: number of repetitions
-        self.inNamespace = inNamespace
-        self.xterms = xterms
-        self.autoSetMacs = autoSetMacs
-        self.autoSetPositions = autoSetPositions
-        self.autoStaticArp = autoStaticArp
-        self.autoPinCpus = autoPinCpus
-        self.numCores = numCores()
-        self.nextCore = 0  # next core for pinning hosts to CPUs
-        self.listenPort = listenPort
-        self.waitConn = waitConnected
-        self.routing = ''
-        self.ssid = ssid
-        self.mode = mode
-        self.wmediumd_mode = ''
-        self.channel = channel
-        self.nameToNode = {}  # name to Node (Host/Switch) objects
-        self.aps = []
-        self.controllers = []
-        self.hosts = []
-        self.links = []
-        self.cars = []
-        self.carsSW = []
-        self.carsSTA = []
-        self.switches = []
-        self.stations = []
-        self.sixLP = []
-        self.terms = []  # list of spawned xterm processes
-        self.driver = driver
-        self.mobilityKwargs = ''
-        self.isMobilityModel = False
-        self.isMobility = False
-        self.ppm_is_set = False
-        self.alreadyPlotted = False
-        self.DRAW = False
-        self.ifb = False
-        self.isVanet = False
-        self.plot = plot2d
-        self.noise_threshold = noise_threshold
-        self.cca_threshold = cca_threshold
-        self.configureWiFiDirect = configureWiFiDirect
-        self.configure4addr = configure4addr
-        self.enable_error_prob = enable_error_prob
-        self.fading_coefficient = fading_coefficient
-        self.enable_interference = enable_interference
-        self.enable_spec_prob_link = enable_spec_prob_link
-        self.mobilityparam = dict()
-        self.AC = ''
-        self.alternativeModule = ''
-        self.n_wpans = 0
-        self.n_radios = 0
-        self.min_x = 0
-        self.min_y = 0
-        self.min_z = 0
-        self.max_x = 0
-        self.max_y = 0
-        self.max_z = 0
-        self.nroads = 0
-        self.connections = {}
-        self.wlinks = []
-        Mininet_sixLoWPAN.init()  # Initialize Mininet if necessary
+    topo=None
+    sixLoWPan=sixLoWPan
+    controller=DefaultController
+    link=sixLoWPANLink
+    intf=Intf
+    ipBase='2001:0:0:0:0:0:0:0/64'
+    inNamespace=False
+    autoSetMacs=False
+    autoStaticArp=False
+    autoPinCpus=False
+    listenPort=None
+    waitConnected=False
+    autoSetPositions=False
+    ipBaseNum, prefixLen = netParse(ipBase)
+    nextIP = 1  # start for address allocation
+    nextPosition = 1
+    inNamespace = inNamespace
+    numCores = numCores()
+    nextCore = 0  # next core for pinning hosts to CPUs
+    nameToNode = {}  # name to Node (Host/Switch) objects
+    links = []
+    sixLP = []
+    terms = []  # list of spawned xterm processes
+    alternativeModule = ''
+    n_wpans = 0
+    min_x = 0
+    min_y = 0
+    min_z = 0
+    max_x = 0
+    max_y = 0
+    max_z = 0
+    connections = {}
+    wlinks = []
 
-        self.built = False
-        if topo and build:
-            self.build()
-
+    @classmethod
     def addParameters(self, node, autoSetMacs, params, mode='managed'):
         """adds parameters to wireless nodes
         node: node
@@ -141,8 +65,7 @@ class Mininet_sixLoWPAN(Mininet_wifi):
         mode: if interface is running in managed or master mode"""
         node.params['frequency'] = []
         node.params['channel'] = []
-        node.params['mode'] = []
-        node.params['wlan'] = []
+        node.params['wpan'] = []
         node.params['mac'] = []
         node.phyID = []
         node.autoTxPower = False
@@ -162,8 +85,7 @@ class Mininet_sixLoWPAN(Mininet_wifi):
         if mode == 'managed':
             node.params['apsInRange'] = []
             node.params['associatedTo'] = []
-            if not self.enable_interference:
-                node.params['rssi'] = []
+
             node.ifaceToAssociate = 0
             node.max_x = 0
             node.max_y = 0
@@ -241,69 +163,22 @@ class Mininet_sixLoWPAN(Mininet_wifi):
 
         wpans = self.count6LoWPANIfaces(params)
 
-        for wlan in range(wpans):
+        for wpan in range(wpans):
             self.addParamsToNode(node)
             if mode == 'managed':
                 self.appendAssociatedTo(node)
 
-            if mode == 'master':
-                if 'phywlan' in node.params and wlan == 0:
-                    node.params['wlan'].append(node.params['phywlan'])
-                else:
-                    node.params['wlan'].append(node.name + '-wpan' + str(wlan + 1))
-                if 'link' in params and params['link'] == 'mesh':
-                    self.appendRSSI(node)
-                    self.appendAssociatedTo(node)
-            else:
-                node.params['wlan'].append(node.name + '-wpan' + str(wlan))
-                self.appendRSSI(node)
-            node.params.pop("wlans", None)
+            node.params['wpan'].append(node.name + '-wpan' + str(wpan))
+            node.params.pop("wpans", None)
 
-        if mode == 'managed':
-            self.addMacParamToNode(node, wpans, autoSetMacs, params)
-            self.addIpParamToNode(node, wpans, autoSetMacs, params)
 
-        self.addAntennaGainParamToNode(node, wpans, params)
-        self.addAntennaHeightParamToNode(node, wpans, params)
-        self.addTxPowerParamToNode(node, wpans, params)
-        self.addChannelParamToNode(node, wpans, params)
-        self.addModeParamToNode(node, wpans, params)
-        self.addRangeParamToNode(node, wpans, params)
+    @staticmethod
+    def appendAssociatedTo(node):
+        "Add associatedTo param"
+        node.params['associatedTo'].append('')
 
-        # Equipment Model
-        equipmentModel = ("%s" % params.pop('equipmentModel', {}))
-        if equipmentModel != "{}":
-            node.equipmentModel = equipmentModel
 
-        if mode == 'master' or 'ssid' in node.params:
-            node.params['associatedStations'] = []
-            node.params['stationsInRange'] = {}
-            node._4addr = False
-
-            if 'config' in node.params:
-                config = node.params['config']
-                if config != []:
-                    config = node.params['config'].split(',')
-                    for conf in config:
-                        if 'wpa=' in conf or 'wep=' in conf:
-                            node.params['encrypt'] = []
-                        if 'wpa=' in conf:
-                            node.params['encrypt'].append('wpa')
-                        if 'wep=' in conf:
-                            node.params['encrypt'].append('wep')
-
-            if mode == 'master':
-                node.params['mac'] = []
-                node.params['mac'].append('')
-                if 'mac' in params:
-                    node.params['mac'][0] = params[ 'mac' ]
-
-                if 'ssid' in params:
-                    node.params['ssid'] = []
-                    ssid_list = params['ssid'].split(',')
-                    for ssid in ssid_list:
-                        node.params['ssid'].append(ssid)
-
+    @classmethod
     def add6LoWPAN(self, name, cls=None, **params):
         """Add 6LoWPAN node.
            name: name of station to add
@@ -314,10 +189,8 @@ class Mininet_sixLoWPAN(Mininet_wifi):
         defaults = {'ip': ipAdd6(self.nextIP,
                                 ipBaseNum=self.ipBaseNum,
                                 prefixLen=self.prefixLen) +
-                          '/%s' % self.prefixLen,
-                    'channel': self.channel,
-                    'mode': self.mode
-                    }
+                          '/%s' % self.prefixLen
+                   }
         defaults.update(params)
 
         if self.autoSetPositions:
@@ -331,7 +204,7 @@ class Mininet_sixLoWPAN(Mininet_wifi):
         self.nextPosition += 1
 
         if not cls:
-            cls = self.station
+            cls = self.sixLoWPan
         node = cls(name, **defaults)
 
         self.addParameters(node, self.autoSetMacs, defaults)
@@ -362,18 +235,6 @@ class Mininet_sixLoWPAN(Mininet_wifi):
         "del net[ name ] operator - delete node with given name"
         self.delNode(self.nameToNode[key])
 
-    def __iter__(self):
-        "return iterator over node names"
-        for node in chain(self.hosts, self.switches, self.controllers,
-                          self.stations, self.carsSTA, self.aps, self.sixLP):
-            yield node.name
-
-    def __len__(self):
-        "returns number of nodes in net"
-        return (len(self.hosts) + len(self.switches) +
-                len(self.controllers) + len(self.stations) +
-                len(self.carsSTA) + len(self.aps) + len(self.sixLP))
-
     def __contains__(self, item):
         "returns True if net contains named node"
         return item in self.nameToNode
@@ -390,7 +251,8 @@ class Mininet_sixLoWPAN(Mininet_wifi):
         "return (key,value) tuple list for every node in net"
         return zip(self.keys(), self.values())
 
-    def addLink(self, node1, port1=None, cls=None, **params):
+    @classmethod
+    def addLink(self, node, port, cls, **params):
         """"Add a link to node1
             node1: source node (or name)
             port1: source port (optional)
@@ -398,42 +260,19 @@ class Mininet_sixLoWPAN(Mininet_wifi):
             params: additional link params (optional)
             returns: link object"""
         # Accept node objects or names
-        node1 = node1 if not isinstance(node1, string_types) else self[node1]
+        node = node if not isinstance(node, string_types) else self[node]
         options = dict(params)
 
-        # Port is optional
-        if port1 is not None:
-            options.setdefault('port1', port1)
+        if not cls:
+            cls = sixLoWPANLink
 
+        # Port is optional
+        if port is not None:
+            options.setdefault('port1', port)
         # Set default MAC - this should probably be in Link
         options.setdefault('addr1', self.randMac())
-
-        link = cls(name=node1.params['wlan'][0], node=node1, **params)
+        link = cls(name=node.params['wpan'][0], node=node, **params)
         return link
-
-    def monitor(self, hosts=None, timeoutms=-1):
-        """Monitor a set of hosts (or all hosts by default),
-           and return their output, a line at a time.
-           hosts: (optional) set of hosts to monitor
-           timeoutms: (optional) timeout value in ms
-           returns: iterator which returns host, line"""
-        if hosts is None:
-            hosts = self.hosts
-        poller = select.poll()
-        h1 = hosts[0]  # so we can call class method fdToNode
-        for host in hosts:
-            poller.register(host.stdout)
-        while True:
-            ready = poller.poll(timeoutms)
-            for fd, event in ready:
-                host = h1.fdToNode(fd)
-                if event & select.POLLIN:
-                    line = host.readline()
-                    if line is not None:
-                        yield host, line
-            # Return if non-blocking
-            if not ready and timeoutms >= 0:
-                yield None, None
 
     @staticmethod
     def _parsePing(pingOutput):
@@ -450,6 +289,7 @@ class Mininet_sixLoWPAN(Mininet_wifi):
         sent, received = int(m.group(1)), int(m.group(2))
         return sent, received
 
+    @classmethod
     def ping6(self, hosts=None, timeout=None):
         """Ping6 between all specified hosts.
            hosts: list of hosts
@@ -460,7 +300,7 @@ class Mininet_sixLoWPAN(Mininet_wifi):
         lost = 0
         ploss = None
         if not hosts:
-            hosts = self.hosts + self.stations + self.sixLP
+            hosts = self.sixLP
             output('*** Ping: testing ping reachability\n')
         for node in hosts:
             output('%s -> ' % node.name)
@@ -631,73 +471,22 @@ class Mininet_sixLoWPAN(Mininet_wifi):
         return result
 
     @classmethod
-    def init(cls):
-        "Initialize Mininet"
-        if cls.inited:
-            return
-        ensureRoot()
-        fixLimits()
-        cls.inited = True
+    def addParamsToNode(self, node):
+        "Add Frequency, func and phyID"
+        node.params['frequency'].append(2.412)
+        node.func.append('none')
+        node.phyID.append(0)
 
-    def configHosts(self):
-        "Configure a set of nodes."
-        nodes = self.sixLP
-        for node in nodes:
-            # info( host.name + ' ' )
-            intf = node.defaultIntf()
-            if intf:
-                node.configDefault()
-            else:
-                # Don't configure nonexistent intf
-                node.configDefault(ip=None, mac=None)
-                # You're low priority, dude!
-                # BL: do we want to do this here or not?
-                # May not make sense if we have CPU lmiting...
-                # quietRun( 'renice +18 -p ' + repr( host.pid ) )
-                # This may not be the right place to do this, but
-                # it needs to be done somewhere.
-                # info( '\n' )
-
-    def build(self):
-        "Build mininet."
-        if self.topo:
-            self.buildFromTopo(self.topo)
-        if self.inNamespace:
-            self.configureControlNetwork()
-        info('*** Configuring nodes\n')
-        self.configHosts()
-        if self.xterms:
-            self.startTerms()
-        if self.autoStaticArp:
-            self.staticArp()
-
-        self.built = True
-
-    def stop(self):
-        'Stop Mininet-WiFi'
-        if self.terms:
-            info('*** Stopping %i terms\n' % len(self.terms))
-            self.stopXterms()
-        self.stopGraphParams()
-        info('\n')
-        info('*** Stopping nodes\n')
-        nodes = self.sixLP
-        for node in nodes:
-            info(node.name + ' ')
-            node.terminate()
-        info('\n')
-        self.closeMininetWiFi()
-        info('\n*** Done\n')
-
+    @classmethod
     def count6LoWPANIfaces(self, params):
         "Count the number of virtual 6LoWPAN interfaces"
-        if 'wlans' in params:
-            self.n_wpans += int(params['wlans'])
-            wlans = int(params['wlans'])
+        if 'wpans' in params:
+            self.n_wpans += int(params['wpans'])
+            wpans = int(params['wpans'])
         else:
-            wlans = 1
+            wpans = 1
             self.n_wpans += 1
-        return wlans
+        return wpans
 
     def kill_fakelb(self):
         "Kill fakelb"
@@ -707,20 +496,7 @@ class Mininet_sixLoWPAN(Mininet_wifi):
     def configureIface(self, node, wlan):
         intf = module.wlan_list[0]
         module.wlan_list.pop(0)
-        node.renameIface(intf, node.params['wlan'][wlan])
-
-    def configureSixLoWPANNodes(self):
-        "Configure WiFi Nodes"
-        nodes = self.stations + self.aps + self.cars + self.sixLP
-        module.start(nodes, self.n_wpans, self.alternativeModule)
-        self.configureWifiNodes()
-        #self.configNodes()
-
-    def configNodes(self):
-        "Configure a set of nodes."
-        for node in self.sixLP:
-            ip = node.params['ip'][0]
-            sixLoWPANLink.setIP(ip)
+        node.renameIface(intf, node.params['wpan'][wlan])
 
     def closeMininetWiFi(self):
         "Close Mininet-WiFi"

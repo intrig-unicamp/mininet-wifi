@@ -37,6 +37,8 @@ from mininet.wifi.plot import plot2d, plot3d, plotGraph
 from mininet.wifi.module import module
 from mininet.wifi.propagationModels import propagationModel
 from mininet.wifi.vanet import vanet
+from mininet.sixLoWPAN.net import Mininet_6LoWPAN
+from mininet.sixLoWPAN.module import module as sixLoWPAN_module
 
 sys.path.append(str(os.getcwd()) + '/mininet/')
 from mininet.sumo.runner import sumo
@@ -114,6 +116,7 @@ class Mininet_wifi(Mininet):
         self.carsSTA = []
         self.switches = []
         self.stations = []
+        self.sixLP = []
         self.walls = []
         self.terms = []  # list of spawned xterm processes
         self.driver = driver
@@ -248,6 +251,12 @@ class Mininet_wifi(Mininet):
         self.nameToNode[name] = sta
 
         return sta
+
+    def add6LoWPAN(self, name, cls=None, **params):
+        node = Mininet_6LoWPAN.add6LoWPAN(name, cls, **params)
+        self.sixLP.append(node)
+        self.nameToNode[name] = node
+        return node
 
     def addCar(self, name, cls=None, **params):
         """Add Car.
@@ -417,14 +426,14 @@ class Mininet_wifi(Mininet):
     def __iter__(self):
         "return iterator over node names"
         for node in chain(self.hosts, self.switches, self.controllers,
-                          self.stations, self.carsSTA, self.aps):
+                          self.stations, self.carsSTA, self.aps, self.sixLP):
             yield node.name
 
     def __len__(self):
         "returns number of nodes in net"
         return (len(self.hosts) + len(self.switches) +
                 len(self.controllers) + len(self.stations) +
-                len(self.carsSTA) + len(self.aps))
+                len(self.carsSTA) + len(self.aps) + len(self.sixLP))
 
     def __contains__(self, item):
         "returns True if net contains named node"
@@ -455,6 +464,11 @@ class Mininet_wifi(Mininet):
     def useIFB(self):
         "Support to Intermediate Functional Block (IFB) Devices"
         self.ifb = True
+
+    def add6LoWPANLink(self, node, port=None, cls=None, **params):
+        link = Mininet_6LoWPAN.addLink(node, port, cls, **params)
+        self.links.append(link)
+        return link
 
     def addLink(self, node1, node2, port1=None, port2=None,
                 cls=None, **params):
@@ -534,8 +548,10 @@ class Mininet_wifi(Mininet):
                         bw = value.rate
                         params['bw'] = bw
                     # tc = True, this is useful only to apply tc configuration
-                    cls(name=sta.params['wlan'][wlan], node=sta,
-                        link=None, tc=True, **params)
+                    link = cls(name=sta.params['wlan'][wlan], node=sta,
+                               link=None, tc=True, **params)
+                    self.links.append(link)
+                    return link
             if self.link == wmediumd:
                 if self.wmediumd_mode == error_prob:
                     wmediumd.wlinks.append([sta, ap, params['error_prob']])
@@ -551,11 +567,15 @@ class Mininet_wifi(Mininet):
                 self.connections['ls'].append('--')
 
             if self.wmediumd_mode == interference:
-                cls(node1, node2)
+                link = cls(node1, node2)
+                self.links.append(link)
+                return link
             else:
                 dist = node1.get_distance_to(node2)
                 if dist <= node1.params['range'][0]:
-                    cls(node1, node2)
+                    link = cls(node1, node2)
+                    self.links.append(link)
+                    return link
         else:
             if 'link' in options:
                 options.pop('link', None)
@@ -759,6 +779,7 @@ class Mininet_wifi(Mininet):
         self.terms += makeTerms(self.hosts, 'host')
         self.terms += makeTerms(self.stations, 'station')
         self.terms += makeTerms(self.aps, 'ap')
+        self.terms += makeTerms(self.sixLP, 'sixLP')
 
     def stopXterms(self):
         "Kill each xterm."
@@ -849,15 +870,17 @@ class Mininet_wifi(Mininet):
                 switch.stop()
             switch.terminate()
         info('\n')
-        info('*** Stopping hosts/stations\n')
-        hosts = self.hosts + self.stations
-        for host in hosts:
-            info(host.name + ' ')
-            host.terminate()
+        info('*** Stopping nodes\n')
+        nodes = self.hosts + self.stations + self.sixLP
+        for node in nodes:
+            info(node.name + ' ')
+            node.terminate()
         info('\n')
         if self.aps is not []:
             self.kill_hostapd()
         self.closeMininetWiFi()
+        if self.sixLP:
+            sixLoWPAN_module.stop()
         if self.link == wmediumd:
             self.kill_wmediumd()
         info('\n*** Done\n')
@@ -951,6 +974,9 @@ class Mininet_wifi(Mininet):
         else:
             ploss = 0
             output("*** Warning: No packets sent\n")
+        if self.sixLP:
+            nodes = self.sixLP
+            Mininet_6LoWPAN.ping6(nodes, timeout)
         return ploss
 
     @staticmethod
@@ -1906,10 +1932,11 @@ class Mininet_wifi(Mininet):
                         options.setdefault('intfName1', iface)
                     else:
                         self.configureIface(node, wlan)
-                    TCLinkWirelessAP(node, **options)
+                    link = TCLinkWirelessAP(node, **options)
+                    self.links.append(link)
             elif 'inNamespace' in node.params:
-                cls = TCLinkWirelessAP
-                cls(node)
+                link = TCLinkWirelessAP(node)
+                self.links.append(link)
             AccessPoint.setIPMAC(node, wlan)
             if 'vssids' in node.params:
                 break
@@ -2020,8 +2047,9 @@ class Mininet_wifi(Mininet):
         nodes = self.stations + self.cars
         for node in nodes:
             for wlan in range(0, len(node.params['wlan'])):
-                TCLinkWirelessStation(node,
-                                      intfName1=node.params['wlan'][wlan])
+                link = TCLinkWirelessStation(node,
+                                             intfName1=node.params['wlan'][wlan])
+                self.links.append(link)
             self.configureMacAddr(node)
         self.check_sta_ap_mode()
 
@@ -2234,6 +2262,8 @@ class Mininet_wifi(Mininet):
             params['ifb'] = self.ifb
         nodes = self.stations + self.aps + self.cars
         module.start(nodes, self.n_radios, self.alternativeModule, **params)
+        if Mininet_6LoWPAN.n_wpans != 0:
+            sixLoWPAN_module.start(self.sixLP, Mininet_6LoWPAN.n_wpans)
         self.configureWirelessLink()
         self.createVirtualIfaces(self.stations)
         self.configureAPs(self.aps, self.driver)
