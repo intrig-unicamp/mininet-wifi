@@ -691,8 +691,6 @@ class wmediumd(TCWirelessLink):
     def configureWmediumd(cls, fading_coefficient, noise_threshold, stations,
                           aps, propagation_model):
         "Configure wmediumd"
-        from mininet.wifi.node import AP, Car
-
         intfrefs = []
         isnodeaps = []
         cars = []
@@ -706,7 +704,7 @@ class wmediumd(TCWirelessLink):
         cls.nodes = stations + aps + cars
         for node in cls.nodes:
             node.wmIface = []
-            if isinstance(node, Car):
+            if 'carsta' in node.params:
                 wlans = 1
             elif '_4addr' in node.params and node.params['_4addr'] == 'ap':
                 wlans = 1
@@ -716,7 +714,7 @@ class wmediumd(TCWirelessLink):
                 node.wmIface.append(wlan)
                 node.wmIface[wlan] = DynamicWmediumdIntfRef(node, intf=wlan)
                 intfrefs.append(node.wmIface[wlan])
-                if (node.func[wlan] == 'ap' or (isinstance(node, AP)
+                if (node.func[wlan] == 'ap' or (node in aps
                                                 and node.func[wlan] is not 'client')):
                     isnodeaps.append(1)
                 else:
@@ -754,8 +752,7 @@ class set_interference(object):
 
     @classmethod
     def interference(cls):
-
-        from mininet.wifi.node import Car
+        'configure interference model'
         for node in wmediumd.nodes:
             if 'position' not in node.params:
                 posX = 0
@@ -767,7 +764,7 @@ class set_interference(object):
                 posZ = node.params['position'][2]
             node.lastpos = [posX, posY, posZ]
 
-            if isinstance(node, Car):
+            if 'carsta' in node.params:
                 wlans = 1
             elif '_4addr' in node.params and node.params['_4addr'] == 'ap':
                 wlans = 1
@@ -882,10 +879,8 @@ class wirelessLink (object):
     @classmethod
     def delete(cls, node):
         "Delete interfaces"
-        from mininet.wifi.node import Car
-
         for wlan in node.params['wlan']:
-            if isinstance(node, Car) and node.params['wlan'].index(wlan) == 1:
+            if 'carsta' in node.params and node.params['wlan'].index(wlan) == 1:
                 node = node.params['carsta']
                 wlan = node.params['wlan'][0]
             if isinstance(wlan, string_types):
@@ -930,7 +925,7 @@ class wirelessLink (object):
 class Association(object):
 
     printCon = True
-    bgscan = ''
+    bgscan = None
 
     @classmethod
     def setSNRWmediumd(cls, sta, ap, snr):
@@ -1088,7 +1083,7 @@ class Association(object):
                 if 'freq_list' in sta.params and sta.params['freq_list'][wlan] != '':
                     cmd = cmd + '   freq_list=%s\n' % sta.params['freq_list'][wlan]
             cmd = cmd + '   key_mgmt=%s\n' % ap.wpa_key_mgmt
-            if cls.bgscan != '':
+            if cls.bgscan:
                 cmd = cmd + '   %s\n' % cls.bgscan
             if 'authmode' in ap.params and ap.params['authmode'] == '8021x':
                 cmd = cmd + '   eap=PEAP\n'

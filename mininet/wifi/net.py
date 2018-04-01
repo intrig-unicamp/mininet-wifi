@@ -490,40 +490,32 @@ class Mininet_wifi(Mininet):
         self.connections.setdefault('ls', [])
 
         # If AP and STA
-        if ((((isinstance(node1, Station) or isinstance(node1, Car))
-              and ('ssid' in node2.params and 'apsInRange' in node1.params))
-             or ((isinstance(node2, Station) or isinstance(node2, Car))
-                 and ('ssid' in node1.params and 'apsInRange' in node2.params)))
-                and 'link' not in options):
+        if ((node1 in self.stations and node2 in self.aps)
+            or (node2 in self.stations and node1 in self.aps)):
 
-            sta_intf = None
-            ap_intf = 0
-            if (isinstance(node1, Station) or isinstance(node1, Car)) \
-                    and 'ssid' in node2.params:
+            sta = node2
+            ap = node1
+            sta_wlan = None
+            ap_wlan = 0
+
+            if port2:
+                sta_wlan = port2
+            if port1:
+                ap_wlan = port1
+
+            if node1 in self.stations and node2 in self.aps:
                 sta = node1
                 ap = node2
                 if port1:
-                    sta_intf = port1
+                    sta_wlan = port1
                 if port2:
-                    ap_intf = port2
-            else:
-                sta = node2
-                ap = node1
-                if port2:
-                    sta_intf = port2
-                if port1:
-                    ap_intf = port1
+                    ap_wlan = port2
 
             wlan = sta.ifaceToAssociate
-            if sta_intf:
-                wlan = sta_intf
+            if sta_wlan:
+                wlan = sta_wlan
 
-            ap_wlan = ap_intf
-
-            sta.params['mode'][wlan] = ap.params['mode'][ap_wlan]
-            sta.params['channel'][wlan] = ap.params['channel'][ap_wlan]
-
-            # If sta/ap have defined position
+            # If sta/ap have position
             doAssociation = True
             if 'position' in sta.params and 'position' in ap.params:
                 dist = sta.get_distance_to(ap)
@@ -533,6 +525,8 @@ class Mininet_wifi(Mininet):
             cls = self.link if cls is None else cls
 
             if doAssociation:
+                sta.params['mode'][wlan] = ap.params['mode'][ap_wlan]
+                sta.params['channel'][wlan] = ap.params['channel'][ap_wlan]
                 enable_wmediumd = False
                 enable_interference = False
                 if self.link == wmediumd:
@@ -1478,9 +1472,6 @@ class Mininet_wifi(Mininet):
                     node.params['wlan'].append(node.params['phywlan'])
                 else:
                     node.params['wlan'].append(node.name + '-wlan' + str(wlan + 1))
-                if 'link' in params and params['link'] == 'mesh':
-                    self.appendRSSI(node)
-                    self.appendAssociatedTo(node)
             else:
                 node.params['wlan'].append(node.name + '-wlan' + str(wlan))
                 self.appendRSSI(node)
@@ -2087,15 +2078,15 @@ class Mininet_wifi(Mininet):
         self.isMobility = True
 
         if 'model' in kwargs or self.isVanet:
-            stationaryNodes = []
+            mobileNodes = []
             for node in kwargs['mobileNodes']:
                 if 'position' not in node.params \
                         or 'position' in node.params \
                                 and node.params['position'] == (-1,-1,-1):
                     node.isStationary = False
-                    stationaryNodes.append(node)
+                    mobileNodes.append(node)
                     node.params['position'] = 0, 0, 0
-            kwargs['stationaryNodes'] = stationaryNodes
+            kwargs['mobileNodes'] = mobileNodes
             params = self.setMobilityParams(**kwargs)
             if self.nroads == 0:
                 mobility.start(**params)
@@ -2168,8 +2159,9 @@ class Mininet_wifi(Mininet):
         self.mobilityparam.setdefault('max_z', self.max_z)
         self.mobilityparam.setdefault('AC', self.AC)
         self.mobilityparam.setdefault('rec_rssi', self.rec_rssi)
-        if 'stationaryNodes' in kwargs and kwargs['stationaryNodes'] is not []:
-            self.mobilityparam.setdefault('stationaryNodes', kwargs['stationaryNodes'])
+        self.mobilityparam.setdefault('ppm', self.getPropagationModel())
+        if 'mobileNodes' in kwargs and kwargs['mobileNodes']:
+            self.mobilityparam.setdefault('mobileNodes', kwargs['mobileNodes'])
         return self.mobilityparam
 
     def useExternalProgram(self, program, **params):
@@ -2237,6 +2229,8 @@ class Mininet_wifi(Mininet):
         if self.autoSetPositions:
             self.wmediumd_mode = interference
         self.wmediumd_mode()
+        if self.wmediumd_mode == interference:
+            mobility.wmediumd_mode = 3
         if not self.configureWiFiDirect and not self.configure4addr and \
             self.wmediumd_mode != error_prob:
             wmediumd(self.fading_coefficient, self.noise_threshold,
