@@ -550,7 +550,7 @@ class Mininet_wifi(Mininet):
                     # tc = True, this is useful only to apply tc configuration
                     link = cls(name=sta.params['wlan'][wlan], node=sta,
                                link=None, tc=True, **params)
-                    self.links.append(link)
+                    #self.links.append(link)
                     return link
             if self.link == wmediumd:
                 if self.wmediumd_mode == error_prob:
