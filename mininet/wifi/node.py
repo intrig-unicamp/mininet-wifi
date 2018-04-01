@@ -1456,7 +1456,7 @@ class UserAP(AP):
         return self.cmd('dpctl ' + ' '.join(args) + ' ' + listenAddr)
 
     def connected(self):
-        "Is the switch connected to a controller?"
+        "Is the ap connected to a controller?"
         status = self.dpctl('status')
         return ('remote.is-connected=true' in status and
                 'local.is-connected=true' in status)
