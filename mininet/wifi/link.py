@@ -473,6 +473,24 @@ class _4address(object):
         node.cmd('iw dev %s interface add %s type managed 4addr on'
                  % (node.params['wlan'][0], intfName))
 
+    def status(self):
+        "Return link status as a string"
+        return "(%s %s)" % (self.intf1.status(), self.intf2)
+
+    def __str__(self):
+        return '%s<->%s' % (self.intf1, self.intf2)
+
+    def delete(self):
+        "Delete this link"
+        self.intf1.delete()
+        self.intf1 = None
+        self.intf2.delete()
+        self.intf2 = None
+
+    def stop(self):
+        "Override to stop and clean up link as needed"
+        self.delete()
+
 class WirelessLinkAP(object):
 
     """A basic link is just a veth pair.
