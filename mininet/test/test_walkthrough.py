@@ -565,7 +565,7 @@ class testWalkthrough(unittest.TestCase):
         "Run iperf test using user and ovsk aps"
         aps = [ 'user', 'ovsk' ]
         for ap in aps:
-            p = pexpect.spawn('mn --wifi --switch %s --test iperf' % ap)
+            p = pexpect.spawn('mn --wifi --ap %s --test iperf' % ap)
             p.expect(r"Results: \['([\d\.]+) .bits/sec',")
             bw = float(p.match.group(1))
             self.assertTrue(bw > 0)
