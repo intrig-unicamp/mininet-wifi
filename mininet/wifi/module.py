@@ -113,7 +113,7 @@ class module(object):
     @classmethod
     def kill_mac80211_hwsim(cls):
         'Kill mac80211_hwsim'
-        info("*** Killing mac80211_hwsim")
+        info("*** Killing mac80211_hwsim\n")
         os.system('rmmod mac80211_hwsim >/dev/null 2>&1')
 
     @classmethod

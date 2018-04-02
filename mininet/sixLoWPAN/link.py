@@ -191,7 +191,7 @@ class IntfSixLoWPAN( object ):
 
     def delete( self ):
         "Delete interface"
-        self.cmd( 'ip link del ' + self.name )
+        self.cmd( 'iwpan dev ' + self.node.params['wpan'][0] + ' del' )
         # We used to do this, but it slows us down:
         # if self.node.inNamespace:
         # Link may have been dumped into root NS
@@ -219,17 +219,19 @@ class sixLoWPANLink(object):
         """Create 6LoWPAN link to another node.
            node: node
            intf: default interface class/constructor"""
+        intf1 = None
+        intf2 = None
         self.configIface(node, **params)
 
     def configIface(self, node, port=None, intfName=None, addr=None,
                     cls=None, **params):
 
         node.cmd('ip link set lo up')
-        node.cmd('ip link set %s down' % node.params['wlan'][0])
-        node.cmd('iwpan dev %s set pan_id "%s"' % (node.params['wlan'][0], params['panid']))
+        node.cmd('ip link set %s down' % node.params['wpan'][0])
+        node.cmd('iwpan dev %s set pan_id "%s"' % (node.params['wpan'][0], params['panid']))
         node.cmd('ip link add link %s name %s-lowpan type lowpan'
-                 % (node.params['wlan'][0], node.name))
-        node.cmd('ip link set %s up' % node.params['wlan'][0])
+                 % (node.params['wpan'][0], node.name))
+        node.cmd('ip link set %s up' % node.params['wpan'][0])
         node.cmd('ip link set %s-lowpan up' % node.name)
 
         if params is None:
@@ -243,13 +245,13 @@ class sixLoWPANLink(object):
             intfName1 = self.wpanName(node, ifacename, node.newWpanPort())
         if not cls:
             cls = IntfSixLoWPAN
-        params['ip'] = node.params['ip'][0]
+        params['ip'] = node.params['ip']
         params['name'] = intfName1
 
         intf1 = cls(node=node, mac=addr, link=self, **params)
         intf2 = '6LoWPAN'
         # All we are is dust in the wind, and our two interfaces
-        cls.intf1, cls.intf2 = intf1, intf2
+        self.intf1, self.intf2 = intf1, intf2
 
     @staticmethod
     def _ignore(*args, **kwargs):
@@ -266,7 +268,6 @@ class sixLoWPANLink(object):
         "Delete this link"
         self.intf1.delete()
         self.intf1 = None
-        self.intf2.delete()
         self.intf2 = None
 
     def stop(self):
@@ -275,7 +276,7 @@ class sixLoWPANLink(object):
 
     def status(self):
         "Return link status as a string"
-        return "(%s %s)" % (self.intf1.status(), self.intf2.status())
+        return "(%s %s)" % (self.intf1.status(), self.intf2)
 
     def __str__(self):
         return '%s<->%s' % (self.intf1, self.intf2)

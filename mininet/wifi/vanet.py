@@ -139,9 +139,9 @@ class vanet(object):
             plot2d.plotLine(self.road[n])
 
         for bs in baseStations:
-            bs.properties = ginp(1)[0]
-            bs_x = '%.2f' % bs.properties[0]
-            bs_y = '%.2f' % bs.properties[1]
+            bs.prop = ginp(1)[0]
+            bs_x = '%.2f' % bs.prop[0]
+            bs_y = '%.2f' % bs.prop[1]
             self.scatter = plot2d.plotScatter(bs_x, bs_y)
             bs.params['position'] = bs_x, bs_y, 0
             bs.set_position_wmediumd()
@@ -198,14 +198,15 @@ class vanet(object):
             line_data = car_line.get_data()
             ang = self.calculateAngle(line_data)
 
-            car.properties = self.carProperties(point, ang, x_min, x_max, y_min, y_max)
+            car.prop = self.carProp(point, ang, x_min, x_max, y_min, y_max)
 
             # for the even cars shift angle to negative
             # so that it goes in opposite direction from car1
             car.i = i
             if i % 2 == 0:
                 ang = ang + math.pi
-                point = car_line.get_xydata()[-1]  # for this car get the last point as positions
+                # for this car get the last point as positions
+                point = car_line.get_xydata()[-1]
 
             x_min, x_max = self.lineX(line_data)
             y_min, y_max = self.lineY(line_data)
@@ -248,7 +249,7 @@ class vanet(object):
         return ang
 
     @classmethod
-    def carProperties(cls, point, ang, x_min, x_max, y_min, y_max):
+    def carProp(cls, point, ang, x_min, x_max, y_min, y_max):
         temp = []
         temp.append(point[0])
         temp.append(point[1])
@@ -266,7 +267,7 @@ class vanet(object):
         temp.append(point[1])
         return temp
 
-    def line_properties(self, line, car):
+    def line_prop(self, line, car):
 
         line_data = line.get_data()  # Get the x and y values of the points in the line
         ang = self.calculateAngle(line_data)  # Get angle
@@ -279,7 +280,7 @@ class vanet(object):
         x_min, x_max = self.lineX(line_data)
         y_min, y_max = self.lineY(line_data)
 
-        car.properties = self.carProperties(point, ang, x_min, x_max, y_min, y_max)
+        car.prop = self.carProp(point, ang, x_min, x_max, y_min, y_max)
         car.initial = self.carPoint(point)
 
     def repeat (self, car):
@@ -291,23 +292,23 @@ class vanet(object):
                 if n < car.currentRoad:
                     car.currentRoad = n
                     # get properties of each line in a path
-                    self.line_properties(self.road[car.currentRoad], car)
+                    self.line_prop(self.road[car.currentRoad], car)
                     lastRoad = False
                     break
             if lastRoad:
                 car.currentRoad = len(self.totalRoads) - 1
-                self.line_properties(self.road[car.currentRoad], car)                
+                self.line_prop(self.road[car.currentRoad], car)
         else:
             for n in self.totalRoads:
                 if n > car.currentRoad:
                     car.currentRoad = n
                     # get properties of each line in a path
-                    self.line_properties(self.road[car.currentRoad], car)
+                    self.line_prop(self.road[car.currentRoad], car)
                     lastRoad = False
                     break
             if lastRoad:
                 car.currentRoad = 0
-                self.line_properties(self.road[car.currentRoad], car)
+                self.line_prop(self.road[car.currentRoad], car)
                 
     def findIntersection(self):
         # have to work on
@@ -337,44 +338,44 @@ class vanet(object):
         # iterate over each car
         for car in cars:
             # get all the properties of the car
-            velocity = round(np.random.uniform(car.speed[0], car.speed[1]))
-            position_x = car.properties[0]
-            position_y = car.properties[1]
+            vel = round(np.random.uniform(car.speed[0], car.speed[1]))
+            pos_x = car.prop[0]
+            pos_y = car.prop[1]
 
-            car.params['position'] = position_x, position_y, 0
+            car.params['position'] = pos_x, pos_y, 0
             car_ = car.params['carsta']
             car_.params['position'] = car.params['position']
-            angle = car.properties[2]
+            angle = car.prop[2]
 
             # calculate new position of the car
-            position_x = position_x + velocity * cos(angle) * self.time_per_iteration
-            position_y = position_y + velocity * sin(angle) * self.time_per_iteration
+            pos_x = pos_x + vel * cos(angle) * self.time_per_iteration
+            pos_y = pos_y + vel * sin(angle) * self.time_per_iteration
 
-            if (position_x < car.properties[3] or position_x > car.properties[4]) \
-                or (position_y < car.properties[5] or position_y > car.properties[6]):
+            if (pos_x < car.prop[3] or pos_x > car.prop[4]) \
+                or (pos_y < car.prop[5] or pos_y > car.prop[6]):
                 self.repeat(car)
                 points[0].append(car.initial[0])
                 points[1].append(car.initial[1])
             else:
-                car.properties[0] = position_x
-                car.properties[1] = position_y
-                points[0].append(position_x)
-                points[1].append(position_y)
+                car.prop[0] = pos_x
+                car.prop[1] = pos_y
+                points[0].append(pos_x)
+                points[1].append(pos_y)
 
                 for node in nodes:
                     if nodes == car:
                         continue
                     else:
                         # compute to see if vehicle is in range
-                        inside = math.pow((node.properties[0] - position_x), 2) + \
-                                 math.pow((node.properties[1] - position_y), 2)
+                        inside = math.pow((node.prop[0] - pos_x), 2) + \
+                                 math.pow((node.prop[1] - pos_y), 2)
                         if inside <= math.pow(node.params['range'][0], 2):
                             if isinstance(node, AP):
                                 color = 'black'
                             else:
                                 color = 'r'
-                            line = plot2d.plotLine2d([position_x, node.properties[0]],
-                                                     [position_y, node.properties[1]],
+                            line = plot2d.plotLine2d([pos_x, node.prop[0]],
+                                                     [pos_y, node.prop[1]],
                                                      color=color)
                             com_lines.append(line)
                             plot2d.plotLine(line)

@@ -36,7 +36,6 @@ class snr(object):
 
 
 class error_prob(object):
-
     def __init__(self):
         wmediumd_mode.set_mode(mode=1)
 

@@ -14,6 +14,7 @@ import glob
 
 from mininet.log import info
 from mininet.clean import killprocs, sh
+from mininet.sixLoWPAN.clean import Cleanup as sixlowpan
 
 class Cleanup(object):
     "Wrapper for cleanup()"
@@ -56,5 +57,6 @@ class Cleanup(object):
         info("*** Killing wmediumd\n")
         sh('pkill wmediumd')
 
+        sixlowpan.cleanup_6lowpan()
 
 cleanup_wifi = Cleanup.cleanup_wifi

@@ -483,7 +483,7 @@ class testWalkthrough(unittest.TestCase):
         p.expect('Station ap2: ap2-wlan0:192.168.1.10')
         p.expect(self.prompt)
         p.sendline('net')
-        p.expect('ap1 ap1-wlan0:wireless ap1-eth1:ap2-eth1')
+        p.expect('ap1 ap1-wlan0:wifi ap1-eth1:ap2-eth1')
         p.expect(self.prompt)
         stations = [ 'Station sta1: sta1-wlan0:10.0.0.1', self.prompt ]
         p.sendline('py ap1.params[\'associatedStations\']')
@@ -565,7 +565,7 @@ class testWalkthrough(unittest.TestCase):
         "Run iperf test using user and ovsk aps"
         aps = [ 'user', 'ovsk' ]
         for ap in aps:
-            p = pexpect.spawn('mn --wifi --switch %s --test iperf' % ap)
+            p = pexpect.spawn('mn --wifi --ap %s --test iperf' % ap)
             p.expect(r"Results: \['([\d\.]+) .bits/sec',")
             bw = float(p.match.group(1))
             self.assertTrue(bw > 0)

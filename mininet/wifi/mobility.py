@@ -1,9 +1,5 @@
-"""
-    Mininet-WiFi: A simple networking testbed for Wireless OpenFlow/SDWN!
-
-    author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
-
-"""
+"""Mininet-WiFi: A simple networking testbed for Wireless OpenFlow/SDWN!
+   author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)"""
 
 import threading
 from time import sleep, time
@@ -14,25 +10,20 @@ from numpy.random import rand
 from mininet.log import debug, info
 from mininet.wifi.link import wirelessLink, Association
 from mininet.wifi.associationControl import associationControl
-from mininet.wifi.wmediumdConnector import WmediumdServerConn, \
-    wmediumd_mode, WmediumdConstants
-from mininet.wifi.propagationModels import propagationModel
 from mininet.wifi.plot import plot2d, plot3d, plotGraph
 
 
 class mobility(object):
     'Mobility'
-    AC = ''  # association control method
     aps = []
     stations = []
-    meshNodes = []
     mobileNodes = []
-    stationaryNodes = []
+    ac = None  # association control method
+    wmediumd_mode = None
     continuePlot = 'plot2d.graphPause()'
     pause_simulation = False
     rec_rssi = False
     allAutoAssociation = True
-    plot = plot2d
     continue_params = 'sleep(0.0001)'
 
     @classmethod
@@ -179,15 +170,13 @@ class mobility(object):
                                        % sta.params['wlan'][wlan])):
                         os.system('rm /var/run/wpa_supplicant/%s'
                                   % sta.params['wlan'][wlan])
-            elif WmediumdServerConn.connected \
-                    and wmediumd_mode.mode != WmediumdConstants.INTERFERENCE_MODE:
-                cls = Association
-                cls.setSNRWmediumd(sta, ap, snr=-10)
+            elif cls.wmediumd_mode and cls.wmediumd_mode != 3:
+                Association.setSNRWmediumd(sta, ap, snr=-10)
             if 'encrypt' in ap.params and 'ieee80211r' not in ap.params:
                 debug('iw dev %s disconnect\n' % sta.params['wlan'][wlan])
                 sta.pexec('iw dev %s disconnect' % sta.params['wlan'][wlan])
             sta.params['associatedTo'][wlan] = ''
-            if wmediumd_mode.mode != WmediumdConstants.INTERFERENCE_MODE:
+            if cls.wmediumd_mode and cls.wmediumd_mode != 3:
                 sta.params['rssi'][wlan] = 0
             sta.params['channel'][wlan] = 0
         if sta in ap.params['associatedStations']:
@@ -209,7 +198,7 @@ class mobility(object):
         rssi = sta.set_rssi(ap, wlan, dist)
         ap.params['stationsInRange'][sta] = rssi
         if ap == sta.params['associatedTo'][wlan]:
-            if wmediumd_mode.mode != WmediumdConstants.INTERFERENCE_MODE:
+            if cls.wmediumd_mode and cls.wmediumd_mode != 3:
                 rssi = sta.set_rssi(ap, wlan, dist)
                 sta.params['rssi'][wlan] = rssi
                 if cls.rec_rssi:
@@ -219,14 +208,13 @@ class mobility(object):
             if sta not in ap.params['associatedStations']:
                 ap.params['associatedStations'].append(sta)
             if dist >= 0.01:
-                if Association.bgscan != '' or 'active_scan' in sta.params \
+                if Association.bgscan or 'active_scan' in sta.params \
                 and ('encrypt' in sta.params and 'wpa' in sta.params['encrypt'][wlan]):
                     pass
-                elif WmediumdServerConn.connected and \
-                                wmediumd_mode.mode != WmediumdConstants.INTERFERENCE_MODE:
+                elif cls.wmediumd_mode and cls.wmediumd_mode != 3:
                     Association.setSNRWmediumd(
                         sta, ap, snr=sta.params['rssi'][wlan] - (-91))
-                elif wmediumd_mode.mode == WmediumdConstants.INTERFERENCE_MODE:
+                elif cls.wmediumd_mode and cls.wmediumd_mode == 3:
                     pass
                 else:
                     wirelessLink(sta, ap, wlan, 0, dist)
@@ -258,10 +246,9 @@ class mobility(object):
         changeAP = False
 
         "Association Control: mechanisms that optimize the use of the APs"
-        if cls.AC != '' and sta.params['associatedTo'][wlan] != ap \
+        if cls.ac and sta.params['associatedTo'][wlan] != ap \
                 and sta.params['associatedTo'][wlan] != '':
-            ac = cls.AC
-            value = associationControl(sta, ap, wlan, ac)
+            value = associationControl(sta, ap, wlan, cls.ac)
             changeAP = value.changeAP
         if sta.params['associatedTo'][wlan] == '' or changeAP is True:
             if ap not in sta.params['associatedTo']:
@@ -308,7 +295,7 @@ class mobility(object):
     def controlled_mobility(cls, init_time=0, final_time=0, stations=[],
                             aps=[], connections=[], plotNodes=[], min_x=0,
                             min_y=0, min_z=0, max_x=0, max_y=0, max_z=0, AC='',
-                            DRAW=False, repetitions=1, rec_rssi=False,
+                            DRAW=False, repetitions=1, rec_rssi=False, ppm=None,
                             **params):
         """Used when the position of each node is previously defined
 
@@ -325,29 +312,32 @@ class mobility(object):
         :param MAX_X: Maximum value for X
         :param MAX_Y: Maximum value for Y
         :param MAX_Z: Maximum value for Z
-        :param AC: Association Control Method"""
+        :param AC: Association Control Method
+        :param ppm: propagation model"""
         from mininet.wifi.node import Station
 
-        cls.AC = AC
+        cls.ac = AC
         cls.rec_rssi = rec_rssi
         cls.stations = stations
         cls.aps = aps
         nodes = cls.stations + cls.aps + plotNodes
+        plot = plot2d
 
         for node in nodes:
+            stationaryNodes = []
             if 'position' in node.params and 'initialPosition' not in node.params:
-                cls.stationaryNodes.append(node)
+                stationaryNodes.append(node)
             if 'initialPosition' in node.params:
                 node.params['position'] = node.params['initialPosition']
                 cls.mobileNodes.append(node)
 
-        nodes = cls.mobileNodes + cls.stationaryNodes
+        nodes = cls.mobileNodes + stationaryNodes
 
         try:
             if DRAW:
                 plotGraph(min_x, min_y, min_z, max_x, max_y, max_z, nodes, connections)
                 if max_z != 0:
-                    cls.plot = plot3d
+                    plot = plot3d
         except:
             info('Warning: running without GUI.\n')
             DRAW = False
@@ -390,19 +380,18 @@ class mobility(object):
                                     x, y, z = cls.move_node(node)
                                     node.params['position'] = [x, y, z]
                                 node.time += 1
-                            if propagationModel.model == 'logNormalShadowing':
+                            if ppm == 'logNormalShadowing':
                                 intf = node.params['wlan'][0]
                                 wlan = node.params['wlan'].index(intf)
                                 node.params['range'][wlan] = node.getRange(intf=intf)
                             if DRAW:
-                                cls.plot.graphUpdate(node)
-                                if not issubclass(cls.plot, plot3d):
-                                    cls.plot.updateCircleRadius(node)
-                            if wmediumd_mode.mode == WmediumdConstants.INTERFERENCE_MODE:
+                                plot.graphUpdate(node)
+                                if max_z == 0:
+                                    plot2d.updateCircleRadius(node)
+                            if cls.wmediumd_mode and cls.wmediumd_mode == 3:
                                 node.set_position_wmediumd()
                         eval(cls.continuePlot)
                         i += 1
-                cls.mobileNodes = []
         except:
             pass
 
@@ -413,25 +402,28 @@ class mobility(object):
         cls.mobileNodes = cls.stations
 
     @classmethod
-    def models(cls, stations=[], aps=[], model=None, stationaryNodes=[],
+    def models(cls, stations=[], aps=[], model=None, mobileNodes=None,
                min_v=0, max_v=0, seed=None, connections=None, plotNodes=[],
-               max_x=0, max_y=0, AC='', DRAW=False, rec_rssi=False, **params):
-        """Used when a mobility model is applied
+               max_x=0, max_y=0, AC='', DRAW=False, rec_rssi=False, ppm=None,
+               **params):
+        """Used when a mobility model is being used
 
         :param stations: list of stations
         :param aps: list of access points
         :param model: mobility model
-        :param stationaryNodes: stationary nodes
+        :param mobileNodes: mobile nodes
         :param min_v: minimum velocity
         :param max_v: maximum velocity
         :param speed: speed
         :param connections: list of connections
         :param plotNodes: list of nodes to be plotted (including hosts and switches)
         :param MAX_X: Maximum value for X
-        :param MAX_Y: Maximum value for Y"""
+        :param MAX_Y: Maximum value for Y"
+        :param ppm: propagation model"""
+
         np.random.seed(seed)
         cls.rec_rssi = rec_rssi
-        cls.AC = AC
+        cls.ac = AC
         cls.addNodes(stations, aps)
         nodes = cls.stations + cls.aps + plotNodes
 
@@ -460,43 +452,44 @@ class mobility(object):
             info('Warning: running without GUI.\n')
             DRAW = False
 
-        if stationaryNodes is not []:
+        if mobileNodes:
             debug('Configuring the mobility model %s' % model)
 
             if model == 'RandomWalk':  # Random Walk model
-                mob = random_walk(stationaryNodes)
+                mob = random_walk(mobileNodes)
             elif model == 'TruncatedLevyWalk':  # Truncated Levy Walk model
-                mob = truncated_levy_walk(stationaryNodes)
+                mob = truncated_levy_walk(mobileNodes)
             elif model == 'RandomDirection':  # Random Direction model
-                mob = random_direction(stationaryNodes,
+                mob = random_direction(mobileNodes,
                                        dimensions=(max_x, max_y))
             elif model == 'RandomWayPoint':  # Random Waypoint model
-                mob = random_waypoint(stationaryNodes, wt_max=MAX_WT)
+                mob = random_waypoint(mobileNodes, wt_max=MAX_WT)
             elif model == 'GaussMarkov':  # Gauss-Markov model
-                mob = gauss_markov(stationaryNodes, alpha=0.99)
+                mob = gauss_markov(mobileNodes, alpha=0.99)
             elif model == 'ReferencePoint':  # Reference Point Group model
-                mob = reference_point_group(stationaryNodes,
+                mob = reference_point_group(mobileNodes,
                                             dimensions=(max_x, max_y),
                                             aggregation=0.5)
             elif model == 'TimeVariantCommunity':
-                mob = tvc(stationaryNodes, dimensions=(max_x, max_y),
+                mob = tvc(mobileNodes, dimensions=(max_x, max_y),
                           aggregation=[0.5, 0.], epoch=[100, 100])
             else:
                 raise Exception("Mobility Model not defined or doesn't exist!")
 
-            if 'final_time' in params:
-                current_time = time()
+            current_time = time()
             while (time() - current_time) < params['init_time']:
                 pass
             if DRAW:
-                cls.startMobilityModelGraph(mob, stationaryNodes,
-                                            current_time, params['final_time'])
+                cls.startMobilityModelGraph(mob, mobileNodes,
+                                            current_time, params['final_time'],
+                                            ppm)
             else:
-                cls.startMobilityModelNoGraph(mob, stationaryNodes,
-                                              current_time, params['final_time'])
+                cls.startMobilityModelNoGraph(mob, mobileNodes,
+                                              current_time, params['final_time'],
+                                              ppm)
 
     @classmethod
-    def startMobilityModelGraph(cls, mob, nodes, current_time, final_time):
+    def startMobilityModelGraph(cls, mob, nodes, current_time, final_time, ppm):
         """Useful for plotting graphs
 
         :param mob: mobility params
@@ -505,9 +498,9 @@ class mobility(object):
             for idx, node in enumerate(nodes):
                 node.params['position'] = '%.2f' % xy[idx][0], '%.2f' \
                                           % xy[idx][1], 0.0
-                if wmediumd_mode.mode == WmediumdConstants.INTERFERENCE_MODE:
+                if cls.wmediumd_mode and cls.wmediumd_mode == 3:
                     node.set_position_wmediumd()
-                if propagationModel.model == 'logNormalShadowing':
+                if ppm == 'logNormalShadowing':
                     sleep(0.0001)  # notice problem when there are many threads
                     intf = node.params['wlan'][0]
                     wlan = node.params['wlan'].index(intf)
@@ -522,7 +515,7 @@ class mobility(object):
                 pass
 
     @classmethod
-    def startMobilityModelNoGraph(cls, mob, nodes, current_time, final_time):
+    def startMobilityModelNoGraph(cls, mob, nodes, current_time, final_time, ppm):
         """Useful when graph is not required
 
         :param mob: mobility params
@@ -531,9 +524,9 @@ class mobility(object):
             for idx, node in enumerate(nodes):
                 node.params['position'] = '%.2f' % xy[idx][0], '%.2f' \
                                           % xy[idx][1], 0.0
-                if wmediumd_mode.mode == WmediumdConstants.INTERFERENCE_MODE:
+                if cls.wmediumd_mode and cls.wmediumd_mode == 3:
                     node.set_position_wmediumd()
-                if propagationModel.model == 'logNormalShadowing':
+                if ppm == 'logNormalShadowing':
                     sleep(0.0001)
                     intf = node.params['wlan'][0]
                     wlan = node.params['wlan'].index(intf)
@@ -548,18 +541,14 @@ class mobility(object):
     def configLinks(cls, node=None):
         "Applies channel params and handover"
         from mininet.wifi.node import AP
-
-        if node is None:
-            nodes = cls.stations
-        else:
+        if node:
             if isinstance(node, AP):
                 nodes = cls.stations
             else:
-                nodes = []
-                nodes.append(node)
-        for node_ in cls.aps:
-            if 'link' in node_.params and node_.params['link'] == 'mesh':
-                nodes.append(node_)
+                nodes = [node]
+        else:
+            nodes = cls.stations
+
         cls.configureLinks(nodes)
 
     @classmethod
@@ -578,15 +567,15 @@ class mobility(object):
                         car = node.params['carsta']
                         node = car
                 else:
-                    if wmediumd_mode.mode == WmediumdConstants.INTERFERENCE_MODE:
-                        if Association.bgscan != '' or ('active_scan' in node.params \
+                    if cls.wmediumd_mode and cls.wmediumd_mode == 3:
+                        if Association.bgscan or ('active_scan' in node.params \
                         and ('encrypt' in node.params and 'wpa' in node.params['encrypt'][wlan])):
                             for ap in cls.aps:
                                 if node.params['associatedTo'][wlan] == '':
                                     Association.printCon = False
                                     Association.associate_infra(node, ap, wlan, ap_wlan=0)
                                     node.params['associatedTo'][wlan] = 'active_scan'
-                                    if Association.bgscan != '':
+                                    if Association.bgscan:
                                         node.params['associatedTo'][wlan] = 'bgscan'
 
                         else:

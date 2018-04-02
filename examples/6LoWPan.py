@@ -4,13 +4,12 @@
 
 from mininet.log import setLogLevel, info
 from mininet.wifi.cli import CLI_wifi
-from mininet.sixLoWPAN.link import sixLoWPANLink
-from mininet.sixLoWPAN.net import Mininet_sixLoWPAN
+from mininet.wifi.net import Mininet_wifi
 
 
 def topology():
     "Create a network."
-    net = Mininet_sixLoWPAN()
+    net = Mininet_wifi()
 
     info("*** Creating nodes\n")
     node1 = net.add6LoWPAN('node1', ip='2001::1/64')
@@ -18,12 +17,12 @@ def topology():
     node3 = net.add6LoWPAN('node3', ip='2001::3/64')
 
     info("*** Configuring nodes\n")
-    net.configureSixLoWPANNodes()
+    net.configureWifiNodes()
 
     info("*** Associating Nodes\n")
-    net.addLink(node1, panid='0xbeef', cls=sixLoWPANLink)
-    net.addLink(node2, panid='0xbeef', cls=sixLoWPANLink)
-    net.addLink(node3, panid='0xbeef', cls=sixLoWPANLink)
+    net.add6LoWPANLink(node1, panid='0xbeef')
+    net.add6LoWPANLink(node2, panid='0xbeef')
+    net.add6LoWPANLink(node3, panid='0xbeef')
 
     info("*** Starting network\n")
     net.build()

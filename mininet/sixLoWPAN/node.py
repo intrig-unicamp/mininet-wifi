@@ -483,7 +483,7 @@ class Node_6lowpan(Node):
            ip: IP address as a string
            prefixLen: prefix length, e.g. 8 for /8 or 16M addrs
            kwargs: any additional arguments for intf.setIP"""
-        if intf in self.params['wlan']:
+        if intf in self.params['wpan']:
             wpan = int(intf[-1:])
             self.params['ip'][wpan] = ip
 
