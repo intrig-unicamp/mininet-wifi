@@ -22,19 +22,19 @@ class module(object):
     phyID = 0
 
     @classmethod
-    def load_module(cls, n_radios, alternativeModule=''):
+    def load_module(cls, n_radios, alternativeModule):
         """Load WiFi Module
         
         :param n_radios: number of wifi radios
         :param alternativeModule: dir of a mac80211_hwsim alternative module"""
         debug('Loading %s virtual wifi interfaces\n' % n_radios)
         if not cls.externally_managed:
-            if alternativeModule == '':
-                output_ = os.system('modprobe mac80211_hwsim radios=0 '
-                                    '>/dev/null 2>&1')
-            else:
+            if alternativeModule:
                 output_ = os.system('insmod %s radios=0 >/dev/null 2>&1'
                                     % alternativeModule)
+            else:
+                output_ = os.system('modprobe mac80211_hwsim radios=0 '
+                                    '>/dev/null 2>&1')
 
             """output_ is different of zero in Kernel 3.13.x. radios=0 doesn't
              work in such kernel version"""
@@ -151,7 +151,7 @@ class module(object):
         cls.kill_mac80211_hwsim()
 
     @classmethod
-    def start(cls, nodes, n_radios, alternativeModule='', **params):
+    def start(cls, nodes, n_radios, alternativeModule, **params):
         """Starts environment
         
         :param nodes: list of wireless nodes
