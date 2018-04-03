@@ -56,9 +56,9 @@ class Mininet_wifi(Mininet):
                  mode="g", channel="1", wmediumd_mode=snr,
                  fading_coefficient=0, autoAssociation=True,
                  allAutoAssociation=True, driver='nl80211',
-                 autoSetPositions=False,
-                 configureWiFiDirect=False, configure4addr=False,
-                 defaultGraph=False, noise_threshold=-91, cca_threshold=-90,
+                 autoSetPositions=False, configureWiFiDirect=False,
+                 configure4addr=False, defaultGraph=False,
+                 noise_threshold=-91, cca_threshold=-90,
                  rec_rssi=False, disable_tcp_checksum=False):
         """Create Mininet object.
            topo: Topo (topology) object or None
@@ -101,7 +101,6 @@ class Mininet_wifi(Mininet):
         self.nextCore = 0  # next core for pinning hosts to CPUs
         self.listenPort = listenPort
         self.waitConn = waitConnected
-        self.routing = ''
         self.ssid = ssid
         self.mode = mode
         self.wmediumd_mode = wmediumd_mode
@@ -136,8 +135,8 @@ class Mininet_wifi(Mininet):
         self.fading_coefficient = fading_coefficient
         self.noise_threshold = noise_threshold
         self.mobilityparam = dict()
-        self.AC = ''
-        self.alternativeModule = ''
+        self.AC = None
+        self.alternativeModule = None
         self.rec_rssi = rec_rssi
         self.disable_tcp_checksum = disable_tcp_checksum
         self.plot = plot2d
@@ -2265,8 +2264,10 @@ class Mininet_wifi(Mininet):
 
         for node in nodes:
             for wlan in range(0, len(node.params['wlan'])):
-                if isinstance(node, Car) and wlan == 1:
+                if isinstance(node, Car) and wlan >= 1:
                     node = node.params['carsta']
+                    wlan = 0
+                if node in self.carsSTA:
                     wlan = 0
                 if int(node.params['range'][wlan]) == 0:
                     intf = node.params['wlan'][wlan]
