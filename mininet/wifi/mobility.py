@@ -563,9 +563,7 @@ class mobility(object):
         for node in nodes:
             for wlan in range(0, len(node.params['wlan'])):
                 if node.func[wlan] == 'mesh' or node.func[wlan] == 'adhoc':
-                    if 'carsta' in node.params:
-                        car = node.params['carsta']
-                        node = car
+                    pass
                 else:
                     if cls.wmediumd_mode and cls.wmediumd_mode == 3:
                         if Association.bgscan or ('active_scan' in node.params \
@@ -577,7 +575,6 @@ class mobility(object):
                                     node.params['associatedTo'][wlan] = 'active_scan'
                                     if Association.bgscan:
                                         node.params['associatedTo'][wlan] = 'bgscan'
-
                         else:
                             cls.check_association(node, wlan, ap_wlan=0)
                     else:

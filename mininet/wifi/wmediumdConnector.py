@@ -26,8 +26,8 @@ class wmediumd_mode(object):
     mode = 4
 
     @classmethod
-    def set_mode(self, mode):
-        self.mode = mode
+    def set_mode(cls, mode):
+        cls.mode = mode
 
 
 class snr(object):
