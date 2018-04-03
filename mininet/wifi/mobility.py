@@ -578,8 +578,7 @@ class mobility(object):
                         else:
                             cls.check_association(node, wlan, ap_wlan=0)
                     else:
-                        if isinstance(node, Station):
-                            cls.check_association(node, wlan, ap_wlan=0)
+                        cls.check_association(node, wlan, ap_wlan=0)
         eval(cls.continue_params)
 
 # coding: utf-8
