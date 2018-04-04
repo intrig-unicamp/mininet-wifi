@@ -5,6 +5,7 @@ author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
 import os
 import re
 import subprocess
+from time import sleep
 from sys import version_info as py_version_info
 from six import string_types
 
@@ -401,8 +402,7 @@ class _4address(object):
         """Create 4addr link to another node.
            node1: first node
            node2: second node
-           intf: default interface class/constructor
-           """
+           intf: default interface class/constructor"""
         intf1 = None
         intf2 = None
         cls = intf
@@ -437,6 +437,7 @@ class _4address(object):
             client.params['txpower'].append(14)
             client.params['antennaGain'].append(client.params['antennaGain'][0])
             client.params['wlan'].append(client_intfName)
+            sleep(1)
             client.cmd('iw dev %s connect %s %s'
                        % (client.params['wlan'][1],
                           ap.params['ssid'][0], ap.params['mac'][0]))
@@ -771,6 +772,8 @@ class set_interference(object):
                 wlans = len(node.params['wlan'])
 
             for wlan in range(0, wlans):
+                if wlan == 1:
+                    posX+=1
                 wmediumd.positions.append(WmediumdPosition(node.wmIface[wlan],
                                                            [posX, posY, posZ]))
                 wmediumd.txpowers.append(WmediumdTXPower(
