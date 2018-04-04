@@ -49,12 +49,12 @@ class mobility(object):
     def create_coordinate(cls, node):
         node.coord_ = []
         if not hasattr(node, 'coord'):
-            coord1 = '%s,%s,%s' % (node.params['initialPosition'][0],
-                                   node.params['initialPosition'][1],
-                                   node.params['initialPosition'][2])
-            coord2 = '%s,%s,%s' % (node.params['finalPosition'][0],
-                                   node.params['finalPosition'][1],
-                                   node.params['finalPosition'][2])
+            coord1 = '%s,%s,%s' % (node.params['initPos'][0],
+                                   node.params['initPos'][1],
+                                   node.params['initPos'][2])
+            coord2 = '%s,%s,%s' % (node.params['finPos'][0],
+                                   node.params['finPos'][1],
+                                   node.params['finPos'][2])
             node.coord_.append([coord1, coord2])
         else:
             for idx in range(0, len(node.coord) - 1):
@@ -65,8 +65,8 @@ class mobility(object):
         """:param node: node
         :param diff_time: difference between initial and final time. Useful for
         calculating the speed"""
-        initial_pos = node.params['initialPosition']
-        final_pos = node.params['finalPosition']
+        initial_pos = node.params['initPos']
+        final_pos = node.params['finPos']
         if hasattr(node, 'points'):
             diff_time = (len(node.points)-1) / diff_time
             node.moveFac = diff_time
@@ -91,18 +91,18 @@ class mobility(object):
 
         if 'position' in kwargs:
             if stage == 'stop':
-                finalPosition = kwargs['position']
-                node.params['finalPosition'] = finalPosition.split(',')
+                finPos = kwargs['position']
+                node.params['finPos'] = finPos.split(',')
             if stage == 'start':
-                initialPosition = kwargs['position']
-                node.params['initialPosition'] = initialPosition.split(',')
+                initPos = kwargs['position']
+                node.params['initPos'] = initPos.split(',')
         else:
             if stage == 'stop':
-                finalPosition = node.coord[1]
-                node.params['finalPosition'] = finalPosition.split(',')
+                finPos = node.coord[1]
+                node.params['finPos'] = finPos.split(',')
             if stage == 'start':
-                initialPosition = node.coord[0]
-                node.params['initialPosition'] = initialPosition.split(',')
+                initPos = node.coord[0]
+                node.params['initPos'] = initPos.split(',')
 
         if 'time' in kwargs:
             time_ = kwargs['time']
@@ -323,16 +323,15 @@ class mobility(object):
         nodes = cls.stations + cls.aps + plotNodes
         plot = plot2d
 
+        stationaryNodes = []
         for node in nodes:
-            stationaryNodes = []
-            if 'position' in node.params and 'initialPosition' not in node.params:
+            if 'position' in node.params and 'initPos' not in node.params:
                 stationaryNodes.append(node)
-            if 'initialPosition' in node.params:
-                node.params['position'] = node.params['initialPosition']
+            if 'initPos' in node.params:
+                node.params['position'] = node.params['initPos']
                 cls.mobileNodes.append(node)
 
         nodes = cls.mobileNodes + stationaryNodes
-
         try:
             if DRAW:
                 plotGraph(min_x, min_y, min_z, max_x, max_y, max_z, nodes, connections)
@@ -359,7 +358,7 @@ class mobility(object):
                 i = 1
                 if rep > 0:
                     for node in nodes:
-                        if 'initialPosition' in node.params:
+                        if 'initPos' in node.params:
                             cls.mobileNodes.append(node)
                 for node in cls.mobileNodes:
                     node.time = node.startTime
