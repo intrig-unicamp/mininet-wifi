@@ -559,7 +559,6 @@ class mobility(object):
 
     @classmethod
     def configureLinks(cls, nodes):
-        from mininet.wifi.node import Station
         for node in nodes:
             for wlan in range(0, len(node.params['wlan'])):
                 if node.func[wlan] == 'mesh' or node.func[wlan] == 'adhoc':

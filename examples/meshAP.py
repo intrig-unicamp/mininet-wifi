@@ -5,7 +5,7 @@
 from mininet.node import Controller
 from mininet.log import setLogLevel, info
 from mininet.wifi.node import OVSKernelAP
-from mininet.wifi.link import wmediumd
+from mininet.wifi.link import wmediumd, mesh
 from mininet.wifi.cli import CLI_wifi
 from mininet.wifi.net import Mininet_wifi
 from mininet.wifi.wmediumdConnector import interference
@@ -30,8 +30,8 @@ def topology():
     info("*** Associating Stations\n")
     net.addLink(sta1, ap1)
     net.addLink(sta2, ap2)
-    net.addMesh(ap1, intf='ap1-wlan2', ssid='mesh-ssid', channel=5)
-    net.addMesh(ap2, intf='ap2-wlan2', ssid='mesh-ssid', channel=5)
+    net.addLink(ap1, intf='ap1-wlan2', cls=mesh, ssid='mesh-ssid', channel=5)
+    net.addLink(ap2, intf='ap2-wlan2', cls=mesh, ssid='mesh-ssid', channel=5)
 
     info("*** Starting network\n")
     net.build()

@@ -9,8 +9,6 @@ from sys import version_info as py_version_info
 from six import string_types
 
 from mininet.log import info, error, debug
-from mininet.link import Intf
-
 from mininet.wifi.devices import getRate
 from mininet.wifi.wmediumdConnector import DynamicWmediumdIntfRef, \
     WmediumdStarter, WmediumdSNRLink, WmediumdTXPower, WmediumdPosition, \
@@ -396,9 +394,10 @@ class TCWirelessLink(IntfWireless):
 
         return result
 
+
 class _4address(object):
 
-    def __init__(self, node1, node2, intf=Intf):
+    def __init__(self, node1, node2, intf=IntfWireless):
         """Create 4addr link to another node.
            node1: first node
            node2: second node
@@ -499,7 +498,7 @@ class WirelessLinkAP(object):
     # pylint: disable=too-many-branches
     def __init__(self, node1, port1=None,
                  intfName1=None, addr1=None,
-                 intf=Intf, cls1=None, params1=None):
+                 intf=IntfWireless, cls1=None, params1=None):
         """Create veth link to another node, making two new interfaces.
            node1: first node
            port1: node1 port number (optional)
@@ -588,7 +587,7 @@ class WirelessLinkStation(object):
     # pylint: disable=too-many-branches
     def __init__(self, node1, port1=None,
                  intfName1=None, addr1=None,
-                 intf=Intf, cls1=None, params1=None):
+                 intf=IntfWireless, cls1=None, params1=None):
         """Create veth link to another node, making two new interfaces.
            node1: first node
            port1: node1 port number (optional)
@@ -921,6 +920,148 @@ class wirelessLink (object):
                  "latency %.2fms " % (sta.params['wlan'][wlan], bw, loss,
                                       latency)
             sta.pexec(tc)
+
+
+class wifiDirectLink(IntfWireless):
+
+    def __init__(self, node, port=None, **params):
+        "configure wifi-direct"
+
+        if port:
+            for port_ in node.params['wlan']:
+                if params['port'] == port_:
+                    wlan = node.params['wlan'].index(port_)
+        else:
+            wlan = node.ifaceToAssociate
+
+        node.func[wlan] = 'wifiDirect'
+
+        cmd = ("echo \'")
+        cmd = cmd + 'ctrl_interface=/var/run/wpa_supplicant\
+                    \nap_scan=1\
+                    \np2p_go_ht40=1\
+                    \ndevice_name=%s-%s\
+                    \ndevice_type=1-0050F204-1\
+                    \np2p_no_group_iface=1' % (node, wlan)
+        confname = "mn%d_%s-%s_wifiDirect.conf" % (os.getpid(), node, wlan)
+        cmd = cmd + ("\' > %s" % confname)
+        os.system(cmd)
+        node.cmd('wpa_supplicant -B -Dnl80211 -c%s -i%s -d'
+                 % (confname, node.params['wlan'][wlan]))
+        if not port:
+            node.ifaceToAssociate += 1
+
+        p2p_mac = node.cmd('iw dev | grep addr | awk \'NR==1\' | '
+                           'awk \'{print $2};\'')
+        node.params['mac'].append(p2p_mac.splitlines()[0])
+
+
+class adhoc(IntfWireless):
+
+    def __init__(self, node, link=None, **params):
+        """Configure AdHoc
+        node: name of the node
+        self: custom association class/constructor
+        params: parameters for station"""
+
+        if 'intf' in params:
+            for intf_ in node.params['wlan']:
+                if params['intf'] == intf_:
+                    wlan = node.params['wlan'].index(intf_)
+        else:
+            wlan = node.ifaceToAssociate
+
+        node.params['ssid'] = []
+        for _ in range(0, len(node.params['wlan'])):
+            node.params['ssid'].append('')
+
+        node.params['ssid'][wlan] = 'adhocNetwork'
+        node.params['associatedTo'][wlan] = 'adhocNetwork'
+        ssid = ("%s" % params.pop('ssid', {}))
+        if ssid != "{}":
+            node.params['ssid'][wlan] = ssid
+            node.params['associatedTo'][wlan] = ssid
+
+        if not node.autoTxPower:
+            intf = node.params['wlan'][wlan]
+            node.params['range'][wlan] = node.getRange(intf=intf, noiseLevel=95)
+
+        if 'channel' in params:
+            node.setChannel(params['channel'], intf=node.params['wlan'][wlan])
+
+        enable_wmediumd = False
+        if link and link == wmediumd:
+            enable_wmediumd = True
+        self.configureAdhoc(node, wlan, enable_wmediumd)
+        if 'intf' not in params:
+            node.ifaceToAssociate += 1
+
+    @classmethod
+    def configureAdhoc(self, node, wlan, enable_wmediumd):
+        "Configure Wireless Ad Hoc"
+        iface = node.params['wlan'][wlan]
+        node.func[wlan] = 'adhoc'
+        node.setIP(node.params['ip'][wlan], intf='%s' % iface)
+        node.cmd('iw dev %s set type ibss' % iface)
+        if 'position' not in node.params or enable_wmediumd:
+            node.params['associatedTo'][wlan] = node.params['ssid'][wlan]
+            debug("associating %s to %s...\n"
+                  % (iface, node.params['ssid'][wlan]))
+            node.pexec('iw dev %s ibss join %s %s 02:CA:FF:EE:BA:01' \
+                       % (iface, node.params['associatedTo'][wlan],
+                          str(node.params['frequency'][wlan]).replace('.', '')))
+
+
+class mesh(IntfWireless):
+
+    def __init__(self, node, isAP=False, **params):
+        """Configure wireless mesh
+        node: name of the node
+        self: custom association class/constructor
+        params: parameters for node"""
+
+        if 'intf' in params:
+            for intf_ in node.params['wlan']:
+                if params['intf'] == intf_:
+                    wlan = node.params['wlan'].index(intf_)
+        else:
+            wlan = node.ifaceToAssociate
+
+        if not isAP:
+            node.params['ssid'] = []
+            for _ in range(len(node.params['wlan'])):
+                node.params['ssid'].append('')
+
+        node.params['ssid'][wlan] = 'meshNetwork'
+        ssid = ("%s" % params['ssid'])
+        if ssid != "{}":
+            node.params['ssid'][wlan] = ssid
+
+        if node.autoTxPower:
+            intf = node.params['wlan'][wlan]
+            node.params['range'][wlan] = node.getRange(intf=intf, noiseLevel=95)
+
+        node.setMeshIface(node.params['wlan'][wlan], **params)
+
+        if 'intf' not in params:
+            node.ifaceToAssociate += 1
+
+    @classmethod
+    def configureMesh(self, node, wlan):
+        "Configure Wireless Mesh Interface"
+        node.func[wlan] = 'mesh'
+        self.meshAssociation(node, wlan)
+        if node.params['wlan'][wlan] not in str(node.intf):
+            TCLinkWirelessStation(node, intfName1=node.params['wlan'][wlan])
+
+    @classmethod
+    def meshAssociation(self, node, wlan):
+        "Performs Mesh Association"
+        debug("associating %s to %s...\n" % (node.params['wlan'][wlan],
+                                             node.params['ssid'][wlan]))
+        node.pexec('iw dev %s mesh join %s' % (node.params['wlan'][wlan],
+                                               node.params['ssid'][wlan]))
+
 
 class Association(object):
 

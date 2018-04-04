@@ -30,7 +30,8 @@ from mininet.wifi.node import AccessPoint, AP, Station, Car, OVSKernelAP
 from mininet.wifi.wmediumdConnector import WmediumdStarter, WmediumdServerConn, \
     error_prob, snr, interference
 from mininet.wifi.link import wirelessLink, wmediumd, Association, \
-    _4address, TCWirelessLink, TCLinkWirelessAP, TCLinkWirelessStation
+    _4address, TCWirelessLink, TCLinkWirelessAP, TCLinkWirelessStation,\
+    wifiDirectLink, adhoc, mesh
 from mininet.wifi.devices import getRate, getRange, getTxPower
 from mininet.wifi.mobility import mobility
 from mininet.wifi.plot import plot2d, plot3d, plotGraph
@@ -39,6 +40,7 @@ from mininet.wifi.propagationModels import propagationModel
 from mininet.wifi.vanet import vanet
 from mininet.sixLoWPAN.net import Mininet_6LoWPAN
 from mininet.sixLoWPAN.module import module as sixLoWPAN_module
+from mininet.sixLoWPAN.link import sixLoWPANLink
 
 sys.path.append(str(os.getcwd()) + '/mininet/')
 from mininet.sumo.runner import sumo
@@ -464,12 +466,7 @@ class Mininet_wifi(Mininet):
         "Support to Intermediate Functional Block (IFB) Devices"
         self.ifb = True
 
-    def add6LoWPANLink(self, node, port=None, cls=None, **params):
-        link = Mininet_6LoWPAN.addLink(node, port, cls, **params)
-        self.links.append(link)
-        return link
-
-    def addLink(self, node1, node2, port1=None, port2=None,
+    def addLink(self, node1, node2=None, port1=None, port2=None,
                 cls=None, **params):
         """"Add a link from node1 to node2
             node1: source node (or name)
@@ -479,6 +476,7 @@ class Mininet_wifi(Mininet):
             cls: link class (optional)
             params: additional link params (optional)
             returns: link object"""
+
         # Accept node objects or names
         node1 = node1 if not isinstance(node1, string_types) else self[node1]
         node2 = node2 if not isinstance(node2, string_types) else self[node2]
@@ -488,8 +486,39 @@ class Mininet_wifi(Mininet):
         self.connections.setdefault('dst', [])
         self.connections.setdefault('ls', [])
 
-        # If AP and STA
-        if ((node1 in self.stations and node2 in self.aps)
+        cls = self.link if cls is None else cls
+
+        if cls == mesh:
+            isAP=False
+            if isinstance(node1, AP):
+                isAP=True
+            cls(node=node1, isAP=isAP, **params)
+        elif cls == adhoc:
+            cls(node=node1, link=self.link, **params)
+        elif cls == wifiDirectLink:
+            link = cls(node=node1, port=port1, **params)
+            return link
+        elif cls == sixLoWPANLink:
+            link = cls(node=node1, port=port1, **params)
+            self.links.append(link)
+            return link
+        elif cls == _4address:
+            if 'position' in node1.params and 'position' in node2.params:
+                self.connections['src'].append(node1)
+                self.connections['dst'].append(node2)
+                self.connections['ls'].append('--')
+
+            if self.wmediumd_mode == interference:
+                link = cls(node1, node2)
+                self.links.append(link)
+                return link
+            else:
+                dist = node1.get_distance_to(node2)
+                if dist <= node1.params['range'][0]:
+                    link = cls(node1, node2)
+                    self.links.append(link)
+                    return link
+        elif ((node1 in self.stations and node2 in self.aps)
             or (node2 in self.stations and node1 in self.aps)):
 
             sta = node2
@@ -520,9 +549,6 @@ class Mininet_wifi(Mininet):
                 dist = sta.get_distance_to(ap)
                 if dist > ap.params['range'][ap_wlan]:
                     doAssociation = False
-
-            cls = self.link if cls is None else cls
-
             if doAssociation:
                 sta.params['mode'][wlan] = ap.params['mode'][ap_wlan]
                 sta.params['channel'][wlan] = ap.params['channel'][ap_wlan]
@@ -550,25 +576,6 @@ class Mininet_wifi(Mininet):
                     wmediumd.wlinks.append([sta, ap, params['error_prob']])
                 elif self.wmediumd_mode != interference:
                     wmediumd.wlinks.append([sta, ap])
-
-        elif (isinstance(node1, AP) and isinstance(node2, AP)
-              and cls and cls is _4address):
-            # If sta/ap have defined position
-            if 'position' in node1.params and 'position' in node2.params:
-                self.connections['src'].append(node1)
-                self.connections['dst'].append(node2)
-                self.connections['ls'].append('--')
-
-            if self.wmediumd_mode == interference:
-                link = cls(node1, node2)
-                self.links.append(link)
-                return link
-            else:
-                dist = node1.get_distance_to(node2)
-                if dist <= node1.params['range'][0]:
-                    link = cls(node1, node2)
-                    self.links.append(link)
-                    return link
         else:
             if 'link' in options:
                 options.pop('link', None)
@@ -1743,119 +1750,6 @@ class Mininet_wifi(Mininet):
                     TCLinkWirelessStation(node, intfName1=vif)
                     self.configureMacAddr(node)
 
-    @staticmethod
-    def addMesh(node, **params):
-        """Configure wireless mesh
-        node: name of the node
-        self: custom association class/constructor
-        params: parameters for node"""
-
-        if 'intf' in params:
-            for intf_ in node.params['wlan']:
-                if params['intf'] == intf_:
-                    wlan = node.params['wlan'].index(intf_)
-        else:
-            wlan = node.ifaceToAssociate
-
-        node.func[wlan] = 'mesh'
-
-        if not isinstance(node, AP):
-            node.params['ssid'] = []
-            for _ in range(len(node.params['wlan'])):
-                node.params['ssid'].append('')
-
-        node.params['ssid'][wlan] = 'meshNetwork'
-        ssid = ("%s" % params['ssid'])
-        if ssid != "{}":
-            node.params['ssid'][wlan] = ssid
-
-        if node.autoTxPower:
-            intf = node.params['wlan'][wlan]
-            node.params['range'][wlan] = node.getRange(intf=intf, noiseLevel=95)
-
-        node.setMeshIface(node.params['wlan'][wlan], **params)
-
-        if 'intf' not in params:
-            node.ifaceToAssociate += 1
-
-    def addHoc(self, node, **params):
-        """Configure AdHoc
-        node: name of the node
-        self: custom association class/constructor
-        params: parameters for station"""
-
-        if 'intf' in params:
-            for intf_ in node.params['wlan']:
-                if params['intf'] == intf_:
-                    wlan = node.params['wlan'].index(intf_)
-        else:
-            wlan = node.ifaceToAssociate
-
-        node.func[wlan] = 'adhoc'
-
-        node.params['ssid'] = []
-        for _ in range(0, len(node.params['wlan'])):
-            node.params['ssid'].append('')
-
-        node.params['ssid'][wlan] = 'adhocNetwork'
-        node.params['associatedTo'][wlan] = 'adhocNetwork'
-        ssid = ("%s" % params.pop('ssid', {}))
-        if ssid != "{}":
-            node.params['ssid'][wlan] = ssid
-            node.params['associatedTo'][wlan] = ssid
-
-        if not node.autoTxPower:
-            intf = node.params['wlan'][wlan]
-            node.params['range'][wlan] = node.getRange(intf=intf, noiseLevel=95)
-
-        if 'channel' in params:
-            node.setChannel(params['channel'], intf=node.params['wlan'][wlan])
-
-        enable_wmediumd = False
-        if self.link == wmediumd:
-            enable_wmediumd = True
-        node.configureAdhoc(wlan, enable_wmediumd)
-        if 'intf' not in params:
-            node.ifaceToAssociate += 1
-
-    @staticmethod
-    def wifiDirect(node, **params):
-        """Configure wifidirect
-        node: name of the node
-        self: custom association class/constructor
-        params: parameters for station"""
-
-        if 'intf' in params:
-            for intf_ in node.params['wlan']:
-                if params['intf'] == intf_:
-                    wlan = node.params['wlan'].index(intf_)
-        else:
-            wlan = node.ifaceToAssociate
-
-        node.func[wlan] = 'wifiDirect'
-
-        cmd = ("echo \'")
-        cmd = cmd + 'ctrl_interface=/var/run/wpa_supplicant\
-            \nap_scan=1\
-            \np2p_go_ht40=1\
-            \ndevice_name=%s-%s\
-            \ndevice_type=1-0050F204-1\
-            \np2p_no_group_iface=1' % (node, wlan)
-        confname = "mn%d_%s-%s_wifiDirect.conf" % (os.getpid(), node, wlan)
-        cmd = cmd + ("\' > %s" % confname)
-        os.system(cmd)
-        node.cmd('wpa_supplicant -B -Dnl80211 -c%s -i%s -d'
-                 % (confname, node.params['wlan'][wlan]))
-        if 'intf' not in params:
-            node.ifaceToAssociate += 1
-
-        p2p_mac = node.cmd('iw dev | grep addr | awk \'NR==1\' | '
-                           'awk \'{print $2};\'')
-        node.params['mac'].append(p2p_mac.splitlines()[0])
-        #node.params['wlan'].append('0')
-        #node.params['txpower'].append(node.params['txpower'][0])
-        #node.func.append('wifiDirect')
-
     def check_sta_ap_mode(self):
         "check if sta is working in ap mode"
         isApAdhoc = []
@@ -2199,9 +2093,9 @@ class Mininet_wifi(Mininet):
             params = {'nextIP': self.nextIP, 'ipBaseNum':self.ipBaseNum,
                       'prefixLen':self.prefixLen, 'ssid':car.params['ssid']}
             if 'func' in car.params and car.params['func'] == 'adhoc':
-                self.addHoc(car.params['carsta'], **params)
+                adhoc(car.params['carsta'], **params)
             else:
-                self.addMesh(car.params['carsta'], **params)
+                mesh(car.params['carsta'], **params)
                 self.stations.remove(car.params['carsta'])
                 self.stations.append(car)
             if 'position' in car.params:

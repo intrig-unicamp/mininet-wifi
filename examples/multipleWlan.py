@@ -7,6 +7,7 @@ from mininet.node import OVSKernelSwitch, Controller
 from mininet.log import setLogLevel, info
 from mininet.wifi.cli import CLI_wifi
 from mininet.wifi.net import Mininet_wifi
+from mininet.wifi.link import adhoc
 
 
 def topology():
@@ -24,19 +25,19 @@ def topology():
 
     info("*** Associating...\n")
     net.addLink(ap1, sta1)
-    net.addHoc(sta1, ssid='adhoc1')
-    net.addHoc(sta2, ssid='adhoc1')
+    net.addLink(sta1, cls=adhoc, ssid='adhoc1')
+    net.addLink(sta2, cls=adhoc, ssid='adhoc1')
 
     info("*** Starting network\n")
     net.build()
     c0.start()
     ap1.start([c0])
 
-    info("***Addressing...\n")
+    info("*** Addressing...\n")
     sta1.setIP('192.168.10.1/24', intf="sta1-wlan1")
     sta2.setIP('192.168.10.2/24', intf="sta2-wlan0")
 
-    info("*** Running CLI")
+    info("*** Running CLI\n")
     CLI_wifi(net)
 
     info("*** Stopping network\n")

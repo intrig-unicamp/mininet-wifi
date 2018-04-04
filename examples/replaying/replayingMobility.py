@@ -8,7 +8,7 @@ from mininet.wifi.replaying import replayingMobility
 from mininet.wifi.node import OVSAP
 from mininet.wifi.cli import CLI_wifi
 from mininet.wifi.net import Mininet_wifi
-from mininet.wifi.link import wmediumd
+from mininet.wifi.link import wmediumd, adhoc
 from mininet.wifi.wmediumdConnector import interference
 
 
@@ -33,8 +33,8 @@ def topology():
     net.configureWifiNodes()
 
     info("*** Creating links\n")
-    net.addHoc(sta3, ssid='adhocNet')
-    net.addHoc(sta4, ssid='adhocNet')
+    net.addLink(sta3, cls=adhoc, ssid='adhocNet')
+    net.addLink(sta4, cls=adhoc, ssid='adhocNet')
 
     'ploting graph'
     #net.plotGraph(max_x=200, max_y=200)

@@ -7,7 +7,7 @@ sta1 <---> sta2 <---> sta3"""
 import sys
 
 from mininet.log import setLogLevel, info
-from mininet.wifi.link import wmediumd
+from mininet.wifi.link import wmediumd, adhoc
 from mininet.wifi.cli import CLI_wifi
 from mininet.wifi.net import Mininet_wifi
 from mininet.wifi.wmediumdConnector import interference
@@ -33,9 +33,9 @@ def topology(autoTxPower):
     net.configureWifiNodes()
 
     info("*** Creating links\n")
-    net.addHoc(sta1, ssid='adhocNet', mode='g', channel=5)
-    net.addHoc(sta2, ssid='adhocNet', mode='g', channel=5)
-    net.addHoc(sta3, ssid='adhocNet', mode='g', channel=5)
+    net.addLink(sta1, cls=adhoc, ssid='adhocNet', mode='g', channel=5)
+    net.addLink(sta2, cls=adhoc, ssid='adhocNet', mode='g', channel=5)
+    net.addLink(sta3, cls=adhoc, ssid='adhocNet', mode='g', channel=5)
 
     info("*** Starting network\n")
     net.build()

@@ -12,7 +12,7 @@ sta1 ----- sta2"""
 import sys
 
 from mininet.log import setLogLevel, info
-from mininet.wifi.link import wmediumd
+from mininet.wifi.link import wmediumd, mesh
 from mininet.wifi.cli import CLI_wifi
 from mininet.wifi.net import Mininet_wifi
 from mininet.wifi.wmediumdConnector import interference
@@ -36,9 +36,9 @@ def topology(mobility):
     net.configureWifiNodes()
 
     info("*** Creating links\n")
-    net.addMesh(sta1, ssid='meshNet', channel=5)
-    net.addMesh(sta2, ssid='meshNet', channel=5)
-    net.addMesh(sta3, ssid='meshNet', channel=5)
+    net.addLink(sta1, cls=mesh, ssid='meshNet', channel=5)
+    net.addLink(sta2, cls=mesh, ssid='meshNet', channel=5)
+    net.addLink(sta3, cls=mesh, ssid='meshNet', channel=5)
 
     if mobility:
         net.plotGraph(max_x=100, max_y=100)

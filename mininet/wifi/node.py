@@ -24,13 +24,12 @@ from mininet.node import Node
 from mininet.moduledeps import moduleDeps, pathCheck, TUN
 from mininet.link import Link, Intf, OVSIntf
 from mininet.wifi.link import TCWirelessLink, TCLinkWirelessAP,\
-    TCLinkWirelessStation, Association
+    Association, wirelessLink, adhoc, mesh
 from mininet.wifi.wmediumdConnector import WmediumdServerConn, \
     WmediumdPosition, WmediumdTXPower, WmediumdGain, WmediumdHeight, \
     wmediumd_mode, WmediumdConstants
 from mininet.wifi.propagationModels import distanceByPropagationModel, \
     powerForRangeByPropagationModel, propagationModel
-from mininet.wifi.link import wirelessLink
 from mininet.wifi.util import moveIntf
 from mininet.utils.private_folder_manager import PrivateFolderManager
 
@@ -184,21 +183,7 @@ class Node_wifi(Node):
                 self.params['ssid'] = []
                 self.params['ssid'].append(0)
             self.params['ssid'][wlan] = ssid
-            self.configureMesh(wlan)
-
-    def configureMesh(self, wlan):
-        "Configure Wireless Mesh Interface"
-        self.func[wlan] = 'mesh'
-        self.meshAssociation(wlan)
-        if self.params['wlan'][wlan] not in str(self.intf):
-            TCLinkWirelessStation(self, intfName1=self.params['wlan'][wlan])
-
-    def meshAssociation(self, wlan):
-        "Performs Mesh Association"
-        debug("associating %s to %s...\n" % (self.params['wlan'][wlan],
-                                             self.params['ssid'][wlan]))
-        self.pexec('iw dev %s mesh join %s' % (self.params['wlan'][wlan],
-                                               self.params['ssid'][wlan]))
+            mesh.configureMesh(self, wlan)
 
     def setAdhocIface(self, iface, ssid=''):
         "Set Adhoc Interface"
@@ -214,21 +199,7 @@ class Node_wifi(Node):
                 self.params['ssid'] = []
                 self.params['ssid'].append(0)
             self.params['ssid'][wlan] = ssid
-            self.configureAdhoc(wlan, enable_wmediumd=True)
-
-    def configureAdhoc(self, wlan, enable_wmediumd):
-        "Configure Wireless Ad Hoc"
-        iface = self.params['wlan'][wlan]
-        self.func[wlan] = 'adhoc'
-        self.setIP(self.params['ip'][wlan], intf='%s' % iface)
-        self.cmd('iw dev %s set type ibss' % iface)
-        if 'position' not in self.params or enable_wmediumd:
-            self.params['associatedTo'][wlan] = self.params['ssid'][wlan]
-            debug("associating %s to %s...\n"
-                  % (iface, self.params['ssid'][wlan]))
-            self.pexec('iw dev %s ibss join %s %s 02:CA:FF:EE:BA:01' \
-                       % (iface, self.params['associatedTo'][wlan],
-                          str(self.params['frequency'][wlan]).replace('.', '')))
+            adhoc.configureAdhoc(self, wlan, enable_wmediumd=True)
 
     def setOCBIface(self, iface):
         "Set OCB Interface"

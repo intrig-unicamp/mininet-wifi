@@ -213,18 +213,14 @@ class IntfSixLoWPAN( object ):
     def __str__( self ):
         return self.name
 
+
 class sixLoWPANLink(object):
 
-    def __init__(self, node, **params):
+    def __init__(self, node, port=None, intfName=None, addr=None,
+                 cls=None, **params):
         """Create 6LoWPAN link to another node.
            node: node
            intf: default interface class/constructor"""
-        intf1 = None
-        intf2 = None
-        self.configIface(node, **params)
-
-    def configIface(self, node, port=None, intfName=None, addr=None,
-                    cls=None, **params):
 
         node.cmd('ip link set lo up')
         node.cmd('ip link set %s down' % node.params['wpan'][0])

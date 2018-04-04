@@ -44,7 +44,7 @@ class Mininet_6LoWPAN(Mininet):
     links = []
     sixLP = []
     terms = []  # list of spawned xterm processes
-    alternativeModule = ''
+    alternativeModule = None
     n_wpans = 0
     min_x = 0
     min_y = 0
@@ -250,29 +250,6 @@ class Mininet_6LoWPAN(Mininet):
     def items(self):
         "return (key,value) tuple list for every node in net"
         return zip(self.keys(), self.values())
-
-    @classmethod
-    def addLink(self, node, port, cls, **params):
-        """"Add a link to node1
-            node1: source node (or name)
-            port1: source port (optional)
-            cls: link class (optional)
-            params: additional link params (optional)
-            returns: link object"""
-        # Accept node objects or names
-        node = node if not isinstance(node, string_types) else self[node]
-        options = dict(params)
-
-        if not cls:
-            cls = sixLoWPANLink
-
-        # Port is optional
-        if port is not None:
-            options.setdefault('port1', port)
-        # Set default MAC - this should probably be in Link
-        options.setdefault('addr1', self.randMac())
-        link = cls(name=node.params['wpan'][0], node=node, **params)
-        return link
 
     @staticmethod
     def _parsePing(pingOutput):

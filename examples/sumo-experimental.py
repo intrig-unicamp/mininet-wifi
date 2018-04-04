@@ -110,7 +110,6 @@ def topology():
         i += 1
         j += 2
 
-
     for carsta1 in net.carsSTA:
         i = 1
         j = 1
