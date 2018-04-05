@@ -18,13 +18,13 @@ class getRate (object):
         ap: accessPoint
         wlan: wlan ID"""
 
-        if ap != None and 'equipmentModel' in ap.params.keys():
+        if ap and 'equipmentModel' in ap.params.keys():
             if  ap.equipmentModel in dir(self) and sta != None:
                 model = ap.equipmentModel
                 self.__getattribute__(model)(sta, ap, wlan)
-        elif ap != None:
+        elif ap:
             self.customDataRate_mobility(ap, 0)
-        elif sta != None:
+        elif sta:
             self.customDataRate_mobility(sta, wlan)
 
     def customDataRate_mobility(self, node, wlan):
@@ -44,7 +44,7 @@ class getRate (object):
         elif mode == 'n':
             rate = 600
         elif mode == 'ac':
-            rate = 6777
+            rate = 1000
 
         self.rate = rate
         return self.rate
