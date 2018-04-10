@@ -542,7 +542,6 @@ class Mininet_wifi(Mininet):
             wlan = sta.ifaceToAssociate
             if sta_wlan:
                 wlan = sta_wlan
-
             # If sta/ap have position
             doAssociation = True
             if 'position' in sta.params and 'position' in ap.params:
@@ -562,7 +561,8 @@ class Mininet_wifi(Mininet):
                                       enable_interference, wlan, ap_wlan)
 
                 if 'TCWirelessLink' in str(self.link.__name__):
-                    if 'bw' not in params and 'bw' not in str(cls):
+                    if 'bw' not in params and 'bw' not in str(cls) \
+                            and 'position' not in sta.params:
                         value = self.setDataRate(sta, ap, wlan)
                         bw = value.rate
                         params['bw'] = bw
@@ -1901,10 +1901,9 @@ class Mininet_wifi(Mininet):
                  'pfifo limit 1000' % (iface))
 
     def configureAPs(self, aps, driver):
-        """Configure All APs
+        """Configure APs
 
-        :param aps: list of access points
-        """
+        :param aps: list of access points"""
         for ap in aps:
             if 'vssids' in ap.params:
                 for i in range(1, ap.params['vssids']+1):
