@@ -20,6 +20,9 @@ class IntfWireless(object):
 
     "Basic interface object that can configure itself."
 
+    # Whether the network is using IFB, e.g. to do TC on ingress traffic
+    ifb = False
+
     def __init__(self, name, node=None, port=None, link=None,
                  mac=None, tc=False, **params):
         """name: interface name (e.g. h1-eth0)
