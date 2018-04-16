@@ -379,9 +379,9 @@ class TCWirelessLink(IntfWireless):
             enable_red: enable RED (False)
             max_queue_size: queue limit parameter for netem"""
 
-        self.ifb = params['ifb'] if params['ifb'] not None else None
-        if self.ifb:
+        if params['ifb']:
             # This is just the IFB number
+            self.ifb = params['ifb']
             self.ifb_intf = params['ifb_intf']
 
         # Support old names for parameters
