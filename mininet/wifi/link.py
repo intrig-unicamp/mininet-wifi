@@ -318,7 +318,13 @@ class TCWirelessLink(IntfWireless):
 
     def tc(self, cmd, tc='tc'):
         "Execute tc command for our interface"
-        c = cmd % (tc, self)  # Add in tc command and our name
+        # If we are using IFB, we want to execute this on the IFB
+        # interface instead, for receiver-based shaping
+        if self.ifb:
+            ifb_component = "ifb%s" % self.ifb_intf
+            c = cmd % (tc, ifb_component)
+        else:
+            c = cmd % (tc, self)  # Add in tc command and our name
         debug(" *** executing command: %s\n" % c)
         return self.cmd(c)
 
@@ -341,6 +347,11 @@ class TCWirelessLink(IntfWireless):
             enable_ecn: enable ECN (False)
             enable_red: enable RED (False)
             max_queue_size: queue limit parameter for netem"""
+
+        self.ifb = params['ifb'] if params['ifb'] not None else None
+        if self.ifb:
+            # This is just the IFB number
+            self.ifb_intf = params['ifb_intf']
 
         # Support old names for parameters
         gro = not params.pop('disable_gro', not gro)
