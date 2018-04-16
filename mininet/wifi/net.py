@@ -538,6 +538,9 @@ class Mininet_wifi(Mininet):
                         value = self.getDataRate(sta, ap, wlan)
                         bw = value.rate
                         params['bw'] = bw
+                        if self.ifb:
+                            params['ifb'] = True
+                            params['ifb_intf'] = wlan
                     # tc = True, this is useful only to apply tc configuration
                     link = cls(name=sta.params['wlan'][wlan], node=sta,
                                tc=True, **params)
