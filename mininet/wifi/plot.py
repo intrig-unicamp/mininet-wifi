@@ -284,7 +284,7 @@ class plot2d (object):
         cls.graphUpdate(node)
 
     @classmethod
-    def plotGraph(cls, nodes=[], connections=[]):
+    def plotGraph(cls, nodes, conn):
         "Plot Graph"
         debug('Enabling Graph...\n')
         for node in nodes:
@@ -295,17 +295,13 @@ class plot2d (object):
             cls.text(node)
             cls.circle(node)
 
-        if 'src' in connections:
-            for c in range(0, len(connections['src'])):
-                ls = connections['ls'][c]
-                src_x = '%.2f' \
-                        % float(connections['src'][c].params['position'][0])
-                src_y = '%.2f' \
-                        % float(connections['src'][c].params['position'][1])
-                dst_x = '%.2f'\
-                        % float(connections['dst'][c].params['position'][0])
-                dst_y = '%.2f' \
-                        % float(connections['dst'][c].params['position'][1])
+        if 'src' in conn:
+            for c in range(0, len(conn['src'])):
+                ls = conn['ls'][c]
+                src_x = '%.2f' % float(conn['src'][c].params['position'][0])
+                src_y = '%.2f' % float(conn['src'][c].params['position'][1])
+                dst_x = '%.2f' % float(conn['dst'][c].params['position'][0])
+                dst_y = '%.2f' % float(conn['dst'][c].params['position'][1])
                 line = cls.plotLine2d([src_x, dst_x], \
                                        [src_y, dst_y], 'b', ls=ls)
                 cls.plotLine(line)
@@ -314,17 +310,17 @@ class plot2d (object):
 class plotGraph(object):
     'Plot Graphs'
     def __init__(self, min_x=0, min_y=0, min_z=0, max_x=0, max_y=0, max_z=0,
-                 nodes=None, connections=None):
+                 nodes=None, conn=None):
         'init plotgraph'
         self.instantiateGraph(min_x, min_y, min_z, max_x, max_y, max_z,
-                              nodes, connections)
+                              nodes, conn)
 
     def instantiateGraph(self, min_x, min_y, min_z, max_x, max_y, max_z,
-                         nodes, connections):
+                         nodes, conn):
         "instantiatePlotGraph"
         if min_z == 0 and max_z == 0:
             plot2d.instantiateGraph(min_x, min_y, max_x, max_y)
-            plot2d.plotGraph(nodes, connections)
+            plot2d.plotGraph(nodes, conn)
         else:
             plot3d.instantiateGraph(min_x, min_y, min_z, max_x, max_y, max_z)
             plot3d.instantiateNodes(nodes)

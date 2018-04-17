@@ -28,10 +28,8 @@ def topology():
 
     net.plotGraph(max_x=100, max_y=100)
 
-    net.seed(1)
-
     net.startMobility(time=0, model='RandomWayPoint', max_x=100, max_y=100,
-                      min_v=0.5, max_v=0.5)
+                      min_v=0.5, max_v=0.5, seed=20)
 
     info("*** Starting network\n")
     net.build()

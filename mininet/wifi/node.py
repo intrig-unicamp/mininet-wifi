@@ -25,11 +25,11 @@ from mininet.moduledeps import moduleDeps, pathCheck, TUN
 from mininet.link import Link, Intf, OVSIntf
 from mininet.wifi.link import TCWirelessLink, TCLinkWirelessAP,\
     Association, wirelessLink, adhoc, mesh
-from mininet.wifi.wmediumdConnector import WmediumdServerConn, \
-    WmediumdPosition, WmediumdTXPower, WmediumdGain, WmediumdHeight, \
-    wmediumd_mode, WmediumdConstants
-from mininet.wifi.propagationModels import distanceByPropagationModel, \
-    powerForRangeByPropagationModel, propagationModel
+from mininet.wifi.wmediumdConnector import WmediumdServer, \
+    WmediumdPos, WmediumdTXPower, WmediumdGain, WmediumdHeight, \
+    wmediumd_mode, WmediumdCst
+from mininet.wifi.propagationModels import GetSignalRange, \
+    GetPowerGivenRange, propagationModel
 from mininet.wifi.util import moveIntf
 from mininet.utils.private_folder_manager import PrivateFolderManager
 
@@ -248,15 +248,15 @@ class Node_wifi(Node):
     def getRange(self, intf=None, noiseLevel=0):
         "Get the Signal Range"
         interference_enabled = False
-        if wmediumd_mode.mode == WmediumdConstants.INTERFERENCE_MODE:
+        if wmediumd_mode.mode == WmediumdCst.INTERFERENCE_MODE:
             interference_enabled = True
         wlan = self.params['wlan'].index(intf)
         if noiseLevel != 0:
-            distanceByPropagationModel.NOISE_LEVEL = noiseLevel
+            GetSignalRange.NOISE_LEVEL = noiseLevel
         if not isinstance(self, Station) and not isinstance(self, Car) \
                 and not isinstance(self, AP):
             self = self.params['associatedTo'][0]
-        value = distanceByPropagationModel(self, wlan, interference_enabled)
+        value = GetSignalRange(self, wlan, interference_enabled)
 
         return int(value.dist)
 
@@ -297,11 +297,11 @@ class Node_wifi(Node):
             car.params['position'] = self.params['position']
         self.updateGraph()
 
-        if wmediumd_mode.mode == WmediumdConstants.INTERFERENCE_MODE:
-            self.set_position_wmediumd()
+        if wmediumd_mode.mode == WmediumdCst.INTERFERENCE_MODE:
+            self.set_pos_wmediumd()
             if isinstance(self, Car):
                 self = self.params['carsta']
-                self.set_position_wmediumd()
+                self.set_pos_wmediumd()
         self.configLinks()
 
     def setAntennaGain(self, value, intf=None, setParam=True):
@@ -439,7 +439,7 @@ class Node_wifi(Node):
         value = propagationModel(self, node2, dist, wlan)
         return float(value.rssi)  # random.uniform(value.rssi-1, value.rssi+1)
 
-    def set_position_wmediumd(self):
+    def set_pos_wmediumd(self):
         "Set Position for wmediumd"
         posX = self.params['position'][0]
         posY = self.params['position'][1]
@@ -451,38 +451,37 @@ class Node_wifi(Node):
 
         for wlan in range(0, wlans):
             self.lastpos = self.params['position']
-            WmediumdServerConn.update_position(WmediumdPosition(
+            WmediumdServer.update_pos(WmediumdPos(
                 self.wmIface[wlan], [float(posX), float(posY), float(posZ)]))
 
     def setGainWmediumd(self, wlan):
         "Set Antenna Gain for wmediumd"
-        if wmediumd_mode.mode == WmediumdConstants.INTERFERENCE_MODE:
+        if wmediumd_mode.mode == WmediumdCst.INTERFERENCE_MODE:
             gain_ = self.params['antennaGain'][wlan]
-            WmediumdServerConn.update_gain(WmediumdGain(
+            WmediumdServer.update_gain(WmediumdGain(
                 self.wmIface[wlan], int(gain_)))
 
     def setHeightWmediumd(self, wlan):
         "Set Antenna Height for wmediumd"
-        if wmediumd_mode.mode == WmediumdConstants.INTERFERENCE_MODE:
+        if wmediumd_mode.mode == WmediumdCst.INTERFERENCE_MODE:
             height_ = self.params['antennaHeight'][wlan]
-            WmediumdServerConn.update_height(WmediumdHeight(
+            WmediumdServer.update_height(WmediumdHeight(
                 self.wmIface[wlan], int(height_)))
 
     def setTXPowerWmediumd(self, wlan):
         "Set TxPower for wmediumd"
-        if wmediumd_mode.mode == WmediumdConstants.INTERFERENCE_MODE:
+        if wmediumd_mode.mode == WmediumdCst.INTERFERENCE_MODE:
             txpower_ = self.params['txpower'][wlan]
-            WmediumdServerConn.update_txpower(WmediumdTXPower(
+            WmediumdServer.update_txpower(WmediumdTXPower(
                 self.wmIface[wlan], int(txpower_)))
 
     def get_txpower_prop_model(self, wlan):
         "Get Tx Power Given the propagation Model"
         interference_enabled = False
-        if wmediumd_mode.mode == WmediumdConstants.INTERFERENCE_MODE:
+        if wmediumd_mode.mode == WmediumdCst.INTERFERENCE_MODE:
             interference_enabled = True
-        value = powerForRangeByPropagationModel(self, wlan,
-                                                self.params['range'][wlan],
-                                                interference_enabled)
+        value = GetPowerGivenRange(self, wlan, self.params['range'][wlan],
+                                   interference_enabled)
         return int(value.txpower)
 
     def get_txpower(self, iface):
@@ -1150,6 +1149,7 @@ class AP(Node_wifi):
         return '<%s %s: %s pid=%s> ' % (
             self.__class__.__name__, self.name, intfs, self.pid)
 
+
 class AccessPoint(AP):
     """An AccessPoint is a Switch equipped with wireless interface that is
     running (or has execed?) an OpenFlow switch."""
@@ -1230,8 +1230,8 @@ class AccessPoint(AP):
                 cmd = cmd + ("\nauth_server_shared_secret=%s"
                              % ap.params['shared_secret'])
             else:
-                cmd = cmd + ("\nwme_enabled=1")
-                cmd = cmd + ("\nwmm_enabled=1")
+                #cmd = cmd + ("\nwme_enabled=1")
+                #cmd = cmd + ("\nwmm_enabled=1")
 
                 if 'encrypt' in ap.params:
                     if 'wpa' in ap.params['encrypt'][wlan]:
@@ -1392,6 +1392,7 @@ class AccessPoint(AP):
             'your system.')
             exit(1)
 
+
 class UserAP(AP):
     "User-space AP."
 
@@ -1503,6 +1504,7 @@ class UserAP(AP):
         self.pexec('ip link set %s down' % intf)
         self.pexec('ip link set %s name %s' % (intf, newname))
         self.pexec('ip link set %s up' % newname)
+
 
 class OVSAP(AP):
     "Open vSwitch AP. Depends on ovs-vsctl."
