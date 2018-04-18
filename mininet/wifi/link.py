@@ -835,43 +835,27 @@ class wirelessLink (object):
         :param wlan: wlan ID
         :param dist: distance between source and destination
         """
-
         delay_ = self.setDelay(dist)
         latency_ = self.setLatency(dist)
         loss_ = self.setLoss(dist)
-        bw_ = self.setBW(sta=sta, ap=ap, dist=dist, wlan=wlan)
-        self.tc(sta, wlan, bw_, loss_, latency_, delay_)
+        bw_ = self.getBW(sta=sta, ap=ap, dist=dist, wlan=wlan)
+        self.config_tc(sta, wlan, bw_, loss_, latency_, delay_)
 
     @classmethod
-    def setDelay(cls, dist):
-        """"Based on RandomPropagationDelayModel
-
-        :param dist: distance between source and destination
-        """
+    def getDelay(cls, dist):
+        "Based on RandomPropagationDelayModel"
         return eval(cls.equationDelay)
 
     @classmethod
-    def setLatency(cls, dist):
-        """
-        :param dist: distance between source and destination
-        """
+    def getLatency(cls, dist):
         return eval(cls.equationLatency)
 
     @classmethod
-    def setLoss(cls, dist):
-        """
-        :param dist: distance between source and destination
-        """
+    def getLoss(cls, dist):
         return eval(cls.equationLoss)
 
     @classmethod
-    def setBW(cls, sta=None, ap=None, wlan=0, dist=0):
-        """set BW
-        :param sta: station
-        :param ap: access point
-        :param wlan: wlan ID
-        :param dist: distance between source and destination
-        """
+    def getBW(cls, sta=None, ap=None, wlan=0, dist=0):
         value = GetRate(sta, ap, wlan)
         custombw = value.rate
         rate = eval(str(custombw) + cls.equationBw)
@@ -893,38 +877,28 @@ class wirelessLink (object):
                 node.intf = None
 
     @classmethod
-    def tc(cls, sta, wlan, bw, loss, latency, delay):
-        """Applies TC
-
-        :param sta: station
+    def config_tc(cls, node, wlan, bw, loss, latency, delay):
+        """config_tc
+        :param node: node
         :param wlan: wlan ID
         :param bw: bandwidth (mbps)
         :param loss: loss (%)
         :param latency: latency (ms)
         :param delay: delay (ms)"""
-        # delay is not being used
-
         if cls.ifb:
-            sta.pexec("tc qdisc replace dev ifb%s \
-                        root handle 2: netem rate %.2fmbit \
-                        loss %.1f%% \
-                        latency %.2fms " % (sta.ifb[wlan], bw, loss, latency))
-        if 'encrypt' in sta.params['associatedTo'][wlan].params:
-            """tbf is applied to encrypt, cause we have noticed troubles 
-            with wpa_supplicant and netem"""
-            tc = 'tc qdisc replace dev %s root handle 1: tbf ' \
-                 'rate %.2fmbit ' \
-                 'burst 15000b ' \
-                 'lat %.2fms' % (sta.params['wlan'][wlan], bw, latency)
-            sta.pexec(tc)
-        else:
-            tc = "tc qdisc replace dev %s " \
-                 "root handle 2: netem " \
-                 "rate %.4fmbit " \
-                 "loss %.1f%% " \
-                 "latency %.2fms " % (sta.params['wlan'][wlan], bw, loss,
-                                      latency)
-            sta.pexec(tc)
+            iface = 'ifb%s' % node.ifb[wlan]
+            cls.tc(node, iface, bw, loss, latency)
+        iface = node.params['wlan'][wlan]
+        cls.tc(node, iface, bw, loss, latency)
+
+    @classmethod
+    def tc(cls, node, iface, bw, loss, latency):
+        tc_ = "tc qdisc replace dev %s " \
+              "root handle 2: netem " \
+              "rate %.4fmbit " \
+              "loss %.1f%% " \
+              "latency %.2fms " % (iface, bw, loss, latency)
+        node.pexec(tc_)
 
 
 class wifiDirectLink(IntfWireless):
