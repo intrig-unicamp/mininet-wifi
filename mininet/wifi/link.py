@@ -835,9 +835,9 @@ class wirelessLink (object):
         :param wlan: wlan ID
         :param dist: distance between source and destination
         """
-        delay_ = self.setDelay(dist)
-        latency_ = self.setLatency(dist)
-        loss_ = self.setLoss(dist)
+        delay_ = self.getDelay(dist)
+        latency_ = self.getLatency(dist)
+        loss_ = self.getLoss(dist)
         bw_ = self.getBW(sta=sta, ap=ap, dist=dist, wlan=wlan)
         self.config_tc(sta, wlan, bw_, loss_, latency_, delay_)
 
