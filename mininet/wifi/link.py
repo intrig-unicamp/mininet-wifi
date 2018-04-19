@@ -10,10 +10,10 @@ from sys import version_info as py_version_info
 from six import string_types
 
 from mininet.log import info, error, debug
-from mininet.wifi.devices import getRate
+from mininet.wifi.devices import GetRate
 from mininet.wifi.wmediumdConnector import DynamicWmediumdIntfRef, \
-    WmediumdStarter, WmediumdSNRLink, WmediumdTXPower, WmediumdPosition, \
-    WmediumdConstants, WmediumdServerConn, WmediumdERRPROBLink, wmediumd_mode
+    WmediumdStarter, WmediumdSNRLink, WmediumdTXPower, WmediumdPos, \
+    WmediumdCst, WmediumdServer, WmediumdERRPROBLink, wmediumd_mode
 
 
 class IntfWireless(object):
@@ -505,6 +505,7 @@ class _4address(object):
         "Override to stop and clean up link as needed"
         self.delete()
 
+
 class WirelessLinkAP(object):
 
     """A basic link is just a veth pair.
@@ -676,6 +677,7 @@ class TCLinkWirelessStation(WirelessLinkStation):
                                      addr1=addr1,
                                      params1=params)
 
+
 class TCLinkWirelessAP(WirelessLinkAP):
     "Link with symmetric TC interfaces configured via opts"
     def __init__(self, node1, port1=None, intfName1=None,
@@ -734,11 +736,11 @@ class wmediumd(TCWirelessLink):
                 else:
                     isnodeaps.append(0)
 
-        if wmediumd_mode.mode == WmediumdConstants.INTERFERENCE_MODE:
+        if wmediumd_mode.mode == WmediumdCst.INTERFERENCE_MODE:
             set_interference()
-        elif wmediumd_mode.mode == WmediumdConstants.SPECPROB_MODE:
+        elif wmediumd_mode.mode == WmediumdCst.SPECPROB_MODE:
             spec_prob_link()
-        elif wmediumd_mode.mode == WmediumdConstants.ERRPROB_MODE:
+        elif wmediumd_mode.mode == WmediumdCst.ERRPROB_MODE:
             set_error_prob()
         else:
             set_snr()
@@ -752,7 +754,7 @@ class start_wmediumd(object):
                  fading_coefficient, noise_threshold, txpowers, isnodeaps,
                  propagation_model):
 
-        WmediumdStarter.start(intfrefs, links, positions=positions,
+        WmediumdStarter.start(intfrefs, links, pos=positions,
                               fading_coefficient=fading_coefficient,
                               noise_threshold=noise_threshold,
                               txpowers=txpowers, isnodeaps=isnodeaps,
@@ -788,7 +790,7 @@ class set_interference(object):
             for wlan in range(0, wlans):
                 if wlan == 1:
                     posX+=1
-                wmediumd.positions.append(WmediumdPosition(node.wmIface[wlan],
+                wmediumd.positions.append(WmediumdPos(node.wmIface[wlan],
                                                            [posX, posY, posZ]))
                 wmediumd.txpowers.append(WmediumdTXPower(
                     node.wmIface[wlan], float(node.params['txpower'][wlan])))
@@ -847,44 +849,28 @@ class wirelessLink (object):
         :param wlan: wlan ID
         :param dist: distance between source and destination
         """
-
-        delay_ = self.setDelay(dist)
-        latency_ = self.setLatency(dist)
-        loss_ = self.setLoss(dist)
-        bw_ = self.setBW(sta=sta, ap=ap, dist=dist, wlan=wlan)
-        self.tc(sta, wlan, bw_, loss_, latency_, delay_)
+        delay_ = self.getDelay(dist)
+        latency_ = self.getLatency(dist)
+        loss_ = self.getLoss(dist)
+        bw_ = self.getBW(sta=sta, ap=ap, dist=dist, wlan=wlan)
+        self.config_tc(sta, wlan, bw_, loss_, latency_, delay_)
 
     @classmethod
-    def setDelay(cls, dist):
-        """"Based on RandomPropagationDelayModel
-
-        :param dist: distance between source and destination
-        """
+    def getDelay(cls, dist):
+        "Based on RandomPropagationDelayModel"
         return eval(cls.equationDelay)
 
     @classmethod
-    def setLatency(cls, dist):
-        """
-        :param dist: distance between source and destination
-        """
+    def getLatency(cls, dist):
         return eval(cls.equationLatency)
 
     @classmethod
-    def setLoss(cls, dist):
-        """
-        :param dist: distance between source and destination
-        """
+    def getLoss(cls, dist):
         return eval(cls.equationLoss)
 
     @classmethod
-    def setBW(cls, sta=None, ap=None, wlan=0, dist=0):
-        """set BW
-        :param sta: station
-        :param ap: access point
-        :param wlan: wlan ID
-        :param dist: distance between source and destination
-        """
-        value = getRate(sta, ap, wlan)
+    def getBW(cls, sta=None, ap=None, wlan=0, dist=0):
+        value = GetRate(sta, ap, wlan)
         custombw = value.rate
         rate = eval(str(custombw) + cls.equationBw)
 
@@ -905,38 +891,28 @@ class wirelessLink (object):
                 node.intf = None
 
     @classmethod
-    def tc(cls, sta, wlan, bw, loss, latency, delay):
-        """Applies TC
-
-        :param sta: station
+    def config_tc(cls, node, wlan, bw, loss, latency, delay):
+        """config_tc
+        :param node: node
         :param wlan: wlan ID
         :param bw: bandwidth (mbps)
         :param loss: loss (%)
         :param latency: latency (ms)
         :param delay: delay (ms)"""
-        # delay is not being used
-
         if cls.ifb:
-            sta.pexec("tc qdisc replace dev ifb%s \
-                        root handle 2: netem rate %.2fmbit \
-                        loss %.1f%% \
-                        latency %.2fms " % (sta.ifb[wlan], bw, loss, latency))
-        if 'encrypt' in sta.params['associatedTo'][wlan].params:
-            """tbf is applied to encrypt, cause we have noticed troubles 
-            with wpa_supplicant and netem"""
-            tc = 'tc qdisc replace dev %s root handle 1: tbf ' \
-                 'rate %.2fmbit ' \
-                 'burst 15000b ' \
-                 'lat %.2fms' % (sta.params['wlan'][wlan], bw, latency)
-            sta.pexec(tc)
-        else:
-            tc = "tc qdisc replace dev %s " \
-                 "root handle 2: netem " \
-                 "rate %.4fmbit " \
-                 "loss %.1f%% " \
-                 "latency %.2fms " % (sta.params['wlan'][wlan], bw, loss,
-                                      latency)
-            sta.pexec(tc)
+            iface = 'ifb%s' % node.ifb[wlan]
+            cls.tc(node, iface, bw, loss, latency)
+        iface = node.params['wlan'][wlan]
+        cls.tc(node, iface, bw, loss, latency)
+
+    @classmethod
+    def tc(cls, node, iface, bw, loss, latency):
+        tc_ = "tc qdisc replace dev %s " \
+              "root handle 2: netem " \
+              "rate %.4fmbit " \
+              "loss %.1f%% " \
+              "latency %.2fms " % (iface, bw, loss, latency)
+        node.pexec(tc_)
 
 
 class wifiDirectLink(IntfWireless):
@@ -1088,9 +1064,9 @@ class Association(object):
     @classmethod
     def setSNRWmediumd(cls, sta, ap, snr):
         "Send SNR to wmediumd"
-        WmediumdServerConn.send_snr_update(WmediumdSNRLink(
+        WmediumdServer.send_snr_update(WmediumdSNRLink(
             sta.wmIface[0], ap.wmIface[0], snr))
-        WmediumdServerConn.send_snr_update(WmediumdSNRLink(
+        WmediumdServer.send_snr_update(WmediumdSNRLink(
             ap.wmIface[0], sta.wmIface[0], snr))
 
     @classmethod

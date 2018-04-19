@@ -44,7 +44,6 @@ class Mininet_6LoWPAN(Mininet):
     links = []
     sixLP = []
     terms = []  # list of spawned xterm processes
-    alternativeModule = None
     n_wpans = 0
     min_x = 0
     min_y = 0

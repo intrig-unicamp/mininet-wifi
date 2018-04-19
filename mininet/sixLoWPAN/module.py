@@ -21,25 +21,25 @@ class module(object):
     phyID = 0
 
     @classmethod
-    def load_module(cls, n_radios, alternativeModule=''):
+    def load_module(cls, n_radios, alt_module=''):
         """ Load WiFi Module 
         
         :param n_radios: number of radios
-        :param alternativeModule: dir of a fakelb alternative module"""
+        :param alt_module: dir of a fakelb alternative module"""
         debug('Loading %s virtual interfaces\n' % n_radios)
         if not cls.externally_managed:
-            if alternativeModule == '':
+            if alt_module == '':
                 output_ = os.system('modprobe fakelb numlbs=%s' % n_radios)
             else:
-                output_ = os.system('insmod %s numlbs=0' % alternativeModule)
+                output_ = os.system('insmod %s numlbs=0' % alt_module)
 
             # Useful for tests in Kernels like Kernel 3.13.x
             if n_radios == 0:
                 n_radios = 1
-            if alternativeModule == '':
+            if alt_module == '':
                 os.system('modprobe fakelb numlbs=%s' % n_radios)
             else:
-                os.system('insmod %s numlbs=%s' % (alternativeModule,
+                os.system('insmod %s numlbs=%s' % (alt_module,
                                                    n_radios))
 
     @classmethod
@@ -83,14 +83,14 @@ class module(object):
         cls.kill_fakelb()
 
     @classmethod
-    def start(cls, nodes, n_radios, alternativeModule='', **params):
+    def start(cls, nodes, n_radios, alt_module='', **params):
         """Starts environment
         
         :param nodes: list of wireless nodes
         :param n_radios: number of wifi radios
-        :param alternativeModule: dir of a fakelb alternative module
+        :param alt_module: dir of a fakelb alternative module
         :param **params: ifb -  Intermediate Functional Block device"""
-        cls.load_module(n_radios, alternativeModule)  # Initatilize WiFi Module
+        cls.load_module(n_radios, alt_module)  # Initatilize WiFi Module
         phys = cls.get_virtual_wpan()  # Get Phy Interfaces
         cls.assign_iface(nodes, phys, **params)  # iface assign
 

@@ -22,16 +22,15 @@ class module(object):
     phyID = 0
 
     @classmethod
-    def load_module(cls, n_radios, alternativeModule):
+    def load_module(cls, n_radios, alt_module):
         """Load WiFi Module
-        
         :param n_radios: number of wifi radios
-        :param alternativeModule: dir of a mac80211_hwsim alternative module"""
+        :param alt_module: dir of a mac80211_hwsim alternative module"""
         debug('Loading %s virtual wifi interfaces\n' % n_radios)
         if not cls.externally_managed:
-            if alternativeModule:
+            if alt_module:
                 output_ = os.system('insmod %s radios=0 >/dev/null 2>&1'
-                                    % alternativeModule)
+                                    % alt_module)
             else:
                 output_ = os.system('modprobe mac80211_hwsim radios=0 '
                                     '>/dev/null 2>&1')
@@ -44,10 +43,10 @@ class module(object):
                 # Useful for tests in Kernels like Kernel 3.13.x
                 if n_radios == 0:
                     n_radios = 1
-                if alternativeModule == '':
+                if alt_module == '':
                     os.system('modprobe mac80211_hwsim radios=%s' % n_radios)
                 else:
-                    os.system('insmod %s radios=%s' % (alternativeModule,
+                    os.system('insmod %s radios=%s' % (alt_module,
                                                        n_radios))
         else:
             cls.devices_created_dynamically = True
@@ -151,12 +150,12 @@ class module(object):
         cls.kill_mac80211_hwsim()
 
     @classmethod
-    def start(cls, nodes, n_radios, alternativeModule, **params):
+    def start(cls, nodes, n_radios, alt_module, **params):
         """Starts environment
         
         :param nodes: list of wireless nodes
         :param n_radios: number of wifi radios
-        :param alternativeModule: dir of a mac80211_hwsim alternative module
+        :param alt_module: dir of a mac80211_hwsim alternative module
         :param **params: ifb -  Intermediate Functional Block device"""
         """kill hostapd if it is already running"""
         try:
@@ -168,7 +167,7 @@ class module(object):
             pass
 
         physicalWlans = cls.get_physical_wlan()  # Gets Physical Wlan(s)
-        cls.load_module(n_radios, alternativeModule)  # Initatilize WiFi Module
+        cls.load_module(n_radios, alt_module)  # Initatilize WiFi Module
         phys = cls.get_phy()  # Get Phy Interfaces
         module.assign_iface(nodes, physicalWlans, phys, **params)  # iface assign
 

@@ -56,7 +56,7 @@ class vanet(object):
         [self.totalRoads.append(x) for x in range(0, params['nroads'])]
         plot2d.instantiateGraph(params['min_x'], params['min_y'], params['max_x'], params['max_y'])
 
-        self.display_grid(aps, params['connections'], params['nroads'])
+        self.display_grid(aps, params['conn'], params['nroads'])
         self.display_cars(cars)
         plot2d.plotGraph(cars, [])
         self.setWifiParameters(mobility)
@@ -106,7 +106,7 @@ class vanet(object):
             points.reverse()
         return points
 
-    def display_grid(self, baseStations, connections, nroads):
+    def display_grid(self, baseStations, conn, nroads):
 
         for n in range(nroads):
             if n == 0:
@@ -153,12 +153,12 @@ class vanet(object):
             plot2d.plotDraw()
 
         sleep(1)
-        if 'src' in connections:
-            for c in range(0, len(connections['src'])):
-                line = plot2d.plotLine2d([connections['src'][c].params['position'][0],
-                                          connections['dst'][c].params['position'][0]], \
-                                       [connections['src'][c].params['position'][1],
-                                        connections['dst'][c].params['position'][1]],
+        if 'src' in conn:
+            for c in range(0, len(conn['src'])):
+                line = plot2d.plotLine2d([conn['src'][c].params['position'][0],
+                                          conn['dst'][c].params['position'][0]], \
+                                       [conn['src'][c].params['position'][1],
+                                        conn['dst'][c].params['position'][1]],
                                          'b', ls='dashed')
                 plot2d.plotLine(line)
 

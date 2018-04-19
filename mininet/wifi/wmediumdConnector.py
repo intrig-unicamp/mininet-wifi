@@ -50,11 +50,11 @@ class interference(object):
         wmediumd_mode.set_mode(mode=3)
 
 
-class WmediumdConstants:
+class WmediumdCst:
     "wmediumd constants"
 
     def __init__(self):
-        raise Exception("WmediumdConstants cannot be initialized")
+        raise Exception("WmediumdCst cannot be initialized")
         pass
 
     SNR_MODE = 0
@@ -76,8 +76,8 @@ class WmediumdConstants:
     WSERVER_ERRPROB_UPDATE_RESPONSE_TYPE = 10
     WSERVER_SPECPROB_UPDATE_REQUEST_TYPE = 11
     WSERVER_SPECPROB_UPDATE_RESPONSE_TYPE = 12
-    WSERVER_POSITION_UPDATE_REQUEST_TYPE = 13
-    WSERVER_POSITION_UPDATE_RESPONSE_TYPE = 14
+    WSERVER_POS_UPDATE_REQUEST_TYPE = 13
+    WSERVER_POS_UPDATE_RESPONSE_TYPE = 14
     WSERVER_TXPOWER_UPDATE_REQUEST_TYPE = 15
     WSERVER_TXPOWER_UPDATE_RESPONSE_TYPE = 16
     WSERVER_GAIN_UPDATE_REQUEST_TYPE = 17
@@ -105,8 +105,8 @@ class WmediumdManager(object):
     registered_interfaces = []
 
     @classmethod
-    def connect(cls, uds_address=WmediumdConstants.SOCKET_PATH,
-                mode=WmediumdConstants.SNR_MODE):
+    def connect(cls, uds_address=WmediumdCst.SOCKET_PATH,
+                mode=WmediumdCst.SNR_MODE):
         # type: (str) -> None
         """
         Connect to the wmediumd server and set Mininet-WiFi parameters
@@ -136,7 +136,7 @@ class WmediumdManager(object):
             WmediumdStarter.initialize(parameters=['-l', '5'], mode=mode)
             WmediumdStarter.start_managed()
             time.sleep(1)
-        WmediumdServerConn.connect(uds_address)
+        WmediumdServer.connect(uds_address)
         cls.is_connected = True
 
         # Mininet specific
@@ -156,7 +156,7 @@ class WmediumdManager(object):
         registered_interfaces = cls.registered_interfaces[:]
         for mac in registered_interfaces:
             cls.unregister_interface(mac)
-        WmediumdServerConn.disconnect()
+        WmediumdServer.disconnect()
         cls.is_connected = False
 
     @classmethod
@@ -170,7 +170,7 @@ class WmediumdManager(object):
         :type mac: str
         :rtype int
         """
-        ret = WmediumdServerConn.register_interface(mac)
+        ret = WmediumdServer.register_interface(mac)
         cls.registered_interfaces.append(mac)
         return ret
 
@@ -183,7 +183,7 @@ class WmediumdManager(object):
 
         :type mac: str
         """
-        WmediumdServerConn.unregister_interface(mac)
+        WmediumdServer.unregister_interface(mac)
         cls.registered_interfaces.remove(mac)
 
     @classmethod
@@ -195,18 +195,18 @@ class WmediumdManager(object):
 
         :type link: WmediumdSNRLink
         """
-        WmediumdServerConn.update_link_snr(link)
+        WmediumdServer.update_link_snr(link)
 
     @classmethod
-    def update_position(cls, position):
-        # type: (WmediumdPosition) -> None
+    def update_pos(cls, pos):
+        # type: (WmediumdPos) -> None
         """
-        Update the Position of a node at wmediumd
-        :param position The position to update
+        Update the Pos of a node at wmediumd
+        :param pos The pos to update
 
-        :type position: WmediumdPosition
+        :type pos: WmediumdPos
         """
-        WmediumdServerConn.update_position(position)
+        WmediumdServer.update_pos(pos)
 
     @classmethod
     def update_txpower(cls, txpower):
@@ -217,7 +217,7 @@ class WmediumdManager(object):
 
         :type txpower: WmediumdTXPower
         """
-        WmediumdServerConn.update_txpower(txpower)
+        WmediumdServer.update_txpower(txpower)
 
     @classmethod
     def update_gain(cls, gain):
@@ -228,18 +228,18 @@ class WmediumdManager(object):
 
         :type gain: WmediumdGain
         """
-        WmediumdServerConn.update_gain(gain)
+        WmediumdServer.update_gain(gain)
 
     @classmethod
     def update_gaussian_random(cls, gRandom):
-        # type: (WmediumdGaussianRandom) -> None
+        # type: (WmediumdGRandom) -> None
         """
         Update the gRandom of a node at wmediumd
         :param gRandom The gRandom to update
 
-        :type gRandom: WmediumdGaussianRandom
+        :type gRandom: WmediumdGRandom
         """
-        WmediumdServerConn.update_gaussian_random(gRandom)
+        WmediumdServer.update_gaussian_random(gRandom)
 
     @classmethod
     def update_height(cls, height):
@@ -250,7 +250,7 @@ class WmediumdManager(object):
 
         :type height: WmediumdHeight
         """
-        WmediumdServerConn.update_height(height)
+        WmediumdServer.update_height(height)
 
     @classmethod
     def update_link_errprob(cls, link):
@@ -261,7 +261,7 @@ class WmediumdManager(object):
 
         :type link: WmediumdERRPROBLink
         """
-        WmediumdServerConn.update_link_errprob(link)
+        WmediumdServer.update_link_errprob(link)
 
     @classmethod
     def update_link_specprob(cls, link):
@@ -272,27 +272,27 @@ class WmediumdManager(object):
 
         :type link: WmediumdSPECPROBLink
         """
-        WmediumdServerConn.update_link_specprob(link)
+        WmediumdServer.update_link_specprob(link)
 
 
 class set_interference(object):
 
-    def __init__(self, configstr, ppm, positions, txpowers,
+    def __init__(self, configstr, ppm, pos, txpowers,
                  fading_coefficient, noise_threshold, isnodeaps):
 
-        self.interference(configstr, ppm, positions, txpowers,
+        self.interference(configstr, ppm, pos, txpowers,
                           fading_coefficient, noise_threshold, isnodeaps)
 
-    def interference(self, configstr, ppm, positions, txpowers,
+    def interference(self, configstr, ppm, pos, txpowers,
                      fading_coefficient, noise_threshold, isnodeaps):
         configstr += '\n\t];\n\tenable_interference = true;'
         configstr += '\n};\nmodel:\n{\n'
         configstr += '\ttype = "path_loss";\n\tpositions = ('
         first_pos = True
-        for mappedposition in positions:
-            posX = float(mappedposition.sta_position[0])
-            posY = float(mappedposition.sta_position[1])
-            posZ = float(mappedposition.sta_position[2])
+        for mappedpos in pos:
+            posX = float(mappedpos.sta_pos[0])
+            posY = float(mappedpos.sta_pos[1])
+            posZ = float(mappedpos.sta_pos[2])
             if first_pos:
                 first_pos = False
             else:
@@ -352,9 +352,8 @@ class WmediumdStarter(object):
 
     @classmethod
     def start(cls, intfrefs=None, links=None, default_auto_snr=-10,
-              default_auto_errprob=1.0, isnodeaps=None,
-              fading_coefficient=0, noise_threshold=-91, positions=None,
-              txpowers=None, ppm=None):
+              default_auto_errprob=1.0, isnodeaps=None, fading_coefficient=0,
+              noise_threshold=-91, pos=None, txpowers=None, ppm=None):
         """Set the data for the wmediumd daemon
 
         :param intfrefs: A list of all WmediumdIntfRef that should be managed
@@ -363,7 +362,7 @@ class WmediumdStarter(object):
         :param parameters: Parameters to pass to the wmediumd executable
         :param default_auto_snr: The default SNR
         :param txpowers: list of txpowers
-        :param positions: list of positions
+        :param pos: list of pos
         :param is nodeaps: check if the node is ap
         :param fading_coefficient: fading_coefficient
         :param ppm: propagation model"""
@@ -377,7 +376,7 @@ class WmediumdStarter(object):
 
         kwargs['intfrefs'] = intfrefs
         kwargs['links'] = links
-        kwargs['positions'] = positions
+        kwargs['pos'] = pos
         kwargs['txpowers'] = txpowers
         kwargs['isnodeaps'] = isnodeaps
         kwargs['parameters'] = parameters
@@ -391,7 +390,7 @@ class WmediumdStarter(object):
             raise Exception("Wrong wmediumd mode given")
         cls.is_initialized = True
         cls.initialize(**kwargs)
-        WmediumdServerConn.connect()
+        WmediumdServer.connect()
 
     @classmethod
     def initialize(cls, **kwargs):
@@ -411,47 +410,46 @@ class WmediumdStarter(object):
         if cls.is_connected:
             raise WmediumdException("WmediumdStarter is already connected")
 
-        mappedintfrefs = {}
+        mappedintf = {}
         mappedlinks = {}
-        if wmediumd_mode.mode != WmediumdConstants.INTERFERENCE_MODE:
-            # Map all links using the interface identifier and check for missing
+        if wmediumd_mode.mode != WmediumdCst.INTERFERENCE_MODE:
+            # Map all links using the interface id and check for missing
             # interfaces in the  intfrefs list
             for link in kwargs['links']:
-                link_id = link.sta1intfref.identifier() + '/' + \
-                          link.sta2intfref.identifier()
+                link_id = link.sta1intf.id() + '/' + link.sta2intf.id()
                 mappedlinks[link_id] = link
                 found1 = False
                 found2 = False
                 for intfref in kwargs['intfrefs']:
-                    if link.sta1intfref.get_station_name() == \
+                    if link.sta1intf.get_station_name() == \
                             intfref.get_station_name():
-                        if link.sta1intfref.get_station_name() == \
+                        if link.sta1intf.get_station_name() == \
                                 intfref.get_station_name():
                             found1 = True
-                    if link.sta2intfref.get_station_name() == \
+                    if link.sta2intf.get_station_name() == \
                             intfref.get_station_name():
-                        if link.sta2intfref.get_station_name() == \
+                        if link.sta2intf.get_station_name() == \
                                 intfref.get_station_name():
                             found2 = True
                 if not found1:
                     raise WmediumdException('%s is not part of the managed '
                                             'interfaces'
-                                            % link.sta1intfref.identifier())
+                                            % link.sta1intf.id())
                     pass
                 if not found2:
                     raise WmediumdException('%s is not part of the managed '
                                             'interfaces'
-                                            % link.sta2intfref.identifier())
+                                            % link.sta2intf.id())
 
-        if wmediumd_mode.mode is not WmediumdConstants.SPECPROB_MODE:
-            if wmediumd_mode.mode is not WmediumdConstants.INTERFERENCE_MODE:
+        if wmediumd_mode.mode is not WmediumdCst.SPECPROB_MODE:
+            if wmediumd_mode.mode is not WmediumdCst.INTERFERENCE_MODE:
                 for intfref1 in kwargs['intfrefs']:
                     for intfref2 in kwargs['intfrefs']:
                         if intfref1 is not intfref2:
-                            link_id = intfref1.identifier() + '/' + \
-                                      intfref2.identifier()
+                            link_id = intfref1.id() + '/' + \
+                                      intfref2.id()
                             if wmediumd_mode.mode == \
-                                    WmediumdConstants.ERRPROB_MODE:
+                                    WmediumdCst.ERRPROB_MODE:
                                 mappedlinks.setdefault(
                                     link_id, WmediumdERRPROBLink(
                                         intfref1, intfref2,
@@ -472,51 +470,51 @@ class WmediumdStarter(object):
             for intfref in kwargs['intfrefs']:
                 if intfref_id != 0:
                     configstr += ', \n'
-                grepped_mac = intfref.get_intf_mac()
+                grepped_mac = intfref.get_mac()
                 configstr += '\t\t"%s"' % grepped_mac
-                mappedintfrefs[intfref.identifier()] = intfref_id
+                mappedintf[intfref.id()] = intfref_id
                 intfref_id += 1
 
-            if wmediumd_mode.mode is WmediumdConstants.INTERFERENCE_MODE:
-                set_interference(configstr, kwargs['ppm'], kwargs['positions'],
+            if wmediumd_mode.mode is WmediumdCst.INTERFERENCE_MODE:
+                set_interference(configstr, kwargs['ppm'], kwargs['pos'],
                                  kwargs['txpowers'], kwargs['fading_coefficient'],
                                  kwargs['noise_threshold'], kwargs['isnodeaps'])
                 configstr = cls.configstr
             else:
                 configstr += '\n\t];\n};\nmodel:\n{\n\ttype = "'
-                if wmediumd_mode.mode == WmediumdConstants.ERRPROB_MODE:
+                if wmediumd_mode.mode == WmediumdCst.ERRPROB_MODE:
                     configstr += 'prob'
                 else:
                     configstr += 'snr'
                 configstr += '";\n\tdefault_prob = 1.0;\n\tlinks = ('
                 first_link = True
                 for mappedlink in mappedlinks.values():
-                    id1 = mappedlink.sta1intfref.identifier()
-                    id2 = mappedlink.sta2intfref.identifier()
+                    id1 = mappedlink.sta1intf.id()
+                    id2 = mappedlink.sta2intf.id()
                     if first_link:
                         first_link = False
                     else:
                         configstr += ','
-                    if wmediumd_mode.mode == WmediumdConstants.ERRPROB_MODE:
+                    if wmediumd_mode.mode == WmediumdCst.ERRPROB_MODE:
                         configstr += '\n\t\t(%d, %d, %f)' % (
-                            mappedintfrefs[id1], mappedintfrefs[id2],
+                            mappedintf[id1], mappedintf[id2],
                             mappedlink.errprob)
                     else:
                         configstr += '\n\t\t(%d, %d, %d)' % (
-                            mappedintfrefs[id1], mappedintfrefs[id2],
+                            mappedintf[id1], mappedintf[id2],
                             mappedlink.snr)
                 configstr += '\n\t);\n};'
             wmd_config.write(configstr.encode())
             wmd_config.close()
         # Start wmediumd using the created config
         cmdline = ['wmediumd']
-        if wmediumd_mode.mode is WmediumdConstants.SPECPROB_MODE:
+        if wmediumd_mode.mode is WmediumdCst.SPECPROB_MODE:
             cmdline.append("-d")
         else:
             cmdline.append("-c")
             cmdline.append(cls.wmd_config_name)
-            if wmediumd_mode.mode is WmediumdConstants.SNR_MODE \
-                    or wmediumd_mode.mode is WmediumdConstants.INTERFERENCE_MODE:
+            if wmediumd_mode.mode is WmediumdCst.SNR_MODE \
+                    or wmediumd_mode.mode is WmediumdCst.INTERFERENCE_MODE:
                 cmdline.append("-x")
                 per_data_file = \
                     pkg_resources.resource_filename(
@@ -538,11 +536,9 @@ class WmediumdStarter(object):
 
     @classmethod
     def start_managed(cls):
-        """
-        Start the connector in managed mode, which means disconnect and
+        """Start the connector in managed mode, which means disconnect and
         kill won't work, the process is kept running after the python
-        process has finished
-        """
+        process has finished"""
         cls.is_managed = True
         if not cls.is_initialized:
             cls.initialize()
@@ -550,9 +546,7 @@ class WmediumdStarter(object):
 
     @classmethod
     def stop(cls):
-        """
-        Kill the wmediumd process if running and delete the config
-        """
+        "Kill the wmediumd process if running and delete the config"
         if cls.is_managed:
             error("\nCannot close WmediumdStarter in managed mode")
             return
@@ -588,21 +582,21 @@ class WmediumdStarter(object):
             pass
 
 
-class WmediumdPosition(object):
-    def __init__(self, staintfref, sta_position):
+class WmediumdPos(object):
+    def __init__(self, staintf, sta_pos):
         """
-        Describes the position of a station
+        Describes the pos of a station
 
-        :param sta_position: Instance of WmediumdPosRef
+        :param sta_pos: Instance of WmediumdPosRef
 
-        :type sta_position: WmediumdPosRef
+        :type sta_pos: WmediumdPosRef
         """
-        self.staintfref = staintfref
-        self.sta_position = sta_position
+        self.staintf = staintf
+        self.sta_pos = sta_pos
 
 
 class WmediumdTXPower(object):
-    def __init__(self, staintfref, sta_txpower):
+    def __init__(self, staintf, sta_txpower):
         """
         Describes the Transmission Power of a station
 
@@ -610,13 +604,13 @@ class WmediumdTXPower(object):
 
         :type sta_txpower: WmediumdTXPowerRef
         """
-        self.staintfref = staintfref
+        self.staintf = staintf
         self.sta_txpower = sta_txpower
 
 
 class WmediumdGain(object):
     'Gain'
-    def __init__(self, staintfref, sta_gain):
+    def __init__(self, staintf, sta_gain):
         """
         Describes the Antenna Gain of a station
 
@@ -624,27 +618,27 @@ class WmediumdGain(object):
 
         :type sta_gain: WmediumdGainRef
         """
-        self.staintfref = staintfref
+        self.staintf = staintf
         self.sta_gain = sta_gain
 
 
-class WmediumdGaussianRandom(object):
+class WmediumdGRandom(object):
     'Gaussing Random'
-    def __init__(self, staintfref, sta_gaussian_random):
+    def __init__(self, staintf, sta_gaussian_random):
         """
         Describes the Gaussian Random of a node
 
-        :param sta_gaussian_random: Instance of WmediumdGaussianRandomRef
+        :param sta_gaussian_random: Instance of WmediumdGRandomRef
 
-        :type sta_gaussian_random: WmediumdGaussianRandomRef
+        :type sta_gaussian_random: WmediumdGRandomRef
         """
-        self.staintfref = staintfref
+        self.staintf = staintf
         self.sta_gaussian_random = sta_gaussian_random
 
 
 class WmediumdHeight(object):
     'Antenna Height'
-    def __init__(self, staintfref, sta_height):
+    def __init__(self, staintf, sta_height):
         """
         Describes the Antenna Height of a station
 
@@ -652,68 +646,68 @@ class WmediumdHeight(object):
 
         :type sta_height: WmediumdHeightRef
         """
-        self.staintfref = staintfref
+        self.staintf = staintf
         self.sta_height = sta_height
 
 
 class WmediumdSNRLink(object):
     'SNR Link'
-    def __init__(self, sta1intfref, sta2intfref, snr=10):
+    def __init__(self, sta1intf, sta2intf, snr=10):
         """
         Describes a link between two interfaces using the SNR
 
-        :param sta1intfref: Instance of WmediumdIntfRef
-        :param sta2intfref: Instance of WmediumdIntfRef
+        :param sta1intf: Instance of WmediumdIntfRef
+        :param sta2intf: Instance of WmediumdIntfRef
         :param snr: Signal Noise Ratio as int
 
-        :type sta1intfref: WmediumdIntfRef
-        :type sta2intfref: WmediumdIntfRef
+        :type sta1intf: WmediumdIntfRef
+        :type sta2intf: WmediumdIntfRef
         :type snr: int
         """
-        self.sta1intfref = sta1intfref
-        self.sta2intfref = sta2intfref
+        self.sta1intf = sta1intf
+        self.sta2intf = sta2intf
         self.snr = snr
 
 
 class WmediumdERRPROBLink(object):
     'ERRPROBLink'
-    def __init__(self, sta1intfref, sta2intfref, errprob=0.2):
+    def __init__(self, sta1intf, sta2intf, errprob=0.2):
         """
         Describes a link between two interfaces using the error probability
 
-        :param sta1intfref: Instance of WmediumdIntfRef
-        :param sta2intfref: Instance of WmediumdIntfRef
+        :param sta1intf: Instance of WmediumdIntfRef
+        :param sta2intf: Instance of WmediumdIntfRef
         :param errprob: The error probability in the range [0.0;1.0]
 
-        :type sta1intfref: WmediumdIntfRef
-        :type sta2intfref: WmediumdIntfRef
+        :type sta1intf: WmediumdIntfRef
+        :type sta2intf: WmediumdIntfRef
         :type errprob: float
         """
-        self.sta1intfref = sta1intfref
-        self.sta2intfref = sta2intfref
+        self.sta1intf = sta1intf
+        self.sta2intf = sta2intf
         self.errprob = errprob
 
 
 class WmediumdSPECPROBLink(object):
     'SPECPROB Link'
-    def __init__(self, sta1intfref, sta2intfref, errprobs):
+    def __init__(self, sta1intf, sta2intf, errprobs):
         """
         Describes a link between two interfaces using a matrix of error
         probabilities
 
-        :param sta1intfref: Instance of WmediumdIntfRef
-        :param sta2intfref: Instance of WmediumdIntfRef
+        :param sta1intf: Instance of WmediumdIntfRef
+        :param sta2intf: Instance of WmediumdIntfRef
         :param errprobs: The error probabilities in the range [0.0;1.0],
         the two dimensional array has as first
             dimension the packet size index and as the second the data
             rate index: errprobs[size_idx][rate_idx]
 
-        :type sta1intfref: WmediumdIntfRef
-        :type sta2intfref: WmediumdIntfRef
+        :type sta1intf: WmediumdIntfRef
+        :type sta2intf: WmediumdIntfRef
         :type errprobs: float[][]
         """
-        self.sta1intfref = sta1intfref
-        self.sta2intfref = sta2intfref
+        self.sta1intf = sta1intf
+        self.sta2intf = sta2intf
         self.errprobs = errprobs
 
 
@@ -751,7 +745,7 @@ class WmediumdIntfRef:
         """
         return self.__intfname
 
-    def get_intf_mac(self):
+    def get_mac(self):
         """
         Get the MAC address of the interface
 
@@ -759,9 +753,9 @@ class WmediumdIntfRef:
         """
         return self.__intfmac
 
-    def identifier(self):
+    def id(self):
         """
-        Identifier used in dicts
+        Id used in dicts
 
         :rtype: str
         """
@@ -796,7 +790,7 @@ class DynamicWmediumdIntfRef(WmediumdIntfRef):
         elif isinstance(self.__intf, int):
             return self.__sta.params['wlan'][self.__intf]
 
-    def get_intf_mac(self):
+    def get_mac(self):
         intf_name = self.get_intf_name()
         index = 0
         found = False
@@ -809,7 +803,7 @@ class DynamicWmediumdIntfRef(WmediumdIntfRef):
             return self.__sta.params['mac'][index]
 
 
-class WmediumdServerConn(object):
+class WmediumdServer(object):
     'Server Conn'
     __mac_struct_fmt = '6s'
 
@@ -825,14 +819,14 @@ class WmediumdServerConn(object):
     __snr_update_response_struct = \
         struct.Struct('!' + __snr_update_response_fmt)
 
-    __position_update_request_fmt = \
+    __pos_update_request_fmt = \
         __base_struct_fmt + __mac_struct_fmt + 'f' + 'f' + 'f'
-    __position_update_response_fmt = \
-        __base_struct_fmt + __position_update_request_fmt + 'B'
-    __position_update_request_struct = \
-        struct.Struct('!' + __position_update_request_fmt)
-    __position_update_response_struct = \
-        struct.Struct('!' + __position_update_response_fmt)
+    __pos_update_response_fmt = \
+        __base_struct_fmt + __pos_update_request_fmt + 'B'
+    __pos_update_request_struct = \
+        struct.Struct('!' + __pos_update_request_fmt)
+    __pos_update_response_struct = \
+        struct.Struct('!' + __pos_update_response_fmt)
 
     __txpower_update_request_fmt = \
         __base_struct_fmt + __mac_struct_fmt + 'i'
@@ -917,7 +911,7 @@ class WmediumdServerConn(object):
     connected = False
 
     @classmethod
-    def connect(cls, uds_address=WmediumdConstants.SOCKET_PATH):
+    def connect(cls, uds_address=WmediumdCst.SOCKET_PATH):
         # type: (str) -> None
         """
         Connect to the wmediumd server
@@ -954,9 +948,9 @@ class WmediumdServerConn(object):
         :rtype int
         """
         info("\n%s Registering interface with mac %s"
-             % (WmediumdConstants.LOG_PREFIX, mac))
-        ret, sta_id = WmediumdServerConn.send_add(mac)
-        if ret != WmediumdConstants.WUPDATE_SUCCESS:
+             % (WmediumdCst.LOG_PREFIX, mac))
+        ret, sta_id = WmediumdServer.send_add(mac)
+        if ret != WmediumdCst.WUPDATE_SUCCESS:
             raise WmediumdException("Received error code from wmediumd: "
                                     "code %d" % ret)
         return sta_id
@@ -971,9 +965,9 @@ class WmediumdServerConn(object):
         :type mac: str
         """
         info("\n%s Unregistering interface with mac %s"
-             % (WmediumdConstants.LOG_PREFIX, mac))
-        ret = WmediumdServerConn.send_del_by_mac(mac)
-        if ret != WmediumdConstants.WUPDATE_SUCCESS:
+             % (WmediumdCst.LOG_PREFIX, mac))
+        ret = WmediumdServer.send_del_by_mac(mac)
+        if ret != WmediumdCst.WUPDATE_SUCCESS:
             raise WmediumdException("Received error code from wmediumd: "
                                     "code %d" % ret)
 
@@ -986,22 +980,22 @@ class WmediumdServerConn(object):
 
         :type link: WmediumdLink
         """
-        ret = WmediumdServerConn.send_snr_update(link)
-        if ret != WmediumdConstants.WUPDATE_SUCCESS:
+        ret = WmediumdServer.send_snr_update(link)
+        if ret != WmediumdCst.WUPDATE_SUCCESS:
             raise WmediumdException("Received error code from wmediumd: "
                                     "code %d" % ret)
 
     @classmethod
-    def update_position(cls, position):
-        # type: (WmediumdPosition) -> None
+    def update_pos(cls, pos):
+        # type: (WmediumdPos) -> None
         """
-        Update the Position of a connection at wmediumd
-        :param position The position to update
+        Update the Pos of a connection at wmediumd
+        :param pos The pos to update
 
-        :type position: WmediumdPosition
+        :type pos: WmediumdPos
         """
-        ret = WmediumdServerConn.send_position_update(position)
-        if ret != WmediumdConstants.WUPDATE_SUCCESS:
+        ret = WmediumdServer.send_pos_update(pos)
+        if ret != WmediumdCst.WUPDATE_SUCCESS:
             raise WmediumdException("Received error code from wmediumd: "
                                     "code %d" % ret)
 
@@ -1014,8 +1008,8 @@ class WmediumdServerConn(object):
 
         :type txpower: WmediumdTXPower
         """
-        ret = WmediumdServerConn.send_txpower_update(txpower)
-        if ret != WmediumdConstants.WUPDATE_SUCCESS:
+        ret = WmediumdServer.send_txpower_update(txpower)
+        if ret != WmediumdCst.WUPDATE_SUCCESS:
             raise WmediumdException("Received error code from wmediumd: "
                                     "code %d" % ret)
 
@@ -1028,22 +1022,22 @@ class WmediumdServerConn(object):
 
         :type gain: WmediumdGain
         """
-        ret = WmediumdServerConn.send_gain_update(gain)
-        if ret != WmediumdConstants.WUPDATE_SUCCESS:
+        ret = WmediumdServer.send_gain_update(gain)
+        if ret != WmediumdCst.WUPDATE_SUCCESS:
             raise WmediumdException("Received error code from wmediumd: "
                                     "code %d" % ret)
 
     @classmethod
     def update_gaussian_random(cls, gRandom):
-        # type: (WmediumdGaussianRandom) -> None
+        # type: (WmediumdGRandom) -> None
         """
         Update the Gaussian Random of a connection at wmediumd
         :param gRandom The gRandom to update
 
-        :type gRandom: WmediumdGaussianRandom
+        :type gRandom: WmediumdGRandom
         """
-        ret = WmediumdServerConn.send_gaussian_random_update(gRandom)
-        if ret != WmediumdConstants.WUPDATE_SUCCESS:
+        ret = WmediumdServer.send_gaussian_random_update(gRandom)
+        if ret != WmediumdCst.WUPDATE_SUCCESS:
             raise WmediumdException("Received error code from wmediumd: "
                                     "code %d" % ret)
 
@@ -1056,8 +1050,8 @@ class WmediumdServerConn(object):
 
         :type height: WmediumdHeight
         """
-        ret = WmediumdServerConn.send_height_update(height)
-        if ret != WmediumdConstants.WUPDATE_SUCCESS:
+        ret = WmediumdServer.send_height_update(height)
+        if ret != WmediumdCst.WUPDATE_SUCCESS:
             raise WmediumdException("Received error code from wmediumd: "
                                     "code %d" % ret)
 
@@ -1070,8 +1064,8 @@ class WmediumdServerConn(object):
 
         :type link: WmediumdLink
         """
-        ret = WmediumdServerConn.send_errprob_update(link)
-        if ret != WmediumdConstants.WUPDATE_SUCCESS:
+        ret = WmediumdServer.send_errprob_update(link)
+        if ret != WmediumdCst.WUPDATE_SUCCESS:
             raise WmediumdException("Received error code from wmediumd: "
                                     "code %d" % ret)
 
@@ -1084,8 +1078,8 @@ class WmediumdServerConn(object):
 
         :type link: WmediumdLink
         """
-        ret = WmediumdServerConn.send_specprob_update(link)
-        if ret != WmediumdConstants.WUPDATE_SUCCESS:
+        ret = WmediumdServer.send_specprob_update(link)
+        if ret != WmediumdCst.WUPDATE_SUCCESS:
             raise WmediumdException("Received error code from wmediumd: "
                                     "code %d" % ret)
 
@@ -1098,32 +1092,32 @@ class WmediumdServerConn(object):
         :return: A WUPDATE_* constant
         """
         debug("%s Updating SNR from interface %s to interface %s to "
-              "value %d\n" % (WmediumdConstants.LOG_PREFIX,
-                              link.sta1intfref.get_intf_mac(),
-                              link.sta2intfref.get_intf_mac(), link.snr))
+              "value %d\n" % (WmediumdCst.LOG_PREFIX,
+                              link.sta1intf.get_mac(),
+                              link.sta2intf.get_mac(), link.snr))
         cls.sock.send(cls.__create_snr_update_request(link))
         return cls.__parse_response(
-            WmediumdConstants.WSERVER_SNR_UPDATE_RESPONSE_TYPE,
+            WmediumdCst.WSERVER_SNR_UPDATE_RESPONSE_TYPE,
             cls.__snr_update_response_struct)[-1]
 
     @classmethod
-    def send_position_update(cls, position):
-        # type: (WmediumdPosition) -> int
+    def send_pos_update(cls, pos):
+        # type: (WmediumdPos) -> int
         """
         Send an update to the wmediumd server
-        :param position: The WmediumdPosition to update
+        :param pos: The WmediumdPos to update
         :return: A WUPDATE_* constant
         """
-        posX = position.sta_position[0]
-        posY = position.sta_position[1]
-        posZ = position.sta_position[2]
-        debug("%s Updating Position of %s to x=%s, y=%s, z=%s\n" % (
-            WmediumdConstants.LOG_PREFIX, position.staintfref.get_intf_mac(),
+        posX = pos.sta_pos[0]
+        posY = pos.sta_pos[1]
+        posZ = pos.sta_pos[2]
+        debug("%s Updating Pos of %s to x=%s, y=%s, z=%s\n" % (
+            WmediumdCst.LOG_PREFIX, pos.staintf.get_mac(),
             posX, posY, posZ))
-        cls.sock.send(cls.__create_position_update_request(position))
+        cls.sock.send(cls.__create_pos_update_request(pos))
         return cls.__parse_response(
-            WmediumdConstants.WSERVER_POSITION_UPDATE_RESPONSE_TYPE,
-            cls.__position_update_response_struct)[-1]
+            WmediumdCst.WSERVER_POS_UPDATE_RESPONSE_TYPE,
+            cls.__pos_update_response_struct)[-1]
 
     @classmethod
     def send_txpower_update(cls, txpower):
@@ -1135,11 +1129,11 @@ class WmediumdServerConn(object):
         """
         txpower_ = txpower.sta_txpower
         debug("%s Updating TxPower of %s to %d\n" % (
-            WmediumdConstants.LOG_PREFIX, txpower.staintfref.get_intf_mac(),
+            WmediumdCst.LOG_PREFIX, txpower.staintf.get_mac(),
             txpower_))
         cls.sock.send(cls.__create_txpower_update_request(txpower))
         return cls.__parse_response(
-            WmediumdConstants.WSERVER_TXPOWER_UPDATE_RESPONSE_TYPE,
+            WmediumdCst.WSERVER_TXPOWER_UPDATE_RESPONSE_TYPE,
             cls.__txpower_update_response_struct)[-1]
 
     @classmethod
@@ -1152,28 +1146,28 @@ class WmediumdServerConn(object):
         """
         gain_ = gain.sta_gain
         debug("%s Updating Antenna Gain of %s to %d\n" % (
-            WmediumdConstants.LOG_PREFIX, gain.staintfref.get_intf_mac(),
+            WmediumdCst.LOG_PREFIX, gain.staintf.get_mac(),
             gain_))
         cls.sock.send(cls.__create_gain_update_request(gain))
         return cls.__parse_response(
-            WmediumdConstants.WSERVER_GAIN_UPDATE_RESPONSE_TYPE,
+            WmediumdCst.WSERVER_GAIN_UPDATE_RESPONSE_TYPE,
             cls.__gain_update_response_struct)[-1]
 
     @classmethod
     def send_gaussian_random_update(cls, gRandom):
-        # type: (WmediumdGaussianRandom) -> int
+        # type: (WmediumdGRandom) -> int
         """
         Send an update to the wmediumd server
-        :param gRandom: The WmediumdGaussianRandom to update
+        :param gRandom: The WmediumdGRandom to update
         :return: A WUPDATE_* constant
         """
         gRandom_ = gRandom.sta_gaussian_random
         debug("%s Updating Gaussian Random of %s to %s\n" % (
-            WmediumdConstants.LOG_PREFIX, gRandom.staintfref.get_intf_mac(),
+            WmediumdCst.LOG_PREFIX, gRandom.staintf.get_mac(),
             gRandom_))
         cls.sock.send(cls.__create_gaussian_random_update_request(gRandom))
         return cls.__parse_response(
-            WmediumdConstants.WSERVER_GAUSSIAN_RANDOM_UPDATE_RESPONSE_TYPE,
+            WmediumdCst.WSERVER_GAUSSIAN_RANDOM_UPDATE_RESPONSE_TYPE,
             cls.__gaussian_random_update_response_struct)[-1]
 
     @classmethod
@@ -1186,11 +1180,11 @@ class WmediumdServerConn(object):
         """
         height_ = height.sta_height
         debug("%s Updating Antenna Height of %s to %d\n" % (
-            WmediumdConstants.LOG_PREFIX, height.staintfref.get_intf_mac(),
+            WmediumdCst.LOG_PREFIX, height.staintf.get_mac(),
             height_))
         cls.sock.send(cls.__create_height_update_request(height))
         return cls.__parse_response(
-            WmediumdConstants.WSERVER_HEIGHT_UPDATE_RESPONSE_TYPE,
+            WmediumdCst.WSERVER_HEIGHT_UPDATE_RESPONSE_TYPE,
             cls.__height_update_response_struct)[-1]
 
     @classmethod
@@ -1203,12 +1197,12 @@ class WmediumdServerConn(object):
         """
         debug("\n%s Updating ERRPROB from interface %s to interface %s "
               "to value %f" % (
-                  WmediumdConstants.LOG_PREFIX, link.sta1intfref.get_intf_mac(),
-                  link.sta2intfref.get_intf_mac(),
+                  WmediumdCst.LOG_PREFIX, link.sta1intf.get_mac(),
+                  link.sta2intf.get_mac(),
                   link.errprob))
         cls.sock.send(cls.__create_errprob_update_request(link))
         return cls.__parse_response(
-            WmediumdConstants.WSERVER_ERRPROB_UPDATE_RESPONSE_TYPE,
+            WmediumdCst.WSERVER_ERRPROB_UPDATE_RESPONSE_TYPE,
             cls.__errprob_update_response_struct)[-1]
 
     @classmethod
@@ -1220,11 +1214,11 @@ class WmediumdServerConn(object):
         :return: A WUPDATE_* constant
         """
         debug("\n%s Updating SPECPROB from interface %s to interface %s" % (
-            WmediumdConstants.LOG_PREFIX, link.sta1intfref.get_intf_mac(),
-            link.sta2intfref.get_intf_mac()))
+            WmediumdCst.LOG_PREFIX, link.sta1intf.get_mac(),
+            link.sta2intf.get_mac()))
         cls.sock.send(cls.__create_specprob_update_request(link))
         return cls.__parse_response(
-            WmediumdConstants.WSERVER_SPECPROB_UPDATE_RESPONSE_TYPE,
+            WmediumdCst.WSERVER_SPECPROB_UPDATE_RESPONSE_TYPE,
             cls.__specprob_update_response_struct)[-1]
 
     @classmethod
@@ -1237,7 +1231,7 @@ class WmediumdServerConn(object):
         """
         cls.sock.send(cls.__create_station_del_by_mac_request(mac))
         return cls.__parse_response(
-            WmediumdConstants.WSERVER_DEL_BY_MAC_RESPONSE_TYPE,
+            WmediumdCst.WSERVER_DEL_BY_MAC_RESPONSE_TYPE,
             cls.__station_del_by_mac_response_struct)[-1]
 
     @classmethod
@@ -1250,7 +1244,7 @@ class WmediumdServerConn(object):
         """
         cls.sock.send(cls.__create_station_del_by_id_request(sta_id))
         return cls.__parse_response(
-            WmediumdConstants.WSERVER_DEL_BY_ID_RESPONSE_TYPE,
+            WmediumdCst.WSERVER_DEL_BY_ID_RESPONSE_TYPE,
             cls.__station_del_by_id_response_struct)[-1]
 
     @classmethod
@@ -1259,12 +1253,12 @@ class WmediumdServerConn(object):
         """
         Send an update to the wmediumd server
         :param mac: The mac address of the new interface
-        :return: A WUPDATE_* constant and on success at the second position
+        :return: A WUPDATE_* constant and on success at the second pos
         the index
         """
         cls.sock.send(cls.__create_station_add_request(mac))
         resp = cls.__parse_response(
-            WmediumdConstants.WSERVER_ADD_RESPONSE_TYPE,
+            WmediumdCst.WSERVER_ADD_RESPONSE_TYPE,
             cls.__station_add_response_struct)
         return resp[-1], resp[-2]
 
@@ -1272,41 +1266,41 @@ class WmediumdServerConn(object):
     def __create_snr_update_request(cls, link):
         "snr update request"
         # type: (WmediumdSNRLink) -> str
-        msgtype = WmediumdConstants.WSERVER_SNR_UPDATE_REQUEST_TYPE
+        msgtype = WmediumdCst.WSERVER_SNR_UPDATE_REQUEST_TYPE
         if py_version_info < (3, 0):
-            mac_from = link.sta1intfref.get_intf_mac().replace(':', '').decode('hex')
-            mac_to = link.sta2intfref.get_intf_mac().replace(':', '').decode('hex')
+            mac_from = link.sta1intf.get_mac().replace(':', '').decode('hex')
+            mac_to = link.sta2intf.get_mac().replace(':', '').decode('hex')
         else:
-            mac_from = bytes.fromhex(link.sta1intfref.get_intf_mac().replace(':', ''))
-            mac_to = bytes.fromhex(link.sta2intfref.get_intf_mac().replace(':', ''))
+            mac_from = bytes.fromhex(link.sta1intf.get_mac().replace(':', ''))
+            mac_to = bytes.fromhex(link.sta2intf.get_mac().replace(':', ''))
         snr = int(link.snr)
         return cls.__snr_update_request_struct.pack(msgtype, mac_from,
                                                     mac_to, snr)
 
     @classmethod
-    def __create_position_update_request(cls, position):
-        "position update request"
-        # type: (WmediumdPosition) -> str
-        msgtype = WmediumdConstants.WSERVER_POSITION_UPDATE_REQUEST_TYPE
+    def __create_pos_update_request(cls, pos):
+        "pos update request"
+        # type: (WmediumdPos) -> str
+        msgtype = WmediumdCst.WSERVER_POS_UPDATE_REQUEST_TYPE
         if py_version_info < (3, 0):
-            mac = position.staintfref.get_intf_mac().replace(':', '').decode('hex')
+            mac = pos.staintf.get_mac().replace(':', '').decode('hex')
         else:
-            mac = bytes.fromhex(position.staintfref.get_intf_mac().replace(':', ''))
-        posX = position.sta_position[0]
-        posY = position.sta_position[1]
-        posZ = position.sta_position[2]
-        return cls.__position_update_request_struct.pack(msgtype, mac,
-                                                         posX, posY, posZ)
+            mac = bytes.fromhex(pos.staintf.get_mac().replace(':', ''))
+        posX = pos.sta_pos[0]
+        posY = pos.sta_pos[1]
+        posZ = pos.sta_pos[2]
+        return cls.__pos_update_request_struct.pack(msgtype, mac,
+                                                    posX, posY, posZ)
 
     @classmethod
     def __create_txpower_update_request(cls, txpower):
         "tx power update request"
         # type: (WmediumdTXPower) -> str
-        msgtype = WmediumdConstants.WSERVER_TXPOWER_UPDATE_REQUEST_TYPE
+        msgtype = WmediumdCst.WSERVER_TXPOWER_UPDATE_REQUEST_TYPE
         if py_version_info < (3, 0):
-            mac = txpower.staintfref.get_intf_mac().replace(':', '').decode('hex')
+            mac = txpower.staintf.get_mac().replace(':', '').decode('hex')
         else:
-            mac = bytes.fromhex((txpower.staintfref.get_intf_mac().replace(':', '')))
+            mac = bytes.fromhex((txpower.staintf.get_mac().replace(':', '')))
         txpower_ = txpower.sta_txpower
         return cls.__txpower_update_request_struct.pack(msgtype, mac, txpower_)
 
@@ -1314,23 +1308,23 @@ class WmediumdServerConn(object):
     def __create_gain_update_request(cls, gain):
         "antenna gain update request"
         # type: (WmediumdGain) -> str
-        msgtype = WmediumdConstants.WSERVER_GAIN_UPDATE_REQUEST_TYPE
+        msgtype = WmediumdCst.WSERVER_GAIN_UPDATE_REQUEST_TYPE
         if py_version_info < (3, 0):
-            mac = gain.staintfref.get_intf_mac().replace(':', '').decode('hex')
+            mac = gain.staintf.get_mac().replace(':', '').decode('hex')
         else:
-            mac = bytes.fromhex((gain.staintfref.get_intf_mac().replace(':', '')))
+            mac = bytes.fromhex((gain.staintf.get_mac().replace(':', '')))
         gain_ = gain.sta_gain
         return cls.__gain_update_request_struct.pack(msgtype, mac, gain_)
 
     @classmethod
     def __create_gaussian_random_update_request(cls, gRandom):
         "gaussian random update request"
-        # type: (WmediumdGaussianRandom) -> str
-        msgtype = WmediumdConstants.WSERVER_GAUSSIAN_RANDOM_UPDATE_REQUEST_TYPE
+        # type: (WmediumdGRandom) -> str
+        msgtype = WmediumdCst.WSERVER_GAUSSIAN_RANDOM_UPDATE_REQUEST_TYPE
         if py_version_info < (3, 0):
-            mac = gRandom.staintfref.get_intf_mac().replace(':', '').decode('hex')
+            mac = gRandom.staintf.get_mac().replace(':', '').decode('hex')
         else:
-            mac = bytes.fromhex((gRandom.staintfref.get_intf_mac().replace(':', '')))
+            mac = bytes.fromhex((gRandom.staintf.get_mac().replace(':', '')))
         gRandom_ = gRandom.sta_gaussian_random
         return cls.__gaussian_random_update_request_struct.pack(msgtype, mac,
                                                                 gRandom_)
@@ -1339,11 +1333,11 @@ class WmediumdServerConn(object):
     def __create_height_update_request(cls, height):
         "height update request"
         # type: (WmediumdHeight) -> str
-        msgtype = WmediumdConstants.WSERVER_HEIGHT_UPDATE_REQUEST_TYPE
+        msgtype = WmediumdCst.WSERVER_HEIGHT_UPDATE_REQUEST_TYPE
         if py_version_info < (3, 0):
-            mac = height.staintfref.get_intf_mac().replace(':', '').decode('hex')
+            mac = height.staintf.get_mac().replace(':', '').decode('hex')
         else:
-            mac = bytes.fromhex((height.staintfref.get_intf_mac().replace(':', '')))
+            mac = bytes.fromhex((height.staintf.get_mac().replace(':', '')))
         height_ = height.sta_height
         return cls.__height_update_request_struct.pack(msgtype, mac, height_)
 
@@ -1351,13 +1345,13 @@ class WmediumdServerConn(object):
     def __create_errprob_update_request(cls, link):
         "error prob update request"
         # type: (WmediumdERRPROBLink) -> str
-        msgtype = WmediumdConstants.WSERVER_ERRPROB_UPDATE_REQUEST_TYPE
+        msgtype = WmediumdCst.WSERVER_ERRPROB_UPDATE_REQUEST_TYPE
         if py_version_info < (3, 0):
-            mac_from = link.sta1intfref.get_intf_mac().replace(':', '').decode('hex')
-            mac_to = link.sta2intfref.get_intf_mac().replace(':', '').decode('hex')
+            mac_from = link.sta1intf.get_mac().replace(':', '').decode('hex')
+            mac_to = link.sta2intf.get_mac().replace(':', '').decode('hex')
         else:
-            mac_from = bytes.fromhex((link.sta1intfref.get_intf_mac().replace(':', '')))
-            mac_to = bytes.fromhex((link.sta2intfref.get_intf_mac().replace(':', '')))
+            mac_from = bytes.fromhex((link.sta1intf.get_mac().replace(':', '')))
+            mac_to = bytes.fromhex((link.sta2intf.get_mac().replace(':', '')))
         errprob = cls.__conv_float_to_fixed_point(link.errprob)
         return cls.__errprob_update_request_struct.pack(msgtype, mac_from, mac_to,
                                                         errprob)
@@ -1366,13 +1360,13 @@ class WmediumdServerConn(object):
     def __create_specprob_update_request(cls, link):
         "specprob update request"
         # type: (WmediumdSPECPROBLink) -> str
-        msgtype = WmediumdConstants.WSERVER_SPECPROB_UPDATE_REQUEST_TYPE
+        msgtype = WmediumdCst.WSERVER_SPECPROB_UPDATE_REQUEST_TYPE
         if py_version_info < (3, 0):
-            mac_from = link.sta1intfref.get_intf_mac().replace(':', '').decode('hex')
-            mac_to = link.sta2intfref.get_intf_mac().replace(':', '').decode('hex')
+            mac_from = link.sta1int.get_mac().replace(':', '').decode('hex')
+            mac_to = link.sta2intf.get_mac().replace(':', '').decode('hex')
         else:
-            mac_from = bytes.fromhex((link.sta1intfref.get_intf_mac().replace(':', '')))
-            mac_to = bytes.fromhex((link.sta2intfref.get_intf_mac().replace(':', '')))
+            mac_from = bytes.fromhex((link.sta1intf.get_mac().replace(':', '')))
+            mac_to = bytes.fromhex((link.sta2intf.get_mac().replace(':', '')))
         fixed_points = [None] * 144
         for size_idx in range(0, 12):
             for rate_idx in range(0, 12):
@@ -1386,7 +1380,7 @@ class WmediumdServerConn(object):
     def __create_station_del_by_mac_request(cls, mac):
         "del station by mac"
         # type: (str) -> str
-        msgtype = WmediumdConstants.WSERVER_DEL_BY_MAC_REQUEST_TYPE
+        msgtype = WmediumdCst.WSERVER_DEL_BY_MAC_REQUEST_TYPE
         macparsed = mac.replace(':', '').decode('hex')
         return cls.__station_del_by_mac_request_struct.pack(msgtype, macparsed)
 
@@ -1394,14 +1388,14 @@ class WmediumdServerConn(object):
     def __create_station_del_by_id_request(cls, sta_id):
         "del station by id"
         # type: (int) -> str
-        msgtype = WmediumdConstants.WSERVER_DEL_BY_ID_REQUEST_TYPE
+        msgtype = WmediumdCst.WSERVER_DEL_BY_ID_REQUEST_TYPE
         return cls.__station_del_by_id_request_struct.pack(msgtype, sta_id)
 
     @classmethod
     def __create_station_add_request(cls, mac):
         "add station"
         # type: (str) -> str
-        msgtype = WmediumdConstants.WSERVER_ADD_REQUEST_TYPE
+        msgtype = WmediumdCst.WSERVER_ADD_REQUEST_TYPE
         macparsed = mac.replace(':', '').decode('hex')
         return cls.__station_add_request_struct.pack(msgtype, macparsed)
 

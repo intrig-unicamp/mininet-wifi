@@ -42,11 +42,8 @@ def topology(mobility):
 
     if mobility:
         net.plotGraph(max_x=100, max_y=100)
-
-        net.seed(20)
-
         net.startMobility(time=0, model='RandomDirection', max_x=100, max_y=100,
-                          min_v=0.5, max_v=0.8)
+                          min_v=0.5, max_v=0.8, seed=20)
 
     info("*** Starting network\n")
     net.build()

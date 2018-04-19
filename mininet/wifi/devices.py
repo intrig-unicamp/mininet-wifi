@@ -7,7 +7,8 @@ author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
 
 """
 
-class getRate (object):
+
+class GetRate (object):
     "Data Rate for specific equipments"
 
     rate = 0
@@ -91,7 +92,8 @@ class getRate (object):
 
     def DI524(self, node1, node2, wlan):
         """D-Link AirPlus G DI-524
-           from http://www.dlink.com/-/media/Consumer_Products/DI/DI%20524/Manual/DI_524_Manual_EN_UK.pdf
+           from http://www.dlink.com/-/media/Consumer_Products/
+           DI/DI%20524/Manual/DI_524_Manual_EN_UK.pdf
            
         rssi: rssi value (dBm)
         rate: maximum supported bandwidth (mbps)"""
@@ -100,17 +102,17 @@ class getRate (object):
         if node1.params['rssi'][wlan] != 0:
             if node1.params['rssi'][wlan] >= -68:
                 rate = 48
-            elif node1.params['rssi'][wlan] < -68 and node1.params['rssi'][wlan] >= -75:
+            elif -75 <= node1.params['rssi'][wlan] < -68:
                 rate = 36
-            elif node1.params['rssi'][wlan] < -75 and node1.params['rssi'][wlan] >= -79:
+            elif -79 <= node1.params['rssi'][wlan] < -75:
                 rate = 24
-            elif node1.params['rssi'][wlan] < -79 and node1.params['rssi'][wlan] >= -84:
+            elif -84 <= node1.params['rssi'][wlan] < -79:
                 rate = 18
-            elif node1.params['rssi'][wlan] < -84 and node1.params['rssi'][wlan] >= -87:
+            elif -87 <= node1.params['rssi'][wlan] < -84:
                 rate = 9
-            elif node1.params['rssi'][wlan] < -87 and node1.params['rssi'][wlan] >= -88:
+            elif -88 <= node1.params['rssi'][wlan] < -87:
                 rate = 6
-            elif node1.params['rssi'][wlan] < -88 and node1.params['rssi'][wlan] >= -89:
+            elif -89 <= node1.params['rssi'][wlan] < -88:
                 rate = 1
 
         self.rate = rate
@@ -118,7 +120,8 @@ class getRate (object):
 
     def TLWR740N(self, node1, node2, wlan):
         """TL-WR740N
-           from http://www.tp-link.com.br/products/details/cat-9_TL-WR740N.html#specificationsf
+           from http://www.tp-link.com.br/products/details/
+           cat-9_TL-WR740N.html#specificationsf
         
         mode: interface mode
         rssi: rssi value (dBm)
@@ -135,11 +138,11 @@ class getRate (object):
                         rate = 54
                     elif mode == 'b':
                         rate = 11
-                elif node1.params['rssi'][wlan] < -68 and node1.params['rssi'][wlan] >= -85:
+                elif -85 <= node1.params['rssi'][wlan] < -68:
                     rate = 11
-                elif node1.params['rssi'][wlan] < -85 and node1.params['rssi'][wlan] >= -88:
+                elif -88 <= node1.params['rssi'][wlan] < -85:
                     rate = 6
-                elif node1.params['rssi'][wlan] < -88 and node1.params['rssi'][wlan] >= -90:
+                elif -90 <= node1.params['rssi'][wlan] < -88:
                     rate = 1
         except:  # if AP
             if mode == 'n':
@@ -154,7 +157,8 @@ class getRate (object):
 
     def WRT120N(self, node1, node2, wlan):
         """CISCO WRT120N
-           from http://downloads.linksys.com/downloads/datasheet/WRT120N_V10_DS_B-WEB.pdf
+           from http://downloads.linksys.com/downloads/datasheet/
+           WRT120N_V10_DS_B-WEB.pdf
         
         mode: interface mode
         rssi: rssi value (dBm)
@@ -171,14 +175,14 @@ class getRate (object):
                         rate = 54
                     elif mode == 'b':
                         rate = 11
-                elif node1.params['rssi'][wlan] < -65 and node1.params['rssi'][wlan] >= -68:
+                elif -68 <= node1.params['rssi'][wlan] < -65:
                     if mode == 'g':
                         rate = 54
                     elif mode == 'b':
                         rate = 11
-                elif node1.params['rssi'][wlan] < -68 and node1.params['rssi'][wlan] >= -85:
+                elif -85 <= node1.params['rssi'][wlan] < -68:
                     rate = 11
-                elif node1.params['rssi'][wlan] < -85 and node1.params['rssi'][wlan] >= -90:
+                elif -90 <= node1.params['rssi'][wlan] < -85:
                     rate = 1
         except:  # if AP
             if node2.params['mode'][0] == 'n':
@@ -191,7 +195,8 @@ class getRate (object):
         self.rate = rate
         return self.rate
 
-class getRange (object):
+
+class GetRange (object):
     "Range for specific equipments"
 
     value = 100
@@ -232,7 +237,8 @@ class getRange (object):
 
     def DI524(self, ap):
         """ D-Link AirPlus G DI-524
-            from http://www.dlink.com/-/media/Consumer_Products/DI/DI%20524/Manual/DI_524_Manual_EN_UK.pdf
+            from http://www.dlink.com/-/media/Consumer_Products/DI/
+            DI%20524/Manual/DI_524_Manual_EN_UK.pdf
             indoor = 100
             outdoor = 200 
         
@@ -259,7 +265,8 @@ class getRange (object):
         self.value = 50
         return self.value
 
-class getTxPower (object):
+
+class GetTxPower (object):
     "TX Power for specific equipments"
 
     value = 0
@@ -276,7 +283,8 @@ class getTxPower (object):
 
     def DI524(self, ap, wlan):
         """D-Link AirPlus G DI-524
-            from http://www.dlink.com/-/media/Consumer_Products/DI/DI%20524/Manual/DI_524_Manual_EN_UK.pdf
+            from http://www.dlink.com/-/media/Consumer_Products/DI/
+            DI%20524/Manual/DI_524_Manual_EN_UK.pdf
         
         txPower = transmission power (dBm)"""
         self.value = 14
@@ -292,7 +300,8 @@ class getTxPower (object):
 
     def WRT120N(self, ap, wlan):
         """CISCO WRT120N
-           from http://downloads.linksys.com/downloads/datasheet/WRT120N_V10_DS_B-WEB.pdf
+           from http://downloads.linksys.com/downloads/datasheet/
+           WRT120N_V10_DS_B-WEB.pdf
            
         txPower = transmission power (dBm)"""
 

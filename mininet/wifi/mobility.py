@@ -65,17 +65,17 @@ class mobility(object):
         """:param node: node
         :param diff_time: difference between initial and final time. Useful for
         calculating the speed"""
-        initial_pos = node.params['initPos']
+        init_pos = node.params['initPos']
         final_pos = node.params['finPos']
         if hasattr(node, 'points'):
             diff_time = (len(node.points)-1) / diff_time
             node.moveFac = diff_time
         else:
             diff_time = diff_time + 1
-            node.params['position'] = initial_pos
-            pos_x = float(final_pos[0]) - float(initial_pos[0])
-            pos_y = float(final_pos[1]) - float(initial_pos[1])
-            pos_z = float(final_pos[2]) - float(initial_pos[2])
+            node.params['position'] = init_pos
+            pos_x = float(final_pos[0]) - float(init_pos[0])
+            pos_y = float(final_pos[1]) - float(init_pos[1])
+            pos_z = float(final_pos[2]) - float(init_pos[2])
 
             cls.speed(node, pos_x, pos_y, pos_z, diff_time)
             pos = '%.2f,%.2f,%.2f' % (pos_x / diff_time, pos_y / diff_time,
@@ -293,7 +293,7 @@ class mobility(object):
 
     @classmethod
     def controlled_mobility(cls, init_time=0, final_time=0, stations=[],
-                            aps=[], connections=[], plotNodes=[], min_x=0,
+                            aps=[], conn=[], plotNodes=[], min_x=0,
                             min_y=0, min_z=0, max_x=0, max_y=0, max_z=0, AC='',
                             DRAW=False, repetitions=1, rec_rssi=False, ppm=None,
                             **params):
@@ -303,7 +303,7 @@ class mobility(object):
         :param final_time: time when the mobility stops
         :param stations: list of stations
         :param aps: list of access points
-        :param connections: list of connections
+        :param conn: list of conn
         :param plotnodes: list of nodes to be plotted (only hosts and switches)
         :param repetitions: number of repetitions
         :param MIN_X: Minimum value for X
@@ -334,7 +334,7 @@ class mobility(object):
         nodes = cls.mobileNodes + stationaryNodes
         try:
             if DRAW:
-                plotGraph(min_x, min_y, min_z, max_x, max_y, max_z, nodes, connections)
+                plotGraph(min_x, min_y, min_z, max_x, max_y, max_z, nodes, conn)
                 if max_z != 0:
                     plot = plot3d
         except:
@@ -388,7 +388,7 @@ class mobility(object):
                                 if max_z == 0:
                                     plot2d.updateCircleRadius(node)
                             if cls.wmediumd_mode and cls.wmediumd_mode == 3:
-                                node.set_position_wmediumd()
+                                node.set_pos_wmediumd()
                         eval(cls.continuePlot)
                         i += 1
         except:
@@ -402,7 +402,7 @@ class mobility(object):
 
     @classmethod
     def models(cls, stations=[], aps=[], model=None, mobileNodes=None,
-               min_v=0, max_v=0, seed=None, connections=None, plotNodes=[],
+               min_v=0, max_v=0, seed=None, conn=None, plotNodes=[],
                max_x=0, max_y=0, AC='', DRAW=False, rec_rssi=False, ppm=None,
                **params):
         """Used when a mobility model is being used
@@ -414,7 +414,7 @@ class mobility(object):
         :param min_v: minimum velocity
         :param max_v: maximum velocity
         :param speed: speed
-        :param connections: list of connections
+        :param conn: list of connections
         :param plotNodes: list of nodes to be plotted (including hosts and switches)
         :param MAX_X: Maximum value for X
         :param MAX_Y: Maximum value for Y"
@@ -445,7 +445,7 @@ class mobility(object):
                     node.max_v = max_v
         try:
             if DRAW:
-                plotGraph(0, 0, 0, max_x, max_y, 0, nodes, connections)
+                plotGraph(0, 0, 0, max_x, max_y, 0, nodes, conn)
                 plot2d.graphPause()
         except:
             info('Warning: running without GUI.\n')
@@ -498,7 +498,7 @@ class mobility(object):
                 node.params['position'] = '%.2f' % xy[idx][0], '%.2f' \
                                           % xy[idx][1], 0.0
                 if cls.wmediumd_mode and cls.wmediumd_mode == 3:
-                    node.set_position_wmediumd()
+                    node.set_pos_wmediumd()
                 if ppm == 'logNormalShadowing':
                     sleep(0.0001)  # notice problem when there are many threads
                     intf = node.params['wlan'][0]
@@ -524,7 +524,7 @@ class mobility(object):
                 node.params['position'] = '%.2f' % xy[idx][0], '%.2f' \
                                           % xy[idx][1], 0.0
                 if cls.wmediumd_mode and cls.wmediumd_mode == 3:
-                    node.set_position_wmediumd()
+                    node.set_pos_wmediumd()
                 if ppm == 'logNormalShadowing':
                     sleep(0.0001)
                     intf = node.params['wlan'][0]
@@ -725,7 +725,7 @@ def init_random_waypoint(nodes, max_x, max_y, max_z,
 
 class RandomWaypoint(object):
     def __init__(self, nodes, wt_max=None):
-        '''
+        """
         Random Waypoint model.
 
         Required arguments:
@@ -741,7 +741,7 @@ class RandomWaypoint(object):
           *wt_max*:
             Integer, the maximum wait time for node pauses.
             If wt_max is 0 or None, there is no pause time.
-        '''
+        """
         self.nodes = nodes
         self.nr_nodes = len(nodes)
         self.wt_max = wt_max
@@ -835,9 +835,9 @@ class RandomWaypoint(object):
 
 
 class StochasticWalk(object):
-    def __init__(self, nodes, FL_DISTR, VELOCITY_DISTR, WT_DISTR=None,
+    def __init__(self, nodes, FL_DISTR, VEL_DISTR, WT_DISTR=None,
                  border_policy='reflect', model=None):
-        '''
+        """
         Base implementation for models with direction uniformly chosen from [0,pi]:
         random_direction, random_walk, truncated_levy_walk
 
@@ -855,7 +855,7 @@ class StochasticWalk(object):
             This function should implement the distribution of flight lengths
              to be used in the model.
 
-          *VELOCITY_DISTR*:
+          *VEL_DISTR*:
             A function that, given a set of flight lengths,
              returns another set with the same size of the input set.
             This function should implement the distribution of velocities
@@ -877,7 +877,7 @@ class StochasticWalk(object):
             If 'reflect', the node reflects off the border.
             If 'wrap', the node reappears at the opposite edge
             (as in a torus-shaped area).
-        '''
+        """
         self.b = [0]
         self.nodes = nodes
         self.collect_fl_stats = False
@@ -885,7 +885,7 @@ class StochasticWalk(object):
         self.border_policy = border_policy
         self.nr_nodes = len(nodes)
         self.FL_DISTR = FL_DISTR
-        self.VELOCITY_DISTR = VELOCITY_DISTR
+        self.VEL_DISTR = VEL_DISTR
         self.WT_DISTR = WT_DISTR
         self.model = model
 
@@ -948,7 +948,7 @@ class StochasticWalk(object):
 
         xy = U(0, MAX_X[self.b], np.dstack((NODES, NODES))[0])
         fl = self.FL_DISTR(NODES)
-        velocity = self.VELOCITY_DISTR(fl)
+        velocity = self.VEL_DISTR(fl)
         theta = U(0, 1.8 * np.pi, NODES)
         cosintheta = np.dstack((np.cos(theta), np.sin(theta)))[0] * \
                      np.dstack((velocity, velocity))[0]
@@ -985,11 +985,11 @@ class StochasticWalk(object):
                 fl[arrived] = self.FL_DISTR(arrived)
                 if self.collect_fl_stats: self.fl_stats.extend(fl[arrived])
                 if self.model == 'RandomDirection':
-                    velocity[arrived] = self.VELOCITY_DISTR(fl[arrived][0])[arrived]
+                    velocity[arrived] = self.VEL_DISTR(fl[arrived][0])[arrived]
                 elif self.model == 'TruncatedLevyWalk':
-                    velocity[arrived] = self.VELOCITY_DISTR(fl[arrived])
+                    velocity[arrived] = self.VEL_DISTR(fl[arrived])
                 else:
-                    velocity[arrived] = self.VELOCITY_DISTR(fl[arrived])[arrived]
+                    velocity[arrived] = self.VEL_DISTR(fl[arrived])[arrived]
                 v = velocity[arrived]
                 cosintheta[arrived] = np.dstack((v * np.cos(theta),
                                                  v * np.sin(theta)))[0]
@@ -998,7 +998,7 @@ class StochasticWalk(object):
 
 class RandomWalk(StochasticWalk):
     def __init__(self, nodes, border_policy='reflect'):
-        '''
+        """
         Random Walk mobility model.
         This model is based in the Stochastic Walk, but both the flight
         length and node velocity distributions are in fact constants,
@@ -1025,7 +1025,7 @@ class RandomWalk(StochasticWalk):
             If 'reflect', the node reflects off the border.
             If 'wrap', the node reappears at the opposite edge
             (as in a torus-shaped area).
-        '''
+        """
         nr_nodes = len(nodes)
         NODES = np.arange(nr_nodes)
         VELOCITY = U(0, 0, NODES)
@@ -1045,15 +1045,15 @@ class RandomWalk(StochasticWalk):
         vel = np.zeros(nr_nodes) + velocity
 
         FL_DISTR = lambda SAMPLES: np.array(fl[:len(SAMPLES)])
-        VELOCITY_DISTR = lambda FD: np.array(vel[:len(FD)])
+        VEL_DISTR = lambda FD: np.array(vel[:len(FD)])
 
-        StochasticWalk.__init__(self, nodes, FL_DISTR, VELOCITY_DISTR,
+        StochasticWalk.__init__(self, nodes, FL_DISTR, VEL_DISTR,
                                 border_policy=border_policy)
 
 
 class RandomDirection(StochasticWalk):
     def __init__(self, nodes, dimensions, wt_max=None, border_policy='reflect'):
-        '''
+        """
         Random Direction mobility model.
         This model is based in the Stochastic Walk. The flight length is chosen
         from a uniform distribution, with minimum 0 and maximum set to the maximum
@@ -1085,7 +1085,7 @@ class RandomDirection(StochasticWalk):
             when the node arrives to the border. If 'reflect', the node reflects
             off the border. If 'wrap', the node reappears at the opposite edge
             (as in a torus-shaped area).
-        '''
+        """
         nr_nodes = len(nodes)
         NODES = np.arange(nr_nodes)
 
@@ -1106,16 +1106,16 @@ class RandomDirection(StochasticWalk):
             WT_DISTR = lambda SAMPLES: U(0, wt_max, SAMPLES)
         else:
             WT_DISTR = None
-        VELOCITY_DISTR = lambda FD: U(MIN_V, MAX_V, FD)
+        VEL_DISTR = lambda FD: U(MIN_V, MAX_V, FD)
 
-        StochasticWalk.__init__(self, nodes, FL_DISTR, VELOCITY_DISTR,
+        StochasticWalk.__init__(self, nodes, FL_DISTR, VEL_DISTR,
                                 WT_DISTR, border_policy, model='RandomDirection')
 
 
 class TruncatedLevyWalk(StochasticWalk):
     def __init__(self, nodes, FL_EXP=-2.6, FL_MAX=50., WT_EXP=-1.8,
                  WT_MAX=100., border_policy='reflect'):
-        '''
+        """
         Truncated Levy Walk mobility model, based on the following paper:
         Injong Rhee, Minsu Shin, Seongik Hong, Kyunghan Lee, and Song Chong.
         On the Levy-Walk Nature of Human Mobility.
@@ -1156,22 +1156,22 @@ class TruncatedLevyWalk(StochasticWalk):
             node arrives to the border. If 'reflect', the node reflects off the
             border. If 'wrap', the node reappears at the opposite edge (as in a
             torus-shaped area).
-        '''
+        """
         FL_DISTR = lambda SAMPLES: P(FL_EXP, 1., FL_MAX, SAMPLES)
         if WT_EXP and WT_MAX:
             WT_DISTR = lambda SAMPLES: P(WT_EXP, 1., WT_MAX, SAMPLES)
         else:
             WT_DISTR = None
-        VELOCITY_DISTR = lambda FD: np.sqrt(FD) / 10.
+        VEL_DISTR = lambda FD: np.sqrt(FD) / 10.
 
-        StochasticWalk.__init__(self, nodes, FL_DISTR, VELOCITY_DISTR,
+        StochasticWalk.__init__(self, nodes, FL_DISTR, VEL_DISTR,
                                 WT_DISTR, border_policy, model='TruncatedLevyWalk')
 
 
 class HeterogeneousTruncatedLevyWalk(StochasticWalk):
     def __init__(self, nodes, dimensions, WT_EXP=-1.8, WT_MAX=100.,
                  FL_EXP=-2.6, FL_MAX=50., border_policy='reflect'):
-        '''
+        """
         This is a variant of the Truncated Levy Walk mobility model.
         This model is based in the Stochastic Walk.
         The waiting time distribution is a truncated power law with exponent
@@ -1212,7 +1212,7 @@ class HeterogeneousTruncatedLevyWalk(StochasticWalk):
             the node arrives to the border. If 'reflect', the node reflects off
             the border. If 'wrap', the node reappears at the opposite edge
             (as in a torus-shaped area).
-        '''
+        """
         nr_nodes = len(nodes)
         NODES = np.arange(nr_nodes)
         FL_MAX = P(-1.8, 10., FL_MAX, NODES)
@@ -1222,10 +1222,10 @@ class HeterogeneousTruncatedLevyWalk(StochasticWalk):
                                    (FL_MAX[SAMPLES] - FL_MIN[SAMPLES]) + \
                                    FL_MIN[SAMPLES]
         WT_DISTR = lambda SAMPLES: P(WT_EXP, 1., WT_MAX, SAMPLES)
-        VELOCITY_DISTR = lambda FD: np.sqrt(FD) / 10.
+        VEL_DISTR = lambda FD: np.sqrt(FD) / 10.
 
         StochasticWalk.__init__(self, nr_nodes, dimensions, FL_DISTR,
-                                VELOCITY_DISTR, WT_DISTR=WT_DISTR,
+                                VEL_DISTR, WT_DISTR=WT_DISTR,
                                 border_policy=border_policy)
 
 
@@ -1254,7 +1254,7 @@ def heterogeneous_truncated_levy_walk(*args, **kwargs):
 
 
 def gauss_markov(nodes, velocity_mean=1., alpha=1., variance=1.):
-    '''
+    """
     Gauss-Markov Mobility Model, as proposed in
     Camp, T., Boleng, J. & Davies, V. A survey of mobility models for ad hoc
     network research.
@@ -1275,7 +1275,7 @@ def gauss_markov(nodes, velocity_mean=1., alpha=1., variance=1.):
 
       *variance*:
         The randomness variance
-    '''
+    """
     nr_nodes = len(nodes)
     NODES = np.arange(nr_nodes)
 
@@ -1340,7 +1340,7 @@ def gauss_markov(nodes, velocity_mean=1., alpha=1., variance=1.):
 
 
 def reference_point_group(nodes, dimensions, velocity=(0.1, 1.), aggregation=0.1):
-    '''
+    """
     Reference Point Group Mobility model, discussed in the following paper:
 
         Xiaoyan Hong, Mario Gerla, Guangyu Pei, and Ching-Chuan Chiang. 1999.
@@ -1373,7 +1373,7 @@ def reference_point_group(nodes, dimensions, velocity=(0.1, 1.), aggregation=0.1
         the nodes will be more aggregated and closer to the group center.
         With a value of 0, the nodes are randomly distributed in the simulation
         area. With a value of 1, the nodes are close to the group center.
-    '''
+    """
     nr_nodes = len(nodes)
     try:
         iter(nr_nodes)
@@ -1396,7 +1396,7 @@ def reference_point_group(nodes, dimensions, velocity=(0.1, 1.), aggregation=0.1
     FL_MAX = max(dimensions)
     MIN_V, MAX_V = velocity
     FL_DISTR = lambda SAMPLES: U(0, FL_MAX, SAMPLES)
-    VELOCITY_DISTR = lambda FD: U(MIN_V, MAX_V, FD)
+    VEL_DISTR = lambda FD: U(MIN_V, MAX_V, FD)
 
     MAX_X, MAX_Y = dimensions
     x = U(0, MAX_X, NODES)
@@ -1410,7 +1410,7 @@ def reference_point_group(nodes, dimensions, velocity=(0.1, 1.), aggregation=0.1
     g_x = U(0, MAX_X, GROUPS)
     g_y = U(0, MAX_X, GROUPS)
     g_fl = FL_DISTR(GROUPS)
-    g_velocity = VELOCITY_DISTR(g_fl)
+    g_velocity = VEL_DISTR(g_fl)
     g_theta = U(0, 2 * np.pi, GROUPS)
     g_costheta = np.cos(g_theta)
     g_sintheta = np.sin(g_theta)
@@ -1472,13 +1472,13 @@ def reference_point_group(nodes, dimensions, velocity=(0.1, 1.), aggregation=0.1
             g_costheta[g_arrived] = np.cos(g_theta)
             g_sintheta[g_arrived] = np.sin(g_theta)
             g_fl[g_arrived] = FL_DISTR(g_arrived)
-            g_velocity[g_arrived] = VELOCITY_DISTR(g_fl[g_arrived])
+            g_velocity[g_arrived] = VEL_DISTR(g_fl[g_arrived])
 
         yield np.dstack((x, y))[0]
 
 
 def tvc(nodes, dimensions, velocity=(0.1, 1.), aggregation=[0.5, 0.], epoch=[100, 100]):
-    '''
+    """
     Time-variant Community Mobility Model, discussed in the paper
 
         Wei-jen Hsu, Thrasyvoulos Spyropoulos, Konstantinos Psounis, and Ahmed Helmy,
@@ -1522,7 +1522,7 @@ def tvc(nodes, dimensions, velocity=(0.1, 1.), aggregation=[0.5, 0.], epoch=[100
 
       *epoch*:
         List of Integers, the number of steps each epoch stage lasts.
-    '''
+    """
     nr_nodes = len(nodes)
     if len(aggregation) != len(epoch):
         raise Exception("The parameters 'aggregation' and 'epoch' should be "
@@ -1558,7 +1558,7 @@ def tvc(nodes, dimensions, velocity=(0.1, 1.), aggregation=[0.5, 0.], epoch=[100
     FL_MAX = max(dimensions)
     MIN_V, MAX_V = velocity
     FL_DISTR = lambda SAMPLES: U(0, FL_MAX, SAMPLES)
-    VELOCITY_DISTR = lambda FD: U(MIN_V, MAX_V, FD)
+    VEL_DISTR = lambda FD: U(MIN_V, MAX_V, FD)
 
     def wrap(x, y):
         b = np.where(x < 0)[0]
@@ -1586,7 +1586,7 @@ def tvc(nodes, dimensions, velocity=(0.1, 1.), aggregation=[0.5, 0.], epoch=[100
     g_x = U(0, MAX_X, GROUPS)
     g_y = U(0, MAX_X, GROUPS)
     g_fl = FL_DISTR(GROUPS)
-    g_velocity = VELOCITY_DISTR(g_fl)
+    g_velocity = VEL_DISTR(g_fl)
     g_theta = U(0, 2 * np.pi, GROUPS)
     g_costheta = np.cos(g_theta)
     g_sintheta = np.sin(g_theta)
@@ -1620,7 +1620,7 @@ def tvc(nodes, dimensions, velocity=(0.1, 1.), aggregation=[0.5, 0.], epoch=[100
                 g_costheta[g_arrived] = np.cos(g_theta)
                 g_sintheta[g_arrived] = np.sin(g_theta)
                 g_fl[g_arrived] = FL_DISTR(g_arrived)
-                g_velocity[g_arrived] = VELOCITY_DISTR(g_fl[g_arrived])
+                g_velocity[g_arrived] = VEL_DISTR(g_fl[g_arrived])
 
             # update node position according to group center
             for (i, g) in enumerate(groups):
