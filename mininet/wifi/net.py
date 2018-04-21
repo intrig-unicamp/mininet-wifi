@@ -589,7 +589,7 @@ class Mininet_wifi(Mininet):
             options.setdefault('addr1', self.randMac())
             options.setdefault('addr2', self.randMac())
 
-            if not cls or cls == wmediumd:
+            if not cls or cls == wmediumd or cls == TCWirelessLink:
                 cls = TCLink
             if self.disable_tcp_checksum:
                 cls = TCULink
