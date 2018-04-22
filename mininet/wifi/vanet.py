@@ -144,7 +144,7 @@ class vanet(object):
             bs_y = '%.2f' % bs.prop[1]
             self.scatter = plot2d.plotScatter(bs_x, bs_y)
             bs.params['position'] = bs_x, bs_y, 0
-            bs.set_position_wmediumd()
+            bs.set_pos_wmediumd()
             plot2d.instantiateNode(bs)
             plot2d.instantiateAnnotate(bs)
             plot2d.instantiateCircle(bs)
