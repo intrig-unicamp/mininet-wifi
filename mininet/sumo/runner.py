@@ -99,6 +99,8 @@ class sumo(object):
                             stations[int(vehID1)].params['position'] = x1, y1, 0
                             car = stations[int(vehID1)].params['carsta']
                             car.params['position'] = stations[int(vehID1)].params['position']
+                            stations[int(vehID1)].params['carsta'].set_pos_wmediumd()
+                            car.set_pos_wmediumd()
                             #stations[int(vehID1)].params['range'] = 130
 
                         if abs(x1-x2)>0 and abs(x1-x2)<20 and (
