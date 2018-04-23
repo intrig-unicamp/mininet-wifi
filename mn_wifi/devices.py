@@ -75,7 +75,30 @@ class GetRate (object):
         self.rate = rate
         return self.rate
 
-    def DI524(self, **kwargs):
+    @classmethod
+    def apRate(cls, node, wlan):
+        # If a custom rate was set.
+        if 'rate' in node.params:
+            cls.rate = node.params['rate']
+            return cls.rate
+
+        mode = node.params['mode'][wlan]
+
+        if mode == 'a':
+            cls.rate = 54
+        elif mode == 'b':
+            cls.rate = 11
+        elif mode == 'g':
+            cls.rate = 54
+        elif mode == 'n':
+            cls.rate = 600
+        elif mode == 'ac':
+            cls.rate = 6777
+        else:
+            cls.rate = 54
+        return cls.rate
+
+    def DI524(self, node1, node2, wlan):
         """D-Link AirPlus G DI-524
            from http://www.dlink.com/-/media/Consumer_Products/
            DI/DI%20524/Manual/DI_524_Manual_EN_UK.pdf
