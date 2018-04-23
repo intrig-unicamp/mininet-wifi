@@ -144,7 +144,7 @@ class vanet(object):
             bs_y = '%.2f' % bs.prop[1]
             self.scatter = plot2d.plotScatter(bs_x, bs_y)
             bs.params['position'] = bs_x, bs_y, 0
-            bs.set_position_wmediumd()
+            bs.set_pos_wmediumd()
             plot2d.instantiateNode(bs)
             plot2d.instantiateAnnotate(bs)
             plot2d.instantiateCircle(bs)
@@ -345,6 +345,8 @@ class vanet(object):
             car.params['position'] = pos_x, pos_y, 0
             car_ = car.params['carsta']
             car_.params['position'] = car.params['position']
+            car.set_pos_wmediumd()
+            car_.set_pos_wmediumd()
             angle = car.prop[2]
 
             # calculate new position of the car

@@ -300,8 +300,8 @@ class Node_wifi(Node):
         if wmediumd_mode.mode == WmediumdCst.INTERFERENCE_MODE:
             self.set_pos_wmediumd()
             if isinstance(self, Car):
-                self = self.params['carsta']
-                self.set_pos_wmediumd()
+                car = self.params['carsta']
+                car.set_pos_wmediumd()
         self.configLinks()
 
     def setAntennaGain(self, value, intf=None, setParam=True):
@@ -866,7 +866,7 @@ class Node_wifi(Node):
         connections = []
         for intf in self.intfList():
             link = intf.link
-            if link and link.intf2 != None and link.intf2 != 'wireless':
+            if link and link.intf2 != None and link.intf2 != 'wifi':
                 node1, node2 = link.intf1.node, link.intf2.node
                 if node1 == self and node2 == node:
                     connections += [ (intf, link.intf2) ]

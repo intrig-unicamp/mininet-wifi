@@ -514,7 +514,8 @@ class Mininet_wifi(Mininet):
                     self.links.append(link)
                     return link
         elif ((node1 in self.stations and node2 in self.aps)
-              or (node2 in self.stations and node1 in self.aps)):
+              or (node2 in self.stations and node1 in self.aps)) and \
+                        'link' not in options:
 
             sta = node2
             ap = node1
@@ -592,7 +593,8 @@ class Mininet_wifi(Mininet):
             options.setdefault('addr1', self.randMac())
             options.setdefault('addr2', self.randMac())
 
-            cls = TCLink
+            if not cls or cls == wmediumd or cls == TCWirelessLink:
+                cls = TCLink
             if self.disable_tcp_checksum:
                 cls = TCULink
 
@@ -2132,6 +2134,8 @@ class Mininet_wifi(Mininet):
         self.wmediumd_mode()
         if self.wmediumd_mode == interference:
             mobility.wmediumd_mode = 3
+        else:
+            mobility.wmediumd_mode = 1
         if not self.configureWiFiDirect and not self.configure4addr and \
             self.wmediumd_mode != error_prob:
             wmediumd(self.fading_coefficient, self.noise_threshold,
