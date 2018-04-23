@@ -514,7 +514,8 @@ class Mininet_wifi(Mininet):
                     self.links.append(link)
                     return link
         elif ((node1 in self.stations and node2 in self.aps)
-              or (node2 in self.stations and node1 in self.aps)):
+              or (node2 in self.stations and node1 in self.aps)) and \
+                        'link' not in options:
 
             sta = node2
             ap = node1
