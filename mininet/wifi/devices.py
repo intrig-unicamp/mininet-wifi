@@ -74,6 +74,11 @@ class GetRate (object):
 
     @classmethod
     def apRate(cls, node, wlan):
+        # If a custom rate was set.
+        if 'rate' in node.params:
+            cls.rate = node.params['rate']
+            return cls.rate
+
         mode = node.params['mode'][wlan]
 
         if mode == 'a':
