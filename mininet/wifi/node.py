@@ -9,6 +9,7 @@ import re
 import signal
 import select
 import fileinput
+import subprocess
 from subprocess import Popen, PIPE
 from time import sleep
 from distutils.version import StrictVersion
@@ -184,6 +185,37 @@ class Node_wifi(Node):
                 self.params['ssid'].append(0)
             self.params['ssid'][wlan] = ssid
             mesh.configureMesh(self, wlan)
+
+    def setPhyiscalMeshIface(self, **params):
+        wlan = 0
+        iface = 'phy%s-mp%s' % (self, wlan)
+        os.system('ip link set %s down' % params['intf'])
+        while True:
+            id = ''
+            command = 'ip link show | grep %s' % iface
+            try:
+                id = subprocess.check_output(command, shell=True).split("\n")
+            except:
+                pass
+            if len(id) == 0:
+                command = ('iw dev %s interface add %s type mp' %
+                         (params['intf'], iface))
+                subprocess.check_output(command, shell=True)
+            else:
+                try:
+                    if 'channel' in params:
+                        command = ('iw dev %s set channel %s'
+                                 % (iface, str(params['channel'])))
+                        subprocess.check_output(command, shell=True)
+                    os.system('ip link set %s up' % iface)
+                    debug("associating %s to %s...\n" % (iface,
+                                                         self.params['ssid'][wlan]))
+                    command = ('iw dev %s mesh join %s' % (iface,
+                                                           self.params['ssid'][wlan]))
+                    subprocess.check_output(command, shell=True)
+                    break
+                except:
+                    break
 
     def setAdhocIface(self, iface, ssid=''):
         "Set Adhoc Interface"

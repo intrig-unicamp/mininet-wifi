@@ -1042,6 +1042,45 @@ class mesh(IntfWireless):
                                                node.params['ssid'][wlan]))
 
 
+class physicalMesh(IntfWireless):
+
+    def __init__(self, node, isAP=False, **params):
+        """Configure wireless mesh
+        node: name of the node
+        self: custom association class/constructor
+        params: parameters for node"""
+        wlan = node.ifaceToAssociate
+
+        if not isAP:
+            node.params['ssid'] = []
+            for _ in range(len(node.params['wlan'])):
+                node.params['ssid'].append('')
+
+        node.params['ssid'][wlan] = 'meshNetwork'
+        ssid = ("%s" % params['ssid'])
+        if ssid != "{}":
+            node.params['ssid'][wlan] = ssid
+
+        if node.autoTxPower:
+            intf = node.params['wlan'][wlan]
+            node.params['range'][wlan] = node.getRange(intf=intf, noiseLevel=95)
+
+        node.setMeshIface(node.params['wlan'][wlan], **params)
+        node.setPhyiscalMeshIface(**params)
+
+        self.meshAssociation(node, params['intf'])
+
+        node.ifaceToAssociate += 1
+
+    @classmethod
+    def meshAssociation(self, node, iface, wlan=0):
+        "Performs Mesh Association"
+        debug("associating %s to %s...\n" % (iface,
+                                             node.params['ssid'][wlan]))
+        node.pexec('iw dev %s mesh join %s' % (iface,
+                                               node.params['ssid'][wlan]))
+
+
 class Association(object):
 
     printCon = True

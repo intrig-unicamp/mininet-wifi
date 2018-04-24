@@ -31,7 +31,7 @@ from mininet.wifi.wmediumdConnector import WmediumdStarter, WmediumdServer, \
     error_prob, snr, interference
 from mininet.wifi.link import wirelessLink, wmediumd, Association, \
     _4address, TCWirelessLink, TCLinkWirelessAP, TCLinkWirelessStation,\
-    wifiDirectLink, adhoc, mesh
+    wifiDirectLink, adhoc, mesh, physicalMesh
 from mininet.wifi.devices import GetRate, GetRange, GetTxPower
 from mininet.wifi.mobility import mobility
 from mininet.wifi.plot import plot2d, plot3d, plotGraph
@@ -483,7 +483,7 @@ class Mininet_wifi(Mininet):
 
         cls = self.link if cls is None else cls
 
-        if cls == mesh:
+        if cls == mesh or cls == physicalMesh:
             isAP=False
             if isinstance(node1, AP):
                 isAP=True
