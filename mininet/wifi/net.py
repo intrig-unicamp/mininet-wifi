@@ -611,7 +611,7 @@ class Mininet_wifi(Mininet):
     def linksBetween(self, node1, node2):
         "Return Links between node1 and node2"
         return [link for link in self.links
-                if (link.intf1.node is not None and link.intf2.node is not None and (node1, node2) in (
+                if (hasattr(link.intf1, 'node') and hasattr(link.intf2, 'node') and (node1, node2) in (
                     (link.intf1.node, link.intf2.node),
                         (link.intf2.node, link.intf1.node)))]
 
