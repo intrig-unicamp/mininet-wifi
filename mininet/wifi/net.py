@@ -26,7 +26,8 @@ from mininet.link import Link, Intf, TCLink, TCULink
 from mininet.nodelib import NAT
 from mininet.log import info, error, debug, output, warn
 
-from mininet.wifi.node import AccessPoint, AP, Station, Car, OVSKernelAP
+from mininet.wifi.node import AccessPoint, AP, Station, Car, \
+    OVSKernelAP, physicalAP
 from mininet.wifi.wmediumdConnector import WmediumdStarter, WmediumdServer, \
     error_prob, snr, interference
 from mininet.wifi.link import wirelessLink, wmediumd, Association, \
@@ -326,6 +327,10 @@ class Mininet_wifi(Mininet):
             defaults['position'] = ('0,%s,0' % self.nextPosition)
             self.nextPosition += 1
 
+        wlan = None
+        if cls == physicalAP:
+            wlan = ("%s" % params.pop('phywlan', {}))
+            cls = self.accessPoint
         if not cls:
             cls = self.accessPoint
         ap = cls(name, **defaults)
@@ -339,6 +344,9 @@ class Mininet_wifi(Mininet):
 
         self.nameToNode[name] = ap
 
+        if wlan:
+            ap.params['phywlan'] = wlan
+
         self.addParameters(ap, self.autoSetMacs, defaults, mode='master')
         if 'type' in params and params['type'] is 'mesh':
             ap.func[1] = 'mesh'
@@ -346,37 +354,6 @@ class Mininet_wifi(Mininet):
 
         self.aps.append(ap)
         return ap
-
-    def addPhysicalBaseStation(self, name, cls=None, **params):
-        """Add BaseStation.
-           name: name of basestation to add
-           cls: custom switch class/constructor (optional)
-           returns: added physical basestation
-           side effect: increments listenPort ivar ."""
-        defaults = {'listenPort': self.listenPort,
-                    'inNamespace': self.inNamespace,
-                    'channel': self.channel,
-                    'mode': self.mode,
-                    'ssid': self.ssid
-                   }
-
-        defaults.update(params)
-
-        if not cls:
-            cls = self.accessPoint
-        bs = cls(name, **defaults)
-
-        if not self.inNamespace and self.listenPort:
-            self.listenPort += 1
-
-        self.nameToNode[name] = bs
-
-        wlan = ("%s" % params.pop('phywlan', {}))
-        bs.params['phywlan'] = wlan
-        self.aps.append(bs)
-
-        self.addParameters(bs, self.autoSetMacs, defaults, mode='master')
-        return bs
 
     def addNAT(self, name='nat0', connect=True, inNamespace=False,
                **params):
@@ -1478,10 +1455,7 @@ class Mininet_wifi(Mininet):
                 self.appendAssociatedTo(node)
 
             if mode == 'master':
-                if 'phywlan' in node.params and wlan == 0:
-                    node.params['wlan'].append(node.params['phywlan'])
-                else:
-                    node.params['wlan'].append(node.name + '-wlan' +
+                node.params['wlan'].append(node.name + '-wlan' +
                                                str(wlan + 1))
             else:
                 node.params['wlan'].append(node.name + '-wlan' + str(wlan))
@@ -1819,11 +1793,7 @@ class Mininet_wifi(Mininet):
             if 'inNamespace' not in node.params:
                 if not isinstance(node, Station):
                     options = dict()
-                    if 'phywlan' in node.params and wlan == 0:
-                        iface = node.params['phywlan']
-                        options.setdefault('intfName1', iface)
-                    else:
-                        self.configureIface(node, wlan)
+                    self.configureIface(node, wlan)
                     link = TCLinkWirelessAP(node, **options)
                     self.links.append(link)
             elif 'inNamespace' in node.params:
@@ -1879,8 +1849,9 @@ class Mininet_wifi(Mininet):
                 AccessPoint(ap, wlan=wlan, aplist=aplist)
 
                 iface = ap.params['wlan'][wlan]
-                if 'phywlan' in ap.params and wlan == 0:
+                if 'phywlan' in ap.params:
                     iface = ap.params['phywlan']
+                    ap.params.pop('phywlan', None)
 
                 if self.link is not wmediumd:
                     self.setBw(ap, wlan, iface)
@@ -1925,6 +1896,8 @@ class Mininet_wifi(Mininet):
 
         for ap in aps:
             if 'link' not in ap.params:
+                if 'phywlan' in ap.params:
+                    self.configureAP(ap, aplist=aps)
                 self.configureAP(ap, aplist=aps)
                 ap.phyID = module.phyID
                 module.phyID += 1

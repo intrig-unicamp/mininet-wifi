@@ -1197,7 +1197,7 @@ class AccessPoint(AP):
         """ Starting Access Point """
         cmd = ("echo \'")
 
-        if 'phywlan' in ap.params and wlan == 0:
+        if 'phywlan' in ap.params:
             cmd = cmd + ("interface=%s" % ap.params.get('phywlan'))
         else:
             cmd = cmd + ("interface=%s" % ap.params['wlan'][wlan])
@@ -1351,7 +1351,8 @@ class AccessPoint(AP):
         else:
             ap.params['mac'][wlan] = \
                 ap.getMAC(ap.params['wlan'][wlan])
-        cls.checkNetworkManager(ap.params['mac'][wlan])
+        if ap.params['mac'][wlan] != None:
+            cls.checkNetworkManager(ap.params['mac'][wlan])
         if 'inNamespace' in ap.params and 'ip' in ap.params:
             ap.setIP(ap.params['ip'], intf=ap.params['wlan'][wlan])
 
@@ -1404,7 +1405,7 @@ class AccessPoint(AP):
     def APConfigFile(cls, cmd, ap, wlan):
         "run an Access Point and create the config file"
         iface = ap.params['wlan'][wlan]
-        if 'phywlan' in ap.params and wlan == 0:
+        if 'phywlan' in ap.params:
             iface = ap.params['phywlan']
             ap.cmd('ip link set %s down' % iface)
             ap.cmd('ip link set %s up' % iface)
@@ -1780,3 +1781,4 @@ class OVSAP(AP):
 
 
 OVSKernelAP = OVSAP
+physicalAP = OVSAP
