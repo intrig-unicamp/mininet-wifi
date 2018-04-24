@@ -1121,7 +1121,6 @@ class AP(Node_wifi):
         if not self.inNamespace:
             self.controlIntf = Intf('lo', self, port=0)
 
-
     def defaultDpid(self, dpid=None):
         "Return correctly formatted dpid from dpid or switch name (s1 -> 1)"
         if dpid:
@@ -1139,8 +1138,8 @@ class AP(Node_wifi):
             else:
                 raise Exception('Unable to derive default datapath ID - '
                                 'please either specify a dpid or use a '
-                                'canonical switch name such as s23.')
-        return '0' * (self.dpidLen - len(dpid)) + dpid
+                                'canonical ap name such as ap23.')
+        return '1' + '0' * (self.dpidLen -1 - len(dpid)) + dpid
 
     def defaultIntf(self):
         "Return control interface"
