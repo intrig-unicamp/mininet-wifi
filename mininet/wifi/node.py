@@ -1499,10 +1499,10 @@ class AccessPoint(AP):
                     options = dict()
                     cls.configureIface(node, wlan)
                     link = TCLinkWirelessAP(node, **options)
-                    #mininet_wifi.links.append(link)
+                    #cls.links.append(link)
             elif 'inNamespace' in node.params:
                 link = TCLinkWirelessAP(node)
-                cls.links.append(link)
+                #cls.links.append(link)
             AccessPoint.setIPMAC(node, wlan)
             if 'vssids' in node.params:
                 break
