@@ -218,6 +218,7 @@ class mobility(object):
                 elif cls.wmediumd_mode and cls.wmediumd_mode == 3:
                     pass
                 else:
+                    sta.params['rssi'][wlan] = rssi
                     wirelessLink(sta, ap, wlan, 0, dist)
 
     @classmethod
@@ -548,7 +549,6 @@ class mobility(object):
                 nodes = [node]
         else:
             nodes = cls.stations
-
         cls.configureLinks(nodes)
 
     @classmethod
