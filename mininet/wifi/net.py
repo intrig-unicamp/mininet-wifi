@@ -31,7 +31,7 @@ from mininet.wifi.node import AccessPoint, AP, Station, Car, \
 from mininet.wifi.wmediumdConnector import WmediumdStarter, WmediumdServer, \
     error_prob, snr, interference
 from mininet.wifi.link import wirelessLink, wmediumd, Association, \
-    _4address, TCWirelessLink, TCLinkWirelessAP, TCLinkWirelessStation,\
+    _4address, TCWirelessLink, TCLinkWirelessStation,\
     wifiDirectLink, adhoc, mesh, physicalMesh
 from mininet.wifi.devices import GetRate, GetRange, GetTxPower
 from mininet.wifi.mobility import mobility
@@ -1756,19 +1756,6 @@ class Mininet_wifi(Mininet):
                 ap.params['mac'].append('')
 
     @staticmethod
-    def restartNetworkManager():
-        """Restart network manager if the mac address of the AP
-        is not included at /etc/NetworkManager/NetworkManager.conf"""
-        nm_is_running = os.system('service network-manager status 2>&1 | grep '
-                                  '-ic running >/dev/null 2>&1')
-        if AccessPoint.writeMacAddress and nm_is_running != 256:
-            info('Mac Address(es) of AP(s) is(are) being added into '
-                 '/etc/NetworkManager/NetworkManager.conf\n')
-            info('Restarting network-manager...\n')
-            os.system('service network-manager restart')
-        AccessPoint.writeMacAddress = False
-
-    @staticmethod
     def kill_hostapd():
         "Kill hostapd"
         module.kill_hostapd()
@@ -1787,125 +1774,6 @@ class Mininet_wifi(Mininet):
         "Kill mac80211_hwsim"
         module.kill_mac80211_hwsim()
         sleep(0.1)
-
-    def verifyNetworkManager(self, node):
-        """First verify if the mac address of the ap is included at
-        NetworkManager.conf
-
-        :param node: node
-        :param wlanID: wlan ID"""
-        for wlan in range(len(node.params['wlan'])):
-            if 'inNamespace' not in node.params:
-                if not isinstance(node, Station):
-                    options = dict()
-                    self.configureIface(node, wlan)
-                    link = TCLinkWirelessAP(node, **options)
-                    self.links.append(link)
-            elif 'inNamespace' in node.params:
-                link = TCLinkWirelessAP(node)
-                self.links.append(link)
-            AccessPoint.setIPMAC(node, wlan)
-            if 'vssids' in node.params:
-                break
-
-    @staticmethod
-    def configureIface(node, wlan):
-        intf = module.wlan_list[0]
-        module.wlan_list.pop(0)
-        node.renameIface(intf, node.params['wlan'][wlan])
-
-    def configureAP(self, ap, aplist=None):
-        """Configure AP
-
-        :param ap: ap node
-        :param wlanID: wlan ID"""
-        for wlan in range(len(ap.params['wlan'])):
-            if ap.params['ssid'][wlan] != '':
-                if 'encrypt' in ap.params and 'config' not in ap.params:
-                    if ap.params['encrypt'][wlan] == 'wpa':
-                        ap.auth_algs = 1
-                        ap.wpa = 1
-                        if 'ieee80211r' in ap.params \
-                                and ap.params['ieee80211r'] == 'yes':
-                            ap.wpa_key_mgmt = 'FT-EAP'
-                        else:
-                            ap.wpa_key_mgmt = 'WPA-EAP'
-                        ap.rsn_pairwise = 'TKIP CCMP'
-                        ap.wpa_passphrase = ap.params['passwd'][0]
-                    elif ap.params['encrypt'][wlan] == 'wpa2':
-                        ap.auth_algs = 1
-                        ap.wpa = 2
-                        if 'ieee80211r' in ap.params \
-                                and ap.params['ieee80211r'] == 'yes' \
-                                and 'authmode' not in ap.params:
-                            ap.wpa_key_mgmt = 'FT-PSK'
-                        elif 'authmode' in ap.params \
-                                and ap.params['authmode'] == '8021x':
-                            ap.wpa_key_mgmt = 'WPA-EAP'
-                        else:
-                            ap.wpa_key_mgmt = 'WPA-PSK'
-                        ap.rsn_pairwise = 'CCMP'
-                        if 'authmode' not in ap.params:
-                            ap.wpa_passphrase = ap.params['passwd'][0]
-                    elif ap.params['encrypt'][wlan] == 'wep':
-                        ap.auth_algs = 2
-                        ap.wep_key0 = ap.params['passwd'][0]
-
-                AccessPoint(ap, wlan=wlan, aplist=aplist)
-
-                iface = ap.params['wlan'][wlan]
-                if 'phywlan' in ap.params:
-                    iface = ap.params['phywlan']
-                    ap.params.pop('phywlan', None)
-
-                if self.link is not wmediumd:
-                    self.setBw(ap, wlan, iface)
-
-                ap.params['frequency'][wlan] = ap.get_freq(0)
-
-                if 'vssids' in ap.params:
-                    break
-
-    @staticmethod
-    def setBw(node, wlan, iface):
-        "Set bw to AP"
-        value = GetRate.apRate(node, wlan)
-        bw = value
-        node.cmd("tc qdisc replace dev %s \
-            root handle 2: tbf rate %sMbit burst 15000 "
-                 "latency 1ms" % (iface, bw))
-        # Reordering packets
-        node.cmd('tc qdisc add dev %s parent 2:1 handle 10: '
-                 'pfifo limit 1000' % (iface))
-
-    def configureAPs(self, aps, driver):
-        """Configure APs
-
-        :param aps: list of access points"""
-        for ap in aps:
-            if 'vssids' in ap.params:
-                for i in range(1, ap.params['vssids']+1):
-                    ap.params['range'].append(ap.params['range'][0])
-                    ap.params['wlan'].append('%s-%s'
-                                             % (ap.params['wlan'][0], i))
-                    ap.params['mode'].append(ap.params['mode'][0])
-                    ap.params['frequency'].append(
-                        ap.params['frequency'][0])
-                    ap.params['mac'].append('')
-            else:
-                for i in range(1, len(ap.params['wlan'])):
-                    ap.params['mac'].append('')
-            ap.params['driver'] = driver
-            self.verifyNetworkManager(ap)
-        self.restartNetworkManager()
-
-        for ap in aps:
-            if 'link' not in ap.params:
-                if 'phywlan' in ap.params:
-                    self.configureAP(ap, aplist=aps)
-                self.configureAP(ap, aplist=aps)
-                ap.phyID = module.phyID
-                module.phyID += 1
 
     def configureWirelessLink(self):
         """Configure Wireless Link
@@ -2140,7 +2008,7 @@ class Mininet_wifi(Mininet):
             sixLoWPAN_module.start(self.sixLP, Mininet_6LoWPAN.n_wpans)
         self.configureWirelessLink()
         self.createVirtualIfaces(self.stations)
-        self.configureAPs(self.aps, self.driver)
+        AccessPoint(self.aps, self.driver, self.link)
         self.configureCars()
 
         for node in nodes:

@@ -32,6 +32,7 @@ from mininet.wifi.wmediumdConnector import WmediumdServer, \
 from mininet.wifi.propagationModels import GetSignalRange, \
     GetPowerGivenRange, propagationModel
 from mininet.wifi.util import moveIntf
+from mininet.wifi.module import module
 from mininet.utils.private_folder_manager import PrivateFolderManager
 
 
@@ -1187,13 +1188,85 @@ class AccessPoint(AP):
 
     writeMacAddress = False
 
-    def __init__ (self, ap, wlan=0, aplist=[]):
-
-        self.start_(ap, wlan, aplist)
+    def __init__(cls, aps, driver, link):
+        'configure ap'
+        cls.configure(aps, driver, link)
 
     @classmethod
-    def start_(cls, ap, wlan, aplist):
-        """ Starting Access Point """
+    def configure(cls, aps, driver, link):
+        """Configure APs
+
+        :param aps: list of access points"""
+        for ap in aps:
+            if 'vssids' in ap.params:
+                for i in range(1, ap.params['vssids'] + 1):
+                    ap.params['range'].append(ap.params['range'][0])
+                    ap.params['wlan'].append('%s-%s'
+                                             % (ap.params['wlan'][0], i))
+                    ap.params['mode'].append(ap.params['mode'][0])
+                    ap.params['frequency'].append(
+                        ap.params['frequency'][0])
+                    ap.params['mac'].append('')
+            else:
+                for i in range(1, len(ap.params['wlan'])):
+                    ap.params['mac'].append('')
+            ap.params['driver'] = driver
+            cls.verifyNetworkManager(ap)
+        cls.restartNetworkManager()
+
+        for ap in aps:
+            if 'link' not in ap.params:
+                if 'phywlan' in ap.params:
+                    cls.setConfig(ap, aps, link)
+                cls.setConfig(ap, aps, link)
+                ap.phyID = module.phyID
+                module.phyID += 1
+
+    @classmethod
+    def setConfig(cls, ap, aplist=None, link=None):
+        """Configure AP
+
+        :param ap: ap node
+        :param wlanID: wlan ID"""
+        for wlan in range(len(ap.params['wlan'])):
+            if ap.params['ssid'][wlan] != '':
+                if 'encrypt' in ap.params and 'config' not in ap.params:
+                    if ap.params['encrypt'][wlan] == 'wpa':
+                        ap.auth_algs = 1
+                        ap.wpa = 1
+                        if 'ieee80211r' in ap.params \
+                                and ap.params['ieee80211r'] == 'yes':
+                            ap.wpa_key_mgmt = 'FT-EAP'
+                        else:
+                            ap.wpa_key_mgmt = 'WPA-EAP'
+                        ap.rsn_pairwise = 'TKIP CCMP'
+                        ap.wpa_passphrase = ap.params['passwd'][0]
+                    elif ap.params['encrypt'][wlan] == 'wpa2':
+                        ap.auth_algs = 1
+                        ap.wpa = 2
+                        if 'ieee80211r' in ap.params \
+                                and ap.params['ieee80211r'] == 'yes' \
+                                and 'authmode' not in ap.params:
+                            ap.wpa_key_mgmt = 'FT-PSK'
+                        elif 'authmode' in ap.params \
+                                and ap.params['authmode'] == '8021x':
+                            ap.wpa_key_mgmt = 'WPA-EAP'
+                        else:
+                            ap.wpa_key_mgmt = 'WPA-PSK'
+                        ap.rsn_pairwise = 'CCMP'
+                        if 'authmode' not in ap.params:
+                            ap.wpa_passphrase = ap.params['passwd'][0]
+                    elif ap.params['encrypt'][wlan] == 'wep':
+                        ap.auth_algs = 2
+                        ap.wep_key0 = ap.params['passwd'][0]
+
+                cls.setHostapdConfig(ap, wlan, aplist, link)
+                if 'vssids' in ap.params:
+                    break
+
+    @classmethod
+    def setHostapdConfig(cls, ap, wlan, aplist, link):
+        "Set hostapd config"
         cmd = ("echo \'")
 
         if 'phywlan' in ap.params:
@@ -1329,6 +1402,46 @@ class AccessPoint(AP):
                 intf = ap.params['wlan'][wlan]
                 TCLinkWirelessAP(ap, intfName1=intf)
 
+        iface = ap.params['wlan'][wlan]
+        if 'phywlan' in ap.params:
+            iface = ap.params['phywlan']
+            ap.params.pop('phywlan', None)
+
+        if str(link.__name__) != 'wmediumd':
+            AccessPoint.setBw(ap, wlan, iface)
+
+        ap.params['frequency'][wlan] = ap.get_freq(0)
+
+    @classmethod
+    def setBw(cls, node, wlan, iface):
+        "Set bw"
+        bw = cls.getRate(node, wlan)
+        node.cmd("tc qdisc replace dev %s \
+                root handle 2: tbf rate %sMbit burst 15000 "
+                 "latency 1ms" % (iface, bw))
+        # Reordering packets
+        node.cmd('tc qdisc add dev %s parent 2:1 handle 10: '
+                 'pfifo limit 1000' % (iface))
+
+    @classmethod
+    def getRate(cls, node, wlan):
+        "Get rate"
+        mode = node.params['mode'][wlan]
+
+        if mode == 'a':
+            rate = 54
+        elif mode == 'b':
+            rate = 11
+        elif mode == 'g':
+            rate = 54
+        elif mode == 'n':
+            rate = 300
+        elif mode == 'ac':
+            rate = 600
+        else:
+            rate = 54
+        return rate
+
     @classmethod
     def verifyWepKey(cls, wep_key0):
         "Check WEP key"
@@ -1354,6 +1467,45 @@ class AccessPoint(AP):
             cls.checkNetworkManager(ap.params['mac'][wlan])
         if 'inNamespace' in ap.params and 'ip' in ap.params:
             ap.setIP(ap.params['ip'], intf=ap.params['wlan'][wlan])
+
+    @classmethod
+    def restartNetworkManager(cls):
+        """Restart network manager if the mac address of the AP
+        is not included at /etc/NetworkManager/NetworkManager.conf"""
+        nm_is_running = os.system('service network-manager status 2>&1 | grep '
+                                  '-ic running >/dev/null 2>&1')
+        if AccessPoint.writeMacAddress and nm_is_running != 256:
+            info('Mac Address(es) of AP(s) is(are) being added into '
+                 '/etc/NetworkManager/NetworkManager.conf\n')
+            info('Restarting network-manager...\n')
+            os.system('service network-manager restart')
+        AccessPoint.writeMacAddress = False
+
+    @classmethod
+    def configureIface(cls, node, wlan):
+        intf = module.wlan_list[0]
+        module.wlan_list.pop(0)
+        node.renameIface(intf, node.params['wlan'][wlan])
+
+    @classmethod
+    def verifyNetworkManager(cls, node):
+        """First verify if the mac address of the ap is included at
+        NetworkManager.conf
+
+        :param node: node"""
+        for wlan in range(len(node.params['wlan'])):
+            if 'inNamespace' not in node.params:
+                if not isinstance(node, Station):
+                    options = dict()
+                    cls.configureIface(node, wlan)
+                    link = TCLinkWirelessAP(node, **options)
+                    #mininet_wifi.links.append(link)
+            elif 'inNamespace' in node.params:
+                link = TCLinkWirelessAP(node)
+                cls.links.append(link)
+            AccessPoint.setIPMAC(node, wlan)
+            if 'vssids' in node.params:
+                break
 
     @classmethod
     def checkNetworkManager(cls, mac):
