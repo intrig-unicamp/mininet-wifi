@@ -296,9 +296,8 @@ class Node_wifi(Node):
         "Set Signal Range"
         from mininet.wifi.plot import plot2d
         wlan = 0
-        if intf is None:
+        if intf:
             wlan = self.params['wlan'].index(intf)
-
         self.params['range'][wlan] = value
         if self.autoTxPower:
             self.params['txpower'][wlan] = self.get_txpower_prop_model(0)
@@ -317,6 +316,7 @@ class Node_wifi(Node):
         if plot3d.is3d:
             cls = plot3d
         if cls.fig_exists():
+            cls.updateCircleRadius(self)
             cls.graphUpdate(self)
             cls.graphPause()
 
