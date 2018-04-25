@@ -172,7 +172,8 @@ class mobility(object):
                                   % sta.params['wlan'][wlan])
             elif cls.wmediumd_mode and cls.wmediumd_mode != 3:
                 Association.setSNRWmediumd(sta, ap, snr=-10)
-            if 'encrypt' in ap.params and 'ieee80211r' not in ap.params:
+            if 'encrypt' in ap.params and 'ieee80211r' not in ap.params or \
+                            'encrypt' not in ap.params:
                 debug('iw dev %s disconnect\n' % sta.params['wlan'][wlan])
                 sta.pexec('iw dev %s disconnect' % sta.params['wlan'][wlan])
             sta.params['associatedTo'][wlan] = ''
