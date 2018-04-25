@@ -688,7 +688,8 @@ class Mininet_wifi(Mininet):
         if self.isVanet:
             self.create_vanet_link()
         else:
-            mobility.stations = self.stations
+            if not mobility.stations:
+                mobility.stations = self.stations
 
         if (self.configure4addr or self.configureWiFiDirect
                 or self.wmediumd_mode == error_prob) and self.link == wmediumd:
