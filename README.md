@@ -38,7 +38,7 @@ optional:
 For instructions about easier development check [this helper file](doc/dev_help.md).
 
 ## Pre-configured Virtual Machine    
-[Ubuntu 16.04 x64 :: Password: wifi](https://intrig.dca.fee.unicamp.br:8840/owncloud/index.php/s/Imn09WyYUV4DXz6)      
+[Ubuntu 16.04 x64 :: Password: wifi](https://intrig.dca.fee.unicamp.br:8840/owncloud/index.php/s/PcxujWO5HsxxBIn)      
 user: wifi   
 pass: wifi   
    
