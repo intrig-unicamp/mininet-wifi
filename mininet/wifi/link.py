@@ -935,6 +935,34 @@ class wifiDirectLink(IntfWireless):
         node.params['mac'].append(p2p_mac.splitlines()[0])
 
 
+class physicalWifiDirectLink(IntfWireless):
+
+    def __init__(self, node, port=None, **params):
+        "configure physical wifi-direct"
+
+        wifiDirectLink(node, port, **params)
+
+        iface = 'phy' + node.name
+        wlan = 0
+        cmd = ("echo \'")
+        cmd = cmd + 'ctrl_interface=/var/run/wpa_supplicant\
+                    \nap_scan=1\
+                    \np2p_go_ht40=1\
+                    \ndevice_name=%s-%s\
+                    \ndevice_type=1-0050F204-1\
+                    \np2p_no_group_iface=1' % (iface, wlan)
+        confname = "%s-%s_wifiDirect.conf" % (iface, wlan)
+        cmd = cmd + ("\' > %s" % confname)
+        subprocess.check_output(cmd, shell=True)
+        cmd = 'wpa_supplicant -B -Dnl80211 -c%s -i%s' % \
+              (confname, params['intf'])
+        os.system(cmd)
+
+        #p2p_mac = node.cmd('iw dev | grep addr | awk \'NR==1\' | '
+        #                   'awk \'{print $2};\'')
+        #node.params['mac'].append(p2p_mac.splitlines()[0])
+
+
 class adhoc(IntfWireless):
 
     def __init__(self, node, link=None, **params):

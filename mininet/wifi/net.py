@@ -32,7 +32,7 @@ from mininet.wifi.wmediumdConnector import WmediumdStarter, WmediumdServer, \
     error_prob, snr, interference
 from mininet.wifi.link import wirelessLink, wmediumd, Association, \
     _4address, TCWirelessLink, TCLinkWirelessStation,\
-    wifiDirectLink, adhoc, mesh, physicalMesh
+    wifiDirectLink, adhoc, mesh, physicalMesh, physicalWifiDirectLink
 from mininet.wifi.devices import GetRate, GetRange, GetTxPower
 from mininet.wifi.mobility import mobility
 from mininet.wifi.plot import plot2d, plot3d, plotGraph
@@ -467,7 +467,7 @@ class Mininet_wifi(Mininet):
             cls(node=node1, isAP=isAP, **params)
         elif cls == adhoc:
             cls(node=node1, link=self.link, **params)
-        elif cls == wifiDirectLink:
+        elif cls == wifiDirectLink or cls == physicalWifiDirectLink:
             link = cls(node=node1, port=port1, **params)
             return link
         elif cls == sixLoWPANLink:
@@ -532,7 +532,6 @@ class Mininet_wifi(Mininet):
                     enable_interference = True
                 Association.associate(sta, ap, enable_wmediumd,
                                       enable_interference, wlan, ap_wlan)
-
                 if 'TCWirelessLink' in str(self.link.__name__):
                     if 'bw' not in params and 'bw' not in str(cls) and \
                             not self.ifb:

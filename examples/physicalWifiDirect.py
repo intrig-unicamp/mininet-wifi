@@ -2,10 +2,12 @@
 
 'Example for WiFi Direct'
 
+import os
 from time import sleep
 
 from mininet.log import setLogLevel, info
-from mininet.wifi.link import wmediumd, wifiDirectLink
+from mininet.wifi.link import wmediumd, wifiDirectLink,\
+    physicalWifiDirectLink
 from mininet.wifi.cli import CLI_wifi
 from mininet.wifi.net import Mininet_wifi
 from mininet.wifi.wmediumdConnector import interference
@@ -17,7 +19,8 @@ def topology():
                        configureWiFiDirect=True, autoAssociation=False)
 
     info("*** Creating nodes\n")
-    sta1 = net.addStation('sta1', ip='10.0.0.1/8', position='10,10,0')
+    sta1 = net.addStation('sta1', ip='10.0.0.1/8', position='10,10,0',
+                          inNamespace=False)
     sta2 = net.addStation('sta2', ip='10.0.0.2/8', position='20,20,0')
 
     info("*** Configuring Propagation Model\n")
@@ -29,7 +32,8 @@ def topology():
     net.plotGraph(max_x=200, max_y=200)
 
     info("*** Starting WiFi Direct\n")
-    net.addLink(sta1, cls=wifiDirectLink)
+    intf='wlxf4f26d193319'
+    net.addLink(sta1, cls=physicalWifiDirectLink, intf=intf)
     net.addLink(sta2, cls=wifiDirectLink)
 
     info("*** Starting network\n")
@@ -46,6 +50,9 @@ def topology():
     sleep(3)
     sta2.cmd('wpa_cli -ista2-wlan0 p2p_connect %s %s'
              % (sta1.params['mac'][1], pin))
+
+    # This is the interface/ip addr of the physical node
+    os.system('ip addr add 10.0.0.3/8 dev %s' % intf)
 
     info("*** Running CLI\n")
     CLI_wifi(net)
