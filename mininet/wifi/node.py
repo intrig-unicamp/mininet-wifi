@@ -218,6 +218,16 @@ class Node_wifi(Node):
                 except:
                     break
 
+    def setMasterMode(self, intf, **params):
+        wlan = self.params['wlan'].index(intf)
+        if 'ssid' in params:
+            self.params['ssid'][wlan] = params['ssid']
+        else:
+            self.params['ssid'][wlan] = self.name
+        self.params['driver'] = 'nl80211'
+
+        AccessPoint.setConfig(self, wlan=wlan)
+
     def setAdhocIface(self, iface, ssid=''):
         "Set Adhoc Interface"
         wlan = self.params['wlan'].index(iface)
@@ -1215,54 +1225,60 @@ class AccessPoint(AP):
         cls.restartNetworkManager()
 
         for ap in aps:
+            wlans = len(ap.params['wlan'])
             if 'link' not in ap.params:
                 if 'phywlan' in ap.params:
-                    cls.setConfig(ap, aps, link)
-                cls.setConfig(ap, aps, link)
+                    for wlan in range(wlans):
+                        cls.setConfig(ap, aps, wlan, link)
+                        if 'vssids' in ap.params:
+                            break
+                for wlan in range(wlans):
+                    cls.setConfig(ap, aps, wlan, link)
+                    if 'vssids' in ap.params:
+                        break
                 ap.phyID = module.phyID
                 module.phyID += 1
 
     @classmethod
-    def setConfig(cls, ap, aplist=None, link=None):
+    def setConfig(cls, ap, aplist=None, wlan=None, link=None):
         """Configure AP
 
         :param ap: ap node
-        :param wlanID: wlan ID"""
-        for wlan in range(len(ap.params['wlan'])):
-            if ap.params['ssid'][wlan] != '':
-                if 'encrypt' in ap.params and 'config' not in ap.params:
-                    if ap.params['encrypt'][wlan] == 'wpa':
-                        ap.auth_algs = 1
-                        ap.wpa = 1
-                        if 'ieee80211r' in ap.params \
-                                and ap.params['ieee80211r'] == 'yes':
-                            ap.wpa_key_mgmt = 'FT-EAP'
-                        else:
-                            ap.wpa_key_mgmt = 'WPA-EAP'
-                        ap.rsn_pairwise = 'TKIP CCMP'
+        :param aplist: list of aps
+        :param wlan: wlan id
+        :param link: if wmediumd"""
+        if ap.params['ssid'][wlan] != '':
+            if 'encrypt' in ap.params and 'config' not in ap.params:
+                if ap.params['encrypt'][wlan] == 'wpa':
+                    ap.auth_algs = 1
+                    ap.wpa = 1
+                    if 'ieee80211r' in ap.params \
+                            and ap.params['ieee80211r'] == 'yes':
+                        ap.wpa_key_mgmt = 'FT-EAP'
+                    else:
+                        ap.wpa_key_mgmt = 'WPA-EAP'
+                    ap.rsn_pairwise = 'TKIP CCMP'
+                    ap.wpa_passphrase = ap.params['passwd'][0]
+                elif ap.params['encrypt'][wlan] == 'wpa2':
+                    ap.auth_algs = 1
+                    ap.wpa = 2
+                    if 'ieee80211r' in ap.params \
+                            and ap.params['ieee80211r'] == 'yes' \
+                            and 'authmode' not in ap.params:
+                        ap.wpa_key_mgmt = 'FT-PSK'
+                    elif 'authmode' in ap.params \
+                            and ap.params['authmode'] == '8021x':
+                        ap.wpa_key_mgmt = 'WPA-EAP'
+                    else:
+                        ap.wpa_key_mgmt = 'WPA-PSK'
+                    ap.rsn_pairwise = 'CCMP'
+                    if 'authmode' not in ap.params:
                         ap.wpa_passphrase = ap.params['passwd'][0]
-                    elif ap.params['encrypt'][wlan] == 'wpa2':
-                        ap.auth_algs = 1
-                        ap.wpa = 2
-                        if 'ieee80211r' in ap.params \
-                                and ap.params['ieee80211r'] == 'yes' \
-                                and 'authmode' not in ap.params:
-                            ap.wpa_key_mgmt = 'FT-PSK'
-                        elif 'authmode' in ap.params \
-                                and ap.params['authmode'] == '8021x':
-                            ap.wpa_key_mgmt = 'WPA-EAP'
-                        else:
-                            ap.wpa_key_mgmt = 'WPA-PSK'
-                        ap.rsn_pairwise = 'CCMP'
-                        if 'authmode' not in ap.params:
-                            ap.wpa_passphrase = ap.params['passwd'][0]
-                    elif ap.params['encrypt'][wlan] == 'wep':
-                        ap.auth_algs = 2
-                        ap.wep_key0 = ap.params['passwd'][0]
+                elif ap.params['encrypt'][wlan] == 'wep':
+                    ap.auth_algs = 2
+                    ap.wep_key0 = ap.params['passwd'][0]
 
-                cls.setHostapdConfig(ap, wlan, aplist, link)
-                if 'vssids' in ap.params:
-                    break
+            cls.setHostapdConfig(ap, wlan, aplist, link)
 
     @classmethod
     def setHostapdConfig(cls, ap, wlan, aplist, link):
@@ -1375,21 +1391,21 @@ class AccessPoint(AP):
                         cmd = cmd + ('\nft_over_ds=1')
                         cmd = cmd + ('\nft_psk_generate_local=1')
 
-            if 'vssids' in ap.params:
-                for i in range(1, ap.params['vssids']+1):
-                    ap.params['txpower'].append(ap.params['txpower'][wlan])
-                    ap.params['antennaGain'].append(ap.params['antennaGain'][wlan])
-                    ap.params['antennaHeight'].append(ap.params['antennaHeight'][wlan])
-                    ssid = ap.params['ssid'][i]
-                    cmd = cmd + ('\n')
-                    cmd = cmd + ("\nbss=%s" % ap.params['wlan'][i])
-                    cmd = cmd + ("\nssid=%s" % ssid)
-                    if 'encrypt' in ap.params:
-                        if ap.params['encrypt'][i] == 'wep':
-                            cmd = cmd + ("\nauth_algs=%s" % ap.auth_algs)
-                            cmd = cmd + ("\nwep_default_key=0")
-                            cmd = cmd + cls.verifyWepKey(ap.wep_key0)
-                    ap.params['mac'][i] = ap.params['mac'][wlan][:-1] + str(i)
+        if 'vssids' in ap.params:
+            for i in range(1, ap.params['vssids']+1):
+                ap.params['txpower'].append(ap.params['txpower'][wlan])
+                ap.params['antennaGain'].append(ap.params['antennaGain'][wlan])
+                ap.params['antennaHeight'].append(ap.params['antennaHeight'][wlan])
+                ssid = ap.params['ssid'][i]
+                cmd = cmd + ('\n')
+                cmd = cmd + ("\nbss=%s" % ap.params['wlan'][i])
+                cmd = cmd + ("\nssid=%s" % ssid)
+                if 'encrypt' in ap.params:
+                    if ap.params['encrypt'][i] == 'wep':
+                        cmd = cmd + ("\nauth_algs=%s" % ap.auth_algs)
+                        cmd = cmd + ("\nwep_default_key=0")
+                        cmd = cmd + cls.verifyWepKey(ap.wep_key0)
+                ap.params['mac'][i] = ap.params['mac'][wlan][:-1] + str(i)
         cmd = cmd + ("\nctrl_interface=/var/run/hostapd")
         cmd = cmd + ("\nctrl_interface_group=0")
         cls.APConfigFile(cmd, ap, wlan)
@@ -1407,7 +1423,7 @@ class AccessPoint(AP):
             iface = ap.params['phywlan']
             ap.params.pop('phywlan', None)
 
-        if str(link.__name__) != 'wmediumd':
+        if not link or (link and str(link.__name__) != 'wmediumd'):
             AccessPoint.setBw(ap, wlan, iface)
 
         ap.params['frequency'][wlan] = ap.get_freq(0)
