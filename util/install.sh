@@ -145,7 +145,7 @@ function mn_deps {
 		    $install python-setuptools python-pexpect python-pip
 	    fi
     else
-        $install gcc make socat psmisc xterm ssh iperf iproute telnet \
+        $install gcc make socat psmisc xterm ssh iperf iproute2 telnet \
             cgroup-bin ethtool help2man pyflakes pylint pep8
         if [ "$PYTHON3" == true ]; then
 		    $install python3-setuptools python3-pexpect python3-pip
