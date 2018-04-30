@@ -187,7 +187,7 @@ class Node_wifi(Node):
             self.params['ssid'][wlan] = ssid
             mesh.configureMesh(self, wlan)
 
-    def setPhyiscalMeshIface(self, **params):
+    def setPhysicalMeshIface(self, **params):
         wlan = 0
         iface = 'phy%s-mp%s' % (self, wlan)
         os.system('ip link set %s down' % params['intf'])
@@ -1390,7 +1390,6 @@ class AccessPoint(AP):
                         cmd = cmd + ('\npmk_r1_push=1')
                         cmd = cmd + ('\nft_over_ds=1')
                         cmd = cmd + ('\nft_psk_generate_local=1')
-
         if 'vssids' in ap.params:
             for i in range(1, ap.params['vssids']+1):
                 ap.params['txpower'].append(ap.params['txpower'][wlan])
