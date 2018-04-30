@@ -21,7 +21,7 @@ class plot3d (object):
 
     @classmethod
     def instantiateGraph(cls, MIN_X, MIN_Y, MIN_Z, MAX_X, MAX_Y, MAX_Z):
-        """instantiateGraph"""
+        "instantiateGraph"
         plt.ion()
         plt.title("Mininet-WiFi Graph")
         cls.ax = plt.subplot(111, projection=Axes3D.name)
@@ -35,7 +35,7 @@ class plot3d (object):
 
     @classmethod
     def instantiateAnnotate(cls, node):
-        """instantiateAnnotate"""
+        "instantiateAnnotate"
 
         x = '%.2f' % float(node.params['position'][0])
         y = '%.2f' % float(node.params['position'][1])
@@ -45,7 +45,7 @@ class plot3d (object):
 
     @classmethod
     def instantiateNode(cls, node):
-        """Instantiate Node"""
+        "Instantiate Node"
         x = '%.2f' % float(node.params['position'][0])
         y = '%.2f' % float(node.params['position'][1])
         z = '%.2f' % float(node.params['position'][2])
@@ -65,7 +65,7 @@ class plot3d (object):
 
     @classmethod
     def instantiateNodes(cls, nodes):
-        """Instantiate Nodes"""
+        "Instantiate Nodes"
         cls.is3d = True
         for node in nodes:
             cls.instantiateAnnotate(node)
@@ -79,12 +79,12 @@ class plot3d (object):
 
     @classmethod
     def graphPause(cls):
-        """Pause"""
+        "Pause"
         plt.pause(0.0001)
 
     @classmethod
     def graphUpdate(cls, node):
-        """Graph Update"""
+        "Graph Update"
 
         node.pltNode.remove()
         node.pltCircle.remove()
@@ -97,12 +97,12 @@ class plot3d (object):
 
     @classmethod
     def plotDraw(cls):
-        """plotDraw"""
+        "plotDraw"
         plt.draw()
 
     @classmethod
     def closePlot(cls):
-        """Close"""
+        "Close"
         try:
             plt.close()
         except:
@@ -110,7 +110,7 @@ class plot3d (object):
 
     @classmethod
     def instantiateCircle(cls, node):
-        """Instantiate Circle"""
+        "Instantiate Circle"
         from mininet.wifi.node import Station, Car
 
         x = '%.2f' % float(node.params['position'][0])
@@ -143,46 +143,43 @@ class plot2d (object):
 
     @classmethod
     def closePlot(cls):
-        """Close"""
+        "Close"
         try:
             plt.close()
         except:
             pass
 
     @classmethod
-    def text(cls, node):
-        """draw text"""
+    def getxy(cls, node):
         x = '%.2f' % float(node.params['position'][0])
         y = '%.2f' % float(node.params['position'][1])
+        return float(x), float(y)
 
+    @classmethod
+    def text(cls, node):
+        "draw text"
+        x,y = cls.getxy(node)
         # newer MPL versions (>=1.4)
         if hasattr(node.plttxt, 'xyann'): node.plttxt.xyann = (x, y)
         else: node.plttxt.xytext = (x, y)
 
     @classmethod
     def circle(cls, node):
-        """drawCircle"""
-        x = '%.2f' % float(node.params['position'][0])
-        y = '%.2f' % float(node.params['position'][1])
-
+        "drawCircle"
+        x, y = cls.getxy(node)
         node.pltCircle.center = x, y
 
     @classmethod
     def graphUpdate(cls, node):
-        """Graph Update"""
-        x = '%.2f' % float(node.params['position'][0])
-        y = '%.2f' % float(node.params['position'][1])
-
-        # newer MPL versions (>=1.4)
-        if hasattr(node.plttxt, 'xyann'): node.plttxt.xyann = (x, y)
-        else: node.plttxt.xytext = (x, y)
-
+        "Graph Update"
+        x, y = cls.getxy(node)
+        cls.text(node)
         node.pltNode.set_data(x, y)
         node.pltCircle.center = x, y
 
     @classmethod
     def graphPause(cls):
-        """Pause"""
+        "Pause"
         plt.pause(0.001)
 
     @classmethod
@@ -241,8 +238,7 @@ class plot2d (object):
         elif isinstance(node, Car):
             color = 'r'
 
-        node.pltNode, = ax.plot(1, 1, linestyle='', marker='.', ms=10,
-                                mfc=color)
+        node.pltNode, = ax.plot(1, 1, marker='.', ms=10, mfc=color)
 
     @classmethod
     def instantiateCircle(cls, node):
@@ -288,8 +284,7 @@ class plot2d (object):
         "Plot Graph"
         debug('Enabling Graph...\n')
         for node in nodes:
-            x = '%.2f' % float(node.params['position'][0])
-            y = '%.2f' % float(node.params['position'][1])
+            x, y = cls.getxy(node)
             cls.instantiateNodes(node)
             node.pltNode.set_data(x, y)
             cls.text(node)
@@ -302,8 +297,8 @@ class plot2d (object):
                 src_y = '%.2f' % float(conn['src'][c].params['position'][1])
                 dst_x = '%.2f' % float(conn['dst'][c].params['position'][0])
                 dst_y = '%.2f' % float(conn['dst'][c].params['position'][1])
-                line = cls.plotLine2d([src_x, dst_x], \
-                                       [src_y, dst_y], 'b', ls=ls)
+                line = cls.plotLine2d([float(src_x), float(dst_x)], \
+                                      [float(src_y), float(dst_y)], 'b', ls=ls)
                 cls.plotLine(line)
 
 
