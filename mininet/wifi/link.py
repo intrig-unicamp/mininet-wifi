@@ -1094,7 +1094,7 @@ class physicalMesh(IntfWireless):
             node.params['range'][wlan] = node.getRange(intf=intf, noiseLevel=95)
 
         node.setMeshIface(node.params['wlan'][wlan], **params)
-        node.setPhyiscalMeshIface(**params)
+        node.setPhysicalMeshIface(**params)
 
         self.meshAssociation(node, params['intf'])
 
