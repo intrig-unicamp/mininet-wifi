@@ -434,7 +434,7 @@ class Mininet_wifi(Mininet):
         return macColonHex(random.randint(1, 2 ** 48 - 1) & 0xfeffffffffff |
                            0x020000000000)
 
-    def set_alt_module(self, moduleDir):
+    def setModule(self, moduleDir):
         "set an alternative module rather than mac80211_hwsim"
         self.alt_module = moduleDir
 
@@ -639,15 +639,15 @@ class Mininet_wifi(Mininet):
                 else:
                     self.addController('c%d' % i, cls)
 
-        info('*** Adding hosts and stations:\n')
+        info('*** Adding hosts/stations:\n')
         for hostName in topo.hosts():
-            if 'sta' in str(hostName):
+            if 'wifi' in str(self.topo):
                 self.addStation(hostName, **topo.nodeInfo(hostName))
             else:
                 self.addHost(hostName, **topo.nodeInfo(hostName))
             info(hostName + ' ')
 
-        info('\n*** Adding switches and access point(s):\n')
+        info('\n*** Adding switches/access points:\n')
         for switchName in topo.switches():
             # A bit ugly: add batch parameter if appropriate
             params = topo.nodeInfo(switchName)
