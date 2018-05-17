@@ -455,7 +455,7 @@ class Node( object ):
         """
         if not intf:
             return self.defaultIntf()
-        elif isinstance( intf, basestring):
+        elif isinstance( intf, string_types):
             return self.nameToIntf[ intf ]
         else:
             return intf
@@ -507,7 +507,7 @@ class Node( object ):
         """Set the default route to go through intf.
            intf: Intf or {dev <intfname> via <gw-ip> ...}"""
         # Note setParam won't call us if intf is none
-        if isinstance( intf, basestring ) and ' ' in intf:
+        if isinstance( intf, string_types ) and ' ' in intf:
             params = intf
         else:
             params = 'dev %s' % intf
