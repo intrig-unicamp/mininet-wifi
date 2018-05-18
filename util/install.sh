@@ -153,6 +153,7 @@ function mn_deps {
 		    $install python-setuptools python-pexpect python-pip
 	    fi
     fi
+    pip2 install typing
     echo "Installing Mininet core"
     pushd $MININET_DIR/mininet-wifi
     sudo make install
