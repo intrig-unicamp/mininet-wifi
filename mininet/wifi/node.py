@@ -223,9 +223,12 @@ class Node_wifi(Node):
         if 'ssid' in params:
             self.params['ssid'][wlan] = params['ssid']
         else:
+            self.params['ssid'] = []
+            for _ in self.params['wlan']:
+                self.params['ssid'].append('')
             self.params['ssid'][wlan] = self.name
-        self.params['driver'] = 'nl80211'
 
+        self.params['driver'] = 'nl80211'
         AccessPoint.setConfig(self, wlan=wlan)
 
     def setAdhocIface(self, iface, ssid=''):
