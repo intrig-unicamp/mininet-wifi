@@ -651,7 +651,7 @@ class Mininet(object):
         lost = 0
         ploss = None
         if not hosts:
-            hosts = self.hosts + self.stations
+            hosts = self.hosts
             output('*** Ping: testing ping reachability\n')
         for node in hosts:
             output('%s -> ' % node.name)
