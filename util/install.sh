@@ -153,6 +153,11 @@ function mn_deps {
 		    $install python-setuptools python-pexpect python-pip
 	    fi
     fi
+    if [ -x "$(command -v pip2)" ]; then
+        pip2 install typing
+    else
+        pip install typing
+    fi
     echo "Installing Mininet core"
     pushd $MININET_DIR/mininet-wifi
     sudo make install
@@ -169,7 +174,6 @@ function wifi_deps {
 		else
 		    $install python-scipy python-pip python-matplotlib
 	    fi
-    pip install typing
     pushd $MININET_DIR/mininet-wifi
     git submodule update --init --recursive
     pushd $MININET_DIR/mininet-wifi/hostap
