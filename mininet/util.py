@@ -105,7 +105,10 @@ def errRun(*cmd, **kwargs):
                     if py_version_info < (3, 0):
                         out += data
                     else:
-                        out += data.decode('utf-8')
+                        try:
+                            out += data.decode('utf-8')
+                        except UnicodeDecodeError:
+                            out += data.decode('ISO-8859-1')
                     if data == '':
                         outDone = True
                 elif f == popen.stderr:
