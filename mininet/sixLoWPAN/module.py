@@ -36,7 +36,7 @@ class module(object):
             # Useful for tests in Kernels like Kernel 3.13.x
             if n_radios == 0:
                 n_radios = 1
-            if alt_module == '':
+            if alt_module:
                 os.system('modprobe fakelb numlbs=%s' % n_radios)
             else:
                 os.system('insmod %s numlbs=%s' % (alt_module,

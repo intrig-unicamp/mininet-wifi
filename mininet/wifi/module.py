@@ -43,7 +43,7 @@ class module(object):
                 # Useful for tests in Kernels like Kernel 3.13.x
                 if n_radios == 0:
                     n_radios = 1
-                if alt_module == '':
+                if alt_module:
                     os.system('modprobe mac80211_hwsim radios=%s' % n_radios)
                 else:
                     os.system('insmod %s radios=%s' % (alt_module,
