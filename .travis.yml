@@ -10,7 +10,7 @@ before_install:
 - sudo apt-get install -qq vlan
 
 install:
-- sudo util/install.sh -Wnfvlw6
+- sudo util/install.sh -Wlnfvw6
 
 script:
 - sudo mn --wifi --test pingall
