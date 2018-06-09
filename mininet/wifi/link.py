@@ -903,9 +903,8 @@ class wirelessLink (object):
 
 class wifiDirectLink(IntfWireless):
 
-    def __init__(self, node, port=None, **params):
+    def __init__(self, node, port=None, physical=False, **params):
         "configure wifi-direct"
-
         if port:
             for port_ in node.params['wlan']:
                 if params['port'] == port_:
@@ -915,18 +914,22 @@ class wifiDirectLink(IntfWireless):
 
         node.func[wlan] = 'wifiDirect'
 
-        cmd = ("echo \'")
-        cmd = cmd + 'ctrl_interface=/var/run/wpa_supplicant\
-                    \nap_scan=1\
-                    \np2p_go_ht40=1\
-                    \ndevice_name=%s-%s\
-                    \ndevice_type=1-0050F204-1\
-                    \np2p_no_group_iface=1' % (node, wlan)
-        confname = "mn%d_%s-%s_wifiDirect.conf" % (os.getpid(), node, wlan)
-        cmd = cmd + ("\' > %s" % confname)
-        os.system(cmd)
-        node.cmd('wpa_supplicant -B -Dnl80211 -c%s -i%s -d'
-                 % (confname, node.params['wlan'][wlan]))
+        iface = None
+        if physical:
+            iface = 'phy' + node.name
+            wlan = 0
+        filename = self.get_filename(node, wlan, iface)
+        self.config(node, wlan, filename)
+
+        if physical:
+            iface = params['intf']
+            cmd = self.get_wpa_cmd(filename, iface)
+            os.system(cmd)
+        else:
+            iface = node.params['wlan'][wlan]
+            cmd = self.get_wpa_cmd(filename, iface)
+            node.cmd(self.get_wpa_cmd(filename, cmd))
+
         if not port:
             node.ifaceToAssociate += 1
 
@@ -934,33 +937,42 @@ class wifiDirectLink(IntfWireless):
                            'awk \'{print $2};\'')
         node.params['mac'][wlan] = p2p_mac.splitlines()[0]
 
+    @classmethod
+    def get_filename(cls, node, wlan, iface=None):
+        if iface:
+            filename = "%s-%s_wifiDirect.conf" % (iface, wlan)
+        else:
+            filename = "mn%d_%s-%s_wifiDirect.conf" % (os.getpid(), node, wlan)
+        return filename
+
+    @classmethod
+    def get_wpa_cmd(cls, filename, intf):
+        cmd = ('wpa_supplicant -B -Dnl80211 -c%s -i%s'
+         % (filename, intf))
+        return cmd
+
+    @classmethod
+    def config(cls, node, wlan, filename):
+        cmd = ("echo \'")
+        cmd = cmd + 'ctrl_interface=/var/run/wpa_supplicant\
+              \nap_scan=1\
+              \np2p_go_ht40=1\
+              \ndevice_name=%s-%s\
+              \ndevice_type=1-0050F204-1\
+              \np2p_no_group_iface=1' % (node, wlan)
+        cmd = cmd + ("\' > %s" % filename)
+        cls.set_config(cmd)
+
+    @classmethod
+    def set_config(cls, cmd):
+        subprocess.check_output(cmd, shell=True)
+
 
 class physicalWifiDirectLink(IntfWireless):
 
     def __init__(self, node, port=None, **params):
         "configure physical wifi-direct"
-
-        wifiDirectLink(node, port, **params)
-
-        iface = 'phy' + node.name
-        wlan = 0
-        cmd = ("echo \'")
-        cmd = cmd + 'ctrl_interface=/var/run/wpa_supplicant\
-                    \nap_scan=1\
-                    \np2p_go_ht40=1\
-                    \ndevice_name=%s-%s\
-                    \ndevice_type=1-0050F204-1\
-                    \np2p_no_group_iface=1' % (iface, wlan)
-        confname = "%s-%s_wifiDirect.conf" % (iface, wlan)
-        cmd = cmd + ("\' > %s" % confname)
-        subprocess.check_output(cmd, shell=True)
-        cmd = 'wpa_supplicant -B -Dnl80211 -c%s -i%s' % \
-              (confname, params['intf'])
-        os.system(cmd)
-
-        #p2p_mac = node.cmd('iw dev | grep addr | awk \'NR==1\' | '
-        #                   'awk \'{print $2};\'')
-        #node.params['mac'].append(p2p_mac.splitlines()[0])
+        wifiDirectLink(node, port, physical=True, **params)
 
 
 class adhoc(IntfWireless):
