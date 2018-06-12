@@ -15,7 +15,6 @@ class module(object):
 
     wlan_list = []
     hwsim_ids = []
-    prefix = ""
     externally_managed = False
     devices_created_dynamically = False
     phyID = 0
