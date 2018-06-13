@@ -48,7 +48,11 @@ class vanet(object):
     def start(self, **params):
         'start topology'
         from mininet.wifi.mobility import mobility
-        cars = params['stations']
+
+        cars = []
+        for car in params['stations']:
+            if 'carsta' in car.params:
+                cars.append(car)
         aps = params['aps']
         mobility.addNodes(cars, aps)
         [self.road.append(x) for x in range(0, params['nroads'])]
