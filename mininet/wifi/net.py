@@ -2082,10 +2082,8 @@ class Mininet_wifi(Mininet):
                     if 'position' in node.params and 'link' not in node.params:
                         mobility.aps = self.aps
                         mobility.configLinks(node)
-                        x = node.params['position'][0]
-                        y = node.params['position'][1]
-                        z = node.params['position'][2]
-                        node.setPosition('%s,%s,%s' % (x,y,z))
+                        if self.link == wmediumd:
+                            node.set_pos_wmediumd()
 
             for sta in self.stations:
                 for wlan in range(0, len(sta.params['wlan'])):
