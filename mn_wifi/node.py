@@ -24,16 +24,16 @@ from mininet.util import (quietRun, errRun, isShellBuiltin)
 from mininet.node import Node
 from mininet.moduledeps import moduleDeps, pathCheck, TUN
 from mininet.link import Link, Intf, OVSIntf
-from mininet.wifi.link import TCWirelessLink, TCLinkWirelessAP,\
+from mn_wifi.link import TCWirelessLink, TCLinkWirelessAP,\
     Association, wirelessLink, adhoc, mesh
-from mininet.wifi.wmediumdConnector import WmediumdServer, \
+from mn_wifi.wmediumdConnector import WmediumdServer, \
     WmediumdPos, WmediumdTXPower, WmediumdGain, WmediumdHeight, \
     wmediumd_mode, WmediumdCst
-from mininet.wifi.propagationModels import GetSignalRange, \
+from mn_wifi.propagationModels import GetSignalRange, \
     GetPowerGivenRange, propagationModel
-from mininet.wifi.util import moveIntf
-from mininet.wifi.module import module
-from mininet.utils.private_folder_manager import PrivateFolderManager
+from mn_wifi.util import moveIntf
+from mn_wifi.module import module
+from mn_wifi.utils.private_folder_manager import PrivateFolderManager
 
 
 class Node_wifi(Node):
@@ -265,7 +265,7 @@ class Node_wifi(Node):
 
     def configLinks(self):
         "Applies channel params and handover"
-        from mininet.wifi.mobility import mobility
+        from mn_wifi.mobility import mobility
         mobility.configLinks(self)
 
     def getMAC(self, iface):
@@ -308,7 +308,7 @@ class Node_wifi(Node):
 
     def setRange(self, value, intf=None):
         "Set Signal Range"
-        from mininet.wifi.plot import plot2d
+        from mn_wifi.plot import plot2d
         wlan = 0
         if intf:
             wlan = self.params['wlan'].index(intf)
@@ -325,7 +325,7 @@ class Node_wifi(Node):
 
     def updateGraph(self):
         "Update the Graph"
-        from mininet.wifi.plot import plot2d, plot3d
+        from mn_wifi.plot import plot2d, plot3d
         cls = plot2d
         if plot3d.is3d:
             cls = plot3d
@@ -1093,7 +1093,7 @@ class Node_wifi(Node):
 
     def stop_(self):
         "Stops hostapd"
-        from mininet.wifi.plot import plot2d
+        from mn_wifi.plot import plot2d
         process = 'mn%d_%s' % (os.getpid(), self.name)
         os.system('pkill -f \'hostapd -B %s\'' % process)
         if plot2d.fig_exists():
@@ -1101,7 +1101,7 @@ class Node_wifi(Node):
 
     def start_(self):
         "Starts hostapd"
-        from mininet.wifi.plot import plot2d
+        from mn_wifi.plot import plot2d
         process = 'mn%d_%s' % (os.getpid(), self.name)
         os.system('hostapd -B %s-wlan1.apconf' % process)
         if plot2d.fig_exists():

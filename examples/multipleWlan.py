@@ -5,9 +5,9 @@
 from __future__ import print_function
 from mininet.node import OVSKernelSwitch, Controller
 from mininet.log import setLogLevel, info
-from mininet.wifi.cli import CLI_wifi
-from mininet.wifi.net import Mininet_wifi
-from mininet.wifi.link import adhoc
+from mn_wifi.cli import CLI_wifi
+from mn_wifi.net import Mininet_wifi
+from mn_wifi.link import adhoc
 
 
 def topology():

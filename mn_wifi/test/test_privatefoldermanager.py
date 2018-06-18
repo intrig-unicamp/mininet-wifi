@@ -1,7 +1,7 @@
 import unittest
 
 from mininet.node import Node
-from mininet.utils.private_folder_manager import PrivateFolderManager
+from mn_wifi.utils.private_folder_manager import PrivateFolderManager
 
 
 class MockNode(Node):

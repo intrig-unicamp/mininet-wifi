@@ -11,11 +11,11 @@ import os
 
 from mininet.node import Controller
 from mininet.log import setLogLevel, info
-from mininet.wifi.node import UserAP
-from mininet.wifi.link import wmediumd
-from mininet.wifi.cli import CLI_wifi
-from mininet.wifi.net import Mininet_wifi
-from mininet.wifi.wmediumdConnector import interference
+from mn_wifi.node import UserAP
+from mn_wifi.link import wmediumd
+from mn_wifi.cli import CLI_wifi
+from mn_wifi.net import Mininet_wifi
+from mn_wifi.wmediumdConnector import interference
 
 
 def topology():

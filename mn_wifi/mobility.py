@@ -8,9 +8,9 @@ import numpy as np
 from numpy.random import rand
 
 from mininet.log import debug, info
-from mininet.wifi.link import wirelessLink, Association
-from mininet.wifi.associationControl import associationControl
-from mininet.wifi.plot import plot2d, plot3d, plotGraph
+from mn_wifi.link import wirelessLink, Association
+from mn_wifi.associationControl import associationControl
+from mn_wifi.plot import plot2d, plot3d, plotGraph
 
 
 class mobility(object):

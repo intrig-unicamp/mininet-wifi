@@ -2,7 +2,7 @@ import sys
 import os
 import threading
 
-from mininet.wifi.mobility import mobility
+from mn_wifi.mobility import mobility
 from sys import version_info as py_version_info
 if py_version_info < (3, 0):
     from sumolib.sumulib import checkBinary

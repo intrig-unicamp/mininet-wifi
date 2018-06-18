@@ -12,12 +12,12 @@ import threading
 import random
 from pylab import math, cos, sin
 from mininet.log import info
-from mininet.wifi.net import Mininet_wifi
-from mininet.wifi.plot import plot2d, plot3d, plotGraph
-from mininet.wifi.mobility import mobility
-from mininet.wifi.link import wirelessLink
-from mininet.wifi.devices import GetRate
-from mininet.wifi.node import Station, AP
+from mn_wifi.net import Mininet_wifi
+from mn_wifi.plot import plot2d, plot3d, plotGraph
+from mn_wifi.mobility import mobility
+from mn_wifi.link import wirelessLink
+from mn_wifi.devices import GetRate
+from mn_wifi.node import Station, AP
 
 
 def instantiateGraph(Mininet_wifi):
@@ -42,7 +42,7 @@ def instantiateGraph(Mininet_wifi):
 class replayingMobility(object):
     'Replaying Mobility Traces'
     timestamp = False
-    
+
     def __init__(self, Mininet_wifi, nodes=None):
         Mininet_wifi.isMobility = True
         self.thread = threading.Thread(name='replayingMobility',
@@ -175,7 +175,7 @@ class replayingBandwidth(object):
 
 class replayingNetworkConditions(object):
     'Replaying Network Conditions'
-    
+
     def __init__(self, Mininet_wifi, **kwargs):
 
         self.thread = threading.Thread( name='replayingNetConditions',
@@ -226,13 +226,13 @@ class replayingNetworkConditions(object):
 
 class replayingRSSI(object):
     'Replaying RSSI Traces'
-    
+
     print_bw = False
     print_loss = False
     print_delay = False
     print_latency = False
     print_distance = False
-    
+
     def __init__(self, mininet, propagationModel='friis',
                  n=32, **kwargs):
         """ propagationModel = Propagation Model
@@ -245,9 +245,9 @@ class replayingRSSI(object):
             self.print_delay = False
         if 'print_latency' in kwargs:
             self.print_latency = True
-        if 'print_distance' in kwargs:    
+        if 'print_distance' in kwargs:
             self.print_distance = True
-        
+
         Mininet_wifi.isMobility = True
         self.thread = threading.Thread(name='replayingRSSI', target=self.rssi,
                                        args=(Mininet_wifi, propagationModel, n))
@@ -303,7 +303,7 @@ class replayingRSSI(object):
         value = GetRate(sta, ap, 0)
         custombw = value.rate
         rate = value.rate / 2.5
-        
+
         if 'equipmentModel' not in ap.params.keys():
             rate = custombw * (1.1 ** -dist)
         if rate <= 0:

@@ -6,9 +6,9 @@ import sys
 
 from mininet.node import Controller
 from mininet.log import setLogLevel, info
-from mininet.wifi.node import OVSKernelAP
-from mininet.wifi.cli import CLI_wifi
-from mininet.wifi.net import Mininet_wifi
+from mn_wifi.node import OVSKernelAP
+from mn_wifi.cli import CLI_wifi
+from mn_wifi.net import Mininet_wifi
 
 
 def topology(isVirtual):
