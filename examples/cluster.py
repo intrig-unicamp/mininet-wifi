@@ -84,7 +84,7 @@ from operator import attrgetter
 from distutils.version import StrictVersion
 
 from mininet.node import Node, Host, OVSSwitch, Controller
-from mininet.wifi.node import OVSAP
+from mn_wifi.node import OVSAP
 from mininet.link import Link, Intf
 from mininet.net import Mininet
 from mininet.topo import LinearTopo

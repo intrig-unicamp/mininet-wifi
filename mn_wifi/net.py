@@ -26,25 +26,25 @@ from mininet.link import Link, Intf, TCLink, TCULink
 from mininet.nodelib import NAT
 from mininet.log import info, error, debug, output, warn
 
-from mininet.wifi.node import AccessPoint, AP, Station, Car, \
+from mn_wifi.node import AccessPoint, AP, Station, Car, \
     OVSKernelAP, physicalAP
-from mininet.wifi.wmediumdConnector import WmediumdStarter, WmediumdServer, \
+from mn_wifi.wmediumdConnector import WmediumdStarter, WmediumdServer, \
     error_prob, snr, interference
-from mininet.wifi.link import wirelessLink, wmediumd, Association, \
+from mn_wifi.link import wirelessLink, wmediumd, Association, \
     _4address, TCWirelessLink, TCLinkWirelessStation,\
     wifiDirectLink, adhoc, mesh, physicalMesh, physicalWifiDirectLink
-from mininet.wifi.devices import GetRate, GetRange, GetTxPower
-from mininet.wifi.mobility import mobility
-from mininet.wifi.plot import plot2d, plot3d, plotGraph
-from mininet.wifi.module import module
-from mininet.wifi.propagationModels import propagationModel
-from mininet.wifi.vanet import vanet
-from mininet.sixLoWPAN.net import Mininet_6LoWPAN
-from mininet.sixLoWPAN.module import module as sixLoWPAN_module
-from mininet.sixLoWPAN.link import sixLoWPANLink
+from mn_wifi.devices import GetRate, GetRange, GetTxPower
+from mn_wifi.mobility import mobility
+from mn_wifi.plot import plot2d, plot3d, plotGraph
+from mn_wifi.module import module
+from mn_wifi.propagationModels import propagationModel
+from mn_wifi.vanet import vanet
+from mn_wifi.sixLoWPAN.net import Mininet_6LoWPAN
+from mn_wifi.sixLoWPAN.module import module as sixLoWPAN_module
+from mn_wifi.sixLoWPAN.link import sixLoWPANLink
 
 sys.path.append(str(os.getcwd()) + '/mininet/')
-from mininet.sumo.runner import sumo
+from mn_wifi.sumo.runner import sumo
 
 
 class Mininet_wifi(Mininet):

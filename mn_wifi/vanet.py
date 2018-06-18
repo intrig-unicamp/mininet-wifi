@@ -17,8 +17,8 @@ import matplotlib.cbook
 from pylab import ginput as ginp
 from pylab import math, cos, sin, np
 
-from mininet.wifi.plot import plot2d
-from mininet.wifi.node import AP
+from mn_wifi.plot import plot2d
+from mn_wifi.node import AP
 from mininet.log import info
 
 try:
@@ -47,7 +47,7 @@ class vanet(object):
 
     def start(self, **params):
         'start topology'
-        from mininet.wifi.mobility import mobility
+        from mn_wifi.mobility import mobility
 
         cars = []
         for car in params['stations']:
@@ -290,7 +290,7 @@ class vanet(object):
     def repeat (self, car):
         # Check if it is the last mile
         lastRoad = True
-       
+
         if car.i % 2 == 0:
             for n in reversed(self.totalRoads):
                 if n < car.currentRoad:
@@ -313,7 +313,7 @@ class vanet(object):
             if lastRoad:
                 car.currentRoad = 0
                 self.line_prop(self.road[car.currentRoad], car)
-                
+
     def findIntersection(self):
         # have to work on
         list1 = [list(a) for a in zip(self.interX[0], self.interY[0])]

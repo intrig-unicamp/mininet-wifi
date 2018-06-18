@@ -5,9 +5,9 @@
 from mininet.node import Controller,OVSKernelSwitch
 from mininet.link import TCLink
 from mininet.log import setLogLevel, info
-from mininet.wifi.replaying import replayingBandwidth
-from mininet.wifi.cli import CLI_wifi
-from mininet.wifi.net import Mininet_wifi
+from mn_wifi.replaying import replayingBandwidth
+from mn_wifi.cli import CLI_wifi
+from mn_wifi.net import Mininet_wifi
 
 
 def topology():

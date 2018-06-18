@@ -9,7 +9,7 @@ from functools import partial
 
 from mininet.net import Mininet
 from mininet.node import IVSSwitch
-from mininet.wifi.node import OVSAP, UserAP
+from mn_wifi.node import OVSAP, UserAP
 from mininet.node import CPULimitedHost
 from mininet.link import TCLink
 from mininet.topo import Topo
