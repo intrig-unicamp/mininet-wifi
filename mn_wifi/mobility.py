@@ -316,7 +316,7 @@ class mobility(object):
         :param MAX_Z: Maximum value for Z
         :param AC: Association Control Method
         :param ppm: propagation model"""
-        from mininet.wifi.node import Station
+        from mn_wifi.node import Station
 
         cls.ac = AC
         cls.rec_rssi = rec_rssi
@@ -541,7 +541,7 @@ class mobility(object):
     @classmethod
     def configLinks(cls, node=None):
         "Applies channel params and handover"
-        from mininet.wifi.node import AP
+        from mn_wifi.node import AP
         if node:
             if isinstance(node, AP):
                 nodes = cls.stations
