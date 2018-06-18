@@ -111,7 +111,7 @@ class plot3d (object):
     @classmethod
     def instantiateCircle(cls, node):
         "Instantiate Circle"
-        from mininet.wifi.node import Station, Car
+        from mn_wifi.node import Station, Car
 
         x = '%.2f' % float(node.params['position'][0])
         y = '%.2f' % float(node.params['position'][1])
@@ -228,7 +228,7 @@ class plot2d (object):
     @classmethod
     def instantiateNode(cls, node):
         "instantiateNode"
-        from mininet.wifi.node import Station, Car
+        from mn_wifi.node import Station, Car
 
         ax = cls.ax
 
@@ -243,7 +243,7 @@ class plot2d (object):
     @classmethod
     def instantiateCircle(cls, node):
         "instantiateCircle"
-        from mininet.wifi.node import Station, Car
+        from mn_wifi.node import Station, Car
 
         ax = cls.ax
 
