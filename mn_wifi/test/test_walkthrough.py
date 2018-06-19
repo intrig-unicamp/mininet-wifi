@@ -26,7 +26,7 @@ def tsharkVersion():
 class testWalkthrough(unittest.TestCase):
     "Test Mininet walkthrough"
 
-    prompt = 'mininet-wifi>'
+    prompt = 'mininet>'
 
     # PART 1
     def testHelp(self):
@@ -245,7 +245,7 @@ class testWalkthrough(unittest.TestCase):
         p.expect(self.prompt)
         p.sendline('exit')
         p.wait()
-    
+
     def testPropagationModel(self):
         "Start Mininet-WiFi using a propagation model, then test ping and rssi"
         p = pexpect.spawn(
