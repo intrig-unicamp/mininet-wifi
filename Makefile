@@ -44,7 +44,7 @@ slowtest: $(MININET)
 	mn_wifi/test/test_walkthrough.py -v
 	mn_wifi/examples/test/runner.py -v
 
-mnexec: mnexec.c $(MN) mininet-base/mininet/net.py
+mnexec: mnexec.c $(MN) ../mininet-base/mininet/net.py
 	cc $(CFLAGS) $(LDFLAGS) -DVERSION=\"`PYTHONPATH=. $(PYMN) --version`\" $< -o $@
 
 install: $(MNEXEC) $(MANPAGES)
