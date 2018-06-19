@@ -140,7 +140,7 @@ class WmediumdManager(object):
         cls.is_connected = True
 
         # Mininet specific
-        from mininet.wifi.module import module
+        from mn_wifi.module import module
         module.externally_managed = True
 
     @classmethod
@@ -518,7 +518,7 @@ class WmediumdStarter(object):
                 cmdline.append("-x")
                 per_data_file = \
                     pkg_resources.resource_filename(
-                        'mininet', 'data/signal_table_ieee80211ax')
+                        'mn_wifi', 'data/signal_table_ieee80211ax')
                 cmdline.append(per_data_file)
         cmdline[1:1] = kwargs['parameters']
         cls.wmd_logfile = tempfile.NamedTemporaryFile(prefix='mn_wmd_log_',
