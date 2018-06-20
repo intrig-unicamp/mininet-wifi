@@ -696,12 +696,8 @@ class Mininet_wifi(Mininet):
                 or self.wmediumd_mode == error_prob) and self.link == wmediumd:
             wmediumd(self.fading_coefficient, self.noise_threshold,
                      self.stations, self.aps, propagationModel)
-            if self.configure4addr:
-                for sta in self.stations:
-                    x = sta.params['position'][0]
-                    y = sta.params['position'][1]
-                    z = sta.params['position'][2]
-                    sta.setPosition('%s,%s,%s' % (x,y,z))
+            for sta in self.stations:
+                sta.set_pos_wmediumd()
 
         if self.inNamespace:
             self.configureControlNetwork()
