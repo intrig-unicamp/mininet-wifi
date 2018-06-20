@@ -11,6 +11,7 @@ before_install:
 
 install:
 - sudo util/install.sh -Wlnfvw6
+- sudo kill ovs-testcontroller || true
 
 script:
 - sudo mn --wifi --test pingall
