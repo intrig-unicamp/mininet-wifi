@@ -11,6 +11,7 @@ This package includes code to represent network topologies.
 from mininet.util import irange
 from mininet.topo import Topo
 
+
 class Topo_WiFi(Topo):
     "Data center network representation for structured multi-trees."
 
@@ -31,7 +32,7 @@ class Topo_WiFi(Topo):
 
         if not opts and self.sopts:
             opts = self.sopts
-        result = self.addNode(name, isSwitch=True, **opts)
+        result = self.addNode(name, isAP=True, **opts)
         return result
 
     # This legacy port management mechanism is clunky and will probably
@@ -47,13 +48,13 @@ class Topo_WiFi(Topo):
         ports.setdefault(dst, {})
         # New port: number of outlinks + base
         if sport is None:
-            src_base = 1 if self.isSwitch(src) else 0
+            src_base = 1 if self.isAP(src) else 0
             if 'ap' in src:
                 sport = None
             else:
                 sport = len(ports[ src ]) + src_base
         if dport is None:
-            dst_base = 1 if self.isSwitch(dst) else 0
+            dst_base = 1 if self.isAP(dst) else 0
             if 'ap' in dst:
                 dport = None
             else:
@@ -61,6 +62,30 @@ class Topo_WiFi(Topo):
         ports[ src ][ sport ] = (dst, dport)
         ports[ dst ][ dport ] = (src, sport)
         return sport, dport
+
+    def nodes( self, sort=True ):
+        "Return nodes in graph"
+        if sort:
+            return self.sorted( self.g.nodes() )
+        else:
+            return self.g.nodes()
+
+    def aps( self, sort=True ):
+        """Return aps.
+           sort: sort aps alphabetically
+           returns: dpids list of dpids"""
+        return [ n for n in self.nodes( sort ) if self.isAP( n ) ]
+
+    def stations( self, sort=True ):
+        """Return stations.
+           sort: sort stations alphabetically
+           returns: list of stations"""
+        return [ n for n in self.nodes( sort ) if not self.isAP( n ) ]
+
+
+    def isAP( self, n ):
+        "Returns true if node is a switch."
+        return self.g.node[ n ].get( 'isAP', False )
 
 
 # Our idiom defines additional parameters in build(param...)

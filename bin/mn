@@ -412,6 +412,8 @@ class MininetRunner(object):
             TOPOS['single'] = SingleAPTopo
             TOPOS['linear'] = LinearWirelessTopo
             TOPOS['minimal'] = MinimalWirelessTopo
+            if opts.link == 'default':
+                opts.link = 'wtc'
 
         topo = buildTopo(TOPOS, opts.topo)
         switch = customClass(SWITCHES, opts.switch)

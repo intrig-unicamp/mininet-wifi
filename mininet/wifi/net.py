@@ -53,7 +53,7 @@ class Mininet_wifi(Mininet):
                  accessPoint=OVSKernelAP, host=Host, station=Station,
                  car=Car, controller=DefaultController,
                  link=TCWirelessLink, intf=Intf, build=True, xterms=False,
-                 ipBase='10.0.0.0/8', inNamespace=False,
+                 cleanup=False, ipBase='10.0.0.0/8', inNamespace=False,
                  autoSetMacs=False, autoStaticArp=False, autoPinCpus=False,
                  listenPort=None, waitConnected=False, ssid="new-ssid",
                  mode="g", channel="1", wmediumd_mode=snr,
@@ -89,6 +89,7 @@ class Mininet_wifi(Mininet):
         self.controller = controller
         self.link = link
         self.intf = intf
+        self.cleanup = cleanup
         self.ipBase = ipBase
         self.ipBaseNum, self.prefixLen = netParse(self.ipBase)
         self.nextIP = 1  # start for address allocation
@@ -165,7 +166,10 @@ class Mininet_wifi(Mininet):
 
         self.built = False
         if topo and build:
-            self.build()
+            if 'Wireless' in str(topo):
+                self.build_wireless()
+            else:
+                self.build()
 
     def waitConnected(self, timeout=None, delay=.5):
         """wait for each switch to connect to a controller,
@@ -619,7 +623,7 @@ class Mininet_wifi(Mininet):
                 # it needs to be done somewhere.
                 # info( '\n' )
 
-    def buildFromTopo(self, topo=None):
+    def buildFromWirelessTopo(self, topo=None):
         """Build mininet from a topology object
            At the end of this function, everything should be connected
            and up."""
@@ -639,26 +643,20 @@ class Mininet_wifi(Mininet):
                 else:
                     self.addController('c%d' % i, cls)
 
-        info('*** Adding hosts/stations:\n')
-        for hostName in topo.hosts():
-            if 'wifi' in str(self.topo):
-                self.addStation(hostName, **topo.nodeInfo(hostName))
-            else:
-                self.addHost(hostName, **topo.nodeInfo(hostName))
-            info(hostName + ' ')
+        info('*** Adding stations:\n')
+        for staName in topo.stations():
+            self.addStation(staName, **topo.nodeInfo(staName))
+            info(staName + ' ')
 
-        info('\n*** Adding switches/access points:\n')
-        for switchName in topo.switches():
+        info('\n*** Adding access points:\n')
+        for apName in topo.aps():
             # A bit ugly: add batch parameter if appropriate
-            params = topo.nodeInfo(switchName)
-            cls = params.get('cls', self.switch)
+            params = topo.nodeInfo(apName)
+            cls = params.get('cls', self.accessPoint)
             if hasattr(cls, 'batchStartup'):
                 params.setdefault('batch', True)
-            if 'ap' in str(switchName):
-                self.addAccessPoint(switchName, **params)
-            else:
-                self.addSwitch(switchName, **params)
-            info(switchName + ' ')
+            self.addAccessPoint(apName, **params)
+            info(apName + ' ')
 
         info('\n*** Configuring wifi nodes...\n')
         self.configureWifiNodes()
@@ -680,10 +678,10 @@ class Mininet_wifi(Mininet):
             self.addLink(self.carsSTA[idx], self.carsSW[idx])
             self.addLink(car, self.carsSW[idx])
 
-    def build(self):
-        "Build mininet."
+    def build_wireless(self):
+        "Build mininet-wifi."
         if self.topo:
-            self.buildFromTopo(self.topo)
+            self.buildFromWirelessTopo(self.topo)
         if self.isVanet:
             self.create_vanet_link()
         else:
