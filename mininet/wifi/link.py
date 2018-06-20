@@ -933,10 +933,6 @@ class wifiDirectLink(IntfWireless):
         if not port:
             node.ifaceToAssociate += 1
 
-        p2p_mac = node.cmd('iw dev | grep addr | awk \'NR==1\' | '
-                           'awk \'{print $2};\'')
-        node.params['mac'][wlan] = p2p_mac.splitlines()[0]
-
     @classmethod
     def get_filename(cls, node, wlan, iface=None):
         if iface:
