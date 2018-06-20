@@ -29,6 +29,7 @@ from mininet.log import lg, LEVELS, info, debug, warn, error, output
 from mininet.net import VERSION
 from mininet.wifi.net import MininetWithControlNet
 from mininet.wifi.net import Mininet_wifi
+from mininet.net import Mininet
 from mininet.node import (Host, CPULimitedHost, Controller, OVSController,
                           Ryu, NOX, RemoteController, findController,
                           DefaultController, NullController,
@@ -461,7 +462,10 @@ class MininetRunner(object):
         if inNamespace and cluster:
             info("Please specify --innamespace OR --cluster\n")
             exit()
-        Net = MininetWithControlNet if opts.innamespace else Mininet_wifi
+        if opts.wifi:
+            Net = MininetWithControlNet if opts.innamespace else Mininet_wifi
+        else:
+            Net = MininetWithControlNet if opts.innamespace else Mininet
         if opts.cluster:
             warn('*** WARNING: Experimental cluster mode!\n'
                  '*** Using RemoteHost, RemoteOVSSwitch, RemoteLink\n')
@@ -469,27 +473,41 @@ class MininetRunner(object):
                                      RemoteOVSAP, RemoteLink
             Net = partial(MininetCluster, servers=servers,
                           placement=PLACEMENT[opts.placement])
-            mininet.wifi.cli.CLI_wifi = ClusterCLI
+            if opts.wifi:
+                mininet.wifi.cli.CLI_wifi = ClusterCLI
+            else:
+                mininet.cli.CLI = ClusterCLI
 
-        mn = Net(topo=topo,
-                 switch=switch, accessPoint=ap, host=host, controller=controller,
-                 link=link,
-                 ipBase=ipBase,
-                 inNamespace=inNamespace,
-                 channel=channel,
-                 mode=mode,
-                 ssid=ssid,
-                 defaultGraph=opts.plot,
-                 xterms=xterms, autoSetMacs=mac,
-                 autoStaticArp=arp, autoPinCpus=pin,
-                 listenPort=listenPort,
-                 driver=driver, autoSetPositions=position)
+        if opts.wifi:
+            mn = Net(topo=topo,
+                     switch=switch, accessPoint=ap, host=host, controller=controller,
+                     link=link,
+                     ipBase=ipBase,
+                     inNamespace=inNamespace,
+                     channel=channel,
+                     mode=mode,
+                     ssid=ssid,
+                     defaultGraph=opts.plot,
+                     xterms=xterms, autoSetMacs=mac,
+                     autoStaticArp=arp, autoPinCpus=pin,
+                     listenPort=listenPort,
+                     driver=driver, autoSetPositions=position)
+        else:
+            mn = Net(topo=topo,
+                     switch=switch, host=host, controller=controller, link=link,
+                     ipBase=opts.ipbase, inNamespace=opts.innamespace,
+                     xterms=opts.xterms, autoSetMacs=opts.mac,
+                     autoStaticArp=opts.arp, autoPinCpus=opts.pin,
+                     listenPort=opts.listenport)
 
         if opts.ensure_value('nat', False):
             mn.addNAT(*opts.nat_args, **opts.nat_kwargs).configDefault()
 
         # --custom files can set CLI or change mininet.cli.CLI
-        CLI = mininet.wifi.cli.CLI_wifi if CLI is None else CLI
+        if opts.wifi:
+            CLI = mininet.wifi.cli.CLI_wifi if CLI is None else CLI
+        else:
+            CLI = mininet.cli.CLI if CLI is None else CLI
 
         if opts.pre:
             CLI(mn, script=opts.pre)

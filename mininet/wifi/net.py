@@ -166,10 +166,7 @@ class Mininet_wifi(Mininet):
 
         self.built = False
         if topo and build:
-            if 'Wireless' in str(topo):
-                self.build_wireless()
-            else:
-                self.build()
+            self.build()
 
     def waitConnected(self, timeout=None, delay=.5):
         """wait for each switch to connect to a controller,
@@ -678,7 +675,7 @@ class Mininet_wifi(Mininet):
             self.addLink(self.carsSTA[idx], self.carsSW[idx])
             self.addLink(car, self.carsSW[idx])
 
-    def build_wireless(self):
+    def build(self):
         "Build mininet-wifi."
         if self.topo:
             self.buildFromWirelessTopo(self.topo)
