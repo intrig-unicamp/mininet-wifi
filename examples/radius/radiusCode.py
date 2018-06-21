@@ -2,7 +2,7 @@
 
 'This example shows how to work with Radius Server'
 
-from mininet.node import Controller
+from mn_wifi.wifi_node import Controller
 from mininet.log import setLogLevel, info
 from mn_wifi.node import UserAP
 from mn_wifi.cli import CLI_wifi

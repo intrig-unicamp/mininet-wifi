@@ -17,7 +17,7 @@ from sys import version_info as py_version_info
 from mininet.cli import CLI
 from mininet.term import cleanUpScreens, makeTerms
 from mininet.net import Mininet
-from mininet.node import (Node, Host, OVSKernelSwitch,
+from mn_wifi.wifi_node import (Node, Host, OVSKernelSwitch,
                           DefaultController, Controller)
 from mininet.util import (quietRun, fixLimits, numCores, ensureRoot,
                           macColonHex, ipStr, ipParse, netParse, ipAdd,

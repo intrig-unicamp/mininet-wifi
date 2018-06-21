@@ -2,7 +2,7 @@
 
 'Setting the position of Nodes and providing mobility using mobility models'
 
-from mininet.node import Controller
+from mn_wifi.wifi_node import Controller
 from mininet.log import setLogLevel, info
 from mn_wifi.node import OVSKernelAP
 from mn_wifi.cli import CLI_wifi

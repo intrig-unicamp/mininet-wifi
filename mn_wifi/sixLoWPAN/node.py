@@ -17,7 +17,7 @@ from sys import version_info as py_version_info
 
 from mininet.log import info, error, warn, debug
 from mininet.util import (quietRun, errRun, isShellBuiltin)
-from mininet.node import Node
+from mn_wifi.wifi_node import Node
 from mininet.moduledeps import pathCheck
 from mininet.link import Link
 from mn_wifi.util import moveIntf

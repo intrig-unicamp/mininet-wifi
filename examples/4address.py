@@ -3,7 +3,7 @@
 """This example shows how to enable 4-address
 Warning: It works only when network manager is stopped"""
 
-from mininet.node import Controller
+from mn_wifi.wifi_node import Controller
 from mininet.log import setLogLevel, info
 from mn_wifi.node import OVSKernelAP
 from mn_wifi.link import wmediumd, _4address

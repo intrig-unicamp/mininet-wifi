@@ -4,7 +4,7 @@
 Setting the position of Nodes (only for Stations and Access Points)
 and providing mobility using mobility models with wmediumd enabled."""
 
-from mininet.node import Controller
+from mn_wifi.wifi_node import Controller
 from mininet.log import setLogLevel, info
 from mn_wifi.node import OVSKernelAP
 from mn_wifi.link import wmediumd
