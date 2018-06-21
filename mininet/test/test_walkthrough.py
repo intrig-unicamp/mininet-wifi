@@ -196,7 +196,7 @@ class testWalkthrough(unittest.TestCase):
         # Satisfy pylint
         assert self
         custom = os.path.dirname(os.path.realpath(__file__))
-        custom = os.path.join(custom, '../../custom/topo-2sw-2host.py')
+        custom = os.path.join(custom, '../../custom/topo-2ap-2sta.py')
         custom = os.path.normpath(custom)
         p = pexpect.spawn(
             'mn --wifi --custom %s --topo mytopo --test pingall' % custom)
