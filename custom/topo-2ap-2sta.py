@@ -8,27 +8,27 @@ Adding the 'topos' dict with a key/value pair to generate our newly defined
 topology enables one to pass in '--topo=mytopo' from the command line.
 """
 
-from mininet.topo import Topo
+from mininet.wifi.topo import Topo_WiFi
 
-class MyTopo( Topo ):
+class MyTopo( Topo_WiFi ):
     "Simple topology example."
 
     def __init__( self ):
         "Create custom topo."
 
         # Initialize topology
-        Topo.__init__( self )
+        Topo_WiFi.__init__( self )
 
         # Add hosts and switches
-        leftHost = self.addHost( 'h1' )
-        rightHost = self.addHost( 'h2' )
-        leftSwitch = self.addSwitch( 's3' )
-        rightSwitch = self.addSwitch( 's4' )
+        leftStation = self.addStation( 'sta1' )
+        rightStation = self.addStation( 'sta2' )
+        leftAP = self.addAccessPoint( 'ap3' )
+        rightAP = self.addAccessPoint( 'ap4' )
 
         # Add links
-        self.addLink( leftHost, leftSwitch )
-        self.addLink( leftSwitch, rightSwitch )
-        self.addLink( rightSwitch, rightHost )
+        self.addLink( leftStation, leftAP )
+        self.addLink( leftAP, rightAP )
+        self.addLink( rightAP, rightStation )
 
 
 topos = { 'mytopo': ( lambda: MyTopo() ) }
