@@ -692,7 +692,8 @@ class Mininet_wifi(Mininet):
             wmediumd(self.fading_coefficient, self.noise_threshold,
                      self.stations, self.aps, propagationModel)
             for sta in self.stations:
-                sta.set_pos_wmediumd()
+                if self.wmediumd_mode != error_prob:
+                    sta.set_pos_wmediumd()
 
         if self.inNamespace:
             self.configureControlNetwork()
