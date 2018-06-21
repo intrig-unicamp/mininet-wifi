@@ -27,10 +27,7 @@ from mn_wifi.clean import cleanup_wifi
 import mn_wifi.cli
 from mininet.log import lg, LEVELS, info, debug, warn, error, output
 from mininet.net import VERSION
-<<<<<<< HEAD
 from mininet.net import Mininet
-=======
->>>>>>> 7cf21fad4cff561792b92b54a650cd8574bcb53f
 from mn_wifi.net import MininetWithControlNet
 from mn_wifi.net import Mininet_wifi
 from mn_wifi.wifi_node import (Host, CPULimitedHost, Controller, OVSController,
@@ -476,7 +473,6 @@ class MininetRunner(object):
                                      RemoteOVSAP, RemoteLink
             Net = partial(MininetCluster, servers=servers,
                           placement=PLACEMENT[opts.placement])
-<<<<<<< HEAD
             if opts.wifi:
                 mn_wifi.cli.CLI_wifi = ClusterCLI
             else:
@@ -503,36 +499,15 @@ class MininetRunner(object):
                      xterms=opts.xterms, autoSetMacs=opts.mac,
                      autoStaticArp=opts.arp, autoPinCpus=opts.pin,
                      listenPort=opts.listenport)
-=======
-            mn_wifi.cli.CLI_wifi = ClusterCLI
-
-        mn = Net(topo=topo,
-                 switch=switch, accessPoint=ap, host=host, controller=controller,
-                 link=link,
-                 ipBase=ipBase,
-                 inNamespace=inNamespace,
-                 channel=channel,
-                 mode=mode,
-                 ssid=ssid,
-                 defaultGraph=opts.plot,
-                 xterms=xterms, autoSetMacs=mac,
-                 autoStaticArp=arp, autoPinCpus=pin,
-                 listenPort=listenPort,
-                 driver=driver, autoSetPositions=position)
->>>>>>> 7cf21fad4cff561792b92b54a650cd8574bcb53f
 
         if opts.ensure_value('nat', False):
             mn.addNAT(*opts.nat_args, **opts.nat_kwargs).configDefault()
 
         # --custom files can set CLI or change mininet.cli.CLI
-<<<<<<< HEAD
         if opts.wifi:
             CLI = mn_wifi.cli.CLI_wifi if CLI is None else CLI
         else:
             CLI = mininet.cli.CLI if CLI is None else CLI
-=======
-        CLI = mn_wifi.cli.CLI_wifi if CLI is None else CLI
->>>>>>> 7cf21fad4cff561792b92b54a650cd8574bcb53f
 
         if opts.pre:
             CLI(mn, script=opts.pre)
