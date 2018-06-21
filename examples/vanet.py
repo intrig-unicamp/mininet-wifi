@@ -5,7 +5,7 @@
 import os
 import random
 
-from mininet.node import Controller, OVSKernelSwitch
+from mn_wifi.wifi_node import Controller, OVSKernelSwitch
 from mininet.log import setLogLevel, info
 from mn_wifi.cli import CLI_wifi
 from mn_wifi.net import Mininet_wifi

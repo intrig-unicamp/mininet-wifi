@@ -2,7 +2,7 @@
 
 'This example shows how to create wireless link between two APs'
 
-from mininet.node import Controller
+from mn_wifi.wifi_node import Controller
 from mininet.log import setLogLevel, info
 from mn_wifi.node import OVSKernelAP
 from mn_wifi.link import wmediumd, mesh

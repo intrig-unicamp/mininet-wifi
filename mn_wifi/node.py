@@ -21,7 +21,7 @@ from six import string_types
 
 from mininet.log import info, error, warn, debug
 from mininet.util import (quietRun, errRun, isShellBuiltin)
-from mininet.node import Node
+from mn_wifi.wifi_node import Node
 from mininet.moduledeps import moduleDeps, pathCheck, TUN
 from mininet.link import Link, Intf, OVSIntf
 from mn_wifi.link import TCWirelessLink, TCLinkWirelessAP,\
@@ -34,7 +34,6 @@ from mn_wifi.propagationModels import GetSignalRange, \
 from mn_wifi.util import moveIntf
 from mn_wifi.module import module
 from mn_wifi.utils.private_folder_manager import PrivateFolderManager
-
 
 class Node_wifi(Node):
     """A virtual network node is simply a shell in a network namespace.
@@ -1948,6 +1947,12 @@ class OVSAP(AP):
         self.pexec('ip link set %s name %s' % (intf, newname))
         self.pexec('ip link set %s up' % newname)
 
+def plotPatch(self, position):
+    self.params['position'] = position.split(',')
+    self.params['range'] = [0]
+    self.plotted = True
+
+setattr(Node, 'plot', plotPatch)
 
 OVSKernelAP = OVSAP
 physicalAP = OVSAP

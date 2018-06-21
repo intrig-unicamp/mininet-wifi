@@ -2,7 +2,7 @@
 
 'Replaying Mobility'
 
-from mininet.node import Controller
+from mn_wifi.wifi_node import Controller
 from mininet.log import setLogLevel, info
 from mn_wifi.replaying import replayingMobility
 from mn_wifi.node import OVSAP

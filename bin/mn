@@ -29,7 +29,7 @@ from mininet.log import lg, LEVELS, info, debug, warn, error, output
 from mininet.net import VERSION
 from mn_wifi.net import MininetWithControlNet
 from mn_wifi.net import Mininet_wifi
-from mininet.node import (Host, CPULimitedHost, Controller, OVSController,
+from mn_wifi.wifi_node import (Host, CPULimitedHost, Controller, OVSController,
                           Ryu, NOX, RemoteController, findController,
                           DefaultController, NullController,
                           UserSwitch, OVSSwitch, OVSBridge, IVSSwitch)

@@ -2,7 +2,7 @@
 
 "Replaying RSSI"
 
-from mininet.node import Controller,OVSKernelSwitch
+from mn_wifi.wifi_node import Controller,OVSKernelSwitch
 from mininet.log import setLogLevel, info
 from mn_wifi.replaying import replayingRSSI
 from mn_wifi.cli import CLI_wifi
