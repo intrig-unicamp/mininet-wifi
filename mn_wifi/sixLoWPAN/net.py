@@ -7,7 +7,7 @@ from time import sleep
 from six import string_types
 
 from mininet.net import Mininet
-from mn_wifi.wifi_node import (DefaultController)
+from mininet.node import (DefaultController)
 from mininet.util import (fixLimits, numCores, ensureRoot,
                           macColonHex, waitListening)
 from mn_wifi.sixLoWPAN.util import ipAdd6, netParse

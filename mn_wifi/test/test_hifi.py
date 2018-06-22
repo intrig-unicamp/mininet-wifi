@@ -8,9 +8,9 @@ import sys
 from functools import partial
 
 from mininet.net import Mininet
-from mn_wifi.wifi_node import IVSSwitch
+from mininet.node import IVSSwitch
 from mn_wifi.node import OVSAP, UserAP
-from mn_wifi.wifi_node import CPULimitedHost
+from mininet.node import CPULimitedHost
 from mininet.link import TCLink
 from mininet.topo import Topo
 from mininet.log import setLogLevel

@@ -7,7 +7,7 @@ import unittest
 import sys
 
 from mn_wifi.net import Mininet_wifi
-from mn_wifi.wifi_node import Controller, IVSSwitch
+from mininet.node import Controller, IVSSwitch
 from mn_wifi.node import Station, UserAP, OVSAP
 from mininet.topo import Topo
 from mininet.log import setLogLevel

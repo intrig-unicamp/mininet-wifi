@@ -3,7 +3,7 @@
 "Replaying Network Conditions"
 
 from mininet.log import setLogLevel
-from mn_wifi.wifi_node import Controller
+from mininet.node import Controller
 from mn_wifi.net import Mininet_wifi
 from mn_wifi.cli import CLI_wifi
 from mn_wifi.replaying import replayingNetworkConditions

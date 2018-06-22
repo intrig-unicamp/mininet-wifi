@@ -2,7 +2,7 @@
 
 "Replaying Bandwidth"
 
-from mn_wifi.wifi_node import Controller,OVSKernelSwitch
+from mininet.node import Controller,OVSKernelSwitch
 from mininet.link import TCLink
 from mininet.log import setLogLevel, info
 from mn_wifi.replaying import replayingBandwidth

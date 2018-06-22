@@ -3,7 +3,7 @@
 'This example shows how to create multiple interfaces in stations'
 
 from __future__ import print_function
-from mn_wifi.wifi_node import OVSKernelSwitch, Controller
+from mininet.node import OVSKernelSwitch, Controller
 from mininet.log import setLogLevel, info
 from mn_wifi.cli import CLI_wifi
 from mn_wifi.net import Mininet_wifi

@@ -9,8 +9,8 @@ import sys
 from functools import partial
 
 #from mininet.net import Mininet
-#from mn_wifi.wifi_node import Station, Controller
-from mn_wifi.wifi_node import UserSwitch, OVSSwitch, IVSSwitch
+#from mininet.node import Station, Controller
+from mininet.node import UserSwitch, OVSSwitch, IVSSwitch
 #from mininet.topo import SingleAPTopo, LinearWirelessTopo
 from mininet.log import setLogLevel
 from mininet.util import quietRun

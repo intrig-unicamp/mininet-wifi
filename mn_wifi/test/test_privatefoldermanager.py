@@ -1,6 +1,6 @@
 import unittest
 
-from mn_wifi.wifi_node import Node
+from mininet.node import Node
 from mn_wifi.utils.private_folder_manager import PrivateFolderManager
 
 
