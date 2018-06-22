@@ -8,7 +8,7 @@ Adding the 'topos' dict with a key/value pair to generate our newly defined
 topology enables one to pass in '--topo=mytopo' from the command line.
 """
 
-from mininet.wifi.topo import Topo_WiFi
+from mn_wifi.topo import Topo_WiFi
 
 class MyTopo( Topo_WiFi ):
     "Simple topology example."
