@@ -340,7 +340,10 @@ class Node_wifi(Node):
         self.params['position'] = float(pos[0]), float(pos[1]), float(pos[2])
         if isinstance(self, Car):
             car = self.params['carsta']
-            car.params['position'] = self.params['position']
+            x = self.params['position'][0] + 0.1
+            y = self.params['position'][1]
+            z = self.params['position'][2]
+            car.params['position'] = (x,y,z)
         self.updateGraph()
 
         if wmediumd_mode.mode == WmediumdCst.INTERFERENCE_MODE:
