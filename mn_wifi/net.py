@@ -711,10 +711,13 @@ class Mininet_wifi(Mininet):
                 else:
                     self.addController('c%d' % i, cls)
 
-        info('*** Adding stations:\n')
-        for staName in topo.stations():
-            self.addStation(staName, **topo.nodeInfo(staName))
-            info(staName + ' ')
+        info('*** Adding hosts/stations:\n')
+        for hostName in topo.hosts():
+            if 'sta' in str(hostName):
+                self.addStation(hostName, **topo.nodeInfo(hostName))
+            else:
+                self.addHost(hostName, **topo.nodeInfo(hostName))
+            info(hostName + ' ')
 
         info('\n*** Adding access points:\n')
         for apName in topo.aps():
