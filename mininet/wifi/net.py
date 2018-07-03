@@ -644,7 +644,7 @@ class Mininet_wifi(Mininet):
 
         info('*** Adding hosts/stations:\n')
         for hostName in topo.hosts():
-            if 'wifi' in str(self.topo):
+            if 'sta' in str(hostName):
                 self.addStation(hostName, **topo.nodeInfo(hostName))
             else:
                 self.addHost(hostName, **topo.nodeInfo(hostName))
