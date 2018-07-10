@@ -688,7 +688,8 @@ class Mininet_wifi(Mininet):
                         mobility.stations.append(node)
 
         if (self.configure4addr or self.configureWiFiDirect
-                or self.wmediumd_mode == error_prob) and self.link == wmediumd:
+                or self.wmediumd_mode == error_prob) and self.link == wmediumd \
+                and not self.isMobility:
             wmediumd(self.fading_coefficient, self.noise_threshold,
                      self.stations, self.aps, propagationModel)
             for sta in self.stations:
@@ -1971,10 +1972,10 @@ class Mininet_wifi(Mininet):
         else:
             mobility.wmediumd_mode = 1
         if not self.configureWiFiDirect and not self.configure4addr and \
-            self.wmediumd_mode != error_prob:
+            self.wmediumd_mode != error_prob or \
+                (self.configureWiFiDirect and self.autoAssociation):
             wmediumd(self.fading_coefficient, self.noise_threshold,
                      self.stations, self.aps, propagationModel)
-
             if self.wmediumd_mode == interference and not self.isVanet:
                 for node in nodes:
                     for wlan in range(0, len(node.params['wlan'])):
