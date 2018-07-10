@@ -507,7 +507,8 @@ class MininetRunner(object):
         if opts.wifi:
             CLI = mn_wifi.cli.CLI_wifi if CLI is None else CLI
         else:
-            CLI = mininet.cli.CLI if CLI is None else CLI
+            from mininet.cli import CLI as mininet_cli
+            CLI = mininet_cli if CLI is None else CLI
 
         if opts.pre:
             CLI(mn, script=opts.pre)
