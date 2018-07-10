@@ -140,6 +140,7 @@ class plot3d (object):
 class plot2d (object):
     'Plot 2d Graphs'
     ax = None
+    lines = {}
 
     @classmethod
     def closePlot(cls):
@@ -293,13 +294,31 @@ class plot2d (object):
         if 'src' in conn:
             for c in range(0, len(conn['src'])):
                 ls = conn['ls'][c]
-                src_x = '%.2f' % float(conn['src'][c].params['position'][0])
-                src_y = '%.2f' % float(conn['src'][c].params['position'][1])
-                dst_x = '%.2f' % float(conn['dst'][c].params['position'][0])
-                dst_y = '%.2f' % float(conn['dst'][c].params['position'][1])
-                line = cls.plotLine2d([float(src_x), float(dst_x)], \
-                                      [float(src_y), float(dst_y)], 'b', ls=ls)
-                cls.plotLine(line)
+                src = conn['src'][c]
+                dst = conn['dst'][c]
+                cls.addLine(src, dst, ls)
+
+    @classmethod
+    def hideLine(cls, src, dst):
+        conn_ = src.name + dst.name
+        cls.lines[conn_].set_visible(False)
+
+    @classmethod
+    def showLine(cls, src, dst):
+        conn_ = src.name + dst.name
+        cls.lines[conn_].set_visible(True)
+
+    @classmethod
+    def addLine(cls, src, dst, ls='-'):
+        src_x = '%.2f' % float(src.params['position'][0])
+        src_y = '%.2f' % float(src.params['position'][1])
+        dst_x = '%.2f' % float(dst.params['position'][0])
+        dst_y = '%.2f' % float(dst.params['position'][1])
+        line = cls.plotLine2d([float(src_x), float(dst_x)],
+                              [float(src_y), float(dst_y)], 'b', ls=ls)
+        conn_ = src.name + dst.name
+        cls.lines[conn_] = line
+        cls.plotLine(line)
 
 
 class plotGraph(object):

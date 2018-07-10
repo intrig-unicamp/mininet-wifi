@@ -1304,10 +1304,10 @@ class Mininet_wifi(Mininet):
             if len(connections) is 0:
                 error('src and dst not connected: %s %s\n' % (src, dst))
             for srcIntf, dstIntf in connections:
-                result = srcIntf.ipLink(status)
+                result = srcIntf.ifconfig(status)
                 if result:
                     error('link src status change failed: %s\n' % result)
-                result = dstIntf.ipLink(status)
+                result = dstIntf.ifconfig(status)
                 if result:
                     error('link dst status change failed: %s\n' % result)
 
@@ -1808,7 +1808,7 @@ class Mininet_wifi(Mininet):
             if not issubclass(self.plot, plot3d):
                 self.plot.graphPause()
         except:
-            info('Something went wrong. Running without GUI.\n')
+            info('Something went wrong with the GUI.\n')
             self.DRAW = False
 
     def start_mobility(self, **kwargs):
