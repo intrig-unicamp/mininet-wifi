@@ -5,9 +5,10 @@ from mininet.log import output, error
 
 class CLI_wifi(CLI):
     "Simple command-line interface to talk to nodes."
+    CLI.prompt = 'mininet-wifi> '
 
-    def __init__(self, mininet, stdin=sys.stdin, script=None):
-        CLI.__init__(self, mininet, stdin=sys.stdin, script=None)
+    def __init__(self, mn_wifi, stdin=sys.stdin, script=None):
+        CLI.__init__(self, mn_wifi, stdin=sys.stdin, script=None)
 
     def do_stop(self, line):
         "stop mobility for a while"

@@ -34,17 +34,17 @@ errcheck: $(PYSRC)
 	pyflakes $(PYSRC)
 	pylint -E --rcfile=.pylint $(PYSRC)
 
-test: $(MININET) $(TEST)
+test: $(MININET_WIFI) $(TEST)
 	-echo "Running tests"
 	mn_wifi/test/test_nets.py
 	mn_wifi/test/test_hifi.py
 
-slowtest: $(MININET)
+slowtest: $(MININET_WIFI)
 	-echo "Running slower tests (walkthrough, examples)"
 	mn_wifi/test/test_walkthrough.py -v
 	mn_wifi/examples/test/runner.py -v
 
-mnexec: mnexec.c $(MN) ../mininet-base/mininet/net.py
+mnexec: mnexec.c $(MN) mn_wifi/net.py
 	cc $(CFLAGS) $(LDFLAGS) -DVERSION=\"`PYTHONPATH=. $(PYMN) --version`\" $< -o $@
 
 install: $(MNEXEC) $(MANPAGES)
