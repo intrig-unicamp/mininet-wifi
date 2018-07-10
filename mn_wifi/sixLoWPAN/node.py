@@ -20,8 +20,8 @@ from mininet.util import (quietRun, errRun, isShellBuiltin)
 from mininet.node import Node
 from mininet.moduledeps import pathCheck
 from mininet.link import Link
-from mininet.wifi.util import moveIntf
-from mininet.utils.private_folder_manager import PrivateFolderManager
+from mn_wifi.util import moveIntf
+from mn_wifi.utils.private_folder_manager import PrivateFolderManager
 
 
 class Node_6lowpan(Node):

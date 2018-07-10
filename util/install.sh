@@ -14,7 +14,7 @@ set -o nounset
 MININET_DIR="$( cd -P "$( dirname "${BASH_SOURCE[0]}" )/../.." && pwd -P )"
 
 # Set up build directory, which by default is the working directory
-#  unless the working directory is a subdirectory of mininet, 
+#  unless the working directory is a subdirectory of mininet,
 #  in which case we use the directory containing mininet
 BUILD_DIR="$(pwd -P)"
 case $BUILD_DIR in
@@ -159,6 +159,11 @@ function mn_deps {
         pip install typing
     fi
     echo "Installing Mininet core"
+    sudo git clone --depth=1 https://github.com/mininet/mininet.git mininet-base
+    pushd $MININET_DIR/mininet-base
+    sudo make install
+    popd
+    echo "Installing Mininet-wifi core"
     pushd $MININET_DIR/mininet-wifi
     sudo make install
     popd

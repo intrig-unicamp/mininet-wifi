@@ -152,7 +152,7 @@ class module(object):
     @classmethod
     def start(cls, nodes, n_radios, alt_module, **params):
         """Starts environment
-        
+
         :param nodes: list of wireless nodes
         :param n_radios: number of wifi radios
         :param alt_module: dir of a mac80211_hwsim alternative module
@@ -204,7 +204,7 @@ class module(object):
     @classmethod
     def load_ifb(cls, wlans):
         """ Loads IFB
-        
+
         :param wlans: Number of wireless interfaces
         """
         debug('\nLoading IFB: modprobe ifb numifbs=%s' % wlans)
@@ -213,12 +213,12 @@ class module(object):
     @classmethod
     def assign_iface(cls, nodes, physicalWlans, phys, **params):
         """Assign virtual interfaces for all nodes
-        
+
         :param nodes: list of wireless nodes
         :param physicalWlans: list of Physical Wlans
         :param phys: list of phys
         :param **params: ifb -  Intermediate Functional Block device"""
-        from mininet.wifi.node import Station, Car
+        from mn_wifi.node import Station, Car
 
         log_filename = '/tmp/mininetwifi-mac80211_hwsim.log'
         cls.logging_to_file("%s" % log_filename)
@@ -279,7 +279,7 @@ class module(object):
     @classmethod
     def get_wlan_iface(cls, physicalWlan):
         """Build a new wlan list removing the physical wlan
-        
+
         :param physicalWlans: list of Physical Wlans"""
         wlan_list = []
 

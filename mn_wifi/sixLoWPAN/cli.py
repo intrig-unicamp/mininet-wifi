@@ -1,6 +1,6 @@
 import sys
 
-from mininet.wifi.cli import CLI_wifi
+from mn_wifi.cli import CLI_wifi
 
 class CLI_sixLoWPAN(CLI_wifi):
     "Simple command-line interface to talk to nodes."

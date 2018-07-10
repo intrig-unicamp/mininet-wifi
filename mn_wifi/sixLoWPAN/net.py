@@ -10,13 +10,13 @@ from mininet.net import Mininet
 from mininet.node import (DefaultController)
 from mininet.util import (fixLimits, numCores, ensureRoot,
                           macColonHex, waitListening)
-from mininet.sixLoWPAN.util import ipAdd6, netParse
+from mn_wifi.sixLoWPAN.util import ipAdd6, netParse
 from mininet.link import Intf
 from mininet.log import info, error, debug, output
 
-from mininet.sixLoWPAN.node import sixLoWPan
-from mininet.sixLoWPAN.module import module
-from mininet.sixLoWPAN.link import sixLoWPANLink
+from mn_wifi.sixLoWPAN.node import sixLoWPan
+from mn_wifi.sixLoWPAN.module import module
+from mn_wifi.sixLoWPAN.link import sixLoWPANLink
 
 
 class Mininet_6LoWPAN(Mininet):

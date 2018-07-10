@@ -10,8 +10,8 @@ from sys import version_info as py_version_info
 from six import string_types
 
 from mininet.log import info, error, debug
-from mininet.wifi.devices import GetRate
-from mininet.wifi.wmediumdConnector import DynamicWmediumdIntfRef, \
+from mn_wifi.devices import GetRate
+from mn_wifi.wmediumdConnector import DynamicWmediumdIntfRef, \
     WmediumdStarter, WmediumdSNRLink, WmediumdTXPower, WmediumdPos, \
     WmediumdCst, WmediumdServer, WmediumdERRPROBLink, wmediumd_mode
 

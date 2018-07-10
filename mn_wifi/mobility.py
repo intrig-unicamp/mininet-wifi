@@ -8,9 +8,9 @@ import numpy as np
 from numpy.random import rand
 
 from mininet.log import debug, info
-from mininet.wifi.link import wirelessLink, Association
-from mininet.wifi.associationControl import associationControl
-from mininet.wifi.plot import plot2d, plot3d, plotGraph
+from mn_wifi.link import wirelessLink, Association
+from mn_wifi.associationControl import associationControl
+from mn_wifi.plot import plot2d, plot3d, plotGraph
 
 
 class mobility(object):
@@ -316,7 +316,7 @@ class mobility(object):
         :param MAX_Z: Maximum value for Z
         :param AC: Association Control Method
         :param ppm: propagation model"""
-        from mininet.wifi.node import Station
+        from mn_wifi.node import Station
 
         cls.ac = AC
         cls.rec_rssi = rec_rssi
@@ -541,7 +541,7 @@ class mobility(object):
     @classmethod
     def configLinks(cls, node=None):
         "Applies channel params and handover"
-        from mininet.wifi.node import AP
+        from mn_wifi.node import AP
         if node:
             if isinstance(node, AP):
                 nodes = cls.stations

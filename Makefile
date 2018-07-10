@@ -1,7 +1,7 @@
-MININET = mininet/*.py
-MININET_WIFI = mininet/wifi/*.py
-TEST = mininet/test/*.py
-EXAMPLES = mininet/examples/*.py
+MININET = mininet-base/mininet/*.py
+MININET_WIFI = mn_wifi/*.py
+TEST = mn_wifi/test/*.py
+EXAMPLES = mn_wifi/examples/*.py
 MN = bin/mn
 PYMN = python -B bin/mn
 BIN = $(MN)
@@ -36,15 +36,15 @@ errcheck: $(PYSRC)
 
 test: $(MININET) $(TEST)
 	-echo "Running tests"
-	mininet/test/test_nets.py
-	mininet/test/test_hifi.py
+	mn_wifi/test/test_nets.py
+	mn_wifi/test/test_hifi.py
 
 slowtest: $(MININET)
 	-echo "Running slower tests (walkthrough, examples)"
-	mininet/test/test_walkthrough.py -v
-	mininet/examples/test/runner.py -v
+	mn_wifi/test/test_walkthrough.py -v
+	mn_wifi/examples/test/runner.py -v
 
-mnexec: mnexec.c $(MN) mininet/net.py
+mnexec: mnexec.c $(MN) ../mininet-base/mininet/net.py
 	cc $(CFLAGS) $(LDFLAGS) -DVERSION=\"`PYTHONPATH=. $(PYMN) --version`\" $< -o $@
 
 install: $(MNEXEC) $(MANPAGES)

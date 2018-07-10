@@ -23,13 +23,13 @@ if 'PYTHONPATH' in os.environ:
     sys.path = os.environ[ 'PYTHONPATH' ].split(':') + sys.path
 
 from mininet.clean import cleanup
-from mininet.wifi.clean import cleanup_wifi
-import mininet.wifi.cli
+from mn_wifi.clean import cleanup_wifi
+import mn_wifi.cli
 from mininet.log import lg, LEVELS, info, debug, warn, error, output
 from mininet.net import VERSION
-from mininet.wifi.net import MininetWithControlNet
-from mininet.wifi.net import Mininet_wifi
 from mininet.net import Mininet
+from mn_wifi.net import MininetWithControlNet
+from mn_wifi.net import Mininet_wifi
 from mininet.node import (Host, CPULimitedHost, Controller, OVSController,
                           Ryu, NOX, RemoteController, findController,
                           DefaultController, NullController,
@@ -44,20 +44,20 @@ from mininet.topolib import TreeTopo, TorusTopo
 from mininet.util import customClass, specialClass, splitArgs
 from mininet.util import buildTopo
 
-from mininet.wifi.topo import (SingleAPTopo, LinearWirelessTopo,
+from mn_wifi.topo import (SingleAPTopo, LinearWirelessTopo,
                                MinimalWirelessTopo)
-from mininet.wifi.link import TCWirelessLink, wmediumd
-from mininet.wifi.node import UserAP, OVSAP
+from mn_wifi.link import TCWirelessLink, wmediumd
+from mn_wifi.node import UserAP, OVSAP
 
 
 from functools import partial
 
 # Experimental! cluster edition prototype
-from mininet.examples.cluster import (MininetCluster, RemoteHost,
+from mn_wifi.examples.cluster import (MininetCluster, RemoteHost,
                                       RemoteOVSSwitch, RemoteOVSAP, RemoteLink,
                                       SwitchBinPlacer, RandomPlacer,
                                       ClusterCleanup)
-from mininet.examples.clustercli import ClusterCLI
+from mn_wifi.examples.clustercli import ClusterCLI
 
 PLACEMENT = { 'block': SwitchBinPlacer, 'random': RandomPlacer }
 
@@ -474,7 +474,7 @@ class MininetRunner(object):
             Net = partial(MininetCluster, servers=servers,
                           placement=PLACEMENT[opts.placement])
             if opts.wifi:
-                mininet.wifi.cli.CLI_wifi = ClusterCLI
+                mn_wifi.cli.CLI_wifi = ClusterCLI
             else:
                 mininet.cli.CLI = ClusterCLI
 
@@ -505,7 +505,7 @@ class MininetRunner(object):
 
         # --custom files can set CLI or change mininet.cli.CLI
         if opts.wifi:
-            CLI = mininet.wifi.cli.CLI_wifi if CLI is None else CLI
+            CLI = mn_wifi.cli.CLI_wifi if CLI is None else CLI
         else:
             CLI = mininet.cli.CLI if CLI is None else CLI
 
