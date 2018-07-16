@@ -997,10 +997,6 @@ class adhoc(IntfWireless):
             node.params['ssid'][wlan] = ssid
             node.params['associatedTo'][wlan] = ssid
 
-        if not node.autoTxPower:
-            intf = node.params['wlan'][wlan]
-            node.params['range'][wlan] = node.getRange(intf=intf, noiseLevel=95)
-
         if 'channel' in params:
             node.setChannel(params['channel'], intf=node.params['wlan'][wlan])
 
@@ -1051,10 +1047,6 @@ class mesh(IntfWireless):
         ssid = ("%s" % params['ssid'])
         if ssid != "{}":
             node.params['ssid'][wlan] = ssid
-
-        if node.autoTxPower:
-            intf = node.params['wlan'][wlan]
-            node.params['range'][wlan] = node.getRange(intf=intf, noiseLevel=95)
 
         node.setMeshIface(node.params['wlan'][wlan], **params)
 
