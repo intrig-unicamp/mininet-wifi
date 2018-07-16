@@ -26,7 +26,7 @@ def tsharkVersion():
 class testWalkthrough(unittest.TestCase):
     "Test Mininet walkthrough"
 
-    prompt = 'mininet>'
+    prompt = 'mininet-wifi>'
 
     # PART 1
     def testHelp(self):

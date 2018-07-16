@@ -34,11 +34,17 @@ optional:
 -6: wpan tools  
 -P: python3
 
+### Building Topologies with VND    
+
+I'm a beginner, I do not know Python and I would like to create a customized topology. In this case, [VND](https://github.com/ramonfontes/vnd-sdn-version) can serve as support since it provides a GUI and automatically generates Python scripts. 
+
+![](https://github.com/ramonfontes/vnd-sdn-version/blob/master/screenshot.png)
+
 ### Development
 For instructions about easier development check [this helper file](doc/dev_help.md).
 
 ## Pre-configured Virtual Machine    
-[Ubuntu 16.04 x64 :: Password: wifi](https://intrig.dca.fee.unicamp.br:8840/owncloud/index.php/s/PcxujWO5HsxxBIn)      
+[Ubuntu 16.04 x64 :: Password: wifi](https://intrig.dca.fee.unicamp.br:8840/owncloud/index.php/s/7NgXfuPArXStSax)      
 user: wifi   
 pass: wifi   
    
