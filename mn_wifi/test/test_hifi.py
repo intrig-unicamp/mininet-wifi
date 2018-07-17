@@ -9,13 +9,14 @@ from functools import partial
 
 from mininet.net import Mininet
 from mininet.node import IVSSwitch
-from mn_wifi.node import OVSAP, UserAP
 from mininet.node import CPULimitedHost
 from mininet.link import TCLink
 from mininet.topo import Topo
 from mininet.log import setLogLevel
 from mininet.util import quietRun
 from mininet.clean import cleanup
+from mn_wifi.node import OVSAP, UserAP
+
 
 # Number of stations for each test
 N = 2

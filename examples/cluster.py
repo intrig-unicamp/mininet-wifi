@@ -84,16 +84,16 @@ from operator import attrgetter
 from distutils.version import StrictVersion
 
 from mininet.node import Node, Host, OVSSwitch, Controller
-from mn_wifi.node import OVSAP
 from mininet.link import Link, Intf
 from mininet.net import Mininet
 from mininet.topo import LinearTopo
 from mininet.topolib import TreeTopo
 from mininet.util import quietRun, errRun
-from mininet.examples.clustercli import CLI
 from mininet.log import setLogLevel, debug, info, error
 from mininet.clean import addCleanupCallback
 
+from mn_wifi.node import OVSAP
+from mn_wifi.examples.clustercli import CLI
 
 def findUser():
     "Try to return logged-in (usually non-root) user"

@@ -6,13 +6,13 @@ import os
 import random
 import re
 import sys
+from sys import version_info as py_version_info
 import select
 import signal
 from time import sleep
 from itertools import chain, groupby
 from math import ceil
 from six import string_types
-from sys import version_info as py_version_info
 
 from mininet.cli import CLI
 from mininet.term import cleanUpScreens, makeTerms
@@ -45,8 +45,6 @@ from mn_wifi.sixLoWPAN.link import sixLoWPANLink
 
 sys.path.append(str(os.getcwd()) + '/mininet/')
 from mn_wifi.sumo.runner import sumo
-
-VERSION = "2.2.1d1"
 
 
 class Mininet_wifi(Mininet):
@@ -1454,8 +1452,7 @@ class Mininet_wifi(Mininet):
                 self.appendAssociatedTo(node)
 
             if mode == 'master':
-                node.params['wlan'].append(node.name + '-wlan' +
-                                               str(wlan + 1))
+                node.params['wlan'].append(node.name + '-wlan' + str(wlan + 1))
             else:
                 node.params['wlan'].append(node.name + '-wlan' + str(wlan))
                 self.appendRSSI(node)

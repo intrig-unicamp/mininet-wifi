@@ -23,13 +23,9 @@ if 'PYTHONPATH' in os.environ:
     sys.path = os.environ[ 'PYTHONPATH' ].split(':') + sys.path
 
 from mininet.clean import cleanup
-from mn_wifi.clean import cleanup_wifi
-import mn_wifi.cli
 from mininet.log import lg, LEVELS, info, debug, warn, error, output
 from mininet.net import VERSION
 from mininet.net import Mininet
-from mn_wifi.net import MininetWithControlNet
-from mn_wifi.net import Mininet_wifi
 from mininet.node import (Host, CPULimitedHost, Controller, OVSController,
                           Ryu, NOX, RemoteController, findController,
                           DefaultController, NullController,
@@ -44,8 +40,12 @@ from mininet.topolib import TreeTopo, TorusTopo
 from mininet.util import customClass, specialClass, splitArgs
 from mininet.util import buildTopo
 
+import mn_wifi.cli
+from mn_wifi.clean import cleanup_wifi
+from mn_wifi.net import MininetWithControlNet
+from mn_wifi.net import Mininet_wifi
 from mn_wifi.topo import (SingleAPTopo, LinearWirelessTopo,
-                               MinimalWirelessTopo)
+                          MinimalWirelessTopo)
 from mn_wifi.link import TCWirelessLink, wmediumd
 from mn_wifi.node import UserAP, OVSAP
 
@@ -368,6 +368,7 @@ class MininetRunner(object):
     def begin(self):
         "Create and run mininet."
 
+        Mininet.VERSION = "2.2.1d1"
         global CLI
 
         opts = self.options
@@ -476,7 +477,7 @@ class MininetRunner(object):
             if opts.wifi:
                 mn_wifi.cli.CLI_wifi = ClusterCLI
             else:
-                mininet.cli.CLI = ClusterCLI
+                Mininet.cli.CLI = ClusterCLI
 
         if opts.wifi:
             mn = Net(topo=topo,

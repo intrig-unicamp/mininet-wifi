@@ -6,14 +6,13 @@
 import unittest
 import sys
 
-from mn_wifi.net import Mininet_wifi
 from mininet.node import Controller, IVSSwitch
-from mn_wifi.node import Station, UserAP, OVSAP
-from mininet.topo import Topo
-from mn_wifi.topo import Topo_WiFi
 from mininet.log import setLogLevel
 from mininet.util import quietRun
 from mininet.clean import cleanup
+from mn_wifi.node import Station, UserAP, OVSAP
+from mn_wifi.topo import Topo_WiFi
+from mn_wifi.net import Mininet_wifi
 
 
 class TestSwitchDpidAssignmentOVS(unittest.TestCase):

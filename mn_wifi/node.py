@@ -1,11 +1,11 @@
 """
     Mininet-WiFi: A simple networking testbed for Wireless OpenFlow/SDWN!
-author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
-"""
+author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)"""
 
 import os
 import pty
 import re
+from re import findall
 import signal
 import select
 import fileinput
@@ -13,7 +13,6 @@ import subprocess
 from subprocess import Popen, PIPE
 from time import sleep
 from distutils.version import StrictVersion
-from re import findall
 from sys import version_info as py_version_info
 import numpy as np
 from scipy.spatial.distance import pdist
@@ -107,7 +106,9 @@ class Node_wifi(Node):
         # prompt is set to sentinel chr( 127 )
         # pdb.set_trace()
         cmd = [ 'mnexec', opts, 'env', 'PS1=' + chr(127),
-                'bash', '--norc', '-is', 'mininet:' + self.name ]
+                'bash', '--norc', '--noediting',
+                '-is', 'mininet:' + self.name]
+
         # Spawn a shell subprocess in a pseudo-tty, to disable buffering
         # in the subprocess and insulate it from signals (e.g. SIGINT)
         # received by the parent
@@ -200,19 +201,19 @@ class Node_wifi(Node):
                 pass
             if len(id) == 0:
                 command = ('iw dev %s interface add %s type mp' %
-                         (params['intf'], iface))
+                           (params['intf'], iface))
                 subprocess.check_output(command, shell=True)
             else:
                 try:
                     if 'channel' in params:
-                        command = ('iw dev %s set channel %s'
-                                 % (iface, str(params['channel'])))
+                        command = ('iw dev %s set channel %s' %
+                                   (iface, str(params['channel'])))
                         subprocess.check_output(command, shell=True)
                     os.system('ip link set %s up' % iface)
-                    debug("associating %s to %s...\n" % (iface,
-                                                         self.params['ssid'][wlan]))
-                    command = ('iw dev %s mesh join %s' % (iface,
-                                                           self.params['ssid'][wlan]))
+                    debug("associating %s to %s...\n" %
+                          (iface, self.params['ssid'][wlan]))
+                    command = ('iw dev %s mesh join %s' %
+                               (iface, self.params['ssid'][wlan]))
                     subprocess.check_output(command, shell=True)
                     break
                 except:
@@ -501,7 +502,8 @@ class Node_wifi(Node):
         for wlan in range(0, wlans):
             self.lastpos = self.params['position']
             WmediumdServer.update_pos(WmediumdPos(
-                self.wmIface[wlan], [(float(posX)+wlan), float(posY), float(posZ)]))
+                self.wmIface[wlan],
+                [(float(posX)+wlan), float(posY), float(posZ)]))
 
     def setGainWmediumd(self, wlan):
         "Set Antenna Gain for wmediumd"
@@ -620,8 +622,9 @@ class Node_wifi(Node):
         if 'passwd' not in self.params:
             passwd = ap.params['passwd'][ap_wlan]
 
-        self.pexec('iw dev %s connect %s key d:0:%s' \
-                % (self.params['wlan'][wlan], ap.params['ssid'][ap_wlan], passwd))
+        self.pexec('iw dev %s connect %s key d:0:%s' %
+                   (self.params['wlan'][wlan],
+                    ap.params['ssid'][ap_wlan], passwd))
 
     def get_private_folder_manager(self):
         # type: () -> PrivateFolderManager
@@ -1519,10 +1522,10 @@ class AccessPoint(AP):
                 if not isinstance(node, Station):
                     options = dict()
                     cls.configureIface(node, wlan)
-                    link = TCLinkWirelessAP(node, **options)
+                    TCLinkWirelessAP(node, **options)
                     #cls.links.append(link)
             elif 'inNamespace' in node.params:
-                link = TCLinkWirelessAP(node)
+                TCLinkWirelessAP(node)
                 #cls.links.append(link)
             AccessPoint.setIPMAC(node, wlan)
             if 'vssids' in node.params:
@@ -1592,9 +1595,9 @@ class AccessPoint(AP):
                 info("*** Waiting for ACS... It takes 10 seconds.\n")
                 sleep(10)
         except:
-            print('error with hostapd. Please, run sudo mn -c in order ' \
-            'to fix it or check if hostapd is working properly in ' \
-            'your system.')
+            info("*** error with hostapd. Please, run sudo mn -c in order " \
+            "to fix it or check if hostapd is working properly in " \
+            "your system.")
             exit(1)
 
 
