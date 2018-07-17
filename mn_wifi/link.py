@@ -777,7 +777,7 @@ class set_interference(object):
                 if wlan == 1:
                     posX+=1
                 wmediumd.positions.append(WmediumdPos(node.wmIface[wlan],
-                                                           [posX, posY, posZ]))
+                                                      [posX, posY, posZ]))
                 wmediumd.txpowers.append(WmediumdTXPower(
                     node.wmIface[wlan], float(node.params['txpower'][wlan])))
 
@@ -943,8 +943,8 @@ class wifiDirectLink(IntfWireless):
 
     @classmethod
     def get_wpa_cmd(cls, filename, intf):
-        cmd = ('wpa_supplicant -B -Dnl80211 -c%s -i%s'
-         % (filename, intf))
+        cmd = ('wpa_supplicant -B -Dnl80211 -c%s -i%s' %
+               (filename, intf))
         return cmd
 
     @classmethod

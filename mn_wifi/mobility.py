@@ -294,8 +294,8 @@ class mobility(object):
         node.points = node.points + points
 
     @classmethod
-    def controlled_mobility(cls, init_time=0, final_time=0, stations=[],
-                            aps=[], conn=[], plotNodes=[], min_x=0,
+    def controlled_mobility(cls, init_time=0, final_time=0, stations=None,
+                            aps=None, conn=None, plotNodes=None, min_x=0,
                             min_y=0, min_z=0, max_x=0, max_y=0, max_z=0, AC='',
                             DRAW=False, repetitions=1, rec_rssi=False, ppm=None,
                             **params):
@@ -403,7 +403,7 @@ class mobility(object):
         cls.mobileNodes = cls.stations
 
     @classmethod
-    def models(cls, stations=[], aps=[], model=None, mobileNodes=None,
+    def models(cls, stations=None, aps=None, model=None, mobileNodes=None,
                min_v=0, max_v=0, seed=None, conn=None, plotNodes=[],
                max_x=0, max_y=0, AC='', DRAW=False, rec_rssi=False, ppm=None,
                **params):
