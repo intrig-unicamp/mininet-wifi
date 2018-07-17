@@ -7,7 +7,7 @@ from sys import exit
 version = 'Mininet-WiFi ' + co( 'PYTHONPATH=. bin/mn --wifi --version 2>&1', shell=True )
 version = version.strip()
 
-# Find all Mininet path references
+# Find all Mininet-WiFi path references
 lines = co( "egrep -or 'Mininet-WiFi [0-9\.\+]+\w*' *", shell=True )
 
 error = False
