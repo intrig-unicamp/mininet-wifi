@@ -277,7 +277,7 @@ class GetSignalRange(object):
     
     def logNormalShadowing(self, **kwargs):
         """Log-Normal Shadowing Propagation Loss Model"""
-        from mininet.wifi.wmediumdConnector import WmediumdGRandom, \
+        from mn_wifi.wmediumdConnector import WmediumdGRandom, \
             WmediumdServer
 
         ref_d = 1
@@ -392,7 +392,7 @@ class GetPowerGivenRange(object):
     def logNormalShadowing(self, **kwargs):
         """Log-Normal Shadowing Propagation Loss Model
         distance is the range of the transmitter (m)"""
-        from mininet.wifi.wmediumdConnector import WmediumdGRandom, \
+        from mn_wifi.wmediumdConnector import WmediumdGRandom, \
             WmediumdServer
 
         mean = 0
