@@ -93,7 +93,8 @@ class Mininet_wifi(Mininet):
         self.ipBase = ipBase
         self.ipBaseNum, self.prefixLen = netParse(self.ipBase)
         self.nextIP = 1  # start for address allocation
-        self.nextPosition = 1 # start for position allocation
+        self.nextPos_sta = 1 # start for sta position allocation
+        self.nextPos_ap = 1  # start for ap position allocation
         self.repetitions = 1 # mobility: number of repetitions
         self.inNamespace = inNamespace
         self.xterms = xterms
@@ -229,14 +230,14 @@ class Mininet_wifi(Mininet):
         defaults.update(params)
 
         if self.autoSetPositions:
-            defaults['position'] = ('%s,0,0' % self.nextPosition)
+            defaults['position'] = ('%s,0,0' % self.nextPos_sta)
         if self.autoSetMacs:
             defaults['mac'] = macColonHex(self.nextIP)
         if self.autoPinCpus:
             defaults['cores'] = self.nextCore
             self.nextCore = (self.nextCore + 1) % self.numCores
         self.nextIP += 1
-        self.nextPosition += 1
+        self.nextPos_sta += 100
 
         if not cls:
             cls = self.station
@@ -325,8 +326,8 @@ class Mininet_wifi(Mininet):
         defaults.update(params)
 
         if self.autoSetPositions:
-            defaults['position'] = ('0,%s,0' % self.nextPosition)
-            self.nextPosition += 1
+            defaults['position'] = ('%s,50,0' % self.nextPos_ap)
+            self.nextPos_ap += 100
 
         wlan = None
         if cls == physicalAP:
@@ -646,13 +647,18 @@ class Mininet_wifi(Mininet):
             info(staName + ' ')
 
         info('\n*** Adding access points:\n')
+        chann = 1
         for apName in topo.aps():
+            if topo.aps().index(apName)%3 == 0:
+                chann = 1
             # A bit ugly: add batch parameter if appropriate
             params = topo.nodeInfo(apName)
             cls = params.get('cls', self.accessPoint)
             if hasattr(cls, 'batchStartup'):
                 params.setdefault('batch', True)
+                params.setdefault('channel', str(chann))
             self.addAccessPoint(apName, **params)
+            chann += 5
             info(apName + ' ')
 
         info('\n*** Configuring wifi nodes...\n')
@@ -2014,7 +2020,7 @@ class Mininet_wifi(Mininet):
                     node.params['range'][wlan] = node.getRange(intf=intf)
                 else:
                     if node.params['txpower'][wlan] == 14 and \
-                                    'equipmentModel' not in node.params:
+                                   'equipmentModel' not in node.params:
                         node.autoTxPower=True
                         node.params['txpower'][wlan] = \
                             node.get_txpower_prop_model(wlan)
