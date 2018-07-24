@@ -31,7 +31,7 @@ from mn_wifi.node import AccessPoint, AP, Station, Car, \
 from mn_wifi.wmediumdConnector import WmediumdStarter, WmediumdServer, \
     error_prob, snr, interference
 from mn_wifi.link import wirelessLink, wmediumd, Association, \
-    _4address, TCWirelessLink, TCLinkWirelessStation,\
+    _4address, TCWirelessLink, TCLinkWirelessStation, ITSLink, \
     wifiDirectLink, adhoc, mesh, physicalMesh, physicalWifiDirectLink
 from mn_wifi.devices import GetRate, GetRange, GetTxPower
 from mn_wifi.mobility import mobility
@@ -468,6 +468,8 @@ class Mininet_wifi(Mininet):
                 isAP=True
             cls(node=node1, isAP=isAP, **params)
         elif cls == adhoc:
+            cls(node=node1, link=self.link, **params)
+        elif cls == ITSLink:
             cls(node=node1, link=self.link, **params)
         elif cls == wifiDirectLink or cls == physicalWifiDirectLink:
             link = cls(node=node1, port=port1, **params)

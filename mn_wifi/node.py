@@ -248,9 +248,8 @@ class Node_wifi(Node):
             self.params['ssid'][wlan] = ssid
             adhoc.configureAdhoc(self, wlan, enable_wmediumd=True)
 
-    def setOCBIface(self, iface):
+    def setOCBIface(self, wlan):
         "Set OCB Interface"
-        wlan = self.params['wlan'].index(iface)
         iface = self.params['wlan'][wlan]
         self.cmd('ip link set %s down' % iface)
         self.cmd('iw dev %s set type ocb' % iface)
@@ -261,8 +260,9 @@ class Node_wifi(Node):
         "Configure Wireless OCB"
         iface = self.params['wlan'][wlan]
         freq = self.params['frequency'][wlan]
+        freq = str(freq).replace(".", "")
         self.func[wlan] = 'ocb'
-        self.cmd('iw dev %s ocb join %s 10MHz' % (iface, freq))
+        self.cmd('iw dev %s ocb join %s 20MHz' % (iface, freq))
 
     def configLinks(self):
         "Applies channel params and handover"
@@ -401,9 +401,7 @@ class Node_wifi(Node):
 
     def get_freq(self, wlan):
         """Gets frequency based on channel number
-        :param wlan: wlan ID
-        """
-        freq = 0
+        :param wlan: wlan ID"""
         channel = int(self.params['channel'][wlan])
         if channel == 1:
             freq = 2.412

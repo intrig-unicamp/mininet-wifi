@@ -901,6 +901,25 @@ class wirelessLink (object):
         node.pexec(tc_)
 
 
+class ITSLink(IntfWireless):
+
+    def __init__(self, node, port=None, physical=False, **params):
+        "configure ieee80211p"
+        if port:
+            for port_ in node.params['wlan']:
+                if params['port'] == port_:
+                    wlan = node.params['wlan'].index(port_)
+        else:
+            wlan = node.ifaceToAssociate
+
+        node.func[wlan] = 'its'
+        node.params['frequency'][wlan] = node.get_freq(wlan)
+        node.setOCBIface(wlan)
+
+        if not port:
+            node.ifaceToAssociate += 1
+
+
 class wifiDirectLink(IntfWireless):
 
     def __init__(self, node, port=None, physical=False, **params):
