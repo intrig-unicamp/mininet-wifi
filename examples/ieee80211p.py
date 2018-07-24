@@ -1,7 +1,8 @@
 #!/usr/bin/python
 
 """This code illustrates how to enable IEEE 802.11p
-   *** Changes in mac80211_hwsim are required!
+   *** You have to install wireless-regdb and CRDA.
+   *** Please refer to the user manual for further information
    *** Tested with 5805 Mhz"""
 
 from mininet.log import setLogLevel, info
@@ -23,8 +24,6 @@ def topology():
 
     info("*** Configuring Propagation Model\n")
     net.propagationModel(model="logDistance", exp=3.5)
-
-    #net.setModule('./mac80211_hwsim.ko')
 
     info("*** Configuring wifi nodes\n")
     net.configureWifiNodes()
