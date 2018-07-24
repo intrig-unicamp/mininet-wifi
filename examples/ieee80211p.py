@@ -25,6 +25,8 @@ def topology():
     info("*** Configuring Propagation Model\n")
     net.propagationModel(model="logDistance", exp=3.5)
 
+    net.setModule('./mac80211_hwsim.ko')
+
     info("*** Configuring wifi nodes\n")
     net.configureWifiNodes()
 
