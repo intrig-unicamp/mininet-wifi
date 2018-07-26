@@ -1438,6 +1438,8 @@ class AccessPoint(AP):
     def setBw(cls, node, wlan, iface):
         "Set bw"
         bw = cls.getRate(node, wlan)
+        if 'bw' in node.params:
+            bw = node.params['bw'][wlan]
         node.cmd("tc qdisc replace dev %s \
                 root handle 2: tbf rate %sMbit burst 15000 "
                  "latency 1ms" % (iface, bw))
