@@ -354,8 +354,9 @@ class TCWirelessLink(IntfWireless):
         if self.ifb:
             ifb_component = "ifb%s" % self.ifb_intf
             c = cmd % (tc, ifb_component)
-        else:
-            c = cmd % (tc, self)  # Add in tc command and our name
+            self.cmd(c)
+        #else:
+        c = cmd % (tc, self)  # Add in tc command and our name
         debug(" *** executing command: %s\n" % c)
         return self.cmd(c)
 
