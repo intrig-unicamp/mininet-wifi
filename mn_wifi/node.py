@@ -314,9 +314,9 @@ class Node_wifi(Node):
         if intf:
             wlan = self.params['wlan'].index(intf)
         self.params['range'][wlan] = value
-        if self.autoTxPower:
-            self.params['txpower'][wlan] = self.get_txpower_prop_model(0)
-            self.setTxPower(value, intf=self.params['wlan'][wlan])
+        self.params['txpower'][wlan] = self.get_txpower_prop_model(0)
+        txpower = self.params['txpower'][wlan]
+        self.setTxPower(txpower, intf=self.params['wlan'][wlan])
         if self.isStationary:
             self.updateGraph()
             self.configLinks()
