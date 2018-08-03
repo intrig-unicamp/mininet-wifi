@@ -12,8 +12,8 @@ from six import string_types
 from mininet.log import info, error, debug
 from mn_wifi.devices import GetRate
 from mn_wifi.wmediumdConnector import DynamicWmediumdIntfRef, \
-    WmediumdStarter, WmediumdSNRLink, WmediumdTXPower, WmediumdPos, \
-    WmediumdCst, WmediumdServer, WmediumdERRPROBLink, wmediumd_mode
+    w_starter, SNRLink, w_txpower, w_pos, \
+    w_cst, w_server, ERRPROBLink, wmediumd_mode
 
 
 class IntfWireless(object):
@@ -722,11 +722,11 @@ class wmediumd(TCWirelessLink):
                 else:
                     isnodeaps.append(0)
 
-        if wmediumd_mode.mode == WmediumdCst.INTERFERENCE_MODE:
+        if wmediumd_mode.mode == w_cst.INTERFERENCE_MODE:
             set_interference()
-        elif wmediumd_mode.mode == WmediumdCst.SPECPROB_MODE:
+        elif wmediumd_mode.mode == w_cst.SPECPROB_MODE:
             spec_prob_link()
-        elif wmediumd_mode.mode == WmediumdCst.ERRPROB_MODE:
+        elif wmediumd_mode.mode == w_cst.ERRPROB_MODE:
             set_error_prob()
         else:
             set_snr()
@@ -740,7 +740,7 @@ class start_wmediumd(object):
                  fading_coefficient, noise_threshold, txpowers, isnodeaps,
                  propagation_model):
 
-        WmediumdStarter.start(intfrefs, links, pos=positions,
+        w_starter.start(intfrefs, links, pos=positions,
                               fading_coefficient=fading_coefficient,
                               noise_threshold=noise_threshold,
                               txpowers=txpowers, isnodeaps=isnodeaps,
@@ -776,9 +776,9 @@ class set_interference(object):
             for wlan in range(0, wlans):
                 if wlan == 1:
                     posX+=1
-                wmediumd.positions.append(WmediumdPos(node.wmIface[wlan],
-                                                      [posX, posY, posZ]))
-                wmediumd.txpowers.append(WmediumdTXPower(
+                wmediumd.positions.append(w_pos(node.wmIface[wlan],
+                                                [posX, posY, posZ]))
+                wmediumd.txpowers.append(w_txpower(
                     node.wmIface[wlan], float(node.params['txpower'][wlan])))
 
 
@@ -797,10 +797,10 @@ class set_error_prob(object):
     def error_prob(cls):
         "wmediumd: error prob"
         for node in wmediumd.wlinks:
-            wmediumd.links.append(WmediumdERRPROBLink(node[0].wmIface[0],
-                                                      node[1].wmIface[0], node[2]))
-            wmediumd.links.append(WmediumdERRPROBLink(node[1].wmIface[0],
-                                                      node[0].wmIface[0], node[2]))
+            wmediumd.links.append(ERRPROBLink(node[0].wmIface[0],
+                                              node[1].wmIface[0], node[2]))
+            wmediumd.links.append(ERRPROBLink(node[1].wmIface[0],
+                                              node[0].wmIface[0], node[2]))
 
 
 class set_snr(object):
@@ -812,10 +812,10 @@ class set_snr(object):
     def snr(cls):
         "wmediumd: snr"
         for node in wmediumd.wlinks:
-            wmediumd.links.append(WmediumdSNRLink(node[0].wmIface[0], node[1].wmIface[0],
-                                                  node[0].params['rssi'][0] - (-91)))
-            wmediumd.links.append(WmediumdSNRLink(node[1].wmIface[0], node[0].wmIface[0],
-                                                  node[0].params['rssi'][0] - (-91)))
+            wmediumd.links.append(SNRLink(node[0].wmIface[0], node[1].wmIface[0],
+                                          node[0].params['rssi'][0] - (-91)))
+            wmediumd.links.append(SNRLink(node[1].wmIface[0], node[0].wmIface[0],
+                                          node[0].params['rssi'][0] - (-91)))
 
 
 class wirelessLink (object):
@@ -1136,10 +1136,10 @@ class Association(object):
     @classmethod
     def setSNRWmediumd(cls, sta, ap, snr):
         "Send SNR to wmediumd"
-        WmediumdServer.send_snr_update(WmediumdSNRLink(
-            sta.wmIface[0], ap.wmIface[0], snr))
-        WmediumdServer.send_snr_update(WmediumdSNRLink(
-            ap.wmIface[0], sta.wmIface[0], snr))
+        w_server.send_snr_update(SNRLink(sta.wmIface[0],
+                                         ap.wmIface[0], snr))
+        w_server.send_snr_update(SNRLink(ap.wmIface[0],
+                                         sta.wmIface[0], snr))
 
     @classmethod
     def configureWirelessLink(cls, sta, ap, enable_wmediumd=False,

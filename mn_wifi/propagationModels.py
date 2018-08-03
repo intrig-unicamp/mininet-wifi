@@ -277,8 +277,7 @@ class GetSignalRange(object):
     
     def logNormalShadowing(self, **kwargs):
         """Log-Normal Shadowing Propagation Loss Model"""
-        from mn_wifi.wmediumdConnector import WmediumdGRandom, \
-            WmediumdServer
+        from mn_wifi.wmediumdConnector import WmediumdGRandom, w_server
 
         ref_d = 1
         txpower = kwargs['node'].params['txpower'][kwargs['wlan']]
@@ -291,7 +290,7 @@ class GetSignalRange(object):
 
         if kwargs['interference']:
             sleep(0.002) #notice problem when there are multiple threads
-            WmediumdServer.update_gaussian_random(
+            w_server.update_gaussian_random(
                 WmediumdGRandom(kwargs['node'].wmIface[kwargs['wlan']],
                                 gRandom))
 
@@ -392,8 +391,7 @@ class GetPowerGivenRange(object):
     def logNormalShadowing(self, **kwargs):
         """Log-Normal Shadowing Propagation Loss Model
         distance is the range of the transmitter (m)"""
-        from mn_wifi.wmediumdConnector import WmediumdGRandom, \
-            WmediumdServer
+        from mn_wifi.wmediumdConnector import WmediumdGRandom, w_server
 
         mean = 0
         d = kwargs['dist']
@@ -405,7 +403,7 @@ class GetPowerGivenRange(object):
 
         if kwargs['interference']:
             sleep(0.001)  # notice problem when there are many threads
-            WmediumdServer.update_gaussian_random(WmediumdGRandom(
+            w_server.update_gaussian_random(WmediumdGRandom(
                 kwargs['node'].wmIface[kwargs['wlan']], gRandom))
 
         pl = self.pathLoss(kwargs['node'], ref_d, kwargs['wlan']) - gRandom

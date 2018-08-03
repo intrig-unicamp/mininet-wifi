@@ -28,7 +28,7 @@ from mininet.log import info, error, debug, output, warn
 
 from mn_wifi.node import AccessPoint, AP, Station, Car, \
     OVSKernelAP, physicalAP
-from mn_wifi.wmediumdConnector import WmediumdStarter, WmediumdServer, \
+from mn_wifi.wmediumdConnector import w_starter, w_server, \
     error_prob, snr, interference
 from mn_wifi.link import wirelessLink, wmediumd, Association, \
     _4address, TCWirelessLink, TCLinkWirelessStation, ITSLink, \
@@ -1754,8 +1754,8 @@ class Mininet_wifi(Mininet):
     def kill_wmediumd():
         "Kill wmediumd"
         info("\n*** Killing wmediumd")
-        WmediumdServer.disconnect()
-        WmediumdStarter.stop()
+        w_server.disconnect()
+        w_starter.stop()
         sleep(0.1)
 
     @staticmethod

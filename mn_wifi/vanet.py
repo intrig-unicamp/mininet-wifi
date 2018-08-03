@@ -21,10 +21,12 @@ from mn_wifi.plot import plot2d
 from mn_wifi.node import AP
 from mininet.log import info
 
+
 try:
     warnings.filterwarnings("ignore", category=matplotlib.cbook.mplDeprecation)
 except:
     pass
+
 
 class vanet(object):
 
