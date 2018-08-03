@@ -1829,10 +1829,10 @@ class Mininet_wifi(Mininet):
         "Set Mobility Parameters"
         if 'model' in kwargs:
             self.mobilityparam.setdefault('model', kwargs['model'])
+        else:
+            self.mobilityparam.setdefault('repetitions', self.repetitions)
         if self.nroads != 0:
             self.mobilityparam.setdefault('nroads', self.nroads)
-        if 'repetitions' in kwargs:
-            self.mobilityparam.setdefault('repetitions', kwargs['repetitions'])
         if 'plotNodes' in kwargs:
             self.mobilityparam.setdefault('plotNodes', kwargs['plotNodes'])
 
