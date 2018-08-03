@@ -237,16 +237,8 @@ class replayingRSSI(object):
                  n=32, **kwargs):
         """ propagationModel = Propagation Model
             n: Power Loss Coefficient """
-        if 'print_bw' in kwargs:
-            self.print_bw = True
-        if 'print_loss' in kwargs:
-            self.print_loss = True
-        if 'print_delay' in kwargs:
-            self.print_delay = False
-        if 'print_latency' in kwargs:
-            self.print_latency = True
-        if 'print_distance' in kwargs:
-            self.print_distance = True
+        for key in kwargs:
+            setattr(self, key, kwargs[key])
 
         Mininet_wifi.isMobility = True
         self.thread = threading.Thread(name='replayingRSSI', target=self.rssi,
@@ -300,11 +292,11 @@ class replayingRSSI(object):
 
     @classmethod
     def calculateRate(cls, sta, ap, dist):
-        value = GetRate(sta, ap, 0)
+        value = GetRate(sta=sta, ap=ap, wlan=0)
         custombw = value.rate
         rate = value.rate / 2.5
 
-        if 'equipmentModel' not in ap.params.keys():
+        if 'model' not in ap.params.keys():
             rate = custombw * (1.1 ** -dist)
         if rate <= 0:
             rate = 1

@@ -856,7 +856,7 @@ class wirelessLink (object):
 
     @classmethod
     def getBW(cls, sta=None, ap=None, wlan=0, dist=0):
-        value = GetRate(sta, ap, wlan)
+        value = GetRate(sta=sta, ap=ap, wlan=wlan)
         custombw = value.rate
         rate = eval(str(custombw) + cls.equationBw)
 

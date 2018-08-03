@@ -17,7 +17,7 @@ def topology():
     info("*** Creating nodes\n")
     net.addStation('sta1', antennaHeight='1', antennaGain='5')
     net.addStation('sta2', antennaHeight='1', antennaGain='5')
-    ap1 = net.addAccessPoint('ap1', ssid='new-ssid', equipmentModel='DI524',
+    ap1 = net.addAccessPoint('ap1', ssid='new-ssid', model='DI524',
                              mode='g', channel='1', position='50,50,0')
     c1 = net.addController('c1', controller=Controller)
 

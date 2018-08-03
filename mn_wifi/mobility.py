@@ -48,13 +48,11 @@ class mobility(object):
     @classmethod
     def create_coordinate(cls, node):
         node.coord_ = []
+        init_pos = node.params['initPos']
+        fin_pos = node.params['finPos']
         if not hasattr(node, 'coord'):
-            coord1 = '%s,%s,%s' % (node.params['initPos'][0],
-                                   node.params['initPos'][1],
-                                   node.params['initPos'][2])
-            coord2 = '%s,%s,%s' % (node.params['finPos'][0],
-                                   node.params['finPos'][1],
-                                   node.params['finPos'][2])
+            coord1 = '%s,%s,%s' % (init_pos[0], init_pos[1], init_pos[2])
+            coord2 = '%s,%s,%s' % (fin_pos[0], fin_pos[1], fin_pos[2])
             node.coord_.append([coord1, coord2])
         else:
             for idx in range(0, len(node.coord) - 1):
@@ -66,16 +64,16 @@ class mobility(object):
         :param diff_time: difference between initial and final time. Useful for
         calculating the speed"""
         init_pos = node.params['initPos']
-        final_pos = node.params['finPos']
+        fin_pos = node.params['finPos']
         if hasattr(node, 'points'):
             diff_time = (len(node.points)-1) / diff_time
             node.moveFac = diff_time
         else:
             diff_time = diff_time + 1
             node.params['position'] = init_pos
-            pos_x = float(final_pos[0]) - float(init_pos[0])
-            pos_y = float(final_pos[1]) - float(init_pos[1])
-            pos_z = float(final_pos[2]) - float(init_pos[2])
+            pos_x = float(fin_pos[0]) - float(init_pos[0])
+            pos_y = float(fin_pos[1]) - float(init_pos[1])
+            pos_z = float(fin_pos[2]) - float(init_pos[2])
 
             cls.speed(node, pos_x, pos_y, pos_z, diff_time)
             pos = '%.2f,%.2f,%.2f' % (pos_x / diff_time, pos_y / diff_time,

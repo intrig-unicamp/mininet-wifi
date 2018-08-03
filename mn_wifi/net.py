@@ -1471,9 +1471,9 @@ class Mininet_wifi(Mininet):
         self.add_range_param(node, wlans, params)
 
         # Equipment Model
-        equipmentModel = ("%s" % params.pop('equipmentModel', {}))
-        if equipmentModel != "{}":
-            node.equipmentModel = equipmentModel
+        model = ("%s" % params.pop('model', {}))
+        if model != "{}":
+            node.model = model
 
         if mode == 'master' or 'ssid' in node.params:
             node.params['associatedStations'] = []
@@ -1548,8 +1548,8 @@ class Mininet_wifi(Mininet):
                 exit(1)
         else:
             for _ in range(0, wlans):
-                if 'equipmentModel' in node.params:
-                    range_ = GetRange(node)
+                if 'model' in node.params:
+                    range_ = GetRange(node=node)
                     node.params['range'].append(range_.value)
                 else:
                     node.params['range'].append(0)
@@ -1684,8 +1684,8 @@ class Mininet_wifi(Mininet):
                     node.params['txpower'].append(int(txpower))
             else:
                 for _ in range(wlans):
-                    if 'equipmentModel' in node.params:
-                        txpower_ = GetTxPower(node)
+                    if 'model' in node.params:
+                        txpower_ = GetTxPower(node=node)
                         node.params['txpower'].append(txpower_.value)
                     else:
                         node.params['txpower'].append(14)
@@ -2003,7 +2003,7 @@ class Mininet_wifi(Mininet):
                     node.params['range'][wlan] = node.getRange(intf=intf)
                 else:
                     if node.params['txpower'][wlan] == 14 and \
-                                   'equipmentModel' not in node.params:
+                                   'model' not in node.params:
                         node.autoTxPower=True
                         node.params['txpower'][wlan] = \
                             node.get_txpower_prop_model(wlan)
@@ -2123,7 +2123,7 @@ class Mininet_wifi(Mininet):
     @staticmethod
     def getDataRate(sta=None, ap=None, wlan=0):
         "Set the rate"
-        value = GetRate(sta, ap, wlan)
+        value = GetRate(sta=sta, ap=ap, wlan=wlan)
         return value
 
     @staticmethod

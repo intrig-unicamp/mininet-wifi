@@ -1,9 +1,7 @@
 """
-
     Mininet-WiFi: A simple networking testbed for Wireless OpenFlow/SDWN!
 
 author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
-
 
 """
 
@@ -13,26 +11,29 @@ class GetRate (object):
 
     rate = 0
 
-    def __init__(self, sta=None, ap=None, wlan=0):
+    def __init__(self, **kwargs):
+        "get data rate"
+        ap = kwargs['ap'] if 'ap' in kwargs else None
+        sta = kwargs['sta'] if 'sta' in kwargs else None
+        wlan = kwargs['wlan'] if 'wlan' in kwargs else 0
 
-        """sta: station
-        ap: accessPoint
-        wlan: wlan ID"""
+        if ap and 'model' in ap.params:
+            if ap.model in dir(self) and sta:
+                model = ap.model
+                self.__getattribute__(model)(**kwargs)
+        else:
+            node = sta
+            if ap:
+                node = ap
+            self.customDataRate_mobility(node=node, wlan=wlan)
 
-        if ap and 'equipmentModel' in ap.params.keys():
-            if  ap.equipmentModel in dir(self) and sta != None:
-                model = ap.equipmentModel
-                self.__getattribute__(model)(sta, ap, wlan)
-        elif ap:
-            self.customDataRate_mobility(ap, 0)
-        elif sta:
-            self.customDataRate_mobility(sta, wlan)
-
-    def customDataRate_mobility(self, node, wlan):
+    def customDataRate_mobility(self, **kwargs):
         """Custom Maximum Data Rate - Useful when there is mobility
         
         mode: interface mode
         rate: maximum supported bandwidth (mbps)"""
+        node = kwargs['node']
+        wlan = kwargs['wlan']
         mode = node.params['mode'][wlan]
         rate = 0
 
@@ -50,11 +51,13 @@ class GetRate (object):
         self.rate = rate
         return self.rate
 
-    def customDataRate_no_mobility(self, node, wlan):
+    def customDataRate_no_mobility(self, **kwargs):
         """Custom Maximum Data Rate - Useful when there is no mobility
                 
         mode: interface mode
         rate: maximum supported bandwidth (mbps)"""
+        node = kwargs['node']
+        wlan = kwargs['wlan']
         mode = node.params['mode'][wlan]
         rate = 0
 
@@ -72,35 +75,38 @@ class GetRate (object):
         self.rate = rate
         return self.rate
 
-    def DI524(self, node1, node2, wlan):
+    def DI524(self, **kwargs):
         """D-Link AirPlus G DI-524
            from http://www.dlink.com/-/media/Consumer_Products/
            DI/DI%20524/Manual/DI_524_Manual_EN_UK.pdf
            
         rssi: rssi value (dBm)
         rate: maximum supported bandwidth (mbps)"""
+        node = kwargs['sta']
+        wlan = kwargs['wlan']
         rate = 0
 
-        if node1.params['rssi'][wlan] != 0:
-            if node1.params['rssi'][wlan] >= -68:
+        if node.params['rssi'][wlan] != 0:
+            rssi = node.params['rssi'][wlan]
+            if rssi >= -68:
                 rate = 48
-            elif -75 <= node1.params['rssi'][wlan] < -68:
+            elif -75 <= rssi < -68:
                 rate = 36
-            elif -79 <= node1.params['rssi'][wlan] < -75:
+            elif -79 <= rssi < -75:
                 rate = 24
-            elif -84 <= node1.params['rssi'][wlan] < -79:
+            elif -84 <= rssi < -79:
                 rate = 18
-            elif -87 <= node1.params['rssi'][wlan] < -84:
+            elif -87 <= rssi < -84:
                 rate = 9
-            elif -88 <= node1.params['rssi'][wlan] < -87:
+            elif -88 <= rssi < -87:
                 rate = 6
-            elif -89 <= node1.params['rssi'][wlan] < -88:
+            else:
                 rate = 1
 
         self.rate = rate
         return self.rate
 
-    def TLWR740N(self, node1, node2, wlan):
+    def TLWR740N(self, **kwargs):
         """TL-WR740N
            from http://www.tp-link.com.br/products/details/
            cat-9_TL-WR740N.html#specificationsf
@@ -108,25 +114,28 @@ class GetRate (object):
         mode: interface mode
         rssi: rssi value (dBm)
         rate: maximum supported bandwidth (mbps)"""
-        mode = node1.params['mode'][wlan]
+        node = kwargs['sta']
+        wlan = kwargs['wlan']
+        mode = node.params['mode'][wlan]
         rate = 0
 
-        try:  # if Station
-            if node1.params['rssi'][wlan] != 0:
-                if node1.params['rssi'][wlan] >= -68:
+        if node:
+            if node.params['rssi'][wlan] != 0:
+                rssi = node.params['rssi'][wlan]
+                if rssi >= -68:
                     if mode == 'n':
                         rate = 130
                     elif mode == 'g':
                         rate = 54
                     elif mode == 'b':
                         rate = 11
-                elif -85 <= node1.params['rssi'][wlan] < -68:
+                elif -85 <= rssi < -68:
                     rate = 11
-                elif -88 <= node1.params['rssi'][wlan] < -85:
+                elif -88 <= rssi < -85:
                     rate = 6
-                elif -90 <= node1.params['rssi'][wlan] < -88:
+                else:
                     rate = 1
-        except:  # if AP
+        else:
             if mode == 'n':
                 rate = 130
             elif mode == 'g':
@@ -137,7 +146,7 @@ class GetRate (object):
         self.rate = rate
         return self.rate
 
-    def WRT120N(self, node1, node2, wlan):
+    def WRT120N(self, **kwargs):
         """CISCO WRT120N
            from http://downloads.linksys.com/downloads/datasheet/
            WRT120N_V10_DS_B-WEB.pdf
@@ -145,33 +154,37 @@ class GetRate (object):
         mode: interface mode
         rssi: rssi value (dBm)
         rate: maximum supported bandwidth (mbps)"""
+        node1 = kwargs['sta']
+        node2 = kwargs['ap']
+        wlan = kwargs['wlan']
         mode = node2.params['mode'][0]
         rate = 0
 
-        try:  # if Station
-            if node1.params['rssi'][wlan] != 0:
-                if node1.params['rssi'][wlan] >= -65:
+        if node1:
+            rssi = node1.params['rssi'][wlan]
+            if rssi != 0:
+                if rssi >= -65:
                     if mode == 'n':
                         rate = 150
                     elif mode == 'g':
                         rate = 54
                     elif mode == 'b':
                         rate = 11
-                elif -68 <= node1.params['rssi'][wlan] < -65:
+                elif -68 <= rssi < -65:
                     if mode == 'g':
                         rate = 54
                     elif mode == 'b':
                         rate = 11
-                elif -85 <= node1.params['rssi'][wlan] < -68:
+                elif -85 <= rssi < -68:
                     rate = 11
-                elif -90 <= node1.params['rssi'][wlan] < -85:
+                else:
                     rate = 1
-        except:  # if AP
-            if node2.params['mode'][0] == 'n':
+        else:
+            if mode == 'n':
                 rate = 150
-            elif node2.params['mode'][0] == 'g':
+            elif mode == 'g':
                 rate = 54
-            elif node2.params['mode'][0] == 'b':
+            elif mode == 'b':
                 rate = 11
 
         self.rate = rate
@@ -183,22 +196,25 @@ class GetRange (object):
 
     value = 100
 
-    def __init__(self, ap=None, wlan=0):
+    def __init__(self, **kwargs):
+        "get signal range"
+        node = kwargs['node'] if 'node' in kwargs else None
+        wlan = kwargs['wlan'] if 'wlan' in kwargs else 0
 
-        """ ap: accessPoint
-        wlan: wlan ID """
-
-        if 'equipmentModel' in ap.params:
-            if ap.params['equipmentModel'] in dir(self):
-                self.__getattribute__(ap.params['equipmentModel'])(ap)
+        if node and 'model' in node.params:
+            model = node.params['model']
+            if model in dir(self):
+                self.__getattribute__(model)(node=node)
         else:
-            self.customSignalRange(ap, wlan)
+            self.customSignalRange(node=node, wlan=wlan)
 
-    def customSignalRange(self, node, wlan):
+    def customSignalRange(self, **kwargs):
         """Custom Signal Range
         
         mode: interface mode
         range: signal range (m)"""
+        node = kwargs['node']
+        wlan = kwargs['wlan']
         mode = node.params['mode'][wlan]
 
         if mode == 'a':
@@ -217,7 +233,7 @@ class GetRange (object):
         self.value = range_
         return self.value
 
-    def DI524(self, ap):
+    def DI524(self, **kwargs):
         """ D-Link AirPlus G DI-524
             from http://www.dlink.com/-/media/Consumer_Products/DI/
             DI%20524/Manual/DI_524_Manual_EN_UK.pdf
@@ -229,7 +245,7 @@ class GetRange (object):
         self.value = 100
         return self.value
 
-    def TLWR740N(self, ap):
+    def TLWR740N(self, **kwargs):
         """TL-WR740N
             NO REFERENCE!
         
@@ -238,7 +254,7 @@ class GetRange (object):
         self.value = 50
         return self.value
 
-    def WRT120N(self, ap):
+    def WRT120N(self, **kwargs):
         """CISCO WRT120N
             NO REFERENCE!
         
@@ -253,17 +269,17 @@ class GetTxPower (object):
 
     value = 0
 
-    def __init__(self, ap=None, wlan=0):
+    def __init__(self, **kwargs):
+        "get txpower"
+        node = kwargs['ap'] if 'ap' in kwargs else None
+        wlan = kwargs['wlan'] if 'wlan' in kwargs else 0
 
-        """:param model: device model
-        :param ap: accessPoint
-        :param wlan: wlan ID"""
+        if node and 'model' in node.params:
+            model = node.params['model']
+            if model in dir(self):
+                self.__getattribute__(model)(node=node, wlan=wlan)
 
-        if 'equipmentModel' in ap.params:
-            if ap.params['equipmentModel'] in dir(self):
-                self.__getattribute__(ap.params['equipmentModel'])(ap, wlan)
-
-    def DI524(self, ap, wlan):
+    def DI524(self, **kwargs):
         """D-Link AirPlus G DI-524
             from http://www.dlink.com/-/media/Consumer_Products/DI/
             DI%20524/Manual/DI_524_Manual_EN_UK.pdf
@@ -272,7 +288,7 @@ class GetTxPower (object):
         self.value = 14
         return self.value
 
-    def TLWR740N(self, ap, wlan):
+    def TLWR740N(self, **kwargs):
         """TL-WR740N
             No REFERENCE!
         
@@ -280,17 +296,18 @@ class GetTxPower (object):
         self.value = 20
         return self.value
 
-    def WRT120N(self, ap, wlan):
+    def WRT120N(self, **kwargs):
         """CISCO WRT120N
            from http://downloads.linksys.com/downloads/datasheet/
-           WRT120N_V10_DS_B-WEB.pdf
-           
-        txPower = transmission power (dBm)"""
+           WRT120N_V10_DS_B-WEB.pdf"""
+        ap = kwargs['ap']
+        wlan = kwargs['wlan']
+        mode = ap.params['mode'][wlan]
 
-        if ap.params['mode'][wlan] == 'b':
+        if mode == 'b':
             self.value = 21
-        elif ap.params['mode'][wlan] == 'g':
+        elif mode == 'g':
             self.value = 18
-        elif ap.params['mode'][wlan] == 'n':
+        elif mode == 'n':
             self.value = 16
         return self.value
