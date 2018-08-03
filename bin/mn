@@ -488,7 +488,6 @@ class MininetRunner(object):
                      channel=channel,
                      mode=mode,
                      ssid=ssid,
-                     defaultGraph=opts.plot,
                      xterms=xterms, autoSetMacs=mac,
                      autoStaticArp=arp, autoPinCpus=pin,
                      listenPort=listenPort,

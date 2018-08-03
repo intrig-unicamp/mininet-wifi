@@ -53,20 +53,21 @@ class vanet(object):
         for car in params['stations']:
             if 'carsta' in car.params:
                 cars.append(car)
-        aps = params['aps']
-        mobility.addNodes(cars, aps)
+        mobility.stations = cars
+        mobility.aps = params['aps']
+        mobility.mobileNodes = cars
         [self.road.append(x) for x in range(0, params['nroads'])]
         [self.points.append(x) for x in range(0, params['nroads'])]
         [self.totalRoads.append(x) for x in range(0, params['nroads'])]
         plot2d.instantiateGraph(params['min_x'], params['min_y'], params['max_x'], params['max_y'])
 
-        self.display_grid(aps, params['conn'], params['nroads'])
+        self.display_grid(params['aps'], params['conn'], params['nroads'])
         self.display_cars(cars)
         plot2d.plotGraph(cars, [])
         self.setWifiParameters(mobility)
         while True:
             [self.scatter, self.com_lines] = \
-                self.simulate_car_movement(cars, aps, self.scatter,
+                self.simulate_car_movement(cars, params['aps'], self.scatter,
                                            self.com_lines, mobility)
             mobility.continue_params
 

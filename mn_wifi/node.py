@@ -1101,7 +1101,7 @@ class Node_wifi(Node):
         process = 'mn%d_%s' % (os.getpid(), self.name)
         os.system('pkill -f \'hostapd -B %s\'' % process)
         if plot2d.fig_exists():
-            plot2d.updateCircleColor(self, 'w')
+            plot2d.setCircleColor(self, 'w')
 
     def start_(self):
         "Starts hostapd"
@@ -1109,7 +1109,11 @@ class Node_wifi(Node):
         process = 'mn%d_%s' % (os.getpid(), self.name)
         os.system('hostapd -B %s-wlan1.apconf' % process)
         if plot2d.fig_exists():
-            plot2d.updateCircleColor(self, 'b')
+            plot2d.setCircleColor(self, 'b')
+
+    def setCircleColor(self, color):
+        from mn_wifi.plot import plot2d
+        plot2d.setCircleColor(self, color)
 
 
 class Station(Node_wifi):

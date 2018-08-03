@@ -245,14 +245,16 @@ class plot2d (object):
     def instantiateCircle(cls, node):
         "instantiateCircle"
         from mn_wifi.node import Station, Car
-
         ax = cls.ax
 
-        color = 'b'
-        if isinstance(node, Station):
-            color = 'g'
-        elif isinstance(node, Car):
-            color = 'r'
+        if 'color' in node.params:
+            color = node.params['color']
+        else:
+            color = 'b'
+            if isinstance(node, Station):
+                color = 'g'
+            elif isinstance(node, Car):
+                color = 'r'
 
         node.pltCircle = ax.add_patch(
             patches.Circle((0, 0), max(node.params['range']),
@@ -270,7 +272,7 @@ class plot2d (object):
         node.pltCircle.set_radius(max(node.params['range']))
 
     @classmethod
-    def updateCircleColor(cls, node, color):
+    def setCircleColor(cls, node, color):
         node.pltCircle.set_color(color)
 
     @classmethod
@@ -323,18 +325,18 @@ class plot2d (object):
 
 class plotGraph(object):
     'Plot Graphs'
-    def __init__(self, min_x=0, min_y=0, min_z=0, max_x=0, max_y=0, max_z=0,
-                 nodes=None, conn=None):
+    def __init__(self, **kwargs):
         'init plotgraph'
-        self.instantiateGraph(min_x, min_y, min_z, max_x, max_y, max_z,
-                              nodes, conn)
+        self.instantiateGraph(**kwargs)
 
-    def instantiateGraph(self, min_x, min_y, min_z, max_x, max_y, max_z,
-                         nodes, conn):
+    def instantiateGraph(self, **kwargs):
         "instantiatePlotGraph"
-        if min_z == 0 and max_z == 0:
-            plot2d.instantiateGraph(min_x, min_y, max_x, max_y)
-            plot2d.plotGraph(nodes, conn)
+        if kwargs['min_z'] == 0 and kwargs['max_z'] == 0:
+            plot2d.instantiateGraph(kwargs['min_x'], kwargs['min_y'],
+                                    kwargs['max_x'], kwargs['max_y'])
+            plot2d.plotGraph(kwargs['nodes'], kwargs['conn'])
         else:
-            plot3d.instantiateGraph(min_x, min_y, min_z, max_x, max_y, max_z)
-            plot3d.instantiateNodes(nodes)
+            plot3d.instantiateGraph(kwargs['min_x'], kwargs['min_y'],
+                                    kwargs['min_z'], kwargs['max_x'],
+                                    kwargs['max_y'], kwargs['max_z'])
+            plot3d.instantiateNodes(kwargs['nodes'])

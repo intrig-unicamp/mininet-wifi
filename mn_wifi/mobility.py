@@ -294,35 +294,15 @@ class mobility(object):
         node.points = node.points + points
 
     @classmethod
-    def controlled_mobility(cls, init_time=0, final_time=0, stations=None,
-                            aps=None, conn=None, plotNodes=None, min_x=0,
-                            min_y=0, min_z=0, max_x=0, max_y=0, max_z=0, AC='',
-                            DRAW=False, repetitions=1, rec_rssi=False, ppm=None,
-                            **params):
-        """Used when the position of each node is previously defined
-
-        :param init_time: time when the mobility starts
-        :param final_time: time when the mobility stops
-        :param stations: list of stations
-        :param aps: list of access points
-        :param conn: list of conn
-        :param plotnodes: list of nodes to be plotted (only hosts and switches)
-        :param repetitions: number of repetitions
-        :param MIN_X: Minimum value for X
-        :param MIN_Y: Minimum value for Y
-        :param MIN_Z: Minimum value for Z
-        :param MAX_X: Maximum value for X
-        :param MAX_Y: Maximum value for Y
-        :param MAX_Z: Maximum value for Z
-        :param AC: Association Control Method
-        :param ppm: propagation model"""
+    def controlled_mobility(cls, **kwargs):
+        "Used when the position of each node is previously defined"
         from mn_wifi.node import Station
 
-        cls.ac = AC
-        cls.rec_rssi = rec_rssi
-        cls.stations = stations
-        cls.aps = aps
-        nodes = cls.stations + cls.aps + plotNodes
+        cls.ac = kwargs['AC']
+        cls.rec_rssi = kwargs['rec_rssi']
+        cls.stations = kwargs['stations']
+        cls.aps = kwargs['aps']
+        nodes = cls.stations + cls.aps + kwargs['plotNodes']
         plot = plot2d
 
         stationaryNodes = []
@@ -333,15 +313,15 @@ class mobility(object):
                 node.params['position'] = node.params['initPos']
                 cls.mobileNodes.append(node)
 
-        nodes = cls.mobileNodes + stationaryNodes
+        kwargs['nodes'] = cls.mobileNodes + stationaryNodes
         try:
-            if DRAW:
-                plotGraph(min_x, min_y, min_z, max_x, max_y, max_z, nodes, conn)
-                if max_z != 0:
+            if kwargs['DRAW']:
+                plotGraph(**kwargs)
+                if kwargs['max_z'] != 0:
                     plot = plot3d
         except:
             info('Warning: running without GUI.\n')
-            DRAW = False
+            kwargs['DRAW'] = False
         try:
             for node in nodes:
                 if isinstance(node, Station) and hasattr(node, 'coord'):
@@ -355,7 +335,7 @@ class mobility(object):
                                      float(coord_[1].split(',')[1]),
                                      float(coord_[1].split(',')[2]))
 
-            for rep in range(0, repetitions):
+            for rep in range(0, kwargs['repetitions']):
                 t1 = time()
                 i = 1
                 if rep > 0:
@@ -367,7 +347,7 @@ class mobility(object):
                     cls.calculate_diff_time(node)
                 while True:
                     t2 = time()
-                    if (t2 - t1) > final_time or (t2 - t1) < init_time:
+                    if (t2 - t1) > kwargs['final_time'] or (t2 - t1) < kwargs['init_time']:
                         pass
                     if t2 - t1 >= i:
                         for node in cls.mobileNodes:
@@ -381,13 +361,13 @@ class mobility(object):
                                     x, y, z = cls.move_node(node)
                                     node.params['position'] = [x, y, z]
                                 node.time += 1
-                            if ppm == 'logNormalShadowing':
+                            if kwargs['ppm'] == 'logNormalShadowing':
                                 intf = node.params['wlan'][0]
                                 wlan = node.params['wlan'].index(intf)
                                 node.params['range'][wlan] = node.getRange(intf=intf)
-                            if DRAW:
+                            if kwargs['DRAW']:
                                 plot.graphUpdate(node)
-                                if max_z == 0:
+                                if kwargs['max_z'] == 0:
                                     plot2d.updateCircleRadius(node)
                             if cls.wmediumd_mode and cls.wmediumd_mode == 3:
                                 node.set_pos_wmediumd()
@@ -397,35 +377,19 @@ class mobility(object):
             pass
 
     @classmethod
-    def addNodes(cls, stas, aps):
-        cls.stations = stas
-        cls.aps = aps
+    def models(cls, **kwargs):
+        "Used when a mobility model is set"
+
+        np.random.seed(kwargs['seed'])
+        cls.rec_rssi = kwargs['rec_rssi']
+        cls.ac = kwargs['AC']
+        cls.stations = kwargs['stations']
+        cls.aps = kwargs['aps']
         cls.mobileNodes = cls.stations
 
-    @classmethod
-    def models(cls, stations=None, aps=None, model=None, mobileNodes=None,
-               min_v=0, max_v=0, seed=None, conn=None, plotNodes=[],
-               max_x=0, max_y=0, AC='', DRAW=False, rec_rssi=False, ppm=None,
-               **params):
-        """Used when a mobility model is being used
-
-        :param stations: list of stations
-        :param aps: list of access points
-        :param model: mobility model
-        :param mobileNodes: mobile nodes
-        :param min_v: minimum velocity
-        :param max_v: maximum velocity
-        :param speed: speed
-        :param conn: list of connections
-        :param plotNodes: list of nodes to be plotted (including hosts and switches)
-        :param MAX_X: Maximum value for X
-        :param MAX_Y: Maximum value for Y"
-        :param ppm: propagation model"""
-
-        np.random.seed(seed)
-        cls.rec_rssi = rec_rssi
-        cls.ac = AC
-        cls.addNodes(stations, aps)
+        plotNodes = []
+        if 'plotNodes' in kwargs:
+            plotNodes = kwargs['plotNodes']
         nodes = cls.stations + cls.aps + plotNodes
 
         # max waiting time
@@ -436,58 +400,66 @@ class mobility(object):
                 if not hasattr(node, 'min_x'):
                     node.min_x = 0
                 if not hasattr(node, 'max_x') or node.max_x == 0:
-                    node.max_x = max_x
+                    node.max_x = kwargs['max_x']
                 if not hasattr(node, 'min_y'):
                     node.min_y = 0
                 if not hasattr(node, 'max_y') or node.max_y == 0:
-                    node.max_y = max_y
+                    node.max_y = kwargs['max_y']
                 if not hasattr(node, 'min_v') or node.min_v == 0:
-                    node.min_v = min_v
+                    node.min_v = kwargs['min_v']
                 if not hasattr(node, 'max_v') or node.max_v == 0:
-                    node.max_v = max_v
+                    node.max_v = kwargs['max_v']
+
         try:
-            if DRAW:
-                plotGraph(0, 0, 0, max_x, max_y, 0, nodes, conn)
+            if kwargs['DRAW']:
+                nodes_ = kwargs['nodes']
+                kwargs['nodes'] = nodes
+                plotGraph(**kwargs)
                 plot2d.graphPause()
+                kwargs['nodes'] = nodes_
         except:
             info('Warning: running without GUI.\n')
-            DRAW = False
+            kwargs['DRAW'] = False
 
-        if mobileNodes:
-            debug('Configuring the mobility model %s' % model)
+        if kwargs['nodes']:
+            model = kwargs['model']
+            debug('Configuring the mobility model %s' % kwargs['model'])
 
             if model == 'RandomWalk':  # Random Walk model
-                mob = random_walk(mobileNodes)
+                mob = random_walk(kwargs['nodes'])
             elif model == 'TruncatedLevyWalk':  # Truncated Levy Walk model
-                mob = truncated_levy_walk(mobileNodes)
+                mob = truncated_levy_walk(kwargs['nodes'])
             elif model == 'RandomDirection':  # Random Direction model
-                mob = random_direction(mobileNodes,
-                                       dimensions=(max_x, max_y))
+                mob = random_direction(kwargs['nodes'],
+                                       dimensions=(kwargs['max_x'],
+                                                   kwargs['max_y']))
             elif model == 'RandomWayPoint':  # Random Waypoint model
-                mob = random_waypoint(mobileNodes, wt_max=MAX_WT)
+                mob = random_waypoint(kwargs['nodes'], wt_max=MAX_WT)
             elif model == 'GaussMarkov':  # Gauss-Markov model
-                mob = gauss_markov(mobileNodes, alpha=0.99)
+                mob = gauss_markov(kwargs['nodes'], alpha=0.99)
             elif model == 'ReferencePoint':  # Reference Point Group model
-                mob = reference_point_group(mobileNodes,
-                                            dimensions=(max_x, max_y),
+                mob = reference_point_group(kwargs['nodes'],
+                                            dimensions=(kwargs['max_x'],
+                                                        kwargs['max_y']),
                                             aggregation=0.5)
             elif model == 'TimeVariantCommunity':
-                mob = tvc(mobileNodes, dimensions=(max_x, max_y),
+                mob = tvc(kwargs['nodes'], dimensions=(kwargs['max_x'],
+                                                   kwargs['max_y']),
                           aggregation=[0.5, 0.], epoch=[100, 100])
             else:
                 raise Exception("Mobility Model not defined or doesn't exist!")
 
             current_time = time()
-            while (time() - current_time) < params['init_time']:
+            while (time() - current_time) < kwargs['init_time']:
                 pass
-            if DRAW:
-                cls.startMobilityModelGraph(mob, mobileNodes,
-                                            current_time, params['final_time'],
-                                            ppm)
+            if kwargs['DRAW']:
+                cls.startMobilityModelGraph(mob, kwargs['nodes'],
+                                            current_time, kwargs['final_time'],
+                                            kwargs['ppm'])
             else:
-                cls.startMobilityModelNoGraph(mob, mobileNodes,
-                                              current_time, params['final_time'],
-                                              ppm)
+                cls.startMobilityModelNoGraph(mob, kwargs['nodes'],
+                                              current_time, kwargs['final_time'],
+                                              kwargs['ppm'])
 
     @classmethod
     def startMobilityModelGraph(cls, mob, nodes, current_time, final_time, ppm):

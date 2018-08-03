@@ -60,8 +60,7 @@ class Mininet_wifi(Mininet):
                  fading_coefficient=0, autoAssociation=True,
                  allAutoAssociation=True, driver='nl80211',
                  autoSetPositions=False, configureWiFiDirect=False,
-                 configure4addr=False, defaultGraph=False,
-                 noise_threshold=-91, cca_threshold=-90,
+                 configure4addr=False, noise_threshold=-91, cca_threshold=-90,
                  rec_rssi=False, disable_tcp_checksum=False, ifb=False):
         """Create Mininet object.
            topo: Topo (topology) object or None
@@ -150,8 +149,8 @@ class Mininet_wifi(Mininet):
         self.min_x = 0
         self.min_y = 0
         self.min_z = 0
-        self.max_x = 0
-        self.max_y = 0
+        self.max_x = 100
+        self.max_y = 100
         self.max_z = 0
         self.nroads = 0
         self.conn = {}
@@ -161,9 +160,6 @@ class Mininet_wifi(Mininet):
         if not allAutoAssociation:
             self.autoAssociation = False
             mobility.allAutoAssociation = False
-
-        if defaultGraph:
-            self.defaultGraph()
 
         self.built = False
         if topo and build:
@@ -729,7 +725,7 @@ class Mininet_wifi(Mininet):
                 self.auto_association()
         if self.isMobility:
             if self.isMobilityModel or self.isVanet:
-                self.mobilityKwargs['mobileNodes'] = self.getMobileNodes()
+                self.mobilityKwargs['nodes'] = self.getMobileNodes()
                 self.start_mobility(**self.mobilityKwargs)
             else:
                 self.mobilityKwargs['plotNodes'] = self.plot_nodes()
@@ -1214,7 +1210,7 @@ class Mininet_wifi(Mininet):
             self.AC = kwargs['associationControl']
         if 'model' in kwargs:
             self.isMobilityModel = True
-            kwargs['mobileNodes'] = self.getMobileNodes()
+            kwargs['nodes'] = self.getMobileNodes()
         self.mobilityKwargs = kwargs
         kwargs['stations'] = self.stations
         kwargs['aps'] = self.aps
@@ -1227,12 +1223,12 @@ class Mininet_wifi(Mininet):
         mobility.stop(**params)
 
     def getMobileNodes(self):
-        mobileNodes = []
+        nodes_ = []
         nodes = self.stations + self.aps + self.cars
         for node in nodes:
             if 'position' not in node.params:
-                mobileNodes.append(node)
-        return mobileNodes
+                nodes_.append(node)
+        return nodes_
 
     @staticmethod
     def setBgscan(module='simple', s_inverval=30, signal=-45,
@@ -1252,11 +1248,6 @@ class Mininet_wifi(Mininet):
                      (module, s_inverval, signal, l_interval, database)
 
         Association.bgscan = bgscan
-
-    def defaultGraph(self):
-        "Default values for graph"
-        self.plotGraph(min_x=0, min_y=0, min_z=0,
-                       max_x=100, max_y=100, max_z=0)
 
     def propagationModel(self, **kwargs):
         "Propagation Model Attr"
@@ -1788,29 +1779,20 @@ class Mininet_wifi(Mininet):
             self.configureMacAddr(node)
         self.check_sta_ap_mode()
 
-    def plotGraph(self, min_x=0, min_y=0, min_z=0,
-                  max_x=0, max_y=0, max_z=0):
-        """Plots Graph
-
-        :params max_x: maximum X
-        :params max_y: maximum Y
-        :params max_z: maximum Z"""
+    def plotGraph(self, **kwargs):
+        "Plots Graph"
         self.DRAW = True
-        self.min_x = min_x
-        self.min_y = min_y
-        self.max_x = max_x
-        self.max_y = max_y
-        if max_z != 0:
-            self.min_z = min_z
-            self.max_z = max_z
+        for key in kwargs:
+            setattr(self, key, kwargs[key])
+        if 'max_z' in kwargs and kwargs['max_z'] != 0:
             self.plot = plot3d
             mobility.continuePlot = 'plot3d.graphPause()'
 
     def checkDimension(self, nodes):
         try:
-            plotGraph(self.min_x, self.min_y, self.min_z,
-                      self.max_x, self.max_y, self.max_z,
-                      nodes, self.conn)
+            plotGraph(min_x=self.min_x, min_y=self.min_y, min_z=self.min_z,
+                      max_x=self.max_x, max_y=self.max_y, max_z=self.max_z,
+                      nodes=nodes, conn=self.conn)
             if not issubclass(self.plot, plot3d):
                 self.plot.graphPause()
         except:
@@ -1822,15 +1804,15 @@ class Mininet_wifi(Mininet):
         self.isMobility = True
 
         if 'model' in kwargs or self.isVanet:
-            mobileNodes = []
-            for node in kwargs['mobileNodes']:
+            nodes = []
+            for node in kwargs['nodes']:
                 if 'position' not in node.params \
                         or 'position' in node.params \
                                 and node.params['position'] == (-1,-1,-1):
                     node.isStationary = False
-                    mobileNodes.append(node)
+                    nodes.append(node)
                     node.params['position'] = 0, 0, 0
-            kwargs['mobileNodes'] = mobileNodes
+            kwargs['nodes'] = nodes
             params = self.setMobilityParams(**kwargs)
             if self.nroads == 0:
                 mobility.start(**params)
@@ -1903,8 +1885,8 @@ class Mininet_wifi(Mininet):
         self.mobilityparam.setdefault('AC', self.AC)
         self.mobilityparam.setdefault('rec_rssi', self.rec_rssi)
         self.mobilityparam.setdefault('ppm', self.getPropagationModel())
-        if 'mobileNodes' in kwargs and kwargs['mobileNodes']:
-            self.mobilityparam.setdefault('mobileNodes', kwargs['mobileNodes'])
+        if 'nodes' in kwargs and kwargs['nodes']:
+            self.mobilityparam.setdefault('nodes', kwargs['nodes'])
         return self.mobilityparam
 
     def useExternalProgram(self, program, **params):
