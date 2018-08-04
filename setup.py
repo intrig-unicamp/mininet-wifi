@@ -8,7 +8,7 @@ from os.path import join
 # Get version number from source tree
 import sys
 sys.path.append( '.' )
-from mininet.net import VERSION
+from mn_wifi.net import VERSION
 
 scripts = [ join( 'bin', filename ) for filename in [ 'mn' ] ]
 

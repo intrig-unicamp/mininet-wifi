@@ -46,6 +46,7 @@ from mn_wifi.sixLoWPAN.link import sixLoWPANLink
 sys.path.append(str(os.getcwd()) + '/mininet/')
 from mn_wifi.sumo.runner import sumo
 
+VERSION = "2.2.1d1"
 
 class Mininet_wifi(Mininet):
 

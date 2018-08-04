@@ -368,7 +368,6 @@ class MininetRunner(object):
     def begin(self):
         "Create and run mininet."
 
-        Mininet.VERSION = "2.2.1d1"
         global CLI
 
         opts = self.options
