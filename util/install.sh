@@ -88,6 +88,14 @@ function version_ge {
     [ "$1" == "$latest" ]
 }
 
+# Attempt to identify Python version
+PYTHON=${PYTHON:-python}
+if $PYTHON --version |& grep 'Python 2' > /dev/null; then
+    PYTHON_VERSION=2; PYPKG=python
+else
+    PYTHON_VERSION=3; PYPKG=python3
+fi
+echo "${PYTHON} is version ${PYTHON_VERSION}"
 
 # Kernel Deb pkg to be removed:
 KERNEL_IMAGE_OLD=linux-image-2.6.26-33-generic
@@ -128,43 +136,23 @@ function kernel_clean {
 function mn_deps {
     if [ "$DIST" = "Fedora" -o "$DIST" = "RedHatEnterpriseServer" ]; then
         $install gcc make socat psmisc xterm openssh-clients iperf \
-            iproute telnet libcgroup-tools \
-            ethtool help2m pyflakes pylint python-pep8
-        if [ "$PYTHON3" == true ]; then
-		    $install python3-setuptools python3-pexpect python3-pip
-		else
-		    $install python-setuptools python-pexpect python-pip
-	    fi
+            iproute telnet python-setuptools libcgroup-tools \
+            ethtool help2man pyflakes pylint python-pep8 python-pexpect
 	elif [ "$DIST" = "SUSE LINUX"  ]; then
 		$install gcc make socat psmisc xterm openssh iperf \
 			iproute telnet libcgroup-tools \
-			ethtool help2man python-pyflakes python3-pylint python-pep8
-		if [ "$PYTHON3" == true ]; then
-		    $install python3-setuptools python3-pexpect python3-pip
-		else
-		    $install python-setuptools python-pexpect python-pip
-	    fi
-    else
+			ethtool help2man python-pyflakes python-pep8 \
+		    ${PYPKG}-setuptools ${PYPKG}-pexpect ${PYPKG}-tk \
+		    ${PYPKG}-pip
+	else
         $install gcc make socat psmisc xterm ssh iperf iproute2 telnet \
-            cgroup-bin ethtool help2man pyflakes pylint pep8
-        if [ "$PYTHON3" == true ]; then
-		    $install python3-setuptools python3-pexpect python3-pip
-		else
-		    $install python-setuptools python-pexpect python-pip
-	    fi
-    fi
-    if [ "$PYTHON3" == true ]; then
-        pip install --upgrade pip
-        pip install typing
-        python -V
-        PYVER=`python -V 2>&1 | sed 's/.* \([0-9]\).\([0-9]\).*/\1\2/'`
-        if [ "$PYVER" == "27" ]; then
-            echo "Python version <= 3.0 - exiting..."
-            exit 1
-        fi
-    else
-        pip2 install typing
-    fi
+            cgroup-bin ethtool help2man pyflakes pylint pep8 \
+            ${PYPKG}-setuptools ${PYPKG}-pexpect ${PYPKG}-tk \
+            ${PYPKG}-pip
+	fi
+    pip install --upgrade pip
+    pip install typing
+
     echo "Installing Mininet core"
     pushd $MININET_DIR/mininet-wifi
     if [ -d mininet ]; then
@@ -173,11 +161,11 @@ function mn_deps {
     fi
     sudo git clone --depth=1 https://github.com/mininet/mininet.git
     pushd $MININET_DIR/mininet-wifi/mininet
-    sudo make install
+    sudo PYTHON=${PYTHON} make install
     popd
     echo "Installing Mininet-wifi core"
     pushd $MININET_DIR/mininet-wifi
-    sudo make install
+    sudo PYTHON=${PYTHON} make install
     popd
 }
 
@@ -185,13 +173,10 @@ function mn_deps {
 function wifi_deps {
     echo "Installing Mininet-WiFi dependencies"
     $install wireless-tools rfkill python-numpy pkg-config \
-             libnl-3-dev libnl-genl-3-dev libssl-dev make libevent-dev patch
-    if [ "$PYTHON3" == true ]; then
-		    $install python3-scipy python3-pip python3 python3-matplotlib
-		else
-		    $install python-scipy python-pip python-matplotlib
-	    fi
-    pushd $MININET_DIR/mininet-wifi
+             libnl-3-dev libnl-genl-3-dev libssl-dev make libevent-dev patch \
+             ${PYPKG}-scipy ${PYPKG}-pip ${PYPKG}-matplotlib \
+
+	pushd $MININET_DIR/mininet-wifi
     git submodule update --init --recursive
     pushd $MININET_DIR/mininet-wifi/hostap
     patch -p0 < $MININET_DIR/mininet-wifi/util/hostap-patches/config.patch
