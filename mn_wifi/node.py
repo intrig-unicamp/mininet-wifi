@@ -49,6 +49,7 @@ class Node_wifi(Node):
         self.checkSetup()
 
         self.name = params.get('name', name)
+        self.privateDirs = params.get('privateDirs', [])
         self.inNamespace = params.get('inNamespace', inNamespace)
 
         # Stash configuration parameters for future reference
