@@ -150,7 +150,10 @@ function mn_deps {
             ${PYPKG}-setuptools ${PYPKG}-pexpect ${PYPKG}-tk \
             ${PYPKG}-pip
 	fi
-    pip install --upgrade pip
+    if which pip; then
+        pip install --upgrade pip
+    else
+        pip3 install --upgrade pip
     pip install typing
 
     echo "Installing Mininet core"
