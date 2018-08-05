@@ -31,7 +31,6 @@ from mn_wifi.propagationModels import GetSignalRange, \
     GetPowerGivenRange, propagationModel
 from mn_wifi.util import moveIntf
 from mn_wifi.module import module
-from mn_wifi.utils.private_folder_manager import PrivateFolderManager
 
 
 class Node_wifi(Node):
@@ -72,8 +71,7 @@ class Node_wifi(Node):
 
         # Start command interpreter shell
         self.startShell()
-        self.private_folder_manager = \
-            PrivateFolderManager(self, params.get('privateDirs', []))
+        self.mountPrivateDirs()
 
     # File descriptor to node mapping support
     # Class variables and methods
@@ -623,9 +621,13 @@ class Node_wifi(Node):
                    (self.params['wlan'][wlan],
                     ap.params['ssid'][ap_wlan], passwd))
 
-    def get_private_folder_manager(self):
-        # type: () -> PrivateFolderManager
-        return self.private_folder_manager
+    def unmountPrivateDirs(self):
+        "mount private directories"
+        for directory in self.privateDirs:
+            if isinstance(directory, tuple):
+                self.cmd('umount ', directory[0])
+            else:
+                self.cmd('umount ', directory)
 
     def _popen(self, cmd, **params):
         """Internal method: spawn and return a process
@@ -685,10 +687,10 @@ class Node_wifi(Node):
 
     def terminate(self):
         "Send kill signal to Node and clean up after it."
-        self.private_folder_manager.finish()
+        self.unmountPrivateDirs()
         if self.shell:
             if self.shell.poll() is None:
-                os.killpg(self.shell.pid, signal.SIGHUP)
+                os.killpg( self.shell.pid, signal.SIGHUP )
         self.cleanup()
 
     def stop(self, deleteIntfs=False):
