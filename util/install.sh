@@ -154,8 +154,8 @@ function mn_deps {
 	    fi
     fi
     if [ "$PYTHON3" == true ]; then
-        pip3 install --upgrade pip
-        pip3 install typing
+        pip install --upgrade pip
+        pip install typing
         python -V
         PYVER=`python -V 2>&1 | sed 's/.* \([0-9]\).\([0-9]\).*/\1\2/'`
         if [ "$PYVER" == "27" ]; then
