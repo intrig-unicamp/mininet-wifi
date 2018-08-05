@@ -154,6 +154,7 @@ function mn_deps {
         pip install --upgrade pip
     else
         pip3 install --upgrade pip
+    fi
     pip install typing
 
     echo "Installing Mininet core"
