@@ -8,8 +8,6 @@ import pty
 import re
 import signal
 import select
-import numpy as np
-from scipy.spatial.distance import pdist
 from six import string_types
 
 from subprocess import Popen, PIPE
@@ -21,7 +19,6 @@ from mininet.node import Node
 from mininet.moduledeps import pathCheck
 from mininet.link import Link
 from mn_wifi.util import moveIntf
-from mn_wifi.utils.private_folder_manager import PrivateFolderManager
 
 
 class Node_6lowpan(Node):
@@ -62,8 +59,7 @@ class Node_6lowpan(Node):
 
         # Start command interpreter shell
         self.startShell()
-        self.private_folder_manager = \
-            PrivateFolderManager(self, params.get('privateDirs', []))
+        self.mountPrivateDirs()
 
     # File descriptor to node mapping support
     # Class variables and methods
@@ -134,6 +130,14 @@ class Node_6lowpan(Node):
         self.params['range'] = [0]
         self.plotted = True
 
+    def unmountPrivateDirs(self):
+        "mount private directories"
+        for directory in self.privateDirs:
+            if isinstance(directory, tuple):
+                self.cmd('umount ', directory[0])
+            else:
+                self.cmd('umount ', directory)
+
     def _popen(self, cmd, **params):
         """Internal method: spawn and return a process
             cmd: command to run (list)
@@ -192,10 +196,10 @@ class Node_6lowpan(Node):
 
     def terminate(self):
         "Send kill signal to Node and clean up after it."
-        self.private_folder_manager.finish()
+        self.unmountPrivateDirs()
         if self.shell:
             if self.shell.poll() is None:
-                os.killpg(self.shell.pid, signal.SIGHUP)
+                os.killpg( self.shell.pid, signal.SIGHUP )
         self.cleanup()
 
     def stop(self, deleteIntfs=False):
