@@ -30,7 +30,6 @@ KERNEL_LOC=http://www.openflow.org/downloads/mininet
 DIST=Unknown
 RELEASE=Unknown
 CODENAME=Unknown
-PYTHON3=false
 ARCH=`uname -m`
 if [ "$ARCH" = "x86_64" ]; then ARCH="amd64"; fi
 if [ "$ARCH" = "i686" ]; then ARCH="i386"; fi
@@ -142,20 +141,12 @@ function mn_deps {
 		$install gcc make socat psmisc xterm openssh iperf \
 			iproute telnet libcgroup-tools \
 			ethtool help2man python-pyflakes python-pep8 \
-		    ${PYPKG}-setuptools ${PYPKG}-pexpect ${PYPKG}-tk \
-		    ${PYPKG}-pip
+		    ${PYPKG}-setuptools ${PYPKG}-pexpect ${PYPKG}-tk
 	else
         $install gcc make socat psmisc xterm ssh iperf iproute2 telnet \
             cgroup-bin ethtool help2man pyflakes pylint pep8 \
-            ${PYPKG}-setuptools ${PYPKG}-pexpect ${PYPKG}-tk \
-            ${PYPKG}-pip
+            ${PYPKG}-setuptools ${PYPKG}-pexpect ${PYPKG}-tk
 	fi
-    if which pip; then
-        pip install --upgrade pip
-    else
-        pip3 install --upgrade pip
-    fi
-    pip install typing
 
     echo "Installing Mininet core"
     pushd $MININET_DIR/mininet-wifi
@@ -179,6 +170,13 @@ function wifi_deps {
     $install wireless-tools rfkill python-numpy pkg-config \
              libnl-3-dev libnl-genl-3-dev libssl-dev make libevent-dev patch \
              ${PYPKG}-scipy ${PYPKG}-pip ${PYPKG}-matplotlib \
+
+    if which pip; then
+        pip install --upgrade pip
+    else
+        pip3 install --upgrade pip
+    fi
+    pip install typing
 
 	pushd $MININET_DIR/mininet-wifi
     git submodule update --init --recursive
@@ -872,7 +870,6 @@ else
       m)    modprobe;;
       n)    mn_deps;;
       p)    pox;;
-      P)    PYTHON3=true;;
       r)    remove_ovs;;
       s)    mkdir -p $OPTARG; # ensure the directory is created
             BUILD_DIR="$( cd -P "$OPTARG" && pwd )"; # get the full path
