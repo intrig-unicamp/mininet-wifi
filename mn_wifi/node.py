@@ -622,6 +622,24 @@ class Node_wifi(Node):
                    (self.params['wlan'][wlan],
                     ap.params['ssid'][ap_wlan], passwd))
 
+    def mountPrivateDirs(self):
+        "mount private directories"
+        # Avoid expanding a string into a list of chars
+        assert not isinstance(self.privateDirs, string_types)
+        for directory in self.privateDirs:
+            if isinstance(directory, tuple):
+                # mount given private directory
+                privateDir = directory[1] % self.__dict__
+                mountPoint = directory[0]
+                self.cmd('mkdir -p %s' % privateDir)
+                self.cmd('mkdir -p %s' % mountPoint)
+                self.cmd('mount --bind %s %s' %
+                         (privateDir, mountPoint))
+            else:
+                # mount temporary filesystem on directory
+                self.cmd('mkdir -p %s' % directory)
+                self.cmd('mount -n -t tmpfs tmpfs %s' % directory)
+
     def unmountPrivateDirs(self):
         "mount private directories"
         for directory in self.privateDirs:
