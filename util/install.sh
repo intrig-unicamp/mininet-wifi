@@ -155,7 +155,7 @@ function mn_deps {
       rm -r mininet
     fi
 
-    if [ PYTHON_VERSION == 3 ]; then
+    if [ $PYTHON_VERSION == 3 ]; then
       alias python=python3
     fi
 
