@@ -88,13 +88,13 @@ function version_ge {
 }
 
 # Attempt to identify Python version
-PYTHON=${PYTHON:-python}
-if $PYTHON --version |& grep 'Python 2' > /dev/null; then
+python=${python:-python}
+if $python --version |& grep 'Python 2' > /dev/null; then
     PYTHON_VERSION=2; PYPKG=python
 else
     PYTHON_VERSION=3; PYPKG=python3
 fi
-echo "${PYTHON} is version ${PYTHON_VERSION}"
+echo "${python} is version ${PYTHON_VERSION}"
 
 # Kernel Deb pkg to be removed:
 KERNEL_IMAGE_OLD=linux-image-2.6.26-33-generic
@@ -154,22 +154,27 @@ function mn_deps {
       echo "Removing mininet dir..."
       rm -r mininet
     fi
+
+    if [ PYTHON_VERSION == 3 ]; then
+      alias python=python3
+    fi
+
     sudo git clone --depth=1 https://github.com/mininet/mininet.git
     pushd $MININET_DIR/mininet-wifi/mininet
-    sudo PYTHON=${PYTHON} make install
+    sudo python=${python} make install
     popd
     echo "Installing Mininet-wifi core"
     pushd $MININET_DIR/mininet-wifi
-    sudo PYTHON=${PYTHON} make install
+    sudo python=${python} make install
     popd
 }
 
 # Install Mininet-WiFi deps
 function wifi_deps {
     echo "Installing Mininet-WiFi dependencies"
-    $install wireless-tools rfkill python-numpy pkg-config \
+    $install wireless-tools rfkill ${PYPKG}-numpy pkg-config \
              libnl-3-dev libnl-genl-3-dev libssl-dev make libevent-dev patch \
-             python-scipy python3-scipy ${PYPKG}-matplotlib
+             ${PYPKG}-scipy ${PYPKG}-matplotlib
 
 	pushd $MININET_DIR/mininet-wifi
     git submodule update --init --recursive
