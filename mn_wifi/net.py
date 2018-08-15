@@ -2002,12 +2002,13 @@ class Mininet_wifi(Mininet):
                     if 'model' not in node.params:
                         node.params['txpower'][wlan] = \
                             node.get_txpower_prop_model(wlan)
-                node.setTxPower(node.params['txpower'][wlan],
-                                intf=node.params['wlan'][wlan],
-                                setParam=setParam)
-                node.setAntennaGain(node.params['antennaGain'][wlan],
+                if not self.configure4addr and not self.configureWiFiDirect:
+                    node.setTxPower(node.params['txpower'][wlan],
                                     intf=node.params['wlan'][wlan],
                                     setParam=setParam)
+                    node.setAntennaGain(node.params['antennaGain'][wlan],
+                                        intf=node.params['wlan'][wlan],
+                                        setParam=setParam)
 
         return self.stations, self.aps
 
