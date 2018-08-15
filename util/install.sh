@@ -155,8 +155,11 @@ function mn_deps {
       rm -r mininet
     fi
 
-    if [ $PYTHON_VERSION == 3 ]; then
-      alias python=python3
+    # Last check for python2
+    python=${python:-python}
+    if $python --version |& grep 'Python 2' > /dev/null; then
+      $install python-numpy python-matplotlib python-scipy \
+          python-setuptools python-pexpect python-tk
     fi
 
     sudo git clone --depth=1 https://github.com/mininet/mininet.git
