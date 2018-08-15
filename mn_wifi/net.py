@@ -121,7 +121,6 @@ class Mininet_wifi(Mininet):
         self.switches = []
         self.stations = []
         self.sixLP = []
-        self.walls = []
         self.terms = []  # list of spawned xterm processes
         self.driver = driver
         self.autoAssociation = autoAssociation # does not include mobility
@@ -304,7 +303,7 @@ class Mininet_wifi(Mininet):
         else:
             car.params['ssid'] = 'mesh-ssid'
             car.func.append('mesh')
-        self.isVanet = True
+
         return car
 
     def addAccessPoint(self, name, cls=None, **params):
@@ -675,17 +674,16 @@ class Mininet_wifi(Mininet):
         raise Exception('configureControlNetwork: '
                         'should be overriden in subclass', self)
 
-    def create_vanet_link(self):
-        for idx, car in enumerate(self.cars):
-            self.addLink(self.carsSTA[idx], self.carsSW[idx])
-            self.addLink(car, self.carsSW[idx])
+    def create_vanet_link(self, car):
+        carsw = car.name + 'SW'
+        sw = self.nameToNode[carsw]
+        self.addLink(car.params['carsta'], sw)
+        self.addLink(car, sw)
 
     def build(self):
         "Build mininet-wifi."
         if self.topo:
             self.buildFromWirelessTopo(self.topo)
-        if self.isVanet:
-            self.create_vanet_link()
         else:
             if not mobility.stations:
                 for node in self.stations:
@@ -712,12 +710,14 @@ class Mininet_wifi(Mininet):
 
         nodes = self.stations
         for node in nodes:
+            if isinstance(node, Car):
+                self.create_vanet_link(node)
             for wlan in range(0, len(node.params['wlan'])):
                 if not isinstance(node, AP) and node.func[0] != 'ap' and \
                         node.func[wlan] != 'mesh' and \
                                 node.func[wlan] != 'adhoc' and \
                                 node.func[wlan] != 'wifiDirect':
-                    if not node.autoTxPower:
+                    if isinstance(node, Station):
                         node.params['range'][wlan] = \
                             int(node.params['range'][wlan]) / 5
 
@@ -725,7 +725,7 @@ class Mininet_wifi(Mininet):
             if self.autoAssociation and not self.isMobility:
                 self.auto_association()
         if self.isMobility:
-            if self.isMobilityModel or self.isVanet:
+            if self.isMobilityModel or self.isVanet or self.nroads != 0:
                 self.mobilityKwargs['nodes'] = self.getMobileNodes()
                 self.start_mobility(**self.mobilityKwargs)
             else:
@@ -1342,7 +1342,6 @@ class Mininet_wifi(Mininet):
         node.params['wlan'] = []
         node.params['mac'] = []
         node.phyID = []
-        node.autoTxPower = False
 
         if 'passwd' in params:
             node.params['passwd'] = []
@@ -1556,7 +1555,7 @@ class Mininet_wifi(Mininet):
                     node.params['range'].append(0)
 
     def add_ip_param(self, node, wlans=0, autoSetMacs=False,
-                         params=None, isVirtualIface=False):
+                     params=None, isVirtualIface=False):
         "Add IP Param"
         if isVirtualIface:
             node.params['ip'].append(node.params['ip'][0])
@@ -1803,8 +1802,7 @@ class Mininet_wifi(Mininet):
     def start_mobility(self, **kwargs):
         "Starts Mobility"
         self.isMobility = True
-
-        if 'model' in kwargs or self.isVanet:
+        if 'model' in kwargs or self.isVanet or self.nroads != 0:
             nodes = []
             for node in kwargs['nodes']:
                 if 'position' not in node.params \
@@ -1863,31 +1861,31 @@ class Mininet_wifi(Mininet):
                 self.mobilityparam.setdefault('min_v', kwargs['min_v'])
             if 'max_v' in kwargs:
                 self.mobilityparam.setdefault('max_v', kwargs['max_v'])
-
-        if 'time' in kwargs:
-            if 'init_time' not in self.mobilityparam:
-                self.mobilityparam.setdefault('init_time', kwargs['time'])
-            else:
-                self.mobilityparam.setdefault('final_time', kwargs['time'])
-        self.mobilityparam.setdefault('seed', self.seed)
-        if 'stations' in kwargs:
-            self.mobilityparam.setdefault('stations', kwargs['stations'])
-        if 'aps' in kwargs:
-            self.mobilityparam.setdefault('aps', kwargs['aps'])
-
-        self.mobilityparam.setdefault('DRAW', self.DRAW)
-        self.mobilityparam.setdefault('conn', self.conn)
+            self.mobilityparam.setdefault('seed', self.seed)
         self.mobilityparam.setdefault('min_x', self.min_x)
         self.mobilityparam.setdefault('min_y', self.min_y)
         self.mobilityparam.setdefault('min_z', self.min_z)
         self.mobilityparam.setdefault('max_x', self.max_x)
         self.mobilityparam.setdefault('max_y', self.max_y)
         self.mobilityparam.setdefault('max_z', self.max_z)
+
+        time_ = 'init_time'
+        if 'time' in kwargs:
+            if 'init_time' in self.mobilityparam:
+                time_ = 'final_time'
+            self.mobilityparam.setdefault(time_, kwargs['time'])
+        if 'stations' in kwargs:
+            self.mobilityparam.setdefault('stations', kwargs['stations'])
+        if 'aps' in kwargs:
+            self.mobilityparam.setdefault('aps', kwargs['aps'])
+        if 'nodes' in kwargs and kwargs['nodes']:
+            self.mobilityparam.setdefault('nodes', kwargs['nodes'])
+
+        self.mobilityparam.setdefault('DRAW', self.DRAW)
+        self.mobilityparam.setdefault('conn', self.conn)
         self.mobilityparam.setdefault('AC', self.AC)
         self.mobilityparam.setdefault('rec_rssi', self.rec_rssi)
         self.mobilityparam.setdefault('ppm', self.getPropagationModel())
-        if 'nodes' in kwargs and kwargs['nodes']:
-            self.mobilityparam.setdefault('nodes', kwargs['nodes'])
         return self.mobilityparam
 
     def useExternalProgram(self, program, **params):
@@ -1965,15 +1963,6 @@ class Mininet_wifi(Mininet):
                 (self.configureWiFiDirect and self.autoAssociation):
             wmediumd(self.fading_coefficient, self.noise_threshold,
                      self.stations, self.aps, propagationModel)
-            if self.wmediumd_mode == interference and not self.isVanet:
-                for node in nodes:
-                    for wlan in range(0, len(node.params['wlan'])):
-                        node.setTxPower(node.params['txpower'][wlan],
-                                        intf=node.params['wlan'][wlan],
-                                        setParam=False)
-                        node.setAntennaGain(node.params['antennaGain'][wlan],
-                                            intf=node.params['wlan'][wlan],
-                                            setParam=False)
 
     def configureWifiNodes(self):
         "Configure WiFi Nodes"
@@ -1992,6 +1981,13 @@ class Mininet_wifi(Mininet):
         AccessPoint(self.aps, self.driver, self.link)
         self.configureCars()
 
+        if self.link == wmediumd:
+            self.configureWmediumd(nodes)
+
+        setParam = True
+        if self.wmediumd_mode == interference and not self.isVanet:
+            setParam = False
+
         for node in nodes:
             for wlan in range(0, len(node.params['wlan'])):
                 if isinstance(node, Car) and wlan >= 1:
@@ -2003,17 +1999,15 @@ class Mininet_wifi(Mininet):
                     intf = node.params['wlan'][wlan]
                     node.params['range'][wlan] = node.getRange(intf=intf)
                 else:
-                    if node.params['txpower'][wlan] == 14 and \
-                                   'model' not in node.params:
-                        node.autoTxPower=True
+                    if 'model' not in node.params:
                         node.params['txpower'][wlan] = \
                             node.get_txpower_prop_model(wlan)
                 node.setTxPower(node.params['txpower'][wlan],
                                 intf=node.params['wlan'][wlan],
-                                setParam=True)
-
-        if self.link == wmediumd:
-            self.configureWmediumd(nodes)
+                                setParam=setParam)
+                node.setAntennaGain(node.params['antennaGain'][wlan],
+                                    intf=node.params['wlan'][wlan],
+                                    setParam=setParam)
 
         return self.stations, self.aps
 

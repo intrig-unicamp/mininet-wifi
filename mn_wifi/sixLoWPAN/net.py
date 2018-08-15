@@ -67,7 +67,6 @@ class Mininet_6LoWPAN(Mininet):
         node.params['wpan'] = []
         node.params['mac'] = []
         node.phyID = []
-        node.autoTxPower = False
 
         if 'passwd' in params:
             node.params['passwd'] = []

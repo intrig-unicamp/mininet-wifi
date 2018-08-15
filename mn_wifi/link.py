@@ -1108,7 +1108,7 @@ class physicalMesh(IntfWireless):
         if ssid != "{}":
             node.params['ssid'][wlan] = ssid
 
-        if node.autoTxPower:
+        if int(node.params['range'][wlan]) == 0:
             intf = node.params['wlan'][wlan]
             node.params['range'][wlan] = node.getRange(intf=intf, noiseLevel=95)
 
