@@ -77,7 +77,7 @@ class Mininet_wifi(Mininet):
            inNamespace: spawn switches and controller in net namespaces?
            autoSetMacs: set MAC addrs automatically like IP addresses?
            autoStaticArp: set all-pairs static MAC addrs?
-           autoPinCpus: pin hosts to (real) cores (requires CPULimitedHost)?
+           autoPinCpus: pin hosts to (real) cores (requires CPULimitedStation)?
            listenPort: base listening port to open; will be incremented for
                each additional switch in the net if inNamespace=False"""
         self.topo = topo
@@ -2188,13 +2188,13 @@ class MininetWithControlNet(Mininet_wifi):
         cip = ip
         snum = ipParse(ip)
         nodesL2 = self.switches + self.aps
-        for switch in nodesL2:
-            info(' ' + switch.name)
+        for nodeL2 in nodesL2:
+            info(' ' + nodeL2.name)
             # set Link as default since wmediumd doesn't include port1
             self.link = Link
-            link = self.link(switch, controller, port1=0)
+            link = self.link(nodeL2, controller, port1=0)
             sintf, cintf = link.intf1, link.intf2
-            switch.controlIntf = sintf
+            nodeL2.controlIntf = sintf
             snum += 1
             while snum & 0xff in [0, 255]:
                 snum += 1
@@ -2202,17 +2202,17 @@ class MininetWithControlNet(Mininet_wifi):
             cintf.setIP(cip, prefixLen)
             sintf.setIP(sip, prefixLen)
             controller.setHostRoute(sip, cintf)
-            switch.setHostRoute(cip, sintf)
+            nodeL2.setHostRoute(cip, sintf)
         info('\n')
         info('*** Testing control network\n')
         while not cintf.isUp():
             info('*** Waiting for', cintf, 'to come up\n')
             sleep(1)
-        for switch in nodesL2:
+        for nodeL2 in nodesL2:
             while not sintf.isUp():
                 info('*** Waiting for', sintf, 'to come up\n')
                 sleep(1)
-            if self.ping(hosts=[switch, controller]) != 0:
+            if self.ping(hosts=[nodeL2, controller]) != 0:
                 error('*** Error: control network test failed\n')
                 exit(1)
         info('\n')

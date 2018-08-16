@@ -1,6 +1,23 @@
 """
-    Mininet-WiFi: A simple networking testbed for Wireless OpenFlow/SDWN!
-author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)"""
+Node objects for Mininet-WiFi.
+Nodes provide a simple abstraction for interacting with stations, aps
+and controllers. Local nodes are simply one or more processes on the local
+machine.
+Node: superclass for all (primarily local) network nodes.
+Station: a virtual station. By default, a station is simply a shell; commands
+    may be sent using Cmd (which waits for output), or using sendCmd(),
+    which returns immediately, allowing subsequent monitoring using
+    monitor(). Examples of how to run experiments using this
+    functionality are provided in the examples/ directory. By default,
+    stations share the root file system, but they may also specify private
+    directories.
+CPULimitedStation: a virtual station whose CPU bandwidth is limited by
+    RT or CFS bandwidth limiting.
+UserAP: a AP using the user-space switch from the OpenFlow
+    reference implementation.
+OVSAP: a AP using the Open vSwitch OpenFlow-compatible switch
+    implementation (openvswitch.org).
+"""
 
 import os
 import pty
@@ -19,7 +36,8 @@ from scipy.spatial.distance import pdist
 from six import string_types
 
 from mininet.log import info, error, warn, debug
-from mininet.util import (quietRun, errRun, isShellBuiltin)
+from mininet.util import (quietRun, errRun, errFail, mountCgroups,
+                          numCores, retry, isShellBuiltin)
 from mininet.node import Node
 from mininet.moduledeps import moduleDeps, pathCheck, TUN
 from mininet.link import Link, Intf, OVSIntf
@@ -1146,6 +1164,196 @@ class Car(Node_wifi):
     pass
 
 
+class CPULimitedStation( Station ):
+
+    "CPU limited host"
+
+    def __init__( self, name, sched='cfs', **kwargs ):
+        Station.__init__( self, name, **kwargs )
+        # Initialize class if necessary
+        if not CPULimitedStation.inited:
+            CPULimitedStation.init()
+        # Create a cgroup and move shell into it
+        self.cgroup = 'cpu,cpuacct,cpuset:/' + self.name
+        errFail( 'cgcreate -g ' + self.cgroup )
+        # We don't add ourselves to a cpuset because you must
+        # specify the cpu and memory placement first
+        errFail( 'cgclassify -g cpu,cpuacct:/%s %s' % ( self.name, self.pid ) )
+        # BL: Setting the correct period/quota is tricky, particularly
+        # for RT. RT allows very small quotas, but the overhead
+        # seems to be high. CFS has a mininimum quota of 1 ms, but
+        # still does better with larger period values.
+        self.period_us = kwargs.get( 'period_us', 100000 )
+        self.sched = sched
+        if sched == 'rt':
+            self.checkRtGroupSched()
+            self.rtprio = 20
+
+    def cgroupSet( self, param, value, resource='cpu' ):
+        "Set a cgroup parameter and return its value"
+        cmd = 'cgset -r %s.%s=%s /%s' % (
+            resource, param, value, self.name )
+        quietRun( cmd )
+        nvalue = int( self.cgroupGet( param, resource ) )
+        if nvalue != value:
+            error( '*** error: cgroupSet: %s set to %s instead of %s\n'
+                   % ( param, nvalue, value ) )
+        return nvalue
+
+    def cgroupGet( self, param, resource='cpu' ):
+        "Return value of cgroup parameter"
+        cmd = 'cgget -r %s.%s /%s' % (
+            resource, param, self.name )
+        return int( quietRun( cmd ).split()[ -1 ] )
+
+    def cgroupDel( self ):
+        "Clean up our cgroup"
+        # info( '*** deleting cgroup', self.cgroup, '\n' )
+        _out, _err, exitcode = errRun( 'cgdelete -r ' + self.cgroup )
+        # Sometimes cgdelete returns a resource busy error but still
+        # deletes the group; next attempt will give "no such file"
+        return exitcode == 0 or ( 'no such file' in _err.lower() )
+
+    def popen( self, *args, **kwargs ):
+        """Return a Popen() object in node's namespace
+           args: Popen() args, single list, or string
+           kwargs: Popen() keyword args"""
+        # Tell mnexec to execute command in our cgroup
+        mncmd = kwargs.pop( 'mncmd', [ 'mnexec', '-g', self.name,
+                                       '-da', str( self.pid ) ] )
+        # if our cgroup is not given any cpu time,
+        # we cannot assign the RR Scheduler.
+        if self.sched == 'rt':
+            if int( self.cgroupGet( 'rt_runtime_us', 'cpu' ) ) <= 0:
+                mncmd += [ '-r', str( self.rtprio ) ]
+            else:
+                debug( '*** error: not enough cpu time available for %s.' %
+                       self.name, 'Using cfs scheduler for subprocess\n' )
+        return Station.popen( self, *args, mncmd=mncmd, **kwargs )
+
+    def cleanup( self ):
+        "Clean up Node, then clean up our cgroup"
+        super( CPULimitedStation, self ).cleanup()
+        retry( retries=3, delaySecs=.1, fn=self.cgroupDel )
+
+    _rtGroupSched = False   # internal class var: Is CONFIG_RT_GROUP_SCHED set?
+
+    @classmethod
+    def checkRtGroupSched( cls ):
+        "Check (Ubuntu,Debian) kernel config for CONFIG_RT_GROUP_SCHED for RT"
+        if not cls._rtGroupSched:
+            release = quietRun( 'uname -r' ).strip('\r\n')
+            output = quietRun( 'grep CONFIG_RT_GROUP_SCHED /boot/config-%s' %
+                               release )
+            if output == '# CONFIG_RT_GROUP_SCHED is not set\n':
+                error( '\n*** error: please enable RT_GROUP_SCHED '
+                       'in your kernel\n' )
+                exit( 1 )
+            cls._rtGroupSched = True
+
+    def chrt( self ):
+        "Set RT scheduling priority"
+        quietRun( 'chrt -p %s %s' % ( self.rtprio, self.pid ) )
+        result = quietRun( 'chrt -p %s' % self.pid )
+        firstline = result.split( '\n' )[ 0 ]
+        lastword = firstline.split( ' ' )[ -1 ]
+        if lastword != 'SCHED_RR':
+            error( '*** error: could not assign SCHED_RR to %s\n' % self.name )
+        return lastword
+
+    def rtInfo( self, f ):
+        "Internal method: return parameters for RT bandwidth"
+        pstr, qstr = 'rt_period_us', 'rt_runtime_us'
+        # RT uses wall clock time for period and quota
+        quota = int( self.period_us * f )
+        return pstr, qstr, self.period_us, quota
+
+    def cfsInfo( self, f ):
+        "Internal method: return parameters for CFS bandwidth"
+        pstr, qstr = 'cfs_period_us', 'cfs_quota_us'
+        # CFS uses wall clock time for period and CPU time for quota.
+        quota = int( self.period_us * f * numCores() )
+        period = self.period_us
+        if f > 0 and quota < 1000:
+            debug( '(cfsInfo: increasing default period) ' )
+            quota = 1000
+            period = int( quota / f / numCores() )
+        # Reset to unlimited on negative quota
+        if quota < 0:
+            quota = -1
+        return pstr, qstr, period, quota
+
+    # BL comment:
+    # This may not be the right API,
+    # since it doesn't specify CPU bandwidth in "absolute"
+    # units the way link bandwidth is specified.
+    # We should use MIPS or SPECINT or something instead.
+    # Alternatively, we should change from system fraction
+    # to CPU seconds per second, essentially assuming that
+    # all CPUs are the same.
+
+    def setCPUFrac( self, f, sched=None ):
+        """Set overall CPU fraction for this station
+           f: CPU bandwidth limit (positive fraction, or -1 for cfs unlimited)
+           sched: 'rt' or 'cfs'
+           Note 'cfs' requires CONFIG_CFS_BANDWIDTH,
+           and 'rt' requires CONFIG_RT_GROUP_SCHED"""
+        if not sched:
+            sched = self.sched
+        if sched == 'rt':
+            if not f or f < 0:
+                raise Exception( 'Please set a positive CPU fraction'
+                                 ' for sched=rt\n' )
+            pstr, qstr, period, quota = self.rtInfo( f )
+        elif sched == 'cfs':
+            pstr, qstr, period, quota = self.cfsInfo( f )
+        else:
+            return
+        # Set cgroup's period and quota
+        setPeriod = self.cgroupSet( pstr, period )
+        setQuota = self.cgroupSet( qstr, quota )
+        if sched == 'rt':
+            # Set RT priority if necessary
+            sched = self.chrt()
+        info( '(%s %d/%dus) ' % ( sched, setQuota, setPeriod ) )
+
+    def setCPUs( self, cores, mems=0 ):
+        "Specify (real) cores that our cgroup can run on"
+        if not cores:
+            return
+        if isinstance( cores, list ):
+            cores = ','.join( [ str( c ) for c in cores ] )
+        self.cgroupSet( resource='cpuset', param='cpus',
+                        value=cores )
+        # Memory placement is probably not relevant, but we
+        # must specify it anyway
+        self.cgroupSet( resource='cpuset', param='mems',
+                        value=mems)
+        # We have to do this here after we've specified
+        # cpus and mems
+        errFail( 'cgclassify -g cpuset:/%s %s' % (
+                 self.name, self.pid ) )
+
+    def config( self, cpu=-1, cores=None, **params ):
+        """cpu: desired overall system CPU fraction
+           cores: (real) core(s) this station can run on
+           params: parameters for Node.config()"""
+        r = Node.config( self, **params )
+        # Was considering cpu={'cpu': cpu , 'sched': sched}, but
+        # that seems redundant
+        self.setParam( r, 'setCPUFrac', cpu=cpu )
+        self.setParam( r, 'setCPUs', cores=cores )
+        return r
+
+    inited = False
+
+    @classmethod
+    def init( cls ):
+        "Initialization for CPULimitedStation class"
+        mountCgroups()
+        cls.inited = True
+
+
 class AP(Node_wifi):
     """A Switch is a Node that is running (or has execed?)
        an OpenFlow switch."""
@@ -1381,9 +1589,6 @@ class AccessPoint(AP):
                 cmd = cmd + ("\nauth_server_shared_secret=%s"
                              % ap.params['shared_secret'])
             else:
-                #cmd = cmd + ("\nwme_enabled=1")
-                #cmd = cmd + ("\nwmm_enabled=1")
-
                 if 'encrypt' in ap.params:
                     if 'wpa' in ap.params['encrypt'][wlan]:
                         cmd = cmd + ("\nauth_algs=%s" % ap.auth_algs)
@@ -1397,8 +1602,10 @@ class AccessPoint(AP):
                         cmd = cmd + cls.verifyWepKey(ap.wep_key0)
 
                 if ap.params['mode'][wlan] == 'ac':
+                    cmd = cmd + ("\nwmm_enabled=1")
                     cmd = cmd + ("\nieee80211ac=1")
                 elif ap.params['mode'][wlan] == 'n':
+                    cmd = cmd + ("\nwmm_enabled=1")
                     cmd = cmd + ("\nieee80211n=1")
 
                 if 'ieee80211r' in ap.params and \
