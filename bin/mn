@@ -47,7 +47,7 @@ from mn_wifi.net import Mininet_wifi
 from mn_wifi.topo import (SingleAPTopo, LinearWirelessTopo,
                           MinimalWirelessTopo)
 from mn_wifi.link import TCWirelessLink, wmediumd
-from mn_wifi.node import UserAP, OVSAP
+from mn_wifi.node import (Station, UserAP, OVSAP, CPULimitedStation)
 
 
 from functools import partial
@@ -94,6 +94,11 @@ HOSTDEF = 'proc'
 HOSTS = { 'proc': Host,
           'rt': specialClass(CPULimitedHost, defaults=dict(sched='rt')),
           'cfs': specialClass(CPULimitedHost, defaults=dict(sched='cfs')) }
+
+STATIONDEF = 'proc'
+STATIONS = { 'proc': Station,
+          'rt': specialClass(CPULimitedStation, defaults=dict(sched='rt')),
+          'cfs': specialClass(CPULimitedStation, defaults=dict(sched='cfs')) }
 
 CONTROLLERDEF = 'default'
 
@@ -265,6 +270,7 @@ class MininetRunner(object):
         addDictOption(opts, SWITCHES, SWITCHDEF, 'switch')
         addDictOption(opts, APS, APDEF, 'ap')
         addDictOption(opts, HOSTS, HOSTDEF, 'host')
+        addDictOption(opts, STATIONS, STATIONDEF, 'station')
         addDictOption(opts, CONTROLLERS, [], 'controller', action='append')
         addDictOption(opts, LINKS, LINKDEF, 'link')
         addDictOption(opts, TOPOS, TOPODEF, 'topo')
@@ -420,6 +426,7 @@ class MininetRunner(object):
         switch = customClass(SWITCHES, opts.switch)
         ap = customClass(APS, opts.ap)
         host = customClass(HOSTS, opts.host)
+        station = customClass(STATIONS, opts.station)
         controller = [ customClass(CONTROLLERS, c)
                        for c in opts.controller ]
 
@@ -469,8 +476,9 @@ class MininetRunner(object):
         if opts.cluster:
             warn('*** WARNING: Experimental cluster mode!\n'
                  '*** Using RemoteHost, RemoteOVSSwitch, RemoteLink\n')
-            host, switch, ap, link = RemoteHost, RemoteOVSSwitch, \
-                                     RemoteOVSAP, RemoteLink
+            host, station, switch, ap, link = RemoteHost, RemoteStation, \
+                                              RemoteOVSSwitch, RemoteOVSAP, \
+                                              RemoteLink
             Net = partial(MininetCluster, servers=servers,
                           placement=PLACEMENT[opts.placement])
             if opts.wifi:

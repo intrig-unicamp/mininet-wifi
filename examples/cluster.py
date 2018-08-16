@@ -301,6 +301,11 @@ class RemoteHost( RemoteNode ):
     pass
 
 
+class RemoteStation( RemoteNode ):
+    "A RemoteStation is simply a RemoteNode"
+    pass
+
+
 class RemoteOVSAP( RemoteMixin, OVSAP ):
     "Remote instance of Open vSwitch"
 
@@ -706,6 +711,7 @@ class MininetCluster( Mininet ):
            user: user name for server ssh
            placement: Placer() subclass"""
         params = { 'host': RemoteHost,
+                   'station': RemoteStation,
                    'switch': RemoteOVSSwitch,
                    'link': RemoteLink,
                    'precheck': True }

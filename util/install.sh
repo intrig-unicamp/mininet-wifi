@@ -135,17 +135,17 @@ function kernel_clean {
 function mn_deps {
     if [ "$DIST" = "Fedora" -o "$DIST" = "RedHatEnterpriseServer" ]; then
         $install gcc make socat psmisc xterm openssh-clients iperf \
-            iproute telnet python-setuptools libcgroup-tools \
-            ethtool help2man pyflakes pylint python-pep8 python-pexpect
+                 iproute telnet python-setuptools libcgroup-tools \
+                 ethtool help2man pyflakes pylint python-pep8 python-pexpect
 	elif [ "$DIST" = "SUSE LINUX"  ]; then
 		$install gcc make socat psmisc xterm openssh iperf \
-			iproute telnet libcgroup-tools \
-			ethtool help2man python-pyflakes python-pep8 \
-		    ${PYPKG}-setuptools ${PYPKG}-pexpect ${PYPKG}-tk
+			     iproute telnet libcgroup-tools \
+			     ethtool help2man python-pyflakes python-pep8 \
+		         ${PYPKG}-setuptools ${PYPKG}-pexpect ${PYPKG}-tk
 	else
         $install gcc make socat psmisc xterm ssh iperf iproute2 telnet \
-            cgroup-bin ethtool help2man pyflakes pylint pep8 \
-            ${PYPKG}-setuptools ${PYPKG}-pexpect ${PYPKG}-tk
+                 cgroup-bin ethtool help2man pyflakes pylint pep8 \
+                 ${PYPKG}-setuptools ${PYPKG}-pexpect ${PYPKG}-tk
 	fi
 
     echo "Installing Mininet core"

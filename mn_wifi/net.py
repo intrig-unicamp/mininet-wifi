@@ -1138,33 +1138,33 @@ class Mininet_wifi(Mininet):
         cores = int(quietRun('nproc'))
         pct = cpu * 100
         info('*** Testing CPU %.0f%% bandwidth limit\n' % pct)
-        hosts = self.hosts
+        stations = self.hosts
         cores = int(quietRun('nproc'))
         # number of processes to run a while loop on per host
         num_procs = int(ceil(cores * cpu))
         pids = {}
-        for h in hosts:
-            pids[h] = []
+        for s in stations:
+            pids[s] = []
             for _core in range(num_procs):
-                h.cmd('while true; do a=1; done &')
-                pids[h].append(h.cmd('echo $!').strip())
+                s.cmd('while true; do a=1; done &')
+                pids[s].append(s.cmd('echo $!').strip())
         outputs = {}
         time = {}
         # get the initial cpu time for each host
-        for host in hosts:
-            outputs[host] = []
+        for station in stations:
+            outputs[station] = []
             with open('/sys/fs/cgroup/cpuacct/%s/cpuacct.usage'
-                      % host, 'r') as f:
-                time[host] = float(f.read())
+                      % station, 'r') as f:
+                time[station] = float(f.read())
         for _ in range(duration):
             sleep(1)
-            for host in hosts:
+            for station in stations:
                 with open('/sys/fs/cgroup/cpuacct/%s/cpuacct.usage'
-                          % host, 'r') as f:
+                          % station, 'r') as f:
                     readTime = float(f.read())
-                outputs[host].append(((readTime - time[host])
+                outputs[station].append(((readTime - time[station])
                                       / 1000000000) / cores * 100)
-                time[host] = readTime
+                time[station] = readTime
         for h, pids in pids.items():
             for pid in pids:
                 h.cmd('kill -9 %s' % pid)
