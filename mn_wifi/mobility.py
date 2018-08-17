@@ -39,7 +39,7 @@ class mobility(object):
     def stop(cls, **mobilityparam):
         debug('Starting mobility thread...\n')
         thread = threading.Thread(name='mobility',
-                                  target=cls.controlled_mobility,
+                                  target=cls.predefined_mobility,
                                   kwargs=dict(mobilityparam, ))
         thread.daemon = True
         thread.start()
@@ -292,11 +292,12 @@ class mobility(object):
         node.points = node.points + points
 
     @classmethod
-    def controlled_mobility(cls, **kwargs):
+    def predefined_mobility(cls, **kwargs):
         "Used when the position of each node is previously defined"
         from mn_wifi.node import Station
 
-        cls.ac = kwargs['AC']
+        if 'AC' in kwargs:
+            cls.ac = kwargs['AC']
         cls.rec_rssi = kwargs['rec_rssi']
         cls.stations = kwargs['stations']
         cls.aps = kwargs['aps']
@@ -380,7 +381,8 @@ class mobility(object):
 
         np.random.seed(kwargs['seed'])
         cls.rec_rssi = kwargs['rec_rssi']
-        cls.ac = kwargs['AC']
+        if 'AC' in kwargs:
+            cls.ac = kwargs['AC']
         cls.stations = kwargs['stations']
         cls.aps = kwargs['aps']
         cls.mobileNodes = cls.stations
@@ -448,19 +450,15 @@ class mobility(object):
                 raise Exception("Mobility Model not defined or doesn't exist!")
 
             current_time = time()
-            while (time() - current_time) < kwargs['init_time']:
+            while (time() - current_time) < kwargs['time']:
                 pass
             if kwargs['DRAW']:
-                cls.startMobilityModelGraph(mob, kwargs['nodes'],
-                                            current_time, kwargs['final_time'],
-                                            kwargs['ppm'])
+                cls.mobilityModelGraph(mob, kwargs['nodes'], kwargs['ppm'])
             else:
-                cls.startMobilityModelNoGraph(mob, kwargs['nodes'],
-                                              current_time, kwargs['final_time'],
-                                              kwargs['ppm'])
+                cls.mobilityModelNoGraph(mob, kwargs['nodes'], kwargs['ppm'])
 
     @classmethod
-    def startMobilityModelGraph(cls, mob, nodes, current_time, final_time, ppm):
+    def mobilityModelGraph(cls, mob, nodes, ppm):
         """Useful for plotting graphs
 
         :param mob: mobility params
@@ -480,13 +478,11 @@ class mobility(object):
                     plot2d.updateCircleRadius(node)
                 plot2d.graphUpdate(node)
             eval(cls.continuePlot)
-            if final_time is not 0 and (time() - current_time) > final_time:
-                break
             while cls.pause_simulation:
                 pass
 
     @classmethod
-    def startMobilityModelNoGraph(cls, mob, nodes, current_time, final_time, ppm):
+    def mobilityModelNoGraph(cls, mob, nodes, ppm):
         """Useful when graph is not required
 
         :param mob: mobility params
@@ -503,8 +499,6 @@ class mobility(object):
                     wlan = node.params['wlan'].index(intf)
                     node.params['range'][wlan] = node.getRange(intf=intf)
             sleep(0.5)
-            if final_time is not 0 and (time() - current_time) > final_time:
-                break
             while cls.pause_simulation:
                 pass
 

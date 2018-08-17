@@ -125,9 +125,6 @@ class Mininet_wifi(Mininet):
         self.driver = driver
         self.autoAssociation = autoAssociation # does not include mobility
         self.allAutoAssociation = allAutoAssociation # includes mobility
-        self.mobilityKwargs = ''
-        self.isMobilityModel = False
-        self.isMobility = False
         self.ppm_is_set = False
         self.alreadyPlotted = False
         self.DRAW = False
@@ -139,7 +136,6 @@ class Mininet_wifi(Mininet):
         self.fading_coefficient = fading_coefficient
         self.noise_threshold = noise_threshold
         self.mobilityparam = dict()
-        self.AC = None
         self.alt_module = None
         self.rec_rssi = rec_rssi
         self.disable_tcp_checksum = disable_tcp_checksum
@@ -692,7 +688,7 @@ class Mininet_wifi(Mininet):
 
         if (self.configure4addr or self.configureWiFiDirect
                 or self.wmediumd_mode == error_prob) and self.link == wmediumd \
-                and not self.isMobility:
+                and not self.mobilityparam:
             wmediumd(self.fading_coefficient, self.noise_threshold,
                      self.stations, self.aps, propagationModel)
             for sta in self.stations:
@@ -722,17 +718,17 @@ class Mininet_wifi(Mininet):
                             int(node.params['range'][wlan]) / 5
 
         if self.allAutoAssociation:
-            if self.autoAssociation and not self.isMobility:
+            if self.autoAssociation and not self.mobilityparam:
                 self.auto_association()
-        if self.isMobility:
-            if self.isMobilityModel or self.isVanet or self.nroads != 0:
-                self.mobilityKwargs['nodes'] = self.getMobileNodes()
-                self.start_mobility(**self.mobilityKwargs)
+        if self.mobilityparam:
+            if 'model' in self.mobilityparam or self.isVanet or self.nroads != 0:
+                self.mobilityparam['nodes'] = self.getMobileNodes()
+                self.start_mobility(**self.mobilityparam)
             else:
-                self.mobilityKwargs['plotNodes'] = self.plot_nodes()
-                self.stop_mobility(**self.mobilityKwargs)
+                self.mobilityparam['plotNodes'] = self.plot_nodes()
+                mobility.stop(**self.mobilityparam)
         else:
-            if self.getPropagationModel() is 'logNormalShadowing':
+            if propagationModel.model is 'logNormalShadowing':
                 import threading
                 thread = threading.Thread(target=self.plot_dynamic)
                 thread.daemon = True
@@ -1200,28 +1196,16 @@ class Mininet_wifi(Mininet):
         "Configure mobility parameters"
         self.configureMobility(*args, **kwargs)
 
-    def startMobility(self, **kwargs):
-        "Starts Mobility"
-        self.isMobility = True
-        if 'repetitions' in kwargs:
-            self.repetitions = kwargs['repetitions']
+    def setMobilityModel(self, **kwargs):
         if 'seed' in kwargs:
             self.seed = kwargs['seed']
-        if 'associationControl' in kwargs:
-            self.AC = kwargs['associationControl']
-        if 'model' in kwargs:
-            self.isMobilityModel = True
-            kwargs['nodes'] = self.getMobileNodes()
-        self.mobilityKwargs = kwargs
-        kwargs['stations'] = self.stations
-        kwargs['aps'] = self.aps
-        self.setMobilityParams(**kwargs)
+        self.setMobilityModelParams(**kwargs)
 
-    def stop_mobility(self, **kwargs):
-        'Set Mobility Args'
-        self.mobilityKwargs.update(kwargs)
-        params = self.setMobilityParams(**kwargs)
-        mobility.stop(**params)
+    def startMobility(self, **kwargs):
+        if 'repetitions' in kwargs:
+            self.repetitions = kwargs['repetitions']
+        kwargs['init_time'] = kwargs['time']
+        self.setMobilityParams(**kwargs)
 
     def getMobileNodes(self):
         nodes_ = []
@@ -1801,7 +1785,6 @@ class Mininet_wifi(Mininet):
 
     def start_mobility(self, **kwargs):
         "Starts Mobility"
-        self.isMobility = True
         if 'model' in kwargs or self.isVanet or self.nroads != 0:
             nodes = []
             for node in kwargs['nodes']:
@@ -1812,81 +1795,96 @@ class Mininet_wifi(Mininet):
                     nodes.append(node)
                     node.params['position'] = 0, 0, 0
             kwargs['nodes'] = nodes
-            params = self.setMobilityParams(**kwargs)
+            self.setMobilityParams(**kwargs)
             if self.nroads == 0:
-                mobility.start(**params)
+                mobility.start(**self.mobilityparam)
             else:
-                vanet(**params)
+                vanet(**self.mobilityparam)
 
     def stopMobility(self, **kwargs):
         "Stops Mobility"
         if self.allAutoAssociation:
             self.auto_association()
+        kwargs['final_time'] = kwargs['time']
         self.setMobilityParams(**kwargs)
 
-    def setMobilityParams(self, **kwargs):
+    def setMobilityModelParams(self, **kwargs):
         "Set Mobility Parameters"
-        if 'model' in kwargs:
-            self.mobilityparam.setdefault('model', kwargs['model'])
-        else:
-            self.mobilityparam.setdefault('repetitions', self.repetitions)
+        self.mobilityparam.setdefault('model', kwargs['model'])
+        kwargs['nodes'] = self.getMobileNodes()
         if self.nroads != 0:
             self.mobilityparam.setdefault('nroads', self.nroads)
         if 'plotNodes' in kwargs:
             self.mobilityparam.setdefault('plotNodes', kwargs['plotNodes'])
 
-        if 'model' in kwargs:
-            stations = kwargs['stations']
-            if 'min_x' in kwargs:
-                if not self.DRAW:
-                    self.min_x = int(kwargs['min_x'])
-                for sta in stations:
-                    sta.min_x = int(kwargs['min_x'])
-            if 'min_y' in kwargs:
-                if not self.DRAW:
-                    self.min_y = int(kwargs['min_y'])
-                for sta in stations:
-                    sta.min_y = int(kwargs['min_y'])
-            if 'max_x' in kwargs:
-                if not self.DRAW:
-                    self.max_x = int(kwargs['max_x'])
-                for sta in stations:
-                    sta.max_x = int(kwargs['max_x'])
-            if 'max_y' in kwargs:
-                if not self.DRAW:
-                    self.max_y = int(kwargs['max_y'])
-                for sta in stations:
-                    sta.max_y = int(kwargs['max_y'])
-            if 'min_v' in kwargs:
-                self.mobilityparam.setdefault('min_v', kwargs['min_v'])
-            if 'max_v' in kwargs:
-                self.mobilityparam.setdefault('max_v', kwargs['max_v'])
-            self.mobilityparam.setdefault('seed', self.seed)
+        if 'min_x' in kwargs:
+            if not self.DRAW:
+                self.min_x = int(kwargs['min_x'])
+            for sta in self.stations:
+                sta.min_x = int(kwargs['min_x'])
+        if 'min_y' in kwargs:
+            if not self.DRAW:
+                self.min_y = int(kwargs['min_y'])
+            for sta in self.stations:
+                sta.min_y = int(kwargs['min_y'])
+        if 'max_x' in kwargs:
+            if not self.DRAW:
+                self.max_x = int(kwargs['max_x'])
+            for sta in self.stations:
+                sta.max_x = int(kwargs['max_x'])
+        if 'max_y' in kwargs:
+            if not self.DRAW:
+                self.max_y = int(kwargs['max_y'])
+            for sta in self.stations:
+                sta.max_y = int(kwargs['max_y'])
+        if 'min_v' in kwargs:
+            self.mobilityparam.setdefault('min_v', kwargs['min_v'])
+        if 'max_v' in kwargs:
+            self.mobilityparam.setdefault('max_v', kwargs['max_v'])
+        if 'associationControl' in kwargs:
+            self.mobilityparam.setdefault('AC', kwargs['associationControl'])
+
+        self.mobilityparam.setdefault('seed', self.seed)
         self.mobilityparam.setdefault('min_x', self.min_x)
         self.mobilityparam.setdefault('min_y', self.min_y)
         self.mobilityparam.setdefault('min_z', self.min_z)
         self.mobilityparam.setdefault('max_x', self.max_x)
         self.mobilityparam.setdefault('max_y', self.max_y)
         self.mobilityparam.setdefault('max_z', self.max_z)
-
-        time_ = 'init_time'
-        if 'time' in kwargs:
-            if 'init_time' in self.mobilityparam:
-                time_ = 'final_time'
-            self.mobilityparam.setdefault(time_, kwargs['time'])
-        if 'stations' in kwargs:
-            self.mobilityparam.setdefault('stations', kwargs['stations'])
-        if 'aps' in kwargs:
-            self.mobilityparam.setdefault('aps', kwargs['aps'])
-        if 'nodes' in kwargs and kwargs['nodes']:
-            self.mobilityparam.setdefault('nodes', kwargs['nodes'])
-
+        self.mobilityparam.setdefault('time', kwargs['time'])
+        self.mobilityparam.setdefault('stations', self.stations)
+        self.mobilityparam.setdefault('aps', self.aps)
         self.mobilityparam.setdefault('DRAW', self.DRAW)
         self.mobilityparam.setdefault('conn', self.conn)
-        self.mobilityparam.setdefault('AC', self.AC)
         self.mobilityparam.setdefault('rec_rssi', self.rec_rssi)
-        self.mobilityparam.setdefault('ppm', self.getPropagationModel())
+        self.mobilityparam.setdefault('ppm', propagationModel.model)
         return self.mobilityparam
+
+    def setMobilityParams(self, **kwargs):
+        "Set Mobility Parameters"
+        self.mobilityparam.update(**kwargs)
+        self.mobilityparam.setdefault('repetitions', self.repetitions)
+        if self.nroads != 0:
+            self.mobilityparam.setdefault('nroads', self.nroads)
+        if 'plotNodes' in kwargs:
+            self.mobilityparam.setdefault('plotNodes', kwargs['plotNodes'])
+
+        self.mobilityparam.setdefault('min_x', self.min_x)
+        self.mobilityparam.setdefault('min_y', self.min_y)
+        self.mobilityparam.setdefault('min_z', self.min_z)
+        self.mobilityparam.setdefault('max_x', self.max_x)
+        self.mobilityparam.setdefault('max_y', self.max_y)
+        self.mobilityparam.setdefault('max_z', self.max_z)
+        self.mobilityparam.setdefault('stations', self.stations)
+        self.mobilityparam.setdefault('aps', self.aps)
+        if 'nodes' in kwargs and kwargs['nodes']:
+            self.mobilityparam.setdefault('nodes', kwargs['nodes'])
+        if 'associationControl' in kwargs:
+            self.mobilityparam.setdefault('AC', kwargs['associationControl'])
+        self.mobilityparam.setdefault('DRAW', self.DRAW)
+        self.mobilityparam.setdefault('conn', self.conn)
+        self.mobilityparam.setdefault('rec_rssi', self.rec_rssi)
+        self.mobilityparam.setdefault('ppm', propagationModel.model)
 
     def useExternalProgram(self, program, **params):
         """Opens an external program
@@ -2033,10 +2031,6 @@ class Mininet_wifi(Mininet):
                     self.plot.graphUpdate(node)
             eval(mobility.continuePlot)
             sleep(0.5)
-
-    @staticmethod
-    def getPropagationModel():
-        return propagationModel.model
 
     def auto_association(self):
         "This is useful to make the users' life easier"
