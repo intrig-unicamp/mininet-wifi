@@ -282,7 +282,7 @@ class MininetRunner(object):
                         default=False, help='activate wifi')
 
         opts.add_option('--plot', action='store_true',
-                        default=False, help='activate graph')
+                        default=False, help='plot graph')
 
         opts.add_option('--channel', type='string',
                         default="1", help='wireless channel configuration')

@@ -378,14 +378,12 @@ class mobility(object):
     @classmethod
     def models(cls, **kwargs):
         "Used when a mobility model is set"
-
         np.random.seed(kwargs['seed'])
         cls.rec_rssi = kwargs['rec_rssi']
         if 'AC' in kwargs:
             cls.ac = kwargs['AC']
-        cls.stations = kwargs['stations']
-        cls.aps = kwargs['aps']
-        cls.mobileNodes = cls.stations
+        cls.stations, cls.mobileNodes, cls.aps = \
+            kwargs['stations'], kwargs['stations'], kwargs['aps']
 
         plotNodes = []
         if 'plotNodes' in kwargs:
@@ -453,12 +451,18 @@ class mobility(object):
             while (time() - current_time) < kwargs['time']:
                 pass
             if kwargs['DRAW']:
-                cls.mobilityModelGraph(mob, kwargs['nodes'], kwargs['ppm'])
+                if kwargs['ppm'] == 'logNormalShadowing':
+                    cls.mobilityModelGraph_logNormal(mob, kwargs['nodes'])
+                else:
+                    cls.mobilityModelGraph(mob, kwargs['nodes'])
             else:
-                cls.mobilityModelNoGraph(mob, kwargs['nodes'], kwargs['ppm'])
+                if kwargs['ppm'] == 'logNormalShadowing':
+                    cls.mobilityModelNoGraph_logNormal(mob, kwargs['nodes'])
+                else:
+                    cls.mobilityModelNoGraph(mob, kwargs['nodes'])
 
     @classmethod
-    def mobilityModelGraph(cls, mob, nodes, ppm):
+    def mobilityModelGraph(cls, mob, nodes):
         """Useful for plotting graphs
 
         :param mob: mobility params
@@ -469,20 +473,36 @@ class mobility(object):
                                           % xy[idx][1], 0.0
                 if cls.wmediumd_mode and cls.wmediumd_mode == 3:
                     node.set_pos_wmediumd()
-                if ppm == 'logNormalShadowing':
-                    sleep(0.0001)  # notice problem when there are many threads
-                    intf = node.params['wlan'][0]
-                    wlan = node.params['wlan'].index(intf)
-                    node.params['range'][wlan] = node.getRange(intf=intf)
-                    node.updateGraph()
-                    plot2d.updateCircleRadius(node)
                 plot2d.graphUpdate(node)
             eval(cls.continuePlot)
             while cls.pause_simulation:
                 pass
 
     @classmethod
-    def mobilityModelNoGraph(cls, mob, nodes, ppm):
+    def mobilityModelGraph_logNormal(cls, mob, nodes):
+        """Useful for plotting graphs
+
+        :param mob: mobility params
+        :param nodes: list of nodes"""
+        for xy in mob:
+            for idx, node in enumerate(nodes):
+                node.params['position'] = '%.2f' % xy[idx][0], '%.2f' \
+                                          % xy[idx][1], 0.0
+                if cls.wmediumd_mode and cls.wmediumd_mode == 3:
+                    node.set_pos_wmediumd()
+                sleep(0.0001)  # notice problem when there are many threads
+                intf = node.params['wlan'][0]
+                wlan = node.params['wlan'].index(intf)
+                node.params['range'][wlan] = node.getRange(intf=intf)
+                node.updateGraph()
+                plot2d.updateCircleRadius(node)
+                plot2d.graphUpdate(node)
+            eval(cls.continuePlot)
+            while cls.pause_simulation:
+                pass
+
+    @classmethod
+    def mobilityModelNoGraph(cls, mob, nodes):
         """Useful when graph is not required
 
         :param mob: mobility params
@@ -493,11 +513,26 @@ class mobility(object):
                                           % xy[idx][1], 0.0
                 if cls.wmediumd_mode and cls.wmediumd_mode == 3:
                     node.set_pos_wmediumd()
-                if ppm == 'logNormalShadowing':
-                    sleep(0.0001)
-                    intf = node.params['wlan'][0]
-                    wlan = node.params['wlan'].index(intf)
-                    node.params['range'][wlan] = node.getRange(intf=intf)
+            sleep(0.5)
+            while cls.pause_simulation:
+                pass
+
+    @classmethod
+    def mobilityModelNoGraph_logNormal(cls, mob, nodes):
+        """Useful when graph is not required
+
+        :param mob: mobility params
+        :param nodes: list of nodes"""
+        for xy in mob:
+            for idx, node in enumerate(nodes):
+                node.params['position'] = '%.2f' % xy[idx][0], '%.2f' \
+                                          % xy[idx][1], 0.0
+                if cls.wmediumd_mode and cls.wmediumd_mode == 3:
+                    node.set_pos_wmediumd()
+                sleep(0.0001)
+                intf = node.params['wlan'][0]
+                wlan = node.params['wlan'].index(intf)
+                node.params['range'][wlan] = node.getRange(intf=intf)
             sleep(0.5)
             while cls.pause_simulation:
                 pass
