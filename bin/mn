@@ -53,7 +53,7 @@ from mn_wifi.node import (Station, UserAP, OVSAP, CPULimitedStation)
 from functools import partial
 
 # Experimental! cluster edition prototype
-from mn_wifi.examples.cluster import (MininetCluster, RemoteHost,
+from mn_wifi.examples.cluster import (MininetCluster, RemoteHost, RemoteStation,
                                       RemoteOVSSwitch, RemoteOVSAP, RemoteLink,
                                       SwitchBinPlacer, RandomPlacer,
                                       ClusterCleanup)
@@ -475,7 +475,8 @@ class MininetRunner(object):
             Net = MininetWithControlNet if opts.innamespace else Mininet
         if opts.cluster:
             warn('*** WARNING: Experimental cluster mode!\n'
-                 '*** Using RemoteHost, RemoteOVSSwitch, RemoteLink\n')
+                 '*** Using RemoteHost, RemoteStation, RemoteOVSSwitch,'
+                 ' RemoteLink\n')
             host, station, switch, ap, link = RemoteHost, RemoteStation, \
                                               RemoteOVSSwitch, RemoteOVSAP, \
                                               RemoteLink
@@ -488,7 +489,8 @@ class MininetRunner(object):
 
         if opts.wifi:
             mn = Net(topo=topo,
-                     switch=switch, accessPoint=ap, host=host, controller=controller,
+                     switch=switch, accessPoint=ap, host=host, station=station,
+                     controller=controller,
                      link=link,
                      ipBase=ipBase,
                      inNamespace=inNamespace,
