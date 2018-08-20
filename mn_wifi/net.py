@@ -62,7 +62,8 @@ class Mininet_wifi(Mininet):
                  allAutoAssociation=True, driver='nl80211',
                  autoSetPositions=False, configureWiFiDirect=False,
                  configure4addr=False, noise_threshold=-91, cca_threshold=-90,
-                 rec_rssi=False, disable_tcp_checksum=False, ifb=False):
+                 rec_rssi=False, disable_tcp_checksum=False, ifb=False,
+                 bridge=False, plot=False):
         """Create Mininet object.
            topo: Topo (topology) object or None
            switch: default Switch class
@@ -130,6 +131,8 @@ class Mininet_wifi(Mininet):
         self.DRAW = False
         self.ifb = ifb #Support to Intermediate Functional Block (IFB) Devices
         self.isVanet = False
+        self.bridge = bridge
+        self.init_plot = plot
         self.cca_threshold = cca_threshold
         self.configureWiFiDirect = configureWiFiDirect
         self.configure4addr = configure4addr
@@ -315,6 +318,8 @@ class Mininet_wifi(Mininet):
                     'mode': self.mode
                    }
 
+        if self.bridge:
+            defaults['isolate_clients'] = True
         defaults.update(params)
 
         if self.autoSetPositions:
@@ -680,6 +685,9 @@ class Mininet_wifi(Mininet):
         "Build mininet-wifi."
         if self.topo:
             self.buildFromWirelessTopo(self.topo)
+            if self.init_plot:
+                self.plotGraph(max_x=(len(self.stations) * 100),
+                               max_y=(len(self.stations) * 100))
         else:
             if not mobility.stations:
                 for node in self.stations:
@@ -1487,14 +1495,6 @@ class Mininet_wifi(Mininet):
                     ssid_list = params['ssid'].split(',')
                     for ssid in ssid_list:
                         node.params['ssid'].append(ssid)
-
-                if 'cliente_isolation' in params:
-                    node.params['cliente_isolation'] = []
-                    cliente_isolation_list = \
-                        params['cliente_isolation'].split(',')
-                    for cliente_isolation in cliente_isolation_list:
-                        node.params['cliente_isolation'].append(
-                            cliente_isolation)
 
     def add_params_to_node(self, node):
         "Add Frequency, func and phyID"
