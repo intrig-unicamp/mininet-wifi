@@ -281,7 +281,9 @@ class MininetRunner(object):
         opts.add_option('--wifi', '-w', action='store_true',
                         default=False, help='activate wifi')
         opts.add_option('--plot', action='store_true',
-                        default=False, help='plot graph')
+                        default=False, help='plot 2D graph')
+        opts.add_option('--plot3d', action='store_true',
+                        default=False, help='plot 3D graph')
         opts.add_option('--channel', type='string',
                         default="1", help='wireless channel configuration')
         opts.add_option('--mode', type='string',
@@ -449,6 +451,7 @@ class MininetRunner(object):
         ssid = opts.ssid
         bridge = opts.no_bridge
         plot = opts.plot
+        plot3d = opts.plot3d
         listenPort = 'None'
 
         if not opts.nolistenport:
@@ -495,6 +498,7 @@ class MininetRunner(object):
                      ssid=ssid,
                      bridge=bridge,
                      plot=plot,
+                     plot3d=plot3d,
                      xterms=xterms, autoSetMacs=mac,
                      autoStaticArp=arp, autoPinCpus=pin,
                      listenPort=listenPort,

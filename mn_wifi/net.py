@@ -63,7 +63,7 @@ class Mininet_wifi(Mininet):
                  autoSetPositions=False, configureWiFiDirect=False,
                  configure4addr=False, noise_threshold=-91, cca_threshold=-90,
                  rec_rssi=False, disable_tcp_checksum=False, ifb=False,
-                 bridge=False, plot=False):
+                 bridge=False, plot=False, plot3d=False):
         """Create Mininet object.
            topo: Topo (topology) object or None
            switch: default Switch class
@@ -133,6 +133,7 @@ class Mininet_wifi(Mininet):
         self.isVanet = False
         self.bridge = bridge
         self.init_plot = plot
+        self.init_plot3d = plot3d
         self.cca_threshold = cca_threshold
         self.configureWiFiDirect = configureWiFiDirect
         self.configure4addr = configure4addr
@@ -685,9 +686,13 @@ class Mininet_wifi(Mininet):
         "Build mininet-wifi."
         if self.topo:
             self.buildFromWirelessTopo(self.topo)
-            if self.init_plot:
+            if self.init_plot or self.init_plot3d:
+                max_z = 0
+                if self.init_plot3d:
+                    max_z = len(self.stations) * 100
                 self.plotGraph(max_x=(len(self.stations) * 100),
-                               max_y=(len(self.stations) * 100))
+                               max_y=(len(self.stations) * 100),
+                               max_z=max_z)
         else:
             if not mobility.stations:
                 for node in self.stations:
