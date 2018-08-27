@@ -365,18 +365,18 @@ class Mininet_wifi(Mininet):
                ip: used as default gateway address"""
         nat = self.addHost(name, cls=NAT, inNamespace=inNamespace,
                            subnet=self.ipBase, **params)
-        # find first switch and create link
+        # find first ap and create link
         if connect:
             if not isinstance(connect, Node):
-                # Use first switch if not specified
-                connect = self.switches[0]
-            # Connect the nat to the switch
+                # Use first ap if not specified
+                connect = self.aps[0]
+            # Connect the nat to the ap
             self.addLink(nat, connect)
-            # Set the default route on hosts
+            # Set the default route on stations
             natIP = nat.params['ip'].split('/')[0]
-            for host in self.hosts:
-                if host.inNamespace:
-                    host.setDefaultRoute('via %s' % natIP)
+            for station in self.stations:
+                if station.inNamespace:
+                    station.setDefaultRoute('via %s' % natIP)
         return nat
 
     # BL: We now have four ways to look up nodes
@@ -603,7 +603,7 @@ class Mininet_wifi(Mininet):
         return links
 
     def configHosts(self):
-        "Configure a set of hosts."
+        "Configure a set of nodes."
         hosts = self.hosts + self.stations
         for host in hosts:
             # info( host.name + ' ' )
