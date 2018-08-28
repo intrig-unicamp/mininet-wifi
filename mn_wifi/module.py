@@ -22,7 +22,7 @@ class module(object):
     phyID = 0
 
     @classmethod
-    def load_module(cls, n_radios, alt_module):
+    def load_module(cls, n_radios, nodes, alt_module):
         """Load WiFi Module
         :param n_radios: number of wifi radios
         :param alt_module: dir of a mac80211_hwsim alternative module"""
@@ -38,22 +38,22 @@ class module(object):
             """output_ is different of zero in Kernel 3.13.x. radios=0 doesn't
              work in such kernel version"""
             if output_ == 0:
-                cls.__create_hwsim_mgmt_devices(n_radios)
+                cls.__create_hwsim_mgmt_devices(n_radios, nodes)
             else:
-                # Useful for tests in Kernels like Kernel 3.13.x
+                # Useful for kernel <= 3.13.x
                 if n_radios == 0:
                     n_radios = 1
                 if alt_module:
-                    os.system('modprobe mac80211_hwsim radios=%s' % n_radios)
-                else:
                     os.system('insmod %s radios=%s' % (alt_module,
                                                        n_radios))
+                else:
+                    os.system('modprobe mac80211_hwsim radios=%s' % n_radios)
         else:
             cls.devices_created_dynamically = True
-            cls.__create_hwsim_mgmt_devices(n_radios)
+            cls.__create_hwsim_mgmt_devices(n_radios, nodes)
 
     @classmethod
-    def __create_hwsim_mgmt_devices(cls, n_radios):
+    def __create_hwsim_mgmt_devices(cls, n_radios, nodes):
         # generate prefix
         if py_version_info < (3, 0):
             phys = subprocess.check_output("find /sys/kernel/debug/ieee80211 -name "
@@ -74,6 +74,8 @@ class module(object):
                     num += 1
                     numokay = False
                     break
+
+        cls.docker_config(n_radios=n_radios, nodes=nodes)
         try:
             for i in range(0, n_radios):
                 p = subprocess.Popen(["hwsim_mgmt", "-c", "-n", cls.prefix +
@@ -157,7 +159,6 @@ class module(object):
         :param n_radios: number of wifi radios
         :param alt_module: dir of a mac80211_hwsim alternative module
         :param **params: ifb -  Intermediate Functional Block device"""
-        """kill hostapd if it is already running"""
         try:
             h = subprocess.check_output("ps -aux | grep -ic \'hostapd\'",
                                         shell=True)
@@ -167,7 +168,7 @@ class module(object):
             pass
 
         physicalWlans = cls.get_physical_wlan()  # Gets Physical Wlan(s)
-        cls.load_module(n_radios, alt_module)  # Initatilize WiFi Module
+        cls.load_module(n_radios, nodes, alt_module)  # Initatilize WiFi Module
         phys = cls.get_phy()  # Get Phy Interfaces
         module.assign_iface(nodes, physicalWlans, phys, **params)  # iface assign
 
@@ -211,6 +212,49 @@ class module(object):
         os.system('modprobe ifb numifbs=%s' % wlans)
 
     @classmethod
+    def docker_config(cls, n_radios=0, nodes=None, container_name='mininet-wifi',
+                      username='alpha', dir='/home/alpha/', ip='172.17.0.1'):
+        from mn_wifi.node import AccessPoint
+
+        file = 'docker_mn-wifi.sh'
+        os.system('rm %s' % file)
+        os.system("echo 'pid=$(sudo docker inspect -f '{{.State.Pid}}' "
+                  "%s)' >> %s" % (container_name, file))
+        os.system("echo 'sudo mkdir -p /var/run/netns' >> %s" % file)
+        os.system("echo 'sudo ln -s /proc/$pid/ns/net/ /var/run/netns/$pid'"
+                  " >> %s" % file)
+
+        radios = []
+        nodes_ = ''
+        phys_ = ''
+        for node in nodes:
+            if (isinstance(node, AccessPoint)):
+                nodes_ = nodes_ + node.name + ' '
+                radios.append(nodes.index(node))
+
+        for radio in range(0, n_radios):
+            os.system("echo 'sudo hwsim_mgmt -c -n %s%s' >> %s"
+                      % (cls.prefix, "%02d" % radio, file))
+            if radio in radios:
+                radio_id = cls.prefix + "%02d" % radio
+                phys_ = phys_ + radio_id + ' '
+        os.system("echo 'nodes=(%s)' >> %s" % (nodes_, file))
+        #os.system("echo 'phys=$(sudo find /sys/kernel/debug/ieee80211 "
+        #          "-name hwsim | cut -d/ -f 6 | sort | tr \" \" \"\n\")' >> %s" % file)
+        os.system("echo 'phys=(%s)' >> %s" % (phys_, file))
+        os.system("echo 'j=0' >> %s" % file)
+        os.system("echo 'for i in $ phys' >> %s" % file)
+        os.system("echo 'do' >> %s" % file)
+        os.system("echo '    pid=$(ps -aux | grep \"${nodes[$j]}\" | awk \"{print \$2}\" "
+                  "| head -n 1)' >> %s" % file)
+        os.system("echo '    sudo iw phy \"$i\" set netns $pid' >> %s" % file)
+        os.system("echo '    j=$((j+1))' >> %s" % file)
+        os.system("echo 'done' >> %s" % file)
+        os.system("scp %s %s@%s:%s" % (file, username, ip, dir))
+        os.system("ssh %s@%s \'chmod +x %s%s; %s%s\'"
+                  % (username, ip, dir, file, dir, file))
+
+    @classmethod
     def assign_iface(cls, nodes, physicalWlans, phys, **params):
         """Assign virtual interfaces for all nodes
 
@@ -220,7 +264,7 @@ class module(object):
         :param **params: ifb -  Intermediate Functional Block device"""
         from mn_wifi.node import Station, Car
 
-        log_filename = '/tmp/mininetwifi-mac80211_hwsim.log'
+        log_filename = '/tmp/mn-wifi-mac80211_hwsim.log'
         cls.logging_to_file("%s" % log_filename)
 
         if 'ifb' in params:
