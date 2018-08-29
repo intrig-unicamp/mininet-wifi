@@ -214,7 +214,7 @@ class module(object):
         os.system('modprobe ifb numifbs=%s' % wlans)
 
     @classmethod
-    def docker_config(cls, n_radios=0, nodes=None, dir='/~',
+    def docker_config(cls, n_radios=0, nodes=None, dir='~/',
                       ip='172.17.0.1', **params):
 
         file = cls.prefix + 'docker_mn-wifi.sh'
