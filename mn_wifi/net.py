@@ -63,7 +63,8 @@ class Mininet_wifi(Mininet):
                  autoSetPositions=False, configureWiFiDirect=False,
                  configure4addr=False, noise_threshold=-91, cca_threshold=-90,
                  rec_rssi=False, disable_tcp_checksum=False, ifb=False,
-                 bridge=False, plot=False, plot3d=False, docker=False):
+                 bridge=False, plot=False, plot3d=False, docker=False,
+                 container='mininet-wifi', ssh_user='alpha'):
         """Create Mininet object.
            topo: Topo (topology) object or None
            switch: default Switch class
@@ -130,6 +131,8 @@ class Mininet_wifi(Mininet):
         self.alreadyPlotted = False
         self.DRAW = False
         self.docker = docker
+        self.container = container
+        self.ssh_user = ssh_user
         self.ifb = ifb #Support to Intermediate Functional Block (IFB) Devices
         self.isVanet = False
         self.bridge = bridge
@@ -1976,9 +1979,12 @@ class Mininet_wifi(Mininet):
         if self.ifb:
             wirelessLink.ifb = True
             params['ifb'] = self.ifb
+        if self.docker:
+            params['docker'] = self.docker
+            params['container'] = self.container
+            params['ssh_user'] = self.ssh_user
         nodes = self.stations + self.aps + self.cars
-        module.start(nodes, self.n_radios, self.alt_module,
-                     self.docker, **params)
+        module.start(nodes, self.n_radios, self.alt_module, **params)
         if Mininet_6LoWPAN.n_wpans != 0:
             sixLoWPAN_module.start(self.sixLP, Mininet_6LoWPAN.n_wpans)
         self.configureWirelessLink()

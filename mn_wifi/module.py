@@ -22,7 +22,7 @@ class module(object):
     phyID = 0
 
     @classmethod
-    def load_module(cls, n_radios, nodes, docker, alt_module):
+    def load_module(cls, n_radios, nodes, alt_module, **params):
         """Load WiFi Module
         :param n_radios: number of wifi radios
         :param alt_module: dir of a mac80211_hwsim alternative module"""
@@ -38,7 +38,7 @@ class module(object):
             """output_ is different of zero in Kernel 3.13.x. radios=0 doesn't
              work in such kernel version"""
             if output_ == 0:
-                cls.__create_hwsim_mgmt_devices(n_radios, docker, nodes)
+                cls.__create_hwsim_mgmt_devices(n_radios, nodes, **params)
             else:
                 # Useful for kernel <= 3.13.x
                 if n_radios == 0:
@@ -50,10 +50,10 @@ class module(object):
                     os.system('modprobe mac80211_hwsim radios=%s' % n_radios)
         else:
             cls.devices_created_dynamically = True
-            cls.__create_hwsim_mgmt_devices(n_radios, docker, nodes)
+            cls.__create_hwsim_mgmt_devices(n_radios, nodes, **params)
 
     @classmethod
-    def __create_hwsim_mgmt_devices(cls, n_radios, docker, nodes):
+    def __create_hwsim_mgmt_devices(cls, n_radios, nodes, **params):
         # generate prefix
         if py_version_info < (3, 0):
             phys = subprocess.check_output("find /sys/kernel/debug/ieee80211 -name "
@@ -75,8 +75,8 @@ class module(object):
                     numokay = False
                     break
 
-        if docker:
-            cls.docker_config(n_radios=n_radios, nodes=nodes)
+        if 'docker' in params:
+            cls.docker_config(n_radios=n_radios, nodes=nodes, **params)
         else:
             try:
                 for i in range(0, n_radios):
@@ -154,7 +154,7 @@ class module(object):
         cls.kill_mac80211_hwsim()
 
     @classmethod
-    def start(cls, nodes, n_radios, alt_module, docker, **params):
+    def start(cls, nodes, n_radios, alt_module, **params):
         """Starts environment
 
         :param nodes: list of wireless nodes
@@ -170,9 +170,9 @@ class module(object):
             pass
 
         physicalWlans = cls.get_physical_wlan()  # Gets Physical Wlan(s)
-        cls.load_module(n_radios, nodes, docker, alt_module)  # Initatilize WiFi Module
+        cls.load_module(n_radios, nodes, alt_module, **params)  # Initatilize WiFi Module
         phys = cls.get_phy()  # Get Phy Interfaces
-        module.assign_iface(nodes, physicalWlans, phys, docker, **params)  # iface assign
+        module.assign_iface(nodes, physicalWlans, phys, **params)  # iface assign
 
     @classmethod
     def get_physical_wlan(cls):
@@ -214,14 +214,14 @@ class module(object):
         os.system('modprobe ifb numifbs=%s' % wlans)
 
     @classmethod
-    def docker_config(cls, n_radios=0, nodes=None, container_name='mininet-wifi',
-                      username='alpha', dir='/home/alpha/', ip='172.17.0.1'):
+    def docker_config(cls, n_radios=0, nodes=None, dir='/~',
+                      ip='172.17.0.1', **params):
 
-        file = 'docker_mn-wifi.sh'
+        file = cls.prefix + 'docker_mn-wifi.sh'
         os.system('rm %s' % file)
         os.system("echo '#!/bin/bash' >> %s" % file)
         os.system("echo 'pid=$(sudo -S docker inspect -f '{{.State.Pid}}' "
-                  "%s)' >> %s" % (container_name, file))
+                  "%s)' >> %s" % (params['container'], file))
         os.system("echo 'sudo -S mkdir -p /var/run/netns' >> %s" % file)
         os.system("echo 'sudo -S ln -s /proc/$pid/ns/net/ /var/run/netns/$pid'"
                   " >> %s" % file)
@@ -249,12 +249,12 @@ class module(object):
         os.system("echo '    sudo iw phy $i set netns $pid' >> %s" % file)
         os.system("echo '    j=$((j+1))' >> %s" % file)
         os.system("echo 'done' >> %s" % file)
-        os.system("scp %s %s@%s:%s" % (file, username, ip, dir))
+        os.system("scp %s %s@%s:%s" % (file, params['ssh_user'], ip, dir))
         os.system("ssh %s@%s \'chmod +x %s%s; %s%s\'"
-                  % (username, ip, dir, file, dir, file))
+                  % (params['ssh_user'], ip, dir, file, dir, file))
 
     @classmethod
-    def assign_iface(cls, nodes, physicalWlans, phys, docker, **params):
+    def assign_iface(cls, nodes, physicalWlans, phys, **params):
         """Assign virtual interfaces for all nodes
 
         :param nodes: list of wireless nodes
@@ -271,7 +271,7 @@ class module(object):
         else:
             ifb = False
         try:
-            if docker:
+            if 'docker' in params:
                 for phy in range(0, len(phys)):
                     cls.wlan_list.append('wlan%s' % phy)
             else:
@@ -289,7 +289,7 @@ class module(object):
                     for wlan in range(0, len(node.params['wlan'])):
                         node.phyID[wlan] = cls.phyID
                         cls.phyID += 1
-                        if not docker:
+                        if 'docker' not in params:
                             if py_version_info < (3, 0):
                                 rfkill = subprocess.check_output(
                                     'rfkill list | grep %s | awk \'{print $1}\''

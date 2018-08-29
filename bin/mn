@@ -282,6 +282,10 @@ class MininetRunner(object):
                         default=False, help='activate wifi')
         opts.add_option('--docker', '-d', action='store_true',
                         default=False, help='for docker environment')
+        opts.add_option('--container', type='string',
+                        default="mininet-wifi", help='container name')
+        opts.add_option('--ssh-user', type='string',
+                        default="alpha", help='ssh user name')
         opts.add_option('--plot', action='store_true',
                         default=False, help='plot 2D graph')
         opts.add_option('--plot3d', action='store_true',
@@ -452,6 +456,8 @@ class MininetRunner(object):
         mode = opts.mode
         ssid = opts.ssid
         docker = opts.docker
+        ssh_user = opts.ssh_user
+        container = opts.container
         bridge = opts.no_bridge
         plot = opts.plot
         plot3d = opts.plot3d
@@ -500,6 +506,8 @@ class MininetRunner(object):
                      ssid=ssid,
                      bridge=bridge,
                      docker=docker,
+                     container=container,
+                     ssh_user=ssh_user,
                      plot=plot,
                      plot3d=plot3d,
                      xterms=xterms, autoSetMacs=mac,
