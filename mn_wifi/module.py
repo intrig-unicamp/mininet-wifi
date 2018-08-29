@@ -172,7 +172,7 @@ class module(object):
         physicalWlans = cls.get_physical_wlan()  # Gets Physical Wlan(s)
         cls.load_module(n_radios, nodes, docker, alt_module)  # Initatilize WiFi Module
         phys = cls.get_phy()  # Get Phy Interfaces
-        module.assign_iface(nodes, physicalWlans, phys, **params)  # iface assign
+        module.assign_iface(nodes, physicalWlans, phys, docker, **params)  # iface assign
 
     @classmethod
     def get_physical_wlan(cls):
@@ -246,7 +246,7 @@ class module(object):
         os.system("echo 'do' >> %s" % file)
         os.system("echo '    pid=$(ps -aux | grep \"${nodes[$j]}\" | awk \"{print \$2}\" "
                   "| head -n 1)' >> %s" % file)
-        os.system("echo '    sudo iw phy \"$i\" set netns $pid' >> %s" % file)
+        os.system("echo '    sudo iw phy $i set netns $pid' >> %s" % file)
         os.system("echo '    j=$((j+1))' >> %s" % file)
         os.system("echo 'done' >> %s" % file)
         os.system("scp %s %s@%s:%s" % (file, username, ip, dir))
@@ -254,7 +254,7 @@ class module(object):
                   % (username, ip, dir, file, dir, file))
 
     @classmethod
-    def assign_iface(cls, nodes, physicalWlans, phys, **params):
+    def assign_iface(cls, nodes, physicalWlans, phys, docker, **params):
         """Assign virtual interfaces for all nodes
 
         :param nodes: list of wireless nodes
@@ -271,7 +271,11 @@ class module(object):
         else:
             ifb = False
         try:
-            cls.wlan_list = cls.get_wlan_iface(physicalWlans)
+            if docker:
+                for phy in range(0, len(phys)):
+                    cls.wlan_list.append('wlan%s' % phy)
+            else:
+                cls.wlan_list = cls.get_wlan_iface(physicalWlans)
             if ifb:
                 cls.load_ifb(len(cls.wlan_list))
                 ifbID = 0
@@ -280,22 +284,24 @@ class module(object):
             for node in nodes:
                 if (isinstance(node, Station) or isinstance(node, Car)) \
                         or 'inNamespace' in node.params:
-                    node.ifb = []
+                    if ifb:
+                        node.ifb = []
                     for wlan in range(0, len(node.params['wlan'])):
                         node.phyID[wlan] = cls.phyID
                         cls.phyID += 1
-                        if py_version_info < (3, 0):
-                            rfkill = subprocess.check_output(
-                                'rfkill list | grep %s | awk \'{print $1}\''
-                                '| tr -d ":"' % phys[0], shell=True).split('\n')
-                        else:
-                            rfkill = subprocess.check_output(
-                                'rfkill list | grep %s | awk \'{print $1}\''
-                                '| tr -d ":"' % phys[0],
-                                shell=True).decode('utf-8').split('\n')
-                        debug('rfkill unblock %s\n' % rfkill[0])
-                        os.system('rfkill unblock %s' % rfkill[0])
-                        os.system('iw phy %s set netns %s' % (phys[0], node.pid))
+                        if not docker:
+                            if py_version_info < (3, 0):
+                                rfkill = subprocess.check_output(
+                                    'rfkill list | grep %s | awk \'{print $1}\''
+                                    '| tr -d ":"' % phys[0], shell=True).split('\n')
+                            else:
+                                rfkill = subprocess.check_output(
+                                    'rfkill list | grep %s | awk \'{print $1}\''
+                                    '| tr -d ":"' % phys[0],
+                                    shell=True).decode('utf-8').split('\n')
+                            debug('rfkill unblock %s\n' % rfkill[0])
+                            os.system('rfkill unblock %s' % rfkill[0])
+                            os.system('iw phy %s set netns %s' % (phys[0], node.pid))
                         node.cmd('ip link set %s down' % cls.wlan_list[0])
                         node.cmd('ip link set %s name %s'
                                  % (cls.wlan_list[0], node.params['wlan'][wlan]))
