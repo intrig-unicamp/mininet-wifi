@@ -280,6 +280,8 @@ class MininetRunner(object):
                                             'between associated stations in the BSS')
         opts.add_option('--wifi', '-w', action='store_true',
                         default=False, help='activate wifi')
+        opts.add_option('--docker', '-d', action='store_true',
+                        default=False, help='for docker environment')
         opts.add_option('--plot', action='store_true',
                         default=False, help='plot 2D graph')
         opts.add_option('--plot3d', action='store_true',
@@ -449,6 +451,7 @@ class MininetRunner(object):
         channel = opts.channel
         mode = opts.mode
         ssid = opts.ssid
+        docker = opts.docker
         bridge = opts.no_bridge
         plot = opts.plot
         plot3d = opts.plot3d
@@ -457,10 +460,9 @@ class MininetRunner(object):
         if not opts.nolistenport:
             listenPort = opts.listenport
 
+        driver = 'nl80211'
         if opts.driver:
             driver = opts.driver
-        else:
-            driver = 'nl80211'
 
         # Handle inNamespace, cluster options
         inNamespace = opts.innamespace
@@ -497,6 +499,7 @@ class MininetRunner(object):
                      mode=mode,
                      ssid=ssid,
                      bridge=bridge,
+                     docker=docker,
                      plot=plot,
                      plot3d=plot3d,
                      xterms=xterms, autoSetMacs=mac,
