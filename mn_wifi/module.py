@@ -76,7 +76,7 @@ class module(object):
                     break
 
         if 'docker' in params:
-            cls.docker_config(n_radios=n_radios, nodes=nodes, **params)
+            cls.docker_config(n_radios=n_radios, nodes=nodes, num=num, **params)
         else:
             try:
                 for i in range(0, n_radios):
@@ -215,7 +215,9 @@ class module(object):
 
     @classmethod
     def docker_config(cls, n_radios=0, nodes=None, dir='~/',
-                      ip='172.17.0.1', **params):
+                      ip='172.17.0.1', num=0, **params):
+
+        from mn_wifi.node import AccessPoint
 
         file = cls.prefix + 'docker_mn-wifi.sh'
         os.system('rm %s' % file)
@@ -244,8 +246,9 @@ class module(object):
         os.system("echo 'j=0' >> %s" % file)
         os.system("echo 'for i in ${phys[@]}' >> %s" % file)
         os.system("echo 'do' >> %s" % file)
-        os.system("echo '    pid=$(ps -aux | grep \"${nodes[$j]}\" | awk \"{print \$2}\" "
-                  "| head -n 1)' >> %s" % file)
+        os.system("echo '    pid=$(ps -aux | grep \"${nodes[$j]}\" "
+                  "| grep -v 'hostapd' | awk \"{print \$2}\" "
+                  "| awk \"NR>=%s&&NR<=%s\")' >> %s" % (num+1, num+1, file))
         os.system("echo '    sudo iw phy $i set netns $pid' >> %s" % file)
         os.system("echo '    j=$((j+1))' >> %s" % file)
         os.system("echo 'done' >> %s" % file)
