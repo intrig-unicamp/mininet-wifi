@@ -536,8 +536,12 @@ class Mininet_wifi(Mininet):
                     enable_wmediumd = True
                 if self.wmediumd_mode == interference:
                     enable_interference = True
+                printCon = True
+                if self.topo:
+                    printCon=False
                 Association.associate(sta, ap, enable_wmediumd,
-                                      enable_interference, wlan, ap_wlan)
+                                      enable_interference, wlan, ap_wlan,
+                                      printCon=printCon)
                 if 'TCWirelessLink' in str(self.link.__name__):
                     if 'bw' not in params and 'bw' not in str(cls) and \
                             not self.ifb:

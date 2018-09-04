@@ -1143,7 +1143,8 @@ class Association(object):
 
     @classmethod
     def configureWirelessLink(cls, sta, ap, enable_wmediumd=False,
-                              enable_interference=False, ap_wlan=0):
+                              enable_interference=False, ap_wlan=0,
+                              printCon=True):
         """Updates RSSI and Others...
 
         :param sta: station
@@ -1158,7 +1159,8 @@ class Association(object):
                         cls.updateParams(sta, ap, wlan)
                 if sta.params['associatedTo'][wlan] == '' \
                         and ap not in sta.params['associatedTo']:
-                    cls.associate_infra(sta, ap, wlan, ap_wlan)
+                    cls.associate_infra(sta, ap, wlan, ap_wlan,
+                                        printCon=printCon)
                     if not enable_wmediumd:
                         if dist >= 0.01:
                             wirelessLink(sta, ap, wlan, ap_wlan, dist)
@@ -1185,13 +1187,14 @@ class Association(object):
 
     @classmethod
     def associate(cls, sta, ap, enable_wmediumd, enable_interference,
-                  wlan=0, ap_wlan=0):
+                  wlan=0, ap_wlan=0, printCon=True):
         "Associate to Access Point"
         if wlan == 0:
             wlan = sta.ifaceToAssociate
         if 'position' in sta.params:
             cls.configureWirelessLink(sta, ap, enable_wmediumd,
-                                      enable_interference, ap_wlan=0)
+                                      enable_interference, ap_wlan=0,
+                                      printCon=printCon)
         else:
             cls.associate_infra(sta, ap, wlan=0, ap_wlan=0, printCon=False)
         sta.ifaceToAssociate += 1
