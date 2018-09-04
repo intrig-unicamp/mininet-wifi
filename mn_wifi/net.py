@@ -63,7 +63,8 @@ class Mininet_wifi(Mininet):
                  autoSetPositions=False, configureWiFiDirect=False,
                  configure4addr=False, noise_threshold=-91, cca_threshold=-90,
                  rec_rssi=False, disable_tcp_checksum=False, ifb=False,
-                 bridge=False, plot=False, plot3d=False):
+                 bridge=False, plot=False, plot3d=False, docker=False,
+                 container='mininet-wifi', ssh_user='alpha'):
         """Create Mininet object.
            topo: Topo (topology) object or None
            switch: default Switch class
@@ -129,6 +130,9 @@ class Mininet_wifi(Mininet):
         self.ppm_is_set = False
         self.alreadyPlotted = False
         self.DRAW = False
+        self.docker = docker
+        self.container = container
+        self.ssh_user = ssh_user
         self.ifb = ifb #Support to Intermediate Functional Block (IFB) Devices
         self.isVanet = False
         self.bridge = bridge
@@ -532,8 +536,12 @@ class Mininet_wifi(Mininet):
                     enable_wmediumd = True
                 if self.wmediumd_mode == interference:
                     enable_interference = True
+                printCon = True
+                if self.topo:
+                    printCon=False
                 Association.associate(sta, ap, enable_wmediumd,
-                                      enable_interference, wlan, ap_wlan)
+                                      enable_interference, wlan, ap_wlan,
+                                      printCon=printCon)
                 if 'TCWirelessLink' in str(self.link.__name__):
                     if 'bw' not in params and 'bw' not in str(cls) and \
                             not self.ifb:
@@ -625,8 +633,6 @@ class Mininet_wifi(Mininet):
         """Build mininet from a topology object
            At the end of this function, everything should be connected
            and up."""
-        Association.printCon = False
-
         info('*** Creating network\n')
         if not self.controllers and self.controller:
             # Add a default controller
@@ -1975,6 +1981,10 @@ class Mininet_wifi(Mininet):
         if self.ifb:
             wirelessLink.ifb = True
             params['ifb'] = self.ifb
+        if self.docker:
+            params['docker'] = self.docker
+            params['container'] = self.container
+            params['ssh_user'] = self.ssh_user
         nodes = self.stations + self.aps + self.cars
         module.start(nodes, self.n_radios, self.alt_module, **params)
         if Mininet_6LoWPAN.n_wpans != 0:
