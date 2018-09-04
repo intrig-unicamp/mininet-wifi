@@ -252,8 +252,7 @@ class mobility(object):
             changeAP = value.changeAP
         if sta.params['associatedTo'][wlan] == '' or changeAP is True:
             if ap not in sta.params['associatedTo']:
-                Association.printCon = False
-                Association.associate_infra(sta, ap, wlan, ap_wlan)
+                Association.associate_infra(sta, ap, wlan, ap_wlan, printCon=False)
 
     @classmethod
     def get_line(cls, node, x1, y1, z1, x2, y2, z2):
@@ -568,8 +567,8 @@ class mobility(object):
                         and ('encrypt' in node.params and 'wpa' in node.params['encrypt'][wlan])):
                             for ap in cls.aps:
                                 if node.params['associatedTo'][wlan] == '':
-                                    Association.printCon = False
-                                    Association.associate_infra(node, ap, wlan, ap_wlan=0)
+                                    Association.associate_infra(node, ap, wlan,
+                                                                ap_wlan=0, printCon=False)
                                     node.params['associatedTo'][wlan] = 'active_scan'
                                     if Association.bgscan:
                                         node.params['associatedTo'][wlan] = 'bgscan'

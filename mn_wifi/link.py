@@ -1131,7 +1131,6 @@ class physicalMesh(IntfWireless):
 
 class Association(object):
 
-    printCon = True
     bgscan = None
 
     @classmethod
@@ -1159,7 +1158,7 @@ class Association(object):
                         cls.updateParams(sta, ap, wlan)
                 if sta.params['associatedTo'][wlan] == '' \
                         and ap not in sta.params['associatedTo']:
-                    Association.associate_infra(sta, ap, wlan, ap_wlan)
+                    cls.associate_infra(sta, ap, wlan, ap_wlan)
                     if not enable_wmediumd:
                         if dist >= 0.01:
                             wirelessLink(sta, ap, wlan, ap_wlan, dist)
@@ -1194,7 +1193,7 @@ class Association(object):
             cls.configureWirelessLink(sta, ap, enable_wmediumd,
                                       enable_interference, ap_wlan=0)
         else:
-            cls.associate_infra(sta, ap, wlan=0, ap_wlan=0)
+            cls.associate_infra(sta, ap, wlan=0, ap_wlan=0, printCon=False)
         sta.ifaceToAssociate += 1
 
     @classmethod
@@ -1215,7 +1214,7 @@ class Association(object):
             sta.params['wlan'][wlan], ap.params['ssid'][ap_wlan], ap.params['mac'][ap_wlan]))
 
     @classmethod
-    def associate_infra(cls, sta, ap, wlan, ap_wlan):
+    def associate_infra(cls, sta, ap, wlan, ap_wlan, printCon=True):
         """Association when infra
 
         :param sta: station
@@ -1248,7 +1247,7 @@ class Association(object):
                 elif ap.params['encrypt'][ap_wlan] == 'wep':
                     cls.associate_wep(sta, ap, wlan, ap_wlan)
                     associated = 1
-        if cls.printCon:
+        if printCon:
             iface = sta.params['wlan'][wlan]
             info("Associating %s to %s\n" % (iface, ap))
         if associated:

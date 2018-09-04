@@ -629,8 +629,6 @@ class Mininet_wifi(Mininet):
         """Build mininet from a topology object
            At the end of this function, everything should be connected
            and up."""
-        Association.printCon = False
-
         info('*** Creating network\n')
         if not self.controllers and self.controller:
             # Add a default controller
