@@ -127,7 +127,6 @@ class Mininet_wifi(Mininet):
         self.autoAssociation = autoAssociation # does not include mobility
         self.allAutoAssociation = allAutoAssociation # includes mobility
         self.ppm_is_set = False
-        self.alreadyPlotted = False
         self.DRAW = False
         self.docker = docker
         self.container = container
@@ -751,7 +750,7 @@ class Mininet_wifi(Mininet):
                 thread = threading.Thread(target=self.plot_dynamic)
                 thread.daemon = True
                 thread.start()
-            elif self.DRAW and not self.alreadyPlotted:
+            elif self.DRAW:
                 plotNodes = self.plot_nodes()
                 self.plotCheck(plotNodes)
         self.built = True
@@ -1271,20 +1270,19 @@ class Mininet_wifi(Mininet):
 
         sta = self.nameToNode[dst]
         ap = self.nameToNode[src]
-
         if isinstance(self.nameToNode[src], Station):
             sta = self.nameToNode[src]
             ap = self.nameToNode[dst]
 
         if status == 'down':
             for wlan in range(0, len(sta.params['wlan'])):
-                if sta.params['associatedTo'][wlan] != '':
+                if sta.params['associatedTo'][wlan]:
                     sta.cmd('iw dev %s disconnect' % sta.params['wlan'][wlan])
                     sta.params['associatedTo'][wlan] = ''
                     ap.params['associatedStations'].remove(sta)
         else:
             for wlan in range(0, len(sta.params['wlan'])):
-                if sta.params['associatedTo'][wlan] == '':
+                if not sta.params['associatedTo'][wlan]:
                     sta.pexec('iw dev %s connect %s %s'
                               % (sta.params['wlan'][wlan],
                                  ap.params['ssid'][0], ap.params['mac'][0]))
