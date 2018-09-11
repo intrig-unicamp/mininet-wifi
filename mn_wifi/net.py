@@ -1489,16 +1489,14 @@ class Mininet_wifi(Mininet):
             node._4addr = False
 
             if 'config' in node.params:
-                config = node.params['config']
-                if config != []:
-                    config = node.params['config'].split(',')
-                    for conf in config:
-                        if 'wpa=' in conf or 'wep=' in conf:
-                            node.params['encrypt'] = []
-                        if 'wpa=' in conf:
-                            node.params['encrypt'].append('wpa')
-                        if 'wep=' in conf:
-                            node.params['encrypt'].append('wep')
+                config = node.params['config'].split(',')
+                for conf in config:
+                    if 'wpa=' in conf or 'wep=' in conf:
+                        node.params['encrypt'] = []
+                    if 'wpa=' in conf:
+                        node.params['encrypt'].append('wpa')
+                    if 'wep=' in conf:
+                        node.params['encrypt'].append('wep')
 
             if mode == 'master':
                 node.params['mac'] = []

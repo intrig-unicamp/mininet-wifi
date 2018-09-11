@@ -1159,7 +1159,7 @@ class Association(object):
                 if not enable_interference:
                     if sta.params['rssi'][wlan] == 0:
                         cls.updateParams(sta, ap, wlan)
-                if sta.params['associatedTo'][wlan] == '' \
+                if not sta.params['associatedTo'][wlan] \
                         and ap not in sta.params['associatedTo']:
                     cls.associate_infra(sta, ap, wlan, ap_wlan,
                                         printCon=printCon)
@@ -1229,7 +1229,7 @@ class Association(object):
         if 'ieee80211r' in ap.params and ap.params['ieee80211r'] == 'yes' \
         and ('encrypt' not in sta.params or 'encrypt' in sta.params and
              'wpa' in sta.params['encrypt'][wlan]):
-            if sta.params['associatedTo'][wlan] == '':
+            if not sta.params['associatedTo'][wlan]:
                 command = ('ps -aux | grep %s | wc -l' % sta.params['wlan'][wlan])
                 np = int(subprocess.check_output(command, shell=True))
                 if np == 2:
@@ -1243,7 +1243,7 @@ class Association(object):
             associated = 1
             cls.associate_noEncrypt(sta, ap, wlan, ap_wlan)
         else:
-            if sta.params['associatedTo'][wlan] == '':
+            if not sta.params['associatedTo'][wlan]:
                 if 'wpa' in ap.params['encrypt'][ap_wlan] \
                 and ('encrypt' not in sta.params or 'encrypt' in sta.params and
                      'wpa' in sta.params['encrypt'][wlan]):
@@ -1289,9 +1289,9 @@ class Association(object):
                 cmd = cmd + '   pairwise=%s\n' % ap.rsn_pairwise
                 if 'active_scan' in sta.params and sta.params['active_scan'] == 1:
                     cmd = cmd + '   scan_ssid=1\n'
-                if 'scan_freq' in sta.params and sta.params['scan_freq'][wlan] != '':
+                if 'scan_freq' in sta.params and sta.params['scan_freq'][wlan]:
                     cmd = cmd + '   scan_freq=%s\n' % sta.params['scan_freq'][wlan]
-                if 'freq_list' in sta.params and sta.params['freq_list'][wlan] != '':
+                if 'freq_list' in sta.params and sta.params['freq_list'][wlan]:
                     cmd = cmd + '   freq_list=%s\n' % sta.params['freq_list'][wlan]
             cmd = cmd + '   key_mgmt=%s\n' % ap.wpa_key_mgmt
             if cls.bgscan:
@@ -1350,7 +1350,7 @@ class Association(object):
         :param wlan: wlan ID"""
         if sta.params['associatedTo'][wlan] != 'active_scan' \
             and sta.params['associatedTo'][wlan] != 'bgscan':
-            if sta.params['associatedTo'][wlan] != '' \
+            if sta.params['associatedTo'][wlan] \
                     and sta in sta.params['associatedTo'][wlan].params['associatedStations']:
                 sta.params['associatedTo'][wlan].params['associatedStations'].remove(sta)
             cls.updateParams(sta, ap, wlan)
