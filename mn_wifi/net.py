@@ -2193,9 +2193,11 @@ class MininetWithControlNet(Mininet_wifi):
         nodesL2 = self.switches + self.aps
         for nodeL2 in nodesL2:
             info(' ' + nodeL2.name)
-            # set Link as default since wmediumd doesn't include port1
-            self.link = Link
-            link = self.link(nodeL2, controller, port1=0)
+            if self.link == wmediumd:
+                link = Link(nodeL2, controller, port1=0)
+            else:
+                self.link = Link
+                link = self.link(nodeL2, controller, port1=0)
             sintf, cintf = link.intf1, link.intf2
             nodeL2.controlIntf = sintf
             snum += 1
