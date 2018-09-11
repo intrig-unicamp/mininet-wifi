@@ -149,7 +149,7 @@ class replayingBandwidth(object):
             for sta in stations:
                 if hasattr(sta, 'time'):
                     if time_ >= sta.time[0]:
-                        wirelessLink.tc(sta, 0, sta.throughput[0], 0, 0, 0)
+                        wirelessLink.config_tc(sta, 0, sta.throughput[0], 0, 0)
                         # pos = '%d, %d, %d' % (sta.throughput[0], sta.throughput[0], 0)
                         # self.moveStationTo(sta, pos)
                         del sta.throughput[0]
@@ -203,12 +203,10 @@ class replayingNetworkConditions(object):
                         if sta.params['associatedTo'][0] != '':
                             bw = sta.bw[0]
                             loss = sta.loss[0]
-                            delay = sta.delay[0]
                             latency = sta.latency[0]
-                            wirelessLink.tc(sta, 0, bw, loss, latency, delay)
+                            wirelessLink.config_tc(sta, 0, bw, loss, latency)
                         del sta.bw[0]
                         del sta.loss[0]
-                        del sta.delay[0]
                         del sta.latency[0]
                         del sta.time[0]
                     if len(sta.time) == 0:
@@ -229,7 +227,6 @@ class replayingRSSI(object):
 
     print_bw = False
     print_loss = False
-    print_delay = False
     print_latency = False
     print_distance = False
 

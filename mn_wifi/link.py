@@ -219,7 +219,7 @@ class IntfWireless(object):
     def status(self):
         "Return intf status as a string"
         links, _err, _result = self.node.pexec('ip link show')
-        if self.name in links:
+        if self.name in str(links):
             return "OK"
         else:
             return "MISSING"
@@ -836,11 +836,10 @@ class wirelessLink (object):
         :param wlan: wlan ID
         :param dist: distance between source and destination
         """
-        delay_ = self.getDelay(dist)
         latency_ = self.getLatency(dist)
         loss_ = self.getLoss(dist)
         bw_ = self.getBW(sta=sta, ap=ap, dist=dist, wlan=wlan)
-        self.config_tc(sta, wlan, bw_, loss_, latency_, delay_)
+        self.config_tc(sta, wlan, bw_, loss_, latency_)
 
     @classmethod
     def getDelay(cls, dist):
@@ -878,14 +877,13 @@ class wirelessLink (object):
                 node.intf = None
 
     @classmethod
-    def config_tc(cls, node, wlan, bw, loss, latency, delay):
+    def config_tc(cls, node, wlan, bw, loss, latency):
         """config_tc
         :param node: node
         :param wlan: wlan ID
         :param bw: bandwidth (mbps)
         :param loss: loss (%)
-        :param latency: latency (ms)
-        :param delay: delay (ms)"""
+        :param latency: latency (ms)"""
         if cls.ifb:
             iface = 'ifb%s' % node.ifb[wlan]
             cls.tc(node, iface, bw, loss, latency)
@@ -894,12 +892,16 @@ class wirelessLink (object):
 
     @classmethod
     def tc(cls, node, iface, bw, loss, latency):
-        tc_ = "tc qdisc replace dev %s " \
-              "root handle 2: netem " \
-              "rate %.4fmbit " \
-              "loss %.1f%% " \
-              "latency %.2fms " % (iface, bw, loss, latency)
-        node.pexec(tc_)
+        cmd = "tc qdisc replace dev %s root handle 2: netem " % iface
+        rate = "rate %.4fmbit " % bw
+        cmd = cmd + rate
+        if latency > 0.1:
+            latency = "latency %.2fms " % latency
+            cmd = cmd + latency
+        if loss > 0.1:
+            loss = "loss %.1f%% " % loss
+            cmd = cmd + loss
+        node.pexec(cmd)
 
 
 class ITSLink(IntfWireless):

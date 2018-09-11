@@ -39,7 +39,7 @@ def topology():
     net.mobility(sta2, 'start', time=2, position='10,40,0')
     net.mobility(sta1, 'stop', time=10, position='60,30,0')
     net.mobility(sta2, 'stop', time=10, position='25,40,0')
-    net.stopMobility(time=40)
+    net.stopMobility(time=11)
 
     info("*** Starting network\n")
     net.build()

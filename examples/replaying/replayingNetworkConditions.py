@@ -81,9 +81,7 @@ def getTrace(sta, file):
         line = data.split()
         sta.time.append(float(line[0])) #First Column = Time
         sta.bw.append(((float(line[1]))/1000000)/2) #Second Column = BW
-        #sta.loss.append(1) #Second Column = LOSS
         sta.loss.append(float(line[2])) #second Column = LOSS
-        sta.delay.append(float(line[4])) #Second Column = DELAY
         sta.latency.append(float(line[3])) #Second Column = LATENCY
 
 if __name__ == '__main__':

@@ -313,7 +313,7 @@ class Mininet_wifi(Mininet):
         """Add AccessPoint.
            name: name of accesspoint to add
            cls: custom switch class/constructor (optional)
-           returns: added acesspoint
+           returns: added accesspoint
            side effect: increments listenPort var ."""
         defaults = {'listenPort': self.listenPort,
                     'inNamespace': self.inNamespace,
@@ -803,17 +803,25 @@ class Mininet_wifi(Mininet):
 
         info('*** Starting switches and/or access points\n')
         nodesL2 = self.switches + self.aps
-        for switch in nodesL2:
-            info(switch.name + ' ')
-            switch.start(self.controllers)
+        for nodeL2 in nodesL2:
+            info(nodeL2.name + ' ')
+            nodeL2.start(self.controllers)
 
         started = {}
-        for swclass, switches in groupby(
-                sorted(nodesL2, key=type), type):
-            switches = tuple(switches)
-            if hasattr(swclass, 'batchStartup'):
-                success = swclass.batchStartup(switches)
-                started.update({s: s for s in success})
+        if py_version_info < (3, 0):
+            for swclass, switches in groupby(
+                    sorted(nodesL2, key=type), type):
+                switches = tuple(switches)
+                if hasattr(swclass, 'batchStartup'):
+                    success = swclass.batchStartup(switches)
+                    started.update({s: s for s in success})
+        else:
+            for swclass, switches in groupby(
+                    sorted(nodesL2, key=lambda x: str(type(x))), type):
+                switches = tuple(switches)
+                if hasattr(swclass, 'batchStartup'):
+                    success = swclass.batchStartup(switches)
+                    started.update({s: s for s in success})
         info('\n')
         if self.waitConn:
             self.waitConnected()

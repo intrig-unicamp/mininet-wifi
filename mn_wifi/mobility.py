@@ -198,7 +198,6 @@ class mobility(object):
         ap.params['stationsInRange'][sta] = rssi
         if ap == sta.params['associatedTo'][wlan]:
             if cls.wmediumd_mode and cls.wmediumd_mode != 3:
-                rssi = sta.set_rssi(ap, wlan, dist)
                 sta.params['rssi'][wlan] = rssi
                 if cls.rec_rssi:
                     os.system('hwsim_mgmt -k %s %s >/dev/null 2>&1'
@@ -229,10 +228,7 @@ class mobility(object):
             dist = sta.get_distance_to(ap)
             if dist > ap.params['range'][0]:
                 cls.ap_out_of_range(sta, ap, wlan)
-
-        for ap in cls.aps:
-            dist = sta.get_distance_to(ap)
-            if dist <= ap.params['range'][0]:
+            else:
                 cls.handover(sta, ap, wlan, ap_wlan)
                 cls.ap_in_range(sta, ap, wlan, dist)
 
@@ -246,11 +242,11 @@ class mobility(object):
         changeAP = False
 
         "Association Control: mechanisms that optimize the use of the APs"
-        if cls.ac and sta.params['associatedTo'][wlan] != ap \
-                and sta.params['associatedTo'][wlan] != '':
+        if cls.ac and sta.params['associatedTo'][wlan] \
+                and ap not in sta.params['associatedTo']:
             value = associationControl(sta, ap, wlan, cls.ac)
             changeAP = value.changeAP
-        if sta.params['associatedTo'][wlan] == '' or changeAP is True:
+        if not sta.params['associatedTo'][wlan] or changeAP:
             if ap not in sta.params['associatedTo']:
                 Association.associate_infra(sta, ap, wlan, ap_wlan, printCon=False)
 
@@ -345,8 +341,10 @@ class mobility(object):
                     cls.calculate_diff_time(node)
                 while True:
                     t2 = time()
-                    if (t2 - t1) > kwargs['final_time'] or (t2 - t1) < kwargs['init_time']:
+                    if (t2 - t1) < kwargs['init_time']:
                         pass
+                    elif (t2 - t1) > kwargs['final_time']:
+                        break
                     if t2 - t1 >= i:
                         for node in cls.mobileNodes:
                             if (t2 - t1) >= node.startTime and node.time <= node.endTime:
