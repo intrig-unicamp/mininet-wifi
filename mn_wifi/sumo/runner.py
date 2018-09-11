@@ -2,6 +2,7 @@ import sys
 import os
 import threading
 
+from mininet.log import info
 from mn_wifi.mobility import mobility
 from sys import version_info as py_version_info
 if py_version_info < (3, 0):
@@ -13,35 +14,34 @@ if py_version_info < (3, 0):
 
 class sumo(object):
 
-    def __init__( self, **params ):
+    def __init__( self, stations, aps, **kwargs ):
         thread = threading.Thread(name='vanet', target=self.configureApp,
-                                  kwargs=dict(params,))
+                                  args=(stations, aps), kwargs=dict(kwargs,))
         thread.daemon = True
         thread.start()
 
-    def configureApp(self, stations, aps, program, config_file, **params):
+    def configureApp(self, stations, aps, config_file='map.sumocfg',
+                     port=8813):
         try:
             mobility.stations = stations
             mobility.aps = aps
             mobility.mobileNodes = stations
-            self.start(stations, program, config_file)
+            self.start(stations, config_file, port)
         except:
-            pass
+            info("Something went wrong when trying to start sumo\n")
 
     def setWifiParameters(self):
         thread = threading.Thread(name='wifiParameters', target=mobility.parameters)
         thread.start()
 
-    def start( self, stations, program, config_file ):
-        PORT = 8813
-        sumoBinary = checkBinary(program)
+    def start( self, stations, config_file, port ):
+        sumoBinary = checkBinary('sumo-gui')
         myfile = (os.path.join( os.path.dirname(__file__), "data/%s" % config_file))
         sumoConfig = myfile
 
         if not trace.isEmbedded():
             os.system(' %s -c %s &' % (sumoBinary, sumoConfig))
-            #subprocess.Popen(' %s -c  %s' % (sumoBinary,sumoConfig), shell=True, stdout=sys.stdout)
-            trace.init(PORT)
+            trace.init(port)
 
         step=0
         ListVeh=[]

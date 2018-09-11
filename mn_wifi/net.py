@@ -44,7 +44,6 @@ from mn_wifi.sixLoWPAN.module import module as sixLoWPAN_module
 from mn_wifi.sixLoWPAN.link import sixLoWPANLink
 
 sys.path.append(str(os.getcwd()) + '/mininet/')
-from mn_wifi.sumo.runner import sumo
 
 VERSION = "2.2.1d1"
 
@@ -1897,21 +1896,16 @@ class Mininet_wifi(Mininet):
         self.mobilityparam.setdefault('rec_rssi', self.rec_rssi)
         self.mobilityparam.setdefault('ppm', propagationModel.model)
 
-    def useExternalProgram(self, program, **params):
+    def useExternalProgram(self, program, **kwargs):
         """Opens an external program
 
-        :params program: any program (useful for SUMO)
+        :params program: only sumo is supported so far
         :params **params config_file: file configuration"""
-        params['stations'] = self.stations
-        params['aps'] = self.aps
-        params['cars'] = self.cars
-        params['program'] = program
         self.autoAssociation = False
         self.isVanet = True
-        for car in params['cars']:
+        for car in self.cars:
             car.params['position'] = 0, 0, 0
-        if params['program'] == 'sumo' or params['program'] == 'sumo-gui':
-            sumo(**params)
+        program(self.stations, self.aps, **kwargs)
 
     @staticmethod
     def configureMacAddr(node):
