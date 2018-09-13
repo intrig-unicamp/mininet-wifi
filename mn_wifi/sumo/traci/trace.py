@@ -29,11 +29,9 @@ _DEBUG = False
 def isEmbedded():
     return _embedded
 
-
 def _STEPS2TIME(step):
     """Conversion from time steps in milliseconds to seconds as float"""
     return step / 1000.
-
 
 def _TIME2STEPS(time):
     """Conversion from (float) time in seconds to milliseconds as int"""
@@ -102,7 +100,6 @@ class Storage:
             for char in self._content[self._pos:]:
                 print("%03i %02x %s" % (ord(char), ord(char), char))
 
-
 class SubscriptionResults:
     def __init__(self, valueFunc):
         self._results = {}
@@ -139,7 +136,6 @@ class SubscriptionResults:
         if refID == None:
             return self._contextResults
         return self._contextResults.get(refID, None)
-
 
 from . import constants
 from . import inductionloop, multientryexit, trafficlights
@@ -193,7 +189,6 @@ _modules = {constants.RESPONSE_SUBSCRIBE_INDUCTIONLOOP_VARIABLE: inductionloop,
 _connections = {}
 _message = Message()
 
-
 def _recvExact():
     try:
         result = ""
@@ -212,7 +207,6 @@ def _recvExact():
         return Storage(result)
     except socket.error:
         return None
-
 
 def _sendExact():
     if _embedded:
@@ -240,7 +234,6 @@ def _sendExact():
     _message.queue = []
     return result
 
-
 def _beginMessage(cmdID, varID, objID, length=0):
     _message.queue.append(cmdID)
     length += 1 + 1 + 1 + 4 + len(objID)
@@ -251,36 +244,30 @@ def _beginMessage(cmdID, varID, objID, length=0):
         _message.string += struct.pack("!BiBBi", 0, length + 4,
                                        cmdID, varID, len(objID)) + objID
 
-
 def _sendReadOneStringCmd(cmdID, varID, objID):
     _beginMessage(cmdID, varID, objID)
     return _checkResult(cmdID, varID, objID)
-
 
 def _sendIntCmd(cmdID, varID, objID, value):
     _beginMessage(cmdID, varID, objID, 1 + 4)
     _message.string += struct.pack("!Bi", constants.TYPE_INTEGER, value)
     _sendExact()
 
-
 def _sendDoubleCmd(cmdID, varID, objID, value):
     _beginMessage(cmdID, varID, objID, 1 + 8)
     _message.string += struct.pack("!Bd", constants.TYPE_DOUBLE, value)
     _sendExact()
-
 
 def _sendByteCmd(cmdID, varID, objID, value):
     _beginMessage(cmdID, varID, objID, 1 + 1)
     _message.string += struct.pack("!BB", constants.TYPE_BYTE, value)
     _sendExact()
 
-
 def _sendStringCmd(cmdID, varID, objID, value):
     _beginMessage(cmdID, varID, objID, 1 + 4 + len(value))
     _message.string += struct.pack("!Bi", constants.TYPE_STRING,
                                    len(value)) + value
     _sendExact()
-
 
 def _checkResult(cmdID, varID, objID):
     result = _sendExact()
@@ -292,7 +279,6 @@ def _checkResult(cmdID, varID, objID):
                               % (response, retVarID, objectID, cmdID, varID, objID))
     result.read("!B")  # Return type of the variable
     return result
-
 
 def _readSubscription(result):
     #    result.printDebug() # to enable this you also need to set _DEBUG to True
@@ -330,7 +316,6 @@ def _readSubscription(result):
                     raise FatalTraCIError("Cannot handle subscription response %02x for %s." % (response, objectID))
     return response, objectID
 
-
 def _subscribe(cmdID, begin, end, objID, varIDs):
     _message.queue.append(cmdID)
     length = 1 + 1 + 4 + 4 + 4 + len(objID) + 1 + len(varIDs)
@@ -347,7 +332,6 @@ def _subscribe(cmdID, begin, end, objID, varIDs):
     if response - cmdID != 16 or objectID != objID:
         raise FatalTraCIError(
             "Received answer %02x,%s for subscription command %02x,%s." % (response, objectID, cmdID, objID))
-
 
 def _subscribeContext(cmdID, begin, end, objID, domain, dist, varIDs):
     _message.queue.append(cmdID)
@@ -366,7 +350,6 @@ def _subscribeContext(cmdID, begin, end, objID, domain, dist, varIDs):
         raise FatalTraCIError(
             "Received answer %02x,%s for context subscription command %02x,%s." % (response, objectID, cmdID, objID))
 
-
 def init(port=8813, numRetries=10, host="localhost", label="default"):
     if _embedded:
         return getVersion()
@@ -380,7 +363,6 @@ def init(port=8813, numRetries=10, host="localhost", label="default"):
         except socket.error:
             time.sleep(wait)
     return getVersion()
-
 
 def simulationStep(step=0):
     """
@@ -399,7 +381,6 @@ def simulationStep(step=0):
         numSubs -= 1
     return responses
 
-
 def getVersion():
     command = constants.CMD_GETVERSION
     _message.queue.append(command)
@@ -411,7 +392,6 @@ def getVersion():
         raise FatalTraCIError("Received answer %s for command %s." % (response, command))
     return result.readInt(), result.readString()
 
-
 def close():
     if "" in _connections:
         _message.queue.append(constants.CMD_CLOSE)
@@ -420,11 +400,9 @@ def close():
         _connections[""].close()
         del _connections[""]
 
-
 def setOrder():
     for idx, conn in enumerate(_connections):
         conn.setOrder(idx)
-
 
 def switch(label):
     _connections[""] = _connections[label]

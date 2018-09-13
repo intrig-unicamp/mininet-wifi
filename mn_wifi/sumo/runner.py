@@ -5,6 +5,7 @@ import threading
 from mininet.log import info
 from mn_wifi.mobility import mobility
 from sys import version_info as py_version_info
+
 if py_version_info < (3, 0):
     from sumolib.sumulib import checkBinary
     from traci import trace
@@ -45,76 +46,76 @@ class sumo(object):
                                               clients, port))
             trace.init(port)
 
-        step=0
-        ListVeh=[]
-        ListTravelTime=[]
-        Visited=[]
-        ListVisited=[]
-        time=[]
-        speed=[]
-        ListVehInteract=[]
+        step = 0
+        speed = []
+        time = []
+        visited = []
+        veh_list = []
+        visited_list = []
+        veh_interact_list = []
+        travel_time_list = []
         self.setWifiParameters()
 
-        #while len(ListVeh) < len(nodes):
         while True:
             trace.simulationStep()
             for vehID in trace.vehicle.getIDList():
-                if not(vehID in ListVeh):
-                    Initialisation=initialisation(ListVeh, ListTravelTime,
-                                                  ListVisited, Visited, time,
-                                                  speed, vehID)
-                    ListVeh=Initialisation[0]
-                    ListTravelTime=Initialisation[1]
-                    ListVisited=Initialisation[2]
-                    Visited=Initialisation[3]
-                    time=Initialisation[4]
-                    speed=Initialisation[5]
+                if not(vehID in veh_list):
+                    init=initialisation(veh_list, travel_time_list,
+                                        visited_list, visited, time,
+                                        speed, vehID)
+                    veh_list = init[0]
+                    travel_time_list = init[1]
+                    visited_list = init[2]
+                    visited = init[3]
+                    time = init[4]
+                    speed = init[5]
 
-                NoChangeSaveTimeAndSpeed=noChangeSaveTimeAndSpeed(
-                    Visited, ListVeh, time, speed, vehID)
-                Visited=NoChangeSaveTimeAndSpeed[0]
-                time=NoChangeSaveTimeAndSpeed[1]
-                speed=NoChangeSaveTimeAndSpeed[2]
+                no_change = noChangeSaveTimeAndSpeed(
+                    visited, veh_list, time, speed, vehID)
+                visited = no_change[0]
+                time = no_change[1]
+                speed = no_change[2]
 
-                ChangeSaveTimeAndSpeed=changeSaveTimeAndSpeed(
-                    Visited, ListVeh, time, speed, ListVisited, vehID,
-                    ListTravelTime)
-                Visited=ChangeSaveTimeAndSpeed[0]
-                time=ChangeSaveTimeAndSpeed[1]
-                speed=ChangeSaveTimeAndSpeed[2]
-                ListVisited=ChangeSaveTimeAndSpeed[3]
-                ListTravelTime=ChangeSaveTimeAndSpeed[4]
+                change = changeSaveTimeAndSpeed(
+                    visited, veh_list, time, speed, visited_list, vehID,
+                    travel_time_list)
+                visited = change[0]
+                time = change[1]
+                speed = change[2]
+                visited_list = change[3]
+                travel_time_list = change[4]
 
             for vehID2 in trace.vehicle.getIDList():
                 for vehID1 in trace.vehicle.getIDList():
-                    Road1=trace.vehicle.getRoadID(vehID1)
-                    Road2=trace.vehicle.getRoadID(vehID2)
-                    OppositeRoad1='-'+Road1
-                    OppositeRoad2='-'+Road2
-                    if not((vehID2,vehID1) in ListVehInteract):
-                        x1=trace.vehicle.getPosition(vehID1)[0]
-                        y1=trace.vehicle.getPosition(vehID1)[1]
-                        x2=trace.vehicle.getPosition(vehID2)[0]
-                        y2=trace.vehicle.getPosition(vehID2)[1]
+                    road1 = trace.vehicle.getRoadID(vehID1)
+                    road2 = trace.vehicle.getRoadID(vehID2)
+                    opposite_road1 = '-' + road1
+                    opposite_road2 = '-' + road2
+                    if not((vehID2,vehID1) in veh_interact_list):
+                        x1 = trace.vehicle.getPosition(vehID1)[0]
+                        y1 = trace.vehicle.getPosition(vehID1)[1]
+                        x2 = trace.vehicle.getPosition(vehID2)[0]
+                        y2 = trace.vehicle.getPosition(vehID2)[1]
 
                         if int(vehID1) < len(stations):
                             stations[int(vehID1)].params['position'] = x1, y1, 0
-                            car = stations[int(vehID1)].params['carsta']
-                            car.params['position'] = stations[int(vehID1)].params['position']
-                            stations[int(vehID1)].params['carsta'].set_pos_wmediumd()
-                            car.set_pos_wmediumd()
-                            #stations[int(vehID1)].params['range'] = 130
+                            if 'carsta' in stations[int(vehID1)].params:
+                                car = stations[int(vehID1)].params['carsta']
+                                car.params['position'] = stations[int(vehID1)].params['position']
+                                car.set_pos_wmediumd()
+                            stations[int(vehID1)].set_pos_wmediumd()
 
-                        if abs(x1-x2)>0 and abs(x1-x2)<20 and (
-                                        Road1==OppositeRoad2 or Road2==OppositeRoad1):
-                            ListVehInteract.append((vehID2,vehID1))
-                            Route2=trace.vehicle.getRoute(vehID2)
-                            Route1=trace.vehicle.getRoute(vehID1)
-                            Index2=Route2.index(trace.vehicle.getRoadID(vehID2))
-                            Index1=Route1.index(trace.vehicle.getRoadID(vehID1))
-                            VisitedEdge2=ListVisited[ListVeh.index(vehID2)][0:len(
-                                ListVisited[ListVeh.index(vehID2)])-1]
-                            reroutage(VisitedEdge2,ListTravelTime,vehID1,vehID2,ListVeh)
+                        if abs(x1-x2)>0 and abs(x1-x2)<20 \
+                                and (road1 == opposite_road2 or road2 == opposite_road1):
+                            veh_interact_list.append((vehID2,vehID1))
+                            route2 = trace.vehicle.getRoute(vehID2)
+                            route1 = trace.vehicle.getRoute(vehID1)
+                            index2 = route2.index(trace.vehicle.getRoadID(vehID2))
+                            index1 = route1.index(trace.vehicle.getRoadID(vehID1))
+                            visited_edge_2 = visited_list[veh_list.index(vehID2)][0:len(
+                                visited_list[veh_list.index(vehID2)])-1]
+                            reroutage(visited_edge_2, travel_time_list,
+                                      vehID1, vehID2, veh_list)
             step=step+1
         trace.close()
         sys.stdout.flush()
