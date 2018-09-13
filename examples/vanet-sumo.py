@@ -73,7 +73,8 @@ def topology():
     net.addLink(e4, e5)
     net.addLink(e5, e6)
 
-    net.useExternalProgram(program=sumo, config_file='map.sumocfg')
+    net.useExternalProgram(program=sumo, port=8813,
+                           config_file='map.sumocfg')
 
     info("*** Starting network\n")
     net.build()

@@ -21,12 +21,12 @@ class sumo(object):
         thread.start()
 
     def configureApp(self, stations, aps, config_file='map.sumocfg',
-                     port=8813):
+                     clients=1, port=8813):
         try:
             mobility.stations = stations
             mobility.aps = aps
             mobility.mobileNodes = stations
-            self.start(stations, config_file, port)
+            self.start(stations, config_file, clients, port)
         except:
             info("Something went wrong when trying to start sumo\n")
 
@@ -34,13 +34,15 @@ class sumo(object):
         thread = threading.Thread(name='wifiParameters', target=mobility.parameters)
         thread.start()
 
-    def start( self, stations, config_file, port ):
+    def start( self, stations, config_file, clients, port ):
         sumoBinary = checkBinary('sumo-gui')
         myfile = (os.path.join( os.path.dirname(__file__), "data/%s" % config_file))
         sumoConfig = myfile
 
         if not trace.isEmbedded():
-            os.system(' %s -c %s &' % (sumoBinary, sumoConfig))
+            os.system(' %s -c %s --num-clients %s '
+                      '--remote-port %s &' % (sumoBinary, sumoConfig,
+                                              clients, port))
             trace.init(port)
 
         step=0
