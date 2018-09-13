@@ -1751,16 +1751,14 @@ class AccessPoint(AP):
         for wlan in range(len(node.params['wlan'])):
             if 'inNamespace' not in node.params:
                 if not isinstance(node, Station):
-                    options = dict()
                     cls.configureIface(node, wlan)
-                    TCLinkWirelessAP(node, **options)
-                    #cls.links.append(link)
-            elif 'inNamespace' in node.params:
-                TCLinkWirelessAP(node)
-                #cls.links.append(link)
+            TCLinkWirelessAP(node)
+            #cls.links.append(link)
             AccessPoint.setIPMAC(node, wlan)
             if 'vssids' in node.params:
                 break
+        if 'phywlan' in node.params:
+            TCLinkWirelessAP(node, intfName1=node.params['phywlan'])
 
     @classmethod
     def checkNetworkManager(cls, mac):
