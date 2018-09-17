@@ -19,8 +19,7 @@ def topology():
     net.addStation('sta2', mac='00:00:00:00:00:03', ip='10.0.0.3/8',
                    min_x=60, max_x=70, min_y=10, max_y=20, min_v=1, max_v=5)
     ap1 = net.addAccessPoint('ap1', ssid='new-ssid', mode='g', channel='1',
-                             position='50,50,0')
-    c1 = net.addController('c1', controller=Controller)
+                             failMode="standalone", position='50,50,0')
 
     info("*** Configuring wifi nodes\n")
     net.configureWifiNodes()
@@ -32,8 +31,7 @@ def topology():
 
     info("*** Starting network\n")
     net.build()
-    c1.start()
-    ap1.start([c1])
+    ap1.start([])
 
     info("*** Running CLI\n")
     CLI_wifi(net)

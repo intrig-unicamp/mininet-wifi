@@ -17,9 +17,8 @@ def topology():
     sta1 = net.addStation('sta1', passwd='123456789a', encrypt='wpa2')
     sta2 = net.addStation('sta2', passwd='123456789a', encrypt='wpa2')
     ap1 = net.addAccessPoint('ap1', ssid="simplewifi", mode="g", channel="1",
-                             passwd='123456789a', encrypt='wpa2')
-    c0 = net.addController('c0', controller=Controller, ip='127.0.0.1',
-                           port=6633)
+                             passwd='123456789a', encrypt='wpa2',
+                             failMode="standalone")
 
     info("*** Configuring wifi nodes\n")
     net.configureWifiNodes()
@@ -30,8 +29,7 @@ def topology():
 
     info("*** Starting network\n")
     net.build()
-    c0.start()
-    ap1.start([c0])
+    ap1.start([])
 
     info("*** Running CLI\n")
     CLI_wifi(net)
