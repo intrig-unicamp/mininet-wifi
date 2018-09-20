@@ -1,12 +1,25 @@
 #!/usr/bin/env python
-# Converts all testclient.prog to hex
-# $Id: traciToHex.py 13752 2013-04-27 06:06:24Z behrisch $
+# -*- coding: utf-8 -*-
+# Eclipse SUMO, Simulation of Urban MObility; see https://eclipse.org/sumo
+# Copyright (C) 2010-2017 German Aerospace Center (DLR) and others.
+# This program and the accompanying materials
+# are made available under the terms of the Eclipse Public License v2.0
+# which accompanies this distribution, and is available at
+# http://www.eclipse.org/legal/epl-v20.html
+
+# @file    traciToHex.py
+# @author  Michael Behrisch
+# @date    2010-09-08
+# @version $Id$
+
 
 from __future__ import print_function
-import os, sys
+from __future__ import absolute_import
+import os
+import sys
 
 mRoot = "."
-if len(sys.argv)>1:
+if len(sys.argv) > 1:
     mRoot = sys.argv[1]
 for root, dirs, files in os.walk(mRoot):
     if ".svn" in dirs:

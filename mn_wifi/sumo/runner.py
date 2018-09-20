@@ -6,6 +6,7 @@ from mininet.log import info
 from mn_wifi.mobility import mobility
 from sys import version_info as py_version_info
 
+
 if py_version_info < (3, 0):
     from sumolib.sumulib import checkBinary
     from traci import trace
@@ -23,13 +24,13 @@ class sumo(object):
 
     def configureApp(self, stations, aps, config_file='map.sumocfg',
                      clients=1, port=8813):
-        try:
-            mobility.stations = stations
-            mobility.aps = aps
-            mobility.mobileNodes = stations
-            self.start(stations, config_file, clients, port)
-        except:
-            info("Something went wrong when trying to start sumo\n")
+        #try:
+        mobility.stations = stations
+        mobility.aps = aps
+        mobility.mobileNodes = stations
+        self.start(stations, config_file, clients, port)
+        #except:
+        #info("Connection with SUMO closed.\n")
 
     def setWifiParameters(self):
         thread = threading.Thread(name='wifiParameters', target=mobility.parameters)
@@ -45,6 +46,7 @@ class sumo(object):
                       '--remote-port %s &' % (sumoBinary, sumoConfig,
                                               clients, port))
             trace.init(port)
+            trace.setOrder(0)
 
         step = 0
         speed = []
@@ -58,11 +60,13 @@ class sumo(object):
 
         while True:
             trace.simulationStep()
-            for vehID in trace.vehicle.getIDList():
+            vehicleCommands = trace._vehicle.VehicleDomain()
+            vehicleCommands._connection = trace.getConnection(label="default")
+            for vehID in vehicleCommands.getIDList():
                 if not(vehID in veh_list):
                     init=initialisation(veh_list, travel_time_list,
                                         visited_list, visited, time,
-                                        speed, vehID)
+                                        speed, vehID, vehicleCommands)
                     veh_list = init[0]
                     travel_time_list = init[1]
                     visited_list = init[2]
@@ -71,31 +75,31 @@ class sumo(object):
                     speed = init[5]
 
                 no_change = noChangeSaveTimeAndSpeed(
-                    visited, veh_list, time, speed, vehID)
+                    visited, veh_list, time, speed, vehID, vehicleCommands)
                 visited = no_change[0]
                 time = no_change[1]
                 speed = no_change[2]
 
                 change = changeSaveTimeAndSpeed(
                     visited, veh_list, time, speed, visited_list, vehID,
-                    travel_time_list)
+                    travel_time_list, vehicleCommands)
                 visited = change[0]
                 time = change[1]
                 speed = change[2]
                 visited_list = change[3]
                 travel_time_list = change[4]
 
-            for vehID2 in trace.vehicle.getIDList():
-                for vehID1 in trace.vehicle.getIDList():
-                    road1 = trace.vehicle.getRoadID(vehID1)
-                    road2 = trace.vehicle.getRoadID(vehID2)
+            for vehID2 in vehicleCommands.getIDList():
+                for vehID1 in vehicleCommands.getIDList():
+                    road1 = vehicleCommands.getRoadID(vehID1)
+                    road2 = vehicleCommands.getRoadID(vehID2)
                     opposite_road1 = '-' + road1
                     opposite_road2 = '-' + road2
                     if not((vehID2,vehID1) in veh_interact_list):
-                        x1 = trace.vehicle.getPosition(vehID1)[0]
-                        y1 = trace.vehicle.getPosition(vehID1)[1]
-                        x2 = trace.vehicle.getPosition(vehID2)[0]
-                        y2 = trace.vehicle.getPosition(vehID2)[1]
+                        x1 = vehicleCommands.getPosition(vehID1)[0]
+                        y1 = vehicleCommands.getPosition(vehID1)[1]
+                        x2 = vehicleCommands.getPosition(vehID2)[0]
+                        y2 = vehicleCommands.getPosition(vehID2)[1]
 
                         if int(vehID1) < len(stations):
                             stations[int(vehID1)].params['position'] = x1, y1, 0
@@ -108,10 +112,10 @@ class sumo(object):
                         if abs(x1-x2)>0 and abs(x1-x2)<20 \
                                 and (road1 == opposite_road2 or road2 == opposite_road1):
                             veh_interact_list.append((vehID2,vehID1))
-                            route2 = trace.vehicle.getRoute(vehID2)
-                            route1 = trace.vehicle.getRoute(vehID1)
-                            index2 = route2.index(trace.vehicle.getRoadID(vehID2))
-                            index1 = route1.index(trace.vehicle.getRoadID(vehID1))
+                            route2 = vehicleCommands.getRoute(vehID2)
+                            route1 = vehicleCommands.getRoute(vehID1)
+                            index2 = route2.index(vehicleCommands.getRoadID(vehID2))
+                            index1 = route1.index(vehicleCommands.getRoadID(vehID1))
                             visited_edge_2 = visited_list[veh_list.index(vehID2)][0:len(
                                 visited_list[veh_list.index(vehID2)])-1]
                             reroutage(visited_edge_2, travel_time_list,
