@@ -243,13 +243,6 @@ class Mininet_wifi(Mininet):
 
         self.addParameters(sta, self.autoSetMacs, defaults)
 
-        if 'type' in params and params['type'] is 'ap':
-            sta.func[0] = 'ap'
-            if 'ssid' in params:
-                sta.params['ssid'] = []
-                sta.params['ssid'].append('')
-                sta.params['ssid'][0] = params['ssid']
-
         self.stations.append(sta)
         self.nameToNode[name] = sta
         return sta
@@ -1723,25 +1716,6 @@ class Mininet_wifi(Mininet):
                     TCLinkWirelessStation(node, intfName1=vif)
                     self.configureMacAddr(node)
 
-    def check_sta_ap_mode(self):
-        "check if sta is working in ap mode"
-        isApAdhoc = []
-        for sta in self.stations:
-            if sta.func[0] == 'ap':
-                self.aps.append(sta)
-                isApAdhoc.append(sta)
-
-        for ap in isApAdhoc:
-            self.stations.remove(ap)
-            ap.setIP('%s' % ap.params['ip'][0],
-                     intf='%s' % ap.params['wlan'][0])
-            ap.params.pop('rssi', None)
-            ap.params.pop('apsInRange', None)
-            ap.params.pop('associatedTo', None)
-
-            for _ in (1, len(ap.params['wlan'])):
-                ap.params['mac'].append('')
-
     @staticmethod
     def kill_hostapd():
         "Kill hostapd"
@@ -1775,7 +1749,6 @@ class Mininet_wifi(Mininet):
                                              intfName1=node.params['wlan'][wlan])
                 self.links.append(link)
             self.configureMacAddr(node)
-        self.check_sta_ap_mode()
 
     def plotGraph(self, **kwargs):
         "Plots Graph"
@@ -2025,7 +1998,6 @@ class Mininet_wifi(Mininet):
 
     def plotCheck(self, other_nodes):
         "Check which nodes will be plotted"
-        self.check_sta_ap_mode()
         nodes = self.stations + self.aps + other_nodes
         self.checkDimension(nodes)
 
@@ -2047,6 +2019,16 @@ class Mininet_wifi(Mininet):
 
     def auto_association(self):
         "This is useful to make the users' life easier"
+        isap = []
+        for sta in self.stations:
+            for wlan in range(0, len(sta.params['wlan'])):
+                if sta.func[wlan] == 'ap' and sta not in self.aps:
+                    isap.append(sta)
+
+        for sta in isap:
+            self.aps.append(sta)
+            self.stations.remove(sta)
+
         nodes = self.stations + self.aps
         for node in nodes:
             for wlan in range(0, len(node.params['wlan'])):

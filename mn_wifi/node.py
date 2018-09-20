@@ -235,18 +235,31 @@ class Node_wifi(Node):
                 except:
                     break
 
-    def setMasterMode(self, intf, **params):
+    def setMasterMode(self, intf=None, ssid='-ssid1',
+                      channel=1, mode='n'):
+        "set Interface to AP mode"
+        if not intf:
+            intf = self.name + intf
+        if not ssid:
+            ssid = self.name + ssid
         wlan = self.params['wlan'].index(intf)
-        if 'ssid' in params:
-            self.params['ssid'][wlan] = params['ssid']
-        else:
-            self.params['ssid'] = []
-            for _ in self.params['wlan']:
-                self.params['ssid'].append('')
-            self.params['ssid'][wlan] = self.name
 
+        self.func[wlan] = 'ap'
+        self.params['ssid'] = []
+        for wlan_ in range (0, len(self.params['wlan'])):
+            self.params['ssid'].append('')
+            if wlan == wlan_:
+                self.params['ssid'][wlan] = ssid
         self.params['driver'] = 'nl80211'
-        AccessPoint.setConfig(self, wlan=wlan)
+        self.params['associatedStations'] = []
+        self.params['stationsInRange'] = {}
+        self.params.pop('rssi', None)
+        self.params.pop('apsInRange', None)
+        self.params.pop('associatedTo', None)
+
+        AccessPoint.verifyNetworkManager(self, wlan)
+        AccessPoint.setConfig(self, aplist=None, wlan=wlan,
+                              link=None, ssid=ssid)
 
     def setAdhocIface(self, iface, ssid=''):
         "Set Adhoc Interface"
@@ -1460,7 +1473,8 @@ class AccessPoint(AP):
                 for i in range(1, len(ap.params['wlan'])):
                     ap.params['mac'].append('')
             ap.params['driver'] = driver
-            cls.verifyNetworkManager(ap)
+            for wlan in range(len(ap.params['wlan'])):
+                cls.verifyNetworkManager(ap, wlan)
         cls.restartNetworkManager()
 
         for ap in aps:
@@ -1479,14 +1493,14 @@ class AccessPoint(AP):
                 module.phyID += 1
 
     @classmethod
-    def setConfig(cls, ap, aplist=None, wlan=None, link=None):
+    def setConfig(cls, ap, aplist=None, wlan=None, link=None, ssid=None):
         """Configure AP
 
         :param ap: ap node
         :param aplist: list of aps
         :param wlan: wlan id
         :param link: if wmediumd"""
-        if ap.params['ssid'][wlan] != '':
+        if ap.params['ssid'][wlan] != '' or ssid:
             if 'encrypt' in ap.params and 'config' not in ap.params:
                 if ap.params['encrypt'][wlan] == 'wpa':
                     ap.auth_algs = 1
@@ -1520,7 +1534,7 @@ class AccessPoint(AP):
             cls.setHostapdConfig(ap, wlan, aplist, link)
 
     @classmethod
-    def setHostapdConfig(cls, ap, wlan, aplist, link):
+    def setHostapdConfig(cls, ap, wlan, aplist=None, link=None):
         "Set hostapd config"
         cmd = ("echo \'")
 
@@ -1743,20 +1757,17 @@ class AccessPoint(AP):
         node.renameIface(intf, node.params['wlan'][wlan])
 
     @classmethod
-    def verifyNetworkManager(cls, node):
+    def verifyNetworkManager(cls, node, wlan):
         """First verify if the mac address of the ap is included at
         NetworkManager.conf
 
         :param node: node"""
-        for wlan in range(len(node.params['wlan'])):
-            if 'inNamespace' not in node.params:
-                if not isinstance(node, Station):
-                    cls.configureIface(node, wlan)
-            TCLinkWirelessAP(node)
-            #cls.links.append(link)
-            AccessPoint.setIPMAC(node, wlan)
-            if 'vssids' in node.params:
-                break
+        if 'inNamespace' not in node.params:
+            if not isinstance(node, Station):
+                cls.configureIface(node, wlan)
+        TCLinkWirelessAP(node)
+        #cls.links.append(link)
+        AccessPoint.setIPMAC(node, wlan)
         if 'phywlan' in node.params:
             TCLinkWirelessAP(node, intfName1=node.params['phywlan'])
 

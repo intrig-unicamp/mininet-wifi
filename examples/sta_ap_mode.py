@@ -24,17 +24,18 @@ def topology(mobility):
                               ip='192.168.0.1/24', position='20,60,0')
     sta2 = net.addStation('sta2', mac='00:00:00:00:00:02', ip='192.168.1.1/24',
                           position='90,60,0')
-    ap1 = net.addStation('ap1', type='ap', mac='02:00:00:00:01:00',
-                         ip='192.168.0.10/24', ssid="apadhoc-ssid1", mode="g",
-                         channel="1", position='40,60,0')
-    ap2 = net.addStation('ap2', type='ap', mac='02:00:00:00:02:00',
-                         ip='192.168.1.10/24', ssid="apadhoc-ssid2", mode="g",
-                         channel="6", position='70,60,0')
+    ap1 = net.addStation('ap1', mac='02:00:00:00:01:00',
+                         ip='192.168.0.10/24', position='40,60,0')
+    ap2 = net.addStation('ap2', mac='02:00:00:00:02:00',
+                         ip='192.168.1.10/24', position='70,60,0')
 
     net.propagationModel(model="logDistance", exp=4.5)
 
     info("*** Configuring wifi nodes\n")
     net.configureWifiNodes()
+
+    ap1.setMasterMode(intf='ap1-wlan0', ssid='ap1-ssid', channel='1', mode='n')
+    ap2.setMasterMode(intf='ap2-wlan0', ssid='ap2-ssid', channel='6', mode='n')
 
     info("*** Adding Link\n")
     net.addLink(ap1, ap2)  # wired connection
@@ -54,8 +55,8 @@ def topology(mobility):
     ap1.cmd('echo 1 > /proc/sys/net/ipv4/ip_forward')
     ap2.cmd('echo 1 > /proc/sys/net/ipv4/ip_forward')
 
-    ap1.setIP('192.168.2.1/24', intf='ap1-eth1')
-    ap2.setIP('192.168.2.2/24', intf='ap2-eth1')
+    ap1.setIP('192.168.2.1/24', intf='ap1-eth2')
+    ap2.setIP('192.168.2.2/24', intf='ap2-eth2')
     ap1.cmd('route add -net 192.168.1.0/24 gw 192.168.2.2')
     ap2.cmd('route add -net 192.168.0.0/24 gw 192.168.2.1')
     sta1.cmd('route add -net 192.168.1.0/24 gw 192.168.0.10')
