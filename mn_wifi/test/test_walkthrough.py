@@ -448,7 +448,7 @@ class testWalkthrough(unittest.TestCase):
         "Start Mininet-WiFi, then test wmediumd_error_prob.py"
         p = pexpect.spawn(
             'python examples/wmediumd_error_prob.py')
-        sleep(4)
+        sleep(5)
         p.sendline('sta1 ping -c1 sta2')
         p.expect('1 packets transmitted, 1 received')
         p.expect(self.prompt)
@@ -483,7 +483,7 @@ class testWalkthrough(unittest.TestCase):
         p.expect('Station ap2: ap2-wlan0:192.168.1.10')
         p.expect(self.prompt)
         p.sendline('net')
-        p.expect('ap1 ap1-wlan0:wifi ap1-eth1:ap2-eth1')
+        p.expect('ap1 ap1-wlan0:wifi ap1-eth2:ap2-eth2')
         p.expect(self.prompt)
         stations = [ 'Station sta1: sta1-wlan0:10.0.0.1', self.prompt ]
         p.sendline('py ap1.params[\'associatedStations\']')
