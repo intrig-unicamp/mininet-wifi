@@ -1475,6 +1475,8 @@ class AccessPoint(AP):
             ap.params['driver'] = driver
             for wlan in range(len(ap.params['wlan'])):
                 cls.verifyNetworkManager(ap, wlan)
+                if 'vssids' in ap.params:
+                    break
         cls.restartNetworkManager()
 
         for ap in aps:
