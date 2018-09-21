@@ -18,12 +18,12 @@ class IntfSixLoWPAN( object ):
         self.name = name
         self.link = link
         self.mac = mac
-        self.ip, self.prefixLen = None, None
+        self.wpan_ip, self.prefixLen = None, None
 
         # if interface is lo, we know the ip is 127.0.0.1.
         # This saves an ipaddr command per node
         if self.name == 'lo':
-            self.ip = '127.0.0.1'
+            self.wpan_ip = '127.0.0.1'
             self.prefixLen = 8
         # Add to node (and move ourselves if necessary )
         if node:
@@ -57,13 +57,13 @@ class IntfSixLoWPAN( object ):
         # This is a sign that we should perhaps rethink our prefix
         # mechanism and/or the way we specify IP addresses
         if '/' in ipstr:
-            self.ip, self.prefixLen = ipstr.split( '/' )
+            self.wpan_ip, self.prefixLen = ipstr.split( '/' )
             return self.ipAddr( ipstr )
         else:
             if prefixLen is None:
                 raise Exception( 'No prefix length set for IP address %s'
                                  % ( ipstr, ) )
-            self.ip, self.prefixLen = ipstr, prefixLen
+            self.wpan_ip, self.prefixLen = ipstr, prefixLen
             return self.ipAddr('%s/%s' % (ipstr, prefixLen))
 
     def setMAC(self, macstr):
@@ -87,8 +87,8 @@ class IntfSixLoWPAN( object ):
             ips = self._ipMatchRegex.findall(ipAddr)
         else:
             ips = self._ipMatchRegex.findall(ipAddr.decode('utf-8'))
-        self.ip = ips[0] if ips else None
-        return self.ip
+        self.wpan_ip = ips[0] if ips else None
+        return self.wpan_ip
 
     def updateMAC(self):
         "Return updated MAC address based on ip addr"
@@ -113,13 +113,13 @@ class IntfSixLoWPAN( object ):
         else:
             ips = self._ipMatchRegex.findall(ipAddr)
             macs = self._macMatchRegex.findall(ipAddr.decode('utf-8'))
-        self.ip = ips[0] if ips else None
+        self.wpan_ip = ips[0] if ips else None
         self.mac = macs[0] if macs else None
-        return self.ip, self.mac
+        return self.wpan_ip, self.mac
 
     def IP( self ):
         "Return IP address"
-        return self.ip
+        return self.wpan_ip
 
     def MAC( self ):
         "Return MAC address"
@@ -171,7 +171,7 @@ class IntfSixLoWPAN( object ):
         results[ name ] = result
         return result
 
-    def config( self, mac=None, ip=None, ipAddr=None,
+    def config( self, mac=None, wpan_ip=None, ipAddr=None,
                 up=True, **_params ):
         """Configure Node according to (optional) parameters:
            mac: MAC address
@@ -184,7 +184,7 @@ class IntfSixLoWPAN( object ):
         # r = Parent.config( **params )
         r = {}
         self.setParam( r, 'setMAC', mac=mac )
-        self.setParam( r, 'setIP', ip=ip )
+        self.setParam( r, 'setIP', ip=wpan_ip )
         self.setParam( r, 'isUp', up=up )
         self.setParam(r, 'ipAddr', ipAddr=ipAddr)
         return r
@@ -241,7 +241,7 @@ class sixLoWPANLink(object):
             intfName1 = self.wpanName(node, ifacename, node.newWpanPort())
         if not cls:
             cls = IntfSixLoWPAN
-        params['ip'] = node.params['ip']
+        params['wpan_ip'] = node.params['wpan_ip']
         params['name'] = intfName1
 
         intf1 = cls(node=node, mac=addr, link=self, **params)

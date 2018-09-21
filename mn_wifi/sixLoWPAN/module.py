@@ -17,7 +17,7 @@ class module(object):
     hwsim_ids = []
     externally_managed = False
     devices_created_dynamically = False
-    phyID = 0
+    wpanPhyID = 0
 
     @classmethod
     def load_module(cls, n_radios, alt_module=''):
@@ -27,19 +27,10 @@ class module(object):
         :param alt_module: dir of a fakelb alternative module"""
         debug('Loading %s virtual interfaces\n' % n_radios)
         if not cls.externally_managed:
-            if alt_module == '':
-                output_ = os.system('modprobe fakelb numlbs=%s' % n_radios)
-            else:
-                output_ = os.system('insmod %s numlbs=0' % alt_module)
-
-            # Useful for tests in Kernels like Kernel 3.13.x
-            if n_radios == 0:
-                n_radios = 1
             if alt_module:
-                os.system('modprobe fakelb numlbs=%s' % n_radios)
+                os.system('insmod %s numlbs=0' % alt_module)
             else:
-                os.system('insmod %s numlbs=%s' % (alt_module,
-                                                   n_radios))
+                os.system('modprobe fakelb numlbs=%s' % n_radios)
 
     @classmethod
     def kill_fakelb(cls):
@@ -142,19 +133,13 @@ class module(object):
         :param **params: ifb -  Intermediate Functional Block device"""
         log_filename = '/tmp/mininetwifi-fakelb.log'
         cls.logging_to_file("%s" % log_filename)
-
         try:
             debug("\n*** Configuring interfaces with appropriated network"
                   "-namespaces...\n")
             for node in nodes:
                 for wlan in range(0, len(node.params['wpan'])):
-                    node.phyID[wlan] = cls.phyID
-                    cls.phyID += 1
-                    #rfkill = os.system(
-                    #    'rfkill list | grep %s | awk \'{print $1}\' '
-                    #    '| tr -d \":\" >/dev/null 2>&1' % phys[0])
-                    #debug('rfkill unblock %s\n' % rfkill)
-                    #os.system('rfkill unblock %s' % rfkill)
+                    node.wpanPhyID[wlan] = cls.wpanPhyID
+                    cls.wpanPhyID += 1
                     phy = cls.getPhy(phys[0])
                     os.system('iwpan phy phy%s set netns %s' % (phy, node.pid))
                     node.cmd('ip link set %s down' % cls.wlan_list[0])

@@ -45,130 +45,57 @@ class Mininet_6LoWPAN(Mininet):
     sixLP = []
     terms = []  # list of spawned xterm processes
     n_wpans = 0
-    min_x = 0
-    min_y = 0
-    min_z = 0
-    max_x = 0
-    max_y = 0
-    max_z = 0
     connections = {}
     wlinks = []
 
+
     @classmethod
-    def addParameters(self, node, autoSetMacs, params, mode='managed'):
+    def init(self, node, **params):
+        node.wpanports = -1
+        self.n_wpans = self.n_wpans + params['sixlowpan']
+        self.addParameters(node, **params)
+
+    @classmethod
+    def addParameters(self, node, node_mode='managed', **params):
         """adds parameters to wireless nodes
         node: node
         autoSetMacs: set MAC addrs automatically like IP addresses
         params: parameters
         defaults: Default IP and MAC addresses
-        mode: if interface is running in managed or master mode"""
-        node.params['frequency'] = []
-        node.params['channel'] = []
+        node_mode: if interface is running in managed or master mode"""
         node.params['wpan'] = []
-        node.params['mac'] = []
-        node.phyID = []
+        node.wpanPhyID = []
 
-        if 'passwd' in params:
-            node.params['passwd'] = []
-            passwd_list = params['passwd'].split(',')
-            for passwd in passwd_list:
-                node.params['passwd'].append(passwd)
-
-        if 'encrypt' in params:
-            node.params['encrypt'] = []
-            encrypt_list = params['encrypt'].split(',')
-            for encrypt in encrypt_list:
-                node.params['encrypt'].append(encrypt)
-
-        if mode == 'managed':
-            node.params['apsInRange'] = []
-            node.params['associatedTo'] = []
-
-            node.ifaceToAssociate = 0
-            node.max_x = 0
-            node.max_y = 0
-            node.min_x = 0
-            node.min_y = 0
-            node.max_v = 0
-            node.min_v = 0
-
-            # max_speed
-            if 'max_speed' in params:
-                node.max_speed = int(params['max_speed'])
-            else:
-                node.max_speed = 10
-
-            # min_speed
-            if 'min_speed' in params:
-                node.min_speed = int(params['min_speed'])
-            else:
-                node.min_speed = 1
-
-        # speed
-        if 'speed' in params:
-            node.speed = int(params['speed'])
-
-        # max_x
-        if 'max_x' in params:
-            node.max_x = int(params['max_x'])
-
-        # max_y
-        if 'max_y' in params:
-            node.max_y = int(params['max_y'])
-
-        # min_x
-        if 'min_x' in params:
-            node.min_x = int(params['min_x'])
-
-        # min_y
-        if 'min_y' in params:
-            node.min_y = int(params['min_y'])
-
-        # min_v
-        if 'min_v' in params:
-            node.min_v = int(params['min_v'])
-
-        # max_v
-        if 'max_v' in params:
-            node.max_v = int(params['max_v'])
-
-        # constantVelocity
-        if 'constantVelocity' in params:
-            node.constantVelocity = int(params['constantVelocity'])
-        else:
-            node.constantVelocity = 1
-
-        # constantDistance
-        if 'constantDistance' in params:
-            node.constantDistance = int(params['constantDistance'])
-        else:
-            node.constantDistance = 1
-
-        # position
-        if 'position' in params:
-            position = params['position']
-            position = position.split(',')
-            node.params['position'] = [float(position[0]),
-                                       float(position[1]),
-                                       float(position[2])]
-        else:
-            if 'position' in node.params:
-                position = node.params['position']
-                position = position.split(',')
-                node.params['position'] = [float(position[0]),
-                                           float(position[1]),
-                                           float(position[2])]
-
-        wpans = self.count6LoWPANIfaces(params)
+        wpans = self.count6LoWPANIfaces(**params)
 
         for wpan in range(wpans):
             self.addParamsToNode(node)
-            if mode == 'managed':
+            if node_mode == 'managed':
                 self.appendAssociatedTo(node)
+                self.add_ip_param(node, wpans, **params)
 
             node.params['wpan'].append(node.name + '-wpan' + str(wpan))
             node.params.pop("wpans", None)
 
+    @staticmethod
+    def add_ip_param(node, wpans, autoSetMacs=False, **params):
+        "Add IP Param"
+        node.params['wpan_ip'] = []
+        if 'wpan_ip' in params:
+            ip_list = params['wpan_ip'].split(',')
+            for ip in ip_list:
+                node.params['wpan_ip'].append(ip)
+            if len(ip_list) != len(node.params['wpan']):
+                for ip_list in range(len(ip_list),
+                                     len(node.params['wpan'])):
+                    node.params['wpan_ip'].append('0/0')
+        elif autoSetMacs:
+            for n in range(wpans):
+                node.params['wpan_ip'].append('0/0')
+                node.params['wpan_ip'][n] = params['wpan_ip']
+        else:
+            for _ in range(wpans):
+                node.params['wpan_ip'].append('')
 
     @staticmethod
     def appendAssociatedTo(node):
@@ -184,7 +111,7 @@ class Mininet_6LoWPAN(Mininet):
            params: parameters for 6LoWPAN
            returns: added station"""
         # Default IP and MAC addresses
-        defaults = {'ip': ipAdd6(self.nextIP,
+        defaults = {'wpan_ip': ipAdd6(self.nextIP,
                                 ipBaseNum=self.ipBaseNum,
                                 prefixLen=self.prefixLen) +
                           '/%s' % self.prefixLen
@@ -205,7 +132,7 @@ class Mininet_6LoWPAN(Mininet):
             cls = self.sixLoWPan
         node = cls(name, **defaults)
 
-        self.addParameters(node, self.autoSetMacs, defaults)
+        self.addParameters(node, defaults)
 
         self.sixLP.append(node)
         self.nameToNode[name] = node
@@ -447,13 +374,12 @@ class Mininet_6LoWPAN(Mininet):
 
     @classmethod
     def addParamsToNode(self, node):
-        "Add Frequency, func and phyID"
-        node.params['frequency'].append(2.412)
+        "Add func and wpanPhyID"
         node.func.append('none')
-        node.phyID.append(0)
+        node.wpanPhyID.append(0)
 
     @classmethod
-    def count6LoWPANIfaces(self, params):
+    def count6LoWPANIfaces(self, **params):
         "Count the number of virtual 6LoWPAN interfaces"
         if 'wpans' in params:
             self.n_wpans += int(params['wpans'])

@@ -899,6 +899,11 @@ class Node_wifi(Node):
     # the real interfaces are created as veth pairs, so we can't
     # make a single interface at a time.
 
+    def newWpanPort(self):
+        "Return the next port number to allocate."
+        self.wpanports += 1
+        return self.wpanports
+
     def newWlanPort(self):
         "Return the next port number to allocate."
         self.wlanports += 1

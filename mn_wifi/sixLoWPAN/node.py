@@ -490,7 +490,7 @@ class Node_6lowpan(Node):
            kwargs: any additional arguments for intf.setIP"""
         if intf in self.params['wpan']:
             wpan = int(intf[-1:])
-            self.params['ip'][wpan] = ip
+            self.params['wpan_ip'][wpan] = ip
 
         return self.intf(intf).setIP(ip, prefixLen, **kwargs)
 
