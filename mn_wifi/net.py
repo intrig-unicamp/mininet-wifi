@@ -1447,9 +1447,9 @@ class Mininet_wifi(Mininet):
                                            float(position[1]),
                                            float(position[2])]
 
-        wlans = self.countWiFiIfaces(**params)
+        params['wlans'] = self.countWiFiIfaces(**params)
 
-        for wlan in range(wlans):
+        for wlan in range(params['wlans']):
             self.add_params_to_node(node)
             if node_mode == 'managed':
                 self.append_associated_to(node)
@@ -1462,17 +1462,17 @@ class Mininet_wifi(Mininet):
             node.params.pop("wlans", None)
 
         if node_mode == 'managed':
-            self.add_mac_param(node, wlans, autoSetMacs, **params)
-            self.add_ip_param(node, wlans, autoSetMacs, **params)
+            self.add_mac_param(node, autoSetMacs, **params)
+            self.add_ip_param(node, autoSetMacs, **params)
 
         if 'bw' in params:
             self.add_bw_param(node, **params)
-        self.add_antgain_param(node, wlans, **params)
-        self.add_antheight_param(node, wlans, **params)
-        self.add_txpower_param(node, wlans, **params)
-        self.add_chann_param(node, wlans, **params)
-        self.add_mode_param(node, wlans, **params)
-        self.add_range_param(node, wlans, **params)
+        self.add_antgain_param(node, **params)
+        self.add_antheight_param(node, **params)
+        self.add_txpower_param(node, **params)
+        self.add_chann_param(node, **params)
+        self.add_mode_param(node, **params)
+        self.add_range_param(node, **params)
 
         # Equipment Model
         model = ("%s" % params.pop('model', {}))
@@ -1548,10 +1548,9 @@ class Mininet_wifi(Mininet):
                 else:
                     node.params['range'].append(0)
 
-    def add_ip_param(self, node, wlans=0, autoSetMacs=False,
-                     isVIface=False, **params):
+    def add_ip_param(self, node, autoSetMacs=False, **params):
         "Add IP Param"
-        if isVIface:
+        if 'isVIface' in params:
             node.params['ip'].append(node.params['ip'][0])
         else:
             node.params['ip'] = []
@@ -1564,19 +1563,18 @@ class Mininet_wifi(Mininet):
                                          len(node.params['wlan'])):
                         node.params['ip'].append('0/0')
             elif autoSetMacs:
-                for n in range(wlans):
+                for n in range(params['wlans']):
                     node.params['ip'].append('0/0')
                     node.params['ip'][n] = params[ 'ip' ]
             else:
-                for _ in range(wlans):
+                for _ in range(params['wlans']):
                     node.params['ip'].append('')
 
-    def add_mac_param(self, node, wlans=0, autoSetMacs=False,
-                      isVIface=False, macID=0, **params):
+    def add_mac_param(self, node, autoSetMacs=False, **params):
         "Add Mac Param"
-        if isVIface:
+        if 'isVIface' in params:
             new_mac = list(node.params['mac'][0])
-            new_mac[7] = str(macID)
+            new_mac[7] = str(params['macID'])
             node.params['mac'].append("".join(new_mac))
         else:
             node.params['mac'] = []
@@ -1584,21 +1582,20 @@ class Mininet_wifi(Mininet):
                 mac_list = params['mac'].split(',')
                 for mac in mac_list:
                     node.params['mac'].append(mac)
-                if len(mac_list) != wlans:
-                    for _ in range(len(mac_list), wlans):
+                if len(mac_list) != params['wlans']:
+                    for _ in range(len(mac_list), params['wlans']):
                         node.params['mac'].append('')
             elif autoSetMacs:
-                for n in range(wlans):
+                for n in range(params['wlans']):
                     node.params['mac'].append('')
                     node.params['mac'][n] = params[ 'mac' ]
             else:
-                for _ in range(wlans):
+                for _ in range(params['wlans']):
                     node.params['mac'].append('')
 
-    def add_antheight_param(self, node, wlans=0, isVIface=False,
-                            **params):
+    def add_antheight_param(self, node, **params):
         "Add Antenna Height Param"
-        if isVIface:
+        if 'isVIface' in params:
             node.params['antennaHeight'].append(
                 float(node.params['antennaHeight'][0]))
         else:
@@ -1608,13 +1605,12 @@ class Mininet_wifi(Mininet):
                 for antennaHeight in antennaHeight_list:
                     node.params['antennaHeight'].append(float(antennaHeight))
             else:
-                for _ in range(wlans):
+                for _ in range(params['wlans']):
                     node.params['antennaHeight'].append(1.0)
 
-    def add_antgain_param(self, node, wlans=0, isVIface=False,
-                          **params):
+    def add_antgain_param(self, node, **params):
         "Add Antenna Gain Param"
-        if isVIface:
+        if 'isVIface' in params:
             node.params['antennaGain'].append(
                 float(node.params['antennaGain'][0]))
         else:
@@ -1624,13 +1620,12 @@ class Mininet_wifi(Mininet):
                 for antennaGain in antennaGain_list:
                     node.params['antennaGain'].append(float(antennaGain))
             else:
-                for _ in range(wlans):
+                for _ in range(params['wlans']):
                     node.params['antennaGain'].append(5.0)
 
-    def add_mode_param(self, node, wlans=0, isVIface=False,
-                       **params):
+    def add_mode_param(self, node, **params):
         "Add Mode Param"
-        if isVIface:
+        if 'isVIface' in params:
             node.params['mode'].append(node.params['mode'][0])
         else:
             node.params['mode'] = []
@@ -1643,13 +1638,12 @@ class Mininet_wifi(Mininet):
                                            len(node.params['wlan'])):
                         node.params['mode'].append(node.params['mode'][0])
             else:
-                for _ in range(wlans):
+                for _ in range(params['wlans']):
                     node.params['mode'].append(params['mode'])
 
-    def add_chann_param(self, node, wlans=0, isVIface=False,
-                        **params):
+    def add_chann_param(self, node, **params):
         "Add Channel Param"
-        if isVIface:
+        if 'isVIface' in params:
             node.params['channel'].append(node.params['channel'][0])
         else:
             node.params['channel'] = []
@@ -1662,13 +1656,12 @@ class Mininet_wifi(Mininet):
                                               len(node.params['wlan'])):
                         node.params['channel'].append(node.params['channel'][0])
             else:
-                for _ in range(wlans):
+                for _ in range(params['wlans']):
                     node.params['channel'].append(1)
 
-    def add_txpower_param(self, node, wlans=0, isVIface=False,
-                          **params):
+    def add_txpower_param(self, node, **params):
         "Add Tx Power Param"
-        if isVIface:
+        if 'isVIface' in params:
             node.params['txpower'].append(node.params['txpower'][0])
         else:
             node.params['txpower'] = []
@@ -1677,7 +1670,7 @@ class Mininet_wifi(Mininet):
                 for txpower in txpower_list:
                     node.params['txpower'].append(int(txpower))
             else:
-                for _ in range(wlans):
+                for _ in range(params['wlans']):
                     if 'model' in node.params:
                         txpower_ = GetTxPower(node=node)
                         node.params['txpower'].append(txpower_.value)
@@ -1701,19 +1694,21 @@ class Mininet_wifi(Mininet):
                 nvif = node.params['nvif']
                 wlan = 0
                 for vif_ in range(0, nvif):
+                    params = {}
+                    params['isVIface'] = True
+                    params['macID'] = vif_ + 1
                     vif = node.params['wlan'][wlan] + str(vif_ + 1)
                     node.params['wlan'].append(vif)
                     node.params['range'].append(node.params['range'][0])
                     self.add_params_to_node(node)
-                    self.add_txpower_param(node, isVIface=True)
-                    self.add_chann_param(node, isVIface=True)
-                    self.add_mac_param(node, isVIface=True,
-                                           macID=(vif_ + 1))
+                    self.add_txpower_param(node, **params)
+                    self.add_chann_param(node, **params)
+                    self.add_mac_param(node, **params)
                     self.append_rssi(node)
                     self.append_associated_to(node)
-                    self.add_antgain_param(node, isVIface=True)
-                    self.add_antheight_param(node, isVIface=True)
-                    self.add_mode_param(node, isVIface=True)
+                    self.add_antgain_param(node, **params)
+                    self.add_antheight_param(node, **params)
+                    self.add_mode_param(node, **params)
                     node.cmd('iw dev %s interface add %s type station'
                              % (node.params['wlan'][wlan], vif))
                     TCLinkWirelessStation(node, intfName1=vif)
