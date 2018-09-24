@@ -399,7 +399,7 @@ class TCWirelessLink(IntfWireless):
 
 class _4address(object):
 
-    def __init__(self, node1, node2, intf=IntfWireless):
+    def __init__(self, node1, node2, port1, intf=IntfWireless):
         """Create 4addr link to another node.
            node1: first node
            node2: second node
@@ -412,7 +412,7 @@ class _4address(object):
         client = node2
         client_intfName = '%s.wds' % client.name
 
-        if node1.params['_4addr'] == 'client':
+        if port1 == 'client':
             client = node1
             ap = node2
             client_intfName = '%s.wds' % node1.name
