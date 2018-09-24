@@ -480,6 +480,11 @@ class Mininet_wifi(Mininet):
                 self.conn['dst'].append(node2)
                 self.conn['ls'].append('--')
 
+            if node1 not in self.aps:
+                self.aps.append(node1)
+            elif node2 not in self.aps:
+                self.aps.append(node2)
+
             if self.wmediumd_mode == interference:
                 link = cls(node1, node2, port1)
                 self.links.append(link)
