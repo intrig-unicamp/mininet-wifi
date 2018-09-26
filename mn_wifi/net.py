@@ -712,6 +712,9 @@ class Mininet_wifi(Mininet):
             for sta in self.stations:
                 if self.wmediumd_mode != error_prob:
                     sta.set_pos_wmediumd()
+            for sta in self.stations:
+                if sta in self.aps:
+                    self.stations.remove(sta)
 
         if self.inNamespace:
             self.configureControlNetwork()
@@ -2025,7 +2028,8 @@ class Mininet_wifi(Mininet):
         isap = []
         for sta in self.stations:
             for wlan in range(0, len(sta.params['wlan'])):
-                if sta.func[wlan] == 'ap' and sta not in self.aps:
+                if ((sta.func[wlan] == 'ap' or
+                             sta.func[wlan] == 'client') and sta not in self.aps):
                     isap.append(sta)
 
         for sta in isap:
