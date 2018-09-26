@@ -2054,7 +2054,8 @@ class Mininet_wifi(Mininet):
                 if 'position' in node.params and 'link' not in node.params:
                     mobility.aps = self.aps
                     mobility.configLinks(node)
-                    if self.link == wmediumd:
+                    if self.link == wmediumd and \
+                                    self.wmediumd_mode == interference:
                         node.set_pos_wmediumd()
 
             for sta in self.stations:
