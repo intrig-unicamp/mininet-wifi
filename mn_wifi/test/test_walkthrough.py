@@ -523,7 +523,7 @@ class testWalkthrough(unittest.TestCase):
             'python examples/sta_ap_mode.py -m')
         sleep(10)
         p.sendline('py sta1.params[\'associatedTo\']')
-        p.expect('Station ap2: ap2-wlan0:192.168.1.10')
+        p.expect('Station ap1: ap1-wlan0:192.168.0.10')
         p.expect(self.prompt)
         accessPoints = [ 'Station ap2: ap2-wlan0:192.168.1.10', self.prompt ]
         p.sendline('py sta1.params[\'apsInRange\']')
