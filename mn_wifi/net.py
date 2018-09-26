@@ -2051,15 +2051,19 @@ class Mininet_wifi(Mininet):
 
         if self.nroads == 0:
             for node in nodes:
-                if node.params['associatedTo'][0] == '':
-                    if 'position' in node.params and 'link' not in node.params:
-                        mobility.aps = self.aps
-                        mobility.configLinks(node)
-                        if self.link == wmediumd:
-                            node.set_pos_wmediumd()
+                if 'position' in node.params and 'link' not in node.params:
+                    mobility.aps = self.aps
+                    mobility.configLinks(node)
+                    if self.link == wmediumd:
+                        node.set_pos_wmediumd()
 
             for sta in self.stations:
                 for wlan in range(0, len(sta.params['wlan'])):
+                    if sta.func[wlan] == 'adhoc' and self.link == wmediumd and \
+                                    'position' in node.params:
+                        sta.set_pos_wmediumd(wlan)
+                        sleep(2)
+
                     for ap in self.aps:
                         if 'position' in sta.params and 'position' in ap.params:
                             dist = sta.get_distance_to(ap)

@@ -1111,6 +1111,7 @@ class w_server(object):
         posX = pos.sta_pos[0]
         posY = pos.sta_pos[1]
         posZ = pos.sta_pos[2]
+        time.sleep(0.1)
         debug("%s Updating Pos of %s to x=%s, y=%s, z=%s\n" % (
             w_cst.LOG_PREFIX, pos.staintf.get_mac(),
             posX, posY, posZ))
