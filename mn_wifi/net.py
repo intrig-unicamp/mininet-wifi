@@ -508,6 +508,7 @@ class Mininet_wifi(Mininet):
                 sta_wlan = port2
             if port1:
                 ap_wlan = port1
+            params['ap_wlan'] = ap_wlan
 
             if node1 in self.stations and node2 in self.aps:
                 sta = node1
@@ -520,6 +521,7 @@ class Mininet_wifi(Mininet):
             wlan = sta.ifaceToAssociate
             if sta_wlan:
                 wlan = sta_wlan
+            params['wlan'] = wlan
             # If sta/ap have position
             doAssociation = True
             if 'position' in sta.params and 'position' in ap.params:
@@ -535,16 +537,15 @@ class Mininet_wifi(Mininet):
                     enable_wmediumd = True
                 if self.wmediumd_mode == interference:
                     enable_interference = True
-                printCon = True
-                if self.topo:
-                    printCon=False
+                if not self.topo:
+                    params['printCon'] = True
+                params['doAssociation'] = True
                 Association.associate(sta, ap, enable_wmediumd,
-                                      enable_interference, wlan, ap_wlan,
-                                      printCon=printCon)
+                                      enable_interference, **params)
                 if 'TCWirelessLink' in str(self.link.__name__):
                     if 'bw' not in params and 'bw' not in str(cls) and \
                             not self.ifb:
-                        value = self.getDataRate(sta, ap, wlan)
+                        value = self.getDataRate(sta, ap, **params)
                         bw = value.rate
                         params['bw'] = bw
                     # tc = True, this is useful only to apply tc configuration
@@ -2118,9 +2119,9 @@ class Mininet_wifi(Mininet):
         mobility.configure(*args, **kwargs)
 
     @staticmethod
-    def getDataRate(sta=None, ap=None, wlan=0):
+    def getDataRate(sta=None, ap=None, **params):
         "Set the rate"
-        value = GetRate(sta=sta, ap=ap, wlan=wlan)
+        value = GetRate(sta=sta, ap=ap, **params)
         return value
 
     @staticmethod

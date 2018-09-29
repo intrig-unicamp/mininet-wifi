@@ -216,7 +216,7 @@ class mobility(object):
                     pass
                 else:
                     sta.params['rssi'][wlan] = rssi
-                    wirelessLink(sta, ap, wlan, 0, dist)
+                    wirelessLink(sta, ap, dist, wlan=wlan, ap_wlan=0)
 
     @classmethod
     def check_association(cls, sta, wlan, ap_wlan):
@@ -248,7 +248,7 @@ class mobility(object):
             changeAP = value.changeAP
         if not sta.params['associatedTo'][wlan] or changeAP:
             if ap not in sta.params['associatedTo']:
-                Association.associate_infra(sta, ap, wlan, ap_wlan, printCon=False)
+                Association.associate_infra(sta, ap, wlan=wlan, ap_wlan=ap_wlan)
 
     @classmethod
     def get_line(cls, node, x1, y1, z1, x2, y2, z2):

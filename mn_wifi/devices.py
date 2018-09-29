@@ -16,7 +16,6 @@ class GetRate (object):
         ap = kwargs['ap'] if 'ap' in kwargs else None
         sta = kwargs['sta'] if 'sta' in kwargs else None
         wlan = kwargs['wlan'] if 'wlan' in kwargs else 0
-
         if ap and 'model' in ap.params:
             if ap.model in dir(self) and sta:
                 model = ap.model
@@ -25,6 +24,7 @@ class GetRate (object):
             node = sta
             if ap:
                 node = ap
+                wlan = kwargs['ap_wlan']
             self.customDataRate_mobility(node=node, wlan=wlan)
 
     def customDataRate_mobility(self, **kwargs):

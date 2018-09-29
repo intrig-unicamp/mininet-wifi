@@ -1113,8 +1113,8 @@ class w_server(object):
         posZ = pos.sta_pos[2]
         time.sleep(0.1)
         debug("%s Updating Pos of %s to x=%s, y=%s, z=%s\n" % (
-            w_cst.LOG_PREFIX, pos.staintf.get_mac(),
-            posX, posY, posZ))
+              w_cst.LOG_PREFIX, pos.staintf.get_mac(),
+              posX, posY, posZ))
         cls.sock.send(cls.__create_pos_update_request(pos))
         return cls.__parse_response(
             w_cst.WSERVER_POS_UPDATE_RESPONSE_TYPE,
