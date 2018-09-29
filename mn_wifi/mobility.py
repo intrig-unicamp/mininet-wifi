@@ -565,8 +565,8 @@ class mobility(object):
                         and ('encrypt' in node.params and 'wpa' in node.params['encrypt'][wlan])):
                             for ap in cls.aps:
                                 if node.params['associatedTo'][wlan] == '':
-                                    Association.associate_infra(node, ap, wlan,
-                                                                ap_wlan=0, printCon=False)
+                                    Association.associate_infra(node, ap, wlan=wlan,
+                                                                ap_wlan=0)
                                     node.params['associatedTo'][wlan] = 'active_scan'
                                     if Association.bgscan:
                                         node.params['associatedTo'][wlan] = 'bgscan'
