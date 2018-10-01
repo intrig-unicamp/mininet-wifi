@@ -66,5 +66,5 @@ def topology():
 
 
 if __name__ == '__main__':
-    setLogLevel('debug')
+    setLogLevel('info')
     topology()
