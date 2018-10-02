@@ -53,16 +53,13 @@ def topology():
     e6 = net.addAccessPoint('e6', ssid='vanet-ssid', mac='00:00:00:11:00:06',
                             mode='g', channel='11', passwd='123456789a',
                             encrypt='wpa2', position='2351.68,3083.40,0')
-    c1 = net.addController('c1', controller=Controller, ip='127.0.0.1',
-                           port=6633)
-
-    net.propagationModel(model="logDistance", exp=2.5)
+    c1 = net.addController('c1')
 
     info("*** Setting bgscan\n")
     net.setBgscan(signal=-45, s_inverval=5, l_interval=10)
 
     info("*** Configuring Propagation Model\n")
-    net.propagationModel(model="logDistance", exp=2)
+    net.setPropagationModel(model="logDistance", exp=2)
 
     info("*** Configuring wifi nodes\n")
     net.configureWifiNodes()

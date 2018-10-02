@@ -6,14 +6,13 @@ import sys
 
 from mininet.node import Controller
 from mininet.log import setLogLevel, info
-from mn_wifi.node import OVSKernelAP
 from mn_wifi.cli import CLI_wifi
 from mn_wifi.net import Mininet_wifi
 
 
 def topology(isVirtual):
     "Create a network."
-    net = Mininet_wifi(controller=Controller, accessPoint=OVSKernelAP)
+    net = Mininet_wifi(controller=Controller)
 
     info("*** Creating nodes\n")
     if isVirtual:
@@ -31,8 +30,7 @@ def topology(isVirtual):
         # OpenFlow rules are required to allow communication among nodes
         ap1 = net.addAccessPoint('ap1', ssid="simplewifi",
                                  isolate_clients=True, mode="g", channel="5")
-    c0 = net.addController('c0', controller=Controller, ip='127.0.0.1',
-                           port=6633)
+    c0 = net.addController('c0')
 
     info("*** Configuring wifi nodes\n")
     net.configureWifiNodes()

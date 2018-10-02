@@ -23,7 +23,7 @@ def topology():
                           position='20,20,0', channel='161')
 
     info("*** Configuring Propagation Model\n")
-    net.propagationModel(model="logDistance", exp=3.5)
+    net.setPropagationModel(model="logDistance", exp=3.5)
 
     net.setModule('./mac80211_hwsim.ko')
 

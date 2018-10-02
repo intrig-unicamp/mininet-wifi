@@ -5,7 +5,7 @@
 import os
 import random
 
-from mininet.node import Controller, OVSKernelSwitch
+from mininet.node import Controller
 from mininet.log import setLogLevel, info
 from mn_wifi.cli import CLI_wifi
 from mn_wifi.net import Mininet_wifi
@@ -16,7 +16,7 @@ from mn_wifi.wmediumdConnector import interference
 def topology():
 
     "Create a network."
-    net = Mininet_wifi(controller=Controller, switch=OVSKernelSwitch,
+    net = Mininet_wifi(controller=Controller,
                        link=wmediumd, wmediumd_mode=interference)
 
     info("*** Creating nodes\n")
@@ -38,10 +38,10 @@ def topology():
                                channel='11')
     rsu14 = net.addAccessPoint('RSU14', ssid='RSU14', mode='g',
                                channel='11')
-    c1 = net.addController('c1', controller=Controller)
+    c1 = net.addController('c1')
 
     info("*** Configuring Propagation Model\n")
-    net.propagationModel(model="logDistance", exp=4.5)
+    net.setPropagationModel(model="logDistance", exp=4.5)
 
     info("*** Configuring wifi nodes\n")
     net.configureWifiNodes()

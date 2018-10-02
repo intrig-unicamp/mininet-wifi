@@ -5,7 +5,6 @@ Warning: It works only when network manager is stopped"""
 
 from mininet.node import Controller
 from mininet.log import setLogLevel, info
-from mn_wifi.node import OVSKernelAP
 from mn_wifi.link import wmediumd, _4address
 from mn_wifi.cli import CLI_wifi
 from mn_wifi.net import Mininet_wifi
@@ -14,9 +13,9 @@ from mn_wifi.wmediumdConnector import interference
 
 def topology():
     "Create a network."
-    net = Mininet_wifi( controller=Controller, accessPoint=OVSKernelAP,
-                        link=wmediumd, wmediumd_mode=interference,
-                        configure4addr=True, autoAssociation=False )
+    net = Mininet_wifi( controller=Controller, link=wmediumd,
+                        wmediumd_mode=interference, configure4addr=True,
+                        autoAssociation=False )
 
     info("*** Creating nodes\n")
     ap1 = net.addAccessPoint('ap1', ssid="ap1-ssid", mode="g",
@@ -31,10 +30,10 @@ def topology():
     sta4 = net.addStation('sta4', ip="192.168.0.4/24", position='42,64,0')
     sta5 = net.addStation('sta5', ip="192.168.0.5/24", position='51,32,0')
     sta6 = net.addStation('sta6', ip="192.168.0.6/24", position='52,34,0')
-    c0 = net.addController('c0', port=6653)
+    c0 = net.addController('c0')
 
     info("*** Configuring Propagation Model\n")
-    net.propagationModel(model="logDistance", exp=4.5)
+    net.setPropagationModel(model="logDistance", exp=4.5)
 
     info("*** Configuring wifi nodes\n")
     net.configureWifiNodes()

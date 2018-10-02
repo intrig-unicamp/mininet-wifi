@@ -6,7 +6,6 @@ and providing mobility using mobility models with wmediumd enabled."""
 
 from mininet.node import Controller
 from mininet.log import setLogLevel, info
-from mn_wifi.node import OVSKernelAP
 from mn_wifi.link import wmediumd
 from mn_wifi.cli import CLI_wifi
 from mn_wifi.net import Mininet_wifi
@@ -15,18 +14,17 @@ from mn_wifi.net import Mininet_wifi
 def topology():
 
     "Create a network."
-    net = Mininet_wifi(controller=Controller, accessPoint=OVSKernelAP,
-                       link=wmediumd)
+    net = Mininet_wifi(controller=Controller, link=wmediumd)
 
     info("*** Creating nodes\n")
     ap1 = net.addAccessPoint('ap1', ssid='new-ssid', mode='a', channel='36',
                              position='150,150,0')
     net.addStation('sta1', mac='00:00:00:00:00:02', ip='10.0.0.2/8')
     net.addStation('sta2', mac='00:00:00:00:00:03', ip='10.0.0.3/8')
-    c1 = net.addController('c1', controller=Controller)
+    c1 = net.addController('c1')
 
     info("*** Configuring Propagation Model\n")
-    net.propagationModel(model="logDistance", exp=3)
+    net.setPropagationModel(model="logDistance", exp=3)
 
     info("*** Configuring wifi nodes\n")
     net.configureWifiNodes()

@@ -29,7 +29,7 @@ def topology(mobility):
     ap2 = net.addStation('ap2', mac='02:00:00:00:02:00',
                          ip='192.168.1.10/24', position='70,60,0')
 
-    net.propagationModel(model="logDistance", exp=4.5)
+    net.setPropagationModel(model="logDistance", exp=4.5)
 
     info("*** Configuring wifi nodes\n")
     net.configureWifiNodes()

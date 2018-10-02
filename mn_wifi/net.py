@@ -1264,8 +1264,8 @@ class Mininet_wifi(Mininet):
 
         Association.bgscan = bgscan
 
-    def propagationModel(self, **kwargs):
-        "Propagation Model Attr"
+    def setPropagationModel(self, **kwargs):
+        "Set Propagation Model"
         self.ppm_is_set = True
         kwargs['noise_threshold'] = self.noise_threshold
         kwargs['cca_threshold'] = self.cca_threshold

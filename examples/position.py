@@ -2,16 +2,14 @@
 
 'Setting the position of nodes'
 
-from mininet.node import Controller
 from mininet.log import setLogLevel, info
 from mn_wifi.cli import CLI_wifi
-from mn_wifi.node import OVSKernelAP
 from mn_wifi.net import Mininet_wifi
 
 
 def topology():
 
-    net = Mininet_wifi(controller=Controller, accessPoint=OVSKernelAP)
+    net = Mininet_wifi()
 
     info("*** Creating nodes\n")
     net.addStation('sta1', mac='00:00:00:00:00:02', ip='10.0.0.1/8',
@@ -22,7 +20,7 @@ def topology():
                              failMode="standalone", position='50,50,0')
     h1 = net.addHost('h1', ip='10.0.0.3/8')
 
-    net.propagationModel(model="logDistance", exp=4.5)
+    net.setPropagationModel(model="logDistance", exp=4.5)
 
     info("*** Configuring wifi nodes\n")
     net.configureWifiNodes()

@@ -26,8 +26,7 @@ def topology():
     ap2 = net.addAccessPoint('ap2', ssid="ssid-1", mode="g", channel="6",
                              passwd='123456789a', encrypt='wpa2',
                              position='40,10,0')
-    c0 = net.addController('c0', controller=Controller, ip='127.0.0.1',
-                           port=6633)
+    c0 = net.addController('c0')
 
     info("*** Configuring wifi nodes\n")
     net.configureWifiNodes()
