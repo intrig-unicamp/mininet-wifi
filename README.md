@@ -35,7 +35,7 @@ optional:
 
 ### Building Topologies with VND    
 
-I'm a beginner, I do not know Python and I would like to create a customized topology. In this case, [VND](https://github.com/ramonfontes/vnd-sdn-version) can serve as support since it provides a GUI and automatically generates Python scripts. 
+I'm a beginner, I do not know Python and I would like to create a customized topology. In this case, [VND](https://github.com/ramonfontes/vnd) can serve as support since it provides a GUI and automatically generates Python scripts. 
 
 ![](https://github.com/ramonfontes/vnd-sdn-version/blob/master/screenshot.png)
 
