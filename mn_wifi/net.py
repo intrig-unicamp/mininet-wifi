@@ -1954,7 +1954,7 @@ class Mininet_wifi(Mininet):
     def configureWifiNodes(self):
         "Configure WiFi Nodes"
         if not self.ppm_is_set:
-            self.propagationModel()
+            self.setPropagationModel()
         params = {}
         if self.ifb:
             wirelessLink.ifb = True
