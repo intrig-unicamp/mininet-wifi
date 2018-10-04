@@ -1674,7 +1674,7 @@ class MiniEdit( Frame ):
         self.images = miniEditImages()
         self.buttons = {}
         self.active = None
-        self.tools = ( 'Select', 'Host', 'Station', 'Switch', 'AP', 'LegacySwitch', 'LegacyRouter', 'WifiLink', 'NetLink', 'Controller' )
+        self.tools = ( 'Select', 'Host', 'Station', 'Switch', 'AP', 'LegacySwitch', 'LegacyRouter', 'NetLink', 'Controller' )
         self.customColors = { 'Switch': 'darkGreen', 'Host': 'blue' }
         self.toolbar = self.createToolbar()
 
@@ -1696,7 +1696,6 @@ class MiniEdit( Frame ):
 
         # Initialize link tool
         self.link = self.linkWidget = None
-        self.wlink = self.wlinkWidget = None
 
         # Selection support
         self.selection = None
@@ -1763,17 +1762,6 @@ class MiniEdit( Frame ):
         self.linkRunPopup.add_command(label='Link Up', font=self.font, command=self.linkUp )
         self.linkRunPopup.add_command(label='Link Down', font=self.font, command=self.linkDown )
 
-        self.wlinkPopup = Menu(self.top, tearoff=0)
-        self.wlinkPopup.add_command(label='WiFi Link Options', font=self.font)
-        self.wlinkPopup.add_separator()
-        self.wlinkPopup.add_command(label='Properties', font=self.font, command=self.wlinkDetails)
-
-        self.wlinkRunPopup = Menu(self.top, tearoff=0)
-        self.wlinkRunPopup.add_command(label='WiFi Link Options', font=self.font)
-        self.wlinkRunPopup.add_separator()
-        self.wlinkRunPopup.add_command(label='WiFi Link Up', font=self.font, command=self.wlinkUp)
-        self.wlinkRunPopup.add_command(label='WiFi Link Down', font=self.font, command=self.wlinkDown)
-
         self.controllerPopup = Menu(self.top, tearoff=0)
         self.controllerPopup.add_command(label='Controller Options', font=self.font)
         self.controllerPopup.add_separator()
@@ -1786,7 +1774,6 @@ class MiniEdit( Frame ):
 
         # Model initialization
         self.links = {}
-        self.wlinks = {}
         self.hostOpts = {}
         self.stationOpts = {}
         self.switchOpts = {}
@@ -2260,26 +2247,6 @@ class MiniEdit( Frame ):
 
         f.close()
 
-        # Load wlinks
-        wlinks = loadedTopology['wlinks']
-        for wlink in wlinks:
-            srcNode = wlink['src']
-            src = self.findWidgetByName(srcNode)
-            sx, sy = self.canvas.coords(self.widgetToItem[src])
-
-            destNode = wlink['dest']
-            dest = self.findWidgetByName(destNode)
-            dx, dy = self.canvas.coords(self.widgetToItem[dest])
-
-            self.wlink = self.canvas.create_line(sx, sy, dx, dy, width=4,
-                                                fill='blue', tag='wlink')
-            c.itemconfig(self.wlink, tags=c.gettags(self.wlink) + ('data',))
-            self.addLink(src, dest, linkopts=wlink['opts'])
-            self.createDataLinkBindings()
-            self.wlink = self.wlinkWidget = None
-
-        f.close()
-
     def findWidgetByName( self, name ):
         for widget in self.widgetToItem:
             if name ==  widget[ 'text' ]:
@@ -2295,7 +2262,6 @@ class MiniEdit( Frame ):
         self.apCount = 0
         self.controllerCount = 0
         self.links = {}
-        self.wlinks = {}
         self.hostOpts = {}
         self.stationOpts = {}
         self.switchOpts = {}
@@ -2967,7 +2933,6 @@ class MiniEdit( Frame ):
         self.itemToWidget[ item ] = icon
         self.selectItem( item )
         icon.links = {}
-        icon.wlinks = {}
         if 'Switch' == node:
             icon.bind('<Button-3>', self.do_switchPopup )
         if 'AP' == node:
@@ -3027,22 +2992,6 @@ class MiniEdit( Frame ):
             self.canvas.delete( self.link )
         self.linkWidget = self.linkItem = self.link = None
 
-    def dragWifiLink( self, event ):
-        "Drag a wifi link's endpoint to another node."
-        if self.link is None:
-            return
-        # Since drag starts in widget, we use root coords
-        x = self.canvasx( event.x_root )
-        y = self.canvasy( event.y_root )
-        c = self.canvas
-        c.coords( self.link, self.linkx, self.linky, x, y )
-
-    def releaseWifiLink( self, _event ):
-        "Give up on the current link."
-        if self.link is not None:
-            self.canvas.delete( self.link )
-        self.linkWidget = self.linkItem = self.link = None
-
     # Generic node handlers
 
     def createNodeBindings( self ):
@@ -3074,7 +3023,7 @@ class MiniEdit( Frame ):
 
     def clickNode( self, event ):
         "Node click handler."
-        if self.active is 'NetLink' or self.active is 'WifiLink':
+        if self.active is 'NetLink':
             self.startLink( event )
         else:
             self.selectNode( event )
@@ -3082,14 +3031,14 @@ class MiniEdit( Frame ):
 
     def dragNode( self, event ):
         "Node drag handler."
-        if self.active is 'NetLink' or self.active is 'WifiLink':
+        if self.active is 'NetLink':
             self.dragNetLink( event )
         else:
             self.dragNodeAround( event )
 
     def releaseNode( self, event ):
         "Node release handler."
-        if self.active is 'NetLink' or self.active is 'WifiLink':
+        if self.active is 'NetLink':
             self.finishLink( event )
 
     # Specific node handlers
@@ -3174,17 +3123,11 @@ class MiniEdit( Frame ):
             # Didn't click on a node
             return
 
-        fill = 'blue'
-        tag = 'link'
-        dash = None
-        if self.active is 'WifiLink':
-            tag = 'wlink'
-            dash = dash=(4, 2)
         w = event.widget
         item = self.widgetToItem[ w ]
         x, y = self.canvas.coords( item )
         self.link = self.canvas.create_line( x, y, x, y, width=4,
-                                             fill=fill, tag=tag, dash=dash )
+                                             fill='blue', tag='link' )
         self.linkx, self.linky = x, y
         self.linkWidget = w
         self.linkItem = item
@@ -3224,6 +3167,14 @@ class MiniEdit( Frame ):
             linkType='control'
             c.itemconfig(self.link, dash=(6, 4, 2, 4), fill='red')
             self.createControlLinkBindings()
+        elif 'Station' in stags and 'AP' in dtags:
+            linkType='data'
+            c.itemconfig(self.link, dash=(4, 2, 4, 2), fill='blue')
+            self.createControlLinkBindings()
+        elif 'AP' in stags and 'Station' in dtags:
+            linkType='data'
+            c.itemconfig(self.link, dash=(4, 2, 4, 4), fill='blue')
+            self.createControlLinkBindings()
         else:
             linkType='data'
             self.createDataLinkBindings()
@@ -3242,7 +3193,10 @@ class MiniEdit( Frame ):
                 controllerName = dest[ 'text' ]
                 switchName = source[ 'text' ]
 
-            self.switchOpts[switchName]['controllers'].append(controllerName)
+            try:
+                self.switchOpts[switchName]['controllers'].append(controllerName)
+            except:
+                self.apOpts[switchName]['controllers'].append(controllerName)
 
         # We're done
         self.link = self.linkWidget = None
@@ -3475,31 +3429,7 @@ class MiniEdit( Frame ):
         self.net.configLinkStatus(srcName, dstName, 'up')
         self.canvas.itemconfig(link, dash=())
 
-    def wlinkUp( self ):
-        if ( self.selection is None or
-             self.net is None):
-            return
-        link = self.selection
-        linkDetail =  self.links[link]
-        src = linkDetail['src']
-        dst = linkDetail['dest']
-        srcName, dstName = src[ 'text' ], dst[ 'text' ]
-        self.net.configLinkStatus(srcName, dstName, 'up')
-        self.canvas.itemconfig(link, dash=())
-
     def linkDown( self ):
-        if ( self.selection is None or
-             self.net is None):
-            return
-        link = self.selection
-        linkDetail =  self.links[link]
-        src = linkDetail['src']
-        dst = linkDetail['dest']
-        srcName, dstName = src[ 'text' ], dst[ 'text' ]
-        self.net.configLinkStatus(srcName, dstName, 'down')
-        self.canvas.itemconfig(link, dash=(4, 4))
-
-    def wlinkDown( self ):
         if ( self.selection is None or
              self.net is None):
             return
@@ -3526,28 +3456,12 @@ class MiniEdit( Frame ):
             linkDetail['linkOpts'] = linkBox.result
             info( 'New link details = ' + str(linkBox.result), '\n' )
 
-    def wlinkDetails( self, _ignore=None ):
-        if ( self.selection is None or
-             self.net is not None):
-            return
-        link = self.selection
-
-        linkDetail =  self.links[link]
-        # src = linkDetail['src']
-        # dest = linkDetail['dest']
-        linkopts = linkDetail['linkOpts']
-        linkBox = LinkDialog(self, title='Link Details', linkDefaults=linkopts)
-        if linkBox.result is not None:
-            linkDetail['linkOpts'] = linkBox.result
-            info( 'New wifi link details = ' + str(linkBox.result), '\n' )
-
     def prefDetails( self ):
         prefDefaults = self.appPrefs
         prefBox = PrefsDialog(self, title='Preferences', prefDefaults=prefDefaults)
         info( 'New Prefs = ' + str(prefBox.result), '\n' )
         if prefBox.result:
             self.appPrefs = prefBox.result
-
 
     def controllerDetails( self ):
         if ( self.selection is None or
@@ -4825,19 +4739,7 @@ gGPLHwLwcMIo12Qxu0ABAQA7
             ACH5BAEAAAAALAAAAAAWABYAAAhIAAEIHEiwoEGBrhIeXEgwoUKG
             Cx0+hGhQoiuKBy1irChxY0GNHgeCDAlgZEiTHlFuVImRJUWXEGEy
             lBmxI8mSNknm1Dnx5sCAADs=
-        """ ),
-        'WifiLink': PhotoImage(data=r"""
-            iVBORw0KGgoAAAANSUhEUgAAACIAAAAoCAYAAACb3CikAAAABHNCS
-            VQICAgIfAhkiAAAAAlwSFlzAAAG0wAABtMBs4encQAAABl0RVh0U2
-            9mdHdhcmUAd3d3Lmlua3NjYXBlLm9yZ5vuPBoAAAD3SURBVFiF7dQ
-            9TgJRFMXx/+MjEgpjIFR2NlTGbShWDLzKhsaawpYd0FqpbECoWAQd
-            nRZuwMS4ARPMHAstmdE3vDAW99dNJmfmJO++C8YYY8x/NNBJ7E+64
-            ITXMSlPwIoN1yzda4wileBEyi1wBPSocxmjBECtQOYGaOH4ZMFDrC
-            LFeFXxapVbIk+iIYnuudJhaDR8WLN4dUh5BjrAC21OuXObv8bDhzV
-            LSht4/3mahZSIb6QGA43xqpZX4jeJhlzoIOt1vKPJ09c5jkearOnr
-            rLwiFSZ8X4wute27q8hCC9egxwdTxBtzt97LP/Mp3rowxhhjzI6+A
-            GJ2MmKlEnSoAAAAAElFTkSuQmCC
-            """)
+        """ )
     }
 
 def addDictOption( opts, choicesDict, default, name, helpStr=None ):
