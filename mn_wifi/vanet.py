@@ -149,7 +149,7 @@ class vanet(object):
             bs.prop = ginp(1)[0]
             bs_x = '%.2f' % bs.prop[0]
             bs_y = '%.2f' % bs.prop[1]
-            self.scatter = plot2d.plotScatter(bs_x, bs_y)
+            self.scatter = plot2d.plotScatter(float(bs_x), float(bs_y))
             bs.params['position'] = bs_x, bs_y, 0
             bs.set_pos_wmediumd()
             plot2d.instantiateNode(bs)
