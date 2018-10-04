@@ -26,7 +26,7 @@ def topology():
     c0 = net.addController('c0', controller=Controller, ip='127.0.0.1', port=6633 )
 
     info("*** Configuring Propagation Model\n")
-    net.propagationModel(model="logDistance", exp=3.5)
+    net.setPropagationModel(model="logDistance", exp=3.5)
 
     info("*** Configuring wifi nodes\n")
     net.configureWifiNodes()
