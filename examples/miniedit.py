@@ -286,6 +286,40 @@ class PrefsDialog(tkSimpleDialog.Dialog):
         else:
             self.apType.set("Open vSwitch Kernel Mode")
 
+        # Selection of mode
+        Label(self.leftfieldFrame, text="Mode:").grid(row=3, sticky=E)
+        self.mode = StringVar(self.leftfieldFrame)
+        self.modeMenu = OptionMenu(self.leftfieldFrame, self.mode, "g", "a",
+                                     "b", "n")
+        self.modeMenu.grid(row=3, column=1, sticky=W)
+        modePref = self.prefValues['mode']
+        if modePref == 'g':
+            self.mode.set("g")
+        elif modePref == 'a':
+            self.mode.set("a")
+        elif modePref == 'b':
+            self.mode.set("b")
+        elif modePref == 'n':
+            self.mode.set("n")
+        else:
+            self.mode.set("g")
+
+        # Selection of authentication type
+        Label(self.leftfieldFrame, text="Authentication:").grid(row=3, sticky=E)
+        self.authentication = StringVar(self.leftfieldFrame)
+        self.authenticationMenu = OptionMenu(self.leftfieldFrame, self.authentication, "none", "WEP",
+                                             "WPA", "WPA2")
+        self.authenticationMenu.grid(row=3, column=1, sticky=W)
+        authenticationPref = self.prefValues['authentication']
+        if authenticationPref == 'WEP':
+            self.authentication.set("WEP")
+        elif authenticationPref == 'WPA':
+            self.authentication.set("WPA")
+        elif authenticationPref == 'WPA2':
+            self.authentication.set("WPA2")
+        else:
+            self.authentication.set("none")
+
         # Fields for OVS OpenFlow version
         ovsFrame= LabelFrame(self.leftfieldFrame, text='Open vSwitch', padx=5, pady=5)
         ovsFrame.grid(row=4, column=0, columnspan=2, sticky=EW)
@@ -390,7 +424,6 @@ class PrefsDialog(tkSimpleDialog.Dialog):
         terminalType = self.terminalVar.get()
         startCLI = str(self.cliStart.get())
         sw = self.switchType.get()
-        ap = self.apType.get()
         dpctl = self.dpctlEntry.get()
 
         ovsOf10 = str(self.ovsOf10.get())
@@ -1077,10 +1110,81 @@ class APDialog(CustomDialog):
         rowCount+=1
 
         # Field for SSID
-        Label(self.leftfieldFrame, text="ssid:").grid(row=rowCount, sticky=E)
+        Label(self.leftfieldFrame, text="SSID:").grid(row=rowCount, sticky=E)
         self.ssidEntry = Entry(self.leftfieldFrame)
         self.ssidEntry.grid(row=rowCount, column=1)
         self.ssidEntry.insert(0, self.prefValues['ssid'])
+        rowCount += 1
+
+        # Field for channel
+        Label(self.leftfieldFrame, text="Channel:").grid(row=rowCount, sticky=E)
+        self.channelEntry = Entry(self.leftfieldFrame)
+        self.channelEntry.grid(row=rowCount, column=1)
+        self.channelEntry.insert(0, self.prefValues['channel'])
+        rowCount += 1
+
+        # Selection of mode
+        Label(self.leftfieldFrame, text="Mode:").grid(row=rowCount, sticky=E)
+        self.mode = StringVar(self.leftfieldFrame)
+        self.modeMenu = OptionMenu(self.leftfieldFrame, self.mode, "g", "a",
+                                   "b", "n")
+        self.modeMenu.grid(row=rowCount, column=1, sticky=W)
+        if 'mode' in self.prefValues:
+            authPref = self.prefValues['mode']
+            if authPref == 'g':
+                self.mode.set("g")
+            elif authPref == 'a':
+                self.mode.set("a")
+            elif authPref == 'b':
+                self.mode.set("b")
+            elif authPref == 'n':
+                self.mode.set("n")
+            else:
+                self.mode.set("g")
+        else:
+            self.mode.set("g")
+        rowCount += 1
+
+        # Selection of authentication
+        Label(self.leftfieldFrame, text="Authentication:").grid(row=rowCount, sticky=E)
+        self.authentication = StringVar(self.leftfieldFrame)
+        self.authenticationMenu = OptionMenu(self.leftfieldFrame, self.authentication, "none", "WEP",
+                                     "WPA", "WPA2")
+        self.authenticationMenu.grid(row=rowCount, column=1, sticky=W)
+        if 'authentication' in self.prefValues:
+            authPref = self.prefValues['authentication']
+            if authPref == 'WEP':
+                self.authentication.set("WEP")
+            elif authPref == 'WPA':
+                self.authentication.set("WPA")
+            elif authPref == 'WPA2':
+                self.authentication.set("WPA2")
+            else:
+                self.authentication.set("none")
+        else:
+            self.authentication.set("none")
+        rowCount += 1
+
+        # Selection of ap type
+        Label(self.leftfieldFrame, text="AP Type:").grid(row=rowCount, sticky=E)
+        self.apType = StringVar(self.leftfieldFrame)
+        self.apTypeMenu = OptionMenu(self.leftfieldFrame, self.apType, "Default", "Open vSwitch Kernel Mode",
+                                     "Indigo Virtual AP", "Userspace AP", "Userspace AP inNamespace")
+        self.apTypeMenu.grid(row=rowCount, column=1, sticky=W)
+        if 'apType' in self.prefValues:
+            apTypePref = self.prefValues['apType']
+            if apTypePref == 'ivs':
+                self.apType.set("Indigo Virtual AP")
+            elif apTypePref == 'userns':
+                self.apType.set("Userspace AP inNamespace")
+            elif apTypePref == 'user':
+                self.apType.set("Userspace AP")
+            elif apTypePref == 'ovs':
+                self.apType.set("Open vSwitch Kernel Mode")
+            else:
+                self.apType.set("Default")
+        else:
+            self.apType.set("Default")
         rowCount += 1
 
         # Field for DPID
@@ -1117,27 +1221,6 @@ class APDialog(CustomDialog):
                 self.sflowButton.select()
         else:
             self.sflowButton.deselect()
-        rowCount+=1
-
-        # Selection of switch type
-        Label(self.leftfieldFrame, text="AP Type:").grid(row=rowCount, sticky=E)
-        self.apType = StringVar(self.leftfieldFrame)
-        self.apTypeMenu = OptionMenu(self.leftfieldFrame, self.apType, "Default", "Open vSwitch Kernel Mode", "Indigo Virtual AP", "Userspace AP", "Userspace AP inNamespace")
-        self.apTypeMenu.grid(row=rowCount, column=1, sticky=W)
-        if 'apType' in self.prefValues:
-            apTypePref = self.prefValues['apType']
-            if apTypePref == 'ivs':
-                self.apType.set("Indigo Virtual AP")
-            elif apTypePref == 'userns':
-                self.apType.set("Userspace AP inNamespace")
-            elif apTypePref == 'user':
-                self.apType.set("Userspace AP")
-            elif apTypePref == 'ovs':
-                self.apType.set("Open vSwitch Kernel Mode")
-            else:
-                self.apType.set("Default")
-        else:
-            self.apType.set("Default")
         rowCount+=1
 
         # Field for Switch IP
@@ -1225,7 +1308,11 @@ class APDialog(CustomDialog):
                    'sflow':str(self.sflow.get()),
                    'netflow':str(self.nflow.get()),
                    'dpctl':self.dpctlEntry.get(),
-                   'switchIP':self.ipEntry.get()}
+                   'apIP':self.ipEntry.get()}
+        results['ssid'] = str(self.ssidEntry.get())
+        results['channel'] = str(self.channelEntry.get())
+        results['mode'] = str(self.mode.get())
+        results['authentication'] = self.authentication.get()
         ap = self.apType.get()
         if ap == 'Indigo Virtual AP':
             results['apType'] = 'ivs'
@@ -1546,6 +1633,8 @@ class MiniEdit( Frame ):
             "terminalType": 'xterm',
             "switchType": 'ovs',
             "apType": 'ovs',
+            "authentication": 'none',
+            "mode": 'g',
             "dpctl": '',
             'sflow':self.sflowDefaults,
             'netflow':self.nflowDefaults,
@@ -2089,10 +2178,16 @@ class MiniEdit( Frame ):
             ssid = hostname + '-ssid'
             if 'ssid' not in ap['opts']:
                 ap['opts']['ssid'] = ssid
+            if 'channel' not in ap['opts']:
+                ap['opts']['channel'] = 1
             if 'controllers' not in ap['opts']:
                 ap['opts']['controllers'] = []
             if 'apType' not in ap['opts']:
                 ap['opts']['apType'] = 'default'
+            if 'authentication' not in ap['opts']:
+                ap['opts']['authentication'] = 'none'
+            if 'mode' not in ap['opts']:
+                ap['opts']['mode'] = 'g'
             if 'ap' in ap['opts']:
                 hostname = ap['opts']['hostname']
             else:
@@ -2456,6 +2551,12 @@ class MiniEdit( Frame ):
                         f.write(", dpid='"+opts['dpid']+"'")
                     if 'ssid' in opts:
                         f.write(", ssid='"+opts['ssid']+"'")
+                    if 'channel' in opts:
+                        f.write(", channel='"+opts['channel']+"'")
+                    if 'mode' in opts:
+                        f.write(", mode='" + opts['mode'] + "'")
+                    if 'authentication' in opts and opts['authentication'] != 'none':
+                        f.write(", encrypt='" + opts['authentication'] + "'")
                     f.write(")\n")
                     if 'externalInterfaces' in opts:
                         for extInterface in opts['externalInterfaces']:
@@ -2816,8 +2917,11 @@ class MiniEdit( Frame ):
             self.apOpts[name]['nodeNum']=self.apCount
             self.apOpts[name]['hostname']=name
             self.apOpts[name]['apType']='default'
-            self.apOpts[name]['ssid']= name + '-ssid'
-            self.apOpts[name]['controllers']=[]
+            self.apOpts[name]['ssid']=name + '-ssid'
+            self.apOpts[name]['channel'] = '1'
+            self.apOpts[name]['mode'] = 'g'
+            self.apOpts[name]['authentication'] = 'none'
+            self.apOpts[name]['controllers'] = []
         if 'LegacyRouter' == node:
             self.switchCount += 1
             name = self.nodePrefixes[ node ] + str( self.switchCount )
@@ -3332,7 +3436,9 @@ class MiniEdit( Frame ):
         if apBox.result:
             newAPOpts = {'nodeNum':self.apOpts[name]['nodeNum']}
             newAPOpts['apType'] = apBox.result['apType']
-            newAPOpts['controllers'] = self.switchOpts[name]['controllers']
+            newAPOpts['authentication'] = apBox.result['authentication']
+            newAPOpts['mode'] = apBox.result['mode']
+            newAPOpts['controllers'] = self.apOpts[name]['controllers']
             if len(apBox.result['startCommand']) > 0:
                 newAPOpts['startCommand'] = apBox.result['startCommand']
             if len(apBox.result['stopCommand']) > 0:
@@ -3343,6 +3449,8 @@ class MiniEdit( Frame ):
                 newAPOpts['dpid'] = apBox.result['dpid']
             if len(apBox.result['ssid']) > 0:
                 newAPOpts['ssid'] = apBox.result['ssid']
+            if len(apBox.result['channel']) > 0:
+                newAPOpts['channel'] = apBox.result['channel']
             if len(apBox.result['hostname']) > 0:
                 newAPOpts['hostname'] = apBox.result['hostname']
                 name = apBox.result['hostname']
@@ -3642,7 +3750,13 @@ class MiniEdit( Frame ):
                 if 'dpid' in opts:
                     apParms['dpid']=opts['dpid']
                 if 'ssid' in opts:
-                    apParms['dpid']=opts['ssid']
+                    apParms['ssid']=opts['ssid']
+                if 'channel' in opts:
+                    apParms['channel']=opts['channel']
+                if 'mode' in opts:
+                    apParms['mode']=opts['mode']
+                if 'authentication' in opts:
+                    apParms['authentication']=opts['authentication']
                 if opts['apType'] == 'default':
                     if self.appPrefs['apType'] == 'ivs':
                         apClass = IVSSwitch
@@ -4310,6 +4424,10 @@ class MiniEdit( Frame ):
             self.apOpts[name] = {}
             self.apOpts[name]['nodeNum'] = self.apCount
             self.apOpts[name]['hostname'] = name
+            self.apOpts[name]['ssid'] = name + '-ssid'
+            self.apOpts[name]['channel'] = '1'
+            self.apOpts[name]['mode'] = 'g'
+            self.apOpts[name]['authentication'] = 'none'
             self.apOpts[name]['apType'] = 'default'
             self.apOpts[name]['controllers'] = []
 
@@ -4455,38 +4573,34 @@ RDWdcMLJFTpUQ44jfCyjvlShZNDE/0QAgT6ypr6AAAA7
             """),
 
         'AP': PhotoImage(data=r"""
-    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
-                """),
+    iVBORw0KGgoAAAANSUhEUgAAACgAAAAoCAYAAACM/rhtAAAF4ElEQVRYw+2YX4xcVR3Hv+fPnbkz
+s87uzq7b3W3dbptaCpbaRNosWn3og0rBJyGAD5LKg7wJIVQFo1EfhMSqCbEISgJGiBQ1+mhCXJWE
+EOi2ha2F1nFb3D/dWXfo/L1z7z3n/H4+zB+37Gib7CaQuCe5yeT8zrnnc76/3/fce0cwMz7ITb7f
+ABuAG4DvN8AG4P894DW3P7/6+rrc58T0Wzj6+LFrFkZdy6Drrt89eHb6jW/m/35+cq2AZ8+8ub1W
+rd53ZvrNl69lvAaAH/30KT00kPv+wqX5c0ce+Noz7x00snV7UFicH1wPBa11uXK5FHaLPfXkz3Hi
+9KkjI6ObR7bu2PngV+6+gyQAKCn2Lly69I3TJ6eePnz4cPq9E2+588uhta5vPQA9T2ejKKp0i700
++afxU1NTj506OXV//txbOzsKzs3OLlsT419LS5LJbQFwfuXErx++nW7at39dFEwkk8Oel+gaKxaX
+t1erFaiCwqXC4iLQcnE9iheMiYmZUa8Ho91TY8bXA5CJxxw53S0W1IMxIgIRlVQmW+oAHjv6aGys
+XRZSwDm7CvB7Tz6PODZbDhz4lMYaG4O3Wmu7uthas00IAWK++IsfPooOIADEUTQnIGDtasBvf/VL
+iKJQzuT/kVsrYFAPhsulku0Wi+N4TEoJJr7Y7usA1uu1OQjAGLO522QTx0GlXF6zUYKg3ne5WKx1
+i9Vr9TFyBOdsB7CTMgEsKKUghOhag866EgPZtQJaa7ONIOjqYmvMuBAAM19YpWAQ1GeV0pBSdgWM
+orDCzGtWMI6inrjLMTOQy2khxSgzIIToKNgBbDTCOSKCc25L993ZChOtWcFGEHQ9B5NJf6gRBD4z
+gfk/NahXTJwzJkYURcObhoZkYWmJ2rGHHnl47PfHX9Rbt23b/cW77p7TWkNpBaWalxASQjQ3y8xo
+HhUM5xycs7DGSmMNokYDTz9xLP2Zgwd3aq1P/+rZZzuAUorxOLawxsIasxqwVqsuZLO9sMb4nufl
+ACy3Y57nfefzt906sWPndRPpVOq7WmtIraCkbMEJQLQGM4OYQeTgnIKzCko2N8JE+Oyth9DX1/+C
+tfY0VjwQjDFjrVJaVqFXWQVYLpXm0ukMmBnOueGVgOlMZk8qlUImk4Hv+9CehlYaQgoI0boAcIeR
+4ciBiOCsg3MOxlgwE/pzA5BKQSo9cQVgHI9BCFhrL87k81gF2AiC2r79+99emJ/f9crLf43b/Xfc
+dafO9eduUEqhJ9MD3/ehtGqBSUgpIIUAt8Da39mSJIgISiowMzzPQSmJTcPDMMYijqKbAfyyvU5u
+cDDM9vZCCHFiuVhcDVgoFNDjp36zeXT0W5VyudTu/8T+fTty/bk0hICfTCKR8NByO0QLDlco2Ewx
+U7sWqZNuKSRkn4AjB2PsxEqTlC+Xap+75RCmXn/tuZX9Vzy6fvLjo7MfHtoEKeWOQ7d9IVhaWqyN
+jmzeM3vxAl75yyS8RKLlaIObJj6Jmw8egFYaBALAEGAwmi+ZEhrEDgo+tPCaEW6rTCgsFXY//rMn
+sr9+7nmbSCQSZ6enP/rb4y/g3WJx5r8CxmE0V62U8bEb90xGYSOxOL/wz3pxnj6+dy923XA9pBCQ
+UkJrDT+VgmAAlqCa3gDaiAwwW4AZlkNYNOCIAAaImpvJpBL6tck/nltaXOwZHhntGRgcjC/k82Gm
+t3cx7pZiABBKnrfWnnzj5NQfnHMDnpf4Gyn/09aacSkAoJmyKDIIowbA3Km95u9mkgUEmBlhFIKI
+EIYhHBHSqRSEEEgmE83jSKd+8M7MDC7k8x/5UDYrIcSuy8UiXcGEq7Tjv3vxCIDHmgxNFRjcUqxt
+Cm6lDiu8DFQrVXieRqanB8yM0ruXIbWCn/LBRGDGjffec++Z/7X+VV+f5mdnn9GefomZwURE1Kwh
+IgIDkFIStY6UlovJWQtiQn9fP6VTSZA1RMxIp3xUahXU6lUwMeI4nrna+mLj77cNwA3ADcANwA92
++zfwyii1238UiwAAAABJRU5ErkJggg=="""),
 
         'LegacySwitch': PhotoImage( data=r"""
 R0lGODlhMgAYAPcAAAEBAXmDjbe4uAE5cjF7xwFWq2Sa0S9biSlrrdTW1k2Ly02a5xUvSQFHjmep
@@ -4610,31 +4724,54 @@ gGPLHwLwcMIo12Qxu0ABAQA7
         """ ),
 
         'Station': PhotoImage(data=r"""
-                R0lGODlhIAAYAPcAMf//////zP//mf//Zv//M///AP/M///MzP/M
-                mf/MZv/MM//MAP+Z//+ZzP+Zmf+ZZv+ZM/+ZAP9m//9mzP9mmf9m
-                Zv9mM/9mAP8z//8zzP8zmf8zZv8zM/8zAP8A//8AzP8Amf8AZv8A
-                M/8AAMz//8z/zMz/mcz/Zsz/M8z/AMzM/8zMzMzMmczMZszMM8zM
-                AMyZ/8yZzMyZmcyZZsyZM8yZAMxm/8xmzMxmmcxmZsxmM8xmAMwz
-                /8wzzMwzmcwzZswzM8wzAMwA/8wAzMwAmcwAZswAM8wAAJn//5n/
-                zJn/mZn/Zpn/M5n/AJnM/5nMzJnMmZnMZpnMM5nMAJmZ/5mZzJmZ
-                mZmZZpmZM5mZAJlm/5lmzJlmmZlmZplmM5lmAJkz/5kzzJkzmZkz
-                ZpkzM5kzAJkA/5kAzJkAmZkAZpkAM5kAAGb//2b/zGb/mWb/Zmb/
-                M2b/AGbM/2bMzGbMmWbMZmbMM2bMAGaZ/2aZzGaZmWaZZmaZM2aZ
-                AGZm/2ZmzGZmmWZmZmZmM2ZmAGYz/2YzzGYzmWYzZmYzM2YzAGYA
-                /2YAzGYAmWYAZmYAM2YAADP//zP/zDP/mTP/ZjP/MzP/ADPM/zPM
-                zDPMmTPMZjPMMzPMADOZ/zOZzDOZmTOZZjOZMzOZADNm/zNmzDNm
-                mTNmZjNmMzNmADMz/zMzzDMzmTMzZjMzMzMzADMA/zMAzDMAmTMA
-                ZjMAMzMAAAD//wD/zAD/mQD/ZgD/MwD/AADM/wDMzADMmQDMZgDM
-                MwDMAACZ/wCZzACZmQCZZgCZMwCZAABm/wBmzABmmQBmZgBmMwBm
-                AAAz/wAzzAAzmQAzZgAzMwAzAAAA/wAAzAAAmQAAZgAAM+4AAN0A
-                ALsAAKoAAIgAAHcAAFUAAEQAACIAABEAAADuAADdAAC7AACqAACI
-                AAB3AABVAABEAAAiAAARAAAA7gAA3QAAuwAAqgAAiAAAdwAAVQAA
-                RAAAIgAAEe7u7t3d3bu7u6qqqoiIiHd3d1VVVURERCIiIhEREQAA
-                ACH5BAEAAAAALAAAAAAgABgAAAiNAAH8G0iwoMGDCAcKTMiw4UBw
-                BPXVm0ixosWLFvVBHFjPoUeC9Tb+6/jRY0iQ/8iVbHiS40CVKxG2
-                HEkQZsyCM0mmvGkw50uePUV2tEnOZkyfQA8iTYpTKNOgKJ+C3AhO
-                p9SWVaVOfWj1KdauTL9q5UgVbFKsEjGqXVtP40NwcBnCjXtw7tx/
-                C8cSBBAQADs=
+            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
+            AXZBYRA4C/1iAAAAAElFTkSuQmCC
             """),
 
         'OldSwitch': PhotoImage( data=r"""
@@ -4690,29 +4827,16 @@ gGPLHwLwcMIo12Qxu0ABAQA7
             lBmxI8mSNknm1Dnx5sCAADs=
         """ ),
         'WifiLink': PhotoImage(data=r"""
-                R0lGODlhFgAWAPcAMf//////zP//mf//Zv//M///AP/M///MzP/M
-                mf/MZv/MM//MAP+Z//+ZzP+Zmf+ZZv+ZM/+ZAP9m//9mzP9mmf9m
-                Zv9mM/9mAP8z//8zzP8zmf8zZv8zM/8zAP8A//8AzP8Amf8AZv8A
-                M/8AAMz//8z/zMz/mcz/Zsz/M8z/AMzM/8zMzMzMmczMZszMM8zM
-                AMyZ/8yZzMyZmcyZZsyZM8yZAMxm/8xmzMxmmcxmZsxmM8xmAMwz
-                /8wzzMwzmcwzZswzM8wzAMwA/8wAzMwAmcwAZswAM8wAAJn//5n/
-                zJn/mZn/Zpn/M5n/AJnM/5nMzJnMmZnMZpnMM5nMAJmZ/5mZzJmZ
-                mZmZZpmZM5mZAJlm/5lmzJlmmZlmZplmM5lmAJkz/5kzzJkzmZkz
-                ZpkzM5kzAJkA/5kAzJkAmZkAZpkAM5kAAGb//2b/zGb/mWb/Zmb/
-                M2b/AGbM/2bMzGbMmWbMZmbMM2bMAGaZ/2aZzGaZmWaZZmaZM2aZ
-                AGZm/2ZmzGZmmWZmZmZmM2ZmAGYz/2YzzGYzmWYzZmYzM2YzAGYA
-                /2YAzGYAmWYAZmYAM2YAADP//zP/zDP/mTP/ZjP/MzP/ADPM/zPM
-                zDPMmTPMZjPMMzPMADOZ/zOZzDOZmTOZZjOZMzOZADNm/zNmzDNm
-                mTNmZjNmMzNmADMz/zMzzDMzmTMzZjMzMzMzADMA/zMAzDMAmTMA
-                ZjMAMzMAAAD//wD/zAD/mQD/ZgD/MwD/AADM/wDMzADMmQDMZgDM
-                MwDMAACZ/wCZzACZmQCZZgCZMwCZAABm/wBmzABmmQBmZgBmMwBm
-                AAAz/wAzzAAzmQAzZgAzMwAzAAAA/wAAzAAAmQAAZgAAM+4AAN0A
-                ALsAAKoAAIgAAHcAAFUAAEQAACIAABEAAADuAADdAAC7AACqAACI
-                AAB3AABVAABEAAAiAAARAAAA7gAA3QAAuwAAqgAAiAAAdwAAVQAA
-                RAAAIgAAEe7u7t3d3bu7u6qqqoiIiHd3d1VVVURERCIiIhEREQAA
-                ACH5BAEAAAAALAAAAAAWABYAAAhIAAEIHEiwoEGBrhIeXEgwoUKG
-                Cx0+hGhQoiuKBy1irChxY0GNHgeCDAlgZEiTHlFuVImRJUWXEGEy
-                lBmxI8mSNknm1Dnx5sCAADs=
+            iVBORw0KGgoAAAANSUhEUgAAACIAAAAoCAYAAACb3CikAAAABHNCS
+            VQICAgIfAhkiAAAAAlwSFlzAAAG0wAABtMBs4encQAAABl0RVh0U2
+            9mdHdhcmUAd3d3Lmlua3NjYXBlLm9yZ5vuPBoAAAD3SURBVFiF7dQ
+            9TgJRFMXx/+MjEgpjIFR2NlTGbShWDLzKhsaawpYd0FqpbECoWAQd
+            nRZuwMS4ARPMHAstmdE3vDAW99dNJmfmJO++C8YYY8x/NNBJ7E+64
+            ITXMSlPwIoN1yzda4wileBEyi1wBPSocxmjBECtQOYGaOH4ZMFDrC
+            LFeFXxapVbIk+iIYnuudJhaDR8WLN4dUh5BjrAC21OuXObv8bDhzV
+            LSht4/3mahZSIb6QGA43xqpZX4jeJhlzoIOt1vKPJ09c5jkearOnr
+            rLwiFSZ8X4wute27q8hCC9egxwdTxBtzt97LP/Mp3rowxhhjzI6+A
+            GJ2MmKlEnSoAAAAAElFTkSuQmCC
             """)
     }
 
