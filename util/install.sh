@@ -259,10 +259,11 @@ function of13 {
 
     # Install netbee
     NBEEDIR="netbee"
-    git clone https://github.com/ramonfontes/netbee.git
+    git clone https://github.com/netgroup-polito/netbee.git
     cd ${NBEEDIR}/src
     cmake .
     make
+
     cd $BUILD_DIR/
     sudo cp ${NBEEDIR}/bin/libn*.so /usr/local/lib
     sudo ldconfig
