@@ -1432,6 +1432,10 @@ class Mininet_wifi(Mininet):
                         node.params[param].append(value)
                     else:
                         node.params[param].append(float(value))
+                len_ = len(node.params[param])
+                if len != params['wlans']:
+                    for _ in range(params['wlans']-len_):
+                        node.params[param].append(value)
             else:
                 for _ in range(params['wlans']):
                     if param == 'antennaGain':
@@ -1546,10 +1550,8 @@ class Mininet_wifi(Mininet):
         "Creates virtual wifi interfaces"
         for node in nodes:
             if 'nvif' in node.params:
-                nvif = node.params['nvif']
-                wlan = 0
-                for vif_ in range(0, nvif):
-                    vif = node.params['wlan'][wlan] + str(vif_ + 1)
+                for vif_ in range(0, node.params['nvif']):
+                    vif = node.params['wlan'][0] + str(vif_ + 1)
                     node.params['wlan'].append(vif)
                     node.params['associatedTo'].append('')
                     node.func.append('none')
@@ -1567,7 +1569,7 @@ class Mininet_wifi(Mininet):
                         node.params[param].append(node.params[param][0])
 
                     node.cmd('iw dev %s interface add %s type station'
-                             % (node.params['wlan'][wlan], vif))
+                             % (node.params['wlan'][0], vif))
                     TCLinkWirelessStation(node, intfName1=vif)
                     self.configureMacAddr(node)
 
