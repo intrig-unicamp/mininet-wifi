@@ -236,7 +236,7 @@ class Node_wifi(Node):
                     break
 
     def setMasterMode(self, intf=None, ssid='-ssid1',
-                      channel=1, mode='n'):
+                      **kwargs):
         "set Interface to AP mode"
         if not intf:
             intf = self.name + intf
@@ -256,6 +256,11 @@ class Node_wifi(Node):
         self.params.pop('rssi', None)
         self.params.pop('apsInRange', None)
         self.params.pop('associatedTo', None)
+
+        for kwarg in kwargs:
+            if kwarg not in self.params:
+                self.params[kwarg] = []
+                self.params[kwarg].append(kwargs[kwarg])
 
         AccessPoint.verifyNetworkManager(self, wlan)
         AccessPoint.setConfig(self, aplist=None, wlan=wlan,
@@ -1512,7 +1517,7 @@ class AccessPoint(AP):
                             and 'authmode' not in ap.params:
                         ap.wpa_key_mgmt = 'FT-PSK'
                     elif 'authmode' in ap.params \
-                            and ap.params['authmode'] == '8021x':
+                            and ap.params['authmode'][0] == '8021x':
                         ap.wpa_key_mgmt = 'WPA-EAP'
                     else:
                         ap.wpa_key_mgmt = 'WPA-PSK'
@@ -1570,7 +1575,7 @@ class AccessPoint(AP):
                 for conf in config:
                     cmd = cmd + "\n" + conf
         else:
-            if 'authmode' in ap.params and ap.params['authmode'] == '8021x':
+            if 'authmode' in ap.params and ap.params['authmode'][0] == '8021x':
                 cmd = cmd + ("\nieee8021x=1")
                 cmd = cmd + ("\nwpa_key_mgmt=WPA-EAP")
                 if 'encrypt' in ap.params:
@@ -1582,13 +1587,14 @@ class AccessPoint(AP):
                 cmd = cmd + ('\neapol_version=2')
 
                 if 'radius_server' not in ap.params:
-                    ap.params['radius_server'] = '127.0.0.1'
+                    ap.params['radius_server'] = []
+                    ap.params['radius_server'].append('127.0.0.1')
                 cmd = cmd + ("\nwpa_pairwise=TKIP CCMP")
                 cmd = cmd + ("\neapol_key_index_workaround=0")
-                cmd = cmd + ("\nown_ip_addr=%s" % ap.params['radius_server'])
+                cmd = cmd + ("\nown_ip_addr=%s" % ap.params['radius_server'][0])
                 cmd = cmd + ("\nnas_identifier=%s.example.com" % ap.name)
                 cmd = cmd + ("\nauth_server_addr=%s"
-                             % ap.params['radius_server'])
+                             % ap.params['radius_server'][0])
                 cmd = cmd + ("\nauth_server_port=1812")
                 if 'shared_secret' not in ap.params:
                     ap.params['shared_secret'] = 'secret'

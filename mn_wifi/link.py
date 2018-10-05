@@ -1296,7 +1296,7 @@ class Association(object):
             cmd = cmd + '   key_mgmt=%s\n' % ap.wpa_key_mgmt
             if cls.bgscan:
                 cmd = cmd + '   %s\n' % cls.bgscan
-            if 'authmode' in ap.params and ap.params['authmode'] == '8021x':
+            if 'authmode' in ap.params and ap.params['authmode'][0] == '8021x':
                 cmd = cmd + '   eap=PEAP\n'
                 cmd = cmd + '   identity=\"%s\"\n' % sta.params['radius_identity']
                 cmd = cmd + '   password=\"%s\"\n' % sta.params['radius_passwd']

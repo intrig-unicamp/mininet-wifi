@@ -1355,30 +1355,15 @@ class Mininet_wifi(Mininet):
         node.params['wlan'] = []
         node.params['mac'] = []
         node.phyID = []
+        array_ = ['passwd', 'scan_freq', 'authmode',
+                  'encrypt', 'radius_server']
 
-        if 'passwd' in params:
-            node.params['passwd'] = []
-            passwd_list = params['passwd'].split(',')
-            for passwd in passwd_list:
-                node.params['passwd'].append(passwd)
-
-        if 'scan_freq' in params:
-            node.params['scan_freq'] = []
-            scan_freq_list = params['scan_freq'].split(',')
-            for scan_freq in scan_freq_list:
-                node.params['scan_freq'].append(scan_freq)
-
-        if 'freq_list' in params:
-            node.params['freq_list'] = []
-            freq_list_list = params['freq_list'].split(',')
-            for freq_list in freq_list_list:
-                node.params['freq_list'].append(freq_list)
-
-        if 'encrypt' in params:
-            node.params['encrypt'] = []
-            encrypt_list = params['encrypt'].split(',')
-            for encrypt in encrypt_list:
-                node.params['encrypt'].append(encrypt)
+        for param in params:
+            if param in array_:
+                node.params[param] = []
+                list = params[param].split(',')
+                for value in list:
+                    node.params[param].append(value)
 
         if node_mode == 'managed':
             node.params['apsInRange'] = []
