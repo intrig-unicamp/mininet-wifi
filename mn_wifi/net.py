@@ -1355,9 +1355,9 @@ class Mininet_wifi(Mininet):
         node.params['wlan'] = []
         node.params['mac'] = []
         node.phyID = []
+
         array_ = ['passwd', 'scan_freq', 'authmode',
                   'encrypt', 'radius_server']
-
         for param in params:
             if param in array_:
                 node.params[param] = []
@@ -1377,54 +1377,17 @@ class Mininet_wifi(Mininet):
             node.min_y = 0
             node.max_v = 0
             node.min_v = 0
-
-            # max_speed
             node.max_speed = 10
-            if 'max_speed' in params:
-                node.max_speed = int(params['max_speed'])
-
-            # min_speed
             node.min_speed = 1
-            if 'min_speed' in params:
-                node.min_speed = int(params['min_speed'])
 
-        # speed
-        if 'speed' in params:
-            node.speed = int(params['speed'])
-
-        # max_x
-        if 'max_x' in params:
-            node.max_x = float(params['max_x'])
-
-        # max_y
-        if 'max_y' in params:
-            node.max_y = float(params['max_y'])
-
-        # min_x
-        if 'min_x' in params:
-            node.min_x = float(params['min_x'])
-
-        # min_y
-        if 'min_y' in params:
-            node.min_y = float(params['min_y'])
-
-        # min_v
-        if 'min_v' in params:
-            node.min_v = float(params['min_v'])
-
-        # max_v
-        if 'max_v' in params:
-            node.max_v = float(params['max_v'])
-
-        # constantVelocity
         node.constantVelocity = 1
-        if 'constantVelocity' in params:
-            node.constantVelocity = int(params['constantVelocity'])
-
-        # constantDistance
         node.constantDistance = 1
-        if 'constantDistance' in params:
-            node.constantDistance = int(params['constantDistance'])
+        array_ = ['speed', 'max_x', 'max_y', 'min_x', 'min_y',
+                  'min_v', 'max_v', 'constantVelocity', 'constantDistance',
+                  'min_speed', 'max_speed']
+        for param in params:
+            if param in array_:
+                setattr(node, param, float(params[param]))
 
         # position
         if 'position' in params:
