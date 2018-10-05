@@ -3213,8 +3213,8 @@ class MiniEdit( Frame ):
             desc = self.appName + ': a simple network editor for MiniNet'
             version = 'MiniEdit '+MINIEDIT_VERSION
             author = 'Originally by: Bob Lantz <rlantz@cs>, April 2010'
-            enhancements = 'Enhancements by: Gregory Gee, Since July 2013'
-            www = 'http://gregorygee.wordpress.com/category/miniedit/'
+            enhancements = 'Enhancements by: Ramon Fontes, Since October 2018'
+            www = 'http://github.com/ramonfontes'
             line1 = Label( about, text=desc, font='Helvetica 10 bold', bg=bg )
             line2 = Label( about, text=version, font='Helvetica 9', bg=bg )
             line3 = Label( about, text=author, font='Helvetica 9', bg=bg )
