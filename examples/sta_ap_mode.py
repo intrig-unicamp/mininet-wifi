@@ -55,7 +55,9 @@ def topology(mobility):
     ap1.cmd('echo 1 > /proc/sys/net/ipv4/ip_forward')
     ap2.cmd('echo 1 > /proc/sys/net/ipv4/ip_forward')
 
+    ap1.setIP('192.168.0.10/24', intf='ap1-wlan0')
     ap1.setIP('192.168.2.1/24', intf='ap1-eth2')
+    ap2.setIP('192.168.1.10/24', intf='ap2-wlan0')
     ap2.setIP('192.168.2.2/24', intf='ap2-eth2')
     ap1.cmd('route add -net 192.168.1.0/24 gw 192.168.2.2')
     ap2.cmd('route add -net 192.168.0.0/24 gw 192.168.2.1')
