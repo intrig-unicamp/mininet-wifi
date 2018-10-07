@@ -217,8 +217,6 @@ class module(object):
     def docker_config(cls, n_radios=0, nodes=None, dir='~/',
                       ip='172.17.0.1', num=0, **params):
 
-        from mn_wifi.node import AccessPoint
-
         file = cls.prefix + 'docker_mn-wifi.sh'
         os.system('rm %s' % file)
         os.system("echo '#!/bin/bash' >> %s" % file)

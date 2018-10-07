@@ -273,8 +273,8 @@ class PrefsDialog(tkSimpleDialog.Dialog):
         Label(self.leftfieldFrame, text="Default AP:").grid(row=3, sticky=E)
         self.apType = StringVar(self.leftfieldFrame)
         self.apTypeMenu = OptionMenu(self.leftfieldFrame, self.apType, "Open vSwitch Kernel Mode",
-                                         "Indigo Virtual AP", "Userspace AP",
-                                         "Userspace AP inNamespace")
+                                     "Indigo Virtual AP", "Userspace AP",
+                                     "Userspace AP inNamespace")
         self.switchTypeMenu.grid(row=3, column=1, sticky=W)
         apTypePref = self.prefValues['apType']
         if apTypePref == 'ivs':
@@ -290,7 +290,7 @@ class PrefsDialog(tkSimpleDialog.Dialog):
         Label(self.leftfieldFrame, text="Mode:").grid(row=3, sticky=E)
         self.mode = StringVar(self.leftfieldFrame)
         self.modeMenu = OptionMenu(self.leftfieldFrame, self.mode, "g", "a",
-                                     "b", "n")
+                                   "b", "n")
         self.modeMenu.grid(row=3, column=1, sticky=W)
         modePref = self.prefValues['mode']
         if modePref == 'g':
@@ -508,11 +508,11 @@ class CustomDialog(object):
         buttonFrame.grid(row=1 , column=0, sticky='nswe')
 
         okButton = Button(buttonFrame, width=8, text='OK', relief='groove',
-                   bd=4, command=self.okAction)
+                          bd=4, command=self.okAction)
         okButton.grid(row=0, column=0, sticky=E)
 
         canlceButton = Button(buttonFrame, width=8, text='Cancel', relief='groove',
-                    bd=4, command=self.cancelAction)
+                              bd=4, command=self.cancelAction)
         canlceButton.grid(row=0, column=1, sticky=W)
 
     def body(self, master):
@@ -680,14 +680,12 @@ class HostDialog(CustomDialog):
     def apply(self):
         externalInterfaces = []
         for row in range(self.tableFrame.rows):
-            if (len(self.tableFrame.get(row, 0)) > 0 and
-                row > 0):
+            if (len(self.tableFrame.get(row, 0)) > 0 and row > 0):
                 externalInterfaces.append(self.tableFrame.get(row, 0))
         vlanInterfaces = []
         for row in range(self.vlanTableFrame.rows):
-            if (len(self.vlanTableFrame.get(row, 0)) > 0 and
-                len(self.vlanTableFrame.get(row, 1)) > 0 and
-                row > 0):
+            if (len(self.vlanTableFrame.get(row, 0)) > 0
+                    and len(self.vlanTableFrame.get(row, 1)) > 0 and row > 0):
                 vlanInterfaces.append([self.vlanTableFrame.get(row, 0), self.vlanTableFrame.get(row, 1)])
         privateDirectories = []
         for row in range(self.mountTableFrame.rows):
@@ -863,14 +861,12 @@ class StationDialog(CustomDialog):
     def apply(self):
         externalInterfaces = []
         for row in range(self.tableFrame.rows):
-            if (len(self.tableFrame.get(row, 0)) > 0 and
-                row > 0):
+            if (len(self.tableFrame.get(row, 0)) > 0 and row > 0):
                 externalInterfaces.append(self.tableFrame.get(row, 0))
         vlanInterfaces = []
         for row in range(self.vlanTableFrame.rows):
             if (len(self.vlanTableFrame.get(row, 0)) > 0 and
-                len(self.vlanTableFrame.get(row, 1)) > 0 and
-                row > 0):
+                    len(self.vlanTableFrame.get(row, 1)) > 0 and row > 0):
                 vlanInterfaces.append([self.vlanTableFrame.get(row, 0), self.vlanTableFrame.get(row, 1)])
         privateDirectories = []
         for row in range(self.mountTableFrame.rows):
@@ -1048,12 +1044,11 @@ class SwitchDialog(CustomDialog):
 
         dpid = self.dpidEntry.get()
         if (self.defaultDpid(self.hostnameEntry.get()) is None
-           and len(dpid) == 0):
+                and len(dpid) == 0):
             showerror(title="Error",
-                          message= 'Unable to derive default datapath ID - '
-                             'please either specify a DPID or use a '
-                             'canonical switch name such as s23.' )
-
+                      message= 'Unable to derive default datapath ID - '
+                      'please either specify a DPID or use a '
+                      'canonical switch name such as s23.' )
 
         results = {'externalInterfaces':externalInterfaces,
                    'hostname':self.hostnameEntry.get(),
@@ -1148,8 +1143,9 @@ class APDialog(CustomDialog):
         # Selection of authentication
         Label(self.leftfieldFrame, text="Authentication:").grid(row=rowCount, sticky=E)
         self.authentication = StringVar(self.leftfieldFrame)
-        self.authenticationMenu = OptionMenu(self.leftfieldFrame, self.authentication, "none", "WEP",
-                                     "WPA", "WPA2")
+        self.authenticationMenu = OptionMenu(self.leftfieldFrame,
+                                             self.authentication, "none", "WEP",
+                                             "WPA", "WPA2")
         self.authenticationMenu.grid(row=rowCount, column=1, sticky=W)
         if 'authentication' in self.prefValues:
             authPref = self.prefValues['authentication']
@@ -1295,10 +1291,9 @@ class APDialog(CustomDialog):
         if (self.defaultDpid(self.hostnameEntry.get()) is None
            and len(dpid) == 0):
             showerror(title="Error",
-                          message= 'Unable to derive default datapath ID - '
-                             'please either specify a DPID or use a '
-                             'canonical switch name such as s23.' )
-
+                      message= 'Unable to derive default datapath ID - '
+                      'please either specify a DPID or use a '
+                      'canonical switch name such as s23.' )
 
         results = {'externalInterfaces':externalInterfaces,
                    'hostname':self.hostnameEntry.get(),
@@ -1871,7 +1866,7 @@ class MiniEdit( Frame ):
         bbox = self.canvas.bbox( 'all' )
         if bbox is not None:
             self.canvas.configure( scrollregion=( 0, 0, bbox[ 2 ],
-                                   bbox[ 3 ] ) )
+                                                  bbox[ 3 ] ) )
 
     def canvasx( self, x_root ):
         "Convert root x coordinate to canvas coordinate."
@@ -2239,7 +2234,7 @@ class MiniEdit( Frame ):
             dx, dy = self.canvas.coords( self.widgetToItem[ dest]  )
 
             self.link = self.canvas.create_line( sx, sy, dx, dy, width=4,
-                                             fill='blue', tag='link' )
+                                                 fill='blue', tag='link' )
             c.itemconfig(self.link, tags=c.gettags(self.link)+('data',))
             self.addLink( src, dest, linkopts=link['opts'] )
             self.createDataLinkBindings()
@@ -3144,20 +3139,20 @@ class MiniEdit( Frame ):
         target = self.findItem( x, y )
         dest = self.itemToWidget.get( target, None )
         if ( source is None or dest is None or source == dest
-                or dest in source.links or source in dest.links ):
+             or dest in source.links or source in dest.links ):
             self.releaseNetLink( event )
             return
         # For now, don't allow hosts to be directly linked
         stags = self.canvas.gettags( self.widgetToItem[ source ] )
         dtags = self.canvas.gettags( target )
         if (('Host' in stags and 'Host' in dtags) or
-           ('Controller' in dtags and 'LegacyRouter' in stags) or
-           ('Controller' in stags and 'LegacyRouter' in dtags) or
-           ('Controller' in dtags and 'LegacySwitch' in stags) or
-           ('Controller' in stags and 'LegacySwitch' in dtags) or
-           ('Controller' in dtags and 'Host' in stags) or
-           ('Controller' in stags and 'Host' in dtags) or
-           ('Controller' in stags and 'Controller' in dtags)):
+                ('Controller' in dtags and 'LegacyRouter' in stags) or
+                ('Controller' in stags and 'LegacyRouter' in dtags) or
+                ('Controller' in dtags and 'LegacySwitch' in stags) or
+                ('Controller' in stags and 'LegacySwitch' in dtags) or
+                ('Controller' in dtags and 'Host' in stags) or
+                ('Controller' in stags and 'Host' in dtags) or
+                ('Controller' in stags and 'Controller' in dtags)):
             self.releaseNetLink( event )
             return
 
@@ -3753,11 +3748,8 @@ class MiniEdit( Frame ):
                     else:
                         hostCls=Host
                 debug( hostCls, '\n' )
-                newHost = net.addHost( name,
-                                       cls=hostCls,
-                                       ip=ip,
-                                       defaultRoute=defaultRoute
-                                      )
+                newHost = net.addHost( name, cls=hostCls, ip=ip,
+                                       defaultRoute=defaultRoute )
 
                 # Set the CPULimitedHost specific options
                 if 'cores' in opts:
@@ -3803,11 +3795,8 @@ class MiniEdit( Frame ):
                     else:
                         hostCls=Host
                 debug( hostCls, '\n' )
-                newStation = net.addStation( name,
-                                       cls=hostCls,
-                                       ip=ip,
-                                       defaultRoute=defaultRoute
-                                      )
+                newStation = net.addStation( name, cls=hostCls,
+                                             ip=ip, defaultRoute=defaultRoute )
 
                 # Set the CPULimitedHost specific options
                 if 'cores' in opts:
@@ -3873,9 +3862,9 @@ class MiniEdit( Frame ):
         for arg in args:
             if not quietRun( 'which ' + arg ):
                 showerror(title="Error",
-                      message= 'Cannot find required executable %s.\n' % arg +
-                       'Please make sure that %s is installed ' % moduleName +
-                       'and available in your $PATH.' )
+                          message= 'Cannot find required executable %s.\n' % arg +
+                          'Please make sure that %s is installed ' % moduleName +
+                          'and available in your $PATH.' )
 
     def buildLinks( self, net):
         # Make links

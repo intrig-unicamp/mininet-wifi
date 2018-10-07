@@ -33,7 +33,7 @@ from mn_wifi.wmediumdConnector import w_starter, w_server, \
 from mn_wifi.link import wirelessLink, wmediumd, Association, \
     _4address, TCWirelessLink, TCLinkWirelessStation, ITSLink, \
     wifiDirectLink, adhoc, mesh, physicalMesh, physicalWifiDirectLink
-from mn_wifi.devices import GetRate, GetRange, GetTxPower
+from mn_wifi.devices import GetRate, GetRange
 from mn_wifi.mobility import mobility
 from mn_wifi.plot import plot2d, plot3d, plotGraph
 from mn_wifi.module import module
@@ -46,6 +46,7 @@ from mn_wifi.sixLoWPAN.link import sixLoWPANLink
 sys.path.append(str(os.getcwd()) + '/mininet/')
 
 VERSION = "2.2.2d1"
+
 
 class Mininet_wifi(Mininet):
 

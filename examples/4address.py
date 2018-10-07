@@ -13,17 +13,17 @@ from mn_wifi.wmediumdConnector import interference
 
 def topology():
     "Create a network."
-    net = Mininet_wifi( controller=Controller, link=wmediumd,
-                        wmediumd_mode=interference, configure4addr=True,
-                        autoAssociation=False )
+    net = Mininet_wifi(controller=Controller, link=wmediumd,
+                       wmediumd_mode=interference, configure4addr=True,
+                       autoAssociation=False)
 
     info("*** Creating nodes\n")
     ap1 = net.addAccessPoint('ap1', ssid="ap1-ssid", mode="g",
-                              channel="1", position='30,30,0')
+                             channel="1", position='30,30,0')
     ap2 = net.addAccessPoint('ap2', ssid="ap2-ssid", mode="g",
-                              channel="1", position='40,60,0')
+                             channel="1", position='40,60,0')
     ap3 = net.addAccessPoint('ap3', ssid="ap3-ssid", mode="g",
-                              channel="1", position='50,30,0')
+                             channel="1", position='50,30,0')
     sta1 = net.addStation('sta1', ip="192.168.0.1/24", position='31,32,0')
     sta2 = net.addStation('sta2', ip="192.168.0.2/24", position='32,34,0')
     sta3 = net.addStation('sta3', ip="192.168.0.3/24", position='41,62,0')

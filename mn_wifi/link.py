@@ -1188,8 +1188,6 @@ class Association(object):
     def associate(cls, sta, ap, enable_wmediumd, enable_interference,
                   **params):
         "Associate to Access Point"
-        if params['wlan'] == 0:
-            wlan = sta.ifaceToAssociate
         if 'position' in sta.params:
             cls.configureWirelessLink(sta, ap, enable_wmediumd,
                                       enable_interference, **params)

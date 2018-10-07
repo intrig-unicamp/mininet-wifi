@@ -1340,7 +1340,7 @@ class CPULimitedStation( Station ):
         # We have to do this here after we've specified
         # cpus and mems
         errFail( 'cgclassify -g cpuset:/%s %s' % (
-                 self.name, self.pid ) )
+            self.name, self.pid ) )
 
     def config( self, cpu=-1, cores=None, **params ):
         """cpu: desired overall system CPU fraction
