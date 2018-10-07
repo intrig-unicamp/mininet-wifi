@@ -2294,7 +2294,7 @@ class MiniEdit( Frame ):
                                   'y':str(y1),
                                   'opts':self.switchOpts[name] }
                     switchesToSave.append(nodeToSave)
-                if 'AP' in tags or 'LegacyAP' in tags or 'LegacyAP' in tags:
+                elif 'AP' in tags:
                     nodeNum = self.apOpts[name]['nodeNum']
                     nodeToSave = {'number':str(nodeNum),
                                   'x':str(x1),
