@@ -776,7 +776,21 @@ class StationDialog(CustomDialog):
         #else:
         #    self.mode.set("g")
 
-        # Field for Switch IP
+        # Field for Wlans
+        rowCount += 1
+        Label(self.propFrame, text="Wlans:").grid(row=rowCount, sticky=E)
+        self.wlansEntry = Entry(self.propFrame)
+        self.wlansEntry.grid(row=rowCount, column=1)
+        self.wlansEntry.insert(0, self.prefValues['wlans'])
+
+        # Field for Wpans
+        rowCount += 1
+        Label(self.propFrame, text="Wpans:").grid(row=rowCount, sticky=E)
+        self.wpansEntry = Entry(self.propFrame)
+        self.wpansEntry.grid(row=rowCount, column=1)
+        self.wpansEntry.insert(0, self.prefValues['wpans'])
+
+        # Field for Station IP
         rowCount += 1
         Label(self.propFrame, text="IP Address:").grid(row=rowCount, sticky=E)
         self.ipEntry = Entry(self.propFrame)
@@ -929,9 +943,11 @@ class StationDialog(CustomDialog):
                    'privateDirectory':privateDirectories,
                    'externalInterfaces':externalInterfaces,
                    'vlanInterfaces':vlanInterfaces}
-        results['ssid'] = str(self.ssidEntry.get())
-        results['channel'] = str(self.channelEntry.get())
-        results['mode'] = str(self.mode.get())
+        #results['ssid'] = str(self.ssidEntry.get())
+        #results['channel'] = str(self.channelEntry.get())
+        #results['mode'] = str(self.mode.get())
+        results['wlans'] = str(self.wlansEntry.get())
+        results['wpans'] = str(self.wpansEntry.get())
         self.result = results
 
 
@@ -1465,42 +1481,64 @@ class LinkDialog(tkSimpleDialog.Dialog):
 
     def body(self, master):
 
+        if 'link' not in self.linkValues:
+            self.linkValues['channel'] = '1'
+        if 'ssid' not in self.linkValues:
+            self.linkValues['ssid'] = 'new-ssid'
+        if 'mode' not in self.linkValues:
+            self.linkValues['mode'] = 'g'
+
         rowCount = 0
         Label(master, text="Connection:").grid(row=rowCount, sticky=E)
         connectionOpt = None
         if 'connection' in self.linkValues:
             connectionOpt = self.linkValues['connection']
         self.e1 = StringVar(master)
-        self.opt1 = OptionMenu(master, self.e1, "adhoc", "mesh", "wifi-direct")
+        self.opt1 = OptionMenu(master, self.e1, "wired", "adhoc", "mesh", "wifi-direct", "6lowpan")
         self.opt1.grid(row=rowCount, column=1, sticky=W)
         if connectionOpt:
             if self.linkValues['connection'] == 'adhoc':
                 self.e1.set("adhoc")
             elif self.linkValues['connection'] == 'wifi-direct':
                 self.e1.set("wifi-direct")
-            else:
+            elif self.linkValues['connection'] == 'mesh':
                 self.e1.set("mesh")
+            elif self.linkValues['connection'] == '6lowpan':
+                self.e1.set("6lowpan")
+            else:
+                self.e1.set("wired")
+        else:
+            self.e1.set("wired")
 
         rowCount += 1
         Label(master, text="SSID:").grid(row=rowCount, sticky=E)
         self.e2 = Entry(master)
         self.e2.grid(row=rowCount, column=1)
-        if 'ssid' in self.linkValues:
-            self.e2.insert(0, str(self.linkValues['ssid']))
+        self.e2.insert(0, str(self.linkValues['ssid']))
 
         rowCount += 1
         Label(master, text="Channel:").grid(row=rowCount, sticky=E)
         self.e3 = Entry(master)
         self.e3.grid(row=rowCount, column=1)
-        if 'channel' in self.linkValues:
-            self.e3.insert(0, str(self.linkValues['channel']))
+        self.e3.insert(0, str(self.linkValues['channel']))
 
         rowCount += 1
         Label(master, text="Mode:").grid(row=rowCount, sticky=E)
-        self.e4 = Entry(master)
-        self.e4.grid(row=rowCount, column=1)
+        modeOpt = None
         if 'mode' in self.linkValues:
-            self.e4.insert(0, str(self.linkValues['mode']))
+            modeOpt = self.linkValues['mode']
+        self.e4 = StringVar(master)
+        self.opt1 = OptionMenu(master, self.e4, "a", "b", "g", "n")
+        self.opt1.grid(row=rowCount, column=1, sticky=W)
+        if modeOpt:
+            if self.linkValues['mode'] == 'a':
+                self.e4.set("a")
+            elif self.linkValues['mode'] == 'b':
+                self.e4.set("b")
+            elif self.linkValues['mode'] == 'g':
+                self.e4.set("g")
+            elif self.linkValues['mode'] == 'n':
+                self.e4.set("n")
 
         rowCount += 1
         Label(master, text="Bandwidth:").grid(row=rowCount, sticky=E)
@@ -2458,6 +2496,70 @@ class MiniEdit( Frame ):
             ('All Files','*'),
         ]
 
+        isWiFi = False
+        controllerType_ = ''
+        apType_ = ''
+        switchType_ = ''
+        hasSwitch = False
+        hasAP = False
+        hasController = False
+        hasStation = False
+        hasHost = False
+        for widget in self.widgetToItem:
+            tags = self.canvas.gettags(self.widgetToItem[widget])
+            name = widget['text']
+            if 'Station' in tags or 'AP' in tags:
+                isWiFi = True
+                hasAP = True
+                hasStation = True
+            if 'Controller' in tags:
+                hasController = True
+                opts = self.controllers[name]
+                controllerType = opts['controllerType']
+                if controllerType == 'ref':
+                    if ' Controller' not in controllerType_:
+                        controllerType_ += ' Controller,'
+                elif controllerType == 'remote':
+                    if ' RemoteController' not in controllerType_:
+                        controllerType_ += ' RemoteController,'
+            elif 'AP' in tags:
+                opts = self.apOpts[name]
+                apType = opts['apType']
+                if apType == 'user':
+                    if ' UserAP' not in apType_:
+                        apType_ += ' UserAP,'
+                elif apType == 'default':
+                    if ' OVSAP' not in apType_:
+                        apType_ += ' OVSAP,'
+            elif 'Switch' in tags:
+                hasSwitch = True
+                opts = self.switchOpts[name]
+                switchType = opts['switchType']
+                if switchType == 'user':
+                    if ' UserSwitch' not in switchType_:
+                        switchType_ += ' UserSwitch,'
+                elif switchType == 'default':
+                    if ' OVS' not in switchType_:
+                        switchType_ += ' OVS,'
+            elif 'Host' in tags:
+                hasHost = True
+
+        links_ = ''
+        sixLinks_ = ''
+        for key, linkDetail in self.links.iteritems():
+            tags = self.canvas.gettags(key)
+            if 'data' in tags:
+                linkopts = linkDetail['linkOpts']
+                if 'connection' in linkopts:
+                    if 'adhoc' in linkopts['connection'] and ', adhoc' not in links_:
+                        links_+=', adhoc'
+                    elif 'mesh' in linkopts['connection'] and ', mesh' not in links_:
+                        links_+=', mesh'
+                    elif 'wifi-direct' in linkopts['connection'] and ', wifi-direct' not in links_:
+                        links_+=', wifiDirectLink'
+                    elif '6lowpan' in linkopts['connection'] and ', 6lowpan' not in links_:
+                        sixLinks_ +=' sixLoWPANLink'
+
         fileName = tkFileDialog.asksaveasfilename(filetypes=myFormats ,title="Export the topology as...")
         if len(fileName ) > 0:
             # debug( "Now saving under %s\n" % fileName )
@@ -2465,23 +2567,49 @@ class MiniEdit( Frame ):
 
             f.write("#!/usr/bin/python\n")
             f.write("\n")
-            f.write("from mininet.net import Mininet\n")
-            f.write("from mininet.node import Controller, RemoteController, OVSController\n")
-            f.write("from mininet.node import CPULimitedHost, Host, Node\n")
-            f.write("from mininet.node import OVSKernelSwitch, UserSwitch\n")
-            if StrictVersion(MININET_VERSION) > StrictVersion('2.0'):
-                f.write("from mininet.node import IVSSwitch\n")
-            f.write("from mininet.cli import CLI\n")
+            if not isWiFi:
+                f.write("from mininet.net import Mininet\n")
+            if hasController:
+                if not controllerType_:
+                    controllerType_ = ' Controller'
+                else:
+                    controllerType_ = controllerType_[:-1]
+                f.write("from mininet.node import"+controllerType_+"\n")
+            if hasSwitch:
+                if not switchType_:
+                    switchType_ = ' OVS'
+                else:
+                    switchType_ = switchType_[:-1]
+                f.write("from mininet.node import"+switchType_+"\n")
+            #if StrictVersion(MININET_VERSION) > StrictVersion('2.0'):
+            #    f.write("from mininet.node import IVSSwitch\n")
+            if not isWiFi:
+                f.write("from mininet.cli import CLI\n")
+                f.write("from mininet.link import TCLink, Intf\n")
             f.write("from mininet.log import setLogLevel, info\n")
-            f.write("from mininet.link import TCLink, Intf\n")
-            f.write("from subprocess import call\n")
 
-            f.write("from mn_wifi.net import Mininet_wifi\n")
-            f.write("from mn_wifi.node import CPULimitedStation, Station\n")
-            f.write("from mn_wifi.node import OVSKernelAP, UserAP\n")
-            f.write("from mn_wifi.cli import CLI_wifi\n")
-            f.write("from mn_wifi.link import wmediumd, adhoc, mesh, wifiDirectLink\n")
-            f.write("from mn_wifi.wmediumdConnector import interference\n")
+            if isWiFi:
+                f.write("from mn_wifi.net import Mininet_wifi\n")
+                if hasStation:
+                    f.write("from mn_wifi.node import CPULimitedStation, Station\n")
+                if hasAP:
+                    if not apType_:
+                        apType_ = ' OVSAP'
+                    else:
+                        apType_ = apType_[:-1]
+                    f.write("from mn_wifi.node import"+apType_+"\n")
+                f.write("from mn_wifi.cli import CLI_wifi\n")
+                if not links_:
+                    links_=''
+                else:
+                    links_=links_[:-1]
+                f.write("from mn_wifi.link import wmediumd"+links_+"\n")
+                if sixLinks_:
+                    f.write("from mn_wifi.sixLoWPAN.link import" + sixLinks_ + "\n")
+                f.write("from mn_wifi.wmediumdConnector import interference\n")
+            if hasHost:
+                f.write("from mininet.node import CPULimitedHost, Host, Node\n")
+            f.write("from subprocess import call\n")
 
             inBandCtrl = False
             for widget in self.widgetToItem:
@@ -2660,31 +2788,41 @@ class MiniEdit( Frame ):
                     opts = self.stationOpts[name]
                     ip = None
                     defaultRoute = None
+                    wlans = opts['wlans']
+                    wpans = opts['wpans']
                     if 'defaultRoute' in opts and len(opts['defaultRoute']) > 0:
                         defaultRoute = "'via "+opts['defaultRoute']+"'"
                     else:
                         defaultRoute = 'None'
+                    nodeNum = self.stationOpts[name]['nodeNum']
                     if 'ip' in opts and len(opts['ip']) > 0:
                         ip = opts['ip']
                     else:
-                        nodeNum = self.stationOpts[name]['nodeNum']
                         ipBaseNum, prefixLen = netParse( self.appPrefs['ipBase'] )
                         ip = ipAdd(i=nodeNum, prefixLen=prefixLen, ipBaseNum=ipBaseNum)
+                    ifaces = ''
+                    if int(wlans) > 1:
+                        ifaces += ', wlans=%s' % wlans
+                    if int(wpans) > 0:
+                        ifaces += ', sixlowpan=%s' % wpans
+                        wpanip = ", wpan_ip='2001::%s/64'" % nodeNum
+                        ifaces = ifaces + wpanip
                     if 'cores' in opts or 'cpu' in opts:
-                        f.write("    "+name+" = net.addStation('"+name+"', cls=CPULimitedHost, ip='"+ip+"', defaultRoute="+defaultRoute+", position='"+str(x1)+","+str(y1)+",0')\n")
+                        f.write("    "+name+" = net.addStation('"+name+"', cls=CPULimitedHost, ip='"+ip+"', defaultRoute="+defaultRoute+", position='"+str(x1)+","+str(y1)+",0'"+ifaces+")\n")
                         if 'cores' in opts:
                             f.write("    "+name+".setCPUs(cores='"+opts['cores']+"')\n")
                         if 'cpu' in opts:
                             f.write("    "+name+".setCPUFrac(f="+str(opts['cpu'])+", sched='"+opts['sched']+"')\n")
                     else:
-                        f.write("    "+name+" = net.addStation('"+name+"', cls=Station, ip='"+ip+"', defaultRoute="+defaultRoute+", position='"+str(x1)+","+str(y1)+",0')\n")
+                        f.write("    "+name+" = net.addStation('"+name+"', cls=Station, ip='"+ip+"', defaultRoute="+defaultRoute+", position='"+str(x1)+","+str(y1)+",0'"+ifaces+")\n")
                     if 'externalInterfaces' in opts:
                         for extInterface in opts['externalInterfaces']:
                             f.write("    Intf( '"+extInterface+"', node="+name+" )\n")
             f.write("\n")
 
-            f.write("    net.configureWifiNodes()")
-            f.write("\n")
+            if isWiFi:
+                f.write("    net.configureWifiNodes()")
+                f.write("\n")
 
             # Save Links
             f.write("    info( '*** Add links\\n')\n")
@@ -2735,7 +2873,11 @@ class MiniEdit( Frame ):
                     linkOpts = linkOpts + "}"
                     if optsExist:
                         f.write("    "+srcName+dstName+" = "+linkOpts+"\n")
-                    f.write("    net.addLink("+srcName+", "+dstName)
+                    if '6lowpan' in linkopts['connection']:
+                        f.write("    net.addLink("+srcName+", cls=sixLoWPANLink, panid='0xbeef')\n")
+                        f.write("    net.addLink("+dstName+ ", cls=sixLoWPANLink, panid='0xbeef'")
+                    else:
+                        f.write("    net.addLink("+srcName+", "+dstName)
                     if 'connection' in linkopts:
                         if 'adhoc' in linkopts['connection']:
                             f.write(", cls=adhoc, ssid=\'%s\', mode=\'%s\', channel=%s"
@@ -2749,6 +2891,9 @@ class MiniEdit( Frame ):
                         f.write(", cls=TCLink , **"+srcName+dstName)
                     f.write(")\n")
 
+            f.write("\n")
+            if isWiFi:
+                f.write("    net.plotGraph(max_x=1000, max_y=1000)\n")
             f.write("\n")
             f.write("    info( '*** Starting network\\n')\n")
             f.write("    net.build()\n")
@@ -2890,7 +3035,6 @@ class MiniEdit( Frame ):
             f.write("    myNetwork()\n")
             f.write("\n")
 
-
             f.close()
 
 
@@ -3018,11 +3162,13 @@ class MiniEdit( Frame ):
             self.stationCount += 1
             name = self.nodePrefixes[ node ] + str( self.stationCount )
             self.stationOpts[name] = {'sched':'host'}
-            self.stationOpts[name]['nodeNum']=self.stationCount
-            self.stationOpts[name]['hostname']=name
+            self.stationOpts[name]['nodeNum'] = self.stationCount
+            self.stationOpts[name]['hostname'] = name
             self.stationOpts[name]['ssid'] = name + '-ssid'
             self.stationOpts[name]['channel'] = '1'
             self.stationOpts[name]['mode'] = 'g'
+            self.stationOpts[name]['wpans'] = 0
+            self.stationOpts[name]['wlans'] = 1
         if 'Controller' == node:
             name = self.nodePrefixes[ node ] + str( self.controllerCount )
             ctrlr = { 'controllerType': 'ref',
@@ -3416,7 +3562,7 @@ class MiniEdit( Frame ):
         self.master.wait_window(stationBox.top)
         if stationBox.result:
             newStationOpts = {'nodeNum':self.stationOpts[name]['nodeNum']}
-            newStationOpts['mode'] = stationBox.result['mode']
+            #newStationOpts['mode'] = stationBox.result['mode']
             newStationOpts['sched'] = stationBox.result['sched']
             if len(stationBox.result['startCommand']) > 0:
                 newStationOpts['startCommand'] = stationBox.result['startCommand']
@@ -3430,10 +3576,14 @@ class MiniEdit( Frame ):
                 newStationOpts['hostname'] = stationBox.result['hostname']
                 name = stationBox.result['hostname']
                 widget[ 'text' ] = name
-            if len(stationBox.result['ssid']) > 0:
-                newStationOpts['ssid'] = stationBox.result['ssid']
-            if len(stationBox.result['channel']) > 0:
-                newStationOpts['channel'] = stationBox.result['channel']
+            #if len(stationBox.result['ssid']) > 0:
+            #    newStationOpts['ssid'] = stationBox.result['ssid']
+            #if len(stationBox.result['channel']) > 0:
+            #    newStationOpts['channel'] = stationBox.result['channel']
+            if len(stationBox.result['wpans']) > 0:
+                newStationOpts['wpans'] = stationBox.result['wpans']
+            if len(stationBox.result['wlans']) > 0:
+                newStationOpts['wlans'] = stationBox.result['wlans']
             if len(stationBox.result['defaultRoute']) > 0:
                 newStationOpts['defaultRoute'] = stationBox.result['defaultRoute']
             if len(stationBox.result['ip']) > 0:
