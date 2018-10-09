@@ -733,30 +733,70 @@ class StationDialog(CustomDialog):
 
         ### TAB 1
         # Field for Hostname
-        Label(self.propFrame, text="Stationname:").grid(row=0, sticky=E)
+        rowCount = 0
+        Label(self.propFrame, text="Name:").grid(row=rowCount, sticky=E)
         self.hostnameEntry = Entry(self.propFrame)
-        self.hostnameEntry.grid(row=0, column=1)
+        self.hostnameEntry.grid(row=rowCount, column=1)
         if 'hostname' in self.prefValues:
             self.hostnameEntry.insert(0, self.prefValues['hostname'])
 
+        # Field for SSID
+        #rowCount += 1
+        #Label(self.propFrame, text="SSID:").grid(row=rowCount, sticky=E)
+        #self.ssidEntry = Entry(self.propFrame)
+        #self.ssidEntry.grid(row=rowCount, column=1)
+        #self.ssidEntry.insert(0, self.prefValues['ssid'])
+
+        # Field for channel
+        #rowCount += 1
+        #Label(self.propFrame, text="Channel:").grid(row=rowCount, sticky=E)
+        #self.channelEntry = Entry(self.propFrame)
+        #self.channelEntry.grid(row=rowCount, column=1)
+        #self.channelEntry.insert(0, self.prefValues['channel'])
+
+        # Selection of mode
+        #rowCount += 1
+        #Label(self.propFrame, text="Mode:").grid(row=rowCount, sticky=E)
+        #self.mode = StringVar(self.propFrame)
+        #self.modeMenu = OptionMenu(self.propFrame, self.mode, "g", "a",
+        #                           "b", "n")
+        #self.modeMenu.grid(row=rowCount, column=1, sticky=W)
+        #if 'mode' in self.prefValues:
+        #    authPref = self.prefValues['mode']
+        #    if authPref == 'g':
+        #        self.mode.set("g")
+        #    elif authPref == 'a':
+        #        self.mode.set("a")
+        #    elif authPref == 'b':
+        #        self.mode.set("b")
+        #    elif authPref == 'n':
+        #        self.mode.set("n")
+        #    else:
+        #        self.mode.set("g")
+        #else:
+        #    self.mode.set("g")
+
         # Field for Switch IP
-        Label(self.propFrame, text="IP Address:").grid(row=1, sticky=E)
+        rowCount += 1
+        Label(self.propFrame, text="IP Address:").grid(row=rowCount, sticky=E)
         self.ipEntry = Entry(self.propFrame)
-        self.ipEntry.grid(row=1, column=1)
+        self.ipEntry.grid(row=rowCount, column=1)
         if 'ip' in self.prefValues:
             self.ipEntry.insert(0, self.prefValues['ip'])
 
         # Field for default route
-        Label(self.propFrame, text="Default Route:").grid(row=2, sticky=E)
+        rowCount += 1
+        Label(self.propFrame, text="Default Route:").grid(row=rowCount, sticky=E)
         self.routeEntry = Entry(self.propFrame)
-        self.routeEntry.grid(row=2, column=1)
+        self.routeEntry.grid(row=rowCount, column=1)
         if 'defaultRoute' in self.prefValues:
             self.routeEntry.insert(0, self.prefValues['defaultRoute'])
 
         # Field for CPU
-        Label(self.propFrame, text="Amount CPU:").grid(row=3, sticky=E)
+        rowCount += 1
+        Label(self.propFrame, text="Amount CPU:").grid(row=rowCount, sticky=E)
         self.cpuEntry = Entry(self.propFrame)
-        self.cpuEntry.grid(row=3, column=1)
+        self.cpuEntry.grid(row=rowCount, column=1)
         if 'cpu' in self.prefValues:
             self.cpuEntry.insert(0, str(self.prefValues['cpu']))
         # Selection of Scheduler
@@ -766,26 +806,28 @@ class StationDialog(CustomDialog):
             sched = 'station'
         self.schedVar = StringVar(self.propFrame)
         self.schedOption = OptionMenu(self.propFrame, self.schedVar, "station", "cfs", "rt")
-        self.schedOption.grid(row=3, column=2, sticky=W)
+        self.schedOption.grid(row=rowCount, column=2, sticky=W)
         self.schedVar.set(sched)
 
         # Selection of Cores
-        Label(self.propFrame, text="Cores:").grid(row=4, sticky=E)
+        rowCount += 1
+        Label(self.propFrame, text="Cores:").grid(row=rowCount, sticky=E)
         self.coreEntry = Entry(self.propFrame)
-        self.coreEntry.grid(row=4, column=1)
+        self.coreEntry.grid(row=rowCount, column=1)
         if 'cores' in self.prefValues:
             self.coreEntry.insert(1, self.prefValues['cores'])
 
         # Start command
-        Label(self.propFrame, text="Start Command:").grid(row=5, sticky=E)
+        rowCount += 1
+        Label(self.propFrame, text="Start Command:").grid(row=rowCount, sticky=E)
         self.startEntry = Entry(self.propFrame)
-        self.startEntry.grid(row=5, column=1, sticky='nswe', columnspan=3)
+        self.startEntry.grid(row=rowCount, column=1, sticky='nswe', columnspan=3)
         if 'startCommand' in self.prefValues:
             self.startEntry.insert(0, str(self.prefValues['startCommand']))
         # Stop command
-        Label(self.propFrame, text="Stop Command:").grid(row=6, sticky=E)
+        Label(self.propFrame, text="Stop Command:").grid(row=rowCount, sticky=E)
         self.stopEntry = Entry(self.propFrame)
-        self.stopEntry.grid(row=6, column=1, sticky='nswe', columnspan=3)
+        self.stopEntry.grid(row=rowCount, column=1, sticky='nswe', columnspan=3)
         if 'stopCommand' in self.prefValues:
             self.stopEntry.insert(0, str(self.prefValues['stopCommand']))
 
@@ -887,6 +929,9 @@ class StationDialog(CustomDialog):
                    'privateDirectory':privateDirectories,
                    'externalInterfaces':externalInterfaces,
                    'vlanInterfaces':vlanInterfaces}
+        results['ssid'] = str(self.ssidEntry.get())
+        results['channel'] = str(self.channelEntry.get())
+        results['mode'] = str(self.mode.get())
         self.result = results
 
 
@@ -1416,66 +1461,116 @@ class LinkDialog(tkSimpleDialog.Dialog):
     def __init__(self, parent, title, linkDefaults):
 
         self.linkValues = linkDefaults
-
         tkSimpleDialog.Dialog.__init__(self, parent, title)
 
     def body(self, master):
 
-        self.var = StringVar(master)
-        Label(master, text="Bandwidth:").grid(row=0, sticky=E)
-        self.e1 = Entry(master)
-        self.e1.grid(row=0, column=1)
-        Label(master, text="Mbit").grid(row=0, column=2, sticky=W)
-        if 'bw' in self.linkValues:
-            self.e1.insert(0,str(self.linkValues['bw']))
+        rowCount = 0
+        Label(master, text="Connection:").grid(row=rowCount, sticky=E)
+        connectionOpt = None
+        if 'connection' in self.linkValues:
+            connectionOpt = self.linkValues['connection']
+        self.e1 = StringVar(master)
+        self.opt1 = OptionMenu(master, self.e1, "adhoc", "mesh", "wifi-direct")
+        self.opt1.grid(row=rowCount, column=1, sticky=W)
+        if connectionOpt:
+            if self.linkValues['connection'] == 'adhoc':
+                self.e1.set("adhoc")
+            elif self.linkValues['connection'] == 'wifi-direct':
+                self.e1.set("wifi-direct")
+            else:
+                self.e1.set("mesh")
 
-        Label(master, text="Delay:").grid(row=1, sticky=E)
+        rowCount += 1
+        Label(master, text="SSID:").grid(row=rowCount, sticky=E)
         self.e2 = Entry(master)
-        self.e2.grid(row=1, column=1)
-        if 'delay' in self.linkValues:
-            self.e2.insert(0, self.linkValues['delay'])
+        self.e2.grid(row=rowCount, column=1)
+        if 'ssid' in self.linkValues:
+            self.e2.insert(0, str(self.linkValues['ssid']))
 
-        Label(master, text="Loss:").grid(row=2, sticky=E)
+        rowCount += 1
+        Label(master, text="Channel:").grid(row=rowCount, sticky=E)
         self.e3 = Entry(master)
-        self.e3.grid(row=2, column=1)
-        Label(master, text="%").grid(row=2, column=2, sticky=W)
-        if 'loss' in self.linkValues:
-            self.e3.insert(0, str(self.linkValues['loss']))
+        self.e3.grid(row=rowCount, column=1)
+        if 'channel' in self.linkValues:
+            self.e3.insert(0, str(self.linkValues['channel']))
 
-        Label(master, text="Max Queue size:").grid(row=3, sticky=E)
+        rowCount += 1
+        Label(master, text="Mode:").grid(row=rowCount, sticky=E)
         self.e4 = Entry(master)
-        self.e4.grid(row=3, column=1)
-        if 'max_queue_size' in self.linkValues:
-            self.e4.insert(0, str(self.linkValues['max_queue_size']))
+        self.e4.grid(row=rowCount, column=1)
+        if 'mode' in self.linkValues:
+            self.e4.insert(0, str(self.linkValues['mode']))
 
-        Label(master, text="Jitter:").grid(row=4, sticky=E)
+        rowCount += 1
+        Label(master, text="Bandwidth:").grid(row=rowCount, sticky=E)
         self.e5 = Entry(master)
-        self.e5.grid(row=4, column=1)
-        if 'jitter' in self.linkValues:
-            self.e5.insert(0, self.linkValues['jitter'])
+        self.e5.grid(row=rowCount, column=1)
+        Label(master, text="Mbit").grid(row=rowCount, column=2, sticky=W)
+        if 'bw' in self.linkValues:
+            self.e5.insert(0,str(self.linkValues['bw']))
 
-        Label(master, text="Speedup:").grid(row=5, sticky=E)
+        rowCount += 1
+        Label(master, text="Delay:").grid(row=rowCount, sticky=E)
         self.e6 = Entry(master)
-        self.e6.grid(row=5, column=1)
-        if 'speedup' in self.linkValues:
-            self.e6.insert(0, str(self.linkValues['speedup']))
+        self.e6.grid(row=rowCount, column=1)
+        if 'delay' in self.linkValues:
+            self.e6.insert(0, self.linkValues['delay'])
 
-        return self.e1 # initial focus
+        rowCount += 1
+        Label(master, text="Loss:").grid(row=rowCount, sticky=E)
+        self.e7 = Entry(master)
+        self.e7.grid(row=rowCount, column=1)
+        Label(master, text="%").grid(row=rowCount, column=2, sticky=W)
+        if 'loss' in self.linkValues:
+            self.e7.insert(0, str(self.linkValues['loss']))
+
+        rowCount += 1
+        Label(master, text="Max Queue size:").grid(row=rowCount, sticky=E)
+        self.e8 = Entry(master)
+        self.e8.grid(row=rowCount, column=1)
+        if 'max_queue_size' in self.linkValues:
+            self.e8.insert(0, str(self.linkValues['max_queue_size']))
+
+        rowCount += 1
+        Label(master, text="Jitter:").grid(row=rowCount, sticky=E)
+        self.e9 = Entry(master)
+        self.e9.grid(row=rowCount, column=1)
+        if 'jitter' in self.linkValues:
+            self.e9.insert(0, self.linkValues['jitter'])
+
+        rowCount += 1
+        Label(master, text="Speedup:").grid(row=rowCount, sticky=E)
+        self.e10 = Entry(master)
+        self.e10.grid(row=rowCount, column=1)
+        if 'speedup' in self.linkValues:
+            self.e10.insert(0, str(self.linkValues['speedup']))
+
+        return self.e2 # initial focus
 
     def apply(self):
         self.result = {}
         if len(self.e1.get()) > 0:
-            self.result['bw'] = int(self.e1.get())
+            self.result['connection'] = (self.e1.get())
         if len(self.e2.get()) > 0:
-            self.result['delay'] = self.e2.get()
+            self.result['ssid'] = (self.e2.get())
         if len(self.e3.get()) > 0:
-            self.result['loss'] = int(self.e3.get())
+            self.result['channel'] = (self.e3.get())
         if len(self.e4.get()) > 0:
-            self.result['max_queue_size'] = int(self.e4.get())
+            self.result['mode'] = (self.e4.get())
         if len(self.e5.get()) > 0:
-            self.result['jitter'] = self.e5.get()
+            self.result['bw'] = int(self.e5.get())
         if len(self.e6.get()) > 0:
-            self.result['speedup'] = int(self.e6.get())
+            self.result['delay'] = self.e6.get()
+        if len(self.e7.get()) > 0:
+            self.result['loss'] = int(self.e7.get())
+        if len(self.e8.get()) > 0:
+            self.result['max_queue_size'] = int(self.e8.get())
+        if len(self.e9.get()) > 0:
+            self.result['jitter'] = self.e9.get()
+        if len(self.e10.get()) > 0:
+            self.result['speedup'] = int(self.e10.get())
+
 
 class ControllerDialog(tkSimpleDialog.Dialog):
 
@@ -2385,6 +2480,8 @@ class MiniEdit( Frame ):
             f.write("from mn_wifi.node import CPULimitedStation, Station\n")
             f.write("from mn_wifi.node import OVSKernelAP, UserAP\n")
             f.write("from mn_wifi.cli import CLI_wifi\n")
+            f.write("from mn_wifi.link import wmediumd, adhoc, mesh, wifiDirectLink\n")
+            f.write("from mn_wifi.wmediumdConnector import interference\n")
 
             inBandCtrl = False
             for widget in self.widgetToItem:
@@ -2412,6 +2509,8 @@ class MiniEdit( Frame ):
             if len(self.appPrefs['dpctl']) > 0:
                 f.write("                   listenPort="+self.appPrefs['dpctl']+",\n")
             f.write("                   build=False,\n")
+            f.write("                   link=wmediumd,\n")
+            f.write("                   wmediumd_mode=interference,\n")
             f.write("                   ipBase='"+self.appPrefs['ipBase']+"')\n")
             f.write("\n")
             f.write("    info( '*** Adding controller\\n' )\n")
@@ -2451,6 +2550,7 @@ class MiniEdit( Frame ):
             for widget in self.widgetToItem:
                 name = widget[ 'text' ]
                 tags = self.canvas.gettags( self.widgetToItem[ widget ] )
+                x1, y1 = self.canvas.coords(self.widgetToItem[widget])
                 if 'LegacyRouter' in tags:
                     f.write("    "+name+" = net.addHost('"+name+"', cls=Node, ip='0.0.0.0')\n")
                     f.write("    "+name+".cmd('sysctl -w net.ipv4.ip_forward=1')\n")
@@ -2518,16 +2618,18 @@ class MiniEdit( Frame ):
                         f.write(", mode='" + opts['mode'] + "'")
                     if 'authentication' in opts and opts['authentication'] != 'none':
                         f.write(", encrypt='" + opts['authentication'] + "'")
+                    f.write(", position='"+str(x1)+","+str(y1)+",0'")
                     f.write(")\n")
                     if 'externalInterfaces' in opts:
                         for extInterface in opts['externalInterfaces']:
                             f.write("    Intf( '"+extInterface+"', node="+name+" )\n")
 
             f.write("\n")
-            f.write("    info( '*** Add hosts\\n')\n")
+            f.write("    info( '*** Add hosts/stations\\n')\n")
             for widget in self.widgetToItem:
                 name = widget[ 'text' ]
                 tags = self.canvas.gettags( self.widgetToItem[ widget ] )
+                x1, y1 = self.canvas.coords(self.widgetToItem[widget])
                 if 'Host' in tags:
                     opts = self.hostOpts[name]
                     ip = None
@@ -2568,15 +2670,14 @@ class MiniEdit( Frame ):
                         nodeNum = self.stationOpts[name]['nodeNum']
                         ipBaseNum, prefixLen = netParse( self.appPrefs['ipBase'] )
                         ip = ipAdd(i=nodeNum, prefixLen=prefixLen, ipBaseNum=ipBaseNum)
-
                     if 'cores' in opts or 'cpu' in opts:
-                        f.write("    "+name+" = net.addStation('"+name+"', cls=CPULimitedHost, ip='"+ip+"', defaultRoute="+defaultRoute+")\n")
+                        f.write("    "+name+" = net.addStation('"+name+"', cls=CPULimitedHost, ip='"+ip+"', defaultRoute="+defaultRoute+", position='"+str(x1)+","+str(y1)+",0')\n")
                         if 'cores' in opts:
                             f.write("    "+name+".setCPUs(cores='"+opts['cores']+"')\n")
                         if 'cpu' in opts:
                             f.write("    "+name+".setCPUFrac(f="+str(opts['cpu'])+", sched='"+opts['sched']+"')\n")
                     else:
-                        f.write("    "+name+" = net.addStation('"+name+"', cls=Station, ip='"+ip+"', defaultRoute="+defaultRoute+")\n")
+                        f.write("    "+name+" = net.addStation('"+name+"', cls=Station, ip='"+ip+"', defaultRoute="+defaultRoute+", position='"+str(x1)+","+str(y1)+",0')\n")
                     if 'externalInterfaces' in opts:
                         for extInterface in opts['externalInterfaces']:
                             f.write("    Intf( '"+extInterface+"', node="+name+" )\n")
@@ -2635,6 +2736,15 @@ class MiniEdit( Frame ):
                     if optsExist:
                         f.write("    "+srcName+dstName+" = "+linkOpts+"\n")
                     f.write("    net.addLink("+srcName+", "+dstName)
+                    if 'connection' in linkopts:
+                        if 'adhoc' in linkopts['connection']:
+                            f.write(", cls=adhoc, ssid=\'%s\', mode=\'%s\', channel=%s"
+                                    % (linkopts['ssid'], linkopts['mode'], linkopts['channel']))
+                        elif 'mesh' in linkopts['connection']:
+                            f.write(", cls=mesh, ssid=\'%s\', mode=\'%s\', channel=%s"
+                                    % (linkopts['ssid'], linkopts['mode'], linkopts['channel']))
+                        elif 'wifiDirect' in linkopts['connection']:
+                            f.write(", cls=wifiDirectLink")
                     if optsExist:
                         f.write(", cls=TCLink , **"+srcName+dstName)
                     f.write(")\n")
@@ -2910,6 +3020,9 @@ class MiniEdit( Frame ):
             self.stationOpts[name] = {'sched':'host'}
             self.stationOpts[name]['nodeNum']=self.stationCount
             self.stationOpts[name]['hostname']=name
+            self.stationOpts[name]['ssid'] = name + '-ssid'
+            self.stationOpts[name]['channel'] = '1'
+            self.stationOpts[name]['mode'] = 'g'
         if 'Controller' == node:
             name = self.nodePrefixes[ node ] + str( self.controllerCount )
             ctrlr = { 'controllerType': 'ref',
@@ -3145,8 +3258,7 @@ class MiniEdit( Frame ):
         # For now, don't allow hosts to be directly linked
         stags = self.canvas.gettags( self.widgetToItem[ source ] )
         dtags = self.canvas.gettags( target )
-        if (('Host' in stags and 'Host' in dtags) or
-                ('Controller' in dtags and 'LegacyRouter' in stags) or
+        if (('Controller' in dtags and 'LegacyRouter' in stags) or
                 ('Controller' in stags and 'LegacyRouter' in dtags) or
                 ('Controller' in dtags and 'LegacySwitch' in stags) or
                 ('Controller' in stags and 'LegacySwitch' in dtags) or
@@ -3165,11 +3277,11 @@ class MiniEdit( Frame ):
         elif 'Station' in stags and 'AP' in dtags:
             linkType='data'
             c.itemconfig(self.link, dash=(4, 2, 4, 2), fill='blue')
-            self.createControlLinkBindings()
+            self.createDataLinkBindings()
         elif 'AP' in stags and 'Station' in dtags:
             linkType='data'
-            c.itemconfig(self.link, dash=(4, 2, 4, 4), fill='blue')
-            self.createControlLinkBindings()
+            c.itemconfig(self.link, dash=(4, 2, 4, 2), fill='blue')
+            self.createDataLinkBindings()
         else:
             linkType='data'
             self.createDataLinkBindings()
@@ -3303,7 +3415,8 @@ class MiniEdit( Frame ):
         stationBox = StationDialog(self, title='Station Details', prefDefaults=prefDefaults)
         self.master.wait_window(stationBox.top)
         if stationBox.result:
-            newStationOpts = {'nodeNum':self.hostOpts[name]['nodeNum']}
+            newStationOpts = {'nodeNum':self.stationOpts[name]['nodeNum']}
+            newStationOpts['mode'] = stationBox.result['mode']
             newStationOpts['sched'] = stationBox.result['sched']
             if len(stationBox.result['startCommand']) > 0:
                 newStationOpts['startCommand'] = stationBox.result['startCommand']
@@ -3317,6 +3430,10 @@ class MiniEdit( Frame ):
                 newStationOpts['hostname'] = stationBox.result['hostname']
                 name = stationBox.result['hostname']
                 widget[ 'text' ] = name
+            if len(stationBox.result['ssid']) > 0:
+                newStationOpts['ssid'] = stationBox.result['ssid']
+            if len(stationBox.result['channel']) > 0:
+                newStationOpts['channel'] = stationBox.result['channel']
             if len(stationBox.result['defaultRoute']) > 0:
                 newStationOpts['defaultRoute'] = stationBox.result['defaultRoute']
             if len(stationBox.result['ip']) > 0:
