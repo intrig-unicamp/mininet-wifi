@@ -308,7 +308,7 @@ class PrefsDialog(tkSimpleDialog.Dialog):
         Label(self.leftfieldFrame, text="Authentication:").grid(row=3, sticky=E)
         self.authentication = StringVar(self.leftfieldFrame)
         self.authenticationMenu = OptionMenu(self.leftfieldFrame, self.authentication, "none", "WEP",
-                                             "WPA", "WPA2")
+                                             "WPA", "WPA2", "8021x")
         self.authenticationMenu.grid(row=3, column=1, sticky=W)
         authenticationPref = self.prefValues['authentication']
         if authenticationPref == 'WEP':
@@ -317,6 +317,8 @@ class PrefsDialog(tkSimpleDialog.Dialog):
             self.authentication.set("WPA")
         elif authenticationPref == 'WPA2':
             self.authentication.set("WPA2")
+        elif authenticationPref == '8021x':
+            self.authentication.set("8021x")
         else:
             self.authentication.set("none")
 
@@ -722,10 +724,12 @@ class StationDialog(CustomDialog):
         self.rootFrame = master
         n = Notebook(self.rootFrame)
         self.propFrame = Frame(n)
+        self.radiusFrame = Frame(n)
         self.vlanFrame = Frame(n)
         self.interfaceFrame = Frame(n)
         self.mountFrame = Frame(n)
         n.add(self.propFrame, text='Properties')
+        n.add(self.radiusFrame, text='Radius')
         n.add(self.vlanFrame, text='VLAN Interfaces')
         n.add(self.interfaceFrame, text='External Interfaces')
         n.add(self.mountFrame, text='Private Directories')
@@ -845,6 +849,23 @@ class StationDialog(CustomDialog):
         if 'stopCommand' in self.prefValues:
             self.stopEntry.insert(0, str(self.prefValues['stopCommand']))
 
+        ### TAB Radius
+        # Field for username
+        rowCount = 0
+        Label(self.radiusFrame, text="Username:").grid(row=rowCount, sticky=E)
+        self.radiusUserEntry = Entry(self.radiusFrame)
+        self.radiusUserEntry.grid(row=rowCount, column=1)
+        if 'radius_user' in self.prefValues:
+            self.radiusUserEntry.insert(0, self.prefValues['radius_user'])
+
+        # Field for username
+        rowCount += 1
+        Label(self.radiusFrame, text="Password:").grid(row=rowCount, sticky=E)
+        self.radiusPasswdEntry = Entry(self.radiusFrame)
+        self.radiusPasswdEntry.grid(row=rowCount, column=1)
+        if 'radius_passwd' in self.prefValues:
+            self.radiusPasswdEntry.insert(0, self.prefValues['radius_passwd'])
+
         ### TAB 2
         # External Interfaces
         self.externalInterfaces = 0
@@ -944,8 +965,8 @@ class StationDialog(CustomDialog):
                    'externalInterfaces':externalInterfaces,
                    'vlanInterfaces':vlanInterfaces}
         #results['ssid'] = str(self.ssidEntry.get())
-        #results['channel'] = str(self.channelEntry.get())
-        #results['mode'] = str(self.mode.get())
+        results['radius_passwd'] = str(self.radiusPasswdEntry.get())
+        results['radius_user'] = str(self.radiusUserEntry.get())
         results['wlans'] = str(self.wlansEntry.get())
         results['wpans'] = str(self.wpansEntry.get())
         self.result = results
@@ -1206,7 +1227,7 @@ class APDialog(CustomDialog):
         self.authentication = StringVar(self.leftfieldFrame)
         self.authenticationMenu = OptionMenu(self.leftfieldFrame,
                                              self.authentication, "none", "WEP",
-                                             "WPA", "WPA2")
+                                             "WPA", "WPA2", "8021x")
         self.authenticationMenu.grid(row=rowCount, column=1, sticky=W)
         if 'authentication' in self.prefValues:
             authPref = self.prefValues['authentication']
@@ -1216,6 +1237,8 @@ class APDialog(CustomDialog):
                 self.authentication.set("WPA")
             elif authPref == 'WPA2':
                 self.authentication.set("WPA2")
+            elif authPref == '8021x':
+                self.authentication.set("8021x")
             else:
                 self.authentication.set("none")
         else:
@@ -2505,6 +2528,7 @@ class MiniEdit( Frame ):
         hasController = False
         hasStation = False
         hasHost = False
+        isCPU = False
         for widget in self.widgetToItem:
             tags = self.canvas.gettags(self.widgetToItem[widget])
             name = widget['text']
@@ -2543,6 +2567,9 @@ class MiniEdit( Frame ):
                         switchType_ += ' OVS,'
             elif 'Host' in tags:
                 hasHost = True
+                opts = self.hostOpts[name]
+                if 'cores' in opts or 'cpu' in opts:
+                    isCPU = True
 
         links_ = ''
         sixLinks_ = ''
@@ -2569,18 +2596,34 @@ class MiniEdit( Frame ):
             f.write("\n")
             if not isWiFi:
                 f.write("from mininet.net import Mininet\n")
+            args = ''
             if hasController:
                 if not controllerType_:
                     controllerType_ = ' Controller'
                 else:
                     controllerType_ = controllerType_[:-1]
-                f.write("from mininet.node import"+controllerType_+"\n")
+                args += controllerType_
             if hasSwitch:
                 if not switchType_:
                     switchType_ = ' OVS'
                 else:
                     switchType_ = switchType_[:-1]
-                f.write("from mininet.node import"+switchType_+"\n")
+                if args:
+                    args += ',' + switchType_
+                else:
+                    args += switchType_
+            if hasHost:
+                if args:
+                    args += ', Host'
+                else:
+                    args += 'Host'
+                if isCPU:
+                    if args:
+                        args += ', CPULimitedHost'
+                    else:
+                        args += 'CPULimitedHost'
+            if args:
+                f.write("from mininet.node import"+args+"\n")
             #if StrictVersion(MININET_VERSION) > StrictVersion('2.0'):
             #    f.write("from mininet.node import IVSSwitch\n")
             if not isWiFi:
@@ -2590,14 +2633,20 @@ class MiniEdit( Frame ):
 
             if isWiFi:
                 f.write("from mn_wifi.net import Mininet_wifi\n")
+                args = ''
                 if hasStation:
-                    f.write("from mn_wifi.node import CPULimitedStation, Station\n")
+                    args += ' Station'
                 if hasAP:
                     if not apType_:
                         apType_ = ' OVSAP'
                     else:
                         apType_ = apType_[:-1]
-                    f.write("from mn_wifi.node import"+apType_+"\n")
+                    if args:
+                        args += ',' + apType_
+                    else:
+                        args += apType_
+                if args:
+                    f.write("from mn_wifi.node import"+args+"\n")
                 f.write("from mn_wifi.cli import CLI_wifi\n")
                 if not links_:
                     links_=''
@@ -2607,8 +2656,6 @@ class MiniEdit( Frame ):
                 if sixLinks_:
                     f.write("from mn_wifi.sixLoWPAN.link import" + sixLinks_ + "\n")
                 f.write("from mn_wifi.wmediumdConnector import interference\n")
-            if hasHost:
-                f.write("from mininet.node import CPULimitedHost, Host, Node\n")
             f.write("from subprocess import call\n")
 
             inBandCtrl = False
@@ -2741,11 +2788,14 @@ class MiniEdit( Frame ):
                     if 'ssid' in opts:
                         f.write(", ssid='"+opts['ssid']+"'")
                     if 'channel' in opts:
-                        f.write(", channel='"+opts['channel']+"'")
+                        f.write(",\n                             channel='"+opts['channel']+"'")
                     if 'mode' in opts:
                         f.write(", mode='" + opts['mode'] + "'")
                     if 'authentication' in opts and opts['authentication'] != 'none':
-                        f.write(", encrypt='" + opts['authentication'] + "'")
+                        if opts['authentication'] == '8021x':
+                            f.write(", encrypt='wpa2', authmode='8021x'")
+                        else:
+                            f.write(", encrypt='" + opts['authentication'] + "'")
                     f.write(", position='"+str(x1)+","+str(y1)+",0'")
                     f.write(")\n")
                     if 'externalInterfaces' in opts:
@@ -2800,21 +2850,27 @@ class MiniEdit( Frame ):
                     else:
                         ipBaseNum, prefixLen = netParse( self.appPrefs['ipBase'] )
                         ip = ipAdd(i=nodeNum, prefixLen=prefixLen, ipBaseNum=ipBaseNum)
-                    ifaces = ''
+                    args = ''
                     if int(wlans) > 1:
-                        ifaces += ', wlans=%s' % wlans
+                        args += ', wlans=%s' % wlans
                     if int(wpans) > 0:
-                        ifaces += ', sixlowpan=%s' % wpans
+                        args += ', sixlowpan=%s' % wpans
                         wpanip = ", wpan_ip='2001::%s/64'" % nodeNum
-                        ifaces = ifaces + wpanip
+                        args += wpanip
+                    if 'radius_passwd' in opts:
+                        args += ", radius_passwd='%s'" % opts['radius_passwd']
+                    if 'radius_user' in opts:
+                        args += ", radius_identity='%s'" % opts['radius_user']
+                    if 'defaultRoute' in opts:
+                        args += ", defaultRoute='%s'" % defaultRoute
                     if 'cores' in opts or 'cpu' in opts:
-                        f.write("    "+name+" = net.addStation('"+name+"', cls=CPULimitedHost, ip='"+ip+"', defaultRoute="+defaultRoute+", position='"+str(x1)+","+str(y1)+",0'"+ifaces+")\n")
+                        f.write("    "+name+" = net.addStation('"+name+"', cls=CPULimitedHost, ip='"+ip+"', defaultRoute="+defaultRoute+", position='"+str(x1)+","+str(y1)+",0'"+args+")\n")
                         if 'cores' in opts:
                             f.write("    "+name+".setCPUs(cores='"+opts['cores']+"')\n")
                         if 'cpu' in opts:
                             f.write("    "+name+".setCPUFrac(f="+str(opts['cpu'])+", sched='"+opts['sched']+"')\n")
                     else:
-                        f.write("    "+name+" = net.addStation('"+name+"', cls=Station, ip='"+ip+"', defaultRoute="+defaultRoute+", position='"+str(x1)+","+str(y1)+",0'"+ifaces+")\n")
+                        f.write("    "+name+" = net.addStation('"+name+"', ip='"+ip+"',\n                           position='"+str(x1)+","+str(y1)+",0'"+args+")\n")
                     if 'externalInterfaces' in opts:
                         for extInterface in opts['externalInterfaces']:
                             f.write("    Intf( '"+extInterface+"', node="+name+" )\n")
@@ -2873,7 +2929,7 @@ class MiniEdit( Frame ):
                     linkOpts = linkOpts + "}"
                     if optsExist:
                         f.write("    "+srcName+dstName+" = "+linkOpts+"\n")
-                    if '6lowpan' in linkopts['connection']:
+                    if 'connection' in linkopts and '6lowpan' in linkopts['connection']:
                         f.write("    net.addLink("+srcName+", cls=sixLoWPANLink, panid='0xbeef')\n")
                         f.write("    net.addLink("+dstName+ ", cls=sixLoWPANLink, panid='0xbeef'")
                     else:
@@ -3167,6 +3223,8 @@ class MiniEdit( Frame ):
             self.stationOpts[name]['ssid'] = name + '-ssid'
             self.stationOpts[name]['channel'] = '1'
             self.stationOpts[name]['mode'] = 'g'
+            self.stationOpts[name]['radius_passwd'] = ''
+            self.stationOpts[name]['radius_user'] = ''
             self.stationOpts[name]['wpans'] = 0
             self.stationOpts[name]['wlans'] = 1
         if 'Controller' == node:
@@ -3576,10 +3634,10 @@ class MiniEdit( Frame ):
                 newStationOpts['hostname'] = stationBox.result['hostname']
                 name = stationBox.result['hostname']
                 widget[ 'text' ] = name
-            #if len(stationBox.result['ssid']) > 0:
-            #    newStationOpts['ssid'] = stationBox.result['ssid']
-            #if len(stationBox.result['channel']) > 0:
-            #    newStationOpts['channel'] = stationBox.result['channel']
+            if len(stationBox.result['radius_passwd']) > 0:
+                newStationOpts['radius_passwd'] = stationBox.result['radius_passwd']
+            if len(stationBox.result['radius_user']) > 0:
+                newStationOpts['radius_user'] = stationBox.result['radius_user']
             if len(stationBox.result['wpans']) > 0:
                 newStationOpts['wpans'] = stationBox.result['wpans']
             if len(stationBox.result['wlans']) > 0:
