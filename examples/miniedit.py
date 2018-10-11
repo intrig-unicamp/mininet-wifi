@@ -2584,7 +2584,7 @@ class MiniEdit( Frame ):
                         links_+=', mesh'
                     elif 'wifi-direct' in linkopts['connection'] and ', wifi-direct' not in links_:
                         links_+=', wifiDirectLink'
-                    elif '6lowpan' in linkopts['connection'] and ', 6lowpan' not in links_:
+                    elif '6lowpan' in linkopts['connection'] and 'sixLoWPANLink' not in sixLinks_:
                         sixLinks_ +=' sixLoWPANLink'
 
         fileName = tkFileDialog.asksaveasfilename(filetypes=myFormats ,title="Export the topology as...")
@@ -2857,9 +2857,9 @@ class MiniEdit( Frame ):
                         args += ', sixlowpan=%s' % wpans
                         wpanip = ", wpan_ip='2001::%s/64'" % nodeNum
                         args += wpanip
-                    if 'radius_passwd' in opts:
+                    if 'radius_passwd' in opts and opts['radius_passwd']:
                         args += ", radius_passwd='%s'" % opts['radius_passwd']
-                    if 'radius_user' in opts:
+                    if 'radius_user' in opts and opts['radius_user']:
                         args += ", radius_identity='%s'" % opts['radius_user']
                     if 'defaultRoute' in opts:
                         args += ", defaultRoute='%s'" % defaultRoute
@@ -2881,6 +2881,7 @@ class MiniEdit( Frame ):
                 f.write("\n")
 
             # Save Links
+            lowpan = []
             f.write("    info( '*** Add links\\n')\n")
             for key,linkDetail in self.links.iteritems():
                 tags = self.canvas.gettags(key)
@@ -2930,8 +2931,12 @@ class MiniEdit( Frame ):
                     if optsExist:
                         f.write("    "+srcName+dstName+" = "+linkOpts+"\n")
                     if 'connection' in linkopts and '6lowpan' in linkopts['connection']:
-                        f.write("    net.addLink("+srcName+", cls=sixLoWPANLink, panid='0xbeef')\n")
-                        f.write("    net.addLink("+dstName+ ", cls=sixLoWPANLink, panid='0xbeef'")
+                        if srcName not in lowpan:
+                            f.write("    net.addLink("+srcName+", cls=sixLoWPANLink, panid='0xbeef')\n")
+                            lowpan.append(srcName)
+                        if dstName not in lowpan:
+                            f.write("    net.addLink("+dstName+ ", cls=sixLoWPANLink, panid='0xbeef')\n")
+                            lowpan.append(dstName)
                     else:
                         f.write("    net.addLink("+srcName+", "+dstName)
                     if 'connection' in linkopts:
@@ -2945,7 +2950,9 @@ class MiniEdit( Frame ):
                             f.write(", cls=wifiDirectLink")
                     if optsExist:
                         f.write(", cls=TCLink , **"+srcName+dstName)
-                    f.write(")\n")
+                    if ('connection' in linkopts and '6lowpan' not in linkopts['connection']) \
+                            or 'connection' not in linkopts:
+                        f.write(")\n")
 
             f.write("\n")
             if isWiFi:
