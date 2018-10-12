@@ -1653,6 +1653,10 @@ class Mininet_wifi(Mininet):
         kwargs['final_time'] = kwargs['time']
         self.setMobilityParams(**kwargs)
 
+    def setAssociationCtrl(self, ac='ssf'):
+        "set association control"
+        mobility.ac = ac
+
     def setMobilityModelParams(self, **kwargs):
         "Set Mobility Parameters"
         self.mobilityparam.setdefault('model', kwargs['model'])
