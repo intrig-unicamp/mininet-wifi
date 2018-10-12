@@ -843,6 +843,7 @@ class StationDialog(CustomDialog):
         if 'startCommand' in self.prefValues:
             self.startEntry.insert(0, str(self.prefValues['startCommand']))
         # Stop command
+        rowCount += 1
         Label(self.propFrame, text="Stop Command:").grid(row=rowCount, sticky=E)
         self.stopEntry = Entry(self.propFrame)
         self.stopEntry.grid(row=rowCount, column=1, sticky='nswe', columnspan=3)
@@ -2970,18 +2971,17 @@ class MiniEdit( Frame ):
             for widget in self.widgetToItem:
                 name = widget[ 'text' ]
                 tags = self.canvas.gettags( self.widgetToItem[ widget ] )
-                if 'Switch' in tags or 'LegacySwitch' in tags:
-                    opts = self.switchOpts[name]
-                    ctrlList = ",".join(opts['controllers'])
-                    f.write("    net.get('"+name+"').start(["+ctrlList+"])\n")
-                if 'AP' in tags:
-                    opts = self.apOpts[name]
+                if 'Switch' in tags or 'LegacySwitch' in tags or 'AP' in tags:
+                    if 'AP' in tags:
+                        opts = self.apOpts[name]
+                    else:
+                        opts = self.switchOpts[name]
                     ctrlList = ",".join(opts['controllers'])
                     f.write("    net.get('"+name+"').start(["+ctrlList+"])\n")
 
             f.write("\n")
 
-            f.write("    info( '*** Post configure switches and hosts\\n')\n")
+            f.write("    info( '*** Post configure nodes\\n')\n")
             for widget in self.widgetToItem:
                 name = widget[ 'text' ]
                 tags = self.canvas.gettags( self.widgetToItem[ widget ] )
@@ -3012,6 +3012,33 @@ class MiniEdit( Frame ):
                         if 'switchIP' in opts:
                             if len(opts['switchIP']) > 0:
                                 f.write("    "+name+".cmd('ifconfig "+name+" "+opts['switchIP']+"')\n")
+                elif 'AP' in tags:
+                    opts = self.apOpts[name]
+                    if opts['apType'] == 'default':
+                        if self.appPrefs['apType'] == 'user':
+                            if 'apIP' in opts:
+                                if len(opts['apIP']) > 0:
+                                    f.write("    "+name+".cmd('ifconfig "+name+" "+opts['apIP']+"')\n")
+                        elif self.appPrefs['apType'] == 'userns':
+                            if 'apIP' in opts:
+                                if len(opts['apIP']) > 0:
+                                    f.write("    "+name+".cmd('ifconfig lo "+opts['apIP']+"')\n")
+                        elif self.appPrefs['apType'] == 'ovs':
+                            if 'apIP' in opts:
+                                if len(opts['apIP']) > 0:
+                                    f.write("    "+name+".cmd('ifconfig "+name+" "+opts['apIP']+"')\n")
+                    elif opts['apType'] == 'user':
+                        if 'apIP' in opts:
+                            if len(opts['apIP']) > 0:
+                                f.write("    "+name+".cmd('ifconfig "+name+" "+opts['apIP']+"')\n")
+                    elif opts['apType'] == 'userns':
+                        if 'apIP' in opts:
+                            if len(opts['apIP']) > 0:
+                                f.write("    "+name+".cmd('ifconfig lo "+opts['apIP']+"')\n")
+                    elif opts['apType'] == 'ovs':
+                        if 'apIP' in opts:
+                            if len(opts['apIP']) > 0:
+                                f.write("    "+name+".cmd('ifconfig "+name+" "+opts['apIP']+"')\n")
             for widget in self.widgetToItem:
                 name = widget[ 'text' ]
                 tags = self.canvas.gettags( self.widgetToItem[ widget ] )
@@ -3025,8 +3052,21 @@ class MiniEdit( Frame ):
                     # Run User Defined Start Command
                     if 'startCommand' in opts:
                         f.write("    "+name+".cmdPrint('"+opts['startCommand']+"')\n")
-                if 'Switch' in tags:
-                    opts = self.switchOpts[name]
+                elif 'Station' in tags:
+                    opts = self.stationOpts[name]
+                    # Attach vlan interfaces
+                    if 'vlanInterfaces' in opts:
+                        for vlanInterface in opts['vlanInterfaces']:
+                            f.write("    "+name+".cmd('vconfig add "+name+"-wlan0 "+vlanInterface[1]+"')\n")
+                            f.write("    "+name+".cmd('ifconfig "+name+"-wlan0."+vlanInterface[1]+" "+vlanInterface[0]+"')\n")
+                    # Run User Defined Start Command
+                    if 'startCommand' in opts:
+                        f.write("    "+name+".cmdPrint('"+opts['startCommand']+"')\n")
+                if 'Switch' in tags or 'AP' in tags:
+                    if 'Switch' in tags:
+                        opts = self.switchOpts[name]
+                    else:
+                        opts = self.apOpts[name]
                     # Run User Defined Start Command
                     if 'startCommand' in opts:
                         f.write("    "+name+".cmdPrint('"+opts['startCommand']+"')\n")
@@ -3036,6 +3076,7 @@ class MiniEdit( Frame ):
             if len(nflowValues['nflowTarget']) > 0:
                 nflowEnabled = False
                 nflowSwitches = ''
+                nflowAPs = ''
                 for widget in self.widgetToItem:
                     name = widget[ 'text' ]
                     tags = self.canvas.gettags( self.widgetToItem[ widget ] )
@@ -3045,6 +3086,12 @@ class MiniEdit( Frame ):
                         if 'netflow' in opts:
                             if opts['netflow'] == '1':
                                 nflowSwitches = nflowSwitches+' -- set Bridge '+name+' netflow=@MiniEditNF'
+                                nflowEnabled=True
+                    elif 'AP' in tags:
+                        opts = self.apOpts[name]
+                        if 'netflow' in opts:
+                            if opts['netflow'] == '1':
+                                nflowAPs = nflowAPs+' -- set Bridge '+name+' netflow=@MiniEditNF'
                                 nflowEnabled=True
                 if nflowEnabled:
                     nflowCmd = 'ovs-vsctl -- --id=@MiniEditNF create NetFlow '+ 'target=\\\"'+nflowValues['nflowTarget']+'\\\" '+ 'active-timeout='+nflowValues['nflowTimeout']
@@ -3060,6 +3107,7 @@ class MiniEdit( Frame ):
             if len(sflowValues['sflowTarget']) > 0:
                 sflowEnabled = False
                 sflowSwitches = ''
+                sflowAPs = ''
                 for widget in self.widgetToItem:
                     name = widget[ 'text' ]
                     tags = self.canvas.gettags( self.widgetToItem[ widget ] )
@@ -3069,6 +3117,12 @@ class MiniEdit( Frame ):
                         if 'sflow' in opts:
                             if opts['sflow'] == '1':
                                 sflowSwitches = sflowSwitches+' -- set Bridge '+name+' sflow=@MiniEditSF'
+                                sflowEnabled=True
+                    elif 'AP' in tags:
+                        opts = self.apOpts[name]
+                        if 'sflow' in opts:
+                            if opts['sflow'] == '1':
+                                sflowAPs = sflowAPs+' -- set Bridge '+name+' sflow=@MiniEditSF'
                                 sflowEnabled=True
                 if sflowEnabled:
                     sflowCmd = 'ovs-vsctl -- --id=@MiniEditSF create sFlow '+ 'target=\\\"'+sflowValues['sflowTarget']+'\\\" '+ 'header='+sflowValues['sflowHeader']+' '+ 'sampling='+sflowValues['sflowSampling']+' '+ 'polling='+sflowValues['sflowPolling']
@@ -3080,13 +3134,19 @@ class MiniEdit( Frame ):
             for widget in self.widgetToItem:
                 name = widget[ 'text' ]
                 tags = self.canvas.gettags( self.widgetToItem[ widget ] )
-                if 'Host' in tags:
-                    opts = self.hostOpts[name]
+                if 'Host' in tags or 'Station' in tags:
+                    if 'Host' in tags:
+                        opts = self.hostOpts[name]
+                    else:
+                        opts = self.stationOpts[name]
                     # Run User Defined Stop Command
                     if 'stopCommand' in opts:
                         f.write("    "+name+".cmdPrint('"+opts['stopCommand']+"')\n")
-                if 'Switch' in tags:
-                    opts = self.switchOpts[name]
+                if 'Switch' in tags or 'AP' in tags:
+                    if 'Switch' in tags:
+                        opts = self.switchOpts[name]
+                    else:
+                        opts = self.apOpts[name]
                     # Run User Defined Stop Command
                     if 'stopCommand' in opts:
                         f.write("    "+name+".cmdPrint('"+opts['stopCommand']+"')\n")
@@ -3224,7 +3284,7 @@ class MiniEdit( Frame ):
         if 'Station' == node:
             self.stationCount += 1
             name = self.nodePrefixes[ node ] + str( self.stationCount )
-            self.stationOpts[name] = {'sched':'host'}
+            self.stationOpts[name] = {'sched':'station'}
             self.stationOpts[name]['nodeNum'] = self.stationCount
             self.stationOpts[name]['hostname'] = name
             self.stationOpts[name]['ssid'] = name + '-ssid'
@@ -4255,9 +4315,26 @@ class MiniEdit( Frame ):
                 # Run User Defined Start Command
                 if 'startCommand' in opts:
                     newHost.cmdPrint(opts['startCommand'])
+            elif 'Station' in tags:
+                newStation = self.net.get(name)
+                opts = self.stationOpts[name]
+                # Attach vlan interfaces
+                if 'vlanInterfaces' in opts:
+                    for vlanInterface in opts['vlanInterfaces']:
+                        info( 'adding vlan interface '+vlanInterface[1], '\n' )
+                        newStation.cmdPrint('ifconfig '+name+'-wlan0.'+vlanInterface[1]+' '+vlanInterface[0])
+                # Run User Defined Start Command
+                if 'startCommand' in opts:
+                    newStation.cmdPrint(opts['startCommand'])
             if 'Switch' in tags:
                 newNode = self.net.get(name)
                 opts = self.switchOpts[name]
+                # Run User Defined Start Command
+                if 'startCommand' in opts:
+                    newNode.cmdPrint(opts['startCommand'])
+            elif 'AP' in tags:
+                newNode = self.net.get(name)
+                opts = self.apOpts[name]
                 # Run User Defined Start Command
                 if 'startCommand' in opts:
                     newNode.cmdPrint(opts['startCommand'])
@@ -4272,8 +4349,10 @@ class MiniEdit( Frame ):
                 name = widget[ 'text' ]
                 tags = self.canvas.gettags( self.widgetToItem[ widget ] )
 
-                if 'Switch' in tags:
+                if 'Switch' in tags or 'AP' in tags:
                     opts = self.switchOpts[name]
+                    if 'AP' in tags:
+                        opts = self.apOpts[name]
                     if 'netflow' in opts:
                         if opts['netflow'] == '1':
                             info( name+' has Netflow enabled\n' )
@@ -4302,8 +4381,10 @@ class MiniEdit( Frame ):
                 name = widget[ 'text' ]
                 tags = self.canvas.gettags( self.widgetToItem[ widget ] )
 
-                if 'Switch' in tags:
+                if 'Switch' in tags or 'AP' in tags:
                     opts = self.switchOpts[name]
+                    if 'AP' in tags:
+                        opts = self.apOpts[name]
                     if 'sflow' in opts:
                         if opts['sflow'] == '1':
                             info( name+' has sflow enabled\n' )
