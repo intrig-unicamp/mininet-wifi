@@ -1,5 +1,5 @@
 diff --git hostapd/defconfig hostapd/defconfig
-index 521d877..62eff91 100644
+index c67c662..c52dadd 100644
 --- hostapd/defconfig
 +++ hostapd/defconfig
 @@ -31,7 +31,7 @@ CONFIG_DRIVER_NL80211=y
@@ -11,7 +11,7 @@ index 521d877..62eff91 100644
  
  
  # Driver interface for FreeBSD net80211 layer (e.g., Atheros driver)
-@@ -114,11 +114,11 @@ CONFIG_EAP_TTLS=y
+@@ -111,11 +111,11 @@ CONFIG_EAP_TTLS=y
  #CONFIG_EAP_FAST=y
  
  # Wi-Fi Protected Setup (WPS)
@@ -26,7 +26,7 @@ index 521d877..62eff91 100644
  
  # EAP-IKEv2
  #CONFIG_EAP_IKEV2=y
-@@ -135,27 +135,27 @@ CONFIG_PKCS12=y
+@@ -132,27 +132,27 @@ CONFIG_PKCS12=y
  
  # RADIUS authentication server. This provides access to the integrated EAP
  # server from external hosts using RADIUS.
@@ -58,7 +58,7 @@ index 521d877..62eff91 100644
  
  # IEEE 802.11ax HE support
  # Note: This is experimental and work in progress. The definitions are still
-@@ -341,7 +341,7 @@ CONFIG_IPV6=y
+@@ -342,7 +342,7 @@ CONFIG_IPV6=y
  # For more details refer to:
  # http://wireless.kernel.org/en/users/Documentation/acs
  #
@@ -67,7 +67,7 @@ index 521d877..62eff91 100644
  
  # Multiband Operation support
  # These extentions facilitate efficient use of multiple frequency bands
-@@ -363,7 +363,7 @@ CONFIG_IPV6=y
+@@ -364,7 +364,7 @@ CONFIG_IPV6=y
  
  # Include internal line edit mode in hostapd_cli. This can be used to provide
  # limited command line editing and history support.
@@ -77,7 +77,7 @@ index 521d877..62eff91 100644
  # Opportunistic Wireless Encryption (OWE)
  # Experimental implementation of draft-harkins-owe-07.txt
 diff --git wpa_supplicant/defconfig wpa_supplicant/defconfig
-index 307f82d..7cf2fc6 100644
+index 08f5857..7d90bd7 100644
 --- wpa_supplicant/defconfig
 +++ wpa_supplicant/defconfig
 @@ -44,7 +44,7 @@ CONFIG_DRIVER_NL80211=y
@@ -89,7 +89,7 @@ index 307f82d..7cf2fc6 100644
  
  
  # Driver interface for FreeBSD net80211 layer (e.g., Atheros driver)
-@@ -151,14 +151,14 @@ CONFIG_EAP_LEAP=y
+@@ -157,14 +157,14 @@ CONFIG_EAP_LEAP=y
  #CONFIG_EAP_TNC=y
  
  # Wi-Fi Protected Setup (WPS)
@@ -108,7 +108,7 @@ index 307f82d..7cf2fc6 100644
  
  # EAP-IKEv2
  #CONFIG_EAP_IKEV2=y
-@@ -207,7 +207,7 @@ CONFIG_CTRL_IFACE=y
+@@ -216,7 +216,7 @@ CONFIG_CTRL_IFACE=y
  
  # Include internal line edit mode in wpa_cli. This can be used as a replacement
  # for GNU Readline to provide limited command line editing and history support.
@@ -117,21 +117,25 @@ index 307f82d..7cf2fc6 100644
  
  # Remove debugging code that is printing out debug message to stdout.
  # This can be used to reduce the size of the wpa_supplicant considerably
-@@ -372,11 +372,11 @@ CONFIG_PEERKEY=y
+@@ -299,7 +299,7 @@ CONFIG_BACKEND=file
+ 
+ # IEEE 802.11w (management frame protection), also known as PMF
+ # Driver support is also needed for IEEE 802.11w.
+-#CONFIG_IEEE80211W=y
++CONFIG_IEEE80211W=y
+ 
+ # Select TLS implementation
+ # openssl = OpenSSL (default)
+@@ -382,7 +382,7 @@ CONFIG_BACKEND=file
  #CONFIG_DYNAMIC_EAP_METHODS=y
  
  # IEEE Std 802.11r-2008 (Fast BSS Transition) for station mode
 -#CONFIG_IEEE80211R=y
 +CONFIG_IEEE80211R=y
  
- # IEEE Std 802.11r-2008 (Fast BSS Transition) for AP mode (implies
- # CONFIG_IEEE80211R).
--#CONFIG_IEEE80211R_AP=y
-+CONFIG_IEEE80211R_AP=y
- 
  # Add support for writing debug log to a file (/tmp/wpa_supplicant-log-#.txt)
  #CONFIG_DEBUG_FILE=y
-@@ -453,11 +453,11 @@ CONFIG_PEERKEY=y
+@@ -459,11 +459,11 @@ CONFIG_BACKEND=file
  #CONFIG_NO_RANDOM_POOL=y
  
  # IEEE 802.11n (High Throughput) support (mainly for AP mode)
@@ -145,7 +149,7 @@ index 307f82d..7cf2fc6 100644
  
  # Wireless Network Management (IEEE Std 802.11v-2011)
  # Note: This is experimental and not complete implementation.
-@@ -483,12 +483,12 @@ CONFIG_PEERKEY=y
+@@ -489,12 +489,12 @@ CONFIG_BACKEND=file
  # should be noted that this is mainly aimed at simple cases like
  # WPA2-Personal while more complex configurations like WPA2-Enterprise with an
  # external RADIUS server can be supported with hostapd.
@@ -160,7 +164,7 @@ index 307f82d..7cf2fc6 100644
  
  # Enable TDLS support
  #CONFIG_TDLS=y
-@@ -549,7 +549,7 @@ CONFIG_PEERKEY=y
+@@ -555,7 +555,7 @@ CONFIG_BACKEND=file
  #
  # For more details refer to:
  # http://wireless.kernel.org/en/users/Documentation/acs
@@ -169,7 +173,7 @@ index 307f82d..7cf2fc6 100644
  
  # Support Multi Band Operation
  #CONFIG_MBO=y
-@@ -572,17 +572,17 @@ CONFIG_PEERKEY=y
+@@ -578,17 +578,17 @@ CONFIG_BACKEND=file
  #CONFIG_PMKSA_CACHE_EXTERNAL=y
  
  # Mesh Networking (IEEE 802.11s)
@@ -191,7 +195,7 @@ index 307f82d..7cf2fc6 100644
  # Opportunistic Wireless Encryption (OWE)
  # Experimental implementation of draft-harkins-owe-07.txt
 diff --git wpa_supplicant/p2p_supplicant.c wpa_supplicant/p2p_supplicant.c
-index 73bed57..cadd748 100644
+index c596d5a..424891b 100644
 --- wpa_supplicant/p2p_supplicant.c
 +++ wpa_supplicant/p2p_supplicant.c
 @@ -96,7 +96,7 @@
