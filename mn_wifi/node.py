@@ -1501,7 +1501,6 @@ class AccessPoint(AP):
             if 'encrypt' in ap.params and 'config' not in ap.params:
                 if ap.params['encrypt'][wlan] == 'wpa':
                     ap.auth_algs = 1
-                    ap.wpa = 1
                     if 'ieee80211r' in ap.params \
                             and ap.params['ieee80211r'] == 'yes':
                         ap.wpa_key_mgmt = 'FT-EAP'
@@ -1509,9 +1508,9 @@ class AccessPoint(AP):
                         ap.wpa_key_mgmt = 'WPA-EAP'
                     ap.rsn_pairwise = 'TKIP CCMP'
                     ap.wpa_passphrase = ap.params['passwd'][0]
-                elif ap.params['encrypt'][wlan] == 'wpa2':
+                elif ap.params['encrypt'][wlan] == 'wpa2' \
+                        or ap.params['encrypt'][wlan] == 'wpa3':
                     ap.auth_algs = 1
-                    ap.wpa = 2
                     if 'ieee80211r' in ap.params \
                             and ap.params['ieee80211r'] == 'yes' \
                             and 'authmode' not in ap.params:
@@ -1560,7 +1559,7 @@ class AccessPoint(AP):
             cmd = cmd + ("\nhw_mode=a")
         else:
             cmd = cmd + ("\nhw_mode=%s" % ap.params['mode'][wlan])
-        cmd = cmd + ("\nchannel=%s" % ap.params['channel'][wlan])
+        cmd = cmd + ("\nchannel=%s" % int(ap.params['channel'][wlan]))
         if 'ht_capab' in ap.params:
             cmd = cmd + ('\nht_capab=%s' % ap.params['ht_capab'])
         if 'beacon_int' in ap.params:
@@ -1580,9 +1579,7 @@ class AccessPoint(AP):
                 cmd = cmd + ("\nwpa_key_mgmt=WPA-EAP")
                 if 'encrypt' in ap.params:
                     cmd = cmd + ("\nauth_algs=%s" % ap.auth_algs)
-                    cmd = cmd + ("\nwpa=%s" % ap.wpa)
-                else:
-                    cmd = cmd + ('\nwpa=3')
+                    cmd = cmd + ("\nwpa=2")
                 cmd = cmd + ('\neap_server=0')
                 cmd = cmd + ('\neapol_version=2')
 
@@ -1604,8 +1601,15 @@ class AccessPoint(AP):
                 if 'encrypt' in ap.params:
                     if 'wpa' in ap.params['encrypt'][wlan]:
                         cmd = cmd + ("\nauth_algs=%s" % ap.auth_algs)
-                        cmd = cmd + ("\nwpa=%s" % ap.wpa)
-                        cmd = cmd + ("\nwpa_key_mgmt=%s" % ap.wpa_key_mgmt)
+                        if ap.params['encrypt'][wlan] == 'wpa2' \
+                                or ap.params['encrypt'][wlan] == 'wpa3':
+                            cmd = cmd + ("\nwpa=2")
+                        else:
+                            cmd = cmd + ("\nwpa=1")
+                        if ap.params['encrypt'][wlan] == 'wpa3':
+                            cmd = cmd + ("\nwpa_key_mgmt=WPA-PSK SAE")
+                        else:
+                            cmd = cmd + ("\nwpa_key_mgmt=%s" % ap.wpa_key_mgmt)
                         cmd = cmd + ("\nwpa_pairwise=%s" % ap.rsn_pairwise)
                         cmd = cmd + ("\nwpa_passphrase=%s" % ap.wpa_passphrase)
                     elif ap.params['encrypt'][wlan] == 'wep':
