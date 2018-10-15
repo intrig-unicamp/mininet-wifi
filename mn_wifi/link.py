@@ -1222,7 +1222,7 @@ class Association(object):
         :param ap: access point
         :param wlan: wlan ID"""
         wlan = params['wlan']
-        ap_wlan = params['wlan']
+        ap_wlan = params['ap_wlan']
         associated = 0
         if 'ieee80211r' in ap.params and ap.params['ieee80211r'] == 'yes' \
         and ('encrypt' not in sta.params or 'encrypt' in sta.params and

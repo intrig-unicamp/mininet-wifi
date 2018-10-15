@@ -2651,8 +2651,6 @@ class MiniEdit( Frame ):
                 f.write("from mn_wifi.cli import CLI_wifi\n")
                 if not links_:
                     links_=''
-                else:
-                    links_=links_[:-1]
                 f.write("from mn_wifi.link import wmediumd"+links_+"\n")
                 if sixLinks_:
                     f.write("from mn_wifi.sixLoWPAN.link import" + sixLinks_ + "\n")
