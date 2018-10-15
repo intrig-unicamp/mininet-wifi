@@ -1354,7 +1354,7 @@ class Mininet_wifi(Mininet):
         node.params['mac'] = []
         node.phyID = []
 
-        array_ = ['passwd', 'scan_freq', 'authmode',
+        array_ = ['passwd', 'scan_freq', 'freq_list', 'authmode',
                   'encrypt', 'radius_server', 'bw']
         for param in params:
             if param in array_:
