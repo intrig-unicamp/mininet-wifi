@@ -164,76 +164,10 @@ class Node_wifi(Node):
         self.plotted = True
 
     def setMeshIface(self, iface, ssid='', **params):
-        wlan = self.params['wlan'].index(iface)
-        if self.func[wlan] == 'adhoc':
-            self.cmd('iw dev %s set type managed' %
-                     self.params['wlan'][wlan])
-        iface = '%s-mp%s' % (self, wlan)
-        if self.func[wlan] == 'mesh' and isinstance(self, AP):
-            iface = '%s-mp%s' % (self, wlan+1)
-
-        self.cmd('iw dev %s interface add %s type mp' %
-                 (self.params['wlan'][wlan], iface))
-        self.cmd('ip link set %s down' % iface)
-        self.cmd('ip link set %s address %s' %
-                 (iface, self.params['mac'][wlan]))
-        self.cmd('ip link set %s down' % self.params['wlan'][wlan])
-        self.params['wlan'][wlan] = iface
-
-        if 'channel' in params:
-            self.setChannel(params['channel'], intf=self.params['wlan'][wlan])
-
-        if 'mode' in params and (params['mode'] == 'a'
-                                 or params['mode'] == 'ac'):
-            self.pexec('iw reg set US')
-
-        if 'freq' in params:
-            self.setFreq(params['freq'], intf=self.params['wlan'][wlan])
-
-        if 'ip' in self.params:
-            self.cmd('ip addr add %s dev %s' % (self.params['ip'][wlan],
-                                                self.params['wlan'][wlan]))
-            self.cmd('ip link set %s up' % iface)
-        else:
-            self.cmd('ip link set %s up' % self.params['wlan'][wlan])
-
-        if ssid != '':
-            if 'ssid' not in self.params:
-                self.params['ssid'] = []
-                self.params['ssid'].append(0)
-            self.params['ssid'][wlan] = ssid
-            mesh.configureMesh(self, wlan)
+        mesh.setMeshIface(self, iface, ssid, **params)
 
     def setPhysicalMeshIface(self, **params):
-        wlan = 0
-        iface = 'phy%s-mp%s' % (self, wlan)
-        os.system('ip link set %s down' % params['intf'])
-        while True:
-            id = ''
-            command = 'ip link show | grep %s' % iface
-            try:
-                id = subprocess.check_output(command, shell=True).split("\n")
-            except:
-                pass
-            if len(id) == 0:
-                command = ('iw dev %s interface add %s type mp' %
-                           (params['intf'], iface))
-                subprocess.check_output(command, shell=True)
-            else:
-                try:
-                    if 'channel' in params:
-                        command = ('iw dev %s set channel %s' %
-                                   (iface, str(params['channel'])))
-                        subprocess.check_output(command, shell=True)
-                    os.system('ip link set %s up' % iface)
-                    debug("associating %s to %s...\n" %
-                          (iface, self.params['ssid'][wlan]))
-                    command = ('iw dev %s mesh join %s' %
-                               (iface, self.params['ssid'][wlan]))
-                    subprocess.check_output(command, shell=True)
-                    break
-                except:
-                    break
+        mesh.setPhysicalMeshIface(self, **params)
 
     def setMasterMode(self, intf=None, ssid='-ssid1',
                       **kwargs):
@@ -1641,6 +1575,7 @@ class AccessPoint(AP):
                                          '000102030405060708090a0b0c0d0e0f'
                                          % (apref.params['mac'][wlan],
                                             apref.params['mac'][wlan]))
+                        #cmd = cmd + ('\nrsn_preauth=1')
                         cmd = cmd + ('\npmk_r1_push=1')
                         cmd = cmd + ('\nft_over_ds=1')
                         cmd = cmd + ('\nft_psk_generate_local=1')

@@ -893,13 +893,13 @@ class wirelessLink (object):
     def tc(cls, node, iface, bw, loss, latency):
         cmd = "tc qdisc replace dev %s root handle 2: netem " % iface
         rate = "rate %.4fmbit " % bw
-        cmd = cmd + rate
+        cmd += rate
         if latency > 0.1:
             latency = "latency %.2fms " % latency
-            cmd = cmd + latency
+            cmd += latency
         if loss > 0.1:
             loss = "loss %.1f%% " % loss
-            cmd = cmd + loss
+            cmd += loss
         node.pexec(cmd)
 
 
@@ -971,13 +971,13 @@ class wifiDirectLink(IntfWireless):
     @classmethod
     def config_(cls, node, wlan, filename):
         cmd = ("echo \'")
-        cmd = cmd + 'ctrl_interface=/var/run/wpa_supplicant\
+        cmd += 'ctrl_interface=/var/run/wpa_supplicant\
               \nap_scan=1\
               \np2p_go_ht40=1\
               \ndevice_name=%s-%s\
               \ndevice_type=1-0050F204-1\
               \np2p_no_group_iface=1' % (node, wlan)
-        cmd = cmd + ("\' > %s" % filename)
+        cmd += ("\' > %s" % filename)
         cls.set_config(cmd)
 
     @classmethod
@@ -1069,26 +1069,88 @@ class mesh(IntfWireless):
         if ssid != "{}":
             node.params['ssid'][wlan] = ssid
 
-        node.setMeshIface(node.params['wlan'][wlan], **params)
+        iface = node.params['wlan'][wlan]
+        self.setMeshIface(node, iface, **params)
 
         if 'intf' not in params:
             node.ifaceToAssociate += 1
 
-    @classmethod
-    def configureMesh(self, node, wlan):
+    def setMeshIface(self, node, iface, ssid='', **params):
+        wlan = node.params['wlan'].index(iface)
+        if node.func[wlan] == 'adhoc':
+            node.cmd('iw dev %s set type managed' %
+                     node.params['wlan'][wlan])
+        iface = '%s-mp%s' % (node, wlan)
+        if node.func[wlan] == 'mesh' and isinstance(node, AP):
+            iface = '%s-mp%s' % (node, wlan+1)
+
+        node.cmd('iw dev %s interface add %s type mp' %
+                 (node.params['wlan'][wlan], iface))
+        node.cmd('ip link set %s down' % iface)
+        node.cmd('ip link set %s address %s' %
+                 (iface, node.params['mac'][wlan]))
+        node.cmd('ip link set %s down' % node.params['wlan'][wlan])
+        node.params['wlan'][wlan] = iface
+
+        if 'channel' in params:
+            node.setChannel(params['channel'], intf=node.params['wlan'][wlan])
+
+        if 'mode' in params and (params['mode'] == 'a'
+                                 or params['mode'] == 'ac'):
+            node.pexec('iw reg set US')
+
+        if 'freq' in params:
+            node.setFreq(params['freq'], intf=node.params['wlan'][wlan])
+
+        if 'ip' in node.params:
+            node.cmd('ip addr add %s dev %s' % (node.params['ip'][wlan],
+                                                node.params['wlan'][wlan]))
+            node.cmd('ip link set %s up' % iface)
+        else:
+            node.cmd('ip link set %s up' % node.params['wlan'][wlan])
+
+        if ssid != '':
+            if 'ssid' not in node.params:
+                node.params['ssid'] = []
+                node.params['ssid'].append(0)
+            node.params['ssid'][wlan] = ssid
+            self.configureMesh(node, wlan, **params)
+
+    def configureMesh(self, node, wlan, **params):
         "Configure Wireless Mesh Interface"
         node.func[wlan] = 'mesh'
-        self.meshAssociation(node, wlan)
+        if 'passwd' in params:
+            self.setSecuredMesh(node, wlan, **params)
+        else:
+            self.meshAssociation(node, wlan)
         if node.params['wlan'][wlan] not in str(node.intf):
             TCLinkWirelessStation(node, intfName1=node.params['wlan'][wlan])
 
-    @classmethod
     def meshAssociation(self, node, wlan):
         "Performs Mesh Association"
         debug("associating %s to %s...\n" % (node.params['wlan'][wlan],
                                              node.params['ssid'][wlan]))
         node.pexec('iw dev %s mesh join %s' % (node.params['wlan'][wlan],
                                                node.params['ssid'][wlan]))
+
+    def setSecuredMesh(self, node, wlan, **params):
+        "Set secured mesh"
+        cmd = 'ctrl_interface=/var/run/wpa_supplicant\n'
+        cmd += 'ctrl_interface_group=adm\n'
+        cmd += 'user_mpm=1\n'
+        cmd += 'network={\n'
+        cmd += '         ssid="%s"\n' % node.params['ssid'][wlan]
+        cmd += '         mode=5\n'
+        cmd += '         frequency=%s\n' % str(node.params['frequency'][wlan]).replace('.', '')
+        cmd += '         key_mgmt=SAE\n'
+        cmd += '         psk="%s"\n' % params['passwd']
+        cmd += '}'
+
+        fileName = '%s_%s.staconf' % (node.name, wlan)
+        os.system('echo \'%s\' > %s' % (cmd, fileName))
+        pidfile = "mn%d_%s_%s_wpa.pid" % (os.getpid(), node.name, wlan)
+        node.pexec("wpa_supplicant -B -Dnl80211 -P %s -i %s -c %s_%s.staconf"
+                  % (pidfile, node.params['wlan'][wlan], node.name, wlan))
 
 
 class physicalMesh(IntfWireless):
@@ -1114,14 +1176,43 @@ class physicalMesh(IntfWireless):
             intf = node.params['wlan'][wlan]
             node.params['range'][wlan] = node.getRange(intf=intf, noiseLevel=95)
 
-        node.setMeshIface(node.params['wlan'][wlan], **params)
-        node.setPhysicalMeshIface(**params)
-
+        mesh.setMeshIface(node, node.params['wlan'][wlan], **params)
+        self.setPhysicalMeshIface(node, **params)
         self.meshAssociation(node, params['intf'])
 
         node.ifaceToAssociate += 1
 
-    @classmethod
+    def setPhysicalMeshIface(self, node, **params):
+        wlan = 0
+        iface = 'phy%s-mp%s' % (node, wlan)
+        os.system('ip link set %s down' % params['intf'])
+        while True:
+            id = ''
+            command = 'ip link show | grep %s' % iface
+            try:
+                id = subprocess.check_output(command, shell=True).split("\n")
+            except:
+                pass
+            if len(id) == 0:
+                command = ('iw dev %s interface add %s type mp' %
+                           (params['intf'], iface))
+                subprocess.check_output(command, shell=True)
+            else:
+                try:
+                    if 'channel' in params:
+                        command = ('iw dev %s set channel %s' %
+                                   (iface, str(params['channel'])))
+                        subprocess.check_output(command, shell=True)
+                    os.system('ip link set %s up' % iface)
+                    debug("associating %s to %s...\n" %
+                          (iface, node.params['ssid'][wlan]))
+                    command = ('iw dev %s mesh join %s' %
+                               (iface, node.params['ssid'][wlan]))
+                    subprocess.check_output(command, shell=True)
+                    break
+                except:
+                    break
+
     def meshAssociation(self, node, iface, wlan=0):
         "Performs Mesh Association"
         debug("associating %s to %s...\n" % (iface,
@@ -1278,28 +1369,28 @@ class Association(object):
                 config = sta.params['config'].split(',')
                 sta.params.pop("config", None)
                 for conf in config:
-                    cmd = cmd + "   " + conf + "\n"
+                    cmd += "   " + conf + "\n"
         else:
-            cmd = cmd + '   ssid=\"%s\"\n' % ap.params['ssid'][ap_wlan]
+            cmd += '   ssid=\"%s\"\n' % ap.params['ssid'][ap_wlan]
             if 'authmode' not in ap.params:
-                cmd = cmd + '   psk=\"%s\"\n' % passwd
-                cmd = cmd + '   proto=%s\n' % ap.params['encrypt'][ap_wlan].upper()
-                cmd = cmd + '   pairwise=%s\n' % ap.rsn_pairwise
+                cmd += '   psk=\"%s\"\n' % passwd
+                cmd += '   proto=%s\n' % ap.params['encrypt'][ap_wlan].upper()
+                cmd += '   pairwise=%s\n' % ap.rsn_pairwise
                 if 'active_scan' in sta.params and sta.params['active_scan'] == 1:
-                    cmd = cmd + '   scan_ssid=1\n'
+                    cmd += '   scan_ssid=1\n'
                 if 'scan_freq' in sta.params and sta.params['scan_freq'][wlan]:
-                    cmd = cmd + '   scan_freq=%s\n' % sta.params['scan_freq'][wlan]
+                    cmd += '   scan_freq=%s\n' % sta.params['scan_freq'][wlan]
                 if 'freq_list' in sta.params and sta.params['freq_list'][wlan]:
-                    cmd = cmd + '   freq_list=%s\n' % sta.params['freq_list'][wlan]
-            cmd = cmd + '   key_mgmt=%s\n' % ap.wpa_key_mgmt
+                    cmd += '   freq_list=%s\n' % sta.params['freq_list'][wlan]
+            cmd += '   key_mgmt=%s\n' % ap.wpa_key_mgmt
             if cls.bgscan:
-                cmd = cmd + '   %s\n' % cls.bgscan
+                cmd += '   %s\n' % cls.bgscan
             if 'authmode' in ap.params and ap.params['authmode'][0] == '8021x':
-                cmd = cmd + '   eap=PEAP\n'
-                cmd = cmd + '   identity=\"%s\"\n' % sta.params['radius_identity']
-                cmd = cmd + '   password=\"%s\"\n' % sta.params['radius_passwd']
-                cmd = cmd + '   phase2=\"autheap=MSCHAPV2\"\n'
-        cmd = cmd + '}'
+                cmd += '   eap=PEAP\n'
+                cmd += '   identity=\"%s\"\n' % sta.params['radius_identity']
+                cmd += '   password=\"%s\"\n' % sta.params['radius_passwd']
+                cmd += '   phase2=\"autheap=MSCHAPV2\"\n'
+        cmd += '}'
 
         fileName = '%s_%s.staconf' % (sta.name, wlan)
         os.system('echo \'%s\' > %s' % (cmd, fileName))

@@ -36,13 +36,17 @@ def topology(mobility):
     net.configureWifiNodes()
 
     info("*** Creating links\n")
-    net.addLink(sta1, cls=mesh, ssid='meshNet', channel=5)
-    net.addLink(sta2, cls=mesh, ssid='meshNet', channel=5)
-    net.addLink(sta3, cls=mesh, ssid='meshNet', channel=5)
+    net.addLink(sta1, cls=mesh, ssid='meshNet',
+                channel=5, passwd='thisisreallysecret')
+    net.addLink(sta2, cls=mesh, ssid='meshNet',
+                channel=5, passwd='thisisreallysecret')
+    net.addLink(sta3, cls=mesh, ssid='meshNet',
+                channel=5, passwd='thisisreallysecret')
 
     if mobility:
         net.plotGraph(max_x=100, max_y=100)
-        net.startMobility(time=0, model='RandomDirection', max_x=100, max_y=100,
+        net.startMobility(time=0, model='RandomDirection',
+                          max_x=100, max_y=100,
                           min_v=0.5, max_v=0.8, seed=20)
 
     info("*** Starting network\n")
