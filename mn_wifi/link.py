@@ -1105,7 +1105,7 @@ class mesh(IntfWireless):
             node.cmd('iw dev %s set type managed' %
                      node.params['wlan'][wlan])
         iface = '%s-mp%s' % (node, wlan)
-        if node.func[wlan] == 'mesh' and isinstance(node, AP):
+        if node.func[wlan] == 'mesh' and 'phyap' in params:
             iface = '%s-mp%s' % (node, wlan+1)
 
         node.cmd('iw dev %s interface add %s type mp' %
@@ -1202,6 +1202,7 @@ class physicalMesh(IntfWireless):
             intf = node.params['wlan'][wlan]
             node.params['range'][wlan] = node.getRange(intf=intf, noiseLevel=95)
 
+        params['phyap'] = True
         mesh.setMeshIface(node, node.params['wlan'][wlan], **params)
         self.setPhysicalMeshIface(node, **params)
         self.meshAssociation(node, params['intf'])
