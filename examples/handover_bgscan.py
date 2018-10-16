@@ -48,7 +48,7 @@ def topology():
     net.addLink(ap2, ap3)
 
     info("*** Setting bgscan\n")
-    net.setBgscan(signal=-45, s_inverval=5, l_interval=10)
+    net.setBgscan(signal=-60, s_inverval=5, l_interval=10)
 
     net.plotGraph(min_x=-100, min_y=-100, max_x=200, max_y=200)
 
