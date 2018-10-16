@@ -1021,27 +1021,51 @@ class adhoc(IntfWireless):
         if 'channel' in params:
             node.setChannel(params['channel'], intf=node.params['wlan'][wlan])
 
-        enable_wmediumd = False
         if link and link == wmediumd:
-            enable_wmediumd = True
-        self.configureAdhoc(node, wlan, enable_wmediumd)
+            params['enable_wmediumd'] = True
+        self.configureAdhoc(node, wlan, **params)
         if 'intf' not in params:
             node.ifaceToAssociate += 1
 
-    @classmethod
-    def configureAdhoc(self, node, wlan, enable_wmediumd):
+    def configureAdhoc(self, node, wlan, **params):
         "Configure Wireless Ad Hoc"
         iface = node.params['wlan'][wlan]
         node.func[wlan] = 'adhoc'
         node.setIP(node.params['ip'][wlan], intf='%s' % iface)
         node.cmd('iw dev %s set type ibss' % iface)
-        if 'position' not in node.params or enable_wmediumd:
+        if 'position' not in node.params or 'enable_wmediumd' in params:
             node.params['associatedTo'][wlan] = node.params['ssid'][wlan]
             debug("associating %s to %s...\n"
                   % (iface, node.params['ssid'][wlan]))
-            node.pexec('iw dev %s ibss join %s %s 02:CA:FF:EE:BA:01' \
+            if 'passwd' in params:
+                self.setSecuredAdhoc(node, wlan, **params)
+            else:
+                node.pexec('iw dev %s ibss join %s %s 02:CA:FF:EE:BA:01' \
                        % (iface, node.params['associatedTo'][wlan],
                           str(node.params['frequency'][wlan]).replace('.', '')))
+
+    def setSecuredAdhoc(self, node, wlan, **params):
+        "Set secured adhoc"
+        cmd = 'ctrl_interface=/var/run/wpa_supplicant GROUP=wheel\n'
+        cmd += 'ap_scan=2\n'
+        cmd += 'network={\n'
+        cmd += '         ssid="%s"\n' % node.params['ssid'][wlan]
+        cmd += '         mode=1\n'
+        cmd += '         frequency=%s\n' % str(node.params['frequency'][wlan]).replace('.', '')
+        cmd += '         proto=RSN\n'
+        cmd += '         key_mgmt=WPA-PSK\n'
+        cmd += '         pairwise=CCMP\n'
+        cmd += '         group=CCMP\n'
+        cmd += '         psk="%s"\n' % params['passwd']
+        cmd += '}'
+
+        fileName = '%s_%s.staconf' % (node.name, wlan)
+        os.system('echo \'%s\' > %s' % (cmd, fileName))
+        pidfile = "mn%d_%s_%s_wpa.pid" % (os.getpid(), node.name, wlan)
+        debug("wpa_supplicant -B -Dnl80211 -P %s -i %s -c %s_%s.staconf\n"
+                  % (pidfile, node.params['wlan'][wlan], node.name, wlan))
+        node.pexec("wpa_supplicant -B -Dnl80211 -P %s -i %s -c %s_%s.staconf"
+                  % (pidfile, node.params['wlan'][wlan], node.name, wlan))
 
 
 class mesh(IntfWireless):
@@ -1149,6 +1173,8 @@ class mesh(IntfWireless):
         fileName = '%s_%s.staconf' % (node.name, wlan)
         os.system('echo \'%s\' > %s' % (cmd, fileName))
         pidfile = "mn%d_%s_%s_wpa.pid" % (os.getpid(), node.name, wlan)
+        debug("wpa_supplicant -B -Dnl80211 -P %s -i %s -c %s_%s.staconf\n"
+                  % (pidfile, node.params['wlan'][wlan], node.name, wlan))
         node.pexec("wpa_supplicant -B -Dnl80211 -P %s -i %s -c %s_%s.staconf"
                   % (pidfile, node.params['wlan'][wlan], node.name, wlan))
 
