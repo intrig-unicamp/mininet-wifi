@@ -364,7 +364,7 @@ class TCWirelessLink(IntfWireless):
         # Clear existing configuration
         tcoutput = self.tc('%s qdisc show dev %s')
         if "priomap" not in tcoutput and "noqueue" not in tcoutput \
-                and "fq_codel" not in tcoutput:
+                and "fq_codel" not in tcoutput and "dev fq" not in tcoutput:
             cmds = [ '%s qdisc del dev %s root' ]
         else:
             cmds = []
