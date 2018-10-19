@@ -1401,7 +1401,10 @@ class Association(object):
             cmd += '   ssid=\"%s\"\n' % ap.params['ssid'][ap_wlan]
             if 'authmode' not in ap.params:
                 cmd += '   psk=\"%s\"\n' % passwd
-                cmd += '   proto=%s\n' % ap.params['encrypt'][ap_wlan].upper()
+                encrypt = ap.params['encrypt'][ap_wlan]
+                if ap.params['encrypt'][ap_wlan] == 'wpa3':
+                    encrypt = 'wpa2'
+                cmd += '   proto=%s\n' % encrypt.upper()
                 cmd += '   pairwise=%s\n' % ap.rsn_pairwise
                 if 'active_scan' in sta.params and sta.params['active_scan'] == 1:
                     cmd += '   scan_ssid=1\n'
@@ -1409,7 +1412,10 @@ class Association(object):
                     cmd += '   scan_freq=%s\n' % sta.params['scan_freq'][wlan]
                 if 'freq_list' in sta.params and sta.params['freq_list'][wlan]:
                     cmd += '   freq_list=%s\n' % sta.params['freq_list'][wlan]
-            cmd += '   key_mgmt=%s\n' % ap.wpa_key_mgmt
+            wpa_key_mgmt = ap.wpa_key_mgmt
+            if ap.params['encrypt'][ap_wlan] == 'wpa3':
+                wpa_key_mgmt = 'SAE'
+            cmd += '   key_mgmt=%s\n' % wpa_key_mgmt
             if cls.bgscan:
                 cmd += '   %s\n' % cls.bgscan
             if 'authmode' in ap.params and ap.params['authmode'][0] == '8021x':

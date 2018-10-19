@@ -1479,10 +1479,10 @@ class Mininet_wifi(Mininet):
                 for conf in config:
                     if 'wpa=' in conf or 'wep=' in conf:
                         node.params['encrypt'] = []
-                    if 'wpa=' in conf:
-                        node.params['encrypt'].append('wpa')
-                    if 'wep=' in conf:
-                        node.params['encrypt'].append('wep')
+                        if 'wpa=' in conf:
+                            node.params['encrypt'].append('wpa')
+                        else:
+                            node.params['encrypt'].append('wep')
 
     def add_range_param(self, node, wlans=0, **params):
         "Add Signal Range Param"
