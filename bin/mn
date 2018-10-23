@@ -290,8 +290,8 @@ class MininetRunner(object):
                         default=False, help='plot 2D graph')
         opts.add_option('--plot3d', action='store_true',
                         default=False, help='plot 3D graph')
-        opts.add_option('--channel', type='string',
-                        default="1", help='wireless channel configuration')
+        opts.add_option('--channel', type='int',
+                        default=1, help='wireless channel configuration')
         opts.add_option('--mode', type='string',
                         default="g", help='wireless mode configuration')
         opts.add_option('--ssid', type='string',

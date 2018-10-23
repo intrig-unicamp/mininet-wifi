@@ -57,7 +57,7 @@ class Mininet_wifi(Mininet):
                  cleanup=False, ipBase='10.0.0.0/8', inNamespace=False,
                  autoSetMacs=False, autoStaticArp=False, autoPinCpus=False,
                  listenPort=None, waitConnected=False, ssid="new-ssid",
-                 mode="g", channel="1", wmediumd_mode=snr,
+                 mode="g", channel=1, wmediumd_mode=snr,
                  fading_coefficient=0, autoAssociation=True,
                  allAutoAssociation=True, driver='nl80211',
                  autoSetPositions=False, configureWiFiDirect=False,
@@ -110,8 +110,8 @@ class Mininet_wifi(Mininet):
         self.waitConn = waitConnected
         self.ssid = ssid
         self.mode = mode
-        self.wmediumd_mode = wmediumd_mode
         self.channel = channel
+        self.wmediumd_mode = wmediumd_mode
         self.nameToNode = {}  # name to Node (Host/Switch) objects
         self.aps = []
         self.controllers = []
@@ -270,7 +270,8 @@ class Mininet_wifi(Mininet):
                           '/%s' % self.prefixLen,
                     'channel': self.channel,
                     'mode': self.mode,
-                    'ssid': self.ssid}
+                    'ssid': self.ssid
+                    }
 
         if self.autoSetMacs:
             defaults['mac'] = macColonHex(self.nextIP)
@@ -321,7 +322,6 @@ class Mininet_wifi(Mininet):
         if self.bridge:
             defaults['isolate_clients'] = True
         defaults.update(params)
-
         if self.autoSetPositions:
             defaults['position'] = ('%s,50,0' % self.nextPos_ap)
             self.nextPos_ap += 100
@@ -654,18 +654,13 @@ class Mininet_wifi(Mininet):
             info(staName + ' ')
 
         info('\n*** Adding access points:\n')
-        chann = 1
         for apName in topo.aps():
-            if topo.aps().index(apName)%3 == 0:
-                chann = 1
             # A bit ugly: add batch parameter if appropriate
             params = topo.nodeInfo(apName)
             cls = params.get('cls', self.accessPoint)
             if hasattr(cls, 'batchStartup'):
                 params.setdefault('batch', True)
-                params.setdefault('channel', str(chann))
             self.addAccessPoint(apName, **params)
-            chann += 5
             info(apName + ' ')
 
         info('\n*** Configuring wifi nodes...\n')
@@ -1427,6 +1422,8 @@ class Mininet_wifi(Mininet):
         for param in array_:
             node.params[param] = []
             if param in params:
+                if isinstance(params[param], int):
+                    params[param] = str(params[param])
                 list = params[param].split(',')
                 for value in list:
                     if param == 'mode':
@@ -1886,7 +1883,8 @@ class Mininet_wifi(Mininet):
             for wlan in range(0, len(sta.params['wlan'])):
                 if ((sta.func[wlan] == 'ap' or
                              sta.func[wlan] == 'client') and sta not in self.aps):
-                    isap.append(sta)
+                    if sta not in isap:
+                        isap.append(sta)
 
         for sta in isap:
             self.aps.append(sta)
