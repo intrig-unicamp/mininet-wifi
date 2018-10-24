@@ -198,7 +198,7 @@ class WmediumdManager(object):
         w_server.update_link_snr(link)
 
     @classmethod
-    def update_pos(cls, pos):
+    def update_pos(cls, pos, mob):
         # type: (w_pos) -> None
         """
         Update the Pos of a node at wmediumd
@@ -206,7 +206,7 @@ class WmediumdManager(object):
 
         :type pos: w_pos
         """
-        w_server.update_pos(pos)
+        w_server.update_pos(pos, mob)
 
     @classmethod
     def update_txpower(cls, txpower):
@@ -986,7 +986,7 @@ class w_server(object):
                                     "code %d" % ret)
 
     @classmethod
-    def update_pos(cls, pos):
+    def update_pos(cls, pos, mob):
         # type: (w_pos) -> None
         """
         Update the Pos of a connection at wmediumd
@@ -994,7 +994,8 @@ class w_server(object):
 
         :type pos: w_pos
         """
-        ret = w_server.send_pos_update(pos)
+
+        ret = w_server.send_pos_update(pos, mob)
         if ret != w_cst.WUPDATE_SUCCESS:
             raise WmediumdException("Received error code from wmediumd: "
                                     "code %d" % ret)
@@ -1101,7 +1102,7 @@ class w_server(object):
             cls.__snr_update_response_struct)[-1]
 
     @classmethod
-    def send_pos_update(cls, pos):
+    def send_pos_update(cls, pos, mob):
         # type: (w_pos) -> int
         """
         Send an update to the wmediumd server
@@ -1111,7 +1112,8 @@ class w_server(object):
         posX = pos.sta_pos[0]
         posY = pos.sta_pos[1]
         posZ = pos.sta_pos[2]
-        time.sleep(0.1)
+        if not mob:
+            time.sleep(0.15)
         debug("%s Updating Pos of %s to x=%s, y=%s, z=%s\n" % (
             w_cst.LOG_PREFIX, pos.staintf.get_mac(),
             posX, posY, posZ))

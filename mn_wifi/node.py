@@ -445,7 +445,7 @@ class Node_wifi(Node):
         value = propagationModel(self, node2, dist, wlan)
         return float(value.rssi)
 
-    def set_pos_wmediumd(self, wlan=None):
+    def set_pos_wmediumd(self, wlan=None, mob=True):
         "Set Position for wmediumd"
         posX = self.params['position'][0]
         posY = self.params['position'][1]
@@ -458,13 +458,13 @@ class Node_wifi(Node):
             w_server.update_pos(w_pos(
                 self.wmIface[wlan],
                 [(float(posX) + wlan), float(posY), float(posZ)])
-                [(float(posX) + wlan), float(posY), float(posZ)])
+                [(float(posX) + wlan), float(posY), float(posZ)], mob)
         else:
             for wlan in range(0, wlans):
                 self.lastpos = self.params['position']
                 w_server.update_pos(w_pos(
                     self.wmIface[wlan],
-                    [(float(posX)+wlan), float(posY), float(posZ)]))
+                    [(float(posX)+wlan), float(posY), float(posZ)]), mob)
 
     def setGainWmediumd(self, wlan):
         "Set Antenna Gain for wmediumd"

@@ -685,7 +685,7 @@ class Mininet_wifi(Mininet):
                      self.stations, self.aps, self.cars, propagationModel)
             for sta in self.stations:
                 if self.wmediumd_mode != error_prob:
-                    sta.set_pos_wmediumd()
+                    sta.set_pos_wmediumd(mob=False)
             for sta in self.stations:
                 if sta in self.aps:
                     self.stations.remove(sta)
@@ -1844,13 +1844,13 @@ class Mininet_wifi(Mininet):
                     mobility.configLinks(node)
                     if self.link == wmediumd and \
                                     self.wmediumd_mode == interference:
-                        node.set_pos_wmediumd()
+                        node.set_pos_wmediumd(mob=False)
 
             for sta in self.stations:
                 for wlan in range(0, len(sta.params['wlan'])):
                     if sta.func[wlan] == 'adhoc' and self.link == wmediumd and \
                                     'position' in node.params:
-                        sta.set_pos_wmediumd(wlan)
+                        sta.set_pos_wmediumd(wlan=wlan, mob=False)
                         sleep(2)
 
                     for ap in self.aps:
