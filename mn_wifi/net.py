@@ -682,7 +682,7 @@ class Mininet_wifi(Mininet):
                 or self.wmediumd_mode == error_prob) and self.link == wmediumd \
                 and not self.mobilityparam:
             wmediumd(self.fading_coefficient, self.noise_threshold,
-                     self.stations, self.aps, propagationModel)
+                     self.stations, self.aps, self.cars, propagationModel)
             for sta in self.stations:
                 if self.wmediumd_mode != error_prob:
                     sta.set_pos_wmediumd()
