@@ -16,19 +16,19 @@ if py_version_info < (3, 0):
 
 class sumo(object):
 
-    def __init__( self, stations, aps, **kwargs ):
+    def __init__( self, cars, aps, **kwargs ):
         thread = threading.Thread(name='vanet', target=self.configureApp,
-                                  args=(stations, aps), kwargs=dict(kwargs,))
+                                  args=(cars, aps), kwargs=dict(kwargs,))
         thread.daemon = True
         thread.start()
 
-    def configureApp(self, stations, aps, config_file='map.sumocfg',
+    def configureApp(self, cars, aps, config_file='map.sumocfg',
                      clients=1, port=8813):
         #try:
-        mobility.stations = stations
+        mobility.cars = cars
         mobility.aps = aps
-        mobility.mobileNodes = stations
-        self.start(stations, config_file, clients, port)
+        mobility.mobileNodes = cars
+        self.start(cars, config_file, clients, port)
         #except:
         #info("Connection with SUMO closed.\n")
 
@@ -36,7 +36,7 @@ class sumo(object):
         thread = threading.Thread(name='wifiParameters', target=mobility.parameters)
         thread.start()
 
-    def start( self, stations, config_file, clients, port ):
+    def start( self, cars, config_file, clients, port ):
         sumoBinary = checkBinary('sumo-gui')
         myfile = (os.path.join( os.path.dirname(__file__), "data/%s" % config_file))
         sumoConfig = myfile
@@ -101,9 +101,9 @@ class sumo(object):
                         x2 = vehicleCommands.getPosition(vehID2)[0]
                         y2 = vehicleCommands.getPosition(vehID2)[1]
 
-                        if int(vehID1) < len(stations):
-                            stations[int(vehID1)].params['position'] = x1, y1, 0
-                            stations[int(vehID1)].set_pos_wmediumd()
+                        if int(vehID1) < len(cars):
+                            cars[int(vehID1)].params['position'] = x1, y1, 0
+                            cars[int(vehID1)].set_pos_wmediumd()
 
                         if abs(x1-x2)>0 and abs(x1-x2)<20 \
                                 and (road1 == opposite_road2 or road2 == opposite_road1):

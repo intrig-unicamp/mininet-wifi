@@ -1717,7 +1717,7 @@ class Mininet_wifi(Mininet):
         self.isVanet = True
         for car in self.cars:
             car.params['position'] = 0, 0, 0
-        program(self.stations, self.aps, **kwargs)
+        program(self.cars, self.aps, **kwargs)
 
     @staticmethod
     def configureMacAddr(node):
