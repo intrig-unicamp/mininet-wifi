@@ -2554,8 +2554,8 @@ class MiniEdit( Frame ):
                     if ' UserAP' not in apType_:
                         apType_ += ' UserAP,'
                 elif apType == 'default':
-                    if ' OVSAP' not in apType_:
-                        apType_ += ' OVSAP,'
+                    if ' OVSKernelAP' not in apType_:
+                        apType_ += ' OVSKernelAP,'
             elif 'Switch' in tags:
                 hasSwitch = True
                 opts = self.switchOpts[name]
@@ -2639,7 +2639,7 @@ class MiniEdit( Frame ):
                     args += ' Station'
                 if hasAP:
                     if not apType_:
-                        apType_ = ' OVSAP'
+                        apType_ = ' OVSKernelAP'
                     else:
                         apType_ = apType_[:-1]
                     if args:
