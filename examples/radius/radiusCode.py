@@ -23,7 +23,7 @@ def topology():
                            radius_identity='bob', position='200,100,0' )
     ap1 = net.addAccessPoint( 'ap1', ssid='simplewifi', authmode='8021x',
                               mode='a', channel='36', encrypt='wpa2', position='150,100,0' )
-    c0 = net.addController('c0', controller=Controller, ip='127.0.0.1', port=6633 )
+    c0 = net.addController('c0', controller=Controller, ip='127.0.0.1', port=6653 )
 
     info("*** Configuring Propagation Model\n")
     net.setPropagationModel(model="logDistance", exp=3.5)
