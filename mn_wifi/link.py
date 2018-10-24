@@ -685,31 +685,24 @@ class wmediumd(TCWirelessLink):
     nodes = []
 
     def __init__(self, fading_coefficient, noise_threshold, stations,
-                 aps, propagation_model):
+                 aps, cars, propagation_model):
 
         self.configureWmediumd(fading_coefficient, noise_threshold, stations,
-                               aps, propagation_model)
+                               aps, cars, propagation_model)
 
     @classmethod
     def configureWmediumd(cls, fading_coefficient, noise_threshold, stations,
-                          aps, propagation_model):
+                          aps, cars, propagation_model):
         "Configure wmediumd"
         intfrefs = []
         isnodeaps = []
-        cars = []
         fading_coefficient = fading_coefficient
         noise_threshold = noise_threshold
-
-        for node in stations:
-            if 'carsta' in node.params:
-                cars.append(node.params['carsta'])
 
         cls.nodes = stations + aps + cars
         for node in cls.nodes:
             node.wmIface = []
-            if 'carsta' in node.params:
-                wlans = 1
-            elif '_4addr' in node.params and node.params['_4addr'] == 'ap':
+            if '_4addr' in node.params and node.params['_4addr'] == 'ap':
                 wlans = 1
             else:
                 wlans = len(node.params['wlan'])
@@ -767,9 +760,7 @@ class set_interference(object):
                 posZ = node.params['position'][2]
             node.lastpos = [posX, posY, posZ]
 
-            if 'carsta' in node.params:
-                wlans = 1
-            elif '_4addr' in node.params and node.params['_4addr'] == 'ap':
+            if '_4addr' in node.params and node.params['_4addr'] == 'ap':
                 wlans = 1
             else:
                 wlans = len(node.params['wlan'])
@@ -867,9 +858,6 @@ class wirelessLink (object):
     def delete(cls, node):
         "Delete interfaces"
         for wlan in node.params['wlan']:
-            if 'carsta' in node.params and node.params['wlan'].index(wlan) == 1:
-                node = node.params['carsta']
-                wlan = node.params['wlan'][0]
             if isinstance(wlan, string_types):
                 node.cmd('iw dev ' + wlan + ' del')
                 node.delIntf(wlan)

@@ -26,7 +26,6 @@ from re import findall
 import signal
 import select
 import fileinput
-import subprocess
 from subprocess import Popen, PIPE
 from time import sleep
 from distutils.version import StrictVersion
@@ -307,19 +306,10 @@ class Node_wifi(Node):
         "Set Position"
         pos = pos.split(',')
         self.params['position'] = float(pos[0]), float(pos[1]), float(pos[2])
-        if isinstance(self, Car):
-            car = self.params['carsta']
-            x = self.params['position'][0] + 0.1
-            y = self.params['position'][1]
-            z = self.params['position'][2]
-            car.params['position'] = (x,y,z)
         self.updateGraph()
 
         if wmediumd_mode.mode == w_cst.INTERFERENCE_MODE:
             self.set_pos_wmediumd()
-            if isinstance(self, Car):
-                car = self.params['carsta']
-                car.set_pos_wmediumd()
         self.configLinks()
 
     def setAntennaGain(self, value, intf=None, setParam=True):
@@ -462,8 +452,6 @@ class Node_wifi(Node):
         posZ = self.params['position'][2]
 
         wlans = len(self.params['wlan'])
-        if isinstance(self, Car):
-            wlans = 1
 
         if wlan:
             self.lastpos = self.params['position']
@@ -1493,7 +1481,7 @@ class AccessPoint(AP):
             cmd = cmd + ("\nhw_mode=a")
         else:
             cmd = cmd + ("\nhw_mode=%s" % ap.params['mode'][wlan])
-        cmd = cmd + ("\nchannel=%s" % int(ap.params['channel'][wlan]))
+        cmd = cmd + ("\nchannel=%s" % ap.params['channel'][wlan])
         if 'ht_capab' in ap.params:
             cmd = cmd + ('\nht_capab=%s' % ap.params['ht_capab'])
         if 'beacon_int' in ap.params:

@@ -51,10 +51,7 @@ class vanet(object):
         'start topology'
         from mn_wifi.mobility import mobility
 
-        cars = []
-        for car in params['stations']:
-            if 'carsta' in car.params:
-                cars.append(car)
+        cars = params['cars']
         mobility.stations = cars
         mobility.aps = params['aps']
         mobility.mobileNodes = cars
@@ -350,10 +347,7 @@ class vanet(object):
             pos_y = car.prop[1]
 
             car.params['position'] = pos_x, pos_y, 0
-            car_ = car.params['carsta']
-            car_.params['position'] = car.params['position']
             car.set_pos_wmediumd()
-            car_.set_pos_wmediumd()
             angle = car.prop[2]
 
             # calculate new position of the car

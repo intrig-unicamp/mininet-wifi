@@ -103,10 +103,6 @@ class sumo(object):
 
                         if int(vehID1) < len(stations):
                             stations[int(vehID1)].params['position'] = x1, y1, 0
-                            if 'carsta' in stations[int(vehID1)].params:
-                                car = stations[int(vehID1)].params['carsta']
-                                car.params['position'] = stations[int(vehID1)].params['position']
-                                car.set_pos_wmediumd()
                             stations[int(vehID1)].set_pos_wmediumd()
 
                         if abs(x1-x2)>0 and abs(x1-x2)<20 \

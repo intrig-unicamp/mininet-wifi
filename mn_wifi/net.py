@@ -45,7 +45,7 @@ from mn_wifi.sixLoWPAN.link import sixLoWPANLink
 
 sys.path.append(str(os.getcwd()) + '/mininet/')
 
-VERSION = "2.2.2d1"
+VERSION = "2.3"
 
 
 class Mininet_wifi(Mininet):
@@ -118,8 +118,6 @@ class Mininet_wifi(Mininet):
         self.hosts = []
         self.links = []
         self.cars = []
-        self.carsSW = []
-        self.carsSTA = []
         self.switches = []
         self.stations = []
         self.sixLP = []
@@ -285,24 +283,9 @@ class Mininet_wifi(Mininet):
             cls = self.car
         car = cls(name, **defaults)
 
-        self.nameToNode[name] = car
         self.addParameters(car, self.autoSetMacs, **defaults)
-
-        carsta = self.addStation(name + 'STA', **defaults)
-        carsta.pexec('ip link set lo up')
-        car.params['carsta'] = carsta
-        self.carsSTA.append(carsta)
-        switchName = car.name + 'SW'
-        carsw = self.addSwitch(switchName, inband=True)
-        self.carsSW.append(carsw)
         self.cars.append(car)
-
-        if 'func' in car.params and car.params['func'] is 'adhoc':
-            car.params['ssid'] = 'adhoc-ssid'
-            car.func.append('adhoc')
-        else:
-            car.params['ssid'] = 'mesh-ssid'
-            car.func.append('mesh')
+        self.nameToNode[name] = car
 
         return car
 
@@ -402,14 +385,14 @@ class Mininet_wifi(Mininet):
     def __iter__(self):
         "return iterator over node names"
         for node in chain(self.hosts, self.switches, self.controllers,
-                          self.stations, self.carsSTA, self.aps, self.sixLP):
+                          self.stations, self.cars, self.aps, self.sixLP):
             yield node.name
 
     def __len__(self):
         "returns number of nodes in net"
         return (len(self.hosts) + len(self.switches) +
                 len(self.controllers) + len(self.stations) +
-                len(self.carsSTA) + len(self.aps) + len(self.sixLP))
+                len(self.cars) + len(self.aps) + len(self.sixLP))
 
     def __contains__(self, item):
         "returns True if net contains named node"
@@ -678,12 +661,6 @@ class Mininet_wifi(Mininet):
         raise Exception('configureControlNetwork: '
                         'should be overriden in subclass', self)
 
-    def create_vanet_link(self, car):
-        carsw = car.name + 'SW'
-        sw = self.nameToNode[carsw]
-        self.addLink(car.params['carsta'], sw)
-        self.addLink(car, sw)
-
     def build(self):
         "Build mininet-wifi."
         if self.topo:
@@ -724,8 +701,6 @@ class Mininet_wifi(Mininet):
 
         nodes = self.stations
         for node in nodes:
-            if isinstance(node, Car):
-                self.create_vanet_link(node)
             for wlan in range(0, len(node.params['wlan'])):
                 if not isinstance(node, AP) and node.func[0] != 'ap' and \
                         node.func[wlan] != 'mesh' and \
@@ -1641,6 +1616,7 @@ class Mininet_wifi(Mininet):
             if self.nroads == 0:
                 mobility.start(**self.mobilityparam)
             else:
+                self.mobilityparam['cars'] = self.cars
                 vanet(**self.mobilityparam)
 
     def stopMobility(self, **kwargs):
@@ -1756,39 +1732,7 @@ class Mininet_wifi(Mininet):
                 mac = node.params['mac'][wlan]
                 node.setMAC(mac, iface)
 
-    def configureCars(self):
-        "Configure Cars"
-        for car in self.cars:
-            # useful if there no link between sta and any other device
-            params = {'nextIP': self.nextIP, 'ipBaseNum':self.ipBaseNum,
-                      'prefixLen':self.prefixLen, 'ssid':car.params['ssid']}
-            if 'func' in car.params and car.params['func'] == 'adhoc':
-                adhoc(car.params['carsta'], **params)
-            else:
-                mesh(car.params['carsta'], **params)
-                self.stations.remove(car.params['carsta'])
-                self.stations.append(car)
-            if 'position' in car.params:
-                if car.params['position'] == (0,0,0):
-                    car.lastpos = [0, 0, 0]
-                else:
-                    car.params['carsta'].params['position'] = \
-                        car.params['position']
-                    car.lastpos = car.params['position']
-            else:
-                car.lastpos = [0, 0, 0]
-            car.params['wlan'].append(0)
-            if self.wmediumd_mode != interference:
-                car.params['rssi'].append(0)
-            car.params['channel'].append(0)
-            car.params['mode'].append(0)
-            car.params['txpower'].append(0)
-            car.params['antennaGain'].append(0)
-            car.params['antennaHeight'].append(0)
-            car.params['associatedTo'].append('')
-            car.params['frequency'].append(0)
-
-    def configureWmediumd(self, nodes):
+    def configureWmediumd(self):
         "Configure Wmediumd"
         if self.autoSetPositions:
             self.wmediumd_mode = interference
@@ -1801,7 +1745,7 @@ class Mininet_wifi(Mininet):
             self.wmediumd_mode != error_prob or \
                 (self.configureWiFiDirect and self.autoAssociation):
             wmediumd(self.fading_coefficient, self.noise_threshold,
-                     self.stations, self.aps, propagationModel)
+                     self.stations, self.aps, self.cars, propagationModel)
 
     def configureWifiNodes(self):
         "Configure WiFi Nodes"
@@ -1822,10 +1766,9 @@ class Mininet_wifi(Mininet):
         self.configureWirelessLink()
         self.createVirtualIfaces(self.stations)
         AccessPoint(self.aps, self.driver, self.link)
-        self.configureCars()
 
         if self.link == wmediumd:
-            self.configureWmediumd(nodes)
+            self.configureWmediumd()
 
         setParam = True
         if self.wmediumd_mode == interference and not self.isVanet:
@@ -1833,11 +1776,6 @@ class Mininet_wifi(Mininet):
 
         for node in nodes:
             for wlan in range(0, len(node.params['wlan'])):
-                if isinstance(node, Car) and wlan >= 1:
-                    node = node.params['carsta']
-                    wlan = 0
-                if node in self.carsSTA:
-                    wlan = 0
                 if int(node.params['range'][wlan]) == 0:
                     intf = node.params['wlan'][wlan]
                     node.params['range'][wlan] = node.getRange(intf=intf)
@@ -1891,11 +1829,7 @@ class Mininet_wifi(Mininet):
             self.stations.remove(sta)
 
         nodes = self.stations + self.aps
-        for node in nodes:
-            for wlan in range(0, len(node.params['wlan'])):
-                if isinstance(node, Car) and wlan == 1:
-                    node = node.params['carsta']
-                    wlan = 0
+
         ap = []
         for node in self.aps:
             if 'link' in node.params:
