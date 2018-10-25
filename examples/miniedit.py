@@ -2528,6 +2528,7 @@ class MiniEdit( Frame ):
         hasAP = False
         hasController = False
         hasStation = False
+        hasLegacyRouter = False
         hasHost = False
         isCPU = False
         for widget in self.widgetToItem:
@@ -2571,6 +2572,8 @@ class MiniEdit( Frame ):
                 opts = self.hostOpts[name]
                 if 'cores' in opts or 'cpu' in opts:
                     isCPU = True
+            elif 'LegacyRouter' in tags:
+                hasLegacyRouter = True
 
         links_ = ''
         sixLinks_ = ''
@@ -2623,6 +2626,12 @@ class MiniEdit( Frame ):
                         args += ', CPULimitedHost'
                     else:
                         args += 'CPULimitedHost'
+            if hasLegacyRouter:
+                if args:
+                    args += ', Node'
+                else:
+                    args += ' Node'
+
             if args:
                 f.write("from mininet.node import"+args+"\n")
             #if StrictVersion(MININET_VERSION) > StrictVersion('2.0'):
