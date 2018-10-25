@@ -2617,7 +2617,7 @@ class MiniEdit( Frame ):
                 if args:
                     args += ', Host'
                 else:
-                    args += 'Host'
+                    args += ' Host'
                 if isCPU:
                     if args:
                         args += ', CPULimitedHost'
