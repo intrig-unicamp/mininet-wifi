@@ -2529,6 +2529,7 @@ class MiniEdit( Frame ):
         hasController = False
         hasStation = False
         hasLegacyRouter = False
+        hasLegacySwitch = False
         hasHost = False
         isCPU = False
         for widget in self.widgetToItem:
@@ -2574,6 +2575,8 @@ class MiniEdit( Frame ):
                     isCPU = True
             elif 'LegacyRouter' in tags:
                 hasLegacyRouter = True
+            elif 'LegacySwitch' in tags:
+                hasLegacySwitch = True
 
         links_ = ''
         sixLinks_ = ''
@@ -2631,6 +2634,11 @@ class MiniEdit( Frame ):
                     args += ', Node'
                 else:
                     args += ' Node'
+            if hasLegacySwitch:
+                if args:
+                    args += ', OVSKernelSwitch'
+                else:
+                    args += ' OVSKernelSwitch'
 
             if args:
                 f.write("from mininet.node import"+args+"\n")
