@@ -794,6 +794,13 @@ class StationDialog(CustomDialog):
         self.wpansEntry.grid(row=rowCount, column=1)
         self.wpansEntry.insert(0, self.prefValues['wpans'])
 
+        # Field for signal range
+        rowCount += 1
+        Label(self.propFrame, text="Signal Range:").grid(row=rowCount, sticky=E)
+        self.rangeEntry = Entry(self.propFrame)
+        self.rangeEntry.grid(row=rowCount, column=1)
+        self.rangeEntry.insert(0, self.prefValues['range'])
+
         # Field for Station IP
         rowCount += 1
         Label(self.propFrame, text="IP Address:").grid(row=rowCount, sticky=E)
@@ -970,6 +977,7 @@ class StationDialog(CustomDialog):
         results['radius_user'] = str(self.radiusUserEntry.get())
         results['wlans'] = str(self.wlansEntry.get())
         results['wpans'] = str(self.wpansEntry.get())
+        results['range'] = str(self.rangeEntry.get())
         self.result = results
 
 
@@ -1223,6 +1231,13 @@ class APDialog(CustomDialog):
             self.mode.set("g")
         rowCount += 1
 
+        # Field for signal range
+        Label(self.leftfieldFrame, text="Signal Range:").grid(row=rowCount, sticky=E)
+        self.rangeEntry = Entry(self.leftfieldFrame)
+        self.rangeEntry.grid(row=rowCount, column=1)
+        self.rangeEntry.insert(0, self.prefValues['range'])
+        rowCount += 1
+
         # Selection of authentication
         Label(self.leftfieldFrame, text="Authentication:").grid(row=rowCount, sticky=E)
         self.authentication = StringVar(self.leftfieldFrame)
@@ -1391,6 +1406,7 @@ class APDialog(CustomDialog):
                    'apIP':self.ipEntry.get()}
         results['ssid'] = str(self.ssidEntry.get())
         results['channel'] = str(self.channelEntry.get())
+        results['range'] = int(self.rangeEntry.get())
         results['mode'] = str(self.mode.get())
         results['authentication'] = self.authentication.get()
         ap = self.apType.get()
@@ -1919,7 +1935,6 @@ class MiniEdit( Frame ):
         self.controllerPopup.add_separator()
         self.controllerPopup.add_command(label='Properties', font=self.font, command=self.controllerDetails )
 
-
         # Event handling initalization
         self.linkx = self.linky = self.linkItem = None
         self.lastSelection = None
@@ -1930,6 +1945,7 @@ class MiniEdit( Frame ):
         self.stationOpts = {}
         self.switchOpts = {}
         self.apOpts = {}
+        self.range = {}
         self.hostCount = 0
         self.stationCount = 0
         self.switchCount = 0
@@ -2113,6 +2129,7 @@ class MiniEdit( Frame ):
             self.controllerCount += 1
         if name is None:
             name = self.nodePrefixes[ node ] + nodeNum
+
         self.addNamedNode(node, name, x, y)
 
     def addNamedNode( self, node, name, x, y):
@@ -2813,6 +2830,8 @@ class MiniEdit( Frame ):
                         else:
                             f.write(", encrypt='" + opts['authentication'] + "'")
                     f.write(", position='"+str(x1)+","+str(y1)+",0'")
+                    if opts['range'] != 'default':
+                        f.write(", range=" + str(opts['range']) + "")
                     f.write(")\n")
                     if 'externalInterfaces' in opts:
                         for extInterface in opts['externalInterfaces']:
@@ -2879,6 +2898,8 @@ class MiniEdit( Frame ):
                         args += ", radius_identity='%s'" % opts['radius_user']
                     if 'defaultRoute' in opts:
                         args += ", defaultRoute='%s'" % defaultRoute
+                    if opts['range'] != 'default':
+                        args += ", range=%s" % opts['range']
                     if 'cores' in opts or 'cpu' in opts:
                         f.write("    "+name+" = net.addStation('"+name+"', cls=CPULimitedHost, ip='"+ip+"', defaultRoute="+defaultRoute+", position='"+str(x1)+","+str(y1)+",0'"+args+")\n")
                         if 'cores' in opts:
@@ -3273,6 +3294,7 @@ class MiniEdit( Frame ):
             self.apOpts[name]['ssid']=name + '-ssid'
             self.apOpts[name]['channel'] = '1'
             self.apOpts[name]['mode'] = 'g'
+            self.apOpts[name]['range'] = 'default'
             self.apOpts[name]['authentication'] = 'none'
             self.apOpts[name]['controllers'] = []
         if 'LegacyRouter' == node:
@@ -3305,6 +3327,7 @@ class MiniEdit( Frame ):
             self.stationOpts[name]['ssid'] = name + '-ssid'
             self.stationOpts[name]['channel'] = '1'
             self.stationOpts[name]['mode'] = 'g'
+            self.stationOpts[name]['range'] = 'default'
             self.stationOpts[name]['radius_passwd'] = ''
             self.stationOpts[name]['radius_user'] = ''
             self.stationOpts[name]['wpans'] = 0
@@ -3319,6 +3342,21 @@ class MiniEdit( Frame ):
             self.controllers[name] = ctrlr
             # We want to start controller count at 0
             self.controllerCount += 1
+        if node == 'AP' or node == 'Station':
+            c = self.canvas
+            if node == 'AP':
+                if self.apOpts[name]['range'] == 'default':
+                    range = 62
+                else:
+                    range = float(self.apOpts[name]['range'])
+            else:
+                if self.stationOpts[name]['range'] == 'default':
+                    range = 0
+                else:
+                    range = float(self.stationOpts[name]['range'])
+            self.range[name] = c.create_oval(x - range, y - range,
+                                             x + range, y + range,
+                                             outline="#f11", width=2)
 
         icon = self.nodeIcon( node, name )
         item = self.canvas.create_window( x, y, anchor='c', window=icon,
@@ -3453,6 +3491,24 @@ class MiniEdit( Frame ):
         # Adjust node position
         item = self.widgetToItem[ w ]
         c.coords( item, x, y )
+
+        tags = self.canvas.gettags(item)
+        if 'Station' in tags or 'AP' in tags:
+            widget = self.itemToWidget[item]
+            name = widget['text']
+            if 'Station' in tags:
+                if self.stationOpts[name]['range'] == 'default':
+                    range = 0
+                else:
+                    range = float(self.stationOpts[name]['range'])
+            else:
+                if self.apOpts[name]['range'] == 'default':
+                    range = 62
+                else:
+                    range = float(self.apOpts[name]['range'])
+            c.coords(self.range[name],
+                     x - range, y - range,
+                     x + range, y + range)
         # Adjust link positions
         for dest in w.links:
             link = w.links[ dest ]
@@ -3704,6 +3760,7 @@ class MiniEdit( Frame ):
             newStationOpts = {'nodeNum':self.stationOpts[name]['nodeNum']}
             #newStationOpts['mode'] = stationBox.result['mode']
             newStationOpts['sched'] = stationBox.result['sched']
+            newStationOpts['range'] = stationBox.result['range']
             if len(stationBox.result['startCommand']) > 0:
                 newStationOpts['startCommand'] = stationBox.result['startCommand']
             if len(stationBox.result['stopCommand']) > 0:
@@ -3734,6 +3791,12 @@ class MiniEdit( Frame ):
                 newStationOpts['vlanInterfaces'] = stationBox.result['vlanInterfaces']
             if len(stationBox.result['privateDirectory']) > 0:
                 newStationOpts['privateDirectory'] = stationBox.result['privateDirectory']
+            name = widget['text']
+            x, y = self.canvas.coords(self.selection)
+            range = float(newStationOpts['range'])
+            self.canvas.coords(self.range[name],
+                               x - range, y - range,
+                               x + range, y + range)
             self.stationOpts[name] = newStationOpts
             info( 'New station details for ' + name + ' = ' + str(newStationOpts), '\n' )
 
@@ -3794,6 +3857,7 @@ class MiniEdit( Frame ):
             newAPOpts['apType'] = apBox.result['apType']
             newAPOpts['authentication'] = apBox.result['authentication']
             newAPOpts['mode'] = apBox.result['mode']
+            newAPOpts['range'] = apBox.result['range']
             newAPOpts['controllers'] = self.apOpts[name]['controllers']
             if len(apBox.result['startCommand']) > 0:
                 newAPOpts['startCommand'] = apBox.result['startCommand']
@@ -3817,6 +3881,12 @@ class MiniEdit( Frame ):
             newAPOpts['sflow'] = apBox.result['sflow']
             newAPOpts['netflow'] = apBox.result['netflow']
             self.apOpts[name] = newAPOpts
+            name = widget['text']
+            x, y = self.canvas.coords(self.selection)
+            range = float(newAPOpts['range'])
+            self.canvas.coords(self.range[name],
+                               x - range, y - range,
+                               x + range, y + range)
             info( 'New access point details for ' + name + ' = ' + str(newAPOpts), '\n' )
 
     def linkUp( self ):
@@ -4069,6 +4139,8 @@ class MiniEdit( Frame ):
                     apParms['ssid']=opts['ssid']
                 if 'channel' in opts:
                     apParms['channel']=opts['channel']
+                if 'range' in opts:
+                    apParms['range']=opts['range']
                 if 'mode' in opts:
                     apParms['mode']=opts['mode']
                 if 'authentication' in opts:
@@ -4758,6 +4830,7 @@ class MiniEdit( Frame ):
             self.apOpts[name]['ssid'] = name + '-ssid'
             self.apOpts[name]['channel'] = '1'
             self.apOpts[name]['mode'] = 'g'
+            self.apOpts[name]['range'] = '100'
             self.apOpts[name]['authentication'] = 'none'
             self.apOpts[name]['apType'] = 'default'
             self.apOpts[name]['controllers'] = []
