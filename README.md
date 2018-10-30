@@ -33,11 +33,12 @@ step 4: $ sudo util/install.sh -Wlnfv
 optional:  
 -6: wpan tools
 
-### Building Topologies with VND    
+### Building Topologies with GUI
 
-I'm a beginner, I do not know Python and I would like to create a customized topology. In this case, [VND](https://github.com/ramonfontes/vnd) can serve as support since it provides a GUI and automatically generates Python scripts. 
+![](https://github.com/ramonfontes/vnd/blob/master/miniedit.png)
 
-![](https://github.com/ramonfontes/vnd-sdn-version/blob/master/screenshot.png)
+I'm a beginner, I do not know Python and I would like to create a customized topology. In this case, both [MiniEdit](https://github.com/intrig-unicamp/mininet-wifi/blob/master/examples/miniedit.py) and [VND](https://github.com/ramonfontes/vnd) can serve as support since they provide a GUI to generate Python scripts. 
+
 
 ### Development
 For instructions about easier development check [this helper file](doc/dev_help.md).
