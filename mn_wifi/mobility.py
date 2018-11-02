@@ -20,7 +20,7 @@ class mobility(object):
     mobileNodes = []
     ac = None  # association control method
     wmediumd_mode = None
-    continuePlot = 'plot2d.graphPause()'
+    continuePlot = 'plot2d.pause()'
     pause_simulation = False
     rec_rssi = False
     allAutoAssociation = True
@@ -362,7 +362,7 @@ class mobility(object):
                                 wlan = node.params['wlan'].index(intf)
                                 node.params['range'][wlan] = node.getRange(intf=intf)
                             if kwargs['DRAW']:
-                                plot.graphUpdate(node)
+                                plot.update(node)
                                 if kwargs['max_z'] == 0:
                                     plot2d.updateCircleRadius(node)
                             if cls.wmediumd_mode and cls.wmediumd_mode == 3:
@@ -391,7 +391,7 @@ class mobility(object):
         MAX_WT = 100.
 
         for node in nodes:
-            if node.params['position'] == (0,0,0):
+            if 'position' in node.params:
                 if not hasattr(node, 'min_x'):
                     node.min_x = 0
                 if not hasattr(node, 'max_x') or node.max_x == 0:
@@ -400,9 +400,9 @@ class mobility(object):
                     node.min_y = 0
                 if not hasattr(node, 'max_y') or node.max_y == 0:
                     node.max_y = kwargs['max_y']
-                if not hasattr(node, 'min_v') or node.min_v == 0:
+                if 'min_v' in kwargs and (not hasattr(node, 'min_v') or node.min_v == 0):
                     node.min_v = kwargs['min_v']
-                if not hasattr(node, 'max_v') or node.max_v == 0:
+                if 'max_v' in kwargs and (not hasattr(node, 'max_v') or node.max_v == 0):
                     node.max_v = kwargs['max_v']
 
         try:
@@ -410,7 +410,7 @@ class mobility(object):
                 nodes_ = kwargs['nodes']
                 kwargs['nodes'] = nodes
                 plotGraph(**kwargs)
-                plot2d.graphPause()
+                plot2d.pause()
                 kwargs['nodes'] = nodes_
         except:
             info('Warning: running without GUI.\n')
@@ -447,6 +447,7 @@ class mobility(object):
             current_time = time()
             while (time() - current_time) < kwargs['time']:
                 pass
+
             if kwargs['DRAW']:
                 if kwargs['ppm'] == 'logNormalShadowing':
                     cls.mobilityModelGraph_logNormal(mob, kwargs['nodes'])
@@ -470,7 +471,7 @@ class mobility(object):
                                           % xy[idx][1], 0.0
                 if cls.wmediumd_mode and cls.wmediumd_mode == 3:
                     node.set_pos_wmediumd()
-                plot2d.graphUpdate(node)
+                plot2d.update(node)
             eval(cls.continuePlot)
             while cls.pause_simulation:
                 pass
@@ -493,7 +494,7 @@ class mobility(object):
                 node.params['range'][wlan] = node.getRange(intf=intf)
                 node.updateGraph()
                 plot2d.updateCircleRadius(node)
-                plot2d.graphUpdate(node)
+                plot2d.update(node)
             eval(cls.continuePlot)
             while cls.pause_simulation:
                 pass

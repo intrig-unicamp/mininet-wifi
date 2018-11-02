@@ -299,8 +299,8 @@ class Node_wifi(Node):
             cls = plot3d
         if cls.fig_exists():
             cls.updateCircleRadius(self)
-            cls.graphUpdate(self)
-            cls.graphPause()
+            cls.update(self)
+            cls.pause()
 
     def setPosition(self, pos):
         "Set Position"

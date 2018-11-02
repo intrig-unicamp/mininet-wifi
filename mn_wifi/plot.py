@@ -71,19 +71,19 @@ class plot3d (object):
             cls.instantiateAnnotate(node)
             cls.instantiateNode(node)
             cls.instantiateCircle(node)
-            cls.plotDraw()
+            cls.draw()
 
     @classmethod
     def fig_exists(cls):
         return plt.fignum_exists(1)
 
     @classmethod
-    def graphPause(cls):
+    def p(cls):
         "Pause"
         plt.pause(0.0001)
 
     @classmethod
-    def graphUpdate(cls, node):
+    def update(cls, node):
         "Graph Update"
 
         node.pltNode.remove()
@@ -93,11 +93,11 @@ class plot3d (object):
         cls.instantiateCircle(node)
         cls.instantiateNode(node)
         cls.instantiateAnnotate(node)
-        cls.plotDraw()
+        cls.draw()
 
     @classmethod
-    def plotDraw(cls):
-        "plotDraw"
+    def draw(cls):
+        "draw"
         plt.draw()
 
     @classmethod
@@ -171,7 +171,7 @@ class plot2d (object):
         node.pltCircle.center = x, y
 
     @classmethod
-    def graphUpdate(cls, node):
+    def update(cls, node):
         "Graph Update"
         x, y = cls.getxy(node)
         cls.text(node)
@@ -179,34 +179,34 @@ class plot2d (object):
         node.pltCircle.center = x, y
 
     @classmethod
-    def graphPause(cls):
+    def pause(cls):
         "Pause"
         plt.pause(0.001)
 
     @classmethod
-    def plotDraw(cls):
-        "plotDraw"
+    def draw(cls):
+        "draw"
         plt.draw()
 
     @classmethod
-    def plotScatter(cls, nodesx, nodesy):
-        "plotScatter"
+    def scatter(cls, nodesx, nodesy):
+        "scatter"
         return plt.scatter(nodesx, nodesy, color='red', marker='s')
 
     @classmethod
-    def plotLine2d(cls, nodesx, nodesy, color='', ls='-', lw=1):
-        "plotLine2d"
+    def line2d(cls, nodesx, nodesy, color='', ls='-', lw=1):
+        "line2d"
         return plt.Line2D(nodesx, nodesy, color=color, ls=ls, lw=lw)
 
     @classmethod
-    def plotLineTxt(cls, x, y, i):
-        "plotLineTxt"
+    def lineTxt(cls, x, y, i):
+        "lineTxt"
         title = 'Av.%s' % i
         plt.text(x, y, title, ha='left', va='bottom', fontsize=8, color='g')
 
     @classmethod
-    def plotLine(cls, line):
-        "plotLine"
+    def line(cls, line):
+        "line"
         ax = cls.ax
         ax.add_line(line)
 
@@ -280,7 +280,7 @@ class plot2d (object):
         cls.instantiateAnnotate(node)
         cls.instantiateCircle(node)
         cls.instantiateNode(node)
-        cls.graphUpdate(node)
+        cls.update(node)
 
     @classmethod
     def plotGraph(cls, nodes, conn):
@@ -316,11 +316,11 @@ class plot2d (object):
         src_y = '%.2f' % float(src.params['position'][1])
         dst_x = '%.2f' % float(dst.params['position'][0])
         dst_y = '%.2f' % float(dst.params['position'][1])
-        line = cls.plotLine2d([float(src_x), float(dst_x)],
+        line = cls.line2d([float(src_x), float(dst_x)],
                               [float(src_y), float(dst_y)], 'b', ls=ls)
         conn_ = src.name + dst.name
         cls.lines[conn_] = line
-        cls.plotLine(line)
+        cls.line(line)
 
 
 class plotGraph(object):

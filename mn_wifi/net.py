@@ -1587,7 +1587,7 @@ class Mininet_wifi(Mininet):
             setattr(self, key, kwargs[key])
         if 'max_z' in kwargs and kwargs['max_z'] != 0:
             self.plot = plot3d
-            mobility.continuePlot = 'plot3d.graphPause()'
+            mobility.continuePlot = 'plot3d.pause()'
 
     def checkDimension(self, nodes):
         try:
@@ -1595,7 +1595,7 @@ class Mininet_wifi(Mininet):
                       max_x=self.max_x, max_y=self.max_y, max_z=self.max_z,
                       nodes=nodes, conn=self.conn)
             if not issubclass(self.plot, plot3d):
-                self.plot.graphPause()
+                self.plot.pause()
         except:
             info('Something went wrong with the GUI.\n')
             self.DRAW = False
@@ -1810,7 +1810,7 @@ class Mininet_wifi(Mininet):
                 if self.DRAW:
                     if not issubclass(self.plot, plot3d):
                         self.plot.updateCircleRadius(node)
-                    self.plot.graphUpdate(node)
+                    self.plot.update(node)
             eval(mobility.continuePlot)
             sleep(0.5)
 

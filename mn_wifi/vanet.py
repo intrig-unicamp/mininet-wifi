@@ -139,14 +139,14 @@ class vanet(object):
             self.interY[n] = y1
 
             # Create a line object with the x y values of the points in a line
-            self.road[n] = plot2d.plotLine2d(x1, y1, color='g')
-            plot2d.plotLine(self.road[n])
+            self.road[n] = plot2d.line2d(x1, y1, color='g')
+            plot2d.line(self.road[n])
 
         for bs in baseStations:
             bs.prop = ginp(1)[0]
             bs_x = '%.2f' % bs.prop[0]
             bs_y = '%.2f' % bs.prop[1]
-            self.scatter = plot2d.plotScatter(float(bs_x), float(bs_y))
+            self.scatter = plot2d.scatter(float(bs_x), float(bs_y))
             bs.params['position'] = bs_x, bs_y, 0
             bs.set_pos_wmediumd()
             plot2d.instantiateNode(bs)
@@ -154,17 +154,17 @@ class vanet(object):
             plot2d.instantiateCircle(bs)
             plot2d.text(bs)
             plot2d.circle(bs)
-            plot2d.plotDraw()
+            plot2d.draw()
 
         sleep(1)
         if 'src' in conn:
             for c in range(0, len(conn['src'])):
-                line = plot2d.plotLine2d([conn['src'][c].params['position'][0],
+                line = plot2d.line2d([conn['src'][c].params['position'][0],
                                           conn['dst'][c].params['position'][0]], \
                                        [conn['src'][c].params['position'][1],
                                         conn['dst'][c].params['position'][1]],
                                          'b', ls='dashed')
-                plot2d.plotLine(line)
+                plot2d.line(line)
 
     def display_cars(self, cars):
 
@@ -184,7 +184,7 @@ class vanet(object):
             locX = (x_max - x_min) / 2 + x_min
             locY = (y_max - y_min) / 2 + y_min
 
-            plot2d.plotLineTxt(locX, locY, n + 1)
+            plot2d.lineTxt(locX, locY, n + 1)
 
         # temporal variable to hold values of cars
         points = [[], []]
@@ -224,7 +224,7 @@ class vanet(object):
             self.speed(car)  # Get Speed
 
         # plot cars
-        self.scatter = plot2d.plotScatter(points[0], points[1])
+        self.scatter = plot2d.scatter(points[0], points[1])
 
     @classmethod
     def lineX(cls, line_data):
@@ -377,16 +377,16 @@ class vanet(object):
                                 color = 'black'
                             else:
                                 color = 'r'
-                            line = plot2d.plotLine2d([pos_x, node.prop[0]],
+                            line = plot2d.line2d([pos_x, node.prop[0]],
                                                      [pos_y, node.prop[1]],
                                                      color=color)
                             com_lines.append(line)
-                            plot2d.plotLine(line)
+                            plot2d.line(line)
 
-            plot2d.graphUpdate(car)
+            plot2d.update(car)
         eval(mobility.continuePlot)
 
-        scatter = plot2d.plotScatter(points[0], points[1])
-        plot2d.plotDraw()
+        scatter = plot2d.scatter(points[0], points[1])
+        plot2d.draw()
 
         return [scatter, com_lines]

@@ -97,7 +97,7 @@ class replayingMobility(object):
                         if len(node.position) == 0:
                             nodes.remove(node)
                         mobility.configLinks()
-                plot.graphPause()
+                plot.pause()
         else:
             while True:
                 time_ = time() - currentTime
@@ -116,7 +116,7 @@ class replayingMobility(object):
                         if len(node.position) == 0:
                             nodes.remove(node)
                         mobility.configLinks()
-                plot.graphPause()
+                plot.pause()
 
     @classmethod
     def addNode(cls, node):
@@ -168,7 +168,7 @@ class replayingBandwidth(object):
         # mobility.getAPsInRange(sta)
         if Mininet_wifi.DRAW:
             try:
-                plot2d.graphUpdate(sta)
+                plot2d.update(sta)
             except:
                 pass
 
@@ -282,7 +282,7 @@ class replayingRSSI(object):
         mobility.configLinks(sta)
         if Mininet_wifi.DRAW:
             try:
-                plot2d.graphUpdate(sta)
+                plot2d.update(sta)
             except:
                 pass
         # sta.verifyingNodes(sta)
