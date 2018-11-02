@@ -394,11 +394,11 @@ class mobility(object):
             if 'position' in node.params:
                 if not hasattr(node, 'min_x'):
                     node.min_x = 0
-                if not hasattr(node, 'max_x') or node.max_x == 0:
+                if 'max_x' in kwargs and (not hasattr(node, 'max_x') or node.max_x == 0):
                     node.max_x = kwargs['max_x']
                 if not hasattr(node, 'min_y'):
                     node.min_y = 0
-                if not hasattr(node, 'max_y') or node.max_y == 0:
+                if 'max_y' in kwargs and (not hasattr(node, 'max_y') or node.max_y == 0):
                     node.max_y = kwargs['max_y']
                 if 'min_v' in kwargs and (not hasattr(node, 'min_v') or node.min_v == 0):
                     node.min_v = kwargs['min_v']
