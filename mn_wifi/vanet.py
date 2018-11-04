@@ -152,8 +152,8 @@ class vanet(object):
             plot2d.instantiateNode(bs)
             plot2d.instantiateAnnotate(bs)
             plot2d.instantiateCircle(bs)
-            plot2d.text(bs)
-            plot2d.circle(bs)
+            plot2d.text(bs, float(bs_x), float(bs_y))
+            plot2d.circle(bs, float(bs_x), float(bs_y))
             plot2d.draw()
 
         sleep(1)

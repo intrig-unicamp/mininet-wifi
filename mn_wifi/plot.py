@@ -157,24 +157,22 @@ class plot2d (object):
         return float(x), float(y)
 
     @classmethod
-    def text(cls, node):
+    def text(cls, node, x, y):
         "draw text"
-        x,y = cls.getxy(node)
         # newer MPL versions (>=1.4)
         if hasattr(node.plttxt, 'xyann'): node.plttxt.xyann = (x, y)
         else: node.plttxt.xytext = (x, y)
 
     @classmethod
-    def circle(cls, node):
+    def circle(cls, node, x, y):
         "drawCircle"
-        x, y = cls.getxy(node)
         node.pltCircle.center = x, y
 
     @classmethod
     def update(cls, node):
         "Graph Update"
         x, y = cls.getxy(node)
-        cls.text(node)
+        cls.text(node, x, y)
         node.pltNode.set_data(x, y)
         node.pltCircle.center = x, y
 
@@ -230,7 +228,6 @@ class plot2d (object):
     def instantiateNode(cls, node):
         "instantiateNode"
         from mn_wifi.node import Station, Car
-
         ax = cls.ax
 
         color = 'b'
@@ -290,8 +287,8 @@ class plot2d (object):
             x, y = cls.getxy(node)
             cls.instantiateNodes(node)
             node.pltNode.set_data(x, y)
-            cls.text(node)
-            cls.circle(node)
+            cls.text(node, x, y)
+            cls.circle(node, x, y)
 
         if 'src' in conn:
             for c in range(0, len(conn['src'])):
