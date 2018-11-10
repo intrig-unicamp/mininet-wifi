@@ -341,34 +341,33 @@ class mobility(object):
                     cls.calculate_diff_time(node)
                 while True:
                     t2 = time()
-                    if (t2 - t1) < kwargs['init_time']:
-                        pass
-                    elif (t2 - t1) > kwargs['final_time']:
+                    if (t2 - t1) > kwargs['final_time']:
                         break
-                    if t2 - t1 >= i:
-                        for node in cls.mobileNodes:
-                            if (t2 - t1) >= node.startTime and node.time <= node.endTime:
-                                if hasattr(node, 'coord'):
-                                    cls.calculate_diff_time(node)
-                                    node.params['position'] = node.points[node.time * node.moveFac]
-                                    if node.time == node.endTime:
-                                        node.params['position'] = node.points[len(node.points)-1]
-                                else:
-                                    x, y, z = cls.move_node(node)
-                                    node.params['position'] = [x, y, z]
-                                node.time += 1
-                            if kwargs['ppm'] == 'logNormalShadowing':
-                                intf = node.params['wlan'][0]
-                                wlan = node.params['wlan'].index(intf)
-                                node.params['range'][wlan] = node.getRange(intf=intf)
-                            if kwargs['DRAW']:
-                                plot.update(node)
-                                if kwargs['max_z'] == 0:
-                                    plot2d.updateCircleRadius(node)
-                            if cls.wmediumd_mode and cls.wmediumd_mode == 3:
-                                node.set_pos_wmediumd()
-                        eval(cls.continuePlot)
-                        i += 1
+                    if (t2 - t1) >= kwargs['init_time']:
+                        if t2 - t1 >= i:
+                            for node in cls.mobileNodes:
+                                if (t2 - t1) >= node.startTime and node.time <= node.endTime:
+                                    if hasattr(node, 'coord'):
+                                        cls.calculate_diff_time(node)
+                                        node.params['position'] = node.points[node.time * node.moveFac]
+                                        if node.time == node.endTime:
+                                            node.params['position'] = node.points[len(node.points)-1]
+                                    else:
+                                        x, y, z = cls.move_node(node)
+                                        node.params['position'] = [x, y, z]
+                                    node.time += 1
+                                if kwargs['ppm'] == 'logNormalShadowing':
+                                    intf = node.params['wlan'][0]
+                                    wlan = node.params['wlan'].index(intf)
+                                    node.params['range'][wlan] = node.getRange(intf=intf)
+                                if kwargs['DRAW']:
+                                    plot.update(node)
+                                    if kwargs['max_z'] == 0:
+                                        plot2d.updateCircleRadius(node)
+                                if cls.wmediumd_mode and cls.wmediumd_mode == 3:
+                                    node.set_pos_wmediumd()
+                            eval(cls.continuePlot)
+                            i += 1
         except:
             pass
 

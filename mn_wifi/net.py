@@ -679,8 +679,7 @@ class Mininet_wifi(Mininet):
                         mobility.stations.append(node)
 
         if (self.configure4addr or self.configureWiFiDirect
-                or self.wmediumd_mode == error_prob) and self.link == wmediumd \
-                and not self.mobilityparam:
+                or self.wmediumd_mode == error_prob) and self.link == wmediumd:
             wmediumd(self.fading_coefficient, self.noise_threshold,
                      self.stations, self.aps, self.cars, propagationModel)
             for sta in self.stations:
@@ -1621,7 +1620,8 @@ class Mininet_wifi(Mininet):
 
     def stopMobility(self, **kwargs):
         "Stops Mobility"
-        if self.allAutoAssociation:
+        if self.allAutoAssociation and \
+                not self.configureWiFiDirect and not self.configure4addr:
             self.auto_association()
         kwargs['final_time'] = kwargs['time']
         self.setMobilityParams(**kwargs)
@@ -1942,7 +1942,7 @@ class Mininet_wifi(Mininet):
         module.stop()  # Stopping WiFi Module
 
 
-class MininetWithControlNet(Mininet_wifi):
+class MininetWithControlWNet(Mininet_wifi):
     """Control network support:
        Create an explicit control network. Currently this is only
        used/usable with the user datapath.

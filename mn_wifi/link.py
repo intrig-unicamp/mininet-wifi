@@ -412,6 +412,17 @@ class _4address(object):
         client = node2
         client_intfName = '%s.wds' % client.name
 
+        if 'position' not in node1.params:
+            nums = re.findall(r'\d+', node1.name)
+            if nums:
+                id = hex(int(nums[0]))[2:]
+                node1.params['position'] = (10, '%.2f' % float(id), 0)
+        if 'position' not in node2.params:
+            nums = re.findall(r'\d+', node2.name)
+            if nums:
+                id = hex(int(nums[0]))[2:]
+                node2.params['position'] = (10, '%.2f' % float(id), 0)
+
         if port1 == 'client':
             client = node1
             ap = node2
@@ -921,6 +932,12 @@ class wifiDirectLink(IntfWireless):
         else:
             wlan = node.ifaceToAssociate
 
+        if 'position' not in node.params:
+            nums = re.findall(r'\d+', node.name)
+            if nums:
+                id = hex(int(nums[0]))[2:]
+                node.params['position'] = (10, '%.2f' % float(id), 0)
+
         node.func[wlan] = 'wifiDirect'
 
         iface = None
@@ -1140,8 +1157,8 @@ class mesh(IntfWireless):
 
     def meshAssociation(self, node, wlan):
         "Performs Mesh Association"
-        debug("associating %s to %s...\n" % (node.params['wlan'][wlan],
-                                             node.params['ssid'][wlan]))
+        debug('*** %s : iw dev %s mesh join %s' % (node, node.params['wlan'][wlan],
+                                               node.params['ssid'][wlan]))
         node.pexec('iw dev %s mesh join %s' % (node.params['wlan'][wlan],
                                                node.params['ssid'][wlan]))
 

@@ -25,6 +25,7 @@ if 'PYTHONPATH' in os.environ:
 from mininet.clean import cleanup
 from mininet.log import lg, LEVELS, info, debug, warn, error, output
 from mn_wifi.net import VERSION
+from mininet.net import MininetWithControlNet
 from mininet.net import Mininet
 from mininet.node import (Host, CPULimitedHost, Controller, OVSController,
                           Ryu, NOX, RemoteController, findController,
@@ -42,7 +43,7 @@ from mininet.util import buildTopo
 
 import mn_wifi.cli
 from mn_wifi.clean import cleanup_wifi
-from mn_wifi.net import MininetWithControlNet
+from mn_wifi.net import MininetWithControlWNet
 from mn_wifi.net import Mininet_wifi
 from mn_wifi.topo import (SingleAPTopo, LinearWirelessTopo,
                           MinimalWirelessTopo)
@@ -477,7 +478,7 @@ class MininetRunner(object):
             info("Please specify --innamespace OR --cluster\n")
             exit()
         if opts.wifi:
-            Net = MininetWithControlNet if opts.innamespace else Mininet_wifi
+            Net = MininetWithControlWNet if opts.innamespace else Mininet_wifi
         else:
             Net = MininetWithControlNet if opts.innamespace else Mininet
         if opts.cluster:
