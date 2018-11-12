@@ -1969,7 +1969,6 @@ class MiniEdit( Frame ):
         mbar = Menu( self.top, font=font )
         self.top.configure( menu=mbar )
 
-
         fileMenu = Menu( mbar, tearoff=False )
         mbar.add_cascade( label="File", font=font, menu=fileMenu )
         fileMenu.add_command( label="New", font=font, command=self.newTopology )
@@ -2599,8 +2598,8 @@ class MiniEdit( Frame ):
                     if ' UserSwitch' not in switchType_:
                         switchType_ += ' UserSwitch,'
                 elif switchType == 'default':
-                    if ' OVS' not in switchType_:
-                        switchType_ += ' OVS,'
+                    if ' OVSKernelSwitch' not in switchType_:
+                        switchType_ += ' OVSKernelSwitch,'
             elif 'Host' in tags:
                 hasHost = True
                 opts = self.hostOpts[name]
@@ -2645,7 +2644,7 @@ class MiniEdit( Frame ):
                 args += controllerType_
             if hasSwitch:
                 if not switchType_:
-                    switchType_ = ' OVS'
+                    switchType_ = ' OVSKernelSwitch'
                 else:
                     switchType_ = switchType_[:-1]
                 if args:
