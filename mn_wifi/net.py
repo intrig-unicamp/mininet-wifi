@@ -1400,7 +1400,7 @@ class Mininet_wifi(Mininet):
                     params[param] = str(params[param])
                 list = params[param].split(',')
                 for value in list:
-                    if param == 'mode':
+                    if param == 'mode' or param == 'channel':
                         node.params[param].append(value)
                     else:
                         node.params[param].append(float(value))
