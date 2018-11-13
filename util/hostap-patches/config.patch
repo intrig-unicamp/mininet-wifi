@@ -1,5 +1,5 @@
 diff --git hostapd/defconfig hostapd/defconfig
-index c67c6622d..57bc7dc6b 100644
+index c67c6622d..962238b7b 100644
 --- hostapd/defconfig
 +++ hostapd/defconfig
 @@ -31,7 +31,7 @@ CONFIG_DRIVER_NL80211=y
@@ -26,7 +26,7 @@ index c67c6622d..57bc7dc6b 100644
  
  # EAP-IKEv2
  #CONFIG_EAP_IKEV2=y
-@@ -132,27 +132,28 @@ CONFIG_PKCS12=y
+@@ -132,33 +132,34 @@ CONFIG_PKCS12=y
  
  # RADIUS authentication server. This provides access to the integrated EAP
  # server from external hosts using RADIUS.
@@ -59,6 +59,13 @@ index c67c6622d..57bc7dc6b 100644
  
  # IEEE 802.11ax HE support
  # Note: This is experimental and work in progress. The definitions are still
+ # subject to change and this should not be expected to interoperate with the
+ # final IEEE 802.11ax version.
+-#CONFIG_IEEE80211AX=y
++CONFIG_IEEE80211AX=y
+ 
+ # Remove debugging code that is printing out debug messages to stdout.
+ # This can be used to reduce the size of the hostapd considerably if debugging
 @@ -342,7 +343,7 @@ CONFIG_IPV6=y
  # For more details refer to:
  # http://wireless.kernel.org/en/users/Documentation/acs
