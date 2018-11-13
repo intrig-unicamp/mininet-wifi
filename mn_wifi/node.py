@@ -1479,6 +1479,10 @@ class AccessPoint(AP):
         elif ap.params['mode'][wlan] == 'ac':
             cmd = cmd + ('\ncountry_code=US')
             cmd = cmd + ("\nhw_mode=a")
+        elif ap.params['mode'][wlan] == 'ax':
+            cmd = cmd + ('\ncountry_code=US')
+            cmd = cmd + ("\nhw_mode=a")
+            cmd = cmd + ("\nieee80211ax=1")
         else:
             cmd = cmd + ("\nhw_mode=%s" % ap.params['mode'][wlan])
         cmd = cmd + ("\nchannel=%s" % ap.params['channel'][wlan])
