@@ -196,8 +196,11 @@ class Node_wifi(Node):
                 self.params[kwarg].append(kwargs[kwarg])
 
         AccessPoint.verifyNetworkManager(self, wlan)
+        link = None
+        if wmediumd_mode.mode != 4:
+            link = 'wmediumd'
         AccessPoint.setConfig(self, aplist=None, wlan=wlan,
-                              link=None, ssid=ssid)
+                              link=link, ssid=ssid)
 
     def setAdhocIface(self, iface, ssid=''):
         "Set Adhoc Interface"
@@ -451,19 +454,17 @@ class Node_wifi(Node):
         posY = self.params['position'][1]
         posZ = self.params['position'][2]
 
-        wlans = len(self.params['wlan'])
+        wlans = len(self.params['mac'])
 
         if wlan:
             self.lastpos = self.params['position']
-            w_server.update_pos(w_pos(
-                self.wmIface[wlan],
+            w_server.update_pos(w_pos(self.wmIface[wlan],
                 [(float(posX) + wlan), float(posY), float(posZ)])
                 [(float(posX) + wlan), float(posY), float(posZ)], mob)
         else:
             for wlan in range(0, wlans):
                 self.lastpos = self.params['position']
-                w_server.update_pos(w_pos(
-                    self.wmIface[wlan],
+                w_server.update_pos(w_pos(self.wmIface[wlan],
                     [(float(posX)+wlan), float(posY), float(posZ)]), mob)
 
     def setGainWmediumd(self, wlan):
@@ -1603,7 +1604,13 @@ class AccessPoint(AP):
             iface = ap.params['phywlan']
             ap.params.pop('phywlan', None)
 
-        if not link or (link and str(link.__name__) != 'wmediumd'):
+        setTC = True
+        if link:
+            if (isinstance(link, string_types) and link == 'wmediumd') or \
+                    (not isinstance(link, string_types) and
+                             str(link.__name__) == 'wmediumd'):
+                setTC = False
+        if setTC:
             AccessPoint.setBw(ap, wlan, iface)
 
         ap.params['frequency'][wlan] = ap.get_freq(0)

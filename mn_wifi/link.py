@@ -466,7 +466,8 @@ class _4address(object):
             intfName2 = ap.params['wlan'][0] + '.sta%s' % ap.wds
             intf2 = cls(name=intfName2, node=ap, link=self, **params2)
             ap.params['wlan'].append(intfName2)
-            ap.params['mac'].append(ap.params['mac'][0])
+            if ap.params['mac'][0] not in ap.params['mac']:
+                ap.params['mac'].append(ap.params['mac'][0])
 
         # All we are is dust in the wind, and our two interfaces
         self.intf1, self.intf2 = intf1, intf2
@@ -713,19 +714,16 @@ class wmediumd(TCWirelessLink):
         cls.nodes = stations + aps + cars
         for node in cls.nodes:
             node.wmIface = []
-            if '_4addr' in node.params and node.params['_4addr'] == 'ap':
-                wlans = 1
-            else:
-                wlans = len(node.params['wlan'])
-            for wlan in range(0, wlans):
-                node.wmIface.append(wlan)
-                node.wmIface[wlan] = DynamicWmediumdIntfRef(node, intf=wlan)
-                intfrefs.append(node.wmIface[wlan])
-                if (node.func[wlan] == 'ap' or (node in aps
-                                                and node.func[wlan] is not 'client')):
-                    isnodeaps.append(1)
-                else:
-                    isnodeaps.append(0)
+            for wlan in range(0, len(node.params['wlan'])):
+                if wlan < len(node.params['mac']):
+                    node.wmIface.append(wlan)
+                    node.wmIface[wlan] = DynamicWmediumdIntfRef(node, intf=wlan)
+                    intfrefs.append(node.wmIface[wlan])
+                    if (node.func[wlan] == 'ap' or (node in aps
+                                                    and node.func[wlan] is not 'client')):
+                        isnodeaps.append(1)
+                    else:
+                        isnodeaps.append(0)
 
         if wmediumd_mode.mode == w_cst.INTERFERENCE_MODE:
             set_interference()
@@ -771,18 +769,14 @@ class set_interference(object):
                 posZ = node.params['position'][2]
             node.lastpos = [posX, posY, posZ]
 
-            if '_4addr' in node.params and node.params['_4addr'] == 'ap':
-                wlans = 1
-            else:
-                wlans = len(node.params['wlan'])
-
-            for wlan in range(0, wlans):
+            for wlan in range(0, len(node.params['wlan'])):
                 if wlan == 1:
                     posX+=1
-                wmediumd.positions.append(w_pos(node.wmIface[wlan],
-                                                [posX, posY, posZ]))
-                wmediumd.txpowers.append(w_txpower(
-                    node.wmIface[wlan], float(node.params['txpower'][wlan])))
+                if wlan < len(node.params['mac']):
+                    wmediumd.positions.append(w_pos(node.wmIface[wlan],
+                                                    [posX, posY, posZ]))
+                    wmediumd.txpowers.append(w_txpower(
+                        node.wmIface[wlan], float(node.params['txpower'][wlan])))
 
 
 class spec_prob_link(object):
