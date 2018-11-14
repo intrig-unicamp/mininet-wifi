@@ -399,14 +399,14 @@ class TCWirelessLink(IntfWireless):
 
 class _4address(object):
 
-    def __init__(self, node1, node2, port1, intf=IntfWireless):
+    def __init__(self, node1, node2, port1=None, port2=None):
         """Create 4addr link to another node.
            node1: first node
            node2: second node
            intf: default interface class/constructor"""
         intf1 = None
         intf2 = None
-        cls = intf
+        cls = IntfWireless
 
         ap = node1
         client = node2
@@ -423,36 +423,47 @@ class _4address(object):
                 id = hex(int(nums[0]))[2:]
                 node2.params['position'] = (10, '%.2f' % float(id), 0)
 
-        if port1 == 'client':
-            client = node1
-            ap = node2
-            client_intfName = '%s.wds' % node1.name
-
         if client_intfName not in client.params['wlan']:
-            self.add4addrIface(client, client_intfName)
-            client.params['mac'].append(client.params['mac'][0][:3] +
-                                        '09' + client.params['mac'][0][5:])
-            self.setMAC(client)
+
+            if port1:
+                for idx, wlan in enumerate(client.params['wlan']):
+                    if wlan == port1:
+                        wlan = idx
+                        break
+            else:
+                wlan = 0
+
+            if port2:
+                for idx, wlan in enumerate(ap.params['wlan']):
+                    if wlan == port2:
+                        wlan = idx
+                        break
+            else:
+                apwlan = 0
+
+            self.add4addrIface(client, wlan, client_intfName)
+            client.params['mac'].append(client.params['mac'][wlan][:3] +
+                                        '09' + client.params['mac'][wlan][5:])
+            self.setMAC(client, wlan)
             self.bring4addrIfaceUP(client)
             client.func.append('client')
             ap.func.append('ap')
 
-            ap.params['mode'].append(ap.params['mode'][0])
-            ap.params['channel'].append(ap.params['channel'][0])
-            ap.params['frequency'].append(ap.params['frequency'][0])
+            ap.params['mode'].append(ap.params['mode'][apwlan])
+            ap.params['channel'].append(ap.params['channel'][apwlan])
+            ap.params['frequency'].append(ap.params['frequency'][apwlan])
             ap.params['txpower'].append(14)
-            ap.params['antennaGain'].append(ap.params['antennaGain'][0])
+            ap.params['antennaGain'].append(ap.params['antennaGain'][apwlan])
 
-            client.params['mode'].append(node1.params['mode'][0])
-            client.params['channel'].append(client.params['channel'][0])
-            client.params['frequency'].append(client.params['frequency'][0])
+            client.params['mode'].append(node1.params['mode'][apwlan])
+            client.params['channel'].append(client.params['channel'][apwlan])
+            client.params['frequency'].append(client.params['frequency'][apwlan])
             client.params['txpower'].append(14)
-            client.params['antennaGain'].append(client.params['antennaGain'][0])
+            client.params['antennaGain'].append(client.params['antennaGain'][apwlan])
             client.params['wlan'].append(client_intfName)
             sleep(1)
-            client.cmd('iw dev %s connect %s %s'
-                       % (client.params['wlan'][1],
-                          ap.params['ssid'][0], ap.params['mac'][0]))
+            client.cmd('iw dev %s connect %s %s' % (client.params['wlan'][1],
+                          ap.params['ssid'][apwlan], ap.params['mac'][apwlan]))
 
             params1 = {}
             params2 = {}
@@ -463,11 +474,9 @@ class _4address(object):
                 ap.wds += 1
             else:
                 ap.wds = 1
-            intfName2 = ap.params['wlan'][0] + '.sta%s' % ap.wds
+            intfName2 = ap.params['wlan'][apwlan] + '.sta%s' % ap.wds
             intf2 = cls(name=intfName2, node=ap, link=self, **params2)
             ap.params['wlan'].append(intfName2)
-            if ap.params['mac'][0] not in ap.params['mac']:
-                ap.params['mac'].append(ap.params['mac'][0])
 
         # All we are is dust in the wind, and our two interfaces
         self.intf1, self.intf2 = intf1, intf2
@@ -477,14 +486,14 @@ class _4address(object):
         node.cmd('ip link set dev %s.wds up' % node.name)
 
     @classmethod
-    def setMAC(cls, node):
+    def setMAC(cls, node, wlan):
         node.cmd('ip link set dev %s.wds addr %s'
-                 % (node.name, node.params['mac'][1]))
+                 % (node.name, node.params['mac'][wlan+1]))
 
     @classmethod
-    def add4addrIface(cls, node, intfName):
+    def add4addrIface(cls, node, wlan, intfName):
         node.cmd('iw dev %s interface add %s type managed 4addr on'
-                 % (node.params['wlan'][0], intfName))
+                 % (node.params['wlan'][wlan], intfName))
 
     def status(self):
         "Return link status as a string"

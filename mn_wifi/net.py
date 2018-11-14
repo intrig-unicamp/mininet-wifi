@@ -470,7 +470,7 @@ class Mininet_wifi(Mininet):
                 self.aps.append(node2)
 
             if self.wmediumd_mode == interference:
-                link = cls(node1, node2, port1)
+                link = cls(node1, node2, port1, port2)
                 self.links.append(link)
                 return link
             else:
