@@ -213,7 +213,7 @@ class IntfWireless(object):
         # if self.node.inNamespace:
         # Link may have been dumped into root NS
         # quietRun( 'ip link del ' + self.name )
-        self.node.delIntf(self)
+        #self.node.delIntf(self)
         self.link = None
 
     def status(self):
@@ -399,18 +399,18 @@ class TCWirelessLink(IntfWireless):
 
 class _4address(object):
 
-    def __init__(self, node1, node2, port1, intf=IntfWireless):
+    def __init__(self, node1, node2, port1=None, port2=None):
         """Create 4addr link to another node.
            node1: first node
            node2: second node
            intf: default interface class/constructor"""
         intf1 = None
         intf2 = None
-        cls = intf
+        cls = IntfWireless
 
-        ap = node1
-        client = node2
-        client_intfName = '%s.wds' % client.name
+        ap = node1 # ap
+        cl = node2 # client
+        cl_intfName = '%s.wds' % cl.name
 
         if 'position' not in node1.params:
             nums = re.findall(r'\d+', node1.name)
@@ -423,50 +423,48 @@ class _4address(object):
                 id = hex(int(nums[0]))[2:]
                 node2.params['position'] = (10, '%.2f' % float(id), 0)
 
-        if port1 == 'client':
-            client = node1
-            ap = node2
-            client_intfName = '%s.wds' % node1.name
+        if cl_intfName not in cl.params['wlan']:
 
-        if client_intfName not in client.params['wlan']:
-            self.add4addrIface(client, client_intfName)
-            client.params['mac'].append(client.params['mac'][0][:3] +
-                                        '09' + client.params['mac'][0][5:])
-            self.setMAC(client)
-            self.bring4addrIfaceUP(client)
-            client.func.append('client')
+            if port1:
+                wlan = cl.params['wlan'].index(port1)
+            else:
+                wlan = 0
+
+            if port2:
+                apwlan = ap.params['wlan'].index(port2)
+            else:
+                apwlan = 0
+
+            self.add4addrIface(cl, wlan, cl_intfName)
+            cl.params['mac'].append(cl.params['mac'][wlan][:3] +
+                                    '09' + cl.params['mac'][wlan][5:])
+            self.setMAC(cl, wlan)
+            self.bring4addrIfaceUP(cl)
+            cl.func.append('client')
             ap.func.append('ap')
 
-            ap.params['mode'].append(ap.params['mode'][0])
-            ap.params['channel'].append(ap.params['channel'][0])
-            ap.params['frequency'].append(ap.params['frequency'][0])
-            ap.params['txpower'].append(14)
-            ap.params['antennaGain'].append(ap.params['antennaGain'][0])
-
-            client.params['mode'].append(node1.params['mode'][0])
-            client.params['channel'].append(client.params['channel'][0])
-            client.params['frequency'].append(client.params['frequency'][0])
-            client.params['txpower'].append(14)
-            client.params['antennaGain'].append(client.params['antennaGain'][0])
-            client.params['wlan'].append(client_intfName)
+            cl.params['mode'].append(cl.params['mode'][apwlan])
+            cl.params['channel'].append(cl.params['channel'][apwlan])
+            cl.params['frequency'].append(cl.params['frequency'][apwlan])
+            cl.params['txpower'].append(14)
+            cl.params['antennaGain'].append(cl.params['antennaGain'][apwlan])
+            cl.params['wlan'].append(cl_intfName)
             sleep(1)
-            client.cmd('iw dev %s connect %s %s'
-                       % (client.params['wlan'][1],
-                          ap.params['ssid'][0], ap.params['mac'][0]))
+            cl.cmd('iw dev %s connect %s %s' % (cl.params['wlan'][1],
+                   ap.params['ssid'][apwlan], ap.params['mac'][apwlan]))
 
             params1 = {}
             params2 = {}
-            params1[ 'port' ] = client.newPort()
+            params1[ 'port' ] = cl.newPort()
             params2[ 'port' ] = ap.newPort()
-            intf1 = cls(name=client_intfName, node=client, link=self, **params1)
+            intf1 = cls(name=cl_intfName, node=cl, link=self, **params1)
             if hasattr(ap, 'wds'):
                 ap.wds += 1
             else:
                 ap.wds = 1
-            intfName2 = ap.params['wlan'][0] + '.sta%s' % ap.wds
+            intfName2 = ap.params['wlan'][apwlan] + '.sta%s' % ap.wds
             intf2 = cls(name=intfName2, node=ap, link=self, **params2)
             ap.params['wlan'].append(intfName2)
-            ap.params['mac'].append(ap.params['mac'][0])
 
         # All we are is dust in the wind, and our two interfaces
         self.intf1, self.intf2 = intf1, intf2
@@ -476,14 +474,15 @@ class _4address(object):
         node.cmd('ip link set dev %s.wds up' % node.name)
 
     @classmethod
-    def setMAC(cls, node):
+    def setMAC(cls, node, wlan):
+        nif = len(node.params['mac'])-1
         node.cmd('ip link set dev %s.wds addr %s'
-                 % (node.name, node.params['mac'][1]))
+                 % (node.name, node.params['mac'][wlan+nif]))
 
     @classmethod
-    def add4addrIface(cls, node, intfName):
+    def add4addrIface(cls, node, wlan, intfName):
         node.cmd('iw dev %s interface add %s type managed 4addr on'
-                 % (node.params['wlan'][0], intfName))
+                 % (node.params['wlan'][wlan], intfName))
 
     def status(self):
         "Return link status as a string"
@@ -713,19 +712,16 @@ class wmediumd(TCWirelessLink):
         cls.nodes = stations + aps + cars
         for node in cls.nodes:
             node.wmIface = []
-            if '_4addr' in node.params and node.params['_4addr'] == 'ap':
-                wlans = 1
-            else:
-                wlans = len(node.params['wlan'])
-            for wlan in range(0, wlans):
-                node.wmIface.append(wlan)
-                node.wmIface[wlan] = DynamicWmediumdIntfRef(node, intf=wlan)
-                intfrefs.append(node.wmIface[wlan])
-                if (node.func[wlan] == 'ap' or (node in aps
-                                                and node.func[wlan] is not 'client')):
-                    isnodeaps.append(1)
-                else:
-                    isnodeaps.append(0)
+            for wlan in range(0, len(node.params['wlan'])):
+                if wlan < len(node.params['mac']):
+                    node.wmIface.append(wlan)
+                    node.wmIface[wlan] = DynamicWmediumdIntfRef(node, intf=wlan)
+                    intfrefs.append(node.wmIface[wlan])
+                    if (node.func[wlan] == 'ap' or (node in aps
+                                                    and node.func[wlan] is not 'client')):
+                        isnodeaps.append(1)
+                    else:
+                        isnodeaps.append(0)
 
         if wmediumd_mode.mode == w_cst.INTERFERENCE_MODE:
             set_interference()
@@ -771,18 +767,14 @@ class set_interference(object):
                 posZ = node.params['position'][2]
             node.lastpos = [posX, posY, posZ]
 
-            if '_4addr' in node.params and node.params['_4addr'] == 'ap':
-                wlans = 1
-            else:
-                wlans = len(node.params['wlan'])
-
-            for wlan in range(0, wlans):
+            for wlan in range(0, len(node.params['wlan'])):
                 if wlan == 1:
                     posX+=1
-                wmediumd.positions.append(w_pos(node.wmIface[wlan],
-                                                [posX, posY, posZ]))
-                wmediumd.txpowers.append(w_txpower(
-                    node.wmIface[wlan], float(node.params['txpower'][wlan])))
+                if wlan < len(node.params['mac']):
+                    wmediumd.positions.append(w_pos(node.wmIface[wlan],
+                                                    [posX, posY, posZ]))
+                    wmediumd.txpowers.append(w_txpower(
+                        node.wmIface[wlan], float(node.params['txpower'][wlan])))
 
 
 class spec_prob_link(object):

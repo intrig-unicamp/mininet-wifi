@@ -39,8 +39,8 @@ def topology():
     net.configureWifiNodes()
 
     info("*** Adding Link\n")
-    net.addLink(ap1, ap2, 'ap', 'client', cls=_4address)
-    net.addLink(ap1, ap3, 'ap', 'client', cls=_4address)
+    net.addLink(ap1, ap2, cls=_4address) # ap1=ap, ap2=client
+    net.addLink(ap1, ap3, cls=_4address) # ap1=ap, ap3=client
     net.addLink(sta1, ap1)
     net.addLink(sta2, ap1)
     net.addLink(sta3, ap2)
