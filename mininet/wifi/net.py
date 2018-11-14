@@ -1895,7 +1895,8 @@ class Mininet_wifi(Mininet):
             self.mobilityparam.setdefault('stations', kwargs['stations'])
         if 'aps' in kwargs:
             self.mobilityparam.setdefault('aps', kwargs['aps'])
-
+        if 'aggregation' in kwargs:
+            self.mobilityparam.setdefault('aggregation', kwargs['aggregation'])
         self.mobilityparam.setdefault('DRAW', self.DRAW)
         self.mobilityparam.setdefault('conn', self.conn)
         self.mobilityparam.setdefault('min_x', self.min_x)

@@ -406,7 +406,7 @@ class mobility(object):
     def models(cls, stations=[], aps=[], model=None, mobileNodes=None,
                min_v=0, max_v=0, seed=None, conn=None, plotNodes=[],
                max_x=0, max_y=0, AC='', DRAW=False, rec_rssi=False, ppm=None,
-               **params):
+               aggregation=0.42, **params):
         """Used when a mobility model is being used
 
         :param stations: list of stations
@@ -421,7 +421,6 @@ class mobility(object):
         :param MAX_X: Maximum value for X
         :param MAX_Y: Maximum value for Y"
         :param ppm: propagation model"""
-
         np.random.seed(seed)
         cls.rec_rssi = rec_rssi
         cls.ac = AC
@@ -470,7 +469,7 @@ class mobility(object):
             elif model == 'ReferencePoint':  # Reference Point Group model
                 mob = reference_point_group(mobileNodes,
                                             dimensions=(max_x, max_y),
-                                            aggregation=0.5)
+                                            aggregation=aggregation)
             elif model == 'TimeVariantCommunity':
                 mob = tvc(mobileNodes, dimensions=(max_x, max_y),
                           aggregation=[0.5, 0.], epoch=[100, 100])
