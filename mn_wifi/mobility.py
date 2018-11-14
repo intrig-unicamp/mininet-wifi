@@ -243,9 +243,29 @@ class mobility(object):
         cls.stations, cls.mobileNodes, cls.aps = \
             kwargs['stations'], kwargs['stations'], kwargs['aps']
 
-        plotNodes = []
-        if 'plotNodes' in kwargs:
-            plotNodes = kwargs['plotNodes']
+    @classmethod
+    def models(cls, stations=[], aps=[], model=None, mobileNodes=None,
+               min_v=0, max_v=0, seed=None, conn=None, plotNodes=[],
+               max_x=0, max_y=0, AC='', DRAW=False, rec_rssi=False, ppm=None,
+               aggregation=0.42, **params):
+        """Used when a mobility model is being used
+
+        :param stations: list of stations
+        :param aps: list of access points
+        :param model: mobility model
+        :param mobileNodes: mobile nodes
+        :param min_v: minimum velocity
+        :param max_v: maximum velocity
+        :param speed: speed
+        :param conn: list of connections
+        :param plotNodes: list of nodes to be plotted (including hosts and switches)
+        :param MAX_X: Maximum value for X
+        :param MAX_Y: Maximum value for Y"
+        :param ppm: propagation model"""
+        np.random.seed(seed)
+        cls.rec_rssi = rec_rssi
+        cls.ac = AC
+        cls.addNodes(stations, aps)
         nodes = cls.stations + cls.aps + plotNodes
 
         for node in nodes:
@@ -300,10 +320,9 @@ class mobility(object):
             elif model == 'GaussMarkov':  # Gauss-Markov model
                 mob = gauss_markov(kwargs['nodes'], alpha=0.99)
             elif model == 'ReferencePoint':  # Reference Point Group model
-                mob = reference_point_group(kwargs['nodes'],
-                                            dimensions=(kwargs['max_x'],
-                                                        kwargs['max_y']),
-                                            aggregation=0.5)
+                mob = reference_point_group(mobileNodes,
+                                            dimensions=(max_x, max_y),
+                                            aggregation=aggregation)
             elif model == 'TimeVariantCommunity':
                 mob = tvc(kwargs['nodes'],
                           dimensions=(kwargs['max_x'],

@@ -1761,10 +1761,16 @@ class Mininet_wifi(Mininet):
             self.mob_param.setdefault('plotNodes', kwargs['plotNodes'])
 
         if 'nodes' in kwargs and kwargs['nodes']:
-            self.mob_param.setdefault('nodes', kwargs['nodes'])
-        if 'ac_method' in kwargs:
-            self.mob_param.setdefault('ac_method', kwargs['ac_method'])
-        self.mob_param.setdefault('ppm', propagationModel.model)
+            self.mobilityparam.setdefault('nodes', kwargs['nodes'])
+        if 'associationControl' in kwargs:
+            self.mobilityparam.setdefault('AC', kwargs['associationControl'])
+
+        if 'aggregation' in kwargs:
+            self.mobilityparam.setdefault('aggregation', kwargs['aggregation'])
+        self.mobilityparam.setdefault('DRAW', self.DRAW)
+        self.mobilityparam.setdefault('conn', self.conn)
+        self.mobilityparam.setdefault('rec_rssi', self.rec_rssi)
+        self.mobilityparam.setdefault('ppm', propagationModel.model)
 
     def useExternalProgram(self, program, **kwargs):
         """Opens an external program
