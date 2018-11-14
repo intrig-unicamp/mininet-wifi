@@ -818,7 +818,10 @@ class Mininet_wifi(Mininet):
         info('*** Stopping %i links\n' % len(self.links))
         for link in self.links:
             info('.')
-            link.stop()
+            try:
+                link.stop()
+            except:
+                pass
         info('\n')
         info('*** Stopping switches/access points\n')
         stopped = {}

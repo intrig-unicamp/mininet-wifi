@@ -533,11 +533,8 @@ class Node_wifi(Node):
     def moveAssociationTo(self, ap, intf=None):
         "Force association to specific AP"
         sta = self
-        wlan = 0
-        for idx, wlan in enumerate(sta.params['wlan']):
-            if wlan == intf:
-                wlan = idx
-                break
+        wlan = sta.params['wlan'].index(intf)
+
         dist = 100000
         if 'position' in sta.params and 'position' in ap.params:
             dist = sta.get_distance_to(ap)
