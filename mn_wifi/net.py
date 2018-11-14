@@ -818,10 +818,7 @@ class Mininet_wifi(Mininet):
         info('*** Stopping %i links\n' % len(self.links))
         for link in self.links:
             info('.')
-            try:
-                link.stop()
-            except:
-                pass
+            link.stop()
         info('\n')
         info('*** Stopping switches/access points\n')
         stopped = {}
@@ -1860,6 +1857,7 @@ class Mininet_wifi(Mininet):
                         if 'position' in sta.params and 'position' in ap.params:
                             dist = sta.get_distance_to(ap)
                             if dist <= ap.params['range'][0]:
+                                sleep(0.1)
                                 mobility.handover(sta, ap, wlan, ap_wlan=0)
                                 if self.rec_rssi:
                                     os.system('hwsim_mgmt -k %s %s >/dev/null 2>&1'

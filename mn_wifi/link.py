@@ -213,7 +213,7 @@ class IntfWireless(object):
         # if self.node.inNamespace:
         # Link may have been dumped into root NS
         # quietRun( 'ip link del ' + self.name )
-        self.node.delIntf(self)
+        #self.node.delIntf(self)
         self.link = None
 
     def status(self):
@@ -437,7 +437,7 @@ class _4address(object):
 
             self.add4addrIface(cl, wlan, cl_intfName)
             cl.params['mac'].append(cl.params['mac'][wlan][:3] +
-                                        '09' + cl.params['mac'][wlan][5:])
+                                    '09' + cl.params['mac'][wlan][5:])
             self.setMAC(cl, wlan)
             self.bring4addrIfaceUP(cl)
             cl.func.append('client')
@@ -451,7 +451,7 @@ class _4address(object):
             cl.params['wlan'].append(cl_intfName)
             sleep(1)
             cl.cmd('iw dev %s connect %s %s' % (cl.params['wlan'][1],
-                          ap.params['ssid'][apwlan], ap.params['mac'][apwlan]))
+                   ap.params['ssid'][apwlan], ap.params['mac'][apwlan]))
 
             params1 = {}
             params2 = {}
