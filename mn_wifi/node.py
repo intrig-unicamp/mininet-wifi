@@ -456,16 +456,18 @@ class Node_wifi(Node):
 
         wlans = len(self.params['mac'])
 
-        if wlan:
-            self.lastpos = self.params['position']
-            w_server.update_pos(w_pos(self.wmIface[wlan],
-                [(float(posX) + wlan), float(posY), float(posZ)])
-                [(float(posX) + wlan), float(posY), float(posZ)], mob)
-        else:
-            for wlan in range(0, wlans):
+        if self.lastpos != self.params['position']:
+            if wlan:
                 self.lastpos = self.params['position']
                 w_server.update_pos(w_pos(self.wmIface[wlan],
-                    [(float(posX)+wlan), float(posY), float(posZ)]), mob)
+                    [(float(posX) + wlan), float(posY), float(posZ)])
+                    [(float(posX) + wlan), float(posY), float(posZ)], mob)
+            else:
+                for wlan in range(0, wlans):
+                    self.lastpos = self.params['position']
+                    inc = '%s' % float('0.'+str(wlan))
+                    w_server.update_pos(w_pos(self.wmIface[wlan],
+                        [(float(posX)+float(inc)), float(posY), float(posZ)]), mob)
 
     def setGainWmediumd(self, wlan):
         "Set Antenna Gain for wmediumd"
