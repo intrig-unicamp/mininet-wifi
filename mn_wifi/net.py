@@ -227,7 +227,7 @@ class Mininet_wifi(Mininet):
         defaults.update(params)
 
         if self.autoSetPositions:
-            defaults['position'] = (round(self.nextPos_sta,2), 0, 0)
+            defaults['position'] = (round(self.nextPos_sta,2),0,0)
         if self.autoSetMacs:
             defaults['mac'] = macColonHex(self.nextIP)
         if self.autoPinCpus:
@@ -1359,14 +1359,16 @@ class Mininet_wifi(Mininet):
         # position
         if 'position' in params:
             position = params['position']
-            position = position.split(',')
+            if isinstance(position, string_types):
+                position = position.split(',')
             node.params['position'] = (float(position[0]),
                                        float(position[1]),
                                        float(position[2]))
         else:
             if 'position' in node.params:
                 position = node.params['position']
-                position = position.split(',')
+                if isinstance(position, string_types):
+                    position = position.split(',')
                 node.params['position'] = (float(position[0]),
                                            float(position[1]),
                                            float(position[2]))
