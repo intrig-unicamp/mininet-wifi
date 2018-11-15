@@ -762,13 +762,13 @@ class set_interference(object):
                 posY = 0
                 posZ = 0
             else:
-                posX = node.params['position'][0]
-                posY = node.params['position'][1]
-                posZ = node.params['position'][2]
+                posX = float(node.params['position'][0])
+                posY = float(node.params['position'][1])
+                posZ = float(node.params['position'][2])
             node.lastpos = [posX, posY, posZ]
 
             for wlan in range(0, len(node.params['wlan'])):
-                if wlan == 1:
+                if wlan >= 1:
                     posX+=1
                 if wlan < len(node.params['mac']):
                     wmediumd.positions.append(w_pos(node.wmIface[wlan],
