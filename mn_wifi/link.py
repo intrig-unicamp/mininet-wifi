@@ -416,12 +416,12 @@ class _4address(object):
             nums = re.findall(r'\d+', node1.name)
             if nums:
                 id = hex(int(nums[0]))[2:]
-                node1.params['position'] = (10, '%.2f' % float(id), 0)
+                node1.params['position'] = (10, round(id,2), 0)
         if 'position' not in node2.params:
             nums = re.findall(r'\d+', node2.name)
             if nums:
                 id = hex(int(nums[0]))[2:]
-                node2.params['position'] = (10, '%.2f' % float(id), 0)
+                node2.params['position'] = (10, round(id,2), 0)
 
         if cl_intfName not in cl.params['wlan']:
 
@@ -769,7 +769,7 @@ class set_interference(object):
 
             for wlan in range(0, len(node.params['wlan'])):
                 if wlan >= 1:
-                    posX+=1
+                    posX+=0.1
                 if wlan < len(node.params['mac']):
                     wmediumd.positions.append(w_pos(node.wmIface[wlan],
                                                     [posX, posY, posZ]))
@@ -928,7 +928,7 @@ class wifiDirectLink(IntfWireless):
             nums = re.findall(r'\d+', node.name)
             if nums:
                 id = hex(int(nums[0]))[2:]
-                node.params['position'] = (10, '%.2f' % float(id), 0)
+                node.params['position'] = (10, round(id,2), 0)
 
         node.func[wlan] = 'wifiDirect'
 

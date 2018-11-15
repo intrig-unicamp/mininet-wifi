@@ -227,7 +227,7 @@ class Mininet_wifi(Mininet):
         defaults.update(params)
 
         if self.autoSetPositions:
-            defaults['position'] = ('%s,0,0' % self.nextPos_sta)
+            defaults['position'] = (round(self.nextPos_sta,2), 0, 0)
         if self.autoSetMacs:
             defaults['mac'] = macColonHex(self.nextIP)
         if self.autoPinCpus:
@@ -306,7 +306,7 @@ class Mininet_wifi(Mininet):
             defaults['isolate_clients'] = True
         defaults.update(params)
         if self.autoSetPositions:
-            defaults['position'] = ('%s,50,0' % self.nextPos_ap)
+            defaults['position'] = (round(self.nextPos_ap,2), 50, 0)
             self.nextPos_ap += 100
 
         wlan = None
@@ -1360,16 +1360,16 @@ class Mininet_wifi(Mininet):
         if 'position' in params:
             position = params['position']
             position = position.split(',')
-            node.params['position'] = [float(position[0]),
+            node.params['position'] = (float(position[0]),
                                        float(position[1]),
-                                       float(position[2])]
+                                       float(position[2]))
         else:
             if 'position' in node.params:
                 position = node.params['position']
                 position = position.split(',')
-                node.params['position'] = [float(position[0]),
+                node.params['position'] = (float(position[0]),
                                            float(position[1]),
-                                           float(position[2])]
+                                           float(position[2]))
 
         params['wlans'] = self.countWiFiIfaces(**params)
 
@@ -1606,10 +1606,10 @@ class Mininet_wifi(Mininet):
             for node in kwargs['nodes']:
                 if 'position' not in node.params \
                         or 'position' in node.params \
-                                and node.params['position'] == (-1,-1,-1):
+                                and node.params['position'] == (-1, -1, -1):
                     node.isStationary = False
                     nodes.append(node)
-                    node.params['position'] = 0, 0, 0
+                    node.params['position'] = (0, 0, 0)
             kwargs['nodes'] = nodes
             self.setMobilityParams(**kwargs)
             if self.nroads == 0:
@@ -1716,7 +1716,7 @@ class Mininet_wifi(Mininet):
         self.autoAssociation = False
         self.isVanet = True
         for car in self.cars:
-            car.params['position'] = 0, 0, 0
+            car.params['position'] = (0, 0, 0)
         program(self.cars, self.aps, **kwargs)
 
     @staticmethod

@@ -63,8 +63,8 @@ class mobility(object):
         """:param node: node
         :param diff_time: difference between initial and final time. Useful for
         calculating the speed"""
-        init_pos = node.params['initPos']
-        fin_pos = node.params['finPos']
+        init_pos = (node.params['initPos'])
+        fin_pos = (node.params['finPos'])
         if hasattr(node, 'points'):
             diff_time = (len(node.points)-1) / diff_time
             node.moveFac = diff_time
@@ -76,9 +76,9 @@ class mobility(object):
             pos_z = float(fin_pos[2]) - float(init_pos[2])
 
             cls.speed(node, pos_x, pos_y, pos_z, diff_time)
-            pos = '%.2f,%.2f,%.2f' % (pos_x / diff_time, pos_y / diff_time,
-                                      pos_z / diff_time)
-            pos = pos.split(',')
+            pos = round(pos_x / diff_time,2),\
+                  round(pos_y / diff_time,2),\
+                  round(pos_z / diff_time,2)
             node.moveFac = pos
 
     @classmethod
@@ -88,19 +88,16 @@ class mobility(object):
         stage = args[1]
 
         if 'position' in kwargs:
+            pos = kwargs['position']
             if stage == 'stop':
-                finPos = kwargs['position']
-                node.params['finPos'] = finPos.split(',')
+                node.params['finPos'] = [float(pos_) for pos_ in pos.split(',')]
             if stage == 'start':
-                initPos = kwargs['position']
-                node.params['initPos'] = initPos.split(',')
+                node.params['initPos'] = [float(pos_) for pos_ in pos.split(',')]
         else:
             if stage == 'stop':
-                finPos = node.coord[1]
-                node.params['finPos'] = finPos.split(',')
+                node.params['finPos'] = node.coord[1]
             if stage == 'start':
-                initPos = node.coord[0]
-                node.params['initPos'] = initPos.split(',')
+                node.params['initPos'] = node.coord[0]
 
         if 'time' in kwargs:
             time_ = kwargs['time']
@@ -119,12 +116,9 @@ class mobility(object):
 
     @classmethod
     def move_node(cls, node):
-        x = '%.2f' % (float(node.params['position'][0]) +
-                      float(node.moveFac[0]))
-        y = '%.2f' % (float(node.params['position'][1]) +
-                      float(node.moveFac[1]))
-        z = '%.2f' % (float(node.params['position'][2]) +
-                      float(node.moveFac[2]))
+        x = round(node.params['position'][0],2) + round(node.moveFac[0],2)
+        y = round(node.params['position'][1],2) + round(node.moveFac[1],2)
+        z = round(node.params['position'][2],2) + round(node.moveFac[2],2)
         return x, y, z
 
     @classmethod
@@ -145,8 +139,8 @@ class mobility(object):
         :param pos_z: Position z
         :param diff_time: difference between start and stop time. Useful for
         calculating the speed"""
-        sta.params['speed'] = '%.2f' % abs(((pos_x + pos_y + pos_z) /
-                                            diff_time))
+        sta.params['speed'] = round(abs(((pos_x + pos_y + pos_z) /
+                                            diff_time)),2)
 
     @classmethod
     def ap_out_of_range(cls, sta, ap, wlan):
@@ -354,7 +348,7 @@ class mobility(object):
                                             node.params['position'] = node.points[len(node.points)-1]
                                     else:
                                         x, y, z = cls.move_node(node)
-                                        node.params['position'] = [x, y, z]
+                                        node.params['position'] = (x, y, z)
                                     node.time += 1
                                 if kwargs['ppm'] == 'logNormalShadowing':
                                     intf = node.params['wlan'][0]
@@ -466,8 +460,9 @@ class mobility(object):
         :param nodes: list of nodes"""
         for xy in mob:
             for idx, node in enumerate(nodes):
-                node.params['position'] = '%.2f' % xy[idx][0], '%.2f' \
-                                          % xy[idx][1], 0.0
+                node.params['position'] = round(xy[idx][0],2), \
+                                          round(xy[idx][1],2), \
+                                          0.0
                 if cls.wmediumd_mode and cls.wmediumd_mode == 3:
                     node.set_pos_wmediumd()
                 plot2d.update(node)
@@ -483,8 +478,9 @@ class mobility(object):
         :param nodes: list of nodes"""
         for xy in mob:
             for idx, node in enumerate(nodes):
-                node.params['position'] = '%.2f' % xy[idx][0], '%.2f' \
-                                          % xy[idx][1], 0.0
+                node.params['position'] = round(xy[idx][0],2), \
+                                          round(xy[idx][1],2), \
+                                          0.0
                 if cls.wmediumd_mode and cls.wmediumd_mode == 3:
                     node.set_pos_wmediumd()
                 sleep(0.0001)  # notice problem when there are many threads
@@ -506,8 +502,9 @@ class mobility(object):
         :param nodes: list of nodes"""
         for xy in mob:
             for idx, node in enumerate(nodes):
-                node.params['position'] = '%.2f' % xy[idx][0], '%.2f' \
-                                          % xy[idx][1], 0.0
+                node.params['position'] = round(xy[idx][0],2), \
+                                          round(xy[idx][1],2), \
+                                          0.0
                 if cls.wmediumd_mode and cls.wmediumd_mode == 3:
                     node.set_pos_wmediumd()
             sleep(0.5)
@@ -522,8 +519,9 @@ class mobility(object):
         :param nodes: list of nodes"""
         for xy in mob:
             for idx, node in enumerate(nodes):
-                node.params['position'] = '%.2f' % xy[idx][0], '%.2f' \
-                                          % xy[idx][1], 0.0
+                node.params['position'] = round(xy[idx][0],2), \
+                                          round(xy[idx][1],2), \
+                                          0.0
                 if cls.wmediumd_mode and cls.wmediumd_mode == 3:
                     node.set_pos_wmediumd()
                 sleep(0.0001)

@@ -526,7 +526,7 @@ class Node_wifi(Node):
         points = np.array([(pos_src[0], pos_src[1], pos_src[2]),
                            (pos_dst[0], pos_dst[1], pos_dst[2])])
         dist = pdist(points)
-        return float("%.2f" % dist)
+        return round(dist,2)
 
     def associateTo(self, ap, intf=None):
         "Force association to given AP"
