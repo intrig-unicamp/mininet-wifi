@@ -23,7 +23,11 @@ setup(
     packages=[ 'mn_wifi', 'mn_wifi.sixLoWPAN', 'mn_wifi.data', 'mn_wifi.examples', 'mn_wifi.sumo', 'mn_wifi.sumo.sumolib',
                'mn_wifi.sumo.traci', 'mn_wifi.sumo.data', 'mn_wifi.sumo.sumolib.net', 'mn_wifi.sumo.sumolib.output',
                'mn_wifi.sumo.sumolib.shapes' ],
-    package_data={'mn_wifi.sumo.data': ['*.xml', '*.sumocfg'], 'mn_wifi.data': ['signal_table_ieee80211ax']},
+    package_data={'mn_wifi.sumo.data': ['*.xml', '*.sumocfg'], 'mn_wifi.data': ['signal_table_ieee80211ax',
+                                                                                'signal_table_ieee80211n_gi20',
+                                                                                'signal_table_ieee80211n_gi40',
+                                                                                'signal_table_ieee80211n_sgi20',
+                                                                                'signal_table_ieee80211n_sgi40']},
     long_description="""
         Mininet-WiFi is a network emulator which uses lightweight
         virtualization to create virtual networks for rapid
