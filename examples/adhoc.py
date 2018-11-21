@@ -34,11 +34,11 @@ def topology(autoTxPower):
 
     info("*** Creating links\n")
     net.addLink(sta1, cls=adhoc, ssid='adhocNet',
-                mode='g', channel=5)
+                mode='g', channel=5, ht_cap='HT40+')
     net.addLink(sta2, cls=adhoc, ssid='adhocNet',
                 mode='g', channel=5)
     net.addLink(sta3, cls=adhoc, ssid='adhocNet',
-                mode='g', channel=5)
+                mode='g', channel=5, ht_cap='HT40+')
 
     info("*** Starting network\n")
     net.build()

@@ -192,7 +192,7 @@ class replayingNetworkConditions(object):
         currentTime = time()
         stations = Mininet_wifi.stations
         for sta in stations:
-            sta.params['frequency'][0] = sta.get_freq(0)
+            sta.params['freq'][0] = sta.get_freq(0)
         while True:
             if len(stations) == 0:
                 break
@@ -251,7 +251,7 @@ class replayingRSSI(object):
         ang = {}
         for sta in staList:
             ang[sta] = random.uniform(0, 360)
-            sta.params['frequency'][0] = sta.get_freq(0)
+            sta.params['freq'][0] = sta.get_freq(0)
         while True:
             if len(staList) == 0:
                 break
@@ -316,7 +316,7 @@ class replayingRSSI(object):
         (d) is the distance between the transmitter and the receiver (m)
         (c) speed of light in vacuum (m)
         (L) System loss"""
-        f = sta.params['frequency'][wlan] * 10 ** 9  # Convert Ghz to Hz
+        f = sta.params['freq'][wlan] * 10 ** 9  # Convert Ghz to Hz
         c = 299792458.0
         L = 1
         if dist == 0:
@@ -333,7 +333,7 @@ class replayingRSSI(object):
         """Based on Free Space Propagation Model"""
         c = 299792458.0
         L = 2.0
-        freq = sta.params['frequency'][0] * 10 ** 9  # Convert Ghz to Hz
+        freq = sta.params['freq'][0] * 10 ** 9  # Convert Ghz to Hz
         gains = gR + gT + pT
         lambda_ = float(c) / float(freq)  # lambda: wavelength (m)
         numerator = 10.0 ** (abs(signalLevel - gains) / 10.0)
@@ -359,7 +359,7 @@ class replayingRSSI(object):
         lF = 0  # Floor penetration loss factor
         nFloors = 0  # Number of Floors
         gains = pT + gT + gR
-        freq = sta.params['frequency'][0] * 10 ** 3
+        freq = sta.params['freq'][0] * 10 ** 3
         dist = 10.0 ** ((-20.0 * math.log10(freq) - lF * nFloors + 28.0 +
                          abs(signalLevel - gains)) / N)
 

@@ -445,7 +445,7 @@ class _4address(object):
 
             cl.params['mode'].append(cl.params['mode'][apwlan])
             cl.params['channel'].append(cl.params['channel'][apwlan])
-            cl.params['frequency'].append(cl.params['frequency'][apwlan])
+            cl.params['freq'].append(cl.params['freq'][apwlan])
             cl.params['txpower'].append(14)
             cl.params['antennaGain'].append(cl.params['antennaGain'][apwlan])
             cl.params['wlan'].append(cl_intfName)
@@ -906,7 +906,7 @@ class ITSLink(IntfWireless):
             wlan = node.ifaceToAssociate
 
         node.func[wlan] = 'its'
-        node.params['frequency'][wlan] = node.get_freq(wlan)
+        node.params['freq'][wlan] = node.get_freq(wlan)
         node.setOCBIface(wlan)
 
         if not port:
@@ -1032,14 +1032,18 @@ class adhoc(IntfWireless):
         node.cmd('iw dev %s set type ibss' % iface)
         if 'position' not in node.params or 'enable_wmediumd' in params:
             node.params['associatedTo'][wlan] = node.params['ssid'][wlan]
-            debug("associating %s to %s...\n"
-                  % (iface, node.params['ssid'][wlan]))
             if 'passwd' in params:
                 self.setSecuredAdhoc(node, wlan, **params)
             else:
-                node.pexec('iw dev %s ibss join %s %s 02:CA:FF:EE:BA:01' \
+                cmd = ''
+                if 'ht_cap' in params:
+                    cmd += params['ht_cap']
+                debug('iw dev %s ibss join %s %s %s 02:CA:FF:EE:BA:01\n' \
                        % (iface, node.params['associatedTo'][wlan],
-                          str(node.params['frequency'][wlan]).replace('.', '')))
+                          str(node.params['freq'][wlan]).replace('.', ''), cmd))
+                node.pexec('iw dev %s ibss join %s %s %s 02:CA:FF:EE:BA:01' \
+                       % (iface, node.params['associatedTo'][wlan],
+                          str(node.params['freq'][wlan]).replace('.', ''), cmd))
 
     def setSecuredAdhoc(self, node, wlan, **params):
         "Set secured adhoc"
@@ -1048,7 +1052,7 @@ class adhoc(IntfWireless):
         cmd += 'network={\n'
         cmd += '         ssid="%s"\n' % node.params['ssid'][wlan]
         cmd += '         mode=1\n'
-        cmd += '         frequency=%s\n' % str(node.params['frequency'][wlan]).replace('.', '')
+        cmd += '         frequency=%s\n' % str(node.params['freq'][wlan]).replace('.', '')
         cmd += '         proto=RSN\n'
         cmd += '         key_mgmt=WPA-PSK\n'
         cmd += '         pairwise=CCMP\n'
@@ -1143,16 +1147,25 @@ class mesh(IntfWireless):
         if 'passwd' in params:
             self.setSecuredMesh(node, wlan, **params)
         else:
-            self.meshAssociation(node, wlan)
+            self.meshAssociation(node, wlan, **params)
         if node.params['wlan'][wlan] not in str(node.intf):
             TCLinkWirelessStation(node, intfName1=node.params['wlan'][wlan])
 
-    def meshAssociation(self, node, wlan):
+    def meshAssociation(self, node, wlan, **params):
         "Performs Mesh Association"
-        debug('*** %s : iw dev %s mesh join %s' % (node, node.params['wlan'][wlan],
-                                               node.params['ssid'][wlan]))
-        node.pexec('iw dev %s mesh join %s' % (node.params['wlan'][wlan],
-                                               node.params['ssid'][wlan]))
+        cmd = ''
+        if 'ht_cap' in params:
+            cmd += params['ht_cap']
+        debug('*** %s : iw dev %s mesh join %s freq %s %s'
+              % (node, node.params['wlan'][wlan],
+                 node.params['ssid'][wlan],
+                 str(node.params['freq'][wlan]).replace('.',''),
+                 cmd))
+        node.pexec('iw dev %s mesh join %s freq %s %s'
+                   % (node.params['wlan'][wlan],
+                   node.params['ssid'][wlan],
+                   str(node.params['freq'][wlan]).replace('.',''),
+                   cmd))
 
     def setSecuredMesh(self, node, wlan, **params):
         "Set secured mesh"
@@ -1162,7 +1175,8 @@ class mesh(IntfWireless):
         cmd += 'network={\n'
         cmd += '         ssid="%s"\n' % node.params['ssid'][wlan]
         cmd += '         mode=5\n'
-        cmd += '         frequency=%s\n' % str(node.params['frequency'][wlan]).replace('.', '')
+        cmd += '         frequency=%s\n' \
+               % str(node.params['freq'][wlan]).replace('.', '')
         cmd += '         key_mgmt=SAE\n'
         cmd += '         psk="%s"\n' % params['passwd']
         cmd += '}'
@@ -1295,7 +1309,7 @@ class Association(object):
         :param ap: access point
         :param wlan: wlan ID"""
 
-        sta.params['frequency'][wlan] = ap.get_freq(0)
+        sta.params['freq'][wlan] = ap.get_freq(0)
         sta.params['channel'][wlan] = ap.params['channel'][0]
         sta.params['mode'][wlan] = ap.params['mode'][0]
 

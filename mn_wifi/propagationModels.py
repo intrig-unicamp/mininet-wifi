@@ -61,7 +61,7 @@ class propagationModel(object):
         (d) is the distance between the transmitter and the receiver (m)
         (c) speed of light in vacuum (m)
         (L) System loss"""
-        f = node1.params['frequency'][wlan] * 10 ** 9  # Convert Ghz to Hz
+        f = node1.params['freq'][wlan] * 10 ** 9  # Convert Ghz to Hz
         c = 299792458.0
         L = self.sL
 
@@ -167,7 +167,7 @@ class propagationModel(object):
         gr = kwargs['node1'].params['antennaGain'][kwargs['wlan']]
         pt = kwargs['node2'].params['txpower'][0]
         gt = kwargs['node2'].params['antennaGain'][0]
-        f = kwargs['node1'].params['frequency'][kwargs['wlan']] * 10 ** 3
+        f = kwargs['node1'].params['freq'][kwargs['wlan']] * 10 ** 3
         nFloors = self.nFloors  # Number of Floors
         gains = pt + gt + gr
         pL = self.pL
@@ -226,7 +226,7 @@ class GetSignalRange(object):
         (c) speed of light in vacuum (m)
         (L) System loss"""
         # Convert Ghz to Hz
-        f = kwargs['node'].params['frequency'][kwargs['wlan']] * 10 ** 9
+        f = kwargs['node'].params['freq'][kwargs['wlan']] * 10 ** 9
         txpower = kwargs['node'].params['txpower'][kwargs['wlan']]
         gain  = kwargs['node'].params['antennaGain'][kwargs['wlan']]
         gains = txpower + (gain * 2)
@@ -247,7 +247,7 @@ class GetSignalRange(object):
         (d) is the distance between the transmitter and the receiver (m)
         (c) speed of light in vacuum (m)
         (L) System loss"""
-        f = node.params['frequency'][wlan] * 10 ** 9  # Convert Ghz to Hz
+        f = node.params['freq'][wlan] * 10 ** 9  # Convert Ghz to Hz
         c = 299792458.0
         L = ppm.sL
         lambda_ = c / f  # lambda: wavelength (m)
@@ -304,7 +304,7 @@ class GetSignalRange(object):
 
     def ITU(self, **kwargs):
         """International Telecommunication Union (ITU) Propagation Loss Model:"""
-        f = kwargs['node'].params['frequency'][kwargs['wlan']] * 10 ** 3
+        f = kwargs['node'].params['freq'][kwargs['wlan']] * 10 ** 3
         txpower = kwargs['node'].params['txpower'][kwargs['wlan']]
         gain  = kwargs['node'].params['antennaGain'][kwargs['wlan']]
         gains = txpower + (gain * 2)
@@ -335,7 +335,7 @@ class GetPowerGivenRange(object):
         (c) speed of light in vacuum (m)
         (L) System loss"""
         # Convert Ghz to Hz
-        f = kwargs['node'].params['frequency'][kwargs['wlan']] * 10 ** 9
+        f = kwargs['node'].params['freq'][kwargs['wlan']] * 10 ** 9
         gain = kwargs['node'].params['antennaGain'][kwargs['wlan']]
         c = 299792458.0
         d = kwargs['dist']
@@ -357,7 +357,7 @@ class GetPowerGivenRange(object):
         (d) is the distance between the transmitter and the receiver (m)
         (c) speed of light in vacuum (m)
         (L) System loss"""
-        f = node.params['frequency'][wlan] * 10 ** 9  # Convert Ghz to Hz
+        f = node.params['freq'][wlan] * 10 ** 9  # Convert Ghz to Hz
         c = 299792458.0
         L = ppm.sL
         lambda_ = c / f  # lambda: wavelength (m)
@@ -418,7 +418,7 @@ class GetPowerGivenRange(object):
     def ITU(self, **kwargs):
         """International Telecommunication Union (ITU) Propagation Loss Model:
         distance is the range of the transmitter (m)"""
-        f = kwargs['node'].params['frequency'][kwargs['wlan']] * 10 ** 3
+        f = kwargs['node'].params['freq'][kwargs['wlan']] * 10 ** 3
         gain = kwargs['node'].params['antennaGain'][kwargs['wlan']]
         d = kwargs['dist']
         lF = ppm.lF  # Floor penetration loss factor

@@ -1394,7 +1394,7 @@ class Mininet_wifi(Mininet):
             self.add_ip_param(node, autoSetMacs, **params)
 
         array_ = ['antennaGain', 'antennaHeight', 'txpower',
-                  'channel', 'mode', 'frequency']
+                  'channel', 'mode', 'freq']
         for param in array_:
             node.params[param] = []
             if param in params:
@@ -1422,7 +1422,7 @@ class Mininet_wifi(Mininet):
                         value = 1
                     if param == 'mode':
                         value = 'g'
-                    if param == 'frequency':
+                    if param == 'freq':
                         value = 2.412
                     node.params[param].append(value)
         self.add_range_param(node, **params)
@@ -1538,7 +1538,7 @@ class Mininet_wifi(Mininet):
                     node.params['mac'].append("".join(new_mac))
 
                     array_ = ['range', 'txpower', 'channel', 'antennaGain',
-                              'antennaHeight', 'mode', 'frequency']
+                              'antennaHeight', 'mode', 'freq']
                     for param in array_:
                         node.params[param].append(node.params[param][0])
 

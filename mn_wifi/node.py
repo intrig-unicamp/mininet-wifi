@@ -229,7 +229,7 @@ class Node_wifi(Node):
     def configureOCB(self, wlan):
         "Configure Wireless OCB"
         iface = self.params['wlan'][wlan]
-        freq = self.params['frequency'][wlan]
+        freq = self.params['freq'][wlan]
         freq = str(freq).replace(".", "")
         self.func[wlan] = 'ocb'
         self.cmd('iw dev %s ocb join %s 20MHz' % (iface, freq))
@@ -334,12 +334,12 @@ class Node_wifi(Node):
         "Set Channel"
         wlan = self.params['wlan'].index(intf)
         self.params['channel'][wlan] = str(value)
-        self.params['frequency'][wlan] = self.get_freq(wlan)
+        self.params['freq'][wlan] = self.get_freq(wlan)
         if isinstance(self, AP) and self.func[wlan] != 'mesh':
             self.pexec(
                 'hostapd_cli -i %s chan_switch %s %s' % (
                     intf, str(value),
-                    str(self.params['frequency'][wlan]).replace(".", "")))
+                    str(self.params['freq'][wlan]).replace(".", "")))
         else:
             self.cmd('iw dev %s set channel %s'
                      % (self.params['wlan'][wlan], str(value)))
@@ -348,7 +348,7 @@ class Node_wifi(Node):
         "Set Frequency"
         wlan = self.params['wlan'].index(intf)
         self.cmd('iw dev %s set freq %s' % (self.params['wlan'][wlan], value))
-        self.params['frequency'][wlan] = value
+        self.params['freq'][wlan] = value
 
     def setTxPower(self, value, intf=None, setParam=True):
         "Set Tx Power"
@@ -1383,8 +1383,8 @@ class AccessPoint(AP):
                     ap.params['wlan'].append('%s-%s'
                                              % (ap.params['wlan'][0], i))
                     ap.params['mode'].append(ap.params['mode'][0])
-                    ap.params['frequency'].append(
-                        ap.params['frequency'][0])
+                    ap.params['freq'].append(
+                        ap.params['freq'][0])
                     ap.params['mac'].append('')
             else:
                 for i in range(1, len(ap.params['wlan'])):
@@ -1612,7 +1612,7 @@ class AccessPoint(AP):
         if setTC:
             AccessPoint.setBw(ap, wlan, iface)
 
-        ap.params['frequency'][wlan] = ap.get_freq(0)
+        ap.params['freq'][wlan] = ap.get_freq(0)
 
     @classmethod
     def setBw(cls, node, wlan, iface):
