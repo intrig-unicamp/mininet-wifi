@@ -352,8 +352,9 @@ class w_starter(object):
 
     @classmethod
     def start(cls, intfrefs=None, links=None, default_auto_snr=-10,
-              default_auto_errprob=1.0, isnodeaps=None, fading_coefficient=0,
-              noise_threshold=-91, pos=None, txpowers=None, ppm=None):
+              default_auto_errprob=1.0, isnodeaps=None,
+              fading_coefficient=0, noise_threshold=-91, pos=None,
+              txpowers=None, ppm=None, maclist=None):
         """Set the data for the wmediumd daemon
 
         :param intfrefs: A list of all WmediumdIntfRef that should be managed
@@ -365,7 +366,8 @@ class w_starter(object):
         :param pos: list of pos
         :param is nodeaps: check if the node is ap
         :param fading_coefficient: fading_coefficient
-        :param ppm: propagation model"""
+        :param ppm: propagation model
+        :param maclist: additional maclist"""
 
         kwargs = {}
         if intfrefs is None:
@@ -385,6 +387,7 @@ class w_starter(object):
         kwargs['fading_coefficient'] = fading_coefficient
         kwargs['noise_threshold'] = noise_threshold
         kwargs['ppm'] = ppm
+        kwargs['maclist'] = maclist
 
         if wmediumd_mode.mode == 4:
             raise Exception("Wrong wmediumd mode given")

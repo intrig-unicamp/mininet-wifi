@@ -695,14 +695,14 @@ class wmediumd(TCWirelessLink):
     nodes = []
 
     def __init__(self, fading_coefficient, noise_threshold, stations,
-                 aps, cars, propagation_model):
+                 aps, cars, propagation_model, maclist=None):
 
         self.configureWmediumd(fading_coefficient, noise_threshold, stations,
-                               aps, cars, propagation_model)
+                               aps, cars, propagation_model, maclist)
 
     @classmethod
     def configureWmediumd(cls, fading_coefficient, noise_threshold, stations,
-                          aps, cars, propagation_model):
+                          aps, cars, propagation_model, maclist):
         "Configure wmediumd"
         intfrefs = []
         isnodeaps = []
@@ -722,6 +722,18 @@ class wmediumd(TCWirelessLink):
                         isnodeaps.append(1)
                     else:
                         isnodeaps.append(0)
+        for n in maclist:
+            for key in n:
+                key.wmIface.append(DynamicWmediumdIntfRef(key, intf=len(key.wmIface)))
+                key.func.append('none')
+                key.params['wlan'].append(n[key][1])
+                key.params['mac'].append(n[key][0])
+                key.params['range'].append(0)
+                key.params['freq'].append(key.params['freq'][0])
+                key.params['antennaGain'].append(0)
+                key.params['txpower'].append(14)
+                intfrefs.append(key.wmIface[len(key.wmIface)-1])
+                isnodeaps.append(0)
 
         if wmediumd_mode.mode == w_cst.INTERFERENCE_MODE:
             set_interference()
@@ -733,19 +745,20 @@ class wmediumd(TCWirelessLink):
             set_snr()
         start_wmediumd(intfrefs, wmediumd.links, wmediumd.positions,
                        fading_coefficient, noise_threshold,
-                       wmediumd.txpowers, isnodeaps, propagation_model)
+                       wmediumd.txpowers, isnodeaps, propagation_model,
+                       maclist)
 
 
 class start_wmediumd(object):
     def __init__(cls, intfrefs, links, positions,
                  fading_coefficient, noise_threshold, txpowers, isnodeaps,
-                 propagation_model):
+                 propagation_model, maclist):
 
         w_starter.start(intfrefs, links, pos=positions,
                               fading_coefficient=fading_coefficient,
                               noise_threshold=noise_threshold,
                               txpowers=txpowers, isnodeaps=isnodeaps,
-                              ppm=propagation_model)
+                              ppm=propagation_model, maclist=maclist)
 
 
 class set_interference(object):
