@@ -7,6 +7,7 @@ from mininet.log import setLogLevel, info
 from mn_wifi.replaying import replayingRSSI
 from mn_wifi.cli import CLI_wifi
 from mn_wifi.net import Mininet_wifi
+import os
 
 
 def topology():
@@ -34,8 +35,9 @@ def topology():
 
     net.plotGraph(max_x=100, max_y=100)
 
-    getTrace(sta1, 'examples/replaying/replayingRSSI/node1_rssiData.dat')
-    getTrace(sta2, 'examples/replaying/replayingRSSI/node2_rssiData.dat')
+    path = os.path.dirname(os.path.abspath(__file__))
+    getTrace(sta1, '%s/replayingRSSI/node1_rssiData.dat' % path)
+    getTrace(sta2, '%s/replayingRSSI/node2_rssiData.dat' % path)
 
     replayingRSSI(net)
 

@@ -10,6 +10,7 @@ from mn_wifi.cli import CLI_wifi
 from mn_wifi.net import Mininet_wifi
 from mn_wifi.link import wmediumd, adhoc
 from mn_wifi.wmediumdConnector import interference
+import os
 
 
 def topology():
@@ -39,10 +40,11 @@ def topology():
     'ploting graph'
     #net.plotGraph(max_x=200, max_y=200)
 
-    getTrace(sta1, 'examples/replaying/replayingMobility/node1.dat')
-    getTrace(sta2, 'examples/replaying/replayingMobility/node2.dat')
-    getTrace(sta3, 'examples/replaying/replayingMobility/node3.dat')
-    getTrace(sta4, 'examples/replaying/replayingMobility/node4.dat')
+    path = os.path.dirname(os.path.abspath(__file__))
+    getTrace(sta1, '%s/replayingMobility/node1.dat' % path)
+    getTrace(sta2, '%s/replayingMobility/node2.dat' % path)
+    getTrace(sta3, '%s/replayingMobility/node3.dat' % path)
+    getTrace(sta4, '%s/replayingMobility/node4.dat' % path)
 
     info("*** Starting network\n")
     net.build()
