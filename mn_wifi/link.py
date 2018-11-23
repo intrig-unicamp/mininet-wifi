@@ -722,18 +722,19 @@ class wmediumd(TCWirelessLink):
                         isnodeaps.append(1)
                     else:
                         isnodeaps.append(0)
-        for n in maclist:
-            for key in n:
-                key.wmIface.append(DynamicWmediumdIntfRef(key, intf=len(key.wmIface)))
-                key.func.append('none')
-                key.params['wlan'].append(n[key][1])
-                key.params['mac'].append(n[key][0])
-                key.params['range'].append(0)
-                key.params['freq'].append(key.params['freq'][0])
-                key.params['antennaGain'].append(0)
-                key.params['txpower'].append(14)
-                intfrefs.append(key.wmIface[len(key.wmIface)-1])
-                isnodeaps.append(0)
+            for n in maclist:
+                for key in n:
+                    if key == node:
+                        key.wmIface.append(DynamicWmediumdIntfRef(key, intf=len(key.wmIface)))
+                        key.func.append('none')
+                        key.params['wlan'].append(n[key][1])
+                        key.params['mac'].append(n[key][0])
+                        key.params['range'].append(0)
+                        key.params['freq'].append(key.params['freq'][0])
+                        key.params['antennaGain'].append(0)
+                        key.params['txpower'].append(14)
+                        intfrefs.append(key.wmIface[len(key.wmIface) - 1])
+                        isnodeaps.append(0)
 
         if wmediumd_mode.mode == w_cst.INTERFERENCE_MODE:
             set_interference()
