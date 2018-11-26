@@ -1760,8 +1760,7 @@ class Mininet_wifi(Mininet):
         else:
             mobility.wmediumd_mode = 1
         if not self.configureWiFiDirect and not self.configure4addr and \
-            self.wmediumd_mode != error_prob or \
-                (self.configureWiFiDirect and self.autoAssociation):
+            self.wmediumd_mode != error_prob:
             wmediumd(self.fading_coefficient, self.noise_threshold,
                      self.stations, self.aps, self.cars, propagationModel,
                      self.wmediumdMac)
