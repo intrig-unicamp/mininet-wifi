@@ -1643,16 +1643,16 @@ class Mininet_wifi(Mininet):
     def setMobilityModelParams(self, **kwargs):
         "Set Mobility Parameters"
 
-        array_ = ['min_x', 'min_y', 'min_z',
-                  'max_x', 'max_y', 'max_z',
-                  'min_v', 'max_v']
-        for param in array_:
-            if param in kwargs:
-                setattr(self, param, int(kwargs[param]))
-                self.mob_param.setdefault(param, getattr(self, param))
+        args = ['min_x', 'min_y', 'min_z',
+                'max_x', 'max_y', 'max_z',
+                'min_v', 'max_v']
+        for arg in args:
+            if arg in kwargs:
+                setattr(self, arg, int(kwargs[arg]))
+                self.mob_param.setdefault(arg, getattr(self, arg))
             else:
-                if param in ['min_v', 'max_v']:
-                    self.mob_param.setdefault(param, 5.0)
+                if arg in ['min_v', 'max_v']:
+                    self.mob_param.setdefault(arg, 5.0)
 
         kwargs['nodes'] = self.getMobileNodes()
         if self.nroads != 0:
@@ -1661,9 +1661,14 @@ class Mininet_wifi(Mininet):
         if 'ac_method' in kwargs:
             self.mob_param.setdefault('ac_method', kwargs['ac_method'])
 
-        array_ = ['seed', 'stations', 'aps', 'DRAW', 'conn', 'rec_rssi']
-        for param in array_:
-            self.mob_param.setdefault(param, getattr(self, param))
+        if 'max_wt' in kwargs:
+            self.mob_param.setdefault('max_wt', float(kwargs['max_wt']))
+        else:
+            self.mob_param.setdefault('max_wt', float(100))
+
+        args = ['seed', 'stations', 'aps', 'DRAW', 'conn', 'rec_rssi']
+        for arg in args:
+            self.mob_param.setdefault(arg, getattr(self, arg))
 
         self.mob_param.setdefault('model', kwargs['model'])
         self.mob_param.setdefault('time', kwargs['time'])
@@ -1674,13 +1679,13 @@ class Mininet_wifi(Mininet):
         "Set Mobility Parameters"
         self.mob_param.update(**kwargs)
 
-        array_ = ['min_x', 'min_y', 'min_z',
+        args = ['min_x', 'min_y', 'min_z',
                   'max_x', 'max_y', 'max_z',
                   'stations', 'cars', 'aps',
                   'DRAW', 'conn', 'rec_rssi',
                   'repetitions']
-        for param in array_:
-            self.mob_param.setdefault(param, getattr(self, param))
+        for arg in args:
+            self.mob_param.setdefault(arg, getattr(self, arg))
 
         if self.nroads != 0:
             self.mob_param.setdefault('nroads', self.nroads)

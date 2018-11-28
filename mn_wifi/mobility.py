@@ -380,19 +380,16 @@ class mobility(object):
             plotNodes = kwargs['plotNodes']
         nodes = cls.stations + cls.aps + plotNodes
 
-        # max waiting time
-        MAX_WT = 100.
-
         for node in nodes:
             if 'position' in node.params:
                 if not hasattr(node, 'min_x'):
                     node.min_x = 0
                 if not hasattr(node, 'min_y'):
                     node.min_y = 0
-                array_ = ['max_x', 'max_y', 'min_v', 'max_v']
-                for param in array_:
-                    if param in kwargs and not hasattr(node, param):
-                        setattr(node, param, float(kwargs[param]))
+                args = ['max_x', 'max_y', 'min_v', 'max_v']
+                for arg in args:
+                    if arg in kwargs and not hasattr(node, arg):
+                        setattr(node, arg, float(kwargs[arg]))
 
         try:
             if kwargs['DRAW']:
@@ -423,7 +420,7 @@ class mobility(object):
                                        dimensions=(kwargs['max_x'],
                                                    kwargs['max_y']))
             elif model == 'RandomWayPoint':  # Random Waypoint model
-                mob = random_waypoint(kwargs['nodes'], wt_max=MAX_WT)
+                mob = random_waypoint(kwargs['nodes'], wt_max=kwargs['max_wt'])
             elif model == 'GaussMarkov':  # Gauss-Markov model
                 mob = gauss_markov(kwargs['nodes'], alpha=0.99)
             elif model == 'ReferencePoint':  # Reference Point Group model
