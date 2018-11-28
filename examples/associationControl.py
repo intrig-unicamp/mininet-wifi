@@ -43,7 +43,7 @@ def topology():
     net.plotGraph(max_x=120, max_y=120)
 
     net.setMobilityModel(time=0, model='RandomWayPoint', max_x=120, max_y=120,
-                         min_v=0.3, max_v=0.5, seed=1, associationControl='ssf')
+                         min_v=0.3, max_v=0.5, seed=1, ac_method='ssf')
 
     info("*** Starting network\n")
     net.build()

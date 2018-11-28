@@ -285,8 +285,8 @@ class mobility(object):
         "Used when the position of each node is previously defined"
         from mn_wifi.node import Station
 
-        if 'AC' in kwargs:
-            cls.ac = kwargs['AC']
+        if 'ac_method' in kwargs:
+            cls.ac = kwargs['ac_method']
         cls.rec_rssi = kwargs['rec_rssi']
         cls.stations = kwargs['stations']
         cls.aps = kwargs['aps']
@@ -370,8 +370,8 @@ class mobility(object):
         "Used when a mobility model is set"
         np.random.seed(kwargs['seed'])
         cls.rec_rssi = kwargs['rec_rssi']
-        if 'AC' in kwargs:
-            cls.ac = kwargs['AC']
+        if 'ac_method' in kwargs:
+            cls.ac = kwargs['ac_method']
         cls.stations, cls.mobileNodes, cls.aps = \
             kwargs['stations'], kwargs['stations'], kwargs['aps']
 
@@ -387,16 +387,12 @@ class mobility(object):
             if 'position' in node.params:
                 if not hasattr(node, 'min_x'):
                     node.min_x = 0
-                if 'max_x' in kwargs and (not hasattr(node, 'max_x') or node.max_x == 0):
-                    node.max_x = kwargs['max_x']
                 if not hasattr(node, 'min_y'):
                     node.min_y = 0
-                if 'max_y' in kwargs and (not hasattr(node, 'max_y') or node.max_y == 0):
-                    node.max_y = kwargs['max_y']
-                if 'min_v' in kwargs and (not hasattr(node, 'min_v') or node.min_v == 0):
-                    node.min_v = kwargs['min_v']
-                if 'max_v' in kwargs and (not hasattr(node, 'max_v') or node.max_v == 0):
-                    node.max_v = kwargs['max_v']
+                array_ = ['max_x', 'max_y', 'min_v', 'max_v']
+                for param in array_:
+                    if param in kwargs and not hasattr(node, param):
+                        setattr(node, param, float(kwargs[param]))
 
         try:
             if kwargs['DRAW']:
@@ -414,6 +410,11 @@ class mobility(object):
             debug('Configuring the mobility model %s' % kwargs['model'])
 
             if model == 'RandomWalk':  # Random Walk model
+                for node in nodes:
+                    array_ = ['constantVelocity', 'constantDistance']
+                    for param in array_:
+                        if not hasattr(node, param):
+                            setattr(node, param, 1)
                 mob = random_walk(kwargs['nodes'])
             elif model == 'TruncatedLevyWalk':  # Truncated Levy Walk model
                 mob = truncated_levy_walk(kwargs['nodes'])
