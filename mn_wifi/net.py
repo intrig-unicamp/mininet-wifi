@@ -1665,6 +1665,10 @@ class Mininet_wifi(Mininet):
             self.mob_param.setdefault('max_wt', float(kwargs['max_wt']))
         else:
             self.mob_param.setdefault('max_wt', float(100))
+        if 'min_wt' in kwargs:
+            self.mob_param.setdefault('min_wt', float(kwargs['min_wt']))
+        else:
+            self.mob_param.setdefault('min_wt', float(0))
 
         args = ['seed', 'stations', 'aps', 'DRAW', 'conn', 'rec_rssi']
         for arg in args:

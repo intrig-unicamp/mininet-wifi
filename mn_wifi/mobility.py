@@ -420,7 +420,9 @@ class mobility(object):
                                        dimensions=(kwargs['max_x'],
                                                    kwargs['max_y']))
             elif model == 'RandomWayPoint':  # Random Waypoint model
-                mob = random_waypoint(kwargs['nodes'], wt_max=kwargs['max_wt'])
+                mob = random_waypoint(kwargs['nodes'],
+                                      wt_min=kwargs['min_wt'],
+                                      wt_max=kwargs['max_wt'])
             elif model == 'GaussMarkov':  # Gauss-Markov model
                 mob = gauss_markov(kwargs['nodes'], alpha=0.99)
             elif model == 'ReferencePoint':  # Reference Point Group model
@@ -718,7 +720,7 @@ def init_random_waypoint(nodes, max_x, max_y, max_z,
 
 
 class RandomWaypoint(object):
-    def __init__(self, nodes, wt_max=None):
+    def __init__(self, nodes, wt_min=None, wt_max=None):
         """
         Random Waypoint model.
 
@@ -738,6 +740,7 @@ class RandomWaypoint(object):
         """
         self.nodes = nodes
         self.nr_nodes = len(nodes)
+        self.wt_min = wt_min
         self.wt_max = wt_max
         self.init_stationary = True
 
@@ -768,20 +771,22 @@ class RandomWaypoint(object):
             MIN_X[node] = self.nodes[node].min_x
             MIN_Y[node] = self.nodes[node].min_y
 
-        # wt_min = 0.
+        wt_min = 2000.
 
-        # if self.init_stationary:
-        #    x, y, x_waypoint, y_waypoint, velocity, wt = \
-        #        init_random_waypoint(self.nr_nodes, min_x, min_y, max_x, max_y, MIN_V, MAX_V, wt_min,
-        #                     (self.wt_max if self.wt_max is not None else 0.))
-        # else:
-        NODES = np.arange(self.nr_nodes)
-        x = U(MIN_X, MAX_X, NODES)
-        y = U(MIN_Y, MAX_Y, NODES)
-        x_waypoint = U(MIN_X, MAX_X, NODES)
-        y_waypoint = U(MIN_Y, MAX_Y, NODES)
-        wt = np.zeros(self.nr_nodes)
-        velocity = U(MIN_V, MAX_V, NODES)
+        if self.init_stationary:
+            x, y, x_waypoint, y_waypoint, velocity, wt = \
+                init_random_waypoint(self.nr_nodes,
+                                     max_x, max_y, 0,
+                                     MIN_V, MAX_V,
+                                     self.wt_min, self.wt_max)
+        else:
+            NODES = np.arange(self.nr_nodes)
+            x = U(MIN_X, MAX_X, NODES)
+            y = U(MIN_Y, MAX_Y, NODES)
+            x_waypoint = U(MIN_X, MAX_X, NODES)
+            y_waypoint = U(MIN_Y, MAX_Y, NODES)
+            wt = np.zeros(self.nr_nodes)
+            velocity = U(MIN_V, MAX_V, NODES)
 
         theta = np.arctan2(y_waypoint - y, x_waypoint - x)
         costheta = np.cos(theta)
