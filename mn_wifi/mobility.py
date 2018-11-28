@@ -548,8 +548,9 @@ class mobility(object):
     @classmethod
     def parameters(cls):
         "Applies channel params and handover"
+        mobileNodes = list(set(cls.mobileNodes) - set(cls.aps))
         while True:
-            cls.configureLinks(cls.mobileNodes)
+            cls.configureLinks(mobileNodes)
 
     @classmethod
     def configureLinks(cls, nodes):
