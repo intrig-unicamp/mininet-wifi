@@ -1358,8 +1358,8 @@ class Mininet_wifi(Mininet):
             node.max_y = 0
             node.min_x = 0
             node.min_y = 0
-            node.max_v = 0
-            node.min_v = 0
+            node.max_v = 10
+            node.min_v = 1
             node.max_speed = 10
             node.min_speed = 1
 
