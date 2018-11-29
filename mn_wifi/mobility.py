@@ -666,33 +666,31 @@ def init_random_waypoint(nr_nodes, dimensions,
     max_y = dimensions[1]
     for i in range(nr_nodes):
         while True:
-            z1 = rand(ndim) * np.array(dimensions)
-            z2 = rand(ndim) * np.array(dimensions)
             if rand() < q0[i]:
                 # moving[i] = 0.
                 # speed_mean = np.delete(speed_mean, i)
                 # speed_delta = np.delete(speed_delta, i)
                 # M_0
-                x1 = rand() * dimensions[0][i]
-                x2 = rand() * dimensions[0][i]
+                x1 = rand() * max_x[i]
+                x2 = rand() * max_x[i]
                 # M_1
-                y1 = rand() * dimensions[1][i]
-                y2 = rand() * dimensions[1][i]
+                y1 = rand() * max_y[i]
+                y2 = rand() * max_y[i]
                 break
             else:
                 # M_0
-                x1 = rand() * dimensions[0][i]
-                x2 = rand() * dimensions[0][i]
+                x1 = rand() * max_x[i]
+                x2 = rand() * max_x[i]
                 # M_1
-                y1 = rand() * dimensions[1][i]
-                y2 = rand() * dimensions[1][i]
+                y1 = rand() * max_y[i]
+                y2 = rand() * max_y[i]
 
                 # r is a ratio of the length of the randomly chosen path over
                 # the length of a diagonal across the simulation area
                 r = np.sqrt(((x2 - x1) * (x2 - x1) +
                              (y2 - y1) * (y2 - y1)) / \
-                            (dimensions[0][i] * dimensions[0][i] +
-                             dimensions[1][i] * dimensions[1][i]))
+                            (max_x[i] * max_x[i] +
+                             max_y[i] * max_y[i]))
                 if rand() < r:
                     moving[i] = 1.
                     break
