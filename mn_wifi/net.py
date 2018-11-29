@@ -1648,7 +1648,7 @@ class Mininet_wifi(Mininet):
                 'min_v', 'max_v']
         for arg in args:
             if arg in kwargs:
-                setattr(self, arg, int(kwargs[arg]))
+                setattr(self, arg, float(kwargs[arg]))
                 self.mob_param.setdefault(arg, getattr(self, arg))
             else:
                 if arg in ['min_v', 'max_v']:

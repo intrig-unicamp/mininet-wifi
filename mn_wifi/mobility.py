@@ -420,6 +420,12 @@ class mobility(object):
                                        dimensions=(kwargs['max_x'],
                                                    kwargs['max_y']))
             elif model == 'RandomWayPoint':  # Random Waypoint model
+                for node in nodes:
+                    array_ = ['constantVelocity', 'constantDistance',
+                              'min_v', 'max_v']
+                    for param in array_:
+                        if not hasattr(node, param):
+                            setattr(node, param, '1')
                 mob = random_waypoint(kwargs['nodes'],
                                       wt_min=kwargs['min_wt'],
                                       wt_max=kwargs['max_wt'])
@@ -431,8 +437,9 @@ class mobility(object):
                                                         kwargs['max_y']),
                                             aggregation=0.5)
             elif model == 'TimeVariantCommunity':
-                mob = tvc(kwargs['nodes'], dimensions=(kwargs['max_x'],
-                                                   kwargs['max_y']),
+                mob = tvc(kwargs['nodes'],
+                          dimensions=(kwargs['max_x'],
+                                      kwargs['max_y']),
                           aggregation=[0.5, 0.], epoch=[100, 100])
             else:
                 raise Exception("Mobility Model not defined or doesn't exist!")
@@ -604,7 +611,6 @@ P = lambda ALPHA, MIN, MAX, SAMPLES: ((MAX ** (ALPHA + 1.) - 1.) * \
 # define an Exponential Distribution
 E = lambda SCALE, SAMPLES: -SCALE * np.log(rand(*SAMPLES.shape))
 
-
 # *************** Palm state probability **********************
 def pause_probability_init(pause_low, pause_high, speed_low,
                            speed_high, max_x, max_y):
@@ -612,7 +618,6 @@ def pause_probability_init(pause_low, pause_high, speed_low,
              (2 * np.log(speed_high / speed_low))
     delta1 = np.sqrt((max_x * max_x) + (max_y * max_y))
     return alpha1 / (alpha1 + delta1)
-
 
 # *************** Palm residual ******************************
 def residual_time(mean, delta, shape=(1,)):
@@ -635,22 +640,17 @@ def initial_speed(speed_mean, speed_delta, shape=(1,)):
     v0 = speed_mean - speed_delta
     v1 = speed_mean + speed_delta
     u = rand(*shape)
-
     return pow(v1, u) / pow(v0, u - 1)
 
 
-def init_random_waypoint(nodes, max_x, max_y, max_z,
+def init_random_waypoint(nr_nodes, max_x, max_y, max_z,
                          speed_low, speed_high, pause_low, pause_high):
-    nr_nodes = nodes
     x = np.empty(nr_nodes)
     y = np.empty(nr_nodes)
     x_waypoint = np.empty(nr_nodes)
     y_waypoint = np.empty(nr_nodes)
     speed = np.empty(nr_nodes)
-
     pause_time = np.empty(nr_nodes)
-    speed_low = speed_low
-    speed_high = speed_high
     moving = np.ones(nr_nodes)
     speed_mean, speed_delta = (speed_low + speed_high) / 2., \
                               (speed_high - speed_low) / 2.
@@ -729,6 +729,9 @@ class RandomWaypoint(object):
           *nr_nodes*:
             Integer, the number of nodes.
 
+          *dimensions*:
+            Tuple of Integers, the x and y dimensions of the simulation area.
+
         keyword arguments:
 
           *velocity*:
@@ -746,24 +749,16 @@ class RandomWaypoint(object):
 
     def __iter__(self):
 
-        nr_nodes = len(self.nodes)
-        NODES = np.arange(nr_nodes)
+        NODES = np.arange(self.nr_nodes)
 
-        max_v = U(0, 0, NODES)
-        min_v = U(0, 0, NODES)
-        max_x = U(0, 0, NODES)
-        max_y = U(0, 0, NODES)
-        min_x = U(0, 0, NODES)
-        min_y = U(0, 0, NODES)
+        MAX_V = U(0, 0, NODES)
+        MIN_V = U(0, 0, NODES)
+        MAX_X = U(0, 0, NODES)
+        MAX_Y = U(0, 0, NODES)
+        MIN_X = U(0, 0, NODES)
+        MIN_Y = U(0, 0, NODES)
 
-        MAX_X = max_x
-        MAX_Y = max_y
-        MIN_X = min_x
-        MIN_Y = min_y
-        MAX_V = max_v
-        MIN_V = min_v
-
-        for node in range(0, len(self.nodes)):
+        for node in range(0, self.nr_nodes):
             MAX_V[node] = self.nodes[node].max_v/10
             MIN_V[node] = self.nodes[node].min_v/10
             MAX_X[node] = self.nodes[node].max_x
@@ -771,12 +766,12 @@ class RandomWaypoint(object):
             MIN_X[node] = self.nodes[node].min_x
             MIN_Y[node] = self.nodes[node].min_y
 
-        wt_min = 2000.
-
+        self.dimensions = (MAX_X, MAX_Y)
+        ndim = len(self.dimensions)
         if self.init_stationary:
             x, y, x_waypoint, y_waypoint, velocity, wt = \
                 init_random_waypoint(self.nr_nodes,
-                                     max_x, max_y, 0,
+                                     MAX_X, MAX_Y, 0,
                                      MIN_V, MAX_V,
                                      self.wt_min, self.wt_max)
         else:
