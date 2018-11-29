@@ -645,6 +645,7 @@ def initial_speed(speed_mean, speed_delta, shape=(1,)):
 
 def init_random_waypoint(nr_nodes, dimensions,
                          speed_low, speed_high, pause_low, pause_high):
+    ndim = len(dimensions)
     x = np.empty(nr_nodes)
     y = np.empty(nr_nodes)
     x_waypoint = np.empty(nr_nodes)
@@ -661,43 +662,30 @@ def init_random_waypoint(nr_nodes, dimensions,
     q0 = pause_probability_init(pause_low, pause_high, speed_low,
                                 speed_high, dimensions)
 
+    max_x = dimensions[0]
+    max_y = dimensions[1]
     for i in range(nr_nodes):
         while True:
+            z1 = rand(ndim) * np.array(dimensions)
+            z2 = rand(ndim) * np.array(dimensions)
             if rand() < q0[i]:
                 # moving[i] = 0.
                 # speed_mean = np.delete(speed_mean, i)
                 # speed_delta = np.delete(speed_delta, i)
-                # M_0
-                x1 = rand() * dimensions[0][i]
-                x2 = rand() * dimensions[0][i]
-                # M_1
-                y1 = rand() * dimensions[1][i]
-                y2 = rand() * dimensions[1][i]
                 break
             else:
-                # M_0
-                x1 = rand() * dimensions[0][i]
-                x2 = rand() * dimensions[0][i]
-                # M_1
-                y1 = rand() * dimensions[1][i]
-                y2 = rand() * dimensions[1][i]
-
                 # r is a ratio of the length of the randomly chosen path over
                 # the length of a diagonal across the simulation area
-                # ||M_1 - M_0||
-                r = np.sqrt(((x2 - x1) * (x2 - x1) +
-                             (y2 - y1) * (y2 - y1)) / \
-                            (dimensions[0][i] * dimensions[0][i] +
-                             dimensions[1][i] * dimensions[1][i]))
+                r = np.sqrt(np.sum((z2 - z1) ** 2) / np.sum(np.array(dimensions) ** 2))
                 if rand() < r:
                     moving[i] = 1.
                     break
 
-        x[i] = x1
-        y[i] = y1
+        x[i] = z1[0][0]
+        y[i] = z2[0][0]
 
-        x_waypoint[i] = x2
-        y_waypoint[i] = y2
+        x_waypoint[i] = z1[0][1]
+        y_waypoint[i] = z2[0][1]
 
     # steady-state positions
     # initially the node has traveled a proportion u2 of the path from (x1,y1) to (x2,y2)
@@ -802,7 +790,7 @@ class RandomWaypoint(object):
 
             if self.wt_max:
                 velocity[arrived] = 0.
-                wt[arrived] = U(0, self.wt_max, arrived)
+                wt[arrived] = U(self.wt_min, self.wt_max, arrived)
                 # update info for paused nodes
                 wt[np.where(velocity == 0.)[0]] -= 1.
                 # update info for moving nodes
