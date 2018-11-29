@@ -672,20 +672,36 @@ def init_random_waypoint(nr_nodes, dimensions,
                 # moving[i] = 0.
                 # speed_mean = np.delete(speed_mean, i)
                 # speed_delta = np.delete(speed_delta, i)
+                # M_0
+                x1 = rand() * dimensions[0][i]
+                x2 = rand() * dimensions[0][i]
+                # M_1
+                y1 = rand() * dimensions[1][i]
+                y2 = rand() * dimensions[1][i]
                 break
             else:
+                # M_0
+                x1 = rand() * dimensions[0][i]
+                x2 = rand() * dimensions[0][i]
+                # M_1
+                y1 = rand() * dimensions[1][i]
+                y2 = rand() * dimensions[1][i]
+
                 # r is a ratio of the length of the randomly chosen path over
                 # the length of a diagonal across the simulation area
-                r = np.sqrt(np.sum((z2 - z1) ** 2) / np.sum(np.array(dimensions) ** 2))
+                r = np.sqrt(((x2 - x1) * (x2 - x1) +
+                             (y2 - y1) * (y2 - y1)) / \
+                            (dimensions[0][i] * dimensions[0][i] +
+                             dimensions[1][i] * dimensions[1][i]))
                 if rand() < r:
                     moving[i] = 1.
                     break
 
-        x[i] = z1[0][0]
-        y[i] = z2[0][0]
+        x[i] = x1
+        y[i] = y1
 
-        x_waypoint[i] = z1[0][1]
-        y_waypoint[i] = z2[0][1]
+        x_waypoint[i] = x2
+        y_waypoint[i] = y2
 
     # steady-state positions
     # initially the node has traveled a proportion u2 of the path from (x1,y1) to (x2,y2)
