@@ -613,10 +613,10 @@ E = lambda SCALE, SAMPLES: -SCALE * np.log(rand(*SAMPLES.shape))
 
 # *************** Palm state probability **********************
 def pause_probability_init(pause_low, pause_high, speed_low,
-                           speed_high, max_x, max_y):
+                           speed_high, dimensions):
     alpha1 = ((pause_high + pause_low) * (speed_high - speed_low)) / \
              (2 * np.log(speed_high / speed_low))
-    delta1 = np.sqrt((max_x * max_x) + (max_y * max_y))
+    delta1 = np.sqrt(np.sum(np.square(dimensions)))
     return alpha1 / (alpha1 + delta1)
 
 # *************** Palm residual ******************************
@@ -643,7 +643,7 @@ def initial_speed(speed_mean, speed_delta, shape=(1,)):
     return pow(v1, u) / pow(v0, u - 1)
 
 
-def init_random_waypoint(nr_nodes, max_x, max_y, max_z,
+def init_random_waypoint(nr_nodes, dimensions,
                          speed_low, speed_high, pause_low, pause_high):
     x = np.empty(nr_nodes)
     y = np.empty(nr_nodes)
@@ -659,7 +659,7 @@ def init_random_waypoint(nr_nodes, max_x, max_y, max_z,
 
     # steady-state pause probability for Random Waypoint
     q0 = pause_probability_init(pause_low, pause_high, speed_low,
-                                speed_high, max_x, max_y)
+                                speed_high, dimensions)
 
     for i in range(nr_nodes):
         while True:
@@ -668,27 +668,27 @@ def init_random_waypoint(nr_nodes, max_x, max_y, max_z,
                 # speed_mean = np.delete(speed_mean, i)
                 # speed_delta = np.delete(speed_delta, i)
                 # M_0
-                x1 = rand() * max_x[i]
-                x2 = rand() * max_x[i]
+                x1 = rand() * dimensions[0][i]
+                x2 = rand() * dimensions[0][i]
                 # M_1
-                y1 = rand() * max_y[i]
-                y2 = rand() * max_y[i]
+                y1 = rand() * dimensions[1][i]
+                y2 = rand() * dimensions[1][i]
                 break
             else:
                 # M_0
-                x1 = rand() * max_x[i]
-                x2 = rand() * max_x[i]
+                x1 = rand() * dimensions[0][i]
+                x2 = rand() * dimensions[0][i]
                 # M_1
-                y1 = rand() * max_y[i]
-                y2 = rand() * max_y[i]
+                y1 = rand() * dimensions[1][i]
+                y2 = rand() * dimensions[1][i]
 
                 # r is a ratio of the length of the randomly chosen path over
                 # the length of a diagonal across the simulation area
                 # ||M_1 - M_0||
                 r = np.sqrt(((x2 - x1) * (x2 - x1) +
                              (y2 - y1) * (y2 - y1)) / \
-                            (max_x[i] * max_x[i] +
-                             max_y[i] * max_y[i]))
+                            (dimensions[0][i] * dimensions[0][i] +
+                             dimensions[1][i] * dimensions[1][i]))
                 if rand() < r:
                     moving[i] = 1.
                     break
@@ -766,12 +766,12 @@ class RandomWaypoint(object):
             MIN_X[node] = self.nodes[node].min_x
             MIN_Y[node] = self.nodes[node].min_y
 
-        self.dimensions = (MAX_X, MAX_Y)
-        ndim = len(self.dimensions)
+        dimensions = (MAX_X, MAX_Y)
+        ndim = len(dimensions)
         if self.init_stationary:
             x, y, x_waypoint, y_waypoint, velocity, wt = \
                 init_random_waypoint(self.nr_nodes,
-                                     MAX_X, MAX_Y, 0,
+                                     dimensions,
                                      MIN_V, MAX_V,
                                      self.wt_min, self.wt_max)
         else:
@@ -808,20 +808,18 @@ class RandomWaypoint(object):
                 # update info for moving nodes
                 arrived = np.where(np.logical_and(velocity == 0., wt < 0.))[0]
 
-            try:
-                if arrived.size > 0:
-                    wx = U(MIN_X, MAX_X, arrived)
-                    x_waypoint[arrived] = wx[arrived]
-                    wy = U(MIN_Y, MAX_Y, arrived)
-                    y_waypoint[arrived] = wy[arrived]
-                    v = U(MIN_V, MAX_V, arrived)
-                    velocity[arrived] = v[arrived]
-                    theta[arrived] = np.arctan2(y_waypoint[arrived] - y[arrived],
-                                                x_waypoint[arrived] - x[arrived])
-                    costheta[arrived] = np.cos(theta[arrived])
-                    sintheta[arrived] = np.sin(theta[arrived])
-            except:
-                pass
+            if arrived.size > 0:
+                wx = U(MIN_X, MAX_X, arrived)
+                x_waypoint[arrived] = wx[arrived]
+                wy = U(MIN_Y, MAX_Y, arrived)
+                y_waypoint[arrived] = wy[arrived]
+                v = U(MIN_V, MAX_V, arrived)
+                velocity[arrived] = v[arrived]
+                theta[arrived] = np.arctan2(y_waypoint[arrived] - y[arrived],
+                                            x_waypoint[arrived] - x[arrived])
+                costheta[arrived] = np.cos(theta[arrived])
+                sintheta[arrived] = np.sin(theta[arrived])
+
 
             self.velocity = velocity
             self.wt = wt
@@ -924,15 +922,10 @@ class StochasticWalk(object):
 
         NODES = np.arange(self.nr_nodes)
 
-        max_x = U(0, 0, NODES)
-        max_y = U(0, 0, NODES)
-        min_x = U(0, 0, NODES)
-        min_y = U(0, 0, NODES)
-
-        MAX_X = max_x
-        MAX_Y = max_y
-        MIN_X = min_x
-        MIN_Y = min_y
+        MAX_X = U(0, 0, NODES)
+        MAX_Y = U(0, 0, NODES)
+        MIN_X = U(0, 0, NODES)
+        MIN_Y = U(0, 0, NODES)
 
         for node in range(0, len(self.nodes)):
             MAX_X[node] = self.nodes[node].max_x
@@ -1273,15 +1266,10 @@ def gauss_markov(nodes, velocity_mean=1., alpha=1., variance=1.):
     nr_nodes = len(nodes)
     NODES = np.arange(nr_nodes)
 
-    max_x = U(0, 0, NODES)
-    max_y = U(0, 0, NODES)
-    min_x = U(0, 0, NODES)
-    min_y = U(0, 0, NODES)
-
-    MAX_X = max_x
-    MAX_Y = max_y
-    MIN_X = min_x
-    MIN_Y = min_y
+    MAX_X = U(0, 0, NODES)
+    MAX_Y = U(0, 0, NODES)
+    MIN_X = U(0, 0, NODES)
+    MIN_Y = U(0, 0, NODES)
 
     for node in range(0, len(nodes)):
         MAX_X[node] = nodes[node].max_x
