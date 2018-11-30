@@ -1456,6 +1456,7 @@ class AccessPoint(AP):
         "Set hostapd config"
         cmd = ("echo \'")
 
+        args = ['max_num_sta', 'beacon_int']
         if 'phywlan' in ap.params:
             cmd = cmd + ("interface=%s" % ap.params.get('phywlan'))
         else:
@@ -1486,6 +1487,11 @@ class AccessPoint(AP):
         else:
             cmd = cmd + ("\nhw_mode=%s" % ap.params['mode'][wlan])
         cmd = cmd + ("\nchannel=%s" % ap.params['channel'][wlan])
+
+        for arg in args:
+            if arg in ap.params:
+                cmd = cmd + ('\n%s=%s' % (arg, ap.params[arg]))
+
         if 'ht_capab' in ap.params:
             cmd = cmd + ('\nht_capab=%s' % ap.params['ht_capab'])
         if 'beacon_int' in ap.params:
