@@ -1079,9 +1079,15 @@ class Node_wifi(Node):
         if plot2d.fig_exists():
             plot2d.setCircleColor(self, 'b')
 
-    def setCircleColor(self, color):
+    def hide(self):
         from mn_wifi.plot import plot2d
-        plot2d.setCircleColor(self, color)
+        if plot2d.fig_exists():
+            plot2d.hideNode(self)
+
+    def show(self):
+        from mn_wifi.plot import plot2d
+        if plot2d.fig_exists():
+            plot2d.showNode(self)
 
 
 class Station(Node_wifi):

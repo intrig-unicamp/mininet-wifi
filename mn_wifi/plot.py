@@ -227,23 +227,22 @@ class plot2d (object):
     @classmethod
     def instantiateNode(cls, node):
         "instantiateNode"
-        from mn_wifi.node import Station, Car
         ax = cls.ax
-
-        color = 'b'
-        if isinstance(node, Station):
-            color = 'g'
-        elif isinstance(node, Car):
-            color = 'r'
-
-        node.pltNode, = ax.plot(1, 1, marker='.', ms=10, mfc=color)
+        node.pltNode, = ax.plot(1, 1, marker='.', ms=5, color='black')
 
     @classmethod
     def instantiateCircle(cls, node):
         "instantiateCircle"
-        from mn_wifi.node import Station, Car
         ax = cls.ax
+        color = cls.set_def_color(node)
 
+        node.pltCircle = ax.add_patch(
+            patches.Circle((0, 0), max(node.params['range']),
+                           fill=True, alpha=0.1, color=color))
+
+    @classmethod
+    def set_def_color(cls, node):
+        from mn_wifi.node import Station, Car
         if 'color' in node.params:
             color = node.params['color']
         else:
@@ -252,12 +251,7 @@ class plot2d (object):
                 color = 'g'
             elif isinstance(node, Car):
                 color = 'r'
-
-        node.pltCircle = ax.add_patch(
-            patches.Circle((0, 0), max(node.params['range']),
-                           fill=True, alpha=0.1, color=color
-                          )
-        )
+        return color
 
     @classmethod
     def instantiateAnnotate(cls, node):
@@ -271,6 +265,18 @@ class plot2d (object):
     @classmethod
     def setCircleColor(cls, node, color):
         node.pltCircle.set_color(color)
+
+    @classmethod
+    def setAnnotateColor(cls, node, color):
+        node.plttxt.set_color(color)
+
+    @classmethod
+    def setNodeColor(cls, node, color):
+        node.pltNode.set_c(color)
+
+    @classmethod
+    def setNodeMarker(cls, node, marker=''):
+        node.pltNode.set_marker(marker)
 
     @classmethod
     def instantiateNodes(cls, node):
@@ -296,6 +302,21 @@ class plot2d (object):
                 src = conn['src'][c]
                 dst = conn['dst'][c]
                 cls.addLine(src, dst, ls)
+
+    @classmethod
+    def hideNode(cls, node):
+        cls.setCircleColor(node, 'w')
+        cls.setAnnotateColor(node, 'w')
+        cls.setNodeColor(node, 'w')
+        cls.setNodeMarker(node, '')
+
+    @classmethod
+    def showNode(cls, node):
+        color = cls.set_def_color(node)
+        cls.setCircleColor(node, color)
+        cls.setAnnotateColor(node, 'black')
+        cls.setNodeColor(node, 'black')
+        cls.setNodeMarker(node, '.')
 
     @classmethod
     def hideLine(cls, src, dst):
