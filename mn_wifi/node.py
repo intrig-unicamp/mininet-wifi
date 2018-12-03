@@ -1080,11 +1080,15 @@ class Node_wifi(Node):
             plot2d.setCircleColor(self, 'b')
 
     def hide(self):
+        for wlan in self.params['wlan']:
+            self.cmd('ip link set %s down' % wlan)
         from mn_wifi.plot import plot2d
         if plot2d.fig_exists():
             plot2d.hideNode(self)
 
     def show(self):
+        for wlan in self.params['wlan']:
+            self.cmd('ip link set %s up' % wlan)
         from mn_wifi.plot import plot2d
         if plot2d.fig_exists():
             plot2d.showNode(self)
