@@ -397,7 +397,7 @@ function ubuntuOvs {
 function ovs {
     echo "Installing Open vSwitch..."
 
-    if [ "$DIST" == "Fedora" ]; then
+    if [ "$DIST" = "Fedora" -o "$DIST" = "RedHatEnterpriseServer" ]; then
         $install openvswitch openvswitch-controller
         return
     fi
@@ -416,23 +416,28 @@ function ovs {
     fi
 
     $install openvswitch-switch
+    OVSC=""
     if $install openvswitch-controller; then
-        # Switch can run on its own, but
-        # Mininet should control the controller
-        # This appears to only be an issue on Ubuntu/Debian
-        if sudo service openvswitch-controller stop; then
-            echo "Stopped running controller"
-        fi
-        if [ -e /etc/init.d/openvswitch-controller ]; then
-            sudo update-rc.d openvswitch-controller disable
-        fi
+        OVSC="openvswitch-controller"
     else
         echo "Attempting to install openvswitch-testcontroller"
-        if ! $install openvswitch-testcontroller; then
+        if $install openvswitch-testcontroller; then
+            OVSC="openvswitch-testcontroller"
+        else
             echo "Failed - skipping openvswitch-testcontroller"
         fi
     fi
-
+    if [ "$OVSC" ]; then
+        # Switch can run on its own, but
+        # Mininet should control the controller
+        # This appears to only be an issue on Ubuntu/Debian
+        if sudo service $OVSC stop; then
+            echo "Stopped running controller"
+        fi
+        if [ -e /etc/init.d/$OVSC ]; then
+            sudo update-rc.d $OVSC disable
+        fi
+    fi
 }
 
 function remove_ovs {
