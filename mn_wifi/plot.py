@@ -36,19 +36,14 @@ class plot3d (object):
     @classmethod
     def instantiateAnnotate(cls, node):
         "instantiateAnnotate"
+        x, y, z = cls.getPos(node)
 
-        x = '%.2f' % float(node.params['position'][0])
-        y = '%.2f' % float(node.params['position'][1])
-        z = '%.2f' % float(node.params['position'][2])
-
-        node.plttxt = cls.ax.text(float(x), float(y), float(z), node.name)
+        node.plttxt = cls.ax.text(x, y, z, node.name)
 
     @classmethod
     def instantiateNode(cls, node):
         "Instantiate Node"
-        x = '%.2f' % float(node.params['position'][0])
-        y = '%.2f' % float(node.params['position'][1])
-        z = '%.2f' % float(node.params['position'][2])
+        x, y, z = cls.getPos(node)
 
         resolution = 40
         u = np.linspace(0, 2 * np.pi, resolution)
@@ -56,9 +51,9 @@ class plot3d (object):
 
         r = 1
 
-        x = r * np.outer(np.cos(u), np.sin(v)) + float(x)
-        y = r * np.outer(np.sin(u), np.sin(v)) + float(y)
-        z = r * np.outer(np.ones(np.size(u)), np.cos(v)) + float(z)
+        x = r * np.outer(np.cos(u), np.sin(v)) + x
+        y = r * np.outer(np.sin(u), np.sin(v)) + y
+        z = r * np.outer(np.ones(np.size(u)), np.cos(v)) + z
 
         node.pltNode = cls.ax.plot_surface(x, y, z, alpha=0.2,
                                            edgecolor='none', color='black')
@@ -79,7 +74,6 @@ class plot3d (object):
 
     @classmethod
     def p(cls):
-        "Pause"
         plt.pause(0.0001)
 
     @classmethod
@@ -97,12 +91,10 @@ class plot3d (object):
 
     @classmethod
     def draw(cls):
-        "draw"
         plt.draw()
 
     @classmethod
     def closePlot(cls):
-        "Close"
         try:
             plt.close()
         except:
@@ -113,10 +105,7 @@ class plot3d (object):
         "Instantiate Circle"
         from mn_wifi.node import Station, Car
 
-        x = '%.2f' % float(node.params['position'][0])
-        y = '%.2f' % float(node.params['position'][1])
-        z = '%.2f' % float(node.params['position'][2])
-
+        x, y, z = cls.getPos(node)
         color = 'b'
         if isinstance(node, Station):
             color = 'g'
@@ -129,22 +118,30 @@ class plot3d (object):
 
         r = max(node.params['range'])
 
-        x = r * np.outer(np.cos(u), np.sin(v)) + float(x)
-        y = r * np.outer(np.sin(u), np.sin(v)) + float(y)
-        z = r * np.outer(np.ones(np.size(u)), np.cos(v)) + float(z)
+        x = r * np.outer(np.cos(u), np.sin(v)) + x
+        y = r * np.outer(np.sin(u), np.sin(v)) + y
+        z = r * np.outer(np.ones(np.size(u)), np.cos(v)) + z
 
         node.pltCircle = cls.ax.plot_surface(x, y, z, alpha=0.2,
-                                             edgecolor='none', color=color)
+                                             edgecolor='none',
+                                             color=color)
+
+    @classmethod
+    def getPos(self, node):
+        x = '%.2f' % float(node.params['position'][0])
+        y = '%.2f' % float(node.params['position'][1])
+        z = '%.2f' % float(node.params['position'][2])
+        return float(x), float(y), float(z)
 
 
 class plot2d (object):
     'Plot 2d Graphs'
     ax = None
+    q_lock = ''
     lines = {}
 
     @classmethod
     def closePlot(cls):
-        "Close"
         try:
             plt.close()
         except:
@@ -165,7 +162,6 @@ class plot2d (object):
 
     @classmethod
     def circle(cls, node, x, y):
-        "drawCircle"
         node.pltCircle.center = x, y
 
     @classmethod
@@ -178,33 +174,27 @@ class plot2d (object):
 
     @classmethod
     def pause(cls):
-        "Pause"
         plt.pause(0.001)
 
     @classmethod
     def draw(cls):
-        "draw"
         plt.draw()
 
     @classmethod
     def scatter(cls, nodesx, nodesy):
-        "scatter"
         return plt.scatter(nodesx, nodesy, color='red', marker='s')
 
     @classmethod
     def line2d(cls, nodesx, nodesy, color='', ls='-', lw=1):
-        "line2d"
         return plt.Line2D(nodesx, nodesy, color=color, ls=ls, lw=lw)
 
     @classmethod
     def lineTxt(cls, x, y, i):
-        "lineTxt"
         title = 'Av.%s' % i
         plt.text(x, y, title, ha='left', va='bottom', fontsize=8, color='g')
 
     @classmethod
     def line(cls, line):
-        "line"
         ax = cls.ax
         ax.add_line(line)
 
@@ -255,7 +245,6 @@ class plot2d (object):
 
     @classmethod
     def instantiateAnnotate(cls, node):
-        "instantiateAnnotate"
         node.plttxt = cls.ax.annotate(node, xy=(0, 0))
 
     @classmethod
@@ -305,18 +294,15 @@ class plot2d (object):
 
     @classmethod
     def hideNode(cls, node):
-        cls.setCircleColor(node, 'w')
-        cls.setAnnotateColor(node, 'w')
-        cls.setNodeColor(node, 'w')
-        cls.setNodeMarker(node, '')
+        node.pltCircle.set_visible(False)
+        node.plttxt.set_visible(False)
+        node.pltNode.set_visible(False)
 
     @classmethod
     def showNode(cls, node):
-        color = cls.set_def_color(node)
-        cls.setCircleColor(node, color)
-        cls.setAnnotateColor(node, 'black')
-        cls.setNodeColor(node, 'black')
-        cls.setNodeMarker(node, '.')
+        node.pltCircle.set_visible(True)
+        node.plttxt.set_visible(True)
+        node.pltNode.set_visible(True)
 
     @classmethod
     def hideLine(cls, src, dst):
@@ -335,7 +321,7 @@ class plot2d (object):
         dst_x = '%.2f' % float(dst.params['position'][0])
         dst_y = '%.2f' % float(dst.params['position'][1])
         line = cls.line2d([float(src_x), float(dst_x)],
-                              [float(src_y), float(dst_y)], 'b', ls=ls)
+                          [float(src_y), float(dst_y)], 'b', ls=ls)
         conn_ = src.name + dst.name
         cls.lines[conn_] = line
         cls.line(line)

@@ -1403,6 +1403,7 @@ class Mininet_wifi(Mininet):
 
         array_ = ['antennaGain', 'antennaHeight', 'txpower',
                   'channel', 'mode', 'freq']
+
         for param in array_:
             node.params[param] = []
             if param in params:
@@ -1596,18 +1597,13 @@ class Mininet_wifi(Mininet):
             setattr(self, key, kwargs[key])
         if 'max_z' in kwargs and kwargs['max_z'] != 0:
             self.plot = plot3d
-            mobility.continuePlot = 'plot3d.pause()'
 
     def checkDimension(self, nodes):
-        try:
-            plotGraph(min_x=self.min_x, min_y=self.min_y, min_z=self.min_z,
-                      max_x=self.max_x, max_y=self.max_y, max_z=self.max_z,
-                      nodes=nodes, conn=self.conn)
-            if not issubclass(self.plot, plot3d):
-                self.plot.pause()
-        except:
-            info('Something went wrong with the GUI.\n')
-            self.DRAW = False
+        plotGraph(min_x=self.min_x, min_y=self.min_y, min_z=self.min_z,
+                  max_x=self.max_x, max_y=self.max_y, max_z=self.max_z,
+                  nodes=nodes, conn=self.conn)
+        if not issubclass(self.plot, plot3d):
+            self.plot.pause()
 
     def start_mobility(self, **kwargs):
         "Starts Mobility"
@@ -1805,7 +1801,7 @@ class Mininet_wifi(Mininet):
                     if not issubclass(self.plot, plot3d):
                         self.plot.updateCircleRadius(node)
                     self.plot.update(node)
-            eval(mobility.continuePlot)
+            self.plot.pause()
             sleep(0.5)
 
     def auto_association(self):
@@ -1927,7 +1923,8 @@ class Mininet_wifi(Mininet):
     @staticmethod
     def stopGraphParams():
         "Stop the graph"
-        mobility.continuePlot = 'exit()'
+        if mobility.thread_:
+            mobility.thread_._keep_alive = False
         mobility.continue_params = 'exit()'
         sleep(0.5)
 

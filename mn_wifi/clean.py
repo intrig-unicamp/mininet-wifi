@@ -16,6 +16,7 @@ from mininet.log import info
 from mininet.clean import killprocs, sh
 from mn_wifi.sixLoWPAN.clean import Cleanup as sixlowpan
 
+
 class Cleanup(object):
     "Wrapper for cleanup()"
 

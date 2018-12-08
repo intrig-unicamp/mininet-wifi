@@ -1,7 +1,7 @@
 """Mininet-WiFi: A simple networking testbed for Wireless OpenFlow/SDWN!
    author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)"""
 
-import threading
+from threading import Thread as thread
 from time import sleep, time
 import os
 import numpy as np
@@ -20,43 +20,29 @@ class mobility(object):
     mobileNodes = []
     ac = None  # association control method
     wmediumd_mode = None
-    continuePlot = 'plot2d.pause()'
     pause_simulation = False
     rec_rssi = False
     allAutoAssociation = True
-    continue_params = 'sleep(0.0001)'
+    thread_ = ''
 
     @classmethod
     def start(cls, **mobilityparam):
         debug('Starting mobility thread...\n')
-        thread = threading.Thread(name='mobilityModel', target=cls.models,
+        cls.thread_ = thread(name='mobilityModel', target=cls.models,
                                   kwargs=dict(mobilityparam, ))
-        thread.daemon = True
-        thread.start()
+        cls.thread_.daemon = True
+        cls.thread_._keep_alive = True
+        cls.thread_.start()
         cls.set_wifi_params()
 
     @classmethod
-    def stop(cls, **mobilityparam):
+    def stop(cls, **kwargs):
         debug('Starting mobility thread...\n')
-        thread = threading.Thread(name='mobility',
-                                  target=cls.predefined_mobility,
-                                  kwargs=dict(mobilityparam, ))
-        thread.daemon = True
-        thread.start()
+        cls.thread_ = thread(target=tracked, kwargs=(kwargs))
+        cls.thread_.daemon = True
+        cls.thread_._keep_alive = True
+        cls.thread_.start()
         cls.set_wifi_params()
-
-    @classmethod
-    def create_coordinate(cls, node):
-        node.coord_ = []
-        init_pos = node.params['initPos']
-        fin_pos = node.params['finPos']
-        if not hasattr(node, 'coord'):
-            coord1 = '%s,%s,%s' % (init_pos[0], init_pos[1], init_pos[2])
-            coord2 = '%s,%s,%s' % (fin_pos[0], fin_pos[1], fin_pos[2])
-            node.coord_.append([coord1, coord2])
-        else:
-            for idx in range(0, len(node.coord) - 1):
-                node.coord_.append([node.coord[idx], node.coord[idx + 1]])
 
     @classmethod
     def move_factor(cls, node, diff_time):
@@ -125,9 +111,9 @@ class mobility(object):
     def set_wifi_params(cls):
         "Opens a thread for wifi parameters"
         if cls.allAutoAssociation:
-            thread = threading.Thread(name='wifiParameters', target=cls.parameters)
-            thread.daemon = True
-            thread.start()
+            thread_ = thread(name='wifiParameters', target=cls.parameters)
+            thread_.daemon = True
+            thread_.start()
 
     @classmethod
     def speed(cls, sta, pos_x, pos_y, pos_z, diff_time):
@@ -245,127 +231,6 @@ class mobility(object):
                 Association.associate_infra(sta, ap, wlan=wlan, ap_wlan=ap_wlan)
 
     @classmethod
-    def get_line(cls, node, x1, y1, z1, x2, y2, z2):
-        points = []
-        issteep = abs(y2 - y1) > abs(x2 - x1)
-        if issteep:
-            x1, y1 = y1, x1
-            x2, y2 = y2, x2
-        rev = False
-        if x1 > x2:
-            x1, x2 = x2, x1
-            y1, y2 = y2, y1
-            rev = True
-        deltax = x2 - x1
-        deltay = abs(y2 - y1)
-        error = int(deltax / 2)
-        y = y1
-        ystep = None
-        if y1 < y2:
-            ystep = 1
-        else:
-            ystep = -1
-
-        for x in range(int(x1), int(x2) + 1):
-            if issteep:
-                points.append((y, x, 0))
-            else:
-                points.append((x, y, 0))
-            error -= deltay
-            if error < 0:
-                y += ystep
-                error += deltax
-        # Reverse the list if the coordinates were reversed
-        if rev:
-            points.reverse()
-        node.points = node.points + points
-
-    @classmethod
-    def predefined_mobility(cls, **kwargs):
-        "Used when the position of each node is previously defined"
-        from mn_wifi.node import Station
-
-        if 'ac_method' in kwargs:
-            cls.ac = kwargs['ac_method']
-        cls.rec_rssi = kwargs['rec_rssi']
-        cls.stations = kwargs['stations']
-        cls.aps = kwargs['aps']
-        nodes = cls.stations + cls.aps + kwargs['plotNodes']
-        plot = plot2d
-
-        stationaryNodes = []
-        for node in nodes:
-            if 'position' in node.params and 'initPos' not in node.params:
-                stationaryNodes.append(node)
-            if 'initPos' in node.params:
-                node.params['position'] = node.params['initPos']
-                cls.mobileNodes.append(node)
-
-        kwargs['nodes'] = cls.mobileNodes + stationaryNodes
-        try:
-            if kwargs['DRAW']:
-                plotGraph(**kwargs)
-                if kwargs['max_z'] != 0:
-                    plot = plot3d
-        except:
-            info('Warning: running without GUI.\n')
-            kwargs['DRAW'] = False
-        try:
-            for node in nodes:
-                if isinstance(node, Station) and hasattr(node, 'coord'):
-                    cls.create_coordinate(node)
-                    node.points = []
-                    for coord_ in node.coord_:
-                        cls.get_line(node, float(coord_[0].split(',')[0]),
-                                     float(coord_[0].split(',')[1]),
-                                     float(coord_[0].split(',')[2]),
-                                     float(coord_[1].split(',')[0]),
-                                     float(coord_[1].split(',')[1]),
-                                     float(coord_[1].split(',')[2]))
-
-            for rep in range(0, kwargs['repetitions']):
-                t1 = time()
-                i = 1
-                if rep > 0:
-                    for node in nodes:
-                        if 'initPos' in node.params:
-                            cls.mobileNodes.append(node)
-                for node in cls.mobileNodes:
-                    node.time = node.startTime
-                    cls.calculate_diff_time(node)
-                while True:
-                    t2 = time()
-                    if (t2 - t1) > kwargs['final_time']:
-                        break
-                    if (t2 - t1) >= kwargs['init_time']:
-                        if t2 - t1 >= i:
-                            for node in cls.mobileNodes:
-                                if (t2 - t1) >= node.startTime and node.time <= node.endTime:
-                                    if hasattr(node, 'coord'):
-                                        cls.calculate_diff_time(node)
-                                        node.params['position'] = node.points[node.time * node.moveFac]
-                                        if node.time == node.endTime:
-                                            node.params['position'] = node.points[len(node.points)-1]
-                                    else:
-                                        x, y, z = cls.move_node(node)
-                                        node.params['position'] = (x, y, z)
-                                    node.time += 1
-                                if kwargs['ppm'] == 'logNormalShadowing':
-                                    intf = node.params['wlan'][0]
-                                    wlan = node.params['wlan'].index(intf)
-                                    node.params['range'][wlan] = node.getRange(intf=intf)
-                                if kwargs['DRAW']:
-                                    plot.update(node)
-                                    if kwargs['max_z'] == 0:
-                                        plot2d.updateCircleRadius(node)
-                                if cls.wmediumd_mode and cls.wmediumd_mode == 3:
-                                    node.set_pos_wmediumd()
-                            eval(cls.continuePlot)
-                            i += 1
-        except:
-            pass
-
-    @classmethod
     def models(cls, **kwargs):
         "Used when a mobility model is set"
         np.random.seed(kwargs['seed'])
@@ -449,18 +314,12 @@ class mobility(object):
                 pass
 
             if kwargs['DRAW']:
-                if kwargs['ppm'] == 'logNormalShadowing':
-                    cls.mobilityModelGraph_logNormal(mob, kwargs['nodes'])
-                else:
-                    cls.mobilityModelGraph(mob, kwargs['nodes'])
+                cls.modelGraph(mob, kwargs['nodes'])
             else:
-                if kwargs['ppm'] == 'logNormalShadowing':
-                    cls.mobilityModelNoGraph_logNormal(mob, kwargs['nodes'])
-                else:
-                    cls.mobilityModelNoGraph(mob, kwargs['nodes'])
+                cls.modelNoGraph(mob, kwargs['nodes'])
 
     @classmethod
-    def mobilityModelGraph(cls, mob, nodes):
+    def modelGraph(cls, mob, nodes):
         """Useful for plotting graphs
 
         :param mob: mobility params
@@ -473,36 +332,12 @@ class mobility(object):
                 if cls.wmediumd_mode and cls.wmediumd_mode == 3:
                     node.set_pos_wmediumd()
                 plot2d.update(node)
-            eval(cls.continuePlot)
+            plot2d.pause()
             while cls.pause_simulation:
                 pass
 
     @classmethod
-    def mobilityModelGraph_logNormal(cls, mob, nodes):
-        """Useful for plotting graphs
-
-        :param mob: mobility params
-        :param nodes: list of nodes"""
-        for xy in mob:
-            for idx, node in enumerate(nodes):
-                node.params['position'] = round(xy[idx][0],2), \
-                                          round(xy[idx][1],2), \
-                                          0.0
-                if cls.wmediumd_mode and cls.wmediumd_mode == 3:
-                    node.set_pos_wmediumd()
-                sleep(0.0001)  # notice problem when there are many threads
-                intf = node.params['wlan'][0]
-                wlan = node.params['wlan'].index(intf)
-                node.params['range'][wlan] = node.getRange(intf=intf)
-                node.updateGraph()
-                plot2d.updateCircleRadius(node)
-                plot2d.update(node)
-            eval(cls.continuePlot)
-            while cls.pause_simulation:
-                pass
-
-    @classmethod
-    def mobilityModelNoGraph(cls, mob, nodes):
+    def modelNoGraph(cls, mob, nodes):
         """Useful when graph is not required
 
         :param mob: mobility params
@@ -514,27 +349,6 @@ class mobility(object):
                                           0.0
                 if cls.wmediumd_mode and cls.wmediumd_mode == 3:
                     node.set_pos_wmediumd()
-            sleep(0.5)
-            while cls.pause_simulation:
-                pass
-
-    @classmethod
-    def mobilityModelNoGraph_logNormal(cls, mob, nodes):
-        """Useful when graph is not required
-
-        :param mob: mobility params
-        :param nodes: list of nodes"""
-        for xy in mob:
-            for idx, node in enumerate(nodes):
-                node.params['position'] = round(xy[idx][0],2), \
-                                          round(xy[idx][1],2), \
-                                          0.0
-                if cls.wmediumd_mode and cls.wmediumd_mode == 3:
-                    node.set_pos_wmediumd()
-                sleep(0.0001)
-                intf = node.params['wlan'][0]
-                wlan = node.params['wlan'].index(intf)
-                node.params['range'][wlan] = node.getRange(intf=intf)
             sleep(0.5)
             while cls.pause_simulation:
                 pass
@@ -580,7 +394,146 @@ class mobility(object):
                             cls.check_association(node, wlan, ap_wlan=0)
                     else:
                         cls.check_association(node, wlan, ap_wlan=0)
-        eval(cls.continue_params)
+        sleep(0.0001)
+
+
+class tracked(thread):
+    "Used when the position of each node is previously defined"
+
+    def __init__(self, **kwargs):
+        super(tracked, self).__init__()
+        self.kwargs = kwargs
+        self.configure(**kwargs)
+        self.plot = ''
+
+    def configure(self, **kwargs):
+        from mn_wifi.node import Station
+
+        if 'ac_method' in kwargs:
+            mobility.ac = kwargs['ac_method']
+        mobility.rec_rssi = kwargs['rec_rssi']
+        mobility.stations = kwargs['stations']
+        mobility.aps = kwargs['aps']
+        nodes = mobility.stations + mobility.aps + kwargs['plotNodes']
+        plot = plot2d
+
+        stationaryNodes = []
+        for node in nodes:
+            if 'position' in node.params and 'initPos' not in node.params:
+                stationaryNodes.append(node)
+            if 'initPos' in node.params:
+                node.params['position'] = node.params['initPos']
+                mobility.mobileNodes.append(node)
+
+        kwargs['nodes'] = mobility.mobileNodes + stationaryNodes
+        try:
+            if kwargs['DRAW']:
+                plotGraph(**kwargs)
+                if kwargs['max_z'] != 0:
+                    plot = plot3d
+        except:
+            info('Warning: running without GUI.\n')
+            kwargs['DRAW'] = False
+
+        for node in nodes:
+            if isinstance(node, Station) and hasattr(node, 'coord'):
+                self.create_coordinate(node)
+                node.points = []
+                for coord_ in node.coord_:
+                    self.get_line(node, float(coord_[0].split(',')[0]),
+                                 float(coord_[0].split(',')[1]),
+                                 float(coord_[0].split(',')[2]),
+                                 float(coord_[1].split(',')[0]),
+                                 float(coord_[1].split(',')[1]),
+                                 float(coord_[1].split(',')[2]))
+        self.run(plot, **kwargs)
+
+    def run(self, plot, **kwargs):
+        from time import time
+        nodes = kwargs['nodes']
+
+        for rep in range(0, kwargs['repetitions']):
+            t1 = time()
+            i = 1
+            if rep > 0:
+                for node in nodes:
+                    if 'initPos' in node.params:
+                        mobility.mobileNodes.append(node)
+            for node in mobility.mobileNodes:
+                node.time = node.startTime
+                mobility.calculate_diff_time(node)
+            while mobility.thread_._keep_alive:
+                t2 = time()
+                if (t2 - t1) > kwargs['final_time']:
+                    mobility.thread_._keep_alive = False
+                if (t2 - t1) >= kwargs['init_time']:
+                    if t2 - t1 >= i:
+                        for node in mobility.mobileNodes:
+                            if (t2 - t1) >= node.startTime and node.time <= node.endTime:
+                                if hasattr(node, 'coord'):
+                                    mobility.calculate_diff_time(node)
+                                    node.params['position'] = node.points[node.time * node.moveFac]
+                                    if node.time == node.endTime:
+                                        node.params['position'] = node.points[len(node.points) - 1]
+                                else:
+                                    x, y, z = mobility.move_node(node)
+                                    node.params['position'] = (x, y, z)
+                                node.time += 1
+                            if mobility.wmediumd_mode and mobility.wmediumd_mode == 3:
+                                node.set_pos_wmediumd()
+                            if kwargs['DRAW']:
+                                plot.update(node)
+                                if kwargs['max_z'] == 0:
+                                    plot2d.updateCircleRadius(node)
+                        plot.pause()
+                        i += 1
+
+    def create_coordinate(cls, node):
+        node.coord_ = []
+        init_pos = node.params['initPos']
+        fin_pos = node.params['finPos']
+        if not hasattr(node, 'coord'):
+            coord1 = '%s,%s,%s' % (init_pos[0], init_pos[1], init_pos[2])
+            coord2 = '%s,%s,%s' % (fin_pos[0], fin_pos[1], fin_pos[2])
+            node.coord_.append([coord1, coord2])
+        else:
+            for idx in range(0, len(node.coord) - 1):
+                node.coord_.append([node.coord[idx], node.coord[idx + 1]])
+
+    def get_line(self, node, x1, y1, z1, x2, y2, z2):
+        points = []
+        issteep = abs(y2 - y1) > abs(x2 - x1)
+        if issteep:
+            x1, y1 = y1, x1
+            x2, y2 = y2, x2
+        rev = False
+        if x1 > x2:
+            x1, x2 = x2, x1
+            y1, y2 = y2, y1
+            rev = True
+        deltax = x2 - x1
+        deltay = abs(y2 - y1)
+        error = int(deltax / 2)
+        y = y1
+        ystep = None
+        if y1 < y2:
+            ystep = 1
+        else:
+            ystep = -1
+
+        for x in range(int(x1), int(x2) + 1):
+            if issteep:
+                points.append((y, x, 0))
+            else:
+                points.append((x, y, 0))
+            error -= deltay
+            if error < 0:
+                y += ystep
+                error += deltax
+        # Reverse the list if the coordinates were reversed
+        if rev:
+            points.reverse()
+        node.points = node.points + points
 
 # coding: utf-8
 #
@@ -614,6 +567,7 @@ E = lambda SCALE, SAMPLES: -SCALE * np.log(rand(*SAMPLES.shape))
 # *************** Palm state probability **********************
 def pause_probability_init(pause_low, pause_high, speed_low,
                            speed_high, dimensions):
+    np.seterr(divide='ignore', invalid='ignore')
     alpha1 = ((pause_high + pause_low) * (speed_high - speed_low)) / \
              (2 * np.log(speed_high / speed_low))
     delta1 = np.sqrt(np.sum(np.square(dimensions)))
@@ -644,7 +598,9 @@ def initial_speed(speed_mean, speed_delta, shape=(1,)):
 
 
 def init_random_waypoint(nr_nodes, dimensions,
-                         speed_low, speed_high, pause_low, pause_high):
+                         speed_low, speed_high,
+                         pause_low, pause_high):
+
     ndim = len(dimensions)
     x = np.empty(nr_nodes)
     y = np.empty(nr_nodes)
@@ -770,6 +726,7 @@ class RandomWaypoint(object):
 
         dimensions = (MAX_X, MAX_Y)
         ndim = len(dimensions)
+
         if self.init_stationary:
             x, y, x_waypoint, y_waypoint, velocity, wt = \
                 init_random_waypoint(self.nr_nodes,
