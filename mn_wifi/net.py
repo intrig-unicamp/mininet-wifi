@@ -738,14 +738,8 @@ class Mininet_wifi(Mininet):
                 self.mob_param['plotNodes'] = self.plot_nodes()
                 mobility.stop(**self.mob_param)
         else:
-            if propagationModel.model is 'logNormalShadowing':
-                import threading
-                thread = threading.Thread(target=self.plot_dynamic)
-                thread.daemon = True
-                thread.start()
-            elif self.DRAW:
-                plotNodes = self.plot_nodes()
-                self.plotCheck(plotNodes)
+            plotNodes = self.plot_nodes()
+            self.plotCheck(plotNodes)
         self.built = True
 
     def plot_nodes(self):
@@ -1599,11 +1593,15 @@ class Mininet_wifi(Mininet):
             self.plot = plot3d
 
     def checkDimension(self, nodes):
-        plotGraph(min_x=self.min_x, min_y=self.min_y, min_z=self.min_z,
-                  max_x=self.max_x, max_y=self.max_y, max_z=self.max_z,
-                  nodes=nodes, conn=self.conn)
-        if not issubclass(self.plot, plot3d):
-            self.plot.pause()
+        try:
+            plotGraph(min_x=self.min_x, min_y=self.min_y, min_z=self.min_z,
+                      max_x=self.max_x, max_y=self.max_y, max_z=self.max_z,
+                      nodes=nodes, conn=self.conn)
+            if not issubclass(self.plot, plot3d):
+                self.plot.pause()
+        except:
+            info('Something went wrong with the GUI.\n')
+            self.DRAW = False
 
     def start_mobility(self, **kwargs):
         "Starts Mobility"
