@@ -11,7 +11,7 @@ from __future__ import division
 from math import atan2
 from time import sleep
 import warnings
-import threading
+from threading import Thread as thread
 from random import randrange
 import matplotlib.cbook
 from pylab import ginput as ginp
@@ -42,10 +42,12 @@ class vanet(object):
     time_per_iteration = 100 * math.pow(10, -3)
 
     def __init__(self, **params):
-        thread = threading.Thread(name='vanet', target=self.start,
+        from mn_wifi.mobility import mobility
+        mobility.thread_ = thread(name='vanet', target=self.start,
                                   kwargs=dict(params,))
-        thread.daemon = True
-        thread.start()
+        mobility.thread_.daemon = True
+        mobility.thread_._keep_alive = True
+        mobility.thread_.start()
 
     def start(self, **params):
         'start topology'
@@ -64,15 +66,16 @@ class vanet(object):
         self.display_cars(cars)
         plot2d.plotGraph(cars, [])
         self.setWifiParameters(mobility)
-        while True:
+        while mobility.thread_._keep_alive:
             [self.scatter, self.com_lines] = \
                 self.simulate_car_movement(cars, params['aps'], self.scatter,
                                            self.com_lines, mobility)
-            mobility.continue_params
+            sleep(0.0001)
 
     @classmethod
     def setWifiParameters(cls, mobility):
-        thread = threading.Thread(name='wifiParameters', target=mobility.parameters)
+        from threading import Thread as thread
+        thread = thread(name='wifiParameters', target=mobility.parameters)
         thread.start()
 
     @classmethod
@@ -384,7 +387,10 @@ class vanet(object):
                             plot2d.line(line)
 
             plot2d.update(car)
-        eval(mobility.continuePlot)
+
+        plot2d.pause()
+        if not mobility.thread_._keep_alive:
+            exit()
 
         scatter = plot2d.scatter(points[0], points[1])
         plot2d.draw()

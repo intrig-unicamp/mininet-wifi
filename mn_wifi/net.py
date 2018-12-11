@@ -1929,7 +1929,6 @@ class Mininet_wifi(Mininet):
         "Stop the graph"
         if mobility.thread_:
             mobility.thread_._keep_alive = False
-        mobility.continue_params = 'exit()'
         sleep(0.5)
 
     def closeMininetWiFi(self):
