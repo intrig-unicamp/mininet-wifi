@@ -1598,6 +1598,9 @@ class Mininet_wifi(Mininet):
 
     def checkDimension(self, nodes):
         try:
+            for node in nodes:
+                if hasattr(node, 'coord'):
+                    node.params['position'] = node.coord[0].split(',')
             plotGraph(min_x=self.min_x, min_y=self.min_y, min_z=self.min_z,
                       max_x=self.max_x, max_y=self.max_y, max_z=self.max_z,
                       nodes=nodes, conn=self.conn)
