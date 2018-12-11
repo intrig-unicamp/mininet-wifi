@@ -738,8 +738,9 @@ class Mininet_wifi(Mininet):
                 self.mob_param['plotNodes'] = self.plot_nodes()
                 mobility.stop(**self.mob_param)
         else:
-            plotNodes = self.plot_nodes()
-            self.plotCheck(plotNodes)
+            if self.DRAW:
+                plotNodes = self.plot_nodes()
+                self.plotCheck(plotNodes)
         self.built = True
 
     def plot_nodes(self):
