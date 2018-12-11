@@ -2148,3 +2148,24 @@ class OVSAP(AP):
 
 OVSKernelAP = OVSAP
 physicalAP = OVSAP
+
+class OVSBridgeAP( OVSAP ):
+    "OVSBridge is an OVSAP in standalone/bridge mode"
+
+    def __init__( self, *args, **kwargs ):
+        """stp: enable Spanning Tree Protocol (False)
+           see OVSSwitch for other options"""
+        kwargs.update( failMode='standalone' )
+        OVSAP.__init__( self, *args, **kwargs )
+
+    def start( self, controllers ):
+        "Start bridge, ignoring controllers argument"
+        OVSAP.start( self, controllers=[] )
+
+    def connected( self ):
+        "Are we forwarding yet?"
+        if self.stp:
+            status = self.dpctl( 'show' )
+            return 'STP_FORWARD' in status and not 'STP_LEARN' in status
+        else:
+            return True
