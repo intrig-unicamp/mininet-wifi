@@ -2039,7 +2039,7 @@ class OVSAP(AP):
         if self.protocols and not self.isOldOVS():
             opts += ' protocols=%s' % self.protocols
         if self.stp and self.failMode == 'standalone':
-            opts += ' stp_enable=true' % self
+            opts += ' stp_enable=true'
         return opts
 
     def start(self, controllers):
