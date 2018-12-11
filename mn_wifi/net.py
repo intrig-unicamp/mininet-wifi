@@ -161,6 +161,9 @@ class Mininet_wifi(Mininet):
         self.wlinks = []
         Mininet_wifi.init()  # Initialize Mininet if necessary
 
+        if self.rec_rssi:
+            mobility.rec_rssi = True
+
         if not allAutoAssociation:
             self.autoAssociation = False
             mobility.allAutoAssociation = False
@@ -1665,7 +1668,7 @@ class Mininet_wifi(Mininet):
         else:
             self.mob_param.setdefault('min_wt', float(0))
 
-        args = ['seed', 'stations', 'aps', 'DRAW', 'conn', 'rec_rssi']
+        args = ['seed', 'stations', 'aps', 'DRAW', 'conn']
         for arg in args:
             self.mob_param.setdefault(arg, getattr(self, arg))
 
@@ -1681,8 +1684,7 @@ class Mininet_wifi(Mininet):
         args = ['min_x', 'min_y', 'min_z',
                   'max_x', 'max_y', 'max_z',
                   'stations', 'cars', 'aps',
-                  'DRAW', 'conn', 'rec_rssi',
-                  'repetitions']
+                  'DRAW', 'conn', 'repetitions']
         for arg in args:
             self.mob_param.setdefault(arg, getattr(self, arg))
 

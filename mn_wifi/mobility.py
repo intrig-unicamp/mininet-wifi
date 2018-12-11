@@ -180,12 +180,14 @@ class mobility(object):
         rssi = sta.set_rssi(ap, wlan, dist)
         ap.params['stationsInRange'][sta] = rssi
         if ap == sta.params['associatedTo'][wlan]:
-            if cls.wmediumd_mode and cls.wmediumd_mode != 3:
+            if cls.rec_rssi:
                 sta.params['rssi'][wlan] = rssi
-                if cls.rec_rssi:
-                    os.system('hwsim_mgmt -k %s %s >/dev/null 2>&1'
-                              % (sta.phyID[wlan],
-                                 abs(int(sta.params['rssi'][wlan]))))
+                debug('hwsim_mgmt -k %s %s >/dev/null 2>&1\n'
+                          % (sta.phyID[wlan],
+                             abs(int(sta.params['rssi'][wlan]))))
+                os.system('hwsim_mgmt -k %s %s >/dev/null 2>&1'
+                          % (sta.phyID[wlan],
+                             abs(int(sta.params['rssi'][wlan]))))
             if sta not in ap.params['associatedStations']:
                 ap.params['associatedStations'].append(sta)
             if dist >= 0.01:
@@ -237,7 +239,6 @@ class mobility(object):
     def models(cls, **kwargs):
         "Used when a mobility model is set"
         np.random.seed(kwargs['seed'])
-        cls.rec_rssi = kwargs['rec_rssi']
         if 'ac_method' in kwargs:
             cls.ac = kwargs['ac_method']
         cls.stations, cls.mobileNodes, cls.aps = \
@@ -272,7 +273,7 @@ class mobility(object):
 
         if kwargs['nodes']:
             model = kwargs['model']
-            debug('Configuring the mobility model %s' % kwargs['model'])
+            debug('Configuring the mobility model %s\n' % kwargs['model'])
 
             if model == 'RandomWalk':  # Random Walk model
                 for node in nodes:
@@ -414,7 +415,6 @@ class tracked(thread):
 
         if 'ac_method' in kwargs:
             mobility.ac = kwargs['ac_method']
-        mobility.rec_rssi = kwargs['rec_rssi']
         mobility.stations = kwargs['stations']
         mobility.aps = kwargs['aps']
         nodes = mobility.stations + mobility.aps + kwargs['plotNodes']
