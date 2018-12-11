@@ -51,6 +51,7 @@ class mobility(object):
         calculating the speed"""
         init_pos = (node.params['initPos'])
         fin_pos = (node.params['finPos'])
+
         if hasattr(node, 'points'):
             diff_time = (len(node.points)-1) / diff_time
             node.moveFac = diff_time
@@ -81,9 +82,11 @@ class mobility(object):
                 node.params['initPos'] = [float(pos_) for pos_ in pos.split(',')]
         else:
             if stage == 'stop':
-                node.params['finPos'] = node.coord[1]
+                finPos = node.coord[1]
+                node.params['finPos'] = finPos.split(',')
             if stage == 'start':
-                node.params['initPos'] = node.coord[0]
+                initPos = node.coord[0]
+                node.params['initPos'] = initPos.split(',')
 
         if 'time' in kwargs:
             time_ = kwargs['time']
