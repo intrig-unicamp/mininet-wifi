@@ -344,12 +344,6 @@ class Node_wifi(Node):
             self.cmd('iw dev %s set channel %s'
                      % (self.params['wlan'][wlan], str(value)))
 
-    def setFreq(self, value, intf=None):
-        "Set Frequency"
-        wlan = self.params['wlan'].index(intf)
-        self.cmd('iw dev %s set freq %s' % (self.params['wlan'][wlan], value))
-        self.params['freq'][wlan] = value
-
     def setTxPower(self, value, intf=None, setParam=True):
         "Set Tx Power"
         wlan = self.params['wlan'].index(intf)
