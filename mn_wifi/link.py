@@ -57,6 +57,11 @@ class IntfWireless(object):
         "Run a command in our owning node"
         return self.node.pexec(*args, **kwargs)
 
+    def wpa_cmd(self, pidfile, intf, wlan):
+        return self.pexec("wpa_supplicant -B -Dnl80211 -P %s "
+                          "-i %s -c %s_%s.staconf"
+                          % (pidfile, intf, self.node.name, wlan))
+
     def join(self, type=None, ssid=None, freq=None, ht_cap=None, intf=None):
         if type == 'ibss':
             return self.pexec('iw dev %s %s join %s %s %s 02:CA:FF:EE:BA:01'
@@ -1096,10 +1101,8 @@ class adhoc(IntfWireless):
         fileName = '%s_%s.staconf' % (node.name, wlan)
         os.system('echo \'%s\' > %s' % (cmd, fileName))
         pidfile = "mn%d_%s_%s_wpa.pid" % (os.getpid(), node.name, wlan)
-        debug("wpa_supplicant -B -Dnl80211 -P %s -i %s -c %s_%s.staconf\n"
-                  % (pidfile, node.params['wlan'][wlan], node.name, wlan))
-        node.pexec("wpa_supplicant -B -Dnl80211 -P %s -i %s -c %s_%s.staconf"
-                  % (pidfile, node.params['wlan'][wlan], node.name, wlan))
+        intf = node.params['wlan'][wlan]
+        self.wpa_cmd(pidfile, intf, wlan)
 
 
 class mesh(IntfWireless):
@@ -1182,11 +1185,11 @@ class mesh(IntfWireless):
         if 'passwd' in params:
             self.setSecuredMesh(node, wlan, **params)
         else:
-            self.meshAssociation(node, wlan, **params)
+            self.associate(node, wlan, **params)
         if node.params['wlan'][wlan] not in str(node.intf):
             TCLinkWirelessStation(node, intfName1=node.params['wlan'][wlan])
 
-    def meshAssociation(self, node, wlan, **params):
+    def associate(self, node, wlan, **params):
         "Performs Mesh Association"
         name = node.params['wlan'][wlan]
         ssid = node.params['ssid'][wlan]
@@ -1213,10 +1216,8 @@ class mesh(IntfWireless):
         fileName = '%s_%s.staconf' % (node.name, wlan)
         os.system('echo \'%s\' > %s' % (cmd, fileName))
         pidfile = "mn%d_%s_%s_wpa.pid" % (os.getpid(), node.name, wlan)
-        debug("wpa_supplicant -B -Dnl80211 -P %s -i %s -c %s_%s.staconf\n"
-                  % (pidfile, node.params['wlan'][wlan], node.name, wlan))
-        node.pexec("wpa_supplicant -B -Dnl80211 -P %s -i %s -c %s_%s.staconf"
-                  % (pidfile, node.params['wlan'][wlan], node.name, wlan))
+        intf = node.params['wlan'][wlan]
+        self.wpa_cmd(pidfile, intf, wlan)
 
 
 class physicalMesh(IntfWireless):
@@ -1351,23 +1352,18 @@ class Association(object):
         sta.ifaceToAssociate += 1
 
     @classmethod
-    def associate_noEncrypt(cls, sta, ap, **params):
+    def associate_noEncrypt(cls, sta, ap, wlan, ap_wlan):
         """Association when there is no encrypt
 
         :param sta: station
         :param ap: access point
         :param wlan: wlan ID"""
-        #debug('iw dev %s connect %s %s\n'
-        #      % (sta.params['wlan'][wlan], ap.params['ssid'][0], ap.params['mac'][0]))
-        #sta.pexec('iw dev %s connect %s %s'
-        #          % (sta.params['wlan'][wlan], ap.params['ssid'][0], ap.params['mac'][0]))
         #iwconfig is still necessary, since iw doesn't include essid like iwconfig does.
-        wlan = params['wlan']
-        ap_wlan = params['ap_wlan']
-        debug('iwconfig %s essid %s ap %s\n' % (
-            sta.params['wlan'][wlan], ap.params['ssid'][ap_wlan], ap.params['mac'][ap_wlan]))
-        sta.pexec('iwconfig %s essid %s ap %s' % (
-            sta.params['wlan'][wlan], ap.params['ssid'][ap_wlan], ap.params['mac'][ap_wlan]))
+        intf = sta.params['wlan'][wlan]
+        ssid = ap.params['ssid'][ap_wlan]
+        mac = ap.params['mac'][ap_wlan]
+        debug('iwconfig %s essid %s ap %s\n' % (intf, ssid, mac))
+        sta.pexec('iwconfig %s essid %s ap %s' % (intf, ssid, mac))
 
     @classmethod
     def associate_infra(cls, sta, ap, **params):
@@ -1394,7 +1390,7 @@ class Association(object):
             associated = 1
         elif 'encrypt' not in ap.params:
             associated = 1
-            cls.associate_noEncrypt(sta, ap, **params)
+            cls.associate_noEncrypt(sta, ap, wlan, ap_wlan)
         else:
             if not sta.params['associatedTo'][wlan]:
                 if 'wpa' in ap.params['encrypt'][ap_wlan] \
