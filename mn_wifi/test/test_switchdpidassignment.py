@@ -48,7 +48,7 @@ class TestSwitchDpidAssignmentOVS(unittest.TestCase):
         ap = Mininet_wifi(topo=Topo_WiFi(), accessPoint=self.accessPointClass,
                           station=Station, controller=Controller,
                          ).addAccessPoint('ap1', dpid=dpid)
-        self.assertEqual(ap.dpid[1:], dpid)
+        self.assertEqual(ap.dpid, dpid)
 
     def testDefaultDpidLen(self):
         """Verify that Default dpid length is 16 characters consisting of
