@@ -59,7 +59,7 @@ class TestSwitchDpidAssignmentOVS(unittest.TestCase):
                           station=Station, controller=Controller,
                          ).addAccessPoint('ap123')
 
-        self.assertEqual(ap.dpid, self.dpidFrom(123))
+        self.assertEqual(ap.dpid[1:], self.dpidFrom(123))
 
 class OVSUser(OVSAP):
     "OVS User AP convenience class"
