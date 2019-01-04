@@ -50,6 +50,11 @@ class TestSwitchDpidAssignmentOVS(unittest.TestCase):
                          ).addAccessPoint('ap1', dpid=dpid)
         self.assertEqual(ap.dpid, dpid)
 
+    def dpidFrom_(self, num):
+        "Compute default dpid from number"
+        fmt = ('1%0' + str(self.accessPointClass.dpidLen - 1) + 'x')
+        return fmt % num
+
     def testDefaultDpidLen(self):
         """Verify that Default dpid length is 16 characters consisting of
         16 - len(hex of first string of contiguous digits passed in ap
@@ -59,7 +64,7 @@ class TestSwitchDpidAssignmentOVS(unittest.TestCase):
                           station=Station, controller=Controller,
                          ).addAccessPoint('ap123')
 
-        self.assertEqual(ap.dpid[1:], self.dpidFrom(123))
+        self.assertEqual(ap.dpid, self.dpidFrom_(123))
 
 class OVSUser(OVSAP):
     "OVS User AP convenience class"
