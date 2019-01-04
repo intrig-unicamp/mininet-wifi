@@ -38,7 +38,7 @@ class TestSwitchDpidAssignmentOVS(unittest.TestCase):
 
     def dpidFrom(self, num):
         "Compute default dpid from number"
-        fmt = ('1%0' + str(self.accessPointClass.dpidLen-1) + 'x')
+        fmt = ('0%0' + str(self.accessPointClass.dpidLen-1) + 'x')
         return fmt % num
 
     def testActualDpidAssignment(self):
