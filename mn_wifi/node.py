@@ -1314,6 +1314,7 @@ class AP(Node_wifi):
             else:
                 dpid = dpid.translate(str.maketrans('', '', ':'))
             assert len(dpid) <= self.dpidLen and int(dpid, 16) >= 0
+            return '0' * (self.dpidLen - len(dpid)) + dpid
         else:
             # Use hex of the first number in the switch name
             nums = re.findall(r'\d+', self.name)
@@ -1323,7 +1324,7 @@ class AP(Node_wifi):
                 raise Exception('Unable to derive default datapath ID - '
                                 'please either specify a dpid or use a '
                                 'canonical ap name such as ap23.')
-        return '1' + '0' * (self.dpidLen -1 - len(dpid)) + dpid
+            return '1' + '0' * (self.dpidLen -1 - len(dpid)) + dpid
 
     def defaultIntf(self):
         "Return control interface"
