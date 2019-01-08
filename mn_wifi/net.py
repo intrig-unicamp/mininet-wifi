@@ -1845,7 +1845,7 @@ class Mininet_wifi(Mininet):
                     if sta.func[wlan] == 'adhoc' and self.link == wmediumd and \
                                     'position' in node.params:
                         sta.set_pos_wmediumd(wlan=wlan, mob=False)
-                        sleep(2)
+                        #sleep(2)
 
                     for ap in self.aps:
                         if 'position' in sta.params and 'position' in ap.params:

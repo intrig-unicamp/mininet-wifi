@@ -1116,11 +1116,11 @@ class w_server(object):
         posY = pos.sta_pos[1]
         posZ = pos.sta_pos[2]
         if not mob:
-            time.sleep(0.15)
+            time.sleep(1)
         debug("%s Updating Pos of %s to x=%s, y=%s, z=%s\n" % (
             w_cst.LOG_PREFIX, pos.staintf.get_mac(),
             posX, posY, posZ))
-        cls.sock.send(cls.__create_pos_update_request(pos))
+        cls.sock.send(cls.__create_pos_update_request(pos, posX, posY, posZ))
         return cls.__parse_response(
             w_cst.WSERVER_POS_UPDATE_RESPONSE_TYPE,
             cls.__pos_update_response_struct)[-1]
@@ -1284,7 +1284,7 @@ class w_server(object):
                                                     mac_to, snr)
 
     @classmethod
-    def __create_pos_update_request(cls, pos):
+    def __create_pos_update_request(cls, pos, posX, posY, posZ):
         "pos update request"
         # type: (w_pos) -> str
         msgtype = w_cst.WSERVER_POS_UPDATE_REQUEST_TYPE
@@ -1292,9 +1292,6 @@ class w_server(object):
             mac = pos.staintf.get_mac().replace(':', '').decode('hex')
         else:
             mac = bytes.fromhex(pos.staintf.get_mac().replace(':', ''))
-        posX = pos.sta_pos[0]
-        posY = pos.sta_pos[1]
-        posZ = pos.sta_pos[2]
         return cls.__pos_update_request_struct.pack(msgtype, mac,
                                                     posX, posY, posZ)
 
