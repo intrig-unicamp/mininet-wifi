@@ -100,181 +100,6 @@ class WmediumdException(Exception):
     pass
 
 
-class WmediumdManager(object):
-    is_connected = False
-    registered_interfaces = []
-
-    @classmethod
-    def connect(cls, uds_address=w_cst.SOCKET_PATH,
-                mode=w_cst.SNR_MODE):
-        # type: (str) -> None
-        """
-        Connect to the wmediumd server and set Mininet-WiFi parameters
-        to managed
-
-        :param uds_address: The Unix Domain socket path
-        :param mode: wmediumd mode to use if the server is not started
-        :type uds_address str
-        :type mode int
-        """
-        h = int(subprocess.check_output("lsmod | grep 'mac80211_hwsim' "
-                                        "| wc -l", shell=True))
-        if h == 0:
-            os.system('modprobe mac80211_hwsim radios=0')
-        is_started = False
-        h = int(subprocess.check_output("pgrep -x \'wmediumd\' | wc -l",
-                                        shell=True))
-        if h > 0:
-            if os.path.exists(uds_address) \
-                    and stat.S_ISSOCK(os.stat(uds_address).st_mode):
-                is_started = True
-            else:
-                raise WmediumdException("wmediumd is already started but "
-                                        "without server")
-
-        if not is_started:
-            w_starter.initialize(parameters=['-l', '5'], mode=mode)
-            w_starter.start_managed()
-            time.sleep(1)
-        w_server.connect(uds_address)
-        cls.is_connected = True
-
-        # Mininet specific
-        from mn_wifi.module import module
-        module.externally_managed = True
-
-    @classmethod
-    def disconnect(cls):
-        # type: () -> None
-        """
-        Disconnect from the wmediumd server and unregister all registered
-        interfaces
-        """
-        if not cls.is_connected:
-            raise WmediumdException("WmediumdConnector is not connected to "
-                                    "wmediumd")
-        registered_interfaces = cls.registered_interfaces[:]
-        for mac in registered_interfaces:
-            cls.unregister_interface(mac)
-        w_server.disconnect()
-        cls.is_connected = False
-
-    @classmethod
-    def register_interface(cls, mac):
-        # type: (str) -> int
-        """
-        Register a new interface at wmediumd
-        :param mac The mac address of the interface
-        :return The wmediumd station index
-
-        :type mac: str
-        :rtype int
-        """
-        ret = w_server.register_interface(mac)
-        cls.registered_interfaces.append(mac)
-        return ret
-
-    @classmethod
-    def unregister_interface(cls, mac):
-        # type: (str) -> None
-        """
-        Unregister a station at wmediumd
-        :param mac The mac address of the interface
-
-        :type mac: str
-        """
-        w_server.unregister_interface(mac)
-        cls.registered_interfaces.remove(mac)
-
-    @classmethod
-    def update_link_snr(cls, link):
-        # type: (SNRLink) -> None
-        """
-        Update the SNR of a connection at wmediumd
-        :param link The link to update
-
-        :type link: SNRLink
-        """
-        w_server.update_link_snr(link)
-
-    @classmethod
-    def update_pos(cls, pos, mob):
-        # type: (w_pos) -> None
-        """
-        Update the Pos of a node at wmediumd
-        :param pos The pos to update
-
-        :type pos: w_pos
-        """
-        w_server.update_pos(pos, mob)
-
-    @classmethod
-    def update_txpower(cls, txpower):
-        # type: (w_txpower) -> None
-        """
-        Update the w_txpower of a node at wmediumd
-        :param txpower The txpower to update
-
-        :type txpower: w_txpower
-        """
-        w_server.update_txpower(txpower)
-
-    @classmethod
-    def update_gain(cls, gain):
-        # type: (gain) -> None
-        """
-        Update the gain of a node at wmediumd
-        :param gain The Antenna Gain to update
-
-        :type gain: gain
-        """
-        w_server.update_gain(gain)
-
-    @classmethod
-    def update_gaussian_random(cls, gRandom):
-        # type: (WmediumdGRandom) -> None
-        """
-        Update the gRandom of a node at wmediumd
-        :param gRandom The gRandom to update
-
-        :type gRandom: WmediumdGRandom
-        """
-        w_server.update_gaussian_random(gRandom)
-
-    @classmethod
-    def update_height(cls, height):
-        # type: (Height) -> None
-        """
-        Update the Height of a node at wmediumd
-        :param height The Antenna Height to update
-
-        :type height: Height
-        """
-        w_server.update_height(height)
-
-    @classmethod
-    def update_link_errprob(cls, link):
-        # type: (ERRPROBLink) -> None
-        """
-        Update the error probability of a connection at wmediumd
-        :param link The link to update
-
-        :type link: ERRPROBLink
-        """
-        w_server.update_link_errprob(link)
-
-    @classmethod
-    def update_link_specprob(cls, link):
-        # type: (WmediumdSPECPROBLink) -> None
-        """
-        Update the error probability matrix of a connection at wmediumd
-        :param link The link to update
-
-        :type link: WmediumdSPECPROBLink
-        """
-        w_server.update_link_specprob(link)
-
-
 class set_interference(object):
 
     def __init__(self, configstr, ppm, pos, txpowers,
@@ -989,6 +814,19 @@ class w_server(object):
                                     "code %d" % ret)
 
     @classmethod
+    def update_pos_sleep(cls, pos, mob):
+        # type: (w_pos) -> None
+        """
+        Update the Pos of a connection at wmediumd
+        :param pos The pos to update
+
+        :type pos: w_pos
+        """
+        if not mob:
+            time.sleep(1.5)
+        cls.update_pos(pos, mob)
+
+    @classmethod
     def update_pos(cls, pos, mob):
         # type: (w_pos) -> None
         """
@@ -997,7 +835,6 @@ class w_server(object):
 
         :type pos: w_pos
         """
-
         ret = w_server.send_pos_update(pos, mob)
         if ret != w_cst.WUPDATE_SUCCESS:
             raise WmediumdException("Received error code from wmediumd: "
@@ -1115,8 +952,6 @@ class w_server(object):
         posX = pos.sta_pos[0]
         posY = pos.sta_pos[1]
         posZ = pos.sta_pos[2]
-        if not mob:
-            time.sleep(1)
         debug("%s Updating Pos of %s to x=%s, y=%s, z=%s\n" % (
             w_cst.LOG_PREFIX, pos.staintf.get_mac(),
             posX, posY, posZ))

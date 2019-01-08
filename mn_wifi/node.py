@@ -442,23 +442,41 @@ class Node_wifi(Node):
         value = propagationModel(self, node2, dist, wlan)
         return float(value.rssi)
 
-    def set_pos_wmediumd(self, wlan=None, mob=True):
-        "Set Position for wmediumd"
+    def get_pos(self):
         posX = self.params['position'][0]
         posY = self.params['position'][1]
         posZ = self.params['position'][2]
 
+        return posX, posY, posZ
+
+    def set_pos_wmediumd_sleep(self, wlan=None):
+        "Set Position for wmediumd"
+        posX, posY, posZ = self.get_pos()
         wlans = len(self.params['mac'])
 
         if self.lastpos != self.params['position']:
+            self.lastpos = self.params['position']
             if wlan:
-                self.lastpos = self.params['position']
-                w_server.update_pos(w_pos(self.wmIface[wlan],
-                    [(float(posX) + wlan), float(posY), float(posZ)])
-                    [(float(posX) + wlan), float(posY), float(posZ)], mob)
+                w_server.update_pos_sleep(w_pos(self.wmIface[wlan],
+                    [(float(posX) + wlan), float(posY), float(posZ)]), False)
             else:
                 for wlan in range(0, wlans):
-                    self.lastpos = self.params['position']
+                    inc = '%s' % float('0.'+str(wlan))
+                    w_server.update_pos_sleep(w_pos(self.wmIface[wlan],
+                        [(float(posX)+float(inc)), float(posY), float(posZ)]), False)
+
+    def set_pos_wmediumd(self, wlan=None, mob=True):
+        "Set Position for wmediumd"
+        posX, posY, posZ = self.get_pos()
+        wlans = len(self.params['mac'])
+
+        if self.lastpos != self.params['position']:
+            self.lastpos = self.params['position']
+            if wlan:
+                w_server.update_pos(w_pos(self.wmIface[wlan],
+                    [(float(posX) + wlan), float(posY), float(posZ)]), mob)
+            else:
+                for wlan in range(0, wlans):
                     inc = '%s' % float('0.'+str(wlan))
                     w_server.update_pos(w_pos(self.wmIface[wlan],
                         [(float(posX)+float(inc)), float(posY), float(posZ)]), mob)
