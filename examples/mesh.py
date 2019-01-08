@@ -32,6 +32,9 @@ def topology(mobility):
         sta2 = net.addStation('sta2', position='50,10,0')
         sta3 = net.addStation('sta3', position='90,10,0')
 
+    info("*** Configuring Propagation Model\n")
+    net.setPropagationModel(model="logDistance", exp=4)
+
     info("*** Configuring wifi nodes\n")
     net.configureWifiNodes()
 
