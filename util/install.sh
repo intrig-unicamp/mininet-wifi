@@ -741,7 +741,7 @@ function wpan_tools {
       echo "Removing wpan-tools..."
       rm -r wpan-tools
     fi
-    git clone --depth=1 https://github.com/ramonfontes/wpan-tools
+    git clone --depth=1 https://github.com/linux-wpan/wpan-tools
     pushd $BUILD_DIR/wpan-tools
     sudo ./autogen.sh
     sudo ./configure
