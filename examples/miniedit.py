@@ -2728,12 +2728,16 @@ class MiniEdit( Frame ):
             f.write("\n")
             f.write("def myNetwork():\n")
             f.write("\n")
-            f.write("    net = Mininet_wifi( topo=None,\n")
+            if not isWiFi:
+                f.write("    net = Mininet( topo=None,\n")
+            else:
+                f.write("    net = Mininet_wifi( topo=None,\n")
             if len(self.appPrefs['dpctl']) > 0:
                 f.write("                   listenPort="+self.appPrefs['dpctl']+",\n")
             f.write("                   build=False,\n")
-            f.write("                   link=wmediumd,\n")
-            f.write("                   wmediumd_mode=interference,\n")
+            if isWiFi:
+                f.write("                   link=wmediumd,\n")
+                f.write("                   wmediumd_mode=interference,\n")
             f.write("                   ipBase='"+self.appPrefs['ipBase']+"')\n")
             f.write("\n")
             f.write("    info( '*** Adding controller\\n' )\n")
