@@ -195,6 +195,7 @@ class mobility(object):
                 and ('encrypt' in sta.params and 'wpa' in sta.params['encrypt'][wlan]):
                     pass
                 elif cls.wmediumd_mode and cls.wmediumd_mode != 3:
+                    sta.params['rssi'][wlan] = rssi
                     Association.setSNRWmediumd(
                         sta, ap, snr=sta.params['rssi'][wlan] - (-91))
                 elif cls.wmediumd_mode and cls.wmediumd_mode == 3:
@@ -374,7 +375,7 @@ class mobility(object):
     def parameters(cls):
         "Applies channel params and handover"
         mobileNodes = list(set(cls.mobileNodes) - set(cls.aps))
-        while True:
+        while mobility.thread_._keep_alive:
             cls.configureLinks(mobileNodes)
 
     @classmethod

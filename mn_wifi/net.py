@@ -1838,10 +1838,7 @@ class Mininet_wifi(Mininet):
                     mobility.configLinks(node)
                     if self.link == wmediumd and \
                                     self.wmediumd_mode == interference:
-                        if sta.func[wlan] == 'adhoc':
-                            node.set_pos_wmediumd_sleep(wlan=wlan)
-                        else:
-                            node.set_pos_wmediumd(mob=False)
+                        node.set_pos_wmediumd_sleep(wlan=wlan)
 
             for sta in self.stations:
                 for wlan in range(0, len(sta.params['wlan'])):

@@ -432,21 +432,14 @@ class Node_wifi(Node):
             freq = 2.412
         return freq
 
-    def set_rssi(self, node2=None, wlan=0, dist=0):
-        """set RSSI
-        :param node1: self
-        :param node2: access point
-        :param wlan: wlan ID
-        :param dist: distance
-        """
-        value = propagationModel(self, node2, dist, wlan)
+    def set_rssi(self, node=None, wlan=0, dist=0):
+        value = propagationModel(self, node, dist, wlan)
         return float(value.rssi)
 
     def get_pos(self):
         posX = self.params['position'][0]
         posY = self.params['position'][1]
         posZ = self.params['position'][2]
-
         return posX, posY, posZ
 
     def set_pos_wmediumd_sleep(self, wlan=None):
