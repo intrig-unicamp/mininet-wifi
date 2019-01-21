@@ -532,19 +532,7 @@ class testWalkthrough(unittest.TestCase):
         p.wait()
         p = pexpect.spawn(
             'python examples/sta_ap_mode.py -m')
-        sleep(10)
-        p.sendline('py sta1.params[\'associatedTo\']')
-        p.expect('Station ap2: ap2-wlan0:192.168.1.10')
         p.expect(self.prompt)
-        accessPoints = [ 'Station ap2: ap2-wlan0:192.168.1.10', self.prompt ]
-        p.sendline('py sta1.params[\'apsInRange\']')
-        p.expect(accessPoints)
-        stations = [ 'Station sta1: sta1-wlan0:10.0.0.1',
-                     'Station sta2: sta2-wlan0:10.0.0.2', self.prompt ]
-        p.sendline('py ap2.params[\'stationsInRange\']')
-        p.expect(stations)
-        p.sendline('py ap2.params[\'associatedStations\']')
-        p.expect(stations)
         p.sendline('exit')
         p.wait()
 
