@@ -1,17 +1,8 @@
 diff --git hostapd/defconfig hostapd/defconfig
-index c67c6622d..962238b7b 100644
+index aeac13a67..9a80f00c1 100644
 --- hostapd/defconfig
 +++ hostapd/defconfig
-@@ -31,7 +31,7 @@ CONFIG_DRIVER_NL80211=y
- #CONFIG_LIBNL20=y
- 
- # Use libnl 3.2 libraries (if this is selected, CONFIG_LIBNL20 is ignored)
--#CONFIG_LIBNL32=y
-+CONFIG_LIBNL32=y
- 
- 
- # Driver interface for FreeBSD net80211 layer (e.g., Atheros driver)
-@@ -111,11 +111,11 @@ CONFIG_EAP_TTLS=y
+@@ -114,11 +114,11 @@ CONFIG_EAP_TTLS=y
  #CONFIG_EAP_FAST=y
  
  # Wi-Fi Protected Setup (WPS)
@@ -26,7 +17,7 @@ index c67c6622d..962238b7b 100644
  
  # EAP-IKEv2
  #CONFIG_EAP_IKEV2=y
-@@ -132,33 +132,34 @@ CONFIG_PKCS12=y
+@@ -135,33 +135,34 @@ CONFIG_PKCS12=y
  
  # RADIUS authentication server. This provides access to the integrated EAP
  # server from external hosts using RADIUS.
@@ -51,7 +42,8 @@ index c67c6622d..962238b7b 100644
  
  # Wireless Network Management (IEEE Std 802.11v-2011)
  # Note: This is experimental and not complete implementation.
- #CONFIG_WNM=y
+-#CONFIG_WNM=y
++CONFIG_WNM=y
  
  # IEEE 802.11ac (Very High Throughput) support
 -#CONFIG_IEEE80211AC=y
@@ -66,7 +58,7 @@ index c67c6622d..962238b7b 100644
  
  # Remove debugging code that is printing out debug messages to stdout.
  # This can be used to reduce the size of the hostapd considerably if debugging
-@@ -342,7 +343,7 @@ CONFIG_IPV6=y
+@@ -350,7 +351,7 @@ CONFIG_IPV6=y
  # For more details refer to:
  # http://wireless.kernel.org/en/users/Documentation/acs
  #
@@ -75,7 +67,7 @@ index c67c6622d..962238b7b 100644
  
  # Multiband Operation support
  # These extentions facilitate efficient use of multiple frequency bands
-@@ -364,7 +365,7 @@ CONFIG_IPV6=y
+@@ -372,7 +373,7 @@ CONFIG_IPV6=y
  
  # Include internal line edit mode in hostapd_cli. This can be used to provide
  # limited command line editing and history support.
@@ -84,25 +76,16 @@ index c67c6622d..962238b7b 100644
  
  # Opportunistic Wireless Encryption (OWE)
  # Experimental implementation of draft-harkins-owe-07.txt
-@@ -373,3 +374,4 @@ CONFIG_IPV6=y
+@@ -381,3 +382,4 @@ CONFIG_IPV6=y
  # Override default value for the wpa_disable_eapol_key_retries configuration
  # parameter. See that parameter in hostapd.conf for more details.
  #CFLAGS += -DDEFAULT_WPA_DISABLE_EAPOL_KEY_RETRIES=1
 +CONFIG_SAE=y
 diff --git wpa_supplicant/defconfig wpa_supplicant/defconfig
-index 08f585779..88f141c71 100644
+index 0a082529e..41c0e17bf 100644
 --- wpa_supplicant/defconfig
 +++ wpa_supplicant/defconfig
-@@ -44,7 +44,7 @@ CONFIG_DRIVER_NL80211=y
- #CONFIG_LIBNL20=y
- 
- # Use libnl 3.2 libraries (if this is selected, CONFIG_LIBNL20 is ignored)
--#CONFIG_LIBNL32=y
-+CONFIG_LIBNL32=y
- 
- 
- # Driver interface for FreeBSD net80211 layer (e.g., Atheros driver)
-@@ -157,14 +157,14 @@ CONFIG_EAP_LEAP=y
+@@ -157,12 +157,12 @@ CONFIG_EAP_LEAP=y
  #CONFIG_EAP_TNC=y
  
  # Wi-Fi Protected Setup (WPS)
@@ -116,11 +99,8 @@ index 08f585779..88f141c71 100644
 -#CONFIG_WPS_REG_DISABLE_OPEN=y
 +CONFIG_WPS_REG_DISABLE_OPEN=y
  # Enable WPS support with NFC config method
--#CONFIG_WPS_NFC=y
-+CONFIG_WPS_NFC=y
+ #CONFIG_WPS_NFC=y
  
- # EAP-IKEv2
- #CONFIG_EAP_IKEV2=y
 @@ -216,7 +216,7 @@ CONFIG_CTRL_IFACE=y
  
  # Include internal line edit mode in wpa_cli. This can be used as a replacement
@@ -137,9 +117,9 @@ index 08f585779..88f141c71 100644
 -#CONFIG_IEEE80211W=y
 +CONFIG_IEEE80211W=y
  
- # Select TLS implementation
- # openssl = OpenSSL (default)
-@@ -382,7 +382,7 @@ CONFIG_BACKEND=file
+ # Support Operating Channel Validation
+ #CONFIG_OCV=y
+@@ -385,7 +385,7 @@ CONFIG_BACKEND=file
  #CONFIG_DYNAMIC_EAP_METHODS=y
  
  # IEEE Std 802.11r-2008 (Fast BSS Transition) for station mode
@@ -148,8 +128,8 @@ index 08f585779..88f141c71 100644
  
  # Add support for writing debug log to a file (/tmp/wpa_supplicant-log-#.txt)
  #CONFIG_DEBUG_FILE=y
-@@ -459,11 +459,11 @@ CONFIG_BACKEND=file
- #CONFIG_NO_RANDOM_POOL=y
+@@ -467,21 +467,21 @@ CONFIG_BACKEND=file
+ #CONFIG_GETRANDOM=y
  
  # IEEE 802.11n (High Throughput) support (mainly for AP mode)
 -#CONFIG_IEEE80211N=y
@@ -162,7 +142,19 @@ index 08f585779..88f141c71 100644
  
  # Wireless Network Management (IEEE Std 802.11v-2011)
  # Note: This is experimental and not complete implementation.
-@@ -489,12 +489,12 @@ CONFIG_BACKEND=file
+-#CONFIG_WNM=y
++CONFIG_WNM=y
+ 
+ # Interworking (IEEE 802.11u)
+ # This can be used to enable functionality to improve interworking with
+ # external networks (GAS/ANQP to learn more about the networks and network
+ # selection based on available credentials).
+-#CONFIG_INTERWORKING=y
++CONFIG_INTERWORKING=y
+ 
+ # Hotspot 2.0
+ #CONFIG_HS20=y
+@@ -497,12 +497,12 @@ CONFIG_BACKEND=file
  # should be noted that this is mainly aimed at simple cases like
  # WPA2-Personal while more complex configurations like WPA2-Enterprise with an
  # external RADIUS server can be supported with hostapd.
@@ -177,7 +169,7 @@ index 08f585779..88f141c71 100644
  
  # Enable TDLS support
  #CONFIG_TDLS=y
-@@ -555,7 +555,7 @@ CONFIG_BACKEND=file
+@@ -563,7 +563,7 @@ CONFIG_BACKEND=file
  #
  # For more details refer to:
  # http://wireless.kernel.org/en/users/Documentation/acs
@@ -186,7 +178,7 @@ index 08f585779..88f141c71 100644
  
  # Support Multi Band Operation
  #CONFIG_MBO=y
-@@ -570,7 +570,7 @@ CONFIG_BACKEND=file
+@@ -578,7 +578,7 @@ CONFIG_BACKEND=file
  # Support RSN on IBSS networks
  # This is needed to be able to use mode=1 network profile with proto=RSN and
  # key_mgmt=WPA-PSK (i.e., full key management instead of WPA-None).
@@ -195,7 +187,7 @@ index 08f585779..88f141c71 100644
  
  # External PMKSA cache control
  # This can be used to enable control interface commands that allow the current
-@@ -578,18 +578,19 @@ CONFIG_BACKEND=file
+@@ -586,18 +586,19 @@ CONFIG_BACKEND=file
  #CONFIG_PMKSA_CACHE_EXTERNAL=y
  
  # Mesh Networking (IEEE 802.11s)
@@ -219,7 +211,7 @@ index 08f585779..88f141c71 100644
  #CONFIG_OWE=y
 +CONFIG_SAE=y
 diff --git wpa_supplicant/p2p_supplicant.c wpa_supplicant/p2p_supplicant.c
-index c596d5ab6..424891b4a 100644
+index 848299d54..0699f12cb 100644
 --- wpa_supplicant/p2p_supplicant.c
 +++ wpa_supplicant/p2p_supplicant.c
 @@ -96,7 +96,7 @@
