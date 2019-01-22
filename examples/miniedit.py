@@ -2729,16 +2729,16 @@ class MiniEdit( Frame ):
             f.write("def myNetwork():\n")
             f.write("\n")
             if not isWiFi:
-                f.write("    net = Mininet( topo=None,\n")
+                f.write("    net = Mininet(topo=None,\n")
             else:
-                f.write("    net = Mininet_wifi( topo=None,\n")
+                f.write("    net = Mininet_wifi(topo=None,\n")
             if len(self.appPrefs['dpctl']) > 0:
-                f.write("                   listenPort="+self.appPrefs['dpctl']+",\n")
-            f.write("                   build=False,\n")
+                f.write("                       listenPort="+self.appPrefs['dpctl']+",\n")
+            f.write("                       build=False,\n")
             if isWiFi:
-                f.write("                   link=wmediumd,\n")
-                f.write("                   wmediumd_mode=interference,\n")
-            f.write("                   ipBase='"+self.appPrefs['ipBase']+"')\n")
+                f.write("                       link=wmediumd,\n")
+                f.write("                       wmediumd_mode=interference,\n")
+            f.write("                       ipBase='"+self.appPrefs['ipBase']+"')\n")
             f.write("\n")
             f.write("    info( '*** Adding controller\\n' )\n")
             for widget in self.widgetToItem:
@@ -2755,21 +2755,21 @@ class MiniEdit( Frame ):
                     controllerIP = opts['remoteIP']
                     controllerPort = opts['remotePort']
 
-                    f.write("    "+name+"=net.addController(name='"+name+"',\n")
+                    f.write("    "+name+" = net.addController(name='"+name+"',\n")
 
                     if controllerType == 'remote':
-                        f.write("                      controller=RemoteController,\n")
-                        f.write("                      ip='"+controllerIP+"',\n")
+                        f.write("                           controller=RemoteController,\n")
+                        f.write("                           ip='"+controllerIP+"',\n")
                     elif controllerType == 'inband':
-                        f.write("                      controller=InbandController,\n")
-                        f.write("                      ip='"+controllerIP+"',\n")
+                        f.write("                           controller=InbandController,\n")
+                        f.write("                           ip='"+controllerIP+"',\n")
                     elif controllerType == 'ovsc':
-                        f.write("                      controller=OVSController,\n")
+                        f.write("                           controller=OVSController,\n")
                     else:
-                        f.write("                      controller=Controller,\n")
+                        f.write("                           controller=Controller,\n")
 
-                    f.write("                      protocol='"+controllerProtocol+"',\n")
-                    f.write("                      port="+str(controllerPort)+")\n")
+                    f.write("                           protocol='"+controllerProtocol+"',\n")
+                    f.write("                           port="+str(controllerPort)+")\n")
                     f.write("\n")
 
             # Save Switches and Hosts
@@ -3018,7 +3018,8 @@ class MiniEdit( Frame ):
                 f.write("\n")
             if isWiFi:
                 f.write("    net.plotGraph(max_x=1000, max_y=1000)\n")
-            f.write("\n")
+                f.write("\n")
+
             f.write("    info( '*** Starting network\\n')\n")
             f.write("    net.build()\n")
 
