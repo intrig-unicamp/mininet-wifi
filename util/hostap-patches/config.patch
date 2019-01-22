@@ -82,7 +82,7 @@ index aeac13a67..9a80f00c1 100644
  #CFLAGS += -DDEFAULT_WPA_DISABLE_EAPOL_KEY_RETRIES=1
 +CONFIG_SAE=y
 diff --git wpa_supplicant/defconfig wpa_supplicant/defconfig
-index 0a082529e..41c0e17bf 100644
+index 0a082529e..167ed935a 100644
 --- wpa_supplicant/defconfig
 +++ wpa_supplicant/defconfig
 @@ -157,12 +157,12 @@ CONFIG_EAP_LEAP=y
@@ -128,7 +128,7 @@ index 0a082529e..41c0e17bf 100644
  
  # Add support for writing debug log to a file (/tmp/wpa_supplicant-log-#.txt)
  #CONFIG_DEBUG_FILE=y
-@@ -467,21 +467,21 @@ CONFIG_BACKEND=file
+@@ -467,15 +467,15 @@ CONFIG_BACKEND=file
  #CONFIG_GETRANDOM=y
  
  # IEEE 802.11n (High Throughput) support (mainly for AP mode)
@@ -147,13 +147,6 @@ index 0a082529e..41c0e17bf 100644
  
  # Interworking (IEEE 802.11u)
  # This can be used to enable functionality to improve interworking with
- # external networks (GAS/ANQP to learn more about the networks and network
- # selection based on available credentials).
--#CONFIG_INTERWORKING=y
-+CONFIG_INTERWORKING=y
- 
- # Hotspot 2.0
- #CONFIG_HS20=y
 @@ -497,12 +497,12 @@ CONFIG_BACKEND=file
  # should be noted that this is mainly aimed at simple cases like
  # WPA2-Personal while more complex configurations like WPA2-Enterprise with an
