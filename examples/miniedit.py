@@ -3190,7 +3190,10 @@ class MiniEdit( Frame ):
                     f.write("    call('"+sflowCmd+sflowSwitches+"', shell=True)\n")
 
             f.write("\n")
-            f.write("    CLI_wifi(net)\n")
+            if isWiFi:
+                f.write("    CLI_wifi(net)\n")
+            else:
+                f.write("    CLI(net)\n")
             for widget in self.widgetToItem:
                 name = widget[ 'text' ]
                 tags = self.canvas.gettags( self.widgetToItem[ widget ] )
