@@ -1824,13 +1824,6 @@ class Mininet_wifi(Mininet):
 
         nodes = self.stations + self.aps
 
-        ap = []
-        for node in self.aps:
-            if 'link' in node.params:
-                ap.append(node)
-
-        nodes = self.stations + ap
-
         if self.nroads == 0:
             for node in nodes:
                 if 'position' in node.params and 'link' not in node.params:
