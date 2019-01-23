@@ -140,8 +140,7 @@ class mobility(object):
         :param wlan: wlan ID"""
         if ap == sta.params['associatedTo'][wlan]:
             if 'encrypt' in ap.params and 'ieee80211r' not in ap.params:
-                if ap.params['encrypt'][0] == 'wpa' \
-                        or ap.params['encrypt'][0] == 'wpa2':
+                if 'wpa' in ap.params['encrypt'][0]:
                     os.system('rm %s_%s.staconf' % (sta.name, wlan))
                     pidfile = "mn%d_%s_%s_wpa.pid" \
                               % (os.getpid(), sta.name, wlan)
@@ -153,13 +152,12 @@ class mobility(object):
                                   % sta.params['wlan'][wlan])
             elif cls.wmediumd_mode and cls.wmediumd_mode != 3:
                 Association.setSNRWmediumd(sta, ap, snr=-10)
+                sta.params['rssi'][wlan] = 0
             if 'encrypt' in ap.params and 'ieee80211r' not in ap.params or \
                             'encrypt' not in ap.params:
                 debug('iw dev %s disconnect\n' % sta.params['wlan'][wlan])
                 sta.pexec('iw dev %s disconnect' % sta.params['wlan'][wlan])
             sta.params['associatedTo'][wlan] = ''
-            if cls.wmediumd_mode and cls.wmediumd_mode != 3:
-                sta.params['rssi'][wlan] = 0
             sta.params['channel'][wlan] = 0
         if sta in ap.params['associatedStations']:
             ap.params['associatedStations'].remove(sta)
