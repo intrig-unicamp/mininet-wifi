@@ -319,7 +319,7 @@ class testWalkthrough(unittest.TestCase):
         p.sendline('exit')
         p.wait()
 
-    def testmultipleWlan(self):
+    def testMultipleWlan(self):
         "Start Mininet-WiFi with multiple WLAN"
         p = pexpect.spawn(
             'python examples/multipleWlan.py')
