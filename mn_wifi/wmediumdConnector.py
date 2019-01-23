@@ -749,7 +749,7 @@ class w_server(object):
             raise WmediumdException("Already connected to wmediumd server")
         cls.sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         info('*** Connecting to wmediumd server %s\n' % uds_address)
-        time.sleep(1.5)
+        time.sleep(1)
         cls.sock.connect(uds_address)
         cls.connected = True
 
@@ -808,10 +808,10 @@ class w_server(object):
 
         :type link: WmediumdLink
         """
-        w_server.send_snr_update(link)
-        #if ret != w_cst.WUPDATE_SUCCESS:
-        #    raise WmediumdException("Received error code from wmediumd: "
-        #                            "code %d" % ret)
+        ret = w_server.send_snr_update(link)
+        if ret != w_cst.WUPDATE_SUCCESS:
+           raise WmediumdException("Received error code from wmediumd: "
+                                    "code %d" % ret)
 
     @classmethod
     def update_pos_sleep(cls, pos, mob):
@@ -835,10 +835,10 @@ class w_server(object):
 
         :type pos: w_pos
         """
-        w_server.send_pos_update(pos, mob)
-        #if ret != w_cst.WUPDATE_SUCCESS:
-        #    raise WmediumdException("Received error code from wmediumd: "
-        #                            "code %d" % ret)
+        ret = w_server.send_pos_update(pos, mob)
+        if ret != w_cst.WUPDATE_SUCCESS:
+            raise WmediumdException("Received error code from wmediumd: "
+                                    "code %d" % ret)
 
     @classmethod
     def update_txpower(cls, txpower):
@@ -849,10 +849,10 @@ class w_server(object):
 
         :type txpower: w_txpower
         """
-        w_server.send_txpower_update(txpower)
-        #if ret != w_cst.WUPDATE_SUCCESS:
-        #    raise WmediumdException("Received error code from wmediumd: "
-        #                            "code %d" % ret)
+        ret = w_server.send_txpower_update(txpower)
+        if ret != w_cst.WUPDATE_SUCCESS:
+            raise WmediumdException("Received error code from wmediumd: "
+                                    "code %d" % ret)
 
     @classmethod
     def update_gain(cls, gain):
@@ -863,10 +863,10 @@ class w_server(object):
 
         :type gain: Gain
         """
-        w_server.send_gain_update(gain)
-        #if ret != w_cst.WUPDATE_SUCCESS:
-        #    raise WmediumdException("Received error code from wmediumd: "
-        #                            "code %d" % ret)
+        ret = w_server.send_gain_update(gain)
+        if ret != w_cst.WUPDATE_SUCCESS:
+            raise WmediumdException("Received error code from wmediumd: "
+                                    "code %d" % ret)
 
     @classmethod
     def update_gaussian_random(cls, gRandom):
@@ -877,10 +877,10 @@ class w_server(object):
 
         :type gRandom: WmediumdGRandom
         """
-        w_server.send_gaussian_random_update(gRandom)
-        #if ret != w_cst.WUPDATE_SUCCESS:
-        #    raise WmediumdException("Received error code from wmediumd: "
-        #                            "code %d" % ret)
+        ret = w_server.send_gaussian_random_update(gRandom)
+        if ret != w_cst.WUPDATE_SUCCESS:
+            raise WmediumdException("Received error code from wmediumd: "
+                                    "code %d" % ret)
 
     @classmethod
     def update_height(cls, height):
@@ -891,10 +891,10 @@ class w_server(object):
 
         :type height: Height
         """
-        w_server.send_height_update(height)
-        #if ret != w_cst.WUPDATE_SUCCESS:
-        #    raise WmediumdException("Received error code from wmediumd: "
-        #                            "code %d" % ret)
+        ret = w_server.send_height_update(height)
+        if ret != w_cst.WUPDATE_SUCCESS:
+            raise WmediumdException("Received error code from wmediumd: "
+                                    "code %d" % ret)
 
     @classmethod
     def update_link_errprob(cls, link):
@@ -905,10 +905,10 @@ class w_server(object):
 
         :type link: WmediumdLink
         """
-        w_server.send_errprob_update(link)
-        #if ret != w_cst.WUPDATE_SUCCESS:
-        #    raise WmediumdException("Received error code from wmediumd: "
-        #                            "code %d" % ret)
+        ret = w_server.send_errprob_update(link)
+        if ret != w_cst.WUPDATE_SUCCESS:
+            raise WmediumdException("Received error code from wmediumd: "
+                                    "code %d" % ret)
 
     @classmethod
     def update_link_specprob(cls, link):
@@ -919,10 +919,10 @@ class w_server(object):
 
         :type link: WmediumdLink
         """
-        w_server.send_specprob_update(link)
-        #if ret != w_cst.WUPDATE_SUCCESS:
-        #    raise WmediumdException("Received error code from wmediumd: "
-        #                            "code %d" % ret)
+        ret = w_server.send_specprob_update(link)
+        if ret != w_cst.WUPDATE_SUCCESS:
+            raise WmediumdException("Received error code from wmediumd: "
+                                    "code %d" % ret)
 
     @classmethod
     def send_snr_update(cls, link):
@@ -937,9 +937,9 @@ class w_server(object):
         #                      link.sta1intf.get_mac(),
         #                      link.sta2intf.get_mac(), link.snr))
         cls.sock.send(cls.__create_snr_update_request(link))
-        #return cls.__parse_response(
-        #    w_cst.WSERVER_SNR_UPDATE_RESPONSE_TYPE,
-        #    cls.__snr_update_response_struct)[-1]
+        return cls.__parse_response(
+            w_cst.WSERVER_SNR_UPDATE_RESPONSE_TYPE,
+            cls.__snr_update_response_struct)[-1]
 
     @classmethod
     def send_pos_update(cls, pos, mob):
@@ -956,9 +956,9 @@ class w_server(object):
         #    w_cst.LOG_PREFIX, pos.staintf.get_mac(),
         #    posX, posY, posZ))
         cls.sock.send(cls.__create_pos_update_request(pos, posX, posY, posZ))
-        #return cls.__parse_response(
-        #    w_cst.WSERVER_POS_UPDATE_RESPONSE_TYPE,
-        #    cls.__pos_update_response_struct)[-1]
+        return cls.__parse_response(
+            w_cst.WSERVER_POS_UPDATE_RESPONSE_TYPE,
+            cls.__pos_update_response_struct)[-1]
 
     @classmethod
     def send_txpower_update(cls, txpower):
@@ -973,9 +973,9 @@ class w_server(object):
         #    w_cst.LOG_PREFIX, txpower.staintf.get_mac(),
         #    txpower_))
         cls.sock.send(cls.__create_txpower_update_request(txpower))
-        #return cls.__parse_response(
-        #    w_cst.WSERVER_TXPOWER_UPDATE_RESPONSE_TYPE,
-        #    cls.__txpower_update_response_struct)[-1]
+        return cls.__parse_response(
+            w_cst.WSERVER_TXPOWER_UPDATE_RESPONSE_TYPE,
+            cls.__txpower_update_response_struct)[-1]
 
     @classmethod
     def send_gain_update(cls, gain):
@@ -990,9 +990,9 @@ class w_server(object):
         #    w_cst.LOG_PREFIX, gain.staintf.get_mac(),
         #    gain_))
         cls.sock.send(cls.__create_gain_update_request(gain))
-        #return cls.__parse_response(
-        #    w_cst.WSERVER_GAIN_UPDATE_RESPONSE_TYPE,
-        #    cls.__gain_update_response_struct)[-1]
+        return cls.__parse_response(
+            w_cst.WSERVER_GAIN_UPDATE_RESPONSE_TYPE,
+            cls.__gain_update_response_struct)[-1]
 
     @classmethod
     def send_gaussian_random_update(cls, gRandom):
@@ -1007,9 +1007,9 @@ class w_server(object):
         #    w_cst.LOG_PREFIX, gRandom.staintf.get_mac(),
         #    gRandom_))
         cls.sock.send(cls.__create_gaussian_random_update_request(gRandom))
-        #return cls.__parse_response(
-        #    w_cst.WSERVER_GAUSSIAN_RANDOM_UPDATE_RESPONSE_TYPE,
-        #    cls.__gaussian_random_update_response_struct)[-1]
+        return cls.__parse_response(
+            w_cst.WSERVER_GAUSSIAN_RANDOM_UPDATE_RESPONSE_TYPE,
+            cls.__gaussian_random_update_response_struct)[-1]
 
     @classmethod
     def send_height_update(cls, height):
@@ -1024,9 +1024,9 @@ class w_server(object):
         #    w_cst.LOG_PREFIX, height.staintf.get_mac(),
         #    height_))
         cls.sock.send(cls.__create_height_update_request(height))
-        #return cls.__parse_response(
-        #    w_cst.WSERVER_HEIGHT_UPDATE_RESPONSE_TYPE,
-        #    cls.__height_update_response_struct)[-1]
+        return cls.__parse_response(
+            w_cst.WSERVER_HEIGHT_UPDATE_RESPONSE_TYPE,
+            cls.__height_update_response_struct)[-1]
 
     @classmethod
     def send_errprob_update(cls, link):
@@ -1042,9 +1042,9 @@ class w_server(object):
         #          link.sta2intf.get_mac(),
         #          link.errprob))
         cls.sock.send(cls.__create_errprob_update_request(link))
-        #return cls.__parse_response(
-        #    w_cst.WSERVER_ERRPROB_UPDATE_RESPONSE_TYPE,
-        #    cls.__errprob_update_response_struct)[-1]
+        return cls.__parse_response(
+            w_cst.WSERVER_ERRPROB_UPDATE_RESPONSE_TYPE,
+            cls.__errprob_update_response_struct)[-1]
 
     @classmethod
     def send_specprob_update(cls, link):
@@ -1058,9 +1058,9 @@ class w_server(object):
         #    w_cst.LOG_PREFIX, link.sta1intf.get_mac(),
         #    link.sta2intf.get_mac()))
         cls.sock.send(cls.__create_specprob_update_request(link))
-        #return cls.__parse_response(
-        #    w_cst.WSERVER_SPECPROB_UPDATE_RESPONSE_TYPE,
-        #    cls.__specprob_update_response_struct)[-1]
+        return cls.__parse_response(
+            w_cst.WSERVER_SPECPROB_UPDATE_RESPONSE_TYPE,
+            cls.__specprob_update_response_struct)[-1]
 
     @classmethod
     def send_del_by_mac(cls, mac):
