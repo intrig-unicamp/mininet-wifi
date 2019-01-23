@@ -204,338 +204,6 @@ class testWalkthrough(unittest.TestCase):
         p.expect('0% dropped')
         p.expect(pexpect.EOF)
 
-    def testMobility(self):
-        "Start Mininet-WiFi using mobility, then test ping"
-        p = pexpect.spawn(
-            'python examples/mobility.py')
-        sleep(3)
-        p.sendline('sta1 ping -c 1 sta2')
-        p.expect('1 packets transmitted, 1 received')
-        p.expect(self.prompt)
-        p.sendline('exit')
-        p.wait()
-
-    def testVirtualIface(self):
-        "Start Mininet-WiFi using simplewifitopology, then test vif"
-        p = pexpect.spawn(
-            'python examples/simplewifitopology.py -v')
-        sleep(3)
-        wlans = [ 'sta1-wlan0', 'sta1-wlan01', 'sta1-wlan02', self.prompt ]
-        p.sendline('py sta1.params[\'wlan\']')
-        p.expect(wlans)
-        p.sendline('exit')
-        p.wait()
-
-    def testVanet(self):
-        "Start Mininet-WiFi using vanet example"
-        p = pexpect.spawn(
-            'python examples/vanet.py')
-        sleep(8)
-        p.expect(self.prompt)
-        p.sendline('exit')
-        p.wait()
-
-    def testSixLoWPan(self):
-        "Start Mininet-WiFi using sixlowpan, then test pingall"
-        p = pexpect.spawn(
-            'python examples/6LoWPan.py')
-        sleep(4)
-        p.sendline('pingall')
-        p.expect('0% dropped')
-        p.expect(self.prompt)
-        p.sendline('exit')
-        p.wait()
-
-    def testPropagationModel(self):
-        "Start Mininet-WiFi using a propagation model, then test ping and rssi"
-        p = pexpect.spawn(
-            'python examples/propagationModel.py')
-        sleep(3)
-        p.sendline('sta1 ping -c 1 sta2')
-        p.expect('1 packets transmitted, 1 received')
-        p.expect(self.prompt)
-        p.sendline('exit')
-        p.wait()
-
-    def testWiFiDirect(self):
-        "Start Mininet-WiFi using wifi direct, then test ping"
-        p = pexpect.spawn(
-            'python examples/wifiDirect.py')
-        sleep(15)
-        p.sendline('pingall')
-        p.expect('packets transmitted')
-        p.expect(self.prompt)
-        p.sendline('sta1 ping -c1 sta2')
-        p.expect('1 packets transmitted, 1 received')
-        p.expect(self.prompt)
-        p.sendline('exit')
-        p.wait()
-
-    def testMesh(self):
-        "Start Mininet-WiFi with wireless mesh, then test ping"
-        p = pexpect.spawn(
-            'python examples/mesh.py')
-        sleep(6)
-        p.sendline('sta1 ping -c1 sta2')
-        p.expect('1 packets transmitted, 1 received')
-        p.expect(self.prompt)
-        p.sendline('pingall')
-        p.expect('0% dropped')
-        p.expect(self.prompt)
-        p.sendline('exit')
-        p.wait()
-
-    def testAdhoc(self):
-        "Start Mininet-WiFi with wireless adhoc, then test ping"
-        p = pexpect.spawn(
-            'python examples/adhoc.py')
-        sleep(12)
-        p.sendline('sta1 ping -c 1 sta2')
-        p.expect('1 packets transmitted, 1 received')
-        p.expect(self.prompt)
-        p.sendline('sta3 ping -c 1 sta3')
-        p.expect('1 packets transmitted, 1 received')
-        p.expect(self.prompt)
-        p.sendline('sta1 ping -c 1 sta3')
-        p.expect('1 packets transmitted, 0 received')
-        p.expect(self.prompt)
-        p.sendline('exit')
-        p.wait()
-        p = pexpect.spawn(
-            'python examples/adhoc.py -a')
-        sleep(3)
-        p.sendline('py sta1.params[\'range\']')
-        p.expect('100')
-        p.expect(self.prompt)
-        p.sendline('exit')
-        p.wait()
-
-    def testAuthentication(self):
-        "Start Mininet-WiFi using WPA, then test ping"
-        p = pexpect.spawn(
-            'python examples/authentication.py')
-        sleep(3)
-        p.sendline('sta1 ping -c1 sta2')
-        p.expect('1 packets transmitted, 1 received')
-        p.expect(self.prompt)
-        p.sendline('exit')
-        p.wait()
-
-    def testReplayingMobility(self):
-        "Start Mininet-WiFi using Replaying Mobility, then test ping"
-        p = pexpect.spawn(
-            'python examples/replaying/replayingMobility.py')
-        sleep(15)
-        p.sendline('sta1 ping -c1 sta2')
-        p.expect('1 packets transmitted, 1 received')
-        p.expect(self.prompt)
-        p.sendline('sta3 ping -c1 sta4')
-        p.expect('1 packets transmitted, 1 received')
-        p.expect(self.prompt)
-        p.sendline('exit')
-        p.wait()
-
-    def testHandover(self):
-        "Start Mininet-WiFi with handover, then test handover"
-        p = pexpect.spawn(
-            'python examples/handover.py')
-        sleep(2)
-        p.sendline('sta1 iw dev sta1-wlan0 info | grep ssid')
-        p.expect('ssid-ap1')
-        p.expect(self.prompt)
-        sleep(8)
-        p.sendline('sta1 iw dev sta1-wlan0 info | grep ssid')
-        p.expect('ssid-ap2')
-        p.expect(self.prompt)
-        p.sendline('exit')
-        p.wait()
-
-    def testmultipleWlan(self):
-        "Start Mininet-WiFi with multiple WLAN"
-        p = pexpect.spawn(
-            'python examples/multipleWlan.py')
-        sleep(3)
-        p.sendline('sta1 ip addr show sta1-wlan0')
-        p.expect('sta1-wlan0')
-        p.expect(self.prompt)
-        p.sendline('sta1 ip addr show sta1-wlan1')
-        p.expect('sta1-wlan1')
-        p.expect(self.prompt)
-        p.sendline('sta1 ip addr show sta1-wlan2')
-        p.expect('sta1-wlan2')
-        p.expect(self.prompt)
-        p.sendline('exit')
-        p.wait()
-
-    def testPosition(self):
-        """Start Mininet-WiFi when the position is statically defined,
-        then test ping"""
-        p = pexpect.spawn(
-            'python examples/position.py')
-        sleep(3)
-        p.sendline('sta1 ping -c 1 sta2')
-        p.expect('1 packets transmitted, 1 received')
-        p.expect(self.prompt)
-        p.sendline('exit')
-        p.wait()
-
-    def testBgscan(self):
-        "Start Mininet-WiFi, then test bgscan"
-        p = pexpect.spawn(
-            'python examples/handover_bgscan.py')
-        sleep(5)
-        p.sendline('sta1 iw dev sta1-wlan0 link | grep Connected')
-        p.expect('00:00:00:00:00:01')
-        p.expect(self.prompt)
-        p.sendline('py sta1.setPosition(\'80,40,0\')')
-        sleep(15)
-        p.sendline('sta1 iw dev sta1-wlan0 link | grep Connected')
-        p.expect('00:00:00:00:00:02')
-        p.expect(self.prompt)
-        p.sendline('exit')
-        p.wait()
-
-    def test4addr(self):
-        "Start Mininet-WiFi with 4addr, then test connectivity"
-        pexpect.spawn(
-            'service network-manager stop')
-        p = pexpect.spawn(
-            'python examples/4address.py')
-        sleep(3)
-        p.sendline('sta1 ping -c 1 sta2')
-        p.expect('1 packets transmitted, 1 received')
-        p.expect(self.prompt)
-        p.sendline('exit')
-        p.wait()
-
-    def testMutipleSSID(self):
-        "Start Mininet-WiFi with multiple SSIDs, then test connectivity"
-        pexpect.spawn(
-            'service network-manager stop')
-        p = pexpect.spawn(
-            'python examples/forwardingBySSID.py')
-        sleep(3)
-        p.sendline('sta1 iw dev sta1-wlan0 info | grep ssid')
-        p.expect('ssid1')
-        p.expect(self.prompt)
-        p.sendline('sta2 iw dev sta2-wlan0 info | grep ssid')
-        p.expect('ssid2')
-        p.expect(self.prompt)
-        p.sendline('sta3 iw dev sta3-wlan0 info | grep ssid')
-        p.expect('ssid2')
-        p.expect(self.prompt)
-        p.sendline('sta4 iw dev sta4-wlan0 info | grep ssid')
-        p.expect('ssid3')
-        p.expect(self.prompt)
-        p.sendline('sta5 iw dev sta5-wlan0 info | grep ssid')
-        p.expect('ssid4')
-        p.expect(self.prompt)
-        p.sendline('exit')
-        p.wait()
-
-    def testMeshAP(self):
-        "Start Mininet-WiFi, then test wifiMeshAP.py"
-        p = pexpect.spawn(
-            'python examples/meshAP.py')
-        sleep(6)
-        p.sendline('sta1 ping -c1 sta2')
-        p.expect('1 packets transmitted, 1 received')
-        p.expect(self.prompt)
-        p.sendline('exit')
-        p.wait()
-
-    def testInterference(self):
-        "Start Mininet-WiFi using wmediumd with interference, then test ping"
-        p = pexpect.spawn(
-            'python examples/wmediumd_interference.py')
-        sleep(5)
-        p.sendline('sta1 ping -c1 sta2')
-        p.expect('1 packets transmitted, 1 received')
-        p.expect(self.prompt)
-        p.sendline('exit')
-        p.wait()
-
-    def testErrorProb(self):
-        "Start Mininet-WiFi, then test wmediumd_error_prob.py"
-        p = pexpect.spawn(
-            'python examples/wmediumd_error_prob.py')
-        sleep(5)
-        p.sendline('sta1 ping -c1 sta2')
-        p.expect('1 packets transmitted, 1 received')
-        p.expect(self.prompt)
-        p.sendline('sta1 ping -c1 sta3')
-        p.expect('1 packets transmitted, 0 received')
-        p.expect(self.prompt)
-        p.sendline('exit')
-        p.wait()
-
-    def testWirelessParams(self):
-        """Start Mininet-WiFi with sta in ap mode,
-        then do an extensive test"""
-        p = pexpect.spawn(
-            'python examples/sta_ap_mode.py')
-        sleep(8)
-        p.sendline('sta1 iw dev sta1-wlan0 link | grep Connected')
-        p.expect('02:00:00:00:01:00')
-        p.expect(self.prompt)
-        p.sendline('sta2 iw dev sta2-wlan0 link | grep Connected')
-        p.expect('02:00:00:00:02:00')
-        p.expect(self.prompt)
-        p.sendline('py sta1.params[\'associatedTo\']')
-        p.expect('Station ap1: ap1-wlan0:192.168.0.10')
-        p.expect(self.prompt)
-        p.sendline('py sta1.params[\'apsInRange\']')
-        p.expect('Station ap1: ap1-wlan0:192.168.0.10')
-        p.expect(self.prompt)
-        p.sendline('py sta2.params[\'associatedTo\']')
-        p.expect('Station ap2: ap2-wlan0:192.168.1.10')
-        p.expect(self.prompt)
-        p.sendline('py sta2.params[\'apsInRange\']')
-        p.expect('Station ap2: ap2-wlan0:192.168.1.10')
-        p.expect(self.prompt)
-        p.sendline('net')
-        p.expect('ap1 ap1-wlan0:wifi ap1-wlan1:wifi ap1-eth2:ap2-eth2')
-        p.expect(self.prompt)
-        stations = [ 'Station sta1: sta1-wlan0:10.0.0.1', self.prompt ]
-        p.sendline('py ap1.params[\'associatedStations\']')
-        p.expect(stations)
-        p.sendline('py ap1.params[\'stationsInRange\']')
-        p.expect(stations)
-        stations = [ 'Station sta2: sta2-wlan0:10.0.0.2', self.prompt ]
-        p.sendline('py ap2.params[\'associatedStations\']')
-        p.expect(stations)
-        p.sendline('py ap2.params[\'stationsInRange\']')
-        p.expect(stations)
-        p.sendline('py sta1.setPosition(\'100,40,0\')')
-        sleep(4)
-        p.sendline('py sta1.params[\'associatedTo\']')
-        p.expect('Station ap2: ap2-wlan0:192.168.1.10')
-        p.expect(self.prompt)
-        p.sendline('py sta1.params[\'apsInRange\']')
-        p.expect('Station ap2: ap2-wlan0:192.168.1.10')
-        p.expect(self.prompt)
-        stations = [ 'Station sta1: sta1-wlan0:10.0.0.1',
-                     'Station sta2: sta2-wlan0:10.0.0.2', self.prompt ]
-        p.sendline('py ap2.params[\'associatedStations\']')
-        p.expect(stations)
-        p.sendline('py ap2.params[\'stationsInRange\']')
-        p.expect(stations)
-        stations = [ self.prompt ]
-        p.sendline('py ap1.params[\'associatedStations\']')
-        p.expect(stations)
-        p.sendline('py ap1.params[\'stationsInRange\']')
-        p.expect(stations)
-        p.sendline('sta1 ping -c 1 sta2')
-        p.expect('0% packet loss')
-        p.expect(self.prompt)
-        p.sendline('exit')
-        p.wait()
-        p = pexpect.spawn(
-            'python examples/sta_ap_mode.py -m')
-        p.expect(self.prompt)
-        p.sendline('exit')
-        p.wait()
-
     def testDynamicMAC(self):
         "Verify that MACs are set correctly"
         p = pexpect.spawn('mn --wifi')
@@ -647,6 +315,338 @@ class testWalkthrough(unittest.TestCase):
         sleep(2)
         p.sendline('sta1 ping -c 1 sta2')
         p.expect('0% packet loss')
+        p.expect(self.prompt)
+        p.sendline('exit')
+        p.wait()
+
+    def testmultipleWlan(self):
+        "Start Mininet-WiFi with multiple WLAN"
+        p = pexpect.spawn(
+            'python examples/multipleWlan.py')
+        sleep(3)
+        p.sendline('sta1 ip addr show sta1-wlan0')
+        p.expect('sta1-wlan0')
+        p.expect(self.prompt)
+        p.sendline('sta1 ip addr show sta1-wlan1')
+        p.expect('sta1-wlan1')
+        p.expect(self.prompt)
+        p.sendline('sta1 ip addr show sta1-wlan2')
+        p.expect('sta1-wlan2')
+        p.expect(self.prompt)
+        p.sendline('exit')
+        p.wait()
+
+    def testPosition(self):
+        """Start Mininet-WiFi when the position is statically defined,
+        then test ping"""
+        p = pexpect.spawn(
+            'python examples/position.py')
+        sleep(3)
+        p.sendline('sta1 ping -c 1 sta2')
+        p.expect('1 packets transmitted, 1 received')
+        p.expect(self.prompt)
+        p.sendline('exit')
+        p.wait()
+
+    def testMobility(self):
+        "Start Mininet-WiFi using mobility, then test ping"
+        p = pexpect.spawn(
+            'python examples/mobility.py')
+        sleep(3)
+        p.sendline('sta1 ping -c 1 sta2')
+        p.expect('1 packets transmitted, 1 received')
+        p.expect(self.prompt)
+        p.sendline('exit')
+        p.wait()
+
+    def testVirtualIface(self):
+        "Start Mininet-WiFi using simplewifitopology, then test vif"
+        p = pexpect.spawn(
+            'python examples/simplewifitopology.py -v')
+        sleep(3)
+        wlans = [ 'sta1-wlan0', 'sta1-wlan01', 'sta1-wlan02', self.prompt ]
+        p.sendline('py sta1.params[\'wlan\']')
+        p.expect(wlans)
+        p.sendline('exit')
+        p.wait()
+
+    def testPropagationModel(self):
+        "Start Mininet-WiFi using a propagation model, then test ping and rssi"
+        p = pexpect.spawn(
+            'python examples/propagationModel.py')
+        sleep(3)
+        p.sendline('sta1 ping -c 1 sta2')
+        p.expect('1 packets transmitted, 1 received')
+        p.expect(self.prompt)
+        p.sendline('exit')
+        p.wait()
+
+    def testMutipleSSID(self):
+        "Start Mininet-WiFi with multiple SSIDs, then test connectivity"
+        pexpect.spawn(
+            'service network-manager stop')
+        p = pexpect.spawn(
+            'python examples/forwardingBySSID.py')
+        sleep(3)
+        p.sendline('sta1 iw dev sta1-wlan0 info | grep ssid')
+        p.expect('ssid1')
+        p.expect(self.prompt)
+        p.sendline('sta2 iw dev sta2-wlan0 info | grep ssid')
+        p.expect('ssid2')
+        p.expect(self.prompt)
+        p.sendline('sta3 iw dev sta3-wlan0 info | grep ssid')
+        p.expect('ssid2')
+        p.expect(self.prompt)
+        p.sendline('sta4 iw dev sta4-wlan0 info | grep ssid')
+        p.expect('ssid3')
+        p.expect(self.prompt)
+        p.sendline('sta5 iw dev sta5-wlan0 info | grep ssid')
+        p.expect('ssid4')
+        p.expect(self.prompt)
+        p.sendline('exit')
+        p.wait()
+
+    def testVanet(self):
+        "Start Mininet-WiFi using vanet example"
+        p = pexpect.spawn(
+            'python examples/vanet.py')
+        sleep(8)
+        p.expect(self.prompt)
+        p.sendline('exit')
+        p.wait()
+
+    def testSixLoWPan(self):
+        "Start Mininet-WiFi using sixlowpan, then test pingall"
+        p = pexpect.spawn(
+            'python examples/6LoWPan.py')
+        sleep(4)
+        p.sendline('pingall')
+        p.expect('0% dropped')
+        p.expect(self.prompt)
+        p.sendline('exit')
+        p.wait()
+
+    def testWiFiDirect(self):
+        "Start Mininet-WiFi using wifi direct, then test ping"
+        p = pexpect.spawn(
+            'python examples/wifiDirect.py')
+        sleep(15)
+        p.sendline('pingall')
+        p.expect('packets transmitted')
+        p.expect(self.prompt)
+        p.sendline('sta1 ping -c1 sta2')
+        p.expect('1 packets transmitted, 1 received')
+        p.expect(self.prompt)
+        p.sendline('exit')
+        p.wait()
+
+    def testMesh(self):
+        "Start Mininet-WiFi with wireless mesh, then test ping"
+        p = pexpect.spawn(
+            'python examples/mesh.py')
+        sleep(6)
+        p.sendline('sta1 ping -c1 sta2')
+        p.expect('1 packets transmitted, 1 received')
+        p.expect(self.prompt)
+        p.sendline('pingall')
+        p.expect('0% dropped')
+        p.expect(self.prompt)
+        p.sendline('exit')
+        p.wait()
+
+    def testAdhoc(self):
+        "Start Mininet-WiFi with wireless adhoc, then test ping"
+        p = pexpect.spawn(
+            'python examples/adhoc.py')
+        sleep(12)
+        p.sendline('sta1 ping -c 1 sta2')
+        p.expect('1 packets transmitted, 1 received')
+        p.expect(self.prompt)
+        p.sendline('sta3 ping -c 1 sta3')
+        p.expect('1 packets transmitted, 1 received')
+        p.expect(self.prompt)
+        p.sendline('sta1 ping -c 1 sta3')
+        p.expect('1 packets transmitted, 0 received')
+        p.expect(self.prompt)
+        p.sendline('exit')
+        p.wait()
+        p = pexpect.spawn(
+            'python examples/adhoc.py -a')
+        sleep(3)
+        p.sendline('py sta1.params[\'range\']')
+        p.expect('100')
+        p.expect(self.prompt)
+        p.sendline('exit')
+        p.wait()
+
+    def testAuthentication(self):
+        "Start Mininet-WiFi using WPA, then test ping"
+        p = pexpect.spawn(
+            'python examples/authentication.py')
+        sleep(3)
+        p.sendline('sta1 ping -c1 sta2')
+        p.expect('1 packets transmitted, 1 received')
+        p.expect(self.prompt)
+        p.sendline('exit')
+        p.wait()
+
+    def testReplayingMobility(self):
+        "Start Mininet-WiFi using Replaying Mobility, then test ping"
+        p = pexpect.spawn(
+            'python examples/replaying/replayingMobility.py')
+        sleep(15)
+        p.sendline('sta1 ping -c1 sta2')
+        p.expect('1 packets transmitted, 1 received')
+        p.expect(self.prompt)
+        p.sendline('sta3 ping -c1 sta4')
+        p.expect('1 packets transmitted, 1 received')
+        p.expect(self.prompt)
+        p.sendline('exit')
+        p.wait()
+
+    def testHandover(self):
+        "Start Mininet-WiFi with handover, then test handover"
+        p = pexpect.spawn(
+            'python examples/handover.py')
+        sleep(2)
+        p.sendline('sta1 iw dev sta1-wlan0 info | grep ssid')
+        p.expect('ssid-ap1')
+        p.expect(self.prompt)
+        sleep(8)
+        p.sendline('sta1 iw dev sta1-wlan0 info | grep ssid')
+        p.expect('ssid-ap2')
+        p.expect(self.prompt)
+        p.sendline('exit')
+        p.wait()
+
+    def testBgscan(self):
+        "Start Mininet-WiFi, then test bgscan"
+        p = pexpect.spawn(
+            'python examples/handover_bgscan.py')
+        sleep(5)
+        p.sendline('sta1 iw dev sta1-wlan0 link | grep Connected')
+        p.expect('00:00:00:00:00:01')
+        p.expect(self.prompt)
+        p.sendline('py sta1.setPosition(\'80,40,0\')')
+        sleep(15)
+        p.sendline('sta1 iw dev sta1-wlan0 link | grep Connected')
+        p.expect('00:00:00:00:00:02')
+        p.expect(self.prompt)
+        p.sendline('exit')
+        p.wait()
+
+    def test4addr(self):
+        "Start Mininet-WiFi with 4addr, then test connectivity"
+        pexpect.spawn(
+            'service network-manager stop')
+        p = pexpect.spawn(
+            'python examples/4address.py')
+        sleep(3)
+        p.sendline('sta1 ping -c 1 sta2')
+        p.expect('1 packets transmitted, 1 received')
+        p.expect(self.prompt)
+        p.sendline('exit')
+        p.wait()
+
+    def testMeshAP(self):
+        "Start Mininet-WiFi, then test wifiMeshAP.py"
+        p = pexpect.spawn(
+            'python examples/meshAP.py')
+        sleep(6)
+        p.sendline('sta1 ping -c1 sta2')
+        p.expect('1 packets transmitted, 1 received')
+        p.expect(self.prompt)
+        p.sendline('exit')
+        p.wait()
+
+    def testInterference(self):
+        "Start Mininet-WiFi using wmediumd with interference, then test ping"
+        p = pexpect.spawn(
+            'python examples/wmediumd_interference.py')
+        sleep(5)
+        p.sendline('sta1 ping -c1 sta2')
+        p.expect('1 packets transmitted, 1 received')
+        p.expect(self.prompt)
+        p.sendline('exit')
+        p.wait()
+
+    def testErrorProb(self):
+        "Start Mininet-WiFi, then test wmediumd_error_prob.py"
+        p = pexpect.spawn(
+            'python examples/wmediumd_error_prob.py')
+        sleep(5)
+        p.sendline('sta1 ping -c1 sta2')
+        p.expect('1 packets transmitted, 1 received')
+        p.expect(self.prompt)
+        p.sendline('sta1 ping -c1 sta3')
+        p.expect('1 packets transmitted, 0 received')
+        p.expect(self.prompt)
+        p.sendline('exit')
+        p.wait()
+
+    def testWirelessParams(self):
+        """Start Mininet-WiFi with sta in ap mode,
+        then do an extensive test"""
+        p = pexpect.spawn(
+            'python examples/sta_ap_mode.py')
+        sleep(8)
+        p.sendline('sta1 iw dev sta1-wlan0 link | grep Connected')
+        p.expect('02:00:00:00:01:00')
+        p.expect(self.prompt)
+        p.sendline('sta2 iw dev sta2-wlan0 link | grep Connected')
+        p.expect('02:00:00:00:02:00')
+        p.expect(self.prompt)
+        p.sendline('py sta1.params[\'associatedTo\']')
+        p.expect('Station ap1: ap1-wlan0:192.168.0.10')
+        p.expect(self.prompt)
+        p.sendline('py sta1.params[\'apsInRange\']')
+        p.expect('Station ap1: ap1-wlan0:192.168.0.10')
+        p.expect(self.prompt)
+        p.sendline('py sta2.params[\'associatedTo\']')
+        p.expect('Station ap2: ap2-wlan0:192.168.1.10')
+        p.expect(self.prompt)
+        p.sendline('py sta2.params[\'apsInRange\']')
+        p.expect('Station ap2: ap2-wlan0:192.168.1.10')
+        p.expect(self.prompt)
+        p.sendline('net')
+        p.expect('ap1 ap1-wlan0:wifi ap1-wlan1:wifi ap1-eth2:ap2-eth2')
+        p.expect(self.prompt)
+        stations = [ 'Station sta1: sta1-wlan0:10.0.0.1', self.prompt ]
+        p.sendline('py ap1.params[\'associatedStations\']')
+        p.expect(stations)
+        p.sendline('py ap1.params[\'stationsInRange\']')
+        p.expect(stations)
+        stations = [ 'Station sta2: sta2-wlan0:10.0.0.2', self.prompt ]
+        p.sendline('py ap2.params[\'associatedStations\']')
+        p.expect(stations)
+        p.sendline('py ap2.params[\'stationsInRange\']')
+        p.expect(stations)
+        p.sendline('py sta1.setPosition(\'100,40,0\')')
+        sleep(4)
+        p.sendline('py sta1.params[\'associatedTo\']')
+        p.expect('Station ap2: ap2-wlan0:192.168.1.10')
+        p.expect(self.prompt)
+        p.sendline('py sta1.params[\'apsInRange\']')
+        p.expect('Station ap2: ap2-wlan0:192.168.1.10')
+        p.expect(self.prompt)
+        stations = [ 'Station sta1: sta1-wlan0:10.0.0.1',
+                     'Station sta2: sta2-wlan0:10.0.0.2', self.prompt ]
+        p.sendline('py ap2.params[\'associatedStations\']')
+        p.expect(stations)
+        p.sendline('py ap2.params[\'stationsInRange\']')
+        p.expect(stations)
+        stations = [ self.prompt ]
+        p.sendline('py ap1.params[\'associatedStations\']')
+        p.expect(stations)
+        p.sendline('py ap1.params[\'stationsInRange\']')
+        p.expect(stations)
+        p.sendline('sta1 ping -c 1 sta2')
+        p.expect('0% packet loss')
+        p.expect(self.prompt)
+        p.sendline('exit')
+        p.wait()
+        p = pexpect.spawn(
+            'python examples/sta_ap_mode.py -m')
         p.expect(self.prompt)
         p.sendline('exit')
         p.wait()
