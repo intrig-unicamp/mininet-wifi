@@ -445,34 +445,21 @@ class Node_wifi(Node):
     def set_pos_wmediumd_sleep(self, wlan=None):
         "Set Position for wmediumd"
         posX, posY, posZ = self.get_pos()
-        wlans = len(self.params['mac'])
+        w_server.update_pos_sleep(w_pos(self.wmIface[wlan],
+                                        [(float(posX) + wlan),
+                                         float(posY), float(posZ)]), False)
 
-        if self.lastpos != self.params['position']:
-            self.lastpos = self.params['position']
-            if wlan:
-                w_server.update_pos_sleep(w_pos(self.wmIface[wlan],
-                    [(float(posX) + wlan), float(posY), float(posZ)]), False)
-            else:
-                for wlan in range(0, wlans):
-                    inc = '%s' % float('0.'+str(wlan))
-                    w_server.update_pos_sleep(w_pos(self.wmIface[wlan],
-                        [(float(posX)+float(inc)), float(posY), float(posZ)]), False)
-
-    def set_pos_wmediumd(self, wlan=None, mob=True):
+    def set_pos_wmediumd(self, mob=True):
         "Set Position for wmediumd"
         posX, posY, posZ = self.get_pos()
         wlans = len(self.params['mac'])
 
         if self.lastpos != self.params['position']:
             self.lastpos = self.params['position']
-            if wlan:
+            for wlan in range(0, wlans):
+                inc = '%s' % float('0.'+str(wlan))
                 w_server.update_pos(w_pos(self.wmIface[wlan],
-                    [(float(posX) + wlan), float(posY), float(posZ)]), mob)
-            else:
-                for wlan in range(0, wlans):
-                    inc = '%s' % float('0.'+str(wlan))
-                    w_server.update_pos(w_pos(self.wmIface[wlan],
-                        [(float(posX)+float(inc)), float(posY), float(posZ)]), mob)
+                    [(float(posX)+float(inc)), float(posY), float(posZ)]), True)
 
     def setGainWmediumd(self, wlan):
         "Set Antenna Gain for wmediumd"

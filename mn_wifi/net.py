@@ -1822,32 +1822,26 @@ class Mininet_wifi(Mininet):
             self.aps.append(sta)
             self.stations.remove(sta)
 
-        nodes = self.stations + self.aps
+        nodes = self.aps + self.stations
 
         if self.nroads == 0:
+            for node in nodes:
+                for wlan in range(0, len(node.params['wlan'])):
+                    if 'position' in node.params and 'link' not in node.params:
+                        if self.wmediumd_mode == interference:
+                            if node.func[wlan] == 'adhoc':
+                                node.set_pos_wmediumd_sleep(wlan=wlan)
+                            else:
+                                node.set_pos_wmediumd(mob=False)
+
             for node in nodes:
                 if 'position' in node.params and 'link' not in node.params:
                     mobility.aps = self.aps
                     mobility.configLinks(node)
-                    if self.link == wmediumd and \
-                                    self.wmediumd_mode == interference:
-                        if sta.func[wlan] == 'mesh':
-                            node.set_pos_wmediumd(mob=False)
-                        else:
-                            node.set_pos_wmediumd_sleep(wlan=wlan)
-
-            for sta in self.stations:
-                for wlan in range(0, len(sta.params['wlan'])):
-                    for ap in self.aps:
-                        if 'position' in sta.params and 'position' in ap.params:
-                            dist = sta.get_distance_to(ap)
-                            if dist <= ap.params['range'][0]:
-                                sleep(0.1)
-                                mobility.handover(sta, ap, wlan, ap_wlan=0)
-                                if self.rec_rssi:
-                                    os.system('hwsim_mgmt -k %s %s >/dev/null 2>&1'
-                                              % (sta.phyID[wlan],
-                                                 abs(int(sta.params['rssi'][wlan]))))
+                    if self.rec_rssi:
+                        os.system('hwsim_mgmt -k %s %s >/dev/null 2>&1'
+                                  % (node.phyID[wlan],
+                                     abs(int(node.params['rssi'][wlan]))))
 
     @staticmethod
     def propagation_model(**kwargs):
