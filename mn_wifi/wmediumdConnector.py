@@ -749,7 +749,7 @@ class w_server(object):
             raise WmediumdException("Already connected to wmediumd server")
         cls.sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         info('*** Connecting to wmediumd server %s\n' % uds_address)
-        time.sleep(1)
+        time.sleep(1.5)
         cls.sock.connect(uds_address)
         cls.connected = True
 
