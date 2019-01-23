@@ -395,6 +395,17 @@ class testWalkthrough(unittest.TestCase):
         p.sendline('exit')
         p.wait()
 
+    def testAuthentication(self):
+        "Start Mininet-WiFi using WPA, then test ping"
+        p = pexpect.spawn(
+            'python examples/authentication.py')
+        sleep(3)
+        p.sendline('sta1 ping -c1 sta2')
+        p.expect('1 packets transmitted, 1 received')
+        p.expect(self.prompt)
+        p.sendline('exit')
+        p.wait()
+
     def testSixLoWPan(self):
         "Start Mininet-WiFi using sixlowpan, then test pingall"
         p = pexpect.spawn(
@@ -518,17 +529,6 @@ class testWalkthrough(unittest.TestCase):
         sleep(3)
         p.sendline('py sta1.params[\'range\']')
         p.expect('100')
-        p.expect(self.prompt)
-        p.sendline('exit')
-        p.wait()
-
-    def testWmediumdAuthentication(self):
-        "Start Mininet-WiFi using WPA, then test ping"
-        p = pexpect.spawn(
-            'python examples/authentication.py')
-        sleep(3)
-        p.sendline('sta1 ping -c1 sta2')
-        p.expect('1 packets transmitted, 1 received')
         p.expect(self.prompt)
         p.sendline('exit')
         p.wait()
