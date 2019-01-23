@@ -2,7 +2,7 @@ import sys
 import os
 import threading
 
-from mininet.log import info
+from threading import Thread as thread
 from mn_wifi.mobility import mobility
 from sys import version_info as py_version_info
 
@@ -17,10 +17,11 @@ if py_version_info < (3, 0):
 class sumo(object):
 
     def __init__( self, cars, aps, **kwargs ):
-        thread = threading.Thread(name='vanet', target=self.configureApp,
+        mobility.thread_ = thread(name='vanet', target=self.configureApp,
                                   args=(cars, aps), kwargs=dict(kwargs,))
-        thread.daemon = True
-        thread.start()
+        mobility.thread_.daemon = True
+        mobility.thread_._keep_alive = True
+        mobility.thread_.start()
 
     def configureApp(self, cars, aps, config_file='map.sumocfg',
                      clients=1, port=8813):
