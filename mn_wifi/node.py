@@ -1458,8 +1458,8 @@ class AccessPoint(AP):
     def setHostapdConfig(cls, ap, wlan, aplist=None, link=None):
         "Set hostapd config"
         cmd = ("echo \'")
+        args = ['max_num_sta', 'beacon_int', 'rsn_preauth']
 
-        args = ['max_num_sta', 'beacon_int']
         if 'phywlan' in ap.params:
             cmd = cmd + ("interface=%s" % ap.params.get('phywlan'))
         else:
