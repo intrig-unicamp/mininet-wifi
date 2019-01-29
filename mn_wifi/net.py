@@ -1821,6 +1821,8 @@ class Mininet_wifi(Mininet):
         for sta in isap:
             self.aps.append(sta)
             self.stations.remove(sta)
+            if sta in mobility.stations:
+                mobility.stations.remove(sta)
 
         nodes = self.aps + self.stations
 
@@ -1834,7 +1836,7 @@ class Mininet_wifi(Mininet):
                             else:
                                 node.set_pos_wmediumd(mob=False)
 
-            for node in nodes:
+            for node in self.stations:
                 if 'position' in node.params and 'link' not in node.params:
                     mobility.aps = self.aps
                     mobility.configLinks(node)

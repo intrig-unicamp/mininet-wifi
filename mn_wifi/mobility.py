@@ -361,7 +361,7 @@ class mobility(object):
         "Applies channel params and handover"
         from mn_wifi.node import AP
         if node:
-            if isinstance(node, AP):
+            if isinstance(node, AP) or node in cls.aps:
                 nodes = cls.stations
             else:
                 nodes = [node]
