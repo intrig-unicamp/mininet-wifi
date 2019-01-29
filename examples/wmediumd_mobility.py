@@ -9,12 +9,14 @@ from mininet.log import setLogLevel, info
 from mn_wifi.link import wmediumd
 from mn_wifi.cli import CLI_wifi
 from mn_wifi.net import Mininet_wifi
+from mn_wifi.wmediumdConnector import interference
 
 
 def topology():
 
     "Create a network."
-    net = Mininet_wifi(controller=Controller, link=wmediumd)
+    net = Mininet_wifi(controller=Controller, link=wmediumd,
+                       wmediumd_mode=interference)
 
     info("*** Creating nodes\n")
     ap1 = net.addAccessPoint('ap1', ssid='new-ssid', mode='a', channel='36',

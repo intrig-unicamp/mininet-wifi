@@ -196,7 +196,7 @@ class mobility(object):
                     sta.params['rssi'][wlan] = rssi
                     Association.setSNRWmediumd(
                         sta, ap, snr=sta.params['rssi'][wlan] - (-91))
-                elif cls.wmediumd_mode and cls.wmediumd_mode == 3:
+                elif cls.wmediumd_mode == 3:
                     pass
                 else:
                     sta.params['rssi'][wlan] = rssi
@@ -332,7 +332,7 @@ class mobility(object):
                 node.params['position'] = round(xy[idx][0],2), \
                                           round(xy[idx][1],2), \
                                           0.0
-                if cls.wmediumd_mode and cls.wmediumd_mode == 3:
+                if cls.wmediumd_mode == 3 and mobility.thread_._keep_alive:
                     node.set_pos_wmediumd()
                 plot2d.update(node)
             plot2d.pause()
@@ -350,7 +350,7 @@ class mobility(object):
                 node.params['position'] = round(xy[idx][0],2), \
                                           round(xy[idx][1],2), \
                                           0.0
-                if cls.wmediumd_mode and cls.wmediumd_mode == 3:
+                if cls.wmediumd_mode == 3 and mobility.thread_._keep_alive:
                     node.set_pos_wmediumd()
             sleep(0.5)
             while cls.pause_simulation:
@@ -383,7 +383,7 @@ class mobility(object):
                 if node.func[wlan] == 'mesh' or node.func[wlan] == 'adhoc':
                     pass
                 else:
-                    if cls.wmediumd_mode and cls.wmediumd_mode == 3:
+                    if cls.wmediumd_mode == 3:
                         if Association.bgscan or ('active_scan' in node.params \
                         and ('encrypt' in node.params and 'wpa' in node.params['encrypt'][wlan])):
                             for ap in cls.aps:

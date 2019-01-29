@@ -704,7 +704,7 @@ class Mininet_wifi(Mininet):
                      self.wmediumdMac)
             for sta in self.stations:
                 if self.wmediumd_mode != error_prob:
-                    sta.set_pos_wmediumd(mob=False)
+                    sta.set_pos_wmediumd()
             for sta in self.stations:
                 if sta in self.aps:
                     self.stations.remove(sta)
@@ -1834,7 +1834,7 @@ class Mininet_wifi(Mininet):
                             if node.func[wlan] == 'adhoc':
                                 node.set_pos_wmediumd_sleep(wlan=wlan)
                             else:
-                                node.set_pos_wmediumd(mob=False)
+                                node.set_pos_wmediumd()
 
             for node in self.stations:
                 if 'position' in node.params and 'link' not in node.params:

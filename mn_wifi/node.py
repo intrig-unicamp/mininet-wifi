@@ -449,7 +449,7 @@ class Node_wifi(Node):
                                         [(float(posX) + wlan),
                                          float(posY), float(posZ)]), False)
 
-    def set_pos_wmediumd(self, mob=True):
+    def set_pos_wmediumd(self):
         "Set Position for wmediumd"
         posX, posY, posZ = self.get_pos()
         wlans = len(self.params['mac'])
