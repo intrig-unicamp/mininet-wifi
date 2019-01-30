@@ -80,9 +80,16 @@ class module(object):
         :param n_radios: number of wifi radios
         :param alt_module: dir of a fakelb alternative module
         :param **params: ifb -  Intermediate Functional Block device"""
-        cls.load_module(n_radios, alt_module)  # Initatilize WiFi Module
-        phys = cls.get_virtual_wpan()  # Get Phy Interfaces
-        cls.assign_iface(nodes, phys, **params)  # iface assign
+        wm = subprocess.call(['which', 'iwpan'],
+                             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        if wm == 0:
+            cls.load_module(n_radios, alt_module)  # Initatilize WiFi Module
+            phys = cls.get_virtual_wpan()  # Get Phy Interfaces
+            cls.assign_iface(nodes, phys, **params)  # iface assign
+        else:
+            info('*** iwpan will be used, but it is not installed.\n' \
+                 '*** Please install iwpan with sudo util/install.sh -6.\n')
+            exit(1)
 
     @classmethod
     def get_virtual_wpan(cls):
