@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
 "Replaying Network Conditions"
+import os
 
 from mininet.log import setLogLevel
 from mininet.node import Controller
@@ -16,9 +17,11 @@ def topology():
     net = Mininet_wifi( controller=Controller )
 
     print("*** Creating nodes")
-    sta1 = net.addStation( 'sta1', mac='00:00:00:00:00:01', ip='192.168.0.1/24',
+    sta1 = net.addStation( 'sta1', mac='00:00:00:00:00:01',
+                           ip='192.168.0.1/24',
                            position='47.28,50,0' )
-    sta2 = net.addStation( 'sta2', mac='00:00:00:00:00:02', ip='192.168.0.2/24',
+    sta2 = net.addStation( 'sta2', mac='00:00:00:00:00:02',
+                           ip='192.168.0.2/24',
                            position='54.08,50,0' )
     ap3 = net.addAccessPoint( 'ap3', ssid='ap-ssid3', mode='g',
                               channel='1', position='50,50,0' )
@@ -32,17 +35,22 @@ def topology():
     c0.start()
     ap3.start( [c0] )
 
-    sta1.cmd('iw dev sta1-wlan0 interface add mon0 type monitor &')
-    sta1.cmd('ifconfig mon0 up &')
-    sta2.cmd('iw dev sta2-wlan0 interface add mon0 type monitor &')
-    sta2.cmd('ifconfig mon0 up &')
+    sta1.cmd('iw dev sta1-wlan0 interface add mon0 type monitor')
+    sta1.cmd('ip link set mon0 up')
+    sta2.cmd('iw dev sta2-wlan0 interface add mon0 type monitor')
+    sta2.cmd('ip link set mon0 up')
     if py_version_info < (3, 0):
-        sta2.cmd('pushd /home/alpha/Downloads; python -m SimpleHTTPServer 80 &')
+        sta2.cmd('pushd /home/alpha/Downloads; '
+                 'python -m SimpleHTTPServer 80 &')
     else:
-        sta2.cmd('pushd /home/alpha/Downloads; python -m http.server 80 &')
+        sta2.cmd('pushd /home/alpha/Downloads; '
+                 'python -m http.server 80 &')
 
-    getTrace(sta1, 'replayingNetworkConditions/clientTrace.txt')
-    getTrace(sta2, 'replayingNetworkConditions/serverTrace.txt')
+    path = os.path.dirname(os.path.abspath(__file__))
+    getTrace(sta1, '%s/replayingNetworkConditions/'
+                   'clientTrace.txt' % path)
+    getTrace(sta2, '%s/replayingNetworkConditions/'
+                   'serverTrace.txt' % path)
 
     replayingNetworkConditions.addNode(sta1)
     replayingNetworkConditions.addNode(sta2)
