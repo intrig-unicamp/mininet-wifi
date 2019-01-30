@@ -216,9 +216,16 @@ class w_starter(object):
 
         if wmediumd_mode.mode == 4:
             raise Exception("Wrong wmediumd mode given")
-        cls.is_initialized = True
-        cls.initialize(**kwargs)
-        w_server.connect()
+        wm = subprocess.call(['which', 'wmediumd'],
+                             stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+        if wm == 0:
+            cls.is_initialized = True
+            cls.initialize(**kwargs)
+            w_server.connect()
+        else:
+            info('*** Wmediumd is being used, but it is not installed.\n' \
+                  '*** Please install Wmediumd with sudo util/install.sh -l.\n')
+            exit(1)
 
     @classmethod
     def initialize(cls, **kwargs):
