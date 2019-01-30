@@ -1831,10 +1831,7 @@ class Mininet_wifi(Mininet):
                 for wlan in range(0, len(node.params['wlan'])):
                     if 'position' in node.params and 'link' not in node.params:
                         if self.wmediumd_mode == interference:
-                            if node.func[wlan] == 'adhoc':
-                                node.set_pos_wmediumd_sleep(wlan=wlan)
-                            else:
-                                node.set_pos_wmediumd()
+                            node.set_pos_wmediumd()
 
             for node in self.stations:
                 if 'position' in node.params and 'link' not in node.params:

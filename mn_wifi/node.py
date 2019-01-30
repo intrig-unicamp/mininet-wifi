@@ -442,13 +442,6 @@ class Node_wifi(Node):
         posZ = self.params['position'][2]
         return posX, posY, posZ
 
-    def set_pos_wmediumd_sleep(self, wlan=None):
-        "Set Position for wmediumd"
-        posX, posY, posZ = self.get_pos()
-        w_server.update_pos_sleep(w_pos(self.wmIface[wlan],
-                                        [(float(posX) + wlan),
-                                         float(posY), float(posZ)]), False)
-
     def set_pos_wmediumd(self):
         "Set Position for wmediumd"
         posX, posY, posZ = self.get_pos()

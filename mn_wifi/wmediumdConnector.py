@@ -814,19 +814,6 @@ class w_server(object):
                                     "code %d" % ret)
 
     @classmethod
-    def update_pos_sleep(cls, pos, mob):
-        # type: (w_pos) -> None
-        """
-        Update the Pos of a connection at wmediumd
-        :param pos The pos to update
-
-        :type pos: w_pos
-        """
-        if not mob:
-            time.sleep(1.5)
-        cls.update_pos(pos, mob)
-
-    @classmethod
     def update_pos(cls, pos, mob):
         # type: (w_pos) -> None
         """
