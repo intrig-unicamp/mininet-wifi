@@ -2,10 +2,11 @@
    author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)"""
 
 import threading
-from time import sleep, time
+from time import sleep, time, clock
 import os
 import numpy as np
 from numpy.random import rand
+import sys
 
 from mininet.log import debug, info
 from mininet.wifi.link import wirelessLink, Association
@@ -88,7 +89,6 @@ class mobility(object):
         'configure Mobility Parameters'
         node = args[0]
         stage = args[1]
-
         if 'position' in kwargs:
             if stage == 'stop':
                 finPos = kwargs['position']
@@ -473,12 +473,17 @@ class mobility(object):
             elif model == 'TimeVariantCommunity':
                 mob = tvc(mobileNodes, dimensions=(max_x, max_y),
                           aggregation=[0.5, 0.], epoch=[100, 100])
+            elif model == 'CRP':
+                mob = cooler_ref_point(mobileNodes,
+                                       dimensions=(max_x, max_y),
+                                       aggregation=aggregation)
             else:
                 raise Exception("Mobility Model not defined or doesn't exist!")
-
+            sleep(params['init_time'])
+            # Is there a reason this is done this way?
             current_time = time()
-            while (time() - current_time) < params['init_time']:
-                pass
+            # while (time() - current_time) < params['init_time']:
+            #     pass
             if DRAW:
                 cls.startMobilityModelGraph(mob, mobileNodes,
                                             current_time, params['final_time'],
@@ -498,6 +503,7 @@ class mobility(object):
             for idx, node in enumerate(nodes):
                 node.params['position'] = '%.2f' % xy[idx][0], '%.2f' \
                                           % xy[idx][1], 0.0
+
                 if cls.wmediumd_mode and cls.wmediumd_mode == 3:
                     node.set_pos_wmediumd()
                 if ppm == 'logNormalShadowing':
@@ -1380,32 +1386,35 @@ def reference_point_group(nodes, dimensions, velocity=(0.1, 1.), aggregation=0.1
     except TypeError:
         nr_nodes = [nr_nodes]
 
+    #Create an array of length equal to # of nodes
     NODES = np.arange(sum(nr_nodes))
-
+    #Store nodes in their specific group, which controls the "reference point" who vector they follow
     groups = []
     prev = 0
     for (i, n) in enumerate(nr_nodes):
         groups.append(np.arange(prev, n + prev))
         prev += n
-
+    #Create a empty array that stores the "index" number of arrays
     g_ref = np.empty(sum(nr_nodes), dtype=np.int)
     for (i, g) in enumerate(groups):
         for n in g:
             g_ref[n] = i
-
+    #Max flight value (borders)
     FL_MAX = max(dimensions)
     MIN_V, MAX_V = velocity
+    #??
     FL_DISTR = lambda SAMPLES: U(0, FL_MAX, SAMPLES)
     VEL_DISTR = lambda FD: U(MIN_V, MAX_V, FD)
 
     MAX_X, MAX_Y = dimensions
+    #Starting x and y are assigned values on the std. distribution to start
     x = U(0, MAX_X, NODES)
     y = U(0, MAX_Y, NODES)
     velocity = 1.
     theta = U(0, 2 * np.pi, NODES)
     costheta = np.cos(theta)
     sintheta = np.sin(theta)
-
+    #Determine the movement of each group
     GROUPS = np.arange(len(groups))
     g_x = U(0, MAX_X, GROUPS)
     g_y = U(0, MAX_X, GROUPS)
@@ -1416,7 +1425,7 @@ def reference_point_group(nodes, dimensions, velocity=(0.1, 1.), aggregation=0.1
     g_sintheta = np.sin(g_theta)
 
     while True:
-
+        #Adjust x and y
         x = x + velocity * costheta
         y = y + velocity * sintheta
 
@@ -1476,6 +1485,161 @@ def reference_point_group(nodes, dimensions, velocity=(0.1, 1.), aggregation=0.1
 
         yield np.dstack((x, y))[0]
 
+def cooler_ref_point(nodes, dimensions, velocity=(0.1, 1.), g_velocity=0.4, aggregation=0.1, initial_point=(0,50), end_point=(250,50)):
+    """
+    😎 Cooler 😎 Reference Point Group Mobility model, discussed in the following paper:
+
+        Xiaoyan Hong, Mario Gerla, Guangyu Pei, and Ching-Chuan Chiang. 1999.
+        A group mobility model for ad hoc wireless networks. In Proceedings of
+        the 2nd ACM international workshop on Modeling, analysis and simulation
+        of wireless and mobile systems (MSWiM '99). ACM, New York, NY, USA,
+        53-60.
+    
+    In this implementation, group trajectories follow a fixed linear path,
+    while nodes follow a random walk around the group center.
+    The parameter 'aggregation' controls how close the nodes are to the group
+    center.
+
+    Required arguments:
+
+        *nr_nodes*:
+        list of integers, the number of nodes in each group.
+
+        *dimensions*:
+        Tuple of Integers, the x and y dimensions of the simulation area.
+
+    keyword arguments:
+
+        *velocity*:
+        Tuple of Doubles, the minimum and maximum values for group velocity.
+
+        *g_velocity*
+        Velocity of group vector. Appears to be 5.7 m/s per unit locally.
+
+        *aggregation*:
+        Double, parameter (between 0 and 1) used to aggregate the nodes in the
+        group. Usually between 0 and 1, the more this value approximates to 1,
+        the nodes will be more aggregated and closer to the group center.
+        With a value of 0, the nodes are randomly distributed in the simulation
+        area. With a value of 1, the nodes are close to the group center.
+
+        *initial_point*
+        Tuple of (x,y) starting position in the 2D mobility model.
+
+        *end_point*
+        Tuple of (x,y) finish position in the 2D mobility model.
+    """
+    #Method U() is a uniform distribution as a lambda
+    nr_nodes = len(nodes)
+    try:
+        iter(nr_nodes)
+    except TypeError:
+        nr_nodes = [nr_nodes]
+
+    #Create an array of length equal to # of nodes
+    NODES = np.arange(sum(nr_nodes))
+    #Store nodes in their specific group, which controls the "reference point" who vector they follow
+    groups = []
+    prev = 0
+    for (i, n) in enumerate(nr_nodes):
+        groups.append(np.arange(prev, n + prev))
+        prev += n
+    #Create a empty array that stores the "index" number of arrays
+    g_ref = np.empty(sum(nr_nodes), dtype=np.int)
+    for (i, g) in enumerate(groups):
+        for n in g:
+            g_ref[n] = i
+    #Max flight value (borders)
+    FL_MAX = max(dimensions)
+    MIN_V, MAX_V = velocity
+    G_VEL = g_velocity
+    #Create wrappers for uniform distribution for flight distance and velocity
+    FL_DISTR = lambda SAMPLES: U(0, FL_MAX, SAMPLES)
+    VEL_DISTR = lambda FD: U(MIN_V, MAX_V, FD)
+    MAX_X, MAX_Y = dimensions
+    #Assign initial values including X and Y (parameterize this!!!)
+    INIT_X, INIT_Y = initial_point
+    END_X, END_Y = end_point
+    x = U(INIT_X, INIT_X + MAX_V, NODES)
+    y = U(INIT_Y, INIT_Y + MAX_V, NODES)
+    velocity = 1.
+    theta = U(0, 2 * np.pi, NODES)
+    costheta = np.cos(theta)
+    sintheta = np.sin(theta)
+    #Determine the location and initial movement of the group reference point
+    GROUPS = np.arange(len(groups))
+    g_x = np.array([INIT_X])
+    g_y = np.array([INIT_Y])
+    #Unclear on if flight distance has any material effect in this instance
+    g_fl = FL_DISTR(GROUPS)
+    #Each one unit of velocity is ~5.7 m/s on my system
+    g_velocity = np.array([G_VEL])
+    g_theta = [np.arctan2(END_Y - INIT_Y, END_X - INIT_X)]
+    # np.repeat(g_theta, 10)
+    g_costheta = np.cos(g_theta)
+    g_sintheta = np.sin(g_theta)
+    time_flag = False
+    #INIT_TIME = clock()
+    while True:
+        #Adjust location of individual point?
+        x = x + velocity * costheta
+        y = y + velocity * sintheta
+        #Adjust location of group?
+        g_x = g_x + g_velocity * g_costheta
+        g_y = g_y + g_velocity * g_sintheta
+
+        for (i, g) in enumerate(groups):
+            # step to group direction + step to group center
+            x_g = x[g]
+            y_g = y[g]
+            c_theta = np.arctan2(g_y[i] - y_g, g_x[i] - x_g)
+
+            x[g] = x_g + g_velocity[i] * g_costheta[i] + aggregation * np.cos(c_theta)
+            y[g] = y_g + g_velocity[i] * g_sintheta[i] + aggregation * np.sin(c_theta)
+
+        # node and group bounces on the margins
+        b = np.where(x < 0)[0]
+        if b.size > 0:
+            x[b] = -x[b]
+            costheta[b] = -costheta[b]
+            g_idx = np.unique(g_ref[b])
+            g_costheta[g_idx] = -g_costheta[g_idx]
+        b = np.where(x > MAX_X)[0]
+        if b.size > 0:
+            x[b] = 2 * MAX_X - x[b]
+            costheta[b] = -costheta[b]
+            g_idx = np.unique(g_ref[b])
+            g_costheta[g_idx] = -g_costheta[g_idx]
+        b = np.where(y < 0)[0]
+        if b.size > 0:
+            y[b] = -y[b]
+            sintheta[b] = -sintheta[b]
+            g_idx = np.unique(g_ref[b])
+            g_sintheta[g_idx] = -g_sintheta[g_idx]
+        b = np.where(y > MAX_Y)[0]
+        if b.size > 0:
+            y[b] = 2 * MAX_Y - y[b]
+            sintheta[b] = -sintheta[b]
+            g_idx = np.unique(g_ref[b])
+            g_sintheta[g_idx] = -g_sintheta[g_idx]
+
+        # update info for nodes
+        theta = U(0, 2 * np.pi, NODES)
+        costheta = np.cos(theta)
+        sintheta = np.sin(theta)
+
+        # update info for arrived groups
+        g_fl = g_fl - g_velocity
+
+        g_finished = (abs(g_x - END_X) < 1 and abs(g_y - END_Y) < 1) 
+        if g_finished:
+            # if not time_flag:
+            #     FIN_TIME = clock()
+            #     # print(str(FIN_TIME - INIT_TIME))
+            #     time_flag = True
+            g_velocity[0] = 0
+
+        yield np.dstack((x, y))[0]
 
 def tvc(nodes, dimensions, velocity=(0.1, 1.), aggregation=[0.5, 0.], epoch=[100, 100]):
     """
