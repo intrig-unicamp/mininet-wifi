@@ -267,6 +267,8 @@ class mobility(object):
         cls.ac = AC
         cls.addNodes(stations, aps)
         nodes = cls.stations + cls.aps + plotNodes
+        # max waiting time
+        MAX_WT = 100.
 
         for node in nodes:
             if 'position' in node.params:
@@ -331,7 +333,8 @@ class mobility(object):
             elif model == 'CRP':
                 mob = cooler_ref_point(mobileNodes,
                                        dimensions=(max_x, max_y),
-                                       aggregation=aggregation)
+                                       aggregation=aggregation,
+                                       pointlist=params['pointlist'])
             else:
                 raise Exception("Mobility Model not defined or doesn't exist!")
             sleep(params['init_time'])
@@ -1433,7 +1436,7 @@ def reference_point_group(nodes, dimensions, velocity=(0.1, 1.), aggregation=0.1
         costheta = np.cos(theta)
         sintheta = np.sin(theta)
 
-        # update info for arrived groups
+        # update info for arrived groups        print(kwargs)
         g_fl = g_fl - g_velocity
         g_arrived = np.where(np.logical_and(g_velocity > 0., g_fl <= 0.))[0]
 
@@ -1446,9 +1449,9 @@ def reference_point_group(nodes, dimensions, velocity=(0.1, 1.), aggregation=0.1
 
         yield np.dstack((x, y))[0]
 
-def cooler_ref_point(nodes, dimensions, velocity=(0.1, 1.), g_velocity=0.4, aggregation=0.1, initial_point=(0,50), end_point=(250,50)):
+def cooler_ref_point(nodes, dimensions, pointlist, velocity=(0.1, 1.), g_velocity=0.4, aggregation=0.1):
     """
-    😎 Cooler 😎 Reference Point Group Mobility model, discussed in the following paper:
+    Cooler Reference Point Group Mobility model, discussed in the following paper:
 
         Xiaoyan Hong, Mario Gerla, Guangyu Pei, and Ching-Chuan Chiang. 1999.
         A group mobility model for ad hoc wireless networks. In Proceedings of
@@ -1519,28 +1522,30 @@ def cooler_ref_point(nodes, dimensions, velocity=(0.1, 1.), g_velocity=0.4, aggr
     VEL_DISTR = lambda FD: U(MIN_V, MAX_V, FD)
     MAX_X, MAX_Y = dimensions
     #Assign initial values including X and Y (parameterize this!!!)
-    INIT_X, INIT_Y = initial_point
-    END_X, END_Y = end_point
-    x = U(INIT_X, INIT_X + MAX_V, NODES)
-    y = U(INIT_Y, INIT_Y + MAX_V, NODES)
+    if len(pointlist) > 1:
+        current_x, current_y = pointlist[0]
+        next_x, next_y = pointlist[1]
+    else:
+        current_x, current_y = pointlist[0]
+        next_x, next_y = pointlist[0]
+    x = U(current_x, current_x + MAX_V, NODES)
+    y = U(current_y, current_y + MAX_V, NODES)
     velocity = 1.
     theta = U(0, 2 * np.pi, NODES)
     costheta = np.cos(theta)
     sintheta = np.sin(theta)
     #Determine the location and initial movement of the group reference point
     GROUPS = np.arange(len(groups))
-    g_x = np.array([INIT_X])
-    g_y = np.array([INIT_Y])
+    g_x = np.array([current_x])
+    g_y = np.array([current_y])
     #Unclear on if flight distance has any material effect in this instance
     g_fl = FL_DISTR(GROUPS)
     #Each one unit of velocity is ~5.7 m/s on my system
     g_velocity = np.array([G_VEL])
-    g_theta = [np.arctan2(END_Y - INIT_Y, END_X - INIT_X)]
-    # np.repeat(g_theta, 10)
+    g_theta = [np.arctan2(next_y - current_y, next_x - current_x)]
     g_costheta = np.cos(g_theta)
     g_sintheta = np.sin(g_theta)
-    time_flag = False
-    #INIT_TIME = clock()
+    point_index = 1
     while True:
         #Adjust location of individual point?
         x = x + velocity * costheta
@@ -1557,32 +1562,32 @@ def cooler_ref_point(nodes, dimensions, velocity=(0.1, 1.), g_velocity=0.4, aggr
 
             x[g] = x_g + g_velocity[i] * g_costheta[i] + aggregation * np.cos(c_theta)
             y[g] = y_g + g_velocity[i] * g_sintheta[i] + aggregation * np.sin(c_theta)
-
+        #TODO: Determine desired edge behavior!!
         # node and group bounces on the margins
-        b = np.where(x < 0)[0]
-        if b.size > 0:
-            x[b] = -x[b]
-            costheta[b] = -costheta[b]
-            g_idx = np.unique(g_ref[b])
-            g_costheta[g_idx] = -g_costheta[g_idx]
-        b = np.where(x > MAX_X)[0]
-        if b.size > 0:
-            x[b] = 2 * MAX_X - x[b]
-            costheta[b] = -costheta[b]
-            g_idx = np.unique(g_ref[b])
-            g_costheta[g_idx] = -g_costheta[g_idx]
-        b = np.where(y < 0)[0]
-        if b.size > 0:
-            y[b] = -y[b]
-            sintheta[b] = -sintheta[b]
-            g_idx = np.unique(g_ref[b])
-            g_sintheta[g_idx] = -g_sintheta[g_idx]
-        b = np.where(y > MAX_Y)[0]
-        if b.size > 0:
-            y[b] = 2 * MAX_Y - y[b]
-            sintheta[b] = -sintheta[b]
-            g_idx = np.unique(g_ref[b])
-            g_sintheta[g_idx] = -g_sintheta[g_idx]
+        # b = np.where(x < 0)[0]
+        # if b.size > 0:
+        #     x[b] = -x[b]
+        #     costheta[b] = -costheta[b]
+        #     g_idx = np.unique(g_ref[b])
+        #     g_costheta[g_idx] = -g_costheta[g_idx]
+        # b = np.where(x > MAX_X)[0]
+        # if b.size > 0:
+        #     x[b] = 2 * MAX_X - x[b]
+        #     costheta[b] = -costheta[b]
+        #     g_idx = np.unique(g_ref[b])
+        #     g_costheta[g_idx] = -g_costheta[g_idx]
+        # b = np.where(y < 0)[0]
+        # if b.size > 0:
+        #     y[b] = -y[b]
+        #     sintheta[b] = -sintheta[b]
+        #     g_idx = np.unique(g_ref[b])
+        #     g_sintheta[g_idx] = -g_sintheta[g_idx]
+        # b = np.where(y > MAX_Y)[0]
+        # if b.size > 0:
+        #     y[b] = 2 * MAX_Y - y[b]
+        #     sintheta[b] = -sintheta[b]
+        #     g_idx = np.unique(g_ref[b])
+        #     g_sintheta[g_idx] = -g_sintheta[g_idx]
 
         # update info for nodes
         theta = U(0, 2 * np.pi, NODES)
@@ -1592,13 +1597,19 @@ def cooler_ref_point(nodes, dimensions, velocity=(0.1, 1.), g_velocity=0.4, aggr
         # update info for arrived groups
         g_fl = g_fl - g_velocity
 
-        g_finished = (abs(g_x - END_X) < 1 and abs(g_y - END_Y) < 1) 
-        if g_finished:
-            # if not time_flag:
-            #     FIN_TIME = clock()
-            #     # print(str(FIN_TIME - INIT_TIME))
-            #     time_flag = True
-            g_velocity[0] = 0
+        g_finished = (abs(g_x - next_x) < 1 and abs(g_y - next_y) < 1)
+        if(g_x - next_x < 10):
+            if g_finished:
+                if point_index + 1 >= len(pointlist):
+                    g_velocity[0] = 0
+                else:
+                    point_index += 1
+                    current_x = next_x
+                    current_y = next_y
+                    next_x, next_y = pointlist[point_index]
+                    g_theta = [np.arctan2(next_y - g_y, next_x - g_x)]
+                    g_costheta = np.cos(g_theta)
+                    g_sintheta = np.sin(g_theta)    
 
         yield np.dstack((x, y))[0]
 
