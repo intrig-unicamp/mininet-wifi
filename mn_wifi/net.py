@@ -128,6 +128,7 @@ class Mininet_wifi(Mininet):
         self.allAutoAssociation = allAutoAssociation # includes mobility
         self.ppm_is_set = False
         self.DRAW = False
+        self.isReplaying = False
         self.docker = docker
         self.container = container
         self.ssh_user = ssh_user
@@ -741,7 +742,7 @@ class Mininet_wifi(Mininet):
                 self.mob_param['plotNodes'] = self.plot_nodes()
                 mobility.stop(**self.mob_param)
         else:
-            if self.DRAW:
+            if self.DRAW and not self.isReplaying:
                 plotNodes = self.plot_nodes()
                 self.plotCheck(plotNodes)
         self.built = True

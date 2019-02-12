@@ -73,7 +73,7 @@ class plot3d (object):
         return plt.fignum_exists(1)
 
     @classmethod
-    def p(cls):
+    def pause(cls):
         plt.pause(0.0001)
 
     @classmethod
