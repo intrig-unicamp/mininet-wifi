@@ -52,11 +52,12 @@ class replayingMobility(object):
 
         currentTime = time()
         for node in nodes:
-            if 'speed' in node.params:
-                node.lastpos = 0,0,0
-                node.currentTime = 1 / node.params['speed']
-                node.timestamp = float(1.0 / node.params['speed'])
-                node.isStationary = False
+            if 'speed' not in node.params:
+                node.params['speed'] = 1.0
+            node.lastpos = 0,0,0
+            node.currentTime = 1 / node.params['speed']
+            node.timestamp = float(1.0 / node.params['speed'])
+            node.isStationary = False
             if hasattr(node, 'time'):
                 self.timestamp = True
         if self.timestamp:
