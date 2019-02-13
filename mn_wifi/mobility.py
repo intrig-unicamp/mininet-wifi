@@ -334,10 +334,11 @@ class mobility(object):
                 mob = cooler_ref_point(mobileNodes,
                                        dimensions=(max_x, max_y),
                                        aggregation=aggregation,
-                                       pointlist=params['pointlist'])
+                                       pointlist=params['pointlist'],
+                                       waittime=params['waittime'])
             else:
                 raise Exception("Mobility Model not defined or doesn't exist!")
-            sleep(params['init_time'])
+            #sleep(params['init_time'])
             # Is there a reason this is done this way?
             current_time = time()
             while (time() - current_time) < kwargs['time']:
@@ -1449,7 +1450,7 @@ def reference_point_group(nodes, dimensions, velocity=(0.1, 1.), aggregation=0.1
 
         yield np.dstack((x, y))[0]
 
-def cooler_ref_point(nodes, dimensions, pointlist, velocity=(0.1, 1.), g_velocity=0.4, aggregation=0.1):
+def cooler_ref_point(nodes, dimensions, pointlist, velocity=(0.1, 1.), g_velocity=0.4, aggregation=0.1, waittime=0):
     """
     Cooler Reference Point Group Mobility model, discussed in the following paper:
 
@@ -1493,6 +1494,9 @@ def cooler_ref_point(nodes, dimensions, pointlist, velocity=(0.1, 1.), g_velocit
         *end_point*
         Tuple of (x,y) finish position in the 2D mobility model.
     """
+    #TODO: Parameterize wait time!!!
+    #Manual wait time
+    sleep(waittime)
     #Method U() is a uniform distribution as a lambda
     nr_nodes = len(nodes)
     try:
