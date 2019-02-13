@@ -34,17 +34,19 @@ class replayingMobility(object):
 
     def timestamp_(self, node, time_):
         if time_ >= float(node.time[0]):
-            position_ = node.position[0]
+            pos = node.position[0]
             del node.position[0]
             del node.time[0]
-            node.setPosition(position_)
+            node.params['position'] = pos.split(',')
 
     def notimestamp_(self, node, time_):
-        while time_ >= node.currentTime:
-            position = node.position[0]
-            del node.position[0]
-            node.currentTime += node.timestamp
-            node.setPosition(position)
+        if time_ >= node.currentTime:
+            for n in range(0, node.params['speed']):
+                if len(node.position) > 0:
+                    pos = node.position[0]
+                    del node.position[0]
+                    node.currentTime += node.timestamp
+                    node.params['position'] = pos.split(',')
 
     def mobility(self, nodes, Mininet_wifi):
         if nodes is None:
@@ -68,7 +70,6 @@ class replayingMobility(object):
         for node in nodes:
             if 'speed' not in node.params:
                 node.params['speed'] = 1.0
-            node.lastpos = 0,0,0
             node.currentTime = 1 / node.params['speed']
             node.timestamp = float(1.0 / node.params['speed'])
             node.isStationary = False
@@ -89,6 +90,7 @@ class replayingMobility(object):
                     if len(node.position) == 0:
                         nodes.remove(node)
                     mobility.configLinks()
+                    plot.update(node)
             if Mininet_wifi.DRAW:
                 plot.pause()
 
