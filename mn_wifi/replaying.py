@@ -32,15 +32,15 @@ class replayingMobility(object):
         mobility.thread_._keep_alive = True
         mobility.thread_.start()
 
-    def timestamp(self, node, time_):
+    def timestamp_(self, node, time_):
         if time_ >= float(node.time[0]):
             position_ = node.position[0]
             del node.position[0]
             del node.time[0]
             node.setPosition(position_)
 
-    def notimestamp(self, node, time_):
-        while time_ >= node.currentTime and len(node.position) != 0:
+    def notimestamp_(self, node, time_):
+        while time_ >= node.currentTime:
             position = node.position[0]
             del node.position[0]
             node.currentTime += node.timestamp
@@ -75,9 +75,9 @@ class replayingMobility(object):
             if hasattr(node, 'time'):
                 self.timestamp = True
 
-        calc_pos = self.timestamp
+        calc_pos = self.notimestamp_
         if self.timestamp:
-            calc_pos = self.notimestamp
+            calc_pos = self.timestamp_
 
         while mobility.thread_._keep_alive:
             time_ = time() - currentTime
