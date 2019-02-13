@@ -1859,6 +1859,8 @@ class Mininet_wifi(Mininet):
             self.mobilityparam.setdefault('plotNodes', kwargs['plotNodes'])
         if 'pointlist' in kwargs:
             self.mobilityparam.setdefault('pointlist',kwargs['pointlist'])
+        if 'waittime' in kwargs:
+            self.mobilityparam.setdefault('waittime', kwargs['waittime'])
         if 'model' in kwargs:
             stations = kwargs['stations']
             if 'min_x' in kwargs:
