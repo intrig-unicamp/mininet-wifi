@@ -32,6 +32,20 @@ class replayingMobility(object):
         mobility.thread_._keep_alive = True
         mobility.thread_.start()
 
+    def timestamp(self, node, time_):
+        if time_ >= float(node.time[0]):
+            position_ = node.position[0]
+            del node.position[0]
+            del node.time[0]
+            node.setPosition(position_)
+
+    def notimestamp(self, node, time_):
+        while time_ >= node.currentTime and len(node.position) != 0:
+            position = node.position[0]
+            del node.position[0]
+            node.currentTime += node.timestamp
+            node.setPosition(position)
+
     def mobility(self, nodes, Mininet_wifi):
         if nodes is None:
             nodes = Mininet_wifi.stations + Mininet_wifi.aps
@@ -60,46 +74,23 @@ class replayingMobility(object):
             node.isStationary = False
             if hasattr(node, 'time'):
                 self.timestamp = True
+
+        calc_pos = self.timestamp
         if self.timestamp:
-            while mobility.thread_._keep_alive:
-                time_ = time() - currentTime
-                sleep(0.00001)
-                if len(nodes) == 0:
-                    break
-                for node in nodes:
-                    if hasattr(node, 'position'):
-                        position_ = (0,0,0)
-                        if time_ >= float(node.time[0]):
-                            position_ = node.position[0]
-                            del node.position[0]
-                            del node.time[0]
-                        if position_ != (0,0,0):
-                            node.setPosition(position_)
-                        if len(node.position) == 0:
-                            nodes.remove(node)
-                        mobility.configLinks()
-                if Mininet_wifi.DRAW:
-                    plot.pause()
-        else:
-            while mobility.thread_._keep_alive:
-                time_ = time() - currentTime
-                sleep(0.00001)
-                if len(nodes) == 0:
-                    break
-                for node in nodes:
-                    if hasattr(node, 'position'):
-                        position = (0,0,0)
-                        while time_ >= node.currentTime and len(node.position) != 0:
-                            position = node.position[0]
-                            del node.position[0]
-                            node.currentTime += node.timestamp
-                        if position != (0,0,0):
-                            node.setPosition(position)
-                        if len(node.position) == 0:
-                            nodes.remove(node)
-                        mobility.configLinks()
-                if Mininet_wifi.DRAW:
-                    plot.pause()
+            calc_pos = self.notimestamp
+
+        while mobility.thread_._keep_alive:
+            time_ = time() - currentTime
+            if len(nodes) == 0:
+                break
+            for node in nodes:
+                if hasattr(node, 'position'):
+                    calc_pos(node, time_)
+                    if len(node.position) == 0:
+                        nodes.remove(node)
+                    mobility.configLinks()
+            if Mininet_wifi.DRAW:
+                plot.pause()
 
     @classmethod
     def addNode(cls, node):
@@ -115,17 +106,18 @@ class replayingMobility(object):
 class replayingBandwidth(object):
     'Replaying Bandwidth Traces'
 
-    def __init__(self, Mininet_wifi, **params):
-        self.thread = threading.Thread(name='replayingBandwidth',
+    def __init__(self, Mininet_wifi):
+        mobility.thread_ = thread(name='replayingBandwidth',
                                        target=self.throughput, args=(Mininet_wifi,))
-        self.thread.daemon = True
-        self.thread.start()
+        mobility.thread_.daemon = True
+        mobility.thread_._keep_alive = True
+        mobility.thread_.start()
 
     @classmethod
-    def throughput(cls, mininet):
+    def throughput(cls, Mininet_wifi):
         currentTime = time()
-        stations = mininet.stations
-        while True:
+        stations = Mininet_wifi.stations
+        while mobility.thread_._keep_alive:
             if len(stations) == 0:
                 break
             time_ = time() - currentTime
@@ -161,10 +153,11 @@ class replayingNetworkConditions(object):
 
     def __init__(self, Mininet_wifi, **kwargs):
 
-        self.thread = threading.Thread( name='replayingNetConditions',
+        mobility.thread = thread( name='replayingNetConditions',
                                         target=self.behavior, args=(Mininet_wifi,) )
-        self.thread.daemon = True
-        self.thread.start()
+        mobility.thread.daemon = True
+        mobility.thread_._keep_alive = True
+        mobility.thread.start()
 
     @classmethod
     def behavior(cls, Mininet_wifi):
@@ -176,7 +169,7 @@ class replayingNetworkConditions(object):
         stations = Mininet_wifi.stations
         for sta in stations:
             sta.params['freq'][0] = sta.get_freq(0)
-        while True:
+        while mobility.thread_._keep_alive:
             if len(stations) == 0:
                 break
             time_ = time() - currentTime
@@ -220,10 +213,11 @@ class replayingRSSI(object):
         for key in kwargs:
             setattr(self, key, kwargs[key])
 
-        self.thread = threading.Thread(name='replayingRSSI', target=self.rssi,
+        mobility.thread = thread(name='replayingRSSI', target=self.rssi,
                                        args=(Mininet_wifi, propagationModel, n))
-        self.thread.daemon = True
-        self.thread.start()
+        mobility.thread.daemon = True
+        mobility.thread_._keep_alive = True
+        mobility.thread.start()
 
     def rssi(self, Mininet_wifi, propagationModel='', n=0):
         currentTime = time()
@@ -232,7 +226,7 @@ class replayingRSSI(object):
         for sta in staList:
             ang[sta] = random.uniform(0, 360)
             sta.params['freq'][0] = sta.get_freq(0)
-        while True:
+        while mobility.thread_._keep_alive:
             if len(staList) == 0:
                 break
             time_ = time() - currentTime
