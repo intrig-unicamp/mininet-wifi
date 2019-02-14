@@ -90,7 +90,8 @@ class replayingMobility(object):
                     if len(node.position) == 0:
                         nodes.remove(node)
                     mobility.configLinks()
-                    plot.update(node)
+                    if Mininet_wifi.DRAW:
+                        plot.update(node)
             if Mininet_wifi.DRAW:
                 plot.pause()
 
