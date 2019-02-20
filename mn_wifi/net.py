@@ -330,7 +330,6 @@ class Mininet_wifi(Mininet):
         if self.inNamespace or ('inNamespace' in params
                                 and params['inNamespace'] is True):
             ap.params['inNamespace'] = True
-
         self.nameToNode[name] = ap
 
         if wlan:
@@ -712,12 +711,14 @@ class Mininet_wifi(Mininet):
                     self.addController('c%d' % i, cls)
 
         info('*** Adding hosts/stations:\n')
+        #TODO: DIAGNOSE TYPING ISSUES!!!
         for hostName in topo.hosts():
-            if 'sta' in str(hostName):
-                self.addStation(hostName, **topo.nodeInfo(hostName))
-            else:
-                self.addHost(hostName, **topo.nodeInfo(hostName))
-            info(hostName + ' ')
+            if not "isAP" in topo.nodeInfo(hostName):
+                if 'sta' in str(hostName):
+                    self.addStation(hostName, **topo.nodeInfo(hostName))
+                else:
+                    self.addHost(hostName, **topo.nodeInfo(hostName))
+                info(hostName + ' ')
 
         info('\n*** Adding access points:\n')
         for apName in topo.aps():
@@ -1761,16 +1762,16 @@ class Mininet_wifi(Mininet):
             self.mob_param.setdefault('plotNodes', kwargs['plotNodes'])
 
         if 'nodes' in kwargs and kwargs['nodes']:
-            self.mobilityparam.setdefault('nodes', kwargs['nodes'])
+            self.mob_param.setdefault('nodes', kwargs['nodes'])
         if 'associationControl' in kwargs:
-            self.mobilityparam.setdefault('AC', kwargs['associationControl'])
+            self.mob_param.setdefault('AC', kwargs['associationControl'])
 
         if 'aggregation' in kwargs:
-            self.mobilityparam.setdefault('aggregation', kwargs['aggregation'])
-        self.mobilityparam.setdefault('DRAW', self.DRAW)
-        self.mobilityparam.setdefault('conn', self.conn)
-        self.mobilityparam.setdefault('rec_rssi', self.rec_rssi)
-        self.mobilityparam.setdefault('ppm', propagationModel.model)
+            self.mob_param.setdefault('aggregation', kwargs['aggregation'])
+        self.mob_param.setdefault('DRAW', self.DRAW)
+        self.mob_param.setdefault('conn', self.conn)
+        self.mob_param.setdefault('rec_rssi', self.rec_rssi)
+        self.mob_param.setdefault('ppm', propagationModel.model)
 
     def useExternalProgram(self, program, **kwargs):
         """Opens an external program
