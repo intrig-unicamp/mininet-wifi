@@ -1688,20 +1688,17 @@ class AccessPoint(AP):
         AccessPoint.writeMacAddress = False
 
     @classmethod
-    def configureIface(cls, node, wlan):
-        intf = module.wlan_list[0]
-        module.wlan_list.pop(0)
-        node.renameIface(intf, node.params['wlan'][wlan])
-
-    @classmethod
     def verifyNetworkManager(cls, node, wlan):
         """First verify if the mac address of the ap is included at
         NetworkManager.conf
 
         :param node: node"""
+        from mn_wifi.link import IntfWireless
         if 'inNamespace' not in node.params:
             if not isinstance(node, Station):
-                cls.configureIface(node, wlan)
+                wintf = module.wlan_list[0]
+                module.wlan_list.pop(0)
+                IntfWireless.rename(node, wintf, node.params['wlan'][wlan])
         TCLinkWirelessAP(node)
         #cls.links.append(link)
         AccessPoint.setIPMAC(node, wlan)
@@ -1883,12 +1880,6 @@ class UserAP(AP):
             iface = '%s-wlan%s' % (self, wlan)
             self.params['wlan'][wlan] = iface
         self.cmd('iw dev %s set type managed' % (self.params['wlan'][wlan]))
-
-    def renameIface(self, intf, newname):
-        "Rename interface"
-        self.pexec('ip link set %s down' % intf)
-        self.pexec('ip link set %s name %s' % (intf, newname))
-        self.pexec('ip link set %s up' % newname)
 
 
 class OVSAP(AP):
@@ -2124,12 +2115,6 @@ class OVSAP(AP):
         for switch in switches:
             switch.shell = None
         return switches
-
-    def renameIface(self, intf, newname):
-        "Rename interface"
-        self.pexec('ip link set %s down' % intf)
-        self.pexec('ip link set %s name %s' % (intf, newname))
-        self.pexec('ip link set %s up' % newname)
 
 
 OVSKernelAP = OVSAP

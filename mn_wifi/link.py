@@ -183,13 +183,12 @@ class IntfWireless(object):
         else:
             return "UP" in self.ipAddr()
 
-    def rename(self, newname):
+    @classmethod
+    def rename(self, node, wintf, newname):
         "Rename interface"
-        self.ipLink('down')
-        result = self.cmd('ip link set', self.name, 'name', newname)
-        self.name = newname
-        self.ipLink('up')
-        return result
+        node.pexec('ip link set %s down' % wintf)
+        node.pexec('ip link set %s name %s' % (wintf, newname))
+        node.pexec('ip link set %s up' % newname)
 
     # The reason why we configure things in this way is so
     # That the parameters can be listed and documented in
