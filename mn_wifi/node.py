@@ -1688,23 +1688,25 @@ class AccessPoint(AP):
         AccessPoint.writeMacAddress = False
 
     @classmethod
+    def configureIface(cls, node, wlan):
+        intf = module.wlan_list[0]
+        module.wlan_list.pop(0)
+        node.renameIface(intf, node.params['wlan'][wlan])
+
+    @classmethod
     def verifyNetworkManager(cls, node, wlan):
         """First verify if the mac address of the ap is included at
         NetworkManager.conf
 
         :param node: node"""
-        wintf = None
         if 'inNamespace' not in node.params:
             if not isinstance(node, Station):
-                wintf = module.wlan_list[0]
-                module.wlan_list.pop(0)
-        TCLinkWirelessAP(node, wintf=wintf, wlan=wlan)
+                cls.configureIface(node, wlan)
+        TCLinkWirelessAP(node)
         #cls.links.append(link)
         AccessPoint.setIPMAC(node, wlan)
         if 'phywlan' in node.params:
-            TCLinkWirelessAP(node,
-                             intfName1=node.params['phywlan'],
-                             wintf=wintf, wlan=wlan)
+            TCLinkWirelessAP(node, intfName1=node.params['phywlan'])
 
     @classmethod
     def checkNetworkManager(cls, mac):
@@ -1881,6 +1883,12 @@ class UserAP(AP):
             iface = '%s-wlan%s' % (self, wlan)
             self.params['wlan'][wlan] = iface
         self.cmd('iw dev %s set type managed' % (self.params['wlan'][wlan]))
+
+    def renameIface(self, intf, newname):
+        "Rename interface"
+        self.pexec('ip link set %s down' % intf)
+        self.pexec('ip link set %s name %s' % (intf, newname))
+        self.pexec('ip link set %s up' % newname)
 
 
 class OVSAP(AP):
@@ -2116,6 +2124,12 @@ class OVSAP(AP):
         for switch in switches:
             switch.shell = None
         return switches
+
+    def renameIface(self, intf, newname):
+        "Rename interface"
+        self.pexec('ip link set %s down' % intf)
+        self.pexec('ip link set %s name %s' % (intf, newname))
+        self.pexec('ip link set %s up' % newname)
 
 
 OVSKernelAP = OVSAP

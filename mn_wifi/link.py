@@ -539,8 +539,7 @@ class WirelessLinkAP(object):
     # pylint: disable=too-many-branches
     def __init__(self, node1, port1=None,
                  intfName1=None, addr1=None,
-                 intf=IntfWireless, cls1=None,
-                 wintf=None, wlan=0, params1=None):
+                 intf=IntfWireless, cls1=None, params1=None):
         """Create veth link to another node, making two new interfaces.
            node1: first node
            port1: node1 port number (optional)
@@ -557,9 +556,6 @@ class WirelessLinkAP(object):
 
         if port1 is not None:
             params1[ 'port' ] = port1
-
-        if wintf:
-            self.rename(node1, wintf, node1.params['wlan'][wlan])
 
         ifacename = 'wlan'
 
@@ -599,12 +595,6 @@ class WirelessLinkAP(object):
     def _ignore(*args, **kwargs):
         "Ignore any arguments"
         pass
-
-    def rename(self, node, wintf, newname):
-        "Rename interface"
-        node.pexec('ip link set %s down' % wintf)
-        node.pexec('ip link set %s name %s' % (wintf, newname))
-        node.pexec('ip link set %s up' % newname)
 
     def wlanName(self, node, ifacename, n):
         "Construct a canonical interface name node-ethN for interface n."
@@ -716,10 +706,9 @@ class TCLinkWirelessStation(WirelessLinkStation):
 class TCLinkWirelessAP(WirelessLinkAP):
     "Link with symmetric TC interfaces configured via opts"
     def __init__(self, node1, port1=None, intfName1=None,
-                 addr1=None, wintf=None, **params):
+                 addr1=None, **params):
         WirelessLinkAP.__init__(self, node1, port1=port1,
                                 intfName1=intfName1,
-                                wintf=wintf,
                                 cls1=TCWirelessLink,
                                 addr1=addr1,
                                 params1=params)
