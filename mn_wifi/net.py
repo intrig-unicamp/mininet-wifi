@@ -1825,7 +1825,7 @@ class Mininet_wifi(Mininet):
             if sta in mobility.stations:
                 mobility.stations.remove(sta)
 
-        nodes = self.aps + self.stations + self.cars
+        nodes = self.aps + self.stations
 
         if self.nroads == 0:
             for node in nodes:
@@ -1834,8 +1834,7 @@ class Mininet_wifi(Mininet):
                         if self.wmediumd_mode == interference:
                             node.set_pos_wmediumd()
 
-            nodes = self.stations + self.cars
-            for node in nodes:
+            for node in self.stations:
                 if 'position' in node.params and 'link' not in node.params:
                     mobility.aps = self.aps
                     mobility.configLinks(node)
