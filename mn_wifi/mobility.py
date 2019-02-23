@@ -119,6 +119,12 @@ class mobility(object):
             thread_.start()
 
     @classmethod
+    def set_pos(self, node, pos):
+        node.params['position'] = pos
+        if mobility.wmediumd_mode == 3 and mobility.thread_._keep_alive:
+            node.set_pos_wmediumd()
+
+    @classmethod
     def speed(cls, sta, pos_x, pos_y, pos_z, diff_time):
         """Calculates the speed
 
@@ -356,7 +362,7 @@ class mobility(object):
     def parameters(cls):
         "Applies channel params and handover"
         mobileNodes = list(set(cls.mobileNodes) - set(cls.aps))
-        while mobility.thread_._keep_alive:
+        while cls.thread_._keep_alive:
             cls.configureLinks(mobileNodes)
 
     @classmethod
@@ -433,11 +439,6 @@ class tracked(thread):
                                  float(coord_[1].split(',')[2]))
         self.run(plot, **kwargs)
 
-    def set_pos(self, node, pos):
-        node.params['position'] = pos
-        if mobility.wmediumd_mode and mobility.wmediumd_mode == 3:
-            node.set_pos_wmediumd()
-
     def run(self, plot, **kwargs):
         from time import time
         nodes = kwargs['nodes']
@@ -462,13 +463,13 @@ class tracked(thread):
                             if (t2 - t1) >= node.startTime and node.time <= node.endTime:
                                 if hasattr(node, 'coord'):
                                     mobility.calculate_diff_time(node)
-                                    self.set_pos(node,
+                                    mobility.set_pos(node,
                                                  node.points[node.time * node.moveFac])
                                     if node.time == node.endTime:
-                                        self.set_pos(node,
+                                        mobility.set_pos(node,
                                                      node.points[len(node.points) - 1])
                                 else:
-                                    self.set_pos(node, mobility.move_node(node))
+                                    mobility.set_pos(node, mobility.move_node(node))
                                 node.time += 1
                             if kwargs['DRAW']:
                                 plot.update(node)
