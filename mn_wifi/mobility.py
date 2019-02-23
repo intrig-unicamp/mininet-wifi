@@ -319,14 +319,6 @@ class mobility(object):
             cls.start_mob_mod(mob, kwargs['nodes'], kwargs['DRAW'])
 
     @classmethod
-    def set_pos(cls, node, xy, idx):
-        node.params['position'] = round(xy[idx][0], 2), \
-                                  round(xy[idx][1], 2), \
-                                  0.0
-        if cls.wmediumd_mode == 3 and mobility.thread_._keep_alive:
-            node.set_pos_wmediumd()
-
-    @classmethod
     def start_mob_mod(cls, mob, nodes, graph):
         """
         :param mob: mobility params
@@ -334,7 +326,10 @@ class mobility(object):
         """
         for xy in mob:
             for idx, node in enumerate(nodes):
-                cls.set_pos(node, xy, idx)
+                pos = round(xy[idx][0], 2), \
+                      round(xy[idx][1], 2), \
+                      0.0
+                cls.set_pos(node, pos)
                 if graph:
                     plot2d.update(node)
             if graph:
@@ -438,6 +433,11 @@ class tracked(thread):
                                  float(coord_[1].split(',')[2]))
         self.run(plot, **kwargs)
 
+    def set_pos(self, node, pos):
+        node.params['position'] = pos
+        if mobility.wmediumd_mode and mobility.wmediumd_mode == 3:
+            node.set_pos_wmediumd()
+
     def run(self, plot, **kwargs):
         from time import time
         nodes = kwargs['nodes']
@@ -462,15 +462,14 @@ class tracked(thread):
                             if (t2 - t1) >= node.startTime and node.time <= node.endTime:
                                 if hasattr(node, 'coord'):
                                     mobility.calculate_diff_time(node)
-                                    node.params['position'] = node.points[node.time * node.moveFac]
+                                    self.set_pos(node,
+                                                 node.points[node.time * node.moveFac])
                                     if node.time == node.endTime:
-                                        node.params['position'] = node.points[len(node.points) - 1]
+                                        self.set_pos(node,
+                                                     node.points[len(node.points) - 1])
                                 else:
-                                    x, y, z = mobility.move_node(node)
-                                    node.params['position'] = (x, y, z)
+                                    self.set_pos(node, mobility.move_node(node))
                                 node.time += 1
-                            if mobility.wmediumd_mode and mobility.wmediumd_mode == 3:
-                                node.set_pos_wmediumd()
                             if kwargs['DRAW']:
                                 plot.update(node)
                                 if kwargs['max_z'] == 0:
