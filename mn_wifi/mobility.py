@@ -316,43 +316,31 @@ class mobility(object):
             while (time() - current_time) < kwargs['time']:
                 pass
 
-            if kwargs['DRAW']:
-                cls.modelGraph(mob, kwargs['nodes'])
+            cls.start_mob_mod(mob, kwargs['nodes'], kwargs['DRAW'])
+
+    @classmethod
+    def set_pos(cls, node, xy, idx):
+        node.params['position'] = round(xy[idx][0], 2), \
+                                  round(xy[idx][1], 2), \
+                                  0.0
+        if cls.wmediumd_mode == 3 and mobility.thread_._keep_alive:
+            node.set_pos_wmediumd()
+
+    @classmethod
+    def start_mob_mod(cls, mob, nodes, graph):
+        """
+        :param mob: mobility params
+        :param nodes: list of nodes
+        """
+        for xy in mob:
+            for idx, node in enumerate(nodes):
+                cls.set_pos(node, xy, idx)
+                if graph:
+                    plot2d.update(node)
+            if graph:
+                plot2d.pause()
             else:
-                cls.modelNoGraph(mob, kwargs['nodes'])
-
-    @classmethod
-    def modelGraph(cls, mob, nodes):
-        """Useful for plotting graphs
-
-        :param mob: mobility params
-        :param nodes: list of nodes"""
-        for xy in mob:
-            for idx, node in enumerate(nodes):
-                node.params['position'] = round(xy[idx][0],2), \
-                                          round(xy[idx][1],2), \
-                                          0.0
-                if cls.wmediumd_mode == 3 and mobility.thread_._keep_alive:
-                    node.set_pos_wmediumd()
-                plot2d.update(node)
-            plot2d.pause()
-            while cls.pause_simulation:
-                pass
-
-    @classmethod
-    def modelNoGraph(cls, mob, nodes):
-        """Useful when graph is not required
-
-        :param mob: mobility params
-        :param nodes: list of nodes"""
-        for xy in mob:
-            for idx, node in enumerate(nodes):
-                node.params['position'] = round(xy[idx][0],2), \
-                                          round(xy[idx][1],2), \
-                                          0.0
-                if cls.wmediumd_mode == 3 and mobility.thread_._keep_alive:
-                    node.set_pos_wmediumd()
-            sleep(0.5)
+                sleep(0.5)
             while cls.pause_simulation:
                 pass
 
