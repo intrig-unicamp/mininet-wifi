@@ -165,11 +165,11 @@ class mobility(object):
                 sta.pexec('iw dev %s disconnect' % sta.params['wlan'][wlan])
             sta.params['associatedTo'][wlan] = ''
             sta.params['channel'][wlan] = 0
-        if sta in ap.params['associatedStations']:
-            ap.params['associatedStations'].remove(sta)
-        if ap in sta.params['apsInRange']:
-            sta.params['apsInRange'].remove(ap)
-            ap.params['stationsInRange'].pop(sta, None)
+            if sta in ap.params['associatedStations']:
+                ap.params['associatedStations'].remove(sta)
+            if ap in sta.params['apsInRange']:
+                sta.params['apsInRange'].remove(ap)
+                ap.params['stationsInRange'].pop(sta, None)
 
     @classmethod
     def ap_in_range(cls, sta, ap, wlan, dist):
@@ -214,13 +214,17 @@ class mobility(object):
 
         :param sta: station
         :param wlan: wlan ID"""
+        aps = []
         for ap in cls.aps:
             dist = sta.get_distance_to(ap)
             if dist > ap.params['range'][0]:
                 cls.ap_out_of_range(sta, ap, wlan)
             else:
-                cls.handover(sta, ap, wlan, ap_wlan)
-                cls.ap_in_range(sta, ap, wlan, dist)
+                aps.append(ap)
+        for ap in aps:
+            dist = sta.get_distance_to(ap)
+            cls.handover(sta, ap, wlan, ap_wlan)
+            cls.ap_in_range(sta, ap, wlan, dist)
 
     @classmethod
     def handover(cls, sta, ap, wlan, ap_wlan):
