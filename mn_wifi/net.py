@@ -1471,8 +1471,9 @@ class Mininet_wifi(Mininet):
         if 'range' in params:
             range_list = str(params['range']).split(',')
             for value in range_list:
+                wlan = range_list.index(value)
                 node.params['range'].append(float(value))
-                node.setRange(float(value), intf=node.params['wlan'][0])
+                node.setRange(float(value), intf=node.params['wlan'][wlan])
         else:
             for _ in range(0, wlans):
                 if 'model' in node.params:
