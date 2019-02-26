@@ -104,7 +104,7 @@ class sumo(object):
 
                         if int(vehID1) < len(cars):
                             cars[int(vehID1)].params['position'] = x1, y1, 0
-                            cars[int(vehID1)].set_pos_wmediumd()
+                            cars[int(vehID1)].set_pos_wmediumd(cars[int(vehID1)].params['position'])
 
                         if abs(x1-x2)>0 and abs(x1-x2)<20 \
                                 and (road1 == opposite_road2 or road2 == opposite_road1):

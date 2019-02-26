@@ -34,7 +34,7 @@ from mn_wifi.link import wirelessLink, wmediumd, Association, \
     _4address, TCWirelessLink, TCLinkWirelessStation, ITSLink, \
     wifiDirectLink, adhoc, mesh, physicalMesh, physicalWifiDirectLink
 from mn_wifi.devices import GetRate, GetRange
-from mn_wifi.mobility import mobility
+from mn_wifi.mobility import mobility as mob
 from mn_wifi.plot import plot2d, plot3d, plotGraph
 from mn_wifi.module import module
 from mn_wifi.propagationModels import propagationModel
@@ -163,11 +163,11 @@ class Mininet_wifi(Mininet):
         Mininet_wifi.init()  # Initialize Mininet if necessary
 
         if self.rec_rssi:
-            mobility.rec_rssi = True
+            mob.rec_rssi = True
 
         if not allAutoAssociation:
             self.autoAssociation = False
-            mobility.allAutoAssociation = False
+            mob.allAutoAssociation = False
 
         self.built = False
         if topo and build:
@@ -693,10 +693,10 @@ class Mininet_wifi(Mininet):
                                max_y=(len(self.stations) * 100),
                                max_z=max_z)
         else:
-            if not mobility.stations:
+            if not mob.stations:
                 for node in self.stations:
                     if 'position' in node.params:
-                        mobility.stations.append(node)
+                        mob.stations.append(node)
 
         if (self.configure4addr or self.configureWiFiDirect
                 or self.wmediumd_mode == error_prob) and self.link == wmediumd:
@@ -705,7 +705,7 @@ class Mininet_wifi(Mininet):
                      self.wmediumdMac)
             for sta in self.stations:
                 if self.wmediumd_mode != error_prob:
-                    sta.set_pos_wmediumd()
+                    sta.set_pos_wmediumd(node.params['position'])
             for sta in self.stations:
                 if sta in self.aps:
                     self.stations.remove(sta)
@@ -740,7 +740,7 @@ class Mininet_wifi(Mininet):
                 self.start_mobility(**self.mob_param)
             else:
                 self.mob_param['plotNodes'] = self.plot_nodes()
-                mobility.stop(**self.mob_param)
+                mob.stop(**self.mob_param)
         else:
             if self.DRAW and not self.isReplaying:
                 plotNodes = self.plot_nodes()
@@ -1366,19 +1366,11 @@ class Mininet_wifi(Mininet):
         # position
         if 'position' in params:
             position = params['position']
-            if isinstance(position, string_types):
-                position = position.split(',')
-            node.params['position'] = (float(position[0]),
-                                       float(position[1]),
-                                       float(position[2]))
+            self.pos_to_array(node, position)
         else:
             if 'position' in node.params:
                 position = node.params['position']
-                if isinstance(position, string_types):
-                    position = position.split(',')
-                node.params['position'] = (float(position[0]),
-                                           float(position[1]),
-                                           float(position[2]))
+                self.pos_to_array(node, position)
 
         params['wlans'] = self.countWiFiIfaces(**params)
 
@@ -1464,6 +1456,13 @@ class Mininet_wifi(Mininet):
                             node.params['encrypt'].append('wpa')
                         else:
                             node.params['encrypt'].append('wep')
+
+    def pos_to_array(self, node, pos):
+        if isinstance(pos, string_types):
+            pos = pos.split(',')
+        node.params['position'] = [float(pos[0]),
+                                   float(pos[1]),
+                                   float(pos[2])]
 
     def add_range_param(self, node, wlans=0, **params):
         "Add Signal Range Param"
@@ -1626,7 +1625,7 @@ class Mininet_wifi(Mininet):
             kwargs['nodes'] = nodes
             self.setMobilityParams(**kwargs)
             if self.nroads == 0:
-                mobility.start(**self.mob_param)
+                mob.start(**self.mob_param)
             else:
                 self.mob_param['cars'] = self.cars
                 vanet(**self.mob_param)
@@ -1641,7 +1640,7 @@ class Mininet_wifi(Mininet):
 
     def setAssociationCtrl(self, ac='ssf'):
         "set association control"
-        mobility.ac = ac
+        mob.ac = ac
 
     def setMobilityModelParams(self, **kwargs):
         "Set Mobility Parameters"
@@ -1734,9 +1733,9 @@ class Mininet_wifi(Mininet):
             self.wmediumd_mode = interference
         self.wmediumd_mode()
         if self.wmediumd_mode == interference:
-            mobility.wmediumd_mode = 3
+            mob.wmediumd_mode = 3
         else:
-            mobility.wmediumd_mode = 1
+            mob.wmediumd_mode = 1
         if not self.configureWiFiDirect and not self.configure4addr and \
             self.wmediumd_mode != error_prob:
             wmediumd(self.fading_coefficient, self.noise_threshold,
@@ -1823,8 +1822,8 @@ class Mininet_wifi(Mininet):
         for sta in isap:
             self.aps.append(sta)
             self.stations.remove(sta)
-            if sta in mobility.stations:
-                mobility.stations.remove(sta)
+            if sta in mob.stations:
+                mob.stations.remove(sta)
 
         nodes = self.aps + self.stations + self.cars
 
@@ -1832,14 +1831,18 @@ class Mininet_wifi(Mininet):
             for node in nodes:
                 for wlan in range(0, len(node.params['wlan'])):
                     if 'position' in node.params and 'link' not in node.params:
-                        if self.wmediumd_mode == interference:
-                            node.set_pos_wmediumd()
+                        if self.wmediumd_mode != error_prob:
+                            pos = node.params['position']
+                            pos[0] = pos[0] + 1
+                            if node.func[wlan] == 'adhoc':
+                                sleep(1.5)
+                            node.set_pos_wmediumd(pos)
 
+            mob.aps = self.aps
             nodes = self.stations + self.cars
             for node in nodes:
                 if 'position' in node.params and 'link' not in node.params:
-                    mobility.aps = self.aps
-                    mobility.configLinks(node)
+                    mob.configLinks(node)
                     if self.rec_rssi:
                         os.system('hwsim_mgmt -k %s %s >/dev/null 2>&1'
                                   % (node.phyID[wlan],
@@ -1853,12 +1856,12 @@ class Mininet_wifi(Mininet):
     @staticmethod
     def stop_simulation():
         "Pause the simulation"
-        mobility.pause_simulation = True
+        mob.pause_simulation = True
 
     @staticmethod
     def start_simulation():
         "Start the simulation"
-        mobility.pause_simulation = False
+        mob.pause_simulation = False
 
     @staticmethod
     def printDistance(src, dst, nodes):
@@ -1885,7 +1888,7 @@ class Mininet_wifi(Mininet):
     def configureMobility(*args, **kwargs):
         "Configure mobility parameters"
         args[0].isStationary = False
-        mobility.configure(*args, **kwargs)
+        mob.configure(*args, **kwargs)
 
     @staticmethod
     def getDataRate(sta=None, ap=None, **params):
@@ -1914,8 +1917,8 @@ class Mininet_wifi(Mininet):
     @staticmethod
     def stopGraphParams():
         "Stop the graph"
-        if mobility.thread_:
-            mobility.thread_._keep_alive = False
+        if mob.thread_:
+            mob.thread_._keep_alive = False
         sleep(0.5)
 
     def closeMininetWiFi(self):

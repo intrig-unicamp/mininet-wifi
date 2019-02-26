@@ -120,9 +120,9 @@ class mobility(object):
 
     @classmethod
     def set_pos(self, node, pos):
-        node.params['position'] = pos
+        node.params['position'] = [float(x) for x in pos.split(',')]
         if mobility.wmediumd_mode == 3 and mobility.thread_._keep_alive:
-            node.set_pos_wmediumd()
+            node.set_pos_wmediumd(pos)
 
     @classmethod
     def speed(cls, sta, pos_x, pos_y, pos_z, diff_time):

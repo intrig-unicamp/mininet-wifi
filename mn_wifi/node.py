@@ -307,12 +307,11 @@ class Node_wifi(Node):
 
     def setPosition(self, pos):
         "Set Position"
-        pos = pos.split(',')
-        self.params['position'] = float(pos[0]), float(pos[1]), float(pos[2])
+        self.params['position'] = [float(x) for x in pos.split(',')]
         self.updateGraph()
 
         if wmediumd_mode.mode == w_cst.INTERFERENCE_MODE:
-            self.set_pos_wmediumd()
+            self.set_pos_wmediumd(self.params['position'])
         self.configLinks()
 
     def setAntennaGain(self, value, intf=None, setParam=True):
@@ -442,9 +441,8 @@ class Node_wifi(Node):
         posZ = self.params['position'][2]
         return posX, posY, posZ
 
-    def set_pos_wmediumd(self):
+    def set_pos_wmediumd(self, pos):
         "Set Position for wmediumd"
-        posX, posY, posZ = self.get_pos()
         wlans = len(self.params['mac'])
 
         if self.lastpos != self.params['position']:
@@ -452,7 +450,7 @@ class Node_wifi(Node):
             for wlan in range(0, wlans):
                 inc = '%s' % float('0.'+str(wlan))
                 w_server.update_pos(w_pos(self.wmIface[wlan],
-                    [(float(posX)+float(inc)), float(posY), float(posZ)]), True)
+                    [(float(pos[0])+float(inc)), float(pos[1]), float(pos[2])]), True)
 
     def setGainWmediumd(self, wlan):
         "Set Antenna Gain for wmediumd"
