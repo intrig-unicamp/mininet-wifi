@@ -37,7 +37,7 @@ class replayingMobility(object):
             pos = node.position[0]
             del node.position[0]
             del node.time[0]
-            mobility.set_pos(node, pos.split(','))
+            mobility.set_pos(node, pos)
 
     def notimestamp_(self, node, time_):
         if time_ >= node.currentTime:
@@ -46,7 +46,7 @@ class replayingMobility(object):
                     pos = node.position[0]
                     del node.position[0]
                     node.currentTime += node.timestamp
-                    mobility.set_pos(node, pos.split(','))
+                    mobility.set_pos(node, pos)
 
     def mobility(self, nodes, Mininet_wifi):
         if nodes is None:

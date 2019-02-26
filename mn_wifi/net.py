@@ -1836,7 +1836,8 @@ class Mininet_wifi(Mininet):
                             pos[0] = pos[0] + 1
                             if node.func[wlan] == 'adhoc':
                                 sleep(1.5)
-                            node.set_pos_wmediumd(pos)
+                            if self.link == wmediumd:
+                                node.set_pos_wmediumd(pos)
 
             mob.aps = self.aps
             nodes = self.stations + self.cars
