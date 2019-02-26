@@ -705,7 +705,7 @@ class Mininet_wifi(Mininet):
                      self.wmediumdMac)
             for sta in self.stations:
                 if self.wmediumd_mode != error_prob:
-                    sta.set_pos_wmediumd(node.params['position'])
+                    sta.set_pos_wmediumd(sta.params['position'])
             for sta in self.stations:
                 if sta in self.aps:
                     self.stations.remove(sta)
