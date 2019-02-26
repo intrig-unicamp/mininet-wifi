@@ -1365,12 +1365,12 @@ class Mininet_wifi(Mininet):
 
         # position
         if 'position' in params:
-            position = params['position']
-            self.pos_to_array(node, position)
+            pos = params['position']
+            self.pos_to_array(node, pos)
         else:
             if 'position' in node.params:
-                position = node.params['position']
-                self.pos_to_array(node, position)
+                pos = node.params['position']
+                self.pos_to_array(node, pos)
 
         params['wlans'] = self.countWiFiIfaces(**params)
 
@@ -1833,7 +1833,7 @@ class Mininet_wifi(Mininet):
                     if 'position' in node.params and 'link' not in node.params:
                         if self.wmediumd_mode != error_prob:
                             pos = node.params['position']
-                            pos[0] = pos[0] + 1
+                            pos[0] = float(pos[0]) + 1
                             if node.func[wlan] == 'adhoc':
                                 sleep(1.5)
                             if self.link == wmediumd:

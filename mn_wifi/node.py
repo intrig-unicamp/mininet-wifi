@@ -435,12 +435,6 @@ class Node_wifi(Node):
         value = propagationModel(self, node, dist, wlan)
         return float(value.rssi)
 
-    def get_pos(self):
-        posX = self.params['position'][0]
-        posY = self.params['position'][1]
-        posZ = self.params['position'][2]
-        return posX, posY, posZ
-
     def set_pos_wmediumd(self, pos):
         "Set Position for wmediumd"
         wlans = len(self.params['mac'])

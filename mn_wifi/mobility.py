@@ -104,13 +104,6 @@ class mobility(object):
         cls.move_factor(node, diff_time)
 
     @classmethod
-    def move_node(cls, node):
-        x = round(node.params['position'][0],2) + round(node.moveFac[0],2)
-        y = round(node.params['position'][1],2) + round(node.moveFac[1],2)
-        z = round(node.params['position'][2],2) + round(node.moveFac[2],2)
-        return x, y, z
-
-    @classmethod
     def set_wifi_params(cls):
         "Opens a thread for wifi parameters"
         if cls.allAutoAssociation:
@@ -120,7 +113,7 @@ class mobility(object):
 
     @classmethod
     def set_pos(self, node, pos):
-        node.params['position'] = [float(x) for x in pos.split(',')]
+        node.params['position'] = pos
         if mobility.wmediumd_mode == 3 and mobility.thread_._keep_alive:
             node.set_pos_wmediumd(pos)
 
@@ -467,13 +460,13 @@ class tracked(thread):
                             if (t2 - t1) >= node.startTime and node.time <= node.endTime:
                                 if hasattr(node, 'coord'):
                                     mobility.calculate_diff_time(node)
-                                    mobility.set_pos(node,
+                                    self.set_pos(node,
                                                  node.points[node.time * node.moveFac])
                                     if node.time == node.endTime:
-                                        mobility.set_pos(node,
+                                        self.set_pos(node,
                                                      node.points[len(node.points) - 1])
                                 else:
-                                    mobility.set_pos(node, mobility.move_node(node))
+                                    self.set_pos(node, self.move_node(node))
                                 node.time += 1
                             if kwargs['DRAW']:
                                 plot.update(node)
@@ -481,6 +474,17 @@ class tracked(thread):
                                     plot2d.updateCircleRadius(node)
                         plot.pause()
                         i += 1
+
+    def set_pos(self, node, pos):
+        node.params['position'] = [float(x) for x in pos.split(',')]
+        if mobility.wmediumd_mode == 3 and mobility.thread_._keep_alive:
+            node.set_pos_wmediumd(pos)
+
+    def move_node(cls, node):
+        x = round(node.params['position'][0], 2) + round(node.moveFac[0], 2)
+        y = round(node.params['position'][1], 2) + round(node.moveFac[1], 2)
+        z = round(node.params['position'][2], 2) + round(node.moveFac[2], 2)
+        return '%s,%s,%s' % (x, y, z)
 
     def create_coordinate(cls, node):
         node.coord_ = []
