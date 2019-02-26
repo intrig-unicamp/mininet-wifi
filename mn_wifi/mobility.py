@@ -174,7 +174,7 @@ class mobility(object):
         :param dist: distance between source and destination"""
         if ap not in sta.params['apsInRange']:
             sta.params['apsInRange'].append(ap)
-        rssi = sta.set_rssi(ap, wlan, dist)
+        rssi = sta.get_rssi(ap, wlan, dist)
         ap.params['stationsInRange'][sta] = rssi
         if ap == sta.params['associatedTo'][wlan]:
             if cls.rec_rssi:

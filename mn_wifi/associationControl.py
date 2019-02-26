@@ -33,10 +33,10 @@ class associationControl(object):
     def ssf(self, sta, ap, wlan):
         #ssf: Strongest signal first
         distance = sta.get_distance_to(sta.params['associatedTo'][wlan])
-        rssi = sta.set_rssi(sta.params['associatedTo'][wlan],
+        rssi = sta.get_rssi(sta.params['associatedTo'][wlan],
                             wlan, distance)
         ref_dist = sta.get_distance_to(ap)
-        ref_rssi = sta.set_rssi(ap, wlan, ref_dist)
+        ref_rssi = sta.get_rssi(ap, wlan, ref_dist)
         if float(ref_rssi) > float(rssi + 0.1):
             debug('iw dev %s disconnect\n' % sta.params['wlan'][wlan])
             sta.pexec('iw dev %s disconnect' % sta.params['wlan'][wlan])

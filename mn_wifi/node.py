@@ -431,7 +431,7 @@ class Node_wifi(Node):
             freq = 2.412
         return freq
 
-    def set_rssi(self, node=None, wlan=0, dist=0):
+    def get_rssi(self, node=None, wlan=0, dist=0):
         value = propagationModel(self, node, dist, wlan)
         return float(value.rssi)
 
