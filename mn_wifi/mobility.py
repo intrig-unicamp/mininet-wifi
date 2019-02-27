@@ -82,11 +82,11 @@ class mobility(object):
                 node.params['initPos'] = [float(pos_) for pos_ in pos.split(',')]
         else:
             if stage == 'stop':
-                finPos = node.coord[1]
-                node.params['finPos'] = finPos.split(',')
+                pos = node.coord[1]
+                node.params['finPos'] = pos.split(',')
             if stage == 'start':
-                initPos = node.coord[0]
-                node.params['initPos'] = initPos.split(',')
+                pos = node.coord[0]
+                node.params['initPos'] = pos.split(',')
 
         if 'time' in kwargs:
             time_ = kwargs['time']
@@ -118,17 +118,17 @@ class mobility(object):
             node.set_pos_wmediumd(pos)
 
     @classmethod
-    def speed(cls, sta, pos_x, pos_y, pos_z, diff_time):
+    def speed(cls, node, pos_x, pos_y, pos_z, diff_time):
         """Calculates the speed
 
-        :param sta: station
+        :param node: node
         :param pos_x: Position x
         :param pos_y: Position y
         :param pos_z: Position z
         :param diff_time: difference between start and stop time. Useful for
         calculating the speed"""
-        sta.params['speed'] = round(abs(((pos_x + pos_y + pos_z) /
-                                            diff_time)),2)
+        node.params['speed'] = round(abs(((pos_x + pos_y + pos_z) /
+                                          diff_time)),2)
 
     @classmethod
     def ap_out_of_range(cls, sta, ap, wlan):

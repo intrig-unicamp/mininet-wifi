@@ -1389,12 +1389,30 @@ class Mininet_wifi(Mininet):
             node.params.pop("wlans", None)
 
         if node_mode == 'managed':
-            self.add_mac_param(node, autoSetMacs, **params)
-            self.add_ip_param(node, autoSetMacs, **params)
+            array_ = ['mac', 'ip']
+            for param in array_:
+                node.params[param] = []
+                if param in params:
+                    list = params[param].split(',')
+                    for value in list:
+                        node.params[param].append(value)
+                        if param == 'mac':
+                            append_ = ''
+                        else:
+                            append_ = '0/0'
+                        if len(list) != params['wlans']:
+                            for _ in range(len(list), params['wlans']):
+                                node.params[param].append(append_)
+                elif autoSetMacs:
+                    for n in range(params['wlans']):
+                        node.params[param].append(append_)
+                        node.params[param][n] = params[param]
+                else:
+                    for _ in range(params['wlans']):
+                        node.params[param].append('')
 
         array_ = ['antennaGain', 'antennaHeight', 'txpower',
                   'channel', 'mode', 'freq']
-
         for param in array_:
             node.params[param] = []
             if param in params:
@@ -1480,43 +1498,6 @@ class Mininet_wifi(Mininet):
                     node.params['range'].append(range_.value)
                 else:
                     node.params['range'].append(0)
-
-    def add_ip_param(self, node, autoSetMacs=False, **params):
-        "Add IP Param"
-        node.params['ip'] = []
-        if 'ip' in params:
-            ip_list = params['ip'].split(',')
-            for ip in ip_list:
-                node.params['ip'].append(ip)
-            if len(ip_list) != len(node.params['wlan']):
-                for ip_list in range(len(ip_list),
-                                     len(node.params['wlan'])):
-                    node.params['ip'].append('0/0')
-        elif autoSetMacs:
-            for n in range(params['wlans']):
-                node.params['ip'].append('0/0')
-                node.params['ip'][n] = params[ 'ip' ]
-        else:
-            for _ in range(params['wlans']):
-                node.params['ip'].append('')
-
-    def add_mac_param(self, node, autoSetMacs=False, **params):
-        "Add Mac Param"
-        node.params['mac'] = []
-        if 'mac' in params:
-            mac_list = params['mac'].split(',')
-            for mac in mac_list:
-                node.params['mac'].append(mac)
-            if len(mac_list) != params['wlans']:
-                for _ in range(len(mac_list), params['wlans']):
-                    node.params['mac'].append('')
-        elif autoSetMacs:
-            for n in range(params['wlans']):
-                node.params['mac'].append('')
-                node.params['mac'][n] = params[ 'mac' ]
-        else:
-            for _ in range(params['wlans']):
-                node.params['mac'].append('')
 
     def countWiFiIfaces(self, **params):
         "Count the number of virtual wifi interfaces"
