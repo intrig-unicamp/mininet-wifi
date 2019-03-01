@@ -1524,11 +1524,8 @@ def cooler_ref_point(nodes, dimensions, pointlist, velocity=(0.1, 1.), g_velocit
         With a value of 0, the nodes are randomly distributed in the simulation
         area. With a value of 1, the nodes are close to the group center.
 
-        *initial_point*
-        Tuple of (x,y) starting position in the 2D mobility model.
-
-        *end_point*
-        Tuple of (x,y) finish position in the 2D mobility model.
+        *pointlist*
+        List of Tuples of integers x,y,z corresponding to points in the model.
     """
     #TODO: Parameterize wait time!!!
     #Manual wait time
@@ -1563,11 +1560,11 @@ def cooler_ref_point(nodes, dimensions, pointlist, velocity=(0.1, 1.), g_velocit
     MAX_X, MAX_Y = dimensions
     #Assign initial values including X and Y (parameterize this!!!)
     if len(pointlist) > 1:
-        current_x, current_y = pointlist[0]
-        next_x, next_y = pointlist[1]
+        current_x, current_y, current_z = pointlist[0]
+        next_x, next_y, next_z = pointlist[1]
     else:
-        current_x, current_y = pointlist[0]
-        next_x, next_y = pointlist[0]
+        current_x, current_y, current_z = pointlist[0]
+        next_x, next_y, next_z = pointlist[0]
     x = U(current_x, current_x + MAX_V, NODES)
     y = U(current_y, current_y + MAX_V, NODES)
     velocity = 1.
@@ -1646,7 +1643,7 @@ def cooler_ref_point(nodes, dimensions, pointlist, velocity=(0.1, 1.), g_velocit
                     point_index += 1
                     current_x = next_x
                     current_y = next_y
-                    next_x, next_y = pointlist[point_index]
+                    next_x, next_y, next_z = pointlist[point_index]
                     g_theta = [np.arctan2(next_y - g_y, next_x - g_x)]
                     g_costheta = np.cos(g_theta)
                     g_sintheta = np.sin(g_theta)    
