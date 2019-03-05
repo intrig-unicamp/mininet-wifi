@@ -473,7 +473,7 @@ class mobility(object):
                 mob = tvc(mobileNodes, dimensions=(max_x, max_y),
                           aggregation=[0.5, 0.], epoch=[100, 100])
             elif model == 'CRP':
-                mob = cooler_ref_point(mobileNodes,
+                mob = coherence_ref_point(mobileNodes,
                                        dimensions=(max_x, max_y),
                                        aggregation=aggregation,
                                        pointlist=params['pointlist'],
@@ -1486,7 +1486,7 @@ def reference_point_group(nodes, dimensions, velocity=(0.1, 1.), aggregation=0.1
 
         yield np.dstack((x, y))[0]
 
-def cooler_ref_point(nodes, dimensions, pointlist, velocity=(0.1, 1.), g_velocity=0.4, aggregation=0.1, waittime=0):
+def coherence_ref_point(nodes, dimensions, pointlist, velocity=(0.1, 1.), g_velocity=0.4, aggregation=0.1, waittime=0):
     """
     Cooler Reference Point Group Mobility model, discussed in the following paper:
 
