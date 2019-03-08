@@ -20,7 +20,7 @@ from . import constants as tc
 
 def readVehicleData(result):
     result.readLength()
-    nbData = result.readInt()
+    nbData = result.readDouble()
     data = []
     for i in range(nbData):
         result.read("!B")
@@ -38,7 +38,7 @@ def readVehicleData(result):
 
 _RETURN_VALUE_FUNC = {tc.VAR_POSITION: Storage.readDouble,
                       tc.VAR_LANE_ID: Storage.readString,
-                      tc.LAST_STEP_VEHICLE_NUMBER: Storage.readInt,
+                      tc.LAST_STEP_VEHICLE_NUMBER: Storage.readDouble,
                       tc.LAST_STEP_MEAN_SPEED: Storage.readDouble,
                       tc.LAST_STEP_VEHICLE_ID_LIST: Storage.readStringList,
                       tc.LAST_STEP_OCCUPANCY: Storage.readDouble,

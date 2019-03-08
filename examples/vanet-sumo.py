@@ -4,7 +4,7 @@
 
 ***Requirements***:
 
-sumo
+sumo 1.1.0
 sumo-gui"""
 
 import os

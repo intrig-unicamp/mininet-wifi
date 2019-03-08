@@ -20,21 +20,31 @@ from . import constants as tc
 from .domain import Domain
 from .storage import Storage
 
-Stage = collections.namedtuple('Stage', ['stageType', 'line', 'destStop', 'edges', 'travelTime', 'cost'])
+Stage = collections.namedtuple('Stage', ['stageType', 'vType', 'line', 'destStop', 'edges', 'travelTime', 'cost',
+                                         'length', 'intended', 'depart', 'departPos', 'arrivalPos', 'description'])
 
 def _readStage(result):
     # compound size and type
-    _, _, stageType = result.read("!iBi")
-    result.read("!B")                   # Type
-    line = result.readString()
-    result.read("!B")                   # Type
-    destStop = result.readString()
-    result.read("!B")                   # Type
-    edges = result.readStringList()
-    _, travelTime, _, cost = result.read("!BdBd")
-    return Stage(stageType, line, destStop, edges, travelTime, cost)
+    assert (result.read("!i")[0] == 13)
+    stageType = result.readTypedInt()
+    vType = result.readTypedString()
+    line = result.readTypedString()
+    destStop = result.readTypedString()
+    edges = result.readTypedStringList()
+    travelTime = result.readTypedDouble()
+    cost = result.readTypedDouble()
+    length = result.readTypedDouble()
+    intended = result.readTypedString()
+    depart = result.readTypedDouble()
+    departPos = result.readTypedDouble()
+    arrivalPos = result.readTypedDouble()
+    description = result.readTypedString()
+    return Stage(stageType, vType, line, destStop, edges, travelTime, cost,
+                 length, intended, depart, departPos, arrivalPos, description)
 
-_RETURN_VALUE_FUNC = {tc.VAR_TIME_STEP: Storage.readInt,
+
+_RETURN_VALUE_FUNC = {tc.VAR_TIME: Storage.readDouble,
+                      tc.VAR_TIME_STEP: Storage.readInt,
                       tc.VAR_LOADED_VEHICLES_NUMBER: Storage.readInt,
                       tc.VAR_LOADED_VEHICLES_IDS: Storage.readStringList,
                       tc.VAR_DEPARTED_VEHICLES_NUMBER: Storage.readInt,
@@ -49,28 +59,48 @@ _RETURN_VALUE_FUNC = {tc.VAR_TIME_STEP: Storage.readInt,
                       tc.VAR_STOP_STARTING_VEHICLES_IDS: Storage.readStringList,
                       tc.VAR_STOP_ENDING_VEHICLES_NUMBER: Storage.readInt,
                       tc.VAR_STOP_ENDING_VEHICLES_IDS: Storage.readStringList,
+                      tc.VAR_COLLIDING_VEHICLES_NUMBER: Storage.readInt,
+                      tc.VAR_COLLIDING_VEHICLES_IDS: Storage.readStringList,
+                      tc.VAR_EMERGENCYSTOPPING_VEHICLES_NUMBER: Storage.readInt,
+                      tc.VAR_EMERGENCYSTOPPING_VEHICLES_IDS: Storage.readStringList,
                       tc.VAR_MIN_EXPECTED_VEHICLES: Storage.readInt,
                       tc.VAR_BUS_STOP_WAITING: Storage.readInt,
                       tc.VAR_TELEPORT_STARTING_VEHICLES_NUMBER: Storage.readInt,
                       tc.VAR_TELEPORT_STARTING_VEHICLES_IDS: Storage.readStringList,
                       tc.VAR_TELEPORT_ENDING_VEHICLES_NUMBER: Storage.readInt,
                       tc.VAR_TELEPORT_ENDING_VEHICLES_IDS: Storage.readStringList,
-                      tc.VAR_DELTA_T: Storage.readInt,
-                      tc.VAR_NET_BOUNDING_BOX: lambda result: (result.read("!dd"), result.read("!dd"))}
+                      tc.VAR_DELTA_T: Storage.readDouble,
+                      tc.VAR_NET_BOUNDING_BOX: Storage.readShape}
 
 
 class SimulationDomain(Domain):
-
     def __init__(self):
         Domain.__init__(self, "simulation", tc.CMD_GET_SIM_VARIABLE, tc.CMD_SET_SIM_VARIABLE,
                         tc.CMD_SUBSCRIBE_SIM_VARIABLE, tc.RESPONSE_SUBSCRIBE_SIM_VARIABLE,
                         tc.CMD_SUBSCRIBE_SIM_CONTEXT, tc.RESPONSE_SUBSCRIBE_SIM_CONTEXT,
                         _RETURN_VALUE_FUNC)
 
+    def getTime(self):
+        """getTime() -> double
+        Returns the current simulation time in s.
+        """
+        return self._getUniversal(tc.VAR_TIME)
+
+    def step(self, time=0.):
+        """step(double) -> None
+        Make a simulation step and simulate up to the given sim time (in seconds).
+        If the given value is 0 or absent, exactly one step is performed.
+        Values smaller than or equal to the current sim time result in no action.
+        """
+        return self._connection.simulationStep(time)
+
     def getCurrentTime(self):
         """getCurrentTime() -> integer
         Returns the current simulation time in ms.
         """
+        # we should raise the awareness by removing the DeprecationWarning category below after 1.0
+        warnings.warn("getCurrentTime is deprecated, please use getTime which returns floating point seconds",
+                      DeprecationWarning, stacklevel=2)
         return self._getUniversal(tc.VAR_TIME_STEP)
 
     def getLoadedNumber(self):
@@ -99,13 +129,15 @@ class SimulationDomain(Domain):
 
     def getArrivedNumber(self):
         """getArrivedNumber() -> integer
-        Returns the number of vehicles which arrived (have reached their destination and are removed from the road network) in this time step.
+        Returns the number of vehicles which arrived (have reached their destination and are removed from the road
+        network) in this time step.
         """
         return self._getUniversal(tc.VAR_ARRIVED_VEHICLES_NUMBER)
 
     def getArrivedIDList(self):
         """getArrivedIDList() -> list(string)
-        Returns a list of ids of vehicles which arrived (have reached their destination and are removed from the road network) in this time step.
+        Returns a list of ids of vehicles which arrived (have reached their destination and are removed from the road
+        network) in this time step.
         """
         return self._getUniversal(tc.VAR_ARRIVED_VEHICLES_IDS)
 
@@ -157,6 +189,32 @@ class SimulationDomain(Domain):
         """
         return self._getUniversal(tc.VAR_STOP_ENDING_VEHICLES_IDS)
 
+    def getCollidingVehiclesNumber(self):
+        """getCollidingVehiclesNumber() -> integer
+        Return number of vehicles involved in a collision (typically 2 per
+        collision).
+        """
+        return self._getUniversal(tc.VAR_COLLIDING_VEHICLES_NUMBER)
+
+    def getCollidingVehiclesIDList(self):
+        """getCollidingVehiclesIDList() -> list(string)
+        Return Ids of vehicles involved in a collision (typically 2 per
+        collision).
+        """
+        return self._getUniversal(tc.VAR_COLLIDING_VEHICLES_IDS)
+
+    def getEmergencyStoppingVehiclesNumber(self):
+        """getEmergencyStoppingVehiclesNumber() -> integer
+        Return number of vehicles that performed an emergency stop in the last step
+        """
+        return self._getUniversal(tc.VAR_EMERGENCYSTOPPING_VEHICLES_NUMBER)
+
+    def getEmergencyStoppingVehiclesIDList(self):
+        """getEmergencyStoppingVehiclesIDList() -> list(string)
+        Return Ids of vehicles that peformed an emergency stop in the last step
+        """
+        return self._getUniversal(tc.VAR_EMERGENCYSTOPPING_VEHICLES_IDS)
+
     def getMinExpectedNumber(self):
         """getMinExpectedNumber() -> integer
         Returns the number of vehicles which are in the net plus the
@@ -199,8 +257,8 @@ class SimulationDomain(Domain):
         return self._getUniversal(tc.VAR_TELEPORT_ENDING_VEHICLES_IDS)
 
     def getDeltaT(self):
-        """getDeltaT() -> integer
-        Returns the length of one simulation step in milliseconds
+        """getDeltaT() -> double
+        Returns the length of one simulation step in seconds
         """
         return self._getUniversal(tc.VAR_DELTA_T)
 
@@ -286,7 +344,8 @@ class SimulationDomain(Domain):
 
     def getDistanceRoad(self, edgeID1, pos1, edgeID2, pos2, isDriving=False):
         """getDistanceRoad(string, double, string, double, boolean) -> double
-        Reads two positions on the road network and an indicator whether the air or the driving distance shall be computed. Returns the according distance.
+        Reads two positions on the road network and an indicator whether the air or the driving distance shall be
+        computed. Returns the according distance.
         """
         distType = tc.REQUEST_AIRDIST
         if isDriving:
@@ -300,32 +359,39 @@ class SimulationDomain(Domain):
         self._connection._string += struct.pack("!dBB", pos2, 0, distType)
         return self._connection._checkResult(tc.CMD_GET_SIM_VARIABLE, tc.DISTANCE_REQUEST, "").readDouble()
 
-    def findRoute(self, fromEdge, toEdge, vtype="", depart=-1., routingMode=0):
+    def findRoute(self, fromEdge, toEdge, vType="", depart=-1., routingMode=0):
         self._connection._beginMessage(tc.CMD_GET_SIM_VARIABLE, tc.FIND_ROUTE, "",
-                                       1 + 4 + 1 + 4 + len(fromEdge) + 1 + 4 + len(toEdge) + 1 + 4 + len(vtype) + 1 + 8 + 1 + 4)
+                                       (1 + 4 + 1 + 4 + len(fromEdge) + 1 + 4 + len(toEdge) + 1 + 4 + len(vType) +
+                                        1 + 8 + 1 + 4))
         self._connection._string += struct.pack("!Bi", tc.TYPE_COMPOUND, 5)
         self._connection._packString(fromEdge)
         self._connection._packString(toEdge)
-        self._connection._packString(vtype)
+        self._connection._packString(vType)
         self._connection._string += struct.pack("!BdBi", tc.TYPE_DOUBLE, depart, tc.TYPE_INTEGER, routingMode)
         return _readStage(self._connection._checkResult(tc.CMD_GET_SIM_VARIABLE, tc.FIND_ROUTE, ""))
 
-    def findIntermodalRoute(self, fromEdge, toEdge, modes="", depart=-1., routingMode=0, speed=-1., walkFactor=-1., departPos=-1., arrivalPos=-1., departPosLat=-1., ptype="", vtype=""):
+    def findIntermodalRoute(self, fromEdge, toEdge, modes="", depart=-1., routingMode=0, speed=-1.,
+                            walkFactor=-1., departPos=0., arrivalPos=tc.INVALID_DOUBLE_VALUE, departPosLat=0.,
+                            pType="", vType="", destStop=""):
         self._connection._beginMessage(tc.CMD_GET_SIM_VARIABLE, tc.FIND_INTERMODAL_ROUTE, "",
-                                       1 + 4 + 1 + 4 + len(fromEdge) + 1 + 4 + len(toEdge) + 1 + 4 + len(modes) + 1 + 8 + 1 + 4 + 1 + 8 + 1 + 8 + 1 + 8 + 1 + 8 + 1 + 8 + 1 + 4 + len(ptype) + 1 + 4 + len(vtype))
-        self._connection._string += struct.pack("!Bi", tc.TYPE_COMPOUND, 12)
+                                       1 + 4 + 1 + 4 + len(fromEdge) + 1 + 4 + len(toEdge) + 1 + 4 + len(modes) +
+                                       1 + 8 + 1 + 4 + 1 + 8 + 1 + 8 + 1 + 8 + 1 + 8 + 1 + 8 + 1 + 4 + len(pType) +
+                                       1 + 4 + len(vType) + 1 + 4 + len(destStop))
+        self._connection._string += struct.pack("!Bi", tc.TYPE_COMPOUND, 13)
         self._connection._packString(fromEdge)
         self._connection._packString(toEdge)
         self._connection._packString(modes)
         self._connection._string += struct.pack("!BdBi", tc.TYPE_DOUBLE, depart, tc.TYPE_INTEGER, routingMode)
         self._connection._string += struct.pack("!BdBd", tc.TYPE_DOUBLE, speed, tc.TYPE_DOUBLE, walkFactor)
-        self._connection._string += struct.pack("!BdBdBd", tc.TYPE_DOUBLE, departPos, tc.TYPE_DOUBLE, arrivalPos, tc.TYPE_DOUBLE, departPosLat)
-        self._connection._packString(ptype)
-        self._connection._packString(vtype)
+        self._connection._string += struct.pack("!BdBd", tc.TYPE_DOUBLE, departPos, tc.TYPE_DOUBLE, arrivalPos)
+        self._connection._string += struct.pack("!Bd", tc.TYPE_DOUBLE, departPosLat)
+        self._connection._packString(pType)
+        self._connection._packString(vType)
+        self._connection._packString(destStop)
         answer = self._connection._checkResult(tc.CMD_GET_SIM_VARIABLE, tc.FIND_INTERMODAL_ROUTE, "")
         result = []
         for c in range(answer.readInt()):
-            answer.read("!B")                   # Type
+            answer.read("!B")  # Type
             result.append(_readStage(answer))
         return result
 
@@ -341,7 +407,7 @@ class SimulationDomain(Domain):
         self._connection._packString(fileName)
         self._connection._sendExact()
 
-    def subscribe(self, varIDs=(tc.VAR_DEPARTED_VEHICLES_IDS,), begin=0, end=2**31 - 1):
+    def subscribe(self, varIDs=(tc.VAR_DEPARTED_VEHICLES_IDS,), begin=0, end=2 ** 31 - 1):
         """subscribe(list(integer), double, double) -> None
         Subscribe to one or more simulation values for the given interval.
         """

@@ -16,10 +16,10 @@ from .domain import Domain
 from .storage import Storage
 from . import constants as tc
 
-_RETURN_VALUE_FUNC = {tc.LAST_STEP_VEHICLE_NUMBER: Storage.readInt,
+_RETURN_VALUE_FUNC = {tc.LAST_STEP_VEHICLE_NUMBER: Storage.readDouble,
                       tc.LAST_STEP_MEAN_SPEED: Storage.readDouble,
                       tc.LAST_STEP_VEHICLE_ID_LIST: Storage.readStringList,
-                      tc.LAST_STEP_VEHICLE_HALTING_NUMBER: Storage.readInt}
+                      tc.LAST_STEP_VEHICLE_HALTING_NUMBER: Storage.readDouble}
 
 
 class MultiEntryExitDomain(Domain):

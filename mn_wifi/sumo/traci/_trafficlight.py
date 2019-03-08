@@ -103,9 +103,9 @@ _RETURN_VALUE_FUNC = {tc.TL_RED_YELLOW_GREEN_STATE: Storage.readString,
                       tc.TL_CONTROLLED_LANES: Storage.readStringList,
                       tc.TL_CONTROLLED_LINKS: _readLinks,
                       tc.TL_CURRENT_PROGRAM: Storage.readString,
-                      tc.TL_CURRENT_PHASE: Storage.readInt,
-                      tc.TL_NEXT_SWITCH: Storage.readInt,
-                      tc.TL_PHASE_DURATION: Storage.readInt}
+                      tc.TL_CURRENT_PHASE: Storage.readDouble,
+                      tc.TL_NEXT_SWITCH: Storage.readDouble,
+                      tc.TL_PHASE_DURATION: Storage.readDouble}
 
 
 class TrafficLightDomain(Domain):
