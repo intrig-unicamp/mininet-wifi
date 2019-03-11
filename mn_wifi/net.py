@@ -616,15 +616,15 @@ class Mininet_wifi(Mininet):
 
     def configHosts(self):
         "Configure a set of nodes."
-        hosts = self.hosts + self.stations
-        for host in hosts:
+        nodes = self.hosts + self.stations
+        for node in nodes:
             # info( host.name + ' ' )
-            intf = host.defaultIntf()
+            intf = node.defaultIntf()
             if intf:
-                host.configDefault()
+                node.configDefault()
             else:
                 # Don't configure nonexistent intf
-                host.configDefault(ip=None, mac=None)
+                node.configDefault(ip=None, mac=None)
                 # You're low priority, dude!
                 # BL: do we want to do this here or not?
                 # May not make sense if we have CPU lmiting...

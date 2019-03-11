@@ -46,10 +46,10 @@ def topology():
     sta1.cmd('wpa_cli -ista1-wlan0 p2p_peers')
     sleep(3)
     pin = sta1.cmd('wpa_cli -ista1-wlan0 p2p_connect %s pin auth'
-                   % sta2.params['mac'][1])
+                   % sta2.params['mac'][0])
     sleep(3)
     sta2.cmd('wpa_cli -ista2-wlan0 p2p_connect %s %s'
-             % (sta1.params['mac'][1], pin))
+             % (sta1.params['mac'][0], pin))
 
     # This is the interface/ip addr of the physical node
     os.system('ip addr add 10.0.0.3/8 dev %s' % intf)
