@@ -1388,28 +1388,27 @@ class Mininet_wifi(Mininet):
                     node.params['rssi'].append(-60)
             node.params.pop("wlans", None)
 
-        if node_mode == 'managed':
-            array_ = ['mac', 'ip']
-            for param in array_:
-                node.params[param] = []
-                if param in params:
-                    list = params[param].split(',')
-                    for value in list:
-                        node.params[param].append(value)
-                        if param == 'mac':
-                            append_ = ''
-                        else:
-                            append_ = '0/0'
-                        if len(list) != params['wlans']:
-                            for _ in range(len(list), params['wlans']):
-                                node.params[param].append(append_)
-                elif autoSetMacs:
-                    for n in range(params['wlans']):
-                        node.params[param].append(append_)
-                        node.params[param][n] = params[param]
-                else:
-                    for _ in range(params['wlans']):
-                        node.params[param].append('')
+        array_ = ['mac', 'ip']
+        for param in array_:
+            node.params[param] = []
+            if param in params:
+                list = params[param].split(',')
+                for value in list:
+                    node.params[param].append(value)
+                    if param == 'mac':
+                        append_ = ''
+                    else:
+                        append_ = '0/0'
+                    if len(list) != params['wlans']:
+                        for _ in range(len(list), params['wlans']):
+                            node.params[param].append(append_)
+            elif autoSetMacs:
+                for n in range(params['wlans']):
+                    node.params[param].append(append_)
+                    node.params[param][n] = params[param]
+            else:
+                for _ in range(params['wlans']):
+                    node.params[param].append('')
 
         array_ = ['antennaGain', 'antennaHeight', 'txpower',
                   'channel', 'mode', 'freq']

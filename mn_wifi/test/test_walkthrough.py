@@ -348,6 +348,15 @@ class testWalkthrough(unittest.TestCase):
         p.sendline('exit')
         p.wait()
 
+    def testUserAPManagedMode(self):
+        "Start Mininet-WiFi with userap in mesh mode"
+        p = pexpect.spawn(
+            'python examples/userap_managed_mode.py')
+        sleep(3)
+        p.expect(self.prompt)
+        p.sendline('exit')
+        p.wait()
+
     def testMobility(self):
         "Start Mininet-WiFi using mobility, then test ping"
         p = pexpect.spawn(
