@@ -731,8 +731,7 @@ class Mininet_wifi(Mininet):
                             int(node.params['range'][wlan]) / 5
 
         if self.allAutoAssociation:
-            if self.autoAssociation and not self.mob_param \
-                    and not self.configureWiFiDirect:
+            if self.autoAssociation and not self.configureWiFiDirect:
                 self.auto_association()
         if self.mob_param:
             if 'model' in self.mob_param or self.isVanet or self.nroads != 0:
@@ -1806,7 +1805,13 @@ class Mininet_wifi(Mininet):
             if sta in mob.stations:
                 mob.stations.remove(sta)
 
-        nodes = self.aps + self.stations + self.cars
+        if self.mob_param:
+            nodes = []
+            for node in self.stations:
+                if 'position' in node.params:
+                    nodes.append(node)
+        else:
+            nodes = self.aps + self.stations + self.cars
 
         if self.nroads == 0:
             for node in nodes:
