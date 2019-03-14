@@ -2,7 +2,7 @@
 
 'Simple idea around Vehicular Ad Hoc Networks - VANETs'
 
-import random
+from random import randint
 
 from mininet.node import Controller
 from mininet.log import setLogLevel, info
@@ -22,8 +22,8 @@ def topology():
     info("*** Creating nodes\n")
     cars = []
     for id in range(0, 10):
-        min_ = random.randint(1, 4)
-        max_ = random.randint(11, 30)
+        min_ = randint(1, 4)
+        max_ = randint(11, 30)
         cars.append(net.addCar('car%s' % (id+1), wlans=2,
                                min_speed=min_,
                                max_speed=max_))
