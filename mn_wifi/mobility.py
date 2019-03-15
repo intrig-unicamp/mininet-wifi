@@ -131,7 +131,7 @@ class mobility(object):
                                           diff_time)),2)
 
     @classmethod
-    def ap_out_of_range(cls, sta, ap, wlan):
+    def ap_out_of_range(cls, sta, ap, wlan, ap_wlan):
         """When ap is out of range
 
         :param sta: station
@@ -139,7 +139,7 @@ class mobility(object):
         :param wlan: wlan ID"""
         if ap == sta.params['associatedTo'][wlan]:
             if 'encrypt' in ap.params and 'ieee80211r' not in ap.params:
-                if 'wpa' in ap.params['encrypt'][0]:
+                if 'wpa' in ap.params['encrypt'][ap_wlan]:
                     os.system('rm %s_%s.staconf' % (sta.name, wlan))
                     pidfile = "mn%d_%s_%s_wpa.pid" \
                               % (os.getpid(), sta.name, wlan)
@@ -211,7 +211,7 @@ class mobility(object):
         for ap in cls.aps:
             dist = sta.get_distance_to(ap)
             if dist > ap.params['range'][0]:
-                cls.ap_out_of_range(sta, ap, wlan)
+                cls.ap_out_of_range(sta, ap, wlan, ap_wlan)
             else:
                 aps.append(ap)
         for ap in aps:
@@ -369,20 +369,22 @@ class mobility(object):
                 if node.func[wlan] == 'mesh' or node.func[wlan] == 'adhoc':
                     pass
                 else:
-                    if cls.wmediumd_mode == 3:
-                        if Association.bgscan or ('active_scan' in node.params \
-                        and ('encrypt' in node.params and 'wpa' in node.params['encrypt'][wlan])):
-                            for ap in cls.aps:
-                                if node.params['associatedTo'][wlan] == '':
-                                    Association.associate_infra(node, ap, wlan=wlan,
-                                                                ap_wlan=0)
-                                    node.params['associatedTo'][wlan] = 'active_scan'
-                                    if Association.bgscan:
-                                        node.params['associatedTo'][wlan] = 'bgscan'
-                        else:
-                            cls.check_association(node, wlan, ap_wlan=0)
-                    else:
-                        cls.check_association(node, wlan, ap_wlan=0)
+                    for ap in cls.aps:
+                        for ap_wlan in range(0, len(ap.params['wlan'])):
+                            if ap.func[ap_wlan] != 'mesh':
+                                if cls.wmediumd_mode == 3:
+                                    if Association.bgscan or ('active_scan' in node.params \
+                                    and ('encrypt' in node.params and 'wpa' in node.params['encrypt'][wlan])):
+                                        if node.params['associatedTo'][wlan] == '':
+                                            Association.associate_infra(node, ap, wlan=wlan,
+                                                                        ap_wlan=ap_wlan)
+                                            node.params['associatedTo'][wlan] = 'active_scan'
+                                            if Association.bgscan:
+                                                node.params['associatedTo'][wlan] = 'bgscan'
+                                    else:
+                                        cls.check_association(node, wlan, ap_wlan=ap_wlan)
+                                else:
+                                    cls.check_association(node, wlan, ap_wlan=ap_wlan)
         sleep(0.0001)
 
 

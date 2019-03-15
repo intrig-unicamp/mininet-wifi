@@ -1400,7 +1400,7 @@ class AccessPoint(AP):
                 module.phyID += 1
 
     @classmethod
-    def setConfig(cls, ap, aplist=None, wlan=None, link=None, ssid=None):
+    def setConfig(cls, ap, aplist=None, wlan=0, link=None, ssid=None):
         """Configure AP
 
         :param ap: ap node
@@ -1417,7 +1417,7 @@ class AccessPoint(AP):
                     else:
                         ap.wpa_key_mgmt = 'WPA-EAP'
                     ap.rsn_pairwise = 'TKIP CCMP'
-                    ap.wpa_passphrase = ap.params['passwd'][0]
+                    ap.wpa_passphrase = ap.params['passwd'][wlan]
                 elif ap.params['encrypt'][wlan] == 'wpa2' \
                         or ap.params['encrypt'][wlan] == 'wpa3':
                     ap.auth_algs = 1
@@ -1426,16 +1426,16 @@ class AccessPoint(AP):
                             and 'authmode' not in ap.params:
                         ap.wpa_key_mgmt = 'FT-PSK'
                     elif 'authmode' in ap.params \
-                            and ap.params['authmode'][0] == '8021x':
+                            and ap.params['authmode'][wlan] == '8021x':
                         ap.wpa_key_mgmt = 'WPA-EAP'
                     else:
                         ap.wpa_key_mgmt = 'WPA-PSK'
                     ap.rsn_pairwise = 'CCMP'
                     if 'authmode' not in ap.params:
-                        ap.wpa_passphrase = ap.params['passwd'][0]
+                        ap.wpa_passphrase = ap.params['passwd'][wlan]
                 elif ap.params['encrypt'][wlan] == 'wep':
                     ap.auth_algs = 2
-                    ap.wep_key0 = ap.params['passwd'][0]
+                    ap.wep_key0 = ap.params['passwd'][wlan]
 
             cls.setHostapdConfig(ap, wlan, aplist, link)
 
