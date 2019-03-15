@@ -1760,20 +1760,68 @@ class Mininet_wifi(Mininet):
             self.mob_param.setdefault('nroads', self.nroads)
         if 'plotNodes' in kwargs:
             self.mob_param.setdefault('plotNodes', kwargs['plotNodes'])
-
-        if 'nodes' in kwargs and kwargs['nodes']:
+	if 'nodes' in kwargs and kwargs['nodes']:
             self.mob_param.setdefault('nodes', kwargs['nodes'])
         if 'associationControl' in kwargs:
             self.mob_param.setdefault('AC', kwargs['associationControl'])
+        if 'pointlist' in kwargs:
+            self.mob_param.setdefault('pointlist',kwargs['pointlist'])
+        if 'waittime' in kwargs:
+            self.mob_param.setdefault('waittime', kwargs['waittime'])
+        if 'model' in kwargs:
+            stations = kwargs['nodes']
+            if 'min_x' in kwargs:
+                if not self.DRAW:
+                    self.min_x = int(kwargs['min_x'])
+                for sta in stations:
+                    sta.min_x = int(kwargs['min_x'])
+            if 'min_y' in kwargs:
+                if not self.DRAW:
+                    self.min_y = int(kwargs['min_y'])
+                for sta in stations:
+                    sta.min_y = int(kwargs['min_y'])
+            if 'max_x' in kwargs:
+                if not self.DRAW:
+                    self.max_x = int(kwargs['max_x'])
+                for sta in stations:
+                    sta.max_x = int(kwargs['max_x'])
+            if 'max_y' in kwargs:
+                if not self.DRAW:
+                    self.max_y = int(kwargs['max_y'])
+                for sta in stations:
+                    sta.max_y = int(kwargs['max_y'])
+            if 'min_v' in kwargs:
+                self.mob_param.setdefault('min_v', kwargs['min_v'])
+            if 'max_v' in kwargs:
+                self.mob_param.setdefault('max_v', kwargs['max_v'])
 
+        if 'time' in kwargs:
+            if 'init_time' not in self.mob_param:
+                self.mob_param.setdefault('init_time', kwargs['time'])
+            else:
+                self.mob_param.setdefault('final_time', kwargs['time'])
+        self.mob_param.setdefault('seed', self.seed)
+        if 'stations' in kwargs:
+            self.mob_param.setdefault('stations', kwargs['stations'])
+        if 'aps' in kwargs:
+            self.mob_param.setdefault('aps', kwargs['aps'])
         if 'aggregation' in kwargs:
             self.mob_param.setdefault('aggregation', kwargs['aggregation'])
         self.mob_param.setdefault('DRAW', self.DRAW)
         self.mob_param.setdefault('conn', self.conn)
+        self.mob_param.setdefault('min_x', self.min_x)
+        self.mob_param.setdefault('min_y', self.min_y)
+        self.mob_param.setdefault('min_z', self.min_z)
+        self.mob_param.setdefault('max_x', self.max_x)
+        self.mob_param.setdefault('max_y', self.max_y)
+        self.mob_param.setdefault('max_z', self.max_z)
         self.mob_param.setdefault('rec_rssi', self.rec_rssi)
         self.mob_param.setdefault('ppm', propagationModel.model)
+        if 'mobileNodes' in kwargs and kwargs['mobileNodes']:
+            self.mob_param.setdefault('mobileNodes', kwargs['mobileNodes'])
+        return self.mob_param
 
-    def useExternalProgram(self, program, **kwargs):
+    def useExternalProgram(self, program, **params):
         """Opens an external program
 
         :params program: only sumo is supported so far

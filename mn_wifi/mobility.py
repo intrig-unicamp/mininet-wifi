@@ -121,7 +121,6 @@ class mobility(object):
     @classmethod
     def speed(cls, sta, pos_x, pos_y, pos_z, diff_time):
         """Calculates the speed
-
         :param sta: station
         :param pos_x: Position x
         :param pos_y: Position y
@@ -134,7 +133,6 @@ class mobility(object):
     @classmethod
     def ap_out_of_range(cls, sta, ap, wlan):
         """When ap is out of range
-
         :param sta: station
         :param ap: access point
         :param wlan: wlan ID"""
@@ -168,7 +166,6 @@ class mobility(object):
     @classmethod
     def ap_in_range(cls, sta, ap, wlan, dist):
         """When ap is in range
-
         :param sta: station
         :param ap: access point
         :param wlan: wlan ID
@@ -205,7 +202,6 @@ class mobility(object):
     @classmethod
     def check_association(cls, sta, wlan, ap_wlan):
         """check association
-
         :param sta: station
         :param wlan: wlan ID"""
         for ap in cls.aps:
@@ -219,7 +215,6 @@ class mobility(object):
     @classmethod
     def handover(cls, sta, ap, wlan, ap_wlan):
         """handover
-
         :param sta: station
         :param ap: access point
         :param wlan: wlan ID"""
@@ -329,7 +324,6 @@ class mobility(object):
     @classmethod
     def modelGraph(cls, mob, nodes):
         """Useful for plotting graphs
-
         :param mob: mobility params
         :param nodes: list of nodes"""
         for xy in mob:
@@ -347,7 +341,6 @@ class mobility(object):
     @classmethod
     def modelNoGraph(cls, mob, nodes):
         """Useful when graph is not required
-
         :param mob: mobility params
         :param nodes: list of nodes"""
         for xy in mob:
@@ -553,7 +546,6 @@ class tracked(thread):
 '''
 Created on Jan 24, 2012
 Modified by Ramon Fontes (ramonrf@dca.fee.unicamp.br)
-
 @author: Andre Panisson
 @contact: panisson@gmail.com
 @organization: ISI Foundation, Torino, Italy
@@ -688,20 +680,14 @@ class RandomWaypoint(object):
     def __init__(self, nodes, wt_min=None, wt_max=None):
         """
         Random Waypoint model.
-
         Required arguments:
-
           *nr_nodes*:
             Integer, the number of nodes.
-
           *dimensions*:
             Tuple of Integers, the x and y dimensions of the simulation area.
-
         keyword arguments:
-
           *velocity*:
             Tuple of Integers, the minimum and maximum values for node velocity.
-
           *wt_max*:
             Integer, the maximum wait time for node pauses.
             If wt_max is 0 or None, there is no pause time.
@@ -798,37 +784,29 @@ class StochasticWalk(object):
         """
         Base implementation for models with direction uniformly chosen from [0,pi]:
         random_direction, random_walk, truncated_levy_walk
-
         Required arguments:
-
           *nr_nodes*:
             Integer, the number of nodes.
-
           *dimensions*:
             Tuple of Integers, the x and y dimensions of the simulation area.
-
           *FL_DISTR*:
             A function that, given a set of samples,
              returns another set with the same size of the input set.
             This function should implement the distribution of flight lengths
              to be used in the model.
-
           *VEL_DISTR*:
             A function that, given a set of flight lengths,
              returns another set with the same size of the input set.
             This function should implement the distribution of velocities
              to be used in the model, as random or as a function of the flight
              lengths.
-
         keyword arguments:
-
           *WT_DISTR*:
             A function that, given a set of samples,
              returns another set with the same size of the input set.
             This function should implement the distribution of wait times
              to be used in the node pause.
             If WT_DISTR is 0 or None, there is no pause time.
-
           *border_policy*:
             String, either 'reflect' or 'wrap'. The policy that is used when
             the node arrives to the border.
@@ -957,21 +935,15 @@ class RandomWalk(StochasticWalk):
         length and node velocity distributions are in fact constants,
         set to the *distance* and *velocity* parameters. The waiting time
         is set to None.
-
         Required arguments:
-
           *nr_nodes*:
             Integer, the number of nodes.
-
         keyword arguments:
-
           *velocity*:
             Double, the value for the constant node velocity. Default is 1.0
-
           *distance*:
             Double, the value for the constant distance traveled in each step.
             Default is 1.0
-
           *border_policy*:
             String, either 'reflect' or 'wrap'. The policy that is used when the
             node arrives to the border.
@@ -1015,24 +987,18 @@ class RandomDirection(StochasticWalk):
         If wt_max is set, the waiting time is chosen from a uniform distribution
         with values between 0 and wt_max. If wt_max is not set, waiting time is
         set to None.
-
         Required arguments:
-
           *nr_nodes*:
             Integer, the number of nodes.
-
           *dimensions*:
             Tuple of Integers, the x and y dimensions of the simulation area.
-
         keyword arguments:
-
           *wt_max*:
             Double, maximum value for the waiting time distribution.
             If wt_max is set, the waiting time is chosen from a uniform
             distribution with values between 0 and wt_max.
             If wt_max is not set, the waiting time is set to None.
             Default is None.
-
           *border_policy*:
             String, either 'reflect' or 'wrap'. The policy that is used
             when the node arrives to the border. If 'reflect', the node reflects
@@ -1074,36 +1040,27 @@ class TruncatedLevyWalk(StochasticWalk):
         On the Levy-Walk Nature of Human Mobility.
             In 2008 IEEE INFOCOM - Proceedings of the 27th Conference on Computer
             Communications, pages 924-932. April 2008.
-
         The implementation is a special case of the more generic Stochastic Walk,
         in which both the flight length and waiting time distributions are
         truncated power laws, with exponents set to FL_EXP and WT_EXP and
         truncated at FL_MAX and WT_MAX. The node velocity is a function of the
         flight length.
-
         Required arguments:
-
           *nr_nodes*:
             Integer, the number of nodes.
-
         keyword arguments:
-
           *FL_EXP*:
             Double, the exponent of the flight length distribution.
             Default is -2.6
-
           *FL_MAX*:
             Double, the maximum value of the flight length distribution.
             Default is 50
-
           *WT_EXP*:
             Double, the exponent of the waiting time distribution.
             Default is -1.8
-
           *WT_MAX*:
             Double, the maximum value of the waiting time distribution.
             Default is 100
-
           *border_policy*:
             String, either 'reflect' or 'wrap'. The policy that is used when the
             node arrives to the border. If 'reflect', the node reflects off the
@@ -1133,33 +1090,24 @@ class HeterogeneousTruncatedLevyWalk(StochasticWalk):
         created by taking both min and max values from a power law with exponent
         set to FL_EXP and truncated FL_MAX. The node velocity is a function of
         the flight length.
-
         Required arguments:
-
           *nr_nodes*:
             Integer, the number of nodes.
-
           *dimensions*:
             Tuple of Integers, the x and y dimensions of the simulation area.
-
         keyword arguments:
-
           *WT_EXP*:
             Double, the exponent of the waiting time distribution.
              Default is -1.8
-
           *WT_MAX*:
             Double, the maximum value of the waiting time distribution.
             Default is 100
-
           *FL_EXP*:
             Double, the exponent of the flight length distribution.
             Default is -2.6
-
           *FL_MAX*:
             Double, the maximum value of the flight length distribution.
             Default is 50
-
           *border_policy*:
             String, either 'reflect' or 'wrap'. The policy that is used when
             the node arrives to the border. If 'reflect', the node reflects off
@@ -1212,20 +1160,14 @@ def gauss_markov(nodes, velocity_mean=1., alpha=1., variance=1.):
     Camp, T., Boleng, J. & Davies, V. A survey of mobility models for ad hoc
     network research.
     Wireless Communications and Mobile Computing 2, 483-502 (2002).
-
     Required arguments:
-
       *nr_nodes*:
         Integer, the number of nodes.
-
     keyword arguments:
-
       *velocity_mean*:
         The mean velocity
-
       *alpha*:
         The tuning parameter used to vary the randomness
-
       *variance*:
         The randomness variance
     """
@@ -1290,31 +1232,23 @@ def gauss_markov(nodes, velocity_mean=1., alpha=1., variance=1.):
 def reference_point_group(nodes, dimensions, velocity=(0.1, 1.), aggregation=0.1):
     """
     Reference Point Group Mobility model, discussed in the following paper:
-
         Xiaoyan Hong, Mario Gerla, Guangyu Pei, and Ching-Chuan Chiang. 1999.
         A group mobility model for ad hoc wireless networks. In Proceedings of
         the 2nd ACM international workshop on Modeling, analysis and simulation
         of wireless and mobile systems (MSWiM '99). ACM, New York, NY, USA,
         53-60.
-
     In this implementation, group trajectories follow a random direction model,
     while nodes follow a random walk around the group center.
     The parameter 'aggregation' controls how close the nodes are to the group
     center.
-
     Required arguments:
-
       *nr_nodes*:
         list of integers, the number of nodes in each group.
-
       *dimensions*:
         Tuple of Integers, the x and y dimensions of the simulation area.
-
     keyword arguments:
-
       *velocity*:
         Tuple of Doubles, the minimum and maximum values for group velocity.
-
       *aggregation*:
         Double, parameter (between 0 and 1) used to aggregate the nodes in the
         group. Usually between 0 and 1, the more this value approximates to 1,
@@ -1430,7 +1364,6 @@ def reference_point_group(nodes, dimensions, velocity=(0.1, 1.), aggregation=0.1
 def cooler_ref_point(nodes, dimensions, pointlist, velocity=(0.1, 1.), g_velocity=0.4, aggregation=0.1, waittime=0):
     """
     Cooler Reference Point Group Mobility model, discussed in the following paper:
-
         Xiaoyan Hong, Mario Gerla, Guangyu Pei, and Ching-Chuan Chiang. 1999.
         A group mobility model for ad hoc wireless networks. In Proceedings of
         the 2nd ACM international workshop on Modeling, analysis and simulation
@@ -1441,33 +1374,24 @@ def cooler_ref_point(nodes, dimensions, pointlist, velocity=(0.1, 1.), g_velocit
     while nodes follow a random walk around the group center.
     The parameter 'aggregation' controls how close the nodes are to the group
     center.
-
     Required arguments:
-
         *nr_nodes*:
         list of integers, the number of nodes in each group.
-
         *dimensions*:
         Tuple of Integers, the x and y dimensions of the simulation area.
-
     keyword arguments:
-
         *velocity*:
         Tuple of Doubles, the minimum and maximum values for group velocity.
-
         *g_velocity*
         Velocity of group vector. Appears to be 5.7 m/s per unit locally.
-
         *aggregation*:
         Double, parameter (between 0 and 1) used to aggregate the nodes in the
         group. Usually between 0 and 1, the more this value approximates to 1,
         the nodes will be more aggregated and closer to the group center.
         With a value of 0, the nodes are randomly distributed in the simulation
         area. With a value of 1, the nodes are close to the group center.
-
         *initial_point*
         Tuple of (x,y) starting position in the 2D mobility model.
-
         *end_point*
         Tuple of (x,y) finish position in the 2D mobility model.
     """
@@ -1504,11 +1428,11 @@ def cooler_ref_point(nodes, dimensions, pointlist, velocity=(0.1, 1.), g_velocit
     MAX_X, MAX_Y = dimensions
     #Assign initial values including X and Y (parameterize this!!!)
     if len(pointlist) > 1:
-        current_x, current_y = pointlist[0]
-        next_x, next_y = pointlist[1]
+        current_x, current_y, current_z = pointlist[0]
+        next_x, next_y, next_z = pointlist[1]
     else:
-        current_x, current_y = pointlist[0]
-        next_x, next_y = pointlist[0]
+        current_x, current_y, current_z = pointlist[0]
+        next_x, next_y, next_z = pointlist[0]
     x = U(current_x, current_x + MAX_V, NODES)
     y = U(current_y, current_y + MAX_V, NODES)
     velocity = 1.
@@ -1587,7 +1511,7 @@ def cooler_ref_point(nodes, dimensions, pointlist, velocity=(0.1, 1.), g_velocit
                     point_index += 1
                     current_x = next_x
                     current_y = next_y
-                    next_x, next_y = pointlist[point_index]
+                    next_x, next_y, next_z = pointlist[point_index]
                     g_theta = [np.arctan2(next_y - g_y, next_x - g_x)]
                     g_costheta = np.cos(g_theta)
                     g_sintheta = np.sin(g_theta)    
@@ -1597,11 +1521,9 @@ def cooler_ref_point(nodes, dimensions, pointlist, velocity=(0.1, 1.), g_velocit
 def tvc(nodes, dimensions, velocity=(0.1, 1.), aggregation=[0.5, 0.], epoch=[100, 100]):
     """
     Time-variant Community Mobility Model, discussed in the paper
-
         Wei-jen Hsu, Thrasyvoulos Spyropoulos, Konstantinos Psounis, and Ahmed Helmy,
         "Modeling Time-variant User Mobility in Wireless Mobile Networks,"
         INFOCOM 2007, May 2007.
-
     This is a variant of the original definition, in the following way:
     - Communities don't have a specific area, but a reference point where the
        community members aggregate around.
@@ -1615,20 +1537,14 @@ def tvc(nodes, dimensions, velocity=(0.1, 1.), aggregation=[0.5, 0.], epoch=[100
        For aggregation 0, there's no attraction point and the nodes move in a random
        walk model. For aggregation near 1, the nodes move closer to the community
        reference point.
-
     Required arguments:
-
       *nr_nodes*:
         list of integers, the number of nodes in each group.
-
       *dimensions*:
         Tuple of Integers, the x and y dimensions of the simulation area.
-
     keyword arguments:
-
       *velocity*:
         Tuple of Doubles, the minimum and maximum values for community velocities.
-
       *aggregation*:
         List of Doubles, parameters (between 0 and 1) used to aggregate the nodes
         around the community center.
@@ -1636,7 +1552,6 @@ def tvc(nodes, dimensions, velocity=(0.1, 1.), aggregation=[0.5, 0.], epoch=[100
         the nodes will be more aggregated and closer to the group center.
         With aggregation 0, the nodes are randomly distributed in the simulation area.
         With aggregation near 1, the nodes are closer to the group center.
-
       *epoch*:
         List of Integers, the number of steps each epoch stage lasts.
     """
