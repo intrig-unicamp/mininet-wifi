@@ -1335,6 +1335,7 @@ class Mininet_wifi(Mininet):
         params: parameters
         defaults: Default IP and MAC addresses
         node_mode: if interface is running in managed or master mode"""
+        params['wlans'] = self.countWiFiIfaces(**params)
         node.params['wlan'] = []
         node.params['mac'] = []
         node.phyID = []
@@ -1343,8 +1344,11 @@ class Mininet_wifi(Mininet):
                   'encrypt', 'radius_server', 'bw']
         for param in params:
             if param in array_:
-                node.params[param] = []
                 list = params[param].split(',')
+                if len(list) != params['wlans']:
+                    error('*** Error: len(%s) != wlans\n' % param)
+                    exit()
+                node.params[param] = []
                 for value in list:
                     node.params[param].append(value)
 
@@ -1370,8 +1374,6 @@ class Mininet_wifi(Mininet):
             if 'position' in node.params:
                 pos = node.params['position']
                 self.pos_to_array(node, pos)
-
-        params['wlans'] = self.countWiFiIfaces(**params)
 
         for wlan in range(params['wlans']):
             node.func.append('none')
