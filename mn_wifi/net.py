@@ -363,9 +363,10 @@ class Mininet_wifi(Mininet):
             self.addLink(nat, connect)
             # Set the default route on stations
             natIP = nat.params['ip'].split('/')[0]
-            for station in self.stations:
-                if station.inNamespace:
-                    station.setDefaultRoute('via %s' % natIP)
+            nodes = self.stations + self.cars
+            for node in nodes:
+                if node.inNamespace:
+                    node.setDefaultRoute('via %s' % natIP)
         return nat
 
     # BL: We now have four ways to look up nodes

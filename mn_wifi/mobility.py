@@ -365,22 +365,23 @@ class mobility(object):
     @classmethod
     def configureLinks(cls, nodes):
         for node in nodes:
-            for wlan in range(0, len(node.params['wlan'])):
+            for wlan in range(len(node.params['wlan'])):
                 if node.func[wlan] == 'mesh' or node.func[wlan] == 'adhoc':
                     pass
                 else:
                     for ap in cls.aps:
-                        for ap_wlan in range(0, len(ap.params['wlan'])):
-                            if ap.func[ap_wlan] != 'mesh':
+                        for ap_wlan in range(len(ap.params['wlan'])):
+                            if ap.func[ap_wlan] != 'mesh' and ap.func[ap_wlan] != 'adhoc':
                                 if cls.wmediumd_mode == 3:
                                     if Association.bgscan or ('active_scan' in node.params \
                                     and ('encrypt' in node.params and 'wpa' in node.params['encrypt'][wlan])):
                                         if node.params['associatedTo'][wlan] == '':
                                             Association.associate_infra(node, ap, wlan=wlan,
                                                                         ap_wlan=ap_wlan)
-                                            node.params['associatedTo'][wlan] = 'active_scan'
                                             if Association.bgscan:
                                                 node.params['associatedTo'][wlan] = 'bgscan'
+                                            else:
+                                                node.params['associatedTo'][wlan] = 'active_scan'
                                     else:
                                         cls.check_association(node, wlan, ap_wlan=ap_wlan)
                                 else:
@@ -442,7 +443,7 @@ class tracked(thread):
         from time import time
         nodes = kwargs['nodes']
 
-        for rep in range(0, kwargs['repetitions']):
+        for rep in range(kwargs['repetitions']):
             t1 = time()
             i = 1
             if rep > 0:
@@ -497,7 +498,7 @@ class tracked(thread):
             coord2 = '%s,%s,%s' % (fin_pos[0], fin_pos[1], fin_pos[2])
             node.coord_.append([coord1, coord2])
         else:
-            for idx in range(0, len(node.coord) - 1):
+            for idx in range(len(node.coord) - 1):
                 node.coord_.append([node.coord[idx], node.coord[idx + 1]])
 
     def get_line(self, node, x1, y1, z1, x2, y2, z2):
@@ -716,7 +717,7 @@ class RandomWaypoint(object):
         MIN_X = U(0, 0, NODES)
         MIN_Y = U(0, 0, NODES)
 
-        for node in range(0, self.nr_nodes):
+        for node in range(self.nr_nodes):
             MAX_V[node] = self.nodes[node].max_v/10
             MIN_V[node] = self.nodes[node].min_v/10
             MAX_X[node] = self.nodes[node].max_x
@@ -886,7 +887,7 @@ class StochasticWalk(object):
         MIN_X = U(0, 0, NODES)
         MIN_Y = U(0, 0, NODES)
 
-        for node in range(0, len(self.nodes)):
+        for node in range(len(self.nodes)):
             MAX_X[node] = self.nodes[node].max_x
             MAX_Y[node] = self.nodes[node].max_y
             MIN_X[node] = self.nodes[node].min_x
@@ -978,7 +979,7 @@ class RandomWalk(StochasticWalk):
         velocity = VELOCITY
         distance = VELOCITY
 
-        for node in range(0, len(nodes)):
+        for node in range(len(nodes)):
             velocity[node] = nodes[node].constantVelocity
             distance[node] = nodes[node].constantDistance
 
@@ -1041,7 +1042,7 @@ class RandomDirection(StochasticWalk):
         MAX_V = max_v
         MIN_V = min_v
 
-        for node in range(0, len(nodes)):
+        for node in range(len(nodes)):
             MAX_V[node] = nodes[node].max_v/10
             MIN_V[node] = nodes[node].min_v/10
 
@@ -1230,7 +1231,7 @@ def gauss_markov(nodes, velocity_mean=1., alpha=1., variance=1.):
     MIN_X = U(0, 0, NODES)
     MIN_Y = U(0, 0, NODES)
 
-    for node in range(0, len(nodes)):
+    for node in range(len(nodes)):
         MAX_X[node] = nodes[node].max_x
         MAX_Y[node] = nodes[node].max_y
         MIN_X[node] = nodes[node].min_x
