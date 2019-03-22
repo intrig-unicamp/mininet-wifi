@@ -752,12 +752,12 @@ class StationDialog(CustomDialog):
         self.rootFrame = master
         n = Notebook(self.rootFrame)
         self.propFrame = Frame(n)
-        self.radiusFrame = Frame(n)
+        self.authFrame = Frame(n)
         self.vlanFrame = Frame(n)
         self.interfaceFrame = Frame(n)
         self.mountFrame = Frame(n)
         n.add(self.propFrame, text='Properties')
-        n.add(self.radiusFrame, text='Radius')
+        n.add(self.authFrame, text='Authentication')
         n.add(self.vlanFrame, text='VLAN Interfaces')
         n.add(self.interfaceFrame, text='External Interfaces')
         n.add(self.mountFrame, text='Private Directories')
@@ -885,22 +885,45 @@ class StationDialog(CustomDialog):
         if 'stopCommand' in self.prefValues:
             self.stopEntry.insert(0, str(self.prefValues['stopCommand']))
 
-        ### TAB Radius
-        # Field for username
+        ### TAB Auth
         rowCount = 0
-        Label(self.radiusFrame, text="Username:").grid(row=rowCount, sticky=E)
-        self.radiusUserEntry = Entry(self.radiusFrame)
-        self.radiusUserEntry.grid(row=rowCount, column=1)
-        if 'radius_user' in self.prefValues:
-            self.radiusUserEntry.insert(0, self.prefValues['radius_user'])
+        # Selection of authentication
+        Label(self.authFrame, text="Authentication:").grid(row=rowCount, sticky=E)
+        self.authentication = StringVar(self.authFrame)
+        self.authenticationMenu = OptionMenu(self.authFrame,
+                                             self.authentication, "none", "WEP",
+                                             "WPA", "WPA2", "8021x")
+        self.authenticationMenu.grid(row=rowCount, column=1, sticky=W)
+        if 'authentication' in self.prefValues:
+            authPref = self.prefValues['authentication']
+            if authPref == 'WEP':
+                self.authentication.set("WEP")
+            elif authPref == 'WPA':
+                self.authentication.set("WPA")
+            elif authPref == 'WPA2':
+                self.authentication.set("WPA2")
+            elif authPref == '8021x':
+                self.authentication.set("8021x")
+            else:
+                self.authentication.set("none")
+        else:
+            self.authentication.set("none")
+        rowCount += 1
 
         # Field for username
+        Label(self.authFrame, text="Username:").grid(row=rowCount, sticky=E)
+        self.userEntry = Entry(self.authFrame)
+        self.userEntry.grid(row=rowCount, column=1)
+        if 'user' in self.prefValues:
+            self.userEntry.insert(0, self.prefValues['user'])
+
+        # Field for passwd
         rowCount += 1
-        Label(self.radiusFrame, text="Password:").grid(row=rowCount, sticky=E)
-        self.radiusPasswdEntry = Entry(self.radiusFrame)
-        self.radiusPasswdEntry.grid(row=rowCount, column=1)
-        if 'radius_passwd' in self.prefValues:
-            self.radiusPasswdEntry.insert(0, self.prefValues['radius_passwd'])
+        Label(self.authFrame, text="Password:").grid(row=rowCount, sticky=E)
+        self.passwdEntry = Entry(self.authFrame)
+        self.passwdEntry.grid(row=rowCount, column=1)
+        if 'passwd' in self.prefValues:
+            self.passwdEntry.insert(0, self.prefValues['passwd'])
 
         ### TAB 2
         # External Interfaces
@@ -1001,8 +1024,8 @@ class StationDialog(CustomDialog):
                    'externalInterfaces':externalInterfaces,
                    'vlanInterfaces':vlanInterfaces}
         #results['ssid'] = str(self.ssidEntry.get())
-        results['radius_passwd'] = str(self.radiusPasswdEntry.get())
-        results['radius_user'] = str(self.radiusUserEntry.get())
+        results['passwd'] = str(self.passwdEntry.get())
+        results['user'] = str(self.userEntry.get())
         results['wlans'] = str(self.wlansEntry.get())
         results['wpans'] = str(self.wpansEntry.get())
         results['range'] = str(self.rangeEntry.get())
@@ -1206,8 +1229,15 @@ class APDialog(CustomDialog):
 
     def body(self, master):
         self.rootFrame = master
-        self.leftfieldFrame = Frame(self.rootFrame)
-        self.rightfieldFrame = Frame(self.rootFrame)
+        n = Notebook(self.rootFrame)
+        self.propFrame = Frame(n)
+        self.authFrame = Frame(n)
+        n.add(self.propFrame, text='Properties')
+        n.add(self.authFrame, text='Authentication')
+        n.pack()
+
+        self.leftfieldFrame = Frame(self.propFrame)
+        self.rightfieldFrame = Frame(self.propFrame)
         self.leftfieldFrame.grid(row=0, column=0, sticky='nswe')
         self.rightfieldFrame.grid(row=0, column=1, sticky='nswe')
 
@@ -1264,29 +1294,6 @@ class APDialog(CustomDialog):
         self.rangeEntry = Entry(self.leftfieldFrame)
         self.rangeEntry.grid(row=rowCount, column=1)
         self.rangeEntry.insert(0, self.prefValues['range'])
-        rowCount += 1
-
-        # Selection of authentication
-        Label(self.leftfieldFrame, text="Authentication:").grid(row=rowCount, sticky=E)
-        self.authentication = StringVar(self.leftfieldFrame)
-        self.authenticationMenu = OptionMenu(self.leftfieldFrame,
-                                             self.authentication, "none", "WEP",
-                                             "WPA", "WPA2", "8021x")
-        self.authenticationMenu.grid(row=rowCount, column=1, sticky=W)
-        if 'authentication' in self.prefValues:
-            authPref = self.prefValues['authentication']
-            if authPref == 'WEP':
-                self.authentication.set("WEP")
-            elif authPref == 'WPA':
-                self.authentication.set("WPA")
-            elif authPref == 'WPA2':
-                self.authentication.set("WPA2")
-            elif authPref == '8021x':
-                self.authentication.set("8021x")
-            else:
-                self.authentication.set("none")
-        else:
-            self.authentication.set("none")
         rowCount += 1
 
         # Selection of ap type
@@ -1376,7 +1383,7 @@ class APDialog(CustomDialog):
         for externalInterface in externalInterfaces:
             self.tableFrame.addRow(value=[externalInterface])
 
-        self.commandFrame = Frame(self.rootFrame)
+        self.commandFrame = Frame(self.propFrame)
         self.commandFrame.grid(row=1, column=0, sticky='nswe', columnspan=2)
         self.commandFrame.columnconfigure(1, weight=1)
         # Start command
@@ -1391,6 +1398,38 @@ class APDialog(CustomDialog):
         self.stopEntry.grid(row=1, column=1, sticky='nsew')
         if 'stopCommand' in self.prefValues:
             self.stopEntry.insert(0, str(self.prefValues['stopCommand']))
+
+        rowCount = 0
+        # Selection of authentication
+        Label(self.authFrame, text="Authentication:").grid(row=rowCount, sticky=E)
+        self.authentication = StringVar(self.authFrame)
+        self.authenticationMenu = OptionMenu(self.authFrame,
+                                             self.authentication, "none", "WEP",
+                                             "WPA", "WPA2", "8021x")
+        self.authenticationMenu.grid(row=rowCount, column=1, sticky=W)
+        if 'authentication' in self.prefValues:
+            authPref = self.prefValues['authentication']
+            if authPref == 'WEP':
+                self.authentication.set("WEP")
+            elif authPref == 'WPA':
+                self.authentication.set("WPA")
+            elif authPref == 'WPA2':
+                self.authentication.set("WPA2")
+            elif authPref == '8021x':
+                self.authentication.set("8021x")
+            else:
+                self.authentication.set("none")
+        else:
+            self.authentication.set("none")
+        rowCount += 1
+
+        # Field for passwd
+        Label(self.authFrame, text="Password:").grid(row=rowCount, sticky=E)
+        self.passwdEntry = Entry(self.authFrame)
+        self.passwdEntry.grid(row=rowCount, column=1)
+        self.passwdEntry.insert(0, self.prefValues['passwd'])
+        rowCount += 1
+
 
     def addInterface( self ):
         self.tableFrame.addRow()
@@ -1437,6 +1476,7 @@ class APDialog(CustomDialog):
         results['range'] = str(self.rangeEntry.get())
         results['mode'] = str(self.mode.get())
         results['authentication'] = self.authentication.get()
+        results['passwd'] = str(self.passwdEntry.get())
         ap = self.apType.get()
         if ap == 'Userspace inNamespace':
             results['apType'] = 'userns'
@@ -1571,7 +1611,7 @@ class LinkDialog(tkSimpleDialog.Dialog):
                 self.e1.set("wired")
         else:
             self.e1.set("wired")
-
+        print self.e1
         rowCount += 1
         Label(master, text="SSID:").grid(row=rowCount, sticky=E)
         self.e2 = Entry(master)
@@ -1825,6 +1865,7 @@ class MiniEdit( Frame ):
             "switchType": 'ovs',
             "apType": 'ovs',
             "authentication": 'none',
+            "passwd": '',
             "mode": 'g',
             "dpctl": '',
             'sflow':self.sflowDefaults,
@@ -2370,6 +2411,8 @@ class MiniEdit( Frame ):
                 ap['opts']['apType'] = 'default'
             if 'authentication' not in ap['opts']:
                 ap['opts']['authentication'] = 'none'
+            if 'passwd' not in ap['opts']:
+                ap['opts']['passwd'] = ''
             if 'mode' not in ap['opts']:
                 ap['opts']['mode'] = 'g'
             if 'range' not in ap['opts']:
@@ -2866,7 +2909,8 @@ class MiniEdit( Frame ):
                         if opts['authentication'] == '8021x':
                             f.write(", encrypt='wpa2', authmode='8021x'")
                         else:
-                            f.write(", encrypt='" + opts['authentication'] + "'")
+                            f.write(", encrypt='" + opts['authentication'] +
+                                    "',\n                             passwd='" + opts['passwd'] + "'")
                     f.write(", position='"+str(x1)+","+str(y1)+",0'")
                     if opts['range'] != 'default':
                         f.write(", range=" + str(opts['range']) + "")
@@ -2930,10 +2974,16 @@ class MiniEdit( Frame ):
                         args += ', sixlowpan=%s' % wpans
                         wpanip = ", wpan_ip='2001::%s/64'" % nodeNum
                         args += wpanip
-                    if 'radius_passwd' in opts and opts['radius_passwd']:
-                        args += ", radius_passwd='%s'" % opts['radius_passwd']
-                    if 'radius_user' in opts and opts['radius_user']:
-                        args += ", radius_identity='%s'" % opts['radius_user']
+                    if 'authentication' in opts and opts['authentication']:
+                        args_ = ['wpa', 'wpa2', 'wep']
+                        if opts['authentication'] in args_:
+                            args += ", encrypt='%s'" % opts['authentication']
+                    if 'passwd' in opts and opts['passwd']:
+                        if opts['passwd'] != '':
+                            args += ", passwd='%s'" % opts['passwd']
+                    if 'user' in opts and opts['user']:
+                        if opts['user'] != '':
+                            args += ", radius_identity='%s'" % opts['user']
                     if 'defaultRoute' in opts:
                         args += ", defaultRoute='%s'" % defaultRoute
                     if opts['range'] != 'default':
@@ -3343,6 +3393,7 @@ class MiniEdit( Frame ):
             self.apOpts[name]['mode'] = 'g'
             self.apOpts[name]['range'] = 'default'
             self.apOpts[name]['authentication'] = 'none'
+            self.apOpts[name]['passwd'] = ''
             self.apOpts[name]['controllers'] = []
         if 'LegacyRouter' == node:
             self.switchCount += 1
@@ -3375,8 +3426,8 @@ class MiniEdit( Frame ):
             self.stationOpts[name]['channel'] = '1'
             self.stationOpts[name]['mode'] = 'g'
             self.stationOpts[name]['range'] = 'default'
-            self.stationOpts[name]['radius_passwd'] = ''
-            self.stationOpts[name]['radius_user'] = ''
+            self.stationOpts[name]['passwd'] = ''
+            self.stationOpts[name]['user'] = ''
             self.stationOpts[name]['wpans'] = 0
             self.stationOpts[name]['wlans'] = 1
         if 'Controller' == node:
@@ -3831,10 +3882,10 @@ class MiniEdit( Frame ):
                 newStationOpts['hostname'] = stationBox.result['hostname']
                 name = stationBox.result['hostname']
                 widget[ 'text' ] = name
-            if len(stationBox.result['radius_passwd']) > 0:
-                newStationOpts['radius_passwd'] = stationBox.result['radius_passwd']
-            if len(stationBox.result['radius_user']) > 0:
-                newStationOpts['radius_user'] = stationBox.result['radius_user']
+            if len(stationBox.result['passwd']) > 0:
+                newStationOpts['passwd'] = stationBox.result['passwd']
+            if len(stationBox.result['user']) > 0:
+                newStationOpts['user'] = stationBox.result['user']
             if len(stationBox.result['wpans']) > 0:
                 newStationOpts['wpans'] = stationBox.result['wpans']
             if len(stationBox.result['wlans']) > 0:
@@ -3914,6 +3965,7 @@ class MiniEdit( Frame ):
             newAPOpts = {'nodeNum':self.apOpts[name]['nodeNum']}
             newAPOpts['apType'] = apBox.result['apType']
             newAPOpts['authentication'] = apBox.result['authentication']
+            newAPOpts['passwd'] = apBox.result['passwd']
             newAPOpts['mode'] = apBox.result['mode']
             newAPOpts['range'] = apBox.result['range']
             newAPOpts['controllers'] = self.apOpts[name]['controllers']
@@ -4205,6 +4257,8 @@ class MiniEdit( Frame ):
                     apParms['mode']=opts['mode']
                 if 'authentication' in opts:
                     apParms['authentication']=opts['authentication']
+                if 'passwd' in opts:
+                    apParms['passwd']=opts['passwd']
                 if opts['apType'] == 'default':
                     if self.appPrefs['apType'] == 'user':
                         apClass = CustomUserAP
@@ -4906,6 +4960,7 @@ class MiniEdit( Frame ):
             self.apOpts[name]['mode'] = 'g'
             self.apOpts[name]['range'] = 'default'
             self.apOpts[name]['authentication'] = 'none'
+            self.apOpts[name]['passwd'] = ''
             self.apOpts[name]['apType'] = 'default'
             self.apOpts[name]['controllers'] = []
 
