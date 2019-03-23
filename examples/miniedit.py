@@ -3058,6 +3058,7 @@ class MiniEdit( Frame ):
                         optsExist = True
 
                     linkOpts = linkOpts + "}"
+                    args_ = ['adhoc', 'mesh', 'wifiDirect']
                     if optsExist:
                         f.write("    "+srcName+dstName+" = "+linkOpts+"\n")
                     if 'connection' in linkopts and '6lowpan' in linkopts['connection']:
@@ -3067,22 +3068,28 @@ class MiniEdit( Frame ):
                         if dstName not in lowpan:
                             f.write("    net.addLink("+dstName+ ", cls=sixLoWPANLink, panid='0xbeef')\n")
                             lowpan.append(dstName)
+                    elif 'connection' in linkopts and linkopts['connection'] in args_:
+                        nodes = []
+                        nodes.append(srcName)
+                        nodes.append(dstName)
+                        for node in nodes:
+                            f.write("    net.addLink(" + node)
+                            if 'adhoc' in linkopts['connection']:
+                                f.write(", cls=adhoc, ssid=\'%s\', mode=\'%s\', channel=%s"
+                                        % (linkopts['ssid'], linkopts['mode'], linkopts['channel']))
+                            elif 'mesh' in linkopts['connection']:
+                                f.write(", cls=mesh, ssid=\'%s\', mode=\'%s\', channel=%s"
+                                        % (linkopts['ssid'], linkopts['mode'], linkopts['channel']))
+                            elif 'wifiDirect' in linkopts['connection']:
+                                f.write(", cls=wifiDirectLink")
+                            f.write(")\n")
                     else:
                         f.write("    net.addLink("+srcName+", "+dstName)
-                    if 'connection' in linkopts:
-                        if 'adhoc' in linkopts['connection']:
-                            f.write(", cls=adhoc, ssid=\'%s\', mode=\'%s\', channel=%s"
-                                    % (linkopts['ssid'], linkopts['mode'], linkopts['channel']))
-                        elif 'mesh' in linkopts['connection']:
-                            f.write(", cls=mesh, ssid=\'%s\', mode=\'%s\', channel=%s"
-                                    % (linkopts['ssid'], linkopts['mode'], linkopts['channel']))
-                        elif 'wifiDirect' in linkopts['connection']:
-                            f.write(", cls=wifiDirectLink")
-                    if optsExist:
-                        f.write(", cls=TCLink , **"+srcName+dstName)
-                    if ('connection' in linkopts and '6lowpan' not in linkopts['connection']) \
-                            or 'connection' not in linkopts:
-                        f.write(")\n")
+                        if optsExist:
+                            f.write(", cls=TCLink , **"+srcName+dstName)
+                        if ('connection' in linkopts and '6lowpan' not in linkopts['connection']) \
+                                or 'connection' not in linkopts:
+                            f.write(")\n")
             if self.links:
                 f.write("\n")
             if isWiFi:
