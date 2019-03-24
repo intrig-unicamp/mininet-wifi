@@ -1340,6 +1340,7 @@ class Mininet_wifi(Mininet):
         node.params['wlan'] = []
         node.params['mac'] = []
         node.phyID = []
+        node.ifaceToAssociate = 0
 
         array_ = ['passwd', 'scan_freq', 'freq_list', 'authmode',
                   'encrypt', 'radius_server', 'bw']
@@ -1358,7 +1359,6 @@ class Mininet_wifi(Mininet):
             node.params['associatedTo'] = []
             if self.wmediumd_mode != interference:
                 node.params['rssi'] = []
-            node.ifaceToAssociate = 0
 
         array_ = ['speed', 'max_x', 'max_y', 'min_x', 'min_y',
                   'min_v', 'max_v', 'constantVelocity', 'constantDistance',

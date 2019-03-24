@@ -2905,6 +2905,8 @@ class MiniEdit( Frame ):
                         f.write(",\n                             channel='"+opts['channel']+"'")
                     if 'mode' in opts:
                         f.write(", mode='" + opts['mode'] + "'")
+                    if 'apIP' in opts:
+                        f.write(", ip='" + opts['apIP'] + "'")
                     if 'authentication' in opts and opts['authentication'] != 'none':
                         if opts['authentication'] == '8021x':
                             f.write(", encrypt='wpa2', authmode='8021x'")
@@ -3151,28 +3153,7 @@ class MiniEdit( Frame ):
                                 f.write("    "+name+".cmd('ifconfig "+name+" "+opts['switchIP']+"')\n")
                 elif 'AP' in tags:
                     opts = self.apOpts[name]
-                    if opts['apType'] == 'default':
-                        if self.appPrefs['apType'] == 'user':
-                            if 'apIP' in opts:
-                                if len(opts['apIP']) > 0:
-                                    f.write("    "+name+".cmd('ifconfig "+name+" "+opts['apIP']+"')\n")
-                        elif self.appPrefs['apType'] == 'userns':
-                            if 'apIP' in opts:
-                                if len(opts['apIP']) > 0:
-                                    f.write("    "+name+".cmd('ifconfig lo "+opts['apIP']+"')\n")
-                        elif self.appPrefs['apType'] == 'ovs':
-                            if 'apIP' in opts:
-                                if len(opts['apIP']) > 0:
-                                    f.write("    "+name+".cmd('ifconfig "+name+" "+opts['apIP']+"')\n")
-                    elif opts['apType'] == 'user':
-                        if 'apIP' in opts:
-                            if len(opts['apIP']) > 0:
-                                f.write("    "+name+".cmd('ifconfig "+name+" "+opts['apIP']+"')\n")
-                    elif opts['apType'] == 'userns':
-                        if 'apIP' in opts:
-                            if len(opts['apIP']) > 0:
-                                f.write("    "+name+".cmd('ifconfig lo "+opts['apIP']+"')\n")
-                    elif opts['apType'] == 'ovs':
+                    if opts['apType'] == 'default' or opts['apType'] == 'ovs':
                         if 'apIP' in opts:
                             if len(opts['apIP']) > 0:
                                 f.write("    "+name+".cmd('ifconfig "+name+" "+opts['apIP']+"')\n")

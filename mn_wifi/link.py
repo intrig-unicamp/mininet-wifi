@@ -1067,9 +1067,10 @@ class adhoc(IntfWireless):
     def configureAdhoc(self, node, wlan, **params):
         "Configure Wireless Ad Hoc"
         iface = node.params['wlan'][wlan]
-        ip = node.params['ip'][wlan]
+        if 'ip' in node.params:
+            ip = node.params['ip'][wlan]
+            node.setIP(ip, intf='%s' % iface)
         node.func[wlan] = 'adhoc'
-        node.setIP(ip, intf='%s' % iface)
         self.setType('ibss')
         if 'position' not in node.params or 'enable_wmediumd' in params:
             if 'passwd' in params:
