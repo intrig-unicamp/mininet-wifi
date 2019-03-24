@@ -1253,6 +1253,13 @@ class APDialog(CustomDialog):
         self.hostnameEntry.insert(0, self.prefValues['hostname'])
         rowCount+=1
 
+        # Field for wlans
+        Label(self.leftfieldFrame, text="Wlans:").grid(row=rowCount, sticky=E)
+        self.wlansEntry = Entry(self.leftfieldFrame)
+        self.wlansEntry.grid(row=rowCount, column=1)
+        self.wlansEntry.insert(0, self.prefValues['wlans'])
+        rowCount += 1
+
         # Field for SSID
         Label(self.leftfieldFrame, text="SSID:").grid(row=rowCount, sticky=E)
         self.ssidEntry = Entry(self.leftfieldFrame)
@@ -1474,6 +1481,7 @@ class APDialog(CustomDialog):
         results['ssid'] = str(self.ssidEntry.get())
         results['channel'] = str(self.channelEntry.get())
         results['range'] = str(self.rangeEntry.get())
+        results['wlans'] = str(self.wlansEntry.get())
         results['mode'] = str(self.mode.get())
         results['authentication'] = self.authentication.get()
         results['passwd'] = str(self.passwdEntry.get())
@@ -1576,13 +1584,15 @@ class TableFrame(Frame):
 
 class LinkDialog(tkSimpleDialog.Dialog):
 
-    def __init__(self, parent, title, linkDefaults):
+    def __init__(self, parent, title, linkDefaults, links, src, dest):
 
         self.linkValues = linkDefaults
+        self.links = links
+        self.src = src
+        self.dest = dest
         tkSimpleDialog.Dialog.__init__(self, parent, title)
 
     def body(self, master):
-
         if 'link' not in self.linkValues:
             self.linkValues['channel'] = '1'
         if 'ssid' not in self.linkValues:
@@ -1611,7 +1621,7 @@ class LinkDialog(tkSimpleDialog.Dialog):
                 self.e1.set("wired")
         else:
             self.e1.set("wired")
-        print self.e1
+
         rowCount += 1
         Label(master, text="SSID:").grid(row=rowCount, sticky=E)
         self.e2 = Entry(master)
@@ -1686,6 +1696,58 @@ class LinkDialog(tkSimpleDialog.Dialog):
         if 'speedup' in self.linkValues:
             self.e10.insert(0, str(self.linkValues['speedup']))
 
+        if 'wlans' in self.src:
+            rowCount += 1
+            Label(master, text="Source:").grid(row=rowCount, sticky=E)
+            srcOpt = None
+            if 'src' in self.links:
+                srcOpt = self.links['src']['text']
+            wlans = []
+            wlans.append('default')
+            for wlan in range(int(self.src['wlans'])):
+                if 'ap' in srcOpt:
+                    wlan_ = wlan+1
+                else:
+                    wlan_ = wlan
+                wlans.append('%s-wlan%s' % (srcOpt, wlan_))
+            self.e11 = StringVar(master)
+            self.opt2 = OptionMenu(master, self.e11, *tuple(wlans))
+            self.opt2.grid(row=rowCount, column=1, sticky=W)
+            if srcOpt and 'src' in self.linkValues:
+                for wlan in wlans:
+                    if self.linkValues['src'] == wlan:
+                        self.e11.set(wlan)
+            else:
+                self.e11.set('default')
+        else:
+            self.e11 = ''
+
+        if 'wlans' in self.dest:
+            rowCount += 1
+            Label(master, text="Destination:").grid(row=rowCount, sticky=E)
+            destOpt = None
+            if 'dest' in self.links:
+                destOpt = self.links['dest']['text']
+            wlans = []
+            wlans.append('default')
+            for wlan in range(int(self.dest['wlans'])):
+                if 'ap' in destOpt:
+                    wlan_ = wlan+1
+                else:
+                    wlan_ = wlan
+                wlans.append('%s-wlan%s' % (destOpt, wlan_))
+            self.e12 = StringVar(master)
+            self.opt3 = OptionMenu(master, self.e12, *tuple(wlans))
+            self.opt3.grid(row=rowCount, column=1, sticky=W)
+            if destOpt and 'dest' in self.linkValues:
+                for wlan in wlans:
+                    if self.linkValues['dest'] == wlan:
+                        self.e12.set(wlan)
+            else:
+                self.e12.set('default')
+        else:
+            self.e12 = ''
+
         return self.e2 # initial focus
 
     def apply(self):
@@ -1710,6 +1772,10 @@ class LinkDialog(tkSimpleDialog.Dialog):
             self.result['jitter'] = self.e9.get()
         if len(self.e10.get()) > 0:
             self.result['speedup'] = int(self.e10.get())
+        if self.e11 != '' and len(self.e11.get()) > 0:
+            self.result['src'] = self.e11.get()
+        if self.e12 != '' and len(self.e12.get()) > 0:
+            self.result['dest'] = self.e12.get()
 
 
 class ControllerDialog(tkSimpleDialog.Dialog):
@@ -1874,7 +1940,6 @@ class MiniEdit( Frame ):
                                 'ovsOf11':'0',
                                 'ovsOf12':'0',
                                 'ovsOf13':'0'}
-
         }
 
 
@@ -2417,6 +2482,8 @@ class MiniEdit( Frame ):
                 ap['opts']['mode'] = 'g'
             if 'range' not in ap['opts']:
                 ap['opts']['range'] = 'default'
+            if 'wlans' not in ap['opts']:
+                ap['opts']['wlans'] = '1'
             if 'ap' in ap['opts']:
                 hostname = ap['opts']['hostname']
             else:
@@ -3084,6 +3151,14 @@ class MiniEdit( Frame ):
                                         % (linkopts['ssid'], linkopts['mode'], linkopts['channel']))
                             elif 'wifiDirect' in linkopts['connection']:
                                 f.write(", cls=wifiDirectLink")
+                            intf = None
+                            print linkopts
+                            if 'src' in linkopts and nodes.index(node) == 0:
+                                intf = linkopts['src']
+                            elif 'dest' in linkopts and nodes.index(node) == 1:
+                                intf = linkopts['dest']
+                            if intf and intf != 'default':
+                                f.write(", intf=\'%s\'" % intf)
                             f.write(")\n")
                     else:
                         f.write("    net.addLink("+srcName+", "+dstName)
@@ -3383,6 +3458,7 @@ class MiniEdit( Frame ):
             self.apOpts[name]['authentication'] = 'none'
             self.apOpts[name]['passwd'] = ''
             self.apOpts[name]['controllers'] = []
+            self.apOpts[name]['wlans'] = 1
         if 'LegacyRouter' == node:
             self.switchCount += 1
             name = self.nodePrefixes[ node ] + str( self.switchCount )
@@ -3956,6 +4032,7 @@ class MiniEdit( Frame ):
             newAPOpts['passwd'] = apBox.result['passwd']
             newAPOpts['mode'] = apBox.result['mode']
             newAPOpts['range'] = apBox.result['range']
+            newAPOpts['wlans'] = apBox.result['wlans']
             newAPOpts['controllers'] = self.apOpts[name]['controllers']
             if len(apBox.result['startCommand']) > 0:
                 newAPOpts['startCommand'] = apBox.result['startCommand']
@@ -3995,7 +4072,7 @@ class MiniEdit( Frame ):
         linkDetail =  self.links[link]
         src = linkDetail['src']
         dst = linkDetail['dest']
-        srcName, dstName = src[ 'text' ], dst[ 'text' ]
+        srcName, dstName = src['text'], dst['text']
         self.net.configLinkStatus(srcName, dstName, 'up')
         self.canvas.itemconfig(link, dash=())
 
@@ -4016,12 +4093,29 @@ class MiniEdit( Frame ):
              self.net is not None):
             return
         link = self.selection
+        linkDetail = self.links[link]
+        nodeSrc = ''
+        nodeDest = ''
 
-        linkDetail =  self.links[link]
-        # src = linkDetail['src']
-        # dest = linkDetail['dest']
+        for widget in self.widgetToItem:
+            nodeName = widget['text']
+            if nodeName == linkDetail['src']['text']:
+                tags = self.canvas.gettags(self.widgetToItem[widget])
+                if 'AP' in tags:
+                    nodeSrc = self.apOpts[nodeName]
+                elif 'Station' in tags:
+                    nodeSrc = self.stationOpts[nodeName]
+            else:
+                tags = self.canvas.gettags(self.widgetToItem[widget])
+                if 'AP' in tags:
+                    nodeDest = self.apOpts[nodeName]
+                elif 'Station' in tags:
+                    nodeDest = self.stationOpts[nodeName]
+
         linkopts = linkDetail['linkOpts']
-        linkBox = LinkDialog(self, title='Link Details', linkDefaults=linkopts)
+        linkBox = LinkDialog(self, title='Link Details',
+                             linkDefaults=linkopts, links=linkDetail,
+                             src=nodeSrc, dest=nodeDest)
         if linkBox.result is not None:
             linkDetail['linkOpts'] = linkBox.result
             info( 'New link details = ' + str(linkBox.result), '\n' )
@@ -4243,6 +4337,8 @@ class MiniEdit( Frame ):
                     apParms['range']=range
                 if 'mode' in opts:
                     apParms['mode']=opts['mode']
+                if 'wlans' in opts:
+                    apParms['wlans']=opts['wlans']
                 if 'authentication' in opts:
                     apParms['authentication']=opts['authentication']
                 if 'passwd' in opts:
@@ -4950,6 +5046,7 @@ class MiniEdit( Frame ):
             self.apOpts[name]['authentication'] = 'none'
             self.apOpts[name]['passwd'] = ''
             self.apOpts[name]['apType'] = 'default'
+            self.apOpts[name]['wlans'] = '1'
             self.apOpts[name]['controllers'] = []
 
             x = columnCount * 100 + 100
