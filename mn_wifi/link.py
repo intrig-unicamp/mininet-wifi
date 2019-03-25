@@ -1143,7 +1143,7 @@ class mesh(IntfWireless):
         intf = node.params['wlan'][wlan]
         if node.func[wlan] == 'adhoc':
             self.setType('managed', intf)
-        self.name = '%s-mp%s' % (node, wlan)
+        self.name = '%s-mp%s' % (node, node.params['wlan'][wlan][-1:])
         if node.func[wlan] == 'mesh' and 'phyap' in params:
             self.name = '%s-mp%s' % (node, wlan+1)
 
