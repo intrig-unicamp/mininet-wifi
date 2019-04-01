@@ -1,13 +1,13 @@
 #!/usr/bin/python
 
 "Replaying RSSI"
+import os
 
 from mininet.node import Controller,OVSKernelSwitch
 from mininet.log import setLogLevel, info
 from mn_wifi.replaying import replayingRSSI
 from mn_wifi.cli import CLI_wifi
 from mn_wifi.net import Mininet_wifi
-import os
 
 
 def topology():
