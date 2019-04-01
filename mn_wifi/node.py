@@ -1355,9 +1355,9 @@ class AccessPoint(AP):
 
     writeMacAddress = False
 
-    def __init__(cls, aps, driver, link):
+    def __init__(self, aps, driver, link):
         'configure ap'
-        cls.configure(aps, driver, link)
+        self.configure(aps, driver, link)
 
     @classmethod
     def configure(cls, aps, driver, link):
@@ -2058,33 +2058,33 @@ class OVSAP(AP):
     argmax = 128000
 
     @classmethod
-    def batchStartup(cls, switches, run=errRun):
+    def batchStartup(cls, aps, run=errRun):
         """Batch startup for OVS
-           switches: switches to start up
+           aps: aps to start up
            run: function to run commands (errRun)"""
         info('...')
         cmds = 'ovs-vsctl'
-        for switch in switches:
-            if switch.isOldOVS():
+        for ap in aps:
+            if ap.isOldOVS():
                 # Ideally we'd optimize this also
-                run('ovs-vsctl del-br %s' % switch)
-            for cmd in switch.commands:
+                run('ovs-vsctl del-br %s' % ap)
+            for cmd in ap.commands:
                 cmd = cmd.strip()
                 # Don't exceed ARG_MAX
                 if len(cmds) + len(cmd) >= cls.argmax:
                     run(cmds, shell=True)
                     cmds = 'ovs-vsctl'
                 cmds += ' ' + cmd
-                switch.cmds = []
-                switch.batch = False
+                ap.cmds = []
+                ap.batch = False
         if cmds:
             run(cmds, shell=True)
         # Reapply link config if necessary...
-        for switch in switches:
-            for intf in switch.intfs.values():
+        for ap in aps:
+            for intf in ap.intfs.values():
                 if isinstance(intf, TCWirelessLink):
                     intf.config(**intf.params)
-        return switches
+        return aps
 
     def stop(self, deleteIntfs=True):
         """Terminate OVS switch.
@@ -2095,19 +2095,19 @@ class OVSAP(AP):
         super(OVSAP, self).stop(deleteIntfs)
 
     @classmethod
-    def batchShutdown(cls, switches, run=errRun):
+    def batchShutdown(cls, aps, run=errRun):
         "Shut down a list of OVS switches"
         delcmd = 'del-br %s'
-        if switches and not switches[ 0 ].isOldOVS():
+        if aps and not aps[ 0 ].isOldOVS():
             delcmd = '--if-exists ' + delcmd
         # First, delete them all from ovsdb
-        run('ovs-vsctl ' + ' -- '.join(delcmd % s for s in switches))
+        run('ovs-vsctl ' + ' -- '.join(delcmd % s for s in aps))
         # Next, shut down all of the processes
-        pids = ' '.join(str(switch.pid) for switch in switches)
+        pids = ' '.join(str(ap.pid) for ap in aps)
         run('kill -HUP ' + pids)
-        for switch in switches:
-            switch.shell = None
-        return switches
+        for ap in aps:
+            ap.shell = None
+        return aps
 
 
 OVSKernelAP = OVSAP

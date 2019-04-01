@@ -317,7 +317,7 @@ class Mininet_wifi(Mininet):
             self.nextPos_ap += 100
 
         wlan = None
-        if cls == physicalAP:
+        if cls and cls.__name__ == 'physicalAP':
             wlan = ("%s" % params.pop('phywlan', {}))
             cls = self.accessPoint
         if not cls:

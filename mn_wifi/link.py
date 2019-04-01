@@ -549,7 +549,6 @@ class WirelessLinkAP(object):
         # This is a bit awkward; it seems that having everything in
         # params is more orthogonal, but being able to specify
         # in-line arguments is more convenient! So we support both.
-
         if params1 is None:
             params1 = {}
 
