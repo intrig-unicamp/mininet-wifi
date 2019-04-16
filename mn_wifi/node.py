@@ -494,10 +494,10 @@ class Node_wifi(Node):
 
     def associateTo(self, ap, intf=None):
         "Force association to given AP"
-        self.moveAssociationTo(ap, intf)
+        self.setAssociation(ap, intf)
 
-    def moveAssociationTo(self, ap, intf=None):
-        "Force association to specific AP"
+    def setAssociation(self, ap, intf=None):
+        "Force association to given AP"
         sta = self
         wlan = sta.params['wlan'].index(intf)
 
