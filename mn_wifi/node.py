@@ -41,7 +41,7 @@ from mininet.node import Node
 from mininet.moduledeps import moduleDeps, pathCheck, TUN
 from mininet.link import Link, Intf, OVSIntf
 from mn_wifi.link import TCWirelessLink, TCLinkWirelessAP,\
-    Association, wirelessLink, adhoc, mesh
+    Association, wirelessLink, adhoc, mesh, physicalMesh
 from mn_wifi.wmediumdConnector import w_server, w_pos, w_txpower, \
     w_gain, w_height, w_cst, wmediumd_mode
 from mn_wifi.propagationModels import GetSignalRange, \
@@ -162,11 +162,14 @@ class Node_wifi(Node):
         self.params['range'] = [0]
         self.plotted = True
 
-    def setMeshIface(self, iface, ssid='', **params):
-        mesh.setMeshIface(self, iface, ssid, **params)
+    def setMeshMode(self, **kwargs):
+        mesh(self, **kwargs)
 
-    def setPhysicalMeshIface(self, **params):
-        mesh.setPhysicalMeshIface(self, **params)
+    def setPhysicalMeshMode(self, **kwargs):
+        physicalMesh(self, **kwargs)
+
+    def setAdhocMode(self, **kwargs):
+        adhoc(self, **kwargs)
 
     def setMasterMode(self, intf=None, ssid='-ssid1',
                       **kwargs):
@@ -201,22 +204,6 @@ class Node_wifi(Node):
             link = 'wmediumd'
         AccessPoint.setConfig(self, aplist=None, wlan=wlan,
                               link=link, ssid=ssid)
-
-    def setAdhocIface(self, iface, ssid=''):
-        "Set Adhoc Interface"
-        wlan = self.params['wlan'].index(iface)
-        if self.func[wlan] == 'mesh':
-            self.cmd('iw dev %s del' % self.params['wlan'][wlan])
-            iface = '%s-wlan%s' % (self, wlan)
-            self.params['wlan'][wlan] = iface
-        else:
-            iface = self.params['wlan'][wlan]
-        if ssid != '':
-            if 'ssid' not in self.params:
-                self.params['ssid'] = []
-                self.params['ssid'].append(0)
-            self.params['ssid'][wlan] = ssid
-            adhoc.configureAdhoc(self, wlan, enable_wmediumd=True)
 
     def setOCBIface(self, wlan):
         "Set OCB Interface"

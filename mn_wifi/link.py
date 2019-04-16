@@ -1041,6 +1041,8 @@ class adhoc(IntfWireless):
             for intf_ in node.params['wlan']:
                 if params['intf'] == intf_:
                     wlan = node.params['wlan'].index(intf_)
+                    if 'mp' in intf_:
+                        node.params['wlan'][wlan] = intf_.replace('mp', 'wlan')
         else:
             wlan = node.ifaceToAssociate
 
