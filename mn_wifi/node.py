@@ -162,14 +162,35 @@ class Node_wifi(Node):
         self.params['range'] = [0]
         self.plotted = True
 
-    def setMeshMode(self, **kwargs):
-        mesh(self, **kwargs)
+    def modeAlert(self, mode, intf):
+        info('%s is already working on %s mode\n' % (intf, mode))
 
-    def setPhysicalMeshMode(self, **kwargs):
-        physicalMesh(self, **kwargs)
+    def setMeshMode(self, intf=None, **kwargs):
+        if intf:
+            kwargs['intf'] = intf
+        wlan = self.params['wlan'].index(kwargs['intf'])
+        if self.func[wlan] == 'mesh':
+            self.modeAlert(self.func[wlan], kwargs['intf'])
+        else:
+            mesh(self, **kwargs)
 
-    def setAdhocMode(self, **kwargs):
-        adhoc(self, **kwargs)
+    def setPhysicalMeshMode(self, intf=None, **kwargs):
+        if intf:
+            kwargs['intf'] = intf
+        wlan = self.params['wlan'].index(kwargs['intf'])
+        if self.func[wlan] == 'mesh':
+            self.modeAlert(self.func[wlan], kwargs['intf'])
+        else:
+            physicalMesh(self, **kwargs)
+
+    def setAdhocMode(self, intf=None, **kwargs):
+        if intf:
+            kwargs['intf'] = intf
+        wlan = self.params['wlan'].index(kwargs['intf'])
+        if self.func[wlan] == 'adhoc':
+            self.modeAlert(self.func[wlan], kwargs['intf'])
+        else:
+            adhoc(self, **kwargs)
 
     def setMasterMode(self, intf=None, ssid='-ssid1',
                       **kwargs):

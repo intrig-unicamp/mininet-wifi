@@ -1042,6 +1042,7 @@ class adhoc(IntfWireless):
                 if params['intf'] == intf_:
                     wlan = node.params['wlan'].index(intf_)
                     if 'mp' in intf_:
+                        node.pexec('iw dev %s del' % node.params['wlan'][wlan])
                         node.params['wlan'][wlan] = intf_.replace('mp', 'wlan')
         else:
             wlan = node.ifaceToAssociate
@@ -1143,7 +1144,7 @@ class mesh(IntfWireless):
         wlan = node.params['wlan'].index(self.name)
         intf = node.params['wlan'][wlan]
         if node.func[wlan] == 'adhoc':
-            self.setType('managed', intf)
+            self.setType('managed')
         self.name = '%s-mp%s' % (node, node.params['wlan'][wlan][-1:])
         if node.func[wlan] == 'mesh' and 'phyap' in params:
             self.name = '%s-mp%s' % (node, wlan+1)
