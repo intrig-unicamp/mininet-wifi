@@ -162,35 +162,23 @@ class Node_wifi(Node):
         self.params['range'] = [0]
         self.plotted = True
 
-    def modeAlert(self, mode, intf):
-        info('%s is already working on %s mode\n' % (intf, mode))
-
     def setMeshMode(self, intf=None, **kwargs):
         if intf:
             kwargs['intf'] = intf
         wlan = self.params['wlan'].index(kwargs['intf'])
-        if self.func[wlan] == 'mesh':
-            self.modeAlert(self.func[wlan], kwargs['intf'])
-        else:
-            mesh(self, **kwargs)
+        mesh(self, **kwargs)
 
     def setPhysicalMeshMode(self, intf=None, **kwargs):
         if intf:
             kwargs['intf'] = intf
         wlan = self.params['wlan'].index(kwargs['intf'])
-        if self.func[wlan] == 'mesh':
-            self.modeAlert(self.func[wlan], kwargs['intf'])
-        else:
-            physicalMesh(self, **kwargs)
+        physicalMesh(self, **kwargs)
 
     def setAdhocMode(self, intf=None, **kwargs):
         if intf:
             kwargs['intf'] = intf
         wlan = self.params['wlan'].index(kwargs['intf'])
-        if self.func[wlan] == 'adhoc':
-            self.modeAlert(self.func[wlan], kwargs['intf'])
-        else:
-            adhoc(self, **kwargs)
+        adhoc(self, **kwargs)
 
     def setMasterMode(self, intf=None, ssid='-ssid1',
                       **kwargs):
@@ -337,19 +325,22 @@ class Node_wifi(Node):
         self.setHeightWmediumd(wlan)
         self.configLinks()
 
-    def setChannel(self, value, intf=None):
+    def setChannel(self, channel, intf=None):
         "Set Channel"
-        wlan = self.params['wlan'].index(intf)
-        self.params['channel'][wlan] = str(value)
-        self.params['freq'][wlan] = self.get_freq(wlan)
-        if isinstance(self, AP) and self.func[wlan] != 'mesh':
-            self.pexec(
-                'hostapd_cli -i %s chan_switch %s %s' % (
-                    intf, str(value),
-                    str(self.params['freq'][wlan]).replace(".", "")))
+        from mn_wifi.link import IntfWireless
+        wlan = 0
+        if intf:
+            wlan = self.params['wlan'].index(intf)
         else:
-            self.cmd('iw dev %s set channel %s'
-                     % (self.params['wlan'][wlan], str(value)))
+            intf = self.params['wlan'][wlan]
+        if isinstance(self, AP) and self.func[wlan] != 'mesh':
+            IntfWireless.setChannel(self, channel, intf, AP=True)
+        else:
+            if self.func[wlan] == 'mesh':
+                mesh(self, channel=channel, intf=intf)
+            elif self.func[wlan] == 'adhoc':
+                self.cmd('iw dev %s ibss leave' % self.params['wlan'][wlan])
+                adhoc(self, channel=channel, intf=intf)
 
     def setTxPower(self, value, intf=None, setParam=True):
         "Set Tx Power"
