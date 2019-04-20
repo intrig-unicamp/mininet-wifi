@@ -178,6 +178,8 @@ class Node_wifi(Node):
         if intf:
             kwargs['intf'] = intf
         wlan = self.params['wlan'].index(kwargs['intf'])
+        if self.func[wlan] == 'adhoc':
+            self.cmd('iw dev %s ibss leave' % self.params['wlan'][wlan])
         adhoc(self, **kwargs)
 
     def setMasterMode(self, intf=None, ssid='-ssid1',

@@ -1078,6 +1078,10 @@ class adhoc(IntfWireless):
             ssid = ("%s" % params.pop('ssid', {}))
             if ssid != "{}":
                 node.params['ssid'][wlan] = ssid
+        else:
+            if 'ssid' in params:
+                ssid = ("%s" % params['ssid'])
+                node.params['ssid'][wlan] = ssid
 
         if 'channel' in params:
             IntfWireless.setFreqParams(node, params['channel'], wlan)
@@ -1154,6 +1158,10 @@ class mesh(IntfWireless):
             node.params['ssid'][wlan] = 'meshNetwork'
             ssid = ("%s" % params['ssid'])
             if ssid != "{}":
+                node.params['ssid'][wlan] = ssid
+        else:
+            if 'ssid' in params:
+                ssid = ("%s" % params['ssid'])
                 node.params['ssid'][wlan] = ssid
 
         self.name = node.params['wlan'][wlan]
