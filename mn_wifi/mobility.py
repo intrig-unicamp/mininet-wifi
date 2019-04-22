@@ -479,7 +479,7 @@ class tracked(thread):
                         i += 1
 
     def set_pos(self, node, pos):
-        node.params['position'] = [float(x) for x in pos.split(',')]
+        node.params['position'] = pos
         if mobility.wmediumd_mode == 3 and mobility.thread_._keep_alive:
             node.set_pos_wmediumd(pos)
 
@@ -487,7 +487,7 @@ class tracked(thread):
         x = round(node.params['position'][0], 2) + round(node.moveFac[0], 2)
         y = round(node.params['position'][1], 2) + round(node.moveFac[1], 2)
         z = round(node.params['position'][2], 2) + round(node.moveFac[2], 2)
-        return '%s,%s,%s' % (x, y, z)
+        return [x, y, z]
 
     def create_coordinate(cls, node):
         node.coord_ = []
