@@ -272,10 +272,7 @@ class Mininet_wifi(Mininet):
         defaults = {'ip': ipAdd(self.nextIP,
                                 ipBaseNum=self.ipBaseNum,
                                 prefixLen=self.prefixLen) +
-                          '/%s' % self.prefixLen,
-                    'channel': self.channel,
-                    'mode': self.mode,
-                    'ssid': self.ssid
+                          '/%s' % self.prefixLen
                     }
 
         if self.autoSetMacs:
