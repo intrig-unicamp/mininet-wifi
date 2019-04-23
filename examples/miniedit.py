@@ -4240,6 +4240,8 @@ class MiniEdit( Frame ):
                 if 'Switch' in tags:
                     if widget['text'] in self.switchOpts[name]['controllers']:
                         self.switchOpts[name]['controllers'].remove(widget['text'])
+        if 'AP' in tags:
+            self.deleteItem(self.range[widget['text']])
 
         for link in widget.links.values():
             # Delete from view and model
