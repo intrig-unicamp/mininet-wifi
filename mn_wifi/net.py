@@ -1218,6 +1218,8 @@ class Mininet_wifi(Mininet):
     def startMobility(self, **kwargs):
         if 'repetitions' in kwargs:
             self.repetitions = kwargs['repetitions']
+        else:
+            kwargs['repetitions'] = 1
         kwargs['init_time'] = kwargs['time']
         self.setMobilityParams(**kwargs)
 
@@ -1822,7 +1824,7 @@ class Mininet_wifi(Mininet):
                             pos[0] = float(pos[0]) + 1
                             if node.func[wlan] == 'adhoc':
                                 sleep(1.5)
-                            if self.link == wmediumd:
+                            if self.wmediumd_mode == interference:
                                 node.set_pos_wmediumd(pos)
 
             mob.aps = self.aps
