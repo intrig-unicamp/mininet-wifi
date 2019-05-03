@@ -263,8 +263,16 @@ class mobility(object):
         except:
             info('Warning: running without GUI.\n')
             kwargs['DRAW'] = False
-
+        for node in kwargs['nodes'][10:]:
+            if node in kwargs['nodes'][10:20]:
+                node.setPosition("100,50,0")
+            if node in kwargs['nodes'][20:30]:
+                node.setPosition("150,50,0")
+            if node in kwargs['nodes'][30:40]:
+                node.setPosition("200,50,0")
+        kwargs['nodes'] = kwargs['nodes'][:10]
         if kwargs['nodes']:
+            print(kwargs['nodes'])
             model = kwargs['model']
             debug('Configuring the mobility model %s\n' % kwargs['model'])
 
@@ -1404,7 +1412,6 @@ def cooler_ref_point(nodes, dimensions, pointlist, velocity=(0.1, 1.), g_velocit
         iter(nr_nodes)
     except TypeError:
         nr_nodes = [nr_nodes]
-
     #Create an array of length equal to # of nodes
     NODES = np.arange(sum(nr_nodes))
     #Store nodes in their specific group, which controls the "reference point" who vector they follow
