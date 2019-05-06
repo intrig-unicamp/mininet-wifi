@@ -300,6 +300,7 @@ class Node_wifi(Node):
             cls = plot3d
         if cls.fig_exists():
             cls.updateCircleRadius(self)
+            cls.updateLine(self)
             cls.update(self)
             cls.pause()
 
@@ -439,7 +440,6 @@ class Node_wifi(Node):
     def set_pos_wmediumd(self, pos):
         "Set Position for wmediumd"
         wlans = len(self.params['mac'])
-
         if self.lastpos != self.params['position']:
             self.lastpos = self.params['position']
             for wlan in range(0, wlans):
