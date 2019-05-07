@@ -730,6 +730,16 @@ class Mininet_wifi(Mininet):
             self.addAccessPoint(apName, **params)
             info(apName + ' ')
 
+        info('\n*** Adding switches:\n')
+        for switchName in topo.switches():
+            # A bit ugly: add batch parameter if appropriate
+            params = topo.nodeInfo( switchName)
+            cls = params.get( 'cls', self.switch )
+            if hasattr( cls, 'batchStartup' ):
+                params.setdefault( 'batch', True )
+            self.addSwitch( switchName, **params )
+            info( switchName + ' ' )
+
         info('\n*** Configuring wifi nodes...\n')
         self.configureWifiNodes()
 
