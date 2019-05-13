@@ -543,7 +543,7 @@ class Node_wifi(Node):
                     elif ap.params['encrypt'][0] == 'wep':
                         Association.wep(self, ap, wlan, ap_wlan=0)
                 Association.update(sta, ap, wlan)
-                wirelessLink(sta=sta, ap=ap, wlan=wlan, dist=dist)
+                wirelessLink(sta=sta, ap=ap, wlan=wlan, dist=dist, ap_wlan=0)
             else:
                 info ('%s is already connected!\n' % ap)
             self.configLinks()
