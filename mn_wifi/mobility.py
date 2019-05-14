@@ -263,14 +263,24 @@ class mobility(object):
         except:
             info('Warning: running without GUI.\n')
             kwargs['DRAW'] = False
-        for node in kwargs['nodes'][10:]:
-            if node in kwargs['nodes'][10:20]:
-                node.setPosition("100,50,0")
-            if node in kwargs['nodes'][20:30]:
-                node.setPosition("150,50,0")
-            if node in kwargs['nodes'][30:40]:
-                node.setPosition("200,50,0")
-        kwargs['nodes'] = kwargs['nodes'][:10]
+        if 'mob_groups' in kwargs:
+            node_dict = {node.name : node for (node.name, node) in nodes}
+            mobile_nodes= []
+            for coord in kwargs['mob_groups'].keys():
+                for node in kwargs['mob_groups']['coord']:
+                    if coord == "-1,-1,-1":
+                        mobile_nodes.append(node_dict[node])
+                    else:
+                        node_dict[node].setPosition(coord)
+            kwargs['nodes'] = mobile_nodes
+        # for node in kwargs['nodes'][10:]:
+        #     if node in kwargs['nodes'][10:20]:
+        #         node.setPosition("100,50,0")
+        #     if node in kwargs['nodes'][20:30]:
+        #         node.setPosition("150,50,0")
+        #     if node in kwargs['nodes'][30:40]:
+        #         node.setPosition("200,50,0")
+        # kwargs['nodes'] = kwargs['nodes'][:10]
         if kwargs['nodes']:
             print(kwargs['nodes'])
             model = kwargs['model']

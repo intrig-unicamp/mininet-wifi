@@ -1752,7 +1752,7 @@ class Mininet_wifi(Mininet):
         args = ['min_x', 'min_y', 'min_z',
                   'max_x', 'max_y', 'max_z',
                   'stations', 'cars', 'aps',
-                  'DRAW', 'conn', 'repetitions']
+                  'DRAW', 'conn', 'repetitions', 'mob_groups']
         for arg in args:
             self.mob_param.setdefault(arg, getattr(self, arg))
 
@@ -1760,7 +1760,7 @@ class Mininet_wifi(Mininet):
             self.mob_param.setdefault('nroads', self.nroads)
         if 'plotNodes' in kwargs:
             self.mob_param.setdefault('plotNodes', kwargs['plotNodes'])
-	if 'nodes' in kwargs and kwargs['nodes']:
+	    if 'nodes' in kwargs and kwargs['nodes']:
             self.mob_param.setdefault('nodes', kwargs['nodes'])
         if 'associationControl' in kwargs:
             self.mob_param.setdefault('AC', kwargs['associationControl'])
@@ -1794,7 +1794,8 @@ class Mininet_wifi(Mininet):
                 self.mob_param.setdefault('min_v', kwargs['min_v'])
             if 'max_v' in kwargs:
                 self.mob_param.setdefault('max_v', kwargs['max_v'])
-
+        if 'mob_groups' in kwargs:
+            self.mob_param.setdefault('mob_groups', kwargs['mob_groups'])
         if 'time' in kwargs:
             if 'init_time' not in self.mob_param:
                 self.mob_param.setdefault('init_time', kwargs['time'])
