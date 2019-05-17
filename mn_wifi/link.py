@@ -761,8 +761,9 @@ class wmediumd(TCWirelessLink):
                     node.wmIface.append(wlan)
                     node.wmIface[wlan] = DynamicWmediumdIntfRef(node, intf=wlan)
                     intfrefs.append(node.wmIface[wlan])
-                    if (node.func[wlan] == 'ap' or (node in aps
-                                                    and node.func[wlan] is not 'client')):
+                    if (node.func[wlan] == 'ap'
+                        or (node in aps and (node.func[wlan] is not 'client'
+                                             and node.func[wlan] is not 'adhoc'))):
                         isnodeaps.append(1)
                     else:
                         isnodeaps.append(0)

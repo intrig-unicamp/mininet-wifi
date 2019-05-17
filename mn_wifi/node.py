@@ -1438,7 +1438,10 @@ class AccessPoint(AP):
                     ap.auth_algs = 2
                     ap.wep_key0 = ap.params['passwd'][wlan]
 
-            cls.setHostapdConfig(ap, wlan, aplist, link)
+            if ap.params['mode'][wlan] == 'adhoc':
+                ap.func[wlan] = 'adhoc'
+            else:
+                cls.setHostapdConfig(ap, wlan, aplist, link)
 
     @classmethod
     def setHostapdConfig(cls, ap, wlan, aplist=None, link=None):
@@ -1772,7 +1775,7 @@ class AccessPoint(AP):
 class UserAP(AP):
     "User-space AP."
 
-    dpidLen = 12
+    dpidLen = 16
 
     def __init__(self, name, dpopts='--no-slicing', **kwargs):
         """Init.
