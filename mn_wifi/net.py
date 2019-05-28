@@ -97,7 +97,6 @@ class Mininet_wifi(Mininet):
         self.nextIP = 1  # start for address allocation
         self.nextPos_sta = 1 # start for sta position allocation
         self.nextPos_ap = 1  # start for ap position allocation
-        self.repetitions = 1 # mobility: number of repetitions
         self.inNamespace = inNamespace
         self.xterms = xterms
         self.autoSetMacs = autoSetMacs
@@ -1216,9 +1215,7 @@ class Mininet_wifi(Mininet):
         self.setMobilityModelParams(**kwargs)
 
     def startMobility(self, **kwargs):
-        if 'repetitions' in kwargs:
-            self.repetitions = kwargs['repetitions']
-        else:
+        if 'repetitions' not in kwargs:
             kwargs['repetitions'] = 1
         kwargs['init_time'] = kwargs['time']
         self.setMobilityParams(**kwargs)
@@ -1670,7 +1667,7 @@ class Mininet_wifi(Mininet):
         args = ['min_x', 'min_y', 'min_z',
                   'max_x', 'max_y', 'max_z',
                   'stations', 'cars', 'aps',
-                  'DRAW', 'conn', 'repetitions']
+                  'DRAW', 'conn']
         for arg in args:
             self.mob_param.setdefault(arg, getattr(self, arg))
 

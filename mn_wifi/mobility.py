@@ -51,7 +51,6 @@ class mobility(object):
         calculating the speed"""
         init_pos = (node.params['initPos'])
         fin_pos = (node.params['finPos'])
-
         if hasattr(node, 'points'):
             diff_time = (len(node.points)-1) / diff_time
             node.moveFac = diff_time
@@ -444,12 +443,19 @@ class tracked(thread):
         nodes = kwargs['nodes']
 
         for rep in range(kwargs['repetitions']):
+            mobility.thread_._keep_alive = True
             t1 = time()
             i = 1
-            if rep > 0:
-                for node in nodes:
-                    if 'initPos' in node.params:
-                        mobility.mobileNodes.append(node)
+            if 'reverse' in kwargs and kwargs['reverse'] == True:
+                for node in mobility.mobileNodes:
+                    if rep%2 == 1:
+                        fin_ = node.params['finPos']
+                        node.params['finPos'] = node.params['initPos']
+                        node.params['initPos'] = fin_
+                    elif rep%2 == 0 and rep > 0:
+                        fin_ = node.params['finPos']
+                        node.params['finPos'] = node.params['initPos']
+                        node.params['initPos'] = fin_
             for node in mobility.mobileNodes:
                 node.time = node.startTime
                 mobility.calculate_diff_time(node)
