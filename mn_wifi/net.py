@@ -613,7 +613,7 @@ class Mininet_wifi(Mininet):
 
     def configHosts(self):
         "Configure a set of nodes."
-        nodes = self.hosts + self.stations
+        nodes = self.hosts + self.stations + self.cars
         for node in nodes:
             # info( host.name + ' ' )
             intf = node.defaultIntf()
