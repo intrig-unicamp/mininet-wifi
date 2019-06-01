@@ -1775,7 +1775,7 @@ class AccessPoint(AP):
 class UserAP(AP):
     "User-space AP."
 
-    dpidLen = 16
+    dpidLen = 12
 
     def __init__(self, name, dpopts='--no-slicing', **kwargs):
         """Init.
