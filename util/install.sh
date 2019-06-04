@@ -191,7 +191,7 @@ function wifi_deps {
     cp defconfig .config
     sudo make && make install
     pushd $MININET_DIR/mininet-wifi/
-    git clone --depth=1 https://github.com/ramonfontes/iw
+    git clone --depth=1 https://git.kernel.org/pub/scm/linux/kernel/git/jberg/iw.git
     pushd $MININET_DIR/mininet-wifi/iw
     sudo make && make install
     cd $BUILD_DIR
