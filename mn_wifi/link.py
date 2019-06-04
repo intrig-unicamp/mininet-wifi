@@ -872,7 +872,7 @@ class set_snr(object):
                                           node[0].params['rssi'][0] - (-91)))
 
 
-class wirelessLink (object):
+class wirelessLink(object):
 
     dist = 0
     noise = 0
