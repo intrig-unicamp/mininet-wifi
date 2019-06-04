@@ -230,7 +230,7 @@ class replayingRSSI(object):
                             dist = int('%d' % self.calculateDistance(sta, ap, rssi,
                                                                      propagationModel, n))
                             self.setPos(Mininet_wifi, sta, ap, dist, ang[sta])
-                            wirelessLink(sta, ap, wlan=0, ap_wlan=0)
+                            wirelessLink(sta, ap, dist, wlan=0, ap_wlan=0)
                         del sta.rssi[0]
                         del sta.time[0]
                     if len(sta.time) == 0:
