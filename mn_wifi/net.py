@@ -1335,7 +1335,10 @@ class Mininet_wifi(Mininet):
                 if sta.params['associatedTo'][wlan]:
                     sta.cmd('iw dev %s disconnect' % sta.params['wlan'][wlan])
                     sta.params['associatedTo'][wlan] = ''
-                    ap.params['associatedStations'].remove(sta)
+                    if sta in ap.params['associatedStations']:
+                        ap.params['associatedStations'].remove(sta)
+                    else:
+                        output("No association between nodes found!")
         else:
             for wlan in range(0, len(sta.params['wlan'])):
                 if not sta.params['associatedTo'][wlan]:
