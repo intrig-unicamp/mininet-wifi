@@ -1743,7 +1743,7 @@ class Mininet_wifi(Mininet):
             self.mob_param.setdefault('nroads', self.nroads)
         if 'plotNodes' in kwargs:
             self.mob_param.setdefault('plotNodes', kwargs['plotNodes'])
-	    if 'nodes' in kwargs and kwargs['nodes']:
+	if 'nodes' in kwargs and kwargs['nodes']:
             self.mob_param.setdefault('nodes', kwargs['nodes'])
         if 'associationControl' in kwargs:
             self.mob_param.setdefault('AC', kwargs['associationControl'])
