@@ -1005,8 +1005,9 @@ class Mininet_wifi(Mininet):
         # Each value is a tuple: (src, dsd, [all ping outputs])
         all_outputs = []
         if not hosts:
-            hosts = self.hosts
+            hosts = self.hosts + self.stations
             output('*** Ping: testing ping reachability\n')
+            
         for node in hosts:
             output('%s -> ' % node.name)
             for dest in hosts:
