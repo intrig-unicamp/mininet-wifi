@@ -171,6 +171,8 @@ class plot2d (object):
         cls.text(node, x, y)
         node.pltNode.set_data(x, y)
         node.pltCircle.center = x, y
+        # Enable the update of the links when the APs have mobility
+        cls.updateLine(node)
 
     @classmethod
     def pause(cls):
@@ -252,6 +254,23 @@ class plot2d (object):
         node.pltCircle.set_radius(max(node.params['range']))
 
     @classmethod
+    def updateLine(cls, node):
+        pos = [node.params['position'][0], node.params['position'][1]]
+        for line in cls.lines:
+            if node.name in line:
+                for n in range(len(line)):
+                    if '-' == line[n]:
+                        node1 = line[:n]
+                        node2 = line[n+1:]
+                pos_ = cls.lines[line].get_data()
+                if node.name == node1:
+                    cls.lines[line].set_data([pos[0],pos_[0][1]],
+                                             [pos[1],pos_[1][1]])
+                else:
+                    cls.lines[line].set_data([pos_[0][0],pos[0]],
+                                             [pos_[1][0],pos[1]])
+
+    @classmethod
     def setCircleColor(cls, node, color):
         node.pltCircle.set_color(color)
 
@@ -322,7 +341,7 @@ class plot2d (object):
         dst_y = '%.2f' % float(dst.params['position'][1])
         line = cls.line2d([float(src_x), float(dst_x)],
                           [float(src_y), float(dst_y)], 'b', ls=ls)
-        conn_ = src.name + dst.name
+        conn_ = src.name +'-'+ dst.name
         cls.lines[conn_] = line
         cls.line(line)
 

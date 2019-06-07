@@ -19,6 +19,7 @@ import struct
 from . import constants as tc
 from . import exceptions
 
+
 _RETURN_VALUE_FUNC = {tc.VAR_LENGTH: Storage.readDouble,
                       tc.VAR_MAXSPEED: Storage.readDouble,
                       tc.VAR_SPEED_FACTOR: Storage.readDouble,

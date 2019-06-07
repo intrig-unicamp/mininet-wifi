@@ -84,6 +84,24 @@ class IntfWireless(object):
     def setFreq(self, freq, intf=None):
         return self.cmd('iw dev %s set freq %s' % (intf, freq))
 
+    @classmethod
+    def setFreqParams(self, node, channel, wlan):
+        node.params['channel'][wlan] = str(channel)
+        node.params['freq'][wlan] = node.get_freq(wlan)
+
+    @classmethod
+    def setChannel(self, node, channel, intf=None, AP=None):
+        wlan = node.params['wlan'].index(intf)
+        self.setFreqParams(node, channel, wlan)
+        if AP and node.func[wlan] != 'mesh':
+            node.pexec(
+                'hostapd_cli -i %s chan_switch %s %s' % (
+                    intf, str(channel),
+                    str(node.params['freq'][wlan]).replace(".", "")))
+        else:
+            node.cmd('iw dev %s set channel %s'
+                         % (node.params['wlan'][wlan], str(channel)))
+
     def ipAddr(self, *args):
         "Configure ourselves using ip link/addr"
         if self.name not in self.node.params['wlan']:
@@ -186,13 +204,12 @@ class IntfWireless(object):
         else:
             return "UP" in self.ipAddr()
 
-    def rename(self, newname):
+    @classmethod
+    def rename(self, node, wintf, newname):
         "Rename interface"
-        self.ipLink('down')
-        result = self.cmd('ip link set', self.name, 'name', newname)
-        self.name = newname
-        self.ipLink('up')
-        return result
+        node.pexec('ip link set %s down' % wintf)
+        node.pexec('ip link set %s name %s' % (wintf, newname))
+        node.pexec('ip link set %s up' % newname)
 
     # The reason why we configure things in this way is so
     # That the parameters can be listed and documented in
@@ -565,7 +582,6 @@ class WirelessLinkAP(object):
         # This is a bit awkward; it seems that having everything in
         # params is more orthogonal, but being able to specify
         # in-line arguments is more convenient! So we support both.
-
         if params1 is None:
             params1 = {}
 
@@ -760,8 +776,9 @@ class wmediumd(TCWirelessLink):
                     node.wmIface.append(wlan)
                     node.wmIface[wlan] = DynamicWmediumdIntfRef(node, intf=wlan)
                     intfrefs.append(node.wmIface[wlan])
-                    if (node.func[wlan] == 'ap' or (node in aps
-                                                    and node.func[wlan] is not 'client')):
+                    if (node.func[wlan] == 'ap'
+                        or (node in aps and (node.func[wlan] is not 'client'
+                                             and node.func[wlan] is not 'adhoc'))):
                         isnodeaps.append(1)
                     else:
                         isnodeaps.append(0)
@@ -870,7 +887,7 @@ class set_snr(object):
                                           node[0].params['rssi'][0] - (-91)))
 
 
-class wirelessLink (object):
+class wirelessLink(object):
 
     dist = 0
     noise = 0
@@ -1053,29 +1070,38 @@ class adhoc(IntfWireless):
         node: name of the node
         self: custom association class/constructor
         params: parameters for station"""
+        self.name = ''
         self.node = node
         if 'intf' in params:
             for intf_ in node.params['wlan']:
                 if params['intf'] == intf_:
                     wlan = node.params['wlan'].index(intf_)
+                    if 'mp' in intf_:
+                        node.pexec('iw dev %s del' % node.params['wlan'][wlan])
+                        node.params['wlan'][wlan] = intf_.replace('mp', 'wlan')
         else:
             wlan = node.ifaceToAssociate
+        intf = node.params['wlan'][wlan]
 
-        node.params['ssid'] = []
         self.name = node.params['wlan'][wlan]
-        for _ in range(0, len(node.params['wlan'])):
-            node.params['ssid'].append('')
+        if 'ssid' not in node.params:
+            node.params['ssid'] = []
+            for _ in range(0, len(node.params['wlan'])):
+                node.params['ssid'].append('')
 
-        node.params['ssid'][wlan] = 'adhocNetwork'
-        ssid = ("%s" % params.pop('ssid', {}))
-        if ssid != "{}":
-            node.params['ssid'][wlan] = ssid
+        if not node.params['ssid'][wlan]:
+            node.params['ssid'][wlan] = 'adhocNetwork'
+            ssid = ("%s" % params.pop('ssid', {}))
+            if ssid != "{}":
+                node.params['ssid'][wlan] = ssid
+        else:
+            if 'ssid' in params:
+                ssid = ("%s" % params['ssid'])
+                node.params['ssid'][wlan] = ssid
 
         if 'channel' in params:
-            node.setChannel(params['channel'], intf=node.params['wlan'][wlan])
+            IntfWireless.setFreqParams(node, params['channel'], wlan)
 
-        if link and link == wmediumd:
-            params['enable_wmediumd'] = True
         self.configureAdhoc(node, wlan, **params)
         if 'intf' not in params:
             node.ifaceToAssociate += 1
@@ -1083,20 +1109,22 @@ class adhoc(IntfWireless):
     def configureAdhoc(self, node, wlan, **params):
         "Configure Wireless Ad Hoc"
         iface = node.params['wlan'][wlan]
-        ip = node.params['ip'][wlan]
+        if 'ip' in node.params:
+            ip = node.params['ip'][wlan]
+            node.setIP(ip, intf='%s' % iface)
         node.func[wlan] = 'adhoc'
-        node.setIP(ip, intf='%s' % iface)
         self.setType('ibss')
-        if 'position' not in node.params or 'enable_wmediumd' in params:
-            if 'passwd' in params:
-                self.setSecuredAdhoc(node, wlan, **params)
-            else:
-                ssid = node.params['ssid'][wlan]
-                freq = str(node.params['freq'][wlan]).replace('.', '')
-                ht_cap = ''
-                if 'ht_cap' in params:
-                    ht_cap = params['ht_cap']
-                self.join('ibss', ssid, freq, ht_cap)
+        self.ipLink('up')
+
+        if 'passwd' in params:
+            self.setSecuredAdhoc(node, wlan, **params)
+        else:
+            ssid = node.params['ssid'][wlan]
+            freq = str(node.params['freq'][wlan]).replace('.', '')
+            ht_cap = ''
+            if 'ht_cap' in params:
+                ht_cap = params['ht_cap']
+            self.join('ibss', ssid, freq, ht_cap)
 
     def setSecuredAdhoc(self, node, wlan, **params):
         "Set secured adhoc"
@@ -1137,15 +1165,20 @@ class mesh(IntfWireless):
         else:
             wlan = node.ifaceToAssociate
 
-        if not isAP:
+        if not isAP and 'ssid' not in node.params:
             node.params['ssid'] = []
             for _ in range(len(node.params['wlan'])):
                 node.params['ssid'].append('')
 
-        node.params['ssid'][wlan] = 'meshNetwork'
-        ssid = ("%s" % params['ssid'])
-        if ssid != "{}":
-            node.params['ssid'][wlan] = ssid
+        if not node.params['ssid'][wlan]:
+            node.params['ssid'][wlan] = 'meshNetwork'
+            ssid = ("%s" % params['ssid'])
+            if ssid != "{}":
+                node.params['ssid'][wlan] = ssid
+        else:
+            if 'ssid' in params:
+                ssid = ("%s" % params['ssid'])
+                node.params['ssid'][wlan] = ssid
 
         self.name = node.params['wlan'][wlan]
         self.setMeshIface(node, **params)
@@ -1153,12 +1186,12 @@ class mesh(IntfWireless):
         if 'intf' not in params:
             node.ifaceToAssociate += 1
 
-    def setMeshIface(self, node, ssid='', **params):
+    def setMeshIface(self, node, ssid=None, **params):
         wlan = node.params['wlan'].index(self.name)
         intf = node.params['wlan'][wlan]
         if node.func[wlan] == 'adhoc':
-            self.setType('managed', intf)
-        self.name = '%s-mp%s' % (node, wlan)
+            self.setType('managed')
+        self.name = '%s-mp%s' % (node, node.params['wlan'][wlan][-1:])
         if node.func[wlan] == 'mesh' and 'phyap' in params:
             self.name = '%s-mp%s' % (node, wlan+1)
 
@@ -1168,7 +1201,7 @@ class mesh(IntfWireless):
         node.params['wlan'][wlan] = self.name
 
         if 'channel' in params:
-            node.setChannel(params['channel'], intf=self.name)
+            IntfWireless.setChannel(node, params['channel'], intf=self.name)
 
         if 'mode' in params and (params['mode'] == 'a'
                                  or params['mode'] == 'ac'):
@@ -1187,12 +1220,7 @@ class mesh(IntfWireless):
             self.name = intf
         self.ipLink('up')
 
-        if ssid != '':
-            if 'ssid' not in node.params:
-                node.params['ssid'] = []
-                node.params['ssid'].append(0)
-            node.params['ssid'][wlan] = ssid
-            self.configureMesh(node, wlan, **params)
+        self.configureMesh(node, wlan, **params)
 
     def configureMesh(self, node, wlan, **params):
         "Configure Wireless Mesh Interface"
@@ -1243,6 +1271,8 @@ class physicalMesh(IntfWireless):
         self: custom association class/constructor
         params: parameters for node"""
         wlan = node.ifaceToAssociate
+        self.name = ''
+        self.node = node
 
         if not isAP:
             node.params['ssid'] = []
@@ -1259,14 +1289,13 @@ class physicalMesh(IntfWireless):
             node.params['range'][wlan] = node.getRange(intf=intf, noiseLevel=95)
 
         params['phyap'] = True
-        mesh.setMeshIface(node, node.params['wlan'][wlan], **params)
+        self.name = node.params['wlan'][wlan]
         self.setPhysicalMeshIface(node, **params)
         ssid = node.params['ssid'][wlan]
         freq = node.params['freq'][wlan]
         iface = node.params['wlan'][wlan]
         ht_cap = ''
         self.join('mesh', ssid, freq, ht_cap, iface)
-
         node.ifaceToAssociate += 1
 
     def setPhysicalMeshIface(self, node, **params):
@@ -1337,7 +1366,7 @@ class Association(object):
                 if sta not in ap.params['associatedStations']:
                     ap.params['associatedStations'].append(sta)
             if not enable_interference:
-                rssi = sta.set_rssi(ap, wlan, dist)
+                rssi = sta.get_rssi(ap, wlan, dist)
                 sta.params['rssi'][wlan] = rssi
             if ap not in sta.params['apsInRange']:
                 sta.params['apsInRange'].append(ap)
@@ -1390,6 +1419,7 @@ class Association(object):
         wlan = params['wlan']
         ap_wlan = params['ap_wlan']
         associated = 0
+
         if 'ieee80211r' in ap.params and ap.params['ieee80211r'] == 'yes' \
         and ('encrypt' not in sta.params or 'encrypt' in sta.params and
              'wpa' in sta.params['encrypt'][wlan]):

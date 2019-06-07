@@ -348,6 +348,15 @@ class testWalkthrough(unittest.TestCase):
         p.sendline('exit')
         p.wait()
 
+    def testUserAPManagedMode(self):
+        "Start Mininet-WiFi with userap in mesh mode"
+        p = pexpect.spawn(
+            'python examples/userap_managed_mode.py')
+        sleep(3)
+        p.expect(self.prompt)
+        p.sendline('exit')
+        p.wait()
+
     def testMobility(self):
         "Start Mininet-WiFi using mobility, then test ping"
         p = pexpect.spawn(
@@ -498,9 +507,9 @@ class testWalkthrough(unittest.TestCase):
         "Start Mininet-WiFi with wireless mesh, then test ping"
         p = pexpect.spawn(
             'python examples/mesh.py')
-        sleep(10)
+        sleep(8)
         p.sendline('sta1 ping -c1 sta2')
-        p.expect('1 packets transmitted, 1 received')
+        p.expect('1 packets transmitted')
         p.expect(self.prompt)
         p.sendline('pingall')
         p.expect('0% dropped')

@@ -48,7 +48,7 @@ def topology():
     getTrace(sta4, '%s/replayingMobility/node4.dat' % path, net)
 
     'ploting graph'
-    #net.plotGraph(max_x=200, max_y=200)
+    net.plotGraph(max_x=200, max_y=200)
 
     info("*** Starting network\n")
     net.build()
@@ -71,13 +71,15 @@ def getTrace(sta, file_, net):
     file_.close()
 
     sta.position = []
-    sta.params['position'] = (-1000,0,0)
+    pos = '-1000,0,0'
+    sta.params['position'] = [float(x) for x in pos.split(',')]
 
     for data in raw_data:
         line = data.split()
         x = line[0]  # First Column
         y = line[1]  # Second Column
-        sta.position.append('%s,%s,0' % (x, y))
+        pos = float(x),float(y),0.0
+        sta.position.append(pos)
 
 
 if __name__ == '__main__':

@@ -61,13 +61,14 @@ class sumo(object):
 
         while True:
             trace.simulationStep()
-            vehicleCommands = trace._vehicle.VehicleDomain()
-            vehicleCommands._connection = trace.getConnection(label="default")
-            for vehID in vehicleCommands.getIDList():
+            vehicleCmds = trace._vehicle.VehicleDomain()
+            vehicleCmds._connection = trace.getConnection(label="default")
+
+            for vehID in vehicleCmds.getIDList():
                 if not(vehID in veh_list):
                     init=initialisation(veh_list, travel_time_list,
                                         visited_list, visited, time,
-                                        speed, vehID, vehicleCommands)
+                                        speed, vehID, vehicleCmds)
                     veh_list = init[0]
                     travel_time_list = init[1]
                     visited_list = init[2]
@@ -76,47 +77,47 @@ class sumo(object):
                     speed = init[5]
 
                 no_change = noChangeSaveTimeAndSpeed(
-                    visited, veh_list, time, speed, vehID, vehicleCommands)
+                    visited, veh_list, time, speed, vehID, vehicleCmds)
                 visited = no_change[0]
                 time = no_change[1]
                 speed = no_change[2]
 
                 change = changeSaveTimeAndSpeed(
                     visited, veh_list, time, speed, visited_list, vehID,
-                    travel_time_list, vehicleCommands)
+                    travel_time_list, vehicleCmds)
                 visited = change[0]
                 time = change[1]
                 speed = change[2]
                 visited_list = change[3]
                 travel_time_list = change[4]
 
-            for vehID2 in vehicleCommands.getIDList():
-                for vehID1 in vehicleCommands.getIDList():
-                    road1 = vehicleCommands.getRoadID(vehID1)
-                    road2 = vehicleCommands.getRoadID(vehID2)
+            for vehID2 in vehicleCmds.getIDList():
+                for vehID1 in vehicleCmds.getIDList():
+                    road1 = vehicleCmds.getRoadID(vehID1)
+                    road2 = vehicleCmds.getRoadID(vehID2)
                     opposite_road1 = '-' + road1
                     opposite_road2 = '-' + road2
                     if not((vehID2,vehID1) in veh_interact_list):
-                        x1 = vehicleCommands.getPosition(vehID1)[0]
-                        y1 = vehicleCommands.getPosition(vehID1)[1]
-                        x2 = vehicleCommands.getPosition(vehID2)[0]
-                        y2 = vehicleCommands.getPosition(vehID2)[1]
+                        x1 = vehicleCmds.getPosition(vehID1)[0]
+                        y1 = vehicleCmds.getPosition(vehID1)[1]
+                        x2 = vehicleCmds.getPosition(vehID2)[0]
+                        y2 = vehicleCmds.getPosition(vehID2)[1]
 
                         if int(vehID1) < len(cars):
                             cars[int(vehID1)].params['position'] = x1, y1, 0
-                            cars[int(vehID1)].set_pos_wmediumd()
+                            cars[int(vehID1)].set_pos_wmediumd(cars[int(vehID1)].params['position'])
 
                         if abs(x1-x2)>0 and abs(x1-x2)<20 \
                                 and (road1 == opposite_road2 or road2 == opposite_road1):
                             veh_interact_list.append((vehID2,vehID1))
-                            route2 = vehicleCommands.getRoute(vehID2)
-                            route1 = vehicleCommands.getRoute(vehID1)
-                            index2 = route2.index(vehicleCommands.getRoadID(vehID2))
-                            index1 = route1.index(vehicleCommands.getRoadID(vehID1))
+                            route2 = vehicleCmds.getRoute(vehID2)
+                            route1 = vehicleCmds.getRoute(vehID1)
+                            index2 = route2.index(vehicleCmds.getRoadID(vehID2))
+                            index1 = route1.index(vehicleCmds.getRoadID(vehID1))
                             visited_edge_2 = visited_list[veh_list.index(vehID2)][0:len(
                                 visited_list[veh_list.index(vehID2)])-1]
                             reroutage(visited_edge_2, travel_time_list,
-                                      vehID1, vehID2, veh_list)
+                                      vehID1, vehID2, veh_list, vehicleCmds)
             step=step+1
         trace.close()
         sys.stdout.flush()

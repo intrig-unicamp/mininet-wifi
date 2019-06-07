@@ -22,7 +22,7 @@ from . import constants as tc
 
 def _readLinks(result):
     result.read("!Bi")  # Type Compound, Length
-    nbLinks = result.readInt()
+    nbLinks = result.readDouble()
     links = []
     for i in range(nbLinks):
         result.read("!B")                           # Type String
@@ -68,8 +68,8 @@ _RETURN_VALUE_FUNC = {tc.VAR_LENGTH: Storage.readDouble,
                       tc.LAST_STEP_LENGTH: Storage.readDouble,
                       tc.VAR_WAITING_TIME: Storage.readDouble,
                       tc.VAR_CURRENT_TRAVELTIME: Storage.readDouble,
-                      tc.LAST_STEP_VEHICLE_NUMBER: Storage.readInt,
-                      tc.LAST_STEP_VEHICLE_HALTING_NUMBER: Storage.readInt,
+                      tc.LAST_STEP_VEHICLE_NUMBER: Storage.readDouble,
+                      tc.LAST_STEP_VEHICLE_HALTING_NUMBER: Storage.readDouble,
                       tc.VAR_FOES: Storage.readStringList,
                       tc.LAST_STEP_VEHICLE_ID_LIST: Storage.readStringList}
 

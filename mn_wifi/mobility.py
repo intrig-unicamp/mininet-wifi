@@ -52,7 +52,6 @@ class mobility(object):
         calculating the speed"""
         init_pos = (node.params['initPos'])
         fin_pos = (node.params['finPos'])
-
         if hasattr(node, 'points'):
             diff_time = (len(node.points)-1) / diff_time
             node.moveFac = diff_time
@@ -82,11 +81,11 @@ class mobility(object):
                 node.params['initPos'] = [float(pos_) for pos_ in pos.split(',')]
         else:
             if stage == 'stop':
-                finPos = node.coord[1]
-                node.params['finPos'] = finPos.split(',')
+                pos = node.coord[1]
+                node.params['finPos'] = pos.split(',')
             if stage == 'start':
-                initPos = node.coord[0]
-                node.params['initPos'] = initPos.split(',')
+                pos = node.coord[0]
+                node.params['initPos'] = pos.split(',')
 
         if 'time' in kwargs:
             time_ = kwargs['time']
@@ -104,13 +103,6 @@ class mobility(object):
         cls.move_factor(node, diff_time)
 
     @classmethod
-    def move_node(cls, node):
-        x = round(node.params['position'][0],2) + round(node.moveFac[0],2)
-        y = round(node.params['position'][1],2) + round(node.moveFac[1],2)
-        z = round(node.params['position'][2],2) + round(node.moveFac[2],2)
-        return x, y, z
-
-    @classmethod
     def set_wifi_params(cls):
         "Opens a thread for wifi parameters"
         if cls.allAutoAssociation:
@@ -119,26 +111,33 @@ class mobility(object):
             thread_.start()
 
     @classmethod
-    def speed(cls, sta, pos_x, pos_y, pos_z, diff_time):
+    def set_pos(self, node, pos):
+        node.params['position'] = pos
+        if mobility.wmediumd_mode == 3 and mobility.thread_._keep_alive:
+            node.set_pos_wmediumd(pos)
+
+    @classmethod
+    def speed(cls, node, pos_x, pos_y, pos_z, diff_time):
         """Calculates the speed
-        :param sta: station
+
+        :param node: node
         :param pos_x: Position x
         :param pos_y: Position y
         :param pos_z: Position z
         :param diff_time: difference between start and stop time. Useful for
         calculating the speed"""
-        sta.params['speed'] = round(abs(((pos_x + pos_y + pos_z) /
-                                            diff_time)),2)
+        node.params['speed'] = round(abs(((pos_x + pos_y + pos_z) /
+                                          diff_time)),2)
 
     @classmethod
-    def ap_out_of_range(cls, sta, ap, wlan):
+    def ap_out_of_range(cls, sta, ap, wlan, ap_wlan):
         """When ap is out of range
         :param sta: station
         :param ap: access point
         :param wlan: wlan ID"""
         if ap == sta.params['associatedTo'][wlan]:
             if 'encrypt' in ap.params and 'ieee80211r' not in ap.params:
-                if 'wpa' in ap.params['encrypt'][0]:
+                if 'wpa' in ap.params['encrypt'][ap_wlan]:
                     os.system('rm %s_%s.staconf' % (sta.name, wlan))
                     pidfile = "mn%d_%s_%s_wpa.pid" \
                               % (os.getpid(), sta.name, wlan)
@@ -157,11 +156,11 @@ class mobility(object):
                 sta.pexec('iw dev %s disconnect' % sta.params['wlan'][wlan])
             sta.params['associatedTo'][wlan] = ''
             sta.params['channel'][wlan] = 0
-        if sta in ap.params['associatedStations']:
-            ap.params['associatedStations'].remove(sta)
-        if ap in sta.params['apsInRange']:
-            sta.params['apsInRange'].remove(ap)
-            ap.params['stationsInRange'].pop(sta, None)
+            if sta in ap.params['associatedStations']:
+                ap.params['associatedStations'].remove(sta)
+            if ap in sta.params['apsInRange']:
+                sta.params['apsInRange'].remove(ap)
+                ap.params['stationsInRange'].pop(sta, None)
 
     @classmethod
     def ap_in_range(cls, sta, ap, wlan, dist):
@@ -172,7 +171,7 @@ class mobility(object):
         :param dist: distance between source and destination"""
         if ap not in sta.params['apsInRange']:
             sta.params['apsInRange'].append(ap)
-        rssi = sta.set_rssi(ap, wlan, dist)
+        rssi = sta.get_rssi(ap, wlan, dist)
         ap.params['stationsInRange'][sta] = rssi
         if ap == sta.params['associatedTo'][wlan]:
             if cls.rec_rssi:
@@ -204,13 +203,17 @@ class mobility(object):
         """check association
         :param sta: station
         :param wlan: wlan ID"""
+        aps = []
         for ap in cls.aps:
             dist = sta.get_distance_to(ap)
             if dist > ap.params['range'][0]:
-                cls.ap_out_of_range(sta, ap, wlan)
+                cls.ap_out_of_range(sta, ap, wlan, ap_wlan)
             else:
-                cls.handover(sta, ap, wlan, ap_wlan)
-                cls.ap_in_range(sta, ap, wlan, dist)
+                aps.append(ap)
+        for ap in aps:
+            dist = sta.get_distance_to(ap)
+            cls.handover(sta, ap, wlan, ap_wlan)
+            cls.ap_in_range(sta, ap, wlan, dist)
 
     @classmethod
     def handover(cls, sta, ap, wlan, ap_wlan):
@@ -360,15 +363,20 @@ class mobility(object):
     def modelNoGraph(cls, mob, nodes):
         """Useful when graph is not required
         :param mob: mobility params
-        :param nodes: list of nodes"""
+        :param nodes: list of nodes
+        """
         for xy in mob:
             for idx, node in enumerate(nodes):
-                node.params['position'] = round(xy[idx][0],2), \
-                                          round(xy[idx][1],2), \
-                                          0.0
-                if cls.wmediumd_mode == 3 and mobility.thread_._keep_alive:
-                    node.set_pos_wmediumd()
-            sleep(0.5)
+                pos = round(xy[idx][0], 2), \
+                      round(xy[idx][1], 2), \
+                      0.0
+                cls.set_pos(node, pos)
+                if graph:
+                    plot2d.update(node)
+            if graph:
+                plot2d.pause()
+            else:
+                sleep(0.5)
             while cls.pause_simulation:
                 pass
 
@@ -389,30 +397,33 @@ class mobility(object):
     def parameters(cls):
         "Applies channel params and handover"
         mobileNodes = list(set(cls.mobileNodes) - set(cls.aps))
-        while mobility.thread_._keep_alive:
+        while cls.thread_._keep_alive:
             cls.configureLinks(mobileNodes)
 
     @classmethod
     def configureLinks(cls, nodes):
         for node in nodes:
-            for wlan in range(0, len(node.params['wlan'])):
+            for wlan in range(len(node.params['wlan'])):
                 if node.func[wlan] == 'mesh' or node.func[wlan] == 'adhoc':
                     pass
                 else:
-                    if cls.wmediumd_mode == 3:
-                        if Association.bgscan or ('active_scan' in node.params \
-                        and ('encrypt' in node.params and 'wpa' in node.params['encrypt'][wlan])):
-                            for ap in cls.aps:
-                                if node.params['associatedTo'][wlan] == '':
-                                    Association.associate_infra(node, ap, wlan=wlan,
-                                                                ap_wlan=0)
-                                    node.params['associatedTo'][wlan] = 'active_scan'
-                                    if Association.bgscan:
-                                        node.params['associatedTo'][wlan] = 'bgscan'
-                        else:
-                            cls.check_association(node, wlan, ap_wlan=0)
-                    else:
-                        cls.check_association(node, wlan, ap_wlan=0)
+                    for ap in cls.aps:
+                        for ap_wlan in range(len(ap.params['wlan'])):
+                            if ap.func[ap_wlan] != 'mesh' and ap.func[ap_wlan] != 'adhoc':
+                                if cls.wmediumd_mode == 3:
+                                    if Association.bgscan or ('active_scan' in node.params \
+                                    and ('encrypt' in node.params and 'wpa' in node.params['encrypt'][wlan])):
+                                        if node.params['associatedTo'][wlan] == '':
+                                            Association.associate_infra(node, ap, wlan=wlan,
+                                                                        ap_wlan=ap_wlan)
+                                            if Association.bgscan:
+                                                node.params['associatedTo'][wlan] = 'bgscan'
+                                            else:
+                                                node.params['associatedTo'][wlan] = 'active_scan'
+                                    else:
+                                        cls.check_association(node, wlan, ap_wlan=ap_wlan)
+                                else:
+                                    cls.check_association(node, wlan, ap_wlan=ap_wlan)
         sleep(0.0001)
 
 
@@ -470,13 +481,20 @@ class tracked(thread):
         from time import time
         nodes = kwargs['nodes']
 
-        for rep in range(0, kwargs['repetitions']):
+        for rep in range(kwargs['repetitions']):
+            mobility.thread_._keep_alive = True
             t1 = time()
             i = 1
-            if rep > 0:
-                for node in nodes:
-                    if 'initPos' in node.params:
-                        mobility.mobileNodes.append(node)
+            if 'reverse' in kwargs and kwargs['reverse'] == True:
+                for node in mobility.mobileNodes:
+                    if rep%2 == 1:
+                        fin_ = node.params['finPos']
+                        node.params['finPos'] = node.params['initPos']
+                        node.params['initPos'] = fin_
+                    elif rep%2 == 0 and rep > 0:
+                        fin_ = node.params['finPos']
+                        node.params['finPos'] = node.params['initPos']
+                        node.params['initPos'] = fin_
             for node in mobility.mobileNodes:
                 node.time = node.startTime
                 mobility.calculate_diff_time(node)
@@ -490,21 +508,31 @@ class tracked(thread):
                             if (t2 - t1) >= node.startTime and node.time <= node.endTime:
                                 if hasattr(node, 'coord'):
                                     mobility.calculate_diff_time(node)
-                                    node.params['position'] = node.points[node.time * node.moveFac]
+                                    self.set_pos(node,
+                                                 node.points[node.time * node.moveFac])
                                     if node.time == node.endTime:
-                                        node.params['position'] = node.points[len(node.points) - 1]
+                                        self.set_pos(node,
+                                                     node.points[len(node.points) - 1])
                                 else:
-                                    x, y, z = mobility.move_node(node)
-                                    node.params['position'] = (x, y, z)
+                                    self.set_pos(node, self.move_node(node))
                                 node.time += 1
-                            if mobility.wmediumd_mode and mobility.wmediumd_mode == 3:
-                                node.set_pos_wmediumd()
                             if kwargs['DRAW']:
                                 plot.update(node)
                                 if kwargs['max_z'] == 0:
                                     plot2d.updateCircleRadius(node)
                         plot.pause()
                         i += 1
+
+    def set_pos(self, node, pos):
+        node.params['position'] = pos
+        if mobility.wmediumd_mode == 3 and mobility.thread_._keep_alive:
+            node.set_pos_wmediumd(pos)
+
+    def move_node(cls, node):
+        x = round(node.params['position'][0], 2) + round(node.moveFac[0], 2)
+        y = round(node.params['position'][1], 2) + round(node.moveFac[1], 2)
+        z = round(node.params['position'][2], 2) + round(node.moveFac[2], 2)
+        return [x, y, z]
 
     def create_coordinate(cls, node):
         node.coord_ = []
@@ -515,7 +543,7 @@ class tracked(thread):
             coord2 = '%s,%s,%s' % (fin_pos[0], fin_pos[1], fin_pos[2])
             node.coord_.append([coord1, coord2])
         else:
-            for idx in range(0, len(node.coord) - 1):
+            for idx in range(len(node.coord) - 1):
                 node.coord_.append([node.coord[idx], node.coord[idx + 1]])
 
     def get_line(self, node, x1, y1, z1, x2, y2, z2):
@@ -727,7 +755,7 @@ class RandomWaypoint(object):
         MIN_X = U(0, 0, NODES)
         MIN_Y = U(0, 0, NODES)
 
-        for node in range(0, self.nr_nodes):
+        for node in range(self.nr_nodes):
             MAX_V[node] = self.nodes[node].max_v/10
             MIN_V[node] = self.nodes[node].min_v/10
             MAX_X[node] = self.nodes[node].max_x
@@ -889,7 +917,7 @@ class StochasticWalk(object):
         MIN_X = U(0, 0, NODES)
         MIN_Y = U(0, 0, NODES)
 
-        for node in range(0, len(self.nodes)):
+        for node in range(len(self.nodes)):
             MAX_X[node] = self.nodes[node].max_x
             MAX_Y[node] = self.nodes[node].max_y
             MIN_X[node] = self.nodes[node].min_x
@@ -975,7 +1003,7 @@ class RandomWalk(StochasticWalk):
         velocity = VELOCITY
         distance = VELOCITY
 
-        for node in range(0, len(nodes)):
+        for node in range(len(nodes)):
             velocity[node] = nodes[node].constantVelocity
             distance[node] = nodes[node].constantDistance
 
@@ -1032,7 +1060,7 @@ class RandomDirection(StochasticWalk):
         MAX_V = max_v
         MIN_V = min_v
 
-        for node in range(0, len(nodes)):
+        for node in range(len(nodes)):
             MAX_V[node] = nodes[node].max_v/10
             MIN_V[node] = nodes[node].min_v/10
 
@@ -1197,7 +1225,7 @@ def gauss_markov(nodes, velocity_mean=1., alpha=1., variance=1.):
     MIN_X = U(0, 0, NODES)
     MIN_Y = U(0, 0, NODES)
 
-    for node in range(0, len(nodes)):
+    for node in range(len(nodes)):
         MAX_X[node] = nodes[node].max_x
         MAX_Y[node] = nodes[node].max_y
         MIN_X[node] = nodes[node].min_x

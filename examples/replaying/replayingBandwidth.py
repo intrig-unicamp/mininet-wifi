@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
 "Replaying Bandwidth"
+import os
 
 from mininet.node import Controller,OVSKernelSwitch
 from mininet.link import TCLink
@@ -33,7 +34,8 @@ def topology():
 
     net.plotGraph(max_x=100, max_y=100)
 
-    getTrace(sta1, 'examples/replaying/replayingBandwidth/throughputData.dat')
+    path = os.path.dirname(os.path.abspath(__file__))
+    getTrace(sta1, '%s/replayingBandwidth/throughputData.dat' % path)
 
     replayingBandwidth(net)
 

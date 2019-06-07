@@ -12,9 +12,8 @@ import socket
 import tempfile
 import subprocess
 import signal
-import time
+from time import sleep
 import struct
-import stat
 import pkg_resources
 from sys import version_info as py_version_info
 
@@ -410,7 +409,7 @@ class w_starter(object):
         try:
             # SIGINT to allow closing resources
             cls.wmd_process.send_signal(signal.SIGINT)
-            time.sleep(0.5)
+            sleep(0.5)
             # SIGKILL in case it did not finish
             cls.wmd_process.send_signal(signal.SIGKILL)
         except OSError:
@@ -756,7 +755,7 @@ class w_server(object):
             raise WmediumdException("Already connected to wmediumd server")
         cls.sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         info('*** Connecting to wmediumd server %s\n' % uds_address)
-        time.sleep(1)
+        sleep(1)
         cls.sock.connect(uds_address)
         cls.connected = True
 

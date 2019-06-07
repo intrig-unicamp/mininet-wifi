@@ -41,7 +41,7 @@ from mininet.node import Node
 from mininet.moduledeps import moduleDeps, pathCheck, TUN
 from mininet.link import Link, Intf, OVSIntf
 from mn_wifi.link import TCWirelessLink, TCLinkWirelessAP,\
-    Association, wirelessLink, adhoc, mesh
+    Association, wirelessLink, adhoc, mesh, physicalMesh
 from mn_wifi.wmediumdConnector import w_server, w_pos, w_txpower, \
     w_gain, w_height, w_cst, wmediumd_mode
 from mn_wifi.propagationModels import GetSignalRange, \
@@ -162,11 +162,25 @@ class Node_wifi(Node):
         self.params['range'] = [0]
         self.plotted = True
 
-    def setMeshIface(self, iface, ssid='', **params):
-        mesh.setMeshIface(self, iface, ssid, **params)
+    def setMeshMode(self, intf=None, **kwargs):
+        if intf:
+            kwargs['intf'] = intf
+        wlan = self.params['wlan'].index(kwargs['intf'])
+        mesh(self, **kwargs)
 
-    def setPhysicalMeshIface(self, **params):
-        mesh.setPhysicalMeshIface(self, **params)
+    def setPhysicalMeshMode(self, intf=None, **kwargs):
+        if intf:
+            kwargs['intf'] = intf
+        wlan = self.params['wlan'].index(kwargs['intf'])
+        physicalMesh(self, **kwargs)
+
+    def setAdhocMode(self, intf=None, **kwargs):
+        if intf:
+            kwargs['intf'] = intf
+        wlan = self.params['wlan'].index(kwargs['intf'])
+        if self.func[wlan] == 'adhoc':
+            self.cmd('iw dev %s ibss leave' % self.params['wlan'][wlan])
+        adhoc(self, **kwargs)
 
     def setMasterMode(self, intf=None, ssid='-ssid1',
                       **kwargs):
@@ -201,22 +215,6 @@ class Node_wifi(Node):
             link = 'wmediumd'
         AccessPoint.setConfig(self, aplist=None, wlan=wlan,
                               link=link, ssid=ssid)
-
-    def setAdhocIface(self, iface, ssid=''):
-        "Set Adhoc Interface"
-        wlan = self.params['wlan'].index(iface)
-        if self.func[wlan] == 'mesh':
-            self.cmd('iw dev %s del' % self.params['wlan'][wlan])
-            iface = '%s-wlan%s' % (self, wlan)
-            self.params['wlan'][wlan] = iface
-        else:
-            iface = self.params['wlan'][wlan]
-        if ssid != '':
-            if 'ssid' not in self.params:
-                self.params['ssid'] = []
-                self.params['ssid'].append(0)
-            self.params['ssid'][wlan] = ssid
-            adhoc.configureAdhoc(self, wlan, enable_wmediumd=True)
 
     def setOCBIface(self, wlan):
         "Set OCB Interface"
@@ -302,17 +300,17 @@ class Node_wifi(Node):
             cls = plot3d
         if cls.fig_exists():
             cls.updateCircleRadius(self)
+            cls.updateLine(self)
             cls.update(self)
             cls.pause()
 
     def setPosition(self, pos):
         "Set Position"
-        pos = pos.split(',')
-        self.params['position'] = float(pos[0]), float(pos[1]), float(pos[2])
+        self.params['position'] = [float(x) for x in pos.split(',')]
         self.updateGraph()
 
         if wmediumd_mode.mode == w_cst.INTERFERENCE_MODE:
-            self.set_pos_wmediumd()
+            self.set_pos_wmediumd(self.params['position'])
         self.configLinks()
 
     def setAntennaGain(self, value, intf=None, setParam=True):
@@ -330,19 +328,22 @@ class Node_wifi(Node):
         self.setHeightWmediumd(wlan)
         self.configLinks()
 
-    def setChannel(self, value, intf=None):
+    def setChannel(self, channel, intf=None):
         "Set Channel"
-        wlan = self.params['wlan'].index(intf)
-        self.params['channel'][wlan] = str(value)
-        self.params['freq'][wlan] = self.get_freq(wlan)
-        if isinstance(self, AP) and self.func[wlan] != 'mesh':
-            self.pexec(
-                'hostapd_cli -i %s chan_switch %s %s' % (
-                    intf, str(value),
-                    str(self.params['freq'][wlan]).replace(".", "")))
+        from mn_wifi.link import IntfWireless
+        wlan = 0
+        if intf:
+            wlan = self.params['wlan'].index(intf)
         else:
-            self.cmd('iw dev %s set channel %s'
-                     % (self.params['wlan'][wlan], str(value)))
+            intf = self.params['wlan'][wlan]
+        if isinstance(self, AP) and self.func[wlan] != 'mesh':
+            IntfWireless.setChannel(self, channel, intf, AP=True)
+        else:
+            if self.func[wlan] == 'mesh':
+                mesh(self, channel=channel, intf=intf)
+            elif self.func[wlan] == 'adhoc':
+                self.cmd('iw dev %s ibss leave' % self.params['wlan'][wlan])
+                adhoc(self, channel=channel, intf=intf)
 
     def setTxPower(self, value, intf=None, setParam=True):
         "Set Tx Power"
@@ -432,27 +433,19 @@ class Node_wifi(Node):
             freq = 2.412
         return freq
 
-    def set_rssi(self, node=None, wlan=0, dist=0):
+    def get_rssi(self, node=None, wlan=0, dist=0):
         value = propagationModel(self, node, dist, wlan)
         return float(value.rssi)
 
-    def get_pos(self):
-        posX = self.params['position'][0]
-        posY = self.params['position'][1]
-        posZ = self.params['position'][2]
-        return posX, posY, posZ
-
-    def set_pos_wmediumd(self):
+    def set_pos_wmediumd(self, pos):
         "Set Position for wmediumd"
-        posX, posY, posZ = self.get_pos()
         wlans = len(self.params['mac'])
-
         if self.lastpos != self.params['position']:
             self.lastpos = self.params['position']
             for wlan in range(0, wlans):
                 inc = '%s' % float('0.'+str(wlan))
                 w_server.update_pos(w_pos(self.wmIface[wlan],
-                    [(float(posX)+float(inc)), float(posY), float(posZ)]), True)
+                    [(float(pos[0])+float(inc)), float(pos[1]), float(pos[2])]), True)
 
     def setGainWmediumd(self, wlan):
         "Set Antenna Gain for wmediumd"
@@ -515,10 +508,10 @@ class Node_wifi(Node):
 
     def associateTo(self, ap, intf=None):
         "Force association to given AP"
-        self.moveAssociationTo(ap, intf)
+        self.setAssociation(ap, intf)
 
-    def moveAssociationTo(self, ap, intf=None):
-        "Force association to specific AP"
+    def setAssociation(self, ap, intf=None):
+        "Force association to given AP"
         sta = self
         wlan = sta.params['wlan'].index(intf)
 
@@ -1363,9 +1356,9 @@ class AccessPoint(AP):
 
     writeMacAddress = False
 
-    def __init__(cls, aps, driver, link):
+    def __init__(self, aps, driver, link):
         'configure ap'
-        cls.configure(aps, driver, link)
+        self.configure(aps, driver, link)
 
     @classmethod
     def configure(cls, aps, driver, link):
@@ -1408,7 +1401,7 @@ class AccessPoint(AP):
                 module.phyID += 1
 
     @classmethod
-    def setConfig(cls, ap, aplist=None, wlan=None, link=None, ssid=None):
+    def setConfig(cls, ap, aplist=None, wlan=0, link=None, ssid=None):
         """Configure AP
 
         :param ap: ap node
@@ -1425,7 +1418,7 @@ class AccessPoint(AP):
                     else:
                         ap.wpa_key_mgmt = 'WPA-EAP'
                     ap.rsn_pairwise = 'TKIP CCMP'
-                    ap.wpa_passphrase = ap.params['passwd'][0]
+                    ap.wpa_passphrase = ap.params['passwd'][wlan]
                 elif ap.params['encrypt'][wlan] == 'wpa2' \
                         or ap.params['encrypt'][wlan] == 'wpa3':
                     ap.auth_algs = 1
@@ -1434,18 +1427,21 @@ class AccessPoint(AP):
                             and 'authmode' not in ap.params:
                         ap.wpa_key_mgmt = 'FT-PSK'
                     elif 'authmode' in ap.params \
-                            and ap.params['authmode'][0] == '8021x':
+                            and ap.params['authmode'][wlan] == '8021x':
                         ap.wpa_key_mgmt = 'WPA-EAP'
                     else:
                         ap.wpa_key_mgmt = 'WPA-PSK'
                     ap.rsn_pairwise = 'CCMP'
                     if 'authmode' not in ap.params:
-                        ap.wpa_passphrase = ap.params['passwd'][0]
+                        ap.wpa_passphrase = ap.params['passwd'][wlan]
                 elif ap.params['encrypt'][wlan] == 'wep':
                     ap.auth_algs = 2
-                    ap.wep_key0 = ap.params['passwd'][0]
+                    ap.wep_key0 = ap.params['passwd'][wlan]
 
-            cls.setHostapdConfig(ap, wlan, aplist, link)
+            if ap.params['mode'][wlan] == 'adhoc':
+                ap.func[wlan] = 'adhoc'
+            else:
+                cls.setHostapdConfig(ap, wlan, aplist, link)
 
     @classmethod
     def setHostapdConfig(cls, ap, wlan, aplist=None, link=None):
@@ -1619,9 +1615,10 @@ class AccessPoint(AP):
     @classmethod
     def setBw(cls, node, wlan, iface):
         "Set bw"
-        bw = cls.getRate(node, wlan)
         if 'bw' in node.params:
             bw = node.params['bw'][wlan]
+        else:
+            bw = cls.getRate(node, wlan)
         node.cmd("tc qdisc replace dev %s \
                 root handle 2: tbf rate %sMbit burst 15000 "
                  "latency 1ms" % (iface, bw))
@@ -1688,20 +1685,17 @@ class AccessPoint(AP):
         AccessPoint.writeMacAddress = False
 
     @classmethod
-    def configureIface(cls, node, wlan):
-        intf = module.wlan_list[0]
-        module.wlan_list.pop(0)
-        node.renameIface(intf, node.params['wlan'][wlan])
-
-    @classmethod
     def verifyNetworkManager(cls, node, wlan):
         """First verify if the mac address of the ap is included at
         NetworkManager.conf
 
         :param node: node"""
+        from mn_wifi.link import IntfWireless
         if 'inNamespace' not in node.params:
             if not isinstance(node, Station):
-                cls.configureIface(node, wlan)
+                wintf = module.wlan_list[0]
+                module.wlan_list.pop(0)
+                IntfWireless.rename(node, wintf, node.params['wlan'][wlan])
         TCLinkWirelessAP(node)
         #cls.links.append(link)
         AccessPoint.setIPMAC(node, wlan)
@@ -1883,12 +1877,6 @@ class UserAP(AP):
             iface = '%s-wlan%s' % (self, wlan)
             self.params['wlan'][wlan] = iface
         self.cmd('iw dev %s set type managed' % (self.params['wlan'][wlan]))
-
-    def renameIface(self, intf, newname):
-        "Rename interface"
-        self.pexec('ip link set %s down' % intf)
-        self.pexec('ip link set %s name %s' % (intf, newname))
-        self.pexec('ip link set %s up' % newname)
 
 
 class OVSAP(AP):
@@ -2074,33 +2062,33 @@ class OVSAP(AP):
     argmax = 128000
 
     @classmethod
-    def batchStartup(cls, switches, run=errRun):
+    def batchStartup(cls, aps, run=errRun):
         """Batch startup for OVS
-           switches: switches to start up
+           aps: aps to start up
            run: function to run commands (errRun)"""
         info('...')
         cmds = 'ovs-vsctl'
-        for switch in switches:
-            if switch.isOldOVS():
+        for ap in aps:
+            if ap.isOldOVS():
                 # Ideally we'd optimize this also
-                run('ovs-vsctl del-br %s' % switch)
-            for cmd in switch.commands:
+                run('ovs-vsctl del-br %s' % ap)
+            for cmd in ap.commands:
                 cmd = cmd.strip()
                 # Don't exceed ARG_MAX
                 if len(cmds) + len(cmd) >= cls.argmax:
                     run(cmds, shell=True)
                     cmds = 'ovs-vsctl'
                 cmds += ' ' + cmd
-                switch.cmds = []
-                switch.batch = False
+                ap.cmds = []
+                ap.batch = False
         if cmds:
             run(cmds, shell=True)
         # Reapply link config if necessary...
-        for switch in switches:
-            for intf in switch.intfs.values():
+        for ap in aps:
+            for intf in ap.intfs.values():
                 if isinstance(intf, TCWirelessLink):
                     intf.config(**intf.params)
-        return switches
+        return aps
 
     def stop(self, deleteIntfs=True):
         """Terminate OVS switch.
@@ -2111,25 +2099,19 @@ class OVSAP(AP):
         super(OVSAP, self).stop(deleteIntfs)
 
     @classmethod
-    def batchShutdown(cls, switches, run=errRun):
+    def batchShutdown(cls, aps, run=errRun):
         "Shut down a list of OVS switches"
         delcmd = 'del-br %s'
-        if switches and not switches[ 0 ].isOldOVS():
+        if aps and not aps[ 0 ].isOldOVS():
             delcmd = '--if-exists ' + delcmd
         # First, delete them all from ovsdb
-        run('ovs-vsctl ' + ' -- '.join(delcmd % s for s in switches))
+        run('ovs-vsctl ' + ' -- '.join(delcmd % s for s in aps))
         # Next, shut down all of the processes
-        pids = ' '.join(str(switch.pid) for switch in switches)
+        pids = ' '.join(str(ap.pid) for ap in aps)
         run('kill -HUP ' + pids)
-        for switch in switches:
-            switch.shell = None
-        return switches
-
-    def renameIface(self, intf, newname):
-        "Rename interface"
-        self.pexec('ip link set %s down' % intf)
-        self.pexec('ip link set %s name %s' % (intf, newname))
-        self.pexec('ip link set %s up' % newname)
+        for ap in aps:
+            ap.shell = None
+        return aps
 
 
 OVSKernelAP = OVSAP

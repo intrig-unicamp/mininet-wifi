@@ -12,7 +12,6 @@ from threading import Thread as thread
 import random
 from pylab import math, cos, sin
 from mininet.log import info
-from mn_wifi.net import Mininet_wifi
 from mn_wifi.plot import plot2d, plot3d
 from mn_wifi.mobility import mobility
 from mn_wifi.link import wirelessLink
@@ -37,7 +36,7 @@ class replayingMobility(object):
             pos = node.position[0]
             del node.position[0]
             del node.time[0]
-            node.params['position'] = pos.split(',')
+            mobility.set_pos(node, pos)
 
     def notimestamp_(self, node, time_):
         if time_ >= node.currentTime:
@@ -46,7 +45,7 @@ class replayingMobility(object):
                     pos = node.position[0]
                     del node.position[0]
                     node.currentTime += node.timestamp
-                    node.params['position'] = pos.split(',')
+                    mobility.set_pos(node, pos)
 
     def mobility(self, nodes, Mininet_wifi):
         if nodes is None:
@@ -138,29 +137,17 @@ class replayingBandwidth(object):
             # time.sleep(0.001)
         info("\nReplaying Process Finished!")
 
-    @classmethod
-    def moveNodeTo(cls, sta, pos):
-        x = pos[0]
-        y = pos[1]
-        sta.params['position'] = x, y, 0
-        # mobility.getAPsInRange(sta)
-        if Mininet_wifi.DRAW:
-            try:
-                plot2d.update(sta)
-            except:
-                pass
-
 
 class replayingNetworkConditions(object):
     'Replaying Network Conditions'
 
     def __init__(self, Mininet_wifi, **kwargs):
 
-        mobility.thread = thread( name='replayingNetConditions',
+        mobility.thread_ = thread( name='replayingNetConditions',
                                         target=self.behavior, args=(Mininet_wifi,) )
-        mobility.thread.daemon = True
+        mobility.thread_.daemon = True
         mobility.thread_._keep_alive = True
-        mobility.thread.start()
+        mobility.thread_.start()
 
     @classmethod
     def behavior(cls, Mininet_wifi):
@@ -209,18 +196,18 @@ class replayingRSSI(object):
     print_latency = False
     print_distance = False
 
-    def __init__(self, mininet, propagationModel='friis',
+    def __init__(self, Mininet_wifi, propagationModel='friis',
                  n=32, **kwargs):
         """ propagationModel = Propagation Model
             n: Power Loss Coefficient """
         for key in kwargs:
             setattr(self, key, kwargs[key])
 
-        mobility.thread = thread(name='replayingRSSI', target=self.rssi,
+        mobility.thread_ = thread(name='replayingRSSI', target=self.rssi,
                                        args=(Mininet_wifi, propagationModel, n))
-        mobility.thread.daemon = True
+        mobility.thread_.daemon = True
         mobility.thread_._keep_alive = True
-        mobility.thread.start()
+        mobility.thread_.start()
 
     def rssi(self, Mininet_wifi, propagationModel='', n=0):
         currentTime = time()
@@ -242,8 +229,8 @@ class replayingRSSI(object):
                             rssi = sta.rssi[0]
                             dist = int('%d' % self.calculateDistance(sta, ap, rssi,
                                                                      propagationModel, n))
-                            self.moveNodeTo(sta, ap, dist, ang[sta])
-                            wirelessLink(sta, ap, 0, dist)
+                            self.setPos(Mininet_wifi, sta, ap, dist, ang[sta])
+                            wirelessLink(sta, ap, dist, wlan=0, ap_wlan=0)
                         del sta.rssi[0]
                         del sta.time[0]
                     if len(sta.time) == 0:
@@ -251,10 +238,9 @@ class replayingRSSI(object):
             sleep(0.01)
 
     @classmethod
-    def moveNodeTo(cls, sta, ap, dist, ang):
-
-        x = float('%.2f' %  (dist * cos(ang) + int(ap.params['position'][0])))
-        y = float('%.2f' %  (dist * sin(ang) + int(ap.params['position'][1])))
+    def setPos(cls, Mininet_wifi, sta, ap, dist, ang):
+        x = float('%.2f' % (dist * cos(ang) + int(ap.params['position'][0])))
+        y = float('%.2f' % (dist * sin(ang) + int(ap.params['position'][1])))
         sta.params['position'] = x, y, 0
         mobility.configLinks(sta)
         if Mininet_wifi.DRAW:

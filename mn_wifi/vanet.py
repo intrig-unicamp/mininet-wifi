@@ -9,6 +9,7 @@ author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
 
 from __future__ import division
 from math import atan2
+from random import randint
 from time import sleep
 import warnings
 from threading import Thread as thread
@@ -34,9 +35,8 @@ class vanet(object):
     scatter = 0
     com_lines = []
     all_points = []
-    road = []
+    roads = []
     points = []
-    totalRoads = []
     interX = {}
     interY = {}
     time_per_iteration = 100 * math.pow(10, -3)
@@ -57,9 +57,8 @@ class vanet(object):
         mobility.stations = cars
         mobility.aps = params['aps']
         mobility.mobileNodes = cars
-        [self.road.append(x) for x in range(0, params['nroads'])]
-        [self.points.append(x) for x in range(0, params['nroads'])]
-        [self.totalRoads.append(x) for x in range(0, params['nroads'])]
+        [self.roads.append(x) for x in range(params['nroads'])]
+        [self.points.append(x) for x in range(params['nroads'])]
         plot2d.instantiateGraph(params['min_x'], params['min_y'], params['max_x'], params['max_y'])
 
         self.display_grid(params['aps'], params['conn'], params['nroads'])
@@ -113,7 +112,7 @@ class vanet(object):
             points.reverse()
         return points
 
-    def display_grid(self, baseStations, conn, nroads):
+    def display_grid(self, aps, conn, nroads):
 
         for n in range(nroads):
             if n == 0:
@@ -142,16 +141,16 @@ class vanet(object):
             self.interY[n] = y1
 
             # Create a line object with the x y values of the points in a line
-            self.road[n] = plot2d.line2d(x1, y1, color='g')
-            plot2d.line(self.road[n])
+            self.roads[n] = plot2d.line2d(x1, y1, color='g')
+            plot2d.line(self.roads[n])
 
-        for bs in baseStations:
+        for bs in aps:
             bs.prop = ginp(1)[0]
             bs_x = '%.2f' % bs.prop[0]
             bs_y = '%.2f' % bs.prop[1]
             self.scatter = plot2d.scatter(float(bs_x), float(bs_y))
             bs.params['position'] = bs_x, bs_y, 0
-            bs.set_pos_wmediumd()
+            bs.set_pos_wmediumd(bs.params['position'])
             plot2d.instantiateNode(bs)
             plot2d.instantiateAnnotate(bs)
             plot2d.instantiateCircle(bs)
@@ -161,7 +160,7 @@ class vanet(object):
 
         sleep(1)
         if 'src' in conn:
-            for c in range(0, len(conn['src'])):
+            for c in range(len(conn['src'])):
                 line = plot2d.line2d([conn['src'][c].params['position'][0],
                                           conn['dst'][c].params['position'][0]], \
                                        [conn['src'][c].params['position'][1],
@@ -173,12 +172,12 @@ class vanet(object):
 
         car_lines = []
 
-        for n in range(0, len(cars)):
-            car_lines.append(self.road[n])
+        for _ in range(len(cars)):
+            n = randint(0, len(self.roads)-1)
+            car_lines.append(self.roads[n])
 
-        for n in range(0, len(self.totalRoads)):
-
-            road = self.road[n]
+        for n in range(len(self.roads)-1):
+            road = self.roads[n]
             line_data = road.get_data()
 
             x_min, x_max = self.lineX(line_data)
@@ -295,27 +294,27 @@ class vanet(object):
         lastRoad = True
 
         if car.i % 2 == 0:
-            for n in reversed(self.totalRoads):
+            for n in range(len(self.roads)-1, 0, -1):
                 if n < car.currentRoad:
                     car.currentRoad = n
                     # get properties of each line in a path
-                    self.line_prop(self.road[car.currentRoad], car)
+                    self.line_prop(self.roads[car.currentRoad], car)
                     lastRoad = False
                     break
             if lastRoad:
-                car.currentRoad = len(self.totalRoads) - 1
-                self.line_prop(self.road[car.currentRoad], car)
+                car.currentRoad = len(self.roads) - 1
+                self.line_prop(self.roads[car.currentRoad], car)
         else:
-            for n in self.totalRoads:
+            for n in range(len(self.roads)-1):
                 if n > car.currentRoad:
                     car.currentRoad = n
                     # get properties of each line in a path
-                    self.line_prop(self.road[car.currentRoad], car)
+                    self.line_prop(self.roads[car.currentRoad], car)
                     lastRoad = False
                     break
             if lastRoad:
                 car.currentRoad = 0
-                self.line_prop(self.road[car.currentRoad], car)
+                self.line_prop(self.roads[car.currentRoad], car)
 
     def findIntersection(self):
         # have to work on
@@ -330,13 +329,13 @@ class vanet(object):
         (element,) = first_set.intersection(secnd_set)
         info(element[0])
 
-    def simulate_car_movement(self, cars, baseStations, scatter,
+    def simulate_car_movement(self, cars, aps, scatter,
                               com_lines, mobility):
         # temporal variables
         points = [[], []]
         scatter.remove()
 
-        nodes = cars + baseStations
+        nodes = cars + aps
 
         while com_lines:
             com_lines[0].remove()
@@ -350,7 +349,7 @@ class vanet(object):
             pos_y = car.prop[1]
 
             car.params['position'] = pos_x, pos_y, 0
-            car.set_pos_wmediumd()
+            car.set_pos_wmediumd(car.params['position'])
             angle = car.prop[2]
 
             # calculate new position of the car
