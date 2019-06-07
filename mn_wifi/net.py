@@ -488,69 +488,71 @@ class Mininet_wifi(Mininet):
         elif ((node1 in (self.stations or self.cars) and node2 in self.aps)
               or (node2 in (self.stations or self.cars) and node1 in self.aps)) and \
                         'link' not in options:
+            self.infraAssociation(node1, node2, port1, port2, cls, **params)
+-       elif 'wifi' in params:
+-            self.infraAssociation(node1, node2, port1, port2, cls, **params)
+            # sta = node2
+            # ap = node1
+            # sta_wlan = None
+            # ap_wlan = 0
 
-            sta = node2
-            ap = node1
-            sta_wlan = None
-            ap_wlan = 0
+            # if port2:
+            #     sta_wlan = port2
+            # if port1:
+            #     ap_wlan = port1
+            # params['ap_wlan'] = ap_wlan
 
-            if port2:
-                sta_wlan = port2
-            if port1:
-                ap_wlan = port1
-            params['ap_wlan'] = ap_wlan
+            # if node1 in self.stations and node2 in self.aps:
+            #     sta = node1
+            #     ap = node2
+            #     if port1:
+            #         sta_wlan = port1
+            #     if port2:
+            #         ap_wlan = port2
 
-            if node1 in self.stations and node2 in self.aps:
-                sta = node1
-                ap = node2
-                if port1:
-                    sta_wlan = port1
-                if port2:
-                    ap_wlan = port2
-
-            wlan = sta.ifaceToAssociate
-            if sta_wlan:
-                wlan = sta_wlan
-            params['wlan'] = wlan
-            # If sta/ap have position
-            doAssociation = True
-            if 'position' in sta.params and 'position' in ap.params:
-                dist = sta.get_distance_to(ap)
-                if dist > ap.params['range'][ap_wlan]:
-                    doAssociation = False
-            if doAssociation:
-                sta.params['mode'][wlan] = ap.params['mode'][ap_wlan]
-                sta.params['channel'][wlan] = ap.params['channel'][ap_wlan]
-                enable_wmediumd = False
-                enable_interference = False
-                if self.link == wmediumd:
-                    enable_wmediumd = True
-                if self.wmediumd_mode == interference:
-                    enable_interference = True
-                if not self.topo:
-                    params['printCon'] = True
-                params['doAssociation'] = True
-                Association.associate(sta, ap, enable_wmediumd,
-                                      enable_interference, **params)
-                if 'TCWirelessLink' in str(self.link.__name__):
-                    if 'bw' not in params and 'bw' not in str(cls) and \
-                            not self.ifb:
-                        value = self.getDataRate(sta, ap, **params)
-                        bw = value.rate
-                        params['bw'] = bw
-                    if self.ifb:
-                        params['ifb'] = True
-                        params['ifb_intf'] = sta.ifb[wlan]
-                    # tc = True, this is useful only to apply tc configuration
-                    link = cls(name=sta.params['wlan'][wlan], node=sta,
-                               tc=True, **params)
-                    #self.links.append(link)
-                    return link
-            if self.link == wmediumd:
-                if self.wmediumd_mode == error_prob:
-                    wmediumd.wlinks.append([sta, ap, params['error_prob']])
-                elif self.wmediumd_mode != interference:
-                    wmediumd.wlinks.append([sta, ap])
+            # wlan = sta.ifaceToAssociate
+            # if sta_wlan:
+            #     wlan = sta_wlan
+            # params['wlan'] = wlan
+            # # If sta/ap have position
+            # doAssociation = True
+            # if 'position' in sta.params and 'position' in ap.params:
+            #     dist = sta.get_distance_to(ap)
+            #     if dist > ap.params['range'][ap_wlan]:
+            #         doAssociation = False
+            # if doAssociation:
+            #     sta.params['mode'][wlan] = ap.params['mode'][ap_wlan]
+            #     sta.params['channel'][wlan] = ap.params['channel'][ap_wlan]
+            #     enable_wmediumd = False
+            #     enable_interference = False
+            #     if self.link == wmediumd:
+            #         enable_wmediumd = True
+            #     if self.wmediumd_mode == interference:
+            #         enable_interference = True
+            #     if not self.topo:
+            #         params['printCon'] = True
+            #     params['doAssociation'] = True
+            #     Association.associate(sta, ap, enable_wmediumd,
+            #                           enable_interference, **params)
+            #     if 'TCWirelessLink' in str(self.link.__name__):
+            #         if 'bw' not in params and 'bw' not in str(cls) and \
+            #                 not self.ifb:
+            #             value = self.getDataRate(sta, ap, **params)
+            #             bw = value.rate
+            #             params['bw'] = bw
+            #         if self.ifb:
+            #             params['ifb'] = True
+            #             params['ifb_intf'] = sta.ifb[wlan]
+            #         # tc = True, this is useful only to apply tc configuration
+            #         link = cls(name=sta.params['wlan'][wlan], node=sta,
+            #                    tc=True, **params)
+            #         #self.links.append(link)
+            #         return link
+            # if self.link == wmediumd:
+            #     if self.wmediumd_mode == error_prob:
+            #         wmediumd.wlinks.append([sta, ap, params['error_prob']])
+            #     elif self.wmediumd_mode != interference:
+            #         wmediumd.wlinks.append([sta, ap])
         else:
             if 'link' in options:
                 options.pop('link', None)
