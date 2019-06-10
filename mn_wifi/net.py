@@ -489,8 +489,8 @@ class Mininet_wifi(Mininet):
               or (node2 in (self.stations or self.cars) and node1 in self.aps)) and \
                         'link' not in options:
             self.infraAssociation(node1, node2, port1, port2, cls, **params)
--       elif 'wifi' in params:
--            self.infraAssociation(node1, node2, port1, port2, cls, **params)
+        elif 'wifi' in params:
+            self.infraAssociation(node1, node2, port1, port2, cls, **params)
             # sta = node2
             # ap = node1
             # sta_wlan = None
@@ -1737,7 +1737,7 @@ class Mininet_wifi(Mininet):
         args = ['min_x', 'min_y', 'min_z',
                   'max_x', 'max_y', 'max_z',
                   'stations', 'cars', 'aps',
-                  'DRAW', 'conn', 'mob_groups']
+                  'DRAW', 'conn']
         for arg in args:
             self.mob_param.setdefault(arg, getattr(self, arg))
 

@@ -267,7 +267,8 @@ class mobility(object):
             info('Warning: running without GUI.\n')
             kwargs['DRAW'] = False
         if 'mob_groups' in kwargs:
-            node_dict = {node.name : node for (node.name, node) in nodes}
+            node = None
+            node_dict = {node.name : node for node in nodes}
             mobile_nodes= []
             for coord in kwargs['mob_groups'].keys():
                 for node in kwargs['mob_groups']['coord']:
