@@ -162,22 +162,25 @@ class Node_wifi(Node):
         self.params['range'] = [0]
         self.plotted = True
 
+    def get_wlan(self, intf):
+        return self.params['wlan'].index(intf)
+
     def setMeshMode(self, intf=None, **kwargs):
         if intf:
             kwargs['intf'] = intf
-        wlan = self.params['wlan'].index(kwargs['intf'])
+        wlan = self.get_wlan(kwargs['intf'])
         mesh(self, **kwargs)
 
     def setPhysicalMeshMode(self, intf=None, **kwargs):
         if intf:
             kwargs['intf'] = intf
-        wlan = self.params['wlan'].index(kwargs['intf'])
+        wlan = self.get_wlan(kwargs['intf'])
         physicalMesh(self, **kwargs)
 
     def setAdhocMode(self, intf=None, **kwargs):
         if intf:
             kwargs['intf'] = intf
-        wlan = self.params['wlan'].index(kwargs['intf'])
+        wlan = self.get_wlan(kwargs['intf'])
         if self.func[wlan] == 'adhoc':
             self.cmd('iw dev %s ibss leave' % self.params['wlan'][wlan])
         adhoc(self, **kwargs)
@@ -189,7 +192,7 @@ class Node_wifi(Node):
             intf = self.name + intf
         if not ssid:
             ssid = self.name + ssid
-        wlan = self.params['wlan'].index(intf)
+        wlan = self.get_wlan(intf)
 
         self.func[wlan] = 'ap'
         self.params['ssid'] = []
@@ -265,7 +268,7 @@ class Node_wifi(Node):
         interference_enabled = False
         if wmediumd_mode.mode == w_cst.INTERFERENCE_MODE:
             interference_enabled = True
-        wlan = self.params['wlan'].index(intf)
+        wlan = self.get_wlan(intf)
         if noiseLevel != 0:
             GetSignalRange.NOISE_LEVEL = noiseLevel
         if not isinstance(self, Station) and not isinstance(self, Car) \
@@ -280,7 +283,7 @@ class Node_wifi(Node):
         from mn_wifi.plot import plot2d
         wlan = 0
         if intf:
-            wlan = self.params['wlan'].index(intf)
+            wlan = self.get_wlan(intf)
         self.params['range'][wlan] = value
         self.params['txpower'][wlan] = self.get_txpower_prop_model(0)
         txpower = self.params['txpower'][wlan]
@@ -315,7 +318,7 @@ class Node_wifi(Node):
 
     def setAntennaGain(self, value, intf=None, setParam=True):
         "Set Antenna Gain"
-        wlan = self.params['wlan'].index(intf)
+        wlan = self.get_wlan(intf)
         self.params['antennaGain'][wlan] = int(value)
         self.setGainWmediumd(wlan)
         if setParam:
@@ -323,7 +326,7 @@ class Node_wifi(Node):
 
     def setAntennaHeight(self, value, intf=None):
         "Set Antenna Height"
-        wlan = self.params['wlan'].index(intf)
+        wlan = self.get_wlan(intf)
         self.params['antennaHeight'][wlan] = int(value)
         self.setHeightWmediumd(wlan)
         self.configLinks()
@@ -333,7 +336,7 @@ class Node_wifi(Node):
         from mn_wifi.link import IntfWireless
         wlan = 0
         if intf:
-            wlan = self.params['wlan'].index(intf)
+            wlan = self.get_wlan(intf)
         else:
             intf = self.params['wlan'][wlan]
         if isinstance(self, AP) and self.func[wlan] != 'mesh':
@@ -347,7 +350,7 @@ class Node_wifi(Node):
 
     def setTxPower(self, value, intf=None, setParam=True):
         "Set Tx Power"
-        wlan = self.params['wlan'].index(intf)
+        wlan = self.get_wlan(intf)
         self.pexec('iw dev %s set txpower fixed %s'
                    % (intf, (int(value) * 100)))
         self.params['txpower'][wlan] = value
@@ -508,35 +511,45 @@ class Node_wifi(Node):
 
     def associateTo(self, ap, intf=None):
         "Force association to given AP"
-        self.setAssociation(ap, intf)
+        if 'position' not in self.params:
+            wlan = self.get_wlan(intf)
+            if 'encrypt' in ap.params:
+                if ap.params['encrypt'][0] == 'wpa' or \
+                                ap.params['encrypt'][0] == 'wpa2':
+                    Association.wpa(self, ap, wlan, ap_wlan=0)
+                elif ap.params['encrypt'][0] == 'wep':
+                    Association.wep(self, ap, wlan, ap_wlan=0)
+            else:
+                Association.associate_noEncrypt(self, ap, wlan, ap_wlan=0)
+        else:
+            self.setAssociation(ap, intf)
 
     def setAssociation(self, ap, intf=None):
         "Force association to given AP"
-        sta = self
-        wlan = sta.params['wlan'].index(intf)
+        wlan = self.get_wlan(intf)
 
         dist = 100000
-        if 'position' in sta.params and 'position' in ap.params:
-            dist = sta.get_distance_to(ap)
+        if 'position' in self.params and 'position' in ap.params:
+            dist = self.get_distance_to(ap)
 
-        if dist < ap.params['range'][wlan] or 'position' not in sta.params \
+        if dist < ap.params['range'][wlan] or 'position' not in self.params \
                 and 'position' not in ap.params:
-            if sta.params['associatedTo'][wlan] != ap:
-                if sta.params['associatedTo'][wlan] != '':
-                    sta.cmd('iw dev %s disconnect' % intf)
+            if self.params['associatedTo'][wlan] != ap:
+                if self.params['associatedTo'][wlan] != '':
+                    self.cmd('iw dev %s disconnect' % intf)
                 if 'encrypt' not in ap.params:
-                    sta.cmd('iw dev %s connect %s %s' %
-                            (sta.params['wlan'][wlan], ap.params['ssid'][0],
+                    self.cmd('iw dev %s connect %s %s' %
+                            (self.params['wlan'][wlan], ap.params['ssid'][0],
                              ap.params['mac'][0]))
-                    debug ('%s is now associated with %s\n' % (sta, ap))
+                    debug('%s is now associated with %s\n' % (self, ap))
                 else:
                     if ap.params['encrypt'][0] == 'wpa' or \
                                     ap.params['encrypt'][0] == 'wpa2':
                         Association.wpa(self, ap, wlan, ap_wlan=0)
                     elif ap.params['encrypt'][0] == 'wep':
                         Association.wep(self, ap, wlan, ap_wlan=0)
-                Association.update(sta, ap, wlan)
-                wirelessLink(sta=sta, ap=ap, wlan=wlan, dist=dist, ap_wlan=0)
+                Association.update(self, ap, wlan)
+                wirelessLink(self, ap, wlan, 0, dist)
             else:
                 info ('%s is already connected!\n' % ap)
             self.configLinks()
