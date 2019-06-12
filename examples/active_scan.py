@@ -3,10 +3,10 @@
 'This example shows how to work with active scan'
 
 from mininet.node import Controller
-from mininet.wifi.node import UserAP
-from mininet.wifi.cli import CLI_wifi
 from mininet.log import setLogLevel, info
-from mininet.wifi.net import Mininet_wifi
+from mn_wifi.node import UserAP
+from mn_wifi.cli import CLI_wifi
+from mn_wifi.net import Mininet_wifi
 
 
 def topology():
@@ -18,7 +18,7 @@ def topology():
                    wlans=2, active_scan=1, scan_freq='2412,2437',
                    freq_list='2412,2437', position='5,10,0')
     net.addStation('sta2', passwd='123456789a', encrypt='wpa2',
-                   active_scan=1, scan_freq='2437',  freq_list='2437',
+                   active_scan=1, scan_freq='2437', freq_list='2437',
                    position='45,10,0')
     ap1 = net.addAccessPoint('ap1', ssid="ssid-1", mode="g", channel="1",
                              passwd='123456789a', encrypt='wpa2',
@@ -26,8 +26,7 @@ def topology():
     ap2 = net.addAccessPoint('ap2', ssid="ssid-1", mode="g", channel="6",
                              passwd='123456789a', encrypt='wpa2',
                              position='40,10,0')
-    c0 = net.addController('c0', controller=Controller, ip='127.0.0.1',
-                           port=6633)
+    c0 = net.addController('c0')
 
     info("*** Configuring wifi nodes\n")
     net.configureWifiNodes()

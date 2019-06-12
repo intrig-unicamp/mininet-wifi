@@ -4,13 +4,13 @@
 
 from mininet.node import Controller
 from mininet.log import setLogLevel, info
-from mininet.wifi.node import OVSKernelAP
-from mininet.wifi.cli import CLI_wifi
-from mininet.wifi.net import Mininet_wifi
+from mn_wifi.cli import CLI_wifi
+from mn_wifi.net import Mininet_wifi
+
 
 def topology():
     "Create a network."
-    net = Mininet_wifi(controller=Controller, accessPoint=OVSKernelAP)
+    net = Mininet_wifi(controller=Controller)
 
     info("*** Creating nodes\n")
     net.addStation('sta1', mac='00:00:00:00:00:02', ip='10.0.0.2/8')
@@ -29,9 +29,9 @@ def topology():
                              position='70,50,0', range=30)
     ap3 = net.addAccessPoint('ap3', ssid='ssid-ap3', mode='g', channel='11',
                              position='90,50,0')
-    c1 = net.addController('c1', controller=Controller)
+    c1 = net.addController('c1')
 
-    net.propagationModel(model="logDistance", exp=5)
+    net.setPropagationModel(model="logDistance", exp=5)
 
     info("*** Configuring wifi nodes\n")
     net.configureWifiNodes()
@@ -42,8 +42,8 @@ def topology():
 
     net.plotGraph(max_x=120, max_y=120)
 
-    net.startMobility(time=0, model='RandomWayPoint', max_x=120, max_y=120,
-                      min_v=0.3, max_v=0.5, seed=1, associationControl='ssf')
+    net.setMobilityModel(time=0, model='RandomWayPoint', max_x=120, max_y=120,
+                         min_v=0.3, max_v=0.5, seed=1, ac_method='ssf')
 
     info("*** Starting network\n")
     net.build()

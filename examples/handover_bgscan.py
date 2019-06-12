@@ -12,11 +12,11 @@ mobility_domain='a1b2',...)"""
 
 from mininet.node import Controller
 from mininet.log import setLogLevel, info
-from mininet.wifi.node import UserAP
-from mininet.wifi.link import wmediumd
-from mininet.wifi.cli import CLI_wifi
-from mininet.wifi.net import Mininet_wifi
-from mininet.wifi.wmediumdConnector import interference
+from mn_wifi.node import UserAP
+from mn_wifi.link import wmediumd
+from mn_wifi.cli import CLI_wifi
+from mn_wifi.net import Mininet_wifi
+from mn_wifi.wmediumdConnector import interference
 
 
 def topology():
@@ -35,10 +35,10 @@ def topology():
     ap3 = net.addAccessPoint('ap3', mac='00:00:00:00:00:03', ssid="handover",
                              mode="g", channel="1", passwd='123456789a',
                              encrypt='wpa2', position='120,100,0')
-    c1 = net.addController('c1', controller=Controller)
+    c1 = net.addController('c1')
 
     info("*** Configuring Propagation Model\n")
-    net.propagationModel(model="logDistance", exp=3.5)
+    net.setPropagationModel(model="logDistance", exp=3.5)
 
     info("*** Configuring wifi nodes\n")
     net.configureWifiNodes()
@@ -48,7 +48,7 @@ def topology():
     net.addLink(ap2, ap3)
 
     info("*** Setting bgscan\n")
-    net.setBgscan(signal=-45, s_inverval=5, l_interval=10)
+    net.setBgscan(signal=-60, s_inverval=5, l_interval=10)
 
     net.plotGraph(min_x=-100, min_y=-100, max_x=200, max_y=200)
 

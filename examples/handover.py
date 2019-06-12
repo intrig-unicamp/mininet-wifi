@@ -4,14 +4,13 @@
 
 from mininet.node import Controller
 from mininet.log import setLogLevel, info
-from mininet.wifi.node import OVSKernelAP
-from mininet.wifi.cli import CLI_wifi
-from mininet.wifi.net import Mininet_wifi
+from mn_wifi.cli import CLI_wifi
+from mn_wifi.net import Mininet_wifi
 
 
 def topology():
     "Create a network."
-    net = Mininet_wifi(controller=Controller, accessPoint=OVSKernelAP)
+    net = Mininet_wifi(controller=Controller)
 
     info("*** Creating nodes\n")
     sta1 = net.addStation('sta1', mac='00:00:00:00:00:02', ip='10.0.0.2/8',
@@ -22,9 +21,9 @@ def topology():
                              position='15,30,0', range=30)
     ap2 = net.addAccessPoint('ap2', ssid='ssid-ap2', mode='g', channel='6',
                              position='55,30,0', range=30)
-    c1 = net.addController('c1', controller=Controller)
+    c1 = net.addController('c1')
 
-    net.propagationModel(model="logDistance", exp=5)
+    net.setPropagationModel(model="logDistance", exp=5)
 
     info("*** Configuring wifi nodes\n")
     net.configureWifiNodes()
@@ -39,7 +38,7 @@ def topology():
     net.mobility(sta2, 'start', time=2, position='10,40,0')
     net.mobility(sta1, 'stop', time=10, position='60,30,0')
     net.mobility(sta2, 'stop', time=10, position='25,40,0')
-    net.stopMobility(time=40)
+    net.stopMobility(time=11)
 
     info("*** Starting network\n")
     net.build()

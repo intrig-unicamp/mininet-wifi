@@ -1,16 +1,18 @@
-MININET = mininet/*.py
-MININET_WIFI = mininet/wifi/*.py
-TEST = mininet/test/*.py
-EXAMPLES = mininet/examples/*.py
+MININET = mininet/mininet/*.py
+MININET_WIFI = mn_wifi/*.py
+TEST = mn_wifi/test/*.py
+EXAMPLES = mn_wifi/examples/*.py
 MN = bin/mn
-PYMN = python -B bin/mn
+PYTHON ?= python
+PYMN = $(PYTHON) -B bin/mn
 BIN = $(MN)
 PYSRC = $(MININET) $(MININET_WIFI) $(TEST) $(EXAMPLES) $(BIN)
 MNEXEC = mnexec
 MANPAGES = mn.1 mnexec.1
 P8IGN = E251,E201,E302,E202,E126,E127,E203,E226
-BINDIR = /usr/bin
-MANDIR = /usr/share/man/man1
+PREFIX ?= /usr
+BINDIR ?= $(PREFIX)/bin
+MANDIR ?= $(PREFIX)/share/man/man1
 DOCDIRS = doc/html doc/latex
 PDF = doc/latex/refman.pdf
 
@@ -34,29 +36,33 @@ errcheck: $(PYSRC)
 	pyflakes $(PYSRC)
 	pylint -E --rcfile=.pylint $(PYSRC)
 
-test: $(MININET) $(TEST)
+test: $(MININET_WIFI) $(TEST)
 	-echo "Running tests"
-	mininet/test/test_nets.py
-	mininet/test/test_hifi.py
+	mn_wifi/test/test_nets.py
+	mn_wifi/test/test_hifi.py
 
-slowtest: $(MININET)
+slowtest: $(MININET_WIFI)
 	-echo "Running slower tests (walkthrough, examples)"
-	mininet/test/test_walkthrough.py -v
-	mininet/examples/test/runner.py -v
+	mn_wifi/test/test_walkthrough.py -v
+	mn_wifi/examples/test/runner.py -v
 
-mnexec: mnexec.c $(MN) mininet/net.py
+mnexec: mnexec.c $(MN) mn_wifi/net.py
 	cc $(CFLAGS) $(LDFLAGS) -DVERSION=\"`PYTHONPATH=. $(PYMN) --version`\" $< -o $@
 
-install: $(MNEXEC) $(MANPAGES)
-	install $(MNEXEC) $(BINDIR)
-	install $(MANPAGES) $(MANDIR)
-	python setup.py install
+install-mnexec: $(MNEXEC)
+	install -D $(MNEXEC) $(BINDIR)/$(MNEXEC)
+
+install-manpages: $(MANPAGES)
+	install -D -t $(MANDIR) $(MANPAGES)
+
+install: install-mnexec install-manpages
+	$(PYTHON) setup.py install
 
 develop: $(MNEXEC) $(MANPAGES)
 # 	Perhaps we should link these as well
 	install $(MNEXEC) $(BINDIR)
 	install $(MANPAGES) $(MANDIR)
-	python setup.py develop
+	$(PYTHON) setup.py develop
 
 man: $(MANPAGES)
 

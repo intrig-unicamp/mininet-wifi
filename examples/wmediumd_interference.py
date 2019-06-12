@@ -4,17 +4,16 @@
 
 from mininet.node import Controller
 from mininet.log import setLogLevel, info
-from mininet.wifi.node import OVSKernelAP
-from mininet.wifi.link import wmediumd
-from mininet.wifi.cli import CLI_wifi
-from mininet.wifi.net import Mininet_wifi
-from mininet.wifi.wmediumdConnector import interference
+from mn_wifi.link import wmediumd
+from mn_wifi.cli import CLI_wifi
+from mn_wifi.net import Mininet_wifi
+from mn_wifi.wmediumdConnector import interference
 
 
 def topology():
     "Create a network."
     net = Mininet_wifi(controller=Controller, link=wmediumd,
-                       accessPoint=OVSKernelAP, wmediumd_mode=interference,
+                       wmediumd_mode=interference,
                        noise_threshold=-91, fading_coefficient=3)
 
     info("*** Creating nodes\n")
@@ -26,10 +25,10 @@ def topology():
                    position='20,50,0')
     net.addStation('sta3', mac='00:00:00:00:00:04', ip='10.0.0.3/8',
                    position='20,60,10')
-    c1 = net.addController('c1', controller=Controller)
+    c1 = net.addController('c1')
 
     info("*** Configuring Propagation Model\n")
-    net.propagationModel(model="logDistance", exp=4)
+    net.setPropagationModel(model="logDistance", exp=4)
 
     info("*** Configuring wifi nodes\n")
     net.configureWifiNodes()

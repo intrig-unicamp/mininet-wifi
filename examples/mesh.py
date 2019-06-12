@@ -12,10 +12,10 @@ sta1 ----- sta2"""
 import sys
 
 from mininet.log import setLogLevel, info
-from mininet.wifi.link import wmediumd, mesh
-from mininet.wifi.cli import CLI_wifi
-from mininet.wifi.net import Mininet_wifi
-from mininet.wifi.wmediumdConnector import interference
+from mn_wifi.link import wmediumd, mesh
+from mn_wifi.cli import CLI_wifi
+from mn_wifi.net import Mininet_wifi
+from mn_wifi.wmediumdConnector import interference
 
 
 def topology(mobility):
@@ -32,17 +32,24 @@ def topology(mobility):
         sta2 = net.addStation('sta2', position='50,10,0')
         sta3 = net.addStation('sta3', position='90,10,0')
 
+    info("*** Configuring Propagation Model\n")
+    net.setPropagationModel(model="logDistance", exp=4)
+
     info("*** Configuring wifi nodes\n")
     net.configureWifiNodes()
 
     info("*** Creating links\n")
-    net.addLink(sta1, cls=mesh, ssid='meshNet', channel=5)
-    net.addLink(sta2, cls=mesh, ssid='meshNet', channel=5)
-    net.addLink(sta3, cls=mesh, ssid='meshNet', channel=5)
+    net.addLink(sta1, cls=mesh, ssid='meshNet',
+                channel=5, ht_cap='HT40+') #, passwd='thisisreallysecret')
+    net.addLink(sta2, cls=mesh, ssid='meshNet',
+                channel=5, ht_cap='HT40+') #, passwd='thisisreallysecret')
+    net.addLink(sta3, cls=mesh, ssid='meshNet',
+                channel=5, ht_cap='HT40+') #, passwd='thisisreallysecret')
 
     if mobility:
         net.plotGraph(max_x=100, max_y=100)
-        net.startMobility(time=0, model='RandomDirection', max_x=100, max_y=100,
+        net.startMobility(time=0, model='RandomDirection',
+                          max_x=100, max_y=100,
                           min_v=0.5, max_v=0.8, seed=20)
 
     info("*** Starting network\n")

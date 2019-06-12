@@ -5,10 +5,10 @@
 import os
 
 from mininet.log import setLogLevel, info
-from mininet.wifi.link import wmediumd, mesh, physicalMesh
-from mininet.wifi.cli import CLI_wifi
-from mininet.wifi.net import Mininet_wifi
-from mininet.wifi.wmediumdConnector import interference
+from mn_wifi.link import wmediumd, mesh, physicalMesh
+from mn_wifi.cli import CLI_wifi
+from mn_wifi.net import Mininet_wifi
+from mn_wifi.wmediumdConnector import interference
 
 
 def topology():
@@ -20,7 +20,7 @@ def topology():
     sta2 = net.addStation('sta2', position='50,10,0')
     sta3 = net.addStation('sta3', position='90,10,0')
 
-    net.propagationModel(model="logDistance", exp=4)
+    net.setPropagationModel(model="logDistance", exp=4)
 
     info("*** Configuring wifi nodes\n")
     net.configureWifiNodes()

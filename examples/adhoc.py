@@ -7,10 +7,10 @@ sta1 <---> sta2 <---> sta3"""
 import sys
 
 from mininet.log import setLogLevel, info
-from mininet.wifi.link import wmediumd, adhoc
-from mininet.wifi.cli import CLI_wifi
-from mininet.wifi.net import Mininet_wifi
-from mininet.wifi.wmediumdConnector import interference
+from mn_wifi.link import wmediumd, adhoc
+from mn_wifi.cli import CLI_wifi
+from mn_wifi.net import Mininet_wifi
+from mn_wifi.wmediumdConnector import interference
 
 
 def topology(autoTxPower):
@@ -27,15 +27,18 @@ def topology(autoTxPower):
         sta2 = net.addStation('sta2', position='50,10,0')
         sta3 = net.addStation('sta3', position='90,10,0')
 
-    net.propagationModel(model="logDistance", exp=4)
+    net.setPropagationModel(model="logDistance", exp=4)
 
     info("*** Configuring wifi nodes\n")
     net.configureWifiNodes()
 
     info("*** Creating links\n")
-    net.addLink(sta1, cls=adhoc, ssid='adhocNet', mode='g', channel=5)
-    net.addLink(sta2, cls=adhoc, ssid='adhocNet', mode='g', channel=5)
-    net.addLink(sta3, cls=adhoc, ssid='adhocNet', mode='g', channel=5)
+    net.addLink(sta1, cls=adhoc, ssid='adhocNet',
+                mode='g', channel=5, ht_cap='HT40+')
+    net.addLink(sta2, cls=adhoc, ssid='adhocNet',
+                mode='g', channel=5)
+    net.addLink(sta3, cls=adhoc, ssid='adhocNet',
+                mode='g', channel=5, ht_cap='HT40+')
 
     info("*** Starting network\n")
     net.build()

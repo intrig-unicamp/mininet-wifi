@@ -2,24 +2,21 @@
 
 'This example shows how to work with authentication'
 
-from mininet.node import Controller
-from mininet.wifi.node import UserAP
-from mininet.wifi.cli import CLI_wifi
 from mininet.log import setLogLevel, info
-from mininet.wifi.net import Mininet_wifi
+from mn_wifi.cli import CLI_wifi
+from mn_wifi.net import Mininet_wifi
 
 
 def topology():
     "Create a network."
-    net = Mininet_wifi(controller=Controller, accessPoint=UserAP)
+    net = Mininet_wifi()
 
     info("*** Creating nodes\n")
     sta1 = net.addStation('sta1', passwd='123456789a', encrypt='wpa2')
     sta2 = net.addStation('sta2', passwd='123456789a', encrypt='wpa2')
     ap1 = net.addAccessPoint('ap1', ssid="simplewifi", mode="g", channel="1",
-                             passwd='123456789a', encrypt='wpa2')
-    c0 = net.addController('c0', controller=Controller, ip='127.0.0.1',
-                           port=6633)
+                             passwd='123456789a', encrypt='wpa2',
+                             failMode="standalone", datapath='user')
 
     info("*** Configuring wifi nodes\n")
     net.configureWifiNodes()
@@ -30,8 +27,7 @@ def topology():
 
     info("*** Starting network\n")
     net.build()
-    c0.start()
-    ap1.start([c0])
+    ap1.start([])
 
     info("*** Running CLI\n")
     CLI_wifi(net)

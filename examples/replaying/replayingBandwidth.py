@@ -1,13 +1,14 @@
 #!/usr/bin/python
 
 "Replaying Bandwidth"
+import os
 
 from mininet.node import Controller,OVSKernelSwitch
 from mininet.link import TCLink
 from mininet.log import setLogLevel, info
-from mininet.wifi.replaying import replayingBandwidth
-from mininet.wifi.cli import CLI_wifi
-from mininet.wifi.net import Mininet_wifi
+from mn_wifi.replaying import replayingBandwidth
+from mn_wifi.cli import CLI_wifi
+from mn_wifi.net import Mininet_wifi
 
 
 def topology():
@@ -33,7 +34,8 @@ def topology():
 
     net.plotGraph(max_x=100, max_y=100)
 
-    getTrace(sta1, 'examples/replaying/replayingBandwidth/throughputData.dat')
+    path = os.path.dirname(os.path.abspath(__file__))
+    getTrace(sta1, '%s/replayingBandwidth/throughputData.dat' % path)
 
     replayingBandwidth(net)
 

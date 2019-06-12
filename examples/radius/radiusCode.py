@@ -4,11 +4,11 @@
 
 from mininet.node import Controller
 from mininet.log import setLogLevel, info
-from mininet.wifi.node import UserAP
-from mininet.wifi.cli import CLI_wifi
-from mininet.wifi.net import Mininet_wifi
-from mininet.wifi.link import wmediumd
-from mininet.wifi.wmediumdConnector import interference
+from mn_wifi.node import UserAP
+from mn_wifi.cli import CLI_wifi
+from mn_wifi.net import Mininet_wifi
+from mn_wifi.link import wmediumd
+from mn_wifi.wmediumdConnector import interference
 
 
 def topology():
@@ -23,10 +23,10 @@ def topology():
                            radius_identity='bob', position='200,100,0' )
     ap1 = net.addAccessPoint( 'ap1', ssid='simplewifi', authmode='8021x',
                               mode='a', channel='36', encrypt='wpa2', position='150,100,0' )
-    c0 = net.addController('c0', controller=Controller, ip='127.0.0.1', port=6633 )
+    c0 = net.addController('c0', controller=Controller, ip='127.0.0.1', port=6653 )
 
     info("*** Configuring Propagation Model\n")
-    net.propagationModel(model="logDistance", exp=3.5)
+    net.setPropagationModel(model="logDistance", exp=3.5)
 
     info("*** Configuring wifi nodes\n")
     net.configureWifiNodes()

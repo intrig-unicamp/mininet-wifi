@@ -14,7 +14,7 @@ set -o nounset
 MININET_DIR="$( cd -P "$( dirname "${BASH_SOURCE[0]}" )/../.." && pwd -P )"
 
 # Set up build directory, which by default is the working directory
-#  unless the working directory is a subdirectory of mininet, 
+#  unless the working directory is a subdirectory of mininet,
 #  in which case we use the directory containing mininet
 BUILD_DIR="$(pwd -P)"
 case $BUILD_DIR in
@@ -30,7 +30,6 @@ KERNEL_LOC=http://www.openflow.org/downloads/mininet
 DIST=Unknown
 RELEASE=Unknown
 CODENAME=Unknown
-PYTHON3=false
 ARCH=`uname -m`
 if [ "$ARCH" = "x86_64" ]; then ARCH="amd64"; fi
 if [ "$ARCH" = "i686" ]; then ARCH="i386"; fi
@@ -88,6 +87,14 @@ function version_ge {
     [ "$1" == "$latest" ]
 }
 
+# Attempt to identify Python version
+python=${python:-python}
+if $python --version |& grep 'Python 2' > /dev/null; then
+    PYTHON_VERSION=2; PYPKG=python
+else
+    PYTHON_VERSION=3; PYPKG=python3
+fi
+echo "${python} is version ${PYTHON_VERSION}"
 
 # Kernel Deb pkg to be removed:
 KERNEL_IMAGE_OLD=linux-image-2.6.26-33-generic
@@ -128,53 +135,52 @@ function kernel_clean {
 function mn_deps {
     if [ "$DIST" = "Fedora" -o "$DIST" = "RedHatEnterpriseServer" ]; then
         $install gcc make socat psmisc xterm openssh-clients iperf \
-            iproute telnet libcgroup-tools \
-            ethtool help2m pyflakes pylint python-pep8
-        if [ "$PYTHON3" == true ]; then
-		    $install python3-setuptools python3-pexpect python3-pip
-		else
-		    $install python-setuptools python-pexpect python-pip
-	    fi
+                 iproute telnet python-setuptools libcgroup-tools \
+                 ethtool help2man pyflakes pylint python-pep8 python-pexpect
 	elif [ "$DIST" = "SUSE LINUX"  ]; then
 		$install gcc make socat psmisc xterm openssh iperf \
-			iproute telnet libcgroup-tools \
-			ethtool help2man python-pyflakes python3-pylint python-pep8
-		if [ "$PYTHON3" == true ]; then
-		    $install python3-setuptools python3-pexpect python3-pip
-		else
-		    $install python-setuptools python-pexpect python-pip
-	    fi
-    else
-        $install gcc make socat psmisc xterm ssh iperf iproute2 telnet \
-            cgroup-bin ethtool help2man pyflakes pylint pep8
-        if [ "$PYTHON3" == true ]; then
-		    $install python3-setuptools python3-pexpect python3-pip
-		else
-		    $install python-setuptools python-pexpect python-pip
-	    fi
-    fi
-    if [ -x "$(command -v pip2)" ]; then
-        pip2 install typing
-    else
-        pip install typing
-    fi
+			     iproute telnet libcgroup-tools \
+			     ethtool help2man python-pyflakes python-pep8 \
+		         ${PYPKG}-setuptools ${PYPKG}-pexpect ${PYPKG}-tk
+	else
+        $install gcc make socat psmisc xterm ssh iperf telnet \
+                 cgroup-bin ethtool help2man pyflakes pylint pep8 \
+                 ${PYPKG}-setuptools ${PYPKG}-pexpect ${PYPKG}-tk
+        $install iproute2 || $install iproute
+	fi
+
     echo "Installing Mininet core"
     pushd $MININET_DIR/mininet-wifi
-    sudo make install
+    if [ -d mininet ]; then
+      echo "Removing mininet dir..."
+      rm -r mininet
+    fi
+
+    # Last check for python2
+    python=${python:-python}
+    if $python --version |& grep 'Python 2' > /dev/null; then
+      $install python-numpy python-matplotlib python-scipy \
+          python-setuptools python-pexpect python-tk
+    fi
+
+    sudo git clone --depth=1 https://github.com/mininet/mininet.git
+    pushd $MININET_DIR/mininet-wifi/mininet
+    sudo python=${python} make install
+    popd
+    echo "Installing Mininet-wifi core"
+    pushd $MININET_DIR/mininet-wifi
+    sudo python=${python} make install
     popd
 }
 
 # Install Mininet-WiFi deps
 function wifi_deps {
     echo "Installing Mininet-WiFi dependencies"
-    $install wireless-tools rfkill python-numpy pkg-config \
-             libnl-3-dev libnl-genl-3-dev libssl-dev make libevent-dev patch
-    if [ "$PYTHON3" == true ]; then
-		    $install python3-scipy python3-pip python3 python3-matplotlib
-		else
-		    $install python-scipy python-pip python-matplotlib
-	    fi
-    pushd $MININET_DIR/mininet-wifi
+    $install wireless-tools rfkill ${PYPKG}-numpy pkg-config \
+             libnl-3-dev libnl-genl-3-dev libssl-dev make libevent-dev patch \
+             ${PYPKG}-scipy ${PYPKG}-matplotlib
+
+	pushd $MININET_DIR/mininet-wifi
     git submodule update --init --recursive
     pushd $MININET_DIR/mininet-wifi/hostap
     patch -p0 < $MININET_DIR/mininet-wifi/util/hostap-patches/config.patch
@@ -185,7 +191,7 @@ function wifi_deps {
     cp defconfig .config
     sudo make && make install
     pushd $MININET_DIR/mininet-wifi/
-    git clone --depth=1 https://github.com/ramonfontes/iw
+    git clone --depth=1 https://git.kernel.org/pub/scm/linux/kernel/git/jberg/iw.git
     pushd $MININET_DIR/mininet-wifi/iw
     sudo make && make install
     cd $BUILD_DIR
@@ -254,10 +260,11 @@ function of13 {
 
     # Install netbee
     NBEEDIR="netbee"
-    git clone https://github.com/ramonfontes/netbee.git
+    git clone https://github.com/netgroup-polito/netbee.git
     cd ${NBEEDIR}/src
     cmake .
     make
+
     cd $BUILD_DIR/
     sudo cp ${NBEEDIR}/bin/libn*.so /usr/local/lib
     sudo ldconfig
@@ -391,7 +398,7 @@ function ubuntuOvs {
 function ovs {
     echo "Installing Open vSwitch..."
 
-    if [ "$DIST" == "Fedora" ]; then
+    if [ "$DIST" = "Fedora" -o "$DIST" = "RedHatEnterpriseServer" ]; then
         $install openvswitch openvswitch-controller
         return
     fi
@@ -410,23 +417,28 @@ function ovs {
     fi
 
     $install openvswitch-switch
+    OVSC=""
     if $install openvswitch-controller; then
-        # Switch can run on its own, but
-        # Mininet should control the controller
-        # This appears to only be an issue on Ubuntu/Debian
-        if sudo service openvswitch-controller stop; then
-            echo "Stopped running controller"
-        fi
-        if [ -e /etc/init.d/openvswitch-controller ]; then
-            sudo update-rc.d openvswitch-controller disable
-        fi
+        OVSC="openvswitch-controller"
     else
         echo "Attempting to install openvswitch-testcontroller"
-        if ! $install openvswitch-testcontroller; then
+        if $install openvswitch-testcontroller; then
+            OVSC="openvswitch-testcontroller"
+        else
             echo "Failed - skipping openvswitch-testcontroller"
         fi
     fi
-
+    if [ "$OVSC" ]; then
+        # Switch can run on its own, but
+        # Mininet should control the controller
+        # This appears to only be an issue on Ubuntu/Debian
+        if sudo service $OVSC stop; then
+            echo "Stopped running controller"
+        fi
+        if [ -e /etc/init.d/$OVSC ]; then
+            sudo update-rc.d $OVSC disable
+        fi
+    fi
 }
 
 function remove_ovs {
@@ -729,7 +741,7 @@ function wpan_tools {
       echo "Removing wpan-tools..."
       rm -r wpan-tools
     fi
-    git clone --depth=1 https://github.com/ramonfontes/wpan-tools
+    git clone --depth=1 https://github.com/linux-wpan/wpan-tools
     pushd $BUILD_DIR/wpan-tools
     sudo ./autogen.sh
     sudo ./configure
@@ -866,7 +878,6 @@ else
       m)    modprobe;;
       n)    mn_deps;;
       p)    pox;;
-      P)    PYTHON3=true;;
       r)    remove_ovs;;
       s)    mkdir -p $OPTARG; # ensure the directory is created
             BUILD_DIR="$( cd -P "$OPTARG" && pwd )"; # get the full path

@@ -31,19 +31,39 @@ step 4: $ sudo util/install.sh -Wlnfv
 -v: OpenvSwitch   
 -l: wmediumd   
 optional:  
--6: wpan tools  
--P: python3
+-6: wpan tools
+
+### Building Topologies with GUI
+
+![](https://github.com/ramonfontes/vnd/blob/master/miniedit.png)
+
+I'm a beginner, I do not know Python and I would like to create a customized topology. In this case, both [MiniEdit](https://github.com/intrig-unicamp/mininet-wifi/blob/master/examples/miniedit.py) and [VND](https://github.com/ramonfontes/vnd) can serve as support since they provide a GUI to generate Python scripts. 
+
 
 ### Development
 For instructions about easier development check [this helper file](doc/dev_help.md).
 
 ## Pre-configured Virtual Machine    
-[Ubuntu 16.04 x64 :: Password: wifi](https://intrig.dca.fee.unicamp.br:8840/owncloud/index.php/s/PcxujWO5HsxxBIn)      
+[Ubuntu 16.04 x64 :: Password: wifi](https://intrig.dca.fee.unicamp.br:8840/owncloud/index.php/s/U2OmXjA4DWMvRLM)      
 user: wifi   
 pass: wifi   
    
 ## Note
 Mininet-WiFi should work fine in any Ubuntu distribution from 14.04, but in some cases (only if you have problems when start it) you have to stop NetworkManager with `stop network-manager` (you can also use `sudo systemctl stop network-manager` or `sudo service network-manager stop`).    
+
+## Book  
+We are glad to announce that the Mininet-WiFi book has been published!   
+  
+While the 1st edition (237 pages) is in Portuguese, affordably available in Printed and E-Book versions, we are about to start to work on the 2nd edition in English. Hard to say when it will be out but we target 2019!   
+
+Here are the pointers to the book:   
+
+Printed version: https://www.clubedeautores.com.br/livro/emulando-redes-sem-fio-com-mininet-wifi   
+
+Printed and e-Book version: https://www.amazon.com.br/dp/B07QM2BBRF/
+
+Github repository with all use cases presented in the book:   
+https://github.com/ramonfontes/mn-wifi-book-pt   
 
 ### Team
 Ramon dos Reis Fontes (ramonrf@dca.fee.unicamp.br)  

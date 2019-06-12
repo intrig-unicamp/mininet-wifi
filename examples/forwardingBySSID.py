@@ -22,11 +22,12 @@ around SSID-based packet forwarding
 
 from time import sleep
 
-from mininet.node import  Controller
+from mininet.node import Controller
 from mininet.log import setLogLevel, info
-from mininet.wifi.node import UserAP
-from mininet.wifi.cli import CLI_wifi
-from mininet.wifi.net import Mininet_wifi
+from mn_wifi.node import UserAP
+from mn_wifi.cli import CLI_wifi
+from mn_wifi.net import Mininet_wifi
+
 
 def topology():
     "Create a network."
@@ -42,8 +43,7 @@ def topology():
     ap1 = net.addAccessPoint('ap1', vssids=4,
                              ssid='ssid,ssid1,ssid2,ssid3,ssid4',
                              mode="g", channel="1", position='30,40,0')
-    c0 = net.addController('c0', controller=Controller, ip='127.0.0.1',
-                           port=6633)
+    c0 = net.addController('c0')
 
     info("*** Configuring wifi nodes\n")
     net.configureWifiNodes()
