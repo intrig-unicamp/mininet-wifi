@@ -247,114 +247,7 @@ class mobility(object):
         nodes = cls.stations + cls.aps + plotNodes
 
         for node in nodes:
-<<<<<<< HEAD:mininet/wifi/mobility.py
-            if 'position' in node.params and 'initPos' not in node.params:
-                stationaryNodes.append(node)
-            if 'initPos' in node.params:
-                node.params['position'] = node.params['initPos']
-                cls.mobileNodes.append(node)
-
-        nodes = cls.mobileNodes + stationaryNodes
-        try:
-            if DRAW:
-                plotGraph(min_x, min_y, min_z, max_x, max_y, max_z, nodes, conn)
-                if max_z != 0:
-                    plot = plot3d
-        except:
-            info('Warning: running without GUI.\n')
-            DRAW = False
-        try:
-            for node in nodes:
-                if isinstance(node, Station) and hasattr(node, 'coord'):
-                    cls.create_coordinate(node)
-                    node.points = []
-                    for coord_ in node.coord_:
-                        cls.get_line(node, float(coord_[0].split(',')[0]),
-                                     float(coord_[0].split(',')[1]),
-                                     float(coord_[0].split(',')[2]),
-                                     float(coord_[1].split(',')[0]),
-                                     float(coord_[1].split(',')[1]),
-                                     float(coord_[1].split(',')[2]))
-
-            for rep in range(0, repetitions):
-                t1 = time()
-                i = 1
-                if rep > 0:
-                    for node in nodes:
-                        if 'initPos' in node.params:
-                            cls.mobileNodes.append(node)
-                for node in cls.mobileNodes:
-                    node.time = node.startTime
-                    cls.calculate_diff_time(node)
-                while True:
-                    t2 = time()
-                    if (t2 - t1) > final_time or (t2 - t1) < init_time:
-                        pass
-                    if t2 - t1 >= i:
-                        for node in cls.mobileNodes:
-                            if (t2 - t1) >= node.startTime and node.time <= node.endTime:
-                                if hasattr(node, 'coord'):
-                                    cls.calculate_diff_time(node)
-                                    node.params['position'] = node.points[node.time * node.moveFac]
-                                    if node.time == node.endTime:
-                                        node.params['position'] = node.points[len(node.points)-1]
-                                else:
-                                    x, y, z = cls.move_node(node)
-                                    node.params['position'] = [x, y, z]
-                                node.time += 1
-                            if ppm == 'logNormalShadowing':
-                                intf = node.params['wlan'][0]
-                                wlan = node.params['wlan'].index(intf)
-                                node.params['range'][wlan] = node.getRange(intf=intf)
-                            if DRAW:
-                                plot.graphUpdate(node)
-                                if max_z == 0:
-                                    plot2d.updateCircleRadius(node)
-                            if cls.wmediumd_mode and cls.wmediumd_mode == 3:
-                                node.set_pos_wmediumd()
-                        eval(cls.continuePlot)
-                        i += 1
-        except:
-            pass
-
-    @classmethod
-    def addNodes(cls, stas, aps):
-        cls.stations = stas
-        cls.aps = aps
-        cls.mobileNodes = cls.stations
-
-    @classmethod
-    def models(cls, stations=[], aps=[], model=None, mobileNodes=None,
-               min_v=0, max_v=0, seed=None, conn=None, plotNodes=[],
-               max_x=0, max_y=0, AC='', DRAW=False, rec_rssi=False, ppm=None,
-               aggregation=0.42, **params):
-        """Used when a mobility model is being used
-
-        :param stations: list of stations
-        :param aps: list of access points
-        :param model: mobility model
-        :param mobileNodes: mobile nodes
-        :param min_v: minimum velocity
-        :param max_v: maximum velocity
-        :param speed: speed
-        :param conn: list of connections
-        :param plotNodes: list of nodes to be plotted (including hosts and switches)
-        :param MAX_X: Maximum value for X
-        :param MAX_Y: Maximum value for Y"
-        :param ppm: propagation model"""
-        np.random.seed(seed)
-        cls.rec_rssi = rec_rssi
-        cls.ac = AC
-        cls.addNodes(stations, aps)
-        nodes = cls.stations + cls.aps + plotNodes
-        # max waiting time
-        MAX_WT = 100.
-
-        for node in nodes:
-            if node.params['position'] == (0,0,0):
-=======
             if 'position' in node.params:
->>>>>>> origin/debug:mn_wifi/mobility.py
                 if not hasattr(node, 'min_x'):
                     node.min_x = 0
                 if not hasattr(node, 'min_y'):
@@ -423,34 +316,20 @@ class mobility(object):
             elif model == 'GaussMarkov':  # Gauss-Markov model
                 mob = gauss_markov(kwargs['nodes'], alpha=0.99)
             elif model == 'ReferencePoint':  # Reference Point Group model
-<<<<<<< HEAD:mininet/wifi/mobility.py
-                mob = reference_point_group(mobileNodes,
-                                            dimensions=(max_x, max_y),
-                                            aggregation=aggregation)
-=======
                 mob = reference_point_group(kwargs['nodes'],
                                             dimensions=(kwargs['max_x'], kwargs['max_y']),
                                             aggregation=kwargs['aggregation'])
->>>>>>> origin/debug:mn_wifi/mobility.py
             elif model == 'TimeVariantCommunity':
                 mob = tvc(kwargs['nodes'],
                           dimensions=(kwargs['max_x'],
                                       kwargs['max_y']),
                           aggregation=[0.5, 0.], epoch=[100, 100])
             elif model == 'CRP':
-<<<<<<< HEAD:mininet/wifi/mobility.py
-                mob = coherence_ref_point(mobileNodes,
-                                       dimensions=(max_x, max_y),
-                                       aggregation=aggregation,
-                                       pointlist=params['pointlist'],
-                                       waittime=params['waittime'])
-=======
-                mob = cooler_ref_point(kwargs['nodes'],
+                mob = coherence_ref_point(kwargs['nodes'],
                                         dimensions=(kwargs['max_x'], kwargs['max_y']),
                                         aggregation=kwargs['aggregation'],
                                         pointlist=kwargs['pointlist'],
                                         waittime=kwargs['waittime'])
->>>>>>> origin/debug:mn_wifi/mobility.py
             else:
                 raise Exception("Mobility Model not defined or doesn't exist!")
             #sleep(params['init_time'])
@@ -471,17 +350,10 @@ class mobility(object):
         :param nodes: list of nodes"""
         for xy in mob:
             for idx, node in enumerate(nodes):
-<<<<<<< HEAD:mininet/wifi/mobility.py
-                node.params['position'] = '%.2f' % xy[idx][0], '%.2f' \
-                                          % xy[idx][1], 0.0
-
-                if cls.wmediumd_mode and cls.wmediumd_mode == 3:
-=======
                 node.params['position'] = round(xy[idx][0],2), \
                                           round(xy[idx][1],2), \
                                           0.0
                 if cls.wmediumd_mode == 3 and mobility.thread_._keep_alive:
->>>>>>> origin/debug:mn_wifi/mobility.py
                     node.set_pos_wmediumd()
                 plot2d.update(node)
             plot2d.pause()
@@ -1536,16 +1408,10 @@ def reference_point_group(nodes, dimensions, velocity=(0.1, 1.), aggregation=0.1
 
         yield np.dstack((x, y))[0]
 
-<<<<<<< HEAD:mininet/wifi/mobility.py
 def coherence_ref_point(nodes, dimensions, pointlist, velocity=(0.1, 1.), g_velocity=0.4, aggregation=0.1, waittime=0):
     """
-    Cooler Reference Point Group Mobility model, discussed in the following paper:
+    Based on the Reference Point Group Mobility model, discussed in the following paper:
 
-=======
-def cooler_ref_point(nodes, dimensions, pointlist, velocity=(0.1, 1.), g_velocity=0.4, aggregation=0.1, waittime=0):
-    """
-    Cooler Reference Point Group Mobility model, discussed in the following paper:
->>>>>>> origin/debug:mn_wifi/mobility.py
         Xiaoyan Hong, Mario Gerla, Guangyu Pei, and Ching-Chuan Chiang. 1999.
         A group mobility model for ad hoc wireless networks. In Proceedings of
         the 2nd ACM international workshop on Modeling, analysis and simulation
@@ -1556,7 +1422,6 @@ def cooler_ref_point(nodes, dimensions, pointlist, velocity=(0.1, 1.), g_velocit
     while nodes follow a random walk around the group center.
     The parameter 'aggregation' controls how close the nodes are to the group
     center.
-<<<<<<< HEAD:mininet/wifi/mobility.py
 
     Required arguments:
 
@@ -1574,34 +1439,15 @@ def cooler_ref_point(nodes, dimensions, pointlist, velocity=(0.1, 1.), g_velocit
         *g_velocity*
         Velocity of group vector. Appears to be 5.7 m/s per unit locally.
 
-=======
-    Required arguments:
-        *nr_nodes*:
-        list of integers, the number of nodes in each group.
-        *dimensions*:
-        Tuple of Integers, the x and y dimensions of the simulation area.
-    keyword arguments:
-        *velocity*:
-        Tuple of Doubles, the minimum and maximum values for group velocity.
-        *g_velocity*
-        Velocity of group vector. Appears to be 5.7 m/s per unit locally.
->>>>>>> origin/debug:mn_wifi/mobility.py
         *aggregation*:
         Double, parameter (between 0 and 1) used to aggregate the nodes in the
         group. Usually between 0 and 1, the more this value approximates to 1,
         the nodes will be more aggregated and closer to the group center.
         With a value of 0, the nodes are randomly distributed in the simulation
         area. With a value of 1, the nodes are close to the group center.
-<<<<<<< HEAD:mininet/wifi/mobility.py
 
         *pointlist*
         List of Tuples of integers x,y,z corresponding to points in the model.
-=======
-        *initial_point*
-        Tuple of (x,y) starting position in the 2D mobility model.
-        *end_point*
-        Tuple of (x,y) finish position in the 2D mobility model.
->>>>>>> origin/debug:mn_wifi/mobility.py
     """
     #TODO: Parameterize wait time!!!
     #Manual wait time
@@ -1612,10 +1458,6 @@ def cooler_ref_point(nodes, dimensions, pointlist, velocity=(0.1, 1.), g_velocit
         iter(nr_nodes)
     except TypeError:
         nr_nodes = [nr_nodes]
-<<<<<<< HEAD:mininet/wifi/mobility.py
-
-=======
->>>>>>> origin/debug:mn_wifi/mobility.py
     #Create an array of length equal to # of nodes
     NODES = np.arange(sum(nr_nodes))
     #Store nodes in their specific group, which controls the "reference point" who vector they follow
