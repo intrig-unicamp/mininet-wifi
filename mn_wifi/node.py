@@ -434,7 +434,7 @@ class Node_wifi(Node):
             freq = 5.825
         else:
             freq = 2.412
-        return freq
+        return "%.3f" % freq
 
     def get_rssi(self, node=None, wlan=0, dist=0):
         value = propagationModel(self, node, dist, wlan)
@@ -1788,7 +1788,7 @@ class AccessPoint(AP):
 class UserAP(AP):
     "User-space AP."
 
-    dpidLen = 12
+    dpidLen = 16
 
     def __init__(self, name, dpopts='--no-slicing', **kwargs):
         """Init.
