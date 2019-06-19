@@ -411,7 +411,7 @@ class Node_wifi(Node):
         elif channel == 116:
             freq = 5.58
         elif channel == 120:
-            freq = 5.60
+            freq = 5.6
         elif channel == 124:
             freq = 5.62
         elif channel == 128:
@@ -421,7 +421,7 @@ class Node_wifi(Node):
         elif channel == 136:
             freq = 5.68
         elif channel == 140:
-            freq = 5.70
+            freq = 5.7
         elif channel == 149:
             freq = 5.745
         elif channel == 153:
@@ -434,7 +434,7 @@ class Node_wifi(Node):
             freq = 5.825
         else:
             freq = 2.412
-        return float(format(freq, '.3f'))
+        return freq
 
     def get_rssi(self, node=None, wlan=0, dist=0):
         value = propagationModel(self, node, dist, wlan)

@@ -1105,7 +1105,7 @@ class adhoc(IntfWireless):
             self.setSecuredAdhoc(node, wlan, **params)
         else:
             ssid = node.params['ssid'][wlan]
-            freq = str(node.params['freq'][wlan]).replace('.', '')
+            freq = format(node.params['freq'][wlan],'.3f').replace('.', '')
             ht_cap = ''
             if 'ht_cap' in params:
                 ht_cap = params['ht_cap']
@@ -1221,7 +1221,7 @@ class mesh(IntfWireless):
         "Performs Mesh Association"
         name = node.params['wlan'][wlan]
         ssid = node.params['ssid'][wlan]
-        freq = str(node.params['freq'][wlan]).replace('.','')
+        freq = format(node.params['freq'][wlan], '.3f').replace('.', '')
         ht_cap = ''
         if 'ht_cap' in params:
             ht_cap = params['ht_cap']
@@ -1277,7 +1277,7 @@ class physicalMesh(IntfWireless):
         self.name = node.params['wlan'][wlan]
         self.setPhysicalMeshIface(node, **params)
         ssid = node.params['ssid'][wlan]
-        freq = node.params['freq'][wlan]
+        freq = format(node.params['freq'][wlan], '.3f').replace('.', '')
         iface = node.params['wlan'][wlan]
         ht_cap = ''
         self.join('mesh', ssid, freq, ht_cap, iface)
