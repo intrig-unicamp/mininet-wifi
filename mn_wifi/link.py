@@ -1225,7 +1225,7 @@ class mesh(IntfWireless):
         "Performs Mesh Association"
         name = node.params['wlan'][wlan]
         ssid = node.params['ssid'][wlan]
-        freq = self.get_freq(node, node.params['freq'][wlan])
+        freq = self.get_freq(node.params['freq'][wlan])
         ht_cap = ''
         if 'ht_cap' in params:
             ht_cap = params['ht_cap']
