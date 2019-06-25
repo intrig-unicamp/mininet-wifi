@@ -87,13 +87,10 @@ class mobility(object):
                 pos = node.coord[0]
                 node.params['initPos'] = pos.split(',')
 
-        if 'time' in kwargs:
-            time_ = kwargs['time']
-
         if stage == 'start':
-            node.startTime = time_
+            node.startTime = kwargs['time']
         elif stage == 'stop':
-            cls.calculate_diff_time(node, time_)
+            cls.calculate_diff_time(node, kwargs['time'])
 
     @classmethod
     def calculate_diff_time(cls, node, time=0):
@@ -151,8 +148,7 @@ class mobility(object):
             elif cls.wmediumd_mode and cls.wmediumd_mode != 3:
                 Association.setSNRWmediumd(sta, ap, snr=-10)
                 sta.params['rssi'][wlan] = 0
-            if 'encrypt' in ap.params and 'ieee80211r' not in ap.params or \
-                            'encrypt' not in ap.params:
+            if 'ieee80211r' not in ap.params:
                 debug('iw dev %s disconnect\n' % sta.params['wlan'][wlan])
                 sta.pexec('iw dev %s disconnect' % sta.params['wlan'][wlan])
             sta.params['associatedTo'][wlan] = ''

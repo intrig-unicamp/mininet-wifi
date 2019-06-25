@@ -514,8 +514,7 @@ class Node_wifi(Node):
         if 'position' not in self.params:
             wlan = self.get_wlan(intf)
             if 'encrypt' in ap.params:
-                if ap.params['encrypt'][0] == 'wpa' or \
-                                ap.params['encrypt'][0] == 'wpa2':
+                if 'wpa' in ap.params['encrypt'][0]:
                     Association.wpa(self, ap, wlan, ap_wlan=0)
                 elif ap.params['encrypt'][0] == 'wep':
                     Association.wep(self, ap, wlan, ap_wlan=0)
@@ -532,8 +531,7 @@ class Node_wifi(Node):
         if 'position' in self.params and 'position' in ap.params:
             dist = self.get_distance_to(ap)
 
-        if dist < ap.params['range'][wlan] or 'position' not in self.params \
-                and 'position' not in ap.params:
+        if dist < ap.params['range'][wlan] or dist == 100000:
             if self.params['associatedTo'][wlan] != ap:
                 if self.params['associatedTo'][wlan] != '':
                     self.cmd('iw dev %s disconnect' % intf)
