@@ -33,6 +33,7 @@ from sys import version_info as py_version_info
 import numpy as np
 from scipy.spatial.distance import pdist
 from six import string_types
+from threading import Lock
 
 from mininet.log import info, error, warn, debug
 from mininet.util import (quietRun, errRun, errFail, mountCgroups,
@@ -85,6 +86,7 @@ class Node_wifi(Node):
          self.lastPid, self.lastCmd, self.pollOut) = (
              None, None, None, None, None, None, None, None)
         self.waiting = False
+        self.lock = Lock()
         self.readbuf = ''
 
         # Start command interpreter shell
@@ -664,7 +666,10 @@ class Node_wifi(Node):
            and return without waiting for the command to complete.
            args: command and arguments, or string
            printPid: print command's PID? (False)"""
+        #Lock object helps avoid contention when using callbacks
+        self.lock.acquire()
         assert self.shell and not self.waiting
+        self.waiting = True
         printPid = kwargs.get('printPid', False)
         # Allow sendCmd( [ list ] )
         if len(args) == 1 and isinstance(args[ 0 ], list):
@@ -736,6 +741,8 @@ class Node_wifi(Node):
             data = self.monitor(findPid=findPid)
             output += data
             log(data)
+        #Wait to release lock until all output has been stored
+        self.lock.release()
         return output
 
     def cmd(self, *args, **kwargs):
