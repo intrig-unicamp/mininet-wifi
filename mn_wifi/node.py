@@ -1365,7 +1365,7 @@ class AccessPoint(AP):
     """An AccessPoint is a Switch equipped with wireless interface that is
     running (or has execed?) an OpenFlow switch."""
 
-    writeMacAddress = False
+    write_mac = False
 
     def __init__(self, aps, driver, link):
         'configure ap'
@@ -1619,7 +1619,7 @@ class AccessPoint(AP):
                              str(link.__name__) == 'wmediumd'):
                 setTC = False
         if setTC:
-            AccessPoint.setBw(ap, wlan, iface)
+            cls.setBw(ap, wlan, iface)
 
         ap.params['freq'][wlan] = ap.get_freq(0)
 
@@ -1677,7 +1677,7 @@ class AccessPoint(AP):
         else:
             ap.params['mac'][wlan] = \
                 ap.getMAC(ap.params['wlan'][wlan])
-        if ap.params['mac'][wlan] != None:
+        if ap.params['mac'][wlan]:
             cls.checkNetworkManager(ap.params['mac'][wlan])
         if 'inNamespace' in ap.params and 'ip' in ap.params:
             ap.setIP(ap.params['ip'], intf=ap.params['wlan'][wlan])
@@ -1686,14 +1686,16 @@ class AccessPoint(AP):
     def restartNetworkManager(cls):
         """Restart network manager if the mac address of the AP
         is not included at /etc/NetworkManager/NetworkManager.conf"""
-        nm_is_running = os.system('service network-manager status 2>&1 | grep '
-                                  '-ic running >/dev/null 2>&1')
-        if AccessPoint.writeMacAddress and nm_is_running != 256:
+        nms = 'network-manager'
+        nm = 'NetworkManager'
+        nm_is_running = os.system('service %s status 2>&1 | grep '
+                                  '-ic running >/dev/null 2>&1' % nms)
+        if cls.write_mac and nm_is_running != 256:
             info('Mac Address(es) of AP(s) is(are) being added into '
-                 '/etc/NetworkManager/NetworkManager.conf\n')
-            info('Restarting network-manager...\n')
-            os.system('service network-manager restart')
-        AccessPoint.writeMacAddress = False
+                 '/etc/%s/%s.conf\n' % (nm, nm))
+            info('Restarting %s...\n' % nms)
+            os.system('service %s restart' % nms)
+        cls.write_mac = False
 
     @classmethod
     def verifyNetworkManager(cls, node, wlan):
@@ -1709,54 +1711,49 @@ class AccessPoint(AP):
                 IntfWireless.rename(node, wintf, node.params['wlan'][wlan])
         TCLinkWirelessAP(node)
         #cls.links.append(link)
-        AccessPoint.setIPMAC(node, wlan)
+        cls.setIPMAC(node, wlan)
         if 'phywlan' in node.params:
             TCLinkWirelessAP(node, intfName1=node.params['phywlan'])
 
     @classmethod
     def checkNetworkManager(cls, mac):
         "add mac address into /etc/NetworkManager/NetworkManager.conf"
-        writeMacAddress = False
+        nm = 'NetworkManager'
+        unmanaged = 'unmanaged-devices'
         unmatch = ""
-        if os.path.exists('/etc/NetworkManager/NetworkManager.conf'):
-            if os.path.isfile('/etc/NetworkManager/NetworkManager.conf'):
-                cls.resultIface = open('/etc/NetworkManager/'
-                                       'NetworkManager.conf')
+        if os.path.exists('/etc/%s/%s.conf' % (nm, nm)):
+            if os.path.isfile('/etc/%s/%s.conf' % (nm, nm)):
+                cls.resultIface = open('/etc/%s/%s.conf' % (nm, nm))
                 lines = cls.resultIface
 
             isNew = True
             for n in lines:
-                if "unmanaged-devices" in n:
+                if unmanaged in n:
                     unmatch = n
                     echo = n
                     echo.replace(" ", "")
                     echo = echo[:-1] + ";"
                     isNew = False
             if isNew:
-                os.system("echo '#' >> /etc/NetworkManager/"
-                          "NetworkManager.conf")
-                unmatch = "#"
-                echo = "[keyfile]\nunmanaged-devices="
+                os.system("echo '#' >> /etc/%s/%s.conf" % (nm, nm))
+                echo = "[keyfile]\n%s=" % unmanaged
 
             if mac not in unmatch:
                 echo = echo + "mac:" + mac + ';'
-                writeMacAddress = True
-
-            if writeMacAddress:
-                for line in fileinput.input('/etc/NetworkManager/'
-                                            'NetworkManager.conf', inplace=1):
+                for line in fileinput.input('/etc/%s/%s.conf' % (nm, nm),
+                                            inplace=1):
                     if isNew:
-                        if line.__contains__('#'):
-                            print(line.replace(unmatch, echo))
-                        else:
-                            print(line.rstrip())
+                        cls.write_to_file(line, unmatch, echo, '#')
                     else:
-                        if line.__contains__('unmanaged-devices'):
-                            print(line.replace(unmatch, echo))
-                        else:
-                            print(line.rstrip())
-        if cls.writeMacAddress is False:
-            cls.writeMacAddress = writeMacAddress
+                        cls.write_to_file(line, unmatch, echo, unmanaged)
+                cls.write_mac = True
+
+    @classmethod
+    def write_to_file(cls, line, unmatch, echo, str_):
+        if line.__contains__(str_):
+            print(line.replace(unmatch, echo))
+        else:
+            print(line.rstrip())
 
     @classmethod
     def APConfigFile(cls, cmd, ap, wlan):
