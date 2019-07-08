@@ -934,8 +934,8 @@ class Node_wifi(Node):
            ip: IP address as a string
            prefixLen: prefix length, e.g. 8 for /8 or 16M addrs
            kwargs: any additional arguments for intf.setIP"""
-        if intf is not None and (isinstance(self, Station)
-                                 or isinstance(self, Car)):
+        if intf and (isinstance(self, Station) or
+                         isinstance(self, Car)):
             if intf in self.params['wlan']:
                 wlan = int(intf[-1:])
                 self.params['ip'][wlan] = ip
