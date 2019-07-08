@@ -174,9 +174,6 @@ class mobility(object):
         if ap == sta.params['associatedTo'][wlan]:
             if cls.rec_rssi:
                 sta.params['rssi'][wlan] = rssi
-                debug('hwsim_mgmt -k %s %s >/dev/null 2>&1\n'
-                          % (sta.phyID[wlan],
-                             abs(int(sta.params['rssi'][wlan]))))
                 os.system('hwsim_mgmt -k %s %s >/dev/null 2>&1'
                           % (sta.phyID[wlan],
                              abs(int(sta.params['rssi'][wlan]))))

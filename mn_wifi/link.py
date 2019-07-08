@@ -1357,9 +1357,8 @@ class Association(object):
             if not enable_interference:
                 rssi = sta.get_rssi(ap, wlan, dist)
                 sta.params['rssi'][wlan] = rssi
-            if ap not in sta.params['apsInRange']:
-                sta.params['apsInRange'].append(ap)
-                if not enable_interference:
+                if ap not in sta.params['apsInRange']:
+                    sta.params['apsInRange'].append(ap)
                     ap.params['stationsInRange'][sta] = rssi
 
     @classmethod
