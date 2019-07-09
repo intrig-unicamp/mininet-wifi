@@ -112,7 +112,7 @@ class IntfWireless(object):
             if len(args) == 0:
                 return self.cmd('ip addr show', self.name)
             else:
-                if '::' not in args[0]:
+                if ':' not in args[0]:
                     self.cmd('ip addr flush ', self.name)
                     cmd = 'ip addr add %s dev %s' % (args[0], self.name)
                     if self.ip6:
@@ -132,7 +132,7 @@ class IntfWireless(object):
         # This is a sign that we should perhaps rethink our prefix
         # mechanism and/or the way we specify IP addresses
         if '/' in ipstr:
-            if '::' in ipstr:
+            if ':' in ipstr:
                 self.ip6, self.prefixLen = ipstr.split('/')
             else:
                 self.ip, self.prefixLen = ipstr.split('/')
@@ -141,7 +141,7 @@ class IntfWireless(object):
             if prefixLen is None:
                 raise Exception('No prefix length set for IP address %s'
                                 % (ipstr,))
-            if '::' in ipstr:
+            if ':' in ipstr:
                 self.ip6, self.prefixLen = ipstr, prefixLen
             else:
                 self.ip, self.prefixLen = ipstr, prefixLen
