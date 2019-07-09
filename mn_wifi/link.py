@@ -31,7 +31,7 @@ class IntfWireless(object):
         self.link = link
         self.port = port
         self.mac = mac
-        self.ip, self.prefixLen = None, None
+        self.ip, self.ip6, self.prefixLen = None, None, None
         # if interface is lo, we know the ip is 127.0.0.1.
         # This saves an ip link/addr command per node
         if self.name == 'lo':
@@ -112,25 +112,39 @@ class IntfWireless(object):
             if len(args) == 0:
                 return self.cmd('ip addr show', self.name)
             else:
-                self.cmd('ip addr flush ', self.name)
-                return self.cmd('ip addr add', args[0], 'dev', self.name)
+                if '::' not in args[0]:
+                    self.cmd('ip addr flush ', self.name)
+                    cmd = 'ip addr add %s dev %s' % (args[0], self.name)
+                    if self.ip6:
+                        cmd = cmd + '&& ip -6 addr add %s dev %s' % \
+                                    (self.ip6, self.name)
+                    return self.cmd(cmd)
+                else:
+                    self.cmd('ip -6 addr flush ', self.name)
+                    return self.cmd('ip -6 addr add', args[0], 'dev', self.name)
 
     def ipLink(self, *args):
         "Configure ourselves using ip link"
         return self.cmd('ip link set', self.name, *args)
 
-    def setIP(self, ipstr, prefixLen=None):
+    def setIP(self, ipstr, prefixLen=None, **args):
         """Set our IP address"""
         # This is a sign that we should perhaps rethink our prefix
         # mechanism and/or the way we specify IP addresses
         if '/' in ipstr:
-            self.ip, self.prefixLen = ipstr.split('/')
+            if '::' in ipstr:
+                self.ip6, self.prefixLen = ipstr.split('/')
+            else:
+                self.ip, self.prefixLen = ipstr.split('/')
             return self.ipAddr(ipstr)
         else:
             if prefixLen is None:
                 raise Exception('No prefix length set for IP address %s'
                                 % (ipstr,))
-            self.ip, self.prefixLen = ipstr, prefixLen
+            if '::' in ipstr:
+                self.ip6, self.prefixLen = ipstr, prefixLen
+            else:
+                self.ip, self.prefixLen = ipstr, prefixLen
             return self.ipAddr('%s/%s' % (ipstr, prefixLen))
 
     def setMAC(self, macstr):

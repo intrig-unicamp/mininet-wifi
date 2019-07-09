@@ -942,6 +942,17 @@ class Node_wifi(Node):
 
         return self.intf(intf).setIP(ip, prefixLen, **kwargs)
 
+    def setIPv6(self, ip, prefixLen=64, intf=None, **kwargs):
+        """Set the IP address for an interface.
+           intf: intf or intf name
+           ip: IP address as a string
+           kwargs: any additional arguments for intf.setIP"""
+        if intf in self.params['wlan']:
+            wlan = int(intf[-1:])
+            self.params['ip'][wlan] = ip
+
+        return self.intf(intf).setIP(ip, prefixLen, **kwargs)
+
     def IP(self, intf=None):
         "Return IP address of a node or specific interface."
         return self.intf(intf).IP()
