@@ -228,6 +228,11 @@ class mobility(object):
         if not sta.params['associatedTo'][wlan] or changeAP:
             if ap not in sta.params['associatedTo']:
                 Association.associate_infra(sta, ap, wlan=wlan, ap_wlan=ap_wlan)
+                if "reassoc_callback" in sta.params:
+                    if "reassoc_callback_args" in sta.params:
+                        sta.params["reassoc_callback"](*sta.params['reassoc_callback_args'])
+                    else:
+                        sta.params["reassoc_callback"]()
 
     @classmethod
     def models(cls, **kwargs):
