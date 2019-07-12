@@ -526,7 +526,7 @@ class Node_wifi(Node):
         debug('added intf %s (%d) to node %s\n' % (
             intf, port, self.name))
         if (not isinstance(self, Station) and (not isinstance(self, Car))
-            and (not isinstance(self, AccessPoint))):
+            and (not isinstance(self, AP))):
             if self.inNamespace:
                 debug('moving', intf, 'into namespace for', self.name, '\n')
                 moveIntfFn(intf.name, self)
