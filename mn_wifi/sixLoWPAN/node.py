@@ -4,10 +4,9 @@ author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
 """
 
 from mininet.log import debug
-from mininet.util import Python3, getincrementaldecoder
+from mininet.util import Python3, getincrementaldecoder, moveIntf
 from mininet.node import Node
 from mininet.moduledeps import pathCheck
-from mn_wifi.util import moveIntf
 
 
 class Node_6lowpan(Node):
