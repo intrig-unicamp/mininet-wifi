@@ -43,6 +43,11 @@ def topology(autoTxPower):
     info("*** Starting network\n")
     net.build()
 
+    info("*** Addressing...\n")
+    sta1.setIPv6('2001::1/64', intf="sta1-wlan0")
+    sta2.setIPv6('2001::2/64', intf="sta2-wlan0")
+    sta3.setIPv6('2001::3/64', intf="sta3-wlan0")
+
     info("*** Running CLI\n")
     CLI_wifi(net)
 
