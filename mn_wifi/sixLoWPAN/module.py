@@ -13,11 +13,8 @@ from sys import version_info as py_version_info
 class module(object):
     "wireless module"
 
-    wlan_list = []
-    hwsim_ids = []
     externally_managed = False
     devices_created_dynamically = False
-    wpanPhyID = 0
 
     @classmethod
     def load_module(cls, n_radios, alt_module=''):
@@ -84,8 +81,7 @@ class module(object):
                              stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         if wm == 0:
             cls.load_module(n_radios, alt_module)  # Initatilize WiFi Module
-            phys = cls.get_virtual_wpan()  # Get Phy Interfaces
-            cls.assign_iface(nodes, phys, **params)  # iface assign
+            cls.assign_iface(nodes)  # iface assign
         else:
             info('*** iwpan will be used, but it is not installed.\n' \
                  '*** Please install iwpan with sudo util/install.sh -6.\n')
@@ -94,33 +90,34 @@ class module(object):
     @classmethod
     def get_virtual_wpan(cls):
         'Gets the list of virtual wlans that already exist'
-        cls.wlans = []
+        wlans = []
         if py_version_info < (3, 0):
-            cls.wlans = (subprocess.check_output("iwpan dev 2>&1 | grep Interface "
+            wlans = (subprocess.check_output("iwpan dev 2>&1 | grep Interface "
                                                  "| awk '{print $2}'",
                                                  shell=True)).split("\n")
         else:
-            cls.wlans = (subprocess.check_output("iwpan dev 2>&1 | grep Interface "
+            wlans = (subprocess.check_output("iwpan dev 2>&1 | grep Interface "
                                                  "| awk '{print $2}'",
                                                  shell=True)).decode('utf-8').split("\n")
-        cls.wlans.pop()
-        cls.wlan_list = sorted(cls.wlans)
-        cls.wlan_list.sort(key=len, reverse=False)
-        return cls.wlan_list
+        wlans.pop()
+        wlan_list = sorted(wlans)
+        wlan_list.sort(key=len, reverse=False)
+        return wlan_list
 
     @classmethod
-    def getPhy(cls, wlan):
+    def getPhy(cls):
         'Gets the list of virtual wlans that already exist'
         if py_version_info < (3, 0):
-            phy = (subprocess.check_output("iwpan dev | grep -B 1 %s"
-                                           " | sed -ne '1 s/phy#\([0-9]\)/\\1/p'" % wlan,
+            phy = (subprocess.check_output("iwpan dev | grep phy | "
+                                           "sed -ne 's/phy#\([0-9]\)/\\1/p'",
                                            shell=True)).split("\n")
         else:
-            phy = (subprocess.check_output("iwpan dev | grep -B 1 %s"
-                                           " | sed -ne '1 s/phy#\([0-9]\)/\\1/p'" % wlan,
+            phy = (subprocess.check_output("iwpan dev | grep phy | "
+                                           "sed -ne 's/phy#\([0-9]\)/\\1/p'",
                                            shell=True)).decode('utf-8').split("\n")
-        phy.pop()
-        return phy[0]
+        phy = sorted(phy)
+        phy.pop(0)
+        return phy
 
     @classmethod
     def load_ifb(cls, wlans):
@@ -132,27 +129,28 @@ class module(object):
         os.system('modprobe ifb numifbs=%s' % wlans)
 
     @classmethod
-    def assign_iface(cls, nodes, phys, **params):
+    def assign_iface(cls, nodes):
         """Assign virtual interfaces for all nodes
         
-        :param nodes: list of wireless nodes
-        :param phys: list of phys
-        :param **params: ifb -  Intermediate Functional Block device"""
+        :param nodes: list of wireless nodes"""
         log_filename = '/tmp/mininetwifi-fakelb.log'
         cls.logging_to_file("%s" % log_filename)
         try:
             debug("\n*** Configuring interfaces with appropriated network"
                   "-namespaces...\n")
+            phy = cls.getPhy()
+            wlan_list = cls.get_virtual_wpan()
+            wpanPhyID = 0
             for node in nodes:
                 for wlan in range(0, len(node.params['wpan'])):
-                    node.wpanPhyID[wlan] = cls.wpanPhyID
-                    cls.wpanPhyID += 1
-                    phy = cls.getPhy(phys[0])
-                    os.system('iwpan phy phy%s set netns %s' % (phy, node.pid))
-                    node.cmd('ip link set %s down' % cls.wlan_list[0])
+                    node.wpanPhyID[wlan] = wpanPhyID
+                    wpanPhyID += 1
+                    os.system('iwpan phy phy%s set netns %s' % (phy[0], node.pid))
+                    node.cmd('ip link set %s down' % wlan_list[0])
                     node.cmd('ip link set %s name %s'
-                             % (cls.wlan_list[0], node.params['wpan'][wlan]))
-                    cls.wlan_list.pop(0)
+                             % (wlan_list[0], node.params['wpan'][wlan]))
+                    wlan_list.pop(0)
+                    phy.pop(0)
         except:
             logging.exception("Warning:")
             info("Warning! Error when loading fakelb. "
