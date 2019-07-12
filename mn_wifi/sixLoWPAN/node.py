@@ -3,18 +3,10 @@
 author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
 """
 
-import os
-import pty
-import re
-import signal
-import select
 from six import string_types
 
-from subprocess import Popen, PIPE
-from sys import version_info as py_version_info
-
-from mininet.log import info, error, warn, debug
-from mininet.util import (quietRun, errRun, isShellBuiltin)
+from mininet.log import info, warn, debug
+from mininet.util import Python3, getincrementaldecoder
 from mininet.node import Node
 from mininet.moduledeps import pathCheck
 from mininet.link import Link
@@ -40,6 +32,9 @@ class Node_6lowpan(Node):
         self.privateDirs = params.get('privateDirs', [])
         self.inNamespace = params.get('inNamespace', inNamespace)
 
+        # Python 3 complains if we don't wait for shell exit
+        self.waitExited = params.get('waitExited', Python3)
+
         # Stash configuration parameters for future reference
         self.params = params
 
@@ -58,7 +53,11 @@ class Node_6lowpan(Node):
         self.waiting = False
         self.readbuf = ''
 
+        # Incremental decoder for buffered reading
+        self.decoder = getincrementaldecoder()
+
         # Start command interpreter shell
+        self.master, self.slave = None, None  # pylint
         self.startShell()
         self.mountPrivateDirs()
 
@@ -67,297 +66,10 @@ class Node_6lowpan(Node):
     inToNode = {}  # mapping of input fds to nodes
     outToNode = {}  # mapping of output fds to nodes
 
-    @classmethod
-    def fdToNode(cls, fd):
-        """Return node corresponding to given file descriptor.
-           fd: file descriptor
-           returns: node"""
-        node = cls.outToNode.get(fd)
-        return node or cls.inToNode.get(fd)
-
-    # Command support via shell process in namespace
-    def startShell(self, mnopts=None):
-        # pdb.set_trace()
-        "Start a shell process for running commands"
-        if self.shell:
-            error("%s: shell is already running\n" % self.name)
-            return
-        # mnexec: (c)lose descriptors, (d)etach from tty,
-        # (p)rint pid, and run in (n)amespace
-        opts = '-cd' if mnopts is None else mnopts
-        if self.inNamespace:
-            opts += 'n'
-        # bash -i: force interactive
-        # -s: pass $* to shell, and make process easy to find in ps
-        # prompt is set to sentinel chr( 127 )
-        # pdb.set_trace()
-        cmd = [ 'mnexec', opts, 'env', 'PS1=' + chr(127),
-                'bash', '--norc', '-is', 'mininet:' + self.name ]
-        # Spawn a shell subprocess in a pseudo-tty, to disable buffering
-        # in the subprocess and insulate it from signals (e.g. SIGINT)
-        # received by the parent
-        master, slave = pty.openpty()
-        self.shell = self._popen(cmd, stdin=slave, stdout=slave, stderr=slave,
-                                 close_fds=False)
-        if py_version_info < (3, 0):
-            self.stdin = os.fdopen(master, 'rw')
-        else:
-            self.stdin = os.fdopen(master, 'bw')
-        self.stdout = self.stdin
-        self.pid = self.shell.pid
-        self.pollOut = select.poll()
-        self.pollOut.register(self.stdout)
-        # Maintain mapping between file descriptors and nodes
-        # This is useful for monitoring multiple nodes
-        # using select.poll()
-        self.outToNode[ self.stdout.fileno() ] = self
-        self.inToNode[ self.stdin.fileno() ] = self
-        self.execed = False
-        self.lastCmd = None
-        self.lastPid = None
-        self.readbuf = ''
-        # Wait for prompt
-        while True:
-            data = self.read(1024)
-            if data[ -1 ] == chr(127):
-                break
-            self.pollOut.poll()
-        self.waiting = False
-        # +m: disable job control notification
-        self.cmd('unset HISTFILE; stty -echo; set +m')
-
     def plot(self, position):
         self.params['position'] = position.split(',')
         self.params['range'] = [0]
         self.plotted = True
-
-    def unmountPrivateDirs(self):
-        "mount private directories"
-        for directory in self.privateDirs:
-            if isinstance(directory, tuple):
-                self.cmd('umount ', directory[0])
-            else:
-                self.cmd('umount ', directory)
-
-    def _popen(self, cmd, **params):
-        """Internal method: spawn and return a process
-            cmd: command to run (list)
-            params: parameters to Popen()"""
-        # Leave this is as an instance method for now
-        assert self
-        return Popen(cmd, **params)
-
-    def cleanup(self):
-        "Help python collect its garbage."
-        # We used to do this, but it slows us down:
-        # Intfs may end up in root NS
-        # for intfName in self.intfNames():
-        # if self.name in intfName:
-        # quietRun( 'ip link del ' + intfName )
-        self.shell = None
-
-    # Subshell I/O, commands and control
-
-    def read(self, maxbytes=1024):
-        """Buffered read from node, non-blocking.
-           maxbytes: maximum number of bytes to return"""
-        count = len(self.readbuf)
-        if count < maxbytes:
-            data = os.read(self.stdout.fileno(), maxbytes - count)
-            if py_version_info < (3, 0):
-                self.readbuf += data
-            else:
-                self.readbuf += data.decode('utf-8')
-        if maxbytes >= len(self.readbuf):
-            result = self.readbuf
-            self.readbuf = ''
-        else:
-            result = self.readbuf[ :maxbytes ]
-            self.readbuf = self.readbuf[ maxbytes: ]
-        return result
-
-    def readline(self):
-        """Buffered readline from node, non-blocking.
-           returns: line (minus newline) or None"""
-        self.readbuf += self.read(1024)
-        if '\n' not in self.readbuf:
-            return None
-        pos = self.readbuf.find('\n')
-        line = self.readbuf[ 0: pos ]
-        self.readbuf = self.readbuf[ pos + 1: ]
-        return line
-
-    def write(self, data):
-        """Write data to node.
-           data: string"""
-        if py_version_info < (3, 0):
-            os.write( self.stdin.fileno(), data )
-        else:
-            os.write(self.stdin.fileno(), data.encode())
-
-    def terminate(self):
-        "Send kill signal to Node and clean up after it."
-        self.unmountPrivateDirs()
-        if self.shell:
-            if self.shell.poll() is None:
-                os.killpg( self.shell.pid, signal.SIGHUP )
-        self.cleanup()
-
-    def stop(self, deleteIntfs=False):
-        """Stop node.
-           deleteIntfs: delete interfaces? (False)"""
-        if deleteIntfs:
-            self.deleteIntfs()
-        self.terminate()
-
-    def waitReadable(self, timeoutms=None):
-        """Wait until node's output is readable.
-           timeoutms: timeout in ms or None to wait indefinitely."""
-        if len(self.readbuf) == 0:
-            self.pollOut.poll(timeoutms)
-
-    def sendCmd(self, *args, **kwargs):
-        """Send a command, followed by a command to echo a sentinel,
-           and return without waiting for the command to complete.
-           args: command and arguments, or string
-           printPid: print command's PID? (False)"""
-        assert self.shell and not self.waiting
-        printPid = kwargs.get('printPid', False)
-        # Allow sendCmd( [ list ] )
-        if len(args) == 1 and isinstance(args[ 0 ], list):
-            cmd = args[ 0 ]
-        # Allow sendCmd( cmd, arg1, arg2... )
-        elif len(args) > 0:
-            cmd = args
-        # Convert to string
-        if not isinstance(cmd, str):
-            cmd = ' '.join([ str(c) for c in cmd ])
-        if not re.search(r'\w', cmd):
-            # Replace empty commands with something harmless
-            cmd = 'echo -n'
-        self.lastCmd = cmd
-        # if a builtin command is backgrounded, it still yields a PID
-        if len(cmd) > 0 and cmd[ -1 ] == '&':
-            # print ^A{pid}\n so monitor() can set lastPid
-            cmd += ' printf "\\001%d\\012" $! '
-        elif printPid and not isShellBuiltin(cmd):
-            cmd = 'mnexec -p ' + cmd
-        self.write(cmd + '\n')
-        self.lastPid = None
-        self.waiting = True
-
-    def sendInt(self, intr=chr(3)):
-        "Interrupt running command."
-        debug('sendInt: writing chr(%d)\n' % ord(intr))
-        self.write(intr)
-
-    def monitor(self, timeoutms=None, findPid=True):
-        """Monitor and return the output of a command.
-           Set self.waiting to False if command has completed.
-           timeoutms: timeout in ms or None to wait indefinitely
-           findPid: look for PID from mnexec -p"""
-        self.waitReadable(timeoutms)
-        data = self.read(1024)
-        pidre = r'\[\d+\] \d+\r\n'
-        # Look for PID
-        marker = chr(1) + r'\d+\r\n'
-        if findPid and chr(1) in data:
-            # suppress the job and PID of a backgrounded command
-            if re.findall(pidre, data):
-                data = re.sub(pidre, '', data)
-            # Marker can be read in chunks; continue until all of it is read
-            while not re.findall(marker, data):
-                data += self.read(1024)
-            markers = re.findall(marker, data)
-            if markers:
-                self.lastPid = int(markers[ 0 ][ 1: ])
-                data = re.sub(marker, '', data)
-        # Look for sentinel/EOF
-        if len(data) > 0 and data[ -1 ] == chr(127):
-            self.waiting = False
-            data = data[ :-1 ]
-        elif chr(127) in data:
-            self.waiting = False
-            data = data.replace(chr(127), '')
-        return data
-
-    def waitOutput(self, verbose=False, findPid=True):
-        """Wait for a command to complete.
-           Completion is signaled by a sentinel character, ASCII(127)
-           appearing in the output stream.  Wait for the sentinel and return
-           the output, including trailing newline.
-           verbose: print output interactively"""
-        log = info if verbose else debug
-        output = ''
-        while self.waiting:
-            data = self.monitor(findPid=findPid)
-            output += data
-            log(data)
-        return output
-
-    def cmd(self, *args, **kwargs):
-        """Send a command, wait for output, and return it.
-           cmd: string"""
-        verbose = kwargs.get('verbose', False)
-        log = info if verbose else debug
-        log('*** %s : %s\n' % (self.name, args))
-        if self.shell:
-            self.sendCmd(*args, **kwargs)
-            return self.waitOutput(verbose)
-        else:
-            pass
-            # warn( '(%s exited - ignoring cmd%s)\n' % ( self, args ) )
-
-    def cmdPrint(self, *args):
-        """Call cmd and printing its output
-           cmd: string"""
-        return self.cmd(*args, **{ 'verbose': True })
-
-    def popen(self, *args, **kwargs):
-        """Return a Popen() object in our namespace
-           args: Popen() args, single list, or string
-           kwargs: Popen() keyword args"""
-        defaults = { 'stdout': PIPE, 'stderr': PIPE,
-                     'mncmd':
-                     [ 'mnexec', '-da', str(self.pid) ] }
-        defaults.update(kwargs)
-        if len(args) == 1:
-            if isinstance(args[ 0 ], list):
-                # popen([cmd, arg1, arg2...])
-                cmd = args[ 0 ]
-            elif isinstance(args[ 0 ], string_types):
-                # popen("cmd arg1 arg2...")
-                cmd = args[ 0 ].split()
-            else:
-                raise Exception('popen() requires a string or list')
-        elif len(args) > 0:
-            # popen( cmd, arg1, arg2... )
-            cmd = list(args)
-        # Attach to our namespace  using mnexec -a
-        cmd = defaults.pop('mncmd') + cmd
-        # Shell requires a string, not a list!
-        if defaults.get('shell', False):
-            cmd = ' '.join(cmd)
-        popen = self._popen(cmd, **defaults)
-        return popen
-
-    def pexec(self, *args, **kwargs):
-        """Execute a command using popen
-           returns: out, err, exitcode"""
-        popen = self.popen(*args, stdin=PIPE, stdout=PIPE,
-                           stderr=PIPE,**kwargs)
-        # Warning: this can fail with large numbers of fds!
-        out, err = popen.communicate()
-        exitcode = popen.wait()
-        return out, err, exitcode
-
-    # Interface management, configuration, and routing
-
-    # BL notes: This might be a bit redundant or over-complicated.
-    # However, it does allow a bit of specialization, including
-    # changing the canonical interface names. It's also tricky since
-    # the real interfaces are created as veth pairs, so we can't
-    # make a single interface at a time.
 
     def newWpanPort(self):
         "Return the next port number to allocate."
