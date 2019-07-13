@@ -154,7 +154,7 @@ class Node_wifi(Node):
                 self.params[kwarg] = []
                 self.params[kwarg].append(kwargs[kwarg])
 
-        AccessPoint.verifyNetworkManager(self, wlan)
+        AccessPoint.configAP(self, wlan)
         link = None
         if wmediumd_mode.mode != 4:
             link = 'wmediumd'
@@ -952,7 +952,7 @@ class AccessPoint(AP):
                     ap.params['mac'].append('')
             ap.params['driver'] = driver
             for wlan in range(len(ap.params['wlan'])):
-                cls.verifyNetworkManager(ap, wlan)
+                cls.configAP(ap, wlan)
                 if 'vssids' in ap.params:
                     break
         cls.restartNetworkManager()
@@ -969,8 +969,6 @@ class AccessPoint(AP):
                     cls.setConfig(ap, aps, wlan, link)
                     if 'vssids' in ap.params:
                         break
-                ap.phyID = module.phyID
-                module.phyID += 1
 
     @classmethod
     def setConfig(cls, ap, aplist=None, wlan=0, link=None, ssid=None):
@@ -1259,17 +1257,7 @@ class AccessPoint(AP):
         cls.write_mac = False
 
     @classmethod
-    def verifyNetworkManager(cls, node, wlan):
-        """First verify if the mac address of the ap is included at
-        NetworkManager.conf
-
-        :param node: node"""
-        from mn_wifi.link import IntfWireless
-        if 'inNamespace' not in node.params:
-            if not isinstance(node, Station):
-                wintf = module.wlan_list[0]
-                module.wlan_list.pop(0)
-                IntfWireless.rename(node, wintf, node.params['wlan'][wlan])
+    def configAP(cls, node, wlan):
         TCLinkWirelessAP(node)
         #cls.links.append(link)
         cls.setIPMAC(node, wlan)

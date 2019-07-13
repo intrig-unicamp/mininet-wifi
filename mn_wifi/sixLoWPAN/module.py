@@ -1,6 +1,4 @@
-"""
-author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
-"""
+# author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
 
 import glob
 import os
@@ -16,14 +14,32 @@ class module(object):
     externally_managed = False
     devices_created_dynamically = False
 
-    @classmethod
-    def load_module(cls, n_radios, alt_module=''):
+    def __init__(self, sixLP, n_wpans):
+        self.start(sixLP, n_wpans)
+
+    def start(self, nodes, n_radios, alt_module=''):
+        """
+        :param nodes: list of wireless nodes
+        :param n_radios: number of wifi radios
+        :param alt_module: dir of a fakelb alternative module
+        :param **params: ifb -  Intermediate Functional Block device"""
+        wm = subprocess.call(['which', 'iwpan'],
+                             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        if wm == 0:
+            self.load_module(n_radios, alt_module)  # Initatilize WiFi Module
+            self.assign_iface(nodes)  # iface assign
+        else:
+            info('*** iwpan will be used, but it is not installed.\n' \
+                 '*** Please install iwpan with sudo util/install.sh -6.\n')
+            exit(1)
+
+    def load_module(self, n_radios, alt_module=''):
         """ Load WiFi Module 
         
         :param n_radios: number of radios
         :param alt_module: dir of a fakelb alternative module"""
         debug('Loading %s virtual interfaces\n' % n_radios)
-        if not cls.externally_managed:
+        if not self.externally_managed:
             if alt_module:
                 os.system('insmod %s numlbs=0' % alt_module)
             else:
@@ -69,43 +85,23 @@ class module(object):
 
         cls.kill_fakelb()
 
-    @classmethod
-    def start(cls, nodes, n_radios, alt_module='', **params):
-        """Starts environment
-        
-        :param nodes: list of wireless nodes
-        :param n_radios: number of wifi radios
-        :param alt_module: dir of a fakelb alternative module
-        :param **params: ifb -  Intermediate Functional Block device"""
-        wm = subprocess.call(['which', 'iwpan'],
-                             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        if wm == 0:
-            cls.load_module(n_radios, alt_module)  # Initatilize WiFi Module
-            cls.assign_iface(nodes)  # iface assign
-        else:
-            info('*** iwpan will be used, but it is not installed.\n' \
-                 '*** Please install iwpan with sudo util/install.sh -6.\n')
-            exit(1)
-
-    @classmethod
-    def get_virtual_wpan(cls):
+    def get_virtual_wpan(self):
         'Gets the list of virtual wlans that already exist'
         wlans = []
         if py_version_info < (3, 0):
             wlans = (subprocess.check_output("iwpan dev 2>&1 | grep Interface "
-                                                 "| awk '{print $2}'",
-                                                 shell=True)).split("\n")
+                                             "| awk '{print $2}'",
+                                             shell=True)).split("\n")
         else:
             wlans = (subprocess.check_output("iwpan dev 2>&1 | grep Interface "
-                                                 "| awk '{print $2}'",
-                                                 shell=True)).decode('utf-8').split("\n")
+                                             "| awk '{print $2}'",
+                                             shell=True)).decode('utf-8').split("\n")
         wlans.pop()
         wlan_list = sorted(wlans)
         wlan_list.sort(key=len, reverse=False)
         return wlan_list
 
-    @classmethod
-    def getPhy(cls):
+    def getPhy(self):
         'Gets the list of virtual wlans that already exist'
         if py_version_info < (3, 0):
             phy = (subprocess.check_output("iwpan dev | grep phy | "
@@ -119,27 +115,17 @@ class module(object):
         phy.pop(0)
         return phy
 
-    @classmethod
-    def load_ifb(cls, wlans):
-        """ Loads IFB
-        
-        :param wlans: Number of wireless interfaces
-        """
-        debug('\nLoading IFB: modprobe ifb numifbs=%s' % wlans)
-        os.system('modprobe ifb numifbs=%s' % wlans)
-
-    @classmethod
-    def assign_iface(cls, nodes):
+    def assign_iface(self, nodes):
         """Assign virtual interfaces for all nodes
         
         :param nodes: list of wireless nodes"""
         log_filename = '/tmp/mininetwifi-fakelb.log'
-        cls.logging_to_file("%s" % log_filename)
+        self.logging_to_file("%s" % log_filename)
         try:
             debug("\n*** Configuring interfaces with appropriated network"
                   "-namespaces...\n")
-            phy = cls.getPhy()
-            wlan_list = cls.get_virtual_wpan()
+            phy = self.getPhy()
+            wlan_list = self.get_virtual_wpan()
             wpanPhyID = 0
             for node in nodes:
                 for wlan in range(0, len(node.params['wpan'])):
@@ -158,8 +144,7 @@ class module(object):
             info("Further information available at %s.\n" % log_filename)
             exit(1)
 
-    @classmethod
-    def logging_to_file(cls, filename):
+    def logging_to_file(self, filename):
         logging.basicConfig(filename=filename,
                             filemode='a',
                             level=logging.DEBUG,

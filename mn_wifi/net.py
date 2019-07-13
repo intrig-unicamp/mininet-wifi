@@ -240,7 +240,7 @@ class Mininet_wifi(Mininet):
             defaults['cores'] = self.nextCore
             self.nextCore = (self.nextCore + 1) % self.numCores
         self.nextIP += 1
-        self.nextPos_sta += 100
+        self.nextPos_sta += 2
 
         if not cls:
             cls = self.station
@@ -1735,9 +1735,9 @@ class Mininet_wifi(Mininet):
             params['container'] = self.container
             params['ssh_user'] = self.ssh_user
         nodes = self.stations + self.aps + self.cars
-        module.start(nodes, self.n_radios, self.alt_module, **params)
+        module(nodes, self.n_radios, self.alt_module, **params)
         if sixlowpan.n_wpans != 0:
-            sixLoWPAN_module.start(self.sixLP, sixlowpan.n_wpans)
+            sixLoWPAN_module(self.sixLP, sixlowpan.n_wpans)
         self.configureWirelessLink()
         self.createVirtualIfaces(self.stations)
         AccessPoint(self.aps, self.driver, self.link)
