@@ -87,15 +87,16 @@ class module(object):
 
     def get_virtual_wpan(self):
         'Gets the list of virtual wlans that already exist'
-        wlans = []
+        cmd = "iwpan dev 2>&1 | grep Interface " \
+              "| awk '{print $2}'"
+
         if py_version_info < (3, 0):
-            wlans = (subprocess.check_output("iwpan dev 2>&1 | grep Interface "
-                                             "| awk '{print $2}'",
-                                             shell=True)).split("\n")
+            wlans = subprocess.check_output\
+                (cmd, shell=True).split("\n")
         else:
-            wlans = (subprocess.check_output("iwpan dev 2>&1 | grep Interface "
-                                             "| awk '{print $2}'",
-                                             shell=True)).decode('utf-8').split("\n")
+            wlans = subprocess.check_output\
+                (cmd, shell=True).decode('utf-8').split("\n")
+
         wlans.pop()
         wlan_list = sorted(wlans)
         wlan_list.sort(key=len, reverse=False)
@@ -103,14 +104,16 @@ class module(object):
 
     def getPhy(self):
         'Gets the list of virtual wlans that already exist'
+        cmd = "iwpan dev | grep phy | " \
+              "sed -ne 's/phy#\([0-9]\)/\\1/p'"
+
         if py_version_info < (3, 0):
-            phy = (subprocess.check_output("iwpan dev | grep phy | "
-                                           "sed -ne 's/phy#\([0-9]\)/\\1/p'",
-                                           shell=True)).split("\n")
+            phy = subprocess.check_output\
+                (cmd, shell=True).split("\n")
         else:
-            phy = (subprocess.check_output("iwpan dev | grep phy | "
-                                           "sed -ne 's/phy#\([0-9]\)/\\1/p'",
-                                           shell=True)).decode('utf-8').split("\n")
+            phy = subprocess.check_output\
+                (cmd, shell=True).decode('utf-8').split("\n")
+
         phy = sorted(phy)
         phy.pop(0)
         return phy

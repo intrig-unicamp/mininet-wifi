@@ -72,18 +72,20 @@ class module(object):
 
     def __create_hwsim_mgmt_devices(self, n_radios, nodes, **params):
         # generate prefix
-        if py_version_info < (3, 0):
-            phys = subprocess.check_output("find /sys/kernel/debug/ieee80211 -name "
-                                           "hwsim | cut -d/ -f 6 | sort",
-                                           shell=True).split("\n")
-        else:
-            phys = subprocess.check_output("find /sys/kernel/debug/ieee80211 -name "
-                                           "hwsim | cut -d/ -f 6 | sort",
-                                           shell=True).decode('utf-8').split("\n")
         num = 0
         hwsim_ids = []
         numokay = False
         self.prefix = ""
+        cmd = "find /sys/kernel/debug/ieee80211 " \
+              "-name hwsim | cut -d/ -f 6 | sort"
+
+        if py_version_info < (3, 0):
+            phys = subprocess.check_output\
+                (cmd, shell=True).split("\n")
+        else:
+            phys = subprocess.check_output\
+                (cmd, shell=True).decode('utf-8').split("\n")
+
         while not numokay:
             self.prefix = "mn%02ds" % num
             numokay = True
