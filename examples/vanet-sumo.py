@@ -7,8 +7,6 @@
 sumo 1.1.0
 sumo-gui"""
 
-import os
-
 from mininet.node import Controller
 from mininet.log import setLogLevel, info
 from mn_wifi.node import UserAP

@@ -1084,7 +1084,7 @@ class adhoc(IntfWireless):
                         node.params['wlan'][wlan] = intf_.replace('mp', 'wlan')
         else:
             wlan = node.ifaceToAssociate
-        intf = node.params['wlan'][wlan]
+        #intf = node.params['wlan'][wlan]
 
         self.name = node.params['wlan'][wlan]
         if 'ssid' not in node.params:

@@ -961,7 +961,7 @@ class w_server(object):
         :param txpower: The w_txpower to update
         :return: A WUPDATE_* constant
         """
-        txpower_ = txpower.sta_txpower
+        #txpower_ = txpower.sta_txpower
         #debug("%s Updating TxPower of %s to %d\n" % (
         #    w_cst.LOG_PREFIX, txpower.staintf.get_mac(),
         #    txpower_))
@@ -978,7 +978,7 @@ class w_server(object):
         :param gain: The Gain to update
         :return: A WUPDATE_* constant
         """
-        gain_ = gain.sta_gain
+        #gain_ = gain.sta_gain
         #debug("%s Updating Antenna Gain of %s to %d\n" % (
         #    w_cst.LOG_PREFIX, gain.staintf.get_mac(),
         #    gain_))
@@ -995,7 +995,7 @@ class w_server(object):
         :param gRandom: The WmediumdGRandom to update
         :return: A WUPDATE_* constant
         """
-        gRandom_ = gRandom.sta_gaussian_random
+        #gRandom_ = gRandom.sta_gaussian_random
         #debug("%s Updating Gaussian Random of %s to %s\n" % (
         #    w_cst.LOG_PREFIX, gRandom.staintf.get_mac(),
         #    gRandom_))
@@ -1012,7 +1012,7 @@ class w_server(object):
         :param height: The Height to update
         :return: A WUPDATE_* constant
         """
-        height_ = height.sta_height
+        #height_ = height.sta_height
         #debug("%s Updating Antenna Height of %s to %d\n" % (
         #    w_cst.LOG_PREFIX, height.staintf.get_mac(),
         #    height_))

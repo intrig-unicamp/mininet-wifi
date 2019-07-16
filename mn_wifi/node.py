@@ -43,7 +43,6 @@ from mn_wifi.wmediumdConnector import w_server, w_pos, w_txpower, \
     w_gain, w_height, w_cst, wmediumd_mode
 from mn_wifi.propagationModels import GetSignalRange, \
     GetPowerGivenRange, propagationModel
-from mn_wifi.module import module
 
 
 class Node_wifi(Node):
@@ -110,13 +109,13 @@ class Node_wifi(Node):
     def setMeshMode(self, intf=None, **kwargs):
         if intf:
             kwargs['intf'] = intf
-        wlan = self.get_wlan(kwargs['intf'])
+        #wlan = self.get_wlan(kwargs['intf'])
         mesh(self, **kwargs)
 
     def setPhysicalMeshMode(self, intf=None, **kwargs):
         if intf:
             kwargs['intf'] = intf
-        wlan = self.get_wlan(kwargs['intf'])
+        #wlan = self.get_wlan(kwargs['intf'])
         physicalMesh(self, **kwargs)
 
     def setAdhocMode(self, intf=None, **kwargs):

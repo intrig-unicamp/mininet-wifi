@@ -261,7 +261,7 @@ class plot2d (object):
                 for n in range(len(line)):
                     if '-' == line[n]:
                         node1 = line[:n]
-                        node2 = line[n+1:]
+                        #node2 = line[n+1:]
                 pos_ = cls.lines[line].get_data()
                 if node.name == node1:
                     cls.lines[line].set_data([pos[0],pos_[0][1]],

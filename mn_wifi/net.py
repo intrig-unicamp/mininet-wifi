@@ -45,7 +45,7 @@ from mn_wifi.sixLoWPAN.link import sixLoWPANLink
 
 sys.path.append(str(os.getcwd()) + '/mininet/')
 
-VERSION = "2.3"
+VERSION = "2.4"
 
 
 class Mininet_wifi(Mininet):
