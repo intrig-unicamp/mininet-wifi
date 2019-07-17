@@ -33,11 +33,12 @@ def topology(autoTxPower):
     net.configureWifiNodes()
 
     info("*** Creating links\n")
-    net.addLink(sta1, cls=adhoc, ssid='adhocNet', # proto='batman',
+    #MANET routing protocols supported by proto: olsr and batman
+    net.addLink(sta1, cls=adhoc, ssid='adhocNet', #proto='olsr',
                 mode='g', channel=5, ht_cap='HT40+')
-    net.addLink(sta2, cls=adhoc, ssid='adhocNet', # proto='batman',
+    net.addLink(sta2, cls=adhoc, ssid='adhocNet', #proto='olsr',
                 mode='g', channel=5)
-    net.addLink(sta3, cls=adhoc, ssid='adhocNet', # proto='batman',
+    net.addLink(sta3, cls=adhoc, ssid='adhocNet', #proto='olsr',
                 mode='g', channel=5, ht_cap='HT40+')
 
     info("*** Starting network\n")

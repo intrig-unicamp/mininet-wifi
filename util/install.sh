@@ -204,11 +204,22 @@ function wifi_deps {
     sudo make install
 }
 
+function olsrd {
+    echo "Installing olsrd..."
+
+    cd $BUILD_DIR/mininet-wifi
+    git clone --depth=1 https://github.com/OLSR/olsrd
+    cd $BUILD_DIR/olsrd
+    make
+    sudo make install
+}
+
 function batman {
     echo "Installing B.A.T.M.A.N..."
 
     BATMAN_LOC=https://downloads.open-mesh.org/batman/stable/sources/
 
+    cd $BUILD_DIR
     if wget $BATMAN_LOC/batman-adv/batman-adv-2019.2.tar.gz 2> /dev/null; then
         if [ -d batman-adv-2019.2 ]; then
           echo "Removing batman-adv-2019.2..."
@@ -853,7 +864,7 @@ function vm_clean {
 }
 
 function usage {
-    printf '\nUsage: %s [-abBcdfhiklmnprtvVwxy03]\n\n' $(basename $0) >&2
+    printf '\nUsage: %s [-abBcdfhiklmnOprtvVwxy03]\n\n' $(basename $0) >&2
 
     printf 'This install script attempts to install useful packages\n' >&2
     printf 'for Mininet. It should (hopefully) work on Ubuntu 11.10+\n' >&2
@@ -875,6 +886,7 @@ function usage {
     printf -- ' -l: insta(L)l wmediumd\n' >&2
     printf -- ' -m: install Open vSwitch kernel (M)odule from source dir\n' >&2
     printf -- ' -n: install Mini(N)et dependencies + core files\n' >&2
+    printf -- ' -O: install olsrd\n' >&2
     printf -- ' -p: install (P)OX OpenFlow Controller\n' >&2
     printf -- ' -r: remove existing Open vSwitch packages\n' >&2
     printf -- ' -s <dir>: place dependency (S)ource/build trees in <dir>\n' >&2
@@ -897,7 +909,7 @@ if [ $# -eq 0 ]
 then
     all
 else
-    while getopts 'abBcdefhiklmnpPrs:tvV:wWxy036' OPTION
+    while getopts 'abBcdefhiklmnOpPrs:tvV:wWxy036' OPTION
     do
       case $OPTION in
       a)    all;;
@@ -917,6 +929,7 @@ else
       l)    wmediumd;;
       m)    modprobe;;
       n)    mn_deps;;
+      O)    olsrd;;
       p)    pox;;
       r)    remove_ovs;;
       s)    mkdir -p $OPTARG; # ensure the directory is created

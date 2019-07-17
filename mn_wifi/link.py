@@ -10,7 +10,7 @@ from six import string_types
 
 from mininet.log import info, error, debug
 from mn_wifi.devices import GetRate
-from mn_wifi.adhocRoutingProtocols import batman
+from mn_wifi.manetRoutingProtocols import manetProtocols
 from mn_wifi.wmediumdConnector import DynamicWmediumdIntfRef, \
     w_starter, SNRLink, w_txpower, w_pos, \
     w_cst, w_server, ERRPROBLink, wmediumd_mode
@@ -1108,7 +1108,7 @@ class adhoc(IntfWireless):
         self.configureAdhoc(node, wlan, **params)
 
         if 'proto' in params:
-            batman(node, wlan)
+            manetProtocols(params['proto'], node, wlan)
 
         if 'intf' not in params:
             node.ifaceToAssociate += 1
