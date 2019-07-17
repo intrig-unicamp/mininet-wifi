@@ -1,6 +1,5 @@
-"""
-author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
-"""
+# author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
+
 
 import os
 import re
@@ -11,6 +10,7 @@ from six import string_types
 
 from mininet.log import info, error, debug
 from mn_wifi.devices import GetRate
+from mn_wifi.adhocRoutingProtocols import batman
 from mn_wifi.wmediumdConnector import DynamicWmediumdIntfRef, \
     w_starter, SNRLink, w_txpower, w_pos, \
     w_cst, w_server, ERRPROBLink, wmediumd_mode
@@ -1106,6 +1106,10 @@ class adhoc(IntfWireless):
             IntfWireless.setFreqParams(node, params['channel'], wlan)
 
         self.configureAdhoc(node, wlan, **params)
+
+        if 'proto' in params:
+            batman(node, wlan)
+
         if 'intf' not in params:
             node.ifaceToAssociate += 1
 

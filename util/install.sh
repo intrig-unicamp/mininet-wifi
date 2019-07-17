@@ -204,6 +204,44 @@ function wifi_deps {
     sudo make install
 }
 
+function batman {
+    echo "Installing B.A.T.M.A.N..."
+
+    BATMAN_LOC=https://downloads.open-mesh.org/batman/stable/sources/
+
+    if wget $BATMAN_LOC/batman-adv/batman-adv-2019.2.tar.gz 2> /dev/null; then
+        if [ -d batman-adv-2019.2 ]; then
+          echo "Removing batman-adv-2019.2..."
+          rm -r batman-adv-2019.2
+        fi
+        tar xzf batman-adv-2019.2.tar.gz
+        cd batman-adv-2019.2
+        make
+        sudo make install
+    else
+        echo "Failed to find batman-adv at $BATMAN_LOC/batman-adv-2019.2.tar.gz"
+        cd $BUILD_DIR
+        return
+    fi
+
+    cd $BUILD_DIR/mininet-wifi
+    if wget $BATMAN_LOC/batctl/batctl-2019.2.tar.gz 2> /dev/null; then
+        if [ -d batctl-2019.2 ]; then
+          echo "Removing batctl-2019.2..."
+          rm -r batctl-2019.2
+        fi
+        tar xzf batctl-2019.2.tar.gz
+        cd batctl-2019.2
+        make
+        sudo make install
+    else
+        echo "Failed to find batctl at $BATMAN_LOC/batctl/batctl-2019.2.tar.gz"
+        cd $BUILD_DIR
+        return
+    fi
+}
+
+
 # Install Mininet developer dependencies
 function mn_dev {
     echo "Installing Mininet developer dependencies"
@@ -815,7 +853,7 @@ function vm_clean {
 }
 
 function usage {
-    printf '\nUsage: %s [-abcdfhiklmnprtvVwxy03]\n\n' $(basename $0) >&2
+    printf '\nUsage: %s [-abBcdfhiklmnprtvVwxy03]\n\n' $(basename $0) >&2
 
     printf 'This install script attempts to install useful packages\n' >&2
     printf 'for Mininet. It should (hopefully) work on Ubuntu 11.10+\n' >&2
@@ -826,6 +864,7 @@ function usage {
     printf 'options:\n' >&2
     printf -- ' -a: (default) install (A)ll packages - good luck!\n' >&2
     printf -- ' -b: install controller (B)enchmark (oflops)\n' >&2
+    printf -- ' -B: install B.A.T.M.A.N\n' >&2
     printf -- ' -c: (C)lean up after kernel install\n' >&2
     printf -- ' -d: (D)elete some sensitive files from a VM image\n' >&2
     printf -- ' -e: install Mininet d(E)veloper dependencies\n' >&2
@@ -858,11 +897,12 @@ if [ $# -eq 0 ]
 then
     all
 else
-    while getopts 'abcdefhiklmnpPrs:tvV:wWxy036' OPTION
+    while getopts 'abBcdefhiklmnpPrs:tvV:wWxy036' OPTION
     do
       case $OPTION in
       a)    all;;
       b)    cbench;;
+      B)    batman;;
       c)    kernel_clean;;
       d)    vm_clean;;
       e)    mn_dev;;
