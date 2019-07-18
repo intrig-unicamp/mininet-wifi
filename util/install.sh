@@ -223,7 +223,7 @@ function batman {
 
     BATMAN_LOC=https://downloads.open-mesh.org/batman/stable/sources/
 
-    cd $BUILD_DIR
+    cd $BUILD_DIR/mininet-wifi
     if wget $BATMAN_LOC/batman-adv/batman-adv-2019.2.tar.gz 2> /dev/null; then
         if [ -d batman-adv-2019.2 ]; then
           echo "Removing batman-adv-2019.2..."
