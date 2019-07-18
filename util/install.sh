@@ -208,8 +208,12 @@ function olsrd {
     echo "Installing olsrd..."
 
     cd $BUILD_DIR/mininet-wifi
+    if [ -d olsrd ]; then
+          echo "Removing olsrd..."
+          rm -r olsrd
+        fi
     git clone --depth=1 https://github.com/OLSR/olsrd
-    cd $BUILD_DIR/olsrd
+    cd $BUILD_DIR/mininet-wifi/olsrd
     make
     sudo make install
 }
