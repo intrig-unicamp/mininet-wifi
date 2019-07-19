@@ -26,25 +26,6 @@ class mobility(object):
     thread_ = ''
 
     @classmethod
-    def start(cls, **mobilityparam):
-        debug('Starting mobility thread...\n')
-        cls.thread_ = thread(name='mobilityModel', target=cls.models,
-                                  kwargs=dict(mobilityparam, ))
-        cls.thread_.daemon = True
-        cls.thread_._keep_alive = True
-        cls.thread_.start()
-        cls.set_wifi_params()
-
-    @classmethod
-    def stop(cls, **kwargs):
-        debug('Starting mobility thread...\n')
-        cls.thread_ = thread(target=tracked, kwargs=(kwargs))
-        cls.thread_.daemon = True
-        cls.thread_._keep_alive = True
-        cls.thread_.start()
-        cls.set_wifi_params()
-
-    @classmethod
     def move_factor(cls, node, diff_time):
         """:param node: node
         :param diff_time: difference between initial and final time. Useful for
@@ -100,18 +81,18 @@ class mobility(object):
         cls.move_factor(node, diff_time)
 
     @classmethod
+    def set_pos(cls, node, pos):
+        node.params['position'] = pos
+        if mobility.wmediumd_mode == 3 and mobility.thread_._keep_alive:
+            node.set_pos_wmediumd(pos)
+
+    @classmethod
     def set_wifi_params(cls):
         "Opens a thread for wifi parameters"
         if cls.allAutoAssociation:
             thread_ = thread(name='wifiParameters', target=cls.parameters)
             thread_.daemon = True
             thread_.start()
-
-    @classmethod
-    def set_pos(self, node, pos):
-        node.params['position'] = pos
-        if mobility.wmediumd_mode == 3 and mobility.thread_._keep_alive:
-            node.set_pos_wmediumd(pos)
 
     @classmethod
     def speed(cls, node, pos_x, pos_y, pos_z, diff_time):
@@ -230,18 +211,78 @@ class mobility(object):
                 Association.associate_infra(sta, ap, wlan=wlan, ap_wlan=ap_wlan)
 
     @classmethod
-    def models(cls, **kwargs):
+    def configLinks(cls, node=None):
+        "Applies channel params and handover"
+        from mn_wifi.node import AP
+        if node:
+            if isinstance(node, AP) or node in cls.aps:
+                nodes = cls.stations
+            else:
+                nodes = [node]
+        else:
+            nodes = cls.stations
+        cls.configureLinks(nodes)
+
+    @classmethod
+    def parameters(cls):
+        "Applies channel params and handover"
+        mobileNodes = list(set(cls.mobileNodes) - set(cls.aps))
+        while cls.thread_._keep_alive:
+            cls.configureLinks(mobileNodes)
+
+    @classmethod
+    def configureLinks(cls, nodes):
+        for node in nodes:
+            for wlan in range(len(node.params['wlan'])):
+                if node.func[wlan] == 'mesh' or node.func[wlan] == 'adhoc':
+                    pass
+                else:
+                    for ap in cls.aps:
+                        for ap_wlan in range(len(ap.params['wlan'])):
+                            if ap.func[ap_wlan] != 'mesh' and ap.func[ap_wlan] != 'adhoc':
+                                if cls.wmediumd_mode == 3:
+                                    if Association.bgscan or ('active_scan' in node.params \
+                                    and ('encrypt' in node.params and 'wpa' in node.params['encrypt'][wlan])):
+                                        if node.params['associatedTo'][wlan] == '':
+                                            Association.associate_infra(node, ap, wlan=wlan,
+                                                                        ap_wlan=ap_wlan)
+                                            if Association.bgscan:
+                                                node.params['associatedTo'][wlan] = 'bgscan'
+                                            else:
+                                                node.params['associatedTo'][wlan] = 'active_scan'
+                                    else:
+                                        cls.check_association(node, wlan, ap_wlan=ap_wlan)
+                                else:
+                                    cls.check_association(node, wlan, ap_wlan=ap_wlan)
+        sleep(0.0001)
+
+
+class model(mobility):
+
+    def __init__(self, **kwargs):
+        self.start_thread(**kwargs)
+
+    def start_thread(self, **kwargs):
+        debug('Starting mobility thread...\n')
+        mobility.thread_ = thread(name='mobModel', target=self.models,
+                              kwargs=dict(kwargs, ))
+        mobility.thread_.daemon = True
+        mobility.thread_._keep_alive = True
+        mobility.thread_.start()
+        mobility.set_wifi_params()
+
+    def models(self, **kwargs):
         "Used when a mobility model is set"
         np.random.seed(kwargs['seed'])
         if 'ac_method' in kwargs:
-            cls.ac = kwargs['ac_method']
-        cls.stations, cls.mobileNodes, cls.aps = \
+            mobility.ac = kwargs['ac_method']
+        mobility.stations, mobility.mobileNodes, mobility.aps = \
             kwargs['stations'], kwargs['stations'], kwargs['aps']
 
         plotNodes = []
         if 'plotNodes' in kwargs:
             plotNodes = kwargs['plotNodes']
-        nodes = cls.stations + cls.aps + plotNodes
+        nodes = mobility.stations + mobility.aps + plotNodes
 
         for node in nodes:
             if 'position' in node.params:
@@ -311,10 +352,9 @@ class mobility(object):
             while (time() - current_time) < kwargs['time']:
                 pass
 
-            cls.start_mob_mod(mob, kwargs['nodes'], kwargs['DRAW'])
+            self.start_mob_mod(mob, kwargs['nodes'], kwargs['DRAW'])
 
-    @classmethod
-    def start_mob_mod(cls, mob, nodes, graph):
+    def start_mob_mod(self, mob, nodes, graph):
         """
         :param mob: mobility params
         :param nodes: list of nodes
@@ -324,71 +364,30 @@ class mobility(object):
                 pos = round(xy[idx][0], 2), \
                       round(xy[idx][1], 2), \
                       0.0
-                cls.set_pos(node, pos)
+                mobility.set_pos(node, pos)
                 if graph:
                     plot2d.update(node)
             if graph:
                 plot2d.pause()
             else:
                 sleep(0.5)
-            while cls.pause_simulation:
+            while mobility.pause_simulation:
                 pass
 
-    @classmethod
-    def configLinks(cls, node=None):
-        "Applies channel params and handover"
-        from mn_wifi.node import AP
-        if node:
-            if isinstance(node, AP) or node in cls.aps:
-                nodes = cls.stations
-            else:
-                nodes = [node]
-        else:
-            nodes = cls.stations
-        cls.configureLinks(nodes)
 
-    @classmethod
-    def parameters(cls):
-        "Applies channel params and handover"
-        mobileNodes = list(set(cls.mobileNodes) - set(cls.aps))
-        while cls.thread_._keep_alive:
-            cls.configureLinks(mobileNodes)
-
-    @classmethod
-    def configureLinks(cls, nodes):
-        for node in nodes:
-            for wlan in range(len(node.params['wlan'])):
-                if node.func[wlan] == 'mesh' or node.func[wlan] == 'adhoc':
-                    pass
-                else:
-                    for ap in cls.aps:
-                        for ap_wlan in range(len(ap.params['wlan'])):
-                            if ap.func[ap_wlan] != 'mesh' and ap.func[ap_wlan] != 'adhoc':
-                                if cls.wmediumd_mode == 3:
-                                    if Association.bgscan or ('active_scan' in node.params \
-                                    and ('encrypt' in node.params and 'wpa' in node.params['encrypt'][wlan])):
-                                        if node.params['associatedTo'][wlan] == '':
-                                            Association.associate_infra(node, ap, wlan=wlan,
-                                                                        ap_wlan=ap_wlan)
-                                            if Association.bgscan:
-                                                node.params['associatedTo'][wlan] = 'bgscan'
-                                            else:
-                                                node.params['associatedTo'][wlan] = 'active_scan'
-                                    else:
-                                        cls.check_association(node, wlan, ap_wlan=ap_wlan)
-                                else:
-                                    cls.check_association(node, wlan, ap_wlan=ap_wlan)
-        sleep(0.0001)
-
-
-class tracked(thread):
+class tracked(mobility):
     "Used when the position of each node is previously defined"
 
     def __init__(self, **kwargs):
-        super(tracked, self).__init__()
-        self.kwargs = kwargs
-        self.configure(**kwargs)
-        self.plot = ''
+        self.start_thread(**kwargs)
+
+    def start_thread(self, **kwargs):
+        debug('Starting mobility thread...\n')
+        mobility.thread_ = thread(target=self.configure, kwargs=(kwargs))
+        mobility.thread_.daemon = True
+        mobility.thread_._keep_alive = True
+        mobility.thread_.start()
+        mobility.set_wifi_params()
 
     def configure(self, **kwargs):
         from mn_wifi.node import Station
@@ -439,7 +438,7 @@ class tracked(thread):
             mobility.thread_._keep_alive = True
             t1 = time()
             i = 1
-            if 'reverse' in kwargs and kwargs['reverse'] == True:
+            if 'reverse' in kwargs and kwargs['reverse']:
                 for node in mobility.mobileNodes:
                     if rep%2 == 1:
                         fin_ = node.params['finPos']
@@ -462,13 +461,13 @@ class tracked(thread):
                             if (t2 - t1) >= node.startTime and node.time <= node.endTime:
                                 if hasattr(node, 'coord'):
                                     mobility.calculate_diff_time(node)
-                                    self.set_pos(node,
+                                    mobility.set_pos(node,
                                                  node.points[node.time * node.moveFac])
                                     if node.time == node.endTime:
-                                        self.set_pos(node,
+                                        mobility.set_pos(node,
                                                      node.points[len(node.points) - 1])
                                 else:
-                                    self.set_pos(node, self.move_node(node))
+                                    mobility.set_pos(node, self.move_node(node))
                                 node.time += 1
                             if kwargs['DRAW']:
                                 plot.update(node)
@@ -477,18 +476,13 @@ class tracked(thread):
                         plot.pause()
                         i += 1
 
-    def set_pos(self, node, pos):
-        node.params['position'] = pos
-        if mobility.wmediumd_mode == 3 and mobility.thread_._keep_alive:
-            node.set_pos_wmediumd(pos)
-
-    def move_node(cls, node):
+    def move_node(self, node):
         x = round(node.params['position'][0], 2) + round(node.moveFac[0], 2)
         y = round(node.params['position'][1], 2) + round(node.moveFac[1], 2)
         z = round(node.params['position'][2], 2) + round(node.moveFac[2], 2)
         return [x, y, z]
 
-    def create_coordinate(cls, node):
+    def create_coordinate(self, node):
         node.coord_ = []
         init_pos = node.params['initPos']
         fin_pos = node.params['finPos']

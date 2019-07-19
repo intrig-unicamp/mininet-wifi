@@ -34,7 +34,7 @@ from mn_wifi.link import wirelessLink, wmediumd, Association, \
     _4address, TCWirelessLink, TCLinkWirelessStation, ITSLink, \
     wifiDirectLink, adhoc, mesh, physicalMesh, physicalWifiDirectLink
 from mn_wifi.devices import GetRate, GetRange
-from mn_wifi.mobility import mobility as mob
+from mn_wifi.mobility import tracked as trackedMob, model as mobModel, mobility as mob
 from mn_wifi.plot import plot2d, plot3d, plotGraph
 from mn_wifi.module import module
 from mn_wifi.propagationModels import propagationModel
@@ -736,7 +736,7 @@ class Mininet_wifi(Mininet):
                 self.start_mobility(**self.mob_param)
             else:
                 self.mob_param['plotNodes'] = self.plot_nodes()
-                mob.stop(**self.mob_param)
+                trackedMob(**self.mob_param)
         else:
             if self.DRAW and not self.isReplaying:
                 plotNodes = self.plot_nodes()
@@ -1605,7 +1605,7 @@ class Mininet_wifi(Mininet):
             kwargs['nodes'] = nodes
             self.setMobilityParams(**kwargs)
             if self.nroads == 0:
-                mob.start(**self.mob_param)
+                mobModel(**self.mob_param)
             else:
                 self.mob_param['cars'] = self.cars
                 vanet(**self.mob_param)
