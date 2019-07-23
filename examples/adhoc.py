@@ -23,9 +23,12 @@ def topology(autoTxPower):
         sta2 = net.addStation('sta2', position='50,10,0', range=100)
         sta3 = net.addStation('sta3', position='90,10,0', range=100)
     else:
-        sta1 = net.addStation('sta1', position='10,10,0')
-        sta2 = net.addStation('sta2', position='50,10,0')
-        sta3 = net.addStation('sta3', position='90,10,0')
+        sta1 = net.addStation('sta1', ipv6='fe80::1',
+                              position='10,10,0')
+        sta2 = net.addStation('sta2', ipv6='fe80::2',
+                              position='50,10,0')
+        sta3 = net.addStation('sta3', ipv6='fe80::3',
+                              position='90,10,0')
 
     net.setPropagationModel(model="logDistance", exp=4)
 
@@ -33,7 +36,7 @@ def topology(autoTxPower):
     net.configureWifiNodes()
 
     info("*** Creating links\n")
-    #MANET routing protocols supported by proto: olsr and batman
+    #MANET routing protocols supported by proto: babel, batman and olsr
     net.addLink(sta1, cls=adhoc, ssid='adhocNet', #proto='olsr',
                 mode='g', channel=5, ht_cap='HT40+')
     net.addLink(sta2, cls=adhoc, ssid='adhocNet', #proto='olsr',
@@ -44,10 +47,10 @@ def topology(autoTxPower):
     info("*** Starting network\n")
     net.build()
 
-    info("*** Addressing...\n")
-    sta1.setIPv6('2001::1/64', intf="sta1-wlan0")
-    sta2.setIPv6('2001::2/64', intf="sta2-wlan0")
-    sta3.setIPv6('2001::3/64', intf="sta3-wlan0")
+    #info("*** Addressing...\n")
+    #sta1.setIPv6('2001::1/64', intf="sta1-wlan0")
+    #sta2.setIPv6('2001::2/64', intf="sta2-wlan0")
+    #sta3.setIPv6('2001::3/64', intf="sta3-wlan0")
 
     info("*** Running CLI\n")
     CLI_wifi(net)
