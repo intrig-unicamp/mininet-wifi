@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-'Setting the position of nodes'
+'Setting position of the nodes'
 
 from mininet.log import setLogLevel, info
 from mn_wifi.cli import CLI_wifi

@@ -872,7 +872,7 @@ class AP(Node_wifi):
         if dpid:
             # Remove any colons and make sure it's a good hex number
             if py_version_info < (3, 0):
-                dpid = dpid.replace( ':', '' )
+                dpid = dpid.replace(':', '')
             else:
                 dpid = dpid.translate(str.maketrans('', '', ':'))
             assert len(dpid) <= self.dpidLen and int(dpid, 16) >= 0
@@ -894,7 +894,6 @@ class AP(Node_wifi):
             return self.controlIntf
         else:
             return Node_wifi.defaultIntf(self)
-
 
     def sendCmd(self, *cmd, **kwargs):
         """Send command to Node.

@@ -249,6 +249,12 @@ class module(object):
         os.system("ssh %s@%s \'chmod +x %s%s; %s%s\'"
                   % (params['ssh_user'], ip, dir, file, dir, file))
 
+    def rename(self, node, wintf, newname):
+        "Rename interface"
+        node.pexec('ip link set %s down' % wintf)
+        node.pexec('ip link set %s name %s' % (wintf, newname))
+        node.pexec('ip link set %s up' % newname)
+
     def assign_iface(self, nodes, physicalWlans, phys, **params):
         """Assign virtual interfaces for all nodes
 
@@ -257,7 +263,6 @@ class module(object):
         :param phys: list of phys
         :param **params: ifb -  Intermediate Functional Block device"""
         from mn_wifi.node import AP
-        from mn_wifi.link import IntfWireless
 
         log_filename = '/tmp/mn-wifi-mac80211_hwsim.log'
         self.logging_to_file("%s" % log_filename)
@@ -286,7 +291,7 @@ class module(object):
                     node.phyID[wlan] = phyID
                     phyID += 1
                     if isinstance(node, AP) and 'inNamespace' not in node.params:
-                        IntfWireless.rename(node, wlan_list[0], node.params['wlan'][wlan])
+                        self.rename(node, wlan_list[0], node.params['wlan'][wlan])
                     else:
                         if 'docker' not in params:
                             if py_version_info < (3, 0):

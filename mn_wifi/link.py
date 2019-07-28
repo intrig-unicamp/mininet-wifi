@@ -9,6 +9,7 @@ from sys import version_info as py_version_info
 from six import string_types
 
 from mininet.log import info, error, debug
+from mininet.link import TCIntf
 from mn_wifi.devices import GetRate
 from mn_wifi.manetRoutingProtocols import manetProtocols
 from mn_wifi.wmediumdConnector import DynamicWmediumdIntfRef, \
@@ -219,12 +220,16 @@ class IntfWireless(object):
         else:
             return "UP" in self.ipAddr()
 
-    @classmethod
-    def rename(self, node, wintf, newname):
+    def rename(self, newname):
         "Rename interface"
-        node.pexec('ip link set %s down' % wintf)
-        node.pexec('ip link set %s name %s' % (wintf, newname))
-        node.pexec('ip link set %s up' % newname)
+        if self.node and self.name in self.node.nameToIntf:
+            # rename intf in node's nameToIntf
+            self.node.nameToIntf[newname] = self.node.nameToIntf.pop(self.name)
+        self.ipLink('down')
+        result = self.cmd('ip link set', self.name, 'name', newname)
+        self.name = newname
+        self.ipLink('up')
+        return result
 
     # The reason why we configure things in this way is so
     # That the parameters can be listed and documented in
@@ -295,169 +300,11 @@ class IntfWireless(object):
 
 
 class TCWirelessLink(IntfWireless):
-    """Interface customized by tc (traffic control) utility
-       Allows specification of bandwidth limits (various methods)
-       as well as delay, loss and max queue length"""
-
-    # The parameters we use seem to work reasonably up to 1 Gb/sec
-    # For higher data rates, we will probably need to change them.
-    bwParamMax = 1000
-
-    def bwCmds(self, bw=None, speedup=0, use_hfsc=False, use_tbf=False,
-               latency_ms=None, enable_ecn=False, enable_red=False):
-        "Return tc commands to set bandwidth"
-        cmds, parent = [], ' root '
-        if bw and (bw < 0 or bw > self.bwParamMax):
-            error('Bandwidth limit', bw, 'is outside supported range 0..%d'
-                  % self.bwParamMax, '- ignoring\n')
-        elif bw is not None:
-            # BL: this seems a bit brittle...
-            if speedup > 0:
-                bw = speedup
-            # This may not be correct - we should look more closely
-            # at the semantics of burst (and cburst) to make sure we
-            # are specifying the correct sizes. For now I have used
-            # the same settings we had in the mininet-hifi code.
-            if use_hfsc:
-                cmds += [ '%s qdisc add dev %s root handle 5:0 hfsc default 1',
-                          '%s class add dev %s parent 5:0 classid 5:1 hfsc sc '
-                          + 'rate %fMbit ul rate %fMbit' % (bw, bw) ]
-            elif use_tbf:
-                if latency_ms is None:
-                    latency_ms = 15 * 8 / bw
-                cmds += [ '%s qdisc add dev %s root handle 5: tbf ' +
-                          'rate %fMbit burst 15000 latency %fms' %
-                          (bw, latency_ms) ]
-            else:
-                cmds += [ '%s qdisc add dev %s root handle 5:0 htb default 1',
-                          '%s class add dev %s parent 5:0 classid 5:1 htb ' +
-                          'rate %fMbit burst 15k' % bw ]
-            parent = ' parent 5:1 '
-            # ECN or RED
-            if enable_ecn:
-                cmds += [ '%s qdisc add dev %s' + parent +
-                          'handle 6: red limit 1000000 ' +
-                          'min 30000 max 35000 avpkt 1500 ' +
-                          'burst 20 ' +
-                          'bandwidth %fmbit probability 1 ecn' % bw ]
-                parent = ' parent 6: '
-            elif enable_red:
-                cmds += [ '%s qdisc add dev %s' + parent +
-                          'handle 6: red limit 1000000 ' +
-                          'min 30000 max 35000 avpkt 1500 ' +
-                          'burst 20 ' +
-                          'bandwidth %fmbit probability 1' % bw ]
-                parent = ' parent 6: '
-
-        return cmds, parent
-
-    @staticmethod
-    def delayCmds(parent, delay=None, jitter=None,
-                  loss=None, max_queue_size=None):
-        "Internal method: return tc commands for delay and loss"
-        cmds = []
-        if delay:
-            delay_ = float(delay.replace("ms", ""))
-        if delay and delay_ < 0:
-            error( 'Negative delay', delay, '\n' )
-        elif jitter and jitter < 0:
-            error('Negative jitter', jitter, '\n')
-        elif loss and (loss < 0 or loss > 100):
-            error('Bad loss percentage', loss, '%%\n')
-        else:
-            # Delay/jitter/loss/max queue size
-            netemargs = '%s%s%s%s' % (
-                'delay %s ' % delay if delay is not None else '',
-                '%s ' % jitter if jitter is not None else '',
-                'loss %.5f ' % loss if loss is not None else '',
-                'limit %d' % max_queue_size if max_queue_size is not None
-                else '')
-            if netemargs:
-                cmds = [ '%s qdisc add dev %s ' + parent +
-                         ' handle 10: netem ' +
-                         netemargs ]
-                parent = ' parent 10:1 '
-        return cmds, parent
-
-    def tc(self, cmd, tc='tc'):
-        "Execute tc command for our interface"
-        c = cmd % (tc, self)  # Add in tc command and our name
-        debug(" *** executing command: %s\n" % c)
-        return self.cmd(c)
-
-    def config(self, bw=None, delay=None, jitter=None, loss=None,
-               gro=False, speedup=0, use_hfsc=False, use_tbf=False,
-               latency_ms=None, enable_ecn=False, enable_red=False,
-               max_queue_size=None, **params):
-        """Configure the port and set its properties.
-            bw: bandwidth in b/s (e.g. '10m')
-            delay: transmit delay (e.g. '1ms' )
-            jitter: jitter (e.g. '1ms')
-            loss: loss (e.g. '1%' )
-            gro: enable GRO (False)
-            txo: enable transmit checksum offload (True)
-            rxo: enable receive checksum offload (True)
-            speedup: experimental switch-side bw option
-            use_hfsc: use HFSC scheduling
-            use_tbf: use TBF scheduling
-            latency_ms: TBF latency parameter
-            enable_ecn: enable ECN (False)
-            enable_red: enable RED (False)
-            max_queue_size: queue limit parameter for netem"""
-
-        # Support old names for parameters
-        gro = not params.pop('disable_gro', not gro)
-
-        result = IntfWireless.config(self, **params)
-
-        def on(isOn):
-            "Helper method: bool -> 'on'/'off'"
-            return 'on' if isOn else 'off'
-
-        # Set offload parameters with ethool
-        self.cmd('ethtool -K', self,
-                 'gro', on(gro))
-
-        # Optimization: return if nothing else to configure
-        # Question: what happens if we want to reset things?
-        if (bw is None and not delay and not loss
-                and max_queue_size is None):
-            return
-
-        # Clear existing configuration
-        tcoutput = self.tc('%s qdisc show dev %s')
-        if "priomap" not in tcoutput and "noqueue" not in tcoutput \
-                and "fq_codel" not in tcoutput and "qdisc fq" not in tcoutput:
-            cmds = [ '%s qdisc del dev %s root' ]
-        else:
-            cmds = []
-        # Bandwidth limits via various methods
-        bwcmds, parent = self.bwCmds(bw=bw, speedup=speedup,
-                                     use_hfsc=use_hfsc, use_tbf=use_tbf,
-                                     latency_ms=latency_ms,
-                                     enable_ecn=enable_ecn,
-                                     enable_red=enable_red)
-        cmds += bwcmds
-
-        # Delay/jitter/loss/max_queue_size using netem
-        delaycmds, parent = self.delayCmds(delay=delay, jitter=jitter,
-                                           loss=loss,
-                                           max_queue_size=max_queue_size,
-                                           parent=parent)
-        cmds += delaycmds
-
-        # Execute all the commands in our node
-        debug("at map stage w/cmds: %s\n" % cmds)
-        tcoutputs = [ self.tc(cmd) for cmd in cmds ]
-        for output in tcoutputs:
-            if output != '':
-                error("*** Error: %s" % output)
-        debug("cmds:", cmds, '\n')
-        debug("outputs:", tcoutputs, '\n')
-        result[ 'tcoutputs'] = tcoutputs
-        result[ 'parent' ] = parent
-
-        return result
+    "Link with TC interfaces"
+    def __init__( self, *args, **kwargs):
+        kwargs.setdefault( 'cls1', TCIntf )
+        kwargs.setdefault( 'cls2', TCIntf )
+        IntfWireless.__init__( self, *args, **kwargs)
 
 
 class _4address(object):
