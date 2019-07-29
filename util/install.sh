@@ -204,6 +204,30 @@ function wifi_deps {
     sudo make install
 }
 
+function sumo {
+    echo "Installing SUMO..."
+
+    SUMO_LOC=https://sumo.dlr.de/daily/sumo-src-git.tar.gz
+
+    cd $BUILD_DIR/mininet-wifi
+    if wget $SUMO_LOC 2> /dev/null; then
+        if [ -d sumo-git ]; then
+          echo "Removing sumo-git..."
+          rm -r sumo-git
+        fi
+        tar xzf sumo-src-git.tar.gz
+        cd sumo-git
+        export SUMO_HOME="$PWD"
+        mkdir build/cmake-build && cd build/cmake-build
+        cmake ../..
+        make -j$(nproc)
+    else
+        echo "Failed to find SUMO at $SUMO_LOC"
+        cd $BUILD_DIR
+        return
+    fi
+}
+
 function babeld {
     echo "Installing babeld..."
 
@@ -885,7 +909,7 @@ function vm_clean {
 }
 
 function usage {
-    printf '\nUsage: %s [-abBcdEfhiklmnOprtvVwxy03]\n\n' $(basename $0) >&2
+    printf '\nUsage: %s [-abBcdEfhiklmnOprStvVwxy03]\n\n' $(basename $0) >&2
 
     printf 'This install script attempts to install useful packages\n' >&2
     printf 'for Mininet. It should (hopefully) work on Ubuntu 11.10+\n' >&2
@@ -912,6 +936,7 @@ function usage {
     printf -- ' -p: install (P)OX OpenFlow Controller\n' >&2
     printf -- ' -r: remove existing Open vSwitch packages\n' >&2
     printf -- ' -s <dir>: place dependency (S)ource/build trees in <dir>\n' >&2
+    printf -- ' -S: install SUMO\n' >&2
     printf -- ' -t: complete o(T)her Mininet VM setup tasks\n' >&2
     printf -- ' -v: install Open (V)switch\n' >&2
     printf -- ' -V <version>: install a particular version of Open (V)switch on Ubuntu\n' >&2
@@ -931,7 +956,7 @@ if [ $# -eq 0 ]
 then
     all
 else
-    while getopts 'abBcdeEfhiklmnOpPrs:tvV:wWxy036' OPTION
+    while getopts 'abBcdeEfhiklmnOpPrSs:tvV:wWxy036' OPTION
     do
       case $OPTION in
       a)    all;;
@@ -958,6 +983,7 @@ else
       s)    mkdir -p $OPTARG; # ensure the directory is created
             BUILD_DIR="$( cd -P "$OPTARG" && pwd )"; # get the full path
             echo "Dependency installation directory: $BUILD_DIR";;
+      S)    sumo;;
       t)    vm_other;;
       v)    ovs;;
       V)    OVS_RELEASE=$OPTARG;
