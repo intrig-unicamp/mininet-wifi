@@ -244,7 +244,8 @@ function babeld {
 
 function olsrd {
     echo "Installing olsrd..."
-
+    $install bison flex
+    
     cd $BUILD_DIR/mininet-wifi
     if [ -d olsrd ]; then
           echo "Removing olsrd..."
