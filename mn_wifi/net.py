@@ -613,7 +613,7 @@ class Mininet_wifi(Mininet):
 
     def configHosts(self):
         "Configure a set of nodes."
-        nodes = self.hosts + self.stations + self.cars
+        nodes = self.hosts
         for node in nodes:
             # info( host.name + ' ' )
             intf = node.defaultIntf()
@@ -862,13 +862,14 @@ class Mininet_wifi(Mininet):
             info(node.name + ' ')
             node.terminate()
         info('\n')
-        if self.aps is not []:
+        if self.aps:
             self.kill_hostapd()
         self.closeMininetWiFi()
         if self.sixLP:
             sixLoWPAN_module.stop()
         if self.link == wmediumd:
             self.kill_wmediumd()
+
         info('\n*** Done\n')
 
     def run(self, test, *args, **kwargs):
@@ -1765,6 +1766,14 @@ class Mininet_wifi(Mininet):
                     node.setAntennaGain(node.params['antennaGain'][wlan],
                                         intf=node.params['wlan'][wlan],
                                         setParam=setParam)
+
+        nodes = self.stations + self.cars
+        for node in nodes:
+            intf = node.defaultIntf()
+            if intf:
+                node.configDefault()
+            else:
+                node.configDefault(ip=None, mac=None)
 
         return self.stations, self.aps
 

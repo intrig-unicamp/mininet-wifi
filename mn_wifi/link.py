@@ -82,27 +82,32 @@ class IntfWireless(object):
     def setFreq(self, freq, intf=None):
         return self.cmd('iw dev %s set freq %s' % (intf, freq))
 
-    @classmethod
-    def setFreqParams(self, node, channel, wlan):
-        node.params['channel'][wlan] = str(channel)
-        node.params['freq'][wlan] = node.get_freq(wlan)
-
-    @classmethod
     def get_freq(self, freq):
         return format(freq, '.3f').replace('.', '')
 
-    @classmethod
-    def setChannel(self, node, channel, intf=None, AP=None):
-        wlan = node.params['wlan'].index(intf)
-        self.setFreqParams(node, channel, wlan)
-        if AP and node.func[wlan] != 'mesh':
-            node.pexec(
+    def setFreqParam(self, wlan, **params):
+        self.setChanParam(wlan, **params)
+        self.node.params['freq'][wlan] = self.node.get_freq(wlan)
+
+    def setChanParam(self, wlan, **params):
+        self.node.params['channel'][wlan] = str(params['channel'])
+
+    def setModeParam(self, wlan, **params):
+        if params['mode'] == 'a' or params['mode'] == 'ac':
+            self.pexec('iw reg set US')
+        self.node.params['mode'][wlan] = params['mode']
+
+    def setChannel(self, intf=None, AP=None, **params):
+        wlan = self.node.params['wlan'].index(intf)
+        self.setFreqParam(wlan, **params)
+        if AP and self.node.func[wlan] != 'mesh':
+            self.pexec(
                 'hostapd_cli -i %s chan_switch %s %s' % (
-                    intf, str(channel),
-                    str(node.params['freq'][wlan]).replace(".", "")))
+                    intf, str(params['channel']),
+                    str(self.node.params['freq'][wlan]).replace(".", "")))
         else:
-            node.cmd('iw dev %s set channel %s'
-                         % (node.params['wlan'][wlan], str(channel)))
+            self.cmd('iw dev %s set channel %s'
+                         % (self.node.params['wlan'][wlan], str(params['channel'])))
 
     def ipAddr(self, *args):
         "Configure ourselves using ip link/addr"
@@ -117,7 +122,7 @@ class IntfWireless(object):
                     self.cmd('ip addr flush ', self.name)
                     cmd = 'ip addr add %s dev %s' % (args[0], self.name)
                     if self.ip6:
-                        cmd = cmd + '&& ip -6 addr add %s dev %s' % \
+                        cmd = cmd + ' && ip -6 addr add %s dev %s' % \
                                     (self.ip6, self.name)
                     return self.cmd(cmd)
                 else:
@@ -133,19 +138,27 @@ class IntfWireless(object):
         # This is a sign that we should perhaps rethink our prefix
         # mechanism and/or the way we specify IP addresses
         if '/' in ipstr:
-            if ':' in ipstr:
-                self.ip6, self.prefixLen = ipstr.split('/')
-            else:
-                self.ip, self.prefixLen = ipstr.split('/')
+            self.ip, self.prefixLen = ipstr.split('/')
             return self.ipAddr(ipstr)
         else:
             if prefixLen is None:
                 raise Exception('No prefix length set for IP address %s'
                                 % (ipstr,))
-            if ':' in ipstr:
-                self.ip6, self.prefixLen = ipstr, prefixLen
-            else:
-                self.ip, self.prefixLen = ipstr, prefixLen
+            self.ip, self.prefixLen = ipstr, prefixLen
+            return self.ipAddr('%s/%s' % (ipstr, prefixLen))
+
+    def setIPv6(self, ipstr, prefixLen=None, **args):
+        """Set our IP address"""
+        # This is a sign that we should perhaps rethink our prefix
+        # mechanism and/or the way we specify IP addresses
+        if '/' in ipstr:
+            self.ip6, self.prefixLen = ipstr.split('/')
+            return self.ipAddr(ipstr)
+        else:
+            if prefixLen is None:
+                raise Exception('No prefix length set for IP address %s'
+                                % (ipstr,))
+            self.ip6, self.prefixLen = ipstr, prefixLen
             return self.ipAddr('%s/%s' % (ipstr, prefixLen))
 
     def setMAC(self, macstr):
@@ -1073,6 +1086,8 @@ class physicalWifiDirectLink(IntfWireless):
 
 class adhoc(IntfWireless):
 
+    node = None
+
     def __init__(self, node, link=None, **params):
         """Configure AdHoc
         node: name of the node
@@ -1108,7 +1123,10 @@ class adhoc(IntfWireless):
                 node.params['ssid'][wlan] = ssid
 
         if 'channel' in params:
-            IntfWireless.setFreqParams(node, params['channel'], wlan)
+            self.setFreqParam(wlan, **params)
+
+        if 'mode' in params:
+            self.setModeParam(wlan, **params)
 
         self.configureAdhoc(node, wlan, **params)
 
@@ -1157,6 +1175,8 @@ class adhoc(IntfWireless):
 
 
 class mesh(IntfWireless):
+
+    node = None
 
     def __init__(self, node, isAP=False, **params):
         """Configure wireless mesh
@@ -1209,11 +1229,10 @@ class mesh(IntfWireless):
         node.params['wlan'][wlan] = self.name
 
         if 'channel' in params:
-            IntfWireless.setChannel(node, params['channel'], intf=self.name)
+            self.setChannel(intf=self.name, **params)
 
-        if 'mode' in params and (params['mode'] == 'a'
-                                 or params['mode'] == 'ac'):
-            node.pexec('iw reg set US')
+        if 'mode' in params:
+            self.setModeParam(wlan, **params)
 
         intf = node.params['wlan'][wlan]
         if 'freq' in params:

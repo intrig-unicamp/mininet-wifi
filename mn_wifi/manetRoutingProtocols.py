@@ -41,5 +41,5 @@ class olsr(object):
 class babel(object):
     def __init__(self, node, wlan=0):
         pid = os.getpid()
-        node.cmd('babeld %s -I mn_%s_%s.staconf &' %
+        node.cmd("babeld %s -I mn_%s_%s.staconf &" %
                  (node.params['wlan'][wlan], node, pid))

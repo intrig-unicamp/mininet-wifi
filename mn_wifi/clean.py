@@ -55,6 +55,11 @@ class Cleanup(object):
         except:
             pass
 
+        try:
+            os.system('pkill -f \'babeld\'')
+        except:
+            pass
+
         info("*** Killing wmediumd\n")
         sh('pkill wmediumd')
 

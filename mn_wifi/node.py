@@ -188,7 +188,7 @@ class Node_wifi(Node):
             debug('getting mac address from %s\n' % iface)
             macaddr = str(self.pexec('ip addr show %s' % iface))
             mac = _macMatchRegex.findall(macaddr)
-            debug('%s\n' % mac[0])
+            debug('\n%s' % mac[0])
             return mac[0]
         except:
             info('Please run sudo mn -c.\n')
@@ -568,7 +568,7 @@ class Node_wifi(Node):
             wlan = int(intf[-1:])
             self.params['ip'][wlan] = ip
 
-        return self.intf(intf).setIP(ip, prefixLen, **kwargs)
+        return self.intf(intf).setIPv6(ip, prefixLen, **kwargs)
 
     def config(self, mac=None, ip=None, ipv6=None,
                defaultRoute=None, lo='up', **_params):
