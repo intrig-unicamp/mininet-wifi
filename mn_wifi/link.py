@@ -97,17 +97,17 @@ class IntfWireless(object):
             self.pexec('iw reg set US')
         self.node.params['mode'][wlan] = params['mode']
 
-    def setChannel(self, intf=None, AP=None, **params):
-        wlan = self.node.params['wlan'].index(intf)
+    def setChannel(self, AP=None, **params):
+        wlan = self.node.params['wlan'].index(self.name)
         self.setFreqParam(wlan, **params)
         if AP and self.node.func[wlan] != 'mesh':
             self.pexec(
                 'hostapd_cli -i %s chan_switch %s %s' % (
-                    intf, str(params['channel']),
+                    self.name, str(params['channel']),
                     str(self.node.params['freq'][wlan]).replace(".", "")))
         else:
             self.cmd('iw dev %s set channel %s'
-                         % (self.node.params['wlan'][wlan], str(params['channel'])))
+                     % (self.node.params['wlan'][wlan], str(params['channel'])))
 
     def ipAddr(self, *args):
         "Configure ourselves using ip link/addr"
@@ -1229,7 +1229,7 @@ class mesh(IntfWireless):
         node.params['wlan'][wlan] = self.name
 
         if 'channel' in params:
-            self.setChannel(intf=self.name, **params)
+            self.setChannel(**params)
 
         if 'mode' in params:
             self.setModeParam(wlan, **params)
