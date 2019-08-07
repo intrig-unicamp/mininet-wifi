@@ -432,10 +432,9 @@ class tracked(mobility):
 
     def run(self, plot, **kwargs):
         from time import time
-        #nodes = kwargs['nodes']
 
         for rep in range(kwargs['repetitions']):
-            mobility.thread_._keep_alive = True
+            cont = True
             t1 = time()
             i = 1
             if 'reverse' in kwargs and kwargs['reverse']:
@@ -451,10 +450,12 @@ class tracked(mobility):
             for node in mobility.mobileNodes:
                 node.time = node.startTime
                 mobility.calculate_diff_time(node)
-            while mobility.thread_._keep_alive:
+            while cont:
                 t2 = time()
                 if (t2 - t1) > kwargs['final_time']:
-                    mobility.thread_._keep_alive = False
+                    cont = False
+                    if rep == kwargs['repetitions']:
+                        mobility.thread_._keep_alive = False
                 if (t2 - t1) >= kwargs['init_time']:
                     if t2 - t1 >= i:
                         for node in mobility.mobileNodes:
