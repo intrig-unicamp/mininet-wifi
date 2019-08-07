@@ -248,6 +248,20 @@ class Node_wifi(Node):
             cls.update(self)
             cls.pause()
 
+    def setSpeed(self, speed):
+        from mobility import mobility
+        if speed > self.speed:
+            self.endTime = self.endT/speed
+        elif speed < self.speed:
+            self.endTime = self.endT*speed
+        self.speed = speed
+        speed_ = 0
+        for node in mobility.mobileNodes:
+            if node.speed > speed_:
+                speed_ = node.speed
+        if speed_:
+            mobility.end_time = self.endTime
+
     def setPosition(self, pos):
         "Set Position"
         self.params['position'] = [float(x) for x in pos.split(',')]
