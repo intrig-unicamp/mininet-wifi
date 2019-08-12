@@ -163,7 +163,7 @@ class mobility(object):
             if sta not in ap.params['associatedStations']:
                 ap.params['associatedStations'].append(sta)
             if dist >= 0.01:
-                if Association.bgscan or 'active_scan' in sta.params \
+                if 'bgscan_threshold' in sta.params or 'active_scan' in sta.params \
                 and ('encrypt' in sta.params and 'wpa' in sta.params['encrypt'][wlan]):
                     pass
                 elif cls.wmediumd_mode and cls.wmediumd_mode != 3:
@@ -243,12 +243,12 @@ class mobility(object):
                         for ap_wlan in range(len(ap.params['wlan'])):
                             if ap.func[ap_wlan] != 'mesh' and ap.func[ap_wlan] != 'adhoc':
                                 if cls.wmediumd_mode == 3:
-                                    if Association.bgscan or ('active_scan' in node.params \
+                                    if 'bgscan_threshold' in node.params or ('active_scan' in node.params \
                                     and ('encrypt' in node.params and 'wpa' in node.params['encrypt'][wlan])):
                                         if node.params['associatedTo'][wlan] == '':
                                             Association.associate_infra(node, ap, wlan=wlan,
                                                                         ap_wlan=ap_wlan)
-                                            if Association.bgscan:
+                                            if 'bgscan_threshold' in node.params:
                                                 node.params['associatedTo'][wlan] = 'bgscan'
                                             else:
                                                 node.params['associatedTo'][wlan] = 'active_scan'
@@ -466,7 +466,7 @@ class tracked(mobility):
                                     if node.matrix_pos < len(node.points):
                                         mobility.set_pos(node,
                                                          node.points[node.matrix_pos])
-                                    if node.time == node.endTime:
+                                    else:
                                         mobility.set_pos(node,
                                                          node.points[len(node.points) - 1])
                                 else:
