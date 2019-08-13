@@ -161,6 +161,9 @@ class Mininet_wifi(Mininet):
         self.wlinks = []
         Mininet_wifi.init()  # Initialize Mininet if necessary
 
+        if autoSetPositions and link == wmediumd:
+            self.wmediumd_mode = interference
+
         if self.rec_rssi:
             mob.rec_rssi = True
 
