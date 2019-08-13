@@ -25,7 +25,10 @@ def topology():
                        link=wmediumd, wmediumd_mode=interference)
 
     info("*** Creating nodes\n")
-    net.addStation('sta1', position='15,20,0')
+    net.addStation('sta1', position='15,20,0',
+                   bgscan_threshold=-60,
+                   s_inverval=5,
+                   l_interval=10)
     ap1 = net.addAccessPoint('ap1', mac='00:00:00:00:00:01', ssid="handover",
                              mode="g", channel="1", passwd='123456789a',
                              encrypt='wpa2', position='10,30,0')
@@ -46,9 +49,6 @@ def topology():
     info("*** Creating links\n")
     net.addLink(ap1, ap2)
     net.addLink(ap2, ap3)
-
-    info("*** Setting bgscan\n")
-    net.setBgscan(signal=-60, s_inverval=5, l_interval=10)
 
     net.plotGraph(min_x=-100, min_y=-100, max_x=200, max_y=200)
 

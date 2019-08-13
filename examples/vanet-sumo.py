@@ -26,7 +26,11 @@ def topology():
     info("*** Creating nodes\n")
     cars = []
     for id in range(0, 10):
-        cars.append(net.addCar('car%s' % (id+1), wlans=2))
+        cars.append(net.addCar('car%s' % (id+1), wlans=2,
+                               bgscan_threshold=-60,
+                               s_inverval=5,
+                               l_interval=10
+                               ))
 
     e1 = net.addAccessPoint('e1', ssid='vanet-ssid', mac='00:00:00:11:00:01',
                             mode='g', channel='1', passwd='123456789a',
@@ -47,9 +51,6 @@ def topology():
                             mode='g', channel='11', passwd='123456789a',
                             encrypt='wpa2', position='2351.68,3083.40,0')
     c1 = net.addController('c1')
-
-    info("*** Setting bgscan\n")
-    net.setBgscan(signal=-45, s_inverval=5, l_interval=10)
 
     info("*** Configuring Propagation Model\n")
     net.setPropagationModel(model="logDistance", exp=2)

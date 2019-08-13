@@ -1359,8 +1359,6 @@ class physicalMesh(IntfWireless):
 
 class Association(object):
 
-    bgscan = None
-
     @classmethod
     def setSNRWmediumd(cls, sta, ap, snr):
         "Send SNR to wmediumd"
@@ -1520,8 +1518,15 @@ class Association(object):
             if ap.params['encrypt'][ap_wlan] == 'wpa3':
                 wpa_key_mgmt = 'SAE'
             cmd += '   key_mgmt=%s\n' % wpa_key_mgmt
-            if cls.bgscan:
-                cmd += '   %s\n' % cls.bgscan
+            if 'bgscan_threshold' in sta.params:
+                if 'bgscan_module' not in sta.params:
+                    sta.params['bgscan_module'] = 'simple'
+                bgscan = 'bgscan=\"%s:%d:%d:%d\"' % \
+                         (sta.params['bgscan_module'],
+                          sta.params['s_inverval'],
+                          sta.params['bgscan_threshold'],
+                          sta.params['l_interval'])
+                cmd += '   %s\n' % bgscan
             if 'authmode' in ap.params and ap.params['authmode'][0] == '8021x':
                 cmd += '   eap=PEAP\n'
                 cmd += '   identity=\"%s\"\n' % sta.params['radius_identity']

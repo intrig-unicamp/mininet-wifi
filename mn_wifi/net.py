@@ -1230,25 +1230,6 @@ class Mininet_wifi(Mininet):
                 nodes_.append(node)
         return nodes_
 
-    @staticmethod
-    def setBgscan(module='simple', s_inverval=30, signal=-45,
-                  l_interval=300,
-                  database='/etc/wpa_supplicant/network1.bgscan'):
-        """Set Background scanning
-        :params module: module
-        :params s_inverval: short bgscan interval in second
-        :params signal: signal strength threshold
-        :params l_interval: long interval
-        :params database: database file name"""
-        if module is 'simple':
-            bgscan = 'bgscan=\"%s:%d:%d:%d\"' % \
-                     (module, s_inverval, signal, l_interval)
-        else:
-            bgscan = 'bgscan=\"%s:%d:%d:%d:%s\"' % \
-                     (module, s_inverval, signal, l_interval, database)
-
-        Association.bgscan = bgscan
-
     def setPropagationModel(self, **kwargs):
         "Set Propagation Model"
         self.ppm_is_set = True
