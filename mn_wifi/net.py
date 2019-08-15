@@ -656,6 +656,12 @@ class Mininet_wifi(Mininet):
             self.addStation(staName, **topo.nodeInfo(staName))
             info(staName + ' ')
 
+        if topo.hosts():
+            info('*** Adding hosts:\n')
+            for hostName in topo.hosts():
+                self.addHost(hostName, **topo.nodeInfo(hostName))
+                info(hostName + ' ')
+
         info('\n*** Adding access points:\n')
         for apName in topo.aps():
             # A bit ugly: add batch parameter if appropriate
@@ -665,6 +671,17 @@ class Mininet_wifi(Mininet):
                 params.setdefault('batch', True)
             self.addAccessPoint(apName, **params)
             info(apName + ' ')
+
+        if topo.switches():
+            info('\n*** Adding switches:\n')
+            for switchName in topo.switches():
+                # A bit ugly: add batch parameter if appropriate
+                params = topo.nodeInfo(switchName)
+                cls = params.get('cls', self.switch)
+                if hasattr(cls, 'batchStartup'):
+                    params.setdefault('batch', True)
+                self.addSwitch(switchName, **params)
+                info(switchName + ' ')
 
         info('\n*** Configuring wifi nodes...\n')
         self.configureWifiNodes()
@@ -719,8 +736,7 @@ class Mininet_wifi(Mininet):
         if self.autoStaticArp:
             self.staticArp()
 
-        nodes = self.stations
-        for node in nodes:
+        for node in self.stations:
             for wlan in range(0, len(node.params['wlan'])):
                 if not isinstance(node, AP) and node.func[0] != 'ap' and \
                         node.func[wlan] != 'mesh' and \

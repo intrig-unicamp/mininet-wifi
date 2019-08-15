@@ -126,15 +126,35 @@ class Topo_WiFi(Topo):
         return name
 
     def addStation(self, name, **opts):
+        """Convenience method: Add station to graph.
+           name: station name
+           opts: station options
+           returns: host name"""
+        if not opts and self.hopts:
+            opts = self.hopts
+        return self.addNode(name, isStation=True, **opts)
+
+    def addAccessPoint(self, name, **opts):
+        """Convenience method: Add ap to graph.
+           name: ap name
+           opts: ap options
+           returns: ap name"""
+
+        if not opts and self.sopts:
+            opts = self.sopts
+        result = self.addNode(name, isAP=True, **opts)
+        return result
+
+    def addHost(self, name, **opts):
         """Convenience method: Add host to graph.
            name: host name
            opts: host options
            returns: host name"""
         if not opts and self.hopts:
             opts = self.hopts
-        return self.addNode(name, **opts)
+        return self.addNode(name, isHost=True, **opts)
 
-    def addAccessPoint(self, name, **opts):
+    def addSwitch(self, name, **opts):
         """Convenience method: Add switch to graph.
            name: switch name
            opts: switch options
@@ -142,7 +162,7 @@ class Topo_WiFi(Topo):
 
         if not opts and self.sopts:
             opts = self.sopts
-        result = self.addNode(name, isAP=True, **opts)
+        result = self.addNode(name, isSwitch=True, **opts)
         return result
 
     # This legacy port management mechanism is clunky and will probably
@@ -158,14 +178,20 @@ class Topo_WiFi(Topo):
         ports.setdefault(dst, {})
         # New port: number of outlinks + base
         if sport is None:
-            src_base = 1 if self.isAP(src) else 0
-            if 'ap' in src:
+            if 'isAP' in self.g.node[src] or 'isSwitch' in self.g.node[src]:
+                src_base = 1
+            else:
+                src_base = 0
+            if 'isAP' in self.g.node[src]:
                 sport = None
             else:
                 sport = len(ports[ src ]) + src_base
         if dport is None:
-            dst_base = 1 if self.isAP(dst) else 0
-            if 'ap' in dst:
+            if 'isAP' in self.g.node[dst] or 'isSwitch' in self.g.node[dst]:
+                dst_base = 1
+            else:
+                dst_base = 0
+            if 'isAP' in self.g.node[dst]:
                 dport = None
             else:
                 dport = len(ports[ dst ]) + dst_base
@@ -184,18 +210,25 @@ class Topo_WiFi(Topo):
         """Return aps.
            sort: sort aps alphabetically
            returns: dpids list of dpids"""
-        return [ n for n in self.nodes( sort ) if self.isAP( n ) ]
+        return [ n for n in self.nodes( sort ) if 'isAP' in self.g.node[ n ] ]
 
     def stations( self, sort=True ):
         """Return stations.
            sort: sort stations alphabetically
            returns: list of stations"""
-        return [ n for n in self.nodes( sort ) if not self.isAP( n ) ]
+        return [ n for n in self.nodes( sort ) if 'isStation' in self.g.node[ n ] ]
 
+    def switches( self, sort=True ):
+        """Return switches.
+           sort: sort switches alphabetically
+           returns: list of switches"""
+        return [ n for n in self.nodes( sort ) if 'isSwitch' in self.g.node[ n ] ]
 
-    def isAP( self, n ):
-        "Returns true if node is a switch."
-        return self.g.node[ n ].get( 'isAP', False )
+    def hosts( self, sort=True ):
+        """Return hosts.
+           sort: sort hosts alphabetically
+           returns: list of hosts"""
+        return [ n for n in self.nodes( sort ) if 'isHost' in self.g.node[ n ] ]
 
 
 # Our idiom defines additional parameters in build(param...)
