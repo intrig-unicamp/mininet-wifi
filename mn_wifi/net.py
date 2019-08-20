@@ -128,6 +128,8 @@ class Mininet_wifi(Mininet):
         self.ppm_is_set = False
         self.DRAW = False
         self.isReplaying = False
+        self.wmediumd_started = False
+        self.mob_check = False
         self.docker = docker
         self.container = container
         self.ssh_user = ssh_user
@@ -698,6 +700,20 @@ class Mininet_wifi(Mininet):
         raise Exception('configureControlNetwork: '
                         'should be overriden in subclass', self)
 
+    def check_if_mob(self):
+        if self.mob_param:
+            if 'model' in self.mob_param or self.isVanet or self.nroads != 0:
+                self.mob_param['nodes'] = self.getMobileNodes()
+                self.start_mobility(**self.mob_param)
+            else:
+                self.mob_param['plotNodes'] = self.plot_nodes()
+                trackedMob(**self.mob_param)
+            self.mob_check = True
+        else:
+            if self.DRAW and not self.isReplaying:
+                plotNodes = self.plot_nodes()
+                self.plotCheck(plotNodes)
+
     def build(self):
         "Build mininet-wifi."
         if self.topo:
@@ -715,17 +731,8 @@ class Mininet_wifi(Mininet):
                     if 'position' in node.params:
                         mob.stations.append(node)
 
-        if (self.configure4addr or self.configureWiFiDirect
-                or self.wmediumd_mode == error_prob) and self.link == wmediumd:
-            wmediumd(self.fading_coefficient, self.noise_threshold,
-                     self.stations, self.aps, self.cars, propagationModel,
-                     self.wmediumdMac)
-            for sta in self.stations:
-                if self.wmediumd_mode != error_prob:
-                    sta.set_pos_wmediumd(sta.params['position'])
-            for sta in self.stations:
-                if sta in self.aps:
-                    self.stations.remove(sta)
+        if not self.wmediumd_started:
+            self.init_wmediumd()
 
         if self.inNamespace:
             self.configureControlNetwork()
@@ -749,17 +756,10 @@ class Mininet_wifi(Mininet):
         if self.allAutoAssociation:
             if self.autoAssociation and not self.configureWiFiDirect:
                 self.auto_association()
-        if self.mob_param:
-            if 'model' in self.mob_param or self.isVanet or self.nroads != 0:
-                self.mob_param['nodes'] = self.getMobileNodes()
-                self.start_mobility(**self.mob_param)
-            else:
-                self.mob_param['plotNodes'] = self.plot_nodes()
-                trackedMob(**self.mob_param)
-        else:
-            if self.DRAW and not self.isReplaying:
-                plotNodes = self.plot_nodes()
-                self.plotCheck(plotNodes)
+
+        if not self.mob_check:
+            self.check_if_mob()
+
         self.built = True
 
     def plot_nodes(self):
@@ -801,6 +801,10 @@ class Mininet_wifi(Mininet):
         "Start controller and switches."
         if not self.built:
             self.build()
+
+        if not self.mob_check:
+            self.check_if_mob()
+
         info('*** Starting controller(s)\n')
         for controller in self.controllers:
             info(controller.name + ' ')
@@ -1666,10 +1670,9 @@ class Mininet_wifi(Mininet):
         "Set Mobility Parameters"
         self.mob_param.update(**kwargs)
 
-        args = ['min_x', 'min_y', 'min_z',
-                  'max_x', 'max_y', 'max_z',
-                  'stations', 'cars', 'aps',
-                  'DRAW', 'conn']
+        args = ['min_x', 'min_y', 'min_z', 'max_x', 'max_y', 'max_z',
+                'stations', 'cars', 'aps', 'DRAW', 'conn']
+
         for arg in args:
             self.mob_param.setdefault(arg, getattr(self, arg))
 
@@ -1682,6 +1685,7 @@ class Mininet_wifi(Mininet):
             self.mob_param.setdefault('nodes', kwargs['nodes'])
         if 'ac_method' in kwargs:
             self.mob_param.setdefault('ac_method', kwargs['ac_method'])
+
         self.mob_param.setdefault('ppm', propagationModel.model)
 
     def useExternalProgram(self, program, **kwargs):
@@ -1722,6 +1726,20 @@ class Mininet_wifi(Mininet):
             wmediumd(self.fading_coefficient, self.noise_threshold,
                      self.stations, self.aps, self.cars, propagationModel,
                      self.wmediumdMac)
+
+    def init_wmediumd(self):
+        if (self.configure4addr or self.configureWiFiDirect
+                or self.wmediumd_mode == error_prob) and self.link == wmediumd:
+            wmediumd(self.fading_coefficient, self.noise_threshold,
+                     self.stations, self.aps, self.cars, propagationModel,
+                     self.wmediumdMac)
+            for sta in self.stations:
+                if self.wmediumd_mode != error_prob:
+                    sta.set_pos_wmediumd(sta.params['position'])
+            for sta in self.stations:
+                if sta in self.aps:
+                    self.stations.remove(sta)
+        self.wmediumd_started = True
 
     def configureWifiNodes(self):
         "Configure WiFi Nodes"
