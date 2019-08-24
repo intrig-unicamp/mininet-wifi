@@ -139,7 +139,7 @@ class mobility(object):
             if sta in ap.params['associatedStations']:
                 ap.params['associatedStations'].remove(sta)
             if ap in sta.params['apsInRange']:
-                sta.params['apsInRange'].remove(ap)
+                sta.params['apsInRange'].pop(ap, None)
                 ap.params['stationsInRange'].pop(sta, None)
 
     @classmethod
@@ -150,9 +150,8 @@ class mobility(object):
         :param ap: access point
         :param wlan: wlan ID
         :param dist: distance between source and destination"""
-        if ap not in sta.params['apsInRange']:
-            sta.params['apsInRange'].append(ap)
         rssi = sta.get_rssi(ap, wlan, dist)
+        sta.params['apsInRange'][ap] = rssi
         ap.params['stationsInRange'][sta] = rssi
         if ap == sta.params['associatedTo'][wlan]:
             if cls.rec_rssi:

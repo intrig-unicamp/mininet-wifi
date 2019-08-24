@@ -1394,7 +1394,7 @@ class Association(object):
                 rssi = sta.get_rssi(ap, wlan, dist)
                 sta.params['rssi'][wlan] = rssi
                 if ap not in sta.params['apsInRange']:
-                    sta.params['apsInRange'].append(ap)
+                    sta.params['apsInRange'][ap] = rssi
                     ap.params['stationsInRange'][sta] = rssi
 
     @classmethod

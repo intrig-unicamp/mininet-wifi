@@ -1357,7 +1357,7 @@ class Mininet_wifi(Mininet):
                     node.params[param].append(value)
 
         if node_mode == 'managed':
-            node.params['apsInRange'] = []
+            node.params['apsInRange'] = {}
             node.params['associatedTo'] = []
             if self.wmediumd_mode != interference:
                 node.params['rssi'] = []

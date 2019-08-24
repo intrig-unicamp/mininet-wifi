@@ -144,8 +144,8 @@ class Node_wifi(Node):
         self.params['driver'] = 'nl80211'
         self.params['associatedStations'] = []
         self.params['stationsInRange'] = {}
+        self.params['apsInRange'] = {}
         self.params.pop('rssi', None)
-        self.params.pop('apsInRange', None)
         self.params.pop('associatedTo', None)
 
         for kwarg in kwargs:
