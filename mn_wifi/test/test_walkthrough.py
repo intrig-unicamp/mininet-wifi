@@ -233,7 +233,7 @@ class testWalkthrough(unittest.TestCase):
         aps = [ 'user', 'ovsk' ]
         for ap in aps:
             p = pexpect.spawn('mn --wifi --ap %s --test iperf' % ap)
-            p.expect(r"Results: \['([\d\.]+) .bits/sec',")
+            p.expect(r"Results: \['([\d\.]+) Mbits/sec',")
             bw = float(p.match.group(1))
             self.assertTrue(bw > 0)
             p.expect(pexpect.EOF)
