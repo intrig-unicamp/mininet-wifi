@@ -178,7 +178,7 @@ function wifi_deps {
     echo "Installing Mininet-WiFi dependencies"
     $install wireless-tools rfkill ${PYPKG}-numpy pkg-config \
              libnl-3-dev libnl-genl-3-dev libssl-dev make libevent-dev patch \
-             ${PYPKG}-scipy ${PYPKG}-matplotlib
+             ${PYPKG}-scipy ${PYPKG}-matplotlib libdbus-1-dev
 
 	pushd $MININET_DIR/mininet-wifi
     git submodule update --init --recursive
