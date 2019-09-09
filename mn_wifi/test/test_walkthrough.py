@@ -237,6 +237,9 @@ class testWalkthrough(unittest.TestCase):
             bw = float(p.match.group(1))
             self.assertTrue(bw > 0)
             p.expect(pexpect.EOF)
+            p.expect(self.prompt)
+            p.sendline('exit')
+            p.wait()
 
     def testBenchmark(self):
         "Run benchmark and verify that it takes less than 4 seconds"
