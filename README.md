@@ -20,6 +20,7 @@ Mininet-WiFi is a fork of Mininet (http://mininet.org/) which allows the using o
 Please, let us know if you are doing research with Mininet-WiFi. A list of citations on Mininet-WiFi is available [here](https://docs.google.com/spreadsheets/d/1laEhejMg6th-Urgc-_RqBi2H6m308Rnh9uJpKZavEio/edit?usp=sharing).     
 
 ## Installation  
+**We highly recommend using Ubuntu version 16.04 or higher. Some new hostapd features might not work on Ubuntu 14.04.**  
 step 1: $ sudo apt-get install git  
 step 2: $ git clone https://github.com/intrig-unicamp/mininet-wifi  
 step 3: $ cd mininet-wifi  
