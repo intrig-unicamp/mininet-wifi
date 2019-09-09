@@ -1359,8 +1359,7 @@ class Mininet_wifi(Mininet):
         if node_mode == 'managed':
             node.params['apsInRange'] = {}
             node.params['associatedTo'] = []
-            if self.wmediumd_mode != interference:
-                node.params['rssi'] = []
+            node.params['rssi'] = []
 
         array_ = ['speed', 'max_x', 'max_y', 'min_x', 'min_y',
                   'min_v', 'max_v', 'constantVelocity', 'constantDistance',
@@ -1388,8 +1387,7 @@ class Mininet_wifi(Mininet):
                 node.params['wlan'].append(node.name + '-wlan' + str(wlan + 1))
             else:
                 node.params['wlan'].append(node.name + '-wlan' + str(wlan))
-                if self.wmediumd_mode != interference:
-                    node.params['rssi'].append(-60)
+                node.params['rssi'].append(-60)
             node.params.pop("wlans", None)
 
         if node_mode == 'managed' or 'ip' in node.params:
@@ -1523,8 +1521,7 @@ class Mininet_wifi(Mininet):
                     node.params['associatedTo'].append('')
                     node.func.append('none')
                     node.phyID.append(0)
-                    if self.wmediumd_mode != interference:
-                        node.params['rssi'].append(-60)
+                    node.params['rssi'].append(-60)
 
                     new_mac = list(node.params['mac'][0])
                     new_mac[7] = str(vif_ + 1)

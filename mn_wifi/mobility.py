@@ -132,8 +132,7 @@ class mobility(object):
                 Association.setSNRWmediumd(sta, ap, snr=-10)
                 sta.params['rssi'][wlan] = 0
             if 'ieee80211r' not in ap.params:
-                debug('iw dev %s disconnect\n' % sta.params['wlan'][wlan])
-                sta.pexec('iw dev %s disconnect' % sta.params['wlan'][wlan])
+                Association.disconnect(sta, sta.params['wlan'][wlan])
             sta.params['associatedTo'][wlan] = ''
             sta.params['channel'][wlan] = 0
             if sta in ap.params['associatedStations']:
@@ -141,6 +140,8 @@ class mobility(object):
             if ap in sta.params['apsInRange']:
                 sta.params['apsInRange'].pop(ap, None)
                 ap.params['stationsInRange'].pop(sta, None)
+        elif not sta.params['associatedTo'][wlan]:
+            sta.params['rssi'][wlan] = 0
 
     @classmethod
     def ap_in_range(cls, sta, ap, wlan, dist):
@@ -165,15 +166,13 @@ class mobility(object):
                 if 'bgscan_threshold' in sta.params or 'active_scan' in sta.params \
                 and ('encrypt' in sta.params and 'wpa' in sta.params['encrypt'][wlan]):
                     pass
-                elif cls.wmediumd_mode and cls.wmediumd_mode != 3:
+                else :
                     sta.params['rssi'][wlan] = rssi
-                    Association.setSNRWmediumd(
-                        sta, ap, snr=sta.params['rssi'][wlan] - (-91))
-                elif cls.wmediumd_mode == 3:
-                    pass
-                else:
-                    sta.params['rssi'][wlan] = rssi
-                    wirelessLink(sta, ap, dist, wlan=wlan, ap_wlan=0)
+                    if cls.wmediumd_mode and cls.wmediumd_mode != 3:
+                        Association.setSNRWmediumd(
+                            sta, ap, snr=sta.params['rssi'][wlan] - (-91))
+                    else:
+                        wirelessLink(sta, ap, dist, wlan=wlan, ap_wlan=0)
 
     @classmethod
     def check_association(cls, sta, wlan, ap_wlan):

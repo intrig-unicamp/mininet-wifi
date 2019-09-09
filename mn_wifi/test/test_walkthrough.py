@@ -429,7 +429,7 @@ class testWalkthrough(unittest.TestCase):
     def testHandover(self):
         "Start Mininet-WiFi with handover, then test handover"
         p = pexpect.spawn(
-            'python examples/handover.py')
+            'python examples/handover.py -p')
         sleep(2)
         p.sendline('sta1 iw dev sta1-wlan0 info | grep ssid')
         p.expect('ssid-ap1')

@@ -257,6 +257,25 @@ class GetSignalRange(object):
 
         return pl
 
+    def twoRayGround(self, **kwargs):
+        """Two Ray Ground Propagation Loss Model (does not give a good result for
+        a short distance)"""
+        gt = kwargs['node'].params['antennaGain'][kwargs['wlan']]
+        ht = kwargs['node'].params['antennaHeight'][kwargs['wlan']]
+        pt = kwargs['node'].params['txpower'][kwargs['wlan']]
+
+        if 'rssi' in kwargs['node'].params:
+            rssi = kwargs['node'].params['rssi'][kwargs['wlan']]
+        else:
+            rssi = -60
+
+        gains = pt + gt
+        L = ppm.sL
+
+        self.dist = (((pt * gt * ht ** 2) / gains - rssi)/L)**1/4
+
+        return self.dist
+
     def logDistance(self, **kwargs):
         """Log Distance Propagation Loss Model:
         ref_d (m): The distance at which the reference loss is
@@ -366,6 +385,30 @@ class GetPowerGivenRange(object):
         pl = 10 * math.log10(numerator / denominator)
 
         return pl
+
+    def twoRayGround(self, **kwargs):
+        """Two Ray Ground Propagation Loss Model (does not give a good result for
+        a short distance)"""
+        gt = kwargs['node'].params['antennaGain'][kwargs['wlan']]
+        ht = kwargs['node'].params['antennaHeight'][kwargs['wlan']]
+        gains = pt + gt
+
+        d = kwargs['dist']
+        if kwargs['dist'] == 0:
+            d = 0.1
+        L = self.sL
+
+        if 'rssi' in kwargs['node'].params:
+            rssi = kwargs['node'].params['rssi'][kwargs['wlan']]
+        else:
+            rssi = -60
+
+        self.txpower = ((d ** 4 * L) * (gains-rssi))/(gt * ht ** 2)
+
+        if self.txpower < 0:
+            self.txpower = 1
+
+        return self.txpower
 
     def logDistance(self, **kwargs):
         """Log Distance Propagation Loss Model:

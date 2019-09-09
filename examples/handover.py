@@ -2,13 +2,15 @@
 
 'Example for Handover'
 
+import sys
+
 from mininet.node import Controller
 from mininet.log import setLogLevel, info
 from mn_wifi.cli import CLI_wifi
 from mn_wifi.net import Mininet_wifi
 
 
-def topology():
+def topology(plot):
     "Create a network."
     net = Mininet_wifi(controller=Controller)
 
@@ -31,7 +33,8 @@ def topology():
     info("*** Creating links\n")
     net.addLink(ap1, ap2)
 
-    net.plotGraph(max_x=100, max_y=100)
+    if plot:
+        net.plotGraph(max_x=100, max_y=100)
 
     net.startMobility(time=0)
     net.mobility(sta1, 'start', time=1, position='10,30,0')
@@ -55,4 +58,5 @@ def topology():
 
 if __name__ == '__main__':
     setLogLevel('info')
-    topology()
+    plot = False if '-p' in sys.argv else True
+    topology(plot)

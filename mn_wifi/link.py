@@ -1390,12 +1390,16 @@ class Association(object):
                         wirelessLink(sta, ap, dist, **params)
                 if sta not in ap.params['associatedStations']:
                     ap.params['associatedStations'].append(sta)
-            if not enable_interference:
-                rssi = sta.get_rssi(ap, wlan, dist)
-                sta.params['rssi'][wlan] = rssi
-                if ap not in sta.params['apsInRange']:
-                    sta.params['apsInRange'][ap] = rssi
-                    ap.params['stationsInRange'][sta] = rssi
+            if enable_interference:
+                cls.setRSSI(sta, ap, wlan)
+
+    @classmethod
+    def setRSSI(cls, sta, ap, wlan):
+        rssi = sta.get_rssi(ap, wlan, dist)
+        sta.params['rssi'][wlan] = rssi
+        if ap not in sta.params['apsInRange']:
+            sta.params['apsInRange'][ap] = rssi
+            ap.params['stationsInRange'][sta] = rssi
 
     @classmethod
     def updateParams(cls, sta, ap, wlan):
@@ -1430,8 +1434,17 @@ class Association(object):
         intf = sta.params['wlan'][wlan]
         ssid = ap.params['ssid'][ap_wlan]
         mac = ap.params['mac'][ap_wlan]
-        debug('iwconfig %s essid %s ap %s\n' % (intf, ssid, mac))
-        sta.pexec('iwconfig %s essid %s ap %s' % (intf, ssid, mac))
+        debug(cls.iwconfig_con(intf, ssid, mac))
+        sta.pexec(cls.iwconfig_con(intf, ssid, mac))
+
+    @classmethod
+    def iwconfig_con(cls, intf, ssid, mac):
+        cmd = 'iwconfig %s essid %s ap %s' % (intf, ssid, mac)
+        return cmd
+
+    @classmethod
+    def disconnect(cls, node, intf):
+        node.cmd('iw dev %s disconnect' % intf)
 
     @classmethod
     def associate_infra(cls, sta, ap, **params):
