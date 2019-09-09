@@ -1390,7 +1390,7 @@ class Association(object):
                         wirelessLink(sta, ap, dist, **params)
                 if sta not in ap.params['associatedStations']:
                     ap.params['associatedStations'].append(sta)
-            if enable_interference:
+            if not enable_interference:
                 cls.setRSSI(sta, ap, wlan)
 
     @classmethod
