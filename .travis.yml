@@ -5,8 +5,14 @@ dist: trusty
 env:
 - KERNEL_VERSION=4.16
 
-python:
-- 2.7
+matrix:
+  include:
+    - dist: trusty
+      python: 2.7
+      env: dist="14.04 LTS trusty"
+    - dist: trusty
+      python: 3.6
+      env: dist="14.04 LTS trusty"
 
 before_install:
 - sudo apt-get update -qq
