@@ -58,11 +58,6 @@ class IntfWireless(object):
         "Run a command in our owning node"
         return self.node.pexec(*args, **kwargs)
 
-    def wpa_cmd(self, pidfile, intf, wlan):
-        return self.pexec("wpa_supplicant -B -Dnl80211 -P %s "
-                          "-i %s -c %s_%s.staconf"
-                          % (pidfile, intf, self.node.name, wlan))
-
     def join(self, type=None, ssid=None, freq=None, ht_cap=None, intf=None):
         if type == 'ibss':
             return self.pexec('iw dev %s %s join %s %s %s 02:CA:FF:EE:BA:01'
@@ -1041,14 +1036,14 @@ class wifiDirectLink(IntfWireless):
         else:
             iface = node.params['wlan'][wlan]
             cmd = self.get_wpa_cmd(filename, iface)
-            node.cmd(self.get_wpa_cmd(filename, cmd))
+            node.cmd(cmd)
 
         if not port:
             node.ifaceToAssociate += 1
 
     @classmethod
     def get_filename(cls, node, wlan, iface=None):
-        suffix = '_wifiDirect.conf'
+        suffix = 'wifiDirect.conf'
         filename = "mn%d_%s-%s_%s" % (os.getpid(), node, wlan, suffix)
         if iface:
             filename = "%s-%s_%s" % (iface, wlan, suffix)
@@ -1171,7 +1166,7 @@ class adhoc(IntfWireless):
         os.system('echo \'%s\' > %s' % (cmd, fileName))
         pidfile = "mn%d_%s_%s_wpa.pid" % (os.getpid(), node.name, wlan)
         intf = node.params['wlan'][wlan]
-        self.wpa_cmd(pidfile, intf, wlan)
+        node.wpa_cmd(pidfile, intf, wlan)
 
 
 class mesh(IntfWireless):
@@ -1287,7 +1282,7 @@ class mesh(IntfWireless):
         os.system('echo \'%s\' > %s' % (cmd, fileName))
         pidfile = "mn%d_%s_%s_wpa.pid" % (os.getpid(), node.name, wlan)
         intf = node.params['wlan'][wlan]
-        self.wpa_cmd(pidfile, intf, wlan)
+        node.wpa_cmd(pidfile, intf, wlan)
 
 
 class physicalMesh(IntfWireless):
@@ -1357,7 +1352,7 @@ class physicalMesh(IntfWireless):
                     break
 
 
-class Association(object):
+class Association(IntfWireless):
 
     @classmethod
     def setSNRWmediumd(cls, sta, ap, snr):
@@ -1557,12 +1552,11 @@ class Association(object):
         :param sta: station
         :param ap: access point
         :param wlan: wlan ID"""
+        cls.node = sta
         pidfile = "mn%d_%s_%s_wpa.pid" % (os.getpid(), sta.name, wlan)
+        intf = sta.params['wlan'][wlan]
         cls.wpaFile(sta, ap, wlan, ap_wlan)
-        debug("wpa_supplicant -B -Dnl80211 -P %s -i %s -c %s_%s.staconf\n"
-              % (pidfile, sta.params['wlan'][wlan], sta.name, wlan))
-        sta.pexec("wpa_supplicant -B -Dnl80211 -P %s -i %s -c %s_%s.staconf"
-                  % (pidfile, sta.params['wlan'][wlan], sta.name, wlan))
+        sta.wpa_cmd(pidfile, intf, wlan)
 
     @classmethod
     def handover_ieee80211r(cls, sta, ap, wlan, ap_wlan):

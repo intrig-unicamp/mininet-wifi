@@ -126,13 +126,12 @@ class Node_wifi(Node):
             self.cmd('iw dev %s ibss leave' % self.params['wlan'][wlan])
         adhoc(self, **kwargs)
 
-    def setMasterMode(self, intf=None, ssid='-ssid1',
-                      **kwargs):
+    def setMasterMode(self, intf=None, ssid=None, **kwargs):
         "set Interface to AP mode"
         if not intf:
             intf = self.name + intf
         if not ssid:
-            ssid = self.name + ssid
+            ssid = self.name + '-ssid'
         wlan = self.get_wlan(intf)
 
         self.func[wlan] = 'ap'
@@ -153,12 +152,11 @@ class Node_wifi(Node):
                 self.params[kwarg] = []
                 self.params[kwarg].append(kwargs[kwarg])
 
-        AccessPoint.configAP(self, wlan)
         link = None
         if wmediumd_mode.mode != 4:
             link = 'wmediumd'
-        AccessPoint.setConfig(self, aplist=None, wlan=wlan,
-                              link=link, ssid=ssid)
+        aps = [self]
+        AccessPoint(aps, 'nl80211', link=link, setMaster=True)
 
     def setOCBIface(self, wlan):
         "Set OCB Interface"
@@ -175,6 +173,14 @@ class Node_wifi(Node):
         freq = str(freq).replace(".", "")
         self.func[wlan] = 'ocb'
         self.cmd('iw dev %s ocb join %s 20MHz' % (iface, freq))
+
+    def wpa_cmd(self, pidfile, intf, wlan):
+        wpasup_flags = ''
+        if 'wpasup_flags' in self.params:
+            wpasup_flags = self.params['wpasup_flags']
+        return self.pexec("wpa_supplicant -B -Dnl80211 -P %s "
+                          "-i %s -c %s_%s.staconf %s"
+                          % (pidfile, intf, self.name, wlan, wpasup_flags))
 
     def configLinks(self):
         "Applies channel params and handover"
@@ -923,14 +929,12 @@ class AccessPoint(AP):
 
     write_mac = False
 
-    def __init__(self, aps, driver, link):
+    def __init__(self, aps, driver, link, setMaster=False):
         'configure ap'
-        self.configure(aps, driver, link)
+        self.configure(aps, driver, link, setMaster)
 
-    @classmethod
-    def configure(cls, aps, driver, link):
+    def configure(self, aps, driver, link, setMaster):
         """Configure APs
-
         :param aps: list of access points"""
         for ap in aps:
             if 'vssids' in ap.params:
@@ -947,10 +951,11 @@ class AccessPoint(AP):
                     ap.params['mac'].append('')
             ap.params['driver'] = driver
             for wlan in range(len(ap.params['wlan'])):
-                cls.configAP(ap, wlan)
+                if not setMaster:
+                    self.configAP(ap, wlan)
                 if 'vssids' in ap.params:
                     break
-        cls.restartNetworkManager()
+        self.restartNetworkManager()
 
         for ap in aps:
             wlans = len(ap.params['wlan'])
@@ -961,12 +966,11 @@ class AccessPoint(AP):
                         if 'vssids' in ap.params:
                             break
                 for wlan in range(wlans):
-                    cls.setConfig(ap, aps, wlan, link)
+                    self.setConfig(ap, aps, wlan, link)
                     if 'vssids' in ap.params:
                         break
 
-    @classmethod
-    def setConfig(cls, ap, aplist=None, wlan=0, link=None, ssid=None):
+    def setConfig(self, ap, aplist=None, wlan=0, link=None, ssid=None):
         """Configure AP
 
         :param ap: ap node
@@ -1006,10 +1010,9 @@ class AccessPoint(AP):
             if ap.params['mode'][wlan] == 'adhoc':
                 ap.func[wlan] = 'adhoc'
             else:
-                cls.setHostapdConfig(ap, wlan, aplist, link)
+                self.setHostapdConfig(ap, wlan, aplist, link)
 
-    @classmethod
-    def setHostapdConfig(cls, ap, wlan, aplist=None, link=None):
+    def setHostapdConfig(self, ap, wlan, aplist=None, link=None):
         "Set hostapd config"
         cmd = ("echo \'")
         args = ['max_num_sta', 'beacon_int', 'rsn_preauth']
@@ -1151,13 +1154,13 @@ class AccessPoint(AP):
                 ap.params['mac'][i] = ap.params['mac'][wlan][:-1] + str(i)
         cmd = cmd + ("\nctrl_interface=/var/run/hostapd")
         cmd = cmd + ("\nctrl_interface_group=0")
-        cls.APConfigFile(cmd, ap, wlan)
+        self.APConfigFile(cmd, ap, wlan)
 
         if 'vssids' in ap.params:
             for i in range(1, ap.params['vssids']+1):
                 wlan = i
                 ap.params['mac'][wlan] = ''
-                cls.setIPMAC(ap, wlan)
+                self.setIPMAC(ap, wlan)
                 intf = ap.params['wlan'][wlan]
                 TCLinkWirelessAP(ap, intfName1=intf)
 
@@ -1173,17 +1176,16 @@ class AccessPoint(AP):
                              str(link.__name__) == 'wmediumd'):
                 setTC = False
         if setTC:
-            cls.setBw(ap, wlan, iface)
+            self.setBw(ap, wlan, iface)
 
         ap.params['freq'][wlan] = ap.get_freq(0)
 
-    @classmethod
-    def setBw(cls, node, wlan, iface):
+    def setBw(self, node, wlan, iface):
         "Set bw"
         if 'bw' in node.params:
             bw = node.params['bw'][wlan]
         else:
-            bw = cls.getRate(node, wlan)
+            bw = self.getRate(node, wlan)
         node.cmd("tc qdisc replace dev %s \
                 root handle 2: tbf rate %sMbit burst 15000 "
                  "latency 1ms" % (iface, bw))
@@ -1191,8 +1193,7 @@ class AccessPoint(AP):
         node.cmd('tc qdisc add dev %s parent 2:1 handle 10: '
                  'pfifo limit 1000' % (iface))
 
-    @classmethod
-    def getRate(cls, node, wlan):
+    def getRate(self, node, wlan):
         "Get rate"
         mode = node.params['mode'][wlan]
 
@@ -1210,8 +1211,7 @@ class AccessPoint(AP):
             rate = 54
         return rate
 
-    @classmethod
-    def verifyWepKey(cls, wep_key0):
+    def verifyWepKey(self, wep_key0):
         "Check WEP key"
         if len(wep_key0) == 10 or len(wep_key0) == 26 or len(wep_key0) == 32:
             cmd = ("\nwep_key0=%s" % wep_key0)
@@ -1224,51 +1224,47 @@ class AccessPoint(AP):
 
     _macMatchRegex = re.compile(r'..:..:..:..:..:..')
 
-    @classmethod
-    def setIPMAC(cls, ap, wlan):
+    def setIPMAC(self, ap, wlan):
         if ap.params['mac'][wlan] != '':
             ap.setMAC(ap.params['mac'][wlan], ap.params['wlan'][wlan])
         else:
             ap.params['mac'][wlan] = \
                 ap.getMAC(ap.params['wlan'][wlan])
         if ap.params['mac'][wlan]:
-            cls.checkNetworkManager(ap.params['mac'][wlan])
+            self.checkNetworkManager(ap.params['mac'][wlan])
         if 'inNamespace' in ap.params and 'ip' in ap.params:
             ap.setIP(ap.params['ip'], intf=ap.params['wlan'][wlan])
 
-    @classmethod
-    def restartNetworkManager(cls):
+    def restartNetworkManager(self):
         """Restart network manager if the mac address of the AP
         is not included at /etc/NetworkManager/NetworkManager.conf"""
         nms = 'network-manager'
         nm = 'NetworkManager'
         nm_is_running = os.system('service %s status 2>&1 | grep '
                                   '-ic running >/dev/null 2>&1' % nms)
-        if cls.write_mac and nm_is_running != 256:
+        if self.write_mac and nm_is_running != 256:
             info('Mac Address(es) of AP(s) is(are) being added into '
                  '/etc/%s/%s.conf\n' % (nm, nm))
             info('Restarting %s...\n' % nms)
             os.system('service %s restart' % nms)
-        cls.write_mac = False
+        self.write_mac = False
 
-    @classmethod
-    def configAP(cls, node, wlan):
+    def configAP(self, node, wlan):
         TCLinkWirelessAP(node)
         #cls.links.append(link)
-        cls.setIPMAC(node, wlan)
+        self.setIPMAC(node, wlan)
         if 'phywlan' in node.params:
             TCLinkWirelessAP(node, intfName1=node.params['phywlan'])
 
-    @classmethod
-    def checkNetworkManager(cls, mac):
+    def checkNetworkManager(self, mac):
         "add mac address into /etc/NetworkManager/NetworkManager.conf"
         nm = 'NetworkManager'
         unmanaged = 'unmanaged-devices'
         unmatch = ""
         if os.path.exists('/etc/%s/%s.conf' % (nm, nm)):
             if os.path.isfile('/etc/%s/%s.conf' % (nm, nm)):
-                cls.resultIface = open('/etc/%s/%s.conf' % (nm, nm))
-                lines = cls.resultIface
+                self.resultIface = open('/etc/%s/%s.conf' % (nm, nm))
+                lines = self.resultIface
 
             isNew = True
             for n in lines:
@@ -1287,20 +1283,18 @@ class AccessPoint(AP):
                 for line in fileinput.input('/etc/%s/%s.conf' % (nm, nm),
                                             inplace=1):
                     if isNew:
-                        cls.write_to_file(line, unmatch, echo, '#')
+                        self.write_to_file(line, unmatch, echo, '#')
                     else:
-                        cls.write_to_file(line, unmatch, echo, unmanaged)
-                cls.write_mac = True
+                        self.write_to_file(line, unmatch, echo, unmanaged)
+                self.write_mac = True
 
-    @classmethod
-    def write_to_file(cls, line, unmatch, echo, str_):
+    def write_to_file(self, line, unmatch, echo, str_):
         if line.__contains__(str_):
             print(line.replace(unmatch, echo))
         else:
             print(line.rstrip())
 
-    @classmethod
-    def APConfigFile(cls, cmd, ap, wlan):
+    def APConfigFile(self, cmd, ap, wlan):
         "run an Access Point and create the config file"
         iface = ap.params['wlan'][wlan]
         if 'phywlan' in ap.params:
@@ -1310,7 +1304,7 @@ class AccessPoint(AP):
         apconfname = "mn%d_%s.apconf" % (os.getpid(), iface)
         content = cmd + ("\' > %s" % apconfname)
         ap.cmd(content)
-        cmd = ("hostapd -B %s" % apconfname)
+        cmd = self.get_hostapd_cmd(ap, iface)
         try:
             ap.cmd(cmd)
             if int(ap.params['channel'][wlan]) == 0 \
@@ -1322,6 +1316,14 @@ class AccessPoint(AP):
             "to fix it or check if hostapd is working properly in " \
             "your system.")
             exit(1)
+
+    def get_hostapd_cmd(self, node, iface):
+        apconfname = "mn%d_%s.apconf" % (os.getpid(), iface)
+        hostapd_flags = ''
+        if 'hostapd_flags' in node.params:
+            hostapd_flags = node.params['hostapd_flags']
+        cmd = ("hostapd -B %s %s" % (apconfname, hostapd_flags))
+        return cmd
 
 
 class UserAP(AP):

@@ -230,7 +230,6 @@ class testWalkthrough(unittest.TestCase):
 
     def testAPs(self):
         "Run iperf test using user and ovsk aps"
-        pexpect.spawn('mn -c')
         aps = [ 'user', 'ovsk' ]
         for ap in aps:
             p = pexpect.spawn('mn --wifi --ap %s --test iperf' % ap)
