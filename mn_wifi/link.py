@@ -1386,10 +1386,10 @@ class Association(IntfWireless):
                 if sta not in ap.params['associatedStations']:
                     ap.params['associatedStations'].append(sta)
             if not enable_interference:
-                cls.setRSSI(sta, ap, wlan)
+                cls.setRSSI(sta, ap, wlan, dist)
 
     @classmethod
-    def setRSSI(cls, sta, ap, wlan):
+    def setRSSI(cls, sta, ap, wlan, dist):
         rssi = sta.get_rssi(ap, wlan, dist)
         sta.params['rssi'][wlan] = rssi
         if ap not in sta.params['apsInRange']:
@@ -1552,7 +1552,6 @@ class Association(IntfWireless):
         :param sta: station
         :param ap: access point
         :param wlan: wlan ID"""
-        cls.node = sta
         pidfile = "mn%d_%s_%s_wpa.pid" % (os.getpid(), sta.name, wlan)
         intf = sta.params['wlan'][wlan]
         cls.wpaFile(sta, ap, wlan, ap_wlan)
