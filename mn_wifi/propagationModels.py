@@ -397,7 +397,7 @@ class GetPowerGivenRange(object):
         d = kwargs['dist']
         if kwargs['dist'] == 0:
             d = 0.1
-        L = self.sL
+        L = ppm.sL
 
         if 'rssi' in kwargs['node'].params:
             rssi = kwargs['node'].params['rssi'][kwargs['wlan']]
