@@ -85,7 +85,12 @@ index 01871c951..04b8ce923 100644
  
  # Opportunistic Wireless Encryption (OWE)
  # Experimental implementation of draft-harkins-owe-07.txt
-diff --git wpa_supplicant/defconfig wpa_supplicant/defconfig
+@@ -389,3 +390,4 @@ CONFIG_IPV6=y
+ # Override default value for the wpa_disable_eapol_key_retries configuration
+ # parameter. See that parameter in hostapd.conf for more details.
+ #CFLAGS += -DDEFAULT_WPA_DISABLE_EAPOL_KEY_RETRIES=1
++CONFIG_SAE=y
+diff --git a/wpa_supplicant/defconfig b/wpa_supplicant/defconfig
 index cdfb1974d..9d19326ce 100644
 --- wpa_supplicant/defconfig
 +++ wpa_supplicant/defconfig
@@ -147,6 +152,12 @@ index cdfb1974d..9d19326ce 100644
  
  # Opportunistic Wireless Encryption (OWE)
  # Experimental implementation of draft-harkins-owe-07.txt
+@@ -613,3 +613,5 @@ CONFIG_BGSCAN_SIMPLE=y
+ # This requires CONFIG_IEEE80211W=y to be enabled, too. (see
+ # wpa_supplicant/README-DPP for details)
+ CONFIG_DPP=y
++
++CONFIG_SAE=y
 diff --git wpa_supplicant/p2p_supplicant.c wpa_supplicant/p2p_supplicant.c
 index 55b3b08ef..68232e161 100644
 --- wpa_supplicant/p2p_supplicant.c
