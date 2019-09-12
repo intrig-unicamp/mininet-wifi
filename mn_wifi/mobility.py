@@ -34,7 +34,9 @@ class mobility(object):
         init_pos = (node.params['initPos'])
         fin_pos = (node.params['finPos'])
         if hasattr(node, 'points'):
-            pos = (len(node.points)-1) / diff_time
+            pos = (len(node.points)-1)/diff_time
+            if pos <= 0:
+                pos = 1
         else:
             diff_time += 1
             node.params['position'] = init_pos
@@ -43,9 +45,9 @@ class mobility(object):
             pos_z = float(fin_pos[2]) - float(init_pos[2])
 
             cls.speed(node, pos_x, pos_y, pos_z, diff_time)
-            pos = round(pos_x / diff_time,2),\
-                  round(pos_y / diff_time,2),\
-                  round(pos_z / diff_time,2)
+            pos = round(pos_x/diff_time, 2),\
+                  round(pos_y/diff_time, 2),\
+                  round(pos_z/diff_time, 2)
         return pos
 
     @classmethod
