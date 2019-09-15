@@ -178,9 +178,9 @@ class Node_wifi(Node):
         wpasup_flags = ''
         if 'wpasup_flags' in self.params:
             wpasup_flags = self.params['wpasup_flags']
-        return self.pexec("wpa_supplicant -B -Dnl80211 -P %s "
-                          "-i %s -c %s_%s.staconf %s"
-                          % (pidfile, intf, self.name, wlan, wpasup_flags))
+        return self.cmd("wpa_supplicant -B -Dnl80211 -P %s "
+                        "-i %s -c %s_%s.staconf %s"
+                        % (pidfile, intf, self.name, wlan, wpasup_flags))
 
     def configLinks(self):
         "Applies channel params and handover"
