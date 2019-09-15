@@ -14,14 +14,10 @@ from os import path
 
 def topology():
     "Create a network."
+    cwd = os.getcwd()
     net = Mininet_wifi()
 
-    #setLogLevel('debug')
-
     info("*** Creating nodes\n")
-
-    cwd = os.getcwd()
-
     sta1 = net.addStation('sta1',
            wpasup_flags='-dd -f /tmp/debug1.txt',
            wpasup_globals='eapol_version=2',
@@ -50,7 +46,6 @@ def topology():
     			'client_cert="{}/CA/client.crt",'
                 'private_key="{}/CA/client.key"'.format(cwd,cwd,cwd))
 
-
     ap1 = net.addAccessPoint('ap1', 
                             ssid="simplewifi", 
                             hostapd_flags='-dd > /tmp/hostapd.txt',
@@ -69,8 +64,6 @@ def topology():
                             'private_key={}/CA/server.key,'
                             'eap_user_file={}/eap_users'.format(cwd,cwd,cwd,cwd),isolate_clients=True)
 
-
-
     info("*** Configuring wifi nodes\n")
     net.configureWifiNodes()
 
@@ -85,7 +78,7 @@ def topology():
     info("*** Adding openflow wireless rule : ")
     # For wireless isolation hack. Put a normal flow in there so stations
     # can ping each other
-    ap1.cmdPrint('ovs-ofctl add-flow ap1 "priority=10,actions=in_port,normal"')
+    ap1.cmd('ovs-ofctl add-flow ap1 "priority=10,actions=in_port,normal"')
 
     info("\n*** Try the following at the CLI \n")
     info("sta1 ping sta2 \n")
