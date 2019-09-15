@@ -1498,7 +1498,10 @@ class Association(IntfWireless):
                 else:
                     passwd = sta.params['passwd'][wlan]
 
-        cmd = 'ctrl_interface=/var/run/wpa_supplicant\nnetwork={\n'
+        cmd = 'ctrl_interface=/var/run/wpa_supplicant\n' 
+        if 'wpasup_globals' in sta.params:
+            cmd += sta.params['wpasup_globals'] + '\n'
+        cmd = cmd + 'network={\n'
 
         if 'config' in sta.params:
             config = sta.params['config']
