@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-'This example creates a simple network topology with 1 AP and 2 stations'
+'This uses telemetry() to enable a graph with live statistics'
 
 import sys
 
