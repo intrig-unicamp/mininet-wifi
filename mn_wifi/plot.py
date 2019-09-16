@@ -70,7 +70,7 @@ class plot3d (object):
 
     @classmethod
     def fig_exists(cls):
-        return plt.fignum_exists(1)
+        return plt.fignum_exists(10)
 
     @classmethod
     def pause(cls):
@@ -137,7 +137,6 @@ class plot3d (object):
 class plot2d (object):
     'Plot 2d Graphs'
     ax = None
-    q_lock = ''
     lines = {}
 
     @classmethod
@@ -204,6 +203,7 @@ class plot2d (object):
     def instantiateGraph(cls, MIN_X, MIN_Y, MAX_X, MAX_Y):
         "instantiateGraph"
         plt.ion()
+        plt.figure(10)
         plt.title("Mininet-WiFi Graph")
         cls.ax = plt.subplot(111)
         cls.ax.set_xlabel('meters')
@@ -214,7 +214,7 @@ class plot2d (object):
 
     @classmethod
     def fig_exists(cls):
-        return plt.fignum_exists(1)
+        return plt.fignum_exists(10)
 
     @classmethod
     def instantiateNode(cls, node):
