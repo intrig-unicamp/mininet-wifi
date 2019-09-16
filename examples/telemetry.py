@@ -2,8 +2,6 @@
 
 'This uses telemetry() to enable a graph with live statistics'
 
-import sys
-
 from mininet.node import Controller
 from mininet.log import setLogLevel, info
 from mn_wifi.cli import CLI_wifi
@@ -32,7 +30,7 @@ def topology():
 
     # refer to mn_wifi/telemetry for more information
     nodes = net.aps + net.stations
-    telemetry(nodes, single=True)
+    telemetry(nodes, single=True, data_type='tx_packets')
 
     info("*** Starting network\n")
     net.build()
