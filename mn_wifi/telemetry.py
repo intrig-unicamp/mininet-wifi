@@ -8,6 +8,7 @@ telemetry(nodes, **params)
 **params
    * single=True - opens a single window and put all nodes together
    * data_type - refer to statistics dir at /sys/class/ieee80211/{}/device/net/{}/statistics/{}
+            - other data_types: rssi - gets the rssi value
 """
 
 import matplotlib.pyplot as plt
@@ -60,7 +61,7 @@ class telemetry(object):
         else:
             fig, (self.axes) = plt.subplots(1, (len(nodes)), figsize=(10, 4))
         self.nodes = nodes
-        timee.start(nodes, fig, self.axes, single=single, data_type=data_type)
+        graph.start(nodes, fig, self.axes, single=single, data_type=data_type)
 
     @classmethod
     def calc(cls, tx_bytes, n):
@@ -94,6 +95,7 @@ class telemetry(object):
     def get_phys(cls, nodes, inNamespaceNodes):
         cmd = 'ls /sys/class/ieee80211/'
         isAP = False
+        phys = []
         for node in nodes:
             if isinstance(node, AP) and not isAP:
                 phys = subprocess.check_output(cmd,
@@ -112,12 +114,25 @@ class telemetry(object):
         return phy_list, ifaces
 
 
-def get_values(tx_bytes, time, node, filename):
+def get_rssi(node, iface, time, filename):
+    if isinstance(node, AP):
+        rssi = 0
+    else:
+        cmd = "util/m {} iw dev {} link | grep signal | tr -d signal: | awk '{{print $1 $3}}'"
+        rssi = subprocess.check_output('%s' % (cmd.format(node, iface)),
+                                       shell=True).split("\n")
+        if not rssi[0]:
+            rssi = 0
+        else:
+            rssi = rssi[0]
+    os.system("echo '%s,%s' >> %s" % (time, rssi, filename.format(node)))
+
+
+def get_values_from_statistics(tx_bytes, time, node, filename):
     tx = telemetry.calc(float(tx_bytes[0]), node)
     os.system("echo '%s,%s' >> %s" % (time, tx, filename.format(node)))
 
-
-class timee(object):
+class graph(object):
 
     nodes = []
     phys = []
@@ -143,20 +158,26 @@ class timee(object):
             nodes_x[node] = []
             nodes_y[node] = []
             arr = cls.nodes.index(node)
-            if isinstance(node, AP):
-                tx_bytes = subprocess.check_output(
-                    ("%s" % cls.dir).format(cls.phys[arr],
-                                            cls.ifaces[node],
-                                            cls.data_type),
-                    shell=True).split("\n")
-            else:
-                tx_bytes = subprocess.check_output(
-                    'util/m %s ' % node + ('%s' % cls.dir).format(cls.phys[arr],
-                                                                  cls.ifaces[node],
-                                                                  cls.data_type),
-                    shell=True).split("\n")
 
-            get_values(tx_bytes, now, node, cls.filename)
+            if cls.data_type != 'rssi':
+                if isinstance(node, AP):
+                    tx_bytes = subprocess.check_output(
+                        ("%s" % cls.dir).format(cls.phys[arr],
+                                                cls.ifaces[node],
+                                                cls.data_type),
+                        shell=True).split("\n")
+                else:
+                    tx_bytes = subprocess.check_output(
+                        'util/m %s ' % node + ('%s' % cls.dir).format(cls.phys[arr],
+                                                                      cls.ifaces[node],
+                                                                      cls.data_type),
+                        shell=True).split("\n")
+
+            if cls.data_type != 'rssi':
+                get_values_from_statistics(tx_bytes, now, node, cls.filename)
+            else:
+                get_rssi(node, cls.ifaces[node], now, cls.filename)
+
             graph_data = open('%s' % (cls.filename.format(node)), 'r').read()
             lines = graph_data.split('\n')
             for line in lines:
