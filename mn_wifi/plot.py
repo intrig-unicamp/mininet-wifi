@@ -37,7 +37,6 @@ class plot3d (object):
     def instantiateAnnotate(cls, node):
         "instantiateAnnotate"
         x, y, z = cls.getPos(node)
-
         node.plttxt = cls.ax.text(x, y, z, node.name)
 
     @classmethod
@@ -341,7 +340,7 @@ class plot2d (object):
         dst_y = '%.2f' % float(dst.params['position'][1])
         line = cls.line2d([float(src_x), float(dst_x)],
                           [float(src_y), float(dst_y)], 'b', ls=ls)
-        conn_ = src.name +'-'+ dst.name
+        conn_ = src.name + '-' + dst.name
         cls.lines[conn_] = line
         cls.line(line)
 

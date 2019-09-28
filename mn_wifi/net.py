@@ -1750,7 +1750,7 @@ class Mininet_wifi(Mininet):
             params['docker'] = self.docker
             params['container'] = self.container
             params['ssh_user'] = self.ssh_user
-        nodes = self.stations + self.aps + self.cars
+        nodes = self.stations + self.cars + self.aps
         module(nodes, self.n_radios, self.alt_module, **params)
         if sixlowpan.n_wpans != 0:
             sixLoWPAN_module(self.sixLP, sixlowpan.n_wpans)

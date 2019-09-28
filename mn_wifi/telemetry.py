@@ -127,7 +127,7 @@ class telemetry(object):
         phys = []
         for node in nodes:
             if isinstance(node, AP) and not isAP:
-                phys = subprocess.check_output(cmd,
+                phys += subprocess.check_output(cmd,
                                                shell=True).split("\n")
                 isAP = True
             else:
@@ -135,7 +135,7 @@ class telemetry(object):
                     phys += subprocess.check_output('util/m %s %s' % (node, cmd),
                                                     shell=True).split("\n")
         phy_list = []
-        phys.sort(key=len, reverse=False)
+        phys = sorted(phys)
         for phy in phys:
             if 'mn' in phy:
                 phy_list.append(phy)
