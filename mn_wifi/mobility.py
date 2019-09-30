@@ -121,15 +121,16 @@ class mobility(object):
         if ap == sta.params['associatedTo'][wlan]:
             if 'encrypt' in ap.params and 'ieee80211r' not in ap.params:
                 if 'wpa' in ap.params['encrypt'][ap_wlan]:
-                    os.system('rm %s_%s.staconf' % (sta.name, wlan))
+                    file = '%s_%s.staconf' % (sta.name, wlan)
+                    if os.path.exists(file):
+                        os.system('rm ' + file + ' >/dev/null 2>&1')
                     pidfile = "mn%d_%s_%s_wpa.pid" \
                               % (os.getpid(), sta.name, wlan)
                     os.system('pkill -f \'wpa_supplicant -B -Dnl80211 -P %s -i '
                               '%s\'' % (pidfile, sta.params['wlan'][wlan]))
-                    if os.path.exists(('/var/run/wpa_supplicant/%s'
-                                       % sta.params['wlan'][wlan])):
-                        os.system('rm /var/run/wpa_supplicant/%s'
-                                  % sta.params['wlan'][wlan])
+                    file = '/var/run/wpa_supplicant/%s' % sta.params['wlan'][wlan]
+                    if os.path.exists(file):
+                        os.system('rm ' + file + ' >/dev/null 2>&1')
             elif cls.wmediumd_mode and cls.wmediumd_mode != 3:
                 Association.setSNRWmediumd(sta, ap, snr=-10)
                 sta.params['rssi'][wlan] = 0

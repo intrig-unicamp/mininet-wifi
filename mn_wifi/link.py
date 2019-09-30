@@ -1433,7 +1433,7 @@ class Association(IntfWireless):
 
     @classmethod
     def disconnect(cls, node, intf):
-        node.cmd('iw dev %s disconnect' % intf)
+        node.pexec('iw dev %s disconnect' % intf)
 
     @classmethod
     def associate_infra(cls, sta, ap, **params):
@@ -1552,7 +1552,7 @@ class Association(IntfWireless):
         pidfile = "mn%d_%s_%s_wpa.pid" % (os.getpid(), sta.name, wlan)
         intf = sta.params['wlan'][wlan]
         cls.wpaFile(sta, ap, wlan, ap_wlan)
-        sta.wpa_cmd(pidfile, intf, wlan)
+        sta.wpa_pexec(pidfile, intf, wlan)
 
     @classmethod
     def handover_ieee80211r(cls, sta, ap, wlan, ap_wlan):

@@ -1,6 +1,7 @@
 import sys
 import os
 import threading
+from time import sleep
 
 from threading import Thread as thread
 from mn_wifi.mobility import mobility
@@ -32,6 +33,16 @@ class sumo(object):
         self.start(cars, config_file, clients, port)
         #except:
         #info("Connection with SUMO closed.\n")
+
+    def aps_position(self, aps):
+        for ap in aps:
+            pos = ap.params['position']
+            sleep(0.5)
+            pos[0] = float(pos[0]) + 1
+            ap.set_pos_wmediumd(pos)
+            sleep(1)
+            pos[0] = float(pos[0]) - 1
+            ap.set_pos_wmediumd(pos)
 
     def setWifiParameters(self):
         thread = threading.Thread(name='wifiParameters', target=mobility.parameters)
@@ -104,8 +115,7 @@ class sumo(object):
                         y2 = vehicleCmds.getPosition(vehID2)[1]
 
                         if int(vehID1) < len(cars):
-                            cars[int(vehID1)].params['position'] = x1, y1, 0
-                            cars[int(vehID1)].set_pos_wmediumd(cars[int(vehID1)].params['position'])
+                            cars[int(vehID1)].setPosition('%s, %s, %s' % (x1, y1, 0))
 
                         if abs(x1-x2)>0 and abs(x1-x2)<20 \
                                 and (road1 == opposite_road2 or road2 == opposite_road1):

@@ -75,7 +75,7 @@ def reroutage(VisitedEdge2, ListTravelTime, vehID1, vehID2, ListVeh, vehicleCmds
 	if len(VisitedEdge2) > 0:
 
 		# reroutage du vehicule 1 en fonction des donnees collectees
-		for edge in VisitedEdge2 :
+		for edge in VisitedEdge2:
 			TravelTime = ListTravelTime[ListVeh.index(vehID2)]
 			traci.edge.adaptTraveltime(edge, TravelTime[VisitedEdge2.index(edge)])
 			vehicleCmds.rerouteTraveltime(vehID1)
