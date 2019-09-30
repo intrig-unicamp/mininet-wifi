@@ -172,10 +172,11 @@ class mobility(object):
                 else :
                     sta.params['rssi'][wlan] = rssi
                     if cls.wmediumd_mode and cls.wmediumd_mode != 3:
-                        Association.setSNRWmediumd(
-                            sta, ap, snr=sta.params['rssi'][wlan] - (-91))
-                    else:
-                        wirelessLink(sta, ap, dist, wlan=wlan, ap_wlan=0)
+                        if cls.wmediumd_mode:
+                            Association.setSNRWmediumd(
+                                sta, ap, snr=sta.params['rssi'][wlan] - (-91))
+                        else:
+                            wirelessLink(sta, ap, dist, wlan=wlan, ap_wlan=0)
 
     @classmethod
     def check_association(cls, sta, wlan, ap_wlan):
