@@ -1756,10 +1756,10 @@ class Mininet_wifi(Mininet):
             sixLoWPAN_module(self.sixLP, sixlowpan.n_wpans)
         self.configureWirelessLink()
         self.createVirtualIfaces(self.stations)
-        AccessPoint(self.aps, self.driver, self.link)
-
+        AccessPoint(self.aps, self.driver, self.link, config=True)
         if self.link == wmediumd:
             self.configureWmediumd()
+        AccessPoint(self.aps, self.driver, self.link)
 
         setParam = True
         if self.wmediumd_mode == interference and not self.isVanet:
@@ -1843,10 +1843,16 @@ class Mininet_wifi(Mininet):
                     if 'position' in node.params and 'link' not in node.params:
                         if self.wmediumd_mode != error_prob:
                             pos = node.params['position']
-                            pos[0] = float(pos[0]) + 1
                             if node.func[wlan] == 'adhoc':
                                 sleep(1.5)
+                            # we need this cause wmediumd is fighting with some associations
+                            # e.g. wpa
                             if self.wmediumd_mode == interference:
+                                sleep(0.5)
+                                pos[0] = float(pos[0]) + 1
+                                node.set_pos_wmediumd(pos)
+                                sleep(1)
+                                pos[0] = float(pos[0]) - 1
                                 node.set_pos_wmediumd(pos)
 
             mob.aps = self.aps

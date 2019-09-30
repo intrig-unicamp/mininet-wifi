@@ -929,13 +929,14 @@ class AccessPoint(AP):
 
     write_mac = False
 
-    def __init__(self, aps, driver, link, setMaster=False):
+    def __init__(self, aps, driver, link, setMaster=False, config=False):
         'configure ap'
-        self.configure(aps, driver, link, setMaster)
+        if config:
+            self.check_nm(aps, driver, setMaster)
+        else:
+            self.configure(aps, link)
 
-    def configure(self, aps, driver, link, setMaster):
-        """Configure APs
-        :param aps: list of access points"""
+    def check_nm(self, aps, driver, setMaster):
         for ap in aps:
             if 'vssids' in ap.params:
                 for i in range(1, ap.params['vssids'] + 1):
@@ -957,6 +958,9 @@ class AccessPoint(AP):
                     break
         self.restartNetworkManager()
 
+    def configure(self, aps, link):
+        """Configure APs
+        :param aps: list of access points"""
         for ap in aps:
             wlans = len(ap.params['wlan'])
             if 'link' not in ap.params:
