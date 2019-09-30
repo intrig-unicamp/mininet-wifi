@@ -1432,8 +1432,12 @@ class Association(IntfWireless):
         return cmd
 
     @classmethod
-    def disconnect(cls, node, intf):
+    def disconnect(cls, node, wlan):
+        intf = node.params['wlan'][wlan]
         node.pexec('iw dev %s disconnect' % intf)
+        node.params['rssi'][wlan] = 0
+        node.params['associatedTo'][wlan] = ''
+        node.params['channel'][wlan] = 0
 
     @classmethod
     def associate_infra(cls, sta, ap, **params):
