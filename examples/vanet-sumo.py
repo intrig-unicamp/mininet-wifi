@@ -38,7 +38,7 @@ def topology():
                             encrypt='wpa2', position='3279.02,3736.27,0')
     e2 = net.addAccessPoint('e2', ssid='vanet-ssid', mac='00:00:00:11:00:02',
                             mode='g', channel='6', passwd='123456789a',
-                            encrypt='wpa2', position='2320.82,3565.75,0')
+                            encrypt='wpa2', position='3620.82,3565.75,0')
     e3 = net.addAccessPoint('e3', ssid='vanet-ssid', mac='00:00:00:11:00:03',
                             mode='g', channel='11', passwd='123456789a',
                             encrypt='wpa2', position='2806.42,3395.22,0')
@@ -50,7 +50,7 @@ def topology():
                             encrypt='wpa2', position='2887.62,2935.61,0')
     e6 = net.addAccessPoint('e6', ssid='vanet-ssid', mac='00:00:00:11:00:06',
                             mode='g', channel='11', passwd='123456789a',
-                            encrypt='wpa2', position='2351.68,3083.40,0')
+                            encrypt='wpa2', position='3651.68,3083.40,0')
     c1 = net.addController('c1')
 
     info("*** Configuring Propagation Model\n")
