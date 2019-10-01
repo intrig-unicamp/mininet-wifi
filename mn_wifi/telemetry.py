@@ -183,6 +183,7 @@ class parseData(object):
     single = None
     ani = None
     filename = None
+    thread_ = None
     dir = 'cat /sys/class/ieee80211/{}/device/net/{}/statistics/{}'
 
     @classmethod
