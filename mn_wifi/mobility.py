@@ -31,21 +31,18 @@ class mobility(object):
         """:param node: node
         :param diff_time: difference between initial and final time.
         Useful for calculating the speed"""
+        diff_time += 1
         init_pos = (node.params['initPos'])
         fin_pos = (node.params['finPos'])
-        if hasattr(node, 'points'):
-            pos = 1
-        else:
-            diff_time += 1
-            node.params['position'] = init_pos
-            pos_x = float(fin_pos[0]) - float(init_pos[0])
-            pos_y = float(fin_pos[1]) - float(init_pos[1])
-            pos_z = float(fin_pos[2]) - float(init_pos[2])
+        node.params['position'] = init_pos
+        pos_x = float(fin_pos[0]) - float(init_pos[0])
+        pos_y = float(fin_pos[1]) - float(init_pos[1])
+        pos_z = float(fin_pos[2]) - float(init_pos[2])
 
-            cls.speed(node, pos_x, pos_y, pos_z, diff_time)
-            pos = round(pos_x/diff_time, 2),\
-                  round(pos_y/diff_time, 2),\
-                  round(pos_z/diff_time, 2)
+        cls.speed(node, pos_x, pos_y, pos_z, diff_time)
+        pos = round(pos_x/diff_time, 2),\
+              round(pos_y/diff_time, 2),\
+              round(pos_z/diff_time, 2)
         return pos
 
     @classmethod
