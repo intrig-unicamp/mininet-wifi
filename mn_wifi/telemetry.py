@@ -37,9 +37,10 @@ class telemetry(object):
 
     def __init__(self, nodes, **kwargs):
         kwargs['nodes'] = nodes
-        thread_ = thread(target=self.start, kwargs=(kwargs))
-        thread_.daemon = True
-        thread_.start()
+        parseData.thread_ = thread(target=self.start, kwargs=(kwargs))
+        parseData.thread_.daemon = True
+        parseData.thread_._keep_alive = True
+        parseData.thread_.start()
 
     def start(self, **kwargs):
         nodes = kwargs['nodes']
@@ -59,21 +60,21 @@ class telemetry(object):
         if 'single' in kwargs:
             single = True
         if data_type == 'position':
-            graph.min_x, graph.min_y, graph.max_x, graph.max_y = 0, 0, 100, 100
+            parseData.min_x, parseData.min_y, parseData.max_x, parseData.max_y = 0, 0, 100, 100
             if 'min_x' in kwargs:
-                graph.min_x = kwargs['min_x']
+                parseData.min_x = kwargs['min_x']
             if 'min_y' in kwargs:
-                graph.min_y = kwargs['min_y']
+                parseData.min_y = kwargs['min_y']
             if 'max_x' in kwargs:
-                graph.max_x = kwargs['max_x']
+                parseData.max_x = kwargs['max_x']
             if 'max_y' in kwargs:
-                graph.max_y = kwargs['max_y']
+                parseData.max_y = kwargs['max_y']
             fig, (self.axes) = plt.subplots(1, 1, figsize=(10, 10))
             fig.canvas.set_window_title('Mininet-WiFi Graph')
             self.axes.set_xlabel('meters')
             self.axes.set_xlabel('meters')
-            self.axes.set_xlim([graph.min_x, graph.max_x])
-            self.axes.set_ylim([graph.min_y, graph.max_y])
+            self.axes.set_xlim([parseData.min_x, parseData.max_x])
+            self.axes.set_ylim([parseData.min_y, parseData.max_y])
         else:
             if single:
                 fig, (self.axes) = plt.subplots(1, 1, figsize=(10, 4))
@@ -81,7 +82,7 @@ class telemetry(object):
                 fig, (self.axes) = plt.subplots(1, (len(nodes)), figsize=(10, 4))
             fig.canvas.set_window_title('Mininet-WiFi Graph')
         self.nodes = nodes
-        graph.start(nodes, fig, self.axes, single=single, data_type=data_type)
+        parseData.start(nodes, fig, self.axes, single=single, data_type=data_type)
 
     @classmethod
     def calc(cls, tx_bytes, n):
@@ -166,10 +167,11 @@ def get_values_from_statistics(tx_bytes, time, node, filename):
     tx = telemetry.calc(float(tx_bytes[0]), node)
     os.system("echo '%s,%s' >> %s" % (time, tx, filename.format(node)))
 
-class graph(object):
+class parseData(object):
 
     nodes = []
     phys = []
+    colors = []
     ifaces = {}
     min_x = 0
     min_y = 0
@@ -179,9 +181,21 @@ class graph(object):
     fig = None
     axes = None
     single = None
-    colors = []
+    ani = None
     filename = None
     dir = 'cat /sys/class/ieee80211/{}/device/net/{}/statistics/{}'
+
+    @classmethod
+    def closeGraph(cls):
+        try:
+            cls.ani.event_source.stop()
+            del cls.ani
+        except:
+            pass
+
+    @classmethod
+    def fig_exists(cls):
+        return plt.fignum_exists(1)
 
     @classmethod
     def animate(cls, i):
@@ -190,6 +204,8 @@ class graph(object):
         nodes_x = {}
         nodes_y = {}
         names = []
+        if not cls.thread_._keep_alive:
+            exit()
 
         for node in cls.nodes:
             for wlan in range(0, len(node.params['wlan'])):
@@ -285,5 +301,5 @@ class graph(object):
         for node in nodes:
             if path.exists('%s' % (cls.filename.format(node))):
                 os.system('rm %s' % (cls.filename.format(node)))
-        ani = animation.FuncAnimation(fig, cls.animate, interval=1000)
+        cls.ani = animation.FuncAnimation(fig, cls.animate, interval=1000)
         plt.show()

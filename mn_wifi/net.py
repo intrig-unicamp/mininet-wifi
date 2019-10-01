@@ -34,6 +34,7 @@ from mn_wifi.link import wirelessLink, wmediumd, Association, \
     _4address, TCWirelessLink, TCLinkWirelessStation, ITSLink, \
     wifiDirectLink, adhoc, mesh, physicalMesh, physicalWifiDirectLink
 from mn_wifi.devices import GetRate, GetRange
+from mn_wifi.telemetry import parseData
 from mn_wifi.mobility import tracked as trackedMob, model as mobModel, mobility as mob
 from mn_wifi.plot import plot2d, plot3d, plotGraph
 from mn_wifi.module import module
@@ -1934,6 +1935,8 @@ class Mininet_wifi(Mininet):
     @staticmethod
     def stopGraphParams():
         "Stop the graph"
+        if parseData.thread_:
+            parseData.thread_._keep_alive = False
         if mob.thread_:
             mob.thread_._keep_alive = False
         sleep(0.5)
