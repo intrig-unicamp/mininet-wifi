@@ -17,6 +17,7 @@ matrix:
 before_install:
 - sudo apt-get update -qq
 - sudo apt-get install -qq vlan
+- pip install matplotlib
 
 install:
 - sudo util/install.sh -Wlnfvw6
