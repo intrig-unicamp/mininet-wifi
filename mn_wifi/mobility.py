@@ -39,7 +39,6 @@ class mobility(object):
         pos_y = float(fin_pos[1]) - float(init_pos[1])
         pos_z = float(fin_pos[2]) - float(init_pos[2])
 
-        cls.speed(node, pos_x, pos_y, pos_z, diff_time)
         pos = round(pos_x/diff_time, 2),\
               round(pos_y/diff_time, 2),\
               round(pos_z/diff_time, 2)
@@ -72,6 +71,10 @@ class mobility(object):
             cls.calculate_diff_time(node, kwargs['time'])
 
     @classmethod
+    def speed(cls, node, pos_x, pos_y, pos_z, diff_time=30):
+        node.params['speed'] = round(abs((pos_x + pos_y + pos_z) / diff_time), 2)
+
+    @classmethod
     def calculate_diff_time(cls, node, time=0):
         if time != 0:
             node.endTime = time
@@ -92,19 +95,6 @@ class mobility(object):
             thread_ = thread(name='wifiParameters', target=cls.parameters)
             thread_.daemon = True
             thread_.start()
-
-    @classmethod
-    def speed(cls, node, pos_x, pos_y, pos_z, diff_time):
-        """Calculates the speed
-
-        :param node: node
-        :param pos_x: Position x
-        :param pos_y: Position y
-        :param pos_z: Position z
-        :param diff_time: difference between start and stop time. Useful for
-        calculating the speed"""
-        node.params['speed'] = round(abs(((pos_x + pos_y + pos_z) /
-                                          diff_time)), 2)
 
     @classmethod
     def remove_staconf(cls, sta, wlan):
@@ -429,15 +419,27 @@ class tracked(mobility):
             kwargs['DRAW'] = False
 
         for node in nodes:
-            if isinstance(node, Station) and hasattr(node, 'coord'):
+            if hasattr(node, 'coord'):
                 coord = self.create_coordinate(node)
+                total = self.get_total_displacement(node)
                 node.points = []
                 for c in coord:
                     a0 = c[0].split(',')
                     a1 = c[1].split(',')
-                    self.get_coord(node, float(a0[0]), float(a0[1]), float(a0[2]),
-                                   float(a1[0]), float(a1[1]), float(a1[2]))
+                    self.get_points(node, float(a0[0]), float(a0[1]), float(a0[2]),
+                                    float(a1[0]), float(a1[1]), float(a1[2]), total)
         self.run(plot, **kwargs)
+
+    def get_total_displacement(self, node):
+        x, y, z = 0, 0, 0
+        for num, coord in enumerate(node.coord):
+            if num > 0:
+                c0 = node.coord[num].split(',')
+                c1 = node.coord[num-1].split(',')
+                x += abs(float(c0[0]) - float(c1[0]))
+                y += abs(float(c0[1]) - float(c1[1]))
+                z += abs(float(c0[2]) - float(c1[2]))
+        return (x, y, z)
 
     def run(self, plot, **kwargs):
         for rep in range(kwargs['repetitions']):
@@ -500,49 +502,60 @@ class tracked(mobility):
                 coord.append([node.coord[idx], node.coord[idx + 1]])
         return coord
 
-    def get_delta_axes(self, p1, p2, t1, t2):
-        p = p2 - p1
-        t = abs(t2 - t1) + 1
-        speed = p / t
-        if p < 0:
-            return -speed
-        return speed
+    def direction(self, p1, p2):
+        if p1 > p2:
+            return False
+        else:
+            return True
 
-    def get_coord(self, node, x1, y1, z1, x2, y2, z2):
+    def mobTime(self, node):
+        t1 = node.startTime
+        t2 = node.endTime
+        t = t2 - t1
+        return t
+
+    def get_points(self, node, x1, y1, z1, x2, y2, z2, total):
         points = []
-        coord_len = float(len(node.coord) - 1)
-        t2 = node.startTime
-        t1 = node.endTime
-        delta_x = float('%.2f' % (self.get_delta_axes(x1, x2, t1, t2) * coord_len))
-        delta_y = float('%.2f' % (self.get_delta_axes(y1, y2, t1, t2) * coord_len))
-        delta_z = float('%.2f' % (self.get_delta_axes(z1, z2, t1, t2) * coord_len))
-        tx, ty, tz = 0, 0, 0
-        if delta_x != 0:
-            tx = int(int(abs(x2-x1))/delta_x + 1)
-        elif delta_y != 0:
-            ty = int(int(abs(y2-y1))/delta_y + 1)
-        elif delta_z != 0:
-            tz = int(int(abs(z2-z1))/delta_z + 1)
-        t = max(tx, ty, tz)
-        ldelta = [delta_x, delta_y, delta_z]
+        perc_dif = []
+        ldelta = [0, 0, 0]
         faxes = [x1, y1, z1]
         laxes = [x2, y2, z2]
-        for n in range(0, t):
+        dif = [abs(x2-x1), abs(y2-y1), abs(z2-z1)]
+        for n in dif:
+            if n != 0:
+                perc_dif.append((n * 100) / total[dif.index(n)])
+            if n == 0:
+                perc_dif.append(0)
+        dmin = min(x for x in perc_dif if x != 0)
+        t = self.mobTime(node)
+        dt = t * (dmin / 100)
+        for n in perc_dif:
+            if n != 0:
+                ldelta[perc_dif.index(n)] = dif[perc_dif.index(n)] / dt
+            else:
+                ldelta[perc_dif.index(n)] = 0
+
+        dir = (self.direction(x1, x2),
+               self.direction(y1, y2),
+               self.direction(z1, z2))
+
+        for n in range(0, int(dt)):
             for delta in ldelta:
-                if laxes[ldelta.index(delta)] > faxes[ldelta.index(delta)]:
-                    if n < t-1:
-                        faxes[ldelta.index(delta)] = \
-                            float('%.2f' % (faxes[ldelta.index(delta)] + delta))
+                if dir[ldelta.index(delta)]:
+                    if n < int(dt) - 1:
+                        faxes[ldelta.index(delta)] += delta
                     else:
                         faxes[ldelta.index(delta)] = laxes[ldelta.index(delta)]
                 else:
-                    if n < t-1:
-                        faxes[ldelta.index(delta)] = \
-                            float('%.2f' % (faxes[ldelta.index(delta)] - delta))
+                    if n < int(dt) - 1:
+                        faxes[ldelta.index(delta)] -= delta
                     else:
                         faxes[ldelta.index(delta)] = laxes[ldelta.index(delta)]
-            points.append((faxes[0], faxes[1], faxes[2]))
-        node.points = node.points + points
+            points.append((float('%.2f' % faxes[0]),
+                           float('%.2f' % faxes[1]),
+                           float('%.2f' % faxes[2])))
+        node.points += points
+
 
 # coding: utf-8
 #
