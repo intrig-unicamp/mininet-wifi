@@ -11,7 +11,6 @@ telemetry(nodes, **params)
             - other data_types: rssi - gets the rssi value
 """
 
-import matplotlib.patches as patches
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 import os
@@ -288,7 +287,7 @@ class parseData(object):
         cls.axes = axes
         cls.single = single
         cls.data_type = data_type
-        cls.filename = '%s-{}.txt' % data_type
+        cls.filename = '%s-{}-mn-telemetry.txt' % data_type
 
         inNamespaceNodes = []
         for node in nodes:

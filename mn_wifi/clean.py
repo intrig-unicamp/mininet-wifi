@@ -41,13 +41,15 @@ class Cleanup(object):
 
         killprocs('hostapd')
 
-        if glob.glob("*.apconf"):
+        if glob.glob('*-mn-telemetry.txt'):
+            os.system('rm *-mn-telemetry.txt')
+        if glob.glob('*.apconf'):
             os.system('rm *.apconf')
-        if glob.glob("*.staconf"):
+        if glob.glob('*.staconf'):
             os.system('rm *.staconf')
-        if glob.glob("*wifiDirect.conf"):
+        if glob.glob('*wifiDirect.conf'):
             os.system('rm *wifiDirect.conf')
-        if glob.glob("*.nodeParams"):
+        if glob.glob('*.nodeParams'):
             os.system('rm *.nodeParams')
 
         try:
