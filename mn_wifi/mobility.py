@@ -265,7 +265,7 @@ class model(mobility):
     def start_thread(self, **kwargs):
         debug('Starting mobility thread...\n')
         mobility.thread_ = thread(name='mobModel', target=self.models,
-                              kwargs=dict(kwargs, ))
+                                  kwargs=dict(kwargs, ))
         mobility.thread_.daemon = True
         mobility.thread_._keep_alive = True
         mobility.thread_.start()
