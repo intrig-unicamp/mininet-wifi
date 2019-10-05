@@ -3,6 +3,8 @@
 author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)"""
 
 import os
+import threading
+import socket
 import random
 import re
 import sys
@@ -65,7 +67,8 @@ class Mininet_wifi(Mininet):
                  configure4addr=False, noise_threshold=-91, cca_threshold=-90,
                  rec_rssi=False, disable_tcp_checksum=False, ifb=False,
                  bridge=False, plot=False, plot3d=False, docker=False,
-                 container='mininet-wifi', ssh_user='alpha'):
+                 container='mininet-wifi', ssh_user='alpha',
+                 data_trigger=False):
         """Create Mininet object.
            topo: Topo (topology) object or None
            switch: default Switch class
@@ -124,18 +127,21 @@ class Mininet_wifi(Mininet):
         self.sixLP = []
         self.terms = []  # list of spawned xterm processes
         self.driver = driver
-        self.autoAssociation = autoAssociation # does not include mobility
-        self.allAutoAssociation = allAutoAssociation # includes mobility
+        self.autoAssociation = autoAssociation  # does not include mobility
+        self.allAutoAssociation = allAutoAssociation  # includes mobility
         self.ppm_is_set = False
         self.DRAW = False
         self.isReplaying = False
         self.wmediumd_started = False
         self.mob_check = False
+        self.isVanet = False
+        self.socket = None
+        self.alt_module = None
+        self.data_trigger = data_trigger
         self.docker = docker
         self.container = container
         self.ssh_user = ssh_user
-        self.ifb = ifb #Support to Intermediate Functional Block (IFB) Devices
-        self.isVanet = False
+        self.ifb = ifb   # Support to Intermediate Functional Block (IFB) Devices
         self.bridge = bridge
         self.init_plot = plot
         self.init_plot3d = plot3d
@@ -145,7 +151,6 @@ class Mininet_wifi(Mininet):
         self.fading_coefficient = fading_coefficient
         self.noise_threshold = noise_threshold
         self.mob_param = dict()
-        self.alt_module = None
         self.rec_rssi = rec_rssi
         self.disable_tcp_checksum = disable_tcp_checksum
         self.plot = plot2d
@@ -164,6 +169,9 @@ class Mininet_wifi(Mininet):
         self.wlinks = []
         Mininet_wifi.init()  # Initialize Mininet if necessary
 
+        if self.data_trigger:
+            self.server()
+
         if autoSetPositions and link == wmediumd:
             self.wmediumd_mode = interference
 
@@ -177,6 +185,48 @@ class Mininet_wifi(Mininet):
         self.built = False
         if topo and build:
             self.build()
+
+    def server(self):
+        host = socket.gethostname()  # get local machine name
+        port = 12345  # Make sure it's within the > 1024 $$ <65535 range
+
+        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self.socket.bind((host, port))
+        self.socket.listen(1)
+        thread = threading.Thread(target=self.start_socket)
+        thread.daemon = True
+        thread.start()
+
+    def start_socket(self):
+        c, addr = self.socket.accept()
+        while True:
+            data = c.recv(1024).decode('utf-8').split('.')
+            if data[0] == 'set':
+                node = self.getNodeByName(data[1])
+                if len(data) < 4:
+                    data = 'usage: set.node.method.value'
+                else:
+                    if hasattr(node, data[2]):
+                        method_to_call = getattr(node, data[2])
+                        method_to_call(data[3])
+                        data = 'command accepted!'
+                    else:
+                        data = 'unrecognized method!'
+            elif data[0] == 'get':
+                node = self.getNodeByName(data[1])
+                if len(data) < 3:
+                    data = 'usage: get.node.param'
+                else:
+                    data = node.params[data[2]]
+            else:
+                data = 'unrecognized option %s:' % data[0]
+
+            if not data:
+                break
+
+            c.send(str(data).encode('utf-8'))
+        c.close()
 
     def waitConnected(self, timeout=None, delay=.5):
         """wait for each switch to connect to a controller,
