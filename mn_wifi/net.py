@@ -68,7 +68,7 @@ class Mininet_wifi(Mininet):
                  rec_rssi=False, disable_tcp_checksum=False, ifb=False,
                  bridge=False, plot=False, plot3d=False, docker=False,
                  container='mininet-wifi', ssh_user='alpha',
-                 data_trigger=False):
+                 set_socket_ip=None, set_socket_port=12345):
         """Create Mininet object.
            topo: Topo (topology) object or None
            switch: default Switch class
@@ -137,7 +137,8 @@ class Mininet_wifi(Mininet):
         self.isVanet = False
         self.socket = None
         self.alt_module = None
-        self.data_trigger = data_trigger
+        self.set_socket_ip = set_socket_ip
+        self.set_socket_port = set_socket_port
         self.docker = docker
         self.container = container
         self.ssh_user = ssh_user
@@ -169,7 +170,7 @@ class Mininet_wifi(Mininet):
         self.wlinks = []
         Mininet_wifi.init()  # Initialize Mininet if necessary
 
-        if self.data_trigger:
+        if self.set_socket_ip:
             self.server()
 
         if autoSetPositions and link == wmediumd:
@@ -191,8 +192,8 @@ class Mininet_wifi(Mininet):
         thread.start()
 
     def start_socket(self):
-        host = socket.gethostname()  # get local machine name
-        port = 12345  # Make sure it's within the > 1024 $$ <65535 range
+        host = self.set_socket_ip
+        port = self.set_socket_port
 
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.socket.bind((host, port))
@@ -205,31 +206,33 @@ class Mininet_wifi(Mininet):
                 thread.start()
             except:
                 print("Thread did not start.\n")
-            #conn.close()
 
     def get_socket_data(self, conn, addr):
         while True:
-            data = conn.recv(1024).decode('utf-8').split('.')
-            if data[0] == 'set':
-                node = self.getNodeByName(data[1])
-                if len(data) < 4:
-                    data = 'usage: set.node.method.value'
-                else:
-                    if hasattr(node, data[2]):
-                        method_to_call = getattr(node, data[2])
-                        method_to_call(data[3])
-                        data = 'command accepted!'
+            try:
+                data = conn.recv(1024).decode('utf-8').split('.')
+                if data[0] == 'set':
+                    node = self.getNodeByName(data[1])
+                    if len(data) < 4:
+                        data = 'usage: set.node.method.value'
                     else:
-                        data = 'unrecognized method!'
-            elif data[0] == 'get':
-                node = self.getNodeByName(data[1])
-                if len(data) < 3:
-                    data = 'usage: get.node.param'
+                        if hasattr(node, data[2]):
+                            method_to_call = getattr(node, data[2])
+                            method_to_call(data[3])
+                            data = 'command accepted!'
+                        else:
+                            data = 'unrecognized method!'
+                elif data[0] == 'get':
+                    node = self.getNodeByName(data[1])
+                    if len(data) < 3:
+                        data = 'usage: get.node.param'
+                    else:
+                        data = node.params[data[2]]
                 else:
-                    data = node.params[data[2]]
-            else:
-                data = 'unrecognized option %s:' % data[0]
-            conn.send(str(data).encode('utf-8'))
+                    data = 'unrecognized option %s:' % data[0]
+                conn.send(str(data).encode('utf-8'))
+            except:
+                conn.close()
 
     def waitConnected(self, timeout=None, delay=.5):
         """wait for each switch to connect to a controller,
@@ -1998,8 +2001,8 @@ class Mininet_wifi(Mininet):
         "Close Mininet-WiFi"
         self.plot.closePlot()
         module.stop()  # Stopping WiFi Module
-        if self.data_trigger:
-            os.system('fuser -k 12345/tcp')
+        if self.set_socket_ip:
+            os.system('fuser -k %s/tcp' % self.set_socket_port)
 
 
 class MininetWithControlWNet(Mininet_wifi):
