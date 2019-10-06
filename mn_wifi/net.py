@@ -187,21 +187,29 @@ class Mininet_wifi(Mininet):
             self.build()
 
     def server(self):
+        thread = threading.Thread(target=self.start_socket)
+        thread.start()
+
+    def start_socket(self):
         host = socket.gethostname()  # get local machine name
         port = 12345  # Make sure it's within the > 1024 $$ <65535 range
 
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.socket.bind((host, port))
         self.socket.listen(1)
-        thread = threading.Thread(target=self.start_socket)
-        thread.daemon = True
-        thread.start()
 
-    def start_socket(self):
-        c, addr = self.socket.accept()
         while True:
-            data = c.recv(1024).decode('utf-8').split('.')
+            conn, addr = self.socket.accept()
+            try:
+                thread = threading.Thread(target=self.teste, args=(conn, addr))
+                thread.start()
+            except:
+                print("Thread did not start.\n")
+            #conn.close()
+
+    def teste(self, conn, addr):
+        while True:
+            data = conn.recv(1024).decode('utf-8').split('.')
             if data[0] == 'set':
                 node = self.getNodeByName(data[1])
                 if len(data) < 4:
@@ -221,12 +229,7 @@ class Mininet_wifi(Mininet):
                     data = node.params[data[2]]
             else:
                 data = 'unrecognized option %s:' % data[0]
-
-            if not data:
-                break
-
-            c.send(str(data).encode('utf-8'))
-        c.close()
+            conn.send(str(data).encode('utf-8'))
 
     def waitConnected(self, timeout=None, delay=.5):
         """wait for each switch to connect to a controller,
@@ -1995,6 +1998,8 @@ class Mininet_wifi(Mininet):
         "Close Mininet-WiFi"
         self.plot.closePlot()
         module.stop()  # Stopping WiFi Module
+        if self.data_trigger:
+            os.system('fuser -k 12345/tcp')
 
 
 class MininetWithControlWNet(Mininet_wifi):
