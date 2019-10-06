@@ -71,8 +71,8 @@ class mobility(object):
             cls.calculate_diff_time(node, kwargs['time'])
 
     @classmethod
-    def speed(cls, node, pos_x, pos_y, pos_z, diff_time=30):
-        node.params['speed'] = round(abs((pos_x + pos_y + pos_z) / diff_time), 2)
+    def speed(cls, node, pos_x, pos_y, pos_z, mob_time):
+        node.params['speed'] = round(abs((pos_x + pos_y + pos_z) / mob_time), 2)
 
     @classmethod
     def calculate_diff_time(cls, node, time=0):
@@ -420,26 +420,9 @@ class tracked(mobility):
 
         for node in nodes:
             if hasattr(node, 'coord'):
-                coord = self.create_coordinate(node)
-                total = self.get_total_displacement(node)
-                node.points = []
-                for c in coord:
-                    a0 = c[0].split(',')
-                    a1 = c[1].split(',')
-                    self.get_points(node, float(a0[0]), float(a0[1]), float(a0[2]),
-                                    float(a1[0]), float(a1[1]), float(a1[2]), total)
-        self.run(plot, **kwargs)
+                self.set_coordinates(node)
 
-    def get_total_displacement(self, node):
-        x, y, z = 0, 0, 0
-        for num, coord in enumerate(node.coord):
-            if num > 0:
-                c0 = node.coord[num].split(',')
-                c1 = node.coord[num-1].split(',')
-                x += abs(float(c0[0]) - float(c1[0]))
-                y += abs(float(c0[1]) - float(c1[1]))
-                z += abs(float(c0[2]) - float(c1[2]))
-        return (x, y, z)
+        self.run(plot, **kwargs)
 
     def run(self, plot, **kwargs):
         for rep in range(kwargs['repetitions']):
@@ -489,17 +472,28 @@ class tracked(mobility):
         z = round(node.params['position'][2], 2) + round(node.moveFac[2], 2)
         return [x, y, z]
 
+    def get_total_displacement(self, node):
+        x, y, z = 0, 0, 0
+        for num, coord in enumerate(node.coord):
+            if num > 0:
+                c0 = node.coord[num].split(',')
+                c1 = node.coord[num-1].split(',')
+                x += abs(float(c0[0]) - float(c1[0]))
+                y += abs(float(c0[1]) - float(c1[1]))
+                z += abs(float(c0[2]) - float(c1[2]))
+        return (x, y, z)
+
     def create_coordinate(self, node):
         coord = []
         init_pos = node.params['initPos']
         fin_pos = node.params['finPos']
-        if not hasattr(node, 'coord'):
+        if hasattr(node, 'coord'):
+            for idx in range(len(node.coord) - 1):
+                coord.append([node.coord[idx], node.coord[idx + 1]])
+        else:
             coord1 = '%s,%s,%s' % (init_pos[0], init_pos[1], init_pos[2])
             coord2 = '%s,%s,%s' % (fin_pos[0], fin_pos[1], fin_pos[2])
             coord.append([coord1, coord2])
-        else:
-            for idx in range(len(node.coord) - 1):
-                coord.append([node.coord[idx], node.coord[idx + 1]])
         return coord
 
     def direction(self, p1, p2):
@@ -508,8 +502,10 @@ class tracked(mobility):
         else:
             return True
 
-    def mobTime(self, node):
+    def mob_time(self, node):
         t1 = node.startTime
+        if hasattr(node, 'time'):
+            t1 = node.time
         t2 = node.endTime
         t = t2 - t1
         return t
@@ -518,16 +514,17 @@ class tracked(mobility):
         points = []
         perc_dif = []
         ldelta = [0, 0, 0]
-        faxes = [x1, y1, z1]
-        laxes = [x2, y2, z2]
-        dif = [abs(x2-x1), abs(y2-y1), abs(z2-z1)]
+        faxes = [x1, y1, z1]  # first reference point
+        laxes = [x2, y2, z2]  # last refence point
+        dif = [abs(x2-x1), abs(y2-y1), abs(z2-z1)]   # difference first and last axes
         for n in dif:
             if n != 0:
+                # we get the difference among axes to calculate the speed
                 perc_dif.append((n * 100) / total[dif.index(n)])
             if n == 0:
                 perc_dif.append(0)
         dmin = min(x for x in perc_dif if x != 0)
-        t = self.mobTime(node)
+        t = self.mob_time(node)  # node simulation time
         dt = t * (dmin / 100)
         for n in perc_dif:
             if n != 0:
@@ -535,6 +532,7 @@ class tracked(mobility):
             else:
                 ldelta[perc_dif.index(n)] = 0
 
+        # direction of the node
         dir = (self.direction(x1, x2),
                self.direction(y1, y2),
                self.direction(z1, z2))
@@ -555,6 +553,16 @@ class tracked(mobility):
                            float('%.2f' % faxes[1]),
                            float('%.2f' % faxes[2])))
         node.points += points
+
+    def set_coordinates(self, node):
+        coord = self.create_coordinate(node)
+        total = self.get_total_displacement(node)
+        node.points = []
+        for c in coord:
+            a0 = c[0].split(',')
+            a1 = c[1].split(',')
+            self.get_points(node, float(a0[0]), float(a0[1]), float(a0[2]),
+                            float(a1[0]), float(a1[1]), float(a1[2]), total)
 
 
 # coding: utf-8

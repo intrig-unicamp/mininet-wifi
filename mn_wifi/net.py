@@ -201,13 +201,13 @@ class Mininet_wifi(Mininet):
         while True:
             conn, addr = self.socket.accept()
             try:
-                thread = threading.Thread(target=self.teste, args=(conn, addr))
+                thread = threading.Thread(target=self.get_socket_data, args=(conn, addr))
                 thread.start()
             except:
                 print("Thread did not start.\n")
             #conn.close()
 
-    def teste(self, conn, addr):
+    def get_socket_data(self, conn, addr):
         while True:
             data = conn.recv(1024).decode('utf-8').split('.')
             if data[0] == 'set':
