@@ -3,12 +3,12 @@
 author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)"""
 
 import os
-import threading
 import socket
 import random
 import re
 import sys
 from sys import version_info as py_version_info
+from threading import Thread as thread
 import select
 import signal
 from time import sleep
@@ -188,8 +188,7 @@ class Mininet_wifi(Mininet):
             self.build()
 
     def server(self):
-        thread = threading.Thread(target=self.start_socket)
-        thread.start()
+        thread(target=self.start_socket).start()
 
     def start_socket(self):
         host = self.set_socket_ip
@@ -202,8 +201,7 @@ class Mininet_wifi(Mininet):
         while True:
             conn, addr = self.socket.accept()
             try:
-                thread = threading.Thread(target=self.get_socket_data, args=(conn, addr))
-                thread.start()
+                thread(target=self.get_socket_data, args=(conn, addr)).start()
             except:
                 print("Thread did not start.\n")
 
@@ -231,6 +229,7 @@ class Mininet_wifi(Mininet):
                 else:
                     data = 'unrecognized option %s:' % data[0]
                 conn.send(str(data).encode('utf-8'))
+                break
             except:
                 conn.close()
 
