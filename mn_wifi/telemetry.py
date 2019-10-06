@@ -29,6 +29,7 @@ from mn_wifi.node import AP
 today = date.today()
 style.use('fivethirtyeight')
 start = time.time()
+util_dir = str(os.path.realpath(__file__))[:-21] + 'util/m'
 
 class telemetry(object):
     tx = {}
@@ -105,7 +106,7 @@ class telemetry(object):
                                                   shell=True).split("\n")
             except:
                 node = inNamespaceNodes[j]
-                ifaces_ = subprocess.check_output('util/m %s %s' % (node, cmd.format(phy)),
+                ifaces_ = subprocess.check_output('%s %s %s' % (util_dir, node, cmd.format(phy)),
                                                   shell=True).split("\n")
             ifaces_.pop()
             if nodes[j] not in ifaces:
@@ -132,7 +133,7 @@ class telemetry(object):
                 isAP = True
             else:
                 if not isinstance(node, AP):
-                    phys += subprocess.check_output('util/m %s %s' % (node, cmd),
+                    phys += subprocess.check_output('%s %s %s' % (util_dir, node, cmd),
                                                     shell=True).split("\n")
         phy_list = []
         phys = sorted(phys)
@@ -152,8 +153,8 @@ def get_rssi(node, iface, time, filename):
     if isinstance(node, AP):
         rssi = 0
     else:
-        cmd = "util/m {} iw dev {} link | grep signal | tr -d signal: | awk '{{print $1 $3}}'"
-        rssi = subprocess.check_output('%s' % (cmd.format(node, iface)),
+        cmd = "{} {} iw dev {} link | grep signal | tr -d signal: | awk '{{print $1 $3}}'"
+        rssi = subprocess.check_output('%s' % (cmd.format(util_dir, node, iface)),
                                        shell=True).split("\n")
         if not rssi[0]:
             rssi = 0
@@ -227,7 +228,7 @@ class parseData(object):
                             shell=True).split("\n")
                     else:
                         tx_bytes = subprocess.check_output(
-                            'util/m %s ' % node + ('%s' % cls.dir).format(cls.phys[arr],
+                            '%s %s ' % (util_dir, node) + ('%s' % cls.dir).format(cls.phys[arr],
                                                                           cls.ifaces[node][wlan],
                                                                           cls.data_type),
                             shell=True).split("\n")
