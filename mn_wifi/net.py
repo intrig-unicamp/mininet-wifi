@@ -135,7 +135,6 @@ class Mininet_wifi(Mininet):
         self.wmediumd_started = False
         self.mob_check = False
         self.isVanet = False
-        self.socket = None
         self.alt_module = None
         self.set_socket_ip = set_socket_ip
         self.set_socket_port = set_socket_port
@@ -194,12 +193,12 @@ class Mininet_wifi(Mininet):
         host = self.set_socket_ip
         port = self.set_socket_port
 
-        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.socket.bind((host, port))
-        self.socket.listen(1)
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.bind((host, port))
+        s.listen(1)
 
         while True:
-            conn, addr = self.socket.accept()
+            conn, addr = s.accept()
             try:
                 thread(target=self.get_socket_data, args=(conn, addr)).start()
             except:
