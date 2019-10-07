@@ -27,7 +27,6 @@ from time import sleep
 from distutils.version import StrictVersion
 from sys import version_info as py_version_info
 import numpy as np
-from scipy.spatial.distance import pdist
 from six import string_types
 
 from mininet.log import info, error, debug
@@ -461,8 +460,8 @@ class Node_wifi(Node):
         pos_dst = dst.params['position']
         points = np.array([(pos_src[0], pos_src[1], pos_src[2]),
                            (pos_dst[0], pos_dst[1], pos_dst[2])])
-        dist = pdist(points)
-        return round(dist,2)
+        dist = np.sum((points[0]-points[1])**2, axis=0)
+        return round(dist, 2)
 
     def setAssociation(self, ap, intf=None, **params):
         "Force association to given AP"
@@ -476,7 +475,7 @@ class Node_wifi(Node):
             if self.params['associatedTo'][wlan] != ap:
                 if self.params['associatedTo'][wlan]:
                     Association.disconnect(self, intf)
-                    node.params['rssi'][0] = 0
+                    self.params['rssi'][0] = 0
                 Association.associate_infra(self, ap, **params)
                 wirelessLink(self, ap, wlan, 0, dist)
             else:
@@ -1105,7 +1104,7 @@ class AccessPoint(AP):
                     elif ap.params['encrypt'][wlan] == 'wep':
                         cmd = cmd + ("\nauth_algs=%s" % ap.auth_algs)
                         cmd = cmd + ("\nwep_default_key=%s" % 0)
-                        cmd = cmd + cls.verifyWepKey(ap.wep_key0)
+                        cmd = cmd + self.verifyWepKey(ap.wep_key0)
 
                 if ap.params['mode'][wlan] == 'ac':
                     cmd = cmd + ("\nwmm_enabled=1")
@@ -1148,7 +1147,7 @@ class AccessPoint(AP):
                     if ap.params['encrypt'][i] == 'wep':
                         cmd = cmd + ("\nauth_algs=%s" % ap.auth_algs)
                         cmd = cmd + ("\nwep_default_key=0")
-                        cmd = cmd + cls.verifyWepKey(ap.wep_key0)
+                        cmd = cmd + self.verifyWepKey(ap.wep_key0)
                 ap.params['mac'][i] = ap.params['mac'][wlan][:-1] + str(i)
         cmd = cmd + ("\nctrl_interface=/var/run/hostapd")
         cmd = cmd + ("\nctrl_interface_group=0")

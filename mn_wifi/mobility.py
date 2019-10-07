@@ -391,8 +391,6 @@ class tracked(mobility):
         mobility.set_wifi_params()
 
     def configure(self, **kwargs):
-        from mn_wifi.node import Station
-
         if 'ac_method' in kwargs:
             mobility.ac = kwargs['ac_method']
         mobility.stations = kwargs['stations']

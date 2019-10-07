@@ -9,7 +9,6 @@ from sys import version_info as py_version_info
 from six import string_types
 
 from mininet.log import info, error, debug
-from mininet.link import TCIntf
 from mn_wifi.devices import GetRate
 from mn_wifi.manetRoutingProtocols import manetProtocols
 from mn_wifi.wmediumdConnector import DynamicWmediumdIntfRef, \

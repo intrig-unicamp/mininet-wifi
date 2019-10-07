@@ -137,30 +137,23 @@ function mn_deps {
         $install gcc make socat psmisc xterm openssh-clients iperf \
                  iproute telnet python-setuptools libcgroup-tools \
                  ethtool help2man pyflakes pylint python-pep8 python-pexpect
-	elif [ "$DIST" = "SUSE LINUX"  ]; then
-		$install gcc make socat psmisc xterm openssh iperf \
+    elif [ "$DIST" = "SUSE LINUX"  ]; then
+        $install gcc make socat psmisc xterm openssh iperf \
 			     iproute telnet libcgroup-tools \
 			     ethtool help2man python-pyflakes python-pep8 \
 		         ${PYPKG}-setuptools ${PYPKG}-pexpect ${PYPKG}-tk
-	else
+    else
         $install gcc make socat psmisc xterm ssh iperf telnet \
                  cgroup-bin ethtool help2man pyflakes pylint pep8 \
                  ${PYPKG}-setuptools ${PYPKG}-pexpect ${PYPKG}-tk
         $install iproute2 || $install iproute
-	fi
+    fi
 
     echo "Installing Mininet core"
     pushd $MININET_DIR/mininet-wifi
     if [ -d mininet ]; then
       echo "Removing mininet dir..."
       rm -r mininet
-    fi
-
-    # Last check for python2
-    python=${python:-python}
-    if $python --version |& grep 'Python 2' > /dev/null; then
-      $install python-numpy python-matplotlib python-scipy \
-          python-setuptools python-pexpect python-tk
     fi
 
     sudo git clone --depth=1 https://github.com/mininet/mininet.git
@@ -178,13 +171,27 @@ function wifi_deps {
     echo "Installing Mininet-WiFi dependencies"
     $install wireless-tools rfkill ${PYPKG}-numpy pkg-config \
              libnl-3-dev libnl-genl-3-dev libssl-dev make libevent-dev patch \
-             ${PYPKG}-scipy ${PYPKG}-pip libdbus-1-dev
-    sudo pip install matplotlib
+             ${PYPKG}-pip libdbus-1-dev
+
+     Last check for python2
+    python=${python:-python}
+    if $python --version |& grep 'Python 2' > /dev/null; then
+        sudo pip install --upgrade pip
+        sudo pip install matplotlib==2.1.1 --ignore-installed six
+    else
+        sudo pip3 install --upgrade pip3
+        sudo pip3 install matplotlib==2.1.1 --ignore-installed six
+    fi
 
 	  pushd $MININET_DIR/mininet-wifi
     git submodule update --init --recursive
     pushd $MININET_DIR/mininet-wifi/hostap
-    patch -p0 < $MININET_DIR/mininet-wifi/util/hostap-patches/config.patch
+    if [ "$DIST" = "Ubuntu" ] && version_ge $RELEASE 14.04; then
+        git reset --hard 2c129a1
+        patch -p0 < $MININET_DIR/mininet-wifi/util/hostap-patches/config-1404.patch
+    else
+        patch -p0 < $MININET_DIR/mininet-wifi/util/hostap-patches/config.patch
+    fi
     pushd $MININET_DIR/mininet-wifi/hostap/hostapd
     cp defconfig .config
     sudo make && make install
@@ -204,7 +211,6 @@ function wifi_deps {
     pushd $BUILD_DIR/mac80211_hwsim_mgmt
     sudo make install
 }
-
 
 function babeld {
     echo "Installing babeld..."
