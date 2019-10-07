@@ -959,7 +959,7 @@ class AccessPoint(AP):
             if 'link' not in ap.params:
                 if 'phywlan' in ap.params:
                     for wlan in range(wlans):
-                        cls.setConfig(ap, aps, wlan, link)
+                        self.setConfig(ap, aps, wlan, link)
                         if 'vssids' in ap.params:
                             break
                 for wlan in range(wlans):
