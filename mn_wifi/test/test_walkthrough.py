@@ -607,7 +607,7 @@ class testWalkthrough(unittest.TestCase):
         then do an extensive test"""
         p = pexpect.spawn(
             'python examples/sta_ap_mode.py')
-        sleep(8)
+        sleep(10)
         p.sendline('sta1 iw dev sta1-wlan0 link | grep Connected')
         p.expect('02:00:00:00:01:00')
         p.expect(self.prompt)
