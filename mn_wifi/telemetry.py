@@ -82,7 +82,7 @@ class telemetry(object):
                 fig, (self.axes) = plt.subplots(1, (len(nodes)), figsize=(10, 4))
             fig.canvas.set_window_title('Mininet-WiFi Graph')
         self.nodes = nodes
-        parseData.start(nodes, fig, self.axes, single=single, data_type=data_type)
+        parseData(nodes, fig, self.axes, single=single, data_type=data_type)
 
     @classmethod
     def calc(cls, tx_bytes, n):
@@ -166,6 +166,7 @@ def get_values_from_statistics(tx_bytes, time, node, filename):
     tx = telemetry.calc(float(tx_bytes[0]), node)
     os.system("echo '%s,%s' >> %s" % (time, tx, filename.format(node)))
 
+
 class parseData(object):
 
     nodes = []
@@ -185,6 +186,9 @@ class parseData(object):
     thread_ = None
     dir = 'cat /sys/class/ieee80211/{}/device/net/{}/statistics/{}'
 
+    def __init__(self, nodes, fig, axes, single, data_type):
+        self.start(nodes, fig, axes, single, data_type)
+
     @classmethod
     def closeGraph(cls):
         try:
@@ -197,50 +201,49 @@ class parseData(object):
     def fig_exists(cls):
         return plt.fignum_exists(1)
 
-    @classmethod
-    def animate(cls, i):
-        axes = cls.axes
+    def animate(self, i):
+        axes = self.axes
         now = time.time() - start
         nodes_x = {}
         nodes_y = {}
         names = []
-        if not cls.thread_._keep_alive:
+        if not self.thread_._keep_alive:
             exit()
 
-        for node in cls.nodes:
+        for node in self.nodes:
             for wlan in range(0, len(node.params['wlan'])):
-                if cls.data_type == 'position':
+                if self.data_type == 'position':
                     if node.name not in names:
                         names.append(node.name)
                 else:
-                    names.append(cls.ifaces[node][wlan])
+                    names.append(self.ifaces[node][wlan])
                 nodes_x[node] = []
                 nodes_y[node] = []
-                arr = cls.nodes.index(node)
+                arr = self.nodes.index(node)
 
-                if cls.data_type != 'rssi' and cls.data_type != 'position':
+                if self.data_type != 'rssi' and self.data_type != 'position':
                     if isinstance(node, AP):
                         tx_bytes = subprocess.check_output(
-                            ("%s" % cls.dir).format(cls.phys[arr],
-                                                    cls.ifaces[node][wlan],
-                                                    cls.data_type),
+                            ("%s" % self.dir).format(self.phys[arr],
+                                                    self.ifaces[node][wlan],
+                                                    self.data_type),
                             shell=True).split("\n")
                     else:
                         tx_bytes = subprocess.check_output(
                             '%s %s ' % (util_dir, node) +
-                            ('%s' % cls.dir).format(cls.phys[arr],
-                                                    cls.ifaces[node][wlan],
-                                                    cls.data_type),
+                            ('%s' % self.dir).format(self.phys[arr],
+                                                    self.ifaces[node][wlan],
+                                                    self.data_type),
                             shell=True).split("\n")
 
-                if cls.data_type == 'rssi':
-                    get_rssi(node, cls.ifaces[node][wlan], now, cls.filename)
-                elif cls.data_type == 'position':
-                    get_position(node, cls.filename)
+                if self.data_type == 'rssi':
+                    get_rssi(node, self.ifaces[node][wlan], now, self.filename)
+                elif self.data_type == 'position':
+                    get_position(node, self.filename)
                 else:
-                    get_values_from_statistics(tx_bytes, now, node, cls.filename)
+                    get_values_from_statistics(tx_bytes, now, node, self.filename)
 
-                graph_data = open('%s' % (cls.filename.format(node)), 'r').read()
+                graph_data = open('%s' % (self.filename.format(node)), 'r').read()
                 lines = graph_data.split('\n')
                 for line in lines:
                     if len(line) > 1:
@@ -248,12 +251,12 @@ class parseData(object):
                         nodes_x[node].append(float(x))
                         nodes_y[node].append(float(y))
 
-        if cls.data_type == 'position':
+        if self.data_type == 'position':
             axes.clear()
-            axes.set_xlim([cls.min_x, cls.max_x])
-            axes.set_ylim([cls.min_y, cls.max_y])
+            axes.set_xlim([self.min_x, self.max_x])
+            axes.set_ylim([self.min_y, self.max_y])
             #axes.set_title('Mininet-WiFi Graph')
-            for node in cls.nodes:
+            for node in self.nodes:
                 x = node.params['position'][0]
                 y = node.params['position'][1]
                 plt.scatter(x, y, color='black')
@@ -262,45 +265,44 @@ class parseData(object):
                                     color=node.circle, alpha=0.1)
                 axes.add_artist(circle)
         else:
-            cls.fig.legend(  # lines,  # The line objects
+            self.fig.legend(  # lines,  # The line objects
                 labels=names,  # The labels for each line
                 loc="center right",  # Position of legend
                 borderaxespad=0.1,  # Small spacing around legend box
                 title="Nodes"  # Title for the legend
             )
-            if cls.single:
+            if self.single:
                 axes.clear()
-                for node in cls.nodes:
-                    id = cls.nodes.index(node)
-                    axes.set_title(cls.data_type)
-                    axes.plot(nodes_x[node], nodes_y[node], color=cls.colors[id])
+                for node in self.nodes:
+                    id = self.nodes.index(node)
+                    axes.set_title(self.data_type)
+                    axes.plot(nodes_x[node], nodes_y[node], color=self.colors[id])
             else:
                 for ax in axes:
                     id = list(axes).index(ax)
                     ax.clear()
-                    node = cls.nodes[id]
-                    ax.plot(nodes_x[node], nodes_y[node], color=cls.colors[id])
+                    node = self.nodes[id]
+                    ax.plot(nodes_x[node], nodes_y[node], color=self.colors[id])
 
-    @classmethod
-    def start(cls, nodes, fig, axes, single, data_type):
-        cls.nodes = nodes
-        cls.fig = fig
-        cls.axes = axes
-        cls.single = single
-        cls.data_type = data_type
-        cls.filename = '%s-{}-mn-telemetry.txt' % data_type
+    def start(self, nodes, fig, axes, single, data_type):
+        self.nodes = nodes
+        self.fig = fig
+        self.axes = axes
+        self.single = single
+        self.data_type = data_type
+        self.filename = '%s-{}-mn-telemetry.txt' % data_type
 
         inNamespaceNodes = []
         for node in nodes:
-            cls.colors.append(numpy.random.rand(3,))
+            self.colors.append(numpy.random.rand(3,))
             node.circle = 'b'
             if not isinstance(node, AP):
                 inNamespaceNodes.append(node)
                 node.circle = 'g'
 
-        cls.phys, cls.ifaces = telemetry.get_phys(nodes, inNamespaceNodes)
+        self.phys, self.ifaces = telemetry.get_phys(nodes, inNamespaceNodes)
         for node in nodes:
-            if path.exists('%s' % (cls.filename.format(node))):
-                os.system('rm %s' % (cls.filename.format(node)))
-        cls.ani = animation.FuncAnimation(fig, cls.animate, interval=1000)
+            if path.exists('%s' % (self.filename.format(node))):
+                os.system('rm %s' % (self.filename.format(node)))
+        self.ani = animation.FuncAnimation(fig, self.animate, interval=1000)
         plt.show()
