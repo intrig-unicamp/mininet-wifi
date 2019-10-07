@@ -470,7 +470,7 @@ class testWalkthrough(unittest.TestCase):
         "Start Mininet-WiFi, then test wmediumd_error_prob.py"
         p = pexpect.spawn(
             'python examples/wmediumd_error_prob.py')
-        sleep(5)
+        sleep(10)
         p.sendline('sta1 ping -c1 sta2')
         p.expect('1 packets transmitted, 1 received')
         p.expect(self.prompt)
@@ -555,7 +555,7 @@ class testWalkthrough(unittest.TestCase):
         "Start Mininet-WiFi, then test bgscan"
         p = pexpect.spawn(
             'python examples/handover_bgscan.py')
-        sleep(5)
+        sleep(10)
         p.sendline('sta1 iw dev sta1-wlan0 link | grep Connected')
         p.expect('00:00:00:00:00:01')
         p.expect(self.prompt)
@@ -595,7 +595,7 @@ class testWalkthrough(unittest.TestCase):
         "Start Mininet-WiFi using wmediumd with interference, then test ping"
         p = pexpect.spawn(
             'python examples/wmediumd_interference.py')
-        sleep(5)
+        sleep(10)
         p.sendline('sta1 ping -c1 sta2')
         p.expect('1 packets transmitted, 1 received')
         p.expect(self.prompt)

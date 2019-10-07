@@ -11,13 +11,13 @@ telemetry(nodes, **params)
             - other data_types: rssi - gets the rssi value
 """
 
-import matplotlib.pyplot as plt
-import matplotlib.animation as animation
 import os
 import os.path
 import time
 import subprocess
 import numpy
+import matplotlib.pyplot as plt
+import matplotlib.animation as animation
 
 from matplotlib import style
 from os import path
@@ -128,7 +128,7 @@ class telemetry(object):
         for node in nodes:
             if isinstance(node, AP) and not isAP:
                 phys += subprocess.check_output(cmd,
-                                               shell=True).split("\n")
+                                                shell=True).split("\n")
                 isAP = True
             else:
                 if not isinstance(node, AP):
@@ -227,9 +227,10 @@ class parseData(object):
                             shell=True).split("\n")
                     else:
                         tx_bytes = subprocess.check_output(
-                            '%s %s ' % (util_dir, node) + ('%s' % cls.dir).format(cls.phys[arr],
-                                                                          cls.ifaces[node][wlan],
-                                                                          cls.data_type),
+                            '%s %s ' % (util_dir, node) +
+                            ('%s' % cls.dir).format(cls.phys[arr],
+                                                    cls.ifaces[node][wlan],
+                                                    cls.data_type),
                             shell=True).split("\n")
 
                 if cls.data_type == 'rssi':

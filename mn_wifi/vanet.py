@@ -59,7 +59,8 @@ class vanet(object):
         mobility.mobileNodes = cars
         [self.roads.append(x) for x in range(params['nroads'])]
         [self.points.append(x) for x in range(params['nroads'])]
-        plot2d.instantiateGraph(params['min_x'], params['min_y'], params['max_x'], params['max_y'])
+        plot2d.instantiateGraph(params['min_x'], params['min_y'],
+                                params['max_x'], params['max_y'])
 
         self.display_grid(params['aps'], params['conn'], params['nroads'])
         self.display_cars(cars)
@@ -162,10 +163,10 @@ class vanet(object):
         if 'src' in conn:
             for c in range(len(conn['src'])):
                 line = plot2d.line2d([conn['src'][c].params['position'][0],
-                                          conn['dst'][c].params['position'][0]], \
-                                       [conn['src'][c].params['position'][1],
-                                        conn['dst'][c].params['position'][1]],
-                                         'b', ls='dashed')
+                                      conn['dst'][c].params['position'][0]],
+                                     [conn['src'][c].params['position'][1],
+                                      conn['dst'][c].params['position'][1]],
+                                     'b', ls='dashed')
                 plot2d.line(line)
 
     def display_cars(self, cars):
@@ -380,8 +381,8 @@ class vanet(object):
                             else:
                                 color = 'r'
                             line = plot2d.line2d([pos_x, node.prop[0]],
-                                                     [pos_y, node.prop[1]],
-                                                     color=color)
+                                                 [pos_y, node.prop[1]],
+                                                 color=color)
                             com_lines.append(line)
                             plot2d.line(line)
 

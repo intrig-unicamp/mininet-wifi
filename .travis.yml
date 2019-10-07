@@ -21,7 +21,7 @@ install:
 - sudo util/install.sh -Wlnfvw6
 
 script:
-- sudo --wifi --test pingall
+- sudo mn --wifi --test pingall
 - sudo python mn_wifi/test/runner.py -v -quick
 
 notifications:

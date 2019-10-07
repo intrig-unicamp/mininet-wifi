@@ -829,10 +829,10 @@ class start_wmediumd(object):
                  propagation_model, maclist):
 
         w_starter.start(intfrefs, links, pos=positions,
-                              fading_coefficient=fading_coefficient,
-                              noise_threshold=noise_threshold,
-                              txpowers=txpowers, isnodeaps=isnodeaps,
-                              ppm=propagation_model, maclist=maclist)
+                        fading_coefficient=fading_coefficient,
+                        noise_threshold=noise_threshold,
+                        txpowers=txpowers, isnodeaps=isnodeaps,
+                        ppm=propagation_model, maclist=maclist)
 
 
 class set_interference(object):

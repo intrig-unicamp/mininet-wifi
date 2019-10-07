@@ -29,7 +29,6 @@ class GetRate (object):
 
     def customDataRate_mobility(self, **kwargs):
         """Custom Maximum Data Rate - Useful when there is mobility
-        
         mode: interface mode
         rate: maximum supported bandwidth (mbps)"""
         node = kwargs['node']
@@ -53,7 +52,6 @@ class GetRate (object):
 
     def customDataRate_no_mobility(self, **kwargs):
         """Custom Maximum Data Rate - Useful when there is no mobility
-                
         mode: interface mode
         rate: maximum supported bandwidth (mbps)"""
         node = kwargs['node']
@@ -79,7 +77,6 @@ class GetRate (object):
         """D-Link AirPlus G DI-524
            from http://www.dlink.com/-/media/Consumer_Products/
            DI/DI%20524/Manual/DI_524_Manual_EN_UK.pdf
-           
         rssi: rssi value (dBm)
         rate: maximum supported bandwidth (mbps)"""
         node = kwargs['sta']
@@ -110,7 +107,6 @@ class GetRate (object):
         """TL-WR740N
            from http://www.tp-link.com.br/products/details/
            cat-9_TL-WR740N.html#specificationsf
-        
         mode: interface mode
         rssi: rssi value (dBm)
         rate: maximum supported bandwidth (mbps)"""
@@ -150,7 +146,6 @@ class GetRate (object):
         """CISCO WRT120N
            from http://downloads.linksys.com/downloads/datasheet/
            WRT120N_V10_DS_B-WEB.pdf
-        
         mode: interface mode
         rssi: rssi value (dBm)
         rate: maximum supported bandwidth (mbps)"""
@@ -210,7 +205,6 @@ class GetRange (object):
 
     def customSignalRange(self, **kwargs):
         """Custom Signal Range
-        
         mode: interface mode
         range: signal range (m)"""
         node = kwargs['node']
@@ -238,8 +232,7 @@ class GetRange (object):
             from http://www.dlink.com/-/media/Consumer_Products/DI/
             DI%20524/Manual/DI_524_Manual_EN_UK.pdf
             indoor = 100
-            outdoor = 200 
-        
+            outdoor = 200
         range: signal range (m)"""
 
         self.value = 100
@@ -248,7 +241,6 @@ class GetRange (object):
     def TLWR740N(self, **kwargs):
         """TL-WR740N
             NO REFERENCE!
-        
         range: signal range (m)"""
 
         self.value = 50
@@ -257,7 +249,6 @@ class GetRange (object):
     def WRT120N(self, **kwargs):
         """CISCO WRT120N
             NO REFERENCE!
-        
         range: signal range (m)"""
 
         self.value = 50
@@ -283,7 +274,6 @@ class GetTxPower (object):
         """D-Link AirPlus G DI-524
             from http://www.dlink.com/-/media/Consumer_Products/DI/
             DI%20524/Manual/DI_524_Manual_EN_UK.pdf
-        
         txPower = transmission power (dBm)"""
         self.value = 14
         return self.value
@@ -291,7 +281,6 @@ class GetTxPower (object):
     def TLWR740N(self, **kwargs):
         """TL-WR740N
             No REFERENCE!
-        
         txPower = transmission power (dBm)"""
         self.value = 20
         return self.value
