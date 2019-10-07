@@ -173,7 +173,7 @@ function wifi_deps {
              libnl-3-dev libnl-genl-3-dev libssl-dev make libevent-dev patch \
              ${PYPKG}-pip libdbus-1-dev
 
-     Last check for python2
+    # Last check for python2
     python=${python:-python}
     if $python --version |& grep 'Python 2' > /dev/null; then
         sudo pip install --upgrade pip
