@@ -21,10 +21,7 @@ install:
 - sudo util/install.sh -Wlnfvw6
 
 script:
-- alias sudo="sudo env PATH=$PATH"
-- export PYTHON=`which python`
-- echo 'px import sys; print(sys.version_info)' | sudo $PYTHON bin/mn --wifi -v output
-- sudo $PYTHON bin/mn --wifi --test pingall
+- sudo --wifi --test pingall
 - sudo python mn_wifi/test/runner.py -v -quick
 
 notifications:
