@@ -394,7 +394,7 @@ class testWalkthrough(unittest.TestCase):
         "Start Mininet-WiFi using Replaying Mobility, then test ping"
         p = pexpect.spawn(
             'python examples/replaying/replayingMobility.py')
-        sleep(15)
+        sleep(20)
         p.sendline('sta1 ping -c1 sta2')
         p.expect('1 packets transmitted, 1 received')
         p.expect(self.prompt)
