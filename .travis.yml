@@ -14,7 +14,6 @@ before_install:
 - sudo apt-get update -qq
 - sudo apt-get install -qq vlan
 - pip install matplotlib || pip3 install matplotlib
-- PYTHON=`which python` sudo util/install.sh -Wln
 
 install:
 - bash -c "if [ `lsb_release -rs` == '14.04' ]; then make codecheck; fi"
