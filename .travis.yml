@@ -16,7 +16,6 @@ before_install:
 - pip install matplotlib || pip3 install matplotlib
 
 install:
-- bash -c "if [ `lsb_release -rs` == '14.04' ]; then make codecheck; fi"
 - pip install pexpect || pip3 install pexpect
 - sudo util/install.sh -Wlnfvw6
 
