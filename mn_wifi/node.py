@@ -316,79 +316,23 @@ class Node_wifi(Node):
         """Gets frequency based on channel number
         :param wlan: wlan ID"""
         channel = int(self.params['channel'][wlan])
-        if channel == 1:
-            freq = 2.412
-        elif channel == 2:
-            freq = 2.417
-        elif channel == 3:
-            freq = 2.422
-        elif channel == 4:
-            freq = 2.427
-        elif channel == 5:
-            freq = 2.432
-        elif channel == 6:
-            freq = 2.437
-        elif channel == 7:
-            freq = 2.442
-        elif channel == 8:
-            freq = 2.447
-        elif channel == 9:
-            freq = 2.452
-        elif channel == 10:
-            freq = 2.457
-        elif channel == 11:
-            freq = 2.462
-        elif channel == 36:
-            freq = 5.18
-        elif channel == 40:
-            freq = 5.2
-        elif channel == 44:
-            freq = 5.22
-        elif channel == 48:
-            freq = 5.24
-        elif channel == 52:
-            freq = 5.26
-        elif channel == 56:
-            freq = 5.28
-        elif channel == 60:
-            freq = 5.30
-        elif channel == 64:
-            freq = 5.32
-        elif channel == 100:
-            freq = 5.50
-        elif channel == 104:
-            freq = 5.52
-        elif channel == 108:
-            freq = 5.54
-        elif channel == 112:
-            freq = 5.56
-        elif channel == 116:
-            freq = 5.58
-        elif channel == 120:
-            freq = 5.6
-        elif channel == 124:
-            freq = 5.62
-        elif channel == 128:
-            freq = 5.64
-        elif channel == 132:
-            freq = 5.66
-        elif channel == 136:
-            freq = 5.68
-        elif channel == 140:
-            freq = 5.7
-        elif channel == 149:
-            freq = 5.745
-        elif channel == 153:
-            freq = 5.765
-        elif channel == 157:
-            freq = 5.785
-        elif channel == 161:
-            freq = 5.805
-        elif channel == 165:
-            freq = 5.825
+        chan_list_2ghz = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
+        chan_list_5ghz = [36, 40, 44, 48, 52, 56, 60, 64, 100,
+                          104, 108, 112, 116, 120, 124, 128, 132,
+                          136, 140, 149, 153, 157, 161, 165]
+        freq_list_2ghz = [2.412, 2.417, 2.422, 2.427, 2.432, 2.437,
+                          2.442, 2.447, 2.452, 2.457, 2.462]
+        freq_list_5ghz = [5.18, 5.2, 5.22, 5.24, 5.26, 5.30, 5.32,
+                          5.50, 5.52, 5.54, 5.56, 5.58, 5.6, 5.62,
+                          5.64, 5.66, 5.68, 5.7, 5.745, 5.765, 5.785,
+                          5.805, 5.825]
+        all_chan = chan_list_2ghz + chan_list_5ghz
+        all_freq = freq_list_2ghz + freq_list_5ghz
+        if channel in all_chan:
+            idx = all_chan.index(channel)
+            return all_freq[idx]
         else:
-            freq = 2.412
-        return freq
+            return 2.412
 
     def get_rssi(self, node=None, wlan=0, dist=0):
         value = propagationModel(self, node, dist, wlan)
@@ -514,7 +458,7 @@ class Node_wifi(Node):
         debug('added intf %s (%d) to node %s\n' % (
             intf, port, self.name))
         if (not isinstance(self, Station) and (not isinstance(self, Car))
-            and (not isinstance(self, AP))):
+                and (not isinstance(self, AP))):
             if self.inNamespace:
                 debug('moving', intf, 'into namespace for', self.name, '\n')
                 moveIntfFn(intf.name, self)
@@ -540,8 +484,7 @@ class Node_wifi(Node):
            ip: IP address as a string
            prefixLen: prefix length, e.g. 8 for /8 or 16M addrs
            kwargs: any additional arguments for intf.setIP"""
-        if intf and (isinstance(self, Station) or
-                         isinstance(self, Car)):
+        if intf and (isinstance(self, Station) or isinstance(self, Car)):
             if intf in self.params['wlan']:
                 wlan = int(intf[-1:])
                 self.params['ip'][wlan] = ip
@@ -969,7 +912,6 @@ class AccessPoint(AP):
 
     def setConfig(self, ap, aplist=None, wlan=0, link=None, ssid=None):
         """Configure AP
-
         :param ap: ap node
         :param aplist: list of aps
         :param wlan: wlan id
@@ -1170,7 +1112,7 @@ class AccessPoint(AP):
         if link:
             if (isinstance(link, string_types) and link == 'wmediumd') or \
                     (not isinstance(link, string_types) and
-                             str(link.__name__) == 'wmediumd'):
+                     str(link.__name__) == 'wmediumd'):
                 setTC = False
         if setTC:
             self.setBw(ap, wlan, iface)

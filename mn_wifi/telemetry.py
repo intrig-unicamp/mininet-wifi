@@ -225,15 +225,15 @@ class parseData(object):
                     if isinstance(node, AP):
                         tx_bytes = subprocess.check_output(
                             ("%s" % self.dir).format(self.phys[arr],
-                                                    self.ifaces[node][wlan],
-                                                    self.data_type),
+                                                     self.ifaces[node][wlan],
+                                                     self.data_type),
                             shell=True).split("\n")
                     else:
                         tx_bytes = subprocess.check_output(
                             '%s %s ' % (util_dir, node) +
                             ('%s' % self.dir).format(self.phys[arr],
-                                                    self.ifaces[node][wlan],
-                                                    self.data_type),
+                                                     self.ifaces[node][wlan],
+                                                     self.data_type),
                             shell=True).split("\n")
 
                 if self.data_type == 'rssi':
