@@ -21,12 +21,12 @@ OVSAP: a AP using the Open vSwitch OpenFlow-compatible switch
 
 import os
 import re
+import math
 from re import findall
 import fileinput
 from time import sleep
 from distutils.version import StrictVersion
 from sys import version_info as py_version_info
-import numpy as np
 from six import string_types
 
 from mininet.log import info, error, debug
@@ -458,9 +458,9 @@ class Node_wifi(Node):
 
         pos_src = self.params['position']
         pos_dst = dst.params['position']
-        points = np.array([(pos_src[0], pos_src[1], pos_src[2]),
-                           (pos_dst[0], pos_dst[1], pos_dst[2])])
-        dist = np.sum((points[0]-points[1])**2, axis=0)
+        dist = math.sqrt((pos_src[0] - pos_dst[0]) ** 2 +
+                         (pos_src[1] - pos_dst[1]) ** 2 +
+                         (pos_src[2] - pos_dst[2]) ** 2)
         return round(dist, 2)
 
     def setAssociation(self, ap, intf=None, **params):
