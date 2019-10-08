@@ -80,6 +80,9 @@ def topology():
     # can ping each other
     ap1.cmd('ovs-ofctl add-flow ap1 "priority=10,actions=in_port,normal"')
 
+    cmd = "/usr/bin/wireshark"+ " -k"+ " -i ap1-wlan1"
+    ap1.cmdPrint(cmd + "&")
+
     info("\n*** Try the following at the CLI \n")
     info("sta1 ping sta2 \n")
     info("/tmp/debug*.txt and /tmp/hostapd.txt contain logs \n")
