@@ -979,12 +979,10 @@ class wirelessLink(object):
 
 class ITSLink(IntfWireless):
 
-    def __init__(self, node, port=None, physical=False, **params):
+    def __init__(self, node, physical=False, **params):
         "configure ieee80211p"
-        if port:
-            for port_ in node.params['wlan']:
-                if params['port'] == port_:
-                    wlan = node.params['wlan'].index(port_)
+        if 'intf' in params:
+            wlan = node.params['wlan'].index(params['intf'])
         else:
             wlan = node.ifaceToAssociate
 
@@ -992,18 +990,16 @@ class ITSLink(IntfWireless):
         node.params['freq'][wlan] = node.get_freq(wlan)
         node.setOCBIface(wlan)
 
-        if not port:
+        if 'intf' not in params:
             node.ifaceToAssociate += 1
 
 
 class wifiDirectLink(IntfWireless):
 
-    def __init__(self, node, port=None, physical=False, **params):
+    def __init__(self, node, physical=False, **params):
         "configure wifi-direct"
-        if port:
-            for port_ in node.params['wlan']:
-                if params['port'] == port_:
-                    wlan = node.params['wlan'].index(port_)
+        if 'intf' in params:
+            wlan = node.params['wlan'].index(params['intf'])
         else:
             wlan = node.ifaceToAssociate
 
@@ -1011,7 +1007,7 @@ class wifiDirectLink(IntfWireless):
             nums = re.findall(r'\d+', node.name)
             if nums:
                 id = hex(int(nums[0]))[2:]
-                node.params['position'] = (10, round(id,2), 0)
+                node.params['position'] = (10, round(id, 2), 0)
 
         node.func[wlan] = 'wifiDirect'
 
@@ -1031,7 +1027,7 @@ class wifiDirectLink(IntfWireless):
             cmd = self.get_wpa_cmd(filename, iface)
             node.cmd(cmd)
 
-        if not port:
+        if 'intf' not in params:
             node.ifaceToAssociate += 1
 
     @classmethod
@@ -1076,19 +1072,17 @@ class adhoc(IntfWireless):
 
     node = None
 
-    def __init__(self, node, link=None, **params):
+    def __init__(self, node, **params):
         """Configure AdHoc
         node: name of the node
         self: custom association class/constructor
         params: parameters for station"""
         self.node = node
         if 'intf' in params:
-            for intf_ in node.params['wlan']:
-                if params['intf'] == intf_:
-                    wlan = node.params['wlan'].index(intf_)
-                    if 'mp' in intf_:
-                        self.iwdev_cmd('%s del' % node.params['wlan'][wlan])
-                        node.params['wlan'][wlan] = intf_.replace('mp', 'wlan')
+            wlan = node.params['wlan'].index(params['intf'])
+            if 'mp' in params['intf']:
+                self.iwdev_cmd('%s del' % node.params['wlan'][wlan])
+                node.params['wlan'][wlan] = params['intf'].replace('mp', 'wlan')
         else:
             wlan = node.ifaceToAssociate
         #intf = node.params['wlan'][wlan]
@@ -1174,9 +1168,7 @@ class mesh(IntfWireless):
         self.node = node
 
         if 'intf' in params:
-            for intf_ in node.params['wlan']:
-                if params['intf'] == intf_:
-                    wlan = node.params['wlan'].index(intf_)
+            wlan = node.params['wlan'].index(params['intf'])
         else:
             wlan = node.ifaceToAssociate
 
