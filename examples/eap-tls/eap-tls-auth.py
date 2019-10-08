@@ -9,7 +9,6 @@ import time
 import os
 import os.path
 import os
-import subprocess
 from os import path
 
 
@@ -65,8 +64,6 @@ def topology():
                             'private_key={}/CA/server.key,'
                             'eap_user_file={}/eap_users'.format(cwd,cwd,cwd,cwd),isolate_clients=True)
 
-   
-
     info("*** Configuring wifi nodes\n")
     net.configureWifiNodes()
 
@@ -83,15 +80,10 @@ def topology():
     # can ping each other
     ap1.cmd('ovs-ofctl add-flow ap1 "priority=10,actions=in_port,normal"')
 
-    cmd = "/usr/bin/wireshark"+ " -k"+ " -i ap1-wlan1"
-    ap1.cmdPrint(cmd + "&")
-
     info("\n*** Try the following at the CLI \n")
     info("sta1 ping sta2 \n")
     info("/tmp/debug*.txt and /tmp/hostapd.txt contain logs \n")
     info("cat /var/log/syslog | grep hostapd shows you if the authentication succeeded\n")
-
-
     CLI_wifi(net)
 
     info("*** Stopping network\n")
