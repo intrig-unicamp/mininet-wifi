@@ -1279,8 +1279,8 @@ class Mininet_wifi(Mininet):
                         if dst == str(host2):
                             dst = host2
                             dist = src.get_distance_to(dst)
-                            info("The distance between %s and %s is %.2f "
-                                 "meters\n" % (src, dst, float(dist)))
+                            info("The distance between %s and %s is %s "
+                                 "meters\n" % (src, dst, dist))
         except:
             info("node %s or/and node %s does not exist or there is no " \
                  "position defined" % (dst, src))
@@ -1934,27 +1934,6 @@ class Mininet_wifi(Mininet):
     def start_simulation():
         "Start the simulation"
         mob.pause_simulation = False
-
-    @staticmethod
-    def printDistance(src, dst, nodes):
-        """Prints the distance between two points
-
-        :params src: source node
-        :params dst: destination node
-        :params nodes: list of nodes"""
-        try:
-            for host1 in nodes:
-                if src == str(host1):
-                    src = host1
-                    for host2 in nodes:
-                        if dst == str(host2):
-                            dst = host2
-                            dist = src.get_distance_to(dst)
-                            info("The distance between %s and %s is %.2f "
-                                 "meters\n" % (src, dst, float(dist)))
-        except:
-            info("node %s or/and node %s does not exist or there is no " \
-                 "position defined\n" % (dst, src))
 
     @staticmethod
     def configureMobility(*args, **kwargs):

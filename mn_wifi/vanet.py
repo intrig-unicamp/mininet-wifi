@@ -147,8 +147,8 @@ class vanet(object):
 
         for bs in aps:
             bs.prop = ginp(1)[0]
-            bs_x = '%.2f' % bs.prop[0]
-            bs_y = '%.2f' % bs.prop[1]
+            bs_x = round(bs.prop[0], 2)
+            bs_y = round(bs.prop[1], 2)
             self.scatter = plot2d.scatter(float(bs_x), float(bs_y))
             bs.params['position'] = bs_x, bs_y, 0
             bs.set_pos_wmediumd(bs.params['position'])

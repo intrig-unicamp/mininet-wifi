@@ -402,9 +402,10 @@ class Node_wifi(Node):
 
         pos_src = self.params['position']
         pos_dst = dst.params['position']
-        dist = math.sqrt((pos_src[0] - pos_dst[0]) ** 2 +
-                         (pos_src[1] - pos_dst[1]) ** 2 +
-                         (pos_src[2] - pos_dst[2]) ** 2)
+        x = (float(pos_src[0]) - float(pos_dst[0])) ** 2
+        y = (float(pos_src[1]) - float(pos_dst[1])) ** 2
+        z = (float(pos_src[2]) - float(pos_dst[2])) ** 2
+        dist = math.sqrt(x + y + z)
         return round(dist, 2)
 
     def setAssociation(self, ap, intf=None, **params):
