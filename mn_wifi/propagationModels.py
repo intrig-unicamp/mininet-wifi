@@ -304,7 +304,7 @@ class GetSignalRange(object):
         gains = txpower + (gain * 2)
         mean = 0
         variance = propagationModel.variance
-        gRandom = float('%.2f' % gauss(mean, variance))
+        gRandom = round(gauss(mean, variance), 2)
         propagationModel.gRandom = gRandom
 
         if kwargs['interference']:
@@ -442,7 +442,7 @@ class GetPowerGivenRange(object):
         ref_d = 1
         gain = kwargs['node'].params['antennaGain'][kwargs['wlan']]
         variance = propagationModel.variance
-        gRandom = float('%.2f' % gauss(mean, variance))
+        gRandom = round(gauss(mean, variance), 2)
         propagationModel.gRandom = gRandom
 
         if kwargs['interference']:

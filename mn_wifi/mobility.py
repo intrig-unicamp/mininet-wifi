@@ -31,24 +31,24 @@ class mobility(object):
         """:param node: node
         :param diff_time: difference between initial and final time.
         Useful for calculating the speed"""
+        diff_time += 1
         init_pos = (node.params['initPos'])
         fin_pos = (node.params['finPos'])
-        if hasattr(node, 'points'):
-            pos = (len(node.points)-1)/diff_time
-            if pos <= 0:
-                pos = 1
-        else:
-            diff_time += 1
-            node.params['position'] = init_pos
-            pos_x = float(fin_pos[0]) - float(init_pos[0])
-            pos_y = float(fin_pos[1]) - float(init_pos[1])
-            pos_z = float(fin_pos[2]) - float(init_pos[2])
+        node.params['position'] = init_pos
+        pos_x = float(fin_pos[0]) - float(init_pos[0])
+        pos_y = float(fin_pos[1]) - float(init_pos[1])
+        pos_z = float(fin_pos[2]) - float(init_pos[2])
 
-            cls.speed(node, pos_x, pos_y, pos_z, diff_time)
-            pos = round(pos_x/diff_time, 2),\
-                  round(pos_y/diff_time, 2),\
-                  round(pos_z/diff_time, 2)
+        pos = round(pos_x/diff_time, 2),\
+              round(pos_y/diff_time, 2),\
+              round(pos_z/diff_time, 2)
         return pos
+
+    @classmethod
+    def get_position(cls, pos):
+        return float('%s' % pos[0]),\
+               float('%s' % pos[1]),\
+               float('%s' % pos[2])
 
     @classmethod
     def configure(cls, *args, **kwargs):
@@ -58,23 +58,27 @@ class mobility(object):
 
         if 'position' in kwargs:
             pos = kwargs['position']
-            if stage == 'stop':
-                node.params['finPos'] = [float(pos_) for pos_ in pos.split(',')]
             if stage == 'start':
-                node.params['initPos'] = [float(pos_) for pos_ in pos.split(',')]
+                node.params['initPos'] = (cls.get_position(pos.split(',')))
+            elif stage == 'stop':
+                node.params['finPos'] = (cls.get_position(pos.split(',')))
         else:
-            if stage == 'stop':
-                pos = node.coord[1]
-                node.params['finPos'] = pos.split(',')
             if stage == 'start':
-                pos = node.coord[0]
-                node.params['initPos'] = pos.split(',')
+                pos = node.coord[0].split(',')
+                node.params['initPos'] = (cls.get_position(pos))
+            elif stage == 'stop':
+                pos = node.coord[1].split(',')
+                node.params['finPos'] = (cls.get_position(pos))
 
         if stage == 'start':
             node.startTime = kwargs['time']
         elif stage == 'stop':
             node.speed = 1
             cls.calculate_diff_time(node, kwargs['time'])
+
+    @classmethod
+    def speed(cls, node, pos_x, pos_y, pos_z, mob_time):
+        node.params['speed'] = round(abs((pos_x + pos_y + pos_z) / mob_time), 2)
 
     @classmethod
     def calculate_diff_time(cls, node, time=0):
@@ -99,49 +103,48 @@ class mobility(object):
             thread_.start()
 
     @classmethod
-    def speed(cls, node, pos_x, pos_y, pos_z, diff_time):
-        """Calculates the speed
+    def remove_staconf(cls, sta, wlan):
+        os.system('rm %s_%s.staconf >/dev/null 2>&1' % (sta.name, wlan))
 
-        :param node: node
-        :param pos_x: Position x
-        :param pos_y: Position y
-        :param pos_z: Position z
-        :param diff_time: difference between start and stop time. Useful for
-        calculating the speed"""
-        node.params['speed'] = round(abs(((pos_x + pos_y + pos_z) /
-                                          diff_time)),2)
+    @classmethod
+    def get_pidfile(cls, sta, wlan):
+        pidfile = "mn%d_%s_%s_wpa.pid" \
+                  % (os.getpid(), sta.name, wlan)
+        return pidfile
+
+    @classmethod
+    def kill_wpasupprocess(cls, sta, wlan):
+        os.system('pkill -f \'wpa_supplicant -B -Dnl80211 -P %s -i '
+                  '%s\'' % (cls.get_pidfile(sta, wlan), sta.params['wlan'][wlan]))
+
+    @classmethod
+    def check_if_wpafile_exist(cls, sta, wlan):
+        file = '/var/run/wpa_supplicant/%s >/dev/null 2>&1' % sta.params['wlan'][wlan]
+        if os.path.exists(file):
+            os.system(file)
+
+    @classmethod
+    def remove_assoc_from_params(cls, sta, ap):
+        if sta in ap.params['associatedStations']:
+            ap.params['associatedStations'].remove(sta)
+        if ap in sta.params['apsInRange']:
+            sta.params['apsInRange'].pop(ap, None)
+            ap.params['stationsInRange'].pop(sta, None)
 
     @classmethod
     def ap_out_of_range(cls, sta, ap, wlan, ap_wlan):
-        """When ap is out of range
-
-        :param sta: station
-        :param ap: access point
-        :param wlan: wlan ID"""
+        "When ap is out of range"
         if ap == sta.params['associatedTo'][wlan]:
             if 'encrypt' in ap.params and 'ieee80211r' not in ap.params:
                 if 'wpa' in ap.params['encrypt'][ap_wlan]:
-                    os.system('rm %s_%s.staconf' % (sta.name, wlan))
-                    pidfile = "mn%d_%s_%s_wpa.pid" \
-                              % (os.getpid(), sta.name, wlan)
-                    os.system('pkill -f \'wpa_supplicant -B -Dnl80211 -P %s -i '
-                              '%s\'' % (pidfile, sta.params['wlan'][wlan]))
-                    if os.path.exists(('/var/run/wpa_supplicant/%s'
-                                       % sta.params['wlan'][wlan])):
-                        os.system('rm /var/run/wpa_supplicant/%s'
-                                  % sta.params['wlan'][wlan])
+                    cls.remove_staconf(sta, wlan)
+                    cls.kill_wpasupprocess(sta, wlan)
+                    cls.check_if_wpafile_exist(sta, wlan)
             elif cls.wmediumd_mode and cls.wmediumd_mode != 3:
                 Association.setSNRWmediumd(sta, ap, snr=-10)
-                sta.params['rssi'][wlan] = 0
             if 'ieee80211r' not in ap.params:
-                Association.disconnect(sta, sta.params['wlan'][wlan])
-            sta.params['associatedTo'][wlan] = ''
-            sta.params['channel'][wlan] = 0
-            if sta in ap.params['associatedStations']:
-                ap.params['associatedStations'].remove(sta)
-            if ap in sta.params['apsInRange']:
-                sta.params['apsInRange'].pop(ap, None)
-                ap.params['stationsInRange'].pop(sta, None)
+                Association.disconnect(sta, wlan)
+            cls.remove_assoc_from_params(sta, ap)
         elif not sta.params['associatedTo'][wlan]:
             sta.params['rssi'][wlan] = 0
 
@@ -171,10 +174,11 @@ class mobility(object):
                 else :
                     sta.params['rssi'][wlan] = rssi
                     if cls.wmediumd_mode and cls.wmediumd_mode != 3:
-                        Association.setSNRWmediumd(
-                            sta, ap, snr=sta.params['rssi'][wlan] - (-91))
-                    else:
-                        wirelessLink(sta, ap, dist, wlan=wlan, ap_wlan=0)
+                        if cls.wmediumd_mode:
+                            Association.setSNRWmediumd(
+                                sta, ap, snr=sta.params['rssi'][wlan] - (-91))
+                        else:
+                            wirelessLink(sta, ap, dist, wlan=wlan, ap_wlan=0)
 
     @classmethod
     def check_association(cls, sta, wlan, ap_wlan):
@@ -267,7 +271,7 @@ class model(mobility):
     def start_thread(self, **kwargs):
         debug('Starting mobility thread...\n')
         mobility.thread_ = thread(name='mobModel', target=self.models,
-                              kwargs=dict(kwargs, ))
+                                  kwargs=dict(kwargs, ))
         mobility.thread_.daemon = True
         mobility.thread_._keep_alive = True
         mobility.thread_.start()
@@ -393,8 +397,6 @@ class tracked(mobility):
         mobility.set_wifi_params()
 
     def configure(self, **kwargs):
-        from mn_wifi.node import Station
-
         if 'ac_method' in kwargs:
             mobility.ac = kwargs['ac_method']
         mobility.stations = kwargs['stations']
@@ -421,33 +423,24 @@ class tracked(mobility):
             kwargs['DRAW'] = False
 
         for node in nodes:
-            if isinstance(node, Station) and hasattr(node, 'coord'):
-                self.create_coordinate(node)
-                node.points = []
-                for coord_ in node.coord_:
-                    self.get_line(node, float(coord_[0].split(',')[0]),
-                                 float(coord_[0].split(',')[1]),
-                                 float(coord_[0].split(',')[2]),
-                                 float(coord_[1].split(',')[0]),
-                                 float(coord_[1].split(',')[1]),
-                                 float(coord_[1].split(',')[2]))
+            if hasattr(node, 'coord'):
+                self.set_coordinates(node)
+
         self.run(plot, **kwargs)
 
     def run(self, plot, **kwargs):
-        from time import time
-
         for rep in range(kwargs['repetitions']):
             cont = True
             t1 = time()
             i = 1
             if 'reverse' in kwargs and kwargs['reverse']:
                 for node in mobility.mobileNodes:
-                    if rep%2 == 1 or (rep%2 == 0 and rep > 0):
+                    if rep % 2 == 1 or (rep % 2 == 0 and rep > 0):
                         fin_ = node.params['finPos']
                         node.params['finPos'] = node.params['initPos']
                         node.params['initPos'] = fin_
             for node in mobility.mobileNodes:
-                node.matrix_pos = 0
+                node.matrix_id = 0
                 node.time = node.startTime
                 mobility.calculate_diff_time(node)
             while cont:
@@ -461,16 +454,14 @@ class tracked(mobility):
                         for node in mobility.mobileNodes:
                             if (t2 - t1) >= node.startTime and node.time <= node.endTime:
                                 if hasattr(node, 'coord'):
-                                    mobility.calculate_diff_time(node)
-                                    node.matrix_pos += node.moveFac
-                                    if node.matrix_pos < len(node.points):
-                                        mobility.set_pos(node,
-                                                         node.points[node.matrix_pos])
+                                    node.matrix_id += 1
+                                    if node.matrix_id < len(node.points):
+                                        pos = node.points[node.matrix_id]
                                     else:
-                                        mobility.set_pos(node,
-                                                         node.points[len(node.points) - 1])
+                                        pos = node.points[len(node.points) - 1]
                                 else:
-                                    mobility.set_pos(node, self.move_node(node))
+                                    pos = self.move_node(node)
+                                mobility.set_pos(node, pos)
                                 node.time += 1
                             if kwargs['DRAW']:
                                 plot.update(node)
@@ -485,52 +476,96 @@ class tracked(mobility):
         z = round(node.params['position'][2], 2) + round(node.moveFac[2], 2)
         return [x, y, z]
 
+    def get_total_displacement(self, node):
+        x, y, z = 0, 0, 0
+        for num, coord in enumerate(node.coord):
+            if num > 0:
+                c0 = node.coord[num].split(',')
+                c1 = node.coord[num-1].split(',')
+                x += abs(float(c0[0]) - float(c1[0]))
+                y += abs(float(c0[1]) - float(c1[1]))
+                z += abs(float(c0[2]) - float(c1[2]))
+        return (x, y, z)
+
     def create_coordinate(self, node):
-        node.coord_ = []
+        coord = []
         init_pos = node.params['initPos']
         fin_pos = node.params['finPos']
-        if not hasattr(node, 'coord'):
+        if hasattr(node, 'coord'):
+            for idx in range(len(node.coord) - 1):
+                coord.append([node.coord[idx], node.coord[idx + 1]])
+        else:
             coord1 = '%s,%s,%s' % (init_pos[0], init_pos[1], init_pos[2])
             coord2 = '%s,%s,%s' % (fin_pos[0], fin_pos[1], fin_pos[2])
-            node.coord_.append([coord1, coord2])
-        else:
-            for idx in range(len(node.coord) - 1):
-                node.coord_.append([node.coord[idx], node.coord[idx + 1]])
+            coord.append([coord1, coord2])
+        return coord
 
-    def get_line(self, node, x1, y1, z1, x2, y2, z2):
+    def direction(self, p1, p2):
+        if p1 > p2:
+            return False
+        else:
+            return True
+
+    def mob_time(self, node):
+        t1 = node.startTime
+        if hasattr(node, 'time'):
+            t1 = node.time
+        t2 = node.endTime
+        t = t2 - t1
+        return t
+
+    def get_points(self, node, x1, y1, z1, x2, y2, z2, total):
         points = []
-        issteep = abs(y2 - y1) > abs(x2 - x1)
-        if issteep:
-            x1, y1 = y1, x1
-            x2, y2 = y2, x2
-        rev = False
-        if x1 > x2:
-            x1, x2 = x2, x1
-            y1, y2 = y2, y1
-            rev = True
-        deltax = x2 - x1
-        deltay = abs(y2 - y1)
-        error = int(deltax / 2)
-        y = y1
-        ystep = None
-        if y1 < y2:
-            ystep = 1
-        else:
-            ystep = -1
-
-        for x in range(int(x1), int(x2) + 1):
-            if issteep:
-                points.append((y, x, 0))
+        perc_dif = []
+        ldelta = [0, 0, 0]
+        faxes = [x1, y1, z1]  # first reference point
+        laxes = [x2, y2, z2]  # last refence point
+        dif = [abs(x2-x1), abs(y2-y1), abs(z2-z1)]   # difference first and last axes
+        for n in dif:
+            if n != 0:
+                # we get the difference among axes to calculate the speed
+                perc_dif.append((n * 100) / total[dif.index(n)])
+            if n == 0:
+                perc_dif.append(0)
+        dmin = min(x for x in perc_dif if x != 0)
+        t = self.mob_time(node)  # node simulation time
+        dt = t * (dmin / 100)
+        for n in perc_dif:
+            if n != 0:
+                ldelta[perc_dif.index(n)] = dif[perc_dif.index(n)] / dt
             else:
-                points.append((x, y, 0))
-            error -= deltay
-            if error < 0:
-                y += ystep
-                error += deltax
-        # Reverse the list if the coordinates were reversed
-        if rev:
-            points.reverse()
-        node.points = node.points + points
+                ldelta[perc_dif.index(n)] = 0
+
+        # direction of the node
+        dir = (self.direction(x1, x2),
+               self.direction(y1, y2),
+               self.direction(z1, z2))
+
+        for n in range(0, int(dt)):
+            for delta in ldelta:
+                if dir[ldelta.index(delta)]:
+                    if n < int(dt) - 1:
+                        faxes[ldelta.index(delta)] += delta
+                    else:
+                        faxes[ldelta.index(delta)] = laxes[ldelta.index(delta)]
+                else:
+                    if n < int(dt) - 1:
+                        faxes[ldelta.index(delta)] -= delta
+                    else:
+                        faxes[ldelta.index(delta)] = laxes[ldelta.index(delta)]
+            points.append((mobility.get_position(faxes)))
+        node.points += points
+
+    def set_coordinates(self, node):
+        coord = self.create_coordinate(node)
+        total = self.get_total_displacement(node)
+        node.points = []
+        for c in coord:
+            a0 = c[0].split(',')
+            a1 = c[1].split(',')
+            self.get_points(node, float(a0[0]), float(a0[1]), float(a0[2]),
+                            float(a1[0]), float(a1[1]), float(a1[2]), total)
+
 
 # coding: utf-8
 #

@@ -1,9 +1,7 @@
 """
-
     Mininet-WiFi: A simple networking testbed for Wireless OpenFlow/SDWN!
 
 author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
-
 
 """
 
@@ -25,8 +23,8 @@ class replayingMobility(object):
 
     def __init__(self, Mininet_wifi, nodes=None):
         mobility.thread_ = thread(name='replayingMobility',
-                                       target=self.mobility,
-                                       args=(nodes,Mininet_wifi,))
+                                  target=self.mobility,
+                                  args=(nodes,Mininet_wifi,))
         mobility.thread_.daemon = True
         mobility.thread_._keep_alive = True
         mobility.thread_.start()

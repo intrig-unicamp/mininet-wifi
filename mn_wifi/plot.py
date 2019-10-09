@@ -37,7 +37,6 @@ class plot3d (object):
     def instantiateAnnotate(cls, node):
         "instantiateAnnotate"
         x, y, z = cls.getPos(node)
-
         node.plttxt = cls.ax.text(x, y, z, node.name)
 
     @classmethod
@@ -70,7 +69,7 @@ class plot3d (object):
 
     @classmethod
     def fig_exists(cls):
-        return plt.fignum_exists(1)
+        return plt.fignum_exists(10)
 
     @classmethod
     def pause(cls):
@@ -128,16 +127,15 @@ class plot3d (object):
 
     @classmethod
     def getPos(self, node):
-        x = '%.2f' % float(node.params['position'][0])
-        y = '%.2f' % float(node.params['position'][1])
-        z = '%.2f' % float(node.params['position'][2])
-        return float(x), float(y), float(z)
+        x = round(node.params['position'][0], 2)
+        y = round(node.params['position'][1], 2)
+        z = round(node.params['position'][2], 2)
+        return x, y, z
 
 
 class plot2d (object):
     'Plot 2d Graphs'
     ax = None
-    q_lock = ''
     lines = {}
 
     @classmethod
@@ -149,9 +147,9 @@ class plot2d (object):
 
     @classmethod
     def getxy(cls, node):
-        x = '%.2f' % float(node.params['position'][0])
-        y = '%.2f' % float(node.params['position'][1])
-        return float(x), float(y)
+        x = round(node.params['position'][0], 2)
+        y = round(node.params['position'][1], 2)
+        return x, y
 
     @classmethod
     def text(cls, node, x, y):
@@ -204,6 +202,7 @@ class plot2d (object):
     def instantiateGraph(cls, MIN_X, MIN_Y, MAX_X, MAX_Y):
         "instantiateGraph"
         plt.ion()
+        plt.figure(10)
         plt.title("Mininet-WiFi Graph")
         cls.ax = plt.subplot(111)
         cls.ax.set_xlabel('meters')
@@ -214,7 +213,7 @@ class plot2d (object):
 
     @classmethod
     def fig_exists(cls):
-        return plt.fignum_exists(1)
+        return plt.fignum_exists(10)
 
     @classmethod
     def instantiateNode(cls, node):
@@ -335,13 +334,13 @@ class plot2d (object):
 
     @classmethod
     def addLine(cls, src, dst, ls='-'):
-        src_x = '%.2f' % float(src.params['position'][0])
-        src_y = '%.2f' % float(src.params['position'][1])
-        dst_x = '%.2f' % float(dst.params['position'][0])
-        dst_y = '%.2f' % float(dst.params['position'][1])
-        line = cls.line2d([float(src_x), float(dst_x)],
-                          [float(src_y), float(dst_y)], 'b', ls=ls)
-        conn_ = src.name +'-'+ dst.name
+        src_x = round(src.params['position'][0], 2)
+        src_y = round(src.params['position'][1], 2)
+        dst_x = round(dst.params['position'][0], 2)
+        dst_y = round(dst.params['position'][1], 2)
+        line = cls.line2d([src_x, dst_x],
+                          [src_y, dst_y], 'b', ls=ls)
+        conn_ = src.name + '-' + dst.name
         cls.lines[conn_] = line
         cls.line(line)
 

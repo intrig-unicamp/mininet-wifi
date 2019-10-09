@@ -9,6 +9,7 @@ sumo-gui"""
 
 from mininet.node import Controller
 from mininet.log import setLogLevel, info
+from mn_wifi.telemetry import telemetry
 from mn_wifi.node import UserAP
 from mn_wifi.cli import CLI_wifi
 from mn_wifi.net import Mininet_wifi
@@ -26,34 +27,30 @@ def topology():
     info("*** Creating nodes\n")
     cars = []
     for id in range(0, 10):
-        cars.append(net.addCar('car%s' % (id+1), wlans=2,
-                               bgscan_threshold=-60,
-                               s_inverval=5,
-                               l_interval=10
-                               ))
+        cars.append(net.addCar('car%s' % (id+1), wlans=2, encrypt='wpa2,'))
 
     e1 = net.addAccessPoint('e1', ssid='vanet-ssid', mac='00:00:00:11:00:01',
                             mode='g', channel='1', passwd='123456789a',
-                            encrypt='wpa2', position='3279.02,3736.27,0')
+                            encrypt='wpa2', position='2600,3400,0')
     e2 = net.addAccessPoint('e2', ssid='vanet-ssid', mac='00:00:00:11:00:02',
                             mode='g', channel='6', passwd='123456789a',
-                            encrypt='wpa2', position='2320.82,3565.75,0')
+                            encrypt='wpa2', position='2800,3400,0')
     e3 = net.addAccessPoint('e3', ssid='vanet-ssid', mac='00:00:00:11:00:03',
                             mode='g', channel='11', passwd='123456789a',
-                            encrypt='wpa2', position='2806.42,3395.22,0')
+                            encrypt='wpa2', position='3000,3400,0')
     e4 = net.addAccessPoint('e4', ssid='vanet-ssid', mac='00:00:00:11:00:04',
                             mode='g', channel='1', passwd='123456789a',
-                            encrypt='wpa2', position='3332.62,3253.92,0')
+                            encrypt='wpa2', position='2600,3200,0')
     e5 = net.addAccessPoint('e5', ssid='vanet-ssid', mac='00:00:00:11:00:05',
                             mode='g', channel='6', passwd='123456789a',
-                            encrypt='wpa2', position='2887.62,2935.61,0')
+                            encrypt='wpa2', position='2800,3200,0')
     e6 = net.addAccessPoint('e6', ssid='vanet-ssid', mac='00:00:00:11:00:06',
                             mode='g', channel='11', passwd='123456789a',
-                            encrypt='wpa2', position='2351.68,3083.40,0')
+                            encrypt='wpa2', position='3000,3200,0')
     c1 = net.addController('c1')
 
     info("*** Configuring Propagation Model\n")
-    net.setPropagationModel(model="logDistance", exp=2)
+    net.setPropagationModel(model="logDistance", exp=3.5)
 
     info("*** Configuring wifi nodes\n")
     net.configureWifiNodes()
@@ -85,6 +82,12 @@ def topology():
                   intf='%s-wlan0' % car)
         car.setIP('192.168.1.%s/24' % (int(cars.index(car))+1),
                   intf='%s-mp1' % car)
+
+    # Track the position of the nodes
+    nodes = net.cars + net.aps
+    telemetry(nodes, data_type='position',
+              min_x=2500, min_y=2500,
+              max_x=4000, max_y=4000)
 
     info("*** Running CLI\n")
     CLI_wifi(net)

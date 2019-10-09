@@ -394,7 +394,7 @@ class testWalkthrough(unittest.TestCase):
         "Start Mininet-WiFi using Replaying Mobility, then test ping"
         p = pexpect.spawn(
             'python examples/replaying/replayingMobility.py')
-        sleep(15)
+        sleep(20)
         p.sendline('sta1 ping -c1 sta2')
         p.expect('1 packets transmitted, 1 received')
         p.expect(self.prompt)
@@ -470,7 +470,7 @@ class testWalkthrough(unittest.TestCase):
         "Start Mininet-WiFi, then test wmediumd_error_prob.py"
         p = pexpect.spawn(
             'python examples/wmediumd_error_prob.py')
-        sleep(5)
+        sleep(10)
         p.sendline('sta1 ping -c1 sta2')
         p.expect('1 packets transmitted, 1 received')
         p.expect(self.prompt)
@@ -484,7 +484,7 @@ class testWalkthrough(unittest.TestCase):
         "Start Mininet-WiFi using vanet example"
         p = pexpect.spawn(
             'python examples/vanet.py')
-        sleep(8)
+        sleep(10)
         p.expect(self.prompt)
         p.sendline('exit')
         p.wait()
@@ -493,7 +493,7 @@ class testWalkthrough(unittest.TestCase):
         "Start Mininet-WiFi using wifi direct, then test ping"
         p = pexpect.spawn(
             'python examples/wifiDirect.py')
-        sleep(15)
+        sleep(17)
         p.sendline('pingall')
         p.expect('packets transmitted')
         p.expect(self.prompt)
@@ -507,7 +507,7 @@ class testWalkthrough(unittest.TestCase):
         "Start Mininet-WiFi with wireless mesh, then test ping"
         p = pexpect.spawn(
             'python examples/mesh.py')
-        sleep(8)
+        sleep(10)
         p.sendline('sta1 ping -c1 sta2')
         p.expect('1 packets transmitted')
         p.expect(self.prompt)
@@ -555,7 +555,7 @@ class testWalkthrough(unittest.TestCase):
         "Start Mininet-WiFi, then test bgscan"
         p = pexpect.spawn(
             'python examples/handover_bgscan.py')
-        sleep(5)
+        sleep(10)
         p.sendline('sta1 iw dev sta1-wlan0 link | grep Connected')
         p.expect('00:00:00:00:00:01')
         p.expect(self.prompt)
@@ -584,7 +584,7 @@ class testWalkthrough(unittest.TestCase):
         "Start Mininet-WiFi, then test wifiMeshAP.py"
         p = pexpect.spawn(
             'python examples/meshAP.py')
-        sleep(6)
+        sleep(10)
         p.sendline('sta1 ping -c1 sta2')
         p.expect('1 packets transmitted, 1 received')
         p.expect(self.prompt)
@@ -595,7 +595,7 @@ class testWalkthrough(unittest.TestCase):
         "Start Mininet-WiFi using wmediumd with interference, then test ping"
         p = pexpect.spawn(
             'python examples/wmediumd_interference.py')
-        sleep(5)
+        sleep(10)
         p.sendline('sta1 ping -c1 sta2')
         p.expect('1 packets transmitted, 1 received')
         p.expect(self.prompt)
@@ -607,7 +607,7 @@ class testWalkthrough(unittest.TestCase):
         then do an extensive test"""
         p = pexpect.spawn(
             'python examples/sta_ap_mode.py')
-        sleep(8)
+        sleep(10)
         p.sendline('sta1 iw dev sta1-wlan0 link | grep Connected')
         p.expect('02:00:00:00:01:00')
         p.expect(self.prompt)

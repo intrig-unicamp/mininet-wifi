@@ -3,10 +3,12 @@
 author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)"""
 
 import os
+import socket
 import random
 import re
 import sys
 from sys import version_info as py_version_info
+from threading import Thread as thread
 import select
 import signal
 from time import sleep
@@ -34,6 +36,7 @@ from mn_wifi.link import wirelessLink, wmediumd, Association, \
     _4address, TCWirelessLink, TCLinkWirelessStation, ITSLink, \
     wifiDirectLink, adhoc, mesh, physicalMesh, physicalWifiDirectLink
 from mn_wifi.devices import GetRate, GetRange
+from mn_wifi.telemetry import parseData
 from mn_wifi.mobility import tracked as trackedMob, model as mobModel, mobility as mob
 from mn_wifi.plot import plot2d, plot3d, plotGraph
 from mn_wifi.module import module
@@ -64,7 +67,8 @@ class Mininet_wifi(Mininet):
                  configure4addr=False, noise_threshold=-91, cca_threshold=-90,
                  rec_rssi=False, disable_tcp_checksum=False, ifb=False,
                  bridge=False, plot=False, plot3d=False, docker=False,
-                 container='mininet-wifi', ssh_user='alpha'):
+                 container='mininet-wifi', ssh_user='alpha',
+                 set_socket_ip=None, set_socket_port=12345):
         """Create Mininet object.
            topo: Topo (topology) object or None
            switch: default Switch class
@@ -123,18 +127,21 @@ class Mininet_wifi(Mininet):
         self.sixLP = []
         self.terms = []  # list of spawned xterm processes
         self.driver = driver
-        self.autoAssociation = autoAssociation # does not include mobility
-        self.allAutoAssociation = allAutoAssociation # includes mobility
+        self.autoAssociation = autoAssociation  # does not include mobility
+        self.allAutoAssociation = allAutoAssociation  # includes mobility
         self.ppm_is_set = False
         self.DRAW = False
         self.isReplaying = False
         self.wmediumd_started = False
         self.mob_check = False
+        self.isVanet = False
+        self.alt_module = None
+        self.set_socket_ip = set_socket_ip
+        self.set_socket_port = set_socket_port
         self.docker = docker
         self.container = container
         self.ssh_user = ssh_user
-        self.ifb = ifb #Support to Intermediate Functional Block (IFB) Devices
-        self.isVanet = False
+        self.ifb = ifb   # Support to Intermediate Functional Block (IFB) Devices
         self.bridge = bridge
         self.init_plot = plot
         self.init_plot3d = plot3d
@@ -144,7 +151,6 @@ class Mininet_wifi(Mininet):
         self.fading_coefficient = fading_coefficient
         self.noise_threshold = noise_threshold
         self.mob_param = dict()
-        self.alt_module = None
         self.rec_rssi = rec_rssi
         self.disable_tcp_checksum = disable_tcp_checksum
         self.plot = plot2d
@@ -163,6 +169,9 @@ class Mininet_wifi(Mininet):
         self.wlinks = []
         Mininet_wifi.init()  # Initialize Mininet if necessary
 
+        if self.set_socket_ip:
+            self.server()
+
         if autoSetPositions and link == wmediumd:
             self.wmediumd_mode = interference
 
@@ -176,6 +185,52 @@ class Mininet_wifi(Mininet):
         self.built = False
         if topo and build:
             self.build()
+
+    def server(self):
+        thread(target=self.start_socket).start()
+
+    def start_socket(self):
+        host = self.set_socket_ip
+        port = self.set_socket_port
+
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.bind((host, port))
+        s.listen(1)
+
+        while True:
+            conn, addr = s.accept()
+            try:
+                thread(target=self.get_socket_data, args=(conn, addr)).start()
+            except:
+                print("Thread did not start.\n")
+
+    def get_socket_data(self, conn, addr):
+        while True:
+            try:
+                data = conn.recv(1024).decode('utf-8').split('.')
+                if data[0] == 'set':
+                    node = self.getNodeByName(data[1])
+                    if len(data) < 4:
+                        data = 'usage: set.node.method.value'
+                    else:
+                        if hasattr(node, data[2]):
+                            method_to_call = getattr(node, data[2])
+                            method_to_call(data[3])
+                            data = 'command accepted!'
+                        else:
+                            data = 'unrecognized method!'
+                elif data[0] == 'get':
+                    node = self.getNodeByName(data[1])
+                    if len(data) < 3:
+                        data = 'usage: get.node.param'
+                    else:
+                        data = node.params[data[2]]
+                else:
+                    data = 'unrecognized option %s:' % data[0]
+                conn.send(str(data).encode('utf-8'))
+                break
+            except:
+                conn.close()
 
     def waitConnected(self, timeout=None, delay=.5):
         """wait for each switch to connect to a controller,
@@ -460,11 +515,11 @@ class Mininet_wifi(Mininet):
                 isAP=True
             cls(node=node1, isAP=isAP, **params)
         elif cls == adhoc:
-            cls(node=node1, link=self.link, **params)
+            cls(node=node1, **params)
         elif cls == ITSLink:
-            cls(node=node1, link=self.link, **params)
+            cls(node=node1, **params)
         elif cls == wifiDirectLink or cls == physicalWifiDirectLink:
-            link = cls(node=node1, port=port1, **params)
+            link = cls(node=node1, **params)
             return link
         elif cls == sixLoWPANLink:
             link = cls(node=node1, port=port1, **params)
@@ -1224,8 +1279,8 @@ class Mininet_wifi(Mininet):
                         if dst == str(host2):
                             dst = host2
                             dist = src.get_distance_to(dst)
-                            info("The distance between %s and %s is %.2f "
-                                 "meters\n" % (src, dst, float(dist)))
+                            info("The distance between %s and %s is %s "
+                                 "meters\n" % (src, dst, dist))
         except:
             info("node %s or/and node %s does not exist or there is no " \
                  "position defined" % (dst, src))
@@ -1750,16 +1805,16 @@ class Mininet_wifi(Mininet):
             params['docker'] = self.docker
             params['container'] = self.container
             params['ssh_user'] = self.ssh_user
-        nodes = self.stations + self.aps + self.cars
+        nodes = self.stations + self.cars + self.aps
         module(nodes, self.n_radios, self.alt_module, **params)
         if sixlowpan.n_wpans != 0:
             sixLoWPAN_module(self.sixLP, sixlowpan.n_wpans)
         self.configureWirelessLink()
         self.createVirtualIfaces(self.stations)
-        AccessPoint(self.aps, self.driver, self.link)
-
+        AccessPoint(self.aps, self.driver, self.link, config=True)
         if self.link == wmediumd:
             self.configureWmediumd()
+        AccessPoint(self.aps, self.driver, self.link)
 
         setParam = True
         if self.wmediumd_mode == interference and not self.isVanet:
@@ -1843,10 +1898,16 @@ class Mininet_wifi(Mininet):
                     if 'position' in node.params and 'link' not in node.params:
                         if self.wmediumd_mode != error_prob:
                             pos = node.params['position']
-                            pos[0] = float(pos[0]) + 1
                             if node.func[wlan] == 'adhoc':
                                 sleep(1.5)
+                            # we need this cause wmediumd is fighting with some associations
+                            # e.g. wpa
                             if self.wmediumd_mode == interference:
+                                sleep(0.5)
+                                pos[0] = float(pos[0]) + 1
+                                node.set_pos_wmediumd(pos)
+                                sleep(1)
+                                pos[0] = float(pos[0]) - 1
                                 node.set_pos_wmediumd(pos)
 
             mob.aps = self.aps
@@ -1873,27 +1934,6 @@ class Mininet_wifi(Mininet):
     def start_simulation():
         "Start the simulation"
         mob.pause_simulation = False
-
-    @staticmethod
-    def printDistance(src, dst, nodes):
-        """Prints the distance between two points
-
-        :params src: source node
-        :params dst: destination node
-        :params nodes: list of nodes"""
-        try:
-            for host1 in nodes:
-                if src == str(host1):
-                    src = host1
-                    for host2 in nodes:
-                        if dst == str(host2):
-                            dst = host2
-                            dist = src.get_distance_to(dst)
-                            info("The distance between %s and %s is %.2f "
-                                 "meters\n" % (src, dst, float(dist)))
-        except:
-            info("node %s or/and node %s does not exist or there is no " \
-                 "position defined\n" % (dst, src))
 
     @staticmethod
     def configureMobility(*args, **kwargs):
@@ -1928,6 +1968,8 @@ class Mininet_wifi(Mininet):
     @staticmethod
     def stopGraphParams():
         "Stop the graph"
+        if parseData.thread_:
+            parseData.thread_._keep_alive = False
         if mob.thread_:
             mob.thread_._keep_alive = False
         sleep(0.5)
@@ -1936,6 +1978,8 @@ class Mininet_wifi(Mininet):
         "Close Mininet-WiFi"
         self.plot.closePlot()
         module.stop()  # Stopping WiFi Module
+        if self.set_socket_ip:
+            os.system('fuser -k %s/tcp' % self.set_socket_port)
 
 
 class MininetWithControlWNet(Mininet_wifi):

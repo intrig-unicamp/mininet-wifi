@@ -1,9 +1,5 @@
 language: python
 sudo: required
-dist: trusty
-
-env:
-- KERNEL_VERSION=4.16
 
 matrix:
   include:
@@ -17,15 +13,16 @@ matrix:
 before_install:
 - sudo apt-get update -qq
 - sudo apt-get install -qq vlan
+- pip install matplotlib || pip3 install matplotlib
+- PYTHON=`which python`
 
 install:
+- pip install pexpect || pip3 install pexpect
 - sudo util/install.sh -Wlnfvw6
-- sudo fuser -k 6653/tcp || true
 
 script:
 - sudo mn --wifi --test pingall
 - sudo python mn_wifi/test/runner.py -v -quick
-#- sudo python examples/test/runner.py -v -quick
 
 notifications:
   email:

@@ -21,13 +21,12 @@ OVSAP: a AP using the Open vSwitch OpenFlow-compatible switch
 
 import os
 import re
+import math
 from re import findall
 import fileinput
 from time import sleep
 from distutils.version import StrictVersion
 from sys import version_info as py_version_info
-import numpy as np
-from scipy.spatial.distance import pdist
 from six import string_types
 
 from mininet.log import info, error, debug
@@ -178,6 +177,14 @@ class Node_wifi(Node):
         wpasup_flags = ''
         if 'wpasup_flags' in self.params:
             wpasup_flags = self.params['wpasup_flags']
+        return self.cmd("wpa_supplicant -B -Dnl80211 -P %s "
+                        "-i %s -c %s_%s.staconf %s"
+                        % (pidfile, intf, self.name, wlan, wpasup_flags))
+
+    def wpa_pexec(self, pidfile, intf, wlan):
+        wpasup_flags = ''
+        if 'wpasup_flags' in self.params:
+            wpasup_flags = self.params['wpasup_flags']
         return self.pexec("wpa_supplicant -B -Dnl80211 -P %s "
                           "-i %s -c %s_%s.staconf %s"
                           % (pidfile, intf, self.name, wlan, wpasup_flags))
@@ -254,20 +261,6 @@ class Node_wifi(Node):
             cls.update(self)
             cls.pause()
 
-    def setSpeed(self, speed):
-        from mobility import mobility
-        if speed > self.speed:
-            self.endTime = self.endT/speed
-        elif speed < self.speed:
-            self.endTime = self.endT*speed
-        self.speed = speed
-        speed_ = 0
-        for node in mobility.mobileNodes:
-            if node.speed > speed_:
-                speed_ = node.speed
-        if speed_:
-            mobility.end_time = self.endTime
-
     def setPosition(self, pos):
         "Set Position"
         self.params['position'] = [float(x) for x in pos.split(',')]
@@ -323,79 +316,23 @@ class Node_wifi(Node):
         """Gets frequency based on channel number
         :param wlan: wlan ID"""
         channel = int(self.params['channel'][wlan])
-        if channel == 1:
-            freq = 2.412
-        elif channel == 2:
-            freq = 2.417
-        elif channel == 3:
-            freq = 2.422
-        elif channel == 4:
-            freq = 2.427
-        elif channel == 5:
-            freq = 2.432
-        elif channel == 6:
-            freq = 2.437
-        elif channel == 7:
-            freq = 2.442
-        elif channel == 8:
-            freq = 2.447
-        elif channel == 9:
-            freq = 2.452
-        elif channel == 10:
-            freq = 2.457
-        elif channel == 11:
-            freq = 2.462
-        elif channel == 36:
-            freq = 5.18
-        elif channel == 40:
-            freq = 5.2
-        elif channel == 44:
-            freq = 5.22
-        elif channel == 48:
-            freq = 5.24
-        elif channel == 52:
-            freq = 5.26
-        elif channel == 56:
-            freq = 5.28
-        elif channel == 60:
-            freq = 5.30
-        elif channel == 64:
-            freq = 5.32
-        elif channel == 100:
-            freq = 5.50
-        elif channel == 104:
-            freq = 5.52
-        elif channel == 108:
-            freq = 5.54
-        elif channel == 112:
-            freq = 5.56
-        elif channel == 116:
-            freq = 5.58
-        elif channel == 120:
-            freq = 5.6
-        elif channel == 124:
-            freq = 5.62
-        elif channel == 128:
-            freq = 5.64
-        elif channel == 132:
-            freq = 5.66
-        elif channel == 136:
-            freq = 5.68
-        elif channel == 140:
-            freq = 5.7
-        elif channel == 149:
-            freq = 5.745
-        elif channel == 153:
-            freq = 5.765
-        elif channel == 157:
-            freq = 5.785
-        elif channel == 161:
-            freq = 5.805
-        elif channel == 165:
-            freq = 5.825
+        chan_list_2ghz = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
+        chan_list_5ghz = [36, 40, 44, 48, 52, 56, 60, 64, 100,
+                          104, 108, 112, 116, 120, 124, 128, 132,
+                          136, 140, 149, 153, 157, 161, 165]
+        freq_list_2ghz = [2.412, 2.417, 2.422, 2.427, 2.432, 2.437,
+                          2.442, 2.447, 2.452, 2.457, 2.462]
+        freq_list_5ghz = [5.18, 5.2, 5.22, 5.24, 5.26, 5.30, 5.32,
+                          5.50, 5.52, 5.54, 5.56, 5.58, 5.6, 5.62,
+                          5.64, 5.66, 5.68, 5.7, 5.745, 5.765, 5.785,
+                          5.805, 5.825]
+        all_chan = chan_list_2ghz + chan_list_5ghz
+        all_freq = freq_list_2ghz + freq_list_5ghz
+        if channel in all_chan:
+            idx = all_chan.index(channel)
+            return all_freq[idx]
         else:
-            freq = 2.412
-        return freq
+            return 2.412
 
     def get_rssi(self, node=None, wlan=0, dist=0):
         value = propagationModel(self, node, dist, wlan)
@@ -465,10 +402,11 @@ class Node_wifi(Node):
 
         pos_src = self.params['position']
         pos_dst = dst.params['position']
-        points = np.array([(pos_src[0], pos_src[1], pos_src[2]),
-                           (pos_dst[0], pos_dst[1], pos_dst[2])])
-        dist = pdist(points)
-        return round(dist,2)
+        x = (float(pos_src[0]) - float(pos_dst[0])) ** 2
+        y = (float(pos_src[1]) - float(pos_dst[1])) ** 2
+        z = (float(pos_src[2]) - float(pos_dst[2])) ** 2
+        dist = math.sqrt(x + y + z)
+        return round(dist, 2)
 
     def setAssociation(self, ap, intf=None, **params):
         "Force association to given AP"
@@ -482,7 +420,7 @@ class Node_wifi(Node):
             if self.params['associatedTo'][wlan] != ap:
                 if self.params['associatedTo'][wlan]:
                     Association.disconnect(self, intf)
-                    node.params['rssi'][0] = 0
+                    self.params['rssi'][0] = 0
                 Association.associate_infra(self, ap, **params)
                 wirelessLink(self, ap, wlan, 0, dist)
             else:
@@ -521,7 +459,7 @@ class Node_wifi(Node):
         debug('added intf %s (%d) to node %s\n' % (
             intf, port, self.name))
         if (not isinstance(self, Station) and (not isinstance(self, Car))
-            and (not isinstance(self, AP))):
+                and (not isinstance(self, AP))):
             if self.inNamespace:
                 debug('moving', intf, 'into namespace for', self.name, '\n')
                 moveIntfFn(intf.name, self)
@@ -547,8 +485,7 @@ class Node_wifi(Node):
            ip: IP address as a string
            prefixLen: prefix length, e.g. 8 for /8 or 16M addrs
            kwargs: any additional arguments for intf.setIP"""
-        if intf and (isinstance(self, Station) or
-                         isinstance(self, Car)):
+        if intf and (isinstance(self, Station) or isinstance(self, Car)):
             if intf in self.params['wlan']:
                 wlan = int(intf[-1:])
                 self.params['ip'][wlan] = ip
@@ -929,13 +866,14 @@ class AccessPoint(AP):
 
     write_mac = False
 
-    def __init__(self, aps, driver, link, setMaster=False):
+    def __init__(self, aps, driver, link, setMaster=False, config=False):
         'configure ap'
-        self.configure(aps, driver, link, setMaster)
+        if config:
+            self.check_nm(aps, driver, setMaster)
+        else:
+            self.configure(aps, link)
 
-    def configure(self, aps, driver, link, setMaster):
-        """Configure APs
-        :param aps: list of access points"""
+    def check_nm(self, aps, driver, setMaster):
         for ap in aps:
             if 'vssids' in ap.params:
                 for i in range(1, ap.params['vssids'] + 1):
@@ -957,12 +895,15 @@ class AccessPoint(AP):
                     break
         self.restartNetworkManager()
 
+    def configure(self, aps, link):
+        """Configure APs
+        :param aps: list of access points"""
         for ap in aps:
             wlans = len(ap.params['wlan'])
             if 'link' not in ap.params:
                 if 'phywlan' in ap.params:
                     for wlan in range(wlans):
-                        cls.setConfig(ap, aps, wlan, link)
+                        self.setConfig(ap, aps, wlan, link)
                         if 'vssids' in ap.params:
                             break
                 for wlan in range(wlans):
@@ -972,7 +913,6 @@ class AccessPoint(AP):
 
     def setConfig(self, ap, aplist=None, wlan=0, link=None, ssid=None):
         """Configure AP
-
         :param ap: ap node
         :param aplist: list of aps
         :param wlan: wlan id
@@ -1107,7 +1047,7 @@ class AccessPoint(AP):
                     elif ap.params['encrypt'][wlan] == 'wep':
                         cmd = cmd + ("\nauth_algs=%s" % ap.auth_algs)
                         cmd = cmd + ("\nwep_default_key=%s" % 0)
-                        cmd = cmd + cls.verifyWepKey(ap.wep_key0)
+                        cmd = cmd + self.verifyWepKey(ap.wep_key0)
 
                 if ap.params['mode'][wlan] == 'ac':
                     cmd = cmd + ("\nwmm_enabled=1")
@@ -1150,7 +1090,7 @@ class AccessPoint(AP):
                     if ap.params['encrypt'][i] == 'wep':
                         cmd = cmd + ("\nauth_algs=%s" % ap.auth_algs)
                         cmd = cmd + ("\nwep_default_key=0")
-                        cmd = cmd + cls.verifyWepKey(ap.wep_key0)
+                        cmd = cmd + self.verifyWepKey(ap.wep_key0)
                 ap.params['mac'][i] = ap.params['mac'][wlan][:-1] + str(i)
         cmd = cmd + ("\nctrl_interface=/var/run/hostapd")
         cmd = cmd + ("\nctrl_interface_group=0")
@@ -1173,7 +1113,7 @@ class AccessPoint(AP):
         if link:
             if (isinstance(link, string_types) and link == 'wmediumd') or \
                     (not isinstance(link, string_types) and
-                             str(link.__name__) == 'wmediumd'):
+                     str(link.__name__) == 'wmediumd'):
                 setTC = False
         if setTC:
             self.setBw(ap, wlan, iface)
