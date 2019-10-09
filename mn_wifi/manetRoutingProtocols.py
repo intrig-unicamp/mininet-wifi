@@ -5,12 +5,12 @@ import os
 
 
 class manetProtocols(object):
-    def __init__(self, protocol, node, wlan=0):
-        eval(protocol)(node, wlan)
+    def __init__(self, protocol, node, wlan=0, **params):
+        eval(protocol)(node, wlan, **params)
 
 
 class batman(object):
-    def __init__(self, node, wlan=0):
+    def __init__(self, node, wlan=0, **params):
         self.load_module(node)
         self.add_iface(node, wlan)
         self.set_link_up(node, wlan)
@@ -34,12 +34,18 @@ class batman(object):
 
 
 class olsr(object):
-    def __init__(self, node, wlan=0):
-        node.cmd('olsrd -i %s -d 0' % node.params['wlan'][wlan])
+    def __init__(self, node, wlan=0, **params):
+        cmd = 'olsrd -i %s -d 0 ' % node.params['wlan'][wlan]
+        if 'flags' in params:
+            cmd += params['flags']
+        node.cmd(cmd)
 
 
 class babel(object):
-    def __init__(self, node, wlan=0):
+    def __init__(self, node, wlan=0, **params):
         pid = os.getpid()
-        node.cmd("babeld %s -I mn_%s_%s.staconf &" %
-                 (node.params['wlan'][wlan], node, pid))
+        cmd = "babeld %s -I mn_%s_%s.staconf " % \
+              (node.params['wlan'][wlan], node, pid)
+        if 'flags' in params:
+            cmd += params['flags']
+        node.cmd(cmd + ' &')

@@ -1112,7 +1112,7 @@ class adhoc(IntfWireless):
         self.configureAdhoc(node, wlan, **params)
 
         if 'proto' in params:
-            manetProtocols(params['proto'], node, wlan)
+            manetProtocols(params['proto'], node, wlan, **params)
 
         if 'intf' not in params:
             node.ifaceToAssociate += 1
@@ -1476,10 +1476,10 @@ class Association(IntfWireless):
     @classmethod
     def wpaFile(cls, sta, ap, wlan, ap_wlan):
         """creates wpa config file
-
         :param sta: station
         :param ap: access point
         :param wlan: wlan ID"""
+        cmd = ''
         if 'config' not in ap.params or 'config' not in sta.params:
             if 'authmode' not in ap.params:
                 if 'passwd' not in sta.params:
@@ -1487,7 +1487,10 @@ class Association(IntfWireless):
                 else:
                     passwd = sta.params['passwd'][wlan]
 
-        cmd = 'ctrl_interface=/var/run/wpa_supplicant\n' 
+        if 'wpasup_globals' not in sta.params \
+                or ('wpasup_globals' in sta.params
+                    and 'ctrl_interface' not in sta.params['wpasup_globals']):
+            cmd = 'ctrl_interface=/var/run/wpa_supplicant\n'
         if 'wpasup_globals' in sta.params:
             cmd += sta.params['wpasup_globals'] + '\n'
         cmd = cmd + 'network={\n'

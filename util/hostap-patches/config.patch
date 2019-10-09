@@ -1,5 +1,5 @@
 diff --git hostapd/defconfig hostapd/defconfig
-index 01871c951..04b8ce923 100644
+index 01871c951..d4bf45aa8 100644
 --- hostapd/defconfig
 +++ hostapd/defconfig
 @@ -121,11 +121,11 @@ CONFIG_EAP_TTLS=y
@@ -58,6 +58,15 @@ index 01871c951..04b8ce923 100644
  
  # Remove debugging code that is printing out debug messages to stdout.
  # This can be used to reduce the size of the hostapd considerably if debugging
+@@ -177,7 +178,7 @@ CONFIG_IPV6=y
+ 
+ # Add support for writing debug log to a file: -f /tmp/hostapd.log
+ # Disabled by default.
+-#CONFIG_DEBUG_FILE=y
++CONFIG_DEBUG_FILE=y
+ 
+ # Send debug messages to syslog instead of stdout
+ #CONFIG_DEBUG_SYSLOG=y
 @@ -316,7 +317,7 @@ CONFIG_IPV6=y
  #CONFIG_INTERWORKING=y
  
@@ -90,8 +99,8 @@ index 01871c951..04b8ce923 100644
  # parameter. See that parameter in hostapd.conf for more details.
  #CFLAGS += -DDEFAULT_WPA_DISABLE_EAPOL_KEY_RETRIES=1
 +CONFIG_SAE=y
-diff --git a/wpa_supplicant/defconfig b/wpa_supplicant/defconfig
-index cdfb1974d..9d19326ce 100644
+diff --git wpa_supplicant/defconfig wpa_supplicant/defconfig
+index cdfb1974d..a05b55206 100644
 --- wpa_supplicant/defconfig
 +++ wpa_supplicant/defconfig
 @@ -169,10 +169,10 @@ CONFIG_EAP_TNC=y

@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-"""This code illustrates how to enable IEEE 802.11p
+"""You can use this code to work with IEEE 802.11p.
    *** You have to install wireless-regdb and CRDA.
    *** Please refer to the user manual for further information
    *** Tested with 5805 Mhz"""
