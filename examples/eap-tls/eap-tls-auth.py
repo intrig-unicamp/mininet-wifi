@@ -17,7 +17,7 @@ def topology():
 
     info("*** Creating nodes\n")
     sta1 = net.addStation('sta1',
-                          wpasup_flags='-dd -f /tmp/debug1.txt',
+                          wpasup_flags='-dd > /tmp/debug1.txt',
                           wpasup_globals='eapol_version=2',
                           encrypt='wpa2',
                           config='key_mgmt=WPA-EAP,'
@@ -31,7 +31,7 @@ def topology():
                           .format(cwd, cwd, cwd))
 
     sta2 = net.addStation('sta2',
-                          wpasup_flags='-dd -f /tmp/debug2.txt',
+                          wpasup_flags='-dd > /tmp/debug2.txt',
                           wpasup_globals='eapol_version=2',
                           encrypt='wpa2',
                           config='key_mgmt=WPA-EAP,'
