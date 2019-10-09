@@ -1489,7 +1489,7 @@ class Association(IntfWireless):
 
         if 'wpasup_globals' not in sta.params \
                 or ('wpasup_globals' in sta.params
-                    and 'ctrl_interface' not in sta.params['wpasup_globals']):
+                    and 'ctrl_interface=' not in sta.params['wpasup_globals']):
             cmd = 'ctrl_interface=/var/run/wpa_supplicant\n'
         if 'wpasup_globals' in sta.params:
             cmd += sta.params['wpasup_globals'] + '\n'
