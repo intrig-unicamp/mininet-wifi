@@ -583,7 +583,7 @@ class WmediumdIntfRef:
         return self.get_station_name() + "." + self.get_intf_name()
 
 
-class DynamicWmediumdIntfRef(WmediumdIntfRef):
+class DynamicIntfRef(WmediumdIntfRef):
     'Intf Ref'
     def __init__(self, sta, intf=None):
         """
