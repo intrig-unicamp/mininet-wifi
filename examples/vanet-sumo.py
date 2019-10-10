@@ -9,7 +9,6 @@ sumo-gui"""
 
 from mininet.node import Controller
 from mininet.log import setLogLevel, info
-from mn_wifi.telemetry import telemetry
 from mn_wifi.node import UserAP
 from mn_wifi.cli import CLI_wifi
 from mn_wifi.net import Mininet_wifi
@@ -84,10 +83,10 @@ def topology():
                   intf='%s-mp1' % car)
 
     # Track the position of the nodes
-    nodes = net.cars + net.aps
-    telemetry(nodes, data_type='position',
-              min_x=2500, min_y=2500,
-              max_x=4000, max_y=4000)
+    #nodes = net.cars + net.aps
+    #net.telemetry(nodes, data_type='position',
+    #              min_x=2500, min_y=2500,
+    #              max_x=4000, max_y=4000)
 
     info("*** Running CLI\n")
     CLI_wifi(net)

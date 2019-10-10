@@ -36,7 +36,7 @@ from mn_wifi.link import wirelessLink, wmediumd, Association, \
     _4address, TCWirelessLink, TCLinkWirelessStation, ITSLink, \
     wifiDirectLink, adhoc, mesh, physicalMesh, physicalWifiDirectLink
 from mn_wifi.devices import GetRate, GetRange
-from mn_wifi.telemetry import parseData
+from mn_wifi.telemetry import parseData, telemetry as run_telemetry
 from mn_wifi.mobility import tracked as trackedMob, model as mobModel, mobility as mob
 from mn_wifi.plot import plot2d, plot3d, plotGraph
 from mn_wifi.module import module
@@ -851,6 +851,9 @@ class Mininet_wifi(Mininet):
             for dst in self.hosts:
                 if src != dst:
                     src.setARP(ip=dst.IP(), mac=dst.MAC())
+
+    def telemetry(self, nodes, **kwargs):
+        run_telemetry(nodes, **kwargs)
 
     def start(self):
         "Start controller and switches."

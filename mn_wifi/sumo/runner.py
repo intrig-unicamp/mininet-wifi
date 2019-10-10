@@ -4,6 +4,7 @@ import threading
 
 from threading import Thread as thread
 from mn_wifi.mobility import mobility
+from mininet.log import info
 from sys import version_info as py_version_info
 
 
@@ -25,13 +26,13 @@ class sumo(object):
 
     def configureApp(self, cars, aps, config_file='map.sumocfg',
                      clients=1, port=8813):
-        #try:
-        mobility.cars = cars
-        mobility.aps = aps
-        mobility.mobileNodes = cars
-        self.start(cars, config_file, clients, port)
-        #except:
-        #info("Connection with SUMO closed.\n")
+        try:
+            mobility.cars = cars
+            mobility.aps = aps
+            mobility.mobileNodes = cars
+            self.start(cars, config_file, clients, port)
+        except:
+            info("Connection with SUMO has been closed.\n")
 
     def setWifiParameters(self):
         thread = threading.Thread(name='wifiParameters', target=mobility.parameters)

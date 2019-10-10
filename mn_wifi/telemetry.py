@@ -57,7 +57,7 @@ class telemetry(object):
             data_type = kwargs['data_type']
 
         single = False
-        if 'single' in kwargs:
+        if 'single' in kwargs and kwargs['single']:
             single = True
         if data_type == 'position':
             parseData.min_x, parseData.min_y, parseData.max_x, parseData.max_y = 0, 0, 100, 100
@@ -208,6 +208,7 @@ class parseData(object):
         nodes_y = {}
         names = []
         if not self.thread_._keep_alive:
+            self.ani.event_source.stop()
             exit()
 
         for node in self.nodes:

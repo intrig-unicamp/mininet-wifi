@@ -8,7 +8,6 @@ from mn_wifi.link import wmediumd
 from mn_wifi.cli import CLI_wifi
 from mn_wifi.net import Mininet_wifi
 from mn_wifi.wmediumdConnector import interference
-from mn_wifi.telemetry import telemetry
 
 
 def topology():
@@ -36,7 +35,7 @@ def topology():
 
     # refer to mn_wifi/telemetry for more information
     nodes = net.stations
-    telemetry(nodes, single=True, data_type='rssi')
+    net.telemetry(nodes, single=False, data_type='rssi')
 
     info("*** Starting network\n")
     net.build()
