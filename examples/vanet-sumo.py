@@ -84,7 +84,7 @@ def topology():
 
     # Track the position of the nodes
     #nodes = net.cars + net.aps
-    #net.telemetry(nodes, data_type='position',
+    #net.telemetry(nodes=nodes, data_type='position',
     #              min_x=2500, min_y=2500,
     #              max_x=4000, max_y=4000)
 

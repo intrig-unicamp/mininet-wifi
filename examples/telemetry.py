@@ -35,7 +35,7 @@ def topology():
 
     # refer to mn_wifi/telemetry for more information
     nodes = net.stations
-    net.telemetry(nodes, single=False, data_type='rssi')
+    net.telemetry(nodes=nodes, single=False, data_type='rssi')
 
     info("*** Starting network\n")
     net.build()

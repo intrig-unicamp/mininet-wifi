@@ -31,19 +31,19 @@ style.use('fivethirtyeight')
 start = time.time()
 util_dir = str(os.path.realpath(__file__))[:-21] + 'util/m'
 
+
 class telemetry(object):
     tx = {}
     nodes = []
 
-    def __init__(self, nodes, **kwargs):
-        kwargs['nodes'] = nodes
+    def __init__(self, **kwargs):
         parseData.thread_ = thread(target=self.start, kwargs=(kwargs))
         parseData.thread_.daemon = True
         parseData.thread_._keep_alive = True
         parseData.thread_.start()
 
-    def start(self, **kwargs):
-        nodes = kwargs['nodes']
+    def start(self, nodes=None, data_type='tx_packets', single=False,
+              min_x=0, min_y=0, max_x=100, max_y=100):
         ax = 'axes'
         arr = ''
         for node in nodes:
@@ -52,29 +52,17 @@ class telemetry(object):
         arr1 = (arr[:-2])
         setattr(self, ax, arr1)
 
-        data_type = 'tx_packets'
-        if 'data_type' in kwargs:
-            data_type = kwargs['data_type']
-
-        single = False
-        if 'single' in kwargs and kwargs['single']:
-            single = True
         if data_type == 'position':
-            parseData.min_x, parseData.min_y, parseData.max_x, parseData.max_y = 0, 0, 100, 100
-            if 'min_x' in kwargs:
-                parseData.min_x = kwargs['min_x']
-            if 'min_y' in kwargs:
-                parseData.min_y = kwargs['min_y']
-            if 'max_x' in kwargs:
-                parseData.max_x = kwargs['max_x']
-            if 'max_y' in kwargs:
-                parseData.max_y = kwargs['max_y']
+            parseData.min_x = min_x
+            parseData.min_y = min_y
+            parseData.max_x = max_x
+            parseData.max_y = max_y
             fig, (self.axes) = plt.subplots(1, 1, figsize=(10, 10))
             fig.canvas.set_window_title('Mininet-WiFi Graph')
             self.axes.set_xlabel('meters')
             self.axes.set_xlabel('meters')
-            self.axes.set_xlim([parseData.min_x, parseData.max_x])
-            self.axes.set_ylim([parseData.min_y, parseData.max_y])
+            self.axes.set_xlim([min_x, max_x])
+            self.axes.set_ylim([min_y, max_y])
         else:
             if single:
                 fig, (self.axes) = plt.subplots(1, 1, figsize=(10, 4))
