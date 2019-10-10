@@ -30,7 +30,7 @@ def topology():
     info("*** Configuring wifi nodes\n")
     net.configureWifiNodes()
 
-    net.plotGraph(max_x=200, max_y=200)
+    net.plotGraph(max_x=50, max_y=50)
 
     info("*** Starting WiFi Direct\n")
     net.addLink(sta1, cls=ITSLink)

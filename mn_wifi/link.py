@@ -57,6 +57,9 @@ class IntfWireless(object):
         "Run a command in our owning node"
         return self.node.pexec(*args, **kwargs)
 
+    def set_dev_type(self, type):
+        self.iwdev_cmd('%s set type %s' % (self.name, type))
+
     def iwdev_cmd(self, *args):
         return self.cmd('iw dev', *args)
 
@@ -981,6 +984,8 @@ class ITSLink(IntfWireless):
 
     def __init__(self, node, physical=False, **params):
         "configure ieee80211p"
+        self.node = node
+
         if 'intf' in params:
             wlan = node.params['wlan'].index(params['intf'])
         else:
@@ -988,10 +993,24 @@ class ITSLink(IntfWireless):
 
         node.func[wlan] = 'its'
         node.params['freq'][wlan] = node.get_freq(wlan)
-        node.setOCBIface(wlan)
+        iface = node.params['wlan'][wlan]
+        self.name = iface
+        self.set_ocb_mode()
+        self.configure_ocb(wlan)
 
         if 'intf' not in params:
             node.ifaceToAssociate += 1
+
+    def set_ocb_mode(self):
+        "Set OCB Interface"
+        self.ipLink('down')
+        self.set_dev_type('ocb')
+        self.ipLink('up')
+
+    def configure_ocb(self, wlan):
+        "Configure Wireless OCB"
+        freq = str(self.node.params['freq'][wlan]).replace(".", "")
+        self.iwdev_cmd('%s ocb join %s 20MHz' % (self.name, freq))
 
 
 class wifiDirectLink(IntfWireless):
@@ -1120,7 +1139,7 @@ class adhoc(IntfWireless):
     def configureAdhoc(self, node, wlan, **params):
         "Configure Wireless Ad Hoc"
         node.func[wlan] = 'adhoc'
-        self.iwdev_cmd('%s set type ibss' % self.name)
+        self.set_dev_type('ibss')
         self.ipLink('up')
 
         if 'passwd' in params:
@@ -1197,7 +1216,7 @@ class mesh(IntfWireless):
         wlan = node.params['wlan'].index(self.name)
         intf = node.params['wlan'][wlan]
         if node.func[wlan] == 'adhoc':
-            self.iwdev_cmd('%s set type managed' % self.name)
+            self.set_dev_type('managed')
         self.name = '%s-mp%s' % (node, node.params['wlan'][wlan][-1:])
         if node.func[wlan] == 'mesh' and 'phyap' in params:
             self.name = '%s-mp%s' % (node, wlan+1)

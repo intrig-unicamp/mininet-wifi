@@ -37,7 +37,7 @@ from mininet.node import Node
 from mininet.moduledeps import moduleDeps, pathCheck, TUN
 from mininet.link import Intf, OVSIntf
 from mn_wifi.link import TCWirelessLink, TCLinkWirelessAP,\
-    Association, wirelessLink, adhoc, mesh, physicalMesh
+    Association, wirelessLink, adhoc, mesh, physicalMesh, ITSLink
 from mn_wifi.wmediumdConnector import w_server, w_pos, w_txpower, \
     w_gain, w_height, w_cst, wmediumd_mode
 from mn_wifi.propagationModels import GetSignalRange, \
@@ -157,21 +157,8 @@ class Node_wifi(Node):
         aps = [self]
         AccessPoint(aps, 'nl80211', link=link, setMaster=True)
 
-    def setOCBIface(self, wlan):
-        "Set OCB Interface"
-        iface = self.params['wlan'][wlan]
-        self.cmd('ip link set %s down' % iface)
-        self.cmd('iw dev %s set type ocb' % iface)
-        self.cmd('ip link set %s up' % iface)
-        self.configureOCB(wlan)
-
-    def configureOCB(self, wlan):
-        "Configure Wireless OCB"
-        iface = self.params['wlan'][wlan]
-        freq = self.params['freq'][wlan]
-        freq = str(freq).replace(".", "")
-        self.func[wlan] = 'ocb'
-        self.cmd('iw dev %s ocb join %s 20MHz' % (iface, freq))
+    def setOCBMode(self, **params):
+        ITSLink(self, **params)
 
     def wpa_cmd(self, pidfile, intf, wlan):
         wpasup_flags = ''
