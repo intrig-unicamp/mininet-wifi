@@ -550,22 +550,6 @@ class testWalkthrough(unittest.TestCase):
         p.expect(self.prompt)
         p.sendline('exit')
         p.wait()
-        p = pexpect.spawn(
-            'python examples/adhoc.py babel')
-        sleep(30)
-        p.sendline('sta1 ping -c1 sta3')
-        p.expect('1 packets transmitted, 1 received')
-        p.expect(self.prompt)
-        p.sendline('exit')
-        p.wait()
-        p = pexpect.spawn(
-            'python examples/adhoc.py batman')
-        sleep(30)
-        p.sendline('sta1 ping -c1 sta3')
-        p.expect('1 packets transmitted, 1 received')
-        p.expect(self.prompt)
-        p.sendline('exit')
-        p.wait()
 
     def testWmediumdBgscan(self):
         "Start Mininet-WiFi, then test bgscan"

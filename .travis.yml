@@ -18,7 +18,7 @@ before_install:
 
 install:
 - pip install pexpect || pip3 install pexpect
-- sudo util/install.sh -Wlnfvw6BEO
+- sudo util/install.sh -Wlnfvw6
 
 script:
 - sudo mn --wifi --test pingall
