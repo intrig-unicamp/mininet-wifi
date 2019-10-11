@@ -595,7 +595,7 @@ class testWalkthrough(unittest.TestCase):
         "Start Mininet-WiFi using wmediumd with interference, then test ping"
         p = pexpect.spawn(
             'python examples/wmediumd_interference.py')
-        sleep(10)
+        sleep(12)
         p.sendline('sta1 ping -c1 sta2')
         p.expect('1 packets transmitted, 1 received')
         p.expect(self.prompt)
