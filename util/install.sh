@@ -248,39 +248,25 @@ function olsrd {
 function batman {
     echo "Installing B.A.T.M.A.N..."
 
-    BATMAN_LOC=https://downloads.open-mesh.org/batman/stable/sources/
+    cd $BUILD_DIR/mininet-wifi
+    if [ -d batman-adv ]; then
+          echo "Removing batman-adv..."
+          rm -r batman-adv
+    fi
+    git clone https://github.com/open-mesh-mirror/batman-adv --depth=1
+    cd batman-adv
+    make
+    sudo make install
 
     cd $BUILD_DIR/mininet-wifi
-    if wget $BATMAN_LOC/batman-adv/batman-adv-2019.2.tar.gz 2> /dev/null; then
-        if [ -d batman-adv-2019.2 ]; then
-          echo "Removing batman-adv-2019.2..."
-          rm -r batman-adv-2019.2
-        fi
-        tar xzf batman-adv-2019.2.tar.gz
-        cd batman-adv-2019.2
-        make
-        sudo make install
-    else
-        echo "Failed to find batman-adv at $BATMAN_LOC/batman-adv-2019.2.tar.gz"
-        cd $BUILD_DIR
-        return
+    if [ -d batctl ]; then
+          echo "Removing batctl..."
+          rm -r batctl
     fi
-
-    cd $BUILD_DIR/mininet-wifi
-    if wget $BATMAN_LOC/batctl/batctl-2019.2.tar.gz 2> /dev/null; then
-        if [ -d batctl-2019.2 ]; then
-          echo "Removing batctl-2019.2..."
-          rm -r batctl-2019.2
-        fi
-        tar xzf batctl-2019.2.tar.gz
-        cd batctl-2019.2
-        make
-        sudo make install
-    else
-        echo "Failed to find batctl at $BATMAN_LOC/batctl/batctl-2019.2.tar.gz"
-        cd $BUILD_DIR
-        return
-    fi
+    git clone https://github.com/open-mesh-mirror/batctl --depth=1
+    cd batctl
+    make
+    sudo make install
 }
 
 
