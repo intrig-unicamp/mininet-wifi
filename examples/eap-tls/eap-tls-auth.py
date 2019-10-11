@@ -12,7 +12,7 @@ from os import path
 
 def topology():
     "Create a network."
-    cwd = os.getcwd()
+    cwd = os.path.realpath(os.getcwd())
     net = Mininet_wifi()
 
     info("*** Creating nodes\n")

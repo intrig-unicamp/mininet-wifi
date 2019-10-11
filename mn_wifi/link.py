@@ -1480,19 +1480,31 @@ class Association(IntfWireless):
         :param ap: access point
         :param wlan: wlan ID"""
         cmd = ''
+        passwd = None
         if 'config' not in ap.params or 'config' not in sta.params:
             if 'authmode' not in ap.params:
                 if 'passwd' not in sta.params:
-                    passwd = ap.params['passwd'][ap_wlan]
+                    if 'passwd' in sta.params:
+                       passwd = ap.params['passwd'][ap_wlan]
                 else:
-                    passwd = sta.params['passwd'][wlan]
+                    if 'passwd' in sta.params:
+                        passwd = sta.params['passwd'][wlan]
 
         if 'wpasup_globals' not in sta.params \
                 or ('wpasup_globals' in sta.params
                     and 'ctrl_interface=' not in sta.params['wpasup_globals']):
             cmd = 'ctrl_interface=/var/run/wpa_supplicant\n'
+
         if 'wpasup_globals' in sta.params:
             cmd += sta.params['wpasup_globals'] + '\n'
+            # For dpp, we cannot specify the network. This is configured
+            # by the protocol
+            if "dpp_config_processing" in sta.params['wpasup_globals']  \
+                and 'config' not in sta.params:
+                fileName = '%s_%s.staconf' % (sta.name, wlan)
+                os.system('echo \'%s\' > %s' % (cmd, fileName))
+                return
+
         cmd = cmd + 'network={\n'
 
         if 'config' in sta.params:
@@ -1505,7 +1517,8 @@ class Association(IntfWireless):
         else:
             cmd += '   ssid=\"%s\"\n' % ap.params['ssid'][ap_wlan]
             if 'authmode' not in ap.params:
-                cmd += '   psk=\"%s\"\n' % passwd
+                if passwd != None:
+                   cmd += '   psk=\"%s\"\n' % passwd
                 encrypt = ap.params['encrypt'][ap_wlan]
                 if ap.params['encrypt'][ap_wlan] == 'wpa3':
                     encrypt = 'wpa2'
