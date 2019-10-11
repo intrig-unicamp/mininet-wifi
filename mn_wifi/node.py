@@ -333,8 +333,8 @@ class Node_wifi(Node):
     def set_pos_wmediumd(self, pos):
         "Set Position for wmediumd"
         wlans = len(self.params['mac'])
-        if self.lastpos != self.params['position']:
-            self.lastpos = self.params['position']
+        if self.lastpos != pos:
+            self.lastpos = pos
             for wlan in range(0, wlans):
                 inc = '%s' % float('0.'+str(wlan))
                 w_server.update_pos(w_pos(self.wmIface[wlan],
