@@ -18,9 +18,9 @@ def topology():
 
     info("*** Creating nodes\n")
     sta1 = net.addStation('sta1', ip='10.0.0.1/8',
-                          position='10,10,0', channel='161')
+                          position='10,10,0')
     sta2 = net.addStation('sta2', ip='10.0.0.2/8',
-                          position='20,20,0', channel='161')
+                          position='20,20,0')
 
     info("*** Configuring Propagation Model\n")
     net.setPropagationModel(model="logDistance", exp=3.5)
@@ -33,8 +33,10 @@ def topology():
     net.plotGraph(max_x=50, max_y=50)
 
     info("*** Starting WiFi Direct\n")
-    net.addLink(sta1, cls=ITSLink)
-    net.addLink(sta2, cls=ITSLink)
+    net.addLink(sta1, intf='sta1-wlan0',
+                cls=ITSLink, channel='161')
+    net.addLink(sta2, intf='sta2-wlan0',
+                cls=ITSLink, channel='161')
 
     info("*** Starting network\n")
     net.build()
