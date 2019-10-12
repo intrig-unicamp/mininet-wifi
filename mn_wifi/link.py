@@ -1172,8 +1172,8 @@ class mesh(IntfWireless):
             self.set_dev_type('managed')
         self.name = '%s-mp%s' % (node, node.params['wlan'][wlan][-1:])
         self.iwdev_cmd(self.set_mesh_type(intf))
-        self.setMAC(node.params['mac'][wlan])
         node.cmd('ip link set %s down' % intf)
+        self.setMAC(node.params['mac'][wlan])
         node.params['wlan'][wlan] = self.name
 
         self.setChanParam(channel, wlan)
