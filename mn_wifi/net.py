@@ -35,6 +35,7 @@ from mn_wifi.wmediumdConnector import w_starter, w_server, \
 from mn_wifi.link import wirelessLink, wmediumd, Association, \
     _4address, TCWirelessLink, TCLinkWirelessStation, ITSLink, \
     wifiDirectLink, adhoc, mesh, physicalMesh, physicalWifiDirectLink
+from mn_wifi.clean import Cleanup as cleanup_mnwifi
 from mn_wifi.devices import GetRate, GetRange
 from mn_wifi.telemetry import parseData, telemetry as run_telemetry
 from mn_wifi.mobility import tracked as trackedMob, model as mobModel, mobility as mob
@@ -929,14 +930,7 @@ class Mininet_wifi(Mininet):
             info(node.name + ' ')
             node.terminate()
         info('\n')
-        if self.aps:
-            self.kill_hostapd()
         self.closeMininetWiFi()
-        if self.sixLP:
-            sixLoWPAN_module.stop()
-        if self.link == wmediumd:
-            self.kill_wmediumd()
-
         info('\n*** Done\n')
 
     def run(self, test, *args, **kwargs):
@@ -1585,26 +1579,6 @@ class Mininet_wifi(Mininet):
                     TCLinkWirelessStation(node, intfName1=vif)
                     self.configureMacAddr(node)
 
-    @staticmethod
-    def kill_hostapd():
-        "Kill hostapd"
-        module.kill_hostapd()
-        sleep(0.1)
-
-    @staticmethod
-    def kill_wmediumd():
-        "Kill wmediumd"
-        info("\n*** Killing wmediumd")
-        w_server.disconnect()
-        w_starter.stop()
-        sleep(0.1)
-
-    @staticmethod
-    def kill_mac80211_hwsim():
-        "Kill mac80211_hwsim"
-        module.kill_mac80211_hwsim()
-        sleep(0.1)
-
     def configureWirelessLink(self):
         """Configure Wireless Link
 
@@ -1966,12 +1940,10 @@ class Mininet_wifi(Mininet):
             mob.thread_._keep_alive = False
         sleep(0.5)
 
+    @classmethod
     def closeMininetWiFi(self):
         "Close Mininet-WiFi"
-        self.plot.closePlot()
-        module.stop()  # Stopping WiFi Module
-        if self.set_socket_ip:
-            os.system('fuser -k %s/tcp' % self.set_socket_port)
+        cleanup_mnwifi.kill_mod_proc()
 
 
 class MininetWithControlWNet(Mininet_wifi):

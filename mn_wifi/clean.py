@@ -1,35 +1,55 @@
 """
-
     Mininet-WiFi: A simple networking testbed for Wireless OpenFlow/SDWN!
-
-author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
-
-
+    author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
 """
 
-from subprocess import (check_output as co)
-
+from subprocess import ( Popen, PIPE, check_output as co,
+                         CalledProcessError )
+import time
 import os
 import glob
 
 from mininet.log import info
-from mininet.clean import killprocs, sh
+from mininet.util import decode
 from mn_wifi.sixLoWPAN.clean import Cleanup as sixlowpan
+from mn_wifi.plot import plot2d, plot3d
 
 
 class Cleanup(object):
     "Wrapper for cleanup()"
 
     @classmethod
-    def cleanup_wifi(cls):
-        """Clean up junk which might be left over from old runs;
-           do fast stuff before slow dp and link removal!"""
+    def sh(cls, cmd):
+        "Print a command and send it to the shell"
+        result = Popen(['/bin/sh', '-c', cmd], stdout=PIPE).communicate()[0]
+        return decode(result)
 
-        info("***  Removing WiFi module and Configurations\n")
+    @classmethod
+    def killprocs(cls, pattern):
+        "Reliably terminate processes matching a pattern (including args)"
+        cls.sh('pkill -9 -f %s' % pattern)
+        # Make sure they are gone
+        while True:
+            try:
+                pids = co(['pgrep', '-f', pattern])
+            except CalledProcessError:
+                pids = ''
+            if pids:
+                cls.sh('pkill -9 -f %s' % pattern)
+                time.sleep(.5)
+            else:
+                break
 
+    @classmethod
+    def kill_mod_proc(cls):
+
+        plot2d.closePlot()
+        plot3d.closePlot()
+
+        info("\n*** Removing WiFi module and Configurations\n")
         try:
             co("lsmod | grep mac80211_hwsim", shell=True)
-            os.system('rmmod mac80211_hwsim')
+            os.system('rmmod mac80211_hwsim >/dev/null 2>&1')
         except:
             pass
 
@@ -39,7 +59,21 @@ class Cleanup(object):
         except:
             pass
 
-        killprocs('hostapd')
+        try:
+            os.system('pkill -f \'wpa_supplicant -B -Dnl80211\'')
+        except:
+            pass
+        cls.killprocs('sumo-gui &> /dev/null')
+        cls.killprocs('hostapd &> /dev/null')
+        cls.killprocs('babeld &> /dev/null')
+        cls.killprocs('wmediumd &> /dev/null')
+
+    @classmethod
+    def cleanup_wifi(cls):
+        """Clean up junk which might be left over from old runs;
+           do fast stuff before slow dp and link removal!"""
+
+        cls.kill_mod_proc()
 
         if glob.glob('*-mn-telemetry.txt'):
             os.system('rm *-mn-telemetry.txt')
@@ -52,19 +86,7 @@ class Cleanup(object):
         if glob.glob('*.nodeParams'):
             os.system('rm *.nodeParams')
 
-        try:
-            os.system('pkill -f \'wpa_supplicant -B -Dnl80211\'')
-        except:
-            pass
-
-        try:
-            os.system('pkill -f \'babeld\'')
-        except:
-            pass
-
-        info("*** Killing wmediumd\n")
-        sh('pkill wmediumd')
-
         sixlowpan.cleanup_6lowpan()
+
 
 cleanup_wifi = Cleanup.cleanup_wifi

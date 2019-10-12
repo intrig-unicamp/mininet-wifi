@@ -32,7 +32,7 @@ class sumo(object):
             mobility.mobileNodes = cars
             self.start(cars, config_file, clients, port)
         except:
-            info("Connection with SUMO has been closed.\n")
+            info("*** Connection with SUMO has been closed\n")
 
     def setWifiParameters(self):
         thread = threading.Thread(name='wifiParameters', target=mobility.parameters)
