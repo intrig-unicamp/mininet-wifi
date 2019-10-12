@@ -507,7 +507,7 @@ class testWalkthrough(unittest.TestCase):
         "Start Mininet-WiFi with wireless mesh, then test ping"
         p = pexpect.spawn(
             'python examples/mesh.py')
-        sleep(10)
+        sleep(12)
         p.sendline('sta1 ping -c1 sta2')
         p.expect('1 packets transmitted')
         p.expect(self.prompt)
@@ -581,7 +581,7 @@ class testWalkthrough(unittest.TestCase):
         "Start Mininet-WiFi, then test wifiMeshAP.py"
         p = pexpect.spawn(
             'python examples/meshAP.py')
-        sleep(10)
+        sleep(12)
         p.sendline('sta1 ping -c1 sta2')
         p.expect('1 packets transmitted, 1 received')
         p.expect(self.prompt)

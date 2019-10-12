@@ -48,7 +48,7 @@ from mn_wifi.sixLoWPAN.link import sixLoWPANLink
 
 sys.path.append(str(os.getcwd()) + '/mininet/')
 
-VERSION = "2.4"
+VERSION = "2.4.1"
 
 
 class Mininet_wifi(Mininet):
@@ -395,7 +395,6 @@ class Mininet_wifi(Mininet):
         self.addParameters(ap, self.autoSetMacs, node_mode='master', **defaults)
         if 'type' in params and params['type'] is 'mesh':
             ap.func[1] = 'mesh'
-            ap.ifaceToAssociate = 1
 
         self.aps.append(ap)
         return ap
@@ -509,18 +508,10 @@ class Mininet_wifi(Mininet):
 
         cls = self.link if cls is None else cls
 
-        if cls == mesh or cls == physicalMesh:
-            isAP=False
-            if isinstance(node1, AP):
-                isAP=True
-            cls(node=node1, isAP=isAP, **params)
-        elif cls == adhoc:
+        modes = [mesh, physicalMesh, adhoc, ITSLink,
+                 wifiDirectLink, physicalWifiDirectLink]
+        if cls in modes:
             cls(node=node1, **params)
-        elif cls == ITSLink:
-            cls(node=node1, **params)
-        elif cls == wifiDirectLink or cls == physicalWifiDirectLink:
-            link = cls(node=node1, **params)
-            return link
         elif cls == sixLoWPANLink:
             link = cls(node=node1, port=port1, **params)
             self.links.append(link)
@@ -606,7 +597,7 @@ class Mininet_wifi(Mininet):
                 if port2:
                     ap_wlan = port2
 
-        wlan = sta.ifaceToAssociate
+        wlan = 0
         if sta_wlan:
             wlan = sta_wlan
         params['wlan'] = wlan
@@ -1395,7 +1386,6 @@ class Mininet_wifi(Mininet):
         node.params['wlan'] = []
         node.params['mac'] = []
         node.phyID = []
-        node.ifaceToAssociate = 0
 
         array_ = ['passwd', 'scan_freq', 'freq_list', 'authmode',
                   'encrypt', 'radius_server', 'bw']
@@ -1465,6 +1455,11 @@ class Mininet_wifi(Mininet):
                 else:
                     for _ in range(params['wlans']):
                         node.params[param].append('')
+
+            if 'ssid' not in params:
+                node.params['ssid'] = []
+                for _ in range(params['wlans']):
+                    node.params['ssid'].append('')
 
         array_ = ['antennaGain', 'antennaHeight', 'txpower',
                   'channel', 'mode', 'freq']
@@ -1869,7 +1864,7 @@ class Mininet_wifi(Mininet):
         for sta in self.stations:
             for wlan in range(0, len(sta.params['wlan'])):
                 if ((sta.func[wlan] == 'ap' or
-                             sta.func[wlan] == 'client') and sta not in self.aps):
+                     sta.func[wlan] == 'client') and sta not in self.aps):
                     if sta not in isap:
                         isap.append(sta)
 
@@ -1898,11 +1893,11 @@ class Mininet_wifi(Mininet):
                             # we need this cause wmediumd is fighting with some associations
                             # e.g. wpa
                             if self.wmediumd_mode == interference:
-                                sleep(0.5)
+                                sleep(0.1)
                                 pos_x = float(pos[0]) + 1
                                 pos = ('%s' % pos_x, '%s' % pos[1], '%s' % pos[2])
                                 node.set_pos_wmediumd(pos)
-                                sleep(1)
+                                sleep(0.1)
                                 pos_x = float(pos[0]) - 1
                                 pos = ('%s' % pos_x, '%s' % pos[1], '%s' % pos[2])
                                 node.set_pos_wmediumd(pos)

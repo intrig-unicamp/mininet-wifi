@@ -14,6 +14,8 @@ from mn_wifi.wmediumdConnector import interference
 def topology():
     "Create a network."
     net = Mininet_wifi(link=wmediumd, wmediumd_mode=interference)
+    # intf: physical interface
+    intf = 'wlxf4f26d193319'
 
     info("*** Creating nodes\n")
     sta1 = net.addStation('sta1', position='10,10,0', inNamespace=False)
@@ -26,8 +28,7 @@ def topology():
     net.configureWifiNodes()
 
     info("*** Creating links\n")
-    # intf: physical interface
-    net.addLink(sta1, cls=physicalMesh, intf='wlxf4f26d193319',
+    net.addLink(sta1, cls=physicalMesh, intf=intf,
                 ssid='meshNet', channel=5)
     net.addLink(sta2, cls=mesh, ssid='meshNet', channel=5)
     net.addLink(sta3, cls=mesh, ssid='meshNet', channel=5)
@@ -51,5 +52,5 @@ def topology():
 
 
 if __name__ == '__main__':
-    setLogLevel('info')
+    setLogLevel('debug')
     topology()
