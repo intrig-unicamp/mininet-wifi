@@ -413,8 +413,11 @@ class Mininet_wifi(Mininet):
         # find first ap and create link
         if connect:
             if not isinstance(connect, Node):
-                # Use first ap if not specified
-                connect = self.aps[0]
+                if self.aps:
+                    # Use first ap if not specified
+                    connect = self.aps[0]
+                elif self.switches:
+                    connect = self.switches[0]
             # Connect the nat to the ap
             self.addLink(nat, connect)
             # Set the default route on stations
