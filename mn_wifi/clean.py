@@ -17,6 +17,7 @@ from mn_wifi.plot import plot2d, plot3d
 
 class Cleanup(object):
     "Wrapper for cleanup()"
+    socket_port = 0
 
     @classmethod
     def sh(cls, cmd):
@@ -43,8 +44,14 @@ class Cleanup(object):
     @classmethod
     def kill_mod_proc(cls):
 
-        plot2d.closePlot()
-        plot3d.closePlot()
+        try:
+            plot2d.closePlot()
+        except:
+            pass
+        try:
+            plot3d.closePlot()
+        except:
+            pass
 
         info("\n*** Removing WiFi module and Configurations\n")
         try:
@@ -63,10 +70,16 @@ class Cleanup(object):
             os.system('pkill -f \'wpa_supplicant -B -Dnl80211\'')
         except:
             pass
+
+        if cls.socket_port:
+            info('\n*** Done\n')
+            cls.sh('fuser -k %s/tcp >/dev/null 2>&1' % cls.socket_port)
+
         cls.killprocs('sumo-gui &> /dev/null')
         cls.killprocs('hostapd &> /dev/null')
         cls.killprocs('babeld &> /dev/null')
         cls.killprocs('wmediumd &> /dev/null')
+
 
     @classmethod
     def cleanup_wifi(cls):

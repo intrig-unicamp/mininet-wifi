@@ -5,7 +5,6 @@
 from mininet.log import setLogLevel, info
 from mn_wifi.cli import CLI_wifi
 from mn_wifi.net import Mininet_wifi
-from mn_wifi.telemetry import telemetry
 
 
 def topology():
@@ -39,9 +38,9 @@ def topology():
     ap1.start([])
 
     nodes = net.stations + net.aps
-    telemetry(nodes, data_type='position',
-              min_x=0, min_y=0,
-              max_x=100, max_y=100)
+    net.telemetry(nodes=nodes, data_type='position',
+                  min_x=0, min_y=0,
+                  max_x=100, max_y=100)
 
     info("*** Running CLI\n")
     CLI_wifi(net)

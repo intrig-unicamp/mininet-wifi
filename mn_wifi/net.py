@@ -192,7 +192,7 @@ class Mininet_wifi(Mininet):
 
     def start_socket(self):
         host = self.set_socket_ip
-        port = self.set_socket_port
+        port, cleanup_mnwifi.socket_port = self.set_socket_port, self.set_socket_port
 
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.bind((host, port))
