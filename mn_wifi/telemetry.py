@@ -178,14 +178,6 @@ class parseData(object):
         self.start(nodes, fig, axes, single, data_type)
 
     @classmethod
-    def closeGraph(cls):
-        try:
-            cls.ani.event_source.stop()
-            del cls.ani
-        except:
-            pass
-
-    @classmethod
     def fig_exists(cls):
         return plt.fignum_exists(1)
 
@@ -196,8 +188,11 @@ class parseData(object):
         nodes_y = {}
         names = []
         if not self.thread_._keep_alive:
-            self.ani.event_source.stop()
-            exit()
+            try:
+                if self.data_type != 'position':
+                    plt.close()
+            except:
+                pass
 
         for node in self.nodes:
             for wlan in range(0, len(node.params['wlan'])):

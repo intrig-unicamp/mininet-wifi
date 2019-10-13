@@ -5,19 +5,19 @@
 
 from subprocess import ( Popen, PIPE, check_output as co,
                          CalledProcessError )
-import time
+from time import sleep
 import os
 import glob
 
 from mininet.log import info
 from mininet.util import decode
 from mn_wifi.sixLoWPAN.clean import Cleanup as sixlowpan
-from mn_wifi.plot import plot2d, plot3d
 
 
 class Cleanup(object):
     "Wrapper for cleanup()"
     socket_port = 0
+    plot = None
 
     @classmethod
     def sh(cls, cmd):
@@ -37,21 +37,22 @@ class Cleanup(object):
                 pids = ''
             if pids:
                 cls.sh('pkill -9 -f %s' % pattern)
-                time.sleep(.5)
+                sleep(.5)
             else:
                 break
 
     @classmethod
     def kill_mod_proc(cls):
 
-        try:
-            plot2d.closePlot()
-        except:
-            pass
-        try:
-            plot3d.closePlot()
-        except:
-            pass
+        if cls.plot:
+            cls.plot.closePlot()
+
+        cls.killprocs('sumo-gui')
+        cls.killprocs('hostapd')
+        sleep(0.1)
+        cls.sh('pkill babel')
+        cls.sh('pkill wmediumd')
+        sleep(0.1)
 
         info("\n*** Removing WiFi module and Configurations\n")
         try:
@@ -74,12 +75,6 @@ class Cleanup(object):
         if cls.socket_port:
             info('\n*** Done\n')
             cls.sh('fuser -k %s/tcp >/dev/null 2>&1' % cls.socket_port)
-
-        cls.killprocs('sumo-gui &> /dev/null')
-        cls.killprocs('hostapd &> /dev/null')
-        cls.killprocs('babeld &> /dev/null')
-        cls.killprocs('wmediumd &> /dev/null')
-
 
     @classmethod
     def cleanup_wifi(cls):

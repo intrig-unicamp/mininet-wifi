@@ -1603,6 +1603,7 @@ class Mininet_wifi(Mininet):
             setattr(self, key, kwargs[key])
         if 'max_z' in kwargs and kwargs['max_z'] != 0:
             self.plot = plot3d
+        cleanup_mnwifi.plot = self.plot
 
     def checkDimension(self, nodes):
         try:
