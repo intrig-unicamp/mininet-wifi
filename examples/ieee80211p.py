@@ -32,7 +32,7 @@ def topology():
 
     net.plotGraph(max_x=50, max_y=50)
 
-    info("*** Starting WiFi Direct\n")
+    info("*** Starting ITS Links\n")
     net.addLink(sta1, intf='sta1-wlan0',
                 cls=ITSLink, channel='161')
     net.addLink(sta2, intf='sta2-wlan0',
