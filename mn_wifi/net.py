@@ -30,8 +30,7 @@ from mininet.log import info, error, debug, output, warn
 
 from mn_wifi.node import AccessPoint, AP, Station, Car, \
     OVSKernelAP
-from mn_wifi.wmediumdConnector import w_starter, w_server, \
-    error_prob, snr, interference
+from mn_wifi.wmediumdConnector import error_prob, snr, interference
 from mn_wifi.link import wirelessLink, wmediumd, Association, \
     _4address, TCWirelessLink, TCLinkWirelessStation, ITSLink, \
     wifiDirectLink, adhoc, mesh, physicalMesh, physicalWifiDirectLink
