@@ -185,7 +185,6 @@ class mobility(object):
     @classmethod
     def check_association(cls, sta, wlan, ap_wlan):
         """check association
-
         :param sta: station
         :param wlan: wlan ID"""
         aps = []
@@ -239,6 +238,20 @@ class mobility(object):
             cls.configureLinks(mobileNodes)
 
     @classmethod
+    def associate_interference_mode(cls, node, ap, wlan, ap_wlan):
+        if 'bgscan_threshold' in node.params or \
+                ('active_scan' in node.params and
+                 ('encrypt' in node.params and 'wpa' in node.params['encrypt'][wlan])):
+            if node.params['associatedTo'][wlan] == '':
+                Association.associate_infra(node, ap, wlan=wlan, ap_wlan=ap_wlan)
+                if 'bgscan_threshold' in node.params:
+                    node.params['associatedTo'][wlan] = 'bgscan'
+                else:
+                    node.params['associatedTo'][wlan] = 'active_scan'
+        else:
+            cls.check_association(node, wlan, ap_wlan)
+
+    @classmethod
     def configureLinks(cls, nodes):
         for node in nodes:
             for wlan in range(len(node.params['wlan'])):
@@ -247,21 +260,11 @@ class mobility(object):
                 else:
                     for ap in cls.aps:
                         for ap_wlan in range(len(ap.params['wlan'])):
-                            if ap.func[ap_wlan] not in mobility.func:
+                            if ap.func[ap_wlan] not in cls.func:
                                 if wmediumd_mode.mode == w_cst.INTERFERENCE_MODE:
-                                    if 'bgscan_threshold' in node.params or ('active_scan' in node.params \
-                                    and ('encrypt' in node.params and 'wpa' in node.params['encrypt'][wlan])):
-                                        if node.params['associatedTo'][wlan] == '':
-                                            Association.associate_infra(node, ap, wlan=wlan,
-                                                                        ap_wlan=ap_wlan)
-                                            if 'bgscan_threshold' in node.params:
-                                                node.params['associatedTo'][wlan] = 'bgscan'
-                                            else:
-                                                node.params['associatedTo'][wlan] = 'active_scan'
-                                    else:
-                                        cls.check_association(node, wlan, ap_wlan=ap_wlan)
+                                    cls.associate_interference_mode(node, ap, wlan, ap_wlan)
                                 else:
-                                    cls.check_association(node, wlan, ap_wlan=ap_wlan)
+                                    cls.check_association(node, wlan, ap_wlan)
         sleep(0.0001)
 
 
