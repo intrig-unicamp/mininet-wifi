@@ -59,6 +59,9 @@ class IntfWireless(object):
     def set_dev_type(self, type):
         self.iwdev_cmd('%s set type %s' % (self.name, type))
 
+    def add_dev_type(self, new_name, type):
+        self.iwdev_cmd('%s interface add %s type %s' % (self.name, new_name, type))
+
     def iwdev_cmd(self, *args):
         return self.cmd('iw dev', *args)
 
@@ -489,12 +492,12 @@ class _4address(IntfWireless):
             nums = re.findall(r'\d+', node1.name)
             if nums:
                 id = hex(int(nums[0]))[2:]
-                node1.params['position'] = (10, round(id,2), 0)
+                node1.params['position'] = (10, round(id, 2), 0)
         if 'position' not in node2.params:
             nums = re.findall(r'\d+', node2.name)
             if nums:
                 id = hex(int(nums[0]))[2:]
-                node2.params['position'] = (10, round(id,2), 0)
+                node2.params['position'] = (10, round(id, 2), 0)
 
         if cl_intfName not in cl.params['wlan']:
             if port1:
@@ -987,12 +990,35 @@ class ITSLink(IntfWireless):
             wlan = 0
             intf = node.params['wlan'][wlan]
 
+        if node.func[wlan] == 'ap':
+            self.kill_hostapd(node, intf)
+
         node.params['channel'][wlan] = channel
-        node.func[wlan] = 'its'
         node.params['freq'][wlan] = node.get_freq(wlan)
         self.name = intf
-        self.set_ocb_mode()
+        if node.func[wlan] == 'ap':
+            intf = '%s-ocb' % node.name
+            self.add_ocb_mode(intf)
+        else:
+            self.set_ocb_mode()
         self.configure_ocb(wlan)
+        node.func[wlan] = 'its'
+
+    def kill_hostapd(self, node, intf):
+        node.cmd('iw dev %s set type managed' % intf)
+        apconfname = "mn%d_%s.apconf" % (os.getpid(), intf)
+        node.cmd('rm %s' % apconfname)
+        node.cmd('pkill -f \'%s\'' % apconfname)
+
+    def add_ocb_mode(self, new_name):
+        "Set OCB Interface"
+        wlan = self.node.params['wlan'].index(self.name)
+        self.ipLink('down')
+        IntfWireless(name=new_name, node=self.node)
+        self.add_dev_type(new_name, 'ocb')
+        self.name = new_name
+        self.setMAC(self.node.params['mac'][wlan])
+        self.ipLink('up')
 
     def set_ocb_mode(self):
         "Set OCB Interface"

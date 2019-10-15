@@ -909,6 +909,7 @@ class AccessPoint(AP):
         :param aplist: list of aps
         :param wlan: wlan id
         :param link: if wmediumd"""
+        ap.func[wlan] = 'ap'
         if ap.params['ssid'][wlan] != '' or ssid:
             if 'encrypt' in ap.params and 'config' not in ap.params:
                 if ap.params['encrypt'][wlan] == 'wpa':
@@ -1228,15 +1229,15 @@ class AccessPoint(AP):
 
     def APConfigFile(self, cmd, ap, wlan):
         "run an Access Point and create the config file"
-        iface = ap.params['wlan'][wlan]
+        intf = ap.params['wlan'][wlan]
         if 'phywlan' in ap.params:
             iface = ap.params['phywlan']
-            ap.cmd('ip link set %s down' % iface)
-            ap.cmd('ip link set %s up' % iface)
-        apconfname = "mn%d_%s.apconf" % (os.getpid(), iface)
+            ap.cmd('ip link set %s down' % intf)
+            ap.cmd('ip link set %s up' % intf)
+        apconfname = "mn%d_%s.apconf" % (os.getpid(), intf)
         content = cmd + ("\' > %s" % apconfname)
         ap.cmd(content)
-        cmd = self.get_hostapd_cmd(ap, iface)
+        cmd = self.get_hostapd_cmd(ap, intf)
         try:
             ap.cmd(cmd)
             if int(ap.params['channel'][wlan]) == 0 \

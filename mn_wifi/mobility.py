@@ -25,6 +25,7 @@ class mobility(object):
     allAutoAssociation = True
     thread_ = ''
     end_time = 0
+    func = ['mesh', 'adhoc', 'its']
 
     @classmethod
     def move_factor(cls, node, diff_time):
@@ -246,7 +247,7 @@ class mobility(object):
                 else:
                     for ap in cls.aps:
                         for ap_wlan in range(len(ap.params['wlan'])):
-                            if ap.func[ap_wlan] != 'mesh' and ap.func[ap_wlan] != 'adhoc':
+                            if ap.func[ap_wlan] not in mobility.func:
                                 if wmediumd_mode.mode == w_cst.INTERFERENCE_MODE:
                                     if 'bgscan_threshold' in node.params or ('active_scan' in node.params \
                                     and ('encrypt' in node.params and 'wpa' in node.params['encrypt'][wlan])):
