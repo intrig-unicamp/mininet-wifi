@@ -21,7 +21,6 @@ class mobility(object):
     mobileNodes = []
     ac = None  # association control method
     pause_simulation = False
-    rec_rssi = False
     allAutoAssociation = True
     thread_ = ''
     end_time = 0
@@ -110,14 +109,14 @@ class mobility(object):
 
     @classmethod
     def get_pidfile(cls, sta, wlan):
-        pidfile = "mn%d_%s_%s_wpa.pid" \
-                  % (os.getpid(), sta.name, wlan)
-        return pidfile
+        pid = "mn%d_%s_%s_wpa.pid" % (os.getpid(), sta.name, wlan)
+        return pid
 
     @classmethod
     def kill_wpasupprocess(cls, sta, wlan):
-        os.system('pkill -f \'wpa_supplicant -B -Dnl80211 -P %s -i '
-                  '%s\'' % (cls.get_pidfile(sta, wlan), sta.params['wlan'][wlan]))
+        intf = sta.params['wlan'][wlan]
+        pid = cls.get_pidfile(sta, wlan)
+        os.system('pkill -f \'wpa_supplicant -B -Dnl80211 -P %s -i %s\'' % (pid, intf))
 
     @classmethod
     def check_if_wpafile_exist(cls, sta, wlan):
@@ -152,21 +151,10 @@ class mobility(object):
 
     @classmethod
     def ap_in_range(cls, sta, ap, wlan, dist):
-        """When ap is in range
-
-        :param sta: station
-        :param ap: access point
-        :param wlan: wlan ID
-        :param dist: distance between source and destination"""
         rssi = sta.get_rssi(ap, wlan, dist)
         sta.params['apsInRange'][ap] = rssi
         ap.params['stationsInRange'][sta] = rssi
         if ap == sta.params['associatedTo'][wlan]:
-            if cls.rec_rssi:
-                sta.params['rssi'][wlan] = rssi
-                os.system('hwsim_mgmt -k %s %s >/dev/null 2>&1'
-                          % (sta.phyID[wlan],
-                             abs(int(sta.params['rssi'][wlan]))))
             if sta not in ap.params['associatedStations']:
                 ap.params['associatedStations'].append(sta)
             if dist >= 0.01:
@@ -183,29 +171,23 @@ class mobility(object):
                         wirelessLink(sta, ap, dist, wlan=wlan, ap_wlan=0)
 
     @classmethod
-    def check_association(cls, sta, wlan, ap_wlan):
-        """check association
-        :param sta: station
-        :param wlan: wlan ID"""
-        aps = []
-        for ap in cls.aps:
-            dist = sta.get_distance_to(ap)
-            if dist > ap.params['range'][0]:
-                cls.ap_out_of_range(sta, ap, wlan, ap_wlan)
-            else:
-                aps.append(ap)
+    def check_in_range(cls, sta, ap, wlan, ap_wlan):
+        dist = sta.get_distance_to(ap)
+        if dist > ap.params['range'][0]:
+            cls.ap_out_of_range(sta, ap, wlan, ap_wlan)
+            return 0
+        else:
+            return 1
+
+    @classmethod
+    def set_handover(cls, sta, aps, wlan, ap_wlan):
         for ap in aps:
             dist = sta.get_distance_to(ap)
-            cls.handover(sta, ap, wlan, ap_wlan)
+            cls.do_handover(sta, ap, wlan, ap_wlan)
             cls.ap_in_range(sta, ap, wlan, dist)
 
     @classmethod
-    def handover(cls, sta, ap, wlan, ap_wlan):
-        """handover
-
-        :param sta: station
-        :param ap: access point
-        :param wlan: wlan ID"""
+    def do_handover(cls, sta, ap, wlan, ap_wlan):
         changeAP = False
 
         "Association Control: mechanisms that optimize the use of the APs"
@@ -248,8 +230,10 @@ class mobility(object):
                     node.params['associatedTo'][wlan] = 'bgscan'
                 else:
                     node.params['associatedTo'][wlan] = 'active_scan'
+            return 0
         else:
-            cls.check_association(node, wlan, ap_wlan)
+            ack = cls.check_in_range(node, ap, wlan, ap_wlan)
+            return ack
 
     @classmethod
     def configureLinks(cls, nodes):
@@ -258,13 +242,17 @@ class mobility(object):
                 if node.func[wlan] == 'mesh' or node.func[wlan] == 'adhoc':
                     pass
                 else:
+                    aps = []
                     for ap in cls.aps:
                         for ap_wlan in range(len(ap.params['wlan'])):
                             if ap.func[ap_wlan] not in cls.func:
                                 if wmediumd_mode.mode == w_cst.INTERFERENCE_MODE:
-                                    cls.associate_interference_mode(node, ap, wlan, ap_wlan)
+                                    ack = cls.associate_interference_mode(node, ap, wlan, ap_wlan)
                                 else:
-                                    cls.check_association(node, wlan, ap_wlan)
+                                    ack = cls.check_in_range(node, ap, wlan, ap_wlan)
+                                if ack and ap not in aps:
+                                    aps.append(ap)
+                    cls.set_handover(node, aps, wlan, ap_wlan=0)
         sleep(0.0001)
 
 
