@@ -956,10 +956,10 @@ class wirelessLink(object):
     @classmethod
     def delete(cls, node):
         "Delete interfaces"
-        for wlan in node.params['wlan']:
-            if isinstance(wlan, string_types):
-                node.cmd('iw dev ' + wlan + ' del')
-                node.delIntf(wlan)
+        for intf in node.params['wlan']:
+            if isinstance(intf, string_types):
+                node.cmd('iw dev ' + intf + ' del')
+                node.delIntf(intf)
                 node.intf = None
 
     @classmethod
@@ -1026,8 +1026,10 @@ class ITSLink(IntfWireless):
         "Set OCB Interface"
         wlan = self.node.params['wlan'].index(self.name)
         self.ipLink('down')
-        IntfWireless(name=new_name, node=self.node)
+        self.node.delIntf(self.name)
         self.add_dev_type(new_name, 'ocb')
+        # we set the port to remove the existing wlan from node.intfs
+        IntfWireless(name=new_name, node=self.node, port=1)
         self.name = new_name
         self.setMAC(self.node.params['mac'][wlan])
         self.ipLink('up')
