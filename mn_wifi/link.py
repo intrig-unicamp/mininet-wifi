@@ -941,8 +941,7 @@ class wirelessLink(object):
 
     def getBW(self, node, wlan, dist):
         # dist is used by eval
-        value = CustomRate(node, wlan)
-        custombw = value.rate
+        custombw = CustomRate(node, wlan).rate
         rate = eval(str(custombw) + self.equationBw)
 
         if rate <= 0.0:
