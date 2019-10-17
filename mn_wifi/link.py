@@ -9,7 +9,7 @@ from sys import version_info as py_version_info
 from six import string_types
 
 from mininet.log import info, error, debug
-from mn_wifi.devices import GetRate
+from mn_wifi.devices import CustomRate
 from mn_wifi.manetRoutingProtocols import manetProtocols
 from mn_wifi.wmediumdConnector import DynamicIntfRef, \
     w_starter, SNRLink, w_txpower, w_pos, \
@@ -923,16 +923,11 @@ class wirelessLink(object):
     equationBw = ' * (1.01 ** -dist)'
     ifb = False
 
-    def __init__(self, sta=None, ap=None, dist=0, **params):
-        """":param sta: station
-        :param ap: access point
-        :param wlan: wlan ID
-        :param dist: distance between source and destination"""
-        wlan = params['wlan']
+    def __init__(self, node, wlan=0, dist=0):
         latency_ = self.getLatency(dist)
         loss_ = self.getLoss(dist)
-        bw_ = self.getBW(sta=sta, ap=ap, dist=dist, **params)
-        self.config_tc(sta, wlan, bw_, loss_, latency_)
+        bw_ = self.getBW(node, wlan, dist)
+        self.config_tc(node, wlan, bw_, loss_, latency_)
 
     def getDelay(self, dist):
         "Based on RandomPropagationDelayModel"
@@ -944,8 +939,9 @@ class wirelessLink(object):
     def getLoss(self, dist):
         return eval(self.equationLoss)
 
-    def getBW(self, sta=None, ap=None, dist=0, **params):
-        value = GetRate(sta=sta, ap=ap, **params)
+    def getBW(self, node, wlan, dist):
+        # dist is used by eval
+        value = CustomRate(node, wlan)
         custombw = value.rate
         rate = eval(str(custombw) + self.equationBw)
 
@@ -964,12 +960,6 @@ class wirelessLink(object):
 
     @classmethod
     def config_tc(cls, node, wlan, bw, loss, latency):
-        """config_tc
-        :param node: node
-        :param wlan: wlan ID
-        :param bw: bandwidth (mbps)
-        :param loss: loss (%)
-        :param latency: latency (ms)"""
         if cls.ifb:
             iface = 'ifb%s' % node.ifb[wlan]
             cls.tc(node, iface, bw, loss, latency)
@@ -1343,7 +1333,7 @@ class Association(IntfWireless):
                 cls.associate_infra(sta, ap, **params)
                 if wmediumd_mode.mode == w_cst.WRONG_MODE:
                     if dist >= 0.01:
-                        wirelessLink(sta, ap, dist, **params)
+                        wirelessLink(sta, wlan, dist)
                 if sta not in ap.params['associatedStations']:
                     ap.params['associatedStations'].append(sta)
             if not wmediumd_mode.mode == w_cst.INTERFERENCE_MODE:

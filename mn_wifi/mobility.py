@@ -168,7 +168,7 @@ class mobility(object):
                             Association.setSNRWmediumd(
                                 sta, ap, snr=sta.params['rssi'][wlan] - (-91))
                     else:
-                        wirelessLink(sta, ap, dist, wlan=wlan, ap_wlan=0)
+                        wirelessLink(sta, wlan, dist)
 
     @classmethod
     def check_in_range(cls, sta, ap, wlan, ap_wlan):
@@ -180,10 +180,11 @@ class mobility(object):
             return 1
 
     @classmethod
-    def set_handover(cls, sta, aps, wlan, ap_wlan):
+    def set_handover(cls, sta, aps, wlan):
         for ap in aps:
             dist = sta.get_distance_to(ap)
-            cls.do_handover(sta, ap, wlan, ap_wlan)
+            for ap_wlan in range(len(ap.params['wlan'])):
+                cls.do_handover(sta, ap, wlan, ap_wlan)
             cls.ap_in_range(sta, ap, wlan, dist)
 
     @classmethod
@@ -252,7 +253,7 @@ class mobility(object):
                                     ack = cls.check_in_range(node, ap, wlan, ap_wlan)
                                 if ack and ap not in aps:
                                     aps.append(ap)
-                    cls.set_handover(node, aps, wlan, ap_wlan=0)
+                    cls.set_handover(node, aps, wlan)
         sleep(0.0001)
 
 

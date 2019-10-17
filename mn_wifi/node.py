@@ -36,6 +36,7 @@ from mininet.util import (quietRun, errRun, errFail, mountCgroups,
 from mininet.node import Node
 from mininet.moduledeps import moduleDeps, pathCheck, TUN
 from mininet.link import Intf, OVSIntf
+from mn_wifi.devices import DeviceRate
 from mn_wifi.link import TCWirelessLink, TCLinkWirelessAP,\
     Association, wirelessLink, adhoc, mesh, physicalMesh, ITSLink
 from mn_wifi.wmediumdConnector import w_server, w_pos, w_txpower, \
@@ -414,7 +415,7 @@ class Node_wifi(Node):
                     Association.disconnect(self, intf)
                     self.params['rssi'][0] = 0
                 Association.associate_infra(self, ap, **params)
-                wirelessLink(self, ap, wlan, 0, dist)
+                wirelessLink(self, wlan, dist)
             else:
                 info ('%s is already connected!\n' % ap)
             self.configLinks()
@@ -1128,21 +1129,24 @@ class AccessPoint(AP):
 
     def getRate(self, node, wlan):
         "Get rate"
-        mode = node.params['mode'][wlan]
-
-        if mode == 'a':
-            rate = 54
-        elif mode == 'b':
-            rate = 11
-        elif mode == 'g':
-            rate = 54
-        elif mode == 'n':
-            rate = 300
-        elif mode == 'ac':
-            rate = 600
+        if 'model' in node.params:
+            return DeviceRate(node, wlan).rate
         else:
-            rate = 54
-        return rate
+            mode = node.params['mode'][wlan]
+
+            if mode == 'a':
+                rate = 54
+            elif mode == 'b':
+                rate = 11
+            elif mode == 'g':
+                rate = 54
+            elif mode == 'n':
+                rate = 300
+            elif mode == 'ac':
+                rate = 600
+            else:
+                rate = 54
+            return rate
 
     def verifyWepKey(self, wep_key0):
         "Check WEP key"
