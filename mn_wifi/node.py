@@ -370,19 +370,15 @@ class Node_wifi(Node):
 
     def get_txpower(self, iface):
         connected = self.cmd('iw dev %s link | awk \'{print $1}\'' % iface)
-        if connected != 'Not':
+        cmd = 'iw dev %s info | grep txpower | awk \'{print $2}\'' % iface
+        if connected != 'Not' or isinstance(self, AP):
             try:
-                txpower = int(self.cmd('iw dev %s info | grep txpower | '
-                                       'awk \'{print $2}\'' % iface))
+                txpower = int(self.cmd(cmd))
             except:
-                txpower = 20
-            return txpower
-        elif isinstance(self, AP):
-            try:
-                txpower = int(self.cmd('iw dev %s info | grep txpower | '
-                                       'awk \'{print $2}\'' % iface))
-            except:
-                txpower = 14
+                if isinstance(self, AP):
+                    txpower = 14
+                else:
+                    txpower = 20
             return txpower
 
     def get_distance_to(self, dst):
@@ -411,7 +407,7 @@ class Node_wifi(Node):
                 if self.params['associatedTo'][wlan]:
                     Association.disconnect(self, intf)
                     self.params['rssi'][0] = 0
-                Association.associate_infra(self, ap, **params)
+                Association.associate_infra(self, ap, wlan, 0)
                 wirelessLink(self, wlan, dist)
             else:
                 info ('%s is already connected!\n' % ap)

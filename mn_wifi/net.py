@@ -29,7 +29,7 @@ from mininet.nodelib import NAT
 from mininet.log import info, error, debug, output, warn
 
 from mn_wifi.node import AccessPoint, AP, Station, Car, \
-    OVSKernelAP
+    OVSKernelAP, physicalAP
 from mn_wifi.wmediumdConnector import error_prob, snr, interference
 from mn_wifi.link import wirelessLink, wmediumd, Association, \
     _4address, TCWirelessLink, TCLinkWirelessStation, ITSLink, \
@@ -369,7 +369,7 @@ class Mininet_wifi(Mininet):
             self.nextPos_ap += 100
 
         wlan = None
-        if cls and cls.__name__ == 'physicalAP':
+        if cls and issubclass(cls, physicalAP):
             wlan = ("%s" % params.pop('phywlan', {}))
             cls = self.accessPoint
         if not cls:
@@ -600,22 +600,17 @@ class Mininet_wifi(Mininet):
         if sta_wlan:
             wlan = sta_wlan
         params['wlan'] = wlan
+
         # If sta/ap have position
         doAssociation = True
         if 'position' in sta.params and 'position' in ap.params:
             dist = sta.get_distance_to(ap)
-            if dist > ap.params['range'][ap_wlan]:
+            if dist <= ap.params['range'][ap_wlan]:
                 doAssociation = False
         if doAssociation:
-            sta.params['mode'][wlan] = ap.params['mode'][ap_wlan]
-            sta.params['channel'][wlan] = ap.params['channel'][ap_wlan]
+            Association.associate(sta, ap, wlan, ap_wlan)
 
-            if not self.topo:
-                params['printCon'] = True
-            params['doAssociation'] = True
-            Association.associate(sta, ap, **params)
-
-            if 'TCWirelessLink' in str(self.link.__name__):
+            if issubclass(self.link, TCWirelessLink):
                 if 'bw' not in params and 'bw' not in str(cls) and \
                         not self.ifb:
                     params['bw'] = CustomRate(sta, wlan).rate
@@ -774,6 +769,7 @@ class Mininet_wifi(Mininet):
 
         if self.inNamespace:
             self.configureControlNetwork()
+
         info('*** Configuring nodes\n')
         self.configHosts()
         if self.xterms:

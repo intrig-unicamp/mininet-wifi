@@ -198,7 +198,7 @@ class mobility(object):
             changeAP = value.changeAP
         if not sta.params['associatedTo'][wlan] or changeAP:
             if ap not in sta.params['associatedTo']:
-                Association.associate_infra(sta, ap, wlan=wlan, ap_wlan=ap_wlan)
+                Association.associate_infra(sta, ap, wlan, ap_wlan)
 
     @classmethod
     def configLinks(cls, node=None):
@@ -226,7 +226,7 @@ class mobility(object):
                 ('active_scan' in node.params and
                  ('encrypt' in node.params and 'wpa' in node.params['encrypt'][wlan])):
             if node.params['associatedTo'][wlan] == '':
-                Association.associate_infra(node, ap, wlan=wlan, ap_wlan=ap_wlan)
+                Association.associate_infra(node, ap, wlan, ap_wlan)
                 if 'bgscan_threshold' in node.params:
                     node.params['associatedTo'][wlan] = 'bgscan'
                 else:

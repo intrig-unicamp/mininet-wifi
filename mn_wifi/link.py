@@ -542,8 +542,7 @@ class _4address(IntfWireless):
                                                  ap.params['ssid'][apwlan],
                                                  ap.params['mac'][apwlan]))
 
-            params1 = {}
-            params2 = {}
+            params1, params2 = {}, {}
             params1['port'] = cl.newPort()
             params2['port'] = ap.newPort()
             intf1 = IntfWireless(name=cl_intfName, node=cl, link=self, **params1)
@@ -812,8 +811,8 @@ class wmediumd(TCWirelessLink):
                     if key == node:
                         key.wmIface.append(DynamicIntfRef(key, intf=len(key.wmIface)))
                         key.func.append('none')
-                        key.params['wlan'].append(n[key][1])
-                        key.params['mac'].append(n[key][0])
+                        key.params['wlan'].append(mac[key][1])
+                        key.params['mac'].append(mac[key][0])
                         key.params['range'].append(0)
                         key.params['freq'].append(key.params['freq'][0])
                         key.params['antennaGain'].append(0)
@@ -1318,17 +1317,15 @@ class Association(IntfWireless):
                                          sta.wmIface[0], snr))
 
     @classmethod
-    def configureWirelessLink(cls, sta, ap, **params):
+    def configureWirelessLink(cls, sta, ap, wlan, ap_wlan):
         dist = sta.get_distance_to(ap)
-        wlan = params['wlan']
         if dist <= ap.params['range'][0]:
             if not wmediumd_mode.mode == w_cst.INTERFERENCE_MODE:
                 if sta.params['rssi'][wlan] == 0:
                     cls.updateParams(sta, ap, wlan)
-            if ('doAssociation' in params and ap != sta.params['associatedTo'][wlan]) or \
-                    (not sta.params['associatedTo'][wlan]
-                     and ap not in sta.params['associatedTo']):
-                cls.associate_infra(sta, ap, **params)
+            if ap not in sta.params['associatedTo'] or \
+                    not sta.params['associatedTo'][wlan]:
+                cls.associate_infra(sta, ap, wlan, ap_wlan, False)
                 if wmediumd_mode.mode == w_cst.WRONG_MODE:
                     if dist >= 0.01:
                         wirelessLink(sta, wlan, dist)
@@ -1353,12 +1350,12 @@ class Association(IntfWireless):
         sta.params['ssid'][wlan] = ap.params['ssid'][0]
 
     @classmethod
-    def associate(cls, sta, ap, **params):
+    def associate(cls, sta, ap, wlan, ap_wlan):
         "Associate to Access Point"
         if 'position' in sta.params:
-            cls.configureWirelessLink(sta, ap, **params)
+            cls.configureWirelessLink(sta, ap, wlan, ap_wlan)
         else:
-            cls.associate_infra(sta, ap, **params)
+            cls.associate_infra(sta, ap, wlan, ap_wlan)
 
     @classmethod
     def associate_noEncrypt(cls, sta, ap, wlan, ap_wlan):
@@ -1383,9 +1380,7 @@ class Association(IntfWireless):
         node.params['channel'][wlan] = 0
 
     @classmethod
-    def associate_infra(cls, sta, ap, **params):
-        wlan = params['wlan']
-        ap_wlan = params['ap_wlan']
+    def associate_infra(cls, sta, ap, wlan, ap_wlan):
         associated = 0
 
         if 'ieee80211r' in ap.params and ap.params['ieee80211r'] == 'yes' \
@@ -1414,9 +1409,6 @@ class Association(IntfWireless):
                 elif ap.params['encrypt'][ap_wlan] == 'wep':
                     cls.wep(sta, ap, wlan, ap_wlan)
                     associated = 1
-        if 'printCon' in params:
-            iface = sta.params['wlan'][wlan]
-            info("Associating %s to %s\n" % (iface, ap))
         if associated:
             cls.update(sta, ap, wlan)
 
