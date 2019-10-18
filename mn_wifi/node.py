@@ -27,7 +27,6 @@ import fileinput
 from time import sleep
 from distutils.version import StrictVersion
 from sys import version_info as py_version_info
-from six import string_types
 
 from mininet.log import info, error, debug
 from mininet.util import (quietRun, errRun, errFail, mountCgroups,
@@ -179,12 +178,12 @@ class Node_wifi(Node):
         from mn_wifi.mobility import mobility
         mobility.configLinks(self)
 
-    def getMAC(self, iface):
+    def getMAC(self, intf):
         "get Mac Address of any Interface"
         try:
             _macMatchRegex = re.compile(r'..:..:..:..:..:..')
-            debug('getting mac address from %s\n' % iface)
-            macaddr = str(self.pexec('ip addr show %s' % iface))
+            debug('getting mac address from %s\n' % intf)
+            macaddr = str(self.pexec('ip addr show %s' % intf))
             mac = _macMatchRegex.findall(macaddr)
             debug('\n%s' % mac[0])
             return mac[0]
@@ -368,9 +367,9 @@ class Node_wifi(Node):
                                    interference_enabled)
         return int(value.txpower)
 
-    def get_txpower(self, iface):
-        connected = self.cmd('iw dev %s link | awk \'{print $1}\'' % iface)
-        cmd = 'iw dev %s info | grep txpower | awk \'{print $2}\'' % iface
+    def get_txpower(self, intf):
+        connected = self.cmd('iw dev %s link | awk \'{print $1}\'' % intf)
+        cmd = 'iw dev %s info | grep txpower | awk \'{print $2}\'' % intf
         if connected != 'Not' or isinstance(self, AP):
             try:
                 txpower = int(self.cmd(cmd))
@@ -1097,17 +1096,17 @@ class AccessPoint(AP):
                 intf = ap.params['wlan'][wlan]
                 TCLinkWirelessAP(ap, intfName1=intf)
 
-        iface = ap.params['wlan'][wlan]
+        intf = ap.params['wlan'][wlan]
         if 'phywlan' in ap.params:
-            iface = ap.params['phywlan']
+            intf = ap.params['phywlan']
             ap.params.pop('phywlan', None)
 
         if wmediumd_mode.mode == 4:
-            self.setBw(ap, wlan, iface)
+            self.setBw(ap, wlan, intf)
 
         ap.params['freq'][wlan] = ap.get_freq(0)
 
-    def setBw(self, node, wlan, iface):
+    def setBw(self, node, wlan, intf):
         "Set bw"
         if 'bw' in node.params:
             bw = node.params['bw'][wlan]
@@ -1115,10 +1114,10 @@ class AccessPoint(AP):
             bw = self.getRate(node, wlan)
         node.cmd("tc qdisc replace dev %s \
                 root handle 2: tbf rate %sMbit burst 15000 "
-                 "latency 1ms" % (iface, bw))
+                 "latency 1ms" % (intf, bw))
         # Reordering packets
         node.cmd('tc qdisc add dev %s parent 2:1 handle 10: '
-                 'pfifo limit 1000' % (iface))
+                 'pfifo limit 1000' % (intf))
 
     def getRate(self, node, wlan):
         if 'model' in node.params:
@@ -1227,7 +1226,7 @@ class AccessPoint(AP):
         "run an Access Point and create the config file"
         intf = ap.params['wlan'][wlan]
         if 'phywlan' in ap.params:
-            iface = ap.params['phywlan']
+            intf = ap.params['phywlan']
             ap.cmd('ip link set %s down' % intf)
             ap.cmd('ip link set %s up' % intf)
         apconfname = "mn%d_%s.apconf" % (os.getpid(), intf)
@@ -1246,8 +1245,8 @@ class AccessPoint(AP):
             "your system.")
             exit(1)
 
-    def get_hostapd_cmd(self, node, iface):
-        apconfname = "mn%d_%s.apconf" % (os.getpid(), iface)
+    def get_hostapd_cmd(self, node, intf):
+        apconfname = "mn%d_%s.apconf" % (os.getpid(), intf)
         hostapd_flags = ''
         if 'hostapd_flags' in node.params:
             hostapd_flags = node.params['hostapd_flags']
@@ -1353,12 +1352,12 @@ class UserAP(AP):
         # self.cmd('kill %ofprotocol')
         # super(UserAP, self).stop(deleteIntfs)
 
-    def setManagedIface(self, iface):
-        wlan = self.params['wlan'].index(iface)
+    def setManagedIface(self, intf):
+        wlan = self.params['wlan'].index(intf)
         if self.func[wlan] == 'mesh':
             self.cmd('iw dev %s del' % self.params['wlan'][wlan])
-            iface = '%s-wlan%s' % (self, wlan)
-            self.params['wlan'][wlan] = iface
+            intf = '%s-wlan%s' % (self, wlan)
+            self.params['wlan'][wlan] = intf
         self.cmd('iw dev %s set type managed' % (self.params['wlan'][wlan]))
 
 
