@@ -373,15 +373,15 @@ class testWalkthrough(unittest.TestCase):
         p = pexpect.spawn(
             'python examples/mobilityModel.py -m')
         sleep(3)
-        p.sendline('py sta1.params[\'wlan\']')
+        p.sendline('py ap1.params[\'wlan\']')
         wlans = ['ap1-wlan1', 'ap1-wlan2']
         p.expect(wlans)
         p.expect(self.prompt)
-        p.sendline('py sta1.params[\'stationsInRange\']')
+        p.sendline('py ap1.params[\'stationsInRange\']')
         stas = ['Station sta1', 'Station sta2']
         p.expect(stas)
         p.expect(self.prompt)
-        p.sendline('py sta1.params[\'ssid\']')
+        p.sendline('py ap1.params[\'ssid\']')
         ssids = ['ssid1', 'ssid2']
         p.expect(ssids)
         p.expect(self.prompt)

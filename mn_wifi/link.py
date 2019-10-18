@@ -797,19 +797,18 @@ class wmediumd(TCWirelessLink):
         cls.nodes = stations + aps + cars
         for node in cls.nodes:
             node.wmIface = []
-            for wlan in range(0, len(node.params['wlan'])):
-                if wlan < len(node.params['mac']):
-                    node.wmIface.append(wlan)
-                    node.wmIface[wlan] = DynamicIntfRef(node, intf=wlan)
-                    intfrefs.append(node.wmIface[wlan])
-                    if (node.func[wlan] == 'ap'
-                        or (node in aps and (node.func[wlan] is not 'client'
-                                             and node.func[wlan] is not 'adhoc'))):
-                        isnodeaps.append(1)
-                    else:
-                        isnodeaps.append(0)
-            for n in maclist:
-                for key in n:
+            for wlan in range(0, len(node.params['mac'])):
+                node.wmIface.append(wlan)
+                node.wmIface[wlan] = DynamicIntfRef(node, intf=wlan)
+                intfrefs.append(node.wmIface[wlan])
+                if (node.func[wlan] == 'ap'
+                    or (node in aps and (node.func[wlan] is not 'client'
+                                         and node.func[wlan] is not 'adhoc'))):
+                    isnodeaps.append(1)
+                else:
+                    isnodeaps.append(0)
+            for mac in maclist:
+                for key in mac:
                     if key == node:
                         key.wmIface.append(DynamicIntfRef(key, intf=len(key.wmIface)))
                         key.func.append('none')

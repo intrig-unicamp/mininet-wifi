@@ -1772,10 +1772,10 @@ class Mininet_wifi(Mininet):
             sixLoWPAN_module(self.sixLP, sixlowpan.n_wpans)
         self.configureWirelessLink()
         self.createVirtualIfaces(self.stations)
-        AccessPoint(self.aps, self.driver, self.link, config=True)
+        AccessPoint(self.aps, self.driver, config=True)
         if self.link == wmediumd:
             self.configureWmediumd()
-        AccessPoint(self.aps, self.driver, self.link)
+        AccessPoint(self.aps, self.driver)
 
         setParam = True
         if self.wmediumd_mode == interference and not self.isVanet:
