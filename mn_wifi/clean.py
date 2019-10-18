@@ -76,6 +76,15 @@ class Cleanup(object):
             info('\n*** Done\n')
             cls.sh('fuser -k %s/tcp >/dev/null 2>&1' % cls.socket_port)
 
+        if glob.glob('*.apconf'):
+            os.system('rm *.apconf')
+        if glob.glob('*.staconf'):
+            os.system('rm *.staconf')
+        if glob.glob('*wifiDirect.conf'):
+            os.system('rm *wifiDirect.conf')
+        if glob.glob('*.nodeParams'):
+            os.system('rm *.nodeParams')
+
     @classmethod
     def cleanup_wifi(cls):
         """Clean up junk which might be left over from old runs;
@@ -85,14 +94,6 @@ class Cleanup(object):
 
         if glob.glob('*-mn-telemetry.txt'):
             os.system('rm *-mn-telemetry.txt')
-        if glob.glob('*.apconf'):
-            os.system('rm *.apconf')
-        if glob.glob('*.staconf'):
-            os.system('rm *.staconf')
-        if glob.glob('*wifiDirect.conf'):
-            os.system('rm *wifiDirect.conf')
-        if glob.glob('*.nodeParams'):
-            os.system('rm *.nodeParams')
 
         sixlowpan.cleanup_6lowpan()
 

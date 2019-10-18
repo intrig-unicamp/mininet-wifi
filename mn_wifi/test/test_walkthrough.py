@@ -368,6 +368,26 @@ class testWalkthrough(unittest.TestCase):
         p.sendline('exit')
         p.wait()
 
+    def testMobilityModel(self):
+        "Start Mininet-WiFi using mobility model, then test params"
+        p = pexpect.spawn(
+            'python examples/mobilityModel.py -m')
+        sleep(3)
+        p.sendline('py ap1.params[\'wlan\']')
+        wlans = ['ap1-wlan1', 'ap1-wlan2']
+        p.expect(wlans)
+        p.expect(self.prompt)
+        p.sendline('py ap1.params[\'stationsInRange\']')
+        stas = ['Station sta1', 'Station sta2']
+        p.expect(stas)
+        p.expect(self.prompt)
+        p.sendline('py ap1.params[\'ssid\']')
+        ssids = ['ssid1', 'ssid2']
+        p.expect(ssids)
+        p.expect(self.prompt)
+        p.sendline('exit')
+        p.wait()
+
     def testVirtualIface(self):
         "Start Mininet-WiFi using simplewifitopology, then test vif"
         p = pexpect.spawn(
@@ -429,7 +449,7 @@ class testWalkthrough(unittest.TestCase):
     def testHandover(self):
         "Start Mininet-WiFi with handover, then test handover"
         p = pexpect.spawn(
-            'python examples/handover.py -p')
+            'python examples/handover.py')
         sleep(2)
         p.sendline('sta1 iw dev sta1-wlan0 info | grep ssid')
         p.expect('ssid-ap1')
@@ -437,6 +457,75 @@ class testWalkthrough(unittest.TestCase):
         sleep(8)
         p.sendline('sta1 iw dev sta1-wlan0 info | grep ssid')
         p.expect('ssid-ap2')
+        p.expect(self.prompt)
+        p.sendline('exit')
+        p.wait()
+        p = pexpect.spawn(
+            'python examples/handover.py -s')
+        sleep(5)
+        p.sendline('py ap1.params[\'associatedStations\']')
+        p.expect('Station sta1')
+        p.expect(self.prompt)
+        p.sendline('py ap1.params[\'stationsInRange\']')
+        p.expect('Station sta1')
+        p.expect(self.prompt)
+        p.sendline('py ap2.params[\'associatedStations\']')
+        p.expect('Station sta2')
+        p.expect(self.prompt)
+        p.sendline('py ap2.params[\'stationsInRange\']')
+        p.expect('Station sta2')
+        p.expect(self.prompt)
+        p.sendline('py sta1.params[\'ssid\']')
+        p.expect('ssid-ap1')
+        p.expect(self.prompt)
+        p.sendline('py sta1.params[\'apsInRange\']')
+        p.expect('OVSAP ap1')
+        p.expect(self.prompt)
+        p.sendline('py sta1.params[\'associatedTo\']')
+        p.expect('OVSAP ap1')
+        p.expect(self.prompt)
+        p.sendline('py sta2.params[\'ssid\']')
+        p.expect('ssid-ap2')
+        p.expect(self.prompt)
+        p.sendline('py sta2.params[\'apsInRange\']')
+        p.expect('OVSAP ap2')
+        p.expect(self.prompt)
+        p.sendline('py sta2.params[\'associatedTo\']')
+        p.expect('OVSAP ap2')
+        p.expect(self.prompt)
+        p.sendline('py sta1.setPosition(\'40,30,0\')')
+        p.sendline('py ap1.params[\'associatedStations\']')
+        p.expect('Station sta1')
+        p.expect(self.prompt)
+        p.sendline('py ap1.params[\'stationsInRange\']')
+        p.expect('Station sta1')
+        p.expect(self.prompt)
+        p.sendline('py sta1.params[\'ssid\']')
+        p.expect('ssid-ap1')
+        p.expect(self.prompt)
+        p.sendline('py sta1.params[\'apsInRange\']')
+        aps = ['OVSAP ap1', 'OVSAP ap2']
+        p.expect(aps)
+        p.expect(self.prompt)
+        p.sendline('py sta1.params[\'associatedTo\']')
+        p.expect('OVSAP ap1')
+        p.expect(self.prompt)
+        p.sendline('py sta1.setPosition(\'70,30,0\')')
+        p.sendline('py sta1.params[\'ssid\']')
+        p.expect('ssid-ap2')
+        p.expect(self.prompt)
+        p.sendline('py sta1.params[\'apsInRange\']')
+        p.expect('OVSAP ap2')
+        p.expect(self.prompt)
+        p.sendline('py sta1.params[\'associatedTo\']')
+        p.expect('OVSAP ap2')
+        p.expect(self.prompt)
+        stas = ['Station sta1', 'Station sta2']
+        p.sendline('py ap2.params[\'associatedStations\']')
+        p.expect(stas)
+        p.expect(self.prompt)
+        p.sendline('py ap2.params[\'stationsInRange\']')
+        p.expect(stas)
         p.expect(self.prompt)
         p.sendline('exit')
         p.wait()
@@ -491,12 +580,14 @@ class testWalkthrough(unittest.TestCase):
 
     def testWmediumdWiFiDirect(self):
         "Start Mininet-WiFi using wifi direct, then test ping"
+        pexpect.spawn(
+            'service network-manager stop')
         p = pexpect.spawn(
             'python examples/wifiDirect.py')
         sleep(17)
         p.sendline('pingall')
-        p.expect('packets transmitted')
         p.expect(self.prompt)
+        p.sendline('sta1 ping -c1 sta2')
         p.sendline('sta1 ping -c1 sta2')
         p.expect('1 packets transmitted, 1 received')
         p.expect(self.prompt)

@@ -36,6 +36,7 @@ from mininet.util import (quietRun, errRun, errFail, mountCgroups,
 from mininet.node import Node
 from mininet.moduledeps import moduleDeps, pathCheck, TUN
 from mininet.link import Intf, OVSIntf
+from mn_wifi.devices import DeviceRate
 from mn_wifi.link import TCWirelessLink, TCLinkWirelessAP,\
     Association, wirelessLink, adhoc, mesh, physicalMesh, ITSLink
 from mn_wifi.wmediumdConnector import w_server, w_pos, w_txpower, \
@@ -151,11 +152,8 @@ class Node_wifi(Node):
                 self.params[kwarg] = []
                 self.params[kwarg].append(kwargs[kwarg])
 
-        link = None
-        if wmediumd_mode.mode != 4:
-            link = 'wmediumd'
         aps = [self]
-        AccessPoint(aps, 'nl80211', link=link, setMaster=True)
+        AccessPoint(aps, 'nl80211', setMaster=True)
 
     def setOCBMode(self, **params):
         ITSLink(self, **params)
@@ -372,19 +370,15 @@ class Node_wifi(Node):
 
     def get_txpower(self, iface):
         connected = self.cmd('iw dev %s link | awk \'{print $1}\'' % iface)
-        if connected != 'Not':
+        cmd = 'iw dev %s info | grep txpower | awk \'{print $2}\'' % iface
+        if connected != 'Not' or isinstance(self, AP):
             try:
-                txpower = int(self.cmd('iw dev %s info | grep txpower | '
-                                       'awk \'{print $2}\'' % iface))
+                txpower = int(self.cmd(cmd))
             except:
-                txpower = 20
-            return txpower
-        elif isinstance(self, AP):
-            try:
-                txpower = int(self.cmd('iw dev %s info | grep txpower | '
-                                       'awk \'{print $2}\'' % iface))
-            except:
-                txpower = 14
+                if isinstance(self, AP):
+                    txpower = 14
+                else:
+                    txpower = 20
             return txpower
 
     def get_distance_to(self, dst):
@@ -413,8 +407,8 @@ class Node_wifi(Node):
                 if self.params['associatedTo'][wlan]:
                     Association.disconnect(self, intf)
                     self.params['rssi'][0] = 0
-                Association.associate_infra(self, ap, **params)
-                wirelessLink(self, ap, wlan, 0, dist)
+                Association.associate_infra(self, ap, wlan, 0)
+                wirelessLink(self, wlan, dist)
             else:
                 info ('%s is already connected!\n' % ap)
             self.configLinks()
@@ -858,12 +852,12 @@ class AccessPoint(AP):
 
     write_mac = False
 
-    def __init__(self, aps, driver, link, setMaster=False, config=False):
+    def __init__(self, aps, driver, setMaster=False, config=False):
         'configure ap'
         if config:
             self.check_nm(aps, driver, setMaster)
         else:
-            self.configure(aps, link)
+            self.configure(aps)
 
     def check_nm(self, aps, driver, setMaster):
         for ap in aps:
@@ -887,7 +881,7 @@ class AccessPoint(AP):
                     break
         self.restartNetworkManager()
 
-    def configure(self, aps, link):
+    def configure(self, aps):
         """Configure APs
         :param aps: list of access points"""
         for ap in aps:
@@ -895,22 +889,21 @@ class AccessPoint(AP):
             if 'link' not in ap.params:
                 if 'phywlan' in ap.params:
                     for wlan in range(wlans):
-                        self.setConfig(ap, aps, wlan, link)
+                        self.setConfig(ap, aps, wlan)
                         if 'vssids' in ap.params:
                             break
                 for wlan in range(wlans):
-                    self.setConfig(ap, aps, wlan, link)
+                    self.setConfig(ap, aps, wlan)
                     if 'vssids' in ap.params:
                         break
 
-    def setConfig(self, ap, aplist=None, wlan=0, link=None, ssid=None):
+    def setConfig(self, ap, aplist=None, wlan=0):
         """Configure AP
         :param ap: ap node
         :param aplist: list of aps
-        :param wlan: wlan id
-        :param link: if wmediumd"""
+        :param wlan: wlan id"""
         ap.func[wlan] = 'ap'
-        if ap.params['ssid'][wlan] != '' or ssid:
+        if ap.params['ssid'][wlan]:
             if 'encrypt' in ap.params and 'config' not in ap.params:
                 if ap.params['encrypt'][wlan] == 'wpa':
                     ap.auth_algs = 1
@@ -943,21 +936,10 @@ class AccessPoint(AP):
             if ap.params['mode'][wlan] == 'adhoc':
                 ap.func[wlan] = 'adhoc'
             else:
-                self.setHostapdConfig(ap, wlan, aplist, link)
+                self.setHostapdConfig(ap, wlan, aplist)
 
-    def setHostapdConfig(self, ap, wlan, aplist=None, link=None):
-        "Set hostapd config"
-        cmd = ("echo \'")
-        args = ['max_num_sta', 'beacon_int', 'rsn_preauth']
-
-        if 'phywlan' in ap.params:
-            cmd = cmd + ("interface=%s" % ap.params.get('phywlan'))
-        else:
-            cmd = cmd + ("interface=%s" % ap.params['wlan'][wlan])
-
-        cmd = cmd + ("\ndriver=%s" % ap.params['driver'])
-        cmd = cmd + ("\nssid=%s" % ap.params['ssid'][wlan])
-        cmd = cmd + ('\nwds_sta=1')
+    def get_mode_config(self, ap, wlan):
+        cmd = ''
         if ap.params['mode'][wlan] == 'n':
             if 'band' in ap.params:
                 if ap.params['band'] == '5' or ap.params['band'] == 5:
@@ -979,6 +961,24 @@ class AccessPoint(AP):
             cmd = cmd + ("\nieee80211ax=1")
         else:
             cmd = cmd + ("\nhw_mode=%s" % ap.params['mode'][wlan])
+        return cmd
+
+    def setHostapdConfig(self, ap, wlan, aplist):
+        "Set hostapd config"
+        cmd = ("echo \'")
+        args = ['max_num_sta', 'beacon_int', 'rsn_preauth']
+
+        if 'phywlan' in ap.params:
+            cmd = cmd + ("interface=%s" % ap.params.get('phywlan'))
+        else:
+            cmd = cmd + ("interface=%s" % ap.params['wlan'][wlan])
+
+        cmd = cmd + ("\ndriver=%s" % ap.params['driver'])
+        cmd = cmd + ("\nssid=%s" % ap.params['ssid'][wlan])
+        cmd = cmd + ('\nwds_sta=1')
+
+        cmd += self.get_mode_config(ap, wlan)  # get mode
+
         cmd = cmd + ("\nchannel=%s" % ap.params['channel'][wlan])
 
         for arg in args:
@@ -999,7 +999,7 @@ class AccessPoint(AP):
                 for conf in config:
                     cmd = cmd + "\n" + conf
         else:
-            if 'authmode' in ap.params and ap.params['authmode'][0] == '8021x':
+            if 'authmode' in ap.params and ap.params['authmode'][wlan] == '8021x':
                 cmd = cmd + ("\nieee8021x=1")
                 cmd = cmd + ("\nwpa_key_mgmt=WPA-EAP")
                 if 'encrypt' in ap.params:
@@ -1013,10 +1013,10 @@ class AccessPoint(AP):
                     ap.params['radius_server'].append('127.0.0.1')
                 cmd = cmd + ("\nwpa_pairwise=TKIP CCMP")
                 cmd = cmd + ("\neapol_key_index_workaround=0")
-                cmd = cmd + ("\nown_ip_addr=%s" % ap.params['radius_server'][0])
+                cmd = cmd + ("\nown_ip_addr=%s" % ap.params['radius_server'][wlan])
                 cmd = cmd + ("\nnas_identifier=%s.example.com" % ap.name)
                 cmd = cmd + ("\nauth_server_addr=%s"
-                             % ap.params['radius_server'][0])
+                             % ap.params['radius_server'][wlan])
                 cmd = cmd + ("\nauth_server_port=1812")
                 if 'shared_secret' not in ap.params:
                     ap.params['shared_secret'] = 'secret'
@@ -1102,13 +1102,7 @@ class AccessPoint(AP):
             iface = ap.params['phywlan']
             ap.params.pop('phywlan', None)
 
-        setTC = True
-        if link:
-            if (isinstance(link, string_types) and link == 'wmediumd') or \
-                    (not isinstance(link, string_types) and
-                     str(link.__name__) == 'wmediumd'):
-                setTC = False
-        if setTC:
+        if wmediumd_mode.mode == 4:
             self.setBw(ap, wlan, iface)
 
         ap.params['freq'][wlan] = ap.get_freq(0)
@@ -1127,22 +1121,24 @@ class AccessPoint(AP):
                  'pfifo limit 1000' % (iface))
 
     def getRate(self, node, wlan):
-        "Get rate"
-        mode = node.params['mode'][wlan]
-
-        if mode == 'a':
-            rate = 54
-        elif mode == 'b':
-            rate = 11
-        elif mode == 'g':
-            rate = 54
-        elif mode == 'n':
-            rate = 300
-        elif mode == 'ac':
-            rate = 600
+        if 'model' in node.params:
+            return DeviceRate(node, wlan).rate
         else:
-            rate = 54
-        return rate
+            mode = node.params['mode'][wlan]
+
+            if mode == 'a':
+                rate = 54
+            elif mode == 'b':
+                rate = 11
+            elif mode == 'g':
+                rate = 54
+            elif mode == 'n':
+                rate = 300
+            elif mode == 'ac':
+                rate = 600
+            else:
+                rate = 54
+            return rate
 
     def verifyWepKey(self, wep_key0):
         "Check WEP key"

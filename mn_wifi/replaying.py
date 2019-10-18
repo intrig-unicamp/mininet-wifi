@@ -13,7 +13,6 @@ from mininet.log import info
 from mn_wifi.plot import plot2d, plot3d
 from mn_wifi.mobility import mobility
 from mn_wifi.link import wirelessLink
-from mn_wifi.devices import GetRate
 from mn_wifi.node import Station, AP
 
 
@@ -247,18 +246,6 @@ class replayingRSSI(object):
             except:
                 pass
         # sta.verifyingNodes(sta)
-
-    @classmethod
-    def calculateRate(cls, sta, ap, dist):
-        value = GetRate(sta=sta, ap=ap, wlan=0)
-        custombw = value.rate
-        rate = value.rate / 2.5
-
-        if 'model' not in ap.params.keys():
-            rate = custombw * (1.1 ** -dist)
-        if rate <= 0:
-            rate = 1
-        return rate
 
     def calculateDistance(self, sta, ap, rssi, propagationModel, n=32.0):
 

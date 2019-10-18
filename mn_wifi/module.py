@@ -196,7 +196,6 @@ class module(object):
                   % (params['ssh_user'], ip, dir, file, dir, file))
 
     def rename(self, node, wintf, newname):
-        "Rename interface"
         node.pexec('ip link set %s down' % wintf)
         node.pexec('ip link set %s name %s' % (wintf, newname))
         node.pexec('ip link set %s up' % newname)
@@ -275,7 +274,6 @@ class module(object):
 
     def get_wlan_iface(self, physicalWlan):
         """Build a new wlan list removing the physical wlan
-
         :param physicalWlans: list of Physical Wlans"""
         wlan_list = []
 

@@ -29,13 +29,13 @@ from mininet.nodelib import NAT
 from mininet.log import info, error, debug, output, warn
 
 from mn_wifi.node import AccessPoint, AP, Station, Car, \
-    OVSKernelAP
+    OVSKernelAP, physicalAP
 from mn_wifi.wmediumdConnector import error_prob, snr, interference
 from mn_wifi.link import wirelessLink, wmediumd, Association, \
     _4address, TCWirelessLink, TCLinkWirelessStation, ITSLink, \
     wifiDirectLink, adhoc, mesh, physicalMesh, physicalWifiDirectLink
 from mn_wifi.clean import Cleanup as cleanup_mnwifi
-from mn_wifi.devices import GetRate, GetRange
+from mn_wifi.devices import CustomRate, DeviceRange
 from mn_wifi.telemetry import parseData, telemetry as run_telemetry
 from mn_wifi.mobility import tracked as trackedMob, model as mobModel, mobility as mob
 from mn_wifi.plot import plot2d, plot3d, plotGraph
@@ -369,7 +369,7 @@ class Mininet_wifi(Mininet):
             self.nextPos_ap += 100
 
         wlan = None
-        if cls and cls.__name__ == 'physicalAP':
+        if cls and issubclass(cls, physicalAP):
             wlan = ("%s" % params.pop('phywlan', {}))
             cls = self.accessPoint
         if not cls:
@@ -600,27 +600,20 @@ class Mininet_wifi(Mininet):
         if sta_wlan:
             wlan = sta_wlan
         params['wlan'] = wlan
+
         # If sta/ap have position
         doAssociation = True
         if 'position' in sta.params and 'position' in ap.params:
             dist = sta.get_distance_to(ap)
-            if dist > ap.params['range'][ap_wlan]:
+            if dist <= ap.params['range'][ap_wlan]:
                 doAssociation = False
         if doAssociation:
-            sta.params['mode'][wlan] = ap.params['mode'][ap_wlan]
-            sta.params['channel'][wlan] = ap.params['channel'][ap_wlan]
+            Association.associate(sta, ap, wlan, ap_wlan)
 
-            if not self.topo:
-                params['printCon'] = True
-            params['doAssociation'] = True
-            Association.associate(sta, ap, **params)
-
-            if 'TCWirelessLink' in str(self.link.__name__):
+            if issubclass(self.link, TCWirelessLink):
                 if 'bw' not in params and 'bw' not in str(cls) and \
                         not self.ifb:
-                    value = self.getDataRate(sta, ap, **params)
-                    bw = value.rate
-                    params['bw'] = bw
+                    params['bw'] = CustomRate(sta, wlan).rate
                 # tc = True, this is useful only to apply tc configuration
                 link = cls(name=sta.params['wlan'][wlan], node=sta,
                            tc=True, **params)
@@ -776,6 +769,7 @@ class Mininet_wifi(Mininet):
 
         if self.inNamespace:
             self.configureControlNetwork()
+
         info('*** Configuring nodes\n')
         self.configHosts()
         if self.xterms:
@@ -1536,8 +1530,8 @@ class Mininet_wifi(Mininet):
         else:
             for _ in range(0, wlans):
                 if 'model' in node.params:
-                    range_ = GetRange(node=node)
-                    node.params['range'].append(range_.value)
+                    range_ = DeviceRange(node).range
+                    node.params['range'].append(range_)
                 else:
                     node.params['range'].append(0)
 
@@ -1774,10 +1768,10 @@ class Mininet_wifi(Mininet):
             sixLoWPAN_module(self.sixLP, sixlowpan.n_wpans)
         self.configureWirelessLink()
         self.createVirtualIfaces(self.stations)
-        AccessPoint(self.aps, self.driver, self.link, config=True)
+        AccessPoint(self.aps, self.driver, config=True)
         if self.link == wmediumd:
             self.configureWmediumd()
-        AccessPoint(self.aps, self.driver, self.link)
+        AccessPoint(self.aps, self.driver)
 
         setParam = True
         if self.wmediumd_mode == interference and not self.isVanet:
@@ -1901,12 +1895,6 @@ class Mininet_wifi(Mininet):
         "Configure mobility parameters"
         args[0].isStationary = False
         mob.configure(*args, **kwargs)
-
-    @staticmethod
-    def getDataRate(sta=None, ap=None, **params):
-        "Set the rate"
-        value = GetRate(sta=sta, ap=ap, **params)
-        return value
 
     @staticmethod
     def setChannelEquation(**params):

@@ -9,7 +9,7 @@ from sys import version_info as py_version_info
 from six import string_types
 
 from mininet.log import info, error, debug
-from mn_wifi.devices import GetRate
+from mn_wifi.devices import CustomRate
 from mn_wifi.manetRoutingProtocols import manetProtocols
 from mn_wifi.wmediumdConnector import DynamicIntfRef, \
     w_starter, SNRLink, w_txpower, w_pos, \
@@ -542,8 +542,7 @@ class _4address(IntfWireless):
                                                  ap.params['ssid'][apwlan],
                                                  ap.params['mac'][apwlan]))
 
-            params1 = {}
-            params2 = {}
+            params1, params2 = {}, {}
             params1['port'] = cl.newPort()
             params2['port'] = ap.newPort()
             intf1 = IntfWireless(name=cl_intfName, node=cl, link=self, **params1)
@@ -797,24 +796,23 @@ class wmediumd(TCWirelessLink):
         cls.nodes = stations + aps + cars
         for node in cls.nodes:
             node.wmIface = []
-            for wlan in range(0, len(node.params['wlan'])):
-                if wlan < len(node.params['mac']):
-                    node.wmIface.append(wlan)
-                    node.wmIface[wlan] = DynamicIntfRef(node, intf=wlan)
-                    intfrefs.append(node.wmIface[wlan])
-                    if (node.func[wlan] == 'ap'
-                        or (node in aps and (node.func[wlan] is not 'client'
-                                             and node.func[wlan] is not 'adhoc'))):
-                        isnodeaps.append(1)
-                    else:
-                        isnodeaps.append(0)
-            for n in maclist:
-                for key in n:
+            for wlan in range(0, len(node.params['mac'])):
+                node.wmIface.append(wlan)
+                node.wmIface[wlan] = DynamicIntfRef(node, intf=wlan)
+                intfrefs.append(node.wmIface[wlan])
+                if (node.func[wlan] == 'ap'
+                    or (node in aps and (node.func[wlan] is not 'client'
+                                         and node.func[wlan] is not 'adhoc'))):
+                    isnodeaps.append(1)
+                else:
+                    isnodeaps.append(0)
+            for mac in maclist:
+                for key in mac:
                     if key == node:
                         key.wmIface.append(DynamicIntfRef(key, intf=len(key.wmIface)))
                         key.func.append('none')
-                        key.params['wlan'].append(n[key][1])
-                        key.params['mac'].append(n[key][0])
+                        key.params['wlan'].append(mac[key][1])
+                        key.params['mac'].append(mac[key][0])
                         key.params['range'].append(0)
                         key.params['freq'].append(key.params['freq'][0])
                         key.params['antennaGain'].append(0)
@@ -923,16 +921,11 @@ class wirelessLink(object):
     equationBw = ' * (1.01 ** -dist)'
     ifb = False
 
-    def __init__(self, sta=None, ap=None, dist=0, **params):
-        """":param sta: station
-        :param ap: access point
-        :param wlan: wlan ID
-        :param dist: distance between source and destination"""
-        wlan = params['wlan']
+    def __init__(self, node, wlan=0, dist=0):
         latency_ = self.getLatency(dist)
         loss_ = self.getLoss(dist)
-        bw_ = self.getBW(sta=sta, ap=ap, dist=dist, **params)
-        self.config_tc(sta, wlan, bw_, loss_, latency_)
+        bw_ = self.getBW(node, wlan, dist)
+        self.config_tc(node, wlan, bw_, loss_, latency_)
 
     def getDelay(self, dist):
         "Based on RandomPropagationDelayModel"
@@ -944,9 +937,9 @@ class wirelessLink(object):
     def getLoss(self, dist):
         return eval(self.equationLoss)
 
-    def getBW(self, sta=None, ap=None, dist=0, **params):
-        value = GetRate(sta=sta, ap=ap, **params)
-        custombw = value.rate
+    def getBW(self, node, wlan, dist):
+        # dist is used by eval
+        custombw = CustomRate(node, wlan).rate
         rate = eval(str(custombw) + self.equationBw)
 
         if rate <= 0.0:
@@ -964,12 +957,6 @@ class wirelessLink(object):
 
     @classmethod
     def config_tc(cls, node, wlan, bw, loss, latency):
-        """config_tc
-        :param node: node
-        :param wlan: wlan ID
-        :param bw: bandwidth (mbps)
-        :param loss: loss (%)
-        :param latency: latency (ms)"""
         if cls.ifb:
             iface = 'ifb%s' % node.ifb[wlan]
             cls.tc(node, iface, bw, loss, latency)
@@ -1330,20 +1317,18 @@ class Association(IntfWireless):
                                          sta.wmIface[0], snr))
 
     @classmethod
-    def configureWirelessLink(cls, sta, ap, **params):
+    def configureWirelessLink(cls, sta, ap, wlan, ap_wlan):
         dist = sta.get_distance_to(ap)
-        wlan = params['wlan']
         if dist <= ap.params['range'][0]:
             if not wmediumd_mode.mode == w_cst.INTERFERENCE_MODE:
                 if sta.params['rssi'][wlan] == 0:
                     cls.updateParams(sta, ap, wlan)
-            if ('doAssociation' in params and ap != sta.params['associatedTo'][wlan]) or \
-                    (not sta.params['associatedTo'][wlan]
-                     and ap not in sta.params['associatedTo']):
-                cls.associate_infra(sta, ap, **params)
+            if ap not in sta.params['associatedTo'] or \
+                    not sta.params['associatedTo'][wlan]:
+                cls.associate_infra(sta, ap, wlan, ap_wlan, False)
                 if wmediumd_mode.mode == w_cst.WRONG_MODE:
                     if dist >= 0.01:
-                        wirelessLink(sta, ap, dist, **params)
+                        wirelessLink(sta, wlan, dist)
                 if sta not in ap.params['associatedStations']:
                     ap.params['associatedStations'].append(sta)
             if not wmediumd_mode.mode == w_cst.INTERFERENCE_MODE:
@@ -1365,12 +1350,12 @@ class Association(IntfWireless):
         sta.params['ssid'][wlan] = ap.params['ssid'][0]
 
     @classmethod
-    def associate(cls, sta, ap, **params):
+    def associate(cls, sta, ap, wlan, ap_wlan):
         "Associate to Access Point"
         if 'position' in sta.params:
-            cls.configureWirelessLink(sta, ap, **params)
+            cls.configureWirelessLink(sta, ap, wlan, ap_wlan)
         else:
-            cls.associate_infra(sta, ap, **params)
+            cls.associate_infra(sta, ap, wlan, ap_wlan)
 
     @classmethod
     def associate_noEncrypt(cls, sta, ap, wlan, ap_wlan):
@@ -1395,9 +1380,7 @@ class Association(IntfWireless):
         node.params['channel'][wlan] = 0
 
     @classmethod
-    def associate_infra(cls, sta, ap, **params):
-        wlan = params['wlan']
-        ap_wlan = params['ap_wlan']
+    def associate_infra(cls, sta, ap, wlan, ap_wlan):
         associated = 0
 
         if 'ieee80211r' in ap.params and ap.params['ieee80211r'] == 'yes' \
@@ -1426,9 +1409,6 @@ class Association(IntfWireless):
                 elif ap.params['encrypt'][ap_wlan] == 'wep':
                     cls.wep(sta, ap, wlan, ap_wlan)
                     associated = 1
-        if 'printCon' in params:
-            iface = sta.params['wlan'][wlan]
-            info("Associating %s to %s\n" % (iface, ap))
         if associated:
             cls.update(sta, ap, wlan)
 
