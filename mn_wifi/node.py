@@ -1099,15 +1099,15 @@ class AccessPoint(AP):
 
         iface = ap.params['wlan'][wlan]
         if 'phywlan' in ap.params:
-            iface = ap.params['phywlan']
+            intf = ap.params['phywlan']
             ap.params.pop('phywlan', None)
 
         if wmediumd_mode.mode == 4:
-            self.setBw(ap, wlan, iface)
+            self.setBw(ap, wlan, intf)
 
         ap.params['freq'][wlan] = ap.get_freq(0)
 
-    def setBw(self, node, wlan, iface):
+    def setBw(self, node, wlan, intf):
         "Set bw"
         if 'bw' in node.params:
             bw = node.params['bw'][wlan]
@@ -1115,10 +1115,10 @@ class AccessPoint(AP):
             bw = self.getRate(node, wlan)
         node.cmd("tc qdisc replace dev %s \
                 root handle 2: tbf rate %sMbit burst 15000 "
-                 "latency 1ms" % (iface, bw))
+                 "latency 1ms" % (intf, bw))
         # Reordering packets
         node.cmd('tc qdisc add dev %s parent 2:1 handle 10: '
-                 'pfifo limit 1000' % (iface))
+                 'pfifo limit 1000' % (intf))
 
     def getRate(self, node, wlan):
         if 'model' in node.params:
@@ -1227,7 +1227,7 @@ class AccessPoint(AP):
         "run an Access Point and create the config file"
         intf = ap.params['wlan'][wlan]
         if 'phywlan' in ap.params:
-            iface = ap.params['phywlan']
+            intf = ap.params['phywlan']
             ap.cmd('ip link set %s down' % intf)
             ap.cmd('ip link set %s up' % intf)
         apconfname = "mn%d_%s.apconf" % (os.getpid(), intf)
