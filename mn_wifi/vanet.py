@@ -342,6 +342,9 @@ class vanet(object):
             com_lines[0].remove()
             del com_lines[0]
 
+        while mobility.pause_simulation:
+            pass
+
         # iterate over each car
         for car in cars:
             # get all the properties of the car
