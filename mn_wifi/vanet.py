@@ -41,34 +41,33 @@ class vanet(object):
     interY = {}
     time_per_iteration = 100 * math.pow(10, -3)
 
-    def __init__(self, **params):
+    def __init__(self, **kwargs):
         from mn_wifi.mobility import mobility
         mobility.thread_ = thread(name='vanet', target=self.start,
-                                  kwargs=dict(params,))
+                                  kwargs=kwargs)
         mobility.thread_.daemon = True
         mobility.thread_._keep_alive = True
         mobility.thread_.start()
 
-    def start(self, **params):
+    def start(self, cars, aps, roads, conn,
+              min_x, min_y, max_x, max_y, **kwargs):
         'start topology'
         from mn_wifi.mobility import mobility
 
-        cars = params['cars']
         mobility.stations = cars
-        mobility.aps = params['aps']
         mobility.mobileNodes = cars
-        [self.roads.append(x) for x in range(params['nroads'])]
-        [self.points.append(x) for x in range(params['nroads'])]
-        plot2d.instantiateGraph(params['min_x'], params['min_y'],
-                                params['max_x'], params['max_y'])
+        mobility.aps = aps
+        [self.roads.append(x) for x in range(roads)]
+        [self.points.append(x) for x in range(roads)]
+        plot2d.instantiateGraph(min_x, min_y, max_x, max_y)
 
-        self.display_grid(params['aps'], params['conn'], params['nroads'])
+        self.display_grid(aps, conn, roads)
         self.display_cars(cars)
         plot2d.plotGraph(cars, [])
         self.setWifiParameters(mobility)
         while mobility.thread_._keep_alive:
             [self.scatter, self.com_lines] = \
-                self.simulate_car_movement(cars, params['aps'], self.scatter,
+                self.simulate_car_movement(cars, aps, self.scatter,
                                            self.com_lines, mobility)
             sleep(0.0001)
 

@@ -75,7 +75,6 @@ class Node_wifi(Node):
         self.nameToIntf = {}  # dict of interface names to Intfs
 
         self.func = []
-        self.isStationary = True
 
         # Make pylint happy
         (self.shell, self.execed, self.pid, self.stdin, self.stdout,
@@ -226,12 +225,10 @@ class Node_wifi(Node):
         self.params['txpower'][wlan] = self.get_txpower_prop_model(0)
         txpower = self.params['txpower'][wlan]
         self.setTxPower(txpower, intf=self.params['wlan'][wlan])
-        if self.isStationary:
-            self.updateGraph()
-            self.configLinks()
-        else:
-            if plot2d.fig_exists():
-                plot2d.updateCircleRadius(self)
+        self.updateGraph()
+        self.configLinks()
+        if plot2d.fig_exists():
+            plot2d.updateCircleRadius(self)
 
     def updateGraph(self):
         "Update the Graph"
