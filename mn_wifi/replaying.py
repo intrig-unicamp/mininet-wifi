@@ -55,7 +55,7 @@ class replayingMobility(object):
                 if 'position' in node.params and node not in mobility.aps:
                     mobility.aps.append(node)
 
-        if Mininet_wifi.DRAW:
+        if Mininet_wifi.draw:
             Mininet_wifi.isReplaying=False
             Mininet_wifi.checkDimension(nodes)
             plot = plot2d
@@ -85,9 +85,9 @@ class replayingMobility(object):
                     if len(node.position) == 0:
                         nodes.remove(node)
                     mobility.configLinks()
-                    if Mininet_wifi.DRAW:
+                    if Mininet_wifi.draw:
                         plot.update(node)
-            if Mininet_wifi.DRAW:
+            if Mininet_wifi.draw:
                 plot.pause()
 
     @classmethod
@@ -239,7 +239,7 @@ class replayingRSSI(object):
         y = float('%.2f' % (dist * sin(ang) + int(ap.params['position'][1])))
         sta.params['position'] = x, y, 0
         mobility.configLinks(sta)
-        if Mininet_wifi.DRAW:
+        if Mininet_wifi.draw:
             try:
                 plot2d.update(sta)
             except:
