@@ -40,7 +40,6 @@ class Node_6lowpan(Node):
         self.nameToIntf = {}  # dict of interface names to Intfs
 
         self.func = []
-        self.isStationary = True
 
         # Make pylint happy
         (self.shell, self.execed, self.pid, self.stdin, self.stdout,

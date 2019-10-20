@@ -15,9 +15,8 @@ from mn_wifi.wmediumdConnector import interference
 def topology():
 
     "Create a network."
-    net = Mininet_wifi(controller=Controller,
-                       link=wmediumd,
-                       wmediumd_mode=interference)
+    net = Mininet_wifi(controller=Controller, roads=10,
+                       link=wmediumd, wmediumd_mode=interference)
 
     info("*** Creating nodes\n")
     cars = []
@@ -53,8 +52,6 @@ def topology():
                     cls=mesh, ssid='mesh-ssid', channel=5)
 
     net.plotGraph(max_x=500, max_y=500)
-
-    net.roads(10)
 
     net.startMobility(time=0)
 
