@@ -783,7 +783,7 @@ class Mininet_wifi(Mininet):
                         node.func[wlan] != 'mesh' and \
                                 node.func[wlan] != 'adhoc' and \
                                 node.func[wlan] != 'wifiDirect':
-                    if isinstance(node, Station):
+                    if isinstance(node, Station) and not node.range:
                         node.params['range'][wlan] = \
                             int(node.params['range'][wlan]) / 5
 
@@ -1523,6 +1523,7 @@ class Mininet_wifi(Mininet):
         node.params['range'] = []
         if 'range' in params:
             range_list = str(params['range']).split(',')
+            node.range = True  # if range is set manually
             for value in range_list:
                 wlan = range_list.index(value)
                 node.params['range'].append(float(value))
