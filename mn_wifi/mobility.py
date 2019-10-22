@@ -265,96 +265,85 @@ class model(mobility):
     def start_thread(self, **kwargs):
         debug('Starting mobility thread...\n')
         mobility.thread_ = thread(name='mobModel', target=self.models,
-                                  kwargs=dict(kwargs, ))
+                                  kwargs=kwargs)
         mobility.thread_.daemon = True
         mobility.thread_._keep_alive = True
         mobility.thread_.start()
         mobility.set_wifi_params()
 
-    def models(self, **kwargs):
+    def models(self, stations=None, aps=None, stat_nodes=None, mob_nodes=None,
+               ac_method=None, draw=False, seed=1, model='RandomWalk',
+               plotNodes=None, min_wt=5, max_wt=5, min_x=0, min_y=0,
+               max_x=100, max_y=100, conn=None, min_v=1, max_v=10,
+               **kwargs):
         "Used when a mobility model is set"
-        np.random.seed(kwargs['seed'])
-        if 'ac_method' in kwargs:
-            mobility.ac = kwargs['ac_method']
+        np.random.seed(seed)
+        if ac_method:
+            mobility.ac = ac_method
         mobility.stations, mobility.mobileNodes, mobility.aps = \
-            kwargs['stations'], kwargs['stations'], kwargs['aps']
+            stations, stations, aps
 
-        plotNodes = []
-        if 'plotNodes' in kwargs:
-            plotNodes = kwargs['plotNodes']
-        nodes = mobility.stations + mobility.aps + plotNodes
+        if plotNodes:
+            stat_nodes += plotNodes
 
-        for node in nodes:
-            if 'position' in node.params:
-                if not hasattr(node, 'min_x'):
-                    node.min_x = 0
-                if not hasattr(node, 'min_y'):
-                    node.min_y = 0
-                args = ['max_x', 'max_y', 'min_v', 'max_v']
-                for arg in args:
-                    if arg in kwargs and not hasattr(node, arg):
-                        setattr(node, arg, float(kwargs[arg]))
+        for node in mob_nodes:
+            if not hasattr(node, 'min_x'):
+                node.min_x = 0
+            if not hasattr(node, 'min_y'):
+                node.min_y = 0
+            args = ['max_x', 'max_y', 'min_v', 'max_v']
+            for arg in args:
+                if not hasattr(node, arg):
+                    setattr(node, arg, eval(arg))
 
         try:
-            if kwargs['DRAW']:
-                nodes_ = kwargs['nodes']
-                kwargs['nodes'] = nodes
-                plotGraph(**kwargs)
+            if draw:
+                nodes = mob_nodes + stat_nodes
+                plotGraph(min_x=min_x, min_y=min_y, min_z=0,
+                          max_x=max_x, max_y=max_y, max_z=0,
+                          nodes=nodes, conn=conn)
                 plot2d.pause()
-                kwargs['nodes'] = nodes_
         except:
             info('Warning: running without GUI.\n')
-            kwargs['DRAW'] = False
 
-        if kwargs['nodes']:
-            model = kwargs['model']
-            debug('Configuring the mobility model %s\n' % kwargs['model'])
+        debug('Configuring the mobility model %s\n' % model)
+        if model == 'RandomWalk':  # Random Walk model
+            for node in mob_nodes:
+                array_ = ['constantVelocity', 'constantDistance']
+                for param in array_:
+                    if not hasattr(node, param):
+                        setattr(node, param, 1)
+            mob = random_walk(mob_nodes)
+        elif model == 'TruncatedLevyWalk':  # Truncated Levy Walk model
+            mob = truncated_levy_walk(mob_nodes)
+        elif model == 'RandomDirection':  # Random Direction model
+            mob = random_direction(mob_nodes, dimensions=(max_x, max_y))
+        elif model == 'RandomWayPoint':  # Random Waypoint model
+            for node in mob_nodes:
+                array_ = ['constantVelocity', 'constantDistance',
+                          'min_v', 'max_v']
+                for param in array_:
+                    if not hasattr(node, param):
+                        setattr(node, param, '1')
+            mob = random_waypoint(mob_nodes, wt_min=min_wt, wt_max=max_wt)
+        elif model == 'GaussMarkov':  # Gauss-Markov model
+            mob = gauss_markov(mob_nodes, alpha=0.99)
+        elif model == 'ReferencePoint':  # Reference Point Group model
+            mob = reference_point_group(mob_nodes, dimensions=(max_x, max_y),
+                                        aggregation=0.5)
+        elif model == 'TimeVariantCommunity':
+            mob = tvc(mob_nodes, dimensions=(max_x, max_y),
+                      aggregation=[0.5, 0.], epoch=[100, 100])
+        else:
+            raise Exception("Mobility Model not defined or doesn't exist!")
 
-            if model == 'RandomWalk':  # Random Walk model
-                for node in nodes:
-                    array_ = ['constantVelocity', 'constantDistance']
-                    for param in array_:
-                        if not hasattr(node, param):
-                            setattr(node, param, 1)
-                mob = random_walk(kwargs['nodes'])
-            elif model == 'TruncatedLevyWalk':  # Truncated Levy Walk model
-                mob = truncated_levy_walk(kwargs['nodes'])
-            elif model == 'RandomDirection':  # Random Direction model
-                mob = random_direction(kwargs['nodes'],
-                                       dimensions=(kwargs['max_x'],
-                                                   kwargs['max_y']))
-            elif model == 'RandomWayPoint':  # Random Waypoint model
-                for node in nodes:
-                    array_ = ['constantVelocity', 'constantDistance',
-                              'min_v', 'max_v']
-                    for param in array_:
-                        if not hasattr(node, param):
-                            setattr(node, param, '1')
-                mob = random_waypoint(kwargs['nodes'],
-                                      wt_min=kwargs['min_wt'],
-                                      wt_max=kwargs['max_wt'])
-            elif model == 'GaussMarkov':  # Gauss-Markov model
-                mob = gauss_markov(kwargs['nodes'], alpha=0.99)
-            elif model == 'ReferencePoint':  # Reference Point Group model
-                mob = reference_point_group(kwargs['nodes'],
-                                            dimensions=(kwargs['max_x'],
-                                                        kwargs['max_y']),
-                                            aggregation=0.5)
-            elif model == 'TimeVariantCommunity':
-                mob = tvc(kwargs['nodes'],
-                          dimensions=(kwargs['max_x'],
-                                      kwargs['max_y']),
-                          aggregation=[0.5, 0.], epoch=[100, 100])
-            else:
-                raise Exception("Mobility Model not defined or doesn't exist!")
+        current_time = time()
+        while (time() - current_time) < kwargs['time']:
+            pass
 
-            current_time = time()
-            while (time() - current_time) < kwargs['time']:
-                pass
+        self.start_mob_mod(mob, mob_nodes, draw)
 
-            self.start_mob_mod(mob, kwargs['nodes'], kwargs['DRAW'])
-
-    def start_mob_mod(self, mob, nodes, graph):
+    def start_mob_mod(self, mob, nodes, draw):
         """
         :param mob: mobility params
         :param nodes: list of nodes
@@ -365,9 +354,9 @@ class model(mobility):
                       round(xy[idx][1], 2), \
                       0.0
                 mobility.set_pos(node, pos)
-                if graph:
+                if draw:
                     plot2d.update(node)
-            if graph:
+            if draw:
                 plot2d.pause()
             else:
                 sleep(0.5)
@@ -379,61 +368,64 @@ class tracked(mobility):
     "Used when the position of each node is previously defined"
 
     def __init__(self, **kwargs):
-        mobility.end_time = kwargs['final_time']
         self.start_thread(**kwargs)
 
     def start_thread(self, **kwargs):
         debug('Starting mobility thread...\n')
-        mobility.thread_ = thread(target=self.configure, kwargs=(kwargs))
+        mobility.thread_ = thread(target=self.configure,
+                                  kwargs=(kwargs))
         mobility.thread_.daemon = True
         mobility.thread_._keep_alive = True
         mobility.thread_.start()
         mobility.set_wifi_params()
 
-    def configure(self, **kwargs):
-        if 'ac_method' in kwargs:
-            mobility.ac = kwargs['ac_method']
-        mobility.stations = kwargs['stations']
-        mobility.aps = kwargs['aps']
-        nodes = mobility.stations + mobility.aps + kwargs['plotNodes']
+    def configure(self, stations=None, aps=None, stat_nodes=None, mob_nodes=None,
+                  ac_method=None, plotNodes=None, draw=False, final_time=10,
+                  **kwargs):
+        if ac_method:
+            mobility.ac = ac_method
+
+        mobility.end_time = final_time
+        mobility.stations = stations
+        mobility.aps = aps
+        mobility.mobileNodes = mob_nodes
+        nodes = stations + aps
         plot = plot2d
 
-        stationaryNodes = []
-        for node in nodes:
-            if 'position' in node.params and 'initPos' not in node.params:
-                stationaryNodes.append(node)
-            if 'initPos' in node.params:
-                node.params['position'] = node.params['initPos']
-                mobility.mobileNodes.append(node)
+        if plotNodes:
+            nodes += plotNodes
 
-        kwargs['nodes'] = mobility.mobileNodes + stationaryNodes
+        for node in mob_nodes:
+            node.params['position'] = node.params['initPos']
+
         try:
-            if kwargs['DRAW']:
+            if draw:
+                kwargs['nodes'] = stat_nodes + mob_nodes
                 plotGraph(**kwargs)
                 if kwargs['max_z'] != 0:
                     plot = plot3d
         except:
             info('Warning: running without GUI.\n')
-            kwargs['DRAW'] = False
 
         for node in nodes:
             if hasattr(node, 'coord'):
                 self.set_coordinates(node)
+        self.run(mob_nodes, plot, draw, **kwargs)
 
-        self.run(plot, **kwargs)
+    def run(self, mob_nodes, plot, draw, init_time=0, reverse=False,
+            repetitions=1, **kwargs):
 
-    def run(self, plot, **kwargs):
-        for rep in range(kwargs['repetitions']):
+        for rep in range(repetitions):
             cont = True
             t1 = time()
             i = 1
-            if 'reverse' in kwargs and kwargs['reverse']:
-                for node in mobility.mobileNodes:
+            if reverse:
+                for node in mob_nodes:
                     if rep % 2 == 1 or (rep % 2 == 0 and rep > 0):
                         fin_ = node.params['finPos']
                         node.params['finPos'] = node.params['initPos']
                         node.params['initPos'] = fin_
-            for node in mobility.mobileNodes:
+            for node in mob_nodes:
                 node.matrix_id = 0
                 node.time = node.startTime
                 mobility.calculate_diff_time(node)
@@ -441,11 +433,11 @@ class tracked(mobility):
                 t2 = time()
                 if (t2 - t1) > mobility.end_time:
                     cont = False
-                    if rep == kwargs['repetitions']:
+                    if rep == repetitions:
                         mobility.thread_._keep_alive = False
-                if (t2 - t1) >= kwargs['init_time']:
+                if (t2 - t1) >= init_time:
                     if t2 - t1 >= i:
-                        for node in mobility.mobileNodes:
+                        for node in mob_nodes:
                             if (t2 - t1) >= node.startTime and node.time <= node.endTime:
                                 if hasattr(node, 'coord'):
                                     node.matrix_id += 1
@@ -457,7 +449,7 @@ class tracked(mobility):
                                     pos = self.move_node(node)
                                 mobility.set_pos(node, pos)
                                 node.time += 1
-                            if kwargs['DRAW']:
+                            if draw:
                                 plot.update(node)
                                 if kwargs['max_z'] == 0:
                                     plot2d.updateCircleRadius(node)
