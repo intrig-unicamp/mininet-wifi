@@ -777,12 +777,11 @@ class Mininet_wifi(Mininet):
         if self.autoStaticArp:
             self.staticArp()
 
+        func = ['adhoc', 'mesh', 'wifiDirect']
         for node in self.stations:
             for wlan in range(0, len(node.params['wlan'])):
-                if not isinstance(node, AP) and node.func[0] != 'ap' and \
-                        node.func[wlan] != 'mesh' and \
-                                node.func[wlan] != 'adhoc' and \
-                                node.func[wlan] != 'wifiDirect':
+                if not isinstance(node, AP) and node.func[0] != 'ap' \
+                        and node.func[wlan] not in func:
                     if isinstance(node, Station) and not hasattr(node, 'range'):
                         node.params['range'][wlan] = \
                             int(node.params['range'][wlan]) / 5
