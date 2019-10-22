@@ -783,7 +783,8 @@ class Mininet_wifi(Mininet):
                         node.func[wlan] != 'mesh' and \
                                 node.func[wlan] != 'adhoc' and \
                                 node.func[wlan] != 'wifiDirect':
-                    if isinstance(node, Station) and not node.range:
+                    if isinstance(node, Station) and \
+                            (hasattr(node, 'range') and not node.range):
                         node.params['range'][wlan] = \
                             int(node.params['range'][wlan]) / 5
 
