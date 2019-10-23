@@ -536,11 +536,8 @@ class Mininet_wifi(Mininet):
                     link = cls(node1, node2)
                     self.links.append(link)
                     return link
-        elif ((node1 in (self.stations or self.cars) and node2 in self.aps)
-              or (node2 in (self.stations or self.cars) and node1 in self.aps)) and \
-                        'link' not in options:
-            self.infraAssociation(node1, node2, port1, port2, cls, **params)
-        elif 'wifi' in params:
+        elif ((node1 in self.stations and node2 in self.aps)
+              or (node2 in self.stations and node1 in self.aps)) and 'link' not in options:
             self.infraAssociation(node1, node2, port1, port2, cls, **params)
         else:
             if 'link' in options:
@@ -572,33 +569,17 @@ class Mininet_wifi(Mininet):
 
     def infraAssociation(self, node1, node2, port1=None, port2=None,
                          cls=None, **params):
-        sta = node2
-        ap = node1
-        sta_wlan = None
-        ap_wlan = 0
 
-        if port2:
-            sta_wlan = port2
-        if port1:
-            ap_wlan = port1
-        params['ap_wlan'] = ap_wlan
-
-        if 'wifi' in params:
-            if node2.name == params['wifi']:
-                ap = node2
-                sta = node1
-        else:
-            if node1 in self.stations and node2 in self.aps:
-                sta = node1
-                ap = node2
-                if port1:
-                    sta_wlan = port1
-                if port2:
-                    ap_wlan = port2
+        ap = node1 if node1 in self.aps else node2
+        sta = node1 if node2 in self.aps else node2
 
         wlan = 0
-        if sta_wlan:
-            wlan = sta_wlan
+        ap_wlan = 0
+        if port1 and port2:
+            ap_wlan = port1 if node1 in self.aps else port2
+            wlan = port1 if node2 in self.aps else port2
+
+        params['ap_wlan'] = ap_wlan
         params['wlan'] = wlan
 
         # If sta/ap have position
@@ -614,7 +595,7 @@ class Mininet_wifi(Mininet):
                 if 'bw' not in params and 'bw' not in str(cls) and \
                         not self.ifb:
                     params['bw'] = CustomRate(sta, wlan).rate
-                # tc = True, this is useful only to apply tc configuration
+                # tc = True, this is useful for tc configuration
                 link = cls(name=sta.params['wlan'][wlan], node=sta,
                            tc=True, **params)
                 # self.links.append(link)
