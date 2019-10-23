@@ -776,7 +776,7 @@ class Mininet_wifi(Mininet):
         if not self.mob_check:
             self.check_if_mob()
 
-        nodes = self.stations
+        nodes = self.stations + self.aps + self.cars
         battery_nodes = []
         for node in nodes:
             if 'battery' in node.params:
