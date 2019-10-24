@@ -1004,10 +1004,7 @@ class ITSLink(IntfWireless):
         node.func[wlan] = 'its'
 
     def kill_hostapd(self, node, intf):
-        node.cmd('iw dev %s set type managed' % intf)
-        apconfname = "mn%d_%s.apconf" % (os.getpid(), intf)
-        node.cmd('rm %s' % apconfname)
-        node.cmd('pkill -f \'%s\'' % apconfname)
+        node.setManagedMode(intf)
 
     def add_ocb_mode(self, new_name):
         "Set OCB Interface"

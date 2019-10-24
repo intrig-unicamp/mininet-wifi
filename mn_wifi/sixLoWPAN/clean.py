@@ -24,7 +24,7 @@ class Cleanup(object):
            do fast stuff before slow dp and link removal!"""
 
         try:
-            info("***  Removing fakelb module and Configurations\n")
+            info("*** Removing fakelb module and Configurations\n")
             co("lsmod | grep fakelb", shell=True)
             os.system('rmmod fakelb')
         except:

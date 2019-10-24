@@ -1,12 +1,8 @@
-"""
-
-    Mininet-WiFi: A simple networking testbed for Wireless OpenFlow/SDWN!
-
-author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
-
-"""
+"""Mininet-WiFi: A simple networking testbed for Wireless OpenFlow/SDWN!
+   author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)"""
 
 from mininet.log import debug
+
 
 class associationControl(object):
     "Mechanisms that optimize the use of the APs"
