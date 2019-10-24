@@ -36,6 +36,7 @@ from mn_wifi.link import wirelessLink, wmediumd, Association, \
     wifiDirectLink, adhoc, mesh, physicalMesh, physicalWifiDirectLink
 from mn_wifi.clean import Cleanup as cleanup_mnwifi
 from mn_wifi.devices import CustomRate, DeviceRange
+from mn_wifi.energy import Energy
 from mn_wifi.telemetry import parseData, telemetry as run_telemetry
 from mn_wifi.mobility import tracked as trackedMob, model as mobModel, mobility as mob
 from mn_wifi.plot import plot2d, plot3d, plotGraph
@@ -45,6 +46,7 @@ from mn_wifi.vanet import vanet
 from mn_wifi.sixLoWPAN.net import Mininet_6LoWPAN as sixlowpan
 from mn_wifi.sixLoWPAN.module import module as sixLoWPAN_module
 from mn_wifi.sixLoWPAN.link import sixLoWPANLink
+
 
 sys.path.append(str(os.getcwd()) + '/mininet/')
 
@@ -774,6 +776,14 @@ class Mininet_wifi(Mininet):
 
         if not self.mob_check:
             self.check_if_mob()
+
+        nodes = self.stations + self.aps + self.cars
+        battery_nodes = []
+        for node in nodes:
+            if 'battery' in node.params:
+                battery_nodes.append(node)
+        if battery_nodes:
+            Energy(battery_nodes)
 
         self.built = True
 

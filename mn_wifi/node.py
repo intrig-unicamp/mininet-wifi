@@ -124,6 +124,23 @@ class Node_wifi(Node):
             self.cmd('iw dev %s ibss leave' % self.params['wlan'][wlan])
         adhoc(self, **kwargs)
 
+    def setManagedMode(self, intf=None):
+        if intf:
+            wlan = self.params['wlan'].index(intf)
+        else:
+            wlan = 0
+            intf = self.params['wlan'][wlan]
+        if self.func[wlan] == 'mesh':
+            self.cmd('iw dev %s del' % self.params['wlan'][wlan])
+            intf = '%s-wlan%s' % (self, wlan)
+            self.params['wlan'][wlan] = intf
+        elif self.func[wlan] == 'ap':
+            apconfname = "mn%d_%s.apconf" % (os.getpid(), intf)
+            self.cmd('rm %s' % apconfname)
+            self.cmd('pkill -f \'%s\'' % apconfname)
+        self.cmd('iw dev %s set type managed' % (self.params['wlan'][wlan]))
+        self.func[wlan] = ''
+
     def setMasterMode(self, intf=None, ssid=None, **kwargs):
         "set Interface to AP mode"
         if not intf:
@@ -269,10 +286,10 @@ class Node_wifi(Node):
     def setChannel(self, channel, intf=None):
         "Set Channel"
         from mn_wifi.link import IntfWireless
-        wlan = 0
         if intf:
             wlan = self.get_wlan(intf)
         else:
+            wlan = 0
             intf = self.params['wlan'][wlan]
         if isinstance(self, AP) and self.func[wlan] != 'mesh':
             IntfWireless.setChannel(self, channel, intf, AP=True)
@@ -1348,14 +1365,6 @@ class UserAP(AP):
         # self.cmd('kill %ofdatapath')
         # self.cmd('kill %ofprotocol')
         # super(UserAP, self).stop(deleteIntfs)
-
-    def setManagedIface(self, intf):
-        wlan = self.params['wlan'].index(intf)
-        if self.func[wlan] == 'mesh':
-            self.cmd('iw dev %s del' % self.params['wlan'][wlan])
-            intf = '%s-wlan%s' % (self, wlan)
-            self.params['wlan'][wlan] = intf
-        self.cmd('iw dev %s set type managed' % (self.params['wlan'][wlan]))
 
 
 class OVSAP(AP):
