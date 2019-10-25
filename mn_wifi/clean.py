@@ -72,10 +72,6 @@ class Cleanup(object):
         except:
             pass
 
-        if cls.socket_port:
-            info('\n*** Done\n')
-            cls.sh('fuser -k %s/tcp >/dev/null 2>&1' % cls.socket_port)
-
         if glob.glob('*.apconf'):
             os.system('rm *.apconf')
         if glob.glob('*.staconf'):
@@ -84,6 +80,10 @@ class Cleanup(object):
             os.system('rm *wifiDirect.conf')
         if glob.glob('*.nodeParams'):
             os.system('rm *.nodeParams')
+
+        if cls.socket_port:
+            info('\n*** Done\n')
+            cls.sh('fuser -k %s/tcp >/dev/null 2>&1' % cls.socket_port)
 
     @classmethod
     def cleanup_wifi(cls):

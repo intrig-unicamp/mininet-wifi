@@ -225,7 +225,15 @@ class Mininet_wifi(Mininet):
                     else:
                         data = node.params[data[2]]
                 else:
-                    data = 'unrecognized option %s:' % data[0]
+                    try:
+                        cmd = ''
+                        for d in range(1, len(data)):
+                            cmd = cmd + data[d] + ' '
+                        node = self.getNodeByName(data[0])
+                        node.pexec(cmd)
+                        data = 'command accepted!'
+                    except:
+                        data = 'unrecognized option %s:' % data[0]
                 conn.send(str(data).encode('utf-8'))
                 break
             except:
@@ -411,11 +419,10 @@ class Mininet_wifi(Mininet):
         # find first ap and create link
         if connect:
             if not isinstance(connect, Node):
-                if self.aps:
-                    # Use first ap if not specified
-                    connect = self.aps[0]
-                elif self.switches:
+                if self.switches:
                     connect = self.switches[0]
+                elif self.aps:
+                    connect = self.aps[0]
             # Connect the nat to the ap
             self.addLink(nat, connect)
             # Set the default route on stations
