@@ -399,7 +399,7 @@ class Mininet_wifi(Mininet):
         if wlan:
             ap.params['phywlan'] = wlan
 
-        self.addParameters(ap, self.autoSetMacs, node_mode='master', **defaults)
+        self.addParameters(ap, self.autoSetMacs, **defaults)
         if 'type' in params and params['type'] is 'mesh':
             ap.func[1] = 'mesh'
 
@@ -1348,22 +1348,21 @@ class Mininet_wifi(Mininet):
         fixLimits()
         cls.inited = True
 
-    def addParameters(self, node, autoSetMacs, node_mode='managed', **params):
+    def addParameters(self, node, autoSetMacs, **params):
         """adds parameters to wireless nodes
         node: node
         autoSetMacs: set MAC addrs automatically like IP addresses
         params: parameters
-        defaults: Default IP and MAC addresses
-        node_mode: if interface is running in managed or master mode"""
+        defaults: Default IP and MAC addresses"""
         params['wlans'] = self.countWiFiIfaces(**params)
         node.params['wlan'] = []
         node.params['mac'] = []
         node.phyID = []
 
-        array_ = ['passwd', 'scan_freq', 'freq_list', 'authmode',
-                  'encrypt', 'radius_server', 'bw']
+        args = ['passwd', 'scan_freq', 'freq_list', 'authmode',
+                'encrypt', 'radius_server', 'bw']
         for param in params:
-            if param in array_:
+            if param in args:
                 list = params[param].split(',')
                 if len(list) != params['wlans']:
                     error('*** Error: len(%s) != wlans\n' % param)
@@ -1372,16 +1371,11 @@ class Mininet_wifi(Mininet):
                 for value in list:
                     node.params[param].append(value)
 
-        if node_mode == 'managed':
-            node.params['apsInRange'] = {}
-            node.params['associatedTo'] = []
-            node.params['rssi'] = []
-
-        array_ = ['speed', 'max_x', 'max_y', 'min_x', 'min_y',
-                  'min_v', 'max_v', 'constantVelocity', 'constantDistance',
-                  'min_speed', 'max_speed']
+        args = ['speed', 'max_x', 'max_y', 'min_x', 'min_y',
+                'min_v', 'max_v', 'constantVelocity', 'constantDistance',
+                'min_speed', 'max_speed']
         for param in params:
-            if param in array_:
+            if param in args:
                 setattr(node, param, float(params[param]))
 
         # position
@@ -1393,20 +1387,24 @@ class Mininet_wifi(Mininet):
                 pos = node.params['position']
                 self.pos_to_array(node, pos)
 
+        if not isinstance(node, AP):
+            node.params['apsInRange'] = {}
+            node.params['associatedTo'] = []
+            node.params['rssi'] = []
+
         for wlan in range(params['wlans']):
             node.func.append('none')
             node.phyID.append(0)
-            if node_mode == 'managed':
-                node.params['associatedTo'].append('')
 
-            if node_mode == 'master':
+            if isinstance(node, AP):
                 node.params['wlan'].append(node.name + '-wlan' + str(wlan + 1))
             else:
+                node.params['associatedTo'].append('')
                 node.params['wlan'].append(node.name + '-wlan' + str(wlan))
                 node.params['rssi'].append(-60)
             node.params.pop("wlans", None)
 
-        if node_mode == 'managed' or 'ip' in node.params:
+        if not isinstance(node, AP) or 'ip' in node.params:
             array_ = ['mac', 'ip']
             for param in array_:
                 node.params[param] = []
@@ -1473,7 +1471,7 @@ class Mininet_wifi(Mininet):
         if model != "{}":
             node.model = model
 
-        if node_mode == 'master':
+        if isinstance(node, AP):
             node.params['associatedStations'] = []
             node.params['stationsInRange'] = {}
 
