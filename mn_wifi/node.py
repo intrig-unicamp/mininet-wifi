@@ -74,8 +74,6 @@ class Node_wifi(Node):
         self.wlanports = -1  # dict of wlan interfaces to port numbers
         self.nameToIntf = {}  # dict of interface names to Intfs
 
-        self.func = []
-
         # Make pylint happy
         (self.shell, self.execed, self.pid, self.stdin, self.stdout,
          self.lastPid, self.lastCmd, self.pollOut) = (
@@ -398,7 +396,6 @@ class Node_wifi(Node):
         """Get the distance between two nodes
         :param self: source node
         :param dst: destination node"""
-
         pos_src = self.params['position']
         pos_dst = dst.params['position']
         x = (float(pos_src[0]) - float(pos_dst[0])) ** 2

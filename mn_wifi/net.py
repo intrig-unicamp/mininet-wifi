@@ -1358,6 +1358,7 @@ class Mininet_wifi(Mininet):
         node.params['wlan'] = []
         node.params['mac'] = []
         node.phyID = []
+        node.func = []
 
         args = ['passwd', 'scan_freq', 'freq_list', 'authmode',
                 'encrypt', 'radius_server', 'bw']
