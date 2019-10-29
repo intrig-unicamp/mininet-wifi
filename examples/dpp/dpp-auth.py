@@ -27,7 +27,6 @@ def onboard_device(configurator,configurator_clicmd, sta, sta_clicmd, mac_addr, 
     sta.cmdPrint(sta_clicmd + " dpp_listen " + str(2412) )
     time.sleep(3)
 
-
     info("Configurator:  Enter the sta QR Code in the Configurator.\n")
     bootstrapping_info_id = configurator.cmdPrint(configurator_clicmd + " dpp_qr_code " + bootstrapping_uri).split("\n")[1]
     info("Configurator: Send provisioning request to enrollee. (conf is ap-dpp if enrollee is an AP. conf is sta-dpp if enrollee is a client)\n")
@@ -37,10 +36,6 @@ def onboard_device(configurator,configurator_clicmd, sta, sta_clicmd, mac_addr, 
     sta.cmdPrint(sta_clicmd + " save_config")
     info("Enrollee:  reload the config file\n")
     sta.cmdPrint(sta_clicmd + " reconfigure")
- 
-
-
-
 
 def topology():
     "Create a network."
@@ -69,16 +64,12 @@ def topology():
                              hostapd_flags='-dd > /tmp/hostapd.txt',
                              passwd=passwd, encrypt='wpa2',
                              failMode="standalone", datapath='user')
-
     
     # sta1 is the configurator
     sta1 = net.addStation('sta1', ssid=ssid, passwd=passwd, encrypt='wpa2', 
            wpasup_flags='-dd -f /tmp/debug1.txt',
            wpasup_globals='ctrl_interface=/var/run/wpa_supplicant1\n'
                           'ctrl_interface_group=0\n')
-
-   
-
 
     # sta2 is the enrolee.  Note that it does not have the 
     # PSK and it does not know the access point. 
@@ -92,9 +83,6 @@ def topology():
                            'dpp_config_processing=2',
 
            encrypt='wpa2')
-
-
-
 
     info("*** Configuring wifi nodes\n")
     net.configureWifiNodes()
@@ -115,7 +103,6 @@ def topology():
     # can ping each other
     ap1.cmdPrint('ovs-ofctl add-flow ap1 "priority=10,actions=in_port,normal"')
 
-
     cli_cmd = "wpa_cli -p /var/run/wpa_supplicant1 "
     configurator = sta1
     configurator.cmdPrint( cli_cmd+" log_level debug")
@@ -135,7 +122,8 @@ def topology():
     
     time.sleep(3)
 
-    onboard_device(sta1,cli_cmd,sta2,"wpa_cli -p /var/run/wpa_supplicant2","00:00:00:00:00:82", dpp_configurator_id,dpp_configurator_key,psk,ssid.encode('hex'))
+    onboard_device(sta1,cli_cmd,sta2,"wpa_cli -p /var/run/wpa_supplicant2","00:00:00:00:00:82", 
+                   dpp_configurator_id,dpp_configurator_key,psk,ssid.encode('hex'))
 
     time.sleep(3)
 
