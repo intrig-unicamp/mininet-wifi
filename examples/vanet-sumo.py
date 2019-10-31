@@ -24,9 +24,8 @@ def topology():
                        link=wmediumd, wmediumd_mode=interference)
 
     info("*** Creating nodes\n")
-    cars = []
     for id in range(0, 10):
-        cars.append(net.addCar('car%s' % (id+1), wlans=2, encrypt='wpa2,'))
+        net.addCar('car%s' % (id+1), wlans=2, encrypt=['wpa2,'])
 
     e1 = net.addAccessPoint('e1', ssid='vanet-ssid', mac='00:00:00:11:00:01',
                             mode='g', channel='1', passwd='123456789a',
@@ -59,8 +58,8 @@ def topology():
     net.addLink(e3, e4)
     net.addLink(e4, e5)
     net.addLink(e5, e6)
-    for car in cars:
-        net.addLink(car, intf=car.params['wlan'][1],
+    for car in net.cars:
+        net.addLink(car, intf=car.wintfs[1].name,
                     cls=mesh, ssid='mesh-ssid', channel=5)
 
     net.useExternalProgram(program=sumo, port=8813,
@@ -76,11 +75,11 @@ def topology():
     e5.start([c1])
     e6.start([c1])
 
-    for car in cars:
-        car.setIP('192.168.0.%s/24' % (int(cars.index(car))+1),
-                  intf='%s-wlan0' % car)
-        car.setIP('192.168.1.%s/24' % (int(cars.index(car))+1),
-                  intf='%s-mp1' % car)
+    for car in net.cars:
+        car.setIP('192.168.0.%s/24' % (int(net.cars.index(car))+1),
+                  intf='%s-wlan0' % car.name)
+        car.setIP('192.168.1.%s/24' % (int(net.cars.index(car))+1),
+                  intf='%s-mp1' % car.name)
 
     # Track the position of the nodes
     #nodes = net.cars + net.aps

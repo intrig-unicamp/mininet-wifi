@@ -71,14 +71,12 @@ class vanet(object):
                                            self.com_lines, mobility)
             sleep(0.0001)
 
-    @classmethod
-    def setWifiParameters(cls, mobility):
+    def setWifiParameters(self, mobility):
         from threading import Thread as thread
         thread = thread(name='wifiParameters', target=mobility.parameters)
         thread.start()
 
-    @classmethod
-    def get_line(cls, x1, y1, x2, y2):
+    def get_line(self, x1, y1, x2, y2):
         points = []
         issteep = abs(y2 - y1) > abs(x2 - x1)
         if issteep:
@@ -113,7 +111,6 @@ class vanet(object):
         return points
 
     def display_grid(self, aps, conn, nroads):
-
         for n in range(nroads):
             if n == 0:
                 p = ginp(2)
@@ -169,7 +166,6 @@ class vanet(object):
                 plot2d.line(line)
 
     def display_cars(self, cars):
-
         car_lines = []
 
         for _ in range(len(cars)):
@@ -228,34 +224,29 @@ class vanet(object):
         # plot cars
         self.scatter = plot2d.scatter(points[0], points[1])
 
-    @classmethod
-    def lineX(cls, line_data):
-        """ get the minimum and maximums of the line"""
+    def lineX(self, line_data):
+        "get the minimum and maximums of the line"
         x_min = min(line_data[0])
         x_max = max(line_data[0])
         return x_min, x_max
 
-    @classmethod
-    def lineY(cls, line_data):
-        """ get the minimum and maximums of the line"""
+    def lineY(self, line_data):
+        " get the minimum and maximums of the line"
         y_min = min(line_data[1])
         y_max = max(line_data[1])
         return y_min, y_max
 
-    @classmethod
-    def speed(cls, car):
-        car.speed = car.max_speed, car.min_speed
+    def speed(self, car):
+        car.speed = car.params['max_speed'], car.params['min_speed']
 
-    @classmethod
-    def calculateAngle(cls, line_data):
-        """Calculate Angle"""
+    def calculateAngle(self, line_data):
+        "Calculate Angle"
         xdiff = line_data[0][-1] - line_data[0][0]
         ydiff = line_data[1][-1] - line_data[1][0]
         ang = atan2(ydiff, xdiff)
         return ang
 
-    @classmethod
-    def carProp(cls, point, ang, x_min, x_max, y_min, y_max):
+    def carProp(self, point, ang, x_min, x_max, y_min, y_max):
         temp = []
         temp.append(point[0])
         temp.append(point[1])
@@ -266,15 +257,13 @@ class vanet(object):
         temp.append(y_max)
         return temp
 
-    @classmethod
-    def carPoint(cls, point):
+    def carPoint(self, point):
         temp = []
         temp.append(point[0])
         temp.append(point[1])
         return temp
 
     def line_prop(self, line, car):
-
         line_data = line.get_data()  # Get the x and y values of the points in the line
         ang = self.calculateAngle(line_data)  # Get angle
         point = list(line.get_xydata()[0])  # first point in the graph
