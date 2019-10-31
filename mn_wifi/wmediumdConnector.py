@@ -606,23 +606,23 @@ class DynamicIntfRef(WmediumdIntfRef):
 
     def get_intf_name(self):
         if not self.__intf:
-            return self.__sta.params['wlan'][0]
+            return self.__sta.wintfs[0].name
         elif isinstance(self.__intf, str):
             return self.__intf
         elif isinstance(self.__intf, int):
-            return self.__sta.params['wlan'][self.__intf]
+            return self.__sta.wintfs[self.__intf].name
 
     def get_mac(self):
         intf_name = self.get_intf_name()
         index = 0
         found = False
-        for wlan_intf in self.__sta.params['wlan']:
-            if wlan_intf == intf_name:
+        for wlan_intf in self.__sta.wintfs.values():
+            if wlan_intf.name == str(intf_name):
                 found = True
                 break
             index += 1
         if found:
-            return self.__sta.params['mac'][index]
+            return self.__sta.wintfs[index].mac
 
 
 class w_server(object):
@@ -1095,7 +1095,7 @@ class w_server(object):
     @classmethod
     def __create_pos_update_request(cls, pos, posX, posY, posZ):
         "pos update request"
-        # type: (w_pos) -> str
+        # type: w_pos -> str
         msgtype = w_cst.WSERVER_POS_UPDATE_REQUEST_TYPE
         if py_version_info < (3, 0):
             mac = pos.staintf.get_mac().replace(':', '').decode('hex')

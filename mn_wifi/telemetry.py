@@ -245,7 +245,7 @@ class parseData(object):
                 y = node.params['position'][1]
                 plt.scatter(x, y, color='black')
                 axes.annotate(node.name, (x, y))
-                circle = plt.Circle((x, y), int(node.params['range'][0]),
+                circle = plt.Circle((x, y), int(node.wintfs[0].range),
                                     color=node.circle, alpha=0.1)
                 axes.add_artist(circle)
         else:

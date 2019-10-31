@@ -8,7 +8,7 @@ import numpy as np
 from numpy.random import rand
 
 from mininet.log import debug, info
-from mn_wifi.link import wirelessLink, Association
+from mn_wifi.link import wirelessLink, Association, mesh, adhoc, ITSLink
 from mn_wifi.associationControl import associationControl
 from mn_wifi.plot import plot2d, plot3d, plotGraph
 from mn_wifi.wmediumdConnector import w_cst, wmediumd_mode
@@ -24,7 +24,6 @@ class mobility(object):
     allAutoAssociation = True
     thread_ = ''
     end_time = 0
-    func = ['mesh', 'adhoc', 'its']
 
     @classmethod
     def move_factor(cls, node, diff_time):
@@ -104,101 +103,101 @@ class mobility(object):
             thread_.start()
 
     @classmethod
-    def remove_staconf(cls, sta, wlan):
-        os.system('rm %s_%s.staconf >/dev/null 2>&1' % (sta.name, wlan))
+    def remove_staconf(cls, intf):
+        os.system('rm %s_%s.staconf >/dev/null 2>&1' % (intf.node, intf.id))
 
     @classmethod
-    def get_pidfile(cls, sta, wlan):
-        pid = "mn%d_%s_%s_wpa.pid" % (os.getpid(), sta.name, wlan)
+    def get_pidfile(cls, intf):
+        pid = "mn%d_%s_%s_wpa.pid" % (os.getpid(), intf.node, intf.id)
         return pid
 
     @classmethod
-    def kill_wpasupprocess(cls, sta, wlan):
-        intf = sta.params['wlan'][wlan]
-        pid = cls.get_pidfile(sta, wlan)
-        os.system('pkill -f \'wpa_supplicant -B -Dnl80211 -P %s -i %s\'' % (pid, intf))
+    def kill_wpasupprocess(cls, intf):
+        pid = cls.get_pidfile(intf)
+        os.system('pkill -f \'wpa_supplicant -B -Dnl80211 -P %s -i %s\'' % (pid, intf.name))
 
     @classmethod
-    def check_if_wpafile_exist(cls, sta, wlan):
-        file = '/var/run/wpa_supplicant/%s >/dev/null 2>&1' % sta.params['wlan'][wlan]
+    def check_if_wpafile_exist(cls, intf):
+        file = '/var/run/wpa_supplicant/%s >/dev/null 2>&1' % intf.name
         if os.path.exists(file):
             os.system(file)
 
     @classmethod
-    def remove_assoc_from_params(cls, sta, ap):
-        if sta in ap.params['associatedStations']:
-            ap.params['associatedStations'].remove(sta)
-        if ap in sta.params['apsInRange']:
-            sta.params['apsInRange'].pop(ap, None)
-            ap.params['stationsInRange'].pop(sta, None)
+    def remove_assoc_from_params(cls, intf, ap_intf):
+        if intf.node in ap_intf.associatedStations:
+            ap_intf.associatedStations.remove(intf.node)
+        if ap_intf.node in intf.apsInRange:
+            intf.apsInRange.pop(ap_intf.node, None)
+            ap_intf.stationsInRange.pop(intf.node, None)
 
     @classmethod
-    def ap_out_of_range(cls, sta, ap, wlan, ap_wlan):
+    def ap_out_of_range(cls, intf, ap_intf):
         "When ap is out of range"
-        if ap == sta.params['associatedTo'][wlan]:
-            if 'encrypt' in ap.params and 'ieee80211r' not in ap.params:
-                if 'wpa' in ap.params['encrypt'][ap_wlan]:
-                    cls.remove_staconf(sta, wlan)
-                    cls.kill_wpasupprocess(sta, wlan)
-                    cls.check_if_wpafile_exist(sta, wlan)
+        if ap_intf.node == intf.associatedTo:
+            if ap_intf.encrypt and not ap_intf.ieee80211r:
+                if ap_intf.encrypt == 'wpa':
+                    cls.remove_staconf(intf)
+                    cls.kill_wpasupprocess(intf)
+                    cls.check_if_wpafile_exist(intf)
             elif wmediumd_mode.mode == w_cst.SNR_MODE:
-                Association.setSNRWmediumd(sta, ap, snr=-10)
-            if 'ieee80211r' not in ap.params:
-                Association.disconnect(sta, wlan)
-            cls.remove_assoc_from_params(sta, ap)
-        elif not sta.params['associatedTo'][wlan]:
-            sta.params['rssi'][wlan] = 0
+                Association.setSNRWmediumd(intf.node, ap_intf.node, snr=-10)
+            if not ap_intf.ieee80211r:
+                Association.disconnect(intf)
+            cls.remove_assoc_from_params(intf, ap_intf)
+        elif not intf.associatedTo:
+            intf.rssi = 0
 
     @classmethod
-    def ap_in_range(cls, sta, ap, wlan, dist):
-        rssi = sta.get_rssi(ap, wlan, dist)
-        sta.params['apsInRange'][ap] = rssi
-        ap.params['stationsInRange'][sta] = rssi
-        if ap == sta.params['associatedTo'][wlan]:
-            if sta not in ap.params['associatedStations']:
-                ap.params['associatedStations'].append(sta)
-            if dist >= 0.01:
-                if 'bgscan_threshold' in sta.params or 'active_scan' in sta.params \
-                and ('encrypt' in sta.params and 'wpa' in sta.params['encrypt'][wlan]):
-                    pass
-                else:
-                    sta.params['rssi'][wlan] = rssi
-                    if wmediumd_mode.mode != w_cst.WRONG_MODE:
-                        if wmediumd_mode.mode == w_cst.SNR_MODE:
-                            Association.setSNRWmediumd(
-                                sta, ap, snr=sta.params['rssi'][wlan] - (-91))
+    def ap_in_range(cls, intf, ap, dist):
+        for ap_intf in ap.wintfs.values():
+            rssi = intf.node.get_rssi(intf, ap_intf, dist)
+            intf.apsInRange[ap_intf.node] = rssi
+            ap_intf.stationsInRange[intf.node] = rssi
+            if ap_intf.node == intf.associatedTo:
+                if intf.node not in ap_intf.associatedStations:
+                    ap_intf.associatedStations.append(intf.node)
+                if dist >= 0.01:
+                    if intf.bgscan_threshold or intf.active_scan \
+                            and intf.encrypt == 'wpa':
+                        pass
                     else:
-                        wirelessLink(sta, wlan, dist)
+                        intf.rssi = rssi
+                        if wmediumd_mode.mode != w_cst.WRONG_MODE:
+                            if wmediumd_mode.mode == w_cst.SNR_MODE:
+                                Association.setSNRWmediumd(
+                                    intf.node, ap_intf.node, snr=intf.rssi - (-91))
+                        else:
+                            wirelessLink(intf, dist)
 
     @classmethod
-    def check_in_range(cls, sta, ap, wlan, ap_wlan):
-        dist = sta.get_distance_to(ap)
-        if dist > ap.params['range'][0]:
-            cls.ap_out_of_range(sta, ap, wlan, ap_wlan)
+    def check_in_range(cls, intf, ap_intf):
+        dist = intf.node.get_distance_to(ap_intf.node)
+        if dist > ap_intf.range:
+            cls.ap_out_of_range(intf, ap_intf)
             return 0
         else:
             return 1
 
     @classmethod
-    def set_handover(cls, sta, aps, wlan):
+    def set_handover(cls, intf, aps):
         for ap in aps:
-            dist = sta.get_distance_to(ap)
-            for ap_wlan in range(len(ap.params['wlan'])):
-                cls.do_handover(sta, ap, wlan, ap_wlan)
-            cls.ap_in_range(sta, ap, wlan, dist)
+            dist = intf.node.get_distance_to(ap)
+            for ap_wlan, ap_intf in enumerate(ap.wintfs.values()):
+                cls.do_handover(intf, ap_intf)
+            cls.ap_in_range(intf, ap, dist)
 
     @classmethod
-    def do_handover(cls, sta, ap, wlan, ap_wlan):
+    def do_handover(cls, intf, ap_intf):
         changeAP = False
 
         "Association Control: mechanisms that optimize the use of the APs"
-        if cls.ac and sta.params['associatedTo'][wlan] \
-                and ap not in sta.params['associatedTo']:
-            value = associationControl(sta, ap, wlan, cls.ac)
+        if cls.ac and intf.associatedTo \
+                and ap_intf.node != intf.associatedTo:
+            value = associationControl(intf, ap_intf, cls.ac)
             changeAP = value.changeAP
-        if not sta.params['associatedTo'][wlan] or changeAP:
-            if ap not in sta.params['associatedTo']:
-                Association.associate_infra(sta, ap, wlan, ap_wlan)
+        if not intf.associatedTo or changeAP:
+            if ap_intf.node != intf.associatedTo:
+                Association.associate_infra(intf, ap_intf)
 
     @classmethod
     def configLinks(cls, node=None):
@@ -221,39 +220,38 @@ class mobility(object):
             cls.configureLinks(mobileNodes)
 
     @classmethod
-    def associate_interference_mode(cls, node, ap, wlan, ap_wlan):
-        if 'bgscan_threshold' in node.params or \
-                ('active_scan' in node.params and
-                 ('encrypt' in node.params and 'wpa' in node.params['encrypt'][wlan])):
-            if node.params['associatedTo'][wlan] == '':
-                Association.associate_infra(node, ap, wlan, ap_wlan)
-                if 'bgscan_threshold' in node.params:
-                    node.params['associatedTo'][wlan] = 'bgscan'
+    def associate_interference_mode(cls, intf, ap_intf):
+        if intf.bgscan_threshold or (intf.active_scan and 'wpa' in intf.encrypt):
+            if not intf.associatedTo:
+                Association.associate_infra(intf, ap_intf)
+                if intf.bgscan_threshold:
+                    intf.associatedTo = 'bgscan'
                 else:
-                    node.params['associatedTo'][wlan] = 'active_scan'
+                    intf.associatedTo = 'active_scan'
             return 0
         else:
-            ack = cls.check_in_range(node, ap, wlan, ap_wlan)
+            ack = cls.check_in_range(intf, ap_intf)
             return ack
 
     @classmethod
     def configureLinks(cls, nodes):
         for node in nodes:
-            for wlan in range(len(node.params['wlan'])):
-                if node.func[wlan] == 'mesh' or node.func[wlan] == 'adhoc':
+            for wlan, intf in enumerate(node.wintfs.values()):
+                if isinstance(intf, adhoc) or isinstance(intf, mesh) or \
+                        isinstance(intf, ITSLink):
                     pass
                 else:
                     aps = []
                     for ap in cls.aps:
-                        for ap_wlan in range(len(ap.params['wlan'])):
-                            if ap.func[ap_wlan] not in cls.func:
+                        for ap_wlan, ap_intf in enumerate(ap.wintfs.values()):
+                            if not isinstance(ap_intf, adhoc) and not isinstance(ap_intf, mesh):
                                 if wmediumd_mode.mode == w_cst.INTERFERENCE_MODE:
-                                    ack = cls.associate_interference_mode(node, ap, wlan, ap_wlan)
+                                    ack = cls.associate_interference_mode(intf, ap_intf)
                                 else:
-                                    ack = cls.check_in_range(node, ap, wlan, ap_wlan)
+                                    ack = cls.check_in_range(intf, ap_intf)
                                 if ack and ap not in aps:
                                     aps.append(ap)
-                    cls.set_handover(node, aps, wlan)
+                    cls.set_handover(intf, aps)
         sleep(0.0001)
 
 

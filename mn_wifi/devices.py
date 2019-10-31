@@ -6,14 +6,14 @@ class CustomRate(object):
 
     rate = 0
 
-    def __init__(self, node, wlan):
-        self.customDataRate_mobility(node, wlan)
+    def __init__(self, intf):
+        self.customDataRate_mobility(intf)
 
-    def customDataRate_mobility(self, node, wlan):
+    def customDataRate_mobility(self, intf):
         """Custom Maximum Data Rate - Useful when there is mobility
         mode: interface mode
         rate: maximum supported bandwidth (mbps)"""
-        mode = node.params['mode'][wlan]
+        mode = intf.mode
 
         if mode == 'a':
             self.rate = 11
@@ -34,16 +34,16 @@ class DeviceRate(object):
 
     rate = 0
 
-    def __init__(self, node, wlan):
-        model = node.params['model']
-        self.__getattribute__(model)(node, wlan)
+    def __init__(self, intf):
+        model = intf.node.params['model']
+        self.__getattribute__(model)(intf)
 
-    def DI524(self, node, wlan):
+    def DI524(self, intf):
         """D-Link AirPlus G DI-524
            from http://www.dlink.com/-/media/Consumer_Products/
            DI/DI%20524/Manual/DI_524_Manual_EN_UK.pdf
         rate: maximum supported bandwidth (mbps)"""
-        mode = node.params['mode'][wlan]
+        mode = intf.mode
         if mode == 'n':
             self.rate = 130
         elif mode == 'g':
@@ -53,13 +53,13 @@ class DeviceRate(object):
 
         return self.rate
 
-    def TLWR740N(self, node, wlan):
+    def TLWR740N(self, intf):
         """TL-WR740N
            from http://www.tp-link.com.br/products/details/
            cat-9_TL-WR740N.html#specificationsf
         mode: interface mode
         rate: maximum supported bandwidth (mbps)"""
-        mode = node.params['mode'][wlan]
+        mode = intf.mode
 
         if mode == 'n':
             self.rate = 130
@@ -70,13 +70,13 @@ class DeviceRate(object):
 
         return self.rate
 
-    def WRT120N(self, node, wlan):
+    def WRT120N(self, intf):
         """CISCO WRT120N
            from http://downloads.linksys.com/downloads/datasheet/
            WRT120N_V10_DS_B-WEB.pdf
         mode: interface mode
         rate: maximum supported bandwidth (mbps)"""
-        mode = node.params['mode'][wlan]
+        mode = intf.mode
 
         if mode == 'n':
             self.rate = 150
@@ -92,14 +92,14 @@ class CustomRange(object):
 
     range = 0
 
-    def __init__(self, node, wlan):
-        self.customSignalRange(node, wlan)
+    def __init__(self, intf):
+        self.customSignalRange(intf)
 
-    def customSignalRange(self, node, wlan):
+    def customSignalRange(self, intf):
         """Custom Signal Range
         mode: interface mode
         range: signal range (m)"""
-        mode = node.params['mode'][wlan]
+        mode = intf.mode
 
         if mode == 'a' or mode == 'g':
             self.range = 33
@@ -156,10 +156,10 @@ class DeviceTxPower (object):
 
     txpower = 0
 
-    def __init__(self, node, wlan):
+    def __init__(self, intf):
         "get txpower"
-        model = node.params['model']
-        self.__getattribute__(model)(node, wlan)
+        model = intf.node.params['model']
+        self.__getattribute__(model)(intf)
 
     def DI524(self, **kwargs):
         """D-Link AirPlus G DI-524
@@ -169,18 +169,18 @@ class DeviceTxPower (object):
         self.txpower = 14
         return self.txpower
 
-    def TLWR740N(self, node, wlan):
+    def TLWR740N(self, intf):
         """TL-WR740N
             No REFERENCE!
         txPower = transmission power (dBm)"""
         self.txpower = 20
         return self.txpower
 
-    def WRT120N(self, node, wlan):
+    def WRT120N(self, intf):
         """CISCO WRT120N
            from http://downloads.linksys.com/downloads/datasheet/
            WRT120N_V10_DS_B-WEB.pdf"""
-        mode = node.params['mode'][wlan]
+        mode = intf.mode
 
         if mode == 'b':
             self.txpower = 21

@@ -39,4 +39,4 @@ class Energy(object):
 
     def ipLink(self, intf):
         "Configure ourselves using ip link"
-        self.cmd('ip link set %s down' % intt)
+        self.cmd('ip link set %s down' % intf)

@@ -5,47 +5,46 @@ import os
 
 
 class manetProtocols(object):
-    def __init__(self, protocol, node, wlan=0, **params):
-        eval(protocol)(node, wlan, **params)
+    def __init__(self, intf, proto, **params):
+        eval(proto)(intf, **params)
 
 
 class batman(object):
-    def __init__(self, node, wlan=0, **params):
-        self.load_module(node)
-        self.add_iface(node, wlan)
-        self.set_link_up(node, wlan)
+    def __init__(self, intf, **params):
+        self.load_module(intf)
+        self.add_iface(intf)
+        self.set_link_up(intf)
 
-    def add_iface(self, node, wlan=0):
-        iface = node.params['wlan'][wlan]
-        node.cmd('batctl if add %s' % iface)
+    def add_iface(self, intf):
+        intf.node.cmd('batctl if add %s' % intf.name)
 
-    def set_link_up(self, node, wlan=0):
-        node.cmd('ip link set up dev bat%s' % wlan)
-        self.setIP(node, wlan)
+    def set_link_up(self, intf):
+        intf.node.cmd('ip link set up dev bat0')
+        self.setIP(intf)
 
-    def setIP(self, node, wlan):
-        nums = re.findall(r'\d+', node.name)
+    def setIP(self, intf):
+        nums = re.findall(r'\d+', intf.node.name)
         id = hex(int(nums[0]))[2:]
-        node.cmd('ip addr add 192.168.123.%s/24 '
-                 'dev bat%s' % (id, wlan))
+        intf.node.cmd('ip addr add 192.168.123.%s/24 '
+                      'dev bat0' % id)
 
-    def load_module(self, node):
-        node.cmd('modprobe batman-adv')
+    def load_module(self, intf):
+        intf.node.cmd('modprobe batman-adv')
 
 
 class olsr(object):
-    def __init__(self, node, wlan=0, **params):
-        cmd = 'olsrd -i %s -d 0 ' % node.params['wlan'][wlan]
+    def __init__(self, intf, **params):
+        cmd = 'olsrd -i %s -d 0 ' % intf.name
         if 'flags' in params:
             cmd += params['flags']
-        node.cmd(cmd)
+        intf.node.cmd(cmd)
 
 
 class babel(object):
-    def __init__(self, node, wlan=0, **params):
+    def __init__(self, intf, **params):
         pid = os.getpid()
         cmd = "babeld %s -I mn_%s_%s.staconf " % \
-              (node.params['wlan'][wlan], node, pid)
+              (intf.name, intf.node, pid)
         if 'flags' in params:
             cmd += params['flags']
-        node.cmd(cmd + ' &')
+        intf.node.cmd(cmd + ' &')

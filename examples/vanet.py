@@ -48,7 +48,7 @@ def topology():
     net.addLink(rsu11, rsu13)
     net.addLink(rsu11, rsu14)
     for car in cars:
-        net.addLink(car, intf=car.params['wlan'][1],
+        net.addLink(car, intf='%s-wlan1' % car,
                     cls=mesh, ssid='mesh-ssid', channel=5)
 
     net.plotGraph(max_x=500, max_y=500)

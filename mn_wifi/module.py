@@ -227,13 +227,10 @@ class module(object):
                 ifbID = 0
             debug("\n*** Configuring interfaces with appropriated network"
                   "-namespaces...\n")
-            phyID = 0
             for node in nodes:
                 if ifb:
                     node.ifb = []
                 for wlan in range(0, len(node.params['wlan'])):
-                    node.phyID[wlan] = phyID
-                    phyID += 1
                     if isinstance(node, AP) and 'inNamespace' not in node.params:
                         self.rename(node, wlan_list[0], node.params['wlan'][wlan])
                     else:

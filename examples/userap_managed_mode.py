@@ -18,11 +18,9 @@ def topology():
 
     info("*** Creating nodes\n")
     sta1 = net.addAccessPoint('sta1', ip='192.168.0.1/24',
-                              position='10,10,0',
-                              cls=UserAP, inNamespace=True)
+                              position='10,10,0', cls=UserAP, inNamespace=True)
     sta2 = net.addAccessPoint('sta2', ip='192.168.0.2/24',
-                              position='10,20,0',
-                              cls=UserAP, inNamespace=True)
+                              position='10,20,0', cls=UserAP, inNamespace=True)
     c0 = net.addController('c0')
 
     info("*** Configuring wifi nodes\n")

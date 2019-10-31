@@ -377,7 +377,7 @@ class vanet(object):
                         # compute to see if vehicle is in range
                         inside = math.pow((node.prop[0] - pos_x), 2) + \
                                  math.pow((node.prop[1] - pos_y), 2)
-                        if inside <= math.pow(node.params['range'][0], 2):
+                        if inside <= math.pow(node.wintfs[0].range, 2):
                             if isinstance(node, AP):
                                 color = 'black'
                             else:

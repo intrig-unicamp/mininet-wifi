@@ -38,8 +38,8 @@ def topology():
     net.configureWifiNodes()
 
     info("*** Creating links\n")
-    net.addLink(sta3, cls=adhoc, ssid='adhocNet')
-    net.addLink(sta4, cls=adhoc, ssid='adhocNet')
+    net.addLink(sta3, cls=adhoc, intf='sta3-wlan0', ssid='adhocNet')
+    net.addLink(sta4, cls=adhoc, intf='sta4-wlan0', ssid='adhocNet')
 
     path = os.path.dirname(os.path.abspath(__file__))
     getTrace(sta1, '%s/replayingMobility/node1.dat' % path, net)
