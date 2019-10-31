@@ -1215,6 +1215,8 @@ class adhoc(IntfWireless):
         self.mac = intf.mac
         self.ip6 = intf.ip6
         self.link = intf.link
+        self.encrypt = intf.encrypt
+        self.passwd = intf.passwd
 
         if 'mp' in intf.name:
             self.iwdev_cmd('%s del' % intf.name)
@@ -1295,6 +1297,8 @@ class mesh(IntfWireless):
         self.ip = intf.ip
         self.link = intf.link
         self.txpower = intf.txpower
+        self.encrypt = intf.encrypt
+        self.passwd = intf.passwd
         self.antennaGain = intf.antennaGain
         self.stationsInRange = intf.stationsInRange
         self.associatedStations = intf.associatedStations
