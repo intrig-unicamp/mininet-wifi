@@ -35,11 +35,10 @@ class Node_6lowpan(Node):
         self.params = params
 
         self.intfs = {}  # dict of port numbers to interfaces
+        self.wintfs = {}  # dict of port numbers to interfaces
         self.ports = {}  # dict of interfaces to port numbers
-        self.wpanports = -1  # dict of wlan interfaces to port numbers
+        self.wports = {}  # dict of interfaces to port numbers
         self.nameToIntf = {}  # dict of interface names to Intfs
-
-        self.func = []
 
         # Make pylint happy
         (self.shell, self.execed, self.pid, self.stdin, self.stdout,
@@ -61,23 +60,29 @@ class Node_6lowpan(Node):
     inToNode = {}  # mapping of input fds to nodes
     outToNode = {}  # mapping of output fds to nodes
 
-    def plot(self, position):
-        self.params['position'] = position.split(',')
-        self.params['range'] = [0]
-        self.plotted = True
-
-    def newWpanPort(self):
-        "Return the next port number to allocate."
-        self.wpanports += 1
-        return self.wpanports
-
     def newPort(self):
         "Return the next port number to allocate."
         if len(self.ports) > 0:
             return max(self.ports.values()) + 1
         return self.portBase
 
-    def addIntf(self, intf, port=None, moveIntfFn=moveIntf):
+    def newWPort(self):
+        "Return the next port number to allocate."
+        if len(self.ports) > 0:
+            return max(self.wports.values()) + 1
+        return self.portBase
+
+    def addWAttr(self, intf, port=None):
+        """Add an wireless interface.
+           intf: interface
+           port: port number (optional, typically OpenFlow port number)
+           moveIntfFn: function to move interface (optional)"""
+        if port is None:
+            port = self.newWPort()
+        self.wintfs[port] = intf
+        self.wports[intf] = port
+
+    def addWIntf(self, intf, port=None):
         """Add an interface.
            intf: interface
            port: port number (optional, typically OpenFlow port number)
@@ -90,10 +95,6 @@ class Node_6lowpan(Node):
         debug('\n')
         debug('added intf %s (%d) to node %s\n' % (
             intf, port, self.name))
-        if (not isinstance(self, sixLoWPan)):
-            if self.inNamespace:
-                debug('moving', intf, 'into namespace for', self.name, '\n')
-                moveIntfFn(intf.name, self)
 
     def connectionsTo(self, node):
         "Return [ intf1, intf2... ] for all intfs that connect self to node."
@@ -110,17 +111,41 @@ class Node_6lowpan(Node):
         return connections
 
     # Convenience and configuration methods
-    def setIP(self, ip, prefixLen=64, intf=None, **kwargs):
+    def setIP(self, ip, prefixLen=8, intf=None, **kwargs):
         """Set the IP address for an interface.
            intf: intf or intf name
            ip: IP address as a string
            prefixLen: prefix length, e.g. 8 for /8 or 16M addrs
            kwargs: any additional arguments for intf.setIP"""
-        if intf in self.params['wpan']:
-            wpan = int(intf[-1:])
-            self.params['wpan_ip'][wpan] = ip
-
         return self.intf(intf).setIP(ip, prefixLen, **kwargs)
+
+    def setIP6(self, ip, prefixLen=64, intf=None, **kwargs):
+        """Set the IP address for an interface.
+           intf: intf or intf name
+           ip: IP address as a string
+           kwargs: any additional arguments for intf.setIP"""
+        return self.intf(intf).setIP6(ip, prefixLen, **kwargs)
+
+    def config(self, mac=None, ip=None, ip6=None,
+               defaultRoute=None, lo='up', **_params):
+        """Configure Node according to (optional) parameters:
+           mac: MAC address for default interface
+           ip: IP address for default interface
+           ip addr: arbitrary interface configuration
+           Subclasses should override this method and call
+           the parent class's config(**params)"""
+        # If we were overriding this method, we would call
+        # the superclass config method here as follows:
+        # r = Parent.config( **_params )
+        r = {}
+
+        self.setParam(r, 'setIP', ip=ip)
+        self.setParam(r, 'setIP6', ip=ip6)
+        self.setParam(r, 'setDefaultRoute', defaultRoute=defaultRoute)
+
+        # This should be examined
+        self.cmd('ip link set lo ' + lo)
+        return r
 
     def __repr__(self):
         "More informative string representation"

@@ -14,36 +14,36 @@ class module(object):
     externally_managed = False
     devices_created_dynamically = False
 
-    def __init__(self, sixLP, n_wpans):
-        self.start(sixLP, n_wpans)
+    def __init__(self, sensors, nwpans, iot_module):
+        self.start(sensors, nwpans, iot_module)
 
-    def start(self, nodes, n_radios, alt_module=''):
+    def start(self, sensors, nwpans, iot_module):
         """
-        :param nodes: list of wireless nodes
-        :param n_radios: number of wifi radios
-        :param alt_module: dir of a fakelb alternative module
+        :param sensors: list of sensors
+        :param nwpans: number of wifi radios
+        :param iot_module: dir of a fakelb alternative module
         :param **params: ifb -  Intermediate Functional Block device"""
         wm = subprocess.call(['which', 'iwpan'],
                              stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         if wm == 0:
-            self.load_module(n_radios, alt_module)  # Initatilize WiFi Module
-            self.assign_iface(nodes)  # iface assign
+            self.load_module(nwpans, iot_module)  # Initatilize WiFi Module
+            self.assign_iface(sensors)  # iface assign
         else:
             info('*** iwpan will be used, but it is not installed.\n' \
                  '*** Please install iwpan with sudo util/install.sh -6.\n')
             exit(1)
 
-    def load_module(self, n_radios, alt_module=''):
-        """ Load WiFi Module 
-        
+    def load_module(self, n_radios, iot_module):
+        """ Load WiFi Module
         :param n_radios: number of radios
-        :param alt_module: dir of a fakelb alternative module"""
+        :param iot_module: dir of a fakelb alternative module"""
         debug('Loading %s virtual interfaces\n' % n_radios)
-        if not self.externally_managed:
-            if alt_module:
-                os.system('insmod %s numlbs=0' % alt_module)
-            else:
-                os.system('modprobe fakelb numlbs=%s' % n_radios)
+        if iot_module == 'fakelb':
+            os.system('modprobe fakelb numlbs=%s' % n_radios)
+        elif iot_module == 'mac802154_hwsim':
+            os.system('modprobe mac802154_hwsim')
+        else:
+            os.system('insmod %s' % iot_module)
 
     @classmethod
     def kill_fakelb(cls):
@@ -120,7 +120,6 @@ class module(object):
 
     def assign_iface(self, nodes):
         """Assign virtual interfaces for all nodes
-        
         :param nodes: list of wireless nodes"""
         log_filename = '/tmp/mininetwifi-fakelb.log'
         self.logging_to_file("%s" % log_filename)
@@ -129,11 +128,8 @@ class module(object):
                   "-namespaces...\n")
             phy = self.getPhy()
             wlan_list = self.get_virtual_wpan()
-            wpanPhyID = 0
             for node in nodes:
                 for wlan in range(0, len(node.params['wpan'])):
-                    node.wpanPhyID[wlan] = wpanPhyID
-                    wpanPhyID += 1
                     os.system('iwpan phy phy%s set netns %s' % (phy[0], node.pid))
                     node.cmd('ip link set %s down' % wlan_list[0])
                     node.cmd('ip link set %s name %s'
