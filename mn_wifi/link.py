@@ -265,7 +265,8 @@ class IntfWireless(object):
         results[ name ] = result
         return result
 
-    def config(self, mac=None, ip=None, ipAddr=None, up=True, **_params):
+    def config(self, mac=None, ip=None, ip6=None,
+               ipAddr=None, up=True, **_params):
         """Configure Node according to (optional) parameters:
            mac: MAC address
            ip: IP address
@@ -278,6 +279,7 @@ class IntfWireless(object):
         r = {}
         self.setParam(r, 'setMAC', mac=mac)
         self.setParam(r, 'setIP', ip=ip)
+        self.setParam(r, 'setIP6', ip=ip6)
         self.setParam(r, 'isUp', up=up)
         self.setParam(r, 'ipAddr', ipAddr=ipAddr)
 

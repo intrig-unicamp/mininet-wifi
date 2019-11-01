@@ -476,9 +476,6 @@ class Node_wifi(Node):
            kwargs: any additional arguments for intf.setIP"""
         return self.intf(intf).setIP(ip, prefixLen, **kwargs)
 
-    def setMode(self, mode, intf=None):
-        return self.intf(intf).setMode(mode)
-
     def setIP6(self, ip, prefixLen=64, intf=None, **kwargs):
         """Set the IP address for an interface.
            intf: intf or intf name
@@ -486,7 +483,10 @@ class Node_wifi(Node):
            kwargs: any additional arguments for intf.setIP"""
         return self.intf(intf).setIP6(ip, prefixLen, **kwargs)
 
-    def config(self, mac=None, ip=None, ipv6=None,
+    def setMode(self, mode, intf=None):
+        return self.intf(intf).setMode(mode)
+
+    def config(self, mac=None, ip=None, ip6=None,
                defaultRoute=None, lo='up', **_params):
         """Configure Node according to (optional) parameters:
            mac: MAC address for default interface
@@ -501,7 +501,7 @@ class Node_wifi(Node):
         if not isinstance(self, Station) and not isinstance(self, Car):
             self.setParam(r, 'setMAC', mac=mac)
         self.setParam(r, 'setIP', ip=ip)
-        self.setParam(r, 'setIPv6', ipv6=ipv6)
+        self.setParam(r, 'setIP6', ip=ip6)
         self.setParam(r, 'setDefaultRoute', defaultRoute=defaultRoute)
 
         # This should be examined
