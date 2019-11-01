@@ -1,6 +1,6 @@
 # author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
 
-import glob
+
 import os
 import subprocess
 import logging
@@ -27,6 +27,13 @@ class module(object):
                              stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         if wm == 0:
             self.load_module(nwpans, iot_module)  # Initatilize WiFi Module
+            if iot_module == 'mac802154_hwsim':
+                n = 0
+                for sensor in sensors:
+                    for _ in range(0, len(sensor.params['wpan'])):
+                        n += 1
+                        if n > 2:
+                            os.system('wpan-hwsim add >/dev/null 2>&1')
             self.assign_iface(sensors)  # iface assign
         else:
             info('*** iwpan will be used, but it is not installed.\n' \
@@ -46,44 +53,25 @@ class module(object):
             os.system('insmod %s' % iot_module)
 
     @classmethod
-    def kill_fakelb(cls):
-        'Kill fakelb'
-        info("*** Killing fakelb\n")
-        os.system('rmmod fakelb')
+    def kill_mod(cls, module):
+        if cls.module_loaded(module):
+            info("*** Killing %s\n" % module)
+            os.system('rmmod %s' % module)
+
+    @classmethod
+    def module_loaded(cls, module_name):
+        "Checks if module is loaded"
+        lsmod_proc = subprocess.Popen(['lsmod'], stdout=subprocess.PIPE)
+        grep_proc = subprocess.Popen(['grep', module_name],
+                                     stdin=lsmod_proc.stdout, stdout=subprocess.PIPE)
+        grep_proc.communicate()  # Block until finished
+        return grep_proc.returncode == 0
 
     @classmethod
     def stop(cls):
         'Stop wireless Module'
-        if glob.glob("*.apconf"):
-            os.system('rm *.apconf')
-        if glob.glob("*.staconf"):
-            os.system('rm *.staconf')
-        if glob.glob("*wifiDirect.conf"):
-            os.system('rm *wifiDirect.conf')
-        if glob.glob("*.nodeParams"):
-            os.system('rm *.nodeParams')
-
-        try:
-            (subprocess.check_output("lsmod | grep ifb", shell=True))
-            os.system('rmmod ifb')
-        except:
-            pass
-
-        try:
-            confnames = "mn%d_" % os.getpid()
-            os.system('pkill -f \'wpa_supplicant -B -Dnl80211 -c%s\''
-                      % confnames)
-        except:
-            pass
-
-        try:
-            pidfiles = "mn%d_" % os.getpid()
-            os.system('pkill -f \'wpa_supplicant -B -Dnl80211 -P %s\''
-                      % pidfiles)
-        except:
-            pass
-
-        cls.kill_fakelb()
+        cls.kill_mod('fakelb')
+        cls.kill_mod('mac802154_hwsim')
 
     def get_virtual_wpan(self):
         'Gets the list of virtual wlans that already exist'
@@ -123,25 +111,18 @@ class module(object):
         :param nodes: list of wireless nodes"""
         log_filename = '/tmp/mininetwifi-fakelb.log'
         self.logging_to_file("%s" % log_filename)
-        try:
-            debug("\n*** Configuring interfaces with appropriated network"
-                  "-namespaces...\n")
-            phy = self.getPhy()
-            wlan_list = self.get_virtual_wpan()
-            for node in nodes:
-                for wlan in range(0, len(node.params['wpan'])):
-                    os.system('iwpan phy phy%s set netns %s' % (phy[0], node.pid))
-                    node.cmd('ip link set %s down' % wlan_list[0])
-                    node.cmd('ip link set %s name %s'
-                             % (wlan_list[0], node.params['wpan'][wlan]))
-                    wlan_list.pop(0)
-                    phy.pop(0)
-        except:
-            logging.exception("Warning:")
-            info("Warning! Error when loading fakelb. "
-                 "Please run sudo 'mn -c' before running your code.\n")
-            info("Further information available at %s.\n" % log_filename)
-            exit(1)
+        debug("\n*** Configuring interfaces with appropriated network"
+              "-namespaces...\n")
+        phy = self.getPhy()
+        wlan_list = self.get_virtual_wpan()
+        for node in nodes:
+            for wlan in range(0, len(node.params['wpan'])):
+                os.system('iwpan phy phy%s set netns %s' % (phy[0], node.pid))
+                node.cmd('ip link set %s down' % wlan_list[0])
+                node.cmd('ip link set %s name %s'
+                         % (wlan_list[0], node.params['wpan'][wlan]))
+                wlan_list.pop(0)
+                phy.pop(0)
 
     def logging_to_file(self, filename):
         logging.basicConfig(filename=filename,

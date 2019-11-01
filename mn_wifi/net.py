@@ -1586,12 +1586,14 @@ class Mininet_wifi(Mininet):
 
         nodes = self.stations + self.cars + self.aps
         nradios = self.countWiFiIfaces()
-        module(nodes, nradios, self.alt_module, **params)
+        if nodes:
+            module(nodes, nradios, self.alt_module, **params)
 
         if Mininet_IoT.nwpans:
             self.sensors = Mininet_IoT.init_module(iot_module=self.iot_module)
             self.addSensors(self.sensors)
             self.configure6LowPANLink()
+
         self.configureWirelessLink()
         self.createVirtualIfaces(self.stations)
         AccessPoint(self.aps, self.driver, check_nm =True)
