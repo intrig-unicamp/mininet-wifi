@@ -23,7 +23,7 @@ from mininet.node import (Node, Host, OVSKernelSwitch,
                           DefaultController, Controller)
 from mininet.util import (quietRun, fixLimits, numCores, ensureRoot,
                           macColonHex, ipStr, ipParse, netParse, ipAdd,
-                          waitListening)
+                          waitListening, BaseString)
 from mininet.link import Link, Intf, TCLink, TCULink
 from mininet.nodelib import NAT
 from mininet.log import info, error, debug, output, warn
@@ -175,9 +175,6 @@ class Mininet_wifi(Mininet):
         self.wlinks = []
         Mininet_wifi.init()  # Initialize Mininet-WiFi if necessary
 
-        if self.set_socket_ip:
-            self.server()
-
         if autoSetPositions and link == wmediumd:
             self.wmediumd_mode = interference
 
@@ -188,6 +185,9 @@ class Mininet_wifi(Mininet):
         self.built = False
         if topo and build:
             self.build()
+
+    def start_socket_server(self):
+        self.server()
 
     def server(self):
         thread(target=self.start_socket).start()
@@ -448,6 +448,19 @@ class Mininet_wifi(Mininet):
         self.aps.append(ap)
         return ap
 
+    def setStaticRoute(self, node, ip=None, **params):
+        """Set the static route to go through intf.
+           net: subnet address"""
+        # Note setParam won't call us if intf is none
+        if isinstance(ip, BaseString) and ' ' in ip:
+            params = ip
+        else:
+            natIP = ip.split('/')[0]
+            params = '%s via %s' % (params['net'], natIP)
+        # Do this in one line in case we're messing with the root namespace
+        node.cmd('ip route add', params)
+
+
     def addNAT(self, name='nat0', connect=True, inNamespace=False,
                linkTo=None, **params):
         """Add a NAT to the Mininet network
@@ -477,7 +490,7 @@ class Mininet_wifi(Mininet):
             if 'net' in params:
                 for node in nodes:
                     if node.inNamespace:
-                        node.setStaticRoute('%s via %s' % (params['net'], natIP))
+                        self.setStaticRoute(node, '%s via %s' % (params['net'], natIP))
             else:
                 for node in nodes:
                     if node.inNamespace:

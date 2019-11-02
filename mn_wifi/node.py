@@ -455,18 +455,6 @@ class Node_wifi(Node):
                     connections += [ (intf, link.intf1) ]
         return connections
 
-    def setStaticRoute(self, ip=None, **params):
-        """Set the static route to go through intf.
-           net: subnet address"""
-        # Note setParam won't call us if intf is none
-        if isinstance(ip, BaseString) and ' ' in ip:
-            params = ip
-        else:
-            natIP = ip.split('/')[0]
-            params = '%s via %s' % (params['net'], natIP)
-        # Do this in one line in case we're messing with the root namespace
-        self.cmd('ip route add', params)
-
     # Convenience and configuration methods
     def setIP(self, ip, prefixLen=8, intf=None, **kwargs):
         """Set the IP address for an interface.
