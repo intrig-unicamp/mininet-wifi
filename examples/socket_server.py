@@ -33,9 +33,11 @@ def topology():
     net.addLink(ap1, h1)
 
     info("*** Starting network\n")
-    net.addNAT().configDefault()
+    net.addNAT(linkTo='ap1').configDefault()
     net.build()
     ap1.start([])
+
+    net.start_socket_server()
 
     nodes = net.stations + net.aps
     net.telemetry(nodes=nodes, data_type='position',
