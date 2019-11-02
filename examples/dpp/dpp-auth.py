@@ -13,30 +13,33 @@ from os import path
 import subprocess
 
 
-def onboard_device(configurator,configurator_clicmd, sta, sta_clicmd, mac_addr, ap_dpp_configurator_id, dpp_configurator_key, passwd,ssid) :
+def onboard_device(configurator,configurator_clicmd, sta, sta_clicmd, mac_addr, dpp_configurator_id, dpp_configurator_key, passwd,ssid) :
 
     # On enrolee side
     # Generate QR code for the device. Store the qr code id returned by the command.
     info("enrollee: generate QR code for device\n")
-    bootstrapping_info_id = sta.cmdPrint( sta_clicmd + " dpp_bootstrap_gen  type=qrcode mac=" + mac_addr  + " key=" + dpp_configurator_key).split('\n')[1]
+    bootstrapping_info_id = sta.cmd( sta_clicmd + " dpp_bootstrap_gen  type=qrcode mac=" + mac_addr  + " key=" + dpp_configurator_key ).split('\n')[1]
     #Get QR Code of device using the bootstrap info id.
     info("enrollee: get the qr code using the returned bootstrap_info_id\n")
-    bootstrapping_uri = "'" + sta.cmdPrint(sta_clicmd + " dpp_bootstrap_get_uri " + str(bootstrapping_info_id)).split('\n')[1] + "'"
+    bootstrapping_uri = "'" + sta.cmd(sta_clicmd + " dpp_bootstrap_get_uri " + str(bootstrapping_info_id)).split('\n')[1] + "'"
+    info("enrollee : show the dpp bootstrap info")
+    sta.cmdPrint(sta_clicmd + " dpp_bootstrap_info " + bootstrapping_info_id)
+    info("bootstrapping_uri = " + bootstrapping_uri + "\n")
     info("enrollee: listen for dpp provisioning request\n")
     #Make device listen to DPP request (The central frequency of channel 1 is 2412) in case if enrollee is a client device.
-    sta.cmdPrint(sta_clicmd + " dpp_listen " + str(2412) )
+    sta.cmd(sta_clicmd + " dpp_listen " + str(2412) )
     time.sleep(3)
 
 
     info("Configurator:  Enter the sta QR Code in the Configurator.\n")
-    bootstrapping_info_id = configurator.cmdPrint(configurator_clicmd + " dpp_qr_code " + bootstrapping_uri).split("\n")[1]
+    bootstrapping_info_id = configurator.cmd(configurator_clicmd + " dpp_qr_code " + bootstrapping_uri).split("\n")[1]
     info("Configurator: Send provisioning request to enrollee. (conf is ap-dpp if enrollee is an AP. conf is sta-dpp if enrollee is a client)\n")
-    result = configurator.cmdPrint(configurator_clicmd + ' dpp_auth_init peer={} conf=sta-psk ssid={} psk={} configurator={}'.format(bootstrapping_info_id,ssid,passwd, ap_dpp_configurator_id ))
+    result = configurator.cmd(configurator_clicmd + ' dpp_auth_init peer={} conf=sta-psk ssid={} psk={} configurator={}'.format(bootstrapping_info_id,ssid,passwd, dpp_configurator_id ))
 
     info("Enrollee: save the config file\n")
-    sta.cmdPrint(sta_clicmd + " save_config")
+    sta.cmd(sta_clicmd + " save_config")
     info("Enrollee:  reload the config file\n")
-    sta.cmdPrint(sta_clicmd + " reconfigure")
+    sta.cmd(sta_clicmd + " reconfigure")
  
 
 
@@ -89,6 +92,8 @@ def topology():
                            'ctrl_interface_group=0\n'
                            'update_config=1\n'
                            'pmf=1\n'
+                           'dpp_mud_url=https://www.nist.local/nistmud1\n'
+                           'dpp_name=MyDpp\n'
                            'dpp_config_processing=2',
 
            encrypt='wpa2')
@@ -113,18 +118,18 @@ def topology():
     info("*** Adding openflow wireless rule : \n ")
     # For wireless isolation hack. Put a normal flow in there so stations
     # can ping each other
-    ap1.cmdPrint('ovs-ofctl add-flow ap1 "priority=10,actions=in_port,normal"')
+    ap1.cmd('ovs-ofctl add-flow ap1 "priority=10,actions=in_port,normal"')
 
 
     cli_cmd = "wpa_cli -p /var/run/wpa_supplicant1 "
     configurator = sta1
-    configurator.cmdPrint( cli_cmd+" log_level debug")
+    configurator.cmd( cli_cmd+" log_level debug")
     info("Configurator: add a configurator object\n")
-    dpp_configurator_id = configurator.cmdPrint( cli_cmd + ' dpp_configurator_add ').split('\n')[1]
+    dpp_configurator_id = configurator.cmd( cli_cmd + ' dpp_configurator_add ').split('\n')[1]
     info("Configurator: get the configurator key\n")
-    dpp_configurator_key = configurator.cmdPrint(cli_cmd + " dpp_configurator_get_key " + str(1)).split('\n')[1]
+    dpp_configurator_key = configurator.cmd(cli_cmd + " dpp_configurator_get_key " + str(1)).split('\n')[1]
     info("Configurator: self sign the configurator\n")
-    configurator.cmdPrint( cli_cmd + " dpp_configurator_sign conf=sta-psk psk={} ssid={} configurator={}".format(psk,ssid,str(dpp_configurator_id)) )
+    configurator.cmd( cli_cmd + " dpp_configurator_sign conf=sta-psk psk={} ssid={} configurator={}".format(psk,ssid,str(dpp_configurator_id)) )
     f = open("sta2_0.staconf","r")
     lines = f.read()
     print("******************************\n")
@@ -133,7 +138,7 @@ def topology():
     print("******************************")
     f.close()
     
-    time.sleep(3)
+    time.sleep(5)
 
     onboard_device(sta1,cli_cmd,sta2,"wpa_cli -p /var/run/wpa_supplicant2","00:00:00:00:00:82", dpp_configurator_id,dpp_configurator_key,psk,ssid.encode('hex'))
 
