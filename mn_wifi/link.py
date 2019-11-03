@@ -67,9 +67,9 @@ class IntfWireless(object):
         return self.iwdev_cmd('{} ibss join {} {} {} 02:CA:FF:EE:BA:01'.
                               format(self.name, self.ssid, self.freq, ht_cap))
 
-    def join_mesh(self, ssid, freq, ht_cap):
+    def join_mesh(self, ssid, ht_cap):
         return self.iwdev_cmd('{} mesh join {} freq {} {}'.
-                              format(self.name, ssid, freq, ht_cap))
+                              format(self.name, ssid, self.freq, ht_cap))
 
     def get_freq(self):
         "Gets frequency based on channel number"
@@ -1347,7 +1347,7 @@ class mesh(IntfWireless):
             node.addWIntf(self, port=wlan)
 
         self.setMeshIface(node, mode, channel, wlan, iface)
-        self.configureMesh(node, ssid, ht_cap, passwd, iface)
+        self.configureMesh(ssid, ht_cap, passwd)
 
     def set_mesh_type(self, intf):
         return '%s interface add %s type mp' % (intf.name, self.name)
@@ -1364,41 +1364,40 @@ class mesh(IntfWireless):
         self.setChannel(channel)
         self.setModeParam(mode)
 
-        self.freq = intf.freq
         self.channel = intf.channel
         self.mode = intf.mode
 
         self.ipLink('up')
 
-    def configureMesh(self, node, ssid, ht_cap, passwd, intf):
+    def configureMesh(self, ssid, ht_cap, passwd):
         "Configure Wireless Mesh Interface"
         if passwd:
-            self.setSecuredMesh(node, passwd, intf)
+            self.setSecuredMesh(passwd)
         else:
-            self.associate(ssid, ht_cap, intf)
+            self.associate(ssid, ht_cap)
 
-    def associate(self, ssid, ht_cap, intf):
+    def associate(self, ssid, ht_cap):
         "Performs Mesh Association"
-        self.join_mesh(ssid, intf.freq, ht_cap)
+        self.join_mesh(ssid, ht_cap)
 
-    def setSecuredMesh(self, node, passwd, intf):
+    def setSecuredMesh(self, passwd):
         "Set secured mesh"
         cmd = 'ctrl_interface=/var/run/wpa_supplicant\n'
         cmd += 'ctrl_interface_group=adm\n'
         cmd += 'user_mpm=1\n'
         cmd += 'network={\n'
-        cmd += '         ssid="%s"\n' % intf.ssid
+        cmd += '         ssid="%s"\n' % self.ssid
         cmd += '         mode=5\n'
         cmd += '         frequency=%s\n' \
-               % str(intf.freq).replace('.', '')
+               % str(self.freq).replace('.', '')
         cmd += '         key_mgmt=SAE\n'
         cmd += '         psk="%s"\n' % passwd
         cmd += '}'
 
-        fileName = '%s.staconf' % (intf.name)
+        fileName = '%s.staconf' % (self.name)
         os.system('echo \'%s\' > %s' % (cmd, fileName))
-        pidfile = "mn%d_%s_wpa.pid" % (os.getpid(), intf.name)
-        node.wpa_cmd(pidfile, intf)
+        pidfile = "mn%d_%s_wpa.pid" % (os.getpid(), self.name)
+        self.node.wpa_cmd(pidfile, self)
 
 
 class physicalMesh(IntfWireless):
