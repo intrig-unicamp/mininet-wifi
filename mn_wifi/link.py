@@ -1246,6 +1246,8 @@ class adhoc(IntfWireless):
 
         self.id = wlan
         self.ssid = ssid
+        self.ip6 = intf.ip6
+        self.ip = intf.ip
         self.mac = intf.mac
         self.ip6 = intf.ip6
         self.link = intf.link
