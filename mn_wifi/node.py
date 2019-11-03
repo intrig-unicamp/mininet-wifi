@@ -104,17 +104,16 @@ class Node_wifi(Node):
     def get_wlan(self, intf):
         return self.params['wlan'].index(intf)
 
-    def setMeshMode(self, intf=None, **kwargs):
-        if intf:
-            kwargs['intf'] = intf
-        #wlan = self.get_wlan(kwargs['intf'])
-        mesh(self, **kwargs)
-
     def setPhysicalMeshMode(self, intf=None, **kwargs):
         if intf:
             kwargs['intf'] = intf
         #wlan = self.get_wlan(kwargs['intf'])
         physicalMesh(self, **kwargs)
+
+    def setMeshMode(self, intf=None, **kwargs):
+        if intf:
+            kwargs['intf'] = intf
+        mesh(self, **kwargs)
 
     def setAdhocMode(self, intf=None, **kwargs):
         if intf:
@@ -125,7 +124,6 @@ class Node_wifi(Node):
         adhoc(self, **kwargs)
 
     def setManagedMode(self, intf=None):
-
         if isinstance(intf, BaseString):
             wlan = self.params['wlan'].index(intf)
             intf = self.wintfs[wlan]
