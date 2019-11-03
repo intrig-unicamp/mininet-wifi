@@ -443,10 +443,10 @@ class testWalkthrough(unittest.TestCase):
         p = pexpect.spawn(
             'python examples/6LoWPan.py')
         sleep(4)
-        p.sendline('sensor1 ping -c1 2001::2')
+        p.sendline('sensor1 ping6 -c1 2001::2')
         p.expect('1 packets transmitted, 1 received')
         p.expect(self.prompt)
-        p.sendline('sensor1 ping -c1 2001::3')
+        p.sendline('sensor1 ping6 -c1 2001::3')
         p.expect('1 packets transmitted, 1 received')
         p.expect(self.prompt)
         p.sendline('exit')
