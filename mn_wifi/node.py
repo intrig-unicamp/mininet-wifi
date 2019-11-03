@@ -264,61 +264,33 @@ class Node_wifi(Node):
         self.setHeightWmediumd(wlan)
         self.configLinks()
 
-    def setChannel(self, channel, intf=None):
+    def setChannel(self, chann, intf=None):
         "Set Channel"
-        from mn_wifi.link import IntfWireless
-        if intf:
-            wlan = self.get_wlan(intf)
-        else:
-            wlan = 0
-            intf = self.params['wlan'][wlan]
-        if isinstance(self, AP) and isinstance(self.wintfs[wlan], mesh):
-            IntfWireless.setChannel(self, channel, intf, AP=True)
-        else:
-            if isinstance(self.wintfs[wlan], mesh):
-                mesh(self, channel=channel, intf=intf)
-            elif isinstance(self.wintfs[wlan], adhoc):
-                self.cmd('iw dev %s ibss leave' % self.params['wlan'][wlan])
-                adhoc(self, channel=channel, intf=intf)
-        return self.intf(intf).setChannel(channel)
-
-    def setTxPower(self, value, intf=None, setParam=True):
-        "Set Tx Power"
         wlan = self.get_wlan(intf)
         intf = self.wintfs[wlan]
-        self.pexec('iw dev %s set txpower fixed %s'
-                   % (intf, (int(value) * 100)))
-        intf.txpower = value
-        intf.range = self.getRange(intf)
-        self.setTXPowerWmediumd(wlan)
-        if setParam:
-            self.configLinks()
 
-    def get_freq(self, intf):
-        "Gets frequency based on channel number"
-        channel = int(intf.channel)
-        chan_list_2ghz = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
-        chan_list_5ghz = [36, 40, 44, 48, 52, 56, 60, 64, 100,
-                          104, 108, 112, 116, 120, 124, 128, 132,
-                          136, 140, 149, 153, 157, 161, 165,
-                          169, 171, 172, 173, 174, 175, 176,
-                          177, 178, 179, 180, 181, 182, 183, 184,
-                          185]
-        freq_list_2ghz = [2.412, 2.417, 2.422, 2.427, 2.432, 2.437,
-                          2.442, 2.447, 2.452, 2.457, 2.462]
-        freq_list_5ghz = [5.18, 5.2, 5.22, 5.24, 5.26, 5.28, 5.30, 5.32,
-                          5.50, 5.52, 5.54, 5.56, 5.58, 5.6, 5.62,
-                          5.64, 5.66, 5.68, 5.7, 5.745, 5.765, 5.785,
-                          5.805, 5.825, 5.845, 5.855, 5.86, 5.865, 5.87,
-                          5.875, 5.88, 5.885, 5.89, 5.895, 5.9, 5.905,
-                          5.91, 5.915, 5.92, 5.925]
-        all_chan = chan_list_2ghz + chan_list_5ghz
-        all_freq = freq_list_2ghz + freq_list_5ghz
-        if channel in all_chan:
-            idx = all_chan.index(channel)
-            return all_freq[idx]
-        else:
-            return 2.412
+        if isinstance(self, AP):
+            intf.setAPChannel(chann)
+        elif isinstance(intf, mesh):
+            intf.setChannel(chann)
+        elif isinstance(intf, adhoc):
+            self.cmd('iw dev %s ibss leave' % intf.name)
+            adhoc(self, chann=chann, intf=intf)
+
+    def setTxPower(self, txpower, intf=None, setParam=True):
+        "Set Tx Power"
+        from mn_wifi.plot import plot2d
+        wlan = self.get_wlan(intf)
+        intf = self.wintfs[wlan]
+        self.pexec('iw dev %s set txpower fixed %s' % (intf.name, txpower * 100))
+        intf.txpower = txpower
+        if 'position' in self.params:
+            intf.range = self.getRange(intf)
+            if plot2d.fig_exists():
+                plot2d.updateCircleRadius(self)
+            self.setTXPowerWmediumd(wlan)
+            if setParam:
+                self.configLinks()
 
     def get_rssi(self, intf, ap_intf, dist=0):
         rssi = propagationModel(intf, ap_intf, dist).rssi
@@ -384,26 +356,27 @@ class Node_wifi(Node):
         dist = math.sqrt(x + y + z)
         return round(dist, 2)
 
-    def setAssociation(self, ap, intf=None, **params):
+    def setAssociation(self, ap, intf=None):
         "Force association to given AP"
         wlan = self.get_wlan(intf)
-
-        dist = 100000
+        intf = self.wintfs[wlan]
+        ap_intf = ap.wintfs[wlan]
         if 'position' in self.params and 'position' in ap.params:
             dist = self.get_distance_to(ap)
-
-        if dist < ap.wintfs[wlan].range or dist == 100000:
-            if self.wintfs[wlan].associatedTo != ap:
-                if self.wintfs[wlan].associatedTo:
-                    Association.disconnect(self, intf)
-                    self.wintfs[0].rssi = 0
-                Association.associate_infra(self, ap, wlan, 0)
-                wirelessLink(self, wlan, dist)
+            if dist <= ap_intf.range:
+                if intf.associatedTo != ap:
+                    if intf.associatedTo:
+                        Association.disconnect(intf)
+                        intf.rssi = 0
+                    Association.associate_infra(intf, ap_intf)
+                    wirelessLink(intf, dist)
+                else:
+                    info('%s is already connected!\n' % ap)
+                self.configLinks()
             else:
-                info ('%s is already connected!\n' % ap)
-            self.configLinks()
-        else:
-            info("%s is out of range!\n" % (ap))
+                info("%s is out of range!\n" % (ap))
+        elif 'position' not in self.params and 'position' not in ap.params:
+            Association.associate_infra(intf, ap_intf)
 
     def newPort(self):
         "Return the next port number to allocate."
@@ -894,7 +867,7 @@ class AccessPoint(AP):
                         if wmediumd_mode.mode == 4:
                             self.setBw(intf, wlan)
 
-                        intf.freq = intf.node.get_freq(intf)
+                        intf.freq = intf.get_freq()
 
     def setConfig(self, intf, aplist=None, wlan=0):
         """Configure AP
