@@ -271,7 +271,7 @@ class model(mobility):
 
     def models(self, stations=None, aps=None, stat_nodes=None, mob_nodes=None,
                ac_method=None, draw=False, seed=1, model='RandomWalk',
-               plotNodes=None, min_wt=5, max_wt=5, min_x=0, min_y=0,
+               mnNodes=None, min_wt=5, max_wt=5, min_x=0, min_y=0,
                max_x=100, max_y=100, conn=None, min_v=1, max_v=10,
                **kwargs):
         "Used when a mobility model is set"
@@ -281,8 +281,8 @@ class model(mobility):
         mobility.stations, mobility.mobileNodes, mobility.aps = \
             stations, stations, aps
 
-        if plotNodes:
-            stat_nodes += plotNodes
+        if mnNodes:
+            stat_nodes += mnNodes
 
         for node in mob_nodes:
             if not hasattr(node, 'min_x'):
@@ -378,7 +378,7 @@ class tracked(mobility):
         mobility.set_wifi_params()
 
     def configure(self, stations=None, aps=None, stat_nodes=None, mob_nodes=None,
-                  ac_method=None, plotNodes=None, draw=False, final_time=10,
+                  ac_method=None, mnNodes=None, draw=False, final_time=10,
                   **kwargs):
         if ac_method:
             mobility.ac = ac_method
@@ -390,8 +390,8 @@ class tracked(mobility):
         nodes = stations + aps
         plot = plot2d
 
-        if plotNodes:
-            nodes += plotNodes
+        if mnNodes:
+            stat_nodes += mnNodes
 
         for node in mob_nodes:
             node.params['position'] = node.params['initPos']

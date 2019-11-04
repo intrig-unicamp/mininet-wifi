@@ -292,9 +292,7 @@ class Mininet_wifi(Mininet):
         pos = node.params['position']
         if isinstance(pos, string_types):
             pos = pos.split(',')
-        node.params['position'] = [float(pos[0]),
-                                   float(pos[1]),
-                                   float(pos[2])]
+        node.params['position'] = [float(pos[0]), float(pos[1]), float(pos[2])]
 
     def countWiFiIfaces(self):
         "Count the number of virtual wifi interfaces"
@@ -795,16 +793,16 @@ class Mininet_wifi(Mininet):
     def check_if_mob(self):
         if self.mob_param:
             self.get_mob_stat_nodes()
+            self.mob_param['mnNodes'] = self.plot_mininet_nodes()
             if 'model' in self.mob_param or self.isVanet or self.roads:
                 self.start_mobility(**self.mob_param)
             else:
-                self.mob_param['plotNodes'] = self.plot_nodes()
                 trackedMob(**self.mob_param)
             self.mob_check = True
         else:
             if self.draw and not self.isReplaying:
-                plotNodes = self.plot_nodes()
-                self.plotCheck(plotNodes)
+                mnNodes = self.plot_mininet_nodes()
+                self.plotCheck(mnNodes)
 
     def build(self):
         "Build mininet-wifi."
@@ -861,13 +859,17 @@ class Mininet_wifi(Mininet):
 
         self.built = True
 
-    def plot_nodes(self):
+    def plot_mininet_nodes(self):
+        from mn_wifi.node import Node_wifi
         nodes = self.hosts + self.switches + self.controllers
-        plotNodes = []
+        mnNodes = []
         for node in nodes:
-            if hasattr(node, 'plotted') and node.plotted is True:
-                plotNodes.append(node)
-        return plotNodes
+            if 'position' in node.params:
+                self.pos_to_array(node)
+                node.wintfs = {0 : Node_wifi}
+                node.wintfs[0].range = 0
+                mnNodes.append(node)
+        return mnNodes
 
     def startTerms(self):
         "Start a terminal for each node."
@@ -1515,7 +1517,7 @@ class Mininet_wifi(Mininet):
                 if arg != 'min_wt' and arg != 'max_wt':
                     setattr(self, arg, float(kwargs[arg]))
 
-        args = ['plotNodes', 'ac_method', 'model', 'time']
+        args = ['mnNodes', 'ac_method', 'model', 'time']
         for arg in args:
             if arg in kwargs:
                 self.mob_param.setdefault(arg, kwargs[arg])
@@ -1643,9 +1645,9 @@ class Mininet_wifi(Mininet):
 
         return self.stations, self.aps
 
-    def plotCheck(self, plotNodes):
+    def plotCheck(self, mnNodes):
         "Check which nodes will be plotted"
-        nodes = self.stations + self.aps + plotNodes + self.cars
+        nodes = self.stations + self.aps + mnNodes + self.cars
         self.checkDimension(nodes)
 
     def plot_dynamic(self):
@@ -1688,6 +1690,7 @@ class Mininet_wifi(Mininet):
                         if self.wmediumd_mode != error_prob:
                             pos = node.params['position']
                             if isinstance(intf, adhoc):
+                                info('%s ' % node)
                                 sleep(1.5)
                             # we need this cause wmediumd is struggling
                             # with some associations e.g. wpa

@@ -96,11 +96,6 @@ class Node_wifi(Node):
     inToNode = {}  # mapping of input fds to nodes
     outToNode = {}  # mapping of output fds to nodes
 
-    def plot(self, position):
-        self.params['position'] = position.split(',')
-        self.params['range'] = [0]
-        self.plotted = True
-
     def get_wlan(self, intf):
         return self.params['wlan'].index(intf)
 
