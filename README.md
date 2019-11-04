@@ -10,9 +10,6 @@ Mininet-WiFi is a fork of Mininet (http://mininet.org/) which allows the using o
 * Please consider computer network troubleshooting steps to solve issues before making questions in the mailing list (e.g. is the station associated with ap? Is the OpenFlow rule working correctly? etc)   
 * Do you need help? Be careful with questions in the mailing list and please providing as much information you can.
 
-### User Manual  
-[Access the User Manual](https://github.com/ramonfontes/manual-mininet-wifi/raw/master/mininet-wifi-draft-manual.pdf)
-
 ### Mailing List  
 [https://groups.google.com/forum/#!forum/mininet-wifi-discuss](https://groups.google.com/forum/#!forum/mininet-wifi-discuss) 
 
