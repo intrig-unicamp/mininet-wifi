@@ -195,7 +195,7 @@ class w_starter(object):
             intfrefs = []
         if links is None:
             links = []
-        parameters = ['-l', '4', '-s']
+        parameters = ['-l', '0', '-s']
 
         kwargs['intfrefs'] = intfrefs
         kwargs['links'] = links
