@@ -45,9 +45,9 @@ class mobility(object):
 
     @classmethod
     def get_position(cls, pos):
-        return float('%s' % pos[0]),\
-               float('%s' % pos[1]),\
-               float('%s' % pos[2])
+        return (float('%s' % pos[0]),
+                float('%s' % pos[1]),
+                float('%s' % pos[2]))
 
     @classmethod
     def configure(cls, *args, **kwargs):
@@ -56,18 +56,18 @@ class mobility(object):
         stage = args[1]
 
         if 'position' in kwargs:
-            pos = kwargs['position']
+            pos = kwargs['position'].split(',')
             if stage == 'start':
-                node.params['initPos'] = (cls.get_position(pos.split(',')))
+                node.params['initPos'] = cls.get_position(pos)
             elif stage == 'stop':
-                node.params['finPos'] = (cls.get_position(pos.split(',')))
+                node.params['finPos'] = cls.get_position(pos)
         else:
             if stage == 'start':
                 pos = node.coord[0].split(',')
-                node.params['initPos'] = (cls.get_position(pos))
+                node.params['initPos'] = cls.get_position(pos)
             elif stage == 'stop':
                 pos = node.coord[1].split(',')
-                node.params['finPos'] = (cls.get_position(pos))
+                node.params['finPos'] = cls.get_position(pos)
 
         if stage == 'start':
             node.startTime = kwargs['time']
@@ -537,7 +537,7 @@ class tracked(mobility):
                         faxes[ldelta.index(delta)] -= delta
                     else:
                         faxes[ldelta.index(delta)] = laxes[ldelta.index(delta)]
-            points.append((mobility.get_position(faxes)))
+            points.append(mobility.get_position(faxes))
         node.points += points
 
     def set_coordinates(self, node):
