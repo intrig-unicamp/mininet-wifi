@@ -262,10 +262,12 @@ class Node_wifi(Node):
         wlan = self.get_wlan(intf)
         intf = self.wintfs[wlan]
 
+        intf.channel = chann
+
         if isinstance(self, AP):
-            intf.setAPChannel(chann)
+            intf.setAPChannel()
         elif isinstance(intf, mesh):
-            intf.setChannel(chann)
+            intf.setChannel()
         elif isinstance(intf, adhoc):
             self.cmd('iw dev %s ibss leave' % intf.name)
             adhoc(self, chann=chann, intf=intf)

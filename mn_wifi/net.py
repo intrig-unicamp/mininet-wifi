@@ -106,7 +106,7 @@ class Mininet_wifi(Mininet):
         self.ip6BaseNum, self.prefixLen6 = netParse6(self.ip6Base)
         self.nextIP = 1  # start for address allocation
         self.nextIP6 = 1  # start for address allocation
-        self.nextPos_sta = 1 # start for sta position allocation
+        self.nextPos_sta = 1  # start for sta position allocation
         self.nextPos_ap = 1  # start for ap position allocation
         self.inNamespace = inNamespace
         self.xterms = xterms
@@ -708,7 +708,7 @@ class Mininet_wifi(Mininet):
 
     def configHosts(self):
         "Configure a set of nodes."
-        nodes = self.hosts + self.stations
+        nodes = self.hosts + self.stations + self.cars + self.sensors
         for node in nodes:
             # info( host.name + ' ' )
             intf = node.defaultIntf()
@@ -1634,14 +1634,6 @@ class Mininet_wifi(Mininet):
                     node.setAntennaGain(node.wintfs[wlan].antennaGain,
                                         intf=intf.name,
                                         setParam=setParam)
-
-        nodes = self.stations + self.cars + self.sensors
-        for node in nodes:
-            intf = node.defaultIntf()
-            if intf:
-                node.configDefault()
-            else:
-                node.configDefault(ip=None, mac=None)
 
         return self.stations, self.aps
 
