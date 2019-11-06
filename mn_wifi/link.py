@@ -805,6 +805,7 @@ class managed(TCWirelessLink):
         self.node = node
         self.apsInRange = {}
         self.range = 0
+        self.ifb = None
         self.active_scan = None
         self.associatedTo = None
         self.associatedStations = None
@@ -1031,7 +1032,6 @@ class wirelessLink(object):
     equationDelay = '(dist / 10) + 1'
     equationLatency = '(dist / 10)/2'
     equationBw = ' * (1.01 ** -dist)'
-    ifb = False
 
     def __init__(self, intf, dist=0):
         latency_ = self.getLatency(dist)
@@ -1068,9 +1068,8 @@ class wirelessLink(object):
 
     @classmethod
     def config_tc(cls, intf, bw, loss, latency):
-        if cls.ifb:
-            iface = 'ifb%s' % intf.node.ifb[intf.id]
-            cls.tc(intf.node, iface, bw, loss, latency)
+        if intf.ifb:
+            cls.tc(intf.node, intf.ifb, bw, loss, latency)
         cls.tc(intf.node, intf.name, bw, loss, latency)
 
     @classmethod

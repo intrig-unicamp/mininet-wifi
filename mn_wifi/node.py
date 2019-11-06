@@ -190,13 +190,13 @@ class Node_wifi(Node):
     def ifbSupport(self, wlan, ifbID):
         "Support to Intermediate Functional Block (IFB) Devices"
         os.system('ip link set dev ifb%s netns %s' % (ifbID, self.pid))
-        self.cmd('ip link set ifb%s up' % ifbID)
+        self.cmd('ip link set ifb%s name ifb%s' % (ifbID, wlan+1))
+        self.cmd('ip link set ifb%s up' % (wlan+1))
         self.cmd('tc qdisc add dev %s handle ffff: ingress' %
                  self.params['wlan'][wlan])
         self.cmd('tc filter add dev %s parent ffff: protocol ip u32 '
                  'match u32 0 0 action mirred egress redirect dev ifb%s'
-                 % (self.params['wlan'][wlan], ifbID))
-        self.ifb.append(ifbID)
+                 % (self.params['wlan'][wlan], (wlan+1)))
 
     def getRange(self, intf=None, noiseLevel=0):
         "Get the Signal Range"

@@ -300,7 +300,7 @@ class Mininet_wifi(Mininet):
         nradios = 0
         for node in nodes:
             nradios += len(node.params['wlan'])
-        return nradios
+        return nodes, nradios
 
     def addWlans(self, node):
         node.params['wlan'] = []
@@ -1442,6 +1442,7 @@ class Mininet_wifi(Mininet):
         :param stations: list of stations
         :param aps: list of access points
         :param cars: list of cars"""
+        ifbID = 0
         nodes = self.stations + self.cars
         for node in nodes:
             for wlan in range(0, len(node.params['wlan'])):
@@ -1449,6 +1450,10 @@ class Mininet_wifi(Mininet):
                                              intfName1=node.params['wlan'][wlan])
                 managed(node, wlan)
                 self.links.append(link)
+                if self.ifb:
+                    node.ifbSupport(wlan, ifbID)  # Adding Support to IFB
+                    node.wintfs[wlan].ifb = 'ifb'+str(wlan+1)
+                    ifbID += 1
             self.configureMacAddr(node)
 
     def plotGraph(self, **kwargs):
@@ -1591,18 +1596,17 @@ class Mininet_wifi(Mininet):
         if not self.ppm_is_set:
             self.setPropagationModel()
         params = {}
-        if self.ifb:
-            wirelessLink.ifb = True
-            params['ifb'] = self.ifb
         if self.docker:
             params['docker'] = self.docker
             params['container'] = self.container
             params['ssh_user'] = self.ssh_user
 
-        nodes = self.stations + self.cars + self.aps
-        nradios = self.countWiFiIfaces()
+        nodes, nradios = self.countWiFiIfaces()
         if nodes:
             module(nodes, nradios, self.alt_module, **params)
+
+        if self.ifb:
+            module.load_ifb(nradios)
 
         if Mininet_IoT.nwpans:
             self.sensors = Mininet_IoT.init_module(iot_module=self.iot_module)
@@ -1611,7 +1615,7 @@ class Mininet_wifi(Mininet):
 
         self.configureWirelessLink()
         self.createVirtualIfaces(self.stations)
-        AccessPoint(self.aps, self.driver, check_nm =True)
+        AccessPoint(self.aps, self.driver, check_nm=True)
         if self.link == wmediumd:
             self.configureWmediumd()
         AccessPoint(self.aps, self.driver)
