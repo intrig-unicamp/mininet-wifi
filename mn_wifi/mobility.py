@@ -188,13 +188,11 @@ class mobility(object):
 
     @classmethod
     def do_handover(cls, intf, ap_intf):
-        changeAP = False
-
         "Association Control: mechanisms that optimize the use of the APs"
+        changeAP = False
         if cls.ac and intf.associatedTo \
                 and ap_intf.node != intf.associatedTo:
-            value = associationControl(intf, ap_intf, cls.ac)
-            changeAP = value.changeAP
+            changeAP = associationControl(intf, ap_intf, cls.ac).changeAP
         if not intf.associatedTo or changeAP:
             if ap_intf.node != intf.associatedTo:
                 Association.associate_infra(intf, ap_intf)
