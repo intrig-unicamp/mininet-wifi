@@ -277,8 +277,7 @@ class Node_wifi(Node):
         from mn_wifi.plot import plot2d
         wlan = self.get_wlan(intf)
         intf = self.wintfs[wlan]
-        self.pexec('iw dev %s set txpower fixed %s' % (intf.name, txpower * 100))
-        intf.txpower = txpower
+        intf.setTxPower(txpower)
         if 'position' in self.params:
             intf.range = self.getRange(intf)
             if plot2d.fig_exists():

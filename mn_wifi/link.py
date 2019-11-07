@@ -144,7 +144,9 @@ class IntfWireless(object):
         self.mode = mode
 
     def setTxPower(self, txpower):
+        self.node.pexec('iw dev %s set txpower fixed %s' % (self.name, txpower * 100))
         self.txpower = txpower
+        debug('\n')
 
     def setIP(self, ipstr, prefixLen=None, **args):
         """Set our IP address"""
@@ -1505,12 +1507,12 @@ class Association(IntfWireless):
     @classmethod
     def associate_noEncrypt(cls, intf, ap_intf):
         #iwconfig is still necessary, since iw doesn't include essid like iwconfig does.
-        debug(cls.iwconfig_con(intf.name, ap_intf.ssid, ap_intf.mac)+'\n')
-        intf.node.pexec(cls.iwconfig_con(intf, ap_intf.ssid, ap_intf.mac))
+        intf.node.pexec(cls.iwconfig_con(intf, ap_intf))
+        debug('\n')
 
     @classmethod
-    def iwconfig_con(cls, intf, ssid, mac):
-        cmd = 'iwconfig %s essid %s ap %s' % (intf, ssid, mac)
+    def iwconfig_con(cls, intf, ap_intf):
+        cmd = 'iwconfig %s essid %s ap %s' % (intf, ap_intf.ssid, ap_intf.mac)
         return cmd
 
     @classmethod
