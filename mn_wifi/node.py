@@ -244,9 +244,15 @@ class Node_wifi(Node):
 
     def setAntennaGain(self, value, intf=None, setParam=True):
         "Set Antenna Gain"
+        from mn_wifi.plot import plot2d
         wlan = self.get_wlan(intf)
-        self.wintfs[wlan].antennaGain = int(value)
+        intf = self.wintfs[wlan]
         self.setGainWmediumd(wlan)
+        gain = value - intf.antennaGain
+        intf.range += gain
+        intf.antennaGain = int(value)
+        if plot2d.fig_exists():
+            plot2d.updateCircleRadius(self)
         if setParam:
             self.configLinks()
 
