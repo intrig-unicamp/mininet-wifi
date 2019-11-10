@@ -557,6 +557,51 @@ class Mininet_wifi(Mininet):
     def addMacToWmediumd(self, mac=None):
         self.wmediumdMac.append(mac)
 
+    def infra_wmediumd_link(self, node1, node2, **params):
+        ap = node1 if node1 in self.aps else node2
+        sta = node1 if node2 in self.aps else node2
+
+        if self.wmediumd_mode == error_prob:
+            wmediumd.wlinks.append([sta, ap, params['error_prob']])
+        elif self.wmediumd_mode != interference:
+            wmediumd.wlinks.append([sta, ap])
+
+    def infra_tc(self, node1, node2, port1=None, port2=None,
+                 cls=None, **params):
+
+        ap = node1 if node1 in self.aps else node2
+        sta = node1 if node2 in self.aps else node2
+
+        wlan = 0
+        ap_wlan = 0
+        if port1 and port2:
+            ap_wlan = port1 if node1 in self.aps else port2
+            wlan = port1 if node2 in self.aps else port2
+
+        params['ap_wlan'] = ap_wlan
+        params['wlan'] = wlan
+
+        intf = sta.wintfs[wlan]
+        ap_intf = ap.wintfs[ap_wlan]
+
+        # If sta/ap have position
+        doAssociation = True
+        if 'position' in sta.params and 'position' in ap.params:
+            dist = sta.get_distance_to(ap)
+            if dist > ap.wintfs[ap_wlan].range:
+                doAssociation = False
+        if doAssociation:
+            Association.associate(intf, ap_intf)
+
+            if 'bw' not in params and \
+                    'bw' not in str(cls) and not self.ifb:
+                params['bw'] = CustomRate(intf).rate
+            # tc = True, this is useful for tc configuration
+            link = cls(name=sta.params['wlan'][wlan], node=sta,
+                       **params)
+            # self.links.append(link)
+            return link
+
     def addLink(self, node1, node2=None, port1=None, port2=None,
                 cls=None, **params):
         """"Add a link from node1 to node2
@@ -609,12 +654,12 @@ class Mininet_wifi(Mininet):
                     self.links.append(link)
                     return link
         elif ((node1 in self.stations and node2 in self.aps)
-              or (node2 in self.stations and node1 in self.aps)) and 'link' not in options:
-            self.infraAssociation(node1, node2, port1, port2, cls, **params)
+              or (node2 in self.stations and node1 in self.aps)) and cls != TCLink:
+            if cls == wmediumd:
+                self.infra_wmediumd_link(node1, node2, **params)
+            else:
+                self.infra_tc(node1, node2, port1, port2, cls, **params)
         else:
-            if 'link' in options:
-                options.pop('link', None)
-
             if 'position' in node1.params and 'position' in node2.params:
                 self.conn['src'].append(node1)
                 self.conn['dst'].append(node2)
@@ -638,49 +683,6 @@ class Mininet_wifi(Mininet):
             link = cls(node1, node2, **options)
             self.links.append(link)
             return link
-
-    def infraAssociation(self, node1, node2, port1=None, port2=None,
-                         cls=None, **params):
-
-        ap = node1 if node1 in self.aps else node2
-        sta = node1 if node2 in self.aps else node2
-
-        wlan = 0
-        ap_wlan = 0
-        if port1 and port2:
-            ap_wlan = port1 if node1 in self.aps else port2
-            wlan = port1 if node2 in self.aps else port2
-
-        params['ap_wlan'] = ap_wlan
-        params['wlan'] = wlan
-
-        intf = sta.wintfs[wlan]
-        ap_intf = ap.wintfs[ap_wlan]
-
-        # If sta/ap have position
-        doAssociation = True
-        if 'position' in sta.params and 'position' in ap.params:
-            dist = sta.get_distance_to(ap)
-            if dist > ap.wintfs[ap_wlan].range:
-                doAssociation = False
-        if doAssociation:
-            Association.associate(intf, ap_intf)
-
-            if self.link != wmediumd:
-                if 'bw' not in params and \
-                        'bw' not in str(cls) and not self.ifb:
-                    params['bw'] = CustomRate(intf).rate
-                # tc = True, this is useful for tc configuration
-                link = cls(name=sta.params['wlan'][wlan], node=sta,
-                           **params)
-                # self.links.append(link)
-                return link
-
-        if self.link == wmediumd:
-            if self.wmediumd_mode == error_prob:
-                wmediumd.wlinks.append([sta, ap, params['error_prob']])
-            elif self.wmediumd_mode != interference:
-                wmediumd.wlinks.append([sta, ap])
 
     def delLink(self, link):
         "Remove a link from this network"
