@@ -8,7 +8,10 @@ ieee80211r='yes'
 mobility_domain='a1b2'
 
 e.g. ap1 = net.addAccessPoint('ap1', ..., ieee80211r='yes',
-mobility_domain='a1b2',...)"""
+mobility_domain='a1b2',...)
+
+Consider https://w1.fi/cgit/hostap/plain/wpa_supplicant/wpa_supplicant.conf
+for more information about bgscan"""
 
 from mininet.node import Controller
 from mininet.log import setLogLevel, info
