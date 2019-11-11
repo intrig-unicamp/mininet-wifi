@@ -248,7 +248,7 @@ class Node_wifi(Node):
         wlan = self.get_wlan(intf)
         intf = self.wintfs[wlan]
         self.setGainWmediumd(wlan)
-        gain = value - intf.antennaGain
+        gain = int(value) - int(intf.antennaGain)
         intf.range += gain
         intf.antennaGain = int(value)
         if plot2d.fig_exists():
