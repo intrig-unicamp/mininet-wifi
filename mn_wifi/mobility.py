@@ -523,19 +523,22 @@ class tracked(mobility):
                self.direction(y1, y2),
                self.direction(z1, z2))
 
-        for n in range(0, int(dt)):
-            for delta in ldelta:
-                if dir[ldelta.index(delta)]:
-                    if n < int(dt) - 1:
-                        faxes[ldelta.index(delta)] += delta
+        if int(dt) < 1:
+            points.append(mobility.get_position(laxes))
+        else:
+            for n in range(0, int(dt)):
+                for delta in ldelta:
+                    if dir[ldelta.index(delta)]:
+                        if n < int(dt) - 1:
+                            faxes[ldelta.index(delta)] += delta
+                        else:
+                            faxes[ldelta.index(delta)] = laxes[ldelta.index(delta)]
                     else:
-                        faxes[ldelta.index(delta)] = laxes[ldelta.index(delta)]
-                else:
-                    if n < int(dt) - 1:
-                        faxes[ldelta.index(delta)] -= delta
-                    else:
-                        faxes[ldelta.index(delta)] = laxes[ldelta.index(delta)]
-            points.append(mobility.get_position(faxes))
+                        if n < int(dt) - 1:
+                            faxes[ldelta.index(delta)] -= delta
+                        else:
+                            faxes[ldelta.index(delta)] = laxes[ldelta.index(delta)]
+                points.append(mobility.get_position(faxes))
         node.points += points
 
     def set_coordinates(self, node):
