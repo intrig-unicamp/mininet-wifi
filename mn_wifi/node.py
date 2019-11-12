@@ -154,22 +154,6 @@ class Node_wifi(Node):
     def setOCBMode(self, **params):
         ITSLink(self, **params)
 
-    def wpa_cmd(self, pidfile, intf):
-        wpasup_flags = ''
-        if 'wpasup_flags' in self.params:
-            wpasup_flags = self.params['wpasup_flags']
-        return self.cmd("wpa_supplicant -B -Dnl80211 -P %s "
-                        "-i %s -c %s.staconf %s"
-                        % (pidfile, intf.name, intf.name, wpasup_flags))
-
-    def wpa_pexec(self, pidfile, intf):
-        wpasup_flags = ''
-        if 'wpasup_flags' in self.params:
-            wpasup_flags = self.params['wpasup_flags']
-        return self.pexec("wpa_supplicant -B -Dnl80211 -P %s "
-                          "-i %s -c %s.staconf %s"
-                          % (pidfile, intf, intf.name, wpasup_flags))
-
     def configLinks(self):
         "Applies channel params and handover"
         from mn_wifi.mobility import mobility

@@ -65,11 +65,32 @@ class IntfWireless(object):
 
     def join_ibss(self):
         return self.iwdev_cmd('{} ibss join {} {} {} 02:CA:FF:EE:BA:01'.
-                              format(self.name, self.ssid, self.format_freq(), self.ht_cap))
+                              format(self.name, self.ssid,
+                                     self.format_freq(), self.ht_cap))
 
     def join_mesh(self):
         return self.iwdev_cmd('{} mesh join {} freq {} {}'.
-                              format(self.name, self.ssid, self.format_freq(), self.ht_cap))
+                              format(self.name, self.ssid,
+                                     self.format_freq(), self.ht_cap))
+
+    def get_pid_filename(self):
+        pidfile = 'mn{}_{}_{}_wpa.pid'.format(os.getpid(), self.node.name, self.id)
+        return pidfile
+
+    def get_wpa_cmd(self):
+        pidfile = self.get_pid_filename()
+        wpasup_flags = ''
+        if 'wpasup_flags' in self.node.params:
+            wpasup_flags = self.node.params['wpasup_flags']
+        cmd = ('wpa_supplicant -B -Dnl80211 -P {} -i {} -c {}.staconf {}'.
+               format(pidfile, self.name, self.name, wpasup_flags))
+        return cmd
+
+    def wpa_cmd(self):
+        return self.cmd(self.get_wpa_cmd())
+
+    def wpa_pexec(self):
+        return self.node.pexec(self.get_wpa_cmd())
 
     def get_freq(self):
         "Gets frequency based on channel number"
@@ -1162,38 +1183,34 @@ class wifiDirectLink(IntfWireless):
         node.addWIntf(self, port=wlan)
         node.addWAttr(self, port=wlan)
 
-        filename = self.get_filename(intf)
-        self.config_(intf, filename)
-
-        cmd = self.get_wpa_cmd(filename, intf)
+        self.config_()
+        cmd = self.get_wpa_cmd()
         node.cmd(cmd)
 
-    @classmethod
-    def get_filename(cls, intf):
+    def get_filename(self):
         suffix = 'wifiDirect.conf'
-        filename = "mn%d_%s_%s" % (os.getpid(), intf.name, suffix)
+        filename = "mn%d_%s_%s" % (os.getpid(), self.name, suffix)
         return filename
 
-    @classmethod
-    def get_wpa_cmd(cls, filename, intf):
+    def get_wpa_cmd(self):
+        filename = self.get_filename()
         cmd = ('wpa_supplicant -B -Dnl80211 -c%s -i%s' %
-               (filename, intf.name))
+               (filename, self.name))
         return cmd
 
-    @classmethod
-    def config_(cls, intf, filename):
+    def config_(self):
+        filename = self.get_filename()
         cmd = ("echo \'")
         cmd += 'ctrl_interface=/var/run/wpa_supplicant\
               \nap_scan=1\
               \np2p_go_ht40=1\
               \ndevice_name=%s\
               \ndevice_type=1-0050F204-1\
-              \np2p_no_group_iface=1' % (intf.name)
+              \np2p_no_group_iface=1' % self.name
         cmd += ("\' > %s" % filename)
-        cls.set_config(cmd)
+        self.set_config(cmd)
 
-    @classmethod
-    def set_config(cls, cmd):
+    def set_config(self, cmd):
         subprocess.check_output(cmd, shell=True)
 
 
@@ -1207,16 +1224,13 @@ class physicalWifiDirectLink(wifiDirectLink):
 
         for wlan, intf in enumerate(node.wintfs.values()):
             if intf.name == self.name:
-                intf = intf
                 break
 
         self.txpower = node.wintfs[0].txpower
         self.mac = None
 
-        filename = self.get_filename(intf)
-        self.config_(intf, filename)
-
-        cmd = self.get_wpa_cmd(filename, intf)
+        self.config_()
+        cmd = self.get_wpa_cmd()
         os.system(cmd)
 
 
@@ -1281,6 +1295,10 @@ class adhoc(IntfWireless):
         else:
             self.join_ibss()
 
+    def get_sta_confname(self):
+        fileName = '%s.staconf' % self.name
+        return fileName
+
     def setSecuredAdhoc(self):
         "Set secured adhoc"
         cmd = 'ctrl_interface=/var/run/wpa_supplicant GROUP=wheel\n'
@@ -1296,10 +1314,8 @@ class adhoc(IntfWireless):
         cmd += '         psk="%s"\n' % self.passwd
         cmd += '}'
 
-        fileName = '%s.staconf' % self.name
+        fileName = self.get_sta_confname()
         os.system('echo \'%s\' > %s' % (cmd, fileName))
-        pidfile = "mn%d_%s_wpa.pid" % (os.getpid(), self.node.name)
-        self.node.wpa_cmd(pidfile)
 
 
 class mesh(IntfWireless):
@@ -1372,6 +1388,10 @@ class mesh(IntfWireless):
         else:
             self.join_mesh()
 
+    def get_sta_confname(self):
+        fileName = '%s.staconf' % self.name
+        return fileName
+
     def setSecuredMesh(self):
         "Set secured mesh"
         cmd = 'ctrl_interface=/var/run/wpa_supplicant\n'
@@ -1385,10 +1405,8 @@ class mesh(IntfWireless):
         cmd += '         psk="%s"\n' % self.passwd
         cmd += '}'
 
-        fileName = '%s.staconf' % (self.name)
+        fileName = self.get_sta_confname()
         os.system('echo \'%s\' > %s' % (cmd, fileName))
-        pidfile = "mn%d_%s_wpa.pid" % (os.getpid(), self.name)
-        self.node.wpa_cmd(pidfile, self)
 
 
 class physicalMesh(IntfWireless):
@@ -1613,9 +1631,8 @@ class Association(IntfWireless):
 
     @classmethod
     def wpa(cls, intf, ap_intf):
-        pidfile = "mn%d_%s_%s_wpa.pid" % (os.getpid(), intf.node.name, intf.id)
         cls.wpaFile(intf, ap_intf)
-        intf.node.wpa_pexec(pidfile, intf)
+        intf.wpa_pexec()
 
     @classmethod
     def handover_ieee80211r(cls, intf, ap_intf):
