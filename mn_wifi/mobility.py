@@ -38,9 +38,9 @@ class mobility(object):
         pos_y = float(fin_pos[1]) - float(init_pos[1])
         pos_z = float(fin_pos[2]) - float(init_pos[2])
 
-        pos = round(pos_x/diff_time, 2),\
-              round(pos_y/diff_time, 2),\
-              round(pos_z/diff_time, 2)
+        pos = round(pos_x/diff_time*0.1, 2),\
+              round(pos_y/diff_time*0.1, 2),\
+              round(pos_z/diff_time*0.1, 2)
         return pos
 
     @classmethod
@@ -414,13 +414,13 @@ class tracked(mobility):
         for rep in range(repetitions):
             cont = True
             t1 = time()
-            i = 1
+            i = 0.1
             if reverse:
                 for node in mob_nodes:
                     if rep % 2 == 1 or (rep % 2 == 0 and rep > 0):
-                        fin_ = node.params['finPos']
+                        finPos = node.params['finPos']
                         node.params['finPos'] = node.params['initPos']
-                        node.params['initPos'] = fin_
+                        node.params['initPos'] = finPos
             for node in mob_nodes:
                 node.matrix_id = 0
                 node.time = node.startTime
@@ -444,13 +444,13 @@ class tracked(mobility):
                                 else:
                                     pos = self.move_node(node)
                                 mobility.set_pos(node, pos)
-                                node.time += 1
+                                node.time += 0.1
                             if draw:
                                 plot.update(node)
                                 if kwargs['max_z'] == 0:
                                     plot2d.updateCircleRadius(node)
                         plot.pause()
-                        i += 1
+                        i += 0.1
 
     def move_node(self, node):
         x = round(node.params['position'][0], 2) + round(node.moveFac[0], 2)
@@ -482,7 +482,7 @@ class tracked(mobility):
             coord.append([coord1, coord2])
         return coord
 
-    def direction(self, p1, p2):
+    def dir(self, p1, p2):
         if p1 > p2:
             return False
         else:
@@ -496,7 +496,9 @@ class tracked(mobility):
         t = t2 - t1
         return t
 
-    def get_points(self, node, x1, y1, z1, x2, y2, z2, total):
+    def get_points(self, node, a0, a1, total):
+        x1, y1, z1 = float(a0[0]), float(a0[1]), float(a0[2])
+        x2, y2, z2 = float(a1[0]), float(a1[1]), float(a1[2])
         points = []
         perc_dif = []
         ldelta = [0, 0, 0]
@@ -504,52 +506,56 @@ class tracked(mobility):
         laxes = [x2, y2, z2]  # last refence point
         dif = [abs(x2-x1), abs(y2-y1), abs(z2-z1)]   # difference first and last axes
         for n in dif:
-            if n != 0:
-                # we get the difference among axes to calculate the speed
-                perc_dif.append((n * 100) / total[dif.index(n)])
             if n == 0:
                 perc_dif.append(0)
+            else:
+                # we get the difference among axes to calculate the speed
+                perc_dif.append((n * 100) / total[dif.index(n)])
+
         dmin = min(x for x in perc_dif if x != 0)
-        t = self.mob_time(node)  # node simulation time
+        t = self.mob_time(node) * 1000  # node simulation time
         dt = t * (dmin / 100)
+
         for n in perc_dif:
             if n != 0:
                 ldelta[perc_dif.index(n)] = dif[perc_dif.index(n)] / dt
-            else:
-                ldelta[perc_dif.index(n)] = 0
 
         # direction of the node
-        dir = (self.direction(x1, x2),
-               self.direction(y1, y2),
-               self.direction(z1, z2))
+        dir = (self.dir(x1, x2), self.dir(y1, y2), self.dir(z1, z2))
 
-        if int(dt) < 1:
-            points.append(mobility.get_position(laxes))
-        else:
-            for n in range(0, int(dt)):
-                for delta in ldelta:
-                    if dir[ldelta.index(delta)]:
-                        if n < int(dt) - 1:
-                            faxes[ldelta.index(delta)] += delta
-                        else:
-                            faxes[ldelta.index(delta)] = laxes[ldelta.index(delta)]
+        for n in np.arange(0, dt, 1):
+            for delta in ldelta:
+                if dir[ldelta.index(delta)]:
+                    if n < dt - 1:
+                        faxes[ldelta.index(delta)] += delta
                     else:
-                        if n < int(dt) - 1:
-                            faxes[ldelta.index(delta)] -= delta
-                        else:
-                            faxes[ldelta.index(delta)] = laxes[ldelta.index(delta)]
-                points.append(mobility.get_position(faxes))
-        node.points += points
+                        faxes[ldelta.index(delta)] = laxes[ldelta.index(delta)]
+                else:
+                    if n < dt - 1:
+                        faxes[ldelta.index(delta)] -= delta
+                    else:
+                        faxes[ldelta.index(delta)] = laxes[ldelta.index(delta)]
+            points.append(mobility.get_position(faxes))
+        return points
 
     def set_coordinates(self, node):
         coord = self.create_coordinate(node)
         total = self.get_total_displacement(node)
-        node.points = []
+        points = []
         for c in coord:
             a0 = c[0].split(',')
             a1 = c[1].split(',')
-            self.get_points(node, float(a0[0]), float(a0[1]), float(a0[2]),
-                            float(a1[0]), float(a1[1]), float(a1[2]), total)
+            points += (self.get_points(node, a0, a1, total))
+
+        t = self.mob_time(node) * 10
+        interval = len(points) / t
+        node.points = []
+        for id in np.arange(0, len(points), interval):
+            if id < len(points) - interval:
+                node.points.append(points[id])
+            else:
+                # set the last position according to the coordinates
+                node.points.append(points[len(points)-1])
 
 
 # coding: utf-8
