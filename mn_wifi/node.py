@@ -136,14 +136,15 @@ class Node_wifi(Node):
             self.cmd('rm %s' % apconfname)
             self.cmd('pkill -f \'%s\'' % apconfname)
         self.cmd('iw dev %s set type managed' % intf.name)
-        managed(self, wlan)
+        managed(self, wlan, intf=intf)
 
     def setMasterMode(self, intf=None, ssid='new-ssid', **kwargs):
         "set Interface to AP mode"
         if not ssid:
             ssid = self.name + '-ssid'
-        wlan = self.get_wlan(intf)
-        master(self, wlan, port=wlan)
+        intf, wlan = self.get_wlan_intf(intf)
+        master(self, wlan, port=wlan, intf=intf)
+
         intf = self.wintfs[wlan]
 
         if int(intf.range) == 0:
@@ -151,6 +152,9 @@ class Node_wifi(Node):
 
         intf.ssid = ssid
         self.params['driver'] = 'nl80211'
+
+        for arg in kwargs:
+            setattr(self, arg, kwargs[arg])
 
         aps = [self]
         AccessPoint(aps, 'nl80211', setMaster=True)
@@ -863,7 +867,7 @@ class AccessPoint(AP):
                     intf.auth_algs = 2
                     intf.wep_key0 = intf.passwd
 
-            if intf.mode == 'adhoc':
+            if isinstance(intf, adhoc):
                 adhoc(intf.node, wlan)
             else:
                 return self.setHostapdConfig(intf, wlan, aplist)

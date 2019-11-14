@@ -791,7 +791,7 @@ class TCLinkWirelessAP(WirelessLinkAP):
 
 class master(TCWirelessLink):
     "master class"
-    def __init__(self, node, wlan, port=None):
+    def __init__(self, node, wlan, port=None, intf=None):
         self.name = node.params['wlan'][wlan]
         node.addWAttr(self, port=port)
         self.node = node
@@ -826,6 +826,9 @@ class master(TCWirelessLink):
         self.radius_server = None
         self.link = None
 
+        if intf:
+            self.wmIface = intf.wmIface
+
         for key in self.__dict__.keys():
             if key in node.params:
                 if isinstance(node.params[key], BaseString):
@@ -839,7 +842,7 @@ class master(TCWirelessLink):
 
 class managed(TCWirelessLink):
     "managed class"
-    def __init__(self, node, wlan):
+    def __init__(self, node, wlan, intf=None):
         self.name = node.params['wlan'][wlan]
         node.addWIntf(self, port=wlan)
         node.addWAttr(self, port=wlan)
@@ -876,6 +879,9 @@ class managed(TCWirelessLink):
         self.channel = 1
         self.antennaGain = 5.0
         self.antennaHeight = 1.0
+
+        if intf:
+            self.wmIface = intf.wmIface
 
         for key in self.__dict__.keys():
             if key in node.params:
