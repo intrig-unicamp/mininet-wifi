@@ -53,11 +53,11 @@ class w_cst:
         raise Exception("w_cst cannot be initialized")
         pass
 
-    SNR_MODE = 0
-    ERRPROB_MODE = 1
-    SPECPROB_MODE = 2
+    WRONG_MODE = 0
+    SNR_MODE = 1
+    ERRPROB_MODE = 2
     INTERFERENCE_MODE = 3
-    WRONG_MODE = 4
+    SPECPROB_MODE = 4
 
     WSERVER_SHUTDOWN_REQUEST_TYPE = 0
     WSERVER_SNR_UPDATE_REQUEST_TYPE = 1
