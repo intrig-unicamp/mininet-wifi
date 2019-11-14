@@ -19,7 +19,7 @@ from mininet.log import info, error, debug
 
 class wmediumd_mode(object):
 
-    mode = 4
+    mode = 0
 
     @classmethod
     def set_mode(cls, mode):
@@ -28,15 +28,10 @@ class wmediumd_mode(object):
 
 class snr(object):
     def __init__(self):
-        wmediumd_mode.set_mode(mode=0)
-
-
-class error_prob(object):
-    def __init__(self):
         wmediumd_mode.set_mode(mode=1)
 
 
-class spec_prob(object):
+class error_prob(object):
     def __init__(self):
         wmediumd_mode.set_mode(mode=2)
 
@@ -44,6 +39,11 @@ class spec_prob(object):
 class interference(object):
     def __init__(self):
         wmediumd_mode.set_mode(mode=3)
+
+
+class spec_prob(object):
+    def __init__(self):
+        wmediumd_mode.set_mode(mode=4)
 
 
 class w_cst:

@@ -827,7 +827,7 @@ class AccessPoint(AP):
                             intf = intf.node.params['phywlan']
                             intf.node.params.pop('phywlan', None)
 
-                        if wmediumd_mode.mode == 4:
+                        if not wmediumd_mode.mode:
                             self.setBw(intf, wlan)
 
                         intf.freq = intf.get_freq()

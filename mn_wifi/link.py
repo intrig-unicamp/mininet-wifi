@@ -1276,12 +1276,13 @@ class adhoc(IntfWireless):
         self.ip6 = intf.ip6
         self.link = intf.link
         self.encrypt = intf.encrypt
-        self.wmIface = intf.wmIface
         self.antennaGain = intf.antennaGain
         self.passwd = passwd
         self.mode = mode
         self.channel = channel
         self.ht_cap = ht_cap
+        if wmediumd_mode.mode:
+            self.wmIface = intf.wmIface
 
         if 'mp' in intf.name:
             self.iwdev_cmd('%s del' % intf.name)
@@ -1362,7 +1363,6 @@ class mesh(IntfWireless):
         self.link = intf.link
         self.txpower = intf.txpower
         self.encrypt = intf.encrypt
-        self.wmIface = DynamicIntfRef(node, intf=self.name)
         self.antennaGain = intf.antennaGain
         self.stationsInRange = intf.stationsInRange
         self.associatedStations = intf.associatedStations
@@ -1372,6 +1372,8 @@ class mesh(IntfWireless):
         self.channel = channel
         self.ht_cap = ht_cap
         self.passwd = passwd
+        if wmediumd_mode.mode:
+            self.wmIface = DynamicIntfRef(node, intf=self.name)
 
         node.addWAttr(self, port=wlan)
         if isinstance(node, AP):
