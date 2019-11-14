@@ -284,10 +284,10 @@ class Node_wifi(Node):
         "Set Position for wmediumd"
         if self.lastpos != pos:
             self.lastpos = pos
-            for wlan, intf in enumerate(self.wintfs.values()):
-                inc = '%s' % float('0.' + str(wlan))
+            for intf in self.wintfs.values():
+                inc = '%s' % float('0.' + str(intf.id))
                 w_server.update_pos(w_pos(intf.wmIface,
-                    [(float(pos[0])+float(inc)), float(pos[1]), float(pos[2])]), True)
+                    [(float(pos[0])+float(inc)), float(pos[1]), float(pos[2])]))
 
     def get_txpower_prop_model(self, intf):
         "Get Tx Power Given the propagation Model"

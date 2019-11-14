@@ -807,14 +807,14 @@ class w_server(object):
                                     "code %d" % ret)
 
     @classmethod
-    def update_pos(cls, pos, mob):
+    def update_pos(cls, pos):
         # type: (w_pos) -> None
         """
         Update the Pos of a connection at wmediumd
         :param pos The pos to update
         :type pos: w_pos
         """
-        ret = w_server.send_pos_update(pos, mob)
+        ret = w_server.send_pos_update(pos)
         if ret != w_cst.WUPDATE_SUCCESS:
             raise WmediumdException("Received error code from wmediumd: "
                                     "code %d" % ret)
@@ -916,7 +916,7 @@ class w_server(object):
             cls.__snr_update_response_struct)[-1]
 
     @classmethod
-    def send_pos_update(cls, pos, mob):
+    def send_pos_update(cls, pos):
         # type: (w_pos) -> int
         """
         Send an update to the wmediumd server

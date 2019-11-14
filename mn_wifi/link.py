@@ -950,8 +950,8 @@ class wmediumd(TCWirelessLink):
 
         cls.nodes = stations + aps + cars
         for node in cls.nodes:
-            for wlan, intf in enumerate(node.wintfs.values()):
-                intf.wmIface = DynamicIntfRef(node, intf=wlan)
+            for intf in node.wintfs.values():
+                intf.wmIface = DynamicIntfRef(node, intf=intf.name)
                 intfrefs.append(intf.wmIface)
 
                 if (isinstance(intf, master)
@@ -1276,6 +1276,7 @@ class adhoc(IntfWireless):
         self.ip6 = intf.ip6
         self.link = intf.link
         self.encrypt = intf.encrypt
+        self.wmIface = intf.wmIface
         self.antennaGain = intf.antennaGain
         self.passwd = passwd
         self.mode = mode
@@ -1361,6 +1362,7 @@ class mesh(IntfWireless):
         self.link = intf.link
         self.txpower = intf.txpower
         self.encrypt = intf.encrypt
+        self.wmIface = DynamicIntfRef(node, intf=self.name)
         self.antennaGain = intf.antennaGain
         self.stationsInRange = intf.stationsInRange
         self.associatedStations = intf.associatedStations
