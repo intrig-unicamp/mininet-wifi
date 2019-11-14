@@ -39,8 +39,7 @@ from mn_wifi.devices import DeviceRate
 from mn_wifi.link import TCWirelessLink, TCLinkWirelessAP,\
     Association, wirelessLink, adhoc, mesh, master, managed, \
     physicalMesh, ITSLink
-from mn_wifi.wmediumdConnector import w_server, w_pos, w_txpower, \
-    w_gain, w_height, w_cst, wmediumd_mode
+from mn_wifi.wmediumdConnector import w_server, w_pos, w_cst, wmediumd_mode
 from mn_wifi.propagationModels import GetSignalRange, \
     GetPowerGivenRange, propagationModel
 
@@ -118,11 +117,16 @@ class Node_wifi(Node):
             self.cmd('iw dev %s ibss leave' % self.params['wlan'][wlan])
         adhoc(self, **kwargs)
 
-    def setManagedMode(self, intf=None):
+    def get_wlan_intf(self, intf):
         if isinstance(intf, BaseString):
-            wlan = self.params['wlan'].index(intf)
+            wlan = self.get_wlan(intf)
             intf = self.wintfs[wlan]
+        else:
+            wlan = intf.id
+        return intf, wlan
 
+    def setManagedMode(self, intf=None):
+        intf, wlan = self.get_wlan_intf(intf)
         if isinstance(intf, mesh):
             self.cmd('iw dev %s del' % intf.name)
             intf.name = '%s-wlan%s' % (self, intf.id)
@@ -143,7 +147,7 @@ class Node_wifi(Node):
         intf = self.wintfs[wlan]
 
         if int(intf.range) == 0:
-            intf.range = intf.node.getRange(intf)
+            intf.range = self.getRange(intf)
 
         intf.ssid = ssid
         self.params['driver'] = 'nl80211'
@@ -189,17 +193,14 @@ class Node_wifi(Node):
         value = GetSignalRange(intf).dist
         return int(value)
 
-    def setRange(self, value, intf=None):
+    def setRange(self, range, intf=None):
         "Set Signal Range"
         from mn_wifi.plot import plot2d
 
-        if isinstance(intf, BaseString):
-            wlan = self.params['wlan'].index(intf)
-            intf = self.wintfs[wlan]
-
-        intf.range = float(value)
+        intf, wlan = self.get_wlan_intf(intf)
+        intf.range = float(range)
         intf.txpower = self.get_txpower_prop_model(intf)
-        self.setTxPower(intf.txpower, intf=intf.name)
+        intf.setTxPower()
         self.updateGraph()
         self.configLinks()
         if plot2d.fig_exists():
@@ -229,12 +230,11 @@ class Node_wifi(Node):
     def setAntennaGain(self, value, intf=None, setParam=True):
         "Set Antenna Gain"
         from mn_wifi.plot import plot2d
-        wlan = self.get_wlan(intf)
-        intf = self.wintfs[wlan]
-        self.setGainWmediumd(wlan)
+        intf, wlan = self.get_wlan_intf(intf)
         gain = int(value) - int(intf.antennaGain)
         intf.range += gain
         intf.antennaGain = int(value)
+        intf.setGainWmediumd()
         if plot2d.fig_exists():
             plot2d.updateCircleRadius(self)
         if setParam:
@@ -242,16 +242,14 @@ class Node_wifi(Node):
 
     def setAntennaHeight(self, value, intf=None):
         "Set Antenna Height"
-        wlan = self.get_wlan(intf)
-        self.params['antennaHeight'][wlan] = int(value)
-        self.setHeightWmediumd(wlan)
+        intf, wlan = self.get_wlan_intf(intf)
+        intf.antennaHeight = int(value)
+        intf.setHeightWmediumd()
         self.configLinks()
 
     def setChannel(self, chann, intf=None):
         "Set Channel"
-        wlan = self.get_wlan(intf)
-        intf = self.wintfs[wlan]
-
+        intf, wlan = self.get_wlan_intf(intf)
         intf.channel = chann
 
         if isinstance(self, AP):
@@ -265,14 +263,16 @@ class Node_wifi(Node):
     def setTxPower(self, txpower, intf=None, setParam=True):
         "Set Tx Power"
         from mn_wifi.plot import plot2d
-        wlan = self.get_wlan(intf)
-        intf = self.wintfs[wlan]
-        intf.setTxPower(txpower)
+
+        intf, wlan = self.get_wlan_intf(intf)
+        intf.txpower = txpower
+
+        intf.setTxPower()
         if 'position' in self.params:
             intf.range = self.getRange(intf)
             if plot2d.fig_exists():
                 plot2d.updateCircleRadius(self)
-            self.setTXPowerWmediumd(wlan)
+            intf.setTXPowerWmediumd()
             if setParam:
                 self.configLinks()
 
@@ -286,29 +286,8 @@ class Node_wifi(Node):
             self.lastpos = pos
             for wlan, intf in enumerate(self.wintfs.values()):
                 inc = '%s' % float('0.' + str(wlan))
-                w_server.update_pos(w_pos(self.wmIface[wlan],
+                w_server.update_pos(w_pos(intf.wmIface,
                     [(float(pos[0])+float(inc)), float(pos[1]), float(pos[2])]), True)
-
-    def setGainWmediumd(self, wlan):
-        "Set Antenna Gain for wmediumd"
-        if wmediumd_mode.mode == w_cst.INTERFERENCE_MODE:
-            gain_ = self.wintfs[wlan].antennaGain
-            w_server.update_gain(w_gain(
-                self.wmIface[wlan], int(gain_)))
-
-    def setHeightWmediumd(self, wlan):
-        "Set Antenna Height for wmediumd"
-        if wmediumd_mode.mode == w_cst.INTERFERENCE_MODE:
-            height_ = self.wintfs[wlan].antennaHeight
-            w_server.update_height(w_height(
-                self.wmIface[wlan], int(height_)))
-
-    def setTXPowerWmediumd(self, wlan):
-        "Set TxPower for wmediumd"
-        if wmediumd_mode.mode == w_cst.INTERFERENCE_MODE:
-            txpower_ = self.wintfs[wlan].txpower
-            w_server.update_txpower(w_txpower(
-                self.wmIface[wlan], int(txpower_)))
 
     def get_txpower_prop_model(self, intf):
         "Get Tx Power Given the propagation Model"

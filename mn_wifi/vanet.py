@@ -231,7 +231,7 @@ class vanet(object):
         return x_min, x_max
 
     def lineY(self, line_data):
-        " get the minimum and maximums of the line"
+        "get the minimum and maximums of the line"
         y_min = min(line_data[1])
         y_max = max(line_data[1])
         return y_min, y_max

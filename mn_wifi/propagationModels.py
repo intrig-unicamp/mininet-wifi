@@ -299,8 +299,7 @@ class GetSignalRange(object):
         if wmediumd_mode == 3:
             sleep(0.002) #notice problem when there are multiple threads
             w_server.update_gaussian_random(
-                WmediumdGRandom(intf.node.wmIface[intf.id],
-                                gRandom))
+                WmediumdGRandom(intf.wmIface, gRandom))
 
         pl = self.pathLoss(intf, ref_d) - gRandom
         numerator = -ppm.noise_threshold - pl + gains
@@ -433,7 +432,7 @@ class GetPowerGivenRange(object):
         if wmediumd_mode == 3:
             sleep(0.001)  # notice problem when there are many threads
             w_server.update_gaussian_random(WmediumdGRandom(
-                intf.node.wmIface[intf.id], gRandom))
+                intf.wmIface, gRandom))
 
         pl = self.pathLoss(intf, ref_d) - gRandom
 

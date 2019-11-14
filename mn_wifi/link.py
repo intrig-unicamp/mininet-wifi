@@ -12,8 +12,8 @@ from mininet.log import error, debug
 from mn_wifi.devices import CustomRate
 from mn_wifi.manetRoutingProtocols import manetProtocols
 from mn_wifi.wmediumdConnector import DynamicIntfRef, \
-    w_starter, SNRLink, w_txpower, w_pos, \
-    w_cst, w_server, ERRPROBLink, wmediumd_mode
+    w_starter, SNRLink, w_pos, w_cst, w_server, ERRPROBLink, \
+    wmediumd_mode, w_txpower, w_gain, w_height
 
 
 class IntfWireless(object):
@@ -92,6 +92,24 @@ class IntfWireless(object):
     def wpa_pexec(self):
         return self.node.pexec(self.get_wpa_cmd())
 
+    def setGainWmediumd(self):
+        "Set Antenna Gain for wmediumd"
+        if wmediumd_mode.mode == w_cst.INTERFERENCE_MODE:
+            gain = self.antennaGain
+            w_server.update_gain(w_gain(self.wmIface, int(gain)))
+
+    def setHeightWmediumd(self):
+        "Set Antenna Height for wmediumd"
+        if wmediumd_mode.mode == w_cst.INTERFERENCE_MODE:
+            height = self.antennaHeight
+            w_server.update_height(w_height(self.wmIface, int(height)))
+
+    def setTXPowerWmediumd(self):
+        "Set TxPower for wmediumd"
+        if wmediumd_mode.mode == w_cst.INTERFERENCE_MODE:
+            txpower = self.txpower
+            w_server.update_txpower(w_txpower(self.wmIface, int(txpower)))
+
     def get_freq(self):
         "Gets frequency based on channel number"
         channel = int(self.channel)
@@ -164,9 +182,9 @@ class IntfWireless(object):
     def setMode(self, mode):
         self.mode = mode
 
-    def setTxPower(self, txpower):
+    def setTxPower(self):
+        txpower = self.txpower
         self.node.pexec('iw dev %s set txpower fixed %s' % (self.name, txpower * 100))
-        self.txpower = txpower
         debug('\n')
 
     def setIP(self, ipstr, prefixLen=None, **args):
@@ -932,11 +950,9 @@ class wmediumd(TCWirelessLink):
 
         cls.nodes = stations + aps + cars
         for node in cls.nodes:
-            node.wmIface = []
             for wlan, intf in enumerate(node.wintfs.values()):
-                node.wmIface.append(wlan)
-                node.wmIface[wlan] = DynamicIntfRef(node, intf=wlan)
-                intfrefs.append(node.wmIface[wlan])
+                intf.wmIface = DynamicIntfRef(node, intf=wlan)
+                intfrefs.append(intf.wmIface)
 
                 if (isinstance(intf, master)
                     or (node in aps and (not isinstance(intf, managed)
@@ -944,7 +960,7 @@ class wmediumd(TCWirelessLink):
                     isnodeaps.append(1)
                 else:
                     isnodeaps.append(0)
-            for mac in maclist:
+            '''for mac in maclist:
                 for key in mac:
                     if key == node:
                         key.wmIface.append(DynamicIntfRef(key, intf=len(key.wmIface)))
@@ -955,7 +971,7 @@ class wmediumd(TCWirelessLink):
                         key.params['antennaGain'].append(0)
                         key.params['txpower'].append(14)
                         intfrefs.append(key.wmIface[len(key.wmIface) - 1])
-                        isnodeaps.append(0)
+                        isnodeaps.append(0)'''
 
         if wmediumd_mode.mode == w_cst.INTERFERENCE_MODE:
             set_interference()
@@ -1005,10 +1021,10 @@ class set_interference(object):
             for wlan, intf in enumerate(node.wintfs.values()):
                 if wlan >= 1:
                     posX += 0.1
-                wmediumd.positions.append(w_pos(node.wmIface[wlan],
+                wmediumd.positions.append(w_pos(intf.wmIface,
                                                 [posX, posY, posZ]))
                 wmediumd.txpowers.append(w_txpower(
-                    node.wmIface[wlan], float(intf.txpower)))
+                    intf.wmIface, float(intf.txpower)))
 
 
 class spec_prob_link(object):
@@ -1026,10 +1042,10 @@ class set_error_prob(object):
     def error_prob(cls):
         "wmediumd: error prob"
         for node in wmediumd.wlinks:
-            wmediumd.links.append(ERRPROBLink(node[0].wmIface[0],
-                                              node[1].wmIface[0], node[2]))
-            wmediumd.links.append(ERRPROBLink(node[1].wmIface[0],
-                                              node[0].wmIface[0], node[2]))
+            wmediumd.links.append(ERRPROBLink(node[0].wintfs[0].wmIface,
+                                              node[1].wintfs[0].wmIface, node[2]))
+            wmediumd.links.append(ERRPROBLink(node[1].wintfs[0].wmIface,
+                                              node[0].wintfs[0].wmIface, node[2]))
 
 
 class set_snr(object):
@@ -1041,10 +1057,10 @@ class set_snr(object):
     def snr(cls):
         "wmediumd: snr"
         for node in wmediumd.wlinks:
-            wmediumd.links.append(SNRLink(node[0].wmIface[0], node[1].wmIface[0],
-                                          node[0].params['rssi'][0] - (-91)))
-            wmediumd.links.append(SNRLink(node[1].wmIface[0], node[0].wmIface[0],
-                                          node[0].params['rssi'][0] - (-91)))
+            wmediumd.links.append(SNRLink(node[0].wintfs[0].wmIface, node[1].wintfs[0].wmIface,
+                                          node[0].wintfs[0].rssi - (-91)))
+            wmediumd.links.append(SNRLink(node[1].wintfs[0].wmIface, node[0].wintfs[0].wmIface,
+                                          node[0].wintfs[0].rssi - (-91)))
 
 
 class wirelessLink(object):
