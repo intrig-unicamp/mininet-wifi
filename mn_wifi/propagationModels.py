@@ -313,7 +313,7 @@ class GetSignalRange(object):
         """International Telecommunication Union (ITU) Propagation Loss Model:"""
         f = intf.freq * 10 ** 3
         txpower = int(intf.txpower)
-        gain  = int(intf.antennaGain)
+        gain = int(intf.antennaGain)
         gains = txpower + (gain * 2)
         N = 28  # Power Loss Coefficient
         lF = ppm.lF  # Floor penetration loss factor
