@@ -8,7 +8,7 @@ from time import sleep
 from sys import version_info as py_version_info
 
 from mininet.util import BaseString
-from mininet.log import error, debug
+from mininet.log import error, debug, info
 from mn_wifi.devices import CustomRate
 from mn_wifi.manetRoutingProtocols import manetProtocols
 from mn_wifi.wmediumdConnector import DynamicIntfRef, \
@@ -214,6 +214,26 @@ class IntfWireless(object):
                                 % (ipstr,))
             self.ip6, self.prefixLen = ipstr, prefixLen
             return self.ipAddr('%s/%s' % (ipstr, prefixLen))
+
+    def configureMacAddr(self):
+        """Configure Mac Address
+        :param node: node"""
+        if not self.mac:
+            self.mac = self.getMAC()
+        else:
+            self.setMAC(self.mac)
+
+    def getMAC(self):
+        "get Mac Address of any Interface"
+        try:
+            _macMatchRegex = re.compile(r'..:..:..:..:..:..')
+            debug('getting mac address from %s\n' % self.name)
+            macaddr = str(self.pexec('ip addr show %s' % self.name))
+            mac = _macMatchRegex.findall(macaddr)
+            debug('\n%s' % mac[0])
+            return mac[0]
+        except:
+            info('Error: Please run sudo mn -c.\n')
 
     def setMAC(self, macstr):
         """Set the MAC address for an interface.

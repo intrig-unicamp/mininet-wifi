@@ -196,8 +196,11 @@ class module(object):
                   % (params['ssh_user'], ip, dir, file, dir, file))
 
     def rename(self, node, wintf, newname):
+        debug('\n')
         node.pexec('ip link set %s down' % wintf)
+        debug('\n')
         node.pexec('ip link set %s name %s' % (wintf, newname))
+        debug('\n')
         node.pexec('ip link set %s up' % newname)
 
     def assign_iface(self, nodes, physicalWlans, phys, **params):

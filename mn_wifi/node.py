@@ -167,18 +167,6 @@ class Node_wifi(Node):
         from mn_wifi.mobility import mobility
         mobility.configLinks(self)
 
-    def getMAC(self, intf):
-        "get Mac Address of any Interface"
-        try:
-            _macMatchRegex = re.compile(r'..:..:..:..:..:..')
-            debug('getting mac address from %s\n' % intf.name)
-            macaddr = str(self.pexec('ip addr show %s' % intf.name))
-            mac = _macMatchRegex.findall(macaddr)
-            debug('\n%s' % mac[0])
-            return mac[0]
-        except:
-            info('Please run sudo mn -c.\n')
-
     def ifbSupport(self, wlan, ifbID):
         "Support to Intermediate Functional Block (IFB) Devices"
         os.system('ip link set dev ifb%s netns %s' % (ifbID, self.pid))
@@ -1066,7 +1054,7 @@ class AccessPoint(AP):
         if intf.mac:
             intf.setMAC(intf.mac)
         else:
-            intf.mac = intf.node.getMAC(intf)
+            intf.mac = intf.getMAC()
 
         if intf.mac:
             self.checkNetworkManager(intf)

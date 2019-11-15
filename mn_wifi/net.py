@@ -1431,7 +1431,8 @@ class Mininet_wifi(Mininet):
                     managed(node, wlan=vif_+1)
 
                     node.wintfs[vif_+1].mac = new_mac
-                    self.configureMacAddr(node)
+                    for intf in node.wintfs.values():
+                        intf.configureMacAddr()
 
     def configure6LowPANLink(self):
         for sensor in self.sensors:
@@ -1448,15 +1449,17 @@ class Mininet_wifi(Mininet):
         nodes = self.stations + self.cars
         for node in nodes:
             for wlan in range(0, len(node.params['wlan'])):
-                link = TCLinkWirelessStation(node,
-                                             intfName1=node.params['wlan'][wlan])
+                intf = node.params['wlan'][wlan]
+                link = TCLinkWirelessStation(node, intfName1=intf)
                 managed(node, wlan)
                 self.links.append(link)
                 if self.ifb:
                     node.ifbSupport(wlan, ifbID)  # Adding Support to IFB
                     node.wintfs[wlan].ifb = 'ifb'+str(wlan+1)
                     ifbID += 1
-            self.configureMacAddr(node)
+
+            for intf in node.wintfs.values():
+                intf.configureMacAddr()
 
     def plotGraph(self, **kwargs):
         "Plots Graph"
@@ -1548,20 +1551,6 @@ class Mininet_wifi(Mininet):
         for car in self.cars:
             car.params['position'] = (0, 0, 0)
         program(self.cars, self.aps, **kwargs)
-
-    def setMAC(self, node, intf):
-        node.cmd('ip link set dev %s down' % intf.name)
-        node.cmd('ip link set dev %s addr %s' % (intf.name, intf.mac))
-        node.cmd('ip link set dev %s up' % intf.name)
-
-    def configureMacAddr(self, node):
-        """Configure Mac Address
-        :param node: node"""
-        for intf in node.wintfs.values():
-            if not intf.mac:
-                intf.mac = node.getMAC(intf)
-            else:
-                self.setMAC(node, intf)
 
     def configureWmediumd(self):
         "Configure Wmediumd"
