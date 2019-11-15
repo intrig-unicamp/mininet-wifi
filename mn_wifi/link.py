@@ -570,9 +570,9 @@ class _4address(IntfWireless):
         cl = node2 # client
         cl_intfName = '%s.wds' % cl.name
 
-        if 'position' not in node1.params:
+        if not hasattr(node1, 'position'):
             self.set_pos(node1)
-        if 'position' not in node2.params:
+        if not hasattr(node2, 'position'):
             self.set_pos(node2)
 
         if cl_intfName not in cl.params['wlan']:
@@ -624,7 +624,7 @@ class _4address(IntfWireless):
         nums = re.findall(r'\d+', node.name)
         if nums:
             id = int(hex(int(nums[0]))[2:])
-            node.params['position'] = (10, round(id, 2), 0)
+            node.position = (10, round(id, 2), 0)
 
     def bring4addrIfaceUP(self):
         self.cmd('ip link set dev %s.wds up' % self.node)
@@ -1034,14 +1034,12 @@ class set_interference(object):
     def interference(cls):
         'configure interference model'
         for node in wmediumd.nodes:
-            if 'position' not in node.params:
-                posX = 0
-                posY = 0
-                posZ = 0
+            if not hasattr(node, 'position'):
+                posX, posY, posZ = 0, 0, 0
             else:
-                posX = float(node.params['position'][0])
-                posY = float(node.params['position'][1])
-                posZ = float(node.params['position'][2])
+                posX = float(node.position[0])
+                posY = float(node.position[1])
+                posZ = float(node.position[2])
             node.lastpos = [posX, posY, posZ]
 
             for wlan, intf in enumerate(node.wintfs.values()):
@@ -1531,7 +1529,7 @@ class Association(IntfWireless):
         if dist <= ap_intf.range:
             if not wmediumd_mode.mode == w_cst.INTERFERENCE_MODE:
                 if intf.rssi == 0:
-                    cls.updateParams(intf, ap_intf)
+                    cls.updateClientParams(intf, ap_intf)
             if ap_intf != intf.associatedTo or \
                     not intf.associatedTo:
                 cls.associate_infra(intf, ap_intf)
@@ -1554,16 +1552,17 @@ class Association(IntfWireless):
         return rssi
 
     @classmethod
-    def updateParams(cls, intf, ap_intf):
+    def updateClientParams(cls, intf, ap_intf):
         intf.freq = ap_intf.freq
         intf.channel = ap_intf.channel
         intf.mode = ap_intf.mode
         intf.ssid = ap_intf.ssid
+        intf.range = intf.node.getRange(intf)
 
     @classmethod
     def associate(cls, intf, ap_intf):
         "Associate to Access Point"
-        if 'position' in intf.node.params:
+        if hasattr(intf.node, 'position'):
             cls.configureWirelessLink(intf, ap_intf)
         else:
             cls.associate_infra(intf, ap_intf)
@@ -1703,6 +1702,6 @@ class Association(IntfWireless):
             if intf.associatedTo \
                     and intf.node in ap_intf.associatedStations:
                 ap_intf.associatedStations.remove(intf.node)
-            cls.updateParams(intf, ap_intf)
+            cls.updateClientParams(intf, ap_intf)
             ap_intf.associatedStations.append(intf.node)
             intf.associatedTo = ap_intf.node

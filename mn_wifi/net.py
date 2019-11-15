@@ -292,7 +292,8 @@ class Mininet_wifi(Mininet):
         pos = node.params['position']
         if isinstance(pos, string_types):
             pos = pos.split(',')
-        node.params['position'] = [float(pos[0]), float(pos[1]), float(pos[2])]
+        node.position = [float(pos[0]), float(pos[1]), float(pos[2])]
+        node.params.pop('position', None)
 
     def countWiFiIfaces(self):
         "Count the number of virtual wifi interfaces"
@@ -586,7 +587,7 @@ class Mininet_wifi(Mininet):
 
         # If sta/ap have position
         doAssociation = True
-        if 'position' in sta.params and 'position' in ap.params:
+        if hasattr(sta, 'position') and hasattr(ap, 'position'):
             dist = sta.get_distance_to(ap)
             if dist > ap.wintfs[ap_wlan].range:
                 doAssociation = False
@@ -633,7 +634,7 @@ class Mininet_wifi(Mininet):
             self.links.append(link)
             return link
         elif cls == _4address:
-            if 'position' in node1.params and 'position' in node2.params:
+            if hasattr(node1, 'position') and hasattr(node2, 'position'):
                 self.conn['src'].append(node1)
                 self.conn['dst'].append(node2)
                 self.conn['ls'].append('--')
@@ -660,7 +661,7 @@ class Mininet_wifi(Mininet):
             else:
                 self.infra_tc(node1, node2, port1, port2, cls, **params)
         else:
-            if 'position' in node1.params and 'position' in node2.params:
+            if hasattr(node1, 'position') and hasattr(node2, 'position'):
                 self.conn['src'].append(node1)
                 self.conn['dst'].append(node2)
                 self.conn['ls'].append('-')
@@ -820,7 +821,7 @@ class Mininet_wifi(Mininet):
         else:
             if not mob.stations:
                 for node in self.stations:
-                    if 'position' in node.params:
+                    if hasattr(node, 'position'):
                         mob.stations.append(node)
 
         if not self.wmediumd_started:
@@ -866,7 +867,7 @@ class Mininet_wifi(Mininet):
         nodes = self.hosts + self.switches + self.controllers
         mnNodes = []
         for node in nodes:
-            if 'position' in node.params:
+            if hasattr(node, 'position'):
                 self.pos_to_array(node)
                 node.wintfs = {0 : Node_wifi}
                 node.wintfs[0].range = 0
@@ -1331,7 +1332,7 @@ class Mininet_wifi(Mininet):
         stat_nodes = []
         nodes = self.stations + self.aps + self.cars
         for node in nodes:
-            if 'position' in node.params and 'initPos' not in node.params:
+            if hasattr(node, 'position') and 'initPos' not in node.params:
                 stat_nodes.append(node)
             else:
                 mob_nodes.append(node)
@@ -1474,7 +1475,7 @@ class Mininet_wifi(Mininet):
         try:
             for node in nodes:
                 if hasattr(node, 'coord'):
-                    node.params['position'] = node.coord[0].split(',')
+                    node.position = node.coord[0].split(',')
             plotGraph(min_x=self.min_x, min_y=self.min_y, min_z=self.min_z,
                       max_x=self.max_x, max_y=self.max_y, max_z=self.max_z,
                       nodes=nodes, conn=self.conn)
@@ -1487,7 +1488,7 @@ class Mininet_wifi(Mininet):
     def start_mobility(self, mob_nodes, **kwargs):
         "Starts Mobility"
         for node in mob_nodes:
-            node.params['position'] = (0, 0, 0)
+            node.position = (0, 0, 0)
         self.setMobilityParams(**kwargs)
         if self.roads:
             vanet(**self.mob_param)
@@ -1549,7 +1550,7 @@ class Mininet_wifi(Mininet):
         self.autoAssociation = False
         self.isVanet = True
         for car in self.cars:
-            car.params['position'] = (0, 0, 0)
+            car.position = (0, 0, 0)
         program(self.cars, self.aps, **kwargs)
 
     def configureWmediumd(self):
@@ -1572,7 +1573,7 @@ class Mininet_wifi(Mininet):
                      self.wmediumdMac)
             for sta in self.stations:
                 if self.wmediumd_mode != error_prob:
-                    sta.set_pos_wmediumd(sta.params['position'])
+                    sta.set_pos_wmediumd(sta.position)
             for sta in self.stations:
                 if sta in self.aps:
                     self.stations.remove(sta)
@@ -1611,10 +1612,6 @@ class Mininet_wifi(Mininet):
             self.configureWmediumd()
         AccessPoint(self.aps, self.driver)
 
-        setParam = True
-        if self.wmediumd_mode == interference and not self.isVanet:
-            setParam = False
-
         for node in nodes:
             for wlan, intf in enumerate(node.wintfs.values()):
                 if int(intf.range) == 0:
@@ -1623,14 +1620,8 @@ class Mininet_wifi(Mininet):
                     if 'model' not in node.params:
                         intf.txpower = node.get_txpower_prop_model(intf)
                 if not self.configure4addr and not self.configureWiFiDirect:
-                    node.setTxPower(intf.txpower,
-                                    intf=intf.name,
-                                    setParam=setParam)
-                    node.setAntennaGain(node.wintfs[wlan].antennaGain,
-                                        intf=intf.name,
-                                        setParam=setParam)
-
-        return self.stations, self.aps
+                    node.setTxPower(intf.txpower, intf=intf.name)
+                    node.setAntennaGain(intf.antennaGain, intf=intf.name)
 
     def plotCheck(self, mnNodes):
         "Check which nodes will be plotted"
@@ -1672,10 +1663,10 @@ class Mininet_wifi(Mininet):
         nodes = self.aps + self.stations + self.cars
         if not self.roads:
             for node in nodes:
-                if 'position' in node.params:
+                if hasattr(node, 'position'):
                     for intf in node.wintfs.values():
                         if self.wmediumd_mode != error_prob:
-                            pos = node.params['position']
+                            pos = node.position
                             if isinstance(intf, adhoc):
                                 info('%s ' % node)
                                 sleep(1)
@@ -1694,7 +1685,7 @@ class Mininet_wifi(Mininet):
             mob.aps = self.aps
             nodes = self.stations + self.cars
             for node in nodes:
-                if 'position' in node.params:
+                if hasattr(node, 'position'):
                     mob.configLinks(node)
 
     @staticmethod

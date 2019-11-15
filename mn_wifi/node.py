@@ -212,14 +212,14 @@ class Node_wifi(Node):
 
     def setPosition(self, pos):
         "Set Position"
-        self.params['position'] = [float(x) for x in pos.split(',')]
+        self.position = [float(x) for x in pos.split(',')]
         self.updateGraph()
 
         if wmediumd_mode.mode == w_cst.INTERFERENCE_MODE:
-            self.set_pos_wmediumd(self.params['position'])
+            self.set_pos_wmediumd(self.position)
         self.configLinks()
 
-    def setAntennaGain(self, gain, intf=None, setParam=True):
+    def setAntennaGain(self, gain, intf=None):
         "Set Antenna Gain"
         from mn_wifi.plot import plot2d
         intf, wlan = self.get_wlan_intf(intf)
@@ -228,8 +228,7 @@ class Node_wifi(Node):
         intf.setGainWmediumd()
         if plot2d.fig_exists():
             plot2d.updateCircleRadius(self)
-        if setParam:
-            self.configLinks()
+        self.configLinks()
 
     def setAntennaHeight(self, value, intf=None):
         "Set Antenna Height"
@@ -251,7 +250,7 @@ class Node_wifi(Node):
             self.cmd('iw dev %s ibss leave' % intf.name)
             adhoc(self, chann=chann, intf=intf)
 
-    def setTxPower(self, txpower, intf=None, setParam=True):
+    def setTxPower(self, txpower, intf=None):
         "Set Tx Power"
         from mn_wifi.plot import plot2d
 
@@ -259,13 +258,12 @@ class Node_wifi(Node):
         intf.txpower = txpower
 
         intf.setTxPower()
-        if 'position' in self.params:
+        if hasattr(self, 'position'):
             intf.range = self.getRange(intf)
             if plot2d.fig_exists():
                 plot2d.updateCircleRadius(self)
             intf.setTXPowerWmediumd()
-            if setParam:
-                self.configLinks()
+            self.configLinks()
 
     def get_rssi(self, intf, ap_intf, dist=0):
         rssi = propagationModel(intf, ap_intf, dist).rssi
@@ -302,8 +300,8 @@ class Node_wifi(Node):
         """Get the distance between two nodes
         :param self: source node
         :param dst: destination node"""
-        pos_src = self.params['position']
-        pos_dst = dst.params['position']
+        pos_src = self.position
+        pos_dst = dst.position
         x = (float(pos_src[0]) - float(pos_dst[0])) ** 2
         y = (float(pos_src[1]) - float(pos_dst[1])) ** 2
         z = (float(pos_src[2]) - float(pos_dst[2])) ** 2
@@ -315,7 +313,7 @@ class Node_wifi(Node):
         wlan = self.get_wlan(intf)
         intf = self.wintfs[wlan]
         ap_intf = ap.wintfs[wlan]
-        if 'position' in self.params and 'position' in ap.params:
+        if hasattr(self, 'position') and hasattr(ap, 'position'):
             dist = self.get_distance_to(ap)
             if dist <= ap_intf.range:
                 if intf.associatedTo != ap:
@@ -328,8 +326,8 @@ class Node_wifi(Node):
                     info('%s is already connected!\n' % ap)
                 self.configLinks()
             else:
-                info("%s is out of range!\n" % (ap))
-        elif 'position' not in self.params and 'position' not in ap.params:
+                info("%s is out of range!\n" % ap)
+        elif not hasattr(self, 'position') and not hasattr(ap, 'position'):
             Association.associate_infra(intf, ap_intf)
 
     def newPort(self):

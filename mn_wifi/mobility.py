@@ -33,7 +33,7 @@ class mobility(object):
         diff_time += 1
         init_pos = (node.params['initPos'])
         fin_pos = (node.params['finPos'])
-        node.params['position'] = init_pos
+        node.position = init_pos
         pos_x = float(fin_pos[0]) - float(init_pos[0])
         pos_y = float(fin_pos[1]) - float(init_pos[1])
         pos_z = float(fin_pos[2]) - float(init_pos[2])
@@ -89,7 +89,7 @@ class mobility(object):
 
     @classmethod
     def set_pos(cls, node, pos):
-        node.params['position'] = pos
+        node.position = pos
         if wmediumd_mode.mode == w_cst.INTERFERENCE_MODE \
                 and mobility.thread_._keep_alive:
             node.set_pos_wmediumd(pos)
@@ -392,7 +392,7 @@ class tracked(mobility):
             stat_nodes += mnNodes
 
         for node in mob_nodes:
-            node.params['position'] = node.params['initPos']
+            node.position = node.params['initPos']
 
         try:
             if draw:
@@ -453,9 +453,9 @@ class tracked(mobility):
                         i += 0.1
 
     def move_node(self, node):
-        x = round(node.params['position'][0], 2) + round(node.moveFac[0], 2)
-        y = round(node.params['position'][1], 2) + round(node.moveFac[1], 2)
-        z = round(node.params['position'][2], 2) + round(node.moveFac[2], 2)
+        x = round(node.position[0], 2) + round(node.moveFac[0], 2)
+        y = round(node.position[1], 2) + round(node.moveFac[1], 2)
+        z = round(node.position[2], 2) + round(node.moveFac[2], 2)
         return [x, y, z]
 
     def get_total_displacement(self, node):

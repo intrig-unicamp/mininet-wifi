@@ -49,10 +49,10 @@ class replayingMobility(object):
             nodes = Mininet_wifi.stations + Mininet_wifi.aps
         for node in nodes:
             if isinstance(node, Station):
-                if 'position' in node.params and node not in mobility.stations:
+                if hasattr(node, 'position') and node not in mobility.stations:
                     mobility.stations.append(node)
             if isinstance(node, AP):
-                if 'position' in node.params and node not in mobility.aps:
+                if hasattr(node, 'position') and node not in mobility.aps:
                     mobility.aps.append(node)
 
         if Mininet_wifi.draw:
@@ -95,7 +95,7 @@ class replayingMobility(object):
         if isinstance(node, Station):
             if hasattr(node, 'position'):
                 position = node.position[0].split(' ')
-                node.params['position'] = position[0].split(',')
+                node.position = position[0].split(',')
             mobility.stations.append(node)
         elif isinstance(node, AP):
             mobility.aps.append(node)
@@ -235,9 +235,9 @@ class replayingRSSI(object):
 
     @classmethod
     def setPos(cls, Mininet_wifi, sta, ap, dist, ang):
-        x = float('%.2f' % (dist * cos(ang) + int(ap.params['position'][0])))
-        y = float('%.2f' % (dist * sin(ang) + int(ap.params['position'][1])))
-        sta.params['position'] = x, y, 0
+        x = float('%.2f' % (dist * cos(ang) + int(ap.position[0])))
+        y = float('%.2f' % (dist * sin(ang) + int(ap.position[1])))
+        sta.position = x, y, 0
         mobility.configLinks(sta)
         if Mininet_wifi.draw:
             try:

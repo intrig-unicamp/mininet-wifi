@@ -146,8 +146,8 @@ class vanet(object):
             bs_x = round(bs.prop[0], 2)
             bs_y = round(bs.prop[1], 2)
             self.scatter = plot2d.scatter(float(bs_x), float(bs_y))
-            bs.params['position'] = bs_x, bs_y, 0
-            bs.set_pos_wmediumd(bs.params['position'])
+            bs.position = bs_x, bs_y, 0
+            bs.set_pos_wmediumd(bs.position)
             plot2d.instantiateNode(bs)
             plot2d.instantiateAnnotate(bs)
             plot2d.instantiateCircle(bs)
@@ -158,10 +158,10 @@ class vanet(object):
         sleep(1)
         if 'src' in conn:
             for c in range(len(conn['src'])):
-                line = plot2d.line2d([conn['src'][c].params['position'][0],
-                                      conn['dst'][c].params['position'][0]],
-                                     [conn['src'][c].params['position'][1],
-                                      conn['dst'][c].params['position'][1]],
+                line = plot2d.line2d([conn['src'][c].position[0],
+                                      conn['dst'][c].position[0]],
+                                     [conn['src'][c].position[1],
+                                      conn['dst'][c].position[1]],
                                      'b', ls='dashed')
                 plot2d.line(line)
 
@@ -340,8 +340,8 @@ class vanet(object):
             pos_x = car.prop[0]
             pos_y = car.prop[1]
 
-            car.params['position'] = pos_x, pos_y, 0
-            car.set_pos_wmediumd(car.params['position'])
+            car.position = pos_x, pos_y, 0
+            car.set_pos_wmediumd(car.position)
             angle = car.prop[2]
 
             # calculate new position of the car

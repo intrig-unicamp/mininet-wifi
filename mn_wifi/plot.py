@@ -126,9 +126,9 @@ class plot3d (object):
 
     @classmethod
     def getPos(self, node):
-        x = round(node.params['position'][0], 2)
-        y = round(node.params['position'][1], 2)
-        z = round(node.params['position'][2], 2)
+        x = round(node.position[0], 2)
+        y = round(node.position[1], 2)
+        z = round(node.position[2], 2)
         return x, y, z
 
 
@@ -147,8 +147,8 @@ class plot2d (object):
 
     @classmethod
     def getxy(cls, node):
-        x = round(node.params['position'][0], 2)
-        y = round(node.params['position'][1], 2)
+        x = round(node.position[0], 2)
+        y = round(node.position[1], 2)
         return x, y
 
     @classmethod
@@ -260,7 +260,7 @@ class plot2d (object):
 
     @classmethod
     def updateLine(cls, node):
-        pos = [node.params['position'][0], node.params['position'][1]]
+        pos = [node.position[0], node.position[1]]
         for line in cls.lines:
             if node.name in line:
                 for n in range(len(line)):
@@ -340,10 +340,10 @@ class plot2d (object):
 
     @classmethod
     def addLine(cls, src, dst, ls='-'):
-        src_x = round(src.params['position'][0], 2)
-        src_y = round(src.params['position'][1], 2)
-        dst_x = round(dst.params['position'][0], 2)
-        dst_y = round(dst.params['position'][1], 2)
+        src_x = round(src.position[0], 2)
+        src_y = round(src.position[1], 2)
+        dst_x = round(dst.position[0], 2)
+        dst_y = round(dst.position[1], 2)
         line = cls.line2d([src_x, dst_x],
                           [src_y, dst_y], 'b', ls=ls)
         conn_ = src.name + '-' + dst.name
