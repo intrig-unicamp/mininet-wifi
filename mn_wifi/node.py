@@ -185,6 +185,10 @@ class Node_wifi(Node):
         value = GetSignalRange(intf).dist
         return int(value)
 
+    def remove_attr_from_params(self, attr):
+        if attr in self.params:
+            self.params.pop(attr, None)
+
     def setRange(self, range, intf=None):
         "Set Signal Range"
         from mn_wifi.plot import plot2d
@@ -197,7 +201,7 @@ class Node_wifi(Node):
         self.configLinks()
         if plot2d.fig_exists():
             plot2d.updateCircleRadius(self)
-        self.remove_attr_from_param('range')
+        self.remove_attr_from_params('range')
 
     def updateGraph(self):
         "Update the Graph"
@@ -210,10 +214,6 @@ class Node_wifi(Node):
             cls.updateLine(self)
             cls.update(self)
             cls.pause()
-
-    def remove_attr_from_params(self, attr):
-        if attr in self.params:
-            self.params.pop(attr, None)
 
     def setPosition(self, pos):
         "Set Position"
@@ -234,7 +234,7 @@ class Node_wifi(Node):
         if plot2d.fig_exists():
             plot2d.updateCircleRadius(self)
         self.configLinks()
-        self.remove_attr_from_param('antennaGain')
+        self.remove_attr_from_params('antennaGain')
 
     def setAntennaHeight(self, value, intf=None):
         "Set Antenna Height"
@@ -242,7 +242,7 @@ class Node_wifi(Node):
         intf.antennaHeight = int(value)
         intf.setHeightWmediumd()
         self.configLinks()
-        self.remove_attr_from_param('antennaHeight')
+        self.remove_attr_from_params('antennaHeight')
 
     def setChannel(self, chann, intf=None):
         "Set Channel"
@@ -256,7 +256,7 @@ class Node_wifi(Node):
         elif isinstance(intf, adhoc):
             self.cmd('iw dev %s ibss leave' % intf.name)
             adhoc(self, chann=chann, intf=intf)
-        self.remove_attr_from_param('channel')
+        self.remove_attr_from_params('channel')
 
     def setTxPower(self, txpower, intf=None):
         "Set Tx Power"
@@ -272,7 +272,7 @@ class Node_wifi(Node):
                 plot2d.updateCircleRadius(self)
             intf.setTXPowerWmediumd()
             self.configLinks()
-        self.remove_attr_from_param('txpower')
+        self.remove_attr_from_params('txpower')
 
     def get_rssi(self, intf, ap_intf, dist=0):
         rssi = propagationModel(intf, ap_intf, dist).rssi
