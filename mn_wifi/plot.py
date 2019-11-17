@@ -99,6 +99,13 @@ class plot3d (object):
             pass
 
     @classmethod
+    def get_max_radius(cls, node):
+        range_list = []
+        for n in node.wintfs.values():
+            range_list.append(n.range)
+        return max(range_list)
+
+    @classmethod
     def instantiateCircle(cls, node):
         "Instantiate Circle"
         from mn_wifi.node import Station, Car
@@ -114,7 +121,7 @@ class plot3d (object):
         u = np.linspace(0, 2 * np.pi, resolution)
         v = np.linspace(0, np.pi, resolution)
 
-        r = max(node.wintfs[0].range)
+        r = cls.get_max_radius(node)
 
         x = r * np.outer(np.cos(u), np.sin(v)) + x
         y = r * np.outer(np.sin(u), np.sin(v)) + y
