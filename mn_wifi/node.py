@@ -191,16 +191,12 @@ class Node_wifi(Node):
 
     def setRange(self, range, intf=None):
         "Set Signal Range"
-        from mn_wifi.plot import plot2d
-
         intf, wlan = self.get_wlan_intf(intf)
         intf.range = float(range)
         intf.txpower = self.get_txpower_prop_model(intf)
         intf.setTxPower()
         self.updateGraph()
         self.configLinks()
-        if plot2d.fig_exists():
-            plot2d.updateCircleRadius(self)
         self.remove_attr_from_params('range')
 
     def updateGraph(self):
@@ -226,13 +222,11 @@ class Node_wifi(Node):
 
     def setAntennaGain(self, gain, intf=None):
         "Set Antenna Gain"
-        from mn_wifi.plot import plot2d
         intf, wlan = self.get_wlan_intf(intf)
         intf.antennaGain = int(gain)
         intf.range = self.getRange(intf)
         intf.setGainWmediumd()
-        if plot2d.fig_exists():
-            plot2d.updateCircleRadius(self)
+        self.updateGraph()
         self.configLinks()
         self.remove_attr_from_params('antennaGain')
 
@@ -260,17 +254,14 @@ class Node_wifi(Node):
 
     def setTxPower(self, txpower, intf=None):
         "Set Tx Power"
-        from mn_wifi.plot import plot2d
-
         intf, wlan = self.get_wlan_intf(intf)
         intf.txpower = txpower
 
         intf.setTxPower()
         if hasattr(self, 'position'):
             intf.range = self.getRange(intf)
-            if plot2d.fig_exists():
-                plot2d.updateCircleRadius(self)
             intf.setTXPowerWmediumd()
+            self.updateGraph()
             self.configLinks()
         self.remove_attr_from_params('txpower')
 
@@ -454,35 +445,37 @@ class Node_wifi(Node):
         "Make sure our class dependencies are available"
         pathCheck('mnexec', 'ip addr', moduleName='Mininet')
 
+    def setCircleColor(self, color):
+        from mn_wifi.plot import plot2d
+        if plot2d.fig_exists():
+            plot2d.setCircleColor(self, color)
+
+    def showNode(self, show=True):
+        from mn_wifi.plot import plot2d
+        if plot2d.fig_exists():
+            plot2d.showNode(self, show)
+
     def stop_(self):
         "Stops hostapd"
-        from mn_wifi.plot import plot2d
         process = 'mn%d_%s' % (os.getpid(), self.name)
         os.system('pkill -f \'hostapd -B %s\'' % process)
-        if plot2d.fig_exists():
-            plot2d.setCircleColor(self, 'w')
+        self.setCircleColor('w')
 
     def start_(self):
         "Starts hostapd"
-        from mn_wifi.plot import plot2d
         process = 'mn%d_%s' % (os.getpid(), self.name)
         os.system('hostapd -B %s-wlan1.apconf' % process)
-        if plot2d.fig_exists():
-            plot2d.setCircleColor(self, 'b')
+        self.setCircleColor('b')
 
     def hide(self):
-        for wlan in self.params['wlan']:
-            self.cmd('ip link set %s down' % wlan)
-        from mn_wifi.plot import plot2d
-        if plot2d.fig_exists():
-            plot2d.hideNode(self)
+        for intf in self.wintfs.values():
+            self.cmd('ip link set %s down' % intf.name)
+        self.showNode(False)
 
     def show(self):
-        for wlan in self.params['wlan']:
-            self.cmd('ip link set %s up' % wlan)
-        from mn_wifi.plot import plot2d
-        if plot2d.fig_exists():
-            plot2d.showNode(self)
+        for intf in self.wintfs.values():
+            self.cmd('ip link set %s up' % intf.name)
+        self.showNode(True)
 
 
 class Station(Node_wifi):

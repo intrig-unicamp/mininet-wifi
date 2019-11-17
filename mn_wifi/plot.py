@@ -317,16 +317,10 @@ class plot2d (object):
                 cls.addLine(src, dst, ls)
 
     @classmethod
-    def hideNode(cls, node):
-        node.pltCircle.set_visible(False)
-        node.plttxt.set_visible(False)
-        node.pltNode.set_visible(False)
-
-    @classmethod
-    def showNode(cls, node):
-        node.pltCircle.set_visible(True)
-        node.plttxt.set_visible(True)
-        node.pltNode.set_visible(True)
+    def showNode(cls, node, show=True):
+        node.pltCircle.set_visible(show)
+        node.plttxt.set_visible(show)
+        node.pltNode.set_visible(show)
 
     @classmethod
     def hideLine(cls, src, dst):
