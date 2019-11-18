@@ -23,7 +23,6 @@ class mobility(object):
     pause_simulation = False
     allAutoAssociation = True
     thread_ = ''
-    end_time = 0
 
     @classmethod
     def move_factor(cls, node, diff_time):
@@ -45,9 +44,7 @@ class mobility(object):
 
     @classmethod
     def get_position(cls, pos):
-        return (float('%s' % pos[0]),
-                float('%s' % pos[1]),
-                float('%s' % pos[2]))
+        return float('%s' % pos[0]), float('%s' % pos[1]), float('%s' % pos[2])
 
     @classmethod
     def configure(cls, *args, **kwargs):
@@ -376,12 +373,10 @@ class tracked(mobility):
         mobility.set_wifi_params()
 
     def configure(self, stations=None, aps=None, stat_nodes=None, mob_nodes=None,
-                  ac_method=None, mnNodes=None, draw=False, final_time=10,
-                  **kwargs):
+                  ac_method=None, mnNodes=None, draw=False, **kwargs):
         if ac_method:
             mobility.ac = ac_method
 
-        mobility.end_time = final_time
         mobility.stations = stations
         mobility.aps = aps
         mobility.mobileNodes = mob_nodes
@@ -409,7 +404,7 @@ class tracked(mobility):
         self.run(mob_nodes, plot, draw, **kwargs)
 
     def run(self, mob_nodes, plot, draw, init_time=0, reverse=False,
-            repetitions=1, **kwargs):
+            repetitions=1, end_time=10, **kwargs):
 
         for rep in range(repetitions):
             cont = True
@@ -427,7 +422,7 @@ class tracked(mobility):
                 mobility.calculate_diff_time(node)
             while cont:
                 t2 = time()
-                if (t2 - t1) > mobility.end_time:
+                if (t2 - t1) > end_time:
                     cont = False
                     if rep == repetitions:
                         mobility.thread_._keep_alive = False

@@ -295,7 +295,7 @@ class Mininet_wifi(Mininet):
         node.position = [float(pos[0]), float(pos[1]), float(pos[2])]
         node.params.pop('position', None)
 
-    def countWiFiIfaces(self):
+    def count_ifaces(self):
         "Count the number of virtual wifi interfaces"
         nodes = self.stations + self.cars + self.aps
         nradios = 0
@@ -336,7 +336,7 @@ class Mininet_wifi(Mininet):
         defaults.update(params)
 
         if self.autoSetPositions:
-            defaults['position'] = (round(self.nextPos_sta,2),0,0)
+            defaults['position'] = (round(self.nextPos_sta, 2), 0, 0)
         if self.autoSetMacs:
             defaults['mac'] = macColonHex(self.nextIP)
         if self.autoPinCpus:
@@ -1509,7 +1509,7 @@ class Mininet_wifi(Mininet):
         if self.allAutoAssociation and \
                 not self.configureWiFiDirect and not self.configure4addr:
             self.auto_association()
-        kwargs['final_time'] = kwargs['time']
+        kwargs['end_time'] = kwargs['time']
         self.setMobilityParams(**kwargs)
 
     def setMobilityParams(self, **kwargs):
@@ -1537,10 +1537,6 @@ class Mininet_wifi(Mininet):
             self.mob_param.setdefault('roads', self.roads)
 
         self.mob_param.setdefault('ppm', propagationModel.model)
-
-    def setAssociationCtrl(self, ac='ssf'):
-        "set association control"
-        mob.ac = ac  # backwards compatibility
 
     def useExternalProgram(self, program, **kwargs):
         """Opens an external program
@@ -1593,7 +1589,7 @@ class Mininet_wifi(Mininet):
             params['container'] = self.container
             params['ssh_user'] = self.ssh_user
 
-        nodes, nradios = self.countWiFiIfaces()
+        nodes, nradios = self.count_ifaces()
         if nodes:
             module(nodes, nradios, self.alt_module, **params)
 
