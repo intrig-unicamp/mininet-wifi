@@ -755,7 +755,7 @@ class AP(Node_wifi):
             self.__class__.__name__, self.name, intfs, self.pid)
 
 
-class AccessPoint(AP):
+class AccessPoint(Node_wifi):
     """An AccessPoint is a Switch equipped with wireless interface that is
     running (or has execed?) an OpenFlow switch."""
 
@@ -774,7 +774,7 @@ class AccessPoint(AP):
             for wlan in range(len(ap.params['wlan'])):
                 if not setMaster:
                     self.configAP(ap, wlan)
-                for wlan, intf in enumerate(ap.wintfs.values()):
+                for intf in ap.wintfs.values():
                     self.setIPMAC(intf)
 
             if 'vssids' in ap.params:
@@ -1058,7 +1058,7 @@ class AccessPoint(AP):
         if intf.mac:
             self.checkNetworkManager(intf)
 
-        if 'inNamespace' in intf.node.params and 'ip' in intf.node.params:
+        if intf.node.inNamespace and 'ip' in intf.node.params:
             intf.node.setIP(intf.node.params['ip'], intf=intf.name)
 
     def restartNetworkManager(self):
@@ -1110,12 +1110,12 @@ class AccessPoint(AP):
                 for line in fileinput.input('/etc/%s/%s.conf' % (nm, nm),
                                             inplace=1):
                     if isNew:
-                        self.write_to_file(line, unmatch, echo, '#')
+                        self.writeToFile(line, unmatch, echo, '#')
                     else:
-                        self.write_to_file(line, unmatch, echo, unmanaged)
+                        self.writeToFile(line, unmatch, echo, unmanaged)
                 self.write_mac = True
 
-    def write_to_file(self, line, unmatch, echo, str_):
+    def writeToFile(self, line, unmatch, echo, str_):
         if line.__contains__(str_):
             print(line.replace(unmatch, echo))
         else:

@@ -412,14 +412,12 @@ class Mininet_wifi(Mininet):
                     'channel': self.channel,
                     'mode': self.mode
                    }
-
         if self.bridge:
             defaults['isolate_clients'] = True
         defaults.update(params)
         if self.autoSetPositions:
             defaults['position'] = (round(self.nextPos_ap, 2), 50, 0)
             self.nextPos_ap += 100
-
         wlan = None
         if cls and issubclass(cls, physicalAP):
             wlan = ("%s" % params.pop('phywlan', {}))
@@ -427,22 +425,13 @@ class Mininet_wifi(Mininet):
         if not cls:
             cls = self.accessPoint
         ap = cls(name, **defaults)
-
         if not self.inNamespace and self.listenPort:
             self.listenPort += 1
-
-        if self.inNamespace or ('inNamespace' in params
-                                and params['inNamespace'] is True):
-            ap.params['inNamespace'] = True
-
         self.nameToNode[name] = ap
-
         if wlan:
             ap.params['phywlan'] = wlan
-
         if 'position' in params:
             self.pos_to_array(ap)
-
         self.addWlans(ap)
         self.aps.append(ap)
         return ap

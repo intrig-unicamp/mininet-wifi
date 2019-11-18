@@ -225,7 +225,7 @@ class module(object):
                   "-namespaces...\n")
             for node in nodes:
                 for wlan in range(0, len(node.params['wlan'])):
-                    if isinstance(node, AP) and 'inNamespace' not in node.params:
+                    if isinstance(node, AP) and not node.inNamespace:
                         self.rename(node, wlan_list[0], node.params['wlan'][wlan])
                     else:
                         if 'docker' not in params:
