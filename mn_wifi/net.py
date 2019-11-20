@@ -36,7 +36,6 @@ from mn_wifi.link import wirelessLink, wmediumd, Association, \
     wifiDirectLink, adhoc, mesh, master, managed, physicalMesh, \
     physicalWifiDirectLink, _4addrClient, _4addrAP
 from mn_wifi.clean import Cleanup as cleanup_mnwifi
-from mn_wifi.devices import CustomRate
 from mn_wifi.energy import Energy
 from mn_wifi.telemetry import parseData, telemetry as run_telemetry
 from mn_wifi.mobility import tracked as trackedMob, model as mobModel, mobility as mob
@@ -583,9 +582,11 @@ class Mininet_wifi(Mininet):
         if doAssociation:
             Association.associate(intf, ap_intf)
 
-            if 'bw' not in params and \
-                    'bw' not in str(cls) and not self.ifb:
-                params['bw'] = CustomRate(intf).rate
+            if 'bw' not in params and 'bw' not in str(cls):
+                if hasattr(sta, 'position'):
+                    params['bw'] = intf.getCustomRate()
+                else:
+                    params['bw'] = intf.getRate()
             # tc = True, this is useful for tc configuration
             link = cls(name=sta.params['wlan'][wlan], node=sta,
                        **params)
@@ -1430,12 +1431,18 @@ class Mininet_wifi(Mininet):
                 sixLoWPAN(sensor, wpan)
                 #managed(node, wlan)
 
-    def configureWirelessLink(self):
-        """Configure Wireless Link
-        :param stations: list of stations
-        :param aps: list of access points
-        :param cars: list of cars"""
+    def configIFB(self):
+        nodes = self.stations + self.cars
         ifbID = 0
+        for node in nodes:
+            for wlan in range(0, len(node.params['wlan'])):
+                if self.ifb:
+                    node.configIFB(wlan, ifbID)  # Adding Support to IFB
+                    node.wintfs[wlan].ifb = 'ifb' + str(wlan + 1)
+                    ifbID += 1
+
+    def configureWirelessLink(self):
+        "Configure Wireless Link"
         nodes = self.stations + self.cars
         for node in nodes:
             for wlan in range(0, len(node.params['wlan'])):
@@ -1443,13 +1450,9 @@ class Mininet_wifi(Mininet):
                 link = TCLinkWirelessStation(node, intfName1=intf)
                 managed(node, wlan)
                 self.links.append(link)
-                if self.ifb:
-                    node.ifbSupport(wlan, ifbID)  # Adding Support to IFB
-                    node.wintfs[wlan].ifb = 'ifb'+str(wlan+1)
-                    ifbID += 1
-
             for intf in node.wintfs.values():
                 intf.configureMacAddr()
+        self.configIFB()
 
     def plotGraph(self, **kwargs):
         "Plots Graph"

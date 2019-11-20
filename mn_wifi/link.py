@@ -9,7 +9,6 @@ from sys import version_info as py_version_info
 
 from mininet.util import BaseString
 from mininet.log import error, debug, info
-from mn_wifi.devices import CustomRate
 from mn_wifi.manetRoutingProtocols import manetProtocols
 from mn_wifi.wmediumdConnector import DynamicIntfRef, \
     w_starter, SNRLink, w_pos, w_cst, w_server, ERRPROBLink, \
@@ -109,6 +108,18 @@ class IntfWireless(object):
         if wmediumd_mode.mode == w_cst.INTERFERENCE_MODE:
             txpower = self.txpower
             w_server.update_txpower(w_txpower(self.wmIface, int(txpower)))
+
+    def getCustomRate(self):
+        modes = ['a', 'b', 'g', 'n', 'ac']
+        rates = [11, 3, 11, 600, 1000]
+        rate = rates[modes.index(self.mode)]
+        return rate
+
+    def getRate(self):
+        modes = ['a', 'b', 'g', 'n', 'ac']
+        rates = [54, 11, 54, 300, 600]
+        rate = rates[modes.index(self.mode)]
+        return rate
 
     def get_freq(self):
         "Gets frequency based on channel number"
@@ -1114,7 +1125,7 @@ class wirelessLink(object):
 
     def getBW(self, intf, dist):
         # dist is used by eval
-        custombw = CustomRate(intf).rate
+        custombw = intf.getCustomRate()
         rate = eval(str(custombw) + self.equationBw)
 
         if rate <= 0.0:

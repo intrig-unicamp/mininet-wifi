@@ -167,7 +167,7 @@ class Node_wifi(Node):
         from mn_wifi.mobility import mobility
         mobility.configLinks(self)
 
-    def ifbSupport(self, wlan, ifbID):
+    def configIFB(self, wlan, ifbID):
         "Support to Intermediate Functional Block (IFB) Devices"
         os.system('ip link set dev ifb%s netns %s' % (ifbID, self.pid))
         self.cmd('ip link set ifb%s name ifb%s' % (ifbID, wlan+1))
@@ -872,13 +872,11 @@ class AccessPoint(Node_wifi):
         elif intf.mode == 'a':
             cmd += ('\ncountry_code=US')
             cmd += ("\nhw_mode=%s" % intf.mode)
-        elif intf.mode == 'ac':
+        elif intf.mode == 'ac' or intf.mode == 'ax':
             cmd += ('\ncountry_code=US')
             cmd += ("\nhw_mode=a")
-        elif intf.mode == 'ax':
-            cmd += ('\ncountry_code=US')
-            cmd += ("\nhw_mode=a")
-            cmd += ("\nieee80211ax=1")
+            if intf.mode == 'ax':
+                cmd += ("\nieee80211ax=1")
         else:
             cmd += ("\nhw_mode=%s" % intf.mode)
         return cmd
@@ -1009,32 +1007,19 @@ class AccessPoint(Node_wifi):
             bw = intf.node.params['bw'][wlan]
         else:
             bw = self.getRate(intf)
-        intf.node.cmd("tc qdisc replace dev %s \
-                root handle 2: tbf rate %sMbit burst 15000 "
-                 "latency 1ms" % (intf, bw))
+
+        intf.node.cmd("tc qdisc replace dev %s "
+                      "root handle 2: tbf rate %sMbit burst 15000 "
+                      "latency 1ms" % (intf, bw))
         # Reordering packets
         intf.node.cmd('tc qdisc add dev %s parent 2:1 handle 10: '
-                 'pfifo limit 1000' % (intf))
+                      'pfifo limit 1000' % (intf))
 
     def getRate(self, intf):
         if 'model' in intf.node.params:
             return DeviceRate(intf).rate
         else:
-            mode = intf.mode
-
-            if mode == 'a':
-                rate = 54
-            elif mode == 'b':
-                rate = 11
-            elif mode == 'g':
-                rate = 54
-            elif mode == 'n':
-                rate = 300
-            elif mode == 'ac':
-                rate = 600
-            else:
-                rate = 54
-            return rate
+            return intf.getRate()
 
     def verifyWepKey(self, wep_key0):
         "Check WEP key"
