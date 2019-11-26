@@ -50,7 +50,7 @@ from mn_wifi.util import ipAdd6, netParse6
 
 sys.path.append(str(os.getcwd()) + '/mininet/')
 
-VERSION = "2.4.1"
+VERSION = "2.4.2"
 
 
 class Mininet_wifi(Mininet):
