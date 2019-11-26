@@ -1529,10 +1529,10 @@ class Association(IntfWireless):
     @classmethod
     def setSNRWmediumd(cls, sta, ap, snr):
         "Send SNR to wmediumd"
-        w_server.send_snr_update(SNRLink(sta.wmIface[0],
-                                         ap.wmIface[0], snr))
-        w_server.send_snr_update(SNRLink(ap.wmIface[0],
-                                         sta.wmIface[0], snr))
+        w_server.send_snr_update(SNRLink(sta.wintfs[0].wmIface,
+                                         ap.wintfs[0].wmIface, snr))
+        w_server.send_snr_update(SNRLink(ap.wintfs[0].wmIface,
+                                         sta.wintfs[0].wmIface, snr))
 
     @classmethod
     def configureWirelessLink(cls, intf, ap_intf):
