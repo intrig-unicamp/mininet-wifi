@@ -1530,6 +1530,10 @@ class Mininet_wifi(Mininet):
 
         self.mob_param.setdefault('ppm', propagationModel.model)
 
+    def setAssociationCtrl(self, ac='ssf'):
+        "set association control"
+        mob.ac = ac  # backwards compatibility
+
     def useExternalProgram(self, program, **kwargs):
         """Opens an external program
 
