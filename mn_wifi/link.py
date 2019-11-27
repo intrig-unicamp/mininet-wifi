@@ -1344,7 +1344,10 @@ class Association(IntfWireless):
         sta.params['freq'][wlan] = ap.get_freq(0)
         sta.params['channel'][wlan] = ap.params['channel'][0]
         sta.params['mode'][wlan] = ap.params['mode'][0]
-        sta.params['ssid'][wlan] = ap.params['ssid'][0]
+        # For dpp, the sta params may not have the ssid (this has to be configured
+        # by dpp
+        if 'ssid' in sta.params and type(sta.params['ssid']) == dict:
+            sta.params['ssid'][wlan] = ap.params['ssid'][0]
 
     @classmethod
     def associate(cls, sta, ap, wlan, ap_wlan):
@@ -1417,7 +1420,9 @@ class Association(IntfWireless):
                 if 'passwd' not in sta.params:
                     passwd = ap.params['passwd'][ap_wlan]
                 else:
-                    passwd = sta.params['passwd'][wlan]
+                    # For dpp the password is not specified.
+                    if 'passwd' in sta.params:
+                        passwd = sta.params['passwd'][wlan]
 
         if 'wpasup_globals' not in sta.params \
                 or ('wpasup_globals' in sta.params
@@ -1425,6 +1430,13 @@ class Association(IntfWireless):
             cmd = 'ctrl_interface=/var/run/wpa_supplicant\n'
         if 'wpasup_globals' in sta.params:
             cmd += sta.params['wpasup_globals'] + '\n'
+            # For dpp, we cannot specify the network. This is configured
+            # by the DPP protocol
+            if "dpp_config_processing" in sta.params['wpasup_globals']  \
+                and 'config' not in sta.params:
+                fileName = '%s_%s.staconf' % (sta.name, wlan)
+                os.system('echo \'%s\' > %s' % (cmd, fileName))
+                return
         cmd = cmd + 'network={\n'
 
         if 'config' in sta.params:
