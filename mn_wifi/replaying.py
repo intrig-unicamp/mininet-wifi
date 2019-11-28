@@ -122,7 +122,7 @@ class replayingBandwidth(object):
             for sta in stations:
                 if hasattr(sta, 'time'):
                     if time_ >= sta.time[0]:
-                        wirelessLink.config_tc(sta, 0, sta.throughput[0], 0, 0)
+                        wirelessLink.config_tc(sta.wintfs[0], sta.throughput[0], 0, 0)
                         # pos = '%d, %d, %d' % (sta.throughput[0], sta.throughput[0], 0)
                         # self.moveStationTo(sta, pos)
                         del sta.throughput[0]
@@ -154,7 +154,7 @@ class replayingNetworkConditions(object):
         currentTime = time()
         stations = Mininet_wifi.stations
         for sta in stations:
-            sta.wintfs[0].freq = sta.get_freq(sta.wintfs[0])
+            sta.wintfs[0].freq = sta.wintfs[0].get_freq()
         while mobility.thread_._keep_alive:
             if len(stations) == 0:
                 break
@@ -166,7 +166,7 @@ class replayingNetworkConditions(object):
                             bw = sta.bw[0]
                             loss = sta.loss[0]
                             latency = sta.latency[0]
-                            wirelessLink.config_tc(sta, 0, bw, loss, latency)
+                            wirelessLink.config_tc(sta.wintfs[0], bw, loss, latency)
                         del sta.bw[0]
                         del sta.loss[0]
                         del sta.latency[0]
@@ -211,7 +211,7 @@ class replayingRSSI(object):
         ang = {}
         for sta in staList:
             ang[sta] = random.uniform(0, 360)
-            sta.wintfs[0].freq = sta.get_freq(sta.wintfs[0])
+            sta.wintfs[0].freq = sta.wintfs[0].get_freq()
         while mobility.thread_._keep_alive:
             if len(staList) == 0:
                 break
