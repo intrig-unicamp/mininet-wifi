@@ -1642,8 +1642,7 @@ class Association(IntfWireless):
                 or ('wpasup_globals' in intf.node.params
                     and 'ctrl_interface=' not in intf.node.params['wpasup_globals']):
             cmd = 'ctrl_interface=/var/run/wpa_supplicant\n'
-
-        if ap_intf.wps_state:
+        if ap_intf.wps_state and not intf.passwd:
             cmd += 'ctrl_interface_group=0\n'
             cmd += 'update_config=1\n'
         else:

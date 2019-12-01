@@ -14,8 +14,8 @@ def topology(attack):
     net = Mininet_wifi()
 
     info("*** Creating nodes\n")
-    sta1 = net.addStation('sta1', passwd='123456789a', encrypt='wpa2')
-    sta2 = net.addStation('sta2', passwd='123456789a', encrypt='wpa2')
+    sta1 = net.addStation('sta1', encrypt='wpa2')
+    sta2 = net.addStation('sta2', encrypt='wpa2')
     ap1 = net.addAccessPoint('ap1', ssid="simplewifi", mode="g", channel="1",
                              passwd='123456789a', encrypt='wpa2',
                              failMode="standalone", datapath='user', wps_state='2',
