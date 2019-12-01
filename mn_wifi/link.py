@@ -855,6 +855,10 @@ class master(TCWirelessLink):
         self.wpa_key_mgmt = None
         self.rsn_pairwise = None
         self.radius_server = None
+        self.wps_state = None
+        self.device_type = None
+        self.wpa_psk_file = None
+        self.config_methods = None
         self.link = None
 
         if intf:
@@ -1638,49 +1642,54 @@ class Association(IntfWireless):
                 or ('wpasup_globals' in intf.node.params
                     and 'ctrl_interface=' not in intf.node.params['wpasup_globals']):
             cmd = 'ctrl_interface=/var/run/wpa_supplicant\n'
-        if 'wpasup_globals' in intf.node.params:
-            cmd += intf.node.params['wpasup_globals'] + '\n'
-        cmd = cmd + 'network={\n'
 
-        if intf.config:
-            config = intf.config
-            if config is not []:
-                config = intf.config.split(',')
-                intf.node.params.pop("config", None)
-                for conf in config:
-                    cmd += "   " + conf + "\n"
+        if ap_intf.wps_state:
+            cmd += 'ctrl_interface_group=0\n'
+            cmd += 'update_config=1\n'
         else:
-            cmd += '   ssid=\"%s\"\n' % ap_intf.ssid
-            if not ap_intf.authmode:
-                cmd += '   psk=\"%s\"\n' % passwd
-                encrypt = ap_intf.encrypt
+            if 'wpasup_globals' in intf.node.params:
+                cmd += intf.node.params['wpasup_globals'] + '\n'
+            cmd = cmd + 'network={\n'
+
+            if intf.config:
+                config = intf.config
+                if config is not []:
+                    config = intf.config.split(',')
+                    intf.node.params.pop("config", None)
+                    for conf in config:
+                        cmd += "   " + conf + "\n"
+            else:
+                cmd += '   ssid=\"%s\"\n' % ap_intf.ssid
+                if not ap_intf.authmode:
+                    cmd += '   psk=\"%s\"\n' % passwd
+                    encrypt = ap_intf.encrypt
+                    if ap_intf.encrypt == 'wpa3':
+                        encrypt = 'wpa2'
+                    cmd += '   proto=%s\n' % encrypt.upper()
+                    cmd += '   pairwise=%s\n' % ap_intf.rsn_pairwise
+                    if intf.active_scan:
+                        cmd += '   scan_ssid=1\n'
+                    if intf.scan_freq:
+                        cmd += '   scan_freq=%s\n' % intf.scan_freq
+                    if intf.freq_list:
+                        cmd += '   freq_list=%s\n' % intf.freq_list
+                wpa_key_mgmt = ap_intf.wpa_key_mgmt
                 if ap_intf.encrypt == 'wpa3':
-                    encrypt = 'wpa2'
-                cmd += '   proto=%s\n' % encrypt.upper()
-                cmd += '   pairwise=%s\n' % ap_intf.rsn_pairwise
-                if intf.active_scan:
-                    cmd += '   scan_ssid=1\n'
-                if intf.scan_freq:
-                    cmd += '   scan_freq=%s\n' % intf.scan_freq
-                if intf.freq_list:
-                    cmd += '   freq_list=%s\n' % intf.freq_list
-            wpa_key_mgmt = ap_intf.wpa_key_mgmt
-            if ap_intf.encrypt == 'wpa3':
-                wpa_key_mgmt = 'SAE'
-            cmd += '   key_mgmt=%s\n' % wpa_key_mgmt
-            if 'bgscan_threshold' in intf.node.params:
-                if 'bgscan_module' not in intf.node.params:
-                    intf.node.params['bgscan_module'] = 'simple'
-                bgscan = 'bgscan=\"%s:%d:%d:%d\"' % \
-                         (intf.bgscan_module, intf.s_inverval,
-                          intf.bgscan_threshold, intf.l_interval)
-                cmd += '   %s\n' % bgscan
-            if ap_intf.authmode == '8021x':
-                cmd += '   eap=PEAP\n'
-                cmd += '   identity=\"%s\"\n' % intf.radius_identity
-                cmd += '   password=\"%s\"\n' % intf.radius_passwd
-                cmd += '   phase2=\"autheap=MSCHAPV2\"\n'
-        cmd += '}'
+                    wpa_key_mgmt = 'SAE'
+                cmd += '   key_mgmt=%s\n' % wpa_key_mgmt
+                if 'bgscan_threshold' in intf.node.params:
+                    if 'bgscan_module' not in intf.node.params:
+                        intf.node.params['bgscan_module'] = 'simple'
+                    bgscan = 'bgscan=\"%s:%d:%d:%d\"' % \
+                             (intf.bgscan_module, intf.s_inverval,
+                              intf.bgscan_threshold, intf.l_interval)
+                    cmd += '   %s\n' % bgscan
+                if ap_intf.authmode == '8021x':
+                    cmd += '   eap=PEAP\n'
+                    cmd += '   identity=\"%s\"\n' % intf.radius_identity
+                    cmd += '   password=\"%s\"\n' % intf.radius_passwd
+                    cmd += '   phase2=\"autheap=MSCHAPV2\"\n'
+            cmd += '}'
 
         fileName = '%s.staconf' % intf.name
         os.system('echo \'%s\' > %s' % (cmd, fileName))

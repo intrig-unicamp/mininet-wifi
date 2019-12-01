@@ -917,14 +917,14 @@ class AccessPoint(Node_wifi):
 
         for arg in args:
             if arg in intf.node.params:
-                cmd += ('\n%s=%s' % (arg, intf.node.params[arg]))
+                cmd += '\n%s=%s' % (arg, intf.node.params[arg])
 
         if intf.ht_capab:
-            cmd += ('\nht_capab=%s' % intf.ht_capab)
+            cmd += '\nht_capab=%s' % intf.ht_capab
         if intf.beacon_int:
-            cmd += ('\nbeacon_int=%s' % intf.beacon_int)
+            cmd += '\nbeacon_int=%s' % intf.beacon_int
         if intf.isolate_clients:
-            cmd += ('\nap_isolate=1')
+            cmd += '\nap_isolate=1'
         if 'config' in intf.node.params:
             config = intf.node.params['config']
             if config is not []:
@@ -934,71 +934,79 @@ class AccessPoint(Node_wifi):
                     cmd += "\n" + conf
         else:
             if intf.authmode == '8021x':
-                cmd += ("\nieee8021x=1")
-                cmd += ("\nwpa_key_mgmt=WPA-EAP")
+                cmd += "\nieee8021x=1"
+                cmd += "\nwpa_key_mgmt=WPA-EAP"
                 if intf.encrypt:
-                    cmd += ("\nauth_algs=%s" % intf.auth_algs)
-                    cmd += ("\nwpa=2")
-                cmd += ('\neap_server=0')
-                cmd += ('\neapol_version=2')
+                    cmd += "\nauth_algs=%s" % intf.auth_algs
+                    cmd += "\nwpa=2"
+                cmd += '\neap_server=0'
+                cmd += '\neapol_version=2'
 
                 if not intf.radius_server:
                     intf.radius_server = '127.0.0.1'
-                cmd += ("\nwpa_pairwise=TKIP CCMP")
-                cmd += ("\neapol_key_index_workaround=0")
-                cmd += ("\nown_ip_addr=%s" % intf.radius_server)
-                cmd += ("\nnas_identifier=%s.example.com" % intf.node.name)
-                cmd += ("\nauth_server_addr=%s" % intf.radius_server)
-                cmd += ("\nauth_server_port=1812")
+                cmd += "\nwpa_pairwise=TKIP CCMP"
+                cmd += "\neapol_key_index_workaround=0"
+                cmd += "\nown_ip_addr=%s" % intf.radius_server
+                cmd += "\nnas_identifier=%s.example.com" % intf.node.name
+                cmd += "\nauth_server_addr=%s" % intf.radius_server
+                cmd += "\nauth_server_port=1812"
                 if not intf.shared_secret:
                     intf.shared_secret = 'secret'
-                cmd += ("\nauth_server_shared_secret=%s" % intf.shared_secret)
+                cmd += "\nauth_server_shared_secret=%s" % intf.shared_secret
             else:
                 if intf.encrypt:
                     if 'wpa' in intf.encrypt:
-                        cmd += ("\nauth_algs=%s" % intf.auth_algs)
+                        cmd += "\nauth_algs=%s" % intf.auth_algs
                         if intf.encrypt == 'wpa2' \
                                 or intf.encrypt == 'wpa3':
-                            cmd += ("\nwpa=2")
+                            cmd += "\nwpa=2"
                         else:
-                            cmd += ("\nwpa=1")
+                            cmd += "\nwpa=1"
                         if intf.encrypt == 'wpa3':
-                            cmd += ("\nwpa_key_mgmt=WPA-PSK SAE")
+                            cmd += "\nwpa_key_mgmt=WPA-PSK SAE"
                         else:
-                            cmd += ("\nwpa_key_mgmt=%s" % intf.wpa_key_mgmt)
-                        cmd += ("\nwpa_pairwise=%s" % intf.rsn_pairwise)
-                        cmd += ("\nwpa_passphrase=%s" % intf.wpa_passphrase)
+                            cmd += "\nwpa_key_mgmt=%s" % intf.wpa_key_mgmt
+                        cmd += "\nwpa_pairwise=%s" % intf.rsn_pairwise
+                        cmd += "\nwpa_passphrase=%s" % intf.wpa_passphrase
                     elif intf.encrypt == 'wep':
-                        cmd += ("\nauth_algs=%s" % intf.auth_algs)
-                        cmd += ("\nwep_default_key=%s" % 0)
+                        cmd += "\nauth_algs=%s" % intf.auth_algs
+                        cmd += "\nwep_default_key=%s" % 0
                         cmd += self.verifyWepKey(intf.wep_key0)
 
+                if intf.wps_state:
+                    cmd += '\nwps_state=%s' % intf.wps_state
+                    cmd += '\neap_server=1'
+                    if intf.config_methods:
+                        cmd += '\nconfig_methods=%s' % intf.config_methods
+                    else:
+                        cmd += '\nconfig_methods=label display push_button keypad'
+                    cmd += '\nwps_pin_requests=/var/run/hostapd.pin-req'
+                    cmd += '\nap_setup_locked=0'
+
                 if intf.mode == 'ac':
-                    cmd += ("\nwmm_enabled=1")
-                    cmd += ("\nieee80211ac=1")
+                    cmd += "\nwmm_enabled=1"
+                    cmd += "\nieee80211ac=1"
                 elif intf.mode == 'n':
-                    cmd += ("\nwmm_enabled=1")
-                    cmd += ("\nieee80211n=1")
+                    cmd += "\nwmm_enabled=1"
+                    cmd += "\nieee80211n=1"
 
                 if intf.ieee80211r:
                     if intf.mobility_domain:
-                        cmd += ("\nmobility_domain=%s" % intf.mobility_domain)
+                        cmd += "\nmobility_domain=%s" % intf.mobility_domain
                         # cmd += ("\nown_ip_addr=127.0.0.1")
-                        cmd += ("\nnas_identifier=%s.example.com"
-                                     % intf.node.name)
+                        cmd += "\nnas_identifier=%s.example.com" \
+                               % intf.node.name
                         for apref in aplist:
-                            cmd += ('\nr0kh=%s r0kh-%s.example.com '
-                                         '000102030405060708090a0b0c0d0e0f'
-                                         % (apref.wintfs[wlan].mac,
-                                            aplist.index(apref)))
-                            cmd += ('\nr1kh=%s %s '
-                                         '000102030405060708090a0b0c0d0e0f'
-                                         % (apref.wintfs[wlan].mac,
-                                            apref.wintfs[wlan].mac))
+                            cmd += '\nr0kh=%s r0kh-%s.example.com ' \
+                                   '000102030405060708090a0b0c0d0e0f' \
+                                   % (apref.wintfs[wlan].mac, aplist.index(apref))
+                            cmd += '\nr1kh=%s %s ' \
+                                   '000102030405060708090a0b0c0d0e0f' \
+                                   % (apref.wintfs[wlan].mac, apref.wintfs[wlan].mac)
                         #cmd += ('\nrsn_preauth=1')
-                        cmd += ('\npmk_r1_push=1')
-                        cmd += ('\nft_over_ds=1')
-                        cmd += ('\nft_psk_generate_local=1')
+                        cmd += '\npmk_r1_push=1'
+                        cmd += '\nft_over_ds=1'
+                        cmd += '\nft_psk_generate_local=1'
         return cmd
 
     def setBw(self, intf, wlan):
