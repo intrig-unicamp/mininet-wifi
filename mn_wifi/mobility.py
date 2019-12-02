@@ -184,15 +184,23 @@ class mobility(object):
             cls.ap_in_range(intf, ap, dist)
 
     @classmethod
+    def check_if_ap_exists(cls, intf, ap_intf):
+        for wlan in intf.node.wintfs.values():
+            if wlan.associatedTo == ap_intf.node:
+                return 0
+        return 1
+
+    @classmethod
     def do_handover(cls, intf, ap_intf):
         "Association Control: mechanisms that optimize the use of the APs"
         changeAP = False
         if cls.ac and intf.associatedTo \
                 and ap_intf.node != intf.associatedTo:
             changeAP = associationControl(intf, ap_intf, cls.ac).changeAP
-        if not intf.associatedTo or changeAP:
-            if ap_intf.node != intf.associatedTo:
-                Association.associate_infra(intf, ap_intf)
+        if cls.check_if_ap_exists(intf, ap_intf):
+            if not intf.associatedTo or changeAP:
+                if ap_intf.node != intf.associatedTo:
+                    Association.associate_infra(intf, ap_intf)
 
     @classmethod
     def configLinks(cls, node=None):
