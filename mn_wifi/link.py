@@ -859,6 +859,7 @@ class master(TCWirelessLink):
         self.device_type = None
         self.wpa_psk_file = None
         self.config_methods = None
+        self.mobility_domain = None
         self.link = None
 
         if intf:
@@ -1320,6 +1321,7 @@ class adhoc(IntfWireless):
         self.mode = mode
         self.channel = channel
         self.ht_cap = ht_cap
+        self.associatedTo = 'adhoc'
         if wmediumd_mode.mode:
             self.wmIface = intf.wmIface
 
@@ -1411,6 +1413,7 @@ class mesh(IntfWireless):
         self.channel = channel
         self.ht_cap = ht_cap
         self.passwd = passwd
+        self.associatedTo = 'mesh'
         if wmediumd_mode.mode:
             self.wmIface = DynamicIntfRef(node, intf=self.name)
 
