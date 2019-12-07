@@ -1608,9 +1608,11 @@ class Association(IntfWireless):
         associated = 0
         if ap_intf.ieee80211r and (not intf.encrypt or 'wpa' in intf.encrypt):
             if not intf.associatedTo:
-                command = ('ps -aux | grep %s | wc -l' % intf.name)
-                np = int(subprocess.check_output(command, shell=True))
-                if np == 2:
+                cmd = ('ps -aux | grep %s.staconf | wc -l' % intf.name)
+                address = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
+                (out, err) = address.communicate()
+                np = int(str(out).split('\n')[0])
+                if np == 0 or np == 2:
                     cls.wpa(intf, ap_intf)
                 else:
                     cls.handover_ieee80211r(intf, ap_intf)
