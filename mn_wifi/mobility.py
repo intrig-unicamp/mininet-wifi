@@ -137,7 +137,7 @@ class mobility(object):
                     cls.kill_wpasupprocess(intf)
                     cls.check_if_wpafile_exist(intf)
             elif wmediumd_mode.mode == w_cst.SNR_MODE:
-                Association.setSNRWmediumd(intf.node, ap_intf.node, snr=-10)
+                Association.setSNRWmediumd(intf.node, ap_intf.node, -10)
             if not ap_intf.ieee80211r:
                 Association.disconnect(intf)
             cls.remove_assoc_from_params(intf, ap_intf)
@@ -161,10 +161,11 @@ class mobility(object):
                         intf.rssi = rssi
                         if wmediumd_mode.mode != w_cst.WRONG_MODE:
                             if wmediumd_mode.mode == w_cst.SNR_MODE:
-                                Association.setSNRWmediumd(
-                                    intf.node, ap_intf.node, snr=intf.rssi - (-91))
+                                Association.setSNRWmediumd(intf.node, ap_intf.node, intf.rssi-(-91))
                         else:
-                            wirelessLink(intf, dist)
+                            if intf.node.position != intf.node.pos:
+                                intf.node.pos = intf.node.position
+                                wirelessLink(intf, dist)
 
     @classmethod
     def check_in_range(cls, intf, ap_intf):

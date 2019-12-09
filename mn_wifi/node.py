@@ -1021,7 +1021,7 @@ class AccessPoint(Node_wifi):
                       "latency 1ms" % (intf, bw))
         # Reordering packets
         intf.node.cmd('tc qdisc add dev %s parent 2:1 handle 10: '
-                      'pfifo limit 1000' % (intf))
+                      'pfifo limit 1000' % intf)
 
     def getRate(self, intf):
         if 'model' in intf.node.params:

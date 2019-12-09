@@ -1481,6 +1481,7 @@ class Mininet_wifi(Mininet):
         "Starts Mobility"
         for node in mob_nodes:
             node.position = (0, 0, 0)
+            node.pos = (0, 0, 0)
         self.setMobilityParams(**kwargs)
         if self.roads:
             vanet(**self.mob_param)
@@ -1539,10 +1540,13 @@ class Mininet_wifi(Mininet):
 
         :params program: only sumo is supported so far
         :params **params config_file: file configuration"""
-        self.autoAssociation = False
         self.isVanet = True
         for car in self.cars:
-            car.position = (0, 0, 0)
+            if hasattr(car, 'position'):
+                car.pos = car.position
+            else:
+                car.position = (0, 0, 0)
+                car.pos = (0, 0, 0)
         program(self.cars, self.aps, **kwargs)
 
     def configureWmediumd(self):
@@ -1641,8 +1645,7 @@ class Mininet_wifi(Mininet):
         for node in self.stations:
             for intf in node.wintfs.values():
                 if isinstance(intf, master) or \
-                        isinstance(intf, _4addrClient or
-                                         isinstance(intf, _4addrAP)):
+                        isinstance(intf, _4addrClient or isinstance(intf, _4addrAP)):
                     if node not in self.aps and node not in isap:
                         isap.append(node)
 
@@ -1653,32 +1656,32 @@ class Mininet_wifi(Mininet):
                 mob.stations.remove(sta)
 
         nodes = self.aps + self.stations + self.cars
-        if not self.roads:
-            for node in nodes:
-                if hasattr(node, 'position'):
-                    for intf in node.wintfs.values():
-                        if self.wmediumd_mode != error_prob:
-                            pos = node.position
-                            if isinstance(intf, adhoc):
-                                info('%s ' % node)
-                                sleep(1)
-                            # we need this cause wmediumd is struggling
-                            # with some associations e.g. wpa
-                            if self.wmediumd_mode == interference:
-                                sleep(0.1)
-                                pos_x = float(pos[0]) + 1
-                                pos = ('%s' % pos_x, '%s' % pos[1], '%s' % pos[2])
-                                node.set_pos_wmediumd(pos)
-                                sleep(0.1)
-                                pos_x = float(pos[0]) - 1
-                                pos = ('%s' % pos_x, '%s' % pos[1], '%s' % pos[2])
-                                node.set_pos_wmediumd(pos)
+        for node in nodes:
+            if hasattr(node, 'position'):
+                for intf in node.wintfs.values():
+                    if self.wmediumd_mode != error_prob:
+                        pos = node.position
+                        if isinstance(intf, adhoc):
+                            info('%s ' % node)
+                            sleep(1)
+                        # we need this cause wmediumd is struggling
+                        # with some associations e.g. wpa
+                        if self.wmediumd_mode == interference:
+                            sleep(0.1)
+                            pos_x = float(pos[0]) + 1
+                            pos = ('%s' % pos_x, '%s' % pos[1], '%s' % pos[2])
+                            node.set_pos_wmediumd(pos)
+                            sleep(0.1)
+                            pos_x = float(pos[0]) - 1
+                            pos = ('%s' % pos_x, '%s' % pos[1], '%s' % pos[2])
+                            node.set_pos_wmediumd(pos)
 
-            mob.aps = self.aps
-            nodes = self.stations + self.cars
-            for node in nodes:
-                if hasattr(node, 'position'):
-                    mob.configLinks(node)
+        mob.aps = self.aps
+        nodes = self.stations + self.cars
+        for node in nodes:
+            if hasattr(node, 'position'):
+                node.pos = (0, 0, 0)
+                mob.configLinks(node)
 
     @staticmethod
     def propagation_model(**kwargs):
