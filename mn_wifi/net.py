@@ -1658,30 +1658,36 @@ class Mininet_wifi(Mininet):
         nodes = self.aps + self.stations + self.cars
         for node in nodes:
             if hasattr(node, 'position'):
-                for intf in node.wintfs.values():
-                    if self.wmediumd_mode != error_prob:
-                        pos = node.position
-                        if isinstance(intf, adhoc):
-                            info('%s ' % node)
-                            sleep(1)
-                        # we need this cause wmediumd is struggling
-                        # with some associations e.g. wpa
-                        if self.wmediumd_mode == interference:
-                            sleep(0.1)
-                            pos_x = float(pos[0]) + 1
-                            pos = ('%s' % pos_x, '%s' % pos[1], '%s' % pos[2])
-                            node.set_pos_wmediumd(pos)
-                            sleep(0.1)
-                            pos_x = float(pos[0]) - 1
-                            pos = ('%s' % pos_x, '%s' % pos[1], '%s' % pos[2])
-                            node.set_pos_wmediumd(pos)
+                if isinstance(node, Car) and node.position == (0, 0, 0):
+                    pass
+                else:
+                    for intf in node.wintfs.values():
+                        if self.wmediumd_mode != error_prob:
+                            pos = node.position
+                            if isinstance(intf, adhoc):
+                                info('%s ' % node)
+                                sleep(1)
+                            # we need this cause wmediumd is struggling
+                            # with some associations e.g. wpa
+                            if self.wmediumd_mode == interference:
+                                sleep(0.1)
+                                pos_x = float(pos[0]) + 1
+                                pos = ('%s' % pos_x, '%s' % pos[1], '%s' % pos[2])
+                                node.set_pos_wmediumd(pos)
+                                sleep(0.1)
+                                pos_x = float(pos[0]) - 1
+                                pos = ('%s' % pos_x, '%s' % pos[1], '%s' % pos[2])
+                                node.set_pos_wmediumd(pos)
 
         mob.aps = self.aps
         nodes = self.stations + self.cars
         for node in nodes:
             if hasattr(node, 'position'):
-                node.pos = (0, 0, 0)
-                mob.configLinks(node)
+                if isinstance(node, Car) and node.position == (0, 0, 0):
+                    pass
+                else:
+                    node.pos = (0, 0, 0)
+                    mob.configLinks(node)
 
     @staticmethod
     def propagation_model(**kwargs):
