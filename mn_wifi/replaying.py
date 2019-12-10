@@ -30,17 +30,17 @@ class replayingMobility(object):
 
     def timestamp_(self, node, time_):
         if time_ >= float(node.time[0]):
-            pos = node.position[0]
-            del node.position[0]
+            pos = node.pos[0]
+            del node.pos[0]
             del node.time[0]
             mobility.set_pos(node, pos)
 
     def notimestamp_(self, node, time_):
         if time_ >= node.currentTime:
             for n in range(0, node.params['speed']):
-                if len(node.position) > 0:
-                    pos = node.position[0]
-                    del node.position[0]
+                if len(node.pos) > 0:
+                    pos = node.pos[0]
+                    del node.pos[0]
                     node.currentTime += node.timestamp
                     mobility.set_pos(node, pos)
 
@@ -49,10 +49,10 @@ class replayingMobility(object):
             nodes = Mininet_wifi.stations + Mininet_wifi.aps
         for node in nodes:
             if isinstance(node, Station):
-                if 'position' in node.params and node not in mobility.stations:
+                if hasattr(node, 'position') and node not in mobility.stations:
                     mobility.stations.append(node)
             if isinstance(node, AP):
-                if 'position' in node.params and node not in mobility.aps:
+                if hasattr(node, 'position') and node not in mobility.aps:
                     mobility.aps.append(node)
 
         if Mininet_wifi.draw:
@@ -80,9 +80,9 @@ class replayingMobility(object):
             if len(nodes) == 0:
                 break
             for node in nodes:
-                if hasattr(node, 'position'):
+                if node in mobility.stations:
                     calc_pos(node, time_)
-                    if len(node.position) == 0:
+                    if len(node.pos) == 0:
                         nodes.remove(node)
                     mobility.configLinks()
                     if Mininet_wifi.draw:
@@ -93,9 +93,9 @@ class replayingMobility(object):
     @classmethod
     def addNode(cls, node):
         if isinstance(node, Station):
-            if hasattr(node, 'position'):
-                position = node.position[0].split(' ')
-                node.params['position'] = position[0].split(',')
+            if hasattr(node, 'pos'):
+                pos = node.pos[0].split(' ')
+                node.position = pos[0].split(',')
             mobility.stations.append(node)
         elif isinstance(node, AP):
             mobility.aps.append(node)
@@ -122,7 +122,7 @@ class replayingBandwidth(object):
             for sta in stations:
                 if hasattr(sta, 'time'):
                     if time_ >= sta.time[0]:
-                        wirelessLink.config_tc(sta, 0, sta.throughput[0], 0, 0)
+                        wirelessLink.config_tc(sta.wintfs[0], sta.throughput[0], 0, 0)
                         # pos = '%d, %d, %d' % (sta.throughput[0], sta.throughput[0], 0)
                         # self.moveStationTo(sta, pos)
                         del sta.throughput[0]
@@ -154,7 +154,7 @@ class replayingNetworkConditions(object):
         currentTime = time()
         stations = Mininet_wifi.stations
         for sta in stations:
-            sta.params['freq'][0] = sta.get_freq(0)
+            sta.wintfs[0].freq = sta.wintfs[0].get_freq()
         while mobility.thread_._keep_alive:
             if len(stations) == 0:
                 break
@@ -162,11 +162,11 @@ class replayingNetworkConditions(object):
             for sta in stations:
                 if hasattr(sta, 'time'):
                     if time_ >= sta.time[0]:
-                        if sta.params['associatedTo'][0] != '':
+                        if sta.wintfs[0].associatedTo:
                             bw = sta.bw[0]
                             loss = sta.loss[0]
                             latency = sta.latency[0]
-                            wirelessLink.config_tc(sta, 0, bw, loss, latency)
+                            wirelessLink.config_tc(sta.wintfs[0], bw, loss, latency)
                         del sta.bw[0]
                         del sta.loss[0]
                         del sta.latency[0]
@@ -211,7 +211,7 @@ class replayingRSSI(object):
         ang = {}
         for sta in staList:
             ang[sta] = random.uniform(0, 360)
-            sta.params['freq'][0] = sta.get_freq(0)
+            sta.wintfs[0].freq = sta.wintfs[0].get_freq()
         while mobility.thread_._keep_alive:
             if len(staList) == 0:
                 break
@@ -219,8 +219,8 @@ class replayingRSSI(object):
             for sta in staList:
                 if hasattr(sta, 'time'):
                     if time_ >= sta.time[0]:
-                        ap = sta.params['associatedTo'][0]  # get AP
-                        sta.params['rssi'][0] = sta.rssi[0]
+                        ap = sta.wintfs[0].associatedTo  # get AP
+                        sta.wintfs[0].rssi = sta.rssi[0]
                         if ap != '':
                             rssi = sta.rssi[0]
                             dist = int('%d' % self.calculateDistance(sta, ap, rssi,
@@ -235,9 +235,9 @@ class replayingRSSI(object):
 
     @classmethod
     def setPos(cls, Mininet_wifi, sta, ap, dist, ang):
-        x = float('%.2f' % (dist * cos(ang) + int(ap.params['position'][0])))
-        y = float('%.2f' % (dist * sin(ang) + int(ap.params['position'][1])))
-        sta.params['position'] = x, y, 0
+        x = float('%.2f' % (dist * cos(ang) + int(ap.position[0])))
+        y = float('%.2f' % (dist * sin(ang) + int(ap.position[1])))
+        sta.position = x, y, 0
         mobility.configLinks(sta)
         if Mininet_wifi.draw:
             try:
@@ -248,9 +248,9 @@ class replayingRSSI(object):
 
     def calculateDistance(self, sta, ap, rssi, propagationModel, n=32.0):
 
-        pT = ap.params['txpower'][0]
-        gT = ap.params['antennaGain'][0]
-        gR = sta.params['antennaGain'][0]
+        pT = ap.wintfs[0].txpower
+        gT = ap.wintfs[0].antennaGain
+        gR = sta.wintfs[0].antennaGain
         if propagationModel in dir(self):
             dist = self.__getattribute__(propagationModel)(sta, ap, pT, gT, gR,
                                                            rssi, n)
@@ -263,7 +263,7 @@ class replayingRSSI(object):
         (d) is the distance between the transmitter and the receiver (m)
         (c) speed of light in vacuum (m)
         (L) System loss"""
-        f = sta.params['freq'][wlan] * 10 ** 9  # Convert Ghz to Hz
+        f = sta.wintfs[wlan].freq * 10 ** 9  # Convert Ghz to Hz
         c = 299792458.0
         L = 1
         if dist == 0:
@@ -280,7 +280,7 @@ class replayingRSSI(object):
         """Based on Free Space Propagation Model"""
         c = 299792458.0
         L = 2.0
-        freq = sta.params['freq'][0] * 10 ** 9  # Convert Ghz to Hz
+        freq = sta.wintfs[0].freq * 10 ** 9  # Convert Ghz to Hz
         gains = gR + gT + pT
         lambda_ = float(c) / float(freq)  # lambda: wavelength (m)
         numerator = 10.0 ** (abs(signalLevel - gains) / 10.0)
@@ -306,7 +306,7 @@ class replayingRSSI(object):
         lF = 0  # Floor penetration loss factor
         nFloors = 0  # Number of Floors
         gains = pT + gT + gR
-        freq = sta.params['freq'][0] * 10 ** 3
+        freq = sta.wintfs[0].freq * 10 ** 3
         dist = 10.0 ** ((-20.0 * math.log10(freq) - lF * nFloors + 28.0 +
                          abs(signalLevel - gains)) / N)
 

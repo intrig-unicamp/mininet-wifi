@@ -4,29 +4,28 @@ author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)"""
 
 import re
 from time import sleep
-from six import string_types
 
 from mininet.net import Mininet
 from mininet.node import (DefaultController)
 from mininet.util import (fixLimits, numCores, ensureRoot,
-                          macColonHex, waitListening)
-from mn_wifi.sixLoWPAN.util import ipAdd6, netParse
+                          macColonHex, waitListening, netParse,
+                          numCores, ipAdd)
 from mininet.link import Intf
 from mininet.log import info, error, debug, output
 
 from mn_wifi.sixLoWPAN.node import sixLoWPan
 from mn_wifi.sixLoWPAN.module import module
-from mn_wifi.sixLoWPAN.link import sixLoWPANLink
+from mn_wifi.sixLoWPAN.link import sixLoWPAN
+from mn_wifi.util import ipAdd6, netParse6
 
 
-class Mininet_6LoWPAN(Mininet):
+class Mininet_IoT(Mininet):
 
     topo=None
     sixLoWPan=sixLoWPan
     controller=DefaultController
-    link=sixLoWPANLink
+    link=sixLoWPAN
     intf=Intf
-    ipBase='2001:0:0:0:0:0:0:0/64'
     inNamespace=False
     autoSetMacs=False
     autoStaticArp=False
@@ -34,26 +33,28 @@ class Mininet_6LoWPAN(Mininet):
     listenPort=None
     waitConnected=False
     autoSetPositions=False
+    ipBase = '10.0.0.0/8'
+    ip6Base = '2001:0:0:0:0:0:0:0/64'
     ipBaseNum, prefixLen = netParse(ipBase)
+    ip6BaseNum, prefixLen6 = netParse6(ip6Base)
     nextIP = 1  # start for address allocation
+    nextIP6 = 1  # start for address allocation
     nextPosition = 1
     inNamespace = inNamespace
     numCores = numCores()
     nextCore = 0  # next core for pinning hosts to CPUs
     nameToNode = {}  # name to Node (Host/Switch) objects
     links = []
-    sixLP = []
+    sensors = []
     terms = []  # list of spawned xterm processes
-    n_wpans = 0
+    nwpans = 0
     connections = {}
     wlinks = []
 
-
     @classmethod
-    def init(self, node, **params):
-        node.wpanports = -1
-        self.n_wpans = self.n_wpans + params['sixlowpan']
-        self.addParameters(node, **params)
+    def init_module(cls, iot_module):
+        module(cls.sensors, cls.nwpans, iot_module=iot_module)
+        return cls.sensors
 
     @classmethod
     def addParameters(self, node, node_mode='managed', **params):
@@ -64,12 +65,10 @@ class Mininet_6LoWPAN(Mininet):
         defaults: Default IP and MAC addresses
         node_mode: if interface is running in managed or master mode"""
         node.params['wpan'] = []
-        node.wpanPhyID = []
 
         wpans = self.count6LoWPANIfaces(**params)
 
         for wpan in range(wpans):
-            self.addParamsToNode(node)
             if node_mode == 'managed':
                 self.appendAssociatedTo(node)
                 self.add_ip_param(node, wpans, **params)
@@ -78,40 +77,23 @@ class Mininet_6LoWPAN(Mininet):
             node.params.pop("wpans", None)
 
     @staticmethod
-    def add_ip_param(node, wpans, autoSetMacs=False, **params):
-        "Add IP Param"
-        node.params['wpan_ip'] = []
-        if 'wpan_ip' in params:
-            ip_list = params['wpan_ip'].split(',')
-            for ip in ip_list:
-                node.params['wpan_ip'].append(ip)
-            if len(ip_list) != len(node.params['wpan']):
-                for ip_list in range(len(ip_list),
-                                     len(node.params['wpan'])):
-                    node.params['wpan_ip'].append('0/0')
-        elif autoSetMacs:
-            for n in range(wpans):
-                node.params['wpan_ip'].append('0/0')
-                node.params['wpan_ip'][n] = params['wpan_ip']
-        else:
-            for _ in range(wpans):
-                node.params['wpan_ip'].append('')
-
-    @staticmethod
     def appendAssociatedTo(node):
         "Add associatedTo param"
         node.params['associatedTo'].append('')
 
-
     @classmethod
-    def add6LoWPAN(self, name, cls=None, **params):
-        """Add 6LoWPAN node.
+    def addSensor(self, name, cls=None, **params):
+        """Add Sensor node.
            name: name of station to add
            cls: custom 6LoWPAN class/constructor (optional)
            params: parameters for 6LoWPAN
            returns: added station"""
         # Default IP and MAC addresses
-        defaults = {'wpan_ip': ipAdd6(self.nextIP,
+        defaults = {'ip6': ipAdd6(self.nextIP6,
+                                  ipBaseNum=self.ip6BaseNum,
+                                  prefixLen=self.prefixLen6) +
+                           '/%s' % self.prefixLen6,
+                    'ip': ipAdd(self.nextIP,
                                 ipBaseNum=self.ipBaseNum,
                                 prefixLen=self.prefixLen) +
                           '/%s' % self.prefixLen
@@ -126,6 +108,7 @@ class Mininet_6LoWPAN(Mininet):
             defaults['cores'] = self.nextCore
             self.nextCore = (self.nextCore + 1) % self.numCores
         self.nextIP += 1
+        self.nextIP6 += 1
         self.nextPosition += 1
 
         if not cls:
@@ -134,7 +117,7 @@ class Mininet_6LoWPAN(Mininet):
 
         self.addParameters(node, defaults)
 
-        self.sixLP.append(node)
+        self.sensors.append(node)
         self.nameToNode[name] = node
 
         return node
@@ -202,7 +185,7 @@ class Mininet_6LoWPAN(Mininet):
         lost = 0
         ploss = None
         if not hosts:
-            hosts = self.sixLP
+            hosts = self.sensors
             output('*** Ping: testing ping reachability\n')
         for node in hosts:
             output('%s -> ' % node.name)
@@ -333,7 +316,7 @@ class Mininet_6LoWPAN(Mininet):
            the actual transmission rate; on an unloaded system, server
            rate should be much closer to the actual receive rate"""
         sleep(2)
-        nodes = self.sixLP
+        nodes = self.sensors
         hosts = hosts or [nodes[0], nodes[-1]]
         assert len(hosts) is 2
         client, server = hosts
@@ -373,20 +356,14 @@ class Mininet_6LoWPAN(Mininet):
         return result
 
     @classmethod
-    def addParamsToNode(self, node):
-        "Add func and wpanPhyID"
-        node.func.append('none')
-        node.wpanPhyID.append(0)
-
-    @classmethod
     def count6LoWPANIfaces(self, **params):
         "Count the number of virtual 6LoWPAN interfaces"
         if 'wpans' in params:
-            self.n_wpans += int(params['wpans'])
+            self.nwpans += int(params['wpans'])
             wpans = int(params['wpans'])
         else:
             wpans = 1
-            self.n_wpans += 1
+            self.nwpans += 1
         return wpans
 
     def kill_fakelb(self):

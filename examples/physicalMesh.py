@@ -30,8 +30,10 @@ def topology():
     info("*** Creating links\n")
     net.addLink(sta1, cls=physicalMesh, intf=intf,
                 ssid='meshNet', channel=5)
-    net.addLink(sta2, cls=mesh, ssid='meshNet', channel=5)
-    net.addLink(sta3, cls=mesh, ssid='meshNet', channel=5)
+    net.addLink(sta2, cls=mesh, intf='sta2-wlan0',
+                ssid='meshNet', channel=5)
+    net.addLink(sta3, cls=mesh, intf='sta3-wlan0',
+                ssid='meshNet', channel=5)
 
     net.plotGraph(max_x=100, max_y=100)
 

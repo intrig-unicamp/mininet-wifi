@@ -132,8 +132,8 @@ class telemetry(object):
         return phy_list, ifaces
 
 def get_position(node, filename):
-    x = node.params['position'][0]
-    y = node.params['position'][1]
+    x = node.position[0]
+    y = node.position[1]
     os.system("echo '%s,%s' >> %s" % (x, y, filename.format(node)))
 
 def get_rssi(node, iface, time, filename):
@@ -241,11 +241,11 @@ class parseData(object):
             axes.set_ylim([self.min_y, self.max_y])
             #axes.set_title('Mininet-WiFi Graph')
             for node in self.nodes:
-                x = node.params['position'][0]
-                y = node.params['position'][1]
+                x = node.position[0]
+                y = node.position[1]
                 plt.scatter(x, y, color='black')
                 axes.annotate(node.name, (x, y))
-                circle = plt.Circle((x, y), int(node.params['range'][0]),
+                circle = plt.Circle((x, y), int(node.wintfs[0].range),
                                     color=node.circle, alpha=0.1)
                 axes.add_artist(circle)
         else:

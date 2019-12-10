@@ -38,8 +38,8 @@ def topology():
     net.configureWifiNodes()
 
     info("*** Creating links\n")
-    net.addLink(sta3, cls=adhoc, ssid='adhocNet')
-    net.addLink(sta4, cls=adhoc, ssid='adhocNet')
+    net.addLink(sta3, cls=adhoc, intf='sta3-wlan0', ssid='adhocNet')
+    net.addLink(sta4, cls=adhoc, intf='sta4-wlan0', ssid='adhocNet')
 
     path = os.path.dirname(os.path.abspath(__file__))
     getTrace(sta1, '%s/replayingMobility/node1.dat' % path, net)
@@ -70,16 +70,16 @@ def getTrace(sta, file_, net):
     raw_data = file_.readlines()
     file_.close()
 
-    sta.position = []
+    sta.pos = []
     pos = '-1000,0,0'
-    sta.params['position'] = [float(x) for x in pos.split(',')]
+    sta.position = [float(x) for x in pos.split(',')]
 
     for data in raw_data:
         line = data.split()
         x = line[0]  # First Column
         y = line[1]  # Second Column
-        pos = float(x),float(y),0.0
-        sta.position.append(pos)
+        pos = float(x), float(y), 0.0
+        sta.pos.append(pos)
 
 
 if __name__ == '__main__':

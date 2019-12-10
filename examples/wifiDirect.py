@@ -30,8 +30,8 @@ def topology():
     net.plotGraph(max_x=200, max_y=200)
 
     info("*** Starting WiFi Direct\n")
-    net.addLink(sta1, cls=wifiDirectLink)
-    net.addLink(sta2, cls=wifiDirectLink)
+    net.addLink(sta1, intf='sta1-wlan0', cls=wifiDirectLink)
+    net.addLink(sta2, intf='sta2-wlan0', cls=wifiDirectLink)
 
     info("*** Starting network\n")
     net.build()
@@ -43,10 +43,10 @@ def topology():
     sta1.cmd('wpa_cli -ista1-wlan0 p2p_peers')
     sleep(3)
     pin = sta1.cmd('wpa_cli -ista1-wlan0 p2p_connect %s pin auth'
-                   % sta2.params['mac'][0])
+                   % sta2.wintfs[0].mac)
     sleep(3)
     sta2.cmd('wpa_cli -ista2-wlan0 p2p_connect %s %s'
-             % (sta1.params['mac'][0], pin))
+             % (sta1.wintfs[0].mac, pin))
 
     info("*** Running CLI\n")
     CLI_wifi(net)

@@ -40,11 +40,11 @@ def topology(mobility):
 
     info("*** Creating links\n")
     net.addLink(sta1, cls=mesh, ssid='meshNet',
-                channel=5, ht_cap='HT40+') #, passwd='thisisreallysecret')
+                intf='sta1-wlan0', channel=5, ht_cap='HT40+') #, passwd='thisisreallysecret')
     net.addLink(sta2, cls=mesh, ssid='meshNet',
-                channel=5, ht_cap='HT40+') #, passwd='thisisreallysecret')
+                intf='sta2-wlan0', channel=5, ht_cap='HT40+') #, passwd='thisisreallysecret')
     net.addLink(sta3, cls=mesh, ssid='meshNet',
-                channel=5, ht_cap='HT40+') #, passwd='thisisreallysecret')
+                intf='sta3-wlan0', channel=5, ht_cap='HT40+') #, passwd='thisisreallysecret')
 
     if mobility:
         net.plotGraph(max_x=100, max_y=100)

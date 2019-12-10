@@ -19,13 +19,10 @@ def topology():
                        link=wmediumd, wmediumd_mode=interference)
 
     info("*** Creating nodes\n")
-    cars = []
     for id in range(0, 10):
         min_ = randint(1, 4)
         max_ = randint(11, 30)
-        cars.append(net.addCar('car%s' % (id+1), wlans=2,
-                               min_speed=min_,
-                               max_speed=max_))
+        net.addCar('car%s' % (id+1), wlans=2, min_speed=min_, max_speed=max_)
 
     rsu11 = net.addAccessPoint('RSU11', ssid='RSU11', mode='g',
                                channel='1')
@@ -47,8 +44,8 @@ def topology():
     net.addLink(rsu11, rsu12)
     net.addLink(rsu11, rsu13)
     net.addLink(rsu11, rsu14)
-    for car in cars:
-        net.addLink(car, intf=car.params['wlan'][1],
+    for car in net.cars:
+        net.addLink(car, intf='%s-wlan1' % car,
                     cls=mesh, ssid='mesh-ssid', channel=5)
 
     net.plotGraph(max_x=500, max_y=500)
@@ -63,10 +60,10 @@ def topology():
     rsu13.start([c1])
     rsu14.start([c1])
 
-    for car in cars:
-        car.setIP('192.168.0.%s/24' % (int(cars.index(car))+1),
+    for car in net.cars:
+        car.setIP('192.168.0.%s/24' % (int(net.cars.index(car))+1),
                   intf='%s-wlan0' % car)
-        car.setIP('192.168.1.%s/24' % (int(cars.index(car))+1),
+        car.setIP('192.168.1.%s/24' % (int(net.cars.index(car))+1),
                   intf='%s-mp1' % car)
 
     info("*** Running CLI\n")

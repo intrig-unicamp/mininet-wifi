@@ -19,7 +19,7 @@ from mininet.log import info, error, debug
 
 class wmediumd_mode(object):
 
-    mode = 4
+    mode = 0
 
     @classmethod
     def set_mode(cls, mode):
@@ -28,15 +28,10 @@ class wmediumd_mode(object):
 
 class snr(object):
     def __init__(self):
-        wmediumd_mode.set_mode(mode=0)
-
-
-class error_prob(object):
-    def __init__(self):
         wmediumd_mode.set_mode(mode=1)
 
 
-class spec_prob(object):
+class error_prob(object):
     def __init__(self):
         wmediumd_mode.set_mode(mode=2)
 
@@ -46,6 +41,11 @@ class interference(object):
         wmediumd_mode.set_mode(mode=3)
 
 
+class spec_prob(object):
+    def __init__(self):
+        wmediumd_mode.set_mode(mode=4)
+
+
 class w_cst:
     "wmediumd constants"
 
@@ -53,11 +53,11 @@ class w_cst:
         raise Exception("w_cst cannot be initialized")
         pass
 
-    SNR_MODE = 0
-    ERRPROB_MODE = 1
-    SPECPROB_MODE = 2
+    WRONG_MODE = 0
+    SNR_MODE = 1
+    ERRPROB_MODE = 2
     INTERFERENCE_MODE = 3
-    WRONG_MODE = 4
+    SPECPROB_MODE = 4
 
     WSERVER_SHUTDOWN_REQUEST_TYPE = 0
     WSERVER_SNR_UPDATE_REQUEST_TYPE = 1
@@ -195,7 +195,7 @@ class w_starter(object):
             intfrefs = []
         if links is None:
             links = []
-        parameters = ['-l', '4', '-s']
+        parameters = ['-l', '0', '-s']
 
         kwargs['intfrefs'] = intfrefs
         kwargs['links'] = links
@@ -606,23 +606,23 @@ class DynamicIntfRef(WmediumdIntfRef):
 
     def get_intf_name(self):
         if not self.__intf:
-            return self.__sta.params['wlan'][0]
+            return self.__sta.wintfs[0].name
         elif isinstance(self.__intf, str):
             return self.__intf
         elif isinstance(self.__intf, int):
-            return self.__sta.params['wlan'][self.__intf]
+            return self.__sta.wintfs[self.__intf].name
 
     def get_mac(self):
         intf_name = self.get_intf_name()
         index = 0
         found = False
-        for wlan_intf in self.__sta.params['wlan']:
-            if wlan_intf == intf_name:
+        for wlan_intf in self.__sta.wintfs.values():
+            if wlan_intf.name == str(intf_name):
                 found = True
                 break
             index += 1
         if found:
-            return self.__sta.params['mac'][index]
+            return self.__sta.wintfs[index].mac
 
 
 class w_server(object):
@@ -807,14 +807,14 @@ class w_server(object):
                                     "code %d" % ret)
 
     @classmethod
-    def update_pos(cls, pos, mob):
+    def update_pos(cls, pos):
         # type: (w_pos) -> None
         """
         Update the Pos of a connection at wmediumd
         :param pos The pos to update
         :type pos: w_pos
         """
-        ret = w_server.send_pos_update(pos, mob)
+        ret = w_server.send_pos_update(pos)
         if ret != w_cst.WUPDATE_SUCCESS:
             raise WmediumdException("Received error code from wmediumd: "
                                     "code %d" % ret)
@@ -916,7 +916,7 @@ class w_server(object):
             cls.__snr_update_response_struct)[-1]
 
     @classmethod
-    def send_pos_update(cls, pos, mob):
+    def send_pos_update(cls, pos):
         # type: (w_pos) -> int
         """
         Send an update to the wmediumd server
@@ -1095,7 +1095,7 @@ class w_server(object):
     @classmethod
     def __create_pos_update_request(cls, pos, posX, posY, posZ):
         "pos update request"
-        # type: (w_pos) -> str
+        # type: w_pos -> str
         msgtype = w_cst.WSERVER_POS_UPDATE_REQUEST_TYPE
         if py_version_info < (3, 0):
             mac = pos.staintf.get_mac().replace(':', '').decode('hex')

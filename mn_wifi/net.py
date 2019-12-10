@@ -23,7 +23,7 @@ from mininet.node import (Node, Host, OVSKernelSwitch,
                           DefaultController, Controller)
 from mininet.util import (quietRun, fixLimits, numCores, ensureRoot,
                           macColonHex, ipStr, ipParse, netParse, ipAdd,
-                          waitListening)
+                          waitListening, BaseString)
 from mininet.link import Link, Intf, TCLink, TCULink
 from mininet.nodelib import NAT
 from mininet.log import info, error, debug, output, warn
@@ -33,9 +33,9 @@ from mn_wifi.node import AccessPoint, AP, Station, Car, \
 from mn_wifi.wmediumdConnector import error_prob, snr, interference
 from mn_wifi.link import wirelessLink, wmediumd, Association, \
     _4address, TCWirelessLink, TCLinkWirelessStation, ITSLink, \
-    wifiDirectLink, adhoc, mesh, physicalMesh, physicalWifiDirectLink
+    wifiDirectLink, adhoc, mesh, master, managed, physicalMesh, \
+    physicalWifiDirectLink, _4addrClient, _4addrAP
 from mn_wifi.clean import Cleanup as cleanup_mnwifi
-from mn_wifi.devices import CustomRate, DeviceRange
 from mn_wifi.energy import Energy
 from mn_wifi.telemetry import parseData, telemetry as run_telemetry
 from mn_wifi.mobility import tracked as trackedMob, model as mobModel, mobility as mob
@@ -43,14 +43,14 @@ from mn_wifi.plot import plot2d, plot3d, plotGraph
 from mn_wifi.module import module
 from mn_wifi.propagationModels import propagationModel
 from mn_wifi.vanet import vanet
-from mn_wifi.sixLoWPAN.net import Mininet_6LoWPAN as sixlowpan
-from mn_wifi.sixLoWPAN.module import module as sixLoWPAN_module
-from mn_wifi.sixLoWPAN.link import sixLoWPANLink
+from mn_wifi.sixLoWPAN.net import Mininet_IoT
+from mn_wifi.sixLoWPAN.link import sixLoWPAN
+from mn_wifi.util import ipAdd6, netParse6
 
 
 sys.path.append(str(os.getcwd()) + '/mininet/')
 
-VERSION = "2.4.1"
+VERSION = "2.4.2"
 
 
 class Mininet_wifi(Mininet):
@@ -59,10 +59,10 @@ class Mininet_wifi(Mininet):
                  accessPoint=OVSKernelAP, host=Host, station=Station,
                  car=Car, controller=DefaultController,
                  link=TCWirelessLink, intf=Intf, build=True, xterms=False,
-                 cleanup=False, ipBase='10.0.0.0/8', inNamespace=False,
-                 autoSetMacs=False, autoStaticArp=False, autoPinCpus=False,
-                 listenPort=None, waitConnected=False, ssid="new-ssid",
-                 mode="g", channel=1, wmediumd_mode=snr, roads=0,
+                 cleanup=False, ipBase='10.0.0.0/8', ip6Base='2001:0:0:0:0:0:0:0/64',
+                 inNamespace=False, autoSetMacs=False, autoStaticArp=False,
+                 autoPinCpus=False, listenPort=None, waitConnected=False,
+                 ssid="new-ssid", mode="g", channel=1, wmediumd_mode=snr, roads=0,
                  fading_coefficient=0, autoAssociation=True,
                  allAutoAssociation=True, driver='nl80211',
                  autoSetPositions=False, configureWiFiDirect=False,
@@ -70,7 +70,8 @@ class Mininet_wifi(Mininet):
                  disable_tcp_checksum=False, ifb=False,
                  bridge=False, plot=False, plot3d=False, docker=False,
                  container='mininet-wifi', ssh_user='alpha',
-                 set_socket_ip=None, set_socket_port=12345):
+                 set_socket_ip=None, set_socket_port=12345,
+                 iot_module='mac802154_hwsim'):
         """Create Mininet object.
            topo: Topo (topology) object or None
            switch: default Switch class
@@ -99,9 +100,12 @@ class Mininet_wifi(Mininet):
         self.intf = intf
         self.cleanup = cleanup
         self.ipBase = ipBase
+        self.ip6Base = ip6Base
         self.ipBaseNum, self.prefixLen = netParse(self.ipBase)
+        self.ip6BaseNum, self.prefixLen6 = netParse6(self.ip6Base)
         self.nextIP = 1  # start for address allocation
-        self.nextPos_sta = 1 # start for sta position allocation
+        self.nextIP6 = 1  # start for address allocation
+        self.nextPos_sta = 1  # start for sta position allocation
         self.nextPos_ap = 1  # start for ap position allocation
         self.inNamespace = inNamespace
         self.xterms = xterms
@@ -126,7 +130,7 @@ class Mininet_wifi(Mininet):
         self.cars = []
         self.switches = []
         self.stations = []
-        self.sixLP = []
+        self.sensors = []
         self.terms = []  # list of spawned xterm processes
         self.driver = driver
         self.autoAssociation = autoAssociation  # does not include mobility
@@ -156,8 +160,8 @@ class Mininet_wifi(Mininet):
         self.disable_tcp_checksum = disable_tcp_checksum
         self.plot = plot2d
         self.roads = roads
+        self.iot_module = iot_module
         self.seed = 1
-        self.n_radios = 0
         self.min_v = 1
         self.max_v = 10
         self.min_x = 0
@@ -168,10 +172,7 @@ class Mininet_wifi(Mininet):
         self.max_z = 0
         self.conn = {}
         self.wlinks = []
-        Mininet_wifi.init()  # Initialize Mininet if necessary
-
-        if self.set_socket_ip:
-            self.server()
+        Mininet_wifi.init()  # Initialize Mininet-WiFi if necessary
 
         if autoSetPositions and link == wmediumd:
             self.wmediumd_mode = interference
@@ -183,6 +184,9 @@ class Mininet_wifi(Mininet):
         self.built = False
         if topo and build:
             self.build()
+
+    def start_socket_server(self):
+        self.server()
 
     def server(self):
         thread(target=self.start_socket).start()
@@ -283,6 +287,33 @@ class Mininet_wifi(Mininet):
         nodes.remove(node)
         del self.nameToNode[node.name]
 
+    def pos_to_array(self, node):
+        pos = node.params['position']
+        if isinstance(pos, string_types):
+            pos = pos.split(',')
+        node.position = [float(pos[0]), float(pos[1]), float(pos[2])]
+        node.params.pop('position', None)
+
+    def count_ifaces(self):
+        "Count the number of virtual wifi interfaces"
+        nodes = self.stations + self.cars + self.aps
+        nradios = 0
+        for node in nodes:
+            nradios += len(node.params['wlan'])
+        return nodes, nradios
+
+    def addWlans(self, node):
+        node.params['wlan'] = []
+        wlans = 1
+        if 'wlans' in node.params:
+            wlans = node.params['wlans']
+        for wlan in range(wlans):
+            if isinstance(node, AP):
+                node.params['wlan'].append(node.name + '-wlan' + str(wlan + 1))
+            else:
+                node.params['wlan'].append(node.name + '-wlan' + str(wlan))
+        node.params.pop("wlans", None)
+
     def addStation(self, name, cls=None, **params):
         """Add Station.
            name: name of station to add
@@ -294,38 +325,40 @@ class Mininet_wifi(Mininet):
                                 ipBaseNum=self.ipBaseNum,
                                 prefixLen=self.prefixLen) +
                           '/%s' % self.prefixLen,
+                    'ip6': ipAdd6(self.nextIP6,
+                                  ipBaseNum=self.ip6BaseNum,
+                                  prefixLen=self.prefixLen6) +
+                           '/%s' % self.prefixLen6,
                     'channel': self.channel,
                     'mode': self.mode
                    }
         defaults.update(params)
 
         if self.autoSetPositions:
-            defaults['position'] = (round(self.nextPos_sta,2),0,0)
+            defaults['position'] = (round(self.nextPos_sta, 2), 0, 0)
         if self.autoSetMacs:
             defaults['mac'] = macColonHex(self.nextIP)
         if self.autoPinCpus:
             defaults['cores'] = self.nextCore
             self.nextCore = (self.nextCore + 1) % self.numCores
         self.nextIP += 1
+        self.nextIP6 += 1
         self.nextPos_sta += 2
 
         if not cls:
             cls = self.station
         sta = cls(name, **defaults)
 
-        self.addParameters(sta, self.autoSetMacs, **defaults)
-        if 'sixlowpan' in params:
-            sixlowpan.init(sta, **params)
-            self.sixLP.append(sta)
+        if 'position' in params:
+            self.pos_to_array(sta)
 
+        self.addWlans(sta)
         self.stations.append(sta)
         self.nameToNode[name] = sta
         return sta
 
-    def add6LoWPAN(self, name, cls=None, **params):
-        node = sixlowpan.add6LoWPAN(name, cls, **params)
-        self.sixLP.append(node)
-        self.nameToNode[name] = node
+    def addSensor(self, name, cls=None, **params):
+        node = Mininet_IoT.addSensor(name, cls, **params)
         return node
 
     def addCar(self, name, cls=None, **params):
@@ -338,7 +371,11 @@ class Mininet_wifi(Mininet):
         defaults = {'ip': ipAdd(self.nextIP,
                                 ipBaseNum=self.ipBaseNum,
                                 prefixLen=self.prefixLen) +
-                          '/%s' % self.prefixLen
+                          '/%s' % self.prefixLen,
+                    'ip6': ipAdd6(self.nextIP,
+                                  ipBaseNum=self.ipBaseNum,
+                                  prefixLen=self.prefixLen) +
+                           '/%s' % self.prefixLen,
                     }
 
         if self.autoSetMacs:
@@ -353,7 +390,10 @@ class Mininet_wifi(Mininet):
             cls = self.car
         car = cls(name, **defaults)
 
-        self.addParameters(car, self.autoSetMacs, **defaults)
+        if 'position' in params:
+            self.pos_to_array(car)
+
+        self.addWlans(car)
         self.cars.append(car)
         self.nameToNode[name] = car
 
@@ -371,14 +411,12 @@ class Mininet_wifi(Mininet):
                     'channel': self.channel,
                     'mode': self.mode
                    }
-
         if self.bridge:
             defaults['isolate_clients'] = True
         defaults.update(params)
         if self.autoSetPositions:
-            defaults['position'] = (round(self.nextPos_ap,2), 50, 0)
+            defaults['position'] = (round(self.nextPos_ap, 2), 50, 0)
             self.nextPos_ap += 100
-
         wlan = None
         if cls and issubclass(cls, physicalAP):
             wlan = ("%s" % params.pop('phywlan', {}))
@@ -386,28 +424,32 @@ class Mininet_wifi(Mininet):
         if not cls:
             cls = self.accessPoint
         ap = cls(name, **defaults)
-
         if not self.inNamespace and self.listenPort:
             self.listenPort += 1
-
-        if self.inNamespace or ('inNamespace' in params
-                                and params['inNamespace'] is True):
-            ap.params['inNamespace'] = True
-
         self.nameToNode[name] = ap
-
         if wlan:
             ap.params['phywlan'] = wlan
-
-        self.addParameters(ap, self.autoSetMacs, **defaults)
-        if 'type' in params and params['type'] is 'mesh':
-            ap.func[1] = 'mesh'
-
+        if 'position' in params:
+            self.pos_to_array(ap)
+        self.addWlans(ap)
         self.aps.append(ap)
         return ap
 
+    def setStaticRoute(self, node, ip=None, **params):
+        """Set the static route to go through intf.
+           net: subnet address"""
+        # Note setParam won't call us if intf is none
+        if isinstance(ip, BaseString) and ' ' in ip:
+            params = ip
+        else:
+            natIP = ip.split('/')[0]
+            params = '%s via %s' % (params['net'], natIP)
+        # Do this in one line in case we're messing with the root namespace
+        node.cmd('ip route add', params)
+
+
     def addNAT(self, name='nat0', connect=True, inNamespace=False,
-               **params):
+               linkTo=None, **params):
         """Add a NAT to the Mininet network
            name: name of NAT node
            connect: switch to connect to | True (s1) | None
@@ -419,18 +461,27 @@ class Mininet_wifi(Mininet):
         # find first ap and create link
         if connect:
             if not isinstance(connect, Node):
-                if self.switches:
-                    connect = self.switches[0]
-                elif self.aps:
-                    connect = self.aps[0]
+                if linkTo:
+                    nodes = self.switches + self.aps
+                    for node in nodes:
+                        if linkTo == node.name:
+                            connect = node
+                else:
+                    if self.switches:
+                        connect = self.switches[0]
             # Connect the nat to the ap
             self.addLink(nat, connect)
             # Set the default route on stations
             natIP = nat.params['ip'].split('/')[0]
             nodes = self.stations + self.hosts + self.cars
-            for node in nodes:
-                if node.inNamespace:
-                    node.setDefaultRoute('via %s' % natIP)
+            if 'net' in params:
+                for node in nodes:
+                    if node.inNamespace:
+                        self.setStaticRoute(node, '%s via %s' % (params['net'], natIP))
+            else:
+                for node in nodes:
+                    if node.inNamespace:
+                        node.setDefaultRoute('via %s' % natIP)
         return nat
 
     # BL: We now have four ways to look up nodes
@@ -457,14 +508,14 @@ class Mininet_wifi(Mininet):
     def __iter__(self):
         "return iterator over node names"
         for node in chain(self.hosts, self.switches, self.controllers,
-                          self.stations, self.cars, self.aps, self.sixLP):
+                          self.stations, self.cars, self.aps, self.sensors):
             yield node.name
 
     def __len__(self):
         "returns number of nodes in net"
         return (len(self.hosts) + len(self.switches) +
                 len(self.controllers) + len(self.stations) +
-                len(self.cars) + len(self.aps) + len(self.sixLP))
+                len(self.cars) + len(self.aps) + len(self.sensors))
 
     def __contains__(self, item):
         "returns True if net contains named node"
@@ -495,6 +546,53 @@ class Mininet_wifi(Mininet):
     def addMacToWmediumd(self, mac=None):
         self.wmediumdMac.append(mac)
 
+    def infra_wmediumd_link(self, node1, node2, **params):
+        ap = node1 if node1 in self.aps else node2
+        sta = node1 if node2 in self.aps else node2
+
+        if self.wmediumd_mode == error_prob:
+            wmediumd.wlinks.append([sta, ap, params['error_prob']])
+        elif self.wmediumd_mode != interference:
+            wmediumd.wlinks.append([sta, ap])
+
+    def infra_tc(self, node1, node2, port1=None, port2=None,
+                 cls=None, **params):
+
+        ap = node1 if node1 in self.aps else node2
+        sta = node1 if node2 in self.aps else node2
+
+        wlan = 0
+        ap_wlan = 0
+        if port1 and port2:
+            ap_wlan = port1 if node1 in self.aps else port2
+            wlan = port1 if node2 in self.aps else port2
+
+        params['ap_wlan'] = ap_wlan
+        params['wlan'] = wlan
+
+        intf = sta.wintfs[wlan]
+        ap_intf = ap.wintfs[ap_wlan]
+
+        # If sta/ap have position
+        doAssociation = True
+        if hasattr(sta, 'position') and hasattr(ap, 'position'):
+            dist = sta.get_distance_to(ap)
+            if dist > ap.wintfs[ap_wlan].range:
+                doAssociation = False
+        if doAssociation:
+            Association.associate(intf, ap_intf)
+
+            if 'bw' not in params and 'bw' not in str(cls):
+                if hasattr(sta, 'position'):
+                    params['bw'] = intf.getCustomRate()
+                else:
+                    params['bw'] = intf.getRate()
+            # tc = True, this is useful for tc configuration
+            link = cls(name=sta.params['wlan'][wlan], node=sta,
+                       **params)
+            # self.links.append(link)
+            return link
+
     def addLink(self, node1, node2=None, port1=None, port2=None,
                 cls=None, **params):
         """"Add a link from node1 to node2
@@ -521,12 +619,12 @@ class Mininet_wifi(Mininet):
                  wifiDirectLink, physicalWifiDirectLink]
         if cls in modes:
             cls(node=node1, **params)
-        elif cls == sixLoWPANLink:
+        elif cls == sixLoWPAN:
             link = cls(node=node1, port=port1, **params)
             self.links.append(link)
             return link
         elif cls == _4address:
-            if 'position' in node1.params and 'position' in node2.params:
+            if hasattr(node1, 'position') and hasattr(node2, 'position'):
                 self.conn['src'].append(node1)
                 self.conn['dst'].append(node2)
                 self.conn['ls'].append('--')
@@ -542,18 +640,18 @@ class Mininet_wifi(Mininet):
                 return link
             else:
                 dist = node1.get_distance_to(node2)
-                if dist <= node1.params['range'][0]:
+                if dist <= node1.wintfs[0].range:
                     link = cls(node1, node2)
                     self.links.append(link)
                     return link
         elif ((node1 in self.stations and node2 in self.aps)
-              or (node2 in self.stations and node1 in self.aps)) and 'link' not in options:
-            self.infraAssociation(node1, node2, port1, port2, cls, **params)
+              or (node2 in self.stations and node1 in self.aps)) and cls != TCLink:
+            if cls == wmediumd:
+                self.infra_wmediumd_link(node1, node2, **params)
+            else:
+                self.infra_tc(node1, node2, port1, port2, cls, **params)
         else:
-            if 'link' in options:
-                options.pop('link', None)
-
-            if 'position' in node1.params and 'position' in node2.params:
+            if hasattr(node1, 'position') and hasattr(node2, 'position'):
                 self.conn['src'].append(node1)
                 self.conn['dst'].append(node2)
                 self.conn['ls'].append('-')
@@ -576,45 +674,6 @@ class Mininet_wifi(Mininet):
             link = cls(node1, node2, **options)
             self.links.append(link)
             return link
-
-    def infraAssociation(self, node1, node2, port1=None, port2=None,
-                         cls=None, **params):
-
-        ap = node1 if node1 in self.aps else node2
-        sta = node1 if node2 in self.aps else node2
-
-        wlan = 0
-        ap_wlan = 0
-        if port1 and port2:
-            ap_wlan = port1 if node1 in self.aps else port2
-            wlan = port1 if node2 in self.aps else port2
-
-        params['ap_wlan'] = ap_wlan
-        params['wlan'] = wlan
-
-        # If sta/ap have position
-        doAssociation = True
-        if 'position' in sta.params and 'position' in ap.params:
-            dist = sta.get_distance_to(ap)
-            if dist <= ap.params['range'][ap_wlan]:
-                doAssociation = False
-        if doAssociation:
-            Association.associate(sta, ap, wlan, ap_wlan)
-
-            if issubclass(self.link, TCWirelessLink):
-                if 'bw' not in params and 'bw' not in str(cls) and \
-                        not self.ifb:
-                    params['bw'] = CustomRate(sta, wlan).rate
-                # tc = True, this is useful for tc configuration
-                link = cls(name=sta.params['wlan'][wlan], node=sta,
-                           tc=True, **params)
-                # self.links.append(link)
-                return link
-        if self.link == wmediumd:
-            if self.wmediumd_mode == error_prob:
-                wmediumd.wlinks.append([sta, ap, params['error_prob']])
-            elif self.wmediumd_mode != interference:
-                wmediumd.wlinks.append([sta, ap])
 
     def delLink(self, link):
         "Remove a link from this network"
@@ -642,7 +701,7 @@ class Mininet_wifi(Mininet):
 
     def configHosts(self):
         "Configure a set of nodes."
-        nodes = self.hosts
+        nodes = self.hosts + self.stations + self.cars + self.sensors
         for node in nodes:
             # info( host.name + ' ' )
             intf = node.defaultIntf()
@@ -727,16 +786,16 @@ class Mininet_wifi(Mininet):
     def check_if_mob(self):
         if self.mob_param:
             self.get_mob_stat_nodes()
+            self.mob_param['mnNodes'] = self.plot_mininet_nodes()
             if 'model' in self.mob_param or self.isVanet or self.roads:
                 self.start_mobility(**self.mob_param)
             else:
-                self.mob_param['plotNodes'] = self.plot_nodes()
                 trackedMob(**self.mob_param)
             self.mob_check = True
         else:
             if self.draw and not self.isReplaying:
-                plotNodes = self.plot_nodes()
-                self.plotCheck(plotNodes)
+                mnNodes = self.plot_mininet_nodes()
+                self.plotCheck(mnNodes)
 
     def build(self):
         "Build mininet-wifi."
@@ -752,7 +811,7 @@ class Mininet_wifi(Mininet):
         else:
             if not mob.stations:
                 for node in self.stations:
-                    if 'position' in node.params:
+                    if hasattr(node, 'position'):
                         mob.stations.append(node)
 
         if not self.wmediumd_started:
@@ -768,14 +827,13 @@ class Mininet_wifi(Mininet):
         if self.autoStaticArp:
             self.staticArp()
 
-        func = ['adhoc', 'mesh', 'wifiDirect']
         for node in self.stations:
-            for wlan in range(0, len(node.params['wlan'])):
-                if not isinstance(node, AP) and node.func[0] != 'ap' \
-                        and node.func[wlan] not in func:
+            for wlan, intf in enumerate(node.wintfs.values()):
+                if not isinstance(intf, master) and not isinstance(intf, adhoc) \
+                        and not isinstance(intf, mesh) \
+                        and not isinstance(intf, wifiDirectLink):
                     if isinstance(node, Station) and not hasattr(node, 'range'):
-                        node.params['range'][wlan] = \
-                            int(node.params['range'][wlan]) / 5
+                        intf.range = int(intf.range)
 
         if self.allAutoAssociation:
             if self.autoAssociation and not self.configureWiFiDirect:
@@ -794,13 +852,17 @@ class Mininet_wifi(Mininet):
 
         self.built = True
 
-    def plot_nodes(self):
+    def plot_mininet_nodes(self):
+        from mn_wifi.node import Node_wifi
         nodes = self.hosts + self.switches + self.controllers
-        plotNodes = []
+        mnNodes = []
         for node in nodes:
-            if hasattr(node, 'plotted') and node.plotted is True:
-                plotNodes.append(node)
-        return plotNodes
+            if hasattr(node, 'position'):
+                self.pos_to_array(node)
+                node.wintfs = {0 : Node_wifi}
+                node.wintfs[0].range = 0
+                mnNodes.append(node)
+        return mnNodes
 
     def startTerms(self):
         "Start a terminal for each node."
@@ -814,7 +876,7 @@ class Mininet_wifi(Mininet):
         self.terms += makeTerms(self.hosts, 'host')
         self.terms += makeTerms(self.stations, 'station')
         self.terms += makeTerms(self.aps, 'ap')
-        self.terms += makeTerms(self.sixLP, 'sixLP')
+        self.terms += makeTerms(self.sensors, 'sensor')
 
     def stopXterms(self):
         "Kill each xterm."
@@ -911,7 +973,7 @@ class Mininet_wifi(Mininet):
             switch.terminate()
         info('\n')
         info('*** Stopping nodes\n')
-        nodes = self.hosts + self.stations + self.sixLP
+        nodes = self.hosts + self.stations + self.sensors
         for node in nodes:
             info(node.name + ' ')
             node.terminate()
@@ -1008,9 +1070,6 @@ class Mininet_wifi(Mininet):
         else:
             ploss = 0
             output("*** Warning: No packets sent\n")
-        if self.sixLP:
-            nodes = self.sixLP
-            sixlowpan.ping6(nodes, timeout)
         return ploss
 
     @staticmethod
@@ -1146,12 +1205,12 @@ class Mininet_wifi(Mininet):
                 while conn1 is 0:
                     conn1 = int(client.cmd('iw dev %s link '
                                            '| grep -ic \'Connected\''
-                                           % client.params['wlan'][0]))
+                                           % client.wintfs[0].name))
             if isinstance(server, Station):
                 while conn2 is 0:
                     conn2 = int(server.cmd('iw dev %s link | grep -ic '
                                            '\'Connected\''
-                                           % server.params['wlan'][0]))
+                                           % server.wintfs[0].name))
         output('*** Iperf: testing', l4Type, 'bandwidth between',
                client, 'and', server, '\n')
         server.cmd('killall -9 iperf')
@@ -1263,7 +1322,7 @@ class Mininet_wifi(Mininet):
         stat_nodes = []
         nodes = self.stations + self.aps + self.cars
         for node in nodes:
-            if 'position' in node.params and 'initPos' not in node.params:
+            if hasattr(node, 'position') and 'initPos' not in node.params:
                 stat_nodes.append(node)
             else:
                 mob_nodes.append(node)
@@ -1286,19 +1345,18 @@ class Mininet_wifi(Mininet):
             ap = self.nameToNode[dst]
 
         if status == 'down':
-            for wlan in range(0, len(sta.params['wlan'])):
-                if sta.params['associatedTo'][wlan]:
-                    sta.cmd('iw dev %s disconnect' % sta.params['wlan'][wlan])
-                    sta.params['associatedTo'][wlan] = ''
-                    ap.params['associatedStations'].remove(sta)
+            for wlan, intf in enumerate(sta.wintfs.values()):
+                if intf.associatedTo:
+                    sta.cmd('iw dev %s disconnect' % intf.name)
+                    intf.associatedTo = ''
+                    ap.wintfs[0].associatedStations.remove(sta)
         else:
-            for wlan in range(0, len(sta.params['wlan'])):
-                if not sta.params['associatedTo'][wlan]:
+            for wlan, intf in enumerate(sta.wintfs.values()):
+                if not intf.associatedTo:
                     sta.pexec('iw dev %s connect %s %s'
-                              % (sta.params['wlan'][wlan],
-                                 ap.params['ssid'][0], ap.params['mac'][0]))
-                    sta.params['associatedTo'][wlan] = ap
-                    ap.params['associatedStations'].append(sta)
+                              % (intf.name, ap.wintfs[0].ssid, ap.wintfs[0].mac))
+                    intf.associatedTo = ap
+                    ap.wintfs[0].associatedStations.append(sta)
 
     # BL: I think this can be rewritten now that we have
     # a real link class.
@@ -1348,190 +1406,6 @@ class Mininet_wifi(Mininet):
         fixLimits()
         cls.inited = True
 
-    def addParameters(self, node, autoSetMacs, **params):
-        """adds parameters to wireless nodes
-        node: node
-        autoSetMacs: set MAC addrs automatically like IP addresses
-        params: parameters
-        defaults: Default IP and MAC addresses"""
-        params['wlans'] = self.countWiFiIfaces(**params)
-        node.params['wlan'] = []
-        node.params['mac'] = []
-        node.phyID = []
-        node.func = []
-
-        args = ['passwd', 'scan_freq', 'freq_list', 'authmode',
-                'encrypt', 'radius_server', 'bw']
-        for param in params:
-            if param in args:
-                list = params[param].split(',')
-                if len(list) != params['wlans']:
-                    error('*** Error: len(%s) != wlans\n' % param)
-                    exit()
-                node.params[param] = []
-                for value in list:
-                    node.params[param].append(value)
-
-        args = ['speed', 'max_x', 'max_y', 'min_x', 'min_y',
-                'min_v', 'max_v', 'constantVelocity', 'constantDistance',
-                'min_speed', 'max_speed']
-        for param in params:
-            if param in args:
-                setattr(node, param, float(params[param]))
-
-        # position
-        if 'position' in params:
-            pos = params['position']
-            self.pos_to_array(node, pos)
-        else:
-            if 'position' in node.params:
-                pos = node.params['position']
-                self.pos_to_array(node, pos)
-
-        if not isinstance(node, AP):
-            node.params['apsInRange'] = {}
-            node.params['associatedTo'] = []
-            node.params['rssi'] = []
-
-        for wlan in range(params['wlans']):
-            node.func.append('none')
-            node.phyID.append(0)
-
-            if isinstance(node, AP):
-                node.params['wlan'].append(node.name + '-wlan' + str(wlan + 1))
-            else:
-                node.params['associatedTo'].append('')
-                node.params['wlan'].append(node.name + '-wlan' + str(wlan))
-                node.params['rssi'].append(-60)
-            node.params.pop("wlans", None)
-
-        if not isinstance(node, AP) or 'ip' in node.params:
-            array_ = ['mac', 'ip']
-            for param in array_:
-                node.params[param] = []
-                if param in params:
-                    list = params[param].split(',')
-                    for value in list:
-                        node.params[param].append(value)
-                        if param == 'mac':
-                            append_ = ''
-                        else:
-                            append_ = '0/0'
-                        if len(list) != params['wlans']:
-                            for _ in range(len(list), params['wlans']):
-                                node.params[param].append(append_)
-                elif autoSetMacs:
-                    for n in range(params['wlans']):
-                        node.params[param].append(append_)
-                        node.params[param][n] = params[param]
-                else:
-                    for _ in range(params['wlans']):
-                        node.params[param].append('')
-
-            if 'ssid' not in params:
-                node.params['ssid'] = []
-                for _ in range(params['wlans']):
-                    node.params['ssid'].append('')
-
-        array_ = ['antennaGain', 'antennaHeight', 'txpower',
-                  'channel', 'mode', 'freq']
-        for param in array_:
-            node.params[param] = []
-            if param in params:
-                if isinstance(params[param], int):
-                    params[param] = str(params[param])
-                list = params[param].split(',')
-                for value in list:
-                    if param == 'mode' or param == 'channel':
-                        node.params[param].append(value)
-                    else:
-                        node.params[param].append(float(value))
-                len_ = len(node.params[param])
-                if len != params['wlans']:
-                    for _ in range(params['wlans']-len_):
-                        node.params[param].append(value)
-            else:
-                for _ in range(params['wlans']):
-                    if param == 'antennaGain':
-                        value = 5.0
-                    if param == 'antennaHeight':
-                        value = 1.0
-                    if param == 'txpower':
-                        value = 14
-                    if param == 'channel':
-                        value = 1
-                    if param == 'mode':
-                        value = 'g'
-                    if param == 'freq':
-                        value = 2.412
-                    node.params[param].append(value)
-        self.add_range_param(node, **params)
-
-        # Equipment Model
-        model = ("%s" % params.pop('model', {}))
-        if model != "{}":
-            node.model = model
-
-        if isinstance(node, AP):
-            node.params['associatedStations'] = []
-            node.params['stationsInRange'] = {}
-
-            node.params['mac'] = []
-            node.params['mac'].append('')
-            if 'mac' in params:
-                node.params['mac'][0] = params['mac']
-
-            if 'ssid' in params:
-                node.params['ssid'] = []
-                ssid_list = params['ssid'].split(',')
-                for ssid in ssid_list:
-                    node.params['ssid'].append(ssid)
-
-            if 'config' in node.params:
-                config = node.params['config'].split(',')
-                for conf in config:
-                    if 'wpa=' in conf or 'wep=' in conf:
-                        node.params['encrypt'] = []
-                        if 'wpa=' in conf:
-                            node.params['encrypt'].append('wpa')
-                        else:
-                            node.params['encrypt'].append('wep')
-
-    def pos_to_array(self, node, pos):
-        if isinstance(pos, string_types):
-            pos = pos.split(',')
-        node.params['position'] = [float(pos[0]),
-                                   float(pos[1]),
-                                   float(pos[2])]
-
-    def add_range_param(self, node, wlans=0, **params):
-        "Add Signal Range Param"
-        node.params['range'] = []
-        if 'range' in params:
-            range_list = str(params['range']).split(',')
-            node.range = True  # if range is set manually
-            for value in range_list:
-                wlan = range_list.index(value)
-                node.params['range'].append(float(value))
-                node.setRange(float(value), intf=node.params['wlan'][wlan])
-        else:
-            for _ in range(0, wlans):
-                if 'model' in node.params:
-                    range_ = DeviceRange(node).range
-                    node.params['range'].append(range_)
-                else:
-                    node.params['range'].append(0)
-
-    def countWiFiIfaces(self, **params):
-        "Count the number of virtual wifi interfaces"
-        if 'wlans' in params:
-            self.n_radios += int(params['wlans'])
-            wlans = int(params['wlans'])
-        else:
-            wlans = 1
-            self.n_radios += 1
-        return wlans
-
     def createVirtualIfaces(self, nodes):
         "Creates virtual wifi interfaces"
         for node in nodes:
@@ -1539,37 +1413,46 @@ class Mininet_wifi(Mininet):
                 for vif_ in range(0, node.params['nvif']):
                     vif = node.params['wlan'][0] + str(vif_ + 1)
                     node.params['wlan'].append(vif)
-                    node.params['associatedTo'].append('')
-                    node.func.append('none')
-                    node.phyID.append(0)
-                    node.params['rssi'].append(-60)
-
-                    new_mac = list(node.params['mac'][0])
-                    new_mac[7] = str(vif_ + 1)
-                    node.params['mac'].append("".join(new_mac))
-
-                    array_ = ['range', 'txpower', 'channel', 'antennaGain',
-                              'antennaHeight', 'mode', 'freq']
-                    for param in array_:
-                        node.params[param].append(node.params[param][0])
+                    mac = str(node.wintfs[0].mac)
+                    new_mac = '{}{}{}'.format(mac[:4], vif_+1, mac[5:])
 
                     node.cmd('iw dev %s interface add %s type station'
                              % (node.params['wlan'][0], vif))
-                    TCLinkWirelessStation(node, intfName1=vif)
-                    self.configureMacAddr(node)
+                    TCLinkWirelessStation(node, intfName=vif)
+                    managed(node, wlan=vif_+1)
+
+                    node.wintfs[vif_+1].mac = new_mac
+                    for intf in node.wintfs.values():
+                        intf.configureMacAddr()
+
+    def configure6LowPANLink(self):
+        for sensor in self.sensors:
+            for wpan in range(0, len(sensor.params['wpan'])):
+                sixLoWPAN(sensor, wpan)
+                #managed(node, wlan)
+
+    def configIFB(self):
+        nodes = self.stations + self.cars
+        ifbID = 0
+        for node in nodes:
+            for wlan in range(0, len(node.params['wlan'])):
+                if self.ifb:
+                    node.configIFB(wlan, ifbID)  # Adding Support to IFB
+                    node.wintfs[wlan].ifb = 'ifb' + str(wlan + 1)
+                    ifbID += 1
 
     def configureWirelessLink(self):
-        """Configure Wireless Link
-        :param stations: list of stations
-        :param aps: list of access points
-        :param cars: list of cars"""
+        "Configure Wireless Link"
         nodes = self.stations + self.cars
         for node in nodes:
             for wlan in range(0, len(node.params['wlan'])):
-                link = TCLinkWirelessStation(node,
-                                             intfName1=node.params['wlan'][wlan])
+                intf = node.params['wlan'][wlan]
+                link = TCLinkWirelessStation(node, intfName1=intf)
+                managed(node, wlan)
                 self.links.append(link)
-            self.configureMacAddr(node)
+            for intf in node.wintfs.values():
+                intf.configureMacAddr()
+        self.configIFB()
 
     def plotGraph(self, **kwargs):
         "Plots Graph"
@@ -1584,7 +1467,7 @@ class Mininet_wifi(Mininet):
         try:
             for node in nodes:
                 if hasattr(node, 'coord'):
-                    node.params['position'] = node.coord[0].split(',')
+                    node.position = node.coord[0].split(',')
             plotGraph(min_x=self.min_x, min_y=self.min_y, min_z=self.min_z,
                       max_x=self.max_x, max_y=self.max_y, max_z=self.max_z,
                       nodes=nodes, conn=self.conn)
@@ -1597,7 +1480,8 @@ class Mininet_wifi(Mininet):
     def start_mobility(self, mob_nodes, **kwargs):
         "Starts Mobility"
         for node in mob_nodes:
-            node.params['position'] = (0, 0, 0)
+            node.position = (0, 0, 0)
+            node.pos = (0, 0, 0)
         self.setMobilityParams(**kwargs)
         if self.roads:
             vanet(**self.mob_param)
@@ -1618,7 +1502,7 @@ class Mininet_wifi(Mininet):
         if self.allAutoAssociation and \
                 not self.configureWiFiDirect and not self.configure4addr:
             self.auto_association()
-        kwargs['final_time'] = kwargs['time']
+        kwargs['end_time'] = kwargs['time']
         self.setMobilityParams(**kwargs)
 
     def setMobilityParams(self, **kwargs):
@@ -1637,7 +1521,7 @@ class Mininet_wifi(Mininet):
                 if arg != 'min_wt' and arg != 'max_wt':
                     setattr(self, arg, float(kwargs[arg]))
 
-        args = ['plotNodes', 'ac_method', 'model', 'time']
+        args = ['mnNodes', 'ac_method', 'model', 'time']
         for arg in args:
             if arg in kwargs:
                 self.mob_param.setdefault(arg, kwargs[arg])
@@ -1656,24 +1540,14 @@ class Mininet_wifi(Mininet):
 
         :params program: only sumo is supported so far
         :params **params config_file: file configuration"""
-        self.autoAssociation = False
         self.isVanet = True
         for car in self.cars:
-            car.params['position'] = (0, 0, 0)
-        program(self.cars, self.aps, **kwargs)
-
-    @staticmethod
-    def configureMacAddr(node):
-        """Configure Mac Address
-
-        :param node: node"""
-        for wlan in range(0, len(node.params['wlan'])):
-            iface = node.params['wlan'][wlan]
-            if node.params['mac'][wlan] == '':
-                node.params['mac'][wlan] = node.getMAC(iface)
+            if hasattr(car, 'position'):
+                car.pos = car.position
             else:
-                mac = node.params['mac'][wlan]
-                node.setMAC(mac, iface)
+                car.position = (0, 0, 0)
+                car.pos = (0, 0, 0)
+        program(self.cars, self.aps, **kwargs)
 
     def configureWmediumd(self):
         "Configure Wmediumd"
@@ -1695,69 +1569,59 @@ class Mininet_wifi(Mininet):
                      self.wmediumdMac)
             for sta in self.stations:
                 if self.wmediumd_mode != error_prob:
-                    sta.set_pos_wmediumd(sta.params['position'])
+                    sta.set_pos_wmediumd(sta.position)
             for sta in self.stations:
                 if sta in self.aps:
                     self.stations.remove(sta)
         self.wmediumd_started = True
+
+    def addSensors(self, sensors):
+        for sensor in sensors:
+            self.nameToNode[sensor.name] = sensor
 
     def configureWifiNodes(self):
         "Configure WiFi Nodes"
         if not self.ppm_is_set:
             self.setPropagationModel()
         params = {}
-        if self.ifb:
-            wirelessLink.ifb = True
-            params['ifb'] = self.ifb
         if self.docker:
             params['docker'] = self.docker
             params['container'] = self.container
             params['ssh_user'] = self.ssh_user
-        nodes = self.stations + self.cars + self.aps
-        module(nodes, self.n_radios, self.alt_module, **params)
-        if sixlowpan.n_wpans != 0:
-            sixLoWPAN_module(self.sixLP, sixlowpan.n_wpans)
+
+        nodes, nradios = self.count_ifaces()
+        if nodes:
+            module(nodes, nradios, self.alt_module, **params)
+
+        if self.ifb:
+            module.load_ifb(nradios)
+
+        if Mininet_IoT.nwpans:
+            self.sensors = Mininet_IoT.init_module(iot_module=self.iot_module)
+            self.addSensors(self.sensors)
+            self.configure6LowPANLink()
+
         self.configureWirelessLink()
         self.createVirtualIfaces(self.stations)
-        AccessPoint(self.aps, self.driver, config=True)
+        AccessPoint(self.aps, self.driver, check_nm=True)
         if self.link == wmediumd:
             self.configureWmediumd()
         AccessPoint(self.aps, self.driver)
 
-        setParam = True
-        if self.wmediumd_mode == interference and not self.isVanet:
-            setParam = False
-
         for node in nodes:
-            for wlan in range(0, len(node.params['wlan'])):
-                if int(node.params['range'][wlan]) == 0:
-                    intf = node.params['wlan'][wlan]
-                    node.params['range'][wlan] = node.getRange(intf=intf)
+            for wlan, intf in enumerate(node.wintfs.values()):
+                if int(intf.range) == 0:
+                    intf.range = node.getRange(intf)
                 else:
                     if 'model' not in node.params:
-                        node.params['txpower'][wlan] = \
-                            node.get_txpower_prop_model(wlan)
+                        intf.txpower = node.get_txpower_prop_model(intf)
                 if not self.configure4addr and not self.configureWiFiDirect:
-                    node.setTxPower(node.params['txpower'][wlan],
-                                    intf=node.params['wlan'][wlan],
-                                    setParam=setParam)
-                    node.setAntennaGain(node.params['antennaGain'][wlan],
-                                        intf=node.params['wlan'][wlan],
-                                        setParam=setParam)
+                    node.setTxPower(intf.txpower, intf=intf.name)
+                    node.setAntennaGain(intf.antennaGain, intf=intf.name)
 
-        nodes = self.stations + self.cars
-        for node in nodes:
-            intf = node.defaultIntf()
-            if intf:
-                node.configDefault()
-            else:
-                node.configDefault(ip=None, mac=None)
-
-        return self.stations, self.aps
-
-    def plotCheck(self, plotNodes):
+    def plotCheck(self, mnNodes):
         "Check which nodes will be plotted"
-        nodes = self.stations + self.aps + plotNodes + self.cars
+        nodes = self.stations + self.aps + mnNodes + self.cars
         self.checkDimension(nodes)
 
     def plot_dynamic(self):
@@ -1767,8 +1631,7 @@ class Mininet_wifi(Mininet):
 
         while True:
             for node in nodes:
-                intf = node.params['wlan'][0]
-                node.params['range'][0] = node.getRange(intf=intf)
+                node.wintfs[0].range = node.getRange(node.wintfs[0])
                 if self.draw:
                     if not issubclass(self.plot, plot3d):
                         self.plot.updateCircleRadius(node)
@@ -1779,12 +1642,12 @@ class Mininet_wifi(Mininet):
     def auto_association(self):
         "This is useful to make the users' life easier"
         isap = []
-        for sta in self.stations:
-            for wlan in range(0, len(sta.params['wlan'])):
-                if ((sta.func[wlan] == 'ap' or
-                     sta.func[wlan] == 'client') and sta not in self.aps):
-                    if sta not in isap:
-                        isap.append(sta)
+        for node in self.stations:
+            for intf in node.wintfs.values():
+                if isinstance(intf, master) or \
+                        isinstance(intf, _4addrClient or isinstance(intf, _4addrAP)):
+                    if node not in self.aps and node not in isap:
+                        isap.append(node)
 
         for sta in isap:
             self.aps.append(sta)
@@ -1792,24 +1655,20 @@ class Mininet_wifi(Mininet):
             if sta in mob.stations:
                 mob.stations.remove(sta)
 
-        if self.mob_param:
-            nodes = []
-            for node in self.stations:
-                if 'position' in node.params:
-                    nodes.append(node)
-        else:
-            nodes = self.aps + self.stations + self.cars
-
-        if not self.roads:
-            for node in nodes:
-                for wlan in range(0, len(node.params['wlan'])):
-                    if 'position' in node.params and 'link' not in node.params:
+        nodes = self.aps + self.stations + self.cars
+        for node in nodes:
+            if hasattr(node, 'position'):
+                if isinstance(node, Car) and node.position == (0, 0, 0):
+                    pass
+                else:
+                    for intf in node.wintfs.values():
                         if self.wmediumd_mode != error_prob:
-                            pos = node.params['position']
-                            if node.func[wlan] == 'adhoc':
-                                sleep(1.5)
-                            # we need this cause wmediumd is fighting with some associations
-                            # e.g. wpa
+                            pos = node.position
+                            if isinstance(intf, adhoc):
+                                info('%s ' % node)
+                                sleep(1)
+                            # we need this cause wmediumd is struggling
+                            # with some associations e.g. wpa
                             if self.wmediumd_mode == interference:
                                 sleep(0.1)
                                 pos_x = float(pos[0]) + 1
@@ -1820,10 +1679,14 @@ class Mininet_wifi(Mininet):
                                 pos = ('%s' % pos_x, '%s' % pos[1], '%s' % pos[2])
                                 node.set_pos_wmediumd(pos)
 
-            mob.aps = self.aps
-            nodes = self.stations + self.cars
-            for node in nodes:
-                if 'position' in node.params and 'link' not in node.params:
+        mob.aps = self.aps
+        nodes = self.stations + self.cars
+        for node in nodes:
+            if hasattr(node, 'position'):
+                if isinstance(node, Car) and node.position == (0, 0, 0):
+                    pass
+                else:
+                    node.pos = (0, 0, 0)
                     mob.configLinks(node)
 
     @staticmethod

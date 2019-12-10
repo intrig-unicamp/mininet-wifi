@@ -5,6 +5,7 @@
 
 from subprocess import ( Popen, PIPE, check_output as co,
                          CalledProcessError )
+import subprocess
 from time import sleep
 import os
 import glob
@@ -42,6 +43,21 @@ class Cleanup(object):
                 break
 
     @classmethod
+    def module_loaded(cls, module):
+        "Checks if module is loaded"
+        lsmod_proc = subprocess.Popen(['lsmod'], stdout=subprocess.PIPE)
+        grep_proc = subprocess.Popen(['grep', module],
+                                     stdin=lsmod_proc.stdout, stdout=subprocess.PIPE)
+        grep_proc.communicate()  # Block until finished
+        return grep_proc.returncode == 0
+
+    @classmethod
+    def kill_mod(cls, module):
+        if cls.module_loaded(module):
+            info("*** Killing %s\n" % module)
+            os.system('rmmod %s' % module)
+
+    @classmethod
     def kill_mod_proc(cls):
 
         if cls.plot:
@@ -55,17 +71,8 @@ class Cleanup(object):
         sleep(0.1)
 
         info("\n*** Removing WiFi module and Configurations\n")
-        try:
-            co("lsmod | grep mac80211_hwsim", shell=True)
-            os.system('rmmod mac80211_hwsim >/dev/null 2>&1')
-        except:
-            pass
-
-        try:
-            co("lsmod | grep ifb", shell=True)
-            os.system('rmmod ifb')
-        except:
-            pass
+        cls.kill_mod('mac80211_hwsim')
+        cls.kill_mod('ifb')
 
         try:
             os.system('pkill -f \'wpa_supplicant -B -Dnl80211\'')
@@ -85,6 +92,8 @@ class Cleanup(object):
             info('\n*** Done\n')
             cls.sh('fuser -k %s/tcp >/dev/null 2>&1' % cls.socket_port)
 
+        sixlowpan.cleanup_6lowpan()
+
     @classmethod
     def cleanup_wifi(cls):
         """Clean up junk which might be left over from old runs;
@@ -94,8 +103,6 @@ class Cleanup(object):
 
         if glob.glob('*-mn-telemetry.txt'):
             os.system('rm *-mn-telemetry.txt')
-
-        sixlowpan.cleanup_6lowpan()
 
 
 cleanup_wifi = Cleanup.cleanup_wifi

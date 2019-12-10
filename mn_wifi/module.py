@@ -147,9 +147,9 @@ class module(object):
         phy.sort(key=len, reverse=False)
         return phy
 
-    def load_ifb(self, wlans):
+    @classmethod
+    def load_ifb(cls, wlans):
         """ Loads IFB
-
         :param wlans: Number of wireless interfaces
         """
         debug('\nLoading IFB: modprobe ifb numifbs=%s' % wlans)
@@ -196,8 +196,11 @@ class module(object):
                   % (params['ssh_user'], ip, dir, file, dir, file))
 
     def rename(self, node, wintf, newname):
+        debug('\n')
         node.pexec('ip link set %s down' % wintf)
+        debug('\n')
         node.pexec('ip link set %s name %s' % (wintf, newname))
+        debug('\n')
         node.pexec('ip link set %s up' % newname)
 
     def assign_iface(self, nodes, physicalWlans, phys, **params):
@@ -211,10 +214,6 @@ class module(object):
         log_filename = '/tmp/mn-wifi-mac80211_hwsim.log'
         self.logging_to_file("%s" % log_filename)
 
-        if 'ifb' in params:
-            ifb = params['ifb']
-        else:
-            ifb = False
         try:
             if 'docker' in params:
                 wlan_list = []
@@ -222,19 +221,11 @@ class module(object):
                     wlan_list.append('wlan%s' % phy)
             else:
                 wlan_list = self.get_wlan_iface(physicalWlans)
-            if ifb:
-                self.load_ifb(len(wlan_list))
-                ifbID = 0
             debug("\n*** Configuring interfaces with appropriated network"
                   "-namespaces...\n")
-            phyID = 0
             for node in nodes:
-                if ifb:
-                    node.ifb = []
                 for wlan in range(0, len(node.params['wlan'])):
-                    node.phyID[wlan] = phyID
-                    phyID += 1
-                    if isinstance(node, AP) and 'inNamespace' not in node.params:
+                    if isinstance(node, AP) and not node.inNamespace:
                         self.rename(node, wlan_list[0], node.params['wlan'][wlan])
                     else:
                         if 'docker' not in params:
@@ -253,9 +244,6 @@ class module(object):
                         node.cmd('ip link set %s down' % wlan_list[0])
                         node.cmd('ip link set %s name %s'
                                  % (wlan_list[0], node.params['wlan'][wlan]))
-                        if ifb:
-                            node.ifbSupport(wlan, ifbID)  # Adding Support to IFB
-                            ifbID += 1
                     wlan_list.pop(0)
                     phys.pop(0)
         except:

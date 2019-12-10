@@ -41,19 +41,24 @@ def topology(args):
     # MANET routing protocols supported by proto: babel, batman and olsr
     if 'babel' in args or 'batman' in args or 'olsr' in args:
         proto = args[1]
-        net.addLink(sta1, cls=adhoc, ssid='adhocNet', proto=proto,
+        net.addLink(sta1, cls=adhoc, intf='sta1-wlan0',
+                    ssid='adhocNet', proto=proto,
                     mode='g', channel=5, ht_cap='HT40+')
-        net.addLink(sta2, cls=adhoc, ssid='adhocNet', proto=proto,
+        net.addLink(sta2, cls=adhoc, intf='sta2-wlan0',
+                    ssid='adhocNet', proto=proto,
                     mode='g', channel=5)
-        net.addLink(sta3, cls=adhoc, ssid='adhocNet', proto=proto,
+        net.addLink(sta3, cls=adhoc, intf='sta3-wlan0',
+                    ssid='adhocNet', proto=proto,
                     mode='g', channel=5, ht_cap='HT40+')
     else:
-        net.addLink(sta1, cls=adhoc, ssid='adhocNet',
+        net.addLink(sta1, cls=adhoc, intf='sta1-wlan0',
+                    ssid='adhocNet',
                     mode='g', channel=5, ht_cap='HT40+')
-        net.addLink(sta2, cls=adhoc, ssid='adhocNet',
-                    mode='g', channel=5)
-        net.addLink(sta3, cls=adhoc, ssid='adhocNet',
-                    mode='g', channel=5, ht_cap='HT40+')
+        net.addLink(sta2, cls=adhoc, intf='sta2-wlan0',
+                    ssid='adhocNet', mode='g', channel=5)
+        net.addLink(sta3, cls=adhoc, intf='sta3-wlan0',
+                    ssid='adhocNet', mode='g', channel=5,
+                    ht_cap='HT40+')
 
     info("*** Starting network\n")
     net.build()

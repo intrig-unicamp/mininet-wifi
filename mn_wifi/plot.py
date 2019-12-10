@@ -17,7 +17,7 @@ from mininet.log import debug
 class plot3d (object):
     'Plot 3d Graphs'
     ax = None
-    is3d = False
+    plotted = False
 
     @classmethod
     def instantiateGraph(cls, MIN_X, MIN_Y, MIN_Z, MAX_X, MAX_Y, MAX_Z):
@@ -60,7 +60,6 @@ class plot3d (object):
     @classmethod
     def instantiateNodes(cls, nodes):
         "Instantiate Nodes"
-        cls.is3d = True
         for node in nodes:
             cls.instantiateAnnotate(node)
             cls.instantiateNode(node)
@@ -100,6 +99,13 @@ class plot3d (object):
             pass
 
     @classmethod
+    def get_max_radius(cls, node):
+        range_list = []
+        for n in node.wintfs.values():
+            range_list.append(n.range)
+        return max(range_list)
+
+    @classmethod
     def instantiateCircle(cls, node):
         "Instantiate Circle"
         from mn_wifi.node import Station, Car
@@ -115,7 +121,7 @@ class plot3d (object):
         u = np.linspace(0, 2 * np.pi, resolution)
         v = np.linspace(0, np.pi, resolution)
 
-        r = max(node.params['range'])
+        r = cls.get_max_radius(node)
 
         x = r * np.outer(np.cos(u), np.sin(v)) + x
         y = r * np.outer(np.sin(u), np.sin(v)) + y
@@ -127,15 +133,16 @@ class plot3d (object):
 
     @classmethod
     def getPos(self, node):
-        x = round(node.params['position'][0], 2)
-        y = round(node.params['position'][1], 2)
-        z = round(node.params['position'][2], 2)
+        x = round(node.position[0], 2)
+        y = round(node.position[1], 2)
+        z = round(node.position[2], 2)
         return x, y, z
 
 
 class plot2d (object):
     'Plot 2d Graphs'
     ax = None
+    plotted = False
     lines = {}
 
     @classmethod
@@ -147,8 +154,8 @@ class plot2d (object):
 
     @classmethod
     def getxy(cls, node):
-        x = round(node.params['position'][0], 2)
-        y = round(node.params['position'][1], 2)
+        x = round(node.position[0], 2)
+        y = round(node.position[1], 2)
         return x, y
 
     @classmethod
@@ -226,9 +233,8 @@ class plot2d (object):
         "instantiateCircle"
         ax = cls.ax
         color = cls.set_def_color(node)
-
         node.pltCircle = ax.add_patch(
-            patches.Circle((0, 0), max(node.params['range']),
+            patches.Circle((0, 0), cls.get_max_radius(node),
                            fill=True, alpha=0.1, color=color))
 
     @classmethod
@@ -249,20 +255,27 @@ class plot2d (object):
         node.plttxt = cls.ax.annotate(node, xy=(0, 0))
 
     @classmethod
+    def get_max_radius(cls, node):
+        range_list = []
+        for n in node.wintfs.values():
+            range_list.append(n.range)
+        return max(range_list)
+
+    @classmethod
     def updateCircleRadius(cls, node):
-        node.pltCircle.set_radius(max(node.params['range']))
+        node.pltCircle.set_radius(cls.get_max_radius(node))
 
     @classmethod
     def updateLine(cls, node):
-        pos = [node.params['position'][0], node.params['position'][1]]
+        pos = [node.position[0], node.position[1]]
         for line in cls.lines:
             if node.name in line:
                 for n in range(len(line)):
                     if '-' == line[n]:
-                        node1 = line[:n]
+                        node = line[:n]
                         #node2 = line[n+1:]
                 pos_ = cls.lines[line].get_data()
-                if node.name == node1:
+                if node.name == node:
                     cls.lines[line].set_data([pos[0],pos_[0][1]],
                                              [pos[1],pos_[1][1]])
                 else:
@@ -311,16 +324,10 @@ class plot2d (object):
                 cls.addLine(src, dst, ls)
 
     @classmethod
-    def hideNode(cls, node):
-        node.pltCircle.set_visible(False)
-        node.plttxt.set_visible(False)
-        node.pltNode.set_visible(False)
-
-    @classmethod
-    def showNode(cls, node):
-        node.pltCircle.set_visible(True)
-        node.plttxt.set_visible(True)
-        node.pltNode.set_visible(True)
+    def showNode(cls, node, show=True):
+        node.pltCircle.set_visible(show)
+        node.plttxt.set_visible(show)
+        node.pltNode.set_visible(show)
 
     @classmethod
     def hideLine(cls, src, dst):
@@ -334,10 +341,10 @@ class plot2d (object):
 
     @classmethod
     def addLine(cls, src, dst, ls='-'):
-        src_x = round(src.params['position'][0], 2)
-        src_y = round(src.params['position'][1], 2)
-        dst_x = round(dst.params['position'][0], 2)
-        dst_y = round(dst.params['position'][1], 2)
+        src_x = round(src.position[0], 2)
+        src_y = round(src.position[1], 2)
+        dst_x = round(dst.position[0], 2)
+        dst_y = round(dst.position[1], 2)
         line = cls.line2d([src_x, dst_x],
                           [src_y, dst_y], 'b', ls=ls)
         conn_ = src.name + '-' + dst.name
@@ -358,6 +365,7 @@ class plotGraph(object):
                                     kwargs['max_x'], kwargs['max_y'])
             plot2d.plotGraph(kwargs['nodes'], kwargs['conn'])
         else:
+            plot3d.plotted = True
             plot3d.instantiateGraph(kwargs['min_x'], kwargs['min_y'],
                                     kwargs['min_z'], kwargs['max_x'],
                                     kwargs['max_y'], kwargs['max_z'])

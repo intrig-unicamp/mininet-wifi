@@ -3,9 +3,6 @@
 """This example creates a simple network topology in which
    stations are equipped with batteries"""
 
-import sys
-
-from mininet.node import Controller
 from mininet.log import setLogLevel, info
 from mn_wifi.cli import CLI_wifi
 from mn_wifi.net import Mininet_wifi
