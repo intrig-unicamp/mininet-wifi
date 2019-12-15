@@ -44,6 +44,7 @@ from mn_wifi.module import module
 from mn_wifi.propagationModels import propagationModel
 from mn_wifi.vanet import vanet
 from mn_wifi.sixLoWPAN.net import Mininet_IoT
+from mn_wifi.sixLoWPAN.node import OVSSensor, Node_6lowpan
 from mn_wifi.sixLoWPAN.link import sixLoWPAN
 from mn_wifi.util import ipAdd6, netParse6
 
@@ -57,9 +58,10 @@ class Mininet_wifi(Mininet):
 
     def __init__(self, topo=None, switch=OVSKernelSwitch,
                  accessPoint=OVSKernelAP, host=Host, station=Station,
-                 car=Car, controller=DefaultController,
-                 link=TCWirelessLink, intf=Intf, build=True, xterms=False,
-                 cleanup=False, ipBase='10.0.0.0/8', ip6Base='2001:0:0:0:0:0:0:0/64',
+                 car=Car, sensor=Node_6lowpan, apsensor=OVSSensor,
+                 controller=DefaultController, link=TCWirelessLink, intf=Intf,
+                 build=True, xterms=False, cleanup=False,
+                 ipBase='10.0.0.0/8', ip6Base='2001:0:0:0:0:0:0:0/64',
                  inNamespace=False, autoSetMacs=False, autoStaticArp=False,
                  autoPinCpus=False, listenPort=None, waitConnected=False,
                  ssid="new-ssid", mode="g", channel=1, wmediumd_mode=snr, roads=0,
@@ -95,6 +97,8 @@ class Mininet_wifi(Mininet):
         self.station = station
         self.accessPoint = accessPoint
         self.car = car
+        self.sensor = sensor
+        self.apsensor = apsensor
         self.controller = controller
         self.link = link
         self.intf = intf
@@ -131,6 +135,7 @@ class Mininet_wifi(Mininet):
         self.switches = []
         self.stations = []
         self.sensors = []
+        self.apsensors = []
         self.terms = []  # list of spawned xterm processes
         self.driver = driver
         self.autoAssociation = autoAssociation  # does not include mobility
@@ -251,7 +256,7 @@ class Mininet_wifi(Mininet):
            returns: True if all switches are connected"""
         info('*** Waiting for switches/aps to connect\n')
         time = 0
-        L2nodes = self.switches + self.aps
+        L2nodes = self.switches + self.aps + self.apsensors
         remaining = list(L2nodes)
         while True:
             for switch in tuple(remaining):
@@ -358,7 +363,15 @@ class Mininet_wifi(Mininet):
         return sta
 
     def addSensor(self, name, cls=None, **params):
+        if not cls:
+            cls = self.sensor
         node = Mininet_IoT.addSensor(name, cls, **params)
+        return node
+
+    def addAPSensor(self, name, cls=None, **params):
+        if not cls:
+            cls = self.apsensor
+        node = Mininet_IoT.addAPSensor(name, cls, **params)
         return node
 
     def addCar(self, name, cls=None, **params):
@@ -447,7 +460,6 @@ class Mininet_wifi(Mininet):
         # Do this in one line in case we're messing with the root namespace
         node.cmd('ip route add', params)
 
-
     def addNAT(self, name='nat0', connect=True, inNamespace=False,
                linkTo=None, **params):
         """Add a NAT to the Mininet network
@@ -462,7 +474,7 @@ class Mininet_wifi(Mininet):
         if connect:
             if not isinstance(connect, Node):
                 if linkTo:
-                    nodes = self.switches + self.aps
+                    nodes = self.switches + self.aps + self.apsensors
                     for node in nodes:
                         if linkTo == node.name:
                             connect = node
@@ -473,7 +485,7 @@ class Mininet_wifi(Mininet):
             self.addLink(nat, connect)
             # Set the default route on stations
             natIP = nat.params['ip'].split('/')[0]
-            nodes = self.stations + self.hosts + self.cars
+            nodes = self.stations + self.hosts + self.cars + self.sensors
             if 'net' in params:
                 for node in nodes:
                     if node.inNamespace:
@@ -481,7 +493,10 @@ class Mininet_wifi(Mininet):
             else:
                 for node in nodes:
                     if node.inNamespace:
-                        node.setDefaultRoute('via %s' % natIP)
+                        if isinstance(node, self.sensor) or isinstance(node, self.apsensor):
+                            node.setDefault6Route('via %s' % natIP)
+                        else:
+                            node.setDefaultRoute('via %s' % natIP)
         return nat
 
     # BL: We now have four ways to look up nodes
@@ -508,14 +523,16 @@ class Mininet_wifi(Mininet):
     def __iter__(self):
         "return iterator over node names"
         for node in chain(self.hosts, self.switches, self.controllers,
-                          self.stations, self.cars, self.aps, self.sensors):
+                          self.stations, self.cars, self.aps, self.sensors,
+                          self.apsensors):
             yield node.name
 
     def __len__(self):
         "returns number of nodes in net"
         return (len(self.hosts) + len(self.switches) +
                 len(self.controllers) + len(self.stations) +
-                len(self.cars) + len(self.aps) + len(self.sensors))
+                len(self.cars) + len(self.aps) + len(self.sensors) +
+                len(self.apsensors))
 
     def __contains__(self, item):
         "returns True if net contains named node"
@@ -877,6 +894,7 @@ class Mininet_wifi(Mininet):
         self.terms += makeTerms(self.stations, 'station')
         self.terms += makeTerms(self.aps, 'ap')
         self.terms += makeTerms(self.sensors, 'sensor')
+        self.terms += makeTerms(self.apsensors, 'apsensor')
 
     def stopXterms(self):
         "Kill each xterm."
@@ -909,7 +927,7 @@ class Mininet_wifi(Mininet):
         info('\n')
 
         info('*** Starting switches and/or access points\n')
-        nodesL2 = self.switches + self.aps
+        nodesL2 = self.switches + self.aps + self.apsensors
         for nodeL2 in nodesL2:
             info(nodeL2.name + ' ')
             nodeL2.start(self.controllers)
@@ -951,7 +969,7 @@ class Mininet_wifi(Mininet):
         info('\n')
         info('*** Stopping switches/access points\n')
         stopped = {}
-        nodesL2 = self.switches + self.aps
+        nodesL2 = self.switches + self.aps + self.apsensors
         if py_version_info < (3, 0):
             for swclass, switches in groupby(
                     sorted(nodesL2, key=type), type):
@@ -1298,7 +1316,8 @@ class Mininet_wifi(Mininet):
         :params src: source node
         :params dst: destination node
         :params nodes: list of nodes"""
-        nodes = self.stations + self.cars + self.aps
+        nodes = self.stations + self.cars + self.aps + \
+                self.sensors + self.apsensors
         try:
             for host1 in nodes:
                 if src == str(host1):
@@ -1426,9 +1445,13 @@ class Mininet_wifi(Mininet):
                         intf.configureMacAddr()
 
     def configure6LowPANLink(self):
-        for sensor in self.sensors:
+        sensors = self.sensors + self.apsensors
+        for sensor in sensors:
             for wpan in range(0, len(sensor.params['wpan'])):
-                sixLoWPAN(sensor, wpan)
+                port = 0
+                if isinstance(sensor, OVSSensor):
+                    port = 1
+                sixLoWPAN(sensor, wpan, port=port)
                 #managed(node, wlan)
 
     def configIFB(self):
@@ -1597,8 +1620,9 @@ class Mininet_wifi(Mininet):
             module.load_ifb(nradios)
 
         if Mininet_IoT.nwpans:
-            self.sensors = Mininet_IoT.init_module(iot_module=self.iot_module)
-            self.addSensors(self.sensors)
+            self.sensors, self.apsensors = Mininet_IoT.init_module(iot_module=self.iot_module)
+            sensors = self.sensors + self.apsensors
+            self.addSensors(sensors)
             self.configure6LowPANLink()
 
         self.configureWirelessLink()

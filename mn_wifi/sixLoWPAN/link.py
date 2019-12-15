@@ -5,7 +5,7 @@ from sys import version_info as py_version_info
 from mininet.util import BaseString
 
 
-class IntfSixLoWPAN( object ):
+class IntfSixLoWPAN(object):
 
     "Basic interface object that can configure itself."
 
@@ -27,7 +27,7 @@ class IntfSixLoWPAN( object ):
             self.ip = '127.0.0.1'
             self.prefixLen = 8
 
-        node.addWIntf( self, port=port )
+        node.addWIntf(self, port=port)
 
         # Save params for future reference
         self.params = params
@@ -233,14 +233,14 @@ class IntfSixLoWPAN( object ):
 
 class sixLoWPAN(IntfSixLoWPAN):
 
-    def __init__(self, node, port=None, addr=None,
-                 cls=IntfSixLoWPAN, wpan=0, **params):
+    def __init__(self, node, wpan, port=None, addr=None,
+                 cls=IntfSixLoWPAN, **params):
         """Create 6LoWPAN link to another node.
            node: node
            intf: default interface class/constructor"""
         self.name = '%s-pan%s' % (node.name, wpan)
         self.node = node
-        node.addWAttr(self, port=port)
+        node.addWAttr(self, port=wpan)
         intf = node.wintfs[wpan]
         self.panid = '0xbeef'
         self.set_attr(node, wpan)
@@ -255,9 +255,9 @@ class sixLoWPAN(IntfSixLoWPAN):
         if params is None:
             params = {}
         if port is not None:
-            params[ 'port' ] = port
+            params['port'] = port
         if 'port' not in params:
-            params[ 'port' ] = node.newPort()
+            params['port'] = node.newPort()
         if not self.name:
             ifacename = 'pan%s' % wpan
             self.name = self.wpanName(node, ifacename, node.newPort())
