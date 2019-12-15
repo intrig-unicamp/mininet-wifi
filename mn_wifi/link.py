@@ -110,14 +110,14 @@ class IntfWireless(object):
             w_server.update_txpower(w_txpower(self.wmIface, int(txpower)))
 
     def getCustomRate(self):
-        modes = ['a', 'b', 'g', 'n', 'ac']
-        rates = [11, 3, 11, 600, 1000]
+        modes = ['a', 'b', 'g', 'n', 'ac', 'ax']
+        rates = [11, 3, 11, 600, 1000, 1400]
         rate = rates[modes.index(self.mode)]
         return rate
 
     def getRate(self):
-        modes = ['a', 'b', 'g', 'n', 'ac']
-        rates = [54, 11, 54, 300, 600]
+        modes = ['a', 'b', 'g', 'n', 'ac', 'ax']
+        rates = [54, 11, 54, 300, 600, 900]
         rate = rates[modes.index(self.mode)]
         return rate
 
