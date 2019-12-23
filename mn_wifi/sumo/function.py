@@ -1,4 +1,4 @@
-import traci
+from mn_wifi.sumo import traci
 
 
 def intersect(a, b):

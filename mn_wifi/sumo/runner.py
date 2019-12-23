@@ -1,18 +1,14 @@
 import sys
 import os
 import threading
-
 from threading import Thread as thread
-from mn_wifi.mobility import mobility
+
 from mininet.log import info
-from sys import version_info as py_version_info
-
-
-if py_version_info < (3, 0):
-    from sumolib.sumulib import checkBinary
-    from traci import trace
-    from function import initialisation, noChangeSaveTimeAndSpeed,\
-        changeSaveTimeAndSpeed, reroutage
+from mn_wifi.mobility import mobility
+from mn_wifi.sumo.sumolib.sumulib import checkBinary
+from mn_wifi.sumo.traci import trace
+from mn_wifi.sumo.function import initialisation, noChangeSaveTimeAndSpeed,\
+    changeSaveTimeAndSpeed, reroutage
 
 
 class sumo(object):
