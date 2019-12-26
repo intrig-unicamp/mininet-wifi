@@ -812,10 +812,10 @@ class AccessPoint(Node_wifi):
                     self.APConfigFile(cmd, ap, phy)
 
                     for wlan, intf in enumerate(ap.wintfs.values()):
-                        self.setIPMAC(intf)
+                        if '-' in intf.name:
+                            self.setIPMAC(intf)
 
                         if 'phywlan' in intf.node.params:
-                            intf = intf.node.params['phywlan']
                             intf.node.params.pop('phywlan', None)
 
                         if not wmediumd_mode.mode:
@@ -1072,8 +1072,9 @@ class AccessPoint(Node_wifi):
         TCLinkWirelessAP(node)
         master(node, wlan, port=wlan)
         if 'phywlan' in node.params:
-            TCLinkWirelessAP(node, intfName1=node.params['phywlan'])
-            master(node)
+            TCLinkWirelessAP(node, intfName=node.params['phywlan'])
+            node.params['wlan'].append(node.params['phywlan'])
+            master(node, wlan+1)
 
     def checkNetworkManager(self, intf):
         "add mac address into /etc/NetworkManager/NetworkManager.conf"

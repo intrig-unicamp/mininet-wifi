@@ -690,9 +690,10 @@ class WirelessLinkAP(object):
         if port is not None:
             params[ 'port' ] = port
 
-        ifacename = 'wlan'
         params['port'] = node.newPort()
-        intfName = self.wlanName(node, ifacename, params['port'])
+        if not intfName:
+            ifacename = 'wlan'
+            intfName = self.wlanName(node, ifacename, params['port'])
         intf1 = cls(name=intfName, node=node,
                     link=self, mac = addr, ** params)
 
