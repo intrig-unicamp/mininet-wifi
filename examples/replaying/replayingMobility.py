@@ -63,23 +63,23 @@ def topology():
     info("*** Stopping network\n")
     net.stop()
 
-def getTrace(sta, file_, net):
 
+def getTrace(sta, file_, net):
     net.isReplaying = True
     file_ = open(file_, 'r')
     raw_data = file_.readlines()
     file_.close()
 
-    sta.pos = []
-    pos = '-1000,0,0'
-    sta.position = [float(x) for x in pos.split(',')]
+    sta.p = []
+    pos = (-1000, 0, 0)
+    sta.position = pos
 
     for data in raw_data:
         line = data.split()
         x = line[0]  # First Column
         y = line[1]  # Second Column
         pos = float(x), float(y), 0.0
-        sta.pos.append(pos)
+        sta.p.append(pos)
 
 
 if __name__ == '__main__':
