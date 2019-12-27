@@ -29,7 +29,7 @@ from mn_wifi.node import AP
 today = date.today()
 style.use('fivethirtyeight')
 start = time.time()
-util_dir = str(os.path.realpath(__file__))[:-21] + 'util/m'
+util_dir = str(os.path.realpath(__file__))[:-21] + '/util/m'
 
 
 class telemetry(object):
@@ -90,11 +90,11 @@ class telemetry(object):
         for phy in phys:
             try:
                 ifaces_ = subprocess.check_output(cmd.format(phy), stderr=subprocess.PIPE,
-                                                  shell=True).split("\n")
+                                                  shell=True).decode().split("\n")
             except:
                 node = inNamespaceNodes[j]
                 ifaces_ = subprocess.check_output('%s %s %s' % (util_dir, node, cmd.format(phy)),
-                                                  shell=True).split("\n")
+                                                  shell=True).decode().split("\n")
             ifaces_.pop()
             if nodes[j] not in ifaces:
                 ifaces[nodes[j]] = []
@@ -116,12 +116,12 @@ class telemetry(object):
         for node in nodes:
             if isinstance(node, AP) and not isAP:
                 phys += subprocess.check_output(cmd,
-                                                shell=True).split("\n")
+                                                shell=True).decode().split("\n")
                 isAP = True
             else:
                 if not isinstance(node, AP):
                     phys += subprocess.check_output('%s %s %s' % (util_dir, node, cmd),
-                                                    shell=True).split("\n")
+                                                    shell=True).decode().split("\n")
         phy_list = []
         phys = sorted(phys)
         for phy in phys:
@@ -131,10 +131,12 @@ class telemetry(object):
         ifaces = cls.get_ifaces(nodes, inNamespaceNodes, phy_list)
         return phy_list, ifaces
 
+
 def get_position(node, filename):
     x = node.position[0]
     y = node.position[1]
     os.system("echo '%s,%s' >> %s" % (x, y, filename.format(node)))
+
 
 def get_rssi(node, iface, time, filename):
     if isinstance(node, AP):
@@ -142,7 +144,7 @@ def get_rssi(node, iface, time, filename):
     else:
         cmd = "{} {} iw dev {} link | grep signal | tr -d signal: | awk '{{print $1 $3}}'"
         rssi = subprocess.check_output('%s' % (cmd.format(util_dir, node, iface)),
-                                       shell=True).split("\n")
+                                       shell=True).decode().split("\n")
         if not rssi[0]:
             rssi = 0
         else:
@@ -211,14 +213,14 @@ class parseData(object):
                             ("%s" % self.dir).format(self.phys[arr],
                                                      self.ifaces[node][wlan],
                                                      self.data_type),
-                            shell=True).split("\n")
+                            shell=True).decode().split("\n")
                     else:
                         tx_bytes = subprocess.check_output(
                             '%s %s ' % (util_dir, node) +
                             ('%s' % self.dir).format(self.phys[arr],
                                                      self.ifaces[node][wlan],
                                                      self.data_type),
-                            shell=True).split("\n")
+                            shell=True).decode().split("\n")
 
                 if self.data_type == 'rssi':
                     get_rssi(node, self.ifaces[node][wlan], now, self.filename)
@@ -228,10 +230,10 @@ class parseData(object):
                     get_values_from_statistics(tx_bytes, now, node, self.filename)
 
                 graph_data = open('%s' % (self.filename.format(node)), 'r').read()
-                lines = graph_data.split('\n')
+                lines = graph_data.decode().split('\n')
                 for line in lines:
                     if len(line) > 1:
-                        x, y = line.split(',')
+                        x, y = line.decode().split(',')
                         nodes_x[node].append(float(x))
                         nodes_y[node].append(float(y))
 
