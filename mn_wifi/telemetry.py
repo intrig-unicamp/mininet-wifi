@@ -230,10 +230,10 @@ class parseData(object):
                     get_values_from_statistics(tx_bytes, now, node, self.filename)
 
                 graph_data = open('%s' % (self.filename.format(node)), 'r').read()
-                lines = graph_data.decode().split('\n')
+                lines = graph_data.split('\n')
                 for line in lines:
                     if len(line) > 1:
-                        x, y = line.decode().split(',')
+                        x, y = line.split(',')
                         nodes_x[node].append(float(x))
                         nodes_y[node].append(float(y))
 
