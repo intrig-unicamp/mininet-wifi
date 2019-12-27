@@ -3152,7 +3152,7 @@ class MiniEdit( Frame ):
                             elif 'wifiDirect' in linkopts['connection']:
                                 f.write(", cls=wifiDirectLink")
                             intf = None
-                            print linkopts
+
                             if 'src' in linkopts and nodes.index(node) == 0:
                                 intf = linkopts['src']
                             elif 'dest' in linkopts and nodes.index(node) == 1:
