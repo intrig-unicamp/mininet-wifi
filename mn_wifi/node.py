@@ -312,7 +312,7 @@ class Node_wifi(Node):
         "Force association to given AP"
         wlan = self.get_wlan(intf)
         intf = self.wintfs[wlan]
-        ap_intf = ap.wintfs[wlan]
+        ap_intf = ap.wintfs[0]
         if hasattr(self, 'position') and hasattr(ap, 'position'):
             dist = self.get_distance_to(ap)
             if dist <= ap_intf.range:
