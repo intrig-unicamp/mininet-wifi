@@ -216,12 +216,19 @@ class Mininet_wifi(Mininet):
                     if len(data) < 4:
                         data = 'usage: set.node.method.value'
                     else:
-                        if hasattr(node, data[2]):
-                            method_to_call = getattr(node, data[2])
-                            method_to_call(data[3])
+                        if data[2] == 'sumo':
+                            mod = __import__('mn_wifi.sumo.function', fromlist=[data[3]])
+                            method_to_call = getattr(mod, data[3])
+                            node = self.getNodeByName(data[1])
+                            node.sumo = method_to_call
                             data = 'command accepted!'
                         else:
-                            data = 'unrecognized method!'
+                            if hasattr(node, data[2]):
+                                method_to_call = getattr(node, data[2])
+                                method_to_call(data[3])
+                                data = 'command accepted!'
+                            else:
+                                data = 'unrecognized method!'
                 elif data[0] == 'get':
                     node = self.getNodeByName(data[1])
                     if len(data) < 3:

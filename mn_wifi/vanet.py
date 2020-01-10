@@ -15,8 +15,7 @@ import warnings
 from threading import Thread as thread
 from random import randrange
 import matplotlib.cbook
-from pylab import ginput as ginp
-from pylab import math, cos, sin, np
+from pylab import ginput as ginp, math, cos, sin, np
 
 from mn_wifi.plot import plot2d
 from mn_wifi.node import AP
