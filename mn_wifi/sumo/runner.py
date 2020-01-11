@@ -28,13 +28,13 @@ class sumo(object):
 
     def configureApp(self, cars, aps, config_file='map.sumocfg',
                      clients=1, port=8813):
-        #try:
-        mobility.cars = cars
-        mobility.aps = aps
-        mobility.mobileNodes = cars
-        self.start(cars, config_file, clients, port)
-        #except:
-         #   info("*** Connection with SUMO has been closed\n")
+        try:
+            mobility.cars = cars
+            mobility.aps = aps
+            mobility.mobileNodes = cars
+            self.start(cars, config_file, clients, port)
+        except:
+            info("*** Connection with SUMO has been closed\n")
 
     def setWifiParameters(self):
         thread = threading.Thread(name='wifiParameters', target=mobility.parameters)
@@ -42,8 +42,7 @@ class sumo(object):
 
     def start(self, cars, config_file, clients, port):
         sumoBinary = checkBinary('sumo-gui')
-        myfile = (os.path.join( os.path.dirname(__file__), "data/%s" % config_file))
-        sumoConfig = myfile
+        sumoConfig = (os.path.join( os.path.dirname(__file__), "data/%s" % config_file))
 
         if not trace.isEmbedded():
             os.system(' %s -c %s --num-clients %s '
@@ -58,7 +57,6 @@ class sumo(object):
         visited = []
         veh_list = []
         visited_list = []
-        veh_interact_list = []
         travel_time_list = []
         self.setWifiParameters()
 
@@ -96,39 +94,18 @@ class sumo(object):
                 visited_list = change[3]
                 travel_time_list = change[4]
 
-            for vehID2 in vehCmds.getIDList():
-                for vehID1 in vehCmds.getIDList():
-                    road1 = vehCmds.getRoadID(vehID1)
-                    road2 = vehCmds.getRoadID(vehID2)
-                    opposite_road1 = '-' + road1
-                    opposite_road2 = '-' + road2
-                    if not((vehID2, vehID1) in veh_interact_list):
-                        x1 = vehCmds.getPosition(vehID1)[0]
-                        y1 = vehCmds.getPosition(vehID1)[1]
-                        x2 = vehCmds.getPosition(vehID2)[0]
-                        y2 = vehCmds.getPosition(vehID2)[1]
+            for vehID1 in vehCmds.getIDList():
+                x1 = vehCmds.getPosition(vehID1)[0]
+                y1 = vehCmds.getPosition(vehID1)[1]
 
-                        if int(vehID1) < len(cars):
-                            cars[int(vehID1)].position = x1, y1, 0
-                            cars[int(vehID1)].set_pos_wmediumd(cars[int(vehID1)].position)
+                if int(vehID1) < len(cars):
+                    cars[int(vehID1)].position = x1, y1, 0
+                    cars[int(vehID1)].set_pos_wmediumd(cars[int(vehID1)].position)
 
-                            if hasattr(cars[int(vehID1)], 'sumo'):
-                                if cars[int(vehID1)].sumo:
-                                    cars[int(vehID1)].sumo(vehID1, vehCmds)
-                                    del cars[int(vehID1)].sumo
-
-                        if abs(x1-x2) > 0 and abs(x1-x2) < 20 \
-                                and (road1 == opposite_road2 or road2 == opposite_road1):
-                            veh_interact_list.append((vehID2, vehID1))
-                            route2 = vehCmds.getRoute(vehID2)
-                            route1 = vehCmds.getRoute(vehID1)
-
-                            index2 = route2.index(vehCmds.getRoadID(vehID2))
-                            index1 = route1.index(vehCmds.getRoadID(vehID1))
-                            visited_edge_2 = visited_list[veh_list.index(vehID2)][0:len(
-                                visited_list[veh_list.index(vehID2)])-1]
-                            reroutage(visited_edge_2, travel_time_list,
-                                      vehID1, vehID2, veh_list, vehCmds)
+                    if hasattr(cars[int(vehID1)], 'sumo'):
+                        if cars[int(vehID1)].sumo:
+                            cars[int(vehID1)].sumo(vehID1, vehCmds)
+                            del cars[int(vehID1)].sumo
             step += 1
         trace.close()
         sys.stdout.flush()
