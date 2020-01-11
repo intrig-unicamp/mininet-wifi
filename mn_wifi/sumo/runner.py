@@ -6,7 +6,7 @@ from threading import Thread as thread
 from mininet.log import info
 from mn_wifi.mobility import mobility
 from mn_wifi.sumo.sumolib.sumolib import checkBinary
-from mn_wifi.sumo.traci import trace
+from mn_wifi.sumo.traci import trace, _vehicle
 
 
 class sumo(object):
@@ -40,7 +40,7 @@ class sumo(object):
 
     def start(self, cars, config_file, clients, port):
         sumoBinary = checkBinary('sumo-gui')
-        sumoConfig = os.path.join( os.path.dirname(__file__), "data/%s" % config_file)
+        sumoConfig = os.path.join(os.path.dirname(__file__), "data/%s" % config_file)
 
         if not trace.isEmbedded():
             os.system(' %s -c %s --num-clients %s '
@@ -52,7 +52,7 @@ class sumo(object):
         step = 0
         self.setWifiParameters()
 
-        vehCmds = trace._vehicle.VehicleDomain()
+        vehCmds = _vehicle.VehicleDomain()
         vehCmds._connection = trace.getConnection(label="default")
         sumo.vehCmds = vehCmds
 
