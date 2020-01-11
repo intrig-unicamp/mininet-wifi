@@ -23,13 +23,11 @@ import subprocess
 import warnings
 import abc
 
-from mn_wifi.sumo.sumolib import sumulib  # noqa
+from mn_wifi.sumo.sumolib import sumolib  # noqa
 
 from .domain import _defaultDomains
 from .connection import Connection, _embedded
 from .exceptions import FatalTraCIError, TraCIException
-from . import _lane, _vehicle, _vehicletype, _route
-from . import _poi, _polygon, _junction, _edge, _simulation, _gui
 
 _connections = {}
 _stepListeners = []
@@ -76,7 +74,7 @@ def start(cmd, port=None, numRetries=10, label="default"):
     store it under the given label. This method is not thread-safe.
     """
     if port is None:
-        port = sumulib.miscutils.getFreeSocketPort()
+        port = sumolib.miscutils.getFreeSocketPort()
     sumoProcess = subprocess.Popen(cmd + ["--remote-port", str(port)])
     _connections[label] = connect(port, numRetries, "localhost", sumoProcess)
     switch(label)

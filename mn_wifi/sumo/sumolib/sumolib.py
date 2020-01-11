@@ -60,9 +60,11 @@ def pullOptions(executable, optParse, groups=None, options=None):
     output = subprocess.Popen([executable, "--save-template", "-"], stdout=subprocess.PIPE).communicate()[0]
     parseString(output, ConfigurationReader(optParse, groups, options))
 
+
 def saveConfiguration(executable, options, filename):
     options.save_configuration = filename
     call(executable, options)
+
 
 def call(executable, options):
     optParser = OptionParser()
@@ -77,10 +79,12 @@ def call(executable, options):
                 cmd.append(str(value))
     return subprocess.call(cmd)
 
+
 def exeExists(binary):
     if os.name == "nt" and binary[-4:] != ".exe":
         binary += ".exe"
     return os.path.exists(binary)
+
 
 def checkBinary(name, bindir=None):
     """Checks for the given binary in the places, defined by the environment variables SUMO_HOME and SUMO_BINDIR."""
@@ -108,6 +112,7 @@ def checkBinary(name, bindir=None):
     if exeExists(binary):
         return binary
     return name
+
 
 class _Running:
   """
