@@ -270,6 +270,15 @@ class parseData(object):
                     node = self.nodes[id]
                     ax.plot(nodes_x[node], nodes_y[node], color=self.colors[id])
 
+    def setCircleColor(self, node):
+        if 'color' in node.params:
+            node.circle = node.params['color']
+        else:
+            if isinstance(node, AP):
+                node.circle = 'b'
+            else:
+                node.circle = 'g'
+
     def start(self, nodes, fig, axes, single, data_type):
         self.nodes = nodes
         self.fig = fig
@@ -281,10 +290,10 @@ class parseData(object):
         inNamespaceNodes = []
         for node in nodes:
             self.colors.append(numpy.random.rand(3,))
-            node.circle = 'b'
+            self.setCircleColor(node)
             if not isinstance(node, AP):
                 inNamespaceNodes.append(node)
-                node.circle = 'g'
+                self.setCircleColor(node)
 
         self.phys, self.ifaces = telemetry.get_phys(nodes, inNamespaceNodes)
         for node in nodes:
