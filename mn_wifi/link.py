@@ -3,6 +3,7 @@
 
 import os
 import re
+import glob
 import subprocess
 from time import sleep
 from sys import version_info as py_version_info
@@ -81,8 +82,8 @@ class IntfWireless(object):
         wpasup_flags = ''
         if 'wpasup_flags' in self.node.params:
             wpasup_flags = self.node.params['wpasup_flags']
-        cmd = ('wpa_supplicant -B -Dnl80211 -P {} -i {} -c {}.staconf {}'.
-               format(pidfile, self.name, self.name, wpasup_flags))
+        cmd = ('wpa_supplicant -B -Dnl80211 -P {} -i {} -c {}_{}.staconf {}'.
+               format(pidfile, self.name, self.name, self.id, wpasup_flags))
         return cmd
 
     def wpa_cmd(self):
@@ -1605,18 +1606,20 @@ class Association(IntfWireless):
         intf.channel = 0
 
     @classmethod
+    def check_if_wpafile_exist(cls, intf):
+        file = '%s_%s.staconf' % (intf.name, intf.id)
+        return glob.glob(file)
+
+    @classmethod
     def associate_infra(cls, intf, ap_intf):
         associated = 0
         if ap_intf.ieee80211r and (not intf.encrypt or 'wpa' in intf.encrypt):
             if not intf.associatedTo:
-                cmd = ('ps -aux | grep %s.staconf | wc -l' % intf.name)
-                address = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
-                (out, err) = address.communicate()
-                np = int(str(out).split('\n')[0])
-                if np == 0 or np == 2:
-                    cls.wpa(intf, ap_intf)
-                else:
+                wpa_file_exists = cls.check_if_wpafile_exist(intf)
+                if wpa_file_exists:
                     cls.handover_ieee80211r(intf, ap_intf)
+                else:
+                    cls.wpa(intf, ap_intf)
             else:
                 cls.handover_ieee80211r(intf, ap_intf)
             associated = 1
@@ -1654,7 +1657,7 @@ class Association(IntfWireless):
         else:
             if 'wpasup_globals' in intf.node.params:
                 cmd += intf.node.params['wpasup_globals'] + '\n'
-            cmd = cmd + 'network={\n'
+            cmd += 'network={\n'
 
             if intf.config:
                 config = intf.config
@@ -1665,6 +1668,7 @@ class Association(IntfWireless):
                         cmd += "   " + conf + "\n"
             else:
                 cmd += '   ssid=\"%s\"\n' % ap_intf.ssid
+
                 if not ap_intf.authmode:
                     cmd += '   psk=\"%s\"\n' % passwd
                     encrypt = ap_intf.encrypt
@@ -1696,7 +1700,7 @@ class Association(IntfWireless):
                     cmd += '   phase2=\"autheap=MSCHAPV2\"\n'
             cmd += '}'
 
-        fileName = '%s.staconf' % intf.name
+        fileName = '%s_%s.staconf' % (intf.name, intf.id)
         os.system('echo \'%s\' > %s' % (cmd, fileName))
 
     @classmethod

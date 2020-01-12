@@ -4,6 +4,7 @@
 from threading import Thread as thread
 from time import sleep, time
 import os
+import glob
 import numpy as np
 from numpy.random import rand
 
@@ -115,14 +116,15 @@ class mobility(object):
 
     @classmethod
     def check_if_wpafile_exist(cls, intf):
-        file = '/var/run/wpa_supplicant/%s >/dev/null 2>&1' % intf.name
-        if os.path.exists(file):
-            os.system(file)
+        file = '%s_%s.staconf' % (intf.name, intf.id)
+        if glob.glob(file):
+            cls.remove_staconf(intf)
 
     @classmethod
     def remove_assoc_from_params(cls, intf, ap_intf):
         if intf.node in ap_intf.associatedStations:
             ap_intf.associatedStations.remove(intf.node)
+            intf.associatedTo = None
         if ap_intf.node in intf.apsInRange:
             intf.apsInRange.pop(ap_intf.node, None)
             ap_intf.stationsInRange.pop(intf.node, None)
@@ -132,8 +134,7 @@ class mobility(object):
         "When ap is out of range"
         if ap_intf.node == intf.associatedTo:
             if ap_intf.encrypt and not ap_intf.ieee80211r:
-                if ap_intf.encrypt == 'wpa':
-                    cls.remove_staconf(intf)
+                if ap_intf.encrypt == 'wpa' and not ap_intf.ieee80211r:
                     cls.kill_wpasupprocess(intf)
                     cls.check_if_wpafile_exist(intf)
             elif wmediumd_mode.mode == w_cst.SNR_MODE:
@@ -455,6 +456,8 @@ class tracked(mobility):
                                     plot2d.updateCircleRadius(node)
                         plot.pause()
                         i += 0.1
+                while mobility.pause_simulation:
+                    pass
 
     def move_node(self, node):
         x = round(node.position[0], 2) + round(node.moveFac[0], 2)
