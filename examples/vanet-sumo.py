@@ -29,26 +29,26 @@ def topology():
 
     e1 = net.addAccessPoint('e1', ssid='vanet-ssid', mac='00:00:00:11:00:01',
                             mode='g', channel='1', passwd='123456789a',
-                            encrypt='wpa2', position='2600,3400,0')
+                            encrypt='wpa2', position='2600,3500,0')
     e2 = net.addAccessPoint('e2', ssid='vanet-ssid', mac='00:00:00:11:00:02',
                             mode='g', channel='6', passwd='123456789a',
-                            encrypt='wpa2', position='2800,3400,0')
+                            encrypt='wpa2', position='2800,3500,0')
     e3 = net.addAccessPoint('e3', ssid='vanet-ssid', mac='00:00:00:11:00:03',
                             mode='g', channel='11', passwd='123456789a',
-                            encrypt='wpa2', position='3000,3400,0')
+                            encrypt='wpa2', position='3000,3500,0')
     e4 = net.addAccessPoint('e4', ssid='vanet-ssid', mac='00:00:00:11:00:04',
                             mode='g', channel='1', passwd='123456789a',
-                            encrypt='wpa2', position='2600,3200,0')
+                            encrypt='wpa2', position='2600,3300,0')
     e5 = net.addAccessPoint('e5', ssid='vanet-ssid', mac='00:00:00:11:00:05',
                             mode='g', channel='6', passwd='123456789a',
-                            encrypt='wpa2', position='2800,3200,0')
+                            encrypt='wpa2', position='2800,3300,0')
     e6 = net.addAccessPoint('e6', ssid='vanet-ssid', mac='00:00:00:11:00:06',
                             mode='g', channel='11', passwd='123456789a',
-                            encrypt='wpa2', position='3000,3200,0')
+                            encrypt='wpa2', position='3000,3300,0')
     c1 = net.addController('c1')
 
     info("*** Configuring Propagation Model\n")
-    net.setPropagationModel(model="logDistance", exp=3.5)
+    net.setPropagationModel(model="logDistance", exp=2.8)
 
     info("*** Configuring wifi nodes\n")
     net.configureWifiNodes()
@@ -84,8 +84,8 @@ def topology():
     # Track the position of the nodes
     #nodes = net.cars + net.aps
     #net.telemetry(nodes=nodes, data_type='position',
-    #              min_x=2500, min_y=2500,
-    #              max_x=4000, max_y=4000)
+    #              min_x=2200, min_y=2800,
+    #              max_x=3200, max_y=3900)
 
     info("*** Running CLI\n")
     CLI_wifi(net)
