@@ -46,7 +46,6 @@ def onboard_device(configurator,configurator_clicmd, sta, sta_clicmd, mac_addr, 
     sta.cmd(sta_clicmd + " dpp_listen " + str(2412) )
     time.sleep(3)
 
-
     info("Configurator:  Enter the sta QR Code in the Configurator.\n")
     bootstrapping_info_id = configurator.cmdPrint(configurator_clicmd + " dpp_qr_code " + bootstrapping_uri).split("\n")[1]
     info("Configurator: Send provisioning request to enrollee. (conf is ap-dpp if enrollee is an AP. conf is sta-dpp if enrollee is a client). configurator_id = {} \n".format(dpp_configurator_id))
@@ -65,8 +64,6 @@ def onboard_device(configurator,configurator_clicmd, sta, sta_clicmd, mac_addr, 
     sta.cmd(sta_clicmd + " save_config")
     info("Enrollee:  reload the config file\n")
     sta.cmd(sta_clicmd + " reconfigure")
- 
-
 
 def topology():
     "Create a network."
@@ -97,16 +94,12 @@ def topology():
                              hostapd_flags='-dd > /tmp/hostapd.txt',
                              passwd=passwd, encrypt='wpa2',
                              failMode="standalone", datapath='user')
-
     
     # sta1 is the configurator
     sta1 = net.addStation('sta1', ssid=ssid, passwd=passwd, encrypt='wpa2', 
            wpasup_flags='-dd -f /tmp/debug1.txt',
            wpasup_globals='ctrl_interface=/var/run/wpa_supplicant1\n'
                           'ctrl_interface_group=0\n')
-
-   
-
 
     # sta2 is the enrolee.  Note that it does not have the 
     # PSK and it does not know the access point. 
@@ -123,9 +116,6 @@ def topology():
                            'dpp_config_processing=2'.format(cwd),
 
            encrypt='wpa2')
-
-
-
 
     info("*** Configuring wifi nodes\n")
     net.configureWifiNodes()
