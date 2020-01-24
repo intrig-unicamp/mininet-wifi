@@ -13,6 +13,7 @@ from os import path
 import subprocess
 import socket
 import sys
+import json
 
 import binascii
 
@@ -49,8 +50,16 @@ def onboard_device(configurator,configurator_clicmd, sta, sta_clicmd, mac_addr, 
     info("Configurator:  Enter the sta QR Code in the Configurator.\n")
     bootstrapping_info_id = configurator.cmdPrint(configurator_clicmd + " dpp_qr_code " + bootstrapping_uri).split("\n")[1]
     info("Configurator: Send provisioning request to enrollee. (conf is ap-dpp if enrollee is an AP. conf is sta-dpp if enrollee is a client). configurator_id = {} \n".format(dpp_configurator_id))
-    #result = configurator.cmd(configurator_clicmd + ' dpp_auth_init peer={} conf=sta-psk ssid={} psk={} configurator={} tcp_addr={} tcp_port=9090'.format(bootstrapping_info_id,ssid,passwd, dpp_configurator_id , "10.0.0.1"))
     result = configurator.cmd(configurator_clicmd + ' dpp_auth_init peer={} conf=sta-psk ssid={} psk={} configurator={} cacert={}'.format(bootstrapping_info_id,ssid,passwd, dpp_configurator_id ,cacertpath))
+    time.sleep(3)
+    result = configurator.cmd(configurator_clicmd + " dpp_config_status id=" + str(bootstrapping_info_id)).split("\n")[1]
+    print("dpp_config_status returned " + str(result))
+    jsonval = json.loads(result)
+    mud_url = jsonval["config_status"]["mud_url"]
+    idevid = jsonval["config_status"]["idevid"]
+    print("idevid "+ idevid)
+    print ("mud_url " + mud_url)
+	
 
     info("Enrollee: save the config file\n")
     sta.cmd(sta_clicmd + " save_config")
@@ -155,7 +164,7 @@ def topology():
     info("Configurator: add a configurator object\n")
     dpp_configurator_id = configurator.cmd( cli_cmd + ' dpp_configurator_add ').split('\n')[1]
     info("Configurator: self sign the configurator\n")
-    configurator.cmd( cli_cmd + " dpp_configurator_sign conf=sta-psk psk={} ssid={} configurator={}".format(psk,ssid,str(dpp_configurator_id)) )
+    configurator.cmdPrint( cli_cmd + " dpp_configurator_sign conf=sta-psk psk={} ssid={} configurator={}".format(psk,ssid,str(dpp_configurator_id)) )
 
         
 
