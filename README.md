@@ -42,7 +42,7 @@ I'm a beginner, I do not know Python and I would like to create a customized top
 For instructions about easier development check [this helper file](doc/dev_help.md).
 
 ## Pre-configured Virtual Machine    
-[Ubuntu 16.04 x64 :: Password: wifi](https://intrig.dca.fee.unicamp.br:8840/owncloud/index.php/s/UfEWT4banmdQuH3)      
+[Ubuntu 16.04 x64 :: Password: wifi](https://intrig.dca.fee.unicamp.br:8840/owncloud/index.php/s/1RS9FM5gWI43NDT)      
 user: wifi   
 pass: wifi   
    
