@@ -54,7 +54,6 @@ class sumo(object):
 
         vehCmds = _vehicle.VehicleDomain()
         vehCmds._connection = trace.getConnection(label="default")
-        sumo.vehCmds = vehCmds
 
         while True:
             trace.simulationStep()
