@@ -216,25 +216,18 @@ class Mininet_wifi(Mininet):
                     if len(data) < 4:
                         data = 'usage: set.node.method.value'
                     else:
-                        if data[2] == 'sumo':
-                            mod = __import__('mn_wifi.sumo.function', fromlist=[data[3]])
-                            method_to_call = getattr(mod, data[3])
-                            node = self.getNodeByName(data[1])
-                            node.sumo = method_to_call
+                        if hasattr(node, data[2]):
+                            method_to_call = getattr(node, data[2])
+                            method_to_call(data[3])
                             data = 'command accepted!'
                         else:
-                            if hasattr(node, data[2]):
-                                method_to_call = getattr(node, data[2])
-                                method_to_call(data[3])
-                                data = 'command accepted!'
-                            else:
-                                data = 'unrecognized method!'
+                            data = 'unrecognized method!'
                 elif data[0] == 'get':
                     node = self.getNodeByName(data[1])
                     if len(data) < 3:
                         data = 'usage: get.node.param'
                     else:
-                        data = node.params[data[2]]
+                        data = getattr(node, data[2])
                 else:
                     try:
                         cmd = ''
@@ -1674,17 +1667,6 @@ class Mininet_wifi(Mininet):
                             if isinstance(intf, adhoc):
                                 info('%s ' % node)
                                 sleep(1)
-                            # we need this cause wmediumd is struggling
-                            # with some associations e.g. wpa
-                            if self.wmediumd_mode == interference:
-                                sleep(0.1)
-                                pos_x = float(pos[0]) + 1
-                                pos = ('%s' % pos_x, '%s' % pos[1], '%s' % pos[2])
-                                node.set_pos_wmediumd(pos)
-                                sleep(0.1)
-                                pos_x = float(pos[0]) - 1
-                                pos = ('%s' % pos_x, '%s' % pos[1], '%s' % pos[2])
-                                node.set_pos_wmediumd(pos)
 
         mob.aps = self.aps
         nodes = self.stations + self.cars
@@ -1695,6 +1677,17 @@ class Mininet_wifi(Mininet):
                 else:
                     node.pos = (0, 0, 0)
                     mob.configLinks(node)
+                    # we need this cause wmediumd is struggling
+                    # with some associations e.g. wpa
+                    if self.wmediumd_mode == interference:
+                        sleep(0.1)
+                        pos_x = float(pos[0]) + 1
+                        pos = (pos_x, pos[1], pos[2])
+                        node.set_pos_wmediumd(pos)
+                        sleep(0.1)
+                        pos_x = float(pos[0]) - 1
+                        pos = (pos_x, pos[1], pos[2])
+                        node.set_pos_wmediumd(pos)
 
     @staticmethod
     def propagation_model(**kwargs):
