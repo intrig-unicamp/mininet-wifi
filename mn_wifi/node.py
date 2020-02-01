@@ -1003,7 +1003,7 @@ class AccessPoint(Node_wifi):
                             cmd += '\nr1kh=%s %s ' \
                                    '000102030405060708090a0b0c0d0e0f' \
                                    % (apref.wintfs[wlan].mac, apref.wintfs[wlan].mac)
-                        #cmd += ('\nrsn_preauth=1')
+                        cmd += '\nrsn_preauth=1'
                         cmd += '\npmk_r1_push=1'
                         cmd += '\nft_over_ds=1'
                         cmd += '\nft_psk_generate_local=1'
