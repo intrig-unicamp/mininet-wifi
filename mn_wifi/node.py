@@ -316,7 +316,10 @@ class Node_wifi(Node):
         if hasattr(self, 'position') and hasattr(ap, 'position'):
             dist = self.get_distance_to(ap)
             if dist <= ap_intf.range:
-                if intf.associatedTo != ap:
+                if intf.bgscan_threshold:
+                    Association.handover_ieee80211r(intf, ap_intf)
+                    Association.update(intf, ap_intf)
+                elif intf.associatedTo != ap:
                     if intf.associatedTo:
                         Association.disconnect(intf)
                         intf.rssi = 0
