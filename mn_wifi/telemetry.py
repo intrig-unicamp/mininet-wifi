@@ -271,7 +271,7 @@ class parseData(object):
                                     color=node.circle, alpha=0.1)
                 axes.add_artist(circle)
         else:
-            sleep(0.0001)
+            time.sleep(0.0001)
             self.fig.legend(  # lines,  # The line objects
                 labels=names,  # The labels for each line
                 loc="center right",  # Position of legend
