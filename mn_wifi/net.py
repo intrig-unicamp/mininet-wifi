@@ -335,7 +335,7 @@ class Mininet_wifi(Mininet):
         defaults.update(params)
 
         if self.autoSetPositions:
-            defaults['position'] = (round(self.nextPos_sta, 2), 0, 0)
+            defaults['position'] = [round(self.nextPos_sta, 2), 0, 0]
         if self.autoSetMacs:
             defaults['mac'] = macColonHex(self.nextIP)
         if self.autoPinCpus:
@@ -415,7 +415,7 @@ class Mininet_wifi(Mininet):
             defaults['isolate_clients'] = True
         defaults.update(params)
         if self.autoSetPositions:
-            defaults['position'] = (round(self.nextPos_ap, 2), 50, 0)
+            defaults['position'] = [round(self.nextPos_ap, 2), 50, 0]
             self.nextPos_ap += 100
         wlan = None
         if cls and isinstance(cls, physicalAP):

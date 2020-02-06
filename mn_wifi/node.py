@@ -59,6 +59,8 @@ class Node_wifi(Node):
         # Make sure class actually works
         self.checkSetup()
 
+        if 'position' in params:
+            self.position = params.get('position')
         self.name = params.get('name', name)
         self.privateDirs = params.get('privateDirs', [])
         self.inNamespace = params.get('inNamespace', inNamespace)
