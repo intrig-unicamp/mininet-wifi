@@ -1662,8 +1662,9 @@ class Mininet_wifi(Mininet):
                         if isinstance(intf, adhoc):
                             info('%s ' % node)
                             sleep(1)
-                    node.pos = (0, 0, 0)
-                    mob.configLinks(node)
+                    if not isinstance(node, AP):
+                        node.pos = (0, 0, 0)
+                        mob.configLinks(node)
                     # we need this cause wmediumd is struggling
                     # with some associations e.g. wpa
                     if self.wmediumd_mode == interference:
