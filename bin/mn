@@ -303,8 +303,6 @@ class MininetRunner(object):
                         callback=self.custom,
                         type='string',
                         help='read custom classes or params from .py file(s)')
-        opts.add_option('--driver', type='string', default='nl80211',
-                        help='wifi driver nl80211|capwap_wtp')
         opts.add_option('--test', default=[], action='append',
                         dest='test', help='|'.join(TESTS.keys()))
         opts.add_option('--xterms', '-x', action='store_true',
@@ -467,10 +465,6 @@ class MininetRunner(object):
         if not opts.nolistenport:
             listenPort = opts.listenport
 
-        driver = 'nl80211'
-        if opts.driver:
-            driver = opts.driver
-
         # Handle inNamespace, cluster options
         inNamespace = opts.innamespace
         cluster = opts.cluster
@@ -514,7 +508,7 @@ class MininetRunner(object):
                      xterms=xterms, autoSetMacs=mac,
                      autoStaticArp=arp, autoPinCpus=pin,
                      listenPort=listenPort,
-                     driver=driver, autoSetPositions=position)
+                     autoSetPositions=position)
         else:
             mn = Net(topo=topo,
                      switch=switch, host=host, controller=controller, link=link,

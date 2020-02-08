@@ -14,7 +14,7 @@ from mn_wifi.wmediumdConnector import interference
 def topology():
     "Create a network."
     net = Mininet_wifi(controller=Controller, link=wmediumd,
-                       wmediumd_mode=interference, configure4addr=True)
+                       wmediumd_mode=interference, config4addr=True)
 
     info("*** Creating nodes\n")
     ap1 = net.addAccessPoint('ap1', ssid="ap1-ssid", mode="g",

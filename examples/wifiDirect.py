@@ -15,7 +15,7 @@ def topology():
     "Create a network."
     net = Mininet_wifi(link=wmediumd,
                        wmediumd_mode=interference,
-                       configureWiFiDirect=True)
+                       configWiFiDirect=True)
 
     info("*** Creating nodes\n")
     sta1 = net.addStation('sta1', ip='10.0.0.1/8', position='10,10,0')
