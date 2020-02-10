@@ -345,7 +345,7 @@ class Mininet_wifi(Mininet):
             cls = self.station
         sta = cls(name, **defaults)
 
-        if 'position' in params:
+        if 'position' in params or self.autoSetPositions:
             self.pos_to_array(sta)
 
         self.addWlans(sta)
@@ -425,7 +425,7 @@ class Mininet_wifi(Mininet):
         self.nameToNode[name] = ap
         if wlan:
             ap.params['phywlan'] = wlan
-        if 'position' in params:
+        if 'position' in params or self.autoSetPositions:
             self.pos_to_array(ap)
         self.addWlans(ap)
         self.aps.append(ap)
