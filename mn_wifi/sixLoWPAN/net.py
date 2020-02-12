@@ -6,33 +6,31 @@ import re
 from time import sleep
 
 from mininet.net import Mininet
-from mininet.node import (DefaultController)
-from mininet.util import (fixLimits, numCores, ensureRoot,
-                          macColonHex, waitListening, netParse,
+from mininet.node import DefaultController
+from mininet.util import (macColonHex, waitListening, netParse,
                           numCores, ipAdd)
 from mininet.link import Intf
-from mininet.log import info, error, debug, output
+from mininet.log import error, debug, output
 
-from mn_wifi.sixLoWPAN.node import sixLoWPan
+from mn_wifi.sixLoWPAN.node import sixLoWPan, OVSSensor
 from mn_wifi.sixLoWPAN.module import module
-from mn_wifi.sixLoWPAN.link import sixLoWPAN
 from mn_wifi.util import ipAdd6, netParse6
 
 
 class Mininet_IoT(Mininet):
 
-    topo=None
-    sixLoWPan=sixLoWPan
-    controller=DefaultController
-    link=sixLoWPAN
-    intf=Intf
-    inNamespace=False
-    autoSetMacs=False
-    autoStaticArp=False
-    autoPinCpus=False
-    listenPort=None
-    waitConnected=False
-    autoSetPositions=False
+    topo = None
+    sixLoWPan = sixLoWPan
+    APSensor = OVSSensor
+    controller = DefaultController
+    intf = Intf
+    inNamespace = False
+    autoSetMacs = False
+    autoStaticArp = False
+    autoPinCpus = False
+    listenPort = None
+    waitConnected = False
+    autoSetPositions = False
     ipBase = '10.0.0.0/8'
     ip6Base = '2001:0:0:0:0:0:0:0/64'
     ipBaseNum, prefixLen = netParse(ipBase)
@@ -45,6 +43,7 @@ class Mininet_IoT(Mininet):
     nextCore = 0  # next core for pinning hosts to CPUs
     nameToNode = {}  # name to Node (Host/Switch) objects
     links = []
+    apsensors = []
     sensors = []
     terms = []  # list of spawned xterm processes
     nwpans = 0
@@ -53,11 +52,12 @@ class Mininet_IoT(Mininet):
 
     @classmethod
     def init_module(cls, iot_module):
-        module(cls.sensors, cls.nwpans, iot_module=iot_module)
-        return cls.sensors
+        sensors = cls.sensors + cls.apsensors
+        module(sensors, cls.nwpans, iot_module=iot_module)
+        return cls.sensors, cls.apsensors
 
     @classmethod
-    def addParameters(self, node, node_mode='managed', **params):
+    def addParameters(cls, node, node_mode='managed', **params):
         """adds parameters to wireless nodes
         node: node
         autoSetMacs: set MAC addrs automatically like IP addresses
@@ -66,13 +66,9 @@ class Mininet_IoT(Mininet):
         node_mode: if interface is running in managed or master mode"""
         node.params['wpan'] = []
 
-        wpans = self.count6LoWPANIfaces(**params)
+        wpans = cls.count6LoWPANIfaces(**params)
 
         for wpan in range(wpans):
-            if node_mode == 'managed':
-                self.appendAssociatedTo(node)
-                self.add_ip_param(node, wpans, **params)
-
             node.params['wpan'].append(node.name + '-wpan' + str(wpan))
             node.params.pop("wpans", None)
 
@@ -82,6 +78,35 @@ class Mininet_IoT(Mininet):
         node.params['associatedTo'].append('')
 
     @classmethod
+    def addAPSensor(self, name, cls=None, **params):
+        """Add AccessPoint as a Sensor.
+           name: name of accesspoint to add
+           cls: custom switch class/constructor (optional)
+           returns: added accesspoint
+           side effect: increments listenPort var ."""
+        defaults = {'listenPort': self.listenPort,
+                    'inNamespace': self.inNamespace
+                    }
+        defaults.update(params)
+        if self.autoSetPositions:
+            defaults['position'] = (round(self.nextPos_ap, 2), 50, 0)
+            self.nextPos_ap += 100
+
+        if not cls:
+            cls = self.APSensor
+        ap = cls(name, **defaults)
+        if not self.inNamespace and self.listenPort:
+            self.listenPort += 1
+        self.nameToNode[name] = ap
+
+        if 'position' in params:
+            self.pos_to_array(ap)
+
+        self.addParameters(ap, defaults)
+        self.apsensors.append(ap)
+        return ap
+
+    @classmethod
     def addSensor(self, name, cls=None, **params):
         """Add Sensor node.
            name: name of station to add
@@ -89,11 +114,13 @@ class Mininet_IoT(Mininet):
            params: parameters for 6LoWPAN
            returns: added station"""
         # Default IP and MAC addresses
-        defaults = {'ip6': ipAdd6(self.nextIP6,
+        nextIP = params['nextIP']
+        nextIP6 = params['nextIP6']
+        defaults = {'ip6': ipAdd6(nextIP6,
                                   ipBaseNum=self.ip6BaseNum,
                                   prefixLen=self.prefixLen6) +
                            '/%s' % self.prefixLen6,
-                    'ip': ipAdd(self.nextIP,
+                    'ip': ipAdd(nextIP,
                                 ipBaseNum=self.ipBaseNum,
                                 prefixLen=self.prefixLen) +
                           '/%s' % self.prefixLen
@@ -103,7 +130,7 @@ class Mininet_IoT(Mininet):
         if self.autoSetPositions:
             defaults['position'] = ('%s,0,0' % self.nextPosition)
         if self.autoSetMacs:
-            defaults['mac'] = macColonHex(self.nextIP)
+            defaults['mac'] = macColonHex(nextIP)
         if self.autoPinCpus:
             defaults['cores'] = self.nextCore
             self.nextCore = (self.nextCore + 1) % self.numCores
