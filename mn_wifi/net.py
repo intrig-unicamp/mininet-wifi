@@ -366,12 +366,10 @@ class Mininet_wifi(Mininet):
         return sta
 
     def addSensor(self, name, cls=None, **params):
-        params['nextIP'] = self.nextIP
         params['nextIP6'] = self.nextIP6
         if not cls:
             cls = self.sensor
         node = Mininet_IoT.addSensor(name, cls, **params)
-        self.nextIP += 1
         self.nextIP6 += 1
         return node
 
@@ -1493,18 +1491,18 @@ class Mininet_wifi(Mininet):
         cleanup_mnwifi.plot = self.plot
 
     def checkDimension(self, nodes):
-        try:
-            for node in nodes:
-                if hasattr(node, 'coord'):
-                    node.position = node.coord[0].split(',')
-            plotGraph(min_x=self.min_x, min_y=self.min_y, min_z=self.min_z,
-                      max_x=self.max_x, max_y=self.max_y, max_z=self.max_z,
-                      nodes=nodes, conn=self.conn)
-            if not issubclass(self.plot, plot3d):
-                self.plot.pause()
-        except:
-            info('Something went wrong with the GUI.\n')
-            self.draw = False
+        #try:
+        for node in nodes:
+            if hasattr(node, 'coord'):
+                node.position = node.coord[0].split(',')
+        plotGraph(min_x=self.min_x, min_y=self.min_y, min_z=self.min_z,
+                  max_x=self.max_x, max_y=self.max_y, max_z=self.max_z,
+                  nodes=nodes, conn=self.conn)
+        if not issubclass(self.plot, plot3d):
+            self.plot.pause()
+        #except:
+         #   info('Something went wrong with the GUI.\n')
+          #  self.draw = False
 
     def start_mobility(self, mob_nodes, **kwargs):
         "Starts Mobility"
@@ -1651,12 +1649,14 @@ class Mininet_wifi(Mininet):
 
     def plotCheck(self, mnNodes):
         "Check which nodes will be plotted"
-        nodes = self.stations + self.aps + mnNodes + self.cars
+        nodes = self.stations + self.aps + mnNodes + self.cars + \
+                self.apsensors + self.sensors
         self.checkDimension(nodes)
 
     def plot_dynamic(self):
         "Check which nodes will be plotted dynamically at runtime"
-        nodes = self.stations + self.aps + self.cars
+        nodes = self.stations + self.aps + self.cars + \
+                self.apsensors + self.sensors
         self.checkDimension(nodes)
 
         while True:

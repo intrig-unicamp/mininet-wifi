@@ -4,6 +4,7 @@ author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)"""
 
 import re
 from time import sleep
+from six import string_types
 
 from mininet.net import Mininet
 from mininet.node import DefaultController
@@ -57,7 +58,15 @@ class Mininet_IoT(Mininet):
         return cls.sensors, cls.apsensors
 
     @classmethod
-    def addParameters(cls, node, node_mode='managed', **params):
+    def pos_to_array(cls, node):
+        pos = node.params['position']
+        if isinstance(pos, string_types):
+            pos = pos.split(',')
+        node.position = [float(pos[0]), float(pos[1]), float(pos[2])]
+        node.params.pop('position', None)
+
+    @classmethod
+    def addParameters(cls, node, **params):
         """adds parameters to wireless nodes
         node: node
         autoSetMacs: set MAC addrs automatically like IP addresses
@@ -102,7 +111,7 @@ class Mininet_IoT(Mininet):
         if 'position' in params:
             self.pos_to_array(ap)
 
-        self.addParameters(ap, defaults)
+        self.addParameters(ap, **defaults)
         self.apsensors.append(ap)
         return ap
 
@@ -114,39 +123,34 @@ class Mininet_IoT(Mininet):
            params: parameters for 6LoWPAN
            returns: added station"""
         # Default IP and MAC addresses
-        nextIP = params['nextIP']
         nextIP6 = params['nextIP6']
         defaults = {'ip6': ipAdd6(nextIP6,
                                   ipBaseNum=self.ip6BaseNum,
                                   prefixLen=self.prefixLen6) +
-                           '/%s' % self.prefixLen6,
-                    'ip': ipAdd(nextIP,
-                                ipBaseNum=self.ipBaseNum,
-                                prefixLen=self.prefixLen) +
-                          '/%s' % self.prefixLen
+                           '/%s' % self.prefixLen6
                    }
         defaults.update(params)
 
         if self.autoSetPositions:
             defaults['position'] = ('%s,0,0' % self.nextPosition)
         if self.autoSetMacs:
-            defaults['mac'] = macColonHex(nextIP)
+            defaults['mac'] = macColonHex(nextIP6)
         if self.autoPinCpus:
             defaults['cores'] = self.nextCore
             self.nextCore = (self.nextCore + 1) % self.numCores
-        self.nextIP += 1
         self.nextIP6 += 1
         self.nextPosition += 1
 
         if not cls:
             cls = self.sixLoWPan
         node = cls(name, **defaults)
-
-        self.addParameters(node, defaults)
-
-        self.sensors.append(node)
         self.nameToNode[name] = node
 
+        if 'position' in params:
+            self.pos_to_array(node)
+
+        self.addParameters(node, **defaults)
+        self.sensors.append(node)
         return node
 
     # BL: We now have four ways to look up nodes
