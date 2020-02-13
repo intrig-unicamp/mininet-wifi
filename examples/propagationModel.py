@@ -2,13 +2,15 @@
 
 'This example show how to configure Propagation Models'
 
+import sys
+
 from mininet.node import Controller
 from mininet.log import setLogLevel, info
 from mn_wifi.cli import CLI_wifi
 from mn_wifi.net import Mininet_wifi
 
 
-def topology():
+def topology(args):
 
     "Create a network."
     net = Mininet_wifi(controller=Controller)
@@ -25,7 +27,8 @@ def topology():
     info("*** Configuring wifi nodes\n")
     net.configureWifiNodes()
 
-    net.plotGraph(max_x=100, max_y=100)
+    if '-p' not in args:
+        net.plotGraph(max_x=100, max_y=100)
 
     net.setMobilityModel(time=0, model='RandomWayPoint', max_x=100, max_y=100,
                          min_v=0.5, max_v=0.5, seed=20)
@@ -44,4 +47,4 @@ def topology():
 
 if __name__ == '__main__':
     setLogLevel('info')
-    topology()
+    topology(sys.argv)

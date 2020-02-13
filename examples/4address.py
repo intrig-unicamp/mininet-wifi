@@ -3,6 +3,8 @@
 """This example shows how to enable 4-address
 Warning: It works only when network manager is stopped"""
 
+import sys
+
 from mininet.node import Controller
 from mininet.log import setLogLevel, info
 from mn_wifi.link import wmediumd, _4address
@@ -11,7 +13,7 @@ from mn_wifi.net import Mininet_wifi
 from mn_wifi.wmediumdConnector import interference
 
 
-def topology():
+def topology(args):
     "Create a network."
     net = Mininet_wifi(controller=Controller, link=wmediumd,
                        wmediumd_mode=interference, config4addr=True)
@@ -47,7 +49,8 @@ def topology():
     net.addLink(sta5, ap3)
     net.addLink(sta6, ap3)
 
-    net.plotGraph(max_x=100, max_y=100)
+    if '-p' not in args:
+        net.plotGraph(max_x=100, max_y=100)
 
     info("*** Starting network\n")
     net.build()
@@ -65,4 +68,4 @@ def topology():
 
 if __name__ == '__main__':
     setLogLevel('info')
-    topology()
+    topology(sys.argv)

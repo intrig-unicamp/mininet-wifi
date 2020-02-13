@@ -32,8 +32,6 @@ def topology(args):
 
     net.setPropagationModel(model="logDistance", exp=4)
 
-    #net.plotGraph(max_x=300, max_y=300)
-
     info("*** Configuring wifi nodes\n")
     net.configureWifiNodes()
 

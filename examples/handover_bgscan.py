@@ -13,6 +13,8 @@ mobility_domain='a1b2',...)
 Consider https://w1.fi/cgit/hostap/plain/wpa_supplicant/wpa_supplicant.conf
 for more information about bgscan"""
 
+import sys
+
 from mininet.node import Controller
 from mininet.log import setLogLevel, info
 from mn_wifi.node import UserAP
@@ -22,7 +24,7 @@ from mn_wifi.link import wmediumd
 from mn_wifi.wmediumdConnector import interference
 
 
-def topology():
+def topology(args):
     "Create a network."
     net = Mininet_wifi(controller=Controller, accessPoint=UserAP,
                        link=wmediumd, wmediumd_mode=interference)
@@ -51,7 +53,8 @@ def topology():
     net.addLink(ap1, ap2)
     net.addLink(ap2, ap3)
 
-    net.plotGraph(min_x=-100, min_y=-100, max_x=200, max_y=200)
+    if '-p' not in args:
+        net.plotGraph(min_x=-100, min_y=-100, max_x=200, max_y=200)
 
     info("*** Starting network\n")
     net.build()
@@ -69,4 +72,4 @@ def topology():
 
 if __name__ == '__main__':
     setLogLevel('info')
-    topology()
+    topology(sys.argv)

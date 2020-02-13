@@ -2,12 +2,14 @@
 
 'Setting position of the nodes'
 
+import sys
+
 from mininet.log import setLogLevel, info
 from mn_wifi.cli import CLI_wifi
 from mn_wifi.net import Mininet_wifi
 
 
-def topology():
+def topology(args):
 
     net = Mininet_wifi()
 
@@ -28,7 +30,8 @@ def topology():
     info("*** Creating links\n")
     net.addLink(ap1, h1)
 
-    net.plotGraph(max_x=100, max_y=100)
+    if '-p' not in args:
+        net.plotGraph(max_x=100, max_y=100)
 
     info("*** Starting network\n")
     net.build()
@@ -43,4 +46,4 @@ def topology():
 
 if __name__ == '__main__':
     setLogLevel('info')
-    topology()
+    topology(sys.argv)

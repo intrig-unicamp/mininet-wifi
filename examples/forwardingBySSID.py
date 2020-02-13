@@ -20,6 +20,7 @@ around SSID-based packet forwarding
              ssid-2
             --------"""
 
+import sys
 from time import sleep
 
 from mininet.node import Controller
@@ -29,7 +30,7 @@ from mn_wifi.cli import CLI_wifi
 from mn_wifi.net import Mininet_wifi
 
 
-def topology():
+def topology(args):
     "Create a network."
     net = Mininet_wifi(controller=Controller, accessPoint=UserAP,
                        autoAssociation=False)
@@ -48,7 +49,8 @@ def topology():
     info("*** Configuring wifi nodes\n")
     net.configureWifiNodes()
 
-    net.plotGraph(max_x=100, max_y=100)
+    if '-p' not in args:
+        net.plotGraph(max_x=100, max_y=100)
 
     sta1.setRange(15, intf=sta1.params['wlan'][0])
     sta2.setRange(15, intf=sta2.params['wlan'][0])
@@ -104,4 +106,4 @@ def topology():
 
 if __name__ == '__main__':
     setLogLevel('info')
-    topology()
+    topology(sys.argv)

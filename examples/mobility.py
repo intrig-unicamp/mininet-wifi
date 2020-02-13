@@ -10,7 +10,7 @@ from mn_wifi.cli import CLI_wifi
 from mn_wifi.net import Mininet_wifi
 
 
-def topology(coord):
+def topology(args):
     "Create a network."
     net = Mininet_wifi(controller=Controller)
 
@@ -28,14 +28,15 @@ def topology(coord):
     info("*** Associating and Creating links\n")
     net.addLink(ap1, h1)
 
-    net.plotGraph(max_x=200, max_y=200)
+    if '-p' not in args:
+        net.plotGraph(max_x=200, max_y=200)
 
-    if coord:
+    if '-c' in args:
         sta1.coord = ['40.0,30.0,0.0', '31.0,10.0,0.0', '31.0,30.0,0.0']
         sta2.coord = ['40.0,40.0,0.0', '55.0,31.0,0.0', '55.0,81.0,0.0']
 
     net.startMobility(time=0, repetitions=1)
-    if coord:
+    if '-c' in args:
         net.mobility(sta1, 'start', time=1)
         net.mobility(sta2, 'start', time=2)
         net.mobility(sta1, 'stop', time=12)
@@ -61,5 +62,4 @@ def topology(coord):
 
 if __name__ == '__main__':
     setLogLevel('info')
-    coord = True if '-c' in sys.argv else False
-    topology(coord)
+    topology(sys.argv)

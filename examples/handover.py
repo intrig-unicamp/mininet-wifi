@@ -39,7 +39,7 @@ def topology(args):
     info("*** Creating links\n")
     net.addLink(ap1, ap2)
 
-    if '-p' in args:
+    if '-p' not in args:
         net.plotGraph(max_x=100, max_y=100)
 
     if '-s' not in args:

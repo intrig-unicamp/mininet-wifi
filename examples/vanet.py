@@ -2,6 +2,7 @@
 
 'Simple idea around Vehicular Ad Hoc Networks - VANETs'
 
+import sys
 from random import randint
 
 from mininet.node import Controller
@@ -12,7 +13,7 @@ from mn_wifi.link import wmediumd, mesh
 from mn_wifi.wmediumdConnector import interference
 
 
-def topology():
+def topology(args):
 
     "Create a network."
     net = Mininet_wifi(controller=Controller, roads=10,
@@ -48,7 +49,8 @@ def topology():
         net.addLink(car, intf='%s-wlan1' % car,
                     cls=mesh, ssid='mesh-ssid', channel=5)
 
-    net.plotGraph(max_x=500, max_y=500)
+    if '-p' not in args:
+        net.plotGraph(max_x=500, max_y=500)
 
     net.startMobility(time=0)
 
@@ -75,4 +77,4 @@ def topology():
 
 if __name__ == '__main__':
     setLogLevel('info')
-    topology()
+    topology(sys.argv)
