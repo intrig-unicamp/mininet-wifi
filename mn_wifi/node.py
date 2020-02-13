@@ -1379,6 +1379,7 @@ class OVSAP(AP):
             opts += ' protocols=%s' % self.protocols
         if self.stp and self.failMode == 'standalone':
             opts += ' stp_enable=true'
+        opts += ' other-config:dp-desc=%s' % self.name
         return opts
 
     def start(self, controllers):
@@ -1481,6 +1482,7 @@ class OVSAP(AP):
 
 OVSKernelAP = OVSAP
 physicalAP = OVSAP
+
 
 class OVSBridgeAP( OVSAP ):
     "OVSBridge is an OVSAP in standalone/bridge mode"

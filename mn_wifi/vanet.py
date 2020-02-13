@@ -59,10 +59,10 @@ class vanet(object):
         [self.roads.append(x) for x in range(roads)]
         [self.points.append(x) for x in range(roads)]
         plot2d.instantiateGraph(min_x, min_y, max_x, max_y)
+        plot2d.plotGraph(cars, [])
 
         self.display_grid(aps, conn, roads)
         self.display_cars(cars)
-        plot2d.plotGraph(cars, [])
         self.setWifiParameters(mobility)
         while mobility.thread_._keep_alive:
             [self.scatter, self.com_lines] = \

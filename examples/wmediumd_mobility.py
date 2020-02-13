@@ -4,6 +4,8 @@
 Setting the position of Nodes (only for Stations and Access Points)
 and providing mobility using mobility models with wmediumd enabled."""
 
+import sys
+
 from mininet.node import Controller
 from mininet.log import setLogLevel, info
 from mn_wifi.link import wmediumd
@@ -12,7 +14,7 @@ from mn_wifi.net import Mininet_wifi
 from mn_wifi.wmediumdConnector import interference
 
 
-def topology():
+def topology(args):
 
     "Create a network."
     net = Mininet_wifi(controller=Controller, link=wmediumd,
@@ -31,7 +33,8 @@ def topology():
     info("*** Configuring wifi nodes\n")
     net.configureWifiNodes()
 
-    net.plotGraph(max_x=300, max_y=300)
+    if '-p' not in args:
+        net.plotGraph(max_x=300, max_y=300)
 
     net.setMobilityModel(time=0, model='RandomDirection', max_x=300, max_y=300,
                          min_v=0.5, max_v=0.8, seed=20)
@@ -50,4 +53,4 @@ def topology():
 
 if __name__ == '__main__':
     setLogLevel('info')
-    topology()
+    topology(sys.argv)

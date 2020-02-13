@@ -1,11 +1,13 @@
 "author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)"
 
 import re
+
 from sys import version_info as py_version_info
 from mininet.util import BaseString
+from mininet.log import error, debug
 
 
-class IntfSixLoWPAN( object ):
+class IntfSixLoWPAN(object):
 
     "Basic interface object that can configure itself."
 
@@ -27,7 +29,7 @@ class IntfSixLoWPAN( object ):
             self.ip = '127.0.0.1'
             self.prefixLen = 8
 
-        node.addWIntf( self, port=port )
+        node.addWIntf(self, port=port)
 
         # Save params for future reference
         self.params = params
@@ -39,11 +41,12 @@ class IntfSixLoWPAN( object ):
 
     def ipAddr(self, *args):
         "Configure ourselves using ip addr"
-        if len(args) == 0:
-            return self.cmd('ip addr show', self.name)
+        # sixlow seems to not acccept ipv4
+        #self.cmd('ip addr flush ', self.name)
+        #return self.cmd('ip addr add', args[0], 'dev', self.name)
 
     def ipAddr6(self, *args):
-        self.cmd('ip addr flush ', self.name)
+        self.cmd('ip -6 addr flush ', self.name)
         return self.cmd('ip -6 addr add ', args[0], 'dev', self.name)
 
     def ipLink(self, *args):
@@ -200,7 +203,7 @@ class IntfSixLoWPAN( object ):
         # r = Parent.config( **params )
         r = {}
         self.setParam(r, 'setMAC', mac=mac)
-        #self.setParam(r, 'setIP', ip=ip)
+        self.setParam(r, 'setIP', ip=ip)
         self.setParam(r, 'setIP6', ip=ip6)
         self.setParam(r, 'isUp', up=up)
         self.setParam(r, 'ipAddr', ipAddr=ipAddr)
@@ -231,16 +234,183 @@ class IntfSixLoWPAN( object ):
         return self.name
 
 
+class TC6LoWPANLink(IntfSixLoWPAN):
+    """Interface customized by tc (traffic control) utility
+       Allows specification of bandwidth limits (various methods)
+       as well as delay, loss and max queue length"""
+
+    # The parameters we use seem to work reasonably up to 1 Gb/sec
+    # For higher data rates, we will probably need to change them.
+    bwParamMax = 1000
+
+    def bwCmds(self, bw=None, speedup=0, use_hfsc=False, use_tbf=False,
+               latency_ms=None, enable_ecn=False, enable_red=False):
+        "Return tc commands to set bandwidth"
+        cmds, parent = [], ' root '
+        if bw and (bw < 0 or bw > self.bwParamMax):
+            error('Bandwidth limit', bw, 'is outside supported range 0..%d'
+                  % self.bwParamMax, '- ignoring\n')
+        elif bw is not None:
+            # BL: this seems a bit brittle...
+            if speedup > 0:
+                bw = speedup
+            # This may not be correct - we should look more closely
+            # at the semantics of burst (and cburst) to make sure we
+            # are specifying the correct sizes. For now I have used
+            # the same settings we had in the mininet-hifi code.
+            if use_hfsc:
+                cmds += [ '%s qdisc add dev %s root handle 5:0 hfsc default 1',
+                          '%s class add dev %s parent 5:0 classid 5:1 hfsc sc '
+                          + 'rate %fMbit ul rate %fMbit' % (bw, bw) ]
+            elif use_tbf:
+                if latency_ms is None:
+                    latency_ms = 15 * 8 / bw
+                cmds += [ '%s qdisc add dev %s root handle 5: tbf ' +
+                          'rate %fMbit burst 15000 latency %fms' %
+                          (bw, latency_ms) ]
+            else:
+                cmds += [ '%s qdisc add dev %s root handle 5:0 htb default 1',
+                          '%s class add dev %s parent 5:0 classid 5:1 htb ' +
+                          'rate %fMbit burst 15k' % bw ]
+            parent = ' parent 5:1 '
+            # ECN or RED
+            if enable_ecn:
+                cmds += [ '%s qdisc add dev %s' + parent +
+                          'handle 6: red limit 1000000 ' +
+                          'min 30000 max 35000 avpkt 1500 ' +
+                          'burst 20 ' +
+                          'bandwidth %fmbit probability 1 ecn' % bw ]
+                parent = ' parent 6: '
+            elif enable_red:
+                cmds += [ '%s qdisc add dev %s' + parent +
+                          'handle 6: red limit 1000000 ' +
+                          'min 30000 max 35000 avpkt 1500 ' +
+                          'burst 20 ' +
+                          'bandwidth %fmbit probability 1' % bw ]
+                parent = ' parent 6: '
+
+        return cmds, parent
+
+    @staticmethod
+    def delayCmds(parent, delay=None, jitter=None,
+                  loss=None, max_queue_size=None):
+        "Internal method: return tc commands for delay and loss"
+        cmds = []
+        if delay:
+            delay_ = float(delay.replace("ms", ""))
+        if delay and delay_ < 0:
+            error( 'Negative delay', delay, '\n' )
+        elif jitter and jitter < 0:
+            error('Negative jitter', jitter, '\n')
+        elif loss and (loss < 0 or loss > 100):
+            error('Bad loss percentage', loss, '%%\n')
+        else:
+            # Delay/jitter/loss/max queue size
+            netemargs = '%s%s%s%s' % (
+                'delay %s ' % delay if delay is not None else '',
+                '%s ' % jitter if jitter is not None else '',
+                'loss %.5f ' % loss if loss is not None else '',
+                'limit %d' % max_queue_size if max_queue_size is not None
+                else '')
+            if netemargs:
+                cmds = [ '%s qdisc add dev %s ' + parent +
+                         ' handle 10: netem ' +
+                         netemargs ]
+                parent = ' parent 10:1 '
+        return cmds, parent
+
+    def tc(self, cmd, tc='tc'):
+        "Execute tc command for our interface"
+        c = cmd % (tc, self)  # Add in tc command and our name
+        debug(" *** executing command: %s\n" % c)
+        return self.cmd(c)
+
+    def config(self, bw=None, delay=None, jitter=None, loss=None,
+               gro=False, speedup=0, use_hfsc=False, use_tbf=False,
+               latency_ms=None, enable_ecn=False, enable_red=False,
+               max_queue_size=None, **params):
+        """Configure the port and set its properties.
+            bw: bandwidth in b/s (e.g. '10m')
+            delay: transmit delay (e.g. '1ms' )
+            jitter: jitter (e.g. '1ms')
+            loss: loss (e.g. '1%' )
+            gro: enable GRO (False)
+            txo: enable transmit checksum offload (True)
+            rxo: enable receive checksum offload (True)
+            speedup: experimental switch-side bw option
+            use_hfsc: use HFSC scheduling
+            use_tbf: use TBF scheduling
+            latency_ms: TBF latency parameter
+            enable_ecn: enable ECN (False)
+            enable_red: enable RED (False)
+            max_queue_size: queue limit parameter for netem"""
+
+        # Support old names for parameters
+        gro = not params.pop('disable_gro', not gro)
+
+        result = IntfSixLoWPAN.config(self, **params)
+
+        def on(isOn):
+            "Helper method: bool -> 'on'/'off'"
+            return 'on' if isOn else 'off'
+
+        # Set offload parameters with ethool
+        self.cmd('ethtool -K', self,
+                 'gro', on(gro))
+
+        # Optimization: return if nothing else to configure
+        # Question: what happens if we want to reset things?
+        if (bw is None and not delay and not loss
+                and max_queue_size is None):
+            return
+
+        # Clear existing configuration
+        tcoutput = self.tc('%s qdisc show dev %s')
+        if "priomap" not in tcoutput and "noqueue" not in tcoutput \
+                and "fq_codel" not in tcoutput and "qdisc fq" not in tcoutput:
+            cmds = [ '%s qdisc del dev %s root' ]
+        else:
+            cmds = []
+        # Bandwidth limits via various methods
+        bwcmds, parent = self.bwCmds(bw=bw, speedup=speedup,
+                                     use_hfsc=use_hfsc, use_tbf=use_tbf,
+                                     latency_ms=latency_ms,
+                                     enable_ecn=enable_ecn,
+                                     enable_red=enable_red)
+        cmds += bwcmds
+
+        # Delay/jitter/loss/max_queue_size using netem
+        delaycmds, parent = self.delayCmds(delay=delay, jitter=jitter,
+                                           loss=loss,
+                                           max_queue_size=max_queue_size,
+                                           parent=parent)
+        cmds += delaycmds
+
+        # Execute all the commands in our node
+        debug("at map stage w/cmds: %s\n" % cmds)
+        tcoutputs = [ self.tc(cmd) for cmd in cmds ]
+        for output in tcoutputs:
+            if output != '':
+                error("*** Error: %s" % output)
+        debug("cmds:", cmds, '\n')
+        debug("outputs:", tcoutputs, '\n')
+        result[ 'tcoutputs'] = tcoutputs
+        result[ 'parent' ] = parent
+
+        return result
+
+
 class sixLoWPAN(IntfSixLoWPAN):
 
-    def __init__(self, node, port=None, addr=None,
-                 cls=IntfSixLoWPAN, wpan=0, **params):
+    def __init__(self, node, wpan, port=None, addr=None,
+                 cls=IntfSixLoWPAN, **params):
         """Create 6LoWPAN link to another node.
            node: node
            intf: default interface class/constructor"""
         self.name = '%s-pan%s' % (node.name, wpan)
         self.node = node
-        node.addWAttr(self, port=port)
+        self.range = 50
+        node.addWAttr(self, port=wpan)
         intf = node.wintfs[wpan]
         self.panid = '0xbeef'
         self.set_attr(node, wpan)
@@ -255,16 +425,19 @@ class sixLoWPAN(IntfSixLoWPAN):
         if params is None:
             params = {}
         if port is not None:
-            params[ 'port' ] = port
+            params['port'] = port
         if 'port' not in params:
-            params[ 'port' ] = node.newPort()
+            params['port'] = node.newPort()
         if not self.name:
             ifacename = 'pan%s' % wpan
             self.name = self.wpanName(node, ifacename, node.newPort())
         if not cls:
             cls = IntfSixLoWPAN
-        params['ip'] = node.params['ip']
-        params['ipv6'] = node.params['ip6']
+
+        if 'ip' in node.params:
+            params['ip'] = node.params['ip']
+        if 'ip6' in node.params:
+            params['ipv6'] = node.params['ip6']
         params['name'] = self.name
 
         intf1 = cls(node=node, mac=addr, link=self, **params)

@@ -872,8 +872,8 @@ class master(TCWirelessLink):
                 if isinstance(node.params[key], BaseString):
                     setattr(self, key, node.params[key])
                 elif isinstance(node.params[key], list):
-                    arg_ = node.params[key][0].split(',')
-                    setattr(self, key, arg_[wlan])
+                    arg = node.params[key][0].split(',')
+                    setattr(self, key, arg[wlan])
                 elif isinstance(node.params[key], int):
                     setattr(self, key, node.params[key])
 

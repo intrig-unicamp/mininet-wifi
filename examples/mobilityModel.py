@@ -28,7 +28,8 @@ def topology(args):
     info("*** Configuring wifi nodes\n")
     net.configureWifiNodes()
 
-    net.plotGraph(max_x=300, max_y=300)
+    if '-p' not in args:
+        net.plotGraph(max_x=300, max_y=300)
 
     net.setMobilityModel(time=0, model='RandomDirection', max_x=100, max_y=100,
                          seed=20)

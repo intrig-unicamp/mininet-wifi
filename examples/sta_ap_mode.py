@@ -11,12 +11,12 @@ from mn_wifi.net import Mininet_wifi
 from mn_wifi.wmediumdConnector import interference
 
 
-def topology(mobility):
+def topology(args):
     'Create a network.'
     net = Mininet_wifi(link=wmediumd, wmediumd_mode=interference)
 
     info("*** Creating nodes\n")
-    if mobility:
+    if '-m' in args:
         sta1 = net.addStation('sta1', mac='00:00:00:00:00:01',
                               ip='192.168.0.1/24')
     else:
@@ -40,10 +40,11 @@ def topology(mobility):
     info("*** Adding Link\n")
     net.addLink(ap1, ap2)  # wired connection
 
-    info("*** Plotting Graph\n")
-    net.plotGraph(max_x=120, max_y=120)
+    if '-p' not in args:
+        info("*** Plotting Graph\n")
+        net.plotGraph(max_x=120, max_y=120)
 
-    if mobility:
+    if '-m' in args:
         net.startMobility(time=1)
         net.mobility(sta1, 'start', time=2, position='20.0,60.0,0.0')
         net.mobility(sta1, 'stop', time=6, position='100.0,60.0,0.0')
@@ -75,5 +76,4 @@ def topology(mobility):
 
 if __name__ == '__main__':
     setLogLevel('info')
-    mobility = True if '-m' in sys.argv else False
-    topology(mobility)
+    topology(sys.argv)

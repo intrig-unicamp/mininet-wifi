@@ -2,6 +2,8 @@
 
 "Setting the error prob with wmediumd"
 
+import sys
+
 from mininet.node import Controller
 from mininet.log import setLogLevel, info
 from mn_wifi.link import wmediumd
@@ -10,7 +12,7 @@ from mn_wifi.net import Mininet_wifi
 from mn_wifi.wmediumdConnector import error_prob
 
 
-def topology():
+def topology(args):
 
     "Create a network."
     net = Mininet_wifi(controller=Controller, link=wmediumd,
@@ -34,7 +36,8 @@ def topology():
     net.addLink(sta2, ap1, error_prob=0.02)
     net.addLink(sta3, ap1, error_prob=1)
 
-    net.plotGraph(max_x=100, max_y=100)
+    if '-p' not in args:
+        net.plotGraph(max_x=100, max_y=100)
 
     info("*** Starting network\n")
     net.build()
@@ -50,4 +53,4 @@ def topology():
 
 if __name__ == '__main__':
     setLogLevel('info')
-    topology()
+    topology(sys.argv)

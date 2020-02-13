@@ -1,7 +1,9 @@
 #!/usr/bin/python
 
 'Replaying Mobility'
+
 import os
+import sys
 
 from mininet.node import Controller
 from mininet.log import setLogLevel, info
@@ -12,7 +14,7 @@ from mn_wifi.link import wmediumd, adhoc
 from mn_wifi.wmediumdConnector import interference
 
 
-def topology():
+def topology(args):
     "Create a network."
     net = Mininet_wifi(controller=Controller, link=wmediumd,
                        wmediumd_mode=interference)
@@ -47,8 +49,8 @@ def topology():
     getTrace(sta3, '%s/replayingMobility/node3.dat' % path, net)
     getTrace(sta4, '%s/replayingMobility/node4.dat' % path, net)
 
-    'ploting graph'
-    net.plotGraph(max_x=200, max_y=200)
+    if '-p' not in args:
+        net.plotGraph(max_x=200, max_y=200)
 
     info("*** Starting network\n")
     net.build()
@@ -84,4 +86,4 @@ def getTrace(sta, file_, net):
 
 if __name__ == '__main__':
     setLogLevel('info')
-    topology()
+    topology(sys.argv)

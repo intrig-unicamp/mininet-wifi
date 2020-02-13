@@ -57,7 +57,6 @@ class sumo(object):
 
         while True:
             trace.simulationStep()
-
             for vehID1 in vehCmds.getIDList():
                 x1 = vehCmds.getPosition(vehID1)[0]
                 y1 = vehCmds.getPosition(vehID1)[1]
@@ -68,7 +67,8 @@ class sumo(object):
 
                     if hasattr(cars[int(vehID1)], 'sumo'):
                         if cars[int(vehID1)].sumo:
-                            cars[int(vehID1)].sumo(vehID1, vehCmds)
+                            args = [cars[int(vehID1)].sumoargs]
+                            cars[int(vehID1)].sumo(vehID1, vehCmds, *args)
                             del cars[int(vehID1)].sumo
             step += 1
         trace.close()
