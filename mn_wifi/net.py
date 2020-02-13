@@ -6,7 +6,6 @@ import os
 import socket
 import random
 import re
-import sys
 from sys import version_info as py_version_info
 from threading import Thread as thread
 import select
@@ -49,9 +48,7 @@ from mn_wifi.sixLoWPAN.link import sixLoWPAN
 from mn_wifi.util import ipAdd6, netParse6
 
 
-sys.path.append(str(os.getcwd()) + '/mininet/')
-
-VERSION = "2.4.2"
+VERSION = "2.4.3"
 
 
 class Mininet_wifi(Mininet):

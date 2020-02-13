@@ -9,6 +9,7 @@ def run(*args, **kwargs):
     result = co(*args, **kwargs)
     return result.decode() if version_info[0] >= 3 else result
 
+
 # Actually run bin/mn rather than importing via python path
 version = 'Mininet-WiFi ' + run('PYTHONPATH=. bin/mn --wifi --version 2>&1', shell=True)
 version = version.strip()
