@@ -884,8 +884,7 @@ class AccessPoint(Node_wifi):
             cmd += "\nhw_mode=%s" % intf.mode
         return cmd
 
-    def virtual_intf(self, intf, wlan):
-        cmd = ''
+    def virtual_intf(self, intf, wlan, cmd=''):
         intf.txpower = intf.node.wintfs[0].txpower
         intf.antennaGain = intf.node.wintfs[0].antennaGain
         intf.antennaHeight = intf.node.wintfs[0].antennaHeight
@@ -895,9 +894,9 @@ class AccessPoint(Node_wifi):
         cmd += "\nssid=%s" % ssid
         if intf.node.wintfs[wlan].encrypt:
             if intf.node.wintfs[wlan].encrypt == 'wep':
-                cmd += "\nauth_algs=%s" % intf.node.auth_algs
+                cmd += "\nauth_algs=%s" % intf.node.wintfs[0].auth_algs
                 cmd += "\nwep_default_key=0"
-                cmd += self.verifyWepKey(intf.node.wep_key0)
+                cmd += self.verifyWepKey(intf.node.wintfs[0].wep_key0)
         return cmd
 
     def setHostapdConfig(self, intf, wlan, aplist):
