@@ -837,20 +837,22 @@ class master(TCWirelessLink):
         self.freq = 2.412
         self.range = 0
         self.txpower = 14
-        self.ieee80211r = None
-        self.band = None
+        self.auth_algs = None
         self.authmode = None
+        self.band = None
         self.beacon_int = None
         self.config = None
-        self.driver = 'nl80211'
+        self.config_methods = None
         self.encrypt = None
         self.ht_capab = None
+        self.ieee80211r = None
         self.id = wlan
         self.ip = None
         self.ip6 = None
         self.isolate_clients = None
         self.mac = None
         self.mode = 'g'
+        self.mobility_domain = None
         self.passwd = None
         self.shared_secret = None
         self.ssid = None
@@ -860,8 +862,7 @@ class master(TCWirelessLink):
         self.wps_state = None
         self.device_type = None
         self.wpa_psk_file = None
-        self.config_methods = None
-        self.mobility_domain = None
+        self.wep_key0 = None
         self.link = None
 
         if intf:

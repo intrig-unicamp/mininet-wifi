@@ -861,7 +861,7 @@ class w_server(object):
 
     @classmethod
     def update_height(cls, height):
-        # type: (Height) -> None
+        #  type: (height) -> None
         """
         Update the Antenna Height of a connection at wmediumd
         :param height The height to update
@@ -987,7 +987,7 @@ class w_server(object):
 
     @classmethod
     def send_height_update(cls, height):
-        # type: (Height) -> int
+        # type: (height) -> int
         """
         Send an update to the wmediumd server
         :param height: The Height to update
@@ -1095,7 +1095,7 @@ class w_server(object):
     @classmethod
     def __create_pos_update_request(cls, pos, posX, posY, posZ):
         "pos update request"
-        # type: w_pos -> str
+        # type: (pos) -> str
         msgtype = w_cst.WSERVER_POS_UPDATE_REQUEST_TYPE
         if py_version_info < (3, 0):
             mac = pos.staintf.get_mac().replace(':', '').decode('hex')
@@ -1144,7 +1144,7 @@ class w_server(object):
     @classmethod
     def __create_height_update_request(cls, height):
         "height update request"
-        # type: (Height) -> str
+        # type: (height) -> str
         msgtype = w_cst.WSERVER_HEIGHT_UPDATE_REQUEST_TYPE
         if py_version_info < (3, 0):
             mac = height.staintf.get_mac().replace(':', '').decode('hex')

@@ -1488,18 +1488,18 @@ class Mininet_wifi(Mininet):
         cleanup_mnwifi.plot = self.plot
 
     def checkDimension(self, nodes):
-        #try:
-        for node in nodes:
-            if hasattr(node, 'coord'):
-                node.position = node.coord[0].split(',')
-        plotGraph(min_x=self.min_x, min_y=self.min_y, min_z=self.min_z,
-                  max_x=self.max_x, max_y=self.max_y, max_z=self.max_z,
-                  nodes=nodes, conn=self.conn)
-        if not issubclass(self.plot, plot3d):
-            self.plot.pause()
-        #except:
-         #   info('Something went wrong with the GUI.\n')
-          #  self.draw = False
+        try:
+            for node in nodes:
+                if hasattr(node, 'coord'):
+                    node.position = node.coord[0].split(',')
+            plotGraph(min_x=self.min_x, min_y=self.min_y, min_z=self.min_z,
+                      max_x=self.max_x, max_y=self.max_y, max_z=self.max_z,
+                      nodes=nodes, conn=self.conn)
+            if not issubclass(self.plot, plot3d):
+                self.plot.pause()
+        except:
+            info('Something went wrong with the GUI.\n')
+            self.draw = False
 
     def start_mobility(self, mob_nodes, **kwargs):
         "Starts Mobility"
