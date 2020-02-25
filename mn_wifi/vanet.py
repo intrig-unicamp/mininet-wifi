@@ -1,10 +1,6 @@
 """
-
     Mininet-WiFi: A simple networking testbed for Wireless OpenFlow/SDWN!
-
-author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
-
-
+    @author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
 """
 
 from __future__ import division
@@ -17,7 +13,7 @@ from random import randrange
 import matplotlib.cbook
 from pylab import ginput as ginp, math, cos, sin, np
 
-from mn_wifi.plot import plot2d
+from mn_wifi.plot import Plot2D
 from mn_wifi.node import AP
 from mininet.log import info
 
@@ -42,27 +38,28 @@ class vanet(object):
 
     def __init__(self, **kwargs):
         from mn_wifi.mobility import mobility
+        kwargs['nodes'] = kwargs['cars']
         mobility.thread_ = thread(name='vanet', target=self.start,
                                   kwargs=kwargs)
         mobility.thread_.daemon = True
         mobility.thread_._keep_alive = True
         mobility.thread_.start()
 
-    def start(self, cars, aps, roads, conn,
-              min_x, min_y, max_x, max_y, **kwargs):
+    def start(self, cars, **kwargs):
         'start topology'
         from mn_wifi.mobility import mobility
+        aps = kwargs['aps']
+        roads = kwargs['roads']
 
         mobility.stations = cars
         mobility.mobileNodes = cars
         mobility.aps = aps
         [self.roads.append(x) for x in range(roads)]
         [self.points.append(x) for x in range(roads)]
-        plot2d.instantiateGraph(min_x, min_y, max_x, max_y)
+        Plot2D(**kwargs)
 
-        self.display_grid(aps, conn, roads)
+        self.display_grid(**kwargs)
         self.display_cars(cars)
-        plot2d.plotGraph(cars, [])
         self.setWifiParameters(mobility)
         while mobility.thread_._keep_alive:
             [self.scatter, self.com_lines] = \
@@ -109,8 +106,8 @@ class vanet(object):
             points.reverse()
         return points
 
-    def display_grid(self, aps, conn, nroads):
-        for n in range(nroads):
+    def display_grid(self, links, roads, **kwargs):
+        for n in range(roads):
             if n == 0:
                 p = ginp(2)
                 self.points[n] = p
@@ -137,32 +134,23 @@ class vanet(object):
             self.interY[n] = y1
 
             # Create a line object with the x y values of the points in a line
-            self.roads[n] = plot2d.line2d(x1, y1, color='g')
-            plot2d.line(self.roads[n])
+            self.roads[n] = Plot2D.line2d(x1, y1, color='g')
+            Plot2D.line(self.roads[n])
 
-        for bs in aps:
+        for bs in kwargs['aps']:
             bs.prop = ginp(1)[0]
             bs_x = round(bs.prop[0], 2)
             bs_y = round(bs.prop[1], 2)
-            self.scatter = plot2d.scatter(float(bs_x), float(bs_y))
+            self.scatter = Plot2D.scatter(float(bs_x), float(bs_y))
             bs.position = bs_x, bs_y, 0
             bs.set_pos_wmediumd(bs.position)
-            plot2d.instantiateNode(bs)
-            plot2d.instantiateAnnotate(bs)
-            plot2d.instantiateCircle(bs)
-            plot2d.text(bs, float(bs_x), float(bs_y))
-            plot2d.circle(bs, float(bs_x), float(bs_y))
-            plot2d.draw()
+            Plot2D.instantiate_attrs(bs)
+            bs.draw_text(float(bs_x), float(bs_y))
+            bs.set_circle_center(float(bs_x), float(bs_y))
+            Plot2D.draw()
 
         sleep(1)
-        if 'src' in conn:
-            for c in range(len(conn['src'])):
-                line = plot2d.line2d([conn['src'][c].position[0],
-                                      conn['dst'][c].position[0]],
-                                     [conn['src'][c].position[1],
-                                      conn['dst'][c].position[1]],
-                                     'b', ls='dashed')
-                plot2d.line(line)
+        Plot2D.create_line(links)
 
     def display_cars(self, cars):
         car_lines = []
@@ -181,7 +169,7 @@ class vanet(object):
             locX = (x_max - x_min) / 2 + x_min
             locY = (y_max - y_min) / 2 + y_min
 
-            plot2d.lineTxt(locX, locY, n + 1)
+            Plot2D.line_txt(locX, locY, n + 1)
 
         # temporal variable to hold values of cars
         points = [[], []]
@@ -221,7 +209,7 @@ class vanet(object):
             self.speed(car)  # Get Speed
 
         # plot cars
-        self.scatter = plot2d.scatter(points[0], points[1])
+        self.scatter = Plot2D.scatter(points[0], points[1])
 
     def lineX(self, line_data):
         "get the minimum and maximums of the line"
@@ -370,19 +358,19 @@ class vanet(object):
                                 color = 'black'
                             else:
                                 color = 'r'
-                            line = plot2d.line2d([pos_x, node.prop[0]],
+                            line = Plot2D.line2d([pos_x, node.prop[0]],
                                                  [pos_y, node.prop[1]],
                                                  color=color)
                             com_lines.append(line)
-                            plot2d.line(line)
+                            Plot2D.line(line)
 
-            plot2d.update(car)
+            car.update_2d()
 
-        plot2d.pause()
+        Plot2D.pause()
         if not mobility.thread_._keep_alive:
             exit()
 
-        scatter = plot2d.scatter(points[0], points[1])
-        plot2d.draw()
+        scatter = Plot2D.scatter(points[0], points[1])
+        Plot2D.draw()
 
         return [scatter, com_lines]

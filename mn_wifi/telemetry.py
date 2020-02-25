@@ -1,10 +1,8 @@
 """
 @author: Ramon Fontes
 @email: ramonreisfontes@gmail.com
-
 usage:
 telemetry(nodes, **params)
-
 **params
    * single=True - opens a single window and put all nodes together
    * data_type - refer to statistics dir at /sys/class/ieee80211/{}/device/net/{}/statistics/{}
@@ -183,7 +181,7 @@ class parseData(object):
 
     @classmethod
     def fig_exists(cls):
-        return plt.fignum_exists(1)
+        return plt.fignum_exists(2)
 
     def pub_msg(self, topic, msg):
         os.system("mosquitto_pub -t {} -m \'{}\'".format(topic, msg))
@@ -267,9 +265,8 @@ class parseData(object):
                 y = node.position[1]
                 plt.scatter(x, y, color='black')
                 axes.annotate(node.name, (x, y))
-                circle = plt.Circle((x, y), int(node.wintfs[0].range),
-                                    color=node.circle, alpha=0.1)
-                axes.add_artist(circle)
+                node.circle.center = x, y
+                axes.add_artist(node.circle)
         else:
             time.sleep(0.0001)
             self.fig.legend(  # lines,  # The line objects
@@ -291,15 +288,6 @@ class parseData(object):
                     node = self.nodes[id]
                     ax.plot(nodes_x[node], nodes_y[node], color=self.colors[id])
 
-    def setCircleColor(self, node):
-        if 'color' in node.params:
-            node.circle = node.params['color']
-        else:
-            if isinstance(node, AP):
-                node.circle = 'b'
-            else:
-                node.circle = 'g'
-
     def start(self, nodes, axes, single, data_type, fig, **kwargs):
         self.nodes = nodes
         self.fig = fig
@@ -311,10 +299,11 @@ class parseData(object):
         inNamespaceNodes = []
         for node in nodes:
             self.colors.append(numpy.random.rand(3,))
-            self.setCircleColor(node)
             if not isinstance(node, AP):
                 inNamespaceNodes.append(node)
-                self.setCircleColor(node)
+
+            node.circle = plt.Circle((0, 0), int(node.wintfs[0].range),
+                                     color=node.get_circle_color(), alpha=0.1)
 
         self.phys, self.ifaces = telemetry.get_phys(nodes, inNamespaceNodes)
         interval = 1000

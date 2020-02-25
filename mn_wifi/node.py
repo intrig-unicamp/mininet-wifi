@@ -27,6 +27,7 @@ import fileinput
 from time import sleep
 from distutils.version import StrictVersion
 from sys import version_info as py_version_info
+import matplotlib.pyplot as plt
 
 from mininet.log import info, error, debug
 from mininet.util import (quietRun, errRun, errFail, mountCgroups,
@@ -165,8 +166,8 @@ class Node_wifi(Node):
 
     def configLinks(self):
         "Applies channel params and handover"
-        from mn_wifi.mobility import mobility
-        mobility.configLinks(self)
+        from mn_wifi.mobility import Mobility
+        Mobility.configLinks(self)
 
     def configIFB(self, wlan, ifbID):
         "Support to Intermediate Functional Block (IFB) Devices"
@@ -196,26 +197,88 @@ class Node_wifi(Node):
         intf.range = float(range)
         intf.txpower = self.get_txpower_prop_model(intf)
         intf.setTxPower()
-        self.updateGraph()
+        self.update_graph()
         self.configLinks()
         self.remove_attr_from_params('range')
 
-    def updateGraph(self):
-        "Update the Graph"
-        from mn_wifi.plot import plot2d, plot3d
-        cls = plot2d
-        if plot3d.plotted:
-            cls = plot3d
-        if cls.fig_exists():
-            cls.updateCircleRadius(self)
-            cls.updateLine(self)
-            cls.update(self)
-            cls.pause()
+    def get_circle_color(self):
+        if 'color' in self.params:
+            color = self.params['color']
+        else:
+            color = 'b'
+            if isinstance(self, Station):
+                color = 'g'
+            elif isinstance(self, Car):
+                color = 'r'
+        return color
+
+    def updateLine(self):
+        pos = [self.position[0], self.position[1]]
+        if hasattr(self, 'lines'):
+            for line in self.lines:
+                for n in range(len(line)):
+                    if '-' == line[n]:
+                        node = line[:n]
+                        # node2 = line[n+1:]
+                pos_ = self.lines[line].get_data()
+                if self.name == node:
+                    self.lines[line].set_data([pos[0], pos_[0][1]],
+                                             [pos[1], pos_[1][1]])
+                else:
+                    self.lines[line].set_data([pos_[0][0], pos[0]],
+                                             [pos_[1][0], pos[1]])
+
+    def draw_text(self, x, y):
+        "draw text"
+        # newer MPL versions (>=1.4)
+        if hasattr(self.plttxt, 'xyann'):
+            self.plttxt.xyann = (x, y)
+        else:
+            self.plttxt.xytext = (x, y)
+
+    def getxyz(self):
+        x = round(self.position[0], 2)
+        y = round(self.position[1], 2)
+        z = round(self.position[2], 2)
+        return x, y, z
+
+    def update_3d(self):
+        from mn_wifi.plot import plot3d
+        self.plt_node.remove()
+        self.circle.remove()
+        self.plttxt.remove()
+        plot3d.instantiate_attrs(self)
+
+    def update_2d(self):
+        x, y, z = self.getxyz()
+        self.draw_text(x, y)
+        self.plt_node.set_data(x, y)
+        self.circle.center = x, y
+        # Enable the update of the wired links when the nodes have mobility
+        self.updateLine()
+
+    def get_max_radius(self):
+        range_list = []
+        for n in self.wintfs.values():
+            range_list.append(n.range)
+        return max(range_list)
+
+    def set_circle_center(self, x, y):
+        self.circle.center = x, y
+
+    def set_circle_radius(self):
+        self.circle.set_radius(self.get_max_radius())
+
+    def update_graph(self):
+        if plt.fignum_exists(1):
+            self.set_circle_radius()
+            self.updateLine()
+            self.update_2d()
 
     def setPosition(self, pos):
         "Set Position"
         self.position = [float(x) for x in pos.split(',')]
-        self.updateGraph()
+        self.update_graph()
 
         if wmediumd_mode.mode == w_cst.INTERFERENCE_MODE:
             self.set_pos_wmediumd(self.position)
@@ -227,7 +290,7 @@ class Node_wifi(Node):
         intf.antennaGain = int(gain)
         intf.range = self.getRange(intf)
         intf.setGainWmediumd()
-        self.updateGraph()
+        self.update_graph()
         self.configLinks()
         self.remove_attr_from_params('antennaGain')
 
@@ -262,7 +325,7 @@ class Node_wifi(Node):
         if hasattr(self, 'position'):
             intf.range = self.getRange(intf)
             intf.setTXPowerWmediumd()
-            self.updateGraph()
+            self.update_graph()
             self.configLinks()
         self.remove_attr_from_params('txpower')
 
@@ -449,27 +512,29 @@ class Node_wifi(Node):
         "Make sure our class dependencies are available"
         pathCheck('mnexec', 'ip addr', moduleName='Mininet')
 
-    def setCircleColor(self, color):
-        from mn_wifi.plot import plot2d
-        if plot2d.fig_exists():
-            plot2d.setCircleColor(self, color)
+    def set_circle_color(self, color):
+        for n in range(1, 3):
+            if plt.fignum_exists(n):
+                if hasattr(self, 'circle'):
+                    self.circle.set_color(color)
 
     def showNode(self, show=True):
-        from mn_wifi.plot import plot2d
-        if plot2d.fig_exists():
-            plot2d.showNode(self, show)
+        self.circle.set_visible(show)
+        self.plttxt.set_visible(show)
+        self.plt_node.set_visible(show)
 
     def stop_(self):
         "Stops hostapd"
         process = 'mn%d_%s' % (os.getpid(), self.name)
         os.system('pkill -f \'hostapd -B %s\'' % process)
-        self.setCircleColor('w')
+        self.set_circle_color('w')
 
     def start_(self):
         "Starts hostapd"
         process = 'mn%d_%s' % (os.getpid(), self.name)
         os.system('hostapd -B %s-wlan1.apconf' % process)
-        self.setCircleColor('b')
+        color = self.get_circle_color()
+        self.set_circle_color(color)
 
     def hide(self):
         for intf in self.wintfs.values():
@@ -479,7 +544,7 @@ class Node_wifi(Node):
     def show(self):
         for intf in self.wintfs.values():
             self.cmd('ip link set %s up' % intf.name)
-        self.showNode(True)
+        self.showNode()
 
 
 class Station(Node_wifi):
@@ -884,8 +949,7 @@ class AccessPoint(Node_wifi):
             cmd += "\nhw_mode=%s" % intf.mode
         return cmd
 
-    def virtual_intf(self, intf, wlan):
-        cmd = ''
+    def virtual_intf(self, intf, wlan, cmd=''):
         intf.txpower = intf.node.wintfs[0].txpower
         intf.antennaGain = intf.node.wintfs[0].antennaGain
         intf.antennaHeight = intf.node.wintfs[0].antennaHeight
@@ -895,9 +959,9 @@ class AccessPoint(Node_wifi):
         cmd += "\nssid=%s" % ssid
         if intf.node.wintfs[wlan].encrypt:
             if intf.node.wintfs[wlan].encrypt == 'wep':
-                cmd += "\nauth_algs=%s" % intf.node.auth_algs
+                cmd += "\nauth_algs=%s" % intf.node.wintfs[0].auth_algs
                 cmd += "\nwep_default_key=0"
-                cmd += self.verifyWepKey(intf.node.wep_key0)
+                cmd += self.verifyWepKey(intf.node.wintfs[0].wep_key0)
         return cmd
 
     def setHostapdConfig(self, intf, wlan, aplist):

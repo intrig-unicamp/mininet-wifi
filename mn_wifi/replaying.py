@@ -1,8 +1,6 @@
 """
     Mininet-WiFi: A simple networking testbed for Wireless OpenFlow/SDWN!
-
-author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
-
+    author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
 """
 
 from time import time, sleep
@@ -10,7 +8,7 @@ from threading import Thread as thread
 import random
 from pylab import math, cos, sin
 from mininet.log import info
-from mn_wifi.plot import plot2d, plot3d
+from mn_wifi.plot import PlotGraph, Plot2D, Plot3D
 from mn_wifi.mobility import mobility
 from mn_wifi.link import wirelessLink
 from mn_wifi.node import Station, AP
@@ -23,7 +21,7 @@ class replayingMobility(object):
     def __init__(self, Mininet_wifi, nodes=None):
         mobility.thread_ = thread(name='replayingMobility',
                                   target=self.mobility,
-                                  args=(nodes,Mininet_wifi,))
+                                  args=(nodes, Mininet_wifi,))
         mobility.thread_.daemon = True
         mobility.thread_._keep_alive = True
         mobility.thread_.start()
@@ -58,9 +56,9 @@ class replayingMobility(object):
         if Mininet_wifi.draw:
             Mininet_wifi.isReplaying=False
             Mininet_wifi.checkDimension(nodes)
-            plot = plot2d
+            plot = Plot2D
             if Mininet_wifi.max_z != 0:
-                plot = plot3d
+                plot = Plot3D
 
         currentTime = time()
         for node in nodes:
@@ -86,9 +84,9 @@ class replayingMobility(object):
                         nodes.remove(node)
                     mobility.configLinks()
                     if Mininet_wifi.draw:
-                        plot.update(node)
+                        node.update_2d()
             if Mininet_wifi.draw:
-                plot.pause()
+                PlotGraph.pause()
 
     @classmethod
     def addNode(cls, node):
@@ -226,7 +224,7 @@ class replayingRSSI(object):
                             dist = int('%d' % self.calculateDistance(sta, ap, rssi,
                                                                      propagationModel, n))
                             self.setPos(Mininet_wifi, sta, ap, dist, ang[sta])
-                            wirelessLink(sta, ap, dist, wlan=0, ap_wlan=0)
+                            wirelessLink(sta.wintfs[0], dist)
                         del sta.rssi[0]
                         del sta.time[0]
                     if len(sta.time) == 0:
@@ -241,7 +239,7 @@ class replayingRSSI(object):
         mobility.configLinks(sta)
         if Mininet_wifi.draw:
             try:
-                plot2d.update(sta)
+                sta.update_2d()
             except:
                 pass
         # sta.verifyingNodes(sta)

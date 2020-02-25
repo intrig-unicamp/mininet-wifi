@@ -3,6 +3,7 @@ import sys
 from mininet.cli import CLI
 from mininet.log import output, error
 
+
 class CLI_wifi(CLI):
     "Simple command-line interface to talk to nodes."
     CLI.prompt = 'mininet-wifi> '
@@ -29,7 +30,7 @@ class CLI_wifi(CLI):
             self.mn.get_distance(*args)
 
     def do_link(self, line):
-        from mn_wifi.plot import plot2d
+        from mn_wifi.plot import Plot2D
         """Bring link(s) between two nodes up or down.
            Usage: link node1 node2 [up/down]"""
         args = line.split()
@@ -45,9 +46,9 @@ class CLI_wifi(CLI):
                 nodes.append(self.mn.getNodeByName(node))
         if 'position' in nodes[0].params and 'position' in nodes[1].params:
             if len(args) == 3 and args[2] == 'down':
-                plot2d.hideLine(nodes[0], nodes[1])
+                Plot2D.hide_line(nodes[0], nodes[1])
             elif len(args) == 3 and args[2] == 'up':
-                plot2d.showLine(nodes[0], nodes[1])
+                Plot2D.show_line(nodes[0], nodes[1])
 
     def do_dpctl(self, line):
         """Run dpctl (or ovs-ofctl) command on all switches.

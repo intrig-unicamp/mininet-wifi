@@ -1,10 +1,6 @@
 """
-
     Mininet-WiFi: A simple networking testbed for Wireless OpenFlow/SDWN!
-
-author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
-
-
+    author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
 """
 
 import numpy as np
@@ -14,89 +10,76 @@ from mpl_toolkits.mplot3d import Axes3D
 from mininet.log import debug
 
 
-class plot3d (object):
-    'Plot 3d Graphs'
+class Plot3D (object):
     ax = None
-    plotted = False
 
-    @classmethod
-    def instantiateGraph(cls, MIN_X, MIN_Y, MIN_Z, MAX_X, MAX_Y, MAX_Z):
-        "instantiateGraph"
+    def __init__(self, **kwargs):
+        self.instantiate_graph(**kwargs)
+
+    def instantiate_graph(self, min_x, min_y, min_z, max_x, max_y, max_z,
+                          **kwargs):
         plt.ion()
+        plt.figure(1)
         plt.title("Mininet-WiFi Graph")
-        cls.ax = plt.subplot(111, projection=Axes3D.name)
-        cls.ax.set_xlabel('meters (x)')
-        cls.ax.set_ylabel('meters (y)')
-        cls.ax.set_zlabel('meters (z)')
-        cls.ax.set_xlim([MIN_X, MAX_X])
-        cls.ax.set_ylim([MIN_Y, MAX_Y])
-        cls.ax.set_zlim([MIN_Z, MAX_Z])
-        cls.ax.grid(True)
+        Plot3D.ax = plt.subplot(111, projection=Axes3D.name)
+        self.ax.set_xlabel('meters (x)')
+        self.ax.set_ylabel('meters (y)')
+        self.ax.set_zlabel('meters (z)')
+        self.ax.set_xlim([min_x, max_x])
+        self.ax.set_ylim([min_y, max_y])
+        self.ax.set_zlim([min_z, max_z])
+        self.ax.grid(True)
+        self.instantiate_nodes(**kwargs)
+
+    def instantiate_nodes(self, nodes, **kwargs):
+        for node in nodes:
+            self.instantiate_attrs(node)
+            self.draw()
 
     @classmethod
-    def instantiateAnnotate(cls, node):
-        "instantiateAnnotate"
-        x, y, z = cls.getPos(node)
-        node.plttxt = cls.ax.text(x, y, z, node.name)
+    def instantiate_attrs(cls, node):
+        cls.instantiate_annotate(node)
+        cls.instantiate_node(node)
+        cls.instantiate_circle(node)
 
     @classmethod
-    def instantiateNode(cls, node):
-        "Instantiate Node"
-        x, y, z = cls.getPos(node)
+    def instantiate_annotate(cls, node):
+        x, y, z = node.getxyz()
+        node.plttxt = plot3D.ax.text(x, y, z, node.name)
 
+    @classmethod
+    def instantiate_node(cls, node):
+        x, y, z = node.getxyz()
         resolution = 40
         u = np.linspace(0, 2 * np.pi, resolution)
         v = np.linspace(0, np.pi, resolution)
 
         r = 1
-
         x = r * np.outer(np.cos(u), np.sin(v)) + x
         y = r * np.outer(np.sin(u), np.sin(v)) + y
         z = r * np.outer(np.ones(np.size(u)), np.cos(v)) + z
 
-        node.pltNode = cls.ax.plot_surface(x, y, z, alpha=0.2,
-                                           edgecolor='none', color='black')
+        node.plt_node = Plot3D.ax.plot_surface(x, y, z, alpha=0.2,
+                                               edgecolor='none',
+                                               color='black')
 
     @classmethod
-    def instantiateNodes(cls, nodes):
-        "Instantiate Nodes"
-        for node in nodes:
-            cls.instantiateAnnotate(node)
-            cls.instantiateNode(node)
-            cls.instantiateCircle(node)
-            cls.draw()
+    def instantiate_circle(cls, node):
+        x, y, z = node.getxyz()
+        color = node.get_circle_color()
 
-    @classmethod
-    def fig_exists(cls):
-        return plt.fignum_exists(10)
+        resolution = 100
+        u = np.linspace(0, 2 * np.pi, resolution)
+        v = np.linspace(0, np.pi, resolution)
 
-    @classmethod
-    def pause(cls):
-        plt.pause(0.0001)
+        r = cls.get_max_radius(node)
+        x = r * np.outer(np.cos(u), np.sin(v)) + x
+        y = r * np.outer(np.sin(u), np.sin(v)) + y
+        z = r * np.outer(np.ones(np.size(u)), np.cos(v)) + z
 
-    @classmethod
-    def update(cls, node):
-        "Graph Update"
-
-        node.pltNode.remove()
-        node.pltCircle.remove()
-        node.plttxt.remove()
-
-        cls.instantiateCircle(node)
-        cls.instantiateNode(node)
-        cls.instantiateAnnotate(node)
-        cls.draw()
-
-    @classmethod
-    def draw(cls):
-        plt.draw()
-
-    @classmethod
-    def closePlot(cls):
-        try:
-            plt.close()
-        except:
-            pass
+        node.circle = Plot3D.ax.plot_surface(x, y, z, alpha=0.2,
+                                             edgecolor='none',
+                                             color=color)
 
     @classmethod
     def get_max_radius(cls, node):
@@ -105,83 +88,118 @@ class plot3d (object):
             range_list.append(n.range)
         return max(range_list)
 
-    @classmethod
-    def instantiateCircle(cls, node):
-        "Instantiate Circle"
-        from mn_wifi.node import Station, Car
-
-        x, y, z = cls.getPos(node)
-        color = 'b'
-        if isinstance(node, Station):
-            color = 'g'
-        elif isinstance(node, Car):
-            color = 'r'
-
-        resolution = 100
-        u = np.linspace(0, 2 * np.pi, resolution)
-        v = np.linspace(0, np.pi, resolution)
-
-        r = cls.get_max_radius(node)
-
-        x = r * np.outer(np.cos(u), np.sin(v)) + x
-        y = r * np.outer(np.sin(u), np.sin(v)) + y
-        z = r * np.outer(np.ones(np.size(u)), np.cos(v)) + z
-
-        node.pltCircle = cls.ax.plot_surface(x, y, z, alpha=0.2,
-                                             edgecolor='none',
-                                             color=color)
+    def draw(self):
+        plt.draw()
 
     @classmethod
-    def getPos(self, node):
-        x = round(node.position[0], 2)
-        y = round(node.position[1], 2)
-        z = round(node.position[2], 2)
-        return x, y, z
+    def update(cls, node):
+        "Graph Update"
+        node.plt_node.remove()
+        node.circle.remove()
+        node.plttxt.remove()
 
-
-class plot2d (object):
-    'Plot 2d Graphs'
-    ax = None
-    plotted = False
-    lines = {}
+        cls.instantiate_circle(node)
+        cls.instantiate_node(node)
+        cls.instantiate_annotate(node)
+        cls.draw()
 
     @classmethod
-    def closePlot(cls):
+    def close_plot(cls):
         try:
             plt.close()
         except:
             pass
 
-    @classmethod
-    def getxy(cls, node):
-        x = round(node.position[0], 2)
-        y = round(node.position[1], 2)
-        return x, y
+
+class Plot2D (object):
+    ax = None
+    lines = {}
+
+    def __init__(self, **kwargs):
+        self.instantiate_graph(**kwargs)
+
+    def instantiate_graph(self, min_x, min_y, max_x, max_y, **kwargs):
+        plt.ion()
+        plt.figure(1)
+        plt.title("Mininet-WiFi Graph")
+        Plot2D.ax = plt.subplot(111)
+        self.ax.set_xlabel('meters')
+        self.ax.set_ylabel('meters')
+        self.ax.set_xlim([min_x, max_x])
+        self.ax.set_ylim([min_y, max_y])
+        self.ax.grid(True)
+        self.plot_graph(**kwargs)
+
+    def plot_graph(self, nodes, links, **kwargs):
+        debug('Enabling Graph...\n')
+        for node in nodes:
+            x, y, z = node.getxyz()
+            self.instantiate_attrs(node)
+            node.plt_node.set_data(x, y)
+            node.draw_text(x, y)
+            node.circle.center = x, y
+            self.create_line(links)
 
     @classmethod
-    def text(cls, node, x, y):
-        "draw text"
-        # newer MPL versions (>=1.4)
-        if hasattr(node.plttxt, 'xyann'): node.plttxt.xyann = (x, y)
-        else: node.plttxt.xytext = (x, y)
+    def create_line(cls, links):
+        for link in links:
+            if 'wifi' not in str(link):
+                src = link.intf1.node
+                dst = link.intf2.node
+                ls = '-'
+                if hasattr(src, 'position') and hasattr(dst, 'position'):
+                    if 'ls' in link.intf1.params:
+                        ls = link.intf1.params['ls']
+                    Plot2D.add_line(src, dst, ls=ls)
 
     @classmethod
-    def circle(cls, node, x, y):
-        node.pltCircle.center = x, y
+    def instantiate_attrs(cls, node):
+        cls.instantiate_annotate(node)
+        cls.instantiate_circle(node)
+        cls.instantiate_node(node)
+        node.update_2d()
 
     @classmethod
-    def update(cls, node):
-        "Graph Update"
-        x, y = cls.getxy(node)
-        cls.text(node, x, y)
-        node.pltNode.set_data(x, y)
-        node.pltCircle.center = x, y
-        # Enable the update of the wired links when the nodes have mobility
-        cls.updateLine(node)
+    def instantiate_annotate(cls, node):
+        node.plttxt = Plot2D.ax.annotate(node, xy=(0, 0))
 
     @classmethod
-    def pause(cls):
-        plt.pause(0.001)
+    def instantiate_circle(cls, node):
+        color = node.get_circle_color()
+        node.circle = Plot2D.ax.add_patch(
+            patches.Circle((0, 0), node.get_max_radius(),
+                           fill=True, alpha=0.1, color=color))
+
+    @classmethod
+    def instantiate_node(cls, node):
+        node.plt_node, = Plot2D.ax.plot(1, 1, marker='.', ms=5, color='black')
+
+    @classmethod
+    def add_line(cls, src, dst, ls='-'):
+        src_x = round(src.position[0], 2)
+        src_y = round(src.position[1], 2)
+        dst_x = round(dst.position[0], 2)
+        dst_y = round(dst.position[1], 2)
+        line = Plot2D.line2d([src_x, dst_x],
+                             [src_y, dst_y], 'b', ls=ls)
+        conn_ = src.name + '-' + dst.name
+        Plot2D.lines[conn_] = line
+        Plot2D.line(line)
+
+    @classmethod
+    def line(cls, line):
+        cls.ax.add_line(line)
+
+    @staticmethod
+    def line2d(nodesx, nodesy, color='', ls='-', lw=1):
+        return plt.Line2D(nodesx, nodesy, color=color, ls=ls, lw=lw)
+
+    @classmethod
+    def close_plot(cls):
+        try:
+            plt.close()
+        except:
+            pass
 
     @classmethod
     def draw(cls):
@@ -192,181 +210,47 @@ class plot2d (object):
         return plt.scatter(nodesx, nodesy, color='red', marker='s')
 
     @classmethod
-    def line2d(cls, nodesx, nodesy, color='', ls='-', lw=1):
-        return plt.Line2D(nodesx, nodesy, color=color, ls=ls, lw=lw)
-
-    @classmethod
-    def lineTxt(cls, x, y, i):
+    def line_txt(cls, x, y, i):
         title = 'Av.%s' % i
         plt.text(x, y, title, ha='left', va='bottom', fontsize=8, color='g')
 
     @classmethod
-    def line(cls, line):
-        ax = cls.ax
-        ax.add_line(line)
-
-    @classmethod
-    def instantiateGraph(cls, MIN_X, MIN_Y, MAX_X, MAX_Y):
-        "instantiateGraph"
-        plt.ion()
-        plt.figure(10)
-        plt.title("Mininet-WiFi Graph")
-        cls.ax = plt.subplot(111)
-        cls.ax.set_xlabel('meters')
-        cls.ax.set_ylabel('meters')
-        cls.ax.set_xlim([MIN_X, MAX_X])
-        cls.ax.set_ylim([MIN_Y, MAX_Y])
-        cls.ax.grid(True)
-
-    @classmethod
-    def fig_exists(cls):
-        return plt.fignum_exists(10)
-
-    @classmethod
-    def instantiateNode(cls, node):
-        "instantiateNode"
-        ax = cls.ax
-        node.pltNode, = ax.plot(1, 1, marker='.', ms=5, color='black')
-
-    @classmethod
-    def instantiateCircle(cls, node):
-        "instantiateCircle"
-        ax = cls.ax
-        color = cls.set_def_color(node)
-        node.pltCircle = ax.add_patch(
-            patches.Circle((0, 0), cls.get_max_radius(node),
-                           fill=True, alpha=0.1, color=color))
-
-    @classmethod
-    def set_def_color(cls, node):
-        from mn_wifi.node import Station, Car
-        if 'color' in node.params:
-            color = node.params['color']
-        else:
-            color = 'b'
-            if isinstance(node, Station):
-                color = 'g'
-            elif isinstance(node, Car):
-                color = 'r'
-        return color
-
-    @classmethod
-    def instantiateAnnotate(cls, node):
-        node.plttxt = cls.ax.annotate(node, xy=(0, 0))
-
-    @classmethod
-    def get_max_radius(cls, node):
-        range_list = []
-        for n in node.wintfs.values():
-            range_list.append(n.range)
-        return max(range_list)
-
-    @classmethod
-    def updateCircleRadius(cls, node):
-        node.pltCircle.set_radius(cls.get_max_radius(node))
-
-    @classmethod
-    def updateLine(cls, node):
-        pos = [node.position[0], node.position[1]]
-        for line in cls.lines:
-            if node.name in line:
-                for n in range(len(line)):
-                    if '-' == line[n]:
-                        node = line[:n]
-                        #node2 = line[n+1:]
-                pos_ = cls.lines[line].get_data()
-                if node.name == node:
-                    cls.lines[line].set_data([pos[0],pos_[0][1]],
-                                             [pos[1],pos_[1][1]])
-                else:
-                    cls.lines[line].set_data([pos_[0][0],pos[0]],
-                                             [pos_[1][0],pos[1]])
-
-    @classmethod
-    def setCircleColor(cls, node, color):
-        node.pltCircle.set_color(color)
-
-    @classmethod
-    def setAnnotateColor(cls, node, color):
+    def set_annotate_color(cls, node, color):
         node.plttxt.set_color(color)
 
     @classmethod
-    def setNodeColor(cls, node, color):
-        node.pltNode.set_c(color)
+    def set_node_color(cls, node, color):
+        node.plt_node.set_c(color)
 
     @classmethod
-    def setNodeMarker(cls, node, marker=''):
-        node.pltNode.set_marker(marker)
+    def set_node_marker(cls, node, marker=''):
+        node.plt_node.set_marker(marker)
 
     @classmethod
-    def instantiateNodes(cls, node):
-        cls.instantiateAnnotate(node)
-        cls.instantiateCircle(node)
-        cls.instantiateNode(node)
-        cls.update(node)
-
-    @classmethod
-    def plotGraph(cls, nodes, conn):
-        "Plot Graph"
-        debug('Enabling Graph...\n')
-        for node in nodes:
-            x, y = cls.getxy(node)
-            cls.instantiateNodes(node)
-            node.pltNode.set_data(x, y)
-            cls.text(node, x, y)
-            cls.circle(node, x, y)
-
-        if 'src' in conn:
-            for c in range(0, len(conn['src'])):
-                ls = conn['ls'][c]
-                src = conn['src'][c]
-                dst = conn['dst'][c]
-                cls.addLine(src, dst, ls)
-
-    @classmethod
-    def showNode(cls, node, show=True):
-        node.pltCircle.set_visible(show)
-        node.plttxt.set_visible(show)
-        node.pltNode.set_visible(show)
-
-    @classmethod
-    def hideLine(cls, src, dst):
+    def hide_line(cls, src, dst):
         conn_ = src.name + dst.name
         cls.lines[conn_].set_visible(False)
 
     @classmethod
-    def showLine(cls, src, dst):
+    def show_line(cls, src, dst):
         conn_ = src.name + dst.name
         cls.lines[conn_].set_visible(True)
 
-    @classmethod
-    def addLine(cls, src, dst, ls='-'):
-        src_x = round(src.position[0], 2)
-        src_y = round(src.position[1], 2)
-        dst_x = round(dst.position[0], 2)
-        dst_y = round(dst.position[1], 2)
-        line = cls.line2d([src_x, dst_x],
-                          [src_y, dst_y], 'b', ls=ls)
-        conn_ = src.name + '-' + dst.name
-        cls.lines[conn_] = line
-        cls.line(line)
 
+class PlotGraph(object):
 
-class plotGraph(object):
-    'Plot Graphs'
+    plot3d = False
+
     def __init__(self, **kwargs):
-        'init plotgraph'
-        self.instantiateGraph(**kwargs)
+        self.instantiate_graph(**kwargs)
 
-    def instantiateGraph(self, **kwargs):
-        "instantiatePlotGraph"
+    def instantiate_graph(self, **kwargs):
         if kwargs['min_z'] == 0 and kwargs['max_z'] == 0:
-            plot2d.instantiateGraph(kwargs['min_x'], kwargs['min_y'],
-                                    kwargs['max_x'], kwargs['max_y'])
-            plot2d.plotGraph(kwargs['nodes'], kwargs['conn'])
+            Plot2D(**kwargs)
         else:
-            plot3d.plotted = True
-            plot3d.instantiateGraph(kwargs['min_x'], kwargs['min_y'],
-                                    kwargs['min_z'], kwargs['max_x'],
-                                    kwargs['max_y'], kwargs['max_z'])
-            plot3d.instantiateNodes(kwargs['nodes'])
+            PlotGraph.plot3d = True
+            Plot3D(**kwargs)
+
+    @classmethod
+    def pause(cls):
+        plt.pause(0.001)

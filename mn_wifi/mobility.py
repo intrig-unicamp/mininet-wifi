@@ -1,5 +1,7 @@
-"""Mininet-WiFi: A simple networking testbed for Wireless OpenFlow/SDWN!
-   author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)"""
+"""
+   Mininet-WiFi: A simple networking testbed for Wireless OpenFlow/SDWN!
+   author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
+"""
 
 from threading import Thread as thread
 from time import sleep, time
@@ -11,12 +13,11 @@ from numpy.random import rand
 from mininet.log import debug, info
 from mn_wifi.link import wirelessLink, Association, mesh, adhoc, ITSLink
 from mn_wifi.associationControl import associationControl
-from mn_wifi.plot import plot2d, plot3d, plotGraph
+from mn_wifi.plot import PlotGraph
 from mn_wifi.wmediumdConnector import w_cst, wmediumd_mode
 
 
-class mobility(object):
-    'Mobility'
+class Mobility(object):
     aps = []
     stations = []
     mobileNodes = []
@@ -89,7 +90,7 @@ class mobility(object):
     def set_pos(cls, node, pos):
         node.position = pos
         if wmediumd_mode.mode == w_cst.INTERFERENCE_MODE \
-                and mobility.thread_._keep_alive:
+                and Mobility.thread_._keep_alive:
             node.set_pos_wmediumd(pos)
 
     @classmethod
@@ -260,30 +261,30 @@ class mobility(object):
         sleep(0.0001)
 
 
-class model(mobility):
+class model(Mobility):
 
     def __init__(self, **kwargs):
         self.start_thread(**kwargs)
 
     def start_thread(self, **kwargs):
         debug('Starting mobility thread...\n')
-        mobility.thread_ = thread(name='mobModel', target=self.models,
+        Mobility.thread_ = thread(name='mobModel', target=self.models,
                                   kwargs=kwargs)
-        mobility.thread_.daemon = True
-        mobility.thread_._keep_alive = True
-        mobility.thread_.start()
-        mobility.set_wifi_params()
+        Mobility.thread_.daemon = True
+        Mobility.thread_._keep_alive = True
+        Mobility.thread_.start()
+        Mobility.set_wifi_params()
 
     def models(self, stations=None, aps=None, stat_nodes=None, mob_nodes=None,
                ac_method=None, draw=False, seed=1, model='RandomWalk',
                mnNodes=None, min_wt=5, max_wt=5, min_x=0, min_y=0,
-               max_x=100, max_y=100, conn=None, min_v=1, max_v=10,
+               max_x=100, max_y=100, links=None, min_v=1, max_v=10,
                **kwargs):
         "Used when a mobility model is set"
         np.random.seed(seed)
         if ac_method:
-            mobility.ac = ac_method
-        mobility.stations, mobility.mobileNodes, mobility.aps = \
+            Mobility.ac = ac_method
+        Mobility.stations, Mobility.mobileNodes, Mobility.aps = \
             stations, stations, aps
 
         if mnNodes:
@@ -302,10 +303,9 @@ class model(mobility):
         try:
             if draw:
                 nodes = mob_nodes + stat_nodes
-                plotGraph(min_x=min_x, min_y=min_y, min_z=0,
+                PlotGraph(min_x=min_x, min_y=min_y, min_z=0,
                           max_x=max_x, max_y=max_y, max_z=0,
-                          nodes=nodes, conn=conn)
-                plot2d.pause()
+                          nodes=nodes, links=links)
         except:
             info('Warning: running without GUI.\n')
 
@@ -356,18 +356,18 @@ class model(mobility):
                 pos = round(xy[idx][0], 2), \
                       round(xy[idx][1], 2), \
                       0.0
-                mobility.set_pos(node, pos)
+                Mobility.set_pos(node, pos)
                 if draw:
-                    plot2d.update(node)
+                    node.update_2d()
             if draw:
-                plot2d.pause()
+                PlotGraph.pause()
             else:
                 sleep(0.5)
-            while mobility.pause_simulation:
+            while Mobility.pause_simulation:
                 pass
 
 
-class tracked(mobility):
+class tracked(Mobility):
     "Used when the position of each node is previously defined"
 
     def __init__(self, **kwargs):
@@ -375,23 +375,22 @@ class tracked(mobility):
 
     def start_thread(self, **kwargs):
         debug('Starting mobility thread...\n')
-        mobility.thread_ = thread(target=self.configure,
+        Mobility.thread_ = thread(target=self.configure,
                                   kwargs=(kwargs))
-        mobility.thread_.daemon = True
-        mobility.thread_._keep_alive = True
-        mobility.thread_.start()
-        mobility.set_wifi_params()
+        Mobility.thread_.daemon = True
+        Mobility.thread_._keep_alive = True
+        Mobility.thread_.start()
+        Mobility.set_wifi_params()
 
     def configure(self, stations=None, aps=None, stat_nodes=None, mob_nodes=None,
                   ac_method=None, mnNodes=None, draw=False, **kwargs):
         if ac_method:
-            mobility.ac = ac_method
+            Mobility.ac = ac_method
 
-        mobility.stations = stations
-        mobility.aps = aps
-        mobility.mobileNodes = mob_nodes
+        Mobility.stations = stations
+        Mobility.aps = aps
+        Mobility.mobileNodes = mob_nodes
         nodes = stations + aps
-        plot = plot2d
 
         if mnNodes:
             stat_nodes += mnNodes
@@ -402,19 +401,23 @@ class tracked(mobility):
         try:
             if draw:
                 kwargs['nodes'] = stat_nodes + mob_nodes
-                plotGraph(**kwargs)
-                if kwargs['max_z'] != 0:
-                    plot = plot3d
+                PlotGraph(**kwargs)
         except:
             info('Warning: running without GUI.\n')
 
         for node in nodes:
             if hasattr(node, 'coord'):
                 self.set_coordinates(node)
-        self.run(mob_nodes, plot, draw, **kwargs)
+        self.run(mob_nodes, draw, **kwargs)
 
-    def run(self, mob_nodes, plot, draw, init_time=0, reverse=False,
+    def run(self, mob_nodes, draw, init_time=0, reverse=False,
             repetitions=1, end_time=10, **kwargs):
+
+        if draw:
+            if PlotGraph.plot3d:
+                graph_dim = 'update_3d'
+            else:
+                graph_dim = 'update_2d'
 
         for rep in range(repetitions):
             cont = True
@@ -429,13 +432,13 @@ class tracked(mobility):
             for node in mob_nodes:
                 node.matrix_id = 0
                 node.time = node.startTime
-                mobility.calculate_diff_time(node)
+                Mobility.calculate_diff_time(node)
             while cont:
                 t2 = time()
                 if (t2 - t1) > end_time:
                     cont = False
                     if rep == repetitions:
-                        mobility.thread_._keep_alive = False
+                        Mobility.thread_._keep_alive = False
                 if (t2 - t1) >= init_time:
                     if t2 - t1 >= i:
                         for node in mob_nodes:
@@ -448,15 +451,16 @@ class tracked(mobility):
                                         pos = node.points[len(node.points) - 1]
                                 else:
                                     pos = self.move_node(node)
-                                mobility.set_pos(node, pos)
+                                Mobility.set_pos(node, pos)
                                 node.time += 0.1
                             if draw:
-                                plot.update(node)
-                                if kwargs['max_z'] == 0:
-                                    plot2d.updateCircleRadius(node)
-                        plot.pause()
+                                graph_update = getattr(node, graph_dim)
+                                graph_update()
+                                if not PlotGraph.plot3d:
+                                    node.set_circle_radius()
+                        PlotGraph.pause()
                         i += 0.1
-                while mobility.pause_simulation:
+                while Mobility.pause_simulation:
                     pass
 
     def move_node(self, node):
@@ -542,7 +546,7 @@ class tracked(mobility):
                         faxes[ldelta.index(delta)] -= delta
                     else:
                         faxes[ldelta.index(delta)] = laxes[ldelta.index(delta)]
-            points.append(mobility.get_position(faxes))
+            points.append(Mobility.get_position(faxes))
         return points
 
     def set_coordinates(self, node):
@@ -576,7 +580,6 @@ class tracked(mobility):
 '''
 Created on Jan 24, 2012
 Modified by Ramon Fontes (ramonrf@dca.fee.unicamp.br)
-
 @author: Andre Panisson
 @contact: panisson@gmail.com
 @organization: ISI Foundation, Torino, Italy
@@ -593,6 +596,7 @@ P = lambda ALPHA, MIN, MAX, SAMPLES: ((MAX ** (ALPHA + 1.) - 1.) * \
 
 # define an Exponential Distribution
 E = lambda SCALE, SAMPLES: -SCALE * np.log(rand(*SAMPLES.shape))
+
 
 # *************** Palm state probability **********************
 def pause_probability_init(pause_low, pause_high, speed_low,
@@ -711,20 +715,14 @@ class RandomWaypoint(object):
     def __init__(self, nodes, wt_min=None, wt_max=None):
         """
         Random Waypoint model.
-
         Required arguments:
-
           *nr_nodes*:
             Integer, the number of nodes.
-
           *dimensions*:
             Tuple of Integers, the x and y dimensions of the simulation area.
-
         keyword arguments:
-
           *velocity*:
             Tuple of Integers, the minimum and maximum values for node velocity.
-
           *wt_max*:
             Integer, the maximum wait time for node pauses.
             If wt_max is 0 or None, there is no pause time.
@@ -821,37 +819,29 @@ class StochasticWalk(object):
         """
         Base implementation for models with direction uniformly chosen from [0,pi]:
         random_direction, random_walk, truncated_levy_walk
-
         Required arguments:
-
           *nr_nodes*:
             Integer, the number of nodes.
-
           *dimensions*:
             Tuple of Integers, the x and y dimensions of the simulation area.
-
           *FL_DISTR*:
             A function that, given a set of samples,
              returns another set with the same size of the input set.
             This function should implement the distribution of flight lengths
              to be used in the model.
-
           *VEL_DISTR*:
             A function that, given a set of flight lengths,
              returns another set with the same size of the input set.
             This function should implement the distribution of velocities
              to be used in the model, as random or as a function of the flight
              lengths.
-
         keyword arguments:
-
           *WT_DISTR*:
             A function that, given a set of samples,
              returns another set with the same size of the input set.
             This function should implement the distribution of wait times
              to be used in the node pause.
             If WT_DISTR is 0 or None, there is no pause time.
-
           *border_policy*:
             String, either 'reflect' or 'wrap'. The policy that is used when
             the node arrives to the border.
@@ -980,21 +970,15 @@ class RandomWalk(StochasticWalk):
         length and node velocity distributions are in fact constants,
         set to the *distance* and *velocity* parameters. The waiting time
         is set to None.
-
         Required arguments:
-
           *nr_nodes*:
             Integer, the number of nodes.
-
         keyword arguments:
-
           *velocity*:
             Double, the value for the constant node velocity. Default is 1.0
-
           *distance*:
             Double, the value for the constant distance traveled in each step.
             Default is 1.0
-
           *border_policy*:
             String, either 'reflect' or 'wrap'. The policy that is used when the
             node arrives to the border.
@@ -1038,24 +1022,18 @@ class RandomDirection(StochasticWalk):
         If wt_max is set, the waiting time is chosen from a uniform distribution
         with values between 0 and wt_max. If wt_max is not set, waiting time is
         set to None.
-
         Required arguments:
-
           *nr_nodes*:
             Integer, the number of nodes.
-
           *dimensions*:
             Tuple of Integers, the x and y dimensions of the simulation area.
-
         keyword arguments:
-
           *wt_max*:
             Double, maximum value for the waiting time distribution.
             If wt_max is set, the waiting time is chosen from a uniform
             distribution with values between 0 and wt_max.
             If wt_max is not set, the waiting time is set to None.
             Default is None.
-
           *border_policy*:
             String, either 'reflect' or 'wrap'. The policy that is used
             when the node arrives to the border. If 'reflect', the node reflects
@@ -1097,36 +1075,27 @@ class TruncatedLevyWalk(StochasticWalk):
         On the Levy-Walk Nature of Human Mobility.
             In 2008 IEEE INFOCOM - Proceedings of the 27th Conference on Computer
             Communications, pages 924-932. April 2008.
-
         The implementation is a special case of the more generic Stochastic Walk,
         in which both the flight length and waiting time distributions are
         truncated power laws, with exponents set to FL_EXP and WT_EXP and
         truncated at FL_MAX and WT_MAX. The node velocity is a function of the
         flight length.
-
         Required arguments:
-
           *nr_nodes*:
             Integer, the number of nodes.
-
         keyword arguments:
-
           *FL_EXP*:
             Double, the exponent of the flight length distribution.
             Default is -2.6
-
           *FL_MAX*:
             Double, the maximum value of the flight length distribution.
             Default is 50
-
           *WT_EXP*:
             Double, the exponent of the waiting time distribution.
             Default is -1.8
-
           *WT_MAX*:
             Double, the maximum value of the waiting time distribution.
             Default is 100
-
           *border_policy*:
             String, either 'reflect' or 'wrap'. The policy that is used when the
             node arrives to the border. If 'reflect', the node reflects off the
@@ -1156,33 +1125,24 @@ class HeterogeneousTruncatedLevyWalk(StochasticWalk):
         created by taking both min and max values from a power law with exponent
         set to FL_EXP and truncated FL_MAX. The node velocity is a function of
         the flight length.
-
         Required arguments:
-
           *nr_nodes*:
             Integer, the number of nodes.
-
           *dimensions*:
             Tuple of Integers, the x and y dimensions of the simulation area.
-
         keyword arguments:
-
           *WT_EXP*:
             Double, the exponent of the waiting time distribution.
              Default is -1.8
-
           *WT_MAX*:
             Double, the maximum value of the waiting time distribution.
             Default is 100
-
           *FL_EXP*:
             Double, the exponent of the flight length distribution.
             Default is -2.6
-
           *FL_MAX*:
             Double, the maximum value of the flight length distribution.
             Default is 50
-
           *border_policy*:
             String, either 'reflect' or 'wrap'. The policy that is used when
             the node arrives to the border. If 'reflect', the node reflects off
@@ -1235,20 +1195,14 @@ def gauss_markov(nodes, velocity_mean=1., alpha=1., variance=1.):
     Camp, T., Boleng, J. & Davies, V. A survey of mobility models for ad hoc
     network research.
     Wireless Communications and Mobile Computing 2, 483-502 (2002).
-
     Required arguments:
-
       *nr_nodes*:
         Integer, the number of nodes.
-
     keyword arguments:
-
       *velocity_mean*:
         The mean velocity
-
       *alpha*:
         The tuning parameter used to vary the randomness
-
       *variance*:
         The randomness variance
     """
@@ -1313,31 +1267,23 @@ def gauss_markov(nodes, velocity_mean=1., alpha=1., variance=1.):
 def reference_point_group(nodes, dimensions, velocity=(0.1, 1.), aggregation=0.1):
     """
     Reference Point Group Mobility model, discussed in the following paper:
-
         Xiaoyan Hong, Mario Gerla, Guangyu Pei, and Ching-Chuan Chiang. 1999.
         A group mobility model for ad hoc wireless networks. In Proceedings of
         the 2nd ACM international workshop on Modeling, analysis and simulation
         of wireless and mobile systems (MSWiM '99). ACM, New York, NY, USA,
         53-60.
-
     In this implementation, group trajectories follow a random direction model,
     while nodes follow a random walk around the group center.
     The parameter 'aggregation' controls how close the nodes are to the group
     center.
-
     Required arguments:
-
       *nr_nodes*:
         list of integers, the number of nodes in each group.
-
       *dimensions*:
         Tuple of Integers, the x and y dimensions of the simulation area.
-
     keyword arguments:
-
       *velocity*:
         Tuple of Doubles, the minimum and maximum values for group velocity.
-
       *aggregation*:
         Double, parameter (between 0 and 1) used to aggregate the nodes in the
         group. Usually between 0 and 1, the more this value approximates to 1,
@@ -1451,11 +1397,9 @@ def reference_point_group(nodes, dimensions, velocity=(0.1, 1.), aggregation=0.1
 def tvc(nodes, dimensions, velocity=(0.1, 1.), aggregation=[0.5, 0.], epoch=[100, 100]):
     """
     Time-variant Community Mobility Model, discussed in the paper
-
         Wei-jen Hsu, Thrasyvoulos Spyropoulos, Konstantinos Psounis, and Ahmed Helmy,
         "Modeling Time-variant User Mobility in Wireless Mobile Networks,"
         INFOCOM 2007, May 2007.
-
     This is a variant of the original definition, in the following way:
     - Communities don't have a specific area, but a reference point where the
        community members aggregate around.
@@ -1469,20 +1413,14 @@ def tvc(nodes, dimensions, velocity=(0.1, 1.), aggregation=[0.5, 0.], epoch=[100
        For aggregation 0, there's no attraction point and the nodes move in a random
        walk model. For aggregation near 1, the nodes move closer to the community
        reference point.
-
     Required arguments:
-
       *nr_nodes*:
         list of integers, the number of nodes in each group.
-
       *dimensions*:
         Tuple of Integers, the x and y dimensions of the simulation area.
-
     keyword arguments:
-
       *velocity*:
         Tuple of Doubles, the minimum and maximum values for community velocities.
-
       *aggregation*:
         List of Doubles, parameters (between 0 and 1) used to aggregate the nodes
         around the community center.
@@ -1490,7 +1428,6 @@ def tvc(nodes, dimensions, velocity=(0.1, 1.), aggregation=[0.5, 0.], epoch=[100
         the nodes will be more aggregated and closer to the group center.
         With aggregation 0, the nodes are randomly distributed in the simulation area.
         With aggregation near 1, the nodes are closer to the group center.
-
       *epoch*:
         List of Integers, the number of steps each epoch stage lasts.
     """

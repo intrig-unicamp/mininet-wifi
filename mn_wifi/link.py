@@ -1,5 +1,7 @@
-# author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
-
+"""
+   Mininet-WiFi: A simple networking testbed for Wireless OpenFlow/SDWN!
+   @author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
+"""
 
 import os
 import re
@@ -578,8 +580,8 @@ class _4address(IntfWireless):
         intf1 = None
         intf2 = None
 
-        ap = node1 # ap
-        cl = node2 # client
+        ap = node1  # ap
+        cl = node2  # client
         cl_intfName = '%s.wds' % cl.name
 
         if not hasattr(node1, 'position'):
@@ -689,14 +691,14 @@ class WirelessLinkAP(object):
         params = dict( params ) if params else {}
 
         if port is not None:
-            params[ 'port' ] = port
+            params['port'] = port
 
         params['port'] = node.newPort()
         if not intfName:
             ifacename = 'wlan'
             intfName = self.wlanName(node, ifacename, params['port'])
         intf1 = cls(name=intfName, node=node,
-                    link=self, mac = addr, ** params)
+                    link=self, mac=addr, **params)
 
         intf2 = 'wifi'
         # All we are is dust in the wind, and our two interfaces
@@ -837,20 +839,22 @@ class master(TCWirelessLink):
         self.freq = 2.412
         self.range = 0
         self.txpower = 14
-        self.ieee80211r = None
-        self.band = None
+        self.auth_algs = None
         self.authmode = None
+        self.band = None
         self.beacon_int = None
         self.config = None
-        self.driver = 'nl80211'
+        self.config_methods = None
         self.encrypt = None
         self.ht_capab = None
+        self.ieee80211r = None
         self.id = wlan
         self.ip = None
         self.ip6 = None
         self.isolate_clients = None
         self.mac = None
         self.mode = 'g'
+        self.mobility_domain = None
         self.passwd = None
         self.shared_secret = None
         self.ssid = None
@@ -860,8 +864,7 @@ class master(TCWirelessLink):
         self.wps_state = None
         self.device_type = None
         self.wpa_psk_file = None
-        self.config_methods = None
-        self.mobility_domain = None
+        self.wep_key0 = None
         self.link = None
 
         if intf:

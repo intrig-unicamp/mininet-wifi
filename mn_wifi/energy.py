@@ -1,8 +1,9 @@
-"""Mininet-WiFi: A simple networking testbed for Wireless OpenFlow/SDWN!
+"""
+   Mininet-WiFi: A simple networking testbed for Wireless OpenFlow/SDWN!
+   @author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
+"""
 
-   author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)"""
-
-from mn_wifi.mobility import mobility
+from mn_wifi.mobility import Mobility
 from threading import Thread as thread
 from time import sleep
 
@@ -10,13 +11,13 @@ from time import sleep
 class Energy(object):
 
     def __init__(self, nodes):
-        mobility.thread_ = thread(target=self.start, args=(nodes,))
-        mobility.thread_.daemon = True
-        mobility.thread_._keep_alive = True
-        mobility.thread_.start()
+        Mobility.thread_ = thread(target=self.start, args=(nodes,))
+        Mobility.thread_.daemon = True
+        Mobility.thread_._keep_alive = True
+        Mobility.thread_.start()
 
     def start(self, nodes):
-        while mobility.thread_._keep_alive:
+        while Mobility.thread_._keep_alive:
             sleep(1)  # set sleep time to 1 second
             for node in nodes:
                 self.level(node)

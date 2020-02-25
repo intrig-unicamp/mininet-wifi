@@ -22,6 +22,9 @@ def topology(coord):
                              position='45,40,0')
     c1 = net.addController('c1')
 
+    info("*** Configuring propagation model\n")
+    net.setPropagationModel(model="logDistance", exp=4.5)
+
     info("*** Configuring wifi nodes\n")
     net.configureWifiNodes()
 

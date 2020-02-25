@@ -61,7 +61,7 @@ class Cleanup(object):
     def kill_mod_proc(cls):
 
         if cls.plot:
-            cls.plot.closePlot()
+            cls.plot.close_plot()
 
         cls.killprocs('sumo-gui')
         cls.killprocs('hostapd')
