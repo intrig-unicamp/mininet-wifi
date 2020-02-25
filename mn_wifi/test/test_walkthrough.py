@@ -340,7 +340,7 @@ class testWalkthrough(unittest.TestCase):
         """Start Mininet-WiFi when the position is statically defined,
         then test ping"""
         p = pexpect.spawn(
-            'python examples/position.py')
+            'python examples/position.py -p')
         sleep(3)
         p.sendline('sta1 ping -c 1 sta2')
         p.expect('1 packets transmitted, 1 received')
@@ -360,7 +360,7 @@ class testWalkthrough(unittest.TestCase):
     def testMobility(self):
         "Start Mininet-WiFi using mobility, then test ping"
         p = pexpect.spawn(
-            'python examples/mobility.py')
+            'python examples/mobility.py -p')
         sleep(3)
         p.sendline('sta1 ping -c 1 sta2')
         p.expect('1 packets transmitted, 1 received')
@@ -371,7 +371,7 @@ class testWalkthrough(unittest.TestCase):
     def testMobilityModel(self):
         "Start Mininet-WiFi using mobility model, then test attr"
         p = pexpect.spawn(
-            'python examples/mobilityModel.py -m')
+            'python examples/mobilityModel.py -m -p')
         sleep(3)
         p.sendline('py ap1.wintfs')
         wlans = ['ap1-wlan1', 'ap1-wlan2']
@@ -405,7 +405,7 @@ class testWalkthrough(unittest.TestCase):
     def testPropagationModel(self):
         "Start Mininet-WiFi using a propagation model, then test ping and rssi"
         p = pexpect.spawn(
-            'python examples/propagationModel.py')
+            'python examples/propagationModel.py -p')
         sleep(3)
         p.sendline('sta1 ping -c 1 sta2')
         p.expect('1 packets transmitted, 1 received')
@@ -416,7 +416,7 @@ class testWalkthrough(unittest.TestCase):
     def testReplayingMobility(self):
         "Start Mininet-WiFi using Replaying Mobility, then test ping"
         p = pexpect.spawn(
-            'python examples/replaying/replayingMobility.py')
+            'python examples/replaying/replayingMobility.py -p')
         sleep(20)
         p.sendline('sta1 ping -c1 sta2')
         p.expect('1 packets transmitted, 1 received')
@@ -455,7 +455,7 @@ class testWalkthrough(unittest.TestCase):
     def testHandover(self):
         "Start Mininet-WiFi with handover, then test handover"
         p = pexpect.spawn(
-            'python examples/handover.py')
+            'python examples/handover.py -p')
         sleep(2)
         p.sendline('sta1 iw dev sta1-wlan0 info | grep ssid')
         p.expect('ssid-ap1')
@@ -467,7 +467,7 @@ class testWalkthrough(unittest.TestCase):
         p.sendline('exit')
         p.wait()
         p = pexpect.spawn(
-            'python examples/handover.py -s')
+            'python examples/handover.py -s -p')
         sleep(5)
         p.sendline('py ap1.wintfs[0].associatedStations')
         p.expect('Station sta1')
@@ -541,7 +541,7 @@ class testWalkthrough(unittest.TestCase):
         pexpect.spawn(
             'service network-manager stop')
         p = pexpect.spawn(
-            'python examples/forwardingBySSID.py')
+            'python examples/forwardingBySSID.py -p')
         sleep(3)
         p.sendline('sta1 iw dev sta1-wlan0 info | grep ssid')
         p.expect('ssid1')
@@ -564,7 +564,7 @@ class testWalkthrough(unittest.TestCase):
     def testWmediumdErrorProb(self):
         "Start Mininet-WiFi, then test wmediumd_error_prob.py"
         p = pexpect.spawn(
-            'python examples/wmediumd_error_prob.py')
+            'python examples/wmediumd_error_prob.py -p')
         sleep(10)
         p.sendline('sta1 ping -c1 sta2')
         p.expect('1 packets transmitted, 1 received')
@@ -575,21 +575,12 @@ class testWalkthrough(unittest.TestCase):
         p.sendline('exit')
         p.wait()
 
-    def testWmediumdVanet(self):
-        "Start Mininet-WiFi using vanet example"
-        p = pexpect.spawn(
-            'python examples/vanet.py')
-        sleep(10)
-        p.expect(self.prompt)
-        p.sendline('exit')
-        p.wait()
-
     def testWmediumdWiFiDirect(self):
         "Start Mininet-WiFi using wifi direct, then test ping"
         pexpect.spawn(
             'service network-manager stop')
         p = pexpect.spawn(
-            'python examples/wifiDirect.py')
+            'python examples/wifiDirect.py -p')
         sleep(17)
         p.sendline('pingall')
         p.expect(self.prompt)
@@ -648,7 +639,7 @@ class testWalkthrough(unittest.TestCase):
     def testWmediumdBgscan(self):
         "Start Mininet-WiFi, then test bgscan"
         p = pexpect.spawn(
-            'python examples/handover_bgscan.py')
+            'python examples/handover_bgscan.py -p')
         sleep(10)
         p.sendline('sta1 iw dev sta1-wlan0 link | grep Connected')
         p.expect('00:00:00:00:00:01')
@@ -666,7 +657,7 @@ class testWalkthrough(unittest.TestCase):
         pexpect.spawn(
             'service network-manager stop')
         p = pexpect.spawn(
-            'python examples/4address.py')
+            'python examples/4address.py -p')
         sleep(3)
         p.sendline('sta1 ping -c 1 sta2')
         p.expect('1 packets transmitted, 1 received')
@@ -688,7 +679,7 @@ class testWalkthrough(unittest.TestCase):
     def testWmediumdInterference(self):
         "Start Mininet-WiFi using wmediumd with interference, then test ping"
         p = pexpect.spawn(
-            'python examples/wmediumd_interference.py')
+            'python examples/wmediumd_interference.py -p')
         sleep(12)
         p.sendline('sta1 ping -c1 sta2')
         p.expect('1 packets transmitted, 1 received')
@@ -700,7 +691,7 @@ class testWalkthrough(unittest.TestCase):
         """Start Mininet-WiFi with sta in ap mode,
         then do an extensive test"""
         p = pexpect.spawn(
-            'python examples/sta_ap_mode.py')
+            'python examples/sta_ap_mode.py -p')
         sleep(12)
         p.sendline('sta1 iw dev sta1-wlan0 link | grep Connected')
         p.expect('02:00:00:00:01:00')
@@ -766,7 +757,7 @@ class testWalkthrough(unittest.TestCase):
         p.sendline('exit')
         p.wait()
         p = pexpect.spawn(
-            'python examples/sta_ap_mode.py -m')
+            'python examples/sta_ap_mode.py -m -p')
         p.expect(self.prompt)
         p.sendline('exit')
         p.wait()

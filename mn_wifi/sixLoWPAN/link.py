@@ -409,6 +409,7 @@ class sixLoWPAN(IntfSixLoWPAN):
            intf: default interface class/constructor"""
         self.name = '%s-pan%s' % (node.name, wpan)
         self.node = node
+        self.range = 50
         node.addWAttr(self, port=wpan)
         intf = node.wintfs[wpan]
         self.panid = '0xbeef'

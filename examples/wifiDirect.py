@@ -2,6 +2,7 @@
 
 'Example for WiFi Direct'
 
+import sys
 from time import sleep
 
 from mininet.log import setLogLevel, info
@@ -11,7 +12,7 @@ from mn_wifi.net import Mininet_wifi
 from mn_wifi.wmediumdConnector import interference
 
 
-def topology():
+def topology(args):
     "Create a network."
     net = Mininet_wifi(link=wmediumd,
                        wmediumd_mode=interference,
@@ -27,7 +28,8 @@ def topology():
     info("*** Configuring wifi nodes\n")
     net.configureWifiNodes()
 
-    net.plotGraph(max_x=200, max_y=200)
+    if '-p' not in args:
+        net.plotGraph(max_x=200, max_y=200)
 
     info("*** Starting WiFi Direct\n")
     net.addLink(sta1, intf='sta1-wlan0', cls=wifiDirectLink)
@@ -57,4 +59,4 @@ def topology():
 
 if __name__ == '__main__':
     setLogLevel('info')
-    topology()
+    topology(sys.argv)
