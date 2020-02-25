@@ -9,7 +9,7 @@ import random
 from pylab import math, cos, sin
 from mininet.log import info
 from mn_wifi.plot import PlotGraph, Plot2D, Plot3D
-from mn_wifi.mobility import mobility
+from mn_wifi.mobility import Mobility
 from mn_wifi.link import wirelessLink
 from mn_wifi.node import Station, AP
 
@@ -19,19 +19,19 @@ class replayingMobility(object):
     timestamp = False
 
     def __init__(self, Mininet_wifi, nodes=None):
-        mobility.thread_ = thread(name='replayingMobility',
+        Mobility.thread_ = thread(name='replayingMobility',
                                   target=self.mobility,
                                   args=(nodes, Mininet_wifi,))
-        mobility.thread_.daemon = True
-        mobility.thread_._keep_alive = True
-        mobility.thread_.start()
+        Mobility.thread_.daemon = True
+        Mobility.thread_._keep_alive = True
+        Mobility.thread_.start()
 
     def timestamp_(self, node, time_):
         if time_ >= float(node.time[0]):
             pos = node.p[0]
             del node.p[0]
             del node.time[0]
-            mobility.set_pos(node, pos)
+            Mobility.set_pos(node, pos)
 
     def notimestamp_(self, node, time_):
         if time_ >= node.currentTime:
@@ -40,18 +40,18 @@ class replayingMobility(object):
                     pos = node.p[0]
                     del node.p[0]
                     node.currentTime += node.timestamp
-                    mobility.set_pos(node, pos)
+                    Mobility.set_pos(node, pos)
 
     def mobility(self, nodes, Mininet_wifi):
         if nodes is None:
             nodes = Mininet_wifi.stations + Mininet_wifi.aps
         for node in nodes:
             if isinstance(node, Station):
-                if hasattr(node, 'position') and node not in mobility.stations:
-                    mobility.stations.append(node)
+                if hasattr(node, 'position') and node not in Mobility.stations:
+                    Mobility.stations.append(node)
             if isinstance(node, AP):
-                if hasattr(node, 'position') and node not in mobility.aps:
-                    mobility.aps.append(node)
+                if hasattr(node, 'position') and node not in Mobility.aps:
+                    Mobility.aps.append(node)
 
         if Mininet_wifi.draw:
             Mininet_wifi.isReplaying=False
@@ -73,16 +73,16 @@ class replayingMobility(object):
         if self.timestamp:
             calc_pos = self.timestamp_
 
-        while mobility.thread_._keep_alive:
+        while Mobility.thread_._keep_alive:
             time_ = time() - currentTime
             if len(nodes) == 0:
                 break
             for node in nodes:
-                if node in mobility.stations:
+                if node in Mobility.stations:
                     calc_pos(node, time_)
                     if len(node.p) == 0:
                         nodes.remove(node)
-                    mobility.configLinks()
+                    Mobility.configLinks()
                     if Mininet_wifi.draw:
                         node.update_2d()
             if Mininet_wifi.draw:
@@ -94,26 +94,26 @@ class replayingMobility(object):
             if hasattr(node, 'pos'):
                 pos = node.p[0].split(' ')
                 node.position = pos[0].split(',')
-            mobility.stations.append(node)
+            Mobility.stations.append(node)
         elif isinstance(node, AP):
-            mobility.aps.append(node)
+            Mobility.aps.append(node)
 
 
 class replayingBandwidth(object):
     'Replaying Bandwidth Traces'
 
     def __init__(self, Mininet_wifi):
-        mobility.thread_ = thread(name='replayingBandwidth',
+        Mobility.thread_ = thread(name='replayingBandwidth',
                                        target=self.throughput, args=(Mininet_wifi,))
-        mobility.thread_.daemon = True
-        mobility.thread_._keep_alive = True
-        mobility.thread_.start()
+        Mobility.thread_.daemon = True
+        Mobility.thread_._keep_alive = True
+        Mobility.thread_.start()
 
     @classmethod
     def throughput(cls, Mininet_wifi):
         currentTime = time()
         stations = Mininet_wifi.stations
-        while mobility.thread_._keep_alive:
+        while Mobility.thread_._keep_alive:
             if len(stations) == 0:
                 break
             time_ = time() - currentTime
@@ -137,11 +137,11 @@ class replayingNetworkConditions(object):
 
     def __init__(self, Mininet_wifi, **kwargs):
 
-        mobility.thread_ = thread( name='replayingNetConditions',
+        Mobility.thread_ = thread( name='replayingNetConditions',
                                         target=self.behavior, args=(Mininet_wifi,) )
-        mobility.thread_.daemon = True
-        mobility.thread_._keep_alive = True
-        mobility.thread_.start()
+        Mobility.thread_.daemon = True
+        Mobility.thread_._keep_alive = True
+        Mobility.thread_.start()
 
     @classmethod
     def behavior(cls, Mininet_wifi):
@@ -153,7 +153,7 @@ class replayingNetworkConditions(object):
         stations = Mininet_wifi.stations
         for sta in stations:
             sta.wintfs[0].freq = sta.wintfs[0].get_freq()
-        while mobility.thread_._keep_alive:
+        while Mobility.thread_._keep_alive:
             if len(stations) == 0:
                 break
             time_ = time() - currentTime
@@ -177,9 +177,9 @@ class replayingNetworkConditions(object):
     @classmethod
     def addNode(cls, node):
         if isinstance(node, Station):
-            mobility.stations.append(node)
+            Mobility.stations.append(node)
         elif isinstance(node, AP):
-            mobility.aps.append(node)
+            Mobility.aps.append(node)
 
 
 class replayingRSSI(object):
@@ -197,11 +197,11 @@ class replayingRSSI(object):
         for key in kwargs:
             setattr(self, key, kwargs[key])
 
-        mobility.thread_ = thread(name='replayingRSSI', target=self.rssi,
+        Mobility.thread_ = thread(name='replayingRSSI', target=self.rssi,
                                        args=(Mininet_wifi, propagationModel, n))
-        mobility.thread_.daemon = True
-        mobility.thread_._keep_alive = True
-        mobility.thread_.start()
+        Mobility.thread_.daemon = True
+        Mobility.thread_._keep_alive = True
+        Mobility.thread_.start()
 
     def rssi(self, Mininet_wifi, propagationModel='', n=0):
         currentTime = time()
@@ -210,7 +210,7 @@ class replayingRSSI(object):
         for sta in staList:
             ang[sta] = random.uniform(0, 360)
             sta.wintfs[0].freq = sta.wintfs[0].get_freq()
-        while mobility.thread_._keep_alive:
+        while Mobility.thread_._keep_alive:
             if len(staList) == 0:
                 break
             time_ = time() - currentTime
@@ -236,7 +236,7 @@ class replayingRSSI(object):
         x = float('%.2f' % (dist * cos(ang) + int(ap.position[0])))
         y = float('%.2f' % (dist * sin(ang) + int(ap.position[1])))
         sta.position = x, y, 0
-        mobility.configLinks(sta)
+        Mobility.configLinks(sta)
         if Mininet_wifi.draw:
             try:
                 sta.update_2d()

@@ -13,9 +13,10 @@ from random import randrange
 import matplotlib.cbook
 from pylab import ginput as ginp, math, cos, sin, np
 
-from mn_wifi.plot import Plot2D
-from mn_wifi.node import AP
 from mininet.log import info
+from mn_wifi.mobility import Mobility
+from mn_wifi.node import AP
+from mn_wifi.plot import PlotGraph, Plot2D
 
 
 try:
@@ -37,39 +38,36 @@ class vanet(object):
     time_per_iteration = 100 * math.pow(10, -3)
 
     def __init__(self, **kwargs):
-        from mn_wifi.mobility import mobility
         kwargs['nodes'] = kwargs['cars']
-        mobility.thread_ = thread(name='vanet', target=self.start,
+        Mobility.thread_ = thread(name='vanet', target=self.start,
                                   kwargs=kwargs)
-        mobility.thread_.daemon = True
-        mobility.thread_._keep_alive = True
-        mobility.thread_.start()
+        Mobility.thread_.daemon = True
+        Mobility.thread_._keep_alive = True
+        Mobility.thread_.start()
 
     def start(self, cars, **kwargs):
         'start topology'
-        from mn_wifi.mobility import mobility
         aps = kwargs['aps']
         roads = kwargs['roads']
-
-        mobility.stations = cars
-        mobility.mobileNodes = cars
-        mobility.aps = aps
+        Mobility.stations = cars
+        Mobility.mobileNodes = cars
+        Mobility.aps = aps
         [self.roads.append(x) for x in range(roads)]
         [self.points.append(x) for x in range(roads)]
         Plot2D(**kwargs)
 
         self.display_grid(**kwargs)
         self.display_cars(cars)
-        self.setWifiParameters(mobility)
-        while mobility.thread_._keep_alive:
+        self.setWifiParameters()
+        while Mobility.thread_._keep_alive:
             [self.scatter, self.com_lines] = \
                 self.simulate_car_movement(cars, aps, self.scatter,
-                                           self.com_lines, mobility)
+                                           self.com_lines)
             sleep(0.0001)
 
-    def setWifiParameters(self, mobility):
+    def setWifiParameters(self):
         from threading import Thread as thread
-        thread = thread(name='wifiParameters', target=mobility.parameters)
+        thread = thread(name='wifiParameters', target=Mobility.parameters)
         thread.start()
 
     def get_line(self, x1, y1, x2, y2):
@@ -306,7 +304,7 @@ class vanet(object):
         info(element[0])
 
     def simulate_car_movement(self, cars, aps, scatter,
-                              com_lines, mobility):
+                              com_lines):
         # temporal variables
         points = [[], []]
         scatter.remove()
@@ -317,7 +315,7 @@ class vanet(object):
             com_lines[0].remove()
             del com_lines[0]
 
-        while mobility.pause_simulation:
+        while Mobility.pause_simulation:
             pass
 
         # iterate over each car
@@ -366,8 +364,8 @@ class vanet(object):
 
             car.update_2d()
 
-        Plot2D.pause()
-        if not mobility.thread_._keep_alive:
+        PlotGraph.pause()
+        if not Mobility.thread_._keep_alive:
             exit()
 
         scatter = Plot2D.scatter(points[0], points[1])

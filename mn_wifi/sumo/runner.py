@@ -4,7 +4,7 @@ import threading
 from threading import Thread as thread
 
 from mininet.log import info
-from mn_wifi.mobility import mobility
+from mn_wifi.mobility import Mobility
 from mn_wifi.sumo.sumolib.sumolib import checkBinary
 from mn_wifi.sumo.traci import trace, _vehicle
 
@@ -14,11 +14,11 @@ class sumo(object):
     vehCmds = None
 
     def __init__(self, cars, aps, **kwargs):
-        mobility.thread_ = thread(name='vanet', target=self.configureApp,
+        Mobility.thread_ = thread(name='vanet', target=self.configureApp,
                                   args=(cars, aps), kwargs=dict(kwargs,))
-        mobility.thread_.daemon = True
-        mobility.thread_._keep_alive = True
-        mobility.thread_.start()
+        Mobility.thread_.daemon = True
+        Mobility.thread_._keep_alive = True
+        Mobility.thread_.start()
 
     @classmethod
     def getVehCmd(cls):
@@ -27,15 +27,15 @@ class sumo(object):
     def configureApp(self, cars, aps, config_file='map.sumocfg',
                      clients=1, port=8813):
         try:
-            mobility.cars = cars
-            mobility.aps = aps
-            mobility.mobileNodes = cars
+            Mobility.cars = cars
+            Mobility.aps = aps
+            Mobility.mobileNodes = cars
             self.start(cars, config_file, clients, port)
         except:
             info("*** Connection with SUMO has been closed\n")
 
     def setWifiParameters(self):
-        thread = threading.Thread(name='wifiParameters', target=mobility.parameters)
+        thread = threading.Thread(name='wifiParameters', target=Mobility.parameters)
         thread.start()
 
     def start(self, cars, config_file, clients, port):
