@@ -45,7 +45,7 @@ class Plot3D (object):
     @classmethod
     def instantiate_annotate(cls, node):
         x, y, z = node.getxyz()
-        node.plttxt = plot3D.ax.text(x, y, z, node.name)
+        node.plttxt = Plot3D.ax.text(x, y, z, node.name)
 
     @classmethod
     def instantiate_node(cls, node):
