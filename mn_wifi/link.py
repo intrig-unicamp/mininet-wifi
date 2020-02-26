@@ -14,7 +14,7 @@ from mininet.util import BaseString
 from mininet.log import error, debug, info
 from mn_wifi.manetRoutingProtocols import manetProtocols
 from mn_wifi.wmediumdConnector import DynamicIntfRef, \
-    w_starter, SNRLink, w_pos, w_cst, w_server, ERRPROBLink, \
+    WStarter, SNRLink, w_pos, w_cst, w_server, ERRPROBLink, \
     wmediumd_mode, w_txpower, w_gain, w_height
 
 
@@ -980,23 +980,17 @@ class wmediumd(TCWirelessLink):
     positions = []
     nodes = []
 
-    def __init__(self, fading_coefficient, noise_threshold, stations,
-                 aps, cars, propagation_model, maclist=None):
+    def __init__(self, **kwargs):
+        self.configureWmediumd(**kwargs)
 
-        self.configureWmediumd(fading_coefficient, noise_threshold, stations,
-                               aps, cars, propagation_model, maclist)
-
-    @classmethod
-    def configureWmediumd(cls, fading_coefficient, noise_threshold, stations,
-                          aps, cars, propagation_model, maclist):
+    def configureWmediumd(self, fading_cof, noise_th, stations,
+                          aps, cars, ppm, maclist):
         "Configure wmediumd"
         intfrefs = []
         isnodeaps = []
-        fading_coefficient = fading_coefficient
-        noise_threshold = noise_threshold
 
-        cls.nodes = stations + aps + cars
-        for node in cls.nodes:
+        wmediumd.nodes = stations + aps + cars
+        for node in self.nodes:
             for intf in node.wintfs.values():
                 intf.wmIface = DynamicIntfRef(node, intf=intf.name)
                 intfrefs.append(intf.wmIface)
@@ -1028,22 +1022,10 @@ class wmediumd(TCWirelessLink):
             set_error_prob()
         else:
             set_snr()
-        start_wmediumd(intfrefs, wmediumd.links, wmediumd.positions,
-                       fading_coefficient, noise_threshold,
-                       wmediumd.txpowers, isnodeaps, propagation_model,
-                       maclist)
-
-
-class start_wmediumd(object):
-    def __init__(cls, intfrefs, links, positions,
-                 fading_coefficient, noise_threshold, txpowers, isnodeaps,
-                 propagation_model, maclist):
-
-        w_starter.start(intfrefs, links, pos=positions,
-                        fading_coefficient=fading_coefficient,
-                        noise_threshold=noise_threshold,
-                        txpowers=txpowers, isnodeaps=isnodeaps,
-                        ppm=propagation_model, maclist=maclist)
+        WStarter(intfrefs=intfrefs, links=wmediumd.links,
+                 pos=wmediumd.positions, fading_cof=fading_cof,
+                 noise_th=noise_th, txpowers=wmediumd.txpowers,
+                 isnodeaps=isnodeaps, ppm=ppm, maclist=maclist)
 
 
 class set_interference(object):
@@ -1051,8 +1033,7 @@ class set_interference(object):
     def __init__(self):
         self.interference()
 
-    @classmethod
-    def interference(cls):
+    def interference(self):
         'configure interference model'
         for node in wmediumd.nodes:
             if not hasattr(node, 'position'):
@@ -1566,8 +1547,8 @@ class Association(IntfWireless):
 
     @classmethod
     def get_rssi(cls, intf, ap_intf, dist):
-        from mn_wifi.propagationModels import propagationModel
-        rssi = float(propagationModel(intf, ap_intf, dist).rssi)
+        from mn_wifi.propagationModels import PropagationModel as ppm
+        rssi = float(ppm(intf, ap_intf, dist).rssi)
         intf.rssi = rssi
         if ap_intf.node not in intf.apsInRange:
             intf.apsInRange[ap_intf.node] = rssi

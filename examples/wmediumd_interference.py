@@ -4,7 +4,6 @@
 
 import sys
 
-from mininet.node import Controller
 from mininet.log import setLogLevel, info
 from mn_wifi.link import wmediumd
 from mn_wifi.cli import CLI_wifi
@@ -14,8 +13,7 @@ from mn_wifi.wmediumdConnector import interference
 
 def topology(args):
     "Create a network."
-    net = Mininet_wifi(controller=Controller, link=wmediumd,
-                       wmediumd_mode=interference,
+    net = Mininet_wifi(link=wmediumd, wmediumd_mode=interference,
                        noise_th=-91, fading_cof=3)
 
     info("*** Creating nodes\n")

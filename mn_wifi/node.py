@@ -42,7 +42,7 @@ from mn_wifi.link import TCWirelessLink, TCLinkWirelessAP,\
     physicalMesh, ITSLink
 from mn_wifi.wmediumdConnector import w_server, w_pos, w_cst, wmediumd_mode
 from mn_wifi.propagationModels import GetSignalRange, \
-    GetPowerGivenRange, propagationModel
+    GetPowerGivenRange, PropagationModel as ppm
 
 
 class Node_wifi(Node):
@@ -330,7 +330,7 @@ class Node_wifi(Node):
         self.remove_attr_from_params('txpower')
 
     def get_rssi(self, intf, ap_intf, dist=0):
-        rssi = propagationModel(intf, ap_intf, dist).rssi
+        rssi = ppm(intf, ap_intf, dist).rssi
         return float(rssi)
 
     def set_pos_wmediumd(self, pos):

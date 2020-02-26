@@ -15,7 +15,7 @@ from mn_wifi.node import Station, AP
 
 
 class ReplayingMobility(object):
-    'Replaying Mobility Traces'
+
     timestamp = False
     net = None
 
@@ -89,7 +89,7 @@ class ReplayingMobility(object):
 
 
 class ReplayingBandwidth(object):
-    'Replaying Bandwidth Traces'
+
     net = None
 
     def __init__(self, net):
@@ -123,7 +123,6 @@ class ReplayingBandwidth(object):
 
 
 class ReplayingNetworkConditions(object):
-    'Replaying Network Conditions'
 
     net = None
 
@@ -167,7 +166,6 @@ class ReplayingNetworkConditions(object):
 
 
 class ReplayingRSSI(object):
-    'Replaying RSSI Traces'
 
     print_bw = False
     print_loss = False

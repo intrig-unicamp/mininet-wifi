@@ -4,7 +4,6 @@
 
 import sys
 
-from mininet.node import Controller
 from mininet.log import setLogLevel, info
 from mn_wifi.cli import CLI_wifi
 from mn_wifi.net import Mininet_wifi
@@ -13,7 +12,7 @@ from mn_wifi.net import Mininet_wifi
 def topology(args):
 
     "Create a network."
-    net = Mininet_wifi(controller=Controller)
+    net = Mininet_wifi()
 
     info("*** Creating nodes\n")
     net.addStation('sta1', antennaHeight='1', antennaGain='5')
@@ -22,6 +21,7 @@ def topology(args):
                              mode='g', channel='1', position='50,50,0')
     c1 = net.addController('c1')
 
+    info("*** Configuring propagation model\n")
     net.setPropagationModel(model="logDistance", exp=4)
 
     info("*** Configuring wifi nodes\n")

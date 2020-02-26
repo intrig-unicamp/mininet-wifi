@@ -8,13 +8,12 @@ import os
 import socket
 import tempfile
 import subprocess
-import signal
 from time import sleep
 import struct
 import pkg_resources
 from sys import version_info as py_version_info
 
-from mininet.log import info, error, debug
+from mininet.log import info, debug
 
 
 class wmediumd_mode(object):
@@ -98,14 +97,13 @@ class WmediumdException(Exception):
 
 class set_interference(object):
 
-    def __init__(self, configstr, ppm, pos, txpowers,
-                 fading_coefficient, noise_threshold, isnodeaps):
+    configstr = ''
 
-        self.interference(configstr, ppm, pos, txpowers,
-                          fading_coefficient, noise_threshold, isnodeaps)
+    def __init__(self, **kwargs):
+        self.interference(**kwargs)
 
     def interference(self, configstr, ppm, pos, txpowers,
-                     fading_coefficient, noise_threshold, isnodeaps):
+                     fading_cof, noise_th, isnodeaps, **kwargs):
         configstr += '\n\t];\n\tenable_interference = true;'
         configstr += '\n};\nmodel:\n{\n'
         configstr += '\ttype = "path_loss";\n\tpositions = ('
@@ -120,8 +118,8 @@ class set_interference(object):
                 configstr += ','
             configstr += '\n\t\t(%.1f, %.1f, %.1f)' % (
                 posX, posY, posZ)
-        configstr += '\n\t);\n\tfading_coefficient = %d;' % fading_coefficient
-        configstr += '\n\tnoise_threshold = %d;' % noise_threshold
+        configstr += '\n\t);\n\tfading_coefficient = %d;' % fading_cof
+        configstr += '\n\tnoise_threshold = %d;' % noise_th
         configstr += '\n\tisnodeaps = ('
         first_isnodeap = True
         for isnodeap in isnodeaps:
@@ -157,58 +155,29 @@ class set_interference(object):
         else:
             configstr += ');\n\tmodel_name = "free_space";\n\tsL = %d;\n};' \
                          % ppm.sL
-        w_starter.configstr = configstr
+        self.configstr = configstr
+        return self.configstr
 
 
-class w_starter(object):
-    is_managed = False
-    is_initialized = False
-    is_connected = False
-    wmd_process = None
-    wmd_logfile = None
-    wmd_config_name = None
-    configstr = ''
-    default_auto_errprob = 0.0
-    default_auto_snr = -10
+class WStarter(object):
 
-    @classmethod
-    def start(cls, intfrefs=None, links=None, default_auto_snr=-10,
-              default_auto_errprob=1.0, isnodeaps=None,
-              fading_coefficient=0, noise_threshold=-91, pos=None,
-              txpowers=None, ppm=None, maclist=None):
-        """Set the data for the wmediumd daemon
+    def __init__(self, **kwargs):
+        self.default_auto_errprob = 1.0
+        self.default_auto_snr = -10
+        self.is_managed = False
+        self.is_initialized = False
+        self.is_connected = False
+        self.wmd_process = None
+        self.wmd_logfile = None
+        self.wmd_config_name = None
 
-        :param intfrefs: A list of all WmediumdIntfRef that should be managed
-        in wmediumd
-        :param links: A list of WmediumdLink
-        :param parameters: Parameters to pass to the wmediumd executable
-        :param default_auto_snr: The default SNR
-        :param txpowers: list of txpowers
-        :param pos: list of pos
-        :param is nodeaps: check if the node is ap
-        :param fading_coefficient: fading_coefficient
-        :param ppm: propagation model
-        :param maclist: additional maclist"""
+        self.start(**kwargs)
 
-        kwargs = {}
-        if intfrefs is None:
-            intfrefs = []
-        if links is None:
-            links = []
+    def start(self, **kwargs):
+        """Start the wmediumd daemon"""
+
         parameters = ['-l', '0', '-s']
-
-        kwargs['intfrefs'] = intfrefs
-        kwargs['links'] = links
-        kwargs['pos'] = pos
-        kwargs['txpowers'] = txpowers
-        kwargs['isnodeaps'] = isnodeaps
         kwargs['parameters'] = parameters
-        kwargs['default_auto_snr'] = default_auto_snr
-        kwargs['default_auto_errprob'] = default_auto_errprob
-        kwargs['fading_coefficient'] = fading_coefficient
-        kwargs['noise_threshold'] = noise_threshold
-        kwargs['ppm'] = ppm
-        kwargs['maclist'] = maclist
 
         if wmediumd_mode.mode == 4:
             raise Exception("Wrong wmediumd mode given")
@@ -216,16 +185,15 @@ class w_starter(object):
                              stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE)
         if wm == 0:
-            cls.is_initialized = True
-            cls.initialize(**kwargs)
+            self.is_initialized = True
+            self.initialize(**kwargs)
             w_server.connect()
         else:
             info('*** Wmediumd is being used, but it is not installed.\n' \
-                  '*** Please install Wmediumd with sudo util/install.sh -l.\n')
+                 '*** Please install Wmediumd with sudo util/install.sh -l.\n')
             exit(1)
 
-    @classmethod
-    def initialize(cls, **kwargs):
+    def initialize(self, **kwargs):
         """
         Start wmediumd, this method should be called right after
         Mininet.configureWifiNodes()
@@ -235,12 +203,12 @@ class w_starter(object):
         dump)
         ppm: propagation model class
         """
-        if not cls.is_initialized:
-            raise WmediumdException("Use w_starter.initialize first "
+        if not self.is_initialized:
+            raise WmediumdException("Use Wstarter.initialize first "
                                     "to set the required data")
 
-        if cls.is_connected:
-            raise WmediumdException("w_starter is already connected")
+        if self.is_connected:
+            raise WmediumdException("Wstarter is already connected")
 
         mappedintf = {}
         mappedlinks = {}
@@ -285,18 +253,18 @@ class w_starter(object):
                                 mappedlinks.setdefault(
                                     link_id, ERRPROBLink(
                                         intfref1, intfref2,
-                                        cls.default_auto_errprob))
+                                        self.default_auto_errprob))
                             else:
                                 mappedlinks.setdefault(
                                     link_id, SNRLink(
                                         intfref1, intfref2,
-                                        cls.default_auto_snr))
+                                        self.default_auto_snr))
 
             # Create wmediumd config
             wmd_config = tempfile.NamedTemporaryFile(
                 prefix='mn_wmd_config_', suffix='.cfg', delete=False)
-            cls.wmd_config_name = wmd_config.name
-            debug("Name of wmediumd config: %s\n" % cls.wmd_config_name)
+            self.wmd_config_name = wmd_config.name
+            debug("Name of wmediumd config: %s\n" % self.wmd_config_name)
             configstr = 'ifaces:\n{\n\tids = [\n'
             intfref_id = 0
             for intfref in kwargs['intfrefs']:
@@ -308,10 +276,8 @@ class w_starter(object):
                 intfref_id += 1
 
             if wmediumd_mode.mode is w_cst.INTERFERENCE_MODE:
-                set_interference(configstr, kwargs['ppm'], kwargs['pos'],
-                                 kwargs['txpowers'], kwargs['fading_coefficient'],
-                                 kwargs['noise_threshold'], kwargs['isnodeaps'])
-                configstr = cls.configstr
+                kwargs['configstr'] = configstr
+                configstr = set_interference(**kwargs).configstr
             else:
                 configstr += '\n\t];\n};\nmodel:\n{\n\ttype = "'
                 if wmediumd_mode.mode == w_cst.ERRPROB_MODE:
@@ -344,7 +310,7 @@ class w_starter(object):
             cmdline.append("-d")
         else:
             cmdline.append("-c")
-            cmdline.append(cls.wmd_config_name)
+            cmdline.append(self.wmd_config_name)
             if wmediumd_mode.mode is w_cst.SNR_MODE \
                     or wmediumd_mode.mode is w_cst.INTERFERENCE_MODE:
                 cmdline.append("-x")
@@ -353,65 +319,18 @@ class w_starter(object):
                         'mn_wifi', 'data/signal_table_ieee80211')
                 cmdline.append(per_data_file)
         cmdline[1:1] = kwargs['parameters']
-        cls.wmd_logfile = tempfile.NamedTemporaryFile(prefix='mn_wmd_log_',
-                                                      suffix='.log',
-                                                      delete=not cls.is_managed)
-        debug("Name of wmediumd log: %s\n" % cls.wmd_logfile.name)
-        if cls.is_managed:
+        self.wmd_logfile = tempfile.NamedTemporaryFile(prefix='mn_wmd_log_',
+                                                       suffix='.log',
+                                                       delete=not self.is_managed)
+        debug("Name of wmediumd log: %s\n" % self.wmd_logfile.name)
+        if self.is_managed:
             cmdline[0:0] = ["nohup"]
 
-        cls.wmd_process = subprocess.Popen(cmdline, shell=False,
-                                           stdout=cls.wmd_logfile,
-                                           stderr=subprocess.STDOUT,
-                                           preexec_fn=os.setpgrp)
-        cls.is_connected = True
-
-    @classmethod
-    def start_managed(cls):
-        """Start the connector in managed mode, which means disconnect and
-        kill won't work, the process is kept running after the python
-        process has finished"""
-        cls.is_managed = True
-        if not cls.is_initialized:
-            cls.initialize()
-        cls.start()
-
-    @classmethod
-    def stop(cls):
-        "Kill the wmediumd process if running and delete the config"
-        if cls.is_managed:
-            error("\nCannot close w_starter in managed mode")
-            return
-        if cls.is_connected:
-            cls.kill_wmediumd()
-            try:
-                cls.wmd_logfile.close()
-            except OSError:
-                pass
-            try:
-                os.remove(cls.wmd_config_name)
-            except OSError:
-                pass
-            cls.is_connected = False
-        else:
-            raise WmediumdException('w_starter is not connected '
-                                    'to wmediumd')
-
-    @classmethod
-    def kill_wmediumd(cls):
-        if cls.is_managed:
-            return
-        if not cls.is_connected:
-            raise WmediumdException('w_starter is not connected '
-                                    'to wmediumd')
-        try:
-            # SIGINT to allow closing resources
-            cls.wmd_process.send_signal(signal.SIGINT)
-            sleep(0.5)
-            # SIGKILL in case it did not finish
-            cls.wmd_process.send_signal(signal.SIGKILL)
-        except OSError:
-            pass
+        self.wmd_process = subprocess.Popen(cmdline, shell=False,
+                                            stdout=self.wmd_logfile,
+                                            stderr=subprocess.STDOUT,
+                                            preexec_fn=os.setpgrp)
+        self.is_connected = True
 
 
 class w_pos(object):

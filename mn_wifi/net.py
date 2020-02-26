@@ -41,7 +41,7 @@ from mn_wifi.telemetry import parseData, telemetry as run_telemetry
 from mn_wifi.mobility import tracked as trackedMob, model as mobModel, Mobility as mob
 from mn_wifi.plot import Plot2D, Plot3D, PlotGraph
 from mn_wifi.module import module
-from mn_wifi.propagationModels import propagationModel
+from mn_wifi.propagationModels import PropagationModel as ppm
 from mn_wifi.vanet import vanet
 from mn_wifi.sixLoWPAN.net import Mininet_IoT
 from mn_wifi.sixLoWPAN.node import OVSSensor, Node_6lowpan
@@ -133,7 +133,6 @@ class Mininet_wifi(Mininet):
         self.terms = []  # list of spawned xterm processes
         self.autoAssociation = autoAssociation  # does not include mobility
         self.allAutoAssociation = allAutoAssociation  # includes mobility
-        self.ppm_is_set = False
         self.draw = False
         self.isReplaying = False
         self.wmediumd_started = False
@@ -1337,14 +1336,9 @@ class Mininet_wifi(Mininet):
         self.mob_param['mob_nodes'] = mob_nodes
 
     def setPropagationModel(self, **kwargs):
-        "Set Propagation Model"
-        self.ppm_is_set = True
-        kwargs['noise_th'] = self.noise_th
-        kwargs['cca_th'] = self.cca_th
-        self.propagation_model(**kwargs)
+        ppm.setAttr(self.noise_th, self.cca_th, **kwargs)
 
     def configWirelessLinkStatus(self, src, dst, status):
-
         sta = self.nameToNode[dst]
         ap = self.nameToNode[src]
         if isinstance(self.nameToNode[src], Station):
@@ -1540,7 +1534,7 @@ class Mininet_wifi(Mininet):
             self.mob_param.setdefault('roads', self.roads)
         self.mob_param.setdefault('links', self.links)
 
-        self.mob_param.setdefault('ppm', propagationModel.model)
+        self.mob_param.setdefault('ppm', ppm.model)
 
     def setAssociationCtrl(self, ac='ssf'):
         "set association control"
@@ -1567,18 +1561,18 @@ class Mininet_wifi(Mininet):
 
         if not self.configWiFiDirect and not self.config4addr and \
             self.wmediumd_mode != error_prob:
-            wmediumd(self.fading_cof, self.noise_th,
-                     self.stations, self.aps, self.cars, propagationModel,
-                     self.wmediumdMac)
+            wmediumd(fading_cof=self.fading_cof, noise_th=self.noise_th,
+                     stations=self.stations, aps=self.aps, cars=self.cars,
+                     ppm=ppm, maclist=self.wmediumdMac)
 
     def init_wmediumd(self):
         if (self.config4addr or self.configWiFiDirect
                 or self.wmediumd_mode == error_prob) and self.link == wmediumd:
-            wmediumd(self.fading_cof, self.noise_th,
-                     self.stations, self.aps, self.cars, propagationModel,
-                     self.wmediumdMac)
-            for sta in self.stations:
-                if self.wmediumd_mode != error_prob:
+            wmediumd(fading_cof=self.fading_cof, noise_th=self.noise_th,
+                     stations=self.stations, aps=self.aps, cars=self.cars,
+                     ppm=ppm, maclist=self.wmediumdMac)
+            if self.wmediumd_mode != error_prob:
+                for sta in self.stations:
                     sta.set_pos_wmediumd(sta.position)
             for sta in self.stations:
                 if sta in self.aps:
@@ -1591,8 +1585,6 @@ class Mininet_wifi(Mininet):
 
     def configureWifiNodes(self):
         "Configure WiFi Nodes"
-        if not self.ppm_is_set:
-            self.setPropagationModel()
         params = {}
         if self.docker:
             params['docker'] = self.docker
@@ -1636,22 +1628,6 @@ class Mininet_wifi(Mininet):
                 self.apsensors + self.sensors
         self.checkDimension(nodes)
 
-    def plot_dynamic(self):
-        "Check which nodes will be plotted dynamically at runtime"
-        nodes = self.stations + self.aps + self.cars + \
-                self.apsensors + self.sensors
-        self.checkDimension(nodes)
-
-        while True:
-            for node in nodes:
-                node.wintfs[0].range = node.getRange(node.wintfs[0])
-                if self.draw:
-                    if not issubclass(self.plot, Plot3D):
-                        self.plot.update_circle_radius(node)
-                    self.plot.update(node)
-            self.plot.pause()
-            sleep(0.5)
-
     def auto_association(self):
         "This is useful to make the users' life easier"
         isap = []
@@ -1694,11 +1670,6 @@ class Mininet_wifi(Mininet):
                         pos_x = float(pos[0]) - 1
                         pos = (pos_x, pos[1], pos[2])
                         node.set_pos_wmediumd(pos)
-
-    @staticmethod
-    def propagation_model(**kwargs):
-        "Propagation Model Attr"
-        propagationModel.setAttr(**kwargs)
 
     @staticmethod
     def stop_simulation():

@@ -13,18 +13,17 @@ from random import gauss
 from time import sleep
 
 
-class propagationModel(object):
-    "Propagation Models"
+class PropagationModel(object):
 
     rssi = -62
-    model = ''
+    model = 'logDistance'  # default propagation model
     exp = 3  # Exponent
     sL = 1  # System Loss
     lF = 0  # Floor penetration loss factor
     pL = 0  # Power Loss Coefficient
     nFloors = 0  # Number of floors
     gRandom = 0  # Gaussian random variable
-    variance = 2 # variance
+    variance = 2  # variance
     noise_threshold = -91
     cca_threshold = -90
 
@@ -33,26 +32,13 @@ class propagationModel(object):
             self.__getattribute__(self.model)(intf, apintf, dist)
 
     @classmethod
-    def setAttr(cls, **kwargs):
-        cls.model = 'logDistance'
-        if 'model' in kwargs:
-            cls.model = kwargs['model']
-        if 'exp' in kwargs:
-            cls.exp = kwargs['exp']
-        if 'sL' in kwargs:
-            cls.sL = kwargs['sL']
-        if 'lF' in kwargs:
-            cls.lF = kwargs['lF']
-        if 'pL' in kwargs:
-            cls.pL = kwargs['pL']
-        if 'nFloors' in kwargs:
-            cls.nFloors = kwargs['nFloors']
-        if 'variance' in kwargs:
-            cls.variance = kwargs['variance']
-        if 'noise_threshold' in kwargs:
-            cls.noise_threshold = kwargs['noise_threshold']
-        if 'cca_threshold' in kwargs:
-            cls.cca_threshold = kwargs['cca_threshold']
+    def setAttr(cls, noise_th, cca_th, **kwargs):
+        cls.noise_threshold = noise_th
+        cls.cca_threshold = cca_th
+        args = ['model', 'exp', 'sL', 'lF', 'pL', 'nFloors', 'variance']
+        for arg in args:
+            if arg in kwargs:
+                setattr(cls, arg, kwargs[arg])
 
     def pathLoss(self, intf, dist):
         """Path Loss Model:
@@ -93,11 +79,11 @@ class propagationModel(object):
     def twoRayGround(self,  intf, ap_intf, dist):
         """Two Ray Ground Propagation Loss Model (does not give a good result for
         a short distance)"""
-        gr = intf.antennaGain
-        hr = intf.antennaHeigth
-        pt = ap_intf.txpower
-        gt = ap_intf.antennaGain
-        ht = ap_intf.antennaHeight
+        gr = int(intf.antennaGain)
+        hr = int(intf.antennaHeight)
+        pt = int(ap_intf.txpower)
+        gt = int(ap_intf.antennaGain)
+        ht = int(ap_intf.antennaHeight)
         gains = pt + gt + gr
 
         if dist == 0:
@@ -200,7 +186,7 @@ class propagationModel(object):
         return self.rssi
 
 
-ppm = propagationModel
+ppm = PropagationModel
 
 
 class GetSignalRange(object):
@@ -229,7 +215,7 @@ class GetSignalRange(object):
         denominator = lambda_ ** 2
         self.dist = math.pow(10, ((-ppm.noise_threshold + gains +
                                    10 * math.log10(denominator)) /
-                                  10 - math.log10((4 * math.pi) ** 2 * L)) / (2))
+                                  10 - math.log10((4 * math.pi) ** 2 * L)) / 2)
 
         return self.dist
 
@@ -255,12 +241,11 @@ class GetSignalRange(object):
         gt = int(intf.antennaGain)
         ht = int(intf.antennaHeight)
         pt = int(intf.txpower)
-        rssi = intf.rssi
 
         gains = pt + gt
         L = ppm.sL
 
-        self.dist = (((pt * gt * ht ** 2) / gains - rssi)/L)**1/4
+        self.dist = (((pt * gt * ht ** 2) / gains + ppm.noise_threshold)/L)**1/4
 
         return self.dist
 
@@ -292,12 +277,12 @@ class GetSignalRange(object):
         gain = int(intf.antennaGain)
         gains = txpower + (gain * 2)
         mean = 0
-        variance = propagationModel.variance
+        variance = ppm.variance
         gRandom = round(gauss(mean, variance), 2)
-        propagationModel.gRandom = gRandom
+        ppm.gRandom = gRandom
 
         if wmediumd_mode == 3:
-            sleep(0.002) #notice problem when there are multiple threads
+            sleep(0.002)  # noticed problem when there are multiple threads
             w_server.update_gaussian_random(
                 WmediumdGRandom(intf.wmIface, gRandom))
 
@@ -425,9 +410,9 @@ class GetPowerGivenRange(object):
         ref_d = 1
         dist = intf.range
         gain = intf.antennaGain
-        variance = propagationModel.variance
+        variance = ppm.variance
         gRandom = round(gauss(mean, variance), 2)
-        propagationModel.gRandom = gRandom
+        ppm.gRandom = gRandom
 
         if wmediumd_mode == 3:
             sleep(0.001)  # notice problem when there are many threads
