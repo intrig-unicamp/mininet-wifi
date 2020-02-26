@@ -1336,7 +1336,7 @@ class Mininet_wifi(Mininet):
         self.mob_param['mob_nodes'] = mob_nodes
 
     def setPropagationModel(self, **kwargs):
-        ppm.setAttr(self.noise_th, self.cca_th, **kwargs)
+        ppm.set_attr(self.noise_th, self.cca_th, **kwargs)
 
     def configWirelessLinkStatus(self, src, dst, status):
         sta = self.nameToNode[dst]

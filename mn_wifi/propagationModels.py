@@ -32,15 +32,13 @@ class PropagationModel(object):
             self.__getattribute__(self.model)(intf, apintf, dist)
 
     @classmethod
-    def setAttr(cls, noise_th, cca_th, **kwargs):
+    def set_attr(cls, noise_th, cca_th, **kwargs):
         cls.noise_threshold = noise_th
         cls.cca_threshold = cca_th
-        args = ['model', 'exp', 'sL', 'lF', 'pL', 'nFloors', 'variance']
-        for arg in args:
-            if arg in kwargs:
-                setattr(cls, arg, kwargs[arg])
+        for arg in kwargs:
+            setattr(cls, arg, kwargs.get(arg))
 
-    def pathLoss(self, intf, dist):
+    def path_loss(self, intf, dist):
         """Path Loss Model:
         (f) signal frequency transmited(Hz)
         (d) is the distance between the transmitter and the receiver (m)
@@ -71,7 +69,7 @@ class PropagationModel(object):
         gt = ap_intf.antennaGain
         gains = pt + gt + gr
 
-        pl = self.pathLoss(intf, dist)
+        pl = self.path_loss(intf, dist)
         self.rssi = gains - pl
 
         return self.rssi
@@ -108,7 +106,7 @@ class PropagationModel(object):
         gains = pt + gt + gr
         ref_d = 1
 
-        pl = self.pathLoss(intf, ref_d)
+        pl = self.path_loss(intf, ref_d)
 
         if dist == 0:
             dist = 0.1
@@ -133,7 +131,7 @@ class PropagationModel(object):
         gains = pt + gt + gr
         ref_d = 1
 
-        pl = self.pathLoss(intf, ref_d)
+        pl = self.path_loss(intf, ref_d)
 
         if dist == 0:
             dist = 0.1
@@ -219,7 +217,7 @@ class GetSignalRange(object):
 
         return self.dist
 
-    def pathLoss(self, intf, dist):
+    def path_loss(self, intf, dist):
         """Path Loss Model:
         (f) signal frequency transmited(Hz)
         (d) is the distance between the transmitter and the receiver (m)
@@ -261,7 +259,7 @@ class GetSignalRange(object):
         gains = txpower + (gain * 2)
         ref_d = 1
 
-        pl = self.pathLoss(intf, ref_d)
+        pl = self.path_loss(intf, ref_d)
         self.dist = math.pow(10, ((-ppm.noise_threshold - pl + gains) /
                                   (10 * ppm.exp))) * ref_d
 
@@ -286,7 +284,7 @@ class GetSignalRange(object):
             w_server.update_gaussian_random(
                 WmediumdGRandom(intf.wmIface, gRandom))
 
-        pl = self.pathLoss(intf, ref_d) - gRandom
+        pl = self.path_loss(intf, ref_d) - gRandom
         numerator = -ppm.noise_threshold - pl + gains
         denominator = 10 * ppm.exp
 
@@ -341,7 +339,7 @@ class GetPowerGivenRange(object):
 
         return self.txpower
 
-    def pathLoss(self, intf, dist):
+    def path_loss(self, intf, dist):
         """Path Loss Model:
         (f) signal frequency transmited(Hz)
         (d) is the distance between the transmitter and the receiver (m)
@@ -371,7 +369,6 @@ class GetPowerGivenRange(object):
         L = ppm.sL
 
         rssi = intf.rssi
-
         self.txpower = ((dist ** 4 * L) * (gains-rssi))/(gt * ht ** 2)
 
         if self.txpower < 0:
@@ -390,7 +387,7 @@ class GetPowerGivenRange(object):
         gain = intf.antennaGain
         g_fixed = (gain * 2)
         ref_d = 1
-        pl = self.pathLoss(intf, ref_d)
+        pl = self.path_loss(intf, ref_d)
         numerator = math.pow(dist / ref_d, 10 * ppm.exp) * 10 ** pl
         denominator = 10 ** - ppm.noise_threshold
 
@@ -419,7 +416,7 @@ class GetPowerGivenRange(object):
             w_server.update_gaussian_random(WmediumdGRandom(
                 intf.wmIface, gRandom))
 
-        pl = self.pathLoss(intf, ref_d) - gRandom
+        pl = self.path_loss(intf, ref_d) - gRandom
 
         self.txpower = 10 * ppm.exp * math.log10(dist / ref_d) + \
                        ppm.noise_threshold + pl - (gain * 2)
