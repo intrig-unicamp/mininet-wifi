@@ -8,20 +8,22 @@ from threading import Thread as thread
 import random
 from pylab import math, cos, sin
 from mininet.log import info
-from mn_wifi.plot import PlotGraph, Plot2D, Plot3D
+from mn_wifi.plot import PlotGraph
 from mn_wifi.mobility import Mobility
 from mn_wifi.link import wirelessLink
 from mn_wifi.node import Station, AP
 
 
-class replayingMobility(object):
+class ReplayingMobility(object):
     'Replaying Mobility Traces'
     timestamp = False
+    net = None
 
-    def __init__(self, Mininet_wifi, nodes=None):
+    def __init__(self, net, nodes=None):
+        self.net = net
         Mobility.thread_ = thread(name='replayingMobility',
                                   target=self.mobility,
-                                  args=(nodes, Mininet_wifi,))
+                                  args=(nodes,))
         Mobility.thread_.daemon = True
         Mobility.thread_._keep_alive = True
         Mobility.thread_.start()
@@ -42,9 +44,9 @@ class replayingMobility(object):
                     node.currentTime += node.timestamp
                     Mobility.set_pos(node, pos)
 
-    def mobility(self, nodes, Mininet_wifi):
+    def mobility(self, nodes):
         if nodes is None:
-            nodes = Mininet_wifi.stations + Mininet_wifi.aps
+            nodes = self.net.stations + self.net.aps
         for node in nodes:
             if isinstance(node, Station):
                 if hasattr(node, 'position') and node not in Mobility.stations:
@@ -53,12 +55,9 @@ class replayingMobility(object):
                 if hasattr(node, 'position') and node not in Mobility.aps:
                     Mobility.aps.append(node)
 
-        if Mininet_wifi.draw:
-            Mininet_wifi.isReplaying=False
-            Mininet_wifi.checkDimension(nodes)
-            plot = Plot2D
-            if Mininet_wifi.max_z != 0:
-                plot = Plot3D
+        if self.net.draw:
+            self.net.isReplaying = False
+            self.net.checkDimension(nodes)
 
         currentTime = time()
         for node in nodes:
@@ -83,36 +82,27 @@ class replayingMobility(object):
                     if len(node.p) == 0:
                         nodes.remove(node)
                     Mobility.configLinks()
-                    if Mininet_wifi.draw:
+                    if self.net.draw:
                         node.update_2d()
-            if Mininet_wifi.draw:
+            if self.net.draw:
                 PlotGraph.pause()
 
-    @classmethod
-    def addNode(cls, node):
-        if isinstance(node, Station):
-            if hasattr(node, 'pos'):
-                pos = node.p[0].split(' ')
-                node.position = pos[0].split(',')
-            Mobility.stations.append(node)
-        elif isinstance(node, AP):
-            Mobility.aps.append(node)
 
-
-class replayingBandwidth(object):
+class ReplayingBandwidth(object):
     'Replaying Bandwidth Traces'
+    net = None
 
-    def __init__(self, Mininet_wifi):
+    def __init__(self, net):
+        self.net = net
         Mobility.thread_ = thread(name='replayingBandwidth',
-                                       target=self.throughput, args=(Mininet_wifi,))
+                                  target=self.throughput)
         Mobility.thread_.daemon = True
         Mobility.thread_._keep_alive = True
         Mobility.thread_.start()
 
-    @classmethod
-    def throughput(cls, Mininet_wifi):
+    def throughput(self):
         currentTime = time()
-        stations = Mininet_wifi.stations
+        stations = self.net.stations
         while Mobility.thread_._keep_alive:
             if len(stations) == 0:
                 break
@@ -132,25 +122,26 @@ class replayingBandwidth(object):
         info("\nReplaying Process Finished!")
 
 
-class replayingNetworkConditions(object):
+class ReplayingNetworkConditions(object):
     'Replaying Network Conditions'
 
-    def __init__(self, Mininet_wifi, **kwargs):
+    net = None
 
-        Mobility.thread_ = thread( name='replayingNetConditions',
-                                        target=self.behavior, args=(Mininet_wifi,) )
+    def __init__(self, net, **kwargs):
+        self.net = net
+        Mobility.thread_ = thread(name='replayingNetConditions',
+                                  target=self.behavior)
         Mobility.thread_.daemon = True
         Mobility.thread_._keep_alive = True
         Mobility.thread_.start()
 
-    @classmethod
-    def behavior(cls, Mininet_wifi):
+    def behavior(self):
         seconds = 5
         info('Replaying process starting in %s seconds\n' % seconds)
         sleep(seconds)
         info('Replaying process has been started\n')
         currentTime = time()
-        stations = Mininet_wifi.stations
+        stations = self.net.stations
         for sta in stations:
             sta.wintfs[0].freq = sta.wintfs[0].get_freq()
         while Mobility.thread_._keep_alive:
@@ -174,38 +165,30 @@ class replayingNetworkConditions(object):
             sleep(0.001)
         info('Replaying process has finished!')
 
-    @classmethod
-    def addNode(cls, node):
-        if isinstance(node, Station):
-            Mobility.stations.append(node)
-        elif isinstance(node, AP):
-            Mobility.aps.append(node)
 
-
-class replayingRSSI(object):
+class ReplayingRSSI(object):
     'Replaying RSSI Traces'
 
     print_bw = False
     print_loss = False
     print_latency = False
     print_distance = False
+    net = None
 
-    def __init__(self, Mininet_wifi, propagationModel='friis',
-                 n=32, **kwargs):
-        """ propagationModel = Propagation Model
-            n: Power Loss Coefficient """
+    def __init__(self, net, ppm='friis', n=32, **kwargs):
+        self.net = net
         for key in kwargs:
             setattr(self, key, kwargs[key])
 
         Mobility.thread_ = thread(name='replayingRSSI', target=self.rssi,
-                                       args=(Mininet_wifi, propagationModel, n))
+                                  args=(ppm, n))
         Mobility.thread_.daemon = True
         Mobility.thread_._keep_alive = True
         Mobility.thread_.start()
 
-    def rssi(self, Mininet_wifi, propagationModel='', n=0):
+    def rssi(self, ppm, n):
         currentTime = time()
-        staList = Mininet_wifi.stations
+        staList = self.net.stations
         ang = {}
         for sta in staList:
             ang[sta] = random.uniform(0, 360)
@@ -219,11 +202,10 @@ class replayingRSSI(object):
                     if time_ >= sta.time[0]:
                         ap = sta.wintfs[0].associatedTo  # get AP
                         sta.wintfs[0].rssi = sta.rssi[0]
-                        if ap != '':
+                        if ap:
                             rssi = sta.rssi[0]
-                            dist = int('%d' % self.calculateDistance(sta, ap, rssi,
-                                                                     propagationModel, n))
-                            self.setPos(Mininet_wifi, sta, ap, dist, ang[sta])
+                            dist = self.calc_dist(sta, ap, rssi, ppm, n)
+                            self.set_pos(sta, ap, dist, ang[sta])
                             wirelessLink(sta.wintfs[0], dist)
                         del sta.rssi[0]
                         del sta.time[0]
@@ -231,28 +213,25 @@ class replayingRSSI(object):
                         staList.remove(sta)
             sleep(0.01)
 
-    @classmethod
-    def setPos(cls, Mininet_wifi, sta, ap, dist, ang):
+    def set_pos(self, sta, ap, dist, ang):
         x = float('%.2f' % (dist * cos(ang) + int(ap.position[0])))
         y = float('%.2f' % (dist * sin(ang) + int(ap.position[1])))
         sta.position = x, y, 0
         Mobility.configLinks(sta)
-        if Mininet_wifi.draw:
+        if self.net.draw:
             try:
                 sta.update_2d()
             except:
                 pass
         # sta.verifyingNodes(sta)
 
-    def calculateDistance(self, sta, ap, rssi, propagationModel, n=32.0):
-
+    def calc_dist(self, sta, ap, rssi, ppm, n=32.0):
         pT = ap.wintfs[0].txpower
         gT = ap.wintfs[0].antennaGain
         gR = sta.wintfs[0].antennaGain
-        if propagationModel in dir(self):
-            dist = self.__getattribute__(propagationModel)(sta, ap, pT, gT, gR,
-                                                           rssi, n)
-            return dist
+        if ppm in dir(self):
+            dist = self.__getattribute__(ppm)(sta, ap, pT, gT, gR, rssi, n)
+            return int(dist)
 
     @classmethod
     def pathLoss(cls, sta, ap, dist, wlan=0):

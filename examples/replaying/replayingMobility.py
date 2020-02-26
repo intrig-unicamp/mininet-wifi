@@ -7,7 +7,7 @@ import sys
 
 from mininet.node import Controller
 from mininet.log import setLogLevel, info
-from mn_wifi.replaying import replayingMobility
+from mn_wifi.replaying import ReplayingMobility
 from mn_wifi.cli import CLI_wifi
 from mn_wifi.net import Mininet_wifi
 from mn_wifi.link import wmediumd, adhoc
@@ -16,8 +16,7 @@ from mn_wifi.wmediumdConnector import interference
 
 def topology(args):
     "Create a network."
-    net = Mininet_wifi(controller=Controller, link=wmediumd,
-                       wmediumd_mode=interference)
+    net = Mininet_wifi(link=wmediumd, wmediumd_mode=interference)
 
     info("*** Creating nodes\n")
     sta1 = net.addStation('sta1', mac='00:00:00:00:00:02',
@@ -28,8 +27,7 @@ def topology(args):
                           ip='10.0.0.3/8', speed=3)
     sta4 = net.addStation('sta4', mac='00:00:00:00:00:05',
                           ip='10.0.0.4/8', speed=3)
-    ap1 = net.addAccessPoint('ap1', ssid='new-ssid',
-                             mode='g', channel='1',
+    ap1 = net.addAccessPoint('ap1', ssid='new-ssid', mode='g', channel='1',
                              position='45,45,0')
     c1 = net.addController('c1', controller=Controller)
 
@@ -43,11 +41,12 @@ def topology(args):
     net.addLink(sta3, cls=adhoc, intf='sta3-wlan0', ssid='adhocNet')
     net.addLink(sta4, cls=adhoc, intf='sta4-wlan0', ssid='adhocNet')
 
-    path = os.path.dirname(os.path.abspath(__file__))
-    getTrace(sta1, '%s/replayingMobility/node1.dat' % path, net)
-    getTrace(sta2, '%s/replayingMobility/node2.dat' % path, net)
-    getTrace(sta3, '%s/replayingMobility/node3.dat' % path, net)
-    getTrace(sta4, '%s/replayingMobility/node4.dat' % path, net)
+    net.isReplaying = True
+    path = os.path.dirname(os.path.abspath(__file__)) + '/replayingMobility/'
+    get_trace(sta1, '{}node1.dat'.format(path))
+    get_trace(sta2, '{}node2.dat'.format(path))
+    get_trace(sta3, '{}node3.dat'.format(path))
+    get_trace(sta4, '{}node4.dat'.format(path))
 
     if '-p' not in args:
         net.plotGraph(max_x=200, max_y=200)
@@ -57,7 +56,8 @@ def topology(args):
     c1.start()
     ap1.start([c1])
 
-    replayingMobility(net)
+    info("*** Replaying Mobility\n")
+    ReplayingMobility(net)
 
     info("*** Running CLI\n")
     CLI_wifi(net)
@@ -66,8 +66,7 @@ def topology(args):
     net.stop()
 
 
-def getTrace(sta, file_, net):
-    net.isReplaying = True
+def get_trace(sta, file_):
     file_ = open(file_, 'r')
     raw_data = file_.readlines()
     file_.close()

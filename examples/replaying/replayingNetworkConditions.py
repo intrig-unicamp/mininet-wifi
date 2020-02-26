@@ -1,60 +1,55 @@
 #!/usr/bin/python
 
 "Replaying Network Conditions"
+
 import os
 
-from mininet.log import setLogLevel
-from mininet.node import Controller
+from mininet.log import setLogLevel, info
 from mn_wifi.net import Mininet_wifi
 from mn_wifi.cli import CLI_wifi
-from mn_wifi.replaying import replayingNetworkConditions
+from mn_wifi.replaying import ReplayingNetworkConditions
 from sys import version_info as py_version_info
 
 
 def topology():
 
     "Create a network."
-    net = Mininet_wifi( controller=Controller )
+    net = Mininet_wifi()
 
-    print("*** Creating nodes")
+    info("*** Creating nodes\n")
     sta1 = net.addStation( 'sta1', mac='00:00:00:00:00:01',
                            ip='192.168.0.1/24',
-                           position='47.28,50,0' )
+                           position='47.28,50,0')
     sta2 = net.addStation( 'sta2', mac='00:00:00:00:00:02',
                            ip='192.168.0.2/24',
-                           position='54.08,50,0' )
-    ap3 = net.addAccessPoint( 'ap3', ssid='ap-ssid3', mode='g',
-                              channel='1', position='50,50,0' )
-    c0 = net.addController('c0', controller=Controller, port=6653)
+                           position='54.08,50,0')
+    ap1 = net.addAccessPoint('ap1', ssid='ap-ssid1', mode='g',
+                             channel='1', position='50,50,0')
+    c0 = net.addController('c0', port=6653)
 
-    print("*** Configuring wifi nodes")
+    info("*** Configuring wifi nodes\n")
     net.configureWifiNodes()
 
-    print("*** Starting network")
+    info("*** Starting network\n")
     net.build()
     c0.start()
-    ap3.start( [c0] )
+    ap1.start([c0])
 
     sta1.cmd('iw dev sta1-wlan0 interface add mon0 type monitor')
     sta1.cmd('ip link set mon0 up')
     sta2.cmd('iw dev sta2-wlan0 interface add mon0 type monitor')
     sta2.cmd('ip link set mon0 up')
     if py_version_info < (3, 0):
-        sta2.cmd('pushd /home/alpha/Downloads; '
-                 'python -m SimpleHTTPServer 80 &')
+        sta2.cmd('pushd ~/; python -m SimpleHTTPServer 80 &')
     else:
-        sta2.cmd('pushd /home/alpha/Downloads; '
-                 'python -m http.server 80 &')
+        sta2.cmd('pushd ~/; python -m http.server 80 &')
 
-    path = os.path.dirname(os.path.abspath(__file__))
-    getTrace(sta1, '%s/replayingNetworkConditions/'
-                   'clientTrace.txt' % path)
-    getTrace(sta2, '%s/replayingNetworkConditions/'
-                   'serverTrace.txt' % path)
+    path = os.path.dirname(os.path.abspath(__file__)) + '/replayingNetworkConditions/'
+    get_trace(sta1, '{}clientTrace.txt'.format(path))
+    get_trace(sta2, '{}serverTrace.txt'.format(path))
 
-    replayingNetworkConditions.addNode(sta1)
-    replayingNetworkConditions.addNode(sta2)
-    replayingNetworkConditions(net)
+    info("*** Replaying Network Conditions\n")
+    ReplayingNetworkConditions(net)
 
     #sta1.cmd('tcpdump -i mon0 -s 0 -vvv -w client.pcap &&')
     #sta2.cmd('tcpdump -i mon0 -s 0 -vvv -w server.pcap &&')
@@ -67,31 +62,32 @@ def topology():
     #sta1.cmd('iperf -c ' + sta2.IP() + ' -i 0.5 -t 60 | awk \'t=120{if(NR>=7 && NR<=25) print $8; else if(NR>=26 && NR<=t+6) print $7}\' > replay1.dat')
     #sta2.cmd('iperf -c ' + sta1.IP() + ' -i 0.5 -t 60 | awk \'t=120{if(NR>=7 && NR<=25) print $8; else if(NR>=26 && NR<=t+6) print $7}\' > replay2.dat &')
 
-    print("*** Running CLI")
+    info("*** Running CLI\n")
     CLI_wifi( net )
 
-    print("*** Stopping network")
+    info("*** Stopping network\n")
     net.stop()
 
-def getTrace(sta, file):
 
+def get_trace(node, file):
     file = open(file, 'r')
     raw_data = file.readlines()
     file.close()
 
-    sta.time = []
-    sta.bw = []
-    sta.loss = []
-    sta.delay = []
-    sta.latency = []
+    node.time = []
+    node.bw = []
+    node.loss = []
+    node.delay = []
+    node.latency = []
 
     for data in raw_data:
         line = data.split()
-        sta.time.append(float(line[0])) #First Column = Time
-        sta.bw.append(((float(line[1]))/1000000)/2) #Second Column = BW
-        sta.loss.append(float(line[2])) #second Column = LOSS
-        sta.latency.append(float(line[3])) #Second Column = LATENCY
+        node.time.append(float(line[0])) #First Column = Time
+        node.bw.append(((float(line[1]))/1000000)/2) #Second Column = BW
+        node.loss.append(float(line[2])) #second Column = LOSS
+        node.latency.append(float(line[3])) #Second Column = LATENCY
+
 
 if __name__ == '__main__':
-    setLogLevel( 'info' )
+    setLogLevel('info')
     topology()

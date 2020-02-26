@@ -3,43 +3,42 @@
 "Replaying RSSI"
 import os
 
-from mininet.node import Controller
 from mininet.log import setLogLevel, info
-from mn_wifi.replaying import replayingRSSI
+from mn_wifi.replaying import ReplayingRSSI
 from mn_wifi.cli import CLI_wifi
 from mn_wifi.net import Mininet_wifi
 
 
 def topology():
     "Create a network."
-    net = Mininet_wifi( controller=Controller )
+    net = Mininet_wifi()
 
     info("*** Creating nodes\n")
-    sta1 = net.addStation( 'sta1', mac='00:00:00:00:00:02', ip='10.0.0.2/8' )
-    sta2 = net.addStation( 'sta2', mac='00:00:00:00:00:03', ip='10.0.0.3/8' )
-    ap1 = net.addAccessPoint( 'ap1', ssid='new-ssid', mode='g', channel='1',
-                              position='50,50,0' )
-    c1 = net.addController( 'c1' )
+    sta1 = net.addStation('sta1', mac='00:00:00:00:00:02',
+                          ip='10.0.0.2/8', position='40,50,0')
+    sta2 = net.addStation('sta2', mac='00:00:00:00:00:03',
+                          ip='10.0.0.3/8', position='40,40,0')
+    ap1 = net.addAccessPoint('ap1', ssid='new-ssid', mode='g', channel='1',
+                             position='50,50,0')
+    c1 = net.addController('c1')
 
     info("*** Configuring wifi nodes\n")
     net.configureWifiNodes()
 
-    info("*** Adding Link\n")
-    sta1.params['associatedTo'][0] = ap1
-    sta2.params['associatedTo'][0] = ap1
-
     info("*** Starting network\n")
     net.build()
     c1.start()
-    ap1.start( [c1] )
+    ap1.start([c1])
 
+    info("*** Plotting Graph\n")
     net.plotGraph(max_x=100, max_y=100)
 
-    path = os.path.dirname(os.path.abspath(__file__))
-    getTrace(sta1, '%s/replayingRSSI/node1_rssiData.dat' % path)
-    getTrace(sta2, '%s/replayingRSSI/node2_rssiData.dat' % path)
+    path = os.path.dirname(os.path.abspath(__file__)) + '/replayingRSSI/'
+    get_trace(sta1, '{}node1_rssiData.dat'.format(path))
+    get_trace(sta2, '{}node2_rssiData.dat'.format(path))
 
-    replayingRSSI(net)
+    info("*** Replaying RSSI\n")
+    ReplayingRSSI(net)
 
     info("*** Running CLI\n")
     CLI_wifi(net)
@@ -47,21 +46,22 @@ def topology():
     info("*** Stopping network\n")
     net.stop()
 
-def getTrace(sta, file):
 
+def get_trace(node, file):
     file = open(file, 'r')
     raw_data = file.readlines()
     file.close()
 
-    sta.time = []
-    sta.rssi = []
+    node.pos = '0,0,0'
+    node.time = []
+    node.rssi = []
 
     for data in raw_data:
         line = data.split()
-        sta.time.append(float(line[0])) #First Column = Time
-        sta.rssi.append(float(line[1])) #Second Column = RSSI
+        node.time.append(float(line[0]))  #First Column = Time
+        node.rssi.append(float(line[1]))  #Second Column = RSSI
 
 
 if __name__ == '__main__':
-    setLogLevel( 'info' )
+    setLogLevel('info')
     topology()

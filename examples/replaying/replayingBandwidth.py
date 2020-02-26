@@ -3,23 +3,22 @@
 "Replaying Bandwidth"
 import os
 
-from mininet.node import Controller,OVSKernelSwitch
-from mininet.link import TCLink
+from mininet.node import Controller
 from mininet.log import setLogLevel, info
-from mn_wifi.replaying import replayingBandwidth
+from mn_wifi.replaying import ReplayingBandwidth
 from mn_wifi.cli import CLI_wifi
 from mn_wifi.net import Mininet_wifi
 
 
 def topology():
     "Create a network."
-    net = Mininet_wifi( controller=Controller, link=TCLink, switch=OVSKernelSwitch )
+    net = Mininet_wifi()
 
     info("*** Creating nodes\n")
-    sta1 = net.addStation( 'sta1', mac='00:00:00:00:00:02', ip='10.0.0.2/8' )
-    ap1 = net.addAccessPoint( 'ap1', ssid='new-ssid', mode='g', channel='1',
-                              position='50,50,0' )
-    c1 = net.addController( 'c1', controller=Controller )
+    sta1 = net.addStation('sta1', mac='00:00:00:00:00:02', ip='10.0.0.2/8')
+    ap1 = net.addAccessPoint('ap1', ssid='new-ssid', mode='g', channel='1',
+                             position='50,50,0')
+    c1 = net.addController('c1', controller=Controller)
 
     info("*** Configuring wifi nodes\n")
     net.configureWifiNodes()
@@ -30,14 +29,15 @@ def topology():
     info("*** Starting network\n")
     net.build()
     c1.start()
-    ap1.start( [c1] )
+    ap1.start([c1])
 
     net.plotGraph(max_x=100, max_y=100)
 
-    path = os.path.dirname(os.path.abspath(__file__))
-    getTrace(sta1, '%s/replayingBandwidth/throughputData.dat' % path)
+    path = os.path.dirname(os.path.abspath(__file__)) + '/replayingBandwidth/'
+    get_trace(sta1, '{}throughputData.dat'.format(path))
 
-    replayingBandwidth(net)
+    info("*** Replaying Bandwidth\n")
+    ReplayingBandwidth(net)
 
     info("*** Running CLI\n")
     CLI_wifi(net)
@@ -45,8 +45,8 @@ def topology():
     info("*** Stopping network\n")
     net.stop()
 
-def getTrace(sta, file):
 
+def get_trace(sta, file):
     file = open(file, 'r')
     raw_data = file.readlines()
     file.close()
@@ -61,5 +61,5 @@ def getTrace(sta, file):
 
 
 if __name__ == '__main__':
-    setLogLevel( 'info' )
+    setLogLevel('info')
     topology()
