@@ -2,7 +2,7 @@
    author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)"""
 
 
-class associationControl(object):
+class AssociationControl(object):
     "Mechanisms that optimize the use of the APs"
 
     changeAP = False

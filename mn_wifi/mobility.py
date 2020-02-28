@@ -12,7 +12,7 @@ from numpy.random import rand
 
 from mininet.log import debug, info
 from mn_wifi.link import wirelessLink, Association, mesh, adhoc, ITSLink
-from mn_wifi.associationControl import associationControl
+from mn_wifi.associationControl import AssociationControl as AssCtrl
 from mn_wifi.plot import PlotGraph
 from mn_wifi.wmediumdConnector import w_cst, wmediumd_mode
 
@@ -199,7 +199,7 @@ class Mobility(object):
         changeAP = False
         if cls.ac and intf.associatedTo \
                 and ap_intf.node != intf.associatedTo:
-            changeAP = associationControl(intf, ap_intf, cls.ac).changeAP
+            changeAP = AssCtrl(intf, ap_intf, cls.ac).changeAP
         if cls.check_if_ap_exists(intf, ap_intf):
             if not intf.associatedTo or changeAP:
                 if ap_intf.node != intf.associatedTo:
@@ -276,14 +276,11 @@ class model(Mobility):
         Mobility.set_wifi_params()
 
     def models(self, stations=None, aps=None, stat_nodes=None, mob_nodes=None,
-               ac_method=None, draw=False, seed=1, model='RandomWalk',
-               mnNodes=None, min_wt=5, max_wt=5, min_x=0, min_y=0,
-               max_x=100, max_y=100, links=None, min_v=1, max_v=10,
-               **kwargs):
+               draw=False, seed=1, model='RandomWalk', mnNodes=None,
+               min_wt=1, max_wt=5, max_x=100, max_y=100, **kwargs):
         "Used when a mobility model is set"
         np.random.seed(seed)
-        if ac_method:
-            Mobility.ac = ac_method
+        Mobility.ac = kwargs.get('ac_method', None)
         Mobility.stations, Mobility.mobileNodes, Mobility.aps = \
             stations, stations, aps
 
@@ -298,14 +295,15 @@ class model(Mobility):
             args = ['max_x', 'max_y', 'min_v', 'max_v']
             for arg in args:
                 if not hasattr(node, arg):
-                    setattr(node, arg, eval(arg))
+                    try:
+                        setattr(node, arg, eval(arg))
+                    except NameError:
+                        setattr(node, arg, 10)  # useful for min_v and max_v
 
         try:
             if draw:
                 nodes = mob_nodes + stat_nodes
-                PlotGraph(min_x=min_x, min_y=min_y, min_z=0,
-                          max_x=max_x, max_y=max_y, max_z=0,
-                          nodes=nodes, links=links)
+                PlotGraph(nodes=nodes, max_x=max_x, max_y=max_y, **kwargs)
         except:
             info('Warning: running without GUI.\n')
 
@@ -353,9 +351,7 @@ class model(Mobility):
         """
         for xy in mob:
             for idx, node in enumerate(nodes):
-                pos = round(xy[idx][0], 2), \
-                      round(xy[idx][1], 2), \
-                      0.0
+                pos = round(xy[idx][0], 2), round(xy[idx][1], 2), 0.0
                 Mobility.set_pos(node, pos)
                 if draw:
                     node.update_2d()
@@ -367,7 +363,7 @@ class model(Mobility):
                 pass
 
 
-class tracked(Mobility):
+class Tracked(Mobility):
     "Used when the position of each node is previously defined"
 
     def __init__(self, **kwargs):
@@ -375,18 +371,16 @@ class tracked(Mobility):
 
     def start_thread(self, **kwargs):
         debug('Starting mobility thread...\n')
-        Mobility.thread_ = thread(target=self.configure,
-                                  kwargs=(kwargs))
+        Mobility.thread_ = thread(target=self.configure, kwargs=kwargs)
         Mobility.thread_.daemon = True
         Mobility.thread_._keep_alive = True
         Mobility.thread_.start()
         Mobility.set_wifi_params()
 
-    def configure(self, stations=None, aps=None, stat_nodes=None, mob_nodes=None,
-                  ac_method=None, mnNodes=None, draw=False, **kwargs):
-        if ac_method:
-            Mobility.ac = ac_method
+    def configure(self, stations, aps, stat_nodes, mob_nodes,
+                  mnNodes, draw, **kwargs):
 
+        Mobility.ac = kwargs.get('ac_method', None)
         Mobility.stations = stations
         Mobility.aps = aps
         Mobility.mobileNodes = mob_nodes
@@ -426,9 +420,9 @@ class tracked(Mobility):
             if reverse:
                 for node in mob_nodes:
                     if rep % 2 == 1 or (rep % 2 == 0 and rep > 0):
-                        finPos = node.params['finPos']
+                        fin_pos = node.params['finPos']
                         node.params['finPos'] = node.params['initPos']
-                        node.params['initPos'] = finPos
+                        node.params['initPos'] = fin_pos
             for node in mob_nodes:
                 node.matrix_id = 0
                 node.time = node.startTime
@@ -757,10 +751,8 @@ class RandomWaypoint(object):
 
         if self.init_stationary:
             x, y, x_waypoint, y_waypoint, velocity, wt = \
-                init_random_waypoint(self.nr_nodes,
-                                     dimensions,
-                                     MIN_V, MAX_V,
-                                     self.wt_min, self.wt_max)
+                init_random_waypoint(self.nr_nodes, dimensions,
+                                     MIN_V, MAX_V, self.wt_min, self.wt_max)
         else:
             NODES = np.arange(self.nr_nodes)
             x = U(MIN_X, MAX_X, NODES)
@@ -778,6 +770,7 @@ class RandomWaypoint(object):
             # update node position
             x += velocity * costheta
             y += velocity * sintheta
+
             # calculate distance to waypoint
             d = np.sqrt(np.square(y_waypoint - y) + np.square(x_waypoint - x))
             # update info for arrived nodes
@@ -806,7 +799,6 @@ class RandomWaypoint(object):
                                             x_waypoint[arrived] - x[arrived])
                 costheta[arrived] = np.cos(theta[arrived])
                 sintheta[arrived] = np.sin(theta[arrived])
-
 
             self.velocity = velocity
             self.wt = wt

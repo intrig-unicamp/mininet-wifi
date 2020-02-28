@@ -35,8 +35,7 @@ class batman(object):
 class olsr(object):
     def __init__(self, intf, **params):
         cmd = 'olsrd -i %s -d 0 ' % intf.name
-        if 'flags' in params:
-            cmd += params['flags']
+        cmd += params.get('flags', '')
         intf.node.cmd(cmd)
 
 
@@ -45,6 +44,5 @@ class babel(object):
         pid = os.getpid()
         cmd = "babeld %s -I mn_%s_%s.staconf " % \
               (intf.name, intf.node, pid)
-        if 'flags' in params:
-            cmd += params['flags']
+        cmd += params.get('flags', '')
         intf.node.cmd(cmd + ' &')

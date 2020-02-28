@@ -38,7 +38,7 @@ from mn_wifi.link import wirelessLink, wmediumd, Association, \
 from mn_wifi.clean import Cleanup as cleanup_mnwifi
 from mn_wifi.energy import Energy
 from mn_wifi.telemetry import parseData, telemetry as run_telemetry
-from mn_wifi.mobility import tracked as trackedMob, model as mobModel, Mobility as mob
+from mn_wifi.mobility import Tracked as TrackedMob, model as mobModel, Mobility as mob
 from mn_wifi.plot import Plot2D, Plot3D, PlotGraph
 from mn_wifi.module import module
 from mn_wifi.propagationModels import PropagationModel as ppm
@@ -308,14 +308,12 @@ class Mininet_wifi(Mininet):
 
     def addWlans(self, node):
         node.params['wlan'] = []
-        wlans = 1
-        if 'wlans' in node.params:
-            wlans = node.params['wlans']
+        wlans = node.params.get('wlans', 1)
         for wlan in range(wlans):
+            wlan_id = wlan
             if isinstance(node, AP):
-                node.params['wlan'].append(node.name + '-wlan' + str(wlan + 1))
-            else:
-                node.params['wlan'].append(node.name + '-wlan' + str(wlan))
+                wlan_id += 1
+            node.params['wlan'].append(node.name + '-wlan' + str(wlan_id))
         node.params.pop("wlans", None)
 
     def addStation(self, name, cls=None, **params):
@@ -795,12 +793,12 @@ class Mininet_wifi(Mininet):
             if 'model' in self.mob_param or self.isVanet or self.roads:
                 self.start_mobility(**self.mob_param)
             else:
-                trackedMob(**self.mob_param)
+                TrackedMob(**self.mob_param)
             self.mob_check = True
         else:
             if self.draw and not self.isReplaying:
                 mnNodes = self.plot_mininet_nodes()
-                self.plotCheck(mnNodes)
+                self.plot_check(mnNodes)
 
     def build(self):
         "Build mininet-wifi."
@@ -1411,7 +1409,7 @@ class Mininet_wifi(Mininet):
         "Creates virtual wifi interfaces"
         for node in nodes:
             if 'nvif' in node.params:
-                for vif_ in range(0, node.params['nvif']):
+                for vif_ in range(node.params['nvif']):
                     vif = node.params['wlan'][0] + str(vif_ + 1)
                     node.params['wlan'].append(vif)
                     mac = str(node.wintfs[0].mac)
@@ -1429,7 +1427,7 @@ class Mininet_wifi(Mininet):
     def configure6LowPANLink(self):
         sensors = self.sensors + self.apsensors
         for sensor in sensors:
-            for wpan in range(0, len(sensor.params['wpan'])):
+            for wpan in range(len(sensor.params['wpan'])):
                 port = 0
                 if isinstance(sensor, OVSSensor):
                     port = 1
@@ -1439,7 +1437,7 @@ class Mininet_wifi(Mininet):
         nodes = self.stations + self.cars
         ifbID = 0
         for node in nodes:
-            for wlan in range(0, len(node.params['wlan'])):
+            for wlan in range(len(node.params['wlan'])):
                 if self.ifb:
                     node.configIFB(wlan, ifbID)  # Adding Support to IFB
                     node.wintfs[wlan].ifb = 'ifb' + str(wlan + 1)
@@ -1449,7 +1447,7 @@ class Mininet_wifi(Mininet):
         "Configure Wireless Link"
         nodes = self.stations + self.cars
         for node in nodes:
-            for wlan in range(0, len(node.params['wlan'])):
+            for wlan in range(len(node.params['wlan'])):
                 intf = node.params['wlan'][wlan]
                 link = TCLinkWirelessStation(node, intfName1=intf)
                 managed(node, wlan)
@@ -1461,13 +1459,13 @@ class Mininet_wifi(Mininet):
     def plotGraph(self, **kwargs):
         "Plots Graph"
         self.draw = True
-        for key in kwargs:
-            setattr(self, key, kwargs[key])
-        if 'max_z' in kwargs and kwargs['max_z'] != 0:
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+        if kwargs.get('max_z', 0) != 0:
             self.plot = Plot3D
         cleanup_mnwifi.plot = self.plot
 
-    def checkDimension(self, nodes):
+    def check_dimension(self, nodes):
         try:
             for node in nodes:
                 if hasattr(node, 'coord'):
@@ -1486,20 +1484,20 @@ class Mininet_wifi(Mininet):
         for node in mob_nodes:
             node.position = (0, 0, 0)
             node.pos = (0, 0, 0)
-        self.setMobilityParams(**kwargs)
+        self.set_mobility_params(**kwargs)
         if self.roads:
             vanet(**self.mob_param)
         else:
             mobModel(**self.mob_param)
 
     def setMobilityModel(self, **kwargs):
-        self.setMobilityParams(**kwargs)
+        self.set_mobility_params(**kwargs)
 
     def startMobility(self, **kwargs):
         if 'repetitions' not in kwargs:
             kwargs['repetitions'] = 1
         kwargs['init_time'] = kwargs['time']
-        self.setMobilityParams(**kwargs)
+        self.set_mobility_params(**kwargs)
 
     def stopMobility(self, **kwargs):
         "Stops Mobility"
@@ -1507,9 +1505,9 @@ class Mininet_wifi(Mininet):
                 not self.configWiFiDirect and not self.config4addr:
             self.auto_association()
         kwargs['end_time'] = kwargs['time']
-        self.setMobilityParams(**kwargs)
+        self.set_mobility_params(**kwargs)
 
-    def setMobilityParams(self, **kwargs):
+    def set_mobility_params(self, **kwargs):
         "Set Mobility Parameters"
         self.mob_param.update(**kwargs)
 
@@ -1533,7 +1531,6 @@ class Mininet_wifi(Mininet):
         if self.roads:
             self.mob_param.setdefault('roads', self.roads)
         self.mob_param.setdefault('links', self.links)
-
         self.mob_param.setdefault('ppm', ppm.model)
 
     def setAssociationCtrl(self, ac='ssf'):
@@ -1622,11 +1619,11 @@ class Mininet_wifi(Mininet):
                     node.setTxPower(intf.txpower, intf=intf.name)
                     node.setAntennaGain(intf.antennaGain, intf=intf.name)
 
-    def plotCheck(self, mnNodes):
+    def plot_check(self, mnNodes):
         "Check which nodes will be plotted"
         nodes = self.stations + self.aps + mnNodes + self.cars + \
                 self.apsensors + self.sensors
-        self.checkDimension(nodes)
+        self.check_dimension(nodes)
 
     def auto_association(self):
         "This is useful to make the users' life easier"
@@ -1683,20 +1680,15 @@ class Mininet_wifi(Mininet):
 
     @staticmethod
     def setChannelEquation(**params):
-        """Set Channel Equation. The user may change the equation defined in
-        wifiChannel.py by any other.
+        """Set Channel Equation
         :params bw: bandwidth (mbps)
         :params delay: delay (ms)
         :params latency: latency (ms)
         :params loss: loss (%)"""
-        if 'bw' in params:
-            wirelessLink.equationBw = params['bw']
-        if 'delay' in params:
-            wirelessLink.equationDelay = params['delay']
-        if 'latency' in params:
-            wirelessLink.equationLatency = params['latency']
-        if 'loss' in params:
-            wirelessLink.equationLoss = params['loss']
+        wirelessLink.eqBw = params.get('bw', wirelessLink.eqBw)
+        wirelessLink.eqDelay = params.get('delay', wirelessLink.eqDelay)
+        wirelessLink.eqLatency = params.get('latency', wirelessLink.eqLatency)
+        wirelessLink.eqLoss = params.get('loss', wirelessLink.eqLoss)
 
     @staticmethod
     def stopGraphParams():

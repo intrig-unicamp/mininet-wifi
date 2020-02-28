@@ -146,10 +146,8 @@ class Plot2D (object):
             if 'wifi' not in str(link):
                 src = link.intf1.node
                 dst = link.intf2.node
-                ls = '-'
                 if hasattr(src, 'position') and hasattr(dst, 'position'):
-                    if 'ls' in link.intf1.params:
-                        ls = link.intf1.params['ls']
+                    ls = link.intf1.params.get('ls', '-')
                     Plot2D.add_line(src, dst, ls=ls)
 
     @classmethod

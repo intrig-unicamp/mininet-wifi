@@ -232,20 +232,11 @@ class vanet(object):
         return ang
 
     def carProp(self, point, ang, x_min, x_max, y_min, y_max):
-        temp = []
-        temp.append(point[0])
-        temp.append(point[1])
-        temp.append(ang)
-        temp.append(x_min)
-        temp.append(x_max)
-        temp.append(y_min)
-        temp.append(y_max)
+        temp = [point[0], point[1], ang, x_min, x_max, y_min, y_max]
         return temp
 
     def carPoint(self, point):
-        temp = []
-        temp.append(point[0])
-        temp.append(point[1])
+        temp = [point[0], point[1]]
         return temp
 
     def line_prop(self, line, car):

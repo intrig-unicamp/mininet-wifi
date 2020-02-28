@@ -102,19 +102,15 @@ class Node_wifi(Node):
         return self.params['wlan'].index(intf)
 
     def setPhysicalMeshMode(self, intf=None, **kwargs):
-        if intf:
-            kwargs['intf'] = intf
-        #wlan = self.get_wlan(kwargs['intf'])
+        if intf: kwargs['intf'] = intf
         physicalMesh(self, **kwargs)
 
     def setMeshMode(self, intf=None, **kwargs):
-        if intf:
-            kwargs['intf'] = intf
+        if intf: kwargs['intf'] = intf
         mesh(self, **kwargs)
 
     def setAdhocMode(self, intf=None, **kwargs):
-        if intf:
-            kwargs['intf'] = intf
+        if intf: kwargs['intf'] = intf
         wlan = self.get_wlan(kwargs['intf'])
         if isinstance(self.wintfs[wlan], adhoc):
             self.cmd('iw dev %s ibss leave' % self.params['wlan'][wlan])
@@ -155,8 +151,8 @@ class Node_wifi(Node):
 
         intf.ssid = ssid
 
-        for arg in kwargs:
-            setattr(self, arg, kwargs[arg])
+        for key, value in kwargs.items():
+            setattr(self, key, value)
 
         aps = [self]
         AccessPoint(aps, setMaster=True)
@@ -171,14 +167,14 @@ class Node_wifi(Node):
 
     def configIFB(self, wlan, ifbID):
         "Support to Intermediate Functional Block (IFB) Devices"
+        intf = self.params['wlan'][wlan]
         os.system('ip link set dev ifb%s netns %s' % (ifbID, self.pid))
         self.cmd('ip link set ifb%s name ifb%s' % (ifbID, wlan+1))
         self.cmd('ip link set ifb%s up' % (wlan+1))
-        self.cmd('tc qdisc add dev %s handle ffff: ingress' %
-                 self.params['wlan'][wlan])
+        self.cmd('tc qdisc add dev %s handle ffff: ingress' % intf)
         self.cmd('tc filter add dev %s parent ffff: protocol ip u32 '
                  'match u32 0 0 action mirred egress redirect dev ifb%s'
-                 % (self.params['wlan'][wlan], (wlan+1)))
+                 % (intf, (wlan+1)))
 
     def getRange(self, intf=None, noiseLevel=0):
         "Get the Signal Range"
@@ -969,11 +965,7 @@ class AccessPoint(Node_wifi):
         cmd = "echo \'"
         args = ['max_num_sta', 'beacon_int', 'rsn_preauth']
 
-        if 'phywlan' in intf.node.params:
-            cmd += "interface=%s" % intf.node.params.get('phywlan')
-        else:
-            cmd += "interface=%s" % intf.name
-
+        cmd += "interface=%s" % intf.node.params.get('phywlan', intf.name)
         cmd += "\ndriver=nl80211"
         cmd += "\nssid=%s" % intf.ssid
         cmd += '\nwds_sta=1'
@@ -982,7 +974,7 @@ class AccessPoint(Node_wifi):
 
         for arg in args:
             if arg in intf.node.params:
-                cmd += '\n%s=%s' % (arg, intf.node.params[arg])
+                cmd += '\n%s=%s' % (arg, intf.node.params.get(arg))
 
         if intf.ht_capab:
             cmd += '\nht_capab=%s' % intf.ht_capab
@@ -993,7 +985,7 @@ class AccessPoint(Node_wifi):
         if 'config' in intf.node.params:
             config = intf.node.params['config']
             if config is not []:
-                config = intf.node.params['config'].split(',')
+                config = config.split(',')
                 # ap.params.pop("config", None)
                 for conf in config:
                     cmd += "\n" + conf
@@ -1136,9 +1128,10 @@ class AccessPoint(Node_wifi):
     def configAP(self, node, wlan):
         TCLinkWirelessAP(node)
         master(node, wlan, port=wlan)
-        if 'phywlan' in node.params:
-            TCLinkWirelessAP(node, intfName=node.params['phywlan'])
-            node.params['wlan'].append(node.params['phywlan'])
+        intfName = node.params.get('phywlan', None)
+        if intfName:
+            TCLinkWirelessAP(node, intfName=intfName)
+            node.params['wlan'].append(intfName)
             master(node, wlan+1)
 
     def checkNetworkManager(self, intf):
@@ -1202,9 +1195,7 @@ class AccessPoint(Node_wifi):
 
     def get_hostapd_cmd(self, ap, phy):
         apconfname = "mn%d_%s-wlan%s.apconf" % (os.getpid(), ap.name, phy+1)
-        hostapd_flags = ''
-        if 'hostapd_flags' in ap.params:
-            hostapd_flags = ap.params['hostapd_flags']
+        hostapd_flags = ap.params.get('hostapd_flags', '')
         cmd = "hostapd -B %s %s" % (apconfname, hostapd_flags)
         return cmd
 

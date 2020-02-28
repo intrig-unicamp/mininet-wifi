@@ -81,9 +81,7 @@ class IntfWireless(object):
 
     def get_wpa_cmd(self):
         pidfile = self.get_pid_filename()
-        wpasup_flags = ''
-        if 'wpasup_flags' in self.node.params:
-            wpasup_flags = self.node.params['wpasup_flags']
+        wpasup_flags = self.node.params.get('wpasup_flags', '')
         cmd = ('wpa_supplicant -B -Dnl80211 -P {} -i {} -c {}_{}.staconf {}'.
                format(pidfile, self.name, self.name, self.id, wpasup_flags))
         return cmd
@@ -590,7 +588,6 @@ class _4address(IntfWireless):
             self.set_pos(node2)
 
         if cl_intfName not in cl.params['wlan']:
-
             wlan = cl.params['wlan'].index(port1) if port1 else 0
             apwlan = ap.params['wlan'].index(port2) if port2 else 0
 
@@ -1093,10 +1090,10 @@ class wirelessLink(object):
 
     dist = 0
     noise = 0
-    equationLoss = '(dist * 2) / 1000'
-    equationDelay = '(dist / 10) + 1'
-    equationLatency = '(dist / 10)/2'
-    equationBw = ' * (1.01 ** -dist)'
+    eqLoss = '(dist * 2) / 1000'
+    eqDelay = '(dist / 10) + 1'
+    eqLatency = '(dist / 10)/2'
+    eqBw = ' * (1.01 ** -dist)'
 
     def __init__(self, intf, dist=0):
         latency_ = self.getLatency(dist)
@@ -1106,18 +1103,18 @@ class wirelessLink(object):
 
     def getDelay(self, dist):
         "Based on RandomPropagationDelayModel"
-        return eval(self.equationDelay)
+        return eval(self.eqDelay)
 
     def getLatency(self, dist):
-        return eval(self.equationLatency)
+        return eval(self.eqLatency)
 
     def getLoss(self, dist):
-        return eval(self.equationLoss)
+        return eval(self.eqLoss)
 
     def getBW(self, intf, dist):
         # dist is used by eval
         custombw = intf.getCustomRate()
-        rate = eval(str(custombw) + self.equationBw)
+        rate = eval(str(custombw) + self.eqBw)
 
         if rate <= 0.0:
             rate = 0.1
@@ -1698,10 +1695,10 @@ class Association(IntfWireless):
 
     @classmethod
     def wep(cls, intf, ap_intf):
-        if not intf.passwd:
-            passwd = ap_intf.passwd
-        else:
+        if intf.passwd:
             passwd = intf.passwd
+        else:
+            passwd = ap_intf.passwd
         cls.wep_connect(passwd, intf, ap_intf)
 
     @classmethod

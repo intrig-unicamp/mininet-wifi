@@ -99,7 +99,7 @@ class module(object):
             try:
                 for i in range(0, n_radios):
                     p = subprocess.Popen(["hwsim_mgmt", "-c", "-n", self.prefix +
-                                          ("%02d" % i)], stdin=subprocess.PIPE,
+                                         ("%02d" % i)], stdin=subprocess.PIPE,
                                          stdout=subprocess.PIPE,
                                          stderr=subprocess.PIPE, bufsize=-1)
                     output, err_out = p.communicate()
@@ -121,7 +121,6 @@ class module(object):
 
     def get_physical_wlan(self):
         'Gets the list of physical wlans that already exist'
-        wlans = []
         if py_version_info < (3, 0):
             wlans = (subprocess.check_output("iw dev 2>&1 | grep Interface "
                                              "| awk '{print $2}'",
@@ -264,7 +263,6 @@ class module(object):
         """Build a new wlan list removing the physical wlan
         :param physicalWlans: list of Physical Wlans"""
         wlan_list = []
-
         if py_version_info < (3, 0):
             iface_list = subprocess.check_output("iw dev 2>&1 | grep Interface | "
                                                  "awk '{print $2}'",
