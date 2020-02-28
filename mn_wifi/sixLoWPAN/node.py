@@ -14,11 +14,12 @@ from mininet.util import ( quietRun, errRun, BaseString,
                            getincrementaldecoder, Python3 )
 from mininet.moduledeps import moduleDeps, pathCheck, TUN
 from mininet.node import Node
+from mn_wifi.node import Node_wifi
 from mn_wifi.sixLoWPAN.link import TC6LoWPANLink
 from re import findall
 
 
-class Node_6lowpan(Node):
+class Node_6lowpan(Node_wifi):
     """A virtual network node is simply a shell in a network namespace.
        We communicate with it using pipes."""
 
