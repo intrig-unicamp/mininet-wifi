@@ -926,11 +926,8 @@ class AccessPoint(Node_wifi):
     def get_mode_config(self, intf):
         cmd = ''
         if intf.mode == 'n':
-            if intf.band:
-                if intf.band == '5' or intf.band == 5:
+            if intf.band and str(intf.band) == '5':
                     cmd += "\nhw_mode=a"
-                else:
-                    cmd += "\nhw_mode=g"
             else:
                 cmd += "\nhw_mode=g"
         elif intf.mode == 'a':
@@ -965,9 +962,9 @@ class AccessPoint(Node_wifi):
         cmd = "echo \'"
         args = ['max_num_sta', 'beacon_int', 'rsn_preauth']
 
-        cmd += "interface=%s" % intf.node.params.get('phywlan', intf.name)
-        cmd += "\ndriver=nl80211"
-        cmd += "\nssid=%s" % intf.ssid
+        cmd += 'interface=%s' % intf.node.params.get('phywlan', intf.name)
+        cmd += '\ndriver=nl80211'
+        cmd += '\nssid=%s' % intf.ssid
         cmd += '\nwds_sta=1'
         cmd += self.get_mode_config(intf)  # get mode
         cmd += "\nchannel=%s" % intf.channel
@@ -1040,12 +1037,9 @@ class AccessPoint(Node_wifi):
                     cmd += '\nwps_pin_requests=/var/run/hostapd.pin-req'
                     cmd += '\nap_setup_locked=0'
 
-                if intf.mode == 'ac':
+                if intf.mode == 'ac' or intf.mode == 'n':
                     cmd += "\nwmm_enabled=1"
-                    cmd += "\nieee80211ac=1"
-                elif intf.mode == 'n':
-                    cmd += "\nwmm_enabled=1"
-                    cmd += "\nieee80211n=1"
+                    cmd += "\nieee80211%s=1" % intf.mode
 
                 if intf.ieee80211r:
                     if intf.mobility_domain:
@@ -1067,7 +1061,6 @@ class AccessPoint(Node_wifi):
         return cmd
 
     def setBw(self, intf, wlan):
-        "Set bw"
         if 'bw' in intf.node.params:
             bw = intf.node.params['bw'][wlan]
         else:
@@ -1088,12 +1081,11 @@ class AccessPoint(Node_wifi):
 
     def verifyWepKey(self, wep_key0):
         "Check WEP key"
-        if len(wep_key0) == 10 or len(wep_key0) == 26 or len(wep_key0) == 32:
+        len_list = [5, 10, 13, 16, 26, 32]
+        if len(wep_key0) in len_list:
             cmd = "\nwep_key0=%s" % wep_key0
-        elif len(wep_key0) == 5 or len(wep_key0) == 13 or len(wep_key0) == 16:
-            cmd = "\nwep_key0=\"%s\"" % wep_key0
         else:
-            info("Warning! Wep Key is wrong!\n")
+            info("Warning! Wep Key length is wrong!\n")
             exit(1)
         return cmd
 
@@ -1105,9 +1097,7 @@ class AccessPoint(Node_wifi):
         else:
             intf.mac = intf.getMAC()
 
-        if intf.mac:
-            self.checkNetworkManager(intf)
-
+        self.checkNetworkManager(intf)
         if intf.node.inNamespace and 'ip' in intf.node.params:
             intf.node.setIP(intf.node.params['ip'], intf=intf.name)
 
@@ -1137,12 +1127,12 @@ class AccessPoint(Node_wifi):
     def checkNetworkManager(self, intf):
         "add mac address into /etc/NetworkManager/NetworkManager.conf"
         mac = intf.mac
-        nm = 'NetworkManager'
+        nm_path = '/etc/%s/%s.conf'.format('NetworkManager', 'NetworkManager')
         unmanaged = 'unmanaged-devices'
         unmatch = ""
-        if os.path.exists('/etc/%s/%s.conf' % (nm, nm)):
-            if os.path.isfile('/etc/%s/%s.conf' % (nm, nm)):
-                lines = open('/etc/%s/%s.conf' % (nm, nm))
+        if os.path.exists(nm_path):
+            if os.path.isfile(nm_path):
+                lines = open(nm_path)
 
             isNew = True
             for n in lines:
@@ -1153,13 +1143,12 @@ class AccessPoint(Node_wifi):
                     echo = echo[:-1] + ";"
                     isNew = False
             if isNew:
-                os.system("echo '#' >> /etc/%s/%s.conf" % (nm, nm))
+                os.system('echo \'#\' >> {}'.format(nm_path))
                 echo = "[keyfile]\n%s=" % unmanaged
 
             if mac not in unmatch:
                 echo += "mac:" + mac + ';'
-                for line in fileinput.input('/etc/%s/%s.conf' % (nm, nm),
-                                            inplace=1):
+                for line in fileinput.input(nm_path, inplace=1):
                     if isNew:
                         self.writeToFile(line, unmatch, echo, '#')
                     else:
@@ -1188,9 +1177,9 @@ class AccessPoint(Node_wifi):
                 info("*** Waiting for ACS... It takes 10 seconds.\n")
                 sleep(10)
         except:
-            info("*** error with hostapd. Please, run sudo mn -c in order " \
-            "to fix it or check if hostapd is working properly in " \
-            "your system.")
+            info("*** error with hostapd. Please, run sudo mn -c in order "
+                 "to fix it or check if hostapd is working properly in "
+                 "your system.")
             exit(1)
 
     def get_hostapd_cmd(self, ap, phy):

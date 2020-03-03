@@ -502,7 +502,7 @@ class Mininet_wifi(Mininet):
     # This may (should?) be cleaned up in the future.
     def getNodeByName(self, *args):
         "Return node(s) with given name(s)"
-        if len(args) is 1:
+        if len(args) == 1:
             return self.nameToNode[args[0]]
         return [self.nameToNode[n] for n in args]
 
@@ -1097,7 +1097,7 @@ class Mininet_wifi(Mininet):
         r += r'(\d+\.\d+)/(\d+\.\d+)/(\d+\.\d+)/(\d+\.\d+) ms'
         m = re.search(r, pingOutput)
         if m is None:
-            if received is 0:
+            if received == 0:
                 return errorTuple
             error('*** Error: could not parse ping output: %s\n' %
                   pingOutput)
@@ -1200,19 +1200,19 @@ class Mininet_wifi(Mininet):
         sleep(3)
         nodes = self.hosts + self.stations
         hosts = hosts or [nodes[0], nodes[-1]]
-        assert len(hosts) is 2
+        assert len(hosts) == 2
         client, server = hosts
 
         conn1 = 0
         conn2 = 0
         if isinstance(client, Station) or isinstance(server, Station):
             if isinstance(client, Station):
-                while conn1 is 0:
+                while conn1 == 0:
                     conn1 = int(client.cmd('iw dev %s link '
                                            '| grep -ic \'Connected\''
                                            % client.wintfs[0].name))
             if isinstance(server, Station):
-                while conn2 is 0:
+                while conn2 == 0:
                     conn2 = int(server.cmd('iw dev %s link | grep -ic '
                                            '\'Connected\''
                                            % server.wintfs[0].name))
@@ -1221,7 +1221,7 @@ class Mininet_wifi(Mininet):
         server.cmd('killall -9 iperf')
         iperfArgs = 'iperf -p %d ' % port
         bwArgs = ''
-        if l4Type is 'UDP':
+        if l4Type == 'UDP':
             iperfArgs += '-u '
             bwArgs = '-b ' + udpBw + ' '
         elif l4Type != 'TCP':
@@ -1229,7 +1229,7 @@ class Mininet_wifi(Mininet):
         if fmt:
             iperfArgs += '-f %s ' % fmt
         server.sendCmd(iperfArgs + '-s')
-        if l4Type is 'TCP':
+        if l4Type == 'TCP':
             if not waitListening(client, server.IP(), port):
                 raise Exception('Could not connect to iperf on port %d'
                                 % port)
@@ -1239,14 +1239,14 @@ class Mininet_wifi(Mininet):
         servout = ''
         # We want the last *b/sec from the iperf server output
         # for TCP, there are two of them because of waitListening
-        count = 2 if l4Type is 'TCP' else 1
+        count = 2 if l4Type == 'TCP' else 1
         while len(re.findall('/sec', servout)) < count:
             servout += server.monitor(timeoutms=5000)
         server.sendInt()
         servout += server.waitOutput()
         debug('Server output: %s\n' % servout)
         result = [self._parseIperf(servout), self._parseIperf(cliout)]
-        if l4Type is 'UDP':
+        if l4Type == 'UDP':
             result.insert(0, udpBw)
         output('*** Results: %s\n' % result)
         return result
@@ -1377,7 +1377,7 @@ class Mininet_wifi(Mininet):
             src = self.nameToNode[src]
             dst = self.nameToNode[dst]
             connections = src.connectionsTo(dst)
-            if len(connections) is 0:
+            if len(connections) == 0:
                 error('src and dst not connected: %s %s\n' % (src, dst))
             for srcIntf, dstIntf in connections:
                 result = srcIntf.ifconfig(status)

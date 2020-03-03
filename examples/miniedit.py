@@ -100,6 +100,7 @@ class InbandController( RemoteController ):
         "Overridden to do nothing."
         return
 
+
 class CustomUserSwitch(UserSwitch):
     "Customized UserSwitch"
     def __init__( self, name, dpopts='--no-slicing', **kwargs ):
@@ -124,6 +125,7 @@ class CustomUserSwitch(UserSwitch):
                 self.cmd( 'ifconfig', self, self.switchIP )
             else:
                 self.cmd( 'ifconfig lo', self.switchIP )
+
 
 class CustomUserAP(UserAP):
     "Customized UserAP"
@@ -150,6 +152,7 @@ class CustomUserAP(UserAP):
             else:
                 self.cmd( 'ifconfig lo', self.apIP )
 
+
 class LegacyRouter( Node ):
     "Simple IP router"
     def __init__( self, name, inNamespace=True, **params ):
@@ -162,17 +165,19 @@ class LegacyRouter( Node ):
         self.cmd('sysctl -w net.ipv4.ip_forward=1')
         return r
 
+
 class LegacySwitch(OVSSwitch):
     "OVS switch in standalone/bridge mode"
     def __init__( self, name, **params ):
         OVSSwitch.__init__( self, name, failMode='standalone', **params )
         self.switchIP = None
 
+
 class customOvs(OVSSwitch):
     "Customized OVS switch"
 
     def __init__( self, name, failMode='secure', datapath='kernel', **params ):
-        OVSSwitch.__init__( self, name, failMode=failMode, datapath=datapath,**params )
+        OVSSwitch.__init__( self, name, failMode=failMode, datapath=datapath, **params )
         self.switchIP = None
 
     def getSwitchIP(self):
@@ -190,6 +195,7 @@ class customOvs(OVSSwitch):
         # Set Switch IP address
         if self.switchIP is not None:
             self.cmd( 'ifconfig', self, self.switchIP )
+
 
 class customOvsAP(OVSAP):
     "Customized OVS switch"
@@ -213,6 +219,7 @@ class customOvsAP(OVSAP):
         # Set AP IP address
         if self.apIP is not None:
             self.cmd( 'ifconfig', self, self.apIP )
+
 
 class PrefsDialog(tkSimpleDialog.Dialog):
     "Preferences dialog"
@@ -3631,7 +3638,7 @@ class MiniEdit( Frame ):
 
     def clickNode( self, event ):
         "Node click handler."
-        if self.active is 'NetLink':
+        if self.active == 'NetLink':
             self.startLink( event )
         else:
             self.selectNode( event )
@@ -3639,14 +3646,14 @@ class MiniEdit( Frame ):
 
     def dragNode( self, event ):
         "Node drag handler."
-        if self.active is 'NetLink':
+        if self.active == 'NetLink':
             self.dragNetLink( event )
         else:
             self.dragNodeAround( event )
 
     def releaseNode( self, event ):
         "Node release handler."
-        if self.active is 'NetLink':
+        if self.active == 'NetLink':
             self.finishLink( event )
 
     # Specific node handlers

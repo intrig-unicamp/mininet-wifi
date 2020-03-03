@@ -39,12 +39,6 @@ class IntfSixLoWPAN(object):
         "Run a command in our owning node"
         return self.node.cmd( *args, **kwargs )
 
-    def ipAddr(self, *args):
-        "Configure ourselves using ip addr"
-        # sixlow seems to not acccept ipv4
-        #self.cmd('ip addr flush ', self.name)
-        #return self.cmd('ip addr add', args[0], 'dev', self.name)
-
     def ipAddr6(self, *args):
         self.cmd('ip -6 addr flush ', self.name)
         return self.cmd('ip -6 addr add ', args[0], 'dev', self.name)
@@ -52,20 +46,6 @@ class IntfSixLoWPAN(object):
     def ipLink(self, *args):
         "Configure ourselves using ip link"
         return self.cmd('ip link set', self.name, *args)
-
-    def setIP(self, ipstr, prefixLen=None, **args):
-        """Set our IP address"""
-        # This is a sign that we should perhaps rethink our prefix
-        # mechanism and/or the way we specify IP addresses
-        if '/' in ipstr:
-            self.ip, self.prefixLen = ipstr.split('/')
-            return self.ipAddr(ipstr)
-        else:
-            if prefixLen is None:
-                raise Exception('No prefix length set for IP address %s'
-                                % (ipstr,))
-            self.ip, self.prefixLen = ipstr, prefixLen
-            return self.ipAddr('%s/%s' % (ipstr, prefixLen))
 
     def setIP6(self, ipstr, prefixLen=None, **args):
         """Set our IP6 address"""
@@ -132,10 +112,6 @@ class IntfSixLoWPAN(object):
         self.mac = macs[0] if macs else None
         return self.ip, self.mac
 
-    def IP( self ):
-        "Return IP address"
-        return self.ip
-
     def IP6( self ):
         "Return IPv6 address"
         return self.ip6
@@ -155,7 +131,7 @@ class IntfSixLoWPAN(object):
             else:
                 return True
         else:
-            return "UP" in self.ipAddr()
+            return "UP" in self.ipAddr6()
 
     def rename(self, newname):
         "Rename interface"
@@ -190,7 +166,7 @@ class IntfSixLoWPAN(object):
         results[ name ] = result
         return result
 
-    def config( self, mac=None, ip=None, ip6=None, ipAddr=None,
+    def config( self, mac=None, ip6=None, ipAddr=None,
                 up=True, **_params ):
         """Configure Node according to (optional) parameters:
            mac: MAC address
@@ -203,7 +179,6 @@ class IntfSixLoWPAN(object):
         # r = Parent.config( **params )
         r = {}
         self.setParam(r, 'setMAC', mac=mac)
-        self.setParam(r, 'setIP', ip=ip)
         self.setParam(r, 'setIP6', ip=ip6)
         self.setParam(r, 'isUp', up=up)
         self.setParam(r, 'ipAddr', ipAddr=ipAddr)
@@ -434,8 +409,6 @@ class sixLoWPAN(IntfSixLoWPAN):
         if not cls:
             cls = IntfSixLoWPAN
 
-        if 'ip' in node.params:
-            params['ip'] = node.params['ip']
         if 'ip6' in node.params:
             params['ipv6'] = node.params['ip6']
         params['name'] = self.name

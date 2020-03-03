@@ -39,6 +39,7 @@ class Mininet_IoT(Mininet):
     nextIP = 1  # start for address allocation
     nextIP6 = 1  # start for address allocation
     nextPosition = 1
+    nextPos_ap = 1
     inNamespace = inNamespace
     numCores = numCores()
     nextCore = 0  # next core for pinning hosts to CPUs
@@ -54,7 +55,7 @@ class Mininet_IoT(Mininet):
     @classmethod
     def init_module(cls, iot_module):
         sensors = cls.sensors + cls.apsensors
-        module(sensors, cls.nwpans, iot_module=iot_module)
+        module(sensors, cls.nwpans, iot_module)
         return cls.sensors, cls.apsensors
 
     @classmethod
@@ -74,7 +75,6 @@ class Mininet_IoT(Mininet):
         defaults: Default IP and MAC addresses
         node_mode: if interface is running in managed or master mode"""
         node.params['wpan'] = []
-
         wpans = cls.count6LoWPANIfaces(**params)
 
         for wpan in range(wpans):

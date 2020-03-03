@@ -13,7 +13,6 @@ from mininet.link import Intf, OVSIntf
 from mininet.util import ( quietRun, errRun, BaseString,
                            getincrementaldecoder, Python3 )
 from mininet.moduledeps import moduleDeps, pathCheck, TUN
-from mininet.node import Node
 from mn_wifi.node import Node_wifi
 from mn_wifi.sixLoWPAN.link import TC6LoWPANLink
 from re import findall
@@ -123,14 +122,6 @@ class Node_6lowpan(Node_wifi):
         return connections
 
     # Convenience and configuration methods
-    def setIP(self, ip, prefixLen=8, intf=None, **kwargs):
-        """Set the IP address for an interface.
-           intf: intf or intf name
-           ip: IP address as a string
-           prefixLen: prefix length, e.g. 8 for /8 or 16M addrs
-           kwargs: any additional arguments for intf.setIP"""
-        return self.intf(intf).setIP(ip, prefixLen, **kwargs)
-
     def setIP6(self, ip, prefixLen=64, intf=None, **kwargs):
         """Set the IP address for an interface.
            intf: intf or intf name
@@ -162,7 +153,6 @@ class Node_6lowpan(Node_wifi):
         # r = Parent.config( **_params )
         r = {}
 
-        self.setParam(r, 'setIP', ip=ip)
         self.setParam(r, 'setIP6', ip=ip6)
         self.setParam(r, 'setDefaultRoute', defaultRoute=defaultRoute)
 
