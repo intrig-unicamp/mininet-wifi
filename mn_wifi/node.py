@@ -1127,7 +1127,7 @@ class AccessPoint(Node_wifi):
     def checkNetworkManager(self, intf):
         "add mac address into /etc/NetworkManager/NetworkManager.conf"
         mac = intf.mac
-        nm_path = '/etc/%s/%s.conf'.format('NetworkManager', 'NetworkManager')
+        nm_path = '/etc/{}/{}.conf'.format('NetworkManager', 'NetworkManager')
         unmanaged = 'unmanaged-devices'
         unmatch = ""
         if os.path.exists(nm_path):
@@ -1138,21 +1138,21 @@ class AccessPoint(Node_wifi):
             for n in lines:
                 if unmanaged in n:
                     unmatch = n
-                    echo = n
-                    echo.replace(" ", "")
-                    echo = echo[:-1] + ";"
+                    cmd = n
+                    cmd.replace(" ", "")
+                    cmd = cmd[:-1] + ";"
                     isNew = False
             if isNew:
                 os.system('echo \'#\' >> {}'.format(nm_path))
-                echo = "[keyfile]\n%s=" % unmanaged
+                cmd = "[keyfile]\n%s=" % unmanaged
 
             if mac not in unmatch:
-                echo += "mac:" + mac + ';'
+                cmd += "mac:" + mac + ';'
                 for line in fileinput.input(nm_path, inplace=1):
                     if isNew:
-                        self.writeToFile(line, unmatch, echo, '#')
+                        self.writeToFile(line, unmatch, cmd, '#')
                     else:
-                        self.writeToFile(line, unmatch, echo, unmanaged)
+                        self.writeToFile(line, unmatch, cmd, unmanaged)
                 self.write_mac = True
 
     def writeToFile(self, line, unmatch, echo, str_):
