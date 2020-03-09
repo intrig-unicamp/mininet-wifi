@@ -155,7 +155,7 @@ class Node_wifi(Node):
             setattr(self, key, value)
 
         aps = [self]
-        AccessPoint(aps, setMaster=True)
+        AccessPoint(aps, set_master=True)
 
     def setOCBMode(self, **params):
         ITSLink(self, **params)
