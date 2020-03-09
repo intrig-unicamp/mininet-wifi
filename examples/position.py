@@ -14,12 +14,13 @@ def topology(args):
     net = Mininet_wifi()
 
     info("*** Creating nodes\n")
+    ap1 = net.addAccessPoint('ap1', ssid='new-ssid', mode='g', channel='1',
+                             failMode="standalone", mac='00:00:00:00:00:01',
+                             position='50,50,0')
     net.addStation('sta1', mac='00:00:00:00:00:02', ip='10.0.0.1/8',
                    position='30,60,0')
     net.addStation('sta2', mac='00:00:00:00:00:03', ip='10.0.0.2/8',
                    position='70,30,0')
-    ap1 = net.addAccessPoint('ap1', ssid='new-ssid', mode='g', channel='1',
-                             failMode="standalone", position='50,50,0')
     h1 = net.addHost('h1', ip='10.0.0.3/8')
 
     info("*** Configuring propagation model\n")
