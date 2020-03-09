@@ -1448,6 +1448,10 @@ class Mininet_wifi(Mininet):
         nodes = self.stations + self.cars
         for node in nodes:
             for wlan in range(len(node.params['wlan'])):
+                if not self.autoAssociation:
+                    intf = node.params['wlan'][wlan]
+                    link = TCLinkWirelessStation(node, intfName=intf)
+                    self.links.append(link)
                 managed(node, wlan)
             for intf in node.wintfs.values():
                 intf.configureMacAddr()
@@ -1601,6 +1605,7 @@ class Mininet_wifi(Mininet):
         self.configNodes()
         self.createVirtualIfaces(self.stations)
         AccessPoint(self.aps, check_nm=True)
+
         if self.link == wmediumd:
             self.configWmediumd()
         AccessPoint(self.aps)
@@ -1640,7 +1645,7 @@ class Mininet_wifi(Mininet):
                 params['latency'] = link.intf1.params['latency']
             if 'loss' in link.intf1.params:
                 params['loss'] = link.intf1.params['loss']
-            if params:
+            if params and 'delay' not in link.intf1.params:
                 wirelessLink.tc(link.intf1.node, link.intf1.name, **params)
 
     def auto_association(self):

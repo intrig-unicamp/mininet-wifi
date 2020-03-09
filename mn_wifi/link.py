@@ -1413,6 +1413,7 @@ class mesh(IntfWireless):
         self.associatedTo = 'mesh'
         if wmediumd_mode.mode:
             self.wmIface = DynamicIntfRef(node, intf=self.name)
+            node.wmIfaces[wlan] = self.wmIface
 
         node.addWAttr(self, port=wlan)
         if isinstance(node, AP):
