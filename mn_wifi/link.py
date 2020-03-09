@@ -385,6 +385,10 @@ class IntfWireless(object):
         #self.node.delIntf(self)
         self.link = None
 
+    def stop(self):
+        "Override to stop and clean up link as needed"
+        self.delete()
+
     def status(self):
         "Return intf status as a string"
         links, _err, _result = self.node.pexec('ip link show')
@@ -575,19 +579,16 @@ class _4address(IntfWireless):
            node1: first node
            node2: second node
            intf: default interface class/constructor"""
-        intf1 = None
-        intf2 = None
-
         ap = node1  # ap
         cl = node2  # client
-        cl_intfName = '%s.wds' % cl.name
+        cl_intfname = '%s.wds' % cl.name
 
         if not hasattr(node1, 'position'):
             self.set_pos(node1)
         if not hasattr(node2, 'position'):
             self.set_pos(node2)
 
-        if cl_intfName not in cl.params['wlan']:
+        if cl_intfname not in cl.params['wlan']:
             wlan = cl.params['wlan'].index(port1) if port1 else 0
             apwlan = ap.params['wlan'].index(port2) if port2 else 0
 
@@ -595,26 +596,21 @@ class _4address(IntfWireless):
             ap_intf = ap.wintfs[apwlan]
 
             self.node = cl
-            self.add4addrIface(wlan, cl_intfName)
-
-            self.setMAC(intf)
-            self.setMAC(ap_intf)
-            self.bring4addrIfaceUP()
+            self.add4addrIface(intf, cl_intfname)
+            sleep(1)
 
             intf.mode = ap_intf.mode
             intf.channel = ap_intf.channel
             intf.freq = ap_intf.freq
             intf.txpower = ap_intf.txpower
             intf.antennaGain = ap_intf.antennaGain
-            cl.params['wlan'].append(cl_intfName)
+            cl.params['wlan'].append(cl_intfname)
             sleep(1)
-            self.iwdev_cmd('%s connect %s %s' % (cl.params['wlan'][1],
-                                                 ap_intf.ssid, ap_intf.mac))
 
             params1, params2 = {}, {}
             params1['port'] = cl.newPort()
             params2['port'] = ap.newPort()
-            intf1 = IntfWireless(name=cl_intfName, node=cl, link=self, **params1)
+            intf1 = IntfWireless(name=cl_intfname, node=cl, link=self, **params1)
             if hasattr(ap, 'wds'):
                 ap.wds += 1
             else:
@@ -627,6 +623,11 @@ class _4address(IntfWireless):
             _4addrClient(cl, (len(cl.params['wlan'])-1))
 
             cl.wintfs[1].mac = (intf.mac[:3] + '09' + intf.mac[5:])
+            self.bring4addrIfaceDown()
+            self.setMAC(cl.wintfs[1])
+            self.bring4addrIfaceUP()
+            self.iwdev_cmd('%s connect %s %s' % (cl.params['wlan'][1],
+                                                 ap_intf.ssid, ap_intf.mac))
 
         # All we are is dust in the wind, and our two interfaces
         self.intf1, self.intf2 = intf1, intf2
@@ -637,6 +638,9 @@ class _4address(IntfWireless):
             id = int(hex(int(nums[0]))[2:])
             node.position = (10, round(id, 2), 0)
 
+    def bring4addrIfaceDown(self):
+        self.cmd('ip link set dev %s.wds down' % self.node)
+
     def bring4addrIfaceUP(self):
         self.cmd('ip link set dev %s.wds up' % self.node)
 
@@ -644,9 +648,9 @@ class _4address(IntfWireless):
         self.cmd('ip link set dev %s.wds addr %s'
                  % (intf.node, intf.mac))
 
-    def add4addrIface(self, wlan, intfName):
+    def add4addrIface(self, intf, intfName):
         self.iwdev_cmd('%s interface add %s type managed 4addr on' %
-                       (self.node.params['wlan'][wlan], intfName))
+                       (intf.name, intfName))
 
     def status(self):
         "Return link status as a string"
@@ -940,15 +944,15 @@ class _4addrClient(TCWirelessLink):
         self.ip = None
         self.mac = node.wintfs[wlan-1].mac
         self.range = node.wintfs[0].range
-        self.txpower = 0
+        self.txpower = node.wintfs[wlan-1].txpower
         self.antennaGain = 5.0
         self.name = node.params['wlan'][wlan]
         self.stationsInRange = {}
         self.associatedStations = []
         self.apsInRange = {}
         self.params = {}
-        node.addWIntf(self)
-        node.addWAttr(self)
+        #node.addWIntf(self, port=wlan)
+        node.addWAttr(self, port=wlan)
 
 
 class _4addrAP(TCWirelessLink):
@@ -959,14 +963,14 @@ class _4addrAP(TCWirelessLink):
         self.id = wlan
         self.mac = node.wintfs[0].mac
         self.range = node.wintfs[0].range
-        self.txpower = 0
+        self.txpower =  node.wintfs[0].txpower
         self.antennaGain = 5.0
         self.name = node.params['wlan'][wlan]
         self.stationsInRange = {}
         self.associatedStations = []
         self.params = {}
-        node.addWIntf(self)
-        node.addWAttr(self)
+        #node.addWIntf(self, port=wlan)
+        node.addWAttr(self, port=wlan)
 
 
 class wmediumd(TCWirelessLink):
@@ -985,31 +989,37 @@ class wmediumd(TCWirelessLink):
         "Configure wmediumd"
         intfrefs = []
         isnodeaps = []
+        mac_list = []
 
         wmediumd.nodes = stations + aps + cars
         for node in self.nodes:
+            node.wmIfaces = []
             for intf in node.wintfs.values():
-                intf.wmIface = DynamicIntfRef(node, intf=intf.name)
-                intfrefs.append(intf.wmIface)
+                if intf.mac not in mac_list:
+                    intf.wmIface = DynamicIntfRef(node, intf=intf.name)
+                    intfrefs.append(intf.wmIface)
+                    node.wmIfaces.append(intf.wmIface)
 
-                if (isinstance(intf, master)
-                    or (node in aps and (not isinstance(intf, managed)
-                                         and not isinstance(intf, adhoc)))):
-                    isnodeaps.append(1)
-                else:
-                    isnodeaps.append(0)
-            '''for mac in maclist:
-                for key in mac:
-                    if key == node:
-                        key.wmIface.append(DynamicIntfRef(key, intf=len(key.wmIface)))
-                        key.params['wlan'].append(mac[key][1])
-                        key.params['mac'].append(mac[key][0])
-                        key.params['range'].append(0)
-                        key.params['freq'].append(key.params['freq'][0])
-                        key.params['antennaGain'].append(0)
-                        key.params['txpower'].append(14)
-                        intfrefs.append(key.wmIface[len(key.wmIface) - 1])
-                        isnodeaps.append(0)'''
+                    if (isinstance(intf, master)
+                        or (node in aps and (not isinstance(intf, managed)
+                                             and not isinstance(intf, adhoc)))):
+                        isnodeaps.append(1)
+                    else:
+                        isnodeaps.append(0)
+                    mac_list.append(intf.mac)
+
+                    '''for mac in maclist:
+                        for key in mac:
+                            if key == node:
+                                key.wmIface.append(DynamicIntfRef(key, intf=len(key.wmIface)))
+                                key.params['wlan'].append(mac[key][1])
+                                key.params['mac'].append(mac[key][0])
+                                key.params['range'].append(0)
+                                key.params['freq'].append(key.params['freq'][0])
+                                key.params['antennaGain'].append(0)
+                                key.params['txpower'].append(14)
+                                intfrefs.append(key.wmIface[len(key.wmIface) - 1])
+                                isnodeaps.append(0)'''
 
         if wmediumd_mode.mode == w_cst.INTERFERENCE_MODE:
             set_interference()
@@ -1041,13 +1051,16 @@ class set_interference(object):
                 posZ = float(node.position[2])
             node.lastpos = [posX, posY, posZ]
 
+            mac_list = []
             for wlan, intf in enumerate(node.wintfs.values()):
-                if wlan >= 1:
-                    posX += 0.1
-                wmediumd.positions.append(w_pos(intf.wmIface,
-                                                [posX, posY, posZ]))
-                wmediumd.txpowers.append(w_txpower(
-                    intf.wmIface, float(intf.txpower)))
+                if intf.mac not in mac_list:
+                    if wlan >= 1:
+                        posX += 0.1
+                    wmediumd.positions.append(w_pos(intf.wmIface,
+                                                    [posX, posY, posZ]))
+                    wmediumd.txpowers.append(w_txpower(
+                        intf.wmIface, float(intf.txpower)))
+                    mac_list.append(intf.mac)
 
 
 class spec_prob_link(object):
@@ -1096,10 +1109,11 @@ class wirelessLink(object):
     eqBw = ' * (1.01 ** -dist)'
 
     def __init__(self, intf, dist=0):
-        latency_ = self.getLatency(dist)
-        loss_ = self.getLoss(dist)
-        bw_ = self.getBW(intf, dist)
-        self.config_tc(intf, bw_, loss_, latency_)
+        params = dict()
+        params['latency'] = self.getLatency(dist)
+        params['loss'] = self.getLoss(dist)
+        params['bw'] = self.getBW(intf, dist)
+        self.config_tc(intf, **params)
 
     def getDelay(self, dist):
         "Based on RandomPropagationDelayModel"
@@ -1129,13 +1143,13 @@ class wirelessLink(object):
             node.intf = None
 
     @classmethod
-    def config_tc(cls, intf, bw, loss, latency):
+    def config_tc(cls, intf, **params):
         if intf.ifb:
-            cls.tc(intf.node, intf.ifb, bw, loss, latency)
-        cls.tc(intf.node, intf.name, bw, loss, latency)
+            cls.tc(intf.node, intf.ifb, **params)
+        cls.tc(intf.node, intf.name, **params)
 
     @classmethod
-    def tc(cls, node, iface, bw, loss, latency):
+    def tc(cls, node, iface, bw=0, loss=0, latency=0):
         cmd = "tc qdisc replace dev %s root handle 2: netem " % iface
         rate = "rate %.4fmbit " % bw
         cmd += rate

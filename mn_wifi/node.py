@@ -333,9 +333,9 @@ class Node_wifi(Node):
         "Set Position for wmediumd"
         if self.lastpos != pos:
             self.lastpos = pos
-            for intf in self.wintfs.values():
-                inc = '%s' % float('0.' + str(intf.id))
-                w_server.update_pos(w_pos(intf.wmIface,
+            for wmIface in self.wmIfaces:
+                inc = '%s' % float('0.' + str(self.wmIfaces.index(wmIface)))
+                w_server.update_pos(w_pos(wmIface,
                     [(float(pos[0])+float(inc)), float(pos[1]), float(pos[2])]))
 
     def get_txpower_prop_model(self, intf):
@@ -826,21 +826,22 @@ class AccessPoint(Node_wifi):
 
     write_mac = False
 
-    def __init__(self, aps, setMaster=False, check_nm=False):
+    def __init__(self, aps, set_master=False, check_nm=False):
         'configure ap'
         self.name = ''
         if check_nm:
-            self.check_nm(aps, setMaster)
+            self.check_nm(aps, set_master)
         else:
             self.configure(aps)
 
-    def check_nm(self, aps, setMaster):
+    def check_nm(self, aps, set_master):
         for ap in aps:
             for wlan in range(len(ap.params['wlan'])):
-                if not setMaster:
+                if not set_master:
                     self.configAP(ap, wlan)
                 for intf in ap.wintfs.values():
                     self.setIPMAC(intf)
+                self.checkNetworkManager(intf)
 
             if 'vssids' in ap.params:
                 for i in range(1, ap.params['vssids'] + 1):
@@ -873,7 +874,7 @@ class AccessPoint(Node_wifi):
                     cmd += "\nctrl_interface=/var/run/hostapd"
                     cmd += "\nctrl_interface_group=0"
 
-                    self.APConfigFile(cmd, ap, phy)
+                    self.ap_config_file(cmd, ap, phy)
 
                     for wlan, intf in enumerate(ap.wintfs.values()):
                         if '-' in intf.name:
@@ -1096,8 +1097,6 @@ class AccessPoint(Node_wifi):
             intf.setMAC(intf.mac)
         else:
             intf.mac = intf.getMAC()
-
-        self.checkNetworkManager(intf)
         if intf.node.inNamespace and 'ip' in intf.node.params:
             intf.node.setIP(intf.node.params['ip'], intf=intf.name)
 
@@ -1126,42 +1125,32 @@ class AccessPoint(Node_wifi):
 
     def checkNetworkManager(self, intf):
         "add mac address into /etc/NetworkManager/NetworkManager.conf"
-        mac = intf.mac
-        nm_path = '/etc/{}/{}.conf'.format('NetworkManager', 'NetworkManager')
+        path_file = '/etc/{}/{}.conf'.format('NetworkManager', 'NetworkManager')
         unmanaged = 'unmanaged-devices'
-        unmatch = ""
-        if os.path.exists(nm_path):
-            if os.path.isfile(nm_path):
-                lines = open(nm_path)
-
+        old_content = ''
+        if os.path.isfile(path_file):
+            file = open(path_file, 'rt')
+            data = file.read()
             isNew = True
-            for n in lines:
-                if unmanaged in n:
-                    unmatch = n
-                    cmd = n
-                    cmd.replace(" ", "")
-                    cmd = cmd[:-1] + ";"
+            for content in data.split('\n'):
+                if unmanaged in content:
+                    old_content = content
+                    new_content = old_content
                     isNew = False
             if isNew:
-                os.system('echo \'#\' >> {}'.format(nm_path))
-                cmd = "[keyfile]\n%s=" % unmanaged
+                os.system('echo \'#\' >> {}'.format(path_file))
+                new_content = "[keyfile]\n%s=" % unmanaged
 
-            if mac not in unmatch:
-                cmd += "mac:" + mac + ';'
-                for line in fileinput.input(nm_path, inplace=1):
-                    if isNew:
-                        self.writeToFile(line, unmatch, cmd, '#')
-                    else:
-                        self.writeToFile(line, unmatch, cmd, unmanaged)
+            if intf.mac not in old_content:
+                new_content += "mac:" + intf.mac + ';'
+                data = data.replace(old_content, new_content)
+                file.close()
+                file = open(path_file, "wt")
+                file.write(data)
+                file.close()
                 self.write_mac = True
 
-    def writeToFile(self, line, unmatch, echo, str_):
-        if line.__contains__(str_):
-            print(line.replace(unmatch, echo))
-        else:
-            print(line.rstrip())
-
-    def APConfigFile(self, cmd, ap, phy):
+    def ap_config_file(self, cmd, ap, phy):
         "run an Access Point and create the config file"
         if 'phywlan' in ap.params:
             intf = ap.params['phywlan']
