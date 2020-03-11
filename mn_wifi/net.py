@@ -31,8 +31,8 @@ from mininet.log import info, error, debug, output, warn
 from mn_wifi.node import AccessPoint, AP, Station, Car, \
     OVSKernelAP, physicalAP
 from mn_wifi.wmediumdConnector import error_prob, snr, interference
-from mn_wifi.link import wirelessLink, wmediumd, Association, \
-    _4address, TCWirelessLink, TCLinkWirelessStation, ITSLink, \
+from mn_wifi.link import wirelessLink, wmediumd, _4address, \
+    TCWirelessLink, TCLinkWirelessStation, ITSLink, \
     wifiDirectLink, adhoc, mesh, master, managed, physicalMesh, \
     physicalWifiDirectLink, _4addrClient, _4addrAP
 from mn_wifi.clean import Cleanup as cleanup_mnwifi
@@ -67,7 +67,8 @@ class Mininet_wifi(Mininet):
                  config4addr=False, noise_th=-91, cca_th=-90,
                  disable_tcp_checksum=False, ifb=False, bridge=False, plot=False,
                  plot3d=False, docker=False, container='mininet-wifi', ssh_user='alpha',
-                 set_socket_ip=None, set_socket_port=12345, iot_module='mac802154_hwsim'):
+                 set_socket_ip=None, set_socket_port=12345, iot_module='mac802154_hwsim',
+                 rec_rssi=False):
         """Create Mininet object.
            topo: Topo (topology) object or None
            switch: default Switch class
@@ -136,6 +137,7 @@ class Mininet_wifi(Mininet):
         self.draw = False
         self.isReplaying = False
         self.wmediumd_started = False
+        self.rec_rssi = rec_rssi
         self.mob_check = False
         self.isVanet = False
         self.alt_module = None
@@ -576,7 +578,7 @@ class Mininet_wifi(Mininet):
 
         intf = sta.wintfs[wlan]
         ap_intf = ap.wintfs[ap_wlan]
-        Association.associate(intf, ap_intf)
+        intf.associate(ap_intf)
 
         if self.wmediumd_mode == error_prob:
             wmediumd.wlinks.append([sta, ap, params['error_prob']])
@@ -602,7 +604,7 @@ class Mininet_wifi(Mininet):
             if dist > ap.wintfs[ap_wlan].range:
                 do_association = False
         if do_association:
-            Association.associate(intf, ap_intf)
+            intf.associate(ap_intf)
             if 'bw' not in params and 'bw' not in str(cls):
                 if hasattr(sta, 'position'):
                     params['bw'] = intf.getCustomRate()
@@ -1588,10 +1590,12 @@ class Mininet_wifi(Mininet):
             params['docker'] = self.docker
             params['container'] = self.container
             params['ssh_user'] = self.ssh_user
+        params['rec_rssi'] = self.rec_rssi
 
         nodes, nradios = self.count_ifaces()
         if nodes:
-            module(nodes, nradios, self.alt_module, **params)
+            module(nodes=nodes, nradios=nradios,
+                   alt_module=self.alt_module, **params)
 
         if self.ifb:
             module.load_ifb(nradios)

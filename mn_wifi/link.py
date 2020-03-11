@@ -122,13 +122,15 @@ class IntfWireless(object):
         rate = rates[modes.index(self.mode)]
         return rate
 
+    def rec_rssi(self):
+        # it sends rssi value to hwsim
+        cmd = 'hwsim_mgmt -k %s %s >/dev/null 2>&1' % (self.node.phyid[self.id],
+                                                       abs(int(self.rssi)))
+        self.cmd(cmd)
+
     def get_rssi(self, ap_intf, dist):
         from mn_wifi.propagationModels import PropagationModel as ppm
-        self.rssi = float(ppm(self, ap_intf, dist).rssi)
-        if ap_intf.node not in self.apsInRange:
-            self.apsInRange[ap_intf.node] = self.rssi
-            ap_intf.stationsInRange[self.node] = self.rssi
-        return self.rssi
+        return float(ppm(self, ap_intf, dist).rssi)
 
     def get_freq(self):
         "Gets frequency based on channel number"
@@ -234,6 +236,176 @@ class IntfWireless(object):
                                 % (ipstr,))
             self.ip6, self.prefixLen = ipstr, prefixLen
             return self.ipAddr('%s/%s' % (ipstr, prefixLen))
+
+    def setSNRWmediumd(self, ap_intf, snr):
+        "Send SNR to wmediumd"
+        w_server.send_snr_update(SNRLink(self.wmIface, ap_intf.wmIface, snr))
+        w_server.send_snr_update(SNRLink(ap_intf.wmIface, self.wmIface, snr))
+
+    def disconnect(self):
+        self.node.pexec('iw dev %s disconnect' % self.name)
+        self.rssi = 0
+        self.associatedTo = ''
+        self.channel = 0
+
+    def check_if_wpafile_exist(self):
+        file = '%s_%s.staconf' % (self.name, self.id)
+        return glob.glob(file)
+
+    def wpaFile(self, ap_intf):
+        cmd = ''
+        if not ap_intf.config or not self.config:
+            if not ap_intf.authmode:
+                if not self.passwd:
+                    passwd = ap_intf.passwd
+                else:
+                    passwd = self.passwd
+
+        if 'wpasup_globals' not in self.node.params \
+                or ('wpasup_globals' in self.node.params
+                    and 'ctrl_interface=' not in self.node.params['wpasup_globals']):
+            cmd = 'ctrl_interface=/var/run/wpa_supplicant\n'
+        if ap_intf.wps_state and not intf.passwd:
+            cmd += 'ctrl_interface_group=0\n'
+            cmd += 'update_config=1\n'
+        else:
+            if 'wpasup_globals' in self.node.params:
+                cmd += self.node.params['wpasup_globals'] + '\n'
+            cmd += 'network={\n'
+
+            if self.config:
+                config = self.config
+                if config is not []:
+                    config = self.config.split(',')
+                    self.node.params.pop("config", None)
+                    for conf in config:
+                        cmd += "   " + conf + "\n"
+            else:
+                cmd += '   ssid=\"%s\"\n' % ap_intf.ssid
+
+                if not ap_intf.authmode:
+                    cmd += '   psk=\"%s\"\n' % passwd
+                    encrypt = ap_intf.encrypt
+                    if ap_intf.encrypt == 'wpa3':
+                        encrypt = 'wpa2'
+                    cmd += '   proto=%s\n' % encrypt.upper()
+                    cmd += '   pairwise=%s\n' % ap_intf.rsn_pairwise
+                    if self.active_scan:
+                        cmd += '   scan_ssid=1\n'
+                    if self.scan_freq:
+                        cmd += '   scan_freq=%s\n' % self.scan_freq
+                    if self.freq_list:
+                        cmd += '   freq_list=%s\n' % self.freq_list
+                wpa_key_mgmt = ap_intf.wpa_key_mgmt
+                if ap_intf.encrypt == 'wpa3':
+                    wpa_key_mgmt = 'SAE'
+                cmd += '   key_mgmt=%s\n' % wpa_key_mgmt
+                if 'bgscan_threshold' in self.node.params:
+                    if 'bgscan_module' not in self.node.params:
+                        self.node.params['bgscan_module'] = 'simple'
+                    bgscan = 'bgscan=\"%s:%d:%d:%d\"' % \
+                             (self.bgscan_module, self.s_inverval,
+                              self.bgscan_threshold, self.l_interval)
+                    cmd += '   %s\n' % bgscan
+                if ap_intf.authmode == '8021x':
+                    cmd += '   eap=PEAP\n'
+                    cmd += '   identity=\"%s\"\n' % self.radius_identity
+                    cmd += '   password=\"%s\"\n' % self.radius_passwd
+                    cmd += '   phase2=\"autheap=MSCHAPV2\"\n'
+            cmd += '}'
+
+        fileName = '%s_%s.staconf' % (self.name, self.id)
+        os.system('echo \'%s\' > %s' % (cmd, fileName))
+
+    def wpa(self, ap_intf):
+        self.wpaFile(ap_intf)
+        self.wpa_pexec()
+
+    def handover_ieee80211r(self, ap_intf):
+        self.node.pexec('wpa_cli -i %s roam %s' % (self.name, ap_intf.mac))
+
+    def wep(self, ap_intf):
+        if self.passwd:
+            passwd = self.passwd
+        else:
+            passwd = ap_intf.passwd
+        self.wep_connect(passwd, ap_intf)
+
+    def wep_connect(self, passwd, ap_intf):
+        self.node.pexec('iw dev %s connect %s key d:0:%s' % (self.name, ap_intf.ssid, passwd))
+
+    def update_client_params(self, ap_intf):
+        self.freq = ap_intf.freq
+        self.channel = ap_intf.channel
+        self.mode = ap_intf.mode
+        self.ssid = ap_intf.ssid
+        self.range = self.node.getRange(self)
+
+    def iwconfig_con(self, ap_intf):
+        cmd = 'iwconfig %s essid %s ap %s' % (self.name, ap_intf.ssid, ap_intf.mac)
+        return cmd
+
+    def associate_noEncrypt(self, ap_intf):
+        # iwconfig is still necessary, since iw doesn't include essid like iwconfig does.
+        self.node.pexec(self.iwconfig_con(ap_intf))
+        debug('\n')
+
+    def update(self, ap_intf):
+        if self.associatedTo and self.node in ap_intf.associatedStations:
+            ap_intf.associatedStations.remove(self.node)
+        self.update_client_params(ap_intf)
+        ap_intf.associatedStations.append(self.node)
+        self.associatedTo = ap_intf.node
+
+    def associate_infra(self, ap_intf):
+        associated = 0
+        if ap_intf.ieee80211r and (not self.encrypt or 'wpa' in self.encrypt):
+            if not self.associatedTo:
+                wpa_file_exists = self.check_if_wpafile_exist()
+                if wpa_file_exists:
+                    self.handover_ieee80211r(ap_intf)
+                else:
+                    self.wpa(ap_intf)
+            else:
+                self.handover_ieee80211r(ap_intf)
+            associated = 1
+        elif not ap_intf.encrypt:
+            associated = 1
+            self.associate_noEncrypt(ap_intf)
+        else:
+            if not self.associatedTo:
+                if 'wpa' in ap_intf.encrypt and (not self.encrypt or 'wpa' in self.encrypt):
+                    self.wpa(ap_intf)
+                    associated = 1
+                elif ap_intf.encrypt == 'wep':
+                    self.wep(ap_intf)
+                    associated = 1
+        if associated:
+            self.update(ap_intf)
+
+    def configureWirelessLink(self, ap_intf):
+        dist = self.node.get_distance_to(ap_intf.node)
+        if dist <= ap_intf.range:
+            if not wmediumd_mode.mode == w_cst.INTERFERENCE_MODE:
+                if intf.rssi == 0:
+                    self.update_client_params(ap_intf)
+            if ap_intf != self.associatedTo or \
+                    not self.associatedTo:
+                self.associate_infra(ap_intf)
+                if wmediumd_mode.mode == w_cst.WRONG_MODE:
+                    if dist >= 0.01:
+                        wirelessLink(intf, dist)
+                if self.node != ap_intf.associatedStations:
+                    ap_intf.associatedStations.append(self.node)
+            if not wmediumd_mode.mode == w_cst.INTERFERENCE_MODE:
+                self.rssi = self.get_rssi(ap_intf, dist)
+
+    def associate(self, ap_intf):
+        "Associate to Access Point"
+        if hasattr(self.node, 'position'):
+            self.configureWirelessLink(ap_intf)
+        else:
+            self.associate_infra(ap_intf)
 
     def configureMacAddr(self):
         """Configure Mac Address
@@ -1535,194 +1707,3 @@ class physicalMesh(IntfWireless):
                     break
                 except:
                     break
-
-
-class Association(IntfWireless):
-
-    @classmethod
-    def setSNRWmediumd(cls, sta, ap, snr):
-        "Send SNR to wmediumd"
-        w_server.send_snr_update(SNRLink(sta.wintfs[0].wmIface,
-                                         ap.wintfs[0].wmIface, snr))
-        w_server.send_snr_update(SNRLink(ap.wintfs[0].wmIface,
-                                         sta.wintfs[0].wmIface, snr))
-
-    @classmethod
-    def configureWirelessLink(cls, intf, ap_intf):
-        dist = intf.node.get_distance_to(ap_intf.node)
-        if dist <= ap_intf.range:
-            if not wmediumd_mode.mode == w_cst.INTERFERENCE_MODE:
-                if intf.rssi == 0:
-                    cls.updateClientParams(intf, ap_intf)
-            if ap_intf != intf.associatedTo or \
-                    not intf.associatedTo:
-                cls.associate_infra(intf, ap_intf)
-                if wmediumd_mode.mode == w_cst.WRONG_MODE:
-                    if dist >= 0.01:
-                        wirelessLink(intf, dist)
-                if intf.node != ap_intf.associatedStations:
-                    ap_intf.associatedStations.append(intf.node)
-            if not wmediumd_mode.mode == w_cst.INTERFERENCE_MODE:
-                intf.get_rssi(ap_intf, dist)
-
-    @classmethod
-    def updateClientParams(cls, intf, ap_intf):
-        intf.freq = ap_intf.freq
-        intf.channel = ap_intf.channel
-        intf.mode = ap_intf.mode
-        intf.ssid = ap_intf.ssid
-        intf.range = intf.node.getRange(intf)
-
-    @classmethod
-    def associate(cls, intf, ap_intf):
-        "Associate to Access Point"
-        if hasattr(intf.node, 'position'):
-            cls.configureWirelessLink(intf, ap_intf)
-        else:
-            cls.associate_infra(intf, ap_intf)
-
-    @classmethod
-    def associate_noEncrypt(cls, intf, ap_intf):
-        #iwconfig is still necessary, since iw doesn't include essid like iwconfig does.
-        intf.node.pexec(cls.iwconfig_con(intf, ap_intf))
-        debug('\n')
-
-    @classmethod
-    def iwconfig_con(cls, intf, ap_intf):
-        cmd = 'iwconfig %s essid %s ap %s' % (intf, ap_intf.ssid, ap_intf.mac)
-        return cmd
-
-    @classmethod
-    def disconnect(cls, intf):
-        intf.node.pexec('iw dev %s disconnect' % intf.name)
-        intf.rssi = 0
-        intf.associatedTo = ''
-        intf.channel = 0
-
-    @classmethod
-    def check_if_wpafile_exist(cls, intf):
-        file = '%s_%s.staconf' % (intf.name, intf.id)
-        return glob.glob(file)
-
-    @classmethod
-    def associate_infra(cls, intf, ap_intf):
-        associated = 0
-        if ap_intf.ieee80211r and (not intf.encrypt or 'wpa' in intf.encrypt):
-            if not intf.associatedTo:
-                wpa_file_exists = cls.check_if_wpafile_exist(intf)
-                if wpa_file_exists:
-                    cls.handover_ieee80211r(intf, ap_intf)
-                else:
-                    cls.wpa(intf, ap_intf)
-            else:
-                cls.handover_ieee80211r(intf, ap_intf)
-            associated = 1
-        elif not ap_intf.encrypt:
-            associated = 1
-            cls.associate_noEncrypt(intf, ap_intf)
-        else:
-            if not intf.associatedTo:
-                if 'wpa' in ap_intf.encrypt and (not intf.encrypt or 'wpa' in intf.encrypt):
-                    cls.wpa(intf, ap_intf)
-                    associated = 1
-                elif ap_intf.encrypt == 'wep':
-                    cls.wep(intf, ap_intf)
-                    associated = 1
-        if associated:
-            cls.update(intf, ap_intf)
-
-    @classmethod
-    def wpaFile(cls, intf, ap_intf):
-        cmd = ''
-        if not ap_intf.config or not intf.config:
-            if not ap_intf.authmode:
-                if not intf.passwd:
-                    passwd = ap_intf.passwd
-                else:
-                    passwd = intf.passwd
-
-        if 'wpasup_globals' not in intf.node.params \
-                or ('wpasup_globals' in intf.node.params
-                    and 'ctrl_interface=' not in intf.node.params['wpasup_globals']):
-            cmd = 'ctrl_interface=/var/run/wpa_supplicant\n'
-        if ap_intf.wps_state and not intf.passwd:
-            cmd += 'ctrl_interface_group=0\n'
-            cmd += 'update_config=1\n'
-        else:
-            if 'wpasup_globals' in intf.node.params:
-                cmd += intf.node.params['wpasup_globals'] + '\n'
-            cmd += 'network={\n'
-
-            if intf.config:
-                config = intf.config
-                if config is not []:
-                    config = intf.config.split(',')
-                    intf.node.params.pop("config", None)
-                    for conf in config:
-                        cmd += "   " + conf + "\n"
-            else:
-                cmd += '   ssid=\"%s\"\n' % ap_intf.ssid
-
-                if not ap_intf.authmode:
-                    cmd += '   psk=\"%s\"\n' % passwd
-                    encrypt = ap_intf.encrypt
-                    if ap_intf.encrypt == 'wpa3':
-                        encrypt = 'wpa2'
-                    cmd += '   proto=%s\n' % encrypt.upper()
-                    cmd += '   pairwise=%s\n' % ap_intf.rsn_pairwise
-                    if intf.active_scan:
-                        cmd += '   scan_ssid=1\n'
-                    if intf.scan_freq:
-                        cmd += '   scan_freq=%s\n' % intf.scan_freq
-                    if intf.freq_list:
-                        cmd += '   freq_list=%s\n' % intf.freq_list
-                wpa_key_mgmt = ap_intf.wpa_key_mgmt
-                if ap_intf.encrypt == 'wpa3':
-                    wpa_key_mgmt = 'SAE'
-                cmd += '   key_mgmt=%s\n' % wpa_key_mgmt
-                if 'bgscan_threshold' in intf.node.params:
-                    if 'bgscan_module' not in intf.node.params:
-                        intf.node.params['bgscan_module'] = 'simple'
-                    bgscan = 'bgscan=\"%s:%d:%d:%d\"' % \
-                             (intf.bgscan_module, intf.s_inverval,
-                              intf.bgscan_threshold, intf.l_interval)
-                    cmd += '   %s\n' % bgscan
-                if ap_intf.authmode == '8021x':
-                    cmd += '   eap=PEAP\n'
-                    cmd += '   identity=\"%s\"\n' % intf.radius_identity
-                    cmd += '   password=\"%s\"\n' % intf.radius_passwd
-                    cmd += '   phase2=\"autheap=MSCHAPV2\"\n'
-            cmd += '}'
-
-        fileName = '%s_%s.staconf' % (intf.name, intf.id)
-        os.system('echo \'%s\' > %s' % (cmd, fileName))
-
-    @classmethod
-    def wpa(cls, intf, ap_intf):
-        cls.wpaFile(intf, ap_intf)
-        intf.wpa_pexec()
-
-    @classmethod
-    def handover_ieee80211r(cls, intf, ap_intf):
-        intf.node.pexec('wpa_cli -i %s roam %s' % (intf.name, ap_intf.mac))
-
-    @classmethod
-    def wep(cls, intf, ap_intf):
-        if intf.passwd:
-            passwd = intf.passwd
-        else:
-            passwd = ap_intf.passwd
-        cls.wep_connect(passwd, intf, ap_intf)
-
-    @classmethod
-    def wep_connect(cls, passwd, intf, ap_intf):
-        intf.node.pexec('iw dev %s connect %s key d:0:%s' % (intf.name, ap_intf.ssid, passwd))
-
-    @classmethod
-    def update(cls, intf, ap_intf):
-        if intf.associatedTo \
-                and intf.node in ap_intf.associatedStations:
-            ap_intf.associatedStations.remove(intf.node)
-        cls.updateClientParams(intf, ap_intf)
-        ap_intf.associatedStations.append(intf.node)
-        intf.associatedTo = ap_intf.node

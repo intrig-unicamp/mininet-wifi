@@ -11,7 +11,7 @@ import numpy as np
 from numpy.random import rand
 
 from mininet.log import debug, info
-from mn_wifi.link import wirelessLink, Association, mesh, adhoc, ITSLink
+from mn_wifi.link import wirelessLink, mesh, adhoc, ITSLink
 from mn_wifi.associationControl import AssociationControl as AssCtrl
 from mn_wifi.plot import PlotGraph
 from mn_wifi.wmediumdConnector import w_cst, wmediumd_mode
@@ -139,9 +139,9 @@ class Mobility(object):
                     cls.kill_wpasupprocess(intf)
                     cls.check_if_wpafile_exist(intf)
             elif wmediumd_mode.mode == w_cst.SNR_MODE:
-                Association.setSNRWmediumd(intf.node, ap_intf.node, -10)
+                intf.setSNRWmediumd(ap_intf, -10)
             if not ap_intf.ieee80211r:
-                Association.disconnect(intf)
+                intf.disconnect()
             cls.remove_assoc_from_params(intf, ap_intf)
         elif not intf.associatedTo:
             intf.rssi = 0
@@ -161,9 +161,12 @@ class Mobility(object):
                         pass
                     else:
                         intf.rssi = rssi
+                        # send rssi to hwsim
+                        if hasattr(intf.node, 'phyid'):
+                            intf.rec_rssi()
                         if wmediumd_mode.mode != w_cst.WRONG_MODE:
                             if wmediumd_mode.mode == w_cst.SNR_MODE:
-                                Association.setSNRWmediumd(intf.node, ap_intf.node, intf.rssi-(-91))
+                                intf.setSNRWmediumd(ap_intf, intf.rssi-(-91))
                         else:
                             if intf.node.position != intf.node.pos:
                                 intf.node.pos = intf.node.position
@@ -203,7 +206,7 @@ class Mobility(object):
         if cls.check_if_ap_exists(intf, ap_intf):
             if not intf.associatedTo or changeAP:
                 if ap_intf.node != intf.associatedTo:
-                    Association.associate_infra(intf, ap_intf)
+                    intf.associate_infra(ap_intf)
 
     @classmethod
     def configLinks(cls, node=None):
@@ -229,7 +232,7 @@ class Mobility(object):
     def associate_interference_mode(cls, intf, ap_intf):
         if intf.bgscan_threshold or (intf.active_scan and 'wpa' in intf.encrypt):
             if not intf.associatedTo:
-                Association.associate_infra(intf, ap_intf)
+                intf.associate_infra(ap_intf)
                 if intf.bgscan_threshold:
                     intf.associatedTo = 'bgscan'
                 else:

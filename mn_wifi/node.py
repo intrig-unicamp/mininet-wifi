@@ -38,8 +38,7 @@ from mininet.moduledeps import moduleDeps, pathCheck, TUN
 from mininet.link import Intf, OVSIntf
 from mn_wifi.devices import DeviceRate
 from mn_wifi.link import TCWirelessLink, TCLinkWirelessAP,\
-    Association, wirelessLink, adhoc, mesh, master, managed, \
-    physicalMesh, ITSLink
+    wirelessLink, adhoc, mesh, master, managed, physicalMesh, ITSLink
 from mn_wifi.wmediumdConnector import w_server, w_pos, w_cst, wmediumd_mode
 from mn_wifi.propagationModels import GetSignalRange, \
     GetPowerGivenRange, PropagationModel as ppm
@@ -373,13 +372,13 @@ class Node_wifi(Node):
             dist = self.get_distance_to(ap)
             if dist <= ap_intf.range:
                 if intf.bgscan_threshold:
-                    Association.handover_ieee80211r(intf, ap_intf)
-                    Association.update(intf, ap_intf)
+                    intf.handover_ieee80211r(ap_intf)
+                    intf.update(ap_intf)
                 elif intf.associatedTo != ap:
                     if intf.associatedTo:
-                        Association.disconnect(intf)
+                        intf.disconnect()
                         intf.rssi = 0
-                    Association.associate_infra(intf, ap_intf)
+                    intf.associate_infra(ap_intf)
                     wirelessLink(intf, dist)
                 else:
                     info('%s is already connected!\n' % ap)
@@ -387,7 +386,7 @@ class Node_wifi(Node):
             else:
                 info("%s is out of range!\n" % ap)
         elif not hasattr(self, 'position') and not hasattr(ap, 'position'):
-            Association.associate_infra(intf, ap_intf)
+            intf.associate_infra(ap_intf)
 
     def newPort(self):
         "Return the next port number to allocate."

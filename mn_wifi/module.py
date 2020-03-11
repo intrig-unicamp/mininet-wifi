@@ -16,14 +16,15 @@ class module(object):
     externally_managed = False
     devices_created_dynamically = False
 
-    def __init__(self, nodes, n_radios, alt_module, **params):
-        self.start(nodes, n_radios, alt_module, **params)
+    def __init__(self, **params):
+        self.start(**params)
 
-    def start(self, nodes, n_radios, alt_module, **params):
+    def start(self, nodes, nradios, alt_module, rec_rssi, **params):
         """Starts environment
         :param nodes: list of wireless nodes
-        :param n_radios: number of wifi radios
+        :param nradios: number of wifi radios
         :param alt_module: dir of a mac80211_hwsim alternative module
+        :params rec_rssi: if we set rssi to hwsim
         :param **params: ifb -  Intermediate Functional Block device"""
         try:
             h = subprocess.check_output("ps -aux | grep -ic \'hostapd\'",
@@ -33,16 +34,19 @@ class module(object):
         except:
             pass
 
-        physicalWlans = self.get_physical_wlan()  # Gets Physical Wlan(s)
-        self.load_module(n_radios, nodes, alt_module, **params)  # Initatilize WiFi Module
-        phys = self.get_phy()  # Get Phy Interfaces
-        self.assign_iface(nodes, physicalWlans, phys, **params)  # iface assign
+        if rec_rssi:
+            self.add_phy_id(nodes)
 
-    def load_module(self, n_radios, nodes, alt_module, **params):
+        physicalWlans = self.get_physical_wlan()  # Gets Physical Wlan(s)
+        self.load_module(nradios, nodes, alt_module, **params)  # Initatilize WiFi Module
+        phys = self.get_phy()  # Get Phy Interfaces
+        self.assign_iface(nodes, physicalWlans, phys, **params)
+
+    def load_module(self, nradios, nodes, alt_module, **params):
         """Load WiFi Module
-        :param n_radios: number of wifi radios
+        :param nradios: number of wifi radios
         :param alt_module: dir of a mac80211_hwsim alternative module"""
-        debug('Loading %s virtual wifi interfaces\n' % n_radios)
+        debug('Loading %s virtual wifi interfaces\n' % nradios)
         if not self.externally_managed:
             if alt_module:
                 output_ = os.system('insmod %s radios=0 >/dev/null 2>&1'
@@ -54,21 +58,20 @@ class module(object):
             """output_ is different of zero in Kernel 3.13.x. radios=0 doesn't
              work in such kernel version"""
             if output_ == 0:
-                self.__create_hwsim_mgmt_devices(n_radios, nodes, **params)
+                self.__create_hwsim_mgmt_devices(nradios, nodes, **params)
             else:
                 # Useful for kernel <= 3.13.x
-                if n_radios == 0:
-                    n_radios = 1
+                if nradios == 0:
+                    nradios = 1
                 if alt_module:
-                    os.system('insmod %s radios=%s' % (alt_module,
-                                                       n_radios))
+                    os.system('insmod %s radios=%s' % (alt_module, nradios))
                 else:
-                    os.system('modprobe mac80211_hwsim radios=%s' % n_radios)
+                    os.system('modprobe mac80211_hwsim radios=%s' % nradios)
         else:
             self.devices_created_dynamically = True
-            self.__create_hwsim_mgmt_devices(n_radios, nodes, **params)
+            self.__create_hwsim_mgmt_devices(nradios, nodes, **params)
 
-    def __create_hwsim_mgmt_devices(self, n_radios, nodes, **params):
+    def __create_hwsim_mgmt_devices(self, nradios, nodes, **params):
         # generate prefix
         num = 0
         hwsim_ids = []
@@ -93,10 +96,10 @@ class module(object):
                     break
 
         if 'docker' in params:
-            self.docker_config(n_radios=n_radios, nodes=nodes, num=num, **params)
+            self.docker_config(nradios=nradios, nodes=nodes, num=num, **params)
         else:
             try:
-                for i in range(0, n_radios):
+                for i in range(nradios):
                     p = subprocess.Popen(["hwsim_mgmt", "-c", "-n", self.prefix +
                                          ("%02d" % i)], stdin=subprocess.PIPE,
                                          stdout=subprocess.PIPE,
@@ -147,7 +150,7 @@ class module(object):
         debug('\nLoading IFB: modprobe ifb numifbs=%s' % wlans)
         os.system('modprobe ifb numifbs=%s' % wlans)
 
-    def docker_config(self, n_radios=0, nodes=None, dir='~/',
+    def docker_config(self, nradios=0, nodes=None, dir='~/',
                       ip='172.17.0.1', num=0, **params):
 
         file = self.prefix + 'docker_mn-wifi.sh'
@@ -166,7 +169,7 @@ class module(object):
             nodes_ = nodes_ + node.name + ' '
             radios.append(nodes.index(node))
 
-        for radio in range(0, n_radios):
+        for radio in range(nradios):
             os.system("echo 'sudo -S hwsim_mgmt -c -n %s%s' >> %s"
                       % (self.prefix, "%02d" % radio, file))
             if radio in radios:
@@ -192,6 +195,14 @@ class module(object):
         node.cmd('ip link set %s down' % wintf)
         node.cmd('ip link set %s name %s' % (wintf, newname))
         node.cmd('ip link set %s up' % newname)
+
+    def add_phy_id(self, nodes):
+        id = 0
+        for node in nodes:
+            node.phyid = []
+            for _ in range(len(node.params['wlan'])):
+                node.phyid.append(id)
+                id += 1
 
     def assign_iface(self, nodes, physicalWlans, phys, **params):
         """Assign virtual interfaces for all nodes
