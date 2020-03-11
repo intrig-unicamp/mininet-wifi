@@ -122,6 +122,14 @@ class IntfWireless(object):
         rate = rates[modes.index(self.mode)]
         return rate
 
+    def get_rssi(self, ap_intf, dist):
+        from mn_wifi.propagationModels import PropagationModel as ppm
+        self.rssi = float(ppm(self, ap_intf, dist).rssi)
+        if ap_intf.node not in self.apsInRange:
+            self.apsInRange[ap_intf.node] = self.rssi
+            ap_intf.stationsInRange[self.node] = self.rssi
+        return self.rssi
+
     def get_freq(self):
         "Gets frequency based on channel number"
         channel = int(self.channel)
@@ -1555,17 +1563,7 @@ class Association(IntfWireless):
                 if intf.node != ap_intf.associatedStations:
                     ap_intf.associatedStations.append(intf.node)
             if not wmediumd_mode.mode == w_cst.INTERFERENCE_MODE:
-                cls.get_rssi(intf, ap_intf, dist)
-
-    @classmethod
-    def get_rssi(cls, intf, ap_intf, dist):
-        from mn_wifi.propagationModels import PropagationModel as ppm
-        rssi = float(ppm(intf, ap_intf, dist).rssi)
-        intf.rssi = rssi
-        if ap_intf.node not in intf.apsInRange:
-            intf.apsInRange[ap_intf.node] = rssi
-            ap_intf.stationsInRange[intf.node] = rssi
-        return rssi
+                intf.get_rssi(ap_intf, dist)
 
     @classmethod
     def updateClientParams(cls, intf, ap_intf):

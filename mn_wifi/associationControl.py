@@ -28,10 +28,10 @@ class AssociationControl(object):
 
     def ssf(self, intf, ap_intf):
         #ssf: Strongest signal first
-        distance = intf.node.get_distance_to(intf.associatedTo)
-        rssi = intf.node.get_rssi(intf, ap_intf, distance)
+        dist = intf.node.get_distance_to(intf.associatedTo)
+        rssi = intf.get_rssi(ap_intf, dist)
         ref_dist = intf.node.get_distance_to(ap_intf.node)
-        ref_rssi = intf.node.get_rssi(intf, ap_intf, ref_dist)
+        ref_rssi = intf.get_rssi(ap_intf, ref_dist)
         if float(ref_rssi) > float(rssi + 0.1):
             intf.node.pexec(self.disconnect(intf))
             self.changeAP = True

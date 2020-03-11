@@ -325,10 +325,6 @@ class Node_wifi(Node):
             self.configLinks()
         self.remove_attr_from_params('txpower')
 
-    def get_rssi(self, intf, ap_intf, dist=0):
-        rssi = ppm(intf, ap_intf, dist).rssi
-        return float(rssi)
-
     def set_pos_wmediumd(self, pos):
         "Set Position for wmediumd"
         if self.lastpos != pos:

@@ -74,8 +74,7 @@ class module(object):
         hwsim_ids = []
         numokay = False
         self.prefix = ""
-        cmd = "find /sys/kernel/debug/ieee80211 " \
-              "-name hwsim | cut -d/ -f 6 | sort"
+        cmd = "find /sys/kernel/debug/ieee80211 -name hwsim | cut -d/ -f 6 | sort"
 
         if py_version_info < (3, 0):
             phys = subprocess.check_output\
@@ -121,27 +120,21 @@ class module(object):
 
     def get_physical_wlan(self):
         'Gets the list of physical wlans that already exist'
+        cmd = 'iw dev 2>&1 | grep Interface | awk \'{print $2}\''
         if py_version_info < (3, 0):
-            wlans = (subprocess.check_output("iw dev 2>&1 | grep Interface "
-                                             "| awk '{print $2}'",
-                                             shell=True)).split("\n")
+            wlans = subprocess.check_output(cmd, shell=True).split("\n")
         else:
-            wlans = (subprocess.check_output("iw dev 2>&1 | grep Interface "
-                                             "| awk '{print $2}'",
-                                             shell=True)).decode('utf-8').split("\n")
+            wlans = subprocess.check_output(cmd, shell=True).decode('utf-8').split("\n")
         wlans.pop()
         return wlans
 
     def get_phy(self):
         'Gets all phys after starting the wireless module'
+        cmd = 'find /sys/kernel/debug/ieee80211 -name hwsim | cut -d/ -f 6 | sort'
         if py_version_info < (3, 0):
-            phy = subprocess.check_output("find /sys/kernel/debug/ieee80211 -name "
-                                          "hwsim | cut -d/ -f 6 | sort",
-                                          shell=True).split("\n")
+            phy = subprocess.check_output(cmd, shell=True).split("\n")
         else:
-            phy = subprocess.check_output("find /sys/kernel/debug/ieee80211 -name "
-                                          "hwsim | cut -d/ -f 6 | sort",
-                                          shell=True).decode('utf-8').split("\n")
+            phy = subprocess.check_output(cmd, shell=True).decode('utf-8').split("\n")
         phy.pop()
         phy.sort(key=len, reverse=False)
         return phy
