@@ -145,7 +145,7 @@ like to contribute an installation script, we would welcome it!)
    is easy! First, create a new Ubuntu VM. Next, run two commands in it:
 
         wget https://raw.github.com/mininet/mininet/master/util/vm/install-mininet-vm.sh
-        time install-mininet-vm.sh
+        time bash install-mininet-vm.sh
 
    Finally, verify that Mininet is installed and working in the VM:
 
