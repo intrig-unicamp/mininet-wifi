@@ -581,9 +581,9 @@ class Mininet_wifi(Mininet):
         intf.associate(ap_intf)
 
         if self.wmediumd_mode == error_prob:
-            wmediumd.wlinks.append([sta, ap, params['error_prob']])
+            wmediumd.wlinks.append([intf, ap_intf, params['error_prob']])
         elif self.wmediumd_mode != interference:
-            wmediumd.wlinks.append([sta, ap])
+            wmediumd.wlinks.append([intf, ap_intf])
 
     def infra_tc(self, node1, node2, port1=None, port2=None,
                  cls=None, **params):
