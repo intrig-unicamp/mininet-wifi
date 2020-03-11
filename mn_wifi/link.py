@@ -387,14 +387,14 @@ class IntfWireless(object):
         dist = self.node.get_distance_to(ap_intf.node)
         if dist <= ap_intf.range:
             if not wmediumd_mode.mode == w_cst.INTERFERENCE_MODE:
-                if intf.rssi == 0:
+                if self.rssi == 0:
                     self.update_client_params(ap_intf)
             if ap_intf != self.associatedTo or \
                     not self.associatedTo:
                 self.associate_infra(ap_intf)
                 if wmediumd_mode.mode == w_cst.WRONG_MODE:
                     if dist >= 0.01:
-                        wirelessLink(intf, dist)
+                        wirelessLink(self, dist)
                 if self.node != ap_intf.associatedStations:
                     ap_intf.associatedStations.append(self.node)
             if not wmediumd_mode.mode == w_cst.INTERFERENCE_MODE:
