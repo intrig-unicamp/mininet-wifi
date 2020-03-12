@@ -23,10 +23,8 @@ import os
 import re
 import math
 from re import findall
-import fileinput
 from time import sleep
 from distutils.version import StrictVersion
-from sys import version_info as py_version_info
 import matplotlib.pyplot as plt
 
 from mininet.log import info, error, debug
@@ -41,7 +39,7 @@ from mn_wifi.link import TCWirelessLink, TCLinkWirelessAP,\
     wirelessLink, adhoc, mesh, master, managed, physicalMesh, ITSLink
 from mn_wifi.wmediumdConnector import w_server, w_pos, w_cst, wmediumd_mode
 from mn_wifi.propagationModels import GetSignalRange, \
-    GetPowerGivenRange, PropagationModel as ppm
+    GetPowerGivenRange
 
 
 class Node_wifi(Node):
@@ -759,10 +757,7 @@ class AP(Node_wifi):
         "Return correctly formatted dpid from dpid or switch name (s1 -> 1)"
         if dpid:
             # Remove any colons and make sure it's a good hex number
-            if py_version_info < (3, 0):
-                dpid = dpid.replace(':', '')
-            else:
-                dpid = dpid.translate(str.maketrans('', '', ':'))
+            dpid = dpid.translate(str.maketrans('', '', ':'))
             assert len(dpid) <= self.dpidLen and int(dpid, 16) >= 0
             return '0' * (self.dpidLen - len(dpid)) + dpid
         else:

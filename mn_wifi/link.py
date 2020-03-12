@@ -8,7 +8,6 @@ import re
 import glob
 import subprocess
 from time import sleep
-from sys import version_info as py_version_info
 
 from mininet.util import BaseString
 from mininet.log import error, debug, info
@@ -444,20 +443,14 @@ class IntfWireless(object):
         # backgrounded output from the cli.
         ipAddr, _err, _exitCode = self.node.pexec(
             'ip addr show %s' % self.name)
-        if py_version_info < (3, 0):
-            ips = self._ipMatchRegex.findall(ipAddr)
-        else:
-            ips = self._ipMatchRegex.findall(ipAddr.decode('utf-8'))
+        ips = self._ipMatchRegex.findall(ipAddr)
         self.ip = ips[0] if ips else None
         return self.ip
 
     def updateMAC(self):
         "Return updated MAC address based on ip addr"
         ipAddr = self.ipAddr()
-        if py_version_info < (3, 0):
-            macs = self._macMatchRegex.findall(ipAddr)
-        else:
-            macs = self._macMatchRegex.findall(ipAddr.decode('utf-8'))
+        macs = self._macMatchRegex.findall(ipAddr)
         self.mac = macs[0] if macs else None
         return self.mac
 
@@ -468,12 +461,8 @@ class IntfWireless(object):
     def updateAddr(self):
         "Return IP address and MAC address based on ipAddr."
         ipAddr = self.ipAddr()
-        if py_version_info < (3, 0):
-            ips = self._ipMatchRegex.findall(ipAddr)
-            macs = self._macMatchRegex.findall(ipAddr)
-        else:
-            ips = self._ipMatchRegex.findall(ipAddr.decode('utf-8'))
-            macs = self._macMatchRegex.findall(ipAddr.decode('utf-8'))
+        ips = self._ipMatchRegex.findall(ipAddr)
+        macs = self._macMatchRegex.findall(ipAddr)
         self.ip = ips[0] if ips else None
         self.mac = macs[0] if macs else None
         return self.ip, self.mac

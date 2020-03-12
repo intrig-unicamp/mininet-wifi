@@ -7,7 +7,6 @@ import os
 import socket
 import random
 import re
-from sys import version_info as py_version_info
 from threading import Thread as thread
 import select
 import signal
@@ -922,20 +921,12 @@ class Mininet_wifi(Mininet):
             nodeL2.start(self.controllers)
 
         started = {}
-        if py_version_info < (3, 0):
-            for swclass, switches in groupby(
-                    sorted(nodesL2, key=type), type):
-                switches = tuple(switches)
-                if hasattr(swclass, 'batchStartup'):
-                    success = swclass.batchStartup(switches)
-                    started.update({s: s for s in success})
-        else:
-            for swclass, switches in groupby(
-                    sorted(nodesL2, key=lambda x: str(type(x))), type):
-                switches = tuple(switches)
-                if hasattr(swclass, 'batchStartup'):
-                    success = swclass.batchStartup(switches)
-                    started.update({s: s for s in success})
+        for swclass, switches in groupby(
+                sorted(nodesL2, key=lambda x: str(type(x))), type):
+            switches = tuple(switches)
+            if hasattr(swclass, 'batchStartup'):
+                success = swclass.batchStartup(switches)
+                started.update({s: s for s in success})
         info('\n')
         if self.waitConn:
             self.waitConnected()
@@ -959,20 +950,12 @@ class Mininet_wifi(Mininet):
         info('*** Stopping switches/access points\n')
         stopped = {}
         nodesL2 = self.switches + self.aps + self.apsensors
-        if py_version_info < (3, 0):
-            for swclass, switches in groupby(
-                    sorted(nodesL2, key=type), type):
-                switches = tuple(switches)
-                if hasattr(swclass, 'batchShutdown'):
-                    success = swclass.batchShutdown(switches)
-                    stopped.update({s: s for s in success})
-        else:
-            for swclass, switches in groupby(
-                    sorted(nodesL2, key=lambda x: str(type(x))), type):
-                switches = tuple(switches)
-                if hasattr(swclass, 'batchShutdown'):
-                    success = swclass.batchShutdown(switches)
-                    stopped.update({s: s for s in success})
+        for swclass, switches in groupby(
+                sorted(nodesL2, key=lambda x: str(type(x))), type):
+            switches = tuple(switches)
+            if hasattr(swclass, 'batchShutdown'):
+                success = swclass.batchShutdown(switches)
+                stopped.update({s: s for s in success})
         for switch in nodesL2:
             info(switch.name + ' ')
             if switch not in stopped:
@@ -1045,7 +1028,7 @@ class Mininet_wifi(Mininet):
         lost = 0
         ploss = None
         if not hosts:
-            hosts = self.hosts + self.stations
+            hosts = self.hosts + self.stations + self.sensors
             output('*** Ping: testing ping reachability\n')
         for node in hosts:
             output('%s -> ' % node.name)
@@ -1055,8 +1038,12 @@ class Mininet_wifi(Mininet):
                     if timeout:
                         opts = '-W %s' % timeout
                     if dest.intfs:
-                        result = node.cmdPrint('ping -c1 %s %s'
-                                               % (opts, dest.IP()))
+                        if isinstance(node, Node_6lowpan):
+                            result = node.cmdPrint('ping -c1 %s %s'
+                                                   % (opts, dest.IP6()))
+                        else:
+                            result = node.cmdPrint('ping -c1 %s %s'
+                                                   % (opts, dest.IP()))
                         sent, received = self._parsePing(result)
                     else:
                         sent, received = 0, 0
