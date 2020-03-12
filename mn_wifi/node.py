@@ -757,7 +757,7 @@ class AP(Node_wifi):
         "Return correctly formatted dpid from dpid or switch name (s1 -> 1)"
         if dpid:
             # Remove any colons and make sure it's a good hex number
-            dpid = dpid.translate(str.maketrans('', '', ':'))
+            dpid = dpid.replace(':', '')
             assert len(dpid) <= self.dpidLen and int(dpid, 16) >= 0
             return '0' * (self.dpidLen - len(dpid)) + dpid
         else:
