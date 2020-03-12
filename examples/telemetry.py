@@ -34,7 +34,7 @@ def topology():
     net.configureWifiNodes()
 
     # refer to mn_wifi/telemetry for more information
-    nodes = net.stations
+    nodes = net.stations + net.aps
     net.telemetry(nodes=nodes, single=False, data_type='rssi')
 
     info("*** Starting network\n")
