@@ -2,7 +2,6 @@
 
 import re
 
-from sys import version_info as py_version_info
 from mininet.util import BaseString
 from mininet.log import error, debug
 
@@ -69,7 +68,7 @@ class IntfSixLoWPAN(object):
                 self.ipLink('address', macstr) +
                 self.ipLink('up'))
 
-    _ipMatchRegex = re.compile(r'\d+\.\d+\.\d+\.\d+')
+    _ipMatchRegex = re.compile(r'\d+\::\d+')
     _macMatchRegex = re.compile(r'..:..:..:..:..:..')
 
     def updateIP(self):
@@ -77,21 +76,15 @@ class IntfSixLoWPAN(object):
         # use pexec instead of node.cmd so that we dont read
         # backgrounded output from the cli.
         ipAddr, _err, _exitCode = self.node.pexec(
-            'ip addr show %s' % self.name)
-        if py_version_info < (3, 0):
-            ips = self._ipMatchRegex.findall(ipAddr)
-        else:
-            ips = self._ipMatchRegex.findall(ipAddr.decode('utf-8'))
+            'ip -6 addr show %s' % self.name)
+        ips = self._ipMatchRegex.findall(ipAddr.decode('utf-8'))
         self.ip = ips[0] if ips else None
         return self.ip
 
     def updateMAC(self):
         "Return updated MAC address based on ip addr"
         ipAddr = self.ipAddr()
-        if py_version_info < (3, 0):
-            macs = self._macMatchRegex.findall(ipAddr)
-        else:
-            macs = self._macMatchRegex.findall(ipAddr.decode('utf-8'))
+        macs = self._macMatchRegex.findall(ipAddr.decode('utf-8'))
         self.mac = macs[0] if macs else None
         return self.mac
 
@@ -102,12 +95,8 @@ class IntfSixLoWPAN(object):
     def updateAddr(self):
         "Return IP address and MAC address based on ipAddr."
         ipAddr = self.ipAddr()
-        if py_version_info < (3, 0):
-            ips = self._ipMatchRegex.findall(ipAddr)
-            macs = self._macMatchRegex.findall(ipAddr)
-        else:
-            ips = self._ipMatchRegex.findall(ipAddr)
-            macs = self._macMatchRegex.findall(ipAddr.decode('utf-8'))
+        ips = self._ipMatchRegex.findall(ipAddr)
+        macs = self._macMatchRegex.findall(ipAddr.decode('utf-8'))
         self.ip = ips[0] if ips else None
         self.mac = macs[0] if macs else None
         return self.ip, self.mac

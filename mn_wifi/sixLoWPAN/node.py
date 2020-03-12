@@ -5,7 +5,6 @@ author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
 
 import os
 import re
-from sys import version_info as py_version_info
 from time import sleep
 
 from mininet.log import debug, info, error
@@ -129,6 +128,10 @@ class Node_6lowpan(Node_wifi):
            kwargs: any additional arguments for intf.setIP"""
         return self.intf(intf).setIP6(ip, prefixLen, **kwargs)
 
+    def IP6(self, intf=None):
+        "Return IP address of a node or specific interface."
+        return self.intf(intf).IP6()
+
     def setDefault6Route(self, intf=None):
         """Set the default ipv6 route to go through intf.
            intf: Intf or {dev <intfname> via <gw-ip> ...}"""
@@ -206,10 +209,7 @@ class APSensor(Node_6lowpan):
         "Return correctly formatted dpid from dpid or switch name (s1 -> 1)"
         if dpid:
             # Remove any colons and make sure it's a good hex number
-            if py_version_info < (3, 0):
-                dpid = dpid.replace(':', '')
-            else:
-                dpid = dpid.translate(str.maketrans('', '', ':'))
+            dpid = dpid.replace(':', '')
             assert len(dpid) <= self.dpidLen and int(dpid, 16) >= 0
             return '0' * (self.dpidLen - len(dpid)) + dpid
         else:

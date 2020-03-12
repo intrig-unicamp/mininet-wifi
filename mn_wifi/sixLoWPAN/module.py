@@ -5,7 +5,6 @@ import os
 import subprocess
 import logging
 from mininet.log import debug, info
-from sys import version_info as py_version_info
 
 
 class module(object):
@@ -78,12 +77,8 @@ class module(object):
         cmd = "iwpan dev 2>&1 | grep Interface " \
               "| awk '{print $2}'"
 
-        if py_version_info < (3, 0):
-            wlans = subprocess.check_output\
-                (cmd, shell=True).split("\n")
-        else:
-            wlans = subprocess.check_output\
-                (cmd, shell=True).decode('utf-8').split("\n")
+        wlans = subprocess.check_output\
+            (cmd, shell=True).decode('utf-8').split("\n")
 
         wlans.pop()
         wlan_list = sorted(wlans)
@@ -95,12 +90,8 @@ class module(object):
         cmd = "iwpan dev | grep phy | " \
               "sed -ne 's/phy#\([0-9]\)/\\1/p'"
 
-        if py_version_info < (3, 0):
-            phy = subprocess.check_output\
-                (cmd, shell=True).split("\n")
-        else:
-            phy = subprocess.check_output\
-                (cmd, shell=True).decode('utf-8').split("\n")
+        phy = subprocess.check_output\
+            (cmd, shell=True).decode('utf-8').split("\n")
 
         phy = sorted(phy)
         phy.pop(0)
