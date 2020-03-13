@@ -7,9 +7,9 @@ from time import sleep
 from six import string_types
 
 from mininet.util import macColonHex, waitListening
-from mininet.link import Intf
 from mininet.log import error, debug, output
 
+from mn_wifi.sixLoWPAN.link import sixLoWPAN
 from mn_wifi.sixLoWPAN.node import sixLoWPan, OVSSensor
 from mn_wifi.sixLoWPAN.module import module
 from mn_wifi.util import ipAdd6, netParse6
@@ -37,6 +37,13 @@ class Mininet_IoT(object):
             pos = pos.split(',')
         node.position = [float(pos[0]), float(pos[1]), float(pos[2])]
         node.params.pop('position', None)
+
+    def configure6LowPANLink(self):
+        sensors = self.sensors + self.apsensors
+        for sensor in sensors:
+            for wpan in range(len(sensor.params['wpan'])):
+                port = 0 if isinstance(sensor, OVSSensor) else 1
+                sixLoWPAN(sensor, wpan, port=port)
 
     def manage_wpan(self, node, **params):
         """gets number of wpans

@@ -55,19 +55,18 @@ class Mininet_wifi(Mininet, Mininet_IoT):
 
     def __init__(self, topo=None, switch=OVSKernelSwitch,
                  accessPoint=OVSKernelAP, host=Host, station=Station,
-                 car=Car, controller=DefaultController, sensor=Node_6lowpan, apsensor=OVSSensor,
-                 link=TCWirelessLink, intf=Intf, build=True, xterms=False,
-                 cleanup=False, ipBase='10.0.0.0/8', ip6Base='2001:0:0:0:0:0:0:0/64',
-                 inNamespace=False, autoSetMacs=False, autoStaticArp=False,
-                 autoPinCpus=False, listenPort=None, waitConnected=False,
-                 ssid="new-ssid", mode="g", channel=1, wmediumd_mode=snr, roads=0,
+                 car=Car, controller=DefaultController, sensor=Node_6lowpan,
+                 apsensor=OVSSensor, link=TCWirelessLink, intf=Intf, build=True,
+                 xterms=False, cleanup=False, ipBase='10.0.0.0/8', inNamespace=False,
+                 autoSetMacs=False, autoStaticArp=False, autoPinCpus=False,
+                 listenPort=None, waitConnected=False, ssid="new-ssid",
+                 mode="g", channel=1, wmediumd_mode=snr, roads=0,
                  fading_cof=0, autoAssociation=True, allAutoAssociation=True,
                  autoSetPositions=False, configWiFiDirect=False,
-                 config4addr=False, noise_th=-91, cca_th=-90,
-                 disable_tcp_checksum=False, ifb=False, bridge=False, plot=False,
-                 plot3d=False, docker=False, container='mininet-wifi', ssh_user='alpha',
-                 set_socket_ip=None, set_socket_port=12345, iot_module='mac802154_hwsim',
-                 rec_rssi=False):
+                 config4addr=False, noise_th=-91, cca_th=-90, disable_tcp_checksum=False,
+                 ifb=False, bridge=False, plot=False, plot3d=False, docker=False,
+                 container='mininet-wifi', ssh_user='alpha', set_socket_ip=None,
+                 set_socket_port=12345, iot_module='mac802154_hwsim', rec_rssi=False):
         """Create Mininet object.
            topo: Topo (topology) object or None
            switch: default Switch class
@@ -131,10 +130,11 @@ class Mininet_wifi(Mininet, Mininet_IoT):
         self.draw = False
         self.isReplaying = False
         self.wmediumd_started = False
-        self.rec_rssi = rec_rssi
-        self.mob_check = False
-        self.isVanet = False
         self.alt_module = None
+        self.isVanet = False
+        self.mob_check = False
+        self.mob_model = None
+        self.ac_method = None
         self.set_socket_ip = set_socket_ip
         self.set_socket_port = set_socket_port
         self.docker = docker
@@ -149,11 +149,14 @@ class Mininet_wifi(Mininet, Mininet_IoT):
         self.config4addr = config4addr
         self.fading_cof = fading_cof
         self.noise_th = noise_th
-        self.mob_param = dict()
         self.disable_tcp_checksum = disable_tcp_checksum
         self.plot = Plot2D
+        self.rec_rssi = rec_rssi
         self.roads = roads
         self.iot_module = iot_module
+        self.mob_start_time = 0
+        self.mob_stop_time = 0
+        self.mob_rep = 1
         self.seed = 1
         self.min_v = 1
         self.max_v = 10
@@ -163,6 +166,8 @@ class Mininet_wifi(Mininet, Mininet_IoT):
         self.max_x = 100
         self.max_y = 100
         self.max_z = 0
+        self.min_wt = 1
+        self.max_wt = 5
         self.wlinks = []
         Mininet_wifi.init()  # Initialize Mininet-WiFi if necessary
 
@@ -197,7 +202,7 @@ class Mininet_wifi(Mininet, Mininet_IoT):
             try:
                 thread(target=self.get_socket_data, args=(conn, addr)).start()
             except:
-                print("Thread did not start.\n")
+                info("Thread did not start.\n")
 
     def get_socket_data(self, conn, addr):
         while True:
@@ -769,17 +774,18 @@ class Mininet_wifi(Mininet, Mininet_IoT):
                         'should be overriden in subclass', self)
 
     def check_if_mob(self):
-        if self.mob_param:
-            self.get_mob_stat_nodes()
-            self.mob_param['mnNodes'] = self.plot_mininet_nodes()
-            if 'model' in self.mob_param or self.isVanet or self.roads:
-                self.start_mobility(**self.mob_param)
-            else:
-                TrackedMob(**self.mob_param)
+        mnNodes = self.plot_plot_nodes()
+        if self.mob_model or self.mob_stop_time or self.roads:
+            mob_params = self.get_mobility_params()
+            stat_nodes, mob_nodes = self.get_mob_stat_nodes()
+            method = TrackedMob
+            if self.mob_model or self.isVanet or self.roads:
+                method = self.start_mobility
+            method(stat_nodes=stat_nodes, mob_nodes=mob_nodes,
+                   mnNodes=mnNodes, **mob_params)
             self.mob_check = True
         else:
             if self.draw and not self.isReplaying:
-                mnNodes = self.plot_mininet_nodes()
                 self.plot_check(mnNodes)
 
     def build(self):
@@ -827,8 +833,7 @@ class Mininet_wifi(Mininet, Mininet_IoT):
         if not self.mob_check:
             self.check_if_mob()
 
-        nodes = self.stations + self.aps + self.cars + \
-                self.sensors + self.apsensors
+        nodes = self.stations + self.aps + self.cars + self.sensors + self.apsensors
         battery_nodes = []
         for node in nodes:
             if 'battery' in node.params:
@@ -838,7 +843,7 @@ class Mininet_wifi(Mininet, Mininet_IoT):
 
         self.built = True
 
-    def plot_mininet_nodes(self):
+    def plot_plot_nodes(self):
         from mn_wifi.node import Node_wifi
         nodes = self.hosts + self.switches + self.controllers
         mnNodes = []
@@ -1300,8 +1305,7 @@ class Mininet_wifi(Mininet, Mininet_IoT):
                 stat_nodes.append(node)
             else:
                 mob_nodes.append(node)
-        self.mob_param['stat_nodes'] = stat_nodes
-        self.mob_param['mob_nodes'] = mob_nodes
+        return stat_nodes, mob_nodes
 
     def setPropagationModel(self, **kwargs):
         ppm.set_attr(self.noise_th, self.cca_th, **kwargs)
@@ -1394,15 +1398,6 @@ class Mininet_wifi(Mininet, Mininet_IoT):
                     for intf in node.wintfs.values():
                         intf.configureMacAddr()
 
-    def configure6LowPANLink(self):
-        sensors = self.sensors + self.apsensors
-        for sensor in sensors:
-            for wpan in range(len(sensor.params['wpan'])):
-                port = 0
-                if isinstance(sensor, OVSSensor):
-                    port = 1
-                sixLoWPAN(sensor, wpan, port=port)
-
     def configIFB(self):
         nodes = self.stations + self.cars
         ifbID = 0
@@ -1450,59 +1445,62 @@ class Mininet_wifi(Mininet, Mininet_IoT):
             info('Something went wrong with the GUI.\n')
             self.draw = False
 
-    def start_mobility(self, mob_nodes, **kwargs):
+    def start_mobility(self, **kwargs):
         "Starts Mobility"
-        for node in mob_nodes:
+        for node in kwargs.get('mob_nodes'):
             node.position = (0, 0, 0)
             node.pos = (0, 0, 0)
-        self.set_mobility_params(**kwargs)
         if self.roads:
-            vanet(**self.mob_param)
+            vanet(**kwargs)
         else:
-            mobModel(**self.mob_param)
+            mobModel(**kwargs)
 
     def setMobilityModel(self, **kwargs):
-        self.set_mobility_params(**kwargs)
+        for key in kwargs:
+            if key == 'model':
+                self.mob_model = kwargs.get(key)
+            elif key == 'time':
+                self.mob_start_time = kwargs.get(key)
+            elif key in self.__dict__.keys():
+                setattr(self, key, kwargs.get(key))
 
     def startMobility(self, **kwargs):
-        if 'repetitions' not in kwargs:
-            kwargs['repetitions'] = 1
-        kwargs['init_time'] = kwargs['time']
-        self.set_mobility_params(**kwargs)
+        for key in kwargs:
+            if key == 'time':
+                self.mob_start_time = kwargs.get(key)
+            else:
+                setattr(self, key, kwargs.get(key))
 
     def stopMobility(self, **kwargs):
         "Stops Mobility"
         if self.allAutoAssociation and \
                 not self.configWiFiDirect and not self.config4addr:
             self.auto_association()
-        kwargs['end_time'] = kwargs['time']
-        self.set_mobility_params(**kwargs)
+        for key in kwargs:
+            if key == 'time':
+                self.mob_stop_time = kwargs.get(key)
+            else:
+                setattr(self, key, kwargs.get(key))
 
-    def set_mobility_params(self, **kwargs):
+    def get_mobility_params(self):
         "Set Mobility Parameters"
-        self.mob_param.update(**kwargs)
-
+        mob_params = dict()
         float_args = ['min_x', 'min_y', 'min_z',
                       'max_x', 'max_y', 'max_z',
-                      'min_v', 'max_v', 'min_wt', 'max_wt']
-        args = ['stations', 'cars', 'aps', 'draw', 'seed']
+                      'min_v', 'max_v', 'min_wt',
+                      'max_wt']
+        args = ['stations', 'cars', 'aps', 'draw', 'seed',
+                'roads', 'mob_start_time', 'mob_stop_time',
+                'links', 'mob_model']
         args += float_args
         for arg in args:
-            if arg != 'min_wt' and arg != 'max_wt':
-                self.mob_param.setdefault(arg, getattr(self, arg))
-            if arg in kwargs and arg in float_args:
-                if arg != 'min_wt' and arg != 'max_wt':
-                    setattr(self, arg, float(kwargs[arg]))
+            if arg in float_args:
+                mob_params.setdefault(arg, float(getattr(self, arg)))
+            else:
+                mob_params.setdefault(arg, getattr(self, arg))
 
-        args = ['mnNodes', 'ac_method', 'model', 'time']
-        for arg in args:
-            if arg in kwargs:
-                self.mob_param.setdefault(arg, kwargs[arg])
-
-        if self.roads:
-            self.mob_param.setdefault('roads', self.roads)
-        self.mob_param.setdefault('links', self.links)
-        self.mob_param.setdefault('ppm', ppm.model)
+        mob_params.setdefault('ppm', ppm.model)
+        return mob_params
 
     def setAssociationCtrl(self, ac='ssf'):
         "set association control"

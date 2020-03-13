@@ -279,7 +279,7 @@ class model(Mobility):
         Mobility.set_wifi_params()
 
     def models(self, stations=None, aps=None, stat_nodes=None, mob_nodes=None,
-               draw=False, seed=1, model='RandomWalk', mnNodes=None,
+               draw=False, seed=1, mob_model='RandomWalk', mnNodes=None,
                min_wt=1, max_wt=5, max_x=100, max_y=100, **kwargs):
         "Used when a mobility model is set"
         np.random.seed(seed)
@@ -310,19 +310,19 @@ class model(Mobility):
         except:
             info('Warning: running without GUI.\n')
 
-        debug('Configuring the mobility model %s\n' % model)
-        if model == 'RandomWalk':  # Random Walk model
+        debug('Configuring the mobility model %s\n' % mob_model)
+        if mob_model == 'RandomWalk':  # Random Walk model
             for node in mob_nodes:
                 array_ = ['constantVelocity', 'constantDistance']
                 for param in array_:
                     if not hasattr(node, param):
                         setattr(node, param, 1)
             mob = random_walk(mob_nodes)
-        elif model == 'TruncatedLevyWalk':  # Truncated Levy Walk model
+        elif mob_model == 'TruncatedLevyWalk':  # Truncated Levy Walk model
             mob = truncated_levy_walk(mob_nodes)
-        elif model == 'RandomDirection':  # Random Direction model
+        elif mob_model == 'RandomDirection':  # Random Direction model
             mob = random_direction(mob_nodes, dimensions=(max_x, max_y))
-        elif model == 'RandomWayPoint':  # Random Waypoint model
+        elif mob_model == 'RandomWayPoint':  # Random Waypoint model
             for node in mob_nodes:
                 array_ = ['constantVelocity', 'constantDistance',
                           'min_v', 'max_v']
@@ -330,19 +330,19 @@ class model(Mobility):
                     if not hasattr(node, param):
                         setattr(node, param, '1')
             mob = random_waypoint(mob_nodes, wt_min=min_wt, wt_max=max_wt)
-        elif model == 'GaussMarkov':  # Gauss-Markov model
+        elif mob_model == 'GaussMarkov':  # Gauss-Markov model
             mob = gauss_markov(mob_nodes, alpha=0.99)
-        elif model == 'ReferencePoint':  # Reference Point Group model
+        elif mob_model == 'ReferencePoint':  # Reference Point Group model
             mob = reference_point_group(mob_nodes, dimensions=(max_x, max_y),
                                         aggregation=0.5)
-        elif model == 'TimeVariantCommunity':
+        elif mob_model == 'TimeVariantCommunity':
             mob = tvc(mob_nodes, dimensions=(max_x, max_y),
                       aggregation=[0.5, 0.], epoch=[100, 100])
         else:
             raise Exception("Mobility Model not defined or doesn't exist!")
 
         current_time = time()
-        while (time() - current_time) < kwargs['time']:
+        while (time() - current_time) < kwargs['mob_start_time']:
             pass
 
         self.start_mob_mod(mob, mob_nodes, draw)
@@ -407,8 +407,8 @@ class Tracked(Mobility):
                 self.set_coordinates(node)
         self.run(mob_nodes, draw, **kwargs)
 
-    def run(self, mob_nodes, draw, init_time=0, reverse=False,
-            repetitions=1, end_time=10, **kwargs):
+    def run(self, mob_nodes, draw, mod_start_time=0, mod_stop_time=10,
+            reverse=False, repetitions=1, **kwargs):
 
         if draw:
             if PlotGraph.plot3d:
@@ -432,11 +432,11 @@ class Tracked(Mobility):
                 Mobility.calculate_diff_time(node)
             while cont:
                 t2 = time()
-                if (t2 - t1) > end_time:
+                if (t2 - t1) > mod_stop_time:
                     cont = False
                     if rep == repetitions:
                         Mobility.thread_._keep_alive = False
-                if (t2 - t1) >= init_time:
+                if (t2 - t1) >= mod_start_time:
                     if t2 - t1 >= i:
                         for node in mob_nodes:
                             if (t2 - t1) >= node.startTime and node.time <= node.endTime:

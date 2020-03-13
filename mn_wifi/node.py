@@ -30,16 +30,14 @@ import matplotlib.pyplot as plt
 from mininet.log import info, debug
 from mininet.util import (errRun, errFail, Python3, getincrementaldecoder,
                           BaseString)
-from mininet.node import Node, UserSwitch, OVSSwitch, OVSBridge, \
-    CPULimitedHost
+from mininet.node import Node, UserSwitch, OVSSwitch, CPULimitedHost
 from mininet.moduledeps import pathCheck
 from mininet.link import Intf
 from mn_wifi.devices import DeviceRate
 from mn_wifi.link import TCWirelessLink, TCLinkWirelessAP,\
     wirelessLink, adhoc, mesh, master, managed, physicalMesh, ITSLink
 from mn_wifi.wmediumdConnector import w_server, w_pos, w_cst, wmediumd_mode
-from mn_wifi.propagationModels import GetSignalRange, \
-    GetPowerGivenRange
+from mn_wifi.propagationModels import GetSignalRange, GetPowerGivenRange
 
 
 class Node_wifi(Node):
@@ -343,10 +341,7 @@ class Node_wifi(Node):
             try:
                 txpower = int(self.cmd(cmd))
             except:
-                if isinstance(self, AP):
-                    txpower = 14
-                else:
-                    txpower = 20
+                txpower = 14 if isinstance(self, AP) else 20
             return txpower
 
     def get_distance_to(self, dst):
