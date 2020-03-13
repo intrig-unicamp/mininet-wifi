@@ -23,6 +23,7 @@ def tsharkVersion():
 # pylint doesn't understand pexpect.match, unfortunately!
 # pylint:disable=maybe-no-member
 
+
 class testWalkthrough(unittest.TestCase):
     "Test Mininet walkthrough"
 
@@ -204,14 +205,14 @@ class testWalkthrough(unittest.TestCase):
         p.expect('0% dropped')
         p.expect(pexpect.EOF)
 
-    def testDynamicMAC(self):
+    def testStaticMAC(self):
         "Verify that MACs are set correctly"
-        p = pexpect.spawn('mn --wifi')
+        p = pexpect.spawn('mn --wifi --mac')
         sleep(3)
         p.expect(self.prompt)
         for i in range(1, 3):
             p.sendline('sta%d ip addr show' % i)
-            p.expect('02:00:00:00:0%d:00' % (i - 1))
+            p.expect(r'\s00:00:00:00:00:0%d\s' % i)
             p.expect(self.prompt)
         p.sendline('exit')
         p.wait()

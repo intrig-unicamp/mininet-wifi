@@ -45,13 +45,13 @@ from mn_wifi.vanet import vanet
 from mn_wifi.sixLoWPAN.net import Mininet_IoT
 from mn_wifi.sixLoWPAN.node import OVSSensor, Node_6lowpan
 from mn_wifi.sixLoWPAN.link import sixLoWPAN
-from mn_wifi.util import ipAdd6, netParse6
+from mn_wifi.util import ipAdd6
 
 
 VERSION = "2.4.3"
 
 
-class Mininet_wifi(Mininet):
+class Mininet_wifi(Mininet, Mininet_IoT):
 
     def __init__(self, topo=None, switch=OVSKernelSwitch,
                  accessPoint=OVSKernelAP, host=Host, station=Station,
@@ -87,22 +87,19 @@ class Mininet_wifi(Mininet):
                each additional switch in the net if inNamespace=False"""
         self.topo = topo
         self.switch = switch
-        self.host = host
         self.station = station
+        self.host = host
         self.accessPoint = accessPoint
         self.car = car
+        self.controller = controller
         self.sensor = sensor
         self.apsensor = apsensor
-        self.controller = controller
         self.link = link
         self.intf = intf
         self.cleanup = cleanup
         self.ipBase = ipBase
-        self.ip6Base = ip6Base
         self.ipBaseNum, self.prefixLen = netParse(self.ipBase)
-        self.ip6BaseNum, self.prefixLen6 = netParse6(self.ip6Base)
         self.nextIP = 1  # start for address allocation
-        self.nextIP6 = 1  # start for address allocation
         self.nextPos_sta = 1  # start for sta position allocation
         self.nextPos_ap = 1  # start for ap position allocation
         self.inNamespace = inNamespace
@@ -128,8 +125,6 @@ class Mininet_wifi(Mininet):
         self.cars = []
         self.switches = []
         self.stations = []
-        self.sensors = []
-        self.apsensors = []
         self.terms = []  # list of spawned xterm processes
         self.autoAssociation = autoAssociation  # does not include mobility
         self.allAutoAssociation = allAutoAssociation  # includes mobility
@@ -359,20 +354,6 @@ class Mininet_wifi(Mininet):
         self.stations.append(sta)
         self.nameToNode[name] = sta
         return sta
-
-    def addSensor(self, name, cls=None, **params):
-        params['nextIP6'] = self.nextIP6
-        if not cls:
-            cls = self.sensor
-        node = Mininet_IoT.addSensor(name, cls, **params)
-        self.nextIP6 += 1
-        return node
-
-    def addAPSensor(self, name, cls=None, **params):
-        if not cls:
-            cls = self.apsensor
-        node = Mininet_IoT.addAPSensor(name, cls, **params)
-        return node
 
     def addCar(self, name, cls=None, **params):
         """Add Car.
@@ -1587,8 +1568,8 @@ class Mininet_wifi(Mininet):
         if self.ifb:
             module.load_ifb(nradios)
 
-        if Mininet_IoT.nwpans:
-            self.sensors, self.apsensors = Mininet_IoT.init_module(self.iot_module)
+        if self.nwpans:
+            self.sensors, self.apsensors = self.init_6lowpan_module(self.iot_module)
             sensors = self.sensors + self.apsensors
             self.addSensors(sensors)
             self.configure6LowPANLink()

@@ -6,10 +6,7 @@ import re
 from time import sleep
 from six import string_types
 
-from mininet.net import Mininet
-from mininet.node import DefaultController
-from mininet.util import (macColonHex, waitListening, netParse,
-                          numCores, ipAdd)
+from mininet.util import macColonHex, waitListening
 from mininet.link import Intf
 from mininet.log import error, debug, output
 
@@ -18,75 +15,41 @@ from mn_wifi.sixLoWPAN.module import module
 from mn_wifi.util import ipAdd6, netParse6
 
 
-class Mininet_IoT(Mininet):
+class Mininet_IoT(object):
 
-    topo = None
     sixLoWPan = sixLoWPan
     APSensor = OVSSensor
-    controller = DefaultController
-    intf = Intf
-    inNamespace = False
-    autoSetMacs = False
-    autoStaticArp = False
-    autoPinCpus = False
-    listenPort = None
-    waitConnected = False
-    autoSetPositions = False
-    ipBase = '10.0.0.0/8'
     ip6Base = '2001:0:0:0:0:0:0:0/64'
-    ipBaseNum, prefixLen = netParse(ipBase)
     ip6BaseNum, prefixLen6 = netParse6(ip6Base)
-    nextIP = 1  # start for address allocation
     nextIP6 = 1  # start for address allocation
-    nextPosition = 1
-    nextPos_ap = 1
-    inNamespace = inNamespace
-    numCores = numCores()
-    nextCore = 0  # next core for pinning hosts to CPUs
-    nameToNode = {}  # name to Node (Host/Switch) objects
-    links = []
     apsensors = []
     sensors = []
-    terms = []  # list of spawned xterm processes
     nwpans = 0
-    connections = {}
-    wlinks = []
 
-    @classmethod
-    def init_module(cls, iot_module):
-        sensors = cls.sensors + cls.apsensors
-        module(sensors, cls.nwpans, iot_module)
-        return cls.sensors, cls.apsensors
+    def init_6lowpan_module(self, iot_module):
+        sensors = self.sensors + self.apsensors
+        module(sensors, self.nwpans, iot_module)
+        return self.sensors, self.apsensors
 
-    @classmethod
-    def pos_to_array(cls, node):
+    def pos_to_array(self, node):
         pos = node.params['position']
         if isinstance(pos, string_types):
             pos = pos.split(',')
         node.position = [float(pos[0]), float(pos[1]), float(pos[2])]
         node.params.pop('position', None)
 
-    @classmethod
-    def addParameters(cls, node, **params):
-        """adds parameters to wireless nodes
+    def manage_wpan(self, node, **params):
+        """gets number of wpans
         node: node
-        autoSetMacs: set MAC addrs automatically like IP addresses
-        params: parameters
-        defaults: Default IP and MAC addresses
-        node_mode: if interface is running in managed or master mode"""
+        params: parameters"""
         node.params['wpan'] = []
-        wpans = cls.count6LoWPANIfaces(**params)
+        wpans = self.count_wpans(**params)
+        self.nwpans += wpans
 
         for wpan in range(wpans):
             node.params['wpan'].append(node.name + '-wpan' + str(wpan))
             node.params.pop("wpans", None)
 
-    @staticmethod
-    def appendAssociatedTo(node):
-        "Add associatedTo param"
-        node.params['associatedTo'].append('')
-
-    @classmethod
     def addAPSensor(self, name, cls=None, **params):
         """Add AccessPoint as a Sensor.
            name: name of accesspoint to add
@@ -111,11 +74,10 @@ class Mininet_IoT(Mininet):
         if 'position' in params:
             self.pos_to_array(ap)
 
-        self.addParameters(ap, **defaults)
+        self.manage_wpan(ap, **defaults)
         self.apsensors.append(ap)
         return ap
 
-    @classmethod
     def addSensor(self, name, cls=None, **params):
         """Add Sensor node.
            name: name of station to add
@@ -123,8 +85,7 @@ class Mininet_IoT(Mininet):
            params: parameters for 6LoWPAN
            returns: added station"""
         # Default IP and MAC addresses
-        nextIP6 = params['nextIP6']
-        defaults = {'ip6': ipAdd6(nextIP6,
+        defaults = {'ip6': ipAdd6(self.nextIP6,
                                   ipBaseNum=self.ip6BaseNum,
                                   prefixLen=self.prefixLen6) +
                            '/%s' % self.prefixLen6
@@ -132,14 +93,14 @@ class Mininet_IoT(Mininet):
         defaults.update(params)
 
         if self.autoSetPositions:
-            defaults['position'] = ('%s,0,0' % self.nextPosition)
+            defaults['position'] = ('%s,0,0' % self.nextPos_sta)
         if self.autoSetMacs:
-            defaults['mac'] = macColonHex(nextIP6)
+            defaults['mac'] = macColonHex(self.nextIP6)
         if self.autoPinCpus:
             defaults['cores'] = self.nextCore
             self.nextCore = (self.nextCore + 1) % self.numCores
         self.nextIP6 += 1
-        self.nextPosition += 1
+        self.nextPos_sta += 1
 
         if not cls:
             cls = self.sixLoWPan
@@ -149,63 +110,10 @@ class Mininet_IoT(Mininet):
         if 'position' in params:
             self.pos_to_array(node)
 
-        self.addParameters(node, **defaults)
+        self.manage_wpan(node, **defaults)
         self.sensors.append(node)
         return node
 
-    # BL: We now have four ways to look up nodes
-    # This may (should?) be cleaned up in the future.
-    def getNodeByName(self, *args):
-        "Return node(s) with given name(s)"
-        if len(args) is 1:
-            return self.nameToNode[args[0]]
-        return [self.nameToNode[n] for n in args]
-
-    def get(self, *args):
-        "Convenience alias for getNodeByName"
-        return self.getNodeByName(*args)
-
-    # Even more convenient syntax for node lookup and iteration
-    def __getitem__(self, key):
-        "net[ name ] operator: Return node with given name"
-        return self.nameToNode[key]
-
-    def __delitem__(self, key):
-        "del net[ name ] operator - delete node with given name"
-        self.delNode(self.nameToNode[key])
-
-    def __contains__(self, item):
-        "returns True if net contains named node"
-        return item in self.nameToNode
-
-    def keys(self):
-        "return a list of all node names or net's keys"
-        return list(self)
-
-    def values(self):
-        "return a list of all nodes or net's values"
-        return [self[name] for name in self]
-
-    def items(self):
-        "return (key,value) tuple list for every node in net"
-        return zip(self.keys(), self.values())
-
-    @staticmethod
-    def _parsePing(pingOutput):
-        "Parse ping output and return packets sent, received."
-        # Check for downed link
-        if 'connect: Network is unreachable' in pingOutput:
-            return 1, 0
-        r = r'(\d+) packets transmitted, (\d+)( packets)? received'
-        m = re.search(r, pingOutput)
-        if m is None:
-            error('*** Error: could not parse ping output: %s\n' %
-                  pingOutput)
-            return 1, 0
-        sent, received = int(m.group(1)), int(m.group(2))
-        return sent, received
-
-    @classmethod
     def ping6(self, hosts=None, timeout=None):
         """Ping6 between all specified hosts.
            hosts: list of hosts
@@ -250,88 +158,10 @@ class Mininet_IoT(Mininet):
             output("*** Warning: No packets sent\n")
         return ploss
 
-    @staticmethod
-    def _parseFull(pingOutput):
-        "Parse ping output and return all data."
-        errorTuple = (1, 0, 0, 0, 0, 0)
-        # Check for downed link
-        r = r'[uU]nreachable'
-        m = re.search(r, pingOutput)
-        if m is not None:
-            return errorTuple
-        r = r'(\d+) packets transmitted, (\d+)( packets)? received'
-        m = re.search(r, pingOutput)
-        if m is None:
-            error('*** Error: could not parse ping output: %s\n' %
-                  pingOutput)
-            return errorTuple
-        sent, received = int(m.group(1)), int(m.group(2))
-        r = r'rtt min/avg/max/mdev = '
-        r += r'(\d+\.\d+)/(\d+\.\d+)/(\d+\.\d+)/(\d+\.\d+) ms'
-        m = re.search(r, pingOutput)
-        if m is None:
-            if received is 0:
-                return errorTuple
-            error('*** Error: could not parse ping output: %s\n' %
-                  pingOutput)
-            return errorTuple
-        rttmin = float(m.group(1))
-        rttavg = float(m.group(2))
-        rttmax = float(m.group(3))
-        rttdev = float(m.group(4))
-        return sent, received, rttmin, rttavg, rttmax, rttdev
-
-    def pingFull(self, hosts=None, timeout=None):
-        """Ping between all specified hosts and return all data.
-           hosts: list of hosts
-           timeout: time to wait for a response, as string
-           returns: all ping data; see function body."""
-        # should we check if running?
-        # Each value is a tuple: (src, dsd, [all ping outputs])
-        all_outputs = []
-        if not hosts:
-            hosts = self.hosts
-            output('*** Ping: testing ping reachability\n')
-        for node in hosts:
-            output('%s -> ' % node.name)
-            for dest in hosts:
-                if node != dest:
-                    opts = ''
-                    if timeout:
-                        opts = '-W %s' % timeout
-                    result = node.cmd('ping -c1 %s %s' % (opts, dest.IP()))
-                    outputs = self._parsePingFull(result)
-                    sent, received, rttmin, rttavg, rttmax, rttdev = outputs
-                    all_outputs.append((node, dest, outputs))
-                    output(('%s ' % dest.name) if received else 'X ')
-            output('\n')
-        output("*** Results: \n")
-        for outputs in all_outputs:
-            src, dest, ping_outputs = outputs
-            sent, received, rttmin, rttavg, rttmax, rttdev = ping_outputs
-            output(" %s->%s: %s/%s, " % (src, dest, sent, received))
-            output("rtt min/avg/max/mdev %0.3f/%0.3f/%0.3f/%0.3f ms\n" %
-                   (rttmin, rttavg, rttmax, rttdev))
-        return all_outputs
-
     def pingAll(self, timeout=None):
         """Ping between all hosts.
            returns: ploss packet loss percentage"""
         return self.ping6(timeout=timeout)
-
-    @staticmethod
-    def _parseIperf(iperfOutput):
-        """Parse iperf output and return bandwidth.
-           iperfOutput: string
-           returns: result string"""
-        r = r'([\d\.]+ \w+/sec)'
-        m = re.findall(r, iperfOutput)
-        if m:
-            return m[-1]
-        else:
-            # was: raise Exception(...)
-            error('could not parse iperf output: ' + iperfOutput)
-            return ''
 
     def iperf(self, hosts=None, l4Type='TCP', udpBw='10M', fmt=None,
               seconds=5, port=5001):
@@ -386,26 +216,15 @@ class Mininet_IoT(Mininet):
         output('*** Results: %s\n' % result)
         return result
 
-    @classmethod
-    def count6LoWPANIfaces(self, **params):
+    def count_wpans(self, **params):
         "Count the number of virtual 6LoWPAN interfaces"
-        if 'wpans' in params:
-            self.nwpans += int(params['wpans'])
-            wpans = int(params['wpans'])
-        else:
-            wpans = 1
-            self.nwpans += 1
+        wpans = params.get('wpans', 1)
         return wpans
 
     def kill_fakelb(self):
         "Kill fakelb"
         module.fakelb()
         sleep(0.1)
-
-    def configureIface(self, node, wlan):
-        intf = module.wlan_list[0]
-        module.wlan_list.pop(0)
-        node.renameIface(intf, node.params['wpan'][wlan])
 
     def closeMininetWiFi(self):
         "Close Mininet-WiFi"

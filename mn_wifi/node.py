@@ -22,18 +22,18 @@ OVSAP: a AP using the Open vSwitch OpenFlow-compatible switch
 import os
 import re
 import math
-from re import findall
-from time import sleep
 from distutils.version import StrictVersion
+
+from time import sleep
 import matplotlib.pyplot as plt
 
-from mininet.log import info, error, debug
-from mininet.util import (quietRun, errRun, errFail, mountCgroups,
-                          numCores, retry, Python3, getincrementaldecoder,
+from mininet.log import info, debug
+from mininet.util import (errRun, errFail, Python3, getincrementaldecoder,
                           BaseString)
-from mininet.node import Node
-from mininet.moduledeps import moduleDeps, pathCheck, TUN
-from mininet.link import Intf, OVSIntf
+from mininet.node import Node, UserSwitch, OVSSwitch, OVSBridge, \
+    CPULimitedHost
+from mininet.moduledeps import pathCheck
+from mininet.link import Intf
 from mn_wifi.devices import DeviceRate
 from mn_wifi.link import TCWirelessLink, TCLinkWirelessAP,\
     wirelessLink, adhoc, mesh, master, managed, physicalMesh, ITSLink
@@ -546,7 +546,7 @@ class Car(Node_wifi):
     pass
 
 
-class CPULimitedStation( Station ):
+class CPULimitedStation( Station, CPULimitedHost ):
 
     "CPU limited host"
 
@@ -571,169 +571,8 @@ class CPULimitedStation( Station ):
             self.checkRtGroupSched()
             self.rtprio = 20
 
-    def cgroupSet( self, param, value, resource='cpu' ):
-        "Set a cgroup parameter and return its value"
-        cmd = 'cgset -r %s.%s=%s /%s' % (
-            resource, param, value, self.name )
-        quietRun( cmd )
-        nvalue = int( self.cgroupGet( param, resource ) )
-        if nvalue != value:
-            error( '*** error: cgroupSet: %s set to %s instead of %s\n'
-                   % ( param, nvalue, value ) )
-        return nvalue
-
-    def cgroupGet( self, param, resource='cpu' ):
-        "Return value of cgroup parameter"
-        cmd = 'cgget -r %s.%s /%s' % (
-            resource, param, self.name )
-        return int( quietRun( cmd ).split()[ -1 ] )
-
-    def cgroupDel( self ):
-        "Clean up our cgroup"
-        # info( '*** deleting cgroup', self.cgroup, '\n' )
-        _out, _err, exitcode = errRun( 'cgdelete -r ' + self.cgroup )
-        # Sometimes cgdelete returns a resource busy error but still
-        # deletes the group; next attempt will give "no such file"
-        return exitcode == 0 or ( 'no such file' in _err.lower() )
-
-    def popen( self, *args, **kwargs ):
-        """Return a Popen() object in node's namespace
-           args: Popen() args, single list, or string
-           kwargs: Popen() keyword args"""
-        # Tell mnexec to execute command in our cgroup
-        mncmd = kwargs.pop( 'mncmd', [ 'mnexec', '-g', self.name,
-                                       '-da', str( self.pid ) ] )
-        # if our cgroup is not given any cpu time,
-        # we cannot assign the RR Scheduler.
-        if self.sched == 'rt':
-            if int( self.cgroupGet( 'rt_runtime_us', 'cpu' ) ) <= 0:
-                mncmd += [ '-r', str( self.rtprio ) ]
-            else:
-                debug( '*** error: not enough cpu time available for %s.' %
-                       self.name, 'Using cfs scheduler for subprocess\n' )
-        return Station.popen( self, *args, mncmd=mncmd, **kwargs )
-
-    def cleanup( self ):
-        "Clean up Node, then clean up our cgroup"
-        super( CPULimitedStation, self ).cleanup()
-        retry( retries=3, delaySecs=.1, fn=self.cgroupDel )
-
     _rtGroupSched = False   # internal class var: Is CONFIG_RT_GROUP_SCHED set?
-
-    @classmethod
-    def checkRtGroupSched( cls ):
-        "Check (Ubuntu,Debian) kernel config for CONFIG_RT_GROUP_SCHED for RT"
-        if not cls._rtGroupSched:
-            release = quietRun( 'uname -r' ).strip('\r\n')
-            output = quietRun( 'grep CONFIG_RT_GROUP_SCHED /boot/config-%s' %
-                               release )
-            if output == '# CONFIG_RT_GROUP_SCHED is not set\n':
-                error( '\n*** error: please enable RT_GROUP_SCHED '
-                       'in your kernel\n' )
-                exit( 1 )
-            cls._rtGroupSched = True
-
-    def chrt( self ):
-        "Set RT scheduling priority"
-        quietRun( 'chrt -p %s %s' % ( self.rtprio, self.pid ) )
-        result = quietRun( 'chrt -p %s' % self.pid )
-        firstline = result.split( '\n' )[ 0 ]
-        lastword = firstline.split( ' ' )[ -1 ]
-        if lastword != 'SCHED_RR':
-            error( '*** error: could not assign SCHED_RR to %s\n' % self.name )
-        return lastword
-
-    def rtInfo( self, f ):
-        "Internal method: return parameters for RT bandwidth"
-        pstr, qstr = 'rt_period_us', 'rt_runtime_us'
-        # RT uses wall clock time for period and quota
-        quota = int( self.period_us * f )
-        return pstr, qstr, self.period_us, quota
-
-    def cfsInfo( self, f ):
-        "Internal method: return parameters for CFS bandwidth"
-        pstr, qstr = 'cfs_period_us', 'cfs_quota_us'
-        # CFS uses wall clock time for period and CPU time for quota.
-        quota = int( self.period_us * f * numCores() )
-        period = self.period_us
-        if f > 0 and quota < 1000:
-            debug( '(cfsInfo: increasing default period) ' )
-            quota = 1000
-            period = int( quota / f / numCores() )
-        # Reset to unlimited on negative quota
-        if quota < 0:
-            quota = -1
-        return pstr, qstr, period, quota
-
-    # BL comment:
-    # This may not be the right API,
-    # since it doesn't specify CPU bandwidth in "absolute"
-    # units the way link bandwidth is specified.
-    # We should use MIPS or SPECINT or something instead.
-    # Alternatively, we should change from system fraction
-    # to CPU seconds per second, essentially assuming that
-    # all CPUs are the same.
-
-    def setCPUFrac( self, f, sched=None ):
-        """Set overall CPU fraction for this station
-           f: CPU bandwidth limit (positive fraction, or -1 for cfs unlimited)
-           sched: 'rt' or 'cfs'
-           Note 'cfs' requires CONFIG_CFS_BANDWIDTH,
-           and 'rt' requires CONFIG_RT_GROUP_SCHED"""
-        if not sched:
-            sched = self.sched
-        if sched == 'rt':
-            if not f or f < 0:
-                raise Exception( 'Please set a positive CPU fraction'
-                                 ' for sched=rt\n' )
-            pstr, qstr, period, quota = self.rtInfo( f )
-        elif sched == 'cfs':
-            pstr, qstr, period, quota = self.cfsInfo( f )
-        else:
-            return
-        # Set cgroup's period and quota
-        setPeriod = self.cgroupSet( pstr, period )
-        setQuota = self.cgroupSet( qstr, quota )
-        if sched == 'rt':
-            # Set RT priority if necessary
-            sched = self.chrt()
-        info( '(%s %d/%dus) ' % ( sched, setQuota, setPeriod ) )
-
-    def setCPUs( self, cores, mems=0 ):
-        "Specify (real) cores that our cgroup can run on"
-        if not cores:
-            return
-        if isinstance( cores, list ):
-            cores = ','.join( [ str( c ) for c in cores ] )
-        self.cgroupSet( resource='cpuset', param='cpus',
-                        value=cores )
-        # Memory placement is probably not relevant, but we
-        # must specify it anyway
-        self.cgroupSet( resource='cpuset', param='mems',
-                        value=mems)
-        # We have to do this here after we've specified
-        # cpus and mems
-        errFail( 'cgclassify -g cpuset:/%s %s' % (
-            self.name, self.pid ) )
-
-    def config( self, cpu=-1, cores=None, **params ):
-        """cpu: desired overall system CPU fraction
-           cores: (real) core(s) this station can run on
-           params: parameters for Node.config()"""
-        r = Node.config( self, **params )
-        # Was considering cpu={'cpu': cpu , 'sched': sched}, but
-        # that seems redundant
-        self.setParam( r, 'setCPUFrac', cpu=cpu )
-        self.setParam( r, 'setCPUs', cores=cores )
-        return r
-
     inited = False
-
-    @classmethod
-    def init( cls ):
-        "Initialization for CPULimitedStation class"
-        mountCgroups()
-        cls.inited = True
 
 
 class AP(Node_wifi):
@@ -770,44 +609,6 @@ class AP(Node_wifi):
                                 'please either specify a dpid or use a '
                                 'canonical ap name such as ap23.')
             return '1' + '0' * (self.dpidLen -1 - len(dpid)) + dpid
-
-    def defaultIntf(self):
-        "Return control interface"
-        if self.controlIntf:
-            return self.controlIntf
-        else:
-            return Node_wifi.defaultIntf(self)
-
-    def sendCmd(self, *cmd, **kwargs):
-        """Send command to Node.
-           cmd: string"""
-        kwargs.setdefault('printPid', False)
-        if not self.execed:
-            return Node_wifi.sendCmd(self, *cmd, **kwargs)
-        else:
-            error('*** Error: %s has execed and cannot accept commands' %
-                  self.name)
-
-    def connected(self):
-        "Is the switch connected to a controller? (override this method)"
-        # Assume that we are connected by default to whatever we need to
-        # be connected to. This should be overridden by any OpenFlow
-        # switch, but not by a standalone bridge.
-        debug('Assuming', repr(self), 'is connected to a controller\n')
-        return True
-
-    def stop(self, deleteIntfs=True):
-        """Stop switch
-           deleteIntfs: delete interfaces? (True)"""
-        if deleteIntfs:
-            self.deleteIntfs()
-
-    def __repr__(self):
-        "More informative string representation"
-        intfs = (','.join([ '%s:%s' % (i.name, i.IP())
-                            for i in self.intfList() ]))
-        return '<%s %s: %s pid=%s> ' % (
-            self.__class__.__name__, self.name, intfs, self.pid)
 
 
 class AccessPoint(Node_wifi):
@@ -1168,7 +969,7 @@ class AccessPoint(Node_wifi):
         return cmd
 
 
-class UserAP(AP):
+class UserAP(AP, UserSwitch):
     "User-space AP."
 
     dpidLen = 12
@@ -1180,7 +981,7 @@ class UserAP(AP):
         AP.__init__(self, name, **kwargs)
         pathCheck('ofdatapath', 'ofprotocol',
                   moduleName='the OpenFlow reference user switch' +
-                  '(openflow.org)')
+                             '(openflow.org)')
         if self.listenPort:
             self.opts += ' --listen=ptcp:%i ' % self.listenPort
         else:
@@ -1238,11 +1039,11 @@ class UserAP(AP):
            Log to /tmp/sN-{ofd,ofp}.log.
            controllers: list of controller objects"""
         # Add controllers
-        clist = ','.join([ 'tcp:%s:%d' % (c.IP(), c.port)
-                           for c in controllers ])
+        clist = ','.join(['tcp:%s:%d' % (c.IP(), c.port)
+                          for c in controllers])
         ofdlog = '/tmp/' + self.name + '-ofd.log'
         ofplog = '/tmp/' + self.name + '-ofp.log'
-        intfs = [ str(i) for i in self.intfList() if not i.IP() ]
+        intfs = [str(i) for i in self.intfList() if not i.IP()]
 
         self.cmd('ofdatapath -i ' + ','.join(intfs) +
                  ' punix:/tmp/' + self.name + ' -d %s ' % self.dpid +
@@ -1267,8 +1068,10 @@ class UserAP(AP):
         # super(UserAP, self).stop(deleteIntfs)
 
 
-class OVSAP(AP):
+class OVSAP(AP, OVSSwitch):
     "Open vSwitch AP. Depends on ovs-vsctl."
+    OVSVersion = None
+    StrictVersion.version = None
 
     def __init__(self, name, failMode='secure', datapath='kernel',
                  inband=False, protocols=None,
@@ -1293,45 +1096,6 @@ class OVSAP(AP):
         self.batch = batch
         self.commands = []  # saved commands for batch startup
 
-    @classmethod
-    def setup(cls):
-        "Make sure Open vSwitch is installed and working"
-        pathCheck('ovs-vsctl',
-                  moduleName='Open vSwitch (openvswitch.org)')
-        # This should no longer be needed, and it breaks
-        # with OVS 1.7 which has renamed the kernel module:
-        #  moduleDeps( subtract=OF_KMOD, add=OVS_KMOD )
-        out, err, exitcode = errRun('ovs-vsctl -t 1 show')
-        if exitcode:
-            error(out + err +
-                  'ovs-vsctl exited with code %d\n' % exitcode +
-                  '*** Error connecting to ovs-db with ovs-vsctl\n'
-                  'Make sure that Open vSwitch is installed, '
-                  'that ovsdb-server is running, and that\n'
-                  '"ovs-vsctl show" works correctly.\n'
-                  'You may wish to try '
-                  '"service openvswitch-switch start".\n')
-            exit(1)
-        version = quietRun('ovs-vsctl --version')
-        cls.OVSVersion = findall(r'\d+\.\d+', version)[ 0 ]
-
-    @classmethod
-    def isOldOVS(cls):
-        "Is OVS ersion < 1.10?"
-        return StrictVersion(cls.OVSVersion) < StrictVersion('1.10')
-
-    def dpctl(self, *args):
-        "Run ovs-ofctl command"
-        return self.cmd('ovs-ofctl', args[ 0 ], self, *args[ 1: ])
-
-    def vsctl(self, *args, **kwargs):
-        "Run ovs-vsctl command (or queue for later execution)"
-        if self.batch:
-            cmd = ' '.join(str(arg).strip() for arg in args)
-            self.commands.append(cmd)
-        else:
-            return self.cmd('ovs-vsctl', *args, **kwargs)
-
     @staticmethod
     def TCReapply(intf):
         """Unfortunately OVS and Mininet are fighting
@@ -1339,112 +1103,6 @@ class OVSAP(AP):
            workaround, we clear OVS's and reapply our own."""
         if isinstance(intf, TCWirelessLink):
             intf.config(**intf.params)
-
-    def attach(self, intf):
-        "Connect a data port"
-        self.vsctl('add-port', self, intf)
-        self.cmd('ip link set', intf, 'up')
-        self.TCReapply(intf)
-
-    def detach(self, intf):
-        "Disconnect a data port"
-        self.vsctl('del-port', self, intf)
-
-    def controllerUUIDs(self, update=False):
-        """Return ovsdb UUIDs for our controllers
-           update: update cached value"""
-        if not self._uuids or update:
-            controllers = self.cmd('ovs-vsctl -- get Bridge', self,
-                                   'Controller').strip()
-            if controllers.startswith('[') and controllers.endswith(']'):
-                controllers = controllers[ 1 :-1 ]
-                if controllers:
-                    self._uuids = [ c.strip()
-                                    for c in controllers.split(',') ]
-        return self._uuids
-
-    def connected(self):
-        "Are we connected to at least one of our controllers?"
-        for uuid in self.controllerUUIDs():
-            if 'true' in self.vsctl('-- get Controller',
-                                    uuid, 'is_connected'):
-                return True
-        return self.failMode == 'standalone'
-
-    def deleteIface(self, intf_):
-        for intf in self.intfs.values():
-            if intf.name == intf_:
-                self.delIntf(intf)
-
-    def intfOpts(self, intf):
-        "Return OVS interface options for intf"
-        opts = ''
-        if not self.isOldOVS():
-            # ofport_request is not supported on old OVS
-            opts += ' ofport_request=%s' % self.ports[ intf ]
-            # Patch ports don't work well with old OVS
-            if isinstance(intf, OVSIntf):
-                intf1, intf2 = intf.link.intf1, intf.link.intf2
-                peer = intf1 if intf1 != intf else intf2
-
-                opts += ' type=patch options:peer=%s' % peer
-        return '' if not opts else ' -- set Interface %s' % intf + opts
-
-    def bridgeOpts(self):
-        "Return OVS bridge options"
-        opts = (' other_config:datapath-id=%s' % self.dpid +
-                ' fail_mode=%s' % self.failMode)
-        if not self.inband:
-            opts += ' other-config:disable-in-band=true'
-        if self.datapath == 'user':
-            opts += ' datapath_type=netdev'
-        if self.protocols and not self.isOldOVS():
-            opts += ' protocols=%s' % self.protocols
-        if self.stp and self.failMode == 'standalone':
-            opts += ' stp_enable=true'
-        opts += ' other-config:dp-desc=%s' % self.name
-        return opts
-
-    def start(self, controllers):
-        "Start up a new OVS OpenFlow switch using ovs-vsctl"
-        if self.inNamespace:
-            raise Exception(
-                'OVS kernel AP does not work in a namespace')
-
-        int(self.dpid, 16)  # DPID must be a hex string
-        # Command to add interfaces
-        intfs = ''.join(' -- add-port %s %s' % (self, intf) +
-                        self.intfOpts(intf)
-                        for intf in self.intfList()
-                        if self.ports[ intf ] and not intf.IP())
-
-        # Command to create controller entries
-        clist = [ (self.name + c.name, '%s:%s:%d' %
-                   (c.protocol, c.IP(), c.port))
-                  for c in controllers ]
-        if self.listenPort:
-            clist.append((self.name + '-listen',
-                          'ptcp:%s' % self.listenPort))
-        ccmd = '-- --id=@%s create Controller target=\\"%s\\"'
-        if self.reconnectms:
-            ccmd += ' max_backoff=%d' % self.reconnectms
-        cargs = ' '.join(ccmd % (name, target)
-                         for name, target in clist)
-        # Controller ID list
-        cids = ','.join('@%s' % name for name, _target in clist)
-        # Try to delete any existing bridges with the same name
-        if not self.isOldOVS():
-            cargs += ' -- --if-exists del-br %s' % self
-        # One ovs-vsctl command to rule them all!
-        self.vsctl(cargs +
-                   ' -- add-br %s' % self +
-                   ' -- set bridge %s controller=[%s]' % (self, cids) +
-                   self.bridgeOpts() +
-                   intfs)
-        # If necessary, restore TC config overwritten by OVS
-        if not self.batch:
-            for intf in self.intfList():
-                self.TCReapply(intf)
 
     # This should be ~ int( quietRun( 'getconf ARG_MAX' ) ),
     # but the real limit seems to be much lower
@@ -1479,29 +1137,6 @@ class OVSAP(AP):
                     intf.config(**intf.params)
         return aps
 
-    def stop(self, deleteIntfs=True):
-        """Terminate OVS switch.
-           deleteIntfs: delete interfaces? (True)"""
-        self.cmd('ovs-vsctl del-br', self)
-        if self.datapath == 'user':
-            self.cmd('ip link del', self)
-        super(OVSAP, self).stop(deleteIntfs)
-
-    @classmethod
-    def batchShutdown(cls, aps, run=errRun):
-        "Shut down a list of OVS switches"
-        delcmd = 'del-br %s'
-        if aps and not aps[ 0 ].isOldOVS():
-            delcmd = '--if-exists ' + delcmd
-        # First, delete them all from ovsdb
-        run('ovs-vsctl ' + ' -- '.join(delcmd % s for s in aps))
-        # Next, shut down all of the processes
-        pids = ' '.join(str(ap.pid) for ap in aps)
-        run('kill -HUP ' + pids)
-        for ap in aps:
-            ap.shell = None
-        return aps
-
 
 OVSKernelAP = OVSAP
 physicalAP = OVSAP
@@ -1515,15 +1150,3 @@ class OVSBridgeAP( OVSAP ):
            see OVSSwitch for other options"""
         kwargs.update( failMode='standalone' )
         OVSAP.__init__( self, *args, **kwargs )
-
-    def start( self, controllers ):
-        "Start bridge, ignoring controllers argument"
-        OVSAP.start( self, controllers=[] )
-
-    def connected( self ):
-        "Are we forwarding yet?"
-        if self.stp:
-            status = self.dpctl( 'show' )
-            return 'STP_FORWARD' in status and not 'STP_LEARN' in status
-        else:
-            return True

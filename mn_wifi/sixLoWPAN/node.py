@@ -7,14 +7,12 @@ import os
 import re
 from time import sleep
 
-from mininet.log import debug, info, error
-from mininet.link import Intf, OVSIntf
-from mininet.util import ( quietRun, errRun, BaseString,
-                           getincrementaldecoder, Python3 )
-from mininet.moduledeps import moduleDeps, pathCheck, TUN
-from mn_wifi.node import Node_wifi
-from mn_wifi.sixLoWPAN.link import TC6LoWPANLink
-from re import findall
+from mininet.log import debug, error
+from mininet.link import Intf
+from mininet.util import BaseString, getincrementaldecoder, Python3
+from mininet.moduledeps import pathCheck
+from mn_wifi.node import Node_wifi, OVSAP, UserAP
+from mn_wifi.sixLoWPAN.link import IntfSixLoWPAN
 
 
 class Node_6lowpan(Node_wifi):
@@ -70,56 +68,6 @@ class Node_6lowpan(Node_wifi):
     inToNode = {}  # mapping of input fds to nodes
     outToNode = {}  # mapping of output fds to nodes
 
-    def newPort(self):
-        "Return the next port number to allocate."
-        if len(self.ports) > 0:
-            return max(self.ports.values()) + 1
-        return self.portBase
-
-    def newWPort(self):
-        "Return the next port number to allocate."
-        if len(self.ports) > 0:
-            return max(self.wports.values()) + 1
-        return self.portBase
-
-    def addWAttr(self, intf, port=None):
-        """Add an wireless interface.
-           intf: interface
-           port: port number (optional, typically OpenFlow port number)
-           moveIntfFn: function to move interface (optional)"""
-        if port is None:
-            port = self.newWPort()
-        self.wintfs[port] = intf
-        self.wports[intf] = port
-
-    def addWIntf(self, intf, port=None):
-        """Add an interface.
-           intf: interface
-           port: port number (optional, typically OpenFlow port number)
-           moveIntfFn: function to move interface (optional)"""
-        if port is None:
-            port = self.newPort()
-        self.intfs[port] = intf
-        self.ports[intf] = port
-        self.nameToIntf[intf.name] = intf
-        debug('\n')
-        debug('added intf %s (%d) to node %s\n' % (
-            intf, port, self.name))
-
-    def connectionsTo(self, node):
-        "Return [ intf1, intf2... ] for all intfs that connect self to node."
-        # We could optimize this if it is important
-        connections = []
-        for intf in self.intfList():
-            link = intf.link
-            if link and link.intf2 != None and link.intf2 != 'wireless':
-                node1, node2 = link.intf1.node, link.intf2.node
-                if node1 == self and node2 == node:
-                    connections += [ (intf, link.intf2) ]
-                elif node1 == node and node2 == self:
-                    connections += [ (intf, link.intf1) ]
-        return connections
-
     # Convenience and configuration methods
     def setIP6(self, ip, prefixLen=64, intf=None, **kwargs):
         """Set the IP address for an interface.
@@ -162,25 +110,6 @@ class Node_6lowpan(Node_wifi):
         # This should be examined
         self.cmd('ip link set lo ' + lo)
         return r
-
-    def __repr__(self):
-        "More informative string representation"
-        intfs = (','.join([ '%s:%s' % (i.name, i.IP())
-                            for i in self.intfList() ]))
-        return '<%s %s: %s pid=%s> ' % (
-            self.__class__.__name__, self.name, intfs, self.pid)
-
-    def __str__(self):
-        "Abbreviated string representation"
-        return self.name
-
-    # Automatic class setup support
-    isSetup = False
-
-    @classmethod
-    def setup(cls):
-        "Make sure our class dependencies are available"
-        pathCheck('mnexec', 'ip addr', moduleName='Mininet')
 
 
 class sixLoWPan(Node_6lowpan):
@@ -272,6 +201,7 @@ class UserSensor(APSensor):
            name: name for the switch
            dpopts: additional arguments to ofdatapath (--no-slicing)"""
         APSensor.__init__(self, name, **kwargs)
+        super(UserAP, self).__init__(name, dpopts='--no-slicing', **kwargs)
         pathCheck('ofdatapath', 'ofprotocol',
                   moduleName='the OpenFlow reference user switch' +
                   '(openflow.org)')
@@ -280,51 +210,6 @@ class UserSensor(APSensor):
         else:
             self.opts += ' --listen=punix:/tmp/%s.listen' % self.name
         self.dpopts = dpopts
-
-    @classmethod
-    def setup(cls):
-        "Ensure any dependencies are loaded; if not, try to load them."
-        if not os.path.exists('/dev/net/tun'):
-            moduleDeps(add=TUN)
-
-    def dpctl(self, *args):
-        "Run dpctl command"
-        listenAddr = None
-        if not self.listenPort:
-            listenAddr = 'unix:/tmp/%s.listen' % self.name
-        else:
-            listenAddr = 'tcp:127.0.0.1:%i' % self.listenPort
-        return self.cmd('dpctl ' + ' '.join(args) + ' ' + listenAddr)
-
-    def connected(self):
-        "Is the ap connected to a controller?"
-        status = self.dpctl('status')
-        return ('remote.is-connected=true' in status and
-                'local.is-connected=true' in status)
-
-    @staticmethod
-    def TCReapply(intf):
-        """Unfortunately user switch and Mininet are fighting
-           over tc queuing disciplines. To resolve the conflict,
-           we re-create the user switch's configuration, but as a
-           leaf of the TCIntf-created configuration."""
-        ifspeed = 10000000000  # 10 Gbps
-        minspeed = ifspeed * 0.001
-
-        res = intf.config(**intf.params)
-
-        if res is None:  # link may not have TC parameters
-            return
-
-        # Re-add qdisc, root, and default classes user switch created, but
-        # with new parent, as setup by Mininet's TCIntf
-        parent = res['parent']
-        intf.tc("%s qdisc add dev %s " + parent +
-                " handle 1: htb default 0xfffe")
-        intf.tc("%s class add dev %s classid 1:0xffff parent 1: htb rate "
-                + str(ifspeed))
-        intf.tc("%s class add dev %s classid 1:0xfffe parent 1:0xffff " +
-                "htb rate " + str(minspeed) + " ceil " + str(ifspeed))
 
     def start(self, controllers):
         """Start OpenFlow reference user datapath.
@@ -335,7 +220,9 @@ class UserSensor(APSensor):
                            for c in controllers ])
         ofdlog = '/tmp/' + self.name + '-ofd.log'
         ofplog = '/tmp/' + self.name + '-ofp.log'
-        intfs = [ str(i) for i in self.intfList() if not i.IP() ]
+        intfs = [ str(i) for i in self.intfList()
+                  if (isinstance(i, IntfSixLoWPAN) and not i.IP6() or
+                      (not isinstance(i, IntfSixLoWPAN) and not i.IP()))]
 
         self.cmd('ofdatapath -i ' + ','.join(intfs) +
                  ' punix:/tmp/' + self.name + ' -d %s ' % self.dpid +
@@ -360,7 +247,7 @@ class UserSensor(APSensor):
         # super(UserAP, self).stop(deleteIntfs)
 
 
-class OVSSensor(APSensor):
+class OVSSensor(APSensor, OVSAP):
     "Open vSwitch Sensor. Depends on ovs-vsctl."
 
     def __init__(self, name, failMode='secure', datapath='kernel',
@@ -376,6 +263,9 @@ class OVSSensor(APSensor):
            stp: enable STP (False, requires failMode=standalone)
            batch: enable batch startup (False)"""
         APSensor.__init__(self, name, **params)
+        super(OVSAP, self).__init__(name, failMode='secure', datapath='kernel',
+                                    inband=False, protocols=None,
+                                    reconnectms=1000, stp=False, batch=False, **params)
         self.failMode = failMode
         self.datapath = datapath
         self.inband = inband
@@ -385,119 +275,6 @@ class OVSSensor(APSensor):
         self._uuids = []  # controller UUIDs
         self.batch = batch
         self.commands = []  # saved commands for batch startup
-
-    @classmethod
-    def setup(cls):
-        "Make sure Open vSwitch is installed and working"
-        pathCheck('ovs-vsctl',
-                  moduleName='Open vSwitch (openvswitch.org)')
-        # This should no longer be needed, and it breaks
-        # with OVS 1.7 which has renamed the kernel module:
-        #  moduleDeps( subtract=OF_KMOD, add=OVS_KMOD )
-        out, err, exitcode = errRun('ovs-vsctl -t 1 show')
-        if exitcode:
-            error(out + err +
-                  'ovs-vsctl exited with code %d\n' % exitcode +
-                  '*** Error connecting to ovs-db with ovs-vsctl\n'
-                  'Make sure that Open vSwitch is installed, '
-                  'that ovsdb-server is running, and that\n'
-                  '"ovs-vsctl show" works correctly.\n'
-                  'You may wish to try '
-                  '"service openvswitch-switch start".\n')
-            exit(1)
-        version = quietRun('ovs-vsctl --version')
-        cls.OVSVersion = findall(r'\d+\.\d+', version)[ 0 ]
-
-    @classmethod
-    def isOldOVS(cls):
-        "Is OVS ersion < 1.10?"
-        #return StrictVersion(cls.OVSVersion) < StrictVersion('1.10')
-        return False
-
-    def dpctl(self, *args):
-        "Run ovs-ofctl command"
-        return self.cmd('ovs-ofctl', args[ 0 ], self, *args[ 1: ])
-
-    def vsctl(self, *args, **kwargs):
-        "Run ovs-vsctl command (or queue for later execution)"
-        if self.batch:
-            cmd = ' '.join(str(arg).strip() for arg in args)
-            self.commands.append(cmd)
-        else:
-            return self.cmd('ovs-vsctl', *args, **kwargs)
-
-    @staticmethod
-    def TCReapply(intf):
-        """Unfortunately OVS and Mininet are fighting
-           over tc queuing disciplines. As a quick hack/
-           workaround, we clear OVS's and reapply our own."""
-        if isinstance(intf, TC6LoWPANLink):
-            intf.config(**intf.params)
-
-    def attach(self, intf):
-        "Connect a data port"
-        self.vsctl('add-port', self, intf)
-        self.cmd('ip link set', intf, 'up')
-        self.TCReapply(intf)
-
-    def detach(self, intf):
-        "Disconnect a data port"
-        self.vsctl('del-port', self, intf)
-
-    def controllerUUIDs(self, update=False):
-        """Return ovsdb UUIDs for our controllers
-           update: update cached value"""
-        if not self._uuids or update:
-            controllers = self.cmd('ovs-vsctl -- get Bridge', self,
-                                   'Controller').strip()
-            if controllers.startswith('[') and controllers.endswith(']'):
-                controllers = controllers[ 1 :-1 ]
-                if controllers:
-                    self._uuids = [ c.strip()
-                                    for c in controllers.split(',') ]
-        return self._uuids
-
-    def connected(self):
-        "Are we connected to at least one of our controllers?"
-        for uuid in self.controllerUUIDs():
-            if 'true' in self.vsctl('-- get Controller',
-                                    uuid, 'is_connected'):
-                return True
-        return self.failMode == 'standalone'
-
-    def deleteIface(self, intf_):
-        for intf in self.intfs.values():
-            if intf.name == intf_:
-                self.delIntf(intf)
-
-    def intfOpts(self, intf):
-        "Return OVS interface options for intf"
-        opts = ''
-        if not self.isOldOVS():
-            # ofport_request is not supported on old OVS
-            opts += ' ofport_request=%s' % self.ports[ intf ]
-            # Patch ports don't work well with old OVS
-            if isinstance(intf, OVSIntf):
-                intf1, intf2 = intf.link.intf1, intf.link.intf2
-                peer = intf1 if intf1 != intf else intf2
-
-                opts += ' type=patch options:peer=%s' % peer
-        return '' if not opts else ' -- set Interface %s' % intf + opts
-
-    def bridgeOpts(self):
-        "Return OVS bridge options"
-        opts = (' other_config:datapath-id=%s' % self.dpid +
-                ' fail_mode=%s' % self.failMode)
-        if not self.inband:
-            opts += ' other-config:disable-in-band=true'
-        if self.datapath == 'user':
-            opts += ' datapath_type=netdev'
-        if self.protocols and not self.isOldOVS():
-            opts += ' protocols=%s' % self.protocols
-        if self.stp and self.failMode == 'standalone':
-            opts += ' stp_enable=true'
-        opts += ' other-config:dp-desc=%s' % self.name
-        return opts
 
     def start(self, controllers):
         "Start up a new OVS OpenFlow switch using ovs-vsctl"
@@ -509,7 +286,9 @@ class OVSSensor(APSensor):
         intfs = ''.join(' -- add-port %s %s' % (self, intf) +
                         self.intfOpts(intf)
                         for intf in self.intfList()
-                        if self.ports[ intf ] and not intf.IP())
+                        if self.ports[intf] and
+                        (isinstance(intf, IntfSixLoWPAN) and not intf.IP6() or
+                         not isinstance(intf, IntfSixLoWPAN) and not intf.IP()))
 
         # Command to create controller entries
         clist = [ (self.name + c.name, '%s:%s:%d' %
@@ -542,54 +321,3 @@ class OVSSensor(APSensor):
     # This should be ~ int( quietRun( 'getconf ARG_MAX' ) ),
     # but the real limit seems to be much lower
     argmax = 128000
-
-    @classmethod
-    def batchStartup(cls, aps, run=errRun):
-        """Batch startup for OVS
-           aps: aps to start up
-           run: function to run commands (errRun)"""
-        info('...')
-        cmds = 'ovs-vsctl'
-        for ap in aps:
-            if ap.isOldOVS():
-                # Ideally we'd optimize this also
-                run('ovs-vsctl del-br %s' % ap)
-            for cmd in ap.commands:
-                cmd = cmd.strip()
-                # Don't exceed ARG_MAX
-                if len(cmds) + len(cmd) >= cls.argmax:
-                    run(cmds, shell=True)
-                    cmds = 'ovs-vsctl'
-                cmds += ' ' + cmd
-                ap.cmds = []
-                ap.batch = False
-        if cmds:
-            run(cmds, shell=True)
-        # Reapply link config if necessary...
-        for ap in aps:
-            for intf in ap.intfs:
-                intf.config(**intf.params)
-        return aps
-
-    def stop(self, deleteIntfs=True):
-        """Terminate OVS switch.
-           deleteIntfs: delete interfaces? (True)"""
-        self.cmd('ovs-vsctl del-br', self)
-        if self.datapath == 'user':
-            self.cmd('ip link del', self)
-        super(OVSSensor, self).stop(deleteIntfs)
-
-    @classmethod
-    def batchShutdown(cls, aps, run=errRun):
-        "Shut down a list of OVS switches"
-        delcmd = 'del-br %s'
-        if aps and not aps[ 0 ].isOldOVS():
-            delcmd = '--if-exists ' + delcmd
-        # First, delete them all from ovsdb
-        run('ovs-vsctl ' + ' -- '.join(delcmd % s for s in aps))
-        # Next, shut down all of the processes
-        pids = ' '.join(str(ap.pid) for ap in aps)
-        run('kill -HUP ' + pids)
-        for ap in aps:
-            ap.shell = None
-        return aps

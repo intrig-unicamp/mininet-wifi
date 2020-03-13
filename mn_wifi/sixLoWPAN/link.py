@@ -20,7 +20,7 @@ class IntfSixLoWPAN(object):
         self.name = name
         self.link = link
         self.mac = mac
-        self.ip, self.prefixLen = None, None
+        self.ip, self.ip6, self.prefixLen = None, None, None
 
         # if interface is lo, we know the ip is 127.0.0.1.
         # This saves an ipaddr command per node
