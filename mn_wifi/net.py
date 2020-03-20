@@ -469,6 +469,8 @@ class Mininet_wifi(Mininet, Mininet_IoT):
                 else:
                     if self.switches:
                         connect = self.switches[0]
+                    elif self.aps:
+                        connect = self.aps[0]
             # Connect the nat to the ap
             self.addLink(nat, connect)
             # Set the default route on stations
