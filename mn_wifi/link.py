@@ -1400,7 +1400,9 @@ class wifiDirectLink(IntfWireless):
         self.mac = intf.mac
         self.name = intf.name
         self.range = intf.range
+        self.antennaGain = intf.antennaGain
         self.txpower = intf.txpower
+        self.freq = intf.freq
         self.ip6 = intf.ip6
         self.ip = intf.ip
 
