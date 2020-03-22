@@ -1521,35 +1521,50 @@ class Mininet_wifi(Mininet, Mininet_IoT):
                 car.pos = (0, 0, 0)
         program(self.cars, self.aps, **kwargs)
 
+    def start_wmediumd(self):
+        wmediumd(fading_cof=self.fading_cof, noise_th=self.noise_th,
+                 stations=self.stations, aps=self.aps, cars=self.cars,
+                 ppm=ppm, maclist=self.wmediumdMac)
+
     def configWmediumd(self):
         "Configure Wmediumd"
         if self.autoSetPositions:
             self.wmediumd_mode = interference
         self.wmediumd_mode()
 
-        if not self.configWiFiDirect and not self.config4addr and \
-            self.wmediumd_mode != error_prob:
-            wmediumd(fading_cof=self.fading_cof, noise_th=self.noise_th,
-                     stations=self.stations, aps=self.aps, cars=self.cars,
-                     ppm=ppm, maclist=self.wmediumdMac)
+        if not self.configWiFiDirect and not self.config4addr \
+                and self.wmediumd_mode != error_prob:
+            self.start_wmediumd()
 
     def init_wmediumd(self):
         if (self.config4addr or self.configWiFiDirect
                 or self.wmediumd_mode == error_prob) and self.link == wmediumd:
-            wmediumd(fading_cof=self.fading_cof, noise_th=self.noise_th,
-                     stations=self.stations, aps=self.aps, cars=self.cars,
-                     ppm=ppm, maclist=self.wmediumdMac)
+            self.start_wmediumd()
             if self.wmediumd_mode != error_prob:
                 for sta in self.stations:
                     sta.set_pos_wmediumd(sta.position)
             for sta in self.stations:
                 if sta in self.aps:
                     self.stations.remove(sta)
+            nodes = self.stations + self.aps + self.cars
+            self.config_antenna(nodes)
         self.wmediumd_started = True
 
     def addSensors(self, sensors):
         for sensor in sensors:
             self.nameToNode[sensor.name] = sensor
+
+    @staticmethod
+    def config_antenna(nodes):
+        for node in nodes:
+            for wlan, intf in enumerate(node.wintfs.values()):
+                if int(intf.range) == 0:
+                    intf.range = node.getRange(intf)
+                else:
+                    if 'model' not in node.params:
+                        intf.txpower = node.get_txpower_prop_model(intf)
+                node.setTxPower(intf.txpower, intf=intf.name)
+                node.setAntennaGain(intf.antennaGain, intf=intf.name)
 
     def configureWifiNodes(self):
         "Configure WiFi Nodes"
@@ -1582,16 +1597,8 @@ class Mininet_wifi(Mininet, Mininet_IoT):
             self.configWmediumd()
         AccessPoint(self.aps)
 
-        for node in nodes:
-            for wlan, intf in enumerate(node.wintfs.values()):
-                if int(intf.range) == 0:
-                    intf.range = node.getRange(intf)
-                else:
-                    if 'model' not in node.params:
-                        intf.txpower = node.get_txpower_prop_model(intf)
-                if not self.config4addr and not self.configWiFiDirect:
-                    node.setTxPower(intf.txpower, intf=intf.name)
-                    node.setAntennaGain(intf.antennaGain, intf=intf.name)
+        if not self.config4addr and not self.configWiFiDirect:
+            self.config_antenna(nodes)
 
     def plot_check(self, mnNodes):
         "Check which nodes will be plotted"

@@ -627,7 +627,7 @@ class AccessPoint(Node_wifi):
                     self.configAP(ap, wlan)
                 for intf in ap.wintfs.values():
                     self.setIPMAC(intf)
-                self.checkNetworkManager(intf)
+                    self.checkNetworkManager(intf)
 
             if 'vssids' in ap.params:
                 for i in range(1, ap.params['vssids'] + 1):
