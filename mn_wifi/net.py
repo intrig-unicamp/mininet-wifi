@@ -1555,7 +1555,7 @@ class Mininet_wifi(Mininet, Mininet_IoT):
             self.nameToNode[sensor.name] = sensor
 
     @staticmethod
-    def config_antenna(nodes):
+    def config_range(nodes):
         for node in nodes:
             for wlan, intf in enumerate(node.wintfs.values()):
                 if int(intf.range) == 0:
@@ -1563,8 +1563,14 @@ class Mininet_wifi(Mininet, Mininet_IoT):
                 else:
                     if 'model' not in node.params:
                         intf.txpower = node.get_txpower_prop_model(intf)
-                node.setTxPower(intf.txpower, intf=intf.name)
-                node.setAntennaGain(intf.antennaGain, intf=intf.name)
+
+    @staticmethod
+    def config_antenna(nodes):
+        for node in nodes:
+            for wlan, intf in enumerate(node.wintfs.values()):
+                if not isinstance(intf, _4addrAP):
+                    node.setTxPower(intf.txpower, intf=intf.name)
+                    node.setAntennaGain(intf.antennaGain, intf=intf.name)
 
     def configureWifiNodes(self):
         "Configure WiFi Nodes"
@@ -1597,6 +1603,7 @@ class Mininet_wifi(Mininet, Mininet_IoT):
             self.configWmediumd()
         AccessPoint(self.aps)
 
+        self.config_range(nodes)
         if not self.config4addr and not self.configWiFiDirect:
             self.config_antenna(nodes)
 

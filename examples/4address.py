@@ -39,7 +39,7 @@ def topology(args):
     info("*** Configuring wifi nodes\n")
     net.configureWifiNodes()
 
-    info("*** Adding Link\n")
+    info("*** Adding Links\n")
     net.addLink(ap1, ap2, cls=_4address)  # ap1=ap, ap2=client
     net.addLink(ap1, ap3, cls=_4address)  # ap1=ap, ap3=client
     net.addLink(sta1, ap1)

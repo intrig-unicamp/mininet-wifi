@@ -1111,6 +1111,7 @@ class _4addrClient(TCWirelessLink):
         self.node = node
         self.id = wlan
         self.ip = None
+        self.freq = node.wintfs[0].freq
         self.mac = node.wintfs[wlan-1].mac
         self.range = node.wintfs[0].range
         self.txpower = node.wintfs[wlan-1].txpower
@@ -1130,6 +1131,7 @@ class _4addrAP(TCWirelessLink):
         self.node = node
         self.ip = None
         self.id = wlan
+        self.freq = node.wintfs[0].freq
         self.mac = node.wintfs[0].mac
         self.range = node.wintfs[0].range
         self.txpower =  node.wintfs[0].txpower
