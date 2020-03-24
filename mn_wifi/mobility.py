@@ -407,7 +407,7 @@ class Tracked(Mobility):
                 self.set_coordinates(node)
         self.run(mob_nodes, draw, **kwargs)
 
-    def run(self, mob_nodes, draw, mod_start_time=0, mod_stop_time=10,
+    def run(self, mob_nodes, draw, mob_start_time=0, mob_stop_time=10,
             reverse=False, repetitions=1, **kwargs):
 
         if draw:
@@ -432,11 +432,11 @@ class Tracked(Mobility):
                 Mobility.calculate_diff_time(node)
             while cont:
                 t2 = time()
-                if (t2 - t1) > mod_stop_time:
+                if (t2 - t1) > mob_stop_time:
                     cont = False
                     if rep == repetitions:
                         Mobility.thread_._keep_alive = False
-                if (t2 - t1) >= mod_start_time:
+                if (t2 - t1) >= mob_start_time:
                     if t2 - t1 >= i:
                         for node in mob_nodes:
                             if (t2 - t1) >= node.startTime and node.time <= node.endTime:
