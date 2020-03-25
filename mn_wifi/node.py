@@ -22,14 +22,13 @@ OVSAP: a AP using the Open vSwitch OpenFlow-compatible switch
 import os
 import re
 import math
-from distutils.version import StrictVersion
 
 from time import sleep
 import matplotlib.pyplot as plt
 
-from mininet.log import info, debug
+from mininet.log import info, debug, error
 from mininet.util import (errRun, errFail, Python3, getincrementaldecoder,
-                          BaseString)
+                          quietRun, BaseString)
 from mininet.node import Node, UserSwitch, OVSSwitch, CPULimitedHost
 from mininet.moduledeps import pathCheck
 from mininet.link import Intf
@@ -38,6 +37,8 @@ from mn_wifi.link import TCWirelessLink, TCLinkWirelessAP,\
     wirelessLink, adhoc, mesh, master, managed, physicalMesh, ITSLink
 from mn_wifi.wmediumdConnector import w_server, w_pos, w_cst, wmediumd_mode
 from mn_wifi.propagationModels import GetSignalRange, GetPowerGivenRange
+
+from re import findall
 
 
 class Node_wifi(Node):
@@ -983,27 +984,6 @@ class UserAP(AP, UserSwitch):
             self.opts += ' --listen=punix:/tmp/%s.listen' % self.name
         self.dpopts = dpopts
 
-    @classmethod
-    def setup(cls):
-        "Ensure any dependencies are loaded; if not, try to load them."
-        if not os.path.exists('/dev/net/tun'):
-            moduleDeps(add=TUN)
-
-    def dpctl(self, *args):
-        "Run dpctl command"
-        listenAddr = None
-        if not self.listenPort:
-            listenAddr = 'unix:/tmp/%s.listen' % self.name
-        else:
-            listenAddr = 'tcp:127.0.0.1:%i' % self.listenPort
-        return self.cmd('dpctl ' + ' '.join(args) + ' ' + listenAddr)
-
-    def connected(self):
-        "Is the ap connected to a controller?"
-        status = self.dpctl('status')
-        return ('remote.is-connected=true' in status and
-                'local.is-connected=true' in status)
-
     @staticmethod
     def TCReapply(intf):
         """Unfortunately user switch and Mininet are fighting
@@ -1065,8 +1045,6 @@ class UserAP(AP, UserSwitch):
 
 class OVSAP(AP, OVSSwitch):
     "Open vSwitch AP. Depends on ovs-vsctl."
-    OVSVersion = None
-    StrictVersion.version = None
 
     def __init__(self, name, failMode='secure', datapath='kernel',
                  inband=False, protocols=None,
@@ -1091,6 +1069,28 @@ class OVSAP(AP, OVSSwitch):
         self.batch = batch
         self.commands = []  # saved commands for batch startup
 
+    @classmethod
+    def setup(cls):
+        "Make sure Open vSwitch is installed and working"
+        pathCheck('ovs-vsctl',
+                  moduleName='Open vSwitch (openvswitch.org)')
+        # This should no longer be needed, and it breaks
+        # with OVS 1.7 which has renamed the kernel module:
+        #  moduleDeps( subtract=OF_KMOD, add=OVS_KMOD )
+        out, err, exitcode = errRun('ovs-vsctl -t 1 show')
+        if exitcode:
+            error(out + err +
+                  'ovs-vsctl exited with code %d\n' % exitcode +
+                  '*** Error connecting to ovs-db with ovs-vsctl\n'
+                  'Make sure that Open vSwitch is installed, '
+                  'that ovsdb-server is running, and that\n'
+                  '"ovs-vsctl show" works correctly.\n'
+                  'You may wish to try '
+                  '"service openvswitch-switch start".\n')
+            exit(1)
+        version = quietRun('ovs-vsctl --version')
+        cls.OVSVersion = findall(r'\d+\.\d+', version)[0]
+
     @staticmethod
     def TCReapply(intf):
         """Unfortunately OVS and Mininet are fighting
@@ -1098,10 +1098,6 @@ class OVSAP(AP, OVSSwitch):
            workaround, we clear OVS's and reapply our own."""
         if isinstance(intf, TCWirelessLink):
             intf.config(**intf.params)
-
-    # This should be ~ int( quietRun( 'getconf ARG_MAX' ) ),
-    # but the real limit seems to be much lower
-    argmax = 128000
 
     @classmethod
     def batchStartup(cls, aps, run=errRun):
