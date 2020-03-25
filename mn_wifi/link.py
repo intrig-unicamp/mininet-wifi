@@ -1,19 +1,19 @@
-"""
-   Mininet-WiFi: A simple networking testbed for Wireless OpenFlow/SDWN!
-   @author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
-"""
+# author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
+# author: Joaquin Alvarez (j.alvarez@uah.es)
+
 
 import os
 import re
 import glob
 import subprocess
 from time import sleep
+from sys import version_info as py_version_info
 
 from mininet.util import BaseString
 from mininet.log import error, debug, info
 from mn_wifi.manetRoutingProtocols import manetProtocols
 from mn_wifi.wmediumdConnector import DynamicIntfRef, \
-    WStarter, SNRLink, w_pos, w_cst, w_server, ERRPROBLink, \
+    w_starter, SNRLink, w_pos, w_cst, w_server, ERRPROBLink, \
     wmediumd_mode, w_txpower, w_gain, w_height
 
 
@@ -64,10 +64,10 @@ class IntfWireless(object):
     def iwdev_pexec(self, *args):
         return self.pexec('iw dev', *args)
 
-    def join_ibss(self):
-        return self.iwdev_cmd('{} ibss join {} {} {} 02:CA:FF:EE:BA:01'.
+    def join_ibss(self, ibss="02:CA:FF:EE:BA:01"):
+        return self.iwdev_cmd('{} ibss join {} {} {} {}'.
                               format(self.name, self.ssid,
-                                     self.format_freq(), self.ht_cap))
+                                     self.format_freq(), self.ht_cap, ibss))
 
     def join_mesh(self):
         return self.iwdev_cmd('{} mesh join {} freq {} {}'.
@@ -80,7 +80,9 @@ class IntfWireless(object):
 
     def get_wpa_cmd(self):
         pidfile = self.get_pid_filename()
-        wpasup_flags = self.node.params.get('wpasup_flags', '')
+        wpasup_flags = ''
+        if 'wpasup_flags' in self.node.params:
+            wpasup_flags = self.node.params['wpasup_flags']
         cmd = ('wpa_supplicant -B -Dnl80211 -P {} -i {} -c {}_{}.staconf {}'.
                format(pidfile, self.name, self.name, self.id, wpasup_flags))
         return cmd
@@ -120,16 +122,6 @@ class IntfWireless(object):
         rates = [54, 11, 54, 300, 600]
         rate = rates[modes.index(self.mode)]
         return rate
-
-    def rec_rssi(self):
-        # it sends rssi value to hwsim
-        cmd = 'hwsim_mgmt -k %s %s >/dev/null 2>&1' % (self.node.phyid[self.id],
-                                                       abs(int(self.rssi)))
-        self.cmd(cmd)
-
-    def get_rssi(self, ap_intf, dist):
-        from mn_wifi.propagationModels import PropagationModel as ppm
-        return float(ppm(self, ap_intf, dist).rssi)
 
     def get_freq(self):
         "Gets frequency based on channel number"
@@ -236,176 +228,6 @@ class IntfWireless(object):
             self.ip6, self.prefixLen = ipstr, prefixLen
             return self.ipAddr('%s/%s' % (ipstr, prefixLen))
 
-    def setSNRWmediumd(self, ap_intf, snr):
-        "Send SNR to wmediumd"
-        w_server.send_snr_update(SNRLink(self.wmIface, ap_intf.wmIface, snr))
-        w_server.send_snr_update(SNRLink(ap_intf.wmIface, self.wmIface, snr))
-
-    def disconnect(self):
-        self.node.pexec('iw dev %s disconnect' % self.name)
-        self.rssi = 0
-        self.associatedTo = ''
-        self.channel = 0
-
-    def check_if_wpafile_exist(self):
-        file = '%s_%s.staconf' % (self.name, self.id)
-        return glob.glob(file)
-
-    def wpaFile(self, ap_intf):
-        cmd = ''
-        if not ap_intf.config or not self.config:
-            if not ap_intf.authmode:
-                if not self.passwd:
-                    passwd = ap_intf.passwd
-                else:
-                    passwd = self.passwd
-
-        if 'wpasup_globals' not in self.node.params \
-                or ('wpasup_globals' in self.node.params
-                    and 'ctrl_interface=' not in self.node.params['wpasup_globals']):
-            cmd = 'ctrl_interface=/var/run/wpa_supplicant\n'
-        if ap_intf.wps_state and not self.passwd:
-            cmd += 'ctrl_interface_group=0\n'
-            cmd += 'update_config=1\n'
-        else:
-            if 'wpasup_globals' in self.node.params:
-                cmd += self.node.params['wpasup_globals'] + '\n'
-            cmd += 'network={\n'
-
-            if self.config:
-                config = self.config
-                if config is not []:
-                    config = self.config.split(',')
-                    self.node.params.pop("config", None)
-                    for conf in config:
-                        cmd += "   " + conf + "\n"
-            else:
-                cmd += '   ssid=\"%s\"\n' % ap_intf.ssid
-
-                if not ap_intf.authmode:
-                    cmd += '   psk=\"%s\"\n' % passwd
-                    encrypt = ap_intf.encrypt
-                    if ap_intf.encrypt == 'wpa3':
-                        encrypt = 'wpa2'
-                    cmd += '   proto=%s\n' % encrypt.upper()
-                    cmd += '   pairwise=%s\n' % ap_intf.rsn_pairwise
-                    if self.active_scan:
-                        cmd += '   scan_ssid=1\n'
-                    if self.scan_freq:
-                        cmd += '   scan_freq=%s\n' % self.scan_freq
-                    if self.freq_list:
-                        cmd += '   freq_list=%s\n' % self.freq_list
-                wpa_key_mgmt = ap_intf.wpa_key_mgmt
-                if ap_intf.encrypt == 'wpa3':
-                    wpa_key_mgmt = 'SAE'
-                cmd += '   key_mgmt=%s\n' % wpa_key_mgmt
-                if 'bgscan_threshold' in self.node.params:
-                    if 'bgscan_module' not in self.node.params:
-                        self.node.params['bgscan_module'] = 'simple'
-                    bgscan = 'bgscan=\"%s:%d:%d:%d\"' % \
-                             (self.bgscan_module, self.s_inverval,
-                              self.bgscan_threshold, self.l_interval)
-                    cmd += '   %s\n' % bgscan
-                if ap_intf.authmode == '8021x':
-                    cmd += '   eap=PEAP\n'
-                    cmd += '   identity=\"%s\"\n' % self.radius_identity
-                    cmd += '   password=\"%s\"\n' % self.radius_passwd
-                    cmd += '   phase2=\"autheap=MSCHAPV2\"\n'
-            cmd += '}'
-
-        fileName = '%s_%s.staconf' % (self.name, self.id)
-        os.system('echo \'%s\' > %s' % (cmd, fileName))
-
-    def wpa(self, ap_intf):
-        self.wpaFile(ap_intf)
-        self.wpa_pexec()
-
-    def handover_ieee80211r(self, ap_intf):
-        self.node.pexec('wpa_cli -i %s roam %s' % (self.name, ap_intf.mac))
-
-    def wep(self, ap_intf):
-        if self.passwd:
-            passwd = self.passwd
-        else:
-            passwd = ap_intf.passwd
-        self.wep_connect(passwd, ap_intf)
-
-    def wep_connect(self, passwd, ap_intf):
-        self.node.pexec('iw dev %s connect %s key d:0:%s' % (self.name, ap_intf.ssid, passwd))
-
-    def update_client_params(self, ap_intf):
-        self.freq = ap_intf.freq
-        self.channel = ap_intf.channel
-        self.mode = ap_intf.mode
-        self.ssid = ap_intf.ssid
-        self.range = self.node.getRange(self)
-
-    def iwconfig_con(self, ap_intf):
-        cmd = 'iwconfig %s essid %s ap %s' % (self.name, ap_intf.ssid, ap_intf.mac)
-        return cmd
-
-    def associate_noEncrypt(self, ap_intf):
-        # iwconfig is still necessary, since iw doesn't include essid like iwconfig does.
-        self.node.pexec(self.iwconfig_con(ap_intf))
-        debug('\n')
-
-    def update(self, ap_intf):
-        if self.associatedTo and self.node in ap_intf.associatedStations:
-            ap_intf.associatedStations.remove(self.node)
-        self.update_client_params(ap_intf)
-        ap_intf.associatedStations.append(self.node)
-        self.associatedTo = ap_intf.node
-
-    def associate_infra(self, ap_intf):
-        associated = 0
-        if ap_intf.ieee80211r and (not self.encrypt or 'wpa' in self.encrypt):
-            if not self.associatedTo:
-                wpa_file_exists = self.check_if_wpafile_exist()
-                if wpa_file_exists:
-                    self.handover_ieee80211r(ap_intf)
-                else:
-                    self.wpa(ap_intf)
-            else:
-                self.handover_ieee80211r(ap_intf)
-            associated = 1
-        elif not ap_intf.encrypt:
-            associated = 1
-            self.associate_noEncrypt(ap_intf)
-        else:
-            if not self.associatedTo:
-                if 'wpa' in ap_intf.encrypt and (not self.encrypt or 'wpa' in self.encrypt):
-                    self.wpa(ap_intf)
-                    associated = 1
-                elif ap_intf.encrypt == 'wep':
-                    self.wep(ap_intf)
-                    associated = 1
-        if associated:
-            self.update(ap_intf)
-
-    def configureWirelessLink(self, ap_intf):
-        dist = self.node.get_distance_to(ap_intf.node)
-        if dist <= ap_intf.range:
-            if not wmediumd_mode.mode == w_cst.INTERFERENCE_MODE:
-                if self.rssi == 0:
-                    self.update_client_params(ap_intf)
-            if ap_intf != self.associatedTo or \
-                    not self.associatedTo:
-                self.associate_infra(ap_intf)
-                if wmediumd_mode.mode == w_cst.WRONG_MODE:
-                    if dist >= 0.01:
-                        wirelessLink(self, dist)
-                if self.node != ap_intf.associatedStations:
-                    ap_intf.associatedStations.append(self.node)
-            if not wmediumd_mode.mode == w_cst.INTERFERENCE_MODE:
-                self.rssi = self.get_rssi(ap_intf, dist)
-
-    def associate(self, ap_intf):
-        "Associate to Access Point"
-        if hasattr(self.node, 'position'):
-            self.configureWirelessLink(ap_intf)
-        else:
-            self.associate_infra(ap_intf)
-
     def configureMacAddr(self):
         """Configure Mac Address
         :param node: node"""
@@ -443,14 +265,20 @@ class IntfWireless(object):
         # backgrounded output from the cli.
         ipAddr, _err, _exitCode = self.node.pexec(
             'ip addr show %s' % self.name)
-        ips = self._ipMatchRegex.findall(ipAddr)
+        if py_version_info < (3, 0):
+            ips = self._ipMatchRegex.findall(ipAddr)
+        else:
+            ips = self._ipMatchRegex.findall(ipAddr.decode('utf-8'))
         self.ip = ips[0] if ips else None
         return self.ip
 
     def updateMAC(self):
         "Return updated MAC address based on ip addr"
         ipAddr = self.ipAddr()
-        macs = self._macMatchRegex.findall(ipAddr)
+        if py_version_info < (3, 0):
+            macs = self._macMatchRegex.findall(ipAddr)
+        else:
+            macs = self._macMatchRegex.findall(ipAddr.decode('utf-8'))
         self.mac = macs[0] if macs else None
         return self.mac
 
@@ -461,8 +289,12 @@ class IntfWireless(object):
     def updateAddr(self):
         "Return IP address and MAC address based on ipAddr."
         ipAddr = self.ipAddr()
-        ips = self._ipMatchRegex.findall(ipAddr)
-        macs = self._macMatchRegex.findall(ipAddr)
+        if py_version_info < (3, 0):
+            ips = self._ipMatchRegex.findall(ipAddr)
+            macs = self._macMatchRegex.findall(ipAddr)
+        else:
+            ips = self._ipMatchRegex.findall(ipAddr.decode('utf-8'))
+            macs = self._macMatchRegex.findall(ipAddr.decode('utf-8'))
         self.ip = ips[0] if ips else None
         self.mac = macs[0] if macs else None
         return self.ip, self.mac
@@ -553,10 +385,6 @@ class IntfWireless(object):
         # quietRun( 'ip link del ' + self.name )
         #self.node.delIntf(self)
         self.link = None
-
-    def stop(self):
-        "Override to stop and clean up link as needed"
-        self.delete()
 
     def status(self):
         "Return intf status as a string"
@@ -748,16 +576,20 @@ class _4address(IntfWireless):
            node1: first node
            node2: second node
            intf: default interface class/constructor"""
-        ap = node1  # ap
-        cl = node2  # client
-        cl_intfname = '%s.wds' % cl.name
+        intf1 = None
+        intf2 = None
+
+        ap = node1 # ap
+        cl = node2 # client
+        cl_intfName = '%s.wds' % cl.name
 
         if not hasattr(node1, 'position'):
             self.set_pos(node1)
         if not hasattr(node2, 'position'):
             self.set_pos(node2)
 
-        if cl_intfname not in cl.params['wlan']:
+        if cl_intfName not in cl.params['wlan']:
+
             wlan = cl.params['wlan'].index(port1) if port1 else 0
             apwlan = ap.params['wlan'].index(port2) if port2 else 0
 
@@ -765,21 +597,26 @@ class _4address(IntfWireless):
             ap_intf = ap.wintfs[apwlan]
 
             self.node = cl
-            self.add4addrIface(intf, cl_intfname)
-            sleep(1)
+            self.add4addrIface(wlan, cl_intfName)
+
+            self.setMAC(intf)
+            self.setMAC(ap_intf)
+            self.bring4addrIfaceUP()
 
             intf.mode = ap_intf.mode
             intf.channel = ap_intf.channel
             intf.freq = ap_intf.freq
             intf.txpower = ap_intf.txpower
             intf.antennaGain = ap_intf.antennaGain
-            cl.params['wlan'].append(cl_intfname)
+            cl.params['wlan'].append(cl_intfName)
             sleep(1)
+            self.iwdev_cmd('%s connect %s %s' % (cl.params['wlan'][1],
+                                                 ap_intf.ssid, ap_intf.mac))
 
             params1, params2 = {}, {}
             params1['port'] = cl.newPort()
             params2['port'] = ap.newPort()
-            intf1 = IntfWireless(name=cl_intfname, node=cl, link=self, **params1)
+            intf1 = IntfWireless(name=cl_intfName, node=cl, link=self, **params1)
             if hasattr(ap, 'wds'):
                 ap.wds += 1
             else:
@@ -792,11 +629,6 @@ class _4address(IntfWireless):
             _4addrClient(cl, (len(cl.params['wlan'])-1))
 
             cl.wintfs[1].mac = (intf.mac[:3] + '09' + intf.mac[5:])
-            self.bring4addrIfaceDown()
-            self.setMAC(cl.wintfs[1])
-            self.bring4addrIfaceUP()
-            self.iwdev_cmd('%s connect %s %s' % (cl.params['wlan'][1],
-                                                 ap_intf.ssid, ap_intf.mac))
 
         # All we are is dust in the wind, and our two interfaces
         self.intf1, self.intf2 = intf1, intf2
@@ -807,9 +639,6 @@ class _4address(IntfWireless):
             id = int(hex(int(nums[0]))[2:])
             node.position = (10, round(id, 2), 0)
 
-    def bring4addrIfaceDown(self):
-        self.cmd('ip link set dev %s.wds down' % self.node)
-
     def bring4addrIfaceUP(self):
         self.cmd('ip link set dev %s.wds up' % self.node)
 
@@ -817,9 +646,9 @@ class _4address(IntfWireless):
         self.cmd('ip link set dev %s.wds addr %s'
                  % (intf.node, intf.mac))
 
-    def add4addrIface(self, intf, intfName):
+    def add4addrIface(self, wlan, intfName):
         self.iwdev_cmd('%s interface add %s type managed 4addr on' %
-                       (intf.name, intfName))
+                       (self.node.params['wlan'][wlan], intfName))
 
     def status(self):
         "Return link status as a string"
@@ -861,14 +690,14 @@ class WirelessLinkAP(object):
         params = dict( params ) if params else {}
 
         if port is not None:
-            params['port'] = port
+            params[ 'port' ] = port
 
         params['port'] = node.newPort()
         if not intfName:
             ifacename = 'wlan'
             intfName = self.wlanName(node, ifacename, params['port'])
         intf1 = cls(name=intfName, node=node,
-                    link=self, mac=addr, **params)
+                    link=self, mac = addr, ** params)
 
         intf2 = 'wifi'
         # All we are is dust in the wind, and our two interfaces
@@ -1009,22 +838,20 @@ class master(TCWirelessLink):
         self.freq = 2.412
         self.range = 0
         self.txpower = 14
-        self.auth_algs = None
-        self.authmode = None
+        self.ieee80211r = None
         self.band = None
+        self.authmode = None
         self.beacon_int = None
         self.config = None
-        self.config_methods = None
+        self.driver = 'nl80211'
         self.encrypt = None
         self.ht_capab = None
-        self.ieee80211r = None
         self.id = wlan
         self.ip = None
         self.ip6 = None
         self.isolate_clients = None
         self.mac = None
         self.mode = 'g'
-        self.mobility_domain = None
         self.passwd = None
         self.shared_secret = None
         self.ssid = None
@@ -1034,7 +861,8 @@ class master(TCWirelessLink):
         self.wps_state = None
         self.device_type = None
         self.wpa_psk_file = None
-        self.wep_key0 = None
+        self.config_methods = None
+        self.mobility_domain = None
         self.link = None
 
         if intf:
@@ -1045,8 +873,8 @@ class master(TCWirelessLink):
                 if isinstance(node.params[key], BaseString):
                     setattr(self, key, node.params[key])
                 elif isinstance(node.params[key], list):
-                    arg = node.params[key][0].split(',')
-                    setattr(self, key, arg[wlan])
+                    arg_ = node.params[key][0].split(',')
+                    setattr(self, key, arg_[wlan])
                 elif isinstance(node.params[key], int):
                     setattr(self, key, node.params[key])
 
@@ -1111,18 +939,17 @@ class _4addrClient(TCWirelessLink):
         self.node = node
         self.id = wlan
         self.ip = None
-        self.freq = node.wintfs[0].freq
         self.mac = node.wintfs[wlan-1].mac
         self.range = node.wintfs[0].range
-        self.txpower = node.wintfs[wlan-1].txpower
+        self.txpower = 0
         self.antennaGain = 5.0
         self.name = node.params['wlan'][wlan]
         self.stationsInRange = {}
         self.associatedStations = []
         self.apsInRange = {}
         self.params = {}
-        #node.addWIntf(self, port=wlan)
-        node.addWAttr(self, port=wlan)
+        node.addWIntf(self)
+        node.addWAttr(self)
 
 
 class _4addrAP(TCWirelessLink):
@@ -1131,17 +958,16 @@ class _4addrAP(TCWirelessLink):
         self.node = node
         self.ip = None
         self.id = wlan
-        self.freq = node.wintfs[0].freq
         self.mac = node.wintfs[0].mac
         self.range = node.wintfs[0].range
-        self.txpower =  node.wintfs[0].txpower
+        self.txpower = 0
         self.antennaGain = 5.0
         self.name = node.params['wlan'][wlan]
         self.stationsInRange = {}
         self.associatedStations = []
         self.params = {}
-        #node.addWIntf(self, port=wlan)
-        node.addWAttr(self, port=wlan)
+        node.addWIntf(self)
+        node.addWAttr(self)
 
 
 class wmediumd(TCWirelessLink):
@@ -1152,66 +978,79 @@ class wmediumd(TCWirelessLink):
     positions = []
     nodes = []
 
-    def __init__(self, **kwargs):
-        self.configureWmediumd(**kwargs)
+    def __init__(self, fading_coefficient, noise_threshold, stations,
+                 aps, cars, propagation_model, maclist=None):
 
-    def configureWmediumd(self, fading_cof, noise_th, stations,
-                          aps, cars, ppm, maclist):
+        self.configureWmediumd(fading_coefficient, noise_threshold, stations,
+                               aps, cars, propagation_model, maclist)
+
+    @classmethod
+    def configureWmediumd(cls, fading_coefficient, noise_threshold, stations,
+                          aps, cars, propagation_model, maclist):
         "Configure wmediumd"
         intfrefs = []
         isnodeaps = []
-        mac_list = []
+        fading_coefficient = fading_coefficient
+        noise_threshold = noise_threshold
 
-        wmediumd.nodes = stations + aps + cars
-        for node in self.nodes:
-            node.wmIfaces = []
+        cls.nodes = stations + aps + cars
+        for node in cls.nodes:
             for intf in node.wintfs.values():
-                if intf.mac not in mac_list:
-                    intf.wmIface = DynamicIntfRef(node, intf=intf.name)
-                    intfrefs.append(intf.wmIface)
-                    node.wmIfaces.append(intf.wmIface)
+                intf.wmIface = DynamicIntfRef(node, intf=intf.name)
+                intfrefs.append(intf.wmIface)
 
-                    if (isinstance(intf, master)
-                        or (node in aps and (not isinstance(intf, managed)
-                                             and not isinstance(intf, adhoc)))):
-                        isnodeaps.append(1)
-                    else:
-                        isnodeaps.append(0)
-                    mac_list.append(intf.mac)
-
-                    '''for mac in maclist:
-                        for key in mac:
-                            if key == node:
-                                key.wmIface.append(DynamicIntfRef(key, intf=len(key.wmIface)))
-                                key.params['wlan'].append(mac[key][1])
-                                key.params['mac'].append(mac[key][0])
-                                key.params['range'].append(0)
-                                key.params['freq'].append(key.params['freq'][0])
-                                key.params['antennaGain'].append(0)
-                                key.params['txpower'].append(14)
-                                intfrefs.append(key.wmIface[len(key.wmIface) - 1])
-                                isnodeaps.append(0)'''
+                if (isinstance(intf, master)
+                    or (node in aps and (not isinstance(intf, managed)
+                                         and not isinstance(intf, adhoc)))):
+                    isnodeaps.append(1)
+                else:
+                    isnodeaps.append(0)
+            '''for mac in maclist:
+                for key in mac:
+                    if key == node:
+                        key.wmIface.append(DynamicIntfRef(key, intf=len(key.wmIface)))
+                        key.params['wlan'].append(mac[key][1])
+                        key.params['mac'].append(mac[key][0])
+                        key.params['range'].append(0)
+                        key.params['freq'].append(key.params['freq'][0])
+                        key.params['antennaGain'].append(0)
+                        key.params['txpower'].append(14)
+                        intfrefs.append(key.wmIface[len(key.wmIface) - 1])
+                        isnodeaps.append(0)'''
 
         if wmediumd_mode.mode == w_cst.INTERFERENCE_MODE:
-            SetInterference()
+            set_interference()
         elif wmediumd_mode.mode == w_cst.SPECPROB_MODE:
-            SpecProbLink()
+            spec_prob_link()
         elif wmediumd_mode.mode == w_cst.ERRPROB_MODE:
-            SetErrorProb()
+            set_error_prob()
         else:
-            SetSNR()
-        WStarter(intfrefs=intfrefs, links=wmediumd.links,
-                 pos=wmediumd.positions, fading_cof=fading_cof,
-                 noise_th=noise_th, txpowers=wmediumd.txpowers,
-                 isnodeaps=isnodeaps, ppm=ppm, maclist=maclist)
+            set_snr()
+        start_wmediumd(intfrefs, wmediumd.links, wmediumd.positions,
+                       fading_coefficient, noise_threshold,
+                       wmediumd.txpowers, isnodeaps, propagation_model,
+                       maclist)
 
 
-class SetInterference(object):
+class start_wmediumd(object):
+    def __init__(cls, intfrefs, links, positions,
+                 fading_coefficient, noise_threshold, txpowers, isnodeaps,
+                 propagation_model, maclist):
+
+        w_starter.start(intfrefs, links, pos=positions,
+                        fading_coefficient=fading_coefficient,
+                        noise_threshold=noise_threshold,
+                        txpowers=txpowers, isnodeaps=isnodeaps,
+                        ppm=propagation_model, maclist=maclist)
+
+
+class set_interference(object):
 
     def __init__(self):
         self.interference()
 
-    def interference(self):
+    @classmethod
+    def interference(cls):
         'configure interference model'
         for node in wmediumd.nodes:
             if not hasattr(node, 'position'):
@@ -1222,25 +1061,22 @@ class SetInterference(object):
                 posZ = float(node.position[2])
             node.lastpos = [posX, posY, posZ]
 
-            mac_list = []
             for wlan, intf in enumerate(node.wintfs.values()):
-                if intf.mac not in mac_list:
-                    if wlan >= 1:
-                        posX += 0.1
-                    wmediumd.positions.append(w_pos(intf.wmIface,
-                                                    [posX, posY, posZ]))
-                    wmediumd.txpowers.append(w_txpower(
-                        intf.wmIface, float(intf.txpower)))
-                    mac_list.append(intf.mac)
+                if wlan >= 1:
+                    posX += 0.1
+                wmediumd.positions.append(w_pos(intf.wmIface,
+                                                [posX, posY, posZ]))
+                wmediumd.txpowers.append(w_txpower(
+                    intf.wmIface, float(intf.txpower)))
 
 
-class SpecProbLink(object):
+class spec_prob_link(object):
     "wmediumd: spec prob link"
     def __init__(self):
         'do nothing'
 
 
-class SetErrorProb(object):
+class set_error_prob(object):
     "wmediumd: set error prob"
     def __init__(self):
         self.error_prob()
@@ -1248,14 +1084,14 @@ class SetErrorProb(object):
     @classmethod
     def error_prob(cls):
         "wmediumd: error prob"
-        for link in wmediumd.wlinks:
-            wmediumd.links.append(ERRPROBLink(link[0].wmIface, link[1].wmIface,
-                                              link[2]))
-            wmediumd.links.append(ERRPROBLink(link[1].wmIface, link[0].wmIface,
-                                              link[2]))
+        for node in wmediumd.wlinks:
+            wmediumd.links.append(ERRPROBLink(node[0].wintfs[0].wmIface,
+                                              node[1].wintfs[0].wmIface, node[2]))
+            wmediumd.links.append(ERRPROBLink(node[1].wintfs[0].wmIface,
+                                              node[0].wintfs[0].wmIface, node[2]))
 
 
-class SetSNR(object):
+class set_snr(object):
     "wmediumd: set snr"
     def __init__(self):
         self.snr()
@@ -1263,43 +1099,42 @@ class SetSNR(object):
     @classmethod
     def snr(cls):
         "wmediumd: snr"
-        for link in wmediumd.wlinks:
-            wmediumd.links.append(SNRLink(link[0].wmIface, link[1].wmIface,
-                                          link[0].rssi - (-91)))
-            wmediumd.links.append(SNRLink(link[1].wmIface, link[0].wmIface,
-                                          link[0].rssi - (-91)))
+        for node in wmediumd.wlinks:
+            wmediumd.links.append(SNRLink(node[0].wintfs[0].wmIface, node[1].wintfs[0].wmIface,
+                                          node[0].wintfs[0].rssi - (-91)))
+            wmediumd.links.append(SNRLink(node[1].wintfs[0].wmIface, node[0].wintfs[0].wmIface,
+                                          node[0].wintfs[0].rssi - (-91)))
 
 
 class wirelessLink(object):
 
     dist = 0
     noise = 0
-    eqLoss = '(dist * 2) / 1000'
-    eqDelay = '(dist / 10) + 1'
-    eqLatency = '(dist / 10)/2'
-    eqBw = ' * (1.01 ** -dist)'
+    equationLoss = '(dist * 2) / 1000'
+    equationDelay = '(dist / 10) + 1'
+    equationLatency = '(dist / 10)/2'
+    equationBw = ' * (1.01 ** -dist)'
 
     def __init__(self, intf, dist=0):
-        params = dict()
-        params['latency'] = self.getLatency(dist)
-        params['loss'] = self.getLoss(dist)
-        params['bw'] = self.getBW(intf, dist)
-        self.config_tc(intf, **params)
+        latency_ = self.getLatency(dist)
+        loss_ = self.getLoss(dist)
+        bw_ = self.getBW(intf, dist)
+        self.config_tc(intf, bw_, loss_, latency_)
 
     def getDelay(self, dist):
         "Based on RandomPropagationDelayModel"
-        return eval(self.eqDelay)
+        return eval(self.equationDelay)
 
     def getLatency(self, dist):
-        return eval(self.eqLatency)
+        return eval(self.equationLatency)
 
     def getLoss(self, dist):
-        return eval(self.eqLoss)
+        return eval(self.equationLoss)
 
     def getBW(self, intf, dist):
         # dist is used by eval
         custombw = intf.getCustomRate()
-        rate = eval(str(custombw) + self.eqBw)
+        rate = eval(str(custombw) + self.equationBw)
 
         if rate <= 0.0:
             rate = 0.1
@@ -1314,13 +1149,13 @@ class wirelessLink(object):
             node.intf = None
 
     @classmethod
-    def config_tc(cls, intf, **params):
+    def config_tc(cls, intf, bw, loss, latency):
         if intf.ifb:
-            cls.tc(intf.node, intf.ifb, **params)
-        cls.tc(intf.node, intf.name, **params)
+            cls.tc(intf.node, intf.ifb, bw, loss, latency)
+        cls.tc(intf.node, intf.name, bw, loss, latency)
 
     @classmethod
-    def tc(cls, node, iface, bw=0, loss=0, latency=0):
+    def tc(cls, node, iface, bw, loss, latency):
         cmd = "tc qdisc replace dev %s root handle 2: netem " % iface
         rate = "rate %.4fmbit " % bw
         cmd += rate
@@ -1400,9 +1235,7 @@ class wifiDirectLink(IntfWireless):
         self.mac = intf.mac
         self.name = intf.name
         self.range = intf.range
-        self.antennaGain = intf.antennaGain
         self.txpower = intf.txpower
-        self.freq = intf.freq
         self.ip6 = intf.ip6
         self.ip = intf.ip
 
@@ -1466,7 +1299,7 @@ class adhoc(IntfWireless):
 
     def __init__(self, node, intf=None, ssid='adhocNet',
                  channel=1, mode='g', passwd=None, ht_cap='',
-                 proto=None, **params):
+                 proto=None, ibss="02:CA:FF:EE:BA:01", **params):
         """Configure AdHoc
         node: name of the node
         self: custom association class/constructor
@@ -1492,6 +1325,7 @@ class adhoc(IntfWireless):
         self.channel = channel
         self.ht_cap = ht_cap
         self.associatedTo = 'adhoc'
+        
         if wmediumd_mode.mode:
             self.wmIface = intf.wmIface
 
@@ -1506,7 +1340,7 @@ class adhoc(IntfWireless):
 
         self.freq = self.get_freq()
         self.setReg()
-        self.configureAdhoc()
+        self.configureAdhoc(ibss)
 
         self.txpower = intf.txpower
         self.range = intf.range
@@ -1514,7 +1348,7 @@ class adhoc(IntfWireless):
         if proto:
             manetProtocols(intf, proto, **params)
 
-    def configureAdhoc(self):
+    def configureAdhoc(self, ibss="02:CA:FF:EE:BA:01"):
         "Configure Wireless Ad Hoc"
         self.set_dev_type('ibss')
         self.ipLink('up')
@@ -1522,7 +1356,7 @@ class adhoc(IntfWireless):
         if self.passwd:
             self.setSecuredAdhoc()
         else:
-            self.join_ibss()
+            self.join_ibss(ibss)
 
     def get_sta_confname(self):
         fileName = '%s.staconf' % self.name
@@ -1586,7 +1420,6 @@ class mesh(IntfWireless):
         self.associatedTo = 'mesh'
         if wmediumd_mode.mode:
             self.wmIface = DynamicIntfRef(node, intf=self.name)
-            node.wmIfaces[wlan] = self.wmIface
 
         node.addWAttr(self, port=wlan)
         if isinstance(node, AP):
@@ -1700,3 +1533,204 @@ class physicalMesh(IntfWireless):
                     break
                 except:
                     break
+
+
+class Association(IntfWireless):
+
+    @classmethod
+    def setSNRWmediumd(cls, sta, ap, snr):
+        "Send SNR to wmediumd"
+        w_server.send_snr_update(SNRLink(sta.wintfs[0].wmIface,
+                                         ap.wintfs[0].wmIface, snr))
+        w_server.send_snr_update(SNRLink(ap.wintfs[0].wmIface,
+                                         sta.wintfs[0].wmIface, snr))
+
+    @classmethod
+    def configureWirelessLink(cls, intf, ap_intf):
+        dist = intf.node.get_distance_to(ap_intf.node)
+        if dist <= ap_intf.range:
+            if not wmediumd_mode.mode == w_cst.INTERFERENCE_MODE:
+                if intf.rssi == 0:
+                    cls.updateClientParams(intf, ap_intf)
+            if ap_intf != intf.associatedTo or \
+                    not intf.associatedTo:
+                cls.associate_infra(intf, ap_intf)
+                if wmediumd_mode.mode == w_cst.WRONG_MODE:
+                    if dist >= 0.01:
+                        wirelessLink(intf, dist)
+                if intf.node != ap_intf.associatedStations:
+                    ap_intf.associatedStations.append(intf.node)
+            if not wmediumd_mode.mode == w_cst.INTERFERENCE_MODE:
+                cls.get_rssi(intf, ap_intf, dist)
+
+    @classmethod
+    def get_rssi(cls, intf, ap_intf, dist):
+        from mn_wifi.propagationModels import propagationModel
+        rssi = float(propagationModel(intf, ap_intf, dist).rssi)
+        intf.rssi = rssi
+        if ap_intf.node not in intf.apsInRange:
+            intf.apsInRange[ap_intf.node] = rssi
+            ap_intf.stationsInRange[intf.node] = rssi
+        return rssi
+
+    @classmethod
+    def updateClientParams(cls, intf, ap_intf):
+        intf.freq = ap_intf.freq
+        intf.channel = ap_intf.channel
+        intf.mode = ap_intf.mode
+        intf.ssid = ap_intf.ssid
+        intf.range = intf.node.getRange(intf)
+
+    @classmethod
+    def associate(cls, intf, ap_intf):
+        "Associate to Access Point"
+        if hasattr(intf.node, 'position'):
+            cls.configureWirelessLink(intf, ap_intf)
+        else:
+            cls.associate_infra(intf, ap_intf)
+
+    @classmethod
+    def associate_noEncrypt(cls, intf, ap_intf):
+        #iwconfig is still necessary, since iw doesn't include essid like iwconfig does.
+        intf.node.pexec(cls.iwconfig_con(intf, ap_intf))
+        debug('\n')
+
+    @classmethod
+    def iwconfig_con(cls, intf, ap_intf):
+        cmd = 'iwconfig %s essid %s ap %s' % (intf, ap_intf.ssid, ap_intf.mac)
+        return cmd
+
+    @classmethod
+    def disconnect(cls, intf):
+        intf.node.pexec('iw dev %s disconnect' % intf.name)
+        intf.rssi = 0
+        intf.associatedTo = ''
+        intf.channel = 0
+
+    @classmethod
+    def check_if_wpafile_exist(cls, intf):
+        file = '%s_%s.staconf' % (intf.name, intf.id)
+        return glob.glob(file)
+
+    @classmethod
+    def associate_infra(cls, intf, ap_intf):
+        associated = 0
+        if ap_intf.ieee80211r and (not intf.encrypt or 'wpa' in intf.encrypt):
+            if not intf.associatedTo:
+                wpa_file_exists = cls.check_if_wpafile_exist(intf)
+                if wpa_file_exists:
+                    cls.handover_ieee80211r(intf, ap_intf)
+                else:
+                    cls.wpa(intf, ap_intf)
+            else:
+                cls.handover_ieee80211r(intf, ap_intf)
+            associated = 1
+        elif not ap_intf.encrypt:
+            associated = 1
+            cls.associate_noEncrypt(intf, ap_intf)
+        else:
+            if not intf.associatedTo:
+                if 'wpa' in ap_intf.encrypt and (not intf.encrypt or 'wpa' in intf.encrypt):
+                    cls.wpa(intf, ap_intf)
+                    associated = 1
+                elif ap_intf.encrypt == 'wep':
+                    cls.wep(intf, ap_intf)
+                    associated = 1
+        if associated:
+            cls.update(intf, ap_intf)
+
+    @classmethod
+    def wpaFile(cls, intf, ap_intf):
+        cmd = ''
+        if not ap_intf.config or not intf.config:
+            if not ap_intf.authmode:
+                if not intf.passwd:
+                    passwd = ap_intf.passwd
+                else:
+                    passwd = intf.passwd
+
+        if 'wpasup_globals' not in intf.node.params \
+                or ('wpasup_globals' in intf.node.params
+                    and 'ctrl_interface=' not in intf.node.params['wpasup_globals']):
+            cmd = 'ctrl_interface=/var/run/wpa_supplicant\n'
+        if ap_intf.wps_state and not intf.passwd:
+            cmd += 'ctrl_interface_group=0\n'
+            cmd += 'update_config=1\n'
+        else:
+            if 'wpasup_globals' in intf.node.params:
+                cmd += intf.node.params['wpasup_globals'] + '\n'
+            cmd += 'network={\n'
+
+            if intf.config:
+                config = intf.config
+                if config is not []:
+                    config = intf.config.split(',')
+                    intf.node.params.pop("config", None)
+                    for conf in config:
+                        cmd += "   " + conf + "\n"
+            else:
+                cmd += '   ssid=\"%s\"\n' % ap_intf.ssid
+
+                if not ap_intf.authmode:
+                    cmd += '   psk=\"%s\"\n' % passwd
+                    encrypt = ap_intf.encrypt
+                    if ap_intf.encrypt == 'wpa3':
+                        encrypt = 'wpa2'
+                    cmd += '   proto=%s\n' % encrypt.upper()
+                    cmd += '   pairwise=%s\n' % ap_intf.rsn_pairwise
+                    if intf.active_scan:
+                        cmd += '   scan_ssid=1\n'
+                    if intf.scan_freq:
+                        cmd += '   scan_freq=%s\n' % intf.scan_freq
+                    if intf.freq_list:
+                        cmd += '   freq_list=%s\n' % intf.freq_list
+                wpa_key_mgmt = ap_intf.wpa_key_mgmt
+                if ap_intf.encrypt == 'wpa3':
+                    wpa_key_mgmt = 'SAE'
+                cmd += '   key_mgmt=%s\n' % wpa_key_mgmt
+                if 'bgscan_threshold' in intf.node.params:
+                    if 'bgscan_module' not in intf.node.params:
+                        intf.node.params['bgscan_module'] = 'simple'
+                    bgscan = 'bgscan=\"%s:%d:%d:%d\"' % \
+                             (intf.bgscan_module, intf.s_inverval,
+                              intf.bgscan_threshold, intf.l_interval)
+                    cmd += '   %s\n' % bgscan
+                if ap_intf.authmode == '8021x':
+                    cmd += '   eap=PEAP\n'
+                    cmd += '   identity=\"%s\"\n' % intf.radius_identity
+                    cmd += '   password=\"%s\"\n' % intf.radius_passwd
+                    cmd += '   phase2=\"autheap=MSCHAPV2\"\n'
+            cmd += '}'
+
+        fileName = '%s_%s.staconf' % (intf.name, intf.id)
+        os.system('echo \'%s\' > %s' % (cmd, fileName))
+
+    @classmethod
+    def wpa(cls, intf, ap_intf):
+        cls.wpaFile(intf, ap_intf)
+        intf.wpa_pexec()
+
+    @classmethod
+    def handover_ieee80211r(cls, intf, ap_intf):
+        intf.node.pexec('wpa_cli -i %s roam %s' % (intf.name, ap_intf.mac))
+
+    @classmethod
+    def wep(cls, intf, ap_intf):
+        if not intf.passwd:
+            passwd = ap_intf.passwd
+        else:
+            passwd = intf.passwd
+        cls.wep_connect(passwd, intf, ap_intf)
+
+    @classmethod
+    def wep_connect(cls, passwd, intf, ap_intf):
+        intf.node.pexec('iw dev %s connect %s key d:0:%s' % (intf.name, ap_intf.ssid, passwd))
+
+    @classmethod
+    def update(cls, intf, ap_intf):
+        if intf.associatedTo \
+                and intf.node in ap_intf.associatedStations:
+            ap_intf.associatedStations.remove(intf.node)
+        cls.updateClientParams(intf, ap_intf)
+        ap_intf.associatedStations.append(intf.node)
+        intf.associatedTo = ap_intf.node
