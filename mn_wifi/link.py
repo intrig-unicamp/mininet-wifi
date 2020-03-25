@@ -1144,26 +1144,24 @@ class _4addrAP(TCWirelessLink):
         node.addWAttr(self, port=wlan)
 
 
-class wmediumd(TCWirelessLink):
-    "Wmediumd Class"
-    wlinks = []
-    links = []
-    txpowers = []
+class wmediumd(object):
+
     positions = []
-    nodes = []
+    txpowers = []
+    links = []
 
     def __init__(self, **kwargs):
-        self.configureWmediumd(**kwargs)
+        self.configWmediumd(**kwargs)
 
-    def configureWmediumd(self, fading_cof, noise_th, stations,
-                          aps, cars, ppm, maclist):
+    def configWmediumd(self, wlinks, fading_cof, noise_th, stations,
+                       aps, cars, ppm, maclist):
         "Configure wmediumd"
         intfrefs = []
         isnodeaps = []
         mac_list = []
 
-        wmediumd.nodes = stations + aps + cars
-        for node in self.nodes:
+        nodes = stations + aps + cars
+        for node in nodes:
             node.wmIfaces = []
             for intf in node.wintfs.values():
                 if intf.mac not in mac_list:
@@ -1179,41 +1177,20 @@ class wmediumd(TCWirelessLink):
                         isnodeaps.append(0)
                     mac_list.append(intf.mac)
 
-                    '''for mac in maclist:
-                        for key in mac:
-                            if key == node:
-                                key.wmIface.append(DynamicIntfRef(key, intf=len(key.wmIface)))
-                                key.params['wlan'].append(mac[key][1])
-                                key.params['mac'].append(mac[key][0])
-                                key.params['range'].append(0)
-                                key.params['freq'].append(key.params['freq'][0])
-                                key.params['antennaGain'].append(0)
-                                key.params['txpower'].append(14)
-                                intfrefs.append(key.wmIface[len(key.wmIface) - 1])
-                                isnodeaps.append(0)'''
-
         if wmediumd_mode.mode == w_cst.INTERFERENCE_MODE:
-            SetInterference()
+            self.interference(nodes)
         elif wmediumd_mode.mode == w_cst.SPECPROB_MODE:
-            SpecProbLink()
+            pass
         elif wmediumd_mode.mode == w_cst.ERRPROB_MODE:
-            SetErrorProb()
+            self.error_prob(wlinks)
         else:
-            SetSNR()
-        WStarter(intfrefs=intfrefs, links=wmediumd.links,
-                 pos=wmediumd.positions, fading_cof=fading_cof,
-                 noise_th=noise_th, txpowers=wmediumd.txpowers,
+            self.snr(wlinks)
+        WStarter(intfrefs=intfrefs, links=self.links, pos=self.positions,
+                 fading_cof=fading_cof, noise_th=noise_th, txpowers=self.txpowers,
                  isnodeaps=isnodeaps, ppm=ppm, maclist=maclist)
 
-
-class SetInterference(object):
-
-    def __init__(self):
-        self.interference()
-
-    def interference(self):
-        'configure interference model'
-        for node in wmediumd.nodes:
+    def interference(self, nodes):
+        for node in nodes:
             if not hasattr(node, 'position'):
                 posX, posY, posZ = 0, 0, 0
             else:
@@ -1227,47 +1204,23 @@ class SetInterference(object):
                 if intf.mac not in mac_list:
                     if wlan >= 1:
                         posX += 0.1
-                    wmediumd.positions.append(w_pos(intf.wmIface,
-                                                    [posX, posY, posZ]))
-                    wmediumd.txpowers.append(w_txpower(
-                        intf.wmIface, float(intf.txpower)))
+                    self.positions.append(w_pos(intf.wmIface, [posX, posY, posZ]))
+                    self.txpowers.append(w_txpower(intf.wmIface, float(intf.txpower)))
                     mac_list.append(intf.mac)
 
+    def error_prob(self, wlinks):
+        for link in wlinks:
+            self.links.append(ERRPROBLink(link[0].wmIface, link[1].wmIface,
+                              link[2]))
+            self.links.append(ERRPROBLink(link[1].wmIface, link[0].wmIface,
+                              link[2]))
 
-class SpecProbLink(object):
-    "wmediumd: spec prob link"
-    def __init__(self):
-        'do nothing'
-
-
-class SetErrorProb(object):
-    "wmediumd: set error prob"
-    def __init__(self):
-        self.error_prob()
-
-    @classmethod
-    def error_prob(cls):
-        "wmediumd: error prob"
-        for link in wmediumd.wlinks:
-            wmediumd.links.append(ERRPROBLink(link[0].wmIface, link[1].wmIface,
-                                              link[2]))
-            wmediumd.links.append(ERRPROBLink(link[1].wmIface, link[0].wmIface,
-                                              link[2]))
-
-
-class SetSNR(object):
-    "wmediumd: set snr"
-    def __init__(self):
-        self.snr()
-
-    @classmethod
-    def snr(cls):
-        "wmediumd: snr"
-        for link in wmediumd.wlinks:
-            wmediumd.links.append(SNRLink(link[0].wmIface, link[1].wmIface,
-                                          link[0].rssi - (-91)))
-            wmediumd.links.append(SNRLink(link[1].wmIface, link[0].wmIface,
-                                          link[0].rssi - (-91)))
+    def snr(self, wlinks):
+        for link in wlinks:
+            self.links.append(SNRLink(link[0].wmIface, link[1].wmIface,
+                              link[0].rssi - (-91)))
+            self.links.append(SNRLink(link[1].wmIface, link[0].wmIface,
+                              link[0].rssi - (-91)))
 
 
 class wirelessLink(object):

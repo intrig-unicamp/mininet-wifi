@@ -48,7 +48,6 @@ from mn_wifi.sixLoWPAN.node import OVSSensor, Node_6lowpan
 from mn_wifi.sixLoWPAN.link import sixLoWPAN
 from mn_wifi.util import ipAdd6
 
-
 VERSION = "2.4.3"
 
 
@@ -570,9 +569,9 @@ class Mininet_wifi(Mininet, Mininet_IoT):
         intf.associate(ap_intf)
 
         if self.wmediumd_mode == error_prob:
-            wmediumd.wlinks.append([intf, ap_intf, params['error_prob']])
+            self.wlinks.append([intf, ap_intf, params['error_prob']])
         elif self.wmediumd_mode != interference:
-            wmediumd.wlinks.append([intf, ap_intf])
+            self.wlinks.append([intf, ap_intf])
 
     def infra_tc(self, node1, node2, port1=None, port2=None,
                  cls=None, **params):
@@ -1524,9 +1523,10 @@ class Mininet_wifi(Mininet, Mininet_IoT):
         program(self.cars, self.aps, **kwargs)
 
     def start_wmediumd(self):
-        wmediumd(fading_cof=self.fading_cof, noise_th=self.noise_th,
-                 stations=self.stations, aps=self.aps, cars=self.cars,
-                 ppm=ppm, maclist=self.wmediumdMac)
+        wmediumd(wlinks=self.wlinks, fading_cof=self.fading_cof,
+                 noise_th=self.noise_th, stations=self.stations,
+                 aps=self.aps, cars=self.cars, ppm=ppm,
+                 maclist=self.wmediumdMac)
 
     def configWmediumd(self):
         "Configure Wmediumd"
@@ -1617,6 +1617,7 @@ class Mininet_wifi(Mininet, Mininet_IoT):
 
     @staticmethod
     def wmediumd_workaround(node, value=1):
+        # We need to set the position after starting wmediumd
         sleep(0.15)
         pos = node.position
         pos_x = float(pos[0]) + value
