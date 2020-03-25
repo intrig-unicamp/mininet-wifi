@@ -2,7 +2,6 @@
 
 'This example shows how to work with active scan'
 
-from mininet.node import Controller
 from mininet.log import setLogLevel, info
 from mn_wifi.node import UserAP
 from mn_wifi.cli import CLI
