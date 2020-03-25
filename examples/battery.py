@@ -4,7 +4,7 @@
    stations are equipped with batteries"""
 
 from mininet.log import setLogLevel, info
-from mn_wifi.cli import CLI_wifi
+from mn_wifi.cli import CLI
 from mn_wifi.net import Mininet_wifi
 
 
@@ -30,7 +30,7 @@ def topology():
     ap1.start([])
 
     info("*** Running CLI\n")
-    CLI_wifi(net)
+    CLI(net)
 
     info("*** Stopping network\n")
     net.stop()

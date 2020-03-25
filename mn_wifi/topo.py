@@ -9,7 +9,7 @@ This package includes code to represent network topologies.
 """
 
 from mininet.util import irange
-from mininet.topo import Topo
+from mininet.topo import Topo as MN_TOPO
 
 
 class MultiGraph( object ):
@@ -95,7 +95,7 @@ class MultiGraph( object ):
         return g
 
 
-class Topo_WiFi(Topo):
+class Topo(MN_TOPO):
     "Data center network representation for structured multi-trees."
 
     def __init__(self, *args, **params):
@@ -234,7 +234,7 @@ class Topo_WiFi(Topo):
 # Our idiom defines additional parameters in build(param...)
 # pylint: disable=arguments-differ
 
-class SingleAPTopo(Topo_WiFi):
+class SingleAPTopo(Topo):
     "Single ap connected to k stations."
     def build(self, k=2, **_opts):
         "k: number of stations"
@@ -251,7 +251,7 @@ class MinimalWirelessTopo(SingleAPTopo):
         return SingleAPTopo.build(self, k=2)
 
                 
-class LinearWirelessTopo(Topo_WiFi):
+class LinearWirelessTopo(Topo):
     "Linear Wireless topology of k aps, with n stations per ap."
 
     def build(self, k=2, n=1, **_opts):

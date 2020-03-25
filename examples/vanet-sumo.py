@@ -10,7 +10,7 @@ sumo-gui"""
 from mininet.node import Controller
 from mininet.log import setLogLevel, info
 from mn_wifi.node import UserAP
-from mn_wifi.cli import CLI_wifi
+from mn_wifi.cli import CLI
 from mn_wifi.net import Mininet_wifi
 from mn_wifi.sumo.runner import sumo
 from mn_wifi.link import wmediumd, mesh
@@ -88,7 +88,7 @@ def topology():
     #              max_x=3200, max_y=3900)
 
     info("*** Running CLI\n")
-    CLI_wifi(net)
+    CLI(net)
 
     info("*** Stopping network\n")
     net.stop()

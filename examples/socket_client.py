@@ -1,5 +1,6 @@
 import socket
 
+
 def client():
     host = '127.0.0.1'
     port = 12345  # Make sure it's within the > 1024 $$ <65535 range
@@ -13,6 +14,7 @@ def client():
         print('Received from server: ' + data)
         message = raw_input('-> ')
     s.close()
+
 
 if __name__ == '__main__':
     client()

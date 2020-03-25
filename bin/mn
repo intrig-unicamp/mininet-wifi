@@ -485,7 +485,7 @@ class MininetRunner(object):
             Net = partial(MininetCluster, servers=servers,
                           placement=PLACEMENT[opts.placement])
             if opts.wifi:
-                mn_wifi.cli.CLI_wifi = ClusterCLI
+                mn_wifi.cli.CLI = ClusterCLI
             else:
                 Mininet.cli.CLI = ClusterCLI
 
@@ -522,7 +522,7 @@ class MininetRunner(object):
 
         # --custom files can set CLI or change mininet.cli.CLI
         if opts.wifi:
-            CLI = mn_wifi.cli.CLI_wifi if CLI is None else CLI
+            CLI = mn_wifi.cli.CLI if CLI is None else CLI
         else:
             from mininet.cli import CLI as mininet_cli
             CLI = mininet_cli if CLI is None else CLI

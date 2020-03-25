@@ -2,18 +2,16 @@
 
 'This example shows how to create wireless link between two APs'
 
-from mininet.node import Controller
 from mininet.log import setLogLevel, info
 from mn_wifi.link import wmediumd, mesh
-from mn_wifi.cli import CLI_wifi
+from mn_wifi.cli import CLI
 from mn_wifi.net import Mininet_wifi
 from mn_wifi.wmediumdConnector import interference
 
 
 def topology():
     "Create a network."
-    net = Mininet_wifi(controller=Controller, link=wmediumd,
-                       wmediumd_mode=interference)
+    net = Mininet_wifi(link=wmediumd, wmediumd_mode=interference)
 
     info("*** Creating nodes\n")
     sta1 = net.addStation('sta1', mac='00:00:00:00:00:11', position='1,1,0')
@@ -38,7 +36,7 @@ def topology():
     ap2.start([c0])
 
     info("*** Running CLI\n")
-    CLI_wifi(net)
+    CLI(net)
 
     info("*** Stopping network\n")
     net.stop()

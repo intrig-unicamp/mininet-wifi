@@ -5,13 +5,13 @@
 from mininet.node import Controller
 from mininet.log import setLogLevel, info
 from mn_wifi.node import UserAP
-from mn_wifi.cli import CLI_wifi
+from mn_wifi.cli import CLI
 from mn_wifi.net import Mininet_wifi
 
 
 def topology():
     "Create a network."
-    net = Mininet_wifi(controller=Controller, accessPoint=UserAP)
+    net = Mininet_wifi(accessPoint=UserAP)
 
     info("*** Creating nodes\n")
     net.addStation('sta1', passwd='123456789a,123456789a', encrypt='wpa2,wpa2',
@@ -40,7 +40,7 @@ def topology():
     ap2.start([c0])
 
     info("*** Running CLI\n")
-    CLI_wifi(net)
+    CLI(net)
 
     info("*** Stopping network\n")
     net.stop()

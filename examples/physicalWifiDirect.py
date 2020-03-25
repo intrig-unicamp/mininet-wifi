@@ -8,7 +8,7 @@ from time import sleep
 from mininet.log import setLogLevel, info
 from mn_wifi.link import wmediumd, wifiDirectLink,\
     physicalWifiDirectLink
-from mn_wifi.cli import CLI_wifi
+from mn_wifi.cli import CLI
 from mn_wifi.net import Mininet_wifi
 from mn_wifi.wmediumdConnector import interference
 
@@ -55,7 +55,7 @@ def topology():
     os.system('ip addr add 10.0.0.3/8 dev %s' % intf)
 
     info("*** Running CLI\n")
-    CLI_wifi(net)
+    CLI(net)
 
     info("*** Stopping network\n")
     net.stop()

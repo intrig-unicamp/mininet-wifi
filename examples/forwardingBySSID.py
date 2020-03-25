@@ -23,17 +23,15 @@ around SSID-based packet forwarding
 import sys
 from time import sleep
 
-from mininet.node import Controller
 from mininet.log import setLogLevel, info
 from mn_wifi.node import UserAP
-from mn_wifi.cli import CLI_wifi
+from mn_wifi.cli import CLI
 from mn_wifi.net import Mininet_wifi
 
 
 def topology(args):
     "Create a network."
-    net = Mininet_wifi(controller=Controller, accessPoint=UserAP,
-                       autoAssociation=False)
+    net = Mininet_wifi(accessPoint=UserAP, autoAssociation=False)
 
     info("*** Creating nodes\n")
     sta1 = net.addStation('sta1', position='10,60,0')
@@ -98,7 +96,7 @@ def topology(args):
             'meter:4 apply:output=flood')
 
     info("*** Running CLI\n")
-    CLI_wifi(net)
+    CLI(net)
 
     info("*** Stopping network\n")
     net.stop()

@@ -3,7 +3,7 @@
 'This example shows how to work with authentication'
 
 from mininet.log import setLogLevel, info
-from mn_wifi.cli import CLI_wifi
+from mn_wifi.cli import CLI
 from mn_wifi.net import Mininet_wifi
 import os.path
 import os
@@ -84,7 +84,7 @@ def topology():
     info("sta1 ping sta2 \n")
     info("/tmp/debug*.txt and /tmp/hostapd.txt contain logs \n")
     info("cat /var/log/syslog | grep hostapd shows you if the authentication succeeded\n")
-    CLI_wifi(net)
+    CLI(net)
 
     info("*** Stopping network\n")
     net.stop()

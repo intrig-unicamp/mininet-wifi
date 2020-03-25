@@ -1,15 +1,15 @@
 import sys
 
-from mininet.cli import CLI
+from mininet.cli import CLI as MN_CLI
 from mininet.log import output, error
 
 
-class CLI_wifi(CLI):
+class CLI(MN_CLI):
     "Simple command-line interface to talk to nodes."
-    CLI.prompt = 'mininet-wifi> '
+    MN_CLI.prompt = 'mininet-wifi> '
 
     def __init__(self, mn_wifi, stdin=sys.stdin, script=None):
-        CLI.__init__(self, mn_wifi, stdin=sys.stdin, script=None)
+        MN_CLI.__init__(self, mn_wifi, stdin=sys.stdin, script=None)
 
     def do_stop(self, line):
         "stop mobility for a while"

@@ -6,7 +6,7 @@ import os
 
 from mininet.log import setLogLevel, info
 from mn_wifi.link import wmediumd, mesh, physicalMesh
-from mn_wifi.cli import CLI_wifi
+from mn_wifi.cli import CLI
 from mn_wifi.net import Mininet_wifi
 from mn_wifi.wmediumdConnector import interference
 
@@ -44,7 +44,7 @@ def topology():
     os.system('ip addr add 10.0.0.4/8 dev physta1-mp0')
 
     info("*** Running CLI\n")
-    CLI_wifi(net)
+    CLI(net)
 
     # Delete the interface created previously
     os.system('iw dev physta1-mp0 del')

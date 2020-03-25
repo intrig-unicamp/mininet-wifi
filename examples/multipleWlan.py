@@ -2,9 +2,8 @@
 
 'This example shows how to create multiple interfaces in stations'
 
-from __future__ import print_function
 from mininet.log import setLogLevel, info
-from mn_wifi.cli import CLI_wifi
+from mn_wifi.cli import CLI
 from mn_wifi.net import Mininet_wifi
 from mn_wifi.link import adhoc
 
@@ -36,7 +35,7 @@ def topology():
     sta2.setIP('192.168.10.2/24', intf="sta2-wlan0")
 
     info("*** Running CLI\n")
-    CLI_wifi(net)
+    CLI(net)
 
     info("*** Stopping network\n")
     net.stop()

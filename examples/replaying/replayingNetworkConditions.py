@@ -6,7 +6,7 @@ import os
 
 from mininet.log import setLogLevel, info
 from mn_wifi.net import Mininet_wifi
-from mn_wifi.cli import CLI_wifi
+from mn_wifi.cli import CLI
 from mn_wifi.replaying import ReplayingNetworkConditions
 from sys import version_info as py_version_info
 
@@ -63,7 +63,7 @@ def topology():
     #sta2.cmd('iperf -c ' + sta1.IP() + ' -i 0.5 -t 60 | awk \'t=120{if(NR>=7 && NR<=25) print $8; else if(NR>=26 && NR<=t+6) print $7}\' > replay2.dat &')
 
     info("*** Running CLI\n")
-    CLI_wifi( net )
+    CLI(net)
 
     info("*** Stopping network\n")
     net.stop()

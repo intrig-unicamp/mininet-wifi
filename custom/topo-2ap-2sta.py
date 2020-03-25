@@ -8,16 +8,17 @@ Adding the 'topos' dict with a key/value pair to generate our newly defined
 topology enables one to pass in '--topo=mytopo' from the command line.
 """
 
-from mn_wifi.topo import Topo_WiFi
+from mn_wifi.topo import Topo
 
-class MyTopo( Topo_WiFi ):
+
+class MyTopo(Topo):
     "Simple topology example."
 
     def __init__( self ):
         "Create custom topo."
 
         # Initialize topology
-        Topo_WiFi.__init__( self )
+        Topo.__init__( self )
 
         # Add hosts and switches
         leftStation = self.addStation( 'sta1' )

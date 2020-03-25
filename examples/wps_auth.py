@@ -5,7 +5,7 @@ import sys
 
 from mininet.term import makeTerm
 from mininet.log import setLogLevel, info
-from mn_wifi.cli import CLI_wifi
+from mn_wifi.cli import CLI
 from mn_wifi.net import Mininet_wifi
 
 
@@ -43,7 +43,7 @@ def topology(attack):
         sta2.cmd('wpa_cli -i sta2-wlan0 wps_pin 02:00:00:00:02:00 12345670')
 
     info("*** Running CLI\n")
-    CLI_wifi(net)
+    CLI(net)
 
     info("*** Stopping network\n")
     net.stop()

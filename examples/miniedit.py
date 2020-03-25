@@ -59,7 +59,7 @@ from mininet.moduledeps import moduleDeps
 from mininet.topo import SingleSwitchTopo, LinearTopo, SingleSwitchReversedTopo
 from mininet.topolib import TreeTopo
 
-from mn_wifi.cli import CLI_wifi
+from mn_wifi.cli import CLI
 from mn_wifi.net import Mininet_wifi
 from mn_wifi.node import CPULimitedStation, Station
 from mn_wifi.node import OVSAP, UserAP
@@ -2837,7 +2837,7 @@ class MiniEdit( Frame ):
                         args += apType_
                 if args:
                     f.write("from mn_wifi.node import"+args+"\n")
-                f.write("from mn_wifi.cli import CLI_wifi\n")
+                f.write("from mn_wifi.cli import CLI\n")
                 if not links_:
                     links_=''
                 f.write("from mn_wifi.link import wmediumd"+links_+"\n")
@@ -3330,10 +3330,7 @@ class MiniEdit( Frame ):
                     f.write("    call('"+sflowCmd+sflowSwitches+"', shell=True)\n")
 
             f.write("\n")
-            if isWiFi:
-                f.write("    CLI_wifi(net)\n")
-            else:
-                f.write("    CLI(net)\n")
+            f.write("    CLI(net)\n")
             for widget in self.widgetToItem:
                 name = widget[ 'text' ]
                 tags = self.canvas.gettags( self.widgetToItem[ widget ] )
@@ -4708,7 +4705,7 @@ class MiniEdit( Frame ):
         # Start the CLI if enabled
         if self.appPrefs['startCLI'] == '1':
             info( "\n\n NOTE: PLEASE REMEMBER TO EXIT THE CLI BEFORE YOU PRESS THE STOP BUTTON. Not exiting will prevent MiniEdit from quitting and will prevent you from starting the network again during this sessoin.\n\n")
-            CLI_wifi(self.net)
+            CLI(self.net)
 
     def start( self ):
         "Start network."
