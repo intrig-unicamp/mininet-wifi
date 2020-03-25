@@ -237,8 +237,6 @@ class Plot2D (object):
 
 class PlotGraph(object):
 
-    plot3d = False
-
     def __init__(self, **kwargs):
         self.instantiate_graph(**kwargs)
 

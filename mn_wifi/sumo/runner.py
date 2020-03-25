@@ -9,7 +9,7 @@ from mn_wifi.sumo.sumolib.sumolib import checkBinary
 from mn_wifi.sumo.traci import trace, _vehicle
 
 
-class sumo(object):
+class sumo(Mobility):
 
     vehCmds = None
 
@@ -35,7 +35,7 @@ class sumo(object):
             info("*** Connection with SUMO has been closed\n")
 
     def setWifiParameters(self):
-        thread = threading.Thread(name='wifiParameters', target=Mobility.parameters)
+        thread = threading.Thread(name='wifiParameters', target=self.parameters)
         thread.start()
 
     def start(self, cars, config_file, clients, port):

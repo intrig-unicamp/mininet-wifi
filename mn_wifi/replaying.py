@@ -9,20 +9,19 @@ import random
 from pylab import math, cos, sin
 from mininet.log import info
 from mn_wifi.plot import PlotGraph
-from mn_wifi.mobility import Mobility
+from mn_wifi.mobility import Mobility, ConfigMobLinks
 from mn_wifi.link import wirelessLink
 from mn_wifi.node import Station, AP
 
 
-class ReplayingMobility(object):
+class ReplayingMobility(Mobility):
 
     timestamp = False
     net = None
 
     def __init__(self, net, nodes=None):
         self.net = net
-        Mobility.thread_ = thread(name='replayingMobility',
-                                  target=self.mobility,
+        Mobility.thread_ = thread(name='replayingMobility', target=self.mobility,
                                   args=(nodes,))
         Mobility.thread_.daemon = True
         Mobility.thread_._keep_alive = True
@@ -33,7 +32,7 @@ class ReplayingMobility(object):
             pos = node.p[0]
             del node.p[0]
             del node.time[0]
-            Mobility.set_pos(node, pos)
+            self.set_pos(node, pos)
 
     def notimestamp_(self, node, time_):
         if time_ >= node.currentTime:
@@ -42,22 +41,22 @@ class ReplayingMobility(object):
                     pos = node.p[0]
                     del node.p[0]
                     node.currentTime += node.timestamp
-                    Mobility.set_pos(node, pos)
+                    self.set_pos(node, pos)
 
     def mobility(self, nodes):
         if nodes is None:
             nodes = self.net.stations + self.net.aps
         for node in nodes:
             if isinstance(node, Station):
-                if hasattr(node, 'position') and node not in Mobility.stations:
-                    Mobility.stations.append(node)
+                if hasattr(node, 'position') and node not in self.stations:
+                    self.stations.append(node)
             if isinstance(node, AP):
-                if hasattr(node, 'position') and node not in Mobility.aps:
-                    Mobility.aps.append(node)
+                if hasattr(node, 'position') and node not in self.aps:
+                    self.aps.append(node)
 
         if self.net.draw:
             self.net.isReplaying = False
-            self.net.checkDimension(nodes)
+            self.net.check_dimension(nodes)
 
         currentTime = time()
         for node in nodes:
@@ -72,30 +71,29 @@ class ReplayingMobility(object):
         if self.timestamp:
             calc_pos = self.timestamp_
 
-        while Mobility.thread_._keep_alive:
+        while self.thread_._keep_alive:
             time_ = time() - currentTime
             if len(nodes) == 0:
                 break
             for node in nodes:
-                if node in Mobility.stations:
+                if node in self.stations:
                     calc_pos(node, time_)
                     if len(node.p) == 0:
                         nodes.remove(node)
-                    Mobility.configLinks()
+                    ConfigMobLinks()
                     if self.net.draw:
                         node.update_2d()
             if self.net.draw:
                 PlotGraph.pause()
 
 
-class ReplayingBandwidth(object):
+class ReplayingBandwidth(Mobility):
 
     net = None
 
     def __init__(self, net):
         self.net = net
-        Mobility.thread_ = thread(name='replayingBandwidth',
-                                  target=self.throughput)
+        Mobility.thread_ = thread(name='replayingBandwidth', target=self.throughput)
         Mobility.thread_.daemon = True
         Mobility.thread_._keep_alive = True
         Mobility.thread_.start()
@@ -103,7 +101,7 @@ class ReplayingBandwidth(object):
     def throughput(self):
         currentTime = time()
         stations = self.net.stations
-        while Mobility.thread_._keep_alive:
+        while self.thread_._keep_alive:
             if len(stations) == 0:
                 break
             time_ = time() - currentTime
@@ -122,14 +120,13 @@ class ReplayingBandwidth(object):
         info("\nReplaying Process Finished!")
 
 
-class ReplayingNetworkConditions(object):
+class ReplayingNetworkConditions(Mobility):
 
     net = None
 
     def __init__(self, net, **kwargs):
         self.net = net
-        Mobility.thread_ = thread(name='replayingNetConditions',
-                                  target=self.behavior)
+        Mobility.thread_ = thread(name='replayingNetConditions', target=self.behavior)
         Mobility.thread_.daemon = True
         Mobility.thread_._keep_alive = True
         Mobility.thread_.start()
@@ -143,7 +140,7 @@ class ReplayingNetworkConditions(object):
         stations = self.net.stations
         for sta in stations:
             sta.wintfs[0].freq = sta.wintfs[0].get_freq()
-        while Mobility.thread_._keep_alive:
+        while self.thread_._keep_alive:
             if len(stations) == 0:
                 break
             time_ = time() - currentTime
@@ -165,7 +162,7 @@ class ReplayingNetworkConditions(object):
         info('Replaying process has finished!')
 
 
-class ReplayingRSSI(object):
+class ReplayingRSSI(Mobility):
 
     print_bw = False
     print_loss = False
@@ -179,7 +176,7 @@ class ReplayingRSSI(object):
             setattr(self, key, kwargs[key])
 
         Mobility.thread_ = thread(name='replayingRSSI', target=self.rssi,
-                                  args=(ppm, n))
+                              args=(ppm, n))
         Mobility.thread_.daemon = True
         Mobility.thread_._keep_alive = True
         Mobility.thread_.start()
@@ -191,7 +188,7 @@ class ReplayingRSSI(object):
         for sta in staList:
             ang[sta] = random.uniform(0, 360)
             sta.wintfs[0].freq = sta.wintfs[0].get_freq()
-        while Mobility.thread_._keep_alive:
+        while self.thread_._keep_alive:
             if len(staList) == 0:
                 break
             time_ = time() - currentTime
@@ -215,7 +212,7 @@ class ReplayingRSSI(object):
         x = float('%.2f' % (dist * cos(ang) + int(ap.position[0])))
         y = float('%.2f' % (dist * sin(ang) + int(ap.position[1])))
         sta.position = x, y, 0
-        Mobility.configLinks(sta)
+        ConfigMobLinks(sta)
         if self.net.draw:
             try:
                 sta.update_2d()

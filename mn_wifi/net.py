@@ -37,7 +37,8 @@ from mn_wifi.link import wirelessLink, wmediumd, _4address, \
 from mn_wifi.clean import Cleanup as cleanup_mnwifi
 from mn_wifi.energy import Energy
 from mn_wifi.telemetry import parseData, telemetry as run_telemetry
-from mn_wifi.mobility import Tracked as TrackedMob, model as mobModel, Mobility as mob
+from mn_wifi.mobility import Tracked as TrackedMob, model as mobModel, \
+    Mobility as mob, ConfigMobility, ConfigMobLinks
 from mn_wifi.plot import Plot2D, Plot3D, PlotGraph
 from mn_wifi.module import module
 from mn_wifi.propagationModels import PropagationModel as ppm
@@ -130,6 +131,7 @@ class Mininet_wifi(Mininet, Mininet_IoT):
         self.draw = False
         self.isReplaying = False
         self.wmediumd_started = False
+        self.reverse = False
         self.alt_module = None
         self.isVanet = False
         self.mob_check = False
@@ -921,7 +923,7 @@ class Mininet_wifi(Mininet, Mininet_IoT):
 
     def stop(self):
         'Stop Mininet-WiFi'
-        self.stopGraphParams()
+        self.stop_graph_params()
         info('*** Stopping %i controllers\n' % len(self.controllers))
         for controller in self.controllers:
             info(controller.name + ' ')
@@ -1296,7 +1298,7 @@ class Mininet_wifi(Mininet, Mininet_IoT):
 
     def mobility(self, *args, **kwargs):
         "Configure mobility parameters"
-        mob.configure(*args, **kwargs)
+        ConfigMobility(*args, **kwargs)
 
     def get_mob_stat_nodes(self):
         mob_nodes = []
@@ -1493,7 +1495,7 @@ class Mininet_wifi(Mininet, Mininet_IoT):
                       'max_wt']
         args = ['stations', 'cars', 'aps', 'draw', 'seed',
                 'roads', 'mob_start_time', 'mob_stop_time',
-                'links', 'mob_model']
+                'links', 'mob_model', 'mob_rep', 'reverse']
         args += float_args
         for arg in args:
             if arg in float_args:
@@ -1663,7 +1665,7 @@ class Mininet_wifi(Mininet, Mininet_IoT):
                             sleep(1)
                     node.pos = (0, 0, 0)
                     if not isinstance(node, AP):
-                        mob.configLinks(node)
+                        ConfigMobLinks(node)
                     # we need this cause wmediumd is struggling
                     # with some associations e.g. wpa
                     if self.wmediumd_mode == interference:
@@ -1701,7 +1703,7 @@ class Mininet_wifi(Mininet, Mininet_IoT):
         wirelessLink.eqLoss = params.get('loss', wirelessLink.eqLoss)
 
     @staticmethod
-    def stopGraphParams():
+    def stop_graph_params():
         "Stop the graph"
         if parseData.thread_:
             parseData.thread_._keep_alive = False

@@ -157,8 +157,8 @@ class Node_wifi(Node):
 
     def configLinks(self):
         "Applies channel params and handover"
-        from mn_wifi.mobility import Mobility
-        Mobility.configLinks(self)
+        from mn_wifi.mobility import ConfigMobLinks
+        ConfigMobLinks(self)
 
     def configIFB(self, wlan, ifbID):
         "Support to Intermediate Functional Block (IFB) Devices"
@@ -234,11 +234,11 @@ class Node_wifi(Node):
         return x, y, z
 
     def update_3d(self):
-        from mn_wifi.plot import plot3d
+        from mn_wifi.plot import Plot3D
         self.plt_node.remove()
         self.circle.remove()
         self.plttxt.remove()
-        plot3d.instantiate_attrs(self)
+        Plot3D.instantiate_attrs(self)
 
     def update_2d(self):
         x, y, z = self.getxyz()

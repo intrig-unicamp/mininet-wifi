@@ -4,7 +4,6 @@
 
 import sys
 
-from mininet.node import Controller
 from mininet.log import setLogLevel, info
 from mn_wifi.cli import CLI_wifi
 from mn_wifi.net import Mininet_wifi
@@ -12,7 +11,7 @@ from mn_wifi.net import Mininet_wifi
 
 def topology(args):
     "Create a network."
-    net = Mininet_wifi(controller=Controller)
+    net = Mininet_wifi()
 
     info("*** Creating nodes\n")
     h1 = net.addHost('h1', mac='00:00:00:00:00:01', ip='10.0.0.1/8')
@@ -38,7 +37,7 @@ def topology(args):
         sta1.coord = ['40.0,30.0,0.0', '31.0,10.0,0.0', '31.0,30.0,0.0']
         sta2.coord = ['40.0,40.0,0.0', '55.0,31.0,0.0', '55.0,81.0,0.0']
 
-    net.startMobility(time=0, repetitions=1)
+    net.startMobility(time=0, mob_rep=1, reverse=False)
     if '-c' in args:
         net.mobility(sta1, 'start', time=1)
         net.mobility(sta2, 'start', time=2)

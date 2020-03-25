@@ -25,7 +25,7 @@ except:
     pass
 
 
-class vanet(object):
+class vanet(Mobility):
 
     # variables
     scatter = 0
@@ -58,16 +58,16 @@ class vanet(object):
 
         self.display_grid(**kwargs)
         self.display_cars(cars)
-        self.setWifiParameters()
-        while Mobility.thread_._keep_alive:
+        self.set_wifi_params()
+        while self.thread_._keep_alive:
             [self.scatter, self.com_lines] = \
                 self.simulate_car_movement(cars, aps, self.scatter,
                                            self.com_lines)
             sleep(0.0001)
 
-    def setWifiParameters(self):
+    def set_wifi_params(self):
         from threading import Thread as thread
-        thread = thread(name='wifiParameters', target=Mobility.parameters)
+        thread = thread(name='wifiParameters', target=self.parameters)
         thread.start()
 
     def get_line(self, x1, y1, x2, y2):
@@ -306,7 +306,7 @@ class vanet(object):
             com_lines[0].remove()
             del com_lines[0]
 
-        while Mobility.pause_simulation:
+        while self.pause_simulation:
             pass
 
         # iterate over each car
@@ -356,7 +356,7 @@ class vanet(object):
             car.update_2d()
 
         PlotGraph.pause()
-        if not Mobility.thread_._keep_alive:
+        if not self.thread_._keep_alive:
             exit()
 
         scatter = Plot2D.scatter(points[0], points[1])
