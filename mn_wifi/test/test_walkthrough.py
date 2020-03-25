@@ -217,18 +217,6 @@ class testWalkthrough(unittest.TestCase):
         p.sendline('exit')
         p.wait()
 
-    def testStaticMAC(self):
-        "Verify that MACs are set to easy to read numbers"
-        p = pexpect.spawn('mn --wifi --mac')
-        sleep(3)
-        p.expect(self.prompt)
-        for i in range(1, 3):
-            p.sendline('sta%d ip addr show' % i)
-            p.expect('00:00:00:00:00:0%d' % i)
-            p.expect(self.prompt)
-        p.sendline('exit')
-        p.wait()
-
     def testAPs(self):
         "Run iperf test using user and ovsk aps"
         aps = [ 'user', 'ovsk' ]
