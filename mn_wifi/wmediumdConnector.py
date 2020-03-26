@@ -524,12 +524,7 @@ class DynamicIntfRef(WmediumdIntfRef):
         return self.__sta.name
 
     def get_intf_name(self):
-        if not self.__intf:
-            return self.__sta.wintfs[0].name
-        elif isinstance(self.__intf, str):
-            return self.__intf
-        elif isinstance(self.__intf, int):
-            return self.__sta.wintfs[self.__intf].name
+        return self.__intf
 
     def get_mac(self):
         intf_name = self.get_intf_name()
