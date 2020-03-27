@@ -18,12 +18,10 @@ from six import string_types
 from mininet.cli import CLI
 from mininet.term import cleanUpScreens, makeTerms
 from mininet.net import Mininet
-from mininet.node import (Node, Host, OVSKernelSwitch,
-                          DefaultController, Controller)
-from mininet.util import (quietRun, fixLimits, numCores, ensureRoot,
-                          macColonHex, ipStr, ipParse, netParse, ipAdd,
-                          waitListening, BaseString)
-from mininet.link import Link, Intf, TCLink, TCULink
+from mininet.node import Node, Controller
+from mininet.util import (quietRun, fixLimits, ensureRoot, macColonHex, ipStr,
+                          ipParse, ipAdd, waitListening, BaseString)
+from mininet.link import Link, TCLink, TCULink
 from mininet.nodelib import NAT
 from mininet.log import info, error, debug, output, warn
 
@@ -34,10 +32,10 @@ from mn_wifi.link import wirelessLink, wmediumd, _4address, \
     TCWirelessLink, TCLinkWirelessStation, ITSLink, \
     WifiDirectLink, adhoc, mesh, master, managed, physicalMesh, \
     PhysicalWifiDirectLink, _4addrClient, _4addrAP
-from mn_wifi.clean import Cleanup as cleanup_mnwifi
+from mn_wifi.clean import Cleanup as CleanupWifi
 from mn_wifi.energy import Energy
 from mn_wifi.telemetry import parseData, telemetry as run_telemetry
-from mn_wifi.mobility import Tracked as TrackedMob, model as mobModel, \
+from mn_wifi.mobility import Tracked as TrackedMob, model as MobModel, \
     Mobility as mob, ConfigMobility, ConfigMobLinks
 from mn_wifi.plot import Plot2D, Plot3D, PlotGraph
 from mn_wifi.module import module
@@ -158,7 +156,7 @@ class Mininet_wifi(Mininet, Mininet_IoT):
 
     def start_socket(self):
         host = self.set_socket_ip
-        port, cleanup_mnwifi.socket_port = self.set_socket_port, self.set_socket_port
+        port, CleanupWifi.socket_port = self.set_socket_port, self.set_socket_port
 
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -1399,7 +1397,7 @@ class Mininet_wifi(Mininet, Mininet_IoT):
             setattr(self, key, value)
         if kwargs.get('max_z', 0) != 0:
             self.plot = Plot3D
-        cleanup_mnwifi.plot = self.plot
+        CleanupWifi.plot = self.plot
 
     def check_dimension(self, nodes):
         try:
@@ -1423,7 +1421,7 @@ class Mininet_wifi(Mininet, Mininet_IoT):
         if self.roads:
             vanet(**kwargs)
         else:
-            mobModel(**kwargs)
+            MobModel(**kwargs)
 
     def setMobilityModel(self, **kwargs):
         for key in kwargs:
@@ -1682,7 +1680,7 @@ class Mininet_wifi(Mininet, Mininet_IoT):
     @classmethod
     def closeMininetWiFi(self):
         "Close Mininet-WiFi"
-        cleanup_mnwifi.kill_mod_proc()
+        CleanupWifi.kill_mod_proc()
 
 
 class MininetWithControlWNet(Mininet_wifi):
