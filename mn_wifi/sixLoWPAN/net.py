@@ -10,21 +10,24 @@ from mininet.util import macColonHex, waitListening
 from mininet.log import error, debug, output
 
 from mn_wifi.sixLoWPAN.link import sixLoWPAN
-from mn_wifi.sixLoWPAN.node import sixLoWPan, OVSSensor
+from mn_wifi.sixLoWPAN.node import sixLoWPan, OVSSensor, Node_6lowpan
 from mn_wifi.sixLoWPAN.module import module
 from mn_wifi.util import ipAdd6, netParse6
 
 
 class Mininet_IoT(object):
 
-    sixLoWPan = sixLoWPan
-    APSensor = OVSSensor
-    ip6Base = '2001:0:0:0:0:0:0:0/64'
-    ip6BaseNum, prefixLen6 = netParse6(ip6Base)
-    nextIP6 = 1  # start for address allocation
-    apsensors = []
-    sensors = []
-    nwpans = 0
+    def __init__(self, apsensor=OVSSensor, sensor=Node_6lowpan,
+                 ip6Base='2001:0:0:0:0:0:0:0/64'):
+
+        self.apsensor = apsensor
+        self.sensor = sensor
+        self.ip6Base = ip6Base
+        self.ip6BaseNum, self.prefixLen6 = netParse6(ip6Base)
+        self.nextIP6 = 1  # start for address allocation
+        self.apsensors = []
+        self.sensors = []
+        self.nwpans = 0
 
     def init_6lowpan_module(self, iot_module):
         sensors = self.sensors + self.apsensors
@@ -72,7 +75,7 @@ class Mininet_IoT(object):
             self.nextPos_ap += 100
 
         if not cls:
-            cls = self.APSensor
+            cls = apsensor
         ap = cls(name, **defaults)
         if not self.inNamespace and self.listenPort:
             self.listenPort += 1
@@ -110,7 +113,7 @@ class Mininet_IoT(object):
         self.nextPos_sta += 1
 
         if not cls:
-            cls = self.sixLoWPan
+            cls = sixLoWPan
         node = cls(name, **defaults)
         self.nameToNode[name] = node
 

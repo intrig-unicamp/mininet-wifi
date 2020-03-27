@@ -53,20 +53,16 @@ VERSION = "2.4.3"
 
 class Mininet_wifi(Mininet, Mininet_IoT):
 
-    def __init__(self, topo=None, switch=OVSKernelSwitch,
-                 accessPoint=OVSKernelAP, host=Host, station=Station,
-                 car=Car, controller=DefaultController, sensor=Node_6lowpan,
-                 apsensor=OVSSensor, link=TCWirelessLink, intf=Intf, build=True,
-                 xterms=False, cleanup=False, ipBase='10.0.0.0/8', inNamespace=False,
-                 autoSetMacs=False, autoStaticArp=False, autoPinCpus=False,
-                 listenPort=None, waitConnected=False, ssid="new-ssid",
-                 mode="g", channel=1, wmediumd_mode=snr, roads=0,
+    def __init__(self, accessPoint=OVSKernelAP, station=Station, car=Car,
+                 sensor=Node_6lowpan, apsensor=OVSSensor, link=TCWirelessLink,
+                 ssid="new-ssid", mode="g", channel=1, wmediumd_mode=snr, roads=0,
                  fading_cof=0, autoAssociation=True, allAutoAssociation=True,
-                 autoSetPositions=False, configWiFiDirect=False,
-                 config4addr=False, noise_th=-91, cca_th=-90, disable_tcp_checksum=False,
-                 ifb=False, bridge=False, plot=False, plot3d=False, docker=False,
+                 autoSetPositions=False, configWiFiDirect=False, config4addr=False,
+                 noise_th=-91, cca_th=-90, disable_tcp_checksum=False, ifb=False,
+                 bridge=False, plot=False, plot3d=False, docker=False,
                  container='mininet-wifi', ssh_user='alpha', set_socket_ip=None,
-                 set_socket_port=12345, iot_module='mac802154_hwsim', rec_rssi=False):
+                 set_socket_port=12345, iot_module='mac802154_hwsim', rec_rssi=False,
+                 **kwargs):
         """Create Mininet object.
            topo: Topo (topology) object or None
            switch: default Switch class
@@ -84,47 +80,20 @@ class Mininet_wifi(Mininet, Mininet_IoT):
            autoPinCpus: pin hosts to (real) cores (requires CPULimitedStation)?
            listenPort: base listening port to open; will be incremented for
                each additional switch in the net if inNamespace=False"""
-        self.topo = topo
-        self.switch = switch
         self.station = station
-        self.host = host
         self.accessPoint = accessPoint
         self.car = car
-        self.controller = controller
-        self.sensor = sensor
-        self.apsensor = apsensor
-        self.link = link
-        self.intf = intf
-        self.cleanup = cleanup
-        self.ipBase = ipBase
-        self.ipBaseNum, self.prefixLen = netParse(self.ipBase)
-        self.nextIP = 1  # start for address allocation
         self.nextPos_sta = 1  # start for sta position allocation
         self.nextPos_ap = 1  # start for ap position allocation
-        self.inNamespace = inNamespace
-        self.xterms = xterms
-        self.autoSetMacs = autoSetMacs
         self.autoSetPositions = autoSetPositions
-        self.autoStaticArp = autoStaticArp
-        self.autoPinCpus = autoPinCpus
-        self.numCores = numCores()
-        self.nextCore = 0  # next core for pinning hosts to CPUs
-        self.listenPort = listenPort
-        self.waitConn = waitConnected
         self.ssid = ssid
         self.mode = mode
         self.channel = channel
         self.wmediumd_mode = wmediumd_mode
-        self.nameToNode = {}  # name to Node (Host/Switch) objects
         self.wmediumdMac = []
         self.aps = []
-        self.controllers = []
-        self.hosts = []
-        self.links = []
         self.cars = []
-        self.switches = []
         self.stations = []
-        self.terms = []  # list of spawned xterm processes
         self.autoAssociation = autoAssociation  # does not include mobility
         self.allAutoAssociation = allAutoAssociation  # includes mobility
         self.draw = False
@@ -141,7 +110,7 @@ class Mininet_wifi(Mininet, Mininet_IoT):
         self.docker = docker
         self.container = container
         self.ssh_user = ssh_user
-        self.ifb = ifb   # Support to Intermediate Functional Block (IFB) Devices
+        self.ifb = ifb  # Support to Intermediate Functional Block (IFB) Devices
         self.bridge = bridge
         self.init_plot = plot
         self.init_Plot3D = plot3d
@@ -170,7 +139,6 @@ class Mininet_wifi(Mininet, Mininet_IoT):
         self.min_wt = 1
         self.max_wt = 5
         self.wlinks = []
-        Mininet_wifi.init()  # Initialize Mininet-WiFi if necessary
 
         if autoSetPositions and link == wmediumd:
             self.wmediumd_mode = interference
@@ -179,9 +147,8 @@ class Mininet_wifi(Mininet, Mininet_IoT):
             self.autoAssociation = False
             mob.allAutoAssociation = False
 
-        self.built = False
-        if topo and build:
-            self.build()
+        Mininet_IoT.__init__(self, sensor=sensor, apsensor=apsensor)
+        Mininet.__init__(self, link=link, **kwargs)
 
     def start_socket_server(self):
         self.server()
