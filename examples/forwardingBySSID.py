@@ -39,8 +39,8 @@ def topology(args):
     sta3 = net.addStation('sta3', position='10,25,0')
     sta4 = net.addStation('sta4', position='50,30,0')
     sta5 = net.addStation('sta5', position='45,65,0')
-    ap1 = net.addAccessPoint('ap1', vssids=4,
-                             ssid=['ssid,ssid1,ssid2,ssid3,ssid4'],
+    ap1 = net.addAccessPoint('ap1', vssids=['ssid1,ssid2,ssid3,ssid4'],
+                             ssid='ssid',
                              mode="g", channel="1", position='30,40,0')
     c0 = net.addController('c0')
 
@@ -62,21 +62,13 @@ def topology(args):
     ap1.start([c0])
 
     sleep(2)
-    sta1.cmd('iw dev %s connect %s %s'
-             % (sta1.params['wlan'][0], ap1.wintfs[1].ssid,
-                ap1.wintfs[1].mac))
-    sta2.cmd('iw dev %s connect %s %s'
-             % (sta2.params['wlan'][0], ap1.wintfs[2].ssid,
-                ap1.wintfs[2].mac))
-    sta3.cmd('iw dev %s connect %s %s'
-             % (sta3.params['wlan'][0], ap1.wintfs[2].ssid,
-                ap1.wintfs[2].mac))
-    sta4.cmd('iw dev %s connect %s %s'
-             % (sta4.params['wlan'][0], ap1.wintfs[3].ssid,
-                ap1.wintfs[3].mac))
-    sta5.cmd('iw dev %s connect %s %s'
-             % (sta5.params['wlan'][0], ap1.wintfs[4].ssid,
-                ap1.wintfs[4].mac))
+    cmd = 'iw dev {} connect {} {}'
+    intf = ap1.wintfs[0].vssid
+    sta1.cmdPrint(cmd.format(sta1.params['wlan'][0], intf[0], ap1.wintfs[1].mac))
+    sta2.cmd(cmd.format(sta2.params['wlan'][0], intf[1], ap1.wintfs[2].mac))
+    sta3.cmd(cmd.format(sta3.params['wlan'][0], intf[1], ap1.wintfs[2].mac))
+    sta4.cmd(cmd.format(sta4.params['wlan'][0], intf[2], ap1.wintfs[3].mac))
+    sta5.cmd(cmd.format(sta5.params['wlan'][0], intf[3], ap1.wintfs[4].mac))
 
     ap1.cmd('dpctl unix:/tmp/ap1 meter-mod cmd=add,flags=1,meter=1 '
             'drop:rate=100')

@@ -6,7 +6,7 @@ import sys
 from time import sleep
 
 from mininet.log import setLogLevel, info
-from mn_wifi.link import wmediumd, wifiDirectLink
+from mn_wifi.link import wmediumd, WifiDirectLink
 from mn_wifi.cli import CLI
 from mn_wifi.net import Mininet_wifi
 from mn_wifi.wmediumdConnector import interference
@@ -32,8 +32,8 @@ def topology(args):
         net.plotGraph(max_x=200, max_y=200)
 
     info("*** Starting WiFi Direct\n")
-    net.addLink(sta1, intf='sta1-wlan0', cls=wifiDirectLink)
-    net.addLink(sta2, intf='sta2-wlan0', cls=wifiDirectLink)
+    net.addLink(sta1, intf='sta1-wlan0', cls=WifiDirectLink)
+    net.addLink(sta2, intf='sta2-wlan0', cls=WifiDirectLink)
 
     info("*** Starting network\n")
     net.build()

@@ -32,8 +32,8 @@ from mn_wifi.node import AccessPoint, AP, Station, Car, \
 from mn_wifi.wmediumdConnector import error_prob, snr, interference
 from mn_wifi.link import wirelessLink, wmediumd, _4address, \
     TCWirelessLink, TCLinkWirelessStation, ITSLink, \
-    wifiDirectLink, adhoc, mesh, master, managed, physicalMesh, \
-    physicalWifiDirectLink, _4addrClient, _4addrAP
+    WifiDirectLink, adhoc, mesh, master, managed, physicalMesh, \
+    PhysicalWifiDirectLink, _4addrClient, _4addrAP
 from mn_wifi.clean import Cleanup as cleanup_mnwifi
 from mn_wifi.energy import Energy
 from mn_wifi.telemetry import parseData, telemetry as run_telemetry
@@ -623,7 +623,7 @@ class Mininet_wifi(Mininet, Mininet_IoT):
         cls = self.link if cls is None else cls
 
         modes = [mesh, physicalMesh, adhoc, ITSLink,
-                 wifiDirectLink, physicalWifiDirectLink]
+                 WifiDirectLink, PhysicalWifiDirectLink]
         if cls in modes:
             cls(node=node1, **params)
         elif cls == sixLoWPAN:
@@ -825,7 +825,7 @@ class Mininet_wifi(Mininet, Mininet_IoT):
             for wlan, intf in enumerate(node.wintfs.values()):
                 if not isinstance(intf, master) and not isinstance(intf, adhoc) \
                         and not isinstance(intf, mesh) \
-                        and not isinstance(intf, wifiDirectLink):
+                        and not isinstance(intf, WifiDirectLink):
                     if isinstance(node, Station) and not hasattr(node, 'range'):
                         intf.range = int(intf.range)
 
@@ -1570,7 +1570,7 @@ class Mininet_wifi(Mininet, Mininet_IoT):
     def config_antenna(nodes):
         for node in nodes:
             for wlan, intf in enumerate(node.wintfs.values()):
-                if not isinstance(intf, _4addrAP):
+                if not isinstance(intf, _4addrAP) and not isinstance(intf, PhysicalWifiDirectLink):
                     node.setTxPower(intf.txpower, intf=intf.name)
                     node.setAntennaGain(intf.antennaGain, intf=intf.name)
 

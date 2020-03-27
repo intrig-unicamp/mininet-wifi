@@ -1002,6 +1002,8 @@ class master(TCWirelessLink):
         self.node = node
         self.params = {}
         self.stationsInRange = {}
+        self.vssid = []
+        self.vifaces = []
         self.associatedStations = []
         self.antennaGain = 5.0
         self.antennaHeight = 1.0
@@ -1037,7 +1039,7 @@ class master(TCWirelessLink):
         self.wep_key0 = None
         self.link = None
 
-        if intf:
+        if intf and hasattr(intf, 'wmIface'):
             self.wmIface = intf.wmIface
 
         for key in self.__dict__.keys():
@@ -1045,10 +1047,70 @@ class master(TCWirelessLink):
                 if isinstance(node.params[key], BaseString):
                     setattr(self, key, node.params[key])
                 elif isinstance(node.params[key], list):
-                    arg = node.params[key][0].split(',')
-                    setattr(self, key, arg[wlan])
+                    value = node.params[key][wlan].split(',')
+                    setattr(self, key, value[0])
                 elif isinstance(node.params[key], int):
                     setattr(self, key, node.params[key])
+
+
+class VirtualMaster(master, TCWirelessLink):
+    "master class"
+    def __init__(self, node, wlan, id, port=None, intf=None):
+        self.name = intf
+        node.addWAttr(self, port=port)
+        self.node = node
+        self.params = {}
+        self.stationsInRange = {}
+        self.vssid = []
+        self.vifaces = []
+        self.ssid = 'none'
+        self.associatedStations = []
+        self.antennaGain = 5.0
+        self.antennaHeight = 1.0
+        self.channel = 1
+        self.freq = 2.412
+        self.range = 0
+        self.txpower = 14
+        self.auth_algs = None
+        self.authmode = None
+        self.band = None
+        self.beacon_int = None
+        self.config = None
+        self.config_methods = None
+        self.encrypt = None
+        self.ht_capab = None
+        self.ieee80211r = None
+        self.id = wlan
+        self.ip = None
+        self.ip6 = None
+        self.isolate_clients = None
+        self.mac = None
+        self.mode = 'g'
+        self.mobility_domain = None
+        self.passwd = None
+        self.shared_secret = None
+        self.wpa_key_mgmt = None
+        self.rsn_pairwise = None
+        self.radius_server = None
+        self.wps_state = None
+        self.device_type = None
+        self.wpa_psk_file = None
+        self.wep_key0 = None
+        self.link = None
+
+        if intf and hasattr(intf, 'wmIface'):
+            self.wmIface = intf.wmIface
+
+        for key in self.__dict__.keys():
+            if key in node.params:
+                if key != 'ssid':
+                    if isinstance(node.params[key], BaseString):
+                        setattr(self, key, node.params[key])
+                    elif isinstance(node.params[key], list):
+                        value = node.params[key][wlan].split(',')
+                        setattr(self, key, value[id])
+                    elif isinstance(node.params[key], int):
+                        setattr(self, key, node.params[key])
 
 
 class managed(TCWirelessLink):
@@ -1099,8 +1161,8 @@ class managed(TCWirelessLink):
                 if isinstance(node.params[key], BaseString):
                     setattr(self, key, node.params[key])
                 elif isinstance(node.params[key], list):
-                    arg_ = node.params[key][0].split(',')
-                    setattr(self, key, arg_[wlan])
+                    arg = node.params[key][0].split(',')
+                    setattr(self, key, arg[wlan])
                 elif isinstance(node.params[key], int):
                     setattr(self, key, node.params[key])
 
@@ -1339,7 +1401,7 @@ class ITSLink(IntfWireless):
         self.iwdev_cmd('%s ocb join %s 20MHz' % (self.name, self.freq))
 
 
-class wifiDirectLink(IntfWireless):
+class WifiDirectLink(IntfWireless):
 
     def __init__(self, node, intf=None):
         "configure wifi-direct"
@@ -1368,18 +1430,17 @@ class wifiDirectLink(IntfWireless):
 
     def get_filename(self):
         suffix = 'wifiDirect.conf'
-        filename = "mn%d_%s_%s" % (os.getpid(), self.name, suffix)
+        filename = "mn%d_{}_{}".format(os.getpid(), self.name, suffix)
         return filename
 
     def get_wpa_cmd(self):
         filename = self.get_filename()
-        cmd = ('wpa_supplicant -B -Dnl80211 -c%s -i%s' %
-               (filename, self.name))
+        cmd = 'wpa_supplicant -B -Dnl80211 -c{} -i{}'.format(filename, self.name)
         return cmd
 
     def config_(self):
         filename = self.get_filename()
-        cmd = ("echo \'")
+        cmd = "echo \'"
         cmd += 'ctrl_interface=/var/run/wpa_supplicant\
               \nap_scan=1\
               \np2p_go_ht40=1\
@@ -1393,11 +1454,16 @@ class wifiDirectLink(IntfWireless):
         subprocess.check_output(cmd, shell=True)
 
 
-class physicalWifiDirectLink(wifiDirectLink):
+class PhysicalWifiDirectLink(WifiDirectLink):
 
-    def __init__(self, node, intf=None):
+    def __init__(self, node, freq=2.412, txpower=14, intf=None):
         "configure wifi-direct"
         self.name = intf
+        self.node = node
+        self.txpower = txpower
+        self.freq = freq
+        self.antennaGain = 5
+        self.range = 100
         node.addWIntf(self)
         node.addWAttr(self)
 
@@ -1406,6 +1472,7 @@ class physicalWifiDirectLink(wifiDirectLink):
                 break
 
         self.txpower = node.wintfs[0].txpower
+        node.params['wlan'].append(self.name)
         self.mac = None
 
         self.config_()
@@ -1598,7 +1665,7 @@ class mesh(IntfWireless):
 class physicalMesh(IntfWireless):
 
     def __init__(self, node, intf=None, channel=1, ssid='meshNet',
-                 ht_cap=''):
+                 ht_cap='', freq=2.412):
         """Configure wireless mesh
         node: name of the node
         self: custom association class/constructor
@@ -1606,10 +1673,10 @@ class physicalMesh(IntfWireless):
         wlan = 0
         self.name = ''
         self.node = node
-
         self.ssid = ssid
         self.ht_cap = ht_cap
         self.channel = channel
+        self.freq = freq
 
         node.wintfs[wlan].ssid = ssid
         if int(node.wintfs[wlan].range) == 0:

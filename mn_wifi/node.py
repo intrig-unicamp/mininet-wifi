@@ -34,7 +34,7 @@ from mininet.moduledeps import pathCheck
 from mininet.link import Intf
 from mn_wifi.devices import DeviceRate
 from mn_wifi.link import TCWirelessLink, TCLinkWirelessAP,\
-    wirelessLink, adhoc, mesh, master, managed, physicalMesh, ITSLink
+    wirelessLink, adhoc, mesh, master, managed, physicalMesh, ITSLink, VirtualMaster
 from mn_wifi.wmediumdConnector import w_server, w_pos, w_cst, wmediumd_mode
 from mn_wifi.propagationModels import GetSignalRange, GetPowerGivenRange
 
@@ -620,22 +620,36 @@ class AccessPoint(Node_wifi):
             self.check_nm(aps, set_master)
         else:
             self.configure(aps)
+            self.set_mac_viface(aps)
+
+    def set_mac_viface(self, aps):
+        for ap in aps:
+            for intf in ap.wintfs.values():
+                if isinstance(intf, VirtualMaster):
+                    ap.params['wlan'].append(intf.name)
+                    self.setIPMAC(intf)
 
     def check_nm(self, aps, set_master):
         for ap in aps:
             for wlan in range(len(ap.params['wlan'])):
                 if not set_master:
                     self.configAP(ap, wlan)
-                for intf in ap.wintfs.values():
-                    self.setIPMAC(intf)
-                    self.checkNetworkManager(intf)
 
-            if 'vssids' in ap.params:
-                for i in range(1, ap.params['vssids'] + 1):
-                    iface = '%s-%s' % (ap.wintfs[0], i)
-                    ap.params['wlan'].append(iface)
-                    TCLinkWirelessAP(ap, intfName=iface)
-                    master(ap, i)
+                intf = ap.wintfs[wlan]
+                self.setIPMAC(intf)
+                self.checkNetworkManager(intf)
+
+                if 'vssids' in ap.params:
+                    if isinstance(ap.params['vssids'], list):
+                        vssids = ap.params['vssids'][wlan].split(',')
+                    else:
+                        vssids = ap.params['vssids'].split(',')
+                    for id, vssid in enumerate(vssids):
+                        iface = '%s-%s' % (ap.wintfs[0], id)
+                        intf.vifaces.append(iface)
+                        intf.vssid.append(vssid)
+                        TCLinkWirelessAP(ap, intfName=iface)
+                        VirtualMaster(ap, wlan, id, intf=iface)
 
         self.restartNetworkManager()
 
@@ -643,37 +657,31 @@ class AccessPoint(Node_wifi):
         """Configure APs
         :param aps: list of access points"""
         for ap in aps:
-            wlans = len(ap.params['wlan'])
-            phys = wlans if 'vssids' not in ap.params else wlans - ap.params['vssids']
-            for phy in range(phys):
+            for wlan in range(len(ap.params['wlan'])):
+                intf = ap.wintfs[wlan]
                 if 'link' not in ap.params:
                     if 'phywlan' in ap.params:
-                        for wlan, intf in enumerate(ap.wintfs.values()):
-                            cmd = self.setConfig(intf, aps, wlan)
+                        for id, intf in enumerate(ap.wintfs.values()):
+                            cmd = self.setConfig(intf, aps, id)
 
-                    for wlan, intf in enumerate(ap.wintfs.values()):
-                        if wlan == 0:
-                            cmd = self.setConfig(intf, aps, wlan)
-                        else:
-                            if 'vssids' in intf.node.params:
-                                cmd += self.virtual_intf(intf, wlan)
+                    cmd = self.setConfig(intf, aps, wlan)
+                    if 'vssids' in intf.node.params:
+                        for vwlan, id in enumerate(intf.vifaces):
+                            cmd += self.virtual_intf(intf, vwlan)
 
                     cmd += "\nctrl_interface=/var/run/hostapd"
                     cmd += "\nctrl_interface_group=0"
+                    self.ap_config_file(cmd, ap, wlan)
 
-                    self.ap_config_file(cmd, ap, phy)
+                    if '-' in intf.name:
+                        self.setIPMAC(intf)
 
-                    for wlan, intf in enumerate(ap.wintfs.values()):
-                        if '-' in intf.name:
-                            self.setIPMAC(intf)
+                    if 'phywlan' in intf.node.params:
+                        intf.node.params.pop('phywlan', None)
 
-                        if 'phywlan' in intf.node.params:
-                            intf.node.params.pop('phywlan', None)
-
-                        if not wmediumd_mode.mode:
-                            self.setBw(intf, wlan)
-
-                        intf.freq = intf.get_freq()
+                    if not wmediumd_mode.mode:
+                        self.setBw(intf, wlan)
+                    intf.freq = intf.get_freq()
 
     def setConfig(self, intf, aplist=None, wlan=0):
         """Configure AP
@@ -730,19 +738,18 @@ class AccessPoint(Node_wifi):
             cmd += "\nhw_mode=%s" % intf.mode
         return cmd
 
-    def virtual_intf(self, intf, wlan, cmd=''):
+    def virtual_intf(self, intf, vwlan, cmd=''):
         intf.txpower = intf.node.wintfs[0].txpower
         intf.antennaGain = intf.node.wintfs[0].antennaGain
         intf.antennaHeight = intf.node.wintfs[0].antennaHeight
-        ssid = intf.node.wintfs[wlan].ssid
         cmd += '\n'
-        cmd += "\nbss=%s" % intf.node.params['wlan'][wlan]
-        cmd += "\nssid=%s" % ssid
-        if intf.node.wintfs[wlan].encrypt:
-            if intf.node.wintfs[wlan].encrypt == 'wep':
-                cmd += "\nauth_algs=%s" % intf.node.wintfs[0].auth_algs
+        cmd += "\nbss=%s" % intf.vifaces[vwlan]
+        cmd += "\nssid=%s" % intf.vssid[vwlan]
+        if intf.encrypt:
+            if intf.encrypt == 'wep':
+                cmd += "\nauth_algs=%s" % intf.auth_algs
                 cmd += "\nwep_default_key=0"
-                cmd += self.verifyWepKey(intf.node.wintfs[0].wep_key0)
+                cmd += self.verifyWepKey(intf.wep_key0)
         return cmd
 
     def setHostapdConfig(self, intf, wlan, aplist):
