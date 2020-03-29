@@ -3,24 +3,19 @@
     author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
 """
 
-import os
 import socket
-import random
 import re
 from threading import Thread as thread
-import select
-import signal
 from time import sleep
 from itertools import chain, groupby
-from math import ceil
 from six import string_types
 
 from mininet.cli import CLI
-from mininet.term import cleanUpScreens, makeTerms
+from mininet.term import makeTerms
 from mininet.net import Mininet
 from mininet.node import Node, Controller
-from mininet.util import (quietRun, fixLimits, ensureRoot, macColonHex, ipStr,
-                          ipParse, ipAdd, waitListening, BaseString)
+from mininet.util import (macColonHex, ipStr, ipParse, ipAdd,
+                          waitListening, BaseString)
 from mininet.link import Link, TCLink, TCULink
 from mininet.nodelib import NAT
 from mininet.log import info, error, debug, output, warn
@@ -44,7 +39,7 @@ from mn_wifi.vanet import vanet
 from mn_wifi.sixLoWPAN.net import Mininet_IoT
 from mn_wifi.sixLoWPAN.node import OVSSensor, Node_6lowpan
 from mn_wifi.sixLoWPAN.link import sixLoWPAN
-from mn_wifi.util import ipAdd6
+from mn_wifi.sixLoWPAN.util import ipAdd6
 
 VERSION = "2.4.3"
 
@@ -455,27 +450,6 @@ class Mininet_wifi(Mininet, Mininet_IoT):
                             node.setDefaultRoute('via %s' % natIP)
         return nat
 
-    # BL: We now have four ways to look up nodes
-    # This may (should?) be cleaned up in the future.
-    def getNodeByName(self, *args):
-        "Return node(s) with given name(s)"
-        if len(args) == 1:
-            return self.nameToNode[args[0]]
-        return [self.nameToNode[n] for n in args]
-
-    def get(self, *args):
-        "Convenience alias for getNodeByName"
-        return self.getNodeByName(*args)
-
-    # Even more convenient syntax for node lookup and iteration
-    def __getitem__(self, key):
-        "net[ name ] operator: Return node with given name"
-        return self.nameToNode[key]
-
-    def __delitem__(self, key):
-        "del net[ name ] operator - delete node with given name"
-        self.delNode(self.nameToNode[key])
-
     def __iter__(self):
         "return iterator over node names"
         for node in chain(self.hosts, self.switches, self.controllers,
@@ -489,28 +463,6 @@ class Mininet_wifi(Mininet, Mininet_IoT):
                 len(self.controllers) + len(self.stations) +
                 len(self.cars) + len(self.aps) + len(self.sensors) +
                 len(self.apsensors))
-
-    def __contains__(self, item):
-        "returns True if net contains named node"
-        return item in self.nameToNode
-
-    def keys(self):
-        "return a list of all node names or net's keys"
-        return list(self)
-
-    def values(self):
-        "return a list of all nodes or net's values"
-        return [self[name] for name in self]
-
-    def items(self):
-        "return (key,value) tuple list for every node in net"
-        return zip(self.keys(), self.values())
-
-    @staticmethod
-    def randMac():
-        "Return a random, non-multicast MAC address"
-        return macColonHex(random.randint(1, 2 ** 48 - 1) & 0xfeffffffffff |
-                           0x020000000000)
 
     def setModule(self, moduleDir):
         "set an alternative module rather than mac80211_hwsim"
@@ -583,8 +535,6 @@ class Mininet_wifi(Mininet, Mininet_IoT):
         # Accept node objects or names
         node1 = node1 if not isinstance(node1, string_types) else self[node1]
         node2 = node2 if not isinstance(node2, string_types) else self[node2]
-        options = dict(params)
-
         cls = self.link if cls is None else cls
 
         modes = [mesh, physicalMesh, adhoc, ITSLink,
@@ -613,49 +563,13 @@ class Mininet_wifi(Mininet, Mininet_IoT):
             else:
                 self.infra_tc(node1, node2, port1, port2, cls, **params)
         else:
-            # Port is optional
-            if port1 is not None:
-                options.setdefault('port1', port1)
-            if port2 is not None:
-                options.setdefault('port2', port2)
-
-            # Set default MAC - this should probably be in Link
-            options.setdefault('addr1', self.randMac())
-            options.setdefault('addr2', self.randMac())
-
             if not cls or cls == wmediumd or cls == TCWirelessLink:
                 cls = TCLink
             if self.disable_tcp_checksum:
                 cls = TCULink
 
-            cls = self.link if cls is None else cls
-            link = cls(node1, node2, **options)
-            self.links.append(link)
-            return link
-
-    def delLink(self, link):
-        "Remove a link from this network"
-        link.delete()
-        self.links.remove(link)
-
-    def linksBetween(self, node1, node2):
-        "Return Links between node1 and node2"
-        return [link for link in self.links
-                if (node1, node2) in (
-                    (link.intf1.node, link.intf2.node),
-                    (link.intf2.node, link.intf1.node))]
-
-    def delLinkBetween(self, node1, node2, index=0, allLinks=False):
-        """Delete link(s) between node1 and node2
-           index: index of link to delete if multiple links (0)
-           allLinks: ignore index and delete all such links (False)
-           returns: deleted link(s)"""
-        links = self.linksBetween(node1, node2)
-        if not allLinks:
-            links = [links[index]]
-        for link in links:
-            self.delLink(link)
-        return links
+            Mininet.addLink(self, node1, node2, port1=port1, port2=port2,
+                            cls=cls, **params)
 
     def configHosts(self):
         "Configure a set of nodes."
@@ -699,12 +613,6 @@ class Mininet_wifi(Mininet, Mininet_IoT):
             self.addStation(staName, **topo.nodeInfo(staName))
             info(staName + ' ')
 
-        if topo.hosts():
-            info('*** Adding hosts:\n')
-            for hostName in topo.hosts():
-                self.addHost(hostName, **topo.nodeInfo(hostName))
-                info(hostName + ' ')
-
         info('\n*** Adding access points:\n')
         for apName in topo.aps():
             # A bit ugly: add batch parameter if appropriate
@@ -714,17 +622,6 @@ class Mininet_wifi(Mininet, Mininet_IoT):
                 params.setdefault('batch', True)
             self.addAccessPoint(apName, **params)
             info(apName + ' ')
-
-        if topo.switches():
-            info('\n*** Adding switches:\n')
-            for switchName in topo.switches():
-                # A bit ugly: add batch parameter if appropriate
-                params = topo.nodeInfo(switchName)
-                cls = params.get('cls', self.switch)
-                if hasattr(cls, 'batchStartup'):
-                    params.setdefault('batch', True)
-                self.addSwitch(switchName, **params)
-                info(switchName + ' ')
 
         info('\n*** Configuring wifi nodes...\n')
         self.configureWifiNodes()
@@ -736,13 +633,8 @@ class Mininet_wifi(Mininet, Mininet_IoT):
             info('(%s, %s) ' % (srcName, dstName))
         info('\n')
 
-    def configureControlNetwork(self):
-        "Control net config hook: override in subclass"
-        raise Exception('configureControlNetwork: '
-                        'should be overriden in subclass', self)
-
     def check_if_mob(self):
-        mnNodes = self.plot_plot_nodes()
+        nodes = self.plot_plot_nodes()
         if self.mob_model or self.mob_stop_time or self.roads:
             mob_params = self.get_mobility_params()
             stat_nodes, mob_nodes = self.get_mob_stat_nodes()
@@ -750,11 +642,11 @@ class Mininet_wifi(Mininet, Mininet_IoT):
             if self.mob_model or self.isVanet or self.roads:
                 method = self.start_mobility
             method(stat_nodes=stat_nodes, mob_nodes=mob_nodes,
-                   mnNodes=mnNodes, **mob_params)
+                   mnNodes=nodes, **mob_params)
             self.mob_check = True
         else:
             if self.draw and not self.isReplaying:
-                self.plot_check(mnNodes)
+                self.plot_check(nodes)
 
     def build(self):
         "Build mininet-wifi."
@@ -801,7 +693,7 @@ class Mininet_wifi(Mininet, Mininet_IoT):
         if not self.mob_check:
             self.check_if_mob()
 
-        nodes = self.stations + self.aps + self.cars + self.sensors + self.apsensors
+        nodes = self.get_mn_wifi_nodes()
         battery_nodes = []
         for node in nodes:
             if 'battery' in node.params:
@@ -814,42 +706,22 @@ class Mininet_wifi(Mininet, Mininet_IoT):
     def plot_plot_nodes(self):
         from mn_wifi.node import Node_wifi
         nodes = self.hosts + self.switches + self.controllers
-        mnNodes = []
+        plot_nodes = []
         for node in nodes:
             if hasattr(node, 'position'):
                 self.pos_to_array(node)
                 node.wintfs = {0 : Node_wifi}
                 node.wintfs[0].range = 0
-                mnNodes.append(node)
-        return mnNodes
+                plot_nodes.append(node)
+        return plot_nodes
 
     def startTerms(self):
         "Start a terminal for each node."
-        if 'DISPLAY' not in os.environ:
-            error("Error starting terms: Cannot connect to display\n")
-            return
-        info("*** Running terms on %s\n" % os.environ['DISPLAY'])
-        cleanUpScreens()
-        self.terms += makeTerms(self.controllers, 'controller')
-        self.terms += makeTerms(self.switches, 'switch')
-        self.terms += makeTerms(self.hosts, 'host')
+        Mininet.startTerms(self)
         self.terms += makeTerms(self.stations, 'station')
         self.terms += makeTerms(self.aps, 'ap')
         self.terms += makeTerms(self.sensors, 'sensor')
         self.terms += makeTerms(self.apsensors, 'apsensor')
-
-    def stopXterms(self):
-        "Kill each xterm."
-        for term in self.terms:
-            os.kill(term.pid, signal.SIGKILL)
-        cleanUpScreens()
-
-    def staticArp(self):
-        "Add all-pairs ARP entries to remove the need to handle broadcast."
-        for src in self.hosts:
-            for dst in self.hosts:
-                if src != dst:
-                    src.setARP(ip=dst.IP(), mac=dst.MAC())
 
     def telemetry(self, **kwargs):
         run_telemetry(**kwargs)
@@ -888,89 +760,29 @@ class Mininet_wifi(Mininet, Mininet_IoT):
     def stop(self):
         'Stop Mininet-WiFi'
         self.stop_graph_params()
-        info('*** Stopping %i controllers\n' % len(self.controllers))
-        for controller in self.controllers:
-            info(controller.name + ' ')
-            controller.stop()
-        info('\n')
-        if self.terms:
-            info('*** Stopping %i terms\n' % len(self.terms))
-            self.stopXterms()
-        info('*** Stopping %i links\n' % len(self.links))
-        for link in self.links:
-            info('.')
-            link.stop()
-        info('\n')
-        info('*** Stopping switches/access points\n')
+        nodes = self.aps + self.apsensors
+        info('*** Stopping %i access points\n' % len(nodes))
         stopped = {}
-        nodesL2 = self.switches + self.aps + self.apsensors
-        for swclass, switches in groupby(
-                sorted(nodesL2, key=lambda x: str(type(x))), type):
-            switches = tuple(switches)
-            if hasattr(swclass, 'batchShutdown'):
-                success = swclass.batchShutdown(switches)
-                stopped.update({s: s for s in success})
-        for switch in nodesL2:
-            info(switch.name + ' ')
-            if switch not in stopped:
-                switch.stop()
-            switch.terminate()
+        for swclass, nodesl2 in groupby(
+                sorted(nodes, key=lambda x: str(type(x))), type):
+            nodesl2 = tuple(nodesl2)
+            #if hasattr(swclass, 'batchShutdown'):
+                #success = swclass.batchShutdown(nodesl2)
+                #stopped.update({s: s for s in success})
+        for node in nodes:
+            info(node.name + ' ')
+            if node not in stopped:
+                node.stop()
+            #node.terminate()
         info('\n')
-        info('*** Stopping nodes\n')
-        nodes = self.hosts + self.stations + self.sensors
+        nodes = self.stations + self.sensors
+        info('*** Stopping %i stations\n' % len(nodes))
         for node in nodes:
             info(node.name + ' ')
             node.terminate()
         info('\n')
+        Mininet.stop(self)
         self.closeMininetWiFi()
-        info('\n*** Done\n')
-
-    def run(self, test, *args, **kwargs):
-        "Perform a complete start/test/stop cycle."
-        self.start()
-        info('*** Running test\n')
-        result = test(*args, **kwargs)
-        self.stop()
-        return result
-
-    def monitor(self, hosts=None, timeoutms=-1):
-        """Monitor a set of hosts (or all hosts by default),
-           and return their output, a line at a time.
-           hosts: (optional) set of hosts to monitor
-           timeoutms: (optional) timeout value in ms
-           returns: iterator which returns host, line"""
-        if hosts is None:
-            hosts = self.hosts
-        poller = select.poll()
-        h1 = hosts[0]  # so we can call class method fdToNode
-        for host in hosts:
-            poller.register(host.stdout)
-        while True:
-            ready = poller.poll(timeoutms)
-            for fd, event in ready:
-                host = h1.fdToNode(fd)
-                if event & select.POLLIN:
-                    line = host.readline()
-                    if line is not None:
-                        yield host, line
-            # Return if non-blocking
-            if not ready and timeoutms >= 0:
-                yield None, None
-
-    @staticmethod
-    def _parsePing(pingOutput):
-        "Parse ping output and return packets sent, received."
-        # Check for downed link
-        if 'connect: Network is unreachable' in pingOutput:
-            return 1, 0
-        r = r'(\d+) packets transmitted, (\d+)( packets)? received'
-        m = re.search(r, pingOutput)
-        if m is None:
-            error('*** Error: could not parse ping output: %s\n' %
-                  pingOutput)
-            return 1, 0
-        sent, received = int(m.group(1)), int(m.group(2))
-        return sent, received
 
     def ping(self, hosts=None, timeout=None):
         """Ping between all specified hosts.
@@ -1019,37 +831,6 @@ class Mininet_wifi(Mininet, Mininet_IoT):
             ploss = 0
             output("*** Warning: No packets sent\n")
         return ploss
-
-    @staticmethod
-    def _parseFull(pingOutput):
-        "Parse ping output and return all data."
-        errorTuple = (1, 0, 0, 0, 0, 0)
-        # Check for downed link
-        r = r'[uU]nreachable'
-        m = re.search(r, pingOutput)
-        if m is not None:
-            return errorTuple
-        r = r'(\d+) packets transmitted, (\d+)( packets)? received'
-        m = re.search(r, pingOutput)
-        if m is None:
-            error('*** Error: could not parse ping output: %s\n' %
-                  pingOutput)
-            return errorTuple
-        sent, received = int(m.group(1)), int(m.group(2))
-        r = r'rtt min/avg/max/mdev = '
-        r += r'(\d+\.\d+)/(\d+\.\d+)/(\d+\.\d+)/(\d+\.\d+) ms'
-        m = re.search(r, pingOutput)
-        if m is None:
-            if received == 0:
-                return errorTuple
-            error('*** Error: could not parse ping output: %s\n' %
-                  pingOutput)
-            return errorTuple
-        rttmin = float(m.group(1))
-        rttavg = float(m.group(2))
-        rttmax = float(m.group(3))
-        rttdev = float(m.group(4))
-        return sent, received, rttmin, rttavg, rttmax, rttdev
 
     def pingFull(self, hosts=None, timeout=None):
         """Ping between all specified hosts and return all data.
@@ -1112,20 +893,6 @@ class Mininet_wifi(Mininet, Mininet_IoT):
         nodes = self.hosts + self.stations
         hosts = [nodes[0], nodes[1]]
         return self.pingFull(hosts=hosts)
-
-    @staticmethod
-    def _parseIperf(iperfOutput):
-        """Parse iperf output and return bandwidth.
-           iperfOutput: string
-           returns: result string"""
-        r = r'([\d\.]+ \w+/sec)'
-        m = re.findall(r, iperfOutput)
-        if m:
-            return m[-1]
-        else:
-            # was: raise Exception(...)
-            error('could not parse iperf output: ' + iperfOutput)
-            return ''
 
     def iperf(self, hosts=None, l4Type='TCP', udpBw='10M', fmt=None,
               seconds=5, port=5001):
@@ -1194,58 +961,16 @@ class Mininet_wifi(Mininet, Mininet_IoT):
         output('*** Results: %s\n' % result)
         return result
 
-    def runCpuLimitTest(self, cpu, duration=5):
-        """run CPU limit test with 'while true' processes.
-        cpu: desired CPU fraction of each host
-        duration: test duration in seconds (integer)
-        returns a single list of measured CPU fractions as floats.
-        """
-        cores = int(quietRun('nproc'))
-        pct = cpu * 100
-        info('*** Testing CPU %.0f%% bandwidth limit\n' % pct)
-        stations = self.hosts
-        cores = int(quietRun('nproc'))
-        # number of processes to run a while loop on per host
-        num_procs = int(ceil(cores * cpu))
-        pids = {}
-        for s in stations:
-            pids[s] = []
-            for _core in range(num_procs):
-                s.cmd('while true; do a=1; done &')
-                pids[s].append(s.cmd('echo $!').strip())
-        outputs = {}
-        time = {}
-        # get the initial cpu time for each host
-        for station in stations:
-            outputs[station] = []
-            with open('/sys/fs/cgroup/cpuacct/%s/cpuacct.usage'
-                      % station, 'r') as f:
-                time[station] = float(f.read())
-        for _ in range(duration):
-            sleep(1)
-            for station in stations:
-                with open('/sys/fs/cgroup/cpuacct/%s/cpuacct.usage'
-                          % station, 'r') as f:
-                    readTime = float(f.read())
-                outputs[station].append(((readTime - time[station])
-                                      / 1000000000) / cores * 100)
-                time[station] = readTime
-        for h, pids in pids.items():
-            for pid in pids:
-                h.cmd('kill -9 %s' % pid)
-        cpu_fractions = []
-        for _host, outputs in outputs.items():
-            for pct in outputs:
-                cpu_fractions.append(pct)
-        output('*** Results: %s\n' % cpu_fractions)
-        return cpu_fractions
+    def get_mn_wifi_nodes(self):
+        return self.stations + self.cars + self.aps + \
+               self.sensors + self.apsensors
 
     def get_distance(self, src, dst):
         """Gets the distance between two nodes
         :params src: source node
         :params dst: destination node
         :params nodes: list of nodes"""
-        nodes = self.stations + self.cars + self.aps + self.sensors + self.apsensors
+        nodes = self.get_mn_wifi_nodes()
         try:
             for host1 in nodes:
                 if src == str(host1):
@@ -1337,15 +1062,6 @@ class Mininet_wifi(Mininet, Mininet_IoT):
         return result
 
     inited = False
-
-    @classmethod
-    def init(cls):
-        "Initialize Mininet"
-        if cls.inited:
-            return
-        ensureRoot()
-        fixLimits()
-        cls.inited = True
 
     def createVirtualIfaces(self, nodes):
         "Creates virtual wifi interfaces"

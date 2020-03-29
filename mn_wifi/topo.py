@@ -9,90 +9,7 @@ This package includes code to represent network topologies.
 """
 
 from mininet.util import irange
-from mininet.topo import Topo as MN_TOPO
-
-
-class MultiGraph( object ):
-    "Utility class to track nodes and edges - replaces networkx.MultiGraph"
-
-    def __init__( self ):
-        self.node = {}
-        self.edge = {}
-
-    def add_node( self, node, attr_dict=None, **attrs):
-        """Add node to graph
-           attr_dict: attribute dict (optional)
-           attrs: more attributes (optional)
-           warning: updates attr_dict with attrs"""
-        attr_dict = {} if attr_dict is None else attr_dict
-        attr_dict.update( attrs )
-        self.node[ node ] = attr_dict
-
-    def add_edge( self, src, dst, key=None, attr_dict=None, **attrs ):
-        """Add edge to graph
-           key: optional key
-           attr_dict: optional attribute dict
-           attrs: more attributes
-           warning: udpates attr_dict with attrs"""
-        attr_dict = {} if attr_dict is None else attr_dict
-        attr_dict.update( attrs )
-        self.node.setdefault( src, {} )
-        self.node.setdefault( dst, {} )
-        self.edge.setdefault( src, {} )
-        self.edge.setdefault( dst, {} )
-        self.edge[ src ].setdefault( dst, {} )
-        entry = self.edge[ dst ][ src ] = self.edge[ src ][ dst ]
-        # If no key, pick next ordinal number
-        if key is None:
-            keys = [ k for k in entry.keys() if isinstance( k, int ) ]
-            key = max( [ 0 ] + keys ) + 1
-        entry[ key ] = attr_dict
-        return key
-
-    def nodes( self, data=False):
-        """Return list of graph nodes
-           data: return list of ( node, attrs)"""
-        return self.node.items() if data else self.node.keys()
-
-    def edges_iter( self, data=False, keys=False ):
-        "Iterator: return graph edges, optionally with data and keys"
-        for src, entry in self.edge.items():
-            for dst, entrykeys in entry.items():
-                if src > dst:
-                    # Skip duplicate edges
-                    continue
-                for k, attrs in entrykeys.items():
-                    if data:
-                        if keys:
-                            yield( src, dst, k, attrs )
-                        else:
-                            yield( src, dst, attrs )
-                    else:
-                        if keys:
-                            yield( src, dst, k )
-                        else:
-                            yield( src, dst )
-
-    def edges( self, data=False, keys=False ):
-        "Return list of graph edges"
-        return list( self.edges_iter( data=data, keys=keys ) )
-
-    def __getitem__( self, node ):
-        "Return link dict for given src node"
-        return self.edge[ node ]
-
-    def __len__( self ):
-        "Return the number of nodes"
-        return len( self.node )
-
-    def convertTo( self, cls, data=False, keys=False ):
-        """Convert to a new object of networkx.MultiGraph-like class cls
-           data: include node and edge data
-           keys: include edge keys as well as edge data"""
-        g = cls()
-        g.add_nodes_from( self.nodes( data=data ) )
-        g.add_edges_from( self.edges( data=( data or keys ), keys=keys ) )
-        return g
+from mininet.topo import Topo as MN_TOPO, MultiGraph
 
 
 class Topo(MN_TOPO):
@@ -116,14 +33,6 @@ class Topo(MN_TOPO):
     def build(self, *args, **params):
         "Override this method to build your topology."
         pass
-
-    def addNode(self, name, **opts):
-        """Add Node to graph.
-           name: name
-           opts: node options
-           returns: node name"""
-        self.g.add_node(name, **opts)
-        return name
 
     def addStation(self, name, **opts):
         """Convenience method: Add station to graph.
@@ -153,17 +62,6 @@ class Topo(MN_TOPO):
         if not opts and self.hopts:
             opts = self.hopts
         return self.addNode(name, isHost=True, **opts)
-
-    def addSwitch(self, name, **opts):
-        """Convenience method: Add switch to graph.
-           name: switch name
-           opts: switch options
-           returns: switch name"""
-
-        if not opts and self.sopts:
-            opts = self.sopts
-        result = self.addNode(name, isSwitch=True, **opts)
-        return result
 
     # This legacy port management mechanism is clunky and will probably
     # be removed at some point.

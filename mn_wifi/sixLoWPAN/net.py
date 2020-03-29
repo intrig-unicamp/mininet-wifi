@@ -12,7 +12,7 @@ from mininet.log import error, debug, output
 from mn_wifi.sixLoWPAN.link import sixLoWPAN
 from mn_wifi.sixLoWPAN.node import sixLoWPan, OVSSensor, Node_6lowpan
 from mn_wifi.sixLoWPAN.module import module
-from mn_wifi.util import ipAdd6, netParse6
+from mn_wifi.sixLoWPAN.util import ipAdd6, netParse6
 
 
 class Mininet_IoT(object):
@@ -231,7 +231,8 @@ class Mininet_IoT(object):
         wpans = params.get('wpans', 1)
         return wpans
 
-    def kill_fakelb(self):
+    @staticmethod
+    def kill_fakelb():
         "Kill fakelb"
         module.fakelb()
         sleep(0.1)

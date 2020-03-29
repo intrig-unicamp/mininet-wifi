@@ -1,12 +1,11 @@
 "author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)"
 
-import re
-
 from mininet.util import BaseString
+from mininet.link import Intf, TCIntf, Link
 from mininet.log import error, debug
 
 
-class IntfSixLoWPAN(object):
+class IntfSixLoWPAN(Intf):
 
     "Basic interface object that can configure itself."
 
@@ -34,10 +33,6 @@ class IntfSixLoWPAN(object):
         self.params = params
         self.config( **params )
 
-    def cmd( self, *args, **kwargs ):
-        "Run a command in our owning node"
-        return self.node.cmd( *args, **kwargs )
-
     def ipAddr6(self, *args):
         self.cmd('ip -6 addr flush ', self.name)
         return self.cmd('ip -6 addr add ', args[0], 'dev', self.name)
@@ -59,17 +54,6 @@ class IntfSixLoWPAN(object):
                                 % (ipstr,))
             self.ip6, self.prefixLen = ipstr, prefixLen
             return self.ipAddr6('%s/%s' % (ipstr, prefixLen))
-
-    def setMAC(self, macstr):
-        """Set the MAC address for an interface.
-           macstr: MAC address as string"""
-        self.mac = macstr
-        return (self.ipLink('down') +
-                self.ipLink('address', macstr) +
-                self.ipLink('up'))
-
-    _ipMatchRegex = re.compile(r'\d+\::\d+')
-    _macMatchRegex = re.compile(r'..:..:..:..:..:..')
 
     def updateIP(self):
         "Return updated IP address based on ip addr"
@@ -105,10 +89,6 @@ class IntfSixLoWPAN(object):
         "Return IPv6 address"
         return self.ip6
 
-    def MAC( self ):
-        "Return MAC address"
-        return self.mac
-
     def isUp(self, setUp=False):
         "Return whether interface is up"
         if setUp:
@@ -121,39 +101,6 @@ class IntfSixLoWPAN(object):
                 return True
         else:
             return "UP" in self.ipAddr6()
-
-    def rename(self, newname):
-        "Rename interface"
-        self.ipLink('down')
-        result = self.cmd('ip link set', self.name, 'name', newname)
-        self.name = newname
-        self.ipLink('up')
-        return result
-
-    # The reason why we configure things in this way is so
-    # That the parameters can be listed and documented in
-    # the config method.
-    # Dealing with subclasses and superclasses is slightly
-    # annoying, but at least the information is there!
-
-    def setParam( self, results, method, **param ):
-        """Internal method: configure a *single* parameter
-           results: dict of results to update
-           method: config method name
-           param: arg=value (ignore if value=None)
-           value may also be list or dict"""
-        name, value = list(param.items())[ 0 ]
-        f = getattr( self, method, None )
-        if not f or value is None:
-            return
-        if isinstance( value, list ):
-            result = f( *value )
-        elif isinstance( value, dict ):
-            result = f( **value )
-        else:
-            result = f( value )
-        results[ name ] = result
-        return result
 
     def config( self, mac=None, ip6=None, ipAddr=None,
                 up=True, **_params ):
@@ -183,111 +130,11 @@ class IntfSixLoWPAN(object):
         self.node.delIntf( self )
         self.link = None
 
-    def status( self ):
-        "Return intf status as a string"
-        links, _err, _result = self.node.pexec( 'ip link show' )
-        if self.name in links:
-            return "OK"
-        else:
-            return "MISSING"
 
-    def __repr__( self ):
-        return '<%s %s>' % ( self.__class__.__name__, self.name )
-
-    def __str__( self ):
-        return self.name
-
-
-class TC6LoWPANLink(IntfSixLoWPAN):
+class TC6LoWPANLink(TCIntf, IntfSixLoWPAN):
     """Interface customized by tc (traffic control) utility
        Allows specification of bandwidth limits (various methods)
        as well as delay, loss and max queue length"""
-
-    # The parameters we use seem to work reasonably up to 1 Gb/sec
-    # For higher data rates, we will probably need to change them.
-    bwParamMax = 1000
-
-    def bwCmds(self, bw=None, speedup=0, use_hfsc=False, use_tbf=False,
-               latency_ms=None, enable_ecn=False, enable_red=False):
-        "Return tc commands to set bandwidth"
-        cmds, parent = [], ' root '
-        if bw and (bw < 0 or bw > self.bwParamMax):
-            error('Bandwidth limit', bw, 'is outside supported range 0..%d'
-                  % self.bwParamMax, '- ignoring\n')
-        elif bw is not None:
-            # BL: this seems a bit brittle...
-            if speedup > 0:
-                bw = speedup
-            # This may not be correct - we should look more closely
-            # at the semantics of burst (and cburst) to make sure we
-            # are specifying the correct sizes. For now I have used
-            # the same settings we had in the mininet-hifi code.
-            if use_hfsc:
-                cmds += [ '%s qdisc add dev %s root handle 5:0 hfsc default 1',
-                          '%s class add dev %s parent 5:0 classid 5:1 hfsc sc '
-                          + 'rate %fMbit ul rate %fMbit' % (bw, bw) ]
-            elif use_tbf:
-                if latency_ms is None:
-                    latency_ms = 15 * 8 / bw
-                cmds += [ '%s qdisc add dev %s root handle 5: tbf ' +
-                          'rate %fMbit burst 15000 latency %fms' %
-                          (bw, latency_ms) ]
-            else:
-                cmds += [ '%s qdisc add dev %s root handle 5:0 htb default 1',
-                          '%s class add dev %s parent 5:0 classid 5:1 htb ' +
-                          'rate %fMbit burst 15k' % bw ]
-            parent = ' parent 5:1 '
-            # ECN or RED
-            if enable_ecn:
-                cmds += [ '%s qdisc add dev %s' + parent +
-                          'handle 6: red limit 1000000 ' +
-                          'min 30000 max 35000 avpkt 1500 ' +
-                          'burst 20 ' +
-                          'bandwidth %fmbit probability 1 ecn' % bw ]
-                parent = ' parent 6: '
-            elif enable_red:
-                cmds += [ '%s qdisc add dev %s' + parent +
-                          'handle 6: red limit 1000000 ' +
-                          'min 30000 max 35000 avpkt 1500 ' +
-                          'burst 20 ' +
-                          'bandwidth %fmbit probability 1' % bw ]
-                parent = ' parent 6: '
-
-        return cmds, parent
-
-    @staticmethod
-    def delayCmds(parent, delay=None, jitter=None,
-                  loss=None, max_queue_size=None):
-        "Internal method: return tc commands for delay and loss"
-        cmds = []
-        if delay:
-            delay_ = float(delay.replace("ms", ""))
-        if delay and delay_ < 0:
-            error( 'Negative delay', delay, '\n' )
-        elif jitter and jitter < 0:
-            error('Negative jitter', jitter, '\n')
-        elif loss and (loss < 0 or loss > 100):
-            error('Bad loss percentage', loss, '%%\n')
-        else:
-            # Delay/jitter/loss/max queue size
-            netemargs = '%s%s%s%s' % (
-                'delay %s ' % delay if delay is not None else '',
-                '%s ' % jitter if jitter is not None else '',
-                'loss %.5f ' % loss if loss is not None else '',
-                'limit %d' % max_queue_size if max_queue_size is not None
-                else '')
-            if netemargs:
-                cmds = [ '%s qdisc add dev %s ' + parent +
-                         ' handle 10: netem ' +
-                         netemargs ]
-                parent = ' parent 10:1 '
-        return cmds, parent
-
-    def tc(self, cmd, tc='tc'):
-        "Execute tc command for our interface"
-        c = cmd % (tc, self)  # Add in tc command and our name
-        debug(" *** executing command: %s\n" % c)
-        return self.cmd(c)
 
     def config(self, bw=None, delay=None, jitter=None, loss=None,
                gro=False, speedup=0, use_hfsc=False, use_tbf=False,
@@ -364,7 +211,7 @@ class TC6LoWPANLink(IntfSixLoWPAN):
         return result
 
 
-class sixLoWPAN(IntfSixLoWPAN):
+class sixLoWPAN(Link, IntfSixLoWPAN):
 
     def __init__(self, node, wpan, port=None, addr=None,
                  cls=IntfSixLoWPAN, **params):
@@ -417,29 +264,17 @@ class sixLoWPAN(IntfSixLoWPAN):
                 elif isinstance(node.params[key], int):
                     setattr(self, key, node.params[key])
 
-    @staticmethod
-    def _ignore(*args, **kwargs):
-        "Ignore any arguments"
-        pass
-
     def wpanName(self, node, ifacename, n):
         "Construct a canonical interface name node-ethN for interface n."
         # Leave this as an instance method for now
         assert self
-        return node.name + '-' + ifacename # + repr(n)
+        return node.name + '-' + ifacename  # + repr(n)
 
     def delete(self):
         "Delete this link"
         self.intf1.delete()
         self.intf1 = None
 
-    def stop(self):
-        "Override to stop and clean up link as needed"
-        self.delete()
-
     def status(self):
         "Return link status as a string"
         return "(%s)" % (self.intf1.status(), self.intf2)
-
-    def __str__(self):
-        return '%s<->%s' % (self.intf1, self.intf2)

@@ -14,6 +14,7 @@ def ipAdd6(i, prefixLen=64, ipBaseNum=0x0a000000):
     ipnum = (ipBaseNum & mask) + i
     return ipStr(ipnum)
 
+
 def ipStr(ip):
     """Generate IP address string from an unsigned int.
        ip: unsigned int of form w << 24 | x << 16 | y << 8 | z
@@ -29,9 +30,11 @@ def ipStr(ip):
     x1 = 2001
     return "%s:%s:%s:%s:%s:%s:%s:%s" % (x1, x2, x3, x4, x5, x6, x7, x8)
 
+
 def ipNum(x1, x2, x3, x4, x5, x6, x7, x8):
     "Generate unsigned int from components of IP address"
     return (x1 << 112) | (x2 << 96) | (x3 << 80) | (x4 << 64) | (x5 << 48) | (x6 << 32) | (x7 << 16) | x8
+
 
 def ipParse(ip):
     "Parse an IP address and return an unsigned int."
@@ -40,7 +43,8 @@ def ipParse(ip):
         args.append(0)
     return ipNum(*args)
 
-def netParse(ipstr):
+
+def netParse6(ipstr):
     """Parse an IP network specification, returning
        address and prefix len as unsigned ints"""
     prefixLen = 0
