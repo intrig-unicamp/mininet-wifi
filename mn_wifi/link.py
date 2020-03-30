@@ -1,6 +1,7 @@
 """
    Mininet-WiFi: A simple networking testbed for Wireless OpenFlow/SDWN!
    @author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
+   @author: Joaquin Alvarez (j.alvarez@uah.es)
 """
 
 import os
@@ -61,10 +62,11 @@ class IntfWireless(Intf):
     def iwdev_pexec(self, *args):
         return self.pexec('iw dev', *args)
 
-    def join_ibss(self):
-        return self.iwdev_cmd('{} ibss join {} {} {} 02:CA:FF:EE:BA:01'.
+    def join_ibss(self, ibss="02:CA:FF:EE:BA:01"):
+        debug('######iw dev {} ibss join {} {} {} {}\n'. format(self.name, self.ssid, self.format_freq(), self.ht_cap, ibss))
+        return self.iwdev_cmd('{} ibss join {} {} {} {}'.
                               format(self.name, self.ssid,
-                                     self.format_freq(), self.ht_cap))
+                                     self.format_freq(), self.ht_cap, ibss))
 
     def join_mesh(self):
         return self.iwdev_cmd('{} mesh join {} freq {} {}'.
@@ -1318,7 +1320,7 @@ class adhoc(IntfWireless):
 
     def __init__(self, node, intf=None, ssid='adhocNet',
                  channel=1, mode='g', passwd=None, ht_cap='',
-                 proto=None, **params):
+                 proto=None, ibss="02:CA:FF:EE:BA:01", **params):
         """Configure AdHoc
         node: name of the node
         self: custom association class/constructor
@@ -1358,7 +1360,7 @@ class adhoc(IntfWireless):
 
         self.freq = self.get_freq()
         self.setReg()
-        self.configureAdhoc()
+        self.configureAdhoc(ibss) #modificacion JAHUAH
 
         self.txpower = intf.txpower
         self.range = intf.range
@@ -1366,7 +1368,7 @@ class adhoc(IntfWireless):
         if proto:
             manetProtocols(intf, proto, **params)
 
-    def configureAdhoc(self):
+    def configureAdhoc(self, ibss="02:CA:FF:EE:BA:01"):
         "Configure Wireless Ad Hoc"
         self.set_dev_type('ibss')
         self.ipLink('up')
@@ -1374,7 +1376,7 @@ class adhoc(IntfWireless):
         if self.passwd:
             self.setSecuredAdhoc()
         else:
-            self.join_ibss()
+            self.join_ibss(ibss)
 
     def get_sta_confname(self):
         fileName = '%s.staconf' % self.name
