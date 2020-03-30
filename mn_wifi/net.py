@@ -760,29 +760,42 @@ class Mininet_wifi(Mininet, Mininet_IoT):
     def stop(self):
         'Stop Mininet-WiFi'
         self.stop_graph_params()
-        nodes = self.aps + self.apsensors
-        info('*** Stopping %i access points\n' % len(nodes))
-        stopped = {}
-        for swclass, nodesl2 in groupby(
-                sorted(nodes, key=lambda x: str(type(x))), type):
-            nodesl2 = tuple(nodesl2)
-            #if hasattr(swclass, 'batchShutdown'):
-                #success = swclass.batchShutdown(nodesl2)
-                #stopped.update({s: s for s in success})
-        for node in nodes:
-            info(node.name + ' ')
-            if node not in stopped:
-                node.stop()
-            #node.terminate()
+        info('*** Stopping %i controllers\n' % len(self.controllers))
+        for controller in self.controllers:
+            info(controller.name + ' ')
+            controller.stop()
         info('\n')
-        nodes = self.stations + self.sensors
-        info('*** Stopping %i stations\n' % len(nodes))
+        if self.terms:
+            info('*** Stopping %i terms\n' % len(self.terms))
+            self.stopXterms()
+        info('*** Stopping %i links\n' % len(self.links))
+        for link in self.links:
+            info('.')
+            link.stop()
+        info('\n')
+        info('*** Stopping switches/access points\n')
+        stopped = {}
+        nodesL2 = self.switches + self.aps + self.apsensors
+        for swclass, switches in groupby(
+                sorted(nodesL2, key=lambda x: str(type(x))), type):
+            switches = tuple(switches)
+            if hasattr(swclass, 'batchShutdown'):
+                success = swclass.batchShutdown(switches)
+                stopped.update({s: s for s in success})
+        for switch in nodesL2:
+            info(switch.name + ' ')
+            if switch not in stopped:
+                switch.stop()
+            switch.terminate()
+        info('\n')
+        info('*** Stopping nodes\n')
+        nodes = self.hosts + self.stations + self.sensors
         for node in nodes:
             info(node.name + ' ')
             node.terminate()
         info('\n')
-        Mininet.stop(self)
         self.closeMininetWiFi()
+        info('\n*** Done\n')
 
     def ping(self, hosts=None, timeout=None):
         """Ping between all specified hosts.
