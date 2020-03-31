@@ -984,7 +984,7 @@ class managed(TCWirelessLink):
         self.antennaGain = 5.0
         self.antennaHeight = 1.0
 
-        if intf:
+        if intf and hasattr(intf, 'wmIface'):
             self.wmIface = intf.wmIface
 
         for key in self.__dict__.keys():
@@ -1345,7 +1345,7 @@ class adhoc(IntfWireless):
         self.associatedTo = 'adhoc'
         self.ibss = ibss
 
-        if wmediumd_mode.mode:
+        if intf and hasattr(intf, 'wmIface'):
             self.wmIface = intf.wmIface
 
         if 'mp' in intf.name:
