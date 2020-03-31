@@ -1,7 +1,7 @@
 """
    Mininet-WiFi: A simple networking testbed for Wireless OpenFlow/SDWN!
    @author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
-   @Colaborator: Joaquin Alvarez (j.alvarez@uah.es)
+   @Contributor: Joaquin Alvarez (j.alvarez@uah.es)
 """
 
 import os
