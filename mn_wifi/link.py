@@ -1359,7 +1359,7 @@ class adhoc(IntfWireless):
 
         self.freq = self.get_freq()
         self.setReg()
-        self.configureAdhoc() #modificacion JAHUAH
+        self.configureAdhoc()
 
         self.txpower = intf.txpower
         self.range = intf.range
@@ -1367,7 +1367,7 @@ class adhoc(IntfWireless):
         if proto:
             manetProtocols(intf, proto, **params)
 
-    def configureAdhoc(RUSAGE_SELF):
+    def configureAdhoc(self):
         "Configure Wireless Ad Hoc"
         self.set_dev_type('ibss')
         self.ipLink('up')
