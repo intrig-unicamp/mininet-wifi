@@ -64,8 +64,8 @@ class IntfWireless(Intf):
 
     def join_ibss(self, *args):
         return self.iwdev_cmd('{} ibss join'.format(self.name), *args)
-    
-    def remove_ibss(self): #uah
+
+    def remove_ibss(self):
         return self.iwdev_cmd('{} ibss leave'. format(self.name))
 
     def join_mesh(self, ssid, *args):
@@ -1261,7 +1261,7 @@ class WifiDirectLink(IntfWireless):
 
     def get_filename(self):
         suffix = 'wifiDirect.conf'
-        filename = "mn%d_{}_{}".format(os.getpid(), self.name, suffix)
+        filename = "mn{}_{}_{}".format(os.getpid(), self.name, suffix)
         return filename
 
     def get_wpa_cmd(self):
