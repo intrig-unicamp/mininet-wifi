@@ -1,6 +1,7 @@
 """
    Mininet-WiFi: A simple networking testbed for Wireless OpenFlow/SDWN!
    @author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
+   @Contributor: Joaquin Alvarez (j.alvarez@uah.es)
 """
 
 import os
@@ -61,15 +62,14 @@ class IntfWireless(Intf):
     def iwdev_pexec(self, *args):
         return self.pexec('iw dev', *args)
 
-    def join_ibss(self):
-        return self.iwdev_cmd('{} ibss join {} {} {} 02:CA:FF:EE:BA:01'.
-                              format(self.name, self.ssid,
-                                     self.format_freq(), self.ht_cap))
+    def join_ibss(self, *args):
+        return self.iwdev_cmd('{} ibss join'.format(self.name), *args)
+    
+    def remove_ibss(self): #uah
+        return self.iwdev_cmd('{} ibss leave'. format(self.name))
 
-    def join_mesh(self):
-        return self.iwdev_cmd('{} mesh join {} freq {} {}'.
-                              format(self.name, self.ssid,
-                                     self.format_freq(), self.ht_cap))
+    def join_mesh(self, ssid, *args):
+        return self.iwdev_cmd('{} mesh join'.format(self.name), ssid, 'freq', *args)
 
     def get_pid_filename(self):
         pidfile = 'mn{}_{}_{}_wpa.pid'.format(os.getpid(), self.node.name, self.id)
@@ -1318,7 +1318,7 @@ class adhoc(IntfWireless):
 
     def __init__(self, node, intf=None, ssid='adhocNet',
                  channel=1, mode='g', passwd=None, ht_cap='',
-                 proto=None, **params):
+                 proto=None, ibss="02:CA:FF:EE:BA:01", **params):
         """Configure AdHoc
         node: name of the node
         self: custom association class/constructor
@@ -1335,7 +1335,6 @@ class adhoc(IntfWireless):
         self.ip6 = intf.ip6
         self.ip = intf.ip
         self.mac = intf.mac
-        self.ip6 = intf.ip6
         self.link = intf.link
         self.encrypt = intf.encrypt
         self.antennaGain = intf.antennaGain
@@ -1344,6 +1343,8 @@ class adhoc(IntfWireless):
         self.channel = channel
         self.ht_cap = ht_cap
         self.associatedTo = 'adhoc'
+        self.ibss = ibss
+
         if wmediumd_mode.mode:
             self.wmIface = intf.wmIface
 
@@ -1374,7 +1375,8 @@ class adhoc(IntfWireless):
         if self.passwd:
             self.setSecuredAdhoc()
         else:
-            self.join_ibss()
+            self.join_ibss(self.ssid, self.format_freq(),
+                self.ht_cap, self.ibss)
 
     def get_sta_confname(self):
         fileName = '%s.staconf' % self.name
@@ -1397,7 +1399,6 @@ class adhoc(IntfWireless):
 
         fileName = self.get_sta_confname()
         os.system('echo \'%s\' > %s' % (cmd, fileName))
-
 
 class mesh(IntfWireless):
 
@@ -1471,7 +1472,7 @@ class mesh(IntfWireless):
         if self.passwd:
             self.setSecuredMesh()
         else:
-            self.join_mesh()
+            self.join_mesh(self.ssid, self.format_freq(), self.ht_cap)
 
     def get_sta_confname(self):
         fileName = '%s.staconf' % self.name
@@ -1519,7 +1520,7 @@ class physicalMesh(IntfWireless):
         self.setPhysicalMeshIface(node, wlan, intf)
         self.freq = self.format_freq()
 
-        self.join_mesh()
+        self.join_mesh(self.ssid, self.format_freq(), self.ht_cap)
 
     def ipLink(self, state=None):
         "Configure ourselves using ip link"
