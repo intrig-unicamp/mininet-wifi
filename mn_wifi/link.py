@@ -50,22 +50,23 @@ class IntfWireless(Intf):
         "Run a command in our owning node"
         return self.node.pexec(*args, **kwargs)
 
-    def set_dev_type(self, type):
-        self.iwdev_cmd('%s set type %s' % (self.name, type))
-
-    def add_dev_type(self, new_name, type):
-        self.iwdev_cmd('%s interface add %s type %s' % (self.name, new_name, type))
-
     def iwdev_cmd(self, *args):
         return self.cmd('iw dev', *args)
 
     def iwdev_pexec(self, *args):
         return self.pexec('iw dev', *args)
 
+    def set_dev_type(self, *args):
+        return self.iwdev_cmd('{} set type {}'.format(self.name, *args))
+
+    def add_dev_type(self, new_name, type):
+        return self.iwdev_cmd('{} interface add {} type {}'.format(
+            self.name, new_name, type))
+
     def join_ibss(self, *args):
         return self.iwdev_cmd('{} ibss join'.format(self.name), *args)
 
-    def remove_ibss(self):
+    def ibss_leave(self):
         return self.iwdev_cmd('{} ibss leave'. format(self.name))
 
     def join_mesh(self, ssid, *args):
@@ -171,7 +172,7 @@ class IntfWireless(Intf):
 
     def setChannel(self):
         self.freq = self.get_freq()
-        self.iwdev_cmd('%s set channel %s' % (self.name, self.channel))
+        self.iwdev_cmd('{} set channel {}'.format(self.name, self.channel))
 
     def ipAddr(self, *args):
         "Configure ourselves using ip link/addr"
@@ -201,8 +202,8 @@ class IntfWireless(Intf):
         self.mode = mode
 
     def setTxPower(self):
-        txpower = self.txpower
-        self.node.pexec('iw dev %s set txpower fixed %s' % (self.name, txpower * 100))
+        self.iwdev_pexec('{} set txpower fixed {}'.format(
+            self.name, self.txpower * 100))
         debug('\n')
 
     def setIP(self, ipstr, prefixLen=None, **args):
@@ -239,7 +240,7 @@ class IntfWireless(Intf):
         w_server.send_snr_update(SNRLink(ap_intf.wmIface, self.wmIface, snr))
 
     def disconnect(self):
-        self.node.pexec('iw dev %s disconnect' % self.name)
+        self.iwdev_pexec('{} disconnect'.format(self.name))
         self.rssi = 0
         self.associatedTo = ''
         self.channel = 0
@@ -328,7 +329,8 @@ class IntfWireless(Intf):
         self.wep_connect(passwd, ap_intf)
 
     def wep_connect(self, passwd, ap_intf):
-        self.node.pexec('iw dev %s connect %s key d:0:%s' % (self.name, ap_intf.ssid, passwd))
+        self.iwdev_pexec('{} connect {} key d:0:{}'.format(
+            self.name, ap_intf.ssid, passwd))
 
     def update_client_params(self, ap_intf):
         self.freq = ap_intf.freq
@@ -1229,7 +1231,7 @@ class ITSLink(IntfWireless):
 
     def configure_ocb(self):
         "Configure Wireless OCB"
-        self.iwdev_cmd('%s ocb join %s 20MHz' % (self.name, self.freq))
+        self.iwdev_cmd('{} ocb join {} 20MHz'.format(self.name, self.freq))
 
 
 class WifiDirectLink(IntfWireless):
@@ -1316,20 +1318,18 @@ class adhoc(IntfWireless):
 
     node = None
 
-    def __init__(self, node, intf=None, ssid='adhocNet',
+    def __init__(self, node, intf, wlan=0, ssid='adhocNet',
                  channel=1, mode='g', passwd=None, ht_cap='',
                  proto=None, ibss="02:CA:FF:EE:BA:01", **params):
         """Configure AdHoc
         node: name of the node
         self: custom association class/constructor
         params: parameters for station"""
-        self.node = node
         if isinstance(intf, BaseString):
             wlan = node.params['wlan'].index(intf)
             intf = node.wintfs[wlan]
-        else:
-            wlan = intf.id
 
+        self.node = node
         self.id = wlan
         self.ssid = ssid
         self.ip6 = intf.ip6
@@ -1400,25 +1400,24 @@ class adhoc(IntfWireless):
         fileName = self.get_sta_confname()
         os.system('echo \'%s\' > %s' % (cmd, fileName))
 
+
 class mesh(IntfWireless):
 
     node = None
 
-    def __init__(self, node, intf=None, mode='g', channel=1,
+    def __init__(self, node, intf, wlan=0, mode='g', channel=1,
                  ssid='meshNet', passwd=None, ht_cap=''):
         from mn_wifi.node import AP
         """Configure wireless mesh
         node: name of the node
         self: custom association class/constructor
         params: parameters for node"""
-        self.node = node
         if isinstance(intf, BaseString):
             wlan = node.params['wlan'].index(intf)
             intf = node.wintfs[wlan]
-        else:
-            wlan = intf.id
-        iface = intf
 
+        iface = intf
+        self.node = node
         self.name = self.name = '%s-mp%s' % (node, intf.name[-1:])
         self.id = wlan
         self.mac = intf.mac

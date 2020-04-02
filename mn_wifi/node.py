@@ -102,51 +102,46 @@ class Node_wifi(Node):
         physicalMesh(self, **kwargs)
 
     def setMeshMode(self, intf=None, **kwargs):
-        if intf: kwargs['intf'] = intf
-        mesh(self, **kwargs)
+        wlan, intf = self.get_wlan_intf(intf)
+        mesh(self, intf, wlan, **kwargs)
 
     def setAdhocMode(self, intf=None, **kwargs):
-        if intf: kwargs['intf'] = intf
-        wlan = self.get_wlan(kwargs['intf'])
+        wlan, intf = self.get_wlan_intf(intf)
         if isinstance(self.wintfs[wlan], adhoc):
-            self.cmd('iw dev %s ibss leave' % self.params['wlan'][wlan])
-        adhoc(self, **kwargs)
+            intf.ibss_leave()
+        adhoc(self, intf, wlan, **kwargs)
 
     def get_wlan_intf(self, intf):
         if isinstance(intf, BaseString):
             wlan = self.get_wlan(intf)
             intf = self.wintfs[wlan]
         else:
-            wlan = intf.id
-        return intf, wlan
+            wlan = 0
+            intf = self.wintfs[wlan]
+        return wlan, intf
 
     def setManagedMode(self, intf=None):
-        intf, wlan = self.get_wlan_intf(intf)
+        wlan, intf = self.get_wlan_intf(intf)
         if isinstance(intf, mesh):
-            self.cmd('iw dev %s del' % intf.name)
+            intf.iwdev_cmd('%s del' % intf.name)
             intf.name = '%s-wlan%s' % (self, intf.id)
             self.params['wlan'][wlan] = intf.name
         elif isinstance(intf, master):
             apconfname = "mn%d_%s.apconf" % (os.getpid(), intf.name)
             self.cmd('rm %s' % apconfname)
             self.cmd('pkill -f \'%s\'' % apconfname)
-        self.cmd('iw dev %s set type managed' % intf.name)
+        intf.set_dev_type('managed')
         managed(self, wlan, intf=intf)
 
     def setMasterMode(self, intf=None, ssid='new-ssid', **kwargs):
         "set Interface to AP mode"
-        if not ssid:
-            ssid = self.name + '-ssid'
-        intf, wlan = self.get_wlan_intf(intf)
+        wlan, intf = self.get_wlan_intf(intf)
         master(self, wlan, port=wlan, intf=intf)
-
-        intf = self.wintfs[wlan]
 
         if int(intf.range) == 0:
             intf.range = self.getRange(intf)
 
         intf.ssid = ssid
-
         for key, value in kwargs.items():
             setattr(self, key, value)
 
@@ -185,7 +180,7 @@ class Node_wifi(Node):
 
     def setRange(self, range, intf=None):
         "Set Signal Range"
-        intf, wlan = self.get_wlan_intf(intf)
+        wlan, intf = self.get_wlan_intf(intf)
         intf.range = float(range)
         intf.txpower = self.get_txpower_prop_model(intf)
         intf.setTxPower()
@@ -278,7 +273,7 @@ class Node_wifi(Node):
 
     def setAntennaGain(self, gain, intf=None):
         "Set Antenna Gain"
-        intf, wlan = self.get_wlan_intf(intf)
+        wlan, intf = self.get_wlan_intf(intf)
         intf.antennaGain = int(gain)
         intf.range = self.getRange(intf)
         intf.setGainWmediumd()
@@ -288,7 +283,7 @@ class Node_wifi(Node):
 
     def setAntennaHeight(self, value, intf=None):
         "Set Antenna Height"
-        intf, wlan = self.get_wlan_intf(intf)
+        wlan, intf = self.get_wlan_intf(intf)
         intf.antennaHeight = int(value)
         intf.setHeightWmediumd()
         self.configLinks()
@@ -296,7 +291,7 @@ class Node_wifi(Node):
 
     def setChannel(self, chann, intf=None):
         "Set Channel"
-        intf, wlan = self.get_wlan_intf(intf)
+        wlan, intf = self.get_wlan_intf(intf)
         intf.channel = chann
 
         if isinstance(self, AP):
@@ -304,13 +299,13 @@ class Node_wifi(Node):
         elif isinstance(intf, mesh):
             intf.setChannel()
         elif isinstance(intf, adhoc):
-            self.cmd('iw dev %s ibss leave' % intf.name)
+            intf.ibss_leave()
             adhoc(self, chann=chann, intf=intf)
         self.remove_attr_from_params('channel')
 
     def setTxPower(self, txpower, intf=None):
         "Set Tx Power"
-        intf, wlan = self.get_wlan_intf(intf)
+        wlan, intf = self.get_wlan_intf(intf)
         intf.txpower = txpower
 
         intf.setTxPower()
