@@ -11,7 +11,7 @@ import numpy as np
 from numpy.random import rand
 
 from mininet.log import debug, info
-from mn_wifi.link import wirelessLink, mesh, adhoc, ITSLink
+from mn_wifi.link import wirelessLink, mesh, adhoc, ITSLink, master
 from mn_wifi.associationControl import AssociationControl as AssCtrl
 from mn_wifi.plot import PlotGraph
 from mn_wifi.wmediumdConnector import w_cst, wmediumd_mode
@@ -111,28 +111,29 @@ class Mobility(object):
 
     def ap_in_range(self, intf, ap, dist):
         for ap_intf in ap.wintfs.values():
-            rssi = intf.get_rssi(ap_intf, dist)
-            intf.apsInRange[ap_intf.node] = rssi
-            ap_intf.stationsInRange[intf.node] = rssi
-            if ap_intf.node == intf.associatedTo:
-                if intf.node not in ap_intf.associatedStations:
-                    ap_intf.associatedStations.append(intf.node)
-                if dist >= 0.01:
-                    if intf.bgscan_threshold or intf.active_scan \
-                            and intf.encrypt == 'wpa':
-                        pass
-                    else:
-                        intf.rssi = rssi
-                        # send rssi to hwsim
-                        if hasattr(intf.node, 'phyid'):
-                            intf.rec_rssi()
-                        if wmediumd_mode.mode != w_cst.WRONG_MODE:
-                            if wmediumd_mode.mode == w_cst.SNR_MODE:
-                                intf.setSNRWmediumd(ap_intf, intf.rssi-(-91))
+            if isinstance(ap_intf, master):
+                rssi = intf.get_rssi(ap_intf, dist)
+                intf.apsInRange[ap_intf.node] = rssi
+                ap_intf.stationsInRange[intf.node] = rssi
+                if ap_intf.node == intf.associatedTo:
+                    if intf.node not in ap_intf.associatedStations:
+                        ap_intf.associatedStations.append(intf.node)
+                    if dist >= 0.01:
+                        if intf.bgscan_threshold or intf.active_scan \
+                                and intf.encrypt == 'wpa':
+                            pass
                         else:
-                            if intf.node.position != intf.node.pos:
-                                intf.node.pos = intf.node.position
-                                wirelessLink(intf, dist)
+                            intf.rssi = rssi
+                            # send rssi to hwsim
+                            if hasattr(intf.node, 'phyid'):
+                                intf.rec_rssi()
+                            if wmediumd_mode.mode != w_cst.WRONG_MODE:
+                                if wmediumd_mode.mode == w_cst.SNR_MODE:
+                                    intf.setSNRWmediumd(ap_intf, intf.rssi-(-91))
+                            else:
+                                if intf.node.position != intf.node.pos:
+                                    intf.node.pos = intf.node.position
+                                    wirelessLink(intf, dist)
 
     def check_in_range(self, intf, ap_intf):
         dist = intf.node.get_distance_to(ap_intf.node)
