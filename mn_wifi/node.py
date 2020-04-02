@@ -138,6 +138,8 @@ class Node_wifi(Node):
         wlan, intf = self.get_wlan_intf(intf)
         master(self, wlan, port=wlan, intf=intf)
 
+        # gets new intf from master's class
+        wlan, intf = self.get_wlan_intf(intf)
         if int(intf.range) == 0:
             intf.range = self.getRange(intf)
 
@@ -658,8 +660,8 @@ class AccessPoint(Node_wifi):
                     if 'phywlan' in ap.params:
                         for id, intf in enumerate(ap.wintfs.values()):
                             cmd = self.setConfig(intf, aps, id)
-
-                    cmd = self.setConfig(intf, aps, wlan)
+                    else:
+                        cmd = self.setConfig(intf, aps, wlan)
                     if 'vssids' in intf.node.params:
                         for vwlan, id in enumerate(intf.vifaces):
                             cmd += self.virtual_intf(intf, vwlan)
