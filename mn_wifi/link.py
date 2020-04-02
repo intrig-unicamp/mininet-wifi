@@ -958,7 +958,6 @@ class managed(TCWirelessLink):
         self.ifb = None
         self.active_scan = None
         self.associatedTo = None
-        self.associatedStations = None
         self.authmode = None
         self.config = None
         self.encrypt = None
@@ -972,7 +971,6 @@ class managed(TCWirelessLink):
         self.radius_passwd = None
         self.scan_freq = None
         self.ssid = None
-        self.stationsInRange = None
         self.bgscan_module = 'simple'
         self.s_inverval = 0
         self.bgscan_threshold = 0
@@ -1427,8 +1425,6 @@ class mesh(IntfWireless):
         self.txpower = intf.txpower
         self.encrypt = intf.encrypt
         self.antennaGain = intf.antennaGain
-        self.stationsInRange = intf.stationsInRange
-        self.associatedStations = intf.associatedStations
         self.range = intf.range
         self.ssid = ssid
         self.mode = mode
@@ -1436,6 +1432,7 @@ class mesh(IntfWireless):
         self.ht_cap = ht_cap
         self.passwd = passwd
         self.associatedTo = 'mesh'
+
         if wmediumd_mode.mode:
             self.wmIface = DynamicIntfRef(node, intf=self.name)
             node.wmIfaces[wlan] = self.wmIface
