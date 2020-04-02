@@ -115,7 +115,7 @@ class testWalkthrough(unittest.TestCase):
         p.expect(self.prompt)
         p.sendline('py sta1.setMeshMode()')
         p.expect(self.prompt)
-        p.sendline('sta1 iw dev sta1-wlan0 info | grep type')
+        p.sendline('sta1 iw dev sta1-mp0 info | grep type')
         p.expect('mesh point')
         p.expect(self.prompt)
         p.sendline('py sta1.setAdhocMode()')
