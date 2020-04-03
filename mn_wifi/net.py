@@ -537,9 +537,12 @@ class Mininet_wifi(Mininet, Mininet_IoT):
         node2 = node2 if not isinstance(node2, string_types) else self[node2]
         cls = self.link if cls is None else cls
 
-        modes = [mesh, physicalMesh, adhoc, ITSLink,
-                 WifiDirectLink, PhysicalWifiDirectLink]
+        modes = [mesh, adhoc, ITSLink, WifiDirectLink, PhysicalWifiDirectLink]
         if cls in modes:
+            link = cls(node=node1, **params)
+            self.links.append(link)
+            return link
+        elif cls == physicalMesh:
             cls(node=node1, **params)
         elif cls == sixLoWPAN:
             link = cls(node=node1, port=port1, **params)

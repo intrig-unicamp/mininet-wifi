@@ -1179,7 +1179,27 @@ class wirelessLink(object):
         node.pexec(cmd)
 
 
-class ITSLink(IntfWireless):
+class LinkAttrs(TCWirelessLink):
+
+    def delete(self):
+        "Delete this link"
+        self.intf1.delete()
+        self.intf1 = None
+        self.intf2 = None
+
+    def stop(self):
+        "Override to stop and clean up link as needed"
+        self.delete()
+
+    def status(self):
+        "Return link status as a string"
+        return "(%s %s)" % (self.intf1.status(), self.intf2)
+
+    def __str__(self):
+        return '%s<->%s' % (self.intf1, self.intf2)
+
+
+class ITSLink(LinkAttrs):
 
     def __init__(self, node, intf=None, channel=161):
         "configure ieee80211p"
@@ -1204,9 +1224,16 @@ class ITSLink(IntfWireless):
             self.add_ocb_mode()
         else:
             self.set_ocb_mode()
-        #node.addWIntf(self, port=wlan)
+
+        intf1 = TCWirelessLink(name=node.params['wlan'][wlan], node=node,
+                               link=self, port=wlan)
+        intf2 = 'wifiITS'
+
         node.addWAttr(self, port=wlan)
         self.configure_ocb()
+
+        # All we are is dust in the wind, and our two interfaces
+        self.intf1, self.intf2 = intf1, intf2
 
     def kill_hostapd(self):
         self.node.setManagedMode(self)
@@ -1232,7 +1259,7 @@ class ITSLink(IntfWireless):
         self.iwdev_cmd('{} ocb join {} 20MHz'.format(self.name, self.freq))
 
 
-class WifiDirectLink(IntfWireless):
+class WifiDirectLink(LinkAttrs):
 
     def __init__(self, node, intf=None):
         "configure wifi-direct"
@@ -1252,12 +1279,19 @@ class WifiDirectLink(IntfWireless):
         self.ip6 = intf.ip6
         self.ip = intf.ip
 
-        node.addWIntf(self, port=wlan)
+        intf1 = TCWirelessLink(name=node.params['wlan'][wlan], node=node,
+                               link=self, port=wlan)
+        intf2 = 'wifiDirect'
+
+        #node.addWIntf(self, port=wlan)
         node.addWAttr(self, port=wlan)
 
         self.config_()
         cmd = self.get_wpa_cmd()
         node.cmd(cmd)
+
+        # All we are is dust in the wind, and our two interfaces
+        self.intf1, self.intf2 = intf1, intf2
 
     def get_filename(self):
         suffix = 'wifiDirect.conf'
@@ -1296,7 +1330,10 @@ class PhysicalWifiDirectLink(WifiDirectLink):
         self.freq = freq
         self.antennaGain = 5
         self.range = 100
-        node.addWIntf(self)
+
+        intf1 = TCWirelessLink(name=self.name, node=node, link=self)
+        intf2 = 'wifiDirect'
+
         node.addWAttr(self)
 
         for wlan, intf in enumerate(node.wintfs.values()):
@@ -1311,8 +1348,11 @@ class PhysicalWifiDirectLink(WifiDirectLink):
         cmd = self.get_wpa_cmd()
         os.system(cmd)
 
+        # All we are is dust in the wind, and our two interfaces
+        self.intf1, self.intf2 = intf1, intf2
 
-class adhoc(IntfWireless):
+
+class adhoc(LinkAttrs):
 
     node = None
 
@@ -1352,7 +1392,10 @@ class adhoc(IntfWireless):
 
         self.name = intf.name
 
-        node.addWIntf(self, port=wlan)
+        intf1 = TCWirelessLink(name=node.params['wlan'][wlan], node=node,
+                               link=self, port=wlan)
+        intf2 = 'wifiAdhoc'
+
         node.addWAttr(self, port=wlan)
 
         self.freq = self.get_freq()
@@ -1364,6 +1407,9 @@ class adhoc(IntfWireless):
 
         if proto:
             manetProtocols(intf, proto, **params)
+
+        # All we are is dust in the wind, and our two interfaces
+        self.intf1, self.intf2 = intf1, intf2
 
     def configureAdhoc(self):
         "Configure Wireless Ad Hoc"
@@ -1399,7 +1445,7 @@ class adhoc(IntfWireless):
         os.system('echo \'%s\' > %s' % (cmd, fileName))
 
 
-class mesh(IntfWireless):
+class mesh(LinkAttrs):
 
     node = None
 
@@ -1437,14 +1483,21 @@ class mesh(IntfWireless):
             self.wmIface = DynamicIntfRef(node, intf=self.name)
             node.wmIfaces[wlan] = self.wmIface
 
-        node.addWAttr(self, port=wlan)
         if isinstance(node, AP):
-            node.addWIntf(self, port=wlan+1)
+            port = wlan+1
         else:
-            node.addWIntf(self, port=wlan)
+            port = wlan
 
+        intf1 = TCWirelessLink(name=node.params['wlan'][wlan], node=node,
+                               link=self, port=port)
+        intf2 = 'wifiMesh'
+
+        node.addWAttr(self, port=wlan)
         self.setMeshIface(wlan, iface)
         self.configureMesh()
+
+        # All we are is dust in the wind, and our two interfaces
+        self.intf1, self.intf2 = intf1, intf2
 
     def set_mesh_type(self, intf):
         return '%s interface add %s type mp' % (intf.name, self.name)
@@ -1514,9 +1567,10 @@ class physicalMesh(IntfWireless):
 
         self.name = intf
         self.setPhysicalMeshIface(node, wlan, intf)
+        self.setChannel()
+        self.ipLink('up')
         self.freq = self.format_freq()
-
-        self.join_mesh(self.ssid, self.format_freq(), self.ht_cap)
+        self.join_mesh(self.ssid, self.freq, self.ht_cap)
 
     def ipLink(self, state=None):
         "Configure ourselves using ip link"
@@ -1529,7 +1583,7 @@ class physicalMesh(IntfWireless):
             id = ''
             cmd = 'ip link show | grep %s' % iface
             try:
-                id = subprocess.check_output(cmd, shell=True).split("\n")
+                id = subprocess.check_output(cmd, shell=True).split('\n')
             except:
                 pass
             if len(id) == 0:
@@ -1537,15 +1591,4 @@ class physicalMesh(IntfWireless):
                        (intf, iface))
                 self.name = iface
                 subprocess.check_output(cmd, shell=True)
-            else:
-                try:
-                    if self.channel:
-                        cmd = ('iw dev %s set channel %s' %
-                               (iface, self.channel))
-                        subprocess.check_output(cmd, shell=True)
-                    self.ipLink('up')
-                    command = ('iw dev %s mesh join %s' % (iface, self.ssid))
-                    subprocess.check_output(command, shell=True)
-                    break
-                except:
-                    break
+                break
