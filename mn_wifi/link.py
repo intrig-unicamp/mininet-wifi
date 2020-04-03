@@ -1488,7 +1488,7 @@ class mesh(LinkAttrs):
         else:
             port = wlan
 
-        intf1 = TCWirelessLink(name=node.params['wlan'][wlan], node=node,
+        intf1 = TCWirelessLink(name=self.name, node=node,
                                link=self, port=port)
         intf2 = 'wifiMesh'
 
