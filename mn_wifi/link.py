@@ -1515,6 +1515,8 @@ class mesh(LinkAttrs):
         self.setReg()
 
         self.ipLink('up')
+        self.setIP(self.ip)
+        self.cmd('ip link set lo up')
 
     def configureMesh(self):
         "Configure Wireless Mesh Interface"

@@ -7,12 +7,13 @@ from subprocess import ( Popen, PIPE, check_output as co,
                          CalledProcessError )
 import subprocess
 from time import sleep
+import psutil
 import os
 import glob
 
 from mininet.log import info
 from mininet.util import decode
-from mn_wifi.sixLoWPAN.clean import Cleanup as sixlowpan
+from mn_wifi.sixLoWPAN.clean import Cleanup as CleanLowpan
 
 
 class Cleanup(object):
@@ -43,6 +44,15 @@ class Cleanup(object):
                 break
 
     @classmethod
+    def clean_simple_switch_grpc(cls):
+        for p in psutil.process_iter():
+            #  p.name works using psutil in version 1.2.1.
+            #  In version 2.X we have to use p.name()
+            if 'simple_switch_grpc' in getattr(p, 'name()', 'name'):
+                info("*** Killing all running BMV2 P4 Switches\n")
+                cls.killprocs('simple_switch_grpc')
+
+    @classmethod
     def module_loaded(cls, module):
         "Checks if module is loaded"
         lsmod_proc = subprocess.Popen(['lsmod'], stdout=subprocess.PIPE)
@@ -59,6 +69,7 @@ class Cleanup(object):
 
     @classmethod
     def kill_mod_proc(cls):
+        cls.clean_simple_switch_grpc()
 
         if cls.plot:
             cls.plot.close_plot()
@@ -92,7 +103,7 @@ class Cleanup(object):
             info('\n*** Done\n')
             cls.sh('fuser -k %s/tcp >/dev/null 2>&1' % cls.socket_port)
 
-        sixlowpan.cleanup_6lowpan()
+        CleanLowpan.cleanup_6lowpan()
 
     @classmethod
     def cleanup_wifi(cls):
