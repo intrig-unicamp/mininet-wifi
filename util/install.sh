@@ -166,12 +166,27 @@ function mn_deps {
     popd
 }
 
+# Install P4 deps
+function p4_deps {
+    echo "Installing P4 dependencies"
+    pushd $BUILD_DIR/mininet-wifi/
+    P4_DIR="p4-dependencies"
+    [[ -d $P4_DIR ]] && echo $P4_DIR already exists, aborting && exit
+    mkdir $P4_DIR
+    pushd $BUILD_DIR/mininet-wifi/p4-dependencies
+    git clone https://github.com/jafingerhut/p4-guide
+    pushd $BUILD_DIR/mininet-wifi/p4-dependencies/p4-guide
+    git reset --hard ef0f4e1
+    patch -p0 < $MININET_DIR/mininet-wifi/util/p4-patches/p4-guide-without-mininet.patch
+    sudo ./bin/install-p4dev-v2.sh |& tee log.txt
+}
+
 # Install Mininet-WiFi deps
 function wifi_deps {
     echo "Installing Mininet-WiFi dependencies"
     $install wireless-tools rfkill ${PYPKG}-numpy pkg-config \
              libnl-3-dev libnl-genl-3-dev libssl-dev make libevent-dev patch \
-             ${PYPKG}-pip libdbus-1-dev
+             ${PYPKG}-pip libdbus-1-dev ${PYPKG}-psutil
 
     if [ "$DIST" = "Ubuntu" ] && [ "$RELEASE" = "14.04" ]; then
         # Last check for python2
@@ -840,6 +855,7 @@ function all {
     # nox
     pox
     wifi_deps
+    p4_deps
     oftest
     cbench
     wmediumd
@@ -884,7 +900,7 @@ function vm_clean {
 }
 
 function usage {
-    printf '\nUsage: %s [-abBcdEfhiklmnOprStvVwxy03]\n\n' $(basename $0) >&2
+    printf '\nUsage: %s [-abBcdEfhiklmnOpPrStvVwxy03]\n\n' $(basename $0) >&2
 
     printf 'This install script attempts to install useful packages\n' >&2
     printf 'for Mininet. It should (hopefully) work on Ubuntu 11.10+\n' >&2
@@ -909,6 +925,7 @@ function usage {
     printf -- ' -n: install Mini(N)et dependencies + core files\n' >&2
     printf -- ' -O: install olsrd\n' >&2
     printf -- ' -p: install (P)OX OpenFlow Controller\n' >&2
+    printf -- ' -p: install P4 dependencies\n' >&2
     printf -- ' -r: remove existing Open vSwitch packages\n' >&2
     printf -- ' -s <dir>: place dependency (S)ource/build trees in <dir>\n' >&2
     printf -- ' -t: complete o(T)her Mininet VM setup tasks\n' >&2
@@ -953,6 +970,7 @@ else
       n)    mn_deps;;
       O)    olsrd;;
       p)    pox;;
+      P)    p4_deps;;
       r)    remove_ovs;;
       s)    mkdir -p $OPTARG; # ensure the directory is created
             BUILD_DIR="$( cd -P "$OPTARG" && pwd )"; # get the full path

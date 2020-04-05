@@ -28,7 +28,8 @@ step 4: $ sudo util/install.sh -Wlnfv
 -f: OpenFlow   
 -v: OpenvSwitch   
 -l: wmediumd   
-optional:  
+_optional_:  
+-P: P4 dependencies    
 -6: wpan tools
 
 ### Building Topologies with GUI

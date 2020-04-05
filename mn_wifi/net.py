@@ -27,6 +27,7 @@ from mn_wifi.link import wirelessLink, wmediumd, _4address, \
     TCWirelessLink, TCLinkWirelessStation, ITSLink, \
     WifiDirectLink, adhoc, mesh, master, managed, physicalMesh, \
     PhysicalWifiDirectLink, _4addrClient, _4addrAP
+from mn_wifi.bmv2 import ONOSBmv2Switch, ONOSBmv2AP
 from mn_wifi.clean import Cleanup as CleanupWifi
 from mn_wifi.energy import Energy
 from mn_wifi.telemetry import parseData, telemetry as run_telemetry
@@ -650,6 +651,14 @@ class Mininet_wifi(Mininet, Mininet_IoT):
         else:
             if self.draw and not self.isReplaying:
                 self.plot_check(nodes)
+
+    def staticArp(self):
+        "Add all-pairs ARP entries to remove the need to handle broadcast."
+        nodes = self.stations + self.hosts
+        for src in nodes:
+            for dst in nodes:
+                if src != dst:
+                    src.setARP(ip=dst.IP(), mac=dst.MAC())
 
     def build(self):
         "Build mininet-wifi."
