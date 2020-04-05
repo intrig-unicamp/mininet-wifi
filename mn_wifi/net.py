@@ -27,7 +27,6 @@ from mn_wifi.link import wirelessLink, wmediumd, _4address, \
     TCWirelessLink, TCLinkWirelessStation, ITSLink, \
     WifiDirectLink, adhoc, mesh, master, managed, physicalMesh, \
     PhysicalWifiDirectLink, _4addrClient, _4addrAP
-from mn_wifi.bmv2 import ONOSBmv2Switch, ONOSBmv2AP
 from mn_wifi.clean import Cleanup as CleanupWifi
 from mn_wifi.energy import Energy
 from mn_wifi.telemetry import parseData, telemetry as run_telemetry
@@ -42,7 +41,7 @@ from mn_wifi.sixLoWPAN.node import OVSSensor, Node_6lowpan
 from mn_wifi.sixLoWPAN.link import sixLoWPAN
 from mn_wifi.sixLoWPAN.util import ipAdd6
 
-VERSION = "2.4.3"
+VERSION = "2.5"
 
 
 class Mininet_wifi(Mininet, Mininet_IoT):
