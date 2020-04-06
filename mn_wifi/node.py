@@ -127,9 +127,7 @@ class Node_wifi(Node):
             intf.name = '%s-wlan%s' % (self, intf.id)
             self.params['wlan'][wlan] = intf.name
         elif isinstance(intf, master):
-            apconfname = "mn%d_%s.apconf" % (os.getpid(), intf.name)
-            self.cmd('rm %s' % apconfname)
-            self.cmd('pkill -f \'%s\'' % apconfname)
+            intf.kill_hostapd_process()
         intf.set_dev_type('managed')
         managed(self, wlan, intf=intf)
 

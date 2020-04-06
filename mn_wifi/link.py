@@ -89,6 +89,11 @@ class IntfWireless(Intf):
     def wpa_pexec(self):
         return self.node.pexec(self.get_wpa_cmd())
 
+    def kill_hostapd_process(self):
+        apconfname = "mn%d_%s.apconf" % (os.getpid(), self.name)
+        self.cmd('rm %s' % apconfname)
+        self.cmd('pkill -f \'%s\'' % apconfname)
+
     def setGainWmediumd(self):
         "Set Antenna Gain for wmediumd"
         if wmediumd_mode.mode == w_cst.INTERFERENCE_MODE:
@@ -1368,6 +1373,9 @@ class adhoc(LinkAttrs):
             wlan = node.params['wlan'].index(intf)
             intf = node.wintfs[wlan]
 
+        if isinstance(intf, master):
+            intf.kill_hostapd_process()
+
         self.node = node
         self.id = wlan
         self.ssid = ssid
@@ -1461,9 +1469,12 @@ class mesh(LinkAttrs):
             wlan = node.params['wlan'].index(intf)
             intf = node.wintfs[wlan]
 
+        if isinstance(intf, master):
+            intf.kill_hostapd_process()
+
         iface = intf
         self.node = node
-        self.name = self.name = '%s-mp%s' % (node, intf.name[-1:])
+        self.name = '%s-mp%s' % (node, intf.name[-1:])
         self.id = wlan
         self.mac = intf.mac
         self.ip6 = intf.ip6
