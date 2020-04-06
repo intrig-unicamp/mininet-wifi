@@ -18,7 +18,7 @@ OpenFlow icon from https://www.opennetworking.org/
 # pylint: disable=too-many-statements,attribute-defined-outside-init
 # pylint: disable=missing-docstring
 
-MINIEDIT_VERSION = '2.2.0.1'
+MINIEDIT_VERSION = '2.3'
 
 from optparse import OptionParser
 # from Tkinter import *
@@ -61,8 +61,8 @@ from mininet.topolib import TreeTopo
 
 from mn_wifi.cli import CLI
 from mn_wifi.net import Mininet_wifi
-from mn_wifi.node import CPULimitedStation, Station
-from mn_wifi.node import OVSAP, UserAP
+from mn_wifi.node import CPULimitedStation, Station, OVSAP, UserAP
+from mn_wifi.bmv2 import Bmv2Switch, Bmv2AP
 from mn_wifi.link import wmediumd
 from mn_wifi.wmediumdConnector import interference
 
@@ -280,11 +280,13 @@ class PrefsDialog(tkSimpleDialog.Dialog):
         row += 1
         Label(self.leftfieldFrame, text="Default Switch:").grid(row=row, sticky=E)
         self.switchType = StringVar(self.leftfieldFrame)
-        self.switchTypeMenu = OptionMenu(self.leftfieldFrame, self.switchType, "Open vSwitch Kernel Mode", "Indigo Virtual", "Userspace", "Userspace inNamespace")
+        self.switchTypeMenu = OptionMenu(self.leftfieldFrame, self.switchType, "Bmv2Switch", "Open vSwitch Kernel Mode", "Indigo Virtual", "Userspace", "Userspace inNamespace")
         self.switchTypeMenu.grid(row=row, column=1, sticky=W)
         switchTypePref = self.prefValues['switchType']
         if switchTypePref == 'ivs':
             self.switchType.set("Indigo Virtual")
+        if switchTypePref == 'bmv2':
+            self.switchType.set("Bmv2Switch")
         elif switchTypePref == 'userns':
             self.switchType.set("Userspace inNamespace")
         elif switchTypePref == 'user':
@@ -296,7 +298,8 @@ class PrefsDialog(tkSimpleDialog.Dialog):
         row += 1
         Label(self.leftfieldFrame, text="Default AP/Switch:").grid(row=row, sticky=E)
         self.apType = StringVar(self.leftfieldFrame)
-        self.apTypeMenu = OptionMenu(self.leftfieldFrame, self.apType, "Open vSwitch Kernel Mode",
+        self.apTypeMenu = OptionMenu(self.leftfieldFrame, self.apType, "Bmv2AP",
+                                     "Open vSwitch Kernel Mode",
                                      "Indigo Virtual", "Userspace",
                                      "Userspace inNamespace")
         self.switchTypeMenu.grid(row=row, column=1, sticky=W)
@@ -305,6 +308,8 @@ class PrefsDialog(tkSimpleDialog.Dialog):
             self.apType.set("Userspace inNamespace")
         elif apTypePref == 'user':
             self.apType.set("Userspace")
+        elif apTypePref == 'bmv2':
+            self.apType.set("Bmv2AP")
         else:
             self.apType.set("Open vSwitch Kernel Mode")
         """
@@ -484,6 +489,8 @@ class PrefsDialog(tkSimpleDialog.Dialog):
             self.result['switchType'] = 'user'
         elif sw == 'Userspace inNamespace':
             self.result['switchType'] = 'userns'
+        elif sw == 'Bmv2Switch':
+            self.result['apType'] = 'bmv2'
         else:
             self.result['switchType'] = 'ovs'
 
@@ -491,6 +498,8 @@ class PrefsDialog(tkSimpleDialog.Dialog):
             self.result['apType'] = 'user'
         elif ap == 'Userspace inNamespace':
             self.result['apType'] = 'userns'
+        elif ap == 'Bmv2AP':
+            self.result['apType'] = 'bmv2'
         else:
             self.result['apType'] = 'ovs'
 
@@ -1105,7 +1114,7 @@ class SwitchDialog(CustomDialog):
         # Selection of switch type
         Label(self.leftfieldFrame, text="Switch Type:").grid(row=rowCount, sticky=E)
         self.switchType = StringVar(self.leftfieldFrame)
-        self.switchTypeMenu = OptionMenu(self.leftfieldFrame, self.switchType, "Default", "Open vSwitch Kernel Mode", "Indigo Virtual Switch", "Userspace", "Userspace inNamespace")
+        self.switchTypeMenu = OptionMenu(self.leftfieldFrame, self.switchType, "Default", "Bmv2Switch", "Open vSwitch Kernel Mode", "Indigo Virtual Switch", "Userspace", "Userspace inNamespace")
         self.switchTypeMenu.grid(row=rowCount, column=1, sticky=W)
         if 'switchType' in self.prefValues:
             switchTypePref = self.prefValues['switchType']
@@ -1115,6 +1124,8 @@ class SwitchDialog(CustomDialog):
                 self.switchType.set("Userspace inNamespace")
             elif switchTypePref == 'user':
                 self.switchType.set("Userspace")
+            elif switchTypePref == 'bmv2':
+                self.switchType.set("Bmv2AP")
             elif switchTypePref == 'ovs':
                 self.switchType.set("Open vSwitch Kernel Mode")
             else:
@@ -1221,6 +1232,8 @@ class SwitchDialog(CustomDialog):
             results['switchType'] = 'user'
         elif sw == 'Open vSwitch Kernel Mode':
             results['switchType'] = 'ovs'
+        elif sw == 'Bmv2AP':
+            results['switchType'] = 'bmv2'
         else:
             results['switchType'] = 'default'
         self.result = results
@@ -1313,7 +1326,7 @@ class APDialog(CustomDialog):
         # Selection of ap type
         Label(self.leftfieldFrame, text="AP Type:").grid(row=rowCount, sticky=E)
         self.apType = StringVar(self.leftfieldFrame)
-        self.apTypeMenu = OptionMenu(self.leftfieldFrame, self.apType, "Default", "Open vSwitch Kernel Mode",
+        self.apTypeMenu = OptionMenu(self.leftfieldFrame, self.apType, "Default", "Bmv2AP", "Open vSwitch Kernel Mode",
                                      "Indigo Virtual", "Userspace", "Userspace inNamespace")
         self.apTypeMenu.grid(row=rowCount, column=1, sticky=W)
         if 'apType' in self.prefValues:
@@ -1324,6 +1337,8 @@ class APDialog(CustomDialog):
                 self.apType.set("Userspace inNamespace")
             elif apTypePref == 'user':
                 self.apType.set("Userspace")
+            elif apTypePref == 'bmv2':
+                self.apType.set("Bmv2AP")
             elif apTypePref == 'ovs':
                 self.apType.set("Open vSwitch Kernel Mode")
             else:
@@ -1499,6 +1514,8 @@ class APDialog(CustomDialog):
             results['apType'] = 'user'
         elif ap == 'Open vSwitch Kernel Mode':
             results['apType'] = 'ovs'
+        elif ap == 'Bmv2AP':
+            results['apType'] = 'bmv2'
         else:
             results['apType'] = 'default'
         self.result = results
@@ -2727,6 +2744,9 @@ class MiniEdit( Frame ):
                 if apType == 'user':
                     if ' UserAP' not in apType_:
                         apType_ += ' UserAP,'
+                elif apType == 'bmv2':
+                    if ' Bmv2AP' not in apType_:
+                        apType_ += ' Bmv2AP,'
                 elif apType == 'default':
                     if ' OVSKernelAP' not in apType_:
                         apType_ += ' OVSKernelAP,'
@@ -2737,6 +2757,9 @@ class MiniEdit( Frame ):
                 if switchType == 'user':
                     if ' UserSwitch' not in switchType_:
                         switchType_ += ' UserSwitch,'
+                elif switchType == 'bmv2':
+                    if ' Bmv2Switch' not in switchType_:
+                        switchType_ += ' Bmv2Switch,'
                 elif switchType == 'default':
                     if ' OVSKernelSwitch' not in switchType_:
                         switchType_ += ' OVSKernelSwitch,'
@@ -2866,6 +2889,7 @@ class MiniEdit( Frame ):
                 f.write("        return\n")
 
             f.write("\n")
+            f.write("\n")
             f.write("def myNetwork():\n")
             f.write("\n")
             if not isWiFi:
@@ -2934,6 +2958,8 @@ class MiniEdit( Frame ):
                             f.write(", cls=UserSwitch")
                         elif self.appPrefs['switchType'] == 'userns':
                             f.write(", cls=UserSwitch, inNamespace=True")
+                        elif self.appPrefs['switchType'] == 'bmv2':
+                            f.write(", cls=Bmv2Switch")
                         else:
                             f.write(", cls=OVSKernelSwitch")
                     elif opts['switchType'] == 'ivs':
@@ -2942,6 +2968,8 @@ class MiniEdit( Frame ):
                         f.write(", cls=UserSwitch")
                     elif opts['switchType'] == 'userns':
                         f.write(", cls=UserSwitch, inNamespace=True")
+                    elif opts['switchType'] == 'bmv2':
+                        f.write(", cls=Bmv2Switch")
                     else:
                         f.write(", cls=OVSKernelSwitch")
                     if 'dpctl' in opts:
@@ -2961,12 +2989,16 @@ class MiniEdit( Frame ):
                             f.write(", cls=UserAP")
                         elif self.appPrefs['apType'] == 'userns':
                             f.write(", cls=UserAP, inNamespace=True")
+                        elif self.appPrefs['apType'] == 'bmv2':
+                            f.write(", cls=Bmv2AP")
                         else:
                             f.write(", cls=OVSKernelAP")
                     elif opts['apType'] == 'user':
                         f.write(", cls=UserAP")
                     elif opts['apType'] == 'userns':
                         f.write(", cls=UserAP, inNamespace=True")
+                    elif opts['apType'] == 'bmv2':
+                        f.write(", cls=Bmv2AP")
                     else:
                         f.write(", cls=OVSKernelAP")
                     if 'dpctl' in opts:
@@ -2979,7 +3011,7 @@ class MiniEdit( Frame ):
                         f.write(",\n                             channel='"+opts['channel']+"'")
                     if 'mode' in opts:
                         f.write(", mode='" + opts['mode'] + "'")
-                    if 'apIP' in opts:
+                    if 'apIP' in opts and opts['apIP']:
                         f.write(", ip='" + opts['apIP'] + "'")
                     if 'authentication' in opts and opts['authentication'] != 'none':
                         if opts['authentication'] == '8021x':
@@ -3352,6 +3384,7 @@ class MiniEdit( Frame ):
                         f.write("    "+name+".cmdPrint('"+opts['stopCommand']+"')\n")
 
             f.write("    net.stop()\n")
+            f.write("\n")
             f.write("\n")
             f.write("if __name__ == '__main__':\n")
             f.write("    setLogLevel( 'info' )\n")
