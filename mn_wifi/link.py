@@ -1358,7 +1358,8 @@ class adhoc(LinkAttrs):
 
     def __init__(self, node, intf, wlan=0, ssid='adhocNet',
                  channel=1, mode='g', passwd=None, ht_cap='',
-                 proto=None, ibss="02:CA:FF:EE:BA:01", **params):
+                 proto=None, ibss="02:CA:FF:EE:BA:01", proto_args='',
+                 **params):
         """Configure AdHoc
         node: name of the node
         self: custom association class/constructor
@@ -1406,7 +1407,7 @@ class adhoc(LinkAttrs):
         self.range = intf.range
 
         if proto:
-            manetProtocols(intf, proto, **params)
+            manetProtocols(intf, proto, proto_args)
 
         # All we are is dust in the wind, and our two interfaces
         self.intf1, self.intf2 = intf1, intf2

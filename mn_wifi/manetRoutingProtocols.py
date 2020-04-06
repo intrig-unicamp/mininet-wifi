@@ -5,12 +5,12 @@ import os
 
 
 class manetProtocols(object):
-    def __init__(self, intf, proto, **params):
-        eval(proto)(intf, **params)
+    def __init__(self, intf, proto, proto_args):
+        eval(proto)(intf, proto_args)
 
 
 class batman(object):
-    def __init__(self, intf, **params):
+    def __init__(self, intf, proto_args):
         self.load_module(intf)
         self.add_iface(intf)
         self.set_link_up(intf)
@@ -33,16 +33,16 @@ class batman(object):
 
 
 class olsr(object):
-    def __init__(self, intf, **params):
+    def __init__(self, intf, proto_args):
         cmd = 'olsrd -i %s -d 0 ' % intf.name
-        cmd += params.get('flags', '')
+        cmd += proto_args
         intf.node.cmd(cmd)
 
 
 class babel(object):
-    def __init__(self, intf, **params):
+    def __init__(self, intf, proto_args):
         pid = os.getpid()
         cmd = "babeld %s -I mn_%s_%s.staconf " % \
               (intf.name, intf.node, pid)
-        cmd += params.get('flags', '')
+        cmd += proto_args
         intf.node.cmd(cmd + ' &')
