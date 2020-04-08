@@ -12,24 +12,22 @@ from mn_wifi.net import Mininet_wifi
 
 def topology(isVirtual):
     "Create a network."
-    net = Mininet_wifi(controller=Controller)
+    net = Mininet_wifi()
 
     info("*** Creating nodes\n")
     if isVirtual:
         sta1 = net.addStation('sta1', nvif=2)
-    else:
-        sta1 = net.addStation('sta1')
-    sta2 = net.addStation('sta2')
-    if isVirtual:
-        ap1 = net.addAccessPoint('ap1', ssid="simplewifi",
+        ap1 = net.addAccessPoint('ap1', ssid="simpletopo",
                                  mode="g", channel="5")
     else:
+        sta1 = net.addStation('sta1')
         # isolate_clientes: Client isolation can be used to prevent low-level
         # bridging of frames between associated stations in the BSS.
         # By default, this bridging is allowed.
         # OpenFlow rules are required to allow communication among nodes
-        ap1 = net.addAccessPoint('ap1', ssid="simplewifi",
+        ap1 = net.addAccessPoint('ap1', ssid="simpletopo",
                                  isolate_clients=True, mode="g", channel="5")
+    sta2 = net.addStation('sta2')
     c0 = net.addController('c0')
 
     info("*** Configuring wifi nodes\n")

@@ -518,8 +518,6 @@ class Mininet_wifi(Mininet, Mininet_IoT):
             # tc = True, this is useful for tc configuration
             link = TCLinkWirelessStation(node=sta, intfName=intf.name, cls=cls,
                                          **params)
-            self.links.append(link)
-            return link
 
     def addLink(self, node1, node2=None, port1=None, port2=None,
                 cls=None, **params):

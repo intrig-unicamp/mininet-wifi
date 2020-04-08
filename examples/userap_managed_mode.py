@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-'This example creates a simple network topology with 2 APs working on mesh mode'
+'This example creates a simple network topology with 2 APs working in mesh mode'
 
 from mininet.node import Controller
 from mininet.log import setLogLevel, info
