@@ -53,13 +53,9 @@ Mininet-WiFi should work fine in any Ubuntu distribution from 14.04, but in some
 ## Book  
 We are glad to announce that the Mininet-WiFi book has been published!   
   
-While the 1st edition (237 pages) is in Portuguese, affordably available in Printed and E-Book versions, we are about to start to work on the 2nd edition in English. Hard to say when it will be out but we target 2019!   
+Here is the pointer to the book:   
 
-Here are the pointers to the book:   
-
-Printed version: https://www.clubedeautores.com.br/livro/emulando-redes-sem-fio-com-mininet-wifi   
-
-Printed and e-Book version: https://www.amazon.com.br/dp/B07QM2BBRF/
+Printed and e-Book version: https://mininet-wifi.github.io/book/ - Available in English and Portuguese   
 
 Github repository with all use cases presented in the book:   
 https://github.com/ramonfontes/mn-wifi-book-pt   
