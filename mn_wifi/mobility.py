@@ -293,12 +293,14 @@ class model(Mobility):
                     except NameError:
                         setattr(node, arg, 10)  # useful for min_v and max_v
 
-        try:
+        if draw:
+            nodes = mob_nodes + stat_nodes
+            PlotGraph(nodes=nodes, max_x=max_x, max_y=max_y, **kwargs)
+
+        if not mob_nodes:
             if draw:
-                nodes = mob_nodes + stat_nodes
-                PlotGraph(nodes=nodes, max_x=max_x, max_y=max_y, **kwargs)
-        except:
-            info('Warning: running without GUI.\n')
+                PlotGraph.pause()
+            return
 
         debug('Configuring the mobility model %s\n' % mob_model)
         if mob_model == 'RandomWalk':  # Random Walk model
@@ -384,12 +386,9 @@ class Tracked(Mobility):
         for node in mob_nodes:
             node.position = node.params['initPos']
 
-        try:
-            if draw:
-                kwargs['nodes'] = stat_nodes + mob_nodes
-                PlotGraph(**kwargs)
-        except:
-            info('Warning: running without GUI.\n')
+        if draw:
+            kwargs['nodes'] = stat_nodes + mob_nodes
+            PlotGraph(**kwargs)
 
         for node in nodes:
             if hasattr(node, 'coord'):
