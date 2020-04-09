@@ -1,8 +1,9 @@
 #!/usr/bin/python
 
-"""This example shows how to work in adhoc mode
-
-sta1 <---> sta2 <---> sta3"""
+"""
+This example shows on how to enable the adhoc mode
+Alternatively, you can use the manet routing protocol of your choice
+"""
 
 import sys
 

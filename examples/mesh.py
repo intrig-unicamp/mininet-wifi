@@ -1,13 +1,9 @@
 #!/usr/bin/python
 
-"""This example shows how to work in adhoc mode
-
-It is a full mesh network
-
-     .sta3.
-    .      .
-   .        .
-sta1 ----- sta2"""
+"""
+This example shows on how to enable the mesh mode
+The wireless mesh network is based on IEEE 802.11s
+"""
 
 import sys
 

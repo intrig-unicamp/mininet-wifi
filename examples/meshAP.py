@@ -1,6 +1,9 @@
 #!/usr/bin/python
 
-'This example shows how to create wireless link between two APs'
+"""
+This example shows on how to create wireless link between two APs with mesh
+The wireless mesh network is based on IEEE 802.11s
+"""
 
 from mininet.log import setLogLevel, info
 from mn_wifi.link import wmediumd, mesh
