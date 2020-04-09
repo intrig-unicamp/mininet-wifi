@@ -1375,6 +1375,7 @@ class adhoc(LinkAttrs):
 
         if isinstance(intf, master):
             intf.kill_hostapd_process()
+            sleep(0.5)
 
         self.node = node
         self.id = wlan
@@ -1471,6 +1472,7 @@ class mesh(LinkAttrs):
 
         if isinstance(intf, master):
             intf.kill_hostapd_process()
+            sleep(0.5)
 
         iface = intf
         self.node = node
