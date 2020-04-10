@@ -161,15 +161,16 @@ class set_interference(object):
 
 class WStarter(object):
 
+    wmd_logfile = None
+    wmd_config_name = None
+
     def __init__(self, **kwargs):
         self.default_auto_errprob = 1.0
         self.default_auto_snr = -10
-        self.is_managed = False
+        self.is_managed = True
         self.is_initialized = False
         self.is_connected = False
         self.wmd_process = None
-        self.wmd_logfile = None
-        self.wmd_config_name = None
 
         self.start(**kwargs)
 
@@ -263,8 +264,8 @@ class WStarter(object):
             # Create wmediumd config
             wmd_config = tempfile.NamedTemporaryFile(
                 prefix='mn_wmd_config_', suffix='.cfg', delete=False)
-            self.wmd_config_name = wmd_config.name
-            debug("Name of wmediumd config: %s\n" % self.wmd_config_name)
+            WStarter.wmd_config_name = wmd_config.name
+            debug("Name of wmediumd config: %s\n" % WStarter.wmd_config_name)
             configstr = 'ifaces:\n{\n\tids = [\n'
             intfref_id = 0
             for intfref in kwargs['intfrefs']:
@@ -310,7 +311,7 @@ class WStarter(object):
             cmdline.append("-d")
         else:
             cmdline.append("-c")
-            cmdline.append(self.wmd_config_name)
+            cmdline.append(WStarter.wmd_config_name)
             if wmediumd_mode.mode is w_cst.SNR_MODE \
                     or wmediumd_mode.mode is w_cst.INTERFERENCE_MODE:
                 cmdline.append("-x")
@@ -319,15 +320,15 @@ class WStarter(object):
                         'mn_wifi', 'data/signal_table_ieee80211')
                 cmdline.append(per_data_file)
         cmdline[1:1] = kwargs['parameters']
-        self.wmd_logfile = tempfile.NamedTemporaryFile(prefix='mn_wmd_log_',
-                                                       suffix='.log',
-                                                       delete=not self.is_managed)
-        debug("Name of wmediumd log: %s\n" % self.wmd_logfile.name)
-        if self.is_managed:
-            cmdline[0:0] = ["nohup"]
+        WStarter.wmd_logfile = tempfile.NamedTemporaryFile(prefix='mn_wmd_log_',
+                                                           suffix='.log',
+                                                           delete=True)
+        debug("Name of wmediumd log: %s\n" % WStarter.wmd_logfile.name)
+        #if self.is_managed:
+        #    cmdline[0:0] = ["nohup"]
 
         self.wmd_process = subprocess.Popen(cmdline, shell=False,
-                                            stdout=self.wmd_logfile,
+                                            stdout=WStarter.wmd_logfile,
                                             stderr=subprocess.STDOUT,
                                             preexec_fn=os.setpgrp)
         self.is_connected = True
@@ -667,10 +668,18 @@ class w_server(object):
         """
         Disconnect from the wmediumd server
         """
-        if not cls.connected:
-            raise WmediumdException("Not yet connected to wmediumd server")
-        cls.sock.close()
-        cls.connected = False
+        if cls.sock:
+            try:
+                WStarter.wmd_logfile.close()
+            except OSError:
+                pass
+            try:
+                os.remove(WStarter.wmd_config_name)
+            except OSError:
+                pass
+
+            cls.sock.close()
+            cls.connected = False
 
     @classmethod
     def register_interface(cls, mac):
@@ -718,7 +727,7 @@ class w_server(object):
         ret = w_server.send_snr_update(link)
         if ret != w_cst.WUPDATE_SUCCESS:
            raise WmediumdException("Received error code from wmediumd: "
-                                    "code %d" % ret)
+                                   "code %d" % ret)
 
     @classmethod
     def update_pos(cls, pos):

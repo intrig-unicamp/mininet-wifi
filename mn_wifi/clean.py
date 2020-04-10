@@ -14,6 +14,7 @@ import glob
 from mininet.log import info
 from mininet.util import decode
 from mn_wifi.sixLoWPAN.clean import Cleanup as CleanLowpan
+from mn_wifi.wmediumdConnector import w_server
 
 
 class Cleanup(object):
@@ -78,6 +79,8 @@ class Cleanup(object):
         cls.killprocs('hostapd')
         sleep(0.1)
         cls.sh('pkill babel')
+
+        w_server.disconnect()
         cls.sh('pkill wmediumd')
         sleep(0.1)
 
