@@ -281,17 +281,11 @@ class model(Mobility):
             stat_nodes += mnNodes
 
         for node in mob_nodes:
-            if not hasattr(node, 'min_x'):
-                node.min_x = 0
-            if not hasattr(node, 'min_y'):
-                node.min_y = 0
-            args = ['max_x', 'max_y', 'min_v', 'max_v']
-            for arg in args:
-                if not hasattr(node, arg):
-                    try:
-                        setattr(node, arg, eval(arg))
-                    except NameError:
-                        setattr(node, arg, 10)  # useful for min_v and max_v
+            args = {'min_x': 0, 'min_y': 0,
+                    'max_x': max_x, 'max_y': max_y,
+                    'min_v': 10, 'max_v': 10}
+            for key in args.keys():
+                setattr(node, key, node.params.get(key, args[key]))
 
         if draw:
             nodes = mob_nodes + stat_nodes
@@ -616,7 +610,6 @@ def initial_speed(speed_mean, speed_delta, shape=(1,)):
 def init_random_waypoint(nr_nodes, dimensions, min_v, max_v,
                          wt_min, wt_max):
 
-    #ndim = len(dimensions)
     x = np.empty(nr_nodes)
     y = np.empty(nr_nodes)
     x_waypoint = np.empty(nr_nodes)
@@ -624,14 +617,11 @@ def init_random_waypoint(nr_nodes, dimensions, min_v, max_v,
     speed = np.empty(nr_nodes)
     pause_time = np.empty(nr_nodes)
     moving = np.ones(nr_nodes)
-    speed_mean, speed_delta = (min_v + max_v) / 2., \
-                              (max_v - min_v) / 2.
-    pause_mean, pause_delta = (wt_min + wt_max) / 2., \
-                              (wt_max - wt_min) / 2.
+    speed_mean, speed_delta = (min_v + max_v) / 2., (max_v - min_v) / 2.
+    pause_mean, pause_delta = (wt_min + wt_max) / 2., (wt_max - wt_min) / 2.
 
     # steady-state pause probability for Random Waypoint
-    q0 = pause_probability_init(wt_min, wt_max, min_v,
-                                max_v, dimensions)
+    q0 = pause_probability_init(wt_min, wt_max, min_v, max_v, dimensions)
 
     max_x = dimensions[0]
     max_y = dimensions[1]
@@ -726,8 +716,8 @@ class RandomWaypoint(object):
         MIN_Y = U(0, 0, NODES)
 
         for node in range(self.nr_nodes):
-            MAX_V[node] = self.nodes[node].max_v/10
-            MIN_V[node] = self.nodes[node].min_v/10
+            MAX_V[node] = self.nodes[node].max_v / 10.
+            MIN_V[node] = self.nodes[node].min_v / 10.
             MAX_X[node] = self.nodes[node].max_x
             MAX_Y[node] = self.nodes[node].max_y
             MIN_X[node] = self.nodes[node].min_x
@@ -1029,8 +1019,8 @@ class RandomDirection(StochasticWalk):
         MIN_V = min_v
 
         for node in range(len(nodes)):
-            MAX_V[node] = nodes[node].max_v/10
-            MIN_V[node] = nodes[node].min_v/10
+            MAX_V[node] = nodes[node].max_v / 10.
+            MIN_V[node] = nodes[node].min_v / 10.
 
         FL_MAX = max(dimensions)
 
