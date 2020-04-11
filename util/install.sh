@@ -233,7 +233,7 @@ function wifi_deps {
 
 function babeld {
     echo "Installing babeld..."
-    
+
     cd $BUILD_DIR/mininet-wifi
     if [ -d babeld ]; then
           echo "Removing babeld..."
@@ -262,8 +262,18 @@ function olsrd {
 
 function batman {
     echo "Installing B.A.T.M.A.N..."
-    $install batmand
+    echo "Installing batmand..."
+    cd $BUILD_DIR/mininet-wifi
+    if [ -d batmand ]; then
+          echo "Removing batmand..."
+          rm -r batmand
+    fi
+    git clone https://github.com/open-mesh-mirror/batmand --depth=1
+    cd batmand
+    make
+    sudo make install
 
+    echo "Installing batman-adv..."
     cd $BUILD_DIR/mininet-wifi
     if [ -d batman-adv ]; then
           echo "Removing batman-adv..."
@@ -274,6 +284,7 @@ function batman {
     make
     sudo make install
 
+    echo "Installing batctl..."
     cd $BUILD_DIR/mininet-wifi
     if [ -d batctl ]; then
           echo "Removing batctl..."

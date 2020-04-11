@@ -7,21 +7,29 @@ from mininet.log import info
 
 
 class manetProtocols(object):
-    def __init__(self, intf, proto, proto_args):
-        eval(proto)(intf, proto_args)
+    def __init__(self, intf, proto_args):
+        eval(intf.proto)(intf, proto_args)
 
 
-class batman(object):
+class batmand(object):
+    def __init__(self, intf, proto_args):
+        self.set_batmand_iface(intf, proto_args)
+
+    def set_batmand_iface(self, intf, proto_args):
+        intf.cmd('batmand {} {}'.format(proto_args, intf.name))
+
+
+class batman_adv(object):
     def __init__(self, intf, proto_args):
         self.load_module(intf)
         self.add_iface(intf)
         self.set_link_up(intf)
 
     def add_iface(self, intf):
-        intf.node.cmd('batctl if add %s' % intf.name)
+        intf.cmd('batctl if add %s' % intf.name)
 
     def set_link_up(self, intf):
-        intf.node.cmd('ip link set up dev bat0')
+        intf.cmd('ip link set up dev bat0')
         self.setIP(intf)
 
     def setIP(self, intf):

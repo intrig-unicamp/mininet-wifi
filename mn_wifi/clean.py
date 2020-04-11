@@ -79,6 +79,7 @@ class Cleanup(object):
         cls.killprocs('hostapd')
         sleep(0.1)
         cls.sh('pkill babel')
+        cls.sh('pkill batmand')
 
         w_server.disconnect()
         cls.sh('pkill wmediumd')

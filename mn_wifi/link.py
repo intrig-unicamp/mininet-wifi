@@ -192,8 +192,8 @@ class IntfWireless(Intf):
                     self.cmd('ip addr flush ', self.name)
                     cmd = 'ip addr add %s dev %s' % (args[0], self.name)
                     if self.ip6:
-                        cmd = cmd + ' && ip -6 addr add %s dev %s' % \
-                                    (self.ip6, self.name)
+                        cmd += ' && ip -6 addr add %s dev %s' % \
+                               (self.ip6, self.name)
                     return self.cmd(cmd)
                 else:
                     self.cmd('ip -6 addr flush ', self.name)
@@ -1388,6 +1388,7 @@ class adhoc(LinkAttrs):
         self.antennaGain = intf.antennaGain
         self.passwd = passwd
         self.mode = mode
+        self.proto = proto
         self.channel = channel
         self.ht_cap = ht_cap
         self.associatedTo = 'adhoc'
@@ -1416,7 +1417,7 @@ class adhoc(LinkAttrs):
         self.range = intf.range
 
         if proto:
-            manetProtocols(intf, proto, proto_args)
+            manetProtocols(self, proto_args)
 
         # All we are is dust in the wind, and our two interfaces
         self.intf1, self.intf2 = intf1, intf2
