@@ -233,7 +233,7 @@ function wifi_deps {
 
 function babeld {
     echo "Installing babeld..."
-
+    
     cd $BUILD_DIR/mininet-wifi
     if [ -d babeld ]; then
           echo "Removing babeld..."
@@ -262,6 +262,7 @@ function olsrd {
 
 function batman {
     echo "Installing B.A.T.M.A.N..."
+    $install batmand
 
     cd $BUILD_DIR/mininet-wifi
     if [ -d batman-adv ]; then
