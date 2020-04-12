@@ -477,7 +477,7 @@ class Mininet_wifi(Mininet, Mininet_IoT):
         sta = node1 if node2 in self.aps else node2
         wlan, ap_wlan = 0, 0
 
-        if port1 and port2:
+        if port1 is not None and port2 is not None:
             ap_wlan = port1 if node1 in self.aps else port2
             wlan = port1 if node2 in self.aps else port2
 
@@ -496,7 +496,7 @@ class Mininet_wifi(Mininet, Mininet_IoT):
         sta = node1 if node2 in self.aps else node2
         wlan, ap_wlan = 0, 0
 
-        if port1 and port2:
+        if port1 is not None and port2 is not None:
             ap_wlan = port1 if node1 in self.aps else port2
             wlan = port1 if node2 in self.aps else port2
 
