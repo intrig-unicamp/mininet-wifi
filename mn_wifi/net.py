@@ -471,8 +471,13 @@ class Mininet_wifi(Mininet, Mininet_IoT):
     def addMacToWmediumd(self, mac=None):
         self.wmediumdMac.append(mac)
 
-    def infra_wmediumd_link(self, node1, node2, port1=None, port2=None,
-                            **params):
+    def do_association(self, intf, ap_intf):
+        dist = intf.node.get_distance_to(ap_intf.node)
+        if dist > ap_intf.range:
+            return False
+        return True
+
+    def get_intf(self, node1, node2, port1=None, port2=None):
         ap = node1 if node1 in self.aps else node2
         sta = node1 if node2 in self.aps else node2
         wlan, ap_wlan = 0, 0
@@ -483,6 +488,12 @@ class Mininet_wifi(Mininet, Mininet_IoT):
 
         intf = sta.wintfs[wlan]
         ap_intf = ap.wintfs[ap_wlan]
+
+        return intf, ap_intf
+
+    def infra_wmediumd_link(self, node1, node2, port1=None, port2=None,
+                            **params):
+        intf, ap_intf = self.get_intf(node1, node2, port1, port2)
         intf.associate(ap_intf)
 
         if self.wmediumd_mode == error_prob:
@@ -492,32 +503,21 @@ class Mininet_wifi(Mininet, Mininet_IoT):
 
     def infra_tc(self, node1, node2, port1=None, port2=None,
                  cls=None, **params):
-        ap = node1 if node1 in self.aps else node2
-        sta = node1 if node2 in self.aps else node2
-        wlan, ap_wlan = 0, 0
-
-        if port1 is not None and port2 is not None:
-            ap_wlan = port1 if node1 in self.aps else port2
-            wlan = port1 if node2 in self.aps else port2
-
-        intf = sta.wintfs[wlan]
-        ap_intf = ap.wintfs[ap_wlan]
+        intf, ap_intf = self.get_intf(node1, node2, port1, port2)
 
         do_association = True
-        if hasattr(sta, 'position') and hasattr(ap, 'position'):
-            dist = sta.get_distance_to(ap)
-            if dist > ap.wintfs[ap_wlan].range:
-                do_association = False
+        if hasattr(intf.node, 'position') and hasattr(ap_intf.node, 'position'):
+            do_association = self.do_association(intf, ap_intf)
         if do_association:
             intf.associate(ap_intf)
             if 'bw' not in params and 'bw' not in str(cls):
-                if hasattr(sta, 'position'):
+                if hasattr(intf.node, 'position'):
                     params['bw'] = intf.getCustomRate()
                 else:
                     params['bw'] = intf.getRate()
             # tc = True, this is useful for tc configuration
-            link = TCLinkWirelessStation(node=sta, intfName=intf.name, cls=cls,
-                                         **params)
+            link = TCLinkWirelessStation(node=intf.node, intfName=intf.name,
+                                         cls=cls, **params)
 
     def addLink(self, node1, node2=None, port1=None, port2=None,
                 cls=None, **params):
@@ -552,8 +552,7 @@ class Mininet_wifi(Mininet, Mininet_IoT):
                 self.links.append(link)
                 return link
             else:
-                dist = node1.get_distance_to(node2)
-                if dist <= node1.wintfs[0].range:
+                if self.do_association(node1.wintfs[0], node2.wintfs[0]):
                     link = cls(node1, node2)
                     self.links.append(link)
                     return link
@@ -988,24 +987,23 @@ class Mininet_wifi(Mininet, Mininet_IoT):
                self.sensors + self.apsensors
 
     def get_distance(self, src, dst):
-        """Gets the distance between two nodes
+        """
+        gets the distance between two nodes
         :params src: source node
         :params dst: destination node
-        :params nodes: list of nodes"""
+        """
         nodes = self.get_mn_wifi_nodes()
         try:
-            for host1 in nodes:
-                if src == str(host1):
-                    src = host1
-                    for host2 in nodes:
-                        if dst == str(host2):
-                            dst = host2
-                            dist = src.get_distance_to(dst)
-                            info("The distance between %s and %s is %s "
-                                 "meters\n" % (src, dst, dist))
-        except:
+            src = self.nameToNode[src]
+            if src in nodes:
+                dst = self.nameToNode[dst]
+                if dst in nodes:
+                    dist = src.get_distance_to(dst)
+                    info("The distance between %s and %s is %s "
+                         "meters\n" % (src, dst, dist))
+        except KeyError:
             info("node %s or/and node %s does not exist or there is no " \
-                 "position defined" % (dst, src))
+                 "position defined\n" % (dst, src))
 
     def mobility(self, *args, **kwargs):
         "Configure mobility parameters"
