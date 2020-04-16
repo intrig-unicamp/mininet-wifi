@@ -10,7 +10,7 @@ import glob
 import numpy as np
 from numpy.random import rand
 
-from mininet.log import debug, info
+from mininet.log import debug
 from mn_wifi.link import wirelessLink, mesh, adhoc, ITSLink, master
 from mn_wifi.associationControl import AssociationControl as AssCtrl
 from mn_wifi.plot import PlotGraph
