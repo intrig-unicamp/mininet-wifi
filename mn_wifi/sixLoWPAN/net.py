@@ -75,7 +75,7 @@ class Mininet_IoT(object):
             self.nextPos_ap += 100
 
         if not cls:
-            cls = apsensor
+            cls = self.apsensor
         ap = cls(name, **defaults)
         if not self.inNamespace and self.listenPort:
             self.listenPort += 1
