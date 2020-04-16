@@ -656,6 +656,15 @@ class Mininet_wifi(Mininet, Mininet_IoT):
                 if src != dst:
                     src.setARP(ip=dst.IP(), mac=dst.MAC())
 
+    def hasVoltageParam(self):
+        nodes = self.get_mn_wifi_nodes()
+        energy_nodes = []
+        for node in nodes:
+            if 'voltage' in node.params:
+                energy_nodes.append(node)
+        if energy_nodes:
+            Energy(energy_nodes)
+
     def build(self):
         "Build mininet-wifi."
         if self.topo:
@@ -679,35 +688,21 @@ class Mininet_wifi(Mininet, Mininet_IoT):
         if self.inNamespace:
             self.configureControlNetwork()
 
-        info('*** Configuring nodes\n')
+        debug('*** Configuring nodes\n')
         self.configHosts()
         if self.xterms:
             self.startTerms()
         if self.autoStaticArp:
             self.staticArp()
 
-        for node in self.stations:
-            for intf in node.wintfs.values():
-                if not isinstance(intf, master) and not isinstance(intf, adhoc) \
-                        and not isinstance(intf, mesh) \
-                        and not isinstance(intf, WifiDirectLink):
-                    if isinstance(node, Station) and not hasattr(node, 'range'):
-                        intf.range = int(intf.range)
+        if not self.mob_check:
+            self.check_if_mob()
 
         if self.allAutoAssociation:
             if self.autoAssociation and not self.configWiFiDirect:
                 self.auto_association()
 
-        if not self.mob_check:
-            self.check_if_mob()
-
-        nodes = self.get_mn_wifi_nodes()
-        energy_nodes = []
-        for node in nodes:
-            if 'voltage' in node.params:
-                energy_nodes.append(node)
-        if energy_nodes:
-            Energy(energy_nodes)
+        self.hasVoltageParam()
 
         self.built = True
 
