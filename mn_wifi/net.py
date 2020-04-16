@@ -694,12 +694,12 @@ class Mininet_wifi(Mininet, Mininet_IoT):
                     if isinstance(node, Station) and not hasattr(node, 'range'):
                         intf.range = int(intf.range)
 
+        if not self.mob_check:
+            self.check_if_mob()
+                        
         if self.allAutoAssociation:
             if self.autoAssociation and not self.configWiFiDirect:
                 self.auto_association()
-
-        if not self.mob_check:
-            self.check_if_mob()
 
         nodes = self.get_mn_wifi_nodes()
         battery_nodes = []
