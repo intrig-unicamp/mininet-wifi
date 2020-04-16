@@ -220,15 +220,16 @@ class sixLoWPAN(Link, IntfSixLoWPAN):
            intf: default interface class/constructor"""
         self.name = '%s-pan%s' % (node.name, wpan)
         self.node = node
-        self.range = 50
         node.addWAttr(self, port=wpan)
-        intf = node.wintfs[wpan]
+        self.range = 50
+        self.voltage = 10.0
+        self.consumption = 0.0
         self.panid = '0xbeef'
         self.set_attr(node, wpan)
-        iface = node.params['wpan'][wpan]
 
+        iface = node.params['wpan'][wpan]
         node.cmd('ip link set %s down' % iface)
-        node.cmd('iwpan dev %s set pan_id "%s"' % (iface, intf.panid))
+        node.cmd('iwpan dev %s set pan_id "%s"' % (iface, self.panid))
         node.cmd('ip link add link %s name %s type lowpan' % (iface, self.name))
         node.cmd('ip link set %s up' % iface)
         node.cmd('ip link set %s up' % self.name)
@@ -256,12 +257,10 @@ class sixLoWPAN(Link, IntfSixLoWPAN):
     def set_attr(self, node, wpan):
         for key in self.__dict__.keys():
             if key in node.params:
-                if isinstance(node.params[key], BaseString):
-                    setattr(self, key, node.params[key])
-                elif isinstance(node.params[key], list):
-                    arg_ = node.params[key][0].split(',')
-                    setattr(self, key, arg_[wpan])
-                elif isinstance(node.params[key], int):
+                if isinstance(node.params[key], list):
+                    value = node.params[key][wpan].split(',')
+                    setattr(self, key, value[0])
+                else:
                     setattr(self, key, node.params[key])
 
     def wpanName(self, node, ifacename, n):

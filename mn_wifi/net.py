@@ -687,7 +687,7 @@ class Mininet_wifi(Mininet, Mininet_IoT):
             self.staticArp()
 
         for node in self.stations:
-            for wlan, intf in enumerate(node.wintfs.values()):
+            for intf in node.wintfs.values():
                 if not isinstance(intf, master) and not isinstance(intf, adhoc) \
                         and not isinstance(intf, mesh) \
                         and not isinstance(intf, WifiDirectLink):
@@ -702,12 +702,12 @@ class Mininet_wifi(Mininet, Mininet_IoT):
             self.check_if_mob()
 
         nodes = self.get_mn_wifi_nodes()
-        battery_nodes = []
+        energy_nodes = []
         for node in nodes:
-            if 'battery' in node.params:
-                battery_nodes.append(node)
-        if battery_nodes:
-            Energy(battery_nodes)
+            if 'voltage' in node.params:
+                energy_nodes.append(node)
+        if energy_nodes:
+            Energy(energy_nodes)
 
         self.built = True
 
@@ -1411,6 +1411,9 @@ class Mininet_wifi(Mininet, Mininet_IoT):
             parseData.thread_._keep_alive = False
         if mob.thread_:
             mob.thread_._keep_alive = False
+        if Energy.thread_:
+            Energy.thread_._keep_alive = False
+            sleep(1)
         sleep(0.5)
 
     @classmethod
