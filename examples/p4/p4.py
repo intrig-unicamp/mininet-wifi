@@ -68,7 +68,7 @@ def topology(remote_controller):
 
     info('*** Starting network\n')
     net.start()
-    if not remoteController:
+    if not remote_controller:
         net.staticArp()
 
     info('*** Running CLI\n')
