@@ -10,24 +10,20 @@ from mn_wifi.net import Mininet_wifi
 
 def topology():
     "Create a network."
-    net = Mininet_wifi()
+    net = Mininet_wifi(iot_module='fakelb')
+    # iot_module: fakelb or mac802154_hwsim
+    # mac802154_hwsim is only supported from kernel 4.18
 
     info("*** Creating nodes\n")
-    sta1 = net.addStation('sta1', battery=100)
-    sta2 = net.addStation('sta2', battery=100)
-    ap1 = net.addAccessPoint('ap1', ssid="simplewifi", mode="g",
-                             channel="5", failMode='standalone')
+    net.addSensor('sensor1', ip6='2001::1/64', voltage=3.7, panid='0xbeef')
+    net.addSensor('sensor2', ip6='2001::2/64', voltage=3.7, panid='0xbeef')
+    net.addSensor('sensor3', ip6='2001::3/64', voltage=3.7, panid='0xbeef')
 
     info("*** Configuring wifi nodes\n")
     net.configureWifiNodes()
 
-    info("*** Associating Stations\n")
-    net.addLink(sta1, ap1)
-    net.addLink(sta2, ap1)
-
     info("*** Starting network\n")
     net.build()
-    ap1.start([])
 
     info("*** Running CLI\n")
     CLI(net)
