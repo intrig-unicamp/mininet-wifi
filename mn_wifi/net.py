@@ -634,19 +634,17 @@ class Mininet_wifi(Mininet, Mininet_IoT):
         info('\n')
 
     def check_if_mob(self):
-        nodes = self.plot_plot_nodes()
         if self.mob_model or self.mob_stop_time or self.roads:
             mob_params = self.get_mobility_params()
             stat_nodes, mob_nodes = self.get_mob_stat_nodes()
             method = TrackedMob
             if self.mob_model or self.isVanet or self.roads:
                 method = self.start_mobility
-            method(stat_nodes=stat_nodes, mob_nodes=mob_nodes,
-                   mnNodes=nodes, **mob_params)
+            method(stat_nodes=stat_nodes, mob_nodes=mob_nodes, **mob_params)
             self.mob_check = True
         else:
             if self.draw and not self.isReplaying:
-                self.plot_check(nodes)
+                self.check_dimension(self.get_mn_wifi_nodes())
 
     def staticArp(self):
         "Add all-pairs ARP entries to remove the need to handle broadcast."
@@ -705,18 +703,6 @@ class Mininet_wifi(Mininet, Mininet_IoT):
         self.hasVoltageParam()
 
         self.built = True
-
-    def plot_plot_nodes(self):
-        from mn_wifi.node import Node_wifi
-        nodes = self.hosts + self.switches + self.controllers
-        plot_nodes = []
-        for node in nodes:
-            if hasattr(node, 'position'):
-                self.pos_to_array(node)
-                node.wintfs = {0 : Node_wifi}
-                node.wintfs[0].range = 0
-                plot_nodes.append(node)
-        return plot_nodes
 
     def startTerms(self):
         "Start a terminal for each node."
@@ -1304,12 +1290,6 @@ class Mininet_wifi(Mininet, Mininet_IoT):
         self.config_range(nodes)
         if not self.config4addr and not self.configWiFiDirect:
             self.config_antenna(nodes)
-
-    def plot_check(self, mnNodes):
-        "Check which nodes will be plotted"
-        nodes = self.stations + self.aps + mnNodes + self.cars + \
-                self.apsensors + self.sensors
-        self.check_dimension(nodes)
 
     @staticmethod
     def wmediumd_workaround(node, value=1):
