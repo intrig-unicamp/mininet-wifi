@@ -634,19 +634,17 @@ class Mininet_wifi(Mininet, Mininet_IoT):
         info('\n')
 
     def check_if_mob(self):
-        nodes = self.plot_plot_nodes()
         if self.mob_model or self.mob_stop_time or self.roads:
             mob_params = self.get_mobility_params()
             stat_nodes, mob_nodes = self.get_mob_stat_nodes()
             method = TrackedMob
             if self.mob_model or self.isVanet or self.roads:
                 method = self.start_mobility
-            method(stat_nodes=stat_nodes, mob_nodes=mob_nodes,
-                   mnNodes=nodes, **mob_params)
+            method(stat_nodes=stat_nodes, mob_nodes=mob_nodes, **mob_params)
             self.mob_check = True
         else:
             if self.draw and not self.isReplaying:
-                self.plot_check(nodes)
+                self.check_dimension(self.get_mn_wifi_nodes())
 
     def staticArp(self):
         "Add all-pairs ARP entries to remove the need to handle broadcast."
@@ -655,6 +653,15 @@ class Mininet_wifi(Mininet, Mininet_IoT):
             for dst in nodes:
                 if src != dst:
                     src.setARP(ip=dst.IP(), mac=dst.MAC())
+
+    def hasVoltageParam(self):
+        nodes = self.get_mn_wifi_nodes()
+        energy_nodes = []
+        for node in nodes:
+            if 'voltage' in node.params:
+                energy_nodes.append(node)
+        if energy_nodes:
+            Energy(energy_nodes)
 
     def build(self):
         "Build mininet-wifi."
@@ -679,49 +686,23 @@ class Mininet_wifi(Mininet, Mininet_IoT):
         if self.inNamespace:
             self.configureControlNetwork()
 
-        info('*** Configuring nodes\n')
+        debug('*** Configuring nodes\n')
         self.configHosts()
         if self.xterms:
             self.startTerms()
         if self.autoStaticArp:
             self.staticArp()
 
-        for node in self.stations:
-            for wlan, intf in enumerate(node.wintfs.values()):
-                if not isinstance(intf, master) and not isinstance(intf, adhoc) \
-                        and not isinstance(intf, mesh) \
-                        and not isinstance(intf, WifiDirectLink):
-                    if isinstance(node, Station) and not hasattr(node, 'range'):
-                        intf.range = int(intf.range)
-
         if not self.mob_check:
             self.check_if_mob()
-                        
+
         if self.allAutoAssociation:
             if self.autoAssociation and not self.configWiFiDirect:
                 self.auto_association()
 
-        nodes = self.get_mn_wifi_nodes()
-        battery_nodes = []
-        for node in nodes:
-            if 'battery' in node.params:
-                battery_nodes.append(node)
-        if battery_nodes:
-            Energy(battery_nodes)
+        self.hasVoltageParam()
 
         self.built = True
-
-    def plot_plot_nodes(self):
-        from mn_wifi.node import Node_wifi
-        nodes = self.hosts + self.switches + self.controllers
-        plot_nodes = []
-        for node in nodes:
-            if hasattr(node, 'position'):
-                self.pos_to_array(node)
-                node.wintfs = {0 : Node_wifi}
-                node.wintfs[0].range = 0
-                plot_nodes.append(node)
-        return plot_nodes
 
     def startTerms(self):
         "Start a terminal for each node."
@@ -1310,12 +1291,6 @@ class Mininet_wifi(Mininet, Mininet_IoT):
         if not self.config4addr and not self.configWiFiDirect:
             self.config_antenna(nodes)
 
-    def plot_check(self, mnNodes):
-        "Check which nodes will be plotted"
-        nodes = self.stations + self.aps + mnNodes + self.cars + \
-                self.apsensors + self.sensors
-        self.check_dimension(nodes)
-
     @staticmethod
     def wmediumd_workaround(node, value=1):
         # We need to set the position after starting wmediumd
@@ -1411,6 +1386,9 @@ class Mininet_wifi(Mininet, Mininet_IoT):
             parseData.thread_._keep_alive = False
         if mob.thread_:
             mob.thread_._keep_alive = False
+        if Energy.thread_:
+            Energy.thread_._keep_alive = False
+            sleep(1)
         sleep(0.5)
 
     @classmethod

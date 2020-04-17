@@ -10,7 +10,7 @@ import glob
 import numpy as np
 from numpy.random import rand
 
-from mininet.log import debug, info
+from mininet.log import debug
 from mn_wifi.link import wirelessLink, mesh, adhoc, ITSLink, master
 from mn_wifi.associationControl import AssociationControl as AssCtrl
 from mn_wifi.plot import PlotGraph
@@ -270,15 +270,12 @@ class model(Mobility):
         self.set_wifi_params()
 
     def models(self, stations=None, aps=None, stat_nodes=None, mob_nodes=None,
-               draw=False, seed=1, mob_model='RandomWalk', mnNodes=None,
+               draw=False, seed=1, mob_model='RandomWalk',
                min_wt=1, max_wt=5, max_x=100, max_y=100, **kwargs):
         "Used when a mobility model is set"
         np.random.seed(seed)
         self.ac = kwargs.get('ac_method', None)
         self.stations, self.mobileNodes, self.aps = stations, stations, aps
-
-        if mnNodes:
-            stat_nodes += mnNodes
 
         for node in mob_nodes:
             args = {'min_x': 0, 'min_y': 0,
@@ -367,15 +364,12 @@ class Tracked(Mobility):
         self.set_wifi_params()
 
     def configure(self, stations, aps, stat_nodes, mob_nodes,
-                  mnNodes, draw, **kwargs):
+                  draw, **kwargs):
         self.ac = kwargs.get('ac_method', None)
         self.stations = stations
         self.aps = aps
         self.mobileNodes = mob_nodes
         nodes = stations + aps
-
-        if mnNodes:
-            stat_nodes += mnNodes
 
         for node in mob_nodes:
             node.position = node.params['initPos']

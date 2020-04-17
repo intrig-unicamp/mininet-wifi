@@ -882,12 +882,10 @@ class master(TCWirelessLink):
 
         for key in self.__dict__.keys():
             if key in node.params:
-                if isinstance(node.params[key], BaseString):
-                    setattr(self, key, node.params[key])
-                elif isinstance(node.params[key], list):
+                if isinstance(node.params[key], list):
                     value = node.params[key][wlan].split(',')
                     setattr(self, key, value[0])
-                elif isinstance(node.params[key], int):
+                else:
                     setattr(self, key, node.params[key])
 
 
@@ -942,12 +940,10 @@ class VirtualMaster(master, TCWirelessLink):
         for key in self.__dict__.keys():
             if key in node.params:
                 if key != 'ssid':
-                    if isinstance(node.params[key], BaseString):
-                        setattr(self, key, node.params[key])
-                    elif isinstance(node.params[key], list):
+                    if isinstance(node.params[key], list):
                         value = node.params[key][wlan].split(',')
-                        setattr(self, key, value[id])
-                    elif isinstance(node.params[key], int):
+                        setattr(self, key, value[0])
+                    else:
                         setattr(self, key, node.params[key])
 
 
@@ -994,12 +990,10 @@ class managed(TCWirelessLink):
 
         for key in self.__dict__.keys():
             if key in node.params:
-                if isinstance(node.params[key], BaseString):
-                    setattr(self, key, node.params[key])
-                elif isinstance(node.params[key], list):
-                    arg = node.params[key][0].split(',')
-                    setattr(self, key, arg[wlan])
-                elif isinstance(node.params[key], int):
+                if isinstance(node.params[key], list):
+                    value = node.params[key][wlan].split(',')
+                    setattr(self, key, value[0])
+                else:
                     setattr(self, key, node.params[key])
 
 
