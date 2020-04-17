@@ -123,7 +123,7 @@ class ONOSBmv2Switch(Switch):
                  thriftport=None, netcfg=False, dryrun=False,
                  pipeconf=DEFAULT_PIPECONF, pktdump=False, valgrind=False,
                  gnmi=False, portcfg=True, onosdevid=None, stratum=False,
-                 **kwargs):
+                 switch_config=None, **kwargs):
         Switch.__init__(self, name, **kwargs)
         self.grpcPort = grpcport
         self.grpcPortInternal = None  # Needed for Stratum (local_hercules_url)
@@ -163,6 +163,7 @@ class ONOSBmv2Switch(Switch):
         self.keepaliveFile = '/tmp/bmv2-%s-watchdog.out' % self.name
         self.targetName = STRATUM_BMV2 if self.useStratum else SIMPLE_SWITCH_GRPC
         self.controllers = None
+        self.switch_config = switch_config
 
         # Remove files from previous executions
         self.cleanupTmpFiles()
@@ -266,7 +267,7 @@ nodes {{
 
         if not self.netcfg:
             # Do not push config to ONOS.
-            info("")
+            info("\n")
             return
 
         # Build netcfg URL
@@ -339,12 +340,48 @@ nodes {{
                 # We want to be notified if BMv2/Stratum dies...
                 threading.Thread(target=watchDog, args=[self]).start()
 
-            self.doOnosNetcfg(self.controllerIp(self.controllers))
+                if self.json is not None:
+                    if self.switch_config is not None:
+                        # Switch initial configuration using Thrift CLI
+                        try:
+                            with open(self.switch_config, mode='r') as f:
+                                # map(self.bmv2Thrift(), f.readlines())
+                                for cmd_row in f:
+                                    self.bmv2Thrift(cmd_row)
+                            debug("\nSwitch has been configured with %s configuration file" % self.switch_config)
+                        except IOError:
+                            info("\nSwitch configuration file %s not found" % self.switch_config)
+
+            if self.controllers:
+                self.doOnosNetcfg(self.controllerIp(self.controllers))
         except Exception:
             ONOSBmv2Switch.mininet_exception = 1
             self.killBmv2()
             self.printBmv2Log()
             raise
+
+    def bmv2Thrift(self, *args, **kwargs):
+        "Run ovs-vsctl command (or queue for later execution)"
+        cli_command = "simple_switch_CLI --thrift-port " + str(self.thriftPort) + " <<< "
+        switch_cmd = ' '.join(map(str, filter(lambda ar: ar is not None, args)))
+        command = cli_command + '"' + switch_cmd + '"'
+        self.cmd(command)
+
+    def attach(self, intf):
+        """ Connect a new data port """
+        # TODO: find a better way to add a port at runtime
+        if self.pktdump:
+            pcapFiles = ["./" + str(intf) + "_out.pcap", "./" + str(intf) + "_in.pcap"]
+            self.bmv2Thrift('port_add', intf, next(key for key, value in self.intfs.items() if value == intf),
+                            *pcapFiles)
+        else:
+            self.bmv2Thrift('port_add', intf, next(key for key, value in self.intfs.items() if value == intf))
+        self.cmd('ifconfig', intf, 'up')
+        # TODO: check if need to send a new netcfg
+        # if self.controllers is not None and len(controllers) > 0 :
+        #   self.doOnosNetcfg(self.controllerIp(controllers))
+        # else:
+        #    self.doOnosNetcfg(None)
 
     def getBmv2CmdString(self):
         bmv2Args = [SIMPLE_SWITCH_GRPC] + self.bmv2Args()
@@ -426,12 +463,12 @@ nodes {{
 
     def printBmv2Log(self):
         if os.path.isfile(self.logfile):
-            info("-" * 80)
-            info("%s log (from %s):" % (self.name, self.logfile))
+            info("\n-" * 80)
+            info("\n%s log (from %s):" % (self.name, self.logfile))
             with open(self.logfile, 'r') as f:
                 lines = f.readlines()
                 if len(lines) > BMV2_LOG_LINES:
-                    info("...")
+                    info("\n...")
                 for line in lines[-BMV2_LOG_LINES:]:
                     info(line.rstrip())
 
