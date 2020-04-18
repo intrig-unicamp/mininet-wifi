@@ -51,8 +51,8 @@ def topology(remote_controller):
         args2 = {'json': json_file, 'switch_config': config2}
 
     info('*** Adding P4APs\n')
-    ap1 = net.addAccessPoint('ap1', cls=ONOSBmv2AP, **args1)
-    ap2 = net.addAccessPoint('ap2', cls=ONOSBmv2AP, **args2)
+    ap1 = net.addAccessPoint('ap1', cls=ONOSBmv2AP, netcfg=True, **args1)
+    ap2 = net.addAccessPoint('ap2', cls=ONOSBmv2AP, netcfg=True, **args2)
 
     if remote_controller:
         info('*** Adding Controller\n')

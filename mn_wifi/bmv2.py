@@ -118,7 +118,7 @@ class ONOSBmv2Switch(Switch):
     # be running.
     mininet_exception = multiprocessing.Value('i', 0)
 
-    def __init__(self, name, json=None, debugger=False, loglevel="warn",
+    def __init__(self, name, json=None, debugger=False, loglevel="info",
                  elogger=False, grpcport=None, cpuport=255, notifications=False,
                  thriftport=None, netcfg=False, dryrun=False,
                  pipeconf=DEFAULT_PIPECONF, pktdump=False, valgrind=False,
@@ -154,7 +154,8 @@ class ONOSBmv2Switch(Switch):
             self.onosDeviceId = onosdevid
         else:
             self.onosDeviceId = "device:bmv2:%s" % self.name
-        self.p4DeviceId = BMV2_DEFAULT_DEVICE_ID
+        nums = re.findall(r'\d+', name)
+        self.p4DeviceId = int(nums[0])
         self.logfd = None
         self.bmv2popen = None
         self.stopped = True
@@ -274,6 +275,12 @@ nodes {{
         url = 'http://%s:8181/onos/v1/network/configuration/' % controllerIP
         # Instantiate password manager for HTTP auth
         pm = urllib2.HTTPPasswordMgrWithDefaultRealm()
+
+        if 'ONOS_WEB_USER' not in os.environ:
+            os.environ['ONOS_WEB_USER'] = 'onos'
+        if 'ONOS_WEB_PASS' not in os.environ:
+            os.environ['ONOS_WEB_PASS'] = 'rocks'
+
         pm.add_password(None, url,
                         os.environ['ONOS_WEB_USER'],
                         os.environ['ONOS_WEB_PASS'])
