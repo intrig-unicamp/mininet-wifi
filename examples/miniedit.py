@@ -21,24 +21,35 @@ OpenFlow icon from https://www.opennetworking.org/
 MINIEDIT_VERSION = '2.3'
 
 from optparse import OptionParser
-# from Tkinter import *
-from Tkinter import ( Frame, Label, LabelFrame, Entry, OptionMenu, Checkbutton,
-                      Menu, Toplevel, Button, BitmapImage, PhotoImage, Canvas,
-                      Scrollbar, Wm, TclError, StringVar, IntVar,
-                      E, W, EW, NW, Y, VERTICAL, SOLID, CENTER,
-                      RIGHT, LEFT, BOTH, TRUE, FALSE )
-from ttk import Notebook
-from tkMessageBox import showerror
 from subprocess import call
-import tkFont
-import tkFileDialog
-import tkSimpleDialog
+
 import re
 import json
 from distutils.version import StrictVersion
 import os
 import sys
 from functools import partial
+
+Python3 = sys.version_info[0] == 3
+
+if Python3:
+    from tkinter import (Frame, Label, LabelFrame, Entry, OptionMenu, Checkbutton,
+                         Menu, Toplevel, Button, BitmapImage, PhotoImage, Canvas,
+                         Scrollbar, Wm, TclError, StringVar, IntVar,
+                         E, W, EW, NW, Y, VERTICAL, SOLID, CENTER, ttk,
+                         messagebox, font, filedialog, simpledialog,
+                         RIGHT, LEFT, BOTH, TRUE, FALSE)
+else:
+    from Tkinter import ( Frame, Label, LabelFrame, Entry, OptionMenu, Checkbutton,
+                          Menu, Toplevel, Button, BitmapImage, PhotoImage, Canvas,
+                          Scrollbar, Wm, TclError, StringVar, IntVar,
+                          E, W, EW, NW, Y, VERTICAL, SOLID, CENTER,
+                          RIGHT, LEFT, BOTH, TRUE, FALSE)
+    import ttk
+    import tkFont as font
+    import tkFileDialog as filedialog
+    import tkSimpleDialog as simpledialog
+
 
 if 'PYTHONPATH' in os.environ:
     sys.path = os.environ[ 'PYTHONPATH' ].split( ':' ) + sys.path
@@ -62,15 +73,13 @@ from mininet.topolib import TreeTopo
 from mn_wifi.cli import CLI
 from mn_wifi.net import Mininet_wifi
 from mn_wifi.node import CPULimitedStation, Station, OVSAP, UserAP
-from mn_wifi.bmv2 import Bmv2Switch, Bmv2AP
+from mn_wifi.bmv2 import ONOSBmv2Switch, ONOSBmv2AP
 from mn_wifi.link import wmediumd
 from mn_wifi.wmediumdConnector import interference
 
 
 info( 'MiniEdit running against Mininet '+VERSION, '\n' )
 MININET_VERSION = re.sub(r'[^\d\.]', '', VERSION)
-if StrictVersion(MININET_VERSION) > StrictVersion('2.0'):
-    from mininet.node import IVSSwitch
 
 TOPODEF = 'none'
 TOPOS = { 'minimal': lambda: SingleSwitchTopo( k=2 ),
@@ -221,14 +230,66 @@ class customOvsAP(OVSAP):
             self.cmd( 'ifconfig', self, self.apIP )
 
 
-class PrefsDialog(tkSimpleDialog.Dialog):
+class customBmv2Switch(ONOSBmv2Switch):
+    "Customized Bmv2 switch"
+
+    def __init__(self, name, json=None, grpcport=None, thriftport=None, netcfg=False,
+                 switch_config=None, **kwargs):
+        ONOSBmv2Switch.__init__(self, name, json, grpcport, thriftport, netcfg,
+                                switch_config, **kwargs)
+        self.apIP = None
+
+    def getAPIP(self):
+        "Return management IP address"
+        return self.apIP
+
+    def setAPIP(self, ip):
+        "Set management IP address"
+        self.apIP = ip
+
+    def start(self, controllers):
+        "Start and set management IP address"
+        # Call superclass constructor
+        ONOSBmv2Switch.start(self, controllers)
+        # Set AP IP address
+        if self.apIP is not None:
+            self.cmd('ifconfig', self, self.apIP)
+
+
+class customBmv2AP(ONOSBmv2AP):
+    "Customized Bmv2 AP"
+
+    def __init__(self, name, json=None, grpcport=None, thriftport=None, netcfg=False,
+                 switch_config=None, **kwargs):
+        ONOSBmv2AP.__init__(self, name, json, grpcport, thriftport, netcfg,
+                            switch_config, **kwargs)
+        self.apIP = None
+
+    def getAPIP(self):
+        "Return management IP address"
+        return self.apIP
+
+    def setAPIP(self, ip):
+        "Set management IP address"
+        self.apIP = ip
+
+    def start(self, controllers):
+        "Start and set management IP address"
+        # Call superclass constructor
+        ONOSBmv2AP.start(self, controllers)
+        # Set AP IP address
+        if self.apIP is not None:
+            self.cmd('ifconfig', self, self.apIP)
+
+
+class PrefsDialog(simpledialog.Dialog):
     "Preferences dialog"
 
     def __init__(self, parent, title, prefDefaults):
 
         self.prefValues = prefDefaults
 
-        tkSimpleDialog.Dialog.__init__(self, parent, title)
+        simpledialog.Dialog.__init__(self, parent, title)
 
     def body(self, master):
         "Create dialog body"
@@ -280,13 +341,11 @@ class PrefsDialog(tkSimpleDialog.Dialog):
         row += 1
         Label(self.leftfieldFrame, text="Default Switch:").grid(row=row, sticky=E)
         self.switchType = StringVar(self.leftfieldFrame)
-        self.switchTypeMenu = OptionMenu(self.leftfieldFrame, self.switchType, "Bmv2Switch", "Open vSwitch Kernel Mode", "Indigo Virtual", "Userspace", "Userspace inNamespace")
+        self.switchTypeMenu = OptionMenu(self.leftfieldFrame, self.switchType, "ONOSBmv2Switch", "Open vSwitch Kernel Mode", "Userspace", "Userspace inNamespace")
         self.switchTypeMenu.grid(row=row, column=1, sticky=W)
         switchTypePref = self.prefValues['switchType']
-        if switchTypePref == 'ivs':
-            self.switchType.set("Indigo Virtual")
         if switchTypePref == 'bmv2':
-            self.switchType.set("Bmv2Switch")
+            self.switchType.set("ONOSBmv2Switch")
         elif switchTypePref == 'userns':
             self.switchType.set("Userspace inNamespace")
         elif switchTypePref == 'user':
@@ -298,10 +357,9 @@ class PrefsDialog(tkSimpleDialog.Dialog):
         row += 1
         Label(self.leftfieldFrame, text="Default AP/Switch:").grid(row=row, sticky=E)
         self.apType = StringVar(self.leftfieldFrame)
-        self.apTypeMenu = OptionMenu(self.leftfieldFrame, self.apType, "Bmv2AP",
+        self.apTypeMenu = OptionMenu(self.leftfieldFrame, self.apType, "ONOSBmv2AP",
                                      "Open vSwitch Kernel Mode",
-                                     "Indigo Virtual", "Userspace",
-                                     "Userspace inNamespace")
+                                     "Userspace", "Userspace inNamespace")
         self.switchTypeMenu.grid(row=row, column=1, sticky=W)
         apTypePref = self.prefValues['apType']
         if apTypePref == 'userns':
@@ -309,7 +367,7 @@ class PrefsDialog(tkSimpleDialog.Dialog):
         elif apTypePref == 'user':
             self.apType.set("Userspace")
         elif apTypePref == 'bmv2':
-            self.apType.set("Bmv2AP")
+            self.apType.set("ONOSBmv2AP")
         else:
             self.apType.set("Open vSwitch Kernel Mode")
         """
@@ -479,17 +537,11 @@ class PrefsDialog(tkSimpleDialog.Dialog):
                        'netflow':nflowvalues,
                        'enableWmediumd': enableWmediumd,
                        'startCLI':startCLI}
-        if sw == 'Indigo Virtual':
-            self.result['switchType'] = 'ivs'
-            if StrictVersion(MININET_VERSION) < StrictVersion('2.1'):
-                self.ovsOk = False
-                showerror(title="Error",
-                          message='MiniNet version 2.1+ required. You have '+VERSION+'.')
-        elif sw == 'Userspace':
+        if sw == 'Userspace':
             self.result['switchType'] = 'user'
         elif sw == 'Userspace inNamespace':
             self.result['switchType'] = 'userns'
-        elif sw == 'Bmv2Switch':
+        elif sw == 'ONOSBmv2Switch':
             self.result['apType'] = 'bmv2'
         else:
             self.result['switchType'] = 'ovs'
@@ -498,7 +550,7 @@ class PrefsDialog(tkSimpleDialog.Dialog):
             self.result['apType'] = 'user'
         elif ap == 'Userspace inNamespace':
             self.result['apType'] = 'userns'
-        elif ap == 'Bmv2AP':
+        elif ap == 'ONOSBmv2AP':
             self.result['apType'] = 'bmv2'
         else:
             self.result['apType'] = 'ovs'
@@ -508,13 +560,13 @@ class PrefsDialog(tkSimpleDialog.Dialog):
             ovsVer = self.getOvsVersion()
             if StrictVersion(ovsVer) < StrictVersion('2.0'):
                 self.ovsOk = False
-                showerror(title="Error",
+                messagebox.showerror(title="Error",
                           message='Open vSwitch version 2.0+ required. You have '+ovsVer+'.')
         if ovsOf12 == "1" or ovsOf13 == "1":
             ovsVer = self.getOvsVersion()
             if StrictVersion(ovsVer) < StrictVersion('1.10'):
                 self.ovsOk = False
-                showerror(title="Error",
+                messagebox.showerror(title="Error",
                           message='Open vSwitch version 1.10+ required. You have '+ovsVer+'.')
 
         if self.ovsOk:
@@ -585,7 +637,7 @@ class HostDialog(CustomDialog):
 
     def body(self, master):
         self.rootFrame = master
-        n = Notebook(self.rootFrame)
+        n = ttk.Notebook(self.rootFrame)
         self.propFrame = Frame(n)
         self.vlanFrame = Frame(n)
         self.interfaceFrame = Frame(n)
@@ -766,7 +818,7 @@ class StationDialog(CustomDialog):
 
     def body(self, master):
         self.rootFrame = master
-        n = Notebook(self.rootFrame)
+        n = ttk.Notebook(self.rootFrame)
         self.propFrame = Frame(n)
         self.authFrame = Frame(n)
         self.vlanFrame = Frame(n)
@@ -1114,18 +1166,16 @@ class SwitchDialog(CustomDialog):
         # Selection of switch type
         Label(self.leftfieldFrame, text="Switch Type:").grid(row=rowCount, sticky=E)
         self.switchType = StringVar(self.leftfieldFrame)
-        self.switchTypeMenu = OptionMenu(self.leftfieldFrame, self.switchType, "Default", "Bmv2Switch", "Open vSwitch Kernel Mode", "Indigo Virtual Switch", "Userspace", "Userspace inNamespace")
+        self.switchTypeMenu = OptionMenu(self.leftfieldFrame, self.switchType, "Default", "ONOSBmv2Switch", "Open vSwitch Kernel Mode", "Userspace", "Userspace inNamespace")
         self.switchTypeMenu.grid(row=rowCount, column=1, sticky=W)
         if 'switchType' in self.prefValues:
             switchTypePref = self.prefValues['switchType']
-            if switchTypePref == 'ivs':
-                self.switchType.set("Indigo Virtual")
-            elif switchTypePref == 'userns':
+            if switchTypePref == 'userns':
                 self.switchType.set("Userspace inNamespace")
             elif switchTypePref == 'user':
                 self.switchType.set("Userspace")
             elif switchTypePref == 'bmv2':
-                self.switchType.set("Bmv2AP")
+                self.switchType.set("ONOSBmv2AP")
             elif switchTypePref == 'ovs':
                 self.switchType.set("Open vSwitch Kernel Mode")
             else:
@@ -1205,7 +1255,7 @@ class SwitchDialog(CustomDialog):
         dpid = self.dpidEntry.get()
         if (self.defaultDpid(self.hostnameEntry.get()) is None
                 and len(dpid) == 0):
-            showerror(title="Error",
+            messagebox.showerror(title="Error",
                       message= 'Unable to derive default datapath ID - '
                       'please either specify a DPID or use a '
                       'canonical switch name such as s23.' )
@@ -1220,19 +1270,13 @@ class SwitchDialog(CustomDialog):
                    'dpctl':self.dpctlEntry.get(),
                    'switchIP':self.ipEntry.get()}
         sw = self.switchType.get()
-        if sw == 'Indigo Virtual':
-            results['switchType'] = 'ivs'
-            if StrictVersion(MININET_VERSION) < StrictVersion('2.1'):
-                self.ovsOk = False
-                showerror(title="Error",
-                          message='MiniNet version 2.1+ required. You have '+VERSION+'.')
-        elif sw == 'Userspace inNamespace':
+        if sw == 'Userspace inNamespace':
             results['switchType'] = 'userns'
         elif sw == 'Userspace':
             results['switchType'] = 'user'
         elif sw == 'Open vSwitch Kernel Mode':
             results['switchType'] = 'ovs'
-        elif sw == 'Bmv2AP':
+        elif sw == 'ONOSBmv2AP':
             results['switchType'] = 'bmv2'
         else:
             results['switchType'] = 'default'
@@ -1249,7 +1293,7 @@ class APDialog(CustomDialog):
 
     def body(self, master):
         self.rootFrame = master
-        n = Notebook(self.rootFrame)
+        n = ttk.Notebook(self.rootFrame)
         self.propFrame = Frame(n)
         self.authFrame = Frame(n)
         n.add(self.propFrame, text='Properties')
@@ -1326,19 +1370,17 @@ class APDialog(CustomDialog):
         # Selection of ap type
         Label(self.leftfieldFrame, text="AP Type:").grid(row=rowCount, sticky=E)
         self.apType = StringVar(self.leftfieldFrame)
-        self.apTypeMenu = OptionMenu(self.leftfieldFrame, self.apType, "Default", "Bmv2AP", "Open vSwitch Kernel Mode",
-                                     "Indigo Virtual", "Userspace", "Userspace inNamespace")
+        self.apTypeMenu = OptionMenu(self.leftfieldFrame, self.apType, "Default", "ONOSBmv2AP", "Open vSwitch Kernel Mode",
+                                     "Userspace", "Userspace inNamespace")
         self.apTypeMenu.grid(row=rowCount, column=1, sticky=W)
         if 'apType' in self.prefValues:
             apTypePref = self.prefValues['apType']
-            if apTypePref == 'ivs':
-                self.apType.set("Indigo Virtual")
-            elif apTypePref == 'userns':
+            if apTypePref == 'userns':
                 self.apType.set("Userspace inNamespace")
             elif apTypePref == 'user':
                 self.apType.set("Userspace")
             elif apTypePref == 'bmv2':
-                self.apType.set("Bmv2AP")
+                self.apType.set("ONOSBmv2AP")
             elif apTypePref == 'ovs':
                 self.apType.set("Open vSwitch Kernel Mode")
             else:
@@ -1486,7 +1528,7 @@ class APDialog(CustomDialog):
         dpid = self.dpidEntry.get()
         if (self.defaultDpid(self.hostnameEntry.get()) is None
            and len(dpid) == 0):
-            showerror(title="Error",
+            messagebox.showerror(title="Error",
                       message= 'Unable to derive default datapath ID - '
                       'please either specify a DPID or use a '
                       'canonical switch name such as s23.' )
@@ -1514,7 +1556,7 @@ class APDialog(CustomDialog):
             results['apType'] = 'user'
         elif ap == 'Open vSwitch Kernel Mode':
             results['apType'] = 'ovs'
-        elif ap == 'Bmv2AP':
+        elif ap == 'ONOSBmv2AP':
             results['apType'] = 'bmv2'
         else:
             results['apType'] = 'default'
@@ -1606,7 +1648,7 @@ class TableFrame(Frame):
         self.update_idletasks()
         self.rows += 1
 
-class LinkDialog(tkSimpleDialog.Dialog):
+class LinkDialog(simpledialog.Dialog):
 
     def __init__(self, parent, title, linkDefaults, links, src, dest):
 
@@ -1614,7 +1656,7 @@ class LinkDialog(tkSimpleDialog.Dialog):
         self.links = links
         self.src = src
         self.dest = dest
-        tkSimpleDialog.Dialog.__init__(self, parent, title)
+        simpledialog.Dialog.__init__(self, parent, title)
 
     def body(self, master):
         if 'link' not in self.linkValues:
@@ -1802,14 +1844,14 @@ class LinkDialog(tkSimpleDialog.Dialog):
             self.result['dest'] = self.e12.get()
 
 
-class ControllerDialog(tkSimpleDialog.Dialog):
+class ControllerDialog(simpledialog.Dialog):
 
     def __init__(self, parent, title, ctrlrDefaults=None):
 
         if ctrlrDefaults:
             self.ctrlrValues = ctrlrDefaults
 
-        tkSimpleDialog.Dialog.__init__(self, parent, title)
+        simpledialog.Dialog.__init__(self, parent, title)
 
     def body(self, master):
 
@@ -1970,7 +2012,7 @@ class MiniEdit( Frame ):
         Frame.__init__( self, parent )
         self.action = None
         self.appName = 'MiniEdit'
-        self.fixedFont = tkFont.Font ( family="DejaVu Sans Mono", size="14" )
+        self.fixedFont = font.Font ( family="DejaVu Sans Mono", size="14" )
 
         # Style
         self.font = ( 'Geneva', 9 )
@@ -2295,11 +2337,15 @@ class MiniEdit( Frame ):
 
     def convertJsonUnicode(self, text):
         "Some part of Mininet don't like Unicode"
+        if Python3:
+            unicode = str
         if isinstance(text, dict):
-            return {self.convertJsonUnicode(key): self.convertJsonUnicode(value) for key, value in text.iteritems()}
+            return {self.convertJsonUnicode(key): self.convertJsonUnicode(value) for key, value in text.items()}
         elif isinstance(text, list):
             return [self.convertJsonUnicode(element) for element in text]
         elif isinstance(text, unicode):
+            if Python3:
+                return text
             return text.encode('utf-8')
         else:
             return text
@@ -2312,7 +2358,7 @@ class MiniEdit( Frame ):
             ('Mininet/Mininet-WiFi Topology','*.mn'),
             ('All Files','*'),
         ]
-        f = tkFileDialog.askopenfile(filetypes=myFormats, mode='rb')
+        f = filedialog.askopenfile(filetypes=myFormats, mode='rb')
         if f == None:
             return
         self.newTopology()
@@ -2320,7 +2366,8 @@ class MiniEdit( Frame ):
 
         # Load application preferences
         if 'application' in loadedTopology:
-            self.appPrefs = dict(self.appPrefs.items() + loadedTopology['application'].items())
+            self.appPrefs = self.appPrefs.copy()
+            self.appPrefs.update(loadedTopology['application'])
             if "ovsOf10" not in self.appPrefs["openFlowVersions"]:
                 self.appPrefs["openFlowVersions"]["ovsOf10"] = '0'
             if "ovsOf11" not in self.appPrefs["openFlowVersions"]:
@@ -2356,105 +2403,122 @@ class MiniEdit( Frame ):
                     icon = self.findWidgetByName(hostname)
                     icon.bind('<Button-3>', self.do_controllerPopup )
 
-
         # Load hosts
-        hosts = loadedTopology['hosts']
-        for host in hosts:
-            nodeNum = host['number']
-            hostname = 'h'+nodeNum
-            if 'hostname' in host['opts']:
-                hostname = host['opts']['hostname']
-            else:
-                host['opts']['hostname'] = hostname
-            if 'nodeNum' not in host['opts']:
-                host['opts']['nodeNum'] = int(nodeNum)
-            x = host['x']
-            y = host['y']
-            self.addNode('Host', nodeNum, float(x), float(y), name=hostname)
+        if 'hosts' in loadedTopology:
+            hosts = loadedTopology['hosts']
+            for host in hosts:
+                nodeNum = host['number']
+                hostname = 'h'+nodeNum
+                if 'hostname' in host['opts']:
+                    hostname = host['opts']['hostname']
+                else:
+                    host['opts']['hostname'] = hostname
+                if 'nodeNum' not in host['opts']:
+                    host['opts']['nodeNum'] = int(nodeNum)
+                x = host['x']
+                y = host['y']
+                self.addNode('Host', nodeNum, float(x), float(y), name=hostname)
 
-            # Fix JSON converting tuple to list when saving
-            if 'privateDirectory' in host['opts']:
-                newDirList = []
-                for privateDir in host['opts']['privateDirectory']:
-                    if isinstance( privateDir, list ):
-                        newDirList.append((privateDir[0],privateDir[1]))
-                    else:
-                        newDirList.append(privateDir)
-                host['opts']['privateDirectory'] = newDirList
-            self.hostOpts[hostname] = host['opts']
-            icon = self.findWidgetByName(hostname)
-            icon.bind('<Button-3>', self.do_hostPopup )
+                # Fix JSON converting tuple to list when saving
+                if 'privateDirectory' in host['opts']:
+                    newDirList = []
+                    for privateDir in host['opts']['privateDirectory']:
+                        if isinstance( privateDir, list ):
+                            newDirList.append((privateDir[0],privateDir[1]))
+                        else:
+                            newDirList.append(privateDir)
+                    host['opts']['privateDirectory'] = newDirList
+                self.hostOpts[hostname] = host['opts']
+                icon = self.findWidgetByName(hostname)
+                icon.bind('<Button-3>', self.do_hostPopup)
 
         # Load stations
-        stations = loadedTopology['stations']
-        for station in stations:
-            nodeNum = station['number']
-            hostname = 'sta' + nodeNum
-            if 'hostname' in station['opts']:
-                hostname = station['opts']['hostname']
-            else:
-                station['opts']['hostname'] = hostname
-            if 'nodeNum' not in station['opts']:
-                station['opts']['nodeNum'] = int(nodeNum)
-            x = float(station['x'])
-            y = float(station['y'])
-            self.addNode('Station', nodeNum, float(x), float(y), name=hostname)
+        if 'stations' in loadedTopology:
+            stations = loadedTopology['stations']
+            for station in stations:
+                nodeNum = station['number']
+                hostname = 'sta' + nodeNum
+                if 'hostname' in station['opts']:
+                    hostname = station['opts']['hostname']
+                else:
+                    station['opts']['hostname'] = hostname
+                if 'nodeNum' not in station['opts']:
+                    station['opts']['nodeNum'] = int(nodeNum)
+                x = float(station['x'])
+                y = float(station['y'])
+                self.addNode('Station', nodeNum, float(x), float(y), name=hostname)
 
-            # Fix JSON converting tuple to list when saving
-            if 'privateDirectory' in station['opts']:
-                newDirList = []
-                for privateDir in station['opts']['privateDirectory']:
-                    if isinstance(privateDir, list):
-                        newDirList.append((privateDir[0], privateDir[1]))
-                    else:
-                        newDirList.append(privateDir)
-                station['opts']['privateDirectory'] = newDirList
-            self.stationOpts[hostname] = station['opts']
-            icon = self.findWidgetByName(hostname)
-            icon.bind('<Button-3>', self.do_stationPopup)
+                # Fix JSON converting tuple to list when saving
+                if 'privateDirectory' in station['opts']:
+                    newDirList = []
+                    for privateDir in station['opts']['privateDirectory']:
+                        if isinstance(privateDir, list):
+                            newDirList.append((privateDir[0], privateDir[1]))
+                        else:
+                            newDirList.append(privateDir)
+                    station['opts']['privateDirectory'] = newDirList
+                self.stationOpts[hostname] = station['opts']
+                icon = self.findWidgetByName(hostname)
+                icon.bind('<Button-3>', self.do_stationPopup)
 
-            name = self.stationOpts[hostname]
-            range = self.getRange(name, 'Station')
-            self.range[hostname] = c.create_oval(x - range, y - range,
-                                                 x + range, y + range,
-                                                 outline="#0000ff", width=2)
+                name = self.stationOpts[hostname]
+                range = self.getRange(name, 'Station')
+                self.range[hostname] = c.create_oval(x - range, y - range,
+                                                     x + range, y + range,
+                                                     outline="#0000ff", width=2)
 
         # Load switches
-        switches = loadedTopology['switches']
-        for switch in switches:
-            nodeNum = switch['number']
-            hostname = 's'+nodeNum
-            if 'controllers' not in switch['opts']:
-                switch['opts']['controllers'] = []
-            if 'switchType' not in switch['opts']:
-                switch['opts']['switchType'] = 'default'
-            if 'hostname' in switch['opts']:
-                hostname = switch['opts']['hostname']
-            else:
-                switch['opts']['hostname'] = hostname
-            if 'nodeNum' not in switch['opts']:
-                switch['opts']['nodeNum'] = int(nodeNum)
-            x = switch['x']
-            y = switch['y']
-            if switch['opts']['switchType'] == "legacyRouter":
-                self.addNode('LegacyRouter', nodeNum, float(x), float(y), name=hostname)
-                icon = self.findWidgetByName(hostname)
-                icon.bind('<Button-3>', self.do_legacyRouterPopup )
-            elif switch['opts']['switchType'] == "legacySwitch":
-                self.addNode('LegacySwitch', nodeNum, float(x), float(y), name=hostname)
-                icon = self.findWidgetByName(hostname)
-                icon.bind('<Button-3>', self.do_legacySwitchPopup )
-            else:
-                self.addNode('Switch', nodeNum, float(x), float(y), name=hostname)
-                icon = self.findWidgetByName(hostname)
-                icon.bind('<Button-3>', self.do_switchPopup )
-            self.switchOpts[hostname] = switch['opts']
+        if 'switches' in loadedTopology:
+            switches = loadedTopology['switches']
+            for switch in switches:
+                nodeNum = switch['number']
+                hostname = 's'+nodeNum
+                if 'controllers' not in switch['opts']:
+                    switch['opts']['controllers'] = []
+                if 'switchType' not in switch['opts']:
+                    switch['opts']['switchType'] = 'default'
+                if 'hostname' in switch['opts']:
+                    hostname = switch['opts']['hostname']
+                else:
+                    switch['opts']['hostname'] = hostname
+                if 'nodeNum' not in switch['opts']:
+                    switch['opts']['nodeNum'] = int(nodeNum)
+                x = switch['x']
+                y = switch['y']
+                if switch['opts']['switchType'] == "legacyRouter":
+                    self.addNode('LegacyRouter', nodeNum, float(x), float(y), name=hostname)
+                    icon = self.findWidgetByName(hostname)
+                    icon.bind('<Button-3>', self.do_legacyRouterPopup )
+                elif switch['opts']['switchType'] == "legacySwitch":
+                    self.addNode('LegacySwitch', nodeNum, float(x), float(y), name=hostname)
+                    icon = self.findWidgetByName(hostname)
+                    icon.bind('<Button-3>', self.do_legacySwitchPopup )
+                else:
+                    self.addNode('Switch', nodeNum, float(x), float(y), name=hostname)
+                    icon = self.findWidgetByName(hostname)
+                    icon.bind('<Button-3>', self.do_switchPopup )
+                self.switchOpts[hostname] = switch['opts']
 
-            # create links to controllers
-            if int(loadedTopology['version']) > 1:
-                controllers = self.switchOpts[hostname]['controllers']
-                for controller in controllers:
-                    dest = self.findWidgetByName(controller)
+                # create links to controllers
+                if int(loadedTopology['version']) > 1:
+                    controllers = self.switchOpts[hostname]['controllers']
+                    for controller in controllers:
+                        dest = self.findWidgetByName(controller)
+                        dx, dy = self.canvas.coords( self.widgetToItem[ dest ] )
+                        self.link = self.canvas.create_line(float(x),
+                                                            float(y),
+                                                            dx,
+                                                            dy,
+                                                            width=4,
+                                                            fill='red',
+                                                            dash=(6, 4, 2, 4),
+                                                            tag='link' )
+                        c.itemconfig(self.link, tags=c.gettags(self.link)+('control',))
+                        self.addLink(icon, dest, linktype='control')
+                        self.createControlLinkBindings()
+                        self.link = self.linkWidget = None
+                else:
+                    dest = self.findWidgetByName('c0')
                     dx, dy = self.canvas.coords( self.widgetToItem[ dest ] )
                     self.link = self.canvas.create_line(float(x),
                                                         float(y),
@@ -2465,78 +2529,79 @@ class MiniEdit( Frame ):
                                                         dash=(6, 4, 2, 4),
                                                         tag='link' )
                     c.itemconfig(self.link, tags=c.gettags(self.link)+('control',))
-                    self.addLink( icon, dest, linktype='control' )
+                    self.addLink(icon, dest, linktype='control')
                     self.createControlLinkBindings()
                     self.link = self.linkWidget = None
-            else:
-                dest = self.findWidgetByName('c0')
-                dx, dy = self.canvas.coords( self.widgetToItem[ dest ] )
-                self.link = self.canvas.create_line(float(x),
-                                                    float(y),
-                                                    dx,
-                                                    dy,
-                                                    width=4,
-                                                    fill='red',
-                                                    dash=(6, 4, 2, 4),
-                                                    tag='link' )
-                c.itemconfig(self.link, tags=c.gettags(self.link)+('control',))
-                self.addLink( icon, dest, linktype='control' )
-                self.createControlLinkBindings()
-                self.link = self.linkWidget = None
 
         # Load aps
-        aps = loadedTopology['aps']
-        for ap in aps:
-            nodeNum = ap['number']
-            hostname = 'ap' + nodeNum
-            ssid = hostname + '-ssid'
-            if 'ssid' not in ap['opts']:
-                ap['opts']['ssid'] = ssid
-            if 'channel' not in ap['opts']:
-                ap['opts']['channel'] = 1
-            if 'controllers' not in ap['opts']:
-                ap['opts']['controllers'] = []
-            if 'apType' not in ap['opts']:
-                ap['opts']['apType'] = 'default'
-            if 'authentication' not in ap['opts']:
-                ap['opts']['authentication'] = 'none'
-            if 'passwd' not in ap['opts']:
-                ap['opts']['passwd'] = ''
-            if 'mode' not in ap['opts']:
-                ap['opts']['mode'] = 'g'
-            if 'range' not in ap['opts']:
-                ap['opts']['range'] = 'default'
-            if 'wlans' not in ap['opts']:
-                ap['opts']['wlans'] = '1'
-            if 'ap' in ap['opts']:
-                hostname = ap['opts']['hostname']
-            else:
-                ap['opts']['hostname'] = hostname
-            if 'nodeNum' not in ap['opts']:
-                ap['opts']['nodeNum'] = int(nodeNum)
-            x = float(ap['x'])
-            y = float(ap['y'])
-            if ap['opts']['apType'] == "legacyAP":
-                self.addNode('LegacyAP', nodeNum, float(x), float(y), name=hostname)
-                icon = self.findWidgetByName(hostname)
-                icon.bind('<Button-3>', self.do_legacyAPPopup)
-            else:
-                self.addNode('AP', nodeNum, float(x), float(y), name=hostname)
-                icon = self.findWidgetByName(hostname)
-                icon.bind('<Button-3>', self.do_apPopup)
-            self.apOpts[hostname] = ap['opts']
+        if 'aps' in loadedTopology:
+            aps = loadedTopology['aps']
+            for ap in aps:
+                nodeNum = ap['number']
+                hostname = 'ap' + nodeNum
+                ssid = hostname + '-ssid'
+                if 'ssid' not in ap['opts']:
+                    ap['opts']['ssid'] = ssid
+                if 'channel' not in ap['opts']:
+                    ap['opts']['channel'] = 1
+                if 'controllers' not in ap['opts']:
+                    ap['opts']['controllers'] = []
+                if 'apType' not in ap['opts']:
+                    ap['opts']['apType'] = 'default'
+                if 'authentication' not in ap['opts']:
+                    ap['opts']['authentication'] = 'none'
+                if 'passwd' not in ap['opts']:
+                    ap['opts']['passwd'] = ''
+                if 'mode' not in ap['opts']:
+                    ap['opts']['mode'] = 'g'
+                if 'range' not in ap['opts']:
+                    ap['opts']['range'] = 'default'
+                if 'wlans' not in ap['opts']:
+                    ap['opts']['wlans'] = '1'
+                if 'ap' in ap['opts']:
+                    hostname = ap['opts']['hostname']
+                else:
+                    ap['opts']['hostname'] = hostname
+                if 'nodeNum' not in ap['opts']:
+                    ap['opts']['nodeNum'] = int(nodeNum)
+                x = float(ap['x'])
+                y = float(ap['y'])
+                if ap['opts']['apType'] == "legacyAP":
+                    self.addNode('LegacyAP', nodeNum, float(x), float(y), name=hostname)
+                    icon = self.findWidgetByName(hostname)
+                    icon.bind('<Button-3>', self.do_legacyAPPopup)
+                else:
+                    self.addNode('AP', nodeNum, float(x), float(y), name=hostname)
+                    icon = self.findWidgetByName(hostname)
+                    icon.bind('<Button-3>', self.do_apPopup)
+                self.apOpts[hostname] = ap['opts']
 
-            name = self.apOpts[hostname]
-            range = self.getRange(name, 'AP')
-            self.range[hostname] = c.create_oval(x - range, y - range,
-                                                 x + range, y + range,
-                                                 outline="#0000ff", width=2)
+                name = self.apOpts[hostname]
+                range = self.getRange(name, 'AP')
+                self.range[hostname] = c.create_oval(x - range, y - range,
+                                                     x + range, y + range,
+                                                     outline="#0000ff", width=2)
 
-            # create links to controllers
-            if int(loadedTopology['version']) > 1:
-                controllers = self.apOpts[hostname]['controllers']
-                for controller in controllers:
-                    dest = self.findWidgetByName(controller)
+                # create links to controllers
+                if int(loadedTopology['version']) > 1:
+                    controllers = self.apOpts[hostname]['controllers']
+                    for controller in controllers:
+                        dest = self.findWidgetByName(controller)
+                        dx, dy = self.canvas.coords(self.widgetToItem[dest])
+                        self.link = self.canvas.create_line(float(x),
+                                                            float(y),
+                                                            dx,
+                                                            dy,
+                                                            width=4,
+                                                            fill='red',
+                                                            dash=(6, 4, 2, 4),
+                                                            tag='link')
+                        c.itemconfig(self.link, tags=c.gettags(self.link) + ('control',))
+                        self.addLink(icon, dest, linktype='control')
+                        self.createControlLinkBindings()
+                        self.link = self.linkWidget = None
+                else:
+                    dest = self.findWidgetByName('c0')
                     dx, dy = self.canvas.coords(self.widgetToItem[dest])
                     self.link = self.canvas.create_line(float(x),
                                                         float(y),
@@ -2550,45 +2615,31 @@ class MiniEdit( Frame ):
                     self.addLink(icon, dest, linktype='control')
                     self.createControlLinkBindings()
                     self.link = self.linkWidget = None
-            else:
-                dest = self.findWidgetByName('c0')
-                dx, dy = self.canvas.coords(self.widgetToItem[dest])
-                self.link = self.canvas.create_line(float(x),
-                                                    float(y),
-                                                    dx,
-                                                    dy,
-                                                    width=4,
-                                                    fill='red',
-                                                    dash=(6, 4, 2, 4),
-                                                    tag='link')
-                c.itemconfig(self.link, tags=c.gettags(self.link) + ('control',))
-                self.addLink(icon, dest, linktype='control')
-                self.createControlLinkBindings()
-                self.link = self.linkWidget = None
 
         # Load links
-        links = loadedTopology['links']
-        for link in links:
-            srcNode = link['src']
-            src = self.findWidgetByName(srcNode)
-            sx, sy = self.canvas.coords( self.widgetToItem[ src ] )
+        if 'links' in loadedTopology:
+            links = loadedTopology['links']
+            for link in links:
+                srcNode = link['src']
+                src = self.findWidgetByName(srcNode)
+                sx, sy = self.canvas.coords(self.widgetToItem[src])
 
-            destNode = link['dest']
-            dest = self.findWidgetByName(destNode)
-            dx, dy = self.canvas.coords( self.widgetToItem[ dest]  )
+                destNode = link['dest']
+                dest = self.findWidgetByName(destNode)
+                dx, dy = self.canvas.coords(self.widgetToItem[dest])
 
-            self.link = self.canvas.create_line( sx, sy, dx, dy, width=4,
-                                                 fill='blue', tag='link' )
-            c.itemconfig(self.link, tags=c.gettags(self.link)+('data',))
-            self.addLink( src, dest, linkopts=link['opts'] )
-            self.createDataLinkBindings()
-            self.link = self.linkWidget = None
+                self.link = self.canvas.create_line(sx, sy, dx, dy, width=4,
+                                                    fill='blue', tag='link')
+                c.itemconfig(self.link, tags=c.gettags(self.link)+('data',))
+                self.addLink(src, dest, linkopts=link['opts'])
+                self.createDataLinkBindings()
+                self.link = self.linkWidget = None
 
         f.close()
 
     def findWidgetByName( self, name ):
         for widget in self.widgetToItem:
-            if name ==  widget[ 'text' ]:
+            if name ==  widget['text']:
                 return widget
 
     def newTopology( self ):
@@ -2618,7 +2669,7 @@ class MiniEdit( Frame ):
         ]
 
         savingDictionary = {}
-        fileName = tkFileDialog.asksaveasfilename(filetypes=myFormats ,title="Save the topology as...")
+        fileName = filedialog.asksaveasfilename(filetypes=myFormats ,title="Save the topology as...")
         if len(fileName ) > 0:
             # Save Application preferences
             savingDictionary['version'] = '2'
@@ -2694,7 +2745,7 @@ class MiniEdit( Frame ):
 
             try:
                 f = open(fileName, 'wb')
-                f.write(json.dumps(savingDictionary, sort_keys=True, indent=4, separators=(',', ': ')))
+                f.write(json.dumps(savingDictionary, sort_keys=True, indent=4, separators=(',', ': ')).encode())
             # pylint: disable=broad-except
             except Exception as er:
                 warn( er, '\n' )
@@ -2705,8 +2756,8 @@ class MiniEdit( Frame ):
     def exportScript( self ):
         "Export command."
         myFormats = [
-            ('Mininet Custom Topology','*.py'),
-            ('All Files','*'),
+            ('Mininet Custom Topology', '*.py'),
+            ('All Files', '*'),
         ]
 
         isWiFi = False
@@ -2745,8 +2796,8 @@ class MiniEdit( Frame ):
                     if ' UserAP' not in apType_:
                         apType_ += ' UserAP,'
                 elif apType == 'bmv2':
-                    if ' Bmv2AP' not in apType_:
-                        apType_ += ' Bmv2AP,'
+                    if ' ONOSBmv2AP' not in apType_:
+                        apType_ += ' ONOSBmv2AP,'
                 elif apType == 'default':
                     if ' OVSKernelAP' not in apType_:
                         apType_ += ' OVSKernelAP,'
@@ -2758,8 +2809,8 @@ class MiniEdit( Frame ):
                     if ' UserSwitch' not in switchType_:
                         switchType_ += ' UserSwitch,'
                 elif switchType == 'bmv2':
-                    if ' Bmv2Switch' not in switchType_:
-                        switchType_ += ' Bmv2Switch,'
+                    if ' ONOSBmv2Switch' not in switchType_:
+                        switchType_ += ' ONOSBmv2Switch,'
                 elif switchType == 'default':
                     if ' OVSKernelSwitch' not in switchType_:
                         switchType_ += ' OVSKernelSwitch,'
@@ -2775,29 +2826,29 @@ class MiniEdit( Frame ):
 
         links_ = ''
         sixLinks_ = ''
-        for key, linkDetail in self.links.iteritems():
+        for key, linkDetail in self.links.items():
             tags = self.canvas.gettags(key)
             if 'data' in tags:
                 linkopts = linkDetail['linkOpts']
                 if 'connection' in linkopts:
                     if 'adhoc' in linkopts['connection'] and ', adhoc' not in links_:
-                        links_+=', adhoc'
+                        links_ += ', adhoc'
                     elif 'mesh' in linkopts['connection'] and ', mesh' not in links_:
-                        links_+=', mesh'
+                        links_ += ', mesh'
                     elif 'wifi-direct' in linkopts['connection'] and ', wifi-direct' not in links_:
-                        links_+=', wifiDirectLink'
+                        links_ += ', wifiDirectLink'
                     elif '6lowpan' in linkopts['connection'] and 'sixLoWPANLink' not in sixLinks_:
-                        sixLinks_ +=' sixLoWPANLink'
+                        sixLinks_ += ' sixLoWPANLink'
 
-        fileName = tkFileDialog.asksaveasfilename(filetypes=myFormats ,title="Export the topology as...")
-        if len(fileName ) > 0:
+        fileName = filedialog.asksaveasfilename(filetypes=myFormats, title="Export the topology as...")
+        if len(fileName) > 0:
             # debug( "Now saving under %s\n" % fileName )
             f = open(fileName, 'wb')
 
-            f.write("#!/usr/bin/python\n")
-            f.write("\n")
+            f.write(b"#!/usr/bin/python\n")
+            f.write(b"\n")
             if not isWiFi:
-                f.write("from mininet.net import Mininet\n")
+                f.write(b"from mininet.net import Mininet\n")
             args = ''
             if hasController:
                 if not controllerType_:
@@ -2836,43 +2887,42 @@ class MiniEdit( Frame ):
                     args += ' OVSKernelSwitch'
 
             if args:
-                f.write("from mininet.node import"+args+"\n")
-            #if StrictVersion(MININET_VERSION) > StrictVersion('2.0'):
-            #    f.write("from mininet.node import IVSSwitch\n")
+                f.write(b"from mininet.node import" + args.encode() + b"\n")
+
             if not isWiFi:
-                f.write("from mininet.cli import CLI\n")
-                f.write("from mininet.link import TCLink, Intf\n")
-            f.write("from mininet.log import setLogLevel, info\n")
+                f.write(b"from mininet.cli import CLI\n")
+                f.write(b"from mininet.link import TCLink, Intf\n")
+            f.write(b"from mininet.log import setLogLevel, info\n")
 
             if isWiFi:
-                f.write("from mn_wifi.net import Mininet_wifi\n")
-                args = ''
+                f.write(b"from mn_wifi.net import Mininet_wifi\n")
+                args = b''
                 if hasStation:
-                    args += ' Station'
+                    args += b' Station'
                 if hasAP:
                     if not apType_:
                         apType_ = ' OVSKernelAP'
                     else:
                         apType_ = apType_[:-1]
                     if args:
-                        args += ',' + apType_
+                        args += b',' + apType_.encode()
                     else:
-                        args += apType_
+                        args += apType_.encode()
                 if args:
-                    f.write("from mn_wifi.node import"+args+"\n")
-                f.write("from mn_wifi.cli import CLI\n")
+                    f.write(b"from mn_wifi.node import" + args + b"\n")
+                f.write(b"from mn_wifi.cli import CLI\n")
                 if not links_:
-                    links_=''
-                f.write("from mn_wifi.link import wmediumd"+links_+"\n")
+                    links_= ''
+                f.write(b"from mn_wifi.link import wmediumd" + links_.encode() + b"\n")
                 if sixLinks_:
-                    f.write("from mn_wifi.sixLoWPAN.link import" + sixLinks_ + "\n")
-                f.write("from mn_wifi.wmediumdConnector import interference\n")
-            f.write("from subprocess import call\n")
+                    f.write(b"from mn_wifi.sixLoWPAN.link import" + sixLinks_.encode() + b"\n")
+                f.write(b"from mn_wifi.wmediumdConnector import interference\n")
+            f.write(b"from subprocess import call\n")
 
             inBandCtrl = False
             for widget in self.widgetToItem:
-                name = widget[ 'text' ]
-                tags = self.canvas.gettags( self.widgetToItem[ widget ] )
+                name = widget['text']
+                tags = self.canvas.gettags(self.widgetToItem[widget])
 
                 if 'Controller' in tags:
                     opts = self.controllers[name]
@@ -2881,33 +2931,33 @@ class MiniEdit( Frame ):
                         inBandCtrl = True
 
             if inBandCtrl == True:
-                f.write("\n")
-                f.write("class InbandController( RemoteController ):\n")
-                f.write("\n")
-                f.write("    def checkListening( self ):\n")
-                f.write("        \"Overridden to do nothing.\"\n")
-                f.write("        return\n")
+                f.write(b"\n")
+                f.write(b"class InbandController( RemoteController ):\n")
+                f.write(b"\n")
+                f.write(b"    def checkListening( self ):\n")
+                f.write(b"        \"Overridden to do nothing.\"\n")
+                f.write(b"        return\n")
 
-            f.write("\n")
-            f.write("\n")
-            f.write("def myNetwork():\n")
-            f.write("\n")
+            f.write(b"\n")
+            f.write(b"\n")
+            f.write(b"def myNetwork():\n")
+            f.write(b"\n")
             if not isWiFi:
-                f.write("    net = Mininet(topo=None,\n")
+                f.write(b"    net = Mininet(topo=None,\n")
             else:
-                f.write("    net = Mininet_wifi(topo=None,\n")
+                f.write(b"    net = Mininet_wifi(topo=None,\n")
             if len(self.appPrefs['dpctl']) > 0:
-                f.write("                       listenPort="+self.appPrefs['dpctl']+",\n")
-            f.write("                       build=False,\n")
+                f.write(b"                       listenPort=" + self.appPrefs['dpctl'].encode() + b",\n")
+            f.write(b"                       build=False,\n")
             if isWiFi:
-                f.write("                       link=wmediumd,\n")
-                f.write("                       wmediumd_mode=interference,\n")
-            f.write("                       ipBase='"+self.appPrefs['ipBase']+"')\n")
-            f.write("\n")
-            f.write("    info( '*** Adding controller\\n' )\n")
+                f.write(b"                       link=wmediumd,\n")
+                f.write(b"                       wmediumd_mode=interference,\n")
+            f.write(b"                       ipBase='" + self.appPrefs['ipBase'].encode() + b"')\n")
+            f.write(b"\n")
+            f.write(b"    info( '*** Adding controller\\n' )\n")
             for widget in self.widgetToItem:
-                name = widget[ 'text' ]
-                tags = self.canvas.gettags( self.widgetToItem[ widget ] )
+                name = widget['text']
+                tags = self.canvas.gettags( self.widgetToItem[widget])
 
                 if 'Controller' in tags:
                     opts = self.controllers[name]
@@ -2915,123 +2965,119 @@ class MiniEdit( Frame ):
                     if 'controllerProtocol' in opts:
                         controllerProtocol = opts['controllerProtocol']
                     else:
-                        controllerProtocol = 'tcp'
+                        controllerProtocol = b'tcp'
                     controllerIP = opts['remoteIP']
-                    controllerPort = opts['remotePort']
+                    controllerPort = str(opts['remotePort'])
 
-                    f.write("    "+name+" = net.addController(name='"+name+"',\n")
+                    f.write(b"    " + name.encode() + b" = net.addController(name='" + name.encode() + b"',\n")
 
-                    if controllerType == 'remote':
-                        f.write("                           controller=RemoteController,\n")
-                        f.write("                           ip='"+controllerIP+"',\n")
-                    elif controllerType == 'inband':
-                        f.write("                           controller=InbandController,\n")
-                        f.write("                           ip='"+controllerIP+"',\n")
-                    elif controllerType == 'ovsc':
-                        f.write("                           controller=OVSController,\n")
+                    if controllerType == b'remote':
+                        f.write(b"                           controller=RemoteController,\n")
+                        f.write(b"                           ip='" + controllerIP.encode() + b"',\n")
+                    elif controllerType == b'inband':
+                        f.write(b"                           controller=InbandController,\n")
+                        f.write(b"                           ip='" + controllerIP.encode() + b"',\n")
+                    elif controllerType == b'ovsc':
+                        f.write(b"                           controller=OVSController,\n")
                     else:
-                        f.write("                           controller=Controller,\n")
+                        f.write(b"                           controller=Controller,\n")
 
-                    f.write("                           protocol='"+controllerProtocol+"',\n")
-                    f.write("                           port="+str(controllerPort)+")\n")
-                    f.write("\n")
+                    f.write(b"                           protocol='" + controllerProtocol.encode() + b"',\n")
+                    f.write(b"                           port=" + controllerPort.encode() + b")\n")
+                    f.write(b"\n")
 
             # Save Switches and Hosts
-            f.write("    info( '*** Add switches/APs\\n')\n")
+            f.write(b"    info( '*** Add switches/APs\\n')\n")
             for widget in self.widgetToItem:
                 name = widget[ 'text' ]
-                tags = self.canvas.gettags( self.widgetToItem[ widget ] )
+                tags = self.canvas.gettags( self.widgetToItem[widget])
                 x1, y1 = self.canvas.coords(self.widgetToItem[widget])
                 if 'LegacyRouter' in tags:
-                    f.write("    "+name+" = net.addHost('"+name+"', cls=Node, ip='0.0.0.0')\n")
-                    f.write("    "+name+".cmd('sysctl -w net.ipv4.ip_forward=1')\n")
+                    f.write(b"    " + name.encode() + b" = net.addHost('" + name.encode() + b"', cls=Node, ip='0.0.0.0')\n")
+                    f.write(b"    " + name.encode() + b".cmd('sysctl -w net.ipv4.ip_forward=1')\n")
                 if 'LegacySwitch' in tags:
-                    f.write("    "+name+" = net.addSwitch('"+name+"', cls=OVSKernelSwitch, failMode='standalone')\n")
+                    f.write(b"    " + name.encode() + b"  = net.addSwitch('" + name.encode() + b"', cls=OVSKernelSwitch, failMode='standalone')\n")
                 if 'Switch' in tags:
                     opts = self.switchOpts[name]
                     nodeNum = opts['nodeNum']
-                    f.write("    "+name+" = net.addSwitch('"+name+"'")
+                    f.write(b"    " + name.encode() + b" = net.addSwitch('" + name.encode() + b"'")
                     if opts['switchType'] == 'default':
-                        if self.appPrefs['switchType'] == 'ivs':
-                            f.write(", cls=IVSSwitch")
-                        elif self.appPrefs['switchType'] == 'user':
-                            f.write(", cls=UserSwitch")
+                        if self.appPrefs['switchType'] == 'user':
+                            f.write(b", cls=UserSwitch")
                         elif self.appPrefs['switchType'] == 'userns':
-                            f.write(", cls=UserSwitch, inNamespace=True")
+                            f.write(b", cls=UserSwitch, inNamespace=True")
                         elif self.appPrefs['switchType'] == 'bmv2':
-                            f.write(", cls=Bmv2Switch")
+                            f.write(b", cls=ONOSBmv2Switch")
                         else:
-                            f.write(", cls=OVSKernelSwitch")
-                    elif opts['switchType'] == 'ivs':
-                        f.write(", cls=IVSSwitch")
+                            f.write(b", cls=OVSKernelSwitch")
                     elif opts['switchType'] == 'user':
-                        f.write(", cls=UserSwitch")
+                        f.write(b", cls=UserSwitch")
                     elif opts['switchType'] == 'userns':
-                        f.write(", cls=UserSwitch, inNamespace=True")
+                        f.write(b", cls=UserSwitch, inNamespace=True")
                     elif opts['switchType'] == 'bmv2':
-                        f.write(", cls=Bmv2Switch")
+                        f.write(b", cls=ONOSBmv2Switch")
                     else:
-                        f.write(", cls=OVSKernelSwitch")
+                        f.write(b", cls=OVSKernelSwitch")
                     if 'dpctl' in opts:
-                        f.write(", listenPort="+opts['dpctl'])
+                        f.write(b", listenPort=" + opts['dpctl'].encode())
                     if 'dpid' in opts:
-                        f.write(", dpid='"+opts['dpid']+"'")
-                    f.write(")\n")
+                        f.write(b", dpid='" + opts['dpid'].encode() + b"'")
+                    f.write(b")\n")
                     if 'externalInterfaces' in opts:
                         for extInterface in opts['externalInterfaces']:
-                            f.write("    Intf( '"+extInterface+"', node="+name+" )\n")
+                            f.write(b"    Intf( '" + extInterface.encode() + b"', node=" + name.encode() + b" )\n")
                 if 'AP' in tags:
                     opts = self.apOpts[name]
                     nodeNum = opts['nodeNum']
-                    f.write("    "+name+" = net.addAccessPoint('"+name+"'")
+                    f.write(b"    " + name.encode() + b" = net.addAccessPoint('" + name.encode() + b"'")
                     if opts['apType'] == 'default':
                         if self.appPrefs['apType'] == 'user':
-                            f.write(", cls=UserAP")
+                            f.write(b", cls=UserAP")
                         elif self.appPrefs['apType'] == 'userns':
-                            f.write(", cls=UserAP, inNamespace=True")
+                            f.write(b", cls=UserAP, inNamespace=True")
                         elif self.appPrefs['apType'] == 'bmv2':
-                            f.write(", cls=Bmv2AP")
+                            f.write(b", cls=ONOSBmv2AP")
                         else:
-                            f.write(", cls=OVSKernelAP")
+                            f.write(b", cls=OVSKernelAP")
                     elif opts['apType'] == 'user':
-                        f.write(", cls=UserAP")
+                        f.write(b", cls=UserAP")
                     elif opts['apType'] == 'userns':
-                        f.write(", cls=UserAP, inNamespace=True")
+                        f.write(b", cls=UserAP, inNamespace=True")
                     elif opts['apType'] == 'bmv2':
-                        f.write(", cls=Bmv2AP")
+                        f.write(b", cls=ONOSBmv2AP")
                     else:
-                        f.write(", cls=OVSKernelAP")
+                        f.write(b", cls=OVSKernelAP")
                     if 'dpctl' in opts:
-                        f.write(", listenPort="+opts['dpctl'])
+                        f.write(b", listenPort=" + opts['dpctl'].encode())
                     if 'dpid' in opts:
-                        f.write(", dpid='"+opts['dpid']+"'")
+                        f.write(b", dpid='" + opts['dpid'].encode() + b"'")
                     if 'ssid' in opts:
-                        f.write(", ssid='"+opts['ssid']+"'")
+                        f.write(b", ssid='" + opts['ssid'].encode() + b"'")
                     if 'channel' in opts:
-                        f.write(",\n                             channel='"+opts['channel']+"'")
+                        f.write(b",\n                             channel='" + opts['channel'].encode() + b"'")
                     if 'mode' in opts:
-                        f.write(", mode='" + opts['mode'] + "'")
+                        f.write(b", mode='" + opts['mode'].encode() + b"'")
                     if 'apIP' in opts and opts['apIP']:
-                        f.write(", ip='" + opts['apIP'] + "'")
+                        f.write(b", ip='" + opts['apIP'].encode() + b"'")
                     if 'authentication' in opts and opts['authentication'] != 'none':
                         if opts['authentication'] == '8021x':
-                            f.write(", encrypt='wpa2', authmode='8021x'")
+                            f.write(b", encrypt='wpa2', authmode='8021x'")
                         else:
-                            f.write(", encrypt='" + opts['authentication'] +
-                                    "',\n                             passwd='" + opts['passwd'] + "'")
-                    f.write(", position='"+str(x1)+","+str(y1)+",0'")
+                            f.write(b", encrypt='" + opts['authentication'].encode() +
+                                    b"',\n                             passwd='" + opts['passwd'].encode() + b"'")
+                    f.write(b", position='" + str(x1).encode() + b"," + str(y1).encode() + b",0'")
                     if opts['range'] != 'default':
-                        f.write(", range=" + str(opts['range']) + "")
-                    f.write(")\n")
+                        f.write(b", range=" + str(opts['range']).encode() + b"")
+                    f.write(b")\n")
                     if 'externalInterfaces' in opts:
                         for extInterface in opts['externalInterfaces']:
-                            f.write("    Intf( '"+extInterface+"', node="+name+" )\n")
+                            f.write(b"    Intf( '" + extInterface.encode() + b"', node=" + name.encode() + b" )\n")
 
-            f.write("\n")
-            f.write("    info( '*** Add hosts/stations\\n')\n")
+            f.write(b"\n")
+            f.write(b"    info( '*** Add hosts/stations\\n')\n")
             for widget in self.widgetToItem:
-                name = widget[ 'text' ]
-                tags = self.canvas.gettags( self.widgetToItem[ widget ] )
+                name = widget['text']
+                tags = self.canvas.gettags( self.widgetToItem[widget])
                 x1, y1 = self.canvas.coords(self.widgetToItem[widget])
                 if 'Host' in tags:
                     opts = self.hostOpts[name]
@@ -3049,16 +3095,16 @@ class MiniEdit( Frame ):
                         ip = ipAdd(i=nodeNum, prefixLen=prefixLen, ipBaseNum=ipBaseNum)
 
                     if 'cores' in opts or 'cpu' in opts:
-                        f.write("    "+name+" = net.addHost('"+name+"', cls=CPULimitedHost, ip='"+ip+"', defaultRoute="+defaultRoute+")\n")
+                        f.write(b"    "+name.encode() + b" = net.addHost('" + name.encode() + b"', cls=CPULimitedHost, ip='" + ip.encode() + b"', defaultRoute=" + defaultRoute.encode() + b")\n")
                         if 'cores' in opts:
-                            f.write("    "+name+".setCPUs(cores='"+opts['cores']+"')\n")
+                            f.write(b"    " + name.encode() + b".setCPUs(cores='" + opts['cores'].encode() + b"')\n")
                         if 'cpu' in opts:
-                            f.write("    "+name+".setCPUFrac(f="+str(opts['cpu'])+", sched='"+opts['sched']+"')\n")
+                            f.write(b"    " + name.encode() + b".setCPUFrac(f=" + str(opts['cpu']).encode() + b", sched='" + opts['sched'].encode() + b"')\n")
                     else:
-                        f.write("    "+name+" = net.addHost('"+name+"', cls=Host, ip='"+ip+"', defaultRoute="+defaultRoute+")\n")
+                        f.write(b"    " + name.encode() + b" = net.addHost('" + name.encode() + b"', cls=Host, ip='" + ip.encode() + b"', defaultRoute=" + defaultRoute.encode() + b")\n")
                     if 'externalInterfaces' in opts:
                         for extInterface in opts['externalInterfaces']:
-                            f.write("    Intf( '"+extInterface+"', node="+name+" )\n")
+                            f.write(b"    Intf( '" + extInterface.encode() + b"', node=" + name.encode() + b" )\n")
                 if 'Station' in tags:
                     opts = self.stationOpts[name]
                     ip = None
@@ -3097,38 +3143,38 @@ class MiniEdit( Frame ):
                     if opts['range'] != 'default':
                         args += ", range=%s" % opts['range']
                     if 'cores' in opts or 'cpu' in opts:
-                        f.write("    "+name+" = net.addStation('"+name+"', cls=CPULimitedHost, ip='"+ip+"', defaultRoute="+defaultRoute+", position='"+str(x1)+","+str(y1)+",0'"+args+")\n")
+                        f.write(b"    " + name.encode() + b" = net.addStation('" + name.encode() + b"', cls=CPULimitedHost, ip='" + ip.encode() + b"', defaultRoute=" + defaultRoute.encode() + b", position='" + str(x1).encode() + b"," + str(y1).encode() + b",0'"+ args.encode() + b")\n")
                         if 'cores' in opts:
-                            f.write("    "+name+".setCPUs(cores='"+opts['cores']+"')\n")
+                            f.write(b"    " + name.encode() + b".setCPUs(cores='" + opts['cores'].encode() + b"')\n")
                         if 'cpu' in opts:
-                            f.write("    "+name+".setCPUFrac(f="+str(opts['cpu'])+", sched='"+opts['sched']+"')\n")
+                            f.write(b"    " + name.encode() + b".setCPUFrac(f=" + str(opts['cpu']).encode() + b", sched='" + opts['sched'].encode() + b"')\n")
                     else:
-                        f.write("    "+name+" = net.addStation('"+name+"', ip='"+ip+"',\n                           position='"+str(x1)+","+str(y1)+",0'"+args+")\n")
+                        f.write(b"    " + name.encode() + b" = net.addStation('" + name.encode() + b"', ip='" + ip.encode() + b"',\n                           position='" + str(x1).encode() + b"," + str(y1).encode() + b",0'" + args.encode() + b")\n")
                     if 'externalInterfaces' in opts:
                         for extInterface in opts['externalInterfaces']:
-                            f.write("    Intf( '"+extInterface+"', node="+name+" )\n")
-            f.write("\n")
+                            f.write(b"    Intf( '" + extInterface.encode() + b"', node=" + name.encode() + b" )\n")
+            f.write(b"\n")
 
             if isWiFi:
-                f.write("    info(\"*** Configuring Propagation Model\\n\")\n")
-                f.write("    net.setPropagationModel(model=\"logDistance\", exp=3)\n")
-                f.write("\n")
-                f.write("    info(\"*** Configuring wifi nodes\\n\")\n")
-                f.write("    net.configureWifiNodes()\n")
-                f.write("\n")
+                f.write(b"    info(\"*** Configuring Propagation Model\\n\")\n")
+                f.write(b"    net.setPropagationModel(model=\"logDistance\", exp=3)\n")
+                f.write(b"\n")
+                f.write(b"    info(\"*** Configuring wifi nodes\\n\")\n")
+                f.write(b"    net.configureWifiNodes()\n")
+                f.write(b"\n")
 
             # Save Links
             lowpan = []
             if self.links:
-                f.write("    info( '*** Add links\\n')\n")
-            for key,linkDetail in self.links.iteritems():
+                f.write(b"    info( '*** Add links\\n')\n")
+            for key,linkDetail in self.links.items():
                 tags = self.canvas.gettags(key)
                 if 'data' in tags:
                     optsExist = False
                     src = linkDetail['src']
                     dst = linkDetail['dest']
                     linkopts = linkDetail['linkOpts']
-                    srcName, dstName = src[ 'text' ], dst[ 'text' ]
+                    srcName, dstName = src['text'], dst['text']
                     bw = ''
                     # delay = ''
                     # loss = ''
@@ -3136,7 +3182,7 @@ class MiniEdit( Frame ):
                     linkOpts = "{"
                     if 'bw' in linkopts:
                         bw =  linkopts['bw']
-                        linkOpts = linkOpts + "'bw':"+str(bw)
+                        linkOpts = linkOpts + "'bw':" + str(bw)
                         optsExist = True
                     if 'delay' in linkopts:
                         # delay =  linkopts['delay']
@@ -3147,49 +3193,49 @@ class MiniEdit( Frame ):
                     if 'loss' in linkopts:
                         if optsExist:
                             linkOpts = linkOpts + ","
-                        linkOpts = linkOpts + "'loss':"+str(linkopts['loss'])
+                        linkOpts = linkOpts + "'loss':" + str(linkopts['loss'])
                         optsExist = True
                     if 'max_queue_size' in linkopts:
                         if optsExist:
                             linkOpts = linkOpts + ","
-                        linkOpts = linkOpts + "'max_queue_size':"+str(linkopts['max_queue_size'])
+                        linkOpts = linkOpts + "'max_queue_size':" + str(linkopts['max_queue_size'])
                         optsExist = True
                     if 'jitter' in linkopts:
                         if optsExist:
                             linkOpts = linkOpts + ","
-                        linkOpts = linkOpts + "'jitter':'"+linkopts['jitter']+"'"
+                        linkOpts = linkOpts + "'jitter':'" + linkopts['jitter']+"'"
                         optsExist = True
                     if 'speedup' in linkopts:
                         if optsExist:
                             linkOpts = linkOpts + ","
-                        linkOpts = linkOpts + "'speedup':"+str(linkopts['speedup'])
+                        linkOpts = linkOpts + "'speedup':" + str(linkopts['speedup'])
                         optsExist = True
 
                     linkOpts = linkOpts + "}"
                     args_ = ['adhoc', 'mesh', 'wifiDirect']
                     if optsExist:
-                        f.write("    "+srcName+dstName+" = "+linkOpts+"\n")
+                        f.write(b"    " + srcName.encode() + dstName.encode() + b" = " + linkOpts.encode() + b"\n")
                     if 'connection' in linkopts and '6lowpan' in linkopts['connection']:
                         if srcName not in lowpan:
-                            f.write("    net.addLink("+srcName+", cls=sixLoWPANLink, panid='0xbeef')\n")
+                            f.write(b"    net.addLink(" + srcName.encode() + b", cls=sixLoWPANLink, panid='0xbeef')\n")
                             lowpan.append(srcName)
                         if dstName not in lowpan:
-                            f.write("    net.addLink("+dstName+ ", cls=sixLoWPANLink, panid='0xbeef')\n")
+                            f.write(b"    net.addLink(" + dstName.encode() + b", cls=sixLoWPANLink, panid='0xbeef')\n")
                             lowpan.append(dstName)
                     elif 'connection' in linkopts and linkopts['connection'] in args_:
                         nodes = []
                         nodes.append(srcName)
                         nodes.append(dstName)
                         for node in nodes:
-                            f.write("    net.addLink(" + node)
+                            f.write(b"    net.addLink(" + node.encode())
                             if 'adhoc' in linkopts['connection']:
-                                f.write(", cls=adhoc, ssid=\'%s\', mode=\'%s\', channel=%s"
+                                f.write(b", cls=adhoc, ssid=\'%s\', mode=\'%s\', channel=%s"
                                         % (linkopts['ssid'], linkopts['mode'], linkopts['channel']))
                             elif 'mesh' in linkopts['connection']:
-                                f.write(", cls=mesh, ssid=\'%s\', mode=\'%s\', channel=%s"
+                                f.write(b", cls=mesh, ssid=\'%s\', mode=\'%s\', channel=%s"
                                         % (linkopts['ssid'], linkopts['mode'], linkopts['channel']))
                             elif 'wifiDirect' in linkopts['connection']:
-                                f.write(", cls=wifiDirectLink")
+                                f.write(b", cls=wifiDirectLink")
                             intf = None
 
                             if 'src' in linkopts and nodes.index(node) == 0:
@@ -3197,103 +3243,103 @@ class MiniEdit( Frame ):
                             elif 'dest' in linkopts and nodes.index(node) == 1:
                                 intf = linkopts['dest']
                             if intf and intf != 'default':
-                                f.write(", intf=\'%s\'" % intf)
-                            f.write(")\n")
+                                f.write(b", intf=\'%s\'" % intf)
+                            f.write(b")\n")
                     else:
-                        f.write("    net.addLink("+srcName+", "+dstName)
+                        f.write(b"    net.addLink(" + srcName.encode() + b", " + dstName.encode())
                         if optsExist:
-                            f.write(", cls=TCLink , **"+srcName+dstName)
+                            f.write(b", cls=TCLink , **" + srcName.encode() + dstName.encode())
                         if ('connection' in linkopts and '6lowpan' not in linkopts['connection']) \
                                 or 'connection' not in linkopts:
-                            f.write(")\n")
+                            f.write(b")\n")
             if self.links:
-                f.write("\n")
+                f.write(b"\n")
             if isWiFi:
-                f.write("    net.plotGraph(max_x=1000, max_y=1000)\n")
-                f.write("\n")
+                f.write(b"    net.plotGraph(max_x=1000, max_y=1000)\n")
+                f.write(b"\n")
 
-            f.write("    info( '*** Starting network\\n')\n")
-            f.write("    net.build()\n")
+            f.write(b"    info( '*** Starting network\\n')\n")
+            f.write(b"    net.build()\n")
 
-            f.write("    info( '*** Starting controllers\\n')\n")
-            f.write("    for controller in net.controllers:\n")
-            f.write("        controller.start()\n")
-            f.write("\n")
+            f.write(b"    info( '*** Starting controllers\\n')\n")
+            f.write(b"    for controller in net.controllers:\n")
+            f.write(b"        controller.start()\n")
+            f.write(b"\n")
 
-            f.write("    info( '*** Starting switches/APs\\n')\n")
+            f.write(b"    info( '*** Starting switches/APs\\n')\n")
             for widget in self.widgetToItem:
-                name = widget[ 'text' ]
-                tags = self.canvas.gettags( self.widgetToItem[ widget ] )
+                name = widget['text']
+                tags = self.canvas.gettags( self.widgetToItem[widget])
                 if 'Switch' in tags or 'LegacySwitch' in tags or 'AP' in tags:
                     if 'AP' in tags:
                         opts = self.apOpts[name]
                     else:
                         opts = self.switchOpts[name]
                     ctrlList = ",".join(opts['controllers'])
-                    f.write("    net.get('"+name+"').start(["+ctrlList+"])\n")
+                    f.write(b"    net.get('" + name.encode() + b"').start([" + ctrlList.encode() + b"])\n")
 
-            f.write("\n")
+            f.write(b"\n")
 
-            f.write("    info( '*** Post configure nodes\\n')\n")
+            f.write(b"    info( '*** Post configure nodes\\n')\n")
             for widget in self.widgetToItem:
-                name = widget[ 'text' ]
-                tags = self.canvas.gettags( self.widgetToItem[ widget ] )
+                name = widget['text']
+                tags = self.canvas.gettags(self.widgetToItem[widget])
                 if 'Switch' in tags:
                     opts = self.switchOpts[name]
                     if opts['switchType'] == 'default':
                         if self.appPrefs['switchType'] == 'user':
                             if 'switchIP' in opts:
                                 if len(opts['switchIP']) > 0:
-                                    f.write("    "+name+".cmd('ifconfig "+name+" "+opts['switchIP']+"')\n")
+                                    f.write(b"    "+ name.encode() + b".cmd('ifconfig " + name.encode() + b" " + opts['switchIP'].encode() + b"')\n")
                         elif self.appPrefs['switchType'] == 'userns':
                             if 'switchIP' in opts:
                                 if len(opts['switchIP']) > 0:
-                                    f.write("    "+name+".cmd('ifconfig lo "+opts['switchIP']+"')\n")
+                                    f.write(b"    "+ name.encode() + b".cmd('ifconfig lo " + opts['switchIP'].encode() + b"')\n")
                         elif self.appPrefs['switchType'] == 'ovs':
                             if 'switchIP' in opts:
                                 if len(opts['switchIP']) > 0:
-                                    f.write("    "+name+".cmd('ifconfig "+name+" "+opts['switchIP']+"')\n")
+                                    f.write(b"    "+ name.encode() + b".cmd('ifconfig " + name.encode() + b" " + opts['switchIP'].encode() + b"')\n")
                     elif opts['switchType'] == 'user':
                         if 'switchIP' in opts:
                             if len(opts['switchIP']) > 0:
-                                f.write("    "+name+".cmd('ifconfig "+name+" "+opts['switchIP']+"')\n")
+                                f.write(b"    " + name.encode() + b".cmd('ifconfig " + name.encode() + b" " + opts['switchIP'].encode() + b"')\n")
                     elif opts['switchType'] == 'userns':
                         if 'switchIP' in opts:
                             if len(opts['switchIP']) > 0:
-                                f.write("    "+name+".cmd('ifconfig lo "+opts['switchIP']+"')\n")
+                                f.write(b"    " + name.encode() + b".cmd('ifconfig lo " + opts['switchIP'].encode() + b"')\n")
                     elif opts['switchType'] == 'ovs':
                         if 'switchIP' in opts:
                             if len(opts['switchIP']) > 0:
-                                f.write("    "+name+".cmd('ifconfig "+name+" "+opts['switchIP']+"')\n")
+                                f.write(b"    " + name.encode() + b".cmd('ifconfig " + name.encode() + b" " + opts['switchIP'].encode() + b"')\n")
                 elif 'AP' in tags:
                     opts = self.apOpts[name]
                     if opts['apType'] == 'default' or opts['apType'] == 'ovs':
                         if 'apIP' in opts:
                             if len(opts['apIP']) > 0:
-                                f.write("    "+name+".cmd('ifconfig "+name+" "+opts['apIP']+"')\n")
+                                f.write(b"    " + name.encode() + b".cmd('ifconfig " + name.encode() + b" " + opts['apIP'].encode() + b"')\n")
             for widget in self.widgetToItem:
-                name = widget[ 'text' ]
-                tags = self.canvas.gettags( self.widgetToItem[ widget ] )
+                name = widget['text']
+                tags = self.canvas.gettags( self.widgetToItem[widget])
                 if 'Host' in tags:
                     opts = self.hostOpts[name]
                     # Attach vlan interfaces
                     if 'vlanInterfaces' in opts:
                         for vlanInterface in opts['vlanInterfaces']:
-                            f.write("    "+name+".cmd('vconfig add "+name+"-eth0 "+vlanInterface[1]+"')\n")
-                            f.write("    "+name+".cmd('ifconfig "+name+"-eth0."+vlanInterface[1]+" "+vlanInterface[0]+"')\n")
+                            f.write(b"    " + name.encode() + b".cmd('vconfig add " + name.encode() + b"-eth0 " + vlanInterface[1].encode() + b"')\n")
+                            f.write(b"    " + name.encode() + b".cmd('ifconfig " + name.encode() + b"-eth0." + vlanInterface[1].encode() + b" " + vlanInterface[0].encode() + b"')\n")
                     # Run User Defined Start Command
                     if 'startCommand' in opts:
-                        f.write("    "+name+".cmdPrint('"+opts['startCommand']+"')\n")
+                        f.write(b"    " + name.encode() + b".cmdPrint('" + opts['startCommand'].encode() + b"')\n")
                 elif 'Station' in tags:
                     opts = self.stationOpts[name]
                     # Attach vlan interfaces
                     if 'vlanInterfaces' in opts:
                         for vlanInterface in opts['vlanInterfaces']:
-                            f.write("    "+name+".cmd('vconfig add "+name+"-wlan0 "+vlanInterface[1]+"')\n")
-                            f.write("    "+name+".cmd('ifconfig "+name+"-wlan0."+vlanInterface[1]+" "+vlanInterface[0]+"')\n")
+                            f.write(b"    " + name.encode() + b".cmd('vconfig add " + name.encode() + b"-wlan0 " + vlanInterface[1].encode() + b"')\n")
+                            f.write(b"    " + name.encode() + b".cmd('ifconfig " + name.encode() + b"-wlan0." + vlanInterface[1].encode() + b" " + vlanInterface[0].encode() + b"')\n")
                     # Run User Defined Start Command
                     if 'startCommand' in opts:
-                        f.write("    "+name+".cmdPrint('"+opts['startCommand']+"')\n")
+                        f.write(b"    " + name.encode()+ b".cmdPrint('" + opts['startCommand'].encode() + b"')\n")
                 if 'Switch' in tags or 'AP' in tags:
                     if 'Switch' in tags:
                         opts = self.switchOpts[name]
@@ -3301,7 +3347,7 @@ class MiniEdit( Frame ):
                         opts = self.apOpts[name]
                     # Run User Defined Start Command
                     if 'startCommand' in opts:
-                        f.write("    "+name+".cmdPrint('"+opts['startCommand']+"')\n")
+                        f.write(b"    " + name.encode() + b".cmdPrint('" + opts['startCommand'].encode() + b"')\n")
 
             # Configure NetFlow
             nflowValues = self.appPrefs['netflow']
@@ -3310,7 +3356,7 @@ class MiniEdit( Frame ):
                 nflowSwitches = ''
                 nflowAPs = ''
                 for widget in self.widgetToItem:
-                    name = widget[ 'text' ]
+                    name = widget['text']
                     tags = self.canvas.gettags( self.widgetToItem[ widget ] )
 
                     if 'Switch' in tags:
@@ -3331,8 +3377,8 @@ class MiniEdit( Frame ):
                         nflowCmd = nflowCmd + ' add_id_to_interface=true'
                     else:
                         nflowCmd = nflowCmd + ' add_id_to_interface=false'
-                    f.write("    \n")
-                    f.write("    call('"+nflowCmd+nflowSwitches+"', shell=True)\n")
+                    f.write(b"    \n")
+                    f.write(b"    call('" + nflowCmd.encode() + nflowSwitches.encode() + b"', shell=True)\n")
 
             # Configure sFlow
             sflowValues = self.appPrefs['sflow']
@@ -3348,23 +3394,23 @@ class MiniEdit( Frame ):
                         opts = self.switchOpts[name]
                         if 'sflow' in opts:
                             if opts['sflow'] == '1':
-                                sflowSwitches = sflowSwitches+' -- set Bridge '+name+' sflow=@MiniEditSF'
+                                sflowSwitches = sflowSwitches+' -- set Bridge ' + name + ' sflow=@MiniEditSF'
                                 sflowEnabled=True
                     elif 'AP' in tags:
                         opts = self.apOpts[name]
                         if 'sflow' in opts:
                             if opts['sflow'] == '1':
-                                sflowAPs = sflowAPs+' -- set Bridge '+name+' sflow=@MiniEditSF'
+                                sflowAPs = sflowAPs+' -- set Bridge ' + name + ' sflow=@MiniEditSF'
                                 sflowEnabled=True
                 if sflowEnabled:
-                    sflowCmd = 'ovs-vsctl -- --id=@MiniEditSF create sFlow '+ 'target=\\\"'+sflowValues['sflowTarget']+'\\\" '+ 'header='+sflowValues['sflowHeader']+' '+ 'sampling='+sflowValues['sflowSampling']+' '+ 'polling='+sflowValues['sflowPolling']
-                    f.write("    \n")
-                    f.write("    call('"+sflowCmd+sflowSwitches+"', shell=True)\n")
+                    sflowCmd = 'ovs-vsctl -- --id=@MiniEditSF create sFlow ' + 'target=\\\"' + sflowValues['sflowTarget'] + '\\\" ' + 'header=' + sflowValues['sflowHeader']+' '+ 'sampling='+sflowValues['sflowSampling']+' '+ 'polling='+sflowValues['sflowPolling']
+                    f.write(b"    \n")
+                    f.write(b"    call('" + sflowCmd.encode() + sflowSwitches.encode() + b"', shell=True)\n")
 
-            f.write("\n")
-            f.write("    CLI(net)\n")
+            f.write(b"\n")
+            f.write(b"    CLI(net)\n")
             for widget in self.widgetToItem:
-                name = widget[ 'text' ]
+                name = widget['text']
                 tags = self.canvas.gettags( self.widgetToItem[ widget ] )
                 if 'Host' in tags or 'Station' in tags:
                     if 'Host' in tags:
@@ -3373,7 +3419,7 @@ class MiniEdit( Frame ):
                         opts = self.stationOpts[name]
                     # Run User Defined Stop Command
                     if 'stopCommand' in opts:
-                        f.write("    "+name+".cmdPrint('"+opts['stopCommand']+"')\n")
+                        f.write(b"    " + name.encode() + b".cmdPrint('" + opts['stopCommand'].encode() + b"')\n")
                 if 'Switch' in tags or 'AP' in tags:
                     if 'Switch' in tags:
                         opts = self.switchOpts[name]
@@ -3381,18 +3427,16 @@ class MiniEdit( Frame ):
                         opts = self.apOpts[name]
                     # Run User Defined Stop Command
                     if 'stopCommand' in opts:
-                        f.write("    "+name+".cmdPrint('"+opts['stopCommand']+"')\n")
+                        f.write(b"    " + name.encode() + b".cmdPrint('" + opts['stopCommand'].encode() + b"')\n")
 
-            f.write("    net.stop()\n")
-            f.write("\n")
-            f.write("\n")
-            f.write("if __name__ == '__main__':\n")
-            f.write("    setLogLevel( 'info' )\n")
-            f.write("    myNetwork()\n")
-            f.write("\n")
-
+            f.write(b"    net.stop()\n")
+            f.write(b"\n")
+            f.write(b"\n")
+            f.write(b"if __name__ == '__main__':\n")
+            f.write(b"    setLogLevel( 'info' )\n")
+            f.write(b"    myNetwork()\n")
+            f.write(b"\n")
             f.close()
-
 
     # Generic canvas handler
     #
@@ -3401,14 +3445,14 @@ class MiniEdit( Frame ):
     # may actually require less code. In any case, it's an
     # interesting introspection-based alternative to bindtags.
 
-    def canvasHandle( self, eventName, event ):
+    def canvasHandle(self, eventName, event):
         "Generic canvas event handler"
         if self.active is None:
             return
         toolName = self.active
         handler = getattr( self, eventName + toolName, None )
         if handler is not None:
-            handler( event )
+            handler(event)
 
     def clickCanvas( self, event ):
         "Canvas click handler."
@@ -3870,7 +3914,7 @@ class MiniEdit( Frame ):
             about = Toplevel( bg='white' )
             about.title( 'About' )
             desc = self.appName + ': a simple network editor for MiniNet'
-            version = 'MiniEdit '+MINIEDIT_VERSION
+            version = 'MiniEdit ' + MINIEDIT_VERSION
             author = 'Originally by: Bob Lantz <rlantz@cs>, April 2010'
             enhancements = 'Enhancements by: Ramon Fontes, Since October 2018'
             www = 'http://github.com/ramonfontes'
@@ -3900,12 +3944,12 @@ class MiniEdit( Frame ):
     def checkIntf( intf ):
         "Make sure intf exists and is not configured."
         if ( ' %s:' % intf ) not in quietRun( 'ip link show' ):
-            showerror(title="Error",
+            messagebox.showerror(title="Error",
                       message='External interface ' +intf + ' does not exist! Skipping.')
             return False
         ips = re.findall( r'\d+\.\d+\.\d+\.\d+', quietRun( 'ifconfig ' + intf ) )
         if ips:
-            showerror(title="Error",
+            messagebox.showerror(title="Error",
                       message= intf + ' has an IP address and is probably in use! Skipping.' )
             return False
         return True
@@ -4299,16 +4343,13 @@ class MiniEdit( Frame ):
                 # debug( str(opts), '\n' )
 
                 # Create the correct switch class
-                switchClass = customOvs
                 switchParms={}
                 if 'dpctl' in opts:
                     switchParms['listenPort']=int(opts['dpctl'])
                 if 'dpid' in opts:
                     switchParms['dpid']=opts['dpid']
                 if opts['switchType'] == 'default':
-                    if self.appPrefs['switchType'] == 'ivs':
-                        switchClass = IVSSwitch
-                    elif self.appPrefs['switchType'] == 'user':
+                    if self.appPrefs['switchType'] == 'user':
                         switchClass = CustomUserSwitch
                     elif self.appPrefs['switchType'] == 'userns':
                         switchParms['inNamespace'] = True
@@ -4320,8 +4361,6 @@ class MiniEdit( Frame ):
                 elif opts['switchType'] == 'userns':
                     switchClass = CustomUserSwitch
                     switchParms['inNamespace'] = True
-                elif opts['switchType'] == 'ivs':
-                    switchClass = IVSSwitch
                 else:
                     switchClass = customOvs
 
@@ -4360,26 +4399,25 @@ class MiniEdit( Frame ):
                 # debug( str(opts), '\n' )
 
                 # Create the correct switch class
-                apClass = customOvsAP
-                apParms={}
+                apParms = {}
                 if 'dpctl' in opts:
-                    apParms['listenPort']=int(opts['dpctl'])
+                    apParms['listenPort'] = int(opts['dpctl'])
                 if 'dpid' in opts:
-                    apParms['dpid']=opts['dpid']
+                    apParms['dpid'] = opts['dpid']
                 if 'ssid' in opts:
-                    apParms['ssid']=opts['ssid']
+                    apParms['ssid'] = opts['ssid']
                 if 'channel' in opts:
-                    apParms['channel']=opts['channel']
+                    apParms['channel'] = opts['channel']
                 if 'range' in opts:
                     node_ = self.apOpts[name]
                     range = self.getRange(node_, 'AP')
-                    apParms['range']=range
+                    apParms['range'] = range
                 if 'mode' in opts:
-                    apParms['mode']=opts['mode']
+                    apParms['mode'] = opts['mode']
                 if 'wlans' in opts:
-                    apParms['wlans']=opts['wlans']
+                    apParms['wlans'] = opts['wlans']
                 if 'authentication' in opts:
-                    apParms['authentication']=opts['authentication']
+                    apParms['authentication'] = opts['authentication']
                 if 'passwd' in opts:
                     apParms['passwd']=opts['passwd']
                 if opts['apType'] == 'default':
@@ -4580,7 +4618,7 @@ class MiniEdit( Frame ):
         moduleName = kwargs.get( 'moduleName', 'it' )
         for arg in args:
             if not quietRun( 'which ' + arg ):
-                showerror(title="Error",
+                messagebox.showerror(title="Error",
                           message= 'Cannot find required executable %s.\n' % arg +
                           'Please make sure that %s is installed ' % moduleName +
                           'and available in your $PATH.' )
@@ -4588,7 +4626,7 @@ class MiniEdit( Frame ):
     def buildLinks( self, net):
         # Make links
         info( "Getting Links.\n" )
-        for key,link in self.links.iteritems():
+        for key,link in self.links.items():
             tags = self.canvas.gettags(key)
             if 'data' in tags:
                 src=link['src']
@@ -4992,7 +5030,7 @@ class MiniEdit( Frame ):
         customs = {}
         if os.path.isfile( fileName ):
             execfile( fileName, customs, customs )
-            for name, val in customs.iteritems():
+            for name, val in customs.items():
                 self.setCustom( name, val )
         else:
             raise Exception( 'could not find custom file: %s' % fileName )

@@ -20,7 +20,13 @@ import socket
 import sys
 import threading
 import time
-import urllib2
+
+Python3 = sys.version_info[0] == 3
+
+if Python3:
+    import urllib.request as urllib
+else:
+    import urllib2 as urllib
 from contextlib import closing
 
 from mininet.log import info, warn, debug
@@ -274,26 +280,22 @@ nodes {{
         # Build netcfg URL
         url = 'http://%s:8181/onos/v1/network/configuration/' % controllerIP
         # Instantiate password manager for HTTP auth
-        pm = urllib2.HTTPPasswordMgrWithDefaultRealm()
+        pm = urllib.HTTPPasswordMgrWithDefaultRealm()
 
         if 'ONOS_WEB_USER' not in os.environ:
             os.environ['ONOS_WEB_USER'] = 'onos'
         if 'ONOS_WEB_PASS' not in os.environ:
             os.environ['ONOS_WEB_PASS'] = 'rocks'
 
-        pm.add_password(None, url,
-                        os.environ['ONOS_WEB_USER'],
-                        os.environ['ONOS_WEB_PASS'])
-        urllib2.install_opener(urllib2.build_opener(
-            urllib2.HTTPBasicAuthHandler(pm)))
+        pm.add_password(None, url, os.environ['ONOS_WEB_USER'], os.environ['ONOS_WEB_PASS'])
+        urllib.install_opener(urllib.build_opener(urllib.HTTPBasicAuthHandler(pm)))
         # Push config data to controller
-        req = urllib2.Request(url, json.dumps(cfgData),
-                              {'Content-Type': 'application/json'})
+        req = urllib.Request(url, json.dumps(cfgData).encode("utf-8"), {'Content-Type': 'application/json'})
         try:
-            f = urllib2.urlopen(req)
+            f = urllib.urlopen(req)
             info(f.read())
             f.close()
-        except urllib2.URLError as e:
+        except urllib.URLError as e:
             warn("*** WARN: unable to push config to ONOS (%s)\n" % e.reason)
 
     def start(self, controllers=None):
@@ -542,28 +544,20 @@ class ONOSBmv2AP(ONOSBmv2Switch, AP):
         self.wports = {}  # dict of interfaces to port numbers
 
 
-class Bmv2AP(ONOSBmv2AP):
-    def __init__(self, name, **kwargs):
-        ONOSBmv2AP.__init__(self, name, **kwargs)
-        self.netcfg = False
-
-
 class ONOSStratumAP(ONOSBmv2AP):
     def __init__(self, name, **kwargs):
         kwargs["stratum"] = True
         super(ONOSStratumAP, self).__init__(name, **kwargs)
 
 
-aps = {
-    'onosbmv2AP': ONOSBmv2AP,
-    'stratumAP': ONOSStratumAP,
-}
-
-
 # Exports for bin/mn
 switches = {
     'onosbmv2': ONOSBmv2Switch,
     'stratum': ONOSStratumSwitch,
+}
+aps = {
+    'onosbmv2AP': ONOSBmv2AP,
+    'stratumAP': ONOSStratumAP,
 }
 hosts = {'onoshost': ONOSHost}
 stations = {'onosstation': ONOSStation}
