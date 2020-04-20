@@ -767,7 +767,7 @@ class AccessPoint(Node_wifi):
             cmd += '\nht_capab=%s' % intf.ht_capab
         if intf.beacon_int:
             cmd += '\nbeacon_int=%s' % intf.beacon_int
-        if intf.isolate_clients:
+        if intf.client_isolation:
             cmd += '\nap_isolate=1'
         if 'config' in intf.node.params:
             config = intf.node.params['config']

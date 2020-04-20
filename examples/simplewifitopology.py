@@ -26,7 +26,7 @@ def topology(isVirtual):
         # By default, this bridging is allowed.
         # OpenFlow rules are required to allow communication among nodes
         ap1 = net.addAccessPoint('ap1', ssid="simpletopo",
-                                 isolate_clients=True, mode="g", channel="5")
+                                 client_isolation=True, mode="g", channel="5")
     sta2 = net.addStation('sta2')
     c0 = net.addController('c0')
 

@@ -52,7 +52,7 @@ class Mininet_wifi(Mininet, Mininet_IoT):
                  fading_cof=0, autoAssociation=True, allAutoAssociation=True,
                  autoSetPositions=False, configWiFiDirect=False, config4addr=False,
                  noise_th=-91, cca_th=-90, disable_tcp_checksum=False, ifb=False,
-                 bridge=False, plot=False, plot3d=False, docker=False,
+                 client_isolation=False, plot=False, plot3d=False, docker=False,
                  container='mininet-wifi', ssh_user='alpha', set_socket_ip=None,
                  set_socket_port=12345, iot_module='mac802154_hwsim', rec_rssi=False,
                  **kwargs):
@@ -104,7 +104,7 @@ class Mininet_wifi(Mininet, Mininet_IoT):
         self.container = container
         self.ssh_user = ssh_user
         self.ifb = ifb  # Support to Intermediate Functional Block (IFB) Devices
-        self.bridge = bridge
+        self.client_isolation = client_isolation
         self.init_plot = plot
         self.init_Plot3D = plot3d
         self.cca_th = cca_th
@@ -371,8 +371,8 @@ class Mininet_wifi(Mininet, Mininet_IoT):
                     'channel': self.channel,
                     'mode': self.mode
                     }
-        if self.bridge:
-            defaults['isolate_clients'] = True
+        if self.client_isolation:
+            defaults['client_isolation'] = True
         defaults.update(params)
         if self.autoSetMacs:
             defaults['mac'] = macColonHex(self.nextIP)

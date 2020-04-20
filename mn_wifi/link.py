@@ -861,7 +861,7 @@ class master(TCWirelessLink):
         self.id = wlan
         self.ip = None
         self.ip6 = None
-        self.isolate_clients = None
+        self.client_isolation = None
         self.mac = None
         self.mode = 'g'
         self.mobility_domain = None
@@ -919,7 +919,7 @@ class VirtualMaster(master, TCWirelessLink):
         self.id = wlan
         self.ip = None
         self.ip6 = None
-        self.isolate_clients = None
+        self.client_isolation = None
         self.mac = None
         self.mode = 'g'
         self.mobility_domain = None

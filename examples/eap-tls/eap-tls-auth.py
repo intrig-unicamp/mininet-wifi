@@ -62,7 +62,7 @@ def topology():
                                    'private_key={}/examples/eap-tls/CA/server.key,'
                                    'eap_user_file={}/examples/eap-tls/eap_users'
                              .format(cwd, cwd, cwd, cwd),
-                             isolate_clients=True)
+                             client_isolation=True)
 
     info("*** Configuring wifi nodes\n")
     net.configureWifiNodes()

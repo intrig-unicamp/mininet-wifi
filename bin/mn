@@ -276,7 +276,7 @@ class MininetRunner(object):
         addDictOption(opts, LINKS, LINKDEF, 'link')
         addDictOption(opts, TOPOS, TOPODEF, 'topo')
 
-        opts.add_option('--no-bridge', action='store_true',
+        opts.add_option('--client-isolation', action='store_true', dest="client_isolation",
                         default=False, help='prevent low-level bridging of frames '
                                             'between associated stations in the BSS')
         opts.add_option('--wifi', '-w', action='store_true',
@@ -457,7 +457,7 @@ class MininetRunner(object):
         docker = opts.docker
         ssh_user = opts.ssh_user
         container = opts.container
-        bridge = opts.no_bridge
+        client_isolation = opts.client_isolation
         plot = opts.plot
         plot3d = opts.plot3d
         listenPort = 'None'
@@ -499,7 +499,7 @@ class MininetRunner(object):
                      channel=channel,
                      mode=mode,
                      ssid=ssid,
-                     bridge=bridge,
+                     client_isolation=client_isolation,
                      docker=docker,
                      container=container,
                      ssh_user=ssh_user,
