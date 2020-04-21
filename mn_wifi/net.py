@@ -57,22 +57,31 @@ class Mininet_wifi(Mininet, Mininet_IoT):
                  set_socket_port=12345, iot_module='mac802154_hwsim', rec_rssi=False,
                  **kwargs):
         """Create Mininet object.
-           topo: Topo (topology) object or None
-           switch: default Switch class
-           host: default Host class/constructor
-           controller: default Controller class/constructor
+
+           accessPoint: default Access Point class
+           station: default Station class/constructor
+           car: default Car class/constructor
+           sensor: default Sensor class/constructor
+           apsensor: default AP Sensor class/constructor
            link: default Link class/constructor
-           intf: default Intf class/constructor
-           ipBase: base IP address for hosts,
-           build: build now from topo?
-           xterms: if build now, spawn xterms?
-           cleanup: if build now, cleanup before creating?
-           inNamespace: spawn switches and controller in net namespaces?
-           autoSetMacs: set MAC addrs automatically like IP addresses?
-           autoStaticArp: set all-pairs static MAC addrs?
-           autoPinCpus: pin hosts to (real) cores (requires CPULimitedStation)?
-           listenPort: base listening port to open; will be incremented for
-               each additional switch in the net if inNamespace=False"""
+           ssid: wifi ssid
+           mode: wifi mode
+           channel: wifi channel
+           wmediumd_mode: default wmediumd mode
+           roads: number of roads
+           fading_cof: fadding coefficient
+           autoSetPositions: auto set positions
+           configWiFiDirect: configure wifi direct
+           config4addr: configure 4 address
+           noise_th: noise threshold
+           cca_th: cca threshold
+           ifb: Intermediate Functional Block
+           client_isolation: enables client isolation
+           plot: plot graph
+           plot3d: plot3d graph
+           iot_module: default iot module
+           rec_rssi: sends rssi to mac80211_hwsim by using hwsim_mgmt"""
+
         self.station = station
         self.accessPoint = accessPoint
         self.car = car
