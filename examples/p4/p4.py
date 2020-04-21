@@ -1,22 +1,10 @@
 #!/usr/bin/python
 
 """
-Veriy whether this set of apps is running (only for ONOS - Remote Controller):
-onos> apps -s -a
-*  10 org.onosproject.generaldeviceprovider 1.13.0.SNAPSHOT General Device Provider
-*  11 org.onosproject.protocols.grpc       1.13.0.SNAPSHOT gRPC Protocol Subsystem
-*  12 org.onosproject.protocols.p4runtime  1.13.0.SNAPSHOT P4Runtime Protocol Subsystem
-*  13 org.onosproject.p4runtime            1.13.0.SNAPSHOT P4Runtime Provider
-*  14 org.onosproject.drivers              1.13.0.SNAPSHOT Default Drivers
-*  15 org.onosproject.drivers.p4runtime    1.13.0.SNAPSHOT P4Runtime Drivers
-*  16 org.onosproject.pipelines.basic      1.13.0.SNAPSHOT Basic Pipelines
-*  17 org.onosproject.pipelines.fabric     1.13.0.SNAPSHOT Fabric Pipeline
-*  18 org.onosproject.drivers.mellanox     1.13.0.SNAPSHOT Mellanox Drivers
-*  19 org.onosproject.hostprovider         1.13.0.SNAPSHOT Host Location Provider
-*  20 org.onosproject.lldpprovider         1.13.0.SNAPSHOT LLDP Link Provider
-*  41 org.onosproject.protocols.gnmi       1.13.0.SNAPSHOT gNMI Protocol Subsystem
-*  70 org.onosproject.drivers.gnmi         1.13.0.SNAPSHOT gNMI Drivers
-*  77 org.onosproject.drivers.bmv2         1.13.0.SNAPSHOT BMv2 Drivers
+You need to activate the following apps if you want to run this code with ONOS:
+
+onos> app activate fwd drivers.bmv2 drivers.mellanox pipelines.fabric
+      proxyarp lldpprovider hostprovider segmentrouting
 """
 
 
