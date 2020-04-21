@@ -1181,11 +1181,11 @@ class Mininet_wifi(Mininet, Mininet_IoT):
         mob_params = dict()
         float_args = ['min_x', 'min_y', 'min_z',
                       'max_x', 'max_y', 'max_z',
-                      'min_v', 'max_v', 'min_wt',
-                      'max_wt']
+                      'min_v', 'max_v', 'min_wt', 'max_wt']
         args = ['stations', 'cars', 'aps', 'draw', 'seed',
                 'roads', 'mob_start_time', 'mob_stop_time',
-                'links', 'mob_model', 'mob_rep', 'reverse']
+                'links', 'mob_model', 'mob_rep', 'reverse',
+                'ac_method']
         args += float_args
         for arg in args:
             if arg in float_args:
@@ -1195,10 +1195,6 @@ class Mininet_wifi(Mininet, Mininet_IoT):
 
         mob_params.setdefault('ppm', ppm.model)
         return mob_params
-
-    def setAssociationCtrl(self, ac='ssf'):
-        "set association control"
-        mob.ac = ac  # backwards compatibility
 
     def useExternalProgram(self, program, **kwargs):
         """Opens an external program
