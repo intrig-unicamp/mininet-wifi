@@ -1497,6 +1497,8 @@ class mesh(LinkAttrs):
         else:
             port = wlan
 
+        # mp interface must be created before ethtool
+        self.iwdev_cmd(self.set_mesh_type(intf))
         intf1 = TCWirelessLink(name=self.name, node=node,
                                link=self, port=port)
         intf2 = 'wifiMesh'
@@ -1514,7 +1516,6 @@ class mesh(LinkAttrs):
     def setMeshIface(self, wlan, intf):
         if isinstance(intf, adhoc):
             self.set_dev_type('managed')
-        self.iwdev_cmd(self.set_mesh_type(intf))
         self.node.cmd('ip link set %s down' % intf)
 
         self.setMAC(intf.mac)
