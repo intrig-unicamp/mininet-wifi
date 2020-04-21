@@ -30,7 +30,9 @@ else:
 from contextlib import closing
 
 from mininet.log import info, warn, debug
+from mininet.link import Link
 from mininet.node import Switch, Host
+from mininet.util import netParse, ipAdd
 from mn_wifi.node import AP, Station
 
 SIMPLE_SWITCH_GRPC = 'simple_switch_grpc'
@@ -45,6 +47,8 @@ DEFAULT_PIPECONF = "org.onosproject.pipelines.basic"
 STRATUM_BMV2 = 'stratum_bmv2'
 STRATUM_BINARY = '/bazel-bin/stratum/hal/bin/bmv2/' + STRATUM_BMV2
 STRATUM_INIT_PIPELINE = '/stratum/hal/bin/bmv2/dummy.json'
+
+IPBASE = '192.168.123.0/24'
 
 
 def getStratumRoot():
@@ -126,16 +130,17 @@ class ONOSBmv2Switch(Switch):
 
     def __init__(self, name, json=None, debugger=False, loglevel="info",
                  elogger=False, grpcport=None, cpuport=255, notifications=False,
-                 thriftport=None, netcfg=False, dryrun=False,
+                 thriftport=None, netcfg=False, dryrun=False, inNamespace=False,
                  pipeconf=DEFAULT_PIPECONF, pktdump=False, valgrind=False,
                  gnmi=False, portcfg=True, onosdevid=None, stratum=False,
                  switch_config=None, **kwargs):
-        Switch.__init__(self, name, **kwargs)
+        Switch.__init__(self, name, inNamespace=inNamespace, **kwargs)
         self.grpcPort = grpcport
         self.grpcPortInternal = None  # Needed for Stratum (local_hercules_url)
         self.thriftPort = thriftport
         self.cpuPort = cpuport
         self.json = json
+        self.inNamespace = inNamespace
         self.useStratum = parseBoolean(stratum)
         self.debugger = parseBoolean(debugger)
         self.notifications = parseBoolean(notifications)
@@ -165,6 +170,7 @@ class ONOSBmv2Switch(Switch):
         self.logfd = None
         self.bmv2popen = None
         self.stopped = True
+        self.sip = None
         # In case of exceptions, mininet removes *.out files from /tmp. We use
         # this as a signal to terminate the switch instance (if active).
         self.keepaliveFile = '/tmp/bmv2-%s-watchdog.out' % self.name
@@ -250,7 +256,7 @@ nodes {{
   }}
   node: {nodeId}
 }}\n""".format(intfName=intfName, intfNumber=intfNumber,
-              nodeId=self.p4DeviceId)
+               nodeId=self.p4DeviceId)
             intfNumber += 1
 
         return config
@@ -309,6 +315,9 @@ nodes {{
             #  start.
             self.controllers = controllers
 
+        if self.inNamespace:
+            self.sip = self.getIP(self.p4DeviceId + 1)
+
         # Remove files from previous executions (if we are restarting)
         self.cleanupTmpFiles()
 
@@ -346,8 +355,10 @@ nodes {{
                                             stdout=self.logfd,
                                             stderr=self.logfd)
                 self.waitBmv2Start()
+
                 # We want to be notified if BMv2/Stratum dies...
-                threading.Thread(target=watchDog, args=[self]).start()
+                if not self.inNamespace:
+                    threading.Thread(target=watchDog, args=[self]).start()
 
                 if self.json is not None:
                     if self.switch_config is not None:
@@ -446,20 +457,51 @@ nodes {{
         args.append('--grpc-server-addr 0.0.0.0:%s' % self.grpcPort)
         return args
 
+    def getIP(self, nextIP=1):
+        ipBaseNum, prefixLen = netParse(IPBASE)
+        return ipAdd(nextIP, ipBaseNum=ipBaseNum, prefixLen=prefixLen)
+
+    def configNameSpace(self):
+        if self.controllers:
+            controller = self.controllers[0]
+        else:
+            controller = ONOSHost('c0', inNamespace=False)
+
+        cip = self.getIP()
+        link = Link(self, controller, port1=0)
+        sintf, cintf = link.intf1, link.intf2
+        controller.setIP(intf='c0-eth%s' % (len(controller.intfs) - 1), ip=cip)
+        self.setIP(intf='%s-eth0' % self.name, ip=self.sip)
+        self.cmd('ip link set lo up')
+
+        controller.setHostRoute('%s' % self.sip, cintf)
+        self.setHostRoute(cip, sintf)
+
+        return controller
+
     def waitBmv2Start(self):
         # Wait for switch to open gRPC port, before sending ONOS the netcfg.
         # Include time-out just in case something hangs.
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         endtime = time.time() + SWITCH_START_TIMEOUT
+
+        if self.inNamespace:
+            controller = self.configNameSpace()
+
         while True:
             port = self.grpcPortInternal if self.grpcPortInternal else self.grpcPort
-            result = sock.connect_ex(('localhost', port))
+            if self.inNamespace:
+                result = sock.connect_ex((self.sip, port))
+            else:
+                result = sock.connect_ex(('localhost', port))
             if result == 0:
                 # No new line
                 sys.stdout.write("⚡️ %s @ %d" % (self.targetName, self.bmv2popen.pid))
                 sys.stdout.flush()
                 # The port is open. Let's go! (Close socket first)
                 sock.close()
+                if self.inNamespace and not self.controllers:
+                    controller.stop(deleteIntfs=True)
                 break
             # Port is not open yet. If there is time, we wait a bit.
             if endtime > time.time():
