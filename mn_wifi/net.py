@@ -394,6 +394,7 @@ class Mininet_wifi(Mininet, Mininet_IoT):
         defaults.update(params)
         if self.autoSetMacs:
             defaults['mac'] = macColonHex(self.nextIP)
+            self.nextIP += 1
         if self.autoSetPositions:
             defaults['position'] = [round(self.nextPos_ap, 2), 50, 0]
             self.nextPos_ap += 100
