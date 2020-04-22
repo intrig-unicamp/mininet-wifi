@@ -152,6 +152,10 @@ class Mininet_wifi(Mininet, Mininet_IoT):
             self.autoAssociation = False
             mob.allAutoAssociation = False
 
+        # we need this for scenarios where there is no mobility
+        if self.ac_method:
+            mob.ac = self.ac_method
+
         Mininet_IoT.__init__(self, sensor=sensor, apsensor=apsensor)
         Mininet.__init__(self, link=link, **kwargs)
 
