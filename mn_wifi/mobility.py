@@ -140,8 +140,7 @@ class Mobility(object):
         if dist > ap_intf.range:
             self.ap_out_of_range(intf, ap_intf)
             return 0
-        else:
-            return 1
+        return 1
 
     def set_handover(self, intf, aps):
         for ap in aps:
