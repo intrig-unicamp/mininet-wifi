@@ -131,7 +131,7 @@ class ONOSBmv2Switch(Switch):
     def __init__(self, name, json=None, debugger=False, loglevel="info",
                  elogger=False, grpcport=None, cpuport=255, notifications=False,
                  thriftport=None, netcfg=False, dryrun=False, inNamespace=False,
-                 pipeconf=DEFAULT_PIPECONF, pktdump=False, valgrind=False,
+                 inband=False, pipeconf=DEFAULT_PIPECONF, pktdump=False, valgrind=False,
                  gnmi=False, portcfg=True, onosdevid=None, stratum=False,
                  switch_config=None, **kwargs):
         Switch.__init__(self, name, inNamespace=inNamespace, **kwargs)
@@ -139,8 +139,8 @@ class ONOSBmv2Switch(Switch):
         self.grpcPortInternal = None  # Needed for Stratum (local_hercules_url)
         self.thriftPort = thriftport
         self.cpuPort = cpuport
-        self.json = json
         self.inNamespace = inNamespace
+        self.inband = inband
         self.useStratum = parseBoolean(stratum)
         self.debugger = parseBoolean(debugger)
         self.notifications = parseBoolean(notifications)
@@ -177,6 +177,9 @@ class ONOSBmv2Switch(Switch):
         self.targetName = STRATUM_BMV2 if self.useStratum else SIMPLE_SWITCH_GRPC
         self.controllers = None
         self.switch_config = switch_config
+
+        path = os.path.dirname(os.path.abspath(__file__)) + '/examples/p4/ap-runtime.json'
+        self.json = path if json == 'default' else json
 
         # Remove files from previous executions
         self.cleanupTmpFiles()
@@ -315,7 +318,7 @@ nodes {{
             #  start.
             self.controllers = controllers
 
-        if self.inNamespace:
+        if self.inNamespace and not self.inband:
             self.sip = self.getIP(self.p4DeviceId + 1)
 
         # Remove files from previous executions (if we are restarting)
@@ -464,18 +467,20 @@ nodes {{
     def configNameSpace(self):
         if self.controllers:
             controller = self.controllers[0]
+            self.sip = controller.IP()
         else:
             controller = ONOSHost('c0', inNamespace=False)
 
-        cip = self.getIP()
-        link = Link(self, controller, port1=0)
-        sintf, cintf = link.intf1, link.intf2
-        controller.setIP(intf='c0-eth%s' % (len(controller.intfs) - 1), ip=cip)
-        self.setIP(intf='%s-eth0' % self.name, ip=self.sip)
-        self.cmd('ip link set lo up')
+        if not self.inband:
+            cip = self.getIP() if controller.IP() is '127.0.0.1' else controller.IP()
+            link = Link(self, controller, port1=0)
+            sintf, cintf = link.intf1, link.intf2
+            controller.setIP(intf='c0-eth%s' % (len(controller.intfs) - 1), ip=cip)
+            self.setIP(intf='%s-eth0' % self.name, ip=self.sip)
+            self.cmd('ip link set lo up')
 
-        controller.setHostRoute('%s' % self.sip, cintf)
-        self.setHostRoute(cip, sintf)
+            controller.setHostRoute('%s' % self.sip, cintf)
+            self.setHostRoute(cip, sintf)
 
         return controller
 
@@ -490,13 +495,19 @@ nodes {{
 
         while True:
             port = self.grpcPortInternal if self.grpcPortInternal else self.grpcPort
-            if self.inNamespace:
-                result = sock.connect_ex((self.sip, port))
+            if self.inband:
+                result = 0
             else:
-                result = sock.connect_ex(('localhost', port))
+                if self.inNamespace:
+                    result = sock.connect_ex((self.sip, port))
+                else:
+                    result = sock.connect_ex(('localhost', port))
+
             if result == 0:
                 # No new line
-                sys.stdout.write("⚡️ %s @ %d" % (self.targetName, self.bmv2popen.pid))
+                sys.stdout.write("⚡️ %s @ %d thrift @ %s" % (self.targetName,
+                                                             self.bmv2popen.pid,
+                                                             self.thriftPort))
                 sys.stdout.flush()
                 # The port is open. Let's go! (Close socket first)
                 sock.close()
@@ -594,12 +605,12 @@ class ONOSStratumAP(ONOSBmv2AP):
 
 # Exports for bin/mn
 switches = {
-    'onosbmv2': ONOSBmv2Switch,
+    'bmv2': ONOSBmv2Switch,
     'stratum': ONOSStratumSwitch,
 }
 aps = {
-    'onosbmv2AP': ONOSBmv2AP,
-    'stratumAP': ONOSStratumAP,
+    'bmv2': ONOSBmv2AP,
+    'stratum': ONOSStratumAP,
 }
 hosts = {'onoshost': ONOSHost}
 stations = {'onosstation': ONOSStation}
