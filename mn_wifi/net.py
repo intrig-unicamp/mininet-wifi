@@ -55,7 +55,7 @@ class Mininet_wifi(Mininet, Mininet_IoT):
                  client_isolation=False, plot=False, plot3d=False, docker=False,
                  container='mininet-wifi', ssh_user='alpha', set_socket_ip=None,
                  set_socket_port=12345, iot_module='mac802154_hwsim', rec_rssi=False,
-                 **kwargs):
+                 json_file=None, ac_method=None, **kwargs):
         """Create Mininet object.
 
            accessPoint: default Access Point class
@@ -80,7 +80,9 @@ class Mininet_wifi(Mininet, Mininet_IoT):
            plot: plot graph
            plot3d: plot3d graph
            iot_module: default iot module
-           rec_rssi: sends rssi to mac80211_hwsim by using hwsim_mgmt"""
+           rec_rssi: sends rssi to mac80211_hwsim by using hwsim_mgmt
+           json_file: json file dir - useful for P4
+           ac_method: association control method"""
 
         self.station = station
         self.accessPoint = accessPoint
@@ -106,13 +108,14 @@ class Mininet_wifi(Mininet, Mininet_IoT):
         self.isVanet = False
         self.mob_check = False
         self.mob_model = None
-        self.ac_method = None
+        self.ac_method = ac_method
         self.set_socket_ip = set_socket_ip
         self.set_socket_port = set_socket_port
         self.docker = docker
         self.container = container
         self.ssh_user = ssh_user
         self.ifb = ifb  # Support to Intermediate Functional Block (IFB) Devices
+        self.json_file = json_file
         self.client_isolation = client_isolation
         self.init_plot = plot
         self.init_Plot3D = plot3d
@@ -382,6 +385,8 @@ class Mininet_wifi(Mininet, Mininet_IoT):
                     }
         if self.client_isolation:
             defaults['client_isolation'] = True
+        if self.json_file:
+            defaults['json'] = self.json_file
         defaults.update(params)
         if self.autoSetMacs:
             defaults['mac'] = macColonHex(self.nextIP)

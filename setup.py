@@ -21,7 +21,7 @@ setup(
     author='Bob Lantz; Ramon Fontes',
     author_email='rlantz@cs.stanford.edu; ramonrf@dca.fee.unicamp.br',
     packages=[ 'mn_wifi', 'mn_wifi.sixLoWPAN', 'mn_wifi.data', 'mn_wifi.examples',
-               'mn_wifi.examples.eap-tls', 'mn_wifi.examples.eap-tls.CA',
+               'mn_wifi.examples.eap-tls', 'mn_wifi.examples.eap-tls.CA', 'mn_wifi.examples.p4',
                'mn_wifi.sumo', 'mn_wifi.sumo.sumolib', 'mn_wifi.sumo.traci',
                'mn_wifi.sumo.data', 'mn_wifi.sumo.sumolib.net', 'mn_wifi.sumo.sumolib.output',
                'mn_wifi.sumo.sumolib.shapes', 'util' ],
@@ -32,7 +32,8 @@ setup(
                                    'signal_table_ieee80211n_sgi20',
                                    'signal_table_ieee80211n_sgi40'],
                   'mn_wifi.examples.eap-tls': ['eap_users'],
-                  'mn_wifi.examples.eap-tls.CA': ['*.sh']},
+                  'mn_wifi.examples.eap-tls.CA': ['*.sh'],
+                  'mn_wifi.examples.p4': ['*.json']},
     long_description="""
         Mininet-WiFi is a network emulator which uses lightweight
         virtualization to create virtual networks for rapid

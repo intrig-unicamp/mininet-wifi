@@ -42,6 +42,7 @@ from mininet.util import customClass, specialClass, splitArgs
 from mininet.util import buildTopo
 
 import mn_wifi.cli
+from mn_wifi.bmv2 import switches, aps
 from mn_wifi.clean import cleanup_wifi
 from mn_wifi.net import MininetWithControlWNet
 from mn_wifi.net import Mininet_wifi
@@ -80,6 +81,7 @@ SWITCHES = { 'user': UserSwitch,
              'ivs': IVSSwitch,
              'lxbr': LinuxBridge,
              'default': OVSSwitch }
+SWITCHES.update(switches)
 
 APDEF = 'default'
 APS = { 'user': UserAP,
@@ -87,9 +89,9 @@ APS = { 'user': UserAP,
         'ovsbr' : OVSBridge,
         # Keep ovsk for compatibility with 2.0
         'ovsk': OVSAP,
-        'ivs': IVSSwitch,
         'lxbr': LinuxBridge,
         'default': OVSAP }
+APS.update(aps)
 
 HOSTDEF = 'proc'
 HOSTS = { 'proc': Host,
@@ -285,6 +287,8 @@ class MininetRunner(object):
                         default=False, help='for docker environment')
         opts.add_option('--container', type='string',
                         default="mininet-wifi", help='docker: container name')
+        opts.add_option('--json-file', type='string',
+                        default="default", help='json file dir')
         opts.add_option('--ssh-user', type='string',
                         default="alpha", help='docker: ssh username')
         opts.add_option('--plot', action='store_true',
@@ -455,6 +459,7 @@ class MininetRunner(object):
         mode = opts.mode
         ssid = opts.ssid
         docker = opts.docker
+        json_file = opts.json_file
         ssh_user = opts.ssh_user
         container = opts.container
         client_isolation = opts.client_isolation
@@ -502,6 +507,7 @@ class MininetRunner(object):
                      client_isolation=client_isolation,
                      docker=docker,
                      container=container,
+                     json_file=json_file,
                      ssh_user=ssh_user,
                      plot=plot,
                      plot3d=plot3d,
