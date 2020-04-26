@@ -29,27 +29,6 @@ class CLI(MN_CLI):
         else:
             self.mn.get_distance(*args)
 
-    def do_link(self, line):
-        from mn_wifi.plot import Plot2D
-        """Bring link(s) between two nodes up or down.
-           Usage: link node1 node2 [up/down]"""
-        args = line.split()
-        if len(args) != 3:
-            error('invalid number of args: link end1 end2 [up down]\n')
-        elif args[2] not in ['up', 'down']:
-            error('invalid type: link end1 end2 [up down]\n')
-        else:
-            self.mn.configLinkStatus(*args)
-        nodes = []
-        for node in args:
-            if node != 'down' and node != 'up':
-                nodes.append(self.mn.getNodeByName(node))
-        if 'position' in nodes[0].params and 'position' in nodes[1].params:
-            if len(args) == 3 and args[2] == 'down':
-                Plot2D.hide_line(nodes[0], nodes[1])
-            elif len(args) == 3 and args[2] == 'up':
-                Plot2D.show_line(nodes[0], nodes[1])
-
     def do_dpctl(self, line):
         """Run dpctl (or ovs-ofctl) command on all switches.
            Usage: dpctl command [arg1] [arg2] ..."""
