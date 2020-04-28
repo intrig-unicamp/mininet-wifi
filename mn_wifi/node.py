@@ -102,14 +102,13 @@ class Node_wifi(Node):
         physicalMesh(self, **kwargs)
 
     def setMeshMode(self, intf=None, **kwargs):
-        wlan, intf = self.get_wlan_intf(intf)
-        mesh(self, intf, wlan, **kwargs)
+        mesh(self, intf, **kwargs)
 
     def setAdhocMode(self, intf=None, **kwargs):
         wlan, intf = self.get_wlan_intf(intf)
         if isinstance(self.wintfs[wlan], adhoc):
             intf.ibss_leave()
-        adhoc(self, intf, wlan, **kwargs)
+        adhoc(self, intf, **kwargs)
 
     def get_wlan_intf(self, intf):
         if isinstance(intf, BaseString):
