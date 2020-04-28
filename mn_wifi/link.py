@@ -1099,6 +1099,7 @@ class LinkAttrs(WirelessLink):
         self.node = node
         self.antennaGain = intf.antennaGain
         self.encrypt = intf.encrypt
+        self.freq = intf.freq
         self.id = wlan
         self.ip6 = intf.ip6
         self.ip = intf.ip
@@ -1131,16 +1132,12 @@ class ITSLink(LinkAttrs):
 
     def __init__(self, node, intf=None, channel=161):
         "configure ieee80211p"
-        self.node = node
-        if isinstance(intf, BaseString):
-            wlan = node.params['wlan'].index(intf)
-            intf = node.wintfs[wlan]
-        else:
-            wlan = intf.id
+        wlan, intf = node.get_wlan_intf(intf)
 
         if isinstance(self, master):
             self.kill_hostapd()
 
+        self.node = node
         self.channel = channel
         self.freq = self.get_freq()
         self.range = intf.range
@@ -1191,21 +1188,9 @@ class WifiDirectLink(LinkAttrs):
 
     def __init__(self, node, intf=None):
         "configure wifi-direct"
-        self.node = node
-        if isinstance(intf, BaseString):
-            wlan = node.params['wlan'].index(intf)
-            intf = node.wintfs[wlan]
-        else:
-            wlan = intf.id
-
-        self.mac = intf.mac
+        wlan, intf = node.get_wlan_intf(intf)
+        LinkAttrs.__init__(self, node, intf, wlan)
         self.name = intf.name
-        self.range = intf.range
-        self.antennaGain = intf.antennaGain
-        self.txpower = intf.txpower
-        self.freq = intf.freq
-        self.ip6 = intf.ip6
-        self.ip = intf.ip
 
         intf1 = WirelessLink(name=node.params['wlan'][wlan], node=node,
                              link=self, port=wlan)
@@ -1284,31 +1269,27 @@ class adhoc(LinkAttrs):
 
     node = None
 
-    def __init__(self, node, intf, wlan=0, ssid='adhocNet',
-                 channel=1, mode='g', passwd=None, ht_cap='',
-                 proto=None, ibss="02:CA:FF:EE:BA:01", proto_args='',
-                 **params):
+    def __init__(self, node, intf, proto_args='', **params):
         """Configure AdHoc
         node: name of the node
         self: custom association class/constructor
         params: parameters for station"""
-        if isinstance(intf, BaseString):
-            wlan = node.params['wlan'].index(intf)
-            intf = node.wintfs[wlan]
+        wlan, intf = node.get_wlan_intf(intf)
 
         if isinstance(intf, master):
             intf.kill_hostapd_process()
             sleep(0.5)
 
         LinkAttrs.__init__(self, node, intf, wlan)
-        self.ssid = ssid
-        self.passwd = passwd
-        self.mode = mode
-        self.proto = proto
-        self.channel = channel
-        self.ht_cap = ht_cap
         self.associatedTo = 'adhoc'
-        self.ibss = ibss
+
+        # It takes default values if keys are not set
+        kwargs = {'ibss': '02:CA:FF:EE:BA:01', 'ht_cap': '',
+                  'passwd': None, 'ssid': 'adhocNet', 'proto': None,
+                  'mode': 'g', 'channel': 1}
+
+        for k, v in kwargs.items():
+            setattr(self, k, params.get(k, v))
 
         if intf and hasattr(intf, 'wmIface'):
             self.wmIface = intf.wmIface
@@ -1332,7 +1313,7 @@ class adhoc(LinkAttrs):
         self.txpower = intf.txpower
         self.range = intf.range
 
-        if proto:
+        if self.proto:
             manetProtocols(self, proto_args)
 
         # All we are is dust in the wind, and our two interfaces
@@ -1375,16 +1356,13 @@ class mesh(LinkAttrs):
 
     node = None
 
-    def __init__(self, node, intf, wlan=0, mode='g', channel=1,
-                 ssid='meshNet', passwd=None, ht_cap=''):
+    def __init__(self, node, intf, **params):
         from mn_wifi.node import AP
         """Configure wireless mesh
         node: name of the node
         self: custom association class/constructor
         params: parameters for node"""
-        if isinstance(intf, BaseString):
-            wlan = node.params['wlan'].index(intf)
-            intf = node.wintfs[wlan]
+        wlan, intf = node.get_wlan_intf(intf)
 
         if isinstance(intf, master):
             intf.kill_hostapd_process()
@@ -1393,12 +1371,15 @@ class mesh(LinkAttrs):
         LinkAttrs.__init__(self, node, intf, wlan)
         iface = intf
         self.name = '%s-mp%s' % (node, intf.name[-1:])
-        self.ssid = ssid
-        self.mode = mode
-        self.channel = channel
-        self.ht_cap = ht_cap
-        self.passwd = passwd
         self.associatedTo = 'mesh'
+
+        # It takes default values if keys are not set
+        kwargs = {'ibss': '02:CA:FF:EE:BA:01', 'ht_cap': '',
+                  'passwd': None, 'ssid': 'meshNet', 'proto': None,
+                  'mode': 'g', 'channel': 1}
+
+        for k, v in kwargs.items():
+            setattr(self, k, params.get(k, v))
 
         if wmediumd_mode.mode:
             self.wmIface = DynamicIntfRef(node, intf=self.name)
