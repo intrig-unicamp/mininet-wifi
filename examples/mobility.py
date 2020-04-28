@@ -38,16 +38,18 @@ def topology(args):
         sta2.coord = ['40.0,40.0,0.0', '55.0,31.0,0.0', '55.0,81.0,0.0']
 
     net.startMobility(time=0, mob_rep=1, reverse=False)
-    if '-c' in args:
-        net.mobility(sta1, 'start', time=1)
-        net.mobility(sta2, 'start', time=2)
-        net.mobility(sta1, 'stop', time=12)
-        net.mobility(sta2, 'stop', time=22)
-    else:
-        net.mobility(sta1, 'start', time=1, position='40.0,30.0,0.0')
-        net.mobility(sta2, 'start', time=2, position='40.0,40.0,0.0')
-        net.mobility(sta1, 'stop', time=12, position='31.0,10.0,0.0')
-        net.mobility(sta2, 'stop', time=22, position='55.0,31.0,0.0')
+
+    p1, p2, p3, p4 = dict(), dict(), dict(), dict()
+    if '-c' not in args:
+        p1 = {'position': '40.0,30.0,0.0'}
+        p2 = {'position': '40.0,40.0,0.0'}
+        p3 = {'position': '31.0,10.0,0.0'}
+        p4 = {'position': '55.0,31.0,0.0'}
+
+    net.mobility(sta1, 'start', time=1, **p1)
+    net.mobility(sta2, 'start', time=2, **p2)
+    net.mobility(sta1, 'stop', time=12, **p3)
+    net.mobility(sta2, 'stop', time=22, **p4)
     net.stopMobility(time=23)
 
     info("*** Starting network\n")

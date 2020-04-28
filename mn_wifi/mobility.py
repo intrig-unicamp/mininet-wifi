@@ -216,23 +216,15 @@ class ConfigMobility(Mobility):
         node = args[0]
         stage = args[1]
 
-        if 'position' in kwargs:
-            pos = kwargs['position'].split(',')
-            if stage == 'start':
-                node.params['initPos'] = self.get_position(pos)
-            elif stage == 'stop':
-                node.params['finPos'] = self.get_position(pos)
-        else:
-            if stage == 'start':
-                pos = node.coord[0].split(',')
-                node.params['initPos'] = self.get_position(pos)
-            elif stage == 'stop':
-                pos = node.coord[1].split(',')
-                node.params['finPos'] = self.get_position(pos)
-
         if stage == 'start':
+            pos = kwargs['position'].split(',') if 'position' in kwargs \
+                else node.coord[0].split(',')
+            node.params['initPos'] = self.get_position(pos)
             node.startTime = kwargs['time']
         elif stage == 'stop':
+            pos = kwargs['position'].split(',') if 'position' in kwargs \
+                else node.coord[1].split(',')
+            node.params['finPos'] = self.get_position(pos)
             node.speed = 1
             self.calculate_diff_time(node, kwargs['time'])
 
@@ -372,23 +364,24 @@ class Tracked(Mobility):
 
         for node in mob_nodes:
             node.position = node.params['initPos']
+            node.matrix_id = 0
+            node.time = node.startTime
 
+        dim = 'update_2d'
         if draw:
             kwargs['nodes'] = stat_nodes + mob_nodes
             PlotGraph(**kwargs)
-
-        for node in nodes:
-            if hasattr(node, 'coord'):
-                self.set_coordinates(node)
-        self.run(mob_nodes, draw, **kwargs)
-
-    def run(self, mob_nodes, draw, mob_start_time=0, mob_stop_time=10,
-            reverse=False, mob_rep=1, **kwargs):
-
-        if draw:
-            dim = 'update_2d'
             if hasattr(PlotGraph, 'plot3d'):
                 dim = 'update_3d'
+
+        coordinate = dict()
+        for node in nodes:
+            if hasattr(node, 'coord'):
+                coordinate[node] = self.set_coordinates(node)
+        self.run(mob_nodes, draw, coordinate, dim, **kwargs)
+
+    def run(self, mob_nodes, draw, coordinate, dim, mob_start_time=0,
+            mob_stop_time=10, reverse=False, mob_rep=1, **kwargs):
 
         for rep in range(mob_rep):
             t1 = time()
@@ -399,43 +392,34 @@ class Tracked(Mobility):
                         fin_pos = node.params['finPos']
                         node.params['finPos'] = node.params['initPos']
                         node.params['initPos'] = fin_pos
-            for node in mob_nodes:
-                node.matrix_id = 0
-                node.time = node.startTime
-                self.calculate_diff_time(node)
-            while (time() - t1 >= mob_start_time and time() - t1 <= mob_stop_time):
+
+            if not coordinate:
+                coordinate = dict()
+                for node in mob_nodes:
+                    self.calculate_diff_time(node)
+                    coordinate[node] = self.create_coord(node, tracked=True)
+
+            while mob_start_time <= time() - t1 <= mob_stop_time:
                 t2 = time()
                 if t2 - t1 >= i:
-                    for node in mob_nodes:
+                    for node, pos in coordinate.items():
                         if (t2 - t1) >= node.startTime and node.time <= node.endTime:
-                            if hasattr(node, 'coord'):
-                                node.matrix_id += 1
-                                if node.matrix_id < len(node.points):
-                                    pos = node.points[node.matrix_id]
-                                else:
-                                    pos = node.points[len(node.points) - 1]
+                            node.matrix_id += 1
+                            if node.matrix_id < len(coordinate[node]):
+                                pos = pos[node.matrix_id]
                             else:
-                                pos = self.move_node(node)
+                                pos = pos[len(coordinate[node]) - 1]
                             self.set_pos(node, pos)
                             node.time += 0.1
-                        if draw:
-                            graph_update = getattr(node, dim)
-                            graph_update()
-                            if not hasattr(PlotGraph, 'plot3d'):
-                                node.set_circle_radius()
+                            if draw:
+                                node_update = getattr(node, dim)
+                                node_update()
                     PlotGraph.pause()
                     i += 0.1
                 while self.pause_simulation:
                     pass
             if rep == mob_rep:
                 self.thread_._keep_alive = False
-
-    @staticmethod
-    def move_node(node):
-        x = round(node.position[0], 2) + round(node.moveFac[0], 2)
-        y = round(node.position[1], 2) + round(node.moveFac[1], 2)
-        z = round(node.position[2], 2) + round(node.moveFac[2], 2)
-        return [x, y, z]
 
     @staticmethod
     def get_total_displacement(node):
@@ -449,17 +433,19 @@ class Tracked(Mobility):
                 z += abs(float(c0[2]) - float(c1[2]))
         return (x, y, z)
 
-    def create_coordinate(self, node):
+    def create_coord(self, node, tracked=False):
         coord = []
-        init_pos = node.params['initPos']
-        fin_pos = node.params['finPos']
-        if hasattr(node, 'coord'):
+        if tracked:
+            pos = node.position
+            for _ in range((node.endTime - node.startTime) * 10):
+                x = round(pos[0], 2) + round(node.moveFac[0], 2)
+                y = round(pos[1], 2) + round(node.moveFac[1], 2)
+                z = round(pos[2], 2) + round(node.moveFac[2], 2)
+                pos = (x, y, z)
+                coord.append((x, y, z))
+        else:
             for idx in range(len(node.coord) - 1):
                 coord.append([node.coord[idx], node.coord[idx + 1]])
-        else:
-            coord1 = '%s,%s,%s' % (init_pos[0], init_pos[1], init_pos[2])
-            coord2 = '%s,%s,%s' % (fin_pos[0], fin_pos[1], fin_pos[2])
-            coord.append([coord1, coord2])
         return coord
 
     def dir(self, p1, p2):
@@ -519,7 +505,7 @@ class Tracked(Mobility):
         return points
 
     def set_coordinates(self, node):
-        coord = self.create_coordinate(node)
+        coord = self.create_coord(node)
         total = self.get_total_displacement(node)
         points = []
         for c in coord:
@@ -529,13 +515,14 @@ class Tracked(Mobility):
 
         t = self.mob_time(node) * 10
         interval = len(points) / t
-        node.points = []
+        pointsL = []
         for id in np.arange(0, len(points), interval):
             if id < len(points) - interval:
-                node.points.append(points[id])
+                pointsL.append(points[id])
             else:
                 # set the last position according to the coordinates
-                node.points.append(points[len(points)-1])
+                pointsL.append(points[len(points)-1])
+        return pointsL
 
 
 # coding: utf-8
