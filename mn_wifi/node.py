@@ -33,8 +33,8 @@ from mininet.node import Node, UserSwitch, OVSSwitch, CPULimitedHost
 from mininet.moduledeps import pathCheck
 from mininet.link import Intf
 from mn_wifi.devices import DeviceRate
-from mn_wifi.link import TCWirelessLink, TCLinkWirelessAP,\
-    wirelessLink, adhoc, mesh, master, managed, physicalMesh, ITSLink, VirtualMaster
+from mn_wifi.link import WirelessLink, TCLinkWireless,ConfigWirelessLink, \
+    adhoc, mesh, master, managed, physicalMesh, ITSLink, VirtualMaster
 from mn_wifi.wmediumdConnector import w_server, w_pos, w_cst, wmediumd_mode
 from mn_wifi.propagationModels import GetSignalRange, GetPowerGivenRange
 
@@ -368,7 +368,7 @@ class Node_wifi(Node):
                         intf.disconnect()
                         intf.rssi = 0
                     intf.associate_infra(ap_intf)
-                    wirelessLink(intf, dist)
+                    ConfigWirelessLink(intf, dist)
                 else:
                     info('%s is already connected!\n' % ap)
                 self.configLinks()
@@ -643,7 +643,7 @@ class AccessPoint(Node_wifi):
                         iface = '%s-%s' % (ap.wintfs[0], id)
                         intf.vifaces.append(iface)
                         intf.vssid.append(vssid)
-                        TCLinkWirelessAP(ap, intfName=iface)
+                        TCLinkWireless(ap, intfName=iface)
                         VirtualMaster(ap, wlan, id, intf=iface)
 
         self.restartNetworkManager()
@@ -904,11 +904,11 @@ class AccessPoint(Node_wifi):
         self.write_mac = False
 
     def configAP(self, node, wlan):
-        TCLinkWirelessAP(node)
+        TCLinkWireless(node)
         master(node, wlan, port=wlan)
         intfName = node.params.get('phywlan', None)
         if intfName:
-            TCLinkWirelessAP(node, intfName=intfName)
+            TCLinkWireless(node, intfName=intfName)
             node.params['wlan'].append(intfName)
             master(node, wlan+1)
 
@@ -992,7 +992,7 @@ class UserAP(AP, UserSwitch):
            over tc queuing disciplines. To resolve the conflict,
            we re-create the user switch's configuration, but as a
            leaf of the TCIntf-created configuration."""
-        if isinstance(intf, TCWirelessLink):
+        if isinstance(intf, WirelessLink):
             ifspeed = 10000000000  # 10 Gbps
             minspeed = ifspeed * 0.001
 
@@ -1098,7 +1098,7 @@ class OVSAP(AP, OVSSwitch):
         """Unfortunately OVS and Mininet are fighting
            over tc queuing disciplines. As a quick hack/
            workaround, we clear OVS's and reapply our own."""
-        if isinstance(intf, TCWirelessLink):
+        if isinstance(intf, WirelessLink):
             intf.config(**intf.params)
 
     @classmethod
@@ -1126,7 +1126,7 @@ class OVSAP(AP, OVSSwitch):
         # Reapply link config if necessary...
         for ap in aps:
             for intf in ap.intfs:
-                if isinstance(intf, TCWirelessLink):
+                if isinstance(intf, WirelessLink):
                     intf.config(**intf.params)
         return aps
 

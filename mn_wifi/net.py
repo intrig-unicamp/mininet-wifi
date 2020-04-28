@@ -23,10 +23,9 @@ from mininet.log import info, error, debug, output, warn
 from mn_wifi.node import AccessPoint, AP, Station, Car, \
     OVSKernelAP, physicalAP
 from mn_wifi.wmediumdConnector import error_prob, snr, interference
-from mn_wifi.link import wirelessLink, wmediumd, _4address, \
-    TCWirelessLink, TCLinkWirelessStation, ITSLink, \
-    WifiDirectLink, adhoc, mesh, master, managed, physicalMesh, \
-    PhysicalWifiDirectLink, _4addrClient, _4addrAP
+from mn_wifi.link import ConfigWirelessLink, wmediumd, _4address, \
+    WirelessLink, TCLinkWireless, ITSLink, WifiDirectLink, adhoc, mesh, \
+    master, managed, physicalMesh, PhysicalWifiDirectLink, _4addrClient, _4addrAP
 from mn_wifi.clean import Cleanup as CleanupWifi
 from mn_wifi.energy import Energy
 from mn_wifi.telemetry import parseData, telemetry as run_telemetry
@@ -47,7 +46,7 @@ VERSION = "2.5"
 class Mininet_wifi(Mininet, Mininet_IoT):
 
     def __init__(self, accessPoint=OVSKernelAP, station=Station, car=Car,
-                 sensor=Node_6lowpan, apsensor=OVSSensor, link=TCWirelessLink,
+                 sensor=Node_6lowpan, apsensor=OVSSensor, link=WirelessLink,
                  ssid="new-ssid", mode="g", channel=1, wmediumd_mode=snr, roads=0,
                  fading_cof=0, autoAssociation=True, allAutoAssociation=True,
                  autoSetPositions=False, configWiFiDirect=False, config4addr=False,
@@ -535,8 +534,8 @@ class Mininet_wifi(Mininet, Mininet_IoT):
                 else:
                     params['bw'] = intf.getRate()
             # tc = True, this is useful for tc configuration
-            link = TCLinkWirelessStation(node=intf.node, intfName=intf.name,
-                                         cls=cls, **params)
+            TCLinkWireless(node=intf.node, intfName=intf.name,
+                           port=intf.id, cls=cls, **params)
 
     def addLink(self, node1, node2=None, port1=None, port2=None,
                 cls=None, **params):
@@ -567,12 +566,12 @@ class Mininet_wifi(Mininet, Mininet_IoT):
             return link
         elif cls == _4address:
             if self.wmediumd_mode == interference:
-                link = cls(node1, node2, port1, port2)
+                link = cls(node1, node2, port1, port2, **params)
                 self.links.append(link)
                 return link
             else:
                 if self.do_association(node1.wintfs[0], node2.wintfs[0]):
-                    link = cls(node1, node2)
+                    link = cls(node1, node2, **params)
                     self.links.append(link)
                     return link
         elif ((node1 in self.stations and node2 in self.aps)
@@ -582,7 +581,7 @@ class Mininet_wifi(Mininet, Mininet_IoT):
             else:
                 self.infra_tc(node1, node2, port1, port2, cls, **params)
         else:
-            if not cls or cls == wmediumd or cls == TCWirelessLink:
+            if not cls or cls == wmediumd or cls == WirelessLink:
                 cls = TCLink
             if self.disable_tcp_checksum:
                 cls = TCULink
@@ -1095,7 +1094,7 @@ class Mininet_wifi(Mininet, Mininet_IoT):
 
                     node.cmd('iw dev %s interface add %s type station'
                              % (node.params['wlan'][0], vif))
-                    TCLinkWirelessStation(node, intfName=vif)
+                    TCLinkWireless(node, intfName=vif)
                     managed(node, wlan=vif_+1)
 
                     node.wintfs[vif_+1].mac = new_mac
@@ -1119,7 +1118,7 @@ class Mininet_wifi(Mininet, Mininet_IoT):
             for wlan in range(len(node.params['wlan'])):
                 if not self.autoAssociation:
                     intf = node.params['wlan'][wlan]
-                    link = TCLinkWirelessStation(node, intfName=intf)
+                    link = TCLinkWireless(node, intfName=intf)
                     self.links.append(link)
                 managed(node, wlan)
             for intf in node.wintfs.values():
@@ -1326,7 +1325,7 @@ class Mininet_wifi(Mininet, Mininet_IoT):
             if 'loss' in link.intf1.params:
                 params['loss'] = link.intf1.params['loss']
             if params and 'delay' not in link.intf1.params:
-                wirelessLink.tc(link.intf1.node, link.intf1.name, **params)
+                ConfigWirelessLink.tc(link.intf1.node, link.intf1.name, **params)
 
     def auto_association(self):
         "This is useful to make the users' life easier"
@@ -1369,7 +1368,7 @@ class Mininet_wifi(Mininet, Mininet_IoT):
         for node in self.stations:
             for wlan in range(len(node.params['wlan'])):
                 intf = node.params['wlan'][wlan]
-                link = TCLinkWirelessStation(node, intfName=intf)
+                link = TCLinkWireless(node, intfName=intf, port=wlan)
                 self.links.append(link)
 
     @staticmethod
@@ -1389,10 +1388,10 @@ class Mininet_wifi(Mininet, Mininet_IoT):
         :params delay: delay (ms)
         :params latency: latency (ms)
         :params loss: loss (%)"""
-        wirelessLink.eqBw = params.get('bw', wirelessLink.eqBw)
-        wirelessLink.eqDelay = params.get('delay', wirelessLink.eqDelay)
-        wirelessLink.eqLatency = params.get('latency', wirelessLink.eqLatency)
-        wirelessLink.eqLoss = params.get('loss', wirelessLink.eqLoss)
+        ConfigWirelessLink.eqBw = params.get('bw', ConfigWirelessLink.eqBw)
+        ConfigWirelessLink.eqDelay = params.get('delay', ConfigWirelessLink.eqDelay)
+        ConfigWirelessLink.eqLatency = params.get('latency', ConfigWirelessLink.eqLatency)
+        ConfigWirelessLink.eqLoss = params.get('loss', ConfigWirelessLink.eqLoss)
 
     @staticmethod
     def stop_graph_params():

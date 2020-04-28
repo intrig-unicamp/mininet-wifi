@@ -397,7 +397,7 @@ class IntfWireless(Intf):
                 self.associate_infra(ap_intf)
                 if wmediumd_mode.mode == w_cst.WRONG_MODE:
                     if dist >= 0.01:
-                        wirelessLink(self, dist)
+                        ConfigWirelessLink(self, dist)
                 if self.node != ap_intf.associatedStations:
                     ap_intf.associatedStations.append(self.node)
             if not wmediumd_mode.mode == w_cst.INTERFERENCE_MODE:
@@ -523,7 +523,7 @@ class IntfWireless(Intf):
         self.link = None
 
 
-class TCWirelessLink(TCIntf, IntfWireless):
+class WirelessLink(TCIntf, IntfWireless):
     """Interface customized by tc (traffic control) utility
        Allows specification of bandwidth limits (various methods)
        as well as delay, loss and max queue length"""
@@ -607,7 +607,7 @@ class _4address(Link, IntfWireless):
 
     node = None
 
-    def __init__(self, node1, node2, port1=None, port2=None):
+    def __init__(self, node1, node2, port1=None, port2=None, **params):
         """Create 4addr link to another node.
            node1: first node
            node2: second node
@@ -640,7 +640,7 @@ class _4address(Link, IntfWireless):
             cl.params['wlan'].append(cl_intfname)
             sleep(1)
 
-            params1, params2 = {}, {}
+            params1, params2 = params, params
             params1['port'] = cl.newPort()
             params2['port'] = ap.newPort()
             intf1 = IntfWireless(name=cl_intfname, node=cl, link=self, **params1)
@@ -690,7 +690,7 @@ class _4address(Link, IntfWireless):
         return "(%s %s)" % (self.intf1.status(), self.intf2)
 
 
-class WirelessLinkAP(Link):
+class WirelessIntf(object):
 
     """A basic link is just a veth pair.
        Other types of links could be tunnels, link emulators, etc.."""
@@ -708,73 +708,11 @@ class WirelessLinkAP(Link):
         # This is a bit awkward; it seems that having everything in
         # params is more orthogonal, but being able to specify
         # in-line arguments is more convenient! So we support both.
-        params = dict( params ) if params else {}
-
-        if port is not None:
-            params['port'] = port
-
-        params['port'] = node.newPort()
-        if not intfName:
-            ifacename = 'wlan'
-            intfName = self.wlanName(node, ifacename, params['port'])
-        intf1 = cls(name=intfName, node=node,
-                    link=self, mac=addr, **params)
-
-        intf2 = 'wifi'
-        # All we are is dust in the wind, and our two interfaces
-        self.intf1, self.intf2 = intf1, intf2
-    # pylint: enable=too-many-branches
-
-    def wlanName(self, node, ifacename, n):
-        "Construct a canonical interface name node-ethN for interface n."
-        # Leave this as an instance method for now
-        assert self
-        return node.name + '-' + ifacename + repr(n)
-
-    def delete(self):
-        "Delete this link"
-        self.intf1.delete()
-        self.intf1 = None
-        self.intf2 = None
-
-    def status(self):
-        "Return link status as a string"
-        return "(%s %s)" % (self.intf1.status(), self.intf2)
-
-
-class WirelessLinkStation(object):
-
-    """A basic link is just a veth pair.
-       Other types of links could be tunnels, link emulators, etc.."""
-
-    # pylint: disable=too-many-branches
-    def __init__(self, node, port=None, intfName=None, addr=None,
-                 intf=IntfWireless, cls=None, params=None):
-        """Create veth link to another node, making two new interfaces.
-           node: first node
-           port: node port number (optional)
-           intf: default interface class/constructor
-           cls: optional interface-specific constructors
-           intfName: node interface name (optional)
-           params: parameters for interface 1"""
-        # This is a bit awkward; it seems that having everything in
-        # params is more orthogonal, but being able to specify
-        # in-line arguments is more convenient! So we support both.
-        if params is None:
-            params = {}
-
-        if port is not None:
-            params[ 'port' ] = port
-
-        if 'port' not in params:
-            params[ 'port' ] = node.newPort()
+        params = dict(params) if params else {}
+        params['port'] = port if port is not None else node.newPort()
 
         if not intfName:
-            ifacename = 'wlan'
-            intfName = self.wlanName(node, ifacename, node.newPort())
-
-        if not cls:
-            cls = intf
+            intfName = self.wlanName(node, params['port'])
 
         intf1 = cls(name=intfName, node=node,
                     link=self, mac=addr, **params)
@@ -788,11 +726,11 @@ class WirelessLinkStation(object):
         "Ignore any arguments"
         pass
 
-    def wlanName(self, node, ifacename, n):
+    def wlanName(self, node, n):
         "Construct a canonical interface name node-ethN for interface n."
         # Leave this as an instance method for now
         assert self
-        return node.name + '-' + ifacename + repr(n)
+        return node.name + '-' + 'wlan' + repr(n)
 
     def delete(self):
         "Delete this link"
@@ -812,27 +750,16 @@ class WirelessLinkStation(object):
         return '%s<->%s' % (self.intf1, self.intf2)
 
 
-class TCLinkWirelessStation(WirelessLinkStation):
+class TCLinkWireless(WirelessIntf):
     "Link with symmetric TC interfaces configured via opts"
     def __init__(self, node, port=None, intfName=None,
-                 addr=None, cls=TCWirelessLink, **params):
-        WirelessLinkStation.__init__(self, node=node, port=port,
-                                     intfName=intfName,
-                                     cls=cls, addr=addr,
-                                     params=params)
+                 addr=None, cls=WirelessLink, **params):
+        WirelessIntf.__init__(self, node=node, port=port,
+                              intfName=intfName, cls=cls,
+                              addr=addr, params=params)
 
 
-class TCLinkWirelessAP(WirelessLinkAP):
-    "Link with symmetric TC interfaces configured via opts"
-    def __init__(self, node, port=None, intfName=None,
-                 addr=None, cls=TCWirelessLink, **params):
-        WirelessLinkAP.__init__(self, node, port=port,
-                                intfName=intfName,
-                                cls=cls, addr=addr,
-                                params=params)
-
-
-class master(TCWirelessLink):
+class master(WirelessLink):
     "master class"
     def __init__(self, node, wlan, port=None, intf=None):
         self.name = node.params['wlan'][wlan]
@@ -889,7 +816,7 @@ class master(TCWirelessLink):
                     setattr(self, key, node.params[key])
 
 
-class VirtualMaster(master, TCWirelessLink):
+class VirtualMaster(master, WirelessLink):
     "master class"
     def __init__(self, node, wlan, id, port=None, intf=None):
         self.name = intf
@@ -947,7 +874,7 @@ class VirtualMaster(master, TCWirelessLink):
                         setattr(self, key, node.params[key])
 
 
-class managed(TCWirelessLink):
+class managed(WirelessLink):
     "managed class"
     def __init__(self, node, wlan, intf=None):
         self.name = node.params['wlan'][wlan]
@@ -997,7 +924,7 @@ class managed(TCWirelessLink):
                     setattr(self, key, node.params[key])
 
 
-class _4addrClient(TCWirelessLink):
+class _4addrClient(WirelessLink):
     "managed class"
     def __init__(self, node, wlan):
         self.node = node
@@ -1017,7 +944,7 @@ class _4addrClient(TCWirelessLink):
         node.addWAttr(self, port=wlan)
 
 
-class _4addrAP(TCWirelessLink):
+class _4addrAP(WirelessLink):
     "managed class"
     def __init__(self, node, wlan):
         self.node = node
@@ -1115,7 +1042,7 @@ class wmediumd(object):
                               link[0].rssi - (-91)))
 
 
-class wirelessLink(object):
+class ConfigWirelessLink(object):
 
     dist = 0
     noise = 0
@@ -1178,7 +1105,7 @@ class wirelessLink(object):
         node.pexec(cmd)
 
 
-class LinkAttrs(TCWirelessLink):
+class LinkAttrs(WirelessLink):
 
     def delete(self):
         "Delete this link"
@@ -1224,8 +1151,8 @@ class ITSLink(LinkAttrs):
         else:
             self.set_ocb_mode()
 
-        intf1 = TCWirelessLink(name=node.params['wlan'][wlan], node=node,
-                               link=self, port=wlan)
+        intf1 = WirelessLink(name=node.params['wlan'][wlan], node=node,
+                             link=self, port=wlan)
         intf2 = 'wifiITS'
 
         node.addWAttr(self, port=wlan)
@@ -1278,8 +1205,8 @@ class WifiDirectLink(LinkAttrs):
         self.ip6 = intf.ip6
         self.ip = intf.ip
 
-        intf1 = TCWirelessLink(name=node.params['wlan'][wlan], node=node,
-                               link=self, port=wlan)
+        intf1 = WirelessLink(name=node.params['wlan'][wlan], node=node,
+                             link=self, port=wlan)
         intf2 = 'wifiDirect'
 
         #node.addWIntf(self, port=wlan)
@@ -1330,7 +1257,7 @@ class PhysicalWifiDirectLink(WifiDirectLink):
         self.antennaGain = 5
         self.range = 100
 
-        intf1 = TCWirelessLink(name=self.name, node=node, link=self)
+        intf1 = WirelessLink(name=self.name, node=node, link=self)
         intf2 = 'wifiDirect'
 
         node.addWAttr(self)
@@ -1397,8 +1324,8 @@ class adhoc(LinkAttrs):
 
         self.name = intf.name
 
-        intf1 = TCWirelessLink(name=node.params['wlan'][wlan], node=node,
-                               link=self, port=wlan)
+        intf1 = WirelessLink(name=node.params['wlan'][wlan], node=node,
+                             link=self, port=wlan)
         intf2 = 'wifiAdhoc'
 
         node.addWAttr(self, port=wlan)
@@ -1424,8 +1351,7 @@ class adhoc(LinkAttrs):
         if self.passwd:
             self.setSecuredAdhoc()
         else:
-            self.join_ibss(self.ssid, self.format_freq(),
-                self.ht_cap, self.ibss)
+            self.join_ibss(self.ssid, self.format_freq(), self.ht_cap, self.ibss)
 
     def get_sta_confname(self):
         fileName = '%s.staconf' % self.name
@@ -1499,8 +1425,8 @@ class mesh(LinkAttrs):
 
         # mp interface must be created before ethtool
         self.iwdev_cmd(self.set_mesh_type(intf))
-        intf1 = TCWirelessLink(name=self.name, node=node,
-                               link=self, port=port)
+        intf1 = WirelessLink(name=self.name, node=node,
+                             link=self, port=port)
         intf2 = 'wifiMesh'
 
         node.addWAttr(self, port=wlan)

@@ -48,7 +48,7 @@ from mn_wifi.net import MininetWithControlWNet
 from mn_wifi.net import Mininet_wifi
 from mn_wifi.topo import (SingleAPTopo, LinearWirelessTopo,
                           MinimalWirelessTopo)
-from mn_wifi.link import TCWirelessLink, wmediumd
+from mn_wifi.link import WirelessLink, wmediumd
 from mn_wifi.node import (Station, UserAP, OVSAP, CPULimitedStation)
 
 
@@ -116,7 +116,7 @@ CONTROLLERS = { 'ref': Controller,
 LINKDEF = 'default'
 LINKS = { 'default': Link,  # Note: overridden below
           'tc': TCLink,
-          'wtc': TCWirelessLink,
+          'wtc': WirelessLink,
           'wmediumd': wmediumd,
           'tcu': TCULink,
           'ovs': OVSLink }
