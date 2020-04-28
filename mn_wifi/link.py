@@ -25,7 +25,7 @@ class IntfWireless(Intf):
 
     def __init__(self, name, node=None, port=None, link=None,
                  mac=None, **params):
-        """name: interface name (e.g. h1-eth0)
+        """name: interface name (e.g. sta1-wlan0)
            node: owning node (where this intf most likely lives)
            link: parent link if we're part of a link
            other arguments are passed to config()"""
@@ -40,8 +40,9 @@ class IntfWireless(Intf):
         if self.name == 'lo':
             self.ip = '127.0.0.1'
 
+        if port == 0:
+            port = None
         node.addWIntf(self, port=port)
-
         # Save params for future reference
         self.params = params
         self.config(**params)
@@ -717,6 +718,7 @@ class WirelessIntf(object):
         intf1 = cls(name=intfName, node=node,
                     link=self, mac=addr, **params)
         intf2 = 'wifi'
+
         # All we are is dust in the wind, and our two interfaces
         self.intf1, self.intf2 = intf1, intf2
     # pylint: enable=too-many-branches

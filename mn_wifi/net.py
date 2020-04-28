@@ -591,7 +591,7 @@ class Mininet_wifi(Mininet, Mininet_IoT):
 
     def configHosts(self):
         "Configure a set of nodes."
-        nodes = self.hosts + self.stations + self.cars + self.sensors
+        nodes = self.hosts + self.cars + self.sensors
         for node in nodes:
             # info( host.name + ' ' )
             intf = node.defaultIntf()
@@ -1123,6 +1123,7 @@ class Mininet_wifi(Mininet, Mininet_IoT):
                 managed(node, wlan)
             for intf in node.wintfs.values():
                 intf.configureMacAddr()
+            node.configDefault()
         self.configIFB()
 
     def plotGraph(self, **kwargs):

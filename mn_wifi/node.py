@@ -33,7 +33,7 @@ from mininet.node import Node, UserSwitch, OVSSwitch, CPULimitedHost
 from mininet.moduledeps import pathCheck
 from mininet.link import Intf
 from mn_wifi.devices import DeviceRate
-from mn_wifi.link import WirelessLink, TCLinkWireless,ConfigWirelessLink, \
+from mn_wifi.link import WirelessIntf, TCLinkWireless, ConfigWirelessLink, \
     adhoc, mesh, master, managed, physicalMesh, ITSLink, VirtualMaster
 from mn_wifi.wmediumdConnector import w_server, w_pos, w_cst, wmediumd_mode
 from mn_wifi.propagationModels import GetSignalRange, GetPowerGivenRange
@@ -396,6 +396,7 @@ class Node_wifi(Node):
            moveIntfFn: function to move interface (optional)"""
         if port is None:
             port = self.newWPort()
+
         self.wintfs[port] = intf
         self.wports[intf] = port
 
@@ -406,6 +407,7 @@ class Node_wifi(Node):
            moveIntfFn: function to move interface (optional)"""
         if port is None:
             port = self.newPort()
+
         self.intfs[port] = intf
         self.ports[intf] = port
         self.nameToIntf[intf.name] = intf
@@ -472,17 +474,6 @@ class Node_wifi(Node):
         "Configure with default parameters"
         self.params.update(moreParams)
         self.config(**self.params)
-
-    def __repr__(self):
-        "More informative string representation"
-        intfs = (','.join([ '%s:%s' % (i.name, i.IP())
-                            for i in self.intfList() ]))
-        return '<%s %s: %s pid=%s> ' % (
-            self.__class__.__name__, self.name, intfs, self.pid)
-
-    def __str__(self):
-        "Abbreviated string representation"
-        return self.name
 
     # Automatic class setup support
     isSetup = False
@@ -992,7 +983,7 @@ class UserAP(AP, UserSwitch):
            over tc queuing disciplines. To resolve the conflict,
            we re-create the user switch's configuration, but as a
            leaf of the TCIntf-created configuration."""
-        if isinstance(intf, WirelessLink):
+        if isinstance(intf, WirelessIntf):
             ifspeed = 10000000000  # 10 Gbps
             minspeed = ifspeed * 0.001
 
@@ -1098,7 +1089,7 @@ class OVSAP(AP, OVSSwitch):
         """Unfortunately OVS and Mininet are fighting
            over tc queuing disciplines. As a quick hack/
            workaround, we clear OVS's and reapply our own."""
-        if isinstance(intf, WirelessLink):
+        if isinstance(intf, WirelessIntf):
             intf.config(**intf.params)
 
     @classmethod
@@ -1126,7 +1117,7 @@ class OVSAP(AP, OVSSwitch):
         # Reapply link config if necessary...
         for ap in aps:
             for intf in ap.intfs:
-                if isinstance(intf, WirelessLink):
+                if isinstance(intf, WirelessIntf):
                     intf.config(**intf.params)
         return aps
 
