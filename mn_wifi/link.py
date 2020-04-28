@@ -663,8 +663,8 @@ class _4address(Link, IntfWireless):
             self.iwdev_cmd('%s connect %s %s' % (cl.params['wlan'][1],
                                                  ap_intf.ssid, ap_intf.mac))
 
-        # All we are is dust in the wind, and our two interfaces
-        self.intf1, self.intf2 = intf1, intf2
+            # All we are is dust in the wind, and our two interfaces
+            self.intf1, self.intf2 = intf1, intf2
 
     def set_pos(self, node):
         nums = re.findall(r'\d+', node.name)
@@ -761,23 +761,36 @@ class TCLinkWireless(WirelessIntf):
                               addr=addr, params=params)
 
 
-class master(WirelessLink):
+class CommonAttributes(object):
+
+    def __init__(self, node, wlan):
+        self.ip = None
+        self.ip6 = None
+        self.prefixLen = None
+        self.prefixLen6 = None
+        self.ssid = None
+        self.antennaGain = 5.0
+        self.antennaHeight = 1.0
+        self.channel = 1
+        self.freq = 2.412
+        self.txpower = 14
+        self.range = 0
+        self.mode = 'g'
+        self.node = node
+        self.id = wlan
+
+
+class master(WirelessLink, CommonAttributes):
     "master class"
     def __init__(self, node, wlan, port=None, intf=None):
+        CommonAttributes.__init__(self, node, wlan)
         self.name = node.params['wlan'][wlan]
         node.addWAttr(self, port=port)
-        self.node = node
         self.params = {}
         self.stationsInRange = {}
         self.vssid = []
         self.vifaces = []
         self.associatedStations = []
-        self.antennaGain = 5.0
-        self.antennaHeight = 1.0
-        self.channel = 1
-        self.freq = 2.412
-        self.range = 0
-        self.txpower = 14
         self.auth_algs = None
         self.authmode = None
         self.band = None
@@ -787,16 +800,11 @@ class master(WirelessLink):
         self.encrypt = None
         self.ht_capab = None
         self.ieee80211r = None
-        self.id = wlan
-        self.ip = None
-        self.ip6 = None
         self.client_isolation = None
         self.mac = None
-        self.mode = 'g'
         self.mobility_domain = None
         self.passwd = None
         self.shared_secret = None
-        self.ssid = None
         self.wpa_key_mgmt = None
         self.rsn_pairwise = None
         self.radius_server = None
@@ -818,24 +826,17 @@ class master(WirelessLink):
                     setattr(self, key, node.params[key])
 
 
-class VirtualMaster(master, WirelessLink):
+class VirtualMaster(master, CommonAttributes):
     "master class"
-    def __init__(self, node, wlan, id, port=None, intf=None):
+    def __init__(self, node, wlan, port=None, intf=None):
+        CommonAttributes.__init__(self, node, wlan)
         self.name = intf
         node.addWAttr(self, port=port)
-        self.node = node
         self.params = {}
         self.stationsInRange = {}
         self.vssid = []
         self.vifaces = []
-        self.ssid = 'none'
         self.associatedStations = []
-        self.antennaGain = 5.0
-        self.antennaHeight = 1.0
-        self.channel = 1
-        self.freq = 2.412
-        self.range = 0
-        self.txpower = 14
         self.auth_algs = None
         self.authmode = None
         self.band = None
@@ -845,12 +846,8 @@ class VirtualMaster(master, WirelessLink):
         self.encrypt = None
         self.ht_capab = None
         self.ieee80211r = None
-        self.id = wlan
-        self.ip = None
-        self.ip6 = None
         self.client_isolation = None
         self.mac = None
-        self.mode = 'g'
         self.mobility_domain = None
         self.passwd = None
         self.shared_secret = None
@@ -876,15 +873,14 @@ class VirtualMaster(master, WirelessLink):
                         setattr(self, key, node.params[key])
 
 
-class managed(WirelessLink):
+class managed(WirelessLink, CommonAttributes):
     "managed class"
     def __init__(self, node, wlan, intf=None):
+        CommonAttributes.__init__(self,node,  wlan)
         self.name = node.params['wlan'][wlan]
         node.addWIntf(self, port=wlan)
         node.addWAttr(self, port=wlan)
-        self.node = node
         self.apsInRange = {}
-        self.range = 0
         self.ifb = None
         self.active_scan = None
         self.associatedTo = None
@@ -892,27 +888,17 @@ class managed(WirelessLink):
         self.config = None
         self.encrypt = None
         self.freq_list = None
-        self.ip = None
-        self.ip6 = None
         self.link = None
         self.mac = None
         self.passwd = None
         self.radius_identity = None
         self.radius_passwd = None
         self.scan_freq = None
-        self.ssid = None
         self.bgscan_module = 'simple'
         self.s_inverval = 0
         self.bgscan_threshold = 0
         self.l_interval = 0
-        self.txpower = 14
-        self.id = wlan
         self.rssi = -60
-        self.mode = 'g'
-        self.freq = 2.412
-        self.channel = 1
-        self.antennaGain = 5.0
-        self.antennaHeight = 1.0
 
         if intf and hasattr(intf, 'wmIface'):
             self.wmIface = intf.wmIface

@@ -635,7 +635,7 @@ class AccessPoint(Node_wifi):
                         intf.vifaces.append(iface)
                         intf.vssid.append(vssid)
                         TCLinkWireless(ap, intfName=iface)
-                        VirtualMaster(ap, wlan, id, intf=iface)
+                        VirtualMaster(ap, wlan, intf=iface)
 
         self.restartNetworkManager()
 
