@@ -1095,6 +1095,20 @@ class ConfigWirelessLink(object):
 
 class LinkAttrs(WirelessLink):
 
+    def __init__(self, node, intf, wlan):
+        self.node = node
+        self.antennaGain = intf.antennaGain
+        self.encrypt = intf.encrypt
+        self.id = wlan
+        self.ip6 = intf.ip6
+        self.ip = intf.ip
+        self.prefixLen = intf.prefixLen
+        self.prefixLen6 = intf.prefixLen6
+        self.link = intf.link
+        self.mac = intf.mac
+        self.txpower = intf.txpower
+        self.range = intf.range
+
     def delete(self):
         "Delete this link"
         self.intf1.delete()
@@ -1286,15 +1300,8 @@ class adhoc(LinkAttrs):
             intf.kill_hostapd_process()
             sleep(0.5)
 
-        self.node = node
-        self.id = wlan
+        LinkAttrs.__init__(self, node, intf, wlan)
         self.ssid = ssid
-        self.ip6 = intf.ip6
-        self.ip = intf.ip
-        self.mac = intf.mac
-        self.link = intf.link
-        self.encrypt = intf.encrypt
-        self.antennaGain = intf.antennaGain
         self.passwd = passwd
         self.mode = mode
         self.proto = proto
@@ -1383,20 +1390,9 @@ class mesh(LinkAttrs):
             intf.kill_hostapd_process()
             sleep(0.5)
 
+        LinkAttrs.__init__(self, node, intf, wlan)
         iface = intf
-        self.node = node
         self.name = '%s-mp%s' % (node, intf.name[-1:])
-        self.id = wlan
-        self.mac = intf.mac
-        self.ip6 = intf.ip6
-        self.ip = intf.ip
-        self.prefixLen = intf.prefixLen
-        self.prefixLen6 = intf.prefixLen6
-        self.link = intf.link
-        self.txpower = intf.txpower
-        self.encrypt = intf.encrypt
-        self.antennaGain = intf.antennaGain
-        self.range = intf.range
         self.ssid = ssid
         self.mode = mode
         self.channel = channel
@@ -1408,10 +1404,7 @@ class mesh(LinkAttrs):
             self.wmIface = DynamicIntfRef(node, intf=self.name)
             node.wmIfaces[wlan] = self.wmIface
 
-        if isinstance(node, AP):
-            port = wlan+1
-        else:
-            port = wlan
+        port = wlan+1 if isinstance(node, AP) else wlan
 
         # mp interface must be created before ethtool
         self.iwdev_cmd(self.set_mesh_type(intf))
