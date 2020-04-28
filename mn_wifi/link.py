@@ -34,7 +34,7 @@ class IntfWireless(Intf):
         self.link = link
         self.port = port
         self.mac = mac
-        self.ip, self.ip6, self.prefixLen = None, None, None
+        self.ip, self.ip6, self.prefixLen, self.prefixLen6 = None, None, None, None
         # if interface is lo, we know the ip is 127.0.0.1.
         # This saves an ip link/addr command per node
         if self.name == 'lo':
@@ -226,19 +226,19 @@ class IntfWireless(Intf):
             self.ip, self.prefixLen = ipstr, prefixLen
             return self.ipAddr('%s/%s' % (ipstr, prefixLen))
 
-    def setIP6(self, ipstr, prefixLen=None, **args):
+    def setIP6(self, ipstr, prefixLen6=None, **args):
         """Set our IP6 address"""
         # This is a sign that we should perhaps rethink our prefix
         # mechanism and/or the way we specify IP addresses
         if '/' in ipstr:
-            self.ip6, self.prefixLen = ipstr.split('/')
+            self.ip6, self.prefixLen6 = ipstr.split('/')
             return self.ipAddr(ipstr)
         else:
-            if prefixLen is None:
+            if prefixLen6 is None:
                 raise Exception('No prefix length set for IP address %s'
                                 % (ipstr,))
-            self.ip6, self.prefixLen = ipstr, prefixLen
-            return self.ipAddr('%s/%s' % (ipstr, prefixLen))
+            self.ip6, self.prefixLen6 = ipstr, prefixLen6
+            return self.ipAddr('%s/%s' % (ipstr, prefixLen6))
 
     def setSNRWmediumd(self, ap_intf, snr):
         "Send SNR to wmediumd"
@@ -1404,6 +1404,8 @@ class mesh(LinkAttrs):
         self.mac = intf.mac
         self.ip6 = intf.ip6
         self.ip = intf.ip
+        self.prefixLen = intf.prefixLen
+        self.prefixLen6 = intf.prefixLen6
         self.link = intf.link
         self.txpower = intf.txpower
         self.encrypt = intf.encrypt
@@ -1454,7 +1456,7 @@ class mesh(LinkAttrs):
         self.ipLink('up')
 
         if self.ip:
-            self.setIP(self.ip)
+            self.setIP(self.ip, self.prefixLen)
             self.cmd('ip link set lo up')
 
     def configureMesh(self):
