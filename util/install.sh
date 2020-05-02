@@ -88,13 +88,24 @@ function version_ge {
 }
 
 # Attempt to identify Python version
-python=${python:-python}
-if $python --version |& grep 'Python 2' > /dev/null; then
-    PYTHON_VERSION=2; PYPKG=python
-else
-    PYTHON_VERSION=3; PYPKG=python3
+PYTHON=${PYTHON:-python}
+PRINTVERSION='import sys; print(sys.version_info)'
+PYTHON_VERSION=unknown
+for python in $PYTHON python2 python3; do
+    if $python -c "$PRINTVERSION" |& grep 'major=2'; then
+        PYTHON=$python; PYTHON_VERSION=2; PYPKG=python
+        break
+    elif $python -c "$PRINTVERSION" |& grep 'major=3'; then
+        PYTHON=$python; PYTHON_VERSION=3; PYPKG=python3
+        break
+    fi
+done
+if [ "$PYTHON_VERSION" == unknown ]; then
+    echo "Can't find a working python command ('$PYTHON' doesn't work.)"
+    echo "You may wish to export PYTHON or install a working 'python'."
+    exit 1
 fi
-echo "${python} is version ${PYTHON_VERSION}"
+echo "Detected Python (${PYTHON}) version ${PYTHON_VERSION}"
 
 # Kernel Deb pkg to be removed:
 KERNEL_IMAGE_OLD=linux-image-2.6.26-33-generic
@@ -133,20 +144,22 @@ function kernel_clean {
 
 # Install Mininet deps
 function mn_deps {
+    echo "Installing Mininet dependencies"
     if [ "$DIST" = "Fedora" -o "$DIST" = "RedHatEnterpriseServer" ]; then
         $install gcc make socat psmisc xterm openssh-clients iperf \
-                 iproute telnet python-setuptools libcgroup-tools \
-                 ethtool help2man pyflakes pylint python-pep8 python-pexpect
+            iproute telnet python-setuptools libcgroup-tools \
+            ethtool help2man pyflakes pylint python-pep8 python-pexpect
     elif [ "$DIST" = "SUSE LINUX"  ]; then
-        $install gcc make socat psmisc xterm openssh iperf \
-			     iproute telnet libcgroup-tools \
-			     ethtool help2man python-pyflakes python-pep8 \
-		         ${PYPKG}-setuptools ${PYPKG}-pexpect ${PYPKG}-tk
-    else
+		$install gcc make socat psmisc xterm openssh iperf \
+			iproute telnet ${PYPKG}-setuptools libcgroup-tools \
+			ethtool help2man python-pyflakes python3-pylint \
+                        python-pep8 ${PYPKG}-pexpect ${PYPKG}-tk
+    else  # Debian/Ubuntu
         $install gcc make socat psmisc xterm ssh iperf telnet \
-                 cgroup-bin ethtool help2man pyflakes pylint pep8 \
+                 ethtool help2man pyflakes pylint pep8 \
                  ${PYPKG}-setuptools ${PYPKG}-pexpect ${PYPKG}-tk
         $install iproute2 || $install iproute
+        $install cgroup-tools || $install cgroup-bin
     fi
 
     echo "Installing Mininet core"
@@ -186,20 +199,13 @@ function wifi_deps {
     echo "Installing Mininet-WiFi dependencies"
     $install wireless-tools rfkill ${PYPKG}-numpy pkg-config \
              libnl-3-dev libnl-genl-3-dev libssl-dev make libevent-dev patch \
-             ${PYPKG}-pip libdbus-1-dev ${PYPKG}-psutil
+             ${PYPKG}-pip libdbus-1-dev python-psutil python3-psutil
 
     if [ "$DIST" = "Ubuntu" ] && [ "$RELEASE" = "14.04" ]; then
-        # Last check for python2
-        python=${python:-python}
-        if $python --version |& grep 'Python 2' > /dev/null; then
-            sudo pip install --upgrade pip
-            sudo pip install matplotlib==2.1.1 --ignore-installed six
-        else
-            sudo pip3 install --upgrade pip3
-            sudo pip3 install matplotlib==2.1.1 --ignore-installed six
-        fi
+        sudo pip install --upgrade pip
+        sudo pip install matplotlib==2.1.1 --ignore-installed six
     else
-        $install ${PYPKG}-matplotlib
+        $install python-matplotlib python3-matplotlib
     fi
 
     pushd $MININET_DIR/mininet-wifi
