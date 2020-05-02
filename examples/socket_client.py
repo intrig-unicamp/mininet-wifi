@@ -1,3 +1,4 @@
+import sys
 import socket
 
 
@@ -7,12 +8,18 @@ def client():
     s = socket.socket()
     s.connect((host, port))
 
-    message = raw_input('-> ')
+    if sys.version_info.major == 3:
+        message = input('-> ')
+    else:
+        message = raw_input('-> ')
     while message != 'q':
         s.send(str(message).encode('utf-8'))
         data = s.recv(1024).decode('utf-8')
         print('Received from server: ' + data)
-        message = raw_input('-> ')
+        if sys.version_info.major == 3:
+            message = input('-> ')
+        else:
+            message = raw_input('-> ')
     s.close()
 
 
