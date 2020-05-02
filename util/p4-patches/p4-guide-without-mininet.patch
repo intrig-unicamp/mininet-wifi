@@ -1,11 +1,12 @@
 diff --git bin/install-p4dev-v2.sh bin/install-p4dev-v2.sh
-index 01fdc57..5cfcbf4 100755
+index 01fdc57..2b19899 100755
 --- bin/install-p4dev-v2.sh
 +++ bin/install-p4dev-v2.sh
-@@ -378,142 +378,3 @@ cd "${INSTALL_DIR}"
+@@ -377,143 +377,6 @@ date
+ cd "${INSTALL_DIR}"
  find /usr/lib /usr/local $HOME/.local | sort > usr-local-6-after-p4c.txt
  
- echo "------------------------------------------------------------"
+-echo "------------------------------------------------------------"
 -
 -echo "Installing Mininet - not necessary to run P4 programs, but useful if"
 -echo "you want to run tutorials from https://github.com/p4lang/tutorials"
@@ -143,5 +144,6 @@ index 01fdc57..5cfcbf4 100755
 -echo "----------------------------------------------------------------------"
 -echo "CONSIDER READING WHAT IS ABOVE"
 -echo "----------------------------------------------------------------------"
--
--clean_up
++echo "Done!"
+ 
+ clean_up
