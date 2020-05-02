@@ -25,7 +25,7 @@ def topology():
 
     info("*** Creating nodes\n")
     for id in range(0, 10):
-        net.addCar('car%s' % (id+1), wlans=2, encrypt=['wpa2,'])
+        net.addCar('car%s' % (id+1), wlans=2, encrypt=['wpa2',''])
 
     e1 = net.addAccessPoint('e1', ssid='vanet-ssid', mac='00:00:00:11:00:01',
                             mode='g', channel='1', passwd='123456789a',
