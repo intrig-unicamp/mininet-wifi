@@ -47,6 +47,10 @@ class Plot3D (object):
         x, y, z = node.getxyz()
         node.plttxt = Plot3D.ax.text(x, y, z, node.name)
 
+        # newer MPL versions (>=1.4) compatability
+        if not hasattr(node.plttxt, 'xyann'):
+            node.plttxt.xyann = node.plttxt.xytext
+
     @classmethod
     def instantiate_node(cls, node):
         x, y, z = node.getxyz()
@@ -136,7 +140,7 @@ class Plot2D (object):
             x, y, z = node.getxyz()
             self.instantiate_attrs(node)
             node.plt_node.set_data(x, y)
-            node.draw_text(x, y)
+            node.set_text_pos(x, y)
             node.circle.center = x, y
             self.create_line(links)
 
@@ -160,6 +164,10 @@ class Plot2D (object):
     @classmethod
     def instantiate_annotate(cls, node):
         node.plttxt = Plot2D.ax.annotate(node, xy=(0, 0))
+
+        # newer MPL versions (>=1.4) compatability
+        if not hasattr(node.plttxt, 'xyann'):
+            node.plttxt.xyann = node.plttxt.xytext
 
     @classmethod
     def instantiate_circle(cls, node):

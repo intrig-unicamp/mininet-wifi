@@ -143,7 +143,7 @@ class vanet(Mobility):
             bs.position = bs_x, bs_y, 0
             bs.set_pos_wmediumd(bs.position)
             Plot2D.instantiate_attrs(bs)
-            bs.draw_text(float(bs_x), float(bs_y))
+            bs.set_text_pos(float(bs_x), float(bs_y))
             bs.set_circle_center(float(bs_x), float(bs_y))
             Plot2D.draw()
 

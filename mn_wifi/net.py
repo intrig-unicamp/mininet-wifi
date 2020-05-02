@@ -104,7 +104,6 @@ class Mininet_wifi(Mininet, Mininet_IoT):
         self.wmediumd_started = False
         self.reverse = False
         self.alt_module = None
-        self.isVanet = False
         self.mob_check = False
         self.mob_model = None
         self.ac_method = ac_method
@@ -656,7 +655,7 @@ class Mininet_wifi(Mininet, Mininet_IoT):
             mob_params = self.get_mobility_params()
             stat_nodes, mob_nodes = self.get_mob_stat_nodes()
             method = TrackedMob
-            if self.mob_model or self.isVanet or self.roads:
+            if self.mob_model or self.cars or self.roads:
                 method = self.start_mobility
             method(stat_nodes=stat_nodes, mob_nodes=mob_nodes, **mob_params)
             self.mob_check = True
@@ -1030,13 +1029,13 @@ class Mininet_wifi(Mininet, Mininet_IoT):
             ap = self.nameToNode[dst]
 
         if status == 'down':
-            for wlan, intf in enumerate(sta.wintfs.values()):
+            for intf in sta.wintfs.values():
                 if intf.associatedTo:
                     sta.cmd('iw dev %s disconnect' % intf.name)
                     intf.associatedTo = ''
                     ap.wintfs[0].associatedStations.remove(sta)
         else:
-            for wlan, intf in enumerate(sta.wintfs.values()):
+            for intf in sta.wintfs.values():
                 if not intf.associatedTo:
                     sta.pexec('iw dev %s connect %s %s'
                               % (intf.name, ap.wintfs[0].ssid, ap.wintfs[0].mac))
@@ -1152,8 +1151,7 @@ class Mininet_wifi(Mininet, Mininet_IoT):
     def start_mobility(self, **kwargs):
         "Starts Mobility"
         for node in kwargs.get('mob_nodes'):
-            node.position = (0, 0, 0)
-            node.pos = (0, 0, 0)
+            node.position, node.pos = (0, 0, 0), (0, 0, 0)
         if self.roads:
             vanet(**kwargs)
         else:
@@ -1210,13 +1208,10 @@ class Mininet_wifi(Mininet, Mininet_IoT):
         """Opens an external program
         :params program: only sumo is supported so far
         :params **params config_file: file configuration"""
-        self.isVanet = True
         for car in self.cars:
-            if hasattr(car, 'position'):
-                car.pos = car.position
-            else:
+            if not hasattr(car, 'position'):
                 car.position = (0, 0, 0)
-                car.pos = (0, 0, 0)
+            car.pos = car.position
         program(self.cars, self.aps, **kwargs)
 
     def start_wmediumd(self):
@@ -1256,20 +1251,20 @@ class Mininet_wifi(Mininet, Mininet_IoT):
     @staticmethod
     def config_range(nodes):
         for node in nodes:
-            for wlan, intf in enumerate(node.wintfs.values()):
+            for intf in node.wintfs.values():
                 if int(intf.range) == 0:
-                    intf.range = node.getRange(intf)
+                    intf.setDefaultRange()
                 else:
                     if 'model' not in node.params:
-                        intf.txpower = node.get_txpower_prop_model(intf)
+                        intf.setDefaultTxPower()
 
     @staticmethod
     def config_antenna(nodes):
         for node in nodes:
-            for wlan, intf in enumerate(node.wintfs.values()):
+            for intf in node.wintfs.values():
                 if not isinstance(intf, _4addrAP) and not isinstance(intf, PhysicalWifiDirectLink):
-                    node.setTxPower(intf.txpower, intf=intf.name)
-                    node.setAntennaGain(intf.antennaGain, intf=intf.name)
+                    intf.setTxPower(intf.txpower)
+                    intf.setAntennaGain(intf.antennaGain)
 
     def configureWifiNodes(self):
         "Configure WiFi Nodes"

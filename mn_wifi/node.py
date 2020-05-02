@@ -34,9 +34,8 @@ from mininet.moduledeps import pathCheck
 from mininet.link import Intf
 from mn_wifi.devices import DeviceRate
 from mn_wifi.link import WirelessIntf, TCLinkWireless, ConfigWirelessLink, \
-    adhoc, mesh, master, managed, physicalMesh, ITSLink, VirtualMaster
+    adhoc, master, physicalMesh, ITSLink, VirtualMaster
 from mn_wifi.wmediumdConnector import w_server, w_pos, w_cst, wmediumd_mode
-from mn_wifi.propagationModels import GetSignalRange, GetPowerGivenRange
 
 from re import findall
 
@@ -97,55 +96,25 @@ class Node_wifi(Node):
     def get_wlan(self, intf):
         return self.params['wlan'].index(intf)
 
+    def getNameToIntf(self, intf):
+        wlan = self.get_wlan(intf) if isinstance(intf, BaseString) else 0
+        return self.wintfs[wlan]
+
     def setPhysicalMeshMode(self, intf=None, **kwargs):
         if intf: kwargs['intf'] = intf
         physicalMesh(self, **kwargs)
 
     def setMeshMode(self, intf=None, **kwargs):
-        mesh(self, intf, **kwargs)
+        self.intf(intf).setMeshMode(**kwargs)
 
     def setAdhocMode(self, intf=None, **kwargs):
-        wlan, intf = self.get_wlan_intf(intf)
-        if isinstance(self.wintfs[wlan], adhoc):
-            intf.ibss_leave()
-        adhoc(self, intf, **kwargs)
-
-    def get_wlan_intf(self, intf):
-        if isinstance(intf, BaseString):
-            wlan = self.get_wlan(intf)
-            intf = self.wintfs[wlan]
-        else:
-            wlan = 0
-            intf = self.wintfs[wlan]
-        return wlan, intf
+        self.intf(intf).setAdhocMode(**kwargs)
 
     def setManagedMode(self, intf=None):
-        wlan, intf = self.get_wlan_intf(intf)
-        if isinstance(intf, mesh):
-            intf.iwdev_cmd('%s del' % intf.name)
-            intf.name = '%s-wlan%s' % (self, intf.id)
-            self.params['wlan'][wlan] = intf.name
-        elif isinstance(intf, master):
-            intf.kill_hostapd_process()
-        intf.set_dev_type('managed')
-        managed(self, wlan, intf=intf)
+        self.intf(intf).setManagedMode()
 
-    def setMasterMode(self, intf=None, ssid='new-ssid', **kwargs):
-        "set Interface to AP mode"
-        wlan, intf = self.get_wlan_intf(intf)
-        master(self, wlan, port=wlan, intf=intf)
-
-        # gets new intf from master's class
-        wlan, intf = self.get_wlan_intf(intf)
-        if int(intf.range) == 0:
-            intf.range = self.getRange(intf)
-
-        intf.ssid = ssid
-        for key, value in kwargs.items():
-            setattr(self, key, value)
-
-        aps = [self]
-        AccessPoint(aps, set_master=True)
+    def setMasterMode(self, intf=None, **kwargs):
+        self.intf(intf).setMasterMode(**kwargs)
 
     def setOCBMode(self, **params):
         ITSLink(self, **params)
@@ -166,26 +135,69 @@ class Node_wifi(Node):
                  'match u32 0 0 action mirred egress redirect dev ifb%s'
                  % (intf, (wlan+1)))
 
-    def getRange(self, intf=None, noiseLevel=0):
-        "Get the Signal Range"
-        if noiseLevel != 0:
-            GetSignalRange.NOISE_LEVEL = noiseLevel
-        value = GetSignalRange(intf).dist
-        return int(value)
+    def setDefaultRange(self, intf):
+        "Set Default Signal Range"
+        self.intf(intf).setDefaultRange()
 
     def remove_attr_from_params(self, attr):
         if attr in self.params:
             self.params.pop(attr, None)
 
     def setRange(self, range, intf=None):
-        "Set Signal Range"
-        wlan, intf = self.get_wlan_intf(intf)
-        intf.range = float(range)
-        intf.txpower = self.get_txpower_prop_model(intf)
-        intf.setTxPower()
+        self.intf(intf).setRange(range)
         self.update_graph()
+
+    def setAntennaGain(self, gain, intf=None):
+        self.intf(intf).setAntennaGain(gain)
+        self.update_graph()
+
+    def setAntennaHeight(self, height, intf=None):
+        self.intf(intf).setAntennaHeight(height)
+        self.update_graph()
+
+    def setChannel(self, channel, intf=None):
+        self.intf(intf).setChannel(channel)
+
+    def setTxPower(self, txpower, intf=None):
+        self.intf(intf).setTxPower(txpower)
+        self.update_graph()
+
+    def get_txpower(self, intf):
+        connected = self.cmd('iw dev %s link | awk \'{print $1}\'' % intf)
+        cmd = 'iw dev %s info | grep txpower | awk \'{print $2}\'' % intf
+        if connected != 'Not' or isinstance(self, AP):
+            try:
+                txpower = int(self.cmd(cmd))
+            except:
+                txpower = 14 if isinstance(self, AP) else 20
+            return txpower
+
+    def set_text_pos(self, x, y):
+        self.plttxt.xyann = (x, y)
+
+    def set_circle_center(self, x, y):
+        self.circle.center = x, y
+
+    def set_circle_radius(self):
+        self.circle.set_radius(self.get_max_radius())
+
+    def set_pos_wmediumd(self, pos):
+        "Set Position for wmediumd"
+        if self.lastpos != pos:
+            self.lastpos = pos
+            for wmIface in self.wmIfaces:
+                inc = '%s' % float('0.' + str(self.wmIfaces.index(wmIface)))
+                w_server.update_pos(w_pos(wmIface,
+                    [(float(pos[0])+float(inc)), float(pos[1]), float(pos[2])]))
+
+    def setPosition(self, pos):
+        "Set Position"
+        self.position = [float(x) for x in pos.split(',')]
+        self.update_graph()
+
+        if wmediumd_mode.mode == w_cst.INTERFERENCE_MODE:
+            self.set_pos_wmediumd(self.position)
         self.configLinks()
-        self.remove_attr_from_params('range')
 
     def get_circle_color(self):
         if 'color' in self.params:
@@ -214,14 +226,6 @@ class Node_wifi(Node):
                     self.lines[line].set_data([pos_[0][0], pos[0]],
                                              [pos_[1][0], pos[1]])
 
-    def draw_text(self, x, y):
-        "draw text"
-        # newer MPL versions (>=1.4)
-        if hasattr(self.plttxt, 'xyann'):
-            self.plttxt.xyann = (x, y)
-        else:
-            self.plttxt.xytext = (x, y)
-
     def getxyz(self):
         x = round(self.position[0], 2)
         y = round(self.position[1], 2)
@@ -237,7 +241,7 @@ class Node_wifi(Node):
 
     def update_2d(self):
         x, y, z = self.getxyz()
-        self.draw_text(x, y)
+        self.set_text_pos(x, y)
         self.plt_node.set_data(x, y)
         self.circle.center = x, y
         # Enable the update of the wired links when the nodes have mobility
@@ -249,95 +253,11 @@ class Node_wifi(Node):
             range_list.append(n.range)
         return max(range_list)
 
-    def set_circle_center(self, x, y):
-        self.circle.center = x, y
-
-    def set_circle_radius(self):
-        self.circle.set_radius(self.get_max_radius())
-
     def update_graph(self):
         if plt.fignum_exists(1):
             self.set_circle_radius()
             self.updateLine()
             self.update_2d()
-
-    def setPosition(self, pos):
-        "Set Position"
-        self.position = [float(x) for x in pos.split(',')]
-        self.update_graph()
-
-        if wmediumd_mode.mode == w_cst.INTERFERENCE_MODE:
-            self.set_pos_wmediumd(self.position)
-        self.configLinks()
-
-    def setAntennaGain(self, gain, intf=None):
-        "Set Antenna Gain"
-        wlan, intf = self.get_wlan_intf(intf)
-        intf.antennaGain = int(gain)
-        intf.range = self.getRange(intf)
-        intf.setGainWmediumd()
-        self.update_graph()
-        self.configLinks()
-        self.remove_attr_from_params('antennaGain')
-
-    def setAntennaHeight(self, value, intf=None):
-        "Set Antenna Height"
-        wlan, intf = self.get_wlan_intf(intf)
-        intf.antennaHeight = int(value)
-        intf.setHeightWmediumd()
-        self.configLinks()
-        self.remove_attr_from_params('antennaHeight')
-
-    def setChannel(self, chann, intf=None):
-        "Set Channel"
-        wlan, intf = self.get_wlan_intf(intf)
-        intf.channel = chann
-
-        if isinstance(self, AP):
-            intf.setAPChannel()
-        elif isinstance(intf, mesh):
-            intf.setChannel()
-        elif isinstance(intf, adhoc):
-            intf.ibss_leave()
-            adhoc(self, chann=chann, intf=intf)
-        self.remove_attr_from_params('channel')
-
-    def setTxPower(self, txpower, intf=None):
-        "Set Tx Power"
-        wlan, intf = self.get_wlan_intf(intf)
-        intf.txpower = txpower
-
-        intf.setTxPower()
-        if hasattr(self, 'position'):
-            intf.range = self.getRange(intf)
-            intf.setTXPowerWmediumd()
-            self.update_graph()
-            self.configLinks()
-        self.remove_attr_from_params('txpower')
-
-    def set_pos_wmediumd(self, pos):
-        "Set Position for wmediumd"
-        if self.lastpos != pos:
-            self.lastpos = pos
-            for wmIface in self.wmIfaces:
-                inc = '%s' % float('0.' + str(self.wmIfaces.index(wmIface)))
-                w_server.update_pos(w_pos(wmIface,
-                    [(float(pos[0])+float(inc)), float(pos[1]), float(pos[2])]))
-
-    def get_txpower_prop_model(self, intf):
-        "Get Tx Power Given the propagation Model"
-        txpower = GetPowerGivenRange(intf).txpower
-        return int(txpower)
-
-    def get_txpower(self, intf):
-        connected = self.cmd('iw dev %s link | awk \'{print $1}\'' % intf)
-        cmd = 'iw dev %s info | grep txpower | awk \'{print $2}\'' % intf
-        if connected != 'Not' or isinstance(self, AP):
-            try:
-                txpower = int(self.cmd(cmd))
-            except:
-                txpower = 14 if isinstance(self, AP) else 20
-            return txpower
 
     def get_distance_to(self, dst):
         """Get the distance between two nodes
@@ -351,11 +271,11 @@ class Node_wifi(Node):
         dist = math.sqrt(x + y + z)
         return round(dist, 2)
 
-    def setAssociation(self, ap, intf=None):
+    # we actualy do not use this within the code. This can be only evoked manually.
+    def setAssociation(self, ap, ap_intf=None, intf=None):
         "Force association to given AP"
-        wlan = self.get_wlan(intf)
-        intf = self.wintfs[wlan]
-        ap_intf = ap.wintfs[0]
+        intf = self.getNameToIntf(intf)
+        ap_intf = self.getNameToIntf(ap_intf)
         if hasattr(self, 'position') and hasattr(ap, 'position'):
             dist = self.get_distance_to(ap)
             if dist <= ap_intf.range:
@@ -369,11 +289,11 @@ class Node_wifi(Node):
                     intf.associate_infra(ap_intf)
                     ConfigWirelessLink(intf, dist)
                 else:
-                    info('%s is already connected!\n' % ap)
+                    info('%s is already connected!\n' % self)
                 self.configLinks()
             else:
                 info("%s is out of range!\n" % ap)
-        elif not hasattr(self, 'position') and not hasattr(ap, 'position'):
+        else:
             intf.associate_infra(ap_intf)
 
     def newPort(self):
@@ -398,6 +318,7 @@ class Node_wifi(Node):
 
         self.wintfs[port] = intf
         self.wports[intf] = port
+        self.nameToIntf[intf.name] = intf
 
     def addWIntf(self, intf, port=None):
         """Add an interface.
