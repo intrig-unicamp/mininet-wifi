@@ -189,14 +189,14 @@ class Mininet_IoT(object):
         sleep(2)
         nodes = self.sensors
         hosts = hosts or [nodes[0], nodes[-1]]
-        assert len(hosts) is 2
+        assert len(hosts) == 2
         client, server = hosts
         output('*** Iperf: testing', l4Type, 'bandwidth between',
                client, 'and', server, '\n')
         server.cmd('killall -9 iperf')
         iperfArgs = 'iperf -p %d ' % port
         bwArgs = ''
-        if l4Type is 'UDP':
+        if l4Type == 'UDP':
             iperfArgs += '-u '
             bwArgs = '-b ' + udpBw + ' '
         elif l4Type != 'TCP':
@@ -204,7 +204,7 @@ class Mininet_IoT(object):
         if fmt:
             iperfArgs += '-f %s ' % fmt
         server.sendCmd(iperfArgs + '-s')
-        if l4Type is 'TCP':
+        if l4Type == 'TCP':
             if not waitListening(client, server.IP(), port):
                 raise Exception('Could not connect to iperf on port %d'
                                 % port)
@@ -214,14 +214,14 @@ class Mininet_IoT(object):
         servout = ''
         # We want the last *b/sec from the iperf server output
         # for TCP, there are two of them because of waitListening
-        count = 2 if l4Type is 'TCP' else 1
+        count = 2 if l4Type == 'TCP' else 1
         while len(re.findall('/sec', servout)) < count:
             servout += server.monitor(timeoutms=5000)
         server.sendInt()
         servout += server.waitOutput()
         debug('Server output: %s\n' % servout)
         result = [self._parseIperf(servout), self._parseIperf(cliout)]
-        if l4Type is 'UDP':
+        if l4Type == 'UDP':
             result.insert(0, udpBw)
         output('*** Results: %s\n' % result)
         return result

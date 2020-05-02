@@ -472,7 +472,7 @@ nodes {{
             controller = ONOSHost('c0', inNamespace=False)
 
         if not self.inband:
-            cip = self.getIP() if controller.IP() is '127.0.0.1' else controller.IP()
+            cip = self.getIP() if controller.IP() == '127.0.0.1' else controller.IP()
             link = Link(self, controller, port1=0)
             sintf, cintf = link.intf1, link.intf2
             controller.setIP(intf='c0-eth%s' % (len(controller.intfs) - 1), ip=cip)
