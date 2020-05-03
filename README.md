@@ -43,9 +43,11 @@ I'm a beginner, I do not know Python and I would like to create a customized top
 For instructions about easier development check [this helper file](doc/dev_help.md).
 
 ## Pre-configured Virtual Machine    
-[Ubuntu 16.04 x64 :: Password: wifi](https://intrig.dca.fee.unicamp.br:8840/owncloud/index.php/s/1RS9FM5gWI43NDT)      
-user: wifi   
-pass: wifi   
+For your convenience, we provide pre-built VM images including Mininet-WiFi and other useful software. The VM images are in .ova format and should be usable with any modern x64 virtualization system.   
+  
+[[2.9GB Size] - Ubuntu 18.04 x64](https://drive.google.com/file/d/11xhrCQO0wG-3za0tic-r8cVjU3LrOG3O/view?usp=sharing) - Mininet-WiFi (_pass: wifi_)        
+[[6.8GB Size] - Ubuntu 18.04 x64](https://drive.google.com/file/d/1ohPeOiqoh9cJi2Q-BkVty-hr6fu4amLS/view?usp=sharing) - Mininet-WiFi/ONOS/P4  (_pass: wifi_)   
+
    
 ## Note
 Mininet-WiFi should work fine in any Ubuntu distribution from 14.04, but in some cases (only if you have problems when start it) you have to stop NetworkManager with `stop network-manager` (you can also use `sudo systemctl stop network-manager` or `sudo service network-manager stop`).    
@@ -65,3 +67,4 @@ Ramon dos Reis Fontes (ramonrf@dca.fee.unicamp.br)
 Christian Rodolfo Esteve Rothenberg (chesteve@dca.fee.unicamp.br)  
 
 We are members of [INTRIG (Information & Networking Technologies Research & Innovation Group)](http://intrig.dca.fee.unicamp.br) at University of Campinas - Unicamp, SP, Brazil.
+
