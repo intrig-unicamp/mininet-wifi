@@ -141,6 +141,35 @@ class testWalkthrough(unittest.TestCase):
         p.sendline('exit')
         p.wait()
 
+    def testPythonInterpreter(self):
+        "Test py and px by checking IP for sta1 and adding sta3"
+        p = pexpect.spawn('mn --wifi')
+        p.expect(self.prompt)
+        # test station IP
+        p.sendline('py sta1.IP()')
+        p.expect('10.0.0.1')
+        p.expect(self.prompt)
+        # test adding host
+        p.sendline("px net.addStation('sta3')")
+        p.expect(self.prompt)
+        p.sendline("px net.addLink(ap1, sta3)")
+        p.expect(self.prompt)
+        p.sendline('net')
+        p.expect('sta3')
+        p.expect(self.prompt)
+        p.sendline('exit')
+        p.wait()
+        p = pexpect.spawn('mn --wifi --link=wmediumd --position')
+        p.expect(self.prompt)
+        # test station IP
+        p.sendline("px net.addStation('sta3', position=\'10,10,0\')")
+        p.expect(self.prompt)
+        p.sendline('py sta3.position')
+        p.expect('[10.0, 10.0, 0.0]')
+        p.expect(self.prompt)
+        p.sendline('exit')
+        p.wait()
+
     def testSimpleHTTP(self):
         "Start an HTTP server on sta1 and wget from sta2"
         p = pexpect.spawn('mn --wifi')
@@ -303,30 +332,6 @@ class testWalkthrough(unittest.TestCase):
         p.expect(self.prompt)
         p.sendline('exit')
         p.wait()
-
-    # PART 3
-    # def testPythonInterpreter(self):
-    #    "Test py and px by checking IP for sta1 and adding sta3"
-    #    p = pexpect.spawn('mn --wifi')
-    #    sleep(3)
-    #    p.expect(self.prompt)
-    #    # test host IP
-    #    p.sendline('py sta1.IP()')
-    #    p.expect('10.0.0.1')
-    #    p.expect(self.prompt)
-        # test adding host
-    #    p.sendline("px net.addStation('sta3')")
-    #    p.expect(self.prompt)
-    #    p.sendline("px net.addLink(ap1, sta3)")
-    #    p.expect(self.prompt)
-    #    p.sendline('net')
-    #    p.expect('sta3')
-    #    p.expect(self.prompt)
-    #    p.sendline('py sta3.MAC()')
-    #    p.expect('([a-f0-9]{2}:?){6}')
-    #    p.expect(self.prompt)
-    #    p.sendline('exit')
-    #    p.wait()
 
     def testLink(self):
         "Test link CLI command using ping"

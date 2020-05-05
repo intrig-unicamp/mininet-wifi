@@ -692,8 +692,8 @@ class w_server(object):
         :type mac: str
         :rtype int
         """
-        info("\n%s Registering interface with mac %s"
-             % (w_cst.LOG_PREFIX, mac))
+        #info("\n%s Registering interface with mac %s"
+        #     % (w_cst.LOG_PREFIX, mac))
         ret, sta_id = w_server.send_add(mac)
         if ret != w_cst.WUPDATE_SUCCESS:
             raise WmediumdException("Received error code from wmediumd: "
@@ -784,7 +784,7 @@ class w_server(object):
 
     @classmethod
     def update_height(cls, height):
-        #  type: (height) -> None
+        # type: (height) -> None
         """
         Update the Antenna Height of a connection at wmediumd
         :param height The height to update
@@ -1131,7 +1131,10 @@ class w_server(object):
         "add station"
         # type: (str) -> str
         msgtype = w_cst.WSERVER_ADD_REQUEST_TYPE
-        macparsed = mac.replace(':', '').decode('hex')
+        if py_version_info < (3, 0):
+            macparsed = mac.replace(':', '').decode('hex')
+        else:
+            macparsed = bytes.fromhex((mac.replace(':', '')))
         return cls.__station_add_request_struct.pack(msgtype, macparsed)
 
     @classmethod
