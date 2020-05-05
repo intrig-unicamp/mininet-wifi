@@ -99,7 +99,6 @@ class Mininet_wifi(Mininet, Mininet_IoT):
         self.allAutoAssociation = allAutoAssociation  # includes mobility
         self.draw = False
         self.isReplaying = False
-        self.wmediumd_started = False
         self.reverse = False
         self.alt_module = None
         self.mob_check = False
@@ -297,12 +296,12 @@ class Mininet_wifi(Mininet, Mininet_IoT):
                 intf.setIP(intf.ip, intf.prefixLen)
             if self.link == wmediumd:
                 intf.sendIntfTowmediumd()
-        if self.draw or hasattr(node, 'position'):
-            intf.setTxPower(intf.txpower)
-            intf.setAntennaGain(intf.antennaGain)
-            intf.node.lastpos = 0, 0, 0
-            if self.draw:
-                self.plot.instantiate_attrs(node)
+            if self.draw or hasattr(node, 'position'):
+                intf.setTxPower(intf.txpower)
+                intf.setAntennaGain(intf.antennaGain)
+                intf.node.lastpos = 0, 0, 0
+                if self.draw:
+                    self.plot.instantiate_attrs(node)
 
     def addWlans(self, node):
         node.params['wlan'] = []
@@ -717,7 +716,7 @@ class Mininet_wifi(Mininet, Mininet_IoT):
                     if hasattr(node, 'position'):
                         mob.stations.append(node)
 
-        if not self.wmediumd_started:
+        if self.config4addr or self.configWiFiDirect or self.wmediumd_mode == error_prob:
             self.init_wmediumd()
 
         if self.inNamespace:
@@ -738,7 +737,6 @@ class Mininet_wifi(Mininet, Mininet_IoT):
                 self.auto_association()
 
         self.hasVoltageParam()
-
         self.built = True
 
     def startTerms(self):
@@ -1237,28 +1235,15 @@ class Mininet_wifi(Mininet, Mininet_IoT):
                  noise_th=self.noise_th, stations=self.stations,
                  aps=self.aps, cars=self.cars, ppm=ppm)
 
-    def configWmediumd(self):
-        "Configure Wmediumd"
-        if self.autoSetPositions:
-            self.wmediumd_mode = interference
-        self.wmediumd_mode()
-
-        if not self.configWiFiDirect and not self.config4addr \
-                and self.wmediumd_mode != error_prob:
-            self.start_wmediumd()
-
     def init_wmediumd(self):
-        if (self.config4addr or self.configWiFiDirect
-                or self.wmediumd_mode == error_prob) and self.link == wmediumd:
-            self.start_wmediumd()
-            if self.wmediumd_mode != error_prob:
-                for sta in self.stations:
-                    sta.set_pos_wmediumd(sta.position)
+        self.start_wmediumd()
+        if self.wmediumd_mode != error_prob:
             for sta in self.stations:
-                if sta in self.aps:
-                    self.stations.remove(sta)
-            self.config_antenna()
-        self.wmediumd_started = True
+                sta.set_pos_wmediumd(sta.position)
+        for sta in self.stations:
+            if sta in self.aps:
+                self.stations.remove(sta)
+        self.config_antenna()
 
     def addSensors(self, sensors):
         for sensor in sensors:
@@ -1285,10 +1270,10 @@ class Mininet_wifi(Mininet, Mininet_IoT):
     def configMasterIntf(self, node, wlan):
         TCLinkWireless(node)
         master(node, wlan, port=wlan)
-        intfName = node.params.get('phywlan', None)
-        if intfName:
-            TCLinkWireless(node, intfName=intfName)
-            node.params['wlan'].append(intfName)
+        phy = node.params.get('phywlan', None)
+        if phy:
+            TCLinkWireless(node, intfName=phy)
+            node.params['wlan'].append(phy)
             master(node, wlan+1)
 
     def configureWifiNodes(self):
@@ -1305,8 +1290,7 @@ class Mininet_wifi(Mininet, Mininet_IoT):
             Mac80211Hwsim(nodes=nodes, nradios=nradios,
                           alt_module=self.alt_module, **params)
 
-        if self.ifb:
-            Mac80211Hwsim.load_ifb(nradios)
+        if self.ifb: Mac80211Hwsim.load_ifb(nradios)
 
         if self.nwpans:
             self.sensors, self.apsensors = self.init_6lowpan_module(self.iot_module)
@@ -1328,7 +1312,10 @@ class Mininet_wifi(Mininet, Mininet_IoT):
                 intf.setMAC(intf.mac)
 
         if self.link == wmediumd:
-            self.configWmediumd()
+            self.wmediumd_mode()
+            if not self.configWiFiDirect and not self.config4addr \
+                    and self.wmediumd_mode != error_prob:
+                self.start_wmediumd()
 
         for ap in self.aps:
             for intf in ap.wintfs.values():
