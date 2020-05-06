@@ -1257,6 +1257,7 @@ class Mininet_wifi(Mininet, Mininet_IoT):
                 if int(intf.range) == 0:
                     intf.setDefaultRange()
                 else:
+                    # assign txpower according to the signal range
                     if 'model' not in node.params:
                         intf.setDefaultTxPower()
 
@@ -1328,7 +1329,6 @@ class Mininet_wifi(Mininet, Mininet_IoT):
                 HostapdConfig(intf)
 
         self.restartNetworkManager()
-
         self.config_range()
         if not self.config4addr and not self.configWiFiDirect:
             self.config_antenna()

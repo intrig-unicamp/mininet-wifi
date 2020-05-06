@@ -666,7 +666,7 @@ class testWalkthrough(unittest.TestCase):
             'python examples/adhoc.py -a')
         sleep(3)
         p.sendline('py sta1.wintfs[0].range')
-        p.expect('105')
+        p.expect('100')
         p.expect(self.prompt)
         p.sendline('exit')
         p.wait()
