@@ -1190,6 +1190,7 @@ class CommonAttributes(object):
         self.txpower = 14
         self.range = 0
         self.mode = 'g'
+        self.mac = None
         self.node = node
         self.id = wlan
 
@@ -1217,7 +1218,6 @@ class master(WirelessLink, CommonAttributes):
         self.ht_capab = None
         self.ieee80211r = None
         self.client_isolation = None
-        self.mac = None
         self.mobility_domain = None
         self.passwd = None
         self.shared_secret = None
@@ -1236,10 +1236,13 @@ class master(WirelessLink, CommonAttributes):
         for key in self.__dict__.keys():
             if key in node.params:
                 if isinstance(node.params[key], list):
-                    value = node.params[key][wlan].split(',')
-                    setattr(self, key, value[0])
+                    value = node.params[key][wlan]
+                    setattr(self, key, value)
                 else:
-                    setattr(self, key, node.params[key])
+                    if wlan > 0 and key == 'mac':
+                        self.mac = self.getMAC()
+                    else:
+                        setattr(self, key, node.params[key])
 
 
 class VirtualMaster(master, CommonAttributes):
@@ -1264,7 +1267,6 @@ class VirtualMaster(master, CommonAttributes):
         self.ht_capab = None
         self.ieee80211r = None
         self.client_isolation = None
-        self.mac = None
         self.mobility_domain = None
         self.passwd = None
         self.shared_secret = None
@@ -1284,8 +1286,8 @@ class VirtualMaster(master, CommonAttributes):
             if key in node.params:
                 if key != 'ssid':
                     if isinstance(node.params[key], list):
-                        value = node.params[key][wlan].split(',')
-                        setattr(self, key, value[0])
+                        value = node.params[key][wlan]
+                        setattr(self, key, value)
                     else:
                         setattr(self, key, node.params[key])
 
@@ -1307,7 +1309,6 @@ class managed(WirelessLink, CommonAttributes):
         self.encrypt = None
         self.freq_list = None
         self.link = None
-        self.mac = None
         self.passwd = None
         self.radius_identity = None
         self.radius_passwd = None
@@ -1324,10 +1325,13 @@ class managed(WirelessLink, CommonAttributes):
         for key in self.__dict__.keys():
             if key in node.params:
                 if isinstance(node.params[key], list):
-                    value = node.params[key][wlan].split(',')
-                    setattr(self, key, value[0])
+                    value = node.params[key][wlan]
+                    setattr(self, key, value)
                 else:
-                    setattr(self, key, node.params[key])
+                    if wlan > 0 and key == 'mac':
+                        self.mac = self.getMAC()
+                    else:
+                        setattr(self, key, node.params[key])
 
 
 class _4addrClient(WirelessLink):
