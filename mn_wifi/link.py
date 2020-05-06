@@ -241,7 +241,7 @@ class IntfWireless(Intf):
         self.setTxPower(txpower)
 
     def setDefaultRange(self):
-        if self.range == 0:
+        if not self.static_range:
             SetSignalRange(self)
 
     def setAntennaGain(self, gain):
@@ -1017,6 +1017,42 @@ class WirelessLink(TCIntf, IntfWireless):
 
         return result
 
+    def set_attrs(self, node, wlan):
+        self.ip = None
+        self.ip6 = None
+        self.mac = None
+        self.prefixLen = None
+        self.prefixLen6 = None
+        self.ssid = None
+        self.antennaGain = 5.0
+        self.antennaHeight = 1.0
+        self.channel = 1
+        self.freq = 2.412
+        self.txpower = 14
+        self.range = 0
+        self.static_range = 0  # when the range is manually defined
+        self.mode = 'g'
+        self.node = node
+        self.id = wlan
+
+    def assign_params_to_intf(self, intf, wlan):
+        if intf and hasattr(intf, 'wmIface'):
+            self.wmIface = intf.wmIface
+
+        for key in self.__dict__.keys():
+            if key in self.node.params:
+                if isinstance(self.node.params[key], list):
+                    value = self.node.params[key][wlan]
+                    setattr(self, key, value)
+                else:
+                    if wlan > 0 and key == 'mac':
+                        self.mac = self.getMAC()
+                    else:
+                        setattr(self, key, self.node.params[key])
+
+                if key == 'range':
+                    self.static_range = True
+
 
 class _4address(Link, IntfWireless):
     node = None
@@ -1175,31 +1211,11 @@ class TCLinkWireless(WirelessIntf):
                               addr=addr, params=params)
 
 
-class CommonAttributes(object):
-
-    def __init__(self, node, wlan):
-        self.ip = None
-        self.ip6 = None
-        self.prefixLen = None
-        self.prefixLen6 = None
-        self.ssid = None
-        self.antennaGain = 5.0
-        self.antennaHeight = 1.0
-        self.channel = 1
-        self.freq = 2.412
-        self.txpower = 14
-        self.range = 0
-        self.mode = 'g'
-        self.mac = None
-        self.node = node
-        self.id = wlan
-
-
-class master(WirelessLink, CommonAttributes):
+class master(WirelessLink):
     "master class"
 
     def __init__(self, node, wlan, port=None, intf=None):
-        CommonAttributes.__init__(self, node, wlan)
+        WirelessLink.set_attrs(self, node, wlan)
         self.name = node.params['wlan'][wlan]
         node.addWAttr(self, port=port)
         self.params = {}
@@ -1229,27 +1245,14 @@ class master(WirelessLink, CommonAttributes):
         self.wpa_psk_file = None
         self.wep_key0 = None
         self.link = None
-
-        if intf and hasattr(intf, 'wmIface'):
-            self.wmIface = intf.wmIface
-
-        for key in self.__dict__.keys():
-            if key in node.params:
-                if isinstance(node.params[key], list):
-                    value = node.params[key][wlan]
-                    setattr(self, key, value)
-                else:
-                    if wlan > 0 and key == 'mac':
-                        self.mac = self.getMAC()
-                    else:
-                        setattr(self, key, node.params[key])
+        self.assign_params_to_intf(intf, wlan)
 
 
-class VirtualMaster(master, CommonAttributes):
+class VirtualMaster(master):
     "master class"
 
     def __init__(self, node, wlan, port=None, intf=None):
-        CommonAttributes.__init__(self, node, wlan)
+        WirelessLink.set_attrs(self, node, wlan)
         self.name = intf
         node.addWAttr(self, port=port)
         self.params = {}
@@ -1278,25 +1281,14 @@ class VirtualMaster(master, CommonAttributes):
         self.wpa_psk_file = None
         self.wep_key0 = None
         self.link = None
-
-        if intf and hasattr(intf, 'wmIface'):
-            self.wmIface = intf.wmIface
-
-        for key in self.__dict__.keys():
-            if key in node.params:
-                if key != 'ssid':
-                    if isinstance(node.params[key], list):
-                        value = node.params[key][wlan]
-                        setattr(self, key, value)
-                    else:
-                        setattr(self, key, node.params[key])
+        self.assign_params_to_intf(intf, wlan)
 
 
-class managed(WirelessLink, CommonAttributes):
+class managed(WirelessLink):
     "managed class"
 
     def __init__(self, node, wlan, intf=None):
-        CommonAttributes.__init__(self, node, wlan)
+        WirelessLink.set_attrs(self, node, wlan)
         self.name = node.params['wlan'][wlan]
         node.addWIntf(self, port=wlan)
         node.addWAttr(self, port=wlan)
@@ -1318,20 +1310,7 @@ class managed(WirelessLink, CommonAttributes):
         self.bgscan_threshold = 0
         self.l_interval = 0
         self.rssi = -60
-
-        if intf and hasattr(intf, 'wmIface'):
-            self.wmIface = intf.wmIface
-
-        for key in self.__dict__.keys():
-            if key in node.params:
-                if isinstance(node.params[key], list):
-                    value = node.params[key][wlan]
-                    setattr(self, key, value)
-                else:
-                    if wlan > 0 and key == 'mac':
-                        self.mac = self.getMAC()
-                    else:
-                        setattr(self, key, node.params[key])
+        self.assign_params_to_intf(intf, wlan)
 
 
 class _4addrClient(WirelessLink):
@@ -1531,6 +1510,7 @@ class LinkAttrs(WirelessLink):
         self.mac = intf.mac
         self.txpower = intf.txpower
         self.range = intf.range
+        self.static_range = intf.static_range
 
     def delete(self):
         "Delete this link"
