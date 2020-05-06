@@ -643,8 +643,6 @@ class HostapdConfig(IntfWireless):
                 TCLinkWireless(intf.node, intfName=iface)
                 VirtualMaster(intf.node, intf.id, intf=iface)
 
-        self.restartNetworkManager()
-
     def configure(self, intf):
         if 'link' not in intf.node.params:
             if 'phywlan' in intf.node.params:
@@ -869,19 +867,19 @@ class HostapdConfig(IntfWireless):
 
     _macMatchRegex = re.compile(r'..:..:..:..:..:..')
 
-    def restartNetworkManager(self):
+    @classmethod
+    def restartNetworkManager(cls):
         """Restart network manager if the mac address of the AP
         is not included at /etc/NetworkManager/NetworkManager.conf"""
         nms = 'network-manager'
         nm = 'NetworkManager'
         nm_is_running = os.system('service %s status 2>&1 | grep '
                                   '-ic running >/dev/null 2>&1' % nms)
-        if self.write_mac and nm_is_running != 256:
+        if nm_is_running != 256:
             info('Mac Address(es) of AP(s) is(are) being added into '
                  '/etc/%s/%s.conf\n' % (nm, nm))
             info('Restarting %s...\n' % nms)
             os.system('service %s restart' % nms)
-        self.write_mac = False
 
     def checkNetworkManager(self, intf):
         "add mac address into /etc/NetworkManager/NetworkManager.conf"
@@ -908,7 +906,7 @@ class HostapdConfig(IntfWireless):
                 file = open(path_file, "wt")
                 file.write(data)
                 file.close()
-                self.write_mac = True
+                HostapdConfig.write_mac = True
 
     def ap_config_file(self, cmd, intf):
         "run an Access Point and create the config file"

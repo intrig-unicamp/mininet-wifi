@@ -291,6 +291,7 @@ class Mininet_wifi(Mininet, Mininet_IoT):
                 intf.setMAC(intf.mac)
                 intf = node.wintfs[intf.id]
                 HostapdConfig(intf)
+                self.restartNetworkManager()
             else:
                 intf.setMAC(intf.mac)
                 intf.setIP(intf.ip, intf.prefixLen)
@@ -1276,6 +1277,11 @@ class Mininet_wifi(Mininet, Mininet_IoT):
             node.params['wlan'].append(phy)
             master(node, wlan+1)
 
+    def restartNetworkManager(self):
+        # restart NM if a new mac addr has been added in .config
+        if HostapdConfig.write_mac:
+            HostapdConfig.restartNetworkManager()
+
     def configureWifiNodes(self):
         "Configure WiFi Nodes"
         params = {}
@@ -1320,6 +1326,8 @@ class Mininet_wifi(Mininet, Mininet_IoT):
         for ap in self.aps:
             for intf in ap.wintfs.values():
                 HostapdConfig(intf)
+
+        self.restartNetworkManager()
 
         self.config_range()
         if not self.config4addr and not self.configWiFiDirect:
