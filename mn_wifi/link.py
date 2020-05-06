@@ -1323,6 +1323,7 @@ class _4addrClient(WirelessLink):
         self.freq = node.wintfs[0].freq
         self.mac = node.wintfs[wlan - 1].mac
         self.range = node.wintfs[0].range
+        self.static_range = node.wintfs[0].static_range
         self.txpower = node.wintfs[wlan - 1].txpower
         self.antennaGain = 5.0
         self.name = node.params['wlan'][wlan]
@@ -1344,6 +1345,7 @@ class _4addrAP(WirelessLink):
         self.freq = node.wintfs[0].freq
         self.mac = node.wintfs[0].mac
         self.range = node.wintfs[0].range
+        self.static_range = node.wintfs[0].static_range
         self.txpower = node.wintfs[0].txpower
         self.antennaGain = 5.0
         self.name = node.params['wlan'][wlan]
