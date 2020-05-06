@@ -241,7 +241,8 @@ class IntfWireless(Intf):
         self.setTxPower(txpower)
 
     def setDefaultRange(self):
-        SetSignalRange(self)
+        if self.range == 0:
+            SetSignalRange(self)
 
     def setAntennaGain(self, gain):
         self.antennaGain = int(gain)
