@@ -3,19 +3,22 @@
 author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
 """
 
-import os
 import re
 from time import sleep
 
-from mininet.log import debug, error
+from mininet.log import debug, error, info
 from mininet.link import Intf
-from mininet.util import BaseString, getincrementaldecoder, Python3
+from mininet.node import OVSSwitch
+from mininet.util import BaseString, getincrementaldecoder, Python3, \
+    errRun, quietRun
 from mininet.moduledeps import pathCheck
-from mn_wifi.node import Node_wifi, OVSAP, UserAP
+from mn_wifi.node import Node_wifi, UserAP
 from mn_wifi.sixLoWPAN.link import IntfSixLoWPAN
 
+from re import findall
 
-class Node_6lowpan(Node_wifi):
+
+class LowPANNode(Node_wifi):
     """A virtual network node is simply a shell in a network namespace.
        We communicate with it using pipes."""
 
@@ -112,12 +115,7 @@ class Node_6lowpan(Node_wifi):
         return r
 
 
-class sixLoWPan(Node_6lowpan):
-    "A sixLoWPan is simply a Node"
-    pass
-
-
-class APSensor(Node_6lowpan):
+class APSensor(LowPANNode):
     """A APSensor is a Node that is running (or has execed?)
        an OpenFlow switch."""
     portBase = 1  # Switches start with port 1 in OpenFlow
@@ -127,7 +125,7 @@ class APSensor(Node_6lowpan):
         """dpid: dpid hex string (or None to derive from name, e.g. s1 -> 1)
            opts: additional switch options
            listenPort: port to listen on for dpctl connections"""
-        Node_6lowpan.__init__(self, name, **params)
+        LowPANNode.__init__(self, name, **params)
         self.dpid = self.defaultDpid(dpid)
         self.opts = opts
         self.listenPort = listenPort
@@ -157,17 +155,20 @@ class APSensor(Node_6lowpan):
         if self.controlIntf:
             return self.controlIntf
         else:
-            return Node_6lowpan.defaultIntf(self)
+            return LowPANNode.defaultIntf(self)
 
     def sendCmd(self, *cmd, **kwargs):
         """Send command to Node.
            cmd: string"""
         kwargs.setdefault('printPid', False)
         if not self.execed:
-            return Node_6lowpan.sendCmd(self, *cmd, **kwargs)
+            return LowPANNode.sendCmd(self, *cmd, **kwargs)
         else:
             error('*** Error: %s has execed and cannot accept commands' %
                   self.name)
+
+    # Automatic class setup support
+    isSetup = False
 
     def connected(self):
         "Is the switch connected to a controller? (override this method)"
@@ -247,7 +248,7 @@ class UserSensor(APSensor):
         # super(UserAP, self).stop(deleteIntfs)
 
 
-class OVSSensor(APSensor, OVSAP):
+class OVSSensor(APSensor, OVSSwitch):
     "Open vSwitch Sensor. Depends on ovs-vsctl."
 
     def __init__(self, name, failMode='secure', datapath='kernel',
@@ -263,9 +264,6 @@ class OVSSensor(APSensor, OVSAP):
            stp: enable STP (False, requires failMode=standalone)
            batch: enable batch startup (False)"""
         APSensor.__init__(self, name, **params)
-        super(OVSAP, self).__init__(name, failMode='secure', datapath='kernel',
-                                    inband=False, protocols=None,
-                                    reconnectms=1000, stp=False, batch=False, **params)
         self.failMode = failMode
         self.datapath = datapath
         self.inband = inband
@@ -275,6 +273,28 @@ class OVSSensor(APSensor, OVSAP):
         self._uuids = []  # controller UUIDs
         self.batch = batch
         self.commands = []  # saved commands for batch startup
+
+    @classmethod
+    def setup(cls):
+        "Make sure Open vSwitch is installed and working"
+        pathCheck('ovs-vsctl',
+                  moduleName='Open vSwitch (openvswitch.org)')
+        # This should no longer be needed, and it breaks
+        # with OVS 1.7 which has renamed the kernel module:
+        #  moduleDeps( subtract=OF_KMOD, add=OVS_KMOD )
+        out, err, exitcode = errRun('ovs-vsctl -t 1 show')
+        if exitcode:
+            error(out + err +
+                  'ovs-vsctl exited with code %d\n' % exitcode +
+                  '*** Error connecting to ovs-db with ovs-vsctl\n'
+                  'Make sure that Open vSwitch is installed, '
+                  'that ovsdb-server is running, and that\n'
+                  '"ovs-vsctl show" works correctly.\n'
+                  'You may wish to try '
+                  '"service openvswitch-switch start".\n')
+            exit(1)
+        version = quietRun('ovs-vsctl --version')
+        cls.OVSVersion = findall(r'\d+\.\d+', version)[0]
 
     def start(self, controllers):
         "Start up a new OVS OpenFlow switch using ovs-vsctl"
@@ -317,6 +337,35 @@ class OVSSensor(APSensor, OVSAP):
         if not self.batch:
             for intf in self.intfList():
                 self.TCReapply(intf)
+
+    @classmethod
+    def batchStartup(cls, aps, run=errRun):
+        """Batch startup for OVS
+           switches: switches to start up
+           run: function to run commands (errRun)"""
+        info('...')
+        cmds = 'ovs-vsctl'
+        for ap in aps:
+            if ap.isOldOVS():
+                # Ideally we'd optimize this also
+                run('ovs-vsctl del-br %s' % ap)
+            for cmd in ap.commands:
+                cmd = cmd.strip()
+                # Don't exceed ARG_MAX
+                if len(cmds) + len(cmd) >= cls.argmax:
+                    run(cmds, shell=True)
+                    cmds = 'ovs-vsctl'
+                cmds += ' ' + cmd
+                ap.cmds = []
+                ap.batch = False
+        if cmds:
+            run(cmds, shell=True)
+        # Reapply link config if necessary...
+        for switch in aps:
+            for intf in switch.intfs.values():
+                if isinstance(intf, IntfSixLoWPAN):
+                    intf.config(**intf.params)
+        return ap
 
     # This should be ~ int( quietRun( 'getconf ARG_MAX' ) ),
     # but the real limit seems to be much lower

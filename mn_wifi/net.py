@@ -36,8 +36,8 @@ from mn_wifi.module import Mac80211Hwsim
 from mn_wifi.propagationModels import PropagationModel as ppm
 from mn_wifi.vanet import vanet
 from mn_wifi.sixLoWPAN.net import Mininet_IoT
-from mn_wifi.sixLoWPAN.node import OVSSensor, Node_6lowpan
-from mn_wifi.sixLoWPAN.link import sixLoWPAN
+from mn_wifi.sixLoWPAN.node import OVSSensor, LowPANNode
+from mn_wifi.sixLoWPAN.link import LowPANLink
 from mn_wifi.sixLoWPAN.util import ipAdd6
 
 VERSION = "2.5"
@@ -46,7 +46,7 @@ VERSION = "2.5"
 class Mininet_wifi(Mininet, Mininet_IoT):
 
     def __init__(self, accessPoint=OVSKernelAP, station=Station, car=Car,
-                 sensor=Node_6lowpan, apsensor=OVSSensor, link=WirelessLink,
+                 sensor=LowPANNode, apsensor=OVSSensor, link=WirelessLink,
                  ssid="new-ssid", mode="g", channel=1, wmediumd_mode=snr, roads=0,
                  fading_cof=0, autoAssociation=True, allAutoAssociation=True,
                  autoSetPositions=False, configWiFiDirect=False, config4addr=False,
@@ -579,7 +579,7 @@ class Mininet_wifi(Mininet, Mininet_IoT):
             return link
         elif cls == physicalMesh:
             cls(node=node1, **params)
-        elif cls == sixLoWPAN:
+        elif cls == LowPANLink:
             link = cls(node=node1, port=port1, **params)
             self.links.append(link)
             return link
@@ -842,7 +842,7 @@ class Mininet_wifi(Mininet, Mininet_IoT):
                     if timeout:
                         opts = '-W %s' % timeout
                     if dest.intfs:
-                        if isinstance(node, Node_6lowpan):
+                        if isinstance(node, LowPANNode):
                             result = node.cmdPrint('ping -c1 %s %s'
                                                    % (opts, dest.IP6()))
                         else:

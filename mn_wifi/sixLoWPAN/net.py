@@ -9,15 +9,15 @@ from six import string_types
 from mininet.util import macColonHex, waitListening
 from mininet.log import error, debug, output
 
-from mn_wifi.sixLoWPAN.link import sixLoWPAN
-from mn_wifi.sixLoWPAN.node import sixLoWPan, OVSSensor, Node_6lowpan
+from mn_wifi.sixLoWPAN.link import LowPANLink
+from mn_wifi.sixLoWPAN.node import LowPANNode, OVSSensor
 from mn_wifi.sixLoWPAN.module import module
 from mn_wifi.sixLoWPAN.util import ipAdd6, netParse6
 
 
 class Mininet_IoT(object):
 
-    def __init__(self, apsensor=OVSSensor, sensor=Node_6lowpan,
+    def __init__(self, apsensor=OVSSensor, sensor=LowPANNode,
                  ip6Base='2001:0:0:0:0:0:0:0/64'):
 
         self.apsensor = apsensor
@@ -46,14 +46,18 @@ class Mininet_IoT(object):
         for sensor in sensors:
             for wpan in range(len(sensor.params['wpan'])):
                 port = 0 if isinstance(sensor, OVSSensor) else 1
-                sixLoWPAN(sensor, wpan, port=port)
+                LowPANLink(sensor, wpan, port=port)
+
+    def get_wpans(self, **params):
+        "Count the number of virtual LoWPAN interfaces"
+        return params.get('wpans', 1)
 
     def manage_wpan(self, node, **params):
         """gets number of wpans
         node: node
         params: parameters"""
         node.params['wpan'] = []
-        wpans = self.count_wpans(**params)
+        wpans = self.get_wpans(**params)
         self.nwpans += wpans
 
         for wpan in range(wpans):
@@ -113,7 +117,7 @@ class Mininet_IoT(object):
         self.nextPos_sta += 1
 
         if not cls:
-            cls = sixLoWPan
+            cls = LowPANNode
         node = cls(name, **defaults)
         self.nameToNode[name] = node
 
@@ -225,11 +229,6 @@ class Mininet_IoT(object):
             result.insert(0, udpBw)
         output('*** Results: %s\n' % result)
         return result
-
-    def count_wpans(self, **params):
-        "Count the number of virtual 6LoWPAN interfaces"
-        wpans = params.get('wpans', 1)
-        return wpans
 
     @staticmethod
     def kill_fakelb():

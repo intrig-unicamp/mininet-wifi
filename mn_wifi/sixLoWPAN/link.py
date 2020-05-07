@@ -1,6 +1,7 @@
 "author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)"
 
-from mininet.util import BaseString
+import re
+
 from mininet.link import Intf, TCIntf, Link
 from mininet.log import error, debug
 
@@ -9,8 +10,8 @@ class IntfSixLoWPAN(Intf):
 
     "Basic interface object that can configure itself."
 
-    def __init__( self, name, node=None, port=None, link=None,
-                  mac=None, **params ):
+    def __init__(self, name, node=None, port=None, link=None,
+                 mac=None, ip6=None, **params):
         """name: interface name (e.g. h1-eth0)
            node: owning node (where this intf most likely lives)
            link: parent link if we're part of a link
@@ -19,7 +20,7 @@ class IntfSixLoWPAN(Intf):
         self.name = name
         self.link = link
         self.mac = mac
-        self.ip, self.ip6, self.prefixLen = None, None, None
+        self.ip, self.ip6, self.prefixLen = None, ip6, None
 
         # if interface is lo, we know the ip is 127.0.0.1.
         # This saves an ipaddr command per node
@@ -31,7 +32,7 @@ class IntfSixLoWPAN(Intf):
 
         # Save params for future reference
         self.params = params
-        self.config( **params )
+        self.config(**params)
 
     def ipAddr6(self, *args):
         self.cmd('ip -6 addr flush ', self.name)
@@ -55,20 +56,22 @@ class IntfSixLoWPAN(Intf):
             self.ip6, self.prefixLen = ipstr, prefixLen
             return self.ipAddr6('%s/%s' % (ipstr, prefixLen))
 
+    _ip6MatchRegex = re.compile(r'\d+\::\d+')
+
     def updateIP(self):
         "Return updated IP address based on ip addr"
         # use pexec instead of node.cmd so that we dont read
         # backgrounded output from the cli.
         ipAddr, _err, _exitCode = self.node.pexec(
             'ip -6 addr show %s' % self.name)
-        ips = self._ipMatchRegex.findall(ipAddr.decode('utf-8'))
+        ips = self._ip6MatchRegex.findall(ipAddr)
         self.ip = ips[0] if ips else None
         return self.ip
 
     def updateMAC(self):
         "Return updated MAC address based on ip addr"
         ipAddr = self.ipAddr()
-        macs = self._macMatchRegex.findall(ipAddr.decode('utf-8'))
+        macs = self._macMatchRegex.findall(ipAddr)
         self.mac = macs[0] if macs else None
         return self.mac
 
@@ -80,7 +83,7 @@ class IntfSixLoWPAN(Intf):
         "Return IP address and MAC address based on ipAddr."
         ipAddr = self.ipAddr()
         ips = self._ipMatchRegex.findall(ipAddr)
-        macs = self._macMatchRegex.findall(ipAddr.decode('utf-8'))
+        macs = self._macMatchRegex.findall(ipAddr)
         self.ip = ips[0] if ips else None
         self.mac = macs[0] if macs else None
         return self.ip, self.mac
@@ -211,28 +214,31 @@ class TC6LoWPANLink(TCIntf, IntfSixLoWPAN):
         return result
 
 
-class sixLoWPAN(Link, IntfSixLoWPAN):
+class LowPANLink(Link, IntfSixLoWPAN):
 
     def __init__(self, node, wpan, port=None, addr=None,
                  cls=IntfSixLoWPAN, **params):
         """Create 6LoWPAN link to another node.
            node: node
            intf: default interface class/constructor"""
-        self.name = '%s-pan%s' % (node.name, wpan)
+        self.pan = '{}-pan{}'.format(node.name, wpan)
+        self.name = self.pan
         self.node = node
         node.addWAttr(self, port=wpan)
         self.range = 50
         self.voltage = 10.0
         self.consumption = 0.0
-        self.panid = '0xbeef'
+        self.ip6 = None
         self.set_attr(node, wpan)
 
-        iface = node.params['wpan'][wpan]
-        node.cmd('ip link set %s down' % iface)
-        node.cmd('iwpan dev %s set pan_id "%s"' % (iface, self.panid))
-        node.cmd('ip link add link %s name %s type lowpan' % (iface, self.name))
-        node.cmd('ip link set %s up' % iface)
-        node.cmd('ip link set %s up' % self.name)
+        wpan = '{}-wpan{}'.format(node.name, wpan)
+        self.name = wpan
+        self.ipLink('down')
+        self.set_pan_id(wpan, '0xbeef')
+        self.add_lowpan_iface(wpan)
+        self.ipLink('up')
+        self.name = self.pan
+        self.ipLink('up')
 
         if params is None:
             params = {}
@@ -247,19 +253,26 @@ class sixLoWPAN(Link, IntfSixLoWPAN):
             cls = IntfSixLoWPAN
 
         if 'ip6' in node.params:
-            params['ipv6'] = node.params['ip6']
-        params['name'] = self.name
+            params['ip6'] = node.params['ip6']
 
-        intf1 = cls(node=node, mac=addr, link=self, **params)
+        intf1 = cls(name=self.name, node=node, mac=addr,
+                    link=self, **params)
         # All we are is dust in the wind, and our two interfaces
         self.intf1, self.intf2 = intf1, '6lowpan'
+
+    def add_lowpan_iface(self, wpan):
+        return self.cmd('ip link add link {} name {} '
+                        'type lowpan'.format(wpan, self.pan))
+
+    def set_pan_id(self, wpan, pan_id):
+        return self.cmd('iwpan dev %s set pan_id "%s"' % (wpan, pan_id))
 
     def set_attr(self, node, wpan):
         for key in self.__dict__.keys():
             if key in node.params:
                 if isinstance(node.params[key], list):
-                    value = node.params[key][wpan].split(',')
-                    setattr(self, key, value[0])
+                    value = node.params[key][wpan]
+                    setattr(self, key, value)
                 else:
                     setattr(self, key, node.params[key])
 
@@ -276,4 +289,4 @@ class sixLoWPAN(Link, IntfSixLoWPAN):
 
     def status(self):
         "Return link status as a string"
-        return "(%s)" % (self.intf1.status(), self.intf2)
+        return "(%s %s)" % (self.intf1.status(), self.intf2)
