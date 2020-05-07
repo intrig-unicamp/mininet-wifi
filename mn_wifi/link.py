@@ -1400,14 +1400,17 @@ class wmediumd(object):
                  fading_cof=fading_cof, noise_th=noise_th, txpowers=self.txpowers,
                  isnodeaps=isnodeaps, ppm=ppm)
 
+    @staticmethod
+    def get_position(pos=None):
+        if pos: return float(pos[0]), float(pos[1]), float(pos[2])
+        return 0, 0, 0
+
     def interference(self, nodes):
         for node in nodes:
             if not hasattr(node, 'position'):
-                posX, posY, posZ = 0, 0, 0
+                posX, posY, posZ = self.get_position()  # assuming a mobile node
             else:
-                posX = float(node.position[0])
-                posY = float(node.position[1])
-                posZ = float(node.position[2])
+                posX, posY, posZ = self.get_position(node.position)
             node.lastpos = [posX, posY, posZ]
 
             mac_list = []
