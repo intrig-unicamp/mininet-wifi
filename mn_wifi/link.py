@@ -338,7 +338,7 @@ class IntfWireless(Intf):
             return self.ipAddr('%s/%s' % (ipstr, prefixLen6))
 
     def disconnect(self):
-        self.iwdev_pexec('{} disconnect'.format(self.name))
+        self.iwdev_cmd('{} disconnect'.format(self.name))
         self.rssi = 0
         self.associatedTo = ''
         self.channel = 0
