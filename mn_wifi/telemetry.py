@@ -288,6 +288,17 @@ class parseData(object):
                     node = self.nodes[id]
                     ax.plot(nodes_x[node], nodes_y[node], color=self.colors[id])
 
+    def instantiate_node(self, node):
+        node.circle = plt.Circle((0, 0), int(node.wintfs[0].range),
+                                 color=node.get_circle_color(), alpha=0.1)
+
+        node.plttxt = self.axes.annotate(node, xy=(0, 0))
+        # newer MPL versions (>=1.4) compatability
+        if not hasattr(node.plttxt, 'xyann'):
+            node.plttxt.xyann = node.plttxt.xytext
+
+        node.plt_node, = self.axes.plot(1, 1, marker='.', ms=5, color='black')
+
     def start(self, nodes, axes, single, data_type, fig, **kwargs):
         self.nodes = nodes
         self.fig = fig
@@ -301,9 +312,7 @@ class parseData(object):
             self.colors.append(numpy.random.rand(3,))
             if not isinstance(node, AP):
                 inNamespaceNodes.append(node)
-
-            node.circle = plt.Circle((0, 0), int(node.wintfs[0].range),
-                                     color=node.get_circle_color(), alpha=0.1)
+            self.instantiate_node(node)
 
         self.phys, self.ifaces = telemetry.get_phys(nodes, inNamespaceNodes)
         interval = 1000

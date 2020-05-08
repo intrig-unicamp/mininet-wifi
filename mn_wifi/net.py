@@ -202,7 +202,7 @@ class Mininet_wifi(Mininet, Mininet_IoT):
                 elif data[0] == 'get':
                     node = self.getNodeByName(data[1])
                     if len(data) < 3:
-                        data = 'usage: get.node.param'
+                        data = 'usage: get.node.method'
                     else:
                         data = getattr(node, data[2])
                 else:
