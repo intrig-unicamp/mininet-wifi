@@ -23,7 +23,7 @@ from mininet.log import info, error, debug, output, warn
 from mn_wifi.node import AP, Station, Car, \
     OVSKernelAP, physicalAP
 from mn_wifi.wmediumdConnector import error_prob, snr, interference
-from mn_wifi.link import ConfigWirelessLink, wmediumd, _4address, HostapdConfig, \
+from mn_wifi.link import ConfigWLink, wmediumd, _4address, HostapdConfig, \
     WirelessLink, TCLinkWireless, ITSLink, WifiDirectLink, adhoc, mesh, \
     master, managed, physicalMesh, PhysicalWifiDirectLink, _4addrClient, _4addrAP
 from mn_wifi.clean import Cleanup as CleanupWifi
@@ -1349,7 +1349,7 @@ class Mininet_wifi(Mininet, Mininet_IoT):
             if 'loss' in link.intf1.params:
                 params['loss'] = link.intf1.params['loss']
             if params and 'delay' not in link.intf1.params:
-                ConfigWirelessLink.tc(link.intf1.node, link.intf1.name, **params)
+                ConfigWLink.tc(link.intf1.node, link.intf1.name, **params)
 
     def auto_association(self):
         "This is useful to make the users' life easier"
@@ -1415,10 +1415,10 @@ class Mininet_wifi(Mininet, Mininet_IoT):
         :params delay: delay (ms)
         :params latency: latency (ms)
         :params loss: loss (%)"""
-        ConfigWirelessLink.eqBw = params.get('bw', ConfigWirelessLink.eqBw)
-        ConfigWirelessLink.eqDelay = params.get('delay', ConfigWirelessLink.eqDelay)
-        ConfigWirelessLink.eqLatency = params.get('latency', ConfigWirelessLink.eqLatency)
-        ConfigWirelessLink.eqLoss = params.get('loss', ConfigWirelessLink.eqLoss)
+        ConfigWLink.eqBw = params.get('bw', ConfigWLink.eqBw)
+        ConfigWLink.eqDelay = params.get('delay', ConfigWLink.eqDelay)
+        ConfigWLink.eqLatency = params.get('latency', ConfigWLink.eqLatency)
+        ConfigWLink.eqLoss = params.get('loss', ConfigWLink.eqLoss)
 
     @staticmethod
     def stop_graph_params():

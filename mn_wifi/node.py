@@ -32,7 +32,7 @@ from mininet.util import (errRun, errFail, Python3, getincrementaldecoder,
 from mininet.node import Node, UserSwitch, OVSSwitch, CPULimitedHost
 from mininet.moduledeps import pathCheck
 from mininet.link import Intf
-from mn_wifi.link import WirelessIntf, ConfigWirelessLink, physicalMesh, ITSLink
+from mn_wifi.link import WirelessIntf, ConfigWLink, physicalMesh, ITSLink
 from mn_wifi.wmediumdConnector import w_server, w_pos, w_cst, wmediumd_mode
 
 from re import findall
@@ -284,7 +284,7 @@ class Node_wifi(Node):
                     if intf.associatedTo:
                         intf.disconnect()
                     intf.associate_infra(ap_intf)
-                    ConfigWirelessLink(intf, dist)
+                    ConfigWLink(intf, dist)
                 else:
                     info('%s is already connected!\n' % self)
                 self.configLinks()

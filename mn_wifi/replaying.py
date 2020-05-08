@@ -10,7 +10,7 @@ from pylab import math, cos, sin
 from mininet.log import info
 from mn_wifi.plot import PlotGraph
 from mn_wifi.mobility import Mobility, ConfigMobLinks
-from mn_wifi.link import ConfigWirelessLink
+from mn_wifi.link import ConfigWLink
 from mn_wifi.node import Station, AP
 
 
@@ -108,7 +108,7 @@ class ReplayingBandwidth(Mobility):
             for sta in stations:
                 if hasattr(sta, 'time'):
                     if time_ >= sta.time[0]:
-                        ConfigWirelessLink.config_tc(sta.wintfs[0], sta.throughput[0], 0, 0)
+                        ConfigWLink.config_tc(sta.wintfs[0], sta.throughput[0], 0, 0)
                         # pos = '%d, %d, %d' % (sta.throughput[0], sta.throughput[0], 0)
                         # self.moveStationTo(sta, pos)
                         del sta.throughput[0]
@@ -151,7 +151,7 @@ class ReplayingNetworkConditions(Mobility):
                             bw = sta.bw[0]
                             loss = sta.loss[0]
                             latency = sta.latency[0]
-                            ConfigWirelessLink.config_tc(sta.wintfs[0], bw, loss, latency)
+                            ConfigWLink.config_tc(sta.wintfs[0], bw, loss, latency)
                         del sta.bw[0]
                         del sta.loss[0]
                         del sta.latency[0]
@@ -201,7 +201,7 @@ class ReplayingRSSI(Mobility):
                             rssi = sta.rssi[0]
                             dist = self.calc_dist(sta, ap, rssi, ppm, n)
                             self.set_pos(sta, ap, dist, ang[sta])
-                            ConfigWirelessLink(sta.wintfs[0], dist)
+                            ConfigWLink(sta.wintfs[0], dist)
                         del sta.rssi[0]
                         del sta.time[0]
                     if len(sta.time) == 0:

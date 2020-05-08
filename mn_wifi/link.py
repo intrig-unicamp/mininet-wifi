@@ -488,7 +488,7 @@ class IntfWireless(Intf):
                 self.associate_infra(ap_intf)
                 if wmediumd_mode.mode == w_cst.WRONG_MODE:
                     if dist >= 0.01:
-                        ConfigWirelessLink(self, dist)
+                        ConfigWLink(self, dist)
                 if self not in ap_intf.associatedStations:
                     ap_intf.associatedStations.append(self)
             if not wmediumd_mode.mode == w_cst.INTERFERENCE_MODE:
@@ -1439,7 +1439,7 @@ class wmediumd(object):
                                       link[0].rssi - (-91)))
 
 
-class ConfigWirelessLink(object):
+class ConfigWLink(object):
     dist = 0
     noise = 0
     eqLoss = '(dist * 2) / 1000'
@@ -1468,9 +1468,7 @@ class ConfigWirelessLink(object):
         # dist is used by eval
         custombw = intf.getCustomRate()
         rate = eval(str(custombw) + self.eqBw)
-
-        if rate <= 0.0:
-            rate = 0.1
+        if rate <= 0.0: rate = 0.1
         return rate
 
     @classmethod
