@@ -1050,16 +1050,11 @@ class Mininet_wifi(Mininet, Mininet_IoT):
         if status == 'down':
             for intf in sta.wintfs.values():
                 if intf.associatedTo:
-                    sta.cmd('iw dev %s disconnect' % intf.name)
-                    intf.associatedTo = ''
-                    ap.wintfs[0].associatedStations.remove(sta)
+                    intf.disconnect(ap.wintfs[0])
         else:
             for intf in sta.wintfs.values():
                 if not intf.associatedTo:
-                    sta.pexec('iw dev %s connect %s %s'
-                              % (intf.name, ap.wintfs[0].ssid, ap.wintfs[0].mac))
-                    intf.associatedTo = ap
-                    ap.wintfs[0].associatedStations.append(sta)
+                    intf.iw_connect(ap.wintfs[0])
 
     # BL: I think this can be rewritten now that we have
     # a real link class.
@@ -1072,10 +1067,11 @@ class Mininet_wifi(Mininet, Mininet_IoT):
             error('src not in network: %s\n' % src)
         elif dst not in self.nameToNode:
             error('dst not in network: %s\n' % dst)
-        if isinstance(self.nameToNode[src], Station) \
-                and isinstance(self.nameToNode[dst], AP) or \
-                        isinstance(self.nameToNode[src], AP) \
-                        and isinstance(self.nameToNode[dst], Station):
+        condition1 = [isinstance(self.nameToNode[src], Station),
+                      isinstance(self.nameToNode[dst], AP)]
+        condition2 = [isinstance(self.nameToNode[src], AP),
+                      isinstance(self.nameToNode[dst], Station)]
+        if condition1 or condition2:
             self.configNodesStatus(src, dst, status)
         else:
             src = self.nameToNode[src]

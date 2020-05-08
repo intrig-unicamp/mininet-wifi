@@ -86,17 +86,15 @@ class Mobility(object):
         if glob.glob(file):
             self.remove_staconf(intf)
 
-    def remove_assoc_from_params(self, intf, ap_intf):
-        if intf.node in ap_intf.associatedStations:
-            ap_intf.associatedStations.remove(intf.node)
-            intf.associatedTo = None
+    @staticmethod
+    def remove_node_in_range(intf, ap_intf):
         if ap_intf.node in intf.apsInRange:
             intf.apsInRange.pop(ap_intf.node, None)
             ap_intf.stationsInRange.pop(intf.node, None)
 
     def ap_out_of_range(self, intf, ap_intf):
         "When ap is out of range"
-        if ap_intf.node == intf.associatedTo:
+        if ap_intf == intf.associatedTo:
             if ap_intf.encrypt and not ap_intf.ieee80211r:
                 if ap_intf.encrypt == 'wpa' and not ap_intf.ieee80211r:
                     self.kill_wpasupprocess(intf)
@@ -104,8 +102,8 @@ class Mobility(object):
             elif wmediumd_mode.mode == w_cst.SNR_MODE:
                 intf.setSNRWmediumd(ap_intf, -10)
             if not ap_intf.ieee80211r:
-                intf.disconnect()
-            self.remove_assoc_from_params(intf, ap_intf)
+                intf.disconnect(ap_intf)
+            self.remove_node_in_range(intf, ap_intf)
         elif not intf.associatedTo:
             intf.rssi = 0
 
@@ -115,9 +113,9 @@ class Mobility(object):
                 rssi = intf.get_rssi(ap_intf, dist)
                 intf.apsInRange[ap_intf.node] = rssi
                 ap_intf.stationsInRange[intf.node] = rssi
-                if ap_intf.node == intf.associatedTo:
-                    if intf.node not in ap_intf.associatedStations:
-                        ap_intf.associatedStations.append(intf.node)
+                if ap_intf == intf.associatedTo:
+                    if intf not in ap_intf.associatedStations:
+                        ap_intf.associatedStations.append(intf)
                     if dist >= 0.01:
                         if intf.bgscan_threshold or intf.active_scan \
                                 and intf.encrypt == 'wpa':
@@ -152,7 +150,7 @@ class Mobility(object):
     @staticmethod
     def check_if_ap_exists(intf, ap_intf):
         for wlan in intf.node.wintfs.values():
-            if wlan.associatedTo == ap_intf.node:
+            if wlan.associatedTo == ap_intf:
                 return 0
         return 1
 

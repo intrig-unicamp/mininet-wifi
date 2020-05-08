@@ -337,12 +337,6 @@ class IntfWireless(Intf):
             self.ip6, self.prefixLen6 = ipstr, prefixLen6
             return self.ipAddr('%s/%s' % (ipstr, prefixLen6))
 
-    def disconnect(self):
-        self.iwdev_cmd('{} disconnect'.format(self.name))
-        self.rssi = 0
-        self.associatedTo = ''
-        self.channel = 0
-
     def check_if_wpafile_exist(self):
         file = '%s_%s.staconf' % (self.name, self.id)
         return glob.glob(file)
@@ -416,6 +410,12 @@ class IntfWireless(Intf):
     def handover_ieee80211r(self, ap_intf):
         self.node.pexec('wpa_cli -i %s roam %s' % (self.name, ap_intf.mac))
 
+    def update_client_params(self, ap_intf):
+        self.freq = ap_intf.freq
+        self.channel = ap_intf.channel
+        self.mode = ap_intf.mode
+        self.ssid = ap_intf.ssid
+
     def wep(self, ap_intf):
         if self.passwd:
             passwd = self.passwd
@@ -423,31 +423,33 @@ class IntfWireless(Intf):
             passwd = ap_intf.passwd
         self.wep_connect(passwd, ap_intf)
 
+    def setConnected(self, ap_intf):
+        self.associatedTo = ap_intf
+        ap_intf.associatedStations.append(self)
+
+    def setDisconnected(self, ap_intf):
+        self.rssi = 0
+        self.channel = 0
+        self.associatedTo = None
+        ap_intf.associatedStations.remove(self)
+
     def wep_connect(self, passwd, ap_intf):
         self.iwdev_pexec('{} connect {} key d:0:{}'.format(
             self.name, ap_intf.ssid, passwd))
 
-    def update_client_params(self, ap_intf):
-        self.freq = ap_intf.freq
-        self.channel = ap_intf.channel
-        self.mode = ap_intf.mode
-        self.ssid = ap_intf.ssid
+    def disconnect(self, ap_intf):
+        self.iwdev_cmd('{} disconnect'.format(self.name))
+        self.setDisconnected(ap_intf)
 
-    def iwconfig_con(self, ap_intf):
-        cmd = 'iwconfig %s essid %s ap %s' % (self.name, ap_intf.ssid, ap_intf.mac)
-        return cmd
+    def iw_connect(self, ap_intf):
+        self.pexec('iw dev %s connect %s %s' %
+                   (self.name, ap_intf.ssid, ap_intf.mac))
+        self.setConnected(ap_intf)
 
-    def associate_noEncrypt(self, ap_intf):
-        # iwconfig is still necessary, since iw doesn't include essid like iwconfig does.
-        self.node.pexec(self.iwconfig_con(ap_intf))
-        debug('\n')
-
-    def update(self, ap_intf):
-        if self.associatedTo and self.node in ap_intf.associatedStations:
-            ap_intf.associatedStations.remove(self.node)
-        self.update_client_params(ap_intf)
-        ap_intf.associatedStations.append(self.node)
-        self.associatedTo = ap_intf.node
+    def iwconfig_connect(self, ap_intf):
+        self.pexec('iwconfig %s essid %s ap %s' %
+                   (self.name, ap_intf.ssid, ap_intf.mac))
+        self.setConnected(ap_intf)
 
     def associate_infra(self, ap_intf):
         associated = 0
@@ -463,7 +465,7 @@ class IntfWireless(Intf):
             associated = 1
         elif not ap_intf.encrypt:
             associated = 1
-            self.associate_noEncrypt(ap_intf)
+            self.iwconfig_connect(ap_intf)
         else:
             if not self.associatedTo:
                 if 'wpa' in ap_intf.encrypt and (not self.encrypt or 'wpa' in self.encrypt):
@@ -473,7 +475,7 @@ class IntfWireless(Intf):
                     self.wep(ap_intf)
                     associated = 1
         if associated:
-            self.update(ap_intf)
+            self.update_client_params(ap_intf)
 
     def configureWirelessLink(self, ap_intf):
         dist = self.node.get_distance_to(ap_intf.node)
@@ -487,8 +489,8 @@ class IntfWireless(Intf):
                 if wmediumd_mode.mode == w_cst.WRONG_MODE:
                     if dist >= 0.01:
                         ConfigWirelessLink(self, dist)
-                if self.node != ap_intf.associatedStations:
-                    ap_intf.associatedStations.append(self.node)
+                if self not in ap_intf.associatedStations:
+                    ap_intf.associatedStations.append(self)
             if not wmediumd_mode.mode == w_cst.INTERFERENCE_MODE:
                 self.rssi = self.get_rssi(ap_intf, dist)
 

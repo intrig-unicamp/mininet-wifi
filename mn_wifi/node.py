@@ -280,10 +280,9 @@ class Node_wifi(Node):
                 if intf.bgscan_threshold:
                     intf.handover_ieee80211r(ap_intf)
                     intf.update(ap_intf)
-                elif intf.associatedTo != ap:
+                elif intf.associatedTo != ap_intf:
                     if intf.associatedTo:
                         intf.disconnect()
-                        intf.rssi = 0
                     intf.associate_infra(ap_intf)
                     ConfigWirelessLink(intf, dist)
                 else:

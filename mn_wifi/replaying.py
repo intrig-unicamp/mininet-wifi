@@ -195,7 +195,7 @@ class ReplayingRSSI(Mobility):
             for sta in staList:
                 if hasattr(sta, 'time'):
                     if time_ >= sta.time[0]:
-                        ap = sta.wintfs[0].associatedTo  # get AP
+                        ap = sta.wintfs[0].associatedTo.node  # get AP
                         sta.wintfs[0].rssi = sta.rssi[0]
                         if ap:
                             rssi = sta.rssi[0]
