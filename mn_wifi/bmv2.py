@@ -29,6 +29,8 @@ import time
 from mininet.log import info, warn, debug
 from mininet.node import Switch, Host
 from mn_wifi.node import AP, Station
+import p4runtime_lib.simple_controller
+
 
 SIMPLE_SWITCH_GRPC = 'simple_switch_grpc'
 SIMPLE_SWITCH_CLI = 'simple_switch_CLI'
