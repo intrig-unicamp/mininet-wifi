@@ -40,6 +40,14 @@ from mn_wifi.propagationModels import GetSignalRange, GetPowerGivenRange
 
 from re import findall
 
+"""
+    We make use of the setns system call from the libc library. Check this out:
+
+    http://man7.org/linux/man-pages/man2/setns.2.html
+"""
+libc = cdll.LoadLibrary('libc.so.6')
+setns_func = libc.setns
+
 
 class Node_wifi(Node):
     """A virtual network node is simply a shell in a network namespace.
