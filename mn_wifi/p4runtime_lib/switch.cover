@@ -1,0 +1,184 @@
+       # Copyright 2017-present Open Networking Foundation
+       #
+       # Licensed under the Apache License, Version 2.0 (the "License");
+       # you may not use this file except in compliance with the License.
+       # You may obtain a copy of the License at
+       #
+       #    http://www.apache.org/licenses/LICENSE-2.0
+       #
+       # Unless required by applicable law or agreed to in writing, software
+       # distributed under the License is distributed on an "AS IS" BASIS,
+       # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+       # See the License for the specific language governing permissions and
+       # limitations under the License.
+       #
+    1: from Queue import Queue
+    1: from abc import abstractmethod
+    1: from datetime import datetime
+       
+    1: import grpc
+    1: from p4.v1 import p4runtime_pb2
+    1: from p4.v1 import p4runtime_pb2_grpc
+    1: from p4.tmp import p4config_pb2
+       
+    1: MSG_LOG_MAX_LEN = 1024
+       
+       # List of all active connections
+    1: connections = []
+       
+    1: def ShutdownAllSwitchConnections():
+           for c in connections:
+               c.shutdown()
+       
+    2: class SwitchConnection(object):
+       
+    1:     def __init__(self, name=None, address='127.0.0.1:50051', device_id=0,
+    1:                  proto_dump_file=None):
+    4:         self.name = name
+    4:         self.address = address
+    4:         self.device_id = device_id
+    4:         self.p4info = None
+    4:         self.channel = grpc.insecure_channel(self.address)
+    4:         if proto_dump_file is not None:
+    4:             interceptor = GrpcRequestLogger(proto_dump_file)
+    4:             self.channel = grpc.intercept_channel(self.channel, interceptor)
+    4:         self.client_stub = p4runtime_pb2_grpc.P4RuntimeStub(self.channel)
+    4:         self.requests_stream = IterableQueue()
+    4:         self.stream_msg_resp = self.client_stub.StreamChannel(iter(self.requests_stream))
+    4:         self.proto_dump_file = proto_dump_file
+    4:         connections.append(self)
+       
+    1:     @abstractmethod
+           def buildDeviceConfig(self, **kwargs):
+               return p4config_pb2.P4DeviceConfig()
+       
+    1:     def shutdown(self):
+    4:         self.requests_stream.close()
+    4:         self.stream_msg_resp.cancel()
+       
+    1:     def MasterArbitrationUpdate(self, dry_run=False, **kwargs):
+    4:         request = p4runtime_pb2.StreamMessageRequest()
+    4:         request.arbitration.device_id = self.device_id
+    4:         request.arbitration.election_id.high = 0
+    4:         request.arbitration.election_id.low = 1
+       
+    4:         if dry_run:
+                   print "P4Runtime MasterArbitrationUpdate: ", request
+               else:
+    4:             self.requests_stream.put(request)
+    4:             for item in self.stream_msg_resp:
+    4:                 return item # just one
+       
+    1:     def SetForwardingPipelineConfig(self, p4info, dry_run=False, **kwargs):
+    4:         device_config = self.buildDeviceConfig(**kwargs)
+    4:         request = p4runtime_pb2.SetForwardingPipelineConfigRequest()
+    4:         request.election_id.low = 1
+    4:         request.device_id = self.device_id
+    4:         config = request.config
+       
+    4:         config.p4info.CopyFrom(p4info)
+    4:         config.p4_device_config = device_config.SerializeToString()
+       
+    4:         request.action = p4runtime_pb2.SetForwardingPipelineConfigRequest.VERIFY_AND_COMMIT
+    4:         if dry_run:
+                   print "P4Runtime SetForwardingPipelineConfig:", request
+               else:
+    4:             self.client_stub.SetForwardingPipelineConfig(request)
+       
+    1:     def WriteTableEntry(self, table_entry, dry_run=False):
+   20:         request = p4runtime_pb2.WriteRequest()
+   20:         request.device_id = self.device_id
+   20:         request.election_id.low = 1
+   20:         update = request.updates.add()
+   20:         if table_entry.is_default_action:
+    4:             update.type = p4runtime_pb2.Update.MODIFY
+               else:
+   16:             update.type = p4runtime_pb2.Update.INSERT
+   20:         update.entity.table_entry.CopyFrom(table_entry)
+   20:         if dry_run:
+                   print "P4Runtime Write:", request
+               else:
+   20:             self.client_stub.Write(request)
+       
+    1:     def ReadTableEntries(self, table_id=None, dry_run=False):
+               request = p4runtime_pb2.ReadRequest()
+               request.device_id = self.device_id
+               entity = request.entities.add()
+               table_entry = entity.table_entry
+               if table_id is not None:
+                   table_entry.table_id = table_id
+               else:
+                   table_entry.table_id = 0
+               if dry_run:
+                   print "P4Runtime Read:", request
+               else:
+                   for response in self.client_stub.Read(request):
+                       yield response
+       
+    1:     def ReadCounters(self, counter_id=None, index=None, dry_run=False):
+               request = p4runtime_pb2.ReadRequest()
+               request.device_id = self.device_id
+               entity = request.entities.add()
+               counter_entry = entity.counter_entry
+               if counter_id is not None:
+                   counter_entry.counter_id = counter_id
+               else:
+                   counter_entry.counter_id = 0
+               if index is not None:
+                   counter_entry.index.index = index
+               if dry_run:
+                   print "P4Runtime Read:", request
+               else:
+                   for response in self.client_stub.Read(request):
+                       yield response
+       
+       
+    1:     def WriteMulticastGroupEntry(self, mc_entry, dry_run=False):
+               request = p4runtime_pb2.WriteRequest()
+               request.device_id = self.device_id
+               request.election_id.low = 1
+               update = request.updates.add()
+               update.type = p4runtime_pb2.Update.INSERT
+               update.entity.packet_replication_engine_entry.CopyFrom(mc_entry)
+               if dry_run:
+                   print "P4Runtime Write:", request
+               else:
+                   self.client_stub.Write(request)
+       
+    2: class GrpcRequestLogger(grpc.UnaryUnaryClientInterceptor,
+    1:                         grpc.UnaryStreamClientInterceptor):
+    1:     """Implementation of a gRPC interceptor that logs request to a file"""
+       
+    1:     def __init__(self, log_file):
+    4:         self.log_file = log_file
+    4:         with open(self.log_file, 'w') as f:
+                   # Clear content if it exists.
+    4:             f.write("")
+       
+    1:     def log_message(self, method_name, body):
+   24:         with open(self.log_file, 'a') as f:
+   24:             ts = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
+   24:             msg = str(body)
+   24:             f.write("\n[%s] %s\n---\n" % (ts, method_name))
+   24:             if len(msg) < MSG_LOG_MAX_LEN:
+   20:                 f.write(str(body))
+                   else:
+    4:                 f.write("Message too long (%d bytes)! Skipping log...\n" % len(msg))
+   24:             f.write('---\n')
+       
+    1:     def intercept_unary_unary(self, continuation, client_call_details, request):
+   24:         self.log_message(client_call_details.method, request)
+   24:         return continuation(client_call_details, request)
+       
+    1:     def intercept_unary_stream(self, continuation, client_call_details, request):
+               self.log_message(client_call_details.method, request)
+               return continuation(client_call_details, request)
+       
+    2: class IterableQueue(Queue):
+    1:     _sentinel = object()
+       
+    1:     def __iter__(self):
+    4:         return iter(self.get, self._sentinel)
+       
+    1:     def close(self):
+    4:         self.put(self._sentinel)

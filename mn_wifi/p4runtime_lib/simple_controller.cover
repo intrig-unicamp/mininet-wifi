@@ -1,0 +1,214 @@
+       #!/usr/bin/env python2
+       #
+       # Copyright 2017-present Open Networking Foundation
+       #
+       # Licensed under the Apache License, Version 2.0 (the "License");
+       # you may not use this file except in compliance with the License.
+       # You may obtain a copy of the License at
+       #
+       #    http://www.apache.org/licenses/LICENSE-2.0
+       #
+       # Unless required by applicable law or agreed to in writing, software
+       # distributed under the License is distributed on an "AS IS" BASIS,
+       # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+       # See the License for the specific language governing permissions and
+       # limitations under the License.
+       #
+    1: import argparse
+    1: import json
+    1: import os
+    1: import sys
+       
+    1: import bmv2
+    1: import helper
+       
+       
+    1: def error(msg):
+           print >> sys.stderr, ' - ERROR! ' + msg
+       
+    1: def info(msg):
+   36:     print >> sys.stdout, ' - ' + msg
+       
+       
+    2: class ConfException(Exception):
+    1:     pass
+       
+       
+    1: def main():
+           parser = argparse.ArgumentParser(description='P4Runtime Simple Controller')
+       
+           parser.add_argument('-a', '--p4runtime-server-addr',
+                               help='address and port of the switch\'s P4Runtime server (e.g. 192.168.0.1:50051)',
+                               type=str, action="store", required=True)
+           parser.add_argument('-d', '--device-id',
+                               help='Internal device ID to use in P4Runtime messages',
+                               type=int, action="store", required=True)
+           parser.add_argument('-p', '--proto-dump-file',
+                               help='path to file where to dump protobuf messages sent to the switch',
+                               type=str, action="store", required=True)
+           parser.add_argument("-c", '--runtime-conf-file',
+                               help="path to input runtime configuration file (JSON)",
+                               type=str, action="store", required=True)
+       
+           args = parser.parse_args()
+       
+           if not os.path.exists(args.runtime_conf_file):
+               parser.error("File %s does not exist!" % args.runtime_conf_file)
+           workdir = os.path.dirname(os.path.abspath(args.runtime_conf_file))
+           with open(args.runtime_conf_file, 'r') as sw_conf_file:
+               program_switch(addr=args.p4runtime_server_addr,
+                              device_id=args.device_id,
+                              sw_conf_file=sw_conf_file,
+                              workdir=workdir,
+                              proto_dump_fpath=args.proto_dump_file)
+       
+       
+    1: def check_switch_conf(sw_conf, workdir):
+    4:     required_keys = ["p4info"]
+    4:     files_to_check = ["p4info"]
+    4:     target_choices = ["bmv2"]
+       
+    4:     if "target" not in sw_conf:
+               raise ConfException("missing key 'target'")
+    4:     target = sw_conf['target']
+    4:     if target not in target_choices:
+               raise ConfException("unknown target '%s'" % target)
+       
+    4:     if target == 'bmv2':
+    4:         required_keys.append("bmv2_json")
+    4:         files_to_check.append("bmv2_json")
+       
+   12:     for conf_key in required_keys:
+    8:         if conf_key not in sw_conf or len(sw_conf[conf_key]) == 0:
+                   raise ConfException("missing key '%s' or empty value" % conf_key)
+       
+   12:     for conf_key in files_to_check:
+    8:         real_path = os.path.join(workdir, sw_conf[conf_key])
+    8:         if not os.path.exists(real_path):
+                   raise ConfException("file does not exist %s" % real_path)
+       
+       
+    1: def program_switch(addr, device_id, sw_conf_file, workdir, proto_dump_fpath):
+    4:     sw_conf = json_load_byteified(sw_conf_file)
+    4:     try:
+    4:         check_switch_conf(sw_conf=sw_conf, workdir=workdir)
+           except ConfException as e:
+               error("While parsing input runtime configuration: %s" % str(e))
+               return
+       
+    4:     info('Using P4Info file %s...' % sw_conf['p4info'])
+    4:     p4info_fpath = os.path.join(workdir, sw_conf['p4info'])
+    4:     p4info_helper = helper.P4InfoHelper(p4info_fpath)
+       
+    4:     target = sw_conf['target']
+       
+    4:     info("Connecting to P4Runtime server on %s (%s)..." % (addr, target))
+       
+    4:     if target == "bmv2":
+    4:         sw = bmv2.Bmv2SwitchConnection(address=addr, device_id=device_id,
+    4:                                        proto_dump_file=proto_dump_fpath)
+           else:
+               raise Exception("Don't know how to connect to target %s" % target)
+       
+    4:     try:
+    4:         sw.MasterArbitrationUpdate()
+       
+    4:         if target == "bmv2":
+    4:             info("Setting pipeline config (%s)..." % sw_conf['bmv2_json'])
+    4:             bmv2_json_fpath = os.path.join(workdir, sw_conf['bmv2_json'])
+    4:             sw.SetForwardingPipelineConfig(p4info=p4info_helper.p4info,
+    4:                                            bmv2_json_file_path=bmv2_json_fpath)
+               else:
+                   raise Exception("Should not be here")
+       
+    4:         if 'table_entries' in sw_conf:
+    4:             table_entries = sw_conf['table_entries']
+    4:             info("Inserting %d table entries..." % len(table_entries))
+   24:             for entry in table_entries:
+   20:                 info(tableEntryToString(entry))
+   20:                 insertTableEntry(sw, entry, p4info_helper)
+       
+    4:         if 'multicast_group_entries' in sw_conf:
+                   group_entries = sw_conf['multicast_group_entries']
+                   info("Inserting %d group entries..." % len(group_entries))
+                   for entry in group_entries:
+                       info(groupEntryToString(entry))
+                       insertMulticastGroupEntry(sw, entry, p4info_helper)
+       
+           finally:
+    4:         sw.shutdown()
+       
+       
+    1: def insertTableEntry(sw, flow, p4info_helper):
+   20:     table_name = flow['table']
+   20:     match_fields = flow.get('match') # None if not found
+   20:     action_name = flow['action_name']
+   20:     default_action = flow.get('default_action') # None if not found
+   20:     action_params = flow['action_params']
+   20:     priority = flow.get('priority')  # None if not found
+       
+   20:     table_entry = p4info_helper.buildTableEntry(
+   20:         table_name=table_name,
+   20:         match_fields=match_fields,
+   20:         default_action=default_action,
+   20:         action_name=action_name,
+   20:         action_params=action_params,
+   20:         priority=priority)
+       
+   20:     sw.WriteTableEntry(table_entry)
+       
+       
+       # object hook for josn library, use str instead of unicode object
+       # https://stackoverflow.com/questions/956867/how-to-get-string-objects-instead-of-unicode-from-json
+    1: def json_load_byteified(file_handle):
+    4:     return _byteify(json.load(file_handle, object_hook=_byteify),
+    4:                     ignore_dicts=True)
+       
+       
+    1: def _byteify(data, ignore_dicts=False):
+           # if this is a unicode string, return its string representation
+  404:     if isinstance(data, unicode):
+  228:         return data.encode('utf-8')
+           # if this is a list of values, return list of byteified values
+  176:     if isinstance(data, list):
+   72:         return [_byteify(item, ignore_dicts=True) for item in data]
+           # if this is a dictionary, return dictionary of byteified keys and values
+           # but only if we haven't already byteified it
+  156:     if isinstance(data, dict) and not ignore_dicts:
+               return {
+  264:             _byteify(key, ignore_dicts=True): _byteify(value, ignore_dicts=True)
+  204:             for key, value in data.iteritems()
+               }
+           # if it's anything else, return it in its original form
+   96:     return data
+       
+       
+    1: def tableEntryToString(flow):
+   20:     if 'match' in flow:
+   16:         match_str = ['%s=%s' % (match_name, str(flow['match'][match_name])) for match_name in
+   32:                      flow['match']]
+   16:         match_str = ', '.join(match_str)
+    4:     elif 'default_action' in flow and flow['default_action']:
+    4:         match_str = '(default action)'
+           else:
+               match_str = '(any)'
+   20:     params = ['%s=%s' % (param_name, str(flow['action_params'][param_name])) for param_name in
+   52:               flow['action_params']]
+   20:     params = ', '.join(params)
+   20:     return "%s: %s => %s(%s)" % (
+   20:         flow['table'], match_str, flow['action_name'], params)
+       
+       
+    1: def groupEntryToString(rule):
+           group_id = rule["multicast_group_id"]
+           replicas = ['%d' % replica["egress_port"] for replica in rule['replicas']]
+           ports_str = ', '.join(replicas)
+           return 'Group {0} => ({1})'.format(group_id, ports_str)
+       
+    1: def insertMulticastGroupEntry(sw, rule, p4info_helper):
+           mc_entry = p4info_helper.buildMulticastGroupEntry(rule["multicast_group_id"], rule['replicas'])
+           sw.WriteMulticastGroupEntry(mc_entry)
+       
+       
+    1: if __name__ == '__main__':
+           main()

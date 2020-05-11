@@ -671,9 +671,9 @@ class P4RuntimeAP(P4AP):
             error("P4 ap {} did not start correctly.\n".format(self.name))	
             exit(1)	
         info("P4 ap {} has been started.\n".format(self.name))
-		self.program_ap()
+	self.program_ap()
 
-	def program_ap(self):
+    def program_ap(self):
         """ This method will use P4Runtime to program the switch using the
             content of the runtime JSON file as input.
         """
