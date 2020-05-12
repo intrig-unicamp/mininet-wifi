@@ -202,9 +202,14 @@ class Mininet_wifi(Mininet, Mininet_IoT):
                 elif data[0] == 'get':
                     node = self.getNodeByName(data[1])
                     if len(data) < 3:
-                        data = 'usage: get.node.method'
+                        data = 'usage: get.node.attr'
                     else:
-                        data = getattr(node, data[2])
+                        if 'wintfs' in data[2]:
+                            i = int(data[2][7:-1])
+                            wintfs = getattr(node, 'wintfs')[i]
+                            data = getattr(wintfs, data[3])
+                        else:
+                            data = getattr(node, data[2])
                 else:
                     try:
                         cmd = ''
