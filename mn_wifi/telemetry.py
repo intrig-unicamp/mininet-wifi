@@ -308,7 +308,7 @@ class parseData(object):
             self.colors.append(numpy.random.rand(3,))
             if not isinstance(node, AP):
                 inNamespaceNodes.append(node)
-            if single:
+            if single or data_type == 'position':
                 self.instantiate_node(node)
 
         self.phys, self.ifaces = telemetry.get_phys(nodes, inNamespaceNodes)
