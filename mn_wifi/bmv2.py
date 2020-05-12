@@ -23,13 +23,15 @@ import re
 import socket
 import threading
 import urllib2
+import tempfile
+import psutil
 from contextlib import closing
 
 import time
-from mininet.log import info, warn, debug
+from mininet.log import info, warn, debug, error
 from mininet.node import Switch, Host
+from mininet.moduledeps import pathCheck
 from mn_wifi.node import AP, Station
-import p4runtime_lib.simple_controller
 
 
 SIMPLE_SWITCH_GRPC = 'simple_switch_grpc'
@@ -447,11 +449,12 @@ class P4AP(AP):
     device_id = 0
     next_thrift_port = 9090
 
-    def __init__(self, name, sw_path = None, json_path = None,
+    def __init__(self, name, sw_path = 'simple_switch_grpc', json_path = None,
                  thrift_port = None,
                  pcap_dump = False,
                  log_console = False,
                  log_file = None,
+		 log_dir = None,
                  verbose = False,
                  device_id = None,
                  enable_debugger = False,
@@ -459,38 +462,47 @@ class P4AP(AP):
         
 	AP.__init__(self, name, **kwargs)
         global next_thrift_port
-	assert(sw_path)
-        assert(json_path)
-
+	
         # make sure that the provided sw_path is valid
+	assert(sw_path)
         pathCheck(sw_path)
- 
-       # make sure that the provided JSON file exists
-        if not os.path.isfile(json_path):
-            error("Invalid JSON file.\n")
-            exit(1)
-
         self.sw_path = sw_path
-        self.json_path = json_path
-        self.verbose = verbose
-        logfile = "/tmp/p4s.{}.log".format(self.name)
-        self.output = open(logfile, 'w')
-        self.thrift_port = P4AP.next_thrift_port
+ 
+        if json_path is not None:
+            # make sure that the provided JSON file exists
+            if not os.path.isfile(json_path):
+                error("Invalid JSON file.\n")
+                exit(1)
+            self.json_path = json_path
+        else:
+            self.json_path = None
+        
+	self.thrift_port = P4AP.next_thrift_port
 	P4AP.next_thrift_port += 1
 
-        if check_listening_on_port(self.thrift_port):
+        if P4AP.check_listening_on_port(self.thrift_port):
             error('%s cannot bind port %d because it is bound by another process\n' % (self.name, self.grpc_port))
             exit(1)
 
+
+        self.verbose = verbose
+        logfile = "/tmp/p4s.{}.log".format(self.name)
+        self.output = open(logfile, 'w')
         self.pcap_dump = pcap_dump
         self.enable_debugger = enable_debugger
         self.log_console = log_console
-        
-	if log_file is not None:
+
+        if log_file is not None:
             self.log_file = log_file
         else:
             self.log_file = "/tmp/p4s.{}.log".format(self.name)
-        if device_id is not None:
+
+        if log_dir is not None:
+                self.log_dir = log_dir
+        else:
+                self.log_dir = '/tmp' 
+        
+	if device_id is not None:
             self.device_id = device_id
             P4AP.device_id = max(P4AP.device_id, device_id)
         else:
@@ -510,9 +522,9 @@ class P4AP(AP):
         while True:
             if not os.path.exists(os.path.join("/proc", str(pid))):
                 return False
-            if check_listening_on_port(self.thrift_port):
+            if P4AP.check_listening_on_port(self.thrift_port):
                 return True
-            sleep(0.5)
+            time.sleep(0.5)
 
     def start(self, controllers):
         "Start up a new P4 ap"
@@ -562,36 +574,37 @@ class P4AP(AP):
         "Disconnect a data port"
         assert(0)
 
+    @classmethod
+    def check_listening_on_port(self, port):
+    	for c in psutil.net_connections(kind='inet'):
+        	if c.status == 'LISTEN' and c.laddr[1] == port:
+            		return True
+    	return False
+
 
 class P4RuntimeAP(P4AP):
-    "BMv2 ap with gRPC support"	
+    """BMv2 AP with gRPC support"""
     next_grpc_port = 50051	
-    next_thrift_port = 9090	
 
-    def __init__(self, name, sw_path = None, json_path = None,
-                 grpc_port = None,	
-                 thrift_port = None,	
-                 pcap_dump = False,	
-                 log_console = False,	
-                 verbose = False,	
+    def __init__(self, name, sw_path = 'simple_switch_grpc', runtime_json_path = None,
+                 grpc_port = None,		
                  device_id = None,	
-                 enable_debugger = False,	
-                 log_file = None,	
                  **kwargs):	
-        AP.__init__(self, name, **kwargs)	
-        assert (sw_path)	
-        self.sw_path = sw_path	
-        # make sure that the provided sw_path is valid	
-        pathCheck(sw_path)	
+        P4AP.__init__(self, name, **kwargs)	
 
-        if json_path is not None:
-            # make sure that the provided JSON file exists	
-            if not os.path.isfile(json_path):	
-                error("Invalid JSON file.\n")	
-                exit(1)	
-            self.json_path = json_path	
-        else:	
-            self.json_path = None	
+       	# Make sure that the BMV2 exe exists 	
+        pathCheck(sw_path)	
+        self.sw_path = sw_path	
+
+	
+        # Make sure that the provided Runtime JSON file exists
+	if runtime_json_path is not None:
+            if not os.path.isfile(runtime_json_path):
+                error("Invalid runtime JSON file.\n")
+                exit(1)
+            self.runtime_json_path = runtime_json_path
+        else:
+            self.runtime_json_path = None
 
         if grpc_port is not None:
             self.grpc_port = grpc_port	
@@ -599,27 +612,12 @@ class P4RuntimeAP(P4AP):
             self.grpc_port = P4RuntimeAP.next_grpc_port	
             P4RuntimeAP.next_grpc_port += 1	
 
-        if thrift_port is not None:
-            self.thrift_port = thrift_port	
-        else:	
-            self.thrift_port = P4RuntimeAP.next_thrift_port	
-            P4RuntimeAP.next_thrift_port += 1	
 
-        if check_listening_on_port(self.grpc_port):
+        if P4AP.check_listening_on_port( self.grpc_port ):
             error('%s cannot bind port %d because it is bound by another process\n' % (self.name, self.grpc_port))	
             exit(1)	
-
-        self.verbose = verbose
-        logfile = "/tmp/p4s.{}.log".format(self.name)	
-        self.output = open(logfile, 'w')	
-        self.pcap_dump = pcap_dump	
-        self.enable_debugger = enable_debugger	
-        self.log_console = log_console	
-        if log_file is not None:	
-            self.log_file = log_file	
-        else:	
-            self.log_file = "/tmp/p4s.{}.log".format(self.name)	
-        if device_id is not None:	
+	
+	if device_id is not None:	
             self.device_id = device_id	
             P4AP.device_id = max(P4AP.device_id, device_id)	
         else:	
@@ -627,66 +625,79 @@ class P4RuntimeAP(P4AP):
             P4AP.device_id += 1	
         self.nanomsg = "ipc:///tmp/bm-{}-log.ipc".format(self.device_id)	
 
+	
 
     def check_ap_started(self, pid):
         for _ in range(SWITCH_START_TIMEOUT * 2):	
             if not os.path.exists(os.path.join("/proc", str(pid))):	
                 return False	
-            if check_listening_on_port(int(self.grpc_port)):	
+            if P4AP.check_listening_on_port(int(self.grpc_port)):	
                 return True	
-            sleep(0.5)	
+            time.sleep(0.5)	
 
     def start(self, controllers):
-        info("Starting P4 ap {}.\n".format(self.name))	
+        info("Starting P4RuntimeAP {}.\n".format(self.name))	
         args = [self.sw_path]	
         for port, intf in self.intfs.items():	
             if not intf.IP():	
                 args.extend(['-i', str(port) + "@" + intf.name])	
-        #if self.pcap_dump:	
-        #    args.append("--pcap %s" % self.pcap_dump)	
-        if self.nanomsg:	
+        
+	if self.pcap_dump:	
+            args.append("--pcap %s" % self.pcap_dump)	
+        
+	if self.nanomsg:	
             args.extend(['--nanolog', self.nanomsg])	
-        args.extend(['--device-id', str(self.device_id)])	
+        
+	args.extend(['--device-id', str(self.device_id)])	
         P4AP.device_id += 1	
-        if self.json_path:	
+        
+	if self.json_path:	
             args.append(self.json_path)	
         else:	
             args.append("--no-p4")	
-        if self.enable_debugger:	
+        
+	if self.enable_debugger:	
             args.append("--debugger")	
-        if self.log_console:	
+        
+	if self.log_console:	
             args.append("--log-console")	
-        if self.thrift_port:	
+        
+	if self.thrift_port:	
             args.append('--thrift-port ' + str(self.thrift_port))	
-        if self.grpc_port:	
+        
+	if self.grpc_port:	
             args.append("-- --grpc-server-addr 0.0.0.0:" + str(self.grpc_port))	
-        cmd = ' '.join(args)	
-        info(cmd + "\n")	
+        
+	cmd = ' '.join(args)	
+        
+	info(cmd + "\n")	
         pid = None	
         with tempfile.NamedTemporaryFile() as f:	
-            self.cmd(cmd + ' >' + self.log_file + ' 2>&1 & echo $! >> ' + f.name)	
+            self.cmd(cmd + ' >'+ self.log_dir + '/' + self.log_file + ' 2>&1 & echo $! >> ' + f.name)	
             pid = int(f.read())	
-        debug("P4 ap {} PID is {}.\n".format(self.name, pid))	
+        
+	debug("P4RuntimeAP {} PID is {}.\n".format(self.name, pid))	
         if not self.check_ap_started(pid):	
             error("P4 ap {} did not start correctly.\n".format(self.name))	
             exit(1)	
-        info("P4 ap {} has been started.\n".format(self.name))
-	self.program_ap()
+        
+	info("P4RuntimeAP {} has been started.\n".format(self.name))
+	self.program_ap_runtime()
 
-    def program_ap(self):
+    def program_ap_runtime(self):
         """ This method will use P4Runtime to program the switch using the
             content of the runtime JSON file as input.
         """
 
-        sw_obj = self.net.get(self.name)
-        grpc_port = sw_obj.grpc_port
-        device_id = sw_obj.device_id
-        runtime_json = self.json_path
+    	from mn_wifi.p4runtime_lib.simple_controller import program_switch
+        grpc_port = self.grpc_port
+        device_id = self.device_id
+        runtime_json = self.runtime_json_path
 
-        self.logger('Configuring ap %s using P4Runtime with file %s' % (self.name, runtime_json))
+        info('Configuring AP %s using P4Runtime with file %s' % (self.name, runtime_json))
         with open(runtime_json, 'r') as sw_conf_file:
             outfile = '%s/%s-p4runtime-requests.txt' % (self.log_dir, self.name)
-            p4runtime_lib.simple_controller.program_switch(
+            program_switch(
                 addr='127.0.0.1:%d' % grpc_port,
                 device_id=device_id,
                 sw_conf_file=sw_conf_file,

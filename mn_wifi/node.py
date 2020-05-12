@@ -39,7 +39,7 @@ from mn_wifi.wmediumdConnector import w_server, w_pos, w_cst, wmediumd_mode
 from mn_wifi.propagationModels import GetSignalRange, GetPowerGivenRange
 
 from re import findall
-
+from ctypes import cdll
 """
     We make use of the setns system call from the libc library. Check this out:
 

@@ -19,7 +19,7 @@ import json
 import os
 import sys
 
-import bmv2
+import bmv2_runtime
 import helper
 
 
@@ -105,7 +105,7 @@ def program_switch(addr, device_id, sw_conf_file, workdir, proto_dump_fpath):
     info("Connecting to P4Runtime server on %s (%s)..." % (addr, target))
 
     if target == "bmv2":
-        sw = bmv2.Bmv2SwitchConnection(address=addr, device_id=device_id,
+        sw = bmv2_runtime.Bmv2SwitchConnection(address=addr, device_id=device_id,
                                        proto_dump_file=proto_dump_fpath)
     else:
         raise Exception("Don't know how to connect to target %s" % target)
