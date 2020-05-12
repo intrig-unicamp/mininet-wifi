@@ -74,10 +74,7 @@ class telemetry(object):
 
     @classmethod
     def calc(cls, tx_bytes, n):
-        if n not in cls.tx:
-            a = 0
-        else:
-            a = tx_bytes - cls.tx[n]
+        a = 0 if n not in cls.tx else tx_bytes - cls.tx[n]
         cls.tx[n] = tx_bytes
         return a
 
@@ -291,7 +288,6 @@ class parseData(object):
     def instantiate_node(self, node):
         node.circle = plt.Circle((0, 0), int(node.wintfs[0].range),
                                  color=node.get_circle_color(), alpha=0.1)
-
         node.plttxt = self.axes.annotate(node, xy=(0, 0))
         # newer MPL versions (>=1.4) compatability
         if not hasattr(node.plttxt, 'xyann'):
@@ -312,7 +308,8 @@ class parseData(object):
             self.colors.append(numpy.random.rand(3,))
             if not isinstance(node, AP):
                 inNamespaceNodes.append(node)
-            self.instantiate_node(node)
+            if single:
+                self.instantiate_node(node)
 
         self.phys, self.ifaces = telemetry.get_phys(nodes, inNamespaceNodes)
         interval = 1000
