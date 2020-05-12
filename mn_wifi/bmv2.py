@@ -505,9 +505,9 @@ nodes {{
 
             if result == 0:
                 # No new line
-                sys.stdout.write("⚡️ %s @ %d thrift @ %s" % (self.targetName,
-                                                             self.bmv2popen.pid,
-                                                             self.thriftPort))
+                sys.stdout.write("⚡️ %s @ %d thrift @ %s\n" % (self.targetName,
+                                                              self.bmv2popen.pid,
+                                                              self.thriftPort))
                 sys.stdout.flush()
                 # The port is open. Let's go! (Close socket first)
                 sock.close()
