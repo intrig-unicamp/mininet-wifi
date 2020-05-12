@@ -94,7 +94,7 @@ class Node_wifi(Node):
     def get_wlan(self, intf):
         return self.params['wlan'].index(intf)
 
-    def getNameToIntf(self, intf):
+    def getNameToWintf(self, intf):
         wlan = self.get_wlan(intf) if isinstance(intf, BaseString) else 0
         return self.wintfs[wlan]
 
@@ -103,16 +103,16 @@ class Node_wifi(Node):
         physicalMesh(self, **kwargs)
 
     def setMeshMode(self, intf=None, **kwargs):
-        self.intf(intf).setMeshMode(**kwargs)
+        self.getNameToWintf(intf).setMeshMode(**kwargs)
 
     def setAdhocMode(self, intf=None, **kwargs):
-        self.intf(intf).setAdhocMode(**kwargs)
+        self.getNameToWintf(intf).setAdhocMode(**kwargs)
 
     def setManagedMode(self, intf=None):
-        self.intf(intf).setManagedMode()
+        self.getNameToWintf(intf).setManagedMode()
 
     def setMasterMode(self, intf=None, **kwargs):
-        self.intf(intf).setMasterMode(**kwargs)
+        self.getNameToWintf(intf).setMasterMode(**kwargs)
 
     def setOCBMode(self, **params):
         ITSLink(self, **params)
@@ -135,29 +135,29 @@ class Node_wifi(Node):
 
     def setDefaultRange(self, intf):
         "Set Default Signal Range"
-        self.intf(intf).setDefaultRange()
+        self.getNameToWintf(intf).setDefaultRange()
 
     def remove_attr_from_params(self, attr):
         if attr in self.params:
             self.params.pop(attr, None)
 
     def setRange(self, range, intf=None):
-        self.intf(intf).setRange(range)
+        self.getNameToWintf(intf).setRange(range)
         self.update_graph()
 
     def setAntennaGain(self, gain, intf=None):
-        self.intf(intf).setAntennaGain(gain)
+        self.getNameToWintf(intf).setAntennaGain(gain)
         self.update_graph()
 
     def setAntennaHeight(self, height, intf=None):
-        self.intf(intf).setAntennaHeight(height)
+        self.getNameToWintf(intf).setAntennaHeight(height)
         self.update_graph()
 
     def setChannel(self, channel, intf=None):
-        self.intf(intf).setChannel(channel)
+        self.getNameToWintf(intf).setChannel(channel)
 
     def setTxPower(self, txpower, intf=None):
-        self.intf(intf).setTxPower(txpower)
+        self.getNameToWintf(intf).setTxPower(txpower)
         self.update_graph()
 
     def get_txpower(self, intf):
@@ -272,8 +272,8 @@ class Node_wifi(Node):
     # we actualy do not use this within the code. This can be only evoked manually.
     def setAssociation(self, ap, ap_intf=None, intf=None):
         "Force association to given AP"
-        intf = self.getNameToIntf(intf)
-        ap_intf = self.getNameToIntf(ap_intf)
+        intf = self.getNameToWintf(intf)
+        ap_intf = self.getNameToWintf(ap_intf)
         if hasattr(self, 'position') and hasattr(ap, 'position'):
             dist = self.get_distance_to(ap)
             if dist <= ap_intf.range:
@@ -352,17 +352,17 @@ class Node_wifi(Node):
            ip: IP address as a string
            prefixLen: prefix length, e.g. 8 for /8 or 16M addrs
            kwargs: any additional arguments for intf.setIP"""
-        return self.intf(intf).setIP(ip, prefixLen, **kwargs)
+        return self.getNameToWintf(intf).setIP(ip, prefixLen, **kwargs)
 
     def setIP6(self, ip, prefixLen=64, intf=None, **kwargs):
         """Set the IP address for an interface.
            intf: intf or intf name
            ip: IP address as a string
            kwargs: any additional arguments for intf.setIP"""
-        return self.intf(intf).setIP6(ip, prefixLen, **kwargs)
+        return self.getNameToWintf(intf).setIP6(ip, prefixLen, **kwargs)
 
     def setMode(self, mode, intf=None):
-        return self.intf(intf).setMode(mode)
+        return self.getNameToWintf(intf).setMode(mode)
 
     def config(self, mac=None, ip=None, ip6=None,
                defaultRoute=None, lo='up', **_params):
