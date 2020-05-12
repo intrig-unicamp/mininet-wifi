@@ -37,12 +37,8 @@ def topology():
     net.build()
     ap1.start([])
 
+    info("*** Starting Socket Server\n")
     net.start_socket_server()
-
-    nodes = net.stations + net.aps
-    net.telemetry(nodes=nodes, data_type='position',
-                  min_x=0, min_y=0,
-                  max_x=100, max_y=100)
 
     info("*** Running CLI\n")
     CLI(net)
