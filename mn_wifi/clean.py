@@ -45,15 +45,6 @@ class Cleanup(object):
                 break
 
     @classmethod
-    def clean_simple_switch_grpc(cls):
-        for p in psutil.process_iter():
-            #  p.name works using psutil in version 1.2.1.
-            #  In version 2.X we have to use p.name()
-            if 'simple_switch_grpc' in getattr(p, 'name()', 'name'):
-                info("*** Killing all running BMV2 P4 Switches\n")
-                cls.killprocs('simple_switch_grpc')
-
-    @classmethod
     def module_loaded(cls, module):
         "Checks if module is loaded"
         lsmod_proc = subprocess.Popen(['lsmod'], stdout=subprocess.PIPE)
@@ -70,11 +61,10 @@ class Cleanup(object):
 
     @classmethod
     def kill_mod_proc(cls):
-        cls.clean_simple_switch_grpc()
-
         if cls.plot:
             cls.plot.close_plot()
 
+        cls.killprocs('simple_switch_grpc')
         cls.killprocs('sumo-gui')
         cls.killprocs('hostapd')
         sleep(0.1)
