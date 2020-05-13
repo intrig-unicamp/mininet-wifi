@@ -15,7 +15,7 @@ def topology():
     sta1 = net.addStation('sta1', ip='10.0.0.2', mac='00:00:00:00:00:02')
     h1 = net.addHost('h1', ip='10.0.0.3', mac='00:00:00:00:00:03')
 
-    info('*** Adding P4AP\n')
+    info('*** Adding P4RuntimeAP\n')
     ap1 = net.addAccessPoint('ap1',  cls=P4RuntimeAP, json_path='build/basic.json', runtime_json_path='runtime/ap1-runtime.json', 
 			     log_console = True, log_dir = os.path.abspath('logs'), log_file = 'ap1.log', pcap_dump = os.path.abspath('pcaps'))
 
