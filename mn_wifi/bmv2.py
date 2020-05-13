@@ -459,17 +459,21 @@ class P4AP(AP):
                  device_id = None,
                  enable_debugger = False,
                  **kwargs):
-        
+        """
+	   Builder of P4AP class, which supports all the common elements of the BMv2.
+	"""
+	
 	AP.__init__(self, name, **kwargs)
         global next_thrift_port
 	
-        # make sure that the provided sw_path is valid
+        # Make sure that the provided sw_path is valid
 	assert(sw_path)
         pathCheck(sw_path)
         self.sw_path = sw_path
  
+
+        # Make sure that the provided JSON file exists
         if json_path is not None:
-            # make sure that the provided JSON file exists
             if not os.path.isfile(json_path):
                 error("Invalid JSON file.\n")
                 exit(1)
@@ -477,6 +481,7 @@ class P4AP(AP):
         else:
             self.json_path = None
         
+	
 	self.thrift_port = P4AP.next_thrift_port
 	P4AP.next_thrift_port += 1
 
@@ -510,76 +515,98 @@ class P4AP(AP):
             P4AP.device_id += 1
         self.nanomsg = "ipc:///tmp/bm-{}-log.ipc".format(self.device_id)
 
+
+
     @classmethod
     def setup(cls):
         pass
+
+
 
     def check_switch_started(self, pid):
         """While the process is running (pid exists), we check if the Thrift
         server has been started. If the Thrift server is ready, we assume that
         the switch was started successfully. This is only reliable if the Thrift
         server is started at the end of the init process"""
-        while True:
+        
+	while True:
             if not os.path.exists(os.path.join("/proc", str(pid))):
                 return False
             if P4AP.check_listening_on_port(self.thrift_port):
                 return True
             time.sleep(0.5)
 
+
+
     def start(self, controllers):
-        "Start up a new P4 ap"
-        info("Starting P4 ap {}.\n".format(self.name))
+        """Start up a new P4 ap"""
+    
+	info("Starting P4 ap {}.\n".format(self.name))
         args = [self.sw_path]
-        for port, intf in self.intfs.items():
+        pid = None
+        
+	for port, intf in self.intfs.items():
             if not intf.IP():
                 args.extend(['-i', str(port) + "@" + intf.name])
-        if self.pcap_dump:
+        
+	if self.pcap_dump:
             args.append("--pcap %s" % self.pcap_dump)
-        if self.thrift_port:
+        
+	if self.thrift_port:
             args.extend(['--thrift-port', str(self.thrift_port)])
-        if self.nanomsg:
+        
+	if self.nanomsg:
             args.extend(['--nanolog', self.nanomsg])
-        args.extend(['--device-id', str(self.device_id)])
+        
+	args.extend(['--device-id', str(self.device_id)])
         P4AP.device_id += 1
         args.append(self.json_path)
-        if self.enable_debugger:
+        
+	if self.enable_debugger:
             args.append("--debugger")
-        if self.log_console:
+        
+	if self.log_console:
             args.append("--log-console")
-        info(' '.join(args) + "\n")
+        
+	info(' '.join(args) + "\n")
 
-        pid = None
         with tempfile.NamedTemporaryFile() as f:
             # self.cmd(' '.join(args) + ' > /dev/null 2>&1 &')
             self.cmd(' '.join(args) + ' >' + self.log_file + ' 2>&1 & echo $! >> ' + f.name)
             pid = int(f.read())
-        debug("P4 ap {} PID is {}.\n".format(self.name, pid))
+        
+	debug("P4 ap {} PID is {}.\n".format(self.name, pid))
         if not self.check_switch_started(pid):
             error("P4 ap {} did not start correctly.\n".format(self.name))
             exit(1)
-        info("P4 ap {} has been started.\n".format(self.name))
+        
+	info("P4 ap {} has been started.\n".format(self.name))
+
+
 
     def stop(self):
-        "Terminate P4 switch."
+        """Terminate P4 switch."""
         self.output.flush()
         self.cmd('kill %' + self.sw_path)
         self.cmd('wait')
         self.deleteIntfs()
 
     def attach(self, intf):
-        "Connect a data port"
+        """Connect a data port"""
         assert(0)
 
     def detach(self, intf):
-        "Disconnect a data port"
+        """Disconnect a data port"""
         assert(0)
 
     @classmethod
     def check_listening_on_port(self, port):
-    	for c in psutil.net_connections(kind='inet'):
+    	"""Check if a port is listening"""
+	for c in psutil.net_connections(kind='inet'):
         	if c.status == 'LISTEN' and c.laddr[1] == port:
             		return True
     	return False
+
 
 
 class P4RuntimeAP(P4AP):
@@ -590,9 +617,14 @@ class P4RuntimeAP(P4AP):
                  grpc_port = None,		
                  device_id = None,	
                  **kwargs):	
+	"""
+	   Builder of the P4Runtime class, this in turn inherits from the P4AP class,
+	   which supports all the common elements of the BMv2.	    
+	"""
+
         P4AP.__init__(self, name, **kwargs)	
 
-       	# Make sure that the BMV2 exe exists 	
+       	# Make sure that the BMV2-exe exists 	
         pathCheck(sw_path)	
         self.sw_path = sw_path	
 
@@ -605,17 +637,19 @@ class P4RuntimeAP(P4AP):
             self.runtime_json_path = runtime_json_path
         else:
             self.runtime_json_path = None
-
+	
+	# We assign the indicated gRPC port univocally,
+	# making sure that it is in use by another process 
         if grpc_port is not None:
             self.grpc_port = grpc_port	
         else:	
             self.grpc_port = P4RuntimeAP.next_grpc_port	
             P4RuntimeAP.next_grpc_port += 1	
 
-
         if P4AP.check_listening_on_port( self.grpc_port ):
             error('%s cannot bind port %d because it is bound by another process\n' % (self.name, self.grpc_port))	
             exit(1)	
+
 	
 	if device_id is not None:	
             self.device_id = device_id	
@@ -624,21 +658,37 @@ class P4RuntimeAP(P4AP):
             self.device_id = P4AP.device_id	
             P4AP.device_id += 1	
         self.nanomsg = "ipc:///tmp/bm-{}-log.ipc".format(self.device_id)	
-
 	
 
+
     def check_ap_started(self, pid):
-        for _ in range(SWITCH_START_TIMEOUT * 2):	
+	"""
+            This method will check if the process is up and if the
+	    BMv2 is listening on the indicated gRPC port. 
+	"""
+
+	for _ in range(SWITCH_START_TIMEOUT * 2):	
             if not os.path.exists(os.path.join("/proc", str(pid))):	
                 return False	
             if P4AP.check_listening_on_port(int(self.grpc_port)):	
                 return True	
             time.sleep(0.5)	
 
+
+
     def start(self, controllers):
-        info("Starting P4RuntimeAP {}.\n".format(self.name))	
-        args = [self.sw_path]	
-        for port, intf in self.intfs.items():	
+        """
+	    This method will initialize the BMV2 given the parameters
+            passed to the class. Finally, it will configure the switch using P4Runtime	
+	"""
+	
+	info("Starting P4RuntimeAP {}.\n".format(self.name))	
+        
+	args = [self.sw_path]	
+        pid = None	
+        
+	# It will form the execution cmd based on the class attributes.
+	for port, intf in self.intfs.items():	
             if not intf.IP():	
                 args.extend(['-i', str(port) + "@" + intf.name])	
         
@@ -668,14 +718,18 @@ class P4RuntimeAP(P4AP):
 	if self.grpc_port:	
             args.append("-- --grpc-server-addr 0.0.0.0:" + str(self.grpc_port))	
         
+
+	# We put together the arguments of the cmd to execute it.
 	cmd = ' '.join(args)	
         
 	info(cmd + "\n")	
-        pid = None	
         with tempfile.NamedTemporaryFile() as f:	
             self.cmd(cmd + ' >'+ self.log_dir + '/' + self.log_file + ' 2>&1 & echo $! >> ' + f.name)	
             pid = int(f.read())	
         
+
+	# We check that the BMv2 has been started correctly. 
+	# If so, we proceed to configure it with P4Runtime. 
 	debug("P4RuntimeAP {} PID is {}.\n".format(self.name, pid))	
         if not self.check_ap_started(pid):	
             error("P4 ap {} did not start correctly.\n".format(self.name))	
@@ -683,6 +737,8 @@ class P4RuntimeAP(P4AP):
         
 	info("P4RuntimeAP {} has been started.\n".format(self.name))
 	self.program_ap_runtime()
+
+
 
     def program_ap_runtime(self):
         """ This method will use P4Runtime to program the switch using the
