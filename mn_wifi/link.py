@@ -1541,13 +1541,14 @@ class ITSLink(LinkAttrs):
         "configure ieee80211p"
         intf = node.getNameToWintf(intf)
         wlan = node.params['wlan'].index(intf.name)
+        LinkAttrs.__init__(self, node, intf, wlan)
 
         if isinstance(self, master):
             self.kill_hostapd()
 
         self.node = node
         self.channel = channel
-        self.freq = self.get_freq()
+        self.freq = str(self.get_freq()).replace('.', '')
         self.range = intf.range
         self.name = intf.name
         self.mac = intf.mac
