@@ -431,7 +431,8 @@ class IntfWireless(Intf):
         self.rssi = 0
         self.channel = 0
         self.associatedTo = None
-        ap_intf.associatedStations.remove(self)
+        if self in ap_intf.associatedStations:
+            ap_intf.associatedStations.remove(self)
 
     def wep_connect(self, passwd, ap_intf):
         self.iwdev_pexec('{} connect {} key d:0:{}'.format(
