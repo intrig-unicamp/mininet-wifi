@@ -24,7 +24,7 @@ setup(
                'mn_wifi.examples.eap-tls', 'mn_wifi.examples.eap-tls.CA',
                'mn_wifi.sumo', 'mn_wifi.sumo.sumolib', 'mn_wifi.sumo.traci',
                'mn_wifi.sumo.data', 'mn_wifi.sumo.sumolib.net', 'mn_wifi.sumo.sumolib.output',
-               'mn_wifi.sumo.sumolib.shapes', 'util' ],
+               'mn_wifi.sumo.sumolib.shapes', 'util', 'mn_wifi.p4runtime_lib' ],
     package_data={'util' : ['m'], 'mn_wifi.sumo.data': ['*.xml', '*.sumocfg'],
                   'mn_wifi.data': ['signal_table_ieee80211ax',
                                    'signal_table_ieee80211n_gi20',
