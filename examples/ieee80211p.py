@@ -17,20 +17,26 @@ def topology():
     net = Mininet_wifi(link=wmediumd, wmediumd_mode=interference)
 
     info("*** Creating nodes\n")
-    sta1 = net.addStation('sta1', ip='10.0.0.1/8', position='25,50,0')
-    sta2 = net.addStation('sta2', ip='10.0.0.2/8', position='50,50,0')
+    sta1 = net.addStation('sta1', ip='10.0.0.1/8', position='100,150,0')
+    sta2 = net.addStation('sta2', ip='10.0.0.2/8', position='150,150,0')
+    sta3 = net.addStation('sta3', ip='10.0.0.3/8', position='200,150,0')
 
     info("*** Configuring Propagation Model\n")
-    net.setPropagationModel(model="logDistance", exp=4.5)
+    net.setPropagationModel(model="logDistance", exp=3.5)
 
     info("*** Configuring wifi nodes\n")
     net.configureWifiNodes()
 
-    net.plotGraph(max_x=100, max_y=100)
+    info("*** Plotting Graph\n")
+    net.plotGraph(max_x=300, max_y=300)
 
     info("*** Starting ITS Links\n")
-    net.addLink(sta1, intf='sta1-wlan0', cls=ITSLink, channel='181')
-    net.addLink(sta2, intf='sta2-wlan0', cls=ITSLink, channel='181')
+    net.addLink(sta1, intf='sta1-wlan0', cls=ITSLink,
+                bandChannel=20, channel='181', proto='batman_adv')
+    net.addLink(sta2, intf='sta2-wlan0', cls=ITSLink,
+                bandChannel=20, channel='181', proto='batman_adv')
+    net.addLink(sta3, intf='sta3-wlan0', cls=ITSLink,
+                bandChannel=20, channel='181', proto='batman_adv')
 
     info("*** Starting network\n")
     net.build()

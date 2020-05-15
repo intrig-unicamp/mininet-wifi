@@ -417,10 +417,7 @@ class IntfWireless(Intf):
         self.ssid = ap_intf.ssid
 
     def wep(self, ap_intf):
-        if self.passwd:
-            passwd = self.passwd
-        else:
-            passwd = ap_intf.passwd
+        passwd = self.passwd if self.passwd else ap_intf.passwd
         self.wep_connect(passwd, ap_intf)
 
     def setConnected(self, ap_intf):
@@ -1248,6 +1245,7 @@ class master(WirelessLink):
         self.wpa_psk_file = None
         self.wep_key0 = None
         self.link = None
+        self.bandChannel = 10  # bandwidth channel
         self.assign_params_to_intf(intf, wlan)
 
 
@@ -1309,9 +1307,10 @@ class managed(WirelessLink):
         self.radius_passwd = None
         self.scan_freq = None
         self.bgscan_module = 'simple'
-        self.s_inverval = 0
+        self.bandChannel = 10  # bandwidth channel
+        self.s_inverval = 0  # short interval
+        self.l_interval = 0  # long interval
         self.bgscan_threshold = 0
-        self.l_interval = 0
         self.rssi = -60
         self.assign_params_to_intf(intf, wlan)
 
@@ -1505,6 +1504,7 @@ class LinkAttrs(WirelessLink):
     def __init__(self, node, intf, wlan):
         self.node = node
         self.antennaGain = intf.antennaGain
+        self.antennaHeight = intf.antennaHeight
         self.encrypt = intf.encrypt
         self.freq = intf.freq
         self.id = wlan
@@ -1538,8 +1538,7 @@ class LinkAttrs(WirelessLink):
 
 class ITSLink(LinkAttrs):
 
-    def __init__(self, node, intf=None, channel=181,
-                 proto_args='', proto=None):
+    def __init__(self, node, intf=None, proto_args='', **params):
         "configure ieee80211p"
         intf = node.getNameToWintf(intf)
         wlan = node.params['wlan'].index(intf.name)
@@ -1549,12 +1548,18 @@ class ITSLink(LinkAttrs):
             self.kill_hostapd()
 
         self.node = node
-        self.channel = channel
-        self.proto = proto
-        self.freq = '{:<04s}'.format(str(self.get_freq()).replace('.', ''))
-        self.range = intf.range
         self.name = intf.name
         self.mac = intf.mac
+
+        # It takes default values if keys are not set
+        kwargs = {'channel': '181', 'bandChannel': 10,
+                  'proto': None}
+
+        for k, v in kwargs.items():
+            setattr(self, k, params.get(k, v))
+
+        self.freq = self.get_freq()
+        self.setDefaultRange()
 
         if isinstance(intf, master):
             self.name = '%s-ocb' % node.name
@@ -1596,7 +1601,9 @@ class ITSLink(LinkAttrs):
 
     def configure_ocb(self):
         "Configure Wireless OCB"
-        self.iwdev_cmd('{} ocb join {} 20MHz'.format(self.name, self.freq))
+        freq = int('{:<04s}'.format(str(self.freq).replace('.', '')))
+        self.iwdev_cmd('{} ocb join {} {}MHz'.format(self.name, freq,
+                                                     self.bandChannel))
 
 
 class WifiDirectLink(LinkAttrs):
@@ -1878,7 +1885,8 @@ class physicalMesh(IntfWireless):
         node.wintfs[wlan].ssid = ssid
         if int(node.wintfs[wlan].range) == 0:
             intf = node.params['wlan'][wlan]
-            node.wintfs[wlan].range = node.setDefaultRange(intf)
+            node.setDefaultRange(intf)
+            node.wintfs[wlan].range = intf.range
 
         self.name = intf
         self.setPhysicalMeshIface(node, wlan, intf)

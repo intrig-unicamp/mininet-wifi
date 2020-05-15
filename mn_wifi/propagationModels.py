@@ -24,7 +24,7 @@ class PropagationModel(object):
     nFloors = 0  # Number of floors
     gRandom = 0  # Gaussian random variable
     variance = 2  # variance
-    noise_threshold = -91
+    noise_th = -91
     cca_threshold = -90
 
     def __init__(self, intf, apintf, dist=0):
@@ -33,7 +33,7 @@ class PropagationModel(object):
 
     @classmethod
     def set_attr(cls, noise_th, cca_th, **kwargs):
-        cls.noise_threshold = noise_th
+        cls.noise_th = noise_th
         cls.cca_threshold = cca_th
         for arg in kwargs:
             setattr(cls, arg, kwargs.get(arg))
@@ -48,8 +48,7 @@ class PropagationModel(object):
         c = 299792458.0
         L = self.sL
 
-        if dist == 0:
-            dist = 0.1
+        if dist == 0: dist = 0.1
 
         lambda_ = c / f  # lambda: wavelength (m)
         denominator = lambda_ ** 2
@@ -83,14 +82,19 @@ class PropagationModel(object):
         gt = int(ap_intf.antennaGain)
         ht = int(ap_intf.antennaHeight)
         gains = pt + gt + gr
+        c = 299792458.0  # speed of light in vacuum
+        f = intf.bandChannel * 1000000  # frequency in Hz
 
-        if dist == 0:
-            dist = 0.1
-        L = self.sL
-
-        pldb = (pt * gt * gr * ht ** 2 * hr ** 2) / (dist ** 4 * L)
-        self.rssi = gains - int(pldb)
-
+        if dist == 0: dist = 0.1
+        denominator = (c / f) / 1000
+        dCross = (4 * math.pi * ht * hr) / denominator
+        if dist < dCross:
+            self.rssi = self.friis(intf, ap_intf, dist)
+        else:
+            numerator = (pt * gt * gr * ht ** 2 * hr ** 2)
+            denominator = dist ** 4
+            pldb = int(numerator / denominator)
+            self.rssi = gains - pldb
         return self.rssi
 
     def logDistance(self, intf, ap_intf, dist):
@@ -107,9 +111,7 @@ class PropagationModel(object):
         ref_d = 1
 
         pl = self.path_loss(intf, ref_d)
-
-        if dist == 0:
-            dist = 0.1
+        if dist == 0: dist = 0.1
 
         pldb = 10 * self.exp * math.log10(dist / ref_d)
         self.rssi = gains - (int(pl) + int(pldb))
@@ -132,9 +134,7 @@ class PropagationModel(object):
         ref_d = 1
 
         pl = self.path_loss(intf, ref_d)
-
-        if dist == 0:
-            dist = 0.1
+        if dist == 0: dist = 0.1
 
         pldb = 10 * self.exp * math.log10(dist / ref_d) + gRandom
         self.rssi = gains - (int(pl) + int(pldb))
@@ -156,12 +156,9 @@ class PropagationModel(object):
         """Power Loss Coefficient Based on the Paper 
         Site-Specific Validation of ITU Indoor Path Loss Model at 2.4 GHz 
         from Theofilos Chrysikos, Giannis Georgopoulos and Stavros Kotsopoulos"""
-        if dist == 0:
-            dist = 0.1
-        if dist > 16:
-            N = 38
-        if pL != 0:
-            N = pL
+        if dist == 0: dist = 0.1
+        if dist > 16: N = 38
+        if pL != 0: N = pL
 
         pldb = 20 * math.log10(f) + N * math.log10(dist) + lF * nFloors - 28
         self.rssi = gains - int(pldb)
@@ -176,9 +173,7 @@ class PropagationModel(object):
         ht = ap_intf.antennaHeigth
         cf = 0.01075  # clutter factor
 
-        if dist == 0:
-            dist = 0.1
-
+        if dist == 0: dist = 0.1
         self.rssi = int(dist ** 4 / (gt * gr) * (ht * hr) ** 2 * cf)
 
         return self.rssi
@@ -209,7 +204,7 @@ class SetSignalRange(object):
 
         lambda_ = c / f  # lambda: wavelength (m)
         denominator = lambda_ ** 2
-        range = math.pow(10, ((-ppm.noise_threshold + gains +
+        range = math.pow(10, ((-ppm.noise_th + gains +
                                10 * math.log10(denominator)) /
                               10 - math.log10((4 * math.pi) ** 2 * L)) / 2)
         intf.range = range
@@ -222,10 +217,9 @@ class SetSignalRange(object):
         (L) System loss"""
         f = intf.freq * 10 ** 9  # Convert Ghz to Hz
         c = 299792458.0
-        L = ppm.sL
         lambda_ = c / f  # lambda: wavelength (m)
         denominator = lambda_ ** 2
-        numerator = (4 * math.pi * dist) ** 2 * L
+        numerator = (4 * math.pi * dist) ** 2 * ppm.sL
         pl = 10 * math.log10(numerator / denominator)
 
         return pl
@@ -236,12 +230,14 @@ class SetSignalRange(object):
         gt = int(intf.antennaGain)
         ht = int(intf.antennaHeight)
         pt = int(intf.txpower)
-
+        c = 299792458.0  # speed of light in vacuum
+        f = intf.bandChannel * 1000000  # frequency in Hz
         gains = pt + gt
-        L = ppm.sL
 
-        range = (((pt * gt * ht ** 2) / gains + ppm.noise_threshold)/L)**1/4
-        intf.range = range
+        denominator = (c / f) / 1000
+        dCross = (4 * math.pi * ht * ht) / denominator
+        numerator = (pt * gt * gt * ht ** 2 * ht ** 2)
+        intf.range = (numerator / ((gains - ppm.noise_th))/ppm.sL) * dCross
 
     def logDistance(self, intf):
         """Log Distance Propagation Loss Model:
@@ -256,9 +252,8 @@ class SetSignalRange(object):
         ref_d = 1
 
         pl = self.path_loss(intf, ref_d)
-        range = math.pow(10, ((-ppm.noise_threshold - pl + gains) /
-                              (10 * ppm.exp))) * ref_d
-        intf.range = range
+        intf.range = math.pow(10, ((-ppm.noise_th - pl + gains) /
+                                   (10 * ppm.exp))) * ref_d
     
     def logNormalShadowing(self, intf):
         """Log-Normal Shadowing Propagation Loss Model"""
@@ -280,11 +275,10 @@ class SetSignalRange(object):
                 WmediumdGRandom(intf.wmIface, gRandom))
 
         pl = self.path_loss(intf, ref_d) - gRandom
-        numerator = -ppm.noise_threshold - pl + gains
+        numerator = -ppm.noise_th - pl + gains
         denominator = 10 * ppm.exp
 
-        range = math.pow(10, (numerator / denominator)) * ref_d
-        intf.range = range
+        intf.range = math.pow(10, (numerator / denominator)) * ref_d
 
     def ITU(self, intf):
         """International Telecommunication Union (ITU) Propagation Loss Model:"""
@@ -296,9 +290,8 @@ class SetSignalRange(object):
         lF = ppm.lF  # Floor penetration loss factor
         nFloors = ppm.nFloors  # Number of Floors
 
-        range = math.pow(10, ((-ppm.noise_threshold + gains -
-                               20 * math.log10(f) - lF * nFloors + 28)/N))
-        intf.range = range
+        intf.range = math.pow(10, ((-ppm.noise_th + gains -
+                                    20 * math.log10(f) - lF * nFloors + 28)/N))
 
 
 class GetPowerGivenRange(object):
@@ -323,13 +316,11 @@ class GetPowerGivenRange(object):
         c = 299792458.0
         lambda_ = c / f  # lambda: wavelength (m)
         denominator = lambda_ ** 2
-        L = ppm.sL
 
         self.txpower = 10 * (
-            math.log10((4 * math.pi) ** 2 * L * dist ** 2)) + ppm.noise_threshold \
+            math.log10((4 * math.pi) ** 2 * ppm.sL * dist ** 2)) + ppm.noise_th \
                        - 10 * math.log10(denominator) - (gain * 2)
-        if self.txpower < 0:
-            self.txpower = 1
+        if self.txpower < 0: self.txpower = 1
 
         return self.txpower
 
@@ -341,10 +332,9 @@ class GetPowerGivenRange(object):
         (L) System loss"""
         f = intf.freq * 10 ** 9  # Convert Ghz to Hz
         c = 299792458.0
-        L = ppm.sL
         lambda_ = c / f  # lambda: wavelength (m)
         denominator = lambda_ ** 2
-        numerator = (4 * math.pi * dist) ** 2 * L
+        numerator = (4 * math.pi * dist) ** 2 * ppm.sL
         pl = 10 * math.log10(numerator / denominator)
 
         return pl
@@ -356,17 +346,13 @@ class GetPowerGivenRange(object):
         gt = intf.antennaGain
         ht = intf.antennaHeigth
         pt = intf.txpower
+        c = 299792458.0  # speed of light in vacuum
+        f = intf.bandChannel * 1000000  # frequency in Hz
         gains = pt + gt
 
-        if dist == 0:
-            dist = 0.1
-        L = ppm.sL
-
-        rssi = intf.rssi
-        self.txpower = ((dist ** 4 * L) * (gains-rssi))/(gt * ht ** 2)
-
-        if self.txpower < 0:
-            self.txpower = 1
+        dCross = ((4 * math.pi * ht) / (c / f)) * ppm.sL
+        self.txpower = (dCross * (gains-intf.rssi))/(gt * ht ** 2)
+        if self.txpower < 0: self.txpower = 1
 
         return self.txpower
 
@@ -383,11 +369,10 @@ class GetPowerGivenRange(object):
         ref_d = 1
         pl = self.path_loss(intf, ref_d)
         numerator = math.pow(dist / ref_d, 10 * ppm.exp) * 10 ** pl
-        denominator = 10 ** - ppm.noise_threshold
+        denominator = 10 ** - ppm.noise_th
 
         self.txpower = int(math.ceil(math.log10(numerator / denominator) - g_fixed))
-        if self.txpower < 0:
-            self.txpower = 1
+        if self.txpower < 0: self.txpower = 1
 
         return self.txpower
 
@@ -413,9 +398,8 @@ class GetPowerGivenRange(object):
         pl = self.path_loss(intf, ref_d) - gRandom
 
         self.txpower = 10 * ppm.exp * math.log10(dist / ref_d) + \
-                       ppm.noise_threshold + pl - (gain * 2)
-        if self.txpower < 0:
-            self.txpower = 1
+                       ppm.noise_th + pl - (gain * 2)
+        if self.txpower < 0: self.txpower = 1
 
         return self.txpower
 
@@ -429,9 +413,8 @@ class GetPowerGivenRange(object):
         nFloors = ppm.nFloors  # Number of Floors
         N = 28  # Power Loss Coefficient
 
-        self.txpower = N * math.log10(dist) + ppm.noise_threshold + \
+        self.txpower = N * math.log10(dist) + ppm.noise_th + \
                        20 * math.log10(f) + lF * nFloors - 28 - (gain * 2)
-        if self.txpower < 0:
-            self.txpower = 1
+        if self.txpower < 0: self.txpower = 1
 
         return self.txpower
