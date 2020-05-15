@@ -352,7 +352,7 @@ class Node_wifi(Node):
            ip: IP address as a string
            prefixLen: prefix length, e.g. 8 for /8 or 16M addrs
            kwargs: any additional arguments for intf.setIP"""
-        return self.getNameToWintf(intf).setIP(ip, prefixLen, **kwargs)
+        return self.intf(intf).setIP(ip, prefixLen, **kwargs)
 
     def setIP6(self, ip, prefixLen=64, intf=None, **kwargs):
         """Set the IP address for an interface.
