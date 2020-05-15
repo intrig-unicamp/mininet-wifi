@@ -131,16 +131,12 @@ class IntfWireless(Intf):
         w_server.register_interface(self.mac)
 
     def getCustomRate(self):
-        modes = ['a', 'b', 'g', 'n', 'ac']
-        rates = [11, 3, 11, 600, 1000]
-        rate = rates[modes.index(self.mode)]
-        return rate
+        mode_rate = {'a': 11, 'b': 3, 'g': 11, 'n': 600, 'ac': 1000}
+        return mode_rate.get(self.mode)
 
     def getRate(self):
-        modes = ['a', 'b', 'g', 'n', 'ac']
-        rates = [54, 11, 54, 300, 600]
-        rate = rates[modes.index(self.mode)]
-        return rate
+        mode_rate = {'a': 54, 'b': 11, 'g': 54, 'n': 300, 'ac': 600}
+        return mode_rate.get(self.mode)
 
     def rec_rssi(self):
         # it sends rssi value to hwsim
@@ -207,7 +203,6 @@ class IntfWireless(Intf):
         elif isinstance(self, adhoc):
             self.ibss_leave()
             adhoc(node=self.node, intf=self, chann=channel)
-        self.remove_attr_from_params('channel')
 
     def ipAddr(self, *args):
         "Configure ourselves using ip link/addr"
@@ -249,29 +244,25 @@ class IntfWireless(Intf):
         self.setDefaultRange()
         self.setGainWmediumd(gain)
         self.node.configLinks()
-        self.node.remove_attr_from_params('antennaGain')
 
     def setAntennaHeight(self, height):
         self.antennaHeight = int(height)
         self.setDefaultRange()
         self.setHeightWmediumd(height)
         self.node.configLinks()
-        self.node.remove_attr_from_params('antennaHeight')
 
     def setRange(self, range):
         self.range = float(range)
         self.setDefaultTxPower()
         self.node.configLinks()
-        self.node.remove_attr_from_params('range')
 
     def setTxPower(self, txpower):
-        self.iwdev_pexec('{} set txpower fixed {}'.format(self.name, txpower * 100))
+        self.iwdev_cmd('{} set txpower fixed {}'.format(self.name, txpower * 100))
         debug('\n')
         self.txpower = txpower
         self.setDefaultRange()
         self.setTXPowerWmediumd(txpower)
         self.node.configLinks()
-        self.node.remove_attr_from_params('txpower')
 
     def setManagedMode(self):
         wlan = self.node.params['wlan'].index(self.name)
@@ -1050,8 +1041,7 @@ class WirelessLink(TCIntf, IntfWireless):
                     else:
                         setattr(self, key, self.node.params[key])
 
-                if key == 'range':
-                    self.static_range = True
+                if key == 'range': self.static_range = True
 
 
 class _4address(Link, IntfWireless):
@@ -1245,7 +1235,7 @@ class master(WirelessLink):
         self.wpa_psk_file = None
         self.wep_key0 = None
         self.link = None
-        self.bandChannel = 10  # bandwidth channel
+        self.bandChannel = 20  # bandwidth channel
         self.assign_params_to_intf(intf, wlan)
 
 
@@ -1307,7 +1297,7 @@ class managed(WirelessLink):
         self.radius_passwd = None
         self.scan_freq = None
         self.bgscan_module = 'simple'
-        self.bandChannel = 10  # bandwidth channel
+        self.bandChannel = 20  # bandwidth channel
         self.s_inverval = 0  # short interval
         self.l_interval = 0  # long interval
         self.bgscan_threshold = 0
@@ -1553,13 +1543,12 @@ class ITSLink(LinkAttrs):
 
         # It takes default values if keys are not set
         kwargs = {'channel': '181', 'bandChannel': 10,
-                  'proto': None}
+                  'proto': None, 'txpower': 17}
 
         for k, v in kwargs.items():
             setattr(self, k, params.get(k, v))
 
         self.freq = self.get_freq()
-        self.setDefaultRange()
 
         if isinstance(intf, master):
             self.name = '%s-ocb' % node.name
@@ -1572,6 +1561,7 @@ class ITSLink(LinkAttrs):
         intf2 = 'wifiITS'
 
         node.addWAttr(self, port=wlan)
+        intf.setTxPower(self.txpower)
         self.configure_ocb()
 
         if self.proto:
@@ -1708,7 +1698,7 @@ class adhoc(LinkAttrs):
         # It takes default values if keys are not set
         kwargs = {'ibss': '02:CA:FF:EE:BA:01', 'ht_cap': '',
                   'passwd': None, 'ssid': 'adhocNet', 'proto': None,
-                  'mode': 'g', 'channel': 1}
+                  'mode': 'g', 'channel': 1, 'txpower': 15}
 
         for k, v in kwargs.items():
             setattr(self, k, params.get(k, v))
@@ -1732,8 +1722,7 @@ class adhoc(LinkAttrs):
         self.setReg()
         self.configureAdhoc()
 
-        self.txpower = intf.txpower
-        self.range = intf.range
+        intf.setTxPower(self.txpower)
 
         if self.proto:
             manetProtocols(self, proto_args)
@@ -1796,7 +1785,7 @@ class mesh(LinkAttrs):
         # It takes default values if keys are not set
         kwargs = {'ibss': '02:CA:FF:EE:BA:01', 'ht_cap': '',
                   'passwd': None, 'ssid': 'meshNet', 'proto': None,
-                  'mode': 'g', 'channel': 1}
+                  'mode': 'g', 'channel': 1, 'txpower': 15}
 
         for k, v in kwargs.items():
             setattr(self, k, params.get(k, v))
@@ -1814,6 +1803,7 @@ class mesh(LinkAttrs):
         intf2 = 'wifiMesh'
 
         node.addWAttr(self, port=wlan)
+        self.setTxPower(self.txpower)
         self.setMeshIface(wlan, iface)
         self.configureMesh()
 

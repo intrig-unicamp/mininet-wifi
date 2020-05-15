@@ -137,10 +137,6 @@ class Node_wifi(Node):
         "Set Default Signal Range"
         self.getNameToWintf(intf).setDefaultRange()
 
-    def remove_attr_from_params(self, attr):
-        if attr in self.params:
-            self.params.pop(attr, None)
-
     def setRange(self, range, intf=None):
         self.getNameToWintf(intf).setRange(range)
         self.update_graph()
