@@ -1538,7 +1538,8 @@ class LinkAttrs(WirelessLink):
 
 class ITSLink(LinkAttrs):
 
-    def __init__(self, node, intf=None, channel=161):
+    def __init__(self, node, intf=None, channel=181,
+                 proto_args='', proto=None):
         "configure ieee80211p"
         intf = node.getNameToWintf(intf)
         wlan = node.params['wlan'].index(intf.name)
@@ -1549,7 +1550,8 @@ class ITSLink(LinkAttrs):
 
         self.node = node
         self.channel = channel
-        self.freq = str(self.get_freq()).replace('.', '')
+        self.proto = proto
+        self.freq = '{:<04s}'.format(str(self.get_freq()).replace('.', ''))
         self.range = intf.range
         self.name = intf.name
         self.mac = intf.mac
@@ -1566,6 +1568,9 @@ class ITSLink(LinkAttrs):
 
         node.addWAttr(self, port=wlan)
         self.configure_ocb()
+
+        if self.proto:
+            manetProtocols(self, proto_args)
 
         # All we are is dust in the wind, and our two interfaces
         self.intf1, self.intf2 = intf1, intf2
