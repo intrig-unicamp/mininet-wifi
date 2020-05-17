@@ -704,10 +704,10 @@ class HostapdConfig(IntfWireless):
             else:
                 cmd += "\nhw_mode=g"
         elif intf.mode == 'a':
-            cmd += "\ncountry_code=US"
+            cmd += "\ncountry_code=%s" % intf.country_code
             cmd += "\nhw_mode=%s" % intf.mode
         elif intf.mode == 'ac' or intf.mode == 'ax':
-            cmd += "\ncountry_code=US"
+            cmd += "\ncountry_code=%s" % intf.country_code
             cmd += "\nhw_mode=a"
             if intf.mode == 'ax':
                 cmd += "\nieee80211ax=1"
@@ -891,8 +891,9 @@ class HostapdConfig(IntfWireless):
                 os.system('echo \'#\' >> {}'.format(path_file))
                 new_content = "[keyfile]\n%s=" % unmanaged
 
-            if intf.mac not in old_content:
-                new_content += "mac:" + intf.mac + ';'
+            name = intf.node.name + '*'
+            if name not in old_content:
+                new_content += "interface-name:{};".format(name)
                 data = data.replace(old_content, new_content)
                 file.close()
                 file = open(path_file, "wt")
@@ -1220,6 +1221,7 @@ class master(WirelessLink):
         self.beacon_int = None
         self.config = None
         self.config_methods = None
+        self.country_code = 'US'
         self.encrypt = None
         self.ht_capab = None
         self.ieee80211r = None
