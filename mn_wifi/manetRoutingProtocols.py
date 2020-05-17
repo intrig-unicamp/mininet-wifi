@@ -33,10 +33,9 @@ class batman_adv(object):
         self.setIP(intf)
 
     def setIP(self, intf):
-        nums = re.findall(r'\d+', intf.node.name)
-        id = hex(int(nums[0]))[2:]
+        nums = re.findall(r'\d+', intf.node.name)[0]
         intf.cmd('ip addr add 192.168.123.%s/24 '
-                 'dev bat0' % id)
+                 'dev bat0' % nums)
 
     def load_module(self, intf):
         intf.cmd('modprobe batman-adv')
