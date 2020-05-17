@@ -174,10 +174,7 @@ class Mobility(object):
         if intf.bgscan_threshold or (intf.active_scan and 'wpa' in intf.encrypt):
             if not intf.associatedTo:
                 intf.associate_infra(ap_intf)
-                if intf.bgscan_threshold:
-                    intf.associatedTo = 'bgscan'
-                else:
-                    intf.associatedTo = 'active_scan'
+                intf.associatedTo = 'bgscan' if intf.bgscan_threshold else 'active_scan'
             return 0
         else:
             ack = self.check_in_range(intf, ap_intf)
@@ -185,14 +182,13 @@ class Mobility(object):
 
     def config_links(self, nodes):
         for node in nodes:
-            for wlan, intf in enumerate(node.wintfs.values()):
-                if isinstance(intf, adhoc) or isinstance(intf, mesh) or \
-                        isinstance(intf, ITSLink):
+            for intf in node.wintfs.values():
+                if isinstance(intf, adhoc) or isinstance(intf, mesh) or isinstance(intf, ITSLink):
                     pass
                 else:
                     aps = []
                     for ap in self.aps:
-                        for ap_wlan, ap_intf in enumerate(ap.wintfs.values()):
+                        for ap_intf in ap.wintfs.values():
                             if not isinstance(ap_intf, adhoc) and not isinstance(ap_intf, mesh):
                                 if wmediumd_mode.mode == w_cst.INTERFERENCE_MODE:
                                     ack = self.associate_interference_mode(intf, ap_intf)
