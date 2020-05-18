@@ -205,7 +205,12 @@ function wifi_deps {
         sudo pip install --upgrade pip
         sudo pip install matplotlib==2.1.1 --ignore-installed six
     else
-        $install python-matplotlib python3-matplotlib
+        if [ "$PYTHON_VERSION" == 3 ]; then
+            $install python3-matplotlib
+        else
+            sudo pip install --upgrade pip
+            sudo pip install matplotlib==2.1.1 --ignore-installed six
+        fi
     fi
 
     pushd $MININET_DIR/mininet-wifi
@@ -224,6 +229,10 @@ function wifi_deps {
     cp defconfig .config
     sudo make && make install
     pushd $MININET_DIR/mininet-wifi/
+    if [ -d iw ]; then
+      echo "Removing iw..."
+      rm -r iw
+    fi
     git clone --depth=1 https://git.kernel.org/pub/scm/linux/kernel/git/jberg/iw.git
     pushd $MININET_DIR/mininet-wifi/iw
     sudo make && make install
