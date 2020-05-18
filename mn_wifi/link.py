@@ -1560,7 +1560,7 @@ class ITSLink(LinkAttrs):
 
         intf1 = WirelessLink(name=node.params['wlan'][wlan], node=node,
                              link=self, port=wlan)
-        intf2 = 'wifiITS'
+        intf2 = 'ITS'
 
         node.addWAttr(self, port=wlan)
         intf.setTxPower(self.txpower)
