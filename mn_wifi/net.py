@@ -52,9 +52,9 @@ class Mininet_wifi(Mininet, Mininet_IoT):
                  autoSetPositions=False, configWiFiDirect=False, config4addr=False,
                  noise_th=-91, cca_th=-90, disable_tcp_checksum=False, ifb=False,
                  client_isolation=False, plot=False, plot3d=False, docker=False,
-                 container='mininet-wifi', ssh_user='alpha', set_socket_ip=None,
-                 set_socket_port=12345, iot_module='mac802154_hwsim', rec_rssi=False,
-                 json_file=None, ac_method=None, **kwargs):
+                 container='mininet-wifi', ssh_user='alpha', rec_rssi=False,
+                 iot_module='mac802154_hwsim', json_file=None, ac_method=None,
+                 **kwargs):
         """Create Mininet object.
 
            accessPoint: default Access Point class
@@ -104,8 +104,6 @@ class Mininet_wifi(Mininet, Mininet_IoT):
         self.mob_check = False
         self.mob_model = None
         self.ac_method = ac_method
-        self.set_socket_ip = set_socket_ip
-        self.set_socket_port = set_socket_port
         self.docker = docker
         self.container = container
         self.ssh_user = ssh_user
@@ -154,19 +152,15 @@ class Mininet_wifi(Mininet, Mininet_IoT):
         Mininet_IoT.__init__(self, sensor=sensor, apsensor=apsensor)
         Mininet.__init__(self, link=link, **kwargs)
 
-    def start_socket_server(self):
-        self.server()
+    def socketServer(self, **kwargs):
+        thread(target=self.start_socket, kwargs=kwargs).start()
 
-    def server(self):
-        thread(target=self.start_socket).start()
-
-    def start_socket(self):
-        host = self.set_socket_ip
-        port, CleanupWifi.socket_port = self.set_socket_port, self.set_socket_port
+    def start_socket(self, ip='127.0.0.1', port=12345):
+        CleanupWifi.socket_port = port
 
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        s.bind((host, port))
+        s.bind((ip, port))
         s.listen(1)
 
         while True:
@@ -698,7 +692,7 @@ class Mininet_wifi(Mininet, Mininet_IoT):
 
     def staticArp(self):
         "Add all-pairs ARP entries to remove the need to handle broadcast."
-        nodes = self.stations + self.hosts
+        nodes = self.stations + self.hosts + self.cars
         for src in nodes:
             for dst in nodes:
                 if src != dst:

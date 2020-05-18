@@ -9,11 +9,7 @@ from mn_wifi.net import Mininet_wifi
 
 def topology():
 
-    net = Mininet_wifi(set_socket_ip='127.0.0.1',
-                       set_socket_port=12345)
-    # set_socket_ip: localhost must be replaced by ip address
-    # of the network interface of your system
-    # The same must be done with socket_client.py
+    net = Mininet_wifi()
 
     info("*** Creating nodes\n")
     net.addStation('sta1', mac='00:00:00:00:00:02', ip='10.0.0.1/8',
@@ -37,8 +33,11 @@ def topology():
     net.build()
     ap1.start([])
 
+    # set_socket_ip: localhost must be replaced by ip address
+    # of the network interface of your system
+    # The same must be done with socket_client.py
     info("*** Starting Socket Server\n")
-    net.start_socket_server()
+    net.socketServer(ip='127.0.0.1', port=12345)
 
     info("*** Running CLI\n")
     CLI(net)
