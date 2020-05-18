@@ -49,6 +49,7 @@ STRATUM_BINARY = '/bazel-bin/stratum/hal/bin/bmv2/' + STRATUM_BMV2
 STRATUM_INIT_PIPELINE = '/stratum/hal/bin/bmv2/dummy.json'
 
 IPBASE = '192.168.123.0/24'
+CONTROLLER = []
 
 
 def getStratumRoot():
@@ -465,19 +466,27 @@ nodes {{
         return ipAdd(nextIP, ipBaseNum=ipBaseNum, prefixLen=prefixLen)
 
     def configNameSpace(self):
+        global CONTROLLER
         if self.controllers:
             controller = self.controllers[0]
             self.sip = controller.IP()
         else:
-            controller = ONOSHost('c0', inNamespace=False)
+            if not CONTROLLER:
+                controller = ONOSHost('c0', inNamespace=False)
+                CONTROLLER = controller
+            else:
+                controller = CONTROLLER
 
+        self.cmd('ip link set lo up')
         if not self.inband:
-            cip = self.getIP() if controller.IP() == '127.0.0.1' else controller.IP()
             link = Link(self, controller, port1=0)
             sintf, cintf = link.intf1, link.intf2
-            controller.setIP(intf='c0-eth%s' % (len(controller.intfs) - 1), ip=cip)
+            if controller.IP() == '127.0.0.1' or not controller.IP():
+                cip = self.getIP()
+            else:
+                cip = controller.IP()
+            controller.setIP(cip, intf='c0-eth%s' % (len(controller.intfs) - 1))
             self.setIP(intf='%s-eth0' % self.name, ip=self.sip)
-            self.cmd('ip link set lo up')
 
             controller.setHostRoute('%s' % self.sip, cintf)
             self.setHostRoute(cip, sintf)
@@ -511,8 +520,6 @@ nodes {{
                 sys.stdout.flush()
                 # The port is open. Let's go! (Close socket first)
                 sock.close()
-                if self.inNamespace and not self.controllers:
-                    controller.stop(deleteIntfs=True)
                 break
             # Port is not open yet. If there is time, we wait a bit.
             if endtime > time.time():
