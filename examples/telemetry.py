@@ -33,7 +33,7 @@ def topology():
     info("*** Configuring wifi nodes\n")
     net.configureWifiNodes()
 
-    nodes = net.stations + net.aps
+    nodes = net.stations
     net.telemetry(nodes=nodes, single=True, data_type='rssi')
 
     info("*** Starting network\n")

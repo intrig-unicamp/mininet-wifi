@@ -197,6 +197,27 @@ class parseData(object):
                 msg = msg[:-1] + '}'
                 self.pub_msg(topic, msg)
 
+    def plot(self, axes, nodes_x, nodes_y, names):
+        time.sleep(0.0001)
+        self.fig.legend(  # lines,  # The line objects
+            labels=names,  # The labels for each line
+            loc="center right",  # Position of legend
+            borderaxespad=0.1,  # Small spacing around legend box
+            title="Nodes"  # Title for the legend
+        )
+        if self.single:
+            axes.clear()
+            for node in self.nodes:
+                id = self.nodes.index(node)
+                axes.set_title(self.data_type)
+                axes.plot(nodes_x[node], nodes_y[node], color=self.colors[id])
+        else:
+            for ax in axes:
+                id = list(axes).index(ax)
+                ax.clear()
+                node = self.nodes[id]
+                ax.plot(nodes_x[node], nodes_y[node], color=self.colors[id])
+
     def animate(self, i):
         axes = self.axes
         time_ = time.time() - start
@@ -210,18 +231,44 @@ class parseData(object):
             except:
                 pass
         time.sleep(1)
-        for node in self.nodes:
-            for wlan in range(0, len(node.params['wlan'])):
-                if self.data_type == 'position':
-                    if node.name not in names:
-                        names.append(node.name)
-                else:
-                    names.append(self.ifaces[node][wlan])
-                nodes_x[node] = []
-                nodes_y[node] = []
-                arr = self.nodes.index(node)
 
-                if self.data_type != 'rssi' and self.data_type != 'position':
+        if self.data_type == 'position':
+            axes.clear()
+            axes.set_xlim([self.min_x, self.max_x])
+            axes.set_ylim([self.min_y, self.max_y])
+            for node in self.nodes:
+                if node.name not in names:
+                    names.append(node.name)
+                x, y, z = get_position(node)
+                os.system("echo '%s,%s' >> %s" % (x, y, self.filename.format(node)))
+
+                x = node.position[0]
+                y = node.position[1]
+                plt.scatter(x, y, color='black')
+                axes.annotate(node.name, (x, y))
+                node.circle.center = x, y
+                axes.add_artist(node.circle)
+        elif self.data_type == 'rssi':
+            for node in self.nodes:
+                for wlan in range(len(node.params['wlan'])):
+                    names.append(self.ifaces[node][wlan])
+                    nodes_x[node], nodes_y[node] = [], []
+                    rssi = get_rssi(node, self.ifaces[node][wlan])
+                    os.system("echo '%s,%s' >> %s" % (time_, rssi, self.filename.format(node)))
+                    graph_data = open('%s' % (self.filename.format(node)), 'r').read()
+                    lines = graph_data.split('\n')
+                    for line in lines:
+                        if len(line) > 1:
+                            x, y = line.split(',')
+                            nodes_x[node].append(float(x))
+                            nodes_y[node].append(float(y))
+            self.plot(axes, nodes_x, nodes_y, names)
+        else:
+            for node in self.nodes:
+                for wlan in range(len(node.params['wlan'])):
+                    names.append(self.ifaces[node][wlan])
+                    nodes_x[node], nodes_y[node] = [], []
+                    arr = self.nodes.index(node)
                     if isinstance(node, AP):
                         tx_bytes = subprocess.check_output(
                             ("%s" % self.dir).format(self.phys[arr],
@@ -236,54 +283,14 @@ class parseData(object):
                                                      self.data_type),
                             shell=True).decode().split("\n")
                     get_values_from_statistics(tx_bytes, time_, node, self.filename)
-
-                if self.data_type == 'rssi':
-                    rssi = get_rssi(node, self.ifaces[node][wlan])
-                    os.system("echo '%s,%s' >> %s" % (time_, rssi, self.filename.format(node)))
-                elif self.data_type == 'position':
-                    x, y, z = get_position(node)
-                    os.system("echo '%s,%s' >> %s" % (x, y, self.filename.format(node)))
-
-                graph_data = open('%s' % (self.filename.format(node)), 'r').read()
-                lines = graph_data.split('\n')
-                for line in lines:
-                    if len(line) > 1:
-                        x, y = line.split(',')
-                        nodes_x[node].append(float(x))
-                        nodes_y[node].append(float(y))
-
-        if self.data_type == 'position':
-            axes.clear()
-            axes.set_xlim([self.min_x, self.max_x])
-            axes.set_ylim([self.min_y, self.max_y])
-            #axes.set_title('Mininet-WiFi Graph')
-            for node in self.nodes:
-                x = node.position[0]
-                y = node.position[1]
-                plt.scatter(x, y, color='black')
-                axes.annotate(node.name, (x, y))
-                node.circle.center = x, y
-                axes.add_artist(node.circle)
-        else:
-            time.sleep(0.0001)
-            self.fig.legend(  # lines,  # The line objects
-                labels=names,  # The labels for each line
-                loc="center right",  # Position of legend
-                borderaxespad=0.1,  # Small spacing around legend box
-                title="Nodes"  # Title for the legend
-            )
-            if self.single:
-                axes.clear()
-                for node in self.nodes:
-                    id = self.nodes.index(node)
-                    axes.set_title(self.data_type)
-                    axes.plot(nodes_x[node], nodes_y[node], color=self.colors[id])
-            else:
-                for ax in axes:
-                    id = list(axes).index(ax)
-                    ax.clear()
-                    node = self.nodes[id]
-                    ax.plot(nodes_x[node], nodes_y[node], color=self.colors[id])
+                    graph_data = open('%s' % (self.filename.format(node)), 'r').read()
+                    lines = graph_data.split('\n')
+                    for line in lines:
+                        if len(line) > 1:
+                            x, y = line.split(',')
+                            nodes_x[node].append(float(x))
+                            nodes_y[node].append(float(y))
+            self.plot(axes, nodes_x, nodes_y, names)
 
     def instantiate_node(self, node):
         node.circle = plt.Circle((0, 0), int(node.wintfs[0].range),
