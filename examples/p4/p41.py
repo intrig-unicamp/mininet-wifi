@@ -14,7 +14,7 @@ import sys
 from mininet.log import setLogLevel, info
 from mn_wifi.cli import CLI
 from mn_wifi.net import Mininet_wifi
-from mn_wifi.bmv2 import P4AP, P4Host
+from mn_wifi.bmv2 import ONOSBmv2AP, ONOSBmv2Switch
 from mininet.node import RemoteController
 
 
@@ -23,9 +23,9 @@ def topology(remote_controller):
     net = Mininet_wifi()
 
     info('*** Adding stations/hosts\n')
-    h1 = net.addHost('h1', ip='10.0.0.1', cls=P4Host, mac="00:00:00:00:00:01")
-    h2 = net.addHost('h2', ip='10.0.0.2', cls=P4Host, mac="00:00:00:00:00:02")
-    sta1 = net.addStation('sta1', ip='10.0.0.3', mac="00:00:00:00:00:03")
+    h1 = net.addHost('h1', ip='10.0.0.1', mac="00:00:00:00:00:01")
+    h2 = net.addHost('h2', ip='10.0.0.2', mac="00:00:00:00:00:02")
+    h3 = net.addHost('h3', ip='10.0.0.3', mac="00:00:00:00:00:03")
     sta2 = net.addStation('sta2', ip='10.0.0.4', mac="00:00:00:00:00:04")
 
     args1 = dict()
@@ -39,8 +39,8 @@ def topology(remote_controller):
         args2 = {'json': json_file, 'switch_config': config2}
 
     info('*** Adding P4APs\n')
-    ap1 = net.addAccessPoint('ap1', cls=P4AP, netcfg=True, **args1)
-    ap2 = net.addAccessPoint('ap2', cls=P4AP, netcfg=True, **args2)
+    ap1 = net.addSwitch('ap1', cls=ONOSBmv2Switch, netcfg=True, **args1)
+    ap2 = net.addAccessPoint('ap2', cls=ONOSBmv2AP, netcfg=True, **args2)
 
     if remote_controller:
         info('*** Adding Controller\n')
@@ -49,7 +49,7 @@ def topology(remote_controller):
     net.configureWifiNodes()
 
     info('*** Creating links\n')
-    net.addLink(sta1, ap1)
+    net.addLink(h3, ap1)
     net.addLink(sta2, ap2)
     net.addLink(h1, ap1)
     net.addLink(h2, ap2)

@@ -83,7 +83,7 @@ def watchDog(sw):
         writeToFile(sw.keepaliveFile,
                     "Remove this file to terminate %s" % sw.name)
         while True:
-            if ONOSBmv2Switch.mininet_exception == 1 \
+            if P4Switch.mininet_exception == 1 \
                     or not os.path.isfile(sw.keepaliveFile):
                 sw.killBmv2(log=False)
                 return
@@ -104,7 +104,7 @@ def watchDog(sw):
         sw.killBmv2(log=True)
 
 
-class ONOSHost(Host):
+class P4Host(Host):
     def __init__(self, name, inNamespace=True, **params):
         Host.__init__(self, name, inNamespace=inNamespace, **params)
 
@@ -121,7 +121,7 @@ class ONOSHost(Host):
         return r
 
 
-class ONOSBmv2Switch(Switch):
+class P4Switch(Switch):
     """BMv2 software switch with gRPC server"""
     # Shared value used to notify to all instances of this class that a Mininet
     # exception occurred. Mininet exception handling doesn't call the stop()
@@ -180,7 +180,7 @@ class ONOSBmv2Switch(Switch):
         self.switch_config = switch_config
 
         path = os.path.dirname(os.path.abspath(__file__)) + '/examples/p4/ap-runtime.json'
-        self.json = path if json == 'default' else json
+        self.json = path if not json else json
 
         # Remove files from previous executions
         self.cleanupTmpFiles()
@@ -379,7 +379,7 @@ nodes {{
             if self.controllers:
                 self.doOnosNetcfg(self.controllerIp(self.controllers))
         except Exception:
-            ONOSBmv2Switch.mininet_exception = 1
+            P4Switch.mininet_exception = 1
             self.killBmv2()
             self.printBmv2Log()
             raise
@@ -472,7 +472,7 @@ nodes {{
             self.sip = controller.IP()
         else:
             if not CONTROLLER:
-                controller = ONOSHost('c0', inNamespace=False)
+                controller = P4Host('c0', inNamespace=False)
                 CONTROLLER = controller
             else:
                 controller = CONTROLLER
@@ -572,22 +572,23 @@ nodes {{
         Switch.stop(self, deleteIntfs)
 
 
-class ONOSStratumSwitch(ONOSBmv2Switch):
+class P4StratumSwitch(P4Switch):
     def __init__(self, name, **kwargs):
         kwargs["stratum"] = True
-        super(ONOSStratumSwitch, self).__init__(name, **kwargs)
+        super(P4StratumSwitch, self).__init__(name, **kwargs)
 
 
-class ONOSStation(Station):
+class P4Station(Station):
     def __init__(self, name, inNamespace=True, **params):
         Station.__init__(self, name, inNamespace=inNamespace, **params)
 
     def config(self, **params):
-        r = super(Station, self).config(**params)
-        for off in ["rx", "tx", "sg"]:
-            cmd = "/sbin/ethtool --offload %s %s off" \
-                  % (self.defaultIntf(), off)
-            self.cmd(cmd)
+        #  offload does not work with wifi
+        #r = super(Station, self).config(**params)
+        #for off in ["rx", "tx", "sg"]:
+        #    cmd = "/sbin/ethtool --offload %s %s off" \
+        #          % (self.defaultIntf(), off)
+        #    self.cmd(cmd)
         # disable IPv6
         self.cmd("sysctl -w net.ipv6.conf.all.disable_ipv6=1")
         self.cmd("sysctl -w net.ipv6.conf.default.disable_ipv6=1")
@@ -595,29 +596,29 @@ class ONOSStation(Station):
         return r
 
 
-class ONOSBmv2AP(ONOSBmv2Switch, AP):
+class P4AP(P4Switch, AP):
     mininet_exception = multiprocessing.Value('i', 0)
 
     def __init__(self, name, **kwargs):
-        ONOSBmv2Switch.__init__(self, name, **kwargs)
+        P4Switch.__init__(self, name, **kwargs)
         self.wintfs = {}  # dict of wireless port numbers
         self.wports = {}  # dict of interfaces to port numbers
 
 
-class ONOSStratumAP(ONOSBmv2AP):
+class P4StratumAP(P4AP):
     def __init__(self, name, **kwargs):
         kwargs["stratum"] = True
-        super(ONOSStratumAP, self).__init__(name, **kwargs)
+        super(P4StratumAP, self).__init__(name, **kwargs)
 
 
 # Exports for bin/mn
 switches = {
-    'bmv2': ONOSBmv2Switch,
-    'stratum': ONOSStratumSwitch,
+    'p4switch': P4Switch,
+    'p4stratumswitch': P4StratumSwitch,
 }
 aps = {
-    'bmv2': ONOSBmv2AP,
-    'stratum': ONOSStratumAP,
+    'p4ap': P4AP,
+    'p4stratumap': P4StratumAP,
 }
-hosts = {'onoshost': ONOSHost}
-stations = {'onosstation': ONOSStation}
+hosts = {'p4host': P4Host}
+stations = {'p4station': P4Station}

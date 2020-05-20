@@ -288,7 +288,7 @@ class MininetRunner(object):
         opts.add_option('--container', type='string',
                         default="mininet-wifi", help='docker: container name')
         opts.add_option('--json-file', type='string',
-                        default="default", help='json file dir')
+                        default=False, help='json file dir')
         opts.add_option('--ssh-user', type='string',
                         default="alpha", help='docker: ssh username')
         opts.add_option('--plot', action='store_true',
