@@ -99,6 +99,19 @@ index 1a3d9f9ba..e0a3b194f 100644
  # parameter. See that parameter in hostapd.conf for more details.
  #CFLAGS += -DDEFAULT_WPA_DISABLE_EAPOL_KEY_RETRIES=1
 +CONFIG_SAE=y
+diff --git wpa_supplicant/bgscan_learn.c wpa_supplicant/bgscan_learn.c
+index cb732f709..ebac73b4b 100644
+--- wpa_supplicant/bgscan_learn.c
++++ wpa_supplicant/bgscan_learn.c
+@@ -544,7 +544,7 @@ static int bgscan_learn_notify_scan(void *priv,
+ 	 * done inside the bgscan module.
+ 	 */
+ 
+-	return 0;
++	return 1;
+ }
+ 
+ 
 diff --git wpa_supplicant/defconfig wpa_supplicant/defconfig
 index 792ab24ef..d3c298d67 100644
 --- wpa_supplicant/defconfig
