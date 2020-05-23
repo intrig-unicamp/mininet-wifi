@@ -638,20 +638,6 @@ class Mininet_wifi(Mininet, Mininet_IoT):
         """Build mininet from a topology object
            At the end of this function, everything should be connected
            and up."""
-        info('*** Creating network\n')
-        if not self.controllers and self.controller:
-            # Add a default controller
-            info('*** Adding controller\n')
-            classes = self.controller
-            if not isinstance(classes, list):
-                classes = [classes]
-            for i, cls in enumerate(classes):
-                # Allow Controller objects because nobody understands partial()
-                if isinstance(cls, Controller):
-                    self.addController(cls)
-                else:
-                    self.addController('c%d' % i, cls)
-
         info('*** Adding stations:\n')
         for staName in topo.stations():
             self.addStation(staName, **topo.nodeInfo(staName))
@@ -670,12 +656,7 @@ class Mininet_wifi(Mininet, Mininet_IoT):
         info('\n*** Configuring wifi nodes...\n')
         self.configureWifiNodes()
 
-        info('\n*** Adding link(s):\n')
-        for srcName, dstName, params in topo.links(
-                sort=True, withInfo=True):
-            self.addLink(**params)
-            info('(%s, %s) ' % (srcName, dstName))
-        info('\n')
+        super(Mininet_wifi, self).buildFromTopo(topo);
 
     def check_if_mob(self):
         if self.mob_model or self.mob_stop_time or self.roads:
