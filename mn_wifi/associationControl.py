@@ -17,7 +17,7 @@ class AssociationControl(object):
         if apref:
             ref_llf = len(apref.associatedStations)
             if len(ap_intf.associatedStations) + 2 < ref_llf:
-                intf.disconnect(apref)
+                intf.disconnect_pexec(apref)
                 self.changeAP = True
         else:
             self.changeAP = True
@@ -30,6 +30,6 @@ class AssociationControl(object):
         ref_dist = intf.node.get_distance_to(ap_intf.node)
         ref_rssi = intf.get_rssi(ap_intf, ref_dist)
         if float(ref_rssi) > float(rssi + 0.1):
-            intf.disconnect(ap_intf)
+            intf.disconnect_pexec(ap_intf)
             self.changeAP = True
         return self.changeAP

@@ -426,6 +426,10 @@ class IntfWireless(Intf):
         self.iwdev_pexec('{} connect {} key d:0:{}'.format(
             self.name, ap_intf.ssid, passwd))
 
+    def disconnect_pexec(self, ap_intf):
+        self.iwdev_pexec('{} disconnect'.format(self.name))
+        self.setDisconnected(ap_intf)
+
     def disconnect(self, ap_intf):
         self.iwdev_cmd('{} disconnect'.format(self.name))
         self.setDisconnected(ap_intf)
