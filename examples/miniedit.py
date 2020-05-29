@@ -73,7 +73,7 @@ from mininet.topolib import TreeTopo
 from mn_wifi.cli import CLI
 from mn_wifi.net import Mininet_wifi
 from mn_wifi.node import CPULimitedStation, Station, OVSAP, UserAP
-from mn_wifi.bmv2 import ONOSBmv2Switch, ONOSBmv2AP
+from mn_wifi.bmv2 import P4Switch, P4AP
 from mn_wifi.link import wmediumd
 from mn_wifi.wmediumdConnector import interference
 
@@ -230,12 +230,12 @@ class customOvsAP(OVSAP):
             self.cmd( 'ifconfig', self, self.apIP )
 
 
-class customBmv2Switch(ONOSBmv2Switch):
+class customBmv2Switch(P4Switch):
     "Customized Bmv2 switch"
 
     def __init__(self, name, json=None, grpcport=None, thriftport=None, netcfg=False,
                  switch_config=None, **kwargs):
-        ONOSBmv2Switch.__init__(self, name, json, grpcport, thriftport, netcfg,
+        P4Switch.__init__(self, name, json, grpcport, thriftport, netcfg,
                                 switch_config, **kwargs)
         self.apIP = None
 
@@ -250,18 +250,18 @@ class customBmv2Switch(ONOSBmv2Switch):
     def start(self, controllers):
         "Start and set management IP address"
         # Call superclass constructor
-        ONOSBmv2Switch.start(self, controllers)
+        P4Switch.start(self, controllers)
         # Set AP IP address
         if self.apIP is not None:
             self.cmd('ifconfig', self, self.apIP)
 
 
-class customBmv2AP(ONOSBmv2AP):
+class customBmv2AP(P4AP):
     "Customized Bmv2 AP"
 
     def __init__(self, name, json=None, grpcport=None, thriftport=None, netcfg=False,
                  switch_config=None, **kwargs):
-        ONOSBmv2AP.__init__(self, name, json, grpcport, thriftport, netcfg,
+        P4AP.__init__(self, name, json, grpcport, thriftport, netcfg,
                             switch_config, **kwargs)
         self.apIP = None
 
@@ -276,7 +276,7 @@ class customBmv2AP(ONOSBmv2AP):
     def start(self, controllers):
         "Start and set management IP address"
         # Call superclass constructor
-        ONOSBmv2AP.start(self, controllers)
+        P4AP.start(self, controllers)
         # Set AP IP address
         if self.apIP is not None:
             self.cmd('ifconfig', self, self.apIP)
@@ -341,11 +341,11 @@ class PrefsDialog(simpledialog.Dialog):
         row += 1
         Label(self.leftfieldFrame, text="Default Switch:").grid(row=row, sticky=E)
         self.switchType = StringVar(self.leftfieldFrame)
-        self.switchTypeMenu = OptionMenu(self.leftfieldFrame, self.switchType, "ONOSBmv2Switch", "Open vSwitch Kernel Mode", "Userspace", "Userspace inNamespace")
+        self.switchTypeMenu = OptionMenu(self.leftfieldFrame, self.switchType, "P4Switch", "Open vSwitch Kernel Mode", "Userspace", "Userspace inNamespace")
         self.switchTypeMenu.grid(row=row, column=1, sticky=W)
         switchTypePref = self.prefValues['switchType']
         if switchTypePref == 'bmv2':
-            self.switchType.set("ONOSBmv2Switch")
+            self.switchType.set("P4Switch")
         elif switchTypePref == 'userns':
             self.switchType.set("Userspace inNamespace")
         elif switchTypePref == 'user':
@@ -357,7 +357,7 @@ class PrefsDialog(simpledialog.Dialog):
         row += 1
         Label(self.leftfieldFrame, text="Default AP/Switch:").grid(row=row, sticky=E)
         self.apType = StringVar(self.leftfieldFrame)
-        self.apTypeMenu = OptionMenu(self.leftfieldFrame, self.apType, "ONOSBmv2AP",
+        self.apTypeMenu = OptionMenu(self.leftfieldFrame, self.apType, "P4AP",
                                      "Open vSwitch Kernel Mode",
                                      "Userspace", "Userspace inNamespace")
         self.switchTypeMenu.grid(row=row, column=1, sticky=W)
@@ -367,7 +367,7 @@ class PrefsDialog(simpledialog.Dialog):
         elif apTypePref == 'user':
             self.apType.set("Userspace")
         elif apTypePref == 'bmv2':
-            self.apType.set("ONOSBmv2AP")
+            self.apType.set("P4AP")
         else:
             self.apType.set("Open vSwitch Kernel Mode")
         """
@@ -541,7 +541,7 @@ class PrefsDialog(simpledialog.Dialog):
             self.result['switchType'] = 'user'
         elif sw == 'Userspace inNamespace':
             self.result['switchType'] = 'userns'
-        elif sw == 'ONOSBmv2Switch':
+        elif sw == 'P4Switch':
             self.result['apType'] = 'bmv2'
         else:
             self.result['switchType'] = 'ovs'
@@ -550,7 +550,7 @@ class PrefsDialog(simpledialog.Dialog):
             self.result['apType'] = 'user'
         elif ap == 'Userspace inNamespace':
             self.result['apType'] = 'userns'
-        elif ap == 'ONOSBmv2AP':
+        elif ap == 'P4AP':
             self.result['apType'] = 'bmv2'
         else:
             self.result['apType'] = 'ovs'
@@ -1166,7 +1166,7 @@ class SwitchDialog(CustomDialog):
         # Selection of switch type
         Label(self.leftfieldFrame, text="Switch Type:").grid(row=rowCount, sticky=E)
         self.switchType = StringVar(self.leftfieldFrame)
-        self.switchTypeMenu = OptionMenu(self.leftfieldFrame, self.switchType, "Default", "ONOSBmv2Switch", "Open vSwitch Kernel Mode", "Userspace", "Userspace inNamespace")
+        self.switchTypeMenu = OptionMenu(self.leftfieldFrame, self.switchType, "Default", "P4Switch", "Open vSwitch Kernel Mode", "Userspace", "Userspace inNamespace")
         self.switchTypeMenu.grid(row=rowCount, column=1, sticky=W)
         if 'switchType' in self.prefValues:
             switchTypePref = self.prefValues['switchType']
@@ -1175,7 +1175,7 @@ class SwitchDialog(CustomDialog):
             elif switchTypePref == 'user':
                 self.switchType.set("Userspace")
             elif switchTypePref == 'bmv2':
-                self.switchType.set("ONOSBmv2AP")
+                self.switchType.set("P4AP")
             elif switchTypePref == 'ovs':
                 self.switchType.set("Open vSwitch Kernel Mode")
             else:
@@ -1276,7 +1276,7 @@ class SwitchDialog(CustomDialog):
             results['switchType'] = 'user'
         elif sw == 'Open vSwitch Kernel Mode':
             results['switchType'] = 'ovs'
-        elif sw == 'ONOSBmv2AP':
+        elif sw == 'P4AP':
             results['switchType'] = 'bmv2'
         else:
             results['switchType'] = 'default'
@@ -1370,7 +1370,7 @@ class APDialog(CustomDialog):
         # Selection of ap type
         Label(self.leftfieldFrame, text="AP Type:").grid(row=rowCount, sticky=E)
         self.apType = StringVar(self.leftfieldFrame)
-        self.apTypeMenu = OptionMenu(self.leftfieldFrame, self.apType, "Default", "ONOSBmv2AP", "Open vSwitch Kernel Mode",
+        self.apTypeMenu = OptionMenu(self.leftfieldFrame, self.apType, "Default", "P4AP", "Open vSwitch Kernel Mode",
                                      "Userspace", "Userspace inNamespace")
         self.apTypeMenu.grid(row=rowCount, column=1, sticky=W)
         if 'apType' in self.prefValues:
@@ -1380,7 +1380,7 @@ class APDialog(CustomDialog):
             elif apTypePref == 'user':
                 self.apType.set("Userspace")
             elif apTypePref == 'bmv2':
-                self.apType.set("ONOSBmv2AP")
+                self.apType.set("P4AP")
             elif apTypePref == 'ovs':
                 self.apType.set("Open vSwitch Kernel Mode")
             else:
@@ -1556,7 +1556,7 @@ class APDialog(CustomDialog):
             results['apType'] = 'user'
         elif ap == 'Open vSwitch Kernel Mode':
             results['apType'] = 'ovs'
-        elif ap == 'ONOSBmv2AP':
+        elif ap == 'P4AP':
             results['apType'] = 'bmv2'
         else:
             results['apType'] = 'default'
@@ -2796,8 +2796,8 @@ class MiniEdit( Frame ):
                     if ' UserAP' not in apType_:
                         apType_ += ' UserAP,'
                 elif apType == 'bmv2':
-                    if ' ONOSBmv2AP' not in apType_:
-                        apType_ += ' ONOSBmv2AP,'
+                    if ' P4AP' not in apType_:
+                        apType_ += ' P4AP,'
                 elif apType == 'default':
                     if ' OVSKernelAP' not in apType_:
                         apType_ += ' OVSKernelAP,'
@@ -2809,8 +2809,8 @@ class MiniEdit( Frame ):
                     if ' UserSwitch' not in switchType_:
                         switchType_ += ' UserSwitch,'
                 elif switchType == 'bmv2':
-                    if ' ONOSBmv2Switch' not in switchType_:
-                        switchType_ += ' ONOSBmv2Switch,'
+                    if ' P4Switch' not in switchType_:
+                        switchType_ += ' P4Switch,'
                 elif switchType == 'default':
                     if ' OVSKernelSwitch' not in switchType_:
                         switchType_ += ' OVSKernelSwitch,'
@@ -3007,7 +3007,7 @@ class MiniEdit( Frame ):
                         elif self.appPrefs['switchType'] == 'userns':
                             f.write(b", cls=UserSwitch, inNamespace=True")
                         elif self.appPrefs['switchType'] == 'bmv2':
-                            f.write(b", cls=ONOSBmv2Switch")
+                            f.write(b", cls=P4Switch")
                         else:
                             f.write(b", cls=OVSKernelSwitch")
                     elif opts['switchType'] == 'user':
@@ -3015,7 +3015,7 @@ class MiniEdit( Frame ):
                     elif opts['switchType'] == 'userns':
                         f.write(b", cls=UserSwitch, inNamespace=True")
                     elif opts['switchType'] == 'bmv2':
-                        f.write(b", cls=ONOSBmv2Switch")
+                        f.write(b", cls=P4Switch")
                     else:
                         f.write(b", cls=OVSKernelSwitch")
                     if 'dpctl' in opts:
@@ -3036,7 +3036,7 @@ class MiniEdit( Frame ):
                         elif self.appPrefs['apType'] == 'userns':
                             f.write(b", cls=UserAP, inNamespace=True")
                         elif self.appPrefs['apType'] == 'bmv2':
-                            f.write(b", cls=ONOSBmv2AP")
+                            f.write(b", cls=P4AP")
                         else:
                             f.write(b", cls=OVSKernelAP")
                     elif opts['apType'] == 'user':
@@ -3044,7 +3044,7 @@ class MiniEdit( Frame ):
                     elif opts['apType'] == 'userns':
                         f.write(b", cls=UserAP, inNamespace=True")
                     elif opts['apType'] == 'bmv2':
-                        f.write(b", cls=ONOSBmv2AP")
+                        f.write(b", cls=P4AP")
                     else:
                         f.write(b", cls=OVSKernelAP")
                     if 'dpctl' in opts:
