@@ -117,6 +117,9 @@ class Node_wifi(Node):
     def setOCBMode(self, **params):
         ITSLink(self, **params)
 
+    def roam(self, bssid, intf=None):
+        self.getNameToWintf(intf).roam(bssid)
+
     def configLinks(self):
         "Applies channel params and handover"
         from mn_wifi.mobility import ConfigMobLinks
@@ -273,8 +276,8 @@ class Node_wifi(Node):
         if hasattr(self, 'position') and hasattr(ap, 'position'):
             dist = self.get_distance_to(ap)
             if dist <= ap_intf.range:
-                if intf.bgscan_threshold:
-                    intf.handover_ieee80211r(ap_intf)
+                if intf.bgscan_module:
+                    intf.roam(ap_intf.mac)
                     intf.update(ap_intf)
                 elif intf.associatedTo != ap_intf:
                     if intf.associatedTo:

@@ -117,8 +117,8 @@ class Mobility(object):
                     if intf not in ap_intf.associatedStations:
                         ap_intf.associatedStations.append(intf)
                     if dist >= 0.01:
-                        if intf.bgscan_threshold or intf.active_scan \
-                                and intf.encrypt == 'wpa':
+                        if intf.bgscan_module or (intf.active_scan
+                                                  and intf.encrypt == 'wpa'):
                             pass
                         else:
                             intf.rssi = rssi
@@ -171,10 +171,10 @@ class Mobility(object):
             self.config_links(mob_nodes)
 
     def associate_interference_mode(self, intf, ap_intf):
-        if intf.bgscan_threshold or (intf.active_scan and 'wpa' in intf.encrypt):
+        if intf.bgscan_module or (intf.active_scan and 'wpa' in intf.encrypt):
             if not intf.associatedTo:
                 intf.associate_infra(ap_intf)
-                intf.associatedTo = 'bgscan' if intf.bgscan_threshold else 'active_scan'
+                intf.associatedTo = 'bgscan' if intf.bgscan_module else 'active_scan'
             return 0
         else:
             ack = self.check_in_range(intf, ap_intf)

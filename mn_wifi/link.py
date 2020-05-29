@@ -56,6 +56,12 @@ class IntfWireless(Intf):
     def iwdev_pexec(self, *args):
         return self.pexec('iw dev', *args)
 
+    def wpa_cli_pexec(self, *args):
+        return self.pexec('wpa_cli -i ', self.name, *args)
+
+    def wpa_cli_cmd(self, *args):
+        return self.cmd('wpa_cli -i ', self.name, *args)
+
     def set_dev_type(self, *args):
         return self.iwdev_cmd('{} set type {}'.format(self.name, *args))
 
@@ -377,13 +383,10 @@ class IntfWireless(Intf):
                 if ap_intf.encrypt == 'wpa3':
                     wpa_key_mgmt = 'SAE'
                 cmd += '   key_mgmt=%s\n' % wpa_key_mgmt
-                if 'bgscan_threshold' in self.node.params:
-                    if 'bgscan_module' not in self.node.params:
-                        self.node.params['bgscan_module'] = 'simple'
-                    bgscan = 'bgscan=\"%s:%d:%d:%d\"' % \
+                if self.bgscan_module:
+                    cmd += '   bgscan=\"%s:%d:%d:%d\"\n' % \
                              (self.bgscan_module, self.s_inverval,
                               self.bgscan_threshold, self.l_interval)
-                    cmd += '   %s\n' % bgscan
                 if ap_intf.authmode == '8021x':
                     cmd += '   eap=PEAP\n'
                     cmd += '   identity=\"%s\"\n' % self.radius_identity
@@ -397,9 +400,6 @@ class IntfWireless(Intf):
     def wpa(self, ap_intf):
         self.wpaFile(ap_intf)
         self.wpa_pexec()
-
-    def handover_ieee80211r(self, ap_intf):
-        self.node.pexec('wpa_cli -i %s roam %s' % (self.name, ap_intf.mac))
 
     def update_client_params(self, ap_intf):
         self.freq = ap_intf.freq
@@ -421,6 +421,9 @@ class IntfWireless(Intf):
         self.associatedTo = None
         if self in ap_intf.associatedStations:
             ap_intf.associatedStations.remove(self)
+
+    def roam(self, bssid):
+        self.wpa_cli_cmd('roam %s' % bssid)
 
     def wep_connect(self, passwd, ap_intf):
         self.iwdev_pexec('{} connect {} key d:0:{}'.format(
@@ -450,11 +453,11 @@ class IntfWireless(Intf):
             if not self.associatedTo:
                 wpa_file_exists = self.check_if_wpafile_exist()
                 if wpa_file_exists:
-                    self.handover_ieee80211r(ap_intf)
+                    self.roam(ap_intf.mac)
                 else:
                     self.wpa(ap_intf)
             else:
-                self.handover_ieee80211r(ap_intf)
+                self.roam(ap_intf.mac)
             associated = 1
         elif not ap_intf.encrypt:
             associated = 1
@@ -1302,11 +1305,11 @@ class managed(WirelessLink):
         self.radius_identity = None
         self.radius_passwd = None
         self.scan_freq = None
-        self.bgscan_module = 'simple'
-        self.bandChannel = 20  # bandwidth channel
+        self.bgscan_module = None
         self.s_inverval = 0  # short interval
         self.l_interval = 0  # long interval
         self.bgscan_threshold = 0
+        self.bandChannel = 20  # bandwidth channel
         self.rssi = -60
         self.assign_params_to_intf(intf, wlan)
 
