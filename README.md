@@ -50,7 +50,7 @@ For your convenience, we provide pre-built VM images including Mininet-WiFi and 
 
    
 ## Note
-Mininet-WiFi should work fine in any Ubuntu distribution from 14.04, but in some cases (only if you have problems when start it) you have to stop NetworkManager with `stop network-manager` (you can also use `sudo systemctl stop network-manager` or `sudo service network-manager stop`).    
+Mininet-WiFi should work fine in any Ubuntu distribution from 14.04, but in some cases (only if you have problems when start it) you have to stop _Network Manager_ with either `sudo systemctl stop network-manager` or `sudo service network-manager stop`.    
 
 ## Book  
 We are glad to announce that the Mininet-WiFi book has been published!   
