@@ -25,14 +25,18 @@ def topology(args):
         max_ = randint(11, 30)
         net.addCar('car%s' % (id+1), wlans=2, min_speed=min_, max_speed=max_)
 
-    rsu11 = net.addAccessPoint('RSU11', ssid='RSU11', mode='g', channel='1')
-    rsu12 = net.addAccessPoint('RSU12', ssid='RSU12', mode='g', channel='6')
-    rsu13 = net.addAccessPoint('RSU13', ssid='RSU13', mode='g', channel='11')
-    rsu14 = net.addAccessPoint('RSU14', ssid='RSU14', mode='g', channel='11')
+    rsu11 = net.addAccessPoint('RSU11', ssid='RSU11', mode='g',
+                               channel='1')
+    rsu12 = net.addAccessPoint('RSU12', ssid='RSU12', mode='g',
+                               channel='6')
+    rsu13 = net.addAccessPoint('RSU13', ssid='RSU13', mode='g',
+                               channel='11')
+    rsu14 = net.addAccessPoint('RSU14', ssid='RSU14', mode='g',
+                               channel='11')
     c1 = net.addController('c1')
 
     info("*** Configuring Propagation Model\n")
-    net.setPropagationModel(model="logDistance", exp=3)
+    net.setPropagationModel(model="logDistance", exp=4.5)
 
     info("*** Configuring wifi nodes\n")
     net.configureWifiNodes()
@@ -41,6 +45,8 @@ def topology(args):
     net.addLink(rsu11, rsu12)
     net.addLink(rsu11, rsu13)
     net.addLink(rsu11, rsu14)
+    net.addLink(net.cars[0], intf=net.cars[0].wintfs[0].name,cls=mesh, ssid='mesh-ssid', channel=5)
+
     for car in net.cars:
         net.addLink(car, intf='%s-wlan1' % car,
                     cls=mesh, ssid='mesh-ssid', channel=5)
@@ -58,9 +64,11 @@ def topology(args):
     rsu13.start([c1])
     rsu14.start([c1])
 
-    for id, car in enumerate(net.cars):
-        car.setIP('192.168.0.%s/24' % (id+1), intf='%s-wlan0' % car)
-        car.setIP('192.168.1.%s/24' % (id+1), intf='%s-mp1' % car)
+    for car in net.cars:
+        car.setIP('192.168.0.%s/24' % (int(net.cars.index(car))+1),
+                  intf='%s-wlan0' % car)
+        car.setIP('192.168.1.%s/24' % (int(net.cars.index(car))+1),
+                  intf='%s-mp1' % car)
 
     info("*** Running CLI\n")
     CLI(net)
@@ -70,5 +78,5 @@ def topology(args):
 
 
 if __name__ == '__main__':
-    setLogLevel('debug')
+    setLogLevel('info')
     topology(sys.argv)

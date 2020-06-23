@@ -1116,7 +1116,7 @@ class Mininet_wifi(Mininet, Mininet_IoT):
     def configNode(self, node):
         "Configure Wireless Link"
         for wlan in range(len(node.params['wlan'])):
-            if not self.autoAssociation:
+            if not self.autoAssociation or self.roads:
                 intf = node.params['wlan'][wlan]
                 link = TCLinkWireless(node, intfName=intf)
                 self.links.append(link)
