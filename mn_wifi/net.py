@@ -1017,7 +1017,7 @@ class Mininet_wifi(Mininet, Mininet_IoT):
     def get_mob_stat_nodes(self):
         mob_nodes = []
         stat_nodes = []
-        nodes = self.stations + self.aps + self.cars
+        nodes = self.stations + self.aps + self.cars + self.sensors + self.apsensors
         for node in nodes:
             if hasattr(node, 'position') and 'initPos' not in node.params:
                 stat_nodes.append(node)
