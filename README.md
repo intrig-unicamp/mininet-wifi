@@ -46,7 +46,6 @@ For instructions about easier development check [this helper file](doc/dev_help.
 For your convenience, we provide pre-built VM images including Mininet-WiFi and other useful software. The VM images are in .ova format and should be usable with any modern x64 virtualization system.   
   
 [[2.9GB Size] - Ubuntu 18.04 x64](https://drive.google.com/file/d/11xhrCQO0wG-3za0tic-r8cVjU3LrOG3O/view?usp=sharing) - Mininet-WiFi (_pass: wifi_)        
-[[6.8GB Size] - Ubuntu 18.04 x64](https://drive.google.com/file/d/1ohPeOiqoh9cJi2Q-BkVty-hr6fu4amLS/view?usp=sharing) - Mininet-WiFi/ONOS/P4  (_pass: wifi_)   
 
    
 ## Note
