@@ -885,30 +885,31 @@ class HostapdConfig(IntfWireless):
         unmanaged = 'unmanaged-devices'
         old_content = ''
 
-        if not os.path.isfile(self.nm_conf_file):
+        if os.path.isdir("/etc/NetworkManager") and not os.path.isfile(self.nm_conf_file):
             open(self.nm_conf_file, 'w').close()
 
-        file = open(self.nm_conf_file, 'rt')
-        data = file.read()
-        isNew = True
-        for content in data.split('\n'):
-            if unmanaged in content:
-                old_content = content
-                new_content = old_content
-                isNew = False
-        if isNew:
-            os.system('echo \'#\' >> {}'.format(self.nm_conf_file))
-            new_content = "[keyfile]\n%s=" % unmanaged
+        if os.path.isdir("/etc/NetworkManager"):
+            file = open(self.nm_conf_file, 'rt')
+            data = file.read()
+            isNew = True
+            for content in data.split('\n'):
+                if unmanaged in content:
+                    old_content = content
+                    new_content = old_content
+                    isNew = False
+            if isNew:
+                os.system('echo \'#\' >> {}'.format(self.nm_conf_file))
+                new_content = "[keyfile]\n%s=" % unmanaged
 
-        name = intf.node.name + '*'
-        if name not in old_content:
-            new_content += "interface-name:{};".format(name)
-            data = data.replace(old_content, new_content)
-            file.close()
-            file = open(self.nm_conf_file, "wt")
-            file.write(data)
-            file.close()
-            HostapdConfig.write_mac = True
+            name = intf.node.name + '*'
+            if name not in old_content:
+                new_content += "interface-name:{};".format(name)
+                data = data.replace(old_content, new_content)
+                file.close()
+                file = open(self.nm_conf_file, "wt")
+                file.write(data)
+                file.close()
+                HostapdConfig.write_mac = True
 
     def ap_config_file(self, cmd, intf):
         "run an Access Point and create the config file"
