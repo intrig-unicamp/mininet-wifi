@@ -613,6 +613,7 @@ class IntfWireless(Intf):
 class HostapdConfig(IntfWireless):
 
     write_mac = False
+    nm_conf_file = '/etc/NetworkManager/conf.d/unmanaged.conf'
 
     def __init__(self, intf):
         'configure hostapd'
@@ -869,44 +870,45 @@ class HostapdConfig(IntfWireless):
     @classmethod
     def restartNetworkManager(cls):
         """Restart network manager if the mac address of the AP
-        is not included at /etc/NetworkManager/NetworkManager.conf"""
+        is not included at /etc/NetworkManager/conf.d/unmanaged.conf"""
         nms = 'network-manager'
-        nm = 'NetworkManager'
         nm_is_running = os.system('service %s status 2>&1 | grep '
                                   '-ic running >/dev/null 2>&1' % nms)
         if nm_is_running != 256:
-            info('Mac Address(es) of AP(s) is(are) being added into '
-                 '/etc/%s/%s.conf\n' % (nm, nm))
+            info('Mac address(es) added into %s\n' % cls.nm_conf_file)
             info('Restarting %s...\n' % nms)
-            os.system('service %s restart' % nms)
+            os.system('nmcli general reload')
+            sleep(2)
 
     def checkNetworkManager(self, intf):
-        "add mac address into /etc/NetworkManager/NetworkManager.conf"
-        path_file = '/etc/{}/{}.conf'.format('NetworkManager', 'NetworkManager')
+        "add mac address into /etc/NetworkManager/conf.d/unmanaged.conf"
         unmanaged = 'unmanaged-devices'
         old_content = ''
-        if os.path.isfile(path_file):
-            file = open(path_file, 'rt')
-            data = file.read()
-            isNew = True
-            for content in data.split('\n'):
-                if unmanaged in content:
-                    old_content = content
-                    new_content = old_content
-                    isNew = False
-            if isNew:
-                os.system('echo \'#\' >> {}'.format(path_file))
-                new_content = "[keyfile]\n%s=" % unmanaged
 
-            name = intf.node.name + '*'
-            if name not in old_content:
-                new_content += "interface-name:{};".format(name)
-                data = data.replace(old_content, new_content)
-                file.close()
-                file = open(path_file, "wt")
-                file.write(data)
-                file.close()
-                HostapdConfig.write_mac = True
+        if not os.path.isfile(self.nm_conf_file):
+            open(self.nm_conf_file, 'w').close()
+
+        file = open(self.nm_conf_file, 'rt')
+        data = file.read()
+        isNew = True
+        for content in data.split('\n'):
+            if unmanaged in content:
+                old_content = content
+                new_content = old_content
+                isNew = False
+        if isNew:
+            os.system('echo \'#\' >> {}'.format(self.nm_conf_file))
+            new_content = "[keyfile]\n%s=" % unmanaged
+
+        name = intf.node.name + '*'
+        if name not in old_content:
+            new_content += "interface-name:{};".format(name)
+            data = data.replace(old_content, new_content)
+            file.close()
+            file = open(self.nm_conf_file, "wt")
+            file.write(data)
+            file.close()
+            HostapdConfig.write_mac = True
 
     def ap_config_file(self, cmd, intf):
         "run an Access Point and create the config file"
