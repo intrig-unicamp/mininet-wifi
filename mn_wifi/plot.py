@@ -152,7 +152,9 @@ class Plot2D (object):
                 dst = link.intf2.node
                 if hasattr(src, 'position') and hasattr(dst, 'position'):
                     ls = link.intf1.params.get('ls', '-')
-                    Plot2D.add_line(src, dst, ls=ls)
+                    color = link.intf1.params.get('color', 'b')
+                    lw = link.intf1.params.get('lw', 1)
+                    Plot2D.add_line(src, dst, ls=ls, color=color, lw=lw)
 
     @classmethod
     def instantiate_attrs(cls, node):
@@ -174,20 +176,21 @@ class Plot2D (object):
         color = node.get_circle_color()
         node.circle = Plot2D.ax.add_patch(
             patches.Circle((0, 0), node.get_max_radius(),
-                           fill=True, alpha=0.1, color=color))
+                           fill=True, alpha=0.1, color='b'))
 
     @classmethod
     def instantiate_node(cls, node):
         node.plt_node, = Plot2D.ax.plot(1, 1, marker='.', ms=5, color='black')
 
     @classmethod
-    def add_line(cls, src, dst, ls='-'):
+    def add_line(cls, src, dst, ls='-', lw=1, color='b'):
         src_x = round(src.position[0], 2)
         src_y = round(src.position[1], 2)
         dst_x = round(dst.position[0], 2)
         dst_y = round(dst.position[1], 2)
         line = Plot2D.line2d([src_x, dst_x],
-                             [src_y, dst_y], 'b', ls=ls)
+                             [src_y, dst_y],
+                             color, ls=ls, lw=lw)
         conn_ = src.name + '-' + dst.name
         Plot2D.lines[conn_] = line
         Plot2D.line(line)
