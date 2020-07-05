@@ -117,6 +117,12 @@ class Node_wifi(Node):
     def setOCBMode(self, **params):
         ITSLink(self, **params)
 
+    def setMaxVelocity(self, v=None):
+        self.max_v = v
+
+    def setMinVelocity(self, v=None):
+        self.min_v = v
+
     def roam(self, bssid, intf=None):
         self.getNameToWintf(intf).roam(bssid)
 
