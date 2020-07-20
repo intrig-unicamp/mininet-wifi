@@ -62,7 +62,7 @@ Github repository with all use cases presented in the book:
 https://github.com/ramonfontes/mn-wifi-book-pt   
 
 ### Team
-Ramon dos Reis Fontes (ramonrf@dca.fee.unicamp.br)  
+Ramon dos Reis Fontes (ramon.fontes@imd.ufrn.br)  
 Christian Rodolfo Esteve Rothenberg (chesteve@dca.fee.unicamp.br)  
 
 We are members of [INTRIG (Information & Networking Technologies Research & Innovation Group)](http://intrig.dca.fee.unicamp.br) at University of Campinas - Unicamp, SP, Brazil.
