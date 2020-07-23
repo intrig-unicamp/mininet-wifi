@@ -122,6 +122,7 @@ class Mininet_wifi(Mininet, Mininet_IoT):
         self.rec_rssi = rec_rssi
         self.roads = roads
         self.iot_module = iot_module
+        self.ifbIntf = 0
         self.mob_start_time = 0
         self.mob_stop_time = 0
         self.mob_rep = 1
@@ -1103,15 +1104,12 @@ class Mininet_wifi(Mininet, Mininet_IoT):
                     for intf in node.wintfs.values():
                         intf.configureMacAddr()
 
-    def configIFB(self):
-        nodes = self.stations + self.cars
-        ifbID = 0
-        for node in nodes:
-            for wlan in range(len(node.params['wlan'])):
-                if self.ifb:
-                    node.configIFB(wlan, ifbID)  # Adding Support to IFB
-                    node.wintfs[wlan].ifb = 'ifb' + str(wlan + 1)
-                    ifbID += 1
+    def configIFB(self, node):
+        for wlan in range(len(node.params['wlan'])):
+            if self.ifb:
+                node.configIFB(wlan, self.ifbIntf)  # Adding Support to IFB
+                node.wintfs[wlan].ifb = 'ifb' + str(wlan + 1)
+                self.ifbIntf += 1
 
     def configNode(self, node):
         "Configure Wireless Link"
@@ -1124,7 +1122,7 @@ class Mininet_wifi(Mininet, Mininet_IoT):
         for intf in node.wintfs.values():
             intf.configureMacAddr()
         node.configDefault()
-        self.configIFB()
+        self.configIFB(node)
 
     def plotGraph(self, **kwargs):
         "Plots Graph"
