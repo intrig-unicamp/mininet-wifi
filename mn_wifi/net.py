@@ -1299,6 +1299,7 @@ class Mininet_wifi(Mininet, Mininet_IoT):
                 if not intf.mac:
                     intf.mac = intf.getMAC()
                 intf.setMAC(intf.mac)
+            self.configIFB(ap)
 
         if self.link == wmediumd:
             self.wmediumd_mode()

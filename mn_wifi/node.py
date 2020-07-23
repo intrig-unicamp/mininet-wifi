@@ -137,6 +137,9 @@ class Node_wifi(Node):
         os.system('ip link set dev ifb%s netns %s' % (ifbID, self.pid))
         self.cmd('ip link set ifb%s name ifb%s' % (ifbID, wlan+1))
         self.cmd('ip link set ifb%s up' % (wlan+1))
+        self.handle_ingress_data(intf, wlan)
+
+    def handle_ingress_data(self, intf, wlan):
         self.cmd('tc qdisc add dev %s handle ffff: ingress' % intf)
         self.cmd('tc filter add dev %s parent ffff: protocol ip u32 '
                  'match u32 0 0 action mirred egress redirect dev ifb%s'
@@ -639,6 +642,48 @@ class OVSAP(AP, OVSSwitch):
            workaround, we clear OVS's and reapply our own."""
         if isinstance(intf, WirelessIntf):
             intf.config(**intf.params)
+
+    def start(self, controllers):
+        "Start up a new OVS OpenFlow switch using ovs-vsctl"
+        if self.inNamespace:
+            raise Exception(
+                'OVS kernel switch does not work in a namespace')
+        int(self.dpid, 16)  # DPID must be a hex string
+        # Command to add interfaces
+        intfs = ''.join(' -- add-port %s %s' % (self, intf) +
+                        self.intfOpts(intf)
+                        for intf in self.intfList()
+                        if self.ports[intf] and not intf.IP())
+        # Command to create controller entries
+        clist = [(self.name + c.name, '%s:%s:%d' %
+                  (c.protocol, c.IP(), c.port))
+                 for c in controllers]
+        if self.listenPort:
+            clist.append((self.name + '-listen',
+                          'ptcp:%s' % self.listenPort))
+        ccmd = '-- --id=@%s create Controller target=\\"%s\\"'
+        if self.reconnectms:
+            ccmd += ' max_backoff=%d' % self.reconnectms
+        cargs = ' '.join(ccmd % (name, target)
+                         for name, target in clist)
+        # Controller ID list
+        cids = ','.join('@%s' % name for name, _target in clist)
+        # Try to delete any existing bridges with the same name
+        if not self.isOldOVS():
+            cargs += ' -- --if-exists del-br %s' % self
+        # One ovs-vsctl command to rule them all!
+        self.vsctl(cargs +
+                   ' -- add-br %s' % self +
+                   ' -- set bridge %s controller=[%s]' % (self, cids) +
+                   self.bridgeOpts() +
+                   intfs)
+        # If necessary, restore TC config overwritten by OVS
+        if not self.batch:
+            for intf in self.intfList():
+                self.TCReapply(intf)
+        # we need to add the ifb interface at the end
+        if self.wintfs[0].ifb:
+            self.handle_ingress_data(self.wintfs[0], 0)
 
     @classmethod
     def batchStartup(cls, aps, run=errRun):

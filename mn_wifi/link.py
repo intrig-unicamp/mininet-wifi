@@ -842,12 +842,15 @@ class HostapdConfig(IntfWireless):
         else:
             bw = self.getBW(intf)
 
-        intf.node.cmd("tc qdisc replace dev %s "
-                      "root handle 2: tbf rate %sMbit burst 15000 "
-                      "latency 1ms" % (intf, bw))
+        intf.node.cmd("tc qdisc replace dev %s root handle 2: tbf rate %sMbit "
+                      "burst 15000 latency 1ms" % (intf, bw))
         # Reordering packets
         intf.node.cmd('tc qdisc add dev %s parent 2:1 handle 10: '
                       'pfifo limit 1000' % intf)
+
+        if intf.ifb:
+            intf.node.cmd("tc qdisc replace dev %s root handle 2: tbf "
+                          "rate %sMbit burst 15000 latency 1ms" % (intf.ifb, bw))
 
     def getBW(self, intf):
         if 'model' in intf.node.params:
