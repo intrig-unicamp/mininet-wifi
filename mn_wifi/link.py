@@ -1228,6 +1228,7 @@ class master(WirelessLink):
         self.vifaces = []
         self.associatedStations = []
         self.bssid_list = []
+        self.ifb = None
         self.auth_algs = None
         self.authmode = None
         self.band = None
@@ -1266,6 +1267,7 @@ class VirtualMaster(master):
         self.vssid = []
         self.vifaces = []
         self.associatedStations = []
+        self.ifb = None
         self.auth_algs = None
         self.authmode = None
         self.band = None
