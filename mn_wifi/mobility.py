@@ -1572,7 +1572,7 @@ def coherence_ref_point(nodes, dimensions, pointlist, velocity=(0.1, 1.), g_velo
     FL_DISTR = lambda SAMPLES: U(0, FL_MAX, SAMPLES)
     VEL_DISTR = lambda FD: U(MIN_V, MAX_V, FD)
     MAX_X, MAX_Y = dimensions
-    #Assign initial values including X and Y (parameterize this!!!)
+    #Assign initial values including X and Y
     if len(pointlist) > 1:
         current_x, current_y, current_z = pointlist[0]
         next_x, next_y, next_z = pointlist[1]
@@ -1591,7 +1591,7 @@ def coherence_ref_point(nodes, dimensions, pointlist, velocity=(0.1, 1.), g_velo
     g_y = np.array([current_y])
     #Unclear on if flight distance has any material effect in this instance
     g_fl = FL_DISTR(GROUPS)
-    #Each one unit of velocity is ~5.7 m/s on my system
+    #Each one unit of velocity is ~5.7 m/s
     g_velocity = np.array([G_VEL])
     g_theta = [np.arctan2(next_y - current_y, next_x - current_x)]
     g_costheta = np.cos(g_theta)
@@ -1613,32 +1613,6 @@ def coherence_ref_point(nodes, dimensions, pointlist, velocity=(0.1, 1.), g_velo
 
             x[g] = x_g + g_velocity[i] * g_costheta[i] + aggregation * np.cos(c_theta)
             y[g] = y_g + g_velocity[i] * g_sintheta[i] + aggregation * np.sin(c_theta)
-        #TODO: Determine desired edge behavior!!
-        # node and group bounces on the margins
-        # b = np.where(x < 0)[0]
-        # if b.size > 0:
-        #     x[b] = -x[b]
-        #     costheta[b] = -costheta[b]
-        #     g_idx = np.unique(g_ref[b])
-        #     g_costheta[g_idx] = -g_costheta[g_idx]
-        # b = np.where(x > MAX_X)[0]
-        # if b.size > 0:
-        #     x[b] = 2 * MAX_X - x[b]
-        #     costheta[b] = -costheta[b]
-        #     g_idx = np.unique(g_ref[b])
-        #     g_costheta[g_idx] = -g_costheta[g_idx]
-        # b = np.where(y < 0)[0]
-        # if b.size > 0:
-        #     y[b] = -y[b]
-        #     sintheta[b] = -sintheta[b]
-        #     g_idx = np.unique(g_ref[b])
-        #     g_sintheta[g_idx] = -g_sintheta[g_idx]
-        # b = np.where(y > MAX_Y)[0]
-        # if b.size > 0:
-        #     y[b] = 2 * MAX_Y - y[b]
-        #     sintheta[b] = -sintheta[b]
-        #     g_idx = np.unique(g_ref[b])
-        #     g_sintheta[g_idx] = -g_sintheta[g_idx]
 
         # update info for nodes
         theta = U(0, 2 * np.pi, NODES)
