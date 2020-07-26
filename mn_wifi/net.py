@@ -138,6 +138,7 @@ class Mininet_wifi(Mininet, Mininet_IoT):
         self.min_wt = 1
         self.max_wt = 5
         self.wlinks = []
+        self.pointlist = []
 
         if autoSetPositions and link == wmediumd:
             self.wmediumd_mode = interference
@@ -1192,7 +1193,7 @@ class Mininet_wifi(Mininet, Mininet_IoT):
         args = ['stations', 'cars', 'aps', 'draw', 'seed',
                 'roads', 'mob_start_time', 'mob_stop_time',
                 'links', 'mob_model', 'mob_rep', 'reverse',
-                'ac_method']
+                'ac_method', 'pointlist']
         args += float_args
         for arg in args:
             if arg in float_args:
