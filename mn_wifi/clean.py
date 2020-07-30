@@ -75,9 +75,23 @@ class Cleanup(object):
         cls.sh('pkill wmediumd')
         sleep(0.1)
 
-        info("\n*** Removing WiFi module and Configurations\n")
-        cls.kill_mod('mac80211_hwsim')
-        cls.kill_mod('ifb')
+        info("\n*** Removing WiFi module and Configurations\n")        
+        phy = subprocess.check_output('find /sys/kernel/debug/ieee80211 -name hwsim | cut -d/ -f 6 | sort', shell=True).decode('utf-8').split("\n")
+        phy.pop()
+        phy.sort(key=len, reverse=False)
+        count = 0
+        for phydev in phy:
+            if str(os.getpid()) in phydev:                
+                p = subprocess.Popen(["hwsim_mgmt", "-x", phydev], stdin=subprocess.PIPE,
+                             stdout=subprocess.PIPE,
+                             stderr=subprocess.PIPE,
+                             bufsize=-1)
+                output, err_out = p.communicate()
+            else:
+                count += 1
+        if count == 0:
+            cls.kill_mod('mac80211_hwsim')
+            cls.kill_mod('ifb')
 
         try:
             os.system('pkill -f \'wpa_supplicant -B -Dnl80211\'')
