@@ -33,7 +33,7 @@ class Mac80211Hwsim(object):
         return wlan_list
 
     def configPhys(self, node, **params):
-        cmd = 'find /sys/kernel/debug/ieee80211 -name hwsim | cut -d/ -f 6 | sort'
+        cmd = 'find /sys/kernel/debug/ieee80211 -name hwsim | grep %05d | cut -d/ -f 6 | sort' % os.getpid()  # grep on PID in devicelist
         phys = self.get_intf_list(cmd)  # gets virtual and phy interfaces
         wlan_list = self.get_wlan_list(phys, **params)  # gets wlan list
         self.assign_iface(node, phys, wlan_list, (len(phys)-1), **params)
@@ -51,7 +51,7 @@ class Mac80211Hwsim(object):
         cmd = 'iw dev 2>&1 | grep Interface | awk \'{print $2}\''
         Mac80211Hwsim.phyWlans = self.get_intf_list(cmd)  # gets physical wlan(s)
         self.load_module(nradios, nodes, alt_module, **params)  # loads wifi module
-        cmd = 'find /sys/kernel/debug/ieee80211 -name hwsim | cut -d/ -f 6 | sort'
+        cmd = 'find /sys/kernel/debug/ieee80211 -name hwsim | grep %05d | cut -d/ -f 6 | sort' % os.getpid()  # grep on PID in devicelist
         phys = self.get_intf_list(cmd)  # gets virtual and phy interfaces
         wlan_list = self.get_wlan_list(phys, **params)  # gets wlan list
         for node in nodes:
@@ -98,11 +98,11 @@ class Mac80211Hwsim(object):
         num = 0
         numokay = False
         self.prefix = ""
-        cmd = "find /sys/kernel/debug/ieee80211 -name hwsim | cut -d/ -f 6 | sort"
+        cmd = 'find /sys/kernel/debug/ieee80211 -name hwsim | grep %05d | cut -d/ -f 6 | sort' % os.getpid()  # grep on PID in devicelist
         phys = subprocess.check_output(cmd, shell=True).decode('utf-8').split("\n")
 
         while not numokay:
-            self.prefix = "mn%02ds" % num
+            self.prefix = "mn%05dp%02ds" % (os.getpid(), num)       # Add PID to mn-devicenames
             numokay = True
             for phy in phys:
                 if phy.startswith(self.prefix):
