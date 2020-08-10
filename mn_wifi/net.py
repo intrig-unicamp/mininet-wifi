@@ -47,9 +47,10 @@ class Mininet_wifi(Mininet, Mininet_IoT):
 
     def __init__(self, accessPoint=OVSKernelAP, station=Station, car=Car,
                  sensor=LowPANNode, apsensor=OVSSensor, link=WirelessLink,
-                 ssid="new-ssid", mode="g", channel=1, wmediumd_mode=snr, roads=0,
-                 fading_cof=0, autoAssociation=True, allAutoAssociation=True,
-                 autoSetPositions=False, configWiFiDirect=False, config4addr=False,
+                 ssid="new-ssid", mode="g", channel=1, freq=2.4, band=20,
+                 wmediumd_mode=snr, roads=0, fading_cof=0, autoAssociation=True,
+                 allAutoAssociation=True, autoSetPositions=False,
+                 configWiFiDirect=False, config4addr=False,
                  noise_th=-91, cca_th=-90, disable_tcp_checksum=False, ifb=False,
                  client_isolation=False, plot=False, plot3d=False, docker=False,
                  container='mininet-wifi', ssh_user='alpha', rec_rssi=False,
@@ -66,6 +67,8 @@ class Mininet_wifi(Mininet, Mininet_IoT):
            ssid: wifi ssid
            mode: wifi mode
            channel: wifi channel
+           freq: wifi freq
+           band: bandwidth channel
            wmediumd_mode: default wmediumd mode
            roads: number of roads
            fading_cof: fadding coefficient
@@ -91,6 +94,8 @@ class Mininet_wifi(Mininet, Mininet_IoT):
         self.ssid = ssid
         self.mode = mode
         self.channel = channel
+        self.freq = freq
+        self.band = band
         self.wmediumd_mode = wmediumd_mode
         self.aps = []
         self.cars = []
@@ -344,6 +349,8 @@ class Mininet_wifi(Mininet, Mininet_IoT):
                                   prefixLen=self.prefixLen6) +
                            '/%s' % self.prefixLen6,
                     'channel': self.channel,
+                    'freq': self.freq,
+                    'band': self.band,
                     'mode': self.mode
                    }
         defaults.update(params)
@@ -419,6 +426,8 @@ class Mininet_wifi(Mininet, Mininet_IoT):
                     'inNamespace': self.inNamespace,
                     'ssid': self.ssid,
                     'channel': self.channel,
+                    'freq': self.freq,
+                    'band': self.band,
                     'mode': self.mode
                     }
         if self.client_isolation:

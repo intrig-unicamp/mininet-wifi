@@ -707,7 +707,7 @@ class HostapdConfig(IntfWireless):
     def get_mode_config(intf):
         cmd = ''
         if intf.mode == 'n':
-            if intf.band and str(intf.band) == '5':
+            if intf.freq and str(intf.freq) == '5.0':
                 cmd += "\nhw_mode=a"
             else:
                 cmd += "\nhw_mode=g"
@@ -1231,7 +1231,7 @@ class master(WirelessLink):
         self.ifb = None
         self.auth_algs = None
         self.authmode = None
-        self.band = None
+        self.freq = None
         self.beacon_int = None
         self.config = None
         self.config_methods = None
@@ -1251,7 +1251,7 @@ class master(WirelessLink):
         self.wpa_psk_file = None
         self.wep_key0 = None
         self.link = None
-        self.bandChannel = 20  # bandwidth channel
+        self.band = 20  # bandwidth channel
         self.assign_params_to_intf(intf, wlan)
 
 
@@ -1270,7 +1270,7 @@ class VirtualMaster(master):
         self.ifb = None
         self.auth_algs = None
         self.authmode = None
-        self.band = None
+        self.freq = None
         self.beacon_int = None
         self.config = None
         self.config_methods = None
@@ -1317,7 +1317,7 @@ class managed(WirelessLink):
         self.s_inverval = 0  # short interval
         self.l_interval = 0  # long interval
         self.bgscan_threshold = 0
-        self.bandChannel = 20  # bandwidth channel
+        self.band = 20  # bandwidth channel
         self.rssi = -60
         self.assign_params_to_intf(intf, wlan)
 
@@ -1559,7 +1559,7 @@ class ITSLink(LinkAttrs):
         self.mac = intf.mac
 
         # It takes default values if keys are not set
-        kwargs = {'channel': '181', 'bandChannel': 10,
+        kwargs = {'channel': '181', 'band': 10,
                   'proto': None, 'txpower': 17}
 
         for k, v in kwargs.items():
@@ -1610,7 +1610,7 @@ class ITSLink(LinkAttrs):
         "Configure Wireless OCB"
         freq = int('{:<04s}'.format(str(self.freq).replace('.', '')))
         self.iwdev_cmd('{} ocb join {} {}MHz'.format(self.name, freq,
-                                                     self.bandChannel))
+                                                     self.band))
 
 
 class WifiDirectLink(LinkAttrs):
