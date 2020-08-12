@@ -1053,9 +1053,11 @@ class WirelessLink(TCIntf, IntfWireless):
                     if wlan > 0 and key == 'mac':
                         self.mac = self.getMAC()
                     else:
-                        setattr(self, key, self.node.params[key])
-
-                if key == 'range': self.static_range = True
+                        if key == 'range':
+                            setattr(self, key, int(self.node.params[key]))
+                            self.static_range = True
+                        else:
+                            setattr(self, key, self.node.params[key])
 
 
 class _4address(Link, IntfWireless):
