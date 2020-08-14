@@ -67,16 +67,14 @@ class ReplayingMobility(Mobility):
             if hasattr(node, 'time'):
                 self.timestamp = True
 
-        calc_pos = self.notimestamp_
-        if self.timestamp:
-            calc_pos = self.timestamp_
+        calc_pos = self.timestamp_ if self.timestamp else self.notimestamp_
 
         while self.thread_._keep_alive:
             time_ = time() - currentTime
             if len(nodes) == 0:
                 break
             for node in nodes:
-                if node in self.stations:
+                if hasattr(node, 'p'):
                     calc_pos(node, time_)
                     if len(node.p) == 0:
                         nodes.remove(node)
