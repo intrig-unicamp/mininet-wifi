@@ -306,6 +306,10 @@ class IntfWireless(Intf):
             self.ibss_leave()
         adhoc(self.node, intf=self, **kwargs)
 
+    def setBand(self, intf=None, *args):
+        self.getNameToWintf(intf).setBand(*args)
+        # self.update_graph()
+
     def setIP(self, ipstr, prefixLen=None, **args):
         """Set our IP address"""
         # This is a sign that we should perhaps rethink our prefix

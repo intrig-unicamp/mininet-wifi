@@ -216,6 +216,14 @@ class Node_wifi(Node):
                 color = 'r'
         return color
 
+    def setBand(self, *args):
+        self.ipLink('down')
+        cmd = '{} set freq {}'.format(self.name, self.format_freq())
+        self.iwdev_cmd(cmd, *args)
+        self.ipLink('up')
+        debug('\n')
+        self.band = args[0]
+
     def updateLine(self):
         pos = [self.position[0], self.position[1]]
         if hasattr(self, 'lines'):
