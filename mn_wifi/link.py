@@ -475,6 +475,8 @@ class IntfWireless(Intf):
                     self.wep(ap_intf)
                     associated = 1
         if associated:
+            if 'associate_callback' in self.node.params:
+                self.node.params['associate_callback'](self)
             self.update_client_params(ap_intf)
 
     def configureWirelessLink(self, ap_intf):
