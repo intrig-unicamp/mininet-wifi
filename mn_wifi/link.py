@@ -886,7 +886,8 @@ class HostapdConfig(IntfWireless):
         if nm_is_running != 256:
             info('Mac address(es) added into %s\n' % cls.nm_conf_file)
             info('Restarting %s...\n' % nms)
-            os.system('nmcli general reload')
+            os.system('sudo service network-manager restart')
+            #os.system('nmcli general reload')
             sleep(2)
 
     def checkNetworkManager(self, intf):
