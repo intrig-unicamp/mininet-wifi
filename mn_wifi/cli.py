@@ -2,7 +2,7 @@ import sys
 
 from mininet.cli import CLI as MN_CLI
 from mininet.log import output, error
-from threading import Lock, ThreadError
+from threading import ThreadError
 
 
 class CLI(MN_CLI):
@@ -43,7 +43,7 @@ class CLI(MN_CLI):
             output(sw.dpctl(*args))
 
     def waitForNode(self, node):
-        super().waitForNode(node)
+        MN_CLI.waitForNode(self, node)
         try:
             node.lock.release()
         except ThreadError:

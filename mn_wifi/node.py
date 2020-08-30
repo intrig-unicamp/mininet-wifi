@@ -445,10 +445,10 @@ class Node_wifi(Node):
 
     def sendCmd(self, *args, **kwargs):
         self.lock.acquire()
-        return super().sendCmd(*args, **kwargs)
+        return Node.sendCmd(self, *args, **kwargs)
 
     def waitOutput(self, verbose=False, findPid=True):
-        ret = super().waitOutput(verbose, findPid)
+        ret = Node.waitOutput(self, verbose, findPid)
         try:
             self.lock.release()
         except ThreadError:
