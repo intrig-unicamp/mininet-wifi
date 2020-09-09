@@ -34,7 +34,6 @@ from mininet.moduledeps import pathCheck
 from mininet.link import Intf
 from mn_wifi.link import WirelessIntf, ConfigWLink, physicalMesh, ITSLink
 from mn_wifi.wmediumdConnector import w_server, w_pos, w_cst, wmediumd_mode
-from threading import Lock, ThreadError
 
 from re import findall
 
@@ -78,7 +77,6 @@ class Node_wifi(Node):
              None, None, None, None, None, None, None, None)
         self.waiting = False
         self.readbuf = ''
-        self.lock = Lock()
 
         # Incremental decoder for buffered reading
         self.decoder = getincrementaldecoder()
@@ -442,18 +440,6 @@ class Node_wifi(Node):
         for intf in self.wintfs.values():
             self.cmd('ip link set %s up' % intf.name)
         self.showNode()
-
-    def sendCmd(self, *args, **kwargs):
-        self.lock.acquire()
-        return Node.sendCmd(self, *args, **kwargs)
-
-    def waitOutput(self, verbose=False, findPid=True):
-        ret = Node.waitOutput(self, verbose, findPid)
-        try:
-            self.lock.release()
-        except ThreadError:
-            pass
-        return ret
 
 
 class Station(Node_wifi):

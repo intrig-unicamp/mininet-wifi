@@ -475,8 +475,6 @@ class IntfWireless(Intf):
                     self.wep(ap_intf)
                     associated = 1
         if associated:
-            if 'associate_callback' in self.node.params:
-                self.node.params['associate_callback'](self)
             self.update_client_params(ap_intf)
 
     def configureWirelessLink(self, ap_intf):
@@ -1724,7 +1722,8 @@ class adhoc(LinkAttrs):
         # It takes default values if keys are not set
         kwargs = {'ibss': '02:CA:FF:EE:BA:01', 'ht_cap': '',
                   'passwd': None, 'ssid': 'adhocNet', 'proto': None,
-                  'mode': 'g', 'channel': 1, 'txpower': 15}
+                  'mode': 'g', 'channel': 1, 'txpower': 15,
+                  'ap_scan': 2}
 
         for k, v in kwargs.items():
             setattr(self, k, params.get(k, v))
@@ -1767,12 +1766,12 @@ class adhoc(LinkAttrs):
             self.join_ibss(self.ssid, self.format_freq(), self.ht_cap, self.ibss)
 
     def get_sta_confname(self):
-        return '{}.staconf'.format(self.name)
+        return '{}_0.staconf'.format(self.name)
 
     def setSecuredAdhoc(self):
         "Set secured adhoc"
-        cmd = 'ctrl_interface=/var/run/wpa_supplicant GROUP=wheel\n'
-        cmd += 'ap_scan=2\n'
+        cmd = 'ctrl_interface=/var/run/wpa_supplicant\n'
+        cmd += 'ap_scan=%s\n' % self.ap_scan
         cmd += 'network={\n'
         cmd += '         ssid="%s"\n' % self.ssid
         cmd += '         mode=1\n'
@@ -1786,6 +1785,7 @@ class adhoc(LinkAttrs):
 
         pattern = self.get_sta_confname()
         os.system('echo \'%s\' > %s' % (cmd, pattern))
+        self.cmd(self.get_wpa_cmd())
 
 
 class mesh(LinkAttrs):
