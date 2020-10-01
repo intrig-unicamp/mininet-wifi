@@ -189,9 +189,14 @@ function p4_deps {
     pushd $BUILD_DIR/mininet-wifi/p4-dependencies
     git clone https://github.com/jafingerhut/p4-guide
     pushd $BUILD_DIR/mininet-wifi/p4-dependencies/p4-guide
-    git reset --hard ef0f4e1
-    patch -p0 < $MININET_DIR/mininet-wifi/util/p4-patches/p4-guide-without-mininet.patch
-    sudo ./bin/install-p4dev-v2.sh |& tee log.txt
+
+    if [ "$DIST" = "Ubuntu" ] && [ "$RELEASE" = "20.04" ]; then
+        sudo ./bin/install-p4dev-v3.sh |& tee log.txt
+    else
+        git reset --hard ef0f4e1
+        patch -p0 < $MININET_DIR/mininet-wifi/util/p4-patches/p4-guide-without-mininet.patch
+        sudo ./bin/install-p4dev-v2.sh |& tee log.txt
+    fi
 }
 
 # Install Mininet-WiFi deps
