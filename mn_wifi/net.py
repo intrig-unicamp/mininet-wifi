@@ -1251,7 +1251,7 @@ class Mininet_wifi(Mininet, Mininet_IoT):
                 else:
                     # assign txpower according to the signal range
                     if 'model' not in node.params:
-                        intf.setDefaultTxPower()
+                        intf.getTxPowerGivenRange()
 
     def config_antenna(self):
         nodes = self.stations + self.cars + self.aps

@@ -184,6 +184,8 @@ ppm = PropagationModel
 
 class SetSignalRange(object):
 
+    range = 0
+
     def __init__(self, intf):
         "Calculate the signal range given the propagation model"
         if ppm.model in dir(self):
@@ -204,10 +206,10 @@ class SetSignalRange(object):
 
         lambda_ = c / f  # lambda: wavelength (m)
         denominator = lambda_ ** 2
-        range = math.pow(10, ((-ppm.noise_th + gains +
+        self.range = math.pow(10, ((-ppm.noise_th + gains +
                                10 * math.log10(denominator)) /
                               10 - math.log10((4 * math.pi) ** 2 * L)) / 2)
-        intf.range = range
+        return self.range
 
     def path_loss(self, intf, dist):
         """Path Loss Model:
@@ -221,7 +223,6 @@ class SetSignalRange(object):
         denominator = lambda_ ** 2
         numerator = (4 * math.pi * dist) ** 2 * ppm.sL
         pl = 10 * math.log10(numerator / denominator)
-
         return pl
 
     def twoRayGround(self, intf):
@@ -237,7 +238,8 @@ class SetSignalRange(object):
         denominator = (c / f) / 1000
         dCross = (4 * math.pi * ht * ht) / denominator
         numerator = (pt * gt * gt * ht ** 2 * ht ** 2)
-        intf.range = (numerator / ((gains - ppm.noise_th))/ppm.sL) * dCross
+        self.range = (numerator / ((gains - ppm.noise_th))/ppm.sL) * dCross
+        return self.range
 
     def logDistance(self, intf):
         """Log Distance Propagation Loss Model:
@@ -252,8 +254,9 @@ class SetSignalRange(object):
         ref_d = 1
 
         pl = self.path_loss(intf, ref_d)
-        intf.range = math.pow(10, ((-ppm.noise_th - pl + gains) /
+        self.range = math.pow(10, ((-ppm.noise_th - pl + gains) /
                                    (10 * ppm.exp))) * ref_d
+        return self.range
     
     def logNormalShadowing(self, intf):
         """Log-Normal Shadowing Propagation Loss Model"""
@@ -278,7 +281,8 @@ class SetSignalRange(object):
         numerator = -ppm.noise_th - pl + gains
         denominator = 10 * ppm.exp
 
-        intf.range = math.pow(10, (numerator / denominator)) * ref_d
+        self.range = math.pow(10, (numerator / denominator)) * ref_d
+        return self.range
 
     def ITU(self, intf):
         """International Telecommunication Union (ITU) Propagation Loss Model:"""
@@ -290,8 +294,9 @@ class SetSignalRange(object):
         lF = ppm.lF  # Floor penetration loss factor
         nFloors = ppm.nFloors  # Number of Floors
 
-        intf.range = math.pow(10, ((-ppm.noise_th + gains -
+        self.range = math.pow(10, ((-ppm.noise_th + gains -
                                     20 * math.log10(f) - lF * nFloors + 28)/N))
+        return self.range
 
 
 class GetPowerGivenRange(object):

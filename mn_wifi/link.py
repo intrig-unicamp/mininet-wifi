@@ -69,6 +69,9 @@ class IntfWireless(Intf):
         return self.iwdev_cmd('{} interface add {} type {}'.format(
             self.name, new_name, type))
 
+    def set_bitrates(self, *args):
+        return self.iwdev_cmd('{} set bitrates'.format(self.name), *args)
+
     def join_ibss(self, *args):
         return self.iwdev_cmd('{} ibss join'.format(self.name), *args)
 
@@ -237,13 +240,19 @@ class IntfWireless(Intf):
     def setMode(self, mode):
         self.mode = mode
 
-    def setDefaultTxPower(self):
+    def getTxPowerGivenRange(self):
         txpower = GetPowerGivenRange(self).txpower
         self.setTxPower(txpower)
+        if self.txpower == 1:
+            min_range = int(SetSignalRange(self).range)
+            if self.range < min_range:
+                info("*** WARNING: The signal range for %s should be "
+                     "changed to %s\n" % (self.name, min_range))
+                info("*** See https://mininet-wifi.github.io/faq/#q7 for more information\n")
 
     def setDefaultRange(self):
         if not self.static_range:
-            SetSignalRange(self)
+            self.range = SetSignalRange(self).range
 
     def setAntennaGain(self, gain):
         self.antennaGain = int(gain)
@@ -259,7 +268,7 @@ class IntfWireless(Intf):
 
     def setRange(self, range):
         self.range = float(range)
-        self.setDefaultTxPower()
+        self.getTxPowerGivenRange()
         self.node.configLinks()
 
     def setTxPower(self, txpower):
@@ -759,6 +768,8 @@ class HostapdConfig(IntfWireless):
 
         if intf.ht_capab:
             cmd += '\nht_capab=%s' % intf.ht_capab
+        if intf.vht_capab:
+            cmd += '\nvht_capab=%s' % intf.vht_capab
         if intf.beacon_int:
             cmd += '\nbeacon_int=%s' % intf.beacon_int
         if intf.client_isolation:
@@ -823,7 +834,9 @@ class HostapdConfig(IntfWireless):
 
                 if intf.mode == 'ac' or intf.mode == 'n':
                     cmd += "\nwmm_enabled=1"
-                    cmd += "\nieee80211%s=1" % intf.mode
+                    cmd += "\nieee80211n=1"
+                    if intf.mode == 'ac':
+                        cmd += "\nieee80211ac=1"
 
                 if intf.ieee80211r:
                     if intf.mobility_domain:
@@ -1245,6 +1258,7 @@ class master(WirelessLink):
         self.country_code = 'US'
         self.encrypt = None
         self.ht_capab = None
+        self.vht_capab = None
         self.ieee80211r = None
         self.client_isolation = None
         self.mobility_domain = None
@@ -1283,6 +1297,7 @@ class VirtualMaster(master):
         self.config_methods = None
         self.encrypt = None
         self.ht_capab = None
+        self.vht_capab = None
         self.ieee80211r = None
         self.client_isolation = None
         self.mobility_domain = None
@@ -1723,7 +1738,7 @@ class adhoc(LinkAttrs):
         kwargs = {'ibss': '02:CA:FF:EE:BA:01', 'ht_cap': '',
                   'passwd': None, 'ssid': 'adhocNet', 'proto': None,
                   'mode': 'g', 'channel': 1, 'txpower': 15,
-                  'ap_scan': 2}
+                  'ap_scan': 2, 'bitrates': ''}
 
         for k, v in kwargs.items():
             setattr(self, k, params.get(k, v))
@@ -1763,7 +1778,10 @@ class adhoc(LinkAttrs):
         if self.passwd:
             self.setSecuredAdhoc()
         else:
-            self.join_ibss(self.ssid, self.format_freq(), self.ht_cap, self.ibss)
+            if self.bitrates:
+                self.set_bitrates(self.bitrates)
+            self.join_ibss(self.ssid, self.format_freq(),
+                           self.ht_cap, self.ibss)
 
     def get_sta_confname(self):
         return '{}_0.staconf'.format(self.name)
