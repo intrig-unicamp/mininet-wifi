@@ -191,6 +191,8 @@ function p4_deps {
     pushd $BUILD_DIR/mininet-wifi/p4-dependencies/p4-guide
 
     if [ "$DIST" = "Ubuntu" ] && [ "$RELEASE" = "20.04" ]; then
+        git reset --hard 1fa500a
+        patch -p0 < $MININET_DIR/mininet-wifi/util/p4-patches/p4-guide-v3-without-mininet.patch
         sudo ./bin/install-p4dev-v3.sh |& tee log.txt
     else
         git reset --hard ef0f4e1
