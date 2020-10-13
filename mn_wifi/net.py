@@ -25,7 +25,8 @@ from mn_wifi.node import AP, Station, Car, \
 from mn_wifi.wmediumdConnector import error_prob, snr, interference
 from mn_wifi.link import ConfigWLink, wmediumd, _4address, HostapdConfig, \
     WirelessLink, TCLinkWireless, ITSLink, WifiDirectLink, adhoc, mesh, \
-    master, managed, physicalMesh, PhysicalWifiDirectLink, _4addrClient, _4addrAP
+    master, managed, physicalMesh, PhysicalWifiDirectLink, _4addrClient, 
+    _4addrAP, phyAP
 from mn_wifi.clean import Cleanup as CleanupWifi
 from mn_wifi.energy import Energy
 from mn_wifi.telemetry import parseData, telemetry as run_telemetry
@@ -1257,7 +1258,9 @@ class Mininet_wifi(Mininet, Mininet_IoT):
         nodes = self.stations + self.cars + self.aps
         for node in nodes:
             for intf in node.wintfs.values():
-                if not isinstance(intf, _4addrAP) and not isinstance(intf, PhysicalWifiDirectLink):
+                if not isinstance(intf, _4addrAP) and \
+                         not isinstance(intf, PhysicalWifiDirectLink) and \
+                         not isinstance(intf, phyAP):
                     intf.setTxPower(intf.txpower)
                     intf.setAntennaGain(intf.antennaGain)
 
@@ -1268,7 +1271,7 @@ class Mininet_wifi(Mininet, Mininet_IoT):
         if phy:
             TCLinkWireless(node, intfName=phy)
             node.params['wlan'].append(phy)
-            master(node, wlan+1)
+            phyAP(node, wlan+1)
 
     def restartNetworkManager(self):
         # restart NM if a new mac addr has been added in .config

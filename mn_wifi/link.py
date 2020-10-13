@@ -1314,6 +1314,9 @@ class VirtualMaster(master):
         self.assign_params_to_intf(intf, wlan)
 
 
+phyAP = master      
+
+
 class managed(WirelessLink):
     "managed class"
 
@@ -1406,7 +1409,7 @@ class wmediumd(object):
         for node in nodes:
             node.wmIfaces = []
             for intf in node.wintfs.values():
-                if intf.mac not in mac_list:
+                if intf.mac not in mac_list and not isinstance(intf, phyAP):
                     intf.wmIface = DynamicIntfRef(node, intf=intf.name)
                     intfrefs.append(intf.wmIface)
                     node.wmIfaces.append(intf.wmIface)
@@ -1446,7 +1449,7 @@ class wmediumd(object):
 
             mac_list = []
             for wlan, intf in enumerate(node.wintfs.values()):
-                if intf.mac not in mac_list:
+                if intf.mac not in mac_list and not isinstance(intf, phyAP):
                     if wlan >= 1:
                         posX += 0.1
                     self.positions.append(w_pos(intf.wmIface, [posX, posY, posZ]))
