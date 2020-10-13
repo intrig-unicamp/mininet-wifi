@@ -1314,7 +1314,45 @@ class VirtualMaster(master):
         self.assign_params_to_intf(intf, wlan)
 
 
-phyAP = master      
+class phyAP(WirelessLink):
+    "phyap class"
+
+    def __init__(self, node, wlan, port=None, intf=None):
+        WirelessLink.set_attrs(self, node, wlan)
+        self.name = node.params['wlan'][wlan]
+        node.addWAttr(self, port=port)
+        self.params = {}
+        self.stationsInRange = {}
+        self.vssid = []
+        self.vifaces = []
+        self.associatedStations = []
+        self.bssid_list = []
+        self.ifb = None
+        self.auth_algs = None
+        self.authmode = None
+        self.freq = None
+        self.beacon_int = None
+        self.config = None
+        self.config_methods = None
+        self.country_code = 'US'
+        self.encrypt = None
+        self.ht_capab = None
+        self.vht_capab = None
+        self.ieee80211r = None
+        self.client_isolation = None
+        self.mobility_domain = None
+        self.passwd = None
+        self.shared_secret = None
+        self.wpa_key_mgmt = None
+        self.rsn_pairwise = None
+        self.radius_server = None
+        self.wps_state = None
+        self.device_type = None
+        self.wpa_psk_file = None
+        self.wep_key0 = None
+        self.link = None
+        self.band = 20  # bandwidth channel
+        self.assign_params_to_intf(intf, wlan)
 
 
 class managed(WirelessLink):
