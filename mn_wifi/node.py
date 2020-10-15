@@ -123,6 +123,9 @@ class Node_wifi(Node):
     def setMinVelocity(self, v=None):
         self.min_v = v
 
+    def setIntfName(self, *args):
+        self.wintfs[int(args[1])].setIntfName(*args)
+
     def roam(self, bssid, intf=None):
         self.getNameToWintf(intf).roam(bssid)
 

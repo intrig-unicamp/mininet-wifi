@@ -192,6 +192,19 @@ class IntfWireless(Intf):
         if self.mode == 'a' or self.mode == 'ac':
             self.pexec('iw reg set US')
 
+    def setIntfName(self, *args):
+        self.cmd('ip link set %s down' % self.name)
+        self.cmd('ip link set %s name %s' % (self.name, args[0]))
+        self.cmd('ip link set %s up' % args[0])
+        self.setIntfAttrs(*args)
+
+    def setIntfAttrs(self, *args):
+        self.node.params['wlan'][int(args[1])] = args[0]
+        for intf in self.node.intfs:
+            if self.node.intfs[intf].name == self.name:
+                self.node.intfs[intf].name = args[0]
+        self.name = args[0]
+
     def setAPChannel(self, channel):
         self.freq = self.get_freq()
         self.pexec('hostapd_cli -i %s chan_switch %s %s' % (
