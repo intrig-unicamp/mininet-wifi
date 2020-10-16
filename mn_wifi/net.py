@@ -1314,6 +1314,7 @@ class Mininet_wifi(Mininet, Mininet_IoT):
                 intf.setMAC(intf.mac)
             self.configIFB(ap)
 
+        self.config_range()
         if self.link == wmediumd:
             self.wmediumd_mode()
             if not self.configWiFiDirect and not self.config4addr \
@@ -1325,7 +1326,6 @@ class Mininet_wifi(Mininet, Mininet_IoT):
                 HostapdConfig(intf)
 
         self.restartNetworkManager()
-        self.config_range()
         if not self.config4addr and not self.configWiFiDirect:
             self.config_antenna()
 
