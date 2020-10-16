@@ -192,6 +192,19 @@ class IntfWireless(Intf):
         if self.mode == 'a' or self.mode == 'ac':
             self.pexec('iw reg set US')
 
+    def setIntfName(self, *args):
+        self.cmd('ip link set %s down' % self.name)
+        self.cmd('ip link set %s name %s' % (self.name, args[0]))
+        self.cmd('ip link set %s up' % args[0])
+        self.setIntfAttrs(*args)
+
+    def setIntfAttrs(self, *args):
+        self.node.params['wlan'][int(args[1])] = args[0]
+        for intf in self.node.intfs:
+            if self.node.intfs[intf].name == self.name:
+                self.node.intfs[intf].name = args[0]
+        self.name = args[0]
+
     def setAPChannel(self, channel):
         self.freq = self.get_freq()
         self.pexec('hostapd_cli -i %s chan_switch %s %s' % (
@@ -246,9 +259,12 @@ class IntfWireless(Intf):
         if self.txpower == 1:
             min_range = int(SetSignalRange(self).range)
             if self.range < min_range:
-                info("*** WARNING: The signal range for %s should be "
-                     "changed to %s\n" % (self.name, min_range))
-                info("*** See https://mininet-wifi.github.io/faq/#q7 for more information\n")
+                info("*** %s: the signal range should be "
+                     "changed to (at least) %sm\n" % (self.name, min_range))
+                info("*** >>> See https://mininet-wifi.github.io/faq/#q7 for more information\n")
+        else:
+            info("*** %s: signal range of %sm requires tx power equal to %sdBm.\n"
+                 % (self.name, self.range, txpower))
 
     def setDefaultRange(self):
         if not self.static_range:
@@ -1491,7 +1507,7 @@ class wmediumd(object):
                     if wlan >= 1:
                         posX += 0.1
                     self.positions.append(w_pos(intf.wmIface, [posX, posY, posZ]))
-                    self.txpowers.append(w_txpower(intf.wmIface, float(intf.txpower)))
+                    self.txpowers.append(w_txpower(intf.wmIface, int(intf.txpower)))
                     mac_list.append(intf.mac)
 
     def error_prob(self, wlinks):
