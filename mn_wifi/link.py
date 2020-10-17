@@ -455,7 +455,7 @@ class IntfWireless(Intf):
         self.wpa_cli_cmd('roam %s' % bssid)
 
     def wep_connect(self, passwd, ap_intf):
-        self.iwdev_pexec('{} connect {} key d:0:{}'.format(
+        self.iwdev_cmd('{} connect {} key d:0:{}'.format(
             self.name, ap_intf.ssid, passwd))
 
     def disconnect_pexec(self, ap_intf):
