@@ -568,12 +568,12 @@ class Mininet_wifi(Mininet, Mininet_IoT):
         if hasattr(intf.node, 'position') and hasattr(ap_intf.node, 'position'):
             do_association = self.do_association(intf, ap_intf)
         if do_association:
-            intf.associate(ap_intf)
             if 'bw' not in params and 'bw' not in str(cls):
                 params['bw'] = intf.getCustomRate() if hasattr(intf.node, 'position') else intf.getRate()
             # tc = True, this is useful for tc configuration
             TCLinkWireless(node=intf.node, intfName=intf.name,
                            port=intf.id, cls=cls, **params)
+            intf.associate(ap_intf)
 
     def addLink(self, node1, node2=None, port1=None, port2=None,
                 cls=None, **params):
