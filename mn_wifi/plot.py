@@ -47,10 +47,6 @@ class Plot3D (object):
         x, y, z = node.getxyz()
         node.plttxt = Plot3D.ax.text(x, y, z, node.name)
 
-        # newer MPL versions (>=1.4) compatability
-        if not hasattr(node.plttxt, 'xyann'):
-            node.plttxt.xyann = node.plttxt.xytext
-
     @classmethod
     def instantiate_node(cls, node):
         x, y, z = node.getxyz()
