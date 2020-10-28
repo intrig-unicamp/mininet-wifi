@@ -176,7 +176,7 @@ class Node_wifi(Node):
         cmd = 'iw dev %s info | grep txpower | awk \'{print $2}\'' % intf
         if connected != 'Not' or isinstance(self, AP):
             try:
-                txpower = int(self.cmd(cmd))
+                txpower = int(float(self.cmd(cmd)))
             except:
                 txpower = 14 if isinstance(self, AP) else 20
             return txpower
