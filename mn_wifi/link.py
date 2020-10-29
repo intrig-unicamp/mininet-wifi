@@ -1289,6 +1289,8 @@ class master(WirelessLink):
         self.wep_key0 = None
         self.link = None
         self.band = 20  # bandwidth channel
+        self.consumption = 0.0
+        self.voltage = 10.0
         self.assign_params_to_intf(intf, wlan)
 
 
@@ -1396,6 +1398,8 @@ class managed(WirelessLink):
         self.s_inverval = 0  # short interval
         self.l_interval = 0  # long interval
         self.bgscan_threshold = 0
+        self.consumption = 0.0
+        self.voltage = 10.0
         self.band = 20  # bandwidth channel
         self.rssi = -60
         self.assign_params_to_intf(intf, wlan)
