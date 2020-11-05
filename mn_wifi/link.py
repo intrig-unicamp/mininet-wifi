@@ -1819,7 +1819,7 @@ class adhoc(LinkAttrs):
 class mesh(LinkAttrs):
     node = None
 
-    def __init__(self, node, intf, **params):
+    def __init__(self, node, intf, proto_args='', **params):
         from mn_wifi.node import AP
         """Configure wireless mesh
         node: name of the node
@@ -1859,6 +1859,8 @@ class mesh(LinkAttrs):
         self.setTxPower(self.txpower)
         self.setMeshIface(wlan, iface)
         self.configureMesh()
+
+        if self.proto: manetProtocols(self, proto_args)
 
         # All we are is dust in the wind, and our two interfaces
         self.intf1, self.intf2 = intf1, intf2
