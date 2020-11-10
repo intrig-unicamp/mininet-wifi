@@ -219,34 +219,21 @@ class Node_wifi(Node):
                 color = 'r'
         return color
 
-    def setBand(self, *args):
-        self.ipLink('down')
-        cmd = '{} set freq {}'.format(self.name, self.format_freq())
-        self.iwdev_cmd(cmd, *args)
-        self.ipLink('up')
-        debug('\n')
-        self.band = args[0]
-
     def updateLine(self):
         pos = [self.position[0], self.position[1]]
         if hasattr(self, 'lines'):
             for line in self.lines:
                 for n in range(len(line)):
-                    if '-' == line[n]:
-                        node = line[:n]
-                        # node2 = line[n+1:]
+                    if '-' == line[n]: node = line[:n]
                 pos_ = self.lines[line].get_data()
                 if self.name == node:
-                    self.lines[line].set_data([pos[0], pos_[0][1]],
-                                             [pos[1], pos_[1][1]])
+                    self.lines[line].set_data([pos[0], pos_[0][1]], [pos[1], pos_[1][1]])
                 else:
-                    self.lines[line].set_data([pos_[0][0], pos[0]],
-                                             [pos_[1][0], pos[1]])
+                    self.lines[line].set_data([pos_[0][0], pos[0]], [pos_[1][0], pos[1]])
 
     def getxyz(self):
-        x = round(self.position[0], 2)
-        y = round(self.position[1], 2)
-        z = round(self.position[2], 2)
+        pos = self.position
+        x, y, z = round(pos[0], 2), round(pos[1], 2), round(pos[2], 2)
         return x, y, z
 
     def update_3d(self):
@@ -314,14 +301,12 @@ class Node_wifi(Node):
 
     def newPort(self):
         "Return the next port number to allocate."
-        if len(self.ports) > 0:
-            return max(self.ports.values()) + 1
+        if len(self.ports) > 0: return max(self.ports.values()) + 1
         return self.portBase
 
     def newWPort(self):
         "Return the next port number to allocate."
-        if len(self.wports) > 0:
-            return max(self.wports.values()) + 1
+        if len(self.wports) > 0: return max(self.wports.values()) + 1
         return self.portBase
 
     def addWAttr(self, intf, port=None):
@@ -329,8 +314,7 @@ class Node_wifi(Node):
            intf: interface
            port: port number (optional, typically OpenFlow port number)
            moveIntfFn: function to move interface (optional)"""
-        if port is None:
-            port = self.newWPort()
+        if port is None: port = self.newWPort()
 
         self.wintfs[port] = intf
         self.wports[intf] = port
@@ -341,14 +325,12 @@ class Node_wifi(Node):
            intf: interface
            port: port number (optional, typically OpenFlow port number)
            moveIntfFn: function to move interface (optional)"""
-        if port is None:
-            port = self.newPort()
+        if port is None: port = self.newPort()
         self.intfs[port] = intf
         self.ports[intf] = port
         self.nameToIntf[intf.name] = intf
         debug('\n')
-        debug('added intf %s (%d) to node %s\n' % (
-            intf, port, self.name))
+        debug('added intf %s (%d) to node %s\n' % (intf, port, self.name))
 
     def connectionsTo(self, node):
         "Return [ intf1, intf2... ] for all intfs that connect self to node."
@@ -356,7 +338,7 @@ class Node_wifi(Node):
         connections = []
         for intf in self.intfList():
             link = intf.link
-            if link and link.intf2 != None and link.intf2 != 'wifi':
+            if link and link.intf2 is not None and link.intf2 != 'wifi':
                 node1, node2 = link.intf1.node, link.intf2.node
                 if node1 == self and node2 == node:
                     connections += [ (intf, link.intf2) ]
@@ -462,8 +444,7 @@ class CPULimitedStation( Station, CPULimitedHost ):
     def __init__( self, name, sched='cfs', **kwargs ):
         Station.__init__( self, name, **kwargs )
         # Initialize class if necessary
-        if not CPULimitedStation.inited:
-            CPULimitedStation.init()
+        if not CPULimitedStation.inited: CPULimitedStation.init()
         # Create a cgroup and move shell into it
         self.cgroup = 'cpu,cpuacct,cpuset:/' + self.name
         errFail( 'cgcreate -g ' + self.cgroup )
@@ -498,8 +479,7 @@ class AP(Node_wifi):
         self.dpid = self.defaultDpid(dpid)
         self.opts = opts
         self.listenPort = listenPort
-        if not self.inNamespace:
-            self.controlIntf = Intf('lo', self, port=0)
+        if not self.inNamespace: self.controlIntf = Intf('lo', self, port=0)
 
     def defaultDpid(self, dpid=None):
         "Return correctly formatted dpid from dpid or switch name (s1 -> 1)"
@@ -627,8 +607,7 @@ class OVSAP(AP, OVSSwitch):
     @classmethod
     def setup(cls):
         "Make sure Open vSwitch is installed and working"
-        pathCheck('ovs-vsctl',
-                  moduleName='Open vSwitch (openvswitch.org)')
+        pathCheck('ovs-vsctl', moduleName='Open vSwitch (openvswitch.org)')
         # This should no longer be needed, and it breaks
         # with OVS 1.7 which has renamed the kernel module:
         #  moduleDeps( subtract=OF_KMOD, add=OVS_KMOD )
@@ -651,8 +630,7 @@ class OVSAP(AP, OVSSwitch):
         """Unfortunately OVS and Mininet are fighting
            over tc queuing disciplines. As a quick hack/
            workaround, we clear OVS's and reapply our own."""
-        if isinstance(intf, WirelessIntf):
-            intf.config(**intf.params)
+        if isinstance(intf, WirelessIntf): intf.config(**intf.params)
 
     def start(self, controllers):
         "Start up a new OVS OpenFlow switch using ovs-vsctl"
@@ -693,8 +671,7 @@ class OVSAP(AP, OVSSwitch):
             for intf in self.intfList():
                 self.TCReapply(intf)
         # we need to add the ifb interface at the end
-        if self.wintfs[0].ifb:
-            self.handle_ingress_data(self.wintfs[0], 0)
+        if self.wintfs[0].ifb: self.handle_ingress_data(self.wintfs[0], 0)
 
     @classmethod
     def batchStartup(cls, aps, run=errRun):
@@ -721,8 +698,7 @@ class OVSAP(AP, OVSSwitch):
         # Reapply link config if necessary...
         for ap in aps:
             for intf in ap.intfs:
-                if isinstance(intf, WirelessIntf):
-                    intf.config(**intf.params)
+                if isinstance(intf, WirelessIntf): intf.config(**intf.params)
         return aps
 
 

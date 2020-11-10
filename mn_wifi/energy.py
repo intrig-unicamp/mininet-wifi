@@ -25,8 +25,7 @@ class Energy(object):
 
         for node in nodes:
             for intf in node.wintfs.values():
-                intf.rx = 0
-                intf.tx = 0
+                intf.rx, intf.tx = 0, 0
 
         try:
             while self.thread_._keep_alive:
