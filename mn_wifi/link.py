@@ -1085,7 +1085,10 @@ class _4address(Link, IntfWireless):
             params1['port'] = cl.newPort()
             params2['port'] = ap.newPort()
             intf1 = IntfWireless(name=cl_intfname, node=cl, link=self, **params1)
-            ap.wds += 1 if hasattr(ap, 'wds') else 1
+            if hasattr(ap, 'wds'):
+                ap.wds += 1
+            else:
+                ap.wds = 1
             intfName2 = ap.params['wlan'][apwlan] + '.sta%s' % ap.wds
             intf2 = IntfWireless(name=intfName2, node=ap, link=self, **params2)
             ap.params['wlan'].append(intfName2)
