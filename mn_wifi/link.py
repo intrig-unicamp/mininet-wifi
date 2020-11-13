@@ -1435,7 +1435,7 @@ class wmediumd(object):
         elif wmediumd_mode.mode == w_cst.ERRPROB_MODE:
             self.error_prob(wlinks)
         else:
-            self.snr(wlinks)
+            self.snr(wlinks, noise_th)
         WStarter(intfrefs=intfrefs, links=self.links, pos=self.positions,
                  fading_cof=fading_cof, noise_th=noise_th, txpowers=self.txpowers,
                  isnodeaps=isnodeaps, ppm=ppm)
@@ -1465,11 +1465,11 @@ class wmediumd(object):
             self.links.append(ERRPROBLink(link0, link1, link[2]))
             self.links.append(ERRPROBLink(link1, link0, link[2]))
 
-    def snr(self, wlinks):
+    def snr(self, wlinks, noise_th):
         for link in wlinks:
             link0, link1 = link[0].wmIface, link[1].wmIface
-            self.links.append(SNRLink(link0, link1, link[0].rssi - (-91)))
-            self.links.append(SNRLink(link1, link0, link[0].rssi - (-91)))
+            self.links.append(SNRLink(link0, link1, link[0].rssi - noise_th))
+            self.links.append(SNRLink(link1, link0, link[0].rssi - noise_th))
 
 
 class ConfigWLink(object):
