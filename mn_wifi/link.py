@@ -1558,6 +1558,8 @@ class LinkAttrs(WirelessLink):
             self.band = 80
         elif '160' in ht_cap:
             self.band = 160
+        if 'band' in self.node.params:
+            del self.node.params['band']
 
     def delete(self):
         "Delete this link"
