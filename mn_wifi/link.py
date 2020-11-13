@@ -1537,6 +1537,7 @@ class LinkAttrs(WirelessLink):
         self.node = node
         self.antennaGain = intf.antennaGain
         self.antennaHeight = intf.antennaHeight
+        self.band = intf.band
         self.encrypt = intf.encrypt
         self.freq = intf.freq
         self.id = wlan
@@ -1549,6 +1550,14 @@ class LinkAttrs(WirelessLink):
         self.txpower = intf.txpower
         self.range = intf.range
         self.static_range = intf.static_range
+
+    def check_channel_band(self, ht_cap):
+        if '40' in ht_cap:
+            self.band = 40
+        elif '80' in ht_cap:
+            self.band = 80
+        elif '160' in ht_cap:
+            self.band = 160
 
     def delete(self):
         "Delete this link"
@@ -1584,8 +1593,7 @@ class ITSLink(LinkAttrs):
         self.mac = intf.mac
 
         # It takes default values if keys are not set
-        kwargs = {'channel': '181', 'band': 10,
-                  'proto': None, 'txpower': 17}
+        kwargs = {'channel': '181', 'band': 10, 'proto': None, 'txpower': 17}
 
         for k, v in kwargs.items():
             setattr(self, k, params.get(k, v))
@@ -1633,8 +1641,7 @@ class ITSLink(LinkAttrs):
     def configure_ocb(self):
         "Configure Wireless OCB"
         freq = int('{:<04s}'.format(str(self.freq).replace('.', '')))
-        self.iwdev_cmd('{} ocb join {} {}MHz'.format(self.name, freq,
-                                                     self.band))
+        self.iwdev_cmd('{} ocb join {} {}MHz'.format(self.name, freq, self.band))
 
 
 class WifiDirectLink(LinkAttrs):
@@ -1743,7 +1750,10 @@ class adhoc(LinkAttrs):
         for k, v in kwargs.items():
             setattr(self, k, params.get(k, v))
 
-        if intf and hasattr(intf, 'wmIface'): self.wmIface = intf.wmIface
+        self.check_channel_band(self.ht_cap)
+
+        if intf and hasattr(intf, 'wmIface'):
+            self.wmIface = intf.wmIface
 
         if 'mp' in intf.name:
             self.iwdev_cmd('%s del' % intf.name)
@@ -1830,6 +1840,8 @@ class mesh(LinkAttrs):
 
         for k, v in kwargs.items():
             setattr(self, k, params.get(k, v))
+
+        self.check_channel_band(self.ht_cap)
 
         if wmediumd_mode.mode:
             self.wmIface = DynamicIntfRef(node, intf=self.name)
