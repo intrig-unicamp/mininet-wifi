@@ -59,6 +59,8 @@ class Node_wifi(Node):
         # Make sure class actually works
         self.checkSetup()
 
+        if 'position' in params:
+            self.position = params.get('position')
         self.name = params.get('name', name)
         self.privateDirs = params.get('privateDirs', [])
         self.inNamespace = params.get('inNamespace', inNamespace)
@@ -151,13 +153,12 @@ class Node_wifi(Node):
             intf.range = self.getRange(intf)
 
         intf.ssid = ssid
-        self.params['driver'] = 'nl80211'
 
         for arg in kwargs:
             setattr(self, arg, kwargs[arg])
 
         aps = [self]
-        AccessPoint(aps, 'nl80211', setMaster=True)
+        AccessPoint(aps, setMaster=True)
 
     def setOCBMode(self, **params):
         ITSLink(self, **params)
@@ -316,7 +317,10 @@ class Node_wifi(Node):
         if hasattr(self, 'position') and hasattr(ap, 'position'):
             dist = self.get_distance_to(ap)
             if dist <= ap_intf.range:
-                if intf.associatedTo != ap:
+                if intf.bgscan_threshold:
+                    Association.handover_ieee80211r(intf, ap_intf)
+                    Association.update(intf, ap_intf)
+                elif intf.associatedTo != ap:
                     if intf.associatedTo:
                         Association.disconnect(intf)
                         intf.rssi = 0
@@ -761,15 +765,15 @@ class AccessPoint(Node_wifi):
 
     write_mac = False
 
-    def __init__(self, aps, driver, setMaster=False, check_nm=False):
+    def __init__(self, aps, setMaster=False, check_nm=False):
         'configure ap'
         self.name = ''
         if check_nm:
-            self.check_nm(aps, driver, setMaster)
+            self.check_nm(aps, setMaster)
         else:
             self.configure(aps)
 
-    def check_nm(self, aps, driver, setMaster):
+    def check_nm(self, aps, setMaster):
         for ap in aps:
             for wlan in range(len(ap.params['wlan'])):
                 if not setMaster:
@@ -783,7 +787,6 @@ class AccessPoint(Node_wifi):
                     ap.params['wlan'].append(iface)
                     TCLinkWirelessAP(ap, intfName=iface)
                     master(ap, i)
-            ap.params['driver'] = driver
 
         self.restartNetworkManager()
 
@@ -806,8 +809,8 @@ class AccessPoint(Node_wifi):
                             if 'vssids' in intf.node.params:
                                 cmd += self.virtual_intf(intf, wlan)
 
-                    cmd += ("\nctrl_interface=/var/run/hostapd")
-                    cmd += ("\nctrl_interface_group=0")
+                    cmd += "\nctrl_interface=/var/run/hostapd"
+                    cmd += "\nctrl_interface_group=0"
 
                     self.APConfigFile(cmd, ap, phy)
 
@@ -864,21 +867,21 @@ class AccessPoint(Node_wifi):
         if intf.mode == 'n':
             if intf.band:
                 if intf.band == '5' or intf.band == 5:
-                    cmd += ("\nhw_mode=a")
+                    cmd += "\nhw_mode=a"
                 else:
-                    cmd += ("\nhw_mode=g")
+                    cmd += "\nhw_mode=g"
             else:
-                cmd += ("\nhw_mode=g")
+                cmd += "\nhw_mode=g"
         elif intf.mode == 'a':
-            cmd += ('\ncountry_code=US')
-            cmd += ("\nhw_mode=%s" % intf.mode)
+            cmd += "\ncountry_code=US"
+            cmd += "\nhw_mode=%s" % intf.mode
         elif intf.mode == 'ac' or intf.mode == 'ax':
-            cmd += ('\ncountry_code=US')
-            cmd += ("\nhw_mode=a")
+            cmd += "\ncountry_code=US"
+            cmd += "\nhw_mode=a"
             if intf.mode == 'ax':
-                cmd += ("\nieee80211ax=1")
+                cmd += "\nieee80211ax=1"
         else:
-            cmd += ("\nhw_mode=%s" % intf.mode)
+            cmd += "\nhw_mode=%s" % intf.mode
         return cmd
 
     def virtual_intf(self, intf, wlan):
@@ -887,33 +890,31 @@ class AccessPoint(Node_wifi):
         intf.antennaGain = intf.node.wintfs[0].antennaGain
         intf.antennaHeight = intf.node.wintfs[0].antennaHeight
         ssid = intf.node.wintfs[wlan].ssid
-        cmd += ('\n')
-        cmd += ("\nbss=%s" % intf.node.params['wlan'][wlan])
-        cmd += ("\nssid=%s" % ssid)
+        cmd += '\n'
+        cmd += "\nbss=%s" % intf.node.params['wlan'][wlan]
+        cmd += "\nssid=%s" % ssid
         if intf.node.wintfs[wlan].encrypt:
             if intf.node.wintfs[wlan].encrypt == 'wep':
-                cmd += ("\nauth_algs=%s" % intf.node.auth_algs)
-                cmd += ("\nwep_default_key=0")
+                cmd += "\nauth_algs=%s" % intf.node.auth_algs
+                cmd += "\nwep_default_key=0"
                 cmd += self.verifyWepKey(intf.node.wep_key0)
         return cmd
 
     def setHostapdConfig(self, intf, wlan, aplist):
         "Set hostapd config"
-        cmd = ("echo \'")
-        args = ['max_num_sta', 'beacon_int', 'rsn_preauth']
+        cmd = "echo \'"
+        args = ['max_num_sta', 'beacon_int', 'rsn_preauth', 'wpa_psk_force_pmkid']
 
         if 'phywlan' in intf.node.params:
-            cmd += ("interface=%s" % intf.node.params.get('phywlan'))
+            cmd += "interface=%s" % intf.node.params.get('phywlan')
         else:
-            cmd += ("interface=%s" % intf.name)
+            cmd += "interface=%s" % intf.name
 
-        cmd += ("\ndriver=%s" % intf.driver)
-        cmd += ("\nssid=%s" % intf.ssid)
-        cmd += ('\nwds_sta=1')
-
+        cmd += "\ndriver=nl80211"
+        cmd += "\nssid=%s" % intf.ssid
+        cmd += '\nwds_sta=1'
         cmd += self.get_mode_config(intf)  # get mode
-
-        cmd += ("\nchannel=%s" % intf.channel)
+        cmd += "\nchannel=%s" % intf.channel
 
         for arg in args:
             if arg in intf.node.params:
@@ -1003,7 +1004,7 @@ class AccessPoint(Node_wifi):
                             cmd += '\nr1kh=%s %s ' \
                                    '000102030405060708090a0b0c0d0e0f' \
                                    % (apref.wintfs[wlan].mac, apref.wintfs[wlan].mac)
-                        #cmd += ('\nrsn_preauth=1')
+                        cmd += '\nrsn_preauth=1'
                         cmd += '\npmk_r1_push=1'
                         cmd += '\nft_over_ds=1'
                         cmd += '\nft_psk_generate_local=1'
@@ -1032,9 +1033,9 @@ class AccessPoint(Node_wifi):
     def verifyWepKey(self, wep_key0):
         "Check WEP key"
         if len(wep_key0) == 10 or len(wep_key0) == 26 or len(wep_key0) == 32:
-            cmd = ("\nwep_key0=%s" % wep_key0)
+            cmd = "\nwep_key0=%s" % wep_key0
         elif len(wep_key0) == 5 or len(wep_key0) == 13 or len(wep_key0) == 16:
-            cmd = ("\nwep_key0=\"%s\"" % wep_key0)
+            cmd = "\nwep_key0=\"%s\"" % wep_key0
         else:
             info("Warning! Wep Key is wrong!\n")
             exit(1)
@@ -1084,8 +1085,7 @@ class AccessPoint(Node_wifi):
         unmatch = ""
         if os.path.exists('/etc/%s/%s.conf' % (nm, nm)):
             if os.path.isfile('/etc/%s/%s.conf' % (nm, nm)):
-                self.resultIface = open('/etc/%s/%s.conf' % (nm, nm))
-                lines = self.resultIface
+                lines = open('/etc/%s/%s.conf' % (nm, nm))
 
             isNew = True
             for n in lines:
@@ -1100,7 +1100,7 @@ class AccessPoint(Node_wifi):
                 echo = "[keyfile]\n%s=" % unmanaged
 
             if mac not in unmatch:
-                echo = echo + "mac:" + mac + ';'
+                echo += "mac:" + mac + ';'
                 for line in fileinput.input('/etc/%s/%s.conf' % (nm, nm),
                                             inplace=1):
                     if isNew:
@@ -1141,7 +1141,7 @@ class AccessPoint(Node_wifi):
         hostapd_flags = ''
         if 'hostapd_flags' in ap.params:
             hostapd_flags = ap.params['hostapd_flags']
-        cmd = ("hostapd -B %s %s" % (apconfname, hostapd_flags))
+        cmd = "hostapd -B %s %s" % (apconfname, hostapd_flags)
         return cmd
 
 

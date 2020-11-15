@@ -43,7 +43,7 @@ class telemetry(object):
         parseData.thread_.start()
 
     def start(self, nodes=None, data_type='tx_packets', single=False,
-              min_x=0, min_y=0, max_x=100, max_y=100):
+              min_x=0, min_y=0, max_x=100, max_y=100, **kwargs):
         ax = 'axes'
         arr = ''
         for node in nodes:
@@ -52,25 +52,27 @@ class telemetry(object):
         arr1 = (arr[:-2])
         setattr(self, ax, arr1)
 
-        if data_type == 'position':
-            parseData.min_x = min_x
-            parseData.min_y = min_y
-            parseData.max_x = max_x
-            parseData.max_y = max_y
-            fig, (self.axes) = plt.subplots(1, 1, figsize=(10, 10))
-            fig.canvas.set_window_title('Mininet-WiFi Graph')
-            self.axes.set_xlabel('meters')
-            self.axes.set_xlabel('meters')
-            self.axes.set_xlim([min_x, max_x])
-            self.axes.set_ylim([min_y, max_y])
-        else:
-            if single:
-                fig, (self.axes) = plt.subplots(1, 1, figsize=(10, 4))
+        fig = None
+        if 'tool' not in kwargs:
+            if data_type == 'position':
+                parseData.min_x = min_x
+                parseData.min_y = min_y
+                parseData.max_x = max_x
+                parseData.max_y = max_y
+                fig, (self.axes) = plt.subplots(1, 1, figsize=(10, 10))
+                fig.canvas.set_window_title('Mininet-WiFi Graph')
+                self.axes.set_xlabel('meters')
+                self.axes.set_xlabel('meters')
+                self.axes.set_xlim([min_x, max_x])
+                self.axes.set_ylim([min_y, max_y])
             else:
-                fig, (self.axes) = plt.subplots(1, (len(nodes)), figsize=(10, 4))
-            fig.canvas.set_window_title('Mininet-WiFi Graph')
+                if single:
+                    fig, (self.axes) = plt.subplots(1, 1, figsize=(10, 4))
+                else:
+                    fig, (self.axes) = plt.subplots(1, (len(nodes)), figsize=(10, 4))
+                fig.canvas.set_window_title('Mininet-WiFi Graph')
         self.nodes = nodes
-        parseData(nodes, fig, self.axes, single=single, data_type=data_type)
+        parseData(nodes, self.axes, single, data_type=data_type, fig=fig, **kwargs)
 
     @classmethod
     def calc(cls, tx_bytes, n):
@@ -132,13 +134,14 @@ class telemetry(object):
         return phy_list, ifaces
 
 
-def get_position(node, filename):
+def get_position(node):
     x = node.position[0]
     y = node.position[1]
-    os.system("echo '%s,%s' >> %s" % (x, y, filename.format(node)))
+    z = node.position[2]
+    return x, y, z
 
 
-def get_rssi(node, iface, time, filename):
+def get_rssi(node, iface):
     if isinstance(node, AP):
         rssi = 0
     else:
@@ -149,7 +152,7 @@ def get_rssi(node, iface, time, filename):
             rssi = 0
         else:
             rssi = rssi[0]
-    os.system("echo '%s,%s' >> %s" % (time, rssi, filename.format(node)))
+    return rssi
 
 
 def get_values_from_statistics(tx_bytes, time, node, filename):
@@ -158,7 +161,6 @@ def get_values_from_statistics(tx_bytes, time, node, filename):
 
 
 class parseData(object):
-
     nodes = []
     phys = []
     colors = []
@@ -167,25 +169,42 @@ class parseData(object):
     min_y = 0
     max_x = 100
     max_y = 100
+    ani = None
+    axes = None
     data_type = None
     fig = None
-    axes = None
-    single = None
-    ani = None
     filename = None
+    single = None
     thread_ = None
     dir = 'cat /sys/class/ieee80211/{}/device/net/{}/statistics/{}'
 
-    def __init__(self, nodes, fig, axes, single, data_type):
-        self.start(nodes, fig, axes, single, data_type)
+    def __init__(self, nodes, axes, single, data_type, fig, **kwargs):
+        self.start(nodes, axes, single, data_type, fig, **kwargs)
 
     @classmethod
     def fig_exists(cls):
         return plt.fignum_exists(1)
 
+    def pub_msg(self, topic, msg):
+        os.system("mosquitto_pub -t {} -m \'{}\'".format(topic, msg))
+
+    def run_dojot(self, topic):
+        for node in self.nodes:
+            for wlan in range(0, len(node.params['wlan'])):
+                msg = '{'
+                if 'rssi' in self.data_type:
+                    iface = self.ifaces[node][wlan]
+                    rssi = get_rssi(node, iface)
+                    msg += '\"{}\":{},'.format((node.name+'-rssi'), rssi)
+                if 'position' in self.data_type:
+                    pos = str(get_position(node))
+                    msg += '\"{}\":\"{}\",'.format((node.name + '-pos'), pos)
+                msg = msg[:-1] + '}'
+                self.pub_msg(topic, msg)
+
     def animate(self, i):
         axes = self.axes
-        now = time.time() - start
+        time_ = time.time() - start
         nodes_x = {}
         nodes_y = {}
         names = []
@@ -195,7 +214,7 @@ class parseData(object):
                     plt.close()
             except:
                 pass
-
+        time.sleep(1)
         for node in self.nodes:
             for wlan in range(0, len(node.params['wlan'])):
                 if self.data_type == 'position':
@@ -221,13 +240,14 @@ class parseData(object):
                                                      self.ifaces[node][wlan],
                                                      self.data_type),
                             shell=True).decode().split("\n")
+                    get_values_from_statistics(tx_bytes, time_, node, self.filename)
 
                 if self.data_type == 'rssi':
-                    get_rssi(node, self.ifaces[node][wlan], now, self.filename)
+                    rssi = get_rssi(node, self.ifaces[node][wlan])
+                    os.system("echo '%s,%s' >> %s" % (time_, rssi, self.filename.format(node)))
                 elif self.data_type == 'position':
-                    get_position(node, self.filename)
-                else:
-                    get_values_from_statistics(tx_bytes, now, node, self.filename)
+                    x, y, z = get_position(node)
+                    os.system("echo '%s,%s' >> %s" % (x, y, self.filename.format(node)))
 
                 graph_data = open('%s' % (self.filename.format(node)), 'r').read()
                 lines = graph_data.split('\n')
@@ -251,6 +271,7 @@ class parseData(object):
                                     color=node.circle, alpha=0.1)
                 axes.add_artist(circle)
         else:
+            time.sleep(0.0001)
             self.fig.legend(  # lines,  # The line objects
                 labels=names,  # The labels for each line
                 loc="center right",  # Position of legend
@@ -279,7 +300,7 @@ class parseData(object):
             else:
                 node.circle = 'g'
 
-    def start(self, nodes, fig, axes, single, data_type):
+    def start(self, nodes, axes, single, data_type, fig, **kwargs):
         self.nodes = nodes
         self.fig = fig
         self.axes = axes
@@ -296,8 +317,15 @@ class parseData(object):
                 self.setCircleColor(node)
 
         self.phys, self.ifaces = telemetry.get_phys(nodes, inNamespaceNodes)
-        for node in nodes:
-            if path.exists('%s' % (self.filename.format(node))):
-                os.system('rm %s' % (self.filename.format(node)))
-        self.ani = animation.FuncAnimation(fig, self.animate, interval=1000)
-        plt.show()
+        interval = 1000
+        if 'tool' in kwargs:
+            topic = kwargs['dojot_topic']
+            while self.thread_._keep_alive:
+                self.run_dojot(topic)
+                time.sleep(interval/1000)
+        else:
+            for node in nodes:
+                if path.exists('%s' % (self.filename.format(node))):
+                    os.system('rm %s' % (self.filename.format(node)))
+            self.ani = animation.FuncAnimation(fig, self.animate, interval=interval)
+            plt.show()

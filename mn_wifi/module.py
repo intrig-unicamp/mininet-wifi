@@ -185,7 +185,7 @@ class module(object):
         os.system("echo 'j=0' >> %s" % file)
         os.system("echo 'for i in ${phys[@]}' >> %s" % file)
         os.system("echo 'do' >> %s" % file)
-        os.system("echo '    pid=$(ps -aux | grep \"${nodes[$j]}\" "
+        os.system("echo '    pid=$(ps -aux | grep \"mininet:${nodes[$j]}$\" "
                   "| grep -v 'hostapd' | awk \"{print \$2}\" "
                   "| awk \"NR>=%s&&NR<=%s\")' >> %s" % (num+1, num+1, file))
         os.system("echo '    sudo iw phy $i set netns $pid' >> %s" % file)
@@ -221,6 +221,7 @@ class module(object):
                     wlan_list.append('wlan%s' % phy)
             else:
                 wlan_list = self.get_wlan_iface(physicalWlans)
+
             debug("\n*** Configuring interfaces with appropriated network"
                   "-namespaces...\n")
             for node in nodes:

@@ -63,15 +63,13 @@ class Mininet_wifi(Mininet):
                  inNamespace=False, autoSetMacs=False, autoStaticArp=False,
                  autoPinCpus=False, listenPort=None, waitConnected=False,
                  ssid="new-ssid", mode="g", channel=1, wmediumd_mode=snr, roads=0,
-                 fading_coefficient=0, autoAssociation=True,
-                 allAutoAssociation=True, driver='nl80211',
-                 autoSetPositions=False, configureWiFiDirect=False,
-                 configure4addr=False, noise_threshold=-91, cca_threshold=-90,
-                 disable_tcp_checksum=False, ifb=False,
-                 bridge=False, plot=False, plot3d=False, docker=False,
-                 container='mininet-wifi', ssh_user='alpha',
-                 set_socket_ip=None, set_socket_port=12345,
-                 iot_module='mac802154_hwsim'):
+                 fading_cof=0, autoAssociation=True, allAutoAssociation=True,
+                 autoSetPositions=False, configWiFiDirect=False,
+                 config4addr=False, noise_th=-91, cca_th=-90,
+                 disable_tcp_checksum=False, ifb=False, bridge=False, plot=False,
+                 plot3d=False, docker=False, container='mininet-wifi', ssh_user='alpha',
+                 set_socket_ip=None, set_socket_port=12345, iot_module='mac802154_hwsim',
+                 docker_host='172.17.0.1'):
         """Create Mininet object.
            topo: Topo (topology) object or None
            switch: default Switch class
@@ -132,7 +130,6 @@ class Mininet_wifi(Mininet):
         self.stations = []
         self.sensors = []
         self.terms = []  # list of spawned xterm processes
-        self.driver = driver
         self.autoAssociation = autoAssociation  # does not include mobility
         self.allAutoAssociation = allAutoAssociation  # includes mobility
         self.ppm_is_set = False
@@ -147,15 +144,16 @@ class Mininet_wifi(Mininet):
         self.docker = docker
         self.container = container
         self.ssh_user = ssh_user
+        self.docker_host = docker_host
         self.ifb = ifb   # Support to Intermediate Functional Block (IFB) Devices
         self.bridge = bridge
         self.init_plot = plot
         self.init_plot3d = plot3d
-        self.cca_threshold = cca_threshold
-        self.configureWiFiDirect = configureWiFiDirect
-        self.configure4addr = configure4addr
-        self.fading_coefficient = fading_coefficient
-        self.noise_threshold = noise_threshold
+        self.cca_th = cca_th
+        self.configWiFiDirect = configWiFiDirect
+        self.config4addr = config4addr
+        self.fading_cof = fading_cof
+        self.noise_th = noise_th
         self.mob_param = dict()
         self.disable_tcp_checksum = disable_tcp_checksum
         self.plot = plot2d
@@ -216,25 +214,18 @@ class Mininet_wifi(Mininet):
                     if len(data) < 4:
                         data = 'usage: set.node.method.value'
                     else:
-                        if data[2] == 'sumo':
-                            mod = __import__('mn_wifi.sumo.function', fromlist=[data[3]])
-                            method_to_call = getattr(mod, data[3])
-                            node = self.getNodeByName(data[1])
-                            node.sumo = method_to_call
+                        if hasattr(node, data[2]):
+                            method_to_call = getattr(node, data[2])
+                            method_to_call(data[3])
                             data = 'command accepted!'
                         else:
-                            if hasattr(node, data[2]):
-                                method_to_call = getattr(node, data[2])
-                                method_to_call(data[3])
-                                data = 'command accepted!'
-                            else:
-                                data = 'unrecognized method!'
+                            data = 'unrecognized method!'
                 elif data[0] == 'get':
                     node = self.getNodeByName(data[1])
                     if len(data) < 3:
                         data = 'usage: get.node.param'
                     else:
-                        data = node.params[data[2]]
+                        data = getattr(node, data[2])
                 else:
                     try:
                         cmd = ''
@@ -342,7 +333,7 @@ class Mininet_wifi(Mininet):
         defaults.update(params)
 
         if self.autoSetPositions:
-            defaults['position'] = (round(self.nextPos_sta, 2), 0, 0)
+            defaults['position'] = [round(self.nextPos_sta, 2), 0, 0]
         if self.autoSetMacs:
             defaults['mac'] = macColonHex(self.nextIP)
         if self.autoPinCpus:
@@ -422,7 +413,7 @@ class Mininet_wifi(Mininet):
             defaults['isolate_clients'] = True
         defaults.update(params)
         if self.autoSetPositions:
-            defaults['position'] = (round(self.nextPos_ap, 2), 50, 0)
+            defaults['position'] = [round(self.nextPos_ap, 2), 50, 0]
             self.nextPos_ap += 100
         wlan = None
         if cls and isinstance(cls, physicalAP):
@@ -453,7 +444,6 @@ class Mininet_wifi(Mininet):
             params = '%s via %s' % (params['net'], natIP)
         # Do this in one line in case we're messing with the root namespace
         node.cmd('ip route add', params)
-
 
     def addNAT(self, name='nat0', connect=True, inNamespace=False,
                linkTo=None, **params):
@@ -843,7 +833,7 @@ class Mininet_wifi(Mininet):
                         intf.range = int(intf.range)
 
         if self.allAutoAssociation:
-            if self.autoAssociation and not self.configureWiFiDirect:
+            if self.autoAssociation and not self.configWiFiDirect:
                 self.auto_association()
 
         if not self.mob_check:
@@ -1339,8 +1329,8 @@ class Mininet_wifi(Mininet):
     def setPropagationModel(self, **kwargs):
         "Set Propagation Model"
         self.ppm_is_set = True
-        kwargs['noise_threshold'] = self.noise_threshold
-        kwargs['cca_threshold'] = self.cca_threshold
+        kwargs['noise_th'] = self.noise_th
+        kwargs['cca_th'] = self.cca_th
         self.propagation_model(**kwargs)
 
     def configWirelessLinkStatus(self, src, dst, status):
@@ -1448,7 +1438,7 @@ class Mininet_wifi(Mininet):
                     node.wintfs[wlan].ifb = 'ifb' + str(wlan + 1)
                     ifbID += 1
 
-    def configureWirelessLink(self):
+    def configWirelessLink(self):
         "Configure Wireless Link"
         nodes = self.stations + self.cars
         for node in nodes:
@@ -1507,7 +1497,7 @@ class Mininet_wifi(Mininet):
     def stopMobility(self, **kwargs):
         "Stops Mobility"
         if self.allAutoAssociation and \
-                not self.configureWiFiDirect and not self.configure4addr:
+                not self.configWiFiDirect and not self.config4addr:
             self.auto_association()
         kwargs['end_time'] = kwargs['time']
         self.setMobilityParams(**kwargs)
@@ -1556,22 +1546,22 @@ class Mininet_wifi(Mininet):
                 car.pos = (0, 0, 0)
         program(self.cars, self.aps, **kwargs)
 
-    def configureWmediumd(self):
+    def configWmediumd(self):
         "Configure Wmediumd"
         if self.autoSetPositions:
             self.wmediumd_mode = interference
         self.wmediumd_mode()
 
-        if not self.configureWiFiDirect and not self.configure4addr and \
+        if not self.configWiFiDirect and not self.config4addr and \
             self.wmediumd_mode != error_prob:
-            wmediumd(self.fading_coefficient, self.noise_threshold,
+            wmediumd(self.fading_cof, self.noise_th,
                      self.stations, self.aps, self.cars, propagationModel,
                      self.wmediumdMac)
 
     def init_wmediumd(self):
-        if (self.configure4addr or self.configureWiFiDirect
+        if (self.config4addr or self.configWiFiDirect
                 or self.wmediumd_mode == error_prob) and self.link == wmediumd:
-            wmediumd(self.fading_coefficient, self.noise_threshold,
+            wmediumd(self.fading_cof, self.noise_th,
                      self.stations, self.aps, self.cars, propagationModel,
                      self.wmediumdMac)
             for sta in self.stations:
@@ -1595,6 +1585,7 @@ class Mininet_wifi(Mininet):
             params['docker'] = self.docker
             params['container'] = self.container
             params['ssh_user'] = self.ssh_user
+            params['ip'] = self.docker_host
 
         nodes, nradios = self.count_ifaces()
         if nodes:
@@ -1608,12 +1599,12 @@ class Mininet_wifi(Mininet):
             self.addSensors(self.sensors)
             self.configure6LowPANLink()
 
-        self.configureWirelessLink()
+        self.configWirelessLink()
         self.createVirtualIfaces(self.stations)
-        AccessPoint(self.aps, self.driver, check_nm=True)
+        AccessPoint(self.aps, check_nm=True)
         if self.link == wmediumd:
-            self.configureWmediumd()
-        AccessPoint(self.aps, self.driver)
+            self.configWmediumd()
+        AccessPoint(self.aps)
 
         for node in nodes:
             for wlan, intf in enumerate(node.wintfs.values()):
@@ -1622,7 +1613,7 @@ class Mininet_wifi(Mininet):
                 else:
                     if 'model' not in node.params:
                         intf.txpower = node.get_txpower_prop_model(intf)
-                if not self.configure4addr and not self.configureWiFiDirect:
+                if not self.config4addr and not self.configWiFiDirect:
                     node.setTxPower(intf.txpower, intf=intf.name)
                     node.setAntennaGain(intf.antennaGain, intf=intf.name)
 
@@ -1662,6 +1653,7 @@ class Mininet_wifi(Mininet):
             if sta in mob.stations:
                 mob.stations.remove(sta)
 
+        mob.aps = self.aps
         nodes = self.aps + self.stations + self.cars
         for node in nodes:
             if hasattr(node, 'position'):
@@ -1669,32 +1661,24 @@ class Mininet_wifi(Mininet):
                     pass
                 else:
                     for intf in node.wintfs.values():
-                        if self.wmediumd_mode != error_prob:
-                            pos = node.position
-                            if isinstance(intf, adhoc):
-                                info('%s ' % node)
-                                sleep(1)
-                            # we need this cause wmediumd is struggling
-                            # with some associations e.g. wpa
-                            if self.wmediumd_mode == interference:
-                                sleep(0.1)
-                                pos_x = float(pos[0]) + 1
-                                pos = ('%s' % pos_x, '%s' % pos[1], '%s' % pos[2])
-                                node.set_pos_wmediumd(pos)
-                                sleep(0.1)
-                                pos_x = float(pos[0]) - 1
-                                pos = ('%s' % pos_x, '%s' % pos[1], '%s' % pos[2])
-                                node.set_pos_wmediumd(pos)
-
-        mob.aps = self.aps
-        nodes = self.stations + self.cars
-        for node in nodes:
-            if hasattr(node, 'position'):
-                if isinstance(node, Car) and node.position == (0, 0, 0):
-                    pass
-                else:
-                    node.pos = (0, 0, 0)
-                    mob.configLinks(node)
+                        pos = node.position
+                        if isinstance(intf, adhoc):
+                            info('%s ' % node)
+                            sleep(1)
+                    if not isinstance(node, AP):
+                        node.pos = (0, 0, 0)
+                        mob.configLinks(node)
+                    # we need this cause wmediumd is struggling
+                    # with some associations e.g. wpa
+                    if self.wmediumd_mode == interference:
+                        sleep(0.1)
+                        pos_x = float(pos[0]) + 1
+                        pos = (pos_x, pos[1], pos[2])
+                        node.set_pos_wmediumd(pos)
+                        sleep(0.1)
+                        pos_x = float(pos[0]) - 1
+                        pos = (pos_x, pos[1], pos[2])
+                        node.set_pos_wmediumd(pos)
 
     @staticmethod
     def propagation_model(**kwargs):
