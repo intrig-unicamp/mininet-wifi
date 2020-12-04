@@ -2337,6 +2337,7 @@ class MiniEdit( Frame ):
 
     def convertJsonUnicode(self, text):
         "Some part of Mininet don't like Unicode"
+        unicode = type(u"")
         if Python3:
             unicode = str
         if isinstance(text, dict):
@@ -3228,12 +3229,12 @@ class MiniEdit( Frame ):
                         nodes.append(dstName)
                         for node in nodes:
                             f.write(b"    net.addLink(" + node.encode())
-                            if 'adhoc' in linkopts['connection']:
-                                f.write(b", cls=adhoc, ssid=\'%s\', mode=\'%s\', channel=%s"
-                                        % (linkopts['ssid'], linkopts['mode'], linkopts['channel']))
-                            elif 'mesh' in linkopts['connection']:
-                                f.write(b", cls=mesh, ssid=\'%s\', mode=\'%s\', channel=%s"
-                                        % (linkopts['ssid'], linkopts['mode'], linkopts['channel']))
+                            if 'adhoc' in linkopts['connection'] or 'mesh' in linkopts['connection']:
+                                link = ", cls={}, ssid=\'{}\', mode=\'{}\', channel={}".format(linkopts['connection'],
+                                                                                                linkopts['ssid'],
+                                                                                                linkopts['mode'],
+                                                                                                linkopts['channel'])
+                                f.write(link.encode())
                             elif 'wifiDirect' in linkopts['connection']:
                                 f.write(b", cls=wifiDirectLink")
                             intf = None
@@ -4460,11 +4461,11 @@ class MiniEdit( Frame ):
                 if apClass == CustomUserAP:
                     if 'switchIP' in opts:
                         if len(opts['apIP']) > 0:
-                            newAP.setSwitchIP(opts['switchIP'])
+                            newAP.setAPIP(opts['switchIP'])
                 if apClass == customOvsAP:
                     if 'apIP' in opts:
                         if len(opts['apIP']) > 0:
-                            newAP.setSwitchIP(opts['apIP'])
+                            newAP.setAPIP(opts['apIP'])
 
                 # Attach external interfaces
                 if 'externalInterfaces' in opts:
