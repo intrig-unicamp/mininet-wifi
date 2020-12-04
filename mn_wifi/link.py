@@ -230,14 +230,14 @@ class IntfWireless(Intf):
         "Configure ourselves using ip link/addr"
         if self.name not in self.node.params['wlan']:
             self.cmd('ip addr flush ', self.name)
-            return self.cmd('ip addr add', args[0], 'dev', self.name)
+            return self.cmd('ip addr add', args[0], 'brd + dev', self.name)
         else:
             if len(args) == 0:
                 return self.cmd('ip addr show', self.name)
             else:
                 if ':' not in args[0]:
                     self.cmd('ip addr flush ', self.name)
-                    cmd = 'ip addr add %s dev %s' % (args[0], self.name)
+                    cmd = 'ip addr add %s brd + dev %s' % (args[0], self.name)
                     if self.ip6:
                         cmd += ' && ip -6 addr add %s dev %s' % \
                                (self.ip6, self.name)
