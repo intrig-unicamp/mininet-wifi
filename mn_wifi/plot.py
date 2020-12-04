@@ -47,10 +47,6 @@ class Plot3D (object):
         x, y, z = node.getxyz()
         node.plttxt = Plot3D.ax.text(x, y, z, node.name)
 
-        # newer MPL versions (>=1.4) compatability
-        if not hasattr(node.plttxt, 'xyann'):
-            node.plttxt.xyann = node.plttxt.xytext
-
     @classmethod
     def instantiate_node(cls, node):
         x, y, z = node.getxyz()
@@ -147,7 +143,7 @@ class Plot2D (object):
     @classmethod
     def create_line(cls, links):
         for link in links:
-            if 'wifi' not in str(link):
+            if 'wifi' not in str(link) and 'ITS' not in str(link):
                 src = link.intf1.node
                 dst = link.intf2.node
                 if hasattr(src, 'position') and hasattr(dst, 'position'):

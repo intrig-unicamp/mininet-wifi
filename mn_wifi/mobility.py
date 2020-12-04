@@ -306,6 +306,9 @@ class model(Mobility):
         elif mob_model == 'TimeVariantCommunity':
             mob = tvc(mob_nodes, dimensions=(max_x, max_y),
                       aggregation=[0.5, 0.], epoch=[100, 100])
+        elif mob_model == 'CRP':
+            mob = coherence_ref_point(mob_nodes, (max_x, max_y), kwargs['pointlist'],
+            aggregation=[0.5, 0.])
         else:
             raise Exception("Mobility Model not defined or doesn't exist!")
 
@@ -1500,3 +1503,139 @@ def tvc(nodes, dimensions, velocity=(0.1, 1.), aggregation=[0.5, 0.], epoch=[100
         sintheta = np.sin(theta)
 
         yield np.dstack((x, y))[0]
+
+def coherence_ref_point(nodes, dimensions, pointlist, velocity=(0.1, 1.), g_velocity=0.4, aggregation=0.1):
+    """
+    Based on the Reference Point Group Mobility model, discussed in the following paper:
+
+        Xiaoyan Hong, Mario Gerla, Guangyu Pei, and Ching-Chuan Chiang. 1999.
+        A group mobility model for ad hoc wireless networks. In Proceedings of
+        the 2nd ACM international workshop on Modeling, analysis and simulation
+        of wireless and mobile systems (MSWiM '99). ACM, New York, NY, USA,
+        53-60.
+
+    In this implementation, group trajectories follow a fixed linear path,
+    while nodes follow a random walk around the group center.
+    The parameter 'aggregation' controls how close the nodes are to the group
+    center.
+
+    Required arguments:
+
+        *nr_nodes*:
+        list of integers, the number of nodes in each group.
+
+        *dimensions*:
+        Tuple of Integers, the x and y dimensions of the simulation area.
+
+    keyword arguments:
+
+        *velocity*:
+        Tuple of Doubles, the minimum and maximum values for group velocity.
+
+        *g_velocity*
+        Velocity of group vector. Appears to be 5.7 m/s per unit locally.
+
+        *aggregation*:
+        Double, parameter (between 0 and 1) used to aggregate the nodes in the
+        group. Usually between 0 and 1, the more this value approximates to 1,
+        the nodes will be more aggregated and closer to the group center.
+        With a value of 0, the nodes are randomly distributed in the simulation
+        area. With a value of 1, the nodes are close to the group center.
+
+        *pointlist*
+        List of Tuples of integers x,y,z corresponding to points in the model.
+    """
+    #Method U() is a uniform distribution as a lambda
+    nr_nodes = len(nodes)
+    try:
+        iter(nr_nodes)
+    except TypeError:
+        nr_nodes = [nr_nodes]
+    #Create an array of length equal to # of nodes
+    NODES = np.arange(sum(nr_nodes))
+    #Store nodes in their specific group, which controls the "reference point" who vector they follow
+    groups = []
+    prev = 0
+    for (i, n) in enumerate(nr_nodes):
+        groups.append(np.arange(prev, n + prev))
+        prev += n
+    #Create a empty array that stores the "index" number of arrays
+    g_ref = np.empty(sum(nr_nodes), dtype=np.int)
+    for (i, g) in enumerate(groups):
+        for n in g:
+            g_ref[n] = i
+    #Max flight value (borders)
+    FL_MAX = max(dimensions)
+    MIN_V, MAX_V = velocity
+    G_VEL = g_velocity
+    #Create wrappers for uniform distribution for flight distance and velocity
+    FL_DISTR = lambda SAMPLES: U(0, FL_MAX, SAMPLES)
+    VEL_DISTR = lambda FD: U(MIN_V, MAX_V, FD)
+    MAX_X, MAX_Y = dimensions
+    #Assign initial values including X and Y
+    if len(pointlist) > 1:
+        current_x, current_y, current_z = pointlist[0]
+        next_x, next_y, next_z = pointlist[1]
+    else:
+        current_x, current_y, current_z = pointlist[0]
+        next_x, next_y, next_z = pointlist[0]
+    x = U(current_x, current_x + MAX_V, NODES)
+    y = U(current_y, current_y + MAX_V, NODES)
+    velocity = 1.
+    theta = U(0, 2 * np.pi, NODES)
+    costheta = np.cos(theta)
+    sintheta = np.sin(theta)
+    #Determine the location and initial movement of the group reference point
+    GROUPS = np.arange(len(groups))
+    g_x = np.array([current_x])
+    g_y = np.array([current_y])
+    #Unclear on if flight distance has any material effect in this instance
+    g_fl = FL_DISTR(GROUPS)
+    #Each one unit of velocity is ~5.7 m/s
+    g_velocity = np.array([G_VEL])
+    g_theta = [np.arctan2(next_y - current_y, next_x - current_x)]
+    g_costheta = np.cos(g_theta)
+    g_sintheta = np.sin(g_theta)
+    point_index = 1
+    while True:
+        #Adjust location of individual point?
+        x = x + velocity * costheta
+        y = y + velocity * sintheta
+        #Adjust location of group?
+        g_x = g_x + g_velocity * g_costheta
+        g_y = g_y + g_velocity * g_sintheta
+
+        for (i, g) in enumerate(groups):
+            # step to group direction + step to group center
+            x_g = x[g]
+            y_g = y[g]
+            c_theta = np.arctan2(g_y[i] - y_g, g_x[i] - x_g)
+
+            x[g] = x_g + g_velocity[i] * g_costheta[i] + aggregation * np.cos(c_theta)
+            y[g] = y_g + g_velocity[i] * g_sintheta[i] + aggregation * np.sin(c_theta)
+
+        # update info for nodes
+        theta = U(0, 2 * np.pi, NODES)
+        costheta = np.cos(theta)
+        sintheta = np.sin(theta)
+
+        # update info for arrived groups
+        g_fl = g_fl - g_velocity
+
+        g_finished = (abs(g_x - next_x) < 1 and abs(g_y - next_y) < 1)
+        if(g_x - next_x < 10):
+            if g_finished:
+                if point_index + 1 >= len(pointlist):
+                    g_velocity[0] = 0
+                else:
+                    point_index += 1
+                    current_x = next_x
+                    current_y = next_y
+                    next_x, next_y, next_z = pointlist[point_index]
+                    g_theta = [np.arctan2(next_y - g_y, next_x - g_x)]
+                    g_costheta = np.cos(g_theta)
+                    g_sintheta = np.sin(g_theta)
+
+        yield np.dstack((x, y))[0]
+
+

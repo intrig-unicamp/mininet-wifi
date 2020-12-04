@@ -1094,8 +1094,8 @@ class StationDialog(CustomDialog):
         #results['ssid'] = str(self.ssidEntry.get())
         results['passwd'] = str(self.passwdEntry.get())
         results['user'] = str(self.userEntry.get())
-        results['wlans'] = str(self.wlansEntry.get())
-        results['wpans'] = str(self.wpansEntry.get())
+        results['wlans'] = self.wlansEntry.get()
+        results['wpans'] = self.wpansEntry.get()
         results['range'] = str(self.rangeEntry.get())
         self.result = results
 
@@ -1545,7 +1545,7 @@ class APDialog(CustomDialog):
         results['ssid'] = str(self.ssidEntry.get())
         results['channel'] = str(self.channelEntry.get())
         results['range'] = str(self.rangeEntry.get())
-        results['wlans'] = str(self.wlansEntry.get())
+        results['wlans'] = self.wlansEntry.get()
         results['mode'] = str(self.mode.get())
         results['authentication'] = self.authentication.get()
         results['passwd'] = str(self.passwdEntry.get())
@@ -1772,7 +1772,7 @@ class LinkDialog(simpledialog.Dialog):
             wlans.append('default')
             for wlan in range(int(self.src['wlans'])):
                 if 'ap' in srcOpt:
-                    wlan_ = wlan+1
+                    wlan_ = wlan + 1
                 else:
                     wlan_ = wlan
                 wlans.append('%s-wlan%s' % (srcOpt, wlan_))
@@ -2557,7 +2557,7 @@ class MiniEdit( Frame ):
                 if 'range' not in ap['opts']:
                     ap['opts']['range'] = 'default'
                 if 'wlans' not in ap['opts']:
-                    ap['opts']['wlans'] = '1'
+                    ap['opts']['wlans'] = 1
                 if 'ap' in ap['opts']:
                     hostname = ap['opts']['hostname']
                 else:
@@ -3521,18 +3521,18 @@ class MiniEdit( Frame ):
             self.switchCount += 1
             name = self.nodePrefixes[ node ] + str( self.switchCount )
             self.switchOpts[name] = {}
-            self.switchOpts[name]['nodeNum']=self.switchCount
-            self.switchOpts[name]['hostname']=name
-            self.switchOpts[name]['switchType']='default'
-            self.switchOpts[name]['controllers']=[]
+            self.switchOpts[name]['nodeNum'] = self.switchCount
+            self.switchOpts[name]['hostname'] = name
+            self.switchOpts[name]['switchType'] = 'default'
+            self.switchOpts[name]['controllers'] = []
         if 'AP' == node:
             self.apCount += 1
             name = self.nodePrefixes[ node ] + str( self.apCount )
             self.apOpts[name] = {}
-            self.apOpts[name]['nodeNum']=self.apCount
-            self.apOpts[name]['hostname']=name
-            self.apOpts[name]['apType']='default'
-            self.apOpts[name]['ssid']=name + '-ssid'
+            self.apOpts[name]['nodeNum'] = self.apCount
+            self.apOpts[name]['hostname'] = name
+            self.apOpts[name]['apType'] = 'default'
+            self.apOpts[name]['ssid'] = name + '-ssid'
             self.apOpts[name]['channel'] = '1'
             self.apOpts[name]['mode'] = 'g'
             self.apOpts[name]['range'] = 'default'
@@ -3544,23 +3544,23 @@ class MiniEdit( Frame ):
             self.switchCount += 1
             name = self.nodePrefixes[ node ] + str( self.switchCount )
             self.switchOpts[name] = {}
-            self.switchOpts[name]['nodeNum']=self.switchCount
-            self.switchOpts[name]['hostname']=name
-            self.switchOpts[name]['switchType']='legacyRouter'
+            self.switchOpts[name]['nodeNum'] = self.switchCount
+            self.switchOpts[name]['hostname'] = name
+            self.switchOpts[name]['switchType'] = 'legacyRouter'
         if 'LegacySwitch' == node:
             self.switchCount += 1
             name = self.nodePrefixes[ node ] + str( self.switchCount )
             self.switchOpts[name] = {}
-            self.switchOpts[name]['nodeNum']=self.switchCount
-            self.switchOpts[name]['hostname']=name
-            self.switchOpts[name]['switchType']='legacySwitch'
-            self.switchOpts[name]['controllers']=[]
+            self.switchOpts[name]['nodeNum'] = self.switchCount
+            self.switchOpts[name]['hostname'] = name
+            self.switchOpts[name]['switchType'] = 'legacySwitch'
+            self.switchOpts[name]['controllers'] = []
         if 'Host' == node:
             self.hostCount += 1
             name = self.nodePrefixes[ node ] + str( self.hostCount )
             self.hostOpts[name] = {'sched':'host'}
-            self.hostOpts[name]['nodeNum']=self.hostCount
-            self.hostOpts[name]['hostname']=name
+            self.hostOpts[name]['nodeNum'] = self.hostCount
+            self.hostOpts[name]['hostname'] = name
         if 'Station' == node:
             self.stationCount += 1
             name = self.nodePrefixes[ node ] + str( self.stationCount )
@@ -4032,9 +4032,9 @@ class MiniEdit( Frame ):
             if len(stationBox.result['user']) > 0:
                 newStationOpts['user'] = stationBox.result['user']
             if len(stationBox.result['wpans']) > 0:
-                newStationOpts['wpans'] = stationBox.result['wpans']
+                newStationOpts['wpans'] = int(stationBox.result['wpans'])
             if len(stationBox.result['wlans']) > 0:
-                newStationOpts['wlans'] = stationBox.result['wlans']
+                newStationOpts['wlans'] = int(stationBox.result['wlans'])
             if len(stationBox.result['defaultRoute']) > 0:
                 newStationOpts['defaultRoute'] = stationBox.result['defaultRoute']
             if len(stationBox.result['ip']) > 0:
@@ -4113,7 +4113,7 @@ class MiniEdit( Frame ):
             newAPOpts['passwd'] = apBox.result['passwd']
             newAPOpts['mode'] = apBox.result['mode']
             newAPOpts['range'] = apBox.result['range']
-            newAPOpts['wlans'] = apBox.result['wlans']
+            newAPOpts['wlans'] = int(apBox.result['wlans'])
             newAPOpts['controllers'] = self.apOpts[name]['controllers']
             if len(apBox.result['startCommand']) > 0:
                 newAPOpts['startCommand'] = apBox.result['startCommand']
@@ -5074,10 +5074,10 @@ class MiniEdit( Frame ):
         for switch in importNet.switches:
             name = switch.name
             self.switchOpts[name] = {}
-            self.switchOpts[name]['nodeNum']=self.switchCount
-            self.switchOpts[name]['hostname']=name
-            self.switchOpts[name]['switchType']='default'
-            self.switchOpts[name]['controllers']=[]
+            self.switchOpts[name]['nodeNum'] = self.switchCount
+            self.switchOpts[name]['hostname'] = name
+            self.switchOpts[name]['switchType'] = 'default'
+            self.switchOpts[name]['controllers'] = []
 
             x = columnCount*100+100
             self.addNode('Switch', self.switchCount,
@@ -5123,7 +5123,7 @@ class MiniEdit( Frame ):
             self.apOpts[name]['authentication'] = 'none'
             self.apOpts[name]['passwd'] = ''
             self.apOpts[name]['apType'] = 'default'
-            self.apOpts[name]['wlans'] = '1'
+            self.apOpts[name]['wlans'] = 1
             self.apOpts[name]['controllers'] = []
 
             x = columnCount * 100 + 100

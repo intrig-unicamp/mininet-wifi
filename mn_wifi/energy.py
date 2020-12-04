@@ -6,6 +6,8 @@
 from threading import Thread as thread
 from time import sleep, time
 
+from mininet.log import error
+
 
 class Energy(object):
 
@@ -23,8 +25,7 @@ class Energy(object):
 
         for node in nodes:
             for intf in node.wintfs.values():
-                intf.rx = 0
-                intf.tx = 0
+                intf.rx, intf.tx = 0, 0
 
         try:
             while self.thread_._keep_alive:
@@ -33,7 +34,7 @@ class Energy(object):
                     for intf in node.wintfs.values():
                         intf.consumption = self.getTotalEnergyConsumption(intf)
         except:
-            pass
+            error("Error with the energy consumption function\n")
 
     @staticmethod
     def get_time():

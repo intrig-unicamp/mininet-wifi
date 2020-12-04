@@ -40,4 +40,3 @@ class CLI(MN_CLI):
         for sw in nodesL2:
             output('*** ' + sw.name + ' ' + ('-' * 72) + '\n')
             output(sw.dpctl(*args))
-

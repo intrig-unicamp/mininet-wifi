@@ -189,9 +189,16 @@ function p4_deps {
     pushd $BUILD_DIR/mininet-wifi/p4-dependencies
     git clone https://github.com/jafingerhut/p4-guide
     pushd $BUILD_DIR/mininet-wifi/p4-dependencies/p4-guide
-    git reset --hard ef0f4e1
-    patch -p0 < $MININET_DIR/mininet-wifi/util/p4-patches/p4-guide-without-mininet.patch
-    sudo ./bin/install-p4dev-v2.sh |& tee log.txt
+
+    if [ "$DIST" = "Ubuntu" ] && [ "$RELEASE" = "20.04" ]; then
+        git reset --hard 1fa500a
+        patch -p0 < $MININET_DIR/mininet-wifi/util/p4-patches/p4-guide-v3-without-mininet.patch
+        sudo ./bin/install-p4dev-v3.sh |& tee log.txt
+    else
+        git reset --hard ef0f4e1
+        patch -p0 < $MININET_DIR/mininet-wifi/util/p4-patches/p4-guide-without-mininet.patch
+        sudo ./bin/install-p4dev-v2.sh |& tee log.txt
+    fi
 }
 
 # Install Mininet-WiFi deps
@@ -199,7 +206,13 @@ function wifi_deps {
     echo "Installing Mininet-WiFi dependencies"
     $install wireless-tools rfkill ${PYPKG}-numpy pkg-config \
              libnl-3-dev libnl-genl-3-dev libssl-dev make libevent-dev patch \
-             ${PYPKG}-pip libdbus-1-dev python-psutil python3-psutil
+             libdbus-1-dev python-psutil python3-psutil
+
+    if [ "$DIST" = "Ubuntu" ] && [ "$RELEASE" = "20.04" ]; then
+        $install python3-pip
+    else
+        $install ${PYPKG}-pip
+    fi
 
     if [ "$DIST" = "Ubuntu" ] && [ "$RELEASE" = "14.04" ]; then
         sudo pip install --upgrade pip
