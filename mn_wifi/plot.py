@@ -143,7 +143,7 @@ class Plot2D (object):
     @classmethod
     def create_line(cls, links):
         for link in links:
-            if 'wifi' not in str(link):
+            if 'wifi' not in str(link) and 'ITS' not in str(link):
                 src = link.intf1.node
                 dst = link.intf2.node
                 if hasattr(src, 'position') and hasattr(dst, 'position'):
