@@ -288,6 +288,61 @@ function olsrd {
     sudo make install
 }
 
+function olsrdv2 {
+    echo "Installing olsrdv2..."
+    $install liblua5.1-0-dev libjson-c-dev
+
+    cd $BUILD_DIR/mininet-wifi
+    if [ -d libubox ]; then
+          echo "Removing libubox..."
+          rm -r libubox
+    fi
+    git clone --depth=1 git://git.openwrt.org/project/libubox.git
+    cd $BUILD_DIR/mininet-wifi/libubox
+    mkdir build
+    cd build
+    cmake ..
+    make
+    sudo make install
+
+    cd $BUILD_DIR/mininet-wifi
+    if [ -d ubus ]; then
+          echo "Removing ubus..."
+          rm -r ubus
+    fi
+    git clone --depth=1 git://git.openwrt.org/project/ubus.git
+    cd $BUILD_DIR/mininet-wifi/ubus
+    mkdir build
+    cd build
+    cmake ..
+    make
+    sudo make install
+
+    cd $BUILD_DIR/mininet-wifi
+    if [ -d uci ]; then
+          echo "Removing uci..."
+          rm -r uci
+    fi
+    git clone --depth=1 git://git.openwrt.org/project/uci.git
+    cd $BUILD_DIR/mininet-wifi/uci
+    mkdir build
+    cd build
+    cmake ..
+    make
+    sudo make install
+
+    cd $BUILD_DIR/mininet-wifi
+    if [ -d OONF ]; then
+          echo "Removing olsrdv2..."
+          rm -r OONF
+    fi
+    git clone https://github.com/OLSR/OONF
+    cd $BUILD_DIR/mininet-wifi/OONF/build
+    cmake ..
+    make
+    sudo make install
+}
+
 function batman {
     echo "Installing B.A.T.M.A.N..."
     echo "Installing batmand..."
@@ -901,6 +956,7 @@ function all {
     wmediumd
     babeld
     olsrd
+    olsrdv2
     batman
     wpan_tools
     echo "Enjoy Mininet-WiFi!"
@@ -963,6 +1019,7 @@ function usage {
     printf -- ' -l: insta(L)l wmediumd\n' >&2
     printf -- ' -m: install Open vSwitch kernel (M)odule from source dir\n' >&2
     printf -- ' -n: install Mini(N)et dependencies + core files\n' >&2
+    printf -- ' -o: install olsrdv2\n' >&2
     printf -- ' -O: install olsrd\n' >&2
     printf -- ' -p: install (P)OX OpenFlow Controller\n' >&2
     printf -- ' -p: install P4 dependencies\n' >&2
@@ -987,7 +1044,7 @@ if [ $# -eq 0 ]
 then
     all
 else
-    while getopts 'abBcdeEfhiklmnOpPrSs:tvV:wWxy036' OPTION
+    while getopts 'abBcdeEfhiklmnoOpPrSs:tvV:wWxy036' OPTION
     do
       case $OPTION in
       a)    all;;
@@ -1008,6 +1065,7 @@ else
       l)    wmediumd;;
       m)    modprobe;;
       n)    mn_deps;;
+      o)    olsrdv2;;
       O)    olsrd;;
       p)    pox;;
       P)    p4_deps;;

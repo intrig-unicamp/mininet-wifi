@@ -66,6 +66,7 @@ class Cleanup(object):
 
         cls.killprocs('simple_switch_grpc')
         cls.killprocs('sumo-gui')
+        cls.killprocs('olsrd2_static')
         cls.killprocs('hostapd')
         sleep(0.1)
         cls.sh('pkill babel')
@@ -83,9 +84,9 @@ class Cleanup(object):
         for phydev in phy:
             if str(os.getpid()) in phydev:                
                 p = subprocess.Popen(["hwsim_mgmt", "-x", phydev], stdin=subprocess.PIPE,
-                             stdout=subprocess.PIPE,
-                             stderr=subprocess.PIPE,
-                             bufsize=-1)
+                                     stdout=subprocess.PIPE,
+                                     stderr=subprocess.PIPE,
+                                     bufsize=-1)
                 output, err_out = p.communicate()
 
         cls.kill_mod('mac80211_hwsim')

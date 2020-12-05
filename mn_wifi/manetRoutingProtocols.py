@@ -41,12 +41,24 @@ class batman_adv(object):
         intf.cmd('modprobe batman-adv')
 
 
-class olsr(object):
+class olsrd(object):
     def __init__(self, intf, proto_args):
         cmd = 'olsrd -i %s -d 0 ' % intf.name
         cmd += proto_args
         intf.cmd(cmd)
         info('Starting olsrd in {}...\n'.format(intf.name))
+
+
+class olsrd2(object):
+    def __init__(self, intf, proto_args):
+        pid = os.getpid()
+        filename = "mn_{}_{}.staconf ".format(intf.node, pid)
+        cmd = "echo \"[global]\nlockfile %s.lock\" >> %s " % (intf.name, filename)
+        intf.cmd(cmd + ' &')
+        cmd = 'olsrd2_static %s -l %s & ' % (intf.name, filename)
+        cmd += proto_args
+        intf.cmd(cmd)
+        info('Starting olsrd2 in {}...\n'.format(intf.name))
 
 
 class babel(object):

@@ -40,7 +40,7 @@ def topology(args):
     # babel, batman_adv, batmand and olsr
     # WARNING: we may need to stop Network Manager if you want
     # to work with babel
-    protocols = ['babel', 'batman_adv', 'batmand', 'olsr']
+    protocols = ['babel', 'batman_adv', 'batmand', 'olsrd', 'olsrd2']
     kwargs = dict()
     for proto in args:
         if proto in protocols:
