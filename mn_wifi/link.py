@@ -1593,6 +1593,7 @@ class ITSLink(LinkAttrs):
         self.node = node
         self.name = intf.name
         self.mac = intf.mac
+        self.associatedTo = 'ITS'
 
         # It takes default values if keys are not set
         kwargs = {'channel': '181', 'band': 10, 'proto': None, 'txpower': 17}

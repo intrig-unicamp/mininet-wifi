@@ -32,11 +32,11 @@ def topology():
 
     info("*** Starting ITS Links\n")
     net.addLink(sta1, intf='sta1-wlan0', cls=ITSLink,
-                band=20, channel='181', proto='batman_adv')
+                band=20, channel=181, proto='batman_adv')
     net.addLink(sta2, intf='sta2-wlan0', cls=ITSLink,
-                band=20, channel='181', proto='batman_adv')
+                band=20, channel=181, proto='batman_adv')
     net.addLink(sta3, intf='sta3-wlan0', cls=ITSLink,
-                band=20, channel='181', proto='batman_adv')
+                band=20, channel=181, proto='batman_adv')
 
     info("*** Starting network\n")
     net.build()

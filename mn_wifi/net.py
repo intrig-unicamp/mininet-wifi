@@ -1389,7 +1389,8 @@ class Mininet_wifi(Mininet, Mininet_IoT):
 
         self.restore_links()
 
-        for node in self.stations:
+        nodes = self.stations + self.cars
+        for node in nodes:
             for wlan in range(len(node.params['wlan'])):
                 intf = node.params['wlan'][wlan]
                 link = TCLinkWireless(node, intfName=intf, port=wlan)
