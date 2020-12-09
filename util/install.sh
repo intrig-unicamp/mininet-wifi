@@ -22,8 +22,6 @@ case $BUILD_DIR in
   *) BUILD_DIR=$BUILD_DIR;;
 esac
 
-# Location of CONFIG_NET_NS-enabled kernel(s)
-KERNEL_LOC=http://www.openflow.org/downloads/mininet
 
 # Attempt to identify Linux release
 
@@ -107,19 +105,10 @@ if [ "$PYTHON_VERSION" == unknown ]; then
 fi
 echo "Detected Python (${PYTHON}) version ${PYTHON_VERSION}"
 
-# Kernel Deb pkg to be removed:
-KERNEL_IMAGE_OLD=linux-image-2.6.26-33-generic
 
 DRIVERS_DIR=/lib/modules/${KERNEL_NAME}/kernel/drivers/net
 
-OVS_RELEASE=1.4.0
-OVS_PACKAGE_LOC=https://github.com/downloads/mininet/mininet
-OVS_BUILDSUFFIX=-ignore # was -2
-OVS_PACKAGE_NAME=ovs-$OVS_RELEASE-core-$DIST_LC-$RELEASE-$ARCH$OVS_BUILDSUFFIX.tar
-OVS_TAG=v$OVS_RELEASE
-
 OF13_SWITCH_REV=${OF13_SWITCH_REV:-""}
-
 
 function kernel {
     echo "Install Mininet-compatible kernel if necessary"
@@ -130,18 +119,6 @@ function kernel {
     fi
 }
 
-function kernel_clean {
-    echo "Cleaning kernel..."
-
-    # To save disk space, remove previous kernel
-    if ! $remove $KERNEL_IMAGE_OLD; then
-        echo $KERNEL_IMAGE_OLD not installed.
-    fi
-
-    # Also remove downloaded packages:
-    rm -f $HOME/linux-headers-* $HOME/linux-image-*
-}
-
 # Install Mininet deps
 function mn_deps {
     echo "Installing Mininet dependencies"
@@ -150,14 +127,26 @@ function mn_deps {
             iproute telnet python-setuptools libcgroup-tools \
             ethtool help2man pyflakes pylint python-pep8 python-pexpect
     elif [ "$DIST" = "SUSE LINUX"  ]; then
-		$install gcc make socat psmisc xterm openssh iperf \
-			iproute telnet ${PYPKG}-setuptools libcgroup-tools \
-			ethtool help2man python-pyflakes python3-pylint \
-                        python-pep8 ${PYPKG}-pexpect ${PYPKG}-tk
+        $install gcc make socat psmisc xterm openssh iperf \
+          iproute telnet ${PYPKG}-setuptools libcgroup-tools \
+          ethtool help2man ${PYPKG}-pyflakes python3-pylint \
+                            python-pep8 ${PYPKG}-pexpect ${PYPKG}-tk
     else  # Debian/Ubuntu
         $install gcc make socat psmisc xterm ssh iperf telnet \
-                 ethtool help2man pyflakes pylint pep8 \
+                 ethtool help2man pep8 \
                  ${PYPKG}-setuptools ${PYPKG}-pexpect ${PYPKG}-tk
+
+        if [ "$PYTHON_VERSION" == 3 ]; then
+            sudo pip3 install --upgrade pip
+            sudo pip3 install --upgrade pyflakes
+            sudo pip3 install --upgrade pylint
+        else
+            sudo pip install --upgrade pip
+            sudo pip install --upgrade pyflakes
+            sudo pip install --upgrade pylint
+            sudo pip install matplotlib==2.1.1 --ignore-installed six
+        fi
+
         $install iproute2 || $install iproute
         $install cgroup-tools || $install cgroup-bin
     fi
@@ -171,11 +160,11 @@ function mn_deps {
 
     sudo git clone --depth=1 https://github.com/mininet/mininet.git
     pushd $MININET_DIR/mininet-wifi/mininet
-    sudo python=${python} make install
+    sudo PYTHON=${PYTHON} make install
     popd
     echo "Installing Mininet-wifi core"
     pushd $MININET_DIR/mininet-wifi
-    sudo python=${python} make install
+    sudo PYTHON=${PYTHON} make install
     popd
 }
 
@@ -206,13 +195,7 @@ function wifi_deps {
     echo "Installing Mininet-WiFi dependencies"
     $install wireless-tools rfkill ${PYPKG}-numpy pkg-config \
              libnl-3-dev libnl-genl-3-dev libssl-dev make libevent-dev patch \
-             libdbus-1-dev python-psutil python3-psutil
-
-    if [ "$DIST" = "Ubuntu" ] && [ "$RELEASE" = "20.04" ]; then
-        $install python3-pip
-    else
-        $install ${PYPKG}-pip
-    fi
+             libdbus-1-dev ${PYPKG}-psutil ${PYPKG}-pip
 
     if [ "$DIST" = "Ubuntu" ] && [ "$RELEASE" = "14.04" ]; then
         sudo pip install --upgrade pip
@@ -224,6 +207,7 @@ function wifi_deps {
             sudo pip install --upgrade pip
             sudo pip install matplotlib==2.1.1 --ignore-installed six
         fi
+        $install net-tools
     fi
 
     pushd $MININET_DIR/mininet-wifi
@@ -455,120 +439,6 @@ function of13 {
     cd $BUILD_DIR
 }
 
-
-function install_wireshark {
-    if ! which wireshark; then
-        echo "Installing Wireshark"
-        if [ "$DIST" = "Fedora" ]; then
-            $install wireshark wireshark-gnome
-        else
-            $install wireshark tshark
-        fi
-    fi
-
-    # Copy coloring rules: OF is white-on-blue:
-    echo "Optionally installing wireshark color filters"
-    mkdir -p $HOME/.wireshark
-    cp -n $MININET_DIR/mininet-wifi/util/colorfilters $HOME/.wireshark
-
-    echo "Checking Wireshark version"
-    WSVER=`wireshark -v | egrep -o '[0-9\.]+' | head -1`
-    if version_ge $WSVER 1.12; then
-        echo "Wireshark version $WSVER >= 1.12 - returning"
-        return
-    fi
-
-    echo "Cloning LoxiGen and building openflow.lua dissector"
-    cd $BUILD_DIR
-    git clone --depth=1 https://github.com/floodlight/loxigen.git
-    cd loxigen
-    make wireshark
-
-    # Copy into plugin directory
-    # libwireshark0/ on 11.04; libwireshark1/ on later
-    WSDIR=`find /usr/lib -type d -name 'libwireshark*' | head -1`
-    WSPLUGDIR=$WSDIR/plugins/
-    PLUGIN=loxi_output/wireshark/openflow.lua
-    sudo cp $PLUGIN $WSPLUGDIR
-    echo "Copied openflow plugin $PLUGIN to $WSPLUGDIR"
-
-    cd $BUILD_DIR
-}
-
-
-# Install Open vSwitch specific version Ubuntu package
-function ubuntuOvs {
-    echo "Creating and Installing Open vSwitch packages..."
-
-    OVS_SRC=$BUILD_DIR/openvswitch
-    OVS_TARBALL_LOC=http://openvswitch.org/releases
-
-    if ! echo "$DIST" | egrep "Ubuntu|Debian" > /dev/null; then
-        echo "OS must be Ubuntu or Debian"
-        $cd BUILD_DIR
-        return
-    fi
-    if [ "$DIST" = "Ubuntu" ] && ! version_ge $RELEASE 12.04; then
-        echo "Ubuntu version must be >= 12.04"
-        cd $BUILD_DIR
-        return
-    fi
-    if [ "$DIST" = "Debian" ] && ! version_ge $RELEASE 7.0; then
-        echo "Debian version must be >= 7.0"
-        cd $BUILD_DIR
-        return
-    fi
-
-    rm -rf $OVS_SRC
-    mkdir -p $OVS_SRC
-    cd $OVS_SRC
-
-    if wget $OVS_TARBALL_LOC/openvswitch-$OVS_RELEASE.tar.gz 2> /dev/null; then
-        tar xzf openvswitch-$OVS_RELEASE.tar.gz
-    else
-        echo "Failed to find OVS at $OVS_TARBALL_LOC/openvswitch-$OVS_RELEASE.tar.gz"
-        cd $BUILD_DIR
-        return
-    fi
-
-    # Remove any old packages
-    $remove openvswitch-common openvswitch-datapath-dkms openvswitch-controller \
-            openvswitch-pki openvswitch-switch || true
-
-    # Get build deps
-    $install build-essential fakeroot debhelper autoconf automake libssl-dev \
-             pkg-config bzip2 openssl python-all procps python-qt4 \
-             python-zopeinterface python-twisted-conch dkms dh-python dh-autoreconf |
-	     uuid-runtime
-
-    # Build OVS
-    parallel=`grep processor /proc/cpuinfo | wc -l`
-    cd $BUILD_DIR/openvswitch/openvswitch-$OVS_RELEASE
-            DEB_BUILD_OPTIONS='parallel=$parallel nocheck' fakeroot debian/rules binary
-    cd ..
-    for pkg in common datapath-dkms pki switch; do
-        pkg=openvswitch-${pkg}_$OVS_RELEASE*.deb
-        echo "Installing $pkg"
-        $pkginst $pkg
-    done
-    if $pkginst openvswitch-controller_$OVS_RELEASE*.deb 2>/dev/null; then
-        echo "Ignoring error installing openvswitch-controller"
-    fi
-
-    /sbin/modinfo openvswitch
-    sudo ovs-vsctl show
-    # Switch can run on its own, but
-    # Mininet should control the controller
-    # This appears to only be an issue on Ubuntu/Debian
-    if sudo service openvswitch-controller stop 2>/dev/null; then
-        echo "Stopped running controller"
-    fi
-    if [ -e /etc/init.d/openvswitch-controller ]; then
-        sudo update-rc.d openvswitch-controller disable
-    fi
-}
-
-
 # Install Open vSwitch
 
 function ovs {
@@ -615,6 +485,15 @@ function ovs {
             sudo update-rc.d $OVSC disable
         fi
     fi
+
+    # openvswitch-common requires python2 on Ubuntu < 20.04
+    # if we install python2 and the current python version is 3
+    # python2 will replace python3
+    # that's why we try to revert python to python3
+    if [ "$PYTHON_VERSION" == 3 ] && version_ge "$RELEASE" 20.04; then
+        sudo rm /usr/bin/python
+        sudo ln -s /usr/bin/python3 /usr/bin/python
+    fi
 }
 
 function remove_ovs {
@@ -636,136 +515,6 @@ function remove_ovs {
         done
     fi
     echo "Done removing OVS"
-}
-
-function ivs {
-    echo "Installing Indigo Virtual Switch..."
-
-    IVS_SRC=$BUILD_DIR/ivs
-
-    # Install dependencies
-    $install git pkg-config gcc make libnl-3-dev libnl-route-3-dev libnl-genl-3-dev
-
-    # Install IVS from source
-    cd $BUILD_DIR
-    git clone --depth=1 --recursive https://github.com/floodlight/ivs.git $IVS_SRC
-    cd $IVS_SRC
-    make
-    sudo make install
-}
-
-# Install RYU
-function ryu {
-    echo "Installing RYU..."
-
-    # install Ryu dependencies"
-    $install autoconf automake g++ libtool python make
-    if [ "$DIST" = "Ubuntu" -o "$DIST" = "Debian" ]; then
-        $install gcc python-pip python-dev libffi-dev libssl-dev \
-            libxml2-dev libxslt1-dev zlib1g-dev
-    fi
-
-    # fetch RYU
-    cd $BUILD_DIR/
-    git clone git://github.com/osrg/ryu.git ryu
-    cd ryu
-
-    # install ryu
-    sudo pip install -r tools/pip-requires -r tools/optional-requires \
-        -r tools/test-requires
-    sudo python setup.py install
-
-    # Add symbolic link to /usr/bin
-    sudo ln -s ./bin/ryu-manager /usr/local/bin/ryu-manager
-}
-
-# Install NOX with tutorial files
-function nox {
-    echo "Installing NOX w/tutorial files..."
-
-    # Install NOX deps:
-    $install autoconf automake g++ libtool python python-twisted \
-		swig libssl-dev make
-    if [ "$DIST" = "Debian" ]; then
-        $install libboost1.35-dev
-    elif [ "$DIST" = "Ubuntu" ]; then
-        $install python-dev libboost-dev
-        $install libboost-filesystem-dev
-        $install libboost-test-dev
-    fi
-    # Install NOX optional deps:
-    $install libsqlite3-dev python-simplejson
-
-    # Fetch NOX destiny
-    cd $BUILD_DIR/
-    git clone https://github.com/noxrepo/nox-classic.git noxcore
-    cd noxcore
-    if ! git checkout -b destiny remotes/origin/destiny ; then
-        echo "Did not check out a new destiny branch - assuming current branch is destiny"
-    fi
-
-    # Apply patches
-    git checkout -b tutorial-destiny
-    git am $MININET_DIR/mininet-wifi/util/nox-patches/*tutorial-port-nox-destiny*.patch
-    if [ "$DIST" = "Ubuntu" ] && version_ge $RELEASE 12.04; then
-        git am $MININET_DIR/mininet-wifi/util/nox-patches/*nox-ubuntu12-hacks.patch
-    fi
-
-    # Build
-    ./boot.sh
-    mkdir build
-    cd build
-    ../configure
-    make -j3
-    #make check
-
-    # Add NOX_CORE_DIR env var:
-    sed -i -e 's|# for examples$|&\nexport NOX_CORE_DIR=$BUILD_DIR/noxcore/build/src|' ~/.bashrc
-
-    # To verify this install:
-    #cd ~/noxcore/build/src
-    #./nox_core -v -i ptcp:
-}
-
-# Install NOX Classic/Zaku for OpenFlow 1.3
-function nox13 {
-    echo "Installing NOX w/tutorial files..."
-
-    # Install NOX deps:
-    $install autoconf automake g++ libtool python python-twisted \
-        swig libssl-dev make
-    if [ "$DIST" = "Debian" ]; then
-        $install libboost1.35-dev
-    elif [ "$DIST" = "Ubuntu" ]; then
-        $install python-dev libboost-dev
-        $install libboost-filesystem-dev
-        $install libboost-test-dev
-    fi
-
-    # Fetch NOX destiny
-    cd $BUILD_DIR/
-    git clone https://github.com/CPqD/nox13oflib.git
-    cd nox13oflib
-
-    # Build
-    ./boot.sh
-    mkdir build
-    cd build
-    ../configure
-    make -j3
-    #make check
-
-    # To verify this install:
-    #cd ~/nox13oflib/build/src
-    #./nox_core -v -i ptcp:
-}
-
-
-# "Install" POX
-function pox {
-    echo "Installing POX into $BUILD_DIR/pox..."
-    cd $BUILD_DIR
-    git clone --depth=1 https://github.com/noxrepo/pox.git
 }
 
 # Install OFtest
@@ -797,81 +546,6 @@ function cbench {
     ./configure --with-openflow-src-dir=$BUILD_DIR/openflow
     make
     sudo make install || true # make install fails; force past this
-}
-
-function vm_other {
-    echo "Doing other Mininet VM setup tasks..."
-
-    # Remove avahi-daemon, which may cause unwanted discovery packets to be
-    # sent during tests, near link status changes:
-    echo "Removing avahi-daemon"
-    $remove avahi-daemon
-
-    # was: Disable IPv6.  Add to /etc/modprobe.d/blacklist:
-    #echo "Attempting to disable IPv6"
-    #if [ "$DIST" = "Ubuntu" ]; then
-    #    BLACKLIST=/etc/modprobe.d/blacklist.conf
-    #else
-    #    BLACKLIST=/etc/modprobe.d/blacklist
-    #fi
-    #sudo sh -c "echo 'blacklist net-pf-10\nblacklist ipv6' >> $BLACKLIST"
-    echo "Disabling IPv6"
-    # Disable IPv6
-    if ! grep 'disable_ipv6' /etc/sysctl.conf; then
-        echo 'Disabling IPv6'
-        echo '
-# Mininet: disable IPv6
-net.ipv6.conf.all.disable_ipv6 = 1
-net.ipv6.conf.default.disable_ipv6 = 1
-net.ipv6.conf.lo.disable_ipv6 = 1' | sudo tee -a /etc/sysctl.conf > /dev/null
-    fi
-    # Since the above doesn't disable neighbor discovery, also do this:
-    if ! grep 'ipv6.disable' /etc/default/grub; then
-        sudo sed -i -e \
-        's/GRUB_CMDLINE_LINUX_DEFAULT="/GRUB_CMDLINE_LINUX_DEFAULT="ipv6.disable=1 /' \
-        /etc/default/grub
-        sudo update-grub
-    fi
-    # Disabling IPv6 breaks X11 forwarding via ssh
-    line='AddressFamily inet'
-    file='/etc/ssh/sshd_config'
-    echo "Adding $line to $file"
-    if ! grep "$line" $file > /dev/null; then
-        echo "$line" | sudo tee -a $file > /dev/null
-    fi
-
-    # Enable command auto completion using sudo; modify ~/.bashrc:
-    sed -i -e 's|# for examples$|&\ncomplete -cf sudo|' ~/.bashrc
-
-    # Install tcpdump, cmd-line packet dump tool.  Also install gitk,
-    # a graphical git history viewer.
-    $install tcpdump gitk
-
-    # Install common text editors
-    $install vim nano emacs
-
-    # Install NTP
-    $install ntp
-
-    # Install vconfig for VLAN example
-    if [ "$DIST" = "Fedora" ]; then
-        $install vconfig
-    else
-        $install vlan
-    fi
-
-    # Set git to colorize everything.
-    git config --global color.diff auto
-    git config --global color.status auto
-    git config --global color.branch auto
-
-    # Reduce boot screen opt-out delay. Modify timeout in /boot/grub/menu.lst to 1:
-    if [ "$DIST" = "Debian" ]; then
-        sudo sed -i -e 's/^timeout.*$/timeout         1/' /boot/grub/menu.lst
-    fi
-
-    # Clean unneeded debs:
-    rm -f ~/linux-headers-* ~/linux-image-*
 }
 
 # Script to copy built OVS kernel module to where modprobe will
@@ -936,19 +610,13 @@ function all {
         printf "       install.sh -fnpv\n\n"
         exit 3
     fi
-    echo "Installing all packages except for -eix (doxypy, ivs, nox-classic)..."
+    echo "Installing all packages except for -eix (doxypy)..."
     kernel
     mn_deps
     # Skip mn_dev (doxypy/texlive/fonts/etc.) because it's huge
     # mn_dev
     of
-    install_wireshark
     ovs
-    # We may add ivs once it's more mature
-    # ivs
-    # NOX-classic is deprecated, but you can install it manually if desired.
-    # nox
-    pox
     wifi_deps
     p4_deps
     oftest
@@ -996,7 +664,7 @@ function vm_clean {
 }
 
 function usage {
-    printf '\nUsage: %s [-abBcdEfhiklmnOpPrStvVwxy03]\n\n' $(basename $0) >&2
+    printf '\nUsage: %s [-abBcdEfhklmnOpPrStvVxy03]\n\n' $(basename $0) >&2
 
     printf 'This install script attempts to install useful packages\n' >&2
     printf 'for Mininet. It should (hopefully) work on Ubuntu 11.10+\n' >&2
@@ -1008,30 +676,23 @@ function usage {
     printf -- ' -a: (default) install (A)ll packages - good luck!\n' >&2
     printf -- ' -b: install controller (B)enchmark (oflops)\n' >&2
     printf -- ' -B: install B.A.T.M.A.N\n' >&2
-    printf -- ' -c: (C)lean up after kernel install\n' >&2
     printf -- ' -d: (D)elete some sensitive files from a VM image\n' >&2
     printf -- ' -e: install Mininet d(E)veloper dependencies\n' >&2
     printf -- ' -E: install babeld\n' >&2
     printf -- ' -f: install Open(F)low\n' >&2
     printf -- ' -h: print this (H)elp message\n' >&2
-    printf -- ' -i: install (I)ndigo Virtual Switch\n' >&2
     printf -- ' -k: install new (K)ernel\n' >&2
     printf -- ' -l: insta(L)l wmediumd\n' >&2
     printf -- ' -m: install Open vSwitch kernel (M)odule from source dir\n' >&2
     printf -- ' -n: install Mini(N)et dependencies + core files\n' >&2
     printf -- ' -o: install olsrdv2\n' >&2
     printf -- ' -O: install olsrd\n' >&2
-    printf -- ' -p: install (P)OX OpenFlow Controller\n' >&2
     printf -- ' -p: install P4 dependencies\n' >&2
     printf -- ' -r: remove existing Open vSwitch packages\n' >&2
     printf -- ' -s <dir>: place dependency (S)ource/build trees in <dir>\n' >&2
-    printf -- ' -t: complete o(T)her Mininet VM setup tasks\n' >&2
     printf -- ' -v: install Open (V)switch\n' >&2
     printf -- ' -V <version>: install a particular version of Open (V)switch on Ubuntu\n' >&2
-    printf -- ' -w: install OpenFlow (W)ireshark dissector\n' >&2
     printf -- ' -W: install Mininet-WiFi dependencies\n' >&2
-    printf -- ' -x: install NO(X) Classic OpenFlow controller\n' >&2
-    printf -- ' -y: install R(y)u Controller\n' >&2
     printf -- ' -0: (default) -0[fx] installs OpenFlow 1.0 versions\n' >&2
     printf -- ' -3: -3[fx] installs OpenFlow 1.3 versions\n' >&2
     printf -- ' -6: install wpan tools\n' >&2
@@ -1044,13 +705,12 @@ if [ $# -eq 0 ]
 then
     all
 else
-    while getopts 'abBcdeEfhiklmnoOpPrSs:tvV:wWxy036' OPTION
+    while getopts 'abBdeEfhiklmnoOPrSsvWx036' OPTION
     do
       case $OPTION in
       a)    all;;
       b)    cbench;;
       B)    batman;;
-      c)    kernel_clean;;
       d)    vm_clean;;
       e)    mn_dev;;
       E)    babeld;;
@@ -1060,31 +720,19 @@ else
             *)  echo "Invalid OpenFlow version $OF_VERSION";;
             esac;;
       h)    usage;;
-      i)    ivs;;
       k)    kernel;;
       l)    wmediumd;;
       m)    modprobe;;
       n)    mn_deps;;
       o)    olsrdv2;;
       O)    olsrd;;
-      p)    pox;;
       P)    p4_deps;;
       r)    remove_ovs;;
       s)    mkdir -p $OPTARG; # ensure the directory is created
             BUILD_DIR="$( cd -P "$OPTARG" && pwd )"; # get the full path
             echo "Dependency installation directory: $BUILD_DIR";;
-      t)    vm_other;;
       v)    ovs;;
-      V)    OVS_RELEASE=$OPTARG;
-            ubuntuOvs;;
-      w)    install_wireshark;;
       W)    wifi_deps;;
-      x)    case $OF_VERSION in
-            1.0) nox;;
-            1.3) nox13;;
-            *)  echo "Invalid OpenFlow version $OF_VERSION";;
-            esac;;
-      y)    ryu;;
       0)    OF_VERSION=1.0;;
       3)    OF_VERSION=1.3;;
       6)    wpan_tools;;
