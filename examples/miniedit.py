@@ -1344,8 +1344,7 @@ class APDialog(CustomDialog):
         # Selection of mode
         Label(self.leftfieldFrame, text="Mode:").grid(row=rowCount, sticky=E)
         self.mode = StringVar(self.leftfieldFrame)
-        self.modeMenu = OptionMenu(self.leftfieldFrame, self.mode, "g", "a",
-                                   "b", "n")
+        self.modeMenu = OptionMenu(self.leftfieldFrame, self.mode, "g", "a", "b", "n")
         self.modeMenu.grid(row=rowCount, column=1, sticky=W)
         if 'mode' in self.prefValues:
             modePref = self.prefValues['mode']
@@ -1504,7 +1503,7 @@ class APDialog(CustomDialog):
         self.passwdEntry.insert(0, self.prefValues['passwd'])
         rowCount += 1
 
-    def addInterface( self ):
+    def addInterface(self):
         self.tableFrame.addRow()
 
     def defaultDpid( self, name):
@@ -1650,6 +1649,7 @@ class TableFrame(Frame):
         self._widgets.append(current_row)
         self.update_idletasks()
         self.rows += 1
+
 
 class LinkDialog(simpledialog.Dialog):
 
@@ -1937,6 +1937,7 @@ class ControllerDialog(simpledialog.Dialog):
         else:
             self.result['controllerProtocol'] = 'tcp'
 
+
 class ToolTip(object):
 
     def __init__(self, widget):
@@ -1976,21 +1977,21 @@ class ToolTip(object):
         if tw:
             tw.destroy()
 
-class MiniEdit( Frame ):
 
+class MiniEdit(Frame):
     "A simple network editor for Mininet."
 
-    def __init__( self, parent=None, cheight=600, cwidth=1000 ):
+    def __init__(self, parent=None, cheight=600, cwidth=1000):
 
-        self.defaultIpBase='10.0.0.0/8'
+        self.defaultIpBase = '10.0.0.0/8'
 
-        self.nflowDefaults = {'nflowTarget':'',
-                              'nflowTimeout':'600',
-                              'nflowAddId':'0'}
-        self.sflowDefaults = {'sflowTarget':'',
-                              'sflowSampling':'400',
-                              'sflowHeader':'128',
-                              'sflowPolling':'30'}
+        self.nflowDefaults = {'nflowTarget': '',
+                              'nflowTimeout': '600',
+                              'nflowAddId': '0'}
+        self.sflowDefaults = {'sflowTarget': '',
+                              'sflowSampling': '400',
+                              'sflowHeader': '128',
+                              'sflowPolling': '30'}
 
         self.appPrefs={
             "ipBase": self.defaultIpBase,
@@ -2003,16 +2004,15 @@ class MiniEdit( Frame ):
             "passwd": '',
             "mode": 'g',
             "dpctl": '',
-            'sflow':self.sflowDefaults,
-            'netflow':self.nflowDefaults,
-            'openFlowVersions':{'ovsOf10':'1',
-                                'ovsOf11':'0',
-                                'ovsOf12':'0',
-                                'ovsOf13':'0'}
+            'sflow': self.sflowDefaults,
+            'netflow': self.nflowDefaults,
+            'openFlowVersions': {'ovsOf10': '1',
+                                 'ovsOf11': '0',
+                                 'ovsOf12': '0',
+                                 'ovsOf13': '0'}
         }
 
-
-        Frame.__init__( self, parent )
+        Frame.__init__(self, parent)
         self.action = None
         self.appName = 'MiniEdit'
         self.fixedFont = font.Font ( family="DejaVu Sans Mono", size="14" )
@@ -2040,23 +2040,25 @@ class MiniEdit( Frame ):
         self.images = miniEditImages()
         self.buttons = {}
         self.active = None
-        self.tools = ( 'Select', 'Host', 'Station', 'Switch', 'AP', 'LegacySwitch', 'LegacyRouter', 'NetLink', 'Controller' )
-        self.customColors = { 'Switch': 'darkGreen', 'Host': 'blue' }
+        self.tools = ('Select', 'Host', 'Station', 'Switch', 'AP',
+                      'LegacySwitch', 'LegacyRouter', 'NetLink', 'Controller')
+        self.customColors = {'Switch': 'darkGreen', 'Host': 'blue'}
         self.toolbar = self.createToolbar()
 
         # Layout
-        self.toolbar.grid( column=0, row=0, sticky='nsew')
-        self.cframe.grid( column=1, row=0 )
-        self.columnconfigure( 1, weight=1 )
-        self.rowconfigure( 0, weight=1 )
-        self.pack( expand=True, fill='both' )
+        self.toolbar.grid(column=0, row=0, sticky='nsew')
+        self.cframe.grid(column=1, row=0)
+        self.columnconfigure(1, weight=1)
+        self.rowconfigure(0, weight=1)
+        self.pack(expand=True, fill='both')
 
         # About box
         self.aboutBox = None
 
         # Initialize node data
         self.nodeBindings = self.createNodeBindings()
-        self.nodePrefixes = { 'LegacyRouter': 'r', 'LegacySwitch': 's', 'Switch': 's', 'AP': 'ap', 'Host': 'h' , 'Station': 'sta', 'Controller': 'c'}
+        self.nodePrefixes = {'LegacyRouter': 'r', 'LegacySwitch': 's', 'Switch': 's',
+                             'AP': 'ap', 'Host': 'h', 'Station': 'sta', 'Controller': 'c'}
         self.widgetToItem = {}
         self.itemToWidget = {}
 
@@ -2067,20 +2069,20 @@ class MiniEdit( Frame ):
         self.selection = None
 
         # Keyboard bindings
-        self.bind( '<Control-q>', lambda event: self.quit() )
-        self.bind( '<KeyPress-Delete>', self.deleteSelection )
-        self.bind( '<KeyPress-BackSpace>', self.deleteSelection )
+        self.bind('<Control-q>', lambda event: self.quit())
+        self.bind('<KeyPress-Delete>', self.deleteSelection)
+        self.bind('<KeyPress-BackSpace>', self.deleteSelection)
         self.focus()
 
         self.hostPopup = Menu(self.top, tearoff=0)
         self.hostPopup.add_command(label='Host Options', font=self.font)
         self.hostPopup.add_separator()
-        self.hostPopup.add_command(label='Properties', font=self.font, command=self.hostDetails )
+        self.hostPopup.add_command(label='Properties', font=self.font, command=self.hostDetails)
 
         self.hostRunPopup = Menu(self.top, tearoff=0)
         self.hostRunPopup.add_command(label='Host Options', font=self.font)
         self.hostRunPopup.add_separator()
-        self.hostRunPopup.add_command(label='Terminal', font=self.font, command=self.xterm )
+        self.hostRunPopup.add_command(label='Terminal', font=self.font, command=self.xterm)
 
         self.stationPopup = Menu(self.top, tearoff=0)
         self.stationPopup.add_command(label='Station Options', font=self.font)
@@ -2095,17 +2097,17 @@ class MiniEdit( Frame ):
         self.legacyRouterRunPopup = Menu(self.top, tearoff=0)
         self.legacyRouterRunPopup.add_command(label='Router Options', font=self.font)
         self.legacyRouterRunPopup.add_separator()
-        self.legacyRouterRunPopup.add_command(label='Terminal', font=self.font, command=self.xterm )
+        self.legacyRouterRunPopup.add_command(label='Terminal', font=self.font, command=self.xterm)
 
         self.switchPopup = Menu(self.top, tearoff=0)
         self.switchPopup.add_command(label='Switch Options', font=self.font)
         self.switchPopup.add_separator()
-        self.switchPopup.add_command(label='Properties', font=self.font, command=self.switchDetails )
+        self.switchPopup.add_command(label='Properties', font=self.font, command=self.switchDetails)
 
         self.switchRunPopup = Menu(self.top, tearoff=0)
         self.switchRunPopup.add_command(label='Switch Options', font=self.font)
         self.switchRunPopup.add_separator()
-        self.switchRunPopup.add_command(label='List bridge details', font=self.font, command=self.listBridge )
+        self.switchRunPopup.add_command(label='List bridge details', font=self.font, command=self.listBridge)
 
         self.apPopup = Menu(self.top, tearoff=0)
         self.apPopup.add_command(label='AP Options', font=self.font)
@@ -2116,22 +2118,23 @@ class MiniEdit( Frame ):
         self.apRunPopup.add_command(label='AP Options', font=self.font)
         self.apRunPopup.add_separator()
         self.apRunPopup.add_command(label='List bridge details', font=self.font, command=self.listBridge)
+        self.apRunPopup.add_command(label='Properties', font=self.font, command=self.apDetails)
 
         self.linkPopup = Menu(self.top, tearoff=0)
         self.linkPopup.add_command(label='Link Options', font=self.font)
         self.linkPopup.add_separator()
-        self.linkPopup.add_command(label='Properties', font=self.font, command=self.linkDetails )
+        self.linkPopup.add_command(label='Properties', font=self.font, command=self.linkDetails)
 
         self.linkRunPopup = Menu(self.top, tearoff=0)
         self.linkRunPopup.add_command(label='Link Options', font=self.font)
         self.linkRunPopup.add_separator()
-        self.linkRunPopup.add_command(label='Link Up', font=self.font, command=self.linkUp )
-        self.linkRunPopup.add_command(label='Link Down', font=self.font, command=self.linkDown )
+        self.linkRunPopup.add_command(label='Link Up', font=self.font, command=self.linkUp)
+        self.linkRunPopup.add_command(label='Link Down', font=self.font, command=self.linkDown)
 
         self.controllerPopup = Menu(self.top, tearoff=0)
         self.controllerPopup.add_command(label='Controller Options', font=self.font)
         self.controllerPopup.add_separator()
-        self.controllerPopup.add_command(label='Properties', font=self.font, command=self.controllerDetails )
+        self.controllerPopup.add_command(label='Properties', font=self.font, command=self.controllerDetails)
 
         # Event handling initalization
         self.linkx = self.linky = self.linkItem = None
@@ -2231,12 +2234,11 @@ class MiniEdit( Frame ):
 
         return f, canvas
 
-    def updateScrollRegion( self ):
+    def updateScrollRegion(self):
         "Update canvas scroll region to hold everything."
-        bbox = self.canvas.bbox( 'all' )
+        bbox = self.canvas.bbox('all')
         if bbox is not None:
-            self.canvas.configure( scrollregion=( 0, 0, bbox[ 2 ],
-                                                  bbox[ 3 ] ) )
+            self.canvas.configure(scrollregion=(0, 0, bbox[2], bbox[3]))
 
     def canvasx( self, x_root ):
         "Convert root x coordinate to canvas coordinate."
@@ -4091,14 +4093,14 @@ class MiniEdit( Frame ):
             self.switchOpts[name] = newSwitchOpts
             info( 'New switch details for ' + name + ' = ' + str(newSwitchOpts), '\n' )
 
-    def apDetails( self, _ignore=None ):
-        if ( self.selection is None or
-             self.net is not None or
-             self.selection not in self.itemToWidget ):
+    def apDetails(self, _ignore=None):
+        if (self.selection is None or
+            #self.net is not None or
+            self.selection not in self.itemToWidget):
             return
-        widget = self.itemToWidget[ self.selection ]
-        name = widget[ 'text' ]
-        tags = self.canvas.gettags( self.selection )
+        widget = self.itemToWidget[self.selection]
+        name = widget['text']
+        tags = self.canvas.gettags(self.selection)
         if 'AP' not in tags:
             return
 
@@ -4142,7 +4144,15 @@ class MiniEdit( Frame ):
             self.canvas.coords(self.range[name],
                                x - range, y - range,
                                x + range, y + range)
+
+            if self.net:
+                node = self.net.getNodeByName(newAPOpts['hostname'])
+                self.setChannel(node, newAPOpts['channel'])
+
             info( 'New access point details for ' + name + ' = ' + str(newAPOpts), '\n' )
+
+    def setChannel(self, node, channel):
+        node.wintfs[0].setAPChannel(int(channel))
 
     def linkUp( self ):
         if ( self.selection is None or
@@ -4240,7 +4250,6 @@ class MiniEdit( Frame ):
                             switch['controllers'].remove(oldName)
                             switch['controllers'].append(name)
 
-
     def listBridge( self, _ignore=None ):
         if ( self.selection is None or
              self.net is None or
@@ -4302,7 +4311,6 @@ class MiniEdit( Frame ):
 
                 if controllerName in self.switchOpts[switchName]['controllers']:
                     self.switchOpts[switchName]['controllers'].remove(controllerName)
-
 
         if link is not None:
             del self.links[ link ]
@@ -4773,7 +4781,7 @@ class MiniEdit( Frame ):
         ## NOTE: MAKE SURE THIS IS LAST THING CALLED
         # Start the CLI if enabled
         if self.appPrefs['startCLI'] == '1':
-            info( "\n\n NOTE: PLEASE REMEMBER TO EXIT THE CLI BEFORE YOU PRESS THE STOP BUTTON. Not exiting will prevent MiniEdit from quitting and will prevent you from starting the network again during this sessoin.\n\n")
+            info( "\n\n NOTE: PLEASE REMEMBER TO EXIT THE CLI BEFORE YOU PRESS THE STOP BUTTON. Not exiting will prevent MiniEdit from quitting and will prevent you from starting the network again during this session.\n\n")
             CLI(self.net)
 
     def start( self ):
@@ -4843,6 +4851,7 @@ class MiniEdit( Frame ):
                         newNode.cmdPrint(opts['stopCommand'])
 
             self.net.stop()
+
         cleanUpScreens()
 
         Mac80211Hwsim.hwsim_ids = []
@@ -4956,9 +4965,9 @@ class MiniEdit( Frame ):
 
     def xterm( self, _ignore=None ):
         "Make an xterm when a button is pressed."
-        if ( self.selection is None or
-             self.net is None or
-             self.selection not in self.itemToWidget ):
+        if (self.selection is None or
+            self.net is None or
+            self.selection not in self.itemToWidget):
             return
         name = self.itemToWidget[ self.selection ][ 'text' ]
         if name not in self.net.nameToNode:
