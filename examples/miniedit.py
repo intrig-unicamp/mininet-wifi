@@ -75,6 +75,8 @@ from mn_wifi.net import Mininet_wifi
 from mn_wifi.node import CPULimitedStation, Station, OVSAP, UserAP
 from mn_wifi.bmv2 import P4Switch, P4AP
 from mn_wifi.link import wmediumd
+from mn_wifi.mobility import Mobility
+from mn_wifi.module import Mac80211Hwsim
 from mn_wifi.wmediumdConnector import interference
 
 
@@ -875,6 +877,7 @@ class StationDialog(CustomDialog):
         #        self.mode.set("g")
         #else:
         #    self.mode.set("g")
+        self.mode = 'g'
 
         # Field for Wlans
         rowCount += 1
@@ -1052,7 +1055,6 @@ class StationDialog(CustomDialog):
             else:
                 self.mountTableFrame.addRow(value=[privateDir,''])
 
-
     def addDirectory( self ):
         self.mountTableFrame.addRow()
 
@@ -1095,6 +1097,7 @@ class StationDialog(CustomDialog):
         results['passwd'] = str(self.passwdEntry.get())
         results['user'] = str(self.userEntry.get())
         results['wlans'] = self.wlansEntry.get()
+        results['mode'] = 'g'
         results['wpans'] = self.wpansEntry.get()
         results['range'] = str(self.rangeEntry.get())
         self.result = results
@@ -1125,7 +1128,7 @@ class SwitchDialog(CustomDialog):
         self.hostnameEntry = Entry(self.leftfieldFrame)
         self.hostnameEntry.grid(row=rowCount, column=1)
         self.hostnameEntry.insert(0, self.prefValues['hostname'])
-        rowCount+=1
+        rowCount += 1
 
         # Field for DPID
         Label(self.leftfieldFrame, text="DPID:").grid(row=rowCount, sticky=E)
@@ -1133,7 +1136,7 @@ class SwitchDialog(CustomDialog):
         self.dpidEntry.grid(row=rowCount, column=1)
         if 'dpid' in self.prefValues:
             self.dpidEntry.insert(0, self.prefValues['dpid'])
-        rowCount+=1
+        rowCount += 1
 
         # Field for Netflow
         Label(self.leftfieldFrame, text="Enable NetFlow:").grid(row=rowCount, sticky=E)
@@ -1147,7 +1150,7 @@ class SwitchDialog(CustomDialog):
                 self.nflowButton.select()
         else:
             self.nflowButton.deselect()
-        rowCount+=1
+        rowCount += 1
 
         # Field for sflow
         Label(self.leftfieldFrame, text="Enable sFlow:").grid(row=rowCount, sticky=E)
@@ -1161,7 +1164,7 @@ class SwitchDialog(CustomDialog):
                 self.sflowButton.select()
         else:
             self.sflowButton.deselect()
-        rowCount+=1
+        rowCount += 1
 
         # Selection of switch type
         Label(self.leftfieldFrame, text="Switch Type:").grid(row=rowCount, sticky=E)
@@ -1182,7 +1185,7 @@ class SwitchDialog(CustomDialog):
                 self.switchType.set("Default")
         else:
             self.switchType.set("Default")
-        rowCount+=1
+        rowCount += 1
 
         # Field for Switch IP
         Label(self.leftfieldFrame, text="IP Address:").grid(row=rowCount, sticky=E)
@@ -1190,7 +1193,7 @@ class SwitchDialog(CustomDialog):
         self.ipEntry.grid(row=rowCount, column=1)
         if 'switchIP' in self.prefValues:
             self.ipEntry.insert(0, self.prefValues['switchIP'])
-        rowCount+=1
+        rowCount += 1
 
         # Field for DPCTL port
         Label(self.leftfieldFrame, text="DPCTL port:").grid(row=rowCount, sticky=E)
@@ -1256,9 +1259,9 @@ class SwitchDialog(CustomDialog):
         if (self.defaultDpid(self.hostnameEntry.get()) is None
                 and len(dpid) == 0):
             messagebox.showerror(title="Error",
-                      message= 'Unable to derive default datapath ID - '
-                      'please either specify a DPID or use a '
-                      'canonical switch name such as s23.' )
+                                 message= 'Unable to derive default datapath ID - '
+                                 'please either specify a DPID or use a '
+                                 'canonical switch name such as s23.' )
 
         results = {'externalInterfaces':externalInterfaces,
                    'hostname':self.hostnameEntry.get(),
@@ -1315,7 +1318,7 @@ class APDialog(CustomDialog):
         self.hostnameEntry = Entry(self.leftfieldFrame)
         self.hostnameEntry.grid(row=rowCount, column=1)
         self.hostnameEntry.insert(0, self.prefValues['hostname'])
-        rowCount+=1
+        rowCount += 1
 
         # Field for wlans
         Label(self.leftfieldFrame, text="Wlans:").grid(row=rowCount, sticky=E)
@@ -1423,7 +1426,7 @@ class APDialog(CustomDialog):
                 self.sflowButton.select()
         else:
             self.sflowButton.deselect()
-        rowCount+=1
+        rowCount += 1
 
         # Field for Switch IP
         Label(self.leftfieldFrame, text="IP Address:").grid(row=rowCount, sticky=E)
@@ -1431,7 +1434,7 @@ class APDialog(CustomDialog):
         self.ipEntry.grid(row=rowCount, column=1)
         if 'apIP' in self.prefValues:
             self.ipEntry.insert(0, self.prefValues['apIP'])
-        rowCount+=1
+        rowCount += 1
 
         # Field for DPCTL port
         Label(self.leftfieldFrame, text="DPCTL port:").grid(row=rowCount, sticky=E)
@@ -1439,7 +1442,7 @@ class APDialog(CustomDialog):
         self.dpctlEntry.grid(row=rowCount, column=1)
         if 'dpctl' in self.prefValues:
             self.dpctlEntry.insert(0, self.prefValues['dpctl'])
-        rowCount+=1
+        rowCount += 1
 
         # External Interfaces
         Label(self.rightfieldFrame, text="External Interface:").grid(row=0, sticky=E)
@@ -1501,7 +1504,6 @@ class APDialog(CustomDialog):
         self.passwdEntry.insert(0, self.prefValues['passwd'])
         rowCount += 1
 
-
     def addInterface( self ):
         self.tableFrame.addRow()
 
@@ -1533,15 +1535,15 @@ class APDialog(CustomDialog):
                       'please either specify a DPID or use a '
                       'canonical switch name such as s23.' )
 
-        results = {'externalInterfaces':externalInterfaces,
-                   'hostname':self.hostnameEntry.get(),
-                   'dpid':dpid,
+        results = {'externalInterfaces': externalInterfaces,
+                   'hostname': self.hostnameEntry.get(),
+                   'dpid': dpid,
                    'startCommand':self.startEntry.get(),
-                   'stopCommand':self.stopEntry.get(),
-                   'sflow':str(self.sflow.get()),
-                   'netflow':str(self.nflow.get()),
-                   'dpctl':self.dpctlEntry.get(),
-                   'apIP':self.ipEntry.get()}
+                   'stopCommand': self.stopEntry.get(),
+                   'sflow': str(self.sflow.get()),
+                   'netflow': str(self.nflow.get()),
+                   'dpctl': self.dpctlEntry.get(),
+                   'apIP': self.ipEntry.get()}
         results['ssid'] = str(self.ssidEntry.get())
         results['channel'] = str(self.channelEntry.get())
         results['range'] = str(self.rangeEntry.get())
@@ -1609,6 +1611,7 @@ class VerticalScrolledTable(LabelFrame):
         canvas.bind('<Configure>', _configure_canvas)
 
         return
+
 
 class TableFrame(Frame):
     def __init__(self, parent, rows=2, columns=2):
@@ -2360,8 +2363,7 @@ class MiniEdit( Frame ):
             ('All Files','*'),
         ]
         f = filedialog.askopenfile(filetypes=myFormats, mode='rb')
-        if f == None:
-            return
+        if f is None: return
         self.newTopology()
         loadedTopology = self.convertJsonUnicode(json.load(f))
 
@@ -2445,6 +2447,8 @@ class MiniEdit( Frame ):
                     station['opts']['hostname'] = hostname
                 if 'nodeNum' not in station['opts']:
                     station['opts']['nodeNum'] = int(nodeNum)
+                if 'mode' not in station['opts']:
+                    station['opts']['mode'] = 'g'
                 x = float(station['x'])
                 y = float(station['y'])
                 self.addNode('Station', nodeNum, float(x), float(y), name=hostname)
@@ -2464,9 +2468,7 @@ class MiniEdit( Frame ):
 
                 name = self.stationOpts[hostname]
                 range = self.getRange(name, 'Station')
-                self.range[hostname] = c.create_oval(x - range, y - range,
-                                                     x + range, y + range,
-                                                     outline="#0000ff", width=2)
+                self.range[hostname] = self.createCircle(x, y, range, c)
 
         # Load switches
         if 'switches' in loadedTopology:
@@ -2579,9 +2581,7 @@ class MiniEdit( Frame ):
 
                 name = self.apOpts[hostname]
                 range = self.getRange(name, 'AP')
-                self.range[hostname] = c.create_oval(x - range, y - range,
-                                                     x + range, y + range,
-                                                     outline="#0000ff", width=2)
+                self.range[hostname] = self.createCircle(x, y, range, c)
 
                 # create links to controllers
                 if int(loadedTopology['version']) > 1:
@@ -3501,12 +3501,12 @@ class MiniEdit( Frame ):
         "Delete the selected item."
         if self.selection is not None:
             self.deleteItem( self.selection )
-        self.selectItem( None )
+        self.selectItem(None)
 
     def nodeIcon( self, node, name ):
         "Create a new node icon."
-        icon = Button( self.canvas, image=self.images[ node ],
-                       text=name, compound='top' )
+        icon = Button(self.canvas, image=self.images[node],
+                      text=name, compound='top')
         # Unfortunately bindtags wants a tuple
         bindtags = [ str( self.nodeBindings ) ]
         bindtags += list( icon.bindtags() )
@@ -3516,7 +3516,7 @@ class MiniEdit( Frame ):
     def newNode( self, node, event ):
         "Add a new node to our canvas."
         c = self.canvas
-        x, y = c.canvasx( event.x ), c.canvasy( event.y )
+        x, y = c.canvasx(event.x), c.canvasy(event.y)
         name = self.nodePrefixes[ node ]
         if 'Switch' == node:
             self.switchCount += 1
@@ -3559,7 +3559,7 @@ class MiniEdit( Frame ):
         if 'Host' == node:
             self.hostCount += 1
             name = self.nodePrefixes[ node ] + str( self.hostCount )
-            self.hostOpts[name] = {'sched':'host'}
+            self.hostOpts[name] = {'sched': 'host'}
             self.hostOpts[name]['nodeNum'] = self.hostCount
             self.hostOpts[name]['hostname'] = name
         if 'Station' == node:
@@ -3582,7 +3582,7 @@ class MiniEdit( Frame ):
                       'hostname': name,
                       'controllerProtocol': 'tcp',
                       'remoteIP': '127.0.0.1',
-                      'remotePort': 6633}
+                      'remotePort': 6653}
             self.controllers[name] = ctrlr
             # We want to start controller count at 0
             self.controllerCount += 1
@@ -3595,13 +3595,11 @@ class MiniEdit( Frame ):
                 node_ = self.stationOpts[name]
                 type = 'Station'
             range = self.getRange(node_, type)
-            self.range[name] = c.create_oval(x - range, y - range,
-                                             x + range, y + range,
-                                             outline="#0000ff", width=2)
+
+            self.range[name] = self.createCircle(x, y, range, c)
 
         icon = self.nodeIcon( node, name )
-        item = self.canvas.create_window( x, y, anchor='c', window=icon,
-                                          tags=node )
+        item = self.canvas.create_window(x, y, anchor='c', window=icon, tags=node)
         self.widgetToItem[ icon ] = item
         self.itemToWidget[ item ] = icon
         self.selectItem( item )
@@ -3620,6 +3618,11 @@ class MiniEdit( Frame ):
             icon.bind('<Button-3>', self.do_stationPopup)
         if 'Controller' == node:
             icon.bind('<Button-3>', self.do_controllerPopup )
+
+    def createCircle(self, x, y, range, c):
+        return c.create_oval(x - range, y - range,
+                             x + range, y + range,
+                             outline="#0000ff", width=2)
 
     def clickController( self, event ):
         "Add a new Controller to our canvas."
@@ -3650,19 +3653,10 @@ class MiniEdit( Frame ):
         self.newNode( 'AP', event )
 
     def getRange(self, node, type):
-        if type == 'AP':
-            if node['range'] == 'default':
-                if node['mode'] == 'a':
-                    range = 188
-                else:
-                    range = 313
-            else:
-                range = node['range']
+        if node['range'] == 'default':
+            range = 188 if node['mode'] == 'a' else 313
         else:
-            if node['range'] == 'default':
-                range = 0
-            else:
-                range = node['range']
+            range = node['range']
 
         return int(range)
 
@@ -3738,6 +3732,9 @@ class MiniEdit( Frame ):
         item = self.widgetToItem.get( event.widget, None )
         self.selectItem( item )
 
+    def setPosition(self, node, x, y):
+        node.setPosition('%s,%s,0' % (x, y))
+
     def dragNodeAround( self, event ):
         "Drag a node around on the canvas."
         c = self.canvas
@@ -3766,10 +3763,13 @@ class MiniEdit( Frame ):
                      x + range, y + range)
         # Adjust link positions
         for dest in w.links:
-            link = w.links[ dest ]
-            item = self.widgetToItem[ dest ]
-            x1, y1 = c.coords( item )
-            c.coords( link, x, y, x1, y1 )
+            link = w.links[dest]
+            item = self.widgetToItem[dest]
+            x1, y1 = c.coords(item)
+            c.coords(link, x, y, x1, y1)
+
+        if self.net and ('Station' in tags or 'AP' in tags):
+            self.setPosition(self.net.getNodeByName(name), x, y)
         self.updateScrollRegion()
 
     def createControlLinkBindings( self ):
@@ -3821,7 +3821,6 @@ class MiniEdit( Frame ):
         self.canvas.tag_bind( self.link, '<ButtonPress-1>', select )
         self.canvas.tag_bind( self.link, '<Button-3>', self.do_linkPopup )
 
-
     def startLink( self, event ):
         "Start a new link."
         if event.widget not in self.widgetToItem:
@@ -3836,7 +3835,6 @@ class MiniEdit( Frame ):
         self.linkx, self.linky = x, y
         self.linkWidget = w
         self.linkItem = item
-
 
     def finishLink( self, event ):
         "Finish creating a link"
@@ -4013,7 +4011,7 @@ class MiniEdit( Frame ):
         self.master.wait_window(stationBox.top)
         if stationBox.result:
             newStationOpts = {'nodeNum':self.stationOpts[name]['nodeNum']}
-            #newStationOpts['mode'] = stationBox.result['mode']
+            newStationOpts['mode'] = stationBox.result['mode']
             newStationOpts['sched'] = stationBox.result['sched']
             newStationOpts['range'] = stationBox.result['range']
             if len(stationBox.result['startCommand']) > 0:
@@ -4335,7 +4333,7 @@ class MiniEdit( Frame ):
         # Make nodes
         info( "Getting Nodes.\n" )
         for widget in self.widgetToItem:
-            name = widget[ 'text' ]
+            name = widget['text']
             tags = self.canvas.gettags( self.widgetToItem[ widget ] )
             # debug( name+' has '+str(tags), '\n' )
 
@@ -4344,11 +4342,11 @@ class MiniEdit( Frame ):
                 # debug( str(opts), '\n' )
 
                 # Create the correct switch class
-                switchParms={}
+                switchParms = {}
                 if 'dpctl' in opts:
-                    switchParms['listenPort']=int(opts['dpctl'])
+                    switchParms['listenPort'] = int(opts['dpctl'])
                 if 'dpid' in opts:
-                    switchParms['dpid']=opts['dpid']
+                    switchParms['dpid'] = opts['dpid']
                 if opts['switchType'] == 'default':
                     if self.appPrefs['switchType'] == 'user':
                         switchClass = CustomUserSwitch
@@ -4643,24 +4641,25 @@ class MiniEdit( Frame ):
                     net.addLink(srcNode, dstNode)
                 self.canvas.itemconfig(key, dash=())
 
-
-    def build( self ):
+    def build(self):
         "Build network based on our topology."
-
         dpctl = None
+
         if len(self.appPrefs['dpctl']) > 0:
             dpctl = int(self.appPrefs['dpctl'])
         link = TCLink
+
         wmediumd_mode = None
         if self.appPrefs['enableWmediumd'] == '1':
             link = wmediumd
             wmediumd_mode = interference
-        net = Mininet_wifi( topo=None,
-                            listenPort=dpctl,
-                            build=False,
-                            link=link,
-                            wmediumd_mode=wmediumd_mode,
-                            ipBase=self.appPrefs['ipBase'] )
+
+        net = Mininet_wifi(topo=None,
+                           listenPort=dpctl,
+                           build=False,
+                           link=link,
+                           wmediumd_mode=wmediumd_mode,
+                           ipBase=self.appPrefs['ipBase'])
 
         self.buildNodes(net)
         net.configureWifiNodes()
@@ -4671,9 +4670,7 @@ class MiniEdit( Frame ):
 
         return net
 
-
-    def postStartSetup( self ):
-
+    def postStartSetup(self):
         # Setup host details
         for widget in self.widgetToItem:
             name = widget[ 'text' ]
@@ -4847,6 +4844,12 @@ class MiniEdit( Frame ):
 
             self.net.stop()
         cleanUpScreens()
+
+        Mac80211Hwsim.hwsim_ids = []
+        Mobility.aps = []
+        Mobility.stations = []
+        Mobility.mobileNodes = []
+
         self.net = None
 
     def do_linkPopup(self, event):
