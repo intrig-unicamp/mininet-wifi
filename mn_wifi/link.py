@@ -157,9 +157,8 @@ class IntfWireless(Intf):
         from mn_wifi.propagationModels import PropagationModel as ppm
         return float(ppm(self, ap_intf, dist).rssi)
 
-    def get_freq(self):
+    def get_freq(self, channel):
         "Gets frequency based on channel number"
-        channel = int(self.channel)
         chan_list_2ghz = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
         chan_list_5ghz = [36, 40, 44, 48, 52, 56, 60, 64, 100,
                           104, 108, 112, 116, 120, 124, 128, 132,
@@ -177,8 +176,8 @@ class IntfWireless(Intf):
                           5.91, 5.915, 5.92, 5.925]
         all_chan = chan_list_2ghz + chan_list_5ghz
         all_freq = freq_list_2ghz + freq_list_5ghz
-        if channel in all_chan:
-            idx = all_chan.index(channel)
+        if int(channel) in all_chan:
+            idx = all_chan.index(int(channel))
             return all_freq[idx]
         return '2.412'
 
@@ -206,12 +205,12 @@ class IntfWireless(Intf):
         self.name = args[0]
 
     def setAPChannel(self, channel):
-        self.freq = self.get_freq()
+        self.freq = self.get_freq(channel)
         self.pexec('hostapd_cli -i %s chan_switch %s %s' % (
             self.name, channel, str(self.format_freq())))
 
     def setMeshChannel(self, channel):
-        self.freq = self.get_freq()
+        self.freq = self.get_freq(channel)
         self.iwdev_cmd('{} set channel {}'.format(self.name, channel))
 
     def setChannel(self, channel):
@@ -684,7 +683,7 @@ class HostapdConfig(IntfWireless):
             if 'phywlan' in intf.node.params: intf.node.params.pop('phywlan', None)
 
             if not wmediumd_mode.mode: self.setBw(intf, intf.id)
-            intf.freq = intf.get_freq()
+            intf.freq = intf.get_freq(intf.channel)
 
     def setConfig(self, intf):
         """Configure AP
@@ -1601,7 +1600,7 @@ class ITSLink(LinkAttrs):
         for k, v in kwargs.items():
             setattr(self, k, params.get(k, v))
 
-        self.freq = self.get_freq()
+        self.freq = self.get_freq(self.channel)
 
         if isinstance(intf, master):
             self.name = '%s-ocb' % node.name
@@ -1770,7 +1769,7 @@ class adhoc(LinkAttrs):
 
         node.addWAttr(self, port=wlan)
 
-        self.freq = self.get_freq()
+        self.freq = self.get_freq(self.channel)
         self.setReg()
         self.configureAdhoc()
 
