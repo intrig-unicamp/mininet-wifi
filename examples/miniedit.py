@@ -4325,8 +4325,9 @@ class MiniEdit(Frame):
     def deleteNode( self, item ):
         "Delete node (and its links) from model."
 
-        widget = self.itemToWidget[ item ]
+        widget = self.itemToWidget[item]
         tags = self.canvas.gettags(item)
+
         if 'Controller' in tags:
             # remove from switch controller lists
             for serachwidget in self.widgetToItem:
@@ -4335,6 +4336,8 @@ class MiniEdit(Frame):
                 if 'Switch' in tags:
                     if widget['text'] in self.switchOpts[name]['controllers']:
                         self.switchOpts[name]['controllers'].remove(widget['text'])
+                tags = []
+
         if 'AP' in tags:
             self.deleteItem(self.range[widget['text']])
 
