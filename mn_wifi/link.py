@@ -225,6 +225,26 @@ class IntfWireless(Intf):
             self.ibss_leave()
             adhoc(node=self.node, intf=self, chann=channel)
 
+    def setAutoAPBw(self):
+        wlan = self.id
+        if not wmediumd_mode.mode:
+            bw = self.params['bw'][wlan] if 'bw' in self.params else self.getBW()
+
+            print(("tc qdisc replace dev %s root handle 2: tbf rate %sMbit "
+                     "burst 15000 latency 1ms" % (self.name, bw)))
+            self.cmd("tc qdisc replace dev %s root handle 2: tbf rate %sMbit "
+                     "burst 15000 latency 1ms" % (self.name, bw))
+            # Reordering packets
+            self.cmd('tc qdisc add dev %s parent 2:1 handle 10: '
+                     'pfifo limit 1000' % self.name)
+
+            if self.ifb:
+                self.cmd("tc qdisc replace dev %s root handle 2: tbf "
+                         "rate %sMbit burst 15000 latency 1ms" % (self.ifb, bw))
+
+    def getBW(self):
+        return DeviceRate(self).rate if 'model' in self.params else self.getRate()
+
     def ipAddr(self, *args):
         "Configure ourselves using ip link/addr"
         if self.name not in self.node.params['wlan']:
@@ -682,7 +702,7 @@ class HostapdConfig(IntfWireless):
 
             if 'phywlan' in intf.node.params: intf.node.params.pop('phywlan', None)
 
-            if not wmediumd_mode.mode: self.setBw(intf, intf.id)
+            intf.setAutoAPBw()
             intf.freq = intf.get_freq(intf.channel)
 
     def setConfig(self, intf):
@@ -828,22 +848,6 @@ class HostapdConfig(IntfWireless):
                         cmd += '\nft_over_ds=1'
                         cmd += '\nft_psk_generate_local=1'
         return cmd
-
-    def setBw(self, intf, wlan):
-        bw = intf.node.params['bw'][wlan] if 'bw' in intf.node.params else self.getBW(intf)
-
-        intf.node.cmd("tc qdisc replace dev %s root handle 2: tbf rate %sMbit "
-                      "burst 15000 latency 1ms" % (intf, bw))
-        # Reordering packets
-        intf.node.cmd('tc qdisc add dev %s parent 2:1 handle 10: '
-                      'pfifo limit 1000' % intf)
-
-        if intf.ifb:
-            intf.node.cmd("tc qdisc replace dev %s root handle 2: tbf "
-                          "rate %sMbit burst 15000 latency 1ms" % (intf.ifb, bw))
-
-    def getBW(self, intf):
-        return DeviceRate(intf).rate if 'model' in intf.node.params else intf.getRate()
 
     def verifyWepKey(self, wep_key0):
         "Check WEP key"

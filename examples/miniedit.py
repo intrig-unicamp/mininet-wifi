@@ -74,8 +74,8 @@ from mn_wifi.cli import CLI
 from mn_wifi.net import Mininet_wifi
 from mn_wifi.node import CPULimitedStation, Station, OVSAP, UserAP
 from mn_wifi.bmv2 import P4Switch, P4AP
-from mn_wifi.link import wmediumd
-from mn_wifi.mobility import Mobility
+from mn_wifi.link import wmediumd, master
+from mn_wifi.mobility import Mobility, ConfigMobLinks
 from mn_wifi.module import Mac80211Hwsim
 from mn_wifi.wmediumdConnector import interference
 
@@ -4147,12 +4147,19 @@ class MiniEdit(Frame):
 
             if self.net:
                 node = self.net.getNodeByName(newAPOpts['hostname'])
+                self.setMode(node, newAPOpts['mode'])
                 self.setChannel(node, newAPOpts['channel'])
 
             info( 'New access point details for ' + name + ' = ' + str(newAPOpts), '\n' )
 
     def setChannel(self, node, channel):
         node.wintfs[0].setAPChannel(int(channel))
+        if isinstance(node.wintfs[0], master):
+            node.wintfs[0].setAutoAPBw()
+        ConfigMobLinks()
+
+    def setMode(self, node, mode):
+        node.wintfs[0].setMode(mode)
 
     def linkUp( self ):
         if ( self.selection is None or
