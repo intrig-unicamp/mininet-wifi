@@ -1322,7 +1322,7 @@ class Mininet_wifi(Mininet, Mininet_IoT):
                 self.start_wmediumd()
 
         for ap in self.aps:
-            for intf in ap.wintfs.values():
+            for intf in list(ap.wintfs.values()):
                 HostapdConfig(intf)
 
         self.restartNetworkManager()
