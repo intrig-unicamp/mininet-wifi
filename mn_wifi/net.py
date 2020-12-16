@@ -1067,11 +1067,13 @@ class Mininet_wifi(Mininet, Mininet_IoT):
             error('src not in network: %s\n' % src)
         elif dst not in self.nameToNode:
             error('dst not in network: %s\n' % dst)
+
         condition1 = [isinstance(self.nameToNode[src], Station),
                       isinstance(self.nameToNode[dst], AP)]
         condition2 = [isinstance(self.nameToNode[src], AP),
                       isinstance(self.nameToNode[dst], Station)]
-        if condition1 or condition2:
+
+        if all(condition1) or all(condition2):
             self.configNodesStatus(src, dst, status)
         else:
             src = self.nameToNode[src]
