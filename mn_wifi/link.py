@@ -1420,7 +1420,7 @@ class wmediumd(object):
             node.wmIfaces = []
 
             if 'vssids' in node.params:
-                for intf in node.wintfs.values():
+                for intf in list(node.wintfs.values()):
                     if isinstance(node.params['vssids'], list):
                         vssids = node.params['vssids'][0].split(',')
                     else:
