@@ -582,8 +582,8 @@ class OVSAP(AP, OVSSwitch):
     "Open vSwitch AP. Depends on ovs-vsctl."
 
     def __init__(self, name, failMode='secure', datapath='kernel',
-                 inband=False, protocols=None,
-                 reconnectms=1000, stp=False, batch=False, **params):
+                 inband=False, protocols=None, reconnectms=1000,
+                 stp=False, batch=False, **params):
         """name: name for switch
            failMode: controller loss behavior (secure|open)
            datapath: userspace or kernel mode (kernel|user)

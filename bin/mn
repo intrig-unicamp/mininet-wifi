@@ -299,8 +299,6 @@ class MininetRunner(object):
                         default=1, help='wireless channel configuration')
         opts.add_option('--band', type='int',
                         default=20, help='wireless bandwidth channel')
-        opts.add_option('--freq', type='float',
-                        default=2.4, help='wireless frequency')
         opts.add_option('--mode', type='string',
                         default="g", help='wireless mode configuration')
         opts.add_option('--ssid', type='string',
@@ -460,7 +458,6 @@ class MininetRunner(object):
         pin = opts.pin
         position = opts.position
         channel = opts.channel
-        freq = opts.freq
         band = opts.band
         mode = opts.mode
         ssid = opts.ssid
@@ -509,7 +506,6 @@ class MininetRunner(object):
                      inNamespace=inNamespace,
                      channel=channel,
                      band=band,
-                     freq=freq,
                      mode=mode,
                      ssid=ssid,
                      client_isolation=client_isolation,

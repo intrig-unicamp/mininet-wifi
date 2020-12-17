@@ -140,11 +140,11 @@ class IntfWireless(Intf):
         w_server.register_interface(self.mac)
 
     def getCustomRate(self):
-        mode_rate = {'a': 11, 'b': 3, 'g': 11, 'n': 600, 'ac': 1000}
+        mode_rate = {'a': 11, 'b': 3, 'g': 11, 'n': 600, 'n5': 600, 'ac': 1000}
         return mode_rate.get(self.mode)
 
     def getRate(self):
-        mode_rate = {'a': 54, 'b': 11, 'g': 54, 'n': 300, 'ac': 600}
+        mode_rate = {'a': 54, 'b': 11, 'g': 54, 'n': 300, 'n5': 300, 'ac': 600}
         return mode_rate.get(self.mode)
 
     def rec_rssi(self):
@@ -732,8 +732,8 @@ class HostapdConfig(IntfWireless):
     @staticmethod
     def get_mode_config(intf):
         cmd = ''
-        if intf.mode == 'n':
-            cmd += "\nhw_mode=a" if intf.freq and str(intf.freq) == '5.0' else "\nhw_mode=g"
+        if 'n' in intf.mode:
+            cmd += "\nhw_mode=a" if intf.mode == 'n5' else "\nhw_mode=g"
         elif intf.mode == 'a':
             cmd += "\ncountry_code=%s" % intf.country_code
             cmd += "\nhw_mode=%s" % intf.mode
@@ -830,7 +830,7 @@ class HostapdConfig(IntfWireless):
                     cmd += '\nwps_pin_requests=/var/run/hostapd.pin-req'
                     cmd += '\nap_setup_locked=0'
 
-                if intf.mode == 'ac' or intf.mode == 'n':
+                if intf.mode == 'ac' or 'n' in intf.mode:
                     cmd += "\nwmm_enabled=1"
                     cmd += "\nieee80211n=1"
                     if intf.mode == 'ac': cmd += "\nieee80211ac=1"
