@@ -1326,6 +1326,8 @@ class Mininet_wifi(Mininet, Mininet_IoT):
         for ap in self.aps:
             for intf in list(ap.wintfs.values()):
                 HostapdConfig(intf)
+                if self.link == wmediumd and 'vssids' in ap.params:
+                    break
 
         self.restartNetworkManager()
         if not self.config4addr and not self.configWiFiDirect:

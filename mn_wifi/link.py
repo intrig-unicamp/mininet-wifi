@@ -679,8 +679,9 @@ class HostapdConfig(IntfWireless):
                 iface = '%s-%s' % (intf.name, id)
                 intf.vifaces.append(iface)
                 intf.vssid.append(vssid)
-                TCLinkWireless(intf.node, intfName=iface)
-                VirtualMaster(intf.node, intf.id, intf=iface)
+                if not wmediumd_mode:
+                    TCLinkWireless(intf.node, intfName=iface)
+                    VirtualMaster(intf.node, intf.id, intf=iface)
 
     def configure(self, intf):
         if 'link' not in intf.node.params:
@@ -1403,6 +1404,7 @@ class wmediumd(object):
     positions = []
     txpowers = []
     links = []
+    mac_list = []
 
     def __init__(self, **kwargs):
         self.configWmediumd(**kwargs)
@@ -1412,13 +1414,27 @@ class wmediumd(object):
         "Configure wmediumd"
         intfrefs = []
         isnodeaps = []
-        mac_list = []
 
         nodes = stations + aps + cars
         for node in nodes:
             node.wmIfaces = []
-            for intf in node.wintfs.values():
-                if intf.mac not in mac_list and not isinstance(intf, phyAP):
+
+            if 'vssids' in node.params:
+                for intf in node.wintfs.values():
+                    if isinstance(node.params['vssids'], list):
+                        vssids = node.params['vssids'][0].split(',')
+                    else:
+                        vssids = node.params['vssids'].split(',')
+                    for id, vif in enumerate(range(len(vssids))):
+                        iface = '%s-%s' % (intf.name, id)
+                        TCLinkWireless(intf.node, intfName=iface)
+                        VirtualMaster(intf.node, intf.id, intf=iface)
+
+            for id, intf in enumerate(node.wintfs.values()):
+                if not intf.mac:
+                    intf.mac = node.wintfs[0].mac[:-1] + str(id)
+
+                if intf.mac not in self.mac_list and not isinstance(intf, phyAP):
                     intf.wmIface = DynamicIntfRef(node, intf=intf.name)
                     intfrefs.append(intf.wmIface)
                     node.wmIfaces.append(intf.wmIface)
@@ -1429,7 +1445,7 @@ class wmediumd(object):
                         isnodeaps.append(1)
                     else:
                         isnodeaps.append(0)
-                    mac_list.append(intf.mac)
+                    self.mac_list.append(intf.mac)
 
         if wmediumd_mode.mode == w_cst.INTERFERENCE_MODE:
             self.interference(nodes)
@@ -1454,13 +1470,11 @@ class wmediumd(object):
                 if hasattr(node, 'position') else self.get_position()
             node.lastpos = [posX, posY, posZ]
 
-            mac_list = []
             for wlan, intf in enumerate(node.wintfs.values()):
-                if intf.mac not in mac_list and not isinstance(intf, phyAP):
+                if intf.mac in self.mac_list and not isinstance(intf, phyAP):
                     if wlan >= 1: posX += 0.1
                     self.positions.append(w_pos(intf.wmIface, [posX, posY, posZ]))
                     self.txpowers.append(w_txpower(intf.wmIface, int(intf.txpower)))
-                    mac_list.append(intf.mac)
 
     def error_prob(self, wlinks):
         for link in wlinks:
