@@ -679,7 +679,7 @@ class HostapdConfig(IntfWireless):
                 iface = '%s-%s' % (intf.name, id)
                 intf.vifaces.append(iface)
                 intf.vssid.append(vssid)
-                if not wmediumd_mode:
+                if not wmediumd_mode.mode:
                     TCLinkWireless(intf.node, intfName=iface)
                     VirtualMaster(intf.node, intf.id, intf=iface)
 

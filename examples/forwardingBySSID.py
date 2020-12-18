@@ -63,7 +63,7 @@ def topology(args):
     sleep(2)
     cmd = 'iw dev {} connect {} {}'
     intf = ap1.wintfs[0].vssid
-    sta1.cmdPrint(cmd.format(sta1.params['wlan'][0], intf[0], ap1.wintfs[1].mac))
+    sta1.cmd(cmd.format(sta1.params['wlan'][0], intf[0], ap1.wintfs[1].mac))
     sta2.cmd(cmd.format(sta2.params['wlan'][0], intf[1], ap1.wintfs[2].mac))
     sta3.cmd(cmd.format(sta3.params['wlan'][0], intf[1], ap1.wintfs[2].mac))
     sta4.cmd(cmd.format(sta4.params['wlan'][0], intf[2], ap1.wintfs[3].mac))

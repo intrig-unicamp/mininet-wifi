@@ -48,7 +48,7 @@ class Mininet_wifi(Mininet, Mininet_IoT):
 
     def __init__(self, accessPoint=OVSKernelAP, station=Station, car=Car,
                  sensor=LowPANNode, apsensor=OVSSensor, link=WirelessLink,
-                 ssid="new-ssid", mode="g", channel=1, band=20,
+                 ssid="new-ssid", mode="g", channel=1, freq=2.4, band=20,
                  wmediumd_mode=snr, roads=0, fading_cof=0, autoAssociation=True,
                  allAutoAssociation=True, autoSetPositions=False,
                  configWiFiDirect=False, config4addr=False,
@@ -68,6 +68,7 @@ class Mininet_wifi(Mininet, Mininet_IoT):
            ssid: wifi ssid
            mode: wifi mode
            channel: wifi channel
+           freq: wifi freq
            band: bandwidth channel
            wmediumd_mode: default wmediumd mode
            roads: number of roads
@@ -94,6 +95,7 @@ class Mininet_wifi(Mininet, Mininet_IoT):
         self.ssid = ssid
         self.mode = mode
         self.channel = channel
+        self.freq = freq
         self.band = band
         self.wmediumd_mode = wmediumd_mode
         self.aps = []
@@ -349,6 +351,7 @@ class Mininet_wifi(Mininet, Mininet_IoT):
                            '/%s' % self.prefixLen6,
                     'channel': self.channel,
                     'band': self.band,
+                    'freq': self.freq,
                     'mode': self.mode
                    }
         defaults.update(params)
@@ -425,6 +428,7 @@ class Mininet_wifi(Mininet, Mininet_IoT):
                     'ssid': self.ssid,
                     'channel': self.channel,
                     'band': self.band,
+                    'freq': self.freq,
                     'mode': self.mode
                     }
         if self.client_isolation:
