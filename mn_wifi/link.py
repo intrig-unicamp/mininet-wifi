@@ -754,7 +754,6 @@ class HostapdConfig(IntfWireless):
         elif intf.mode == 'ac' or intf.mode == 'ax':
             cmd += "\ncountry_code=%s" % intf.country_code
             cmd += "\nhw_mode=a"
-            if intf.mode == 'ax': cmd += "\nieee80211ax=1"
         else:
             cmd += "\nhw_mode=%s" % intf.mode
         return cmd
@@ -844,10 +843,13 @@ class HostapdConfig(IntfWireless):
                     cmd += '\nwps_pin_requests=/var/run/hostapd.pin-req'
                     cmd += '\nap_setup_locked=0'
 
-                if intf.mode == 'ac' or 'n' in intf.mode:
-                    cmd += "\nwmm_enabled=1"
-                    cmd += "\nieee80211n=1"
-                    if intf.mode == 'ac': cmd += "\nieee80211ac=1"
+                if intf.mode == 'ac' or intf.mode == 'ax' or 'n' in intf.mode:
+                    cmd += '\nwmm_enabled=1'
+                    cmd += '\nieee80211n=1'
+                    if intf.mode == 'ac': cmd += '\nieee80211ac=1'
+                    if intf.mode == 'ax':
+                        cmd += '\nieee80211ax=1'
+                        cmd += '\nop_class=131'
 
                 if intf.ieee80211r:
                     if intf.mobility_domain:
@@ -1485,7 +1487,8 @@ class wmediumd(object):
             node.lastpos = [posX, posY, posZ]
 
             for wlan, intf in enumerate(node.wintfs.values()):
-                if intf.mac in self.mac_list and not isinstance(intf, phyAP):
+                if intf.mac in self.mac_list and not isinstance(intf, phyAP) \
+                        and not isinstance(intf, _4addrAP):
                     if wlan >= 1: posX += 0.1
                     self.positions.append(w_pos(intf.wmIface, [posX, posY, posZ]))
                     self.txpowers.append(w_txpower(intf.wmIface, int(intf.txpower)))
