@@ -1072,25 +1072,23 @@ class _4address(Link, IntfWireless):
 
     def __init__(self, node1, node2, port1=None, port2=None, **params):
         """Create 4addr link to another node.
-           node1: first node
-           node2: second node
-           intf: default interface class/constructor"""
-        ap = node1  # ap
-        cl = node2  # client
-        cl_intfname = '%s.wds' % cl.name
+           node1: ap
+           node2: client
+           port1/port2: port id"""
+        intfName2 = '%s.wds' % node2.name
 
-        if not hasattr(node1, 'position'): self.set_pos(node1)
-        if not hasattr(node2, 'position'): self.set_pos(node2)
+        if not hasattr(node1, 'position'): self.setPos(node1)
+        if not hasattr(node2, 'position'): self.setPos(node2)
 
-        if cl_intfname not in cl.params['wlan']:
-            wlan = cl.params['wlan'].index(port1) if port1 else 0
-            apwlan = ap.params['wlan'].index(port2) if port2 else 0
+        if intfName2 not in node2.params['wlan']:
+            wlan = node2.params['wlan'].index(port1) if port1 else 0
+            apwlan = node1.params['wlan'].index(port2) if port2 else 0
 
-            intf = cl.wintfs[wlan]
-            ap_intf = ap.wintfs[apwlan]
+            intf = node2.wintfs[wlan]
+            ap_intf = node1.wintfs[apwlan]
 
-            self.node = cl
-            self.add4addrIface(intf, cl_intfname)
+            self.node = node2
+            self.add4addrIface(intf, intfName2)
             sleep(1)
 
             intf.mode = ap_intf.mode
@@ -1098,35 +1096,37 @@ class _4address(Link, IntfWireless):
             intf.freq = ap_intf.freq
             intf.txpower = ap_intf.txpower
             intf.antennaGain = ap_intf.antennaGain
-            cl.params['wlan'].append(cl_intfname)
+            node2.params['wlan'].append(intfName2)
             sleep(1)
 
             params1, params2 = params, params
-            params1['port'] = cl.newPort()
-            params2['port'] = ap.newPort()
-            intf1 = IntfWireless(name=cl_intfname, node=cl, link=self, **params1)
-            if hasattr(ap, 'wds'):
-                ap.wds += 1
+            params1['port'] = node2.newPort()
+            params2['port'] = node1.newPort()
+            intf1 = IntfWireless(name=intfName2, node=node2, link=self, **params1)
+            if hasattr(node1, 'wds'):
+                node1.wds += 1
             else:
-                ap.wds = 1
-            intfName2 = ap.params['wlan'][apwlan] + '.sta%s' % ap.wds
-            intf2 = IntfWireless(name=intfName2, node=ap, link=self, **params2)
-            ap.params['wlan'].append(intfName2)
+                node1.wds = 1
+            intfName1 = node1.params['wlan'][apwlan] + '.sta%s' % node1.wds
+            intf2 = IntfWireless(name=intfName1, node=node1, link=self, **params2)
+            node1.params['wlan'].append(intfName1)
 
-            _4addrAP(ap, (len(ap.params['wlan']) - 1))
-            _4addrClient(cl, (len(cl.params['wlan']) - 1))
+            node1_intf_index = node1.params['wlan'].index(intfName1)
+            node2_intf_index = node2.params['wlan'].index(intfName2)
+            _4addrAP(node1, node1_intf_index)
+            _4addrClient(node2, node2_intf_index)
 
-            cl.wintfs[1].mac = (intf.mac[:3] + '09' + intf.mac[5:])
+            node2.wintfs[node2_intf_index].mac = intf.mac[:3] + '09' + intf.mac[5:]
             self.bring4addrIfaceDown()
-            self.setMAC(cl.wintfs[1])
+            self.setMAC(node2.wintfs[node2_intf_index])
             self.bring4addrIfaceUP()
-            self.iwdev_cmd('%s connect %s %s' % (cl.params['wlan'][1],
+            self.iwdev_cmd('%s connect %s %s' % (node2.params['wlan'][node2_intf_index],
                                                  ap_intf.ssid, ap_intf.mac))
 
             # All we are is dust in the wind, and our two interfaces
             self.intf1, self.intf2 = intf1, intf2
 
-    def set_pos(self, node):
+    def setPos(self, node):
         nums = re.findall(r'\d+', node.name)
         if nums:
             id = int(hex(int(nums[0]))[2:])
@@ -1455,9 +1455,8 @@ class wmediumd(object):
                     intfrefs.append(intf.wmIface)
                     node.wmIfaces.append(intf.wmIface)
 
-                    if (isinstance(intf, master)
-                            or (node in aps and (not isinstance(intf, managed)
-                                                 and not isinstance(intf, adhoc)))):
+                    if isinstance(intf, master) or \
+                            (node in aps and (not isinstance(intf, (managed, adhoc)))):
                         isnodeaps.append(1)
                     else:
                         isnodeaps.append(0)
@@ -1487,8 +1486,7 @@ class wmediumd(object):
             node.lastpos = [posX, posY, posZ]
 
             for wlan, intf in enumerate(node.wintfs.values()):
-                if intf.mac in self.mac_list and not isinstance(intf, phyAP) \
-                        and not isinstance(intf, _4addrAP):
+                if intf.mac in self.mac_list and not isinstance(intf, (phyAP, _4addrAP)):
                     if wlan >= 1: posX += 0.1
                     self.positions.append(w_pos(intf.wmIface, [posX, posY, posZ]))
                     self.txpowers.append(w_txpower(intf.wmIface, int(intf.txpower)))
