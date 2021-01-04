@@ -24,6 +24,13 @@ from mn_wifi.wmediumdConnector import DynamicIntfRef, \
 class IntfWireless(Intf):
     "Basic interface object that can configure itself."
 
+    dist = 0
+    noise = 0
+    eqLoss = '(dist * 2) / 1000'
+    eqDelay = '(dist / 10) + 1'
+    eqLatency = '(dist / 10)/2'
+    eqBw = ' * (1.01 ** -dist)'
+
     def __init__(self, name, node=None, port=None, link=None,
                  mac=None, **params):
         """name: interface name (e.g. sta1-wlan0)
@@ -45,6 +52,45 @@ class IntfWireless(Intf):
         # Save params for future reference
         self.params = params
         self.config(**params)
+
+    def configWLink(self, dist=0):
+        bw = self.getBW(dist)
+        loss = self.getLoss(dist)
+        latency = self.getLatency(dist)
+        self.config_tc(bw=bw, loss=loss, latency=latency)
+
+    def getDelay(self, dist):
+        "Based on RandomPropagationDelayModel"
+        return eval(self.eqDelay)
+
+    def getLatency(self, dist):
+        return eval(self.eqLatency)
+
+    def getLoss(self, dist):
+        return eval(self.eqLoss)
+
+    def getBW(self, dist):
+        # dist is used by eval
+        custombw = self.getCustomRate()
+        rate = eval(str(custombw) + self.eqBw)
+        if rate <= 0.0: rate = 0.1
+        return rate
+
+    def config_tc(self, **args):
+        if self.ifb: self.set_tc(self.ifb, **args)
+        self.set_tc(self.name, **args)
+
+    def set_tc(self, iface, bw=0, loss=0, latency=0):
+        cmd = "tc qdisc replace dev %s root handle 2: netem " % iface
+        rate = "rate %.4fmbit " % bw
+        cmd += rate
+        if latency > 0.1:
+            latency = "latency %.2fms " % latency
+            cmd += latency
+        if loss > 0.1:
+            loss = "loss %.1f%% " % loss
+            cmd += loss
+        self.node.pexec(cmd)
 
     def pexec(self, *args, **kwargs):
         "Run a command in our owning node"
@@ -244,7 +290,7 @@ class IntfWireless(Intf):
     def setAutoAPBw(self):
         wlan = self.id
         if not wmediumd_mode.mode:
-            bw = self.params['bw'][wlan] if 'bw' in self.params else self.getBW()
+            bw = self.params['bw'][wlan] if 'bw' in self.params else self.getAPBW()
 
             self.cmd("tc qdisc replace dev %s root handle 2: tbf rate %sMbit "
                      "burst 15000 latency 1ms" % (self.name, bw))
@@ -256,7 +302,7 @@ class IntfWireless(Intf):
                 self.cmd("tc qdisc replace dev %s root handle 2: tbf "
                          "rate %sMbit burst 15000 latency 1ms" % (self.ifb, bw))
 
-    def getBW(self):
+    def getAPBW(self):
         return DeviceRate(self).rate if 'model' in self.params else self.getRate()
 
     def ipAddr(self, *args):
@@ -541,7 +587,7 @@ class IntfWireless(Intf):
             if ap_intf != self.associatedTo or not self.associatedTo:
                 self.associate_infra(ap_intf)
                 if wmediumd_mode.mode == w_cst.WRONG_MODE:
-                    if dist >= 0.01: ConfigWLink(self, dist)
+                    if dist >= 0.01: self.configWLink(dist)
                 if self not in ap_intf.associatedStations:
                     ap_intf.associatedStations.append(self)
             if not wmediumd_mode.mode == w_cst.INTERFERENCE_MODE:
@@ -1502,65 +1548,6 @@ class wmediumd(object):
             link0, link1 = link[0].wmIface, link[1].wmIface
             self.links.append(SNRLink(link0, link1, link[0].rssi - noise_th))
             self.links.append(SNRLink(link1, link0, link[0].rssi - noise_th))
-
-
-class ConfigWLink(object):
-    dist = 0
-    noise = 0
-    eqLoss = '(dist * 2) / 1000'
-    eqDelay = '(dist / 10) + 1'
-    eqLatency = '(dist / 10)/2'
-    eqBw = ' * (1.01 ** -dist)'
-
-    def __init__(self, intf, dist=0):
-        params = dict()
-        params['latency'] = self.getLatency(dist)
-        params['loss'] = self.getLoss(dist)
-        params['bw'] = self.getBW(intf, dist)
-        self.config_tc(intf, **params)
-
-    def getDelay(self, dist):
-        "Based on RandomPropagationDelayModel"
-        return eval(self.eqDelay)
-
-    def getLatency(self, dist):
-        return eval(self.eqLatency)
-
-    def getLoss(self, dist):
-        return eval(self.eqLoss)
-
-    def getBW(self, intf, dist):
-        # dist is used by eval
-        custombw = intf.getCustomRate()
-        rate = eval(str(custombw) + self.eqBw)
-        if rate <= 0.0: rate = 0.1
-        return rate
-
-    @classmethod
-    def delete(cls, node):
-        "Delete interfaces"
-        for intf in node.wintfs.values():
-            node.cmd('iw dev ' + intf.name + ' del')
-            node.delIntf(intf.name)
-            node.intf = None
-
-    @classmethod
-    def config_tc(cls, intf, **params):
-        if intf.ifb: cls.tc(intf.node, intf.ifb, **params)
-        cls.tc(intf.node, intf.name, **params)
-
-    @classmethod
-    def tc(cls, node, iface, bw=0, loss=0, latency=0):
-        cmd = "tc qdisc replace dev %s root handle 2: netem " % iface
-        rate = "rate %.4fmbit " % bw
-        cmd += rate
-        if latency > 0.1:
-            latency = "latency %.2fms " % latency
-            cmd += latency
-        if loss > 0.1:
-            loss = "loss %.1f%% " % loss
-            cmd += loss
-        node.pexec(cmd)
 
 
 class LinkAttrs(WirelessLink):

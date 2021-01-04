@@ -23,7 +23,7 @@ from mininet.log import info, error, debug, output, warn
 from mn_wifi.node import AP, Station, Car, \
     OVSKernelAP, physicalAP
 from mn_wifi.wmediumdConnector import error_prob, snr, interference
-from mn_wifi.link import ConfigWLink, wmediumd, _4address, HostapdConfig, \
+from mn_wifi.link import IntfWireless, wmediumd, _4address, HostapdConfig, \
     WirelessLink, TCLinkWireless, ITSLink, WifiDirectLink, adhoc, mesh, \
     master, managed, physicalMesh, PhysicalWifiDirectLink, _4addrClient, \
     _4addrAP, phyAP
@@ -569,7 +569,7 @@ class Mininet_wifi(Mininet, Mininet_IoT):
             do_association = self.do_association(intf, ap_intf)
         if do_association:
             if 'bw' not in params and 'bw' not in str(cls):
-                params['bw'] = intf.getCustomRate() if hasattr(intf.node, 'position') else intf.getRate()
+                params['bw'] = intf.getCustomRate() if hasattr(intf.node, 'position') else intf.getCustomRate()
             # tc = True, this is useful for tc configuration
             TCLinkWireless(node=intf.node, intfName=intf.name,
                            port=intf.id, cls=cls, **params)
@@ -1260,9 +1260,7 @@ class Mininet_wifi(Mininet, Mininet_IoT):
         nodes = self.stations + self.cars + self.aps
         for node in nodes:
             for intf in node.wintfs.values():
-                if not isinstance(intf, _4addrAP) and \
-                         not isinstance(intf, PhysicalWifiDirectLink) and \
-                         not isinstance(intf, phyAP):
+                if not isinstance(intf, (_4addrAP, PhysicalWifiDirectLink, phyAP)):
                     intf.setTxPower(intf.txpower)
                     intf.setAntennaGain(intf.antennaGain)
 
@@ -1353,7 +1351,7 @@ class Mininet_wifi(Mininet, Mininet_IoT):
             if 'loss' in link.intf1.params:
                 params['loss'] = link.intf1.params['loss']
             if params and 'delay' not in link.intf1.params:
-                ConfigWLink.tc(link.intf1.node, link.intf1.name, **params)
+                link.intf1.configWLink.set_tc(link.intf1.name, **params)
 
     def auto_association(self):
         "This is useful to make the users' life easier"
@@ -1420,10 +1418,10 @@ class Mininet_wifi(Mininet, Mininet_IoT):
         :params delay: delay (ms)
         :params latency: latency (ms)
         :params loss: loss (%)"""
-        ConfigWLink.eqBw = params.get('bw', ConfigWLink.eqBw)
-        ConfigWLink.eqDelay = params.get('delay', ConfigWLink.eqDelay)
-        ConfigWLink.eqLatency = params.get('latency', ConfigWLink.eqLatency)
-        ConfigWLink.eqLoss = params.get('loss', ConfigWLink.eqLoss)
+        IntfWireless.eqBw = params.get('bw', IntfWireless.eqBw)
+        IntfWireless.eqDelay = params.get('delay', IntfWireless.eqDelay)
+        IntfWireless.eqLatency = params.get('latency', IntfWireless.eqLatency)
+        IntfWireless.eqLoss = params.get('loss', IntfWireless.eqLoss)
 
     @staticmethod
     def stop_graph_params():

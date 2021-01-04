@@ -11,7 +11,7 @@ import numpy as np
 from numpy.random import rand
 
 from mininet.log import debug
-from mn_wifi.link import ConfigWLink, mesh, adhoc, ITSLink, master
+from mn_wifi.link import mesh, adhoc, ITSLink, master
 from mn_wifi.associationControl import AssociationControl as AssCtrl
 from mn_wifi.plot import PlotGraph
 from mn_wifi.wmediumdConnector import w_cst, wmediumd_mode
@@ -131,7 +131,7 @@ class Mobility(object):
                             else:
                                 if intf.node.position != intf.node.pos:
                                     intf.node.pos = intf.node.position
-                                    ConfigWLink(intf, dist)
+                                    intf.configWLink(dist)
 
     def check_in_range(self, intf, ap_intf):
         dist = intf.node.get_distance_to(ap_intf.node)
