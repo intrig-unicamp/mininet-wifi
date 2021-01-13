@@ -181,7 +181,11 @@ class Mininet_wifi(Mininet, Mininet_IoT):
     def get_socket_data(self, conn, addr):
         while True:
             try:
-                data = conn.recv(1024).decode('utf-8').split('.')
+                cmd = conn.recv(1024).decode('utf-8')
+                pos = None
+                if 'setPosition' in cmd:
+                    pos = cmd.split('("')[1].split(')"')[0][:-2]
+                data = cmd.split('.')
                 if data[0] == 'set':
                     node = self.getNodeByName(data[1])
                     if len(data) < 3:
@@ -204,7 +208,7 @@ class Mininet_wifi(Mininet, Mininet_IoT):
                                     val = val[0]
                                     method_to_call(val, intf=intf)
                                 else:
-                                    val = attr[1].split(')')[0]
+                                    val = pos if pos else attr[1].split(')')[0]
                                     method_to_call(val)
                                     data = 'command accepted!'
                             else:
