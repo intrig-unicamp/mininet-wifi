@@ -3210,6 +3210,8 @@ class MiniEdit( Frame ):
                 hasLegacyRouter = True
             elif 'LegacySwitch' in tags:
                 hasLegacySwitch = True
+            elif 'EV' in tags or 'SE' in tags:
+                isV2G = True
 
         links_ = ''
         sixLinks_ = ''
@@ -3281,7 +3283,7 @@ class MiniEdit( Frame ):
                 f.write(b"from mininet.link import TCLink, Intf\n")
             f.write(b"from mininet.log import setLogLevel, info\n")
 
-            if isWiFi:
+            if isWiFi or isV2G:
                 f.write(b"from mn_wifi.net import Mininet_wifi\n")
                 args = b''
                 if hasStation:
@@ -3304,9 +3306,9 @@ class MiniEdit( Frame ):
                 if sixLinks_:
                     f.write(b"from mn_wifi.sixLoWPAN.link import" + sixLinks_.encode() + b"\n")
                 f.write(b"from mn_wifi.wmediumdConnector import interference\n")
-            f.write(b"from subprocess import call\n")
+                f.write(b"from mn_wifi.v2g import EV, SE\n")
 
-            f.write(b"from mn_wifi.v2g import EV, SE\n")
+            f.write(b"from subprocess import call\n")
 
             inBandCtrl = False
             for widget in self.widgetToItem:
@@ -3331,7 +3333,7 @@ class MiniEdit( Frame ):
             f.write(b"\n")
             f.write(b"def myNetwork():\n")
             f.write(b"\n")
-            if not isWiFi:
+            if not isWiFi and not isV2G:
                 f.write(b"    net = Mininet(topo=None,\n")
             else:
                 f.write(b"    net = Mininet_wifi(topo=None,\n")
@@ -3464,7 +3466,7 @@ class MiniEdit( Frame ):
 
             f.write(b"\n")
             f.write(b"    info( '*** Add hosts/stations/EVs/SEs\\n')\n")
-            ip_number = 0
+            ip_number = 1
             for widget in self.widgetToItem:
                 name = widget['text']
                 tags = self.canvas.gettags( self.widgetToItem[widget])
@@ -3530,7 +3532,7 @@ class MiniEdit( Frame ):
                     if len(evSpecificParameters) > 2:
                         # remove last comma, add comma to the start
                         evSpecificParameters = ", " + evSpecificParameters[:-2]
-                    f.write(b"    " + name.encode() + b" = net.addHost('" + name.encode() + b"', cls=EV, ip='" + ip.encode() + b"', defaultRoute=" + defaultRoute.encode() +  + evSpecificParameters.encode() + b")\n")
+                    f.write(b"    " + name.encode() + b" = net.addHost('" + name.encode() + b"', cls=EV, ip='" + ip.encode() + b"', defaultRoute=" + defaultRoute.encode() + evSpecificParameters.encode() + b")\n")
 
                     if 'externalInterfaces' in opts:
                         for extInterface in opts['externalInterfaces']:
@@ -3570,7 +3572,7 @@ class MiniEdit( Frame ):
                         # remove last comma, add comma to the start
                         seSpecificParameters = ", " + seSpecificParameters[:-2]
 
-                    f.write(b"    " + name.encode() + b" = net.addHost('" + name.encode() + b"', cls=SE, ip='" + ip.encode() + b"', defaultRoute=" + defaultRoute.encode() +  + evSpecificParameters.encode() + b")\n")
+                    f.write(b"    " + name.encode() + b" = net.addHost('" + name.encode() + b"', cls=SE, ip='" + ip.encode() + b"', defaultRoute=" + defaultRoute.encode() + seSpecificParameters.encode() + b")\n")
 
                     if 'externalInterfaces' in opts:
                         for extInterface in opts['externalInterfaces']:
@@ -3590,6 +3592,8 @@ class MiniEdit( Frame ):
                     if 'ip' in opts and len(opts['ip']) > 0:
                         ip = opts['ip']
                     else:
+                        nodeNum = ip_number
+                        ip_number += 1
                         ipBaseNum, prefixLen = netParse( self.appPrefs['ipBase'] )
                         ip = ipAdd(i=nodeNum, prefixLen=prefixLen, ipBaseNum=ipBaseNum)
                     args = ''
@@ -3928,6 +3932,8 @@ class MiniEdit( Frame ):
             f.write(b"    myNetwork()\n")
             f.write(b"\n")
             f.close()
+
+            info("Script exported successfully.\n")
 
     # Generic canvas handler
     #
