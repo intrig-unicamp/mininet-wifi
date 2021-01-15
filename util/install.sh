@@ -663,6 +663,65 @@ function vm_clean {
 
 }
 
+function v2g {
+    echo "Installing v2g..."
+
+    if ! which curl; then
+	echo "Installing curl..."
+	$install curl
+    fi
+
+    # Download latest compiled release available on official repo
+    LINK1=$(curl -s https://api.github.com/repos/V2GClarity/RISE-V2G/releases\
+	| grep "browser_download_url.*.jar" \
+	| grep -Po '(?<="browser_download_url": ")[^"]*' | sed -sn 1p); \
+    LINK2=$(curl -s https://api.github.com/repos/V2GClarity/RISE-V2G/releases\
+	| grep "browser_download_url.*.jar" \
+	| grep -Po '(?<="browser_download_url": ")[^"]*' | sed -sn 2p); \
+    echo "Downloading $LINK1 and $LINK2"; sudo curl -L -O --output-dir $MININET_DIR/mininet/util/RiseV2G $LINK1; sudo curl -L -O --output-dir $MININET_DIR/mininet/util/RiseV2G $LINK2;
+
+    # Copy latest jar files to local directory
+    sudo rm -r /usr/share/.miniV2G/RiseV2G # remove folder to support updating
+    sudo mkdir -p /usr/share/.miniV2G/RiseV2G
+    # get latest version
+    LATEST_SECC=$(ls $MININET_DIR/mininet/util/RiseV2G/*-secc-*.jar | tail -1)
+    LATEST_EVCC=$(ls $MININET_DIR/mininet/util/RiseV2G/*-evcc-*.jar | tail -1)
+    sudo cp $LATEST_SECC /usr/share/.miniV2G/RiseV2G
+    sudo cp $LATEST_EVCC /usr/share/.miniV2G/RiseV2G
+    sudo cp $MININET_DIR/mininet/util/RiseV2G/*.properties /usr/share/.miniV2G/RiseV2G
+
+
+    if ! which java; then
+        echo "Installing java..."
+        if [ "$DIST" = "Ubuntu" ] || [ "$DIST" = "Debian" ]; then
+            $install default-jdk
+        # Fedora, Oracle Linux, Red Hat Enterprise Linux, etc.
+        elif [ "$DIST" = "Fedora" -o "$DIST" = "RedHatEnterpriseServer" ]; then
+            $install java-1.8.0-openjdk
+        elif [ "$DIST" = "Arch" ]; then
+            $install java-openjdk
+        else
+            echo "Please, Install Java. It is required to run v2g."
+        fi
+    fi
+
+    if ! which xhost; then
+        echo "Installing xhost..."
+        if [ "$DIST" = "Arch" ]; then
+            $install xorg-xhost
+	elif [ "$DIST" = "Ubuntu" ] || [ "$DIST" = "Debian" ]; then
+	    $install x11-xserver-utils
+        else
+            echo "Please, Install xhost. It is required to run term.py."
+        fi
+    fi
+
+    if ! which xterm; then
+        echo "Installing xterm..."
+        $install xterm
+    fi
+}
+
 function usage {
     printf '\nUsage: %s [-abBcdEfhklmnOpPrStvVxy03]\n\n' $(basename $0) >&2
 
@@ -680,6 +739,7 @@ function usage {
     printf -- ' -e: install Mininet d(E)veloper dependencies\n' >&2
     printf -- ' -E: install babeld\n' >&2
     printf -- ' -f: install Open(F)low\n' >&2
+    printf -- ' -g: install RiseV2(G)\n' >&2
     printf -- ' -h: print this (H)elp message\n' >&2
     printf -- ' -k: install new (K)ernel\n' >&2
     printf -- ' -l: insta(L)l wmediumd\n' >&2
@@ -719,6 +779,7 @@ else
             1.3) of13;;
             *)  echo "Invalid OpenFlow version $OF_VERSION";;
             esac;;
+      g)    v2g;;
       h)    usage;;
       k)    kernel;;
       l)    wmediumd;;
