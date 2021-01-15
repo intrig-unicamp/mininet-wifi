@@ -678,18 +678,18 @@ function v2g {
     LINK2=$(curl -s https://api.github.com/repos/V2GClarity/RISE-V2G/releases\
 	| grep "browser_download_url.*.jar" \
 	| grep -Po '(?<="browser_download_url": ")[^"]*' | sed -sn 2p); \
-    echo "Downloading $LINK1 and $LINK2"; sudo curl -L -O --output-dir $MININET_DIR/mininet/util/RiseV2G $LINK1; sudo curl -L -O --output-dir $MININET_DIR/mininet/util/RiseV2G $LINK2;
+    # TODO: fix --output to --output-dir if Arch
+    echo "Downloading $LINK1 and $LINK2"; sudo curl -L -O --output $MININET_DIR/mininet-wifi/util/RiseV2G $LINK1; sudo curl -L -O --output $MININET_DIR/mininet-wifi/util/RiseV2G $LINK2;
 
     # Copy latest jar files to local directory
-    sudo rm -r /usr/share/.miniV2G/RiseV2G # remove folder to support updating
+    sudo rm -rf /usr/share/.miniV2G/RiseV2G # remove folder to support updating
     sudo mkdir -p /usr/share/.miniV2G/RiseV2G
     # get latest version
-    LATEST_SECC=$(ls $MININET_DIR/mininet/util/RiseV2G/*-secc-*.jar | tail -1)
-    LATEST_EVCC=$(ls $MININET_DIR/mininet/util/RiseV2G/*-evcc-*.jar | tail -1)
+    LATEST_SECC=$(ls $MININET_DIR/mininet-wifi/util/RiseV2G/*-secc-*.jar | tail -1)
+    LATEST_EVCC=$(ls $MININET_DIR/mininet-wifi/util/RiseV2G/*-evcc-*.jar | tail -1)
     sudo cp $LATEST_SECC /usr/share/.miniV2G/RiseV2G
     sudo cp $LATEST_EVCC /usr/share/.miniV2G/RiseV2G
-    sudo cp $MININET_DIR/mininet/util/RiseV2G/*.properties /usr/share/.miniV2G/RiseV2G
-
+    sudo cp $MININET_DIR/mininet-wifi/util/RiseV2G/*.properties /usr/share/.miniV2G/RiseV2G
 
     if ! which java; then
         echo "Installing java..."
