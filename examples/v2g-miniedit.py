@@ -854,7 +854,10 @@ class EVDialog(HostDialog):
         self.exiCodec = StringVar(self.evOptionsFrame)
         self.listExiCodecs = OptionMenu(self.evOptionsFrame, self.exiCodec, *EV.exi_codecs)
         self.listExiCodecs.grid(row=1, column=1, sticky=W)
-        self.exiCodec.set(EV.exi_codecs[0])
+        if 'exiCodec' in self.prefValues:
+            self.exiCodec.set(self.prefValues['exiCodec'])
+        else:
+            self.exiCodec.set(EV.exi_codecs[0])
 
         # voltage accuracy
         Label(self.evOptionsFrame, text="Voltage accuracy:").grid(row=2, sticky=E)
@@ -878,7 +881,13 @@ class EVDialog(HostDialog):
         self.listChargingModes.grid(row=listbox_row+1, sticky=E)
         for m in EV.modes_available:
             self.listChargingModes.insert(END, m)
-        self.listChargingModes.selection_set(0)
+        if 'chargingMode' in self.prefValues:
+            for i in range(0, self.listChargingModes.size()):
+                if self.listChargingModes.get(i) in self.prefValues['chargingMode']:
+                    self.listChargingModes.selection_set(i)
+                    break
+        else:
+            self.listChargingModes.selection_set(0)
 
         # Set logging levels
         Label(self.evOptionsFrame, text="Logging levels:").grid(row=listbox_row, column=1, sticky=S)
@@ -886,6 +895,11 @@ class EVDialog(HostDialog):
         self.listLoggingLevels.grid(row=listbox_row+1, column=1, sticky=E)
         for l in EV.logging:
             self.listLoggingLevels.insert(END, l)
+
+        if 'loggingLevels' in self.prefValues:
+            for i in range(0,self.listLoggingLevels.size()):
+                if self.listLoggingLevels.get(i) in self.prefValues['loggingLevels']:
+                    self.listLoggingLevels.selection_set(i)
         # self.listLoggingLevels.selection_set(0)  # default: no extra logging
 
     def apply(self):
@@ -938,7 +952,10 @@ class SEDialog(HostDialog):
         self.exiCodec = StringVar(self.seOptionsFrame)
         self.listExiCodecs = OptionMenu(self.seOptionsFrame, self.exiCodec, *EV.exi_codecs)
         self.listExiCodecs.grid(row=2, column=1, sticky=W)
-        self.exiCodec.set(EV.exi_codecs[0])
+        if 'exiCodec' in self.prefValues:
+            self.exiCodec.set(self.prefValues['exiCodec'])
+        else:
+            self.exiCodec.set(EV.exi_codecs[0])
 
         # listbox row to easly add other rows before
         listbox_row = 4
@@ -948,7 +965,12 @@ class SEDialog(HostDialog):
         self.listChargingModes.grid(row=listbox_row+1, sticky=E)
         for m in EV.modes_available:
             self.listChargingModes.insert(END, m)
-        self.listChargingModes.selection_set(0, self.listChargingModes.size())
+        if 'chargingModes' in self.prefValues:
+            for i in range(0,self.listChargingModes.size()):
+                if self.listChargingModes.get(i) in self.prefValues['chargingModes']:
+                    self.listChargingModes.selection_set(i)
+        else:
+            self.listChargingModes.selection_set(0, self.listChargingModes.size())
 
         # Set logging levels
         Label(self.seOptionsFrame, text="Logging levels:").grid(row=listbox_row, column=1, sticky=S)
@@ -956,6 +978,11 @@ class SEDialog(HostDialog):
         self.listLoggingLevels.grid(row=listbox_row+1, column=1, sticky=E)
         for l in EV.logging:
             self.listLoggingLevels.insert(END, l)
+
+        if 'loggingLevels' in self.prefValues:
+            for i in range(0,self.listLoggingLevels.size()):
+                if self.listLoggingLevels.get(i) in self.prefValues['loggingLevels']:
+                    self.listLoggingLevels.selection_set(i)
         # self.listLoggingLevels.selection_set(0)  # default: no extra logging
 
         # Set auth options
@@ -964,7 +991,12 @@ class SEDialog(HostDialog):
         self.listAuthOptions.grid(row=listbox_row+1, column=2, sticky=E)
         for a in EV.auth_available:
             self.listAuthOptions.insert(END, a)
-        self.listAuthOptions.selection_set(0, END)
+        if 'authOptions' in self.prefValues:
+            for i in range(0,self.listAuthOptions.size()):
+                if self.listAuthOptions.get(i) in self.prefValues['authOptions']:
+                    self.listAuthOptions.selection_set(i)
+        else:
+            self.listAuthOptions.selection_set(0, END)
 
     def apply(self):
         results = self.applyHelper()
@@ -3274,8 +3306,7 @@ class MiniEdit( Frame ):
                 f.write(b"from mn_wifi.wmediumdConnector import interference\n")
             f.write(b"from subprocess import call\n")
 
-            #f.write("from mininet.v2g import EV, SE\n")  # TODO: activate this in the end !!!!!!!!!
-            f.write("from v2g import EV, SE\n") # TODO: and deactivate this here
+            f.write(b"from mn_wifi.v2g import EV, SE\n")
 
             inBandCtrl = False
             for widget in self.widgetToItem:
@@ -4143,7 +4174,7 @@ class MiniEdit( Frame ):
                 range = node['range']
         else:
             if node['range'] == 'default':
-                range = 0
+                range = 188
             else:
                 range = node['range']
 
