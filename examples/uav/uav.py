@@ -19,11 +19,11 @@ def topology():
     net = Mininet_wifi(link=wmediumd, wmediumd_mode=interference)
 
     info("*** Creating nodes\n")
-    dr1 = net.addStation('dr1', mac='00:00:00:00:00:02', ip='10.0.0.2/8',
+    dr1 = net.addStation('dr1', mac='00:00:00:00:00:01', ip='10.0.0.1/8',
                          position='30,60,0')
-    dr2 = net.addStation('dr2', mac='00:00:00:00:00:03', ip='10.0.0.3/8',
+    dr2 = net.addStation('dr2', mac='00:00:00:00:00:02', ip='10.0.0.2/8',
                          position='70,30,0')
-    dr3 = net.addStation('dr3', mac='00:00:00:00:00:04', ip='10.0.0.4/8',
+    dr3 = net.addStation('dr3', mac='00:00:00:00:00:03', ip='10.0.0.3/8',
                          position='10,20,0')
 
     net.setPropagationModel(model="logDistance", exp=4.5)
@@ -52,7 +52,7 @@ def topology():
     sta_drone = []
     for n in net.stations:
         sta_drone.append(n.name)
-    sta_drone_send = ' '.join(map(str, sta_drone)) 
+    sta_drone_send = ' '.join(map(str, sta_drone))
 
     # # set_socket_ip: localhost must be replaced by ip address
     # # of the network interface of your system
