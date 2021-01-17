@@ -505,6 +505,7 @@ class IntfWireless(Intf):
     def wpa(self, ap_intf):
         self.wpaFile(ap_intf)
         self.wpa_pexec()
+        self.setConnected(ap_intf)
 
     def update_client_params(self, ap_intf):
         self.freq = ap_intf.freq
@@ -515,6 +516,7 @@ class IntfWireless(Intf):
     def wep(self, ap_intf):
         passwd = self.passwd if self.passwd else ap_intf.passwd
         self.wep_connect(passwd, ap_intf)
+        self.setConnected(ap_intf)
 
     def setConnected(self, ap_intf):
         self.associatedTo = ap_intf
