@@ -1,0 +1,15 @@
+[req]
+prompt 					= no
+distinguished_name		= ca_dn
+
+[ca_dn]
+commonName				= OEMRootCA
+organizationName		= RISE V2G Project
+countryName				= DE
+domainComponent			= OEM
+
+[ext]
+basicConstraints		= critical,CA:true
+keyUsage				= critical,keyCertSign,cRLSign
+subjectKeyIdentifier	= hash
+

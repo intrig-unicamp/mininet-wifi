@@ -50,6 +50,9 @@ def v2gNet():
     info( '     - With `py se1.startCharge()` the SE will wait for charging EVs.\n' )
     info( '     - With `py ev1.charge(in_xterm=True)` the EV will start charging in the linked SE.\n' )
 
+    # Activate TLS
+    # ev1.setTLS(True, True, se1)
+
     if start_on_load == True:
         info( '*** Starting charge on the SE.\n' )
         # TODO: move the sleep command to the SE and EV charge.

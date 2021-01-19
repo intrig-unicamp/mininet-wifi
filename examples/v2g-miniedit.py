@@ -848,29 +848,40 @@ class EVDialog(HostDialog):
         self.chargeIntfEntry.grid(row=0, column=1, sticky=E)
         if 'chargeIntf' in self.prefValues:
             self.chargeIntf.set(self.prefValues['chargeIntf'])
+            
+        # Set TLS
+        Label(self.evOptionsFrame, text="TLS:").grid(row=1, sticky=E)
+        Label(self.evOptionsFrame, text="(Keys must be setted manually/by python code)").grid(row=1, column=2, sticky=W)
+        self.TLS = StringVar(self.evOptionsFrame)
+        self.TLSButton = Checkbutton(self.evOptionsFrame, variable=self.TLS, onvalue='1', offvalue='0')
+        self.TLSButton.grid(row=1, column=1, sticky=W)
+        if self.prefValues['TLS'] == '0':
+            self.TLSButton.deselect()
+        else:
+            self.TLSButton.select()
 
         # exi codec
-        Label(self.evOptionsFrame, text="EXI codec:").grid(row=1, sticky=E)
+        Label(self.evOptionsFrame, text="EXI codec:").grid(row=2, sticky=E)
         self.exiCodec = StringVar(self.evOptionsFrame)
         self.listExiCodecs = OptionMenu(self.evOptionsFrame, self.exiCodec, *EV.exi_codecs)
-        self.listExiCodecs.grid(row=1, column=1, sticky=W)
+        self.listExiCodecs.grid(row=2, column=1, sticky=W)
         if 'exiCodec' in self.prefValues:
             self.exiCodec.set(self.prefValues['exiCodec'])
         else:
             self.exiCodec.set(EV.exi_codecs[0])
 
         # voltage accuracy
-        Label(self.evOptionsFrame, text="Voltage accuracy:").grid(row=2, sticky=E)
+        Label(self.evOptionsFrame, text="Voltage accuracy:").grid(row=3, sticky=E)
         self.voltageAccuracy = StringVar(self.evOptionsFrame)
         self.voltageAccuracyEntry = Entry(self.evOptionsFrame, textvariable=self.voltageAccuracy)
-        self.voltageAccuracyEntry.grid(row=2, column=1, sticky=E)
+        self.voltageAccuracyEntry.grid(row=3, column=1, sticky=E)
         self.voltageAccuracy.set(self.prefValues['voltageAccuracy'])
 
         # session id
-        Label(self.evOptionsFrame, text="Session ID:").grid(row=3, sticky=E)
+        Label(self.evOptionsFrame, text="Session ID:").grid(row=4, sticky=E)
         self.sessionId = StringVar(self.evOptionsFrame)
         self.sessionIdEntry = Entry(self.evOptionsFrame, textvariable=self.sessionId)
-        self.sessionIdEntry.grid(row=3, column=1, sticky=E)
+        self.sessionIdEntry.grid(row=4, column=1, sticky=E)
         self.sessionId.set(self.prefValues['sessionId'])
 
         # listbox row to easily add other rows before
@@ -913,6 +924,7 @@ class EVDialog(HostDialog):
         results['exiCodec'] = self.exiCodec.get()
         results['voltageAccuracy'] = self.voltageAccuracy.get()
         results['sessionId'] = self.sessionId.get()
+        results['TLS'] = self.TLS.get()
 
         self.result = results
 
@@ -2226,7 +2238,8 @@ class MiniEdit( Frame ):
 
         self.evPrefs={
             'voltageAccuracy': "5",
-            'sessionId': "00"
+            'sessionId': "00",
+            'TLS': "0"
         }
 
         Frame.__init__( self, parent )
@@ -3527,6 +3540,8 @@ class MiniEdit( Frame ):
                         evSpecificParameters += "exiCodec=\"" + str(opts['exiCodec']) + "\", "
                     if 'voltageAccuracy' in opts and len(opts['voltageAccuracy']) > 0:
                         evSpecificParameters += "voltageAccuracy=\"" + str(opts['voltageAccuracy']) + "\", "
+                    if 'TLS' in opts and len(opts['TLS']) > 0:
+                        evSpecificParameters += "TLS=\"" + str(opts['TLS']) + "\", "
                     if 'sessionId' in opts and len(opts['sessionId']) > 0:
                         evSpecificParameters += "sessionId=\"" + str(opts['sessionId']) + "\", "
                     if len(evSpecificParameters) > 2:
@@ -4571,6 +4586,8 @@ class MiniEdit( Frame ):
                 newHostOpts['exiCodec'] = hostBox.result['exiCodec']
             if len(hostBox.result['voltageAccuracy']) > 0:
                 newHostOpts['voltageAccuracy'] = hostBox.result['voltageAccuracy']
+            if len(hostBox.result['TLS']) > 0:
+                newHostOpts['TLS'] = hostBox.result['TLS']
             if len(hostBox.result['sessionId']) > 0:
                 newHostOpts['sessionId'] = hostBox.result['sessionId']
             self.evOpts[name] = newHostOpts
@@ -5198,6 +5215,9 @@ class MiniEdit( Frame ):
                 voltageAccuracy = None
                 if 'voltageAccuracy' in opts and len(opts['voltageAccuracy']) > 0:
                     voltageAccuracy = opts['voltageAccuracy']
+                TLS = None
+                if 'TLS' in opts and len(opts['TLS']) > 0:
+                    TLS = opts['TLS']
 
                 newEV = net.addHost( name,
                                        cls=hostCls,
@@ -5208,6 +5228,7 @@ class MiniEdit( Frame ):
                                        loggingLevels=loggingLevels,
                                        exiCodec=exiCodec,
                                        sessionId=sessionId,
+                                       TLS=TLS,
                                        voltageAccuracy=voltageAccuracy
                                       )
 

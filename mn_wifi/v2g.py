@@ -1,5 +1,6 @@
 """
 Additional Nodes for Vehicle to Grid (V2G) communication
+Authors: Denis Donadel (denisdonadel@gmail.com) and Luca Attanasio (luca_attanasio@me.com)
 """
 
 import atexit  # clean the mess on exit
@@ -42,7 +43,6 @@ class Electric(Node):
         if "No such file or directory" in popen('ls {}'.format(self.RISE_PATH)).read():
             exit(
                 "*** Fatal error: directory %s not found. Select the right folder which contains the needed jar files.")
-        # TODO: check for the specific jar files
 
         # initialize the subprocess object
         self.proc = None
@@ -60,6 +60,8 @@ class Electric(Node):
         def cleaner():
             print('*** Cleaning up the mess')
             popen("rm -rd {}*".format(self.FOLDER_PREFIX))
+            # this will be called more than the needed times, so the output is supressed
+            popen("rm -rd RISE-V2G-Certificates &> /dev/null ")
 
         atexit.register(cleaner)
 
@@ -160,7 +162,7 @@ class EV(Electric):
     EV Communication Controller (EVCC) with a SECC to require charging service """
 
     def __init__(self, name, path=None, chargingMode=None, exi=None, logging=None, sessionId=None, voltageAccuracy=None,
-                 chargeIntf=None, **kwargs):
+                 chargeIntf=None, TLS=None, **kwargs):
         self.name = str(name)
         Electric.__init__(self, self.name, path, **kwargs)
 
@@ -184,6 +186,9 @@ class EV(Electric):
             self.setSessionId(id=sessionId)
         if voltageAccuracy is not None:
             self.setVoltageAccuracy(acc=voltageAccuracy)
+        if TLS is not None:
+            self.setTLS(TLS=TLS)
+            print("*** TLS certificates not generated. If needed, generate them with setTLS().")
         # intf setup: if no interface is provided it must be provided later, otherwise default will be set
         if chargeIntf is not None:
             self.setIntf(intfName=chargeIntf)
@@ -265,9 +270,52 @@ class EV(Electric):
             print("*** You must provide a number.")
             return False
 
-    # TODO: tls, authentication.mod, evcc controller class, contract.certificate.update.timespan to be added later on
+    def setTLS(self, TLS=False, generate_certificates=False, SE=None):
+        """ Activate/deactivate TLS. Up to now it is possible to automatically generate keys only between entities (self and SE).
+        :param TLS: True/true/1 to activate TLS, False (Default) to use TPC instead.
+        :param generate_certificates: True to generate certificates, False otherwise. If True you MUST set also SE.
+        :param SE: the EVSE/SECC connected to the EV
+        """
+        if isinstance(TLS, str) or isinstance(TLS, int):
+            if str(TLS) == 'true' or str(TLS) == '1' or int(TLS) == 1:
+                res = self.setProperty('tls', 'true')
+            else:
+                return self.setProperty('tls', 'false')
+        elif isinstance(TLS, bool):
+            if TLS:
+                res = self.setProperty('tls', 'true')
+            else:
+                return self.setProperty('tls', 'false')
+        else:
+            print("*** Problem on setting TLS.")
+            return False
+        if not res:
+            print("*** Problem on setting TLS property.")
+            return False
 
+        # generate certificates if needed
+        if generate_certificates:
+            if SE is None:
+                print("*** Error: you must provide the EVSE/SECC connected to the EV.")
+                return False
 
+            # copy files needed to generate keys
+            self.cmd("cd .. && cp {}/RISE-V2G-Certificates/ . && cd RISE-V2G-Certificates")
+            # generate keys
+            self.cmd("chmod +x generateCertificates.sh && ./generateCertificates.sh")
+            # copy keys in the desired folders
+            self.cmd("cp keystores/evccKeystore.jks ../{}/".format(self.folder))
+            self.cmd("cp keystores/evccTruststore.jks ../{}/".format(self.folder))
+            self.cmd("cp keystores/seccKeystore.jks ../{}/".format(SE.folder))
+            self.cmd("cp keystores/seccTruststore.jks ../{}/".format(SE.folder))
+            self.cmd("cp certs/cpsCertChain.p12 ../{}/".format(SE.folder))
+            self.cmd("cp certs/moCertChain.p12 ../{}/".format(SE.folder))
+            self.cmd("cp privateKeys/moSubCA2.pkcs8.der ../{}/".format(SE.folder))
+            # return to the right folder
+            self.cmd("cd ../{}".format(self.folder))
+            print("*** Certificates generated.")
+
+    # TODO: authentication.mod, evcc controller class, contract.certificate.update.timespan to be added later on
 
 
 class SE(Electric):

@@ -3,6 +3,7 @@
 # Mininet install script for Ubuntu (and Debian Wheezy+)
 # Brandon Heller (brandonh@stanford.edu)
 # Modified by Ramon Fontes (ramonreisfontes@gmail.com)
+# Modified by Luca Attanasio and Denis Donadel for the V2G part (2020)
 
 # Fail on error
 set -e
@@ -55,6 +56,19 @@ if [ "$DIST" = "Fedora" ]; then
         $install redhat-lsb-core
     fi
 fi
+
+# NOT RECOMMENDED TO INSTALL ANYTHING OTHER THAN: -g
+test -e /etc/arch-release && DIST="Arch Linux"
+if [ "$DIST" = "Arch Linux" ]; then
+    install='sudo pacman -S --noconfirm'
+    remove='sudo pacman -Rs --noconfirm'
+    update='pacman -Syu'
+    # Prereqs for this script
+    if ! which lsb_release &> /dev/null; then
+		$install lsb-release
+    fi
+fi
+
 if which lsb_release &> /dev/null; then
     DIST=`lsb_release -is`
     RELEASE=`lsb_release -rs`
@@ -627,7 +641,9 @@ function all {
     olsrdv2
     batman
     wpan_tools
-    echo "Enjoy Mininet-WiFi!"
+    v2g
+    mim
+    echo "Enjoy MiniV2Gwifi!"
 }
 
 # Restore disk space and remove sensitive files before shipping a VM.
@@ -678,7 +694,6 @@ function v2g {
     LINK2=$(curl -s https://api.github.com/repos/V2GClarity/RISE-V2G/releases\
 	| grep "browser_download_url.*.jar" \
 	| grep -Po '(?<="browser_download_url": ")[^"]*' | sed -sn 2p); \
-    # TODO: fix --output to --output-dir if Arch
     echo "Downloading $LINK1 and $LINK2"; sudo curl -L -O --output $MININET_DIR/mininet-wifi/util/RiseV2G $LINK1; sudo curl -L -O --output $MININET_DIR/mininet-wifi/util/RiseV2G $LINK2;
 
     # Copy latest jar files to local directory
@@ -690,6 +705,8 @@ function v2g {
     sudo cp $LATEST_SECC /usr/share/.miniV2G/RiseV2G
     sudo cp $LATEST_EVCC /usr/share/.miniV2G/RiseV2G
     sudo cp $MININET_DIR/mininet-wifi/util/RiseV2G/*.properties /usr/share/.miniV2G/RiseV2G
+    # copy files for TLS key generation
+    sudo cp $MININET_DIR/mininet-wifi/util/RiseV2G/RISE-V2G-Certificates /usr/share/.miniV2G/RiseV2G
 
     if ! which java; then
         echo "Installing java..."
@@ -722,8 +739,27 @@ function v2g {
     fi
 }
 
+function mim {
+    echo "Installing Man-in-the-Middle supports for v2g..."
+
+    echo "Colining, making and installing parasite6..."
+    sudo apt-get install libpcap-dev libssl-dev libnetfilter-queue-dev
+    git clone https://github.com/vanhauser-thc/thc-ipv6
+    cd thc-ipv6
+    make all
+    make install
+    cd ..
+    echo "Cleaning the mess..."
+    rm -rf thc-ipv6
+
+    echo "Downloading V2GDecoder..."
+    sudo curl -L -O --output $MININET_DIR/mininet-wifi/util/RiseV2G https://github.com/FlUxIuS/V2Gdecoder/releases/download/v1/V2Gdecoder.jar
+    sudo mv -f $MININET_DIR/mininet-wifi/util/RiseV2G/V2GDecoder.jar /usr/share/.miniV2G/RiseV2G/
+
+}
+
 function usage {
-    printf '\nUsage: %s [-abBcdEfhklmnOpPrStvVxy03]\n\n' $(basename $0) >&2
+    printf '\nUsage: %s [-abBcdEfgGhklmnOpPrStvVxy03]\n\n' $(basename $0) >&2
 
     printf 'This install script attempts to install useful packages\n' >&2
     printf 'for Mininet. It should (hopefully) work on Ubuntu 11.10+\n' >&2
@@ -739,7 +775,8 @@ function usage {
     printf -- ' -e: install Mininet d(E)veloper dependencies\n' >&2
     printf -- ' -E: install babeld\n' >&2
     printf -- ' -f: install Open(F)low\n' >&2
-    printf -- ' -g: install RiseV2(G)\n' >&2
+    printf -- ' -g: install RiseV2(g) and V2G support\n' >&2
+    printf -- ' -G: install RiseV2(g), V2G support and dependencies for MitM\n' >&2
     printf -- ' -h: print this (H)elp message\n' >&2
     printf -- ' -k: install new (K)ernel\n' >&2
     printf -- ' -l: insta(L)l wmediumd\n' >&2
@@ -765,7 +802,7 @@ if [ $# -eq 0 ]
 then
     all
 else
-    while getopts 'abBdeEfghiklmnoOPrSsvWx036' OPTION
+    while getopts 'abBdeEfgGhiklmnoOPrSsvWx036' OPTION
     do
       case $OPTION in
       a)    all;;
@@ -780,6 +817,8 @@ else
             *)  echo "Invalid OpenFlow version $OF_VERSION";;
             esac;;
       g)    v2g;;
+      G)    v2g
+            mim;;
       h)    usage;;
       k)    kernel;;
       l)    wmediumd;;
