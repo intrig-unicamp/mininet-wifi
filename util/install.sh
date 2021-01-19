@@ -694,7 +694,7 @@ function v2g {
     LINK2=$(curl -s https://api.github.com/repos/V2GClarity/RISE-V2G/releases\
 	| grep "browser_download_url.*.jar" \
 	| grep -Po '(?<="browser_download_url": ")[^"]*' | sed -sn 2p); \
-    echo "Downloading $LINK1 and $LINK2"; sudo curl -L -O --output $MININET_DIR/mininet-wifi/util/RiseV2G $LINK1; sudo curl -L -O --output $MININET_DIR/mininet-wifi/util/RiseV2G $LINK2;
+    echo "Downloading $LINK1 and $LINK2"; (cd $MININET_DIR/mininet-wifi/util/RiseV2G && sudo curl -L -O $LINK1); (cd $MININET_DIR/mininet-wifi/util/RiseV2G && sudo curl -L -O $LINK2);
 
     # Copy latest jar files to local directory
     sudo rm -rf /usr/share/.miniV2G/RiseV2G # remove folder to support updating
@@ -706,7 +706,7 @@ function v2g {
     sudo cp $LATEST_EVCC /usr/share/.miniV2G/RiseV2G
     sudo cp $MININET_DIR/mininet-wifi/util/RiseV2G/*.properties /usr/share/.miniV2G/RiseV2G
     # copy files for TLS key generation
-    sudo cp $MININET_DIR/mininet-wifi/util/RiseV2G/RISE-V2G-Certificates /usr/share/.miniV2G/RiseV2G
+    sudo cp -r $MININET_DIR/mininet-wifi/util/RiseV2G/RISE-V2G-Certificates /usr/share/.miniV2G/RiseV2G
 
     if ! which java; then
         echo "Installing java..."
@@ -743,18 +743,18 @@ function mim {
     echo "Installing Man-in-the-Middle supports for v2g..."
 
     echo "Colining, making and installing parasite6..."
-    sudo apt-get install libpcap-dev libssl-dev libnetfilter-queue-dev
+    $install libpcap-dev libssl-dev libnetfilter-queue-dev
     git clone https://github.com/vanhauser-thc/thc-ipv6
     cd thc-ipv6
-    make all
-    make install
+    sudo make all
+    sudo make install
     cd ..
     echo "Cleaning the mess..."
     rm -rf thc-ipv6
 
     echo "Downloading V2GDecoder..."
-    sudo curl -L -O --output $MININET_DIR/mininet-wifi/util/RiseV2G https://github.com/FlUxIuS/V2Gdecoder/releases/download/v1/V2Gdecoder.jar
-    sudo mv -f $MININET_DIR/mininet-wifi/util/RiseV2G/V2GDecoder.jar /usr/share/.miniV2G/RiseV2G/
+    (cd $MININET_DIR/mininet-wifi/util/RiseV2G && sudo curl -L -O https://github.com/FlUxIuS/V2Gdecoder/releases/download/v1/V2Gdecoder.jar)
+    sudo mv -f $MININET_DIR/mininet-wifi/util/RiseV2G/V2Gdecoder.jar /usr/share/.miniV2G/RiseV2G/
 
 }
 
