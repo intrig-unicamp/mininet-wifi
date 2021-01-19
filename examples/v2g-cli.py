@@ -55,7 +55,6 @@ def v2gNet():
 
     if start_on_load == True:
         info( '*** Starting charge on the SE.\n' )
-        # TODO: move the sleep command to the SE and EV charge.
         sleep( 1 ) # IMPORTANT! Give a second to the net to complete the setup (otherwise crashes are possible)
         net.terms += [ se1.startCharge() ]
         info( '*** EV is charging.\n' )

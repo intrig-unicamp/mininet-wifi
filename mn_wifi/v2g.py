@@ -61,7 +61,7 @@ class Electric(Node):
             print('*** Cleaning up the mess')
             popen("rm -rd {}*".format(self.FOLDER_PREFIX))
             # this will be called more than the needed times, so the output is supressed
-            popen("rm -rd RISE-V2G-Certificates &> /dev/null ")
+            popen("rm -rd RISE-V2G-Certificates > /dev/null 2>&1 ")
 
         atexit.register(cleaner)
 
