@@ -1571,6 +1571,8 @@ class LinkAttrs(WirelessLink):
         self.txpower = intf.txpower
         self.range = intf.range
         self.static_range = intf.static_range
+        self.consumption = 0.0
+        self.voltage = 10.0
 
     def check_channel_band(self, ht_cap):
         if '40' in ht_cap:
