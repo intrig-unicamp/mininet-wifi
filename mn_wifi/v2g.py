@@ -300,7 +300,7 @@ class EV(Electric):
                 return False
 
             # copy files needed to generate keys
-            self.cmd("cd .. && cp {}/RISE-V2G-Certificates/ . && cd RISE-V2G-Certificates".format(self.RISE_PATH))
+            self.cmd("cd .. && cp -r {}/RISE-V2G-Certificates/ . && cd RISE-V2G-Certificates".format(self.RISE_PATH))
             # generate keys
             self.cmd("chmod +x generateCertificates.sh && ./generateCertificates.sh")
             # copy keys in the desired folders
