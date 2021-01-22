@@ -270,11 +270,11 @@ class EV(Electric):
             print("*** You must provide a number.")
             return False
 
-    def setTLS(self, TLS=False, generate_certificates=False, SE=None):
+    def setTLS(self, TLS=False, generate_certificates=False, SECC=None):
         """ Activate/deactivate TLS. Up to now it is possible to automatically generate keys only between entities (self and SE).
         :param TLS: True/true/1 to activate TLS, False (Default) to use TPC instead.
         :param generate_certificates: True to generate certificates, False otherwise. If True you MUST set also SE.
-        :param SE: the EVSE/SECC connected to the EV
+        :param SECC: the EVSE/SECC connected to the EV
         """
         if isinstance(TLS, str) or isinstance(TLS, int):
             if str(TLS) == 'true' or str(TLS) == '1' or int(TLS) == 1:
@@ -295,22 +295,22 @@ class EV(Electric):
 
         # generate certificates if needed
         if generate_certificates:
-            if SE is None:
+            if SE is None or type(SECC) is not SE:
                 print("*** Error: you must provide the EVSE/SECC connected to the EV.")
                 return False
 
             # copy files needed to generate keys
-            self.cmd("cd .. && cp {}/RISE-V2G-Certificates/ . && cd RISE-V2G-Certificates")
+            self.cmd("cd .. && cp {}/RISE-V2G-Certificates/ . && cd RISE-V2G-Certificates".format(self.RISE_PATH))
             # generate keys
             self.cmd("chmod +x generateCertificates.sh && ./generateCertificates.sh")
             # copy keys in the desired folders
             self.cmd("cp keystores/evccKeystore.jks ../{}/".format(self.folder))
             self.cmd("cp keystores/evccTruststore.jks ../{}/".format(self.folder))
-            self.cmd("cp keystores/seccKeystore.jks ../{}/".format(SE.folder))
-            self.cmd("cp keystores/seccTruststore.jks ../{}/".format(SE.folder))
-            self.cmd("cp certs/cpsCertChain.p12 ../{}/".format(SE.folder))
-            self.cmd("cp certs/moCertChain.p12 ../{}/".format(SE.folder))
-            self.cmd("cp privateKeys/moSubCA2.pkcs8.der ../{}/".format(SE.folder))
+            self.cmd("cp keystores/seccKeystore.jks ../{}/".format(SECC.folder))
+            self.cmd("cp keystores/seccTruststore.jks ../{}/".format(SECC.folder))
+            self.cmd("cp certs/cpsCertChain.p12 ../{}/".format(SECC.folder))
+            self.cmd("cp certs/moCertChain.p12 ../{}/".format(SECC.folder))
+            self.cmd("cp privateKeys/moSubCA2.pkcs8.der ../{}/".format(SECC.folder))
             # return to the right folder
             self.cmd("cd ../{}".format(self.folder))
             print("*** Certificates generated.")
@@ -380,7 +380,6 @@ class SE(Electric):
             # this return a list of just one xterm, so [0] is needed
             self.proc = makeTerm(self, cmd="bash -i -c '{}'".format(command))[0]
         else:
-            # TODO: test this
             self.proc = self.popen("cd ./{}; java -jar rise-v2g-secc-*.jar".format(self.folder), shell=True)
             # print the stdout to the CLI at the start of the charging process
             proc_stdout = self.proc.communicate(timeout=15)[0].strip()
@@ -476,7 +475,6 @@ class SE(Electric):
             return False
 
         # TODO: environment.private, implementation classes to be added later on
-
 
 
 class MiMOVSSwitch(OVSSwitch):
