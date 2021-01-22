@@ -161,6 +161,7 @@ function mn_deps {
             sudo pip install matplotlib==2.1.1 --ignore-installed six
         fi
 
+
         $install iproute2 || $install iproute
         $install cgroup-tools || $install cgroup-bin
     fi
@@ -742,17 +743,22 @@ function v2g {
 function mim {
     echo "Installing Man-in-the-Middle supports for v2g..."
 
-    echo "Colining, making and installing parasite6..."
-    $install libpcap-dev libssl-dev libnetfilter-queue-dev
-    git clone https://github.com/vanhauser-thc/thc-ipv6
-    cd thc-ipv6
-    sudo make all
-    sudo make install
-    cd ..
-    echo "Cleaning the mess..."
-    rm -rf thc-ipv6
+    if ! command -v parasite6 &> /dev/null
+    then
+      echo "Cloning, making and installing parasite6..."
+      $install libpcap-dev libssl-dev libnetfilter-queue-dev
+      git clone https://github.com/vanhauser-thc/thc-ipv6
+      cd thc-ipv6
+      sudo make all
+      sudo make install
+      cd ..
+      echo "Cleaning the mess..."
+      rm -rf thc-ipv6
+    else
+      echo "parasite6 already installed."
+    fi
 
-    echo "Downloading V2GDecoder..."
+    echo "Downloading V2Gdecoder..."
     (cd $MININET_DIR/mininet-wifi/util/RiseV2G && sudo curl -L -O https://github.com/FlUxIuS/V2Gdecoder/releases/download/v1/V2Gdecoder.jar)
     sudo mv -f $MININET_DIR/mininet-wifi/util/RiseV2G/V2Gdecoder.jar /usr/share/.miniV2G/RiseV2G/
 
