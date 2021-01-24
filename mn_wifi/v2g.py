@@ -186,9 +186,10 @@ class EV(Electric):
             self.setSessionId(id=sessionId)
         if voltageAccuracy is not None:
             self.setVoltageAccuracy(acc=voltageAccuracy)
-        if TLS is not None:
+        if TLS is not None and TLS is not "0":
             self.setTLS(TLS=TLS)
-            print("*** TLS certificates not generated. If needed, generate them with setTLS().")
+            if TLS == "1" or TLS == True or TLS == "true":
+                print("*** TLS certificates not generated. If needed, generate them with setTLS().")
         # intf setup: if no interface is provided it must be provided later, otherwise default will be set
         if chargeIntf is not None:
             self.setIntf(intfName=chargeIntf)
@@ -604,9 +605,9 @@ class MiMNode(Electric):
         if in_xterm:
             # run inside an xterm. You must append the return value to net.terms to terminal on exit.
             if not dos_attack:
-                command = "python2 v2g_mim_server.py; bash -i".format(self.folder)
+                command = "python v2g_mim_server.py; bash -i".format(self.folder)
             else:
-                command = "python2 v2g_mim_server.py -d; bash -i".format(self.folder)
+                command = "python v2g_mim_server.py -d; bash -i".format(self.folder)
             # this return a list of just one xterm, so [0] is needed
             self.proc = makeTerm(self, cmd="bash -i -c '{}'".format(command))[0]
             return self.proc
