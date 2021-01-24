@@ -5,12 +5,12 @@ The following instructions are for Pycharm from IDEA but could be applied to oth
 
 ### Running the code
 
-To run the code the python execution should load from Mininet-WiFi code in the project and not the installed version.
+To run the code the python execution should load from miniV2G code in the project and not the installed version.
 To force this, one option is uninstall any instaled versions using pip:
 > pip uninstall mininet
 
 Then in a shell with superuser permission make sure that the python path is the root of the project
-> export PYTHONPATH=....(dir root of mininet-wifi)
+> export PYTHONPATH=....(dir root of miniV2G)
 
 At last you can run any example simply by doing in the terminal:
 > python file.py
