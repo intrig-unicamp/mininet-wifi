@@ -167,18 +167,18 @@ function mn_deps {
     fi
 
     echo "Installing Mininet core"
-    pushd $MININET_DIR/mininet-wifi
+    pushd $MININET_DIR/miniV2G
     if [ -d mininet ]; then
       echo "Removing mininet dir..."
       rm -r mininet
     fi
 
     sudo git clone --depth=1 https://github.com/mininet/mininet.git
-    pushd $MININET_DIR/mininet-wifi/mininet
+    pushd $MININET_DIR/miniV2G/mininet
     sudo PYTHON=${PYTHON} make install
     popd
-    echo "Installing Mininet-wifi core"
-    pushd $MININET_DIR/mininet-wifi
+    echo "Installing MiniV2G e Mininet-WiFi core"
+    pushd $MININET_DIR/miniV2G
     sudo PYTHON=${PYTHON} make install
     popd
 }
@@ -186,28 +186,28 @@ function mn_deps {
 # Install P4 deps
 function p4_deps {
     echo "Installing P4 dependencies"
-    pushd $BUILD_DIR/mininet-wifi/
+    pushd $BUILD_DIR/miniV2G/
     P4_DIR="p4-dependencies"
     [[ -d $P4_DIR ]] && echo $P4_DIR already exists, aborting && exit
     mkdir $P4_DIR
-    pushd $BUILD_DIR/mininet-wifi/p4-dependencies
+    pushd $BUILD_DIR/miniV2G/p4-dependencies
     git clone https://github.com/jafingerhut/p4-guide
-    pushd $BUILD_DIR/mininet-wifi/p4-dependencies/p4-guide
+    pushd $BUILD_DIR/miniV2G/p4-dependencies/p4-guide
 
     if [ "$DIST" = "Ubuntu" ] && [ "$RELEASE" = "20.04" ]; then
         git reset --hard 1fa500a
-        patch -p0 < $MININET_DIR/mininet-wifi/util/p4-patches/p4-guide-v3-without-mininet.patch
+        patch -p0 < $MININET_DIR/miniV2G/util/p4-patches/p4-guide-v3-without-mininet.patch
         sudo ./bin/install-p4dev-v3.sh |& tee log.txt
     else
         git reset --hard ef0f4e1
-        patch -p0 < $MININET_DIR/mininet-wifi/util/p4-patches/p4-guide-without-mininet.patch
+        patch -p0 < $MININET_DIR/miniV2G/util/p4-patches/p4-guide-without-mininet.patch
         sudo ./bin/install-p4dev-v2.sh |& tee log.txt
     fi
 }
 
-# Install Mininet-WiFi deps
+# Install miniV2G deps
 function wifi_deps {
-    echo "Installing Mininet-WiFi dependencies"
+    echo "Installing MiniV2G dependencies"
     $install wireless-tools rfkill ${PYPKG}-numpy pkg-config \
              libnl-3-dev libnl-genl-3-dev libssl-dev make libevent-dev patch \
              libdbus-1-dev ${PYPKG}-psutil ${PYPKG}-pip
@@ -225,28 +225,28 @@ function wifi_deps {
         $install net-tools
     fi
 
-    pushd $MININET_DIR/mininet-wifi
+    pushd $MININET_DIR/miniV2G
     git submodule update --init --recursive
-    pushd $MININET_DIR/mininet-wifi/hostap
+    pushd $MININET_DIR/miniV2G/hostap
     if [ "$DIST" = "Ubuntu" ] && [ "$RELEASE" =  "14.04" ]; then
         git reset --hard 2c129a1
-        patch -p0 < $MININET_DIR/mininet-wifi/util/hostap-patches/config-1404.patch
+        patch -p0 < $MININET_DIR/miniV2G/util/hostap-patches/config-1404.patch
     else
-        patch -p0 < $MININET_DIR/mininet-wifi/util/hostap-patches/config.patch
+        patch -p0 < $MININET_DIR/miniV2G/util/hostap-patches/config.patch
     fi
-    pushd $MININET_DIR/mininet-wifi/hostap/hostapd
+    pushd $MININET_DIR/miniV2G/hostap/hostapd
     cp defconfig .config
     sudo make && make install
-    pushd $MININET_DIR/mininet-wifi/hostap/wpa_supplicant
+    pushd $MININET_DIR/miniV2G/hostap/wpa_supplicant
     cp defconfig .config
     sudo make && make install
-    pushd $MININET_DIR/mininet-wifi/
+    pushd $MININET_DIR/miniV2G/
     if [ -d iw ]; then
       echo "Removing iw..."
       rm -r iw
     fi
     git clone --depth=1 https://git.kernel.org/pub/scm/linux/kernel/git/jberg/iw.git
-    pushd $MININET_DIR/mininet-wifi/iw
+    pushd $MININET_DIR/miniV2G/iw
     sudo make && make install
     cd $BUILD_DIR
     if [ -d mac80211_hwsim_mgmt ]; then
@@ -261,13 +261,13 @@ function wifi_deps {
 function babeld {
     echo "Installing babeld..."
 
-    cd $BUILD_DIR/mininet-wifi
+    cd $BUILD_DIR/miniV2G
     if [ -d babeld ]; then
           echo "Removing babeld..."
           rm -r babeld
         fi
     git clone --depth=1 https://github.com/jech/babeld
-    cd $BUILD_DIR/mininet-wifi/babeld
+    cd $BUILD_DIR/miniV2G/babeld
     make
     sudo make install
 }
@@ -276,13 +276,13 @@ function olsrd {
     echo "Installing olsrd..."
     $install bison flex
     
-    cd $BUILD_DIR/mininet-wifi
+    cd $BUILD_DIR/miniV2G
     if [ -d olsrd ]; then
           echo "Removing olsrd..."
           rm -r olsrd
         fi
     git clone --depth=1 https://github.com/OLSR/olsrd
-    cd $BUILD_DIR/mininet-wifi/olsrd
+    cd $BUILD_DIR/miniV2G/olsrd
     make
     sudo make install
 }
@@ -291,52 +291,52 @@ function olsrdv2 {
     echo "Installing olsrdv2..."
     $install liblua5.1-0-dev libjson-c-dev
 
-    cd $BUILD_DIR/mininet-wifi
+    cd $BUILD_DIR/miniV2G
     if [ -d libubox ]; then
           echo "Removing libubox..."
           rm -r libubox
     fi
     git clone --depth=1 git://git.openwrt.org/project/libubox.git
-    cd $BUILD_DIR/mininet-wifi/libubox
+    cd $BUILD_DIR/miniV2G/libubox
     mkdir build
     cd build
     cmake ..
     make
     sudo make install
 
-    cd $BUILD_DIR/mininet-wifi
+    cd $BUILD_DIR/miniV2G
     if [ -d ubus ]; then
           echo "Removing ubus..."
           rm -r ubus
     fi
     git clone --depth=1 git://git.openwrt.org/project/ubus.git
-    cd $BUILD_DIR/mininet-wifi/ubus
+    cd $BUILD_DIR/miniV2G/ubus
     mkdir build
     cd build
     cmake ..
     make
     sudo make install
 
-    cd $BUILD_DIR/mininet-wifi
+    cd $BUILD_DIR/miniV2G
     if [ -d uci ]; then
           echo "Removing uci..."
           rm -r uci
     fi
     git clone --depth=1 git://git.openwrt.org/project/uci.git
-    cd $BUILD_DIR/mininet-wifi/uci
+    cd $BUILD_DIR/miniV2G/uci
     mkdir build
     cd build
     cmake ..
     make
     sudo make install
 
-    cd $BUILD_DIR/mininet-wifi
+    cd $BUILD_DIR/miniV2G
     if [ -d OONF ]; then
           echo "Removing olsrdv2..."
           rm -r OONF
     fi
     git clone https://github.com/OLSR/OONF
-    cd $BUILD_DIR/mininet-wifi/OONF/build
+    cd $BUILD_DIR/miniV2G/OONF/build
     cmake ..
     make
     sudo make install
@@ -345,7 +345,7 @@ function olsrdv2 {
 function batman {
     echo "Installing B.A.T.M.A.N..."
     echo "Installing batmand..."
-    cd $BUILD_DIR/mininet-wifi
+    cd $BUILD_DIR/miniV2G
     if [ -d batmand ]; then
           echo "Removing batmand..."
           rm -r batmand
@@ -356,7 +356,7 @@ function batman {
     sudo make install
 
     echo "Installing batman-adv..."
-    cd $BUILD_DIR/mininet-wifi
+    cd $BUILD_DIR/miniV2G
     if [ -d batman-adv ]; then
           echo "Removing batman-adv..."
           rm -r batman-adv
@@ -367,7 +367,7 @@ function batman {
     sudo make install
 
     echo "Installing batctl..."
-    cd $BUILD_DIR/mininet-wifi
+    cd $BUILD_DIR/miniV2G
     if [ -d batctl ]; then
           echo "Removing batctl..."
           rm -r batctl
@@ -405,7 +405,7 @@ function of {
     cd $BUILD_DIR/openflow
 
     # Patch controller to handle more than 16 switches
-    patch -p1 < $MININET_DIR/mininet-wifi/util/openflow-patches/controller.patch
+    patch -p1 < $MININET_DIR/miniV2G/util/openflow-patches/controller.patch
 
     # Resume the install:
     ./boot.sh
@@ -591,7 +591,7 @@ function wmediumd {
       rm -r wmediumd
     fi
     $install git make libevent-dev libconfig-dev libnl-3-dev libnl-genl-3-dev
-    git clone --depth=1 -b mininet-wifi https://github.com/ramonfontes/wmediumd.git
+    git clone --depth=1 -b miniV2G https://github.com/ramonfontes/wmediumd.git
     pushd $BUILD_DIR/wmediumd
     sudo make install
     popd
@@ -695,19 +695,19 @@ function v2g {
     LINK2=$(curl -s https://api.github.com/repos/V2GClarity/RISE-V2G/releases\
 	| grep "browser_download_url.*.jar" \
 	| grep -Po '(?<="browser_download_url": ")[^"]*' | sed -sn 2p); \
-    echo "Downloading $LINK1 and $LINK2"; (cd $MININET_DIR/mininet-wifi/util/RiseV2G && sudo curl -L -O $LINK1); (cd $MININET_DIR/mininet-wifi/util/RiseV2G && sudo curl -L -O $LINK2);
+    echo "Downloading $LINK1 and $LINK2"; (cd $MININET_DIR/miniV2G/util/RiseV2G && sudo curl -L -O $LINK1); (cd $MININET_DIR/miniV2G/util/RiseV2G && sudo curl -L -O $LINK2);
 
     # Copy latest jar files to local directory
     sudo rm -rf /usr/share/.miniV2G/RiseV2G # remove folder to support updating
     sudo mkdir -p /usr/share/.miniV2G/RiseV2G
     # get latest version
-    LATEST_SECC=$(ls $MININET_DIR/mininet-wifi/util/RiseV2G/*-secc-*.jar | tail -1)
-    LATEST_EVCC=$(ls $MININET_DIR/mininet-wifi/util/RiseV2G/*-evcc-*.jar | tail -1)
+    LATEST_SECC=$(ls $MININET_DIR/miniV2G/util/RiseV2G/*-secc-*.jar | tail -1)
+    LATEST_EVCC=$(ls $MININET_DIR/miniV2G/util/RiseV2G/*-evcc-*.jar | tail -1)
     sudo cp $LATEST_SECC /usr/share/.miniV2G/RiseV2G
     sudo cp $LATEST_EVCC /usr/share/.miniV2G/RiseV2G
-    sudo cp $MININET_DIR/mininet-wifi/util/RiseV2G/*.properties /usr/share/.miniV2G/RiseV2G
+    sudo cp $MININET_DIR/miniV2G/util/RiseV2G/*.properties /usr/share/.miniV2G/RiseV2G
     # copy files for TLS key generation
-    sudo cp -r $MININET_DIR/mininet-wifi/util/RiseV2G/RISE-V2G-Certificates /usr/share/.miniV2G/RiseV2G
+    sudo cp -r $MININET_DIR/miniV2G/util/RiseV2G/RISE-V2G-Certificates /usr/share/.miniV2G/RiseV2G
 
     if ! which java; then
         echo "Installing java..."
@@ -759,8 +759,8 @@ function mim {
     fi
 
     echo "Downloading V2Gdecoder..."
-    (cd $MININET_DIR/mininet-wifi/util/RiseV2G && sudo curl -L -O https://github.com/FlUxIuS/V2Gdecoder/releases/download/v1/V2Gdecoder.jar)
-    sudo mv -f $MININET_DIR/mininet-wifi/util/RiseV2G/V2Gdecoder.jar /usr/share/.miniV2G/RiseV2G/
+    (cd $MININET_DIR/miniV2G/util/RiseV2G && sudo curl -L -O https://github.com/FlUxIuS/V2Gdecoder/releases/download/v1/V2Gdecoder.jar)
+    sudo mv -f $MININET_DIR/miniV2G/util/RiseV2G/V2Gdecoder.jar /usr/share/.miniV2G/RiseV2G/
 
 }
 
@@ -795,7 +795,7 @@ function usage {
     printf -- ' -s <dir>: place dependency (S)ource/build trees in <dir>\n' >&2
     printf -- ' -v: install Open (V)switch\n' >&2
     printf -- ' -V <version>: install a particular version of Open (V)switch on Ubuntu\n' >&2
-    printf -- ' -W: install Mininet-WiFi dependencies\n' >&2
+    printf -- ' -W: install MiniV2G and Mininet-WiFi dependencies\n' >&2
     printf -- ' -0: (default) -0[fx] installs OpenFlow 1.0 versions\n' >&2
     printf -- ' -3: -3[fx] installs OpenFlow 1.3 versions\n' >&2
     printf -- ' -6: install wpan tools\n' >&2
