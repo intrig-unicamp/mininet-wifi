@@ -760,7 +760,7 @@ function mim {
 
     echo "Downloading V2Gdecoder..."
     (cd $MININET_DIR/miniV2G/util/RiseV2G && sudo curl -L -O https://github.com/FlUxIuS/V2Gdecoder/releases/download/v1/V2Gdecoder.jar)
-    sudo mv -f $MININET_DIR/miniV2G/util/RiseV2G/V2Gdecoder.jar /usr/share/.miniV2G/RiseV2G/
+    sudo mv -f $MININET_DIR/miniV2G/util/RiseV2G/V2Gdecoder.jar /usr/share/.miniV2G/
 
 }
 
