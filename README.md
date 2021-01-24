@@ -34,11 +34,14 @@ _optional_:
 
 ### Building Topologies with GUI
 
-![](https://github.com/ramonfontes/vnd/blob/master/miniedit.png)
+![](https://github.com/donadelden/miniV2G/doc/gui.png)
 
 I'm a beginner, I do not know Python and I would like to create a customized topology. 
-In this case [MiniEdit](https://github.com/intrig-unicamp/mininet-wifi/blob/master/examples/miniedit.py) can serve as support since they provide a GUI to generate Python scripts. 
+In this case [MiniEdit](https://github.com/donadelden/miniV2G/examples/miniedit.py) can serve as support since they provide a GUI to generate Python scripts. 
 
+### RiseV2G configuration properties
+
+You can take a look at all the properties available [in this file](doc/risev2g_properties.md).
 
 ### Development
 For instructions about easier development check [this helper file](doc/dev_help.md), which contains the same informations of Mininet-WiFi.
