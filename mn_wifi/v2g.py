@@ -478,7 +478,7 @@ class SE(Electric):
         # TODO: environment.private, implementation classes to be added later on
 
 
-class MiMOVSSwitch(OVSSwitch):
+class MitMOVSSwitch(OVSSwitch):
     "Open vSwitch switch acting as Man-in-the-middle. Depends on ovs-vsctl."
 
     def __init__(self, name, failMode='secure', datapath='kernel',
@@ -584,7 +584,7 @@ class MiMOVSSwitch(OVSSwitch):
         # print(self.cmd("ovs-ofctl", "dump-flows", "s1"))
 
 
-class MiMNode(Electric):
+class MitMNode(Electric):
     """Electric node class for man in the middle."""
 
     def __init__(self, name, path=None, **kwargs):

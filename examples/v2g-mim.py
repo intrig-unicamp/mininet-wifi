@@ -17,7 +17,7 @@ from mininet.node import NullController
 from mininet.cli import CLI
 from mininet.log import setLogLevel, info
 
-from mn_wifi.v2g import EV, SE, MiMOVSSwitch, MiMNode
+from mn_wifi.v2g import EV, SE, MitMOVSSwitch, MitMNode
 from time import sleep
 
 def v2gNet():
@@ -35,12 +35,12 @@ def v2gNet():
     info( '*** Adding hosts: SE, EV and mim\n' )
     se1 = net.addHost("se1", SE )
     ev1 = net.addHost("ev1", EV )
-    mim = net.addHost("mim", MiMNode)
+    mim = net.addHost("mim", MitMNode)
 
     info( '*** Adding MiM switch\n' )
 
     # the reason why we used a switch is to create custom flows
-    s1 = net.addSwitch( 's1', MiMOVSSwitch )
+    s1 = net.addSwitch( 's1', MitMOVSSwitch)
 
     info( '*** Creating links\n' )
     net.addLink( se1, s1 )
