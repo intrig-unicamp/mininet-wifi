@@ -838,6 +838,8 @@ class HostapdConfig(IntfWireless):
 
         if intf.ht_capab: cmd += '\nht_capab=%s' % intf.ht_capab
         if intf.vht_capab: cmd += '\nvht_capab=%s' % intf.vht_capab
+        if intf.macaddr_acl: cmd += '\nmacaddr_acl=%s' % intf.macaddr_acl
+        if intf.ignore_broadcast_ssid: cmd += '\nignore_broadcast_ssid=%s' % intf.ignore_broadcast_ssid
         if intf.beacon_int: cmd += '\nbeacon_int=%s' % intf.beacon_int
         if intf.client_isolation: cmd += '\nap_isolate=1'
         if 'config' in intf.node.params:
@@ -1280,27 +1282,29 @@ class master(WirelessLink):
         self.vifaces = []
         self.associatedStations = []
         self.bssid_list = []
-        self.ifb = None
         self.auth_algs = None
         self.authmode = None
-        self.freq = None
         self.beacon_int = None
+        self.client_isolation = None
         self.config = None
         self.config_methods = None
         self.country_code = 'US'
+        self.device_type = None
         self.encrypt = None
+        self.freq = None
         self.ht_capab = None
-        self.vht_capab = None
+        self.ifb = None
         self.ieee80211r = None
-        self.client_isolation = None
+        self.ignore_broadcast_ssid = None
+        self.macaddr_acl = None
         self.mobility_domain = None
         self.passwd = None
-        self.shared_secret = None
-        self.wpa_key_mgmt = None
         self.rsn_pairwise = None
         self.radius_server = None
+        self.shared_secret = None
+        self.vht_capab = None
+        self.wpa_key_mgmt = None
         self.wps_state = None
-        self.device_type = None
         self.wpa_psk_file = None
         self.wep_key0 = None
         self.link = None
