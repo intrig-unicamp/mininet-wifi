@@ -1,17 +1,17 @@
 "Utility functions for Mininet-WiFi"
 
 
-def ipAdd6(i, prefixLen=64, ipBaseNum=0x0a000000):
+def ipAdd6(i, prefixLen=32, ipBaseNum=0x20010db8000000000000000000000000):
     """Return IP address string from ints
        i: int to be added to ipbase
        prefixLen: optional IP prefix length
        ipBaseNum: option base IP address as int
        returns IP address as string"""
-    #imax = 0xffffffff >> prefixLen
-    #assert i <= imax, 'Not enough IP addresses in the subnet'
-    #mask = 0xffffffff ^ imax
-    mask = 64
-    ipnum = (ipBaseNum & mask) + i
+    MAX_128 = 0xffffffffffffffffffffffffffffffff
+    ipv6_max = MAX_128 >> prefixLen
+    assert i <= ipv6_max, 'Not enough IPv6 addresses in the subnet'
+    mask = MAX_128 ^ ipv6_max
+    ipnum = ( ipBaseNum & mask ) + i
     return ipStr(ipnum)
 
 
@@ -27,7 +27,6 @@ def ipStr(ip):
     x6 = (ip >> 32) & 0xffff
     x7 = (ip >> 16) & 0xffff
     x8 = ip & 0xffff
-    x1 = 2001
     return "%s:%s:%s:%s:%s:%s:%s:%s" % (x1, x2, x3, x4, x5, x6, x7, x8)
 
 

@@ -394,10 +394,10 @@ class Mininet_wifi(Mininet, Mininet_IoT):
                                 ipBaseNum=self.ipBaseNum,
                                 prefixLen=self.prefixLen) +
                           '/%s' % self.prefixLen,
-                    'ip6': ipAdd6(self.nextIP,
-                                  ipBaseNum=self.ipBaseNum,
-                                  prefixLen=self.prefixLen) +
-                           '/%s' % self.prefixLen,
+                    'ip6': ipAdd6(self.nextIP6,
+                                  ipBaseNum=self.ip6BaseNum,
+                                  prefixLen=self.prefixLen6) +
+                           '/%s' % self.prefixLen6,
                     }
 
         if self.autoSetMacs:
@@ -408,6 +408,7 @@ class Mininet_wifi(Mininet, Mininet_IoT):
         defaults.update(params)
 
         self.nextIP += 1
+        self.nextIP6 += 1
         if not cls:
             cls = self.car
         car = cls(name, **defaults)
