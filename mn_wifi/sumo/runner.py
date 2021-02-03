@@ -25,12 +25,12 @@ class sumo(Mobility):
         return cls.vehCmds
 
     def configureApp(self, cars, aps, config_file='map.sumocfg',
-                     clients=1, port=8813):
+                     clients=1, port=8813, extra_params=[]):
         try:
             Mobility.cars = cars
             Mobility.aps = aps
             Mobility.mobileNodes = cars
-            self.start(cars, config_file, clients, port)
+            self.start(cars, config_file, clients, port, extra_params)
         except:
             info("*** Connection with SUMO has been closed\n")
 
@@ -38,14 +38,17 @@ class sumo(Mobility):
         thread = threading.Thread(name='wifiParameters', target=self.parameters)
         thread.start()
 
-    def start(self, cars, config_file, clients, port):
+    def start(self, cars, config_file, clients, port, extra_params):
         sumoBinary = checkBinary('sumo-gui')
         sumoConfig = os.path.join(os.path.dirname(__file__), "data/%s" % config_file)
 
         if not trace.isEmbedded():
-            os.system(' %s -c %s --num-clients %s '
-                      '--remote-port %s --time-to-teleport -1 &'
-                      % (sumoBinary, sumoConfig, clients, port))
+            command = ' %s -c %s --num-clients %s --remote-port %s \
+                --time-to-teleport -1' % (sumoBinary, sumoConfig, clients, port)
+            for param in extra_params:
+                command = command + " " + param
+            command = command + " &"
+            os.system(command)
             trace.init(port)
             trace.setOrder(0)
 

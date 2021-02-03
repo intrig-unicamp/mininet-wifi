@@ -56,7 +56,8 @@ def topology():
                     cls=ITSLink, band=20, channel=181)
 
     net.useExternalProgram(program=sumo, port=8813,
-                           config_file='map.sumocfg')
+                           config_file='map.sumocfg',
+                           extra_params=["--start"])
 
     info("*** Starting network\n")
     net.build()
