@@ -83,7 +83,7 @@ class PropagationModel(object):
         ht = int(ap_intf.antennaHeight)
         gains = pt + gt + gr
         c = 299792458.0  # speed of light in vacuum
-        f = intf.bandChannel * 1000000  # frequency in Hz
+        f = intf.band * 1000000  # frequency in Hz
 
         if dist == 0: dist = 0.1
         denominator = (c / f) / 1000
@@ -232,7 +232,7 @@ class SetSignalRange(object):
         ht = int(intf.antennaHeight)
         pt = int(intf.txpower)
         c = 299792458.0  # speed of light in vacuum
-        f = intf.bandChannel * 1000000  # frequency in Hz
+        f = intf.band * 1000000  # frequency in Hz
         gains = pt + gt
 
         denominator = (c / f) / 1000
@@ -352,7 +352,7 @@ class GetPowerGivenRange(object):
         ht = intf.antennaHeigth
         pt = intf.txpower
         c = 299792458.0  # speed of light in vacuum
-        f = intf.bandChannel * 1000000  # frequency in Hz
+        f = intf.band * 1000000  # frequency in Hz
         gains = pt + gt
 
         dCross = ((4 * math.pi * ht) / (c / f)) * ppm.sL
