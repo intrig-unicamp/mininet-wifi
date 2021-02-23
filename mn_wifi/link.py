@@ -868,6 +868,7 @@ class HostapdConfig(IntfWireless):
                 if not intf.shared_secret: intf.shared_secret = 'secret'
                 cmd += "\nauth_server_shared_secret=%s" % intf.shared_secret
             else:
+                if intf.ieee80211w: cmd += "\nieee80211w=%s" % intf.ieee80211w
                 if intf.encrypt:
                     if 'wpa' in intf.encrypt:
                         cmd += "\nauth_algs=%s" % intf.auth_algs
@@ -1295,6 +1296,7 @@ class master(WirelessLink):
         self.ht_capab = None
         self.ifb = None
         self.ieee80211r = None
+        self.ieee80211w = None
         self.ignore_broadcast_ssid = None
         self.macaddr_acl = None
         self.mobility_domain = None
@@ -1337,6 +1339,7 @@ class VirtualMaster(master):
         self.ht_capab = None
         self.vht_capab = None
         self.ieee80211r = None
+        self.ieee80211w = None
         self.client_isolation = None
         self.mobility_domain = None
         self.passwd = None
@@ -1377,6 +1380,7 @@ class phyAP(WirelessLink):
         self.ht_capab = None
         self.vht_capab = None
         self.ieee80211r = None
+        self.ieee80211w = None
         self.client_isolation = None
         self.mobility_domain = None
         self.passwd = None
