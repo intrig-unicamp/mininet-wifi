@@ -243,7 +243,7 @@ class WStarter(object):
                                             % link.sta2intf.id())
 
         if wmediumd_mode.mode is not w_cst.SPECPROB_MODE:
-            if wmediumd_mode.mode is not w_cst.INTERFERENCE_MODE:
+            """if wmediumd_mode.mode is not w_cst.INTERFERENCE_MODE:
                 for intfref1 in kwargs['intfrefs']:
                     for intfref2 in kwargs['intfrefs']:
                         if intfref1 is not intfref2:
@@ -259,7 +259,7 @@ class WStarter(object):
                                 mappedlinks.setdefault(
                                     link_id, SNRLink(
                                         intfref1, intfref2,
-                                        self.default_auto_snr))
+                                        self.default_auto_snr))"""
 
             # Create wmediumd config
             wmd_config = tempfile.NamedTemporaryFile(

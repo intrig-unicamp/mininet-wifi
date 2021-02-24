@@ -543,28 +543,35 @@ class Mininet_wifi(Mininet, Mininet_IoT):
         return True
 
     def get_intf(self, node1, node2, port1=None, port2=None):
-        ap = node1 if node1 in self.aps else node2
-        sta = node1 if node2 in self.aps else node2
-        wlan, ap_wlan = 0, 0
+        wlan1, wlan2 = 0, 0
 
-        if port1 is not None and port2 is not None:
-            ap_wlan = port1 if node1 in self.aps else port2
-            wlan = port1 if node2 in self.aps else port2
+        if node1 in self.stations and node2 in self.stations:
+            n1 = node1
+            n2 = node2
+        else:
+            n1 = node1 if node2 in self.aps else node2
+            n2 = node1 if node1 in self.aps else node2
 
-        intf = sta.wintfs[wlan]
-        ap_intf = ap.wintfs[ap_wlan]
+            if port1 is not None and port2 is not None:
+                wlan1 = port1 if node2 in self.aps else port2
+                wlan2 = port1 if node1 in self.aps else port2
 
-        return intf, ap_intf
+        intf1 = n1.wintfs[wlan1]
+        intf2 = n2.wintfs[wlan2]
+
+        return intf1, intf2
 
     def infra_wmediumd_link(self, node1, node2, port1=None, port2=None,
                             **params):
-        intf, ap_intf = self.get_intf(node1, node2, port1, port2)
-        intf.associate(ap_intf)
+        intf1, intf2 = self.get_intf(node1, node2, port1, port2)
+
+        if 'error_prob' not in params:
+            intf1.associate(intf2)
 
         if self.wmediumd_mode == error_prob:
-            self.wlinks.append([intf, ap_intf, params['error_prob']])
+            self.wlinks.append([intf1, intf2, params['error_prob']])
         elif self.wmediumd_mode != interference:
-            self.wlinks.append([intf, ap_intf])
+            self.wlinks.append([intf1, intf2])
 
     def infra_tc(self, node1, node2, port1=None, port2=None,
                  cls=None, **params):
@@ -598,9 +605,12 @@ class Mininet_wifi(Mininet, Mininet_IoT):
 
         modes = [mesh, adhoc, ITSLink, WifiDirectLink, PhysicalWifiDirectLink]
         if cls in modes:
-            link = cls(node=node1, **params)
-            self.links.append(link)
-            return link
+            if node2 and self.wmediumd_mode == error_prob:
+                self.infra_wmediumd_link(node1, node2, **params)
+            else:
+                link = cls(node=node1, **params)
+                self.links.append(link)
+                return link
         elif cls == physicalMesh:
             cls(node=node1, **params)
         elif cls == LowPANLink:
