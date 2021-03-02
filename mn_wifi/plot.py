@@ -160,8 +160,9 @@ class Plot2D (object):
         node.update_2d()
 
     @classmethod
-    def instantiate_annotate(cls, node):
-        node.plttxt = Plot2D.ax.annotate(node, xy=(0, 0))
+    def instantiate_annotate(cls, node, text=None):
+        text = text if text is not None else node.name
+        node.plttxt = Plot2D.ax.annotate(text, xy=(0, 0))
 
         # newer MPL versions (>=1.4) compatability
         if not hasattr(node.plttxt, 'xyann'):

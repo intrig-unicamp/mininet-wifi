@@ -181,6 +181,9 @@ class Node_wifi(Node):
                 txpower = 14 if isinstance(self, AP) else 20
             return txpower
 
+    def set_text(self, text):
+        self.plttxt.set_text(text)
+
     def set_text_pos(self, x, y):
         self.plttxt.xyann = (x, y)
 

@@ -245,7 +245,7 @@ class parseData(object):
                 x = node.position[0]
                 y = node.position[1]
                 plt.scatter(x, y, color='black')
-                axes.annotate(node.name, (x, y))
+                axes.annotate(node.plttxt.get_text(), (x, y))
                 node.circle.center = x, y
                 axes.add_artist(node.circle)
         elif self.data_type == 'rssi':

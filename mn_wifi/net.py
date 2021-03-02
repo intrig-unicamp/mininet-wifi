@@ -209,7 +209,7 @@ class Mininet_wifi(Mininet, Mininet_IoT):
                                     method_to_call(val, intf=intf)
                                 else:
                                     val = pos if pos else attr[1].split(')')[0]
-                                    method_to_call(val)
+                                    method_to_call(val.replace('"', '').replace("'", ""))
                                     data = 'command accepted!'
                             else:
                                 data = 'unrecognized method!'
