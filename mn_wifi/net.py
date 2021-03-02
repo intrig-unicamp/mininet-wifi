@@ -166,7 +166,10 @@ class Mininet_wifi(Mininet, Mininet_IoT):
     def start_socket(self, ip='127.0.0.1', port=12345):
         CleanupWifi.socket_port = port
 
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        if ':' in ip:
+            s = socket.socket(socket.AF_INET6, socket.SOCK_STREAM, 0)
+        else:
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         s.bind((ip, port))
         s.listen(1)
