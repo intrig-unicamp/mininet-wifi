@@ -77,10 +77,10 @@ class PropagationModel(object):
         """Two Ray Ground Propagation Loss Model (does not give a good result for
         a short distance)"""
         gr = int(intf.antennaGain)
-        hr = int(intf.antennaHeight)
+        hr = float(intf.antennaHeight)
         pt = int(ap_intf.txpower)
         gt = int(ap_intf.antennaGain)
-        ht = int(ap_intf.antennaHeight)
+        ht = float(ap_intf.antennaHeight)
         gains = pt + gt + gr
         c = 299792458.0  # speed of light in vacuum
         f = intf.band * 1000000  # frequency in Hz
@@ -229,7 +229,7 @@ class SetSignalRange(object):
         """Two Ray Ground Propagation Loss Model (does not give a good result for
         a short distance)"""
         gt = int(intf.antennaGain)
-        ht = int(intf.antennaHeight)
+        ht = float(intf.antennaHeight)
         pt = int(intf.txpower)
         c = 299792458.0  # speed of light in vacuum
         f = intf.band * 1000000  # frequency in Hz
@@ -238,7 +238,7 @@ class SetSignalRange(object):
         denominator = (c / f) / 1000
         dCross = (4 * math.pi * ht * ht) / denominator
         numerator = (pt * gt * gt * ht ** 2 * ht ** 2)
-        self.range = (numerator / ((gains - ppm.noise_th))/ppm.sL) * dCross
+        self.range = (numerator / (gains - ppm.noise_th)/ppm.sL) * dCross
         return self.range
 
     def logDistance(self, intf):
