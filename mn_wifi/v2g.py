@@ -598,16 +598,18 @@ class MitMNode(Electric):
         # cd into the right folder
         self.cmd("cd ./{}".format(self.folder))
 
-    def start_server(self, dos_attack=False):
+    def start_server(self, dos_attack_1=False, dos_attack_2=False):
         in_xterm = True
 
         print("*** Starting the MiM server...")
         if in_xterm:
             # run inside an xterm. You must append the return value to net.terms to terminal on exit.
-            if not dos_attack:
-                command = "python v2g_mim_server.py; bash -i".format(self.folder)
+            if dos_attack_1:
+                command = "python2 v2g_mim_server.py -d; bash -i".format(self.folder)
+            elif dos_attack_2:
+                command = "python2 v2g_mim_server.py -e; bash -i".format(self.folder)
             else:
-                command = "python v2g_mim_server.py -d; bash -i".format(self.folder)
+                command = "python2 v2g_mim_server.py; bash -i".format(self.folder)
             # this return a list of just one xterm, so [0] is needed
             self.proc = makeTerm(self, cmd="bash -i -c '{}'".format(command))[0]
             return self.proc
