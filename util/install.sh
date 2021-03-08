@@ -758,9 +758,11 @@ function mim {
       echo "parasite6 already installed."
     fi
 
-    echo "Downloading V2Gdecoder..."
-    (cd $MININET_DIR/miniV2G/util/RiseV2G && sudo curl -L -O https://github.com/FlUxIuS/V2Gdecoder/releases/download/v1/V2Gdecoder.jar)
-    sudo mv -f $MININET_DIR/miniV2G/util/RiseV2G/V2Gdecoder.jar /usr/share/.miniV2G/
+    #echo "Downloading V2Gdecoder..."
+    #(cd $MININET_DIR/miniV2G/util/RiseV2G && sudo curl -L -O https://github.com/FlUxIuS/V2Gdecoder/releases/download/v1/V2Gdecoder.jar)
+    # using the new version of V2Gdecoder.jar https://github.com/blackwiz4rd/V2Gdecoder
+    echo "Copying V2Gdecoder.jar..."
+    sudo cp -f $MININET_DIR/miniV2G/util/RiseV2G/V2Gdecoder.jar /usr/share/.miniV2G/
 
 }
 
