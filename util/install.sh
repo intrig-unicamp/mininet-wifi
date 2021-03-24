@@ -233,6 +233,8 @@ function wifi_deps {
     fi
     pushd $MININET_DIR/mininet-wifi/hostap/hostapd
     cp defconfig .config
+    # Enable WEP support
+    echo "CONFIG_WEP=y" >> .config
     sudo make && make install
     pushd $MININET_DIR/mininet-wifi/hostap/wpa_supplicant
     cp defconfig .config
