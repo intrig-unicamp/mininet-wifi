@@ -1867,14 +1867,23 @@ class mesh(LinkAttrs):
         node: name of the node
         self: custom association class/constructor
         params: parameters for node"""
+
+        phyWlan = 0
+        if 'vIface' in params:
+            phyWlan = intf[-1]
+            intf = intf[:-5] + 'mp' + phyWlan
         intf = node.getNameToWintf(intf)
         wlan = node.params['wlan'].index(intf.name)
 
-        if isinstance(intf, master): intf.kill_hostapd_process()
+        if isinstance(intf, master):
+            intf.kill_hostapd_process()
+
+        if 'vIface' in params:
+            wlan += len(node.params['wlan'])
 
         LinkAttrs.__init__(self, node, intf, wlan)
         iface = intf
-        self.name = '%s-mp%s' % (node, intf.name[-1:])
+        self.name = '{}-mp{}'.format(node, wlan)
         self.associatedTo = 'mesh'
 
         # It takes default values if keys are not set
@@ -1888,40 +1897,48 @@ class mesh(LinkAttrs):
         self.check_channel_band(self.ht_cap)
 
         if wmediumd_mode.mode:
-            self.wmIface = DynamicIntfRef(node, intf=self.name)
-            node.wmIfaces[wlan] = self.wmIface
+            if wlan > 0 and 'vIface' in params:
+                self.mac = intf.mac[:4] + str(wlan) + intf.mac[5:]
+                self.node.params['wlan'].append(self.name)
+                self.wmIface = DynamicIntfRef(node, intf=self.name)
+                node.wmIfaces.append(self.wmIface)
+            else:
+                self.wmIface = DynamicIntfRef(node, intf=self.name)
+                node.wmIfaces[wlan] = self.wmIface
 
-        port = wlan + 1 if isinstance(node, AP) else wlan
+            port = wlan + 1 if isinstance(node, AP) else wlan
 
-        # mp interface must be created before ethtool
-        self.iwdev_cmd(self.set_mesh_type(intf))
-        intf1 = WirelessLink(name=self.name, node=node,
-                             link=self, port=port)
-        intf2 = 'wifiMesh'
+            # mp interface must be created before ethtool
+            self.iwdev_cmd(self.set_mesh_type(intf, phyWlan))
+            intf1 = WirelessLink(name=self.name, node=node,
+                                 link=self, port=port)
+            intf2 = 'wifiMesh'
 
-        node.addWAttr(self, port=wlan)
-        self.setTxPower(self.txpower)
-        self.setMeshIface(wlan, iface)
-        self.configureMesh()
+            node.addWAttr(self, port=wlan)
+            self.setTxPower(self.txpower)
+            if 'vIface' in params:
+                self.setMAC(self.mac)
+            else:
+                self.prepareMeshIface(wlan, iface)
+            self.configureMesh()
 
-        if self.proto: manetProtocols(self, proto_args)
+            if self.proto:
+                manetProtocols(self, proto_args)
 
-        # All we are is dust in the wind, and our two interfaces
-        self.intf1, self.intf2 = intf1, intf2
+            # All we are is dust in the wind, and our two interfaces
+            self.intf1, self.intf2 = intf1, intf2
 
-    def set_mesh_type(self, intf):
-        return '%s interface add %s type mp' % (intf.name, self.name)
+    def set_mesh_type(self, intf, phyWlan):
+        return '{}-wlan{} interface add {} type mp'.format(intf.node, phyWlan, self.name)
 
-    def setMeshIface(self, wlan, intf):
+    def prepareMeshIface(self, wlan, intf):
         if isinstance(intf, adhoc): self.set_dev_type('managed')
-        self.node.cmd('ip link set %s down' % intf)
 
         self.setMAC(intf.mac)
         self.node.params['wlan'][wlan] = self.name
 
         self.setMeshChannel(self.channel)
         self.setReg()
-        self.ipLink('up')
 
         if self.ip:
             self.setIP(self.ip, self.prefixLen)
