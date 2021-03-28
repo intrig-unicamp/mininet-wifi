@@ -93,7 +93,7 @@ class Mac80211Hwsim(object):
             self.create_hwsim(len(Mac80211Hwsim.hwsim_ids))
         self.configPhys(node)
 
-    def create_hwsim(self, n):
+    def get_phys(self):
         # generate prefix
         num = 0
         numokay = False
@@ -102,14 +102,17 @@ class Mac80211Hwsim(object):
         phys = subprocess.check_output(cmd, shell=True).decode('utf-8').split("\n")
 
         while not numokay:
-            self.prefix = "mn%05dp%02ds" % (os.getpid(), num)       # Add PID to mn-devicenames
+            self.prefix = "mn%05dp%02ds" % (os.getpid(), num)  # Add PID to mn-devicenames
             numokay = True
             for phy in phys:
                 if phy.startswith(self.prefix):
                     num += 1
                     numokay = False
                     break
+        return num
 
+    def create_hwsim(self, n):
+        self.get_phys()
         p = subprocess.Popen(["hwsim_mgmt", "-c", "-n", self.prefix +
                               ("%02d" % n)], stdin=subprocess.PIPE,
                              stdout=subprocess.PIPE,
@@ -128,6 +131,7 @@ class Mac80211Hwsim(object):
 
     def __create_hwsim_mgmt_devices(self, nradios, nodes, **params):
         if 'docker' in params:
+            num = self.get_phys()
             self.docker_config(nradios=nradios, nodes=nodes, num=num, **params)
         else:
             try:
@@ -157,7 +161,8 @@ class Mac80211Hwsim(object):
                       ip='172.17.0.1', num=0, **params):
 
         file = self.prefix + 'docker_mn-wifi.sh'
-        os.system('rm %s' % file)
+        if os.path.isfile(file):
+            os.system('rm %s' % file)
         os.system("echo '#!/bin/bash' >> %s" % file)
         os.system("echo 'pid=$(sudo -S docker inspect -f '{{.State.Pid}}' "
                   "%s)' >> %s" % (params['container'], file))
