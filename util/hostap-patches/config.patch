@@ -109,6 +109,15 @@ index cbdd2a5..3da654e 100644
  
  # Wired equivalent privacy (WEP)
  # WEP is an obsolete cryptographic data confidentiality algorithm that is not
+@@ -387,7 +389,7 @@ CONFIG_IPV6=y
+ # functionality needed to use WEP is available in the current hostapd
+ # release under this optional build parameter. This functionality is subject to
+ # be completely removed in a future release.
+-#CONFIG_WEP=y
++CONFIG_WEP=y
+ 
+ # Remove all TKIP functionality
+ # TKIP is an old cryptographic data confidentiality algorithm that is not
 diff --git wpa_supplicant/bgscan_learn.c wpa_supplicant/bgscan_learn.c
 index cb732f7..ebac73b 100644
 --- wpa_supplicant/bgscan_learn.c
