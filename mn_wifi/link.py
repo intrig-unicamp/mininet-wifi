@@ -1883,7 +1883,9 @@ class mesh(LinkAttrs):
 
         LinkAttrs.__init__(self, node, intf, wlan)
         iface = intf
-        self.name = '{}-mp{}'.format(node, wlan)
+
+        port = wlan + 1 if isinstance(node, AP) else wlan
+        self.name = '{}-mp{}'.format(node, port)
         self.associatedTo = 'mesh'
 
         # It takes default values if keys are not set
@@ -1902,14 +1904,14 @@ class mesh(LinkAttrs):
                 self.node.params['wlan'].append(self.name)
                 self.wmIface = DynamicIntfRef(node, intf=self.name)
                 node.wmIfaces.append(self.wmIface)
+                # mp interface must be created before ethtool
+                self.iwdev_cmd(self.set_mesh_type(intf, phyWlan))
             else:
                 self.wmIface = DynamicIntfRef(node, intf=self.name)
                 node.wmIfaces[wlan] = self.wmIface
+                self.node.cmd('ip link set %s down' % intf)
+                self.iwdev_cmd(self.set_mesh_type(intf, port))
 
-            port = wlan + 1 if isinstance(node, AP) else wlan
-
-            # mp interface must be created before ethtool
-            self.iwdev_cmd(self.set_mesh_type(intf, phyWlan))
             intf1 = WirelessLink(name=self.name, node=node,
                                  link=self, port=port)
             intf2 = 'wifiMesh'
