@@ -145,7 +145,7 @@ class IntfWireless(Intf):
         return self.node.pexec(self.get_wpa_cmd())
 
     def kill_hostapd_process(self):
-        info('\n')
+        #info('\n')
         pattern = "mn%d_%s.apconf" % (os.getpid(), self.name)
         while True:
             try:
@@ -1870,8 +1870,8 @@ class mesh(LinkAttrs):
 
         phyWlan = 0
         if 'vIface' in params:
-            phyWlan = intf[-1]
-            intf = intf[:-5] + 'mp' + phyWlan
+            phyWlan = int(intf[-1])
+            intf = intf[:-5] + 'mp' + str(phyWlan)
         intf = node.getNameToWintf(intf)
         wlan = node.params['wlan'].index(intf.name)
 
@@ -1880,6 +1880,8 @@ class mesh(LinkAttrs):
 
         if 'vIface' in params:
             wlan += len(node.params['wlan'])
+        if isinstance(node, AP) and isinstance(intf, mesh):
+            wlan -= 1
 
         LinkAttrs.__init__(self, node, intf, wlan)
         iface = intf
