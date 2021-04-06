@@ -62,7 +62,7 @@ def topology():
 
     info("*** Starting CoppeliaSim\n")
     path = os.path.dirname(os.path.abspath(__file__))
-    os.system('{}/CoppeliaSim_Edu_V4_1_0_Ubuntu18_04/coppeliaSim.sh -s {}'
+    os.system('{}/CoppeliaSim_Edu_V4_1_0_Ubuntu/coppeliaSim.sh -s {}'
               '/simulation.ttt -gGUIITEMS_2 &'.format(path, path))
     time.sleep(10)
 
