@@ -1910,7 +1910,8 @@ class mesh(LinkAttrs):
                 self.iwdev_cmd(self.set_mesh_type(intf, phyWlan))
             else:
                 self.wmIface = DynamicIntfRef(node, intf=self.name)
-                node.wmIfaces[wlan] = self.wmIface
+                if wmediumd_mode.mode != w_cst.ERRPROB_MODE:
+                    node.wmIfaces[wlan] = self.wmIface
                 self.node.cmd('ip link set %s down' % intf)
                 self.iwdev_cmd(self.set_mesh_type(intf, port))
 

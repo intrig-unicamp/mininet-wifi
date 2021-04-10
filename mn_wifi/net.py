@@ -608,12 +608,11 @@ class Mininet_wifi(Mininet, Mininet_IoT):
 
         modes = [mesh, adhoc, ITSLink, WifiDirectLink, PhysicalWifiDirectLink]
         if cls in modes:
+            link = cls(node=node1, **params)
+            self.links.append(link)
             if node2 and self.wmediumd_mode == error_prob:
                 self.infra_wmediumd_link(node1, node2, **params)
-            else:
-                link = cls(node=node1, **params)
-                self.links.append(link)
-                return link
+            return link
         elif cls == physicalMesh:
             cls(node=node1, **params)
         elif cls == LowPANLink:
@@ -736,6 +735,12 @@ class Mininet_wifi(Mininet, Mininet_IoT):
                         mob.stations.append(node)
 
         if self.config4addr or self.configWiFiDirect or self.wmediumd_mode == error_prob:
+            # sync with the current 2nd interface type
+            for id, link in enumerate(self.wlinks):
+                for node in self.stations:
+                    for intf in node.wintfs.values():
+                        if intf.id == link[1].id:
+                            self.wlinks[id][1] = intf
             self.init_wmediumd()
 
         if self.inNamespace:
