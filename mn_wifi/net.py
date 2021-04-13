@@ -1373,7 +1373,7 @@ class Mininet_wifi(Mininet, Mininet_IoT):
                 params['latency'] = link.intf1.params['latency']
             if 'loss' in link.intf1.params:
                 params['loss'] = link.intf1.params['loss']
-            if params and 'delay' not in link.intf1.params:
+            if params and 'delay' not in link.intf1.params and hasattr(link.intf1, 'configWLink'):
                 link.intf1.configWLink.set_tc(link.intf1.name, **params)
 
     def auto_association(self):
