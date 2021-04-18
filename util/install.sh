@@ -121,36 +121,6 @@ function kernel {
 
 # Install Mininet deps
 function mn_deps {
-    echo "Installing Mininet dependencies"
-    if [ "$DIST" = "Fedora" -o "$DIST" = "RedHatEnterpriseServer" ]; then
-        $install gcc make socat psmisc xterm openssh-clients iperf \
-            iproute telnet python-setuptools libcgroup-tools \
-            ethtool help2man pyflakes pylint python-pep8 python-pexpect
-    elif [ "$DIST" = "SUSE LINUX"  ]; then
-        $install gcc make socat psmisc xterm openssh iperf \
-          iproute telnet ${PYPKG}-setuptools libcgroup-tools \
-          ethtool help2man ${PYPKG}-pyflakes python3-pylint \
-                            python-pep8 ${PYPKG}-pexpect ${PYPKG}-tk
-    else  # Debian/Ubuntu
-        $install gcc make socat psmisc xterm ssh iperf telnet \
-                 ethtool help2man pep8 \
-                 ${PYPKG}-setuptools ${PYPKG}-pexpect ${PYPKG}-tk
-
-        if [ "$PYTHON_VERSION" == 3 ]; then
-            sudo pip3 install --upgrade pip
-            sudo pip3 install --upgrade pyflakes
-            sudo pip3 install --upgrade pylint
-        else
-            sudo pip install --upgrade pip
-            sudo pip install --upgrade pyflakes
-            sudo pip install --upgrade pylint
-            sudo pip install matplotlib==2.1.1 --ignore-installed six
-        fi
-
-        $install iproute2 || $install iproute
-        $install cgroup-tools || $install cgroup-bin
-    fi
-
     echo "Installing Mininet core"
     pushd $MININET_DIR/mininet-wifi
     if [ -d mininet ]; then
@@ -192,34 +162,55 @@ function p4_deps {
 
 # Install Mininet-WiFi deps
 function wifi_deps {
+    echo "Installing Mininet dependencies"
+    if [ "$DIST" = "Fedora" -o "$DIST" = "RedHatEnterpriseServer" ]; then
+        $install gcc make socat psmisc xterm openssh-clients iperf \
+            iproute telnet python-setuptools libcgroup-tools \
+            ethtool help2man pyflakes pylint python-pep8 python-pexpect
+    elif [ "$DIST" = "SUSE LINUX"  ]; then
+        $install gcc make socat psmisc xterm openssh iperf \
+          iproute telnet ${PYPKG}-setuptools libcgroup-tools \
+          ethtool help2man ${PYPKG}-pyflakes python3-pylint \
+                            python-pep8 ${PYPKG}-pexpect ${PYPKG}-tk
+    else
+        pf=pyflakes
+        # Starting around 20.04, installing pyflakes instead of pyflakes3
+        # causes Python 2 to be installed, which is exactly NOT what we want.
+        if [ `expr $RELEASE '>=' 20.04` = "1" ]; then
+                pf=pyflakes3
+        fi
+        $install gcc make socat psmisc xterm ssh iperf telnet \
+                 ethtool help2man $pf pylint pep8 \
+                 net-tools \
+                 ${PYPKG}-pexpect ${PYPKG}-tk
+        # Install pip
+        $install ${PYPKG}-pip || $install ${PYPKG}-pip-whl
+        if ! ${PYTHON} -m pip -V; then
+            if [ $PYTHON_VERSION == 2 ]; then
+                wget https://bootstrap.pypa.io/2.6/get-pip.py
+            else
+                wget https://bootstrap.pypa.io/get-pip.py
+            fi
+            sudo ${PYTHON} get-pip.py
+            rm get-pip.py
+        fi
+        $install iproute2 || $install iproute
+        $install cgroup-tools || $install cgroup-bin
+    fi
+
     echo "Installing Mininet-WiFi dependencies"
     $install wireless-tools rfkill ${PYPKG}-numpy pkg-config \
              libnl-3-dev libnl-genl-3-dev libssl-dev make libevent-dev patch \
              libdbus-1-dev ${PYPKG}-psutil
 
-    # Install pip
-    $install ${PYPKG}-pip || $install ${PYPKG}-pip-whl
-    if ! ${PYTHON} -m pip -V; then
-        if [ $PYTHON_VERSION == 2 ]; then
-            wget https://bootstrap.pypa.io/2.7/get-pip.py
-        else
-            wget https://bootstrap.pypa.io/get-pip.py
-        fi
-        sudo ${PYTHON} get-pip.py
-        rm get-pip.py
-    fi
-
     if [ "$DIST" = "Ubuntu" ] && [ "$RELEASE" = "14.04" ]; then
-        sudo pip install --upgrade pip
         sudo pip install matplotlib==2.1.1 --ignore-installed six
     else
         if [ "$PYTHON_VERSION" == 3 ]; then
             $install python3-matplotlib
         else
-            sudo pip install --upgrade pip
             sudo pip install matplotlib==2.1.1 --ignore-installed six
         fi
-        $install net-tools
     fi
 
     pushd $MININET_DIR/mininet-wifi
