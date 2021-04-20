@@ -400,7 +400,7 @@ class IntfWireless(Intf):
 
         intf.ssid = ssid
         for key, value in kwargs.items():
-            setattr(intf.node, key, value)
+            setattr(intf, key, value)
 
         if not intf.mac:
             intf.mac = intf.getMAC()
@@ -857,7 +857,7 @@ class HostapdConfig(IntfWireless):
                 cmd += "\nieee8021x=1"
                 cmd += "\nwpa_key_mgmt=WPA-EAP"
                 if intf.encrypt:
-                    cmd += "\nauth_algs=%s" % intf.auth_algs
+                    cmd += "\nauth_algs={}".format(intf.auth_algs)
                     cmd += "\nwpa=2"
                 cmd += '\neap_server=0'
                 cmd += '\neapol_version=2'
@@ -865,34 +865,34 @@ class HostapdConfig(IntfWireless):
                 if not intf.radius_server: intf.radius_server = '127.0.0.1'
                 cmd += "\nwpa_pairwise=TKIP CCMP"
                 cmd += "\neapol_key_index_workaround=0"
-                cmd += "\nown_ip_addr=%s" % intf.radius_server
-                cmd += "\nnas_identifier=%s.example.com" % intf.node.name
-                cmd += "\nauth_server_addr=%s" % intf.radius_server
+                cmd += "\nown_ip_addr={}".format(intf.radius_server)
+                cmd += "\nnas_identifier={}.example.com".format(intf.node.name)
+                cmd += "\nauth_server_addr={}".format(intf.radius_server)
                 cmd += "\nauth_server_port=1812"
                 if not intf.shared_secret: intf.shared_secret = 'secret'
-                cmd += "\nauth_server_shared_secret=%s" % intf.shared_secret
+                cmd += "\nauth_server_shared_secret={}".format(intf.shared_secret)
             else:
-                if intf.ieee80211w: cmd += "\nieee80211w=%s" % intf.ieee80211w
+                if intf.ieee80211w: cmd += "\nieee80211w={}".format(intf.ieee80211w)
                 if intf.encrypt:
                     if 'wpa' in intf.encrypt:
-                        cmd += "\nauth_algs=%s" % intf.auth_algs
+                        cmd += "\nauth_algs={}".format(intf.auth_algs)
                         cmd += "\nwpa=1" if intf.encrypt == 'wpa' else "\nwpa=2"
                         if intf.encrypt == 'wpa3':
                             cmd += "\nwpa_key_mgmt=WPA-PSK SAE"
                         else:
-                            cmd += "\nwpa_key_mgmt=%s" % intf.wpa_key_mgmt
-                        cmd += "\nwpa_pairwise=%s" % intf.rsn_pairwise
-                        cmd += "\nwpa_passphrase=%s" % intf.wpa_passphrase
+                            cmd += "\nwpa_key_mgmt={}".format(intf.wpa_key_mgmt)
+                        cmd += '\nwpa_pairwise={}'.format(intf.rsn_pairwise)
+                        cmd += '\nwpa_passphrase={}'.format(intf.wpa_passphrase)
                     elif intf.encrypt == 'wep':
-                        cmd += "\nauth_algs=%s" % intf.auth_algs
-                        cmd += "\nwep_default_key=%s" % 0
+                        cmd += "\nauth_algs={}".format(intf.auth_algs)
+                        cmd += '\nwep_default_key={}'.format(0)
                         cmd += self.verifyWepKey(intf.wep_key0)
 
                 if intf.wps_state:
-                    cmd += '\nwps_state=%s' % intf.wps_state
+                    cmd += '\nwps_state={}'.format(intf.wps_state)
                     cmd += '\neap_server=1'
                     if intf.config_methods:
-                        cmd += '\nconfig_methods=%s' % intf.config_methods
+                        cmd += '\nconfig_methods={}'.format(intf.config_methods)
                     else:
                         cmd += '\nconfig_methods=label display push_button keypad'
                     cmd += '\nwps_pin_requests=/var/run/hostapd.pin-req'
@@ -908,13 +908,12 @@ class HostapdConfig(IntfWireless):
 
                 if intf.ieee80211r:
                     if intf.mobility_domain:
-                        cmd += "\nmobility_domain=%s" % intf.mobility_domain
+                        cmd += '\nmobility_domain={}'.format(intf.mobility_domain)
                         # cmd += ("\nown_ip_addr=127.0.0.1")
-                        cmd += "\nnas_identifier=%s.example.com" \
-                               % intf.node.name
+                        cmd += '\nnas_identifier={}.example.com'.format(intf.node.name)
                         for apref in intf.bssid_list:
-                            cmd += '\nr0kh=%s r0kh-%s.example.com 000102030405060708090a0b0c0d0e0f' % (intf.mac, apref)
-                            cmd += '\nr1kh=%s %s 000102030405060708090a0b0c0d0e0f' % (intf.mac, intf.mac)
+                            cmd += '\nr0kh={} r0kh-{}.example.com 000102030405060708090a0b0c0d0e0f'.format(intf.mac, apref)
+                            cmd += '\nr1kh={} {} 000102030405060708090a0b0c0d0e0f'.format(intf.mac, intf.mac)
                         cmd += '\nrsn_preauth=1'
                         cmd += '\npmk_r1_push=1'
                         cmd += '\nft_over_ds=1'
@@ -1891,7 +1890,10 @@ class mesh(LinkAttrs):
         iface = intf
 
         port = wlan + 1 if isinstance(node, AP) else wlan
-        self.name = '{}-mp{}'.format(node, port)
+        if 'vIface' in params:
+            self.name = '{}-mp{}.{}'.format(node, phyWlan, port)
+        else:
+            self.name = '{}-mp{}'.format(node, port)
         self.associatedTo = 'mesh'
 
         # It takes default values if keys are not set
