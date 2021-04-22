@@ -739,7 +739,7 @@ class Mininet_wifi(Mininet, Mininet_IoT):
             for id, link in enumerate(self.wlinks):
                 for node in self.stations:
                     for intf in node.wintfs.values():
-                        if intf.id == link[1].id:
+                        if intf.name == link[1].name:
                             self.wlinks[id][1] = intf
             self.init_wmediumd()
 
