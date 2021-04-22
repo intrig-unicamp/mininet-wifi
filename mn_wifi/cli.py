@@ -9,7 +9,7 @@ class CLI(MN_CLI):
     MN_CLI.prompt = 'mininet-wifi> '
 
     def __init__(self, mn_wifi, stdin=sys.stdin, script=None):
-        MN_CLI.__init__(self, mn_wifi, stdin=sys.stdin, script=None)
+        MN_CLI.__init__(self, mn_wifi, stdin=sys.stdin, script=script)
 
     def do_stop(self, line):
         "stop mobility for a while"
