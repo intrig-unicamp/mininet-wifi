@@ -134,7 +134,7 @@ class P4Switch(Switch):
                  thriftport=None, netcfg=False, dryrun=False, inNamespace=False,
                  inband=False, pipeconf=DEFAULT_PIPECONF, pktdump=False, valgrind=False,
                  gnmi=False, portcfg=True, onosdevid=None, stratum=False,
-                 switch_config=None, **kwargs):
+                 switch_config=None, timeout=SWITCH_START_TIMEOUT, **kwargs):
         Switch.__init__(self, name, inNamespace=inNamespace, **kwargs)
         self.grpcPort = grpcport
         self.grpcPortInternal = None  # Needed for Stratum (local_hercules_url)
@@ -178,6 +178,7 @@ class P4Switch(Switch):
         self.targetName = STRATUM_BMV2 if self.useStratum else SIMPLE_SWITCH_GRPC
         self.controllers = None
         self.switch_config = switch_config
+        self.timeout = timeout
 
         path = os.path.dirname(os.path.abspath(__file__)) + '/examples/p4/ap-runtime.json'
         self.json = path if not json else json
@@ -497,7 +498,7 @@ nodes {{
         # Wait for switch to open gRPC port, before sending ONOS the netcfg.
         # Include time-out just in case something hangs.
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        endtime = time.time() + SWITCH_START_TIMEOUT
+        endtime = time.time() + self.timeout
 
         if self.inNamespace:
             controller = self.configNameSpace()
