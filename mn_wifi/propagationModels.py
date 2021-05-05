@@ -168,9 +168,9 @@ class PropagationModel(object):
     def young(self, intf, ap_intf, dist):
         "Young Propagation Loss Model"
         gr = intf.antennaGain
-        hr = intf.antennaHeigth
+        hr = intf.antennaHeight
         gt = ap_intf.antennaGain
-        ht = ap_intf.antennaHeigth
+        ht = ap_intf.antennaHeight
         cf = 0.01075  # clutter factor
 
         if dist == 0: dist = 0.1
@@ -349,7 +349,7 @@ class GetPowerGivenRange(object):
         a short distance)"""
         dist = intf.range
         gt = intf.antennaGain
-        ht = intf.antennaHeigth
+        ht = intf.antennaHeight
         pt = intf.txpower
         c = 299792458.0  # speed of light in vacuum
         f = intf.band * 1000000  # frequency in Hz
