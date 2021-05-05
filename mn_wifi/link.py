@@ -341,12 +341,13 @@ class IntfWireless(Intf):
         if self.txpower == 1:
             min_range = int(SetSignalRange(self).range)
             if self.range < min_range:
-                info("*** %s: the signal range should be "
-                     "changed to (at least) %sm\n" % (self.name, min_range))
-                info("*** >>> See https://mininet-wifi.github.io/faq/#q7 for more information\n")
+                info('*** {}: the signal range should be '
+                     'changed to (at least) {}m\n'.format(self.name, min_range))
+                info('*** >>> See https://mininet-wifi.github.io/faq/#q7 '
+                     'for more information\n')
         else:
-            info("*** %s: signal range of %sm requires tx power equal to %sdBm.\n"
-                 % (self.name, self.range, txpower))
+            info('*** {}: signal range of {}m requires tx power equals '
+                 'to {}dBm.\n'.format(self.name, self.range, (int(txpower)+1)))
 
     def setDefaultRange(self):
         if not self.static_range:
