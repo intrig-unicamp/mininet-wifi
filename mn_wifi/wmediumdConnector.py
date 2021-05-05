@@ -547,102 +547,60 @@ class w_server(object):
     __base_struct_fmt = 'B'
     __base_struct = struct.Struct('!' + __base_struct_fmt)
 
-    __snr_update_request_fmt = \
-        __base_struct_fmt + __mac_struct_fmt + __mac_struct_fmt + 'i'
-    __snr_update_response_fmt = \
-        __base_struct_fmt + __snr_update_request_fmt + 'B'
-    __snr_update_request_struct = \
-        struct.Struct('!' + __snr_update_request_fmt)
-    __snr_update_response_struct = \
-        struct.Struct('!' + __snr_update_response_fmt)
+    __snr_update_request_fmt = __base_struct_fmt + __mac_struct_fmt + __mac_struct_fmt + 'i'
+    __snr_update_response_fmt = __base_struct_fmt + __snr_update_request_fmt + 'B'
+    __snr_update_request_struct = struct.Struct('!' + __snr_update_request_fmt)
+    __snr_update_response_struct = struct.Struct('!' + __snr_update_response_fmt)
 
-    __pos_update_request_fmt = \
-        __base_struct_fmt + __mac_struct_fmt + 'f' + 'f' + 'f'
-    __pos_update_response_fmt = \
-        __base_struct_fmt + __pos_update_request_fmt + 'B'
-    __pos_update_request_struct = \
-        struct.Struct('!' + __pos_update_request_fmt)
-    __pos_update_response_struct = \
-        struct.Struct('!' + __pos_update_response_fmt)
+    __pos_update_request_fmt = __base_struct_fmt + __mac_struct_fmt + 'f' + 'f' + 'f'
+    __pos_update_response_fmt = __base_struct_fmt + __pos_update_request_fmt + 'B'
+    __pos_update_request_struct = struct.Struct('!' + __pos_update_request_fmt)
+    __pos_update_response_struct = struct.Struct('!' + __pos_update_response_fmt)
 
-    __txpower_update_request_fmt = \
-        __base_struct_fmt + __mac_struct_fmt + 'i'
-    __txpower_update_response_fmt = \
-        __base_struct_fmt + __txpower_update_request_fmt + 'B'
-    __txpower_update_request_struct = \
-        struct.Struct('!' + __txpower_update_request_fmt)
-    __txpower_update_response_struct = \
-        struct.Struct('!' + __txpower_update_response_fmt)
+    __txpower_update_request_fmt = __base_struct_fmt + __mac_struct_fmt + 'i'
+    __txpower_update_response_fmt = __base_struct_fmt + __txpower_update_request_fmt + 'B'
+    __txpower_update_request_struct = struct.Struct('!' + __txpower_update_request_fmt)
+    __txpower_update_response_struct = struct.Struct('!' + __txpower_update_response_fmt)
 
-    __gain_update_request_fmt = \
-        __base_struct_fmt + __mac_struct_fmt + 'i'
-    __gain_update_response_fmt = \
-        __base_struct_fmt + __gain_update_request_fmt + 'B'
-    __gain_update_request_struct = \
-        struct.Struct('!' + __gain_update_request_fmt)
-    __gain_update_response_struct = \
-        struct.Struct('!' + __gain_update_response_fmt)
+    __gain_update_request_fmt = __base_struct_fmt + __mac_struct_fmt + 'i'
+    __gain_update_response_fmt = __base_struct_fmt + __gain_update_request_fmt + 'B'
+    __gain_update_request_struct = struct.Struct('!' + __gain_update_request_fmt)
+    __gain_update_response_struct = struct.Struct('!' + __gain_update_response_fmt)
 
-    __gaussian_random_update_request_fmt = \
-        __base_struct_fmt + __mac_struct_fmt + 'f'
-    __gaussian_random_update_response_fmt = \
-        __base_struct_fmt + __gaussian_random_update_request_fmt + 'B'
-    __gaussian_random_update_request_struct = \
-        struct.Struct('!' + __gaussian_random_update_request_fmt)
-    __gaussian_random_update_response_struct = \
-        struct.Struct('!' + __gaussian_random_update_response_fmt)
+    __gaussian_random_update_request_fmt = __base_struct_fmt + __mac_struct_fmt + 'f'
+    __gaussian_random_update_response_fmt = __base_struct_fmt + __gaussian_random_update_request_fmt + 'B'
+    __gaussian_random_update_request_struct = struct.Struct('!' + __gaussian_random_update_request_fmt)
+    __gaussian_random_update_response_struct = struct.Struct('!' + __gaussian_random_update_response_fmt)
 
-    __height_update_request_fmt = \
-        __base_struct_fmt + __mac_struct_fmt + 'i'
-    __height_update_response_fmt = \
-        __base_struct_fmt + __height_update_request_fmt + 'B'
-    __height_update_request_struct = \
-        struct.Struct('!' + __height_update_request_fmt)
-    __height_update_response_struct = \
-        struct.Struct('!' + __height_update_response_fmt)
+    __height_update_request_fmt = __base_struct_fmt + __mac_struct_fmt + 'i'
+    __height_update_response_fmt = __base_struct_fmt + __height_update_request_fmt + 'B'
+    __height_update_request_struct = struct.Struct('!' + __height_update_request_fmt)
+    __height_update_response_struct = struct.Struct('!' + __height_update_response_fmt)
 
-    __errprob_update_request_fmt = \
-        __base_struct_fmt + __mac_struct_fmt + __mac_struct_fmt + 'i'
-    __errprob_update_response_fmt = \
-        __base_struct_fmt + __errprob_update_request_fmt + 'B'
-    __errprob_update_request_struct = \
-        struct.Struct('!' + __errprob_update_request_fmt)
-    __errprob_update_response_struct = \
-        struct.Struct('!' + __errprob_update_response_fmt)
+    __errprob_update_request_fmt = __base_struct_fmt + __mac_struct_fmt + __mac_struct_fmt + 'i'
+    __errprob_update_response_fmt = __base_struct_fmt + __errprob_update_request_fmt + 'B'
+    __errprob_update_request_struct = struct.Struct('!' + __errprob_update_request_fmt)
+    __errprob_update_response_struct = struct.Struct('!' + __errprob_update_response_fmt)
 
-    __specprob_update_request_fmt = \
-        __base_struct_fmt + __mac_struct_fmt + __mac_struct_fmt + '144i'
-    __specprob_update_response_fmt = \
-        __base_struct_fmt + __mac_struct_fmt + __mac_struct_fmt + 'B'
-    __specprob_update_request_struct = \
-        struct.Struct('!' + __specprob_update_request_fmt)
-    __specprob_update_response_struct = \
-        struct.Struct('!' + __specprob_update_response_fmt)
+    __specprob_update_request_fmt = __base_struct_fmt + __mac_struct_fmt + __mac_struct_fmt + '144i'
+    __specprob_update_response_fmt = __base_struct_fmt + __mac_struct_fmt + __mac_struct_fmt + 'B'
+    __specprob_update_request_struct = struct.Struct('!' + __specprob_update_request_fmt)
+    __specprob_update_response_struct = struct.Struct('!' + __specprob_update_response_fmt)
 
-    __station_del_by_mac_request_fmt = \
-        __base_struct_fmt + __mac_struct_fmt
-    __station_del_by_mac_response_fmt = \
-        __base_struct_fmt + __station_del_by_mac_request_fmt + 'B'
-    __station_del_by_mac_request_struct = \
-        struct.Struct('!' + __station_del_by_mac_request_fmt)
-    __station_del_by_mac_response_struct = \
-        struct.Struct('!' + __station_del_by_mac_response_fmt)
+    __station_del_by_mac_request_fmt = __base_struct_fmt + __mac_struct_fmt
+    __station_del_by_mac_response_fmt = __base_struct_fmt + __station_del_by_mac_request_fmt + 'B'
+    __station_del_by_mac_request_struct = struct.Struct('!' + __station_del_by_mac_request_fmt)
+    __station_del_by_mac_response_struct = struct.Struct('!' + __station_del_by_mac_response_fmt)
 
     __station_del_by_id_request_fmt = __base_struct_fmt + 'i'
-    __station_del_by_id_response_fmt = \
-        __base_struct_fmt + __station_del_by_id_request_fmt + 'B'
-    __station_del_by_id_request_struct = \
-        struct.Struct('!' + __station_del_by_id_request_fmt)
-    __station_del_by_id_response_struct = \
-        struct.Struct('!' + __station_del_by_id_response_fmt)
+    __station_del_by_id_response_fmt = __base_struct_fmt + __station_del_by_id_request_fmt + 'B'
+    __station_del_by_id_request_struct = struct.Struct('!' + __station_del_by_id_request_fmt)
+    __station_del_by_id_response_struct = struct.Struct('!' + __station_del_by_id_response_fmt)
 
     __station_add_request_fmt = __base_struct_fmt + __mac_struct_fmt
-    __station_add_response_fmt = \
-        __base_struct_fmt + __station_add_request_fmt + 'iB'
-    __station_add_request_struct = \
-        struct.Struct('!' + __station_add_request_fmt)
-    __station_add_response_struct = \
-        struct.Struct('!' + __station_add_response_fmt)
+    __station_add_response_fmt = __base_struct_fmt + __station_add_request_fmt + 'iB'
+    __station_add_request_struct = struct.Struct('!' + __station_add_request_fmt)
+    __station_add_response_struct = struct.Struct('!' + __station_add_response_fmt)
 
     sock = None
     connected = False
@@ -692,12 +650,11 @@ class w_server(object):
         :type mac: str
         :rtype int
         """
-        #info("\n%s Registering interface with mac %s"
-        #     % (w_cst.LOG_PREFIX, mac))
+        #info("\n{} Registering interface with mac {}".format(w_cst.LOG_PREFIX, mac))
+        sleep(1)
         ret, sta_id = w_server.send_add(mac)
         if ret != w_cst.WUPDATE_SUCCESS:
-            raise WmediumdException("Received error code from wmediumd: "
-                                    "code %d" % ret)
+            raise WmediumdException("Received error code from wmediumd: code {}".format(ret))
         return sta_id
 
     @classmethod
@@ -1134,7 +1091,7 @@ class w_server(object):
         if py_version_info < (3, 0):
             macparsed = mac.replace(':', '').decode('hex')
         else:
-            macparsed = bytes.fromhex((mac.replace(':', '')))
+            macparsed = bytes.fromhex(mac.replace(':', ''))
         return cls.__station_add_request_struct.pack(msgtype, macparsed)
 
     @classmethod

@@ -182,7 +182,6 @@ class IntfWireless(Intf):
         "Dynamically sending nodes to wmediumd"
         self.wmIface = DynamicIntfRef(self.node, intf=self.name)
         self.node.wmIfaces.append(self.wmIface)
-        # register interface
         w_server.register_interface(self.mac)
 
     def getCustomRate(self):
@@ -1910,8 +1909,7 @@ class mesh(LinkAttrs):
             self.mac = intf.mac[:4] + str(wlan) + intf.mac[5:]
             self.node.params['wlan'].append(self.name)
             if wmediumd_mode.mode:
-                self.wmIface = DynamicIntfRef(node, intf=self.name)
-                node.wmIfaces.append(self.wmIface)
+                self.sendIntfTowmediumd()
             # mp interface must be created before ethtool
             self.iwdev_cmd(self.set_mesh_type(intf, phyWlan))
         else:

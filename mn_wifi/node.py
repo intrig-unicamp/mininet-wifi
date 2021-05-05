@@ -197,10 +197,9 @@ class Node_wifi(Node):
         "Set Position for wmediumd"
         if self.lastpos != pos:
             self.lastpos = pos
-            for wmIface in self.wmIfaces:
-                inc = '%s' % float('0.' + str(self.wmIfaces.index(wmIface)))
+            for id, wmIface in enumerate(self.wmIfaces):
                 w_server.update_pos(w_pos(wmIface,
-                    [(float(pos[0])+float(inc)), float(pos[1]), float(pos[2])]))
+                    [(float(pos[0])+id), float(pos[1]), float(pos[2])]))
 
     def setPosition(self, pos):
         "Set Position"
