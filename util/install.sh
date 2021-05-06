@@ -143,16 +143,20 @@ function p4_deps {
     echo "Installing P4 dependencies"
     pushd $BUILD_DIR/mininet-wifi/
     P4_DIR="p4-dependencies"
-    [[ -d $P4_DIR ]] && echo $P4_DIR already exists, aborting && exit
-    mkdir $P4_DIR
+    if [ ! -d "$P4_DIR" ] ; then
+        mkdir $P4_DIR
+    fi
     pushd $BUILD_DIR/mininet-wifi/p4-dependencies
-    git clone https://github.com/jafingerhut/p4-guide
+    P4_GUIDE="p4-guide"
+    if [ ! -d "$P4_GUIDE" ] ; then
+        git clone https://github.com/jafingerhut/p4-guide
+    fi
     pushd $BUILD_DIR/mininet-wifi/p4-dependencies/p4-guide
 
-    if [ "$DIST" = "Ubuntu" ] && [ "$RELEASE" = "20.04" ]; then
-        git reset --hard 1fa500a
-        patch -p0 < $MININET_DIR/mininet-wifi/util/p4-patches/p4-guide-v3-without-mininet.patch
-        sudo ./bin/install-p4dev-v3.sh |& tee log.txt
+    if [ "$DIST" = "Ubuntu" ] && [ `expr $RELEASE '>=' 18.04` = "1" ]; then
+        git reset --hard d0ed6a4
+        patch -p0 < $MININET_DIR/mininet-wifi/util/p4-patches/p4-guide-v4-without-mininet.patch
+        sudo ./bin/install-p4dev-v4.sh |& tee log.txt
     else
         git reset --hard ef0f4e1
         patch -p0 < $MININET_DIR/mininet-wifi/util/p4-patches/p4-guide-without-mininet.patch
