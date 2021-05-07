@@ -364,6 +364,9 @@ class IntfWireless(Intf):
         self.setDefaultRange()
         self.setHeightWmediumd(height)
         self.node.configLinks()
+    
+    def getAntennaHeight(self):
+        return self.antennaHeight
 
     def setRange(self, range):
         self.range = float(range)
