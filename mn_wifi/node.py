@@ -163,6 +163,9 @@ class Node_wifi(Node):
     def setAntennaHeight(self, height, intf=None):
         self.getNameToWintf(intf).setAntennaHeight(height)
         self.update_graph()
+        
+    def getAntennaHeight(self, intf=None):
+        return self.getNameToWintf(intf).getAntennaHeight()
 
     def setChannel(self, channel, intf=None):
         self.getNameToWintf(intf).setChannel(channel)
