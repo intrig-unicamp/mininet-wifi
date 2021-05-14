@@ -927,7 +927,10 @@ class HostapdConfig(IntfWireless):
         "Check WEP key"
         len_list = [5, 10, 13, 16, 26, 32]
         if len(wep_key0) in len_list:
-            cmd = "\nwep_key0=%s" % wep_key0
+            if len(wep_key0) in [5, 13, 16]:
+                cmd = "\nwep_key0=\"%s\"" % wep_key0
+            else:
+                cmd = "\nwep_key0=%s" % wep_key0
         else:
             info("Warning! Wep Key length is wrong!\n")
             exit(1)
