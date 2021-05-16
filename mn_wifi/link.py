@@ -830,7 +830,8 @@ class HostapdConfig(IntfWireless):
     def setHostapdConfig(self, intf):
         "Set hostapd config"
         cmd = "echo \'"
-        args = ['max_num_sta', 'beacon_int', 'rsn_preauth']
+        args = ['max_num_sta', 'beacon_int', 'rsn_preauth',
+                'rts_threshold', 'fragm_threshold']
 
         cmd += 'interface=%s' % intf.node.params.get('phywlan', intf.name)
         cmd += '\ndriver=nl80211'
