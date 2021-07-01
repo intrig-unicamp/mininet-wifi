@@ -70,7 +70,7 @@ def sflow_rt(aps):
     path = '/sys/devices/virtual/mac80211_hwsim/'
     # /sys/devices/virtual/net/ can be used in place of the path above
     for child in listdir(path):
-        dir_ = '/sys/devices/virtual/mac80211_hwsim/' + '{}'.format(child + '/net/')
+        dir_ = path + '{}'.format(child + '/net/')
         for child_ in listdir(dir_):
             node = child_[:3]
             if node in topo['nodes']:
