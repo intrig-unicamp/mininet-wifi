@@ -411,8 +411,14 @@ function of13 {
     echo "Installing OpenFlow 1.3 soft switch implementation..."
     cd $BUILD_DIR/
     $install  git-core autoconf automake autotools-dev pkg-config \
-        make gcc g++ libtool libc6-dev cmake libpcap-dev libxerces-c3-dev  \
+        make gcc g++ libtool libc6-dev cmake libpcap-dev  \
         unzip libpcre3-dev flex bison libboost-dev
+
+    if [ "$DIST" = "Ubuntu" ] && version_le $RELEASE 16.04; then
+        $install libxerces-c2-dev
+    else
+        $install libxerces-c-dev
+    fi
 
     if [ ! -d "ofsoftswitch13" ]; then
         if [[ -n "$OF13_SWITCH_REV" ]]; then
