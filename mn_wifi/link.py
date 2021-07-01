@@ -1217,7 +1217,7 @@ class WirelessIntf(object):
 
     # pylint: disable=too-many-branches
     def __init__(self, node, port=None, intfName=None, addr=None,
-                 cls=None, params=None):
+                 cls=None, **params):
         """Create veth link to another node, making two new interfaces.
            node: first node
            port: node port number (optional)
@@ -1277,7 +1277,7 @@ class TCLinkWireless(WirelessIntf):
                  addr=None, cls=WirelessLink, **params):
         WirelessIntf.__init__(self, node=node, port=port,
                               intfName=intfName, cls=cls,
-                              addr=addr, params=params)
+                              addr=addr, **params)
 
 
 class master(WirelessLink):
