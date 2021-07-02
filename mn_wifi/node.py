@@ -114,6 +114,9 @@ class Node_wifi(Node):
     def setMasterMode(self, intf=None, **kwargs):
         self.getNameToWintf(intf).setMasterMode(**kwargs)
 
+    def setTC(self, intf=None, **kwargs):
+        self.getNameToWintf(intf).config_tc(**kwargs)
+
     def setOCBMode(self, **params):
         ITSLink(self, **params)
 
