@@ -54,6 +54,9 @@ class IntfWireless(Intf):
         self.config(**params)
 
     def configWLink(self, dist=0):
+        # If these values have been configured manually, don't overwrite
+        if intf in self.node.intf_tc.keys():
+            return
         bw = self.getBW(dist)
         loss = self.getLoss(dist)
         latency = self.getLatency(dist)
@@ -1077,7 +1080,7 @@ class WirelessLink(TCIntf, IntfWireless):
                                            max_queue_size=max_queue_size,
                                            parent=parent)
         cmds += delaycmds
-
+        self.node.intf_tc[self.name] = (bw, delay, loss)
         # Execute all the commands in our node
         debug("at map stage w/cmds: %s\n" % cmds)
         tcoutputs = [self.tc(cmd) for cmd in cmds]

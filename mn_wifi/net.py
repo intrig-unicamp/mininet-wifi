@@ -1145,6 +1145,7 @@ class Mininet_wifi(Mininet, Mininet_IoT):
             if self.ifb:
                 node.configIFB(wlan, self.ifbIntf)  # Adding Support to IFB
                 node.wintfs[wlan].ifb = 'ifb' + str(wlan + 1)
+                node.intfs[wlan].ifb = 'ifb' + str(wlan + 1)
                 self.ifbIntf += 1
 
     def configNode(self, node):

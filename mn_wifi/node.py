@@ -71,6 +71,9 @@ class Node_wifi(Node):
         self.wports = {}  # dict of interfaces to port numbers
         self.nameToIntf = {}  # dict of interface names to Intfs
 
+        self.intf_tc = {} #dict of TC link parameters to intfs
+        #self.loss, self.bw, self.delay = None, None, None 
+
         # Make pylint happy
         (self.shell, self.execed, self.pid, self.stdin, self.stdout,
          self.lastPid, self.lastCmd, self.pollOut) = (
@@ -114,8 +117,18 @@ class Node_wifi(Node):
     def setMasterMode(self, intf=None, **kwargs):
         self.getNameToWintf(intf).setMasterMode(**kwargs)
 
-    def setTC(self, intf=None, **kwargs):
-        self.getNameToWintf(intf).config_tc(**kwargs)
+    def setTC(self, intf=None, useOldParams=False, **kwargs):
+        wlanIntf = self.getNameToWintf(intf)
+        if useOldParams:
+            if wlanIntf.name in self.intf_tc.keys():
+                bw, delay, loss = self.intf_tc[wlanIntf.name]
+                if "latency" not in kwargs and delay:
+                    kwargs["latency"] = float(delay[:-2]) # Strip ms from val
+                if "bw" not in kwargs and bw:
+                    kwargs["bw"] = float(bw)
+                if "loss" not in kwargs and loss:
+                    kwargs["loss"] = float(loss)
+        wlanIntf.config_tc(**kwargs)
 
     def setOCBMode(self, **params):
         ITSLink(self, **params)
