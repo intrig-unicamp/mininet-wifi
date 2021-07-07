@@ -71,8 +71,7 @@ class Node_wifi(Node):
         self.wports = {}  # dict of interfaces to port numbers
         self.nameToIntf = {}  # dict of interface names to Intfs
 
-        self.intf_tc = {} #dict of TC link parameters to intfs
-        #self.loss, self.bw, self.delay = None, None, None 
+        self.intf_tc = {} #dict of intfs to TC link parameters (tuple of bw, loss, and delay)
 
         # Make pylint happy
         (self.shell, self.execed, self.pid, self.stdin, self.stdout,
