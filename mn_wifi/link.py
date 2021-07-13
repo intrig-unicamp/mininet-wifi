@@ -81,15 +81,13 @@ class IntfWireless(Intf):
         self.set_tc(self.name, **args)
 
     def set_tc(self, iface, bw=0, loss=0, latency=0):
-        cmd = "tc qdisc replace dev %s root handle 2: netem " % iface
-        rate = "rate %.4fmbit " % bw
+        cmd = 'tc qdisc replace dev {} root handle 2: netem '.format(iface)
+        rate = 'rate {}.4fmbit '.format(bw)
         cmd += rate
         if latency > 0.1:
-            latency = "latency %.2fms " % latency
-            cmd += latency
+            cmd += 'latency {}.2fms '.format(latency)
         if loss > 0.1:
-            loss = "loss %.1f%% " % loss
-            cmd += loss
+            cmd += 'loss {}.1f%% '.format(loss)
         self.node.pexec(cmd)
 
     def pexec(self, *args, **kwargs):
@@ -294,16 +292,16 @@ class IntfWireless(Intf):
         wlan = self.id
         if not wmediumd_mode.mode:
             bw = self.params['bw'][wlan] if 'bw' in self.params else self.getAPBW()
+            cmd = 'tc qdisc replace dev {} root handle 2: tbf ' \
+                  'rate {}Mbit burst 15000 latency 1ms'
+            self.cmd(cmd.format(self.name, bw))
 
-            self.cmd("tc qdisc replace dev %s root handle 2: tbf rate %sMbit "
-                     "burst 15000 latency 1ms" % (self.name, bw))
             # Reordering packets
             self.cmd('tc qdisc add dev %s parent 2:1 handle 10: '
                      'pfifo limit 1000' % self.name)
 
             if self.ifb:
-                self.cmd("tc qdisc replace dev %s root handle 2: tbf "
-                         "rate %sMbit burst 15000 latency 1ms" % (self.ifb, bw))
+                self.cmd(cmd.format(self.ifb, bw))
 
     def getAPBW(self):
         return DeviceRate(self).rate if 'model' in self.params else self.getRate()
