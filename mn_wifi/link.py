@@ -54,22 +54,22 @@ class IntfWireless(Intf):
         self.config(**params)
 
     def configWLink(self, dist=0):
-        bw = self.getBW(dist)
-        loss = self.getLoss(dist)
-        latency = self.getLatency(dist)
+        bw = self.get_bw(dist)
+        loss = self.get_loss(dist)
+        latency = self.get_latency(dist)
         self.config_tc(bw=bw, loss=loss, latency=latency)
 
     def getDelay(self, dist):
         "Based on RandomPropagationDelayModel"
         return eval(self.eqDelay)
 
-    def getLatency(self, dist):
+    def get_latency(self, dist):
         return eval(self.eqLatency)
 
-    def getLoss(self, dist):
+    def get_loss(self, dist):
         return eval(self.eqLoss)
 
-    def getBW(self, dist):
+    def get_bw(self, dist):
         # dist is used by eval
         custombw = self.getCustomRate()
         rate = eval(str(custombw) + self.eqBw)
@@ -86,6 +86,25 @@ class IntfWireless(Intf):
         if latency > 0.1: cmd += 'latency {:.2f}ms '.format(latency)
         if loss > 0.1: cmd += 'loss {:.1f}%% '.format(loss)
         self.node.pexec(cmd)
+
+    def get_default_gw(self):
+        return DeviceRate(self).rate if 'model' in self.params \
+            else self.getRate()
+
+    def get_bw_ap(self):
+        return self.params['bw'][self.id] if 'bw' in self.params \
+            else self.get_default_gw()
+
+    def set_tc_reorder(self):
+        # Reordering packets
+        self.cmd('tc qdisc add dev {} parent 2:1 handle 10: '
+                 'pfifo limit 1000'.format(self.name))
+
+    def set_tc_ap(self):
+        if not wmediumd_mode.mode:
+            bw = self.get_bw_ap()
+            self.config_tc(bw=bw, latency=1)
+            self.set_tc_reorder()
 
     def pexec(self, *args, **kwargs):
         "Run a command in our owning node"
@@ -283,24 +302,6 @@ class IntfWireless(Intf):
         elif isinstance(self, adhoc):
             self.ibss_leave()
             adhoc(node=self.node, intf=self, chann=channel)
-
-    def setAutoAPBw(self):
-        wlan = self.id
-        if not wmediumd_mode.mode:
-            bw = self.params['bw'][wlan] if 'bw' in self.params else self.getAPBW()
-            cmd = 'tc qdisc replace dev {} root handle 2: tbf ' \
-                  'rate {:.4f}Mbit burst 15000 latency 1ms'
-            self.cmd(cmd.format(self.name, bw))
-
-            # Reordering packets
-            self.cmd('tc qdisc add dev {} parent 2:1 handle 10: '
-                     'pfifo limit 1000'.format(self.name))
-
-            if self.ifb:
-                self.cmd(cmd.format(self.ifb, bw))
-
-    def getAPBW(self):
-        return DeviceRate(self).rate if 'model' in self.params else self.getRate()
 
     def ipAddr(self, *args):
         "Configure ourselves using ip link/addr"
@@ -766,7 +767,7 @@ class HostapdConfig(IntfWireless):
 
             if 'phywlan' in intf.node.params: intf.node.params.pop('phywlan', None)
 
-            intf.setAutoAPBw()
+            intf.set_tc_ap()
             intf.freq = intf.get_freq(intf.channel)
 
     def setConfig(self, intf):
