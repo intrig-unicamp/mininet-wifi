@@ -348,7 +348,7 @@ class Node_wifi(Node):
         connections = []
         for intf in self.intfList():
             link = intf.link
-            if link and link.intf2 is not None and 'wifi' not in link.intf2:
+            if link and link.intf2 is not None and 'wifi' not in str(link.intf2):
                 node1, node2 = link.intf1.node, link.intf2.node
                 if node1 == self and node2 == node:
                     connections += [ (intf, link.intf2) ]

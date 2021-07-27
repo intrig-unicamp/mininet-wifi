@@ -4155,7 +4155,7 @@ class MiniEdit(Frame):
     def setChannel(self, node, channel):
         node.wintfs[0].setAPChannel(int(channel))
         if isinstance(node.wintfs[0], master):
-            node.wintfs[0].setAutoAPBw()
+            node.wintfs[0].set_tc_ap()
         ConfigMobLinks()
 
     def setMode(self, node, mode):

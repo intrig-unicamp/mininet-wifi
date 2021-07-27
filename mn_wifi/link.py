@@ -57,22 +57,22 @@ class IntfWireless(Intf):
         # If these values have been configured manually, don't overwrite
         if intf in self.node.intf_tc.keys():
             return
-        bw = self.getBW(dist)
-        loss = self.getLoss(dist)
-        latency = self.getLatency(dist)
+        bw = self.get_bw(dist)
+        loss = self.get_loss(dist)
+        latency = self.get_latency(dist)
         self.config_tc(bw=bw, loss=loss, latency=latency)
 
     def getDelay(self, dist):
         "Based on RandomPropagationDelayModel"
         return eval(self.eqDelay)
 
-    def getLatency(self, dist):
+    def get_latency(self, dist):
         return eval(self.eqLatency)
 
-    def getLoss(self, dist):
+    def get_loss(self, dist):
         return eval(self.eqLoss)
 
-    def getBW(self, dist):
+    def get_bw(self, dist):
         # dist is used by eval
         custombw = self.getCustomRate()
         rate = eval(str(custombw) + self.eqBw)
@@ -84,16 +84,30 @@ class IntfWireless(Intf):
         self.set_tc(self.name, **args)
 
     def set_tc(self, iface, bw=0, loss=0, latency=0):
-        cmd = "tc qdisc replace dev %s root handle 2: netem " % iface
-        rate = "rate %.4fmbit " % bw
-        cmd += rate
-        if latency > 0.1:
-            latency = "latency %.2fms " % latency
-            cmd += latency
-        if loss > 0.1:
-            loss = "loss %.1f%% " % loss
-            cmd += loss
+        cmd = 'tc qdisc replace dev {} root handle 2: netem '.format(iface)
+        cmd += 'rate {:.4f}mbit '.format(bw)
+        if latency > 0.1: cmd += 'latency {:.2f}ms '.format(latency)
+        if loss > 0.1: cmd += 'loss {:.1f}%% '.format(loss)
         self.node.pexec(cmd)
+
+    def get_default_gw(self):
+        return DeviceRate(self).rate if 'model' in self.params \
+            else self.getRate()
+
+    def get_bw_ap(self):
+        return self.params['bw'][self.id] if 'bw' in self.params \
+            else self.get_default_gw()
+
+    def set_tc_reorder(self):
+        # Reordering packets
+        self.cmd('tc qdisc add dev {} parent 2:1 handle 10: '
+                 'pfifo limit 1000'.format(self.name))
+
+    def set_tc_ap(self):
+        if not wmediumd_mode.mode:
+            bw = self.get_bw_ap()
+            self.config_tc(bw=bw, latency=1)
+            self.set_tc_reorder()
 
     def pexec(self, *args, **kwargs):
         "Run a command in our owning node"
@@ -148,16 +162,15 @@ class IntfWireless(Intf):
         return self.node.pexec(self.get_wpa_cmd())
 
     def kill_hostapd_process(self):
-        #info('\n')
-        pattern = "mn%d_%s.apconf" % (os.getpid(), self.name)
+        pattern = "mn{}_{}.apconf".format(os.getpid(), self.name)
         while True:
             try:
                 pids = co(['pgrep', '-f', pattern])
             except CalledProcessError:
                 pids = ''
             if pids:
-                self.cmd('rm %s' % pattern)
-                self.cmd('pkill -9 -f \'%s\'' % pattern)
+                self.cmd('rm {}'.format(pattern))
+                self.cmd('pkill -9 -f \'{}\''.format(pattern))
             else:
                 break
 
@@ -199,8 +212,8 @@ class IntfWireless(Intf):
 
     def rec_rssi(self):
         # it sends rssi value to hwsim
-        cmd = 'hwsim_mgmt -k %s %s >/dev/null 2>&1' % (self.node.phyid[self.id],
-                                                       abs(int(self.rssi)))
+        cmd = 'hwsim_mgmt -k {} {} >/dev/null 2>&1'.format(
+            self.node.phyid[self.id], abs(int(self.rssi)))
         self.cmd(cmd)
 
     def get_rssi(self, ap_intf, dist):
@@ -260,9 +273,9 @@ class IntfWireless(Intf):
             self.pexec('iw reg set US')
 
     def setIntfName(self, *args):
-        self.cmd('ip link set %s down' % self.name)
-        self.cmd('ip link set %s name %s' % (self.name, args[0]))
-        self.cmd('ip link set %s up' % args[0])
+        self.cmd('ip link set {} down'.format(self.name))
+        self.cmd('ip link set {} name {}'.format(self.name, args[0]))
+        self.cmd('ip link set {} up'.format(args[0]))
         self.setIntfAttrs(*args)
 
     def setIntfAttrs(self, *args):
@@ -274,7 +287,7 @@ class IntfWireless(Intf):
 
     def setAPChannel(self, channel):
         self.freq = self.get_freq(channel)
-        self.pexec('hostapd_cli -i %s chan_switch %s %s' % (
+        self.pexec('hostapd_cli -i {} chan_switch {} {}'.format(
             self.name, channel, str(self.format_freq())))
 
     def setMeshChannel(self, channel):
@@ -293,24 +306,6 @@ class IntfWireless(Intf):
             self.ibss_leave()
             adhoc(node=self.node, intf=self, chann=channel)
 
-    def setAutoAPBw(self):
-        wlan = self.id
-        if not wmediumd_mode.mode:
-            bw = self.params['bw'][wlan] if 'bw' in self.params else self.getAPBW()
-
-            self.cmd("tc qdisc replace dev %s root handle 2: tbf rate %sMbit "
-                     "burst 15000 latency 1ms" % (self.name, bw))
-            # Reordering packets
-            self.cmd('tc qdisc add dev %s parent 2:1 handle 10: '
-                     'pfifo limit 1000' % self.name)
-
-            if self.ifb:
-                self.cmd("tc qdisc replace dev %s root handle 2: tbf "
-                         "rate %sMbit burst 15000 latency 1ms" % (self.ifb, bw))
-
-    def getAPBW(self):
-        return DeviceRate(self).rate if 'model' in self.params else self.getRate()
-
     def ipAddr(self, *args):
         "Configure ourselves using ip link/addr"
         if self.name not in self.node.params['wlan']:
@@ -322,10 +317,10 @@ class IntfWireless(Intf):
             else:
                 if ':' not in args[0]:
                     self.cmd('ip addr flush ', self.name)
-                    cmd = 'ip addr add %s brd + dev %s' % (args[0], self.name)
+                    cmd = 'ip addr add {} brd + dev {}'.format(args[0], self.name)
                     if self.ip6:
-                        cmd += ' && ip -6 addr add %s dev %s' % \
-                               (self.ip6, self.name)
+                        cmd += ' && ip -6 addr add {} dev {}'.format\
+                            (self.ip6, self.name)
                     return self.cmd(cmd)
                 else:
                     self.cmd('ip -6 addr flush ', self.name)
@@ -387,8 +382,8 @@ class IntfWireless(Intf):
     def setManagedMode(self):
         wlan = self.node.params['wlan'].index(self.name)
         if isinstance(self, mesh):
-            self.iwdev_cmd('%s del' % self.name)
-            self.name = '%s-wlan%s' % (self, self.id)
+            self.iwdev_cmd('{} del'.format(self.name))
+            self.name = '{}-wlan{}'.format(self, self.id)
             self.node.params['wlan'][wlan] = self.name
         elif isinstance(self, master):
             self.kill_hostapd_process()
@@ -430,10 +425,10 @@ class IntfWireless(Intf):
             return self.ipAddr(ipstr)
         else:
             if prefixLen is None:
-                raise Exception('No prefix length set for IP address %s'
-                                % (ipstr,))
+                raise Exception('No prefix length set for IP address {}'.format
+                                (ipstr,))
             self.ip, self.prefixLen = ipstr, prefixLen
-            return self.ipAddr('%s/%s' % (ipstr, prefixLen))
+            return self.ipAddr('{}/{}'.format(ipstr, prefixLen))
 
     def setIP6(self, ipstr, prefixLen6=None, **args):
         """Set our IP6 address"""
@@ -444,13 +439,13 @@ class IntfWireless(Intf):
             return self.ipAddr(ipstr)
         else:
             if prefixLen6 is None:
-                raise Exception('No prefix length set for IP address %s'
-                                % (ipstr,))
+                raise Exception('No prefix length set for IP address {}'.format
+                                (ipstr,))
             self.ip6, self.prefixLen6 = ipstr, prefixLen6
-            return self.ipAddr('%s/%s' % (ipstr, prefixLen6))
+            return self.ipAddr('{}/{}'.format(ipstr, prefixLen6))
 
     def check_if_wpafile_exist(self):
-        file = '%s_%s.staconf' % (self.name, self.id)
+        file = '{}_{}.staconf'.format(self.name, self.id)
         return glob.glob(file)
 
     def wpaFile(self, ap_intf):
@@ -479,38 +474,38 @@ class IntfWireless(Intf):
                     for conf in config:
                         cmd += "   " + conf + "\n"
             else:
-                cmd += '   ssid=\"%s\"\n' % ap_intf.ssid
+                cmd += '   ssid=\"{}\"\n'.format(ap_intf.ssid)
 
                 if not ap_intf.authmode:
-                    cmd += '   psk=\"%s\"\n' % passwd
+                    cmd += '   psk=\"{}\"\n'.format(passwd)
                     encrypt = ap_intf.encrypt
                     if ap_intf.encrypt == 'wpa3':
                         encrypt = 'wpa2'
-                    cmd += '   proto=%s\n' % encrypt.upper()
-                    cmd += '   pairwise=%s\n' % ap_intf.rsn_pairwise
+                    cmd += '   proto={}\n'.format(encrypt.upper())
+                    cmd += '   pairwise={}\n'.format(ap_intf.rsn_pairwise)
                     if self.active_scan:
                         cmd += '   scan_ssid=1\n'
                     if self.scan_freq:
-                        cmd += '   scan_freq=%s\n' % self.scan_freq
+                        cmd += '   scan_freq={}\n'.format(self.scan_freq)
                     if self.freq_list:
-                        cmd += '   freq_list=%s\n' % self.freq_list
+                        cmd += '   freq_list={}\n'.format(self.freq_list)
                 wpa_key_mgmt = ap_intf.wpa_key_mgmt
                 if ap_intf.encrypt == 'wpa3':
                     wpa_key_mgmt = 'SAE'
-                cmd += '   key_mgmt=%s\n' % wpa_key_mgmt
+                cmd += '   key_mgmt={}\n'.format(wpa_key_mgmt)
                 if self.bgscan_module:
                     cmd += '   bgscan=\"%s:%d:%d:%d\"\n' % \
                              (self.bgscan_module, self.s_inverval,
                               self.bgscan_threshold, self.l_interval)
                 if ap_intf.authmode == '8021x':
                     cmd += '   eap=PEAP\n'
-                    cmd += '   identity=\"%s\"\n' % self.radius_identity
-                    cmd += '   password=\"%s\"\n' % self.radius_passwd
+                    cmd += '   identity=\"{}\"\n'.format(self.radius_identity)
+                    cmd += '   password=\"{}\"\n'.format(self.radius_passwd)
                     cmd += '   phase2=\"autheap=MSCHAPV2\"\n'
             cmd += '}'
 
-        pattern = '%s_%s.staconf' % (self.name, self.id)
-        os.system('echo \'%s\' > %s' % (cmd, pattern))
+        pattern = '{}_{}.staconf'.format(self.name, self.id)
+        os.system('echo \'{}\' > {}'.format(cmd, pattern))
 
     def wpa(self, ap_intf):
         self.wpaFile(ap_intf)
@@ -540,7 +535,7 @@ class IntfWireless(Intf):
             ap_intf.associatedStations.remove(self)
 
     def roam(self, bssid):
-        self.wpa_cli_cmd('roam %s' % bssid)
+        self.wpa_cli_cmd('roam {}'.format(bssid))
 
     def wep_connect(self, passwd, ap_intf):
         self.iwdev_cmd('{} connect {} key d:0:{}'.format(
@@ -555,13 +550,13 @@ class IntfWireless(Intf):
         self.setDisconnected(ap_intf)
 
     def iw_connect(self, ap_intf):
-        self.pexec('iw dev %s connect %s %s' %
-                   (self.name, ap_intf.ssid, ap_intf.mac))
+        self.pexec('iw dev {} connect {} {}'.format(
+            self.name, ap_intf.ssid, ap_intf.mac))
         self.setConnected(ap_intf)
 
     def iwconfig_connect(self, ap_intf):
-        self.pexec('iwconfig %s essid %s ap %s' %
-                   (self.name, ap_intf.ssid, ap_intf.mac))
+        self.pexec('iwconfig {} essid {} ap {}'.format(
+            self.name, ap_intf.ssid, ap_intf.mac))
         self.setConnected(ap_intf)
 
     def associate_infra(self, ap_intf):
@@ -624,10 +619,10 @@ class IntfWireless(Intf):
         "get Mac Address of any Interface"
         try:
             _macMatchRegex = re.compile(r'..:..:..:..:..:..')
-            debug('getting mac address from %s\n' % self.name)
-            macaddr = str(self.pexec('ip addr show %s' % self.name))
+            debug('getting mac address from {}\n'.format(self.name))
+            macaddr = str(self.pexec('ip addr show {}'.format(self.name)))
             mac = _macMatchRegex.findall(macaddr)
-            debug('\n%s' % mac[0])
+            debug('\n{}'.format(mac[0]))
             return mac[0]
         except:
             info('Error: Please run sudo mn -c.\n')
@@ -644,7 +639,7 @@ class IntfWireless(Intf):
         "Return updated IP address based on ip addr"
         # use pexec instead of node.cmd so that we dont read
         # backgrounded output from the cli.
-        ipAddr, _err, _exitCode = self.node.pexec('ip addr show %s' % self.name)
+        ipAddr, _err, _exitCode = self.node.pexec('ip addr show {}'.format(self.name))
         ips = self._ipMatchRegex.findall(ipAddr)
         self.ip = ips[0] if ips else None
         return self.ip
@@ -748,7 +743,7 @@ class HostapdConfig(IntfWireless):
             else:
                 vssids = intf.node.params['vssids'].split(',')
             for id, vssid in enumerate(vssids):
-                iface = '%s-%s' % (intf.name, id)
+                iface = '{}-{}'.format(intf.name, id)
                 intf.vifaces.append(iface)
                 intf.vssid.append(vssid)
                 if not wmediumd_mode.mode:
@@ -775,7 +770,7 @@ class HostapdConfig(IntfWireless):
 
             if 'phywlan' in intf.node.params: intf.node.params.pop('phywlan', None)
 
-            intf.setAutoAPBw()
+            intf.set_tc_ap()
             intf.freq = intf.get_freq(intf.channel)
 
     def setConfig(self, intf):
@@ -802,30 +797,28 @@ class HostapdConfig(IntfWireless):
                 return self.setHostapdConfig(intf)
 
     @staticmethod
-    def get_mode_config(intf):
-        cmd = ''
+    def get_mode_config(intf, cmd=''):
         if 'n' in intf.mode:
             cmd += "\nhw_mode=a" if intf.mode == 'n5' else "\nhw_mode=g"
         elif intf.mode == 'a':
-            cmd += "\ncountry_code=%s" % intf.country_code
-            cmd += "\nhw_mode=%s" % intf.mode
+            cmd += "\ncountry_code={}".format(intf.country_code)
+            cmd += "\nhw_mode={}".format(intf.mode)
         elif intf.mode == 'ac' or intf.mode == 'ax':
-            cmd += "\ncountry_code=%s" % intf.country_code
+            cmd += "\ncountry_code={}".format(intf.country_code)
             cmd += "\nhw_mode=a"
         else:
-            cmd += "\nhw_mode=%s" % intf.mode
+            cmd += "\nhw_mode={}".format(intf.mode)
         return cmd
 
     def virtual_intf(self, intf, vwlan, cmd=''):
         intf.txpower = intf.node.wintfs[0].txpower
         intf.antennaGain = intf.node.wintfs[0].antennaGain
         intf.antennaHeight = intf.node.wintfs[0].antennaHeight
-        cmd += '\n'
-        cmd += "\nbss=%s" % intf.vifaces[vwlan]
-        cmd += "\nssid=%s" % intf.vssid[vwlan]
+        cmd += "\n\nbss={}".format(intf.vifaces[vwlan])
+        cmd += "\nssid={}".format(intf.vssid[vwlan])
         if intf.encrypt:
             if intf.encrypt == 'wep':
-                cmd += "\nauth_algs=%s" % intf.auth_algs
+                cmd += "\nauth_algs={}".format(intf.auth_algs)
                 cmd += "\nwep_default_key=0"
                 cmd += self.verifyWepKey(intf.wep_key0)
         return cmd
@@ -836,22 +829,22 @@ class HostapdConfig(IntfWireless):
         args = ['max_num_sta', 'beacon_int', 'rsn_preauth',
                 'rts_threshold', 'fragm_threshold']
 
-        cmd += 'interface=%s' % intf.node.params.get('phywlan', intf.name)
+        cmd += 'interface={}'.format(intf.node.params.get('phywlan', intf.name))
         cmd += '\ndriver=nl80211'
-        cmd += '\nssid=%s' % intf.ssid
+        cmd += '\nssid={}'.format(intf.ssid)
         cmd += '\nwds_sta=1'
         cmd += self.get_mode_config(intf)  # get mode
-        cmd += "\nchannel=%s" % intf.channel
+        cmd += "\nchannel={}".format(intf.channel)
 
         for arg in args:
             if arg in intf.node.params:
-                cmd += '\n%s=%s' % (arg, intf.node.params.get(arg))
+                cmd += '\n{}={}'.format(arg, intf.node.params.get(arg))
 
-        if intf.ht_capab: cmd += '\nht_capab=%s' % intf.ht_capab
-        if intf.vht_capab: cmd += '\nvht_capab=%s' % intf.vht_capab
-        if intf.macaddr_acl: cmd += '\nmacaddr_acl=%s' % intf.macaddr_acl
-        if intf.ignore_broadcast_ssid: cmd += '\nignore_broadcast_ssid=%s' % intf.ignore_broadcast_ssid
-        if intf.beacon_int: cmd += '\nbeacon_int=%s' % intf.beacon_int
+        if intf.ht_capab: cmd += '\nht_capab={}'.format(intf.ht_capab)
+        if intf.vht_capab: cmd += '\nvht_capab={}'.format(intf.vht_capab)
+        if intf.macaddr_acl: cmd += '\nmacaddr_acl={}'.format(intf.macaddr_acl)
+        if intf.ignore_broadcast_ssid: cmd += '\nignore_broadcast_ssid={}'.format(intf.ignore_broadcast_ssid)
+        if intf.beacon_int: cmd += '\nbeacon_int={}'.format(intf.beacon_int)
         if intf.client_isolation: cmd += '\nap_isolate=1'
         if 'config' in intf.node.params:
             config = intf.node.params['config']
@@ -932,9 +925,9 @@ class HostapdConfig(IntfWireless):
         len_list = [5, 10, 13, 16, 26, 32]
         if len(wep_key0) in len_list:
             if len(wep_key0) in [5, 13, 16]:
-                cmd = "\nwep_key0=\"%s\"" % wep_key0
+                cmd = "\nwep_key0=\"{}\"".format(wep_key0)
             else:
-                cmd = "\nwep_key0=%s" % wep_key0
+                cmd = "\nwep_key0={}".format(wep_key0)
         else:
             info("Warning! Wep Key length is wrong!\n")
             exit(1)
@@ -947,11 +940,11 @@ class HostapdConfig(IntfWireless):
         """Restart network manager if the mac address of the AP
         is not included at /etc/NetworkManager/conf.d/unmanaged.conf"""
         nms = 'network-manager'
-        nm_is_running = os.system('service %s status 2>&1 | grep '
-                                  '-ic running >/dev/null 2>&1' % nms)
+        nm_is_running = os.system('service {} status 2>&1 | grep '
+                                  '-ic running >/dev/null 2>&1'.format(nms))
         if nm_is_running != 256:
-            info('Mac address(es) added into %s\n' % cls.nm_conf_file)
-            info('Restarting %s...\n' % nms)
+            info('Mac address(es) added into {}\n'.format(cls.nm_conf_file))
+            info('Restarting {}...\n'.format(nms))
             os.system('sudo service network-manager restart')
             #os.system('nmcli general reload')
             sleep(2)
@@ -976,7 +969,7 @@ class HostapdConfig(IntfWireless):
                     isNew = False
             if isNew:
                 os.system('echo \'#\' >> {}'.format(self.nm_conf_file))
-                new_content = "[keyfile]\n%s=" % unmanaged
+                new_content = "[keyfile]\n{}=".format(unmanaged)
 
             name = intf.node.name + '*'
             if name not in old_content:
@@ -992,10 +985,10 @@ class HostapdConfig(IntfWireless):
         "run an Access Point and create the config file"
         if 'phywlan' in intf.node.params:
             intf_ = intf.node.params['phywlan']
-            intf.cmd('ip link set %s down' % intf_)
-            intf.cmd('ip link set %s up' % intf_)
-        apconfname = "mn%d_%s-wlan%s.apconf" % (os.getpid(), intf.node.name, intf.id+1)
-        content = cmd + ("\' > %s" % apconfname)
+            intf.cmd('ip link set {} down'.format(intf_))
+            intf.cmd('ip link set {} up'.format(intf_))
+        apconfname = 'mn{}_{}-wlan{}.apconf'.format(os.getpid(), intf.node.name, intf.id+1)
+        content = cmd + "\' > {}".format(apconfname)
         intf.cmd(content)
         cmd = self.get_hostapd_cmd(intf)
         try:
@@ -1011,9 +1004,9 @@ class HostapdConfig(IntfWireless):
 
     @staticmethod
     def get_hostapd_cmd(intf):
-        apconfname = "mn%d_%s-wlan%s.apconf" % (os.getpid(), intf.node.name, intf.id+1)
+        apconfname = "mn{}_{}-wlan{}.apconf".format(os.getpid(), intf.node.name, intf.id+1)
         hostapd_flags = intf.node.params.get('hostapd_flags', '')
-        cmd = "hostapd -B %s %s" % (apconfname, hostapd_flags)
+        cmd = "hostapd -B {} {}".format(apconfname, hostapd_flags)
         return cmd
 
 
@@ -1082,11 +1075,11 @@ class WirelessLink(TCIntf, IntfWireless):
         cmds += delaycmds
         self.node.intf_tc[self.name] = (bw, delay, loss)
         # Execute all the commands in our node
-        debug("at map stage w/cmds: %s\n" % cmds)
+        debug("at map stage w/cmds: {}\n".format(cmds))
         tcoutputs = [self.tc(cmd) for cmd in cmds]
         for output in tcoutputs:
             if output != '':
-                error("*** Error: %s" % output)
+                error("*** Error: {}".format(output))
         debug("cmds:", cmds, '\n')
         debug("outputs:", tcoutputs, '\n')
         result['tcoutputs'] = tcoutputs
@@ -1139,7 +1132,7 @@ class _4address(Link, IntfWireless):
            node1: ap
            node2: client
            port1/port2: port id"""
-        intfName2 = '%s.wds' % node2.name
+        intfName2 = '{}.wds'.format(node2.name)
 
         if not hasattr(node1, 'position'): self.setPos(node1)
         if not hasattr(node2, 'position'): self.setPos(node2)
@@ -1171,7 +1164,7 @@ class _4address(Link, IntfWireless):
                 node1.wds += 1
             else:
                 node1.wds = 1
-            intfName1 = node1.params['wlan'][apwlan] + '.sta%s' % node1.wds
+            intfName1 = node1.params['wlan'][apwlan] + '.sta{}'.format(node1.wds)
             intf2 = IntfWireless(name=intfName1, node=node1, link=self, **params2)
             node1.params['wlan'].append(intfName1)
 
@@ -1184,8 +1177,8 @@ class _4address(Link, IntfWireless):
             self.bring4addrIfaceDown()
             self.setMAC(node2.wintfs[node2_intf_index])
             self.bring4addrIfaceUP()
-            self.iwdev_cmd('%s connect %s %s' % (node2.params['wlan'][node2_intf_index],
-                                                 ap_intf.ssid, ap_intf.mac))
+            self.iwdev_cmd('{} connect {} {}'.format(
+                node2.params['wlan'][node2_intf_index], ap_intf.ssid, ap_intf.mac))
 
             # All we are is dust in the wind, and our two interfaces
             self.intf1, self.intf2 = intf1, intf2
@@ -1197,21 +1190,21 @@ class _4address(Link, IntfWireless):
             node.position = (10, round(id, 2), 0)
 
     def bring4addrIfaceDown(self):
-        self.cmd('ip link set dev %s.wds down' % self.node)
+        self.cmd('ip link set dev {}.wds down'.format(self.node))
 
     def bring4addrIfaceUP(self):
-        self.cmd('ip link set dev %s.wds up' % self.node)
+        self.cmd('ip link set dev {}.wds up'.format(self.node))
 
     def setMAC(self, intf):
-        self.cmd('ip link set dev %s.wds addr %s' % (intf.node, intf.mac))
+        self.cmd('ip link set dev {}.wds addr {}'.format(intf.node, intf.mac))
 
     def add4addrIface(self, intf, intfName):
-        self.iwdev_cmd('%s interface add %s type managed 4addr on' %
-                       (intf.name, intfName))
+        self.iwdev_cmd('{} interface add {} type managed 4addr on'.format(
+            intf.name, intfName))
 
     def status(self):
         "Return link status as a string"
-        return "(%s %s)" % (self.intf1.status(), self.intf2)
+        return "({} {})".format(self.intf1.status(), self.intf2)
 
 
 class WirelessIntf(object):
@@ -1267,10 +1260,10 @@ class WirelessIntf(object):
 
     def status(self):
         "Return link status as a string"
-        return "(%s %s)" % (self.intf1.status(), self.intf2)
+        return "({} {})".format(self.intf1.status(), self.intf2)
 
     def __str__(self):
-        return '%s<->%s' % (self.intf1, self.intf2)
+        return '{}<->{}'.format(self.intf1, self.intf2)
 
 
 class TCLinkWireless(WirelessIntf):
@@ -1521,7 +1514,7 @@ class wmediumd(object):
                     else:
                         vssids = node.params['vssids'].split(',')
                     for id, vif in enumerate(range(len(vssids))):
-                        iface = '%s-%s' % (intf.name, id)
+                        iface = '{}-{}'.format(intf.name, id)
                         TCLinkWireless(intf.node, intfName=iface)
                         VirtualMaster(intf.node, intf.id, intf=iface)
 
@@ -1627,10 +1620,10 @@ class LinkAttrs(WirelessLink):
 
     def status(self):
         "Return link status as a string"
-        return "(%s %s)" % (self.intf1.status(), self.intf2)
+        return "({} {})".format(self.intf1.status(), self.intf2)
 
     def __str__(self):
-        return '%s<->%s' % (self.intf1, self.intf2)
+        return '{}<->{}'.format(self.intf1, self.intf2)
 
 
 class ITSLink(LinkAttrs):
@@ -1658,7 +1651,7 @@ class ITSLink(LinkAttrs):
         self.freq = self.get_freq(self.channel)
 
         if isinstance(intf, master):
-            self.name = '%s-ocb' % node.name
+            self.name = '{}-ocb'.format(node.name)
             self.add_ocb_mode()
         else:
             self.set_ocb_mode()
@@ -1740,10 +1733,10 @@ class WifiDirectLink(LinkAttrs):
         cmd += 'ctrl_interface=/var/run/wpa_supplicant\
               \nap_scan=1\
               \np2p_go_ht40=1\
-              \ndevice_name=%s\
+              \ndevice_name={}\
               \ndevice_type=1-0050F204-1\
-              \np2p_no_group_iface=1' % self.name
-        cmd += ("\' > %s" % pattern)
+              \np2p_no_group_iface=1'.format(self.name)
+        cmd += "\' > {}".format(pattern)
         self.set_config(cmd)
 
     @staticmethod
@@ -1813,7 +1806,7 @@ class adhoc(LinkAttrs):
             self.wmIface = intf.wmIface
 
         if 'mp' in intf.name:
-            self.iwdev_cmd('%s del' % intf.name)
+            self.iwdev_cmd('{} del'.format(intf.name))
             node.params['wlan'][wlan] = intf.name.replace('mp', 'wlan')
 
         self.name = intf.name
@@ -1854,20 +1847,20 @@ class adhoc(LinkAttrs):
     def setSecuredAdhoc(self):
         "Set secured adhoc"
         cmd = 'ctrl_interface=/var/run/wpa_supplicant\n'
-        cmd += 'ap_scan=%s\n' % self.ap_scan
+        cmd += 'ap_scan={}\n'.format(self.ap_scan)
         cmd += 'network={\n'
-        cmd += '         ssid="%s"\n' % self.ssid
+        cmd += '         ssid="{}"\n'.format(self.ssid)
         cmd += '         mode=1\n'
-        cmd += '         frequency=%s\n' % self.format_freq()
+        cmd += '         frequency={}\n'.format(self.format_freq())
         cmd += '         proto=RSN\n'
         cmd += '         key_mgmt=WPA-PSK\n'
         cmd += '         pairwise=CCMP\n'
         cmd += '         group=CCMP\n'
-        cmd += '         psk="%s"\n' % self.passwd
+        cmd += '         psk="{}"\n'.format(self.passwd)
         cmd += '}'
 
         pattern = self.get_sta_confname()
-        os.system('echo \'%s\' > %s' % (cmd, pattern))
+        os.system('echo \'{}\' > {}'.format(cmd, pattern))
         self.cmd(self.get_wpa_cmd())
 
 
@@ -1927,7 +1920,7 @@ class mesh(LinkAttrs):
             self.wmIface = DynamicIntfRef(node, intf=self.name)
             if wmediumd_mode.mode and wmediumd_mode.mode != w_cst.ERRPROB_MODE:
                 node.wmIfaces[wlan] = self.wmIface
-            self.node.cmd('ip link set %s down' % intf)
+            self.node.cmd('ip link set {} down'.format(intf))
             self.iwdev_cmd(self.set_mesh_type(intf, port))
 
         intf1 = WirelessLink(name=self.name, node=node,
@@ -1980,15 +1973,15 @@ class mesh(LinkAttrs):
         cmd += 'ctrl_interface_group=adm\n'
         cmd += 'user_mpm=1\n'
         cmd += 'network={\n'
-        cmd += '         ssid="%s"\n' % self.ssid
+        cmd += '         ssid="{}"\n'.format(self.ssid)
         cmd += '         mode=5\n'
-        cmd += '         frequency=%s\n' % self.format_freq()
+        cmd += '         frequency={}\n'.format(self.format_freq())
         cmd += '         key_mgmt=SAE\n'
-        cmd += '         psk="%s"\n' % self.passwd
+        cmd += '         psk="{}"\n'.format(self.passwd)
         cmd += '}'
 
         pattern = self.get_sta_confname()
-        os.system('echo \'%s\' > %s' % (cmd, pattern))
+        os.system('echo \'{}\' > {}'.format(cmd, pattern))
 
 
 class physicalMesh(IntfWireless):
@@ -2022,21 +2015,20 @@ class physicalMesh(IntfWireless):
 
     def ipLink(self, state=None):
         "Configure ourselves using ip link"
-        os.system('ip link set %s %s' % (self.name, state))
+        os.system('ip link set {} {}'.format(self.name, state))
 
     def setPhysicalMeshIface(self, node, wlan, intf):
-        iface = 'phy%s-mp%s' % (node, wlan)
+        iface = 'phy{}-mp{}'.format(node, wlan)
         self.ipLink('down')
         while True:
             id = ''
-            cmd = 'ip link show | grep %s' % iface
+            cmd = 'ip link show | grep {}'.format(iface)
             try:
                 id = subprocess.check_output(cmd, shell=True).split('\n')
             except:
                 pass
             if len(id) == 0:
-                cmd = ('iw dev %s interface add %s type mp' %
-                       (intf, iface))
+                cmd = 'iw dev {} interface add {} type mp'.format(intf, iface)
                 self.name = iface
                 subprocess.check_output(cmd, shell=True)
                 break
