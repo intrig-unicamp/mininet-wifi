@@ -143,6 +143,7 @@ class Mininet_wifi(Mininet, Mininet_IoT):
         self.max_z = 0
         self.min_wt = 1
         self.max_wt = 5
+        self.n_groups = 1
         self.wlinks = []
         self.pointlist = []
 
@@ -1228,7 +1229,7 @@ class Mininet_wifi(Mininet, Mininet_IoT):
         args = ['stations', 'cars', 'aps', 'draw', 'seed',
                 'roads', 'mob_start_time', 'mob_stop_time',
                 'links', 'mob_model', 'mob_rep', 'reverse',
-                'ac_method', 'pointlist']
+                'ac_method', 'pointlist', 'n_groups']
         args += float_args
         for arg in args:
             if arg in float_args:

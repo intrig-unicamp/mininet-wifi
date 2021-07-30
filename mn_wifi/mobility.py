@@ -260,6 +260,7 @@ class model(Mobility):
         "Used when a mobility model is set"
         np.random.seed(seed)
         self.ac = kwargs.get('ac_method', None)
+        n_groups = kwargs.get('n_groups', 1)
         self.stations, self.mobileNodes, self.aps = stations, stations, aps
 
         for node in mob_nodes:
@@ -301,7 +302,8 @@ class model(Mobility):
         elif mob_model == 'GaussMarkov':  # Gauss-Markov model
             mob = gauss_markov(mob_nodes, alpha=0.99)
         elif mob_model == 'ReferencePoint':  # Reference Point Group model
-            mob = reference_point_group(mob_nodes, dimensions=(max_x, max_y),
+            mob = reference_point_group(mob_nodes, n_groups,
+                                        dimensions=(max_x, max_y),
                                         aggregation=0.5)
         elif mob_model == 'TimeVariantCommunity':
             mob = tvc(mob_nodes, dimensions=(max_x, max_y),
@@ -1210,7 +1212,8 @@ def gauss_markov(nodes, velocity_mean=1., alpha=1., variance=1.):
         yield np.dstack((x, y))[0]
 
 
-def reference_point_group(nodes, dimensions, velocity=(0.1, 1.), aggregation=0.1):
+def reference_point_group(nodes, n_groups, dimensions,
+                          velocity=(0.1, 1.), aggregation=0.1):
     """
     Reference Point Group Mobility model, discussed in the following paper:
         Xiaoyan Hong, Mario Gerla, Guangyu Pei, and Ching-Chuan Chiang. 1999.
@@ -1237,7 +1240,15 @@ def reference_point_group(nodes, dimensions, velocity=(0.1, 1.), aggregation=0.1
         With a value of 0, the nodes are randomly distributed in the simulation
         area. With a value of 1, the nodes are close to the group center.
     """
-    nr_nodes = len(nodes)
+
+    nr_nodes = [0 for _ in range(n_groups)]
+    group = 0
+    for n in range(len(nodes)):
+        nr_nodes[group] += 1
+        group += 1
+        if n_groups == group:
+            group = 0
+
     try:
         iter(nr_nodes)
     except TypeError:
