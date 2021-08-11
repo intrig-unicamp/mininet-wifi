@@ -306,11 +306,11 @@ class model(Mobility):
                                         dimensions=(max_x, max_y),
                                         aggregation=0.5)
         elif mob_model == 'TimeVariantCommunity':
-            mob = tvc(mob_nodes, dimensions=(max_x, max_y),
+            mob = tvc(mob_nodes, n_groups, dimensions=(max_x, max_y),
                       aggregation=[0.5, 0.], epoch=[100, 100])
         elif mob_model == 'CRP':
-            mob = coherence_ref_point(mob_nodes, (max_x, max_y), kwargs['pointlist'],
-            aggregation=[0.5, 0.])
+            mob = coherence_ref_point(mob_nodes, n_groups, (max_x, max_y),
+                                      kwargs['pointlist'])
         else:
             raise Exception("Mobility Model not defined or doesn't exist!")
 
@@ -1290,10 +1290,8 @@ def reference_point_group(nodes, n_groups, dimensions,
     g_sintheta = np.sin(g_theta)
 
     while True:
-
         x = x + velocity * costheta
         y = y + velocity * sintheta
-
         g_x = g_x + g_velocity * g_costheta
         g_y = g_y + g_velocity * g_sintheta
 
@@ -1351,7 +1349,8 @@ def reference_point_group(nodes, n_groups, dimensions,
         yield np.dstack((x, y))[0]
 
 
-def tvc(nodes, dimensions, velocity=(0.1, 1.), aggregation=[0.5, 0.], epoch=[100, 100]):
+def tvc(nodes, n_groups, dimensions, velocity=(0.1, 1.),
+        aggregation=[0.5, 0.], epoch=[100, 100]):
     """
     Time-variant Community Mobility Model, discussed in the paper
         Wei-jen Hsu, Thrasyvoulos Spyropoulos, Konstantinos Psounis, and Ahmed Helmy,
@@ -1388,7 +1387,15 @@ def tvc(nodes, dimensions, velocity=(0.1, 1.), aggregation=[0.5, 0.], epoch=[100
       *epoch*:
         List of Integers, the number of steps each epoch stage lasts.
     """
-    nr_nodes = len(nodes)
+
+    nr_nodes = [0 for _ in range(n_groups)]
+    group = 0
+    for n in range(len(nodes)):
+        nr_nodes[group] += 1
+        group += 1
+        if n_groups == group:
+            group = 0
+
     if len(aggregation) != len(epoch):
         raise Exception("The parameters 'aggregation' and 'epoch' should be "
                         "of same size")
@@ -1515,7 +1522,9 @@ def tvc(nodes, dimensions, velocity=(0.1, 1.), aggregation=[0.5, 0.], epoch=[100
 
         yield np.dstack((x, y))[0]
 
-def coherence_ref_point(nodes, dimensions, pointlist, velocity=(0.1, 1.), g_velocity=0.4, aggregation=0.1):
+
+def coherence_ref_point(nodes, n_groups, dimensions, pointlist, velocity=(0.1, 1.),
+                        g_velocity=0.4, aggregation=0.1):
     """
     Based on the Reference Point Group Mobility model, discussed in the following paper:
 
@@ -1556,34 +1565,40 @@ def coherence_ref_point(nodes, dimensions, pointlist, velocity=(0.1, 1.), g_velo
         *pointlist*
         List of Tuples of integers x,y,z corresponding to points in the model.
     """
-    #Method U() is a uniform distribution as a lambda
-    nr_nodes = len(nodes)
+    nr_nodes = [0 for _ in range(n_groups)]
+    group = 0
+    for n in range(len(nodes)):
+        nr_nodes[group] += 1
+        group += 1
+        if n_groups == group:
+            group = 0
+
     try:
         iter(nr_nodes)
     except TypeError:
         nr_nodes = [nr_nodes]
-    #Create an array of length equal to # of nodes
+
     NODES = np.arange(sum(nr_nodes))
-    #Store nodes in their specific group, which controls the "reference point" who vector they follow
+
     groups = []
     prev = 0
     for (i, n) in enumerate(nr_nodes):
         groups.append(np.arange(prev, n + prev))
         prev += n
-    #Create a empty array that stores the "index" number of arrays
+
     g_ref = np.empty(sum(nr_nodes), dtype=np.int)
     for (i, g) in enumerate(groups):
         for n in g:
             g_ref[n] = i
-    #Max flight value (borders)
+
     FL_MAX = max(dimensions)
     MIN_V, MAX_V = velocity
     G_VEL = g_velocity
-    #Create wrappers for uniform distribution for flight distance and velocity
+
     FL_DISTR = lambda SAMPLES: U(0, FL_MAX, SAMPLES)
     VEL_DISTR = lambda FD: U(MIN_V, MAX_V, FD)
     MAX_X, MAX_Y = dimensions
-    #Assign initial values including X and Y
+
     if len(pointlist) > 1:
         current_x, current_y, current_z = pointlist[0]
         next_x, next_y, next_z = pointlist[1]
@@ -1596,13 +1611,12 @@ def coherence_ref_point(nodes, dimensions, pointlist, velocity=(0.1, 1.), g_velo
     theta = U(0, 2 * np.pi, NODES)
     costheta = np.cos(theta)
     sintheta = np.sin(theta)
-    #Determine the location and initial movement of the group reference point
+
     GROUPS = np.arange(len(groups))
     g_x = np.array([current_x])
     g_y = np.array([current_y])
-    #Unclear on if flight distance has any material effect in this instance
+
     g_fl = FL_DISTR(GROUPS)
-    #Each one unit of velocity is ~5.7 m/s
     g_velocity = np.array([G_VEL])
     g_theta = [np.arctan2(next_y - current_y, next_x - current_x)]
     g_costheta = np.cos(g_theta)
@@ -1634,7 +1648,8 @@ def coherence_ref_point(nodes, dimensions, pointlist, velocity=(0.1, 1.), g_velo
         g_fl = g_fl - g_velocity
 
         g_finished = (abs(g_x - next_x) < 1 and abs(g_y - next_y) < 1)
-        if(g_x - next_x < 10):
+
+        if g_x - next_x < 10:
             if g_finished:
                 if point_index + 1 >= len(pointlist):
                     g_velocity[0] = 0
@@ -1648,5 +1663,3 @@ def coherence_ref_point(nodes, dimensions, pointlist, velocity=(0.1, 1.), g_velo
                     g_sintheta = np.sin(g_theta)
 
         yield np.dstack((x, y))[0]
-
-
