@@ -20,17 +20,23 @@ from __future__ import absolute_import
 import socket
 import time
 import subprocess
-import warnings
-import abc
 
-from mn_wifi.sumo.sumolib import sumolib  # noqa
 
 from .domain import _defaultDomains
-from .connection import Connection, _embedded
+from .connection import Connection
 from .exceptions import FatalTraCIError, TraCIException
 
 _connections = {}
-_stepListeners = []
+_traceFile = {}
+_traceGetters = {}
+# cannot use immutable type as global variable
+_currentLabel = [""]
+_connectHook = None
+
+
+def setConnectHook(hookFunc):
+    global _connectHook
+    _connectHook = hookFunc
 
 
 def _STEPS2TIME(step):
@@ -38,34 +44,41 @@ def _STEPS2TIME(step):
     return step / 1000.
 
 
-def connect(port=8813, numRetries=10, host="localhost", proc=None):
+def connect(port=8813, numRetries=10, host="localhost", proc=None, waitBetweenRetries=1):
     """
     Establish a connection to a TraCI-Server and return the
     connection object. The connection is not saved in the pool and not
     accessible via traci.switch. It should be safe to use different
     connections established by this method in different threads.
     """
-    for wait in range(1, numRetries + 2):
+    for retry in range(1, numRetries + 2):
         try:
-            return Connection(host, port, proc)
+            conn = Connection(host, port, proc)
+            if _connectHook is not None:
+                _connectHook(conn)
+            return conn
         except socket.error as e:
-            #print("Could not connect to TraCI server at %s:%s" %
-            #      (host, port), e)
-            if wait < numRetries + 1:
-                #print(" Retrying in %s seconds" % wait)
-                time.sleep(wait)
+            if proc is not None and proc.poll() is not None:
+                raise TraCIException("TraCI server already finished")
+            if retry > 1:
+                print("Could not connect to TraCI server at %s:%s" % (host, port), e)
+            if retry < numRetries + 1:
+                print(" Retrying in %s seconds" % waitBetweenRetries)
+                time.sleep(waitBetweenRetries)
     raise FatalTraCIError("Could not connect in %s tries" % (numRetries + 1))
 
 
-def init(port=8813, numRetries=10, host="localhost", label="default"):
+def init(port=8813, numRetries=10, host="localhost",
+         label="default", proc=None, doSwitch=True):
     """
     Establish a connection to a TraCI-Server and store it under the given
     label. This method is not thread-safe. It accesses the connection
     pool concurrently.
     """
-    _connections[label] = connect(port, numRetries, host)
-    switch(label)
-    return getVersion()
+    _connections[label] = connect(port, numRetries, host, proc)
+    if doSwitch:
+        switch(label)
+    return _connections[label].getVersion()
 
 
 def start(cmd, port=None, numRetries=10, label="default"):
@@ -73,16 +86,10 @@ def start(cmd, port=None, numRetries=10, label="default"):
     Start a sumo server using cmd, establish a connection to it and
     store it under the given label. This method is not thread-safe.
     """
-    if port is None:
-        port = sumolib.miscutils.getFreeSocketPort()
     sumoProcess = subprocess.Popen(cmd + ["--remote-port", str(port)])
     _connections[label] = connect(port, numRetries, "localhost", sumoProcess)
     switch(label)
     return getVersion()
-
-
-def isEmbedded():
-    return _embedded
 
 
 def load(args):
@@ -92,58 +99,40 @@ def load(args):
       load(['-c', 'run.sumocfg'])
       load(['-n', 'net.net.xml', '-r', 'routes.rou.xml'])
     """
+    print(_connections)
     return _connections[""].load(args)
 
 
 def simulationStep(step=0):
     """
-    Make a simulation step and simulate up to the given millisecond in sim time.
+    Make a simulation step and simulate up to the given second in sim time.
     If the given value is 0 or absent, exactly one step is performed.
     Values smaller than or equal to the current sim time result in no action.
     """
-    global _stepListeners
-    responses = _connections[""].simulationStep(step)
-    for listener in _stepListeners:
-        listener.step(step)
-    return responses
-
-
-class StepListener(object):
-    __metaclass__ = abc.ABCMeta
-
-    @abc.abstractmethod
-    def step(self, s=0):
-        """step(int) -> None
-        After adding a StepListener 'listener' with traci.addStepListener(listener),
-        TraCI will call listener.step(s) after each call to traci.simulationStep(s)
-        """
-        pass
+    if "" not in _connections:
+        raise FatalTraCIError("Not connected.")
+    return _connections[""].simulationStep(step)
 
 
 def addStepListener(listener):
-    """addStepListener(traci.StepListener) -> bool
+    """addStepListener(traci.StepListener) -> int
     Append the step listener (its step function is called at the end of every call to traci.simulationStep())
-    Returns True if the listener was added successfully, False otherwise.
+    to the current connection.
+    Returns the ID assigned to the listener if it was added successfully, None otherwise.
     """
-    if issubclass(type(listener), StepListener):
-        _stepListeners.append(listener)
-        return True
-    warnings.warn(
-        "Proposed listener's type must inherit from traci.StepListener. Not adding object of type '%s'" % type(listener))
-    return False
+    if "" not in _connections:
+        raise FatalTraCIError("Not connected.")
+    return _connections[""].addStepListener(listener)
 
 
-def removeStepListener(listener):
+def removeStepListener(listenerID):
     """removeStepListener(traci.StepListener) -> bool
-    Remove the step listener from traci's step listener container.
+    Remove the step listener from the current connection's step listener container.
     Returns True if the listener was removed successfully, False if it wasn't registered.
     """
-    if listener in _stepListeners:
-        _stepListeners.remove(listener)
-        return True
-    warnings.warn(
-        "removeStepListener(listener): listener %s not registered as step listener" % str(listener))
-    return False
+    if "" not in _connections:
+        raise FatalTraCIError("Not connected.")
+    return _connections[""].removeStepListener(listenerID)
 
 
 def getVersion():
@@ -168,8 +157,3 @@ def getConnection(label ="default"):
     if not label in _connections:
         raise TraCIException("connection with label '%s' is not known")
     return _connections[label]
-
-
-if _embedded:
-    # create the default dummy connection
-    init()

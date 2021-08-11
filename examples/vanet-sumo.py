@@ -57,7 +57,8 @@ def topology():
 
     net.useExternalProgram(program=sumo, port=8813,
                            config_file='map.sumocfg',
-                           extra_params=["--start"])
+                           extra_params=["--start --delay 1000"],
+                           clients=1)
 
     info("*** Starting network\n")
     net.build()
