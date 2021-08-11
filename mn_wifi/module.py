@@ -98,7 +98,8 @@ class Mac80211Hwsim(object):
         num = 0
         numokay = False
         self.prefix = ""
-        cmd = 'find /sys/kernel/debug/ieee80211 -name hwsim | grep %05d | cut -d/ -f 6 | sort' % os.getpid()  # grep on PID in devicelist
+        cmd = 'find /sys/kernel/debug/ieee80211 -name hwsim | ' \
+              'grep %05d | cut -d/ -f 6 | sort'.format(os.getpid())
         phys = subprocess.check_output(cmd, shell=True).decode('utf-8').split("\n")
 
         while not numokay:
@@ -154,21 +155,21 @@ class Mac80211Hwsim(object):
         """ Loads IFB
         :param wlans: Number of wireless interfaces
         """
-        debug('\nLoading IFB: modprobe ifb numifbs=%s' % wlans)
-        os.system('modprobe ifb numifbs=%s' % wlans)
+        debug('\nLoading IFB: modprobe ifb numifbs={}'.format(wlans))
+        os.system('modprobe ifb numifbs={}'.format(wlans))
 
     def docker_config(self, nradios=0, nodes=None, dir='~/',
                       ip='172.17.0.1', num=0, **params):
 
         file = self.prefix + 'docker_mn-wifi.sh'
         if os.path.isfile(file):
-            os.system('rm %s' % file)
-        os.system("echo '#!/bin/bash' >> %s" % file)
+            os.system('rm {}'.format(file))
+        os.system("echo '#!/bin/bash' >> {}".format(file))
         os.system("echo 'pid=$(sudo -S docker inspect -f '{{.State.Pid}}' "
-                  "%s)' >> %s" % (params['container'], file))
-        os.system("echo 'sudo -S mkdir -p /var/run/netns' >> %s" % file)
+                  "{})' >> {}".format(params['container'], file))
+        os.system("echo 'sudo -S mkdir -p /var/run/netns' >> {}".format(file))
         os.system("echo 'sudo -S ln -s /proc/$pid/ns/net/ /var/run/netns/$pid'"
-                  " >> %s" % file)
+                  " >> {}".format(file))
 
         radios = []
         nodes_ = ''
@@ -219,7 +220,7 @@ class Mac80211Hwsim(object):
         from mn_wifi.node import AP
 
         log_filename = '/tmp/mn-wifi-mac80211_hwsim.log'
-        self.logging_to_file("%s" % log_filename)
+        self.logging_to_file(log_filename)
 
         try:
             for wlan in range(len(node.params['wlan'])):
@@ -243,7 +244,7 @@ class Mac80211Hwsim(object):
             logging.exception("Warning:")
             info("Warning! Error when loading mac80211_hwsim. "
                  "Please run sudo 'mn -c' before running your code.\n")
-            info("Further information available at %s.\n" % log_filename)
+            info("Further information available at {}.\n".format(log_filename))
             exit(1)
 
     def logging_to_file(self, filename):
