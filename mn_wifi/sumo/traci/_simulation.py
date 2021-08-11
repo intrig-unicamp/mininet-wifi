@@ -23,6 +23,7 @@ from .storage import Storage
 Stage = collections.namedtuple('Stage', ['stageType', 'vType', 'line', 'destStop', 'edges', 'travelTime', 'cost',
                                          'length', 'intended', 'depart', 'departPos', 'arrivalPos', 'description'])
 
+
 def _readStage(result):
     # compound size and type
     assert (result.read("!i")[0] == 13)
@@ -396,16 +397,16 @@ class SimulationDomain(Domain):
         return result
 
     def clearPending(self, routeID=""):
-        self._connection._beginMessage(tc.CMD_SET_SIM_VARIABLE, tc.CMD_CLEAR_PENDING_VEHICLES, "",
-                                       1 + 4 + len(routeID))
-        self._connection._packString(routeID)
-        self._connection._sendExact()
+        self._setCmd(tc.CMD_CLEAR_PENDING_VEHICLES, "", "s", routeID)
 
     def saveState(self, fileName):
-        self._connection._beginMessage(tc.CMD_SET_SIM_VARIABLE, tc.CMD_SAVE_SIMSTATE, "",
-                                       1 + 4 + len(fileName))
-        self._connection._packString(fileName)
-        self._connection._sendExact()
+        self._setCmd(tc.CMD_SAVE_SIMSTATE, "", "s", fileName)
+
+    def loadState(self, fileName):
+        self._setCmd(tc.CMD_LOAD_SIMSTATE, "", "s", fileName)
+
+    def writeMessage(self, msg):
+        self._setCmd(tc.CMD_MESSAGE, "", "s", msg)
 
     def subscribe(self, varIDs=(tc.VAR_DEPARTED_VEHICLES_IDS,), begin=0, end=2 ** 31 - 1):
         """subscribe(list(integer), double, double) -> None

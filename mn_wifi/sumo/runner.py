@@ -6,7 +6,7 @@ from threading import Thread as thread
 from mininet.log import info
 from mn_wifi.mobility import Mobility
 from mn_wifi.sumo.sumolib.sumolib import checkBinary
-from mn_wifi.sumo.traci import trace, _vehicle
+from mn_wifi.sumo.traci import main as traci, _vehicle
 
 
 class sumo(Mobility):
@@ -25,7 +25,9 @@ class sumo(Mobility):
         return cls.vehCmds
 
     def configureApp(self, cars, aps, config_file='map.sumocfg',
-                     clients=1, port=8813, extra_params=[]):
+                     clients=1, port=8813, extra_params=None):
+        if extra_params is None:
+            extra_params = []
         try:
             Mobility.cars = cars
             Mobility.aps = aps
@@ -42,24 +44,21 @@ class sumo(Mobility):
         sumoBinary = checkBinary('sumo-gui')
         sumoConfig = os.path.join(os.path.dirname(__file__), "data/%s" % config_file)
 
-        if not trace.isEmbedded():
-            command = ' %s -c %s --num-clients %s --remote-port %s \
-                --time-to-teleport -1' % (sumoBinary, sumoConfig, clients, port)
-            for param in extra_params:
-                command = command + " " + param
-            command = command + " &"
-            os.system(command)
-            trace.init(port)
-            trace.setOrder(0)
+        command = ' %s -c %s --num-clients %s --remote-port %s \
+            --time-to-teleport -1' % (sumoBinary, sumoConfig, clients, port)
+        for param in extra_params:
+            command = command + " " + param
+        command += " &"
+        os.system(command)
+        traci.init(port)
+        traci.setOrder(0)
 
-        step = 0
         self.setWifiParameters()
 
         vehCmds = _vehicle.VehicleDomain()
-        vehCmds._connection = trace.getConnection(label="default")
+        vehCmds._connection = traci.getConnection(label="default")
 
         while True:
-            trace.simulationStep()
             for vehID1 in vehCmds.getIDList():
                 x1 = vehCmds.getPosition(vehID1)[0]
                 y1 = vehCmds.getPosition(vehID1)[1]
@@ -73,6 +72,3 @@ class sumo(Mobility):
                             args = [cars[int(vehID1)].sumoargs]
                             cars[int(vehID1)].sumo(vehID1, vehCmds, *args)
                             del cars[int(vehID1)].sumo
-            step += 1
-        trace.close()
-        sys.stdout.flush()

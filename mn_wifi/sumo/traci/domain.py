@@ -30,6 +30,43 @@ from .exceptions import FatalTraCIError
 _defaultDomains = []
 
 
+def _readParameterWithKey(result):
+    assert result.read("!i")[0] == 2  # compound size
+    key = result.readTypedString()
+    val = result.readTypedString()
+    return key, val
+
+
+def _parse(valueFunc, varID, data):
+    varType = data.read("!B")[0]
+    if varID in valueFunc:
+        return valueFunc[varID](data)
+    if varType in (tc.POSITION_2D, tc.POSITION_LON_LAT):
+        return data.read("!dd")
+    if varType in (tc.POSITION_3D, tc.POSITION_LON_LAT_ALT):
+        return data.read("!ddd")
+    if varType == tc.TYPE_POLYGON:
+        return data.readShape()
+    if varType == tc.TYPE_UBYTE:
+        return data.read("!B")[0]
+    if varType == tc.TYPE_BYTE:
+        return data.read("!b")[0]
+    if varType == tc.TYPE_INTEGER:
+        return data.readInt()
+    if varType == tc.TYPE_DOUBLE:
+        return data.readDouble()
+    if varType == tc.TYPE_STRING:
+        return data.readString()
+    if varType == tc.TYPE_STRINGLIST:
+        return data.readStringList()
+    if varType == tc.TYPE_DOUBLELIST:
+        n = data.read("!i")[0]
+        return tuple([data.readDouble() for i in range(n)])
+    if varType == tc.TYPE_COLOR:
+        return data.read("!BBBB")
+    raise FatalTraCIError("Unknown variable %02x or invalid type %02x." % (varID, varType))
+
+
 class SubscriptionResults:
 
     def __init__(self, valueFunc):
@@ -105,13 +142,27 @@ class Domain:
     def _setConnection(self, connection):
         self._connection = connection
 
-    def _getUniversal(self, varID, objectID=""):
+    def _getUniversal(self, varID, objectID="", format="", *values):
         if self._deprecatedFor:
-            warnings.warn("The domain %s is deprecated, use %s instead."
-                          % (self._name, self._deprecatedFor))  # , DeprecationWarning)
-        result = self._connection._sendReadOneStringCmd(
-            self._cmdGetID, varID, objectID)
-        return self._retValFunc[varID](result)
+            warnings.warn("The domain %s is deprecated, use %s instead." % (self._name, self._deprecatedFor))
+        return _parse(self._retValFunc, varID, self._getCmd(varID, objectID, format, *values))
+
+    def _getCmd(self, varID, objID, format="", *values):
+        if self._connection is None:
+            raise FatalTraCIError("Not connected.")
+        r = self._connection._sendCmd(self._cmdGetID, varID, objID, format, *values)
+        r.readLength()
+        response, retVarID = r.read("!BB")
+        objectID = r.readString()
+        if response - self._cmdGetID != 16 or retVarID != varID or objectID != objID:
+            raise FatalTraCIError("Received answer %s,%s,%s for command %s,%s,%s."
+                                  % (response, retVarID, objectID, self._cmdGetID, varID, objID))
+        return r
+
+    def _setCmd(self, varID, objectID, format="", *values):
+        if self._connection is None:
+            raise FatalTraCIError("Not connected.")
+        self._connection._sendCmd(self._cmdSetID, varID, objectID, format, *values)
 
     def getIDList(self):
         """getIDList() -> list(string)
@@ -163,22 +214,18 @@ class Domain:
         return self._connection._getSubscriptionResults(self._subscribeResponseID).get(None)
 
     def subscribeContext(self, objectID, domain, dist, varIDs=None,
-                         begin=tc.INVALID_DOUBLE_VALUE, end=tc.INVALID_DOUBLE_VALUE):
+                         begin=tc.INVALID_DOUBLE_VALUE, end=tc.INVALID_DOUBLE_VALUE, parameters=None):
         """subscribeContext(string, int, double, list(integer), double, double) -> None
         Subscribe to objects of the given domain (specified as domain=traci.constants.CMD_GET_<DOMAIN>_VARIABLE),
         which are closer than dist to the object specified by objectID.
         """
         if varIDs is None:
-            if tc.LAST_STEP_VEHICLE_NUMBER in self._retValFunc:
-                varIDs = (tc.LAST_STEP_VEHICLE_NUMBER,)
-            else:
-                varIDs = (tc.TRACI_ID_LIST,)
+            varIDs = self._subscriptionDefault
         self._connection._subscribeContext(
-            self._contextID, begin, end, objectID, domain, dist, varIDs)
+            self._contextID, begin, end, objectID, domain, dist, varIDs, parameters)
 
     def unsubscribeContext(self, objectID, domain, dist):
-        self._connection._subscribeContext(
-            self._contextID, tc.INVALID_DOUBLE_VALUE, tc.INVALID_DOUBLE_VALUE, objectID, domain, dist, [])
+        self.subscribeContext(objectID, domain, dist, [])
 
     def getContextSubscriptionResults(self, objectID):
         return self._connection._getSubscriptionResults(self._contextResponseID).getContext(objectID)

@@ -321,6 +321,8 @@ TYPE_STRING = 0x0C
 TYPE_STRINGLIST = 0x0E
 #  compound object
 TYPE_COMPOUND = 0x0F
+#  list of double precision floats
+TYPE_DOUBLELIST = 0x10
 #  color (four ubytes)
 TYPE_COLOR = 0x11
 
@@ -793,8 +795,23 @@ VAR_NEXT_TLS = 0x70
 #  upcoming stops (get: vehicle)
 VAR_NEXT_STOPS = 0x73
 
+#  upcoming stops with selection (get: vehicle)
+VAR_NEXT_STOPS2 = 0x74
+
 #  current acceleration (get: vehicle)
 VAR_ACCELERATION = 0x72
+
+#  arrival position (get,set: vehicle)
+VAR_ARRIVALPOS = 0x75
+
+#  arrival lane (get,set: vehicle)
+VAR_ARRIVALLANE = 0x76
+
+#  arrival speed (get,set: vehicle)
+VAR_ARRIVALSPEED = 0x77
+
+#  add log message (set: simulation)
+CMD_MESSAGE = 0x65
 
 #  current time in seconds (get: simulation)
 VAR_TIME = 0x66
@@ -885,6 +902,9 @@ CMD_CLEAR_PENDING_VEHICLES = 0x94
 
 #  triggers saving simulation state (set: simulation)
 CMD_SAVE_SIMSTATE = 0x95
+
+#  triggers saving simulation state (set: simulation)
+CMD_LOAD_SIMSTATE = 0x96
 
 #  sets/retrieves abstract parameter
 VAR_PARAMETER = 0x7e

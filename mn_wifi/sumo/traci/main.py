@@ -25,6 +25,9 @@ import subprocess
 from .domain import _defaultDomains
 from .connection import Connection
 from .exceptions import FatalTraCIError, TraCIException
+from . import _simulation
+
+simulation = _simulation.SimulationDomain()
 
 _connections = {}
 _traceFile = {}
