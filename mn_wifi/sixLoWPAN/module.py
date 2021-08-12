@@ -13,39 +13,39 @@ class module(object):
     externally_managed = False
     devices_created_dynamically = False
 
-    def __init__(self, sensors, nwpans, iot_module):
-        self.start(sensors, nwpans, iot_module)
+    def __init__(self, nodes, nwpan, iot_module):
+        self.start(nodes, nwpan, iot_module)
 
-    def start(self, sensors, nwpans, iot_module):
+    def start(self, nodes, nwpan, iot_module):
         """
-        :param sensors: list of sensors
-        :param nwpans: number of wifi radios
+        :param nodes: list of nodes
+        :param nwpan: number of wifi radios
         :param iot_module: dir of a fakelb alternative module
         :param **params: ifb -  Intermediate Functional Block device"""
         wm = subprocess.call(['which', 'iwpan'],
                              stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         if wm == 0:
-            self.load_module(nwpans, iot_module)  # Initatilize WiFi Module
+            self.load_module(nwpan, iot_module)  # Initatilize WiFi Module
             if iot_module == 'mac802154_hwsim':
                 n = 0
-                for sensor in sensors:
+                for sensor in nodes:
                     for _ in range(0, len(sensor.params['wpan'])):
                         n += 1
                         if n > 2:
                             os.system('wpan-hwsim add >/dev/null 2>&1')
-            self.assign_iface(sensors)  # iface assign
+            self.assign_iface(nodes)  # iface assign
         else:
             info('*** iwpan will be used, but it is not installed.\n' \
                  '*** Please install iwpan with sudo util/install.sh -6.\n')
             exit(1)
 
-    def load_module(self, n_radios, iot_module):
+    def load_module(self, nwpan, iot_module):
         """ Load WiFi Module
-        :param n_radios: number of radios
+        :param nwpan: number of radios
         :param iot_module: dir of a fakelb alternative module"""
-        debug('Loading %s virtual interfaces\n' % n_radios)
+        debug('Loading %s virtual interfaces\n' % nwpan)
         if iot_module == 'fakelb':
-            os.system('modprobe fakelb numlbs=%s' % n_radios)
+            os.system('modprobe fakelb numlbs=%s' % nwpan)
         elif iot_module == 'mac802154_hwsim':
             os.system('modprobe mac802154_hwsim')
         else:
@@ -59,7 +59,7 @@ class module(object):
 
     @classmethod
     def module_loaded(cls, module_name):
-        "Checks if module is loaded"
+        "Checks whether module is running"
         lsmod_proc = subprocess.Popen(['lsmod'], stdout=subprocess.PIPE)
         grep_proc = subprocess.Popen(['grep', module_name],
                                      stdin=lsmod_proc.stdout, stdout=subprocess.PIPE)
@@ -87,8 +87,7 @@ class module(object):
 
     def getPhy(self):
         'Gets the list of virtual wlans that already exist'
-        cmd = "iwpan dev | grep phy | " \
-              "sed -ne 's/phy#\([0-9]\)/\\1/p'"
+        cmd = "iwpan dev | grep phy | sed -ne 's/phy#\([0-9]\)/\\1/p'"
 
         phy = subprocess.check_output\
             (cmd, shell=True).decode('utf-8').split("\n")
@@ -101,17 +100,16 @@ class module(object):
         """Assign virtual interfaces for all nodes
         :param nodes: list of wireless nodes"""
         log_filename = '/tmp/mininetwifi-fakelb.log'
-        self.logging_to_file("%s" % log_filename)
+        self.logging_to_file(log_filename)
         debug("\n*** Configuring interfaces with appropriated network"
               "-namespaces...\n")
         phy = self.getPhy()
         wlan_list = self.get_virtual_wpan()
         for node in nodes:
             for wlan in range(0, len(node.params['wpan'])):
-                os.system('iwpan phy phy%s set netns %s' % (phy[0], node.pid))
-                node.cmd('ip link set %s down' % wlan_list[0])
-                node.cmd('ip link set %s name %s'
-                         % (wlan_list[0], node.params['wpan'][wlan]))
+                os.system('iwpan phy phy{} set netns {}'.format(phy[0], node.pid))
+                node.cmd('ip link set {} down'.format(wlan_list[0]))
+                node.cmd('ip link set {} name {}'.format(wlan_list[0], node.params['wpan'][wlan]))
                 wlan_list.pop(0)
                 phy.pop(0)
 

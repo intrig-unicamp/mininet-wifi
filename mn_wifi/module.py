@@ -27,14 +27,17 @@ class Mac80211Hwsim(object):
         if 'docker' in params:
             wlan_list = []
             for phy in range(len(phys)):
-                wlan_list.append('wlan%s' % phy)
+                wlan_list.append('wlan{}'.format(phy))
         else:
             wlan_list = self.get_wlan_iface()
         return wlan_list
 
+    def get_hwsim_list(self):
+        return 'find /sys/kernel/debug/ieee80211 -name hwsim | grep %05d ' \
+               '| cut -d/ -f 6 | sort' % os.getpid()
+
     def configPhys(self, node, **params):
-        cmd = 'find /sys/kernel/debug/ieee80211 -name hwsim | grep %05d | cut -d/ -f 6 | sort' % os.getpid()  # grep on PID in devicelist
-        phys = self.get_intf_list(cmd)  # gets virtual and phy interfaces
+        phys = self.get_intf_list(self.get_hwsim_list())  # gets virtual and phy interfaces
         wlan_list = self.get_wlan_list(phys, **params)  # gets wlan list
         self.assign_iface(node, phys, wlan_list, (len(phys)-1), **params)
 
@@ -51,8 +54,7 @@ class Mac80211Hwsim(object):
         cmd = 'iw dev 2>&1 | grep Interface | awk \'{print $2}\''
         Mac80211Hwsim.phyWlans = self.get_intf_list(cmd)  # gets physical wlan(s)
         self.load_module(nradios, nodes, alt_module, **params)  # loads wifi module
-        cmd = 'find /sys/kernel/debug/ieee80211 -name hwsim | grep %05d | cut -d/ -f 6 | sort' % os.getpid()  # grep on PID in devicelist
-        phys = self.get_intf_list(cmd)  # gets virtual and phy interfaces
+        phys = self.get_intf_list(self.get_hwsim_list())  # gets virtual and phy interfaces
         wlan_list = self.get_wlan_list(phys, **params)  # gets wlan list
         for node in nodes:
             self.assign_iface(node, phys, wlan_list, **params)
@@ -62,7 +64,7 @@ class Mac80211Hwsim(object):
         # Useful for kernel <= 3.13.x
         if nradios == 0: nradios = 1
         if alt_module:
-            os.system('insmod %s radios=%s' % (alt_module, nradios))
+            os.system('insmod {} radios={}'.format(alt_module, nradios))
         else:
             os.system('{}={}'.format(modprobe, nradios))
 
@@ -98,9 +100,8 @@ class Mac80211Hwsim(object):
         num = 0
         numokay = False
         self.prefix = ""
-        cmd = 'find /sys/kernel/debug/ieee80211 -name hwsim | ' \
-              'grep %05d | cut -d/ -f 6 | sort'.format(os.getpid())
-        phys = subprocess.check_output(cmd, shell=True).decode('utf-8').split("\n")
+        phys = subprocess.check_output(self.get_hwsim_list(),
+                                       shell=True).decode('utf-8').split("\n")
 
         while not numokay:
             self.prefix = "mn%05dp%02ds" % (os.getpid(), num)  # Add PID to mn-devicenames
@@ -125,10 +126,10 @@ class Mac80211Hwsim(object):
             debug("Created mac80211_hwsim device with ID %s\n" % m.group(1))
             Mac80211Hwsim.hwsim_ids.append(m.group(1))
         else:
-            error("\nError on creating mac80211_hwsim device with name %s"
-                  % (self.prefix + ("%02d" % n)))
-            error("\nOutput: %s" % output)
-            error("\nError: %s" % err_out)
+            error("\nError on creating mac80211_hwsim device "
+                  "with name {}".format(self.prefix + ("%02d" % n)))
+            error("\nOutput: {}".format(output))
+            error("\nError: {}".format(err_out))
 
     def __create_hwsim_mgmt_devices(self, nradios, nodes, **params):
         if 'docker' in params:
@@ -201,9 +202,9 @@ class Mac80211Hwsim(object):
 
     @staticmethod
     def rename(node, wintf, newname):
-        node.cmd('ip link set %s down' % wintf)
-        node.cmd('ip link set %s name %s' % (wintf, newname))
-        node.cmd('ip link set %s up' % newname)
+        node.cmd('ip link set {} down'.format(wintf))
+        node.cmd('ip link set {} name {}'.format(wintf, newname))
+        node.cmd('ip link set {} up'.format(newname))
 
     def add_phy_id(self, nodes):
         id = 0
@@ -232,12 +233,11 @@ class Mac80211Hwsim(object):
                             'rfkill list | grep %s | awk \'{print $1}\''
                             '| tr -d ":"' % phys[0],
                             shell=True).decode('utf-8').split('\n')
-                        debug('rfkill unblock %s\n' % rfkill[0])
-                        os.system('rfkill unblock %s' % rfkill[0])
-                        os.system('iw phy %s set netns %s' % (phys[id], node.pid))
-                    node.cmd('ip link set %s down' % wlan_list[0])
-                    node.cmd('ip link set %s name %s'
-                             % (wlan_list[0], node.params['wlan'][wlan]))
+                        debug('rfkill unblock {}\n'.format(rfkill[0]))
+                        os.system('rfkill unblock {}'.format(rfkill[0]))
+                        os.system('iw phy {} set netns {}'.format(phys[id], node.pid))
+                    node.cmd('ip link set {} down'.format(wlan_list[0]))
+                    node.cmd('ip link set {} name {}'.format(wlan_list[0], node.params['wlan'][wlan]))
                 wlan_list.pop(0)
                 phys.pop(0)
         except:
