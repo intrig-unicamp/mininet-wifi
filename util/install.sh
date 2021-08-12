@@ -370,6 +370,76 @@ function batman {
     sudo make install
 }
 
+# Install ModemManager
+function modem_manager {
+    echo "Installing Modem Manager..."
+
+    # Install deps:
+    $install autoconf-archive libgudev-1.0-dev
+
+    cd $BUILD_DIR/mininet-wifi
+    if [ -d libmbim-1.26.0 ]; then
+      echo "Removing libmbim-1.26.0 dir..."
+      rm -r libmbim-1.26.0
+    fi
+    cd $BUILD_DIR/mininet-wifi
+    if [ -f libmbim-1.26.0.tar.xz ]; then
+      echo "Removing libmbim-1.26.0.tar.xz..."
+      rm libmbim-1.26.0.tar.xz
+    fi
+    wget https://www.freedesktop.org/software/libmbim/libmbim-1.26.0.tar.xz
+    tar -Jxf libmbim-1.26.0.tar.xz
+    cd libmbim-1.26.0
+    ./configure --prefix=/usr --libdir=/usr/lib/x86_64-linux-gnu/
+    make
+    sudo make install
+
+    cd $BUILD_DIR/mininet-wifi
+    if [ -d libqmi-1.30.0 ]; then
+      echo "Removing libqmi-1.30.0 dir..."
+      rm -r libqmi-1.30.0
+    fi
+    cd $BUILD_DIR/mininet-wifi
+    if [ -f libqmi-1.30.0.tar.xz ]; then
+      echo "Removing libqmi-1.30.0.tar.xz..."
+      rm libqmi-1.30.0.tar.xz
+    fi
+    wget https://www.freedesktop.org/software/libqmi/libqmi-1.30.0.tar.xz
+    tar -Jxf libqmi-1.30.0.tar.xz
+    cd libqmi-1.30.0
+    ./configure
+    make
+    sudo make install
+
+    # Install Modem Manager:
+    cd $BUILD_DIR/mininet-wifi
+    if [ -d ModemManager ]; then
+      echo "Removing ModemManager dir..."
+      rm -r ModemManager
+    fi
+    git clone --depth=1 https://github.com/freedesktop/ModemManager
+    cd ModemManager
+    ./autogen.sh
+    ./configure --prefix=/usr --libdir=/usr/lib/x86_64-linux-gnu/ --sysconfdir=/etc --localstatedir=/var --disable-static --enable-more-warnings=no --with-systemd-journal=no --with-systemd-suspend-resume --with-at-command-via-dbus --without-mbim CFLAGS="-ggdb -O0"
+    make
+    sudo make install
+}
+
+# Install iproute2
+function iproute2 {
+    echo "Installing iproute2..."
+
+    # Install iproute2:
+    cd $BUILD_DIR/mininet-wifi
+    if [ -d iproute2 ]; then
+      echo "Removing iproute2 dir..."
+      rm -r iproute2
+    fi
+    git clone --depth=1 https://git.kernel.org/pub/scm/network/iproute2/iproute2.git
+    cd iproute2
+    make
+    sudo make install
+}
 
 # Install Mininet developer dependencies
 function mn_dev {
@@ -634,6 +704,8 @@ function all {
     p4_deps
     oftest
     cbench
+    iproute2
+    modem_manager
     wmediumd
     babeld
     olsrd
@@ -677,7 +749,7 @@ function vm_clean {
 }
 
 function usage {
-    printf '\nUsage: %s [-abBcdEfhklmnOpPrStvVxy03]\n\n' $(basename $0) >&2
+    printf '\nUsage: %s [-abBcdEfhiklmMnOpPrStvVxy03]\n\n' $(basename $0) >&2
 
     printf 'This install script attempts to install useful packages\n' >&2
     printf 'for Mininet. It should (hopefully) work on Ubuntu 11.10+\n' >&2
@@ -694,9 +766,11 @@ function usage {
     printf -- ' -E: install babeld\n' >&2
     printf -- ' -f: install Open(F)low\n' >&2
     printf -- ' -h: print this (H)elp message\n' >&2
+    printf -- ' -i: install iproute2\n' >&2
     printf -- ' -k: install new (K)ernel\n' >&2
     printf -- ' -l: insta(L)l wmediumd\n' >&2
     printf -- ' -m: install Open vSwitch kernel (M)odule from source dir\n' >&2
+    printf -- ' -M: install Modem Manager\n' >&2
     printf -- ' -n: install Mini(N)et dependencies + core files\n' >&2
     printf -- ' -o: install olsrdv2\n' >&2
     printf -- ' -O: install olsrd\n' >&2
@@ -718,7 +792,7 @@ if [ $# -eq 0 ]
 then
     all
 else
-    while getopts 'abBdeEfhiklmnoOPrSsvWx036' OPTION
+    while getopts 'abBdeEfhiklmMnoOPrSsvWx036' OPTION
     do
       case $OPTION in
       a)    all;;
@@ -733,9 +807,11 @@ else
             *)  echo "Invalid OpenFlow version $OF_VERSION";;
             esac;;
       h)    usage;;
+      i)    iproute2;;
       k)    kernel;;
       l)    wmediumd;;
       m)    modprobe;;
+      M)    modem_manager;;
       n)    mn_deps;;
       o)    olsrdv2;;
       O)    olsrd;;

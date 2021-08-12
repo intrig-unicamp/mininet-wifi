@@ -40,23 +40,25 @@ from mn_wifi.sixLoWPAN.net import Mininet_IoT
 from mn_wifi.sixLoWPAN.node import OVSSensor, LowPANNode
 from mn_wifi.sixLoWPAN.link import LowPANLink
 from mn_wifi.sixLoWPAN.util import ipAdd6
+from mn_wifi.wwan.net import Mininet_WWAN
+from mn_wifi.wwan.node import WWANNode
+from mn_wifi.wwan.link import WWANLink
 
-VERSION = "2.5"
+VERSION = "2.6"
 
 
-class Mininet_wifi(Mininet, Mininet_IoT):
+class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN):
 
     def __init__(self, accessPoint=OVSKernelAP, station=Station, car=Car,
-                 sensor=LowPANNode, apsensor=OVSSensor, link=WirelessLink,
-                 ssid="new-ssid", mode="g", channel=1, freq=2.4, band=20,
-                 wmediumd_mode=snr, roads=0, fading_cof=0, autoAssociation=True,
-                 allAutoAssociation=True, autoSetPositions=False,
-                 configWiFiDirect=False, config4addr=False,
-                 noise_th=-91, cca_th=-90, disable_tcp_checksum=False, ifb=False,
-                 client_isolation=False, plot=False, plot3d=False, docker=False,
-                 container='mininet-wifi', ssh_user='alpha', rec_rssi=False,
-                 iot_module='mac802154_hwsim', json_file=None, ac_method=None,
-                 **kwargs):
+                 sensor=LowPANNode, apsensor=OVSSensor, modem=WWANNode,
+                 link=WirelessLink, ssid="new-ssid", mode="g", channel=1,
+                 freq=2.4, band=20, wmediumd_mode=snr, roads=0, fading_cof=0,
+                 autoAssociation=True, allAutoAssociation=True, autoSetPositions=False,
+                 configWiFiDirect=False, config4addr=False, noise_th=-91, cca_th=-90,
+                 disable_tcp_checksum=False, ifb=False, client_isolation=False,
+                 plot=False, plot3d=False, docker=False, container='mininet-wifi',
+                 ssh_user='alpha', rec_rssi=False, iot_module='mac802154_hwsim',
+                 wwan_module='wwan_hwsim', json_file=None, ac_method=None, **kwargs):
         """Create Mininet object.
 
            accessPoint: default Access Point class
@@ -64,6 +66,7 @@ class Mininet_wifi(Mininet, Mininet_IoT):
            car: default Car class/constructor
            sensor: default Sensor class/constructor
            apsensor: default AP Sensor class/constructor
+           modem: default Modem class/constructor
            link: default Link class/constructor
            ssid: wifi ssid
            mode: wifi mode
@@ -83,6 +86,7 @@ class Mininet_wifi(Mininet, Mininet_IoT):
            plot: plot graph
            plot3d: plot3d graph
            iot_module: default iot module
+           wwan_module: default wwan module
            rec_rssi: sends rssi to mac80211_hwsim by using hwsim_mgmt
            json_file: json file dir - useful for P4
            ac_method: association control method"""
@@ -128,6 +132,7 @@ class Mininet_wifi(Mininet, Mininet_IoT):
         self.rec_rssi = rec_rssi
         self.roads = roads
         self.iot_module = iot_module
+        self.wwan_module = wwan_module
         self.ifbIntf = 0
         self.mob_start_time = 0
         self.mob_stop_time = 0
@@ -159,6 +164,7 @@ class Mininet_wifi(Mininet, Mininet_IoT):
             mob.ac = self.ac_method
 
         Mininet_IoT.__init__(self, sensor=sensor, apsensor=apsensor)
+        Mininet_WWAN.__init__(self, modem=modem)
         Mininet.__init__(self, link=link, **kwargs)
 
     def socketServer(self, **kwargs):
@@ -237,7 +243,7 @@ class Mininet_wifi(Mininet, Mininet_IoT):
                         node.pexec(cmd)
                         data = 'command accepted!'
                     except:
-                        data = 'unrecognized option %s:' % data[0]
+                        data = 'unrecognized option {}:'.format(data[0])
                 conn.send(str(data).encode('utf-8'))
                 break
             except:
@@ -251,12 +257,12 @@ class Mininet_wifi(Mininet, Mininet_IoT):
            returns: True if all switches are connected"""
         info('*** Waiting for switches/aps to connect\n')
         time = 0
-        L2nodes = self.switches + self.aps + self.apsensors
+        L2nodes = self.switches + self.aps + self.apsensors + self.modems
         remaining = list(L2nodes)
         while True:
             for switch in tuple(remaining):
                 if switch.connected():
-                    info('%s ' % switch)
+                    info(switch)
                     remaining.remove(switch)
             if not remaining:
                 info('\n')
@@ -265,11 +271,11 @@ class Mininet_wifi(Mininet, Mininet_IoT):
                 break
             sleep(delay)
             time += delay
-        warn('Timed out after %d seconds\n' % time)
+        warn('Timed out after {} seconds\n'.format(time))
         for switch in remaining:
             if not switch.connected():
-                warn('Warning: %s is not connected to a controller\n'
-                     % switch.name)
+                warn('Warning: {} is not connected '
+                     'to a controller\n'.format(switch.name))
             else:
                 remaining.remove(switch)
         return not remaining
@@ -352,11 +358,11 @@ class Mininet_wifi(Mininet, Mininet_IoT):
         defaults = {'ip': ipAdd(self.nextIP,
                                 ipBaseNum=self.ipBaseNum,
                                 prefixLen=self.prefixLen) +
-                          '/%s' % self.prefixLen,
+                          '/{}'.format(self.prefixLen),
                     'ip6': ipAdd6(self.nextIP6,
                                   ipBaseNum=self.ip6BaseNum,
                                   prefixLen=self.prefixLen6) +
-                           '/%s' % self.prefixLen6,
+                          '/{}'.format(self.prefixLen6),
                     'channel': self.channel,
                     'band': self.band,
                     'freq': self.freq,
@@ -397,11 +403,11 @@ class Mininet_wifi(Mininet, Mininet_IoT):
         defaults = {'ip': ipAdd(self.nextIP,
                                 ipBaseNum=self.ipBaseNum,
                                 prefixLen=self.prefixLen) +
-                          '/%s' % self.prefixLen,
+                          '/{}'.format(self.prefixLen),
                     'ip6': ipAdd6(self.nextIP6,
                                   ipBaseNum=self.ip6BaseNum,
                                   prefixLen=self.prefixLen6) +
-                           '/%s' % self.prefixLen6,
+                          '/{}'.format(self.prefixLen6),
                     }
 
         if self.autoSetMacs:
@@ -453,7 +459,7 @@ class Mininet_wifi(Mininet, Mininet_IoT):
             self.nextPos_ap += 100
         wlan = None
         if cls and isinstance(cls, physicalAP):
-            wlan = ("%s" % params.pop('phywlan', {}))
+            wlan = params.pop('phywlan', {})
             cls = self.accessPoint
         if not cls:
             cls = self.accessPoint
@@ -477,7 +483,7 @@ class Mininet_wifi(Mininet, Mininet_IoT):
             params = ip
         else:
             natIP = ip.split('/')[0]
-            params = '%s via %s' % (params['net'], natIP)
+            params = '{} via {}'.format(params['net'], natIP)
         # Do this in one line in case we're messing with the root namespace
         node.cmd('ip route add', params)
 
@@ -495,7 +501,7 @@ class Mininet_wifi(Mininet, Mininet_IoT):
         if connect:
             if not isinstance(connect, Node):
                 if linkTo:
-                    nodes = self.switches + self.aps + self.apsensors
+                    nodes = self.switches + self.aps + self.apsensors + self.modems
                     for node in nodes:
                         if linkTo == node.name:
                             connect = node
@@ -508,25 +514,25 @@ class Mininet_wifi(Mininet, Mininet_IoT):
             self.addLink(nat, connect)
             # Set the default route on stations
             natIP = nat.params['ip'].split('/')[0]
-            nodes = self.stations + self.hosts + self.cars + self.sensors
+            nodes = self.stations + self.hosts + self.cars + self.sensors + self.modems
             if 'net' in params:
                 for node in nodes:
                     if node.inNamespace:
-                        self.setStaticRoute(node, '%s via %s' % (params['net'], natIP))
+                        self.setStaticRoute(node, '{} via {}'.format(params['net'], natIP))
             else:
                 for node in nodes:
                     if node.inNamespace:
                         if isinstance(node, self.sensor) or isinstance(node, self.apsensor):
-                            node.setDefault6Route('via %s' % natIP)
+                            node.setDefault6Route('via {}'.format(natIP))
                         else:
-                            node.setDefaultRoute('via %s' % natIP)
+                            node.setDefaultRoute('via {}'.format(natIP))
         return nat
 
     def __iter__(self):
         "return iterator over node names"
         for node in chain(self.hosts, self.switches, self.controllers,
                           self.stations, self.cars, self.aps, self.sensors,
-                          self.apsensors):
+                          self.apsensors, self.modems):
             yield node.name
 
     def __len__(self):
@@ -534,7 +540,7 @@ class Mininet_wifi(Mininet, Mininet_IoT):
         return (len(self.hosts) + len(self.switches) +
                 len(self.controllers) + len(self.stations) +
                 len(self.cars) + len(self.aps) + len(self.sensors) +
-                len(self.apsensors))
+                len(self.apsensors) + len(self.modems))
 
     def setModule(self, moduleDir):
         "set an alternative module rather than mac80211_hwsim"
@@ -620,6 +626,10 @@ class Mininet_wifi(Mininet, Mininet_IoT):
             link = cls(node=node1, port=port1, **params)
             self.links.append(link)
             return link
+        elif cls == WWANLink:
+            link = cls(node=node1, port=port1, **params)
+            self.links.append(link)
+            return link
         elif cls == _4address:
             if self.wmediumd_mode == interference:
                 link = cls(node1, node2, port1, port2, **params)
@@ -647,7 +657,7 @@ class Mininet_wifi(Mininet, Mininet_IoT):
 
     def configHosts(self):
         "Configure a set of nodes."
-        nodes = self.hosts + self.sensors
+        nodes = self.hosts + self.sensors + self.modems
         for node in nodes:
             # info( host.name + ' ' )
             intf = node.defaultIntf()
@@ -771,6 +781,7 @@ class Mininet_wifi(Mininet, Mininet_IoT):
         self.terms += makeTerms(self.aps, 'ap')
         self.terms += makeTerms(self.sensors, 'sensor')
         self.terms += makeTerms(self.apsensors, 'apsensor')
+        self.terms += makeTerms(self.modems, 'modem')
 
     def telemetry(self, **kwargs):
         run_telemetry(**kwargs)
@@ -838,7 +849,7 @@ class Mininet_wifi(Mininet, Mininet_IoT):
             switch.terminate()
         info('\n')
         info('*** Stopping nodes\n')
-        nodes = self.hosts + self.stations + self.sensors
+        nodes = self.hosts + self.stations + self.sensors + self.modems
         for node in nodes:
             info(node.name + ' ')
             node.terminate()
@@ -856,33 +867,32 @@ class Mininet_wifi(Mininet, Mininet_IoT):
         lost = 0
         ploss = None
         if not hosts:
-            hosts = self.hosts + self.stations + self.sensors
+            hosts = self.hosts + self.stations + self.sensors + self.modems
             output('*** Ping: testing ping reachability\n')
         for node in hosts:
-            output('%s -> ' % node.name)
+            output('{} -> '.format(node.name))
             for dest in hosts:
                 if node != dest:
                     opts = ''
                     if timeout:
-                        opts = '-W %s' % timeout
+                        opts = '-W {}'.format(timeout)
                     if dest.intfs:
+                        cmd = 'ping -c1 {} {}'
                         if isinstance(node, LowPANNode):
-                            result = node.cmdPrint('ping -c1 %s %s'
-                                                   % (opts, dest.IP6()))
+                            result = node.cmdPrint(cmd.format(opts, dest.IP6()))
                         else:
-                            result = node.cmdPrint('ping -c1 %s %s'
-                                                   % (opts, dest.IP()))
+                            result = node.cmdPrint(cmd.format(opts, dest.IP()))
                         sent, received = self._parsePing(result)
                     else:
                         sent, received = 0, 0
                     packets += sent
                     if received > sent:
                         error('*** Error: received too many packets')
-                        error('%s' % result)
+                        error(result)
                         node.cmdPrint('route')
                         exit(1)
                     lost += sent - received
-                    output(('%s ' % dest.name) if received else 'X ')
+                    output(('{} '.format(dest.name)) if received else 'X ')
             output('\n')
         if packets > 0:
             ploss = 100.0 * lost / packets
@@ -907,23 +917,23 @@ class Mininet_wifi(Mininet, Mininet_IoT):
             output('*** Ping: testing ping reachability\n')
 
         for node in hosts:
-            output('%s -> ' % node.name)
+            output('{} -> '.format(node.name))
             for dest in hosts:
                 if node != dest:
                     opts = ''
                     if timeout:
-                        opts = '-W %s' % timeout
-                    result = node.cmd('ping -c1 %s %s' % (opts, dest.IP()))
+                        opts = '-W {}'.format(timeout)
+                    result = node.cmd('ping -c1 {} {}'.format(opts, dest.IP()))
                     outputs = self._parsePingFull(result)
                     sent, received, rttmin, rttavg, rttmax, rttdev = outputs
                     all_outputs.append((node, dest, outputs))
-                    output(('%s ' % dest.name) if received else 'X ')
+                    output(dest.name if received else 'X ')
             output('\n')
         output("*** Results: \n")
         for outputs in all_outputs:
             src, dest, ping_outputs = outputs
             sent, received, rttmin, rttavg, rttmax, rttdev = ping_outputs
-            output(" %s->%s: %s/%s, " % (src, dest, sent, received))
+            output(" {}->{}: {}/{}, ".format(src, dest, sent, received))
             output("rtt min/avg/max/mdev %0.3f/%0.3f/%0.3f/%0.3f ms\n" %
                    (rttmin, rttavg, rttmax, rttdev))
         return all_outputs
@@ -978,16 +988,13 @@ class Mininet_wifi(Mininet, Mininet_IoT):
         conn1 = 0
         conn2 = 0
         if isinstance(client, Station) or isinstance(server, Station):
+            cmd = 'iw dev {} link | grep -ic \'Connected\''
             if isinstance(client, Station):
                 while conn1 == 0:
-                    conn1 = int(client.cmd('iw dev %s link '
-                                           '| grep -ic \'Connected\''
-                                           % client.wintfs[0].name))
+                    conn1 = int(client.cmd(cmd.format(client.wintfs[0].name)))
             if isinstance(server, Station):
                 while conn2 == 0:
-                    conn2 = int(server.cmd('iw dev %s link | grep -ic '
-                                           '\'Connected\''
-                                           % server.wintfs[0].name))
+                    conn2 = int(server.cmd(cmd.format(server.wintfs[0].name)))
         output('*** Iperf: testing', l4Type, 'bandwidth between',
                client, 'and', server, '\n')
         server.cmd('killall -9 iperf')
@@ -997,9 +1004,9 @@ class Mininet_wifi(Mininet, Mininet_IoT):
             iperfArgs += '-u '
             bwArgs = '-b ' + udpBw + ' '
         elif l4Type != 'TCP':
-            raise Exception('Unexpected l4 type: %s' % l4Type)
+            raise Exception('Unexpected l4 type: {}'.format(l4Type))
         if fmt:
-            iperfArgs += '-f %s ' % fmt
+            iperfArgs += '-f {} '.format(fmt)
         server.sendCmd(iperfArgs + '-s')
         if l4Type == 'TCP':
             if not waitListening(client, server.IP(), port):
@@ -1007,7 +1014,7 @@ class Mininet_wifi(Mininet, Mininet_IoT):
                                 % port)
         cliout = client.cmd(iperfArgs + '-t %d -c ' % seconds +
                             server.IP() + ' ' + bwArgs)
-        debug('Client output: %s\n' % cliout)
+        debug('Client output: {}\n'.format(cliout))
         servout = ''
         # We want the last *b/sec from the iperf server output
         # for TCP, there are two of them because of waitListening
@@ -1016,16 +1023,16 @@ class Mininet_wifi(Mininet, Mininet_IoT):
             servout += server.monitor(timeoutms=5000)
         server.sendInt()
         servout += server.waitOutput()
-        debug('Server output: %s\n' % servout)
+        debug('Server output: {}\n'.format(servout))
         result = [self._parseIperf(servout), self._parseIperf(cliout)]
         if l4Type == 'UDP':
             result.insert(0, udpBw)
-        output('*** Results: %s\n' % result)
+        output('*** Results: {}\n'.format(result))
         return result
 
     def get_mn_wifi_nodes(self):
         return self.stations + self.cars + self.aps + \
-               self.sensors + self.apsensors
+               self.sensors + self.apsensors + self.modems
 
     def get_distance(self, src, dst):
         """
@@ -1040,11 +1047,11 @@ class Mininet_wifi(Mininet, Mininet_IoT):
                 dst = self.nameToNode[dst]
                 if dst in nodes:
                     dist = src.get_distance_to(dst)
-                    info("The distance between %s and %s is %s "
-                         "meters\n" % (src, dst, dist))
+                    info("The distance between {} and "
+                         "{} is {} meters\n".format(src, dst, dist))
         except KeyError:
-            info("node %s or/and node %s does not exist or there is no " \
-                 "position defined\n" % (dst, src))
+            info("node {} or/and node {} does not exist or "
+                 "there is no position defined\n".format(dst, src))
 
     def mobility(self, *args, **kwargs):
         "Configure mobility parameters"
@@ -1053,7 +1060,8 @@ class Mininet_wifi(Mininet, Mininet_IoT):
     def get_mob_stat_nodes(self):
         mob_nodes = []
         stat_nodes = []
-        nodes = self.stations + self.aps + self.cars + self.sensors + self.apsensors
+        nodes = self.stations + self.aps + self.cars + \
+                self.sensors + self.apsensors + self.modems
         for node in nodes:
             if hasattr(node, 'position') and 'initPos' not in node.params:
                 stat_nodes.append(node)
@@ -1088,9 +1096,9 @@ class Mininet_wifi(Mininet, Mininet_IoT):
            dst: node name
            status: string {up, down}"""
         if src not in self.nameToNode:
-            error('src not in network: %s\n' % src)
+            error('src not in network: {}\n'.format(src))
         elif dst not in self.nameToNode:
-            error('dst not in network: %s\n' % dst)
+            error('dst not in network: {}\n'.format(dst))
 
         condition1 = [isinstance(self.nameToNode[src], Station),
                       isinstance(self.nameToNode[dst], AP)]
@@ -1104,14 +1112,14 @@ class Mininet_wifi(Mininet, Mininet_IoT):
             dst = self.nameToNode[dst]
             connections = src.connectionsTo(dst)
             if len(connections) == 0:
-                error('src and dst not connected: %s %s\n' % (src, dst))
+                error('src and dst not connected: {} {}\n'.format(src, dst))
             for srcIntf, dstIntf in connections:
                 result = srcIntf.ifconfig(status)
                 if result:
-                    error('link src status change failed: %s\n' % result)
+                    error('link src status change failed: {}\n'.format(result))
                 result = dstIntf.ifconfig(status)
                 if result:
-                    error('link dst status change failed: %s\n' % result)
+                    error('link dst status change failed: {}\n'.format(result))
 
     def interact(self):
         "Start network and run our simple CLI."
@@ -1131,9 +1139,8 @@ class Mininet_wifi(Mininet, Mininet_IoT):
                     node.params['wlan'].append(vif)
                     mac = str(node.wintfs[0].mac)
                     new_mac = '{}{}{}'.format(mac[:4], vif_+1, mac[5:])
-
-                    node.cmd('iw dev %s interface add %s type station'
-                             % (node.params['wlan'][0], vif))
+                    node.cmd('iw dev {} interface add {} '
+                             'type station'.format(node.params['wlan'][0], vif))
                     TCLinkWireless(node, intfName=vif)
                     managed(node, wlan=vif_+1)
 
@@ -1269,6 +1276,10 @@ class Mininet_wifi(Mininet, Mininet_IoT):
         for sensor in sensors:
             self.nameToNode[sensor.name] = sensor
 
+    def addModems(self):
+        for modem in self.modems:
+            self.nameToNode[modem.name] = modem
+
     def config_range(self):
         nodes = self.stations + self.cars + self.aps
         for node in nodes:
@@ -1323,6 +1334,11 @@ class Mininet_wifi(Mininet, Mininet_IoT):
             sensors = self.sensors + self.apsensors
             self.addSensors(sensors)
             self.configure6LowPANLink()
+
+        if self.nwwans:
+            self.modems = self.init_wwan_module(self.wwan_module)
+            self.addModems()
+            self.configureWWANLink()
 
         nodes = self.stations + self.cars
         for node in nodes:
@@ -1402,7 +1418,7 @@ class Mininet_wifi(Mininet, Mininet_IoT):
                 else:
                     for intf in node.wintfs.values():
                         if isinstance(intf, adhoc):
-                            info('%s ' % node)
+                            info(node.name)
                             sleep(1)
                     node.pos = (0, 0, 0)
                     if not isinstance(node, AP):

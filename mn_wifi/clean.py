@@ -1,19 +1,19 @@
 """
-    Mininet-WiFi: A simple networking testbed for Wireless OpenFlow/SDWN!
-    author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
+Mininet-WiFi: A simple networking testbed for Wireless OpenFlow/SDWN!
+author: Ramon Fontes (ramonrf@dca.fee.unicamp.br)
 """
 
 from subprocess import ( Popen, PIPE, check_output as co,
                          CalledProcessError )
 import subprocess
 from time import sleep
-import psutil
 import os
 import glob
 
 from mininet.log import info
 from mininet.util import decode
 from mn_wifi.sixLoWPAN.clean import Cleanup as CleanLowpan
+from mn_wifi.wwan.clean import Cleanup as CleanWwan
 from mn_wifi.wmediumdConnector import w_server
 
 
@@ -77,7 +77,9 @@ class Cleanup(object):
         sleep(0.1)
 
         info("\n*** Removing WiFi module and Configurations\n")        
-        phy = subprocess.check_output('find /sys/kernel/debug/ieee80211 -name hwsim | cut -d/ -f 6 | sort', shell=True).decode('utf-8').split("\n")
+        phy = subprocess.check_output('find /sys/kernel/debug/ieee80211 '
+                                      '-name hwsim | cut -d/ -f 6 | sort',
+                                      shell=True).decode('utf-8').split("\n")
         phy.pop()
         phy.sort(key=len, reverse=False)
 
@@ -111,6 +113,7 @@ class Cleanup(object):
             cls.sh('fuser -k %s/tcp >/dev/null 2>&1' % cls.socket_port)
 
         CleanLowpan.cleanup_6lowpan()
+        CleanWwan.cleanup_wwan()
 
     @classmethod
     def cleanup_wifi(cls):
