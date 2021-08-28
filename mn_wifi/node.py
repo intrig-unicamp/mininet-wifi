@@ -284,10 +284,10 @@ class Node_wifi(Node):
         return round(dist, 2)
 
     # we actualy do not use this within the code. This can be only evoked manually.
-    def setAssociation(self, ap, ap_intf=None, intf=None):
+    def setAssociation(self, ap, intf=None):
         "Force association to given AP"
         intf = self.getNameToWintf(intf)
-        ap_intf = self.getNameToWintf(ap_intf)
+        ap_intf = ap.wintfs[0]
         if hasattr(self, 'position') and hasattr(ap, 'position'):
             dist = self.get_distance_to(ap)
             if dist <= ap_intf.range:
@@ -296,7 +296,7 @@ class Node_wifi(Node):
                     intf.update(ap_intf)
                 elif intf.associatedTo != ap_intf:
                     if intf.associatedTo:
-                        intf.disconnect()
+                        intf.disconnect(ap_intf)
                     intf.associate_infra(ap_intf)
                     intf.configWLink(dist)
                 else:
