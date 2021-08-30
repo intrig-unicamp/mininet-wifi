@@ -42,10 +42,10 @@ class sumo(Mobility):
 
     def start(self, cars, config_file, clients, port, extra_params):
         sumoBinary = checkBinary('sumo-gui')
-        sumoConfig = os.path.join(os.path.dirname(__file__), "data/%s" % config_file)
+        sumoConfig = os.path.join(os.path.dirname(__file__), "data/{}".format(config_file))
 
-        command = ' %s -c %s --num-clients %s --remote-port %s \
-            --time-to-teleport -1' % (sumoBinary, sumoConfig, clients, port)
+        command = ' {} -c {} --num-clients {} --remote-port {} ' \
+                  '--time-to-teleport -1'.format(sumoBinary, sumoConfig, clients, port)
         for param in extra_params:
             command = command + " " + param
         command += " &"
@@ -59,6 +59,7 @@ class sumo(Mobility):
         vehCmds._connection = traci.getConnection(label="default")
 
         while True:
+            traci.simulationStep()
             for vehID1 in vehCmds.getIDList():
                 x1 = vehCmds.getPosition(vehID1)[0]
                 y1 = vehCmds.getPosition(vehID1)[1]
