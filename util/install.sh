@@ -370,6 +370,28 @@ function batman {
     sudo make install
 }
 
+# Install NetworkManager
+function network_manager {
+    echo "Installing Network Manager..."
+
+    # Install deps
+    $install intltool libudev-dev libnss3-dev ppp-dev libjansson-dev \
+             libpsl-dev libcurl4-gnutls-dev libndp-dev
+
+    # Install Network Manager
+    cd $BUILD_DIR/mininet-wifi
+    if [ -d NetworkManager ]; then
+      echo "Removing NetworkManager dir..."
+      rm -r NetworkManager
+    fi
+    git clone --depth=1 https://github.com/NetworkManager/NetworkManager
+    cd NetworkManager
+    ./autogen.sh --disable-introspection --disable-gtk-doc
+    ./configure --prefix=/usr --libdir=/usr/lib/x86_64-linux-gnu/ --sysconfdir=/etc --localstatedir=/var --disable-static --enable-more-warnings=no --with-systemd-journal=no --with-systemd-suspend-resume --with-at-command-via-dbus --without-mbim CFLAGS="-ggdb -O0"
+    make
+    sudo make install
+}
+
 # Install ModemManager
 function modem_manager {
     echo "Installing Modem Manager..."
@@ -749,7 +771,7 @@ function vm_clean {
 }
 
 function usage {
-    printf '\nUsage: %s [-abBcdEfhiklmMnOpPrStvVxy03]\n\n' $(basename $0) >&2
+    printf '\nUsage: %s [-abBcdEfhiklmMnNOpPrStvVxy03]\n\n' $(basename $0) >&2
 
     printf 'This install script attempts to install useful packages\n' >&2
     printf 'for Mininet. It should (hopefully) work on Ubuntu 11.10+\n' >&2
@@ -772,6 +794,7 @@ function usage {
     printf -- ' -m: install Open vSwitch kernel (M)odule from source dir\n' >&2
     printf -- ' -M: install Modem Manager\n' >&2
     printf -- ' -n: install Mini(N)et dependencies + core files\n' >&2
+    printf -- ' -N: install Network Manager\n' >&2
     printf -- ' -o: install olsrdv2\n' >&2
     printf -- ' -O: install olsrd\n' >&2
     printf -- ' -p: install P4 dependencies\n' >&2
@@ -792,7 +815,7 @@ if [ $# -eq 0 ]
 then
     all
 else
-    while getopts 'abBdeEfhiklmMnoOPrSsvWx036' OPTION
+    while getopts 'abBdeEfhiklmMnNoOPrSsvWx036' OPTION
     do
       case $OPTION in
       a)    all;;
@@ -813,6 +836,7 @@ else
       m)    modprobe;;
       M)    modem_manager;;
       n)    mn_deps;;
+      N)    network_manager;;
       o)    olsrdv2;;
       O)    olsrd;;
       P)    p4_deps;;
