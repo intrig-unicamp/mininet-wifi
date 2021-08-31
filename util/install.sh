@@ -370,6 +370,30 @@ function batman {
     sudo make install
 }
 
+# Install SUMO
+function sumo {
+    echo "Installing SUMO..."
+
+    # Install deps
+    $install cmake g++ libxerces-c-dev libfox-1.6-dev \
+             libgdal-dev libproj-dev libgl2ps-dev swig
+
+    # Install SUMO
+    cd $BUILD_DIR/mininet-wifi
+    if [ -d sumo ]; then
+      echo "Removing sumo dir..."
+      rm -r sumo
+    fi
+    git clone --depth=1 https://github.com/eclipse/sumo
+    cd sumo
+    export SUMO_HOME="$PWD"
+    mkdir build/cmake-build && cd build/cmake-build
+    cmake ../..
+    make -j$(nproc)
+    sudo make install
+}
+
+
 # Install NetworkManager
 function network_manager {
     echo "Installing Network Manager..."
@@ -800,6 +824,7 @@ function usage {
     printf -- ' -p: install P4 dependencies\n' >&2
     printf -- ' -r: remove existing Open vSwitch packages\n' >&2
     printf -- ' -s <dir>: place dependency (S)ource/build trees in <dir>\n' >&2
+    printf -- ' -S: install SUMO\n' >&2
     printf -- ' -v: install Open (V)switch\n' >&2
     printf -- ' -V <version>: install a particular version of Open (V)switch on Ubuntu\n' >&2
     printf -- ' -W: install Mininet-WiFi dependencies\n' >&2
@@ -844,6 +869,7 @@ else
       s)    mkdir -p $OPTARG; # ensure the directory is created
             BUILD_DIR="$( cd -P "$OPTARG" && pwd )"; # get the full path
             echo "Dependency installation directory: $BUILD_DIR";;
+      S)    sumo;;
       v)    ovs;;
       W)    wifi_deps;;
       0)    OF_VERSION=1.0;;
