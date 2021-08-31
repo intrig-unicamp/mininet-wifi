@@ -55,10 +55,14 @@ def topology():
         net.addLink(car, intf=car.wintfs[1].name,
                     cls=ITSLink, band=20, channel=181)
 
+    # exec_order: Tells TraCI to give the current
+    # client the given position in the execution order.
+    # We may have to change it from 0 to 1 if we want to
+    # load/reload the current simulation from a 2nd client
     net.useExternalProgram(program=sumo, port=8813,
                            config_file='map.sumocfg',
                            extra_params=["--start --delay 1000"],
-                           clients=1)
+                           clients=1, exec_order=0)
 
     info("*** Starting network\n")
     net.build()

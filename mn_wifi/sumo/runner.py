@@ -1,4 +1,3 @@
-import sys
 import os
 import threading
 from threading import Thread as thread
@@ -25,14 +24,15 @@ class sumo(Mobility):
         return cls.vehCmds
 
     def configureApp(self, cars, aps, config_file='map.sumocfg',
-                     clients=1, port=8813, extra_params=None):
+                     clients=1, port=8813, exec_order=0, extra_params=None):
         if extra_params is None:
             extra_params = []
         try:
             Mobility.cars = cars
             Mobility.aps = aps
             Mobility.mobileNodes = cars
-            self.start(cars, config_file, clients, port, extra_params)
+            self.start(cars, config_file, clients, port,
+                       exec_order, extra_params)
         except:
             info("*** Connection with SUMO has been closed\n")
 
@@ -40,7 +40,8 @@ class sumo(Mobility):
         thread = threading.Thread(name='wifiParameters', target=self.parameters)
         thread.start()
 
-    def start(self, cars, config_file, clients, port, extra_params):
+    def start(self, cars, config_file, clients, port,
+              exec_order, extra_params):
         sumoBinary = checkBinary('sumo-gui')
         sumoConfig = os.path.join(os.path.dirname(__file__), "data/{}".format(config_file))
 
@@ -51,7 +52,7 @@ class sumo(Mobility):
         command += " &"
         os.system(command)
         traci.init(port)
-        traci.setOrder(0)
+        traci.setOrder(exec_order)
 
         self.setWifiParameters()
 
