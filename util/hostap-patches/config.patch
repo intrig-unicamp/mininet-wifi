@@ -1,5 +1,5 @@
 diff --git hostapd/defconfig hostapd/defconfig
-index cbdd2a5..3da654e 100644
+index 666447e..be723c4 100644
 --- hostapd/defconfig
 +++ hostapd/defconfig
 @@ -115,11 +115,11 @@ CONFIG_EAP_TTLS=y
@@ -85,7 +85,7 @@ index cbdd2a5..3da654e 100644
  # This can be used to enable some testing options (see also the example
 @@ -348,7 +349,7 @@ CONFIG_IPV6=y
  # For more details refer to:
- # http://wireless.kernel.org/en/users/Documentation/acs
+ # https://wireless.wiki.kernel.org/en/users/documentation/acs
  #
 -#CONFIG_ACS=y
 +CONFIG_ACS=y
@@ -101,15 +101,7 @@ index cbdd2a5..3da654e 100644
  
  # Opportunistic Wireless Encryption (OWE)
  # Experimental implementation of draft-harkins-owe-07.txt
-@@ -380,6 +381,7 @@ CONFIG_IPV6=y
- # Override default value for the wpa_disable_eapol_key_retries configuration
- # parameter. See that parameter in hostapd.conf for more details.
- #CFLAGS += -DDEFAULT_WPA_DISABLE_EAPOL_KEY_RETRIES=1
-+CONFIG_SAE=y
- 
- # Wired equivalent privacy (WEP)
- # WEP is an obsolete cryptographic data confidentiality algorithm that is not
-@@ -387,7 +389,7 @@ CONFIG_IPV6=y
+@@ -387,7 +388,7 @@ CONFIG_IPV6=y
  # functionality needed to use WEP is available in the current hostapd
  # release under this optional build parameter. This functionality is subject to
  # be completely removed in a future release.
@@ -118,6 +110,11 @@ index cbdd2a5..3da654e 100644
  
  # Remove all TKIP functionality
  # TKIP is an old cryptographic data confidentiality algorithm that is not
+@@ -402,3 +403,4 @@ CONFIG_IPV6=y
+ # production use.
+ # This requires CONFIG_IEEE80211W=y to be enabled, too.
+ #CONFIG_PASN=y
++CONFIG_SAE=y
 diff --git wpa_supplicant/bgscan_learn.c wpa_supplicant/bgscan_learn.c
 index cb732f7..ebac73b 100644
 --- wpa_supplicant/bgscan_learn.c
@@ -197,7 +194,7 @@ index 708a823..0bf8b4a 100644
  # Opportunistic Wireless Encryption (OWE)
  # Experimental implementation of draft-harkins-owe-07.txt
 diff --git wpa_supplicant/p2p_supplicant.c wpa_supplicant/p2p_supplicant.c
-index c04e8ec..65b8d98 100644
+index 07e1101..32e1420 100644
 --- wpa_supplicant/p2p_supplicant.c
 +++ wpa_supplicant/p2p_supplicant.c
 @@ -96,7 +96,7 @@
