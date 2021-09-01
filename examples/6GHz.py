@@ -37,7 +37,8 @@ def topology(args):
     info("*** Configuring propagation model\n")
     net.setPropagationModel(model="logDistance", exp=4.5)
 
-    net.setModule('./mac80211_hwsim.ko')
+    # modified module
+    #net.setModule('./mac80211_hwsim.ko')
 
     info("*** Configuring wifi nodes\n")
     net.configureWifiNodes()
