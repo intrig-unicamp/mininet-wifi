@@ -88,7 +88,7 @@ class IntfWireless(Intf):
         self.node.pexec(cmd)
 
     def get_default_gw(self):
-        return DeviceRate(self).rate if 'model' in self.params \
+        return DeviceRate(self).rate if 'model' in self.node.params \
             else self.getRate()
 
     def get_bw_ap(self):
