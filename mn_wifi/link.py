@@ -266,8 +266,7 @@ class IntfWireless(Intf):
         return int(format(self.freq, '.3f').replace('.', ''))
 
     def setReg(self):
-        if self.mode == 'a' or self.mode == 'ac' or self.mode == 'ax':
-            self.pexec('iw reg set US')
+        self.pexec('iw reg set {}'.format(self.country_code))
 
     def setIntfName(self, *args):
         self.cmd('ip link set {} down'.format(self.name))
@@ -487,6 +486,8 @@ class IntfWireless(Intf):
                     if self.freq_list:
                         cmd += '   freq_list={}\n'.format(self.freq_list)
                 wpa_key_mgmt = ap_intf.wpa_key_mgmt
+                if ap_intf.ieee80211w:
+                    cmd += "   ieee80211w={}\n".format(ap_intf.ieee80211w)
                 if ap_intf.encrypt == 'wpa3':
                     wpa_key_mgmt = 'SAE'
                 cmd += '   key_mgmt={}\n'.format(wpa_key_mgmt)
@@ -795,6 +796,8 @@ class HostapdConfig(IntfWireless):
 
     @staticmethod
     def get_mode_config(intf, cmd=''):
+        if intf.mode == 'ax':
+            intf.country_code = 'DE'
         if 'n' in intf.mode:
             cmd += "\nhw_mode=a" if intf.mode == 'n5' else "\nhw_mode=g"
         elif intf.mode == 'a':
@@ -875,7 +878,7 @@ class HostapdConfig(IntfWireless):
                         cmd += "\nauth_algs={}".format(intf.auth_algs)
                         cmd += "\nwpa=1" if intf.encrypt == 'wpa' else "\nwpa=2"
                         if intf.encrypt == 'wpa3':
-                            cmd += "\nwpa_key_mgmt=WPA-PSK SAE"
+                            cmd += "\nwpa_key_mgmt=SAE"
                         else:
                             cmd += "\nwpa_key_mgmt={}".format(intf.wpa_key_mgmt)
                         cmd += '\nwpa_pairwise={}'.format(intf.rsn_pairwise)
