@@ -517,10 +517,10 @@ class Tracked(Mobility):
         pointsL = []
         for id in np.arange(0, len(points), interval):
             if id < len(points) - interval:
-                pointsL.append(points[id])
+                pointsL.append(points[int(id)])
             else:
                 # set the last position according to the coordinates
-                pointsL.append(points[len(points)-1])
+                pointsL.append(points[int(len(points)-1)])
         return pointsL
 
 
