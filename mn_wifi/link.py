@@ -1418,6 +1418,7 @@ class managed(WirelessLink):
         self.beacon_int = None
         self.client_isolation = None
         self.config = None
+        self.country_code = None
         self.encrypt = None
         self.freq_list = None
         self.ieee80211w = None
@@ -1583,6 +1584,7 @@ class LinkAttrs(WirelessLink):
         self.antennaGain = intf.antennaGain
         self.antennaHeight = intf.antennaHeight
         self.band = intf.band
+        self.country_code = intf.country_code
         self.encrypt = intf.encrypt
         self.freq = intf.freq
         self.id = wlan
