@@ -1418,7 +1418,7 @@ class Mininet_wifi(Mininet, Mininet_IoT, Mininet_WWAN):
                 else:
                     for intf in node.wintfs.values():
                         if isinstance(intf, adhoc):
-                            info(node.name)
+                            info(node.name + ' ')
                             sleep(1)
                     node.pos = (0, 0, 0)
                     if not isinstance(node, AP):
