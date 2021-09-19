@@ -31,7 +31,7 @@ class Cleanup(object):
     @classmethod
     def killprocs(cls, pattern):
         "Reliably terminate processes matching a pattern (including args)"
-        cls.sh('pkill -9 -f %s' % pattern)
+        cls.sh('pkill -9 -f {}'.format(pattern))
         # Make sure they are gone
         while True:
             try:
@@ -39,7 +39,7 @@ class Cleanup(object):
             except CalledProcessError:
                 pids = ''
             if pids:
-                cls.sh('pkill -9 -f %s' % pattern)
+                cls.sh('pkill -9 -f {}'.format(pattern))
                 sleep(.5)
             else:
                 break
@@ -56,8 +56,8 @@ class Cleanup(object):
     @classmethod
     def kill_mod(cls, module):
         if cls.module_loaded(module):
-            info("*** Killing %s\n" % module)
-            os.system('rmmod %s' % module)
+            info("*** Killing {}\n".format(module))
+            os.system('rmmod {}'.format(module))
 
     @classmethod
     def kill_mod_proc(cls):

@@ -71,14 +71,16 @@ def topology():
         enb.start([])
 
     for id, car in enumerate(net.cars):
-        car.setIP('192.168.0.%s/24' % (id+1), intf='%s-wlan0' % car.name)
-        car.setIP('192.168.1.%s/24' % (id+1), intf='%s-wlan1' % car.name)
+        car.setIP('192.168.0.{}/24'.format(id+1),
+                  intf='{}'.format(car.wintfs[0].name))
+        car.setIP('192.168.1.{}/24'.format(id+1),
+                  intf='{}'.format(car.wintfs[1].name))
 
     # Track the position of the nodes
-    """nodes = net.cars + net.aps
+    nodes = net.cars + net.aps
     net.telemetry(nodes=nodes, data_type='position',
                   min_x=2200, min_y=2800,
-                  max_x=3200, max_y=3900)"""
+                  max_x=3200, max_y=3900)
 
     info("*** Running CLI\n")
     CLI(net)

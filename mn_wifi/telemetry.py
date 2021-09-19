@@ -11,6 +11,7 @@ telemetry(nodes, **params)
 
 import os
 import os.path
+import glob
 import time
 import subprocess
 import numpy
@@ -46,7 +47,7 @@ class telemetry(object):
         arr = ''
         for node in nodes:
             i = nodes.index(node)
-            arr += 'ax%s, ' % (i + 1)
+            arr += 'ax{}, '.format(i+1)
         arr1 = (arr[:-2])
         setattr(self, ax, arr1)
 
@@ -80,18 +81,19 @@ class telemetry(object):
 
     @classmethod
     def get_ifaces(cls, nodes, inNamespaceNodes, phys):
-        cmd = 'ls /sys/class/ieee80211/{}/device/net/'
+        cmd = 'ls {}{}'.format(parseData.ieee80211_dir, parseData.net_dir)
         ifaces = {}
         j = 0
         wlan = 1
+        phys.sort(key=len, reverse=False)
         for phy in phys:
             try:
                 ifaces_ = subprocess.check_output(cmd.format(phy), stderr=subprocess.PIPE,
-                                                  shell=True).decode().split("\n")
+                                                  shell=True).decode().split('\n')
             except:
                 node = inNamespaceNodes[j]
-                ifaces_ = subprocess.check_output('%s %s %s' % (util_dir, node, cmd.format(phy)),
-                                                  shell=True).decode().split("\n")
+                ifaces_ = subprocess.check_output('{} {} {}'.format(util_dir, node, cmd.format(phy)),
+                                                  shell=True).decode().split('\n')
             ifaces_.pop()
             if nodes[j] not in ifaces:
                 ifaces[nodes[j]] = []
@@ -107,18 +109,17 @@ class telemetry(object):
 
     @classmethod
     def get_phys(cls, nodes, inNamespaceNodes):
-        cmd = 'ls /sys/class/ieee80211/'
+        cmd = 'ls {}'.format(parseData.ieee80211_dir)
         isAP = False
         phys = []
         for node in nodes:
             if isinstance(node, AP) and not isAP:
-                phys += subprocess.check_output(cmd,
-                                                shell=True).decode().split("\n")
+                phys += subprocess.check_output(cmd, shell=True).decode().split('\n')
                 isAP = True
             else:
                 if not isinstance(node, AP):
-                    phys += subprocess.check_output('%s %s %s' % (util_dir, node, cmd),
-                                                    shell=True).decode().split("\n")
+                    phys += subprocess.check_output('{} {} {}'.format(util_dir, node, cmd),
+                                                    shell=True).decode().split('\n')
         phy_list = []
         phys = sorted(phys)
         for phy in phys:
@@ -141,18 +142,16 @@ def get_rssi(node, iface):
         rssi = 0
     else:
         cmd = "{} {} iw dev {} link | grep signal | tr -d signal: | awk '{{print $1 $3}}'"
-        rssi = subprocess.check_output('%s' % (cmd.format(util_dir, node, iface)),
+        rssi = subprocess.check_output('{}'.format(cmd.format(util_dir, node, iface)),
                                        shell=True).decode().split("\n")
-        if not rssi[0]:
-            rssi = 0
-        else:
-            rssi = rssi[0]
+
+        rssi = 0 if not rssi[0] else rssi[0]
     return rssi
 
 
 def get_values_from_statistics(tx_bytes, time, node, filename):
     tx = telemetry.calc(float(tx_bytes[0]), node)
-    os.system("echo '%s,%s' >> %s" % (time, tx, filename.format(node)))
+    os.system(parseData.echo_cmd.format(time, tx, filename.format(node)))
 
 
 class parseData(object):
@@ -171,7 +170,10 @@ class parseData(object):
     filename = None
     single = None
     thread_ = None
-    dir = 'cat /sys/class/ieee80211/{}/device/net/{}/statistics/{}'
+    ieee80211_dir = '/sys/class/ieee80211'
+    net_dir = '/{}/device/net'
+    stats_dir = '/{}/statistics/{}'
+    echo_cmd = 'echo \'{},{}\' >> {}'
 
     def __init__(self, nodes, axes, single, data_type, fig, **kwargs):
         self.start(nodes, axes, single, data_type, fig, **kwargs)
@@ -181,7 +183,7 @@ class parseData(object):
         return plt.fignum_exists(2)
 
     def pub_msg(self, topic, msg):
-        os.system("mosquitto_pub -t {} -m \'{}\'".format(topic, msg))
+        os.system('mosquitto_pub -t {} -m \'{}\''.format(topic, msg))
 
     def run_dojot(self, topic):
         for node in self.nodes:
@@ -240,7 +242,7 @@ class parseData(object):
                 if node.name not in names:
                     names.append(node.name)
                 x, y, z = get_position(node)
-                os.system("echo '%s,%s' >> %s" % (x, y, self.filename.format(node)))
+                os.system(self.echo_cmd.format(x, y, self.filename.format(node)))
 
                 x = node.position[0]
                 y = node.position[1]
@@ -254,8 +256,8 @@ class parseData(object):
                     names.append(self.ifaces[node][wlan])
                     nodes_x[node], nodes_y[node] = [], []
                     rssi = get_rssi(node, self.ifaces[node][wlan])
-                    os.system("echo '%s,%s' >> %s" % (time_, rssi, self.filename.format(node)))
-                    graph_data = open('%s' % (self.filename.format(node)), 'r').read()
+                    os.system(self.echo_cmd.format(time_, rssi, self.filename.format(node)))
+                    graph_data = open('{}'.format(self.filename.format(node)), 'r').read()
                     lines = graph_data.split('\n')
                     for line in lines:
                         if len(line) > 1:
@@ -269,21 +271,16 @@ class parseData(object):
                     names.append(self.ifaces[node][wlan])
                     nodes_x[node], nodes_y[node] = [], []
                     arr = self.nodes.index(node)
-                    if isinstance(node, AP):
-                        tx_bytes = subprocess.check_output(
-                            ("%s" % self.dir).format(self.phys[arr],
-                                                     self.ifaces[node][wlan],
-                                                     self.data_type),
-                            shell=True).decode().split("\n")
-                    else:
-                        tx_bytes = subprocess.check_output(
-                            '%s %s ' % (util_dir, node) +
-                            ('%s' % self.dir).format(self.phys[arr],
-                                                     self.ifaces[node][wlan],
-                                                     self.data_type),
-                            shell=True).decode().split("\n")
+                    cmd = 'cat {}{}{}'.format(self.ieee80211_dir, self.net_dir, self.stats_dir)
+                    if not isinstance(node, AP):
+                        cmd = '{} {} '.format(util_dir, node) + cmd
+                    tx_bytes = subprocess.check_output(
+                        ('{}'.format(cmd)).format(self.phys[arr],
+                                                  self.ifaces[node][wlan],
+                                                  self.data_type),
+                        shell=True).decode().split("\n")
                     get_values_from_statistics(tx_bytes, time_, node, self.filename)
-                    graph_data = open('%s' % (self.filename.format(node)), 'r').read()
+                    graph_data = open('{}'.format(self.filename.format(node)), 'r').read()
                     lines = graph_data.split('\n')
                     for line in lines:
                         if len(line) > 1:
@@ -308,7 +305,7 @@ class parseData(object):
         self.axes = axes
         self.single = single
         self.data_type = data_type
-        self.filename = '%s-{}-mn-telemetry.txt' % data_type
+        self.filename = data_type + '-{}-mn-telemetry.txt'
 
         inNamespaceNodes = []
         for node in nodes:
@@ -327,7 +324,13 @@ class parseData(object):
                 time.sleep(interval/1000)
         else:
             for node in nodes:
-                if path.exists('%s' % (self.filename.format(node))):
-                    os.system('rm %s' % (self.filename.format(node)))
+                if path.exists('{}'.format(self.filename.format(node))):
+                    os.system('rm {}'.format(self.filename.format(node)))
             self.ani = animation.FuncAnimation(fig, self.animate, interval=interval)
+            fig.canvas.mpl_connect('close_event', self.close)
             plt.show()
+
+    def close(self, event):
+        self.thread_._keep_alive = False
+        self.thread_._is_running = False
+        plt.close(2)
