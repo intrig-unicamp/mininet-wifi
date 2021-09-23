@@ -203,7 +203,7 @@ function wifi_deps {
     fi
 
     echo "Installing Mininet-WiFi dependencies"
-    $install wireless-tools rfkill ${PYPKG}-numpy pkg-config \
+    $install wireless-tools rfkill ${PYPKG}-numpy pkg-config libnl-route-3-dev \
              libnl-3-dev libnl-genl-3-dev libssl-dev make libevent-dev patch \
              libdbus-1-dev ${PYPKG}-psutil
 
