@@ -441,19 +441,19 @@ function modem_manager {
     sudo make install
 
     cd $BUILD_DIR/mininet-wifi
-    if [ -d libqmi-1.30.0 ]; then
-      echo "Removing libqmi-1.30.0 dir..."
-      rm -r libqmi-1.30.0
+    if [ -d libqmi-1.30.2 ]; then
+      echo "Removing libqmi-1.30.2 dir..."
+      rm -r libqmi-1.30.2
     fi
     cd $BUILD_DIR/mininet-wifi
-    if [ -f libqmi-1.30.0.tar.xz ]; then
-      echo "Removing libqmi-1.30.0.tar.xz..."
-      rm libqmi-1.30.0.tar.xz
+    if [ -f libqmi-1.30.2.tar.xz ]; then
+      echo "Removing libqmi-1.30.2.tar.xz..."
+      rm libqmi-1.30.2.tar.xz
     fi
-    wget https://www.freedesktop.org/software/libqmi/libqmi-1.30.0.tar.xz
-    tar -Jxf libqmi-1.30.0.tar.xz
-    cd libqmi-1.30.0
-    ./configure
+    wget https://www.freedesktop.org/software/libqmi/libqmi-1.30.2.tar.xz
+    tar -Jxf libqmi-1.30.2.tar.xz
+    cd libqmi-1.30.2
+    ./configure --prefix=/usr --libdir=/usr/lib/x86_64-linux-gnu/
     make
     sudo make install
 
