@@ -11,10 +11,13 @@ telemetry(nodes, **params)
 
 import os
 import os.path
-import glob
 import time
 import subprocess
 import numpy
+
+import matplotlib
+matplotlib.use('TkAgg')
+
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 
